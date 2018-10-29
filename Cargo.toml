@@ -1,0 +1,14 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+categories = ["parsing", "encoding"]
+description = "Lexical, to- and from-string conversion routines."
+documentation = "https://docs.rs/lexical"
+keywords = ["parsing", "lexical", "encoding"]
+license = "MIT/Apache-2.0"
+name = "lexical"
+readme = "README.md"
+repository = "https://github.com/AlexHuszagh/rust-lexical"
+version = "0.0.1"
+
+[badges]
+travis-ci = { repository = "AlexHuszagh/rust-lexical" }
