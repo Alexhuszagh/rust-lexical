@@ -13,12 +13,18 @@ version = "0.0.1"
 [badges]
 travis-ci = { repository = "AlexHuszagh/rust-lexical" }
 
+[dependencies]
+# Global allocator only used during testing.
+wee_alloc = { version = "0.4", optional = true }
+
 [dev-dependencies]
 bencher = "0.1.5"
 
 [features]
 default = ["std"]
+alloc = ["wee_alloc"]
 std = []
+nightly = ["alloc"]
 
 # Benchmarks
 

@@ -43,8 +43,44 @@
 //! test u64_to_string ... bench:     687,727 ns/iter (+/- 29,603)
 //! ```
 
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+pub use alloc::string::String;
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+pub use alloc::vec::Vec;
+
 use super::c::{distance, reverse};
 use super::table::*;
+
+// INSTRINSICS
+
+/// `f64.floor()` feature for `no_std`
+#[cfg(not(feature = "std"))]
+#[inline(always)]
+fn floor(f: f64) -> f64 {
+    unsafe { core::intrinsics::floorf64(f) }
+}
+
+/// `f64.ln()` feature for `no_std`
+#[cfg(not(feature = "std"))]
+#[inline(always)]
+fn ln(f: f64) -> f64 {
+    unsafe { core::intrinsics::logf64(f) }
+}
+
+/// `f64.floor()` feature for `std`
+#[cfg(feature = "std")]
+#[inline(always)]
+fn floor(f: f64) -> f64 {
+    f.floor()
+}
+
+/// `f64.ln()` feature for `std`
+#[cfg(feature = "std")]
+#[inline(always)]
+fn ln(f: f64) -> f64 {
+    f.ln()
+}
 
 // MACRO
 
@@ -56,7 +92,7 @@ macro_rules! digits {
             _ => {
                 let v = $value as f64;
                 let b = $base as f64;
-                let digits = ((v.ln() / b.ln()) + 1.0).floor();
+                let digits = floor((ln(v) / ln(b)) + 1.0);
                 digits as usize
             }
         }
@@ -297,6 +333,7 @@ signed_unsafe_impl!(i64toa_unsafe, i64);
 // LOW-LEVEL API
 
 /// Generate the low-level bytes API using wrappers around the unsafe function.
+#[cfg(any(feature = "std", feature = "alloc"))]
 macro_rules! bytes_impl {
     ($func:ident, $t:ty, $callback:ident, $capacity:expr) => (
         /// Low-level bytes exporter for numbers.
@@ -317,16 +354,32 @@ macro_rules! bytes_impl {
     )
 }
 
+#[cfg(any(feature = "std", feature = "alloc"))]
 bytes_impl!(u8toa_bytes, u8, u8toa_unsafe, 9);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 bytes_impl!(u16toa_bytes, u16, u16toa_unsafe, 17);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 bytes_impl!(u32toa_bytes, u32, u32toa_unsafe, 33);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 bytes_impl!(u64toa_bytes, u64, u64toa_unsafe, 65);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 bytes_impl!(i8toa_bytes, i8, i8toa_unsafe, 9);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 bytes_impl!(i16toa_bytes, i16, i16toa_unsafe, 17);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 bytes_impl!(i32toa_bytes, i32, i32toa_unsafe, 33);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 bytes_impl!(i64toa_bytes, i64, i64toa_unsafe, 65);
 
 /// Generate the low-level string API using wrappers around the bytes function.
+#[cfg(any(feature = "std", feature = "alloc"))]
 macro_rules! string_impl {
     ($func:ident, $t:ty, $callback:ident) => (
         /// Low-level string exporter for numbers.
@@ -338,13 +391,28 @@ macro_rules! string_impl {
     )
 }
 
+#[cfg(any(feature = "std", feature = "alloc"))]
 string_impl!(u8toa_string, u8, u8toa_bytes);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 string_impl!(u16toa_string, u16, u16toa_bytes);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 string_impl!(u32toa_string, u32, u32toa_bytes);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 string_impl!(u64toa_string, u64, u64toa_bytes);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 string_impl!(i8toa_string, i8, i8toa_bytes);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 string_impl!(i16toa_string, i16, i16toa_bytes);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 string_impl!(i32toa_string, i32, i32toa_bytes);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 string_impl!(i64toa_string, i64, i64toa_bytes);
 
 // TESTS
@@ -355,6 +423,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn u8toa_test() {
         assert_eq!("0", u8toa_string(0, 10));
         assert_eq!("1", u8toa_string(1, 10));
@@ -365,6 +434,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn i8toa_test() {
         assert_eq!("0", i8toa_string(0, 10));
         assert_eq!("1", i8toa_string(1, 10));
@@ -375,6 +445,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn u16toa_test() {
         assert_eq!("0", u16toa_string(0, 10));
         assert_eq!("1", u16toa_string(1, 10));
@@ -385,6 +456,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn i16toa_test() {
         assert_eq!("0", i16toa_string(0, 10));
         assert_eq!("1", i16toa_string(1, 10));
@@ -395,6 +467,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn u32toa_test() {
         assert_eq!("0", u32toa_string(0, 10));
         assert_eq!("1", u32toa_string(1, 10));
@@ -405,6 +478,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn i32toa_test() {
         assert_eq!("0", i32toa_string(0, 10));
         assert_eq!("1", i32toa_string(1, 10));
@@ -415,6 +489,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn u64toa_test() {
         assert_eq!("0", u64toa_string(0, 10));
         assert_eq!("1", u64toa_string(1, 10));
@@ -425,6 +500,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn i64toa_test() {
         assert_eq!("0", i64toa_string(0, 10));
         assert_eq!("1", i64toa_string(1, 10));
@@ -436,6 +512,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn basen_test() {
         let data = [
             (2, "100101"),

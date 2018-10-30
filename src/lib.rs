@@ -1,5 +1,19 @@
 // FEATURES
 
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
+#![cfg_attr(feature = "alloc", feature(alloc))]
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+extern crate alloc;
+
+#[cfg(all(test, feature = "alloc", not(feature = "std")))]
+extern crate wee_alloc;
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
 /// Facade around the core features for name mangling.
 pub(crate) mod sealed {
     #[cfg(not(feature = "std"))]
@@ -15,8 +29,7 @@ mod c;
 // Publicly export the low-level APIs.
 pub mod atof;
 pub mod atoi;
-// TODO(ahuszagh)   Remove
-#[allow(dead_code)] pub mod ftoa;
+pub mod ftoa;
 pub mod itoa;
 pub mod table;
 

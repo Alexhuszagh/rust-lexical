@@ -9,6 +9,12 @@
 use sealed::mem;
 use sealed::ptr;
 
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+pub use alloc::string::String;
+
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+pub use alloc::vec::Vec;
+
 use super::c::distance;
 
 // MACRO
@@ -50,15 +56,16 @@ struct FloatType {
 }
 
 // IEEE754 CONSTANTS
-const EXPONENT_MASK: u64 = 0x7FF0000000000000;
-const HIDDEN_BIT: u64 = 0x0010000000000000;
-const SIGN_MASK: u64 = 0x800000000000000;
-const SIGNIFICAND_MASK: u64 = 0x000FFFFFFFFFFFFF;
-const U64_INFINITY: u64 = 0x7FF0000000000000;
-const PHYSICAL_SIGNIFICAND_SIZE: i32 = 52;
-const SIGNIFICAND_SIZE: i32 = 53;
-const EXPONENT_BIAS: i32 = 0x3FF + PHYSICAL_SIGNIFICAND_SIZE;
-const DENORMAL_EXPONENT: i32 = -EXPONENT_BIAS + 1;
+// TODO(ahuszagh)   Restore...
+//const EXPONENT_MASK: u64 = 0x7FF0000000000000;
+//const HIDDEN_BIT: u64 = 0x0010000000000000;
+//const SIGN_MASK: u64 = 0x800000000000000;
+//const SIGNIFICAND_MASK: u64 = 0x000FFFFFFFFFFFFF;
+//const U64_INFINITY: u64 = 0x7FF0000000000000;
+//const PHYSICAL_SIGNIFICAND_SIZE: i32 = 52;
+//const SIGNIFICAND_SIZE: i32 = 53;
+//const EXPONENT_BIAS: i32 = 0x3FF + PHYSICAL_SIGNIFICAND_SIZE;
+//const DENORMAL_EXPONENT: i32 = -EXPONENT_BIAS + 1;
 
 // FLOATING POINT CONSTANTS
 const ONE_LOG_TEN: f64 = 0.30102999566398114;
@@ -659,6 +666,7 @@ unsafe_impl!(f64toa_unsafe, f64);
 // LOW-LEVEL API
 
 /// Generate the low-level bytes API using wrappers around the unsafe function.
+#[cfg(any(feature = "std", feature = "alloc"))]
 macro_rules! bytes_impl {
     ($func:ident, $t:ty, $callback:ident) => (
         /// Low-level bytes exporter for numbers.
@@ -679,10 +687,14 @@ macro_rules! bytes_impl {
     )
 }
 
+#[cfg(any(feature = "std", feature = "alloc"))]
 bytes_impl!(f32toa_bytes, f32, f32toa_unsafe);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 bytes_impl!(f64toa_bytes, f64, f64toa_unsafe);
 
 /// Generate the low-level string API using wrappers around the bytes function.
+#[cfg(any(feature = "std", feature = "alloc"))]
 macro_rules! string_impl {
     ($func:ident, $t:ty, $callback:ident) => (
         /// Low-level string exporter for numbers.
@@ -694,7 +706,10 @@ macro_rules! string_impl {
     )
 }
 
+#[cfg(any(feature = "std", feature = "alloc"))]
 string_impl!(f32toa_string, f32, f32toa_bytes);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 string_impl!(f64toa_string, f64, f64toa_bytes);
 
 // TESTS
@@ -708,11 +723,13 @@ mod tests {
     //  Add tests...
 
     #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn f32toa_base2_test() {
         //assert_eq!("1.001111000000110010", &f32toa_string(1.2345678901234567890e0, 2)[..20]);
     }
 
     #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
     fn f32toa_base10_test() {
         assert_eq!("1.234567", &f32toa_string(1.2345678901234567890e0, 10)[..8]);
     }
