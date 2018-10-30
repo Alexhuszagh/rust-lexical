@@ -6,7 +6,6 @@
 //! The radix-generic algorithm is adapted from the V8 codebase,
 //! and may be found [here](https://github.com/v8/v8).
 //!
-//!
 //! The following benchmarks were run on an "Intel(R) Core(TM) i7-6560U
 //! CPU @ 2.20GHz" CPU, on Fedora 28, Linux kernel version 4.18.16-200
 //! (x86-64), using the lexical formatter, `dtoa::write()` or `x.to_string()`,
@@ -22,10 +21,10 @@
 //!
 //! # Benchmarks
 //!
-//! | Type  |  lexical (ns/iter) | to_string (ns/iter)   | Percent Increase  |
+//! | Type  |  lexical (ns/iter) | to_string (ns/iter)   | Relative Increase |
 //! |:-----:|:------------------:|:---------------------:|:-----------------:|
-//! | f32   | 1,221,025          | 2,711,290             | 222%              |
-//! | f64   | 1,248,397          | 3,558,305             | 285%              |
+//! | f32   | 1,221,025          | 2,711,290             | 2.22x             |
+//! | f64   | 1,248,397          | 3,558,305             | 2.85x             |
 //!
 //! # Raw Benchmarks
 //!
@@ -1107,10 +1106,7 @@ mod tests {
         assert_eq!("-10011010010.10010001", &f32toa_string(-1.2345678901234567890e3, 2)[..21]);
 
         // special
-        #[cfg(feature = "std")]
         assert_eq!("NaN", &f32toa_string(F32_NAN, 2));
-
-        #[cfg(feature = "std")]
         assert_eq!("Infinity", &f32toa_string(F32_INFINITY, 2));
     }
 
@@ -1130,10 +1126,7 @@ mod tests {
         assert_eq!("-1234.567", &f32toa_string(-1.2345678901234567890e3, 10)[..9]);
 
         // special
-        #[cfg(feature = "std")]
         assert_eq!("NaN", &f32toa_string(F32_NAN, 10));
-
-        #[cfg(feature = "std")]
         assert_eq!("Infinity", &f32toa_string(F32_INFINITY, 10));
     }
 
@@ -1165,10 +1158,7 @@ mod tests {
         assert_eq!("-10011010010.1001000101100001001111110100", &f64toa_string(-1.2345678901234567890e3, 2)[..41]);
 
         // special
-        #[cfg(feature = "std")]
         assert_eq!("NaN", &f64toa_string(F64_NAN, 2));
-
-        #[cfg(feature = "std")]
         assert_eq!("Infinity", &f64toa_string(F64_INFINITY, 2));
     }
 
@@ -1188,10 +1178,7 @@ mod tests {
         assert_eq!("-1234.567", &f64toa_string(-1.2345678901234567890e3, 10)[..9]);
 
         // special
-        #[cfg(feature = "std")]
         assert_eq!("NaN", &f64toa_string(F64_NAN, 10));
-
-        #[cfg(feature = "std")]
         assert_eq!("Infinity", &f64toa_string(F64_INFINITY, 10));
     }
 

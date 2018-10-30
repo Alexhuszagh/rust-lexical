@@ -15,16 +15,16 @@
 //!
 //! # Benchmarks
 //!
-//! | Type  |  lexical (ns/iter) | to_string (ns/iter)   | Percent Increase  |
+//! | Type  |  lexical (ns/iter) | to_string (ns/iter)   | Relative Increase |
 //! |:-----:|:------------------:|:---------------------:|:-----------------:|
-//! | u8    | 251,526            | 565,540               | 225%              |
-//! | u16   | 253,976            | 541,471               | 213%              |
-//! | u32   | 321,663            | 554,155               | 172%              |
-//! | u64   | 467,457            | 687,727               | 147%              |
-//! | i8    | 267,711            | 749,067               | 280%              |
-//! | i16   | 308,417            | 767,189               | 248%              |
-//! | i32   | 397,399            | 847,318               | 212%              |
-//! | i64   | 456,488            | 909,026               | 199%              |
+//! | u8    | 251,526            | 565,540               | 2.25x             |
+//! | u16   | 253,976            | 541,471               | 2.13x             |
+//! | u32   | 321,663            | 554,155               | 1.72x             |
+//! | u64   | 467,457            | 687,727               | 1.47x             |
+//! | i8    | 267,711            | 749,067               | 2.80x             |
+//! | i16   | 308,417            | 767,189               | 2.48x             |
+//! | i32   | 397,399            | 847,318               | 2.12x             |
+//! | i64   | 456,488            | 909,026               | 1.99x             |
 //!
 //! # Raw Benchmarks
 //!
@@ -311,10 +311,22 @@ macro_rules! itoa_signed {
         check_digits!($value, $first, $last, $base);
 
         // Handle negative numbers, use an unsigned type to avoid overflow.
+        // Use a wrapping neg to allow overflow.
+        // These routines wrap on one condition, where the input number is equal
+        // to the minimum possible value of that type (for example, -128 for i8).
+        // In this case, and this case only, the value wraps to itself with
+        // `x.wrapping_neg()`, so `-128i8.wrapping_neg() == -128i8` in two's
+        // complement (the only true integer representation). Conversion of
+        // this wrapped value to an unsigned integer of the same size with
+        // effectively negates the value, for example, `-128i8 as u8 == 128u8`.
+        // Due to type widening, this wrap only occurs for `i64::min_value()`,
+        // and since it is converted to `u64`, this algorithm is correct
+        // for all numerical input values, since Rust guarantees two's
+        // complement representation for signed integers.
         let v: u64;
         if $value < 0 {
             *$first = b'-';
-            v = (-($value as i64)) as u64;
+            v = ($value as i64).wrapping_neg() as u64;
             $first = $first.add(1);
         } else {
             v = $value as u64;
@@ -405,6 +417,7 @@ signed_unsafe_impl!(i64toa_unsafe, i64);
 macro_rules! bytes_impl {
     ($func:ident, $t:ty, $callback:ident, $capacity:expr) => (
         /// Low-level bytes exporter for numbers.
+        #[inline]
         pub fn $func(value: $t, base: u8)
             -> Vec<u8>
         {
@@ -451,6 +464,7 @@ bytes_impl!(i64toa_bytes, i64, i64toa_unsafe, 65);
 macro_rules! string_impl {
     ($func:ident, $t:ty, $callback:ident) => (
         /// Low-level string exporter for numbers.
+        #[inline]
         pub fn $func(value: $t, base: u8)
             -> String
         {
@@ -573,8 +587,7 @@ mod tests {
         assert_eq!("0", i64toa_string(0, 10));
         assert_eq!("1", i64toa_string(1, 10));
         assert_eq!("9223372036854775807", i64toa_string(9223372036854775807, 10));
-        // We would expect it to overflow, this single value.
-        // assert_eq!("-9223372036854775808", i64toa_string(9223372036854775808u64 as i64, 10));
+        assert_eq!("-9223372036854775808", i64toa_string(9223372036854775808u64 as i64, 10));
         assert_eq!("-1", i64toa_string(18446744073709551615u64 as i64, 10));
         assert_eq!("-1", i64toa_string(-1, 10));
     }
