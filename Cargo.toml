@@ -19,17 +19,24 @@ wee_alloc = { version = "0.4", optional = true }
 
 [dev-dependencies]
 bencher = "0.1.5"
+dtoa = "0.4"
+itoa = "0.4"
 
 [features]
-default = ["std"]
+default = ["std", "table"]
 alloc = ["wee_alloc"]
-std = []
 nightly = ["alloc"]
+std = []
+table = []
 
 # Benchmarks
 
 [[bench]]
 name = "itoa"
+harness = false
+
+[[bench]]
+name = "ftoa"
 harness = false
 
 [profile.bench]

@@ -2,67 +2,90 @@
 //!
 //! The following benchmarks were run on an "Intel(R) Core(TM) i7-6560U
 //! CPU @ 2.20GHz" CPU, on Fedora 28, Linux kernel version 4.18.16-200
-//! (x86-64), using either the itoa formatter or `x.to_string()`,
+//! (x86-64), using the lexical formatter, `itoa::write()` or `x.to_string()`,
 //! avoiding any inefficiencies in Rust string parsing for `format!(...)`
 //! or `write!()` macros. The code was compiled with LTO and at an optimization
 //! level of 3.
+//!
+//! The benchmarks with `std` were compiled using "rustc 1.29.2 (17a9dc751
+//! 2018-10-05", and the `no_std` benchmarks were compiled using "rustc
+//! 1.31.0-nightly (46880f41b 2018-10-15)".
 //!
 //! The benchmark code may be found `benches/itoa.rs`.
 //!
 //! # Benchmarks
 //!
-//! | Type  |  itoa (ns/iter)   | to_string (ns/iter)   | Percent Increase  |
-//! |:-----:|:-----------------:|:---------------------:|:-----------------:|
-//! | u8    | 251,526           | 565,540               | 225%              |
-//! | u16   | 253,976           | 541,471               | 213%              |
-//! | u32   | 321,663           | 554,155               | 172%              |
-//! | u64   | 467,457           | 687,727               | 147%              |
-//! | i8    | 267,711           | 749,067               | 280%              |
-//! | i16   | 308,417           | 767,189               | 248%              |
-//! | i32   | 397,399           | 847,318               | 212%              |
-//! | i64   | 456,488           | 909,026               | 199%              |
+//! | Type  |  lexical (ns/iter) | to_string (ns/iter)   | Percent Increase  |
+//! |:-----:|:------------------:|:---------------------:|:-----------------:|
+//! | u8    | 251,526            | 565,540               | 225%              |
+//! | u16   | 253,976            | 541,471               | 213%              |
+//! | u32   | 321,663            | 554,155               | 172%              |
+//! | u64   | 467,457            | 687,727               | 147%              |
+//! | i8    | 267,711            | 749,067               | 280%              |
+//! | i16   | 308,417            | 767,189               | 248%              |
+//! | i32   | 397,399            | 847,318               | 212%              |
+//! | i64   | 456,488            | 909,026               | 199%              |
 //!
 //! # Raw Benchmarks
 //!
 //! ```text
-//! test i8_itoa       ... bench:     267,711 ns/iter (+/- 15,109)
-//! test i8_to_string  ... bench:     749,067 ns/iter (+/- 57,279)
-//! test i16_itoa      ... bench:     308,417 ns/iter (+/- 14,001)
-//! test i16_to_string ... bench:     767,189 ns/iter (+/- 94,647)
-//! test i32_itoa      ... bench:     397,399 ns/iter (+/- 32,418)
-//! test i32_to_string ... bench:     847,318 ns/iter (+/- 223,192)
-//! test i64_itoa      ... bench:     456,488 ns/iter (+/- 23,833)
-//! test i64_to_string ... bench:     909,026 ns/iter (+/- 79,991)
-//! test u8_itoa       ... bench:     251,526 ns/iter (+/- 8,546)
-//! test u8_to_string  ... bench:     565,540 ns/iter (+/- 28,796)
-//! test u16_itoa      ... bench:     253,976 ns/iter (+/- 13,588)
-//! test u16_to_string ... bench:     541,471 ns/iter (+/- 44,584)
-//! test u32_itoa      ... bench:     321,663 ns/iter (+/- 21,334)
-//! test u32_to_string ... bench:     554,155 ns/iter (+/- 26,865)
-//! test u64_itoa      ... bench:     467,457 ns/iter (+/- 24,331)
-//! test u64_to_string ... bench:     687,727 ns/iter (+/- 29,603)
+//! test i8_itoa       ... bench:     290,879 ns/iter (+/- 20,785)
+//! test i8_lexical    ... bench:     264,393 ns/iter (+/- 13,174)
+//! test i8_to_string  ... bench:     710,683 ns/iter (+/- 29,733)
+//! test i16_itoa      ... bench:     291,568 ns/iter (+/- 17,685)
+//! test i16_lexical   ... bench:     277,071 ns/iter (+/- 12,155)
+//! test i16_to_string ... bench:     709,717 ns/iter (+/- 36,272)
+//! test i32_itoa      ... bench:     315,750 ns/iter (+/- 17,166)
+//! test i32_lexical   ... bench:     313,994 ns/iter (+/- 24,824)
+//! test i32_to_string ... bench:     784,850 ns/iter (+/- 60,596)
+//! test i64_itoa      ... bench:     339,346 ns/iter (+/- 25,263)
+//! test i64_lexical   ... bench:     335,098 ns/iter (+/- 16,897)
+//! test i64_to_string ... bench:     825,617 ns/iter (+/- 27,940)
+//! test u8_itoa       ... bench:     278,985 ns/iter (+/- 22,038)
+//! test u8_lexical    ... bench:     233,850 ns/iter (+/- 8,531)
+//! test u8_to_string  ... bench:     521,612 ns/iter (+/- 30,309)
+//! test u16_itoa      ... bench:     288,058 ns/iter (+/- 57,947)
+//! test u16_lexical   ... bench:     263,126 ns/iter (+/- 104,268)
+//! test u16_to_string ... bench:     513,183 ns/iter (+/- 27,565)
+//! test u32_itoa      ... bench:     271,674 ns/iter (+/- 6,385)
+//! test u32_lexical   ... bench:     266,256 ns/iter (+/- 116,874)
+//! test u32_to_string ... bench:     529,319 ns/iter (+/- 109,369)
+//! test u64_itoa      ... bench:     360,856 ns/iter (+/- 131,510)
+//! test u64_lexical   ... bench:     335,878 ns/iter (+/- 75,110)
+//! test u64_to_string ... bench:     645,835 ns/iter (+/- 93,398)
 //! ```
 //!
 //! Raw Benchmarks (`no_std`)
 //!
 //! ```text
-//! test i8_itoa       ... bench:     583,229 ns/iter (+/- 36,969)
-//! test i8_to_string  ... bench:   1,276,710 ns/iter (+/- 927,252)
-//! test i16_itoa      ... bench:     628,523 ns/iter (+/- 22,745)
-//! test i16_to_string ... bench:   1,210,166 ns/iter (+/- 101,038)
-//! test i32_itoa      ... bench:     666,982 ns/iter (+/- 101,974)
-//! test i32_to_string ... bench:   1,232,044 ns/iter (+/- 49,525)
-//! test i64_itoa      ... bench:     761,804 ns/iter (+/- 51,171)
-//! test i64_to_string ... bench:   1,276,153 ns/iter (+/- 77,508)
-//! test u8_itoa       ... bench:     676,327 ns/iter (+/- 175,490)
-//! test u8_to_string  ... bench:   1,002,233 ns/iter (+/- 296,734)
-//! test u16_itoa      ... bench:     679,884 ns/iter (+/- 192,205)
-//! test u16_to_string ... bench:   1,076,906 ns/iter (+/- 515,775)
-//! test u32_itoa      ... bench:     851,972 ns/iter (+/- 170,472)
-//! test u32_to_string ... bench:   1,006,898 ns/iter (+/- 484,726)
-//! test u64_itoa      ... bench:     952,345 ns/iter (+/- 330,691)
-//! test u64_to_string ... bench:   1,360,791 ns/iter (+/- 560,970)
-//!
+//! test i8_itoa       ... bench:     595,005 ns/iter (+/- 36,626)
+//! test i8_lexical    ... bench:     561,319 ns/iter (+/- 17,670)
+//! test i8_to_string  ... bench:   1,123,246 ns/iter (+/- 41,451)
+//! test i16_itoa      ... bench:     602,613 ns/iter (+/- 31,383)
+//! test i16_lexical   ... bench:     597,835 ns/iter (+/- 18,976)
+//! test i16_to_string ... bench:   1,162,493 ns/iter (+/- 61,947)
+//! test i32_itoa      ... bench:     643,928 ns/iter (+/- 48,297)
+//! test i32_lexical   ... bench:     625,825 ns/iter (+/- 127,002)
+//! test i32_to_string ... bench:   1,199,091 ns/iter (+/- 220,981)
+//! test i64_itoa      ... bench:     670,835 ns/iter (+/- 75,959)
+//! test i64_lexical   ... bench:     688,899 ns/iter (+/- 99,429)
+//! test i64_to_string ... bench:   1,239,407 ns/iter (+/- 157,723)
+//! test u8_itoa       ... bench:     585,364 ns/iter (+/- 29,233)
+//! test u8_lexical    ... bench:     562,703 ns/iter (+/- 32,110)
+//! test u8_to_string  ... bench:     826,371 ns/iter (+/- 39,158)
+//! test u16_itoa      ... bench:     589,813 ns/iter (+/- 23,505)
+//! test u16_lexical   ... bench:     584,662 ns/iter (+/- 36,987)
+//! test u16_to_string ... bench:     823,388 ns/iter (+/- 43,951)
+//! test u32_itoa      ... bench:     622,236 ns/iter (+/- 11,931)
+//! test u32_lexical   ... bench:     603,591 ns/iter (+/- 15,666)
+//! test u32_to_string ... bench:     840,490 ns/iter (+/- 41,951)
+//! test u64_itoa      ... bench:     664,002 ns/iter (+/- 29,050)
+//! test u64_lexical   ... bench:     664,414 ns/iter (+/- 29,542)
+//! test u64_to_string ... bench:     914,314 ns/iter (+/- 51,479)
+//! ```
+
+use sealed::mem;
+use sealed::ptr;
 
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 pub use alloc::string::String;
@@ -70,38 +93,8 @@ pub use alloc::string::String;
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 pub use alloc::vec::Vec;
 
-use super::c::{distance, reverse};
 use super::table::*;
-
-// INSTRINSICS
-
-/// `f64.floor()` feature for `no_std`
-#[cfg(not(feature = "std"))]
-#[inline(always)]
-fn floor(f: f64) -> f64 {
-    unsafe { core::intrinsics::floorf64(f) }
-}
-
-/// `f64.ln()` feature for `no_std`
-#[cfg(not(feature = "std"))]
-#[inline(always)]
-fn ln(f: f64) -> f64 {
-    unsafe { core::intrinsics::logf64(f) }
-}
-
-/// `f64.floor()` feature for `std`
-#[cfg(feature = "std")]
-#[inline(always)]
-fn floor(f: f64) -> f64 {
-    f.floor()
-}
-
-/// `f64.ln()` feature for `std`
-#[cfg(feature = "std")]
-#[inline(always)]
-fn ln(f: f64) -> f64 {
-    f.ln()
-}
+use super::util::{distance, floor, ln};
 
 // MACRO
 
@@ -127,9 +120,18 @@ macro_rules! check_digits {
     })
 }
 
+// CONSTANTS
+
+/// Maximum digits possible for a u64 export.
+/// Value is `digits!(0XFFFFFFFFFFFFFFFF, 2)`, which is 65.
+/// Up to the nearest power of 2, since it notably increases
+/// performance.
+const MAX_DIGITS: usize = 128;
+
 // OPTIMIZED
 
 /// Optimized implementation for base-N numbers.
+#[cfg(feature = "table")]
 #[inline]
 unsafe extern "C" fn itoa_optimized(
     mut value: u64,
@@ -140,37 +142,61 @@ unsafe extern "C" fn itoa_optimized(
     -> *mut u8
 {
     let base2 = base * base;
+    let base4 = base2 * base2;
 
     if value == 0 {
         *first = b'0';
         return first.add(1);
     }
 
+    // Create a temporary buffer, and copy into it.
+    // Way faster than reversing a buffer in-place.
+    let mut buffer: [u8; MAX_DIGITS] = mem::uninitialized();
     let mut rem: usize;
-    let mut p: *mut u8 = first;
+    let mut curr = buffer.len();
+    let p: *mut u8 = buffer.as_mut_ptr();
+
+    // Decode 4 digits at a time
+    while value >= base4 {
+        let rem = value % base4;
+        value /= base4;
+        let r1 = (2 * (rem / base2)) as usize;
+        let r2 = (2 * (rem % base2)) as usize;
+
+        curr -= 4;
+        ptr::copy_nonoverlapping(table.add(r1), p.add(curr), 2);
+        ptr::copy_nonoverlapping(table.add(r2), p.add(curr + 2), 2);
+    }
+
+    // Decode 2 digits at a time.
     while value >= base2 {
         rem = (2 * (value % base2)) as usize;
         value /= base2;
-        *p = *table.add(rem+1);
-        p = p.add(1);
-        *p = *table.add(rem);
-        p = p.add(1);
+
+        curr -= 2;
+        ptr::copy_nonoverlapping(table.add(rem), p.add(curr), 2);
     }
 
-    while value > 0 {
-        rem = (value % base) as usize;
-        *p = *BASEN.get_unchecked(rem);
-        p = p.add(1);
-        value /= base;
+    // Decode last 2 digits.
+    if value < base {
+        curr -= 1;
+        *p.add(curr) = *BASEN.get_unchecked(value as usize);
+    } else {
+        let rem = 2 * value as usize;
+        curr -= 2;
+        ptr::copy_nonoverlapping(table.add(rem), p.add(curr), 2);
     }
 
-    reverse(first, p);
-    p
+    let len = buffer.len() - curr;
+    ptr::copy_nonoverlapping(p.add(curr), first, len);
+
+    first.add(len)
 }
 
 // NAIVE
 
 /// Naive implementation for base-N numbers.
+#[cfg(not(feature = "table"))]
 #[inline]
 unsafe extern "C" fn itoa_naive(
     mut value: u64,
@@ -182,64 +208,85 @@ unsafe extern "C" fn itoa_naive(
     // Logic error, base should not be passed dynamically.
     debug_assert!(base >= 2 && base <= 36,"Numerical base must be from 2-36");
 
+    // Create a temporary buffer, and copy into it.
+    // Way faster than reversing a buffer in-place.
+    let mut buffer: [u8; MAX_DIGITS] = mem::uninitialized();
     let mut rem: usize;
-    let mut p: *mut u8 = first;
+    let mut curr = buffer.len();
+    let p: *mut u8 = buffer.as_mut_ptr();
+
+    // Decode all but last digit, 1 at a time.
     while value >= base {
         rem = (value % base) as usize;
         value /= base;
+
+        curr -= 1;
+        *p.add(curr) = *BASEN.get_unchecked(rem);
         *p = *BASEN.get_unchecked(rem);
-        p = p.add(1);
     }
 
+    // Decode last digit.
     rem = (value % base) as usize;
-    *p = *BASEN.get_unchecked(rem);
-    p = p.add(1);
+    curr -= 1;
+    *p.add(curr) = *BASEN.get_unchecked(rem);
 
-    reverse(first, p);
-    p
+    let len = buffer.len() - curr;
+    ptr::copy_nonoverlapping(p.add(curr), first, len);
+
+    first.add(len)
 }
 
 
 /// Forward the correct arguments to the implementation.
-macro_rules! itoa_forward {
-    ($value:ident, $first:ident, $base:ident) => (match $base {
-        2   => itoa_optimized($value, $first, $base, BASE2.as_ptr()),
-        3   => itoa_optimized($value, $first, $base, BASE3.as_ptr()),
-        4   => itoa_optimized($value, $first, $base, BASE4.as_ptr()),
-        5   => itoa_optimized($value, $first, $base, BASE5.as_ptr()),
-        6   => itoa_optimized($value, $first, $base, BASE6.as_ptr()),
-        7   => itoa_optimized($value, $first, $base, BASE7.as_ptr()),
-        8   => itoa_optimized($value, $first, $base, BASE8.as_ptr()),
-        9   => itoa_optimized($value, $first, $base, BASE9.as_ptr()),
-        10  => itoa_optimized($value, $first, $base, BASE10.as_ptr()),
-        11  => itoa_optimized($value, $first, $base, BASE11.as_ptr()),
-        12  => itoa_optimized($value, $first, $base, BASE12.as_ptr()),
-        13  => itoa_optimized($value, $first, $base, BASE13.as_ptr()),
-        14  => itoa_optimized($value, $first, $base, BASE14.as_ptr()),
-        15  => itoa_optimized($value, $first, $base, BASE15.as_ptr()),
-        16  => itoa_optimized($value, $first, $base, BASE16.as_ptr()),
-        17  => itoa_optimized($value, $first, $base, BASE17.as_ptr()),
-        18  => itoa_optimized($value, $first, $base, BASE18.as_ptr()),
-        19  => itoa_optimized($value, $first, $base, BASE19.as_ptr()),
-        20  => itoa_optimized($value, $first, $base, BASE20.as_ptr()),
-        21  => itoa_optimized($value, $first, $base, BASE21.as_ptr()),
-        22  => itoa_optimized($value, $first, $base, BASE22.as_ptr()),
-        23  => itoa_optimized($value, $first, $base, BASE23.as_ptr()),
-        24  => itoa_optimized($value, $first, $base, BASE24.as_ptr()),
-        25  => itoa_optimized($value, $first, $base, BASE25.as_ptr()),
-        26  => itoa_optimized($value, $first, $base, BASE26.as_ptr()),
-        27  => itoa_optimized($value, $first, $base, BASE27.as_ptr()),
-        28  => itoa_optimized($value, $first, $base, BASE28.as_ptr()),
-        29  => itoa_optimized($value, $first, $base, BASE29.as_ptr()),
-        30  => itoa_optimized($value, $first, $base, BASE30.as_ptr()),
-        31  => itoa_optimized($value, $first, $base, BASE31.as_ptr()),
-        32  => itoa_optimized($value, $first, $base, BASE32.as_ptr()),
-        33  => itoa_optimized($value, $first, $base, BASE33.as_ptr()),
-        34  => itoa_optimized($value, $first, $base, BASE34.as_ptr()),
-        35  => itoa_optimized($value, $first, $base, BASE35.as_ptr()),
-        36  => itoa_optimized($value, $first, $base, BASE36.as_ptr()),
-        _   => itoa_naive($value, $first, $base),
-    })
+#[inline]
+pub(crate) unsafe extern "C" fn itoa_forward(
+    value: u64,
+    first: *mut u8,
+    base: u64
+)    -> *mut u8
+{
+    #[cfg(feature = "table")]
+    match base {
+        2   => itoa_optimized(value, first, base, BASE2.as_ptr()),
+        3   => itoa_optimized(value, first, base, BASE3.as_ptr()),
+        4   => itoa_optimized(value, first, base, BASE4.as_ptr()),
+        5   => itoa_optimized(value, first, base, BASE5.as_ptr()),
+        6   => itoa_optimized(value, first, base, BASE6.as_ptr()),
+        7   => itoa_optimized(value, first, base, BASE7.as_ptr()),
+        8   => itoa_optimized(value, first, base, BASE8.as_ptr()),
+        9   => itoa_optimized(value, first, base, BASE9.as_ptr()),
+        10  => itoa_optimized(value, first, base, BASE10.as_ptr()),
+        11  => itoa_optimized(value, first, base, BASE11.as_ptr()),
+        12  => itoa_optimized(value, first, base, BASE12.as_ptr()),
+        13  => itoa_optimized(value, first, base, BASE13.as_ptr()),
+        14  => itoa_optimized(value, first, base, BASE14.as_ptr()),
+        15  => itoa_optimized(value, first, base, BASE15.as_ptr()),
+        16  => itoa_optimized(value, first, base, BASE16.as_ptr()),
+        17  => itoa_optimized(value, first, base, BASE17.as_ptr()),
+        18  => itoa_optimized(value, first, base, BASE18.as_ptr()),
+        19  => itoa_optimized(value, first, base, BASE19.as_ptr()),
+        20  => itoa_optimized(value, first, base, BASE20.as_ptr()),
+        21  => itoa_optimized(value, first, base, BASE21.as_ptr()),
+        22  => itoa_optimized(value, first, base, BASE22.as_ptr()),
+        23  => itoa_optimized(value, first, base, BASE23.as_ptr()),
+        24  => itoa_optimized(value, first, base, BASE24.as_ptr()),
+        25  => itoa_optimized(value, first, base, BASE25.as_ptr()),
+        26  => itoa_optimized(value, first, base, BASE26.as_ptr()),
+        27  => itoa_optimized(value, first, base, BASE27.as_ptr()),
+        28  => itoa_optimized(value, first, base, BASE28.as_ptr()),
+        29  => itoa_optimized(value, first, base, BASE29.as_ptr()),
+        30  => itoa_optimized(value, first, base, BASE30.as_ptr()),
+        31  => itoa_optimized(value, first, base, BASE31.as_ptr()),
+        32  => itoa_optimized(value, first, base, BASE32.as_ptr()),
+        33  => itoa_optimized(value, first, base, BASE33.as_ptr()),
+        34  => itoa_optimized(value, first, base, BASE34.as_ptr()),
+        35  => itoa_optimized(value, first, base, BASE35.as_ptr()),
+        36  => itoa_optimized(value, first, base, BASE36.as_ptr()),
+        _   => unreachable!(),
+    }
+
+    #[cfg(not(feature = "table"))]
+    itoa_naive(value, first, base)
 }
 
 /// Sanitizer for an unsigned number-to-string implementation.
@@ -252,7 +299,7 @@ macro_rules! itoa_unsigned {
         // Invoke forwarder
         let v = $value as u64;
         let b = $base as u64;
-        itoa_forward!(v, $first, b)
+        itoa_forward(v, $first, b)
     })
 }
 
@@ -275,7 +322,7 @@ macro_rules! itoa_signed {
 
         // Invoke forwarder
         let b = $base as u64;
-        itoa_forward!(v, $first, b)
+        itoa_forward(v, $first, b)
     })
 }
 

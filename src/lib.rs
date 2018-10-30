@@ -24,7 +24,7 @@ pub(crate) mod sealed {
 }
 
 // Hide the implementation details.
-mod c;
+mod util;
 
 // Publicly export the low-level APIs.
 pub mod atof;

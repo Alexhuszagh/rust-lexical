@@ -5,6 +5,49 @@
 //!
 //! The radix-generic algorithm is adapted from the V8 codebase,
 //! and may be found [here](https://github.com/v8/v8).
+//!
+//!
+//! The following benchmarks were run on an "Intel(R) Core(TM) i7-6560U
+//! CPU @ 2.20GHz" CPU, on Fedora 28, Linux kernel version 4.18.16-200
+//! (x86-64), using the lexical formatter, `dtoa::write()` or `x.to_string()`,
+//! avoiding any inefficiencies in Rust string parsing for `format!(...)`
+//! or `write!()` macros. The code was compiled with LTO and at an optimization
+//! level of 3.
+//!
+//! The benchmarks with `std` were compiled using "rustc 1.29.2 (17a9dc751
+//! 2018-10-05", and the `no_std` benchmarks were compiled using "rustc
+//! 1.31.0-nightly (46880f41b 2018-10-15)".
+//!
+//! The benchmark code may be found `benches/ftoa.rs`.
+//!
+//! # Benchmarks
+//!
+//! | Type  |  lexical (ns/iter) | to_string (ns/iter)   | Percent Increase  |
+//! |:-----:|:------------------:|:---------------------:|:-----------------:|
+//! | f32   | 1,221,025          | 2,711,290             | 222%              |
+//! | f64   | 1,248,397          | 3,558,305             | 285%              |
+//!
+//! # Raw Benchmarks
+//!
+//! ```text
+//! test f32_dtoa      ... bench:   1,301,173 ns/iter (+/- 45,283)
+//! test f32_lexical   ... bench:   1,221,025 ns/iter (+/- 42,428)
+//! test f32_to_string ... bench:   2,711,290 ns/iter (+/- 75,376)
+//! test f64_dtoa      ... bench:   1,462,523 ns/iter (+/- 103,974)
+//! test f64_lexical   ... bench:   1,248,397 ns/iter (+/- 41,952)
+//! test f64_to_string ... bench:   3,558,305 ns/iter (+/- 103,945)
+//! ```
+//!
+//! Raw Benchmarks (`no_std`)
+//!
+//! ```text
+//! test f32_dtoa      ... bench:   1,727,839 ns/iter (+/- 76,330)
+//! test f32_lexical   ... bench:   1,461,892 ns/iter (+/- 95,811)
+//! test f32_to_string ... bench:   3,687,219 ns/iter (+/- 313,885)
+//! test f64_dtoa      ... bench:   1,927,419 ns/iter (+/- 122,000)
+//! test f64_lexical   ... bench:   1,505,955 ns/iter (+/- 87,548)
+//! test f64_to_string ... bench:   4,774,595 ns/iter (+/- 244,214)
+//! ```
 
 use sealed::mem;
 use sealed::ptr;
@@ -15,18 +58,36 @@ pub use alloc::string::String;
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 pub use alloc::vec::Vec;
 
-use super::c::distance;
+use super::util::{distance, floor, ln};
+use super::itoa::itoa_forward;
+use super::table::BASEN;
 
 // MACRO
 
 /// Fast macro absolute value calculator.
 macro_rules! absv {
-    ($n:expr) => (if $n < 0 { -$n } else { $n })
+    ($n:expr) => ({
+        let n = $n;
+        if n < 0 { -n } else { n }
+    })
+}
+
+/// Fast macro maximum value calculator.
+macro_rules! maxv {
+    ($a:expr, $b:expr) => ({
+        let a = $a;
+        let b = $b;
+        if a > b { a } else { b }
+    })
 }
 
 /// Fast macro minimum value calculator.
 macro_rules! minv {
-    ($a:expr, $b:expr) => (if $a < $b { $a } else { $b })
+    ($a:expr, $b:expr) => ({
+        let a = $a;
+        let b = $b;
+        if a < b { a } else { b }
+    })
 }
 
 // FTOA BASE10
@@ -56,16 +117,14 @@ struct FloatType {
 }
 
 // IEEE754 CONSTANTS
-// TODO(ahuszagh)   Restore...
-//const EXPONENT_MASK: u64 = 0x7FF0000000000000;
-//const HIDDEN_BIT: u64 = 0x0010000000000000;
-//const SIGN_MASK: u64 = 0x800000000000000;
-//const SIGNIFICAND_MASK: u64 = 0x000FFFFFFFFFFFFF;
-//const U64_INFINITY: u64 = 0x7FF0000000000000;
-//const PHYSICAL_SIGNIFICAND_SIZE: i32 = 52;
-//const SIGNIFICAND_SIZE: i32 = 53;
-//const EXPONENT_BIAS: i32 = 0x3FF + PHYSICAL_SIGNIFICAND_SIZE;
-//const DENORMAL_EXPONENT: i32 = -EXPONENT_BIAS + 1;
+const EXPONENT_MASK: u64 = 0x7FF0000000000000;
+const HIDDEN_BIT: u64 = 0x0010000000000000;
+const SIGN_MASK: u64 = 0x800000000000000;
+const SIGNIFICAND_MASK: u64 = 0x000FFFFFFFFFFFFF;
+const U64_INFINITY: u64 = 0x7FF0000000000000;
+const PHYSICAL_SIGNIFICAND_SIZE: i32 = 52;
+const EXPONENT_BIAS: i32 = 0x3FF + PHYSICAL_SIGNIFICAND_SIZE;
+const DENORMAL_EXPONENT: i32 = -EXPONENT_BIAS + 1;
 
 // FLOATING POINT CONSTANTS
 const ONE_LOG_TEN: f64 = 0.30102999566398114;
@@ -556,17 +615,324 @@ unsafe extern "C" fn ftoa_base10(value: f64, first: *mut u8)
 }
 
 // FTOA BASEN
+// ----------
 
-#[allow(unused)]
+// V8 RADIX
+
+/// Returns true if the double is a denormal.
+#[inline]
+#[allow(dead_code)]
+fn v8_is_denormal(d: f64) -> bool
+{
+    let d64 = get_dbits(d);
+    (d64 & EXPONENT_MASK) == 0
+}
+
+/// We consider denormals not to be special.
+/// Hence only Infinity and NaN are special.
+#[inline]
+#[allow(dead_code)]
+fn v8_is_special(d: f64) -> bool
+{
+    let d64 = get_dbits(d);
+    (d64 & EXPONENT_MASK) == EXPONENT_MASK
+}
+
+/// Check if value is NaN.
+#[inline]
+#[allow(dead_code)]
+fn v8_is_nan(d: f64) -> bool
+{
+    let d64 = get_dbits(d);
+    ((d64 & EXPONENT_MASK) == EXPONENT_MASK) && ((d64 & SIGNIFICAND_MASK) != 0)
+}
+
+/// Check if value is infinite.
+#[inline]
+#[allow(dead_code)]
+fn v8_is_infinite(d: f64) -> bool
+{
+    let d64 = get_dbits(d);
+    ((d64 & EXPONENT_MASK) == EXPONENT_MASK) && ((d64 & SIGNIFICAND_MASK) == 0)
+}
+
+
+/// Get sign from float.
+#[inline]
+#[allow(dead_code)]
+fn v8_sign(d: f64) -> i32
+{
+    let d64 = get_dbits(d);
+    if (d64 & SIGN_MASK) == 0 { 1 } else { -1 }
+}
+
+
+/// Get exponent from float.
+#[inline]
+#[allow(dead_code)]
+fn v8_exponent(d: f64) -> i32
+{
+    if v8_is_denormal(d) {
+        return DENORMAL_EXPONENT;
+    }
+
+    let d64 = get_dbits(d);
+    let biased_e = ((d64 & EXPONENT_MASK) >> PHYSICAL_SIGNIFICAND_SIZE) as i32;
+    biased_e - EXPONENT_BIAS
+}
+
+/// Get significand from float.
+#[inline]
+#[allow(dead_code)]
+fn v8_significand(d: f64) -> u64
+{
+    let d64 = get_dbits(d);
+    let s = d64 & SIGNIFICAND_MASK;
+    if !v8_is_denormal(d) {
+      s + HIDDEN_BIT
+    } else {
+      s
+    }
+}
+
+/// Returns the next greater double. Returns +infinity on input +infinity.
+#[inline]
+#[allow(dead_code)]
+fn v8_next_double(d: f64) -> f64
+{
+    let d64 = get_dbits(d);
+    if d64 == U64_INFINITY {
+        return get_u64bits(U64_INFINITY);
+    }
+    if v8_sign(d) < 0 && v8_significand(d) == 0 {
+      // -0.0
+      return 0.0;
+    }
+    if v8_sign(d) < 0 {
+        return get_u64bits(d64 - 1);
+    } else {
+        return get_u64bits(d64 + 1);
+    }
+}
+
+/// Floating-point modulus (rust supports this intrinsically).
+#[inline]
+#[allow(dead_code)]
+fn v8_modulo(x: f64, y: f64) -> f64
+{
+    x % y
+}
+
+/// Calculate the naive exponent from a minimal value.
+#[inline]
+fn naive_exponent(d: f64, base: u64) -> i32
+{
+    // floor returns the minimal value, which is our
+    // desired exponent
+    // ln(1.1e-5) -> -4.95 -> -5
+    // ln(1.1e5) -> -5.04 -> 5
+    (floor(ln(d) / ln(base as f64))) as i32
+}
+
+/// Naive algorithm for converting a floating point to a custom radix.
+///
+/// Adapted from the V8 implementation.
+unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
+    -> *mut u8
+{
+    // Logic error, base should not be passed dynamically.
+    debug_assert!(base >= 2 && base <= 36,"Numerical base must be from 2-36");
+
+    // check for special cases
+    let length = filter_special(d, first);
+    if length != 0 {
+        return first.offset(length as isize);
+    }
+
+    // assert no special cases remain
+    debug_assert!(!v8_is_special(d));
+    debug_assert!(d != 0.0);
+
+    // Store the first digit and up to `BUFFER_SIZE - 15` digits
+    // that occur from left-to-right in the decimal representation.
+    // For example, for the number 123.45, store the first digit `1`
+    // and `2345` as the remaining values. Then, decide on-the-fly
+    // if we need scientific or regular formatting.
+    //
+    //   BUFFER_SIZE
+    // - 1      # first digit
+    // - 1      # period
+    // - 1      # +/- sign
+    // - 2      # e and +/- sign
+    // - 9      # max exp is 308, in base2 is 9
+    // - 1      # null terminator
+    // = 15 characters of formatting required
+    const MAX_NONDIGIT_LENGTH: usize = 15;
+    const MAX_DIGIT_LENGTH: usize = BUFFER_SIZE - MAX_NONDIGIT_LENGTH;
+
+    // Temporary buffer for the result. We start with the decimal point in the
+    // middle and write to the left for the integer part and to the right for the
+    // fractional part. 1024 characters for the exponent and 52 for the mantissa
+    // either way, with additional space for sign, decimal point and string
+    // termination should be sufficient.
+    const SIZE: usize = 2200;
+    let mut buffer: [u8; SIZE] = mem::uninitialized();
+    let buffer = buffer.as_mut_ptr();
+    let initial_position: usize = SIZE / 2;
+    let mut integer_cursor = initial_position;
+    let mut fraction_cursor = initial_position;
+    let bf = base as f64;
+
+    // Split the value into an integer part and a fractional part.
+    let mut integer = floor(d);
+    let mut fraction = d - integer;
+
+    // We only compute fractional digits up to the input double's precision.
+    let mut delta = 0.5 * (v8_next_double(d) - d);
+    delta = maxv!(v8_next_double(0.0), delta);
+    debug_assert!(delta > 0.0);
+
+    if fraction > delta {
+        loop {
+            // Shift up by one digit.
+            fraction *= bf;
+            delta *= bf;
+            // Write digit.
+            let digit = fraction as i32;
+            *buffer.add(fraction_cursor) = *BASEN.get_unchecked(digit as usize);
+            fraction_cursor += 1;
+            // Calculate remainder.
+            fraction -= digit as f64;
+            // Round to even.
+            if fraction > 0.5 || (fraction == 0.5 && (digit & 1) != 0) {
+                if fraction + delta > 1.0 {
+                    // We need to back trace already written digits in case of carry-over.
+                    loop {
+                        fraction_cursor -= 1;
+                        if fraction_cursor == initial_position-1 {
+                            // Carry over to the integer part.
+                            integer += 1.0;
+                            break;
+                        }
+                        let c = *buffer.add(fraction_cursor);
+                        // Reconstruct digit.
+                        let digit: i32;
+                        if c <= b'9' {
+                            digit = (c - b'0') as i32;
+                        } else if c >= b'A' && c <= b'Z' {
+                            digit = (c - b'A' + 10) as i32;
+                        } else {
+                            debug_assert!(c >= b'a' && c <= b'z');
+                            digit = (c - b'a' + 10) as i32;
+                        }
+                        if digit + 1 < base as i32 {
+                            let idx = (digit + 1) as usize;
+                            *buffer.add(fraction_cursor) = *BASEN.get_unchecked(idx);
+                            fraction_cursor += 1;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+
+            if delta >= fraction {
+                break;
+            }
+        }
+    }
+
+    // Compute integer digits. Fill unrepresented digits with zero.
+    while v8_exponent(integer / bf) > 0 {
+        integer /= bf;
+        integer_cursor -= 1;
+        *buffer.add(integer_cursor) = b'0';
+    }
+
+    loop {
+        let remainder = v8_modulo(integer, bf);
+        integer_cursor -= 1;
+        let idx = remainder as usize;
+        *buffer.add(integer_cursor) = *BASEN.get_unchecked(idx);
+        integer = (integer - remainder) / bf;
+
+        if integer <= 0.0 {
+            break;
+        }
+    };
+
+    if d <= 1e-5 || d >= 1e9 {
+        // write scientific notation with negative exponent
+        let exponent = naive_exponent(d, base);
+
+        // Non-exponent portion.
+        // 1.   Get as many digits as possible, up to `MAX_DIGIT_LENGTH+1`
+        //      (since we are ignoring the digit for the first digit),
+        //      or the number of written digits
+        let start: usize;
+        let end: usize;
+        if d <= 1e-5 {
+            start = ((initial_position as i32) - exponent - 1) as usize;
+            end = minv!(fraction_cursor, start + MAX_DIGIT_LENGTH + 1);
+        } else {
+            start = integer_cursor;
+            end = minv!(fraction_cursor, start + MAX_DIGIT_LENGTH + 1);
+        }
+        let mut buf_first = buffer.add(start);
+        let mut buf_last = buf_first.add(end - start);
+
+        // 2.   Remove any trailing 0s in the selected range.
+        loop {
+            buf_last = buf_last.sub(1);
+            if *buf_last != b'0' {
+                break;
+            }
+        }
+
+        // 3.   Write the fraction component
+        let mut p = first;
+        *p = *buf_first;
+        p = p.add(1);
+        buf_first = buf_first.add(1);
+        *p = b'.';
+        p = p.add(1);
+        let dist = distance(buf_first, buf_last);
+        ptr::copy_nonoverlapping(buf_first, p, dist);
+        p = p.add(dist);
+
+        // write the exponent component
+        *p = exponent_notation_char(base);
+        p = p.add(1);
+        itoa_forward(exponent as u64, p, base);
+        return p;
+
+    } else {
+        let mut p;
+        // get component lengths
+        let integer_length = initial_position - integer_cursor;
+        let fraction_length = minv!(fraction_cursor - initial_position, MAX_DIGIT_LENGTH - integer_length);
+
+        // write integer component
+        ptr::copy_nonoverlapping(buffer.add(integer_cursor), first, integer_length);
+        p = first.add(integer_length);
+
+        // write fraction component
+        if fraction_length > 0 {
+            *p = b'.';
+            p = p.add(1);
+            ptr::copy_nonoverlapping(buffer.add(initial_position), p, fraction_length);
+            p = p.add(fraction_length);
+        }
+
+        return p;
+    }
+}
+
 unsafe extern "C" fn ftoa_basen(value: f64, first: *mut u8, base: u64)
     -> *mut u8
 {
-    //ftoa_naive(value, first, last, base);
-    panic!("Unruly code path!!!");
+    ftoa_naive(value, first, base)
 }
-
-// TODO(ahuszagh)
-//  Implement...
 
 // FTOA
 
@@ -718,19 +1084,126 @@ string_impl!(f64toa_string, f64, f64toa_bytes);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::util::*;
 
-    // TODO(ahuszagh)
-    //  Add tests...
+    // Test data for roundtrips.
+    // TODO(ahuszagh) Restore for roundtrip data
+    //const F32_DATA : [f32; 31] = [0., 0.1, 1., 1.1, 12., 12.1, 123., 123.1, 1234., 1234.1, 12345., 12345.1, 123456., 123456.1, 1234567., 1234567.1, 12345678., 12345678.1, 123456789., 123456789.1, 123456789.12, 123456789.123, 123456789.1234, 123456789.12345, 1.2345678912345e8, 1.2345e+8, 1.2345e+11, 1.2345e+38, 1.2345e-8, 1.2345e-11, 1.2345e-38];
+    //const F64_DATA: [f64; 33] = [0., 0.1, 1., 1.1, 12., 12.1, 123., 123.1, 1234., 1234.1, 12345., 12345.1, 123456., 123456.1, 1234567., 1234567.1, 12345678., 12345678.1, 123456789., 123456789.1, 123456789.12, 123456789.123, 123456789.1234, 123456789.12345, 1.2345678912345e8, 1.2345e+8, 1.2345e+11, 1.2345e+38, 1.2345e+308, 1.2345e-8, 1.2345e-11, 1.2345e-38, 1.2345e-308];
 
     #[test]
     #[cfg(any(feature = "std", feature = "alloc"))]
     fn f32toa_base2_test() {
-        //assert_eq!("1.001111000000110010", &f32toa_string(1.2345678901234567890e0, 2)[..20]);
+        // positive
+        assert_eq!("1.001111000000110010", &f32toa_string(1.2345678901234567890e0, 2)[..20]);
+        assert_eq!("1100.010110000111111", &f32toa_string(1.2345678901234567890e1, 2)[..20]);
+        assert_eq!("1111011.011101001111", &f32toa_string(1.2345678901234567890e2, 2)[..20]);
+        assert_eq!("10011010010.10010001", &f32toa_string(1.2345678901234567890e3, 2)[..20]);
+
+            // negative
+        assert_eq!("-1.001111000000110010", &f32toa_string(-1.2345678901234567890e0, 2)[..21]);
+        assert_eq!("-1100.010110000111111", &f32toa_string(-1.2345678901234567890e1, 2)[..21]);
+        assert_eq!("-1111011.011101001111", &f32toa_string(-1.2345678901234567890e2, 2)[..21]);
+        assert_eq!("-10011010010.10010001", &f32toa_string(-1.2345678901234567890e3, 2)[..21]);
+
+        // special
+        #[cfg(feature = "std")]
+        assert_eq!("NaN", &f32toa_string(F32_NAN, 2));
+
+        #[cfg(feature = "std")]
+        assert_eq!("Infinity", &f32toa_string(F32_INFINITY, 2));
     }
 
     #[test]
     #[cfg(any(feature = "std", feature = "alloc"))]
     fn f32toa_base10_test() {
+        // positive
         assert_eq!("1.234567", &f32toa_string(1.2345678901234567890e0, 10)[..8]);
+        assert_eq!("12.34567", &f32toa_string(1.2345678901234567890e1, 10)[..8]);
+        assert_eq!("123.4567", &f32toa_string(1.2345678901234567890e2, 10)[..8]);
+        assert_eq!("1234.567", &f32toa_string(1.2345678901234567890e3, 10)[..8]);
+
+        // negative
+        assert_eq!("-1.234567", &f32toa_string(-1.2345678901234567890e0, 10)[..9]);
+        assert_eq!("-12.34567", &f32toa_string(-1.2345678901234567890e1, 10)[..9]);
+        assert_eq!("-123.4567", &f32toa_string(-1.2345678901234567890e2, 10)[..9]);
+        assert_eq!("-1234.567", &f32toa_string(-1.2345678901234567890e3, 10)[..9]);
+
+        // special
+        #[cfg(feature = "std")]
+        assert_eq!("NaN", &f32toa_string(F32_NAN, 10));
+
+        #[cfg(feature = "std")]
+        assert_eq!("Infinity", &f32toa_string(F32_INFINITY, 10));
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn f32toa_base10_roundtrip_test() {
+        // TODO(ahuszagh) Implement...
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn f32toa_basen_roundtrip_test() {
+        // TODO(ahuszagh) Implement...
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn f64toa_base2_test() {
+        // positive
+        assert_eq!("1.00111100000011001010010000101000110001", &f64toa_string(1.2345678901234567890e0, 2)[..40]);
+        assert_eq!("1100.01011000011111100110100110010111101", &f64toa_string(1.2345678901234567890e1, 2)[..40]);
+        assert_eq!("1111011.01110100111100000001111111101101", &f64toa_string(1.2345678901234567890e2, 2)[..40]);
+        assert_eq!("10011010010.1001000101100001001111110100", &f64toa_string(1.2345678901234567890e3, 2)[..40]);
+
+            // negative
+        assert_eq!("-1.00111100000011001010010000101000110001", &f64toa_string(-1.2345678901234567890e0, 2)[..41]);
+        assert_eq!("-1100.01011000011111100110100110010111101", &f64toa_string(-1.2345678901234567890e1, 2)[..41]);
+        assert_eq!("-1111011.01110100111100000001111111101101", &f64toa_string(-1.2345678901234567890e2, 2)[..41]);
+        assert_eq!("-10011010010.1001000101100001001111110100", &f64toa_string(-1.2345678901234567890e3, 2)[..41]);
+
+        // special
+        #[cfg(feature = "std")]
+        assert_eq!("NaN", &f64toa_string(F64_NAN, 2));
+
+        #[cfg(feature = "std")]
+        assert_eq!("Infinity", &f64toa_string(F64_INFINITY, 2));
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn f64toa_base10_test() {
+        // positive
+        assert_eq!("1.234567", &f64toa_string(1.2345678901234567890e0, 10)[..8]);
+        assert_eq!("12.34567", &f64toa_string(1.2345678901234567890e1, 10)[..8]);
+        assert_eq!("123.4567", &f64toa_string(1.2345678901234567890e2, 10)[..8]);
+        assert_eq!("1234.567", &f64toa_string(1.2345678901234567890e3, 10)[..8]);
+
+        // negative
+        assert_eq!("-1.234567", &f64toa_string(-1.2345678901234567890e0, 10)[..9]);
+        assert_eq!("-12.34567", &f64toa_string(-1.2345678901234567890e1, 10)[..9]);
+        assert_eq!("-123.4567", &f64toa_string(-1.2345678901234567890e2, 10)[..9]);
+        assert_eq!("-1234.567", &f64toa_string(-1.2345678901234567890e3, 10)[..9]);
+
+        // special
+        #[cfg(feature = "std")]
+        assert_eq!("NaN", &f64toa_string(F64_NAN, 10));
+
+        #[cfg(feature = "std")]
+        assert_eq!("Infinity", &f64toa_string(F64_INFINITY, 10));
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn f64toa_base10_roundtrip_test() {
+        // TODO(ahuszagh) Implement...
+    }
+
+    #[test]
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    fn f64toa_basen_roundtrip_test() {
+        // TODO(ahuszagh) Implement...
     }
 }
