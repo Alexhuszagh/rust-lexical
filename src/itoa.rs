@@ -42,6 +42,27 @@
 //! test u64_itoa      ... bench:     467,457 ns/iter (+/- 24,331)
 //! test u64_to_string ... bench:     687,727 ns/iter (+/- 29,603)
 //! ```
+//!
+//! Raw Benchmarks (`no_std`)
+//!
+//! ```text
+//! test i8_itoa       ... bench:     583,229 ns/iter (+/- 36,969)
+//! test i8_to_string  ... bench:   1,276,710 ns/iter (+/- 927,252)
+//! test i16_itoa      ... bench:     628,523 ns/iter (+/- 22,745)
+//! test i16_to_string ... bench:   1,210,166 ns/iter (+/- 101,038)
+//! test i32_itoa      ... bench:     666,982 ns/iter (+/- 101,974)
+//! test i32_to_string ... bench:   1,232,044 ns/iter (+/- 49,525)
+//! test i64_itoa      ... bench:     761,804 ns/iter (+/- 51,171)
+//! test i64_to_string ... bench:   1,276,153 ns/iter (+/- 77,508)
+//! test u8_itoa       ... bench:     676,327 ns/iter (+/- 175,490)
+//! test u8_to_string  ... bench:   1,002,233 ns/iter (+/- 296,734)
+//! test u16_itoa      ... bench:     679,884 ns/iter (+/- 192,205)
+//! test u16_to_string ... bench:   1,076,906 ns/iter (+/- 515,775)
+//! test u32_itoa      ... bench:     851,972 ns/iter (+/- 170,472)
+//! test u32_to_string ... bench:   1,006,898 ns/iter (+/- 484,726)
+//! test u64_itoa      ... bench:     952,345 ns/iter (+/- 330,691)
+//! test u64_to_string ... bench:   1,360,791 ns/iter (+/- 560,970)
+//!
 
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 pub use alloc::string::String;
