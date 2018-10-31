@@ -2,12 +2,18 @@ sudo: false
 
 language: rust
 
-rust:
-  - nightly
-  - beta
-  - stable
+matrix:
+  include:
+    - rust: stable
+    - rust: beta
+
+    - rust: nightly
+      script:
+        - cargo test
+        - cargo test --no-default-features
+        - cargo test --no-default-features --features=alloc
+        - cargo test --no-default-features --features=alloc,table
 
 script:
   - cargo build
   - cargo test
-  - cargo test --release -- --ignored

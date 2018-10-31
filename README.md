@@ -1,7 +1,7 @@
 lexical
 =======
 
-An extremely fast implementation of lexical conversion routines.
+Fast lexical conversion routines.
 
 # Getting Started
 

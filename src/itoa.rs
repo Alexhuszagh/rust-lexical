@@ -93,8 +93,8 @@ pub use alloc::string::String;
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 pub use alloc::vec::Vec;
 
-use super::table::*;
-use super::util::{distance, floor, ln};
+use table::*;
+use util::{distance, floor, ln};
 
 // MACRO
 
@@ -125,7 +125,7 @@ macro_rules! check_digits {
 /// Maximum digits possible for a u64 export.
 /// Value is `digits!(0XFFFFFFFFFFFFFFFF, 2)`, which is 65.
 /// Up to the nearest power of 2, since it notably increases
-/// performance.
+/// performance (~25%) on x86-64 architectures.
 const MAX_DIGITS: usize = 128;
 
 // OPTIMIZED
@@ -412,90 +412,32 @@ signed_unsafe_impl!(i64toa_unsafe, i64);
 
 // LOW-LEVEL API
 
-/// Generate the low-level bytes API using wrappers around the unsafe function.
+// Use powers of 2 for allocation.
+// It really doesn't, make a difference here, especially since
+// the value is just a suggestion for the vector.
 #[cfg(any(feature = "std", feature = "alloc"))]
-macro_rules! bytes_impl {
-    ($func:ident, $t:ty, $callback:ident, $capacity:expr) => (
-        /// Low-level bytes exporter for numbers.
-        #[inline]
-        pub fn $func(value: $t, base: u8)
-            -> Vec<u8>
-        {
-            let mut buf: Vec<u8> = Vec::with_capacity($capacity);
-            unsafe {
-                let first: *mut u8 = buf.as_mut_ptr();
-                let last = first.add(buf.capacity());
-                let end = $callback(value, first, last, base);
-                let size = distance(first, end);
-                buf.set_len(size);
-            }
-
-            buf
-        }
-    )
-}
+string_impl!(u8toa_string, u8, u8toa_unsafe, 16);     // 9
 
 #[cfg(any(feature = "std", feature = "alloc"))]
-bytes_impl!(u8toa_bytes, u8, u8toa_unsafe, 9);
+string_impl!(u16toa_string, u16, u16toa_unsafe, 32);  // 17
 
 #[cfg(any(feature = "std", feature = "alloc"))]
-bytes_impl!(u16toa_bytes, u16, u16toa_unsafe, 17);
+string_impl!(u32toa_string, u32, u32toa_unsafe, 64);  // 33
 
 #[cfg(any(feature = "std", feature = "alloc"))]
-bytes_impl!(u32toa_bytes, u32, u32toa_unsafe, 33);
+string_impl!(u64toa_string, u64, u64toa_unsafe, 128); // 65
 
 #[cfg(any(feature = "std", feature = "alloc"))]
-bytes_impl!(u64toa_bytes, u64, u64toa_unsafe, 65);
+string_impl!(i8toa_string, i8, i8toa_unsafe, 16);     // 9
 
 #[cfg(any(feature = "std", feature = "alloc"))]
-bytes_impl!(i8toa_bytes, i8, i8toa_unsafe, 9);
+string_impl!(i16toa_string, i16, i16toa_unsafe, 32);  // 17
 
 #[cfg(any(feature = "std", feature = "alloc"))]
-bytes_impl!(i16toa_bytes, i16, i16toa_unsafe, 17);
+string_impl!(i32toa_string, i32, i32toa_unsafe, 64);  // 33
 
 #[cfg(any(feature = "std", feature = "alloc"))]
-bytes_impl!(i32toa_bytes, i32, i32toa_unsafe, 33);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-bytes_impl!(i64toa_bytes, i64, i64toa_unsafe, 65);
-
-/// Generate the low-level string API using wrappers around the bytes function.
-#[cfg(any(feature = "std", feature = "alloc"))]
-macro_rules! string_impl {
-    ($func:ident, $t:ty, $callback:ident) => (
-        /// Low-level string exporter for numbers.
-        #[inline]
-        pub fn $func(value: $t, base: u8)
-            -> String
-        {
-            unsafe { String::from_utf8_unchecked($callback(value, base)) }
-        }
-    )
-}
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(u8toa_string, u8, u8toa_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(u16toa_string, u16, u16toa_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(u32toa_string, u32, u32toa_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(u64toa_string, u64, u64toa_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(i8toa_string, i8, i8toa_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(i16toa_string, i16, i16toa_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(i32toa_string, i32, i32toa_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(i64toa_string, i64, i64toa_bytes);
+string_impl!(i64toa_string, i64, i64toa_unsafe, 128); // 65
 
 // TESTS
 // -----

@@ -1,5 +1,6 @@
 [package]
 authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
 categories = ["parsing", "encoding"]
 description = "Lexical, to- and from-string conversion routines."
 documentation = "https://docs.rs/lexical"
@@ -21,6 +22,7 @@ travis-ci = { repository = "AlexHuszagh/rust-lexical" }
 wee_alloc = { version = "0.4", optional = true }
 
 [dev-dependencies]
+assert_float_eq = "1"
 bencher = "0.1.5"
 dtoa = "0.4"
 itoa = "0.4"
@@ -33,6 +35,10 @@ std = []
 table = []
 
 # Benchmarks
+
+[[bench]]
+name = "atof"
+harness = false
 
 [[bench]]
 name = "atoi"
