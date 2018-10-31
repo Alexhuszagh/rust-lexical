@@ -84,7 +84,9 @@ pub extern "C" fn exponent_notation_char(base: u64)
 // Simple, fast optimization.
 // Since we're declaring a variable on the stack, and our power-of-two
 // alignment dramatically improved atoi performance, do it.
-const MAX_FLOAT_SIZE: usize = 64;
+// Use 256, actually, since we seem to have memory issues with 64-bits.
+// Clearly not sufficient memory allocated for non-base10 values.
+const MAX_FLOAT_SIZE: usize = 256;
 const BUFFER_SIZE: usize = MAX_FLOAT_SIZE;
 
 // LOOKUPS
@@ -498,7 +500,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
     debug_assert!(!v8_is_special(d));
     debug_assert!(d != 0.0);
 
-    // Store the first digit and up to `BUFFER_SIZE - 15` digits
+    // Store the first digit and up to `BUFFER_SIZE - 20` digits
     // that occur from left-to-right in the decimal representation.
     // For example, for the number 123.45, store the first digit `1`
     // and `2345` as the remaining values. Then, decide on-the-fly
@@ -512,7 +514,8 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
     // - 9      # max exp is 308, in base2 is 9
     // - 1      # null terminator
     // = 15 characters of formatting required
-    const MAX_NONDIGIT_LENGTH: usize = 15;
+    // Just pad it a bit, we don't want memory corruption.
+    const MAX_NONDIGIT_LENGTH: usize = 25;
     const MAX_DIGIT_LENGTH: usize = BUFFER_SIZE - MAX_NONDIGIT_LENGTH;
 
     // Temporary buffer for the result. We start with the decimal point in the

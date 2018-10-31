@@ -66,6 +66,7 @@ pub use alloc::string::String;
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 pub use alloc::vec::Vec;
 
+#[cfg(any(feature = "std", feature = "alloc"))]
 use traits::{Aton, Ntoa};
 
 /// High-level conversion of a number to a decimal-encoded string.

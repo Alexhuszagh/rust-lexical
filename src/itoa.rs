@@ -222,7 +222,6 @@ unsafe extern "C" fn itoa_naive(
 
         curr -= 1;
         *p.add(curr) = *BASEN.get_unchecked(rem);
-        *p = *BASEN.get_unchecked(rem);
     }
 
     // Decode last digit.

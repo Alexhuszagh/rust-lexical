@@ -40,34 +40,15 @@ macro_rules! aton_impl {
     )
 }
 
-#[cfg(any(feature = "std", feature = "alloc"))]
 aton_impl!(u8, atou8_bytes, try_atou8_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
 aton_impl!(u16, atou16_bytes, try_atou16_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
 aton_impl!(u32, atou32_bytes, try_atou32_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
 aton_impl!(u64, atou64_bytes, try_atou64_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
 aton_impl!(i8, atoi8_bytes, try_atoi8_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
 aton_impl!(i16, atoi16_bytes, try_atoi16_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
 aton_impl!(i32, atoi32_bytes, try_atoi32_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
 aton_impl!(i64, atoi64_bytes, try_atoi64_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
 aton_impl!(f32, atof32_bytes, try_atof32_bytes);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
 aton_impl!(f64, atof64_bytes, try_atof64_bytes);
 
 // NTOA
@@ -79,6 +60,7 @@ pub trait Ntoa: Sized {
     fn serialize_to_string(&self, base: u8) -> String;
 }
 
+#[cfg(any(feature = "std", feature = "alloc"))]
 macro_rules! ntoa_impl {
     ($t:ty, $string_cb:ident) => (
         impl Ntoa for $t {
@@ -151,6 +133,7 @@ mod tests {
         deserialize_float! { f32 f64 }
     }
 
+    #[cfg(any(feature = "std", feature = "alloc"))]
     macro_rules! serialize_int {
         ($($t:tt)*) => ($({
             let x: $t = 0;
@@ -158,6 +141,7 @@ mod tests {
         })*)
     }
 
+    #[cfg(any(feature = "std", feature = "alloc"))]
     macro_rules! serialize_float {
         ($($t:tt)*) => ($({
             let x: $t = 0.0;
@@ -165,6 +149,7 @@ mod tests {
         })*)
     }
 
+    #[cfg(any(feature = "std", feature = "alloc"))]
     #[test]
     fn ntoa_test() {
         serialize_int! { u8 u16 u32 u64 i8 i16 i32 i64 }
