@@ -91,7 +91,7 @@ Furthermore, for number-to-string conversions, lexical's performance is comparab
 
 # Documentation
 
-Lexical's documentation can be found on [docs.rs](https://docs.rs/lexicals).
+Lexical's documentation can be found on [docs.rs](https://docs.rs/lexical).
 
 # Details
 
