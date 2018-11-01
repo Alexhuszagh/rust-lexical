@@ -7,6 +7,10 @@ Fast lexical conversion routines.
 
 # Benchmarks
 
+**ftoa**
+
+![ftoa benchmark](assets/ftoa.svg | width=200)
+
 # Details
 
 // Note use of a Grisu2 algorithm, rather than Grisu3, which creates the 

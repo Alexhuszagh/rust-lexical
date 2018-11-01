@@ -48,6 +48,19 @@
 //! test f64_to_string ... bench:   4,774,595 ns/iter (+/- 244,214)
 //! ```
 
+// Code the generate the plot:
+//      import numpy as np
+//      import pandas as pd
+//      import matplotlib.pyplot as plt
+//      plt.style.use('ggplot')
+//      lexical = np.array([1221025, 1248397]) / 1e6
+//      to_string = np.array([2711290, 3558305]) / 1e6
+//      df = pd.DataFrame({'lexical': lexical, 'to_string': to_string}, index = index)
+//      ax = df.plot.bar(rot=0)
+//      ax.set_ylabel("ms/iter")
+//      ax.figure.tight_layout()
+//      plt.show()
+
 use sealed::mem;
 use sealed::ptr;
 

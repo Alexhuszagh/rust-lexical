@@ -1,6 +1,7 @@
 //! Fast lexical conversion routines.
 //!
-//!
+//! Lexical provides fast number-to-string and string-to-number conversion
+//! routines.
 //! TODO(document)
 
 // FEATURES
