@@ -65,29 +65,29 @@ For all the following benchmarks, lower is better.
 
 **Float to String**
 
-![ftoa benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/ftoa.svg)
+![ftoa benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/ftoa.png)
 
 **Integer To String**
 
-![itoa benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/itoa.svg)
+![itoa benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/itoa.png)
 
 **String to Float**
 
-![atof benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atof.svg)
+![atof benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atof.png)
 
 **String to Integer**
 
-![atoi benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atoi.svg)
+![atoi benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atoi.png)
 
 Furthermore, for number-to-string conversions, lexical's performance is comparable to (if not slightly faster) than [dtoa](https://github.com/dtolnay/dtoa) and [itoa](https://github.com/dtolnay/itoa), despite supporting more functionality than either (including non-base 10 representations).
 
 **Float to String**
 
-![lexical-dtoa benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/lexical_dtoa.svg)
+![lexical-dtoa benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/lexical_dtoa.png)
 
 **Integer To String**
 
-![lexical-itoa benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/lexical_itoa.svg)
+![lexical-itoa benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/lexical_itoa.png)
 
 # Documentation
 
