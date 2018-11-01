@@ -85,18 +85,18 @@
 //! ```
 
 // Code the generate the benchmark plot:
-//      import numpy as np
-//      import pandas as pd
-//      import matplotlib.pyplot as plt
-//      plt.style.use('ggplot')
-//      lexical = np.array([251526, 253976, 321663, 467457, 267711, 308417, 397399, 456488]) / 1e6
-//      parse = np.array([565540, 541471, 554155, 687727, 749067, 767189, 847318, 909026]) / 1e6
-//      index = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"]
-//      df = pd.DataFrame({'lexical': lexical, 'parse': parse}, index = index)
-//      ax = df.plot.bar(rot=0)
-//      ax.set_ylabel("ms/iter")
-//      ax.figure.tight_layout()
-//      plt.show()
+//  import numpy as np
+//  import pandas as pd
+//  import matplotlib.pyplot as plt
+//  plt.style.use('ggplot')
+//  lexical = np.array([251526, 253976, 321663, 467457, 267711, 308417, 397399, 456488]) / 1e6
+//  to_string = np.array([565540, 541471, 554155, 687727, 749067, 767189, 847318, 909026]) / 1e6
+//  index = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"]
+//  df = pd.DataFrame({'lexical': lexical, 'to_string': to_string}, index = index)
+//  ax = df.plot.bar(rot=0)
+//  ax.set_ylabel("ms/iter")
+//  ax.figure.tight_layout()
+//  plt.show()
 
 use sealed::mem;
 use sealed::ptr;

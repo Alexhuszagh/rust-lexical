@@ -17,7 +17,7 @@
 //! | Type  |  lexical (ns/iter) | parse (ns/iter)       | Relative Increase |
 //! |:-----:|:------------------:|:---------------------:|:-----------------:|
 //! | f32   | 761,670            | 28,650,637            | 37.62x            |
-//! | f64   | 123,675,824        | 123,675,824           | 114.18x           |
+//! | f64   | 1,083,162          | 123,675,824           | 114.18x           |
 //!
 //! # Raw Benchmarks
 //!
@@ -38,18 +38,18 @@
 //! ```
 
 // Code the generate the benchmark plot:
-//      import numpy as np
-//      import pandas as pd
-//      import matplotlib.pyplot as plt
-//      plt.style.use('ggplot')
-//      lexical = np.array([761670, 28650637]) / 1e6
-//      parse = np.array([123675824, 123675824]) / 1e6
-//      index = ["f32", "f64"]
-//      df = pd.DataFrame({'lexical': lexical, 'parse': parse}, index = index)
-//      ax = df.plot.bar(rot=0)
-//      ax.set_ylabel("ms/iter")
-//      ax.figure.tight_layout()
-//      plt.show()
+//  import numpy as np
+//  import pandas as pd
+//  import matplotlib.pyplot as plt
+//  plt.style.use('ggplot')
+//  lexical = np.array([761670, 1083162]) / 1e6
+//  parse = np.array([28650637, 123675824]) / 1e6
+//  index = ["f32", "f64"]
+//  df = pd.DataFrame({'lexical': lexical, 'parse': parse}, index = index)
+//  ax = df.plot.bar(rot=0)
+//  ax.set_ylabel("ms/iter")
+//  ax.figure.tight_layout()
+//  plt.show()
 
 use sealed::mem;
 use sealed::ptr;

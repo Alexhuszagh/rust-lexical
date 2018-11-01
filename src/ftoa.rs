@@ -49,17 +49,17 @@
 //! ```
 
 // Code the generate the benchmark plot:
-//      import numpy as np
-//      import pandas as pd
-//      import matplotlib.pyplot as plt
-//      plt.style.use('ggplot')
-//      lexical = np.array([1221025, 1248397]) / 1e6
-//      to_string = np.array([2711290, 3558305]) / 1e6
-//      df = pd.DataFrame({'lexical': lexical, 'to_string': to_string}, index = index)
-//      ax = df.plot.bar(rot=0)
-//      ax.set_ylabel("ms/iter")
-//      ax.figure.tight_layout()
-//      plt.show()
+//  import numpy as np
+//  import pandas as pd
+//  import matplotlib.pyplot as plt
+//  plt.style.use('ggplot')
+//  lexical = np.array([1221025, 1248397]) / 1e6
+//  to_string = np.array([2711290, 3558305]) / 1e6
+//  df = pd.DataFrame({'lexical': lexical, 'to_string': to_string}, index = index)
+//  ax = df.plot.bar(rot=0)
+//  ax.set_ylabel("ms/iter")
+//  ax.figure.tight_layout()
+//  plt.show()
 
 use sealed::mem;
 use sealed::ptr;
@@ -823,12 +823,14 @@ mod tests {
         assert_eq!("0.0", &f32toa_string(0.0, 2));
         assert_eq!("1.0", &f32toa_string(1.0, 2));
         assert_eq!("10.0", &f32toa_string(2.0, 2));
+        assert_eq!("1.1", &f32toa_string(1.5, 2));
+        assert_eq!("1.01", &f32toa_string(1.25, 2));
         assert_eq!("1.001111000000110010", &f32toa_string(1.2345678901234567890e0, 2)[..20]);
         assert_eq!("1100.010110000111111", &f32toa_string(1.2345678901234567890e1, 2)[..20]);
         assert_eq!("1111011.011101001111", &f32toa_string(1.2345678901234567890e2, 2)[..20]);
         assert_eq!("10011010010.10010001", &f32toa_string(1.2345678901234567890e3, 2)[..20]);
 
-            // negative
+        // negative
         assert_eq!("-1.001111000000110010", &f32toa_string(-1.2345678901234567890e0, 2)[..21]);
         assert_eq!("-1100.010110000111111", &f32toa_string(-1.2345678901234567890e1, 2)[..21]);
         assert_eq!("-1111011.011101001111", &f32toa_string(-1.2345678901234567890e2, 2)[..21]);
