@@ -48,7 +48,7 @@
 //! test f64_to_string ... bench:   4,774,595 ns/iter (+/- 244,214)
 //! ```
 
-// Code the generate the plot:
+// Code the generate the benchmark plot:
 //      import numpy as np
 //      import pandas as pd
 //      import matplotlib.pyplot as plt

@@ -7,9 +7,21 @@ Fast lexical conversion routines.
 
 # Benchmarks
 
-**ftoa**
+**Float to String**
 
-![ftoa benchmark](assets/ftoa.svg | width=200)
+![ftoa benchmark](assets/ftoa.svg)
+
+**Integer To String**
+
+![itoa benchmark](assets/itoa.svg)
+
+**String to Float**
+
+![atof benchmark](assets/atof.svg)
+
+**String to Integer**
+
+![atoi benchmark](assets/atoi.svg)
 
 # Details
 

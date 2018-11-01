@@ -70,6 +70,20 @@
 //! test u64_parse   ... bench:     279,269 ns/iter (+/- 12,914)
 //! ```
 
+// Code the generate the benchmark plot:
+//      import numpy as np
+//      import pandas as pd
+//      import matplotlib.pyplot as plt
+//      plt.style.use('ggplot')
+//      lexical = np.array([62790, 58896, 103962, 192792, 89828, 111592, 155172, 197747]) / 1e6
+//      parse = np.array([67926, 76602, 139434, 265931, 109099, 140172, 189377, 283541]) / 1e6
+//      index = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"]
+//      df = pd.DataFrame({'lexical': lexical, 'parse': parse}, index = index)
+//      ax = df.plot.bar(rot=0)
+//      ax.set_ylabel("ms/iter")
+//      ax.figure.tight_layout()
+//      plt.show()
+
 use sealed::ptr;
 
 use table::BASEN;
