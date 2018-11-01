@@ -441,12 +441,12 @@ string_impl!(i64toa_string, i64, i64toa_unsafe, 128); // 65
 // TESTS
 // -----
 
+#[cfg(any(feature = "std", feature = "alloc"))]
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn u8toa_test() {
         assert_eq!("0", u8toa_string(0, 10));
         assert_eq!("1", u8toa_string(1, 10));
@@ -457,7 +457,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn i8toa_test() {
         assert_eq!("0", i8toa_string(0, 10));
         assert_eq!("1", i8toa_string(1, 10));
@@ -468,7 +467,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn u16toa_test() {
         assert_eq!("0", u16toa_string(0, 10));
         assert_eq!("1", u16toa_string(1, 10));
@@ -479,7 +477,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn i16toa_test() {
         assert_eq!("0", i16toa_string(0, 10));
         assert_eq!("1", i16toa_string(1, 10));
@@ -490,7 +487,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn u32toa_test() {
         assert_eq!("0", u32toa_string(0, 10));
         assert_eq!("1", u32toa_string(1, 10));
@@ -501,7 +497,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn i32toa_test() {
         assert_eq!("0", i32toa_string(0, 10));
         assert_eq!("1", i32toa_string(1, 10));
@@ -512,7 +507,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn u64toa_test() {
         assert_eq!("0", u64toa_string(0, 10));
         assert_eq!("1", u64toa_string(1, 10));
@@ -523,7 +517,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn i64toa_test() {
         assert_eq!("0", i64toa_string(0, 10));
         assert_eq!("1", i64toa_string(1, 10));
@@ -534,7 +527,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn basen_test() {
         let data = [
             (2, "100101"),

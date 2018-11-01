@@ -793,6 +793,7 @@ string_impl!(f64toa_string, f64, f64toa_unsafe, BUFFER_SIZE);
 // TESTS
 // -----
 
+#[cfg(any(feature = "std", feature = "alloc"))]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -804,7 +805,6 @@ mod tests {
     const F64_DATA: [f64; 33] = [0., 0.1, 1., 1.1, 12., 12.1, 123., 123.1, 1234., 1234.1, 12345., 12345.1, 123456., 123456.1, 1234567., 1234567.1, 12345678., 12345678.1, 123456789., 123456789.1, 123456789.12, 123456789.123, 123456789.1234, 123456789.12345, 1.2345678912345e8, 1.2345e+8, 1.2345e+11, 1.2345e+38, 1.2345e+308, 1.2345e-8, 1.2345e-11, 1.2345e-38, 1.2345e-299];
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn f32toa_base2_test() {
         // positive
         assert_eq!("0.0", &f32toa_string(0.0, 2));
@@ -827,7 +827,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn f32toa_base10_test() {
         // positive
         assert_eq!("0.0", &f32toa_string(0.0, 10));
@@ -850,7 +849,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn f32toa_base10_roundtrip_test() {
         for f in F32_DATA.iter() {
             let s = f32toa_string(*f, 10);
@@ -859,7 +857,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn f32toa_basen_roundtrip_test() {
         for f in F32_DATA.iter() {
             for radix in 2..37 {
@@ -872,7 +869,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn f64toa_base2_test() {
         // positive
         assert_eq!("0.0", &f64toa_string(0.0, 2));
@@ -895,7 +891,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn f64toa_base10_test() {
         // positive
         assert_eq!("0.0", &f64toa_string(0.0, 10));
@@ -918,7 +913,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn f64toa_base10_roundtrip_test() {
         for f in F64_DATA.iter() {
             let s = f64toa_string(*f, 10);
@@ -927,7 +921,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn f64toa_basen_roundtrip_test() {
         for f in F64_DATA.iter() {
             for radix in 2..37 {

@@ -8,7 +8,11 @@ pub use alloc::vec::Vec;
 
 use atof::*;
 use atoi::*;
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 use ftoa::*;
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 use itoa::*;
 
 // ATON
