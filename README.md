@@ -6,13 +6,12 @@ lexical
 
 Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical also supports non-base 10 numbers, for both integers and floats.  Lexical is simple to use, and exports only 6 functions in the high-level API.
 
-Lexical heavily uses unsafe code for performance, and therefore may introduce memory-safety issues. Although the code is tested with wide variety of inputs to minimize the risk of memory-safety bugs, no guarantees are made and you should use it at your own risk.
-
 **Table of Contents**
 
 - [Getting Started](#getting-started)
 - [Benchmarks](#benchmarks)
 - [Documentation](#documentation)
+- [Caveats](#caveats)
 - [License](#license)
 - [Contributing](#contributing)
 
@@ -92,6 +91,14 @@ Furthermore, for number-to-string conversions, lexical's performance is comparab
 # Documentation
 
 Lexical's documentation can be found on [docs.rs](https://docs.rs/lexical).
+
+# Caveats
+
+Lexical heavily uses unsafe code for performance, and therefore may introduce memory-safety issues. Although the code is tested with wide variety of inputs to minimize the risk of memory-safety bugs, no guarantees are made and you should use it at your own risk.
+
+In addition, lexical explicitly wraps on integer overflow, rather than error or use a big integer, nor will it auto-detect the integer radix with common prefixes (like 0x, or 0b). For a cheap overflow check at the cost of incorrectly rejecting some large integers, accept at max `digits-2` bytes for an unsigned type, and `digits-1` bytes for a signed type, where digits is calculated as `floor((ln(T::max_value()) / ln(base)) + 1.0)`.
+
+Finally, for non-base10 floats, lexical's float-to-string implementations may lead to fairly lossy rounding for a small subset of inputs (up to 0.1% of the total value).
 
 # Details
 
