@@ -55,6 +55,7 @@
 //  plt.style.use('ggplot')
 //  lexical = np.array([1221025, 1248397]) / 1e6
 //  to_string = np.array([2711290, 3558305]) / 1e6
+//  index = ["f32", "f64"]
 //  df = pd.DataFrame({'lexical': lexical, 'to_string': to_string}, index = index)
 //  ax = df.plot.bar(rot=0)
 //  ax.set_ylabel("ms/iter")
