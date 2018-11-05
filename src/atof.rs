@@ -306,42 +306,42 @@ mod tests {
     #[test]
     fn atof32_base10_test() {
         // integer test
-        assert_float_relative_eq!(0.0, atof32_bytes(b"0", 10), 1e-20);
-        assert_float_relative_eq!(1.0, atof32_bytes(b"1", 10), 1e-20);
-        assert_float_relative_eq!(12.0, atof32_bytes(b"12", 10), 1e-20);
-        assert_float_relative_eq!(123.0, atof32_bytes(b"123", 10), 1e-20);
-        assert_float_relative_eq!(1234.0, atof32_bytes(b"1234", 10), 1e-20);
-        assert_float_relative_eq!(12345.0, atof32_bytes(b"12345", 10), 1e-20);
-        assert_float_relative_eq!(123456.0, atof32_bytes(b"123456", 10), 1e-20);
-        assert_float_relative_eq!(1234567.0, atof32_bytes(b"1234567", 10), 1e-20);
-        assert_float_relative_eq!(12345678.0, atof32_bytes(b"12345678", 10), 1e-20);
+        assert_relative_eq!(0.0, atof32_bytes(b"0", 10), epsilon=1e-20);
+        assert_relative_eq!(1.0, atof32_bytes(b"1", 10), epsilon=1e-20);
+        assert_relative_eq!(12.0, atof32_bytes(b"12", 10), epsilon=1e-20);
+        assert_relative_eq!(123.0, atof32_bytes(b"123", 10), epsilon=1e-20);
+        assert_relative_eq!(1234.0, atof32_bytes(b"1234", 10), epsilon=1e-20);
+        assert_relative_eq!(12345.0, atof32_bytes(b"12345", 10), epsilon=1e-20);
+        assert_relative_eq!(123456.0, atof32_bytes(b"123456", 10), epsilon=1e-20);
+        assert_relative_eq!(1234567.0, atof32_bytes(b"1234567", 10), epsilon=1e-20);
+        assert_relative_eq!(12345678.0, atof32_bytes(b"12345678", 10), epsilon=1e-20);
 
         // decimal test
-        assert_float_relative_eq!(123.1, atof32_bytes(b"123.1", 10), 1e-20);
-        assert_float_relative_eq!(123.12, atof32_bytes(b"123.12", 10), 1e-20);
-        assert_float_relative_eq!(123.123, atof32_bytes(b"123.123", 10), 1e-20);
-        assert_float_relative_eq!(123.1234, atof32_bytes(b"123.1234", 10), 1e-20);
-        assert_float_relative_eq!(123.12345, atof32_bytes(b"123.12345", 10), 1e-20);
+        assert_relative_eq!(123.1, atof32_bytes(b"123.1", 10), epsilon=1e-20);
+        assert_relative_eq!(123.12, atof32_bytes(b"123.12", 10), epsilon=1e-20);
+        assert_relative_eq!(123.123, atof32_bytes(b"123.123", 10), epsilon=1e-20);
+        assert_relative_eq!(123.1234, atof32_bytes(b"123.1234", 10), epsilon=1e-20);
+        assert_relative_eq!(123.12345, atof32_bytes(b"123.12345", 10), epsilon=1e-20);
 
         // rounding test
-        assert_float_relative_eq!(123456790.0, atof32_bytes(b"123456789", 10), 1e-20);
-        assert_float_relative_eq!(123456790.0, atof32_bytes(b"123456789.1", 10), 1e-20);
-        assert_float_relative_eq!(123456790.0, atof32_bytes(b"123456789.12", 10), 1e-20);
-        assert_float_relative_eq!(123456790.0, atof32_bytes(b"123456789.123", 10), 1e-20);
-        assert_float_relative_eq!(123456790.0, atof32_bytes(b"123456789.1234", 10), 1e-20);
-        assert_float_relative_eq!(123456790.0, atof32_bytes(b"123456789.12345", 10), 1e-20);
+        assert_relative_eq!(123456790.0, atof32_bytes(b"123456789", 10), epsilon=1e-20);
+        assert_relative_eq!(123456790.0, atof32_bytes(b"123456789.1", 10), epsilon=1e-20);
+        assert_relative_eq!(123456790.0, atof32_bytes(b"123456789.12", 10), epsilon=1e-20);
+        assert_relative_eq!(123456790.0, atof32_bytes(b"123456789.123", 10), epsilon=1e-20);
+        assert_relative_eq!(123456790.0, atof32_bytes(b"123456789.1234", 10), epsilon=1e-20);
+        assert_relative_eq!(123456790.0, atof32_bytes(b"123456789.12345", 10), epsilon=1e-20);
 
         // exponent test
-        assert_float_relative_eq!(123456789.12345, atof32_bytes(b"1.2345678912345e8", 10), 1e-20);
-        assert_float_relative_eq!(123450000.0, atof32_bytes(b"1.2345e+8", 10), 1e-20);
-        assert_float_relative_eq!(1.2345e+11, atof32_bytes(b"1.2345e+11", 10), 1e-20);
-        assert_float_relative_eq!(1.2345e+11, atof32_bytes(b"123450000000", 10), 1e-20);
-        assert_float_relative_eq!(1.2345e+38, atof32_bytes(b"1.2345e+38", 10), 1e-20);
-        assert_float_relative_eq!(1.2345e+38, atof32_bytes(b"123450000000000000000000000000000000000", 10), 1e-20);
-        assert_float_relative_eq!(1.2345e-8, atof32_bytes(b"1.2345e-8", 10), 1e-20);
-        assert_float_relative_eq!(1.2345e-8, atof32_bytes(b"0.000000012345", 10), 1e-20);
-        assert_float_relative_eq!(1.2345e-38, atof32_bytes(b"1.2345e-38", 10), 1e-20);
-        assert_float_relative_eq!(1.2345e-38, atof32_bytes(b"0.000000000000000000000000000000000000012345", 10), 1e-20);
+        assert_relative_eq!(123456789.12345, atof32_bytes(b"1.2345678912345e8", 10), epsilon=1e-20);
+        assert_relative_eq!(123450000.0, atof32_bytes(b"1.2345e+8", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e+11, atof32_bytes(b"1.2345e+11", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e+11, atof32_bytes(b"123450000000", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e+38, atof32_bytes(b"1.2345e+38", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e+38, atof32_bytes(b"123450000000000000000000000000000000000", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e-8, atof32_bytes(b"1.2345e-8", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e-8, atof32_bytes(b"0.000000012345", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e-38, atof32_bytes(b"1.2345e-38", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e-38, atof32_bytes(b"0.000000000000000000000000000000000000012345", 10), epsilon=1e-20);
 
         #[cfg(feature = "std")]
         assert!(atof32_bytes(b"NaN", 10).is_nan());
@@ -352,58 +352,58 @@ mod tests {
 
     #[test]
     fn atof32_basen_test() {
-        assert_float_relative_eq!(1234.0, atof32_bytes(b"YA", 36));
+        assert_relative_eq!(1234.0, atof32_bytes(b"YA", 36));
     }
 
     #[test]
     fn atof64_base10_test() {
         // integer test
-        assert_float_relative_eq!(0.0, atof64_bytes(b"0", 10), 1e-12);
-        assert_float_relative_eq!(1.0, atof64_bytes(b"1", 10), 1e-12);
-        assert_float_relative_eq!(12.0, atof64_bytes(b"12", 10), 1e-12);
-        assert_float_relative_eq!(123.0, atof64_bytes(b"123", 10), 1e-12);
-        assert_float_relative_eq!(1234.0, atof64_bytes(b"1234", 10), 1e-12);
-        assert_float_relative_eq!(12345.0, atof64_bytes(b"12345", 10), 1e-12);
-        assert_float_relative_eq!(123456.0, atof64_bytes(b"123456", 10), 1e-12);
-        assert_float_relative_eq!(1234567.0, atof64_bytes(b"1234567", 10), 1e-12);
-        assert_float_relative_eq!(12345678.0, atof64_bytes(b"12345678", 10), 1e-12);
+        assert_relative_eq!(0.0, atof64_bytes(b"0", 10), epsilon=1e-12);
+        assert_relative_eq!(1.0, atof64_bytes(b"1", 10), epsilon=1e-12);
+        assert_relative_eq!(12.0, atof64_bytes(b"12", 10), epsilon=1e-12);
+        assert_relative_eq!(123.0, atof64_bytes(b"123", 10), epsilon=1e-12);
+        assert_relative_eq!(1234.0, atof64_bytes(b"1234", 10), epsilon=1e-12);
+        assert_relative_eq!(12345.0, atof64_bytes(b"12345", 10), epsilon=1e-12);
+        assert_relative_eq!(123456.0, atof64_bytes(b"123456", 10), epsilon=1e-12);
+        assert_relative_eq!(1234567.0, atof64_bytes(b"1234567", 10), epsilon=1e-12);
+        assert_relative_eq!(12345678.0, atof64_bytes(b"12345678", 10), epsilon=1e-12);
 
         // decimal test
-        assert_float_relative_eq!(123456789.0, atof64_bytes(b"123456789", 10), 1e-12);
-        assert_float_relative_eq!(123456789.1, atof64_bytes(b"123456789.1", 10), 1e-12);
-        assert_float_relative_eq!(123456789.12, atof64_bytes(b"123456789.12", 10), 1e-12);
-        assert_float_relative_eq!(123456789.123, atof64_bytes(b"123456789.123", 10), 1e-12);
-        assert_float_relative_eq!(123456789.1234, atof64_bytes(b"123456789.1234", 10), 1e-12);
-        assert_float_relative_eq!(123456789.12345, atof64_bytes(b"123456789.12345", 10), 1e-12);
-        assert_float_relative_eq!(123456789.123456, atof64_bytes(b"123456789.123456", 10), 1e-12);
-        assert_float_relative_eq!(123456789.1234567, atof64_bytes(b"123456789.1234567", 10), 1e-12);
-        assert_float_relative_eq!(123456789.12345678, atof64_bytes(b"123456789.12345678", 10), 1e-12);
+        assert_relative_eq!(123456789.0, atof64_bytes(b"123456789", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.1, atof64_bytes(b"123456789.1", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.12, atof64_bytes(b"123456789.12", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.123, atof64_bytes(b"123456789.123", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.1234, atof64_bytes(b"123456789.1234", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.12345, atof64_bytes(b"123456789.12345", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.123456, atof64_bytes(b"123456789.123456", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.1234567, atof64_bytes(b"123456789.1234567", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.12345678, atof64_bytes(b"123456789.12345678", 10), epsilon=1e-12);
 
         // rounding test
-        assert_float_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.123456789", 10), 1e-12);
-        assert_float_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.1234567890", 10), 1e-12);
-        assert_float_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.123456789012", 10), 1e-12);
-        assert_float_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.1234567890123", 10), 1e-12);
-        assert_float_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.12345678901234", 10), 1e-12);
+        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.123456789", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.1234567890", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.123456789012", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.1234567890123", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.12345678901234", 10), epsilon=1e-12);
 
         // exponent test
-        assert_float_relative_eq!(123456789.12345, atof64_bytes(b"1.2345678912345e8", 10), 1e-12);
-        assert_float_relative_eq!(123450000.0, atof64_bytes(b"1.2345e+8", 10), 1e-12);
-        assert_float_relative_eq!(1.2345e+11, atof64_bytes(b"123450000000", 10), 1e-12);
-        assert_float_relative_eq!(1.2345e+11, atof64_bytes(b"1.2345e+11", 10), 1e-12);
-        assert_float_relative_eq!(1.2345e+38, atof64_bytes(b"1.2345e+38", 10), 1e-12);
-        assert_float_relative_eq!(1.2345e+38, atof64_bytes(b"123450000000000000000000000000000000000", 10), 1e-12);
-        assert_float_relative_eq!(1.2345e+308, atof64_bytes(b"1.2345e+308", 10), 1e-12);
-        assert_float_relative_eq!(1.2345e+308, atof64_bytes(b"123450000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", 10), 1e-12);
-        assert_float_relative_eq!(0.000000012345, atof64_bytes(b"1.2345e-8", 10), 1e-12);
-        assert_float_relative_eq!(1.2345e-8, atof64_bytes(b"0.000000012345", 10), 1e-12);
-        assert_float_relative_eq!(1.2345e-38, atof64_bytes(b"1.2345e-38", 10), 1e-12);
-        assert_float_relative_eq!(1.2345e-38, atof64_bytes(b"0.000000000000000000000000000000000000012345", 10), 1e-12);
-        assert_float_relative_eq!(1.2345e-308, atof64_bytes(b"1.2345e-308", 10), 1e-12);
+        assert_relative_eq!(123456789.12345, atof64_bytes(b"1.2345678912345e8", 10), epsilon=1e-12);
+        assert_relative_eq!(123450000.0, atof64_bytes(b"1.2345e+8", 10), epsilon=1e-12);
+        assert_relative_eq!(1.2345e+11, atof64_bytes(b"123450000000", 10), epsilon=1e-12);
+        assert_relative_eq!(1.2345e+11, atof64_bytes(b"1.2345e+11", 10), epsilon=1e-12);
+        assert_relative_eq!(1.2345e+38, atof64_bytes(b"1.2345e+38", 10), epsilon=1e-12);
+        assert_relative_eq!(1.2345e+38, atof64_bytes(b"123450000000000000000000000000000000000", 10), epsilon=1e-12);
+        assert_relative_eq!(1.2345e+308, atof64_bytes(b"1.2345e+308", 10), max_relative=1e-12);
+        assert_relative_eq!(1.2345e+308, atof64_bytes(b"123450000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", 10), max_relative=1e-12);
+        assert_relative_eq!(0.000000012345, atof64_bytes(b"1.2345e-8", 10), epsilon=1e-12);
+        assert_relative_eq!(1.2345e-8, atof64_bytes(b"0.000000012345", 10), epsilon=1e-12);
+        assert_relative_eq!(1.2345e-38, atof64_bytes(b"1.2345e-38", 10), epsilon=1e-12);
+        assert_relative_eq!(1.2345e-38, atof64_bytes(b"0.000000000000000000000000000000000000012345", 10), epsilon=1e-12);
+        assert_relative_eq!(1.2345e-308, atof64_bytes(b"1.2345e-308", 10), epsilon=1e-12);
         // due to issues in how the data is parsed, manually extracting
         // non-exponents of 1.<e-299 is prone to error
         // test the limit of our ability
-        assert_float_relative_eq!(1.2345e-299, atof64_bytes(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345", 10), 1e-12);
+        assert_relative_eq!(1.2345e-299, atof64_bytes(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345", 10), epsilon=1e-12);
 
         #[cfg(feature = "std")]
         assert!(atof64_bytes(b"NaN", 10).is_nan());
@@ -414,7 +414,7 @@ mod tests {
 
     #[test]
     fn atof64_basen_test() {
-        assert_float_relative_eq!(1234.0, atof64_bytes(b"YA", 36));
+        assert_relative_eq!(1234.0, atof64_bytes(b"YA", 36));
     }
 
     #[test]

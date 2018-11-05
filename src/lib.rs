@@ -28,7 +28,7 @@ extern crate f128;
 
 #[cfg(test)]
 #[macro_use]
-extern crate assert_float_eq;
+extern crate approx;
 
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 #[global_allocator]
@@ -47,8 +47,6 @@ pub(crate) mod sealed {
 #[macro_use]
 mod util;
 
-mod float;
-
 // Publicly export the low-level APIs.
 // Macros used in atoi are required for atof, so export those.
 #[macro_use]
@@ -57,6 +55,9 @@ pub mod atoi;
 pub mod atof;
 pub mod ftoa;
 pub mod itoa;
+
+#[doc(hidden)]
+pub mod float;
 
 #[doc(hidden)]
 pub mod table;

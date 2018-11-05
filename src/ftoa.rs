@@ -320,8 +320,8 @@ unsafe extern "C" fn emit_digits(digits: *mut u8, mut ndigits: i32, dest: *mut u
 /// Filter special floating-point numbers.
 unsafe extern "C" fn filter_special(fp: f64, dest: *mut u8) -> i32
 {
-    const EXPONENT_MASK: u64 = FloatType::EXPONENT_MASK;
-    const FRACTION_MASK: u64 = FloatType::FRACTION_MASK;
+    const EXPONENT_MASK: u64 = FloatType::F64_EXPONENT_MASK;
+    const FRACTION_MASK: u64 = FloatType::F64_FRACTION_MASK;
 
     if fp == 0.0 {
         ptr::copy_nonoverlapping(b"0.0".as_ptr(), dest, 3);
@@ -379,7 +379,7 @@ unsafe extern "C" fn ftoa_base10(value: f64, first: *mut u8)
 #[allow(dead_code)]
 fn v8_is_denormal(d: f64) -> bool
 {
-    (d.to_bits() & FloatType::EXPONENT_MASK) == 0
+    (d.to_bits() & FloatType::F64_EXPONENT_MASK) == 0
 }
 
 /// Check if the number is special, all non-hidden bits in exponent are set.
@@ -389,7 +389,7 @@ fn v8_is_denormal(d: f64) -> bool
 fn v8_is_special(d: f64) -> bool
 {
     let bits = d.to_bits();
-    (bits & FloatType::EXPONENT_MASK) == FloatType::EXPONENT_MASK
+    (bits & FloatType::F64_EXPONENT_MASK) == FloatType::F64_EXPONENT_MASK
 }
 
 /// Check if value is NaN.
@@ -397,8 +397,8 @@ fn v8_is_special(d: f64) -> bool
 #[allow(dead_code)]
 fn v8_is_nan(d: f64) -> bool
 {
-    const EXPONENT_MASK: u64 = FloatType::EXPONENT_MASK;
-    const FRACTION_MASK: u64 = FloatType::FRACTION_MASK;
+    const EXPONENT_MASK: u64 = FloatType::F64_EXPONENT_MASK;
+    const FRACTION_MASK: u64 = FloatType::F64_FRACTION_MASK;
     let bits = d.to_bits();
     ((bits & EXPONENT_MASK) == EXPONENT_MASK) && ((bits & FRACTION_MASK) != 0)
 }
@@ -408,8 +408,8 @@ fn v8_is_nan(d: f64) -> bool
 #[allow(dead_code)]
 fn v8_is_infinite(d: f64) -> bool
 {
-    const EXPONENT_MASK: u64 = FloatType::EXPONENT_MASK;
-    const FRACTION_MASK: u64 = FloatType::FRACTION_MASK;
+    const EXPONENT_MASK: u64 = FloatType::F64_EXPONENT_MASK;
+    const FRACTION_MASK: u64 = FloatType::F64_FRACTION_MASK;
     let bits = d.to_bits();
     ((bits & EXPONENT_MASK) == EXPONENT_MASK) && ((bits & FRACTION_MASK) == 0)
 }
@@ -421,7 +421,7 @@ fn v8_is_infinite(d: f64) -> bool
 fn v8_sign(d: f64) -> i32
 {
     let bits = d.to_bits();
-    if (bits & FloatType::SIGN_MASK) == 0 { 1 } else { -1 }
+    if (bits & FloatType::F64_SIGN_MASK) == 0 { 1 } else { -1 }
 }
 
 
@@ -430,16 +430,16 @@ fn v8_sign(d: f64) -> i32
 #[allow(dead_code)]
 fn v8_exponent(d: f64) -> i32
 {
-    const EXPONENT_MASK: u64 = FloatType::EXPONENT_MASK;
-    const PHYSICAL_SIGNIFICAND_SIZE: i32 = FloatType::PHYSICAL_SIGNIFICAND_SIZE;
+    const EXPONENT_MASK: u64 = FloatType::F64_EXPONENT_MASK;
+    const SIGNIFICAND_SIZE: i32 = FloatType::F64_SIGNIFICAND_SIZE;
 
     if v8_is_denormal(d) {
-        return FloatType::DENORMAL_EXPONENT;
+        return FloatType::F64_DENORMAL_EXPONENT;
     }
 
     let bits = d.to_bits();
-    let biased_e = ((bits & EXPONENT_MASK) >> PHYSICAL_SIGNIFICAND_SIZE) as i32;
-    biased_e - FloatType::EXPONENT_BIAS
+    let biased_e = ((bits & EXPONENT_MASK) >> SIGNIFICAND_SIZE) as i32;
+    biased_e - FloatType::F64_EXPONENT_BIAS
 }
 
 /// Get significand from float.
@@ -448,9 +448,9 @@ fn v8_exponent(d: f64) -> i32
 fn v8_significand(d: f64) -> u64
 {
     let bits = d.to_bits();
-    let s = bits & FloatType::FRACTION_MASK;
+    let s = bits & FloatType::F64_FRACTION_MASK;
     if !v8_is_denormal(d) {
-      s + FloatType::HIDDEN_BIT_MASK
+      s + FloatType::F64_HIDDEN_BIT_MASK
     } else {
       s
     }
@@ -868,7 +868,7 @@ mod tests {
     fn f32toa_base10_roundtrip_test() {
         for f in F32_DATA.iter() {
             let s = f32toa_string(*f, 10);
-            assert_float_relative_eq!(atof32_bytes(s.as_bytes(), 10), *f, 1e-6);
+            assert_relative_eq!(atof32_bytes(s.as_bytes(), 10), *f, epsilon=1e-6, max_relative=1e-6);
         }
     }
 
@@ -879,7 +879,7 @@ mod tests {
                 // The lower accuracy is due to slight rounding errors of
                 // ftoa for the Grisu method with non-10 bases.
                 let s = f32toa_string(*f, radix);
-                assert_float_relative_eq!(atof32_bytes(s.as_bytes(), radix), *f, 2e-5);
+                assert_relative_eq!(atof32_bytes(s.as_bytes(), radix), *f, max_relative=2e-5);
             }
         }
     }
@@ -932,7 +932,7 @@ mod tests {
     fn f64toa_base10_roundtrip_test() {
         for f in F64_DATA.iter() {
             let s = f64toa_string(*f, 10);
-            assert_float_relative_eq!(atof64_bytes(s.as_bytes(), 10), *f, 1e-12);
+            assert_relative_eq!(atof64_bytes(s.as_bytes(), 10), *f, epsilon=1e-12, max_relative=1e-12);
         }
     }
 
@@ -943,7 +943,7 @@ mod tests {
                 // The lower accuracy is due to slight rounding errors of
                 // ftoa for the Grisu method with non-10 bases.
                 let s = f64toa_string(*f, radix);
-                assert_float_relative_eq!(atof64_bytes(s.as_bytes(), radix), *f, 3e-5);
+                assert_relative_eq!(atof64_bytes(s.as_bytes(), radix), *f, max_relative=3e-5);
             }
         }
     }

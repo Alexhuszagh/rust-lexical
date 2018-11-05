@@ -9,7 +9,7 @@ license = "MIT/Apache-2.0"
 name = "lexical"
 readme = "README.md"
 repository = "https://github.com/AlexHuszagh/rust-lexical"
-version = "1.0.3"
+version = "1.0.4"
 exclude = [
     "benches/*",
 ]
@@ -22,16 +22,20 @@ travis-ci = { repository = "AlexHuszagh/rust-lexical" }
 wee_alloc = { version = "0.4", optional = true }
 
 [dev-dependencies]
-assert_float_eq = "1"
+approx = "0.3.0"
 bencher = "0.1.5"
 dtoa = "0.4"
 itoa = "0.4"
 
 [features]
-default = ["std", "table"]
+default = ["std", "precise", "table"]
 alloc = ["wee_alloc"]
 nightly = ["alloc"]
+# Use extended-precision floats for `atof` functionality.
+precise = []
+# Use the `std` library.
 std = []
+# Use precompiled tables for faster performance, at the cost of larger binaries.
 table = []
 
 # Benchmarks
