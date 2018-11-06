@@ -9,18 +9,14 @@
 //!
 //  DONE
 //  1. Need to finish as_f64 and as_f32
+//  2. Need FloatType addition and subtraction.
+//  3. Also need a normalize_to exponent function.
 //
 // TODO(ahuszagh)
-//  1. Need FloatType addition and subtraction.
-//  2. Also need a normalize_to exponent function.
-//  3. Need to add add/sub/mul/div with float or integer types.
-//  4. Need unittests for all this functionality.
-//  5. Need to implement atof in terms of this precise functionality.
-
-// POWER OF 2
-
-/// Macro to precalculate powers of 2.
-// TODO(ahuszagh) Implement...
+//  1. Need to fix multiply for dramatically different values...
+//  2. Need to add add/sub/mul/div with float or integer types.
+//  3. Need unittests for all this functionality.
+//  4. Need to implement atof in terms of this precise functionality.
 
 // SHIFTS
 
@@ -49,47 +45,69 @@ macro_rules! shr {
     })
 }
 
-/// Rounding shift right `shift` bytes.
-macro_rules! rounding_shr {
-    ($self:ident, $base:expr, $shift:expr, $mask:expr) => ({
-        if $self.frac >> ($base + $shift) != 0 {
-            // Check if the truncated bits start with the mask,
-            // if so, round-up.
-            // The mask should have a bit pattern of 2**n + 2**(n/2),
-            // so it has all 0 bits except 2 consecutive 1 bits,
-            // where `n` is `shift`.
-            let round = ($self.frac & $mask) == $mask;
-            shr!($self, $shift);
-            $self.frac += round as u64;
+/// Shift the FloatType fraction to the fraction bits in a native float.
+///
+/// Floating-point arithmetic uses round to nearest, ties to even,
+/// which rounds to the nearest value, if the value is halfway in between,
+/// round to an even value.
+///
+/// * `self`        - Floating point to shift bits in.
+/// * `trunc_mask`  - Mask to extract all bits beyond `64 - mantissa size - 1` bits.
+/// * `trunc_mid`   - Midway point for trunc mask, `trunc_mask/2 + 1`.
+/// * `odd_mask`    - Mask to extract the `64 - mantissa size` bit.
+/// * `carry_mask`  - Mask to extract the bit after the hidden bit, or `HIDDEN_BIT_MASK * 2`.
+/// * `shift`       - Number of bits to shift, or `64 - mantissa size - 1`.
+macro_rules! shift_to_float {
+    ($self:ident, $trunc_mask:ident, $trunc_mid:ident, $odd_mask:ident, $carry_mask:ident, $shift:ident) => ({
+        // Extract the truncate bits from the number (64 - mantissa size - 1 bits).
+        // Calculate if the truncated bits are either above the mid-way
+        // point, or equal to it.
+        //
+        // For example, for 4 truncated bytes, the midway point would be
+        // b1000.
+        let truncated_bits = $self.frac & $trunc_mask;
+        let is_above = truncated_bits > $trunc_mid;
+        let is_halfway = truncated_bits == $trunc_mid;
+
+        // Extract the last non-truncated (41st) bit (and determine if it is odd).
+        let is_odd = $self.frac & $odd_mask == $odd_mask;
+
+        // Calculate if we need to roundup.
+        let is_roundup = is_above || (is_odd && is_halfway);
+
+        // Bitshift so the leading bit is in the hidden bit.
+        shr!($self, $shift);
+
+        // Roundup and then shift if a full carry occurs.
+        $self.frac += is_roundup as u64;
+        if $self.frac & $carry_mask == $carry_mask {
+            // Roundup carried over to 1 past the hidden bit.
+            shr!($self, 1);
         }
     })
 }
 
-// NORMALIZE
-
 /// Shift the fraction to the fraction bits in an f32.
 macro_rules! shift_to_f32 {
-    ($self:ident, $base:ident) => ({
-        // Only round up if the truncate bits start with `11`
-        // Empirically, proves to be more accurate than just checking
-        // if the first bit is `1`.
-        rounding_shr!($self, $base, 32, 0x180000000);
-        rounding_shr!($self, $base, 16, 0x18000);
-        rounding_shr!($self, $base, 8, 0x180);
-        rounding_shr!($self, $base, 4, 0x18);
-        rounding_shr!($self, $base, 2, 0x6);
-        rounding_shr!($self, $base, 1, 0x3);
+    ($self:ident) => ({
+        const TRUNC_MASK: u64 = 0xFFFFFFFFFF;
+        const TRUNC_MID: u64 = 0x8000000000;
+        const ODD_MASK: u64 = 0x10000000000;
+        const CARRY_MASK: u64 = 0x1000000;
+        const SHIFT: i32 = 40;
+        shift_to_float!($self, TRUNC_MASK, TRUNC_MID, ODD_MASK, CARRY_MASK, SHIFT)
     })
 }
 
 /// Shift the fraction to the fraction bits in an f64.
 macro_rules! shift_to_f64 {
-    ($self:ident, $base:ident) => ({
-        // Only round up if the truncate bits start with `11`
-        rounding_shr!($self, $base, 8, 0x180);
-        rounding_shr!($self, $base, 4, 0x18);
-        rounding_shr!($self, $base, 2, 0x6);
-        rounding_shr!($self, $base, 1, 0x3);
+    ($self:ident) => ({
+        const TRUNC_MASK: u64 = 0x7FF;
+        const TRUNC_MID: u64 = 0x400;
+        const ODD_MASK: u64 = 0x800;
+        const CARRY_MASK: u64 = 0x20000000000000;
+        const SHIFT: i32 = 11;
+        shift_to_float!($self, TRUNC_MASK, TRUNC_MID, ODD_MASK, CARRY_MASK, SHIFT)
     })
 }
 
@@ -135,11 +153,11 @@ macro_rules! avoid_overflow {
 
 /// Normalize a FloatType to a representation to export to f32.
 macro_rules! normalize_to_f32 {
-    ($self:ident, $base:ident, $denormal:ident, $max:ident, $masks:ident) => ({
+    ($self:ident, $denormal:ident, $max:ident, $masks:ident) => ({
         // Shift all the way left, to ensure a consistent representation.
         // The following right-shifts do not work for a non-normalized number.
         $self.normalize();
-        shift_to_f32!($self, $base);
+        shift_to_f32!($self);
         avoid_underflow!($self, $denormal);
         avoid_overflow!($self, $max, $masks)
     })
@@ -147,11 +165,11 @@ macro_rules! normalize_to_f32 {
 
 /// Normalize a FloatType to a representation to export to f64.
 macro_rules! normalize_to_f64 {
-    ($self:ident, $base:ident, $denormal:ident, $max:ident, $masks:ident) => ({
+    ($self:ident, $denormal:ident, $max:ident, $masks:ident) => ({
         // Shift all the way left, to ensure we have a valid start point.
         // The following right-shifts do not work for a non-normalized number.
         $self.normalize();
-        shift_to_f64!($self, $base);
+        shift_to_f64!($self);
         avoid_underflow!($self, $denormal);
         avoid_overflow!($self, $max, $masks)
     })
@@ -221,6 +239,25 @@ macro_rules! as_float {
             let exp = exp << $sig_size;
             let frac = $self.frac & $fraction;
             $float::from_bits(frac as $int | exp)
+        }
+    })
+}
+
+// OPERATIONS
+
+/// Conditionally add x and y, where x has the higher exponent.
+macro_rules! conditional_add {
+    ($x:ident, $y:ident) => ({
+        // Calculate the difference for the shift-right, use it conditionally.
+        let diff = $x.exp - $y.exp;
+        if diff < 64 {
+            // Less than 64-bits, shr is safe.
+            let mut y = *$y;
+            shr!(y, diff);
+            unsafe { y.add_unchecked($x) }
+        } else {
+            // More than 64-bits, self is insignificant.
+            *$x
         }
     })
 }
@@ -295,8 +332,51 @@ impl FloatType {
     /// Minimum exponent.
     pub const F64_MIN_EXPONENT: i32 = -Self::F64_EXPONENT_BIAS;
 
-    /// Multiply two extended-precision floating point numbers.
-    pub fn multiply(&self, b: &FloatType) -> FloatType
+    // OPERATIONS
+
+    /// Add two extended-precision floating point numbers, as if by `a+b`.
+    pub fn add(&self, b: &FloatType) -> FloatType {
+        // Check simple case.
+        if self.exp == b.exp {
+            return unsafe { self.add_unchecked(b) };
+        }
+
+        if self.exp < b.exp {
+            conditional_add!(b, self)
+        } else {
+            conditional_add!(self, b)
+        }
+    }
+
+    /// Add two extended-precision floats with the same exponent.
+    pub unsafe fn add_unchecked(&self, b: &FloatType) -> FloatType {
+        debug_assert!(self.exp == b.exp);
+        match self.frac.checked_add(b.frac) {
+            // Overflow, shift both values left 1, then add.
+            None    => {
+                let x = self.frac >> 1;
+                let y = b.frac >> 1;
+                FloatType {frac: x + y, exp: self.exp + 1}
+            },
+            // No overflow, return our value.
+            Some(v) => FloatType {frac: v, exp: self.exp},
+        }
+    }
+
+    /// Subtract two extended-precision floats with the same exponent.
+    ///
+    /// Subtraction isn't well-supported, since negative values aren't
+    /// supported. Only unsafe function calls may be made.
+    pub unsafe fn subtract_unchecked(&self, b: &FloatType) -> FloatType {
+        debug_assert!(self.frac >= b.frac);
+        debug_assert!(self.exp == b.exp);
+        FloatType {frac: self.frac - b.frac, exp: self.exp}
+    }
+
+    /// Multiply two normalized extended-precision floats, as if by `a*b`.
+    ///
+    /// Fast multiply, does not work for numbers of different magnitudes.
+    pub unsafe fn fast_multiply(&self, b: &FloatType) -> FloatType
     {
         const LOMASK: u64 = 0x00000000FFFFFFFF;
 
@@ -314,6 +394,53 @@ impl FloatType {
             exp: self.exp + b.exp + 64
         }
     }
+
+    /// Fast multiply-by-two algorithm.
+    pub fn multiply_2(&self) -> FloatType {
+        FloatType {frac: self.frac, exp: self.exp + 1}
+    }
+
+    // TODO(ahuszagh) multiply_3
+
+    /// Fast multiply-by-4 algorithm.
+    pub fn multiply_4(&self) -> FloatType {
+        FloatType {frac: self.frac, exp: self.exp + 2}
+    }
+
+    // TODO(ahuszagh) multiply_5
+    // TODO(ahuszagh) multiply_6
+    // TODO(ahuszagh) multiply_7
+    // TODO(ahuszagh) multiply_8
+    // TODO(ahuszagh) multiply_9
+    // TODO(ahuszagh) multiply_10
+    // TODO(ahuszagh) multiply_11
+    // TODO(ahuszagh) multiply_12
+    // TODO(ahuszagh) multiply_13
+    // TODO(ahuszagh) multiply_14
+    // TODO(ahuszagh) multiply_15
+    // TODO(ahuszagh) multiply_16
+    // TODO(ahuszagh) multiply_17
+    // TODO(ahuszagh) multiply_18
+    // TODO(ahuszagh) multiply_19
+    // TODO(ahuszagh) multiply_20
+    // TODO(ahuszagh) multiply_21
+    // TODO(ahuszagh) multiply_22
+    // TODO(ahuszagh) multiply_23
+    // TODO(ahuszagh) multiply_24
+    // TODO(ahuszagh) multiply_25
+    // TODO(ahuszagh) multiply_26
+    // TODO(ahuszagh) multiply_27
+    // TODO(ahuszagh) multiply_28
+    // TODO(ahuszagh) multiply_29
+    // TODO(ahuszagh) multiply_30
+    // TODO(ahuszagh) multiply_31
+    // TODO(ahuszagh) multiply_32
+    // TODO(ahuszagh) multiply_33
+    // TODO(ahuszagh) multiply_34
+    // TODO(ahuszagh) multiply_35
+    // TODO(ahuszagh) multiply_36
+
+    // NORMALIZE
 
     /// Normalize float-point number.
     ///
@@ -355,15 +482,12 @@ impl FloatType {
     }
 
     // TODO(ahuszagh)
-    // Need to normalize the export boundaries...
-    // TODO(ahuszagh)
     //  Need normalize_to
 
     /// Lossy normalize float-point number to f32 fraction boundaries.
     #[inline]
     fn normalize_to_f32(&mut self)
     {
-        const BASE: i32 = FloatType::F32_SIGNIFICAND_SIZE;
         const DENORMAL: i32 = FloatType::F32_DENORMAL_EXPONENT;
         const MAX: i32 = FloatType::F32_MAX_EXPONENT;
         // Every mask from the hidden bit over, to see if we can
@@ -375,14 +499,13 @@ impl FloatType {
             0x00FFFFE0, 0x00FFFFF0, 0x00FFFFF8, 0x00FFFFFC, 0x00FFFFFE, 0x00FFFFFF
         ];
 
-        normalize_to_f32!(self, BASE, DENORMAL, MAX, MASKS)
+        normalize_to_f32!(self, DENORMAL, MAX, MASKS)
     }
 
     /// Lossy normalize float-point number to f64 fraction boundaries.
     #[inline]
     fn normalize_to_f64(&mut self)
     {
-        const BASE: i32 = FloatType::F64_SIGNIFICAND_SIZE;
         const DENORMAL: i32 = FloatType::F64_DENORMAL_EXPONENT;
         const MAX: i32 = FloatType::F64_MAX_EXPONENT;
         // Every mask from the hidden bit over, to see if we can
@@ -408,7 +531,7 @@ impl FloatType {
             0x001FFFFFFFFFFFFE, 0x001FFFFFFFFFFFFF
         ];
 
-        normalize_to_f64!(self, BASE, DENORMAL, MAX, MASKS)
+        normalize_to_f64!(self, DENORMAL, MAX, MASKS)
     }
 
     /// Create extended float from 8-bit unsigned integer.
@@ -493,7 +616,6 @@ impl FloatType {
         as_float!(x, f64, u64, DENORMAL, HIDDEN, FRACTION, BIAS, MAX, INF, SIG_SIZE)
     }
 }
-
 
 // CACHED POWERS
 
@@ -630,10 +752,44 @@ pub(crate) const POWERS_OF_TEN: [FloatType; 87] = [
 mod tests {
     use super::*;
     use util::*;
-    // TODO(ahuszagh) Implement...
 
-    // Integer that are 2**n - 1, where n is 0, 1, 8, 16, 32, or 64.
-    const INTEGERS: [u64; 6] = [0, 1, 255, 65535, 4294967295, 18446744073709551615];
+    // Sample of interesting numbers to check during standard test builds.
+    const INTEGERS: [u64; 32] = [
+        0,                      // 0x0
+        1,                      // 0x1
+        7,                      // 0x7
+        15,                     // 0xF
+        112,                    // 0x70
+        119,                    // 0x77
+        127,                    // 0x7F
+        240,                    // 0xF0
+        247,                    // 0xF7
+        255,                    // 0xFF
+        2032,                   // 0x7F0
+        2039,                   // 0x7F7
+        2047,                   // 0x7FF
+        4080,                   // 0xFF0
+        4087,                   // 0xFF7
+        4095,                   // 0xFFF
+        65520,                  // 0xFFF0
+        65527,                  // 0xFFF7
+        65535,                  // 0xFFFF
+        1048560,                // 0xFFFF0
+        1048567,                // 0xFFFF7
+        1048575,                // 0xFFFFF
+        16777200,               // 0xFFFFF0
+        16777207,               // 0xFFFFF7
+        16777215,               // 0xFFFFFF
+        268435440,              // 0xFFFFFF0
+        268435447,              // 0xFFFFFF7
+        268435455,              // 0xFFFFFFF
+        4294967280,             // 0xFFFFFFF0
+        4294967287,             // 0xFFFFFFF7
+        4294967295,             // 0xFFFFFFFF
+        18446744073709551615,   // 0xFFFFFFFFFFFFFFFF
+    ];
+
+    // FROM
 
     #[test]
     fn from_int_test() {
@@ -748,6 +904,8 @@ mod tests {
             assert_normalized_eq(FloatType::from_f32(*value), FloatType::from_f64(*value as f64));
         }
     }
+
+    // NORMALIZE
 
     #[test]
     fn normalize_test() {
@@ -965,6 +1123,8 @@ mod tests {
         assert_eq!(x, FloatType {frac: 9007199254740991, exp: 972});
     }
 
+    // TO
+
     #[test]
     fn to_f32_test() {
         // underflow
@@ -1014,7 +1174,7 @@ mod tests {
         // Integers.
         for int in INTEGERS.iter() {
             let fp = FloatType {frac: *int, exp: 0};
-            assert_eq!(fp.as_f32(), *int as f32);
+            assert_eq!(fp.as_f32(), *int as f32, "{:?} as f32", *int);
         }
     }
 
@@ -1087,7 +1247,86 @@ mod tests {
         // Integers.
         for int in INTEGERS.iter() {
             let fp = FloatType {frac: *int, exp: 0};
-            assert_eq!(fp.as_f64(), *int as f64);
+            assert_eq!(fp.as_f64(), *int as f64, "{:?} as f64", *int);
         }
+    }
+
+    #[test]
+    #[ignore]
+    fn to_f32_full_test() {
+        // Use exhaustive search to ensure both lossy and unlossy items are checked.
+        // 23-bits of precision, so go from 0-32.
+        for int in 0..u32::max_value() {
+            let fp = FloatType {frac: int as u64, exp: 0};
+            assert_eq!(fp.as_f32(), int as f32, "{:?} as f32", int);
+        }
+    }
+
+    #[test]
+    #[ignore]
+    fn to_f64_full_test() {
+        // Use exhaustive search to ensure both lossy and unlossy items are checked.
+        const U32_MAX: u64 = u32::max_value() as u64;
+        const POW2_52: u64 = 4503599627370496;
+        const START: u64 = POW2_52 - U32_MAX / 2;
+        const END: u64 = START + U32_MAX;
+        for int in START..END {
+            let fp = FloatType {frac: int, exp: 0};
+            assert_eq!(fp.as_f64(), int as f64, "{:?} as f64", int);
+        }
+    }
+
+    // OPERATIONS
+
+    #[test]
+    fn add_test() {
+        // Simple
+        let x = FloatType::from_u8(1);
+        let y = FloatType::from_u8(2);
+        let z = unsafe { x.add_unchecked(&y) };
+        assert_eq!(z.as_f64(), 3.0);
+
+        // Different exponents
+        let x = FloatType::from_f32(1.0);
+        let y = FloatType::from_f64(2.0);
+        let z = x.add(&y);
+        assert_eq!(z.as_f64(), 3.0);
+
+        let x = FloatType::from_u8(1);
+        let y = FloatType::from_f64(2.0);
+        let z = x.add(&y);
+        assert_eq!(z.as_f64(), 3.0);
+
+        // Normally underflowing
+        let x = FloatType::from_f32(1e-45);
+        let y = FloatType::from_f64(2.0);
+        let z = x.add(&y);
+        assert_eq!(z.as_f64(), 2.0);
+
+        let x = FloatType::from_f64(2.0);
+        let y = FloatType::from_f32(1e-45);
+        let z = x.add(&y);
+        assert_eq!(z.as_f64(), 2.0);
+
+        // Normally overflowing
+        let x = FloatType::from_u64(10000000000000000000);
+        let y = FloatType::from_u64(10000000000000000000);
+        let z = x.add(&y);
+        assert_eq!(z.as_f64(), 2e19);
+
+        // Actually overflowing
+        let x = FloatType {frac: u64::max_value(), exp: FloatType::F64_MAX_EXPONENT};
+        let y = x;
+        let z = x.add(&y);
+        assert_eq!(z.as_f64(), F64_INFINITY);
+    }
+
+    #[test]
+    fn subtract_test() {
+        // Simple
+        let x = FloatType::from_u8(5);
+        let y = FloatType::from_u8(3);
+        let z = unsafe { x.subtract_unchecked(&y) };
+        assert_eq!(z.as_f64(), 2.0);
     }
 }

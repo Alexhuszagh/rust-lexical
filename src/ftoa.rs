@@ -207,9 +207,9 @@ unsafe extern "C" fn grisu2(d: f64, digits: *mut u8, k: *mut i32) -> i32
     let mut ki: i32 = mem::uninitialized();
     let cp = cached_power(upper.exp, &mut ki);
 
-    w     = w.multiply(&cp);
-    upper = upper.multiply(&cp);
-    lower = lower.multiply(&cp);
+    w     = w.fast_multiply(&cp);
+    upper = upper.fast_multiply(&cp);
+    lower = lower.fast_multiply(&cp);
 
     lower.frac += 1;
     upper.frac -= 1;
