@@ -40,22 +40,27 @@ table = []
 
 # Benchmarks
 
-[[bench]]
-name = "atof"
-harness = false
+#[[bench]]
+#name = "atof"
+#harness = false
+#
+#[[bench]]
+#name = "atoi"
+#harness = false
+#
+#[[bench]]
+#name = "itoa"
+#harness = false
+#
+#[[bench]]
+#name = "ftoa"
+#harness = false
 
 [[bench]]
-name = "atoi"
-harness = false
-
-[[bench]]
-name = "itoa"
-harness = false
-
-[[bench]]
-name = "ftoa"
+name = "float"
 harness = false
 
 [profile.bench]
 opt-level = 3
 lto = true
+target_cpu = "native"

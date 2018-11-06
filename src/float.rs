@@ -7,15 +7,15 @@
 //! for performance). Since there is no storage for the sign bit,
 //! this only works for positive floats.
 //!
-//  DONE
-//  1. Need to finish as_f64 and as_f32
-//  2. Need FloatType addition and subtraction.
-//  3. Also need a normalize_to exponent function.
-//
+//! For the relative performance, on an x86-64 Intel CPU, the float
+//! multiply operations are ~4-7x as costly as an f64 multiply, and ~1.5-2x
+//! as costly as an f32 multiply (due to f32 expansion and then shrinking).
+//! Likewise, addition is ~3.25x as expensive as f32 and f64 operations,
+//! and subtract is ~2.3x slower. Since this is less than 1 order of
+//! magnitude different for massive precision wins, we consider this a
+//! success.
+
 // TODO(ahuszagh)
-//  1. Need to fix multiply for dramatically different values...
-//  2. Need to add add/sub/mul/div with float or integer types.
-//  3. Need unittests for all this functionality.
 //  4. Need to implement atof in terms of this precise functionality.
 
 // SHIFTS
@@ -254,12 +254,64 @@ macro_rules! conditional_add {
             // Less than 64-bits, shr is safe.
             let mut y = *$y;
             shr!(y, diff);
-            unsafe { y.add_unchecked($x) }
+            y.add_unchecked($x)
         } else {
             // More than 64-bits, self is insignificant.
             *$x
         }
     })
+}
+
+// HARD-CODED MULTIPLY
+// We need this for atof functionality. We need to parse each digit,
+// multiply the result the base quickly, and then add the digit to the
+// running total. We therefore need fast multiplication for 2-36, both
+// checked and unchecked.
+
+/// Generate wrappers for an unchecked power of two multiply.
+macro_rules! multiply_pow2_impl {
+    ($self:ident, $exp:expr) => (FloatType {frac: $self.frac, exp: $self.exp + $exp})
+}
+
+/// Generate wrappers for an unchecked multiply that is not a power of 2.
+///
+/// * `factor`      - Multiplier for the value.
+/// * `max`         - Minimum value that would lead to integer overflow.
+/// * `shift`       - Number to shift right if overflow would occur.
+macro_rules! multiply_not_pow2_impl {
+    ($self:ident, $factor:expr, $shift:expr) => ({
+        const MAX: u64 = u64::max_value() / $factor + 1;
+        if $self.frac < MAX {
+            FloatType {frac: $factor * $self.frac, exp: $self.exp}
+        } else {
+            let mut x = *$self;
+            shr!(x, $shift);
+            x.frac *= $factor;
+            x
+        }
+    })
+}
+
+/// Generate the checked and unchecked wrappers for multiply.
+macro_rules! multiply_n_impl {
+    ($checked:ident, $unchecked:ident, $macro:ident $(, $e:expr)*) => (
+        /// Fast, unchecked multiply-by-N algorithm.
+        #[inline]
+        pub unsafe fn $unchecked(&self) -> FloatType {
+            $macro!(self $(, $e)*)
+        }
+
+        /// Fast multiply-by-N algorithm which checks for infinity.
+        #[inline]
+        pub fn $checked(&self) -> FloatType {
+            // We don't have to be stringent here, since we use 32-bits than 16.
+            if self.exp < Self::F64_MAX_EXPONENT {
+                unsafe { self.$unchecked() }
+            } else {
+                *self
+            }
+        }
+    )
 }
 
 // FLOAT TYPE
@@ -272,8 +324,9 @@ macro_rules! conditional_add {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FloatType {
     /// Has ~80 bits of precision (~16 for exponent).
-    pub frac: u64,
+    /// Use the 32-bit type first, for a packed alignment.
     pub exp: i32,
+    pub frac: u64,
 }
 
 impl FloatType {
@@ -335,31 +388,42 @@ impl FloatType {
     // OPERATIONS
 
     /// Add two extended-precision floating point numbers, as if by `a+b`.
+    #[inline]
     pub fn add(&self, b: &FloatType) -> FloatType {
-        // Check simple case.
-        if self.exp == b.exp {
-            return unsafe { self.add_unchecked(b) };
+        // Produces better code than doing a tri-way comparison.
+        unsafe {
+            if self.exp > b.exp {
+                self.add_less_equal(b)
+            } else {
+                b.add_less_equal(self)
+            }
         }
+    }
 
-        if self.exp < b.exp {
-            conditional_add!(b, self)
+    /// Fast add, where b.exp <= a.exp.
+    #[inline]
+    pub unsafe fn add_less_equal(&self, b: &FloatType) -> FloatType {
+        if self.exp == b.exp {
+            self.add_unchecked(b)
         } else {
             conditional_add!(self, b)
         }
     }
 
     /// Add two extended-precision floats with the same exponent.
+    #[inline]
     pub unsafe fn add_unchecked(&self, b: &FloatType) -> FloatType {
         debug_assert!(self.exp == b.exp);
-        match self.frac.checked_add(b.frac) {
+        let (x, y) = self.frac.overflowing_add(b.frac);
+        match y {
             // Overflow, shift both values left 1, then add.
-            None    => {
+            true  => {
                 let x = self.frac >> 1;
                 let y = b.frac >> 1;
                 FloatType {frac: x + y, exp: self.exp + 1}
             },
             // No overflow, return our value.
-            Some(v) => FloatType {frac: v, exp: self.exp},
+            false => FloatType {frac: x, exp: self.exp},
         }
     }
 
@@ -367,6 +431,7 @@ impl FloatType {
     ///
     /// Subtraction isn't well-supported, since negative values aren't
     /// supported. Only unsafe function calls may be made.
+    #[inline]
     pub unsafe fn subtract_unchecked(&self, b: &FloatType) -> FloatType {
         debug_assert!(self.frac >= b.frac);
         debug_assert!(self.exp == b.exp);
@@ -376,6 +441,7 @@ impl FloatType {
     /// Multiply two normalized extended-precision floats, as if by `a*b`.
     ///
     /// Fast multiply, does not work for numbers of different magnitudes.
+    #[inline]
     pub unsafe fn fast_multiply(&self, b: &FloatType) -> FloatType
     {
         const LOMASK: u64 = 0x00000000FFFFFFFF;
@@ -395,50 +461,136 @@ impl FloatType {
         }
     }
 
-    /// Fast multiply-by-two algorithm.
-    pub fn multiply_2(&self) -> FloatType {
-        FloatType {frac: self.frac, exp: self.exp + 1}
+    // HARD-CODED MULTIPLY
+    // Fast multiply operations using hard-coded values.
+    // These are meant to avoid the `mul` opcode, allowing the compiler
+    // to optimize with a known value. Powers of 2 are optimized by just
+    // incrementing the exponent, while other values check for overflow,
+    // and shift-right (lossy) if required, before multiplying the fraction
+    // by the multiplier.
+
+    // BASE
+    multiply_n_impl!(multiply_2, multiply_2_unchecked, multiply_pow2_impl, 1);
+    multiply_n_impl!(multiply_3, multiply_3_unchecked, multiply_not_pow2_impl, 3, 2);
+    multiply_n_impl!(multiply_4, multiply_4_unchecked, multiply_pow2_impl, 2);
+    multiply_n_impl!(multiply_5, multiply_5_unchecked, multiply_not_pow2_impl, 5, 3);
+    multiply_n_impl!(multiply_6, multiply_6_unchecked, multiply_not_pow2_impl, 6, 3);
+    multiply_n_impl!(multiply_7, multiply_7_unchecked, multiply_not_pow2_impl, 7, 3);
+    multiply_n_impl!(multiply_8, multiply_8_unchecked, multiply_pow2_impl, 3);
+    multiply_n_impl!(multiply_9, multiply_9_unchecked, multiply_not_pow2_impl, 9, 4);
+    multiply_n_impl!(multiply_10, multiply_10_unchecked, multiply_not_pow2_impl, 10, 4);
+    multiply_n_impl!(multiply_11, multiply_11_unchecked, multiply_not_pow2_impl, 11, 4);
+    multiply_n_impl!(multiply_12, multiply_12_unchecked, multiply_not_pow2_impl, 12, 4);
+    multiply_n_impl!(multiply_13, multiply_13_unchecked, multiply_not_pow2_impl, 13, 4);
+    multiply_n_impl!(multiply_14, multiply_14_unchecked, multiply_not_pow2_impl, 14, 4);
+    multiply_n_impl!(multiply_15, multiply_15_unchecked, multiply_not_pow2_impl, 15, 4);
+    multiply_n_impl!(multiply_16, multiply_16_unchecked, multiply_pow2_impl, 4);
+    multiply_n_impl!(multiply_17, multiply_17_unchecked, multiply_not_pow2_impl, 17, 5);
+    multiply_n_impl!(multiply_18, multiply_18_unchecked, multiply_not_pow2_impl, 18, 5);
+    multiply_n_impl!(multiply_19, multiply_19_unchecked, multiply_not_pow2_impl, 19, 5);
+    multiply_n_impl!(multiply_20, multiply_20_unchecked, multiply_not_pow2_impl, 20, 5);
+    multiply_n_impl!(multiply_21, multiply_21_unchecked, multiply_not_pow2_impl, 21, 5);
+    multiply_n_impl!(multiply_22, multiply_22_unchecked, multiply_not_pow2_impl, 22, 5);
+    multiply_n_impl!(multiply_23, multiply_23_unchecked, multiply_not_pow2_impl, 23, 5);
+    multiply_n_impl!(multiply_24, multiply_24_unchecked, multiply_not_pow2_impl, 24, 5);
+    multiply_n_impl!(multiply_25, multiply_25_unchecked, multiply_not_pow2_impl, 25, 5);
+    multiply_n_impl!(multiply_26, multiply_26_unchecked, multiply_not_pow2_impl, 26, 5);
+    multiply_n_impl!(multiply_27, multiply_27_unchecked, multiply_not_pow2_impl, 27, 5);
+    multiply_n_impl!(multiply_28, multiply_28_unchecked, multiply_not_pow2_impl, 28, 5);
+    multiply_n_impl!(multiply_29, multiply_29_unchecked, multiply_not_pow2_impl, 29, 5);
+    multiply_n_impl!(multiply_30, multiply_30_unchecked, multiply_not_pow2_impl, 30, 5);
+    multiply_n_impl!(multiply_31, multiply_31_unchecked, multiply_not_pow2_impl, 31, 5);
+    multiply_n_impl!(multiply_32, multiply_32_unchecked, multiply_pow2_impl, 5);
+    multiply_n_impl!(multiply_33, multiply_33_unchecked, multiply_not_pow2_impl, 33, 6);
+    multiply_n_impl!(multiply_34, multiply_34_unchecked, multiply_not_pow2_impl, 34, 6);
+    multiply_n_impl!(multiply_35, multiply_35_unchecked, multiply_not_pow2_impl, 35, 6);
+    multiply_n_impl!(multiply_36, multiply_36_unchecked, multiply_not_pow2_impl, 36, 6);
+
+    #[cfg(test)]
+    /// Multiply by N to simplify testing purposes.
+    pub fn multiply_n(&self, n: u32) -> FloatType {
+        match n {
+            2  => self.multiply_2(),
+            3  => self.multiply_3(),
+            4  => self.multiply_4(),
+            5  => self.multiply_5(),
+            6  => self.multiply_6(),
+            7  => self.multiply_7(),
+            8  => self.multiply_8(),
+            9  => self.multiply_9(),
+            10 => self.multiply_10(),
+            11 => self.multiply_11(),
+            12 => self.multiply_12(),
+            13 => self.multiply_13(),
+            14 => self.multiply_14(),
+            15 => self.multiply_15(),
+            16 => self.multiply_16(),
+            17 => self.multiply_17(),
+            18 => self.multiply_18(),
+            19 => self.multiply_19(),
+            20 => self.multiply_20(),
+            21 => self.multiply_21(),
+            22 => self.multiply_22(),
+            23 => self.multiply_23(),
+            24 => self.multiply_24(),
+            25 => self.multiply_25(),
+            26 => self.multiply_26(),
+            27 => self.multiply_27(),
+            28 => self.multiply_28(),
+            29 => self.multiply_29(),
+            30 => self.multiply_30(),
+            31 => self.multiply_31(),
+            32 => self.multiply_32(),
+            33 => self.multiply_33(),
+            34 => self.multiply_34(),
+            35 => self.multiply_35(),
+            36 => self.multiply_36(),
+            _  => unreachable!(),
+        }
     }
 
-    // TODO(ahuszagh) multiply_3
-
-    /// Fast multiply-by-4 algorithm.
-    pub fn multiply_4(&self) -> FloatType {
-        FloatType {frac: self.frac, exp: self.exp + 2}
+    #[cfg(test)]
+    /// Unchecked multiply by N to simplify testing purposes.
+    pub unsafe fn multiply_n_unchecked(&self, n: u32) -> FloatType {
+        match n {
+            2  => self.multiply_2_unchecked(),
+            3  => self.multiply_3_unchecked(),
+            4  => self.multiply_4_unchecked(),
+            5  => self.multiply_5_unchecked(),
+            6  => self.multiply_6_unchecked(),
+            7  => self.multiply_7_unchecked(),
+            8  => self.multiply_8_unchecked(),
+            9  => self.multiply_9_unchecked(),
+            10 => self.multiply_10_unchecked(),
+            11 => self.multiply_11_unchecked(),
+            12 => self.multiply_12_unchecked(),
+            13 => self.multiply_13_unchecked(),
+            14 => self.multiply_14_unchecked(),
+            15 => self.multiply_15_unchecked(),
+            16 => self.multiply_16_unchecked(),
+            17 => self.multiply_17_unchecked(),
+            18 => self.multiply_18_unchecked(),
+            19 => self.multiply_19_unchecked(),
+            20 => self.multiply_20_unchecked(),
+            21 => self.multiply_21_unchecked(),
+            22 => self.multiply_22_unchecked(),
+            23 => self.multiply_23_unchecked(),
+            24 => self.multiply_24_unchecked(),
+            25 => self.multiply_25_unchecked(),
+            26 => self.multiply_26_unchecked(),
+            27 => self.multiply_27_unchecked(),
+            28 => self.multiply_28_unchecked(),
+            29 => self.multiply_29_unchecked(),
+            30 => self.multiply_30_unchecked(),
+            31 => self.multiply_31_unchecked(),
+            32 => self.multiply_32_unchecked(),
+            33 => self.multiply_33_unchecked(),
+            34 => self.multiply_34_unchecked(),
+            35 => self.multiply_35_unchecked(),
+            36 => self.multiply_36_unchecked(),
+            _  => unreachable!(),
+        }
     }
-
-    // TODO(ahuszagh) multiply_5
-    // TODO(ahuszagh) multiply_6
-    // TODO(ahuszagh) multiply_7
-    // TODO(ahuszagh) multiply_8
-    // TODO(ahuszagh) multiply_9
-    // TODO(ahuszagh) multiply_10
-    // TODO(ahuszagh) multiply_11
-    // TODO(ahuszagh) multiply_12
-    // TODO(ahuszagh) multiply_13
-    // TODO(ahuszagh) multiply_14
-    // TODO(ahuszagh) multiply_15
-    // TODO(ahuszagh) multiply_16
-    // TODO(ahuszagh) multiply_17
-    // TODO(ahuszagh) multiply_18
-    // TODO(ahuszagh) multiply_19
-    // TODO(ahuszagh) multiply_20
-    // TODO(ahuszagh) multiply_21
-    // TODO(ahuszagh) multiply_22
-    // TODO(ahuszagh) multiply_23
-    // TODO(ahuszagh) multiply_24
-    // TODO(ahuszagh) multiply_25
-    // TODO(ahuszagh) multiply_26
-    // TODO(ahuszagh) multiply_27
-    // TODO(ahuszagh) multiply_28
-    // TODO(ahuszagh) multiply_29
-    // TODO(ahuszagh) multiply_30
-    // TODO(ahuszagh) multiply_31
-    // TODO(ahuszagh) multiply_32
-    // TODO(ahuszagh) multiply_33
-    // TODO(ahuszagh) multiply_34
-    // TODO(ahuszagh) multiply_35
-    // TODO(ahuszagh) multiply_36
 
     // NORMALIZE
 
@@ -480,9 +632,6 @@ impl FloatType {
 
         (lower, upper)
     }
-
-    // TODO(ahuszagh)
-    //  Need normalize_to
 
     /// Lossy normalize float-point number to f32 fraction boundaries.
     #[inline]
@@ -1328,5 +1477,23 @@ mod tests {
         let y = FloatType::from_u8(3);
         let z = unsafe { x.subtract_unchecked(&y) };
         assert_eq!(z.as_f64(), 2.0);
+    }
+
+    #[test]
+    fn multiply_test() {
+        let x = FloatType::from_u8(1);
+        let y = FloatType::from_u64(10000000000000000000);
+        let z = FloatType::from_f64(1.7976931348623157e308);
+
+        for i in 2..36 {
+            let f = i as f64;
+            assert_eq!(x.multiply_n(i).as_f64(), f);
+            assert_eq!(y.multiply_n(i).as_f64(), f * 1e19);
+            assert_eq!(z.multiply_n(i).as_f64(), F64_INFINITY);
+
+            unsafe {
+                assert_eq!(x.multiply_n_unchecked(i).as_f64(), f);
+            }
+        }
     }
 }
