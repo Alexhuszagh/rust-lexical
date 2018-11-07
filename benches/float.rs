@@ -2081,7 +2081,7 @@ fn f64_subtract(bench: &mut Bencher) {
 
 fn float_subtract(bench: &mut Bencher) {
     const MIN: FloatType = FloatType {frac: 1, exp: -1074};
-    bench.iter(|| { FLOAT_DATA.iter().for_each(|x| unsafe { black_box(x.subtract_unchecked(&MIN)); } ) } )
+    bench.iter(|| { FLOAT_DATA.iter().for_each(|x| unsafe { black_box(x.sub_unchecked(&MIN)); } ) } )
 }
 
 // MULTIPLY
@@ -2120,211 +2120,211 @@ macro_rules! floattype_multiply_impl {
 
 native_multiply_impl!(f32_multiply_2, F32_DATA, 2.0);
 native_multiply_impl!(f64_multiply_2, F64_DATA, 2.0);
-floattype_multiply_impl!(float_multiply_2, float_multiply_2_unchecked, multiply_2, multiply_2_unchecked);
+floattype_multiply_impl!(float_multiply_2, float_multiply_2_unchecked, mul_2, mul_2_unchecked);
 
 // MULTIPLY 3
 
 native_multiply_impl!(f32_multiply_3, F32_DATA, 3.0);
 native_multiply_impl!(f64_multiply_3, F64_DATA, 3.0);
-floattype_multiply_impl!(float_multiply_3, float_multiply_3_unchecked, multiply_3, multiply_3_unchecked);
+floattype_multiply_impl!(float_multiply_3, float_multiply_3_unchecked, mul_3, mul_3_unchecked);
 
 // MULTIPLY 4
 
 native_multiply_impl!(f32_multiply_4, F32_DATA, 4.0);
 native_multiply_impl!(f64_multiply_4, F64_DATA, 4.0);
-floattype_multiply_impl!(float_multiply_4, float_multiply_4_unchecked, multiply_4, multiply_4_unchecked);
+floattype_multiply_impl!(float_multiply_4, float_multiply_4_unchecked, mul_4, mul_4_unchecked);
 
 // MULTIPLY 5
 
 native_multiply_impl!(f32_multiply_5, F32_DATA, 5.0);
 native_multiply_impl!(f64_multiply_5, F64_DATA, 5.0);
-floattype_multiply_impl!(float_multiply_5, float_multiply_5_unchecked, multiply_5, multiply_5_unchecked);
+floattype_multiply_impl!(float_multiply_5, float_multiply_5_unchecked, mul_5, mul_5_unchecked);
 
 // MULTIPLY 6
 
 native_multiply_impl!(f32_multiply_6, F32_DATA, 6.0);
 native_multiply_impl!(f64_multiply_6, F64_DATA, 6.0);
-floattype_multiply_impl!(float_multiply_6, float_multiply_6_unchecked, multiply_6, multiply_6_unchecked);
+floattype_multiply_impl!(float_multiply_6, float_multiply_6_unchecked, mul_6, mul_6_unchecked);
 
 // MULTIPLY 7
 
 native_multiply_impl!(f32_multiply_7, F32_DATA, 7.0);
 native_multiply_impl!(f64_multiply_7, F64_DATA, 7.0);
-floattype_multiply_impl!(float_multiply_7, float_multiply_7_unchecked, multiply_7, multiply_7_unchecked);
+floattype_multiply_impl!(float_multiply_7, float_multiply_7_unchecked, mul_7, mul_7_unchecked);
 
 // MULTIPLY 8
 
 native_multiply_impl!(f32_multiply_8, F32_DATA, 8.0);
 native_multiply_impl!(f64_multiply_8, F64_DATA, 8.0);
-floattype_multiply_impl!(float_multiply_8, float_multiply_8_unchecked, multiply_8, multiply_8_unchecked);
+floattype_multiply_impl!(float_multiply_8, float_multiply_8_unchecked, mul_8, mul_8_unchecked);
 
 // MULTIPLY 9
 
 native_multiply_impl!(f32_multiply_9, F32_DATA, 9.0);
 native_multiply_impl!(f64_multiply_9, F64_DATA, 9.0);
-floattype_multiply_impl!(float_multiply_9, float_multiply_9_unchecked, multiply_9, multiply_9_unchecked);
+floattype_multiply_impl!(float_multiply_9, float_multiply_9_unchecked, mul_9, mul_9_unchecked);
 
 // MULTIPLY 10
 
 native_multiply_impl!(f32_multiply_10, F32_DATA, 10.0);
 native_multiply_impl!(f64_multiply_10, F64_DATA, 10.0);
-floattype_multiply_impl!(float_multiply_10, float_multiply_10_unchecked, multiply_10, multiply_10_unchecked);
+floattype_multiply_impl!(float_multiply_10, float_multiply_10_unchecked, mul_10, mul_10_unchecked);
 
 // MULTIPLY 11
 
 native_multiply_impl!(f32_multiply_11, F32_DATA, 11.0);
 native_multiply_impl!(f64_multiply_11, F64_DATA, 11.0);
-floattype_multiply_impl!(float_multiply_11, float_multiply_11_unchecked, multiply_11, multiply_11_unchecked);
+floattype_multiply_impl!(float_multiply_11, float_multiply_11_unchecked, mul_11, mul_11_unchecked);
 
 // MULTIPLY 12
 
 native_multiply_impl!(f32_multiply_12, F32_DATA, 12.0);
 native_multiply_impl!(f64_multiply_12, F64_DATA, 12.0);
-floattype_multiply_impl!(float_multiply_12, float_multiply_12_unchecked, multiply_12, multiply_12_unchecked);
+floattype_multiply_impl!(float_multiply_12, float_multiply_12_unchecked, mul_12, mul_12_unchecked);
 
 // MULTIPLY 13
 
 native_multiply_impl!(f32_multiply_13, F32_DATA, 13.0);
 native_multiply_impl!(f64_multiply_13, F64_DATA, 13.0);
-floattype_multiply_impl!(float_multiply_13, float_multiply_13_unchecked, multiply_13, multiply_13_unchecked);
+floattype_multiply_impl!(float_multiply_13, float_multiply_13_unchecked, mul_13, mul_13_unchecked);
 
 // MULTIPLY 14
 
 native_multiply_impl!(f32_multiply_14, F32_DATA, 14.0);
 native_multiply_impl!(f64_multiply_14, F64_DATA, 14.0);
-floattype_multiply_impl!(float_multiply_14, float_multiply_14_unchecked, multiply_14, multiply_14_unchecked);
+floattype_multiply_impl!(float_multiply_14, float_multiply_14_unchecked, mul_14, mul_14_unchecked);
 
 // MULTIPLY 15
 
 native_multiply_impl!(f32_multiply_15, F32_DATA, 15.0);
 native_multiply_impl!(f64_multiply_15, F64_DATA, 15.0);
-floattype_multiply_impl!(float_multiply_15, float_multiply_15_unchecked, multiply_15, multiply_15_unchecked);
+floattype_multiply_impl!(float_multiply_15, float_multiply_15_unchecked, mul_15, mul_15_unchecked);
 
 // MULTIPLY 16
 
 native_multiply_impl!(f32_multiply_16, F32_DATA, 16.0);
 native_multiply_impl!(f64_multiply_16, F64_DATA, 16.0);
-floattype_multiply_impl!(float_multiply_16, float_multiply_16_unchecked, multiply_16, multiply_16_unchecked);
+floattype_multiply_impl!(float_multiply_16, float_multiply_16_unchecked, mul_16, mul_16_unchecked);
 
 // MULTIPLY 17
 
 native_multiply_impl!(f32_multiply_17, F32_DATA, 17.0);
 native_multiply_impl!(f64_multiply_17, F64_DATA, 17.0);
-floattype_multiply_impl!(float_multiply_17, float_multiply_17_unchecked, multiply_17, multiply_17_unchecked);
+floattype_multiply_impl!(float_multiply_17, float_multiply_17_unchecked, mul_17, mul_17_unchecked);
 
 // MULTIPLY 18
 
 native_multiply_impl!(f32_multiply_18, F32_DATA, 18.0);
 native_multiply_impl!(f64_multiply_18, F64_DATA, 18.0);
-floattype_multiply_impl!(float_multiply_18, float_multiply_18_unchecked, multiply_18, multiply_18_unchecked);
+floattype_multiply_impl!(float_multiply_18, float_multiply_18_unchecked, mul_18, mul_18_unchecked);
 
 // MULTIPLY 19
 
 native_multiply_impl!(f32_multiply_19, F32_DATA, 19.0);
 native_multiply_impl!(f64_multiply_19, F64_DATA, 19.0);
-floattype_multiply_impl!(float_multiply_19, float_multiply_19_unchecked, multiply_19, multiply_19_unchecked);
+floattype_multiply_impl!(float_multiply_19, float_multiply_19_unchecked, mul_19, mul_19_unchecked);
 
 // MULTIPLY 20
 
 native_multiply_impl!(f32_multiply_20, F32_DATA, 20.0);
 native_multiply_impl!(f64_multiply_20, F64_DATA, 20.0);
-floattype_multiply_impl!(float_multiply_20, float_multiply_20_unchecked, multiply_20, multiply_20_unchecked);
+floattype_multiply_impl!(float_multiply_20, float_multiply_20_unchecked, mul_20, mul_20_unchecked);
 
 // MULTIPLY 21
 
 native_multiply_impl!(f32_multiply_21, F32_DATA, 21.0);
 native_multiply_impl!(f64_multiply_21, F64_DATA, 21.0);
-floattype_multiply_impl!(float_multiply_21, float_multiply_21_unchecked, multiply_21, multiply_21_unchecked);
+floattype_multiply_impl!(float_multiply_21, float_multiply_21_unchecked, mul_21, mul_21_unchecked);
 
 // MULTIPLY 22
 
 native_multiply_impl!(f32_multiply_22, F32_DATA, 22.0);
 native_multiply_impl!(f64_multiply_22, F64_DATA, 22.0);
-floattype_multiply_impl!(float_multiply_22, float_multiply_22_unchecked, multiply_22, multiply_22_unchecked);
+floattype_multiply_impl!(float_multiply_22, float_multiply_22_unchecked, mul_22, mul_22_unchecked);
 
 // MULTIPLY 23
 
 native_multiply_impl!(f32_multiply_23, F32_DATA, 23.0);
 native_multiply_impl!(f64_multiply_23, F64_DATA, 23.0);
-floattype_multiply_impl!(float_multiply_23, float_multiply_23_unchecked, multiply_23, multiply_23_unchecked);
+floattype_multiply_impl!(float_multiply_23, float_multiply_23_unchecked, mul_23, mul_23_unchecked);
 
 // MULTIPLY 24
 
 native_multiply_impl!(f32_multiply_24, F32_DATA, 24.0);
 native_multiply_impl!(f64_multiply_24, F64_DATA, 24.0);
-floattype_multiply_impl!(float_multiply_24, float_multiply_24_unchecked, multiply_24, multiply_24_unchecked);
+floattype_multiply_impl!(float_multiply_24, float_multiply_24_unchecked, mul_24, mul_24_unchecked);
 
 // MULTIPLY 25
 
 native_multiply_impl!(f32_multiply_25, F32_DATA, 25.0);
 native_multiply_impl!(f64_multiply_25, F64_DATA, 25.0);
-floattype_multiply_impl!(float_multiply_25, float_multiply_25_unchecked, multiply_25, multiply_25_unchecked);
+floattype_multiply_impl!(float_multiply_25, float_multiply_25_unchecked, mul_25, mul_25_unchecked);
 
 // MULTIPLY 26
 
 native_multiply_impl!(f32_multiply_26, F32_DATA, 26.0);
 native_multiply_impl!(f64_multiply_26, F64_DATA, 26.0);
-floattype_multiply_impl!(float_multiply_26, float_multiply_26_unchecked, multiply_26, multiply_26_unchecked);
+floattype_multiply_impl!(float_multiply_26, float_multiply_26_unchecked, mul_26, mul_26_unchecked);
 
 // MULTIPLY 27
 
 native_multiply_impl!(f32_multiply_27, F32_DATA, 27.0);
 native_multiply_impl!(f64_multiply_27, F64_DATA, 27.0);
-floattype_multiply_impl!(float_multiply_27, float_multiply_27_unchecked, multiply_27, multiply_27_unchecked);
+floattype_multiply_impl!(float_multiply_27, float_multiply_27_unchecked, mul_27, mul_27_unchecked);
 
 // MULTIPLY 28
 
 native_multiply_impl!(f32_multiply_28, F32_DATA, 28.0);
 native_multiply_impl!(f64_multiply_28, F64_DATA, 28.0);
-floattype_multiply_impl!(float_multiply_28, float_multiply_28_unchecked, multiply_28, multiply_28_unchecked);
+floattype_multiply_impl!(float_multiply_28, float_multiply_28_unchecked, mul_28, mul_28_unchecked);
 
 // MULTIPLY 29
 
 native_multiply_impl!(f32_multiply_29, F32_DATA, 29.0);
 native_multiply_impl!(f64_multiply_29, F64_DATA, 29.0);
-floattype_multiply_impl!(float_multiply_29, float_multiply_29_unchecked, multiply_29, multiply_29_unchecked);
+floattype_multiply_impl!(float_multiply_29, float_multiply_29_unchecked, mul_29, mul_29_unchecked);
 
 // MULTIPLY 30
 
 native_multiply_impl!(f32_multiply_30, F32_DATA, 30.0);
 native_multiply_impl!(f64_multiply_30, F64_DATA, 30.0);
-floattype_multiply_impl!(float_multiply_30, float_multiply_30_unchecked, multiply_30, multiply_30_unchecked);
+floattype_multiply_impl!(float_multiply_30, float_multiply_30_unchecked, mul_30, mul_30_unchecked);
 
 // MULTIPLY 31
 
 native_multiply_impl!(f32_multiply_31, F32_DATA, 31.0);
 native_multiply_impl!(f64_multiply_31, F64_DATA, 31.0);
-floattype_multiply_impl!(float_multiply_31, float_multiply_31_unchecked, multiply_31, multiply_31_unchecked);
+floattype_multiply_impl!(float_multiply_31, float_multiply_31_unchecked, mul_31, mul_31_unchecked);
 
 // MULTIPLY 32
 
 native_multiply_impl!(f32_multiply_32, F32_DATA, 32.0);
 native_multiply_impl!(f64_multiply_32, F64_DATA, 32.0);
-floattype_multiply_impl!(float_multiply_32, float_multiply_32_unchecked, multiply_32, multiply_32_unchecked);
+floattype_multiply_impl!(float_multiply_32, float_multiply_32_unchecked, mul_32, mul_32_unchecked);
 
 // MULTIPLY 33
 
 native_multiply_impl!(f32_multiply_33, F32_DATA, 33.0);
 native_multiply_impl!(f64_multiply_33, F64_DATA, 33.0);
-floattype_multiply_impl!(float_multiply_33, float_multiply_33_unchecked, multiply_33, multiply_33_unchecked);
+floattype_multiply_impl!(float_multiply_33, float_multiply_33_unchecked, mul_33, mul_33_unchecked);
 
 // MULTIPLY 34
 
 native_multiply_impl!(f32_multiply_34, F32_DATA, 34.0);
 native_multiply_impl!(f64_multiply_34, F64_DATA, 34.0);
-floattype_multiply_impl!(float_multiply_34, float_multiply_34_unchecked, multiply_34, multiply_34_unchecked);
+floattype_multiply_impl!(float_multiply_34, float_multiply_34_unchecked, mul_34, mul_34_unchecked);
 
 // MULTIPLY 35
 
 native_multiply_impl!(f32_multiply_35, F32_DATA, 35.0);
 native_multiply_impl!(f64_multiply_35, F64_DATA, 35.0);
-floattype_multiply_impl!(float_multiply_35, float_multiply_35_unchecked, multiply_35, multiply_35_unchecked);
+floattype_multiply_impl!(float_multiply_35, float_multiply_35_unchecked, mul_35, mul_35_unchecked);
 
 // MULTIPLY 36
 
 native_multiply_impl!(f32_multiply_36, F32_DATA, 36.0);
 native_multiply_impl!(f64_multiply_36, F64_DATA, 36.0);
-floattype_multiply_impl!(float_multiply_36, float_multiply_36_unchecked, multiply_36, multiply_36_unchecked);
+floattype_multiply_impl!(float_multiply_36, float_multiply_36_unchecked, mul_36, mul_36_unchecked);
 
 // MAIN
 

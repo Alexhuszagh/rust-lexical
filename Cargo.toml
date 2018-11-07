@@ -28,7 +28,7 @@ dtoa = "0.4"
 itoa = "0.4"
 
 [features]
-default = ["std", "precise", "table"]
+default = ["std", "table"] # "precise",
 alloc = ["wee_alloc"]
 nightly = ["alloc"]
 # Use extended-precision floats for `atof` functionality.
@@ -63,4 +63,3 @@ harness = false
 [profile.bench]
 opt-level = 3
 lto = true
-target_cpu = "native"

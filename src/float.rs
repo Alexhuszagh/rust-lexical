@@ -16,7 +16,8 @@
 //! success.
 
 // TODO(ahuszagh)
-//  4. Need to implement atof in terms of this precise functionality.
+//  1. Need a fast powi()
+//  2. Need to implement atof in terms of this precise functionality.
 
 // SHIFTS
 
@@ -410,6 +411,18 @@ impl FloatType {
         }
     }
 
+    /// Fast add from u64.
+    #[inline]
+    pub fn add_u64(&self, b: u64) -> FloatType {
+        self.add(&FloatType::from_u64(b))
+    }
+
+    /// Fast add from u64, where b.exp <= a.exp.
+    #[inline]
+    pub unsafe fn add_less_equal_u64(&self, b: u64) -> FloatType {
+        self.add_less_equal(&FloatType::from_u64(b))
+    }
+
     /// Add two extended-precision floats with the same exponent.
     #[inline]
     pub unsafe fn add_unchecked(&self, b: &FloatType) -> FloatType {
@@ -432,7 +445,7 @@ impl FloatType {
     /// Subtraction isn't well-supported, since negative values aren't
     /// supported. Only unsafe function calls may be made.
     #[inline]
-    pub unsafe fn subtract_unchecked(&self, b: &FloatType) -> FloatType {
+    pub unsafe fn sub_unchecked(&self, b: &FloatType) -> FloatType {
         debug_assert!(self.frac >= b.frac);
         debug_assert!(self.exp == b.exp);
         FloatType {frac: self.frac - b.frac, exp: self.exp}
@@ -470,124 +483,124 @@ impl FloatType {
     // by the multiplier.
 
     // BASE
-    multiply_n_impl!(multiply_2, multiply_2_unchecked, multiply_pow2_impl, 1);
-    multiply_n_impl!(multiply_3, multiply_3_unchecked, multiply_not_pow2_impl, 3, 2);
-    multiply_n_impl!(multiply_4, multiply_4_unchecked, multiply_pow2_impl, 2);
-    multiply_n_impl!(multiply_5, multiply_5_unchecked, multiply_not_pow2_impl, 5, 3);
-    multiply_n_impl!(multiply_6, multiply_6_unchecked, multiply_not_pow2_impl, 6, 3);
-    multiply_n_impl!(multiply_7, multiply_7_unchecked, multiply_not_pow2_impl, 7, 3);
-    multiply_n_impl!(multiply_8, multiply_8_unchecked, multiply_pow2_impl, 3);
-    multiply_n_impl!(multiply_9, multiply_9_unchecked, multiply_not_pow2_impl, 9, 4);
-    multiply_n_impl!(multiply_10, multiply_10_unchecked, multiply_not_pow2_impl, 10, 4);
-    multiply_n_impl!(multiply_11, multiply_11_unchecked, multiply_not_pow2_impl, 11, 4);
-    multiply_n_impl!(multiply_12, multiply_12_unchecked, multiply_not_pow2_impl, 12, 4);
-    multiply_n_impl!(multiply_13, multiply_13_unchecked, multiply_not_pow2_impl, 13, 4);
-    multiply_n_impl!(multiply_14, multiply_14_unchecked, multiply_not_pow2_impl, 14, 4);
-    multiply_n_impl!(multiply_15, multiply_15_unchecked, multiply_not_pow2_impl, 15, 4);
-    multiply_n_impl!(multiply_16, multiply_16_unchecked, multiply_pow2_impl, 4);
-    multiply_n_impl!(multiply_17, multiply_17_unchecked, multiply_not_pow2_impl, 17, 5);
-    multiply_n_impl!(multiply_18, multiply_18_unchecked, multiply_not_pow2_impl, 18, 5);
-    multiply_n_impl!(multiply_19, multiply_19_unchecked, multiply_not_pow2_impl, 19, 5);
-    multiply_n_impl!(multiply_20, multiply_20_unchecked, multiply_not_pow2_impl, 20, 5);
-    multiply_n_impl!(multiply_21, multiply_21_unchecked, multiply_not_pow2_impl, 21, 5);
-    multiply_n_impl!(multiply_22, multiply_22_unchecked, multiply_not_pow2_impl, 22, 5);
-    multiply_n_impl!(multiply_23, multiply_23_unchecked, multiply_not_pow2_impl, 23, 5);
-    multiply_n_impl!(multiply_24, multiply_24_unchecked, multiply_not_pow2_impl, 24, 5);
-    multiply_n_impl!(multiply_25, multiply_25_unchecked, multiply_not_pow2_impl, 25, 5);
-    multiply_n_impl!(multiply_26, multiply_26_unchecked, multiply_not_pow2_impl, 26, 5);
-    multiply_n_impl!(multiply_27, multiply_27_unchecked, multiply_not_pow2_impl, 27, 5);
-    multiply_n_impl!(multiply_28, multiply_28_unchecked, multiply_not_pow2_impl, 28, 5);
-    multiply_n_impl!(multiply_29, multiply_29_unchecked, multiply_not_pow2_impl, 29, 5);
-    multiply_n_impl!(multiply_30, multiply_30_unchecked, multiply_not_pow2_impl, 30, 5);
-    multiply_n_impl!(multiply_31, multiply_31_unchecked, multiply_not_pow2_impl, 31, 5);
-    multiply_n_impl!(multiply_32, multiply_32_unchecked, multiply_pow2_impl, 5);
-    multiply_n_impl!(multiply_33, multiply_33_unchecked, multiply_not_pow2_impl, 33, 6);
-    multiply_n_impl!(multiply_34, multiply_34_unchecked, multiply_not_pow2_impl, 34, 6);
-    multiply_n_impl!(multiply_35, multiply_35_unchecked, multiply_not_pow2_impl, 35, 6);
-    multiply_n_impl!(multiply_36, multiply_36_unchecked, multiply_not_pow2_impl, 36, 6);
+    multiply_n_impl!(mul_2, mul_2_unchecked, multiply_pow2_impl, 1);
+    multiply_n_impl!(mul_3, mul_3_unchecked, multiply_not_pow2_impl, 3, 2);
+    multiply_n_impl!(mul_4, mul_4_unchecked, multiply_pow2_impl, 2);
+    multiply_n_impl!(mul_5, mul_5_unchecked, multiply_not_pow2_impl, 5, 3);
+    multiply_n_impl!(mul_6, mul_6_unchecked, multiply_not_pow2_impl, 6, 3);
+    multiply_n_impl!(mul_7, mul_7_unchecked, multiply_not_pow2_impl, 7, 3);
+    multiply_n_impl!(mul_8, mul_8_unchecked, multiply_pow2_impl, 3);
+    multiply_n_impl!(mul_9, mul_9_unchecked, multiply_not_pow2_impl, 9, 4);
+    multiply_n_impl!(mul_10, mul_10_unchecked, multiply_not_pow2_impl, 10, 4);
+    multiply_n_impl!(mul_11, mul_11_unchecked, multiply_not_pow2_impl, 11, 4);
+    multiply_n_impl!(mul_12, mul_12_unchecked, multiply_not_pow2_impl, 12, 4);
+    multiply_n_impl!(mul_13, mul_13_unchecked, multiply_not_pow2_impl, 13, 4);
+    multiply_n_impl!(mul_14, mul_14_unchecked, multiply_not_pow2_impl, 14, 4);
+    multiply_n_impl!(mul_15, mul_15_unchecked, multiply_not_pow2_impl, 15, 4);
+    multiply_n_impl!(mul_16, mul_16_unchecked, multiply_pow2_impl, 4);
+    multiply_n_impl!(mul_17, mul_17_unchecked, multiply_not_pow2_impl, 17, 5);
+    multiply_n_impl!(mul_18, mul_18_unchecked, multiply_not_pow2_impl, 18, 5);
+    multiply_n_impl!(mul_19, mul_19_unchecked, multiply_not_pow2_impl, 19, 5);
+    multiply_n_impl!(mul_20, mul_20_unchecked, multiply_not_pow2_impl, 20, 5);
+    multiply_n_impl!(mul_21, mul_21_unchecked, multiply_not_pow2_impl, 21, 5);
+    multiply_n_impl!(mul_22, mul_22_unchecked, multiply_not_pow2_impl, 22, 5);
+    multiply_n_impl!(mul_23, mul_23_unchecked, multiply_not_pow2_impl, 23, 5);
+    multiply_n_impl!(mul_24, mul_24_unchecked, multiply_not_pow2_impl, 24, 5);
+    multiply_n_impl!(mul_25, mul_25_unchecked, multiply_not_pow2_impl, 25, 5);
+    multiply_n_impl!(mul_26, mul_26_unchecked, multiply_not_pow2_impl, 26, 5);
+    multiply_n_impl!(mul_27, mul_27_unchecked, multiply_not_pow2_impl, 27, 5);
+    multiply_n_impl!(mul_28, mul_28_unchecked, multiply_not_pow2_impl, 28, 5);
+    multiply_n_impl!(mul_29, mul_29_unchecked, multiply_not_pow2_impl, 29, 5);
+    multiply_n_impl!(mul_30, mul_30_unchecked, multiply_not_pow2_impl, 30, 5);
+    multiply_n_impl!(mul_31, mul_31_unchecked, multiply_not_pow2_impl, 31, 5);
+    multiply_n_impl!(mul_32, mul_32_unchecked, multiply_pow2_impl, 5);
+    multiply_n_impl!(mul_33, mul_33_unchecked, multiply_not_pow2_impl, 33, 6);
+    multiply_n_impl!(mul_34, mul_34_unchecked, multiply_not_pow2_impl, 34, 6);
+    multiply_n_impl!(mul_35, mul_35_unchecked, multiply_not_pow2_impl, 35, 6);
+    multiply_n_impl!(mul_36, mul_36_unchecked, multiply_not_pow2_impl, 36, 6);
 
-    #[cfg(test)]
+    // TODO(ahuszagh) Need a fast powi...
+
     /// Multiply by N to simplify testing purposes.
-    pub fn multiply_n(&self, n: u32) -> FloatType {
+    pub fn mul_n(&self, n: u64) -> FloatType {
         match n {
-            2  => self.multiply_2(),
-            3  => self.multiply_3(),
-            4  => self.multiply_4(),
-            5  => self.multiply_5(),
-            6  => self.multiply_6(),
-            7  => self.multiply_7(),
-            8  => self.multiply_8(),
-            9  => self.multiply_9(),
-            10 => self.multiply_10(),
-            11 => self.multiply_11(),
-            12 => self.multiply_12(),
-            13 => self.multiply_13(),
-            14 => self.multiply_14(),
-            15 => self.multiply_15(),
-            16 => self.multiply_16(),
-            17 => self.multiply_17(),
-            18 => self.multiply_18(),
-            19 => self.multiply_19(),
-            20 => self.multiply_20(),
-            21 => self.multiply_21(),
-            22 => self.multiply_22(),
-            23 => self.multiply_23(),
-            24 => self.multiply_24(),
-            25 => self.multiply_25(),
-            26 => self.multiply_26(),
-            27 => self.multiply_27(),
-            28 => self.multiply_28(),
-            29 => self.multiply_29(),
-            30 => self.multiply_30(),
-            31 => self.multiply_31(),
-            32 => self.multiply_32(),
-            33 => self.multiply_33(),
-            34 => self.multiply_34(),
-            35 => self.multiply_35(),
-            36 => self.multiply_36(),
+            2  => self.mul_2(),
+            3  => self.mul_3(),
+            4  => self.mul_4(),
+            5  => self.mul_5(),
+            6  => self.mul_6(),
+            7  => self.mul_7(),
+            8  => self.mul_8(),
+            9  => self.mul_9(),
+            10 => self.mul_10(),
+            11 => self.mul_11(),
+            12 => self.mul_12(),
+            13 => self.mul_13(),
+            14 => self.mul_14(),
+            15 => self.mul_15(),
+            16 => self.mul_16(),
+            17 => self.mul_17(),
+            18 => self.mul_18(),
+            19 => self.mul_19(),
+            20 => self.mul_20(),
+            21 => self.mul_21(),
+            22 => self.mul_22(),
+            23 => self.mul_23(),
+            24 => self.mul_24(),
+            25 => self.mul_25(),
+            26 => self.mul_26(),
+            27 => self.mul_27(),
+            28 => self.mul_28(),
+            29 => self.mul_29(),
+            30 => self.mul_30(),
+            31 => self.mul_31(),
+            32 => self.mul_32(),
+            33 => self.mul_33(),
+            34 => self.mul_34(),
+            35 => self.mul_35(),
+            36 => self.mul_36(),
             _  => unreachable!(),
         }
     }
 
-    #[cfg(test)]
     /// Unchecked multiply by N to simplify testing purposes.
-    pub unsafe fn multiply_n_unchecked(&self, n: u32) -> FloatType {
+    pub unsafe fn mul_n_unchecked(&self, n: u64) -> FloatType {
         match n {
-            2  => self.multiply_2_unchecked(),
-            3  => self.multiply_3_unchecked(),
-            4  => self.multiply_4_unchecked(),
-            5  => self.multiply_5_unchecked(),
-            6  => self.multiply_6_unchecked(),
-            7  => self.multiply_7_unchecked(),
-            8  => self.multiply_8_unchecked(),
-            9  => self.multiply_9_unchecked(),
-            10 => self.multiply_10_unchecked(),
-            11 => self.multiply_11_unchecked(),
-            12 => self.multiply_12_unchecked(),
-            13 => self.multiply_13_unchecked(),
-            14 => self.multiply_14_unchecked(),
-            15 => self.multiply_15_unchecked(),
-            16 => self.multiply_16_unchecked(),
-            17 => self.multiply_17_unchecked(),
-            18 => self.multiply_18_unchecked(),
-            19 => self.multiply_19_unchecked(),
-            20 => self.multiply_20_unchecked(),
-            21 => self.multiply_21_unchecked(),
-            22 => self.multiply_22_unchecked(),
-            23 => self.multiply_23_unchecked(),
-            24 => self.multiply_24_unchecked(),
-            25 => self.multiply_25_unchecked(),
-            26 => self.multiply_26_unchecked(),
-            27 => self.multiply_27_unchecked(),
-            28 => self.multiply_28_unchecked(),
-            29 => self.multiply_29_unchecked(),
-            30 => self.multiply_30_unchecked(),
-            31 => self.multiply_31_unchecked(),
-            32 => self.multiply_32_unchecked(),
-            33 => self.multiply_33_unchecked(),
-            34 => self.multiply_34_unchecked(),
-            35 => self.multiply_35_unchecked(),
-            36 => self.multiply_36_unchecked(),
+            2  => self.mul_2_unchecked(),
+            3  => self.mul_3_unchecked(),
+            4  => self.mul_4_unchecked(),
+            5  => self.mul_5_unchecked(),
+            6  => self.mul_6_unchecked(),
+            7  => self.mul_7_unchecked(),
+            8  => self.mul_8_unchecked(),
+            9  => self.mul_9_unchecked(),
+            10 => self.mul_10_unchecked(),
+            11 => self.mul_11_unchecked(),
+            12 => self.mul_12_unchecked(),
+            13 => self.mul_13_unchecked(),
+            14 => self.mul_14_unchecked(),
+            15 => self.mul_15_unchecked(),
+            16 => self.mul_16_unchecked(),
+            17 => self.mul_17_unchecked(),
+            18 => self.mul_18_unchecked(),
+            19 => self.mul_19_unchecked(),
+            20 => self.mul_20_unchecked(),
+            21 => self.mul_21_unchecked(),
+            22 => self.mul_22_unchecked(),
+            23 => self.mul_23_unchecked(),
+            24 => self.mul_24_unchecked(),
+            25 => self.mul_25_unchecked(),
+            26 => self.mul_26_unchecked(),
+            27 => self.mul_27_unchecked(),
+            28 => self.mul_28_unchecked(),
+            29 => self.mul_29_unchecked(),
+            30 => self.mul_30_unchecked(),
+            31 => self.mul_31_unchecked(),
+            32 => self.mul_32_unchecked(),
+            33 => self.mul_33_unchecked(),
+            34 => self.mul_34_unchecked(),
+            35 => self.mul_35_unchecked(),
+            36 => self.mul_36_unchecked(),
             _  => unreachable!(),
         }
     }
@@ -1475,7 +1488,7 @@ mod tests {
         // Simple
         let x = FloatType::from_u8(5);
         let y = FloatType::from_u8(3);
-        let z = unsafe { x.subtract_unchecked(&y) };
+        let z = unsafe { x.sub_unchecked(&y) };
         assert_eq!(z.as_f64(), 2.0);
     }
 
@@ -1487,12 +1500,12 @@ mod tests {
 
         for i in 2..36 {
             let f = i as f64;
-            assert_eq!(x.multiply_n(i).as_f64(), f);
-            assert_eq!(y.multiply_n(i).as_f64(), f * 1e19);
-            assert_eq!(z.multiply_n(i).as_f64(), F64_INFINITY);
+            assert_eq!(x.mul_n(i).as_f64(), f);
+            assert_eq!(y.mul_n(i).as_f64(), f * 1e19);
+            assert_eq!(z.mul_n(i).as_f64(), F64_INFINITY);
 
             unsafe {
-                assert_eq!(x.multiply_n_unchecked(i).as_f64(), f);
+                assert_eq!(x.mul_n_unchecked(i).as_f64(), f);
             }
         }
     }

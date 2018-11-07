@@ -110,14 +110,16 @@ macro_rules! is_valid_alnum {
 ///
 /// Must be used within an unsafe block.
 macro_rules! atoi_num_impl {
-    ($value:ident, $first:expr, $last:expr, $base:expr, $t:ty) => ({
+    ($value:ident, $first:expr, $last:expr, $base:expr, $t:ty, $mul:ident, $add:ident)
+    =>
+    ({
         let base = $base as $t;
         let upper = *BASEN.get_unchecked($base as usize - 1);
         let mut p = $first;
 
         while p < $last && is_valid_num!(*p, upper) {
-            $value = $value.wrapping_mul(base);
-            $value = $value.wrapping_add((*p - b'0') as $t);
+            $value = $value.$mul(base);
+            $value = $value.$add((*p - b'0') as $t);
             p = p.add(1)
         }
 
@@ -129,24 +131,26 @@ macro_rules! atoi_num_impl {
 ///
 /// Must be used within an unsafe block.
 macro_rules! atoi_alnum_impl {
-    ($value:ident, $first:expr, $last:expr, $base:expr, $t:ty) => ({
+    ($value:ident, $first:expr, $last:expr, $base:expr, $t:ty, $mul:ident, $add:ident)
+    =>
+    ({
         let base = $base as $t;
         let upper = *BASEN.get_unchecked($base as usize - 1);
         let mut p = $first;
 
         while p < $last && is_valid_alnum!(*p, upper) {
-            $value = $value.wrapping_mul(base);
+            $value = $value.$mul(base);
             let c = *p;
             p = p.add(1);
             if c <= b'9' {
-                $value = $value.wrapping_add((c - b'0') as $t);
+                $value = $value.$add((c - b'0') as $t);
             } else if c >= b'A' && c <= b'Z' {
-                $value = $value.wrapping_add((c - b'A' + 10) as $t);
+                $value = $value.$add((c - b'A' + 10) as $t);
             } else {
                 // We already sanitized it's a valid alnum, this is purely
                 // cosmetic.
                 debug_assert!(c >= b'a' && c <= b'z');
-                $value = $value.wrapping_add((c - b'a' + 10) as $t);
+                $value = $value.$add((c - b'a' + 10) as $t);
             }
         }
 
@@ -156,32 +160,46 @@ macro_rules! atoi_alnum_impl {
 
 /// Get the pointer from parsing the integer within the block.
 macro_rules! atoi_pointer {
-    ($value:ident, $first:expr, $last:expr, $base:ident, $t:ty) => ({
+    // Explicit multiply and add methods.
+    ($value:ident, $first:expr, $last:expr, $base:ident, $t:ty, $mul:ident, $add:ident)
+    =>
+    ({
         // logic error, disable in release builds
         debug_assert!($base >= 2 && $base <= 36, "Numerical base must be from 2-36");
 
         if $base <= 10 {
-            atoi_num_impl!($value, $first, $last, $base, $t)
+            atoi_num_impl!($value, $first, $last, $base, $t, $mul, $add)
         } else {
-            atoi_alnum_impl!($value, $first, $last, $base, $t)
+            atoi_alnum_impl!($value, $first, $last, $base, $t, $mul, $add)
         }
-    })
+    });
+    // Non-explicit multiply and add methods
+    ($value:ident, $first:expr, $last:expr, $base:ident, $t:ty) => (
+        atoi_pointer!($value, $first, $last, $base, $t, wrapping_mul, wrapping_add)
+    );
 }
 
 /// General sanitizer for the atoi implementation.
 ///
 /// Must be used within an unsafe block.
 macro_rules! atoi_value {
-    ($first:expr, $last:expr, $base:expr, $t:ty) => ({
+    // Explicit multiply and add methods.
+    ($first:expr, $last:expr, $base:expr, $t:ty, $mul:ident, $add:ident)
+    =>
+    ({
         // logic error, disable in release builds
         debug_assert!($base >= 2 && $base <= 36, "Numerical base must be from 2-36");
 
         let mut value: $t = 0;
         let base = $base as $t;
-        let p = atoi_pointer!(value, $first, $last, base, $t);
+        let p = atoi_pointer!(value, $first, $last, base, $t, $mul, $add);
 
         (value, p)
-    })
+    });
+    // Non-explicit multiply and add methods
+    ($first:expr, $last:expr, $base:expr, $t:ty) => (
+        atoi_value!($first, $last, $base, $t, wrapping_mul, wrapping_add)
+    );
 }
 
 /// Handle unsigned +/- numbers and forward to implied implementation.

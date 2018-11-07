@@ -54,12 +54,12 @@
 use sealed::mem;
 use sealed::ptr;
 
-#[cfg(feature = "f128")]
-use f128::f128;
-
 use ftoa::exponent_notation_char;
 use table::BASEN;
 use util::*;
+
+#[cfg(feature = "precise")]
+use float::FloatType;
 
 // TRAITS
 
@@ -83,9 +83,6 @@ macro_rules! wrapping_float_impl {
 }
 
 wrapping_float_impl! { f32 f64 }
-
-#[cfg(feature = "f128")]
-wrapping_float_impl! { f128 }
 
 // ATOF
 // ----
@@ -139,10 +136,33 @@ macro_rules! is_valid_digit {
     })
 }
 
+// SHARED
+
+// Calculate the exponential portion, if
+// we have an `e[+-]?\d+`.
+// We don't care about the pointer after this, so just use `atoi_value`.
+#[inline(always)]
+unsafe extern "C" fn calculate_exponent(s: &mut State, base: u64) -> i32 {
+    let dist = distance(s.curr_last, s.last);
+    if dist > 1 && (*s.curr_last).to_ascii_lowercase() == exponent_notation_char(base) {
+        s.curr_last = s.curr_last.add(1);
+        s.curr_first = s.curr_last;
+        s.curr_last = s.last;
+        let (value, p) = atoi_signed!(s.curr_first, s.curr_last, base, i32);
+        s.curr_last = p;
+        value
+    } else {
+        0
+    }
+}
+
+// NOT PRECISE
+
 // Calculate the integer portion.
 // Use a float since for large numbers, this may even overflow an
 // integer 64.
 #[inline(always)]
+#[cfg(not(feature = "precise"))]
 unsafe extern "C" fn calculate_integer(s: &mut State, base: u64) -> f64 {
     let mut integer: f64 = 0.0;
     s.curr_last = atoi_pointer!(integer, s.first, s.last, base, f64);
@@ -155,6 +175,7 @@ unsafe extern "C" fn calculate_integer(s: &mut State, base: u64) -> f64 {
 // representation **immediately**.
 // For numeric stability, use this early.
 #[inline(always)]
+#[cfg(not(feature = "precise"))]
 unsafe extern "C" fn calculate_fraction(s: &mut State, base: u64, sig: usize) -> f64 {
     let mut fraction: f64 = 0.0;
     let base_f = base as f64;
@@ -181,26 +202,9 @@ unsafe extern "C" fn calculate_fraction(s: &mut State, base: u64, sig: usize) ->
     fraction
 }
 
-// Calculate the exponential portion, if
-// we have an `e[+-]?\d+`.
-// We don't care about the pointer after this, so just use `atoi_value`.
-#[inline(always)]
-unsafe extern "C" fn calculate_exponent(s: &mut State, base: u64) -> i32 {
-    let dist = distance(s.curr_last, s.last);
-    if dist > 1 && (*s.curr_last).to_ascii_lowercase() == exponent_notation_char(base) {
-        s.curr_last = s.curr_last.add(1);
-        s.curr_first = s.curr_last;
-        s.curr_last = s.last;
-        let (value, p) = atoi_signed!(s.curr_first, s.curr_last, base, i32);
-        s.curr_last = p;
-        value
-    } else {
-        0
-    }
-}
-
 /// Calculate value from pieces.
 #[inline(always)]
+#[cfg(not(feature = "precise"))]
 unsafe extern "C" fn calculate_value(integer: f64, fraction: f64, exponent: i32, base: u64)
     -> f64
 {
@@ -213,6 +217,64 @@ unsafe extern "C" fn calculate_value(integer: f64, fraction: f64, exponent: i32,
     value
 }
 
+// PRECISE
+
+// Calculate the integer portion.
+// Use a float since for large numbers, this may even overflow an
+// integer 64.
+#[inline(always)]
+#[cfg(feature = "precise")]
+unsafe extern "C" fn calculate_integer(s: &mut State, base: u64) -> FloatType {
+    let mut integer: FloatType = FloatType {frac: 0, exp: 0};
+    s.curr_last = atoi_pointer!(integer, s.first, s.last, base, u64, mul_n, add_less_equal_u64);
+    integer
+}
+
+// Calculate the fraction portion.
+// Calculate separately from the integer portion, since the small
+// values for each may be too small to change the integer components
+// representation **immediately**.
+// For numeric stability, use this early.
+#[inline(always)]
+#[cfg(feature = "precise")]
+unsafe extern "C" fn calculate_fraction(s: &mut State, base: u64, sig: usize) -> FloatType {
+    let mut fraction: FloatType = FloatType {frac: 0, exp: 0};
+//    let base_f = base as f64;
+    if s.curr_last != s.last && *s.curr_last == b'.' {
+        let mut digits: usize = 0;
+        s.curr_last = s.curr_last.add(1);
+        loop {
+            // This would get better numerical precision using Horner's method,
+            // but that would require.
+            let mut value: i64 = 0;
+            s.curr_first = s.curr_last;
+            s.curr_last = minv!(s.last, s.curr_first.add(sig));
+            s.curr_last = atoi_pointer!(value, s.curr_first, s.curr_last, base, i64);
+            digits += distance(s.curr_first, s.curr_last);
+            //fraction += value as f64 / powi(base_f, digits as i32);
+//
+            // do/while condition
+            if s.curr_last == s.last || !is_valid_digit!(*s.curr_last, base) {
+                break;
+            }
+        }
+    }
+
+    fraction
+}
+
+/// Calculate value from pieces.
+#[inline(always)]
+#[cfg(feature = "precise")]
+unsafe extern "C" fn calculate_value(integer: FloatType, fraction: FloatType, exponent: i32, base: u64)
+    -> f64
+{
+    let mut value = integer.add_less_equal(&fraction);
+    value.exp += exponent;
+    value.as_f64()
+}
+
+// ATOF
 
 /// Implied atof for non-special (no NaN or Infinity) numbers.
 ///

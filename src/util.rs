@@ -57,7 +57,7 @@ pub(crate) fn ln(f: f64) -> f64 {
 }
 
 /// `f64.powi(i32)` feature for `no_std`
-#[cfg(not(feature = "std"))]
+#[cfg(all(not(feature = "std"), not(feature = "precise")))]
 #[inline(always)]
 pub(crate) fn powi(f: f64, i: i32) -> f64 {
     unsafe { core::intrinsics::powif64(f, i) }
@@ -78,7 +78,7 @@ pub(crate) fn ln(f: f64) -> f64 {
 }
 
 /// `f64.powi(i32)` feature for `std`
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", not(feature = "precise")))]
 #[inline(always)]
 pub(crate) fn powi(f: f64, i: i32) -> f64 {
     f.powi(i)
