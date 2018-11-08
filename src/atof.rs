@@ -212,7 +212,9 @@ unsafe extern "C" fn calculate_integer(s: &mut State, base: u64) -> f64 {
 unsafe extern "C" fn calculate_fraction(s: &mut State, base: u64, sig: usize) -> f64 {
     let mut fraction: f64 = 0.0;
     let basef = base as f64;
-    if s.curr_last != s.last && *s.curr_last == b'.' {
+    // Ensure if there's a decimal, there are trailing values, so
+    // invalid floats like "0." lead to an error.
+    if distance(s.curr_last, s.last) > 1 && *s.curr_last == b'.' {
         let mut digits: usize = 0;
         s.curr_last = s.curr_last.add(1);
         loop {

@@ -136,28 +136,32 @@ pub fn to_string_digits<N: Ntoa>(n: N, base: u8) -> String {
 /// assert_eq!(lexical::parse::<i32, _>("5"), 5);
 /// assert_eq!(lexical::parse::<i32, _>("1a"), 1);
 /// assert_eq!(lexical::parse::<f32, _>("0"), 0.0);
+/// assert_eq!(lexical::parse::<f32, _>("1."), 1.0);
+/// assert_eq!(lexical::parse::<f32, _>("1.0"), 1.0);
 ///
 /// // Bytes overloads
 /// assert_eq!(lexical::parse::<i32, _>(b"5"), 5);
 /// assert_eq!(lexical::parse::<i32, _>(b"1a"), 1);
 /// assert_eq!(lexical::parse::<f32, _>(b"0"), 0.0);
+/// assert_eq!(lexical::parse::<f32, _>(b"1."), 1.0);
+/// assert_eq!(lexical::parse::<f32, _>(b"1.0"), 1.0);
 /// # }
 /// ```
 ///
 /// [`try_parse`]: fn.try_parse.html
 #[inline(always)]
 pub fn parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
-    parse_digits::<N, Bytes>(bytes, 10)
+    parse_radix::<N, Bytes>(bytes, 10)
 }
 
 /// High-level conversion of bytes to a number with a custom radix.
 ///
 /// This function **always** returns a number, parsing until invalid
 /// digits are found. For an error-checking version of this function,
-/// use [`try_parse_digits`].
+/// use [`try_parse_radix`].
 ///
 /// * `bytes`   - Byte slice to convert to number.
-/// * `base`    - Number of unique digits for the number (radix).
+/// * `radix`   - Number of unique digits for the number (base).
 ///
 /// # Examples
 ///
@@ -165,21 +169,25 @@ pub fn parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
 /// # extern crate lexical;
 /// # pub fn main() {
 /// // String overloads
-/// assert_eq!(lexical::parse_digits::<i32, _>(b"5", 10), 5);
-/// assert_eq!(lexical::parse_digits::<i32, _>(b"1a", 10), 1);
-/// assert_eq!(lexical::parse_digits::<f32, _>(b"0", 10), 0.0);
+/// assert_eq!(lexical::parse_radix::<i32, _>("5", 10), 5);
+/// assert_eq!(lexical::parse_radix::<i32, _>("1a", 10), 1);
+/// assert_eq!(lexical::parse_radix::<f32, _>("0", 10), 0.0);
+/// assert_eq!(lexical::parse_radix::<f32, _>("1.", 10), 1.0);
+/// assert_eq!(lexical::parse_radix::<f32, _>("1.0", 10), 1.0);
 ///
 /// // Bytes overloads
-/// assert_eq!(lexical::parse_digits::<i32, _>(b"5", 10), 5);
-/// assert_eq!(lexical::parse_digits::<i32, _>(b"1a", 10), 1);
-/// assert_eq!(lexical::parse_digits::<f32, _>(b"0", 10), 0.0);
+/// assert_eq!(lexical::parse_radix::<i32, _>(b"5", 10), 5);
+/// assert_eq!(lexical::parse_radix::<i32, _>(b"1a", 10), 1);
+/// assert_eq!(lexical::parse_radix::<f32, _>(b"0", 10), 0.0);
+/// assert_eq!(lexical::parse_radix::<f32, _>(b"1.", 10), 1.0);
+/// assert_eq!(lexical::parse_radix::<f32, _>(b"1.0", 10), 1.0);
 /// # }
 /// ```
 ///
-/// [`try_parse_digits`]: fn.try_parse_digits.html
+/// [`try_parse_radix`]: fn.try_parse_radix.html
 #[inline(always)]
-pub fn parse_digits<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, base: u8) -> N {
-    N::deserialize_from_bytes(bytes.as_ref(), base)
+pub fn parse_radix<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> N {
+    N::deserialize_from_bytes(bytes.as_ref(), radix)
 }
 
 /// High-level conversion of decimal-encoded bytes to a number.
@@ -199,11 +207,15 @@ pub fn parse_digits<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, base: u8) -> N {
 /// assert_eq!(lexical::try_parse::<i32, _>("5"), Ok(5));
 /// assert_eq!(lexical::try_parse::<i32, _>("1a"), Err(1));
 /// assert_eq!(lexical::try_parse::<f32, _>("0"), Ok(0.0));
+/// assert_eq!(lexical::try_parse::<f32, _>("1.0"), Ok(1.0));
+/// assert_eq!(lexical::try_parse::<f32, _>("1."), Err(1));
 ///
 /// // Bytes overloads
 /// assert_eq!(lexical::try_parse::<i32, _>(b"5"), Ok(5));
 /// assert_eq!(lexical::try_parse::<i32, _>(b"1a"), Err(1));
 /// assert_eq!(lexical::try_parse::<f32, _>(b"0"), Ok(0.0));
+/// assert_eq!(lexical::try_parse::<f32, _>(b"1.0"), Ok(1.0));
+/// assert_eq!(lexical::try_parse::<f32, _>(b"1."), Err(1));
 /// # }
 /// ```
 ///
@@ -212,17 +224,17 @@ pub fn parse_digits<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, base: u8) -> N {
 pub fn try_parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes)
     -> Result<N, usize>
 {
-    try_parse_digits::<N, Bytes>(bytes, 10)
+    try_parse_radix::<N, Bytes>(bytes, 10)
 }
 
 /// High-level conversion of bytes to a number with a custom radix.
 ///
 /// This function only returns a value if the entire string is
 /// successfully parsed. For an unchecked version of this function,
-/// use [`parse_digits`].
+/// use [`parse_radix`].
 ///
 /// * `bytes`   - Byte slice to convert to number.
-/// * `base`    - Number of unique digits for the number (radix).
+/// * `radix`   - Number of unique digits for the number (base).
 ///
 /// # Examples
 ///
@@ -230,21 +242,28 @@ pub fn try_parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes)
 /// # extern crate lexical;
 /// # pub fn main() {
 /// // String overloads
-/// assert_eq!(lexical::try_parse_digits::<i32, _>(b"5", 10), Ok(5));
-/// assert_eq!(lexical::try_parse_digits::<i32, _>(b"1a", 10), Err(1));
-/// assert_eq!(lexical::try_parse_digits::<f32, _>(b"0", 10), Ok(0.0));
+/// assert_eq!(lexical::try_parse_radix::<i32, _>("5", 10), Ok(5));
+/// assert_eq!(lexical::try_parse_radix::<i32, _>("1a", 10), Err(1));
+/// assert_eq!(lexical::try_parse_radix::<i32, _>("1.", 10), Err(1));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>("0", 10), Ok(0.0));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>("1.0", 10), Ok(1.0));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>("1.", 10), Err(1));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>("1.0.", 10), Err(3));
 ///
 /// // Bytes overloads
-/// assert_eq!(lexical::try_parse_digits::<i32, _>(b"5", 10), Ok(5));
-/// assert_eq!(lexical::try_parse_digits::<i32, _>(b"1a", 10), Err(1));
-/// assert_eq!(lexical::try_parse_digits::<f32, _>(b"0", 10), Ok(0.0));
+/// assert_eq!(lexical::try_parse_radix::<i32, _>(b"5", 10), Ok(5));
+/// assert_eq!(lexical::try_parse_radix::<i32, _>(b"1a", 10), Err(1));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"0", 10), Ok(0.0));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.0", 10), Ok(1.0));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.", 10), Err(1));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.0.", 10), Err(3));
 /// # }
 /// ```
 ///
-/// [`parse_digits`]: fn.parse_digits.html
+/// [`parse_radix`]: fn.parse_radix.html
 #[inline(always)]
-pub fn try_parse_digits<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, base: u8)
+pub fn try_parse_radix<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
     -> Result<N, usize>
 {
-    N::try_deserialize_from_bytes(bytes.as_ref(), base)
+    N::try_deserialize_from_bytes(bytes.as_ref(), radix)
 }

@@ -1,7 +1,7 @@
 lexical
 =======
 
-[![Build Status](https://api.travis-ci.org/Alexhuszagh/lexical.svg?branch=master)](https://travis-ci.org/Alexhuszagh/lexical)
+[![Build Status](https://api.travis-ci.org/Alexhuszagh/rust-lexical.svg?branch=master)](https://travis-ci.org/Alexhuszagh/rust-lexical)
 [![Latest Version](https://img.shields.io/crates/v/lexical.svg)](https://crates.io/crates/lexical)
 
 Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical also supports non-base 10 numbers, for both integers and floats.  Lexical is simple to use, and exports only 6 functions in the high-level API.
@@ -58,7 +58,7 @@ let x: i32 = lexical::parse("123 456");
 
 # Benchmarks
 
-The following benchmarks measure the time it takes to convert 10,000 random values, for different types. The values were randomly generated using NumPy, and run in both std (rustc 1.29.2) and no_std (rustc 1.31.0) contexts (only std is shown) on an x86-64 Intel processor. More information on these benchmarks can be found in the [benches](benches) folder and in the source code for the respective algorithms.
+The following benchmarks measure the time it takes to convert 10,000 random values, for different types. The values were randomly generated using NumPy, and run in both std (rustc 1.29.2) and no_std (rustc 1.31.0) contexts (only std is shown) on an x86-64 Intel processor. More information on these benchmarks can be found in the [benches](benches) folder and in the source code for the respective algorithms. Adding the flags "target-cpu=native" and "link-args=-s" were also used, however, they minimally affected the relative performance difference between different lexical conversion implementations.
 
 For all the following benchmarks, lower is better.
 

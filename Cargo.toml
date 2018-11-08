@@ -8,14 +8,14 @@ keywords = ["parsing", "lexical", "encoding"]
 license = "MIT/Apache-2.0"
 name = "lexical"
 readme = "README.md"
-repository = "https://github.com/AlexHuszagh/rust-lexical"
-version = "1.1.0"
+repository = "https://github.com/Alexhuszagh/rust-lexical"
+version = "1.2.0"
 exclude = [
     "benches/*",
 ]
 
 [badges]
-travis-ci = { repository = "AlexHuszagh/rust-lexical" }
+travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
 # Global allocator only used during testing.
