@@ -71,7 +71,7 @@ pub use alloc::string::String;
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 pub use alloc::vec::Vec;
 
-use float::{cached_power, FloatType};
+use float::{cached_grisu_power, FloatType};
 use itoa::itoa_forward;
 use table::BASEN;
 use util::{distance, floor, ln};
@@ -205,7 +205,7 @@ unsafe extern "C" fn grisu2(d: f64, digits: *mut u8, k: *mut i32) -> i32
     w.normalize();
 
     let mut ki: i32 = mem::uninitialized();
-    let cp = cached_power(upper.exp, &mut ki);
+    let cp = cached_grisu_power(upper.exp, &mut ki);
 
     w     = w.fast_multiply(&cp);
     upper = upper.fast_multiply(&cp);

@@ -57,7 +57,8 @@ pub(crate) fn ln(f: f64) -> f64 {
 }
 
 /// `f64.powi(i32)` feature for `no_std`
-#[cfg(all(not(feature = "std"), not(feature = "precise")))]
+#[cfg(not(feature = "std"))]
+#[allow(dead_code)]
 #[inline(always)]
 pub(crate) fn powi(f: f64, i: i32) -> f64 {
     unsafe { core::intrinsics::powif64(f, i) }
@@ -78,7 +79,8 @@ pub(crate) fn ln(f: f64) -> f64 {
 }
 
 /// `f64.powi(i32)` feature for `std`
-#[cfg(all(feature = "std", not(feature = "precise")))]
+#[cfg(feature = "std")]
+#[allow(dead_code)]
 #[inline(always)]
 pub(crate) fn powi(f: f64, i: i32) -> f64 {
     f.powi(i)
@@ -87,6 +89,14 @@ pub(crate) fn powi(f: f64, i: i32) -> f64 {
 // MACRO
 
 /// Fast macro absolute value calculator.
+///
+/// # Examples
+///
+/// ```rust
+/// # #[macro_use] extern crate lexical;
+/// # pub main() {
+/// }
+/// ```
 macro_rules! absv {
     ($n:expr) => ({
         let n = $n;
@@ -95,6 +105,8 @@ macro_rules! absv {
 }
 
 /// Fast macro maximum value calculator.
+///
+///
 macro_rules! maxv {
     ($a:expr, $b:expr) => ({
         let a = $a;
@@ -104,6 +116,8 @@ macro_rules! maxv {
 }
 
 /// Fast macro minimum value calculator.
+///
+///
 macro_rules! minv {
     ($a:expr, $b:expr) => ({
         let a = $a;
