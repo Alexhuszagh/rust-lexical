@@ -32,9 +32,9 @@ extern crate lexical;
 // Number to string
 lexical::to_string(3.0);            // "3.0", always has a fraction suffix, 
 lexical::to_string(3);              // "3"
-lexical::to_string_digits(3.0, 2);  // "11.0", non-base 10 representation.
-lexical::to_string_digits(1.5, 2);  // "1.1"
-lexical::to_string_digits(1.25, 2); // "1.01"
+lexical::to_string_radix(3.0, 2);   // "11.0", non-base 10 representation.
+lexical::to_string_radix(1.5, 2);   // "1.1"
+lexical::to_string_radix(1.25, 2);  // "1.01"
 
 // String to number.
 let i: i32 = lexical::parse("3");            // 3, auto-type deduction.
