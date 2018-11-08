@@ -387,6 +387,7 @@ unsigned_unsafe_impl!(u8toa_unsafe, u8);
 unsigned_unsafe_impl!(u16toa_unsafe, u16);
 unsigned_unsafe_impl!(u32toa_unsafe, u32);
 unsigned_unsafe_impl!(u64toa_unsafe, u64);
+unsigned_unsafe_impl!(usizetoa_unsafe, usize);
 
 /// Generate the signed, unsafe wrappers.
 macro_rules! signed_unsafe_impl {
@@ -422,6 +423,7 @@ signed_unsafe_impl!(i8toa_unsafe, i8);
 signed_unsafe_impl!(i16toa_unsafe, i16);
 signed_unsafe_impl!(i32toa_unsafe, i32);
 signed_unsafe_impl!(i64toa_unsafe, i64);
+signed_unsafe_impl!(isizetoa_unsafe, isize);
 
 // LOW-LEVEL API
 
@@ -441,6 +443,9 @@ string_impl!(u32toa_string, u32, u32toa_unsafe, 64);  // 33
 string_impl!(u64toa_string, u64, u64toa_unsafe, 128); // 65
 
 #[cfg(any(feature = "std", feature = "alloc"))]
+string_impl!(usizetoa_string, usize, usizetoa_unsafe, 128); // 65
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 string_impl!(i8toa_string, i8, i8toa_unsafe, 16);     // 9
 
 #[cfg(any(feature = "std", feature = "alloc"))]
@@ -451,6 +456,9 @@ string_impl!(i32toa_string, i32, i32toa_unsafe, 64);  // 33
 
 #[cfg(any(feature = "std", feature = "alloc"))]
 string_impl!(i64toa_string, i64, i64toa_unsafe, 128); // 65
+
+#[cfg(any(feature = "std", feature = "alloc"))]
+string_impl!(isizetoa_string, isize, isizetoa_unsafe, 128); // 65
 
 // TESTS
 // -----

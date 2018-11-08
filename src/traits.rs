@@ -48,10 +48,12 @@ aton_impl!(u8, atou8_bytes, try_atou8_bytes);
 aton_impl!(u16, atou16_bytes, try_atou16_bytes);
 aton_impl!(u32, atou32_bytes, try_atou32_bytes);
 aton_impl!(u64, atou64_bytes, try_atou64_bytes);
+aton_impl!(usize, atousize_bytes, try_atousize_bytes);
 aton_impl!(i8, atoi8_bytes, try_atoi8_bytes);
 aton_impl!(i16, atoi16_bytes, try_atoi16_bytes);
 aton_impl!(i32, atoi32_bytes, try_atoi32_bytes);
 aton_impl!(i64, atoi64_bytes, try_atoi64_bytes);
+aton_impl!(isize, atoisize_bytes, try_atoisize_bytes);
 aton_impl!(f32, atof32_bytes, try_atof32_bytes);
 aton_impl!(f64, atof64_bytes, try_atof64_bytes);
 
@@ -90,6 +92,9 @@ ntoa_impl!(u32, u32toa_string);
 ntoa_impl!(u64, u64toa_string);
 
 #[cfg(any(feature = "std", feature = "alloc"))]
+ntoa_impl!(usize, usizetoa_string);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
 ntoa_impl!(i8, i8toa_string);
 
 #[cfg(any(feature = "std", feature = "alloc"))]
@@ -100,6 +105,9 @@ ntoa_impl!(i32, i32toa_string);
 
 #[cfg(any(feature = "std", feature = "alloc"))]
 ntoa_impl!(i64, i64toa_string);
+
+#[cfg(any(feature = "std", feature = "alloc"))]
+ntoa_impl!(isize, isizetoa_string);
 
 #[cfg(any(feature = "std", feature = "alloc"))]
 ntoa_impl!(f32, f32toa_string);
@@ -133,7 +141,7 @@ mod tests {
 
     #[test]
     fn aton_test() {
-        deserialize_int! { u8 u16 u32 u64 i8 i16 i32 i64 }
+        deserialize_int! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
         deserialize_float! { f32 f64 }
     }
 
@@ -156,7 +164,7 @@ mod tests {
     #[cfg(any(feature = "std", feature = "alloc"))]
     #[test]
     fn ntoa_test() {
-        serialize_int! { u8 u16 u32 u64 i8 i16 i32 i64 }
+        serialize_int! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
         serialize_float! { f32 f64 }
     }
 }

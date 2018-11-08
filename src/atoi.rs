@@ -263,6 +263,7 @@ unsigned_unsafe_impl!(atou8_unsafe, u8);
 unsigned_unsafe_impl!(atou16_unsafe, u16);
 unsigned_unsafe_impl!(atou32_unsafe, u32);
 unsigned_unsafe_impl!(atou64_unsafe, u64);
+unsigned_unsafe_impl!(atousize_unsafe, usize);
 
 /// Generate the signed, unsafe wrappers.
 macro_rules! signed_unsafe_impl {
@@ -285,6 +286,7 @@ signed_unsafe_impl!(atoi8_unsafe, i8);
 signed_unsafe_impl!(atoi16_unsafe, i16);
 signed_unsafe_impl!(atoi32_unsafe, i32);
 signed_unsafe_impl!(atoi64_unsafe, i64);
+signed_unsafe_impl!(atoisize_unsafe, isize);
 
 // LOW-LEVEL API
 
@@ -292,18 +294,22 @@ bytes_impl!(atou8_bytes, u8, atou8_unsafe);
 bytes_impl!(atou16_bytes, u16, atou16_unsafe);
 bytes_impl!(atou32_bytes, u32, atou32_unsafe);
 bytes_impl!(atou64_bytes, u64, atou64_unsafe);
+bytes_impl!(atousize_bytes, usize, atousize_unsafe);
 bytes_impl!(atoi8_bytes, i8, atoi8_unsafe);
 bytes_impl!(atoi16_bytes, i16, atoi16_unsafe);
 bytes_impl!(atoi32_bytes, i32, atoi32_unsafe);
 bytes_impl!(atoi64_bytes, i64, atoi64_unsafe);
+bytes_impl!(atoisize_bytes, isize, atoisize_unsafe);
 try_bytes_impl!(try_atou8_bytes, u8, atou8_unsafe);
 try_bytes_impl!(try_atou16_bytes, u16, atou16_unsafe);
 try_bytes_impl!(try_atou32_bytes, u32, atou32_unsafe);
 try_bytes_impl!(try_atou64_bytes, u64, atou64_unsafe);
+try_bytes_impl!(try_atousize_bytes, usize, atousize_unsafe);
 try_bytes_impl!(try_atoi8_bytes, i8, atoi8_unsafe);
 try_bytes_impl!(try_atoi16_bytes, i16, atoi16_unsafe);
 try_bytes_impl!(try_atoi32_bytes, i32, atoi32_unsafe);
 try_bytes_impl!(try_atoi64_bytes, i64, atoi64_unsafe);
+try_bytes_impl!(try_atoisize_bytes, isize, atoisize_unsafe);
 
 // TESTS
 // -----
