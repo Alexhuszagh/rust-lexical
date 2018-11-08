@@ -98,6 +98,8 @@ Lexical heavily uses unsafe code for performance, and therefore may introduce me
 
 In addition, lexical explicitly wraps on integer overflow, rather than error or use a big integer, nor will it auto-detect the integer radix with common prefixes (like 0x, or 0b). For a cheap overflow check at the cost of incorrectly rejecting some large integers, accept at max `digits-2` bytes for an unsigned type, and `digits-1` bytes for a signed type, where digits is calculated as `floor((ln(T::max_value()) / ln(base)) + 1.0)`.
 
+For float-parsing, lexical uses native floats for intermediate values, rather than arbitrary-precision integers, leading to fairly minor rounding (up to 1e-16), meaning that the float parser is not completely correct (for example, 1.2345e-308 is parsed as 1.2344999999999994e-308).
+
 Finally, for non-base10 floats, lexical's float-to-string implementations may lead to fairly lossy rounding for a small subset of inputs (up to 0.1% of the total value).
 
 # Details
