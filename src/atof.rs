@@ -155,26 +155,32 @@ macro_rules! stable_powi_impl {
     })
 }
 
+/// Cached powers to get the desired exponent.
+/// Make sure all values are < 1e300.
+const POWI_EXPONENTS: [i32; 35] = [512, 512, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128];
+
 /// Stable powi implementation, with a base value.
 ///
 /// Although valid results will occur with an exponent or value of 0,
 /// ideally, you should not pass any value as such to this function.
 ///
 /// Use powi() with an integral exponent, both for speed and
-/// stability. Don't go any an exponent of magnitude >300, for numerical
+/// stability. Don't go any an exponent of magnitude >1e300, for numerical
 /// stability.
 macro_rules! stable_powi {
     ($value:ident, $op:tt, $base:ident, $exponent:ident) => ({
+        let base = $base as f64;
+        let exp = unsafe { *POWI_EXPONENTS.get_unchecked($base as usize) };
         if $exponent < 0 {
             // negative exponent
-            let count = $exponent / -256;
-            let rem = $exponent % 256;
-            stable_powi_impl!($value, $op, $base, -256, count, rem)
+            let count = $exponent / -exp;
+            let rem = $exponent % exp;
+            stable_powi_impl!($value, $op, base, -exp, count, rem)
         } else {
             // positive exponent
-            let count = $exponent / 256;
-            let rem = $exponent % 256;
-            stable_powi_impl!($value, $op, $base, 256, count, rem)
+            let count = $exponent / exp;
+            let rem = $exponent % exp;
+            stable_powi_impl!($value, $op, base, exp, count, rem)
         }
     })
 }
@@ -182,14 +188,14 @@ macro_rules! stable_powi {
 /// `powi` implementation that is more stable at extremely low powers.
 ///
 /// Equivalent to `value * powi(base, exponent)`
-pub(crate) fn stable_powi_multiplier(mut value: f64, base: f64, exponent: i32) -> f64 {
+pub(crate) fn stable_powi_multiplier(mut value: f64, base: u64, exponent: i32) -> f64 {
     stable_powi!(value, *, base, exponent)
 }
 
 /// `powi` implementation that is more stable at extremely low powers.
 ///
 /// Equivalent to `value / powi(base, exponent)`
-pub(crate) fn stable_powi_divisor(mut value: f64, base: f64, exponent: i32) -> f64 {
+pub(crate) fn stable_powi_divisor(mut value: f64, base: u64, exponent: i32) -> f64 {
     stable_powi!(value, /, base, exponent)
 }
 
@@ -211,7 +217,6 @@ unsafe extern "C" fn calculate_integer(s: &mut State, base: u64) -> f64 {
 #[inline(always)]
 unsafe extern "C" fn calculate_fraction(s: &mut State, base: u64, sig: usize) -> f64 {
     let mut fraction: f64 = 0.0;
-    let basef = base as f64;
     // Ensure if there's a decimal, there are trailing values, so
     // invalid floats like "0." lead to an error.
     if distance(s.curr_last, s.last) > 1 && *s.curr_last == b'.' {
@@ -228,7 +233,7 @@ unsafe extern "C" fn calculate_fraction(s: &mut State, base: u64, sig: usize) ->
 
             // Ignore leading 0s, just not we've passed them.
             if value != 0 {
-                fraction += stable_powi_divisor(value as f64, basef, digits as i32);
+                fraction += stable_powi_divisor(value as f64, base, digits as i32);
             }
 
             // do/while condition
@@ -266,7 +271,7 @@ unsafe extern "C" fn calculate_value(integer: f64, fraction: f64, exponent: i32,
 {
     let mut value = integer + fraction;
     if exponent != 0 && value != 0.0 {
-        value = stable_powi_multiplier(value, base as f64, exponent);
+        value = stable_powi_multiplier(value, base, exponent);
     }
     value
 }

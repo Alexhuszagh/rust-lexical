@@ -96,7 +96,7 @@ use traits::Ntoa;
 #[inline(always)]
 #[cfg(any(feature = "std", feature = "alloc"))]
 pub fn to_string<N: Ntoa>(n: N) -> String {
-    to_string_digits(n, 10)
+    n.serialize_to_string(10)
 }
 
 /// High-level conversion of a number to string with a custom radix.
@@ -109,14 +109,15 @@ pub fn to_string<N: Ntoa>(n: N) -> String {
 /// ```rust
 /// # extern crate lexical;
 /// # pub fn main() {
-/// assert_eq!(lexical::to_string_digits(5, 10), "5");
-/// assert_eq!(lexical::to_string_digits(0.0, 10), "0.0");
+/// assert_eq!(lexical::to_string_radix(5, 10), "5");
+/// assert_eq!(lexical::to_string_radix(0.0, 10), "0.0");
 /// # }
 /// ```
 #[inline(always)]
 #[cfg(any(feature = "std", feature = "alloc"))]
-pub fn to_string_digits<N: Ntoa>(n: N, base: u8) -> String {
-    n.serialize_to_string(base)
+pub fn to_string_radix<N: Ntoa>(n: N, radix: u8) -> String {
+    assert!(2 <= radix && radix <= 36, "to_string_radix, radix must be in range `[2, 36]`, got {}", radix);
+    n.serialize_to_string(radix)
 }
 
 /// High-level conversion of decimal-encoded bytes to a number.
@@ -151,7 +152,7 @@ pub fn to_string_digits<N: Ntoa>(n: N, base: u8) -> String {
 /// [`try_parse`]: fn.try_parse.html
 #[inline(always)]
 pub fn parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
-    parse_radix::<N, Bytes>(bytes, 10)
+    N::deserialize_from_bytes(bytes.as_ref(), 10)
 }
 
 /// High-level conversion of bytes to a number with a custom radix.
@@ -187,6 +188,7 @@ pub fn parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
 /// [`try_parse_radix`]: fn.try_parse_radix.html
 #[inline(always)]
 pub fn parse_radix<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> N {
+    assert!(2 <= radix && radix <= 36, "parse_radix, radix must be in range `[2, 36]`, got {}", radix);
     N::deserialize_from_bytes(bytes.as_ref(), radix)
 }
 
@@ -224,7 +226,7 @@ pub fn parse_radix<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> N {
 pub fn try_parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes)
     -> Result<N, usize>
 {
-    try_parse_radix::<N, Bytes>(bytes, 10)
+    N::try_deserialize_from_bytes(bytes.as_ref(), 10)
 }
 
 /// High-level conversion of bytes to a number with a custom radix.
@@ -265,5 +267,6 @@ pub fn try_parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes)
 pub fn try_parse_radix<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
     -> Result<N, usize>
 {
+    assert!(2 <= radix && radix <= 36, "try_parse_radix, radix must be in range `[2, 36]`, got {}", radix);
     N::try_deserialize_from_bytes(bytes.as_ref(), radix)
 }
