@@ -104,7 +104,7 @@ macro_rules! is_valid_alnum {
     })
 }
 
-// ATOI IMPL
+// ALGORITHM
 
 /// Generic itao for bases of <= 10, where only numerical characters are used.
 ///

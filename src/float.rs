@@ -6,20 +6,6 @@
 //! precision (only 16 bits of the 32-bit integer are used, u32 is used
 //! for performance). Since there is no storage for the sign bit,
 //! this only works for positive floats.
-//!
-//! For the relative performance, on an x86-64 Intel CPU, the float
-//! multiply operations are ~4-7x as costly as an f64 multiply, and ~1.5-2x
-//! as costly as an f32 multiply (due to f32 expansion and then shrinking).
-//! Likewise, addition is ~3.25x as expensive as f32 and f64 operations,
-//! and subtract is ~2.3x slower. Since this is less than 1 order of
-//! magnitude different for massive precision wins, we consider this a
-//! success.
-//!
-//! `fast_multiply` has roughly the same performance as the hard-coded
-//! multiplies, but requires float normalization, which is considerably
-//! more expensive than either operation (~3-5x). The harded-coded
-//! multiplies therefore have significant performance wins on non-normalized
-//! floats.
 
 // SHIFTS
 
@@ -129,9 +115,6 @@ impl FloatType {
     ///
     /// Let the integer component of the mantissa (significand) to be exactly
     /// 1 and the decimal fraction and exponent to be whatever.
-    ///
-    /// Adapted from Rust's `diy_float` class.
-    ///     https://github.com/rust-lang/rust/blob/b7c6e8f1805cd8a4b0a1c1f22f17a89e9e2cea23/src/libcore/num/diy_float.rs#L49
     #[inline]
     pub fn normalize(&mut self)
     {
@@ -146,7 +129,6 @@ impl FloatType {
         // however, removing the if/then will likely optimize more branched
         // code as it removes conditional logic.
         let shift = self.frac.leading_zeros();
-        //let shift = shift % 64;
         shl!(self, shift);
     }
 

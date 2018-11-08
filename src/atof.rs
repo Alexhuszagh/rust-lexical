@@ -133,27 +133,65 @@ macro_rules! is_valid_digit {
     })
 }
 
-// SHARED
+// ALGORITHM
 
-// Calculate the exponential portion, if
-// we have an `e[+-]?\d+`.
-// We don't care about the pointer after this, so just use `atoi_value`.
-#[inline(always)]
-unsafe extern "C" fn calculate_exponent(s: &mut State, base: u64) -> i32 {
-    let dist = distance(s.curr_last, s.last);
-    if dist > 1 && (*s.curr_last).to_ascii_lowercase() == exponent_notation_char(base) {
-        s.curr_last = s.curr_last.add(1);
-        s.curr_first = s.curr_last;
-        s.curr_last = s.last;
-        let (value, p) = atoi_signed!(s.curr_first, s.curr_last, base, i32);
-        s.curr_last = p;
-        value
-    } else {
-        0
-    }
+/// Use powi() iteratively.
+///
+/// * `value`   - Base value.
+/// * `op`      - Operation {*, /}.
+/// * `base`    - Floating-point base for exponent.
+/// * `exp`     - Iteration exponent {+256, -256}.
+/// * `count`   - Number of times to iterate.
+/// * `rem`     - Remaining exponent after iteration.
+macro_rules! stable_powi_impl {
+    ($value:ident, $op:tt, $base:ident, $exp:expr, $count:ident, $rem:ident) => ({
+        for _ in 0..$count {
+            $value = $value $op powi($base, $exp);
+        }
+        if $rem != 0 {
+            $value = $value $op powi($base, $rem)
+        }
+        $value
+    })
 }
 
-// NOT PRECISE
+/// Stable powi implementation, with a base value.
+///
+/// Although valid results will occur with an exponent or value of 0,
+/// ideally, you should not pass any value as such to this function.
+///
+/// Use powi() with an integral exponent, both for speed and
+/// stability. Don't go any an exponent of magnitude >300, for numerical
+/// stability.
+macro_rules! stable_powi {
+    ($value:ident, $op:tt, $base:ident, $exponent:ident) => ({
+        if $exponent < 0 {
+            // negative exponent
+            let count = $exponent / -256;
+            let rem = $exponent % 256;
+            stable_powi_impl!($value, $op, $base, -256, count, rem)
+        } else {
+            // positive exponent
+            let count = $exponent / 256;
+            let rem = $exponent % 256;
+            stable_powi_impl!($value, $op, $base, 256, count, rem)
+        }
+    })
+}
+
+/// `powi` implementation that is more stable at extremely low powers.
+///
+/// Equivalent to `value * powi(base, exponent)`
+pub(crate) fn stable_powi_multiplier(mut value: f64, base: f64, exponent: i32) -> f64 {
+    stable_powi!(value, *, base, exponent)
+}
+
+/// `powi` implementation that is more stable at extremely low powers.
+///
+/// Equivalent to `value / powi(base, exponent)`
+pub(crate) fn stable_powi_divisor(mut value: f64, base: f64, exponent: i32) -> f64 {
+    stable_powi!(value, /, base, exponent)
+}
 
 // Calculate the integer portion.
 // Use a float since for large numbers, this may even overflow an
@@ -173,7 +211,7 @@ unsafe extern "C" fn calculate_integer(s: &mut State, base: u64) -> f64 {
 #[inline(always)]
 unsafe extern "C" fn calculate_fraction(s: &mut State, base: u64, sig: usize) -> f64 {
     let mut fraction: f64 = 0.0;
-    let bf = base as f64;
+    let basef = base as f64;
     if s.curr_last != s.last && *s.curr_last == b'.' {
         let mut digits: usize = 0;
         s.curr_last = s.curr_last.add(1);
@@ -185,7 +223,11 @@ unsafe extern "C" fn calculate_fraction(s: &mut State, base: u64, sig: usize) ->
             s.curr_last = minv!(s.last, s.curr_first.add(sig));
             s.curr_last = atoi_pointer!(value, s.curr_first, s.curr_last, base, u64);
             digits += distance(s.curr_first, s.curr_last);
-            fraction += value as f64 / powi(bf, digits as i32);
+
+            // Ignore leading 0s, just not we've passed them.
+            if value != 0 {
+                fraction += stable_powi_divisor(value as f64, basef, digits as i32);
+            }
 
             // do/while condition
             if s.curr_last == s.last || !is_valid_digit!(*s.curr_last, base) {
@@ -197,21 +239,35 @@ unsafe extern "C" fn calculate_fraction(s: &mut State, base: u64, sig: usize) ->
     fraction
 }
 
+// Calculate the exponential portion, if
+// we have an `e[+-]?\d+`.
+// We don't care about the pointer after this, so just use `atoi_value`.
+#[inline(always)]
+unsafe extern "C" fn calculate_exponent(s: &mut State, base: u64) -> i32 {
+    let dist = distance(s.curr_last, s.last);
+    if dist > 1 && (*s.curr_last).to_ascii_lowercase() == exponent_notation_char(base) {
+        s.curr_last = s.curr_last.add(1);
+        s.curr_first = s.curr_last;
+        s.curr_last = s.last;
+        let (value, p) = atoi_signed!(s.curr_first, s.curr_last, base, i32);
+        s.curr_last = p;
+        value
+    } else {
+        0
+    }
+}
+
 /// Calculate value from pieces.
 #[inline(always)]
 unsafe extern "C" fn calculate_value(integer: f64, fraction: f64, exponent: i32, base: u64)
     -> f64
 {
     let mut value = integer + fraction;
-    if exponent != 0 {
-        // Use powi() with an integral exponent, both for speed and
-        // stability.
-        value *= powi(base as f64, exponent);
+    if exponent != 0 && value != 0.0 {
+        value = stable_powi_multiplier(value, base as f64, exponent);
     }
     value
 }
-
-// PRECISE
 
 // ATOF
 
@@ -359,58 +415,79 @@ mod tests {
     #[test]
     fn atof64_base10_test() {
         // integer test
-        assert_relative_eq!(0.0, atof64_bytes(b"0", 10), epsilon=1e-12);
-        assert_relative_eq!(1.0, atof64_bytes(b"1", 10), epsilon=1e-12);
-        assert_relative_eq!(12.0, atof64_bytes(b"12", 10), epsilon=1e-12);
-        assert_relative_eq!(123.0, atof64_bytes(b"123", 10), epsilon=1e-12);
-        assert_relative_eq!(1234.0, atof64_bytes(b"1234", 10), epsilon=1e-12);
-        assert_relative_eq!(12345.0, atof64_bytes(b"12345", 10), epsilon=1e-12);
-        assert_relative_eq!(123456.0, atof64_bytes(b"123456", 10), epsilon=1e-12);
-        assert_relative_eq!(1234567.0, atof64_bytes(b"1234567", 10), epsilon=1e-12);
-        assert_relative_eq!(12345678.0, atof64_bytes(b"12345678", 10), epsilon=1e-12);
+        assert_relative_eq!(0.0, atof64_bytes(b"0", 10), epsilon=1e-20);
+        assert_relative_eq!(1.0, atof64_bytes(b"1", 10), epsilon=1e-20);
+        assert_relative_eq!(12.0, atof64_bytes(b"12", 10), epsilon=1e-20);
+        assert_relative_eq!(123.0, atof64_bytes(b"123", 10), epsilon=1e-20);
+        assert_relative_eq!(1234.0, atof64_bytes(b"1234", 10), epsilon=1e-20);
+        assert_relative_eq!(12345.0, atof64_bytes(b"12345", 10), epsilon=1e-20);
+        assert_relative_eq!(123456.0, atof64_bytes(b"123456", 10), epsilon=1e-20);
+        assert_relative_eq!(1234567.0, atof64_bytes(b"1234567", 10), epsilon=1e-20);
+        assert_relative_eq!(12345678.0, atof64_bytes(b"12345678", 10), epsilon=1e-20);
 
         // decimal test
-        assert_relative_eq!(123456789.0, atof64_bytes(b"123456789", 10), epsilon=1e-12);
-        assert_relative_eq!(123456789.1, atof64_bytes(b"123456789.1", 10), epsilon=1e-12);
-        assert_relative_eq!(123456789.12, atof64_bytes(b"123456789.12", 10), epsilon=1e-12);
-        assert_relative_eq!(123456789.123, atof64_bytes(b"123456789.123", 10), epsilon=1e-12);
-        assert_relative_eq!(123456789.1234, atof64_bytes(b"123456789.1234", 10), epsilon=1e-12);
-        assert_relative_eq!(123456789.12345, atof64_bytes(b"123456789.12345", 10), epsilon=1e-12);
-        assert_relative_eq!(123456789.123456, atof64_bytes(b"123456789.123456", 10), epsilon=1e-12);
-        assert_relative_eq!(123456789.1234567, atof64_bytes(b"123456789.1234567", 10), epsilon=1e-12);
-        assert_relative_eq!(123456789.12345678, atof64_bytes(b"123456789.12345678", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.0, atof64_bytes(b"123456789", 10), epsilon=1e-20);
+        assert_relative_eq!(123456789.1, atof64_bytes(b"123456789.1", 10), epsilon=1e-20);
+        assert_relative_eq!(123456789.12, atof64_bytes(b"123456789.12", 10), epsilon=1e-20);
+        assert_relative_eq!(123456789.123, atof64_bytes(b"123456789.123", 10), epsilon=1e-20);
+        assert_relative_eq!(123456789.1234, atof64_bytes(b"123456789.1234", 10), epsilon=1e-20);
+        assert_relative_eq!(123456789.12345, atof64_bytes(b"123456789.12345", 10), epsilon=1e-20);
+        assert_relative_eq!(123456789.123456, atof64_bytes(b"123456789.123456", 10), epsilon=1e-20);
+        assert_relative_eq!(123456789.1234567, atof64_bytes(b"123456789.1234567", 10), epsilon=1e-20);
+        assert_relative_eq!(123456789.12345678, atof64_bytes(b"123456789.12345678", 10), epsilon=1e-20);
 
         // rounding test
-        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.123456789", 10), epsilon=1e-12);
-        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.1234567890", 10), epsilon=1e-12);
-        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.123456789012", 10), epsilon=1e-12);
-        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.1234567890123", 10), epsilon=1e-12);
-        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.12345678901234", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.123456789", 10), epsilon=1e-20);
+        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.1234567890", 10), epsilon=1e-20);
+        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.123456789012", 10), epsilon=1e-20);
+        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.1234567890123", 10), epsilon=1e-20);
+        assert_relative_eq!(123456789.12345679, atof64_bytes(b"123456789.12345678901234", 10), epsilon=1e-20);
 
         // exponent test
-        assert_relative_eq!(123456789.12345, atof64_bytes(b"1.2345678912345e8", 10), epsilon=1e-12);
-        assert_relative_eq!(123450000.0, atof64_bytes(b"1.2345e+8", 10), epsilon=1e-12);
-        assert_relative_eq!(1.2345e+11, atof64_bytes(b"123450000000", 10), epsilon=1e-12);
-        assert_relative_eq!(1.2345e+11, atof64_bytes(b"1.2345e+11", 10), epsilon=1e-12);
-        assert_relative_eq!(1.2345e+38, atof64_bytes(b"1.2345e+38", 10), epsilon=1e-12);
-        assert_relative_eq!(1.2345e+38, atof64_bytes(b"123450000000000000000000000000000000000", 10), epsilon=1e-12);
+        assert_relative_eq!(123456789.12345, atof64_bytes(b"1.2345678912345e8", 10), epsilon=1e-20);
+        assert_relative_eq!(123450000.0, atof64_bytes(b"1.2345e+8", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e+11, atof64_bytes(b"123450000000", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e+11, atof64_bytes(b"1.2345e+11", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e+38, atof64_bytes(b"1.2345e+38", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e+38, atof64_bytes(b"123450000000000000000000000000000000000", 10), epsilon=1e-20);
         assert_relative_eq!(1.2345e+308, atof64_bytes(b"1.2345e+308", 10), max_relative=1e-12);
         assert_relative_eq!(1.2345e+308, atof64_bytes(b"123450000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", 10), max_relative=1e-12);
-        assert_relative_eq!(0.000000012345, atof64_bytes(b"1.2345e-8", 10), epsilon=1e-12);
-        assert_relative_eq!(1.2345e-8, atof64_bytes(b"0.000000012345", 10), epsilon=1e-12);
-        assert_relative_eq!(1.2345e-38, atof64_bytes(b"1.2345e-38", 10), epsilon=1e-12);
-        assert_relative_eq!(1.2345e-38, atof64_bytes(b"0.000000000000000000000000000000000000012345", 10), epsilon=1e-12);
-        assert_relative_eq!(1.2345e-308, atof64_bytes(b"1.2345e-308", 10), epsilon=1e-12);
+        assert_relative_eq!(0.000000012345, atof64_bytes(b"1.2345e-8", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e-8, atof64_bytes(b"0.000000012345", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e-38, atof64_bytes(b"1.2345e-38", 10), epsilon=1e-20);
+        assert_relative_eq!(1.2345e-38, atof64_bytes(b"0.000000000000000000000000000000000000012345", 10), epsilon=1e-20);
+
+        // denormalized (try extremely low values)
+        assert_relative_eq!(1.2345e-308, atof64_bytes(b"1.2345e-308", 10), epsilon=1e-20);
+        assert_eq!(5e-322, atof64_bytes(b"5e-322", 10));
+        assert_eq!(5e-323, atof64_bytes(b"5e-323", 10));
+        assert_eq!(5e-324, atof64_bytes(b"5e-324", 10));
         // due to issues in how the data is parsed, manually extracting
         // non-exponents of 1.<e-299 is prone to error
         // test the limit of our ability
-        assert_relative_eq!(1.2345e-299, atof64_bytes(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345", 10), epsilon=1e-12);
+        // We tend to get relative errors of 1e-16, even at super low values.
+        assert_relative_eq!(1.2345e-299, atof64_bytes(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345", 10), epsilon=1e-314);
+
+        // Keep pushing from -300 to -324
+        assert_relative_eq!(1.2345e-300, atof64_bytes(b"0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345", 10), epsilon=1e-315);
+        assert_relative_eq!(1.2345e-310, atof64_bytes(b"0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345", 10), epsilon=5e-324);
+        assert_relative_eq!(1.2345e-320, atof64_bytes(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345", 10), epsilon=5e-324);
+        assert_relative_eq!(1.2345e-321, atof64_bytes(b"0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345", 10), epsilon=5e-324);
+        assert_relative_eq!(1.24e-322, atof64_bytes(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000124", 10), epsilon=5e-324);
+        assert_eq!(1e-323, atof64_bytes(b"0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001", 10));
+        assert_eq!(5e-324, atof64_bytes(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005", 10));
 
         #[cfg(feature = "std")]
         assert!(atof64_bytes(b"NaN", 10).is_nan());
         assert!(atof64_bytes(b"Infinity", 10).is_infinite());
         assert!(atof64_bytes(b"+Infinity", 10).is_infinite());
         assert!(atof64_bytes(b"-Infinity", 10).is_infinite());
+    }
+
+    #[test]
+    #[should_panic]
+    fn limit_test() {
+        assert_relative_eq!(1.2345e-320, 0.0, epsilon=5e-324);
     }
 
     #[test]
