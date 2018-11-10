@@ -194,7 +194,7 @@ unsafe extern "C" fn itoa_optimized(
     // Decode last 2 digits.
     if value < base {
         curr -= 1;
-        *p.add(curr) = *BASEN.get_unchecked(value as usize);
+        *p.add(curr) = *DIGIT_TO_CHAR.get_unchecked(value as usize);
     } else {
         let rem = 2 * value as usize;
         curr -= 2;
@@ -235,13 +235,13 @@ unsafe extern "C" fn itoa_naive(
         value /= base;
 
         curr -= 1;
-        *p.add(curr) = *BASEN.get_unchecked(rem);
+        *p.add(curr) = *DIGIT_TO_CHAR.get_unchecked(rem);
     }
 
     // Decode last digit.
     rem = (value % base) as usize;
     curr -= 1;
-    *p.add(curr) = *BASEN.get_unchecked(rem);
+    *p.add(curr) = *DIGIT_TO_CHAR.get_unchecked(rem);
 
     let len = buffer.len() - curr;
     ptr::copy_nonoverlapping(p.add(curr), first, len);
@@ -260,41 +260,41 @@ pub(crate) unsafe extern "C" fn itoa_forward(
 {
     #[cfg(feature = "table")]
     match base {
-        2   => itoa_optimized(value, first, base, BASE2.as_ptr()),
-        3   => itoa_optimized(value, first, base, BASE3.as_ptr()),
-        4   => itoa_optimized(value, first, base, BASE4.as_ptr()),
-        5   => itoa_optimized(value, first, base, BASE5.as_ptr()),
-        6   => itoa_optimized(value, first, base, BASE6.as_ptr()),
-        7   => itoa_optimized(value, first, base, BASE7.as_ptr()),
-        8   => itoa_optimized(value, first, base, BASE8.as_ptr()),
-        9   => itoa_optimized(value, first, base, BASE9.as_ptr()),
-        10  => itoa_optimized(value, first, base, BASE10.as_ptr()),
-        11  => itoa_optimized(value, first, base, BASE11.as_ptr()),
-        12  => itoa_optimized(value, first, base, BASE12.as_ptr()),
-        13  => itoa_optimized(value, first, base, BASE13.as_ptr()),
-        14  => itoa_optimized(value, first, base, BASE14.as_ptr()),
-        15  => itoa_optimized(value, first, base, BASE15.as_ptr()),
-        16  => itoa_optimized(value, first, base, BASE16.as_ptr()),
-        17  => itoa_optimized(value, first, base, BASE17.as_ptr()),
-        18  => itoa_optimized(value, first, base, BASE18.as_ptr()),
-        19  => itoa_optimized(value, first, base, BASE19.as_ptr()),
-        20  => itoa_optimized(value, first, base, BASE20.as_ptr()),
-        21  => itoa_optimized(value, first, base, BASE21.as_ptr()),
-        22  => itoa_optimized(value, first, base, BASE22.as_ptr()),
-        23  => itoa_optimized(value, first, base, BASE23.as_ptr()),
-        24  => itoa_optimized(value, first, base, BASE24.as_ptr()),
-        25  => itoa_optimized(value, first, base, BASE25.as_ptr()),
-        26  => itoa_optimized(value, first, base, BASE26.as_ptr()),
-        27  => itoa_optimized(value, first, base, BASE27.as_ptr()),
-        28  => itoa_optimized(value, first, base, BASE28.as_ptr()),
-        29  => itoa_optimized(value, first, base, BASE29.as_ptr()),
-        30  => itoa_optimized(value, first, base, BASE30.as_ptr()),
-        31  => itoa_optimized(value, first, base, BASE31.as_ptr()),
-        32  => itoa_optimized(value, first, base, BASE32.as_ptr()),
-        33  => itoa_optimized(value, first, base, BASE33.as_ptr()),
-        34  => itoa_optimized(value, first, base, BASE34.as_ptr()),
-        35  => itoa_optimized(value, first, base, BASE35.as_ptr()),
-        36  => itoa_optimized(value, first, base, BASE36.as_ptr()),
+        2   => itoa_optimized(value, first, base, DIGIT_TO_BASE2_SQUARED.as_ptr()),
+        3   => itoa_optimized(value, first, base, DIGIT_TO_BASE3_SQUARED.as_ptr()),
+        4   => itoa_optimized(value, first, base, DIGIT_TO_BASE4_SQUARED.as_ptr()),
+        5   => itoa_optimized(value, first, base, DIGIT_TO_BASE5_SQUARED.as_ptr()),
+        6   => itoa_optimized(value, first, base, DIGIT_TO_BASE6_SQUARED.as_ptr()),
+        7   => itoa_optimized(value, first, base, DIGIT_TO_BASE7_SQUARED.as_ptr()),
+        8   => itoa_optimized(value, first, base, DIGIT_TO_BASE8_SQUARED.as_ptr()),
+        9   => itoa_optimized(value, first, base, DIGIT_TO_BASE9_SQUARED.as_ptr()),
+        10  => itoa_optimized(value, first, base, DIGIT_TO_BASE10_SQUARED.as_ptr()),
+        11  => itoa_optimized(value, first, base, DIGIT_TO_BASE11_SQUARED.as_ptr()),
+        12  => itoa_optimized(value, first, base, DIGIT_TO_BASE12_SQUARED.as_ptr()),
+        13  => itoa_optimized(value, first, base, DIGIT_TO_BASE13_SQUARED.as_ptr()),
+        14  => itoa_optimized(value, first, base, DIGIT_TO_BASE14_SQUARED.as_ptr()),
+        15  => itoa_optimized(value, first, base, DIGIT_TO_BASE15_SQUARED.as_ptr()),
+        16  => itoa_optimized(value, first, base, DIGIT_TO_BASE16_SQUARED.as_ptr()),
+        17  => itoa_optimized(value, first, base, DIGIT_TO_BASE17_SQUARED.as_ptr()),
+        18  => itoa_optimized(value, first, base, DIGIT_TO_BASE18_SQUARED.as_ptr()),
+        19  => itoa_optimized(value, first, base, DIGIT_TO_BASE19_SQUARED.as_ptr()),
+        20  => itoa_optimized(value, first, base, DIGIT_TO_BASE20_SQUARED.as_ptr()),
+        21  => itoa_optimized(value, first, base, DIGIT_TO_BASE21_SQUARED.as_ptr()),
+        22  => itoa_optimized(value, first, base, DIGIT_TO_BASE22_SQUARED.as_ptr()),
+        23  => itoa_optimized(value, first, base, DIGIT_TO_BASE23_SQUARED.as_ptr()),
+        24  => itoa_optimized(value, first, base, DIGIT_TO_BASE24_SQUARED.as_ptr()),
+        25  => itoa_optimized(value, first, base, DIGIT_TO_BASE25_SQUARED.as_ptr()),
+        26  => itoa_optimized(value, first, base, DIGIT_TO_BASE26_SQUARED.as_ptr()),
+        27  => itoa_optimized(value, first, base, DIGIT_TO_BASE27_SQUARED.as_ptr()),
+        28  => itoa_optimized(value, first, base, DIGIT_TO_BASE28_SQUARED.as_ptr()),
+        29  => itoa_optimized(value, first, base, DIGIT_TO_BASE29_SQUARED.as_ptr()),
+        30  => itoa_optimized(value, first, base, DIGIT_TO_BASE30_SQUARED.as_ptr()),
+        31  => itoa_optimized(value, first, base, DIGIT_TO_BASE31_SQUARED.as_ptr()),
+        32  => itoa_optimized(value, first, base, DIGIT_TO_BASE32_SQUARED.as_ptr()),
+        33  => itoa_optimized(value, first, base, DIGIT_TO_BASE33_SQUARED.as_ptr()),
+        34  => itoa_optimized(value, first, base, DIGIT_TO_BASE34_SQUARED.as_ptr()),
+        35  => itoa_optimized(value, first, base, DIGIT_TO_BASE35_SQUARED.as_ptr()),
+        36  => itoa_optimized(value, first, base, DIGIT_TO_BASE36_SQUARED.as_ptr()),
         _   => unreachable!(),
     }
 

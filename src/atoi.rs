@@ -86,72 +86,32 @@
 
 use sealed::ptr;
 
-use table::BASEN;
+use table::CHAR_TO_DIGIT;
 use util::distance;
-
-// BYTE VALIDITY
-
-/// Check if base10 or lower digit is valid.
-macro_rules! is_valid_num {
-    ($c:expr, $upper:expr) => ($c >= b'0' && $c <= $upper)
-}
-
-/// Check if base11 or higher digit is valid.
-macro_rules! is_valid_alnum {
-    ($c:expr, $upper:expr) => ({
-        let c = $c.to_ascii_uppercase();
-        is_valid_num!(c, b'9') || (c >= b'A' && c <= $upper)
-    })
-}
 
 // ALGORITHM
 
-/// Generic itao for bases of <= 10, where only numerical characters are used.
-///
-/// Must be used within an unsafe block.
-macro_rules! atoi_num_impl {
-    ($value:ident, $first:expr, $last:expr, $base:expr, $t:ty, $mul:ident, $add:ident)
-    =>
-    ({
-        let base = $base as $t;
-        let upper = *BASEN.get_unchecked($base as usize - 1);
-        let mut p = $first;
-
-        while p < $last && is_valid_num!(*p, upper) {
-            $value = $value.$mul(base);
-            $value = $value.$add((*p - b'0') as $t);
-            p = p.add(1)
-        }
-
-        p
-    })
+/// Get digit from character.
+macro_rules! char_to_digit {
+    ($p:expr) => (*CHAR_TO_DIGIT.get_unchecked(*$p as usize))
 }
 
-/// Generic itao for bases of > 10, where alphabetical characters are also used.
-///
-/// Must be used within an unsafe block.
-macro_rules! atoi_alnum_impl {
-    ($value:ident, $first:expr, $last:expr, $base:expr, $t:ty, $mul:ident, $add:ident)
-    =>
-    ({
+/// Optimized atoi implementation that uses a translation table.
+macro_rules! atoi_impl {
+    ($value:ident, $first:expr, $last:expr, $base:expr, $t:ty, $mul:ident, $add:ident) => ({
         let base = $base as $t;
-        let upper = *BASEN.get_unchecked($base as usize - 1);
         let mut p = $first;
 
-        while p < $last && is_valid_alnum!(*p, upper) {
-            $value = $value.$mul(base);
-            let c = *p;
-            p = p.add(1);
-            if c <= b'9' {
-                $value = $value.$add((c - b'0') as $t);
-            } else if c >= b'A' && c <= b'Z' {
-                $value = $value.$add((c - b'A' + 10) as $t);
-            } else {
-                // We already sanitized it's a valid alnum, this is purely
-                // cosmetic.
-                debug_assert!(c >= b'a' && c <= b'z');
-                $value = $value.$add((c - b'a' + 10) as $t);
+        while p < $last {
+            // Get our continuation condition.
+            let digit = char_to_digit!(p) as $t;
+            if digit >= base {
+                break;
             }
+
+            $value = $value.$mul(base);
+            $value = $value.$add(digit);
+            p = p.add(1)
         }
 
         p
@@ -166,12 +126,7 @@ macro_rules! atoi_pointer {
     ({
         // logic error, disable in release builds
         debug_assert!($base >= 2 && $base <= 36, "Numerical base must be from 2-36");
-
-        if $base <= 10 {
-            atoi_num_impl!($value, $first, $last, $base, $t, $mul, $add)
-        } else {
-            atoi_alnum_impl!($value, $first, $last, $base, $t, $mul, $add)
-        }
+        atoi_impl!($value, $first, $last, $base, $t, $mul, $add)
     });
     // Non-explicit multiply and add methods
     ($value:ident, $first:expr, $last:expr, $base:ident, $t:ty) => (

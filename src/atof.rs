@@ -55,7 +55,7 @@ use sealed::mem;
 use sealed::ptr;
 
 use ftoa::exponent_notation_char;
-use table::BASEN;
+use table::CHAR_TO_DIGIT;
 use util::*;
 
 // TRAITS
@@ -123,14 +123,6 @@ unsafe extern "C" fn starts_with_infinity(first: *const u8, length: usize)
 {
     const INFINITY: [u8; 8] = [b'I', b'n', b'f', b'i', b'n', b'i', b't', b'y'];
     starts_with(first, length, INFINITY.as_ptr(), INFINITY.len())
-}
-
-/// Check if any base digit is valid.
-macro_rules! is_valid_digit {
-    ($c:expr, $base:expr) => ({
-        let upper = *BASEN.get_unchecked($base as usize - 1);
-        if $base <= 10 { is_valid_num!($c, upper) } else { is_valid_alnum!($c, upper) }
-    })
 }
 
 // ALGORITHM
@@ -237,7 +229,7 @@ unsafe extern "C" fn calculate_fraction(s: &mut State, base: u64, sig: usize) ->
             }
 
             // do/while condition
-            if s.curr_last == s.last || !is_valid_digit!(*s.curr_last, base) {
+            if s.curr_last == s.last || char_to_digit!(s.curr_last) as u64 >= base {
                 break;
             }
         }

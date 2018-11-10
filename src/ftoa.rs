@@ -73,7 +73,7 @@ pub use alloc::vec::Vec;
 
 use float::{cached_grisu_power, FloatType};
 use itoa::itoa_forward;
-use table::BASEN;
+use table::DIGIT_TO_CHAR;
 use util::{distance, floor, ln};
 
 // FTOA BASE10
@@ -561,7 +561,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
             delta *= bf;
             // Write digit.
             let digit = fraction as i32;
-            *buffer.add(fraction_cursor) = *BASEN.get_unchecked(digit as usize);
+            *buffer.add(fraction_cursor) = *DIGIT_TO_CHAR.get_unchecked(digit as usize);
             fraction_cursor += 1;
             // Calculate remainder.
             fraction -= digit as f64;
@@ -589,7 +589,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
                         }
                         if digit + 1 < base as i32 {
                             let idx = (digit + 1) as usize;
-                            *buffer.add(fraction_cursor) = *BASEN.get_unchecked(idx);
+                            *buffer.add(fraction_cursor) = *DIGIT_TO_CHAR.get_unchecked(idx);
                             fraction_cursor += 1;
                             break;
                         }
@@ -615,7 +615,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
         let remainder = v8_modulo(integer, bf);
         integer_cursor -= 1;
         let idx = remainder as usize;
-        *buffer.add(integer_cursor) = *BASEN.get_unchecked(idx);
+        *buffer.add(integer_cursor) = *DIGIT_TO_CHAR.get_unchecked(idx);
         integer = (integer - remainder) / bf;
 
         if integer <= 0.0 {
