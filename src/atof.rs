@@ -122,6 +122,13 @@ unsafe extern "C" fn starts_with_infinity(first: *const u8, length: usize)
     starts_with(first, length, INFINITY_STRING.as_ptr(), INFINITY_STRING.len())
 }
 
+#[inline(always)]
+unsafe extern "C" fn is_zero(first: *const u8, length: usize)
+    -> bool
+{
+    length == 3 && equal_to(first, "0.0".as_ptr(), 3)
+}
+
 // ALGORITHM
 
 /// Use powi() iteratively.
@@ -288,9 +295,11 @@ macro_rules! atof_value {
         // special case checks
         let length = distance($first, $last);
         if starts_with_nan($first, length) {
-            return ($nan, $first.add(3));
+            return ($nan, $first.add(NAN_STRING.len()));
         } else if starts_with_infinity($first, length) {
-            return ($inf, $first.add(8));
+            return ($inf, $first.add(INFINITY_STRING.len()));
+        } else if is_zero($first, length) {
+            return (0.0, $first.add(3));
         }
 
         atof_finite!($first, $last, $base, $sig)
