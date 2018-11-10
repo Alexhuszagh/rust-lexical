@@ -6,6 +6,22 @@
 #[cfg(feature = "std")]
 use std::{f32, f64};
 
+// GLOBALS
+
+/// Not a Number literal
+///
+/// To change the expected representation of NaN as a string,
+/// change this value during before using lexical.
+///
+/// Do not modify this value in threaded-code, as it is not thread-safe.
+pub static mut NAN_STRING: &str = "NaN";
+
+/// Infinity literal
+///
+/// To change the expected representation of Infinity as a string,
+/// change this value during before using lexical.
+pub static mut INFINITY_STRING: &str = "inf";
+
 // CONSTANTS
 
 /// Not a Number (NaN).
@@ -271,6 +287,8 @@ macro_rules! string_impl {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::atof::*;
+    use super::super::ftoa::*;
 
     #[test]
     fn reverse_test() {
@@ -347,6 +365,37 @@ mod tests {
             assert!(!ends_with(y.as_ptr(), y.len(), x.as_ptr(), x.len()));
             assert!(!ends_with(y.as_ptr(), y.len(), w.as_ptr(), w.len()));
             assert!(!ends_with(x.as_ptr(), x.len(), w.as_ptr(), w.len()));
+        }
+    }
+
+    // Only enable when no other threads touch NAN_STRING or INFINITY_STRING.
+    #[cfg(feature = "std")]
+    #[test]
+    #[ignore]
+    fn special_string_test() {
+        // Test serializing and deserializing special strings.
+        assert!(atof32_bytes(b"NaN", 10).is_nan());
+        assert!(atof32_bytes(b"inf", 10).is_infinite());
+        assert!(!atof32_bytes(b"nan", 10).is_nan());
+        assert!(!atof32_bytes(b"Infinity", 10).is_infinite());
+        assert_eq!(&f64toa_string(F64_NAN, 10), "NaN");
+        assert_eq!(&f64toa_string(F64_INFINITY, 10), "inf");
+
+        unsafe {
+            NAN_STRING = "nan";
+            INFINITY_STRING = "Infinity";
+        }
+
+        assert!(!atof32_bytes(b"NaN", 10).is_nan());
+        assert!(!atof32_bytes(b"inf", 10).is_infinite());
+        assert!(atof32_bytes(b"nan", 10).is_nan());
+        assert!(atof32_bytes(b"Infinity", 10).is_infinite());
+        assert_eq!(&f64toa_string(F64_NAN, 10), "nan");
+        assert_eq!(&f64toa_string(F64_INFINITY, 10), "Infinity");
+
+        unsafe {
+            NAN_STRING = "NaN";
+            INFINITY_STRING = "inf";
         }
     }
 }

@@ -194,7 +194,7 @@ unsafe extern "C" fn itoa_optimized(
     // Decode last 2 digits.
     if value < base {
         curr -= 1;
-        *p.add(curr) = *DIGIT_TO_CHAR.get_unchecked(value as usize);
+        *p.add(curr) = digit_to_char!(value);
     } else {
         let rem = 2 * value as usize;
         curr -= 2;
@@ -235,13 +235,13 @@ unsafe extern "C" fn itoa_naive(
         value /= base;
 
         curr -= 1;
-        *p.add(curr) = *DIGIT_TO_CHAR.get_unchecked(rem);
+        *p.add(curr) = digit_to_char!(rem);
     }
 
     // Decode last digit.
     rem = (value % base) as usize;
     curr -= 1;
-    *p.add(curr) = *DIGIT_TO_CHAR.get_unchecked(rem);
+    *p.add(curr) = digit_to_char!(rem);
 
     let len = buffer.len() - curr;
     ptr::copy_nonoverlapping(p.add(curr), first, len);

@@ -50,6 +50,10 @@ mod util;
 // Publicly export the low-level APIs.
 // Macros used in atoi are required for atof, so export those.
 #[macro_use]
+#[doc(hidden)]
+pub mod table;
+
+#[macro_use]
 pub mod atoi;
 
 pub mod atof;
@@ -60,10 +64,10 @@ pub mod itoa;
 pub mod float;
 
 #[doc(hidden)]
-pub mod table;
-
-#[doc(hidden)]
 pub mod traits;
+
+// Re-export NAN_STRING and INFINITY_STRING globally.
+pub use util::{INFINITY_STRING, NAN_STRING};
 
 // HIGH LEVEL
 

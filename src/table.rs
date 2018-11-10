@@ -15,6 +15,11 @@
 /// character, and also useful for base-N float encoding.
 pub const DIGIT_TO_CHAR: [u8; 36] = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'A', b'B', b'C', b'D', b'E', b'F', b'G', b'H', b'I', b'J', b'K', b'L', b'M', b'N', b'O', b'P', b'Q', b'R', b'S', b'T', b'U', b'V', b'W', b'X', b'Y', b'Z'];
 
+/// Get digit from character.
+macro_rules! digit_to_char {
+    ($v:expr) => (*$crate::table::DIGIT_TO_CHAR.get_unchecked($v as usize))
+}
+
 /// Translation table for a character to a digit, of any radix.
 ///
 /// To check if the radix is actually valid, you may use:
@@ -44,6 +49,11 @@ pub const CHAR_TO_DIGIT: [u8; 256] = [
     40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
     40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
 ];
+
+/// Get digit from character.
+macro_rules! char_to_digit {
+    ($c:expr) => (*$crate::table::CHAR_TO_DIGIT.get_unchecked($c as usize))
+}
 
 // Conditionally compile the precompiled base**2 tables.
 // These tables take `2 * (value % (base^2))`, and return

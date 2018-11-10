@@ -86,15 +86,9 @@
 
 use sealed::ptr;
 
-use table::CHAR_TO_DIGIT;
 use util::distance;
 
 // ALGORITHM
-
-/// Get digit from character.
-macro_rules! char_to_digit {
-    ($p:expr) => (*CHAR_TO_DIGIT.get_unchecked(*$p as usize))
-}
 
 /// Optimized atoi implementation that uses a translation table.
 macro_rules! atoi_impl {
@@ -103,8 +97,8 @@ macro_rules! atoi_impl {
         let mut p = $first;
 
         while p < $last {
-            // Get our continuation condition.
-            let digit = char_to_digit!(p) as $t;
+            // Grab the next digit, and check if it's valid.
+            let digit = char_to_digit!(*p) as $t;
             if digit >= base {
                 break;
             }

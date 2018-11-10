@@ -73,8 +73,7 @@ pub use alloc::vec::Vec;
 
 use float::{cached_grisu_power, FloatType};
 use itoa::itoa_forward;
-use table::DIGIT_TO_CHAR;
-use util::{distance, floor, ln};
+use util::*;
 
 // FTOA BASE10
 // -----------
@@ -336,12 +335,12 @@ unsafe extern "C" fn filter_special(fp: f64, dest: *mut u8) -> i32
     }
 
     if bits & FRACTION_MASK != 0 {
-        ptr::copy_nonoverlapping(b"NaN".as_ptr(), dest, 3);
-        return 3;
+        ptr::copy_nonoverlapping(NAN_STRING.as_ptr(), dest, NAN_STRING.len());
+        return NAN_STRING.len() as i32;
 
     } else {
-        ptr::copy_nonoverlapping(b"Infinity".as_ptr(), dest, 8);
-        return 8;
+        ptr::copy_nonoverlapping(INFINITY_STRING.as_ptr(), dest, INFINITY_STRING.len());
+        return INFINITY_STRING.len() as i32;
     }
 }
 
@@ -561,7 +560,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
             delta *= bf;
             // Write digit.
             let digit = fraction as i32;
-            *buffer.add(fraction_cursor) = *DIGIT_TO_CHAR.get_unchecked(digit as usize);
+            *buffer.add(fraction_cursor) = digit_to_char!(digit);
             fraction_cursor += 1;
             // Calculate remainder.
             fraction -= digit as f64;
@@ -589,7 +588,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
                         }
                         if digit + 1 < base as i32 {
                             let idx = (digit + 1) as usize;
-                            *buffer.add(fraction_cursor) = *DIGIT_TO_CHAR.get_unchecked(idx);
+                            *buffer.add(fraction_cursor) = digit_to_char!(idx);
                             fraction_cursor += 1;
                             break;
                         }
@@ -615,7 +614,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
         let remainder = v8_modulo(integer, bf);
         integer_cursor -= 1;
         let idx = remainder as usize;
-        *buffer.add(integer_cursor) = *DIGIT_TO_CHAR.get_unchecked(idx);
+        *buffer.add(integer_cursor) = digit_to_char!(idx);
         integer = (integer - remainder) / bf;
 
         if integer <= 0.0 {
@@ -812,7 +811,6 @@ string_impl!(f64toa_string, f64, f64toa_unsafe, BUFFER_SIZE);
 mod tests {
     use super::*;
     use atof::*;
-    use util::*;
 
     // Test data for roundtrips.
     const F32_DATA : [f32; 31] = [0., 0.1, 1., 1.1, 12., 12.1, 123., 123.1, 1234., 1234.1, 12345., 12345.1, 123456., 123456.1, 1234567., 1234567.1, 12345678., 12345678.1, 123456789., 123456789.1, 123456789.12, 123456789.123, 123456789.1234, 123456789.12345, 1.2345678912345e8, 1.2345e+8, 1.2345e+11, 1.2345e+38, 1.2345e-8, 1.2345e-11, 1.2345e-38];
@@ -839,7 +837,7 @@ mod tests {
 
         // special
         assert_eq!("NaN", &f32toa_string(F32_NAN, 2));
-        assert_eq!("Infinity", &f32toa_string(F32_INFINITY, 2));
+        assert_eq!("inf", &f32toa_string(F32_INFINITY, 2));
     }
 
     #[test]
@@ -861,7 +859,7 @@ mod tests {
 
         // special
         assert_eq!("NaN", &f32toa_string(F32_NAN, 10));
-        assert_eq!("Infinity", &f32toa_string(F32_INFINITY, 10));
+        assert_eq!("inf", &f32toa_string(F32_INFINITY, 10));
     }
 
     #[test]
@@ -903,7 +901,7 @@ mod tests {
 
         // special
         assert_eq!("NaN", &f64toa_string(F64_NAN, 2));
-        assert_eq!("Infinity", &f64toa_string(F64_INFINITY, 2));
+        assert_eq!("inf", &f64toa_string(F64_INFINITY, 2));
     }
 
     #[test]
@@ -925,7 +923,7 @@ mod tests {
 
         // special
         assert_eq!("NaN", &f64toa_string(F64_NAN, 10));
-        assert_eq!("Infinity", &f64toa_string(F64_INFINITY, 10));
+        assert_eq!("inf", &f64toa_string(F64_INFINITY, 10));
     }
 
     #[test]

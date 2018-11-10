@@ -55,7 +55,6 @@ use sealed::mem;
 use sealed::ptr;
 
 use ftoa::exponent_notation_char;
-use table::CHAR_TO_DIGIT;
 use util::*;
 
 // TRAITS
@@ -113,16 +112,14 @@ impl State {
 unsafe extern "C" fn starts_with_nan(first: *const u8, length: usize)
     -> bool
 {
-    const NAN: [u8; 3] = [b'N', b'a', b'N'];
-    starts_with(first, length, NAN.as_ptr(), NAN.len())
+    starts_with(first, length, NAN_STRING.as_ptr(), NAN_STRING.len())
 }
 
 #[inline(always)]
 unsafe extern "C" fn starts_with_infinity(first: *const u8, length: usize)
     -> bool
 {
-    const INFINITY: [u8; 8] = [b'I', b'n', b'f', b'i', b'n', b'i', b't', b'y'];
-    starts_with(first, length, INFINITY.as_ptr(), INFINITY.len())
+    starts_with(first, length, INFINITY_STRING.as_ptr(), INFINITY_STRING.len())
 }
 
 // ALGORITHM
@@ -229,7 +226,7 @@ unsafe extern "C" fn calculate_fraction(s: &mut State, base: u64, sig: usize) ->
             }
 
             // do/while condition
-            if s.curr_last == s.last || char_to_digit!(s.curr_last) as u64 >= base {
+            if s.curr_last == s.last || char_to_digit!(*s.curr_last) as u64 >= base {
                 break;
             }
         }
@@ -401,9 +398,9 @@ mod tests {
 
         #[cfg(feature = "std")]
         assert!(atof32_bytes(b"NaN", 10).is_nan());
-        assert!(atof32_bytes(b"Infinity", 10).is_infinite());
-        assert!(atof32_bytes(b"+Infinity", 10).is_infinite());
-        assert!(atof32_bytes(b"-Infinity", 10).is_infinite());
+        assert!(atof32_bytes(b"inf", 10).is_infinite());
+        assert!(atof32_bytes(b"+inf", 10).is_infinite());
+        assert!(atof32_bytes(b"-inf", 10).is_infinite());
     }
 
     #[test]
@@ -478,9 +475,9 @@ mod tests {
 
         #[cfg(feature = "std")]
         assert!(atof64_bytes(b"NaN", 10).is_nan());
-        assert!(atof64_bytes(b"Infinity", 10).is_infinite());
-        assert!(atof64_bytes(b"+Infinity", 10).is_infinite());
-        assert!(atof64_bytes(b"-Infinity", 10).is_infinite());
+        assert!(atof64_bytes(b"inf", 10).is_infinite());
+        assert!(atof64_bytes(b"+inf", 10).is_infinite());
+        assert!(atof64_bytes(b"-inf", 10).is_infinite());
     }
 
     #[test]
