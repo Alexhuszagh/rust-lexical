@@ -180,7 +180,6 @@ macro_rules! atoi_signed {
         } else if *$first == b'+' {
             atoi_value!($first.add(1), $last, $base, $t)
         } else if *$first == b'-' {
-            // Unsigned types cannot be negative, wrap around.
             let (value, p) = atoi_value!($first.add(1), $last, $base, $t);
             (-value, p)
         } else {
