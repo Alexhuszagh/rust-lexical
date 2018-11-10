@@ -9,7 +9,7 @@ license = "MIT/Apache-2.0"
 name = "lexical"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
-version = "1.4.0"
+version = "1.4.1"
 exclude = [
     "benches/*",
 ]
@@ -22,7 +22,7 @@ cfg-if = "0.1"
 # Optimized Grisu3 implementation, a well-tested, correct algorithm.
 dtoa = { version = "0.4", optional = true }
 # Optimized Ryu implementation, the fastest correct algorithm.
-ryu = { version = "0.2", optional = true }
+ryu = { version = "^0.2.7", optional = true }
 # Global allocator only used during testing.
 wee_alloc = { version = "0.4", optional = true }
 
