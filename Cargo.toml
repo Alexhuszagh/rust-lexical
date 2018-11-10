@@ -9,7 +9,7 @@ license = "MIT/Apache-2.0"
 name = "lexical"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
-version = "1.3.2"
+version = "1.4.0"
 exclude = [
     "benches/*",
 ]
@@ -18,6 +18,11 @@ exclude = [
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
+cfg-if = "0.1"
+# Optimized Grisu3 implementation, a well-tested, correct algorithm.
+dtoa = { version = "0.4", optional = true }
+# Optimized Ryu implementation, the fastest correct algorithm.
+ryu = { version = "0.2", optional = true }
 # Global allocator only used during testing.
 wee_alloc = { version = "0.4", optional = true }
 
@@ -26,11 +31,15 @@ approx = "0.3.0"
 bencher = "0.1.5"
 dtoa = "0.4"
 itoa = "0.4"
+lazy_static = "1"
+ryu = "0.2"
 
 [features]
-default = ["std", "table"]
+default = ["ryu", "std", "table"]
 alloc = ["wee_alloc"]
 nightly = ["alloc"]
+# Use the optimized Grisu3 implementation from dtoa (not recommended).
+grisu3 = ["dtoa"]
 # Use the `std` library.
 std = []
 # Use precompiled tables for faster performance, at the cost of larger binaries.
@@ -40,6 +49,10 @@ table = []
 
 [[bench]]
 name = "atof"
+harness = false
+
+[[bench]]
+name = "atof_real"
 harness = false
 
 [[bench]]

@@ -13,35 +13,59 @@
 
 // FEATURES
 
+// Require intrinsics and alloc in a no_std context.
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
 #![cfg_attr(feature = "alloc", feature(alloc))]
 
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-extern crate alloc;
+// EXTERNAL
 
-#[cfg(all(test, feature = "alloc", not(feature = "std")))]
-extern crate wee_alloc;
+#[macro_use]
+extern crate cfg_if;
 
-#[cfg(feature = "f128")]
-extern crate f128;
+// CONFIG
 
+cfg_if! {
+    // Require alloc and use wee_alloc as the default allocator for unittesting.
+    if #[cfg(all(feature = "alloc", not(feature = "std")))] {
+        extern crate alloc;
+        extern crate wee_alloc;
+
+        #[global_allocator]
+        static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+    }
+}
+
+// Testing assertions for floating-point equality.
 #[cfg(test)]
 #[macro_use]
 extern crate approx;
 
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+// Ensure only one back-end is enabled.
+#[cfg(all(feature = "grisu3", feature = "ryu"))]
+compile_error!("Lexical only accepts one of the following backends: `grisu3` or `ryu`.");
+
+// Import the back-end, if applicable.
+cfg_if! {
+    if #[cfg(feature = "grisu3")] {
+        extern crate dtoa;
+    } else if #[cfg(feature = "ryu")] {
+        extern crate ryu;
+    }
+}
 
 /// Facade around the core features for name mangling.
 pub(crate) mod sealed {
-    #[cfg(not(feature = "std"))]
-    pub use core::*;
-
-    #[cfg(feature = "std")]
-    pub use std::*;
+    cfg_if! {
+        if #[cfg(feature = "std")] {
+            pub use std::*;
+        } else {
+            pub use core::*;
+        }
+    }
 }
+
+// API
 
 // Hide the implementation details.
 #[macro_use]
@@ -61,10 +85,10 @@ pub mod ftoa;
 pub mod itoa;
 
 #[doc(hidden)]
-pub mod float;
-
-#[doc(hidden)]
 pub mod traits;
+
+// Re-export EXPONENT_DEFAULT_CHAR and EXPONENT_BACKUP_CHAR globally.
+pub use util::{EXPONENT_DEFAULT_CHAR, EXPONENT_BACKUP_CHAR};
 
 // Re-export NAN_STRING and INFINITY_STRING globally.
 pub use util::{INFINITY_STRING, NAN_STRING};
@@ -75,9 +99,6 @@ use sealed::convert::AsRef;
 
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 pub use alloc::string::String;
-
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-pub use alloc::vec::Vec;
 
 use traits::Aton;
 

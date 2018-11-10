@@ -22,84 +22,79 @@ pub static mut NAN_STRING: &str = "NaN";
 /// change this value during before using lexical.
 pub static mut INFINITY_STRING: &str = "inf";
 
+/// Default character for scientific notation, used when the radix < 15.
+///
+/// To change the expected, default character for an exponent,
+/// change this value during before using lexical.
+pub static mut EXPONENT_DEFAULT_CHAR: u8 = b'e';
+
+/// Backup character for scientific notation, used when the radix >= 15.
+///
+/// For numerical strings of radix >= 15, 'e' or 'E' is a valid digit,
+/// and therefore may no longer be used as a marker for the exponent.
+///
+/// To change the expected, default character for an exponent,
+/// change this value during before using lexical.
+pub static mut EXPONENT_BACKUP_CHAR: u8 = b'^';
+
 // CONSTANTS
 
-/// Not a Number (NaN).
-#[cfg(feature = "std")]
-pub(crate) const F32_NAN: f32 = f32::NAN;
-
-/// Not a Number (NaN).
-#[cfg(not(feature = "std"))]
-pub(crate) const F32_NAN: f32 = 0.0_f32 / 0.0_f32;
-
-/// Infinity (∞).
-#[cfg(feature = "std")]
-pub(crate) const F32_INFINITY: f32 = f32::INFINITY;
-
-/// Infinity (∞).
-#[cfg(not(feature = "std"))]
-pub(crate) const F32_INFINITY: f32 = 1.0_f32 / 0.0_f32;
-
-/// Not a Number (NaN).
-#[cfg(feature = "std")]
-pub(crate) const F64_NAN: f64 = f64::NAN;
-
-/// Not a Number (NaN).
-#[cfg(not(feature = "std"))]
-pub(crate) const F64_NAN: f64 = 0.0_f64 / 0.0_f64;
-
-/// Infinity (∞).
-#[cfg(feature = "std")]
-pub(crate) const F64_INFINITY: f64 = f64::INFINITY;
-
-/// Infinity (∞).
-#[cfg(not(feature = "std"))]
-pub(crate) const F64_INFINITY: f64 = 1.0_f64 / 0.0_f64;
+cfg_if! {
+    if #[cfg(feature = "std")] {
+        pub(crate) const F32_NAN: f32 = f32::NAN;
+        pub(crate) const F32_INFINITY: f32 = f32::INFINITY;
+        pub(crate) const F64_NAN: f64 = f64::NAN;
+        pub(crate) const F64_INFINITY: f64 = f64::INFINITY;
+    } else {
+        pub(crate) const F32_NAN: f32 = 0.0_f32 / 0.0_f32;
+        pub(crate) const F32_INFINITY: f32 = 1.0_f32 / 0.0_f32;
+        pub(crate) const F64_NAN: f64 = 0.0_f64 / 0.0_f64;
+        pub(crate) const F64_INFINITY: f64 = 1.0_f64 / 0.0_f64;
+    }
+}
 
 // INSTRINSICS
 
-/// `f64.floor()` feature for `no_std`
-#[cfg(not(feature = "std"))]
-#[inline(always)]
-pub(crate) fn floor(f: f64) -> f64 {
-    unsafe { core::intrinsics::floorf64(f) }
-}
+cfg_if! {
+    if #[cfg(feature = "std")] {
+        /// `f64.floor()` feature for `std`
+        #[inline(always)]
+        pub(crate) fn floor(f: f64) -> f64 {
+            f.floor()
+        }
 
-/// `f64.ln()` feature for `no_std`
-#[cfg(not(feature = "std"))]
-#[inline(always)]
-pub(crate) fn ln(f: f64) -> f64 {
-    unsafe { core::intrinsics::logf64(f) }
-}
+        /// `f64.ln()` feature for `std`
+        #[inline(always)]
+        pub(crate) fn ln(f: f64) -> f64 {
+            f.ln()
+        }
 
-/// `f64.powi(i32)` feature for `no_std`
-#[cfg(not(feature = "std"))]
-#[allow(dead_code)]
-#[inline(always)]
-pub(crate) fn powi(f: f64, i: i32) -> f64 {
-    unsafe { core::intrinsics::powif64(f, i) }
-}
+        /// `f64.powi(i32)` feature for `std`
+        #[allow(dead_code)]
+        #[inline(always)]
+        pub(crate) fn powi(f: f64, i: i32) -> f64 {
+            f.powi(i)
+        }
+    } else {
+        /// `f64.floor()` feature for `no_std`
+        #[inline(always)]
+        pub(crate) fn floor(f: f64) -> f64 {
+            unsafe { core::intrinsics::floorf64(f) }
+        }
 
-/// `f64.floor()` feature for `std`
-#[cfg(feature = "std")]
-#[inline(always)]
-pub(crate) fn floor(f: f64) -> f64 {
-    f.floor()
-}
+        /// `f64.ln()` feature for `no_std`
+        #[inline(always)]
+        pub(crate) fn ln(f: f64) -> f64 {
+            unsafe { core::intrinsics::logf64(f) }
+        }
 
-/// `f64.ln()` feature for `std`
-#[cfg(feature = "std")]
-#[inline(always)]
-pub(crate) fn ln(f: f64) -> f64 {
-    f.ln()
-}
-
-/// `f64.powi(i32)` feature for `std`
-#[cfg(feature = "std")]
-#[allow(dead_code)]
-#[inline(always)]
-pub(crate) fn powi(f: f64, i: i32) -> f64 {
-    f.powi(i)
+        /// `f64.powi(i32)` feature for `no_std`
+        #[allow(dead_code)]
+        #[inline(always)]
+        pub(crate) fn powi(f: f64, i: i32) -> f64 {
+            unsafe { core::intrinsics::powif64(f, i) }
+        }
+    }
 }
 
 // MACRO
@@ -113,6 +108,7 @@ pub(crate) fn powi(f: f64, i: i32) -> f64 {
 /// # pub main() {
 /// }
 /// ```
+#[cfg(not(any(feature = "grisu3", feature = "ryu")))]
 macro_rules! absv {
     ($n:expr) => ({
         let n = $n;
@@ -267,16 +263,17 @@ macro_rules! string_impl {
         pub fn $func(value: $t, base: u8)
             -> String
         {
-            let mut buf: Vec<u8> = Vec::with_capacity($capacity);
+            let mut string = String::with_capacity($capacity);
             unsafe {
+                let buf = string.as_mut_vec();
                 let first: *mut u8 = buf.as_mut_ptr();
                 let last = first.add(buf.capacity());
                 let end = $callback(value, first, last, base);
                 let size = distance(first, end);
                 buf.set_len(size);
 
-                String::from_utf8_unchecked(buf)
             }
+            string
         }
     )
 }
@@ -287,8 +284,6 @@ macro_rules! string_impl {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::atof::*;
-    use super::super::ftoa::*;
 
     #[test]
     fn reverse_test() {
@@ -368,34 +363,40 @@ mod tests {
         }
     }
 
-    // Only enable when no other threads touch NAN_STRING or INFINITY_STRING.
-    #[cfg(feature = "std")]
-    #[test]
-    #[ignore]
-    fn special_string_test() {
-        // Test serializing and deserializing special strings.
-        assert!(atof32_bytes(b"NaN", 10).is_nan());
-        assert!(atof32_bytes(b"inf", 10).is_infinite());
-        assert!(!atof32_bytes(b"nan", 10).is_nan());
-        assert!(!atof32_bytes(b"Infinity", 10).is_infinite());
-        assert_eq!(&f64toa_string(F64_NAN, 10), "NaN");
-        assert_eq!(&f64toa_string(F64_INFINITY, 10), "inf");
+    cfg_if! {
+        if #[cfg(feature = "std")] {
+            use super::super::atof::*;
+            use super::super::ftoa::*;
 
-        unsafe {
-            NAN_STRING = "nan";
-            INFINITY_STRING = "Infinity";
-        }
+            // Only enable when no other threads touch NAN_STRING or INFINITY_STRING.
+            #[test]
+            #[ignore]
+            fn special_string_test() {
+                // Test serializing and deserializing special strings.
+                assert!(atof32_bytes(b"NaN", 10).is_nan());
+                assert!(atof32_bytes(b"inf", 10).is_infinite());
+                assert!(!atof32_bytes(b"nan", 10).is_nan());
+                assert!(!atof32_bytes(b"Infinity", 10).is_infinite());
+                assert_eq!(&f64toa_string(F64_NAN, 10), "NaN");
+                assert_eq!(&f64toa_string(F64_INFINITY, 10), "inf");
 
-        assert!(!atof32_bytes(b"NaN", 10).is_nan());
-        assert!(!atof32_bytes(b"inf", 10).is_infinite());
-        assert!(atof32_bytes(b"nan", 10).is_nan());
-        assert!(atof32_bytes(b"Infinity", 10).is_infinite());
-        assert_eq!(&f64toa_string(F64_NAN, 10), "nan");
-        assert_eq!(&f64toa_string(F64_INFINITY, 10), "Infinity");
+                unsafe {
+                    NAN_STRING = "nan";
+                    INFINITY_STRING = "Infinity";
+                }
 
-        unsafe {
-            NAN_STRING = "NaN";
-            INFINITY_STRING = "inf";
+                assert!(!atof32_bytes(b"NaN", 10).is_nan());
+                assert!(!atof32_bytes(b"inf", 10).is_infinite());
+                assert!(atof32_bytes(b"nan", 10).is_nan());
+                assert!(atof32_bytes(b"Infinity", 10).is_infinite());
+                assert_eq!(&f64toa_string(F64_NAN, 10), "nan");
+                assert_eq!(&f64toa_string(F64_INFINITY, 10), "Infinity");
+
+                unsafe {
+                    NAN_STRING = "NaN";
+                    INFINITY_STRING = "inf";
+                }
+            }
         }
     }
 }

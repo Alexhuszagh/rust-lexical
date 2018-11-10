@@ -3,17 +3,15 @@
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 pub use alloc::string::String;
 
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-pub use alloc::vec::Vec;
-
 use atof::*;
 use atoi::*;
 
-#[cfg(any(feature = "std", feature = "alloc"))]
-use ftoa::*;
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-use itoa::*;
+cfg_if! {
+    if #[cfg(any(feature = "std", feature = "alloc"))] {
+        use ftoa::*;
+        use itoa::*;
+    }
+}
 
 // ATON
 
@@ -59,61 +57,40 @@ aton_impl!(f64, atof64_bytes, try_atof64_bytes);
 
 // NTOA
 
-/// Trait for types that are serializable to string or bytes.
-#[cfg(any(feature = "std", feature = "alloc"))]
-pub trait Ntoa: Sized {
-    /// Serialize to string.
-    fn serialize_to_string(&self, base: u8) -> String;
-}
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-macro_rules! ntoa_impl {
-    ($t:ty, $string_cb:ident) => (
-        impl Ntoa for $t {
-            #[inline(always)]
-            fn serialize_to_string(&self, base: u8) -> String
-            {
-                $string_cb(*self, base)
-            }
+cfg_if! {
+    if #[cfg(any(feature = "std", feature = "alloc"))] {
+        /// Trait for types that are serializable to string or bytes.
+        pub trait Ntoa: Sized {
+            /// Serialize to string.
+            fn serialize_to_string(&self, base: u8) -> String;
         }
-    )
+
+        macro_rules! ntoa_impl {
+            ($t:ty, $string_cb:ident) => (
+                impl Ntoa for $t {
+                    #[inline(always)]
+                    fn serialize_to_string(&self, base: u8) -> String
+                    {
+                        $string_cb(*self, base)
+                    }
+                }
+            )
+        }
+
+        ntoa_impl!(u8, u8toa_string);
+        ntoa_impl!(u16, u16toa_string);
+        ntoa_impl!(u32, u32toa_string);
+        ntoa_impl!(u64, u64toa_string);
+        ntoa_impl!(usize, usizetoa_string);
+        ntoa_impl!(i8, i8toa_string);
+        ntoa_impl!(i16, i16toa_string);
+        ntoa_impl!(i32, i32toa_string);
+        ntoa_impl!(i64, i64toa_string);
+        ntoa_impl!(isize, isizetoa_string);
+        ntoa_impl!(f32, f32toa_string);
+        ntoa_impl!(f64, f64toa_string);
+    }
 }
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-ntoa_impl!(u8, u8toa_string);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-ntoa_impl!(u16, u16toa_string);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-ntoa_impl!(u32, u32toa_string);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-ntoa_impl!(u64, u64toa_string);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-ntoa_impl!(usize, usizetoa_string);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-ntoa_impl!(i8, i8toa_string);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-ntoa_impl!(i16, i16toa_string);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-ntoa_impl!(i32, i32toa_string);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-ntoa_impl!(i64, i64toa_string);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-ntoa_impl!(isize, isizetoa_string);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-ntoa_impl!(f32, f32toa_string);
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-ntoa_impl!(f64, f64toa_string);
 
 // TESTS
 // -----
@@ -145,26 +122,27 @@ mod tests {
         deserialize_float! { f32 f64 }
     }
 
-    #[cfg(any(feature = "std", feature = "alloc"))]
-    macro_rules! serialize_int {
-        ($($t:tt)*) => ($({
-            let x: $t = 0;
-            assert_eq!(x.serialize_to_string(10), "0");
-        })*)
-    }
+    cfg_if! {
+        if #[cfg(any(feature = "std", feature = "alloc"))] {
+            macro_rules! serialize_int {
+                ($($t:tt)*) => ($({
+                    let x: $t = 0;
+                    assert_eq!(x.serialize_to_string(10), "0");
+                })*)
+            }
 
-    #[cfg(any(feature = "std", feature = "alloc"))]
-    macro_rules! serialize_float {
-        ($($t:tt)*) => ($({
-            let x: $t = 0.0;
-            assert_eq!(x.serialize_to_string(10), "0.0");
-        })*)
-    }
+            macro_rules! serialize_float {
+                ($($t:tt)*) => ($({
+                    let x: $t = 0.0;
+                    assert_eq!(x.serialize_to_string(10), "0.0");
+                })*)
+            }
 
-    #[cfg(any(feature = "std", feature = "alloc"))]
-    #[test]
-    fn ntoa_test() {
-        serialize_int! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
-        serialize_float! { f32 f64 }
+            #[test]
+            fn ntoa_test() {
+                serialize_int! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
+                serialize_float! { f32 f64 }
+            }
+        }
     }
 }

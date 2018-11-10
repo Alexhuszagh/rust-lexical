@@ -21,7 +21,7 @@ Add lexical to your `Cargo.toml`:
 
 ```yaml
 [dependencies]
-lexical = "1.0"
+lexical = "1"
 ```
 
 And get started using lexical:
@@ -78,15 +78,9 @@ For all the following benchmarks, lower is better.
 
 ![atoi benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atoi.png)
 
-Furthermore, for number-to-string conversions, lexical's performance is comparable to (if not slightly faster) than [dtoa](https://github.com/dtolnay/dtoa) and [itoa](https://github.com/dtolnay/itoa), despite supporting more functionality than either (including non-base 10 representations).
+# Backends
 
-**Float to String**
-
-![lexical-dtoa benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/lexical_dtoa.png)
-
-**Integer To String**
-
-![lexical-itoa benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/lexical_itoa.png)
+For Float-To-String conversions, lexical uses one of three backends: an internal, Grisu2 algorithm (~99.5% correct), an external, Grisu3 algorithm (100% correct), and an external, Ryu algorithm (100% correct, ~2x as fast).
 
 # Documentation
 
@@ -104,15 +98,19 @@ Finally, for non-base10 floats, lexical's float-to-string implementations may le
 
 # Details
 
-The float-to-string implementation uses the Grisu2 algorithm for speed, which for ~0.5% of inputs may return the non-shortest representation.
+For more information on the Grisu2 and Grisu3 algorithms, see [Printing Floating-Point Numbers Quickly and Accurately with Integers](https://www.cs.tufts.edu/~nr/cs257/archive/florian-loitsch/printf.pdf).
 
-For more information on the Grisu2 algorithm and other floating-point representation algorithms, see [Printing Floating-Point Numbers Quickly and Accurately with Integers](https://www.cs.tufts.edu/~nr/cs257/archive/florian-loitsch/printf.pdf).
+For more information on the Ryu algorithm, see [Ryū: fast float-to-string conversion](https://dl.acm.org/citation.cfm?id=3192369).
 
 # License
 
 Lexical is dual licensed under the Apache 2.0 license as well as the MIT license. See the LICENCE-MIT and the LICENCE-APACHE files for the licenses.
 
 Lexical also ports some code from [V8](https://github.com/v8/v8) and [fpconv](https://github.com/night-shift/fpconv), and therefore might be subject to the terms of a 3-clause BSD license.
+
+# Roadmap
+
+- Add a correct, string-to-float conversion for base10 floats.
 
 # Contributing
 

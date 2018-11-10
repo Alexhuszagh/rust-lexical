@@ -104,11 +104,10 @@ use sealed::ptr;
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 pub use alloc::string::String;
 
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-pub use alloc::vec::Vec;
+use util::*;
 
+#[cfg(feature = "table")]
 use table::*;
-use util::{distance, floor, ln};
 
 // MACRO
 

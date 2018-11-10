@@ -7,39 +7,7 @@
 //! for performance). Since there is no storage for the sign bit,
 //! this only works for positive floats.
 
-// SHIFTS
-
-/// Shift left `shift` bytes.
-macro_rules! shl {
-    ($self:ident, $shift:expr) => ({
-        $self.frac = $self.frac.wrapping_shl($shift);
-        $self.exp -= $shift as i32;
-    })
-}
-
-// FROM FLOAT
-
-/// Import FloatType from native float.
-macro_rules! from_float {
-    ($float:ident, $exponent:ident, $hidden:ident,
-     $fraction:ident, $bias:ident, $sig_size:ident)
-    => ({
-        let bits = $float.to_bits() as u64;
-        let mut fp = FloatType {
-            frac: (bits & $fraction),
-            exp: ((bits & $exponent) >> $sig_size) as i32,
-        };
-
-        if fp.exp != 0 {
-            fp.frac += $hidden;
-            fp.exp -= $bias;
-        } else {
-            fp.exp = -$bias + 1;
-        }
-
-        fp
-    })
-}
+use super::util::*;
 
 // FLOAT TYPE
 
@@ -57,28 +25,6 @@ pub(crate) struct FloatType {
 }
 
 impl FloatType {
-    // MASKS
-    // 64-bit
-    /// Bit-mask for the sign.
-    pub const F64_SIGN_MASK: u64        = 0x8000000000000000;
-    /// Bit-mask for the exponent, including the hidden bit.
-    pub const F64_EXPONENT_MASK: u64    = 0x7FF0000000000000;
-    /// Bit-mask for the hidden bit in exponent, which is use for the fraction.
-    pub const F64_HIDDEN_BIT_MASK: u64  = 0x0010000000000000;
-    /// Bit-mask for the mantissa (fraction), excluding the hidden bit.
-    pub const F64_FRACTION_MASK: u64    = 0x000FFFFFFFFFFFFF;
-
-    // PROPERTIES
-    // 64-bit
-    /// Positive infinity as bits.
-    pub const U64_INFINITY: u64         = 0x7FF0000000000000;
-    /// Size of the significand (mantissa) without the hidden bit.
-    pub const F64_SIGNIFICAND_SIZE: i32 = 52;
-    /// Bias of the exponent.
-    pub const F64_EXPONENT_BIAS: i32 = 1023 + Self::F64_SIGNIFICAND_SIZE;
-    /// Exponent portion of a denormal float.
-    pub const F64_DENORMAL_EXPONENT: i32 = -Self::F64_EXPONENT_BIAS + 1;
-
     // OPERATIONS
 
     /// Multiply two normalized extended-precision floats, as if by `a*b`.
@@ -129,7 +75,8 @@ impl FloatType {
         // however, removing the if/then will likely optimize more branched
         // code as it removes conditional logic.
         let shift = self.frac.leading_zeros();
-        shl!(self, shift);
+        self.frac = self.frac.wrapping_shl(shift);
+        self.exp -= shift as i32;
     }
 
     /// Get normalized boundaries for float.
@@ -143,7 +90,7 @@ impl FloatType {
 
         // Use a boolean hack to get 2 if they're equal, else 1, without
         // any branching.
-        let is_hidden = self.frac == Self::F64_HIDDEN_BIT_MASK;
+        let is_hidden = self.frac == F64_HIDDEN_BIT_MASK;
         let l_shift: i32 = is_hidden as i32 + 1;
 
         let mut lower = FloatType {
@@ -159,13 +106,20 @@ impl FloatType {
     /// Create extended float from 64-bit float.
     #[inline]
     pub fn from_f64(f: f64) -> FloatType {
-        const EXPONENT: u64 = FloatType::F64_EXPONENT_MASK;
-        const HIDDEN: u64 = FloatType::F64_HIDDEN_BIT_MASK;
-        const FRACTION: u64 = FloatType::F64_FRACTION_MASK;
-        const BIAS: i32 = FloatType::F64_EXPONENT_BIAS;
-        const SIG_SIZE: i32 = FloatType::F64_SIGNIFICAND_SIZE;
+        let bits = f.to_bits() as u64;
+        let mut fp = FloatType {
+            frac: (bits & F64_FRACTION_MASK),
+            exp: ((bits & F64_EXPONENT_MASK) >> F64_SIGNIFICAND_SIZE) as i32,
+        };
 
-        from_float!(f, EXPONENT, HIDDEN, FRACTION, BIAS, SIG_SIZE)
+        if fp.exp != 0 {
+            fp.frac += F64_HIDDEN_BIT_MASK;
+            fp.exp -= F64_EXPONENT_BIAS;
+        } else {
+            fp.exp = -F64_EXPONENT_BIAS + 1;
+        }
+
+        fp
     }
 }
 

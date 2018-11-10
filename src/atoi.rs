@@ -86,7 +86,7 @@
 
 use sealed::ptr;
 
-use util::distance;
+use util::*;
 
 // ALGORITHM
 

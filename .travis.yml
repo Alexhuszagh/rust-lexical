@@ -13,7 +13,12 @@ matrix:
         - cargo test --no-default-features
         - cargo test --no-default-features --features=alloc
         - cargo test --no-default-features --features=alloc,table
+        - cargo test --no-default-features --features=alloc,table,grisu3
+        - cargo test --no-default-features --features=alloc,table,ryu
 
 script:
   - cargo build
   - cargo test
+  - cargo test --no-default-features --features=std,table
+  - cargo test --no-default-features --features=std,table,grisu3
+  - cargo test --no-default-features --features=std,table,ryu
