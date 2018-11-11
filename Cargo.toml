@@ -35,9 +35,11 @@ lazy_static = "1"
 ryu = "0.2"
 
 [features]
-default = ["ryu", "std", "table"]
+default = ["ryu", "std", "table"]   # "correct",
 alloc = ["wee_alloc"]
 nightly = ["alloc"]
+# Use the completely correct atof functionality.
+correct = []
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["dtoa"]
 # Use the `std` library.

@@ -13,7 +13,7 @@ use util::*;
 use super::util::*;
 use super::basen::{double_basen, float_basen};
 
-// Select the back0end
+// Select the back-end
 cfg_if! {
     if #[cfg(feature = "grisu3")] {
         use super::grisu3::{double_base10, float_base10};

@@ -1,6 +1,6 @@
 //! Fast lexical float-to-string conversion routines.
 
-// Re-export the modules
+// Hide implementation details.
 mod util;
 mod basen;
 
@@ -9,8 +9,7 @@ cfg_if! {
         mod grisu3;
     } else if #[cfg(feature = "ryu")] {
         mod ryu;
-    }
-    else {
+    } else {
         mod float;
         mod grisu2;
     }
