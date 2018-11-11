@@ -9,7 +9,7 @@ license = "MIT/Apache-2.0"
 name = "lexical"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
-version = "1.4.2"
+version = "1.5.0"
 exclude = [
     "benches/*",
 ]
@@ -35,10 +35,10 @@ lazy_static = "1"
 ryu = "0.2"
 
 [features]
-default = ["ryu", "std", "table"]   # "correct",
+default = ["ryu", "std", "table"]
 alloc = ["wee_alloc"]
 nightly = ["alloc"]
-# Use the completely correct atof functionality.
+# Use the completely correct atof functionality (unsupported as of now).
 correct = []
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["dtoa"]

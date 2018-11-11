@@ -41,17 +41,18 @@ let i: i32 = lexical::parse("3");            // 3, auto-type deduction.
 let f: f32 = lexical::parse("3.5");          // 3.5
 let d = lexical::parse::<f64, _>("3.5");     // 3.5, explicit type hints.
 let d = lexical::try_parse::<f64, _>("3.5"); // Ok(3.5), error checking parse.
-let d = lexical::try_parse::<f64, _>("3a");  // Err(1), failed to parse.
+let d = lexical::try_parse::<f64, _>("3a");  // Err(Error(_)), failed to parse.
 ```
 
-Lexical's parsers can be either error-checked and unchecked. The unchecked parsers continue to parse until they encounter invalid data, returning a number was successfully parsed up until that point. This is analogous to C's `strtod`, which may not be desirable for many applications. Therefore, lexical also includes checked parsers, which ensure the entire buffer is used while parsing and do not discard any characters. Upon erroring, the checked parsers will return the index where the invalid data was found.
+Lexical's parsers can be either error-checked and unchecked. The unchecked parsers continue to parse until they encounter invalid data or overflow, returning a number was successfully parsed up until that point. This is analogous to C's `strtod`, which may not be desirable for many applications. Therefore, lexical also includes checked parsers, which ensure the entire buffer is used while parsing, without discarding characters, and that the resulting number did not overflow. Upon erroring, the checked parsers will return the an enum indicating overflow or the index where the first invalid digit  was found.
 
 ```rust
-// This will return Err(3), indicating the first invalid character
-// occurred at the index 3 in the input string (the space character).
+// This will return Err(Error(ErrorKind::InvalidDigit(3))), indicating 
+// the first invalid character occurred at the index 3 in the input 
+// string (the space character).
 let x: i32 = lexical::try_parse("123 456");
 
-// This will return 123, since that is the value found before invalid
+// This will return Ok(123), since that is the value found before invalid
 // character was encountered.
 let x: i32 = lexical::parse("123 456");
 ```
@@ -89,8 +90,6 @@ Lexical's documentation can be found on [docs.rs](https://docs.rs/lexical).
 # Caveats
 
 Lexical heavily uses unsafe code for performance, and therefore may introduce memory-safety issues. Although the code is tested with wide variety of inputs to minimize the risk of memory-safety bugs, no guarantees are made and you should use it at your own risk.
-
-In addition, lexical explicitly wraps on integer overflow, rather than error or use a big integer, nor will it auto-detect the integer radix with common prefixes (like 0x, or 0b). For a cheap overflow check at the cost of incorrectly rejecting some large integers, accept at max `digits-2` bytes for an unsigned type, and `digits-1` bytes for a signed type, where digits is calculated as `floor((ln(T::max_value()) / ln(base)) + 1.0)`.
 
 For float-parsing, lexical uses native floats for intermediate values, rather than arbitrary-precision integers, leading to fairly minor rounding (up to 1e-16), meaning that the float parser is not completely correct (for example, 1.2345e-308 is parsed as 1.2344999999999994e-308).
 

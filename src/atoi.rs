@@ -97,8 +97,11 @@ macro_rules! atoi_impl {
         let mut p = $first;
         let mut overflow = false;
 
-        // Continue while not overflow
-        while p < $last && !overflow {
+        // Continue while we have digits.
+        // Don't check for overflow, we want to avoid as many conditions
+        // as possible, it leads to significant speed increases on x86-64.
+        // Just note it happens, and continue on.
+        while p < $last {
             // Grab the next digit, and check if it's valid.
             let digit = char_to_digit!(*p) as $t;
             if digit >= base {
@@ -109,7 +112,7 @@ macro_rules! atoi_impl {
             let (value, o1) = $value.$mul(base);
             let (value, o2) = value.$add(digit);
             $value = value;
-            overflow = o1 | o2;
+            overflow |= o1 | o2;
             p = p.add(1);
         }
 
@@ -163,14 +166,16 @@ macro_rules! atoi_unsigned {
     ($first:expr, $last:expr, $base:expr, $t:tt) => ({
         if $first == $last {
             (0, ptr::null(), false)
-        } else if *$first == b'+' {
-            atoi_value!($first.add(1), $last, $base, $t)
-        } else if *$first == b'-' {
-            // Unsigned types cannot be negative, wrap around.
-            let (value, p, overflow) = atoi_value!($first.add(1), $last, $base, $t);
-            (value.wrapping_neg(), p, overflow)
         } else {
-            atoi_value!($first, $last, $base, $t)
+            match *$first {
+                b'+' => atoi_value!($first.add(1), $last, $base, $t),
+                b'-' => {
+                    // Unsigned types cannot be negative, wrap around and overflow..
+                    let (value, p, _) = atoi_value!($first.add(1), $last, $base, $t);
+                    (value.wrapping_neg(), p, true)
+                },
+                _    => atoi_value!($first, $last, $base, $t),
+            }
         }
     })
 }
@@ -182,13 +187,15 @@ macro_rules! atoi_signed {
     ($first:expr, $last:expr, $base:expr, $t:tt) => ({
         if $first == $last {
             (0, ptr::null(), false)
-        } else if *$first == b'+' {
-            atoi_value!($first.add(1), $last, $base, $t)
-        } else if *$first == b'-' {
-            let (value, p, overflow) = atoi_value!($first.add(1), $last, $base, $t);
-            (-value, p, overflow)
         } else {
-            atoi_value!($first, $last, $base, $t)
+            match *$first {
+                b'+' => atoi_value!($first.add(1), $last, $base, $t),
+                b'-' => {
+                    let (value, p, overflow) = atoi_value!($first.add(1), $last, $base, $t);
+                    (-value, p, overflow)
+                },
+                _    => atoi_value!($first, $last, $base, $t),
+            }
         }
     })
 }
@@ -269,6 +276,7 @@ try_bytes_impl!(try_atoisize_bytes, isize, atoisize_unsafe);
 
 #[cfg(test)]
 mod tests {
+    use error::{invalid_digit, overflow};
     use super::*;
 
     const DATA: [(u8, &'static str); 35] = [
@@ -403,57 +411,65 @@ mod tests {
 
     #[test]
     fn try_atou8_base10_test() {
-        assert_eq!(Err(0), try_atou8_bytes(b"", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atou8_bytes(b"", 10));
         assert_eq!(Ok(0), try_atou8_bytes(b"0", 10));
-        assert_eq!(Err(1), try_atou8_bytes(b"1a", 10));
+        assert_eq!(Err(invalid_digit(1)), try_atou8_bytes(b"1a", 10));
+        assert_eq!(Err(overflow()), try_atou8_bytes(b"256", 10));
     }
 
     #[test]
     fn try_atoi8_base10_test() {
-        assert_eq!(Err(0), try_atoi8_bytes(b"", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atoi8_bytes(b"", 10));
         assert_eq!(Ok(0), try_atoi8_bytes(b"0", 10));
-        assert_eq!(Err(1), try_atoi8_bytes(b"1a", 10));
+        assert_eq!(Err(invalid_digit(1)), try_atoi8_bytes(b"1a", 10));
+        assert_eq!(Err(overflow()), try_atoi8_bytes(b"128", 10));
     }
 
     #[test]
     fn try_atou16_base10_test() {
-        assert_eq!(Err(0), try_atou16_bytes(b"", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atou16_bytes(b"", 10));
         assert_eq!(Ok(0), try_atou16_bytes(b"0", 10));
-        assert_eq!(Err(1), try_atou16_bytes(b"1a", 10));
+        assert_eq!(Err(invalid_digit(1)), try_atou16_bytes(b"1a", 10));
+        assert_eq!(Err(overflow()), try_atou16_bytes(b"65536", 10));
     }
 
     #[test]
     fn try_atoi16_base10_test() {
-        assert_eq!(Err(0), try_atoi16_bytes(b"", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atoi16_bytes(b"", 10));
         assert_eq!(Ok(0), try_atoi16_bytes(b"0", 10));
-        assert_eq!(Err(1), try_atoi16_bytes(b"1a", 10));
+        assert_eq!(Err(invalid_digit(1)), try_atoi16_bytes(b"1a", 10));
+        assert_eq!(Err(overflow()), try_atoi16_bytes(b"32768", 10));
     }
 
     #[test]
     fn try_atou32_base10_test() {
-        assert_eq!(Err(0), try_atou32_bytes(b"", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atou32_bytes(b"", 10));
         assert_eq!(Ok(0), try_atou32_bytes(b"0", 10));
-        assert_eq!(Err(1), try_atou32_bytes(b"1a", 10));
+        assert_eq!(Err(invalid_digit(1)), try_atou32_bytes(b"1a", 10));
+        assert_eq!(Err(overflow()), try_atou32_bytes(b"4294967296", 10));
     }
 
     #[test]
     fn try_atoi32_base10_test() {
-        assert_eq!(Err(0), try_atoi32_bytes(b"", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atoi32_bytes(b"", 10));
         assert_eq!(Ok(0), try_atoi32_bytes(b"0", 10));
-        assert_eq!(Err(1), try_atoi32_bytes(b"1a", 10));
+        assert_eq!(Err(invalid_digit(1)), try_atoi32_bytes(b"1a", 10));
+        assert_eq!(Err(overflow()), try_atoi32_bytes(b"2147483648", 10));
     }
 
     #[test]
     fn try_atou64_base10_test() {
-        assert_eq!(Err(0), try_atou64_bytes(b"", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atou64_bytes(b"", 10));
         assert_eq!(Ok(0), try_atou64_bytes(b"0", 10));
-        assert_eq!(Err(1), try_atou64_bytes(b"1a", 10));
+        assert_eq!(Err(invalid_digit(1)), try_atou64_bytes(b"1a", 10));
+        assert_eq!(Err(overflow()), try_atou64_bytes(b"18446744073709551616", 10));
     }
 
     #[test]
     fn try_atoi64_base10_test() {
-        assert_eq!(Err(0), try_atoi64_bytes(b"", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atoi64_bytes(b"", 10));
         assert_eq!(Ok(0), try_atoi64_bytes(b"0", 10));
-        assert_eq!(Err(1), try_atoi64_bytes(b"1a", 10));
+        assert_eq!(Err(invalid_digit(1)), try_atoi64_bytes(b"1a", 10));
+        assert_eq!(Err(overflow()), try_atoi64_bytes(b"9223372036854775808", 10));
     }
 }

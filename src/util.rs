@@ -236,21 +236,19 @@ macro_rules! try_bytes_impl {
         /// On error, returns position of invalid char.
         #[inline]
         pub fn $func(bytes: &[u8], base: u8)
-            -> Result<$t, usize>
+            -> Result<$t, $crate::Error>
         {
             unsafe {
                 let first = bytes.as_ptr();
                 let last = first.add(bytes.len());
                 let (value, p, overflow) = $callback(first, last, base);
                 if overflow {
-                    // TODO(ahuszagh) Need an error here...
-                }
-                match p == last {
-                    true => Ok(value),
-                    _    => Err(match p == ptr::null() {
-                        true  => 0,     // Empty string.
-                        false => distance(first, p),
-                    }),
+                    Err(From::from($crate::ErrorKind::Overflow))
+                } else if p == last {
+                    Ok(value)
+                } else {
+                    let dist = if p == ptr::null() { 0 } else { distance(first, p) };
+                    Err(From::from($crate::ErrorKind::InvalidDigit(dist)))
                 }
             }
         }

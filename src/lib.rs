@@ -71,6 +71,8 @@ pub(crate) mod sealed {
 #[macro_use]
 mod util;
 
+mod error;
+
 // Publicly export the low-level APIs.
 // Macros used in atoi are required for atof, so export those.
 #[macro_use]
@@ -94,6 +96,9 @@ pub use util::{EXPONENT_DEFAULT_CHAR, EXPONENT_BACKUP_CHAR};
 
 // Re-export NAN_STRING and INFINITY_STRING globally.
 pub use util::{INFINITY_STRING, NAN_STRING};
+
+// Re-export the Error and ErrorKind globally.
+pub use error::{Error, ErrorKind};
 
 // HIGH LEVEL
 
@@ -231,27 +236,31 @@ pub fn parse_radix<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> N {
 ///
 /// ```rust
 /// # extern crate lexical;
+/// # use lexical::ErrorKind;
 /// # pub fn main() {
+/// // Create our error.
+/// let err = |u| From::from(ErrorKind::InvalidDigit(u));
+///
 /// // String overloads
 /// assert_eq!(lexical::try_parse::<i32, _>("5"), Ok(5));
-/// assert_eq!(lexical::try_parse::<i32, _>("1a"), Err(1));
+/// assert_eq!(lexical::try_parse::<i32, _>("1a"), Err(err(1)));
 /// assert_eq!(lexical::try_parse::<f32, _>("0"), Ok(0.0));
 /// assert_eq!(lexical::try_parse::<f32, _>("1.0"), Ok(1.0));
-/// assert_eq!(lexical::try_parse::<f32, _>("1."), Err(1));
+/// assert_eq!(lexical::try_parse::<f32, _>("1."), Err(err(1)));
 ///
 /// // Bytes overloads
 /// assert_eq!(lexical::try_parse::<i32, _>(b"5"), Ok(5));
-/// assert_eq!(lexical::try_parse::<i32, _>(b"1a"), Err(1));
+/// assert_eq!(lexical::try_parse::<i32, _>(b"1a"), Err(err(1)));
 /// assert_eq!(lexical::try_parse::<f32, _>(b"0"), Ok(0.0));
 /// assert_eq!(lexical::try_parse::<f32, _>(b"1.0"), Ok(1.0));
-/// assert_eq!(lexical::try_parse::<f32, _>(b"1."), Err(1));
+/// assert_eq!(lexical::try_parse::<f32, _>(b"1."), Err(err(1)));
 /// # }
 /// ```
 ///
 /// [`parse`]: fn.parse.html
 #[inline(always)]
 pub fn try_parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes)
-    -> Result<N, usize>
+    -> Result<N, Error>
 {
     N::try_deserialize_from_bytes(bytes.as_ref(), 10)
 }
@@ -269,30 +278,34 @@ pub fn try_parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes)
 ///
 /// ```rust
 /// # extern crate lexical;
+/// # use lexical::ErrorKind;
 /// # pub fn main() {
+/// // Create our error wrapper.
+/// let err = |u| From::from(ErrorKind::InvalidDigit(u));
+///
 /// // String overloads
 /// assert_eq!(lexical::try_parse_radix::<i32, _>("5", 10), Ok(5));
-/// assert_eq!(lexical::try_parse_radix::<i32, _>("1a", 10), Err(1));
-/// assert_eq!(lexical::try_parse_radix::<i32, _>("1.", 10), Err(1));
+/// assert_eq!(lexical::try_parse_radix::<i32, _>("1a", 10), Err(err(1)));
+/// assert_eq!(lexical::try_parse_radix::<i32, _>("1.", 10), Err(err(1)));
 /// assert_eq!(lexical::try_parse_radix::<f32, _>("0", 10), Ok(0.0));
 /// assert_eq!(lexical::try_parse_radix::<f32, _>("1.0", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>("1.", 10), Err(1));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>("1.0.", 10), Err(3));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>("1.", 10), Err(err(1)));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>("1.0.", 10), Err(err(3)));
 ///
 /// // Bytes overloads
 /// assert_eq!(lexical::try_parse_radix::<i32, _>(b"5", 10), Ok(5));
-/// assert_eq!(lexical::try_parse_radix::<i32, _>(b"1a", 10), Err(1));
+/// assert_eq!(lexical::try_parse_radix::<i32, _>(b"1a", 10), Err(err(1)));
 /// assert_eq!(lexical::try_parse_radix::<f32, _>(b"0", 10), Ok(0.0));
 /// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.0", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.", 10), Err(1));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.0.", 10), Err(3));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.", 10), Err(err(1)));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.0.", 10), Err(err(3)));
 /// # }
 /// ```
 ///
 /// [`parse_radix`]: fn.parse_radix.html
 #[inline(always)]
 pub fn try_parse_radix<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
-    -> Result<N, usize>
+    -> Result<N, Error>
 {
     assert!(2 <= radix && radix <= 36, "try_parse_radix, radix must be in range `[2, 36]`, got {}", radix);
     N::try_deserialize_from_bytes(bytes.as_ref(), radix)

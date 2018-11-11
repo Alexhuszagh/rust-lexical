@@ -132,6 +132,7 @@ try_bytes_impl!(try_atof64_bytes, f64, atof64_unsafe);
 
 #[cfg(test)]
 mod tests {
+    use error::invalid_digit;
     use super::*;
 
     #[test]
@@ -271,15 +272,15 @@ mod tests {
 
     #[test]
     fn try_atof32_base10_test() {
-        assert_eq!(Err(0), try_atof32_bytes(b"", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atof32_bytes(b"", 10));
         assert_eq!(Ok(0.0), try_atof32_bytes(b"0.0", 10));
-        assert_eq!(Err(1), try_atof32_bytes(b"1a", 10));
+        assert_eq!(Err(invalid_digit(1)), try_atof32_bytes(b"1a", 10));
     }
 
     #[test]
     fn try_atof64_base10_test() {
-        assert_eq!(Err(0), try_atof64_bytes(b"", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atof64_bytes(b"", 10));
         assert_eq!(Ok(0.0), try_atof64_bytes(b"0.0", 10));
-        assert_eq!(Err(1), try_atof64_bytes(b"1a", 10));
+        assert_eq!(Err(invalid_digit(1)), try_atof64_bytes(b"1a", 10));
     }
 }

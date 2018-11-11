@@ -5,6 +5,7 @@ pub use alloc::string::String;
 
 use atof::*;
 use atoi::*;
+use error::Error;
 
 cfg_if! {
     if #[cfg(any(feature = "std", feature = "alloc"))] {
@@ -21,7 +22,7 @@ pub trait Aton: Sized {
     fn deserialize_from_bytes(bytes: &[u8], base: u8) -> Self;
 
     /// Error-checking deserialize from byte slice.
-    fn try_deserialize_from_bytes(bytes: &[u8], base: u8) -> Result<Self, usize>;
+    fn try_deserialize_from_bytes(bytes: &[u8], base: u8) -> Result<Self, Error>;
 }
 
 macro_rules! aton_impl {
@@ -34,7 +35,7 @@ macro_rules! aton_impl {
             }
 
             #[inline(always)]
-            fn try_deserialize_from_bytes(bytes: &[u8], base: u8) -> Result<$t, usize>
+            fn try_deserialize_from_bytes(bytes: &[u8], base: u8) -> Result<$t, Error>
             {
                 $try_bytes_cb(bytes, base)
             }
@@ -97,14 +98,15 @@ cfg_if! {
 
 #[cfg(test)]
 mod tests {
+    use error::invalid_digit;
     use super::*;
 
     macro_rules! deserialize_int {
         ($($t:tt)*) => ($({
             assert_eq!($t::deserialize_from_bytes(b"0", 10), 0);
             assert_eq!($t::try_deserialize_from_bytes(b"0", 10), Ok(0));
-            assert_eq!($t::try_deserialize_from_bytes(b"", 10), Err(0));
-            assert_eq!($t::try_deserialize_from_bytes(b"1a", 10), Err(1));
+            assert_eq!($t::try_deserialize_from_bytes(b"", 10), Err(invalid_digit(0)));
+            assert_eq!($t::try_deserialize_from_bytes(b"1a", 10), Err(invalid_digit(1)));
         })*)
     }
 
@@ -112,7 +114,7 @@ mod tests {
         ($($t:tt)*) => ($({
             assert_eq!($t::deserialize_from_bytes(b"0.0", 10), 0.0);
             assert_eq!($t::try_deserialize_from_bytes(b"0.0", 10), Ok(0.0));
-            assert_eq!($t::try_deserialize_from_bytes(b"0.0a", 10), Err(3));
+            assert_eq!($t::try_deserialize_from_bytes(b"0.0a", 10), Err(invalid_digit(3)));
         })*)
     }
 
