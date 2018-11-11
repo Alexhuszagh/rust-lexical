@@ -201,6 +201,9 @@ mod tests {
         // special
         assert_eq!("NaN", &f32toa_string(F32_NAN, 2));
         assert_eq!("inf", &f32toa_string(F32_INFINITY, 2));
+
+        // bugfixes
+        assert_eq!("1.101010000010101111000e-11011", &f32toa_string(0.000000012345, 2));
     }
 
     #[test]

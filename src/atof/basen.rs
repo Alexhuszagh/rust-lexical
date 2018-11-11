@@ -136,7 +136,7 @@ pub(crate) fn stable_powi_divisor(mut value: f64, base: u64, exponent: i32) -> f
 #[inline(always)]
 unsafe extern "C" fn calculate_integer(s: &mut State, base: u64) -> f64 {
     let mut integer: f64 = 0.0;
-    s.curr_last = atoi_pointer!(integer, s.first, s.last, base, f64);
+    s.curr_last = atoi_pointer!(integer, s.first, s.last, base, f64).0;
     integer
 }
 
@@ -159,7 +159,7 @@ unsafe extern "C" fn calculate_fraction(s: &mut State, base: u64) -> f64 {
             let mut value: u64 = 0;
             s.curr_first = s.curr_last;
             s.curr_last = minv!(s.last, s.curr_first.add(12));
-            s.curr_last = atoi_pointer!(value, s.curr_first, s.curr_last, base, u64);
+            s.curr_last = atoi_pointer!(value, s.curr_first, s.curr_last, base, u64).0;
             digits += distance(s.curr_first, s.curr_last);
 
             // Ignore leading 0s, just not we've passed them.
@@ -187,7 +187,7 @@ unsafe extern "C" fn calculate_exponent(s: &mut State, base: u64) -> i32 {
         s.curr_last = s.curr_last.add(1);
         s.curr_first = s.curr_last;
         s.curr_last = s.last;
-        let (value, p) = atoi_signed!(s.curr_first, s.curr_last, base, i32);
+        let (value, p, _) = atoi_signed!(s.curr_first, s.curr_last, base, i32);
         s.curr_last = p;
         value
     } else {

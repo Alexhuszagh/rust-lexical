@@ -92,30 +92,35 @@ use util::*;
 
 /// Optimized atoi implementation that uses a translation table.
 macro_rules! atoi_impl {
-    ($value:ident, $first:expr, $last:expr, $base:expr, $t:ty, $mul:ident, $add:ident) => ({
+    ($value:ident, $first:expr, $last:expr, $base:expr, $t:tt, $mul:ident, $add:ident) => ({
         let base = $base as $t;
         let mut p = $first;
+        let mut overflow = false;
 
-        while p < $last {
+        // Continue while not overflow
+        while p < $last && !overflow {
             // Grab the next digit, and check if it's valid.
             let digit = char_to_digit!(*p) as $t;
             if digit >= base {
                 break;
             }
 
-            $value = $value.$mul(base);
-            $value = $value.$add(digit);
-            p = p.add(1)
+            // Rust doesn't allow tuples as l-values...
+            let (value, o1) = $value.$mul(base);
+            let (value, o2) = value.$add(digit);
+            $value = value;
+            overflow = o1 | o2;
+            p = p.add(1);
         }
 
-        p
+        (p, overflow)
     })
 }
 
 /// Get the pointer from parsing the integer within the block.
 macro_rules! atoi_pointer {
     // Explicit multiply and add methods.
-    ($value:ident, $first:expr, $last:expr, $base:ident, $t:ty, $mul:ident, $add:ident)
+    ($value:ident, $first:expr, $last:expr, $base:ident, $t:tt, $mul:ident, $add:ident)
     =>
     ({
         // logic error, disable in release builds
@@ -123,8 +128,8 @@ macro_rules! atoi_pointer {
         atoi_impl!($value, $first, $last, $base, $t, $mul, $add)
     });
     // Non-explicit multiply and add methods
-    ($value:ident, $first:expr, $last:expr, $base:ident, $t:ty) => (
-        atoi_pointer!($value, $first, $last, $base, $t, wrapping_mul, wrapping_add)
+    ($value:ident, $first:expr, $last:expr, $base:ident, $t:tt) => (
+        atoi_pointer!($value, $first, $last, $base, $t, overflowing_mul, overflowing_add)
     );
 }
 
@@ -133,7 +138,7 @@ macro_rules! atoi_pointer {
 /// Must be used within an unsafe block.
 macro_rules! atoi_value {
     // Explicit multiply and add methods.
-    ($first:expr, $last:expr, $base:expr, $t:ty, $mul:ident, $add:ident)
+    ($first:expr, $last:expr, $base:expr, $t:tt, $mul:ident, $add:ident)
     =>
     ({
         // logic error, disable in release builds
@@ -141,13 +146,13 @@ macro_rules! atoi_value {
 
         let mut value: $t = 0;
         let base = $base as $t;
-        let p = atoi_pointer!(value, $first, $last, base, $t, $mul, $add);
+        let (p, overflow) = atoi_pointer!(value, $first, $last, base, $t, $mul, $add);
 
-        (value, p)
+        (value, p, overflow)
     });
     // Non-explicit multiply and add methods
-    ($first:expr, $last:expr, $base:expr, $t:ty) => (
-        atoi_value!($first, $last, $base, $t, wrapping_mul, wrapping_add)
+    ($first:expr, $last:expr, $base:expr, $t:tt) => (
+        atoi_value!($first, $last, $base, $t, overflowing_mul, overflowing_add)
     );
 }
 
@@ -155,15 +160,15 @@ macro_rules! atoi_value {
 ///
 /// Must be used within an unsafe block.
 macro_rules! atoi_unsigned {
-    ($first:expr, $last:expr, $base:expr, $t:ty) => ({
+    ($first:expr, $last:expr, $base:expr, $t:tt) => ({
         if $first == $last {
-            (0, ptr::null())
+            (0, ptr::null(), false)
         } else if *$first == b'+' {
             atoi_value!($first.add(1), $last, $base, $t)
         } else if *$first == b'-' {
             // Unsigned types cannot be negative, wrap around.
-            let (value, p) = atoi_value!($first.add(1), $last, $base, $t);
-            (value.wrapping_neg(), p)
+            let (value, p, overflow) = atoi_value!($first.add(1), $last, $base, $t);
+            (value.wrapping_neg(), p, overflow)
         } else {
             atoi_value!($first, $last, $base, $t)
         }
@@ -174,14 +179,14 @@ macro_rules! atoi_unsigned {
 ///
 /// Must be used within an unsafe block.
 macro_rules! atoi_signed {
-    ($first:expr, $last:expr, $base:expr, $t:ty) => ({
+    ($first:expr, $last:expr, $base:expr, $t:tt) => ({
         if $first == $last {
-            (0, ptr::null())
+            (0, ptr::null(), false)
         } else if *$first == b'+' {
             atoi_value!($first.add(1), $last, $base, $t)
         } else if *$first == b'-' {
-            let (value, p) = atoi_value!($first.add(1), $last, $base, $t);
-            (-value, p)
+            let (value, p, overflow) = atoi_value!($first.add(1), $last, $base, $t);
+            (-value, p, overflow)
         } else {
             atoi_value!($first, $last, $base, $t)
         }
@@ -192,7 +197,7 @@ macro_rules! atoi_signed {
 
 /// Generate the unsigned, unsafe wrappers.
 macro_rules! unsigned_unsafe_impl {
-    ($func:ident, $t:ty) => (
+    ($func:ident, $t:tt) => (
         /// Unsafe, C-like importer for unsigned numbers.
         #[inline]
         pub unsafe extern "C" fn $func(
@@ -200,7 +205,7 @@ macro_rules! unsigned_unsafe_impl {
             last: *const u8,
             base: u8
         )
-            -> ($t, *const u8)
+            -> ($t, *const u8, bool)
         {
             atoi_unsigned!(first, last, base, $t)
         }
@@ -215,7 +220,7 @@ unsigned_unsafe_impl!(atousize_unsafe, usize);
 
 /// Generate the signed, unsafe wrappers.
 macro_rules! signed_unsafe_impl {
-    ($func:ident, $t:ty) => (
+    ($func:ident, $t:tt) => (
         /// Unsafe, C-like importer for signed numbers.
         #[inline]
         pub unsafe extern "C" fn $func(
@@ -223,7 +228,7 @@ macro_rules! signed_unsafe_impl {
             last: *const u8,
             base: u8
         )
-            -> ($t, *const u8)
+            -> ($t, *const u8, bool)
         {
             atoi_signed!(first, last, base, $t)
         }

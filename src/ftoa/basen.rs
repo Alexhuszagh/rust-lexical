@@ -93,18 +93,10 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
                             integer += 1.0;
                             break;
                         }
-                        let c = *buffer.add(fraction_cursor);
                         // Reconstruct digit.
-                        let digit: i32;
-                        if c <= b'9' {
-                            digit = (c - b'0') as i32;
-                        } else if c >= b'A' && c <= b'Z' {
-                            digit = (c - b'A' + 10) as i32;
-                        } else {
-                            debug_assert!(c >= b'a' && c <= b'z');
-                            digit = (c - b'a' + 10) as i32;
-                        }
-                        if digit + 1 < base as i32 {
+                        let c = *buffer.add(fraction_cursor);
+                        let digit = char_to_digit!(c) as i32;
+                        if digit <= base as i32 {
                             let idx = (digit + 1) as usize;
                             *buffer.add(fraction_cursor) = digit_to_char!(idx);
                             fraction_cursor += 1;
@@ -142,7 +134,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
 
     if d <= 1e-5 || d >= 1e9 {
         // write scientific notation with negative exponent
-        let exponent = naive_exponent(d, base);
+        let mut exponent = naive_exponent(d, base);
 
         // Non-exponent portion.
         // 1.   Get as many digits as possible, up to `MAX_DIGIT_LENGTH+1`
@@ -181,7 +173,14 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
 
         // write the exponent component
         *p = exponent_notation_char(base);
+        // Handle negative exponents.
         p = p.add(1);
+        if exponent < 0 {
+            *p = b'-';
+            p = p.add(1);
+            exponent = exponent.wrapping_neg();
+        }
+        // Forward the exponent writer.
         return itoa_forward(exponent as u64, p, base);
 
     } else {

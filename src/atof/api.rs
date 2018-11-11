@@ -64,14 +64,14 @@ macro_rules! atof_value {
         // special case checks
         let length = distance($first, $last);
         if is_nan($first, length) {
-            return ($nan, $first.add(NAN_STRING.len()));
+            ($nan, $first.add(NAN_STRING.len()))
         } else if is_infinity($first, length) {
-            return ($inf, $first.add(INFINITY_STRING.len()));
+            ($inf, $first.add(INFINITY_STRING.len()))
         } else if is_zero($first, length) {
-            return (0.0, $first.add(3));
+            (0.0, $first.add(3))
+        } else {
+            atof_foward!($first, $last, $base, $mod)
         }
-
-        atof_foward!($first, $last, $base, $mod)
     })
 }
 
@@ -109,10 +109,10 @@ macro_rules! unsafe_impl {
             last: *const u8,
             base: u8
         )
-            -> ($f, *const u8)
+            -> ($f, *const u8, bool)
         {
             let (value, p) = atof!(first, last, base as u64, $mod, $nan, $inf);
-            (value as $f, p)
+            (value as $f, p, false)
         }
     )
 }

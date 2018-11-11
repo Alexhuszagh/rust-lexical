@@ -5,26 +5,27 @@ use util::*;
 
 // TRAITS
 
-/// Compatibility trait to allow wrapping arithmetic with atoi.
-/// Doesn't really wrap, uses IEE754 float semantics.
-pub(crate) trait WrappingFloat: Sized {
-    fn wrapping_add(self, rhs: Self) -> Self;
-    fn wrapping_mul(self, rhs: Self) -> Self;
+/// Compatibility trait to allow "overflowing-checked" arithmetic with atoi.
+/// Doesn't really wrap,or check overflows, uses IEE754 float semantics,
+/// which return Infinity.
+pub(crate) trait OverflowingFloat: Sized {
+    fn overflowing_add(self, rhs: Self) -> (Self, bool);
+    fn overflowing_mul(self, rhs: Self) -> (Self, bool);
 }
 
-macro_rules! wrapping_float_impl {
+macro_rules! overflowing_float_impl {
     ($($t:ty)*) => ($(
-        impl WrappingFloat for $t {
+        impl OverflowingFloat for $t {
             #[inline(always)]
-            fn wrapping_add(self, rhs: $t) -> $t { self + rhs }
+            fn overflowing_add(self, rhs: $t) -> ($t, bool) { (self + rhs, false) }
 
             #[inline(always)]
-            fn wrapping_mul(self, rhs: $t) -> $t { self * rhs }
+            fn overflowing_mul(self, rhs: $t) -> ($t, bool) { (self * rhs, false) }
         }
     )*)
 }
 
-wrapping_float_impl! { f32 f64 }
+overflowing_float_impl! { f32 f64 }
 
 // STATE
 

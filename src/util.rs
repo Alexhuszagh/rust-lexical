@@ -219,7 +219,7 @@ macro_rules! bytes_impl {
             unsafe {
                 let first = bytes.as_ptr();
                 let last = first.add(bytes.len());
-                let (value, _) = $callback(first, last, base);
+                let (value, _, _) = $callback(first, last, base);
                 value
             }
         }
@@ -241,7 +241,10 @@ macro_rules! try_bytes_impl {
             unsafe {
                 let first = bytes.as_ptr();
                 let last = first.add(bytes.len());
-                let (value, p) = $callback(first, last, base);
+                let (value, p, overflow) = $callback(first, last, base);
+                if overflow {
+                    // TODO(ahuszagh) Need an error here...
+                }
                 match p == last {
                     true => Ok(value),
                     _    => Err(match p == ptr::null() {
