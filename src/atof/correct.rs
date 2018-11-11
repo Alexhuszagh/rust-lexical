@@ -1,5 +1,7 @@
 //! Moderately fast, correct base10 lexical string-to-float conversion routines.
 
+use super::algorithm::correct;
+
 // TODO(ahuszagh)
 //  Base implementation off of:
 // Use fast path or bigint as a fallback.

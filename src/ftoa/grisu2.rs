@@ -63,9 +63,6 @@
 //  ax.figure.tight_layout()
 //  plt.show()
 
-use sealed::mem;
-use sealed::ptr;
-
 use super::float::{cached_grisu_power, FloatType};
 use super::util::*;
 
@@ -173,7 +170,7 @@ unsafe extern "C" fn grisu2(d: f64, digits: *mut u8, k: *mut i32) -> i32
     let (mut lower, mut upper) = w.normalized_boundaries();
     w.normalize();
 
-    let mut ki: i32 = mem::uninitialized();
+    let mut ki: i32 = uninitialized!();
     let cp = cached_grisu_power(upper.exp, &mut ki);
 
     w     = w.fast_multiply(&cp);
@@ -195,48 +192,48 @@ unsafe extern "C" fn emit_digits(digits: *mut u8, mut ndigits: i32, dest: *mut u
     -> i32
 {
     let exp = k + ndigits - 1;
-    let mut exp = absv!(exp);
+    let mut exp = abs!(exp);
 
     // write plain integer (with ".0" suffix).
     if k >= 0 && exp < (ndigits + 7) {
         let idx = ndigits as usize;
         let count = k as usize;
-        ptr::copy_nonoverlapping(digits, dest, idx);
-        ptr::write_bytes(dest.add(idx), b'0', count);
-        ptr::copy_nonoverlapping(b".0".as_ptr(), dest.add(idx + count), 2);
+        copy_nonoverlapping!(digits, dest, idx);
+        write_bytes!(dest.add(idx), b'0', count);
+        copy_nonoverlapping!(b".0".as_ptr(), dest.add(idx + count), 2);
 
         return ndigits + k + 2;
     }
 
     // write decimal w/o scientific notation
     if k < 0 && (k > -7 || exp < 4) {
-        let mut offset = ndigits - absv!(k);
+        let mut offset = ndigits - abs!(k);
         // fp < 1.0 -> write leading zero
         if offset <= 0 {
             offset = -offset;
             *dest = b'0';
             *dest.add(1) = b'.';
-            ptr::write_bytes(dest.add(2), b'0', offset as usize);
+            write_bytes!(dest.add(2), b'0', offset as usize);
             let dst = dest.add(offset as usize + 2);
-            ptr::copy_nonoverlapping(digits, dst, ndigits as usize);
+            copy_nonoverlapping!(digits, dst, ndigits as usize);
 
             return ndigits + 2 + offset;
 
         } else {
             // fp > 1.0
-            ptr::copy_nonoverlapping(digits, dest, offset as usize);
+            copy_nonoverlapping!(digits, dest, offset as usize);
             *dest.offset(offset as isize) = b'.';
             let dst = dest.offset(offset as isize + 1);
             let src = digits.offset(offset as isize);
             let count = (ndigits - offset) as usize;
-            ptr::copy_nonoverlapping(src, dst, count);
+            copy_nonoverlapping!(src, dst, count);
 
             return ndigits + 1;
         }
     }
 
     // write decimal w/ scientific notation
-    ndigits = minv!(ndigits, 18);
+    ndigits = min!(ndigits, 18);
 
     let mut idx: isize = 0;
     *dest.offset(idx) = *digits;
@@ -248,7 +245,7 @@ unsafe extern "C" fn emit_digits(digits: *mut u8, mut ndigits: i32, dest: *mut u
         let dst = dest.offset(idx);
         let src = digits.add(1);
         let count = (ndigits - 1) as usize;
-        ptr::copy_nonoverlapping(src, dst, count);
+        copy_nonoverlapping!(src, dst, count);
         idx += (ndigits - 1) as isize;
     }
 
@@ -288,7 +285,7 @@ unsafe extern "C" fn emit_digits(digits: *mut u8, mut ndigits: i32, dest: *mut u
 
 unsafe extern "C" fn fpconv_dtoa(d: f64, dest: *mut u8) -> i32
 {
-    let mut digits: [u8; 18] = mem::uninitialized();
+    let mut digits: [u8; 18] = uninitialized!();
     let mut k: i32 = 0;
     let ndigits = grisu2(d, digits.as_mut_ptr(), &mut k);
     emit_digits(digits.as_mut_ptr(), ndigits, dest, k)

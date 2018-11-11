@@ -2,18 +2,15 @@
 //!
 //! Uses either the lossy or the correct algorithm.
 
-use sealed::ptr;
-
 use util::*;
-use super::basen::{double_basen, float_basen};
-use super::util::*;
+use super::lossy::{double_basen, float_basen};
 
 // Select the back-end
 cfg_if! {
     if #[cfg(feature = "correct")] {
         use super::correct::{double_base10, float_base10};
     } else {
-        use super::basen::{double_base10, float_base10};
+        use super::lossy::{double_base10, float_base10};
     }
 }
 
@@ -43,6 +40,29 @@ mod double {
     pub(super) unsafe extern "C" fn basen(first: *const u8, last: *const u8, base: u64) -> (f64, *const u8) {
         super::double_basen(first, last, base)
     }
+}
+
+// SPECIAL
+
+#[inline(always)]
+pub(crate) unsafe extern "C" fn is_nan(first: *const u8, length: usize)
+    -> bool
+{
+    starts_with(first, length, NAN_STRING.as_ptr(), NAN_STRING.len())
+}
+
+#[inline(always)]
+pub(crate) unsafe extern "C" fn is_infinity(first: *const u8, length: usize)
+    -> bool
+{
+    starts_with(first, length, INFINITY_STRING.as_ptr(), INFINITY_STRING.len())
+}
+
+#[inline(always)]
+pub(crate) unsafe extern "C" fn is_zero(first: *const u8, length: usize)
+    -> bool
+{
+    length == 3 && equal_to(first, "0.0".as_ptr(), 3)
 }
 
 // ATOF
@@ -79,7 +99,7 @@ macro_rules! atof_value {
 macro_rules! atof {
     ($first:expr, $last:expr, $base:expr, $mod:ident, $nan:ident, $inf:ident) => ({
         if $first == $last {
-            (0.0, ptr::null())
+            (0.0, nullptr!())
         } else if *$first == b'-' {
             let (value, p) = atof_value!($first.add(1), $last, $base, $mod, $nan, $inf);
             (-value, p)

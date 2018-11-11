@@ -1,7 +1,5 @@
 //! Utilities for float-to-string conversions.
 
-use sealed::ptr;
-
 use util::*;
 
 // FLOAT CONSTANTS
@@ -137,14 +135,14 @@ macro_rules! emit_special {
         let is_special = (bits & $exponent) == $exponent;
 
         if is_zero {
-            ptr::copy_nonoverlapping(b"0.0".as_ptr(), $dest, 3);
+            copy_nonoverlapping!(b"0.0".as_ptr(), $dest, 3);
             3
         } else if is_special {
             if bits & $fraction != 0 {
-                ptr::copy_nonoverlapping(NAN_STRING.as_ptr(), $dest, NAN_STRING.len());
+                copy_nonoverlapping!(NAN_STRING.as_ptr(), $dest, NAN_STRING.len());
                 NAN_STRING.len() as i32
             } else {
-                ptr::copy_nonoverlapping(INFINITY_STRING.as_ptr(), $dest, INFINITY_STRING.len());
+                copy_nonoverlapping!(INFINITY_STRING.as_ptr(), $dest, INFINITY_STRING.len());
                 INFINITY_STRING.len() as i32
             }
         } else {

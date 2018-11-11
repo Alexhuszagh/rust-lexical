@@ -84,8 +84,6 @@
 //  ax.figure.tight_layout()
 //  plt.show()
 
-use sealed::ptr;
-
 use util::*;
 
 // ALGORITHM
@@ -97,10 +95,18 @@ macro_rules! atoi_impl {
         let mut p = $first;
         let mut overflow = false;
 
+        // Remove leading zeros
+        while p < $last && *p == b'0' {
+            p = p.add(1);
+        }
+
         // Continue while we have digits.
         // Don't check for overflow, we want to avoid as many conditions
         // as possible, it leads to significant speed increases on x86-64.
         // Just note it happens, and continue on.
+        // Don't add a short-circuit either, since it adds significant time
+        // and we want to continue parsing until everything is done, since
+        // otherwise it may give us invalid results elsewhere.
         while p < $last {
             // Grab the next digit, and check if it's valid.
             let digit = char_to_digit!(*p) as $t;
@@ -120,7 +126,7 @@ macro_rules! atoi_impl {
     })
 }
 
-/// Get the pointer from parsing the integer within the block.
+/// Parse value and get end pointer from parsing the integer within the block.
 macro_rules! atoi_pointer {
     // Explicit multiply and add methods.
     ($value:ident, $first:expr, $last:expr, $base:ident, $t:tt, $mul:ident, $add:ident)
@@ -136,9 +142,7 @@ macro_rules! atoi_pointer {
     );
 }
 
-/// General sanitizer for the atoi implementation.
-///
-/// Must be used within an unsafe block.
+/// Parse value from a positive numeric string.
 macro_rules! atoi_value {
     // Explicit multiply and add methods.
     ($first:expr, $last:expr, $base:expr, $t:tt, $mul:ident, $add:ident)
@@ -159,42 +163,55 @@ macro_rules! atoi_value {
     );
 }
 
-/// Handle unsigned +/- numbers and forward to implied implementation.
+/// Handle +/- numbers and forward to implementation.
 ///
-/// Must be used within an unsafe block.
+/// `first` must be less than or equal to `last`.
+macro_rules! atoi_sign {
+    ($first:expr, $last:expr, $base:expr, $t:tt) => ({
+        match *$first {
+            b'+' => {
+                let (v, p, o) = atoi_value!($first.add(1), $last, $base, $t);
+                (v, p, o, 1)
+            },
+            b'-' => {
+                let (v, p, o) = atoi_value!($first.add(1), $last, $base, $t);
+                (v, p, o, -1)
+            },
+            _    => {
+                let (v, p, o) = atoi_value!($first, $last, $base, $t);
+                (v, p, o, 1)
+            },
+        }
+    })
+}
+
+/// Handle unsigned +/- numbers and forward to implied implementation.
 macro_rules! atoi_unsigned {
     ($first:expr, $last:expr, $base:expr, $t:tt) => ({
         if $first == $last {
-            (0, ptr::null(), false)
+            (0, nullptr!(), false)
         } else {
-            match *$first {
-                b'+' => atoi_value!($first.add(1), $last, $base, $t),
-                b'-' => {
-                    // Unsigned types cannot be negative, wrap around and overflow..
-                    let (value, p, _) = atoi_value!($first.add(1), $last, $base, $t);
-                    (value.wrapping_neg(), p, true)
-                },
-                _    => atoi_value!($first, $last, $base, $t),
+            let (v, p, o, s) = atoi_sign!($first, $last, $base, $t);
+            match s {
+                -1 => (v.wrapping_neg(), p, true),
+                1  => (v, p, o),
+                _  => unreachable!(),
             }
         }
     })
 }
 
 /// Handle signed +/- numbers and forward to implied implementation.
-///
-/// Must be used within an unsafe block.
 macro_rules! atoi_signed {
     ($first:expr, $last:expr, $base:expr, $t:tt) => ({
         if $first == $last {
-            (0, ptr::null(), false)
+            (0, nullptr!(), false)
         } else {
-            match *$first {
-                b'+' => atoi_value!($first.add(1), $last, $base, $t),
-                b'-' => {
-                    let (value, p, overflow) = atoi_value!($first.add(1), $last, $base, $t);
-                    (-value, p, overflow)
-                },
-                _    => atoi_value!($first, $last, $base, $t),
+            let (v, p, o, s) = atoi_sign!($first, $last, $base, $t);
+            match s {
+                -1 => (-v, p, o),
+                1  => (v, p, o),
+                _  => unreachable!(),
             }
         }
     })

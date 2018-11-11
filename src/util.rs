@@ -109,7 +109,7 @@ cfg_if! {
 /// }
 /// ```
 #[cfg(not(any(feature = "grisu3", feature = "ryu")))]
-macro_rules! absv {
+macro_rules! abs {
     ($n:expr) => ({
         let n = $n;
         if n < 0 { -n } else { n }
@@ -117,9 +117,7 @@ macro_rules! absv {
 }
 
 /// Fast macro maximum value calculator.
-///
-///
-macro_rules! maxv {
+macro_rules! max {
     ($a:expr, $b:expr) => ({
         let a = $a;
         let b = $b;
@@ -128,14 +126,37 @@ macro_rules! maxv {
 }
 
 /// Fast macro minimum value calculator.
-///
-///
-macro_rules! minv {
+macro_rules! min {
     ($a:expr, $b:expr) => ({
         let a = $a;
         let b = $b;
         if a < b { a } else { b }
     })
+}
+
+/// Get a literal nullptr.
+macro_rules! nullptr {
+    () => ($crate::sealed::ptr::null());
+}
+
+/// Mark uninitialized memory.
+macro_rules! uninitialized {
+    () => ($crate::sealed::mem::uninitialized());
+}
+
+/// Copy non-overlapping (memcpy, with arguments reversed).
+macro_rules! copy_nonoverlapping {
+    ($src:expr, $dst:expr, $size:expr) => (
+        $crate::sealed::ptr::copy_nonoverlapping($src, $dst, $size)
+    );
+}
+
+/// Write byte to range (memset).
+#[allow(unused_macros)]
+macro_rules! write_bytes {
+    ($dst:expr, $byte:expr, $size:expr) => (
+        $crate::sealed::ptr::write_bytes($dst, $byte, $size)
+    );
 }
 
 // ALGORITHMS
@@ -247,7 +268,7 @@ macro_rules! try_bytes_impl {
                 } else if p == last {
                     Ok(value)
                 } else {
-                    let dist = if p == ptr::null() { 0 } else { distance(first, p) };
+                    let dist = if p == nullptr!() { 0 } else { distance(first, p) };
                     Err(From::from($crate::ErrorKind::InvalidDigit(dist)))
                 }
             }
@@ -262,9 +283,9 @@ macro_rules! string_impl {
         /// Low-level string exporter for numbers.
         #[inline]
         pub fn $func(value: $t, base: u8)
-            -> String
+            -> ::sealed::String
         {
-            let mut string = String::with_capacity($capacity);
+            let mut string = ::sealed::String::with_capacity($capacity);
             unsafe {
                 let buf = string.as_mut_vec();
                 let first: *mut u8 = buf.as_mut_ptr();

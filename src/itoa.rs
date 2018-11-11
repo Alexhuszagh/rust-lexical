@@ -98,12 +98,6 @@
 //  ax.figure.tight_layout()
 //  plt.show()
 
-use sealed::mem;
-use sealed::ptr;
-
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-pub use alloc::string::String;
-
 use util::*;
 
 // MACRO
@@ -160,7 +154,7 @@ macro_rules! itoa_optimized {
 
         // Create a temporary buffer, and copy into it.
         // Way faster than reversing a buffer in-place.
-        let mut buffer: [u8; max_digits!()] = mem::uninitialized();
+        let mut buffer: [u8; max_digits!()] = uninitialized!();
         let mut rem: usize;
         let mut curr = buffer.len();
         let p: *mut u8 = buffer.as_mut_ptr();
@@ -173,8 +167,8 @@ macro_rules! itoa_optimized {
             let r2 = (2 * (rem % base2)) as usize;
 
             curr -= 4;
-            ptr::copy_nonoverlapping($table.add(r1), p.add(curr), 2);
-            ptr::copy_nonoverlapping($table.add(r2), p.add(curr + 2), 2);
+            copy_nonoverlapping!($table.add(r1), p.add(curr), 2);
+            copy_nonoverlapping!($table.add(r2), p.add(curr + 2), 2);
         }
 
         // Decode 2 digits at a time.
@@ -183,7 +177,7 @@ macro_rules! itoa_optimized {
             $value /= base2;
 
             curr -= 2;
-            ptr::copy_nonoverlapping($table.add(rem), p.add(curr), 2);
+            copy_nonoverlapping!($table.add(rem), p.add(curr), 2);
         }
 
         // Decode last 2 digits.
@@ -193,11 +187,11 @@ macro_rules! itoa_optimized {
         } else {
             let rem = 2 * $value as usize;
             curr -= 2;
-            ptr::copy_nonoverlapping($table.add(rem), p.add(curr), 2);
+            copy_nonoverlapping!($table.add(rem), p.add(curr), 2);
         }
 
         let len = buffer.len() - curr;
-        ptr::copy_nonoverlapping(p.add(curr), $first, len);
+        copy_nonoverlapping!(p.add(curr), $first, len);
 
         $first.add(len)
     });
@@ -218,7 +212,7 @@ macro_rules! itoa_naive {
 
         // Create a temporary buffer, and copy into it.
         // Way faster than reversing a buffer in-place.
-        let mut buffer: [u8; max_digits!()] = mem::uninitialized();
+        let mut buffer: [u8; max_digits!()] = uninitialized!();
         let mut rem: usize;
         let mut curr = buffer.len();
         let p: *mut u8 = buffer.as_mut_ptr();
@@ -238,7 +232,7 @@ macro_rules! itoa_naive {
         *p.add(curr) = digit_to_char!(rem);
 
         let len = buffer.len() - curr;
-        ptr::copy_nonoverlapping(p.add(curr), $first, len);
+        copy_nonoverlapping!(p.add(curr), $first, len);
 
         $first.add(len)
     })
@@ -251,8 +245,7 @@ macro_rules! itoa_naive {
 /// `value` must be non-negative and mutable.
 macro_rules! itoa_forward {
     ($value:ident, $first:ident, $base:ident) => ({
-        #[cfg(feature = "table")]
-        {
+        #[cfg(feature = "table")] {
             let table = match $base {
                 2   => $crate::table::DIGIT_TO_BASE2_SQUARED.as_ptr(),
                 3   => $crate::table::DIGIT_TO_BASE3_SQUARED.as_ptr(),
@@ -427,35 +420,20 @@ signed_unsafe_impl!(isizetoa_unsafe, isize, usize, isize);
 // Use powers of 2 for allocation.
 // It really doesn't, make a difference here, especially since
 // the value is just a suggestion for the vector.
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(u8toa_string, u8, u8toa_unsafe, 16);     // 9
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(u16toa_string, u16, u16toa_unsafe, 32);  // 17
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(u32toa_string, u32, u32toa_unsafe, 64);  // 33
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(u64toa_string, u64, u64toa_unsafe, 128); // 65
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(usizetoa_string, usize, usizetoa_unsafe, 128); // 65
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(i8toa_string, i8, i8toa_unsafe, 16);     // 9
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(i16toa_string, i16, i16toa_unsafe, 32);  // 17
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(i32toa_string, i32, i32toa_unsafe, 64);  // 33
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(i64toa_string, i64, i64toa_unsafe, 128); // 65
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-string_impl!(isizetoa_string, isize, isizetoa_unsafe, 128); // 65
+cfg_if! {
+    if #[cfg(any(feature = "std", feature = "alloc"))] {
+        string_impl!(u8toa_string, u8, u8toa_unsafe, 16);           // 9
+        string_impl!(u16toa_string, u16, u16toa_unsafe, 32);        // 17
+        string_impl!(u32toa_string, u32, u32toa_unsafe, 64);        // 33
+        string_impl!(u64toa_string, u64, u64toa_unsafe, 128);       // 65
+        string_impl!(usizetoa_string, usize, usizetoa_unsafe, 128); // 65
+        string_impl!(i8toa_string, i8, i8toa_unsafe, 16);           // 9
+        string_impl!(i16toa_string, i16, i16toa_unsafe, 32);        // 17
+        string_impl!(i32toa_string, i32, i32toa_unsafe, 64);        // 33
+        string_impl!(i64toa_string, i64, i64toa_unsafe, 128);       // 65
+        string_impl!(isizetoa_string, isize, isizetoa_unsafe, 128); // 65
+    }
+}
 
 // TESTS
 // -----

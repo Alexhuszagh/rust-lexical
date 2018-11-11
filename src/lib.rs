@@ -63,6 +63,14 @@ pub(crate) mod sealed {
             pub use core::*;
         }
     }
+
+    cfg_if! {
+        if #[cfg(all(feature = "alloc", not(feature = "std")))] {
+            pub use alloc::string::String;
+        } else if #[cfg(feature = "std")] {
+            pub use std::string::String;
+        }
+    }
 }
 
 // API
@@ -104,9 +112,6 @@ pub use error::{Error, ErrorKind};
 
 use sealed::convert::AsRef;
 
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-pub use alloc::string::String;
-
 use traits::Aton;
 
 #[cfg(any(feature = "std", feature = "alloc"))]
@@ -127,7 +132,7 @@ use traits::Ntoa;
 /// ```
 #[inline(always)]
 #[cfg(any(feature = "std", feature = "alloc"))]
-pub fn to_string<N: Ntoa>(n: N) -> String {
+pub fn to_string<N: Ntoa>(n: N) -> sealed::String {
     n.serialize_to_string(10)
 }
 
@@ -147,7 +152,7 @@ pub fn to_string<N: Ntoa>(n: N) -> String {
 /// ```
 #[inline(always)]
 #[cfg(any(feature = "std", feature = "alloc"))]
-pub fn to_string_radix<N: Ntoa>(n: N, radix: u8) -> String {
+pub fn to_string_radix<N: Ntoa>(n: N, radix: u8) -> sealed::String {
     assert!(2 <= radix && radix <= 36, "to_string_radix, radix must be in range `[2, 36]`, got {}", radix);
     n.serialize_to_string(radix)
 }

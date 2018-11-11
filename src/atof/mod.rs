@@ -1,15 +1,11 @@
 //! Fast lexical string-to-float conversion routines.
 
 // Hide implementation details.
-mod util;
-mod basen;
+mod algorithm;
+mod lossy;
 
-cfg_if! {
-    if #[cfg(feature = "correct")] {
-        mod bigint;
-        mod correct;
-    }
-}
+#[cfg(feature = "correct")]
+mod correct;
 
 mod api;
 

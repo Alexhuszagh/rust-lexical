@@ -1,8 +1,5 @@
 //! High-level traits to translate the low-level API to idiomatic Rust.
 
-#[cfg(all(feature = "alloc", not(feature = "std")))]
-pub use alloc::string::String;
-
 use atof::*;
 use atoi::*;
 use error::Error;
@@ -63,14 +60,14 @@ cfg_if! {
         /// Trait for types that are serializable to string or bytes.
         pub trait Ntoa: Sized {
             /// Serialize to string.
-            fn serialize_to_string(&self, base: u8) -> String;
+            fn serialize_to_string(&self, base: u8) -> ::sealed::String;
         }
 
         macro_rules! ntoa_impl {
             ($t:ty, $string_cb:ident) => (
                 impl Ntoa for $t {
                     #[inline(always)]
-                    fn serialize_to_string(&self, base: u8) -> String
+                    fn serialize_to_string(&self, base: u8) -> ::sealed::String
                     {
                         $string_cb(*self, base)
                     }
