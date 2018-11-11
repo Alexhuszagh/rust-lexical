@@ -80,9 +80,11 @@ pub mod table;
 #[macro_use]
 pub mod atoi;
 
+#[macro_use]
+pub mod itoa;
+
 pub mod atof;
 pub mod ftoa;
-pub mod itoa;
 
 #[doc(hidden)]
 pub mod traits;

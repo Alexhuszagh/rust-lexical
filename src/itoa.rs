@@ -106,9 +106,6 @@ pub use alloc::string::String;
 
 use util::*;
 
-#[cfg(feature = "table")]
-use table::*;
-
 // MACRO
 
 /// Calculate the number of digits in a number, with a given base (radix).
@@ -139,185 +136,186 @@ macro_rules! check_digits {
 /// Value is `digits!(0XFFFFFFFFFFFFFFFF, 2)`, which is 65.
 /// Up to the nearest power of 2, since it notably increases
 /// performance (~25%) on x86-64 architectures.
-const MAX_DIGITS: usize = 128;
+macro_rules! max_digits {
+    () => (128)
+}
 
 // OPTIMIZED
 
 /// Optimized implementation for base-N numbers.
+///
+/// Use a macro to allow for u32 or u64 to be used (u32 is generally faster).
+///
+/// `value` must be non-negative and mutable.
 #[cfg(feature = "table")]
-#[inline]
-unsafe extern "C" fn itoa_optimized(
-    mut value: u64,
-    first: *mut u8,
-    base: u64,
-    table: *const u8
-)
-    -> *mut u8
-{
-    let base2 = base * base;
-    let base4 = base2 * base2;
+macro_rules! itoa_optimized {
+    ($value:ident, $first:ident, $base:ident, $table:ident) => ({
+        let base2 = $base * $base;
+        let base4 = base2 * base2;
 
-    if value == 0 {
-        *first = b'0';
-        return first.add(1);
-    }
+        if $value == 0 {
+            *$first = b'0';
+            return $first.add(1);
+        }
 
-    // Create a temporary buffer, and copy into it.
-    // Way faster than reversing a buffer in-place.
-    let mut buffer: [u8; MAX_DIGITS] = mem::uninitialized();
-    let mut rem: usize;
-    let mut curr = buffer.len();
-    let p: *mut u8 = buffer.as_mut_ptr();
+        // Create a temporary buffer, and copy into it.
+        // Way faster than reversing a buffer in-place.
+        let mut buffer: [u8; max_digits!()] = mem::uninitialized();
+        let mut rem: usize;
+        let mut curr = buffer.len();
+        let p: *mut u8 = buffer.as_mut_ptr();
 
-    // Decode 4 digits at a time
-    while value >= base4 {
-        let rem = value % base4;
-        value /= base4;
-        let r1 = (2 * (rem / base2)) as usize;
-        let r2 = (2 * (rem % base2)) as usize;
+        // Decode 4 digits at a time
+        while $value >= base4 {
+            let rem = $value % base4;
+            $value /= base4;
+            let r1 = (2 * (rem / base2)) as usize;
+            let r2 = (2 * (rem % base2)) as usize;
 
-        curr -= 4;
-        ptr::copy_nonoverlapping(table.add(r1), p.add(curr), 2);
-        ptr::copy_nonoverlapping(table.add(r2), p.add(curr + 2), 2);
-    }
+            curr -= 4;
+            ptr::copy_nonoverlapping($table.add(r1), p.add(curr), 2);
+            ptr::copy_nonoverlapping($table.add(r2), p.add(curr + 2), 2);
+        }
 
-    // Decode 2 digits at a time.
-    while value >= base2 {
-        rem = (2 * (value % base2)) as usize;
-        value /= base2;
+        // Decode 2 digits at a time.
+        while $value >= base2 {
+            rem = (2 * ($value % base2)) as usize;
+            $value /= base2;
 
-        curr -= 2;
-        ptr::copy_nonoverlapping(table.add(rem), p.add(curr), 2);
-    }
+            curr -= 2;
+            ptr::copy_nonoverlapping($table.add(rem), p.add(curr), 2);
+        }
 
-    // Decode last 2 digits.
-    if value < base {
-        curr -= 1;
-        *p.add(curr) = digit_to_char!(value);
-    } else {
-        let rem = 2 * value as usize;
-        curr -= 2;
-        ptr::copy_nonoverlapping(table.add(rem), p.add(curr), 2);
-    }
+        // Decode last 2 digits.
+        if $value < $base {
+            curr -= 1;
+            *p.add(curr) = digit_to_char!($value);
+        } else {
+            let rem = 2 * $value as usize;
+            curr -= 2;
+            ptr::copy_nonoverlapping($table.add(rem), p.add(curr), 2);
+        }
 
-    let len = buffer.len() - curr;
-    ptr::copy_nonoverlapping(p.add(curr), first, len);
+        let len = buffer.len() - curr;
+        ptr::copy_nonoverlapping(p.add(curr), $first, len);
 
-    first.add(len)
+        $first.add(len)
+    });
 }
 
 // NAIVE
 
 /// Naive implementation for base-N numbers.
+///
+/// Use a macro to allow for u32 or u64 to be used (u32 is generally faster).
+///
+/// `value` must be non-negative and mutable.
 #[cfg(not(feature = "table"))]
-#[inline]
-unsafe extern "C" fn itoa_naive(
-    mut value: u64,
-    first: *mut u8,
-    base: u64
-)
-    -> *mut u8
-{
-    // Logic error, base should not be passed dynamically.
-    debug_assert!(base >= 2 && base <= 36,"Numerical base must be from 2-36");
+macro_rules! itoa_naive {
+    ($value:ident, $first:ident, $base:ident) => ({
+        // Logic error, base should not be passed dynamically.
+        debug_assert!($base >= 2 && $base <= 36,"Numerical base must be from 2-36");
 
-    // Create a temporary buffer, and copy into it.
-    // Way faster than reversing a buffer in-place.
-    let mut buffer: [u8; MAX_DIGITS] = mem::uninitialized();
-    let mut rem: usize;
-    let mut curr = buffer.len();
-    let p: *mut u8 = buffer.as_mut_ptr();
+        // Create a temporary buffer, and copy into it.
+        // Way faster than reversing a buffer in-place.
+        let mut buffer: [u8; max_digits!()] = mem::uninitialized();
+        let mut rem: usize;
+        let mut curr = buffer.len();
+        let p: *mut u8 = buffer.as_mut_ptr();
 
-    // Decode all but last digit, 1 at a time.
-    while value >= base {
-        rem = (value % base) as usize;
-        value /= base;
+        // Decode all but last digit, 1 at a time.
+        while $value >= $base {
+            rem = ($value % $base) as usize;
+            $value /= $base;
 
+            curr -= 1;
+            *p.add(curr) = digit_to_char!(rem);
+        }
+
+        // Decode last digit.
+        rem = ($value % $base) as usize;
         curr -= 1;
         *p.add(curr) = digit_to_char!(rem);
-    }
 
-    // Decode last digit.
-    rem = (value % base) as usize;
-    curr -= 1;
-    *p.add(curr) = digit_to_char!(rem);
+        let len = buffer.len() - curr;
+        ptr::copy_nonoverlapping(p.add(curr), $first, len);
 
-    let len = buffer.len() - curr;
-    ptr::copy_nonoverlapping(p.add(curr), first, len);
-
-    first.add(len)
+        $first.add(len)
+    })
 }
 
-
 /// Forward the correct arguments to the implementation.
-#[inline]
-pub(crate) unsafe extern "C" fn itoa_forward(
-    value: u64,
-    first: *mut u8,
-    base: u64
-)    -> *mut u8
-{
-    #[cfg(feature = "table")]
-    match base {
-        2   => itoa_optimized(value, first, base, DIGIT_TO_BASE2_SQUARED.as_ptr()),
-        3   => itoa_optimized(value, first, base, DIGIT_TO_BASE3_SQUARED.as_ptr()),
-        4   => itoa_optimized(value, first, base, DIGIT_TO_BASE4_SQUARED.as_ptr()),
-        5   => itoa_optimized(value, first, base, DIGIT_TO_BASE5_SQUARED.as_ptr()),
-        6   => itoa_optimized(value, first, base, DIGIT_TO_BASE6_SQUARED.as_ptr()),
-        7   => itoa_optimized(value, first, base, DIGIT_TO_BASE7_SQUARED.as_ptr()),
-        8   => itoa_optimized(value, first, base, DIGIT_TO_BASE8_SQUARED.as_ptr()),
-        9   => itoa_optimized(value, first, base, DIGIT_TO_BASE9_SQUARED.as_ptr()),
-        10  => itoa_optimized(value, first, base, DIGIT_TO_BASE10_SQUARED.as_ptr()),
-        11  => itoa_optimized(value, first, base, DIGIT_TO_BASE11_SQUARED.as_ptr()),
-        12  => itoa_optimized(value, first, base, DIGIT_TO_BASE12_SQUARED.as_ptr()),
-        13  => itoa_optimized(value, first, base, DIGIT_TO_BASE13_SQUARED.as_ptr()),
-        14  => itoa_optimized(value, first, base, DIGIT_TO_BASE14_SQUARED.as_ptr()),
-        15  => itoa_optimized(value, first, base, DIGIT_TO_BASE15_SQUARED.as_ptr()),
-        16  => itoa_optimized(value, first, base, DIGIT_TO_BASE16_SQUARED.as_ptr()),
-        17  => itoa_optimized(value, first, base, DIGIT_TO_BASE17_SQUARED.as_ptr()),
-        18  => itoa_optimized(value, first, base, DIGIT_TO_BASE18_SQUARED.as_ptr()),
-        19  => itoa_optimized(value, first, base, DIGIT_TO_BASE19_SQUARED.as_ptr()),
-        20  => itoa_optimized(value, first, base, DIGIT_TO_BASE20_SQUARED.as_ptr()),
-        21  => itoa_optimized(value, first, base, DIGIT_TO_BASE21_SQUARED.as_ptr()),
-        22  => itoa_optimized(value, first, base, DIGIT_TO_BASE22_SQUARED.as_ptr()),
-        23  => itoa_optimized(value, first, base, DIGIT_TO_BASE23_SQUARED.as_ptr()),
-        24  => itoa_optimized(value, first, base, DIGIT_TO_BASE24_SQUARED.as_ptr()),
-        25  => itoa_optimized(value, first, base, DIGIT_TO_BASE25_SQUARED.as_ptr()),
-        26  => itoa_optimized(value, first, base, DIGIT_TO_BASE26_SQUARED.as_ptr()),
-        27  => itoa_optimized(value, first, base, DIGIT_TO_BASE27_SQUARED.as_ptr()),
-        28  => itoa_optimized(value, first, base, DIGIT_TO_BASE28_SQUARED.as_ptr()),
-        29  => itoa_optimized(value, first, base, DIGIT_TO_BASE29_SQUARED.as_ptr()),
-        30  => itoa_optimized(value, first, base, DIGIT_TO_BASE30_SQUARED.as_ptr()),
-        31  => itoa_optimized(value, first, base, DIGIT_TO_BASE31_SQUARED.as_ptr()),
-        32  => itoa_optimized(value, first, base, DIGIT_TO_BASE32_SQUARED.as_ptr()),
-        33  => itoa_optimized(value, first, base, DIGIT_TO_BASE33_SQUARED.as_ptr()),
-        34  => itoa_optimized(value, first, base, DIGIT_TO_BASE34_SQUARED.as_ptr()),
-        35  => itoa_optimized(value, first, base, DIGIT_TO_BASE35_SQUARED.as_ptr()),
-        36  => itoa_optimized(value, first, base, DIGIT_TO_BASE36_SQUARED.as_ptr()),
-        _   => unreachable!(),
-    }
+///
+/// Use a macro to allow for u32 or u64 to be used (u32 is generally faster).
+///
+/// `value` must be non-negative and mutable.
+macro_rules! itoa_forward {
+    ($value:ident, $first:ident, $base:ident) => ({
+        #[cfg(feature = "table")]
+        {
+            let table = match $base {
+                2   => $crate::table::DIGIT_TO_BASE2_SQUARED.as_ptr(),
+                3   => $crate::table::DIGIT_TO_BASE3_SQUARED.as_ptr(),
+                4   => $crate::table::DIGIT_TO_BASE4_SQUARED.as_ptr(),
+                5   => $crate::table::DIGIT_TO_BASE5_SQUARED.as_ptr(),
+                6   => $crate::table::DIGIT_TO_BASE6_SQUARED.as_ptr(),
+                7   => $crate::table::DIGIT_TO_BASE7_SQUARED.as_ptr(),
+                8   => $crate::table::DIGIT_TO_BASE8_SQUARED.as_ptr(),
+                9   => $crate::table::DIGIT_TO_BASE9_SQUARED.as_ptr(),
+                10  => $crate::table::DIGIT_TO_BASE10_SQUARED.as_ptr(),
+                11  => $crate::table::DIGIT_TO_BASE11_SQUARED.as_ptr(),
+                12  => $crate::table::DIGIT_TO_BASE12_SQUARED.as_ptr(),
+                13  => $crate::table::DIGIT_TO_BASE13_SQUARED.as_ptr(),
+                14  => $crate::table::DIGIT_TO_BASE14_SQUARED.as_ptr(),
+                15  => $crate::table::DIGIT_TO_BASE15_SQUARED.as_ptr(),
+                16  => $crate::table::DIGIT_TO_BASE16_SQUARED.as_ptr(),
+                17  => $crate::table::DIGIT_TO_BASE17_SQUARED.as_ptr(),
+                18  => $crate::table::DIGIT_TO_BASE18_SQUARED.as_ptr(),
+                19  => $crate::table::DIGIT_TO_BASE19_SQUARED.as_ptr(),
+                20  => $crate::table::DIGIT_TO_BASE20_SQUARED.as_ptr(),
+                21  => $crate::table::DIGIT_TO_BASE21_SQUARED.as_ptr(),
+                22  => $crate::table::DIGIT_TO_BASE22_SQUARED.as_ptr(),
+                23  => $crate::table::DIGIT_TO_BASE23_SQUARED.as_ptr(),
+                24  => $crate::table::DIGIT_TO_BASE24_SQUARED.as_ptr(),
+                25  => $crate::table::DIGIT_TO_BASE25_SQUARED.as_ptr(),
+                26  => $crate::table::DIGIT_TO_BASE26_SQUARED.as_ptr(),
+                27  => $crate::table::DIGIT_TO_BASE27_SQUARED.as_ptr(),
+                28  => $crate::table::DIGIT_TO_BASE28_SQUARED.as_ptr(),
+                29  => $crate::table::DIGIT_TO_BASE29_SQUARED.as_ptr(),
+                30  => $crate::table::DIGIT_TO_BASE30_SQUARED.as_ptr(),
+                31  => $crate::table::DIGIT_TO_BASE31_SQUARED.as_ptr(),
+                32  => $crate::table::DIGIT_TO_BASE32_SQUARED.as_ptr(),
+                33  => $crate::table::DIGIT_TO_BASE33_SQUARED.as_ptr(),
+                34  => $crate::table::DIGIT_TO_BASE34_SQUARED.as_ptr(),
+                35  => $crate::table::DIGIT_TO_BASE35_SQUARED.as_ptr(),
+                36  => $crate::table::DIGIT_TO_BASE36_SQUARED.as_ptr(),
+                _   => unreachable!(),
+            };
+            itoa_optimized!($value, $first, $base, table)
+        }
 
-    #[cfg(not(feature = "table"))]
-    itoa_naive(value, first, base)
+        #[cfg(not(feature = "table"))]
+        itoa_naive!($value, $first, $base)
+    });
 }
 
 /// Sanitizer for an unsigned number-to-string implementation.
 macro_rules! itoa_unsigned {
-    ($value:ident, $first:ident, $last:ident, $base:ident) => ({
+    ($value:ident, $first:ident, $last:ident, $base:ident, $uwide:ty) => ({
         // Sanity checks
         debug_assert!($first <= $last);
         check_digits!($value, $first, $last, $base);
 
         // Invoke forwarder
-        let v = $value as u64;
-        let b = $base as u64;
-        itoa_forward(v, $first, b)
+        let mut v = $value as $uwide;
+        let b = $base as $uwide;
+        itoa_forward!(v, $first, b)
     })
 }
 
 /// Sanitizer for an signed number-to-string implementation.
 macro_rules! itoa_signed {
-    ($value:ident, $first:ident, $last:ident, $base:ident) => ({
+    ($value:ident, $first:ident, $last:ident, $base:ident, $uwide:ty, $iwide:ty) => ({
         // Sanity checks
         debug_assert!($first <= $last);
         check_digits!($value, $first, $last, $base);
@@ -335,18 +333,18 @@ macro_rules! itoa_signed {
         // and since it is converted to `u64`, this algorithm is correct
         // for all numerical input values, since Rust guarantees two's
         // complement representation for signed integers.
-        let v: u64;
+        let mut v: $uwide;
         if $value < 0 {
             *$first = b'-';
-            v = ($value as i64).wrapping_neg() as u64;
+            v = ($value as $iwide).wrapping_neg() as $uwide;
             $first = $first.add(1);
         } else {
-            v = $value as u64;
+            v = $value as $uwide;
         }
 
         // Invoke forwarder
-        let b = $base as u64;
-        itoa_forward(v, $first, b)
+        let b = $base as $uwide;
+        itoa_forward!(v, $first, b)
     })
 }
 
@@ -354,7 +352,7 @@ macro_rules! itoa_signed {
 
 /// Generate the unsigned, unsafe wrappers.
 macro_rules! unsigned_unsafe_impl {
-    ($func:ident, $t:ty) => (
+    ($func:ident, $t:ty, $uwide:ty) => (
         /// Unsafe, C-like exporter for unsigned numbers.
         ///
         /// # Warning
@@ -377,20 +375,20 @@ macro_rules! unsigned_unsafe_impl {
         )
             -> *mut u8
         {
-            itoa_unsigned!(value, first, last, base)
+            itoa_unsigned!(value, first, last, base, $uwide)
         }
     )
 }
 
-unsigned_unsafe_impl!(u8toa_unsafe, u8);
-unsigned_unsafe_impl!(u16toa_unsafe, u16);
-unsigned_unsafe_impl!(u32toa_unsafe, u32);
-unsigned_unsafe_impl!(u64toa_unsafe, u64);
-unsigned_unsafe_impl!(usizetoa_unsafe, usize);
+unsigned_unsafe_impl!(u8toa_unsafe, u8, u32);
+unsigned_unsafe_impl!(u16toa_unsafe, u16, u32);
+unsigned_unsafe_impl!(u32toa_unsafe, u32, u32);
+unsigned_unsafe_impl!(u64toa_unsafe, u64, u64);
+unsigned_unsafe_impl!(usizetoa_unsafe, usize, usize);
 
 /// Generate the signed, unsafe wrappers.
 macro_rules! signed_unsafe_impl {
-    ($func:ident, $t:ty) => (
+    ($func:ident, $t:ty, $uwide:ty, $iwide:ty) => (
         /// Unsafe, C-like exporter for signed numbers.
         ///
         /// # Warning
@@ -413,16 +411,16 @@ macro_rules! signed_unsafe_impl {
         )
             -> *mut u8
         {
-            itoa_signed!(value, first, last, base)
+            itoa_signed!(value, first, last, base, $uwide, $iwide)
         }
     )
 }
 
-signed_unsafe_impl!(i8toa_unsafe, i8);
-signed_unsafe_impl!(i16toa_unsafe, i16);
-signed_unsafe_impl!(i32toa_unsafe, i32);
-signed_unsafe_impl!(i64toa_unsafe, i64);
-signed_unsafe_impl!(isizetoa_unsafe, isize);
+signed_unsafe_impl!(i8toa_unsafe, i8, u32, i32);
+signed_unsafe_impl!(i16toa_unsafe, i16, u32, i32);
+signed_unsafe_impl!(i32toa_unsafe, i32, u32, i32);
+signed_unsafe_impl!(i64toa_unsafe, i64, u64, i64);
+signed_unsafe_impl!(isizetoa_unsafe, isize, usize, isize);
 
 // LOW-LEVEL API
 

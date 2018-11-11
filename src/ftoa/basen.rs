@@ -6,7 +6,6 @@
 use sealed::mem;
 use sealed::ptr;
 
-use itoa::itoa_forward;
 use util::*;
 use super::util::*;
 
@@ -134,7 +133,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
 
     if d <= 1e-5 || d >= 1e9 {
         // write scientific notation with negative exponent
-        let mut exponent = naive_exponent(d, base);
+        let exponent = naive_exponent(d, base);
 
         // Non-exponent portion.
         // 1.   Get as many digits as possible, up to `MAX_DIGIT_LENGTH+1`
@@ -174,14 +173,18 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
         // write the exponent component
         *p = exponent_notation_char(base);
         // Handle negative exponents.
+        let mut exp: u32;
         p = p.add(1);
         if exponent < 0 {
             *p = b'-';
             p = p.add(1);
-            exponent = exponent.wrapping_neg();
+            exp = exponent.wrapping_neg() as u32;
+        } else {
+            exp = exponent as u32;
         }
         // Forward the exponent writer.
-        return itoa_forward(exponent as u64, p, base);
+        let base = base as u32;
+        return itoa_forward!(exp, p, base);
 
     } else {
         let mut p;
