@@ -95,7 +95,7 @@ macro_rules! atoi_impl {
         let mut p = $first;
         let mut overflow = false;
 
-        // Remove leading zeros
+        // Trim the leading 0s.
         while p < $last && *p == b'0' {
             p = p.add(1);
         }

@@ -1,7 +1,7 @@
 //! Lossy algorithms for string-to-float conversions.
 
-use ftoa::exponent_notation_char;
 use util::*;
+use super::correct::parse_exponent;
 use super::overflowing::*;
 
 // POWI
@@ -90,9 +90,9 @@ fn stable_powi_divisor(mut value: f64, base: u64, exponent: i32) -> f64 {
 
 // FRACTION
 
-// Parse the integer portion.
-// Use a float since for large numbers, this may even overflow an
-// integer 64.
+/// Parse the integer portion of a positive, normal float string.
+///
+/// Use a float since for large numbers, this may even overflow a u64.
 #[inline(always)]
 unsafe extern "C" fn parse_integer(first: *const u8, last: *const u8, base: u64)
     -> (f64, *const u8)
@@ -102,11 +102,11 @@ unsafe extern "C" fn parse_integer(first: *const u8, last: *const u8, base: u64)
     (integer, p)
 }
 
-// Parse the fraction portion.
-// Parse separately from the integer portion, since the small
-// values for each may be too small to change the integer components
-// representation **immediately**.
-// For numeric stability, use this early.
+/// Parse the fraction portion of a positive, normal float string.
+///
+/// Parse separately from the integer portion, since the small
+/// values for each may be too small to change the integer components
+/// representation **immediately**.
 #[inline(always)]
 unsafe extern "C" fn parse_fraction(first: *const u8, last: *const u8, base: u64)
     -> (f64, *const u8)
@@ -141,39 +141,13 @@ unsafe extern "C" fn parse_fraction(first: *const u8, last: *const u8, base: u64
     }
 }
 
-// EXPONENT
-
-// Parse the exponential portion, if
-// we have an `e[+-]?\d+`.
-// We don't care about the pointer after this, so just use `atoi_value`.
-#[inline(always)]
-unsafe extern "C" fn parse_exponent(first: *const u8, last: *const u8, base: u64)
-    -> (i32, *const u8)
-{
-    let mut p = first;
-    let dist = distance(first, last);
-    if dist > 1 && (*p).to_ascii_lowercase() == exponent_notation_char(base) {
-        p = p.add(1);
-        // Use atoi_sign so we can handle overflow differently for +/- numbers.
-        // We care whether the value is positive.
-        // Use is32::max_value() since it's valid in 2s complement for
-        // positive or negative numbers, and will trigger a short-circuit.
-        let (exponent, p, overflow, sign) = atoi_sign!(p, last, base, i32);
-        let exponent = if overflow { i32::max_value() } else { exponent };
-        let exponent = if sign == -1 { -exponent } else { exponent };
-        (exponent, p)
-    } else {
-        (0, p)
-    }
-}
-
 // PARSE
 
 /// Parse the mantissa and exponent from a string.
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-pub(crate) unsafe extern "C" fn parse_float(first: *const u8, last: *const u8, base: u64)
+pub(super) unsafe extern "C" fn parse_float(first: *const u8, last: *const u8, base: u64)
     -> (f64, i32, *const u8)
 {
     // Parse components
@@ -184,11 +158,12 @@ pub(crate) unsafe extern "C" fn parse_float(first: *const u8, last: *const u8, b
     (integer + fraction, exponent, p)
 }
 
+// ATOF/ATOD
+
 /// Parse 32-bit float from string.
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-#[allow(unused)]
 pub(crate) unsafe extern "C" fn atof(first: *const u8, last: *const u8, base: u64)
     -> (f32, *const u8)
 {
@@ -200,7 +175,6 @@ pub(crate) unsafe extern "C" fn atof(first: *const u8, last: *const u8, base: u6
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-#[allow(unused)]
 pub(crate) unsafe extern "C" fn atod(first: *const u8, last: *const u8, base: u64)
     -> (f64, *const u8)
 {
@@ -216,5 +190,94 @@ pub(crate) unsafe extern "C" fn atod(first: *const u8, last: *const u8, base: u6
 
 #[cfg(test)]
 mod tests {
-    // TODO(ahuszagh) Implement
+    use super::*;
+
+    unsafe fn check_parse_integer(s: &str, base: u64, tup: (f64, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let (v, p) = parse_integer(first, last, base);
+        assert_eq!(v, tup.0);
+        assert_eq!(distance(first, p), tup.1);
+    }
+
+    #[test]
+    fn parse_integer_test() {
+        unsafe {
+            check_parse_integer("1.2345", 10, (1.0, 1));
+            check_parse_integer("12.345", 10, (12.0, 2));
+            check_parse_integer("12345.6789", 10, (12345.0, 5));
+        }
+    }
+
+    unsafe fn check_parse_fraction(s: &str, base: u64, tup: (f64, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let (v, p) = parse_fraction(first, last, base);
+        assert_eq!(v, tup.0);
+        assert_eq!(distance(first, p), tup.1);
+    }
+
+    #[test]
+    fn parse_fraction_test() {
+        unsafe {
+            check_parse_fraction(".2345", 10, (0.2345, 5));
+            check_parse_fraction(".345", 10, (0.345, 4));
+            check_parse_fraction(".6789", 10, (0.6789, 5));
+        }
+    }
+
+    unsafe fn check_parse_float(s: &str, base: u64, tup: (f64, i32, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let (v, e, p) = parse_float(first, last, base);
+        assert_eq!(v, tup.0);
+        assert_eq!(e, tup.1);
+        assert_eq!(distance(first, p), tup.2);
+    }
+
+    #[test]
+    fn parse_float_test() {
+        unsafe {
+            check_parse_float("1.2345", 10, (1.2345, 0, 6));
+            check_parse_float("12.345", 10, (12.345, 0, 6));
+            check_parse_float("12345.6789", 10, (12345.6789, 0, 10));
+            check_parse_float("1.2345e10", 10, (1.2345, 10, 9));
+        }
+    }
+
+    unsafe fn check_atof(s: &str, base: u64, tup: (f32, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let (v, p) = atof(first, last, base);
+        assert_eq!(v, tup.0);
+        assert_eq!(distance(first, p), tup.1);
+    }
+
+    #[test]
+    fn atof_test() {
+        unsafe {
+            check_atof("1.2345", 10, (1.2345, 6));
+            check_atof("12.345", 10, (12.345, 6));
+            check_atof("12345.6789", 10, (12345.6789, 10));
+            check_atof("1.2345e10", 10, (1.2345e10, 9));
+        }
+    }
+
+    unsafe fn check_atod(s: &str, base: u64, tup: (f64, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let (v, p) = atod(first, last, base);
+        assert_eq!(v, tup.0);
+        assert_eq!(distance(first, p), tup.1);
+    }
+
+    #[test]
+    fn atod_test() {
+        unsafe {
+            check_atod("1.2345", 10, (1.2345, 6));
+            check_atod("12.345", 10, (12.345, 6));
+            check_atod("12345.6789", 10, (12345.6789, 10));
+            check_atod("1.2345e10", 10, (1.2345e10, 9));
+        }
+    }
 }

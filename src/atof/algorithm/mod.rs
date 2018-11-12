@@ -7,7 +7,5 @@ mod overflowing;
 mod bigint;
 
 // Export algorithms.
-pub(crate) mod lossy;
-
-#[cfg(feature = "correct")]
 pub(crate) mod correct;
+pub(crate) mod lossy;

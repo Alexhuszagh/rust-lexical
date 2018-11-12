@@ -3,14 +3,13 @@
 //! Uses either the lossy or the correct algorithm.
 
 use util::*;
-use super::lossy::{double_basen, float_basen};
 
 // Select the back-end
 cfg_if! {
     if #[cfg(feature = "correct")] {
-        use super::correct::{double_base10, float_base10};
+        use super::correct::*;
     } else {
-        use super::lossy::{double_base10, float_base10};
+        use super::lossy::*;
     }
 }
 

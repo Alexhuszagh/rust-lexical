@@ -51,7 +51,7 @@
 //  ax.figure.tight_layout()
 //  plt.show()
 
-use super::algorithm::lossy;
+use super::algorithm::lossy::{atod, atof};
 
 // F32
 
@@ -59,10 +59,11 @@ use super::algorithm::lossy;
 ///
 /// Number must be non-special, positive, and non-zero.
 #[inline]
+#[cfg(not(feature = "correct"))]
 pub(crate) unsafe extern "C" fn float_basen(first: *const u8, last: *const u8, base: u64)
     -> (f32, *const u8)
 {
-    lossy::atof(first, last, base)
+    atof(first, last, base)
 }
 
 /// Import float from base10, using a lossy algorithm.
@@ -73,7 +74,7 @@ pub(crate) unsafe extern "C" fn float_basen(first: *const u8, last: *const u8, b
 pub(crate) unsafe extern "C" fn float_base10(first: *const u8, last: *const u8)
     -> (f32, *const u8)
 {
-    lossy::atof(first, last, 10)
+    atof(first, last, 10)
 }
 
 // F64
@@ -82,10 +83,11 @@ pub(crate) unsafe extern "C" fn float_base10(first: *const u8, last: *const u8)
 ///
 /// Number must be non-special, positive, and non-zero.
 #[inline]
+#[cfg(not(feature = "correct"))]
 pub(crate) unsafe extern "C" fn double_basen(first: *const u8, last: *const u8, base: u64)
     -> (f64, *const u8)
 {
-    lossy::atod(first, last, base)
+    atod(first, last, base)
 }
 
 /// Import double from base10, using a lossy algorithm.
@@ -96,5 +98,5 @@ pub(crate) unsafe extern "C" fn double_basen(first: *const u8, last: *const u8, 
 pub(crate) unsafe extern "C" fn double_base10(first: *const u8, last: *const u8)
     -> (f64, *const u8)
 {
-    lossy::atod(first, last, 10)
+    atod(first, last, 10)
 }
