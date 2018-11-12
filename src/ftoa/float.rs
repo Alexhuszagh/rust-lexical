@@ -7,7 +7,7 @@
 //! for performance). Since there is no storage for the sign bit,
 //! this only works for positive floats.
 
-use super::util::*;
+use util::*;
 
 // FLOAT TYPE
 

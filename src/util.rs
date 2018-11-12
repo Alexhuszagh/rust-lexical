@@ -386,14 +386,14 @@ macro_rules! stable_pow2 {
 /// Calculate power of 2 using powi.
 #[cfg(all(any(test, feature = "correct"), not(feature = "table")))]
 #[inline]
-pub fn pow2_f32(value: f32, exponent: i32) -> f32 {
+pub unsafe fn pow2_f32(value: f32, exponent: i32) -> f32 {
     value * stable_pow2!(exponent, 75, powi_f32)
 }
 
 /// Calculate power of n using powi.
 #[cfg(all(any(test, feature = "correct"), not(feature = "table")))]
 #[inline]
-pub fn pown_f32(value: f32, base: u64, exponent: i32) -> f32 {
+pub unsafe fn pown_f32(value: f32, base: u64, exponent: i32) -> f32 {
     // Check the exponent is within bounds in debug builds.
     let (min, max) = f64_exact_exponent_limit!(base);
     debug_assert!(exponent >= min && exponent <= max);
@@ -404,14 +404,14 @@ pub fn pown_f32(value: f32, base: u64, exponent: i32) -> f32 {
 /// Calculate power of 2 using powi.
 #[cfg(all(any(test, feature = "correct"), not(feature = "table")))]
 #[inline]
-pub fn pow2_f64(value: f64, exponent: i32) -> f64 {
+pub unsafe fn pow2_f64(value: f64, exponent: i32) -> f64 {
     value * stable_pow2!(exponent, 75, powi_f64)
 }
 
 /// Calculate power of n using powi.
 #[cfg(all(any(test, feature = "correct"), not(feature = "table")))]
 #[inline]
-pub fn pown_f64(value: f64, base: u64, exponent: i32) -> f64 {
+pub unsafe fn pown_f64(value: f64, base: u64, exponent: i32) -> f64 {
     // Check the exponent is within bounds in debug builds.
     let (min, max) = f64_exact_exponent_limit!(base);
     debug_assert!(exponent >= min && exponent <= max);
