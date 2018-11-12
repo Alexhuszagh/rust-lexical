@@ -160,7 +160,7 @@ macro_rules! to_exact {
             if $exponent == 0 {
                 // 0 exponent, same as value, exact representation.
                 (float,  true)
-            } else if $exponent >= $min && $exponent >= $max {
+            } else if $exponent >= $min && $exponent <= $max {
                 // Value can be exactly represented, return the value.
                 let float = match $base {
                     2  => $mod::pow2_to_exact(float, 1, $exponent),
@@ -397,9 +397,63 @@ mod fast_tests {
         }
     }
 
-    // TODO(ahuszagh)
-    //  to_exact_float
-    //  to_exact_double
+    #[test]
+    fn to_exact_float_test() {
+        unsafe {
+            // valid
+            let mantissa = 1 << (F32_SIGNIFICAND_SIZE - 1);
+            for base in 2..37u64 {
+                let (min_exp, max_exp) = f32_exact_exponent_limit!(base);
+                for exp in min_exp..max_exp+1 {
+                    let (_, valid) = fast::to_exact_float(mantissa, base, exp);
+                    assert!(valid, "should be valid {:?}.", (mantissa, base, exp));
+                }
+            }
+
+            // invalid mantissa
+            let (_, valid) = fast::to_exact_float(1<<F32_SIGNIFICAND_SIZE, 2, 0);
+            assert!(!valid, "invalid mantissa");
+
+            // invalid exponents
+            for base in 2..37u64 {
+                let (min_exp, max_exp) = f32_exact_exponent_limit!(base);
+                let (_, valid) = fast::to_exact_float(mantissa, base, min_exp-1);
+                assert!(!valid, "exponent under min_exp");
+
+                let (_, valid) = fast::to_exact_float(mantissa, base, max_exp+1);
+                assert!(!valid, "exponent above max_exp");
+            }
+        }
+    }
+
+    #[test]
+    fn to_exact_double_test() {
+        unsafe {
+            // valid
+            let mantissa = 1 << (F64_SIGNIFICAND_SIZE - 1);
+            for base in 2..37u64 {
+                let (min_exp, max_exp) = f64_exact_exponent_limit!(base);
+                for exp in min_exp..max_exp+1 {
+                    let (_, valid) = fast::to_exact_double(mantissa, base, exp);
+                    assert!(valid, "should be valid {:?}.", (mantissa, base, exp));
+                }
+            }
+
+            // invalid mantissa
+            let (_, valid) = fast::to_exact_double(1<<F64_SIGNIFICAND_SIZE, 2, 0);
+            assert!(!valid, "invalid mantissa");
+
+            // invalid exponents
+            for base in 2..37u64 {
+                let (min_exp, max_exp) = f64_exact_exponent_limit!(base);
+                let (_, valid) = fast::to_exact_double(mantissa, base, min_exp-1);
+                assert!(!valid, "exponent under min_exp");
+
+                let (_, valid) = fast::to_exact_double(mantissa, base, max_exp+1);
+                assert!(!valid, "exponent above max_exp");
+            }
+        }
+    }
 }
 
 #[cfg(test)]
