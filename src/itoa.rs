@@ -110,7 +110,7 @@ macro_rules! digits {
             _ => {
                 let v = $value as f64;
                 let b = $base as f64;
-                let digits = floor((ln(v) / ln(b)) + 1.0);
+                let digits = floor_f64((ln_f64(v) / ln_f64(b)) + 1.0);
                 digits as usize
             }
         }

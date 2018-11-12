@@ -59,7 +59,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
     let bf = base as f64;
 
     // Split the value into an integer part and a fractional part.
-    let mut integer = floor(d);
+    let mut integer = floor_f64(d);
     let mut fraction = d - integer;
 
     // We only compute fractional digits up to the input double's precision.

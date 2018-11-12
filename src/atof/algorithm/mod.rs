@@ -3,8 +3,13 @@
 // Hide implementation details.
 mod overflowing;
 
-#[cfg(feature = "correct")]
-mod bigint;
+cfg_if! {
+    if #[cfg(any(test, feature = "correct"))] {
+        mod bigint;
+        mod double;
+        mod float;
+    }
+}
 
 // Export algorithms.
 pub(crate) mod correct;

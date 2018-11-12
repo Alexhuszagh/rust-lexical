@@ -37,6 +37,43 @@ pub static mut EXPONENT_DEFAULT_CHAR: u8 = b'e';
 /// change this value during before using lexical.
 pub static mut EXPONENT_BACKUP_CHAR: u8 = b'^';
 
+// FLOAT CONSTANTS
+
+// MASKS
+// 32-bit
+/// Bit-mask for the exponent, including the hidden bit.
+pub const F32_EXPONENT_MASK: u32    = 0x7F800000;
+/// Bit-mask for the hidden bit in exponent, which is use for the fraction.
+pub const F32_HIDDEN_BIT_MASK: u32  = 0x00800000;
+/// Bit-mask for the mantissa (fraction), excluding the hidden bit.
+pub const F32_FRACTION_MASK: u32    = 0x007FFFFF;
+// 64-bit
+/// Bit-mask for the exponent, including the hidden bit.
+pub const F64_EXPONENT_MASK: u64    = 0x7FF0000000000000;
+/// Bit-mask for the hidden bit in exponent, which is use for the fraction.
+pub const F64_HIDDEN_BIT_MASK: u64  = 0x0010000000000000;
+/// Bit-mask for the mantissa (fraction), excluding the hidden bit.
+pub const F64_FRACTION_MASK: u64    = 0x000FFFFFFFFFFFFF;
+
+// PROPERTIES
+// 32-bit
+pub const U32_INFINITY: u32         = 0x7F800000;
+/// Size of the significand (mantissa) without the hidden bit.
+pub const F32_SIGNIFICAND_SIZE: i32 = 23;
+/// Bias of the exponent.
+pub const F32_EXPONENT_BIAS: i32 = 127 + F32_SIGNIFICAND_SIZE;
+/// Exponent portion of a denormal float.
+pub const F32_DENORMAL_EXPONENT: i32 = -F32_EXPONENT_BIAS + 1;
+// 64-bit
+/// Positive infinity as bits.
+pub const U64_INFINITY: u64         = 0x7FF0000000000000;
+/// Size of the significand (mantissa) without the hidden bit.
+pub const F64_SIGNIFICAND_SIZE: i32 = 52;
+/// Bias of the exponent.
+pub const F64_EXPONENT_BIAS: i32 = 1023 + F64_SIGNIFICAND_SIZE;
+/// Exponent portion of a denormal float.
+pub const F64_DENORMAL_EXPONENT: i32 = -F64_EXPONENT_BIAS + 1;
+
 // CONSTANTS
 
 cfg_if! {
@@ -59,39 +96,53 @@ cfg_if! {
     if #[cfg(feature = "std")] {
         /// `f64.floor()` feature for `std`
         #[inline(always)]
-        pub(crate) fn floor(f: f64) -> f64 {
+        pub(crate) fn floor_f64(f: f64) -> f64 {
             f.floor()
         }
 
         /// `f64.ln()` feature for `std`
         #[inline(always)]
-        pub(crate) fn ln(f: f64) -> f64 {
+        pub(crate) fn ln_f64(f: f64) -> f64 {
             f.ln()
+        }
+
+        /// `f32.powi(i32)` feature for `std`
+        #[allow(dead_code)]
+        #[inline(always)]
+        pub(crate) fn powi_f32(f: f32, i: i32) -> f32 {
+            f.powi(i)
         }
 
         /// `f64.powi(i32)` feature for `std`
         #[allow(dead_code)]
         #[inline(always)]
-        pub(crate) fn powi(f: f64, i: i32) -> f64 {
+        pub(crate) fn powi_f64(f: f64, i: i32) -> f64 {
             f.powi(i)
         }
     } else {
         /// `f64.floor()` feature for `no_std`
         #[inline(always)]
-        pub(crate) fn floor(f: f64) -> f64 {
+        pub(crate) fn floor_f64(f: f64) -> f64 {
             unsafe { core::intrinsics::floorf64(f) }
         }
 
         /// `f64.ln()` feature for `no_std`
         #[inline(always)]
-        pub(crate) fn ln(f: f64) -> f64 {
+        pub(crate) fn ln_f64(f: f64) -> f64 {
             unsafe { core::intrinsics::logf64(f) }
+        }
+
+        /// `f32.powi(i32)` feature for `no_std`
+        #[allow(dead_code)]
+        #[inline(always)]
+        pub(crate) fn powi_f32(f: f32, i: i32) -> f32 {
+            unsafe { core::intrinsics::powif32(f, i) }
         }
 
         /// `f64.powi(i32)` feature for `no_std`
         #[allow(dead_code)]
         #[inline(always)]
-        pub(crate) fn powi(f: f64, i: i32) -> f64 {
+        pub(crate) fn powi_f64(f: f64, i: i32) -> f64 {
             unsafe { core::intrinsics::powif64(f, i) }
         }
     }
@@ -157,6 +208,261 @@ macro_rules! write_bytes {
     ($dst:expr, $byte:expr, $size:expr) => (
         $crate::sealed::ptr::write_bytes($dst, $byte, $size)
     );
+}
+
+// STABLE POWI
+
+/// Macro to generate stable_powi_normal for f32 and f64.
+macro_rules! stable_powi_normal {
+    ($value:ident, $base:ident, $exponent:ident, $step:ident, $powi:ident) => ({
+        if $exponent < 0 {
+            // negative exponent, use division for numeric stability
+            while $exponent <= -$step {
+                $exponent += $step;
+                $value /= $powi($base, $step)
+            }
+            if $exponent != 0 {
+                $value /= $powi($base, -$exponent)
+            }
+            $value
+        } else {
+            // positive exponent
+            while $exponent >= $step {
+                $exponent -= $step;
+                $value *= $powi($base, $step)
+            }
+            if $exponent != 0 {
+                $value *= $powi($base, $exponent)
+            }
+            $value
+        }
+    });
+}
+
+/// Macro to generate stable_powi for f32 and f64.
+macro_rules! stable_powi {
+    ($value:ident, $base:ident, $exponent:ident, $maxexp:ident, $inf:ident, $cb:ident) => ({
+        if $exponent > $maxexp {
+            // Value is impossibly large, must be infinity.
+            $inf
+        } else if $exponent < -$maxexp {
+            // Value is impossibly small, must be 0.
+            0.0
+        } else {
+            $cb($value, $base, $exponent)
+        }
+    });
+}
+
+// STABLE POWI F32
+
+/// Cached powers to get the desired exponent.
+/// Make sure all values are < 1e25.
+const F32_POWI_EXPONENT_STEP: [i32; 35] = [
+    90, 60, 50, 40, 40, 30, 30, 30, 30, 30, 30, 30,
+    30, 30, 30, 30, 20, 20, 20, 20, 20, 20, 20, 20,
+    20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20
+];
+
+/// Simplify base to powi to avoid bugs.
+#[inline(always)]
+fn f32_powi_step(base: u64) -> i32 {
+    unsafe { *F32_POWI_EXPONENT_STEP.get_unchecked(base as usize - 2) }
+}
+
+/// Cached max exponents.
+/// Make sure the value is >= 2*log(1e45, base), which guarantees the
+/// value overflows or underflows.
+const F32_MAX_EXPONENT: [i32; 35] = [
+    150, 100, 80, 70, 60, 60, 50, 50, 50, 50, 50, 50,
+    40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+    40, 40, 40, 40, 40, 40, 30, 30, 30, 30, 30
+];
+
+/// Get f32 maximum exponent from base.
+#[inline(always)]
+pub fn f32_maxexp(base: u64) -> i32 {
+    unsafe { *F32_MAX_EXPONENT.get_unchecked(base as usize - 2) }
+}
+
+/// `powi_f32` implementation that is more stable at extremely low powers.
+///
+/// Exponent must be non-special to get here.
+///
+/// Roughly equivalent to `value * powi_f32(base, exponent)`
+#[inline]
+pub fn stable_powi_normal_f32(mut value: f32, base: u64, mut exponent: i32) -> f32 {
+    let step = f32_powi_step(base);
+    let base = base as f32;
+    stable_powi_normal!(value, base, exponent, step, powi_f32)
+}
+
+/// `powi_f32` implementation that is more stable at extremely low powers.
+///
+/// The exponent must be non-zero.
+///
+/// Roughly equivalent to `value * powi_f32(base, exponent)`
+#[inline]
+#[allow(dead_code)]
+pub fn stable_powi_f32(value: f32, base: u64, exponent: i32) -> f32 {
+    let maxexp = f32_maxexp(base);
+    stable_powi!(value, base, exponent, maxexp, F32_INFINITY, stable_powi_normal_f32)
+}
+
+// STABLE POWI F64
+
+/// Cached powers to get the desired exponent.
+/// Make sure all values are < 1e300.
+const F64_POWI_EXPONENT_STEP: [i32; 35] = [
+    512, 512, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256,
+    256, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+    128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128
+];
+
+/// Simplify base to powi to avoid bugs.
+#[inline(always)]
+fn f64_powi_step(base: u64) -> i32 {
+    unsafe { *F64_POWI_EXPONENT_STEP.get_unchecked(base as usize - 2) }
+}
+
+/// Cached max exponents.
+/// Make sure the value is >= 2*log(5e324, base), which guarantees the
+/// value overflows or underflows.
+const F64_MAX_EXPONENT: [i32; 35] = [
+    2200, 1400, 1200, 1000, 900, 800, 750, 700, 650, 625, 625, 600,
+    575, 575, 550, 550, 525, 525, 500, 500, 500, 500, 475, 475,
+    475, 475, 450, 450, 450, 450, 450, 450, 425, 425, 425
+];
+
+/// Get f64 maximum exponent from base.
+#[inline(always)]
+pub fn f64_maxexp(base: u64) -> i32 {
+    unsafe { *F64_MAX_EXPONENT.get_unchecked(base as usize - 2) }
+}
+
+/// `powi_f64` implementation that is more stable at extremely low powers.
+///
+/// Exponent must be non-special to get here.
+///
+/// Roughly equivalent to `value * powi_f64(base, exponent)`
+#[inline]
+pub fn stable_powi_normal_f64(mut value: f64, base: u64, mut exponent: i32) -> f64 {
+    let step = f64_powi_step(base);
+    let base = base as f64;
+    stable_powi_normal!(value, base, exponent, step, powi_f64)
+}
+
+/// `powi_f64` implementation that is more stable at extremely low powers.
+///
+/// The exponent must be non-zero.
+///
+/// Roughly equivalent to `value * powi_f64(base, exponent)`
+#[inline]
+#[allow(dead_code)]
+pub fn stable_powi_f64(value: f64, base: u64, exponent: i32) -> f64 {
+    let maxexp = f64_maxexp(base);
+    stable_powi!(value, base, exponent, maxexp, F64_INFINITY, stable_powi_normal_f64)
+}
+
+// POWN POWI
+
+/// Calculate a stable powi when the value is known to be >= -2*max && <= 2*max
+///
+/// powi is not stable, even with exact values, at high or low exponents.
+/// However, doing it in 2 shots for exact values is exact.
+#[cfg(all(any(test, feature = "correct"), not(feature = "table")))]
+macro_rules! stable_pow2 {
+    ($exponent:ident, $max:expr, $powi:ident) => ({
+        if $exponent > $max {
+            $powi(2.0, $max) * $powi(2.0, $exponent - $max)
+        } else if $exponent < -$max {
+            $powi(2.0, -$max) * $powi(2.0, $exponent + $max)
+        } else {
+            $powi(2.0, $exponent)
+        }
+    })
+}
+
+/// Calculate power of 2 using powi.
+#[cfg(all(any(test, feature = "correct"), not(feature = "table")))]
+#[inline]
+pub fn pow2_f32(value: f32, exponent: i32) -> f32 {
+    value * stable_pow2!(exponent, 75, powi_f32)
+}
+
+/// Calculate power of n using powi.
+#[cfg(all(any(test, feature = "correct"), not(feature = "table")))]
+#[inline]
+pub fn pown_f32(value: f32, base: u64, exponent: i32) -> f32 {
+    // Check the exponent is within bounds in debug builds.
+    let (min, max) = f64_exact_exponent_limit!(base);
+    debug_assert!(exponent >= min && exponent <= max);
+
+    value * powi_f32(base as f32, exponent)
+}
+
+/// Calculate power of 2 using powi.
+#[cfg(all(any(test, feature = "correct"), not(feature = "table")))]
+#[inline]
+pub fn pow2_f64(value: f64, exponent: i32) -> f64 {
+    value * stable_pow2!(exponent, 75, powi_f64)
+}
+
+/// Calculate power of n using powi.
+#[cfg(all(any(test, feature = "correct"), not(feature = "table")))]
+#[inline]
+pub fn pown_f64(value: f64, base: u64, exponent: i32) -> f64 {
+    // Check the exponent is within bounds in debug builds.
+    let (min, max) = f64_exact_exponent_limit!(base);
+    debug_assert!(exponent >= min && exponent <= max);
+
+    value * powi_f64(base as f64, exponent)
+}
+
+// POWN TABLE
+
+/// Calculate power of 2 using precalculated table.
+#[cfg(all(any(test, feature = "correct"), feature = "table"))]
+#[inline]
+pub unsafe fn pow2_f32(value: f32, exponent: i32) -> f32 {
+    value * f32_pow2!(exponent)
+}
+
+/// Calculate power of n using precalculated table.
+#[cfg(all(any(test, feature = "correct"), feature = "table"))]
+#[inline]
+pub unsafe fn pown_f32(value: f32, base: u64, exponent: i32) -> f32 {
+    // Check the exponent is within bounds in debug builds.
+    let (min, max) = f64_exact_exponent_limit!(base);
+    debug_assert!(exponent >= min && exponent <= max);
+
+    if exponent > 0 {
+        value * f32_pown!(base, exponent)
+    } else {
+        value / f32_pown!(base, -exponent)
+    }
+}
+
+/// Calculate power of 2 using precalculated table.
+#[cfg(all(any(test, feature = "correct"), feature = "table"))]
+#[inline]
+pub unsafe fn pow2_f64(value: f64, exponent: i32) -> f64 {
+    value * f64_pow2!(exponent)
+}
+
+/// Calculate power of n using precalculated table.
+#[cfg(all(any(test, feature = "correct"), feature = "table"))]
+#[inline]
+pub unsafe fn pown_f64(value: f64, base: u64, exponent: i32) -> f64 {
+    // Check the exponent is within bounds in debug builds.
+    let (min, max) = f64_exact_exponent_limit!(base);
+    debug_assert!(exponent >= min && exponent <= max);
+
+    if exponent > 0 {
+        value * f64_pown!(base, exponent)
+    } else {
+        value / f64_pown!(base, -exponent)
+    }
 }
 
 // ALGORITHMS
@@ -306,6 +612,153 @@ macro_rules! string_impl {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stable_powi_normal_f32_test() {
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, 38), 1e38, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, 30), 1e30, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, 25), 1e25, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, 20), 1e20, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, 15), 1e15, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, 10), 1e10, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, 5), 1e5, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, -5), 1e-5, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, -10), 1e-10, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, -15), 1e-15, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, -20), 1e-20, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, -25), 1e-25, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, -30), 1e-30, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, -38), 1e-38, max_relative=1e-6);
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, -45), 1e-45, max_relative=1e-6);
+
+        // overflow
+        assert!(stable_powi_normal_f32(1.0, 10, 39).is_infinite());
+
+        // underflow
+        assert_eq!(stable_powi_normal_f32(1.0, 10, -46), 0.0);
+    }
+
+    #[test]
+    fn stable_powi_f32_test() {
+        assert_relative_eq!(stable_powi_normal_f32(1.0, 10, 10), 1e10, max_relative=1e-15);
+        assert!(stable_powi_normal_f32(1.0, 10, 1000).is_infinite());
+        assert_eq!(stable_powi_normal_f32(1.0, 10, -1000), 0.0);
+
+        // overflow
+        assert!(stable_powi_f32(1.0, 10, 39).is_infinite());
+
+        // underflow
+        assert_eq!(stable_powi_f32(1.0, 10, -46), 0.0);
+    }
+
+    #[test]
+    fn stable_powi_normal_f64_test() {
+        assert_relative_eq!(stable_powi_normal_f64(1.0, 10, 308), 1e308, max_relative=1e-15);
+        assert_relative_eq!(stable_powi_normal_f64(1.0, 10, 300), 1e300, max_relative=1e-15);
+        assert_relative_eq!(stable_powi_normal_f64(1.0, 10, 200), 1e200, max_relative=1e-15);
+        assert_relative_eq!(stable_powi_normal_f64(1.0, 10, 100), 1e100, max_relative=1e-15);
+        assert_relative_eq!(stable_powi_normal_f64(1.0, 10, 50), 1e50, max_relative=1e-15);
+        assert_relative_eq!(stable_powi_normal_f64(1.0, 10, -50), 1e-50, epsilon=1e-15);
+        assert_relative_eq!(stable_powi_normal_f64(1.0, 10, -100), 1e-100, epsilon=1e-15);
+        assert_relative_eq!(stable_powi_normal_f64(1.0, 10, -200), 1e-200, epsilon=1e-15);
+        assert_relative_eq!(stable_powi_normal_f64(1.0, 10, -300), 1e-300, epsilon=1e-15);
+        assert_relative_eq!(stable_powi_normal_f64(1.0, 10, -308), 1e-308, epsilon=1e-15);
+        assert_eq!(stable_powi_normal_f64(5.0, 10, -324), 5e-324);
+
+        // overflow
+        assert!(stable_powi_normal_f64(1.0, 10, 309).is_infinite());
+
+        // underflow
+        assert_eq!(stable_powi_normal_f64(1.0, 10, -325), 0.0);
+    }
+
+    #[test]
+    fn stable_powi_f64_test() {
+        assert_relative_eq!(stable_powi_normal_f64(1.0, 10, 50), 1e50, max_relative=1e-15);
+        assert!(stable_powi_normal_f64(1.0, 10, 1000).is_infinite());
+        assert_eq!(stable_powi_normal_f64(1.0, 10, -1000), 0.0);
+
+        // overflow
+        assert!(stable_powi_f64(1.0, 10, 309).is_infinite());
+
+        // underflow
+        assert_eq!(stable_powi_f64(1.0, 10, -325), 0.0);
+    }
+
+    const BASEN: [u64; 30] = [
+        3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21,
+        22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36
+    ];
+
+    #[test]
+    fn pow2_f32_test() {
+        unsafe {
+            let (min, max) = f32_exact_exponent_limit!(2);
+            for i in min+1..max+1 {
+                assert_eq!(pow2_f32(1.0, i)/pow2_f32(1.0, i-1), 2.0);
+            }
+            for i in 1..max+1 {
+                let f = pow2_f32(1.0, i);
+                if f < u64::max_value() as f32 {
+                    assert_eq!((f as u64) as f32, f);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn pown_f32_test() {
+        unsafe {
+            // Only check positive, since negative values round during division.
+            for b in BASEN.iter().cloned() {
+                let (_, max) = f32_exact_exponent_limit!(b);
+                for i in 1..max+1 {
+                    let f = pown_f32(1.0, b, i);
+                    let p = pown_f32(1.0, b, i-1);
+                    assert_eq!(f / p, b as f32);
+                    if f < u64::max_value() as f32 {
+                        assert_eq!((f as u64) as f32, f);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn pow2_f64_test() {
+        unsafe {
+            let (min, max) = f64_exact_exponent_limit!(2);
+            for i in min+1..max+1 {
+                let curr = pow2_f64(1.0, i);
+                let prev = pow2_f64(1.0, i-1);
+                assert_eq!(curr / prev, 2.0);
+            }
+            for i in 1..max+1 {
+                let f = pow2_f64(1.0, i);
+                if f < u64::max_value() as f64 {
+                    assert_eq!((f as u64) as f64, f);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn pown_f64_test() {
+        unsafe {
+            // Only check positive, since negative values round during division.
+            for b in BASEN.iter().cloned() {
+                let (_, max) = f64_exact_exponent_limit!(b);
+                for i in 1..max+1 {
+                    let f = pown_f64(1.0, b, i);
+                    let p = pown_f64(1.0, b, i-1);
+                    assert_eq!(f / p, b as f64);
+                    if f < u64::max_value() as f64 {
+                        assert_eq!((f as u64) as f64, f);
+                    }
+                }
+            }
+        }
+    }
 
     #[test]
     fn reverse_test() {

@@ -77,6 +77,10 @@ pub(crate) mod sealed {
 
 // Hide the implementation details.
 #[macro_use]
+#[doc(hidden)]
+pub mod table;
+
+#[macro_use]
 mod util;
 
 mod error;
@@ -84,12 +88,9 @@ mod error;
 // Publicly export the low-level APIs.
 // Macros used in atoi are required for atof, so export those.
 #[macro_use]
-#[doc(hidden)]
-pub mod table;
-
-#[macro_use]
 pub mod atoi;
 
+// Macros used in itoa are required for ftoa, so export those.
 #[macro_use]
 pub mod itoa;
 

@@ -4,90 +4,6 @@ use util::*;
 use super::correct::parse_exponent;
 use super::overflowing::*;
 
-// POWI
-
-/// Use powi() iteratively.
-///
-/// * `value`   - Base value.
-/// * `op`      - Operation {*, /}.
-/// * `base`    - Floating-point base for exponent.
-/// * `exp`     - Iteration exponent {+256, -256}.
-/// * `count`   - Number of times to iterate.
-/// * `rem`     - Remaining exponent after iteration.
-macro_rules! stable_powi_impl {
-    ($value:ident, $op:tt, $base:ident, $exp:expr, $count:ident, $rem:ident) => ({
-        for _ in 0..$count {
-            $value = $value $op powi($base, $exp);
-        }
-        if $rem != 0 {
-            $value = $value $op powi($base, $rem)
-        }
-        $value
-    })
-}
-
-/// Cached powers to get the desired exponent.
-/// Make sure all values are < 1e300.
-const POWI_EXPONENTS: [i32; 35] = [
-    512, 512, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256,
-    256, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
-    128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128
-];
-
-/// Simplify base to powi to avoid bugs.
-macro_rules! base_to_powi {
-    ($base:expr) => (unsafe { *POWI_EXPONENTS.get_unchecked($base as usize - 2) })
-}
-
-/// Stable powi implementation, with a base value.
-///
-/// Although valid results will occur with an exponent or value of 0,
-/// ideally, you should not pass any value as such to this function.
-///
-/// Use powi() with an integral exponent, both for speed and
-/// stability. Don't go any an exponent of magnitude >1e300, for numerical
-/// stability.
-macro_rules! stable_powi {
-    ($value:ident, $op:tt, $base:ident, $exponent:ident) => ({
-        let base = $base as f64;
-        let exp = base_to_powi!($base);
-        // Choose a multipler of 5 for this since the exp is chosen
-        // so at max 2.1 iterations occur to the max exponent.
-        // 5 means any input value times the exponent must be insignificant.
-        if $exponent > 5*exp {
-            // Value is impossibly large, must be infinity.
-            F64_INFINITY
-        } else if $exponent < -5*exp {
-            // Value is impossibly small, must be 0.
-            0.0
-        } else if $exponent < 0 {
-            // negative exponent
-            let count = $exponent / -exp;
-            let rem = $exponent % exp;
-            stable_powi_impl!($value, $op, base, -exp, count, rem)
-        } else {
-            // positive exponent
-            let count = $exponent / exp;
-            let rem = $exponent % exp;
-            stable_powi_impl!($value, $op, base, exp, count, rem)
-        }
-    })
-}
-
-/// `powi` implementation that is more stable at extremely low powers.
-///
-/// Equivalent to `value * powi(base, exponent)`
-fn stable_powi_multiplier(mut value: f64, base: u64, exponent: i32) -> f64 {
-    stable_powi!(value, *, base, exponent)
-}
-
-/// `powi` implementation that is more stable at extremely low powers.
-///
-/// Equivalent to `value / powi(base, exponent)`
-fn stable_powi_divisor(mut value: f64, base: u64, exponent: i32) -> f64 {
-    stable_powi!(value, /, base, exponent)
-}
-
 // FRACTION
 
 /// Parse the integer portion of a positive, normal float string.
@@ -127,7 +43,7 @@ unsafe extern "C" fn parse_fraction(first: *const u8, last: *const u8, base: u64
 
             // Ignore leading 0s, just not we've passed them.
             if value != 0 {
-                fraction += stable_powi_divisor(value as f64, base, digits);
+                fraction += stable_powi_f64(value as f64, base, -digits);
             }
 
             // do/while condition
@@ -180,7 +96,7 @@ pub(crate) unsafe extern "C" fn atod(first: *const u8, last: *const u8, base: u6
 {
     let (mut value, exponent, p) = parse_float(first, last, base);
     if exponent != 0 && value != 0.0 {
-        value = stable_powi_multiplier(value, base, exponent);
+        value = stable_powi_f64(value, base, exponent);
     }
     (value, p)
 }

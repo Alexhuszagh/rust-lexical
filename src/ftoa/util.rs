@@ -2,43 +2,6 @@
 
 use util::*;
 
-// FLOAT CONSTANTS
-
-// MASKS
-// 32-bit
-/// Bit-mask for the exponent, including the hidden bit.
-pub const F32_EXPONENT_MASK: u32    = 0x7F800000;
-/// Bit-mask for the hidden bit in exponent, which is use for the fraction.
-pub const F32_HIDDEN_BIT_MASK: u32  = 0x00800000;
-/// Bit-mask for the mantissa (fraction), excluding the hidden bit.
-pub const F32_FRACTION_MASK: u32    = 0x007FFFFF;
-// 64-bit
-/// Bit-mask for the exponent, including the hidden bit.
-pub const F64_EXPONENT_MASK: u64    = 0x7FF0000000000000;
-/// Bit-mask for the hidden bit in exponent, which is use for the fraction.
-pub const F64_HIDDEN_BIT_MASK: u64  = 0x0010000000000000;
-/// Bit-mask for the mantissa (fraction), excluding the hidden bit.
-pub const F64_FRACTION_MASK: u64    = 0x000FFFFFFFFFFFFF;
-
-// PROPERTIES
-    // 32-bit
-pub const U32_INFINITY: u32         = 0x7F800000;
-/// Size of the significand (mantissa) without the hidden bit.
-pub const F32_SIGNIFICAND_SIZE: i32 = 23;
-/// Bias of the exponent.
-pub const F32_EXPONENT_BIAS: i32 = 127 + F32_SIGNIFICAND_SIZE;
-/// Exponent portion of a denormal float.
-pub const F32_DENORMAL_EXPONENT: i32 = -F32_EXPONENT_BIAS + 1;
-// 64-bit
-/// Positive infinity as bits.
-pub const U64_INFINITY: u64         = 0x7FF0000000000000;
-/// Size of the significand (mantissa) without the hidden bit.
-pub const F64_SIGNIFICAND_SIZE: i32 = 52;
-/// Bias of the exponent.
-pub const F64_EXPONENT_BIAS: i32 = 1023 + F64_SIGNIFICAND_SIZE;
-/// Exponent portion of a denormal float.
-pub const F64_DENORMAL_EXPONENT: i32 = -F64_EXPONENT_BIAS + 1;
-
 // FLOAT HELPERS
 
 /// Check if generic float is denormal.
@@ -100,7 +63,7 @@ pub(crate) fn naive_exponent(d: f64, base: u64) -> i32
     // desired exponent
     // ln(1.1e-5) -> -4.95 -> -5
     // ln(1.1e5) -> -5.04 -> 5
-    (floor(ln(d) / ln(base as f64))) as i32
+    (floor_f64(ln_f64(d) / ln_f64(base as f64))) as i32
 }
 
 // BUFFER PARAMTERS
