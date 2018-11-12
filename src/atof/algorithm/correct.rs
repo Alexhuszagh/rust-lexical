@@ -53,6 +53,8 @@ use util::*;
 use super::super::double;
 use super::super::float;
 
+// PARSE
+
 /// Parse the mantissa from a string.
 ///
 /// Returns the mantissa, number of digits since the dot was seen,
@@ -145,6 +147,8 @@ pub(super) unsafe extern "C" fn parse_float(first: *const u8, last: *const u8, b
     (mantissa, exponent, p, overflow)
 }
 
+// EXACT
+
 /// Macro to convert value to exact value, allowing code reuse.
 /// Custom code can be executed inside the code-block to avoid code
 macro_rules! to_exact {
@@ -198,6 +202,10 @@ pub(super) unsafe fn to_exact_double(mantissa: u64, base: u64, exponent: i32) ->
     let (min_exp, max_exp) = f64_exact_exponent_limit!(base);
     to_exact!(mantissa, base, exponent, F64_SIGNIFICAND_SIZE, min_exp, max_exp, f64, double)
 }
+
+// TODO(ahusagh) Use the extended precision float here...
+
+// TODO(ahuszagh) Need a backup fast path
 
 }   // fast
 

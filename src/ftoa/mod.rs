@@ -10,7 +10,6 @@ cfg_if! {
     } else if #[cfg(feature = "ryu")] {
         mod ryu;
     } else {
-        mod float;
         mod grisu2;
     }
 }
