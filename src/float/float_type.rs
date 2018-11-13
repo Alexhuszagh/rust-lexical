@@ -36,8 +36,11 @@ impl FloatType {
     ///     2. Normalization of the result (not done here).
     ///     3. Addition of exponents.
     #[inline]
-    pub unsafe fn fast_multiply(&self, b: &FloatType) -> FloatType
+    pub unsafe fn mul(&self, b: &FloatType) -> FloatType
     {
+        // Logic check, values must be normalized prior to multiplication.
+        debug_assert!(self.is_normalized() && b.is_normalized());
+
         const LOMASK: u64 = 0x00000000FFFFFFFF;
 
         // Extract high-and-low masks.
@@ -62,14 +65,31 @@ impl FloatType {
         }
     }
 
+    /// Multiply in-place, as if by `a*b`.
+    ///
+    /// The result is not normalized.
+    #[inline]
+    pub unsafe fn imul(&mut self, b: &FloatType) {
+        *self = self.mul(b);
+    }
+
     // NORMALIZE
+
+    /// Get if extended-float is normalized, MSB is set.
+    pub fn is_normalized(&self) -> bool
+    {
+        const MASK: u64 = 0x8000000000000000;
+        self.frac & MASK == MASK
+    }
 
     /// Normalize float-point number.
     ///
     /// Let the integer component of the mantissa (significand) to be exactly
     /// 1 and the decimal fraction and exponent to be whatever.
+    ///
+    /// Get the number of bytes shifted.
     #[inline]
-    pub fn normalize(&mut self)
+    pub fn normalize(&mut self) -> u32
     {
         // Note:
         // Using the cltz intrinsic via leading_zeros is way faster (~10x)
@@ -83,6 +103,7 @@ impl FloatType {
         // code as it removes conditional logic.
         let shift = self.frac.leading_zeros();
         shl!(self, shift);
+        shift
     }
 
     /// Get normalized boundaries for float.
@@ -256,95 +277,131 @@ mod tests {
         // F32
         // min value
         let mut x = FloatType {frac: 1, exp: -149};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 63);
         assert_eq!(x, FloatType {frac: 9223372036854775808, exp: -212});
+        assert!(x.is_normalized());
 
         // 1.0e-40
         let mut x = FloatType {frac: 71362, exp: -149};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 47);
         assert_eq!(x, FloatType {frac: 10043308644012916736, exp: -196});
+        assert!(x.is_normalized());
 
         // 1.0e-20
         let mut x = FloatType {frac: 12379400, exp: -90};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 40);
         assert_eq!(x, FloatType {frac: 13611294244890214400, exp: -130});
+        assert!(x.is_normalized());
 
         // 1.0
         let mut x = FloatType {frac: 8388608, exp: -23};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 40);
         assert_eq!(x, FloatType {frac: 9223372036854775808, exp: -63});
+        assert!(x.is_normalized());
 
         // 1e20
         let mut x = FloatType {frac: 11368684, exp: 43};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 40);
         assert_eq!(x, FloatType {frac: 12500000250510966784, exp: 3});
+        assert!(x.is_normalized());
 
         // max value
         let mut x = FloatType {frac: 16777213, exp: 104};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 40);
         assert_eq!(x, FloatType {frac: 18446740775174668288, exp: 64});
+        assert!(x.is_normalized());
 
         // F64
 
         // min value
         let mut x = FloatType {frac: 1, exp: -1074};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 63);
         assert_eq!(x, FloatType {frac: 9223372036854775808, exp: -1137});
+        assert!(x.is_normalized());
 
         // 1.0e-250
         let mut x = FloatType {frac: 6448907850777164, exp: -883};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 11);
         assert_eq!(x, FloatType {frac: 13207363278391631872, exp: -894});
+        assert!(x.is_normalized());
 
         // 1.0e-150
         let mut x = FloatType {frac: 7371020360979573, exp: -551};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 11);
         assert_eq!(x, FloatType {frac: 15095849699286165504, exp: -562});
+        assert!(x.is_normalized());
 
         // 1.0e-45
         let mut x = FloatType {frac: 6427752177035961, exp: -202};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 11);
         assert_eq!(x, FloatType {frac: 13164036458569648128, exp: -213});
+        assert!(x.is_normalized());
 
         // 1.0e-40
         let mut x = FloatType {frac: 4903985730770844, exp: -185};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 11);
         assert_eq!(x, FloatType {frac: 10043362776618688512, exp: -196});
+        assert!(x.is_normalized());
 
         // 1.0e-20
         let mut x = FloatType {frac: 6646139978924579, exp: -119};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 11);
         assert_eq!(x, FloatType {frac: 13611294676837537792, exp: -130});
+        assert!(x.is_normalized());
 
         // 1.0
         let mut x = FloatType {frac: 4503599627370496, exp: -52};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 11);
         assert_eq!(x, FloatType {frac: 9223372036854775808, exp: -63});
+        assert!(x.is_normalized());
 
         // 1e20
         let mut x = FloatType {frac: 6103515625000000, exp: 14};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 11);
         assert_eq!(x, FloatType {frac: 12500000000000000000, exp: 3});
+        assert!(x.is_normalized());
 
         // 1e40
         let mut x = FloatType {frac: 8271806125530277, exp: 80};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 11);
         assert_eq!(x, FloatType {frac: 16940658945086007296, exp: 69});
+        assert!(x.is_normalized());
 
         // 1e150
         let mut x = FloatType {frac: 5503284107318959, exp: 446};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 11);
         assert_eq!(x, FloatType {frac: 11270725851789228032, exp: 435});
+        assert!(x.is_normalized());
 
         // 1e250
         let mut x = FloatType {frac: 6290184345309700, exp: 778};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 11);
         assert_eq!(x, FloatType {frac: 12882297539194265600, exp: 767});
+        assert!(x.is_normalized());
 
         // max value
         let mut x = FloatType {frac: 9007199254740991, exp: 971};
-        x.normalize();
+        assert!(!x.is_normalized());
+        assert_eq!(x.normalize(), 11);
         assert_eq!(x, FloatType {frac: 18446744073709549568, exp: 960});
+        assert!(x.is_normalized());
     }
 
     #[test]
@@ -786,28 +843,54 @@ mod tests {
 
     // OPERATIONS
 
-    fn check_fast_multiply(a: FloatType, b: FloatType, c: FloatType) {
+    fn check_mul(a: FloatType, b: FloatType, c: FloatType) {
         unsafe {
-            let r = a.fast_multiply(&b);
+            let r = a.mul(&b);
             assert_eq!(r, c);
         }
     }
 
     #[test]
-    fn fast_multiply_test() {
+    fn mul_test() {
         // Normalized
-        let a = FloatType {frac: 6427752177035961, exp: -202};
+        let a = FloatType {frac: 13164036458569648128, exp: -213};
         let b = FloatType {frac: 9223372036854775808, exp: -62};
-        let c = FloatType {frac: 3213876088517981, exp: -200};
-        check_fast_multiply(a, b, c);
+        let c = FloatType {frac: 6582018229284824064, exp: -211};
+        check_mul(a, b, c);
 
-        // Non-normalized
+        // Check with integers
         unsafe {
             let mut a = FloatType::from_u8(10);
             let mut b = FloatType::from_u8(10);
             a.normalize();
             b.normalize();
-            assert_eq!(a.fast_multiply(&b).as_f64(), 100.0);
+            assert_eq!(a.mul(&b).as_f64(), 100.0);
+        }
+    }
+
+    fn check_imul(mut a: FloatType, b: FloatType, c: FloatType) {
+        unsafe {
+            a.imul(&b);
+            assert_eq!(a, c);
+        }
+    }
+
+    #[test]
+    fn imul_test() {
+        // Normalized
+        let a = FloatType {frac: 13164036458569648128, exp: -213};
+        let b = FloatType {frac: 9223372036854775808, exp: -62};
+        let c = FloatType {frac: 6582018229284824064, exp: -211};
+        check_imul(a, b, c);
+
+        // Check with integers
+        unsafe {
+            let mut a = FloatType::from_u8(10);
+            let mut b = FloatType::from_u8(10);
+            a.normalize();
+            b.normalize();
+            a.imul(&b);
+            assert_eq!(a.as_f64(), 100.0);
         }
     }
 }

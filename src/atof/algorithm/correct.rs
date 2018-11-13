@@ -258,9 +258,9 @@ unsafe fn multiply_exponent_extended(mut fp: FloatType, base: u64, exponent: i32
         let small = powers.small.get_unchecked(small_index as usize);
         let large = powers.large.get_unchecked(large_index as usize);
         fp.normalize();
-        let mut fp = fp.fast_multiply(large);
+        let mut fp = fp.mul(large);
         fp.normalize();
-        let mut fp = fp.fast_multiply(small);
+        let mut fp = fp.mul(small);
         fp.normalize();
         (fp, true)
     }
