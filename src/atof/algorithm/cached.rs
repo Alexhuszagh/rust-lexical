@@ -82,12 +82,14 @@
 //!     # Get our starting parameters
 //!     min_exp = math.floor(math.log(5e-324, base))
 //!     max_exp = math.ceil(math.log(1.7976931348623157e+308, base))
-//!     bitshift = calculate_bitshift(base, abs(min_exp))
+//!     bitshift = calculate_bitshift(base, abs(min_exp - step))
 //!     fps = deque()
 //!
 //!     # Add negative exponents
+//!     # We need to go below the minimum exponent, since we need
+//!     # all resulting exponents to be positive.
 //!     fp = (1 << bitshift, -bitshift)
-//!     for exp in range(-step, min_exp, -step):
+//!     for exp in range(-step, min_exp-step, -step):
 //!         fp = prev_fp(fp, base, step)
 //!         fps.appendleft((fp, exp))
 //!
@@ -145,7 +147,8 @@ const BASE3_SMALL_POWERS: [FloatType; BASE3_STEP as usize] = [
     FloatType { frac: 13311666640442621952, exp: -35 },         // 3^18
     FloatType { frac: 9983749980331966464, exp: -33 },          // 3^19
 ];
-const BASE3_LARGE_POWERS: [FloatType; 66] = [
+const BASE3_LARGE_POWERS: [FloatType; 67] = [
+    FloatType { frac: 10783800460320302292, exp: -1141 },       // 3^-680
     FloatType { frac: 17509230984627012859, exp: -1110 },       // 3^-660
     FloatType { frac: 14214523479040558273, exp: -1078 },       // 3^-640
     FloatType { frac: 11539780240125690827, exp: -1046 },       // 3^-620
@@ -234,7 +237,8 @@ const BASE5_SMALL_POWERS: [FloatType; BASE5_STEP as usize] = [
     FloatType { frac: 16777216000000000000, exp: -36 },         // 5^12
     FloatType { frac: 10485760000000000000, exp: -33 },         // 5^13
 ];
-const BASE5_LARGE_POWERS: [FloatType; 65] = [
+const BASE5_LARGE_POWERS: [FloatType; 66] = [
+    FloatType { frac: 15643822052986917253, exp: -1169 },       // 5^-476
     FloatType { frac: 11115604119273511155, exp: -1136 },       // 5^-462
     FloatType { frac: 15796223521069679172, exp: -1104 },       // 5^-448
     FloatType { frac: 11223891875338892399, exp: -1071 },       // 5^-434
@@ -320,7 +324,8 @@ const BASE6_SMALL_POWERS: [FloatType; BASE6_STEP as usize] = [
     FloatType { frac: 16620815899787526144, exp: -38 },         // 6^10
     FloatType { frac: 12465611924840644608, exp: -35 },         // 6^11
 ];
-const BASE6_LARGE_POWERS: [FloatType; 68] = [
+const BASE6_LARGE_POWERS: [FloatType; 69] = [
+    FloatType { frac: 11479946305982273645, exp: -1149 },       // 6^-420
     FloatType { frac: 11636570252986002899, exp: -1118 },       // 6^-408
     FloatType { frac: 11795331061968106016, exp: -1087 },       // 6^-396
     FloatType { frac: 11956257886702331980, exp: -1056 },       // 6^-384
@@ -408,7 +413,8 @@ const BASE7_SMALL_POWERS: [FloatType; BASE7_STEP as usize] = [
     FloatType { frac: 11092315029800747008, exp: -38 },         // 7^9
     FloatType { frac: 9705775651075653632, exp: -35 },          // 7^10
 ];
-const BASE7_LARGE_POWERS: [FloatType; 68] = [
+const BASE7_LARGE_POWERS: [FloatType; 69] = [
+    FloatType { frac: 10365007820408367996, exp: -1144 },       // 7^-385
     FloatType { frac: 9543731415037814164, exp: -1113 },        // 7^-374
     FloatType { frac: 17575058485347314089, exp: -1083 },       // 7^-363
     FloatType { frac: 16182490230010039076, exp: -1052 },       // 7^-352
@@ -495,7 +501,8 @@ const BASE9_SMALL_POWERS: [FloatType; BASE9_STEP as usize] = [
     FloatType { frac: 11832592569282330624, exp: -38 },         // 9^8
     FloatType { frac: 13311666640442621952, exp: -35 },         // 9^9
 ];
-const BASE9_LARGE_POWERS: [FloatType; 66] = [
+const BASE9_LARGE_POWERS: [FloatType; 67] = [
+    FloatType { frac: 10783800460320302292, exp: -1141 },       // 9^-340
     FloatType { frac: 17509230984627012859, exp: -1110 },       // 9^-330
     FloatType { frac: 14214523479040558273, exp: -1078 },       // 9^-320
     FloatType { frac: 11539780240125690827, exp: -1046 },       // 9^-310
@@ -580,7 +587,8 @@ const BASE10_SMALL_POWERS: [FloatType; BASE10_STEP as usize] = [
     FloatType { frac: 13743895347200000000, exp: -37 },         // 10^8
     FloatType { frac: 17179869184000000000, exp: -34 },         // 10^9
 ];
-const BASE10_LARGE_POWERS: [FloatType; 63] = [
+const BASE10_LARGE_POWERS: [FloatType; 64] = [
+    FloatType { frac: 15660115838168849784, exp: -1160 },       // 10^-330
     FloatType { frac: 18230774251475056848, exp: -1127 },       // 10^-320
     FloatType { frac: 10611707258198326947, exp: -1093 },       // 10^-310
     FloatType { frac: 12353653155963782858, exp: -1060 },       // 10^-300
@@ -661,7 +669,8 @@ const BASE11_SMALL_POWERS: [FloatType; BASE11_STEP as usize] = [
     FloatType { frac: 10713185553479630848, exp: -39 },         // 11^7
     FloatType { frac: 14730630136034492416, exp: -36 },         // 11^8
 ];
-const BASE11_LARGE_POWERS: [FloatType; 67] = [
+const BASE11_LARGE_POWERS: [FloatType; 68] = [
+    FloatType { frac: 11191522591630754840, exp: -1153 },       // 11^-315
     FloatType { frac: 12288347284174558846, exp: -1122 },       // 11^-306
     FloatType { frac: 13492666233761944748, exp: -1091 },       // 11^-297
     FloatType { frac: 14815014410453217040, exp: -1060 },       // 11^-288
@@ -746,7 +755,8 @@ const BASE12_SMALL_POWERS: [FloatType; BASE12_STEP as usize] = [
     FloatType { frac: 9849372385059274752, exp: -38 },          // 12^7
     FloatType { frac: 14774058577588912128, exp: -35 },         // 12^8
 ];
-const BASE12_LARGE_POWERS: [FloatType; 65] = [
+const BASE12_LARGE_POWERS: [FloatType; 66] = [
+    FloatType { frac: 9232805349408163458, exp: -1160 },        // 12^-306
     FloatType { frac: 11091876690210014731, exp: -1128 },       // 12^-297
     FloatType { frac: 13325281304529035642, exp: -1096 },       // 12^-288
     FloatType { frac: 16008393061343079134, exp: -1064 },       // 12^-279
@@ -828,7 +838,8 @@ const BASE13_SMALL_POWERS: [FloatType; BASE13_STEP as usize] = [
     FloatType { frac: 10614265241107693568, exp: -41 },         // 13^6
     FloatType { frac: 17248181016800002048, exp: -38 },         // 13^7
 ];
-const BASE13_LARGE_POWERS: [FloatType; 71] = [
+const BASE13_LARGE_POWERS: [FloatType; 72] = [
+    FloatType { frac: 14673465379822171777, exp: -1159 },       // 13^-296
     FloatType { frac: 11147555423761605318, exp: -1129 },       // 13^-288
     FloatType { frac: 16937783776246970219, exp: -1100 },       // 13^-280
     FloatType { frac: 12867777209673117558, exp: -1070 },       // 13^-272
@@ -916,7 +927,8 @@ const BASE14_SMALL_POWERS: [FloatType; BASE14_STEP as usize] = [
     FloatType { frac: 16557624767515983872, exp: -41 },         // 14^6
     FloatType { frac: 14487921671576485888, exp: -37 },         // 14^7
 ];
-const BASE14_LARGE_POWERS: [FloatType; 69] = [
+const BASE14_LARGE_POWERS: [FloatType; 70] = [
+    FloatType { frac: 12880143300754023535, exp: -1160 },       // 14^-288
     FloatType { frac: 17702928299982570560, exp: -1130 },       // 14^-280
     FloatType { frac: 12165767999490239948, exp: -1099 },       // 14^-272
     FloatType { frac: 16721065408999761282, exp: -1069 },       // 14^-264
@@ -1002,7 +1014,8 @@ const BASE15_SMALL_POWERS: [FloatType; BASE15_STEP as usize] = [
     FloatType { frac: 12524124635136000000, exp: -40 },         // 15^6
     FloatType { frac: 11741366845440000000, exp: -36 },         // 15^7
 ];
-const BASE15_LARGE_POWERS: [FloatType; 67] = [
+const BASE15_LARGE_POWERS: [FloatType; 68] = [
+    FloatType { frac: 9686178043528474499, exp: -1157 },        // 15^-280
     FloatType { frac: 11559862131178364723, exp: -1126 },       // 15^-272
     FloatType { frac: 13795989697002596758, exp: -1095 },       // 15^-264
     FloatType { frac: 16464671426007778306, exp: -1064 },       // 15^-256
@@ -1086,7 +1099,8 @@ const BASE17_SMALL_POWERS: [FloatType; BASE17_STEP as usize] = [
     FloatType { frac: 13269768890872758272, exp: -39 },         // 17^6
     FloatType { frac: 14099129446552305664, exp: -35 },         // 17^7
 ];
-const BASE17_LARGE_POWERS: [FloatType; 64] = [
+const BASE17_LARGE_POWERS: [FloatType; 65] = [
+    FloatType { frac: 17328852299072967575, exp: -1143 },       // 17^-264
     FloatType { frac: 14072501842077846052, exp: -1110 },       // 17^-256
     FloatType { frac: 11428068326595325663, exp: -1077 },       // 17^-248
     FloatType { frac: 9280563409615280245, exp: -1044 },        // 17^-240
@@ -1166,7 +1180,8 @@ const BASE18_SMALL_POWERS: [FloatType; BASE18_STEP as usize] = [
     FloatType { frac: 16620815899787526144, exp: -43 },         // 18^5
     FloatType { frac: 9349208943630483456, exp: -38 },          // 18^6
 ];
-const BASE18_LARGE_POWERS: [FloatType; 72] = [
+const BASE18_LARGE_POWERS: [FloatType; 73] = [
+    FloatType { frac: 18312018475493194258, exp: -1144 },       // 18^-259
     FloatType { frac: 10441042983020688038, exp: -1114 },       // 18^-252
     FloatType { frac: 11906429509033078491, exp: -1085 },       // 18^-245
     FloatType { frac: 13577481089208229636, exp: -1056 },       // 18^-238
@@ -1254,7 +1269,8 @@ const BASE19_SMALL_POWERS: [FloatType; BASE19_STEP as usize] = [
     FloatType { frac: 10889998568098103296, exp: -42 },         // 19^5
     FloatType { frac: 12931873299616497664, exp: -38 },         // 19^6
 ];
-const BASE19_LARGE_POWERS: [FloatType; 71] = [
+const BASE19_LARGE_POWERS: [FloatType; 72] = [
+    FloatType { frac: 15912276110980153383, exp: -1164 },       // 19^-259
     FloatType { frac: 13246698229359450470, exp: -1134 },       // 19^-252
     FloatType { frac: 11027650146079950824, exp: -1104 },       // 19^-245
     FloatType { frac: 18360660994723606251, exp: -1075 },       // 19^-238
@@ -1341,7 +1357,8 @@ const BASE20_SMALL_POWERS: [FloatType; BASE20_STEP as usize] = [
     FloatType { frac: 14073748835532800000, exp: -42 },         // 20^5
     FloatType { frac: 17592186044416000000, exp: -38 },         // 20^6
 ];
-const BASE20_LARGE_POWERS: [FloatType; 69] = [
+const BASE20_LARGE_POWERS: [FloatType; 70] = [
+    FloatType { frac: 16905424996341287883, exp: -1153 },       // 20^-252
     FloatType { frac: 10076418516839318205, exp: -1122 },       // 20^-245
     FloatType { frac: 12012026926087520367, exp: -1092 },       // 20^-238
     FloatType { frac: 14319451959237480602, exp: -1062 },       // 20^-231
@@ -1426,7 +1443,8 @@ const BASE21_SMALL_POWERS: [FloatType; BASE21_STEP as usize] = [
     FloatType { frac: 17962066154046357504, exp: -42 },         // 21^5
     FloatType { frac: 11787605913592922112, exp: -37 },         // 21^6
 ];
-const BASE21_LARGE_POWERS: [FloatType; 68] = [
+const BASE21_LARGE_POWERS: [FloatType; 69] = [
+    FloatType { frac: 17000740844691866712, exp: -1140 },       // 21^-245
     FloatType { frac: 14258473889848767691, exp: -1109 },       // 21^-238
     FloatType { frac: 11958542249702993646, exp: -1078 },       // 21^-231
     FloatType { frac: 10029596003240171126, exp: -1047 },       // 21^-224
@@ -1510,7 +1528,8 @@ const BASE22_SMALL_POWERS: [FloatType; BASE22_STEP as usize] = [
     FloatType { frac: 11332956618556964864, exp: -41 },         // 22^5
     FloatType { frac: 15582815350515826688, exp: -37 },         // 22^6
 ];
-const BASE22_LARGE_POWERS: [FloatType; 67] = [
+const BASE22_LARGE_POWERS: [FloatType; 68] = [
+    FloatType { frac: 12505993140104023937, exp: -1156 },       // 22^-245
     FloatType { frac: 14526035001637582317, exp: -1125 },       // 22^-238
     FloatType { frac: 16872365953260472216, exp: -1094 },       // 22^-231
     FloatType { frac: 9798845067792082715, exp: -1062 },        // 22^-224
@@ -1593,7 +1612,8 @@ const BASE23_SMALL_POWERS: [FloatType; BASE23_STEP as usize] = [
     FloatType { frac: 14153667937709326336, exp: -41 },         // 23^5
     FloatType { frac: 10172948830228578304, exp: -36 },         // 23^6
 ];
-const BASE23_LARGE_POWERS: [FloatType; 66] = [
+const BASE23_LARGE_POWERS: [FloatType; 67] = [
+    FloatType { frac: 12105147475110827234, exp: -1140 },       // 23^-238
     FloatType { frac: 9596327823341159083, exp: -1108 },        // 23^-231
     FloatType { frac: 15214933627595239789, exp: -1077 },       // 23^-224
     FloatType { frac: 12061603644316153100, exp: -1045 },       // 23^-217
@@ -1675,7 +1695,8 @@ const BASE24_SMALL_POWERS: [FloatType; BASE24_STEP as usize] = [
     FloatType { frac: 17509995351216488448, exp: -41 },         // 24^5
     FloatType { frac: 13132496513412366336, exp: -36 },         // 24^6
 ];
-const BASE24_LARGE_POWERS: [FloatType; 65] = [
+const BASE24_LARGE_POWERS: [FloatType; 66] = [
+    FloatType { frac: 15825938165500818674, exp: -1155 },       // 24^-238
     FloatType { frac: 16900061898413227754, exp: -1123 },       // 24^-231
     FloatType { frac: 18047087583901234911, exp: -1091 },       // 24^-224
     FloatType { frac: 9635981578611328308, exp: -1058 },        // 24^-217
@@ -1756,7 +1777,8 @@ const BASE25_SMALL_POWERS: [FloatType; BASE25_STEP as usize] = [
     FloatType { frac: 10737418240000000000, exp: -40 },         // 25^5
     FloatType { frac: 16777216000000000000, exp: -36 },         // 25^6
 ];
-const BASE25_LARGE_POWERS: [FloatType; 65] = [
+const BASE25_LARGE_POWERS: [FloatType; 66] = [
+    FloatType { frac: 15643822052986917253, exp: -1169 },       // 25^-238
     FloatType { frac: 11115604119273511155, exp: -1136 },       // 25^-231
     FloatType { frac: 15796223521069679172, exp: -1104 },       // 25^-224
     FloatType { frac: 11223891875338892399, exp: -1071 },       // 25^-217
@@ -1837,7 +1859,8 @@ const BASE26_SMALL_POWERS: [FloatType; BASE26_STEP as usize] = [
     FloatType { frac: 13063711065978699776, exp: -40 },         // 26^5
     FloatType { frac: 10614265241107693568, exp: -35 },         // 26^6
 ];
-const BASE26_LARGE_POWERS: [FloatType; 64] = [
+const BASE26_LARGE_POWERS: [FloatType; 65] = [
+    FloatType { frac: 10583312905946974966, exp: -1149 },       // 26^-231
     FloatType { frac: 9895670261906581517, exp: -1116 },        // 26^-224
     FloatType { frac: 9252706671590202790, exp: -1083 },        // 26^-217
     FloatType { frac: 17303038295456506514, exp: -1051 },       // 26^-210
@@ -1916,7 +1939,8 @@ const BASE27_SMALL_POWERS: [FloatType; BASE27_STEP as usize] = [
     FloatType { frac: 9349208943630483456, exp: -44 },          // 27^4
     FloatType { frac: 15776790092376440832, exp: -40 },         // 27^5
 ];
-const BASE27_LARGE_POWERS: [FloatType; 73] = [
+const BASE27_LARGE_POWERS: [FloatType; 74] = [
+    FloatType { frac: 17041067394086403622, exp: -1148 },       // 27^-228
     FloatType { frac: 12297292543386873229, exp: -1119 },       // 27^-222
     FloatType { frac: 17748114058878258402, exp: -1091 },       // 27^-216
     FloatType { frac: 12807516432401518638, exp: -1062 },       // 27^-210
@@ -2004,7 +2028,8 @@ const BASE28_SMALL_POWERS: [FloatType; BASE28_STEP as usize] = [
     FloatType { frac: 10813142705316560896, exp: -44 },         // 28^4
     FloatType { frac: 9461499867151990784, exp: -39 },          // 28^5
 ];
-const BASE28_LARGE_POWERS: [FloatType; 73] = [
+const BASE28_LARGE_POWERS: [FloatType; 74] = [
+    FloatType { frac: 17488953546307848045, exp: -1160 },       // 28^-228
     FloatType { frac: 15697920957714630238, exp: -1131 },       // 28^-222
     FloatType { frac: 14090306875260685218, exp: -1102 },       // 28^-216
     FloatType { frac: 12647327526607851831, exp: -1073 },       // 28^-210
@@ -2092,7 +2117,8 @@ const BASE29_SMALL_POWERS: [FloatType; BASE29_STEP as usize] = [
     FloatType { frac: 12442618937680592896, exp: -44 },         // 29^4
     FloatType { frac: 11276123412273037312, exp: -39 },         // 29^5
 ];
-const BASE29_LARGE_POWERS: [FloatType; 72] = [
+const BASE29_LARGE_POWERS: [FloatType; 73] = [
+    FloatType { frac: 13301466184228767173, exp: -1142 },       // 29^-222
     FloatType { frac: 14737289938837575007, exp: -1113 },       // 29^-216
     FloatType { frac: 16328103363438049788, exp: -1084 },       // 29^-210
     FloatType { frac: 18090636782853846909, exp: -1055 },       // 29^-204
@@ -2179,7 +2205,8 @@ const BASE30_SMALL_POWERS: [FloatType; BASE30_STEP as usize] = [
     FloatType { frac: 14249670695976960000, exp: -44 },         // 30^4
     FloatType { frac: 13359066277478400000, exp: -39 },         // 30^5
 ];
-const BASE30_LARGE_POWERS: [FloatType; 71] = [
+const BASE30_LARGE_POWERS: [FloatType; 72] = [
+    FloatType { frac: 14677985448278451843, exp: -1153 },       // 30^-222
     FloatType { frac: 9965385675239368708, exp: -1123 },        // 30^-216
     FloatType { frac: 13531681443098000788, exp: -1094 },       // 30^-210
     FloatType { frac: 18374241463874359754, exp: -1065 },       // 30^-204
@@ -2265,7 +2292,8 @@ const BASE31_SMALL_POWERS: [FloatType; BASE31_STEP as usize] = [
     FloatType { frac: 16246753247925108736, exp: -44 },         // 31^4
     FloatType { frac: 15739042208927449088, exp: -39 },         // 31^5
 ];
-const BASE31_LARGE_POWERS: [FloatType; 71] = [
+const BASE31_LARGE_POWERS: [FloatType; 72] = [
+    FloatType { frac: 10365468257053156090, exp: -1163 },       // 31^-222
     FloatType { frac: 17135201456813756829, exp: -1134 },       // 31^-216
     FloatType { frac: 14163138687236953263, exp: -1104 },       // 31^-210
     FloatType { frac: 11706573627364173290, exp: -1074 },       // 31^-204
@@ -2351,7 +2379,8 @@ const BASE33_SMALL_POWERS: [FloatType; BASE33_STEP as usize] = [
     FloatType { frac: 10431471432989933568, exp: -43 },         // 33^4
     FloatType { frac: 10757454915270868992, exp: -38 },         // 33^5
 ];
-const BASE33_LARGE_POWERS: [FloatType; 69] = [
+const BASE33_LARGE_POWERS: [FloatType; 70] = [
+    FloatType { frac: 12262357879342609130, exp: -1153 },       // 33^-216
     FloatType { frac: 14748836332546310936, exp: -1123 },       // 33^-210
     FloatType { frac: 17739506162243888511, exp: -1093 },       // 33^-204
     FloatType { frac: 10668301952265249182, exp: -1062 },       // 33^-198
@@ -2435,7 +2464,8 @@ const BASE34_SMALL_POWERS: [FloatType; BASE34_STEP as usize] = [
     FloatType { frac: 11754535764925349888, exp: -43 },         // 34^4
     FloatType { frac: 12489194250233184256, exp: -38 },         // 34^5
 ];
-const BASE34_LARGE_POWERS: [FloatType; 69] = [
+const BASE34_LARGE_POWERS: [FloatType; 70] = [
+    FloatType { frac: 9940514895438007254, exp: -1162 },        // 34^-216
     FloatType { frac: 14301530372152488549, exp: -1132 },       // 34^-210
     FloatType { frac: 10287886147601198282, exp: -1101 },       // 34^-204
     FloatType { frac: 14801297292224652053, exp: -1071 },       // 34^-198
@@ -2519,7 +2549,8 @@ const BASE35_SMALL_POWERS: [FloatType; BASE35_STEP as usize] = [
     FloatType { frac: 13199637091450880000, exp: -43 },         // 35^4
     FloatType { frac: 14437103068774400000, exp: -38 },         // 35^5
 ];
-const BASE35_LARGE_POWERS: [FloatType; 68] = [
+const BASE35_LARGE_POWERS: [FloatType; 69] = [
+    FloatType { frac: 16631665395337738380, exp: -1141 },       // 35^-210
     FloatType { frac: 14236857547774631404, exp: -1110 },       // 35^-204
     FloatType { frac: 12186880148060573338, exp: -1079 },       // 35^-198
     FloatType { frac: 10432080762542161338, exp: -1048 },       // 35^-192
@@ -2602,7 +2633,8 @@ const BASE36_SMALL_POWERS: [FloatType; BASE36_STEP as usize] = [
     FloatType { frac: 14774058577588912128, exp: -43 },         // 36^4
     FloatType { frac: 16620815899787526144, exp: -38 },         // 36^5
 ];
-const BASE36_LARGE_POWERS: [FloatType; 68] = [
+const BASE36_LARGE_POWERS: [FloatType; 69] = [
+    FloatType { frac: 11479946305982273645, exp: -1149 },       // 36^-210
     FloatType { frac: 11636570252986002899, exp: -1118 },       // 36^-204
     FloatType { frac: 11795331061968106016, exp: -1087 },       // 36^-198
     FloatType { frac: 11956257886702331980, exp: -1056 },       // 36^-192
@@ -2678,15 +2710,17 @@ const BASE36_BIAS: i32 = -BASE36_LARGE_POWERS[0].exp;
 // ----------
 
 /// Precalculated powers of base N.
+#[repr(C)]
+#[doc(hidden)]
 pub(crate) struct Powers {
     // Pre-calculate small powers.
-    small: &'static [FloatType],
+    pub small: &'static [FloatType],
     // Pre-calculate large powers.
-    large: &'static [FloatType],
+    pub large: &'static [FloatType],
     // Step between large powers and number of small powers.
-    step: i32,
+    pub step: i32,
     // Exponent bias for the large powers.
-    bias: i32,
+    pub bias: i32,
 }
 
 pub(crate) const BASE3_POWERS: Powers = Powers {
@@ -2899,11 +2933,76 @@ pub(crate) const BASE36_POWERS: Powers = Powers {
     bias: BASE36_BIAS,
 };
 
+/// Get powers from base.
+pub(crate) fn get_powers(base: u64) -> &'static Powers {
+    match base {
+        3  => &BASE3_POWERS,
+        5  => &BASE5_POWERS,
+        6  => &BASE6_POWERS,
+        7  => &BASE7_POWERS,
+        9  => &BASE9_POWERS,
+        10 => &BASE10_POWERS,
+        11 => &BASE11_POWERS,
+        12 => &BASE12_POWERS,
+        13 => &BASE13_POWERS,
+        14 => &BASE14_POWERS,
+        15 => &BASE15_POWERS,
+        17 => &BASE17_POWERS,
+        18 => &BASE18_POWERS,
+        19 => &BASE19_POWERS,
+        20 => &BASE20_POWERS,
+        21 => &BASE21_POWERS,
+        22 => &BASE22_POWERS,
+        23 => &BASE23_POWERS,
+        24 => &BASE24_POWERS,
+        25 => &BASE25_POWERS,
+        26 => &BASE26_POWERS,
+        27 => &BASE27_POWERS,
+        28 => &BASE28_POWERS,
+        29 => &BASE29_POWERS,
+        30 => &BASE30_POWERS,
+        31 => &BASE31_POWERS,
+        33 => &BASE33_POWERS,
+        34 => &BASE34_POWERS,
+        35 => &BASE35_POWERS,
+        36 => &BASE36_POWERS,
+        // Powers of 2, and others, should already be handled by now.
+        _  => unreachable!(),
+    }
+}
+
 // TESTS
 // -----
 
 #[cfg(test)]
 mod tests {
-//    use super::*;
-// TODO(ahuszagh) Implement...
+    use super::*;
+
+    const POW2: [u64; 5] = [2, 4, 8, 16, 32];
+    const BASEN: [u64; 30] = [
+        3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21,
+        22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36
+    ];
+
+    #[test]
+    fn normalization_test() {
+        // Ensure each valid is normalized.
+        for base in BASEN.iter().cloned() {
+            let powers = get_powers(base);
+            for fp in powers.small {
+                assert_eq!(fp.frac.leading_zeros(), 0);
+            }
+            for fp in powers.large {
+                assert_eq!(fp.frac.leading_zeros(), 0);
+            }
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn pow2_test() {
+        for base in POW2.iter().cloned() {
+            let _ = get_powers(base);
+        }
+    }
 }

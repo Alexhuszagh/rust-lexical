@@ -6,7 +6,6 @@ mod overflowing;
 // TODO(ahuszagh) Always expose this...
 cfg_if! {
     if #[cfg(any(test, feature = "correct"))] {
-        #[allow(dead_code)]    // TODO(ahuszagh) Remove
         mod cached;
         mod decimal;
         mod double;

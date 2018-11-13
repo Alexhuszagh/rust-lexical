@@ -231,54 +231,73 @@ pub(super) unsafe fn to_double_exact(mantissa: u64, base: u64, exponent: i32) ->
 // EXTENDED
 
 /// Multiply the floating-point by the exponent.
-/// Use the pre-calculated powers
+///
+/// Multiply by pre-calculated powers of the base, modify the extended-
+/// float, and return if new value and if the value can be represented
+/// accurately.
 #[inline]
-unsafe fn multiply_exponent_extended(fp: &mut FloatType, base: u64, exponent: i32, truncated: bool)
-    -> bool
+unsafe fn multiply_exponent_extended(mut fp: FloatType, base: u64, exponent: i32, truncated: bool)
+    -> (FloatType, bool)
 {
-    // Need to add an error system similar to the strconv
-
-    let powers = match base {
-        3 => &BASE3_POWERS,
-        5 => &BASE5_POWERS,
-        7 => &BASE7_POWERS,
-        // TODO(ahuszagh) Implement...
-        _ => unreachable!(),
-    };
-
-    false
+    let powers = cached::get_powers(base);
+    let exponent = exponent + powers.bias;
+    let large_index = exponent / powers.step;
+    let small_index = exponent % powers.step;
+    if exponent < 0 {
+        // Underflow (assign 0)
+        (FloatType { frac: 0, exp: 0 }, true)
+    } else if large_index as usize >= powers.large.len() {
+        // Overflow (assign infinity)
+        (FloatType { frac: 1 << 63, exp: 0x7FF }, true)
+    } else {
+        // Within the valid exponent range, multiply by the large and small
+        // exponents and return the resulting value.
+        // TODO(ahuszagh) Need to implement an error checking mechanism
+        // https://golang.org/src/strconv/extfloat.go
+        //  Line 239
+        let small = powers.small.get_unchecked(small_index as usize);
+        let large = powers.large.get_unchecked(large_index as usize);
+        fp.normalize();
+        let mut fp = fp.fast_multiply(large);
+        fp.normalize();
+        let mut fp = fp.fast_multiply(small);
+        fp.normalize();
+        (fp, true)
+    }
 }
 
 /// Create a precise f32 using an intermediate extended-precision float.
 ///
 /// Return the float approximation and if the value can be accurately
 /// represented with mantissa bits of precision.
-#[allow(unused)]    // TODO(ahuszagh) Remove
 #[inline]
 pub(super) unsafe fn to_float_extended(mantissa: u64, base: u64, exponent: i32, truncated: bool)
     -> (f32, bool)
 {
-    let mut fp = FloatType { frac: mantissa, exp: 0 };
-    // TODO(ahuszagh) Need to multiply by the exponent...
-    // We cannot have a base 2**n here, since we got past before...
-    unreachable!()
-    // fp.as_f32()
+    let fp = FloatType { frac: mantissa, exp: 0 };
+    let (fp, valid) = multiply_exponent_extended(fp, base, exponent, truncated);
+    if valid {
+        (fp.as_f32(), true)
+    } else {
+        (0.0, false)
+    }
 }
 
 /// Create a precise f64 using an intermediate extended-precision float.
 ///
 /// Return the float approximation and if the value can be accurately
 /// represented with mantissa bits of precision.
-#[allow(unused)]    // TODO(ahuszagh) Remove
 #[inline]
 pub(super) unsafe fn to_double_extended(mantissa: u64, base: u64, exponent: i32, truncated: bool)
     -> (f64, bool)
 {
-    let mut fp = FloatType { frac: mantissa, exp: 0 };
-    // TODO(ahuszagh) Need to multiply by the exponent...
-    // We cannot have a base 2**n here, since we got past before...
-    unreachable!()
-    // fp.as_f64()
+    let fp = FloatType { frac: mantissa, exp: 0 };
+    let (fp, valid) = multiply_exponent_extended(fp, base, exponent, truncated);
+    if valid {
+        (fp.as_f64(), true)
+    } else {
+        (0.0, false)
+    }
 }
 
 // BIGNUM
