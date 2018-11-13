@@ -88,17 +88,23 @@ use util::*;
 
 // ALGORITHM
 
-/// Optimized atoi implementation that uses a translation table.
-macro_rules! atoi_impl {
+/// Optimized, unchecked atoi implementation that uses a translation table.
+///
+/// Detects overflow, but ignores it until the end of the string. Generally
+/// faster than checking and modifying logic as a result.
+#[allow(unused_macros)]
+macro_rules! atoi_unchecked {
+    // Explicit multiply and add methods.
     ($value:ident, $first:expr, $last:expr, $base:expr, $t:tt, $mul:ident, $add:ident) => ({
+        // logic error, disable in release builds
+        debug_assert!($base >= 2 && $base <= 36, "Numerical base must be from 2-36");
+
         let base = $base as $t;
         let mut p = $first;
         let mut overflow = false;
 
         // Trim the leading 0s.
-        while p < $last && *p == b'0' {
-            p = p.add(1);
-        }
+        p = ltrim_char(p, $last, b'0');
 
         // Continue while we have digits.
         // Don't check for overflow, we want to avoid as many conditions
@@ -114,38 +120,85 @@ macro_rules! atoi_impl {
                 break;
             }
 
-            // Rust doesn't allow tuples as l-values...
+            // Multiply by base, and then add the parsed digit.
+            // Assign the value regardless of whether overflow happens,
+            // and merely set the overflow bool.
+            p = p.add(1);
             let (value, o1) = $value.$mul(base);
             let (value, o2) = value.$add(digit);
             $value = value;
             overflow |= o1 | o2;
-            p = p.add(1);
         }
 
         (p, overflow)
-    })
-}
-
-/// Parse value and get end pointer from parsing the integer within the block.
-macro_rules! atoi_pointer {
-    // Explicit multiply and add methods.
-    ($value:ident, $first:expr, $last:expr, $base:ident, $t:tt, $mul:ident, $add:ident)
-    =>
-    ({
-        // logic error, disable in release builds
-        debug_assert!($base >= 2 && $base <= 36, "Numerical base must be from 2-36");
-        atoi_impl!($value, $first, $last, $base, $t, $mul, $add)
     });
     // Non-explicit multiply and add methods
     ($value:ident, $first:expr, $last:expr, $base:ident, $t:tt) => (
-        atoi_pointer!($value, $first, $last, $base, $t, overflowing_mul, overflowing_add)
+        atoi_unchecked!($value, $first, $last, $base, $t, overflowing_mul, overflowing_add)
+    );
+}
+
+/// Optimized, checked atoi implementation that uses a translation table.
+///
+/// Detects overflow and aborts parsing, but increments the pointer until
+/// invalid characters are found. General slower than the unchecked variant.
+///
+/// This macro is only used in the correct atof parsers.
+#[allow(unused_macros)]
+macro_rules! atoi_checked {
+    // Explicit multiply and add methods.
+    ($value:ident, $first:expr, $last:expr, $base:expr, $t:tt, $mul:ident, $add:ident) => ({
+        // logic error, disable in release builds
+        debug_assert!($base >= 2 && $base <= 36, "Numerical base must be from 2-36");
+
+        let base = $base as $t;
+        let mut p = $first;
+        let mut overflow = false;
+
+        // Trim the leading 0s.
+        p = ltrim_char(p, $last, b'0');
+
+        // Continue while we have digits.
+        // Don't check for overflow, we want to avoid as many conditions
+        // as possible, it leads to significant speed increases on x86-64.
+        // Just note it happens, and continue on.
+        // Don't add a short-circuit either, since it adds significant time
+        // and we want to continue parsing until everything is done, since
+        // otherwise it may give us invalid results elsewhere.
+        while p < $last {
+            // Grab the next digit, and check if it's valid.
+            let digit = char_to_digit!(*p) as $t;
+            if digit >= base {
+                break;
+            }
+
+            // Increment our pointer, to continue parsing digits.
+            // Only multiply to the base and add the parsed digit if
+            // the value hasn't overflowed yet, and only assign to the
+            // original value if the operations don't overflow.
+            p = p.add(1);
+            if !overflow {
+                let (value, o1) = $value.$mul(base);
+                let (value, o2) = value.$add(digit);
+                overflow = o1 | o2;
+                if !overflow {
+                    $value = value;
+                }
+            }
+        }
+
+        (p, overflow)
+    });
+    // Non-explicit multiply and add methods
+    ($value:ident, $first:expr, $last:expr, $base:ident, $t:tt) => (
+        atoi_unchecked!($value, $first, $last, $base, $t, overflowing_mul, overflowing_add)
     );
 }
 
 /// Parse value from a positive numeric string.
 macro_rules! atoi_value {
-    // Explicit multiply and add methods.
-    ($first:expr, $last:expr, $base:expr, $t:tt, $mul:ident, $add:ident)
+    // Explicit atoi version and multiply and add methods.
+    ($first:expr, $last:expr, $base:expr, $t:tt, $atoi:ident, $mul:ident, $add:ident)
     =>
     ({
         // logic error, disable in release builds
@@ -153,13 +206,17 @@ macro_rules! atoi_value {
 
         let mut value: $t = 0;
         let base = $base as $t;
-        let (p, overflow) = atoi_pointer!(value, $first, $last, base, $t, $mul, $add);
+        let (p, overflow) = $atoi!(value, $first, $last, base, $t, $mul, $add);
 
         (value, p, overflow)
     });
-    // Non-explicit multiply and add methods
+    // Non-explicit atoi version.
     ($first:expr, $last:expr, $base:expr, $t:tt) => (
-        atoi_value!($first, $last, $base, $t, overflowing_mul, overflowing_add)
+        atoi_value!($first, $last, $base, $t, atoi_unchecked)
+    );
+    // Non-explicit multiply and add methods
+    ($first:expr, $last:expr, $base:expr, $t:tt, $atoi:ident) => (
+        atoi_value!($first, $last, $base, $t, $atoi, overflowing_mul, overflowing_add)
     );
 }
 

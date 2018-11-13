@@ -85,8 +85,8 @@ mod util;
 
 mod error;
 
-#[cfg(any(test, feature = "correct", not(any(feature = "grisu3", feature = "ryu"))))]
-mod float;
+#[doc(hidden)]
+pub mod float;
 
 // Publicly export the low-level APIs.
 // Macros used in atoi are required for atof, so export those.

@@ -3,9 +3,12 @@
 // Hide implementation details.
 mod overflowing;
 
+// TODO(ahuszagh) Always expose this...
 cfg_if! {
     if #[cfg(any(test, feature = "correct"))] {
-        mod bigint;
+        #[allow(dead_code)]    // TODO(ahuszagh) Remove
+        mod cached;
+        mod decimal;
         mod double;
         mod float;
     }

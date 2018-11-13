@@ -488,7 +488,6 @@ pub(crate) unsafe extern "C" fn reverse(first: *mut u8, last: *mut u8) {
 
 /// Calculate the difference between two pointers.
 #[inline(always)]
-#[allow(dead_code)]
 pub(crate) unsafe extern "C" fn distance(first: *const u8, last: *const u8)
     -> usize
 {
@@ -505,7 +504,6 @@ extern {
 
 /// Check if two ranges are equal to each other.
 #[inline(always)]
-#[allow(dead_code)]
 pub(crate) unsafe extern "C" fn equal_to(l: *const u8, r: *const u8, n: usize)
     -> bool
 {
@@ -514,7 +512,6 @@ pub(crate) unsafe extern "C" fn equal_to(l: *const u8, r: *const u8, n: usize)
 
 /// Check if left range starts with right range.
 #[inline(always)]
-#[allow(dead_code)]
 pub(crate) unsafe extern "C" fn starts_with(l: *const u8, ln: usize, r: *const u8, rn: usize)
     -> bool
 {
@@ -528,6 +525,19 @@ pub(crate) unsafe extern "C" fn ends_with(l: *const u8, ln: usize, r: *const u8,
     -> bool
 {
     ln >= rn && equal_to(l.add(ln - rn), r, rn)
+}
+
+/// Trim character from the left-side of a range.
+///
+/// Returns a pointer to the new start of the range.
+#[inline(always)]
+pub(crate) unsafe extern "C" fn ltrim_char(mut first: *const u8, last: *const u8, char: u8)
+    -> *const u8
+{
+    while first < last && *first == char {
+        first = first.add(1);
+    }
+    first
 }
 
 // LOW LEVEL WRAPPERS
@@ -835,6 +845,30 @@ mod tests {
             assert!(!ends_with(y.as_ptr(), y.len(), x.as_ptr(), x.len()));
             assert!(!ends_with(y.as_ptr(), y.len(), w.as_ptr(), w.len()));
             assert!(!ends_with(x.as_ptr(), x.len(), w.as_ptr(), w.len()));
+        }
+    }
+
+    #[test]
+    fn ltrim_char_test() {
+        unsafe {
+            let w = "0001";
+            let x = "1010";
+            let y = "1.00";
+            let z = "1e05";
+
+            let ltrim_char_wrapper = |w: &str, c: u8| {
+                let first = w.as_ptr();
+                let last = first.add(w.len());
+                distance(first, ltrim_char(first, last, c))
+            };
+
+            assert_eq!(ltrim_char_wrapper(w, b'0'), 3);
+            assert_eq!(ltrim_char_wrapper(x, b'0'), 0);
+            assert_eq!(ltrim_char_wrapper(x, b'1'), 1);
+            assert_eq!(ltrim_char_wrapper(y, b'0'), 0);
+            assert_eq!(ltrim_char_wrapper(y, b'1'), 1);
+            assert_eq!(ltrim_char_wrapper(z, b'0'), 0);
+            assert_eq!(ltrim_char_wrapper(z, b'1'), 1);
         }
     }
 

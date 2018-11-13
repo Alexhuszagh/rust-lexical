@@ -110,6 +110,11 @@ Lexical also ports some code from [V8](https://github.com/v8/v8) and [fpconv](ht
 # Roadmap
 
 - Add a correct, string-to-float conversion for base10 floats.
+- Remove the correct feature and make the lossy path use:
+    - parse_lossy
+    - parse_lossy_radix
+    - try_parse_lossy
+    - try_parse_lossy_radix
 
 # Contributing
 

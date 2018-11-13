@@ -14,7 +14,7 @@ unsafe extern "C" fn parse_integer(first: *const u8, last: *const u8, base: u64)
     -> (f64, *const u8)
 {
     let mut integer: f64 = 0.0;
-    let p = atoi_pointer!(integer, first, last, base, f64).0;
+    let p = atoi_unchecked!(integer, first, last, base, f64).0;
     (integer, p)
 }
 
@@ -38,7 +38,7 @@ unsafe extern "C" fn parse_fraction(first: *const u8, last: *const u8, base: u64
             // but that would require.
             let mut value: u64 = 0;
             let l = min!(last, f.add(12));
-            f = atoi_pointer!(value, f, l, base, u64).0;
+            f = atoi_unchecked!(value, f, l, base, u64).0;
             let digits = distance(first, f) as i32;
 
             // Ignore leading 0s, just not we've passed them.
