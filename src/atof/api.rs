@@ -79,13 +79,13 @@ macro_rules! atof_foward {
 
 /// Convert string to float (must be called within an unsafe block).
 macro_rules! atof_value {
-    ($first:expr, $last:expr, $base:expr, $mod:ident, $nan:ident, $inf:ident) => ({
+    ($first:expr, $last:expr, $base:expr, $mod:ident, $f:tt) => ({
         // special case checks
         let length = distance($first, $last);
         if is_nan($first, length) {
-            ($nan, $first.add(NAN_STRING.len()))
+            ($f::NAN, $first.add(NAN_STRING.len()))
         } else if is_infinity($first, length) {
-            ($inf, $first.add(INFINITY_STRING.len()))
+            ($f::INFINITY, $first.add(INFINITY_STRING.len()))
         } else if is_zero($first, length) {
             (0.0, $first.add(3))
         } else {
@@ -96,16 +96,16 @@ macro_rules! atof_value {
 
 /// Sanitizer for string to float (must be called within an unsafe block).
 macro_rules! atof {
-    ($first:expr, $last:expr, $base:expr, $mod:ident, $nan:ident, $inf:ident) => ({
+    ($first:expr, $last:expr, $base:expr, $mod:ident, $f:tt) => ({
         if $first == $last {
             (0.0, nullptr!())
         } else if *$first == b'-' {
-            let (value, p) = atof_value!($first.add(1), $last, $base, $mod, $nan, $inf);
+            let (value, p) = atof_value!($first.add(1), $last, $base, $mod, $f);
             (-value, p)
         } else if *$first == b'+' {
-            atof_value!($first.add(1), $last, $base, $mod, $nan, $inf)
+            atof_value!($first.add(1), $last, $base, $mod, $f)
         } else {
-            atof_value!($first, $last, $base, $mod, $nan, $inf)
+            atof_value!($first, $last, $base, $mod, $f)
         }
     })
 }
@@ -120,7 +120,7 @@ macro_rules! atof {
 /// * `nan`         NaN literal.
 /// * `inf`         Infinity literal.
 macro_rules! unsafe_impl {
-    ($func:ident, $mod:ident, $f:ty, $nan:ident, $inf:ident) => (
+    ($func:ident, $mod:ident, $f:tt) => (
         /// Unsafe, C-like importer for signed numbers.
         #[inline]
         pub unsafe extern "C" fn $func(
@@ -130,14 +130,14 @@ macro_rules! unsafe_impl {
         )
             -> ($f, *const u8, bool)
         {
-            let (value, p) = atof!(first, last, base as u64, $mod, $nan, $inf);
+            let (value, p) = atof!(first, last, base as u64, $mod, $f);
             (value as $f, p, false)
         }
     )
 }
 
-unsafe_impl!(atof32_unsafe, float, f32, F32_NAN, F32_INFINITY);
-unsafe_impl!(atof64_unsafe, double, f64, F64_NAN, F64_INFINITY);
+unsafe_impl!(atof32_unsafe, float, f32);
+unsafe_impl!(atof64_unsafe, double, f64);
 
 // LOW-LEVEL API
 

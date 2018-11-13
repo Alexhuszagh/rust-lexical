@@ -63,8 +63,8 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
     let mut fraction = d - integer;
 
     // We only compute fractional digits up to the input double's precision.
-    let mut delta = 0.5 * (d.next() - d);
-    delta = max!(0.0.next(), delta);
+    let mut delta = 0.5 * (d.next_positive() - d);
+    delta = max!(0.0.next_positive(), delta);
     debug_assert!(delta > 0.0);
 
     if fraction > delta {

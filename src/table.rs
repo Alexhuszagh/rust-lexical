@@ -1,7 +1,7 @@
 //! Cached tables for precalculated values.
 
 /// Get value from table unchecked.
-macro_rules! get_unchecked {
+macro_rules! table_get_unchecked {
     ($table:ident, $i:expr) => (*$crate::table::$table.get_unchecked($i))
 }
 
@@ -13,7 +13,7 @@ pub const DIGIT_TO_CHAR: [u8; 36] = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b
 
 /// Get digit from character.
 macro_rules! digit_to_char {
-    ($v:expr) => (get_unchecked!(DIGIT_TO_CHAR, $v as usize))
+    ($v:expr) => (table_get_unchecked!(DIGIT_TO_CHAR, $v as usize))
 }
 
 /// Translation table for a character to a digit, of any radix.
@@ -48,7 +48,7 @@ pub const CHAR_TO_DIGIT: [u8; 256] = [
 
 /// Get digit from character.
 macro_rules! char_to_digit {
-    ($c:expr) => (get_unchecked!(CHAR_TO_DIGIT, $c as usize))
+    ($c:expr) => (table_get_unchecked!(CHAR_TO_DIGIT, $c as usize))
 }
 
 // Conditionally compile the precompiled base**2 tables.
@@ -152,7 +152,7 @@ pub const F32_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
 /// Get exact, f32 min and max exponent limit from base.
 #[cfg(any(test, feature = "correct"))]
 macro_rules! f32_exact_exponent_limit {
-    ($base:expr) => (get_unchecked!(F32_EXACT_EXPONENT_LIMITS, $base as usize - 2))
+    ($base:expr) => (table_get_unchecked!(F32_EXACT_EXPONENT_LIMITS, $base as usize - 2))
 }
 
 /// Precalculated min and max exponents for values exactly representable as f64.
@@ -201,7 +201,7 @@ pub const F64_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
 /// Get exact, f64 min and max exponent limit from base.
 #[cfg(any(test, feature = "correct"))]
 macro_rules! f64_exact_exponent_limit {
-    ($base:expr) => (get_unchecked!(F64_EXACT_EXPONENT_LIMITS, $base as usize - 2))
+    ($base:expr) => (table_get_unchecked!(F64_EXACT_EXPONENT_LIMITS, $base as usize - 2))
 }
 
 // Conditionally compile the base POWI tables.
@@ -527,7 +527,7 @@ cfg_if! {
         #[allow(unused_macros)]
         macro_rules! f32_pow2 {
             ($exponent:expr) => (
-                get_unchecked!(F32_POW2, ($exponent + $crate::table::F32_BASE2_EXPONENT_BIAS) as usize)
+                table_get_unchecked!(F32_POW2, ($exponent + $crate::table::F32_BASE2_EXPONENT_BIAS) as usize)
             );
         }
 
@@ -625,36 +625,36 @@ cfg_if! {
         #[allow(unused_macros)]
         macro_rules! f32_pown {
             ($base:ident, $exponent:expr) => (match $base {
-                3  => get_unchecked!(F32_POW3 , $exponent as usize),
-                5  => get_unchecked!(F32_POW5 , $exponent as usize),
-                6  => get_unchecked!(F32_POW6 , $exponent as usize),
-                7  => get_unchecked!(F32_POW7 , $exponent as usize),
-                9  => get_unchecked!(F32_POW9 , $exponent as usize),
-                10 => get_unchecked!(F32_POW10, $exponent as usize),
-                11 => get_unchecked!(F32_POW11, $exponent as usize),
-                12 => get_unchecked!(F32_POW12, $exponent as usize),
-                13 => get_unchecked!(F32_POW13, $exponent as usize),
-                14 => get_unchecked!(F32_POW14, $exponent as usize),
-                15 => get_unchecked!(F32_POW15, $exponent as usize),
-                17 => get_unchecked!(F32_POW17, $exponent as usize),
-                18 => get_unchecked!(F32_POW18, $exponent as usize),
-                19 => get_unchecked!(F32_POW19, $exponent as usize),
-                20 => get_unchecked!(F32_POW20, $exponent as usize),
-                21 => get_unchecked!(F32_POW21, $exponent as usize),
-                22 => get_unchecked!(F32_POW22, $exponent as usize),
-                23 => get_unchecked!(F32_POW23, $exponent as usize),
-                24 => get_unchecked!(F32_POW24, $exponent as usize),
-                25 => get_unchecked!(F32_POW25, $exponent as usize),
-                26 => get_unchecked!(F32_POW26, $exponent as usize),
-                27 => get_unchecked!(F32_POW27, $exponent as usize),
-                28 => get_unchecked!(F32_POW28, $exponent as usize),
-                29 => get_unchecked!(F32_POW29, $exponent as usize),
-                30 => get_unchecked!(F32_POW30, $exponent as usize),
-                31 => get_unchecked!(F32_POW31, $exponent as usize),
-                33 => get_unchecked!(F32_POW33, $exponent as usize),
-                34 => get_unchecked!(F32_POW34, $exponent as usize),
-                35 => get_unchecked!(F32_POW35, $exponent as usize),
-                36 => get_unchecked!(F32_POW36, $exponent as usize),
+                3  => table_get_unchecked!(F32_POW3 , $exponent as usize),
+                5  => table_get_unchecked!(F32_POW5 , $exponent as usize),
+                6  => table_get_unchecked!(F32_POW6 , $exponent as usize),
+                7  => table_get_unchecked!(F32_POW7 , $exponent as usize),
+                9  => table_get_unchecked!(F32_POW9 , $exponent as usize),
+                10 => table_get_unchecked!(F32_POW10, $exponent as usize),
+                11 => table_get_unchecked!(F32_POW11, $exponent as usize),
+                12 => table_get_unchecked!(F32_POW12, $exponent as usize),
+                13 => table_get_unchecked!(F32_POW13, $exponent as usize),
+                14 => table_get_unchecked!(F32_POW14, $exponent as usize),
+                15 => table_get_unchecked!(F32_POW15, $exponent as usize),
+                17 => table_get_unchecked!(F32_POW17, $exponent as usize),
+                18 => table_get_unchecked!(F32_POW18, $exponent as usize),
+                19 => table_get_unchecked!(F32_POW19, $exponent as usize),
+                20 => table_get_unchecked!(F32_POW20, $exponent as usize),
+                21 => table_get_unchecked!(F32_POW21, $exponent as usize),
+                22 => table_get_unchecked!(F32_POW22, $exponent as usize),
+                23 => table_get_unchecked!(F32_POW23, $exponent as usize),
+                24 => table_get_unchecked!(F32_POW24, $exponent as usize),
+                25 => table_get_unchecked!(F32_POW25, $exponent as usize),
+                26 => table_get_unchecked!(F32_POW26, $exponent as usize),
+                27 => table_get_unchecked!(F32_POW27, $exponent as usize),
+                28 => table_get_unchecked!(F32_POW28, $exponent as usize),
+                29 => table_get_unchecked!(F32_POW29, $exponent as usize),
+                30 => table_get_unchecked!(F32_POW30, $exponent as usize),
+                31 => table_get_unchecked!(F32_POW31, $exponent as usize),
+                33 => table_get_unchecked!(F32_POW33, $exponent as usize),
+                34 => table_get_unchecked!(F32_POW34, $exponent as usize),
+                35 => table_get_unchecked!(F32_POW35, $exponent as usize),
+                36 => table_get_unchecked!(F32_POW36, $exponent as usize),
                 _  => unreachable!(),
             })
         }
@@ -2773,7 +2773,7 @@ cfg_if! {
         #[allow(unused_macros)]
         macro_rules! f64_pow2 {
             ($exponent:expr) => (
-                get_unchecked!(F64_POW2, ($exponent + $crate::table::F64_BASE2_EXPONENT_BIAS) as usize)
+                table_get_unchecked!(F64_POW2, ($exponent + $crate::table::F64_BASE2_EXPONENT_BIAS) as usize)
             );
         }
 
@@ -2871,36 +2871,36 @@ cfg_if! {
         #[allow(unused_macros)]
         macro_rules! f64_pown {
             ($base:ident, $exponent:expr) => (match $base {
-                3  => get_unchecked!(F64_POW3 , $exponent as usize),
-                5  => get_unchecked!(F64_POW5 , $exponent as usize),
-                6  => get_unchecked!(F64_POW6 , $exponent as usize),
-                7  => get_unchecked!(F64_POW7 , $exponent as usize),
-                9  => get_unchecked!(F64_POW9 , $exponent as usize),
-                10 => get_unchecked!(F64_POW10, $exponent as usize),
-                11 => get_unchecked!(F64_POW11, $exponent as usize),
-                12 => get_unchecked!(F64_POW12, $exponent as usize),
-                13 => get_unchecked!(F64_POW13, $exponent as usize),
-                14 => get_unchecked!(F64_POW14, $exponent as usize),
-                15 => get_unchecked!(F64_POW15, $exponent as usize),
-                17 => get_unchecked!(F64_POW17, $exponent as usize),
-                18 => get_unchecked!(F64_POW18, $exponent as usize),
-                19 => get_unchecked!(F64_POW19, $exponent as usize),
-                20 => get_unchecked!(F64_POW20, $exponent as usize),
-                21 => get_unchecked!(F64_POW21, $exponent as usize),
-                22 => get_unchecked!(F64_POW22, $exponent as usize),
-                23 => get_unchecked!(F64_POW23, $exponent as usize),
-                24 => get_unchecked!(F64_POW24, $exponent as usize),
-                25 => get_unchecked!(F64_POW25, $exponent as usize),
-                26 => get_unchecked!(F64_POW26, $exponent as usize),
-                27 => get_unchecked!(F64_POW27, $exponent as usize),
-                28 => get_unchecked!(F64_POW28, $exponent as usize),
-                29 => get_unchecked!(F64_POW29, $exponent as usize),
-                30 => get_unchecked!(F64_POW30, $exponent as usize),
-                31 => get_unchecked!(F64_POW31, $exponent as usize),
-                33 => get_unchecked!(F64_POW33, $exponent as usize),
-                34 => get_unchecked!(F64_POW34, $exponent as usize),
-                35 => get_unchecked!(F64_POW35, $exponent as usize),
-                36 => get_unchecked!(F64_POW36, $exponent as usize),
+                3  => table_get_unchecked!(F64_POW3 , $exponent as usize),
+                5  => table_get_unchecked!(F64_POW5 , $exponent as usize),
+                6  => table_get_unchecked!(F64_POW6 , $exponent as usize),
+                7  => table_get_unchecked!(F64_POW7 , $exponent as usize),
+                9  => table_get_unchecked!(F64_POW9 , $exponent as usize),
+                10 => table_get_unchecked!(F64_POW10, $exponent as usize),
+                11 => table_get_unchecked!(F64_POW11, $exponent as usize),
+                12 => table_get_unchecked!(F64_POW12, $exponent as usize),
+                13 => table_get_unchecked!(F64_POW13, $exponent as usize),
+                14 => table_get_unchecked!(F64_POW14, $exponent as usize),
+                15 => table_get_unchecked!(F64_POW15, $exponent as usize),
+                17 => table_get_unchecked!(F64_POW17, $exponent as usize),
+                18 => table_get_unchecked!(F64_POW18, $exponent as usize),
+                19 => table_get_unchecked!(F64_POW19, $exponent as usize),
+                20 => table_get_unchecked!(F64_POW20, $exponent as usize),
+                21 => table_get_unchecked!(F64_POW21, $exponent as usize),
+                22 => table_get_unchecked!(F64_POW22, $exponent as usize),
+                23 => table_get_unchecked!(F64_POW23, $exponent as usize),
+                24 => table_get_unchecked!(F64_POW24, $exponent as usize),
+                25 => table_get_unchecked!(F64_POW25, $exponent as usize),
+                26 => table_get_unchecked!(F64_POW26, $exponent as usize),
+                27 => table_get_unchecked!(F64_POW27, $exponent as usize),
+                28 => table_get_unchecked!(F64_POW28, $exponent as usize),
+                29 => table_get_unchecked!(F64_POW29, $exponent as usize),
+                30 => table_get_unchecked!(F64_POW30, $exponent as usize),
+                31 => table_get_unchecked!(F64_POW31, $exponent as usize),
+                33 => table_get_unchecked!(F64_POW33, $exponent as usize),
+                34 => table_get_unchecked!(F64_POW34, $exponent as usize),
+                35 => table_get_unchecked!(F64_POW35, $exponent as usize),
+                36 => table_get_unchecked!(F64_POW36, $exponent as usize),
                 _  => unreachable!(),
             })
         }

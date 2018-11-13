@@ -93,6 +93,7 @@ use util::*;
 /// Detects overflow, but ignores it until the end of the string. Generally
 /// faster than checking and modifying logic as a result.
 #[allow(unused_macros)]
+// TODO(ahuszagh) change to function
 macro_rules! atoi_unchecked {
     // Explicit multiply and add methods.
     ($value:ident, $first:expr, $last:expr, $base:expr, $t:tt, $mul:ident, $add:ident) => ({
@@ -145,6 +146,7 @@ macro_rules! atoi_unchecked {
 ///
 /// This macro is only used in the correct atof parsers.
 #[allow(unused_macros)]
+// TODO(ahuszagh) change to function
 macro_rules! atoi_checked {
     // Explicit multiply and add methods.
     ($value:ident, $first:expr, $last:expr, $base:expr, $t:tt, $mul:ident, $add:ident) => ({

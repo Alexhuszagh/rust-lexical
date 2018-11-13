@@ -170,12 +170,14 @@ pub(super) unsafe extern "C" fn parse_float(first: *const u8, last: *const u8, b
 /// Custom code can be executed inside the code-block to avoid code.
 ///
 /// Returns the resulting float and if the value can be represented exactly.
+// TODO(ahuszagh) Convert to function
 macro_rules! to_exact {
-    ($mantissa:ident, $base:ident, $exponent:ident, $size:ident, $min:ident, $max:ident, $f:ty, $mod:ident) => ({
+    ($mantissa:ident, $base:ident, $exponent:ident, $min:ident, $max:ident, $f:tt, $mod:ident) =>
+    ({
         // logic error, disable in release builds
         debug_assert!($base >= 2 && $base <= 36, "Numerical base must be from 2-36");
 
-        if $mantissa >> $size != 0 {
+        if $mantissa >> $f::SIGNIFICAND_SIZE != 0 {
             // Would require truncation of the mantissa.
             (0.0, false)
         } else {
@@ -209,7 +211,7 @@ macro_rules! to_exact {
 #[inline]
 pub(super) unsafe fn to_float_exact(mantissa: u64, base: u64, exponent: i32) -> (f32, bool) {
     let (min_exp, max_exp) = f32_exact_exponent_limit!(base);
-    to_exact!(mantissa, base, exponent, F32_SIGNIFICAND_SIZE, min_exp, max_exp, f32, float)
+    to_exact!(mantissa, base, exponent, min_exp, max_exp, f32, float)
 }
 
 /// Convert mantissa and exponent to exact f64.
@@ -218,7 +220,7 @@ pub(super) unsafe fn to_float_exact(mantissa: u64, base: u64, exponent: i32) -> 
 #[inline]
 pub(super) unsafe fn to_double_exact(mantissa: u64, base: u64, exponent: i32) -> (f64, bool) {
     let (min_exp, max_exp) = f64_exact_exponent_limit!(base);
-    to_exact!(mantissa, base, exponent, F64_SIGNIFICAND_SIZE, min_exp, max_exp, f64, double)
+    to_exact!(mantissa, base, exponent, min_exp, max_exp, f64, double)
 }
 
 // EXTENDED
@@ -230,12 +232,49 @@ pub(super) unsafe fn to_double_exact(mantissa: u64, base: u64, exponent: i32) ->
 
 // EXTENDED
 
+/// Count the relative error in the extended-float precision.
+struct Errors {
+    // Upper bound for the error, in scale * ulp
+    count: u32,
+}
+
+impl Errors {
+    /// Error scale
+    const ERROR_SCALE: u32 = 8;
+
+    #[inline(always)]
+    fn new(truncated: bool) -> Errors {
+        Errors { count: Errors::trunction(truncated) }
+    }
+
+    #[inline(always)]
+    fn trunction(truncated: bool) -> u32 {
+        truncated as u32 * Self::halfscale()
+    }
+
+    #[inline(always)]
+    fn scale() -> u32 {
+        Self::ERROR_SCALE
+    }
+
+    #[inline(always)]
+    fn halfscale() -> u32 {
+        Self::scale() / 2
+    }
+}
+
+
+// TODO(ahuszagh)
+// We need a way to check if it's a good fit...
+
+
 /// Multiply the floating-point by the exponent.
 ///
 /// Multiply by pre-calculated powers of the base, modify the extended-
 /// float, and return if new value and if the value can be represented
 /// accurately.
 #[inline]
+#[allow(unused)]    // TODO(ahuszagh) Remove
 unsafe fn multiply_exponent_extended(mut fp: FloatType, base: u64, exponent: i32, truncated: bool)
     -> (FloatType, bool)
 {
@@ -252,16 +291,47 @@ unsafe fn multiply_exponent_extended(mut fp: FloatType, base: u64, exponent: i32
     } else {
         // Within the valid exponent range, multiply by the large and small
         // exponents and return the resulting value.
+
+        // Track errors to as a factor of unit in last-precision.
+        let mut errors = Errors::new(truncated);
+
+        // Multiply by the small power.
+        // Check if we can directly multiply by an integer, if not,
+        // use extended-precision multiplication.
+        match fp.frac.overflowing_mul(powers.get_small_int(small_index as usize)) {
+            // Overflow, multiplication unsuccessful, go slow path.
+            (_, true)     => {
+                fp.normalize();
+                fp.imul(powers.get_small(small_index as usize));
+                errors.count += Errors::halfscale();
+            },
+            // No overflow, multiplication successful.
+            (frac, false) => {
+                fp.frac = frac;
+                fp.normalize();
+            },
+        }
+
+        // Multiply by the large power
+        fp.imul(powers.get_large(large_index as usize));
+        errors.count += (errors.count > 0) as u32;
+        errors.count += Errors::halfscale();
+
+        // Normalize the floating point (and the errors).
+        let shift = fp.normalize();
+        errors.count <<= shift;
+
         // TODO(ahuszagh) Need to implement an error checking mechanism
         // https://golang.org/src/strconv/extfloat.go
         //  Line 239
-        let small = powers.small.get_unchecked(small_index as usize);
-        let large = powers.large.get_unchecked(large_index as usize);
-        fp.normalize();
-        let mut fp = fp.mul(large);
-        fp.normalize();
-        let mut fp = fp.mul(small);
-        fp.normalize();
+
+//        let small = powers.small.get_unchecked(small_index as usize);
+//        let large = powers.large.get_unchecked(large_index as usize);
+//        fp.normalize();
+//        let mut fp = fp.mul(large);
+//        fp.normalize();
+//        let mut fp = fp.mul(small);
+//        fp.normalize();
         (fp, true)
     }
 }
@@ -486,7 +556,7 @@ mod tests {
     fn to_float_exact_test() {
         unsafe {
             // valid
-            let mantissa = 1 << (F32_SIGNIFICAND_SIZE - 1);
+            let mantissa = 1 << (f32::SIGNIFICAND_SIZE - 1);
             for base in 2..37u64 {
                 let (min_exp, max_exp) = f32_exact_exponent_limit!(base);
                 for exp in min_exp..max_exp+1 {
@@ -496,7 +566,7 @@ mod tests {
             }
 
             // invalid mantissa
-            let (_, valid) = to_float_exact(1<<F32_SIGNIFICAND_SIZE, 2, 0);
+            let (_, valid) = to_float_exact(1<<f32::SIGNIFICAND_SIZE, 2, 0);
             assert!(!valid, "invalid mantissa");
 
             // invalid exponents
@@ -515,7 +585,7 @@ mod tests {
     fn to_double_exact_test() {
         unsafe {
             // valid
-            let mantissa = 1 << (F64_SIGNIFICAND_SIZE - 1);
+            let mantissa = 1 << (f64::SIGNIFICAND_SIZE - 1);
             for base in 2..37u64 {
                 let (min_exp, max_exp) = f64_exact_exponent_limit!(base);
                 for exp in min_exp..max_exp+1 {
@@ -525,7 +595,7 @@ mod tests {
             }
 
             // invalid mantissa
-            let (_, valid) = to_double_exact(1<<F64_SIGNIFICAND_SIZE, 2, 0);
+            let (_, valid) = to_double_exact(1<<f64::SIGNIFICAND_SIZE, 2, 0);
             assert!(!valid, "invalid mantissa");
 
             // invalid exponents

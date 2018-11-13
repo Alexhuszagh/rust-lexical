@@ -193,8 +193,8 @@ mod tests {
         assert_eq!("-10011010010.10010001", &f32toa_string(-1.2345678901234567890e3, 2)[..21]);
 
         // special
-        assert_eq!("NaN", &f32toa_string(F32_NAN, 2));
-        assert_eq!("inf", &f32toa_string(F32_INFINITY, 2));
+        assert_eq!("NaN", &f32toa_string(f32::NAN, 2));
+        assert_eq!("inf", &f32toa_string(f32::INFINITY, 2));
 
         // bugfixes
         assert_eq!("1.101010000010101111000e-11011", &f32toa_string(0.000000012345, 2));
@@ -219,8 +219,8 @@ mod tests {
         assert_eq!("-1234.567", &f32toa_string(-1.2345678901234567890e3, 10)[..9]);
 
         // special
-        assert_eq!("NaN", &f32toa_string(F32_NAN, 10));
-        assert_eq!("inf", &f32toa_string(F32_INFINITY, 10));
+        assert_eq!("NaN", &f32toa_string(f32::NAN, 10));
+        assert_eq!("inf", &f32toa_string(f32::INFINITY, 10));
     }
 
     #[test]
@@ -262,8 +262,8 @@ mod tests {
         assert_eq!("-10011010010.1001000101100001001111110100", &f64toa_string(-1.2345678901234567890e3, 2)[..41]);
 
         // special
-        assert_eq!("NaN", &f64toa_string(F64_NAN, 2));
-        assert_eq!("inf", &f64toa_string(F64_INFINITY, 2));
+        assert_eq!("NaN", &f64toa_string(f64::NAN, 2));
+        assert_eq!("inf", &f64toa_string(f64::INFINITY, 2));
     }
 
     #[test]
@@ -285,8 +285,8 @@ mod tests {
         assert_eq!("-1234.567", &f64toa_string(-1.2345678901234567890e3, 10)[..9]);
 
         // special
-        assert_eq!("NaN", &f64toa_string(F64_NAN, 10));
-        assert_eq!("inf", &f64toa_string(F64_INFINITY, 10));
+        assert_eq!("NaN", &f64toa_string(f64::NAN, 10));
+        assert_eq!("inf", &f64toa_string(f64::INFINITY, 10));
     }
 
     #[test]

@@ -3,8 +3,8 @@
 //! Utilities for working with pointers and compiler intrinsics that
 //! may not be available  in rust, or in a `no_std` context.
 
-#[cfg(feature = "std")]
-use std::{f32, f64};
+pub use sealed::{f32, f64};
+use sealed::{iter, fmt, ops};
 
 // GLOBALS
 
@@ -37,56 +37,513 @@ pub static mut EXPONENT_DEFAULT_CHAR: u8 = b'e';
 /// change this value during before using lexical.
 pub static mut EXPONENT_BACKUP_CHAR: u8 = b'^';
 
-// FLOAT CONSTANTS
+// TRAITS
 
-// MASKS
-// 32-bit
-/// Bit-mask for the exponent, including the hidden bit.
-pub const F32_EXPONENT_MASK: u32    = 0x7F800000;
-/// Bit-mask for the hidden bit in exponent, which is use for the fraction.
-pub const F32_HIDDEN_BIT_MASK: u32  = 0x00800000;
-/// Bit-mask for the mantissa (fraction), excluding the hidden bit.
-pub const F32_FRACTION_MASK: u32    = 0x007FFFFF;
-// 64-bit
-/// Bit-mask for the exponent, including the hidden bit.
-pub const F64_EXPONENT_MASK: u64    = 0x7FF0000000000000;
-/// Bit-mask for the hidden bit in exponent, which is use for the fraction.
-pub const F64_HIDDEN_BIT_MASK: u64  = 0x0010000000000000;
-/// Bit-mask for the mantissa (fraction), excluding the hidden bit.
-pub const F64_FRACTION_MASK: u64    = 0x000FFFFFFFFFFFFF;
+/// Defines a trait that allows lossy conversions between types.
+pub trait PrimitiveCast<T: Copy>: Copy {
+    fn cast(self) -> T;
+}
 
-// PROPERTIES
-// 32-bit
-pub const U32_INFINITY: u32         = 0x7F800000;
-/// Size of the significand (mantissa) without the hidden bit.
-pub const F32_SIGNIFICAND_SIZE: i32 = 23;
-/// Bias of the exponent.
-pub const F32_EXPONENT_BIAS: i32 = 127 + F32_SIGNIFICAND_SIZE;
-/// Exponent portion of a denormal float.
-pub const F32_DENORMAL_EXPONENT: i32 = -F32_EXPONENT_BIAS + 1;
-// 64-bit
-/// Positive infinity as bits.
-pub const U64_INFINITY: u64         = 0x7FF0000000000000;
-/// Size of the significand (mantissa) without the hidden bit.
-pub const F64_SIGNIFICAND_SIZE: i32 = 52;
-/// Bias of the exponent.
-pub const F64_EXPONENT_BIAS: i32 = 1023 + F64_SIGNIFICAND_SIZE;
-/// Exponent portion of a denormal float.
-pub const F64_DENORMAL_EXPONENT: i32 = -F64_EXPONENT_BIAS + 1;
+macro_rules! primitive_cast_impl {
+    // Explicit types.
+    ($t:ty; $($into:ty)*) => ($(
+        impl PrimitiveCast<$into> for $t {
+            fn cast(self) -> $into {
+                self as $into
+            }
+        }
+    )*);
+    // Base case, define for all types.
+    ($($t:ty)*) => ($(
+        primitive_cast_impl!($t; u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64);
+    )*);
+}
 
-// CONSTANTS
+primitive_cast_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64 }
 
-cfg_if! {
-    if #[cfg(feature = "std")] {
-        pub(crate) const F32_NAN: f32 = f32::NAN;
-        pub(crate) const F32_INFINITY: f32 = f32::INFINITY;
-        pub(crate) const F64_NAN: f64 = f64::NAN;
-        pub(crate) const F64_INFINITY: f64 = f64::INFINITY;
-    } else {
-        pub(crate) const F32_NAN: f32 = 0.0_f32 / 0.0_f32;
-        pub(crate) const F32_INFINITY: f32 = 1.0_f32 / 0.0_f32;
-        pub(crate) const F64_NAN: f64 = 0.0_f64 / 0.0_f64;
-        pub(crate) const F64_INFINITY: f64 = 1.0_f64 / 0.0_f64;
+///// Hack due to failure in Rust type deduction with CastInto.
+//pub fn cast<U: Copy, T: PrimitiveCast<U>>(t: T) -> U {
+//    t.cast()
+//}
+
+/// Defines a trait that supports integral operations.
+pub trait Integer:
+    // Basic
+    Copy + PartialEq + Eq + PartialOrd + Ord +
+    // Display
+    fmt::Debug + fmt::Display + fmt::Octal + fmt::LowerHex + fmt::UpperHex +
+    // Iteration
+    iter::Product + iter::Sum +
+    //Operations
+    ops::Add<Output=Self> +
+    ops::AddAssign +
+    ops::BitAnd<Output=Self> +
+    ops::BitAndAssign +
+    ops::BitOr<Output=Self> +
+    ops::BitOrAssign +
+    ops::BitXor<Output=Self> +
+    ops::BitXorAssign +
+    ops::Div<Output=Self> +
+    ops::DivAssign +
+    ops::Mul<Output=Self> +
+    ops::MulAssign +
+    ops::Not +
+    ops::Rem<Output=Self> +
+    ops::RemAssign +
+    ops::Shl<Output=Self> +
+    ops::Shl<u8, Output=Self> +
+    ops::Shl<u16, Output=Self> +
+    ops::Shl<u32, Output=Self> +
+    ops::Shl<u64, Output=Self> +
+    ops::Shl<usize, Output=Self> +
+    ops::Shl<i8, Output=Self> +
+    ops::Shl<i16, Output=Self> +
+    ops::Shl<i32, Output=Self> +
+    ops::Shl<i64, Output=Self> +
+    ops::Shl<isize, Output=Self> +
+    ops::ShlAssign +
+    ops::ShlAssign<u8> +
+    ops::ShlAssign<u16> +
+    ops::ShlAssign<u32> +
+    ops::ShlAssign<u64> +
+    ops::ShlAssign<usize> +
+    ops::ShlAssign<i8> +
+    ops::ShlAssign<i16> +
+    ops::ShlAssign<i32> +
+    ops::ShlAssign<i64> +
+    ops::ShlAssign<isize> +
+    ops::Shr<Output=Self> +
+    ops::Shr<u8, Output=Self> +
+    ops::Shr<u16, Output=Self> +
+    ops::Shr<u32, Output=Self> +
+    ops::Shr<u64, Output=Self> +
+    ops::Shr<usize, Output=Self> +
+    ops::Shr<i8, Output=Self> +
+    ops::Shr<i16, Output=Self> +
+    ops::Shr<i64, Output=Self> +
+    ops::Shr<isize, Output=Self> +
+    ops::Shr<i32, Output=Self> +
+    ops::ShrAssign +
+    ops::ShrAssign<u8> +
+    ops::ShrAssign<u16> +
+    ops::ShrAssign<u32> +
+    ops::ShrAssign<u64> +
+    ops::ShrAssign<usize> +
+    ops::ShrAssign<i8> +
+    ops::ShrAssign<i16> +
+    ops::ShrAssign<i32> +
+    ops::ShrAssign<i64> +
+    ops::ShrAssign<isize> +
+    ops::Sub<Output=Self> +
+    ops::SubAssign +
+    // Conversions
+    PrimitiveCast<u8> +
+    PrimitiveCast<u16> +
+    PrimitiveCast<u32> +
+    PrimitiveCast<u64> +
+    PrimitiveCast<usize> +
+    PrimitiveCast<i8> +
+    PrimitiveCast<i16> +
+    PrimitiveCast<i32> +
+    PrimitiveCast<i64> +
+    PrimitiveCast<isize> +
+    PrimitiveCast<f32> +
+    PrimitiveCast<f64>
+{
+    const ZERO: Self;
+    const ONE: Self;
+
+    /// Check if value is equal to zero.
+    #[inline(always)]
+    fn is_zero(self) -> bool {
+        self == Self::ZERO
+    }
+
+    /// Check if value is equal to one.
+    #[inline(always)]
+    fn is_one(self) -> bool {
+        self == Self::ONE
+    }
+}
+
+macro_rules! integer_impl {
+    ($($t:ty)*) => ($(
+        impl Integer for $t {
+            const ZERO: $t = 0;
+            const ONE: $t = 1;
+        }
+    )*)
+}
+
+integer_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
+
+/// Float information for native float types.
+pub trait Float:
+    // Basic
+    Copy + PartialEq + PartialOrd +
+    // Display
+    fmt::Debug + fmt::Display + fmt::LowerExp + fmt::UpperExp +
+    // Iteration
+    iter::Product + iter::Sum +
+    // Operations
+    ops::Add<Output=Self> +
+    ops::AddAssign +
+    ops::Div<Output=Self> +
+    ops::DivAssign +
+    ops::Mul<Output=Self> +
+    ops::MulAssign +
+    ops::Neg +
+    ops::Rem<Output=Self> +
+    ops::RemAssign +
+    ops::Sub<Output=Self> +
+    ops::SubAssign +
+    // Conversions
+    PrimitiveCast<u8> +
+    PrimitiveCast<u16> +
+    PrimitiveCast<u32> +
+    PrimitiveCast<u64> +
+    PrimitiveCast<usize> +
+    PrimitiveCast<i8> +
+    PrimitiveCast<i16> +
+    PrimitiveCast<i32> +
+    PrimitiveCast<i64> +
+    PrimitiveCast<isize> +
+    PrimitiveCast<f32> +
+    PrimitiveCast<f64>
+{
+    /// Unsigned type of the same size.
+    type Unsigned: Integer;
+
+    // CONSTANTS
+    const ZERO: Self;
+    const ONE: Self;
+
+    /// Bitmask for the sign bit.
+    const SIGN_MASK: Self::Unsigned;
+    /// Bitmask for the exponent, including the hidden bit.
+    const EXPONENT_MASK: Self::Unsigned;
+    /// Bitmask for the hidden bit in exponent, which is an implicit 1 in the fraction.
+    const HIDDEN_BIT_MASK: Self::Unsigned;
+    /// Bitmask for the mantissa (fraction), excluding the hidden bit.
+    const FRACTION_MASK: Self::Unsigned;
+
+    // PROPERTIES
+
+    /// Positive infinity as bits.
+    const INFINITY_BITS: Self::Unsigned;
+    /// Size of the significand (mantissa) without hidden bit.
+    const SIGNIFICAND_SIZE: i32;
+    /// Bias of the exponet
+    const EXPONENT_BIAS: i32;
+    /// Exponent portion of a denormal float.
+    const DENORMAL_EXPONENT: i32;
+    /// Maximum exponent value in float.
+    const MAX_EXPONENT: i32;
+
+    // FUNCTIONS (INHERITED)
+
+    // Re-export the to and from bits methods.
+    fn abs(self) -> Self;
+    fn ceil(self) -> Self;
+    fn exp(self) -> Self;
+    fn floor(self) -> Self;
+    fn ln(self) -> Self;
+    fn powi(self, n: i32) -> Self;
+    fn powf(self, f: Self) -> Self;
+    fn round(self) -> Self;
+    fn to_bits(self) -> Self::Unsigned;
+    fn from_bits(u: Self::Unsigned) -> Self;
+    fn is_sign_positive(self) -> bool;
+    fn is_sign_negative(self) -> bool;
+
+    // FUNCTIONS
+
+    /// Check if value is equal to zero.
+    #[inline]
+    fn is_zero(self) -> bool {
+        self == Self::ZERO
+    }
+
+    /// Check if value is equal to one.
+    #[inline]
+    fn is_one(self) -> bool {
+        self == Self::ONE
+    }
+
+    /// Returns true if the float is a denormal.
+    #[inline]
+    fn is_denormal(self) -> bool {
+        self.to_bits() & Self::EXPONENT_MASK == Self::Unsigned::ZERO
+    }
+
+    /// Returns true if the float is a NaN or Infinite.
+    #[inline]
+    fn is_special(self) -> bool {
+        self.to_bits() & Self::EXPONENT_MASK == Self::EXPONENT_MASK
+    }
+
+    /// Returns true if the float is NaN.
+    #[inline]
+    fn is_nan(self) -> bool {
+        self.is_special() && !(self.to_bits() & Self::FRACTION_MASK).is_zero()
+    }
+
+    /// Get exponent component from the float.
+    #[inline]
+    fn exponent(self) -> i32 {
+        if self.is_denormal() {
+            return Self::DENORMAL_EXPONENT;
+        }
+
+        let bits = self.to_bits();
+        let biased_e: i32 = ((bits & Self::EXPONENT_MASK) >> Self::SIGNIFICAND_SIZE).cast();
+        biased_e - Self::EXPONENT_BIAS
+    }
+
+    /// Get significand (mantissa) component from float.
+    #[inline]
+    fn significand(self) -> Self::Unsigned {
+        let bits = self.to_bits();
+        let s = bits & Self::FRACTION_MASK;
+        if !self.is_denormal() {
+            s + Self::HIDDEN_BIT_MASK
+        } else {
+            s
+        }
+    }
+
+    /// Get next greater float.
+    #[inline]
+    fn next(self) -> Self {
+        let bits = self.to_bits();
+        if self.is_sign_negative() && self.significand().is_zero() {
+            // -0.0
+            Self::ZERO
+        } else if self.is_sign_negative() {
+            Self::from_bits(bits - Self::Unsigned::ONE)
+        } else {
+            Self::from_bits(bits + Self::Unsigned::ONE)
+        }
+    }
+
+    /// Get next greater float for a positive float.
+    #[inline]
+    fn next_positive(self) -> Self {
+        debug_assert!(self.is_sign_positive());
+
+        let bits = self.to_bits();
+        if bits == Self::INFINITY_BITS {
+            return Self::from_bits(Self::INFINITY_BITS);
+        }
+        return Self::from_bits(bits + Self::Unsigned::ONE);
+    }
+}
+
+/// Wrap float method for `no_std` context.
+macro_rules! float_nostd {
+    ($f:ident, $t:tt, $meth:ident, $intr:ident $(,$i:expr)*) => ({
+        #[cfg(feature = "std")]
+        return $t::$meth($f $(,$i)*);
+
+        #[cfg(not(feature = "std"))]
+        return unsafe { core::intrinsics::$intr($f $(,$i)*) };
+    })
+}
+
+/// Wrap float method for `no_std` context, with special conditions for MSVC.
+///
+/// This is because MSVC wraps these as inline functions, with no actual
+/// ABI for the LLVM intrinsic.
+macro_rules! float_nostd_msvc {
+    ($f:ident, $ts:tt, $tl:tt, $meth:ident, $intr:ident $(,$i:expr)*) => ({
+        #[cfg(feature = "std")]
+        return $ts::$meth($f $(,$i)*);
+
+        #[cfg(all(not(feature = "std"), not(target_env = "msvc")))]
+        return unsafe { core::intrinsics::$intr($f $(,$i)*) };
+
+        #[cfg(all(not(feature = "std"), target_env = "msvc"))]
+        return ($f as $tl).$meth() as $ts;
+    })
+}
+
+/// Wrap float log method for `no_std` context, with special conditions for Solaris.
+///
+/// Solaris has a standard non-conforming log implementation, we need
+/// to wrap this cheaply.
+macro_rules! float_nostd_log_solaris {
+    ($f:ident, $t:tt, $meth:ident, $intr:ident $(,$i:expr)*) => ({
+        #[cfg(feature = "std")]
+        return $t::$meth($f $(,$i)*);
+
+        #[cfg(all(not(feature = "std"), not(target_os = "solaris")))]
+        return unsafe { core::intrinsics::$intr($f $(,$i)*) };
+
+        // Workaround for Solaris/Illumos due to log(-value) == -Inf, not NaN.
+        #[cfg(all(not(feature = "std"), target_os = "solaris"))] {
+            if $f.is_nan() {
+                $f
+            } else if $f.is_special() {
+                if $f > $t::ZERO { $f } else { $t::NAN }
+            } else if $f > $t::ZERO {
+                unsafe { core::intrinsics::$intr($f $(,$i)*) }
+            } else if $f.is_zero() {
+                $t::NEG_INFINITY
+            } else {
+                $t::NAN
+            }
+        }
+    })
+}
+
+impl Float for f32 {
+    type Unsigned = u32;
+    const ZERO: f32 = 0.0;
+    const ONE: f32 = 1.0;
+    const SIGN_MASK: u32            = 0x80000000;
+    const EXPONENT_MASK: u32        = 0x7F800000;
+    const HIDDEN_BIT_MASK: u32      = 0x00800000;
+    const FRACTION_MASK: u32        = 0x007FFFFF;
+    const INFINITY_BITS: u32        = 0x7F800000;
+    const SIGNIFICAND_SIZE: i32     = 23;
+    const EXPONENT_BIAS: i32        = 127 + Self::SIGNIFICAND_SIZE;
+    const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
+    const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
+
+    #[inline(always)]
+    fn abs(self) -> f32 {
+        float_nostd!(self, f32, abs, fabsf32)
+    }
+
+    #[inline(always)]
+    fn ceil(self) -> f32 {
+        float_nostd_msvc!(self, f32, f64, ceil, ceilf32)
+    }
+
+    #[inline(always)]
+    fn exp(self) -> f32 {
+        float_nostd_msvc!(self, f32, f64, exp, expf32)
+    }
+
+    #[inline(always)]
+    fn floor(self) -> f32 {
+        float_nostd_msvc!(self, f32, f64, floor, floorf32)
+    }
+
+    #[inline(always)]
+    fn ln(self) -> f32 {
+        float_nostd_msvc!(self, f32, f64, ln, logf32)
+    }
+
+    #[inline(always)]
+    fn powi(self, n: i32) -> f32 {
+        float_nostd!(self, f32, powi, powif32, n)
+    }
+
+    #[inline(always)]
+    fn powf(self, n: f32) -> f32 {
+        float_nostd_msvc!(self, f32, f64, powf, powf32, n as f32)
+    }
+
+    #[inline(always)]
+    fn round(self) -> f32 {
+        float_nostd!(self, f32, round, roundf32)
+    }
+
+    #[inline(always)]
+    fn to_bits(self) -> u32 {
+        f32::to_bits(self)
+    }
+
+    #[inline(always)]
+    fn from_bits(u: u32) -> f32 {
+        f32::from_bits(u)
+    }
+
+    #[inline(always)]
+    fn is_sign_positive(self) -> bool {
+        f32::is_sign_positive(self)
+    }
+
+    #[inline(always)]
+    fn is_sign_negative(self) -> bool {
+        f32::is_sign_negative(self)
+    }
+}
+
+impl Float for f64 {
+    type Unsigned = u64;
+    const ZERO: f64 = 0.0;
+    const ONE: f64 = 1.0;
+    const SIGN_MASK: u64            = 0x8000000000000000;
+    const EXPONENT_MASK: u64        = 0x7FF0000000000000;
+    const HIDDEN_BIT_MASK: u64      = 0x0010000000000000;
+    const FRACTION_MASK: u64        = 0x000FFFFFFFFFFFFF;
+    const INFINITY_BITS: u64        = 0x7FF0000000000000;
+    const SIGNIFICAND_SIZE: i32     = 52;
+    const EXPONENT_BIAS: i32        = 1023 + Self::SIGNIFICAND_SIZE;
+    const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
+    const MAX_EXPONENT: i32         = 0x7FF - Self::EXPONENT_BIAS;
+
+// TODO(ahuszagh) Implement...
+    #[inline(always)]
+    fn abs(self) -> f64 {
+        float_nostd!(self, f64, abs, fabsf64)
+    }
+
+    #[inline(always)]
+    fn ceil(self) -> f64 {
+        float_nostd!(self, f64, ceil, ceilf64)
+    }
+
+    #[inline(always)]
+    fn exp(self) -> f64 {
+        float_nostd!(self, f64, exp, expf64)
+    }
+
+    #[inline(always)]
+    fn floor(self) -> f64 {
+        float_nostd!(self, f64, floor, floorf64)
+    }
+
+    #[inline(always)]
+    fn ln(self) -> f64 {
+        float_nostd_log_solaris!(self, f64, ln, logf64)
+    }
+
+    #[inline(always)]
+    fn powi(self, n: i32) -> f64 {
+        float_nostd!(self, f64, powi, powif64, n)
+    }
+
+    #[inline(always)]
+    fn powf(self, n: f64) -> f64 {
+        float_nostd!(self, f64, powf, powf64, n)
+    }
+
+    #[inline(always)]
+    fn round(self) -> f64 {
+        float_nostd!(self, f64, round, roundf64)
+    }
+
+    #[inline(always)]
+    fn to_bits(self) -> u64 {
+        f64::to_bits(self)
+    }
+
+    #[inline(always)]
+    fn from_bits(u: u64) -> f64 {
+        f64::from_bits(u)
+    }
+
+    #[inline(always)]
+    fn is_sign_positive(self) -> bool {
+        f64::is_sign_positive(self)
+    }
+
+    #[inline(always)]
+    fn is_sign_negative(self) -> bool {
+        f64::is_sign_negative(self)
     }
 }
 
@@ -241,13 +698,13 @@ macro_rules! stable_powi_normal {
 
 /// Macro to generate stable_powi for f32 and f64.
 macro_rules! stable_powi {
-    ($value:ident, $base:ident, $exponent:ident, $maxexp:ident, $inf:ident, $cb:ident) => ({
+    ($value:ident, $base:ident, $exponent:ident, $maxexp:ident, $f:tt, $cb:ident) => ({
         if $exponent > $maxexp {
             // Value is impossibly large, must be infinity.
-            $inf
+            $f::INFINITY
         } else if $exponent < -$maxexp {
             // Value is impossibly small, must be 0.
-            0.0
+            $f::ZERO
         } else {
             $cb($value, $base, $exponent)
         }
@@ -255,6 +712,8 @@ macro_rules! stable_powi {
 }
 
 // STABLE POWI F32
+
+// TODO(ahuszagh) I should be able to make these properties of float...
 
 /// Cached powers to get the desired exponent.
 /// Make sure all values are < 1e25.
@@ -306,7 +765,7 @@ pub fn stable_powi_normal_f32(mut value: f32, base: u64, mut exponent: i32) -> f
 #[allow(dead_code)]
 pub fn stable_powi_f32(value: f32, base: u64, exponent: i32) -> f32 {
     let maxexp = f32_maxexp(base);
-    stable_powi!(value, base, exponent, maxexp, F32_INFINITY, stable_powi_normal_f32)
+    stable_powi!(value, base, exponent, maxexp, f32, stable_powi_normal_f32)
 }
 
 // STABLE POWI F64
@@ -361,7 +820,7 @@ pub fn stable_powi_normal_f64(mut value: f64, base: u64, mut exponent: i32) -> f
 #[allow(dead_code)]
 pub fn stable_powi_f64(value: f64, base: u64, exponent: i32) -> f64 {
     let maxexp = f64_maxexp(base);
-    stable_powi!(value, base, exponent, maxexp, F64_INFINITY, stable_powi_normal_f64)
+    stable_powi!(value, base, exponent, maxexp, f64, stable_powi_normal_f64)
 }
 
 // POWN POWI
@@ -622,6 +1081,13 @@ macro_rules! string_impl {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // TODO(ahuszagh) Add unittests
+    //  PrimitiveCast...
+    //  Integer...
+    //      Integer methods...
+    //  Float...
+    //      Float methods...
 
     #[test]
     fn stable_powi_normal_f32_test() {
@@ -886,8 +1352,8 @@ mod tests {
                 assert!(atof32_bytes(b"inf", 10).is_infinite());
                 assert!(!atof32_bytes(b"nan", 10).is_nan());
                 assert!(!atof32_bytes(b"Infinity", 10).is_infinite());
-                assert_eq!(&f64toa_string(F64_NAN, 10), "NaN");
-                assert_eq!(&f64toa_string(F64_INFINITY, 10), "inf");
+                assert_eq!(&f64toa_string(f64::NAN, 10), "NaN");
+                assert_eq!(&f64toa_string(f64::INFINITY, 10), "inf");
 
                 unsafe {
                     NAN_STRING = "nan";
@@ -898,8 +1364,8 @@ mod tests {
                 assert!(!atof32_bytes(b"inf", 10).is_infinite());
                 assert!(atof32_bytes(b"nan", 10).is_nan());
                 assert!(atof32_bytes(b"Infinity", 10).is_infinite());
-                assert_eq!(&f64toa_string(F64_NAN, 10), "nan");
-                assert_eq!(&f64toa_string(F64_INFINITY, 10), "Infinity");
+                assert_eq!(&f64toa_string(f64::NAN, 10), "nan");
+                assert_eq!(&f64toa_string(f64::INFINITY, 10), "Infinity");
 
                 unsafe {
                     NAN_STRING = "NaN";

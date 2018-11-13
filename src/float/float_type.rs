@@ -8,6 +8,9 @@
 //! this only works for positive floats.
 
 use util::*;
+use super::convert::*;
+use super::rounding::*;
+use super::shift::*;
 
 // FLOAT TYPE
 
@@ -29,7 +32,9 @@ impl FloatType {
 
     /// Multiply two normalized extended-precision floats, as if by `a*b`.
     ///
-    /// The result is not normalized.
+    /// The precision is maximal when the numbers are normalized, however,
+    /// decent precision will occur as long as both values have high bits
+    /// set. The result is not normalized.
     ///
     /// Algorithm:
     ///     1. Non-signed multiplication of mantissas (requires 2x as many bits as input).
@@ -38,10 +43,11 @@ impl FloatType {
     #[inline]
     pub unsafe fn mul(&self, b: &FloatType) -> FloatType
     {
-        // Logic check, values must be normalized prior to multiplication.
-        debug_assert!(self.is_normalized() && b.is_normalized());
-
+        const HIMASK: u64 = 0xFFFFFFFF00000000;
         const LOMASK: u64 = 0x00000000FFFFFFFF;
+
+        // Logic check, values must be decently normalized prior to multiplication.
+        debug_assert!((self.frac & HIMASK != 0) && (b.frac & HIMASK != 0));
 
         // Extract high-and-low masks.
         let ah = self.frac >> 32;
@@ -102,7 +108,7 @@ impl FloatType {
         // however, removing the if/then will likely optimize more branched
         // code as it removes conditional logic.
         let shift = self.frac.leading_zeros();
-        shl!(self, shift);
+        shl(self, shift);
         shift
     }
 
@@ -117,7 +123,7 @@ impl FloatType {
 
         // Use a boolean hack to get 2 if they're equal, else 1, without
         // any branching.
-        let is_hidden = self.frac == F64_HIDDEN_BIT_MASK;
+        let is_hidden = self.frac == f64::HIDDEN_BIT_MASK;
         let l_shift: i32 = is_hidden as i32 + 1;
 
         let mut lower = FloatType {
@@ -136,50 +142,14 @@ impl FloatType {
     #[inline]
     fn round_to_f32(&mut self)
     {
-        const DENORMAL: i32 = 1 - F32_EXPONENT_BIAS;
-        const MAX: i32 = 0xFF - F32_EXPONENT_BIAS;
-        // Every mask from the hidden bit over, to see if we can
-        // shift-left in 1 operation.
-        const MASKS: [u64; 24] = [
-            0x00800000, 0x00C00000, 0x00E00000, 0x00F00000, 0x00F80000, 0x00FC0000,
-            0x00FE0000, 0x00FF0000, 0x00FF8000, 0x00FFC000, 0x00FFE000, 0x00FFF000,
-            0x00FFF800, 0x00FFFC00, 0x00FFFE00, 0x00FFFF00, 0x00FFFF80, 0x00FFFFC0,
-            0x00FFFFE0, 0x00FFFFF0, 0x00FFFFF8, 0x00FFFFFC, 0x00FFFFFE, 0x00FFFFFF
-        ];
-
-        round_to_f32!(self, DENORMAL, MAX, MASKS)
+        round_to_native::<f32>(self)
     }
 
     /// Lossy round float-point number to f64 fraction boundaries.
     #[inline]
     fn round_to_f64(&mut self)
     {
-        const DENORMAL: i32 = 1 - F64_EXPONENT_BIAS;
-        const MAX: i32 = 0x7FF - F64_EXPONENT_BIAS;
-        // Every mask from the hidden bit over, to see if we can
-        // shift-left in 1 operation.
-        const MASKS: [u64; 53] = [
-            0x0010000000000000, 0x0018000000000000, 0x001C000000000000,
-            0x001E000000000000, 0x001F000000000000, 0x001F800000000000,
-            0x001FC00000000000, 0x001FE00000000000, 0x001FF00000000000,
-            0x001FF80000000000, 0x001FFC0000000000, 0x001FFE0000000000,
-            0x001FFF0000000000, 0x001FFF8000000000, 0x001FFFC000000000,
-            0x001FFFE000000000, 0x001FFFF000000000, 0x001FFFF800000000,
-            0x001FFFFC00000000, 0x001FFFFE00000000, 0x001FFFFF00000000,
-            0x001FFFFF80000000, 0x001FFFFFC0000000, 0x001FFFFFE0000000,
-            0x001FFFFFF0000000, 0x001FFFFFF8000000, 0x001FFFFFFC000000,
-            0x001FFFFFFE000000, 0x001FFFFFFF000000, 0x001FFFFFFF800000,
-            0x001FFFFFFFC00000, 0x001FFFFFFFE00000, 0x001FFFFFFFF00000,
-            0x001FFFFFFFF80000, 0x001FFFFFFFFC0000, 0x001FFFFFFFFE0000,
-            0x001FFFFFFFFF0000, 0x001FFFFFFFFF8000, 0x001FFFFFFFFFC000,
-            0x001FFFFFFFFFE000, 0x001FFFFFFFFFF000, 0x001FFFFFFFFFF800,
-            0x001FFFFFFFFFFC00, 0x001FFFFFFFFFFE00, 0x001FFFFFFFFFFF00,
-            0x001FFFFFFFFFFF80, 0x001FFFFFFFFFFFC0, 0x001FFFFFFFFFFFE0,
-            0x001FFFFFFFFFFFF0, 0x001FFFFFFFFFFFF8, 0x001FFFFFFFFFFFFC,
-            0x001FFFFFFFFFFFFE, 0x001FFFFFFFFFFFFF
-        ];
-
-        round_to_f64!(self, DENORMAL, MAX, MASKS)
+        round_to_native::<f64>(self)
     }
 
     // FROM
@@ -187,43 +157,37 @@ impl FloatType {
     /// Create extended float from 8-bit unsigned integer.
     #[inline]
     pub fn from_u8(i: u8) -> FloatType {
-        from_int!(i)
+        from_int(i)
     }
 
     /// Create extended float from 16-bit unsigned integer.
     #[inline]
     pub fn from_u16(i: u16) -> FloatType {
-        from_int!(i)
+        from_int(i)
     }
 
     /// Create extended float from 32-bit unsigned integer.
     #[inline]
     pub fn from_u32(i: u32) -> FloatType {
-        from_int!(i)
+        from_int(i)
     }
 
     /// Create extended float from 64-bit unsigned integer.
     #[inline]
     pub fn from_u64(i: u64) -> FloatType {
-        from_int!(i)
+        from_int(i)
     }
 
     /// Create extended float from 32-bit float.
     #[inline]
     pub fn from_f32(f: f32) -> FloatType {
-        const EXPONENT: u64 = F32_EXPONENT_MASK as u64;
-        const HIDDEN: u64 = F32_HIDDEN_BIT_MASK as u64;
-        const FRACTION: u64 = F32_FRACTION_MASK as u64;
-        from_float!(f, EXPONENT, HIDDEN, FRACTION, F32_EXPONENT_BIAS, F32_SIGNIFICAND_SIZE)
+        from_float(f)
     }
 
     /// Create extended float from 64-bit float.
     #[inline]
     pub fn from_f64(f: f64) -> FloatType {
-        const EXPONENT: u64 = F64_EXPONENT_MASK;
-        const HIDDEN: u64 = F64_HIDDEN_BIT_MASK;
-        const FRACTION: u64 = F64_FRACTION_MASK;
-        from_float!(f, EXPONENT, HIDDEN, FRACTION, F64_EXPONENT_BIAS, F64_SIGNIFICAND_SIZE)
+        from_float(f)
     }
 
     // TO
@@ -231,35 +195,19 @@ impl FloatType {
     /// Convert to lower-precision 32-bit float.
     #[inline]
     pub fn as_f32(&self) -> f32 {
-        const DENORMAL: i32 = 1 - F32_EXPONENT_BIAS;
-        const MAX: i32 = 0xFF - F32_EXPONENT_BIAS;
-        const HIDDEN: u64 = F32_HIDDEN_BIT_MASK as u64;
-        const FRACTION: u64 = F32_FRACTION_MASK as u64;
-        const BIAS: i32 = F32_EXPONENT_BIAS;
-        const INF: u32 = U32_INFINITY;
-        const SIG_SIZE: i32 = F32_SIGNIFICAND_SIZE;
-
-        // Create a normalized fraction for export.
+        // Create a rounded and normalized fraction for export.
         let mut x = *self;
         x.round_to_f32();
-        as_float!(x, f32, u32, DENORMAL, HIDDEN, FRACTION, BIAS, MAX, INF, SIG_SIZE)
+        as_float(x)
     }
 
     /// Convert to lower-precision 64-bit float.
     #[inline]
     pub fn as_f64(&self) -> f64 {
-        const DENORMAL: i32 = 1 - F64_EXPONENT_BIAS;
-        const MAX: i32 = 0x7FF - F64_EXPONENT_BIAS;
-        const HIDDEN: u64 = F64_HIDDEN_BIT_MASK;
-        const FRACTION: u64 = F64_FRACTION_MASK;
-        const BIAS: i32 = F64_EXPONENT_BIAS;
-        const INF: u64 = U64_INFINITY;
-        const SIG_SIZE: i32 = F64_SIGNIFICAND_SIZE;
-
-        // Create a normalized fraction for export.
+        // Create a rounded and normalized fraction for export.
         let mut x = *self;
         x.round_to_f64();
-        as_float!(x, f64, u64, DENORMAL, HIDDEN, FRACTION, BIAS, MAX, INF, SIG_SIZE)
+        as_float(x)
     }
 }
 
@@ -726,15 +674,15 @@ mod tests {
 
         // max value + 1
         let x = FloatType {frac: 16777216, exp: 104};
-        assert_eq!(x.as_f32(), F32_INFINITY);
+        assert_eq!(x.as_f32(), f32::INFINITY);
 
         // max value + 1
         let x = FloatType {frac: 1048576, exp: 108};
-        assert_eq!(x.as_f32(), F32_INFINITY);
+        assert_eq!(x.as_f32(), f32::INFINITY);
 
         // 1e40
         let x = FloatType {frac: 16940658945086007296, exp: 69};
-        assert_eq!(x.as_f32(), F32_INFINITY);
+        assert_eq!(x.as_f32(), f32::INFINITY);
 
         // Integers.
         for int in INTEGERS.iter() {
@@ -803,11 +751,11 @@ mod tests {
 
         // overflow
         let x = FloatType {frac: 9007199254740992, exp: 971};
-        assert_relative_eq!(x.as_f64(), F64_INFINITY);
+        assert_relative_eq!(x.as_f64(), f64::INFINITY);
 
         // overflow
         let x = FloatType {frac: 18446744073709549568, exp: 961};
-        assert_relative_eq!(x.as_f64(), F64_INFINITY);
+        assert_relative_eq!(x.as_f64(), f64::INFINITY);
 
         // Integers.
         for int in INTEGERS.iter() {
@@ -865,6 +813,16 @@ mod tests {
             a.normalize();
             b.normalize();
             assert_eq!(a.mul(&b).as_f64(), 100.0);
+
+            // Check both values need high bits set.
+            let a = FloatType { frac: 1 << 32, exp: -31 };
+            let b = FloatType { frac: 1 << 32, exp: -31 };
+            assert_eq!(a.mul(&b).as_f64(), 4.0);
+
+            // Check both values need high bits set.
+            let a = FloatType { frac: 10 << 31, exp: -31 };
+            let b = FloatType { frac: 10 << 31, exp: -31 };
+            assert_eq!(a.mul(&b).as_f64(), 100.0);
         }
     }
 
@@ -889,6 +847,18 @@ mod tests {
             let mut b = FloatType::from_u8(10);
             a.normalize();
             b.normalize();
+            a.imul(&b);
+            assert_eq!(a.as_f64(), 100.0);
+
+            // Check both values need high bits set.
+            let mut a = FloatType { frac: 1 << 32, exp: -31 };
+            let b = FloatType { frac: 1 << 32, exp: -31 };
+            a.imul(&b);
+            assert_eq!(a.as_f64(), 4.0);
+
+            // Check both values need high bits set.
+            let mut a = FloatType { frac: 10 << 31, exp: -31 };
+            let b = FloatType { frac: 10 << 31, exp: -31 };
             a.imul(&b);
             assert_eq!(a.as_f64(), 100.0);
         }

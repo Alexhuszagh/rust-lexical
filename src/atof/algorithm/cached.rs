@@ -21,10 +21,18 @@
 //!
 //! STEP_STR = "const BASE{0}_STEP: i32 = {1};"
 //! SMALL_STR = "const BASE{0}_SMALL_POWERS: [FloatType; BASE{0}_STEP as usize] = ["
+//! SMALL_INT_STR = "const BASE{0}_SMALL_INT_POWERS: [u64; BASE{0}_STEP as usize] = {1};"
 //! LARGE_STR = "const BASE{0}_LARGE_POWERS: [FloatType; {1}] = ["
 //! FP_STR_1 = "    FloatType {{ frac: {}, exp: {} }},"
 //! FP_STR_2 = "// {}^{}"
 //! BIAS_STR = "const BASE{0}_BIAS: i32 = -BASE{0}_LARGE_POWERS[0].exp;"
+//! POWER_STR = """pub(crate) const BASE{0}_POWERS: Powers = Powers {{
+//!     small: &BASE{0}_SMALL_POWERS,
+//!     small_int: &BASE{0}_SMALL_INT_POWERS,
+//!     large: &BASE{0}_LARGE_POWERS,
+//!     step: BASE{0}_STEP,
+//!     bias: BASE{0}_BIAS,
+//! }};\n"""
 //!
 //! def calculate_bitshift(base, exponent):
 //!     '''
@@ -67,13 +75,22 @@
 //! def generate_small(base, count):
 //!     '''Generate the small powers for a given base'''
 //!
-//!     print(SMALL_STR.format(base))
 //!     bitshift = calculate_bitshift(base, count)
+//!     fps = []
 //!     fp = (1 << bitshift, -bitshift)
 //!     for exp in range(count):
-//!         print_fp(fp, base, exp)
+//!         fps.append((fp, exp))
 //!         fp = next_fp(fp, base)
+//!
+//!     # Print the small powers as Float-type
+//!     print(SMALL_STR.format(base))
+//!     for fp, exp in fps:
+//!         print_fp(fp, base, exp)
 //!     print("];")
+//!
+//!     # Print the small powers as integers.
+//!     ints = [base**i for _, i in fps]
+//!     print(SMALL_INT_STR.format(base, ints))
 //!
 //!
 //! def generate_large(base, step):
@@ -107,7 +124,7 @@
 //!     print("];")
 //!
 //!
-//! def generate(base):
+//! def generate_base(base):
 //!     '''Generate all powers and variables.'''
 //!
 //!     step = math.floor(math.log(1e10, base))
@@ -115,6 +132,29 @@
 //!     generate_small(base, step)
 //!     generate_large(base, step)
 //!     print(BIAS_STR.format(base))
+//!
+//!
+//! def generate():
+//!     '''Generate all bases.'''
+//!
+//!     bases = [
+//!         3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21,
+//!         22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36
+//!     ]
+//!
+//!     for base in bases:
+//!         print("// BASE{}\n".format(base))
+//!         generate_base(base)
+//!         print("")
+//!
+//!     print("// HIGH LEVEL\n// ----------\n")
+//!
+//!     for base in bases:
+//!         print(POWER_STR.format(base))
+//!
+//!
+//! if __name__ == '__main__':
+//!     generate()
 //! ```
 
 use float::FloatType;
@@ -147,6 +187,7 @@ const BASE3_SMALL_POWERS: [FloatType; BASE3_STEP as usize] = [
     FloatType { frac: 13311666640442621952, exp: -35 },         // 3^18
     FloatType { frac: 9983749980331966464, exp: -33 },          // 3^19
 ];
+const BASE3_SMALL_INT_POWERS: [u64; BASE3_STEP as usize] = [1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049, 177147, 531441, 1594323, 4782969, 14348907, 43046721, 129140163, 387420489, 1162261467];
 const BASE3_LARGE_POWERS: [FloatType; 67] = [
     FloatType { frac: 10783800460320302292, exp: -1141 },       // 3^-680
     FloatType { frac: 17509230984627012859, exp: -1110 },       // 3^-660
@@ -237,6 +278,7 @@ const BASE5_SMALL_POWERS: [FloatType; BASE5_STEP as usize] = [
     FloatType { frac: 16777216000000000000, exp: -36 },         // 5^12
     FloatType { frac: 10485760000000000000, exp: -33 },         // 5^13
 ];
+const BASE5_SMALL_INT_POWERS: [u64; BASE5_STEP as usize] = [1, 5, 25, 125, 625, 3125, 15625, 78125, 390625, 1953125, 9765625, 48828125, 244140625, 1220703125];
 const BASE5_LARGE_POWERS: [FloatType; 66] = [
     FloatType { frac: 15643822052986917253, exp: -1169 },       // 5^-476
     FloatType { frac: 11115604119273511155, exp: -1136 },       // 5^-462
@@ -324,6 +366,7 @@ const BASE6_SMALL_POWERS: [FloatType; BASE6_STEP as usize] = [
     FloatType { frac: 16620815899787526144, exp: -38 },         // 6^10
     FloatType { frac: 12465611924840644608, exp: -35 },         // 6^11
 ];
+const BASE6_SMALL_INT_POWERS: [u64; BASE6_STEP as usize] = [1, 6, 36, 216, 1296, 7776, 46656, 279936, 1679616, 10077696, 60466176, 362797056];
 const BASE6_LARGE_POWERS: [FloatType; 69] = [
     FloatType { frac: 11479946305982273645, exp: -1149 },       // 6^-420
     FloatType { frac: 11636570252986002899, exp: -1118 },       // 6^-408
@@ -413,6 +456,7 @@ const BASE7_SMALL_POWERS: [FloatType; BASE7_STEP as usize] = [
     FloatType { frac: 11092315029800747008, exp: -38 },         // 7^9
     FloatType { frac: 9705775651075653632, exp: -35 },          // 7^10
 ];
+const BASE7_SMALL_INT_POWERS: [u64; BASE7_STEP as usize] = [1, 7, 49, 343, 2401, 16807, 117649, 823543, 5764801, 40353607, 282475249];
 const BASE7_LARGE_POWERS: [FloatType; 69] = [
     FloatType { frac: 10365007820408367996, exp: -1144 },       // 7^-385
     FloatType { frac: 9543731415037814164, exp: -1113 },        // 7^-374
@@ -501,6 +545,7 @@ const BASE9_SMALL_POWERS: [FloatType; BASE9_STEP as usize] = [
     FloatType { frac: 11832592569282330624, exp: -38 },         // 9^8
     FloatType { frac: 13311666640442621952, exp: -35 },         // 9^9
 ];
+const BASE9_SMALL_INT_POWERS: [u64; BASE9_STEP as usize] = [1, 9, 81, 729, 6561, 59049, 531441, 4782969, 43046721, 387420489];
 const BASE9_LARGE_POWERS: [FloatType; 67] = [
     FloatType { frac: 10783800460320302292, exp: -1141 },       // 9^-340
     FloatType { frac: 17509230984627012859, exp: -1110 },       // 9^-330
@@ -587,6 +632,7 @@ const BASE10_SMALL_POWERS: [FloatType; BASE10_STEP as usize] = [
     FloatType { frac: 13743895347200000000, exp: -37 },         // 10^8
     FloatType { frac: 17179869184000000000, exp: -34 },         // 10^9
 ];
+const BASE10_SMALL_INT_POWERS: [u64; BASE10_STEP as usize] = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000];
 const BASE10_LARGE_POWERS: [FloatType; 64] = [
     FloatType { frac: 15660115838168849784, exp: -1160 },       // 10^-330
     FloatType { frac: 18230774251475056848, exp: -1127 },       // 10^-320
@@ -669,6 +715,7 @@ const BASE11_SMALL_POWERS: [FloatType; BASE11_STEP as usize] = [
     FloatType { frac: 10713185553479630848, exp: -39 },         // 11^7
     FloatType { frac: 14730630136034492416, exp: -36 },         // 11^8
 ];
+const BASE11_SMALL_INT_POWERS: [u64; BASE11_STEP as usize] = [1, 11, 121, 1331, 14641, 161051, 1771561, 19487171, 214358881];
 const BASE11_LARGE_POWERS: [FloatType; 68] = [
     FloatType { frac: 11191522591630754840, exp: -1153 },       // 11^-315
     FloatType { frac: 12288347284174558846, exp: -1122 },       // 11^-306
@@ -755,6 +802,7 @@ const BASE12_SMALL_POWERS: [FloatType; BASE12_STEP as usize] = [
     FloatType { frac: 9849372385059274752, exp: -38 },          // 12^7
     FloatType { frac: 14774058577588912128, exp: -35 },         // 12^8
 ];
+const BASE12_SMALL_INT_POWERS: [u64; BASE12_STEP as usize] = [1, 12, 144, 1728, 20736, 248832, 2985984, 35831808, 429981696];
 const BASE12_LARGE_POWERS: [FloatType; 66] = [
     FloatType { frac: 9232805349408163458, exp: -1160 },        // 12^-306
     FloatType { frac: 11091876690210014731, exp: -1128 },       // 12^-297
@@ -838,6 +886,7 @@ const BASE13_SMALL_POWERS: [FloatType; BASE13_STEP as usize] = [
     FloatType { frac: 10614265241107693568, exp: -41 },         // 13^6
     FloatType { frac: 17248181016800002048, exp: -38 },         // 13^7
 ];
+const BASE13_SMALL_INT_POWERS: [u64; BASE13_STEP as usize] = [1, 13, 169, 2197, 28561, 371293, 4826809, 62748517];
 const BASE13_LARGE_POWERS: [FloatType; 72] = [
     FloatType { frac: 14673465379822171777, exp: -1159 },       // 13^-296
     FloatType { frac: 11147555423761605318, exp: -1129 },       // 13^-288
@@ -927,6 +976,7 @@ const BASE14_SMALL_POWERS: [FloatType; BASE14_STEP as usize] = [
     FloatType { frac: 16557624767515983872, exp: -41 },         // 14^6
     FloatType { frac: 14487921671576485888, exp: -37 },         // 14^7
 ];
+const BASE14_SMALL_INT_POWERS: [u64; BASE14_STEP as usize] = [1, 14, 196, 2744, 38416, 537824, 7529536, 105413504];
 const BASE14_LARGE_POWERS: [FloatType; 70] = [
     FloatType { frac: 12880143300754023535, exp: -1160 },       // 14^-288
     FloatType { frac: 17702928299982570560, exp: -1130 },       // 14^-280
@@ -1014,6 +1064,7 @@ const BASE15_SMALL_POWERS: [FloatType; BASE15_STEP as usize] = [
     FloatType { frac: 12524124635136000000, exp: -40 },         // 15^6
     FloatType { frac: 11741366845440000000, exp: -36 },         // 15^7
 ];
+const BASE15_SMALL_INT_POWERS: [u64; BASE15_STEP as usize] = [1, 15, 225, 3375, 50625, 759375, 11390625, 170859375];
 const BASE15_LARGE_POWERS: [FloatType; 68] = [
     FloatType { frac: 9686178043528474499, exp: -1157 },        // 15^-280
     FloatType { frac: 11559862131178364723, exp: -1126 },       // 15^-272
@@ -1099,6 +1150,7 @@ const BASE17_SMALL_POWERS: [FloatType; BASE17_STEP as usize] = [
     FloatType { frac: 13269768890872758272, exp: -39 },         // 17^6
     FloatType { frac: 14099129446552305664, exp: -35 },         // 17^7
 ];
+const BASE17_SMALL_INT_POWERS: [u64; BASE17_STEP as usize] = [1, 17, 289, 4913, 83521, 1419857, 24137569, 410338673];
 const BASE17_LARGE_POWERS: [FloatType; 65] = [
     FloatType { frac: 17328852299072967575, exp: -1143 },       // 17^-264
     FloatType { frac: 14072501842077846052, exp: -1110 },       // 17^-256
@@ -1180,6 +1232,7 @@ const BASE18_SMALL_POWERS: [FloatType; BASE18_STEP as usize] = [
     FloatType { frac: 16620815899787526144, exp: -43 },         // 18^5
     FloatType { frac: 9349208943630483456, exp: -38 },          // 18^6
 ];
+const BASE18_SMALL_INT_POWERS: [u64; BASE18_STEP as usize] = [1, 18, 324, 5832, 104976, 1889568, 34012224];
 const BASE18_LARGE_POWERS: [FloatType; 73] = [
     FloatType { frac: 18312018475493194258, exp: -1144 },       // 18^-259
     FloatType { frac: 10441042983020688038, exp: -1114 },       // 18^-252
@@ -1269,6 +1322,7 @@ const BASE19_SMALL_POWERS: [FloatType; BASE19_STEP as usize] = [
     FloatType { frac: 10889998568098103296, exp: -42 },         // 19^5
     FloatType { frac: 12931873299616497664, exp: -38 },         // 19^6
 ];
+const BASE19_SMALL_INT_POWERS: [u64; BASE19_STEP as usize] = [1, 19, 361, 6859, 130321, 2476099, 47045881];
 const BASE19_LARGE_POWERS: [FloatType; 72] = [
     FloatType { frac: 15912276110980153383, exp: -1164 },       // 19^-259
     FloatType { frac: 13246698229359450470, exp: -1134 },       // 19^-252
@@ -1357,6 +1411,7 @@ const BASE20_SMALL_POWERS: [FloatType; BASE20_STEP as usize] = [
     FloatType { frac: 14073748835532800000, exp: -42 },         // 20^5
     FloatType { frac: 17592186044416000000, exp: -38 },         // 20^6
 ];
+const BASE20_SMALL_INT_POWERS: [u64; BASE20_STEP as usize] = [1, 20, 400, 8000, 160000, 3200000, 64000000];
 const BASE20_LARGE_POWERS: [FloatType; 70] = [
     FloatType { frac: 16905424996341287883, exp: -1153 },       // 20^-252
     FloatType { frac: 10076418516839318205, exp: -1122 },       // 20^-245
@@ -1443,6 +1498,7 @@ const BASE21_SMALL_POWERS: [FloatType; BASE21_STEP as usize] = [
     FloatType { frac: 17962066154046357504, exp: -42 },         // 21^5
     FloatType { frac: 11787605913592922112, exp: -37 },         // 21^6
 ];
+const BASE21_SMALL_INT_POWERS: [u64; BASE21_STEP as usize] = [1, 21, 441, 9261, 194481, 4084101, 85766121];
 const BASE21_LARGE_POWERS: [FloatType; 69] = [
     FloatType { frac: 17000740844691866712, exp: -1140 },       // 21^-245
     FloatType { frac: 14258473889848767691, exp: -1109 },       // 21^-238
@@ -1528,6 +1584,7 @@ const BASE22_SMALL_POWERS: [FloatType; BASE22_STEP as usize] = [
     FloatType { frac: 11332956618556964864, exp: -41 },         // 22^5
     FloatType { frac: 15582815350515826688, exp: -37 },         // 22^6
 ];
+const BASE22_SMALL_INT_POWERS: [u64; BASE22_STEP as usize] = [1, 22, 484, 10648, 234256, 5153632, 113379904];
 const BASE22_LARGE_POWERS: [FloatType; 68] = [
     FloatType { frac: 12505993140104023937, exp: -1156 },       // 22^-245
     FloatType { frac: 14526035001637582317, exp: -1125 },       // 22^-238
@@ -1612,6 +1669,7 @@ const BASE23_SMALL_POWERS: [FloatType; BASE23_STEP as usize] = [
     FloatType { frac: 14153667937709326336, exp: -41 },         // 23^5
     FloatType { frac: 10172948830228578304, exp: -36 },         // 23^6
 ];
+const BASE23_SMALL_INT_POWERS: [u64; BASE23_STEP as usize] = [1, 23, 529, 12167, 279841, 6436343, 148035889];
 const BASE23_LARGE_POWERS: [FloatType; 67] = [
     FloatType { frac: 12105147475110827234, exp: -1140 },       // 23^-238
     FloatType { frac: 9596327823341159083, exp: -1108 },        // 23^-231
@@ -1695,6 +1753,7 @@ const BASE24_SMALL_POWERS: [FloatType; BASE24_STEP as usize] = [
     FloatType { frac: 17509995351216488448, exp: -41 },         // 24^5
     FloatType { frac: 13132496513412366336, exp: -36 },         // 24^6
 ];
+const BASE24_SMALL_INT_POWERS: [u64; BASE24_STEP as usize] = [1, 24, 576, 13824, 331776, 7962624, 191102976];
 const BASE24_LARGE_POWERS: [FloatType; 66] = [
     FloatType { frac: 15825938165500818674, exp: -1155 },       // 24^-238
     FloatType { frac: 16900061898413227754, exp: -1123 },       // 24^-231
@@ -1777,6 +1836,7 @@ const BASE25_SMALL_POWERS: [FloatType; BASE25_STEP as usize] = [
     FloatType { frac: 10737418240000000000, exp: -40 },         // 25^5
     FloatType { frac: 16777216000000000000, exp: -36 },         // 25^6
 ];
+const BASE25_SMALL_INT_POWERS: [u64; BASE25_STEP as usize] = [1, 25, 625, 15625, 390625, 9765625, 244140625];
 const BASE25_LARGE_POWERS: [FloatType; 66] = [
     FloatType { frac: 15643822052986917253, exp: -1169 },       // 25^-238
     FloatType { frac: 11115604119273511155, exp: -1136 },       // 25^-231
@@ -1859,6 +1919,7 @@ const BASE26_SMALL_POWERS: [FloatType; BASE26_STEP as usize] = [
     FloatType { frac: 13063711065978699776, exp: -40 },         // 26^5
     FloatType { frac: 10614265241107693568, exp: -35 },         // 26^6
 ];
+const BASE26_SMALL_INT_POWERS: [u64; BASE26_STEP as usize] = [1, 26, 676, 17576, 456976, 11881376, 308915776];
 const BASE26_LARGE_POWERS: [FloatType; 65] = [
     FloatType { frac: 10583312905946974966, exp: -1149 },       // 26^-231
     FloatType { frac: 9895670261906581517, exp: -1116 },        // 26^-224
@@ -1939,6 +2000,7 @@ const BASE27_SMALL_POWERS: [FloatType; BASE27_STEP as usize] = [
     FloatType { frac: 9349208943630483456, exp: -44 },          // 27^4
     FloatType { frac: 15776790092376440832, exp: -40 },         // 27^5
 ];
+const BASE27_SMALL_INT_POWERS: [u64; BASE27_STEP as usize] = [1, 27, 729, 19683, 531441, 14348907];
 const BASE27_LARGE_POWERS: [FloatType; 74] = [
     FloatType { frac: 17041067394086403622, exp: -1148 },       // 27^-228
     FloatType { frac: 12297292543386873229, exp: -1119 },       // 27^-222
@@ -2028,6 +2090,7 @@ const BASE28_SMALL_POWERS: [FloatType; BASE28_STEP as usize] = [
     FloatType { frac: 10813142705316560896, exp: -44 },         // 28^4
     FloatType { frac: 9461499867151990784, exp: -39 },          // 28^5
 ];
+const BASE28_SMALL_INT_POWERS: [u64; BASE28_STEP as usize] = [1, 28, 784, 21952, 614656, 17210368];
 const BASE28_LARGE_POWERS: [FloatType; 74] = [
     FloatType { frac: 17488953546307848045, exp: -1160 },       // 28^-228
     FloatType { frac: 15697920957714630238, exp: -1131 },       // 28^-222
@@ -2117,6 +2180,7 @@ const BASE29_SMALL_POWERS: [FloatType; BASE29_STEP as usize] = [
     FloatType { frac: 12442618937680592896, exp: -44 },         // 29^4
     FloatType { frac: 11276123412273037312, exp: -39 },         // 29^5
 ];
+const BASE29_SMALL_INT_POWERS: [u64; BASE29_STEP as usize] = [1, 29, 841, 24389, 707281, 20511149];
 const BASE29_LARGE_POWERS: [FloatType; 73] = [
     FloatType { frac: 13301466184228767173, exp: -1142 },       // 29^-222
     FloatType { frac: 14737289938837575007, exp: -1113 },       // 29^-216
@@ -2205,6 +2269,7 @@ const BASE30_SMALL_POWERS: [FloatType; BASE30_STEP as usize] = [
     FloatType { frac: 14249670695976960000, exp: -44 },         // 30^4
     FloatType { frac: 13359066277478400000, exp: -39 },         // 30^5
 ];
+const BASE30_SMALL_INT_POWERS: [u64; BASE30_STEP as usize] = [1, 30, 900, 27000, 810000, 24300000];
 const BASE30_LARGE_POWERS: [FloatType; 72] = [
     FloatType { frac: 14677985448278451843, exp: -1153 },       // 30^-222
     FloatType { frac: 9965385675239368708, exp: -1123 },        // 30^-216
@@ -2292,6 +2357,7 @@ const BASE31_SMALL_POWERS: [FloatType; BASE31_STEP as usize] = [
     FloatType { frac: 16246753247925108736, exp: -44 },         // 31^4
     FloatType { frac: 15739042208927449088, exp: -39 },         // 31^5
 ];
+const BASE31_SMALL_INT_POWERS: [u64; BASE31_STEP as usize] = [1, 31, 961, 29791, 923521, 28629151];
 const BASE31_LARGE_POWERS: [FloatType; 72] = [
     FloatType { frac: 10365468257053156090, exp: -1163 },       // 31^-222
     FloatType { frac: 17135201456813756829, exp: -1134 },       // 31^-216
@@ -2379,6 +2445,7 @@ const BASE33_SMALL_POWERS: [FloatType; BASE33_STEP as usize] = [
     FloatType { frac: 10431471432989933568, exp: -43 },         // 33^4
     FloatType { frac: 10757454915270868992, exp: -38 },         // 33^5
 ];
+const BASE33_SMALL_INT_POWERS: [u64; BASE33_STEP as usize] = [1, 33, 1089, 35937, 1185921, 39135393];
 const BASE33_LARGE_POWERS: [FloatType; 70] = [
     FloatType { frac: 12262357879342609130, exp: -1153 },       // 33^-216
     FloatType { frac: 14748836332546310936, exp: -1123 },       // 33^-210
@@ -2464,6 +2531,7 @@ const BASE34_SMALL_POWERS: [FloatType; BASE34_STEP as usize] = [
     FloatType { frac: 11754535764925349888, exp: -43 },         // 34^4
     FloatType { frac: 12489194250233184256, exp: -38 },         // 34^5
 ];
+const BASE34_SMALL_INT_POWERS: [u64; BASE34_STEP as usize] = [1, 34, 1156, 39304, 1336336, 45435424];
 const BASE34_LARGE_POWERS: [FloatType; 70] = [
     FloatType { frac: 9940514895438007254, exp: -1162 },        // 34^-216
     FloatType { frac: 14301530372152488549, exp: -1132 },       // 34^-210
@@ -2549,6 +2617,7 @@ const BASE35_SMALL_POWERS: [FloatType; BASE35_STEP as usize] = [
     FloatType { frac: 13199637091450880000, exp: -43 },         // 35^4
     FloatType { frac: 14437103068774400000, exp: -38 },         // 35^5
 ];
+const BASE35_SMALL_INT_POWERS: [u64; BASE35_STEP as usize] = [1, 35, 1225, 42875, 1500625, 52521875];
 const BASE35_LARGE_POWERS: [FloatType; 69] = [
     FloatType { frac: 16631665395337738380, exp: -1141 },       // 35^-210
     FloatType { frac: 14236857547774631404, exp: -1110 },       // 35^-204
@@ -2633,6 +2702,7 @@ const BASE36_SMALL_POWERS: [FloatType; BASE36_STEP as usize] = [
     FloatType { frac: 14774058577588912128, exp: -43 },         // 36^4
     FloatType { frac: 16620815899787526144, exp: -38 },         // 36^5
 ];
+const BASE36_SMALL_INT_POWERS: [u64; BASE36_STEP as usize] = [1, 36, 1296, 46656, 1679616, 60466176];
 const BASE36_LARGE_POWERS: [FloatType; 69] = [
     FloatType { frac: 11479946305982273645, exp: -1149 },       // 36^-210
     FloatType { frac: 11636570252986002899, exp: -1118 },       // 36^-204
@@ -2713,9 +2783,11 @@ const BASE36_BIAS: i32 = -BASE36_LARGE_POWERS[0].exp;
 #[repr(C)]
 #[doc(hidden)]
 pub(crate) struct Powers {
-    // Pre-calculate small powers.
+    // Pre-calculated small powers.
     pub small: &'static [FloatType],
-    // Pre-calculate large powers.
+    /// Pre-calculated small powers as 64-bit integers
+    pub small_int: &'static [u64],
+    // Pre-calculated large powers.
     pub large: &'static [FloatType],
     // Step between large powers and number of small powers.
     pub step: i32,
@@ -2723,8 +2795,27 @@ pub(crate) struct Powers {
     pub bias: i32,
 }
 
+/// Allow indexing of values without bounds checking
+impl Powers {
+    #[inline]
+    pub unsafe fn get_small(&self, index: usize) -> &'static FloatType {
+        self.small.get_unchecked(index)
+    }
+
+    #[inline]
+    pub unsafe fn get_small_int(&self, index: usize) -> u64 {
+        *self.small_int.get_unchecked(index)
+    }
+
+    #[inline]
+    pub unsafe fn get_large(&self, index: usize) -> &'static FloatType {
+        self.large.get_unchecked(index)
+    }
+}
+
 pub(crate) const BASE3_POWERS: Powers = Powers {
     small: &BASE3_SMALL_POWERS,
+    small_int: &BASE3_SMALL_INT_POWERS,
     large: &BASE3_LARGE_POWERS,
     step: BASE3_STEP,
     bias: BASE3_BIAS,
@@ -2732,6 +2823,7 @@ pub(crate) const BASE3_POWERS: Powers = Powers {
 
 pub(crate) const BASE5_POWERS: Powers = Powers {
     small: &BASE5_SMALL_POWERS,
+    small_int: &BASE5_SMALL_INT_POWERS,
     large: &BASE5_LARGE_POWERS,
     step: BASE5_STEP,
     bias: BASE5_BIAS,
@@ -2739,6 +2831,7 @@ pub(crate) const BASE5_POWERS: Powers = Powers {
 
 pub(crate) const BASE6_POWERS: Powers = Powers {
     small: &BASE6_SMALL_POWERS,
+    small_int: &BASE6_SMALL_INT_POWERS,
     large: &BASE6_LARGE_POWERS,
     step: BASE6_STEP,
     bias: BASE6_BIAS,
@@ -2746,6 +2839,7 @@ pub(crate) const BASE6_POWERS: Powers = Powers {
 
 pub(crate) const BASE7_POWERS: Powers = Powers {
     small: &BASE7_SMALL_POWERS,
+    small_int: &BASE7_SMALL_INT_POWERS,
     large: &BASE7_LARGE_POWERS,
     step: BASE7_STEP,
     bias: BASE7_BIAS,
@@ -2753,6 +2847,7 @@ pub(crate) const BASE7_POWERS: Powers = Powers {
 
 pub(crate) const BASE9_POWERS: Powers = Powers {
     small: &BASE9_SMALL_POWERS,
+    small_int: &BASE9_SMALL_INT_POWERS,
     large: &BASE9_LARGE_POWERS,
     step: BASE9_STEP,
     bias: BASE9_BIAS,
@@ -2760,6 +2855,7 @@ pub(crate) const BASE9_POWERS: Powers = Powers {
 
 pub(crate) const BASE10_POWERS: Powers = Powers {
     small: &BASE10_SMALL_POWERS,
+    small_int: &BASE10_SMALL_INT_POWERS,
     large: &BASE10_LARGE_POWERS,
     step: BASE10_STEP,
     bias: BASE10_BIAS,
@@ -2767,6 +2863,7 @@ pub(crate) const BASE10_POWERS: Powers = Powers {
 
 pub(crate) const BASE11_POWERS: Powers = Powers {
     small: &BASE11_SMALL_POWERS,
+    small_int: &BASE11_SMALL_INT_POWERS,
     large: &BASE11_LARGE_POWERS,
     step: BASE11_STEP,
     bias: BASE11_BIAS,
@@ -2774,6 +2871,7 @@ pub(crate) const BASE11_POWERS: Powers = Powers {
 
 pub(crate) const BASE12_POWERS: Powers = Powers {
     small: &BASE12_SMALL_POWERS,
+    small_int: &BASE12_SMALL_INT_POWERS,
     large: &BASE12_LARGE_POWERS,
     step: BASE12_STEP,
     bias: BASE12_BIAS,
@@ -2781,6 +2879,7 @@ pub(crate) const BASE12_POWERS: Powers = Powers {
 
 pub(crate) const BASE13_POWERS: Powers = Powers {
     small: &BASE13_SMALL_POWERS,
+    small_int: &BASE13_SMALL_INT_POWERS,
     large: &BASE13_LARGE_POWERS,
     step: BASE13_STEP,
     bias: BASE13_BIAS,
@@ -2788,6 +2887,7 @@ pub(crate) const BASE13_POWERS: Powers = Powers {
 
 pub(crate) const BASE14_POWERS: Powers = Powers {
     small: &BASE14_SMALL_POWERS,
+    small_int: &BASE14_SMALL_INT_POWERS,
     large: &BASE14_LARGE_POWERS,
     step: BASE14_STEP,
     bias: BASE14_BIAS,
@@ -2795,6 +2895,7 @@ pub(crate) const BASE14_POWERS: Powers = Powers {
 
 pub(crate) const BASE15_POWERS: Powers = Powers {
     small: &BASE15_SMALL_POWERS,
+    small_int: &BASE15_SMALL_INT_POWERS,
     large: &BASE15_LARGE_POWERS,
     step: BASE15_STEP,
     bias: BASE15_BIAS,
@@ -2802,6 +2903,7 @@ pub(crate) const BASE15_POWERS: Powers = Powers {
 
 pub(crate) const BASE17_POWERS: Powers = Powers {
     small: &BASE17_SMALL_POWERS,
+    small_int: &BASE17_SMALL_INT_POWERS,
     large: &BASE17_LARGE_POWERS,
     step: BASE17_STEP,
     bias: BASE17_BIAS,
@@ -2809,6 +2911,7 @@ pub(crate) const BASE17_POWERS: Powers = Powers {
 
 pub(crate) const BASE18_POWERS: Powers = Powers {
     small: &BASE18_SMALL_POWERS,
+    small_int: &BASE18_SMALL_INT_POWERS,
     large: &BASE18_LARGE_POWERS,
     step: BASE18_STEP,
     bias: BASE18_BIAS,
@@ -2816,6 +2919,7 @@ pub(crate) const BASE18_POWERS: Powers = Powers {
 
 pub(crate) const BASE19_POWERS: Powers = Powers {
     small: &BASE19_SMALL_POWERS,
+    small_int: &BASE19_SMALL_INT_POWERS,
     large: &BASE19_LARGE_POWERS,
     step: BASE19_STEP,
     bias: BASE19_BIAS,
@@ -2823,6 +2927,7 @@ pub(crate) const BASE19_POWERS: Powers = Powers {
 
 pub(crate) const BASE20_POWERS: Powers = Powers {
     small: &BASE20_SMALL_POWERS,
+    small_int: &BASE20_SMALL_INT_POWERS,
     large: &BASE20_LARGE_POWERS,
     step: BASE20_STEP,
     bias: BASE20_BIAS,
@@ -2830,6 +2935,7 @@ pub(crate) const BASE20_POWERS: Powers = Powers {
 
 pub(crate) const BASE21_POWERS: Powers = Powers {
     small: &BASE21_SMALL_POWERS,
+    small_int: &BASE21_SMALL_INT_POWERS,
     large: &BASE21_LARGE_POWERS,
     step: BASE21_STEP,
     bias: BASE21_BIAS,
@@ -2837,6 +2943,7 @@ pub(crate) const BASE21_POWERS: Powers = Powers {
 
 pub(crate) const BASE22_POWERS: Powers = Powers {
     small: &BASE22_SMALL_POWERS,
+    small_int: &BASE22_SMALL_INT_POWERS,
     large: &BASE22_LARGE_POWERS,
     step: BASE22_STEP,
     bias: BASE22_BIAS,
@@ -2844,6 +2951,7 @@ pub(crate) const BASE22_POWERS: Powers = Powers {
 
 pub(crate) const BASE23_POWERS: Powers = Powers {
     small: &BASE23_SMALL_POWERS,
+    small_int: &BASE23_SMALL_INT_POWERS,
     large: &BASE23_LARGE_POWERS,
     step: BASE23_STEP,
     bias: BASE23_BIAS,
@@ -2851,6 +2959,7 @@ pub(crate) const BASE23_POWERS: Powers = Powers {
 
 pub(crate) const BASE24_POWERS: Powers = Powers {
     small: &BASE24_SMALL_POWERS,
+    small_int: &BASE24_SMALL_INT_POWERS,
     large: &BASE24_LARGE_POWERS,
     step: BASE24_STEP,
     bias: BASE24_BIAS,
@@ -2858,6 +2967,7 @@ pub(crate) const BASE24_POWERS: Powers = Powers {
 
 pub(crate) const BASE25_POWERS: Powers = Powers {
     small: &BASE25_SMALL_POWERS,
+    small_int: &BASE25_SMALL_INT_POWERS,
     large: &BASE25_LARGE_POWERS,
     step: BASE25_STEP,
     bias: BASE25_BIAS,
@@ -2865,6 +2975,7 @@ pub(crate) const BASE25_POWERS: Powers = Powers {
 
 pub(crate) const BASE26_POWERS: Powers = Powers {
     small: &BASE26_SMALL_POWERS,
+    small_int: &BASE26_SMALL_INT_POWERS,
     large: &BASE26_LARGE_POWERS,
     step: BASE26_STEP,
     bias: BASE26_BIAS,
@@ -2872,6 +2983,7 @@ pub(crate) const BASE26_POWERS: Powers = Powers {
 
 pub(crate) const BASE27_POWERS: Powers = Powers {
     small: &BASE27_SMALL_POWERS,
+    small_int: &BASE27_SMALL_INT_POWERS,
     large: &BASE27_LARGE_POWERS,
     step: BASE27_STEP,
     bias: BASE27_BIAS,
@@ -2879,6 +2991,7 @@ pub(crate) const BASE27_POWERS: Powers = Powers {
 
 pub(crate) const BASE28_POWERS: Powers = Powers {
     small: &BASE28_SMALL_POWERS,
+    small_int: &BASE28_SMALL_INT_POWERS,
     large: &BASE28_LARGE_POWERS,
     step: BASE28_STEP,
     bias: BASE28_BIAS,
@@ -2886,6 +2999,7 @@ pub(crate) const BASE28_POWERS: Powers = Powers {
 
 pub(crate) const BASE29_POWERS: Powers = Powers {
     small: &BASE29_SMALL_POWERS,
+    small_int: &BASE29_SMALL_INT_POWERS,
     large: &BASE29_LARGE_POWERS,
     step: BASE29_STEP,
     bias: BASE29_BIAS,
@@ -2893,6 +3007,7 @@ pub(crate) const BASE29_POWERS: Powers = Powers {
 
 pub(crate) const BASE30_POWERS: Powers = Powers {
     small: &BASE30_SMALL_POWERS,
+    small_int: &BASE30_SMALL_INT_POWERS,
     large: &BASE30_LARGE_POWERS,
     step: BASE30_STEP,
     bias: BASE30_BIAS,
@@ -2900,6 +3015,7 @@ pub(crate) const BASE30_POWERS: Powers = Powers {
 
 pub(crate) const BASE31_POWERS: Powers = Powers {
     small: &BASE31_SMALL_POWERS,
+    small_int: &BASE31_SMALL_INT_POWERS,
     large: &BASE31_LARGE_POWERS,
     step: BASE31_STEP,
     bias: BASE31_BIAS,
@@ -2907,6 +3023,7 @@ pub(crate) const BASE31_POWERS: Powers = Powers {
 
 pub(crate) const BASE33_POWERS: Powers = Powers {
     small: &BASE33_SMALL_POWERS,
+    small_int: &BASE33_SMALL_INT_POWERS,
     large: &BASE33_LARGE_POWERS,
     step: BASE33_STEP,
     bias: BASE33_BIAS,
@@ -2914,6 +3031,7 @@ pub(crate) const BASE33_POWERS: Powers = Powers {
 
 pub(crate) const BASE34_POWERS: Powers = Powers {
     small: &BASE34_SMALL_POWERS,
+    small_int: &BASE34_SMALL_INT_POWERS,
     large: &BASE34_LARGE_POWERS,
     step: BASE34_STEP,
     bias: BASE34_BIAS,
@@ -2921,6 +3039,7 @@ pub(crate) const BASE34_POWERS: Powers = Powers {
 
 pub(crate) const BASE35_POWERS: Powers = Powers {
     small: &BASE35_SMALL_POWERS,
+    small_int: &BASE35_SMALL_INT_POWERS,
     large: &BASE35_LARGE_POWERS,
     step: BASE35_STEP,
     bias: BASE35_BIAS,
@@ -2928,6 +3047,7 @@ pub(crate) const BASE35_POWERS: Powers = Powers {
 
 pub(crate) const BASE36_POWERS: Powers = Powers {
     small: &BASE36_SMALL_POWERS,
+    small_int: &BASE36_SMALL_INT_POWERS,
     large: &BASE36_LARGE_POWERS,
     step: BASE36_STEP,
     bias: BASE36_BIAS,
