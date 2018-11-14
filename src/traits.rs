@@ -5,14 +5,11 @@ use atoi::*;
 use error::Error;
 use lib;
 
-// TODO(ahuszagh) Need to re-conceive this?
-
 cfg_if! {
-    if #[cfg(any(feature = "std", feature = "alloc"))] {
-        use ftoa::*;
-        use itoa::*;
-    }
-}
+if #[cfg(any(feature = "std", feature = "alloc"))] {
+use ftoa::*;
+use itoa::*;
+}}  // cfg_if
 
 // FROM STRING
 
@@ -31,13 +28,17 @@ macro_rules! from_bytes {
             #[inline(always)]
             fn from_bytes(bytes: &[u8], base: u8) -> $t
             {
-                $bytes_cb(bytes, base)
+                // We reverse the argument order, since the low-level API
+                // always uses (base: u8, first: *const u8, last: *const u8)
+                $bytes_cb(base, bytes)
             }
 
             #[inline(always)]
             fn try_from_bytes(bytes: &[u8], base: u8) -> Result<$t, Error>
             {
-                $try_bytes_cb(bytes, base)
+                // We reverse the argument order, since the low-level API
+                // always uses (base: u8, first: *const u8, last: *const u8)
+                $try_bytes_cb(base, bytes)
             }
         }
     )
@@ -59,41 +60,39 @@ from_bytes!(f64, atof64_bytes, try_atof64_bytes);
 // NTOA
 
 cfg_if! {
-    if #[cfg(any(feature = "std", feature = "alloc"))] {
-        /// Trait for types that are serializable to string or bytes.
-        pub trait ToBytes: Sized {
-            /// Serialize to string.
-            // TODO(ahuszagh) Needs to actually export bytes...
-            // Just wrap it even higher level to string.
-            fn to_bytes(&self, base: u8) -> lib::String;
-        }
-
-        macro_rules! ntoa_impl {
-            ($t:ty, $string_cb:ident) => (
-                impl ToBytes for $t {
-                    #[inline(always)]
-                    fn to_bytes(&self, base: u8) -> lib::String
-                    {
-                        $string_cb(*self, base)
-                    }
-                }
-            )
-        }
-
-        ntoa_impl!(u8, u8toa_string);
-        ntoa_impl!(u16, u16toa_string);
-        ntoa_impl!(u32, u32toa_string);
-        ntoa_impl!(u64, u64toa_string);
-        ntoa_impl!(usize, usizetoa_string);
-        ntoa_impl!(i8, i8toa_string);
-        ntoa_impl!(i16, i16toa_string);
-        ntoa_impl!(i32, i32toa_string);
-        ntoa_impl!(i64, i64toa_string);
-        ntoa_impl!(isize, isizetoa_string);
-        ntoa_impl!(f32, f32toa_string);
-        ntoa_impl!(f64, f64toa_string);
-    }
+if #[cfg(any(feature = "std", feature = "alloc"))] {
+/// Trait for types that are serializable to string or bytes.
+pub trait ToBytes: Sized {
+    /// Serialize to string.
+    fn to_bytes(&self, base: u8) -> lib::Vec<u8>;
 }
+
+macro_rules! to_bytes {
+    ($t:ty, $string_cb:ident) => (
+        impl ToBytes for $t {
+            #[inline(always)]
+            fn to_bytes(&self, base: u8) -> lib::Vec<u8>
+            {
+                $string_cb(*self, base)
+            }
+        }
+    )
+}
+
+to_bytes!(u8, u8toa_bytes);
+to_bytes!(u16, u16toa_bytes);
+to_bytes!(u32, u32toa_bytes);
+to_bytes!(u64, u64toa_bytes);
+to_bytes!(usize, usizetoa_bytes);
+to_bytes!(i8, i8toa_bytes);
+to_bytes!(i16, i16toa_bytes);
+to_bytes!(i32, i32toa_bytes);
+to_bytes!(i64, i64toa_bytes);
+to_bytes!(isize, isizetoa_bytes);
+to_bytes!(f32, f32toa_bytes);
+to_bytes!(f64, f64toa_bytes);
+
+}}  // cfg_if
 
 // TESTS
 // -----
@@ -127,26 +126,26 @@ mod tests {
     }
 
     cfg_if! {
-        if #[cfg(any(feature = "std", feature = "alloc"))] {
-            macro_rules! serialize_int {
-                ($($t:tt)*) => ($({
-                    let x: $t = 0;
-                    assert_eq!(x.to_bytes(10), "0");
-                })*)
-            }
-
-            macro_rules! serialize_float {
-                ($($t:tt)*) => ($({
-                    let x: $t = 0.0;
-                    assert_eq!(x.to_bytes(10), "0.0");
-                })*)
-            }
-
-            #[test]
-            fn ntoa_test() {
-                serialize_int! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
-                serialize_float! { f32 f64 }
-            }
-        }
+    if #[cfg(any(feature = "std", feature = "alloc"))] {
+    macro_rules! serialize_int {
+        ($($t:tt)*) => ($({
+            let x: $t = 0;
+            assert_eq!(x.to_bytes(10), b"0".to_vec());
+        })*)
     }
+
+    macro_rules! serialize_float {
+        ($($t:tt)*) => ($({
+            let x: $t = 0.0;
+            assert_eq!(x.to_bytes(10), b"0.0".to_vec());
+        })*)
+    }
+
+    #[test]
+    fn ntoa_test() {
+        serialize_int! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
+        serialize_float! { f32 f64 }
+    }
+
+    }}  // cfg_if
 }

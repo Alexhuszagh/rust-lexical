@@ -90,9 +90,9 @@ use util::*;
 
 // ALGORITHM
 
-/// Explicitly unsafe implied version of `atoi_unchecked`.
+/// Explicitly unsafe implied version of `unchecked`.
 #[inline]
-unsafe fn atoi_unchecked_unsafe<T>(value: &mut T, base: T, first: *const u8, last: *const u8)
+unsafe fn unchecked_unsafe<T>(value: &mut T, base: T, first: *const u8, last: *const u8)
     -> (*const u8, bool)
     where T: Integer
 {
@@ -136,18 +136,18 @@ unsafe fn atoi_unchecked_unsafe<T>(value: &mut T, base: T, first: *const u8, las
 ///
 /// This is an unsafe function, just needs to be safe to use FnOnce.
 #[inline]
-pub(crate) fn atoi_unchecked<T>(value: &mut T, base: T, first: *const u8, last: *const u8)
+pub(crate) fn unchecked<T>(value: &mut T, base: u32, first: *const u8, last: *const u8)
     -> (*const u8, bool)
     where T: Integer
 {
     unsafe {
-        atoi_unchecked_unsafe::<T>(value, base, first, last)
+        unchecked_unsafe::<T>(value, as_(base), first, last)
     }
 }
 
-/// Explicitly unsafe implied version of `atoi_checked`.
+/// Explicitly unsafe implied version of `checked`.
 #[inline]
-unsafe fn atoi_checked_unsafe<T>(value: &mut T, base: T, first: *const u8, last: *const u8)
+unsafe fn checked_unsafe<T>(value: &mut T, base: T, first: *const u8, last: *const u8)
     -> (*const u8, bool)
     where T: Integer
 {
@@ -197,52 +197,51 @@ unsafe fn atoi_checked_unsafe<T>(value: &mut T, base: T, first: *const u8, last:
 /// This macro is only used in the correct atof parsers.
 #[inline]
 #[allow(dead_code)]
-pub(crate) fn atoi_checked<T>(value: &mut T, base: T, first: *const u8, last: *const u8)
+pub(crate) fn checked<T>(value: &mut T, base: u32, first: *const u8, last: *const u8)
     -> (*const u8, bool)
     where T: Integer
 {
     unsafe {
-        atoi_checked_unsafe::<T>(value, base, first, last)
+        checked_unsafe::<T>(value, as_(base), first, last)
     }
 }
 
 /// Parse value from a positive numeric string.
 #[inline]
-pub(crate) unsafe fn atoi_value<T, Cb>(base: u8, first: *const u8, last: *const u8, cb: Cb)
+pub(crate) unsafe fn value<T, Cb>(base: u32, first: *const u8, last: *const u8, cb: Cb)
     -> (T, *const u8, bool)
     where T: Integer,
-          Cb: FnOnce(&mut T, T, *const u8, *const u8) -> (*const u8, bool)
+          Cb: FnOnce(&mut T, u32, *const u8, *const u8) -> (*const u8, bool)
 {
     // logic error, disable in release builds
     debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
 
-    let mut value: T = T::ZERO;
-    let base: T = as_(base);
-    let (p, overflow) = cb(&mut value, base, first, last);
+    let mut v: T = T::ZERO;
+    let (p, overflow) = cb(&mut v, base, first, last);
 
-    (value, p, overflow)
+    (v, p, overflow)
 }
 
 /// Handle +/- numbers and forward to implementation.
 ///
 /// `first` must be less than or equal to `last`.
 #[inline]
-pub(crate) unsafe fn atoi_sign<T, Cb>(base: u8, first: *const u8, last: *const u8, cb: Cb)
+pub(crate) unsafe fn filter_sign<T, Cb>(base: u32, first: *const u8, last: *const u8, cb: Cb)
     -> (T, *const u8, bool, i32)
     where T: Integer,
-          Cb: FnOnce(&mut T, T, *const u8, *const u8) -> (*const u8, bool)
+          Cb: FnOnce(&mut T, u32, *const u8, *const u8) -> (*const u8, bool)
 {
     match *first {
         b'+' => {
-            let (v, p, o) = atoi_value::<T, Cb>(base, first.add(1), last, cb);
+            let (v, p, o) = value::<T, Cb>(base, first.add(1), last, cb);
             (v, p, o, 1)
         },
         b'-' => {
-            let (v, p, o) = atoi_value::<T, Cb>(base, first.add(1), last, cb);
+            let (v, p, o) = value::<T, Cb>(base, first.add(1), last, cb);
             (v, p, o, -1)
         },
         _    => {
-            let (v, p, o) = atoi_value::<T, Cb>(base, first, last, cb);
+            let (v, p, o) = value::<T, Cb>(base, first, last, cb);
             (v, p, o, 1)
         },
     }
@@ -251,15 +250,15 @@ pub(crate) unsafe fn atoi_sign<T, Cb>(base: u8, first: *const u8, last: *const u
 /// Handle unsigned +/- numbers and forward to implied implementation.
 //  Can just use local namespace
 #[inline]
-pub(crate) unsafe fn atoi_unsigned<T, Cb>(base: u8, first: *const u8, last: *const u8, cb: Cb)
+pub(crate) unsafe fn unsigned<T, Cb>(base: u32, first: *const u8, last: *const u8, cb: Cb)
     -> (T, *const u8, bool)
     where T: UnsignedInteger,
-          Cb: FnOnce(&mut T, T, *const u8, *const u8) -> (*const u8, bool)
+          Cb: FnOnce(&mut T, u32, *const u8, *const u8) -> (*const u8, bool)
 {
     if first == last {
         (T::ZERO, ptr::null(), false)
     } else {
-        let (v, p, o, s) = atoi_sign::<T, Cb>(base, first, last, cb);
+        let (v, p, o, s) = filter_sign::<T, Cb>(base, first, last, cb);
         match s {
             -1 => (v.wrapping_neg(), p, true),
             1  => (v, p, o),
@@ -271,15 +270,15 @@ pub(crate) unsafe fn atoi_unsigned<T, Cb>(base: u8, first: *const u8, last: *con
 /// Handle signed +/- numbers and forward to implied implementation.
 //  Can just use local namespace
 #[inline]
-pub(crate) unsafe fn atoi_signed<T, Cb>(base: u8, first: *const u8, last: *const u8, cb: Cb)
+pub(crate) unsafe fn signed<T, Cb>(base: u32, first: *const u8, last: *const u8, cb: Cb)
     -> (T, *const u8, bool)
     where T: SignedInteger,
-          Cb: FnOnce(&mut T, T, *const u8, *const u8) -> (*const u8, bool)
+          Cb: FnOnce(&mut T, u32, *const u8, *const u8) -> (*const u8, bool)
 {
     if first == last {
         (T::ZERO, ptr::null(), false)
     } else {
-        let (v, p, o, s) = atoi_sign::<T, Cb>(base, first, last, cb);
+        let (v, p, o, s) = filter_sign::<T, Cb>(base, first, last, cb);
         match s {
             -1 => (-v, p, true),
             1  => (v, p, o),
@@ -291,73 +290,74 @@ pub(crate) unsafe fn atoi_signed<T, Cb>(base: u8, first: *const u8, last: *const
 // UNSAFE API
 
 /// Generate the unsigned, unsafe wrappers.
-macro_rules! unsigned_unsafe_impl {
+macro_rules! generate_unsafe_unsigned {
     ($func:ident, $t:tt) => (
         /// Unsafe, C-like importer for unsigned numbers.
         #[inline]
-        pub unsafe extern "C" fn $func(
-            first: *const u8,
-            last: *const u8,
-            base: u8
-        )
-            -> ($t, *const u8, bool)
+        pub unsafe extern "C" fn $func(base: u8, first: *const u8, last: *const u8) -> ($t, *const u8, bool)
         {
-            atoi_unsigned::<$t, _>(base, first, last, atoi_unchecked::<$t>)
+            unsigned::<$t, _>(base as u32, first, last, unchecked::<$t>)
         }
     )
 }
 
-unsigned_unsafe_impl!(atou8_unsafe, u8);
-unsigned_unsafe_impl!(atou16_unsafe, u16);
-unsigned_unsafe_impl!(atou32_unsafe, u32);
-unsigned_unsafe_impl!(atou64_unsafe, u64);
-unsigned_unsafe_impl!(atousize_unsafe, usize);
+generate_unsafe_unsigned!(atou8_unsafe, u8);
+generate_unsafe_unsigned!(atou16_unsafe, u16);
+generate_unsafe_unsigned!(atou32_unsafe, u32);
+generate_unsafe_unsigned!(atou64_unsafe, u64);
+generate_unsafe_unsigned!(atousize_unsafe, usize);
 
 /// Generate the signed, unsafe wrappers.
-macro_rules! signed_unsafe_impl {
+macro_rules! generate_unsafe_signed {
     ($func:ident, $t:tt) => (
         /// Unsafe, C-like importer for signed numbers.
         #[inline]
-        pub unsafe extern "C" fn $func(
-            first: *const u8,
-            last: *const u8,
-            base: u8
-        )
-            -> ($t, *const u8, bool)
+        pub unsafe extern "C" fn $func(base: u8, first: *const u8, last: *const u8) -> ($t, *const u8, bool)
         {
-            atoi_signed::<$t, _>(base, first, last, atoi_unchecked::<$t>)
+            signed::<$t, _>(base as u32, first, last, unchecked::<$t>)
         }
     )
 }
 
-signed_unsafe_impl!(atoi8_unsafe, i8);
-signed_unsafe_impl!(atoi16_unsafe, i16);
-signed_unsafe_impl!(atoi32_unsafe, i32);
-signed_unsafe_impl!(atoi64_unsafe, i64);
-signed_unsafe_impl!(atoisize_unsafe, isize);
+generate_unsafe_signed!(atoi8_unsafe, i8);
+generate_unsafe_signed!(atoi16_unsafe, i16);
+generate_unsafe_signed!(atoi32_unsafe, i32);
+generate_unsafe_signed!(atoi64_unsafe, i64);
+generate_unsafe_signed!(atoisize_unsafe, isize);
 
-// LOW-LEVEL API
+// WRAP UNSAFE LOCAL
+generate_from_bytes_local!(atou8_local, u8, atou8_unsafe);
+generate_from_bytes_local!(atou16_local, u16, atou16_unsafe);
+generate_from_bytes_local!(atou32_local, u32, atou32_unsafe);
+generate_from_bytes_local!(atou64_local, u64, atou64_unsafe);
+generate_from_bytes_local!(atousize_local, usize, atousize_unsafe);
+generate_from_bytes_local!(atoi8_local, i8, atoi8_unsafe);
+generate_from_bytes_local!(atoi16_local, i16, atoi16_unsafe);
+generate_from_bytes_local!(atoi32_local, i32, atoi32_unsafe);
+generate_from_bytes_local!(atoi64_local, i64, atoi64_unsafe);
+generate_from_bytes_local!(atoisize_local, isize, atoisize_unsafe);
 
-bytes_impl!(atou8_bytes, u8, atou8_unsafe);
-bytes_impl!(atou16_bytes, u16, atou16_unsafe);
-bytes_impl!(atou32_bytes, u32, atou32_unsafe);
-bytes_impl!(atou64_bytes, u64, atou64_unsafe);
-bytes_impl!(atousize_bytes, usize, atousize_unsafe);
-bytes_impl!(atoi8_bytes, i8, atoi8_unsafe);
-bytes_impl!(atoi16_bytes, i16, atoi16_unsafe);
-bytes_impl!(atoi32_bytes, i32, atoi32_unsafe);
-bytes_impl!(atoi64_bytes, i64, atoi64_unsafe);
-bytes_impl!(atoisize_bytes, isize, atoisize_unsafe);
-try_bytes_impl!(try_atou8_bytes, u8, atou8_unsafe);
-try_bytes_impl!(try_atou16_bytes, u16, atou16_unsafe);
-try_bytes_impl!(try_atou32_bytes, u32, atou32_unsafe);
-try_bytes_impl!(try_atou64_bytes, u64, atou64_unsafe);
-try_bytes_impl!(try_atousize_bytes, usize, atousize_unsafe);
-try_bytes_impl!(try_atoi8_bytes, i8, atoi8_unsafe);
-try_bytes_impl!(try_atoi16_bytes, i16, atoi16_unsafe);
-try_bytes_impl!(try_atoi32_bytes, i32, atoi32_unsafe);
-try_bytes_impl!(try_atoi64_bytes, i64, atoi64_unsafe);
-try_bytes_impl!(try_atoisize_bytes, isize, atoisize_unsafe);
+// API
+generate_from_bytes_api!(atou8_bytes, u8, atou8_local);
+generate_from_bytes_api!(atou16_bytes, u16, atou16_local);
+generate_from_bytes_api!(atou32_bytes, u32, atou32_local);
+generate_from_bytes_api!(atou64_bytes, u64, atou64_local);
+generate_from_bytes_api!(atousize_bytes, usize, atousize_local);
+generate_from_bytes_api!(atoi8_bytes, i8, atoi8_local);
+generate_from_bytes_api!(atoi16_bytes, i16, atoi16_local);
+generate_from_bytes_api!(atoi32_bytes, i32, atoi32_local);
+generate_from_bytes_api!(atoi64_bytes, i64, atoi64_local);
+generate_from_bytes_api!(atoisize_bytes, isize, atoisize_local);
+generate_try_from_bytes_api!(try_atou8_bytes, u8, atou8_local);
+generate_try_from_bytes_api!(try_atou16_bytes, u16, atou16_local);
+generate_try_from_bytes_api!(try_atou32_bytes, u32, atou32_local);
+generate_try_from_bytes_api!(try_atou64_bytes, u64, atou64_local);
+generate_try_from_bytes_api!(try_atousize_bytes, usize, atousize_local);
+generate_try_from_bytes_api!(try_atoi8_bytes, i8, atoi8_local);
+generate_try_from_bytes_api!(try_atoi16_bytes, i16, atoi16_local);
+generate_try_from_bytes_api!(try_atoi32_bytes, i32, atoi32_local);
+generate_try_from_bytes_api!(try_atoi64_bytes, i64, atoi64_local);
+generate_try_from_bytes_api!(try_atoisize_bytes, isize, atoisize_local);
 
 // TESTS
 // -----
@@ -407,157 +407,157 @@ mod tests {
 
     #[test]
     fn atou8_base10_test() {
-        assert_eq!(0, atou8_bytes(b"0", 10));
-        assert_eq!(127, atou8_bytes(b"127", 10));
-        assert_eq!(128, atou8_bytes(b"128", 10));
-        assert_eq!(255, atou8_bytes(b"255", 10));
-        assert_eq!(255, atou8_bytes(b"-1", 10));
-        assert_eq!(1, atou8_bytes(b"1a", 10));
+        assert_eq!(0, atou8_bytes(10, b"0"));
+        assert_eq!(127, atou8_bytes(10, b"127"));
+        assert_eq!(128, atou8_bytes(10, b"128"));
+        assert_eq!(255, atou8_bytes(10, b"255"));
+        assert_eq!(255, atou8_bytes(10, b"-1"));
+        assert_eq!(1, atou8_bytes(10, b"1a"));
     }
 
     #[test]
     fn atou8_basen_test() {
         for (b, s) in DATA.iter() {
-            assert_eq!(atou8_bytes(s.as_bytes(), *b), 37);
+            assert_eq!(atou8_bytes(*b, s.as_bytes()), 37);
         }
     }
 
     #[test]
     fn atoi8_base10_test() {
-        assert_eq!(0, atoi8_bytes(b"0", 10));
-        assert_eq!(127, atoi8_bytes(b"127", 10));
-        assert_eq!(-128, atoi8_bytes(b"128", 10));
-        assert_eq!(-1, atoi8_bytes(b"255", 10));
-        assert_eq!(-1, atoi8_bytes(b"-1", 10));
-        assert_eq!(1, atoi8_bytes(b"1a", 10));
+        assert_eq!(0, atoi8_bytes(10, b"0"));
+        assert_eq!(127, atoi8_bytes(10, b"127"));
+        assert_eq!(-128, atoi8_bytes(10, b"128"));
+        assert_eq!(-1, atoi8_bytes(10, b"255"));
+        assert_eq!(-1, atoi8_bytes(10, b"-1"));
+        assert_eq!(1, atoi8_bytes(10, b"1a"));
     }
 
     #[test]
     fn atou16_base10_test() {
-        assert_eq!(0, atou16_bytes(b"0", 10));
-        assert_eq!(32767, atou16_bytes(b"32767", 10));
-        assert_eq!(32768, atou16_bytes(b"32768", 10));
-        assert_eq!(65535, atou16_bytes(b"65535", 10));
-        assert_eq!(65535, atou16_bytes(b"-1", 10));
-        assert_eq!(1, atou16_bytes(b"1a", 10));
+        assert_eq!(0, atou16_bytes(10, b"0"));
+        assert_eq!(32767, atou16_bytes(10, b"32767"));
+        assert_eq!(32768, atou16_bytes(10, b"32768"));
+        assert_eq!(65535, atou16_bytes(10, b"65535"));
+        assert_eq!(65535, atou16_bytes(10, b"-1"));
+        assert_eq!(1, atou16_bytes(10, b"1a"));
     }
 
     #[test]
     fn atoi16_base10_test() {
-        assert_eq!(0, atoi16_bytes(b"0", 10));
-        assert_eq!(32767, atoi16_bytes(b"32767", 10));
-        assert_eq!(-32768, atoi16_bytes(b"32768", 10));
-        assert_eq!(-1, atoi16_bytes(b"65535", 10));
-        assert_eq!(-1, atoi16_bytes(b"-1", 10));
-        assert_eq!(1, atoi16_bytes(b"1a", 10));
+        assert_eq!(0, atoi16_bytes(10, b"0"));
+        assert_eq!(32767, atoi16_bytes(10, b"32767"));
+        assert_eq!(-32768, atoi16_bytes(10, b"32768"));
+        assert_eq!(-1, atoi16_bytes(10, b"65535"));
+        assert_eq!(-1, atoi16_bytes(10, b"-1"));
+        assert_eq!(1, atoi16_bytes(10, b"1a"));
     }
 
     #[test]
     fn atoi16_basen_test() {
-        assert_eq!(atoi16_bytes(b"YA", 36), 1234);
+        assert_eq!(atoi16_bytes(36, b"YA"), 1234);
     }
 
     #[test]
     fn atou32_base10_test() {
-        assert_eq!(0, atou32_bytes(b"0", 10));
-        assert_eq!(2147483647, atou32_bytes(b"2147483647", 10));
-        assert_eq!(2147483648, atou32_bytes(b"2147483648", 10));
-        assert_eq!(4294967295, atou32_bytes(b"4294967295", 10));
-        assert_eq!(4294967295, atou32_bytes(b"-1", 10));
-        assert_eq!(1, atou32_bytes(b"1a", 10));
+        assert_eq!(0, atou32_bytes(10, b"0"));
+        assert_eq!(2147483647, atou32_bytes(10, b"2147483647"));
+        assert_eq!(2147483648, atou32_bytes(10, b"2147483648"));
+        assert_eq!(4294967295, atou32_bytes(10, b"4294967295"));
+        assert_eq!(4294967295, atou32_bytes(10, b"-1"));
+        assert_eq!(1, atou32_bytes(10, b"1a"));
     }
 
     #[test]
     fn atoi32_base10_test() {
-        assert_eq!(0, atoi32_bytes(b"0", 10));
-        assert_eq!(2147483647, atoi32_bytes(b"2147483647", 10));
-        assert_eq!(-2147483648, atoi32_bytes(b"2147483648", 10));
-        assert_eq!(-1, atoi32_bytes(b"4294967295", 10));
-        assert_eq!(-1, atoi32_bytes(b"-1", 10));
-        assert_eq!(1, atoi32_bytes(b"1a", 10));
+        assert_eq!(0, atoi32_bytes(10, b"0"));
+        assert_eq!(2147483647, atoi32_bytes(10, b"2147483647"));
+        assert_eq!(-2147483648, atoi32_bytes(10, b"2147483648"));
+        assert_eq!(-1, atoi32_bytes(10, b"4294967295"));
+        assert_eq!(-1, atoi32_bytes(10, b"-1"));
+        assert_eq!(1, atoi32_bytes(10, b"1a"));
     }
 
     #[test]
     fn atou64_base10_test() {
-        assert_eq!(0, atou64_bytes(b"0", 10));
-        assert_eq!(9223372036854775807, atou64_bytes(b"9223372036854775807", 10));
-        assert_eq!(9223372036854775808, atou64_bytes(b"9223372036854775808", 10));
-        assert_eq!(18446744073709551615, atou64_bytes(b"18446744073709551615", 10));
-        assert_eq!(18446744073709551615, atou64_bytes(b"-1", 10));
-        assert_eq!(1, atou64_bytes(b"1a", 10));
+        assert_eq!(0, atou64_bytes(10, b"0"));
+        assert_eq!(9223372036854775807, atou64_bytes(10, b"9223372036854775807"));
+        assert_eq!(9223372036854775808, atou64_bytes(10, b"9223372036854775808"));
+        assert_eq!(18446744073709551615, atou64_bytes(10, b"18446744073709551615"));
+        assert_eq!(18446744073709551615, atou64_bytes(10, b"-1"));
+        assert_eq!(1, atou64_bytes(10, b"1a"));
     }
 
     #[test]
     fn atoi64_base10_test() {
-        assert_eq!(0, atoi64_bytes(b"0", 10));
-        assert_eq!(9223372036854775807, atoi64_bytes(b"9223372036854775807", 10));
-        assert_eq!(-9223372036854775808, atoi64_bytes(b"9223372036854775808", 10));
-        assert_eq!(-1, atoi64_bytes(b"18446744073709551615", 10));
-        assert_eq!(-1, atoi64_bytes(b"-1", 10));
-        assert_eq!(1, atoi64_bytes(b"1a", 10));
+        assert_eq!(0, atoi64_bytes(10, b"0"));
+        assert_eq!(9223372036854775807, atoi64_bytes(10, b"9223372036854775807"));
+        assert_eq!(-9223372036854775808, atoi64_bytes(10, b"9223372036854775808"));
+        assert_eq!(-1, atoi64_bytes(10, b"18446744073709551615"));
+        assert_eq!(-1, atoi64_bytes(10, b"-1"));
+        assert_eq!(1, atoi64_bytes(10, b"1a"));
     }
 
     #[test]
     fn try_atou8_base10_test() {
-        assert_eq!(Err(invalid_digit(0)), try_atou8_bytes(b"", 10));
-        assert_eq!(Ok(0), try_atou8_bytes(b"0", 10));
-        assert_eq!(Err(invalid_digit(1)), try_atou8_bytes(b"1a", 10));
-        assert_eq!(Err(overflow()), try_atou8_bytes(b"256", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atou8_bytes(10, b""));
+        assert_eq!(Ok(0), try_atou8_bytes(10, b"0"));
+        assert_eq!(Err(invalid_digit(1)), try_atou8_bytes(10, b"1a"));
+        assert_eq!(Err(overflow()), try_atou8_bytes(10, b"256"));
     }
 
     #[test]
     fn try_atoi8_base10_test() {
-        assert_eq!(Err(invalid_digit(0)), try_atoi8_bytes(b"", 10));
-        assert_eq!(Ok(0), try_atoi8_bytes(b"0", 10));
-        assert_eq!(Err(invalid_digit(1)), try_atoi8_bytes(b"1a", 10));
-        assert_eq!(Err(overflow()), try_atoi8_bytes(b"128", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atoi8_bytes(10, b""));
+        assert_eq!(Ok(0), try_atoi8_bytes(10, b"0"));
+        assert_eq!(Err(invalid_digit(1)), try_atoi8_bytes(10, b"1a"));
+        assert_eq!(Err(overflow()), try_atoi8_bytes(10, b"128"));
     }
 
     #[test]
     fn try_atou16_base10_test() {
-        assert_eq!(Err(invalid_digit(0)), try_atou16_bytes(b"", 10));
-        assert_eq!(Ok(0), try_atou16_bytes(b"0", 10));
-        assert_eq!(Err(invalid_digit(1)), try_atou16_bytes(b"1a", 10));
-        assert_eq!(Err(overflow()), try_atou16_bytes(b"65536", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atou16_bytes(10, b""));
+        assert_eq!(Ok(0), try_atou16_bytes(10, b"0"));
+        assert_eq!(Err(invalid_digit(1)), try_atou16_bytes(10, b"1a"));
+        assert_eq!(Err(overflow()), try_atou16_bytes(10, b"65536"));
     }
 
     #[test]
     fn try_atoi16_base10_test() {
-        assert_eq!(Err(invalid_digit(0)), try_atoi16_bytes(b"", 10));
-        assert_eq!(Ok(0), try_atoi16_bytes(b"0", 10));
-        assert_eq!(Err(invalid_digit(1)), try_atoi16_bytes(b"1a", 10));
-        assert_eq!(Err(overflow()), try_atoi16_bytes(b"32768", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atoi16_bytes(10, b""));
+        assert_eq!(Ok(0), try_atoi16_bytes(10, b"0"));
+        assert_eq!(Err(invalid_digit(1)), try_atoi16_bytes(10, b"1a"));
+        assert_eq!(Err(overflow()), try_atoi16_bytes(10, b"32768"));
     }
 
     #[test]
     fn try_atou32_base10_test() {
-        assert_eq!(Err(invalid_digit(0)), try_atou32_bytes(b"", 10));
-        assert_eq!(Ok(0), try_atou32_bytes(b"0", 10));
-        assert_eq!(Err(invalid_digit(1)), try_atou32_bytes(b"1a", 10));
-        assert_eq!(Err(overflow()), try_atou32_bytes(b"4294967296", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atou32_bytes(10, b""));
+        assert_eq!(Ok(0), try_atou32_bytes(10, b"0"));
+        assert_eq!(Err(invalid_digit(1)), try_atou32_bytes(10, b"1a"));
+        assert_eq!(Err(overflow()), try_atou32_bytes(10, b"4294967296"));
     }
 
     #[test]
     fn try_atoi32_base10_test() {
-        assert_eq!(Err(invalid_digit(0)), try_atoi32_bytes(b"", 10));
-        assert_eq!(Ok(0), try_atoi32_bytes(b"0", 10));
-        assert_eq!(Err(invalid_digit(1)), try_atoi32_bytes(b"1a", 10));
-        assert_eq!(Err(overflow()), try_atoi32_bytes(b"2147483648", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atoi32_bytes(10, b""));
+        assert_eq!(Ok(0), try_atoi32_bytes(10, b"0"));
+        assert_eq!(Err(invalid_digit(1)), try_atoi32_bytes(10, b"1a"));
+        assert_eq!(Err(overflow()), try_atoi32_bytes(10, b"2147483648"));
     }
 
     #[test]
     fn try_atou64_base10_test() {
-        assert_eq!(Err(invalid_digit(0)), try_atou64_bytes(b"", 10));
-        assert_eq!(Ok(0), try_atou64_bytes(b"0", 10));
-        assert_eq!(Err(invalid_digit(1)), try_atou64_bytes(b"1a", 10));
-        assert_eq!(Err(overflow()), try_atou64_bytes(b"18446744073709551616", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atou64_bytes(10, b""));
+        assert_eq!(Ok(0), try_atou64_bytes(10, b"0"));
+        assert_eq!(Err(invalid_digit(1)), try_atou64_bytes(10, b"1a"));
+        assert_eq!(Err(overflow()), try_atou64_bytes(10, b"18446744073709551616"));
     }
 
     #[test]
     fn try_atoi64_base10_test() {
-        assert_eq!(Err(invalid_digit(0)), try_atoi64_bytes(b"", 10));
-        assert_eq!(Ok(0), try_atoi64_bytes(b"0", 10));
-        assert_eq!(Err(invalid_digit(1)), try_atoi64_bytes(b"1a", 10));
-        assert_eq!(Err(overflow()), try_atoi64_bytes(b"9223372036854775808", 10));
+        assert_eq!(Err(invalid_digit(0)), try_atoi64_bytes(10, b""));
+        assert_eq!(Ok(0), try_atoi64_bytes(10, b"0"));
+        assert_eq!(Err(invalid_digit(1)), try_atoi64_bytes(10, b"1a"));
+        assert_eq!(Err(overflow()), try_atoi64_bytes(10, b"9223372036854775808"));
     }
 }

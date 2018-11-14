@@ -24,12 +24,6 @@ pub(crate) struct WrappedFloat<T: Float>
 }
 
 impl<T: Float> WrappedFloat<T> {
-    /// Create new wrapped float.
-    #[inline]
-    pub fn new() -> Self {
-        WrappedFloat { data: T::ZERO }
-    }
-
     /// Wrap existing float.
     #[inline]
     pub fn from_float(t: T) -> Self {

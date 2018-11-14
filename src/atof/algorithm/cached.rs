@@ -3054,7 +3054,7 @@ pub(crate) const BASE36_POWERS: Powers = Powers {
 };
 
 /// Get powers from base.
-pub(crate) fn get_powers(base: u64) -> &'static Powers {
+pub(crate) fn get_powers(base: u32) -> &'static Powers {
     match base {
         3  => &BASE3_POWERS,
         5  => &BASE5_POWERS,
@@ -3098,8 +3098,8 @@ pub(crate) fn get_powers(base: u64) -> &'static Powers {
 mod tests {
     use super::*;
 
-    const POW2: [u64; 5] = [2, 4, 8, 16, 32];
-    const BASEN: [u64; 30] = [
+    const POW2: [u32; 5] = [2, 4, 8, 16, 32];
+    const BASEN: [u32; 30] = [
         3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21,
         22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36
     ];

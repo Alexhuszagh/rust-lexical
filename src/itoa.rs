@@ -98,7 +98,7 @@
 //  ax.figure.tight_layout()
 //  plt.show()
 
-use lib::{self, mem, ptr};
+use lib::{mem, ptr};
 use table::*;
 use util::*;
 
@@ -106,7 +106,7 @@ use util::*;
 
 /// Calculate the number of digits in a number, with a given base (radix).
 #[inline]
-fn digits<Value: Integer>(value: Value, base: u8) -> usize {
+fn digits<Value: Integer>(value: Value, base: u32) -> usize {
     match value.is_zero() {
         true  => 1,
         false => {
@@ -119,7 +119,7 @@ fn digits<Value: Integer>(value: Value, base: u8) -> usize {
 }
 
 /// Check if the supplied buffer has enough range for the encoded size.
-macro_rules! check_digits {
+macro_rules! check_buffer {
     ($value:ident, $first:ident, $last:ident, $base:ident) => ({
         let has_space = distance($first, $last) >= digits($value, $base);
         debug_assert!(has_space, "Need a larger buffer.");
@@ -143,7 +143,7 @@ const MAX_DIGITS: usize = 128;
 /// `value` must be non-negative and mutable.
 #[cfg(feature = "table")]
 #[inline]
-unsafe fn itoa_optimized<T>(mut value: T, base: T, table: *const u8, first: *mut u8)
+unsafe fn optimized<T>(mut value: T, base: T, table: *const u8, first: *mut u8)
     -> *mut u8
     where T: UnsignedInteger
 {
@@ -208,7 +208,7 @@ unsafe fn itoa_optimized<T>(mut value: T, base: T, table: *const u8, first: *mut
 /// `value` must be non-negative and mutable.
 #[cfg(not(feature = "table"))]
 #[inline]
-unsafe fn itoa_naive<T>(mut value: T, base: T, first: *mut u8)
+unsafe fn naive<T>(mut value: T, base: T, first: *mut u8)
     -> *mut u8
     where T: UnsignedInteger
 {
@@ -245,7 +245,7 @@ unsafe fn itoa_naive<T>(mut value: T, base: T, first: *mut u8)
 ///
 /// `value` must be non-negative and mutable.
 #[inline]
-pub(crate) unsafe fn itoa_forward<T>(value: T, base: u8, first: *mut u8)
+pub(crate) unsafe fn forward<T>(value: T, base: u32, first: *mut u8)
     -> *mut u8
     where T: UnsignedInteger
 {
@@ -289,36 +289,34 @@ pub(crate) unsafe fn itoa_forward<T>(value: T, base: u8, first: *mut u8)
             _   => unreachable!(),
         };
         let base: T = as_(base);
-        itoa_optimized(value, base, table, first)
+        optimized(value, base, table, first)
     }
 
     #[cfg(not(feature = "table"))] {
         let base: T = as_(base);
-        itoa_naive(value, base, first)
+        naive(value, base, first)
     }
 }
 
 /// Sanitizer for an unsigned number-to-string implementation.
 #[inline]
-#[allow(dead_code)]
-unsafe fn itoa_unsigned<Value, UWide>(value: Value, base: u8, first: *mut u8, last: *mut u8)
+pub(crate) unsafe fn unsigned<Value, UWide>(value: Value, base: u32, first: *mut u8, last: *mut u8)
     -> *mut u8
     where Value: UnsignedInteger,
           UWide: UnsignedInteger
 {
     // Sanity checks
     debug_assert!(first <= last);
-    check_digits!(value, first, last, base);
+    check_buffer!(value, first, last, base);
 
     // Invoke forwarder
     let v: UWide = as_(value);
-    itoa_forward(v, base, first)
+    forward(v, base, first)
 }
 
 /// Sanitizer for an signed number-to-string implementation.
 #[inline]
-#[allow(dead_code)]
-unsafe fn itoa_signed<Value, UWide, IWide>(value: Value, base: u8, mut first: *mut u8, last: *mut u8)
+pub(crate) unsafe fn signed<Value, UWide, IWide>(value: Value, base: u32, mut first: *mut u8, last: *mut u8)
     -> *mut u8
     where Value: SignedInteger,
           UWide: UnsignedInteger,
@@ -326,7 +324,7 @@ unsafe fn itoa_signed<Value, UWide, IWide>(value: Value, base: u8, mut first: *m
 {
     // Sanity checks
     debug_assert!(first <= last);
-    check_digits!(value, first, last, base);
+    check_buffer!(value, first, last, base);
 
     // Handle negative numbers, use an unsigned type to avoid overflow.
     // Use a wrapping neg to allow overflow.
@@ -352,14 +350,14 @@ unsafe fn itoa_signed<Value, UWide, IWide>(value: Value, base: u8, mut first: *m
     }
 
     // Invoke forwarder
-    itoa_forward(v, base, first)
+    forward(v, base, first)
 }
 
 // UNSAFE API
 
 /// Generate the unsigned, unsafe wrappers.
-macro_rules! unsigned_unsafe_impl {
-    ($func:ident, $t:ty, $uwide:ty) => (
+macro_rules! generate_unsafe_unsigned {
+    ($name:ident, $t:ty, $uwide:ty) => (
         /// Unsafe, C-like exporter for unsigned numbers.
         ///
         /// # Warning
@@ -374,28 +372,22 @@ macro_rules! unsigned_unsafe_impl {
         /// `u32 -> 33`
         /// `u64 -> 65`
         #[inline]
-        pub unsafe extern "C" fn $func(
-            value: $t,
-            first: *mut u8,
-            last: *mut u8,
-            base: u8
-        )
-            -> *mut u8
+        pub unsafe extern "C" fn $name(value: $t, base: u8, first: *mut u8, last: *mut u8) -> *mut u8
         {
-            itoa_unsigned::<$t, $uwide>(value, base, first, last)
+            unsigned::<$t, $uwide>(value, base as u32, first, last)
         }
     )
 }
 
-unsigned_unsafe_impl!(u8toa_unsafe, u8, u32);
-unsigned_unsafe_impl!(u16toa_unsafe, u16, u32);
-unsigned_unsafe_impl!(u32toa_unsafe, u32, u32);
-unsigned_unsafe_impl!(u64toa_unsafe, u64, u64);
-unsigned_unsafe_impl!(usizetoa_unsafe, usize, usize);
+generate_unsafe_unsigned!(u8toa_unsafe, u8, u32);
+generate_unsafe_unsigned!(u16toa_unsafe, u16, u32);
+generate_unsafe_unsigned!(u32toa_unsafe, u32, u32);
+generate_unsafe_unsigned!(u64toa_unsafe, u64, u64);
+generate_unsafe_unsigned!(usizetoa_unsafe, usize, usize);
 
 /// Generate the signed, unsafe wrappers.
-macro_rules! signed_unsafe_impl {
-    ($func:ident, $t:ty, $uwide:ty, $iwide:ty) => (
+macro_rules! generate_unsafe_signed {
+    ($name:ident, $t:ty, $uwide:ty, $iwide:ty) => (
         /// Unsafe, C-like exporter for signed numbers.
         ///
         /// # Warning
@@ -410,19 +402,19 @@ macro_rules! signed_unsafe_impl {
         /// `u32 -> 33`
         /// `u64 -> 65`
         #[inline]
-        pub unsafe extern "C" fn $func(value: $t, first: *mut u8, last: *mut u8, base: u8)
+        pub unsafe extern "C" fn $name(value: $t, base: u8, first: *mut u8, last: *mut u8)
             -> *mut u8
         {
-            itoa_signed::<$t, $uwide, $iwide>(value, base, first, last)
+            signed::<$t, $uwide, $iwide>(value, base as u32, first, last)
         }
     )
 }
 
-signed_unsafe_impl!(i8toa_unsafe, i8, u32, i32);
-signed_unsafe_impl!(i16toa_unsafe, i16, u32, i32);
-signed_unsafe_impl!(i32toa_unsafe, i32, u32, i32);
-signed_unsafe_impl!(i64toa_unsafe, i64, u64, i64);
-signed_unsafe_impl!(isizetoa_unsafe, isize, usize, isize);
+generate_unsafe_signed!(i8toa_unsafe, i8, u32, i32);
+generate_unsafe_signed!(i16toa_unsafe, i16, u32, i32);
+generate_unsafe_signed!(i32toa_unsafe, i32, u32, i32);
+generate_unsafe_signed!(i64toa_unsafe, i64, u64, i64);
+generate_unsafe_signed!(isizetoa_unsafe, isize, usize, isize);
 
 // LOW-LEVEL API
 
@@ -430,19 +422,33 @@ signed_unsafe_impl!(isizetoa_unsafe, isize, usize, isize);
 // It really doesn't, make a difference here, especially since
 // the value is just a suggestion for the vector.
 cfg_if! {
-    if #[cfg(any(feature = "std", feature = "alloc"))] {
-        string_impl!(u8toa_string, u8, u8toa_unsafe, 16);           // 9
-        string_impl!(u16toa_string, u16, u16toa_unsafe, 32);        // 17
-        string_impl!(u32toa_string, u32, u32toa_unsafe, 64);        // 33
-        string_impl!(u64toa_string, u64, u64toa_unsafe, 128);       // 65
-        string_impl!(usizetoa_string, usize, usizetoa_unsafe, 128); // 65
-        string_impl!(i8toa_string, i8, i8toa_unsafe, 16);           // 9
-        string_impl!(i16toa_string, i16, i16toa_unsafe, 32);        // 17
-        string_impl!(i32toa_string, i32, i32toa_unsafe, 64);        // 33
-        string_impl!(i64toa_string, i64, i64toa_unsafe, 128);       // 65
-        string_impl!(isizetoa_string, isize, isizetoa_unsafe, 128); // 65
-    }
-}
+if #[cfg(any(feature = "std", feature = "alloc"))] {
+
+// WRAP UNSAFE LOCAL
+generate_to_bytes_local!(u8toa_local, u8, u8toa_unsafe);
+generate_to_bytes_local!(u16toa_local, u16, u16toa_unsafe);
+generate_to_bytes_local!(u32toa_local, u32, u32toa_unsafe);
+generate_to_bytes_local!(u64toa_local, u64, u64toa_unsafe);
+generate_to_bytes_local!(usizetoa_local, usize, usizetoa_unsafe);
+generate_to_bytes_local!(i8toa_local, i8, i8toa_unsafe);
+generate_to_bytes_local!(i16toa_local, i16, i16toa_unsafe);
+generate_to_bytes_local!(i32toa_local, i32, i32toa_unsafe);
+generate_to_bytes_local!(i64toa_local, i64, i64toa_unsafe);
+generate_to_bytes_local!(isizetoa_local, isize, isizetoa_unsafe);
+
+// API
+generate_to_bytes_api!(u8toa_bytes, u8, u8toa_local, 16);            // 9
+generate_to_bytes_api!(u16toa_bytes, u16, u16toa_local, 32);         // 17
+generate_to_bytes_api!(u32toa_bytes, u32, u32toa_local, 64);         // 33
+generate_to_bytes_api!(u64toa_bytes, u64, u64toa_local, 128);        // 65
+generate_to_bytes_api!(usizetoa_bytes, usize, usizetoa_local, 128);  // 65
+generate_to_bytes_api!(i8toa_bytes, i8, i8toa_local, 16);            // 9
+generate_to_bytes_api!(i16toa_bytes, i16, i16toa_local, 32);         // 17
+generate_to_bytes_api!(i32toa_bytes, i32, i32toa_local, 64);         // 33
+generate_to_bytes_api!(i64toa_bytes, i64, i64toa_local, 128);        // 65
+generate_to_bytes_api!(isizetoa_bytes, isize, isizetoa_local, 128);  // 65
+
+}}  //cfg_if
 
 // TESTS
 // -----
@@ -454,82 +460,82 @@ mod tests {
 
     #[test]
     fn u8toa_test() {
-        assert_eq!("0", u8toa_string(0, 10));
-        assert_eq!("1", u8toa_string(1, 10));
-        assert_eq!("127", u8toa_string(127, 10));
-        assert_eq!("128", u8toa_string(128, 10));
-        assert_eq!("255", u8toa_string(255, 10));
-        assert_eq!("255", u8toa_string(-1i8 as u8, 10));
+        assert_eq!(b"0".to_vec(), u8toa_bytes(0, 10));
+        assert_eq!(b"1".to_vec(), u8toa_bytes(1, 10));
+        assert_eq!(b"127".to_vec(), u8toa_bytes(127, 10));
+        assert_eq!(b"128".to_vec(), u8toa_bytes(128, 10));
+        assert_eq!(b"255".to_vec(), u8toa_bytes(255, 10));
+        assert_eq!(b"255".to_vec(), u8toa_bytes(-1i8 as u8, 10));
     }
 
     #[test]
     fn i8toa_test() {
-        assert_eq!("0", i8toa_string(0, 10));
-        assert_eq!("1", i8toa_string(1, 10));
-        assert_eq!("127", i8toa_string(127, 10));
-        assert_eq!("-128", i8toa_string(128u8 as i8, 10));
-        assert_eq!("-1", i8toa_string(255u8 as i8, 10));
-        assert_eq!("-1", i8toa_string(-1, 10));
+        assert_eq!(b"0".to_vec(), i8toa_bytes(0, 10));
+        assert_eq!(b"1".to_vec(), i8toa_bytes(1, 10));
+        assert_eq!(b"127".to_vec(), i8toa_bytes(127, 10));
+        assert_eq!(b"-128".to_vec(), i8toa_bytes(128u8 as i8, 10));
+        assert_eq!(b"-1".to_vec(), i8toa_bytes(255u8 as i8, 10));
+        assert_eq!(b"-1".to_vec(), i8toa_bytes(-1, 10));
     }
 
     #[test]
     fn u16toa_test() {
-        assert_eq!("0", u16toa_string(0, 10));
-        assert_eq!("1", u16toa_string(1, 10));
-        assert_eq!("32767", u16toa_string(32767, 10));
-        assert_eq!("32768", u16toa_string(32768, 10));
-        assert_eq!("65535", u16toa_string(65535, 10));
-        assert_eq!("65535", u16toa_string(-1i16 as u16, 10));
+        assert_eq!(b"0".to_vec(), u16toa_bytes(0, 10));
+        assert_eq!(b"1".to_vec(), u16toa_bytes(1, 10));
+        assert_eq!(b"32767".to_vec(), u16toa_bytes(32767, 10));
+        assert_eq!(b"32768".to_vec(), u16toa_bytes(32768, 10));
+        assert_eq!(b"65535".to_vec(), u16toa_bytes(65535, 10));
+        assert_eq!(b"65535".to_vec(), u16toa_bytes(-1i16 as u16, 10));
     }
 
     #[test]
     fn i16toa_test() {
-        assert_eq!("0", i16toa_string(0, 10));
-        assert_eq!("1", i16toa_string(1, 10));
-        assert_eq!("32767", i16toa_string(32767, 10));
-        assert_eq!("-32768", i16toa_string(32768u16 as i16, 10));
-        assert_eq!("-1", i16toa_string(65535u16 as i16, 10));
-        assert_eq!("-1", i16toa_string(-1, 10));
+        assert_eq!(b"0".to_vec(), i16toa_bytes(0, 10));
+        assert_eq!(b"1".to_vec(), i16toa_bytes(1, 10));
+        assert_eq!(b"32767".to_vec(), i16toa_bytes(32767, 10));
+        assert_eq!(b"-32768".to_vec(), i16toa_bytes(32768u16 as i16, 10));
+        assert_eq!(b"-1".to_vec(), i16toa_bytes(65535u16 as i16, 10));
+        assert_eq!(b"-1".to_vec(), i16toa_bytes(-1, 10));
     }
 
     #[test]
     fn u32toa_test() {
-        assert_eq!("0", u32toa_string(0, 10));
-        assert_eq!("1", u32toa_string(1, 10));
-        assert_eq!("2147483647", u32toa_string(2147483647, 10));
-        assert_eq!("2147483648", u32toa_string(2147483648, 10));
-        assert_eq!("4294967295", u32toa_string(4294967295, 10));
-        assert_eq!("4294967295", u32toa_string(-1i32 as u32, 10));
+        assert_eq!(b"0".to_vec(), u32toa_bytes(0, 10));
+        assert_eq!(b"1".to_vec(), u32toa_bytes(1, 10));
+        assert_eq!(b"2147483647".to_vec(), u32toa_bytes(2147483647, 10));
+        assert_eq!(b"2147483648".to_vec(), u32toa_bytes(2147483648, 10));
+        assert_eq!(b"4294967295".to_vec(), u32toa_bytes(4294967295, 10));
+        assert_eq!(b"4294967295".to_vec(), u32toa_bytes(-1i32 as u32, 10));
     }
 
     #[test]
     fn i32toa_test() {
-        assert_eq!("0", i32toa_string(0, 10));
-        assert_eq!("1", i32toa_string(1, 10));
-        assert_eq!("2147483647", i32toa_string(2147483647, 10));
-        assert_eq!("-2147483648", i32toa_string(2147483648u32 as i32, 10));
-        assert_eq!("-1", i32toa_string(4294967295u32 as i32, 10));
-        assert_eq!("-1", i32toa_string(-1, 10));
+        assert_eq!(b"0".to_vec(), i32toa_bytes(0, 10));
+        assert_eq!(b"1".to_vec(), i32toa_bytes(1, 10));
+        assert_eq!(b"2147483647".to_vec(), i32toa_bytes(2147483647, 10));
+        assert_eq!(b"-2147483648".to_vec(), i32toa_bytes(2147483648u32 as i32, 10));
+        assert_eq!(b"-1".to_vec(), i32toa_bytes(4294967295u32 as i32, 10));
+        assert_eq!(b"-1".to_vec(), i32toa_bytes(-1, 10));
     }
 
     #[test]
     fn u64toa_test() {
-        assert_eq!("0", u64toa_string(0, 10));
-        assert_eq!("1", u64toa_string(1, 10));
-        assert_eq!("9223372036854775807", u64toa_string(9223372036854775807, 10));
-        assert_eq!("9223372036854775808", u64toa_string(9223372036854775808, 10));
-        assert_eq!("18446744073709551615", u64toa_string(18446744073709551615, 10));
-        assert_eq!("18446744073709551615", u64toa_string(-1i64 as u64, 10));
+        assert_eq!(b"0".to_vec(), u64toa_bytes(0, 10));
+        assert_eq!(b"1".to_vec(), u64toa_bytes(1, 10));
+        assert_eq!(b"9223372036854775807".to_vec(), u64toa_bytes(9223372036854775807, 10));
+        assert_eq!(b"9223372036854775808".to_vec(), u64toa_bytes(9223372036854775808, 10));
+        assert_eq!(b"18446744073709551615".to_vec(), u64toa_bytes(18446744073709551615, 10));
+        assert_eq!(b"18446744073709551615".to_vec(), u64toa_bytes(-1i64 as u64, 10));
     }
 
     #[test]
     fn i64toa_test() {
-        assert_eq!("0", i64toa_string(0, 10));
-        assert_eq!("1", i64toa_string(1, 10));
-        assert_eq!("9223372036854775807", i64toa_string(9223372036854775807, 10));
-        assert_eq!("-9223372036854775808", i64toa_string(9223372036854775808u64 as i64, 10));
-        assert_eq!("-1", i64toa_string(18446744073709551615u64 as i64, 10));
-        assert_eq!("-1", i64toa_string(-1, 10));
+        assert_eq!(b"0".to_vec(), i64toa_bytes(0, 10));
+        assert_eq!(b"1".to_vec(), i64toa_bytes(1, 10));
+        assert_eq!(b"9223372036854775807".to_vec(), i64toa_bytes(9223372036854775807, 10));
+        assert_eq!(b"-9223372036854775808".to_vec(), i64toa_bytes(9223372036854775808u64 as i64, 10));
+        assert_eq!(b"-1".to_vec(), i64toa_bytes(18446744073709551615u64 as i64, 10));
+        assert_eq!(b"-1".to_vec(), i64toa_bytes(-1, 10));
     }
 
     #[test]
@@ -573,7 +579,7 @@ mod tests {
         ];
 
         for (base, expected) in data.iter() {
-            assert_eq!(*expected, i8toa_string(37, *base));
+            assert_eq!(expected.as_bytes().to_vec(), i8toa_bytes(37, *base));
         }
     }
 }

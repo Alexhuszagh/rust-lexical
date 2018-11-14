@@ -441,8 +441,8 @@ pub trait Float: Number + ops::Neg<Output=Self>
     }
 }
 
-/// Wrap float method for `no_std` context.
-macro_rules! float_nostd {
+/// Wrap float method for `std` and `no_std` context.
+macro_rules! float_method {
     ($f:ident, $t:tt, $meth:ident, $intr:ident $(,$i:expr)*) => ({
         #[cfg(feature = "std")]
         return $t::$meth($f $(,$i)*);
@@ -452,11 +452,11 @@ macro_rules! float_nostd {
     })
 }
 
-/// Wrap float method for `no_std` context, with special conditions for MSVC.
+/// Wrap float method with special conditions for MSVC.
 ///
 /// This is because MSVC wraps these as inline functions, with no actual
 /// ABI for the LLVM intrinsic.
-macro_rules! float_nostd_msvc {
+macro_rules! float_method_msvc {
     ($f:ident, $ts:tt, $tl:tt, $meth:ident, $intr:ident $(,$i:expr)*) => ({
         #[cfg(feature = "std")]
         return $ts::$meth($f $(,$i)*);
@@ -473,7 +473,7 @@ macro_rules! float_nostd_msvc {
 ///
 /// Solaris has a standard non-conforming log implementation, we need
 /// to wrap this cheaply.
-macro_rules! float_nostd_log_solaris {
+macro_rules! float_method_log_solaris {
     ($f:ident, $t:tt, $meth:ident, $intr:ident $(,$i:expr)*) => ({
         #[cfg(feature = "std")]
         return $t::$meth($f $(,$i)*);
@@ -518,42 +518,42 @@ impl Float for f32 {
 
     #[inline(always)]
     fn abs(self) -> f32 {
-        float_nostd!(self, f32, abs, fabsf32)
+        float_method!(self, f32, abs, fabsf32)
     }
 
     #[inline(always)]
     fn ceil(self) -> f32 {
-        float_nostd_msvc!(self, f32, f64, ceil, ceilf32)
+        float_method_msvc!(self, f32, f64, ceil, ceilf32)
     }
 
     #[inline(always)]
     fn exp(self) -> f32 {
-        float_nostd_msvc!(self, f32, f64, exp, expf32)
+        float_method_msvc!(self, f32, f64, exp, expf32)
     }
 
     #[inline(always)]
     fn floor(self) -> f32 {
-        float_nostd_msvc!(self, f32, f64, floor, floorf32)
+        float_method_msvc!(self, f32, f64, floor, floorf32)
     }
 
     #[inline(always)]
     fn ln(self) -> f32 {
-        float_nostd_msvc!(self, f32, f64, ln, logf32)
+        float_method_msvc!(self, f32, f64, ln, logf32)
     }
 
     #[inline(always)]
     fn powi(self, n: i32) -> f32 {
-        float_nostd!(self, f32, powi, powif32, n)
+        float_method!(self, f32, powi, powif32, n)
     }
 
     #[inline(always)]
     fn powf(self, n: f32) -> f32 {
-        float_nostd_msvc!(self, f32, f64, powf, powf32, n as f32)
+        float_method_msvc!(self, f32, f64, powf, powf32, n as f32)
     }
 
     #[inline(always)]
     fn round(self) -> f32 {
-        float_nostd!(self, f32, round, roundf32)
+        float_method!(self, f32, round, roundf32)
     }
 
     #[inline(always)]
@@ -597,42 +597,42 @@ impl Float for f64 {
 
     #[inline(always)]
     fn abs(self) -> f64 {
-        float_nostd!(self, f64, abs, fabsf64)
+        float_method!(self, f64, abs, fabsf64)
     }
 
     #[inline(always)]
     fn ceil(self) -> f64 {
-        float_nostd!(self, f64, ceil, ceilf64)
+        float_method!(self, f64, ceil, ceilf64)
     }
 
     #[inline(always)]
     fn exp(self) -> f64 {
-        float_nostd!(self, f64, exp, expf64)
+        float_method!(self, f64, exp, expf64)
     }
 
     #[inline(always)]
     fn floor(self) -> f64 {
-        float_nostd!(self, f64, floor, floorf64)
+        float_method!(self, f64, floor, floorf64)
     }
 
     #[inline(always)]
     fn ln(self) -> f64 {
-        float_nostd_log_solaris!(self, f64, ln, logf64)
+        float_method_log_solaris!(self, f64, ln, logf64)
     }
 
     #[inline(always)]
     fn powi(self, n: i32) -> f64 {
-        float_nostd!(self, f64, powi, powif64, n)
+        float_method!(self, f64, powi, powif64, n)
     }
 
     #[inline(always)]
     fn powf(self, n: f64) -> f64 {
-        float_nostd!(self, f64, powf, powf64, n)
+        float_method!(self, f64, powf, powf64, n)
     }
 
     #[inline(always)]
     fn round(self) -> f64 {
-        float_nostd!(self, f64, round, roundf64)
+        float_method!(self, f64, round, roundf64)
     }
 
     #[inline(always)]

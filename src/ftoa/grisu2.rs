@@ -66,7 +66,6 @@
 use float::FloatType;
 use lib::{mem, ptr};
 use util::*;
-use super::util::*;
 
 // CACHED POWERS
 

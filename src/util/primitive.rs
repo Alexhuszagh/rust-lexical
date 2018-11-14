@@ -69,13 +69,13 @@ as_primitive! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64 }
 pub trait Primitive: AsCast + fmt::Debug + fmt::Display {
 }
 
-macro_rules! primitive_impl {
+macro_rules! primitive {
     ($($t:ty)*) => ($(
         impl Primitive for $t {}
     )*)
 }
 
-primitive_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64 }
+primitive! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64 }
 
 // TEST
 // ----

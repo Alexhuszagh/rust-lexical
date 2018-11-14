@@ -26,15 +26,14 @@ extern crate cfg_if;
 // CONFIG
 
 cfg_if! {
-    // Require alloc and use wee_alloc as the default allocator for unittesting.
-    if #[cfg(all(feature = "alloc", not(feature = "std")))] {
-        extern crate alloc;
-        extern crate wee_alloc;
+// Require alloc and use wee_alloc as the default allocator for unittesting.
+if #[cfg(all(feature = "alloc", not(feature = "std")))] {
+extern crate alloc;
+extern crate wee_alloc;
 
-        #[global_allocator]
-        static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-    }
-}
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+}}  // cfg_if
 
 // Testing assertions for floating-point equality.
 #[cfg(test)]
@@ -47,39 +46,39 @@ compile_error!("Lexical only accepts one of the following backends: `grisu3` or 
 
 // Import the back-end, if applicable.
 cfg_if! {
-    if #[cfg(feature = "grisu3")] {
-        extern crate dtoa;
-    } else if #[cfg(feature = "ryu")] {
-        extern crate ryu;
-    }
-}
+if #[cfg(feature = "grisu3")] {
+    extern crate dtoa;
+} else if #[cfg(feature = "ryu")] {
+    extern crate ryu;
+}}  // cfg_if
 
 /// Facade around the core features for name mangling.
 pub(crate) mod lib {
-    cfg_if! {
-        if #[cfg(feature = "std")] {
-            pub(crate) use std::*;
-        } else {
-            pub(crate) use core::*;
-        }
-    }
+cfg_if! {
+if #[cfg(feature = "std")] {
+    pub(crate) use std::*;
+} else {
+    pub(crate) use core::*;
+}}  // cfg_if
 
-    cfg_if! {
-        if #[cfg(all(feature = "alloc", not(feature = "std")))] {
-            pub(crate) use alloc::string::String;
-        } else if #[cfg(feature = "std")] {
-            pub(crate) use std::string::String;
-        }
-    }
+cfg_if! {
+if #[cfg(all(feature = "alloc", not(feature = "std")))] {
+    pub(crate) use alloc::string::String;
+    pub(crate) use alloc::vec::Vec;
+} else if #[cfg(feature = "std")] {
+    pub(crate) use std::string::String;
+    pub(crate) use std::vec::Vec;
 }
+}}  // cfg_if
 
 // API
 
 // Hide the implementation details.
 mod error;
+mod float;
 mod table;
+mod traits;
 
-// TODO(ahuszagh) Remove the macro_use if I can...
 #[macro_use]
 mod util;
 
@@ -87,13 +86,7 @@ mod util;
 pub mod atof;
 pub mod atoi;
 pub mod itoa;
-// TODO(ahuszagh) LImit the float stuff to be pub(crate) and feature gate
-// Some of it... (test, feature = "correct")
-pub mod float;
 pub mod ftoa;
-
-#[doc(hidden)]
-pub mod traits;
 
 // Re-export EXPONENT_DEFAULT_CHAR and EXPONENT_BACKUP_CHAR globally.
 pub use util::{EXPONENT_DEFAULT_CHAR, EXPONENT_BACKUP_CHAR};
@@ -129,7 +122,7 @@ use traits::ToBytes;
 #[inline(always)]
 #[cfg(any(feature = "std", feature = "alloc"))]
 pub fn to_string<N: ToBytes>(n: N) -> lib::String {
-    n.to_bytes(10)
+    unsafe { lib::String::from_utf8_unchecked(n.to_bytes(10)) }
 }
 
 /// High-level conversion of a number to string with a custom radix.
@@ -150,7 +143,7 @@ pub fn to_string<N: ToBytes>(n: N) -> lib::String {
 #[cfg(any(feature = "std", feature = "alloc"))]
 pub fn to_string_radix<N: ToBytes>(n: N, radix: u8) -> lib::String {
     assert!(2 <= radix && radix <= 36, "to_string_radix, radix must be in range `[2, 36]`, got {}", radix);
-    n.to_bytes(radix)
+    unsafe { lib::String::from_utf8_unchecked(n.to_bytes(radix)) }
 }
 
 /// High-level conversion of decimal-encoded bytes to a number.

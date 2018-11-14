@@ -6,6 +6,9 @@
 //! precision (only 16 bits of the 32-bit integer are used, u32 is used
 //! for performance). Since there is no storage for the sign bit,
 //! this only works for positive floats.
+// Lot of useful algorithms in here, and helper utilities.
+// We want to make sure this code is not accidentally deleted.
+#![allow(dead_code)]
 
 use util::*;
 use super::convert::*;

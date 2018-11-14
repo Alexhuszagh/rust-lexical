@@ -1,22 +1,74 @@
 //! Lossy algorithms for string-to-float conversions.
+//!
+//! The following benchmarks were run on an "Intel(R) Core(TM) i7-6560U
+//! CPU @ 2.20GHz" CPU, on Fedora 28, Linux kernel version 4.18.16-200
+//! (x86-64), using the lexical formatter or `x.parse()`,
+//! avoiding any inefficiencies in Rust string parsing. The code was
+//! compiled with LTO and at an optimization level of 3.
+//!
+//! The benchmarks with `std` were compiled using "rustc 1.29.2 (17a9dc751
+//! 2018-10-05", and the `no_std` benchmarks were compiled using "rustc
+//! 1.31.0-nightly (46880f41b 2018-10-15)".
+//!
+//! The benchmark code may be found `benches/atof.rs`.
+//!
+//! # Benchmarks
+//!
+//! | Type  |  lexical (ns/iter) | parse (ns/iter)       | Relative Increase |
+//! |:-----:|:------------------:|:---------------------:|:-----------------:|
+//! | f32   | 761,670            | 28,650,637            | 37.62x            |
+//! | f64   | 1,083,162          | 123,675,824           | 114.18x           |
+//!
+//! # Raw Benchmarks
+//!
+//! ```text
+//! test f32_lexical ... bench:     761,670 ns/iter (+/- 194,856)
+//! test f32_parse   ... bench:  28,650,637 ns/iter (+/- 7,269,036)
+//! test f64_lexical ... bench:   1,083,162 ns/iter (+/- 315,101)
+//! test f64_parse   ... bench: 123,675,824 ns/iter (+/- 20,924,195)
+//! ```
+//!
+//! Raw Benchmarks (`no_std`)
+//!
+//! ```text
+//! test f32_lexical ... bench:     652,922 ns/iter (+/- 44,491)
+//! test f32_parse   ... bench:  24,381,160 ns/iter (+/- 687,175)
+//! test f64_lexical ... bench:     835,822 ns/iter (+/- 28,754)
+//! test f64_parse   ... bench: 113,449,442 ns/iter (+/- 3,983,104)
+//! ```
 
-use atoi::atoi_unchecked;
+// Code the generate the benchmark plot:
+//  import numpy as np
+//  import pandas as pd
+//  import matplotlib.pyplot as plt
+//  plt.style.use('ggplot')
+//  lexical = np.array([761670, 1083162]) / 1e6
+//  parse = np.array([28650637, 123675824]) / 1e6
+//  index = ["f32", "f64"]
+//  df = pd.DataFrame({'lexical': lexical, 'parse': parse}, index = index)
+//  ax = df.plot.bar(rot=0)
+//  ax.set_ylabel("ms/iter")
+//  ax.figure.tight_layout()
+//  plt.show()
+
+use atoi;
 use table::*;
 use util::*;
-use super::correct::parse_exponent;
+use super::exponent::parse_exponent;
 
 // FRACTION
+
+type Wrapped = WrappedFloat<f64>;
 
 /// Parse the integer portion of a positive, normal float string.
 ///
 /// Use a float since for large numbers, this may even overflow a u64.
 #[inline(always)]
-unsafe extern "C" fn parse_integer(first: *const u8, last: *const u8, base: u64)
+unsafe extern "C" fn parse_integer(base: u32, first: *const u8, last: *const u8)
     -> (f64, *const u8)
 {
-    let mut integer: WrappedFloat<f64> = WrappedFloat::new();
-    let base = WrappedFloat::from_float(base as f64);
-    let p = atoi_unchecked(&mut integer, base, first, last).0;
+    let cb = atoi::unchecked::<Wrapped>;
+    let (integer, p, _) = atoi::value::<Wrapped, _>(base, first, last, cb);
     (integer.into_inner(), p)
 }
 
@@ -26,7 +78,7 @@ unsafe extern "C" fn parse_integer(first: *const u8, last: *const u8, base: u64)
 /// values for each may be too small to change the integer components
 /// representation **immediately**.
 #[inline(always)]
-unsafe extern "C" fn parse_fraction(first: *const u8, last: *const u8, base: u64)
+unsafe extern "C" fn parse_fraction(base: u32, first: *const u8, last: *const u8)
     -> (f64, *const u8)
 {
     // Ensure if there's a decimal, there are trailing values, so
@@ -40,7 +92,7 @@ unsafe extern "C" fn parse_fraction(first: *const u8, last: *const u8, base: u64
             // but that would require.
             let mut value: u64 = 0;
             let l = last.min(f.add(12));
-            f = atoi_unchecked(&mut value, base, f, l).0;
+            f = atoi::unchecked(&mut value, base, f, l).0;
             let digits = distance(first, f) as i32;
 
             // Ignore leading 0s, just not we've passed them.
@@ -49,7 +101,7 @@ unsafe extern "C" fn parse_fraction(first: *const u8, last: *const u8, base: u64
             }
 
             // do/while condition
-            if f == last || char_to_digit(*f) >= base as u8 {
+            if f == last || char_to_digit(*f) as u32 >= base {
                 break;
             }
         }
@@ -65,13 +117,13 @@ unsafe extern "C" fn parse_fraction(first: *const u8, last: *const u8, base: u64
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-pub(super) unsafe extern "C" fn parse_float(first: *const u8, last: *const u8, base: u64)
+unsafe extern "C" fn parse_float(base: u32, first: *const u8, last: *const u8)
     -> (f64, i32, *const u8)
 {
     // Parse components
-    let (integer, p) = parse_integer(first, last, base);
-    let (fraction, p) = parse_fraction(p, last, base);
-    let (exponent, p) = parse_exponent(p, last, base);
+    let (integer, p) = parse_integer(base, first, last);
+    let (fraction, p) = parse_fraction(base, p, last);
+    let (exponent, p) = parse_exponent(base, p, last);
 
     (integer + fraction, exponent, p)
 }
@@ -82,10 +134,10 @@ pub(super) unsafe extern "C" fn parse_float(first: *const u8, last: *const u8, b
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-pub(crate) unsafe extern "C" fn atof(first: *const u8, last: *const u8, base: u64)
+pub(crate) unsafe extern "C" fn atof(base: u32, first: *const u8, last: *const u8)
     -> (f32, *const u8)
 {
-    let (value, p) = atod(first, last, base);
+    let (value, p) = atod(base, first, last);
     (value as f32, p)
 }
 
@@ -93,12 +145,12 @@ pub(crate) unsafe extern "C" fn atof(first: *const u8, last: *const u8, base: u6
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-pub(crate) unsafe extern "C" fn atod(first: *const u8, last: *const u8, base: u64)
+pub(crate) unsafe extern "C" fn atod(base: u32, first: *const u8, last: *const u8)
     -> (f64, *const u8)
 {
-    let (mut value, exponent, p) = parse_float(first, last, base);
+    let (mut value, exponent, p) = parse_float(base, first, last);
     if exponent != 0 && value != 0.0 {
-        value = f64::iterative_pow(value, base, exponent);
+        value = value.iterative_pow(base, exponent);
     }
     (value, p)
 }
@@ -110,10 +162,10 @@ pub(crate) unsafe extern "C" fn atod(first: *const u8, last: *const u8, base: u6
 mod tests {
     use super::*;
 
-    unsafe fn check_parse_integer(s: &str, base: u64, tup: (f64, usize)) {
+    unsafe fn check_parse_integer(base: u32, s: &str, tup: (f64, usize)) {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let (v, p) = parse_integer(first, last, base);
+        let (v, p) = parse_integer(base, first, last);
         assert_eq!(v, tup.0);
         assert_eq!(distance(first, p), tup.1);
     }
@@ -121,16 +173,16 @@ mod tests {
     #[test]
     fn parse_integer_test() {
         unsafe {
-            check_parse_integer("1.2345", 10, (1.0, 1));
-            check_parse_integer("12.345", 10, (12.0, 2));
-            check_parse_integer("12345.6789", 10, (12345.0, 5));
+            check_parse_integer(10, "1.2345", (1.0, 1));
+            check_parse_integer(10, "12.345", (12.0, 2));
+            check_parse_integer(10, "12345.6789", (12345.0, 5));
         }
     }
 
-    unsafe fn check_parse_fraction(s: &str, base: u64, tup: (f64, usize)) {
+    unsafe fn check_parse_fraction(base: u32, s: &str, tup: (f64, usize)) {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let (v, p) = parse_fraction(first, last, base);
+        let (v, p) = parse_fraction(base, first, last);
         assert_eq!(v, tup.0);
         assert_eq!(distance(first, p), tup.1);
     }
@@ -138,16 +190,16 @@ mod tests {
     #[test]
     fn parse_fraction_test() {
         unsafe {
-            check_parse_fraction(".2345", 10, (0.2345, 5));
-            check_parse_fraction(".345", 10, (0.345, 4));
-            check_parse_fraction(".6789", 10, (0.6789, 5));
+            check_parse_fraction(10, ".2345", (0.2345, 5));
+            check_parse_fraction(10, ".345", (0.345, 4));
+            check_parse_fraction(10, ".6789", (0.6789, 5));
         }
     }
 
-    unsafe fn check_parse_float(s: &str, base: u64, tup: (f64, i32, usize)) {
+    unsafe fn check_parse_float(base: u32, s: &str, tup: (f64, i32, usize)) {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let (v, e, p) = parse_float(first, last, base);
+        let (v, e, p) = parse_float(base, first, last);
         assert_eq!(v, tup.0);
         assert_eq!(e, tup.1);
         assert_eq!(distance(first, p), tup.2);
@@ -156,17 +208,17 @@ mod tests {
     #[test]
     fn parse_float_test() {
         unsafe {
-            check_parse_float("1.2345", 10, (1.2345, 0, 6));
-            check_parse_float("12.345", 10, (12.345, 0, 6));
-            check_parse_float("12345.6789", 10, (12345.6789, 0, 10));
-            check_parse_float("1.2345e10", 10, (1.2345, 10, 9));
+            check_parse_float(10, "1.2345", (1.2345, 0, 6));
+            check_parse_float(10, "12.345", (12.345, 0, 6));
+            check_parse_float(10, "12345.6789", (12345.6789, 0, 10));
+            check_parse_float(10, "1.2345e10", (1.2345, 10, 9));
         }
     }
 
-    unsafe fn check_atof(s: &str, base: u64, tup: (f32, usize)) {
+    unsafe fn check_atof(base: u32, s: &str, tup: (f32, usize)) {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let (v, p) = atof(first, last, base);
+        let (v, p) = atof(base, first, last);
         assert_eq!(v, tup.0);
         assert_eq!(distance(first, p), tup.1);
     }
@@ -174,17 +226,17 @@ mod tests {
     #[test]
     fn atof_test() {
         unsafe {
-            check_atof("1.2345", 10, (1.2345, 6));
-            check_atof("12.345", 10, (12.345, 6));
-            check_atof("12345.6789", 10, (12345.6789, 10));
-            check_atof("1.2345e10", 10, (1.2345e10, 9));
+            check_atof(10, "1.2345", (1.2345, 6));
+            check_atof(10, "12.345", (12.345, 6));
+            check_atof(10, "12345.6789", (12345.6789, 10));
+            check_atof(10, "1.2345e10", (1.2345e10, 9));
         }
     }
 
-    unsafe fn check_atod(s: &str, base: u64, tup: (f64, usize)) {
+    unsafe fn check_atod(base: u32, s: &str, tup: (f64, usize)) {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let (v, p) = atod(first, last, base);
+        let (v, p) = atod(base, first, last);
         assert_eq!(v, tup.0);
         assert_eq!(distance(first, p), tup.1);
     }
@@ -192,10 +244,10 @@ mod tests {
     #[test]
     fn atod_test() {
         unsafe {
-            check_atod("1.2345", 10, (1.2345, 6));
-            check_atod("12.345", 10, (12.345, 6));
-            check_atod("12345.6789", 10, (12345.6789, 10));
-            check_atod("1.2345e10", 10, (1.2345e10, 9));
+            check_atod(10, "1.2345", (1.2345, 6));
+            check_atod(10, "12.345", (12.345, 6));
+            check_atod(10, "12345.6789", (12345.6789, 10));
+            check_atod(10, "1.2345e10", (1.2345e10, 9));
         }
     }
 }

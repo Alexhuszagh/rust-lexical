@@ -3,14 +3,26 @@
 //! This algorithm is adapted from the V8 codebase,
 //! and may be found [here](https://github.com/v8/v8).
 
-use itoa::itoa_forward;
+use itoa;
 use lib::{mem, ptr};
 use table::*;
 use util::*;
-use super::util::*;
 
 // FTOA BASEN
 // ----------
+
+/// Calculate the naive exponent from a minimal value.
+///
+/// Don't export this for float, since it's specialized for basen.
+#[inline]
+pub(crate) fn naive_exponent(d: f64, base: u32) -> i32
+{
+    // floor returns the minimal value, which is our
+    // desired exponent
+    // ln(1.1e-5) -> -4.95 -> -5
+    // ln(1.1e5) -> -5.04 -> 5
+    (d.ln() / (base as f64).ln()).floor() as i32
+}
 
 /// Naive algorithm for converting a floating point to a custom radix.
 ///
@@ -18,7 +30,7 @@ use super::util::*;
 /// and non-zero.
 ///
 /// Adapted from the V8 implementation.
-unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
+unsafe extern "C" fn ftoa_naive(value: f64, base: u32, first: *mut u8)
     -> *mut u8
 {
     // Logic error, base should not be passed dynamically.
@@ -26,9 +38,9 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
 
     // Assert no special cases remain, no non-zero values,
     // and no negative numbers.
-    debug_assert!(!d.is_special());
-    debug_assert!(d != 0.0);
-    debug_assert!(d > 0.0);
+    debug_assert!(!value.is_special());
+    debug_assert!(value != 0.0);
+    debug_assert!(value > 0.0);
 
     // Store the first digit and up to `BUFFER_SIZE - 20` digits
     // that occur from left-to-right in the decimal representation.
@@ -62,11 +74,11 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
     let bf = base as f64;
 
     // Split the value into an integer part and a fractional part.
-    let mut integer = d.floor();
-    let mut fraction = d - integer;
+    let mut integer = value.floor();
+    let mut fraction = value - integer;
 
     // We only compute fractional digits up to the input double's precision.
-    let mut delta = 0.5 * (d.next_positive() - d);
+    let mut delta = 0.5 * (value.next_positive() - value);
     delta = 0.0.next_positive().max_finite(delta);
     debug_assert!(delta > 0.0);
 
@@ -131,9 +143,9 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
         }
     };
 
-    if d <= 1e-5 || d >= 1e9 {
+    if value <= 1e-5 || value >= 1e9 {
         // write scientific notation with negative exponent
-        let exponent = naive_exponent(d, base);
+        let exponent = naive_exponent(value, base);
 
         // Non-exponent portion.
         // 1.   Get as many digits as possible, up to `MAX_DIGIT_LENGTH+1`
@@ -141,7 +153,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
         //      or the number of written digits
         let start: usize;
         let end: usize;
-        if d <= 1e-5 {
+        if value <= 1e-5 {
             start = ((initial_position as i32) - exponent - 1) as usize;
             end = fraction_cursor.min(start + MAX_DIGIT_LENGTH + 1);
         } else {
@@ -183,7 +195,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
             exp = exponent as u32;
         }
         // Forward the exponent writer.
-        return itoa_forward(exp, base as u8, p);
+        return itoa::forward(exp, base, p);
 
     } else {
         let mut p;
@@ -219,10 +231,10 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline(always)]
-pub(crate) unsafe extern "C" fn float_basen(f: f32, first: *mut u8, base: u64)
+pub(crate) unsafe extern "C" fn float_basen(f: f32, base: u32, first: *mut u8)
     -> *mut u8
 {
-    double_basen(f as f64, first, base)
+    double_basen(f as f64, base, first)
 }
 
 // F64
@@ -232,8 +244,8 @@ pub(crate) unsafe extern "C" fn float_basen(f: f32, first: *mut u8, base: u64)
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline(always)]
-pub(crate) unsafe extern "C" fn double_basen(value: f64, first: *mut u8, base: u64)
+pub(crate) unsafe extern "C" fn double_basen(value: f64, base:u32, first: *mut u8)
     -> *mut u8
 {
-    ftoa_naive(value, first, base)
+    ftoa_naive(value, base, first)
 }

@@ -2,7 +2,7 @@
 
 use dtoa;
 use lib::slice;
-use super::util::*;
+use util::*;
 
 // F32
 
