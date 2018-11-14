@@ -14,31 +14,32 @@ cfg_if! {
     }
 }
 
-// MODULES
+/// Trait to define serialization of a float to string.
+pub(crate) trait FloatToString: Float {
+    /// Export float to base10 string with optimized algorithm.
+    unsafe extern "C" fn base10(first: *const u8, last: *const u8) -> (Self, *const u8);
 
-// Use modules to create consistent naming to avoid concatenating identifiers.
+    /// Export float to basen string with slow algorithm.
+    unsafe extern "C" fn basen(base: u64, first: *const u8, last: *const u8) -> (Self, *const u8);
+}
 
-mod float {
-    #[inline(always)]
-    pub(super) unsafe extern "C" fn base10(first: *const u8, last: *const u8) -> (f32, *const u8) {
-        super::float_base10(first, last)
+impl FloatToString for f32 {
+    unsafe extern "C" fn base10(first: *const u8, last: *const u8) -> (f32, *const u8) {
+        float_base10(first, last)
     }
 
-    #[inline(always)]
-    pub(super) unsafe extern "C" fn basen(first: *const u8, last: *const u8, base: u64) -> (f32, *const u8) {
-        super::float_basen(first, last, base)
+    unsafe extern "C" fn basen(base: u64, first: *const u8, last: *const u8) -> (f32, *const u8) {
+        float_basen(first, last, base)
     }
 }
 
-mod double {
-    #[inline(always)]
-    pub(super) unsafe extern "C" fn base10(first: *const u8, last: *const u8) -> (f64, *const u8) {
-        super::double_base10(first, last)
+impl FloatToString for f64 {
+    unsafe extern "C" fn base10(first: *const u8, last: *const u8) -> (f64, *const u8) {
+        double_base10(first, last)
     }
 
-    #[inline(always)]
-    pub(super) unsafe extern "C" fn basen(first: *const u8, last: *const u8, base: u64) -> (f64, *const u8) {
-        super::double_basen(first, last, base)
+    unsafe extern "C" fn basen(base: u64, first: *const u8, last: *const u8) -> (f64, *const u8) {
+        double_basen(first, last, base)
     }
 }
 
@@ -71,45 +72,52 @@ pub(crate) unsafe extern "C" fn is_zero(first: *const u8, length: usize)
 ///
 /// Allows a custom quad type (if enabled) to be passed for higher-precision
 /// calculations.
-macro_rules! atof_foward {
-    ($first:expr, $last:expr, $base:expr, $mod:ident) => (match $base{
-        10  => $mod::base10($first, $last),
-        _   => $mod::basen($first, $last, $base),
-    })
+#[inline]
+unsafe fn atof_foward<F: FloatToString, T: Integer>(base: T, first: *const u8, last: *const u8)
+    -> (F, *const u8)
+{
+    let base: u64 = as_(base);
+    match base {
+        10 => F::base10(first, last),
+        _  => F::basen(base, first, last),
+    }
 }
 
-/// Convert string to float (must be called within an unsafe block).
-macro_rules! atof_value {
-    ($first:expr, $last:expr, $base:expr, $mod:ident, $f:tt) => ({
-        // special case checks
-        let length = distance($first, $last);
-        if is_nan($first, length) {
-            ($f::NAN, $first.add(NAN_STRING.len()))
-        } else if is_infinity($first, length) {
-            ($f::INFINITY, $first.add(INFINITY_STRING.len()))
-        } else if is_zero($first, length) {
-            (0.0, $first.add(3))
-        } else {
-            atof_foward!($first, $last, $base, $mod)
-        }
-    })
+/// Convert string to float and handle special cases.
+#[inline]
+#[allow(dead_code)]
+unsafe fn atof_value<F: FloatToString, T: Integer>(base: T, first: *const u8, last: *const u8)
+    -> (F, *const u8)
+{
+    // special case checks
+    let length = distance(first, last);
+    if is_nan(first, length) {
+        (F::NAN, first.add(NAN_STRING.len()))
+    } else if is_infinity(first, length) {
+        (F::INFINITY, first.add(INFINITY_STRING.len()))
+    } else if is_zero(first, length) {
+        (F::ZERO, first.add(3))
+    } else {
+        atof_foward::<F, T>(base, first, last)
+    }
 }
 
 /// Sanitizer for string to float (must be called within an unsafe block).
-// TODO(ahuszagh) Change to function, rchange sealed::ptr::null to null
-macro_rules! atof {
-    ($first:expr, $last:expr, $base:expr, $mod:ident, $f:tt) => ({
-        if $first == $last {
-            (0.0, ptr::null())
-        } else if *$first == b'-' {
-            let (value, p) = atof_value!($first.add(1), $last, $base, $mod, $f);
-            (-value, p)
-        } else if *$first == b'+' {
-            atof_value!($first.add(1), $last, $base, $mod, $f)
-        } else {
-            atof_value!($first, $last, $base, $mod, $f)
-        }
-    })
+#[inline]
+#[allow(dead_code)]
+unsafe fn atof<F: FloatToString, T: Integer>(base: T, first: *const u8, last: *const u8)
+    -> (F, *const u8)
+{
+    if first == last {
+        (F::ZERO, ptr::null())
+    } else if *first == b'-' {
+        let (value, p) = atof_value::<F, T>(base, first.add(1), last);
+        (-value, p)
+    } else if *first == b'+' {
+        atof_value::<F, T>(base, first.add(1), last)
+    } else {
+        atof_value::<F, T>(base, first, last)
+    }
 }
 
 // UNSAFE API
@@ -117,12 +125,9 @@ macro_rules! atof {
 /// Generate the unsafe public wrappers.
 ///
 /// * `func`        Function name.
-/// * `sig`         Significand step for exponent.
 /// * `f`           Float type.
-/// * `nan`         NaN literal.
-/// * `inf`         Infinity literal.
 macro_rules! unsafe_impl {
-    ($func:ident, $mod:ident, $f:tt) => (
+    ($func:ident, $f:tt) => (
         /// Unsafe, C-like importer for signed numbers.
         #[inline]
         pub unsafe extern "C" fn $func(
@@ -132,14 +137,14 @@ macro_rules! unsafe_impl {
         )
             -> ($f, *const u8, bool)
         {
-            let (value, p) = atof!(first, last, base as u64, $mod, $f);
-            (value as $f, p, false)
+            let (value, p) = atof::<$f, _>(base as u64, first, last);
+            (value, p, false)
         }
     )
 }
 
-unsafe_impl!(atof32_unsafe, float, f32);
-unsafe_impl!(atof64_unsafe, double, f64);
+unsafe_impl!(atof32_unsafe, f32);
+unsafe_impl!(atof64_unsafe, f64);
 
 // LOW-LEVEL API
 

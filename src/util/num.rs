@@ -439,13 +439,6 @@ pub trait Float: Number + ops::Neg<Output=Self>
         debug_assert!(!self.is_special() && !f.is_special(), "min_finite self={} f={}",  self, f);
         if self < f { self } else { f }
     }
-
-    // STABLE POWERS
-
-    // TODO(ahuszagh) Move These to a new module...
-    // TODO(ahuszagh) Add pow2
-    // TODO(ahuszagh) Add pown
-    // TODO(ahuszagh) Add stable_powi
 }
 
 /// Wrap float method for `no_std` context.
@@ -708,7 +701,7 @@ mod tests {
     }
 
     fn check_integer<T: Integer>(mut x: T) {
-        // Copy, partialeq, partialord,ord, eq
+        // Copy, partialeq, partialord, ord, eq
         let _ = x;
         assert!(x > T::ONE);
         assert!(x != T::ONE);
@@ -847,6 +840,4 @@ mod tests {
         check_float(123f32);
         check_float(123f64);
     }
-
-    // TODO(ahuszagh) Wrapped float
 }

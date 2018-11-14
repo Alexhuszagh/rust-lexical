@@ -516,5 +516,38 @@ impl<T: Float> SignedInteger for WrappedFloat<T> {
 mod tests {
     use super::*;
 
-    // TODO(ahuszagh) Implement...
+    fn check_integer<T: Integer>(mut x: T) {
+        // Copy, partialeq, partialord, ord, eq
+        let _ = x;
+        assert!(x > T::ONE);
+        assert!(x != T::ONE);
+        assert_eq!(x.min(T::ONE), T::ONE);
+        assert_eq!(x.max(T::ONE), x);
+
+        // Operations
+        let _ = x + T::ONE;
+        let _ = x - T::ONE;
+        let _ = x * T::ONE;
+        let _ = x / T::ONE;
+        let _ = x % T::ONE;
+        x += T::ONE;
+        x -= T::ONE;
+        x *= T::ONE;
+        x /= T::ONE;
+        x %= T::ONE;
+
+        // Functions
+        assert!(T::ZERO.is_zero());
+        assert!(!T::ONE.is_zero());
+        assert!(T::ONE.is_one());
+        assert!(!T::ZERO.is_one());
+
+        // Conversions already tested.
+    }
+
+    #[test]
+    fn integer_test() {
+        check_integer(WrappedFloat::from_float(65f32));
+        check_integer(WrappedFloat::from_float(65f64));
+    }
 }
