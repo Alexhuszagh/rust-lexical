@@ -55,20 +55,20 @@ cfg_if! {
 }
 
 /// Facade around the core features for name mangling.
-pub(crate) mod sealed {
+pub(crate) mod lib {
     cfg_if! {
         if #[cfg(feature = "std")] {
-            pub use std::*;
+            pub(crate) use std::*;
         } else {
-            pub use core::*;
+            pub(crate) use core::*;
         }
     }
 
     cfg_if! {
         if #[cfg(all(feature = "alloc", not(feature = "std")))] {
-            pub use alloc::string::String;
+            pub(crate) use alloc::string::String;
         } else if #[cfg(feature = "std")] {
-            pub use std::string::String;
+            pub(crate) use std::string::String;
         }
     }
 }
@@ -76,28 +76,20 @@ pub(crate) mod sealed {
 // API
 
 // Hide the implementation details.
-#[macro_use]
-#[doc(hidden)]
-pub mod table;
+mod error;
+mod table;
 
+// TODO(ahuszagh) Remove the macro_use if I can...
 #[macro_use]
 mod util;
 
-mod error;
-
-#[doc(hidden)]
-pub mod float;
-
 // Publicly export the low-level APIs.
-// Macros used in atoi are required for atof, so export those.
-#[macro_use]
-pub mod atoi;
-
-// Macros used in itoa are required for ftoa, so export those.
-#[macro_use]
-pub mod itoa;
-
 pub mod atof;
+pub mod atoi;
+pub mod itoa;
+// TODO(ahuszagh) LImit the float stuff to be pub(crate) and feature gate
+// Some of it... (test, feature = "correct")
+pub mod float;
 pub mod ftoa;
 
 #[doc(hidden)]
@@ -114,12 +106,12 @@ pub use error::{Error, ErrorKind};
 
 // HIGH LEVEL
 
-use sealed::convert::AsRef;
+use lib::convert::AsRef;
 
-use traits::Aton;
+use traits::FromBytes;
 
 #[cfg(any(feature = "std", feature = "alloc"))]
-use traits::Ntoa;
+use traits::ToBytes;
 
 /// High-level conversion of a number to a decimal-encoded string.
 ///
@@ -136,8 +128,8 @@ use traits::Ntoa;
 /// ```
 #[inline(always)]
 #[cfg(any(feature = "std", feature = "alloc"))]
-pub fn to_string<N: Ntoa>(n: N) -> sealed::String {
-    n.serialize_to_string(10)
+pub fn to_string<N: ToBytes>(n: N) -> lib::String {
+    n.to_bytes(10)
 }
 
 /// High-level conversion of a number to string with a custom radix.
@@ -156,9 +148,9 @@ pub fn to_string<N: Ntoa>(n: N) -> sealed::String {
 /// ```
 #[inline(always)]
 #[cfg(any(feature = "std", feature = "alloc"))]
-pub fn to_string_radix<N: Ntoa>(n: N, radix: u8) -> sealed::String {
+pub fn to_string_radix<N: ToBytes>(n: N, radix: u8) -> lib::String {
     assert!(2 <= radix && radix <= 36, "to_string_radix, radix must be in range `[2, 36]`, got {}", radix);
-    n.serialize_to_string(radix)
+    n.to_bytes(radix)
 }
 
 /// High-level conversion of decimal-encoded bytes to a number.
@@ -192,8 +184,8 @@ pub fn to_string_radix<N: Ntoa>(n: N, radix: u8) -> sealed::String {
 ///
 /// [`try_parse`]: fn.try_parse.html
 #[inline(always)]
-pub fn parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
-    N::deserialize_from_bytes(bytes.as_ref(), 10)
+pub fn parse<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
+    N::from_bytes(bytes.as_ref(), 10)
 }
 
 /// High-level conversion of bytes to a number with a custom radix.
@@ -228,9 +220,9 @@ pub fn parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
 ///
 /// [`try_parse_radix`]: fn.try_parse_radix.html
 #[inline(always)]
-pub fn parse_radix<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> N {
+pub fn parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> N {
     assert!(2 <= radix && radix <= 36, "parse_radix, radix must be in range `[2, 36]`, got {}", radix);
-    N::deserialize_from_bytes(bytes.as_ref(), radix)
+    N::from_bytes(bytes.as_ref(), radix)
 }
 
 /// High-level conversion of decimal-encoded bytes to a number.
@@ -268,10 +260,10 @@ pub fn parse_radix<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> N {
 ///
 /// [`parse`]: fn.parse.html
 #[inline(always)]
-pub fn try_parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes)
+pub fn try_parse<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes)
     -> Result<N, Error>
 {
-    N::try_deserialize_from_bytes(bytes.as_ref(), 10)
+    N::try_from_bytes(bytes.as_ref(), 10)
 }
 
 /// High-level conversion of bytes to a number with a custom radix.
@@ -313,9 +305,9 @@ pub fn try_parse<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes)
 ///
 /// [`parse_radix`]: fn.parse_radix.html
 #[inline(always)]
-pub fn try_parse_radix<N: Aton, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
+pub fn try_parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
     -> Result<N, Error>
 {
     assert!(2 <= radix && radix <= 36, "try_parse_radix, radix must be in range `[2, 36]`, got {}", radix);
-    N::try_deserialize_from_bytes(bytes.as_ref(), radix)
+    N::try_from_bytes(bytes.as_ref(), radix)
 }

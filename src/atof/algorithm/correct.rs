@@ -1,7 +1,11 @@
 //! Correct algorithms for string-to-float conversions.
 
+use atoi::{atoi_unchecked, atoi_sign};
 use util::*;
 use ftoa::exponent_notation_char;
+
+#[cfg(any(test, feature = "correct"))]
+use table::*;
 
 // TODO(ahuszagh)
 //  Base implementation off of:
@@ -32,7 +36,8 @@ pub(super) unsafe extern "C" fn parse_exponent(first: *const u8, last: *const u8
         // We care whether the value is positive.
         // Use is32::max_value() since it's valid in 2s complement for
         // positive or negative numbers, and will trigger a short-circuit.
-        let (exponent, p, overflow, sign) = atoi_sign!(p, last, base, i32);
+        let cb = atoi_unchecked::<i32>;
+        let (exponent, p, overflow, sign) = atoi_sign::<i32, _>(base as u8, p, last, cb);
         let exponent = if overflow { i32::max_value() } else { exponent };
         let exponent = if sign == -1 { -exponent } else { exponent };
         (exponent, p)
@@ -47,6 +52,7 @@ if #[cfg(any(test, feature = "correct"))] {
 // In this case, the mantissa can be represented by an integer,
 // which allows any value to be exactly reconstructed.
 
+use atoi::{atoi_checked, atoi_value};
 use float::FloatType;
 use super::cached;
 use super::double;
@@ -76,7 +82,8 @@ pub(super) unsafe extern "C" fn parse_mantissa(mut first: *const u8, last: *cons
     // Parse the integral value.
     // Use the checked parsers so the truncated value is valid even if
     // the entire value is not parsed.
-    let (mut mantissa, f, truncated) = atoi_value!(first, last, base, u64, atoi_checked);
+    let cb = atoi_checked::<u64>;
+    let (mut mantissa, f, truncated) = atoi_value::<u64, _>(base as u8, first, last, cb);
     if distance(f, last) > 1 && *f == b'.' {
         // Has a decimal, calculate the rest of it.
         let f = f.add(1);
@@ -89,9 +96,9 @@ pub(super) unsafe extern "C" fn parse_mantissa(mut first: *const u8, last: *cons
                 // both "1e-29" and "0.0000000000000000000000000001",
                 // otherwise, only the former would work.
                 let f = ltrim_char(f, last, b'0');
-                atoi_checked!(mantissa, f, last, base, u64)
+                cb(&mut mantissa, base, f, last)
             },
-            _ => atoi_checked!(mantissa, f, last, base, u64),
+            _ => cb(&mut mantissa, base, f, last),
         };
         let dot = distance(f, tup.0) as i32;
         (mantissa, dot, tup.0, truncated | tup.1)
@@ -188,6 +195,8 @@ macro_rules! to_exact {
             } else if $exponent >= $min && $exponent <= $max {
                 // Value can be exactly represented, return the value.
                 let float = match $base {
+                    // TODO(ahuszagh) Make these a method on trait, so I can
+                    // call it directly without a macro...
                     2  => $mod::pow2_to_exact(float, 1, $exponent),
                     4  => $mod::pow2_to_exact(float, 2, $exponent),
                     8  => $mod::pow2_to_exact(float, 3, $exponent),
@@ -210,7 +219,7 @@ macro_rules! to_exact {
 /// Return the exact float and if the exact conversion was successful.
 #[inline]
 pub(super) unsafe fn to_float_exact(mantissa: u64, base: u64, exponent: i32) -> (f32, bool) {
-    let (min_exp, max_exp) = f32_exact_exponent_limit!(base);
+    let (min_exp, max_exp) = f32::exponent_limit(base);
     to_exact!(mantissa, base, exponent, min_exp, max_exp, f32, float)
 }
 
@@ -219,7 +228,7 @@ pub(super) unsafe fn to_float_exact(mantissa: u64, base: u64, exponent: i32) -> 
 /// Return the exact float and if the exact conversion was successful.
 #[inline]
 pub(super) unsafe fn to_double_exact(mantissa: u64, base: u64, exponent: i32) -> (f64, bool) {
-    let (min_exp, max_exp) = f64_exact_exponent_limit!(base);
+    let (min_exp, max_exp) = f64::exponent_limit(base);
     to_exact!(mantissa, base, exponent, min_exp, max_exp, f64, double)
 }
 
@@ -558,7 +567,7 @@ mod tests {
             // valid
             let mantissa = 1 << (f32::SIGNIFICAND_SIZE - 1);
             for base in 2..37u64 {
-                let (min_exp, max_exp) = f32_exact_exponent_limit!(base);
+                let (min_exp, max_exp) = f32::exponent_limit(base);
                 for exp in min_exp..max_exp+1 {
                     let (_, valid) = to_float_exact(mantissa, base, exp);
                     assert!(valid, "should be valid {:?}.", (mantissa, base, exp));
@@ -571,7 +580,7 @@ mod tests {
 
             // invalid exponents
             for base in 2..37u64 {
-                let (min_exp, max_exp) = f32_exact_exponent_limit!(base);
+                let (min_exp, max_exp) = f32::exponent_limit(base);
                 let (_, valid) = to_float_exact(mantissa, base, min_exp-1);
                 assert!(!valid, "exponent under min_exp");
 
@@ -587,7 +596,7 @@ mod tests {
             // valid
             let mantissa = 1 << (f64::SIGNIFICAND_SIZE - 1);
             for base in 2..37u64 {
-                let (min_exp, max_exp) = f64_exact_exponent_limit!(base);
+                let (min_exp, max_exp) = f64::exponent_limit(base);
                 for exp in min_exp..max_exp+1 {
                     let (_, valid) = to_double_exact(mantissa, base, exp);
                     assert!(valid, "should be valid {:?}.", (mantissa, base, exp));
@@ -600,7 +609,7 @@ mod tests {
 
             // invalid exponents
             for base in 2..37u64 {
-                let (min_exp, max_exp) = f64_exact_exponent_limit!(base);
+                let (min_exp, max_exp) = f64::exponent_limit(base);
                 let (_, valid) = to_double_exact(mantissa, base, min_exp-1);
                 assert!(!valid, "exponent under min_exp");
 

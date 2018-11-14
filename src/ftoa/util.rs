@@ -1,6 +1,10 @@
 //! Utilities for float-to-string conversions.
 
+use lib::ptr;
 use util::*;
+
+// TODO(ahuszagh) I can likely move this elsewhere....
+// Doesn't seem to be a great module name.
 
 // FLOAT HELPERS
 
@@ -14,7 +18,7 @@ pub(crate) fn naive_exponent(d: f64, base: u64) -> i32
     // desired exponent
     // ln(1.1e-5) -> -4.95 -> -5
     // ln(1.1e5) -> -5.04 -> 5
-    (floor_f64(ln_f64(d) / ln_f64(base as f64))) as i32
+    (d.ln() / (base as f64).ln()).floor() as i32
 }
 
 // BUFFER PARAMTERS
@@ -49,14 +53,14 @@ pub(crate) trait EmitFloat: Float {
     #[inline]
     unsafe extern "C" fn emit_special(&self, dest: *mut u8) -> i32 {
         if self.is_zero() {
-            copy_nonoverlapping!(b"0.0".as_ptr(), dest, 3);
+            ptr::copy_nonoverlapping(b"0.0".as_ptr(), dest, 3);
             3
         } else if self.is_special() {
             if self.is_nan() {
-                copy_nonoverlapping!(NAN_STRING.as_ptr(), dest, NAN_STRING.len());
+                ptr::copy_nonoverlapping(NAN_STRING.as_ptr(), dest, NAN_STRING.len());
                 NAN_STRING.len() as i32
             } else {
-                copy_nonoverlapping!(INFINITY_STRING.as_ptr(), dest, INFINITY_STRING.len());
+                ptr::copy_nonoverlapping(INFINITY_STRING.as_ptr(), dest, INFINITY_STRING.len());
                 INFINITY_STRING.len() as i32
             }
         } else {

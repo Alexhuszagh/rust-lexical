@@ -1,6 +1,5 @@
 //! Convert between extended-precision and native floats/integers.
 
-use sealed::ops;
 use util::*;
 use super::float_type::FloatType;
 
@@ -13,7 +12,7 @@ use super::float_type::FloatType;
 #[inline(always)]
 pub(super) fn from_int<T: Integer>(t: T) -> FloatType {
     FloatType {
-        frac: t.cast(),
+        frac: as_(t),
         exp: 0,
     }
 }
@@ -26,10 +25,9 @@ pub(super) fn from_int<T: Integer>(t: T) -> FloatType {
 #[inline(always)]
 pub(super) fn from_float<T: Float>(t: T)
     -> FloatType
-    where T::Unsigned: PrimitiveCast<u64>
 {
     FloatType {
-        frac: t.significand().cast(),
+        frac: as_(t.significand()),
         exp: t.exponent(),
     }
 }
@@ -43,10 +41,6 @@ pub(super) fn from_float<T: Float>(t: T)
 #[inline]
 pub(super) fn as_float<T: Float>(fp: FloatType)
     -> T
-    where T::Unsigned: PrimitiveCast<u64>,
-          T::Unsigned: ops::Shl<i32>,
-          u32: PrimitiveCast<T::Unsigned>,
-          u64: PrimitiveCast<T::Unsigned>
 {
     // Export floating-point number.
     if fp.frac == 0 || fp.exp < T::DENORMAL_EXPONENT {
@@ -58,13 +52,13 @@ pub(super) fn as_float<T: Float>(fp: FloatType)
     } else {
         // calculate the exp and fraction bits, and return a float from bits.
         let exp: u64;
-        if (fp.exp == T::DENORMAL_EXPONENT) && (fp.frac & T::HIDDEN_BIT_MASK.cast()) == 0 {
+        if (fp.exp == T::DENORMAL_EXPONENT) && (fp.frac & as_::<u64, _>(T::HIDDEN_BIT_MASK)) == 0 {
             exp = 0;
         } else {
             exp = (fp.exp + T::EXPONENT_BIAS) as u64;
         }
         let exp = exp << T::SIGNIFICAND_SIZE;
-        let frac = fp.frac & T::FRACTION_MASK.cast();
-        T::from_bits((frac | exp).cast())
+        let frac = fp.frac & as_::<u64, _>(T::FRACTION_MASK);
+        T::from_bits(as_(frac | exp))
     }
 }

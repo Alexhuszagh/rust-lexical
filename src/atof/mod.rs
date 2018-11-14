@@ -2,12 +2,11 @@
 
 // Hide implementation details.
 mod algorithm;
+mod api;
 mod lossy;
 
 #[cfg(feature = "correct")]
 mod correct;
-
-mod api;
 
 // Re-exports
 pub use self::api::*;

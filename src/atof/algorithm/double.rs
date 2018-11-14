@@ -11,13 +11,13 @@ use util::*;
 /// Convert base power-of-2 number to exact representation.
 #[inline(always)]
 pub(super) unsafe fn pow2_to_exact(float: f64, scalar:i32, exponent: i32) -> f64 {
-    pow2_f64(float, scalar*exponent)
+    f64::pow2(float, scalar*exponent)
 }
 
 /// Convert basen number to exact representation.
 #[inline(always)]
 pub(super) unsafe fn basen_to_exact(float: f64, base:u64, exponent: i32) -> f64 {
-    pown_f64(float, base, exponent)
+    f64::pow(float, base, exponent)
 }
 
 // TESTS

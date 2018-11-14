@@ -1,8 +1,7 @@
 //! Wrapper around David Tolnay's dtoa.
 
 use dtoa;
-use sealed::slice;
-
+use lib::slice;
 use super::util::*;
 
 // F32

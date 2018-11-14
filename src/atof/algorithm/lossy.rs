@@ -1,8 +1,9 @@
 //! Lossy algorithms for string-to-float conversions.
 
+use atoi::atoi_unchecked;
+use table::*;
 use util::*;
 use super::correct::parse_exponent;
-use super::overflowing::*;
 
 // FRACTION
 
@@ -13,9 +14,10 @@ use super::overflowing::*;
 unsafe extern "C" fn parse_integer(first: *const u8, last: *const u8, base: u64)
     -> (f64, *const u8)
 {
-    let mut integer: f64 = 0.0;
-    let p = atoi_unchecked!(integer, first, last, base, f64).0;
-    (integer, p)
+    let mut integer: WrappedFloat<f64> = WrappedFloat::new();
+    let base = WrappedFloat::from_float(base as f64);
+    let p = atoi_unchecked(&mut integer, base, first, last).0;
+    (integer.into_inner(), p)
 }
 
 /// Parse the fraction portion of a positive, normal float string.
@@ -37,17 +39,17 @@ unsafe extern "C" fn parse_fraction(first: *const u8, last: *const u8, base: u64
             // This would get better numerical precision using Horner's method,
             // but that would require.
             let mut value: u64 = 0;
-            let l = min!(last, f.add(12));
-            f = atoi_unchecked!(value, f, l, base, u64).0;
+            let l = last.min(f.add(12));
+            f = atoi_unchecked(&mut value, base, f, l).0;
             let digits = distance(first, f) as i32;
 
             // Ignore leading 0s, just not we've passed them.
             if value != 0 {
-                fraction += stable_powi_f64(value as f64, base, -digits);
+                fraction += f64::iterative_pow(value as f64, base, -digits);
             }
 
             // do/while condition
-            if f == last || char_to_digit!(*f) >= base as u8 {
+            if f == last || char_to_digit(*f) >= base as u8 {
                 break;
             }
         }
@@ -96,7 +98,7 @@ pub(crate) unsafe extern "C" fn atod(first: *const u8, last: *const u8, base: u6
 {
     let (mut value, exponent, p) = parse_float(first, last, base);
     if exponent != 0 && value != 0.0 {
-        value = stable_powi_f64(value, base, exponent);
+        value = f64::iterative_pow(value, base, exponent);
     }
     (value, p)
 }

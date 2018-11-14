@@ -1,8 +1,6 @@
 //! Algorithms for parsing strings to floats.
 
 // Hide implementation details.
-mod overflowing;
-
 // TODO(ahuszagh) Always expose this...
 cfg_if! {
     if #[cfg(any(test, feature = "correct"))] {

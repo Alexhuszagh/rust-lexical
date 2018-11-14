@@ -1,6 +1,6 @@
 //! Error definitions for lexical.
 
-use sealed::fmt::{Display, Formatter, Result as FmtResult};
+use lib::fmt;
 
 // ERROR
 
@@ -30,8 +30,8 @@ impl Error {
     }
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind() {
             ErrorKind::Overflow        => write!(f, "lexical error: integer overflow occurred during integer parsing."),
             ErrorKind::InvalidDigit(u) => write!(f, "lexical error: invalid digit found at {}.", u),

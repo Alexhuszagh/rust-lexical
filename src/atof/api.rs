@@ -2,6 +2,7 @@
 //!
 //! Uses either the lossy or the correct algorithm.
 
+use lib::ptr;
 use util::*;
 
 // Select the back-end
@@ -95,10 +96,11 @@ macro_rules! atof_value {
 }
 
 /// Sanitizer for string to float (must be called within an unsafe block).
+// TODO(ahuszagh) Change to function, rchange sealed::ptr::null to null
 macro_rules! atof {
     ($first:expr, $last:expr, $base:expr, $mod:ident, $f:tt) => ({
         if $first == $last {
-            (0.0, nullptr!())
+            (0.0, ptr::null())
         } else if *$first == b'-' {
             let (value, p) = atof_value!($first.add(1), $last, $base, $mod, $f);
             (-value, p)

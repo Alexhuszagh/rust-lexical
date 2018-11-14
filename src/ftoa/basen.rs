@@ -3,6 +3,9 @@
 //! This algorithm is adapted from the V8 codebase,
 //! and may be found [here](https://github.com/v8/v8).
 
+use itoa::itoa_forward;
+use lib::{mem, ptr};
+use table::*;
 use util::*;
 use super::util::*;
 
@@ -51,7 +54,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
     // either way, with additional space for sign, decimal point and string
     // termination should be sufficient.
     const SIZE: usize = 2200;
-    let mut buffer: [u8; SIZE] = uninitialized!();
+    let mut buffer: [u8; SIZE] = mem::uninitialized();
     let buffer = buffer.as_mut_ptr();
     let initial_position: usize = SIZE / 2;
     let mut integer_cursor = initial_position;
@@ -59,12 +62,12 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
     let bf = base as f64;
 
     // Split the value into an integer part and a fractional part.
-    let mut integer = floor_f64(d);
+    let mut integer = d.floor();
     let mut fraction = d - integer;
 
     // We only compute fractional digits up to the input double's precision.
     let mut delta = 0.5 * (d.next_positive() - d);
-    delta = max!(0.0.next_positive(), delta);
+    delta = 0.0.next_positive().max_finite(delta);
     debug_assert!(delta > 0.0);
 
     if fraction > delta {
@@ -74,7 +77,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
             delta *= bf;
             // Write digit.
             let digit = fraction as i32;
-            *buffer.add(fraction_cursor) = digit_to_char!(digit);
+            *buffer.add(fraction_cursor) = digit_to_char(digit);
             fraction_cursor += 1;
             // Calculate remainder.
             fraction -= digit as f64;
@@ -91,10 +94,10 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
                         }
                         // Reconstruct digit.
                         let c = *buffer.add(fraction_cursor);
-                        let digit = char_to_digit!(c) as i32;
+                        let digit = char_to_digit(c) as i32;
                         if digit <= base as i32 {
                             let idx = (digit + 1) as usize;
-                            *buffer.add(fraction_cursor) = digit_to_char!(idx);
+                            *buffer.add(fraction_cursor) = digit_to_char(idx);
                             fraction_cursor += 1;
                             break;
                         }
@@ -120,7 +123,7 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
         let remainder = integer % bf;
         integer_cursor -= 1;
         let idx = remainder as usize;
-        *buffer.add(integer_cursor) = digit_to_char!(idx);
+        *buffer.add(integer_cursor) = digit_to_char(idx);
         integer = (integer - remainder) / bf;
 
         if integer <= 0.0 {
@@ -140,10 +143,10 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
         let end: usize;
         if d <= 1e-5 {
             start = ((initial_position as i32) - exponent - 1) as usize;
-            end = min!(fraction_cursor, start + MAX_DIGIT_LENGTH + 1);
+            end = fraction_cursor.min(start + MAX_DIGIT_LENGTH + 1);
         } else {
             start = integer_cursor;
-            end = min!(fraction_cursor, start + MAX_DIGIT_LENGTH + 1);
+            end = fraction_cursor.min(start + MAX_DIGIT_LENGTH + 1);
         }
         let mut buf_first = buffer.add(start);
         let mut buf_last = buf_first.add(end - start);
@@ -164,13 +167,13 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
         *p = b'.';
         p = p.add(1);
         let dist = distance(buf_first, buf_last);
-        copy_nonoverlapping!(buf_first, p, dist);
+        ptr::copy_nonoverlapping(buf_first, p, dist);
         p = p.add(dist);
 
         // write the exponent component
         *p = exponent_notation_char(base);
         // Handle negative exponents.
-        let mut exp: u32;
+        let exp: u32;
         p = p.add(1);
         if exponent < 0 {
             *p = b'-';
@@ -180,17 +183,16 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
             exp = exponent as u32;
         }
         // Forward the exponent writer.
-        let base = base as u32;
-        return itoa_forward!(exp, p, base);
+        return itoa_forward(exp, base as u8, p);
 
     } else {
         let mut p;
         // get component lengths
         let integer_length = initial_position - integer_cursor;
-        let fraction_length = min!(fraction_cursor - initial_position, MAX_DIGIT_LENGTH - integer_length);
+        let fraction_length = (fraction_cursor - initial_position).min(MAX_DIGIT_LENGTH - integer_length);
 
         // write integer component
-        copy_nonoverlapping!(buffer.add(integer_cursor), first, integer_length);
+        ptr::copy_nonoverlapping(buffer.add(integer_cursor), first, integer_length);
         p = first.add(integer_length);
 
         // write fraction component
@@ -198,11 +200,11 @@ unsafe extern "C" fn ftoa_naive(d: f64, first: *mut u8, base: u64)
             // fraction exists, write it
             *p = b'.';
             p = p.add(1);
-            copy_nonoverlapping!(buffer.add(initial_position), p, fraction_length);
+            ptr::copy_nonoverlapping(buffer.add(initial_position), p, fraction_length);
             p = p.add(fraction_length);
         } else {
             // no fraction, write decimal place
-            copy_nonoverlapping!(b".0".as_ptr(), p, 2);
+            ptr::copy_nonoverlapping(b".0".as_ptr(), p, 2);
             p = p.add(2);
         }
 

@@ -84,59 +84,109 @@
 //  ax.figure.tight_layout()
 //  plt.show()
 
+use lib::ptr;
+use table::*;
 use util::*;
 
 // ALGORITHM
+
+/// Explicitly unsafe implied version of `atoi_unchecked`.
+#[inline]
+unsafe fn atoi_unchecked_unsafe<T>(value: &mut T, base: T, first: *const u8, last: *const u8)
+    -> (*const u8, bool)
+    where T: Integer
+{
+    let mut p = first;
+    let mut overflow = false;
+
+    // Trim the leading 0s.
+    p = ltrim_char(p, last, b'0');
+
+    // Continue while we have digits.
+    // Don't check for overflow, we want to avoid as many conditions
+    // as possible, it leads to significant speed increases on x86-64.
+    // Just note it happens, and continue on.
+    // Don't add a short-circuit either, since it adds significant time
+    // and we want to continue parsing until everything is done, since
+    // otherwise it may give us invalid results elsewhere.
+    while p < last {
+        // Grab the next digit, and check if it's valid.
+        let digit: T = as_(char_to_digit(*p));
+        if digit >= base {
+            break;
+        }
+
+        // Multiply by base, and then add the parsed digit.
+        // Assign the value regardless of whether overflow happens,
+        // and merely set the overflow bool.
+        p = p.add(1);
+        let (v, o1) = value.overflowing_mul(base);
+        let (v, o2) = v.overflowing_add(digit);
+        *value = v;
+        overflow |= o1 | o2;
+    }
+
+    (p, overflow)
+}
 
 /// Optimized, unchecked atoi implementation that uses a translation table.
 ///
 /// Detects overflow, but ignores it until the end of the string. Generally
 /// faster than checking and modifying logic as a result.
-#[allow(unused_macros)]
-// TODO(ahuszagh) change to function
-macro_rules! atoi_unchecked {
-    // Explicit multiply and add methods.
-    ($value:ident, $first:expr, $last:expr, $base:expr, $t:tt, $mul:ident, $add:ident) => ({
-        // logic error, disable in release builds
-        debug_assert!($base >= 2 && $base <= 36, "Numerical base must be from 2-36");
+///
+/// This is an unsafe function, just needs to be safe to use FnOnce.
+#[inline]
+pub(crate) fn atoi_unchecked<T>(value: &mut T, base: T, first: *const u8, last: *const u8)
+    -> (*const u8, bool)
+    where T: Integer
+{
+    unsafe {
+        atoi_unchecked_unsafe::<T>(value, base, first, last)
+    }
+}
 
-        let base = $base as $t;
-        let mut p = $first;
-        let mut overflow = false;
+/// Explicitly unsafe implied version of `atoi_checked`.
+#[inline]
+unsafe fn atoi_checked_unsafe<T>(value: &mut T, base: T, first: *const u8, last: *const u8)
+    -> (*const u8, bool)
+    where T: Integer
+{
+    let mut p = first;
+    let mut overflow = false;
 
-        // Trim the leading 0s.
-        p = ltrim_char(p, $last, b'0');
+    // Trim the leading 0s.
+    p = ltrim_char(p, last, b'0');
 
-        // Continue while we have digits.
-        // Don't check for overflow, we want to avoid as many conditions
-        // as possible, it leads to significant speed increases on x86-64.
-        // Just note it happens, and continue on.
-        // Don't add a short-circuit either, since it adds significant time
-        // and we want to continue parsing until everything is done, since
-        // otherwise it may give us invalid results elsewhere.
-        while p < $last {
-            // Grab the next digit, and check if it's valid.
-            let digit = char_to_digit!(*p) as $t;
-            if digit >= base {
-                break;
-            }
-
-            // Multiply by base, and then add the parsed digit.
-            // Assign the value regardless of whether overflow happens,
-            // and merely set the overflow bool.
-            p = p.add(1);
-            let (value, o1) = $value.$mul(base);
-            let (value, o2) = value.$add(digit);
-            $value = value;
-            overflow |= o1 | o2;
+    // Continue while we have digits.
+    // Don't check for overflow, we want to avoid as many conditions
+    // as possible, it leads to significant speed increases on x86-64.
+    // Just note it happens, and continue on.
+    // Don't add a short-circuit either, since it adds significant time
+    // and we want to continue parsing until everything is done, since
+    // otherwise it may give us invalid results elsewhere.
+    while p < last {
+        // Grab the next digit, and check if it's valid.
+        let digit: T = as_(char_to_digit(*p));
+        if digit >= base {
+            break;
         }
 
-        (p, overflow)
-    });
-    // Non-explicit multiply and add methods
-    ($value:ident, $first:expr, $last:expr, $base:ident, $t:tt) => (
-        atoi_unchecked!($value, $first, $last, $base, $t, overflowing_mul, overflowing_add)
-    );
+        // Increment our pointer, to continue parsing digits.
+        // Only multiply to the base and add the parsed digit if
+        // the value hasn't overflowed yet, and only assign to the
+        // original value if the operations don't overflow.
+        p = p.add(1);
+        if !overflow {
+            let (v, o1) = value.overflowing_mul(base);
+            let (v, o2) = v.overflowing_add(digit);
+            overflow = o1 | o2;
+            if !overflow {
+                *value = v;
+            }
+        }
+    }
+
+    (p, overflow)
 }
 
 /// Optimized, checked atoi implementation that uses a translation table.
@@ -145,135 +195,97 @@ macro_rules! atoi_unchecked {
 /// invalid characters are found. General slower than the unchecked variant.
 ///
 /// This macro is only used in the correct atof parsers.
-#[allow(unused_macros)]
-// TODO(ahuszagh) change to function
-macro_rules! atoi_checked {
-    // Explicit multiply and add methods.
-    ($value:ident, $first:expr, $last:expr, $base:expr, $t:tt, $mul:ident, $add:ident) => ({
-        // logic error, disable in release builds
-        debug_assert!($base >= 2 && $base <= 36, "Numerical base must be from 2-36");
-
-        let base = $base as $t;
-        let mut p = $first;
-        let mut overflow = false;
-
-        // Trim the leading 0s.
-        p = ltrim_char(p, $last, b'0');
-
-        // Continue while we have digits.
-        // Don't check for overflow, we want to avoid as many conditions
-        // as possible, it leads to significant speed increases on x86-64.
-        // Just note it happens, and continue on.
-        // Don't add a short-circuit either, since it adds significant time
-        // and we want to continue parsing until everything is done, since
-        // otherwise it may give us invalid results elsewhere.
-        while p < $last {
-            // Grab the next digit, and check if it's valid.
-            let digit = char_to_digit!(*p) as $t;
-            if digit >= base {
-                break;
-            }
-
-            // Increment our pointer, to continue parsing digits.
-            // Only multiply to the base and add the parsed digit if
-            // the value hasn't overflowed yet, and only assign to the
-            // original value if the operations don't overflow.
-            p = p.add(1);
-            if !overflow {
-                let (value, o1) = $value.$mul(base);
-                let (value, o2) = value.$add(digit);
-                overflow = o1 | o2;
-                if !overflow {
-                    $value = value;
-                }
-            }
-        }
-
-        (p, overflow)
-    });
-    // Non-explicit multiply and add methods
-    ($value:ident, $first:expr, $last:expr, $base:ident, $t:tt) => (
-        atoi_unchecked!($value, $first, $last, $base, $t, overflowing_mul, overflowing_add)
-    );
+#[inline]
+#[allow(dead_code)]
+pub(crate) fn atoi_checked<T>(value: &mut T, base: T, first: *const u8, last: *const u8)
+    -> (*const u8, bool)
+    where T: Integer
+{
+    unsafe {
+        atoi_checked_unsafe::<T>(value, base, first, last)
+    }
 }
 
 /// Parse value from a positive numeric string.
-macro_rules! atoi_value {
-    // Explicit atoi version and multiply and add methods.
-    ($first:expr, $last:expr, $base:expr, $t:tt, $atoi:ident, $mul:ident, $add:ident)
-    =>
-    ({
-        // logic error, disable in release builds
-        debug_assert!($base >= 2 && $base <= 36, "Numerical base must be from 2-36");
+#[inline]
+pub(crate) unsafe fn atoi_value<T, Cb>(base: u8, first: *const u8, last: *const u8, cb: Cb)
+    -> (T, *const u8, bool)
+    where T: Integer,
+          Cb: FnOnce(&mut T, T, *const u8, *const u8) -> (*const u8, bool)
+{
+    // logic error, disable in release builds
+    debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
 
-        let mut value: $t = 0;
-        let base = $base as $t;
-        let (p, overflow) = $atoi!(value, $first, $last, base, $t, $mul, $add);
+    let mut value: T = T::ZERO;
+    let base: T = as_(base);
+    let (p, overflow) = cb(&mut value, base, first, last);
 
-        (value, p, overflow)
-    });
-    // Non-explicit atoi version.
-    ($first:expr, $last:expr, $base:expr, $t:tt) => (
-        atoi_value!($first, $last, $base, $t, atoi_unchecked)
-    );
-    // Non-explicit multiply and add methods
-    ($first:expr, $last:expr, $base:expr, $t:tt, $atoi:ident) => (
-        atoi_value!($first, $last, $base, $t, $atoi, overflowing_mul, overflowing_add)
-    );
+    (value, p, overflow)
 }
 
 /// Handle +/- numbers and forward to implementation.
 ///
 /// `first` must be less than or equal to `last`.
-macro_rules! atoi_sign {
-    ($first:expr, $last:expr, $base:expr, $t:tt) => ({
-        match *$first {
-            b'+' => {
-                let (v, p, o) = atoi_value!($first.add(1), $last, $base, $t);
-                (v, p, o, 1)
-            },
-            b'-' => {
-                let (v, p, o) = atoi_value!($first.add(1), $last, $base, $t);
-                (v, p, o, -1)
-            },
-            _    => {
-                let (v, p, o) = atoi_value!($first, $last, $base, $t);
-                (v, p, o, 1)
-            },
-        }
-    })
+#[inline]
+pub(crate) unsafe fn atoi_sign<T, Cb>(base: u8, first: *const u8, last: *const u8, cb: Cb)
+    -> (T, *const u8, bool, i32)
+    where T: Integer,
+          Cb: FnOnce(&mut T, T, *const u8, *const u8) -> (*const u8, bool)
+{
+    match *first {
+        b'+' => {
+            let (v, p, o) = atoi_value::<T, Cb>(base, first.add(1), last, cb);
+            (v, p, o, 1)
+        },
+        b'-' => {
+            let (v, p, o) = atoi_value::<T, Cb>(base, first.add(1), last, cb);
+            (v, p, o, -1)
+        },
+        _    => {
+            let (v, p, o) = atoi_value::<T, Cb>(base, first, last, cb);
+            (v, p, o, 1)
+        },
+    }
 }
 
 /// Handle unsigned +/- numbers and forward to implied implementation.
-macro_rules! atoi_unsigned {
-    ($first:expr, $last:expr, $base:expr, $t:tt) => ({
-        if $first == $last {
-            (0, nullptr!(), false)
-        } else {
-            let (v, p, o, s) = atoi_sign!($first, $last, $base, $t);
-            match s {
-                -1 => (v.wrapping_neg(), p, true),
-                1  => (v, p, o),
-                _  => unreachable!(),
-            }
+//  Can just use local namespace
+#[inline]
+pub(crate) unsafe fn atoi_unsigned<T, Cb>(base: u8, first: *const u8, last: *const u8, cb: Cb)
+    -> (T, *const u8, bool)
+    where T: UnsignedInteger,
+          Cb: FnOnce(&mut T, T, *const u8, *const u8) -> (*const u8, bool)
+{
+    if first == last {
+        (T::ZERO, ptr::null(), false)
+    } else {
+        let (v, p, o, s) = atoi_sign::<T, Cb>(base, first, last, cb);
+        match s {
+            -1 => (v.wrapping_neg(), p, true),
+            1  => (v, p, o),
+            _  => unreachable!(),
         }
-    })
+    }
 }
 
 /// Handle signed +/- numbers and forward to implied implementation.
-macro_rules! atoi_signed {
-    ($first:expr, $last:expr, $base:expr, $t:tt) => ({
-        if $first == $last {
-            (0, nullptr!(), false)
-        } else {
-            let (v, p, o, s) = atoi_sign!($first, $last, $base, $t);
-            match s {
-                -1 => (-v, p, o),
-                1  => (v, p, o),
-                _  => unreachable!(),
-            }
+//  Can just use local namespace
+#[inline]
+pub(crate) unsafe fn atoi_signed<T, Cb>(base: u8, first: *const u8, last: *const u8, cb: Cb)
+    -> (T, *const u8, bool)
+    where T: SignedInteger,
+          Cb: FnOnce(&mut T, T, *const u8, *const u8) -> (*const u8, bool)
+{
+    if first == last {
+        (T::ZERO, ptr::null(), false)
+    } else {
+        let (v, p, o, s) = atoi_sign::<T, Cb>(base, first, last, cb);
+        match s {
+            -1 => (-v, p, true),
+            1  => (v, p, o),
+            _  => unreachable!(),
         }
-    })
+    }
 }
 
 // UNSAFE API
@@ -290,7 +302,7 @@ macro_rules! unsigned_unsafe_impl {
         )
             -> ($t, *const u8, bool)
         {
-            atoi_unsigned!(first, last, base, $t)
+            atoi_unsigned::<$t, _>(base, first, last, atoi_unchecked::<$t>)
         }
     )
 }
@@ -313,7 +325,7 @@ macro_rules! signed_unsafe_impl {
         )
             -> ($t, *const u8, bool)
         {
-            atoi_signed!(first, last, base, $t)
+            atoi_signed::<$t, _>(base, first, last, atoi_unchecked::<$t>)
         }
     )
 }

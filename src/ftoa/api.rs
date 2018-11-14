@@ -3,6 +3,7 @@
 //! Uses either the internal "Grisu2", or the external "Grisu3" or "Ryu"
 //! algorithms provided by `https://github.com/dtolnay`.
 
+use lib::{self, mem, ptr};
 use util::*;
 use super::util::*;
 use super::basen::{double_basen, float_basen};
@@ -102,15 +103,15 @@ macro_rules! ftoa_unsafe {
             $first
         } else if dist < BUFFER_SIZE {
             // use a temporary buffer and write number to buffer
-            let mut buffer: [u8; BUFFER_SIZE] = uninitialized!();
+            let mut buffer: [u8; BUFFER_SIZE] = mem::uninitialized();
             let mut f = buffer.as_mut_ptr();
             let l = f.add(BUFFER_SIZE);
             ftoa_unsafe_impl!(value, f, l, base, $mod);
 
             // copy as many bytes as possible except the trailing null byte
             // then, write null-byte so the string is always terminated
-            let length = min!(distance(f, l), dist);
-            copy_nonoverlapping!(f, $first, length);
+            let length = distance(f, l).min(dist);
+            ptr::copy_nonoverlapping(f, $first, length);
             $first.add(length)
         } else {
             // current buffer has sufficient capacity, use it
