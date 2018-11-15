@@ -412,7 +412,7 @@ pub(super) fn to_extended<F, M>(mantissa: M, base: u32, exponent: i32, truncated
     let fp = ExtendedFloat { frac: mantissa, exp: 0 };
     let (fp, valid) = unsafe { multiply_exponent_extended::<F, M>(fp, base, exponent, truncated) };
     if valid {
-        (fp.as_native::<F>(), true)
+        (fp.as_float::<F>(), true)
     } else {
         (F::ZERO, false)
     }

@@ -1,5 +1,6 @@
 //! Convert between extended-precision and native floats/integers.
 
+use lib::mem;
 use util::*;
 use super::float::ExtendedFloat;
 use super::mantissa::Mantissa;
@@ -12,6 +13,8 @@ use super::mantissa::Mantissa;
 /// allows us to convert the integer representation to the float one.
 #[inline(always)]
 pub(super) fn from_int<M: Mantissa, T: Integer>(t: T) -> ExtendedFloat<M> {
+    debug_assert!(mem::size_of::<T>() <= mem::size_of::<M>(), "Possible truncation in ExtendedFloat::from_int.");
+
     ExtendedFloat {
         frac: as_(t),
         exp: 0,
