@@ -466,7 +466,6 @@ unsafe extern "C" fn to_native<F>(base: u32, first: *const u8, last: *const u8)
 
 /// Parse 32-bit float from string.
 #[inline]
-#[allow(dead_code)]     //TODO(ahuszagh) remove
 pub(crate) unsafe extern "C" fn atof(base: u32, first: *const u8, last: *const u8)
     -> (f32, *const u8)
 {
@@ -475,7 +474,6 @@ pub(crate) unsafe extern "C" fn atof(base: u32, first: *const u8, last: *const u
 
 /// Parse 64-bit float from string.
 #[inline]
-#[allow(dead_code)]     //TODO(ahuszagh) remove
 pub(crate) unsafe extern "C" fn atod(base: u32, first: *const u8, last: *const u8)
     -> (f64, *const u8)
 {
@@ -708,7 +706,10 @@ mod tests {
         assert_eq!(f, 2.7670116e+19);
         assert!(valid, "exponent should be valid");
 
-        // TODO(ahuszagh) Add u128
+        let mantissa: u64 = 4746067219335938;
+        let (f, valid) = to_extended::<f32, _>(mantissa, 15, -9, false);
+        assert_eq!(f, 123456.1);
+        assert!(valid, "exponent should be valid");
     }
 
     #[test]
@@ -725,12 +726,50 @@ mod tests {
         assert!(valid, "exponent should be valid");
 
         // invalid ("268A6.177777778", base 15)
-        let mantissa:u64 = 4746067219335938;
+        let mantissa: u64 = 4746067219335938;
         let (_, valid) = to_extended::<f64, _>(mantissa, 15, -9, false);
         assert!(!valid, "exponent should be invalid");
 
-        // TODO(ahuszagh) Add u128
+        // valid ("268A6.177777778", base 15)
+        let mantissa: u128 = 4746067219335938;
+        let (f, valid) = to_extended::<f64, _>(mantissa, 15, -9, false);
+        assert_eq!(f, 123456.10000000002);
+        assert!(valid, "exponent should be valid");
     }
 
-    // TODO(ahuszagh) atof, atod
+    unsafe fn check_atof(base: u32, s: &str, tup: (f32, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let (v, p) = atof(base, first, last);
+        assert_eq!(v, tup.0);
+        assert_eq!(distance(first, p), tup.1);
+    }
+
+    #[test]
+    fn atof_test() {
+        unsafe {
+            check_atof(10, "1.2345", (1.2345, 6));
+            check_atof(10, "12.345", (12.345, 6));
+            check_atof(10, "12345.6789", (12345.6789, 10));
+            check_atof(10, "1.2345e10", (1.2345e10, 9));
+        }
+    }
+
+    unsafe fn check_atod(base: u32, s: &str, tup: (f64, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let (v, p) = atod(base, first, last);
+        assert_eq!(v, tup.0);
+        assert_eq!(distance(first, p), tup.1);
+    }
+
+    #[test]
+    fn atod_test() {
+        unsafe {
+            check_atod(10, "1.2345", (1.2345, 6));
+            check_atod(10, "12.345", (12.345, 6));
+            check_atod(10, "12345.6789", (12345.6789, 10));
+            check_atod(10, "1.2345e10", (1.2345e10, 9));
+        }
+    }
 }
