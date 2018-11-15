@@ -74,6 +74,11 @@ impl<T: Float> AsPrimitive for WrappedFloat<T> {
     }
 
     #[inline(always)]
+    fn as_u128(self) -> u128 {
+        as_(self.data)
+    }
+
+    #[inline(always)]
     fn as_usize(self) -> usize {
         as_(self.data)
     }
@@ -95,6 +100,11 @@ impl<T: Float> AsPrimitive for WrappedFloat<T> {
 
     #[inline(always)]
     fn as_i64(self) -> i64 {
+        as_(self.data)
+    }
+
+    #[inline(always)]
+    fn as_i128(self) -> i128 {
         as_(self.data)
     }
 
@@ -357,122 +367,142 @@ impl<T: Float> Integer for WrappedFloat <T> {
     const ONE: Self = WrappedFloat { data: T::ONE };
     const TWO: Self = WrappedFloat { data: T::TWO };
 
-    #[inline]
+    #[inline(always)]
+    fn count_ones(self) -> u32 {
+        unreachable!()
+    }
+
+    #[inline(always)]
+    fn count_zeros(self) -> u32 {
+        unreachable!()
+    }
+
+    #[inline(always)]
+    fn leading_zeros(self) -> u32 {
+        unreachable!()
+    }
+
+    #[inline(always)]
+    fn trailing_zeros(self) -> u32 {
+        unreachable!()
+    }
+
+    #[inline(always)]
     fn checked_add(self, i: Self) -> Option<Self> {
         Some(self + i)
     }
 
-    #[inline]
+    #[inline(always)]
     fn checked_sub(self, i: Self) -> Option<Self> {
         Some(self - i)
     }
 
-    #[inline]
+    #[inline(always)]
     fn checked_mul(self, i: Self) -> Option<Self> {
         Some(self * i)
     }
 
-    #[inline]
+    #[inline(always)]
     fn checked_div(self, i: Self) -> Option<Self> {
         Some(self / i)
     }
 
-    #[inline]
+    #[inline(always)]
     fn checked_rem(self, i: Self) -> Option<Self> {
         Some(self % i)
     }
 
-    #[inline]
+    #[inline(always)]
     fn checked_neg(self) -> Option<Self> {
         Some(-self)
     }
 
-    #[inline]
+    #[inline(always)]
     fn checked_shl(self, _: u32) -> Option<Self> {
         unimplemented!()
     }
 
-    #[inline]
+    #[inline(always)]
     fn checked_shr(self, _: u32) -> Option<Self> {
         unimplemented!()
     }
 
-    #[inline]
+    #[inline(always)]
     fn wrapping_add(self, i: Self) -> Self {
         self + i
     }
 
-    #[inline]
+    #[inline(always)]
     fn wrapping_sub(self, i: Self) -> Self {
         self - i
     }
 
-    #[inline]
+    #[inline(always)]
     fn wrapping_mul(self, i: Self) -> Self {
         self * i
     }
 
-    #[inline]
+    #[inline(always)]
     fn wrapping_div(self, i: Self) -> Self {
         self / i
     }
 
-    #[inline]
+    #[inline(always)]
     fn wrapping_rem(self, i: Self) -> Self {
         self % i
     }
 
-    #[inline]
+    #[inline(always)]
     fn wrapping_neg(self) -> Self {
         -self
     }
 
-    #[inline]
+    #[inline(always)]
     fn wrapping_shl(self, _: u32) -> Self {
         unimplemented!()
     }
 
-    #[inline]
+    #[inline(always)]
     fn wrapping_shr(self, _: u32) -> Self {
         unimplemented!()
     }
 
-    #[inline]
+    #[inline(always)]
     fn overflowing_add(self, i: Self) -> (Self, bool) {
         (self + i, false)
     }
 
-    #[inline]
+    #[inline(always)]
     fn overflowing_sub(self, i: Self) -> (Self, bool) {
         (self - i, false)
     }
 
-    #[inline]
+    #[inline(always)]
     fn overflowing_mul(self, i: Self) -> (Self, bool) {
         (self * i, false)
     }
 
-    #[inline]
+    #[inline(always)]
     fn overflowing_div(self, i: Self) -> (Self, bool) {
         (self / i, false)
     }
 
-    #[inline]
+    #[inline(always)]
     fn overflowing_rem(self, i: Self) -> (Self, bool) {
         (self % i, false)
     }
 
-    #[inline]
+    #[inline(always)]
     fn overflowing_neg(self) -> (Self, bool) {
         (-self, false)
     }
 
-    #[inline]
+    #[inline(always)]
     fn overflowing_shl(self, _: u32) -> (Self, bool) {
         unimplemented!()
     }
 
-    #[inline]
+    #[inline(always)]
     fn overflowing_shr(self, _: u32) -> (Self, bool) {
         unimplemented!()
     }
@@ -483,7 +513,7 @@ impl<T: Float> Integer for WrappedFloat <T> {
 impl<T: Float> ops::Neg for WrappedFloat<T> {
     type Output = Self;
 
-    #[inline]
+    #[inline(always)]
     fn neg(self) -> Self {
         WrappedFloat { data: -self.data }
     }

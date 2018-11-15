@@ -1,11 +1,13 @@
-//! Extended-precision float-type.
+//! Extended-precision floating-point type.
 
 // Hide implementation details.
 mod convert;
-mod float_type;
+mod float;
+mod mantissa;
 mod rounding;
 mod shift;
 
 // Re-export the extended-precision floating-point type.
-pub use self::float_type::FloatType;
+pub use self::float::{ExtendedFloat, ExtendedFloat80, ExtendedFloat160};
+pub use self::mantissa::Mantissa;
 pub use self::rounding::FloatRounding;

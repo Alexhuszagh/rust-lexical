@@ -1,17 +1,18 @@
 //! Convert between extended-precision and native floats/integers.
 
 use util::*;
-use super::float_type::FloatType;
+use super::float::ExtendedFloat;
+use super::mantissa::Mantissa;
 
 // FROM INT
 
-/// Import FloatType from integer.
+/// Import ExtendedFloat from integer.
 ///
 /// This works because we call normalize before any operation, which
 /// allows us to convert the integer representation to the float one.
 #[inline(always)]
-pub(super) fn from_int<T: Integer>(t: T) -> FloatType {
-    FloatType {
+pub(super) fn from_int<M: Mantissa, T: Integer>(t: T) -> ExtendedFloat<M> {
+    ExtendedFloat {
         frac: as_(t),
         exp: 0,
     }
@@ -19,14 +20,14 @@ pub(super) fn from_int<T: Integer>(t: T) -> FloatType {
 
 // FROM FLOAT
 
-/// Import FloatType from native float.
+/// Import ExtendedFloat from native float.
 ///
 /// Generate fraction from mantissa and read exponent as signed magnitude value.
 #[inline(always)]
-pub(super) fn from_float<T: Float>(t: T)
-    -> FloatType
+pub(super) fn from_float<M: Mantissa, T: Float>(t: T)
+    -> ExtendedFloat<M>
 {
-    FloatType {
+    ExtendedFloat {
         frac: as_(t.significand()),
         exp: t.exponent(),
     }
@@ -39,11 +40,11 @@ pub(super) fn from_float<T: Float>(t: T)
 /// The extended-precision float must be in native float representation,
 /// with overflow/underflow appropriately handled.
 #[inline]
-pub(super) fn as_float<T: Float>(fp: FloatType)
+pub(super) fn as_float<M: Mantissa, T: Float>(fp: ExtendedFloat<M>)
     -> T
 {
     // Export floating-point number.
-    if fp.frac == 0 || fp.exp < T::DENORMAL_EXPONENT {
+    if fp.frac.is_zero() || fp.exp < T::DENORMAL_EXPONENT {
         // sub-denormal, underflow
         T::ZERO
     } else if fp.exp >= T::MAX_EXPONENT {
@@ -51,14 +52,14 @@ pub(super) fn as_float<T: Float>(fp: FloatType)
         T::from_bits(T::INFINITY_BITS)
     } else {
         // calculate the exp and fraction bits, and return a float from bits.
-        let exp: u64;
-        if (fp.exp == T::DENORMAL_EXPONENT) && (fp.frac & as_::<u64, _>(T::HIDDEN_BIT_MASK)) == 0 {
-            exp = 0;
+        let exp: M;
+        if (fp.exp == T::DENORMAL_EXPONENT) && (fp.frac & as_::<M, _>(T::HIDDEN_BIT_MASK)).is_zero() {
+            exp = M::ZERO;
         } else {
-            exp = (fp.exp + T::EXPONENT_BIAS) as u64;
+            exp = as_::<M, _>(fp.exp + T::EXPONENT_BIAS);
         }
-        let exp = exp << T::SIGNIFICAND_SIZE;
-        let frac = fp.frac & as_::<u64, _>(T::FRACTION_MASK);
+        let exp = exp << T::MANTISSA_SIZE;
+        let frac = fp.frac & as_::<M, _>(T::MANTISSA_MASK);
         T::from_bits(as_(frac | exp))
     }
 }

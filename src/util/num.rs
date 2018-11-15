@@ -31,7 +31,7 @@ macro_rules! number_impl {
     )*)
 }
 
-number_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64 }
+number_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
 
 // INTEGER
 
@@ -99,6 +99,10 @@ pub trait Integer:
     const TWO: Self;
 
     // FUNCTIONS (INHERITED)
+    fn count_ones(self) -> u32;
+    fn count_zeros(self) -> u32;
+    fn leading_zeros(self) -> u32;
+    fn trailing_zeros(self) -> u32;
     fn checked_add(self, i: Self) -> Option<Self>;
     fn checked_sub(self, i: Self) -> Option<Self>;
     fn checked_mul(self, i: Self) -> Option<Self>;
@@ -144,98 +148,142 @@ macro_rules! integer_impl {
             const ONE: $t = 1;
             const TWO: $t = 2;
 
+            #[inline(always)]
+            fn count_ones(self) -> u32 {
+                $t::count_ones(self)
+            }
+
+            #[inline(always)]
+            fn count_zeros(self) -> u32 {
+                $t::count_zeros(self)
+            }
+
+            #[inline(always)]
+            fn leading_zeros(self) -> u32 {
+                $t::leading_zeros(self)
+            }
+
+            #[inline(always)]
+            fn trailing_zeros(self) -> u32 {
+                $t::trailing_zeros(self)
+            }
+
+            #[inline(always)]
             fn checked_add(self, i: Self) -> Option<Self> {
                 $t::checked_add(self, i)
             }
 
+            #[inline(always)]
             fn checked_sub(self, i: Self) -> Option<Self> {
                 $t::checked_sub(self, i)
             }
 
+            #[inline(always)]
             fn checked_mul(self, i: Self) -> Option<Self> {
                 $t::checked_mul(self, i)
             }
 
+            #[inline(always)]
             fn checked_div(self, i: Self) -> Option<Self> {
                 $t::checked_div(self, i)
             }
 
+            #[inline(always)]
             fn checked_rem(self, i: Self) -> Option<Self> {
                 $t::checked_rem(self, i)
             }
 
+            #[inline(always)]
             fn checked_neg(self) -> Option<Self> {
                 $t::checked_neg(self)
             }
 
+            #[inline(always)]
             fn checked_shl(self, i: u32) -> Option<Self> {
                 $t::checked_shl(self,i)
             }
 
+            #[inline(always)]
             fn checked_shr(self, i: u32) -> Option<Self> {
                 $t::checked_shr(self,i)
             }
 
+            #[inline(always)]
             fn wrapping_add(self, i: Self) -> Self {
                 $t::wrapping_add(self, i)
             }
 
+            #[inline(always)]
             fn wrapping_sub(self, i: Self) -> Self {
                 $t::wrapping_sub(self, i)
             }
 
+            #[inline(always)]
             fn wrapping_mul(self, i: Self) -> Self {
                 $t::wrapping_mul(self, i)
             }
 
+            #[inline(always)]
             fn wrapping_div(self, i: Self) -> Self {
                 $t::wrapping_div(self, i)
             }
 
+            #[inline(always)]
             fn wrapping_rem(self, i: Self) -> Self {
                 $t::wrapping_rem(self, i)
             }
 
+            #[inline(always)]
             fn wrapping_neg(self) -> Self {
                 $t::wrapping_neg(self)
             }
 
+            #[inline(always)]
             fn wrapping_shl(self, i: u32) -> Self {
                 $t::wrapping_shl(self,i)
             }
 
+            #[inline(always)]
             fn wrapping_shr(self, i: u32) -> Self {
                 $t::wrapping_shr(self,i)
             }
 
+            #[inline(always)]
             fn overflowing_add(self, i: Self) -> (Self, bool) {
                 $t::overflowing_add(self, i)
             }
 
+            #[inline(always)]
             fn overflowing_sub(self, i: Self) -> (Self, bool) {
                 $t::overflowing_sub(self, i)
             }
 
+            #[inline(always)]
             fn overflowing_mul(self, i: Self) -> (Self, bool) {
                 $t::overflowing_mul(self, i)
             }
 
+            #[inline(always)]
             fn overflowing_div(self, i: Self) -> (Self, bool) {
                 $t::overflowing_div(self, i)
             }
 
+            #[inline(always)]
             fn overflowing_rem(self, i: Self) -> (Self, bool) {
                 $t::overflowing_rem(self, i)
             }
 
+            #[inline(always)]
             fn overflowing_neg(self) -> (Self, bool) {
                 $t::overflowing_neg(self)
             }
 
+            #[inline(always)]
             fn overflowing_shl(self, i: u32) -> (Self, bool) {
                 $t::overflowing_shl(self,i)
             }
 
+            #[inline(always)]
             fn overflowing_shr(self, i: u32) -> (Self, bool) {
                 $t::overflowing_shr(self,i)
             }
@@ -243,7 +291,7 @@ macro_rules! integer_impl {
     )*)
 }
 
-integer_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
+integer_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
 
 // SIGNED INTEGER
 
@@ -274,7 +322,7 @@ macro_rules! signed_integer_impl {
     )*)
 }
 
-signed_integer_impl! { i8 i16 i32 i64 isize }
+signed_integer_impl! { i8 i16 i32 i64 i128 isize }
 
 // UNSIGNED INTEGER
 
@@ -288,7 +336,7 @@ macro_rules! unsigned_integer_impl {
     )*)
 }
 
-unsigned_integer_impl! { u8 u16 u32 u64 usize }
+unsigned_integer_impl! { u8 u16 u32 u64 u128 usize }
 
 // FLOAT
 
@@ -313,14 +361,14 @@ pub trait Float: Number + ops::Neg<Output=Self>
     /// Bitmask for the hidden bit in exponent, which is an implicit 1 in the fraction.
     const HIDDEN_BIT_MASK: Self::Unsigned;
     /// Bitmask for the mantissa (fraction), excluding the hidden bit.
-    const FRACTION_MASK: Self::Unsigned;
+    const MANTISSA_MASK: Self::Unsigned;
 
     // PROPERTIES
 
     /// Positive infinity as bits.
     const INFINITY_BITS: Self::Unsigned;
     /// Size of the significand (mantissa) without hidden bit.
-    const SIGNIFICAND_SIZE: i32;
+    const MANTISSA_SIZE: i32;
     /// Bias of the exponet
     const EXPONENT_BIAS: i32;
     /// Exponent portion of a denormal float.
@@ -373,7 +421,7 @@ pub trait Float: Number + ops::Neg<Output=Self>
     /// Returns true if the float is NaN.
     #[inline]
     fn is_nan(self) -> bool {
-        self.is_special() && !(self.to_bits() & Self::FRACTION_MASK).is_zero()
+        self.is_special() && !(self.to_bits() & Self::MANTISSA_MASK).is_zero()
     }
 
     /// Get exponent component from the float.
@@ -384,7 +432,7 @@ pub trait Float: Number + ops::Neg<Output=Self>
         }
 
         let bits = self.to_bits();
-        let biased_e: i32 = as_((bits & Self::EXPONENT_MASK) >> Self::SIGNIFICAND_SIZE);
+        let biased_e: i32 = as_((bits & Self::EXPONENT_MASK) >> Self::MANTISSA_SIZE);
         biased_e - Self::EXPONENT_BIAS
     }
 
@@ -392,7 +440,7 @@ pub trait Float: Number + ops::Neg<Output=Self>
     #[inline]
     fn significand(self) -> Self::Unsigned {
         let bits = self.to_bits();
-        let s = bits & Self::FRACTION_MASK;
+        let s = bits & Self::MANTISSA_MASK;
         if !self.is_denormal() {
             s + Self::HIDDEN_BIT_MASK
         } else {
@@ -509,10 +557,10 @@ impl Float for f32 {
     const SIGN_MASK: u32            = 0x80000000;
     const EXPONENT_MASK: u32        = 0x7F800000;
     const HIDDEN_BIT_MASK: u32      = 0x00800000;
-    const FRACTION_MASK: u32        = 0x007FFFFF;
+    const MANTISSA_MASK: u32        = 0x007FFFFF;
     const INFINITY_BITS: u32        = 0x7F800000;
-    const SIGNIFICAND_SIZE: i32     = 23;
-    const EXPONENT_BIAS: i32        = 127 + Self::SIGNIFICAND_SIZE;
+    const MANTISSA_SIZE: i32        = 23;
+    const EXPONENT_BIAS: i32        = 127 + Self::MANTISSA_SIZE;
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
 
@@ -588,10 +636,10 @@ impl Float for f64 {
     const SIGN_MASK: u64            = 0x8000000000000000;
     const EXPONENT_MASK: u64        = 0x7FF0000000000000;
     const HIDDEN_BIT_MASK: u64      = 0x0010000000000000;
-    const FRACTION_MASK: u64        = 0x000FFFFFFFFFFFFF;
+    const MANTISSA_MASK: u64        = 0x000FFFFFFFFFFFFF;
     const INFINITY_BITS: u64        = 0x7FF0000000000000;
-    const SIGNIFICAND_SIZE: i32     = 52;
-    const EXPONENT_BIAS: i32        = 1023 + Self::SIGNIFICAND_SIZE;
+    const MANTISSA_SIZE: i32        = 52;
+    const EXPONENT_BIAS: i32        = 1023 + Self::MANTISSA_SIZE;
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0x7FF - Self::EXPONENT_BIAS;
 
@@ -690,11 +738,13 @@ mod tests {
         check_number(1u16, 5);
         check_number(1u32, 5);
         check_number(1u64, 5);
+        check_number(1u128, 5);
         check_number(1usize, 5);
         check_number(1i8, 5);
         check_number(1i16, 5);
         check_number(1i32, 5);
         check_number(1i64, 5);
+        check_number(1i128, 5);
         check_number(1isize, 5);
         check_number(1f32, 5.0);
         check_number(1f64, 5.0);
@@ -786,11 +836,13 @@ mod tests {
         check_integer(65u16);
         check_integer(65u32);
         check_integer(65u64);
+        check_integer(65u128);
         check_integer(65usize);
         check_integer(65i8);
         check_integer(65i16);
         check_integer(65i32);
         check_integer(65i64);
+        check_integer(65i128);
         check_integer(65isize);
     }
 
@@ -831,7 +883,7 @@ mod tests {
         let _ = x.to_bits() & T::SIGN_MASK;
         let _ = x.to_bits() & T::EXPONENT_MASK;
         let _ = x.to_bits() & T::HIDDEN_BIT_MASK;
-        let _ = x.to_bits() & T::FRACTION_MASK;
+        let _ = x.to_bits() & T::MANTISSA_MASK;
         assert!(T::from_bits(T::INFINITY_BITS).is_special());
     }
 

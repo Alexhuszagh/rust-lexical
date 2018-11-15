@@ -5,8 +5,10 @@ mod exponent;
 
 cfg_if! {
 if #[cfg(any(test, feature = "correct"))] {
+// Needed for the actual items.
 mod cached;
-mod decimal;
+mod cached80;
+mod cached160;
 }}  // cfg_if
 
 // Export algorithms.

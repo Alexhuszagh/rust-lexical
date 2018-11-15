@@ -1,22 +1,23 @@
 //! Macros for bit-wise shifts.
 
 use util::*;
-use super::float_type::FloatType;
+use super::float::ExtendedFloat;
+use super::mantissa::Mantissa;
 
 // SHIFT RIGHT
 
-/// Shift extended-precision float right `shift` bytes.
+/// Shift extended-precision float right `shift` bytes (force overflow checks).
 #[inline]
-pub(super) fn shr<T: Integer>(fp: &mut FloatType, shift: T)
+pub(super) fn shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
 {
-    fp.frac = fp.frac.wrapping_shr(as_(shift));
+    fp.frac >>= as_::<M, _>(shift);
     fp.exp += as_::<i32, _>(shift);
 }
 
-/// Shift extended-precision float left `shift` bytes.
+/// Shift extended-precision float left `shift` bytes (force overflow checks).
 #[inline]
-pub(super) fn shl<T: Integer>(fp: &mut FloatType, shift: T)
+pub(super) fn shl<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
 {
-    fp.frac = fp.frac.wrapping_shl(as_(shift));
+    fp.frac <<= as_::<M, _>(shift);
     fp.exp -= as_::<i32, _>(shift);
 }
