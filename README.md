@@ -110,6 +110,8 @@ Lexical also ports some code from [V8](https://github.com/v8/v8), [libgo](https:
 # Roadmap
 
 - Add a correct, string-to-float conversion for base10 floats.
+    - Ensure we detect if any remaining bytes are non-0 after truncating, which after multiplying by the exponent, we need to add 1 those bits are non-zero and the mask of the to-truncate bits is 0.
+        - Avoids truncated halfway issues.
 - Remove the correct feature and make the lossy path use:
     - parse_lossy
     - parse_lossy_radix

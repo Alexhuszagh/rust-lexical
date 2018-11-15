@@ -731,9 +731,10 @@ mod tests {
         assert!(!valid, "exponent should be invalid");
 
         // valid ("268A6.177777778", base 15)
+        // 123456.10000000001300614743687445, exactly, should not round up.
         let mantissa: u128 = 4746067219335938;
         let (f, valid) = to_extended::<f64, _>(mantissa, 15, -9, false);
-        assert_eq!(f, 123456.10000000002);
+        assert_eq!(f, 123456.1);
         assert!(valid, "exponent should be valid");
     }
 
@@ -752,6 +753,7 @@ mod tests {
             check_atof(10, "12.345", (12.345, 6));
             check_atof(10, "12345.6789", (12345.6789, 10));
             check_atof(10, "1.2345e10", (1.2345e10, 9));
+            check_atod(10, "1.2345e-38", (1.2345e-38, 10));
         }
     }
 
@@ -770,6 +772,7 @@ mod tests {
             check_atod(10, "12.345", (12.345, 6));
             check_atod(10, "12345.6789", (12345.6789, 10));
             check_atod(10, "1.2345e10", (1.2345e10, 9));
+            check_atod(10, "1.2345e-308", (1.2345e-308, 11));
         }
     }
 }

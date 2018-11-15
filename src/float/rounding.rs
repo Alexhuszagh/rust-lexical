@@ -9,13 +9,14 @@ use super::shift::{shl, shr};
 // -------
 
 /// Parameters for general rounding operations.
+#[derive(Debug)]
 pub struct RoundingParameters<M: Mantissa> {
     /// Bits to truncate from the mantissa.
-    mask: M,
+    pub mask: M,
     /// Midway point for truncated bits.
-    mid: M,
+    pub mid: M,
     /// Number of bits to shift
-    shift: i32,
+    pub shift: i32,
 }
 
 // ROUND NEAREST TIE EVEN
@@ -94,33 +95,29 @@ pub(super) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, params: 
 
 // FLOAT ROUNDING
 
+// TODO: Ahuszagh
+// This is still not accurate for an exact halfway repr,
+// where the halfway bits are halfway in between....
+// Do we see if we round up?
+// Need to implement the mantissa check
+
 /// Trait to round extended-precision floats to native representations.
 pub trait FloatRounding<M: Mantissa>: Float {
-    /// Bits to truncate from the mantissa.
-    const TRUNCATE_MASK: M;
-    /// Midway point for truncated bits.
-    const TRUNCATE_MID: M;
-    /// Number of bits to shift (or 64 - mantissa size - 1).
-    const TRUNCATE_SHIFT: i32;
+    /// Default number of bits to shift (or 64 - mantissa size - 1).
+    const DEFAULT_SHIFT: i32;
     /// Mask to determine if a full-carry occurred (1 in bit above hidden bit).
     const CARRY_MASK: M;
     /// Mask from the hidden bit to the right, to see if we can prevent overflow.]
     const OVERFLOW_MASK: &'static [M];
     /// Rounding parameters to convert to native float.
-    const ROUNDING_PARAMS: RoundingParameters<M> = RoundingParameters {
-        mask: Self::TRUNCATE_MASK,
-        mid: Self::TRUNCATE_MID,
-        shift: Self::TRUNCATE_SHIFT,
-    };
+    const ROUNDING_PARAMS: &'static RoundingParameters<M> = &M::ROUNDING_PARAMETERS[Self::DEFAULT_SHIFT as usize];
 }
 
 // Literals don't work for generic types, we need to use this as a hack.
 macro_rules! float_rounding_f32 {
     ($($t:tt)*) => ($(
         impl FloatRounding<$t> for f32 {
-            const TRUNCATE_MASK: $t     = 0xFFFFFFFFFF;
-            const TRUNCATE_MID: $t      = 0x8000000000;
-            const TRUNCATE_SHIFT: i32   = $t::BITS - f32::MANTISSA_SIZE - 1;
+            const DEFAULT_SHIFT: i32    = $t::BITS - f32::MANTISSA_SIZE - 1;
             const CARRY_MASK: $t        = 0x1000000;
             const OVERFLOW_MASK: &'static [$t] = &[
                 0x00800000, 0x00C00000, 0x00E00000, 0x00F00000, 0x00F80000, 0x00FC0000,
@@ -138,9 +135,7 @@ float_rounding_f32! { u64 u128 }
 macro_rules! float_rounding_f64 {
     ($($t:tt)*) => ($(
         impl FloatRounding<$t> for f64 {
-            const TRUNCATE_MASK: $t     = 0x7FF;
-            const TRUNCATE_MID: $t      = 0x400;
-            const TRUNCATE_SHIFT: i32   = $t::BITS - f64::MANTISSA_SIZE - 1;
+            const DEFAULT_SHIFT: i32    = $t::BITS - f64::MANTISSA_SIZE - 1;
             const CARRY_MASK: $t        = 0x20000000000000;
             const OVERFLOW_MASK: &'static [$t] = &[
                 0x0010000000000000, 0x0018000000000000, 0x001C000000000000,
@@ -180,7 +175,29 @@ pub(super) fn round_to_float<T, M>(fp: &mut ExtendedFloat<M>)
     where T: FloatRounding<M>,
           M: Mantissa
 {
-    round_nearest_tie_even(fp, &T::ROUNDING_PARAMS);
+    // Calculate the difference to allow a single calculation
+    // rather than a loop, to minimize the number of ops required.
+    // This does underflow detection.
+    let final_exp = fp.exp + T::DEFAULT_SHIFT;
+    if final_exp < T::DENORMAL_EXPONENT {
+        // We would end up with a denormal exponent, try to round to more
+        // digits. Only shift right if we can avoid zeroing out the value,
+        // which requires the exponent diff to be < M::BITS. The value
+        // is already normalized, so we shouldn't have any issue zeroing
+        // out the value.
+        let diff = T::DENORMAL_EXPONENT - fp.exp;
+        if diff < M::BITS {
+            let params = unsafe { M::ROUNDING_PARAMETERS.get_unchecked(diff as usize) };
+            round_nearest_tie_even(fp, params);
+        } else {
+            // Certain underflow, assign literal 0s.
+            fp.frac = M::ZERO;
+            fp.exp = 0;
+        }
+    } else {
+        round_nearest_tie_even(fp, T::ROUNDING_PARAMS);
+    }
+
     if fp.frac & T::CARRY_MASK == T::CARRY_MASK {
         // Roundup carried over to 1 past the hidden bit.
         shr(fp, 1);
@@ -188,28 +205,6 @@ pub(super) fn round_to_float<T, M>(fp: &mut ExtendedFloat<M>)
 }
 
 // AVOID OVERFLOW/UNDERFLOW
-
-/// Avoid underflow for denormalized values.
-///
-/// Shift if the shift results in a non-zero mantissa and an exponent
-/// >= denormal exponent.
-#[inline]
-pub(super) fn avoid_underflow<T, M>(fp: &mut ExtendedFloat<M>)
-    where T: FloatRounding<M>,
-          M: Mantissa
-{
-    // Calculate the difference to allow a single calculation
-    // rather than a loop, to minimize the number of ops required.
-    if fp.exp < T::DENORMAL_EXPONENT {
-        // Only shift right if we can avoid zeroing out the value, which
-        // requires the exponent diff to be <= M::BITS and the resulting
-        // value to not be zero after the shift.
-        let diff = T::DENORMAL_EXPONENT - fp.exp;
-        if diff < M::BITS && fp.frac >> diff != M::ZERO {
-            shr(fp, diff);
-        }
-    }
-}
 
 /// Avoid overflow for large values, shift left as needed.
 ///
@@ -251,6 +246,25 @@ pub(super) fn round_to_native<T, M>(fp: &mut ExtendedFloat<M>)
     // Round so the fraction is in a native mantissa representation,
     // and avoid overflow/underflow.
     round_to_float::<T, M>(fp);
-    avoid_underflow::<T, M>(fp);
     avoid_overflow::<T, M>(fp)
+}
+
+
+// TESTS
+// -----
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn round_nearest_test() {
+        // TODO(ahuszagh) Implement...
+    }
+
+//    round_nearest_tie_even
+//    round_nearest_tie_away_zero
+//    round_to_float
+//    avoid_overflow
+//    round_to_native
 }

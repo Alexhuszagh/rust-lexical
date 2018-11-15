@@ -375,7 +375,7 @@ mod tests {
         // This is lossy, so some of these values are **slightly** rounded.
 
         // underflow
-        check_round_to_f32(9223372036854775808, -213, 8388608, -173);
+        check_round_to_f32(9223372036854775808, -213, 0, 0);
 
         // min value
         check_round_to_f32(9223372036854775808, -212, 1, -149);
@@ -415,7 +415,7 @@ mod tests {
         // This is lossy, so some of these values are **slightly** rounded.
 
         // underflow
-        check_round_to_f64(9223372036854775808, -1138, 4503599627370496, -1127);
+        check_round_to_f64(9223372036854775808, -1138, 0, 0);
 
         // min value
         check_round_to_f64(9223372036854775808, -1137, 1, -1074);
@@ -452,6 +452,10 @@ mod tests {
 
         // max value
         check_round_to_f64(18446744073709549568, 960, 9007199254740991, 971);
+
+        // Bug fixes
+        // 1.2345e-308
+        check_round_to_f64(10234494226754558294, -1086, 2498655817078750, -1074)
     }
 
     // FROM
