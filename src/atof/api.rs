@@ -62,26 +62,27 @@ unsafe extern "C" fn is_zero(first: *const u8, length: usize)
 // ATOF
 
 /// Convert string to float and handle special floating-point strings.
-#[inline]
-#[allow(dead_code)]
+/// Forcing inlining leads to much better codegen at high optimization levels.
+#[inline(always)]
 unsafe fn filter_special<F: StringToFloat>(base: u32, first: *const u8, last: *const u8)
     -> (F, *const u8)
 {
     // special case checks
     let length = distance(first, last);
-    if is_nan(first, length) {
-        (F::NAN, first.add(NAN_STRING.len()))
+    if is_zero(first, length) {
+        (F::ZERO, first.add(3))
     } else if is_infinity(first, length) {
         (F::INFINITY, first.add(INFINITY_STRING.len()))
-    } else if is_zero(first, length) {
-        (F::ZERO, first.add(3))
+    } else if is_nan(first, length) {
+        (F::NAN, first.add(NAN_STRING.len()))
     } else {
         F::basen(base, first, last)
     }
 }
 
 /// Handle +/- values and empty buffers.
-#[inline]
+/// Forcing inlining leads to much better codegen at high optimization levels.
+#[inline(always)]
 unsafe fn filter_sign<F: StringToFloat>(base: u32, first: *const u8, last: *const u8)
     -> (F, *const u8)
 {
@@ -98,7 +99,8 @@ unsafe fn filter_sign<F: StringToFloat>(base: u32, first: *const u8, last: *cons
 }
 
 /// Iteratively filter simple cases and then invoke parser.
-#[inline]
+/// Forcing inlining leads to much better codegen at high optimization levels.
+#[inline(always)]
 unsafe fn atof<F: StringToFloat>(base: u32, first: *const u8, last: *const u8)
     -> (F, *const u8)
 {

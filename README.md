@@ -105,7 +105,7 @@ For more information on the Ryu algorithm, see [Ryū: fast float-to-string conve
 
 Lexical is dual licensed under the Apache 2.0 license as well as the MIT license. See the LICENCE-MIT and the LICENCE-APACHE files for the licenses.
 
-Lexical also ports some code from [V8](https://github.com/v8/v8) and [fpconv](https://github.com/night-shift/fpconv), and therefore might be subject to the terms of a 3-clause BSD license.
+Lexical also ports some code from [V8](https://github.com/v8/v8), [libgo](https://golang.org/src) and [fpconv](https://github.com/night-shift/fpconv), and therefore might be subject to the terms of a 3-clause BSD license or BSD-like license.
 
 # Roadmap
 

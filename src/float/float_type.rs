@@ -141,18 +141,25 @@ impl FloatType {
 
     // ROUND
 
+    /// Lossy round float-point number to native fraction boundaries.
+    #[inline]
+    fn round_to_native<F: FloatRounding>(&mut self)
+    {
+        round_to_native::<F>(self)
+    }
+
     /// Lossy round float-point number to f32 fraction boundaries.
     #[inline]
     fn round_to_f32(&mut self)
     {
-        round_to_native::<f32>(self)
+        self.round_to_native::<f32>()
     }
 
     /// Lossy round float-point number to f64 fraction boundaries.
     #[inline]
     fn round_to_f64(&mut self)
     {
-        round_to_native::<f64>(self)
+        self.round_to_native::<f64>()
     }
 
     // FROM
@@ -181,36 +188,45 @@ impl FloatType {
         from_int(i)
     }
 
+    /// Create extended float from native float.
+    #[inline]
+    pub fn from_native<F: Float>(f: F) -> FloatType {
+        from_float(f)
+    }
+
     /// Create extended float from 32-bit float.
     #[inline]
     pub fn from_f32(f: f32) -> FloatType {
-        from_float(f)
+        Self::from_native::<f32>(f)
     }
 
     /// Create extended float from 64-bit float.
     #[inline]
     pub fn from_f64(f: f64) -> FloatType {
-        from_float(f)
+        Self::from_native::<f64>(f)
     }
 
     // TO
 
+    /// Create extended float from native float.
+    #[inline]
+    pub fn as_native<F: FloatRounding>(&self) -> F {
+        // Create a rounded and normalized fraction for export.
+        let mut x = *self;
+        x.round_to_native::<F>();
+        as_float(x)
+    }
+
     /// Convert to lower-precision 32-bit float.
     #[inline]
     pub fn as_f32(&self) -> f32 {
-        // Create a rounded and normalized fraction for export.
-        let mut x = *self;
-        x.round_to_f32();
-        as_float(x)
+        self.as_native::<f32>()
     }
 
     /// Convert to lower-precision 64-bit float.
     #[inline]
     pub fn as_f64(&self) -> f64 {
-        // Create a rounded and normalized fraction for export.
-        let mut x = *self;
-        x.round_to_f64();
-        as_float(x)
+        self.as_native::<f64>()
     }
 }
 

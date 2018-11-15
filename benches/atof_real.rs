@@ -72,7 +72,7 @@ fn real_f64_lexical(bench: &mut Bencher) {
     bench.iter(|| {
         for line in data.lines() {
             for item in line.split(',') {
-                black_box(atof64_bytes(item.as_bytes(), 10));
+                black_box(atof64_bytes(10, item.as_bytes()));
             }
         }
     })

@@ -25,7 +25,7 @@
 //! LARGE_STR = "const BASE{0}_LARGE_POWERS: [FloatType; {1}] = ["
 //! FP_STR_1 = "    FloatType {{ frac: {}, exp: {} }},"
 //! FP_STR_2 = "// {}^{}"
-//! BIAS_STR = "const BASE{0}_BIAS: i32 = -BASE{0}_LARGE_POWERS[0].exp;"
+//! BIAS_STR = "const BASE{0}_BIAS: i32 = {1};"
 //! POWER_STR = """pub(crate) const BASE{0}_POWERS: Powers = Powers {{
 //!     small: &BASE{0}_SMALL_POWERS,
 //!     small_int: &BASE{0}_SMALL_INT_POWERS,
@@ -97,7 +97,7 @@
 //!     '''Generate the large powers for a given base.'''
 //!
 //!     # Get our starting parameters
-//!     min_exp = math.floor(math.log(5e-324, base))
+//!     min_exp = math.floor(math.log(5e-324, base) - math.log(0xFFFFFFFFFFFFFFFF, base))
 //!     max_exp = math.ceil(math.log(1.7976931348623157e+308, base))
 //!     bitshift = calculate_bitshift(base, abs(min_exp - step))
 //!     fps = deque()
@@ -123,6 +123,9 @@
 //!         print_fp(fp, base, exp)
 //!     print("];")
 //!
+//!     # Return the smallest exp, AKA, the bias
+//!     return -fps[0][1]
+//!
 //!
 //! def generate_base(base):
 //!     '''Generate all powers and variables.'''
@@ -130,8 +133,8 @@
 //!     step = math.floor(math.log(1e10, base))
 //!     print(STEP_STR.format(base, step))
 //!     generate_small(base, step)
-//!     generate_large(base, step)
-//!     print(BIAS_STR.format(base))
+//!     bias = generate_large(base, step)
+//!     print(BIAS_STR.format(base, bias))
 //!
 //!
 //! def generate():
@@ -188,7 +191,9 @@ const BASE3_SMALL_POWERS: [FloatType; BASE3_STEP as usize] = [
     FloatType { frac: 9983749980331966464, exp: -33 },          // 3^19
 ];
 const BASE3_SMALL_INT_POWERS: [u64; BASE3_STEP as usize] = [1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049, 177147, 531441, 1594323, 4782969, 14348907, 43046721, 129140163, 387420489, 1162261467];
-const BASE3_LARGE_POWERS: [FloatType; 67] = [
+const BASE3_LARGE_POWERS: [FloatType; 69] = [
+    FloatType { frac: 16362187946641408838, exp: -1205 },       // 3^-720
+    FloatType { frac: 13283319235448605538, exp: -1173 },       // 3^-700
     FloatType { frac: 10783800460320302292, exp: -1141 },       // 3^-680
     FloatType { frac: 17509230984627012859, exp: -1110 },       // 3^-660
     FloatType { frac: 14214523479040558273, exp: -1078 },       // 3^-640
@@ -257,7 +262,7 @@ const BASE3_LARGE_POWERS: [FloatType; 67] = [
     FloatType { frac: 14743884191906938838, exp: 919 },         // 3^620
     FloatType { frac: 11969531283362676572, exp: 951 },         // 3^640
 ];
-const BASE3_BIAS: i32 = -BASE3_LARGE_POWERS[0].exp;
+const BASE3_BIAS: i32 = 720;
 
 // BASE5
 
@@ -279,7 +284,9 @@ const BASE5_SMALL_POWERS: [FloatType; BASE5_STEP as usize] = [
     FloatType { frac: 10485760000000000000, exp: -33 },         // 5^13
 ];
 const BASE5_SMALL_INT_POWERS: [u64; BASE5_STEP as usize] = [1, 5, 25, 125, 625, 3125, 15625, 78125, 390625, 1953125, 9765625, 48828125, 244140625, 1220703125];
-const BASE5_LARGE_POWERS: [FloatType; 66] = [
+const BASE5_LARGE_POWERS: [FloatType; 68] = [
+    FloatType { frac: 15492890949478498119, exp: -1234 },       // 5^-504
+    FloatType { frac: 11008361120075348168, exp: -1201 },       // 5^-490
     FloatType { frac: 15643822052986917253, exp: -1169 },       // 5^-476
     FloatType { frac: 11115604119273511155, exp: -1136 },       // 5^-462
     FloatType { frac: 15796223521069679172, exp: -1104 },       // 5^-448
@@ -347,7 +354,7 @@ const BASE5_LARGE_POWERS: [FloatType; 66] = [
     FloatType { frac: 10667085486916504429, exp: 912 },         // 5^420
     FloatType { frac: 15158840208921026870, exp: 944 },         // 5^434
 ];
-const BASE5_BIAS: i32 = -BASE5_LARGE_POWERS[0].exp;
+const BASE5_BIAS: i32 = 504;
 
 // BASE6
 
@@ -367,7 +374,9 @@ const BASE6_SMALL_POWERS: [FloatType; BASE6_STEP as usize] = [
     FloatType { frac: 12465611924840644608, exp: -35 },         // 6^11
 ];
 const BASE6_SMALL_INT_POWERS: [u64; BASE6_STEP as usize] = [1, 6, 36, 216, 1296, 7776, 46656, 279936, 1679616, 10077696, 60466176, 362797056];
-const BASE6_LARGE_POWERS: [FloatType; 69] = [
+const BASE6_LARGE_POWERS: [FloatType; 71] = [
+    FloatType { frac: 11172994339528645078, exp: -1211 },       // 6^-444
+    FloatType { frac: 11325430459582219446, exp: -1180 },       // 6^-432
     FloatType { frac: 11479946305982273645, exp: -1149 },       // 6^-420
     FloatType { frac: 11636570252986002899, exp: -1118 },       // 6^-408
     FloatType { frac: 11795331061968106016, exp: -1087 },       // 6^-396
@@ -438,7 +447,7 @@ const BASE6_LARGE_POWERS: [FloatType; 69] = [
     FloatType { frac: 14230303918895818486, exp: 929 },         // 6^384
     FloatType { frac: 14424451723026109070, exp: 960 },         // 6^396
 ];
-const BASE6_BIAS: i32 = -BASE6_LARGE_POWERS[0].exp;
+const BASE6_BIAS: i32 = 444;
 
 // BASE7
 
@@ -457,7 +466,9 @@ const BASE7_SMALL_POWERS: [FloatType; BASE7_STEP as usize] = [
     FloatType { frac: 9705775651075653632, exp: -35 },          // 7^10
 ];
 const BASE7_SMALL_INT_POWERS: [u64; BASE7_STEP as usize] = [1, 7, 49, 343, 2401, 16807, 117649, 823543, 5764801, 40353607, 282475249];
-const BASE7_LARGE_POWERS: [FloatType; 69] = [
+const BASE7_LARGE_POWERS: [FloatType; 71] = [
+    FloatType { frac: 12225664820028455743, exp: -1206 },       // 7^-407
+    FloatType { frac: 11256958357801915874, exp: -1175 },       // 7^-396
     FloatType { frac: 10365007820408367996, exp: -1144 },       // 7^-385
     FloatType { frac: 9543731415037814164, exp: -1113 },        // 7^-374
     FloatType { frac: 17575058485347314089, exp: -1083 },       // 7^-363
@@ -528,7 +539,7 @@ const BASE7_LARGE_POWERS: [FloatType; 69] = [
     FloatType { frac: 10513906144367477972, exp: 925 },         // 7^352
     FloatType { frac: 9680831708316613461, exp: 956 },          // 7^363
 ];
-const BASE7_BIAS: i32 = -BASE7_LARGE_POWERS[0].exp;
+const BASE7_BIAS: i32 = 407;
 
 // BASE9
 
@@ -546,7 +557,9 @@ const BASE9_SMALL_POWERS: [FloatType; BASE9_STEP as usize] = [
     FloatType { frac: 13311666640442621952, exp: -35 },         // 9^9
 ];
 const BASE9_SMALL_INT_POWERS: [u64; BASE9_STEP as usize] = [1, 9, 81, 729, 6561, 59049, 531441, 4782969, 43046721, 387420489];
-const BASE9_LARGE_POWERS: [FloatType; 67] = [
+const BASE9_LARGE_POWERS: [FloatType; 69] = [
+    FloatType { frac: 16362187946641408838, exp: -1205 },       // 9^-360
+    FloatType { frac: 13283319235448605538, exp: -1173 },       // 9^-350
     FloatType { frac: 10783800460320302292, exp: -1141 },       // 9^-340
     FloatType { frac: 17509230984627012859, exp: -1110 },       // 9^-330
     FloatType { frac: 14214523479040558273, exp: -1078 },       // 9^-320
@@ -615,7 +628,7 @@ const BASE9_LARGE_POWERS: [FloatType; 67] = [
     FloatType { frac: 14743884191906938838, exp: 919 },         // 9^310
     FloatType { frac: 11969531283362676572, exp: 951 },         // 9^320
 ];
-const BASE9_BIAS: i32 = -BASE9_LARGE_POWERS[0].exp;
+const BASE9_BIAS: i32 = 360;
 
 // BASE10
 
@@ -633,7 +646,9 @@ const BASE10_SMALL_POWERS: [FloatType; BASE10_STEP as usize] = [
     FloatType { frac: 17179869184000000000, exp: -34 },         // 10^9
 ];
 const BASE10_SMALL_INT_POWERS: [u64; BASE10_STEP as usize] = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000];
-const BASE10_LARGE_POWERS: [FloatType; 64] = [
+const BASE10_LARGE_POWERS: [FloatType; 66] = [
+    FloatType { frac: 11555125961253852697, exp: -1226 },       // 10^-350
+    FloatType { frac: 13451937075301367670, exp: -1193 },       // 10^-340
     FloatType { frac: 15660115838168849784, exp: -1160 },       // 10^-330
     FloatType { frac: 18230774251475056848, exp: -1127 },       // 10^-320
     FloatType { frac: 10611707258198326947, exp: -1093 },       // 10^-310
@@ -699,7 +714,7 @@ const BASE10_LARGE_POWERS: [FloatType; 64] = [
     FloatType { frac: 11830521861667747109, exp: 900 },         // 10^290
     FloatType { frac: 13772540099066387756, exp: 933 },         // 10^300
 ];
-const BASE10_BIAS: i32 = -BASE10_LARGE_POWERS[0].exp;
+const BASE10_BIAS: i32 = 350;
 
 // BASE11
 
@@ -716,7 +731,9 @@ const BASE11_SMALL_POWERS: [FloatType; BASE11_STEP as usize] = [
     FloatType { frac: 14730630136034492416, exp: -36 },         // 11^8
 ];
 const BASE11_SMALL_INT_POWERS: [u64; BASE11_STEP as usize] = [1, 11, 121, 1331, 14641, 161051, 1771561, 19487171, 214358881];
-const BASE11_LARGE_POWERS: [FloatType; 68] = [
+const BASE11_LARGE_POWERS: [FloatType; 70] = [
+    FloatType { frac: 9282833781626869722, exp: -1215 },        // 11^-333
+    FloatType { frac: 10192597509046958613, exp: -1184 },       // 11^-324
     FloatType { frac: 11191522591630754840, exp: -1153 },       // 11^-315
     FloatType { frac: 12288347284174558846, exp: -1122 },       // 11^-306
     FloatType { frac: 13492666233761944748, exp: -1091 },       // 11^-297
@@ -786,7 +803,7 @@ const BASE11_LARGE_POWERS: [FloatType; 68] = [
     FloatType { frac: 10459310846201225147, exp: 902 },         // 11^279
     FloatType { frac: 11484375157976259923, exp: 933 },         // 11^288
 ];
-const BASE11_BIAS: i32 = -BASE11_LARGE_POWERS[0].exp;
+const BASE11_BIAS: i32 = 333;
 
 // BASE12
 
@@ -803,7 +820,9 @@ const BASE12_SMALL_POWERS: [FloatType; BASE12_STEP as usize] = [
     FloatType { frac: 14774058577588912128, exp: -35 },         // 12^8
 ];
 const BASE12_SMALL_INT_POWERS: [u64; BASE12_STEP as usize] = [1, 12, 144, 1728, 20736, 248832, 2985984, 35831808, 429981696];
-const BASE12_LARGE_POWERS: [FloatType; 66] = [
+const BASE12_LARGE_POWERS: [FloatType; 68] = [
+    FloatType { frac: 12794430777395563548, exp: -1225 },       // 12^-324
+    FloatType { frac: 15370653136686821126, exp: -1193 },       // 12^-315
     FloatType { frac: 9232805349408163458, exp: -1160 },        // 12^-306
     FloatType { frac: 11091876690210014731, exp: -1128 },       // 12^-297
     FloatType { frac: 13325281304529035642, exp: -1096 },       // 12^-288
@@ -871,7 +890,7 @@ const BASE12_LARGE_POWERS: [FloatType; 66] = [
     FloatType { frac: 17693768981840924725, exp: 904 },         // 12^270
     FloatType { frac: 10628248744799039348, exp: 937 },         // 12^279
 ];
-const BASE12_BIAS: i32 = -BASE12_LARGE_POWERS[0].exp;
+const BASE12_BIAS: i32 = 324;
 
 // BASE13
 
@@ -887,7 +906,9 @@ const BASE13_SMALL_POWERS: [FloatType; BASE13_STEP as usize] = [
     FloatType { frac: 17248181016800002048, exp: -38 },         // 13^7
 ];
 const BASE13_SMALL_INT_POWERS: [u64; BASE13_STEP as usize] = [1, 13, 169, 2197, 28561, 371293, 4826809, 62748517];
-const BASE13_LARGE_POWERS: [FloatType; 72] = [
+const BASE13_LARGE_POWERS: [FloatType; 74] = [
+    FloatType { frac: 12711851154623003921, exp: -1218 },       // 13^-312
+    FloatType { frac: 9657300550123029827, exp: -1188 },        // 13^-304
     FloatType { frac: 14673465379822171777, exp: -1159 },       // 13^-296
     FloatType { frac: 11147555423761605318, exp: -1129 },       // 13^-288
     FloatType { frac: 16937783776246970219, exp: -1100 },       // 13^-280
@@ -961,7 +982,7 @@ const BASE13_LARGE_POWERS: [FloatType; 72] = [
     FloatType { frac: 17404396465275275042, exp: 913 },         // 13^264
     FloatType { frac: 13222266805534112801, exp: 943 },         // 13^272
 ];
-const BASE13_BIAS: i32 = -BASE13_LARGE_POWERS[0].exp;
+const BASE13_BIAS: i32 = 312;
 
 // BASE14
 
@@ -977,7 +998,9 @@ const BASE14_SMALL_POWERS: [FloatType; BASE14_STEP as usize] = [
     FloatType { frac: 14487921671576485888, exp: -37 },         // 14^7
 ];
 const BASE14_SMALL_INT_POWERS: [u64; BASE14_STEP as usize] = [1, 14, 196, 2744, 38416, 537824, 7529536, 105413504];
-const BASE14_LARGE_POWERS: [FloatType; 70] = [
+const BASE14_LARGE_POWERS: [FloatType; 72] = [
+    FloatType { frac: 13636466802170654447, exp: -1221 },       // 14^-304
+    FloatType { frac: 9371223146631740442, exp: -1190 },        // 14^-296
     FloatType { frac: 12880143300754023535, exp: -1160 },       // 14^-288
     FloatType { frac: 17702928299982570560, exp: -1130 },       // 14^-280
     FloatType { frac: 12165767999490239948, exp: -1099 },       // 14^-272
@@ -1049,7 +1072,7 @@ const BASE14_LARGE_POWERS: [FloatType; 70] = [
     FloatType { frac: 14806454750802381310, exp: 911 },         // 14^256
     FloatType { frac: 10175259727702178785, exp: 942 },         // 14^264
 ];
-const BASE14_BIAS: i32 = -BASE14_LARGE_POWERS[0].exp;
+const BASE14_BIAS: i32 = 304;
 
 // BASE15
 
@@ -1065,7 +1088,9 @@ const BASE15_SMALL_POWERS: [FloatType; BASE15_STEP as usize] = [
     FloatType { frac: 11741366845440000000, exp: -36 },         // 15^7
 ];
 const BASE15_SMALL_INT_POWERS: [u64; BASE15_STEP as usize] = [1, 15, 225, 3375, 50625, 759375, 11390625, 170859375];
-const BASE15_LARGE_POWERS: [FloatType; 68] = [
+const BASE15_LARGE_POWERS: [FloatType; 70] = [
+    FloatType { frac: 13601350414362439244, exp: -1220 },       // 15^-296
+    FloatType { frac: 16232381325359158633, exp: -1189 },       // 15^-288
     FloatType { frac: 9686178043528474499, exp: -1157 },        // 15^-280
     FloatType { frac: 11559862131178364723, exp: -1126 },       // 15^-272
     FloatType { frac: 13795989697002596758, exp: -1095 },       // 15^-264
@@ -1135,7 +1160,7 @@ const BASE15_LARGE_POWERS: [FloatType; 68] = [
     FloatType { frac: 17317538822244368489, exp: 905 },         // 15^248
     FloatType { frac: 10333712654095989060, exp: 937 },         // 15^256
 ];
-const BASE15_BIAS: i32 = -BASE15_LARGE_POWERS[0].exp;
+const BASE15_BIAS: i32 = 296;
 
 // BASE17
 
@@ -1151,7 +1176,9 @@ const BASE17_SMALL_POWERS: [FloatType; BASE17_STEP as usize] = [
     FloatType { frac: 14099129446552305664, exp: -35 },         // 17^7
 ];
 const BASE17_SMALL_INT_POWERS: [u64; BASE17_STEP as usize] = [1, 17, 289, 4913, 83521, 1419857, 24137569, 410338673];
-const BASE17_LARGE_POWERS: [FloatType; 65] = [
+const BASE17_LARGE_POWERS: [FloatType; 67] = [
+    FloatType { frac: 13138227451101932889, exp: -1208 },       // 17^-280
+    FloatType { frac: 10669358063439695630, exp: -1175 },       // 17^-272
     FloatType { frac: 17328852299072967575, exp: -1143 },       // 17^-264
     FloatType { frac: 14072501842077846052, exp: -1110 },       // 17^-256
     FloatType { frac: 11428068326595325663, exp: -1077 },       // 17^-248
@@ -1218,7 +1245,7 @@ const BASE17_LARGE_POWERS: [FloatType; 65] = [
     FloatType { frac: 18333066210634546428, exp: 917 },         // 17^240
     FloatType { frac: 14888008944129060322, exp: 950 },         // 17^248
 ];
-const BASE17_BIAS: i32 = -BASE17_LARGE_POWERS[0].exp;
+const BASE17_BIAS: i32 = 280;
 
 // BASE18
 
@@ -1233,7 +1260,9 @@ const BASE18_SMALL_POWERS: [FloatType; BASE18_STEP as usize] = [
     FloatType { frac: 9349208943630483456, exp: -38 },          // 18^6
 ];
 const BASE18_SMALL_INT_POWERS: [u64; BASE18_STEP as usize] = [1, 18, 324, 5832, 104976, 1889568, 34012224];
-const BASE18_LARGE_POWERS: [FloatType; 73] = [
+const BASE18_LARGE_POWERS: [FloatType; 75] = [
+    FloatType { frac: 14081888293732326968, exp: -1202 },       // 18^-273
+    FloatType { frac: 16058262627216485544, exp: -1173 },       // 18^-266
     FloatType { frac: 18312018475493194258, exp: -1144 },       // 18^-259
     FloatType { frac: 10441042983020688038, exp: -1114 },       // 18^-252
     FloatType { frac: 11906429509033078491, exp: -1085 },       // 18^-245
@@ -1308,7 +1337,7 @@ const BASE18_LARGE_POWERS: [FloatType; 73] = [
     FloatType { frac: 12531130210573617469, exp: 929 },         // 18^238
     FloatType { frac: 14289857705148955482, exp: 958 },         // 18^245
 ];
-const BASE18_BIAS: i32 = -BASE18_LARGE_POWERS[0].exp;
+const BASE18_BIAS: i32 = 273;
 
 // BASE19
 
@@ -1323,7 +1352,9 @@ const BASE19_SMALL_POWERS: [FloatType; BASE19_STEP as usize] = [
     FloatType { frac: 12931873299616497664, exp: -38 },         // 19^6
 ];
 const BASE19_SMALL_INT_POWERS: [u64; BASE19_STEP as usize] = [1, 19, 361, 6859, 130321, 2476099, 47045881];
-const BASE19_LARGE_POWERS: [FloatType; 72] = [
+const BASE19_LARGE_POWERS: [FloatType; 74] = [
+    FloatType { frac: 11480257701232751935, exp: -1223 },       // 19^-273
+    FloatType { frac: 9557118560717499270, exp: -1193 },        // 19^-266
     FloatType { frac: 15912276110980153383, exp: -1164 },       // 19^-259
     FloatType { frac: 13246698229359450470, exp: -1134 },       // 19^-252
     FloatType { frac: 11027650146079950824, exp: -1104 },       // 19^-245
@@ -1397,7 +1428,7 @@ const BASE19_LARGE_POWERS: [FloatType; 72] = [
     FloatType { frac: 11131297769520092558, exp: 918 },         // 19^231
     FloatType { frac: 9266615374542536521, exp: 948 },          // 19^238
 ];
-const BASE19_BIAS: i32 = -BASE19_LARGE_POWERS[0].exp;
+const BASE19_BIAS: i32 = 273;
 
 // BASE20
 
@@ -1412,7 +1443,9 @@ const BASE20_SMALL_POWERS: [FloatType; BASE20_STEP as usize] = [
     FloatType { frac: 17592186044416000000, exp: -38 },         // 20^6
 ];
 const BASE20_SMALL_INT_POWERS: [u64; BASE20_STEP as usize] = [1, 20, 400, 8000, 160000, 3200000, 64000000];
-const BASE20_LARGE_POWERS: [FloatType; 70] = [
+const BASE20_LARGE_POWERS: [FloatType; 72] = [
+    FloatType { frac: 11896135267822264502, exp: -1213 },       // 20^-266
+    FloatType { frac: 14181298336770849826, exp: -1183 },       // 20^-259
     FloatType { frac: 16905424996341287883, exp: -1153 },       // 20^-252
     FloatType { frac: 10076418516839318205, exp: -1122 },       // 20^-245
     FloatType { frac: 12012026926087520367, exp: -1092 },       // 20^-238
@@ -1484,7 +1517,7 @@ const BASE20_LARGE_POWERS: [FloatType; 70] = [
     FloatType { frac: 9967194951097567535, exp: 905 },          // 20^224
     FloatType { frac: 11881822289344748896, exp: 935 },         // 20^231
 ];
-const BASE20_BIAS: i32 = -BASE20_LARGE_POWERS[0].exp;
+const BASE20_BIAS: i32 = 266;
 
 // BASE21
 
@@ -1499,7 +1532,10 @@ const BASE21_SMALL_POWERS: [FloatType; BASE21_STEP as usize] = [
     FloatType { frac: 11787605913592922112, exp: -37 },         // 21^6
 ];
 const BASE21_SMALL_INT_POWERS: [u64; BASE21_STEP as usize] = [1, 21, 441, 9261, 194481, 4084101, 85766121];
-const BASE21_LARGE_POWERS: [FloatType; 69] = [
+const BASE21_LARGE_POWERS: [FloatType; 72] = [
+    FloatType { frac: 14408615719666154271, exp: -1232 },       // 21^-266
+    FloatType { frac: 12084465783258517647, exp: -1201 },       // 21^-259
+    FloatType { frac: 10135207719324857823, exp: -1170 },       // 21^-252
     FloatType { frac: 17000740844691866712, exp: -1140 },       // 21^-245
     FloatType { frac: 14258473889848767691, exp: -1109 },       // 21^-238
     FloatType { frac: 11958542249702993646, exp: -1078 },       // 21^-231
@@ -1570,7 +1606,7 @@ const BASE21_LARGE_POWERS: [FloatType; 69] = [
     FloatType { frac: 16963911946752716066, exp: 920 },         // 21^224
     FloatType { frac: 14227585595952961160, exp: 951 },         // 21^231
 ];
-const BASE21_BIAS: i32 = -BASE21_LARGE_POWERS[0].exp;
+const BASE21_BIAS: i32 = 266;
 
 // BASE22
 
@@ -1585,7 +1621,9 @@ const BASE22_SMALL_POWERS: [FloatType; BASE22_STEP as usize] = [
     FloatType { frac: 15582815350515826688, exp: -37 },         // 22^6
 ];
 const BASE22_SMALL_INT_POWERS: [u64; BASE22_STEP as usize] = [1, 22, 484, 10648, 234256, 5153632, 113379904];
-const BASE22_LARGE_POWERS: [FloatType; 68] = [
+const BASE22_LARGE_POWERS: [FloatType; 70] = [
+    FloatType { frac: 9269587019009961312, exp: -1218 },        // 22^-259
+    FloatType { frac: 10766865452458105492, exp: -1187 },       // 22^-252
     FloatType { frac: 12505993140104023937, exp: -1156 },       // 22^-245
     FloatType { frac: 14526035001637582317, exp: -1125 },       // 22^-238
     FloatType { frac: 16872365953260472216, exp: -1094 },       // 22^-231
@@ -1655,7 +1693,7 @@ const BASE22_LARGE_POWERS: [FloatType; 68] = [
     FloatType { frac: 14948776823616759120, exp: 904 },         // 22^217
     FloatType { frac: 17363391530672110525, exp: 935 },         // 22^224
 ];
-const BASE22_BIAS: i32 = -BASE22_LARGE_POWERS[0].exp;
+const BASE22_BIAS: i32 = 259;
 
 // BASE23
 
@@ -1670,7 +1708,9 @@ const BASE23_SMALL_POWERS: [FloatType; BASE23_STEP as usize] = [
     FloatType { frac: 10172948830228578304, exp: -36 },         // 23^6
 ];
 const BASE23_SMALL_INT_POWERS: [u64; BASE23_STEP as usize] = [1, 23, 529, 12167, 279841, 6436343, 148035889];
-const BASE23_LARGE_POWERS: [FloatType; 67] = [
+const BASE23_LARGE_POWERS: [FloatType; 69] = [
+    FloatType { frac: 9630971713765025029, exp: -1203 },        // 23^-252
+    FloatType { frac: 15269861356524917016, exp: -1172 },       // 23^-245
     FloatType { frac: 12105147475110827234, exp: -1140 },       // 23^-238
     FloatType { frac: 9596327823341159083, exp: -1108 },        // 23^-231
     FloatType { frac: 15214933627595239789, exp: -1077 },       // 23^-224
@@ -1739,7 +1779,7 @@ const BASE23_LARGE_POWERS: [FloatType; 67] = [
     FloatType { frac: 14106016784977482782, exp: 918 },         // 23^217
     FloatType { frac: 11182512367447014130, exp: 950 },         // 23^224
 ];
-const BASE23_BIAS: i32 = -BASE23_LARGE_POWERS[0].exp;
+const BASE23_BIAS: i32 = 252;
 
 // BASE24
 
@@ -1754,7 +1794,9 @@ const BASE24_SMALL_POWERS: [FloatType; BASE24_STEP as usize] = [
     FloatType { frac: 13132496513412366336, exp: -36 },         // 24^6
 ];
 const BASE24_SMALL_INT_POWERS: [u64; BASE24_STEP as usize] = [1, 24, 576, 13824, 331776, 7962624, 191102976];
-const BASE24_LARGE_POWERS: [FloatType; 66] = [
+const BASE24_LARGE_POWERS: [FloatType; 68] = [
+    FloatType { frac: 13878157218102970303, exp: -1219 },       // 24^-252
+    FloatType { frac: 14820082927730076197, exp: -1187 },       // 24^-245
     FloatType { frac: 15825938165500818674, exp: -1155 },       // 24^-238
     FloatType { frac: 16900061898413227754, exp: -1123 },       // 24^-231
     FloatType { frac: 18047087583901234911, exp: -1091 },       // 24^-224
@@ -1822,7 +1864,7 @@ const BASE24_LARGE_POWERS: [FloatType; 66] = [
     FloatType { frac: 16534636719312342666, exp: 899 },         // 24^210
     FloatType { frac: 17656860598210983110, exp: 931 },         // 24^217
 ];
-const BASE24_BIAS: i32 = -BASE24_LARGE_POWERS[0].exp;
+const BASE24_BIAS: i32 = 252;
 
 // BASE25
 
@@ -1837,7 +1879,9 @@ const BASE25_SMALL_POWERS: [FloatType; BASE25_STEP as usize] = [
     FloatType { frac: 16777216000000000000, exp: -36 },         // 25^6
 ];
 const BASE25_SMALL_INT_POWERS: [u64; BASE25_STEP as usize] = [1, 25, 625, 15625, 390625, 9765625, 244140625];
-const BASE25_LARGE_POWERS: [FloatType; 66] = [
+const BASE25_LARGE_POWERS: [FloatType; 68] = [
+    FloatType { frac: 15492890949478498119, exp: -1234 },       // 25^-252
+    FloatType { frac: 11008361120075348168, exp: -1201 },       // 25^-245
     FloatType { frac: 15643822052986917253, exp: -1169 },       // 25^-238
     FloatType { frac: 11115604119273511155, exp: -1136 },       // 25^-231
     FloatType { frac: 15796223521069679172, exp: -1104 },       // 25^-224
@@ -1905,7 +1949,7 @@ const BASE25_LARGE_POWERS: [FloatType; 66] = [
     FloatType { frac: 10667085486916504429, exp: 912 },         // 25^210
     FloatType { frac: 15158840208921026870, exp: 944 },         // 25^217
 ];
-const BASE25_BIAS: i32 = -BASE25_LARGE_POWERS[0].exp;
+const BASE25_BIAS: i32 = 252;
 
 // BASE26
 
@@ -1920,7 +1964,9 @@ const BASE26_SMALL_POWERS: [FloatType; BASE26_STEP as usize] = [
     FloatType { frac: 10614265241107693568, exp: -35 },         // 26^6
 ];
 const BASE26_SMALL_INT_POWERS: [u64; BASE26_STEP as usize] = [1, 26, 676, 17576, 456976, 11881376, 308915776];
-const BASE26_LARGE_POWERS: [FloatType; 65] = [
+const BASE26_LARGE_POWERS: [FloatType; 67] = [
+    FloatType { frac: 12105269954044049440, exp: -1215 },       // 26^-245
+    FloatType { frac: 11318739317371282802, exp: -1182 },       // 26^-238
     FloatType { frac: 10583312905946974966, exp: -1149 },       // 26^-231
     FloatType { frac: 9895670261906581517, exp: -1116 },        // 26^-224
     FloatType { frac: 9252706671590202790, exp: -1083 },        // 26^-217
@@ -1987,7 +2033,7 @@ const BASE26_LARGE_POWERS: [FloatType; 65] = [
     FloatType { frac: 9833023573966516058, exp: 924 },          // 26^210
     FloatType { frac: 18388260808361729691, exp: 956 },         // 26^217
 ];
-const BASE26_BIAS: i32 = -BASE26_LARGE_POWERS[0].exp;
+const BASE26_BIAS: i32 = 245;
 
 // BASE27
 
@@ -2001,7 +2047,9 @@ const BASE27_SMALL_POWERS: [FloatType; BASE27_STEP as usize] = [
     FloatType { frac: 15776790092376440832, exp: -40 },         // 27^5
 ];
 const BASE27_SMALL_INT_POWERS: [u64; BASE27_STEP as usize] = [1, 27, 729, 19683, 531441, 14348907];
-const BASE27_LARGE_POWERS: [FloatType; 74] = [
+const BASE27_LARGE_POWERS: [FloatType; 76] = [
+    FloatType { frac: 16362187946641408838, exp: -1205 },       // 27^-240
+    FloatType { frac: 11807394875954316034, exp: -1176 },       // 27^-234
     FloatType { frac: 17041067394086403622, exp: -1148 },       // 27^-228
     FloatType { frac: 12297292543386873229, exp: -1119 },       // 27^-222
     FloatType { frac: 17748114058878258402, exp: -1091 },       // 27^-216
@@ -2077,7 +2125,7 @@ const BASE27_LARGE_POWERS: [FloatType; 74] = [
     FloatType { frac: 18409068632845853217, exp: 906 },         // 27^204
     FloatType { frac: 13284479029051404288, exp: 935 },         // 27^210
 ];
-const BASE27_BIAS: i32 = -BASE27_LARGE_POWERS[0].exp;
+const BASE27_BIAS: i32 = 240;
 
 // BASE28
 
@@ -2091,7 +2139,9 @@ const BASE28_SMALL_POWERS: [FloatType; BASE28_STEP as usize] = [
     FloatType { frac: 9461499867151990784, exp: -39 },          // 28^5
 ];
 const BASE28_SMALL_INT_POWERS: [u64; BASE28_STEP as usize] = [1, 28, 784, 21952, 614656, 17210368];
-const BASE28_LARGE_POWERS: [FloatType; 74] = [
+const BASE28_LARGE_POWERS: [FloatType; 76] = [
+    FloatType { frac: 10853684694473876180, exp: -1217 },       // 28^-240
+    FloatType { frac: 9742165760957008810, exp: -1188 },        // 28^-234
     FloatType { frac: 17488953546307848045, exp: -1160 },       // 28^-228
     FloatType { frac: 15697920957714630238, exp: -1131 },       // 28^-222
     FloatType { frac: 14090306875260685218, exp: -1102 },       // 28^-216
@@ -2167,7 +2217,7 @@ const BASE28_LARGE_POWERS: [FloatType; 74] = [
     FloatType { frac: 14987609529429357277, exp: 917 },         // 28^204
     FloatType { frac: 13452737987730670580, exp: 946 },         // 28^210
 ];
-const BASE28_BIAS: i32 = -BASE28_LARGE_POWERS[0].exp;
+const BASE28_BIAS: i32 = 240;
 
 // BASE29
 
@@ -2181,7 +2231,10 @@ const BASE29_SMALL_POWERS: [FloatType; BASE29_STEP as usize] = [
     FloatType { frac: 11276123412273037312, exp: -39 },         // 29^5
 ];
 const BASE29_SMALL_INT_POWERS: [u64; BASE29_STEP as usize] = [1, 29, 841, 24389, 707281, 20511149];
-const BASE29_LARGE_POWERS: [FloatType; 73] = [
+const BASE29_LARGE_POWERS: [FloatType; 76] = [
+    FloatType { frac: 9780142334064946636, exp: -1229 },        // 29^-240
+    FloatType { frac: 10835857583212112985, exp: -1200 },       // 29^-234
+    FloatType { frac: 12005531775819627369, exp: -1171 },       // 29^-228
     FloatType { frac: 13301466184228767173, exp: -1142 },       // 29^-222
     FloatType { frac: 14737289938837575007, exp: -1113 },       // 29^-216
     FloatType { frac: 16328103363438049788, exp: -1084 },       // 29^-210
@@ -2256,7 +2309,7 @@ const BASE29_LARGE_POWERS: [FloatType; 73] = [
     FloatType { frac: 9404930600437880197, exp: 928 },          // 29^204
     FloatType { frac: 10420143703980341466, exp: 957 },         // 29^210
 ];
-const BASE29_BIAS: i32 = -BASE29_LARGE_POWERS[0].exp;
+const BASE29_BIAS: i32 = 240;
 
 // BASE30
 
@@ -2270,7 +2323,9 @@ const BASE30_SMALL_POWERS: [FloatType; BASE30_STEP as usize] = [
     FloatType { frac: 13359066277478400000, exp: -39 },         // 30^5
 ];
 const BASE30_SMALL_INT_POWERS: [u64; BASE30_STEP as usize] = [1, 30, 900, 27000, 810000, 24300000];
-const BASE30_LARGE_POWERS: [FloatType; 72] = [
+const BASE30_LARGE_POWERS: [FloatType; 74] = [
+    FloatType { frac: 15921395853562858335, exp: -1212 },       // 30^-234
+    FloatType { frac: 10809579470425214363, exp: -1182 },       // 30^-228
     FloatType { frac: 14677985448278451843, exp: -1153 },       // 30^-222
     FloatType { frac: 9965385675239368708, exp: -1123 },        // 30^-216
     FloatType { frac: 13531681443098000788, exp: -1094 },       // 30^-210
@@ -2344,7 +2399,7 @@ const BASE30_LARGE_POWERS: [FloatType; 72] = [
     FloatType { frac: 13638680998961850032, exp: 908 },         // 30^198
     FloatType { frac: 9259766385185707988, exp: 938 },          // 30^204
 ];
-const BASE30_BIAS: i32 = -BASE30_LARGE_POWERS[0].exp;
+const BASE30_BIAS: i32 = 234;
 
 // BASE31
 
@@ -2358,7 +2413,9 @@ const BASE31_SMALL_POWERS: [FloatType; BASE31_STEP as usize] = [
     FloatType { frac: 15739042208927449088, exp: -39 },         // 31^5
 ];
 const BASE31_SMALL_INT_POWERS: [u64; BASE31_STEP as usize] = [1, 31, 961, 29791, 923521, 28629151];
-const BASE31_LARGE_POWERS: [FloatType; 72] = [
+const BASE31_LARGE_POWERS: [FloatType; 74] = [
+    FloatType { frac: 15172192345302428421, exp: -1223 },       // 31^-234
+    FloatType { frac: 12540609161645107233, exp: -1193 },       // 31^-228
     FloatType { frac: 10365468257053156090, exp: -1163 },       // 31^-222
     FloatType { frac: 17135201456813756829, exp: -1134 },       // 31^-216
     FloatType { frac: 14163138687236953263, exp: -1104 },       // 31^-210
@@ -2432,7 +2489,7 @@ const BASE31_LARGE_POWERS: [FloatType; 72] = [
     FloatType { frac: 17583663147154342787, exp: 917 },         // 31^198
     FloatType { frac: 14533815689909759814, exp: 947 },         // 31^204
 ];
-const BASE31_BIAS: i32 = -BASE31_LARGE_POWERS[0].exp;
+const BASE31_BIAS: i32 = 234;
 
 // BASE33
 
@@ -2446,7 +2503,9 @@ const BASE33_SMALL_POWERS: [FloatType; BASE33_STEP as usize] = [
     FloatType { frac: 10757454915270868992, exp: -38 },         // 33^5
 ];
 const BASE33_SMALL_INT_POWERS: [u64; BASE33_STEP as usize] = [1, 33, 1089, 35937, 1185921, 39135393];
-const BASE33_LARGE_POWERS: [FloatType; 70] = [
+const BASE33_LARGE_POWERS: [FloatType; 72] = [
+    FloatType { frac: 16952605037124200569, exp: -1214 },       // 33^-228
+    FloatType { frac: 10195070131008495069, exp: -1183 },       // 33^-222
     FloatType { frac: 12262357879342609130, exp: -1153 },       // 33^-216
     FloatType { frac: 14748836332546310936, exp: -1123 },       // 33^-210
     FloatType { frac: 17739506162243888511, exp: -1093 },       // 33^-204
@@ -2518,7 +2577,7 @@ const BASE33_LARGE_POWERS: [FloatType; 70] = [
     FloatType { frac: 13259598707595875029, exp: 905 },         // 33^192
     FloatType { frac: 15948290948433680084, exp: 935 },         // 33^198
 ];
-const BASE33_BIAS: i32 = -BASE33_LARGE_POWERS[0].exp;
+const BASE33_BIAS: i32 = 228;
 
 // BASE34
 
@@ -2532,7 +2591,9 @@ const BASE34_SMALL_POWERS: [FloatType; BASE34_STEP as usize] = [
     FloatType { frac: 12489194250233184256, exp: -38 },         // 34^5
 ];
 const BASE34_SMALL_INT_POWERS: [u64; BASE34_STEP as usize] = [1, 34, 1156, 39304, 1336336, 45435424];
-const BASE34_LARGE_POWERS: [FloatType; 70] = [
+const BASE34_LARGE_POWERS: [FloatType; 72] = [
+    FloatType { frac: 9604872659818954289, exp: -1223 },        // 34^-228
+    FloatType { frac: 13818638119852157632, exp: -1193 },       // 34^-222
     FloatType { frac: 9940514895438007254, exp: -1162 },        // 34^-216
     FloatType { frac: 14301530372152488549, exp: -1132 },       // 34^-210
     FloatType { frac: 10287886147601198282, exp: -1101 },       // 34^-204
@@ -2604,7 +2665,7 @@ const BASE34_LARGE_POWERS: [FloatType; 70] = [
     FloatType { frac: 15979604673144701925, exp: 913 },         // 34^192
     FloatType { frac: 11495018315039655259, exp: 944 },         // 34^198
 ];
-const BASE34_BIAS: i32 = -BASE34_LARGE_POWERS[0].exp;
+const BASE34_BIAS: i32 = 228;
 
 // BASE35
 
@@ -2618,7 +2679,9 @@ const BASE35_SMALL_POWERS: [FloatType; BASE35_STEP as usize] = [
     FloatType { frac: 14437103068774400000, exp: -38 },         // 35^5
 ];
 const BASE35_SMALL_INT_POWERS: [u64; BASE35_STEP as usize] = [1, 35, 1225, 42875, 1500625, 52521875];
-const BASE35_LARGE_POWERS: [FloatType; 69] = [
+const BASE35_LARGE_POWERS: [FloatType; 71] = [
+    FloatType { frac: 11348773864264802781, exp: -1202 },       // 35^-222
+    FloatType { frac: 9714654125541636184, exp: -1171 },        // 35^-216
     FloatType { frac: 16631665395337738380, exp: -1141 },       // 35^-210
     FloatType { frac: 14236857547774631404, exp: -1110 },       // 35^-204
     FloatType { frac: 12186880148060573338, exp: -1079 },       // 35^-198
@@ -2689,7 +2752,7 @@ const BASE35_LARGE_POWERS: [FloatType; 69] = [
     FloatType { frac: 16309419696153507876, exp: 921 },         // 35^192
     FloatType { frac: 13961012284800847178, exp: 952 },         // 35^198
 ];
-const BASE35_BIAS: i32 = -BASE35_LARGE_POWERS[0].exp;
+const BASE35_BIAS: i32 = 222;
 
 // BASE36
 
@@ -2703,7 +2766,9 @@ const BASE36_SMALL_POWERS: [FloatType; BASE36_STEP as usize] = [
     FloatType { frac: 16620815899787526144, exp: -38 },         // 36^5
 ];
 const BASE36_SMALL_INT_POWERS: [u64; BASE36_STEP as usize] = [1, 36, 1296, 46656, 1679616, 60466176];
-const BASE36_LARGE_POWERS: [FloatType; 69] = [
+const BASE36_LARGE_POWERS: [FloatType; 71] = [
+    FloatType { frac: 11172994339528645078, exp: -1211 },       // 36^-222
+    FloatType { frac: 11325430459582219446, exp: -1180 },       // 36^-216
     FloatType { frac: 11479946305982273645, exp: -1149 },       // 36^-210
     FloatType { frac: 11636570252986002899, exp: -1118 },       // 36^-204
     FloatType { frac: 11795331061968106016, exp: -1087 },       // 36^-198
@@ -2774,7 +2839,7 @@ const BASE36_LARGE_POWERS: [FloatType; 69] = [
     FloatType { frac: 14230303918895818486, exp: 929 },         // 36^192
     FloatType { frac: 14424451723026109070, exp: 960 },         // 36^198
 ];
-const BASE36_BIAS: i32 = -BASE36_LARGE_POWERS[0].exp;
+const BASE36_BIAS: i32 = 222;
 
 // HIGH-LEVEL
 // ----------

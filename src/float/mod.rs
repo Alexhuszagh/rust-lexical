@@ -8,3 +8,4 @@ mod shift;
 
 // Re-export the extended-precision floating-point type.
 pub use self::float_type::FloatType;
+pub use self::rounding::FloatRounding;

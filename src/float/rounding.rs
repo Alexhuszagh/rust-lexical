@@ -8,7 +8,7 @@ use super::shift::{shl, shr};
 // -------
 
 /// Parameters for general rounding operations.
-pub(super) struct RoundingParameters {
+pub struct RoundingParameters {
     /// Bits to truncate from the mantissa.
     mask: u64,
     /// Midway point for truncated bits.
@@ -91,7 +91,7 @@ pub(super) fn round_nearest_tie_away_zero(fp: &mut FloatType, params: &RoundingP
 // FLOAT ROUNDING
 
 /// Trait to round extended-precision floats to native representations.
-pub(super) trait FloatRounding: Float {
+pub trait FloatRounding: Float {
     /// Bits to truncate from the mantissa.
     const TRUNCATE_MASK: u64;
     /// Midway point for truncated bits.

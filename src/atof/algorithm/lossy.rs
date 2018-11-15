@@ -88,6 +88,9 @@ unsafe extern "C" fn parse_fraction(base: u32, first: *const u8, last: *const u8
         let first = first.add(1);
         let mut f = first;
         loop {
+            // Trim leading zeros, since that never gets called with the raw parser.
+            f = ltrim_char(f, last, b'0');
+
             // This would get better numerical precision using Horner's method,
             // but that would require.
             let mut value: u64 = 0;
