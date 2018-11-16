@@ -6,6 +6,7 @@ mod exponent;
 cfg_if! {
 if #[cfg(any(test, not(feature = "imprecise")))] {
 // Needed for the actual items.
+mod bigfloat;
 mod cached;
 mod cached80;
 mod cached160;

@@ -12,6 +12,7 @@ use atoi;
 use float::*;
 use table::*;
 use util::*;
+use super::bigfloat::Bigfloat;
 use super::cached::CachedPowers;
 use super::exponent::parse_exponent;
 
@@ -466,7 +467,8 @@ unsafe extern "C" fn to_native<F>(base: u32, first: *const u8, last: *const u8, 
         return (float, p);
     } else {
         // Extremely slow algorithm, use arbitrary-precision float.
-        unimplemented!()
+        let (bigfloat, p) = Bigfloat::from_bytes(base, first, last);
+        (bigfloat.as_float::<F>(), p)
     }
 }
 
