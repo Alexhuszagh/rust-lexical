@@ -57,6 +57,39 @@ from_bytes!(isize, atoisize_bytes, try_atoisize_bytes);
 from_bytes!(f32, atof32_bytes, try_atof32_bytes);
 from_bytes!(f64, atof64_bytes, try_atof64_bytes);
 
+pub trait FromBytesLossy: FromBytes {
+    /// Deserialize from byte slice.
+    fn from_bytes_lossy(bytes: &[u8], base: u8) -> Self;
+
+    /// Error-checking deserialize from byte slice.
+    fn try_from_bytes_lossy(bytes: &[u8], base: u8) -> Result<Self, Error>;
+}
+
+macro_rules! from_bytes_lossy {
+    ($t:ty, $bytes_cb:ident, $try_bytes_cb:ident) => (
+        impl FromBytesLossy for $t {
+            #[inline(always)]
+            fn from_bytes_lossy(bytes: &[u8], base: u8) -> $t
+            {
+                // We reverse the argument order, since the low-level API
+                // always uses (base: u8, first: *const u8, last: *const u8)
+                $bytes_cb(base, bytes)
+            }
+
+            #[inline(always)]
+            fn try_from_bytes_lossy(bytes: &[u8], base: u8) -> Result<$t, Error>
+            {
+                // We reverse the argument order, since the low-level API
+                // always uses (base: u8, first: *const u8, last: *const u8)
+                $try_bytes_cb(base, bytes)
+            }
+        }
+    )
+}
+
+from_bytes_lossy!(f32, atof32_lossy_bytes, try_atof32_lossy_bytes);
+from_bytes_lossy!(f64, atof64_lossy_bytes, try_atof64_lossy_bytes);
+
 // NTOA
 
 cfg_if! {

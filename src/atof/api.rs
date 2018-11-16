@@ -1,24 +1,26 @@
 //! Low-level API generator.
 //!
-//! Uses either the lossy or the correct algorithm.
+//! Uses either the imprecise or the precise algorithm.
 
 use lib::ptr;
 use util::*;
 
 // Select the back-end
 cfg_if! {
-if #[cfg(feature = "correct")] {
-    use super::algorithm::correct as algorithm;
+if #[cfg(feature = "imprecise")] {
+    use super::algorithm::imprecise as algorithm;
 } else {
-    use super::algorithm::lossy as algorithm;
+    use super::algorithm::precise as algorithm;
 }}  // cfg_if
 
 // TRAITS
 
 /// Trait to define parsing of a string to float.
 trait StringToFloat: Float {
-    /// Load float from basen string.
+    /// Load float from basen string, favoring correctness.
     unsafe extern "C" fn basen(base: u32, first: *const u8, last: *const u8) -> (Self, *const u8);
+    /// Load float from string prioritizing speed over correctness.
+    unsafe extern "C" fn basen_lossy(base: u32, first: *const u8, last: *const u8) -> (Self, *const u8);
 }
 
 impl StringToFloat for f32 {
@@ -26,12 +28,22 @@ impl StringToFloat for f32 {
     unsafe extern "C" fn basen(base: u32, first: *const u8, last: *const u8) -> (f32, *const u8) {
         algorithm::atof(base, first, last)
     }
+
+    #[inline(always)]
+    unsafe extern "C" fn basen_lossy(base: u32, first: *const u8, last: *const u8) -> (f32, *const u8) {
+        algorithm::atof_lossy(base, first, last)
+    }
 }
 
 impl StringToFloat for f64 {
     #[inline(always)]
     unsafe extern "C" fn basen(base: u32, first: *const u8, last: *const u8) -> (f64, *const u8) {
         algorithm::atod(base, first, last)
+    }
+
+    #[inline(always)]
+    unsafe extern "C" fn basen_lossy(base: u32, first: *const u8, last: *const u8) -> (f64, *const u8) {
+        algorithm::atod_lossy(base, first, last)
     }
 }
 
@@ -64,7 +76,7 @@ unsafe extern "C" fn is_zero(first: *const u8, length: usize)
 /// Convert string to float and handle special floating-point strings.
 /// Forcing inlining leads to much better codegen at high optimization levels.
 #[inline(always)]
-unsafe fn filter_special<F: StringToFloat>(base: u32, first: *const u8, last: *const u8)
+unsafe fn filter_special<F: StringToFloat>(base: u32, first: *const u8, last: *const u8, lossy: bool)
     -> (F, *const u8)
 {
     // special case checks
@@ -75,6 +87,8 @@ unsafe fn filter_special<F: StringToFloat>(base: u32, first: *const u8, last: *c
         (F::INFINITY, first.add(INFINITY_STRING.len()))
     } else if is_nan(first, length) {
         (F::NAN, first.add(NAN_STRING.len()))
+    } else if lossy {
+        F::basen_lossy(base, first, last)
     } else {
         F::basen(base, first, last)
     }
@@ -83,28 +97,28 @@ unsafe fn filter_special<F: StringToFloat>(base: u32, first: *const u8, last: *c
 /// Handle +/- values and empty buffers.
 /// Forcing inlining leads to much better codegen at high optimization levels.
 #[inline(always)]
-unsafe fn filter_sign<F: StringToFloat>(base: u32, first: *const u8, last: *const u8)
+unsafe fn filter_sign<F: StringToFloat>(base: u32, first: *const u8, last: *const u8, lossy: bool)
     -> (F, *const u8)
 {
     if first == last {
         (F::ZERO, ptr::null())
     } else if *first == b'-' {
-        let (value, p) = filter_special::<F>(base, first.add(1), last);
+        let (value, p) = filter_special::<F>(base, first.add(1), last, lossy);
         (-value, p)
     } else if *first == b'+' {
-        filter_special::<F>(base, first.add(1), last)
+        filter_special::<F>(base, first.add(1), last, lossy)
     } else {
-        filter_special::<F>(base, first, last)
+        filter_special::<F>(base, first, last, lossy)
     }
 }
 
 /// Iteratively filter simple cases and then invoke parser.
 /// Forcing inlining leads to much better codegen at high optimization levels.
 #[inline(always)]
-unsafe fn atof<F: StringToFloat>(base: u32, first: *const u8, last: *const u8)
+unsafe fn atof<F: StringToFloat>(base: u32, first: *const u8, last: *const u8, lossy: bool)
     -> (F, *const u8)
 {
-    filter_sign::<F>(base, first, last)
+    filter_sign::<F>(base, first, last, lossy)
 }
 
 // UNSAFE API
@@ -114,29 +128,37 @@ unsafe fn atof<F: StringToFloat>(base: u32, first: *const u8, last: *const u8)
 /// * `name`        Function name.
 /// * `f`           Float type.
 macro_rules! generate_unsafe_api {
-    ($name:ident, $f:tt) => (
+    ($name:ident, $f:tt, $lossy:expr) => (
         /// Unsafe, C-like importer for floating-point numbers.
         #[inline]
         pub unsafe extern "C" fn $name(base: u8, first: *const u8, last: *const u8) -> ($f, *const u8, bool)
         {
-            let (value, p) = atof::<$f>(base as u32, first, last);
+            let (value, p) = atof::<$f>(base as u32, first, last, $lossy);
             (value, p, false)
         }
     )
 }
 
-generate_unsafe_api!(atof32_unsafe, f32);
-generate_unsafe_api!(atof64_unsafe, f64);
+generate_unsafe_api!(atof32_unsafe, f32, false);
+generate_unsafe_api!(atof64_unsafe, f64, false);
+generate_unsafe_api!(atof32_lossy_unsafe, f32, true);
+generate_unsafe_api!(atof64_lossy_unsafe, f64, true);
 
 // WRAP UNSAFE LOCAL
 generate_from_bytes_local!(atof32_local, f32, atof32_unsafe);
 generate_from_bytes_local!(atof64_local, f64, atof64_unsafe);
+generate_from_bytes_local!(atof32_lossy_local, f32, atof32_lossy_unsafe);
+generate_from_bytes_local!(atof64_lossy_local, f64, atof64_lossy_unsafe);
 
 // API
 generate_from_bytes_api!(atof32_bytes, f32, atof32_local);
 generate_from_bytes_api!(atof64_bytes, f64, atof64_local);
+generate_from_bytes_api!(atof32_lossy_bytes, f32, atof32_lossy_local);
+generate_from_bytes_api!(atof64_lossy_bytes, f64, atof64_lossy_local);
 generate_try_from_bytes_api!(try_atof32_bytes, f32, atof32_local);
 generate_try_from_bytes_api!(try_atof64_bytes, f64, atof64_local);
+generate_try_from_bytes_api!(try_atof32_lossy_bytes, f32, atof32_lossy_local);
+generate_try_from_bytes_api!(try_atof64_lossy_bytes, f64, atof64_lossy_local);
 
 // TESTS
 // -----
@@ -146,13 +168,13 @@ mod tests {
     use error::invalid_digit;
     use super::*;
 
-    #[cfg(feature = "correct")]
+    #[cfg(not(feature = "imprecise"))]
     macro_rules! assert_f32_eq {
         ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_eq!($l, $r););
         ($l:expr, $r:expr) => (assert_eq!($l, $r););
     }
 
-    #[cfg(not(feature = "correct"))]
+    #[cfg(feature = "imprecise")]
     macro_rules! assert_f32_eq {
         ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_relative_eq!($l, $r $(, $opt = $val)*););
         ($l:expr, $r:expr) => (assert_relative_eq!($l, $r, epsilon=1e-20););
@@ -210,13 +232,13 @@ mod tests {
         assert_f32_eq!(1234.0, atof32_bytes(36, b"YA"));
     }
 
-    #[cfg(feature = "correct")]
+    #[cfg(not(feature = "imprecise"))]
     macro_rules! assert_f64_eq {
         ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_eq!($l, $r););
         ($l:expr, $r:expr) => (assert_eq!($l, $r););
     }
 
-    #[cfg(not(feature = "correct"))]
+    #[cfg(feature = "imprecise")]
     macro_rules! assert_f64_eq {
         ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_relative_eq!($l, $r $(, $opt = $val)*););
         ($l:expr, $r:expr) => (assert_relative_eq!($l, $r, epsilon=1e-20, max_relative=1e-12););
@@ -318,4 +340,6 @@ mod tests {
         assert_eq!(Ok(0.0), try_atof64_bytes(10, b"0.0"));
         assert_eq!(Err(invalid_digit(1)), try_atof64_bytes(10, b"1a"));
     }
+
+    // TODO(ahuszagh) Add unittests for the lossy algorithms.
 }

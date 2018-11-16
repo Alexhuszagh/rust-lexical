@@ -3,18 +3,18 @@
 use super::cast::*;
 use super::num::*;
 
-#[cfg(any(test, feature = "correct"))]
+#[cfg(any(test, not(feature = "imprecise")))]
 use table::*;
 
 // STABLE POWER
 
-#[cfg(all(any(test, feature = "correct"), feature = "table"))]
+#[cfg(all(any(test, not(feature = "imprecise")), feature = "table"))]
 pub(crate) trait StablePowerImpl: ExactExponent + Float + TablePower {}
 
-#[cfg(all(any(test, feature = "correct"), not(feature = "table")))]
+#[cfg(all(any(test, not(feature = "imprecise")), not(feature = "table")))]
 pub(crate) trait StablePowerImpl: ExactExponent + Float {}
 
-#[cfg(not(any(test, feature = "correct")))]
+#[cfg(not(any(test, not(feature = "imprecise"))))]
 pub(crate) trait StablePowerImpl: Float {}
 
 impl StablePowerImpl for f32 {}
@@ -23,11 +23,11 @@ impl StablePowerImpl for f64 {}
 /// Stable power implementations for increased numeric stability.
 pub(crate) trait StablePower: StablePowerImpl {
 //    /// Calculate pow2 with numeric exponent.
-//    #[cfg(any(test, feature = "correct"))]
+//    #[cfg(any(test, not(feature = "imprecise")))]
 //    unsafe fn pow2(self, exponent: i32) -> Self;
 //
 //    /// Calculate base^n with numeric exponent and base.
-//    #[cfg(any(test, feature = "correct"))]
+//    #[cfg(any(test, not(feature = "imprecise")))]
 //    fn pow<T: Integer>(self, base: T, exponent: i32) -> Self;
 
     // ITERATIVE
@@ -87,7 +87,7 @@ pub(crate) trait StablePower: StablePowerImpl {
     ///
     /// powi is not stable, even with exact values, at high or low exponents.
     /// However, doing it in 2 shots for exact values is exact.
-    #[cfg(all(any(test, feature = "correct"), not(feature = "table")))]
+    #[cfg(all(any(test, not(feature = "imprecise")), not(feature = "table")))]
     #[inline]
     unsafe fn pow2(self, exponent: i32) -> Self {
         const STEP: i32 = 75;
@@ -101,7 +101,7 @@ pub(crate) trait StablePower: StablePowerImpl {
     }
 
     /// Calculate power of 2 using precalculated table.
-    #[cfg(all(any(test, feature = "correct"), feature = "table"))]
+    #[cfg(all(any(test, not(feature = "imprecise")), feature = "table"))]
     #[inline]
     unsafe fn pow2(self, exponent: i32) -> Self {
         self * Self::table_pow2(exponent)
@@ -110,7 +110,7 @@ pub(crate) trait StablePower: StablePowerImpl {
     // POW
 
     /// Calculate power of n using powi.
-    #[cfg(all(any(test, feature = "correct"), not(feature = "table")))]
+    #[cfg(all(any(test, not(feature = "imprecise")), not(feature = "table")))]
     #[inline]
     unsafe fn pow<T: Integer>(self, base: T, exponent: i32) -> Self {
         // Check the exponent is within bounds in debug builds.
@@ -122,7 +122,7 @@ pub(crate) trait StablePower: StablePowerImpl {
     }
 
     /// Calculate power of n using precalculated table.
-    #[cfg(all(any(test, feature = "correct"), feature = "table"))]
+    #[cfg(all(any(test, not(feature = "imprecise")), feature = "table"))]
     #[inline]
     unsafe fn pow<T: Integer>(self, base: T, exponent: i32) -> Self {
         // Check the exponent is within bounds in debug builds.

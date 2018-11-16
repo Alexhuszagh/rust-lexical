@@ -38,10 +38,10 @@ ryu = "0.2"
 default = ["ryu", "std", "table"]
 alloc = ["wee_alloc"]
 nightly = ["alloc"]
-# Use the completely correct atof functionality (unsupported as of now).
-correct = []
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["dtoa"]
+# Use the imprecise atof functionality with an intermediate float (unsupported as of now).
+imprecise = []
 # Use the `std` library.
 std = []
 # Use precompiled tables for faster performance, at the cost of larger binaries.

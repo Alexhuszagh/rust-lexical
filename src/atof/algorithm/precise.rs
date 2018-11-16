@@ -424,7 +424,7 @@ pub(super) fn to_extended<F, M>(mantissa: M, base: u32, exponent: i32, truncated
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-unsafe extern "C" fn to_native<F>(base: u32, first: *const u8, last: *const u8)
+unsafe extern "C" fn to_native<F>(base: u32, first: *const u8, last: *const u8, optimize: bool)
     -> (F, *const u8)
     where F: FloatRounding<u64> + FloatRounding<u128> + StablePower
 {
@@ -458,10 +458,16 @@ unsafe extern "C" fn to_native<F>(base: u32, first: *const u8, last: *const u8)
         return (float, p);
     }
 
-    // Slow path (use a 128-bit mantissa and extended 160-bit float).
-    let (mantissa, exponent, p, truncated) = parse_float::<u128>(base, first, last);
-    let (float, _) = to_extended::<F, _>(mantissa, base, exponent, truncated);
-    return (float, p);
+    // Slow path
+    if optimize {
+        // Fast slow-path (use a 128-bit mantissa and extended 160-bit float).
+        let (mantissa, exponent, p, truncated) = parse_float::<u128>(base, first, last);
+        let (float, _) = to_extended::<F, _>(mantissa, base, exponent, truncated);
+        return (float, p);
+    } else {
+        // Extremely slow algorithm, use arbitrary-precision float.
+        unimplemented!()
+    }
 }
 
 /// Parse 32-bit float from string.
@@ -469,7 +475,7 @@ unsafe extern "C" fn to_native<F>(base: u32, first: *const u8, last: *const u8)
 pub(crate) unsafe extern "C" fn atof(base: u32, first: *const u8, last: *const u8)
     -> (f32, *const u8)
 {
-    to_native::<f32>(base, first, last)
+    to_native::<f32>(base, first, last, false)
 }
 
 /// Parse 64-bit float from string.
@@ -477,7 +483,23 @@ pub(crate) unsafe extern "C" fn atof(base: u32, first: *const u8, last: *const u
 pub(crate) unsafe extern "C" fn atod(base: u32, first: *const u8, last: *const u8)
     -> (f64, *const u8)
 {
-    to_native::<f64>(base, first, last)
+    to_native::<f64>(base, first, last, false)
+}
+
+/// Parse 32-bit float from string.
+#[inline]
+pub(crate) unsafe extern "C" fn atof_lossy(base: u32, first: *const u8, last: *const u8)
+    -> (f32, *const u8)
+{
+    to_native::<f32>(base, first, last, true)
+}
+
+/// Parse 64-bit float from string.
+#[inline]
+pub(crate) unsafe extern "C" fn atod_lossy(base: u32, first: *const u8, last: *const u8)
+    -> (f64, *const u8)
+{
+    to_native::<f64>(base, first, last, true)
 }
 
 // TESTS
@@ -775,4 +797,6 @@ mod tests {
             check_atod(10, "1.2345e-308", (1.2345e-308, 11));
         }
     }
+
+    // TODO(ahuszagh) Add unittests for atof_lossy, atod_lossy
 }

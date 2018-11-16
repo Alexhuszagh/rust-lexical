@@ -13,7 +13,7 @@ mod num;
 mod pow;
 mod primitive;
 
-#[cfg(any(test, not(feature = "correct")))]
+#[cfg(any(test, feature = "imprecise"))]
 mod wrapped;
 
 // Publicly export everything with crate-visibility.
@@ -22,7 +22,7 @@ pub(crate) use self::cast::*;
 pub(crate) use self::num::*;
 pub(crate) use self::pow::*;
 
-#[cfg(any(test, not(feature = "correct")))]
+#[cfg(any(test, feature = "imprecise"))]
 pub(crate) use self::wrapped::*;
 
 // Publicly export config globally.

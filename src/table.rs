@@ -107,7 +107,7 @@ pub(crate) const DIGIT_TO_BASE36_SQUARED: [u8; 2592] = [b'0', b'0', b'0', b'1', 
 // EXACT EXPONENT
 
 /// Get exact exponent limit for base.
-#[cfg(any(test, feature = "correct"))]
+#[cfg(any(test, not(feature = "imprecise")))]
 pub(crate) trait ExactExponent {
     /// Get min and max exponent limits (exact) from base.
     fn exponent_limit<T: Integer>(base: T) ->(i32, i32);
@@ -117,7 +117,7 @@ pub(crate) trait ExactExponent {
 ///
 /// Table of values where `base**min` and `base**max` are the limits of types
 /// exactly representable as an f32.
-#[cfg(any(test, feature = "correct"))]
+#[cfg(any(test, not(feature = "imprecise")))]
 const F32_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
     (-149, 127),    // 2
     (-15, 15),      // 3
@@ -156,7 +156,7 @@ const F32_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
     (-7, 7),        // 36
 ];
 
-#[cfg(any(test, feature = "correct"))]
+#[cfg(any(test, not(feature = "imprecise")))]
 impl ExactExponent for f32 {
     fn exponent_limit<T: Integer>(base: T) ->(i32, i32) {
         let base: i32 = as_(base);
@@ -171,7 +171,7 @@ impl ExactExponent for f32 {
 ///
 /// Table of values where `base**min` and `base**max` are the limits of types
 /// exactly representable as an f64.
-#[cfg(any(test, feature = "correct"))]
+#[cfg(any(test, not(feature = "imprecise")))]
 const F64_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
     (-1074, 1023),  // 2
     (-33, 33),      // 3
@@ -210,7 +210,7 @@ const F64_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
     (-16, 16),      // 36
 ];
 
-#[cfg(any(test, feature = "correct"))]
+#[cfg(any(test, not(feature = "imprecise")))]
 impl ExactExponent for f64 {
     fn exponent_limit<T: Integer>(base: T) ->(i32, i32) {
         let base: i32 = as_(base);
@@ -231,7 +231,7 @@ impl ExactExponent for f64 {
 // to compute a power. This should be a significant performance win.
 
 cfg_if! {
-if #[cfg(all(any(test, feature = "correct"), feature = "table"))] {
+if #[cfg(all(any(test, not(feature = "imprecise")), feature = "table"))] {
 // TRANSMUTE
 
 /// Hacky transmute for 32-bit and 64-bit floats.

@@ -100,6 +100,8 @@ pub(super) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, params: 
 // where the halfway bits are halfway in between....
 // Do we see if we round up?
 // Need to implement the mantissa check
+//  TODO(ahuszagh) We need to do this with the lossy/correct algorithm then.
+//  Switch up, make correct the default, make lossy the option.
 
 /// Trait to round extended-precision floats to native representations.
 pub trait FloatRounding<M: Mantissa>: Float {

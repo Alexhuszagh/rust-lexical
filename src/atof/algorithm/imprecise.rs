@@ -158,6 +158,20 @@ pub(crate) unsafe extern "C" fn atod(base: u32, first: *const u8, last: *const u
     (value, p)
 }
 
+#[inline]
+pub(crate) unsafe extern "C" fn atof_lossy(base: u32, first: *const u8, last: *const u8)
+    -> (f32, *const u8)
+{
+    atof(base, first, last)
+}
+
+#[inline]
+pub(crate) unsafe extern "C" fn atod_lossy(base: u32, first: *const u8, last: *const u8)
+    -> (f64, *const u8)
+{
+    atod(base, first, last)
+}
+
 // TESTS
 // -----
 
@@ -251,6 +265,46 @@ mod tests {
             check_atod(10, "12.345", (12.345, 6));
             check_atod(10, "12345.6789", (12345.6789, 10));
             check_atod(10, "1.2345e10", (1.2345e10, 9));
+        }
+    }
+
+    // Lossy
+    // Just a synonym for the regular overloads, since we're using the
+    // imprecise feature. Use the same tests.
+
+    unsafe fn check_atof_lossy(base: u32, s: &str, tup: (f32, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let (v, p) = atof_lossy(base, first, last);
+        assert_eq!(v, tup.0);
+        assert_eq!(distance(first, p), tup.1);
+    }
+
+    #[test]
+    fn atof_lossy_test() {
+        unsafe {
+            check_atof_lossy(10, "1.2345", (1.2345, 6));
+            check_atof_lossy(10, "12.345", (12.345, 6));
+            check_atof_lossy(10, "12345.6789", (12345.6789, 10));
+            check_atof_lossy(10, "1.2345e10", (1.2345e10, 9));
+        }
+    }
+
+    unsafe fn check_atod_lossy(base: u32, s: &str, tup: (f64, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let (v, p) = atod_lossy(base, first, last);
+        assert_eq!(v, tup.0);
+        assert_eq!(distance(first, p), tup.1);
+    }
+
+    #[test]
+    fn atod_lossy_test() {
+        unsafe {
+            check_atod_lossy(10, "1.2345", (1.2345, 6));
+            check_atod_lossy(10, "12.345", (12.345, 6));
+            check_atod_lossy(10, "12345.6789", (12345.6789, 10));
+            check_atod_lossy(10, "1.2345e10", (1.2345e10, 9));
         }
     }
 }

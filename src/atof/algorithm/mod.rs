@@ -4,7 +4,7 @@
 mod exponent;
 
 cfg_if! {
-if #[cfg(any(test, feature = "correct"))] {
+if #[cfg(any(test, not(feature = "imprecise")))] {
 // Needed for the actual items.
 mod cached;
 mod cached80;
@@ -12,8 +12,8 @@ mod cached160;
 }}  // cfg_if
 
 // Export algorithms.
-#[cfg(any(test, feature = "correct"))]
-pub(crate) mod correct;
+#[cfg(any(test, not(feature = "imprecise")))]
+pub(crate) mod precise;
 
-#[cfg(any(test, not(feature = "correct")))]
-pub(crate) mod lossy;
+#[cfg(any(test, feature = "imprecise"))]
+pub(crate) mod imprecise;
