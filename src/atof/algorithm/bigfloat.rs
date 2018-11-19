@@ -53,6 +53,11 @@ fn add_one_assign<T: Integer>(x: &mut T) -> bool {
 
 // FROM BYTES
 
+/// Wrap operation using an assign internally.
+macro_rules! wrap_assign {
+    ($name:ident, $assign:ident, $(, $a:ident: $v:expr)*) => ()
+}
+
 /// Wrapper for basen from_bytes implementations.
 // TODO(ahuszagh) Implement
 macro_rules! from_bytes {
@@ -197,7 +202,7 @@ impl Bigfloat {
 
     /// Add small integer to bigfloat.
     #[inline]
-    fn add_small(self, y: u32) -> Bigfloat {
+    fn add_small(&self, y: u32) -> Bigfloat {
         let mut x = self.clone();
         x.add_small_assign(y);
         x
@@ -239,10 +244,187 @@ impl Bigfloat {
 
     /// Add between two bigfloats.
     #[inline]
-    fn add_large(self, y: &Bigfloat) -> Bigfloat {
+    fn add_large(&self, y: &Bigfloat) -> Bigfloat {
         let mut x = self.clone();
         x.add_large_assign(y);
         x
+    }
+
+    // MULTIPLICATION
+
+    /// Multiply in-place by a power of 2.
+    fn imul_pow2(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 3.
+    fn imul_pow3(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 4.
+    fn imul_pow4(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 5.
+    fn imul_pow5(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 6.
+    fn imul_pow6(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 7.
+    fn imul_pow7(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 8.
+    fn imul_pow8(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 9.
+    fn imul_pow9(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 10.
+    fn imul_pow10(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 11.
+    fn imul_pow11(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 12.
+    fn imul_pow12(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 13.
+    fn imul_pow13(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 14.
+    fn imul_pow14(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 15.
+    fn imul_pow15(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 16.
+    fn imul_pow16(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 17.
+    fn imul_pow17(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 18.
+    fn imul_pow18(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 19.
+    fn imul_pow19(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 20.
+    fn imul_pow20(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 21.
+    fn imul_pow21(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 22.
+    fn imul_pow22(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 23.
+    fn imul_pow23(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 24.
+    fn imul_pow24(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 25.
+    fn imul_pow25(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 26.
+    fn imul_pow26(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 27.
+    fn imul_pow27(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 28.
+    fn imul_pow28(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 29.
+    fn imul_pow29(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 30.
+    fn imul_pow30(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 31.
+    fn imul_pow31(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 32.
+    fn imul_pow32(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 33.
+    fn imul_pow33(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 34.
+    fn imul_pow34(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 35.
+    fn imul_pow35(&mut self, n: i32) {
+        unimplemented!()
+    }
+
+    /// Multiply in-place by a power of 36.
+    fn imul_pow36(&mut self, n: i32) {
+        unimplemented!()
     }
 
     // FROM BYTES
