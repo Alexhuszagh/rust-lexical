@@ -298,7 +298,9 @@ impl FloatErrors for u64 {
     {
         // Determine if extended-precision float is a good approximation.
         // If the error has affected too many units, the float will be
-        // inaccurate.
+        // inaccurate, or if the representation is too close to halfway
+        // that any operations could affect this halfway representation.
+        // See the documentation for Bigfloat for more information.
         let bias = -(F::EXPONENT_BIAS - F::MANTISSA_SIZE);
         let denormal_exp = bias - 63;
         // This is always a valid u32, since (denormal_exp - fp.exp)
@@ -336,6 +338,8 @@ impl FloatErrors for u128 {
 
     #[inline]
     fn error_is_accurate<F: Float>(_: u32, _: &ExtendedFloat<u128>) -> bool {
+        // Ignore the halfway problem, use more bits to aim for accuracy,
+        // but short-circuit to avoid extremely slow operations.
         true
     }
 }
