@@ -19,12 +19,12 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
 cfg-if = "0.1"
+# Use small-vector optimization for Bigfloat class.
+smallvec = "0.6"
 # Optimized Grisu3 implementation, a well-tested, correct algorithm.
 dtoa = { version = "0.4", optional = true }
 # Optimized Ryu implementation, the fastest correct algorithm.
 ryu = { version = "^0.2.7", optional = true }
-# Global allocator only used during testing.
-wee_alloc = { version = "0.4", optional = true }
 
 [dev-dependencies]
 approx = "0.3.0"
@@ -36,15 +36,14 @@ ryu = "0.2"
 
 [features]
 default = ["ryu", "std", "table"]
-alloc = ["wee_alloc"]
-nightly = ["alloc"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["dtoa"]
 # Use the imprecise atof functionality with an intermediate float (unsupported as of now).
 imprecise = []
 # Use the `std` library.
 std = []
-# Use precompiled tables for faster performance, at the cost of larger binaries.
+# Use precompiled tables for faster performance and accuracy, at the cost of larger binaries.
+# You should never disable table with precise.
 table = []
 
 # Benchmarks

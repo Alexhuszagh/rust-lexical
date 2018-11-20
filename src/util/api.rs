@@ -74,7 +74,6 @@ pub(crate) fn try_from_bytes_wrapper<T, Cb>(base: u8, bytes: &[u8], cb: Cb)
 
 /// Macro to facilitate exporting the try_from_bytes wrappers.
 #[doc(hidden)]
-#[cfg(any(feature = "std", feature = "alloc"))]
 macro_rules! generate_try_from_bytes_api {
     ($name:ident, $t:ty, $cb:ident) => (
         /// Low-level string exporter for numbers.
@@ -91,7 +90,6 @@ macro_rules! generate_try_from_bytes_api {
 /// Wrap the unsafe API into the safe API exporting raw bytes.
 #[doc(hidden)]
 #[inline]
-#[cfg(any(feature = "std", feature = "alloc"))]
 pub(crate) fn to_bytes_wrapper<T, Cb>(value: T, base: u8, capacity: usize, cb: Cb)
     -> lib::Vec<u8>
     where Cb: FnOnce(T, u8, *mut u8, *mut u8) -> *mut u8
@@ -112,7 +110,6 @@ pub(crate) fn to_bytes_wrapper<T, Cb>(value: T, base: u8, capacity: usize, cb: C
 ///
 /// Allows us to avoid macro magic and use FnOnce, don't export or expose
 /// these functions.
-#[cfg(any(feature = "std", feature = "alloc"))]
 #[doc(hidden)]
 macro_rules! generate_to_bytes_local {
     ($name:ident, $t:ty, $cb:ident) => (
@@ -126,7 +123,6 @@ macro_rules! generate_to_bytes_local {
 }
 
 /// Macro to facilitate exporting the to_bytes wrappers.
-#[cfg(any(feature = "std", feature = "alloc"))]
 #[doc(hidden)]
 macro_rules! generate_to_bytes_api {
     ($name:ident, $t:ty, $cb:ident, $capacity:expr) => (

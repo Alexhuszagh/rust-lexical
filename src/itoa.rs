@@ -417,12 +417,11 @@ generate_unsafe_signed!(i64toa_unsafe, i64, u64, i64);
 generate_unsafe_signed!(isizetoa_unsafe, isize, usize, isize);
 
 // LOW-LEVEL API
+// -------------
 
 // Use powers of 2 for allocation.
 // It really doesn't, make a difference here, especially since
 // the value is just a suggestion for the vector.
-cfg_if! {
-if #[cfg(any(feature = "std", feature = "alloc"))] {
 
 // WRAP UNSAFE LOCAL
 generate_to_bytes_local!(u8toa_local, u8, u8toa_unsafe);
@@ -448,12 +447,9 @@ generate_to_bytes_api!(i32toa_bytes, i32, i32toa_local, 64);         // 33
 generate_to_bytes_api!(i64toa_bytes, i64, i64toa_local, 128);        // 65
 generate_to_bytes_api!(isizetoa_bytes, isize, isizetoa_local, 128);  // 65
 
-}}  //cfg_if
-
 // TESTS
 // -----
 
-#[cfg(any(feature = "std", feature = "alloc"))]
 #[cfg(test)]
 mod tests {
     use super::*;

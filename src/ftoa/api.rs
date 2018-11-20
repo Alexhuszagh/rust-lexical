@@ -170,10 +170,7 @@ generate_unsafe_api!(f32toa_unsafe, f32);
 generate_unsafe_api!(f64toa_unsafe, f64);
 
 // LOW-LEVEL API
-
-// Export the high-level wrappers solely if String is available.
-cfg_if! {
-if #[cfg(any(feature = "std", feature = "alloc"))] {
+// -------------
 
 // WRAP UNSAFE LOCAL
 
@@ -185,12 +182,9 @@ generate_to_bytes_local!(f64toa_local, f64, f64toa_unsafe);
 generate_to_bytes_api!(f32toa_bytes, f32, f32toa_local, BUFFER_SIZE);
 generate_to_bytes_api!(f64toa_bytes, f64, f64toa_local, BUFFER_SIZE);
 
-}}  // cfg_if
-
 // TESTS
 // -----
 
-#[cfg(any(feature = "std", feature = "alloc"))]
 #[cfg(test)]
 mod tests {
     use super::*;

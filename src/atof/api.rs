@@ -168,18 +168,6 @@ mod tests {
     use error::invalid_digit;
     use super::*;
 
-    #[cfg(not(feature = "imprecise"))]
-    macro_rules! assert_f32_eq {
-        ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_eq!($l, $r););
-        ($l:expr, $r:expr) => (assert_eq!($l, $r););
-    }
-
-    #[cfg(feature = "imprecise")]
-    macro_rules! assert_f32_eq {
-        ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_relative_eq!($l, $r $(, $opt = $val)*););
-        ($l:expr, $r:expr) => (assert_relative_eq!($l, $r, epsilon=1e-20););
-    }
-
     #[test]
     fn atof32_base10_test() {
         // integer test
@@ -230,18 +218,7 @@ mod tests {
     #[test]
     fn atof32_basen_test() {
         assert_f32_eq!(1234.0, atof32_bytes(36, b"YA"));
-    }
-
-    #[cfg(not(feature = "imprecise"))]
-    macro_rules! assert_f64_eq {
-        ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_eq!($l, $r););
-        ($l:expr, $r:expr) => (assert_eq!($l, $r););
-    }
-
-    #[cfg(feature = "imprecise")]
-    macro_rules! assert_f64_eq {
-        ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_relative_eq!($l, $r $(, $opt = $val)*););
-        ($l:expr, $r:expr) => (assert_relative_eq!($l, $r, epsilon=1e-20, max_relative=1e-12););
+        assert_f32_eq!(1234.0, atof32_lossy_bytes(36, b"YA"));
     }
 
     #[test]
@@ -325,6 +302,7 @@ mod tests {
     #[test]
     fn atof64_basen_test() {
         assert_f64_eq!(1234.0, atof64_bytes(36, b"YA"));
+        assert_f64_eq!(1234.0, atof64_lossy_bytes(36, b"YA"));
     }
 
     #[test]
@@ -340,6 +318,4 @@ mod tests {
         assert_eq!(Ok(0.0), try_atof64_bytes(10, b"0.0"));
         assert_eq!(Err(invalid_digit(1)), try_atof64_bytes(10, b"1a"));
     }
-
-    // TODO(ahuszagh) Add unittests for the lossy algorithms.
 }

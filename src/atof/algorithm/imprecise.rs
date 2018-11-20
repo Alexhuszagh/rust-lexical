@@ -276,7 +276,7 @@ mod tests {
         let first = s.as_ptr();
         let last = first.add(s.len());
         let (v, p) = atof_lossy(base, first, last);
-        assert_eq!(v, tup.0);
+        assert_f32_eq!(v, tup.0);
         assert_eq!(distance(first, p), tup.1);
     }
 
@@ -294,7 +294,7 @@ mod tests {
         let first = s.as_ptr();
         let last = first.add(s.len());
         let (v, p) = atod_lossy(base, first, last);
-        assert_eq!(v, tup.0);
+        assert_f64_eq!(v, tup.0);
         assert_eq!(distance(first, p), tup.1);
     }
 

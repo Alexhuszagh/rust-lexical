@@ -86,6 +86,9 @@ macro_rules! from_bytes {
 /// leading to incorrect rounding and incorrect results.
 #[derive(Debug, Clone)]
 pub(crate) struct Bigfloat {
+    // TODO(ahuszagh) We can actually... make this a vector???
+    // Would allow arbitrary-precision floats.
+
     /// Raw data for the underlying buffer (exactly 32**2 for the largest float).
     /// Don't store more bytes for small floats, since the denormal floats
     /// have almost no bytes of precision.

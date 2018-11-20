@@ -15,8 +15,8 @@
 
 // Require intrinsics and alloc in a no_std context.
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), feature(alloc))]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
-#![cfg_attr(feature = "alloc", feature(alloc))]
 
 // EXTERNAL
 
@@ -25,15 +25,14 @@ extern crate cfg_if;
 
 // CONFIG
 
-cfg_if! {
-// Require alloc and use wee_alloc as the default allocator for unittesting.
-if #[cfg(all(feature = "alloc", not(feature = "std")))] {
+#[cfg(not(feature = "std"))]
 extern crate alloc;
-extern crate wee_alloc;
 
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-}}  // cfg_if
+// Use smallvec for Bigfloat class, which requires precise and a runtime.
+#[cfg(not(feature = "imprecise"))]
+// TODO(ahuszagh) Make this work...
+#[macro_use]
+extern crate smallvec;
 
 // Testing assertions for floating-point equality.
 #[cfg(test)]
@@ -62,12 +61,12 @@ if #[cfg(feature = "std")] {
 }}  // cfg_if
 
 cfg_if! {
-if #[cfg(all(feature = "alloc", not(feature = "std")))] {
-    pub(crate) use alloc::string::String;
-    pub(crate) use alloc::vec::Vec;
-} else if #[cfg(feature = "std")] {
+if #[cfg(feature = "std")] {
     pub(crate) use std::string::String;
     pub(crate) use std::vec::Vec;
+} else {
+    pub(crate) use alloc::string::String;
+    pub(crate) use alloc::vec::Vec;
 }
 }}  // cfg_if
 
@@ -81,6 +80,10 @@ mod traits;
 
 #[macro_use]
 mod util;
+
+#[cfg(test)]
+#[macro_use]
+mod test;
 
 // Publicly export the low-level APIs.
 pub mod atof;
@@ -100,11 +103,7 @@ pub use error::{Error, ErrorKind};
 // HIGH LEVEL
 
 use lib::convert::AsRef;
-
-use traits::{FromBytes, FromBytesLossy};
-
-#[cfg(any(feature = "std", feature = "alloc"))]
-use traits::ToBytes;
+use traits::{FromBytes, FromBytesLossy, ToBytes};
 
 /// High-level conversion of a number to a decimal-encoded string.
 ///
@@ -120,7 +119,6 @@ use traits::ToBytes;
 /// # }
 /// ```
 #[inline(always)]
-#[cfg(any(feature = "std", feature = "alloc"))]
 pub fn to_string<N: ToBytes>(n: N) -> lib::String {
     unsafe { lib::String::from_utf8_unchecked(n.to_bytes(10)) }
 }
@@ -140,7 +138,6 @@ pub fn to_string<N: ToBytes>(n: N) -> lib::String {
 /// # }
 /// ```
 #[inline(always)]
-#[cfg(any(feature = "std", feature = "alloc"))]
 pub fn to_string_radix<N: ToBytes>(n: N, radix: u8) -> lib::String {
     assert!(2 <= radix && radix <= 36, "to_string_radix, radix must be in range `[2, 36]`, got {}", radix);
     unsafe { lib::String::from_utf8_unchecked(n.to_bytes(radix)) }

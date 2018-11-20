@@ -770,7 +770,7 @@ mod tests {
         let first = s.as_ptr();
         let last = first.add(s.len());
         let (v, p) = atof(base, first, last);
-        assert_eq!(v, tup.0);
+        assert_f32_eq!(v, tup.0);
         assert_eq!(distance(first, p), tup.1);
     }
 
@@ -789,7 +789,7 @@ mod tests {
         let first = s.as_ptr();
         let last = first.add(s.len());
         let (v, p) = atod(base, first, last);
-        assert_eq!(v, tup.0);
+        assert_f64_eq!(v, tup.0);
         assert_eq!(distance(first, p), tup.1);
     }
 
@@ -804,5 +804,41 @@ mod tests {
         }
     }
 
-    // TODO(ahuszagh) Add unittests for atof_lossy, atod_lossy
+    // Lossy
+
+    unsafe fn check_atof_lossy(base: u32, s: &str, tup: (f32, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let (v, p) = atof_lossy(base, first, last);
+        assert_f32_eq!(v, tup.0);
+        assert_eq!(distance(first, p), tup.1);
+    }
+
+    #[test]
+    fn atof_lossy_test() {
+        unsafe {
+            check_atof_lossy(10, "1.2345", (1.2345, 6));
+            check_atof_lossy(10, "12.345", (12.345, 6));
+            check_atof_lossy(10, "12345.6789", (12345.6789, 10));
+            check_atof_lossy(10, "1.2345e10", (1.2345e10, 9));
+        }
+    }
+
+    unsafe fn check_atod_lossy(base: u32, s: &str, tup: (f64, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let (v, p) = atod_lossy(base, first, last);
+        assert_f64_eq!(v, tup.0);
+        assert_eq!(distance(first, p), tup.1);
+    }
+
+    #[test]
+    fn atod_lossy_test() {
+        unsafe {
+            check_atod_lossy(10, "1.2345", (1.2345, 6));
+            check_atod_lossy(10, "12.345", (12.345, 6));
+            check_atod_lossy(10, "12345.6789", (12345.6789, 10));
+            check_atod_lossy(10, "1.2345e10", (1.2345e10, 9));
+        }
+    }
 }

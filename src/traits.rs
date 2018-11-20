@@ -3,15 +3,11 @@
 use atof::*;
 use atoi::*;
 use error::Error;
-use lib;
-
-cfg_if! {
-if #[cfg(any(feature = "std", feature = "alloc"))] {
 use ftoa::*;
 use itoa::*;
-}}  // cfg_if
+use lib;
 
-// FROM STRING
+// FROM BYTES
 
 /// Trait for types that are deserializable from strings or bytes.
 pub trait FromBytes: Sized {
@@ -57,6 +53,8 @@ from_bytes!(isize, atoisize_bytes, try_atoisize_bytes);
 from_bytes!(f32, atof32_bytes, try_atof32_bytes);
 from_bytes!(f64, atof64_bytes, try_atof64_bytes);
 
+// FROM BYTES LOSSY
+
 pub trait FromBytesLossy: FromBytes {
     /// Deserialize from byte slice.
     fn from_bytes_lossy(bytes: &[u8], base: u8) -> Self;
@@ -90,10 +88,8 @@ macro_rules! from_bytes_lossy {
 from_bytes_lossy!(f32, atof32_lossy_bytes, try_atof32_lossy_bytes);
 from_bytes_lossy!(f64, atof64_lossy_bytes, try_atof64_lossy_bytes);
 
-// NTOA
+// TO BYTES
 
-cfg_if! {
-if #[cfg(any(feature = "std", feature = "alloc"))] {
 /// Trait for types that are serializable to string or bytes.
 pub trait ToBytes: Sized {
     /// Serialize to string.
@@ -125,8 +121,6 @@ to_bytes!(isize, isizetoa_bytes);
 to_bytes!(f32, f32toa_bytes);
 to_bytes!(f64, f64toa_bytes);
 
-}}  // cfg_if
-
 // TESTS
 // -----
 
@@ -147,19 +141,19 @@ mod tests {
     macro_rules! deserialize_float {
         ($($t:tt)*) => ($({
             assert_eq!($t::from_bytes(b"0.0", 10), 0.0);
+            assert_eq!($t::from_bytes_lossy(b"0.0", 10), 0.0);
             assert_eq!($t::try_from_bytes(b"0.0", 10), Ok(0.0));
             assert_eq!($t::try_from_bytes(b"0.0a", 10), Err(invalid_digit(3)));
+            assert_eq!($t::try_from_bytes_lossy(b"0.0", 10), Ok(0.0));
         })*)
     }
 
     #[test]
-    fn aton_test() {
+    fn from_bytes_test() {
         deserialize_int! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
         deserialize_float! { f32 f64 }
     }
 
-    cfg_if! {
-    if #[cfg(any(feature = "std", feature = "alloc"))] {
     macro_rules! serialize_int {
         ($($t:tt)*) => ($({
             let x: $t = 0;
@@ -175,10 +169,8 @@ mod tests {
     }
 
     #[test]
-    fn ntoa_test() {
+    fn to_bytes_test() {
         serialize_int! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
         serialize_float! { f32 f64 }
     }
-
-    }}  // cfg_if
 }
