@@ -30,7 +30,6 @@ extern crate alloc;
 
 // Use smallvec for Bigfloat class, which requires precise and a runtime.
 #[cfg(not(feature = "imprecise"))]
-// TODO(ahuszagh) Make this work...
 #[macro_use]
 extern crate smallvec;
 

@@ -3,6 +3,7 @@
 // in rapid development, so allow it for now.
 #![allow(unused)]
 
+use smallvec;
 use float::Mantissa;
 use lib::{mem, slice};
 use util::*;
@@ -84,7 +85,7 @@ macro_rules! from_bytes {
 /// halfway, however, we have no way to determine this. Any lossy
 /// multiplication can push the trailing bits up or below the halfway point,
 /// leading to incorrect rounding and incorrect results.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Bigfloat {
     // TODO(ahuszagh) We can actually... make this a vector???
     // Would allow arbitrary-precision floats.
@@ -96,11 +97,9 @@ pub(crate) struct Bigfloat {
     /// the least-significant item, and index 31 is the most-significant digit.
     /// On little-endian systems, allows us to use the raw buffer left-to-right
     /// as an extended integer
-    data: [u32; 32],
+    data: smallvec::SmallVec<[u32; 32]>,
     /// Exponent in base32.
     exponent: i32,
-    /// Number of current digits in use.
-    size: usize,
 }
 
 impl Bigfloat {
@@ -119,9 +118,8 @@ impl Bigfloat {
     #[inline]
     pub fn from_u32(x: u32) -> Bigfloat {
         Bigfloat {
-            data: [x, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            data: smallvec![x],
             exponent: 0,
-            size: 1,
         }
     }
 
@@ -131,9 +129,8 @@ impl Bigfloat {
         let hi = (x >> 32) as u32;
         let lo = (x & u64::LOMASK) as u32;
         Bigfloat {
-            data: [lo, hi, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            data: smallvec![lo, hi],
             exponent: 0,
-            size: 2,
         }
     }
 
@@ -147,9 +144,8 @@ impl Bigfloat {
         let d1 = (hi64 & u64::LOMASK) as u32;
         let d0 = (hi64 >> 32) as u32;
         Bigfloat {
-            data: [d3, d2, d1, d0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            data: smallvec![d3, d2, d1, d0],
             exponent: 0,
-            size: 4,
         }
     }
 
@@ -157,27 +153,25 @@ impl Bigfloat {
     #[inline]
     pub fn min_value() -> Bigfloat {
         Bigfloat {
-            data: [0; 32],
+            data: smallvec![],
             exponent: 0,
-            size: 0,
         }
     }
 
-    /// Create new Bigfloat with the maximal value.
+    /// Create new Bigfloat with the maximal value on stack.
     #[inline]
     pub fn max_value() -> Bigfloat {
         Bigfloat {
-            data: [u32::max_value(); 32],
+            data: smallvec![u32::max_value(); 32],
             exponent: i32::max_value(),
-            size: 32,
         }
     }
 
     // ADDITION
 
-    /// AddAssign small integer to bigfloat.
+    /// Implementation for AssAssign with small integer. Must be non-empty.
     #[inline]
-    fn add_small_assign(&mut self, y: u32) {
+    fn add_small_assign_impl(&mut self, y: u32) {
         // Initial add
         let mut carry = add_small_assign(self.get_mut(0), y);
 
@@ -188,18 +182,20 @@ impl Bigfloat {
             size += 1;
         }
 
-        // Store the size, whichever is larger.
-        self.size = self.size.max(size);
-
-        // If we overflowed the buffer entirely, shift-right one and set
-        // the most-significant bit to 1. We know that all the internal
-        // buffers, above the last, must have been u32::max_value(), so
-        // the last buffer is the only one we need to worry about.
+        // If we overflowed the buffer entirely, need to add 1 to the end
+        // of the buffer.
         if carry {
-            debug_assert!(self.size == self.data.len(), "Overflow must mean full-sized buffer.");
-            *self.front_mut() >>= 1;
-            *self.back_mut() |= 1 << (Self::BITS-1);
-            self.exponent = if let Some(v) = self.exponent.checked_add(1) { v } else { i32::max_value() };
+            self.data.push(1);
+        }
+    }
+
+    /// AddAssign small integer to bigfloat.
+    #[inline]
+    fn add_small_assign(&mut self, y: u32) {
+        if self.data.is_empty() {
+            self.data.push(y)
+        } else {
+            self.add_small_assign_impl(y)
         }
     }
 
@@ -214,35 +210,38 @@ impl Bigfloat {
     /// AddAssign between two bigfloats.
     #[inline]
     fn add_large_assign(&mut self, y: &Bigfloat) {
-        // Get the number of values to add_assign between them.
-        // Only carry
-        let size = self.size.max(y.size);
-        let mut carry = false;
-        for (l, r) in self.data.iter_mut().zip(y.data.iter()).take(size) {
-            // Only one op of the two can overflow, since we added at max
-            // u32::max_value() + u32::max_value(). Add the previous carry,
-            // and store the current carry for the next.
-            let mut tmp_carry = add_small_assign(l, *r);
-            if carry {
-                tmp_carry |= add_one_assign(l);
-            }
-            carry = tmp_carry;
-        }
+        unimplemented!()
 
-        // Overflow from the previous bit.
-        if carry {
-            if self.size == self.data.len() {
-                // Overflow for the entire container, shift-right all items
-                // by 1 and assign a 1-bit to the top-most element, since
-                // we can overflow by at max 1.
-                self.shr(1);
-                *self.back_mut() |= 1 << (Self::BITS-1);
-            } else {
-                // Just assign 1 to the next item.
-                *self.get_mut(size) += 1;
-                self.size = size + 1;
-            }
-        }
+        // TODO(ahuszagh) Need to change this...
+//        // Get the number of values to add_assign between them.
+//        // Only carry
+//        let size = self.size.max(y.size);
+//        let mut carry = false;
+//        for (l, r) in self.data.iter_mut().zip(y.data.iter()).take(size) {
+//            // Only one op of the two can overflow, since we added at max
+//            // u32::max_value() + u32::max_value(). Add the previous carry,
+//            // and store the current carry for the next.
+//            let mut tmp_carry = add_small_assign(l, *r);
+//            if carry {
+//                tmp_carry |= add_one_assign(l);
+//            }
+//            carry = tmp_carry;
+//        }
+//
+//        // Overflow from the previous bit.
+//        if carry {
+//            if self.size == self.data.len() {
+//                // Overflow for the entire container, shift-right all items
+//                // by 1 and assign a 1-bit to the top-most element, since
+//                // we can overflow by at max 1.
+//                self.shr(1);
+//                *self.back_mut() |= 1 << (Self::BITS-1);
+//            } else {
+//                // Just assign 1 to the next item.
+//                *self.get_mut(size) += 1;
+//                self.size = size + 1;
+//            }
+//        }
     }
 
     /// Add between two bigfloats.
@@ -514,24 +513,28 @@ impl Bigfloat {
     /// Get the front integer.
     #[inline(always)]
     fn front(&self) -> &u32 {
+        debug_assert!(self.data.len() > 0);
         self.get(0)
     }
 
     /// Get the front integer as mutable.
     #[inline(always)]
     fn front_mut(&mut self) -> &mut u32 {
+        debug_assert!(self.data.len() > 0);
         self.get_mut(0)
     }
 
     /// Get the back integer.
     #[inline(always)]
     fn back(&self) -> &u32 {
+        debug_assert!(self.data.len() > 0);
         self.get(self.data.len()-1)
     }
 
     /// Get the back integer as mutable.
     #[inline(always)]
     fn back_mut(&mut self) -> &mut u32 {
+        debug_assert!(self.data.len() > 0);
         let index = self.data.len()-1;
         self.get_mut(index)
     }
@@ -554,32 +557,33 @@ impl Bigfloat {
 
     // Shifts
 
-    /// Shift right byte and assign the bit to the most-significant bit.
-    /// Used to prevent overflow for comically large numbers. We may lose
-    /// exacting precision in this case, but at that point, we've already
-    /// lost the game.
-    ///
-    /// * `shift`   - Number of bits to shift.
-    fn shr(&mut self, shift: i32) {
-        self.exponent = if let Some(v) = self.exponent.checked_add(shift) { v } else { i32::max_value() };
-        self.shr_impl(shift);
-    }
-
-    /// Implied shift-right, where we shift all bits over by a mask.
-    fn shr_impl(&mut self, shift: i32) {
-        // Create a bit-mask for the lower `shift` bytes.
-        let mask = (1 << shift) - 1;
-
-        // Shift-right, carrying the bottom shift bytes and moving them over.
-        let mut carry_bit = 0;
-        let index = ..self.size;
-        for item in self.get_mut(index).iter_mut().rev() {
-            let tmp_carry = *item & mask;
-            *item >>= shift;
-            *item |= (carry_bit<<(Self::BITS as i32 - shift));
-            carry_bit = tmp_carry;
-        }
-    }
+// TODO(ahuszagh) Consider...
+//    /// Shift right byte and assign the bit to the most-significant bit.
+//    /// Used to prevent overflow for comically large numbers. We may lose
+//    /// exacting precision in this case, but at that point, we've already
+//    /// lost the game.
+//    ///
+//    /// * `shift`   - Number of bits to shift.
+//    fn shr(&mut self, shift: i32) {
+//        self.exponent = if let Some(v) = self.exponent.checked_add(shift) { v } else { i32::max_value() };
+//        self.shr_impl(shift);
+//    }
+//
+//    /// Implied shift-right, where we shift all bits over by a mask.
+//    fn shr_impl(&mut self, shift: i32) {
+//        // Create a bit-mask for the lower `shift` bytes.
+//        let mask = (1 << shift) - 1;
+//
+//        // Shift-right, carrying the bottom shift bytes and moving them over.
+//        let mut carry_bit = 0;
+//        let index = ..self.size;
+//        for item in self.get_mut(index).iter_mut().rev() {
+//            let tmp_carry = *item & mask;
+//            *item >>= shift;
+//            *item |= (carry_bit<<(Self::BITS as i32 - shift));
+//            carry_bit = tmp_carry;
+//        }
+//    }
 }
 
 // TESTS
@@ -592,40 +596,25 @@ mod tests {
     #[test]
     fn new_test() {
         let bigfloat = Bigfloat::new();
-        assert_eq!(bigfloat.exponent, 0);
-        assert_eq!(bigfloat.size, 0);
-        bigfloat.data.iter().for_each(|x| assert_eq!(*x, 0));
+        assert_eq!(bigfloat, Bigfloat { data: smallvec![], exponent: 0 });
     }
 
     #[test]
     fn from_u32_test() {
         let bigfloat = Bigfloat::from_u32(255);
-        assert_eq!(bigfloat.exponent, 0);
-        assert_eq!(bigfloat.size, 1);
-        assert_eq!(*bigfloat.front(), 255);
-        bigfloat.data[1..].iter().for_each(|x| assert_eq!(*x, 0));
+        assert_eq!(bigfloat, Bigfloat { data: smallvec![255], exponent: 0 });
     }
 
     #[test]
     fn from_u64_test() {
         let bigfloat = Bigfloat::from_u64(1152921504606847231);
-        assert_eq!(bigfloat.exponent, 0);
-        assert_eq!(bigfloat.size, 2);
-        assert_eq!(*bigfloat.front(), 255);
-        assert_eq!(*bigfloat.get(1), 1 << 28);
-        bigfloat.data[2..].iter().for_each(|x| assert_eq!(*x, 0));
+        assert_eq!(bigfloat, Bigfloat { data: smallvec![255, 1 << 28], exponent: 0 });
     }
 
     #[test]
     fn from_u128_test() {
         let bigfloat = Bigfloat::from_u128(1329227997022855913342108839786316031);
-        assert_eq!(bigfloat.exponent, 0);
-        assert_eq!(bigfloat.size, 4);
-        assert_eq!(*bigfloat.front(), 255);
-        assert_eq!(*bigfloat.get(1), 1 << 28);
-        assert_eq!(*bigfloat.get(2), 1 << 26);
-        assert_eq!(*bigfloat.get(3), 1 << 24);
-        bigfloat.data[4..].iter().for_each(|x| assert_eq!(*x, 0));
+        assert_eq!(bigfloat, Bigfloat { data: smallvec![255, 1 << 28, 1 << 26, 1<< 24], exponent: 0 });
     }
 
     #[test]
@@ -636,68 +625,67 @@ mod tests {
         // This is because the max_value + 1 leads to all 0s, we set the
         // topmost bit to 1.
         let mut bigfloat = Bigfloat::max_value();
-        bigfloat.exponent = 0;
         bigfloat.add_small_assign(5);
-        assert_eq!(bigfloat.exponent, 1);
-        assert_eq!(*bigfloat.front(), 2);
-        assert_eq!(*bigfloat.back(), 2147483648);
-        bigfloat.data[1..31].iter().for_each(|x| assert_eq!(*x, 0));
+        assert_eq!(bigfloat, Bigfloat {
+            data: smallvec![4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            exponent: i32::max_value()
+        });
     }
 
-    #[test]
-    fn add_large_test() {
-        // No overflow check, add symmetric (1-int each).
-        let mut x = Bigfloat::from_u32(5);
-        let y = Bigfloat::from_u32(7);
-        x.add_large_assign(&y);
-        assert_eq!(x.exponent, 0);
-        assert_eq!(*x.front(), 12);
-        x.data[1..].iter().for_each(|x| assert_eq!(*x, 0));
-
-        // No overflow, symmetric (2- and 2-ints).
-        let mut x = Bigfloat::from_u64(1125899906842624);
-        let mut y = Bigfloat::from_u64(35184372088832);
-        x.add_large_assign(&y);
-        assert_eq!(x.exponent, 0);
-        assert_eq!(*x.front(), 0);
-        assert_eq!(*x.get(1), 270336);
-        x.data[2..].iter().for_each(|x| assert_eq!(*x, 0));
-
-        // No overflow, asymmetric (1- and 2-ints).
-        let mut x = Bigfloat::from_u32(5);
-        let mut y = Bigfloat::from_u64(35184372088832);
-        x.add_large_assign(&y);
-        assert_eq!(x.exponent, 0);
-        assert_eq!(*x.front(), 5);
-        assert_eq!(*x.get(1), 8192);
-        x.data[2..].iter().for_each(|x| assert_eq!(*x, 0));
-
-        // Internal overflow check.
-        let mut x = Bigfloat::from_u32(0xF1111111);
-        let mut y = Bigfloat::from_u64(0x12345678);
-        x.add_large_assign(&y);
-        assert_eq!(x.exponent, 0);
-        assert_eq!(*x.front(), 0x3456789);
-        assert_eq!(*x.get(1), 1);
-        x.data[2..].iter().for_each(|x| assert_eq!(*x, 0));
-
-        // Complete overflow check
-        let mut x = Bigfloat::max_value();
-        x.exponent = 0;
-        let mut y = Bigfloat::max_value();
-        y.exponent = 0;
-        x.add_large_assign(&y);
-        assert_eq!(x.exponent, 1);
-        x.data.iter().for_each(|x| assert_eq!(*x, 4294967295,));
-    }
-
-    #[test]
-    fn shr_test() {
-        // Check shifting right from the first index.
-        let mut bigfloat = Bigfloat::from_u32(5);
-        bigfloat.shr(1);
-        assert_eq!(bigfloat.exponent, 1);
-        assert_eq!(*bigfloat.front(), 2);
-        bigfloat.data[1..32].iter().for_each(|x| assert_eq!(*x, 0));
-    }
+//    #[test]
+//    fn add_large_test() {
+//        // No overflow check, add symmetric (1-int each).
+//        let mut x = Bigfloat::from_u32(5);
+//        let y = Bigfloat::from_u32(7);
+//        x.add_large_assign(&y);
+//        assert_eq!(x.exponent, 0);
+//        assert_eq!(*x.front(), 12);
+//        x.data[1..].iter().for_each(|x| assert_eq!(*x, 0));
+//
+//        // No overflow, symmetric (2- and 2-ints).
+//        let mut x = Bigfloat::from_u64(1125899906842624);
+//        let mut y = Bigfloat::from_u64(35184372088832);
+//        x.add_large_assign(&y);
+//        assert_eq!(x.exponent, 0);
+//        assert_eq!(*x.front(), 0);
+//        assert_eq!(*x.get(1), 270336);
+//        x.data[2..].iter().for_each(|x| assert_eq!(*x, 0));
+//
+//        // No overflow, asymmetric (1- and 2-ints).
+//        let mut x = Bigfloat::from_u32(5);
+//        let mut y = Bigfloat::from_u64(35184372088832);
+//        x.add_large_assign(&y);
+//        assert_eq!(x.exponent, 0);
+//        assert_eq!(*x.front(), 5);
+//        assert_eq!(*x.get(1), 8192);
+//        x.data[2..].iter().for_each(|x| assert_eq!(*x, 0));
+//
+//        // Internal overflow check.
+//        let mut x = Bigfloat::from_u32(0xF1111111);
+//        let mut y = Bigfloat::from_u64(0x12345678);
+//        x.add_large_assign(&y);
+//        assert_eq!(x.exponent, 0);
+//        assert_eq!(*x.front(), 0x3456789);
+//        assert_eq!(*x.get(1), 1);
+//        x.data[2..].iter().for_each(|x| assert_eq!(*x, 0));
+//
+//        // Complete overflow check
+//        let mut x = Bigfloat::max_value();
+//        x.exponent = 0;
+//        let mut y = Bigfloat::max_value();
+//        y.exponent = 0;
+//        x.add_large_assign(&y);
+//        assert_eq!(x.exponent, 1);
+//        x.data.iter().for_each(|x| assert_eq!(*x, 4294967295,));
+//    }
+//
+//    #[test]
+//    fn shr_test() {
+//        // Check shifting right from the first index.
+//        let mut bigfloat = Bigfloat::from_u32(5);
+//        bigfloat.shr(1);
+//        assert_eq!(bigfloat.exponent, 1);
+//        assert_eq!(*bigfloat.front(), 2);
+//        bigfloat.data[1..32].iter().for_each(|x| assert_eq!(*x, 0));
+//    }
 }
