@@ -10,8 +10,6 @@ use util::*;
 
 // ADD
 
-// TODO(ahuszagh) Add the carry component?????
-
 /// Add two small integers (and return if overflow happens).
 #[inline(always)]
 fn add_small<T: Integer>(x: T, y: T)
@@ -298,6 +296,7 @@ impl Bigfloat {
     }
 
     /// MulAssign by a power of 2.
+    #[inline]
     fn mul_pow2_assign(&mut self, n: i32) {
         // Increment exponent to simulate actual addition.
         self.exponent = match self.exponent.overflowing_add(n) {
@@ -306,175 +305,258 @@ impl Bigfloat {
         };
     }
 
-    /// MulAssign by a power of 3.
-    fn mul_pow3_assign(&mut self, n: i32) {
-        // TODO(ahuszagh)
+    // MulAssign using pre-calculated small powers.
+    #[inline]
+    fn mul_spowers_assign(&mut self, n: i32, small_powers: &[u32]) {
+        // We need to multiply by the largest small-power until we run out.
+        // TODO(ahuszagh) Implement...
         unimplemented!()
+    }
+
+    /// MulAssign by a power of 3.
+    #[inline]
+    fn mul_pow3_assign(&mut self, n: i32) {
+        const SMALL_POWERS: [u32; 21] = [
+            1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049,
+            177147,  531441, 1594323, 4782969, 14348907, 43046721,
+            129140163, 387420489, 1162261467, 3486784401
+        ];
+        self.mul_spowers_assign(n, &SMALL_POWERS);
     }
 
     /// MulAssign by a power of 4.
+    #[inline]
     fn mul_pow4_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow2_assign(n);
     }
 
     /// MulAssign by a power of 5.
+    #[inline]
     fn mul_pow5_assign(&mut self, n: i32) {
-        unimplemented!()
+        const SMALL_POWERS: [u32; 14] = [
+            1, 5, 25, 125, 625, 3125, 15625, 78125, 390625,
+            1953125, 9765625, 48828125, 244140625, 1220703125
+        ];
+        self.mul_spowers_assign(n, &SMALL_POWERS);
     }
 
     /// MulAssign by a power of 6.
+    #[inline]
     fn mul_pow6_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow3_assign(n);
     }
 
     /// MulAssign by a power of 7.
+    #[inline]
     fn mul_pow7_assign(&mut self, n: i32) {
-        unimplemented!()
+        const SMALL_POWERS: [u32; 12] = [
+            1, 7, 49, 343, 2401, 16807, 117649, 823543,
+            5764801, 40353607, 282475249, 1977326743
+        ];
+        self.mul_spowers_assign(n, &SMALL_POWERS);
     }
 
     /// MulAssign by a power of 8.
+    #[inline]
     fn mul_pow8_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow4_assign(n);
     }
 
     /// MulAssign by a power of 9.
+    #[inline]
     fn mul_pow9_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow3_assign(n);
+        self.mul_pow3_assign(n);
     }
 
     /// MulAssign by a power of 10.
+    #[inline]
     fn mul_pow10_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow5_assign(n);
     }
 
     /// MulAssign by a power of 11.
+    #[inline]
     fn mul_pow11_assign(&mut self, n: i32) {
-        unimplemented!()
+        const SMALL_POWERS: [u32; 10] = [1, 11, 121, 1331, 14641, 161051, 1771561, 19487171, 214358881, 2357947691];
+        self.mul_spowers_assign(n, &SMALL_POWERS)
     }
 
     /// MulAssign by a power of 12.
+    #[inline]
     fn mul_pow12_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow3_assign(n);
+        self.mul_pow4_assign(n);
     }
 
     /// MulAssign by a power of 13.
+    #[inline]
     fn mul_pow13_assign(&mut self, n: i32) {
-        unimplemented!()
+        const SMALL_POWERS: [u32; 9] = [1, 13, 169, 2197, 28561, 371293, 4826809, 62748517, 815730721];
+        self.mul_spowers_assign(n, &SMALL_POWERS)
     }
 
     /// MulAssign by a power of 14.
+    #[inline]
     fn mul_pow14_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow7_assign(n);
     }
 
     /// MulAssign by a power of 15.
+    #[inline]
     fn mul_pow15_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow3_assign(n);
+        self.mul_pow5_assign(n);
     }
 
     /// MulAssign by a power of 16.
+    #[inline]
     fn mul_pow16_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow8_assign(n);
     }
 
     /// MulAssign by a power of 17.
+    #[inline]
     fn mul_pow17_assign(&mut self, n: i32) {
-        unimplemented!()
+        const SMALL_POWERS: [u32; 8] = [1, 17, 289, 4913, 83521, 1419857, 24137569, 410338673];
+        self.mul_spowers_assign(n, &SMALL_POWERS)
     }
 
     /// MulAssign by a power of 18.
+    #[inline]
     fn mul_pow18_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow9_assign(n);
     }
 
     /// MulAssign by a power of 19.
+    #[inline]
     fn mul_pow19_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
     /// MulAssign by a power of 20.
+    #[inline]
     fn mul_pow20_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow10_assign(n);
     }
 
     /// MulAssign by a power of 21.
+    #[inline]
     fn mul_pow21_assign(&mut self, n: i32) {
-        unimplemented!()
+        const SMALL_POWERS: [u32; 8] = [1, 21, 441, 9261, 194481, 4084101, 85766121, 1801088541];
+        self.mul_spowers_assign(n, &SMALL_POWERS)
     }
 
     /// MulAssign by a power of 22.
+    #[inline]
     fn mul_pow22_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow11_assign(n);
     }
 
     /// MulAssign by a power of 23.
+    #[inline]
     fn mul_pow23_assign(&mut self, n: i32) {
-        unimplemented!()
+        const SMALL_POWERS: [u32; 8] = [1, 23, 529, 12167, 279841, 6436343, 148035889, 3404825447];
+        self.mul_spowers_assign(n, &SMALL_POWERS)
     }
 
     /// MulAssign by a power of 24.
+    #[inline]
     fn mul_pow24_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow12_assign(n);
     }
 
     /// MulAssign by a power of 25.
+    #[inline]
     fn mul_pow25_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow5_assign(n);
+        self.mul_pow5_assign(n);
     }
 
     /// MulAssign by a power of 26.
+    #[inline]
     fn mul_pow26_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow13_assign(n);
     }
 
     /// MulAssign by a power of 27.
+    #[inline]
     fn mul_pow27_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow3_assign(n);
+        self.mul_pow9_assign(n);
     }
 
     /// MulAssign by a power of 28.
+    #[inline]
     fn mul_pow28_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow14_assign(n);
     }
 
     /// MulAssign by a power of 29.
+    #[inline]
     fn mul_pow29_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
     /// MulAssign by a power of 30.
+    #[inline]
     fn mul_pow30_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow15_assign(n);
     }
 
     /// MulAssign by a power of 31.
+    #[inline]
     fn mul_pow31_assign(&mut self, n: i32) {
-        unimplemented!()
+        const SMALL_POWERS: [u32; 7] = [1, 31, 961, 29791, 923521, 28629151, 887503681];
+        self.mul_spowers_assign(n, &SMALL_POWERS)
     }
 
     /// MulAssign by a power of 32.
+    #[inline]
     fn mul_pow32_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow16_assign(n);
     }
 
     /// MulAssign by a power of 33.
+    #[inline]
     fn mul_pow33_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow3_assign(n);
+        self.mul_pow11_assign(n);
     }
 
     /// MulAssign by a power of 34.
+    #[inline]
     fn mul_pow34_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow17_assign(n);
     }
 
     /// MulAssign by a power of 35.
+    #[inline]
     fn mul_pow35_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow5_assign(n);
+        self.mul_pow7_assign(n);
     }
 
     /// MulAssign by a power of 36.
+    #[inline]
     fn mul_pow36_assign(&mut self, n: i32) {
-        unimplemented!()
+        self.mul_pow2_assign(n);
+        self.mul_pow18_assign(n);
     }
 
     // FROM BYTES
