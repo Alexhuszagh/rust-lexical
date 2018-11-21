@@ -62,12 +62,12 @@ pub(crate) fn try_from_bytes_wrapper<T, Cb>(base: u8, bytes: &[u8], cb: Cb)
         let last = first.add(bytes.len());
         let (value, p, overflow) = cb(base, first, last);
         if overflow {
-            Err(From::from(ErrorKind::Overflow))
+            Err(ErrorKind::Overflow.into())
         } else if p == last {
             Ok(value)
         } else {
             let dist = if p == lib::ptr::null() { 0 } else { distance(first, p) };
-            Err(From::from(ErrorKind::InvalidDigit(dist)))
+            Err(ErrorKind::InvalidDigit(dist).into())
         }
     }
 }

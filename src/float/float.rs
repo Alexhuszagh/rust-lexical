@@ -127,7 +127,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
         // Use a boolean hack to get 2 if they're equal, else 1, without
         // any branching.
-        let is_hidden = self.frac == as_::<M, _>(f64::HIDDEN_BIT_MASK);
+        let is_hidden = self.frac == as_cast::<M, _>(f64::HIDDEN_BIT_MASK);
         let l_shift: i32 = is_hidden as i32 + 1;
 
         let mut lower = ExtendedFloat {

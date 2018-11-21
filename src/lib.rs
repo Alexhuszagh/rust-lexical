@@ -303,7 +303,7 @@ pub fn parse_lossy_radix<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, ra
 /// # use lexical::ErrorKind;
 /// # pub fn main() {
 /// // Create our error.
-/// let err = |u| From::from(ErrorKind::InvalidDigit(u));
+/// let err = |u| ErrorKind::InvalidDigit(u).into();
 ///
 /// // String overloads
 /// assert_eq!(lexical::try_parse::<i32, _>("5"), Ok(5));
@@ -343,7 +343,7 @@ pub fn try_parse<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes)
 /// # use lexical::ErrorKind;
 /// # pub fn main() {
 /// // Create our error.
-/// let err = |u| From::from(ErrorKind::InvalidDigit(u));
+/// let err = |u| ErrorKind::InvalidDigit(u).into();
 ///
 /// // String overloads
 /// assert_eq!(lexical::try_parse_lossy::<f32, _>("0"), Ok(0.0));
@@ -381,7 +381,7 @@ pub fn try_parse_lossy<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
 /// # use lexical::ErrorKind;
 /// # pub fn main() {
 /// // Create our error wrapper.
-/// let err = |u| From::from(ErrorKind::InvalidDigit(u));
+/// let err = |u| ErrorKind::InvalidDigit(u).into();
 ///
 /// // String overloads
 /// assert_eq!(lexical::try_parse_radix::<i32, _>("5", 10), Ok(5));
@@ -427,7 +427,7 @@ pub fn try_parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8
 /// # use lexical::ErrorKind;
 /// # pub fn main() {
 /// // Create our error wrapper.
-/// let err = |u| From::from(ErrorKind::InvalidDigit(u));
+/// let err = |u| ErrorKind::InvalidDigit(u).into();
 ///
 /// // String overloads
 /// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>("0", 10), Ok(0.0));

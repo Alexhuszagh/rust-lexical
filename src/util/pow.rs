@@ -57,7 +57,7 @@ pub(crate) trait StablePower: StablePowerImpl {
     #[inline]
     fn iterative_pow_finite<T: Integer>(mut self, base: T, mut exponent: i32) -> Self {
         let step = Self::iterative_step(base);
-        let base: Self = as_(base);
+        let base: Self = as_cast(base);
         if exponent < 0 {
             // negative exponent, use division for numeric stability
             while exponent <= -step {
@@ -117,7 +117,7 @@ pub(crate) trait StablePower: StablePowerImpl {
         let (min, max) = Self::exponent_limit(base);
         debug_assert!(exponent >= min && exponent <= max);
 
-        let base: Self = as_(base);
+        let base: Self = as_cast(base);
         self * base.powi(exponent)
     }
 
@@ -150,8 +150,8 @@ impl StablePower for f32 {
             40, 40, 40, 40, 40, 40, 30, 30, 30, 30, 30
         ];
 
-        let base: i32 = as_(base);
-        let idx: usize = as_(base - 2);
+        let base: i32 = as_cast(base);
+        let idx: usize = as_cast(base - 2);
         debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
 
         unsafe { *MAX.get_unchecked(idx) }
@@ -166,8 +166,8 @@ impl StablePower for f32 {
             20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20
         ];
 
-        let base: i32 = as_(base);
-        let idx: usize = as_(base - 2);
+        let base: i32 = as_cast(base);
+        let idx: usize = as_cast(base - 2);
         debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
 
         unsafe { *STEP.get_unchecked(idx) }
@@ -187,8 +187,8 @@ impl StablePower for f64 {
             475, 475, 450, 450, 450, 450, 450, 450, 425, 425, 425
         ];
 
-        let base: i32 = as_(base);
-        let idx: usize = as_(base - 2);
+        let base: i32 = as_cast(base);
+        let idx: usize = as_cast(base - 2);
         debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
 
         unsafe { *MAX.get_unchecked(idx) }
@@ -203,8 +203,8 @@ impl StablePower for f64 {
             128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128
         ];
 
-        let base: i32 = as_(base);
-        let idx: usize = as_(base - 2);
+        let base: i32 = as_cast(base);
+        let idx: usize = as_cast(base - 2);
         debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
 
         unsafe { *STEP.get_unchecked(idx) }

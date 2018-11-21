@@ -10,14 +10,14 @@ use super::mantissa::Mantissa;
 #[inline]
 pub(super) fn shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
 {
-    fp.frac >>= as_::<M, _>(shift);
-    fp.exp += as_::<i32, _>(shift);
+    fp.frac >>= as_cast::<M, _>(shift);
+    fp.exp += as_cast::<i32, _>(shift);
 }
 
 /// Shift extended-precision float left `shift` bytes (force overflow checks).
 #[inline]
 pub(super) fn shl<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
 {
-    fp.frac <<= as_::<M, _>(shift);
-    fp.exp -= as_::<i32, _>(shift);
+    fp.frac <<= as_cast::<M, _>(shift);
+    fp.exp -= as_cast::<i32, _>(shift);
 }

@@ -95,7 +95,7 @@ use util::*;
 #[inline(always)]
 unsafe fn parse_digit<T: Integer>(digit: &mut T, p: *const u8) -> T {
     let x = char_to_digit(*p);
-    *digit = as_(x);
+    *digit = as_cast(x);
     *digit
 }
 
@@ -156,7 +156,7 @@ pub(crate) fn unchecked<T>(value: &mut T, base: u32, first: *const u8, last: *co
     where T: Integer
 {
     unsafe {
-        unchecked_unsafe::<T>(value, as_(base), first, last)
+        unchecked_unsafe::<T>(value, as_cast(base), first, last)
     }
 }
 
@@ -223,7 +223,7 @@ pub(crate) fn checked<T>(value: &mut T, base: u32, first: *const u8, last: *cons
     where T: Integer
 {
     unsafe {
-        checked_unsafe::<T>(value, as_(base), first, last)
+        checked_unsafe::<T>(value, as_cast(base), first, last)
     }
 }
 

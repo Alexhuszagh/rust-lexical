@@ -2,7 +2,7 @@
 
 pub(crate) use lib::{f32, f64};
 use lib::{fmt, iter, ops};
-use super::cast::as_;
+use super::cast::as_cast;
 use super::primitive::Primitive;
 
 // NUMBER
@@ -432,7 +432,7 @@ pub trait Float: Number + ops::Neg<Output=Self>
         }
 
         let bits = self.to_bits();
-        let biased_e: i32 = as_((bits & Self::EXPONENT_MASK) >> Self::MANTISSA_SIZE);
+        let biased_e: i32 = as_cast((bits & Self::EXPONENT_MASK) >> Self::MANTISSA_SIZE);
         biased_e - Self::EXPONENT_BIAS
     }
 

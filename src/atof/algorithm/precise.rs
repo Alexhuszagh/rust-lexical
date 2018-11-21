@@ -27,6 +27,7 @@ use super::exponent::parse_exponent;
 // -----
 
 /// Safely convert the number of bits truncated to an exponent.
+// TODO(ahuszagh) Need to change this for TryInto...
 #[inline]
 fn usize_to_i32(truncated: usize) -> i32 {
     const MAX: usize = i32::max_value() as usize;
@@ -128,7 +129,7 @@ pub(super) extern "C" fn normalize_mantissa<M>(mut mantissa: M, base: u32, mut e
     -> (M, i32)
     where M: Mantissa
 {
-    let base: M = as_(base);
+    let base: M = as_cast(base);
     let base2 = base * base;
     let base4 = base2 * base2;
 
@@ -220,11 +221,11 @@ fn pow2_to_exact<F: StablePower>(mantissa: u64, base: u32, pow2_exp: i32, expone
         // which guarantees no truncation, and then the second multiplication
         // which will round to the accurate representation.
         let remainder = exponent - min_exp;
-        let float: F = as_(mantissa);
+        let float: F = as_cast(mantissa);
         let float = unsafe { float.pow2(pow2_exp * remainder).pow2(pow2_exp * min_exp) };
         (float, true)
     } else {
-        let float: F = as_(mantissa);
+        let float: F = as_cast(mantissa);
         let float = unsafe { float.pow2(pow2_exp * exponent) };
         (float, true)
     }
@@ -246,7 +247,7 @@ fn to_exact<F: StablePower>(mantissa: u64, base: u32, exponent: i32) -> (F, bool
         // Would require truncation of the mantissa.
         (F::ZERO, false)
     } else {
-        let float: F = as_(mantissa);
+        let float: F = as_cast(mantissa);
         if exponent == 0 {
             // 0 exponent, same as value, exact representation.
             (float,  true)
@@ -305,15 +306,15 @@ impl FloatErrors for u64 {
         let denormal_exp = bias - 63;
         // This is always a valid u32, since (denormal_exp - fp.exp)
         // will always be positive and the significand size is {23, 52}.
-        let extrabits: u32 = as_(match fp.exp < denormal_exp {
+        let extrabits: u32 = as_cast(match fp.exp < denormal_exp {
             true  => 63 - F::MANTISSA_SIZE + 1 + denormal_exp - fp.exp,
             false => 63 - F::MANTISSA_SIZE,
         });
 
         // Do a signed comparison, which will always be valid.
-        let halfway: i64 = as_(1u64 << (extrabits - 1));
-        let extra: i64 = as_(fp.frac & ((1u64 << extrabits) - 1));
-        let errors: i64 = as_(count);
+        let halfway: i64 = as_cast(1u64 << (extrabits - 1));
+        let extra: i64 = as_cast(fp.frac & ((1u64 << extrabits) - 1));
+        let errors: i64 = as_cast(count);
         let cmp1 = (halfway - errors) < extra;
         let cmp2 = extra < (halfway + errors);
 

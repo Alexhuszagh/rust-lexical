@@ -46,11 +46,11 @@ impl fmt::Display for Error {
 /// Return an overflow error.
 #[cfg(test)]
 pub(crate) fn overflow() -> Error {
-    From::from(ErrorKind::Overflow)
+    ErrorKind::Overflow.into()
 }
 
 /// Return an invalid digit error.
 #[cfg(test)]
 pub(crate) fn invalid_digit(position: usize) -> Error {
-    From::from(ErrorKind::InvalidDigit(position))
+    ErrorKind::InvalidDigit(position).into()
 }

@@ -55,72 +55,72 @@ impl<T: Float> PartialEq for WrappedFloat<T> {
 impl<T: Float> AsPrimitive for WrappedFloat<T> {
     #[inline(always)]
     fn as_u8(self) -> u8 {
-        as_(self.data)
+        as_cast(self.data)
     }
 
     #[inline(always)]
     fn as_u16(self) -> u16 {
-        as_(self.data)
+        as_cast(self.data)
     }
 
     #[inline(always)]
     fn as_u32(self) -> u32 {
-        as_(self.data)
+        as_cast(self.data)
     }
 
     #[inline(always)]
     fn as_u64(self) -> u64 {
-        as_(self.data)
+        as_cast(self.data)
     }
 
     #[inline(always)]
     fn as_u128(self) -> u128 {
-        as_(self.data)
+        as_cast(self.data)
     }
 
     #[inline(always)]
     fn as_usize(self) -> usize {
-        as_(self.data)
+        as_cast(self.data)
     }
 
     #[inline(always)]
     fn as_i8(self) -> i8 {
-        as_(self.data)
+        as_cast(self.data)
     }
 
     #[inline(always)]
     fn as_i16(self) -> i16 {
-        as_(self.data)
+        as_cast(self.data)
     }
 
     #[inline(always)]
     fn as_i32(self) -> i32 {
-        as_(self.data)
+        as_cast(self.data)
     }
 
     #[inline(always)]
     fn as_i64(self) -> i64 {
-        as_(self.data)
+        as_cast(self.data)
     }
 
     #[inline(always)]
     fn as_i128(self) -> i128 {
-        as_(self.data)
+        as_cast(self.data)
     }
 
     #[inline(always)]
     fn as_isize(self) -> isize {
-        as_(self.data)
+        as_cast(self.data)
     }
 
     #[inline(always)]
     fn as_f32(self) -> f32 {
-        as_(self.data)
+        as_cast(self.data)
     }
 
     #[inline(always)]
     fn as_f64(self) -> f64 {
-        as_(self.data)
+        as_cast(self.data)
     }
 }
 
@@ -128,9 +128,9 @@ impl<T: Float> AsPrimitive for WrappedFloat<T> {
 
 impl<T: Float> AsCast for WrappedFloat<T> {
     #[inline(always)]
-    fn as_<N: AsPrimitive>(n: N) -> Self {
+    fn as_cast<N: AsPrimitive>(n: N) -> Self {
         // Wrap to wide float and back down. Should be a no-op. Just indirection.
-        WrappedFloat { data: as_(n.as_f64()) }
+        WrappedFloat { data: as_cast(n.as_f64()) }
     }
 }
 

@@ -110,8 +110,8 @@ fn digits<Value: Integer>(value: Value, base: u32) -> usize {
     match value.is_zero() {
         true  => 1,
         false => {
-            let v: f64 = as_(value);
-            let b: f64 = as_(base);
+            let v: f64 = as_cast(value);
+            let b: f64 = as_cast(base);
             let digits = ((v.ln() / b.ln()) + 1.0).floor();
             digits as usize
         }
@@ -166,8 +166,8 @@ unsafe fn optimized<T>(mut value: T, base: T, table: *const u8, first: *mut u8)
     while value >= base4 {
         let rem = value % base4;
         value /= base4;
-        let r1: usize = as_(T::TWO * (rem / base2));
-        let r2: usize = as_(T::TWO * (rem % base2));
+        let r1: usize = as_cast(T::TWO * (rem / base2));
+        let r2: usize = as_cast(T::TWO * (rem % base2));
 
         curr -= 4;
         ptr::copy_nonoverlapping(table.add(r1), p.add(curr), 2);
@@ -176,7 +176,7 @@ unsafe fn optimized<T>(mut value: T, base: T, table: *const u8, first: *mut u8)
 
     // Decode 2 digits at a time.
     while value >= base2 {
-        rem = as_(T::TWO * (value % base2));
+        rem = as_cast(T::TWO * (value % base2));
         value /= base2;
 
         curr -= 2;
@@ -188,7 +188,7 @@ unsafe fn optimized<T>(mut value: T, base: T, table: *const u8, first: *mut u8)
         curr -= 1;
         *p.add(curr) = digit_to_char(value);
     } else {
-        rem = as_(T::TWO * value);
+        rem = as_cast(T::TWO * value);
         curr -= 2;
         ptr::copy_nonoverlapping(table.add(rem), p.add(curr), 2);
     }
@@ -221,7 +221,7 @@ unsafe fn naive<T>(mut value: T, base: T, first: *mut u8)
 
     // Decode all but last digit, 1 at a time.
     while value >= base {
-        rem = as_(value % base);
+        rem = as_cast(value % base);
         value /= base;
 
         curr -= 1;
@@ -229,7 +229,7 @@ unsafe fn naive<T>(mut value: T, base: T, first: *mut u8)
     }
 
     // Decode last digit.
-    rem = as_(value % base);
+    rem = as_cast(value % base);
     curr -= 1;
     *p.add(curr) = digit_to_char(rem);
 
@@ -288,12 +288,12 @@ pub(crate) unsafe fn forward<T>(value: T, base: u32, first: *mut u8)
             36  => DIGIT_TO_BASE36_SQUARED.as_ptr(),
             _   => unreachable!(),
         };
-        let base: T = as_(base);
+        let base: T = as_cast(base);
         optimized(value, base, table, first)
     }
 
     #[cfg(not(feature = "table"))] {
-        let base: T = as_(base);
+        let base: T = as_cast(base);
         naive(value, base, first)
     }
 }
@@ -310,7 +310,7 @@ pub(crate) unsafe fn unsigned<Value, UWide>(value: Value, base: u32, first: *mut
     check_buffer!(value, first, last, base);
 
     // Invoke forwarder
-    let v: UWide = as_(value);
+    let v: UWide = as_cast(value);
     forward(v, base, first)
 }
 
@@ -342,11 +342,11 @@ pub(crate) unsafe fn signed<Value, UWide, IWide>(value: Value, base: u32, mut fi
     let v: UWide;
     if value < Value::ZERO {
         *first = b'-';
-        let wide: IWide = as_(value);
-        v = as_(wide.wrapping_neg());
+        let wide: IWide = as_cast(value);
+        v = as_cast(wide.wrapping_neg());
         first = first.add(1);
     } else {
-        v = as_(value);
+        v = as_cast(value);
     }
 
     // Invoke forwarder

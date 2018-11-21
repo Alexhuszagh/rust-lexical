@@ -65,7 +65,7 @@ pub(super) fn round_nearest_tie_even<M>(fp: &mut ExtendedFloat<M>, params: &Roun
     let is_roundup = is_above || (is_odd && is_halfway);
 
     // Roundup as needed.
-    fp.frac += as_::<M, _>(is_roundup as u32);
+    fp.frac += as_cast::<M, _>(is_roundup as u32);
 }
 
 /// Shift right N-bytes and round nearest, tie-to-even.
@@ -87,7 +87,7 @@ pub(super) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, params: 
     let is_roundup = is_above || is_halfway;
 
     // Roundup as needed.
-    fp.frac += as_::<M, _>(is_roundup as u32);
+    fp.frac += as_cast::<M, _>(is_roundup as u32);
 }
 
 // NATIVE FLOAT

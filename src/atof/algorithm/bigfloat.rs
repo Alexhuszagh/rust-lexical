@@ -81,8 +81,8 @@ fn mul_small<Wide, Narrow>(x: Narrow, y: Narrow, carry: Narrow)
     // the following is always true:
     // `Wide::max_value() - (Narrow::max_value() * Narrow::max_value()) >= Narrow::max_value()`
     let bits = mem::size_of::<Narrow>() * 8;
-    let z: Wide = as_::<Wide, _>(x) * as_::<Wide, _>(y) + as_::<Wide,_>(carry);
-    (as_::<Narrow, _>(z), as_::<Narrow, _>(z >> bits))
+    let z: Wide = as_cast::<Wide, _>(x) * as_cast::<Wide, _>(y) + as_cast::<Wide,_>(carry);
+    (as_cast::<Narrow, _>(z), as_cast::<Narrow, _>(z >> bits))
 }
 
 /// Multiply two small integers (with carry) (and return if overflow happens).
@@ -175,6 +175,10 @@ macro_rules! from_bytes {
 /// halfway, however, we have no way to determine this. Any lossy
 /// multiplication can push the trailing bits up or below the halfway point,
 /// leading to incorrect rounding and incorrect results.
+///
+/// This large float assumes normalized values: that is, the most-significant
+/// 32-bit integer must be non-zero. All operations assume normality, and will
+/// return normalized values.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Bigfloat {
     /// Raw data for the underlying buffer (exactly 32**2 for the largest float).
@@ -256,11 +260,52 @@ impl Bigfloat {
     /// Number of bits in the underlying storage.
     const BITS: usize = mem::size_of::<u32>() * 8;
 
-    /// Get number of leading zeros in Bigfloat.
+    /// Get the number of leading zero values in Bigfloat.
+    /// Assumes the value is normalized.
+    #[inline]
+    pub fn leading_zero_values(&self) -> u32 {
+        debug_assert!(!self.is_empty(), "Bigfloat::leading_zero_values() data cannot be empty.");
+        debug_assert!(!self.back().is_zero(), "Bigfloat::leading_zero_values() data is not normalized.");
+        0
+    }
+
+    /// Get the number of trailing zero values in Bigfloat.
+    /// Assumes the value is normalized.
+    #[inline]
+    pub fn trailing_zero_values(&self) -> u32 {
+        debug_assert!(!self.is_empty(), "Bigfloat::trailing_zero_values() data cannot be empty.");
+        debug_assert!(!self.back().is_zero(), "Bigfloat::trailing_zero_values() data is not normalized.");
+        for (i, v) in self.iter().enumerate() {
+            if !v.is_zero() {
+                return i as u32;
+            }
+        }
+        self.len() as u32
+    }
+
+    /// Get number of leading zero bits in Bigfloat.
+    /// Assumes the value is normalized.
     #[inline]
     pub fn leading_zeros(&self) -> u32 {
-        debug_assert!(self.data.is_empty(), "Bigfloat::leading_zeros() data cannot be empty.");
+        debug_assert!(!self.is_empty(), "Bigfloat::leading_zeros() data cannot be empty.");
+        debug_assert!(!self.back().is_zero(), "Bigfloat::leading_zeros() data is not normalized.");
         self.back().leading_zeros()
+    }
+
+    /// Get number of trailing zero bits in Bigfloat.
+    /// Assumes the value is normalized.
+    #[inline]
+    pub fn trailing_zeros(&self) -> u32 {
+        debug_assert!(!self.is_empty(), "Bigfloat::leading_zeros() data cannot be empty.");
+        debug_assert!(!self.back().is_zero(), "Bigfloat::trailing_zeros() data is not normalized.");
+
+        // Get the index of the last non-zero value
+        let index = self.trailing_zero_values() as usize;
+        let mut count = (index * Self::BITS) as u32;
+        if index != self.len() {
+            count += self.get(index).trailing_zeros();
+        }
+        count
     }
 
     // ADDITION
@@ -273,7 +318,7 @@ impl Bigfloat {
 
         // Increment until overflow stops occurring.
         let mut size = 1;
-        while carry && size < self.data.len() {
+        while carry && size < self.len() {
             carry = add_small_assign(self.get_mut(size), 1);
             size += 1;
         }
@@ -281,15 +326,15 @@ impl Bigfloat {
         // If we overflowed the buffer entirely, need to add 1 to the end
         // of the buffer.
         if carry {
-            self.data.push(1);
+            self.push(1);
         }
     }
 
     /// AddAssign small integer to bigfloat.
     #[inline]
     fn add_small_assign(&mut self, y: u32) {
-        if self.data.is_empty() {
-            self.data.push(y)
+        if self.is_empty() {
+            self.push(y)
         } else {
             self.add_small_assign_impl(y)
         }
@@ -311,12 +356,12 @@ impl Bigfloat {
 
         // Get the number of values to add_assign between them.
         // Resize the buffer so at least y.data elements are in x.data.
-        let size = self.data.len().max(y.data.len());
-        self.data.resize(size, 0);
+        let size = self.len().max(y.len());
+        self.resize(size, 0);
 
         // Iteratively add elements from y to x.
         let mut carry = false;
-        for (l, r) in self.data.iter_mut().zip(y.data.iter()).take(size) {
+        for (l, r) in self.iter_mut().zip(y.iter()).take(size) {
             // Only one op of the two can overflow, since we added at max
             // u32::max_value() + u32::max_value(). Add the previous carry,
             // and store the current carry for the next.
@@ -329,9 +374,9 @@ impl Bigfloat {
 
         // Overflow from the previous bit.
         if carry {
-            if size == self.data.len() {
+            if size == self.len() {
                 // Overflow for the entire container, push 1 to the end.
-                self.data.push(1);
+                self.push(1);
             } else {
                 // Internal overflow, just add 1 to the next item.
                 *self.get_mut(size) += 1;
@@ -353,13 +398,13 @@ impl Bigfloat {
     fn mul_small_assign(&mut self, y: u32) {
         // Multiply iteratively over all elements, adding the carry each time.
         let mut carry: u32 = 0;
-        for x in self.data.iter_mut() {
+        for x in self.iter_mut() {
             carry = mul_small_assign::<u64, u32>(x, y, carry);
         }
 
         // Overflow of value, add to end.
         if carry != 0 {
-            self.data.push(carry);
+            self.push(carry);
         }
     }
 
@@ -663,57 +708,60 @@ impl Bigfloat {
 
     // DIVISION
 
-    /// Pad bits for division. Only needs to be called once.
-    /// Value should be non-zero.
-    // TODO(ahuszagh) This needs to pad to a number of bits.
-    // This should be estimated by base**n
-//    #[inline]
-//    fn pad_division(&mut self) {
-//        // Pad up to 128-bits of total precision, guaranteeing at least
-//        // 64 guard bits for operations.
-//        match self.data.len() {
-//            // Should never reach a divide-by-zero case.
-//            1 => {
-//                // Extended with 3 zeros, and move 0 -> 3
-//                self.data.extend(iter::repeat(0).take(3));
-//                self.data.swap(0, 3);
-//                self.exponent -= 3 * Self::BITS as i32;
-//            },
-//            2 => {
-//                // Extended with 2 zeros, and move 0 -> 2, 1 -> 3
-//                self.data.extend(iter::repeat(0).take(2));
-//                self.data.swap(1, 3);
-//                self.data.swap(0, 2);
-//                self.exponent -= 2 * Self::BITS as i32;
-//            },
-//            3 => {
-//                // Extended with 1 zeros, and move 0 -> 1, 1 -> 2, 2 -> 3
-//                self.data.extend(iter::repeat(0).take(1));
-//                self.data.swap(2, 3);
-//                self.data.swap(1, 2);
-//                self.data.swap(0, 1);
-//                self.exponent -= Self::BITS as i32;
-//            },
-//            // Has enough bits to avoid rounding error, or is a literal 0.
-//            _ => (),
-//        }
-//    }
+    /// Pad ints for division. Called internally during `div_pow*_assign`.
+    #[inline]
+    fn pad_division(&mut self, bytes: usize) {
+        // Assume **no** overflow for the usize, since this would lead to
+        // other memory errors. Add `bytes` 0s to the left of the current
+        // buffer, and decrease the exponent accordingly.
+
+        // Remove the number of trailing zeros values for the padding.
+        // If we don't need to pad the resulting buffer, return early.
+        let bytes = bytes.checked_sub(self.trailing_zero_values() as usize).unwrap_or(0);
+        if bytes.is_zero() {
+            return;
+        }
+
+        // Decrease the exponent component.
+//        let bits = bytes.try_into()
+//            .and_then(|v| v.checked_mul(Self::BITS as i32))
+//            .unwrap_or(i32::max_value());
+        // TODO(ahuszagh) This is lossy... Change to try_cast
+        let bits = (bytes as i32).checked_mul(Self::BITS as i32).unwrap_or(i32::max_value());
+        self.exponent = self.exponent.checked_sub(bits).unwrap_or(i32::min_value());
+
+        // Move data to new buffer, prepend `bytes` 0s, and then append
+        // current data.
+        let mut data = smallvec::SmallVec::with_capacity(self.len() + bytes);
+        data.resize(bytes, 0);
+        data.extend_from_slice(self.as_slice());
+
+        // Swap the buffers.
+        mem::swap(&mut data, &mut self.data);
+    }
 
     /// DivAssign small integer to bigfloat.
     /// Warning: Bigfloat must have previously been padded `pad_division`.
     fn div_small_assign(&mut self, y: u32) {
         // Divide iteratively over all elements, adding the carry each time.
         let mut rem: u32 = 0;
-        for x in self.data.iter_mut().rev() {
+        for x in self.iter_mut().rev() {
             rem = div_small_assign(x, y, rem);
         }
 
         // Round-up if there's truncation in least-significant bit.
         // Due to our bases, rem is always <= 0x80000000, which is the midway
         // point for when we should round.
+        // The container **cannot** be empty, since rem is not 0.
         if rem != 0 {
             debug_assert!(rem <= 0x80000000, "Bigfloat::div_small_assign() assumed base is <= midway.");
             *self.front_mut() += 1;
+        }
+
+        // Remove leading zero if we cause underflow. Since we're dividing
+        // by a small power, we have at max 1 int removed.
+        if !self.is_empty() && self.back().is_zero() {
+            self.pop();
         }
     }
 
@@ -735,8 +783,6 @@ impl Bigfloat {
         let get_power = | i: usize | unsafe { *small_powers.get_unchecked(i) };
 
         // Divide by the largest small power until n < step.
-        // TODO(ahuszagh): Need to change to have 2 extra digits of storage.
-        // No padding, just store two extra digits and use the rem for those 2 digits.
         let step = small_powers.len() - 1;
         let power = get_power(step);
         let step = step as i32;
@@ -1097,38 +1143,92 @@ impl Bigfloat {
         unimplemented!()
     }
 
-    // INDEXING
+    // VEC-LIKE
+
+    /// Get if the integer data is empty.
+    #[inline(always)]
+    fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+
+    /// Get length of integer data.
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    /// Get vector as slice.
+    #[inline(always)]
+    fn as_slice(&self) -> &[u32] {
+        self.data.as_slice()
+    }
+
+    /// Remove last element from integer data and return it.
+    #[inline(always)]
+    fn pop(&mut self) -> Option<u32> {
+        self.data.pop()
+    }
+
+    /// Append integer to back of collection.
+    #[inline(always)]
+    fn push(&mut self, value: u32) {
+        self.data.push(value)
+    }
+
+    /// Extend integer data from slice.
+    #[inline(always)]
+    fn extend_from_slice(&mut self, other: &[u32]) {
+        self.data.extend_from_slice(other)
+    }
+
+    /// Resize container to new_len, appending value as needed to container.
+    #[inline(always)]
+    fn resize(&mut self, new_len: usize, value: u32) {
+        self.data.resize(new_len, value)
+    }
+
+    /// Get iterator to integer data.
+    #[inline(always)]
+    fn iter(&self) -> slice::Iter<u32> {
+        self.data.iter()
+    }
+
+    /// Get mutable iterator to integer data.
+    #[inline(always)]
+    fn iter_mut(&mut self) -> slice::IterMut<u32> {
+        self.data.iter_mut()
+    }
 
     /// Get the front integer.
     #[inline(always)]
     fn front(&self) -> &u32 {
-        debug_assert!(self.data.len() > 0);
+        debug_assert!(self.len() > 0);
         self.get(0)
     }
 
     /// Get the front integer as mutable.
     #[inline(always)]
     fn front_mut(&mut self) -> &mut u32 {
-        debug_assert!(self.data.len() > 0);
+        debug_assert!(self.len() > 0);
         self.get_mut(0)
     }
 
     /// Get the back integer.
     #[inline(always)]
     fn back(&self) -> &u32 {
-        debug_assert!(self.data.len() > 0);
-        self.get(self.data.len()-1)
+        debug_assert!(self.len() > 0);
+        self.get(self.len()-1)
     }
 
     /// Get the back integer as mutable.
     #[inline(always)]
     fn back_mut(&mut self) -> &mut u32 {
-        debug_assert!(self.data.len() > 0);
-        let index = self.data.len()-1;
+        debug_assert!(self.len() > 0);
+        let index = self.len()-1;
         self.get_mut(index)
     }
 
-    /// Unchecked get that ensures the index is <= 32 during debug builds.
+    /// Unchecked get.
     #[inline(always)]
     fn get<I>(&self, index: I) -> &I::Output
         where I: slice::SliceIndex<[u32]>
@@ -1136,7 +1236,7 @@ impl Bigfloat {
         unsafe { self.data.get_unchecked(index) }
     }
 
-    /// Unchecked get_mut that ensures the index is <= 32 during debug builds.
+    /// Unchecked get_mut.
     #[inline(always)]
     fn get_mut<I>(&mut self, index: I) -> &mut I::Output
         where I: slice::SliceIndex<[u32]>
@@ -1151,6 +1251,8 @@ impl Bigfloat {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // CREATION
 
     #[test]
     fn new_test() {
@@ -1175,6 +1277,70 @@ mod tests {
         let bigfloat = Bigfloat::from_u128(1329227997022855913342108839786316031);
         assert_eq!(bigfloat, Bigfloat { data: smallvec![255, 1 << 28, 1 << 26, 1<< 24], exponent: 0 });
     }
+
+    // PROPERTIES
+
+    #[test]
+    fn leading_zero_values_test() {
+        assert_eq!(Bigfloat::from_u32(0xFF).leading_zero_values(), 0);
+        assert_eq!(Bigfloat::from_u64(0xFF00000000).leading_zero_values(), 0);
+        assert_eq!(Bigfloat::from_u128(0xFF000000000000000000000000).leading_zero_values(), 0);
+
+        assert_eq!(Bigfloat::from_u32(0xF).leading_zero_values(), 0);
+        assert_eq!(Bigfloat::from_u64(0xF00000000).leading_zero_values(), 0);
+        assert_eq!(Bigfloat::from_u128(0xF000000000000000000000000).leading_zero_values(), 0);
+
+        assert_eq!(Bigfloat::from_u32(0xF0).leading_zero_values(), 0);
+        assert_eq!(Bigfloat::from_u64(0xF000000000).leading_zero_values(), 0);
+        assert_eq!(Bigfloat::from_u128(0xF0000000000000000000000000).leading_zero_values(), 0);
+    }
+
+    #[test]
+    fn trailing_zero_values_test() {
+        assert_eq!(Bigfloat::from_u32(0xFF).trailing_zero_values(), 0);
+        assert_eq!(Bigfloat::from_u64(0xFF00000000).trailing_zero_values(), 1);
+        assert_eq!(Bigfloat::from_u128(0xFF000000000000000000000000).trailing_zero_values(), 3);
+
+        assert_eq!(Bigfloat::from_u32(0xF).trailing_zero_values(), 0);
+        assert_eq!(Bigfloat::from_u64(0xF00000000).trailing_zero_values(), 1);
+        assert_eq!(Bigfloat::from_u128(0xF000000000000000000000000).trailing_zero_values(), 3);
+
+        assert_eq!(Bigfloat::from_u32(0xF0).trailing_zero_values(), 0);
+        assert_eq!(Bigfloat::from_u64(0xF000000000).trailing_zero_values(), 1);
+        assert_eq!(Bigfloat::from_u128(0xF0000000000000000000000000).trailing_zero_values(), 3);
+    }
+
+    #[test]
+    fn leading_zeros_test() {
+        assert_eq!(Bigfloat::from_u32(0xFF).leading_zeros(), 24);
+        assert_eq!(Bigfloat::from_u64(0xFF00000000).leading_zeros(), 24);
+        assert_eq!(Bigfloat::from_u128(0xFF000000000000000000000000).leading_zeros(), 24);
+
+        assert_eq!(Bigfloat::from_u32(0xF).leading_zeros(), 28);
+        assert_eq!(Bigfloat::from_u64(0xF00000000).leading_zeros(), 28);
+        assert_eq!(Bigfloat::from_u128(0xF000000000000000000000000).leading_zeros(), 28);
+
+        assert_eq!(Bigfloat::from_u32(0xF0).leading_zeros(), 24);
+        assert_eq!(Bigfloat::from_u64(0xF000000000).leading_zeros(), 24);
+        assert_eq!(Bigfloat::from_u128(0xF0000000000000000000000000).leading_zeros(), 24);
+    }
+
+    #[test]
+    fn trailing_zeros_test() {
+        assert_eq!(Bigfloat::from_u32(0xFF).trailing_zeros(), 0);
+        assert_eq!(Bigfloat::from_u64(0xFF00000000).trailing_zeros(), 32);
+        assert_eq!(Bigfloat::from_u128(0xFF000000000000000000000000).trailing_zeros(), 96);
+
+        assert_eq!(Bigfloat::from_u32(0xF).trailing_zeros(), 0);
+        assert_eq!(Bigfloat::from_u64(0xF00000000).trailing_zeros(), 32);
+        assert_eq!(Bigfloat::from_u128(0xF000000000000000000000000).trailing_zeros(), 96);
+
+        assert_eq!(Bigfloat::from_u32(0xF0).trailing_zeros(), 4);
+        assert_eq!(Bigfloat::from_u64(0xF000000000).trailing_zeros(), 36);
+        assert_eq!(Bigfloat::from_u128(0xF0000000000000000000000000).trailing_zeros(), 100);
+    }
+
+    // ADDITION
 
     #[test]
     fn add_small_test() {
@@ -1235,6 +1401,8 @@ mod tests {
         x.add_large_assign(&y);
         assert_eq!(x, Bigfloat { data: smallvec![4294967294, 1], exponent: 0 });
     }
+
+    // MULTIPLICATION
 
     #[test]
     fn mul_small_test() {
@@ -1460,34 +1628,31 @@ mod tests {
         );
     }
 
+    // DIVISION
+
     // TODO(ahuszagh) Needs to pad to a number of bits.
-//    #[test]
-//    fn pad_division_test() {
-//        // Pad 0
-//        let mut x = Bigfloat::new();
-//        x.pad_division();
-//        assert_eq!(x, Bigfloat { data: smallvec![], exponent: 0 });
-//
+    #[test]
+    fn pad_division_test() {
 //        // Pad 1
 //        let mut x = Bigfloat::from_u32(1);
-//        x.pad_division();
+//        x.pad_division(4);
 //        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exponent: -96 });
 //
 //        // Pad 2
 //        let mut x = Bigfloat::from_u64(0x100000001);
-//        x.pad_division();
+//        x.pad_division(4);
 //        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 1, 1], exponent: -64 });
 //
 //        // Pad 3
 //        let mut x = Bigfloat { data: smallvec![1, 1, 1], exponent: 0 };
-//        x.pad_division();
+//        x.pad_division(4);
 //        assert_eq!(x, Bigfloat { data: smallvec![0, 1, 1, 1], exponent: -32 });
 //
 //        // Pad 4
 //        let mut x = Bigfloat::from_u128(0x1000000010000000100000001);
-//        x.pad_division();
+//        x.pad_division(4);
 //        assert_eq!(x, Bigfloat { data: smallvec![1, 1, 1, 1], exponent: 0 });
-//    }
+    }
 
     // TODO(ahuszagh) Add division tests.
 }

@@ -11,7 +11,7 @@ const DIGIT_TO_CHAR: [u8; 36] = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7',
 /// Get character from digit.
 #[inline(always)]
 pub(crate) fn digit_to_char<T: Integer>(digit: T) -> u8 {
-    let idx: usize = as_(digit);
+    let idx: usize = as_cast(digit);
     unsafe { *DIGIT_TO_CHAR.get_unchecked(idx) }
 }
 
@@ -48,7 +48,7 @@ const CHAR_TO_DIGIT: [u8; 256] = [
 /// Get digit from character.
 #[inline(always)]
 pub(crate) fn char_to_digit(c: u8) -> u8 {
-    let idx: usize = as_(c);
+    let idx: usize = as_cast(c);
     unsafe { *CHAR_TO_DIGIT.get_unchecked(idx) }
 }
 
@@ -159,8 +159,8 @@ const F32_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
 #[cfg(any(test, not(feature = "imprecise")))]
 impl ExactExponent for f32 {
     fn exponent_limit<T: Integer>(base: T) ->(i32, i32) {
-        let base: i32 = as_(base);
-        let idx: usize = as_(base - 2);
+        let base: i32 = as_cast(base);
+        let idx: usize = as_cast(base - 2);
         debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
 
         unsafe { *F32_EXACT_EXPONENT_LIMITS.get_unchecked(idx) }
@@ -213,8 +213,8 @@ const F64_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
 #[cfg(any(test, not(feature = "imprecise")))]
 impl ExactExponent for f64 {
     fn exponent_limit<T: Integer>(base: T) ->(i32, i32) {
-        let base: i32 = as_(base);
-        let idx: usize = as_(base - 2);
+        let base: i32 = as_cast(base);
+        let idx: usize = as_cast(base - 2);
         debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
 
         unsafe { *F64_EXACT_EXPONENT_LIMITS.get_unchecked(idx) }
@@ -582,12 +582,12 @@ impl TablePower for f32 {
     const POW2_EXPONENT_BIAS: i32 = 149;
 
     unsafe fn table_pow2(exponent: i32) -> f32 {
-        let idx: usize = as_(exponent + Self::POW2_EXPONENT_BIAS);
+        let idx: usize = as_cast(exponent + Self::POW2_EXPONENT_BIAS);
         *F32_POW2.get_unchecked(idx)
     }
 
     unsafe fn table_pow<T: Integer>(base: T, exponent: i32) -> f32 {
-        let base: i32 = as_(base);
+        let base: i32 = as_cast(base);
         let exponent = exponent as usize;
         match base {
             3  => *F32_POW3 .get_unchecked(exponent),
@@ -2771,12 +2771,12 @@ impl TablePower for f64 {
     const POW2_EXPONENT_BIAS: i32 = 1074;
 
     unsafe fn table_pow2(exponent: i32) -> f64 {
-        let idx: usize = as_(exponent + Self::POW2_EXPONENT_BIAS);
+        let idx: usize = as_cast(exponent + Self::POW2_EXPONENT_BIAS);
         *F64_POW2.get_unchecked(idx)
     }
 
     unsafe fn table_pow<T: Integer>(base: T, exponent: i32) -> f64 {
-        let base: i32 = as_(base);
+        let base: i32 = as_cast(base);
         let exponent = exponent as usize;
         match base {
             3  => *F64_POW3 .get_unchecked(exponent),

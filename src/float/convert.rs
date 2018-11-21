@@ -16,7 +16,7 @@ pub(super) fn from_int<M: Mantissa, T: Integer>(t: T) -> ExtendedFloat<M> {
     debug_assert!(mem::size_of::<T>() <= mem::size_of::<M>(), "Possible truncation in ExtendedFloat::from_int.");
 
     ExtendedFloat {
-        frac: as_(t),
+        frac: as_cast(t),
         exp: 0,
     }
 }
@@ -31,7 +31,7 @@ pub(super) fn from_float<M: Mantissa, T: Float>(t: T)
     -> ExtendedFloat<M>
 {
     ExtendedFloat {
-        frac: as_(t.significand()),
+        frac: as_cast(t.significand()),
         exp: t.exponent(),
     }
 }
@@ -56,13 +56,13 @@ pub(super) fn as_float<M: Mantissa, T: Float>(fp: ExtendedFloat<M>)
     } else {
         // calculate the exp and fraction bits, and return a float from bits.
         let exp: M;
-        if (fp.exp == T::DENORMAL_EXPONENT) && (fp.frac & as_::<M, _>(T::HIDDEN_BIT_MASK)).is_zero() {
+        if (fp.exp == T::DENORMAL_EXPONENT) && (fp.frac & as_cast::<M, _>(T::HIDDEN_BIT_MASK)).is_zero() {
             exp = M::ZERO;
         } else {
-            exp = as_::<M, _>(fp.exp + T::EXPONENT_BIAS);
+            exp = as_cast::<M, _>(fp.exp + T::EXPONENT_BIAS);
         }
         let exp = exp << T::MANTISSA_SIZE;
-        let frac = fp.frac & as_::<M, _>(T::MANTISSA_MASK);
-        T::from_bits(as_(frac | exp))
+        let frac = fp.frac & as_cast::<M, _>(T::MANTISSA_MASK);
+        T::from_bits(as_cast(frac | exp))
     }
 }
