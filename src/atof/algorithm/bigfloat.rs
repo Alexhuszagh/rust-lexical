@@ -5,7 +5,7 @@
 
 use smallvec;
 use float::Mantissa;
-use lib::{mem, slice};
+use lib::{mem, iter, slice};
 use util::*;
 
 // ADD
@@ -34,7 +34,8 @@ fn add_small_assign<T: Integer>(x: &mut T, y: T)
 ///
 /// Returns the (low, high) components.
 #[inline(always)]
-fn mul_small<Wide, Narrow>(x: Narrow, y: Narrow, carry: Narrow) -> (Narrow, Narrow)
+fn mul_small<Wide, Narrow>(x: Narrow, y: Narrow, carry: Narrow)
+    -> (Narrow, Narrow)
     where Narrow: Integer,
           Wide: Integer
 {
@@ -51,7 +52,8 @@ fn mul_small<Wide, Narrow>(x: Narrow, y: Narrow, carry: Narrow) -> (Narrow, Narr
 
 /// Multiply two small integers (with carry) (and return if overflow happens).
 #[inline(always)]
-fn mul_small_assign<Wide, Narrow>(x: &mut Narrow, y: Narrow, carry: Narrow) -> Narrow
+fn mul_small_assign<Wide, Narrow>(x: &mut Narrow, y: Narrow, carry: Narrow)
+    -> Narrow
     where Narrow: Integer,
           Wide: Integer
 {
@@ -59,6 +61,35 @@ fn mul_small_assign<Wide, Narrow>(x: &mut Narrow, y: Narrow, carry: Narrow) -> N
     *x = t.0;
     t.1
 }
+
+// DIVISION
+
+/// Divide two small integers (with remainder) (and return the remainder contribution).
+///
+/// Returns the (value, remainder) components.
+#[inline(always)]
+fn div_small<T: Integer>(x: T, y: T, rem: T)
+    -> (T, T)
+{
+    // Use wrapping sub, since if we have underflow, we need to have the above
+    // item correctly wrap to higher bits.
+    let x = x.wrapping_sub(rem);
+    (x / y, x % y)
+}
+
+/// DivAssign two small integers and return the remainder.
+#[inline(always)]
+fn div_small_assign<T: Integer>(x: &mut T, y: T, rem: T)
+    -> T
+{
+    let t = div_small(*x, y, rem);
+    *x = t.0;
+    t.1
+}
+
+// TODO(ahuszagh) Add div....
+// We're gonna need wrapping sub, then div.
+// Likely add 96-bits (3x32) of guard digits for the division...
 
 // FROM BYTES
 
@@ -169,6 +200,18 @@ impl Bigfloat {
         }
     }
 
+    // PROPERTIES
+
+    /// Number of bits in the underlying storage.
+    const BITS: usize = mem::size_of::<u32>() * 8;
+
+    /// Get number of leading zeros in Bigfloat.
+    #[inline]
+    pub fn leading_zeros(&self) -> u32 {
+        debug_assert!(self.data.is_empty(), "Bigfloat::leading_zeros() data cannot be empty.");
+        self.back().leading_zeros()
+    }
+
     // ADDITION
 
     /// Implementation for AssAssign with small integer. Must be non-empty.
@@ -213,7 +256,7 @@ impl Bigfloat {
     #[inline]
     fn add_large_assign(&mut self, y: &Bigfloat) {
         // Logic error, ensure both numbers have the same exponent.
-        debug_assert!(self.exponent == y.exponent);
+        debug_assert!(self.exponent == y.exponent, "Bigfloat::add_large_assign different exponents");
 
         // Get the number of values to add_assign between them.
         // Resize the buffer so at least y.data elements are in x.data.
@@ -280,7 +323,7 @@ impl Bigfloat {
     // MulAssign using pre-calculated small powers.
     #[inline]
     fn mul_spowers_assign(&mut self, mut n: i32, small_powers: &[u32]) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_spowers_assign() must multiply by a positive power.");
 
         let get_power = | i: usize | unsafe { *small_powers.get_unchecked(i) };
 
@@ -300,7 +343,7 @@ impl Bigfloat {
     /// MulAssign by a power of 2.
     #[inline]
     fn mul_pow2_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow2_assign() must multiply by a positive power.");
 
         // Increment exponent to simulate actual addition.
         self.exponent = self.exponent.checked_add(n).unwrap_or(i32::max_value());
@@ -309,7 +352,7 @@ impl Bigfloat {
     /// MulAssign by a power of 3.
     #[inline]
     fn mul_pow3_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow3_assign() must multiply by a positive power.");
 
         const SMALL_POWERS: [u32; 21] = [
             1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049,
@@ -322,7 +365,7 @@ impl Bigfloat {
     /// MulAssign by a power of 4.
     #[inline]
     fn mul_pow4_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow4_assign() must multiply by a positive power.");
 
         // Use 4**n = 2**(2n) to minimize overflow checks.
         self.mul_pow2_assign(n.checked_mul(2).unwrap_or(i32::max_value()));
@@ -331,7 +374,7 @@ impl Bigfloat {
     /// MulAssign by a power of 5.
     #[inline]
     fn mul_pow5_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow5_assign() must multiply by a positive power.");
 
         const SMALL_POWERS: [u32; 14] = [
             1, 5, 25, 125, 625, 3125, 15625, 78125, 390625,
@@ -343,7 +386,7 @@ impl Bigfloat {
     /// MulAssign by a power of 6.
     #[inline]
     fn mul_pow6_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow6_assign() must multiply by a positive power.");
 
         self.mul_pow2_assign(n);
         self.mul_pow3_assign(n);
@@ -352,7 +395,7 @@ impl Bigfloat {
     /// MulAssign by a power of 7.
     #[inline]
     fn mul_pow7_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow7_assign() must multiply by a positive power.");
 
         const SMALL_POWERS: [u32; 12] = [
             1, 7, 49, 343, 2401, 16807, 117649, 823543,
@@ -364,7 +407,7 @@ impl Bigfloat {
     /// MulAssign by a power of 8.
     #[inline]
     fn mul_pow8_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow8_assign() must multiply by a positive power.");
 
         // Use 8**n = 2**(3n) to minimize overflow checks.
         self.mul_pow2_assign(n.checked_mul(3).unwrap_or(i32::max_value()));
@@ -373,7 +416,7 @@ impl Bigfloat {
     /// MulAssign by a power of 9.
     #[inline]
     fn mul_pow9_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow9_assign() must multiply by a positive power.");
 
         self.mul_pow3_assign(n);
         self.mul_pow3_assign(n);
@@ -382,7 +425,7 @@ impl Bigfloat {
     /// MulAssign by a power of 10.
     #[inline]
     fn mul_pow10_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow10_assign() must multiply by a positive power.");
 
         self.mul_pow2_assign(n);
         self.mul_pow5_assign(n);
@@ -391,16 +434,16 @@ impl Bigfloat {
     /// MulAssign by a power of 11.
     #[inline]
     fn mul_pow11_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow11_assign() must multiply by a positive power.");
 
         const SMALL_POWERS: [u32; 10] = [1, 11, 121, 1331, 14641, 161051, 1771561, 19487171, 214358881, 2357947691];
-        self.mul_spowers_assign(n, &SMALL_POWERS)
+        self.mul_spowers_assign(n, &SMALL_POWERS);
     }
 
     /// MulAssign by a power of 12.
     #[inline]
     fn mul_pow12_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow12_assign() must multiply by a positive power.");
 
         self.mul_pow3_assign(n);
         self.mul_pow4_assign(n);
@@ -409,16 +452,16 @@ impl Bigfloat {
     /// MulAssign by a power of 13.
     #[inline]
     fn mul_pow13_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow13_assign() must multiply by a positive power.");
 
         const SMALL_POWERS: [u32; 9] = [1, 13, 169, 2197, 28561, 371293, 4826809, 62748517, 815730721];
-        self.mul_spowers_assign(n, &SMALL_POWERS)
+        self.mul_spowers_assign(n, &SMALL_POWERS);
     }
 
     /// MulAssign by a power of 14.
     #[inline]
     fn mul_pow14_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow14_assign() must multiply by a positive power.");
 
         self.mul_pow2_assign(n);
         self.mul_pow7_assign(n);
@@ -427,7 +470,7 @@ impl Bigfloat {
     /// MulAssign by a power of 15.
     #[inline]
     fn mul_pow15_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow15_assign() must multiply by a positive power.");
 
         self.mul_pow3_assign(n);
         self.mul_pow5_assign(n);
@@ -436,7 +479,7 @@ impl Bigfloat {
     /// MulAssign by a power of 16.
     #[inline]
     fn mul_pow16_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow16_assign() must multiply by a positive power.");
 
         // Use 16**n = 2**(4n) to minimize overflow checks.
         self.mul_pow2_assign(n.checked_mul(4).unwrap_or(i32::max_value()));
@@ -445,16 +488,16 @@ impl Bigfloat {
     /// MulAssign by a power of 17.
     #[inline]
     fn mul_pow17_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow17_assign() must multiply by a positive power.");
 
         const SMALL_POWERS: [u32; 8] = [1, 17, 289, 4913, 83521, 1419857, 24137569, 410338673];
-        self.mul_spowers_assign(n, &SMALL_POWERS)
+        self.mul_spowers_assign(n, &SMALL_POWERS);
     }
 
     /// MulAssign by a power of 18.
     #[inline]
     fn mul_pow18_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow18_assign() must multiply by a positive power.");
 
         self.mul_pow2_assign(n);
         self.mul_pow9_assign(n);
@@ -463,33 +506,34 @@ impl Bigfloat {
     /// MulAssign by a power of 19.
     #[inline]
     fn mul_pow19_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow19_assign() must multiply by a positive power.");
 
-        unimplemented!()
+        const SMALL_POWERS: [u32; 8] = [1, 19, 361, 6859, 130321, 2476099, 47045881, 893871739];
+        self.mul_spowers_assign(n, &SMALL_POWERS);
     }
 
     /// MulAssign by a power of 20.
     #[inline]
     fn mul_pow20_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow20_assign() must multiply by a positive power.");
 
-        self.mul_pow2_assign(n);
-        self.mul_pow10_assign(n);
+        self.mul_pow4_assign(n);
+        self.mul_pow5_assign(n);
     }
 
     /// MulAssign by a power of 21.
     #[inline]
     fn mul_pow21_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow21_assign() must multiply by a positive power.");
 
         const SMALL_POWERS: [u32; 8] = [1, 21, 441, 9261, 194481, 4084101, 85766121, 1801088541];
-        self.mul_spowers_assign(n, &SMALL_POWERS)
+        self.mul_spowers_assign(n, &SMALL_POWERS);
     }
 
     /// MulAssign by a power of 22.
     #[inline]
     fn mul_pow22_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow22_assign() must multiply by a positive power.");
 
         self.mul_pow2_assign(n);
         self.mul_pow11_assign(n);
@@ -498,25 +542,25 @@ impl Bigfloat {
     /// MulAssign by a power of 23.
     #[inline]
     fn mul_pow23_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow23_assign() must multiply by a positive power.");
 
         const SMALL_POWERS: [u32; 8] = [1, 23, 529, 12167, 279841, 6436343, 148035889, 3404825447];
-        self.mul_spowers_assign(n, &SMALL_POWERS)
+        self.mul_spowers_assign(n, &SMALL_POWERS);
     }
 
     /// MulAssign by a power of 24.
     #[inline]
     fn mul_pow24_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow24_assign() must multiply by a positive power.");
 
-        self.mul_pow2_assign(n);
-        self.mul_pow12_assign(n);
+        self.mul_pow3_assign(n);
+        self.mul_pow8_assign(n);
     }
 
     /// MulAssign by a power of 25.
     #[inline]
     fn mul_pow25_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow25_assign() must multiply by a positive power.");
 
         self.mul_pow5_assign(n);
         self.mul_pow5_assign(n);
@@ -525,7 +569,7 @@ impl Bigfloat {
     /// MulAssign by a power of 26.
     #[inline]
     fn mul_pow26_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow26_assign() must multiply by a positive power.");
 
         self.mul_pow2_assign(n);
         self.mul_pow13_assign(n);
@@ -534,7 +578,7 @@ impl Bigfloat {
     /// MulAssign by a power of 27.
     #[inline]
     fn mul_pow27_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow27_assign() must multiply by a positive power.");
 
         self.mul_pow3_assign(n);
         self.mul_pow9_assign(n);
@@ -543,24 +587,25 @@ impl Bigfloat {
     /// MulAssign by a power of 28.
     #[inline]
     fn mul_pow28_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow28_assign() must multiply by a positive power.");
 
-        self.mul_pow2_assign(n);
-        self.mul_pow14_assign(n);
+        self.mul_pow4_assign(n);
+        self.mul_pow7_assign(n);
     }
 
     /// MulAssign by a power of 29.
     #[inline]
     fn mul_pow29_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow29_assign() must multiply by a positive power.");
 
-        unimplemented!()
+        const SMALL_POWERS: [u32; 7] = [1, 29, 841, 24389, 707281, 20511149, 594823321];
+        self.mul_spowers_assign(n, &SMALL_POWERS);
     }
 
     /// MulAssign by a power of 30.
     #[inline]
     fn mul_pow30_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow30_assign() must multiply by a positive power.");
 
         self.mul_pow2_assign(n);
         self.mul_pow15_assign(n);
@@ -569,16 +614,16 @@ impl Bigfloat {
     /// MulAssign by a power of 31.
     #[inline]
     fn mul_pow31_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow31_assign() must multiply by a positive power.");
 
         const SMALL_POWERS: [u32; 7] = [1, 31, 961, 29791, 923521, 28629151, 887503681];
-        self.mul_spowers_assign(n, &SMALL_POWERS)
+        self.mul_spowers_assign(n, &SMALL_POWERS);
     }
 
     /// MulAssign by a power of 32.
     #[inline]
     fn mul_pow32_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow32_assign() must multiply by a positive power.");
 
         // Use 32**n = 2**(5n) to minimize overflow checks.
         self.mul_pow2_assign(n.checked_mul(5).unwrap_or(i32::max_value()));
@@ -587,7 +632,7 @@ impl Bigfloat {
     /// MulAssign by a power of 33.
     #[inline]
     fn mul_pow33_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow33_assign() must multiply by a positive power.");
 
         self.mul_pow3_assign(n);
         self.mul_pow11_assign(n);
@@ -596,7 +641,7 @@ impl Bigfloat {
     /// MulAssign by a power of 34.
     #[inline]
     fn mul_pow34_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow34_assign() must multiply by a positive power.");
 
         self.mul_pow2_assign(n);
         self.mul_pow17_assign(n);
@@ -605,7 +650,7 @@ impl Bigfloat {
     /// MulAssign by a power of 35.
     #[inline]
     fn mul_pow35_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow35_assign() must multiply by a positive power.");
 
         self.mul_pow5_assign(n);
         self.mul_pow7_assign(n);
@@ -614,13 +659,74 @@ impl Bigfloat {
     /// MulAssign by a power of 36.
     #[inline]
     fn mul_pow36_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Must be multiplying by a positive power.");
+        debug_assert!(n >= 0, "Bigfloat::mul_pow36_assign() must multiply by a positive power.");
 
-        self.mul_pow2_assign(n);
-        self.mul_pow18_assign(n);
+        self.mul_pow4_assign(n);
+        self.mul_pow9_assign(n);
     }
 
     // DIVISION
+
+    /// Pad bits for division. Only needs to be called once.
+    /// Value should be non-zero.
+    #[inline]
+    fn pad_division(&mut self) {
+        // Pad up to 128-bits of total precision, guaranteeing at least
+        // 64 guard bits for operations.
+        match self.data.len() {
+            // Should never reach a divide-by-zero case.
+            1 => {
+                // Extended with 3 zeros, and move 0 -> 3
+                self.data.extend(iter::repeat(0).take(3));
+                self.data.swap(0, 3);
+                self.exponent -= 3 * Self::BITS as i32;
+            },
+            2 => {
+                // Extended with 2 zeros, and move 0 -> 2, 1 -> 3
+                self.data.extend(iter::repeat(0).take(2));
+                self.data.swap(1, 3);
+                self.data.swap(0, 2);
+                self.exponent -= 2 * Self::BITS as i32;
+            },
+            3 => {
+                // Extended with 1 zeros, and move 0 -> 1, 1 -> 2, 2 -> 3
+                self.data.extend(iter::repeat(0).take(1));
+                self.data.swap(2, 3);
+                self.data.swap(1, 2);
+                self.data.swap(0, 1);
+                self.exponent -= Self::BITS as i32;
+            },
+            // Has enough bits to avoid rounding error, or is a literal 0.
+            _ => (),
+        }
+    }
+
+    /// DivAssign small integer to bigfloat.
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    fn div_small_assign(&mut self, y: u32) {
+        // Divide iteratively over all elements, adding the carry each time.
+        let mut rem: u32 = 0;
+        for x in self.data.iter_mut().rev() {
+            rem = div_small_assign(x, y, rem);
+        }
+
+        // Round-up if there's truncation in least-significant bit.
+        // Due to our bases, rem is always <= 0x80000000, which is the midway
+        // point for when we should round.
+        if rem != 0 {
+            debug_assert!(rem <= 0x80000000, "Bigfloat::div_small_assign() assumed base is <= midway.");
+            *self.front_mut() += 1;
+        }
+    }
+
+    /// Div small integer to bigfloat.
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_small(&self, y: u32) -> Bigfloat {
+        let mut x = self.clone();
+        x.div_small_assign(y);
+        x
+    }
 
     // TODO(ahuszagh) Need div_small_assign
     // TODO(ahuszagh) Need div_small
@@ -875,29 +981,226 @@ mod tests {
 
     /// Checker for the mul_pown tests.
     macro_rules! check_mul_pow {
-        ($e:expr, $i:expr, $func:ident) => ({
+        ($input_data:expr, $input_exp:expr, $result_data:expr, $result_exp:expr, $n:expr, $func:ident)
+        => ({
+            let mut i = Bigfloat { data: $input_data, exponent: $input_exp };
+            i.$func($n);
+            assert_eq!(Bigfloat {data: $result_data, exponent: $result_exp }, i);
+        });
+    }
+
+    /// Checker for the mul_pow2 tests.
+    macro_rules! check_mul_pow2 {
+        ($func:ident, $n:expr) => ({
+            check_mul_pow!(smallvec![], 0, smallvec![], 0, 0, $func);
+            check_mul_pow!(smallvec![1], 0, smallvec![1], 0, 0, $func);
+            check_mul_pow!(smallvec![1], 0, smallvec![1], $n*1, 1, $func);
+            check_mul_pow!(smallvec![1], 0, smallvec![1], $n*4, 4, $func);
+            check_mul_pow!(smallvec![1], 0, smallvec![1], MAX_2.checked_mul($n).unwrap_or(MAX_I32), MAX_2, $func);
+            check_mul_pow!(smallvec![1], 0, smallvec![1], MAX_4.checked_mul($n).unwrap_or(MAX_I32), MAX_4, $func);
+            check_mul_pow!(smallvec![1], 0, smallvec![1], MAX_8.checked_mul($n).unwrap_or(MAX_I32), MAX_8, $func);
+            check_mul_pow!(smallvec![1], 0, smallvec![1], MAX_16.checked_mul($n).unwrap_or(MAX_I32), MAX_16, $func);
+            check_mul_pow!(smallvec![1], 0, smallvec![1], MAX_32.checked_mul($n).unwrap_or(MAX_I32), MAX_32, $func);
+            check_mul_pow!(smallvec![1], 0, smallvec![1], MAX_I32, MAX_I32, $func);
+            check_mul_pow!(smallvec![1], 1, smallvec![1], MAX_I32, MAX_I32, $func);
         })
+    }
+
+    /// Checker for the mul_pow2n tests.
+    macro_rules! check_mul_pown {
+        ($input_data:expr, $input_exp:expr, $n:expr ; $($result_data:expr, $result_exp:expr, $func:ident ; )+)
+        => ($(
+            check_mul_pow!($input_data, $input_exp, $result_data, $result_exp, $n, $func);
+        )*)
     }
 
     #[test]
     fn mul_pow2_test() {
-        // TODO(ahuszagh) implement...
-        // pow2
-        // pow4
-        // pow8
-        // pow16
-        // pow32
+        // Constants (used to avoid rounding error).
+        const MAX_I32: i32 = i32::max_value();
+        const MAX_32: i32 = MAX_I32 / 32;
+        const MAX_16: i32 = MAX_32 * 2;
+        const MAX_8: i32 = MAX_16 * 2;
+        const MAX_4: i32 = MAX_8 * 2;
+        const MAX_2: i32 = MAX_4 * 2;
+        const MAX_1: i32 = MAX_2 * 2;
+
+        check_mul_pow2!(mul_pow2_assign, 1);
+        check_mul_pow2!(mul_pow4_assign, 2);
+        check_mul_pow2!(mul_pow8_assign, 3);
+        check_mul_pow2!(mul_pow16_assign, 4);
+        check_mul_pow2!(mul_pow32_assign, 5);
     }
 
     #[test]
     fn mul_pown_test() {
-        // TODO(ahuszagh) implement...
-        // pow3
-        // pow5
-        // pow6
-        // pow7
-        // pow9
-        // pow...
+        // Zero case
+        check_mul_pown!(
+            smallvec![], 0, 0 ;
+            smallvec![], 0, mul_pow3_assign ;
+            smallvec![], 0, mul_pow5_assign ;
+            smallvec![], 0, mul_pow6_assign ;
+            smallvec![], 0, mul_pow7_assign ;
+            smallvec![], 0, mul_pow9_assign ;
+            smallvec![], 0, mul_pow10_assign ;
+            smallvec![], 0, mul_pow11_assign ;
+            smallvec![], 0, mul_pow12_assign ;
+            smallvec![], 0, mul_pow13_assign ;
+            smallvec![], 0, mul_pow14_assign ;
+            smallvec![], 0, mul_pow15_assign ;
+            smallvec![], 0, mul_pow17_assign ;
+            smallvec![], 0, mul_pow18_assign ;
+            smallvec![], 0, mul_pow19_assign ;
+            smallvec![], 0, mul_pow20_assign ;
+            smallvec![], 0, mul_pow21_assign ;
+            smallvec![], 0, mul_pow22_assign ;
+            smallvec![], 0, mul_pow23_assign ;
+            smallvec![], 0, mul_pow24_assign ;
+            smallvec![], 0, mul_pow25_assign ;
+            smallvec![], 0, mul_pow26_assign ;
+            smallvec![], 0, mul_pow27_assign ;
+            smallvec![], 0, mul_pow28_assign ;
+            smallvec![], 0, mul_pow29_assign ;
+            smallvec![], 0, mul_pow30_assign ;
+            smallvec![], 0, mul_pow31_assign ;
+            smallvec![], 0, mul_pow33_assign ;
+            smallvec![], 0, mul_pow34_assign ;
+            smallvec![], 0, mul_pow35_assign ;
+            smallvec![], 0, mul_pow36_assign ;
+        );
+
+        // 1 case ** pow2
+        check_mul_pown!(
+            smallvec![1], 0, 2 ;
+            smallvec![9], 0, mul_pow3_assign ;
+            smallvec![25], 0, mul_pow5_assign ;
+            smallvec![9], 2, mul_pow6_assign ;
+            smallvec![49], 0, mul_pow7_assign ;
+            smallvec![81], 0, mul_pow9_assign ;
+            smallvec![25], 2, mul_pow10_assign ;
+            smallvec![121], 0, mul_pow11_assign ;
+            smallvec![9], 4, mul_pow12_assign ;
+            smallvec![169], 0, mul_pow13_assign ;
+            smallvec![49], 2, mul_pow14_assign ;
+            smallvec![225], 0, mul_pow15_assign ;
+            smallvec![289], 0, mul_pow17_assign ;
+            smallvec![81], 2, mul_pow18_assign ;
+            smallvec![361], 0, mul_pow19_assign ;
+            smallvec![25], 4, mul_pow20_assign ;
+            smallvec![441], 0, mul_pow21_assign ;
+            smallvec![121], 2, mul_pow22_assign ;
+            smallvec![529], 0, mul_pow23_assign ;
+            smallvec![9], 6, mul_pow24_assign ;
+            smallvec![625], 0, mul_pow25_assign ;
+            smallvec![169], 2, mul_pow26_assign ;
+            smallvec![729], 0, mul_pow27_assign ;
+            smallvec![49], 4, mul_pow28_assign ;
+            smallvec![841], 0, mul_pow29_assign ;
+            smallvec![225], 2, mul_pow30_assign ;
+            smallvec![961], 0, mul_pow31_assign ;
+            smallvec![1089], 0, mul_pow33_assign ;
+            smallvec![289], 2, mul_pow34_assign ;
+            smallvec![1225], 0, mul_pow35_assign ;
+            smallvec![81], 4, mul_pow36_assign ;
+        );
+
+        // Non-1 case * pow2
+        check_mul_pown!(
+            smallvec![7], 0, 2 ;
+            smallvec![63], 0, mul_pow3_assign ;
+            smallvec![175], 0, mul_pow5_assign ;
+            smallvec![63], 2, mul_pow6_assign ;
+            smallvec![343], 0, mul_pow7_assign ;
+            smallvec![567], 0, mul_pow9_assign ;
+            smallvec![175], 2, mul_pow10_assign ;
+            smallvec![847], 0, mul_pow11_assign ;
+            smallvec![63], 4, mul_pow12_assign ;
+            smallvec![1183], 0, mul_pow13_assign ;
+            smallvec![343], 2, mul_pow14_assign ;
+            smallvec![1575], 0, mul_pow15_assign ;
+            smallvec![2023], 0, mul_pow17_assign ;
+            smallvec![567], 2, mul_pow18_assign ;
+            smallvec![2527], 0, mul_pow19_assign ;
+            smallvec![175], 4, mul_pow20_assign ;
+            smallvec![3087], 0, mul_pow21_assign ;
+            smallvec![847], 2, mul_pow22_assign ;
+            smallvec![3703], 0, mul_pow23_assign ;
+            smallvec![63], 6, mul_pow24_assign ;
+            smallvec![4375], 0, mul_pow25_assign ;
+            smallvec![1183], 2, mul_pow26_assign ;
+            smallvec![5103], 0, mul_pow27_assign ;
+            smallvec![343], 4, mul_pow28_assign ;
+            smallvec![5887], 0, mul_pow29_assign ;
+            smallvec![1575], 2, mul_pow30_assign ;
+            smallvec![6727], 0, mul_pow31_assign ;
+            smallvec![7623], 0, mul_pow33_assign ;
+            smallvec![2023], 2, mul_pow34_assign ;
+            smallvec![8575], 0, mul_pow35_assign ;
+            smallvec![567], 4, mul_pow36_assign ;
+        );
+
+        // Overflow case
+        check_mul_pown!(
+            smallvec![7], 0, 22 ;
+            smallvec![624085167, 51], 0, mul_pow3_assign ;
+            smallvec![2517658495, 3885780], 0, mul_pow5_assign ;
+            smallvec![624085167, 51], 22, mul_pow6_assign ;
+            smallvec![821077879, 2077315763, 1], 0, mul_pow7_assign ;
+            smallvec![363536663, 2971099641, 373], 0, mul_pow9_assign ;
+            smallvec![2517658495, 3885780], 22, mul_pow10_assign ;
+            smallvec![3435804255, 4136938383, 30889], 0, mul_pow11_assign ;
+            smallvec![624085167, 51], 44, mul_pow12_assign ;
+            smallvec![1461939919, 4042437051, 1218798], 0, mul_pow13_assign ;
+            smallvec![821077879, 2077315763, 1], 22, mul_pow14_assign ;
+            smallvec![4148791143, 1053307084, 28391348], 0, mul_pow15_assign ;
+            smallvec![4274854567, 3675497104, 445712267], 0, mul_pow17_assign ;
+            smallvec![363536663, 2971099641, 373], 22, mul_pow18_assign ;
+            smallvec![442098831, 2102541774, 854443491, 1], 0, mul_pow19_assign ;
+            smallvec![2517658495, 3885780], 44, mul_pow20_assign ;
+            smallvec![229089951, 1212071740, 3609236746, 10], 0, mul_pow21_assign ;
+            smallvec![3435804255, 4136938383, 30889], 22, mul_pow22_assign ;
+            smallvec![1478922199, 2466168986, 903793223, 80], 0, mul_pow23_assign ;
+            smallvec![624085167, 51], 66, mul_pow24_assign ;
+            smallvec![3338697911, 3024324511, 967955121, 502], 0, mul_pow25_assign ;
+            smallvec![1461939919, 4042437051, 1218798], 22, mul_pow26_assign ;
+            smallvec![3861939007, 3545742225, 1582773326, 2730], 0, mul_pow27_assign ;
+            smallvec![821077879, 2077315763, 1], 44, mul_pow28_assign ;
+            smallvec![2186041071, 2503332440, 2033127165, 13151], 0, mul_pow29_assign ;
+            smallvec![4148791143, 1053307084, 28391348], 22, mul_pow30_assign ;
+            smallvec![123416775, 3495261177, 2153535316, 57039], 0, mul_pow31_assign ;
+            smallvec![2037864263, 1104016441, 2837850123, 225696], 0, mul_pow33_assign ;
+            smallvec![4274854567, 3675497104, 445712267], 22, mul_pow34_assign ;
+            smallvec![649085551, 1084312505, 1210820426, 823598], 0, mul_pow35_assign ;
+            smallvec![363536663, 2971099641, 373], 44, mul_pow36_assign ;
+        );
+    }
+
+    #[test]
+    fn pad_division_test() {
+        // Pad 0
+        let mut x = Bigfloat::new();
+        x.pad_division();
+        assert_eq!(x, Bigfloat { data: smallvec![], exponent: 0 });
+
+        // Pad 1
+        let mut x = Bigfloat::from_u32(1);
+        x.pad_division();
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exponent: -96 });
+
+        // Pad 2
+        let mut x = Bigfloat::from_u64(0x100000001);
+        x.pad_division();
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 1, 1], exponent: -64 });
+
+        // Pad 3
+        let mut x = Bigfloat { data: smallvec![1, 1, 1], exponent: 0 };
+        x.pad_division();
+        assert_eq!(x, Bigfloat { data: smallvec![0, 1, 1, 1], exponent: -32 });
+
+        // Pad 4
+        let mut x = Bigfloat::from_u128(0x1000000010000000100000001);
+        x.pad_division();
+        assert_eq!(x, Bigfloat { data: smallvec![1, 1, 1, 1], exponent: 0 });
     }
 
     // TODO(ahuszagh) Add division tests.
