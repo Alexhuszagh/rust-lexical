@@ -68,7 +68,12 @@ unsafe extern "C" fn is_infinity(first: *const u8, length: usize)
 unsafe extern "C" fn is_zero(first: *const u8, length: usize)
     -> bool
 {
-    length == 3 && equal_to(first, "0.0".as_ptr(), 3)
+    // Ignore other variants of 0, we just want to most common literal ones.
+    match length {
+        1 => equal_to(first, "0".as_ptr(), 1),
+        3 => equal_to(first, "0.0".as_ptr(), 3),
+        _ => false,
+    }
 }
 
 // ATOF
@@ -82,7 +87,7 @@ unsafe fn filter_special<F: StringToFloat>(base: u32, first: *const u8, last: *c
     // special case checks
     let length = distance(first, last);
     if is_zero(first, length) {
-        (F::ZERO, first.add(3))
+        (F::ZERO, first.add(length))
     } else if is_infinity(first, length) {
         (F::INFINITY, first.add(INFINITY_STRING.len()))
     } else if is_nan(first, length) {

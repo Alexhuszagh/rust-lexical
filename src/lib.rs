@@ -29,7 +29,7 @@ extern crate cfg_if;
 extern crate alloc;
 
 // Use smallvec for Bigfloat class, which requires precise and a runtime.
-#[cfg(not(feature = "imprecise"))]
+#[cfg(any(test, not(feature = "imprecise")))]
 #[macro_use]
 extern crate smallvec;
 

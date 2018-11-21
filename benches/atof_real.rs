@@ -62,12 +62,39 @@ fn read_data() -> &'static String {
     &DATA
 }
 
+// F32
+
+// Benchmark to real data, downloaded from NASA Earth Observation.
+// http://neo.sci.gsfc.nasa.gov/servlet/RenderData?si=1582435&cs=rgb&format=CSV&width=720&height=360
+
+fn atof_real_f32_lexical(bench: &mut Bencher) {
+    let data = read_data();
+    bench.iter(|| {
+        for line in data.lines() {
+            for item in line.split(',') {
+                black_box(atof32_bytes(10, item.as_bytes()));
+            }
+        }
+    })
+}
+
+fn atof_real_f32_parse(bench: &mut Bencher) {
+    let data = read_data();
+    bench.iter(|| {
+        for line in data.lines() {
+            for item in line.split(',') {
+                black_box(item.parse::<f32>().unwrap());
+            }
+        }
+    })
+}
+
 // F64
 
 // Benchmark to real data, downloaded from NASA Earth Observation.
 // http://neo.sci.gsfc.nasa.gov/servlet/RenderData?si=1582435&cs=rgb&format=CSV&width=720&height=360
 
-fn real_f64_lexical(bench: &mut Bencher) {
+fn atof_real_f64_lexical(bench: &mut Bencher) {
     let data = read_data();
     bench.iter(|| {
         for line in data.lines() {
@@ -78,7 +105,7 @@ fn real_f64_lexical(bench: &mut Bencher) {
     })
 }
 
-fn real_f64_parse(bench: &mut Bencher) {
+fn atof_real_f64_parse(bench: &mut Bencher) {
     let data = read_data();
     bench.iter(|| {
         for line in data.lines() {
@@ -91,9 +118,6 @@ fn real_f64_parse(bench: &mut Bencher) {
 
 // MAIN
 
-benchmark_group!(
-    benches,
-    real_f64_lexical,
-    real_f64_parse,
-);
-benchmark_main!(benches);
+benchmark_group!(f32_benches, atof_real_f32_lexical, atof_real_f32_parse);
+benchmark_group!(f64_benches, atof_real_f64_lexical, atof_real_f64_parse);
+benchmark_main!(f32_benches, f64_benches);

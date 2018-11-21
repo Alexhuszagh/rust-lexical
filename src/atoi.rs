@@ -191,14 +191,11 @@ unsafe fn checked_unsafe<T>(value: &mut T, base: T, first: *const u8, last: *con
         if truncated_p == last {
             // Chain these two operations before we assign, since
             // otherwise we get an invalid result.
-            let (v, o1) = value.overflowing_mul(base);
-            let (v, o2) = v.overflowing_add(digit);
-            if o1 | o2 {
-                // Overflow occured, set truncated position
-                truncated_p = p;
-            } else {
+            match value.checked_mul(base).and_then(|v| v.checked_add(digit)) {
                 // No overflow, assign the value.
-                *value = v;
+                Some(v) => *value = v,
+                // Overflow occurred, set truncated position
+                None    => truncated_p = p,
             }
         }
         // Always increment the pointer.
