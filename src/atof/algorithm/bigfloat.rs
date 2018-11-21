@@ -10,15 +10,21 @@ use util::*;
 
 // ADD
 
+// TODO(ahuszagh) Add the carry component?????
+
 /// Add two small integers (and return if overflow happens).
 #[inline(always)]
-fn add_small<T: Integer>(x: T, y: T) -> (T, bool) {
+fn add_small<T: Integer>(x: T, y: T)
+    -> (T, bool)
+{
     x.overflowing_add(y)
 }
 
 /// Add two small integers (and return if overflow happens).
 #[inline(always)]
-fn add_small_assign<T: Integer>(x: &mut T, y: T) -> bool {
+fn add_small_assign<T: Integer>(x: &mut T, y: T)
+    -> bool
+{
     let t = add_small(*x, y);
     *x = t.0;
     t.1
@@ -26,13 +32,17 @@ fn add_small_assign<T: Integer>(x: &mut T, y: T) -> bool {
 
 /// Increment on the case of overflow.
 #[inline(always)]
-fn add_one<T: Integer>(x: T) -> (T, bool) {
+fn add_one<T: Integer>(x: T)
+    -> (T, bool)
+{
     x.overflowing_add(T::ONE)
 }
 
 /// Increment on the case of overflow.
 #[inline(always)]
-fn add_one_assign<T: Integer>(x: &mut T) -> bool {
+fn add_one_assign<T: Integer>(x: &mut T)
+    -> bool
+{
     let t = add_one(*x);
     *x = t.0;
     t.1
@@ -40,17 +50,35 @@ fn add_one_assign<T: Integer>(x: &mut T) -> bool {
 
 // MUL
 
-//macro_rules! mul {
-//    ($name:ident, $assign:ident) => (
-//        // Mul by N.
-//        #[inline]
-//        fn $name(self) -> Bigfloat {
-//            let mut x = self.clone();
-//            x.$assign();
-//            x
-//        }
-//    );
-//}
+/// Multiply two small integers (with carry) (and return the overflow contribution).
+///
+/// Returns the (low, high) components.
+#[inline(always)]
+fn mul_small<Wide, Narrow>(x: Narrow, y: Narrow, carry: Narrow) -> (Narrow, Narrow)
+    where Narrow: Integer,
+          Wide: Integer
+{
+    // Assert that wide is 2 times as wide as narrow.
+    debug_assert!(mem::size_of::<Narrow>()*2 == mem::size_of::<Wide>());
+
+    // Cannot overflow, as long as wide is 2x as wide. This is because
+    // the following is always true:
+    // `Wide::max_value() - (Narrow::max_value() * Narrow::max_value()) >= Narrow::max_value()`
+    let bits = mem::size_of::<Narrow>() * 8;
+    let z: Wide = as_::<Wide, _>(x) * as_::<Wide, _>(y) + as_::<Wide,_>(carry);
+    (as_::<Narrow, _>(z), as_::<Narrow, _>(z >> bits))
+}
+
+/// Multiply two small integers (with carry) (and return if overflow happens).
+#[inline(always)]
+fn mul_small_assign<Wide, Narrow>(x: &mut Narrow, y: Narrow, carry: Narrow) -> Narrow
+    where Narrow: Integer,
+          Wide: Integer
+{
+    let t = mul_small::<Wide, Narrow>(*x, y, carry);
+    *x = t.0;
+    t.1
+}
 
 // FROM BYTES
 
@@ -87,9 +115,6 @@ macro_rules! from_bytes {
 /// leading to incorrect rounding and incorrect results.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Bigfloat {
-    // TODO(ahuszagh) We can actually... make this a vector???
-    // Would allow arbitrary-precision floats.
-
     /// Raw data for the underlying buffer (exactly 32**2 for the largest float).
     /// Don't store more bytes for small floats, since the denormal floats
     /// have almost no bytes of precision.
@@ -103,9 +128,6 @@ pub(crate) struct Bigfloat {
 }
 
 impl Bigfloat {
-    // CONSTANTS
-    const BITS: usize = mem::size_of::<u32>() * 8;
-
     // CREATION
 
     /// Create new Bigfloat.
@@ -210,38 +232,37 @@ impl Bigfloat {
     /// AddAssign between two bigfloats.
     #[inline]
     fn add_large_assign(&mut self, y: &Bigfloat) {
-        unimplemented!()
+        // Logic error, ensure both numbers have the same exponent.
+        debug_assert!(self.exponent == y.exponent);
 
-        // TODO(ahuszagh) Need to change this...
-//        // Get the number of values to add_assign between them.
-//        // Only carry
-//        let size = self.size.max(y.size);
-//        let mut carry = false;
-//        for (l, r) in self.data.iter_mut().zip(y.data.iter()).take(size) {
-//            // Only one op of the two can overflow, since we added at max
-//            // u32::max_value() + u32::max_value(). Add the previous carry,
-//            // and store the current carry for the next.
-//            let mut tmp_carry = add_small_assign(l, *r);
-//            if carry {
-//                tmp_carry |= add_one_assign(l);
-//            }
-//            carry = tmp_carry;
-//        }
-//
-//        // Overflow from the previous bit.
-//        if carry {
-//            if self.size == self.data.len() {
-//                // Overflow for the entire container, shift-right all items
-//                // by 1 and assign a 1-bit to the top-most element, since
-//                // we can overflow by at max 1.
-//                self.shr(1);
-//                *self.back_mut() |= 1 << (Self::BITS-1);
-//            } else {
-//                // Just assign 1 to the next item.
-//                *self.get_mut(size) += 1;
-//                self.size = size + 1;
-//            }
-//        }
+        // Get the number of values to add_assign between them.
+        // Resize the buffer so at least y.data elements are in x.data.
+        let size = self.data.len().max(y.data.len());
+        self.data.resize(size, 0);
+
+        // Iteratively add elements from y to x.
+        let mut carry = false;
+        for (l, r) in self.data.iter_mut().zip(y.data.iter()).take(size) {
+            // Only one op of the two can overflow, since we added at max
+            // u32::max_value() + u32::max_value(). Add the previous carry,
+            // and store the current carry for the next.
+            let mut tmp_carry = add_small_assign(l, *r);
+            if carry {
+                tmp_carry |= add_one_assign(l);
+            }
+            carry = tmp_carry;
+        }
+
+        // Overflow from the previous bit.
+        if carry {
+            if size == self.data.len() {
+                // Overflow for the entire container, push 1 to the end.
+                self.data.push(1);
+            } else {
+                // Internal overflow, just add 1 to the next item.
+                *self.get_mut(size) += 1;
+            }
+        }
     }
 
     /// Add between two bigfloats.
@@ -254,178 +275,205 @@ impl Bigfloat {
 
     // MULTIPLICATION
 
-    /// Multiply in-place by a power of 2.
-    fn imul_pow2(&mut self, n: i32) {
+    /// MulAssign small integer to bigfloat.
+    fn mul_small_assign(&mut self, y: u32) {
+        // Multiply iteratively over all elements, adding the carry each time.
+        let mut carry: u32 = 0;
+        for x in self.data.iter_mut() {
+            carry = mul_small_assign::<u64, u32>(x, y, carry);
+        }
+
+        // Overflow of value, add to end.
+        if carry != 0 {
+            self.data.push(carry);
+        }
+    }
+
+    /// Mul small integer to bigfloat.
+    #[inline]
+    fn mul_small(&self, y: u32) -> Bigfloat {
+        let mut x = self.clone();
+        x.mul_small_assign(y);
+        x
+    }
+
+    /// MulAssign by a power of 2.
+    fn mul_pow2_assign(&mut self, n: i32) {
+        // Increment exponent to simulate actual addition.
+        self.exponent = match self.exponent.overflowing_add(n) {
+            (v, false) => v,
+            (_, true) => if n < 0 { i32::min_value() } else { i32::max_value() },
+        };
+    }
+
+    /// MulAssign by a power of 3.
+    fn mul_pow3_assign(&mut self, n: i32) {
+        // TODO(ahuszagh)
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 3.
-    fn imul_pow3(&mut self, n: i32) {
+    /// MulAssign by a power of 4.
+    fn mul_pow4_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 4.
-    fn imul_pow4(&mut self, n: i32) {
+    /// MulAssign by a power of 5.
+    fn mul_pow5_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 5.
-    fn imul_pow5(&mut self, n: i32) {
+    /// MulAssign by a power of 6.
+    fn mul_pow6_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 6.
-    fn imul_pow6(&mut self, n: i32) {
+    /// MulAssign by a power of 7.
+    fn mul_pow7_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 7.
-    fn imul_pow7(&mut self, n: i32) {
+    /// MulAssign by a power of 8.
+    fn mul_pow8_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 8.
-    fn imul_pow8(&mut self, n: i32) {
+    /// MulAssign by a power of 9.
+    fn mul_pow9_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 9.
-    fn imul_pow9(&mut self, n: i32) {
+    /// MulAssign by a power of 10.
+    fn mul_pow10_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 10.
-    fn imul_pow10(&mut self, n: i32) {
+    /// MulAssign by a power of 11.
+    fn mul_pow11_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 11.
-    fn imul_pow11(&mut self, n: i32) {
+    /// MulAssign by a power of 12.
+    fn mul_pow12_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 12.
-    fn imul_pow12(&mut self, n: i32) {
+    /// MulAssign by a power of 13.
+    fn mul_pow13_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 13.
-    fn imul_pow13(&mut self, n: i32) {
+    /// MulAssign by a power of 14.
+    fn mul_pow14_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 14.
-    fn imul_pow14(&mut self, n: i32) {
+    /// MulAssign by a power of 15.
+    fn mul_pow15_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 15.
-    fn imul_pow15(&mut self, n: i32) {
+    /// MulAssign by a power of 16.
+    fn mul_pow16_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 16.
-    fn imul_pow16(&mut self, n: i32) {
+    /// MulAssign by a power of 17.
+    fn mul_pow17_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 17.
-    fn imul_pow17(&mut self, n: i32) {
+    /// MulAssign by a power of 18.
+    fn mul_pow18_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 18.
-    fn imul_pow18(&mut self, n: i32) {
+    /// MulAssign by a power of 19.
+    fn mul_pow19_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 19.
-    fn imul_pow19(&mut self, n: i32) {
+    /// MulAssign by a power of 20.
+    fn mul_pow20_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 20.
-    fn imul_pow20(&mut self, n: i32) {
+    /// MulAssign by a power of 21.
+    fn mul_pow21_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 21.
-    fn imul_pow21(&mut self, n: i32) {
+    /// MulAssign by a power of 22.
+    fn mul_pow22_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 22.
-    fn imul_pow22(&mut self, n: i32) {
+    /// MulAssign by a power of 23.
+    fn mul_pow23_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 23.
-    fn imul_pow23(&mut self, n: i32) {
+    /// MulAssign by a power of 24.
+    fn mul_pow24_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 24.
-    fn imul_pow24(&mut self, n: i32) {
+    /// MulAssign by a power of 25.
+    fn mul_pow25_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 25.
-    fn imul_pow25(&mut self, n: i32) {
+    /// MulAssign by a power of 26.
+    fn mul_pow26_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 26.
-    fn imul_pow26(&mut self, n: i32) {
+    /// MulAssign by a power of 27.
+    fn mul_pow27_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 27.
-    fn imul_pow27(&mut self, n: i32) {
+    /// MulAssign by a power of 28.
+    fn mul_pow28_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 28.
-    fn imul_pow28(&mut self, n: i32) {
+    /// MulAssign by a power of 29.
+    fn mul_pow29_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 29.
-    fn imul_pow29(&mut self, n: i32) {
+    /// MulAssign by a power of 30.
+    fn mul_pow30_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 30.
-    fn imul_pow30(&mut self, n: i32) {
+    /// MulAssign by a power of 31.
+    fn mul_pow31_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 31.
-    fn imul_pow31(&mut self, n: i32) {
+    /// MulAssign by a power of 32.
+    fn mul_pow32_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 32.
-    fn imul_pow32(&mut self, n: i32) {
+    /// MulAssign by a power of 33.
+    fn mul_pow33_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 33.
-    fn imul_pow33(&mut self, n: i32) {
+    /// MulAssign by a power of 34.
+    fn mul_pow34_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 34.
-    fn imul_pow34(&mut self, n: i32) {
+    /// MulAssign by a power of 35.
+    fn mul_pow35_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
-    /// Multiply in-place by a power of 35.
-    fn imul_pow35(&mut self, n: i32) {
-        unimplemented!()
-    }
-
-    /// Multiply in-place by a power of 36.
-    fn imul_pow36(&mut self, n: i32) {
+    /// MulAssign by a power of 36.
+    fn mul_pow36_assign(&mut self, n: i32) {
         unimplemented!()
     }
 
@@ -554,36 +602,6 @@ impl Bigfloat {
     {
         unsafe { self.data.get_unchecked_mut(index) }
     }
-
-    // Shifts
-
-// TODO(ahuszagh) Consider...
-//    /// Shift right byte and assign the bit to the most-significant bit.
-//    /// Used to prevent overflow for comically large numbers. We may lose
-//    /// exacting precision in this case, but at that point, we've already
-//    /// lost the game.
-//    ///
-//    /// * `shift`   - Number of bits to shift.
-//    fn shr(&mut self, shift: i32) {
-//        self.exponent = if let Some(v) = self.exponent.checked_add(shift) { v } else { i32::max_value() };
-//        self.shr_impl(shift);
-//    }
-//
-//    /// Implied shift-right, where we shift all bits over by a mask.
-//    fn shr_impl(&mut self, shift: i32) {
-//        // Create a bit-mask for the lower `shift` bytes.
-//        let mask = (1 << shift) - 1;
-//
-//        // Shift-right, carrying the bottom shift bytes and moving them over.
-//        let mut carry_bit = 0;
-//        let index = ..self.size;
-//        for item in self.get_mut(index).iter_mut().rev() {
-//            let tmp_carry = *item & mask;
-//            *item >>= shift;
-//            *item |= (carry_bit<<(Self::BITS as i32 - shift));
-//            carry_bit = tmp_carry;
-//        }
-//    }
 }
 
 // TESTS
@@ -619,73 +637,101 @@ mod tests {
 
     #[test]
     fn add_small_test() {
-        // Overflow check
+        // Overflow check (single)
         // This should set all the internal data values to 0, the top
         // value to (1<<31), and the bottom value to (4>>1).
         // This is because the max_value + 1 leads to all 0s, we set the
         // topmost bit to 1.
-        let mut bigfloat = Bigfloat::max_value();
-        bigfloat.add_small_assign(5);
-        assert_eq!(bigfloat, Bigfloat {
-            data: smallvec![4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            exponent: i32::max_value()
-        });
+        let mut x = Bigfloat::from_u32(4294967295);
+        x.add_small_assign(5);
+        assert_eq!(x, Bigfloat { data: smallvec![4, 1], exponent: 0 });
+
+        // No overflow, single value
+        let mut x = Bigfloat::from_u32(5);
+        x.add_small_assign(7);
+        assert_eq!(x, Bigfloat { data: smallvec![12], exponent: 0 });
+
+        // Single carry, internal overflow
+        let mut x = Bigfloat::from_u64(0x80000000FFFFFFFF);
+        x.add_small_assign(7);
+        assert_eq!(x, Bigfloat { data: smallvec![6, 0x80000001], exponent: 0 });
+
+        // Double carry, overflow
+        let mut x = Bigfloat::from_u64(0xFFFFFFFFFFFFFFFF);
+        x.add_small_assign(7);
+        assert_eq!(x, Bigfloat { data: smallvec![6, 0, 1], exponent: 0 });
     }
 
-//    #[test]
-//    fn add_large_test() {
-//        // No overflow check, add symmetric (1-int each).
-//        let mut x = Bigfloat::from_u32(5);
-//        let y = Bigfloat::from_u32(7);
-//        x.add_large_assign(&y);
-//        assert_eq!(x.exponent, 0);
-//        assert_eq!(*x.front(), 12);
-//        x.data[1..].iter().for_each(|x| assert_eq!(*x, 0));
-//
-//        // No overflow, symmetric (2- and 2-ints).
-//        let mut x = Bigfloat::from_u64(1125899906842624);
-//        let mut y = Bigfloat::from_u64(35184372088832);
-//        x.add_large_assign(&y);
-//        assert_eq!(x.exponent, 0);
-//        assert_eq!(*x.front(), 0);
-//        assert_eq!(*x.get(1), 270336);
-//        x.data[2..].iter().for_each(|x| assert_eq!(*x, 0));
-//
-//        // No overflow, asymmetric (1- and 2-ints).
-//        let mut x = Bigfloat::from_u32(5);
-//        let mut y = Bigfloat::from_u64(35184372088832);
-//        x.add_large_assign(&y);
-//        assert_eq!(x.exponent, 0);
-//        assert_eq!(*x.front(), 5);
-//        assert_eq!(*x.get(1), 8192);
-//        x.data[2..].iter().for_each(|x| assert_eq!(*x, 0));
-//
-//        // Internal overflow check.
-//        let mut x = Bigfloat::from_u32(0xF1111111);
-//        let mut y = Bigfloat::from_u64(0x12345678);
-//        x.add_large_assign(&y);
-//        assert_eq!(x.exponent, 0);
-//        assert_eq!(*x.front(), 0x3456789);
-//        assert_eq!(*x.get(1), 1);
-//        x.data[2..].iter().for_each(|x| assert_eq!(*x, 0));
-//
-//        // Complete overflow check
-//        let mut x = Bigfloat::max_value();
-//        x.exponent = 0;
-//        let mut y = Bigfloat::max_value();
-//        y.exponent = 0;
-//        x.add_large_assign(&y);
-//        assert_eq!(x.exponent, 1);
-//        x.data.iter().for_each(|x| assert_eq!(*x, 4294967295,));
-//    }
-//
-//    #[test]
-//    fn shr_test() {
-//        // Check shifting right from the first index.
-//        let mut bigfloat = Bigfloat::from_u32(5);
-//        bigfloat.shr(1);
-//        assert_eq!(bigfloat.exponent, 1);
-//        assert_eq!(*bigfloat.front(), 2);
-//        bigfloat.data[1..32].iter().for_each(|x| assert_eq!(*x, 0));
-//    }
+    #[test]
+    fn add_large_test() {
+        // No overflow check, add symmetric (1-int each).
+        let mut x = Bigfloat::from_u32(5);
+        let y = Bigfloat::from_u32(7);
+        x.add_large_assign(&y);
+        assert_eq!(x, Bigfloat { data: smallvec![12], exponent: 0 });
+
+        // No overflow, symmetric (2- and 2-ints).
+        let mut x = Bigfloat::from_u64(1125899906842624);
+        let mut y = Bigfloat::from_u64(35184372088832);
+        x.add_large_assign(&y);
+        assert_eq!(x, Bigfloat { data: smallvec![0, 270336], exponent: 0 });
+
+        // No overflow, asymmetric (1- and 2-ints).
+        let mut x = Bigfloat::from_u32(5);
+        let mut y = Bigfloat::from_u64(35184372088832);
+        x.add_large_assign(&y);
+        assert_eq!(x, Bigfloat { data: smallvec![5, 8192], exponent: 0 });
+
+        // Internal overflow check.
+        let mut x = Bigfloat::from_u32(0xF1111111);
+        let mut y = Bigfloat::from_u64(0x12345678);
+        x.add_large_assign(&y);
+        assert_eq!(x, Bigfloat { data: smallvec![0x3456789, 1], exponent: 0 });
+
+        // Complete overflow check
+        let mut x = Bigfloat::from_u32(4294967295);
+        let y = Bigfloat::from_u32(4294967295);
+        x.add_large_assign(&y);
+        assert_eq!(x, Bigfloat { data: smallvec![4294967294, 1], exponent: 0 });
+    }
+
+    #[test]
+    fn mul_small_test() {
+        // No overflow check, 1-int.
+        let mut x = Bigfloat::from_u32(5);
+        x.mul_small_assign(7);
+        assert_eq!(x, Bigfloat { data: smallvec![35], exponent: 0 });
+
+        // No overflow check, 2-ints.
+        let mut x = Bigfloat::from_u64(0x4000000040000);
+        x.mul_small_assign(5);
+        assert_eq!(x, Bigfloat { data: smallvec![0x00140000, 0x140000], exponent: 0 });
+
+        // Overflow, 1 carry.
+        let mut x = Bigfloat::from_u32(0x33333334);
+        x.mul_small_assign(5);
+        assert_eq!(x, Bigfloat { data: smallvec![4, 1], exponent: 0 });
+
+        // Overflow, 1 carry, internal.
+        let mut x = Bigfloat::from_u64(0x133333334);
+        x.mul_small_assign(5);
+        assert_eq!(x, Bigfloat { data: smallvec![4, 6], exponent: 0 });
+
+        // Overflow, 2 carries.
+        let mut x = Bigfloat::from_u64(0x3333333333333334);
+        x.mul_small_assign(5);
+        assert_eq!(x, Bigfloat { data: smallvec![4, 0, 1], exponent: 0 });
+    }
+
+    #[test]
+    fn mul_pow2_test() {
+        // TODO(ahuszagh) implement...
+    }
+
+    #[test]
+    fn mul_pow3_test() {
+        // TODO(ahuszagh) implement...
+    }
+
+    // TODO(ahuszagh) Add
 }
