@@ -8,6 +8,41 @@ use float::Mantissa;
 use lib::{mem, iter, slice};
 use util::*;
 
+// CONSTANTS
+
+/// Small powers (u32) for base3 operations.
+const SMALL_POWERS_BASE3: [u32; 21] = [1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049, 177147,  531441, 1594323, 4782969, 14348907, 43046721, 129140163, 387420489, 1162261467, 3486784401];
+
+/// Small powers (u32) for base5 operations.
+const SMALL_POWERS_BASE5: [u32; 14] = [1, 5, 25, 125, 625, 3125, 15625, 78125, 390625, 1953125, 9765625, 48828125, 244140625, 1220703125];
+
+/// Small powers (u32) for base7 operations.
+const SMALL_POWERS_BASE7: [u32; 12] = [1, 7, 49, 343, 2401, 16807, 117649, 823543, 5764801, 40353607, 282475249, 1977326743];
+
+/// Small powers (u32) for base11 operations.
+const SMALL_POWERS_BASE11: [u32; 10] = [1, 11, 121, 1331, 14641, 161051, 1771561, 19487171, 214358881, 2357947691];
+
+/// Small powers (u32) for base13 operations.
+const SMALL_POWERS_BASE13: [u32; 9] = [1, 13, 169, 2197, 28561, 371293, 4826809, 62748517, 815730721];
+
+/// Small powers (u32) for base17 operations.
+const SMALL_POWERS_BASE17: [u32; 8] = [1, 17, 289, 4913, 83521, 1419857, 24137569, 410338673];
+
+/// Small powers (u32) for base19 operations.
+const SMALL_POWERS_BASE19: [u32; 8] = [1, 19, 361, 6859, 130321, 2476099, 47045881, 893871739];
+
+/// Small powers (u32) for base21 operations.
+const SMALL_POWERS_BASE21: [u32; 8] = [1, 21, 441, 9261, 194481, 4084101, 85766121, 1801088541];
+
+/// Small powers (u32) for base23 operations.
+const SMALL_POWERS_BASE23: [u32; 8] = [1, 23, 529, 12167, 279841, 6436343, 148035889, 3404825447];
+
+/// Small powers (u32) for base29 operations.
+const SMALL_POWERS_BASE29: [u32; 7] = [1, 29, 841, 24389, 707281, 20511149, 594823321];
+
+/// Small powers (u32) for base31 operations.
+const SMALL_POWERS_BASE31: [u32; 7] = [1, 31, 961, 29791, 923521, 28629151, 887503681];
+
 // ADD
 
 /// Add two small integers and return the resulting value and if overflow happens.
@@ -88,15 +123,31 @@ fn div_small_assign<T: Integer>(x: &mut T, y: T, rem: T)
 }
 
 // TODO(ahuszagh) Add div....
+// TODO(ahuszagh) May be able to store the remainder and just keep it.
+//  Avoids compounding error....
 // We're gonna need wrapping sub, then div.
 // Likely add 96-bits (3x32) of guard digits for the division...
 
+// MUL POW ASSIGN
+
+/// Wrap pown implementation using implied call.
+macro_rules! wrap_mul_pown_assign {
+    ($name:ident, $impl:ident, $n:expr) => (
+        /// MulAssign by a power of $n (not safe to chain calls).
+        #[inline(always)]
+        fn $name(&mut self, n: i32) {
+            debug_assert!(n >= 0, stringify!(Bigfloat::$name() must multiply by a positive power.));
+            self.$impl(n);
+        }
+    );
+}
+
 // FROM BYTES
 
-/// Wrap operation using an assign internally.
-macro_rules! wrap_assign {
-    ($name:ident, $assign:ident, $(, $a:ident: $v:expr)*) => ()
-}
+///// Wrap operation using an assign internally.
+//macro_rules! wrap_assign {
+//    ($name:ident, $assign:ident, $(, $a:ident: $v:expr)*) => ()
+//}
 
 /// Wrapper for basen from_bytes implementations.
 // TODO(ahuszagh) Implement
@@ -320,7 +371,7 @@ impl Bigfloat {
         x
     }
 
-    // MulAssign using pre-calculated small powers.
+    /// MulAssign using pre-calculated small powers.
     #[inline]
     fn mul_spowers_assign(&mut self, mut n: i32, small_powers: &[u32]) {
         debug_assert!(n >= 0, "Bigfloat::mul_spowers_assign() must multiply by a positive power.");
@@ -340,366 +391,313 @@ impl Bigfloat {
         self.mul_small_assign(get_power(n as usize));
     }
 
-    /// MulAssign by a power of 2.
+    /// Implied MulAssign by a power of 2 (safe to chain calls).
     #[inline]
-    fn mul_pow2_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow2_assign() must multiply by a positive power.");
-
+    fn mul_pow2_assign_impl(&mut self, n: i32) {
         // Increment exponent to simulate actual addition.
         self.exponent = self.exponent.checked_add(n).unwrap_or(i32::max_value());
     }
 
-    /// MulAssign by a power of 3.
+    /// Implied MulAssign by a power of 3 (safe to chain calls).
     #[inline]
-    fn mul_pow3_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow3_assign() must multiply by a positive power.");
-
-        const SMALL_POWERS: [u32; 21] = [
-            1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049,
-            177147,  531441, 1594323, 4782969, 14348907, 43046721,
-            129140163, 387420489, 1162261467, 3486784401
-        ];
-        self.mul_spowers_assign(n, &SMALL_POWERS);
+    fn mul_pow3_assign_impl(&mut self, n: i32) {
+        self.mul_spowers_assign(n, &SMALL_POWERS_BASE3);
     }
 
-    /// MulAssign by a power of 4.
+    /// Implied MulAssign by a power of 4 (safe to chain calls).
     #[inline]
-    fn mul_pow4_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow4_assign() must multiply by a positive power.");
-
+    fn mul_pow4_assign_impl(&mut self, n: i32) {
         // Use 4**n = 2**(2n) to minimize overflow checks.
-        self.mul_pow2_assign(n.checked_mul(2).unwrap_or(i32::max_value()));
+        self.mul_pow2_assign_impl(n.checked_mul(2).unwrap_or(i32::max_value()));
     }
 
-    /// MulAssign by a power of 5.
+    /// Implied MulAssign by a power of 5 (safe to chain calls).
     #[inline]
-    fn mul_pow5_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow5_assign() must multiply by a positive power.");
-
-        const SMALL_POWERS: [u32; 14] = [
-            1, 5, 25, 125, 625, 3125, 15625, 78125, 390625,
-            1953125, 9765625, 48828125, 244140625, 1220703125
-        ];
-        self.mul_spowers_assign(n, &SMALL_POWERS);
+    fn mul_pow5_assign_impl(&mut self, n: i32) {
+        self.mul_spowers_assign(n, &SMALL_POWERS_BASE5);
     }
 
-    /// MulAssign by a power of 6.
+    /// Implied MulAssign by a power of 6 (safe to chain calls).
     #[inline]
-    fn mul_pow6_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow6_assign() must multiply by a positive power.");
-
-        self.mul_pow2_assign(n);
-        self.mul_pow3_assign(n);
+    fn mul_pow6_assign_impl(&mut self, n: i32) {
+        self.mul_pow2_assign_impl(n);
+        self.mul_pow3_assign_impl(n);
     }
 
-    /// MulAssign by a power of 7.
+    /// Implied MulAssign by a power of 7 (safe to chain calls).
     #[inline]
-    fn mul_pow7_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow7_assign() must multiply by a positive power.");
-
-        const SMALL_POWERS: [u32; 12] = [
-            1, 7, 49, 343, 2401, 16807, 117649, 823543,
-            5764801, 40353607, 282475249, 1977326743
-        ];
-        self.mul_spowers_assign(n, &SMALL_POWERS);
+    fn mul_pow7_assign_impl(&mut self, n: i32) {
+        self.mul_spowers_assign(n, &SMALL_POWERS_BASE7);
     }
 
-    /// MulAssign by a power of 8.
+    /// Implied MulAssign by a power of 8 (safe to chain calls).
     #[inline]
-    fn mul_pow8_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow8_assign() must multiply by a positive power.");
-
+    fn mul_pow8_assign_impl(&mut self, n: i32) {
         // Use 8**n = 2**(3n) to minimize overflow checks.
-        self.mul_pow2_assign(n.checked_mul(3).unwrap_or(i32::max_value()));
+        self.mul_pow2_assign_impl(n.checked_mul(3).unwrap_or(i32::max_value()));
     }
 
-    /// MulAssign by a power of 9.
+    /// Implied MulAssign by a power of 9 (safe to chain calls).
     #[inline]
-    fn mul_pow9_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow9_assign() must multiply by a positive power.");
-
-        self.mul_pow3_assign(n);
-        self.mul_pow3_assign(n);
+    fn mul_pow9_assign_impl(&mut self, n: i32) {
+        self.mul_pow3_assign_impl(n);
+        self.mul_pow3_assign_impl(n);
     }
 
-    /// MulAssign by a power of 10.
+    /// Implied MulAssign by a power of 10 (safe to chain calls).
     #[inline]
-    fn mul_pow10_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow10_assign() must multiply by a positive power.");
-
-        self.mul_pow2_assign(n);
-        self.mul_pow5_assign(n);
+    fn mul_pow10_assign_impl(&mut self, n: i32) {
+        self.mul_pow2_assign_impl(n);
+        self.mul_pow5_assign_impl(n);
     }
 
-    /// MulAssign by a power of 11.
+    /// Implied MulAssign by a power of 11 (safe to chain calls).
     #[inline]
-    fn mul_pow11_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow11_assign() must multiply by a positive power.");
-
-        const SMALL_POWERS: [u32; 10] = [1, 11, 121, 1331, 14641, 161051, 1771561, 19487171, 214358881, 2357947691];
-        self.mul_spowers_assign(n, &SMALL_POWERS);
+    fn mul_pow11_assign_impl(&mut self, n: i32) {
+        self.mul_spowers_assign(n, &SMALL_POWERS_BASE11);
     }
 
-    /// MulAssign by a power of 12.
+    /// Implied MulAssign by a power of 12 (safe to chain calls).
     #[inline]
-    fn mul_pow12_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow12_assign() must multiply by a positive power.");
-
-        self.mul_pow3_assign(n);
-        self.mul_pow4_assign(n);
+    fn mul_pow12_assign_impl(&mut self, n: i32) {
+        self.mul_pow3_assign_impl(n);
+        self.mul_pow4_assign_impl(n);
     }
 
-    /// MulAssign by a power of 13.
+    /// Implied MulAssign by a power of 13 (safe to chain calls).
     #[inline]
-    fn mul_pow13_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow13_assign() must multiply by a positive power.");
-
-        const SMALL_POWERS: [u32; 9] = [1, 13, 169, 2197, 28561, 371293, 4826809, 62748517, 815730721];
-        self.mul_spowers_assign(n, &SMALL_POWERS);
+    fn mul_pow13_assign_impl(&mut self, n: i32) {
+        self.mul_spowers_assign(n, &SMALL_POWERS_BASE13);
     }
 
-    /// MulAssign by a power of 14.
+    /// Implied MulAssign by a power of 14 (safe to chain calls).
     #[inline]
-    fn mul_pow14_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow14_assign() must multiply by a positive power.");
-
-        self.mul_pow2_assign(n);
-        self.mul_pow7_assign(n);
+    fn mul_pow14_assign_impl(&mut self, n: i32) {
+        self.mul_pow2_assign_impl(n);
+        self.mul_pow7_assign_impl(n);
     }
 
-    /// MulAssign by a power of 15.
+    /// Implied MulAssign by a power of 15 (safe to chain calls).
     #[inline]
-    fn mul_pow15_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow15_assign() must multiply by a positive power.");
-
-        self.mul_pow3_assign(n);
-        self.mul_pow5_assign(n);
+    fn mul_pow15_assign_impl(&mut self, n: i32) {
+        self.mul_pow3_assign_impl(n);
+        self.mul_pow5_assign_impl(n);
     }
 
-    /// MulAssign by a power of 16.
+    /// Implied MulAssign by a power of 16 (safe to chain calls).
     #[inline]
-    fn mul_pow16_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow16_assign() must multiply by a positive power.");
-
+    fn mul_pow16_assign_impl(&mut self, n: i32) {
         // Use 16**n = 2**(4n) to minimize overflow checks.
-        self.mul_pow2_assign(n.checked_mul(4).unwrap_or(i32::max_value()));
+        self.mul_pow2_assign_impl(n.checked_mul(4).unwrap_or(i32::max_value()));
     }
 
-    /// MulAssign by a power of 17.
+    /// Implied MulAssign by a power of 17 (safe to chain calls).
     #[inline]
-    fn mul_pow17_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow17_assign() must multiply by a positive power.");
-
-        const SMALL_POWERS: [u32; 8] = [1, 17, 289, 4913, 83521, 1419857, 24137569, 410338673];
-        self.mul_spowers_assign(n, &SMALL_POWERS);
+    fn mul_pow17_assign_impl(&mut self, n: i32) {
+        self.mul_spowers_assign(n, &SMALL_POWERS_BASE17);
     }
 
-    /// MulAssign by a power of 18.
+    /// Implied MulAssign by a power of 18 (safe to chain calls).
     #[inline]
-    fn mul_pow18_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow18_assign() must multiply by a positive power.");
-
-        self.mul_pow2_assign(n);
-        self.mul_pow9_assign(n);
+    fn mul_pow18_assign_impl(&mut self, n: i32) {
+        self.mul_pow2_assign_impl(n);
+        self.mul_pow9_assign_impl(n);
     }
 
-    /// MulAssign by a power of 19.
+    /// Implied MulAssign by a power of 19 (safe to chain calls).
     #[inline]
-    fn mul_pow19_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow19_assign() must multiply by a positive power.");
-
-        const SMALL_POWERS: [u32; 8] = [1, 19, 361, 6859, 130321, 2476099, 47045881, 893871739];
-        self.mul_spowers_assign(n, &SMALL_POWERS);
+    fn mul_pow19_assign_impl(&mut self, n: i32) {
+        self.mul_spowers_assign(n, &SMALL_POWERS_BASE19);
     }
 
-    /// MulAssign by a power of 20.
+    /// Implied MulAssign by a power of 20 (safe to chain calls).
     #[inline]
-    fn mul_pow20_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow20_assign() must multiply by a positive power.");
-
-        self.mul_pow4_assign(n);
-        self.mul_pow5_assign(n);
+    fn mul_pow20_assign_impl(&mut self, n: i32) {
+        self.mul_pow4_assign_impl(n);
+        self.mul_pow5_assign_impl(n);
     }
 
-    /// MulAssign by a power of 21.
+    /// Implied MulAssign by a power of 21 (safe to chain calls).
     #[inline]
-    fn mul_pow21_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow21_assign() must multiply by a positive power.");
-
-        const SMALL_POWERS: [u32; 8] = [1, 21, 441, 9261, 194481, 4084101, 85766121, 1801088541];
-        self.mul_spowers_assign(n, &SMALL_POWERS);
+    fn mul_pow21_assign_impl(&mut self, n: i32) {
+        self.mul_spowers_assign(n, &SMALL_POWERS_BASE21);
     }
 
-    /// MulAssign by a power of 22.
+    /// Implied MulAssign by a power of 22 (safe to chain calls).
     #[inline]
-    fn mul_pow22_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow22_assign() must multiply by a positive power.");
-
-        self.mul_pow2_assign(n);
-        self.mul_pow11_assign(n);
+    fn mul_pow22_assign_impl(&mut self, n: i32) {
+        self.mul_pow2_assign_impl(n);
+        self.mul_pow11_assign_impl(n);
     }
 
-    /// MulAssign by a power of 23.
+    /// Implied MulAssign by a power of 23 (safe to chain calls).
     #[inline]
-    fn mul_pow23_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow23_assign() must multiply by a positive power.");
-
-        const SMALL_POWERS: [u32; 8] = [1, 23, 529, 12167, 279841, 6436343, 148035889, 3404825447];
-        self.mul_spowers_assign(n, &SMALL_POWERS);
+    fn mul_pow23_assign_impl(&mut self, n: i32) {
+        self.mul_spowers_assign(n, &SMALL_POWERS_BASE23);
     }
 
-    /// MulAssign by a power of 24.
+    /// Implied MulAssign by a power of 24 (safe to chain calls).
     #[inline]
-    fn mul_pow24_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow24_assign() must multiply by a positive power.");
-
-        self.mul_pow3_assign(n);
-        self.mul_pow8_assign(n);
+    fn mul_pow24_assign_impl(&mut self, n: i32) {
+        self.mul_pow3_assign_impl(n);
+        self.mul_pow8_assign_impl(n);
     }
 
-    /// MulAssign by a power of 25.
+    /// Implied MulAssign by a power of 25 (safe to chain calls).
     #[inline]
-    fn mul_pow25_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow25_assign() must multiply by a positive power.");
-
-        self.mul_pow5_assign(n);
-        self.mul_pow5_assign(n);
+    fn mul_pow25_assign_impl(&mut self, n: i32) {
+        self.mul_pow5_assign_impl(n);
+        self.mul_pow5_assign_impl(n);
     }
 
-    /// MulAssign by a power of 26.
+    /// Implied MulAssign by a power of 26 (safe to chain calls).
     #[inline]
-    fn mul_pow26_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow26_assign() must multiply by a positive power.");
-
-        self.mul_pow2_assign(n);
-        self.mul_pow13_assign(n);
+    fn mul_pow26_assign_impl(&mut self, n: i32) {
+        self.mul_pow2_assign_impl(n);
+        self.mul_pow13_assign_impl(n);
     }
 
-    /// MulAssign by a power of 27.
+    /// Implied MulAssign by a power of 27 (safe to chain calls).
     #[inline]
-    fn mul_pow27_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow27_assign() must multiply by a positive power.");
-
-        self.mul_pow3_assign(n);
-        self.mul_pow9_assign(n);
+    fn mul_pow27_assign_impl(&mut self, n: i32) {
+        self.mul_pow3_assign_impl(n);
+        self.mul_pow9_assign_impl(n);
     }
 
-    /// MulAssign by a power of 28.
+    /// Implied MulAssign by a power of 28 (safe to chain calls).
     #[inline]
-    fn mul_pow28_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow28_assign() must multiply by a positive power.");
-
-        self.mul_pow4_assign(n);
-        self.mul_pow7_assign(n);
+    fn mul_pow28_assign_impl(&mut self, n: i32) {
+        self.mul_pow4_assign_impl(n);
+        self.mul_pow7_assign_impl(n);
     }
 
-    /// MulAssign by a power of 29.
+    /// Implied MulAssign by a power of 29 (safe to chain calls).
     #[inline]
-    fn mul_pow29_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow29_assign() must multiply by a positive power.");
-
-        const SMALL_POWERS: [u32; 7] = [1, 29, 841, 24389, 707281, 20511149, 594823321];
-        self.mul_spowers_assign(n, &SMALL_POWERS);
+    fn mul_pow29_assign_impl(&mut self, n: i32) {
+        self.mul_spowers_assign(n, &SMALL_POWERS_BASE29);
     }
 
-    /// MulAssign by a power of 30.
+    /// Implied MulAssign by a power of 30 (safe to chain calls).
     #[inline]
-    fn mul_pow30_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow30_assign() must multiply by a positive power.");
-
-        self.mul_pow2_assign(n);
-        self.mul_pow15_assign(n);
+    fn mul_pow30_assign_impl(&mut self, n: i32) {
+        self.mul_pow2_assign_impl(n);
+        self.mul_pow15_assign_impl(n);
     }
 
-    /// MulAssign by a power of 31.
+    /// Implied MulAssign by a power of 31 (safe to chain calls).
     #[inline]
-    fn mul_pow31_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow31_assign() must multiply by a positive power.");
-
-        const SMALL_POWERS: [u32; 7] = [1, 31, 961, 29791, 923521, 28629151, 887503681];
-        self.mul_spowers_assign(n, &SMALL_POWERS);
+    fn mul_pow31_assign_impl(&mut self, n: i32) {
+        self.mul_spowers_assign(n, &SMALL_POWERS_BASE31);
     }
 
-    /// MulAssign by a power of 32.
+    /// Implied MulAssign by a power of 32 (safe to chain calls).
     #[inline]
-    fn mul_pow32_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow32_assign() must multiply by a positive power.");
-
+    fn mul_pow32_assign_impl(&mut self, n: i32) {
         // Use 32**n = 2**(5n) to minimize overflow checks.
-        self.mul_pow2_assign(n.checked_mul(5).unwrap_or(i32::max_value()));
+        self.mul_pow2_assign_impl(n.checked_mul(5).unwrap_or(i32::max_value()));
     }
 
-    /// MulAssign by a power of 33.
+    /// Implied MulAssign by a power of 33 (safe to chain calls).
     #[inline]
-    fn mul_pow33_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow33_assign() must multiply by a positive power.");
-
-        self.mul_pow3_assign(n);
-        self.mul_pow11_assign(n);
+    fn mul_pow33_assign_impl(&mut self, n: i32) {
+        self.mul_pow3_assign_impl(n);
+        self.mul_pow11_assign_impl(n);
     }
 
-    /// MulAssign by a power of 34.
+    /// Implied MulAssign by a power of 34 (safe to chain calls).
     #[inline]
-    fn mul_pow34_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow34_assign() must multiply by a positive power.");
-
-        self.mul_pow2_assign(n);
-        self.mul_pow17_assign(n);
+    fn mul_pow34_assign_impl(&mut self, n: i32) {
+        self.mul_pow2_assign_impl(n);
+        self.mul_pow17_assign_impl(n);
     }
 
-    /// MulAssign by a power of 35.
+    /// Implied MulAssign by a power of 35 (safe to chain calls).
     #[inline]
-    fn mul_pow35_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow35_assign() must multiply by a positive power.");
-
-        self.mul_pow5_assign(n);
-        self.mul_pow7_assign(n);
+    fn mul_pow35_assign_impl(&mut self, n: i32) {
+        self.mul_pow5_assign_impl(n);
+        self.mul_pow7_assign_impl(n);
     }
 
-    /// MulAssign by a power of 36.
+    /// Implied MulAssign by a power of 36 (safe to chain calls).
     #[inline]
-    fn mul_pow36_assign(&mut self, n: i32) {
-        debug_assert!(n >= 0, "Bigfloat::mul_pow36_assign() must multiply by a positive power.");
-
-        self.mul_pow4_assign(n);
-        self.mul_pow9_assign(n);
+    fn mul_pow36_assign_impl(&mut self, n: i32) {
+        self.mul_pow4_assign_impl(n);
+        self.mul_pow9_assign_impl(n);
     }
+
+    wrap_mul_pown_assign!(mul_pow2_assign, mul_pow2_assign_impl, 2);
+    wrap_mul_pown_assign!(mul_pow3_assign, mul_pow3_assign_impl, 3);
+    wrap_mul_pown_assign!(mul_pow4_assign, mul_pow4_assign_impl, 4);
+    wrap_mul_pown_assign!(mul_pow5_assign, mul_pow5_assign_impl, 5);
+    wrap_mul_pown_assign!(mul_pow6_assign, mul_pow6_assign_impl, 6);
+    wrap_mul_pown_assign!(mul_pow7_assign, mul_pow7_assign_impl, 7);
+    wrap_mul_pown_assign!(mul_pow8_assign, mul_pow8_assign_impl, 8);
+    wrap_mul_pown_assign!(mul_pow9_assign, mul_pow9_assign_impl, 9);
+    wrap_mul_pown_assign!(mul_pow10_assign, mul_pow10_assign_impl, 10);
+    wrap_mul_pown_assign!(mul_pow11_assign, mul_pow11_assign_impl, 11);
+    wrap_mul_pown_assign!(mul_pow12_assign, mul_pow12_assign_impl, 12);
+    wrap_mul_pown_assign!(mul_pow13_assign, mul_pow13_assign_impl, 13);
+    wrap_mul_pown_assign!(mul_pow14_assign, mul_pow14_assign_impl, 14);
+    wrap_mul_pown_assign!(mul_pow15_assign, mul_pow15_assign_impl, 15);
+    wrap_mul_pown_assign!(mul_pow16_assign, mul_pow16_assign_impl, 16);
+    wrap_mul_pown_assign!(mul_pow17_assign, mul_pow17_assign_impl, 17);
+    wrap_mul_pown_assign!(mul_pow18_assign, mul_pow18_assign_impl, 18);
+    wrap_mul_pown_assign!(mul_pow19_assign, mul_pow19_assign_impl, 19);
+    wrap_mul_pown_assign!(mul_pow20_assign, mul_pow20_assign_impl, 20);
+    wrap_mul_pown_assign!(mul_pow21_assign, mul_pow21_assign_impl, 21);
+    wrap_mul_pown_assign!(mul_pow22_assign, mul_pow22_assign_impl, 22);
+    wrap_mul_pown_assign!(mul_pow23_assign, mul_pow23_assign_impl, 23);
+    wrap_mul_pown_assign!(mul_pow24_assign, mul_pow24_assign_impl, 24);
+    wrap_mul_pown_assign!(mul_pow25_assign, mul_pow25_assign_impl, 25);
+    wrap_mul_pown_assign!(mul_pow26_assign, mul_pow26_assign_impl, 26);
+    wrap_mul_pown_assign!(mul_pow27_assign, mul_pow27_assign_impl, 27);
+    wrap_mul_pown_assign!(mul_pow28_assign, mul_pow28_assign_impl, 28);
+    wrap_mul_pown_assign!(mul_pow29_assign, mul_pow29_assign_impl, 29);
+    wrap_mul_pown_assign!(mul_pow30_assign, mul_pow30_assign_impl, 30);
+    wrap_mul_pown_assign!(mul_pow31_assign, mul_pow31_assign_impl, 31);
+    wrap_mul_pown_assign!(mul_pow32_assign, mul_pow32_assign_impl, 32);
+    wrap_mul_pown_assign!(mul_pow33_assign, mul_pow33_assign_impl, 33);
+    wrap_mul_pown_assign!(mul_pow34_assign, mul_pow34_assign_impl, 34);
+    wrap_mul_pown_assign!(mul_pow35_assign, mul_pow35_assign_impl, 35);
+    wrap_mul_pown_assign!(mul_pow36_assign, mul_pow36_assign_impl, 36);
 
     // DIVISION
 
     /// Pad bits for division. Only needs to be called once.
     /// Value should be non-zero.
-    #[inline]
-    fn pad_division(&mut self) {
-        // Pad up to 128-bits of total precision, guaranteeing at least
-        // 64 guard bits for operations.
-        match self.data.len() {
-            // Should never reach a divide-by-zero case.
-            1 => {
-                // Extended with 3 zeros, and move 0 -> 3
-                self.data.extend(iter::repeat(0).take(3));
-                self.data.swap(0, 3);
-                self.exponent -= 3 * Self::BITS as i32;
-            },
-            2 => {
-                // Extended with 2 zeros, and move 0 -> 2, 1 -> 3
-                self.data.extend(iter::repeat(0).take(2));
-                self.data.swap(1, 3);
-                self.data.swap(0, 2);
-                self.exponent -= 2 * Self::BITS as i32;
-            },
-            3 => {
-                // Extended with 1 zeros, and move 0 -> 1, 1 -> 2, 2 -> 3
-                self.data.extend(iter::repeat(0).take(1));
-                self.data.swap(2, 3);
-                self.data.swap(1, 2);
-                self.data.swap(0, 1);
-                self.exponent -= Self::BITS as i32;
-            },
-            // Has enough bits to avoid rounding error, or is a literal 0.
-            _ => (),
-        }
-    }
+    // TODO(ahuszagh) This needs to pad to a number of bits.
+    // This should be estimated by base**n
+//    #[inline]
+//    fn pad_division(&mut self) {
+//        // Pad up to 128-bits of total precision, guaranteeing at least
+//        // 64 guard bits for operations.
+//        match self.data.len() {
+//            // Should never reach a divide-by-zero case.
+//            1 => {
+//                // Extended with 3 zeros, and move 0 -> 3
+//                self.data.extend(iter::repeat(0).take(3));
+//                self.data.swap(0, 3);
+//                self.exponent -= 3 * Self::BITS as i32;
+//            },
+//            2 => {
+//                // Extended with 2 zeros, and move 0 -> 2, 1 -> 3
+//                self.data.extend(iter::repeat(0).take(2));
+//                self.data.swap(1, 3);
+//                self.data.swap(0, 2);
+//                self.exponent -= 2 * Self::BITS as i32;
+//            },
+//            3 => {
+//                // Extended with 1 zeros, and move 0 -> 1, 1 -> 2, 2 -> 3
+//                self.data.extend(iter::repeat(0).take(1));
+//                self.data.swap(2, 3);
+//                self.data.swap(1, 2);
+//                self.data.swap(0, 1);
+//                self.exponent -= Self::BITS as i32;
+//            },
+//            // Has enough bits to avoid rounding error, or is a literal 0.
+//            _ => (),
+//        }
+//    }
 
     /// DivAssign small integer to bigfloat.
     /// Warning: Bigfloat must have previously been padded `pad_division`.
@@ -728,10 +726,297 @@ impl Bigfloat {
         x
     }
 
-    // TODO(ahuszagh) Need div_small_assign
-    // TODO(ahuszagh) Need div_small
-    // TODO(ahuszagh) Should this be a small deque???
-    // This may need to be a deque itself, since...
+    /// DivAssign using pre-calculated small powers.
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_spowers_assign(&mut self, mut n: i32, small_powers: &[u32]) {
+        debug_assert!(n >= 0, "Bigfloat::div_spowers_assign() must multiply by a positive power.");
+
+        let get_power = | i: usize | unsafe { *small_powers.get_unchecked(i) };
+
+        // Divide by the largest small power until n < step.
+        // TODO(ahuszagh): Need to change to have 2 extra digits of storage.
+        // No padding, just store two extra digits and use the rem for those 2 digits.
+        let step = small_powers.len() - 1;
+        let power = get_power(step);
+        let step = step as i32;
+        while n >= step {
+            self.div_small_assign(power);
+            n -= step;
+        }
+
+        // Multiply by the remainder.
+        self.div_small_assign(get_power(n as usize));
+    }
+
+    /// Implied DivAssign by a power of 2 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow2_assign_impl(&mut self, n: i32) {
+        // Increment exponent to simulate actual addition.
+        self.exponent = self.exponent.checked_sub(n).unwrap_or(i32::max_value());
+    }
+
+    /// Implied DivAssign by a power of 3 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow3_assign_impl(&mut self, n: i32) {
+        self.div_spowers_assign(n, &SMALL_POWERS_BASE3);
+    }
+
+    /// Implied DivAssign by a power of 4 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow4_assign_impl(&mut self, n: i32) {
+        // Use 4**n = 2**(2n) to minimize overflow checks.
+        self.div_pow2_assign_impl(n.checked_mul(2).unwrap_or(i32::max_value()));
+    }
+
+    /// Implied DivAssign by a power of 5 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow5_assign_impl(&mut self, n: i32) {
+        self.div_spowers_assign(n, &SMALL_POWERS_BASE5);
+    }
+
+    /// Implied DivAssign by a power of 6 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow6_assign_impl(&mut self, n: i32) {
+        self.div_pow2_assign_impl(n);
+        self.div_pow3_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 7 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow7_assign_impl(&mut self, n: i32) {
+        self.div_spowers_assign(n, &SMALL_POWERS_BASE7);
+    }
+
+    /// Implied DivAssign by a power of 8 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow8_assign_impl(&mut self, n: i32) {
+        // Use 8**n = 2**(3n) to minimize overflow checks.
+        self.div_pow2_assign_impl(n.checked_mul(3).unwrap_or(i32::max_value()));
+    }
+
+    /// Implied DivAssign by a power of 9 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow9_assign_impl(&mut self, n: i32) {
+        self.div_pow3_assign_impl(n);
+        self.div_pow3_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 10 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow10_assign_impl(&mut self, n: i32) {
+        self.div_pow2_assign_impl(n);
+        self.div_pow5_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 11 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow11_assign_impl(&mut self, n: i32) {
+        self.div_spowers_assign(n, &SMALL_POWERS_BASE11);
+    }
+
+    /// Implied DivAssign by a power of 12 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow12_assign_impl(&mut self, n: i32) {
+        self.div_pow3_assign_impl(n);
+        self.div_pow4_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 13 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow13_assign_impl(&mut self, n: i32) {
+        self.div_spowers_assign(n, &SMALL_POWERS_BASE13);
+    }
+
+    /// Implied DivAssign by a power of 14 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow14_assign_impl(&mut self, n: i32) {
+        self.div_pow2_assign_impl(n);
+        self.div_pow7_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 15 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow15_assign_impl(&mut self, n: i32) {
+        self.div_pow3_assign_impl(n);
+        self.div_pow5_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 16 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow16_assign_impl(&mut self, n: i32) {
+        // Use 16**n = 2**(4n) to minimize overflow checks.
+        self.div_pow2_assign_impl(n.checked_mul(4).unwrap_or(i32::max_value()));
+    }
+
+    /// Implied DivAssign by a power of 17 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow17_assign_impl(&mut self, n: i32) {
+        self.div_spowers_assign(n, &SMALL_POWERS_BASE17);
+    }
+
+    /// Implied DivAssign by a power of 18 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow18_assign_impl(&mut self, n: i32) {
+        self.div_pow2_assign_impl(n);
+        self.div_pow9_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 19 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow19_assign_impl(&mut self, n: i32) {
+        self.div_spowers_assign(n, &SMALL_POWERS_BASE19);
+    }
+
+    /// Implied DivAssign by a power of 20 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow20_assign_impl(&mut self, n: i32) {
+        self.div_pow4_assign_impl(n);
+        self.div_pow5_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 21 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow21_assign_impl(&mut self, n: i32) {
+        self.div_spowers_assign(n, &SMALL_POWERS_BASE21);
+    }
+
+    /// Implied DivAssign by a power of 22 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow22_assign_impl(&mut self, n: i32) {
+        self.div_pow2_assign_impl(n);
+        self.div_pow11_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 23 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow23_assign_impl(&mut self, n: i32) {
+        self.div_spowers_assign(n, &SMALL_POWERS_BASE23);
+    }
+
+    /// Implied DivAssign by a power of 24 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow24_assign_impl(&mut self, n: i32) {
+        self.div_pow3_assign_impl(n);
+        self.div_pow8_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 25 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow25_assign_impl(&mut self, n: i32) {
+        self.div_pow5_assign_impl(n);
+        self.div_pow5_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 26 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow26_assign_impl(&mut self, n: i32) {
+        self.div_pow2_assign_impl(n);
+        self.div_pow13_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 27 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow27_assign_impl(&mut self, n: i32) {
+        self.div_pow3_assign_impl(n);
+        self.div_pow9_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 28 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow28_assign_impl(&mut self, n: i32) {
+        self.div_pow4_assign_impl(n);
+        self.div_pow7_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 29 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow29_assign_impl(&mut self, n: i32) {
+        self.div_spowers_assign(n, &SMALL_POWERS_BASE29);
+    }
+
+    /// Implied DivAssign by a power of 30 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow30_assign_impl(&mut self, n: i32) {
+        self.div_pow2_assign_impl(n);
+        self.div_pow15_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 31 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow31_assign_impl(&mut self, n: i32) {
+        self.div_spowers_assign(n, &SMALL_POWERS_BASE31);
+    }
+
+    /// Implied DivAssign by a power of 32 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow32_assign_impl(&mut self, n: i32) {
+        // Use 32**n = 2**(5n) to minimize overflow checks.
+        self.div_pow2_assign_impl(n.checked_mul(5).unwrap_or(i32::max_value()));
+    }
+
+    /// Implied DivAssign by a power of 33 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow33_assign_impl(&mut self, n: i32) {
+        self.div_pow3_assign_impl(n);
+        self.div_pow11_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 34 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow34_assign_impl(&mut self, n: i32) {
+        self.div_pow2_assign_impl(n);
+        self.div_pow17_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 35 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow35_assign_impl(&mut self, n: i32) {
+        self.div_pow5_assign_impl(n);
+        self.div_pow7_assign_impl(n);
+    }
+
+    /// Implied DivAssign by a power of 36 (safe to chain calls).
+    /// Warning: Bigfloat must have previously been padded `pad_division`.
+    #[inline]
+    fn div_pow36_assign_impl(&mut self, n: i32) {
+        self.div_pow4_assign_impl(n);
+        self.div_pow9_assign_impl(n);
+    }
 
     // FROM BYTES
     from_bytes!(from_bytes_3);
@@ -1175,33 +1460,34 @@ mod tests {
         );
     }
 
-    #[test]
-    fn pad_division_test() {
-        // Pad 0
-        let mut x = Bigfloat::new();
-        x.pad_division();
-        assert_eq!(x, Bigfloat { data: smallvec![], exponent: 0 });
-
-        // Pad 1
-        let mut x = Bigfloat::from_u32(1);
-        x.pad_division();
-        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exponent: -96 });
-
-        // Pad 2
-        let mut x = Bigfloat::from_u64(0x100000001);
-        x.pad_division();
-        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 1, 1], exponent: -64 });
-
-        // Pad 3
-        let mut x = Bigfloat { data: smallvec![1, 1, 1], exponent: 0 };
-        x.pad_division();
-        assert_eq!(x, Bigfloat { data: smallvec![0, 1, 1, 1], exponent: -32 });
-
-        // Pad 4
-        let mut x = Bigfloat::from_u128(0x1000000010000000100000001);
-        x.pad_division();
-        assert_eq!(x, Bigfloat { data: smallvec![1, 1, 1, 1], exponent: 0 });
-    }
+    // TODO(ahuszagh) Needs to pad to a number of bits.
+//    #[test]
+//    fn pad_division_test() {
+//        // Pad 0
+//        let mut x = Bigfloat::new();
+//        x.pad_division();
+//        assert_eq!(x, Bigfloat { data: smallvec![], exponent: 0 });
+//
+//        // Pad 1
+//        let mut x = Bigfloat::from_u32(1);
+//        x.pad_division();
+//        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exponent: -96 });
+//
+//        // Pad 2
+//        let mut x = Bigfloat::from_u64(0x100000001);
+//        x.pad_division();
+//        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 1, 1], exponent: -64 });
+//
+//        // Pad 3
+//        let mut x = Bigfloat { data: smallvec![1, 1, 1], exponent: 0 };
+//        x.pad_division();
+//        assert_eq!(x, Bigfloat { data: smallvec![0, 1, 1, 1], exponent: -32 });
+//
+//        // Pad 4
+//        let mut x = Bigfloat::from_u128(0x1000000010000000100000001);
+//        x.pad_division();
+//        assert_eq!(x, Bigfloat { data: smallvec![1, 1, 1, 1], exponent: 0 });
+//    }
 
     // TODO(ahuszagh) Add division tests.
 }
