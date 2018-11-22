@@ -2,7 +2,7 @@
 
 pub(crate) use lib::{f32, f64};
 use lib::{fmt, iter, ops};
-use super::cast::as_cast;
+use super::cast::{AsCast, TryCast};
 use super::primitive::Primitive;
 
 // NUMBER
@@ -97,8 +97,12 @@ pub trait Integer:
     const ZERO: Self;
     const ONE: Self;
     const TWO: Self;
+    const MAX: Self;
+    const MIN: Self;
 
     // FUNCTIONS (INHERITED)
+    fn max_value() -> Self;
+    fn min_value() -> Self;
     fn count_ones(self) -> u32;
     fn count_zeros(self) -> u32;
     fn leading_zeros(self) -> u32;
@@ -128,6 +132,24 @@ pub trait Integer:
     fn overflowing_shl(self, i: u32) -> (Self, bool);
     fn overflowing_shr(self, i: u32) -> (Self, bool);
 
+    /// Create literal zero.
+    #[inline(always)]
+    fn zero() -> Self {
+        Self::ZERO
+    }
+
+    /// Create literal one.
+    #[inline(always)]
+    fn one() -> Self {
+        Self::ONE
+    }
+
+    /// Create literal two.
+    #[inline(always)]
+    fn two() -> Self {
+        Self::TWO
+    }
+
     /// Check if value is equal to zero.
     #[inline(always)]
     fn is_zero(self) -> bool {
@@ -147,6 +169,18 @@ macro_rules! integer_impl {
             const ZERO: $t = 0;
             const ONE: $t = 1;
             const TWO: $t = 2;
+            const MAX: $t = $t::max_value();
+            const MIN: $t = $t::min_value();
+
+            #[inline(always)]
+            fn max_value() -> Self {
+                Self::MAX
+            }
+
+            #[inline(always)]
+            fn min_value() -> Self {
+                Self::MIN
+            }
 
             #[inline(always)]
             fn count_ones(self) -> u32 {
@@ -293,6 +327,32 @@ macro_rules! integer_impl {
 
 integer_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
 
+/// Unwrap or get T::max_value().
+#[inline(always)]
+pub fn unwrap_or_max<T: Integer>(t: Option<T>) -> T {
+    t.unwrap_or(T::max_value())
+}
+
+/// Unwrap or get T::min_value().
+#[inline(always)]
+pub fn unwrap_or_min<T: Integer>(t: Option<T>) -> T {
+    t.unwrap_or(T::min_value())
+}
+
+/// Try to convert to U, if not, return U::max_value().
+#[inline(always)]
+#[allow(dead_code)]
+pub fn try_cast_or_max<U: Integer, T: TryCast<U>>(t: T) -> U {
+    unwrap_or_max(TryCast::try_cast(t))
+}
+
+/// Try to convert to U, if not, return U::min_value().
+#[inline(always)]
+#[allow(dead_code)]
+pub fn try_cast_or_min<U: Integer, T: TryCast<U>>(t: T) -> U {
+    unwrap_or_min(TryCast::try_cast(t))
+}
+
 // SIGNED INTEGER
 
 /// Defines a trait that supports signed integral operations.
@@ -350,6 +410,8 @@ pub trait Float: Number + ops::Neg<Output=Self>
     const ZERO: Self;
     const ONE: Self;
     const TWO: Self;
+    const MAX: Self;
+    const MIN: Self;
     const INFINITY: Self;
     const NEG_INFINITY: Self;
     const NAN: Self;
@@ -432,13 +494,13 @@ pub trait Float: Number + ops::Neg<Output=Self>
         }
 
         let bits = self.to_bits();
-        let biased_e: i32 = as_cast((bits & Self::EXPONENT_MASK) >> Self::MANTISSA_SIZE);
+        let biased_e: i32 = AsCast::as_cast((bits & Self::EXPONENT_MASK) >> Self::MANTISSA_SIZE);
         biased_e - Self::EXPONENT_BIAS
     }
 
-    /// Get significand (mantissa) component from float.
+    /// Get mantissa (significand) component from float.
     #[inline]
-    fn significand(self) -> Self::Unsigned {
+    fn mantissa(self) -> Self::Unsigned {
         let bits = self.to_bits();
         let s = bits & Self::MANTISSA_MASK;
         if !self.is_denormal() {
@@ -452,7 +514,7 @@ pub trait Float: Number + ops::Neg<Output=Self>
     #[inline]
     fn next(self) -> Self {
         let bits = self.to_bits();
-        if self.is_sign_negative() && self.significand().is_zero() {
+        if self.is_sign_negative() && self.mantissa().is_zero() {
             // -0.0
             Self::ZERO
         } else if self.is_sign_negative() {
@@ -551,6 +613,8 @@ impl Float for f32 {
     const ZERO: f32 = 0.0;
     const ONE: f32 = 1.0;
     const TWO: f32 = 2.0;
+    const MAX: f32 = f32::MAX;
+    const MIN: f32 = f32::MIN;
     const INFINITY: f32 = f32::INFINITY;
     const NEG_INFINITY: f32 = f32::NEG_INFINITY;
     const NAN: f32 = f32::NAN;
@@ -630,6 +694,8 @@ impl Float for f64 {
     const ZERO: f64 = 0.0;
     const ONE: f64 = 1.0;
     const TWO: f64 = 2.0;
+    const MAX: f64 = f64::MAX;
+    const MIN: f64 = f64::MIN;
     const INFINITY: f64 = f64::INFINITY;
     const NEG_INFINITY: f64 = f64::NEG_INFINITY;
     const NAN: f64 = f64::NAN;
@@ -844,6 +910,48 @@ mod tests {
         check_integer(65i64);
         check_integer(65i128);
         check_integer(65isize);
+    }
+
+    #[test]
+    fn unwrap_or_max_test() {
+        let x: Option<u8> = None;
+        assert_eq!(unwrap_or_max(x), u8::max_value());
+
+        let x: Option<u8> = Some(1);
+        assert_eq!(unwrap_or_max(x), 1);
+    }
+
+    #[test]
+    fn unwrap_or_min_test() {
+        let x: Option<u8> = None;
+        assert_eq!(unwrap_or_min(x), u8::min_value());
+
+        let x: Option<u8> = Some(1);
+        assert_eq!(unwrap_or_min(x), 1);
+    }
+
+    #[test]
+    fn try_cast_or_max_test() {
+        let x: u8 = try_cast_or_max(u16::min_value());
+        assert_eq!(x, u8::min_value());
+
+        let x: u8 = try_cast_or_max(u8::max_value() as u16);
+        assert_eq!(x, u8::max_value());
+
+        let x: u8 = try_cast_or_max(u16::max_value());
+        assert_eq!(x, u8::max_value());
+    }
+
+    #[test]
+    fn try_cast_or_min_test() {
+        let x: u8 = try_cast_or_min(u16::min_value());
+        assert_eq!(x, u8::min_value());
+
+        let x: u8 = try_cast_or_min(u8::max_value() as u16);
+        assert_eq!(x, u8::max_value());
+
+        let x: u8 = try_cast_or_min(u16::max_value());
+        assert_eq!(x, u8::min_value());
     }
 
     fn check_float<T: Float>(mut x: T) {

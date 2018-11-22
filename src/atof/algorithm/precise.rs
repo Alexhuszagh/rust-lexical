@@ -22,21 +22,13 @@ use super::exponent::parse_exponent;
 // In this case, the mantissa can be represented by an integer,
 // which allows any value to be exactly reconstructed.
 
-
 // PARSE
 // -----
 
 /// Safely convert the number of bits truncated to an exponent.
-// TODO(ahuszagh) Need to change this for TryInto...
-// TODO(ahuszagh) usize may be u16-u64,so...
 #[inline]
-fn usize_to_i32(truncated: usize) -> i32 {
-    const MAX: usize = i32::max_value() as usize;
-    if truncated < MAX  {
-        truncated as i32
-    } else {
-        i32::max_value()
-    }
+fn try_cast_i32_or_max<T: Integer>(t: T) -> i32 {
+    try_cast_or_max(t)
 }
 
 /// Parse the mantissa from a string.
@@ -84,7 +76,7 @@ pub(super) unsafe extern "C" fn parse_mantissa<M>(base: u32, mut first: *const u
         };
         // Subtract the number of truncated digits from the dot shift, since these
         // truncated digits are reflected in the distance but not in the mantissa.
-        let dot_shift = usize_to_i32(distance(f, tup.0)) - usize_to_i32(tup.1);
+        let dot_shift = try_cast_i32_or_max(distance(f, tup.0)) - try_cast_i32_or_max(tup.1);
         (mantissa, dot_shift, tup.0, tup.1 != 0)
     } else if has_fraction {
         // Integral overflow occurred, cannot add more values, but a fraction exists.
@@ -96,13 +88,13 @@ pub(super) unsafe extern "C" fn parse_mantissa<M>(base: u32, mut first: *const u
         }
         // Subtract the number of truncated digits from the dot shift, since these
         // truncated digits are reflected in the distance but not in the mantissa.
-        let dot_shift = usize_to_i32(distance(f, p)) - usize_to_i32(truncated);
+        let dot_shift = try_cast_i32_or_max(distance(f, p)) - try_cast_i32_or_max(truncated);
         (mantissa, dot_shift, p, true)
     } else {
         // No decimal, just return, noting if truncation occurred.
         // Any truncated digits did not increase the mantissa, make dot_shift
         // negative to compensate.
-        let dot_shift = -usize_to_i32(truncated);
+        let dot_shift = -try_cast_i32_or_max(truncated);
         (mantissa, dot_shift, f, truncated != 0)
     }
 }

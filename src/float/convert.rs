@@ -31,7 +31,7 @@ pub(super) fn from_float<M: Mantissa, T: Float>(t: T)
     -> ExtendedFloat<M>
 {
     ExtendedFloat {
-        frac: as_cast(t.significand()),
+        frac: as_cast(t.mantissa()),
         exp: t.exponent(),
     }
 }

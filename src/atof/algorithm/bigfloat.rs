@@ -43,6 +43,14 @@ const SMALL_POWERS_BASE29: [u32; 7] = [1, 29, 841, 24389, 707281, 20511149, 5948
 /// Small powers (u32) for base31 operations.
 const SMALL_POWERS_BASE31: [u32; 7] = [1, 31, 961, 29791, 923521, 28629151, 887503681];
 
+// HELPERS
+
+/// Try cast value to i32.
+#[inline]
+fn try_cast_i32<T: Integer>(t: T) -> Option<i32> {
+    try_cast(t)
+}
+
 // ADD
 
 /// Add two small integers and return the resulting value and if overflow happens.
@@ -723,11 +731,9 @@ impl Bigfloat {
         }
 
         // Decrease the exponent component.
-//        let bits = bytes.try_into()
-//            .and_then(|v| v.checked_mul(Self::BITS as i32))
-//            .unwrap_or(i32::max_value());
-        // TODO(ahuszagh) This is lossy... Change to try_cast
-        let bits = (bytes as i32).checked_mul(Self::BITS as i32).unwrap_or(i32::max_value());
+        let bits = try_cast_i32(bytes)
+            .and_then(|v| v.checked_mul(Self::BITS as i32))
+            .unwrap_or(i32::max_value());
         self.exponent = self.exponent.checked_sub(bits).unwrap_or(i32::min_value());
 
         // Move data to new buffer, prepend `bytes` 0s, and then append

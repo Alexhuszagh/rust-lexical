@@ -1,7 +1,7 @@
 //! Utilities for Rust primitives.
 
 use lib::fmt;
-use super::cast::AsCast;
+use super::cast::{AsCast, TryCast};
 
 /// Type that can be converted to primitive with `as`.
 pub trait AsPrimitive: Copy + PartialEq + PartialOrd {
@@ -74,8 +74,26 @@ as_primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
 // PRIMITIVE
 
 /// Primitive type trait (which all have static lifetimes).
-pub trait Primitive: 'static + AsCast + fmt::Debug + fmt::Display {
-}
+pub trait Primitive:
+    // General
+    'static + fmt::Debug + fmt::Display +
+    // Casts
+    AsCast +
+    TryCast<u8> +
+    TryCast<u16> +
+    TryCast<u32> +
+    TryCast<u64> +
+    TryCast<u128> +
+    TryCast<usize> +
+    TryCast<i8> +
+    TryCast<i16> +
+    TryCast<i32> +
+    TryCast<i64> +
+    TryCast<i128> +
+    TryCast<isize> +
+    TryCast<f32> +
+    TryCast<f64>
+{}
 
 macro_rules! primitive {
     ($($t:ty)*) => ($(
