@@ -71,13 +71,8 @@ macro_rules! as_primitive {
 
 as_primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
 
-// PRIMITIVE
-
-/// Primitive type trait (which all have static lifetimes).
-pub trait Primitive:
-    // General
-    'static + fmt::Debug + fmt::Display +
-    // Casts
+/// Type that can be converted to primitive with `as`.
+pub trait TryPrimitive:
     AsCast +
     TryCast<u8> +
     TryCast<u16> +
@@ -93,6 +88,90 @@ pub trait Primitive:
     TryCast<isize> +
     TryCast<f32> +
     TryCast<f64>
+{
+    #[inline(always)]
+    fn try_u8(self) -> Option<u8> {
+        self.try_cast()
+    }
+
+    #[inline(always)]
+    fn try_u16(self) -> Option<u16> {
+        self.try_cast()
+    }
+
+    #[inline(always)]
+    fn try_u32(self) -> Option<u32> {
+        self.try_cast()
+    }
+
+    #[inline(always)]
+    fn try_u64(self) -> Option<u64> {
+        self.try_cast()
+    }
+
+    #[inline(always)]
+    fn try_u128(self) -> Option<u128> {
+        self.try_cast()
+    }
+
+    #[inline(always)]
+    fn try_usize(self) -> Option<usize> {
+        self.try_cast()
+    }
+
+    #[inline(always)]
+    fn try_i8(self) -> Option<i8> {
+        self.try_cast()
+    }
+
+    #[inline(always)]
+    fn try_i16(self) -> Option<i16> {
+        self.try_cast()
+    }
+
+    #[inline(always)]
+    fn try_i32(self) -> Option<i32> {
+        self.try_cast()
+    }
+
+    #[inline(always)]
+    fn try_i64(self) -> Option<i64> {
+        self.try_cast()
+    }
+
+    #[inline(always)]
+    fn try_i128(self) -> Option<i128> {
+        self.try_cast()
+    }
+
+    #[inline(always)]
+    fn try_isize(self) -> Option<isize> {
+        self.try_cast()
+    }
+
+    #[inline(always)]
+    fn try_f32(self) -> Option<f32> {
+        self.try_cast()
+    }
+
+    #[inline(always)]
+    fn try_f64(self) -> Option<f64> {
+        self.try_cast()
+    }
+}
+
+macro_rules! try_primitive {
+    ($($t:ty)*) => ($(
+        impl TryPrimitive for $t {}
+    )*)
+}
+
+try_primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
+
+// PRIMITIVE
+
+/// Primitive type trait (which all have static lifetimes).
+pub trait Primitive: 'static + fmt::Debug + fmt::Display + TryPrimitive
 {}
 
 macro_rules! primitive {

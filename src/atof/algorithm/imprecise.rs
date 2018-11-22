@@ -96,7 +96,7 @@ unsafe extern "C" fn parse_fraction(base: u32, first: *const u8, last: *const u8
             let mut value: u64 = 0;
             let l = last.min(f.add(12));
             f = atoi::unchecked(&mut value, base, f, l).0;
-            let digits = distance(first, f) as i32;
+            let digits = distance(first, f).try_i32_or_max();
 
             // Ignore leading 0s, just not we've passed them.
             if value != 0 {

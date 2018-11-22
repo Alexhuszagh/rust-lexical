@@ -11,6 +11,7 @@ const DIGIT_TO_CHAR: [u8; 36] = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7',
 /// Get character from digit.
 #[inline(always)]
 pub(crate) fn digit_to_char<T: Integer>(digit: T) -> u8 {
+    debug_assert!(digit.as_i32() >= 0 && digit.as_i32() <= 36, "digit_to_char() invalid character.");
     let idx: usize = as_cast(digit);
     unsafe { *DIGIT_TO_CHAR.get_unchecked(idx) }
 }
@@ -582,11 +583,13 @@ impl TablePower for f32 {
     const POW2_EXPONENT_BIAS: i32 = 149;
 
     unsafe fn table_pow2(exponent: i32) -> f32 {
+        debug_assert!(exponent + Self::POW2_EXPONENT_BIAS >= 0, "table_pow2() have negative exponent.");
         let idx: usize = as_cast(exponent + Self::POW2_EXPONENT_BIAS);
         *F32_POW2.get_unchecked(idx)
     }
 
     unsafe fn table_pow<T: Integer>(base: T, exponent: i32) -> f32 {
+        debug_assert!(exponent >= 0, "table_pow() have negative exponent.");
         let base: i32 = as_cast(base);
         let exponent = exponent as usize;
         match base {
@@ -2771,11 +2774,13 @@ impl TablePower for f64 {
     const POW2_EXPONENT_BIAS: i32 = 1074;
 
     unsafe fn table_pow2(exponent: i32) -> f64 {
+        debug_assert!(exponent + Self::POW2_EXPONENT_BIAS >= 0, "table_pow2() have negative exponent.");
         let idx: usize = as_cast(exponent + Self::POW2_EXPONENT_BIAS);
         *F64_POW2.get_unchecked(idx)
     }
 
     unsafe fn table_pow<T: Integer>(base: T, exponent: i32) -> f64 {
+        debug_assert!(exponent >= 0, "table_pow() have negative exponent.");
         let base: i32 = as_cast(base);
         let exponent = exponent as usize;
         match base {

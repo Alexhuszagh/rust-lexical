@@ -124,6 +124,80 @@ impl<T: Float> AsPrimitive for WrappedFloat<T> {
     }
 }
 
+// IMPL TRY PRIMITIVE
+
+impl<T: Float> TryPrimitive for WrappedFloat<T> {
+    #[inline(always)]
+    fn try_u8(self) -> Option<u8> {
+        try_cast(self.data)
+    }
+
+    #[inline(always)]
+    fn try_u16(self) -> Option<u16> {
+        try_cast(self.data)
+    }
+
+    #[inline(always)]
+    fn try_u32(self) -> Option<u32> {
+        try_cast(self.data)
+    }
+
+    #[inline(always)]
+    fn try_u64(self) -> Option<u64> {
+        try_cast(self.data)
+    }
+
+    #[inline(always)]
+    fn try_u128(self) -> Option<u128> {
+        try_cast(self.data)
+    }
+
+    #[inline(always)]
+    fn try_usize(self) -> Option<usize> {
+        try_cast(self.data)
+    }
+
+    #[inline(always)]
+    fn try_i8(self) -> Option<i8> {
+        try_cast(self.data)
+    }
+
+    #[inline(always)]
+    fn try_i16(self) -> Option<i16> {
+        try_cast(self.data)
+    }
+
+    #[inline(always)]
+    fn try_i32(self) -> Option<i32> {
+        try_cast(self.data)
+    }
+
+    #[inline(always)]
+    fn try_i64(self) -> Option<i64> {
+        try_cast(self.data)
+    }
+
+    #[inline(always)]
+    fn try_i128(self) -> Option<i128> {
+        try_cast(self.data)
+    }
+
+    #[inline(always)]
+    fn try_isize(self) -> Option<isize> {
+        try_cast(self.data)
+    }
+
+    #[inline(always)]
+    fn try_f32(self) -> Option<f32> {
+        try_cast(self.data)
+    }
+
+    #[inline(always)]
+    fn try_f64(self) -> Option<f64> {
+        try_cast(self.data)
+    }
+}
+
 // IMPL AS CAST
 
 impl<T: Float> AsCast for WrappedFloat<T> {

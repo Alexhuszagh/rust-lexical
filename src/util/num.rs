@@ -161,6 +161,130 @@ pub trait Integer:
     fn is_one(self) -> bool {
         self == Self::ONE
     }
+
+    // TRY CAST OR MAX
+
+    #[inline(always)]
+    fn try_u8_or_max(self) -> u8 {
+        try_cast_or_max(self)
+    }
+
+    #[inline(always)]
+    fn try_u16_or_max(self) -> u16 {
+        try_cast_or_max(self)
+    }
+
+    #[inline(always)]
+    fn try_u32_or_max(self) -> u32 {
+        try_cast_or_max(self)
+    }
+
+    #[inline(always)]
+    fn try_u64_or_max(self) -> u64 {
+        try_cast_or_max(self)
+    }
+
+    #[inline(always)]
+    fn try_u128_or_max(self) -> u128 {
+        try_cast_or_max(self)
+    }
+
+    #[inline(always)]
+    fn try_usize_or_max(self) -> usize {
+        try_cast_or_max(self)
+    }
+
+    #[inline(always)]
+    fn try_i8_or_max(self) -> i8 {
+        try_cast_or_max(self)
+    }
+
+    #[inline(always)]
+    fn try_i16_or_max(self) -> i16 {
+        try_cast_or_max(self)
+    }
+
+    #[inline(always)]
+    fn try_i32_or_max(self) -> i32 {
+        try_cast_or_max(self)
+    }
+
+    #[inline(always)]
+    fn try_i64_or_max(self) -> i64 {
+        try_cast_or_max(self)
+    }
+
+    #[inline(always)]
+    fn try_i128_or_max(self) -> i128 {
+        try_cast_or_max(self)
+    }
+
+    #[inline(always)]
+    fn try_isize_or_max(self) -> isize {
+        try_cast_or_max(self)
+    }
+
+    // TRY CAST OR MIN
+
+    #[inline(always)]
+    fn try_u8_or_min(self) -> u8 {
+        try_cast_or_min(self)
+    }
+
+    #[inline(always)]
+    fn try_u16_or_min(self) -> u16 {
+        try_cast_or_min(self)
+    }
+
+    #[inline(always)]
+    fn try_u32_or_min(self) -> u32 {
+        try_cast_or_min(self)
+    }
+
+    #[inline(always)]
+    fn try_u64_or_min(self) -> u64 {
+        try_cast_or_min(self)
+    }
+
+    #[inline(always)]
+    fn try_u128_or_min(self) -> u128 {
+        try_cast_or_min(self)
+    }
+
+    #[inline(always)]
+    fn try_usize_or_min(self) -> usize {
+        try_cast_or_min(self)
+    }
+
+    #[inline(always)]
+    fn try_i8_or_min(self) -> i8 {
+        try_cast_or_min(self)
+    }
+
+    #[inline(always)]
+    fn try_i16_or_min(self) -> i16 {
+        try_cast_or_min(self)
+    }
+
+    #[inline(always)]
+    fn try_i32_or_min(self) -> i32 {
+        try_cast_or_min(self)
+    }
+
+    #[inline(always)]
+    fn try_i64_or_min(self) -> i64 {
+        try_cast_or_min(self)
+    }
+
+    #[inline(always)]
+    fn try_i128_or_min(self) -> i128 {
+        try_cast_or_min(self)
+    }
+
+    #[inline(always)]
+    fn try_isize_or_min(self) -> isize {
+        try_cast_or_min(self)
+    }
 }
 
 macro_rules! integer_impl {

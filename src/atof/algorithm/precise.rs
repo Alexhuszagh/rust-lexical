@@ -25,12 +25,6 @@ use super::exponent::parse_exponent;
 // PARSE
 // -----
 
-/// Safely convert the number of bits truncated to an exponent.
-#[inline]
-fn try_cast_i32_or_max<T: Integer>(t: T) -> i32 {
-    try_cast_or_max(t)
-}
-
 /// Parse the mantissa from a string.
 ///
 /// Returns the mantissa, the shift in the mantissa relative to the dot,
@@ -76,7 +70,7 @@ pub(super) unsafe extern "C" fn parse_mantissa<M>(base: u32, mut first: *const u
         };
         // Subtract the number of truncated digits from the dot shift, since these
         // truncated digits are reflected in the distance but not in the mantissa.
-        let dot_shift = try_cast_i32_or_max(distance(f, tup.0)) - try_cast_i32_or_max(tup.1);
+        let dot_shift = distance(f, tup.0).try_i32_or_max() - tup.1.try_i32_or_max();
         (mantissa, dot_shift, tup.0, tup.1 != 0)
     } else if has_fraction {
         // Integral overflow occurred, cannot add more values, but a fraction exists.
@@ -88,13 +82,13 @@ pub(super) unsafe extern "C" fn parse_mantissa<M>(base: u32, mut first: *const u
         }
         // Subtract the number of truncated digits from the dot shift, since these
         // truncated digits are reflected in the distance but not in the mantissa.
-        let dot_shift = try_cast_i32_or_max(distance(f, p)) - try_cast_i32_or_max(truncated);
+        let dot_shift = distance(f, p).try_i32_or_max() - truncated.try_i32_or_max();
         (mantissa, dot_shift, p, true)
     } else {
         // No decimal, just return, noting if truncation occurred.
         // Any truncated digits did not increase the mantissa, make dot_shift
         // negative to compensate.
-        let dot_shift = -try_cast_i32_or_max(truncated);
+        let dot_shift = -truncated.try_i32_or_max();
         (mantissa, dot_shift, f, truncated != 0)
     }
 }

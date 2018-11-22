@@ -308,7 +308,7 @@ impl Bigfloat {
         debug_assert!(!self.back().is_zero(), "Bigfloat::trailing_zeros() data is not normalized.");
 
         // Get the index of the last non-zero value
-        let index = self.trailing_zero_values() as usize;
+        let index: usize = self.trailing_zero_values() as usize;
         let mut count = (index * Self::BITS) as u32;
         if index != self.len() {
             count += self.get(index).trailing_zeros();

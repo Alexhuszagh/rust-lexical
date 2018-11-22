@@ -138,7 +138,7 @@ macro_rules! generate_unsafe_api {
         #[inline]
         pub unsafe extern "C" fn $name(base: u8, first: *const u8, last: *const u8) -> ($f, *const u8, bool)
         {
-            let (value, p) = atof::<$f>(base as u32, first, last, $lossy);
+            let (value, p) = atof::<$f>(base.into(), first, last, $lossy);
             (value, p, false)
         }
     )

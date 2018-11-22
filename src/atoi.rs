@@ -321,7 +321,7 @@ macro_rules! generate_unsafe_unsigned {
         #[inline]
         pub unsafe extern "C" fn $func(base: u8, first: *const u8, last: *const u8) -> ($t, *const u8, bool)
         {
-            unsigned::<$t, _>(base as u32, first, last, unchecked::<$t>)
+            unsigned::<$t, _>(base.into(), first, last, unchecked::<$t>)
         }
     )
 }
@@ -339,7 +339,7 @@ macro_rules! generate_unsafe_signed {
         #[inline]
         pub unsafe extern "C" fn $func(base: u8, first: *const u8, last: *const u8) -> ($t, *const u8, bool)
         {
-            signed::<$t, _>(base as u32, first, last, unchecked::<$t>)
+            signed::<$t, _>(base.into(), first, last, unchecked::<$t>)
         }
     )
 }

@@ -13,7 +13,7 @@ pub(crate) unsafe extern "C" fn float_base10(f: f32, first: *mut u8)
 {
     // Not a public API, but we don't want the C-API.
     let len = raw::pretty_f2s_buffered_n(f, first);
-    first.offset(len as isize)
+    first.add(len)
 }
 
 // F64
@@ -27,5 +27,5 @@ pub(crate) unsafe extern "C" fn double_base10(d: f64, first: *mut u8)
 {
     // Not a public API, but we don't want the C-API.
     let len = raw::pretty_d2s_buffered_n(d, first);
-    first.offset(len as isize)
+    first.add(len)
 }

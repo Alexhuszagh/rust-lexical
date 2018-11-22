@@ -11,7 +11,7 @@ use super::mantissa::Mantissa;
 pub(super) fn shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
 {
     fp.frac >>= as_cast::<M, _>(shift);
-    fp.exp += as_cast::<i32, _>(shift);
+    fp.exp += shift.as_i32();
 }
 
 /// Shift extended-precision float left `shift` bytes (force overflow checks).
@@ -19,5 +19,5 @@ pub(super) fn shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
 pub(super) fn shl<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
 {
     fp.frac <<= as_cast::<M, _>(shift);
-    fp.exp -= as_cast::<i32, _>(shift);
+    fp.exp -= shift.as_i32();
 }

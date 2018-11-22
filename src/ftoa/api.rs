@@ -161,7 +161,7 @@ macro_rules! generate_unsafe_api {
         #[inline]
         pub unsafe extern "C" fn $name(value: $t, base: u8, first: *mut u8, last: *mut u8) -> *mut u8
         {
-            filter_buffer(value, base as u32, first, last)
+            filter_buffer(value, base.into(), first, last)
         }
     )
 }

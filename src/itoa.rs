@@ -374,7 +374,7 @@ macro_rules! generate_unsafe_unsigned {
         #[inline]
         pub unsafe extern "C" fn $name(value: $t, base: u8, first: *mut u8, last: *mut u8) -> *mut u8
         {
-            unsigned::<$t, $uwide>(value, base as u32, first, last)
+            unsigned::<$t, $uwide>(value, base.into(), first, last)
         }
     )
 }
@@ -405,7 +405,7 @@ macro_rules! generate_unsafe_signed {
         pub unsafe extern "C" fn $name(value: $t, base: u8, first: *mut u8, last: *mut u8)
             -> *mut u8
         {
-            signed::<$t, $uwide, $iwide>(value, base as u32, first, last)
+            signed::<$t, $uwide, $iwide>(value, base.into(), first, last)
         }
     )
 }
