@@ -1636,28 +1636,40 @@ mod tests {
 
     // DIVISION
 
-    // TODO(ahuszagh) Needs to pad to a number of bits.
     #[test]
     fn pad_division_test() {
-//        // Pad 1
-//        let mut x = Bigfloat::from_u32(1);
-//        x.pad_division(4);
-//        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exponent: -96 });
-//
-//        // Pad 2
-//        let mut x = Bigfloat::from_u64(0x100000001);
-//        x.pad_division(4);
-//        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 1, 1], exponent: -64 });
-//
-//        // Pad 3
-//        let mut x = Bigfloat { data: smallvec![1, 1, 1], exponent: 0 };
-//        x.pad_division(4);
-//        assert_eq!(x, Bigfloat { data: smallvec![0, 1, 1, 1], exponent: -32 });
-//
-//        // Pad 4
-//        let mut x = Bigfloat::from_u128(0x1000000010000000100000001);
-//        x.pad_division(4);
-//        assert_eq!(x, Bigfloat { data: smallvec![1, 1, 1, 1], exponent: 0 });
+        // Pad 0
+        let mut x = Bigfloat { data: smallvec![0, 0, 0, 1], exponent: 0 };
+        x.pad_division(3);
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exponent: 0 });
+
+        // Pad 1
+        let mut x = Bigfloat { data: smallvec![0, 0, 1], exponent: 0 };
+        x.pad_division(3);
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exponent: -32 });
+
+        // Pad 2
+        let mut x = Bigfloat { data: smallvec![0, 1], exponent: 0 };
+        x.pad_division(3);
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exponent: -64 });
+
+        // Pad 3
+        let mut x = Bigfloat::from_u32(1);
+        x.pad_division(3);
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exponent: -96 });
+
+        let mut x = Bigfloat::from_u64(0x100000001);
+        x.pad_division(3);
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1, 1], exponent: -96 });
+
+        let mut x = Bigfloat { data: smallvec![1, 1, 1], exponent: 0 };
+        x.pad_division(3);
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1, 1, 1], exponent: -96 });
+
+        // Pad 4
+        let mut x = Bigfloat::from_u128(0x1000000010000000100000001);
+        x.pad_division(4);
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 0, 1, 1, 1, 1], exponent: -128 });
     }
 
     // TODO(ahuszagh) Add division tests.
