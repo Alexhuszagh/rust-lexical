@@ -28,6 +28,7 @@ use super::exponent::parse_exponent;
 
 /// Safely convert the number of bits truncated to an exponent.
 // TODO(ahuszagh) Need to change this for TryInto...
+// TODO(ahuszagh) usize may be u16-u64,so...
 #[inline]
 fn usize_to_i32(truncated: usize) -> i32 {
     const MAX: usize = i32::max_value() as usize;
