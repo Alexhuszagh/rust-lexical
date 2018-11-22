@@ -150,10 +150,9 @@ impl StablePower for f32 {
             40, 40, 40, 40, 40, 40, 30, 30, 30, 30, 30
         ];
 
-        let base: i32 = as_cast(base);
-        let idx: usize = as_cast(base - 2);
-        debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
+        debug_assert!(base.as_i32() >= 2 && base.as_i32() <= 36, "Numerical base must be from 2-36");
 
+        let idx: usize = as_cast(base.as_i32() - 2);
         unsafe { *MAX.get_unchecked(idx) }
     }
 
@@ -166,10 +165,9 @@ impl StablePower for f32 {
             20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20
         ];
 
-        let base: i32 = as_cast(base);
-        let idx: usize = as_cast(base - 2);
-        debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
+        debug_assert!(base.as_i32() >= 2 && base.as_i32() <= 36, "Numerical base must be from 2-36");
 
+        let idx: usize = as_cast(base.as_i32() - 2);
         unsafe { *STEP.get_unchecked(idx) }
     }
 }
@@ -187,10 +185,9 @@ impl StablePower for f64 {
             475, 475, 450, 450, 450, 450, 450, 450, 425, 425, 425
         ];
 
-        let base: i32 = as_cast(base);
-        let idx: usize = as_cast(base - 2);
-        debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
+        debug_assert!(base.as_i32() >= 2 && base.as_i32() <= 36, "Numerical base must be from 2-36");
 
+        let idx: usize = as_cast(base.as_i32() - 2);
         unsafe { *MAX.get_unchecked(idx) }
     }
 
@@ -203,10 +200,9 @@ impl StablePower for f64 {
             128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128
         ];
 
-        let base: i32 = as_cast(base);
-        let idx: usize = as_cast(base - 2);
-        debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
+        debug_assert!(base.as_i32() >= 2 && base.as_i32() <= 36, "Numerical base must be from 2-36");
 
+        let idx: usize = as_cast(base.as_i32() - 2);
         unsafe { *STEP.get_unchecked(idx) }
     }
 }

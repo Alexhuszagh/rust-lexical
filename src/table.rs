@@ -160,9 +160,8 @@ const F32_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
 #[cfg(any(test, not(feature = "imprecise")))]
 impl ExactExponent for f32 {
     fn exponent_limit<T: Integer>(base: T) ->(i32, i32) {
-        let base: i32 = as_cast(base);
-        let idx: usize = as_cast(base - 2);
-        debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
+        debug_assert!(base.as_i32() >= 2 && base.as_i32() <= 36, "Numerical base must be from 2-36");
+        let idx: usize = as_cast(base.as_i32() - 2);
 
         unsafe { *F32_EXACT_EXPONENT_LIMITS.get_unchecked(idx) }
     }
@@ -214,10 +213,9 @@ const F64_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
 #[cfg(any(test, not(feature = "imprecise")))]
 impl ExactExponent for f64 {
     fn exponent_limit<T: Integer>(base: T) ->(i32, i32) {
-        let base: i32 = as_cast(base);
-        let idx: usize = as_cast(base - 2);
-        debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
+        debug_assert!(base.as_i32() >= 2 && base.as_i32() <= 36, "Numerical base must be from 2-36");
 
+        let idx: usize = as_cast(base.as_i32() - 2);
         unsafe { *F64_EXACT_EXPONENT_LIMITS.get_unchecked(idx) }
     }
 }
