@@ -501,6 +501,7 @@ pub(crate) unsafe extern "C" fn atod_lossy(base: u32, first: *const u8, last: *c
 
 #[cfg(test)]
 mod tests {
+    use test::*;
     use super::*;
 
     unsafe fn check_parse_exponent(base: u32, s: &str, tup: (i32, usize)) {
@@ -626,17 +627,11 @@ mod tests {
         }
     }
 
-    const POW2: [u32; 5] = [2, 4, 8, 16, 32];
-    const BASEN: [u32; 30] = [
-        3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21,
-        22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36
-    ];
-
     #[test]
     fn pow2_to_float_exact_test() {
         // Everything is valid.
         let mantissa = 1 << 63;
-        for base in POW2.iter().cloned() {
+        for base in BASE_POW2.iter().cloned() {
             let (min_exp, max_exp) = f32::exponent_limit(base);
             let pow2_exp = pow2_exponent(base);
             for exp in min_exp-20..max_exp+30 {
@@ -650,7 +645,7 @@ mod tests {
     fn pow2_to_double_exact_test() {
         // Everything is valid.
         let mantissa = 1 << 63;
-        for base in POW2.iter().cloned() {
+        for base in BASE_POW2.iter().cloned() {
             let (min_exp, max_exp) = f64::exponent_limit(base);
             let pow2_exp = pow2_exponent(base);
             for exp in min_exp-20..max_exp+30 {
@@ -664,7 +659,7 @@ mod tests {
     fn to_float_exact_test() {
         // valid
         let mantissa = 1 << (f32::MANTISSA_SIZE - 1);
-        for base in BASEN.iter().cloned() {
+        for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f32::exponent_limit(base);
             for exp in min_exp..max_exp+1 {
                 let (_, valid) = to_exact::<f32>(mantissa, base, exp);
@@ -677,7 +672,7 @@ mod tests {
         assert!(!valid, "invalid mantissa");
 
         // invalid exponents
-        for base in BASEN.iter().cloned() {
+        for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f32::exponent_limit(base);
             let (_, valid) = to_exact::<f32>(mantissa, base, min_exp-1);
             assert!(!valid, "exponent under min_exp");
@@ -691,7 +686,7 @@ mod tests {
     fn to_double_exact_test() {
         // valid
         let mantissa = 1 << (f64::MANTISSA_SIZE - 1);
-        for base in BASEN.iter().cloned() {
+        for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f64::exponent_limit(base);
             for exp in min_exp..max_exp+1 {
                 let (_, valid) = to_exact::<f64>(mantissa, base, exp);
@@ -704,7 +699,7 @@ mod tests {
         assert!(!valid, "invalid mantissa");
 
         // invalid exponents
-        for base in BASEN.iter().cloned() {
+        for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f64::exponent_limit(base);
             let (_, valid) = to_exact::<f64>(mantissa, base, min_exp-1);
             assert!(!valid, "exponent under min_exp");

@@ -1,11 +1,11 @@
 //! Arbitrary-precision decimal to parse a floating-point number.
 // TODO(ahuszagh) Remove this arbitrary warning, we're
 // in rapid development, so allow it for now.
-#![allow(unused)]
+#![allow(dead_code)]
 
 use smallvec;
 use float::Mantissa;
-use lib::{mem, iter, slice};
+use lib::{mem, slice};
 use util::*;
 
 // CONSTANTS
@@ -30,9 +30,6 @@ const SMALL_POWERS_BASE17: [u32; 8] = [1, 17, 289, 4913, 83521, 1419857, 2413756
 
 /// Small powers (u32) for base19 operations.
 const SMALL_POWERS_BASE19: [u32; 8] = [1, 19, 361, 6859, 130321, 2476099, 47045881, 893871739];
-
-/// Small powers (u32) for base21 operations.
-const SMALL_POWERS_BASE21: [u32; 8] = [1, 21, 441, 9261, 194481, 4084101, 85766121, 1801088541];
 
 /// Small powers (u32) for base23 operations.
 const SMALL_POWERS_BASE23: [u32; 8] = [1, 23, 529, 12167, 279841, 6436343, 148035889, 3404825447];
@@ -111,23 +108,84 @@ fn mul_small_assign<Wide, Narrow>(x: &mut Narrow, y: Narrow, carry: Narrow)
 ///
 /// Returns the (value, remainder) components.
 #[inline(always)]
-fn div_small<T: Integer>(x: T, y: T, rem: T)
-    -> (T, T)
+fn div_small<Wide, Narrow>(x: Narrow, y: Narrow, rem: Narrow)
+    -> (Narrow, Narrow)
+    where Narrow: Integer,
+          Wide: Integer
 {
-    // Use wrapping sub, since if we have underflow, we need to have the above
-    // item correctly wrap to higher bits.
-    let x = x.wrapping_sub(rem);
-    (x / y, x % y)
+    // Assert that wide is 2 times as wide as narrow.
+    debug_assert!(mem::size_of::<Narrow>()*2 == mem::size_of::<Wide>());
+
+    // Cannot overflow, as long as wide is 2x as wide.
+    let bits = mem::size_of::<Narrow>() * 8;
+    let x = as_cast::<Wide, _>(x) | (as_cast::<Wide, _>(rem) << bits);
+    let y = as_cast::<Wide, _>(y);
+    (as_cast::<Narrow, _>(x / y), as_cast::<Narrow, _>(x % y))
 }
 
 /// DivAssign two small integers and return the remainder.
 #[inline(always)]
-fn div_small_assign<T: Integer>(x: &mut T, y: T, rem: T)
-    -> T
+fn div_small_assign<Wide, Narrow>(x: &mut Narrow, y: Narrow, rem: Narrow)
+    -> Narrow
+    where Narrow: Integer,
+          Wide: Integer
 {
-    let t = div_small(*x, y, rem);
+    let t = div_small::<Wide, Narrow>(*x, y, rem);
     *x = t.0;
     t.1
+}
+
+// PAD DIVISION
+
+/// Calculate the number of bits to pad for `i**n`.
+///
+/// This function calculates the steepest slope for a repeating
+/// pattern inside the number of bits require to calculate `i**n` for
+/// `n ∀ [0, 350)`, calculating a reasonable upper bound on the slope.
+#[inline]
+fn padded_bits(i: u32, n:i32) -> u32 {
+    debug_assert!(i >= 2 && i <= 36, "Numerical base must be from 2-36");
+
+    // 53-bit mantissa, all values can be **exactly** represented.
+    const U32_MAX: f64 = u32::max_value() as f64;
+
+    // Get slope and intercept.
+    let (m, b) = match i {
+        // Implement powers of 2 multipliers as the prime.
+        3 | 6 | 12 | 24 => (1.600, 1.0),    // [1, 2, 1, 2, 2]
+        5 | 10 | 20     => (2.334, 1.0),    // [2, 2, 3]
+        7 | 14 | 28     => (2.834, 1.0),    // [2, 3, 3, 3, 3, 3]
+        11 | 22         => (3.500, 1.0),    // [3, 4]
+        13 | 26         => (3.750, 1.0),    // [3, 4, 4, 4]
+        17 | 34         => (4.091, 1.0),    // [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5]
+        19              => (4.250, 1.0),    // [4, 4, 4, 5]
+        23              => (4.667, 1.0),    // [4, 5, 5]
+        29              => (4.875, 1.0),    // [4, 5, 5, 5, 5, 5, 5, 5]
+        31              => (4.955, 1.0),    // [4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
+
+        // Compound bases (multiply m, keep intercept)
+        9 | 18 | 36     => (2.560, 1.0),    // (3 * 3)
+        15 | 30         => (3.734, 1.0),    // (3 * 5)
+        21              => (4.534, 1.0),    // (3 * 7)
+        27              => (4.096, 1.0),    // (3 * 9)
+        33              => (5.600, 1.0),    // (3 * 11)
+        25              => (5.445, 1.0),    // (5 * 5)
+        35              => (6.612, 1.0),    // (5 * 7)
+
+        // Other bases (powers of 2)
+        _               => unreachable!(),
+    };
+
+    // Get our bit count using the linear equation.
+    let n = n as f64;
+    let v = (n*m + b).ceil();
+
+    // Ensure the type is representable, if not, panic!!!
+    if v > U32_MAX {
+        panic!("padded_bits() overflow, would cause memory error.");
+    } else {
+        v as u32
+    }
 }
 
 // TODO(ahuszagh) Add div....
@@ -138,30 +196,89 @@ fn div_small_assign<T: Integer>(x: &mut T, y: T, rem: T)
 
 // MUL POW ASSIGN
 
-/// Wrap pown implementation using implied call.
-macro_rules! wrap_mul_pown_assign {
-    ($name:ident, $impl:ident, $n:expr) => (
-        /// MulAssign by a power of $n (not safe to chain calls).
+/// Wrap mul_pow2 implementation using implied call.
+macro_rules! wrap_mul_pow2_assign {
+    ($name:ident, $impl:ident, $b:expr) => (
+        /// MulAssign by a power of $b (not safe to chain calls).
         #[inline(always)]
         fn $name(&mut self, n: i32) {
-            debug_assert!(n >= 0, stringify!(Bigfloat::$name() must multiply by a positive power.));
+            debug_assert!(n >= 0, stringify!(Bigfloat::$name() must multiply by a positive power, n is {}.), n);
+            // Don't bounds check, we already check for exponent overflow.
             self.$impl(n);
         }
     );
 }
 
-// FROM BYTES
+/// Wrap mul_pown implementation using implied call.
+macro_rules! wrap_mul_pown_assign {
+    ($name:ident, $impl:ident, $b:expr) => (
+        /// MulAssign by a power of $b (not safe to chain calls).
+        #[inline(always)]
+        fn $name(&mut self, n: i32) {
+            debug_assert!(n >= 0, stringify!(Bigfloat::$name() must multiply by a positive power, n is {}.), n);
+            if n > 0x1400 {
+                // Comically large value, always infinity.
+                self.exponent = i32::max_value();
+            } else {
+                self.$impl(n);
+            }
+        }
+    );
+}
 
-///// Wrap operation using an assign internally.
-//macro_rules! wrap_assign {
-//    ($name:ident, $assign:ident, $(, $a:ident: $v:expr)*) => ()
-//}
+// DIV POW ASSIGN
+
+/// Wrap div_pow2 implementation using implied call.
+macro_rules! wrap_div_pow2_assign {
+    ($name:ident, $impl:ident, $b:expr) => (
+        /// DivAssign by a power of $b (not safe to chain calls).
+        #[inline(always)]
+        fn $name(&mut self, n: i32) {
+            debug_assert!(n >= 0, stringify!(Bigfloat::$name() must divide by a positive power, n is {}.), n);
+            // Don't pad or do bounds check, we already check for exponent underflow.
+            self.$impl(n);
+        }
+    );
+}
+
+/// Wrap div_pown implementation using implied call.
+macro_rules! wrap_div_pown_assign {
+    ($name:ident, $impl:ident, $b:expr) => (
+        /// DivAssign by a power of $b (not safe to chain calls).
+        #[inline(always)]
+        fn $name(&mut self, n: i32) {
+            debug_assert!(n >= 0, stringify!(Bigfloat::$name() must divide by a positive power, n is {}.), n);
+            if n > 0x1400 {
+                // Comically small value, always 0.
+                self.exponent = i32::min_value();
+            } else {
+                // Calculate the number of bytes required to pad the vector,
+                // and pad the vector. usize may be 16-bit, so use try_cast.
+                // Double the number of padded bits, to avoid truncation
+                // for accurate results.
+                let bits = unwrap_or_max(padded_bits($b, n).checked_mul(2));
+                let div = bits / 32;
+                let rem = bits % 32;
+                let bytes = div + (rem != 0) as u32;
+                self.pad_division(try_cast_or_max(bytes));
+
+                // Call the implied method after padding.
+                self.$impl(n);
+            }
+        }
+    );
+}
+
+// TODO(ahuszagh) Implement...
+
+// FROM BYTES
 
 /// Wrapper for basen from_bytes implementations.
 // TODO(ahuszagh) Implement
 macro_rules! from_bytes {
     ($name:ident) => (
         /// Initialize Bigfloat from bytes with base3.
+        #[allow(unused)] // TODO(ahuszagh) Remove
         fn $name(first: *const u8, last: *const u8) -> (Bigfloat, *const u8) {
             let bigfloat = Bigfloat::new();
             unimplemented!()
@@ -186,7 +303,73 @@ macro_rules! from_bytes {
 ///
 /// This large float assumes normalized values: that is, the most-significant
 /// 32-bit integer must be non-zero. All operations assume normality, and will
-/// return normalized values.
+/// return normalized values. It also assumes a non-negative result
+/// (the set `[0-+Infinity)`).
+///
+/// # Internal Algorithms
+///
+/// We break the data down into a vector of machine scalars, to simplify
+/// the algorithms involved internally and for decent performance.
+///
+/// **Addition**
+/// Addition of a machine scalar to the data can be done by adding the scalar
+/// to the least-significant scalar in the vector, and carrying as needed.
+/// Addition of two Bigfloats can be done by adding all scalars in `y`
+/// to `x`, extending `x` as needed, and adding the carry from the previous
+/// operation.
+///
+/// **Multiplication**
+/// Multiplication of a machine scalar to the data can be done by
+/// using a native-type twice the size of the original scalar. For each
+/// element in in the vector, multiply the two values in a wide type, and
+/// afterwards, adding any carry from previous operations. Then, extract
+/// the lower half bits as the result, and the upper half bits as the carry.
+///
+/// To multiply by a power `b**n`, we can precalculate all small powers of
+/// `b` that fit into the native scalar type. We then multiply by the largest
+/// small power until `n` is less than or equal to the exponent of the
+/// largest small power. We then multiply by the small power of the remainder,
+/// reducing the constant for multiplication dramatically (still requires
+/// N multiplications)
+///
+/// **Division**
+/// To avoid rounding-error due to truncation, we must first pad the vector
+/// prior to division by the estimated number of bits in the resulting
+/// power.
+///
+/// Afterwards, division by a machine scalar (`y`) can be done by first
+/// subtracting (with unsigned integer overflow) the remainder of the
+/// previous operation from each element in the vector, creating `x_rem`.
+/// The result is then `x_rem / y`, and the remainder is `x_rem % y`.
+///
+/// **Division Padding**
+/// Calculation of the number of bits required to pad for division
+/// by a base of a certain power was done using the follow Python code:
+/// ```text
+/// tobin = lambda x: "{0:b}".format(x)
+/// bitlen = lambda x: len(tobin(x))
+/// bitlens = lambda x: [bitlen(x**i) for i in range(0, 350)]
+/// def bitdiff(b):
+///     x = np.array(bitlens(b))
+///     return x[1:] - x[:-1]
+/// ```
+///
+/// An over-estimating linear regression was fit to the data, to estimate
+/// exactly the number of bits required. The sharpest slope was calculated,
+/// and a sharp upper bound on the data was calculated accordingly.
+/// The y-intercept was always 1.
+///
+/// # Note
+///
+/// We might be able to speed multiplication and division up by using
+/// exponentiation by squaring and Toom Cook or Schönhage–Strassen algorithm,
+/// with optimizations for low exponents using precalculated powers.
+/// Currently, when `M` is the length of the vector, and `N` is the power,
+/// and `C` is the exponent of the largest small power, we do `M * ((N/C)+1)`
+/// multiplications and additions, and `(N/C)+1` subtractions, comprising
+/// both the exponentiation and multiplication. This could likely be optimized,
+/// but would dramatically increase library complexity, or depend on GMP.
+/// Consider with caution.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Bigfloat {
     /// Raw data for the underlying buffer (exactly 32**2 for the largest float).
@@ -281,8 +464,7 @@ impl Bigfloat {
     /// Assumes the value is normalized.
     #[inline]
     pub fn trailing_zero_values(&self) -> u32 {
-        debug_assert!(!self.is_empty(), "Bigfloat::trailing_zero_values() data cannot be empty.");
-        debug_assert!(!self.back().is_zero(), "Bigfloat::trailing_zero_values() data is not normalized.");
+        debug_assert!(self.is_empty() || !self.back().is_zero(), "Bigfloat::trailing_zero_values() data is not normalized.");
         for (i, v) in self.iter().enumerate() {
             if !v.is_zero() {
                 return i as u32;
@@ -573,7 +755,8 @@ impl Bigfloat {
     /// Implied MulAssign by a power of 21 (safe to chain calls).
     #[inline]
     fn mul_pow21_assign_impl(&mut self, n: i32) {
-        self.mul_spowers_assign(n, &SMALL_POWERS_BASE21);
+        self.mul_pow3_assign_impl(n);
+        self.mul_pow7_assign_impl(n);
     }
 
     /// Implied MulAssign by a power of 22 (safe to chain calls).
@@ -678,13 +861,13 @@ impl Bigfloat {
         self.mul_pow9_assign_impl(n);
     }
 
-    wrap_mul_pown_assign!(mul_pow2_assign, mul_pow2_assign_impl, 2);
+    wrap_mul_pow2_assign!(mul_pow2_assign, mul_pow2_assign_impl, 2);
     wrap_mul_pown_assign!(mul_pow3_assign, mul_pow3_assign_impl, 3);
-    wrap_mul_pown_assign!(mul_pow4_assign, mul_pow4_assign_impl, 4);
+    wrap_mul_pow2_assign!(mul_pow4_assign, mul_pow4_assign_impl, 4);
     wrap_mul_pown_assign!(mul_pow5_assign, mul_pow5_assign_impl, 5);
     wrap_mul_pown_assign!(mul_pow6_assign, mul_pow6_assign_impl, 6);
     wrap_mul_pown_assign!(mul_pow7_assign, mul_pow7_assign_impl, 7);
-    wrap_mul_pown_assign!(mul_pow8_assign, mul_pow8_assign_impl, 8);
+    wrap_mul_pow2_assign!(mul_pow8_assign, mul_pow8_assign_impl, 8);
     wrap_mul_pown_assign!(mul_pow9_assign, mul_pow9_assign_impl, 9);
     wrap_mul_pown_assign!(mul_pow10_assign, mul_pow10_assign_impl, 10);
     wrap_mul_pown_assign!(mul_pow11_assign, mul_pow11_assign_impl, 11);
@@ -692,7 +875,7 @@ impl Bigfloat {
     wrap_mul_pown_assign!(mul_pow13_assign, mul_pow13_assign_impl, 13);
     wrap_mul_pown_assign!(mul_pow14_assign, mul_pow14_assign_impl, 14);
     wrap_mul_pown_assign!(mul_pow15_assign, mul_pow15_assign_impl, 15);
-    wrap_mul_pown_assign!(mul_pow16_assign, mul_pow16_assign_impl, 16);
+    wrap_mul_pow2_assign!(mul_pow16_assign, mul_pow16_assign_impl, 16);
     wrap_mul_pown_assign!(mul_pow17_assign, mul_pow17_assign_impl, 17);
     wrap_mul_pown_assign!(mul_pow18_assign, mul_pow18_assign_impl, 18);
     wrap_mul_pown_assign!(mul_pow19_assign, mul_pow19_assign_impl, 19);
@@ -708,7 +891,7 @@ impl Bigfloat {
     wrap_mul_pown_assign!(mul_pow29_assign, mul_pow29_assign_impl, 29);
     wrap_mul_pown_assign!(mul_pow30_assign, mul_pow30_assign_impl, 30);
     wrap_mul_pown_assign!(mul_pow31_assign, mul_pow31_assign_impl, 31);
-    wrap_mul_pown_assign!(mul_pow32_assign, mul_pow32_assign_impl, 32);
+    wrap_mul_pow2_assign!(mul_pow32_assign, mul_pow32_assign_impl, 32);
     wrap_mul_pown_assign!(mul_pow33_assign, mul_pow33_assign_impl, 33);
     wrap_mul_pown_assign!(mul_pow34_assign, mul_pow34_assign_impl, 34);
     wrap_mul_pown_assign!(mul_pow35_assign, mul_pow35_assign_impl, 35);
@@ -726,7 +909,7 @@ impl Bigfloat {
         // Remove the number of trailing zeros values for the padding.
         // If we don't need to pad the resulting buffer, return early.
         let bytes = bytes.checked_sub(self.trailing_zero_values() as usize).unwrap_or(0);
-        if bytes.is_zero() {
+        if bytes.is_zero() || self.is_empty() {
             return;
         }
 
@@ -752,13 +935,15 @@ impl Bigfloat {
         // Divide iteratively over all elements, adding the carry each time.
         let mut rem: u32 = 0;
         for x in self.iter_mut().rev() {
-            rem = div_small_assign(x, y, rem);
+            rem = div_small_assign::<u64, u32>(x, y, rem);
         }
 
         // Round-up if there's truncation in least-significant bit.
         // Due to our bases, rem is always <= 0x80000000, which is the midway
         // point for when we should round.
         // The container **cannot** be empty, since rem is not 0.
+        // If the vector is not padded prior to use, this rounding error
+        // is **very** significant.
         if rem != 0 {
             debug_assert!(rem <= 0x80000000, "Bigfloat::div_small_assign() assumed base is <= midway.");
             *self.front_mut() += 1;
@@ -805,7 +990,7 @@ impl Bigfloat {
     /// Warning: Bigfloat must have previously been padded `pad_division`.
     #[inline]
     fn div_pow2_assign_impl(&mut self, n: i32) {
-        // Increment exponent to simulate actual addition.
+        // Decrement exponent to simulate actual addition.
         self.exponent = self.exponent.checked_sub(n).unwrap_or(i32::max_value());
     }
 
@@ -950,7 +1135,8 @@ impl Bigfloat {
     /// Warning: Bigfloat must have previously been padded `pad_division`.
     #[inline]
     fn div_pow21_assign_impl(&mut self, n: i32) {
-        self.div_spowers_assign(n, &SMALL_POWERS_BASE21);
+        self.div_pow3_assign_impl(n);
+        self.div_pow7_assign_impl(n);
     }
 
     /// Implied DivAssign by a power of 22 (safe to chain calls).
@@ -1069,6 +1255,42 @@ impl Bigfloat {
         self.div_pow4_assign_impl(n);
         self.div_pow9_assign_impl(n);
     }
+
+    wrap_div_pow2_assign!(div_pow2_assign, div_pow2_assign_impl, 2);
+    wrap_div_pown_assign!(div_pow3_assign, div_pow3_assign_impl, 3);
+    wrap_div_pow2_assign!(div_pow4_assign, div_pow4_assign_impl, 4);
+    wrap_div_pown_assign!(div_pow5_assign, div_pow5_assign_impl, 5);
+    wrap_div_pown_assign!(div_pow6_assign, div_pow6_assign_impl, 6);
+    wrap_div_pown_assign!(div_pow7_assign, div_pow7_assign_impl, 7);
+    wrap_div_pow2_assign!(div_pow8_assign, div_pow8_assign_impl, 8);
+    wrap_div_pown_assign!(div_pow9_assign, div_pow9_assign_impl, 9);
+    wrap_div_pown_assign!(div_pow10_assign, div_pow10_assign_impl, 10);
+    wrap_div_pown_assign!(div_pow11_assign, div_pow11_assign_impl, 11);
+    wrap_div_pown_assign!(div_pow12_assign, div_pow12_assign_impl, 12);
+    wrap_div_pown_assign!(div_pow13_assign, div_pow13_assign_impl, 13);
+    wrap_div_pown_assign!(div_pow14_assign, div_pow14_assign_impl, 14);
+    wrap_div_pown_assign!(div_pow15_assign, div_pow15_assign_impl, 15);
+    wrap_div_pow2_assign!(div_pow16_assign, div_pow16_assign_impl, 16);
+    wrap_div_pown_assign!(div_pow17_assign, div_pow17_assign_impl, 17);
+    wrap_div_pown_assign!(div_pow18_assign, div_pow18_assign_impl, 18);
+    wrap_div_pown_assign!(div_pow19_assign, div_pow19_assign_impl, 19);
+    wrap_div_pown_assign!(div_pow20_assign, div_pow20_assign_impl, 20);
+    wrap_div_pown_assign!(div_pow21_assign, div_pow21_assign_impl, 21);
+    wrap_div_pown_assign!(div_pow22_assign, div_pow22_assign_impl, 22);
+    wrap_div_pown_assign!(div_pow23_assign, div_pow23_assign_impl, 23);
+    wrap_div_pown_assign!(div_pow24_assign, div_pow24_assign_impl, 24);
+    wrap_div_pown_assign!(div_pow25_assign, div_pow25_assign_impl, 25);
+    wrap_div_pown_assign!(div_pow26_assign, div_pow26_assign_impl, 26);
+    wrap_div_pown_assign!(div_pow27_assign, div_pow27_assign_impl, 27);
+    wrap_div_pown_assign!(div_pow28_assign, div_pow28_assign_impl, 28);
+    wrap_div_pown_assign!(div_pow29_assign, div_pow29_assign_impl, 29);
+    wrap_div_pown_assign!(div_pow30_assign, div_pow30_assign_impl, 30);
+    wrap_div_pown_assign!(div_pow31_assign, div_pow31_assign_impl, 31);
+    wrap_div_pow2_assign!(div_pow32_assign, div_pow32_assign_impl, 32);
+    wrap_div_pown_assign!(div_pow33_assign, div_pow33_assign_impl, 33);
+    wrap_div_pown_assign!(div_pow34_assign, div_pow34_assign_impl, 34);
+    wrap_div_pown_assign!(div_pow35_assign, div_pow35_assign_impl, 35);
+    wrap_div_pown_assign!(div_pow36_assign, div_pow36_assign_impl, 36);
 
     // FROM BYTES
     from_bytes!(from_bytes_3);
@@ -1256,6 +1478,7 @@ impl Bigfloat {
 
 #[cfg(test)]
 mod tests {
+    use test::*;
     use super::*;
 
     // CREATION
@@ -1303,6 +1526,8 @@ mod tests {
 
     #[test]
     fn trailing_zero_values_test() {
+        assert_eq!(Bigfloat::new().trailing_zero_values(), 0);
+
         assert_eq!(Bigfloat::from_u32(0xFF).trailing_zero_values(), 0);
         assert_eq!(Bigfloat::from_u64(0xFF00000000).trailing_zero_values(), 1);
         assert_eq!(Bigfloat::from_u128(0xFF000000000000000000000000).trailing_zero_values(), 3);
@@ -1385,19 +1610,19 @@ mod tests {
 
         // No overflow, symmetric (2- and 2-ints).
         let mut x = Bigfloat::from_u64(1125899906842624);
-        let mut y = Bigfloat::from_u64(35184372088832);
+        let y = Bigfloat::from_u64(35184372088832);
         x.add_large_assign(&y);
         assert_eq!(x, Bigfloat { data: smallvec![0, 270336], exponent: 0 });
 
         // No overflow, asymmetric (1- and 2-ints).
         let mut x = Bigfloat::from_u32(5);
-        let mut y = Bigfloat::from_u64(35184372088832);
+        let y = Bigfloat::from_u64(35184372088832);
         x.add_large_assign(&y);
         assert_eq!(x, Bigfloat { data: smallvec![5, 8192], exponent: 0 });
 
         // Internal overflow check.
         let mut x = Bigfloat::from_u32(0xF1111111);
-        let mut y = Bigfloat::from_u64(0x12345678);
+        let y = Bigfloat::from_u64(0x12345678);
         x.add_large_assign(&y);
         assert_eq!(x, Bigfloat { data: smallvec![0x3456789, 1], exponent: 0 });
 
@@ -1438,8 +1663,8 @@ mod tests {
         assert_eq!(x, Bigfloat { data: smallvec![4, 0, 1], exponent: 0 });
     }
 
-    /// Checker for the mul_pown tests.
-    macro_rules! check_mul_pow {
+    /// Checker for the pow tests.
+    macro_rules! check_pow {
         ($input_data:expr, $input_exp:expr, $result_data:expr, $result_exp:expr, $n:expr, $func:ident)
         => ({
             let mut i = Bigfloat { data: $input_data, exponent: $input_exp };
@@ -1448,53 +1673,60 @@ mod tests {
         });
     }
 
-    /// Checker for the mul_pow2 tests.
-    macro_rules! check_mul_pow2 {
+    /// Checker for the pow2 tests.
+    macro_rules! check_pow2 {
+        (@neg $func:ident, $n:expr) => ({
+            check_pow!(smallvec![], 0, smallvec![], 0, 0, $func);
+            check_pow!(smallvec![1], 0, smallvec![1], 0, 0, $func);
+            check_pow!(smallvec![1], 0, smallvec![1], -$n*1, 1, $func);
+            check_pow!(smallvec![1], 0, smallvec![1], -$n*4, 4, $func);
+            // TODO(ahuszagh) Need the overflow..
+        });
         ($func:ident, $n:expr) => ({
-            check_mul_pow!(smallvec![], 0, smallvec![], 0, 0, $func);
-            check_mul_pow!(smallvec![1], 0, smallvec![1], 0, 0, $func);
-            check_mul_pow!(smallvec![1], 0, smallvec![1], $n*1, 1, $func);
-            check_mul_pow!(smallvec![1], 0, smallvec![1], $n*4, 4, $func);
-            check_mul_pow!(smallvec![1], 0, smallvec![1], MAX_2.checked_mul($n).unwrap_or(MAX_I32), MAX_2, $func);
-            check_mul_pow!(smallvec![1], 0, smallvec![1], MAX_4.checked_mul($n).unwrap_or(MAX_I32), MAX_4, $func);
-            check_mul_pow!(smallvec![1], 0, smallvec![1], MAX_8.checked_mul($n).unwrap_or(MAX_I32), MAX_8, $func);
-            check_mul_pow!(smallvec![1], 0, smallvec![1], MAX_16.checked_mul($n).unwrap_or(MAX_I32), MAX_16, $func);
-            check_mul_pow!(smallvec![1], 0, smallvec![1], MAX_32.checked_mul($n).unwrap_or(MAX_I32), MAX_32, $func);
-            check_mul_pow!(smallvec![1], 0, smallvec![1], MAX_I32, MAX_I32, $func);
-            check_mul_pow!(smallvec![1], 1, smallvec![1], MAX_I32, MAX_I32, $func);
+            check_pow!(smallvec![], 0, smallvec![], 0, 0, $func);
+            check_pow!(smallvec![1], 0, smallvec![1], 0, 0, $func);
+            check_pow!(smallvec![1], 0, smallvec![1], $n*1, 1, $func);
+            check_pow!(smallvec![1], 0, smallvec![1], $n*4, 4, $func);
+            check_pow!(smallvec![1], 0, smallvec![1], VALUE_2.checked_mul($n).unwrap_or(VALUE_I32), VALUE_2, $func);
+            check_pow!(smallvec![1], 0, smallvec![1], VALUE_4.checked_mul($n).unwrap_or(VALUE_I32), VALUE_4, $func);
+            check_pow!(smallvec![1], 0, smallvec![1], VALUE_8.checked_mul($n).unwrap_or(VALUE_I32), VALUE_8, $func);
+            check_pow!(smallvec![1], 0, smallvec![1], VALUE_16.checked_mul($n).unwrap_or(VALUE_I32), VALUE_16, $func);
+            check_pow!(smallvec![1], 0, smallvec![1], VALUE_32.checked_mul($n).unwrap_or(VALUE_I32), VALUE_32, $func);
+            check_pow!(smallvec![1], 0, smallvec![1], VALUE_I32, VALUE_I32, $func);
+            check_pow!(smallvec![1], 1, smallvec![1], VALUE_I32, VALUE_I32, $func);
         })
     }
 
-    /// Checker for the mul_pow2n tests.
-    macro_rules! check_mul_pown {
+    /// Checker for the pow2n tests.
+    macro_rules! check_pown {
         ($input_data:expr, $input_exp:expr, $n:expr ; $($result_data:expr, $result_exp:expr, $func:ident ; )+)
         => ($(
-            check_mul_pow!($input_data, $input_exp, $result_data, $result_exp, $n, $func);
+            check_pow!($input_data, $input_exp, $result_data, $result_exp, $n, $func);
         )*)
     }
 
     #[test]
     fn mul_pow2_test() {
         // Constants (used to avoid rounding error).
-        const MAX_I32: i32 = i32::max_value();
-        const MAX_32: i32 = MAX_I32 / 32;
-        const MAX_16: i32 = MAX_32 * 2;
-        const MAX_8: i32 = MAX_16 * 2;
-        const MAX_4: i32 = MAX_8 * 2;
-        const MAX_2: i32 = MAX_4 * 2;
-        const MAX_1: i32 = MAX_2 * 2;
+        const VALUE_I32: i32 = i32::max_value();
+        const VALUE_32: i32 = VALUE_I32 / 32;
+        const VALUE_16: i32 = VALUE_32 * 2;
+        const VALUE_8: i32 = VALUE_16 * 2;
+        const VALUE_4: i32 = VALUE_8 * 2;
+        const VALUE_2: i32 = VALUE_4 * 2;
+        const VALUE_1: i32 = VALUE_2 * 2;
 
-        check_mul_pow2!(mul_pow2_assign, 1);
-        check_mul_pow2!(mul_pow4_assign, 2);
-        check_mul_pow2!(mul_pow8_assign, 3);
-        check_mul_pow2!(mul_pow16_assign, 4);
-        check_mul_pow2!(mul_pow32_assign, 5);
+        check_pow2!(mul_pow2_assign, 1);
+        check_pow2!(mul_pow4_assign, 2);
+        check_pow2!(mul_pow8_assign, 3);
+        check_pow2!(mul_pow16_assign, 4);
+        check_pow2!(mul_pow32_assign, 5);
     }
 
     #[test]
     fn mul_pown_test() {
         // Zero case
-        check_mul_pown!(
+        check_pown!(
             smallvec![], 0, 0 ;
             smallvec![], 0, mul_pow3_assign ;
             smallvec![], 0, mul_pow5_assign ;
@@ -1529,7 +1761,7 @@ mod tests {
         );
 
         // 1 case ** pow2
-        check_mul_pown!(
+        check_pown!(
             smallvec![1], 0, 2 ;
             smallvec![9], 0, mul_pow3_assign ;
             smallvec![25], 0, mul_pow5_assign ;
@@ -1564,7 +1796,7 @@ mod tests {
         );
 
         // Non-1 case * pow2
-        check_mul_pown!(
+        check_pown!(
             smallvec![7], 0, 2 ;
             smallvec![63], 0, mul_pow3_assign ;
             smallvec![175], 0, mul_pow5_assign ;
@@ -1599,7 +1831,7 @@ mod tests {
         );
 
         // Overflow case
-        check_mul_pown!(
+        check_pown!(
             smallvec![7], 0, 22 ;
             smallvec![624085167, 51], 0, mul_pow3_assign ;
             smallvec![2517658495, 3885780], 0, mul_pow5_assign ;
@@ -1637,6 +1869,52 @@ mod tests {
     // DIVISION
 
     #[test]
+    fn padded_bits_test() {
+        // Ensure it works for all bases.
+        for base in BASE_POWN.iter().cloned() {
+            padded_bits(base, 1);
+        }
+
+        // Check compared to known values.
+        assert_eq!(padded_bits(3, 10), 17);
+        assert_eq!(padded_bits(6, 10), 17);
+        assert_eq!(padded_bits(12, 10), 17);
+        assert_eq!(padded_bits(24, 10), 17);
+        assert_eq!(padded_bits(5, 10), 25);
+        assert_eq!(padded_bits(10, 10), 25);
+        assert_eq!(padded_bits(20, 10), 25);
+        assert_eq!(padded_bits(7, 10), 30);
+        assert_eq!(padded_bits(14, 10), 30);
+        assert_eq!(padded_bits(28, 10), 30);
+        assert_eq!(padded_bits(11, 10), 36);
+        assert_eq!(padded_bits(22, 10), 36);
+        assert_eq!(padded_bits(13, 10), 39);
+        assert_eq!(padded_bits(26, 10), 39);
+        assert_eq!(padded_bits(17, 10), 42);
+        assert_eq!(padded_bits(34, 10), 42);
+        assert_eq!(padded_bits(19, 10), 44);
+        assert_eq!(padded_bits(23, 10), 48);
+        assert_eq!(padded_bits(29, 10), 50);
+        assert_eq!(padded_bits(31, 10), 51);
+        assert_eq!(padded_bits(9, 10), 27);
+        assert_eq!(padded_bits(18, 10), 27);
+        assert_eq!(padded_bits(36, 10), 27);
+        assert_eq!(padded_bits(15, 10), 39);
+        assert_eq!(padded_bits(30, 10), 39);
+        assert_eq!(padded_bits(21, 10), 47);
+        assert_eq!(padded_bits(27, 10), 42);
+        assert_eq!(padded_bits(33, 10), 57);
+        assert_eq!(padded_bits(25, 10), 56);
+        assert_eq!(padded_bits(35, 10), 68);
+    }
+
+    #[test]
+    #[should_panic(expected = "padded_bits() overflow, would cause memory error.")]
+    fn padded_bits_overflow_test() {
+        padded_bits(31, 0x40000000);
+    }
+
+    #[test]
     fn pad_division_test() {
         // Pad 0
         let mut x = Bigfloat { data: smallvec![0, 0, 0, 1], exponent: 0 };
@@ -1672,5 +1950,194 @@ mod tests {
         assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 0, 1, 1, 1, 1], exponent: -128 });
     }
 
-    // TODO(ahuszagh) Add division tests.
+    #[test]
+    fn div_small_test() {
+        // 1-int.
+        let mut x = Bigfloat::from_u32(5);
+        x.pad_division(2);
+        x.div_small_assign(7);
+        assert_eq!(x, Bigfloat { data: smallvec![0xDB6DB6DC, 0xB6DB6DB6], exponent: -64 });
+
+        // 2-ints.
+        let mut x = Bigfloat::from_u64(0x4000000040000);
+        x.pad_division(2);
+        x.div_small_assign(5);
+        assert_eq!(x, Bigfloat { data: smallvec![0x9999999A, 0x99999999, 0xCCCD9999, 0xCCCC], exponent: -64 });
+
+        // 1-int.
+        let mut x = Bigfloat::from_u32(0x33333334);
+        x.pad_division(2);
+        x.div_small_assign(5);
+        assert_eq!(x, Bigfloat { data: smallvec![0x0, 0x0, 0xA3D70A4], exponent: -64 });
+
+        // 2-ints.
+        let mut x = Bigfloat::from_u64(0x133333334);
+        x.pad_division(2);
+        x.div_small_assign(5);
+        assert_eq!(x, Bigfloat { data: smallvec![0x33333334, 0x33333333, 0x3D70A3D7], exponent: -64 });
+
+        // 2-ints.
+        let mut x = Bigfloat::from_u64(0x3333333333333334);
+        x.pad_division(2);
+        x.div_small_assign(5);
+        assert_eq!(x, Bigfloat { data: smallvec![0xCCCCCCCD, 0xCCCCCCCC, 0xD70A3D70, 0xA3D70A3], exponent: -64 });
+    }
+
+    #[test]
+    fn div_pow2_test() {
+        check_pow2!(@neg div_pow2_assign, 1);
+        check_pow2!(@neg div_pow4_assign, 2);
+        check_pow2!(@neg div_pow8_assign, 3);
+        check_pow2!(@neg div_pow16_assign, 4);
+        check_pow2!(@neg div_pow32_assign, 5);
+    }
+
+    #[test]
+    fn div_pown_test() {
+        // Zero case
+        check_pown!(
+            smallvec![], 0, 0 ;
+            smallvec![], 0, div_pow3_assign ;
+            smallvec![], 0, div_pow5_assign ;
+            smallvec![], 0, div_pow6_assign ;
+            smallvec![], 0, div_pow7_assign ;
+            smallvec![], 0, div_pow9_assign ;
+            smallvec![], 0, div_pow10_assign ;
+            smallvec![], 0, div_pow11_assign ;
+            smallvec![], 0, div_pow12_assign ;
+            smallvec![], 0, div_pow13_assign ;
+            smallvec![], 0, div_pow14_assign ;
+            smallvec![], 0, div_pow15_assign ;
+            smallvec![], 0, div_pow17_assign ;
+            smallvec![], 0, div_pow18_assign ;
+            smallvec![], 0, div_pow19_assign ;
+            smallvec![], 0, div_pow20_assign ;
+            smallvec![], 0, div_pow21_assign ;
+            smallvec![], 0, div_pow22_assign ;
+            smallvec![], 0, div_pow23_assign ;
+            smallvec![], 0, div_pow24_assign ;
+            smallvec![], 0, div_pow25_assign ;
+            smallvec![], 0, div_pow26_assign ;
+            smallvec![], 0, div_pow27_assign ;
+            smallvec![], 0, div_pow28_assign ;
+            smallvec![], 0, div_pow29_assign ;
+            smallvec![], 0, div_pow30_assign ;
+            smallvec![], 0, div_pow31_assign ;
+            smallvec![], 0, div_pow33_assign ;
+            smallvec![], 0, div_pow34_assign ;
+            smallvec![], 0, div_pow35_assign ;
+            smallvec![], 0, div_pow36_assign ;
+        );
+
+        // 1 case ** pow2
+        check_pown!(
+            smallvec![1], 0, 2 ;
+            smallvec![477218589], -32, div_pow3_assign ;
+            smallvec![171798692], -32, div_pow5_assign ;
+            smallvec![477218589], -34, div_pow6_assign ;
+            smallvec![87652394], -32, div_pow7_assign ;
+            smallvec![53024288], -32, div_pow9_assign ;
+            smallvec![171798692], -34, div_pow10_assign ;
+            smallvec![35495598], -32, div_pow11_assign ;
+            smallvec![477218589], -36, div_pow12_assign ;
+            smallvec![25414008], -32, div_pow13_assign ;
+            smallvec![87652394], -34, div_pow14_assign ;
+            smallvec![19088744], -32, div_pow15_assign ;
+            smallvec![14861479], -32, div_pow17_assign ;
+            smallvec![53024288], -34, div_pow18_assign ;
+            smallvec![11897417], -32, div_pow19_assign ;
+            smallvec![171798692], -36, div_pow20_assign ;
+            smallvec![9739155], -32, div_pow21_assign ;
+            smallvec![35495598], -34, div_pow22_assign ;
+            smallvec![8119031], -32, div_pow23_assign ;
+            smallvec![477218589], -38, div_pow24_assign ;
+            smallvec![6871948], -32, div_pow25_assign ;
+            smallvec![25414008], -34, div_pow26_assign ;
+            smallvec![5891588], -32, div_pow27_assign ;
+            smallvec![87652394], -36, div_pow28_assign ;
+            smallvec![5106977], -32, div_pow29_assign ;
+            smallvec![19088744], -34, div_pow30_assign ;
+            smallvec![4469269], -32, div_pow31_assign ;
+            smallvec![3943956], -32, div_pow33_assign ;
+            smallvec![14861479], -34, div_pow34_assign ;
+            smallvec![3506096], -32, div_pow35_assign ;
+            smallvec![53024288], -36, div_pow36_assign ;
+        );
+
+// TODO(ahuszagh) Need to fix padding since we have a lot of error...
+
+//        // Non-1 case * pow2
+//        check_pown!(
+//            smallvec![7], 0, 2 ;
+//            // TODO(ahuszagh) A lot of error
+//            smallvec![3340530120], -32, div_pow3_assign ;
+//            smallvec![1202590843], -32, div_pow5_assign ;
+//            smallvec![3340530120], -34, div_pow6_assign ;
+//            smallvec![613566757], -32, div_pow7_assign ;
+//            smallvec![371170014], -32, div_pow9_assign ;
+//            smallvec![1202590843], -34, div_pow10_assign ;
+//            smallvec![248469183], -32, div_pow11_assign ;
+//            smallvec![3340530120], -36, div_pow12_assign ;
+//            smallvec![177898054], -32, div_pow13_assign ;
+//            smallvec![613566757], -34, div_pow14_assign ;
+//            smallvec![133621205], -32, div_pow15_assign ;
+//            smallvec![104030350], -32, div_pow17_assign ;
+//            smallvec![371170014], -34, div_pow18_assign ;
+//            smallvec![83281915], -32, div_pow19_assign ;
+//            smallvec![1202590843], -36, div_pow20_assign ;
+//            smallvec![68174085], -32, div_pow21_assign ;
+//            smallvec![248469183], -34, div_pow22_assign ;
+//            smallvec![56833216], -32, div_pow23_assign ;
+//            smallvec![3340530120], -38, div_pow24_assign ;
+//            smallvec![48103634], -32, div_pow25_assign ;
+//            smallvec![177898054], -34, div_pow26_assign ;
+//            smallvec![41241113], -32, div_pow27_assign ;
+//            smallvec![613566757], -36, div_pow28_assign ;
+//            smallvec![35748836], -32, div_pow29_assign ;
+//            smallvec![133621205], -34, div_pow30_assign ;
+//            smallvec![31284882], -32, div_pow31_assign ;
+//            smallvec![27607687], -32, div_pow33_assign ;
+//            smallvec![104030350], -34, div_pow34_assign ;
+//            smallvec![24542671], -32, div_pow35_assign ;
+//            smallvec![371170014], -36, div_pow36_assign ;
+//        );
+
+//        // More than 1 iteration
+//        check_pown!(
+//            smallvec![7], 0, 22 ;
+//            // TODO(ahuszagh) These are all off by a scalar...
+//            smallvec![1097992198, 4114813525], -96, div_pow3_assign ;
+//            smallvec![1192962241, 3765478296, 54159], -128, div_pow5_assign ;
+//            smallvec![1097992198, 4114813525], -118, div_pow6_assign ;
+//            smallvec![2709929360, 113271394, 33], -128, div_pow7_assign ;
+//            smallvec![4163638954, 563173765], -128, div_pow9_assign ;
+//
+//            // Not padding properly...
+//            smallvec![2517658495, 3885780], -86, div_pow10_assign ;
+//            smallvec![3435804255, 4136938383, 30889], -64, div_pow11_assign ;
+//            smallvec![624085167, 51], 44, div_pow12_assign ;
+//            smallvec![1461939919, 4042437051, 1218798], -64, div_pow13_assign ;
+//            smallvec![821077879, 2077315763, 1], -86, div_pow14_assign ;
+//            smallvec![4148791143, 1053307084, 28391348], -64, div_pow15_assign ;
+//            smallvec![4274854567, 3675497104, 445712267], -64, div_pow17_assign ;
+//            smallvec![363536663, 2971099641, 373], -86, div_pow18_assign ;
+//            smallvec![442098831, 2102541774, 854443491, 1], -64, div_pow19_assign ;
+//            smallvec![2517658495, 3885780], 44, div_pow20_assign ;
+//            smallvec![229089951, 1212071740, 3609236746, 10], -64, div_pow21_assign ;
+//            smallvec![3435804255, 4136938383, 30889], -86, div_pow22_assign ;
+//            smallvec![1478922199, 2466168986, 903793223, 80], -64, div_pow23_assign ;
+//            smallvec![624085167, 51], 66, div_pow24_assign ;
+//            smallvec![3338697911, 3024324511, 967955121, 502], -64, div_pow25_assign ;
+//            smallvec![1461939919, 4042437051, 1218798], -86, div_pow26_assign ;
+//            smallvec![3861939007, 3545742225, 1582773326, 2730], -64, div_pow27_assign ;
+//            smallvec![821077879, 2077315763, 1], 44, div_pow28_assign ;
+//            smallvec![2186041071, 2503332440, 2033127165, 13151], -64, div_pow29_assign ;
+//            smallvec![4148791143, 1053307084, 28391348], -86, div_pow30_assign ;
+//            smallvec![123416775, 3495261177, 2153535316, 57039], -64, div_pow31_assign ;
+//            smallvec![2037864263, 1104016441, 2837850123, 225696], -64, div_pow33_assign ;
+//            smallvec![4274854567, 3675497104, 445712267], -86, div_pow34_assign ;
+//            smallvec![649085551, 1084312505, 1210820426, 823598], -64, div_pow35_assign ;
+//            smallvec![363536663, 2971099641, 373], 44, div_pow36_assign ;
+//        );
+    }
 }

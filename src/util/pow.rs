@@ -213,6 +213,7 @@ impl StablePower for f64 {
 #[cfg(test)]
 mod tests {
     use table::*;
+    use test::*;
     use super::*;
 
     #[test]
@@ -287,11 +288,6 @@ mod tests {
         assert_eq!(f64::iterative_pow(1.0, 10, -325), 0.0);
     }
 
-    const BASEN: [u64; 30] = [
-        3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21,
-        22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36
-    ];
-
     #[test]
     fn f32_pow2_test() {
         unsafe {
@@ -312,7 +308,7 @@ mod tests {
     fn f32_pow_test() {
         unsafe {
             // Only check positive, since negative values round during division.
-            for b in BASEN.iter().cloned() {
+            for b in BASE_POWN.iter().cloned() {
                 let (_, max) = f32::exponent_limit(b);
                 for i in 1..max+1 {
                     let f = f32::pow(1.0, b, i);
@@ -348,7 +344,7 @@ mod tests {
     fn f64_pow_test() {
         unsafe {
             // Only check positive, since negative values round during division.
-            for b in BASEN.iter().cloned() {
+            for b in BASE_POWN.iter().cloned() {
                 let (_, max) = f64::exponent_limit(b);
                 for i in 1..max+1 {
                     let f = f64::pow(1.0, b, i);

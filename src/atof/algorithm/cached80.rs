@@ -3128,18 +3128,13 @@ pub(crate) fn get_powers(base: u32) -> &'static Powers<u64> {
 
 #[cfg(test)]
 mod tests {
+    use test::*;
     use super::*;
-
-    const POW2: [u32; 5] = [2, 4, 8, 16, 32];
-    const BASEN: [u32; 30] = [
-        3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21,
-        22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36
-    ];
 
     #[test]
     fn normalization_test() {
         // Ensure each valid is normalized.
-        for base in BASEN.iter().cloned() {
+        for base in BASE_POWN.iter().cloned() {
             let powers = get_powers(base);
             for fp in powers.small {
                 assert_eq!(fp.frac.leading_zeros(), 0);
@@ -3153,7 +3148,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn pow2_test() {
-        for base in POW2.iter().cloned() {
+        for base in BASE_POW2.iter().cloned() {
             let _ = get_powers(base);
         }
     }
