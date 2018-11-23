@@ -1954,37 +1954,36 @@ mod tests {
         }
 
         // Check compared to known values.
-        // TODO(ahuszagh) Restore
-//        assert_eq!(padded_bits(3, 10), 17);
-//        assert_eq!(padded_bits(6, 10), 17);
-//        assert_eq!(padded_bits(12, 10), 17);
-//        assert_eq!(padded_bits(24, 10), 17);
-//        assert_eq!(padded_bits(5, 10), 25);
-//        assert_eq!(padded_bits(10, 10), 25);
-//        assert_eq!(padded_bits(20, 10), 25);
-//        assert_eq!(padded_bits(7, 10), 30);
-//        assert_eq!(padded_bits(14, 10), 30);
-//        assert_eq!(padded_bits(28, 10), 30);
-//        assert_eq!(padded_bits(11, 10), 36);
-//        assert_eq!(padded_bits(22, 10), 36);
-//        assert_eq!(padded_bits(13, 10), 39);
-//        assert_eq!(padded_bits(26, 10), 39);
-//        assert_eq!(padded_bits(17, 10), 42);
-//        assert_eq!(padded_bits(34, 10), 42);
-//        assert_eq!(padded_bits(19, 10), 44);
-//        assert_eq!(padded_bits(23, 10), 48);
-//        assert_eq!(padded_bits(29, 10), 50);
-//        assert_eq!(padded_bits(31, 10), 51);
-//        assert_eq!(padded_bits(9, 10), 27);
-//        assert_eq!(padded_bits(18, 10), 27);
-//        assert_eq!(padded_bits(36, 10), 27);
-//        assert_eq!(padded_bits(15, 10), 39);
-//        assert_eq!(padded_bits(30, 10), 39);
-//        assert_eq!(padded_bits(21, 10), 47);
-//        assert_eq!(padded_bits(27, 10), 42);
-//        assert_eq!(padded_bits(33, 10), 57);
-//        assert_eq!(padded_bits(25, 10), 56);
-//        assert_eq!(padded_bits(35, 10), 68);
+        assert_eq!(padded_bits(3, 10), 71);
+        assert_eq!(padded_bits(6, 10), 71);
+        assert_eq!(padded_bits(12, 10), 71);
+        assert_eq!(padded_bits(24, 10), 71);
+        assert_eq!(padded_bits(5, 10), 79);
+        assert_eq!(padded_bits(10, 10), 79);
+        assert_eq!(padded_bits(20, 10), 79);
+        assert_eq!(padded_bits(7, 10), 84);
+        assert_eq!(padded_bits(14, 10), 84);
+        assert_eq!(padded_bits(28, 10), 84);
+        assert_eq!(padded_bits(11, 10), 90);
+        assert_eq!(padded_bits(22, 10), 90);
+        assert_eq!(padded_bits(13, 10), 93);
+        assert_eq!(padded_bits(26, 10), 93);
+        assert_eq!(padded_bits(17, 10), 96);
+        assert_eq!(padded_bits(34, 10), 96);
+        assert_eq!(padded_bits(19, 10), 98);
+        assert_eq!(padded_bits(23, 10), 102);
+        assert_eq!(padded_bits(29, 10), 104);
+        assert_eq!(padded_bits(31, 10), 105);
+        assert_eq!(padded_bits(9, 10), 81);
+        assert_eq!(padded_bits(18, 10), 81);
+        assert_eq!(padded_bits(36, 10), 81);
+        assert_eq!(padded_bits(15, 10), 93);
+        assert_eq!(padded_bits(30, 10), 93);
+        assert_eq!(padded_bits(21, 10), 101);
+        assert_eq!(padded_bits(27, 10), 96);
+        assert_eq!(padded_bits(33, 10), 111);
+        assert_eq!(padded_bits(25, 10), 110);
+        assert_eq!(padded_bits(35, 10), 122);
     }
 
     #[test]
