@@ -1,10 +1,10 @@
 //! Arbitrary-precision decimal to parse a floating-point number.
-// TODO(ahuszagh) Remove this arbitrary warning, we're
-// in rapid development, so allow it for now.
+// We support a lot of routines that are useful to have for testing or
+// future development, but may not be in strict use.
+// For example, `mul_small` is never used (but `mul_small_assign` is),
+// and so we would like to keep this dead code in the program but not
+// in the release builds.
 #![allow(dead_code)]
-
-// TODO(ahuszagh) Move all the bounds checks outside.
-// Only use static checks inside of functions.
 
 use smallvec;
 use float::{ExtendedFloat80, FloatRounding, Mantissa};
@@ -14,8 +14,6 @@ use lib::{mem, slice};
 use util::*;
 
 // CONSTANTS
-
-// TODO(ahuszagh) Need to enforce the MAX_EXPONENT during parsing.
 
 /// Maximum valid exponent internally.
 const MAX_EXPONENT: i32 = 0x1400;
@@ -320,6 +318,9 @@ macro_rules! wrap_div_pown_assign {
 }
 
 // TODO(ahuszagh) Implement...
+// TODO(ahuszagh) Need to enforce the MAX_EXPONENT during parsing.
+// We have no bounds checks internally, we need to max sure MAX_EXPONENT
+// is used to avoid overflows.
 
 // FROM BYTES
 
@@ -2510,10 +2511,12 @@ mod tests {
         assert_eq!(x.exponent(), 57);
 
         // Multiply by a power-of-two
-        //let x = Bigfloat::from_u32(1);
-        //let x = x.div_pow2()
+        let x = Bigfloat::from_u32(1).mul_pow2(1);
+        assert_eq!(x.exponent(), -62);
 
-        // TODO(ahuszagh) Implement...
+        // Divide by a power-of-two
+        let x = Bigfloat::from_u32(1).div_pow2(1);
+        assert_eq!(x.exponent(), -64);
     }
 
     #[test]
