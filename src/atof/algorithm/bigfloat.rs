@@ -1512,23 +1512,27 @@ impl Bigfloat {
     }
 
     /// Calculate the real exponent for the float.
-    /// Same as `self.exp + (Self::BITS * self.len()) - 32 - leading_zeros()`.
-    /// Need to subtract an extra `32 + leading_zeros()` since that's the effective
+    /// Same as `self.exp + (Self::BITS * self.len()) - 64 - leading_zeros()`.
+    /// Need to subtract an extra `64 + leading_zeros()` since that's the effective
     /// bitshift we're adding to the mantissa.
     // TODO(ahuszagh) test
     // TODO(ahuszagh) Change to exponent
     #[inline]
     pub fn exponent(&self) -> i32 {
-        let shift = self.leading_zeros() + 32;
+        // Don't subtract 64 immediately, for small integers, can cause underflow.
+        let shift = self.leading_zeros();
         let bits = (Self::BITS * self.len()) - shift as usize;
-        self.exp + bits as i32
+        self.exp + bits as i32 - 64
     }
 
     /// Export native float from bigfloat.
     /// Use the rounding machinery for the extended-precision float, since
     /// we have total accuracy here.
     #[inline]
-    pub fn as_float<F: FloatRounding<u64>>(&self) -> F {
+    pub fn as_float<F>(&self)
+        -> F
+        where F: FloatRounding<u64>
+    {
         // Get our initial values and create our floating point
         let (mantissa, is_truncated) = self.mantissa();
         let exp = self.exponent();
@@ -1551,6 +1555,22 @@ impl Bigfloat {
         round_to_float_impl::<F, u64, _>(&mut fp, rounding);
         avoid_overflow::<F, u64>(&mut fp);
         as_float(fp)
+    }
+
+    /// Export 32-bit native float from bigfloat.
+    #[inline]
+    pub fn as_f32(&self) -> f32
+        where f32: FloatRounding<u64>
+    {
+        self.as_float()
+    }
+
+    /// Export 64-bit native float from bigfloat.
+    #[inline]
+    pub fn as_f64(&self) -> f64
+        where f64: FloatRounding<u64>
+    {
+        self.as_float()
     }
 
     // VEC-LIKE
@@ -2333,6 +2353,9 @@ mod tests {
 
     #[test]
     fn as_float_test() {
+        let x = Bigfloat::from_u32(1);
+        assert_eq!(x.as_f32(), 1.0);
+
         // TODO(ahuszagh) Implement...
     }
 }

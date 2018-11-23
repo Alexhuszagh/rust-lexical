@@ -231,7 +231,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     // TO
 
-    /// Create extended float from native float.
+    /// Convert to lower-precision native float.
     #[inline]
     pub fn as_float<F: FloatRounding<M>>(&self) -> F {
         // Create a rounded and normalized fraction for export.
