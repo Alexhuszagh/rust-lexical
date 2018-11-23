@@ -54,14 +54,14 @@ impl StringToFloat for f64 {
 unsafe extern "C" fn is_nan(first: *const u8, length: usize)
     -> bool
 {
-    starts_with(first, length, NAN_STRING.as_ptr(), NAN_STRING.len())
+    starts_with_range(first, length, NAN_STRING.as_ptr(), NAN_STRING.len())
 }
 
 #[inline(always)]
 unsafe extern "C" fn is_infinity(first: *const u8, length: usize)
     -> bool
 {
-    starts_with(first, length, INFINITY_STRING.as_ptr(), INFINITY_STRING.len())
+    starts_with_range(first, length, INFINITY_STRING.as_ptr(), INFINITY_STRING.len())
 }
 
 #[inline(always)]
@@ -70,8 +70,8 @@ unsafe extern "C" fn is_zero(first: *const u8, length: usize)
 {
     // Ignore other variants of 0, we just want to most common literal ones.
     match length {
-        1 => equal_to(first, "0".as_ptr(), 1),
-        3 => equal_to(first, "0.0".as_ptr(), 3),
+        1 => equal_to_range(first, "0".as_ptr(), 1),
+        3 => equal_to_range(first, "0.0".as_ptr(), 3),
         _ => false,
     }
 }

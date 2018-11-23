@@ -42,7 +42,7 @@ pub(super) unsafe extern "C" fn parse_mantissa<M>(base: u32, mut first: *const u
     // i32 may truncate when mantissa does not, which would lead to faulty
     // results. If we trim the 0s here, we guarantee any time `dot as i32`
     // leads to a truncation, mantissa will overflow.
-    first = ltrim_char(first, last, b'0');
+    first = ltrim_char_range(first, last, b'0');
 
     // Parse the integral value.
     // Use the checked parsers so the truncated value is valid even if
@@ -63,7 +63,7 @@ pub(super) unsafe extern "C" fn parse_mantissa<M>(base: u32, mut first: *const u
                 // For example, this allows us to use the fast path for
                 // both "1e-29" and "0.0000000000000000000000000001",
                 // otherwise, only the former would work.
-                let f = ltrim_char(f, last, b'0');
+                let f = ltrim_char_range(f, last, b'0');
                 atoi::checked(&mut mantissa, base, f, last)
             },
             false => atoi::checked(&mut mantissa, base, f, last),

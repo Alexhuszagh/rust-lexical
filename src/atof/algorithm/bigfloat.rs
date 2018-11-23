@@ -221,6 +221,21 @@ fn padded_bits(i: u32, n:i32) -> u32 {
     v as u32
 }
 
+// PARSE MANTISSA
+
+/// Parse the mantissa into a bigfloat.
+///
+/// Use small powers to extract the proper digit.
+#[allow(unused)]    // TODO(ahuszagh): remove
+fn parse_mantissa(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32]) {
+    // TODO(ahuszagh) Likely need the base too....
+    // TODO(ahuszagh) Also need the string...
+}
+
+
+// TODO(ahuszagh) Need parse_mantissa
+// Needs to take a slice and go over chunks
+
 // ASSIGN
 
 /// Wrap operation in terms of OpAssign call.
@@ -325,6 +340,12 @@ macro_rules! wrap_div_pown_assign {
 // FROM BYTES
 
 /// Wrapper for basen from_bytes implementations.
+// TODO(ahuszagh) Likely need a faster path for the small bits.
+// Can I parse N digits at a time, iteratively, and then concatenate them?
+// Say I have `"12356"`.
+// Can I get `123456` from `"123"` and `"456"`.
+//      123 * 10**3 + 456
+// I can, using small powers. This actually works great for, example, with base 5
 // TODO(ahuszagh) Implement
 macro_rules! from_bytes {
     ($name:ident) => (

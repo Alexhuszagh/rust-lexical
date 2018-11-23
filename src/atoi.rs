@@ -239,7 +239,7 @@ pub(crate) unsafe fn value<T, Cb>(base: u32, first: *const u8, last: *const u8, 
 
     // Trim the leading 0s here, where we can guarantee the value is 0,
     // and therefore trimming these leading 0s is actually valid.
-    let p = ltrim_char(first, last, b'0');
+    let p = ltrim_char_range(first, last, b'0');
 
     // Initialize a 0 version of our value, and invoke the low-level callback.
     let mut v: T = T::ZERO;
