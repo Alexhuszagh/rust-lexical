@@ -23,6 +23,9 @@
 #[macro_use]
 extern crate cfg_if;
 
+#[macro_use]
+extern crate static_assertions;
+
 // CONFIG
 
 #[cfg(not(feature = "std"))]

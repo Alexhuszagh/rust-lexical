@@ -19,6 +19,7 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
 cfg-if = "0.1"
+static_assertions = "0.2.5"
 # Use small-vector optimization for Bigfloat class.
 smallvec = "0.6"
 # Optimized Grisu3 implementation, a well-tested, correct algorithm.

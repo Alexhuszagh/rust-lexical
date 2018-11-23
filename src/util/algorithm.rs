@@ -138,8 +138,6 @@ pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
     }
 }
 
-// TODO(ahuszagh) Wrap these into slice versions???
-
 // TEST
 // ----
 
