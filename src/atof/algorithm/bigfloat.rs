@@ -3,12 +3,23 @@
 // in rapid development, so allow it for now.
 #![allow(dead_code)]
 
+// TODO(ahuszagh) Move all the bounds checks outside.
+// Only use static checks inside of functions.
+
 use smallvec;
 use float::Mantissa;
 use lib::{mem, slice};
 use util::*;
 
 // CONSTANTS
+
+// TODO(ahuszagh) Need to enforce the MAX_EXPONENT during parsing.
+
+/// Maximum valid exponent internally.
+const MAX_EXPONENT: i32 = 0x1400;
+
+/// Maximum valid number of padded bytes (based of MAX_EXPONENT).
+const MAX_BYTES: usize = 1060;
 
 /// Small powers (u32) for base3 operations.
 const SMALL_POWERS_BASE3: [u32; 21] = [1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049, 177147,  531441, 1594323, 4782969, 14348907, 43046721, 129140163, 387420489, 1162261467, 3486784401];
@@ -137,11 +148,6 @@ fn div_small_assign<Wide, Narrow>(x: &mut Narrow, y: Narrow, rem: Narrow)
 
 // PAD DIVISION
 
-/// String for memory error message.
-macro_rules! memory_error {
-    () => ("padded_bits() overflow, would cause memory error.")
-}
-
 /// Calculate the number of bits to pad for `i**n`.
 ///
 /// This function calculates the steepest slope for a repeating
@@ -169,11 +175,12 @@ macro_rules! memory_error {
 ///     return np.ceil(x1 - slope)
 /// ```
 ///
-/// This showed on average ~50 bits of extra precision were required, IE,
+/// This showed at maximum 55 bits of extra precision were required, IE,
 /// that was the y-intercept.
 #[inline]
 fn padded_bits(i: u32, n:i32) -> u32 {
-    debug_assert!(i >= 2 && i <= 36, "Numerical base must be from 2-36");
+    debug_assert!(i >= 2 && i <= 36, "padded_bits() numerical base must be from 2-36.");
+    debug_assert!(n <= MAX_EXPONENT, "padded_bits() internal exponent overflow, n is {}.", n);
 
     // 53-bit mantissa, all values can be **exactly** represented.
     const U32_MAX: f64 = u32::max_value() as f64;
@@ -181,25 +188,25 @@ fn padded_bits(i: u32, n:i32) -> u32 {
     // Get slope and intercept.
     let (m, b) = match i {
         // Implement powers of 2 multipliers as the prime.
-        3 | 6 | 12 | 24 => (1.600, 50.0),  // [1, 2, 1, 2, 2]
-        5 | 10 | 20     => (2.334, 50.0),  // [2, 2, 3]
-        7 | 14 | 28     => (2.834, 50.0),   // [2, 3, 3, 3, 3, 3]
-        11 | 22         => (3.500, 50.0),   // [3, 4]
-        13 | 26         => (3.750, 50.0),   // [3, 4, 4, 4]
-        17 | 34         => (4.091, 50.0),   // [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5]
-        19              => (4.250, 50.0),   // [4, 4, 4, 5]
-        23              => (4.667, 50.0),   // [4, 5, 5]
-        29              => (4.875, 50.0),   // [4, 5, 5, 5, 5, 5, 5, 5]
-        31              => (4.955, 50.0),   // [4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
+        3 | 6 | 12 | 24 => (1.600, 55.0),  // [1, 2, 1, 2, 2]
+        5 | 10 | 20     => (2.334, 55.0),  // [2, 2, 3]
+        7 | 14 | 28     => (2.834, 55.0),   // [2, 3, 3, 3, 3, 3]
+        11 | 22         => (3.500, 55.0),   // [3, 4]
+        13 | 26         => (3.750, 55.0),   // [3, 4, 4, 4]
+        17 | 34         => (4.091, 55.0),   // [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5]
+        19              => (4.250, 55.0),   // [4, 4, 4, 5]
+        23              => (4.667, 55.0),   // [4, 5, 5]
+        29              => (4.875, 55.0),   // [4, 5, 5, 5, 5, 5, 5, 5]
+        31              => (4.955, 55.0),   // [4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
 
         // Compound bases (multiply m, keep intercept)
-        9 | 18 | 36     => (2.560, 50.0),    // (3 * 3)
-        15 | 30         => (3.734, 50.0),    // (3 * 5)
-        21              => (4.534, 50.0),    // (3 * 7)
-        27              => (4.096, 50.0),    // (3 * 9)
-        33              => (5.600, 50.0),    // (3 * 11)
-        25              => (5.445, 50.0),    // (5 * 5)
-        35              => (6.612, 50.0),    // (5 * 7)
+        9 | 18 | 36     => (2.560, 55.0),    // (3 * 3)
+        15 | 30         => (3.734, 55.0),    // (3 * 5)
+        21              => (4.534, 55.0),    // (3 * 7)
+        27              => (4.096, 55.0),    // (3 * 9)
+        33              => (5.600, 55.0),    // (3 * 11)
+        25              => (5.445, 55.0),    // (5 * 5)
+        35              => (6.612, 55.0),    // (5 * 7)
 
         // Other bases (powers of 2)
         _               => unreachable!(),
@@ -209,12 +216,9 @@ fn padded_bits(i: u32, n:i32) -> u32 {
     let n = n as f64;
     let v = (n*m + b).ceil();
 
-    // Ensure the type is representable, if not, panic!!!
-    if v > U32_MAX {
-        panic!(memory_error!());
-    } else {
-        v as u32
-    }
+    // Cannot overflow, max value is 33908.44, which is representable
+    // by a 16-bit integer.
+    v as u32
 }
 
 // MUL POW ASSIGN
@@ -258,6 +262,7 @@ macro_rules! wrap_div_pow2_assign {
         #[inline(always)]
         fn $name(&mut self, n: i32) {
             debug_assert!(n >= 0, stringify!(Bigfloat::$name() must divide by a positive power, n is {}.), n);
+            debug_assert!(n <= MAX_EXPONENT, stringify!(Bigfloat::$name() internal exponent overflow, n is {}.), n);
             // Don't pad or do bounds check, we already check for exponent underflow.
             self.$impl(n);
         }
@@ -271,21 +276,20 @@ macro_rules! wrap_div_pown_assign {
         #[inline(always)]
         fn $name(&mut self, n: i32) {
             debug_assert!(n >= 0, stringify!(Bigfloat::$name() must divide by a positive power, n is {}.), n);
-            if n > 0x1400 {
-                // Comically small value, always 0.
-                self.exponent = i32::min_value();
-            } else {
-                // Calculate the number of bytes required to pad the vector,
-                // and pad the vector. usize may be 16-bit, so use try_cast.
-                let bits = padded_bits($b, n);
-                let div = bits / 32;
-                let rem = bits % 32;
-                let bytes = div + (rem != 0) as u32;
-                self.pad_division(try_cast(bytes).expect(memory_error!()));
+            debug_assert!(n <= MAX_EXPONENT, stringify!(Bigfloat::$name() internal exponent overflow, n is {}.), n);
 
-                // Call the implied method after padding.
-                self.$impl(n);
-            }
+            // Calculate the number of bytes required to pad the vector,
+            // and pad the vector. usize may be 16-bit, so use try_cast.
+            // Padded bits is representable as a u16, so it cannot overflow
+            // for any usize.
+            let bits = padded_bits($b, n);
+            let div = bits / 32;
+            let rem = bits % 32;
+            let bytes = div + (rem != 0) as u32;
+            self.pad_division(as_cast(bytes));
+
+            // Call the implied method after padding.
+            self.$impl(n);
         }
     );
 }
@@ -648,32 +652,37 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 2 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow2_assign_impl(&mut self, n: i32) {
         // Increment exponent to simulate actual addition.
-        self.exponent = self.exponent.checked_add(n).unwrap_or(i32::max_value());
+        self.exponent += n;
     }
 
     /// Implied MulAssign by a power of 3 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow3_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &SMALL_POWERS_BASE3);
     }
 
     /// Implied MulAssign by a power of 4 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow4_assign_impl(&mut self, n: i32) {
         // Use 4**n = 2**(2n) to minimize overflow checks.
-        self.mul_pow2_assign_impl(n.checked_mul(2).unwrap_or(i32::max_value()));
+        self.mul_pow2_assign_impl(n * 2);
     }
 
     /// Implied MulAssign by a power of 5 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow5_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &SMALL_POWERS_BASE5);
     }
 
     /// Implied MulAssign by a power of 6 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow6_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -681,19 +690,22 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 7 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow7_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &SMALL_POWERS_BASE7);
     }
 
     /// Implied MulAssign by a power of 8 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow8_assign_impl(&mut self, n: i32) {
         // Use 8**n = 2**(3n) to minimize overflow checks.
-        self.mul_pow2_assign_impl(n.checked_mul(3).unwrap_or(i32::max_value()));
+        self.mul_pow2_assign_impl(n * 3);
     }
 
     /// Implied MulAssign by a power of 9 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow9_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -701,6 +713,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 10 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow10_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -708,12 +721,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 11 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow11_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &SMALL_POWERS_BASE11);
     }
 
     /// Implied MulAssign by a power of 12 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow12_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -721,12 +736,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 13 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow13_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &SMALL_POWERS_BASE13);
     }
 
     /// Implied MulAssign by a power of 14 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow14_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -734,6 +751,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 15 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow15_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -741,19 +759,22 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 16 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow16_assign_impl(&mut self, n: i32) {
         // Use 16**n = 2**(4n) to minimize overflow checks.
-        self.mul_pow2_assign_impl(n.checked_mul(4).unwrap_or(i32::max_value()));
+        self.mul_pow2_assign_impl(n * 4);
     }
 
     /// Implied MulAssign by a power of 17 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow17_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &SMALL_POWERS_BASE17);
     }
 
     /// Implied MulAssign by a power of 18 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow18_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -761,12 +782,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 19 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow19_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &SMALL_POWERS_BASE19);
     }
 
     /// Implied MulAssign by a power of 20 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow20_assign_impl(&mut self, n: i32) {
         self.mul_pow4_assign_impl(n);
@@ -774,6 +797,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 21 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow21_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -781,6 +805,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 22 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow22_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -788,12 +813,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 23 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow23_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &SMALL_POWERS_BASE23);
     }
 
     /// Implied MulAssign by a power of 24 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow24_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -801,6 +828,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 25 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow25_assign_impl(&mut self, n: i32) {
         self.mul_pow5_assign_impl(n);
@@ -808,6 +836,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 26 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow26_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -815,6 +844,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 27 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow27_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -822,6 +852,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 28 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow28_assign_impl(&mut self, n: i32) {
         self.mul_pow4_assign_impl(n);
@@ -829,12 +860,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 29 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow29_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &SMALL_POWERS_BASE29);
     }
 
     /// Implied MulAssign by a power of 30 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow30_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -842,19 +875,22 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 31 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow31_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &SMALL_POWERS_BASE31);
     }
 
     /// Implied MulAssign by a power of 32 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow32_assign_impl(&mut self, n: i32) {
         // Use 32**n = 2**(5n) to minimize overflow checks.
-        self.mul_pow2_assign_impl(n.checked_mul(5).unwrap_or(i32::max_value()));
+        self.mul_pow2_assign_impl(n * 5);
     }
 
     /// Implied MulAssign by a power of 33 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow33_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -862,6 +898,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 34 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow34_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -869,6 +906,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 35 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow35_assign_impl(&mut self, n: i32) {
         self.mul_pow5_assign_impl(n);
@@ -876,6 +914,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 36 (safe to chain calls).
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn mul_pow36_assign_impl(&mut self, n: i32) {
         self.mul_pow4_assign_impl(n);
@@ -923,6 +962,9 @@ impl Bigfloat {
     /// Pad ints for division. Called internally during `div_pow*_assign`.
     #[inline]
     fn pad_division(&mut self, bytes: usize) {
+        // Logic error, checked with max exponent.
+        debug_assert!(bytes <= MAX_BYTES, "Bigfloat::pad_division() internal bytes overflow, bytes is {}.", bytes);
+
         // Assume **no** overflow for the usize, since this would lead to
         // other memory errors. Add `bytes` 0s to the left of the current
         // buffer, and decrease the exponent accordingly.
@@ -935,10 +977,8 @@ impl Bigfloat {
         }
 
         // Decrease the exponent component.
-        let bits = try_cast_i32(bytes)
-            .and_then(|v| v.checked_mul(Self::BITS as i32))
-            .unwrap_or(i32::max_value());
-        self.exponent = self.exponent.checked_sub(bits).unwrap_or(i32::min_value());
+        let bits = bytes * Self::BITS;
+        self.exponent -= bits as i32;
 
         // Move data to new buffer, prepend `bytes` 0s, and then append
         // current data.
@@ -960,13 +1000,12 @@ impl Bigfloat {
         }
 
         // Round-up if there's truncation in least-significant bit.
-        // Due to our bases, rem is always <= 0x80000000, which is the midway
+        // This only occurs if rem < 0x80000000, which is the midway
         // point for when we should round.
         // The container **cannot** be empty, since rem is not 0.
         // If the vector is not padded prior to use, this rounding error
         // is **very** significant.
-        if rem != 0 {
-            debug_assert!(rem <= 0x80000000, "Bigfloat::div_small_assign() assumed base is <= midway.");
+        if rem > 0 && rem < 0x80000000 {
             *self.front_mut() += 1;
         }
 
@@ -1012,11 +1051,12 @@ impl Bigfloat {
     #[inline]
     fn div_pow2_assign_impl(&mut self, n: i32) {
         // Decrement exponent to simulate actual addition.
-        self.exponent = self.exponent.checked_sub(n).unwrap_or(i32::max_value());
+        self.exponent -= n;
     }
 
     /// Implied DivAssign by a power of 3 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow3_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &SMALL_POWERS_BASE3);
@@ -1024,14 +1064,16 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 4 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow4_assign_impl(&mut self, n: i32) {
         // Use 4**n = 2**(2n) to minimize overflow checks.
-        self.div_pow2_assign_impl(n.checked_mul(2).unwrap_or(i32::max_value()));
+        self.div_pow2_assign_impl(n * 2);
     }
 
     /// Implied DivAssign by a power of 5 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow5_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &SMALL_POWERS_BASE5);
@@ -1039,6 +1081,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 6 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow6_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1047,6 +1090,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 7 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow7_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &SMALL_POWERS_BASE7);
@@ -1054,14 +1098,16 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 8 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow8_assign_impl(&mut self, n: i32) {
         // Use 8**n = 2**(3n) to minimize overflow checks.
-        self.div_pow2_assign_impl(n.checked_mul(3).unwrap_or(i32::max_value()));
+        self.div_pow2_assign_impl(n * 3);
     }
 
     /// Implied DivAssign by a power of 9 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow9_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1070,6 +1116,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 10 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow10_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1078,6 +1125,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 11 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow11_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &SMALL_POWERS_BASE11);
@@ -1085,6 +1133,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 12 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow12_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1093,6 +1142,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 13 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow13_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &SMALL_POWERS_BASE13);
@@ -1100,6 +1150,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 14 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow14_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1108,6 +1159,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 15 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow15_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1116,14 +1168,16 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 16 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow16_assign_impl(&mut self, n: i32) {
         // Use 16**n = 2**(4n) to minimize overflow checks.
-        self.div_pow2_assign_impl(n.checked_mul(4).unwrap_or(i32::max_value()));
+        self.div_pow2_assign_impl(n * 4);
     }
 
     /// Implied DivAssign by a power of 17 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow17_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &SMALL_POWERS_BASE17);
@@ -1131,6 +1185,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 18 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow18_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1139,6 +1194,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 19 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow19_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &SMALL_POWERS_BASE19);
@@ -1146,6 +1202,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 20 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow20_assign_impl(&mut self, n: i32) {
         self.div_pow4_assign_impl(n);
@@ -1154,6 +1211,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 21 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow21_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1162,6 +1220,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 22 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow22_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1170,6 +1229,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 23 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow23_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &SMALL_POWERS_BASE23);
@@ -1177,6 +1237,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 24 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow24_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1185,6 +1246,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 25 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow25_assign_impl(&mut self, n: i32) {
         self.div_pow5_assign_impl(n);
@@ -1193,6 +1255,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 26 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow26_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1201,6 +1264,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 27 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow27_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1209,6 +1273,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 28 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow28_assign_impl(&mut self, n: i32) {
         self.div_pow4_assign_impl(n);
@@ -1217,6 +1282,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 29 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow29_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &SMALL_POWERS_BASE29);
@@ -1224,6 +1290,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 30 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow30_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1232,6 +1299,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 31 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow31_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &SMALL_POWERS_BASE31);
@@ -1239,14 +1307,16 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 32 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow32_assign_impl(&mut self, n: i32) {
         // Use 32**n = 2**(5n) to minimize overflow checks.
-        self.div_pow2_assign_impl(n.checked_mul(5).unwrap_or(i32::max_value()));
+        self.div_pow2_assign_impl(n * 5);
     }
 
     /// Implied DivAssign by a power of 33 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow33_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1255,6 +1325,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 34 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow34_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1263,6 +1334,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 35 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow35_assign_impl(&mut self, n: i32) {
         self.div_pow5_assign_impl(n);
@@ -1271,6 +1343,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 36 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
+    /// Warning: Exponent must be <= MAX_EXPONENT.
     #[inline]
     fn div_pow36_assign_impl(&mut self, n: i32) {
         self.div_pow4_assign_impl(n);
@@ -1701,20 +1774,13 @@ mod tests {
             check_pow!(smallvec![1], 0, smallvec![1], 0, 0, $func);
             check_pow!(smallvec![1], 0, smallvec![1], -$n*1, 1, $func);
             check_pow!(smallvec![1], 0, smallvec![1], -$n*4, 4, $func);
-            // TODO(ahuszagh) Need the overflow..
+            check_pow!(smallvec![2], 0, smallvec![2], -$n*4, 4, $func);
         });
         ($func:ident, $n:expr) => ({
             check_pow!(smallvec![], 0, smallvec![], 0, 0, $func);
             check_pow!(smallvec![1], 0, smallvec![1], 0, 0, $func);
             check_pow!(smallvec![1], 0, smallvec![1], $n*1, 1, $func);
-            check_pow!(smallvec![1], 0, smallvec![1], $n*4, 4, $func);
-            check_pow!(smallvec![1], 0, smallvec![1], VALUE_2.checked_mul($n).unwrap_or(VALUE_I32), VALUE_2, $func);
-            check_pow!(smallvec![1], 0, smallvec![1], VALUE_4.checked_mul($n).unwrap_or(VALUE_I32), VALUE_4, $func);
-            check_pow!(smallvec![1], 0, smallvec![1], VALUE_8.checked_mul($n).unwrap_or(VALUE_I32), VALUE_8, $func);
-            check_pow!(smallvec![1], 0, smallvec![1], VALUE_16.checked_mul($n).unwrap_or(VALUE_I32), VALUE_16, $func);
-            check_pow!(smallvec![1], 0, smallvec![1], VALUE_32.checked_mul($n).unwrap_or(VALUE_I32), VALUE_32, $func);
-            check_pow!(smallvec![1], 0, smallvec![1], VALUE_I32, VALUE_I32, $func);
-            check_pow!(smallvec![1], 1, smallvec![1], VALUE_I32, VALUE_I32, $func);
+            check_pow!(smallvec![2], 0, smallvec![2], $n*4, 4, $func);
         })
     }
 
@@ -1728,15 +1794,6 @@ mod tests {
 
     #[test]
     fn mul_pow2_test() {
-        // Constants (used to avoid rounding error).
-        const VALUE_I32: i32 = i32::max_value();
-        const VALUE_32: i32 = VALUE_I32 / 32;
-        const VALUE_16: i32 = VALUE_32 * 2;
-        const VALUE_8: i32 = VALUE_16 * 2;
-        const VALUE_4: i32 = VALUE_8 * 2;
-        const VALUE_2: i32 = VALUE_4 * 2;
-        const VALUE_1: i32 = VALUE_2 * 2;
-
         check_pow2!(mul_pow2_assign, 1);
         check_pow2!(mul_pow4_assign, 2);
         check_pow2!(mul_pow8_assign, 3);
@@ -1931,12 +1988,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "padded_bits() overflow, would cause memory error.")]
-    fn padded_bits_overflow_test() {
-        padded_bits(31, 0x40000000);
-    }
-
-    #[test]
     fn pad_division_test() {
         // Pad 0
         let mut x = Bigfloat { data: smallvec![0, 0, 0, 1], exponent: 0 };
@@ -2051,124 +2102,109 @@ mod tests {
             smallvec![], 0, div_pow36_assign ;
         );
 
-// TODO(ahuszagh) Restore
-//        // 1 case ** pow2
-//        check_pown!(
-//            smallvec![1], 0, 2 ;
-//            smallvec![477218589], -32, div_pow3_assign ;
-//            smallvec![171798692], -32, div_pow5_assign ;
-//            smallvec![477218589], -34, div_pow6_assign ;
-//            smallvec![87652394], -32, div_pow7_assign ;
-//            smallvec![53024288], -32, div_pow9_assign ;
-//            smallvec![171798692], -34, div_pow10_assign ;
-//            smallvec![35495598], -32, div_pow11_assign ;
-//            smallvec![477218589], -36, div_pow12_assign ;
-//            smallvec![25414008], -32, div_pow13_assign ;
-//            smallvec![87652394], -34, div_pow14_assign ;
-//            smallvec![19088744], -32, div_pow15_assign ;
-//            smallvec![14861479], -32, div_pow17_assign ;
-//            smallvec![53024288], -34, div_pow18_assign ;
-//            smallvec![11897417], -32, div_pow19_assign ;
-//            smallvec![171798692], -36, div_pow20_assign ;
-//            smallvec![9739155], -32, div_pow21_assign ;
-//            smallvec![35495598], -34, div_pow22_assign ;
-//            smallvec![8119031], -32, div_pow23_assign ;
-//            smallvec![477218589], -38, div_pow24_assign ;
-//            smallvec![6871948], -32, div_pow25_assign ;
-//            smallvec![25414008], -34, div_pow26_assign ;
-//            smallvec![5891588], -32, div_pow27_assign ;
-//            smallvec![87652394], -36, div_pow28_assign ;
-//            smallvec![5106977], -32, div_pow29_assign ;
-//            smallvec![19088744], -34, div_pow30_assign ;
-//            smallvec![4469269], -32, div_pow31_assign ;
-//            smallvec![3943956], -32, div_pow33_assign ;
-//            smallvec![14861479], -34, div_pow34_assign ;
-//            smallvec![3506096], -32, div_pow35_assign ;
-//            smallvec![53024288], -36, div_pow36_assign ;
-//        );
+        // 1 case ** pow2
+        check_pown!(
+            smallvec![1], 0, 2 ;
+            smallvec![1908874354, 477218588], -64, div_pow3_assign ;
+            smallvec![3607772529, 171798691], -64, div_pow5_assign ;
+            smallvec![1908874354, 477218588], -66, div_pow6_assign ;
+            smallvec![3418443359, 87652393], -64, div_pow7_assign ;
+            smallvec![2598190093, 53024287], -64, div_pow9_assign ;
+            smallvec![3607772529, 171798691], -66, div_pow10_assign ;
+            smallvec![2094240252, 35495597], -64, div_pow11_assign ;
+            smallvec![1908874354, 477218588], -68, div_pow12_assign ;
+            smallvec![2871782867, 25414007], -64, div_pow13_assign ;
+            smallvec![3418443359, 87652393], -66, div_pow14_assign ;
+            smallvec![2309737969, 19088743], -64, div_pow15_assign ;
+            smallvec![2288667695, 14861478], -64, div_pow17_assign ;
+            smallvec![2598190093, 53024287], -66, div_pow18_assign ;
+            smallvec![1427689960, 11897416], -64, div_pow19_assign ;
+            smallvec![3607772529, 171798691], -68, div_pow20_assign ;
+            smallvec![3837227018, 3720357158, 9739154], -96, div_pow21_assign ;
+            smallvec![2094240252, 35495597], -66, div_pow22_assign ;
+            smallvec![235451894, 3458707123, 8119030], -96, div_pow23_assign ;
+            smallvec![1908874354, 477218588], -70, div_pow24_assign ;
+            smallvec![2515132849, 2893089970, 6871947], -96, div_pow25_assign ;
+            smallvec![2871782867, 25414007], -66, div_pow26_assign ;
+            smallvec![2197562142, 5891587], -64, div_pow27_assign ;
+            smallvec![3418443359, 87652393], -68, div_pow28_assign ;
+            smallvec![4121330093, 2451348753, 5106976], -96, div_pow29_assign ;
+            smallvec![2309737969, 19088743], -66, div_pow30_assign ;
+            smallvec![902792294, 3343013046, 4469268], -96, div_pow31_assign ;
+            smallvec![844006430, 1187130538, 3943955], -96, div_pow33_assign ;
+            smallvec![2288667695, 14861478], -66, div_pow34_assign ;
+            smallvec![1896797802, 3229114187, 3506095], -96, div_pow35_assign ;
+            smallvec![2598190093, 53024287], -68, div_pow36_assign ;
+        );
 
-// TODO(ahuszagh) Need to fix padding since we have a lot of error...
-//
-//  7 / 3^1         requires 54 guard bits
-//  7 / 3^2         requires 55 guard bits
-//  7 / 3^10        requires 67 guard bits
-//  7 / 3^20        requires 85 guard bits
-//  7 / 3^40        requires 112 guard bits
-//  7 / 3^80        requires 175 guard bits
-//  7 / 3^120       requires 240 guard bits
-//  7 / 3^240       requires 428 guard bits
+        // Non-1 case * pow2
+        check_pown!(
+            smallvec![7], 0, 2 ;
+            smallvec![477218589, 3340530119], -64, div_pow3_assign ;
+            smallvec![3779571221, 1202590842], -64, div_pow5_assign ;
+            smallvec![477218589, 3340530119], -66, div_pow6_assign ;
+            smallvec![2454267027, 613566756], -64, div_pow7_assign ;
+            smallvec![1007461465, 371170013], -64, div_pow9_assign ;
+            smallvec![3779571221, 1202590842], -66, div_pow10_assign ;
+            smallvec![1774779875, 248469182], -64, div_pow11_assign ;
+            smallvec![477218589, 3340530119], -68, div_pow12_assign ;
+            smallvec![2922610882, 177898053], -64, div_pow13_assign ;
+            smallvec![2454267027, 613566756], -66, div_pow14_assign ;
+            smallvec![3283263889, 133621204], -64, div_pow15_assign ;
+            smallvec![3135771971, 104030349], -64, div_pow17_assign ;
+            smallvec![1007461465, 371170013], -66, div_pow18_assign ;
+            smallvec![1403895128, 83281914], -64, div_pow19_assign ;
+            smallvec![3779571221, 1202590842], -68, div_pow20_assign ;
+            smallvec![1090785346, 272696336, 68174084], -96, div_pow21_assign ;
+            smallvec![1774779875, 248469182], -66, div_pow22_assign ;
+            smallvec![1648163254, 2736113381, 56833215], -96, div_pow23_assign ;
+            smallvec![477218589, 3340530119], -70, div_pow24_assign ;
+            smallvec![426060756, 3071760610, 48103633], -96, div_pow25_assign ;
+            smallvec![2922610882, 177898053], -66, div_pow26_assign ;
+            smallvec![2498033105, 41241112], -64, div_pow27_assign ;
+            smallvec![2454267027, 613566756], -68, div_pow28_assign ;
+            smallvec![3079506873, 4274539389, 35748835], -96, div_pow29_assign ;
+            smallvec![3283263889, 133621204], -66, div_pow30_assign ;
+            smallvec![2024578757, 1926254843, 31284881], -96, div_pow31_assign ;
+            smallvec![1613077709, 4014946471, 27607686], -96, div_pow33_assign ;
+            smallvec![3135771971, 104030349], -66, div_pow34_assign ;
+            smallvec![392682725, 1128962832, 24542670], -96, div_pow35_assign ;
+            smallvec![1007461465, 371170013], -68, div_pow36_assign ;
+        );
 
-//        // Non-1 case * pow2
-//        check_pown!(
-//            smallvec![7], 0, 2 ;
-//            smallvec![3340530120], -32, div_pow3_assign ;
-//            //smallvec![1202590843], -32, div_pow5_assign ;
-//            //smallvec![3340530120], -34, div_pow6_assign ;
-//            //smallvec![613566757], -32, div_pow7_assign ;
-//            //smallvec![371170014], -32, div_pow9_assign ;
-//            //smallvec![1202590843], -34, div_pow10_assign ;
-//            //smallvec![248469183], -32, div_pow11_assign ;
-//            //smallvec![3340530120], -36, div_pow12_assign ;
-//            //smallvec![177898054], -32, div_pow13_assign ;
-//            //smallvec![613566757], -34, div_pow14_assign ;
-//            //smallvec![133621205], -32, div_pow15_assign ;
-//            //smallvec![104030350], -32, div_pow17_assign ;
-//            //smallvec![371170014], -34, div_pow18_assign ;
-//            //smallvec![83281915], -32, div_pow19_assign ;
-//            //smallvec![1202590843], -36, div_pow20_assign ;
-//            //smallvec![68174085], -32, div_pow21_assign ;
-//            //smallvec![248469183], -34, div_pow22_assign ;
-//            //smallvec![56833216], -32, div_pow23_assign ;
-//            //smallvec![3340530120], -38, div_pow24_assign ;
-//            //smallvec![48103634], -32, div_pow25_assign ;
-//            //smallvec![177898054], -34, div_pow26_assign ;
-//            //smallvec![41241113], -32, div_pow27_assign ;
-//            //smallvec![613566757], -36, div_pow28_assign ;
-//            //smallvec![35748836], -32, div_pow29_assign ;
-//            //smallvec![133621205], -34, div_pow30_assign ;
-//            //smallvec![31284882], -32, div_pow31_assign ;
-//            //smallvec![27607687], -32, div_pow33_assign ;
-//            //smallvec![104030350], -34, div_pow34_assign ;
-//            //smallvec![24542671], -32, div_pow35_assign ;
-//            //smallvec![371170014], -36, div_pow36_assign ;
-//        );
-
-//        // More than 1 iteration
-//        check_pown!(
-//            smallvec![7], 0, 22 ;
-//            // TODO(ahuszagh) These are all off by a scalar...
-//            smallvec![1097992198, 4114813525], -96, div_pow3_assign ;
-//            smallvec![1192962241, 3765478296, 54159], -128, div_pow5_assign ;
-//            smallvec![1097992198, 4114813525], -118, div_pow6_assign ;
-//            smallvec![2709929360, 113271394, 33], -128, div_pow7_assign ;
-//            smallvec![4163638954, 563173765], -128, div_pow9_assign ;
-//
-//            // Not padding properly...
-//            smallvec![2517658495, 3885780], -86, div_pow10_assign ;
-//            smallvec![3435804255, 4136938383, 30889], -64, div_pow11_assign ;
-//            smallvec![624085167, 51], 44, div_pow12_assign ;
-//            smallvec![1461939919, 4042437051, 1218798], -64, div_pow13_assign ;
-//            smallvec![821077879, 2077315763, 1], -86, div_pow14_assign ;
-//            smallvec![4148791143, 1053307084, 28391348], -64, div_pow15_assign ;
-//            smallvec![4274854567, 3675497104, 445712267], -64, div_pow17_assign ;
-//            smallvec![363536663, 2971099641, 373], -86, div_pow18_assign ;
-//            smallvec![442098831, 2102541774, 854443491, 1], -64, div_pow19_assign ;
-//            smallvec![2517658495, 3885780], 44, div_pow20_assign ;
-//            smallvec![229089951, 1212071740, 3609236746, 10], -64, div_pow21_assign ;
-//            smallvec![3435804255, 4136938383, 30889], -86, div_pow22_assign ;
-//            smallvec![1478922199, 2466168986, 903793223, 80], -64, div_pow23_assign ;
-//            smallvec![624085167, 51], 66, div_pow24_assign ;
-//            smallvec![3338697911, 3024324511, 967955121, 502], -64, div_pow25_assign ;
-//            smallvec![1461939919, 4042437051, 1218798], -86, div_pow26_assign ;
-//            smallvec![3861939007, 3545742225, 1582773326, 2730], -64, div_pow27_assign ;
-//            smallvec![821077879, 2077315763, 1], 44, div_pow28_assign ;
-//            smallvec![2186041071, 2503332440, 2033127165, 13151], -64, div_pow29_assign ;
-//            smallvec![4148791143, 1053307084, 28391348], -86, div_pow30_assign ;
-//            smallvec![123416775, 3495261177, 2153535316, 57039], -64, div_pow31_assign ;
-//            smallvec![2037864263, 1104016441, 2837850123, 225696], -64, div_pow33_assign ;
-//            smallvec![4274854567, 3675497104, 445712267], -86, div_pow34_assign ;
-//            smallvec![649085551, 1084312505, 1210820426, 823598], -64, div_pow35_assign ;
-//            smallvec![363536663, 2971099641, 373], 44, div_pow36_assign ;
-//        );
+        // More than 1 iteration
+        check_pown!(
+            smallvec![7], 0, 22 ;
+            smallvec![1097992198, 4114813525], -96, div_pow3_assign ;
+            smallvec![1192962241, 3765478296, 54159], -128, div_pow5_assign ;
+            smallvec![1097992198, 4114813525], -118, div_pow6_assign ;
+            smallvec![2709929360, 113271394, 33], -128, div_pow7_assign ;
+            smallvec![4163638954, 563173765], -128, div_pow9_assign ;
+            smallvec![1192962241, 3765478296, 54159], -150, div_pow10_assign ;
+            smallvec![1846927277, 2280466835, 6813002], -160, div_pow11_assign ;
+            smallvec![1097992198, 4114813525], -140, div_pow12_assign ;
+            smallvec![2762324558, 3336209160, 172672], -160, div_pow13_assign ;
+            smallvec![2709929360, 113271394, 33], -150, div_pow14_assign ;
+            smallvec![2920419711, 2530008966, 7412], -160, div_pow15_assign ;
+            smallvec![1865691657, 743981915, 472], -160, div_pow17_assign ;
+            smallvec![4163638954, 563173765], -150, div_pow18_assign ;
+            smallvec![2380074498, 3734101505, 40], -160, div_pow19_assign ;
+            smallvec![1192962241, 3765478296, 54159], -172, div_pow20_assign ;
+            smallvec![1444322040, 2234040319, 4], -160, div_pow21_assign ;
+            smallvec![1846927277, 2280466835, 6813002], -182, div_pow22_assign ;
+            smallvec![2427835437, 2623765955], -160, div_pow23_assign ;
+            smallvec![1097992198, 4114813525], -162, div_pow24_assign ;
+            smallvec![2607034598, 1956428404, 419041749], -192, div_pow25_assign ;
+            smallvec![2762324558, 3336209160, 172672], -182, div_pow26_assign ;
+            smallvec![3707063943, 77078751], -160, div_pow27_assign ;
+            smallvec![2709929360, 113271394, 33], -172, div_pow28_assign ;
+            smallvec![1810784743, 2979999428, 16002267], -192, div_pow29_assign ;
+            smallvec![2920419711, 2530008966, 7412], -182, div_pow30_assign ;
+            smallvec![3974785410, 4053206930, 3689607], -192, div_pow31_assign ;
+            smallvec![2574918056, 1209062500, 932461], -192, div_pow33_assign ;
+            smallvec![1865691657, 743981915, 472], -182, div_pow34_assign ;
+            smallvec![625750939, 2388256588, 793309967, 255529], -224, div_pow35_assign ;
+            smallvec![4163638954, 563173765], -172, div_pow36_assign ;
+        );
     }
 }
