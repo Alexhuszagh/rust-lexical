@@ -32,6 +32,20 @@ pub struct ExtendedFloat<M: Mantissa> {
 }
 
 impl<M: Mantissa> ExtendedFloat<M> {
+    // PROPERTIES
+
+    /// Get the mantissa component.
+    #[inline(always)]
+    pub fn mantissa(&self) -> M {
+        self.frac
+    }
+
+    /// Get the exponent component.
+    #[inline(always)]
+    pub fn exponent(&self) -> i32 {
+        self.exp
+    }
+
     // OPERATIONS
 
     /// Multiply two normalized extended-precision floats, as if by `a*b`.
@@ -206,13 +220,13 @@ impl<M: Mantissa> ExtendedFloat<M> {
     /// Create extended float from 32-bit float.
     #[inline]
     pub fn from_f32(f: f32) -> ExtendedFloat<M> {
-        Self::from_float::<f32>(f)
+        Self::from_float(f)
     }
 
     /// Create extended float from 64-bit float.
     #[inline]
     pub fn from_f64(f: f64) -> ExtendedFloat<M> {
-        Self::from_float::<f64>(f)
+        Self::from_float(f)
     }
 
     // TO
@@ -231,7 +245,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
     pub fn as_f32(&self) -> f32
         where f32: FloatRounding<M>
     {
-        self.as_float::<f32>()
+        self.as_float()
     }
 
     /// Convert to lower-precision 64-bit float.
@@ -239,7 +253,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
     pub fn as_f64(&self) -> f64
         where f64: FloatRounding<M>
     {
-        self.as_float::<f64>()
+        self.as_float()
     }
 }
 

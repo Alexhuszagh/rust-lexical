@@ -7,7 +7,9 @@
 // Only use static checks inside of functions.
 
 use smallvec;
-use float::Mantissa;
+use float::{ExtendedFloat80, FloatRounding, Mantissa};
+use float::convert::as_float;
+use float::rounding::*;
 use lib::{mem, slice};
 use util::*;
 
@@ -245,7 +247,7 @@ macro_rules! wrap_mul_pown_assign {
             debug_assert!(n >= 0, stringify!(Bigfloat::$name() must multiply by a positive power, n is {}.), n);
             if n > 0x1400 {
                 // Comically large value, always infinity.
-                self.exponent = i32::max_value();
+                self.exp = i32::max_value();
             } else {
                 self.$impl(n);
             }
@@ -406,7 +408,7 @@ pub(crate) struct Bigfloat {
     /// as an extended integer
     data: smallvec::SmallVec<[u32; 32]>,
     /// Exponent in base32.
-    exponent: i32,
+    exp: i32,
 }
 
 impl Bigfloat {
@@ -423,7 +425,7 @@ impl Bigfloat {
     pub fn from_u32(x: u32) -> Bigfloat {
         Bigfloat {
             data: smallvec![x],
-            exponent: 0,
+            exp: 0,
         }
     }
 
@@ -434,7 +436,7 @@ impl Bigfloat {
         let lo = (x & u64::LOMASK) as u32;
         Bigfloat {
             data: smallvec![lo, hi],
-            exponent: 0,
+            exp: 0,
         }
     }
 
@@ -449,7 +451,7 @@ impl Bigfloat {
         let d0 = (hi64 >> 32) as u32;
         Bigfloat {
             data: smallvec![d3, d2, d1, d0],
-            exponent: 0,
+            exp: 0,
         }
     }
 
@@ -458,7 +460,7 @@ impl Bigfloat {
     pub fn min_value() -> Bigfloat {
         Bigfloat {
             data: smallvec![],
-            exponent: 0,
+            exp: 0,
         }
     }
 
@@ -467,7 +469,7 @@ impl Bigfloat {
     pub fn max_value() -> Bigfloat {
         Bigfloat {
             data: smallvec![u32::max_value(); 32],
-            exponent: i32::max_value(),
+            exp: i32::max_value(),
         }
     }
 
@@ -480,8 +482,7 @@ impl Bigfloat {
     /// Assumes the value is normalized.
     #[inline]
     pub fn leading_zero_values(&self) -> u32 {
-        debug_assert!(!self.is_empty(), "Bigfloat::leading_zero_values() data cannot be empty.");
-        debug_assert!(!self.back().is_zero(), "Bigfloat::leading_zero_values() data is not normalized.");
+        debug_assert!(self.is_empty() || !self.back().is_zero(), "Bigfloat::leading_zero_values() data is not normalized.");
         0
     }
 
@@ -502,17 +503,15 @@ impl Bigfloat {
     /// Assumes the value is normalized.
     #[inline]
     pub fn leading_zeros(&self) -> u32 {
-        debug_assert!(!self.is_empty(), "Bigfloat::leading_zeros() data cannot be empty.");
-        debug_assert!(!self.back().is_zero(), "Bigfloat::leading_zeros() data is not normalized.");
-        self.back().leading_zeros()
+        debug_assert!(self.is_empty() || !self.back().is_zero(), "Bigfloat::leading_zeros() data is not normalized.");
+        if self.is_empty() { 0 } else { self.back().leading_zeros() }
     }
 
     /// Get number of trailing zero bits in Bigfloat.
     /// Assumes the value is normalized.
     #[inline]
     pub fn trailing_zeros(&self) -> u32 {
-        debug_assert!(!self.is_empty(), "Bigfloat::leading_zeros() data cannot be empty.");
-        debug_assert!(!self.back().is_zero(), "Bigfloat::trailing_zeros() data is not normalized.");
+        debug_assert!(self.is_empty() || !self.back().is_zero(), "Bigfloat::trailing_zeros() data is not normalized.");
 
         // Get the index of the last non-zero value
         let index: usize = self.trailing_zero_values() as usize;
@@ -567,7 +566,7 @@ impl Bigfloat {
     #[inline]
     fn add_large_assign(&mut self, y: &Bigfloat) {
         // Logic error, ensure both numbers have the same exponent.
-        debug_assert!(self.exponent == y.exponent, "Bigfloat::add_large_assign different exponents");
+        debug_assert!(self.exp == y.exp, "Bigfloat::add_large_assign different exponents");
 
         // Get the number of values to add_assign between them.
         // Resize the buffer so at least y.data elements are in x.data.
@@ -656,7 +655,7 @@ impl Bigfloat {
     #[inline]
     fn mul_pow2_assign_impl(&mut self, n: i32) {
         // Increment exponent to simulate actual addition.
-        self.exponent += n;
+        self.exp += n;
     }
 
     /// Implied MulAssign by a power of 3 (safe to chain calls).
@@ -978,7 +977,7 @@ impl Bigfloat {
 
         // Decrease the exponent component.
         let bits = bytes * Self::BITS;
-        self.exponent -= bits as i32;
+        self.exp -= bits as i32;
 
         // Move data to new buffer, prepend `bytes` 0s, and then append
         // current data.
@@ -1051,7 +1050,7 @@ impl Bigfloat {
     #[inline]
     fn div_pow2_assign_impl(&mut self, n: i32) {
         // Decrement exponent to simulate actual addition.
-        self.exponent -= n;
+        self.exp -= n;
     }
 
     /// Implied DivAssign by a power of 3 (safe to chain calls).
@@ -1460,9 +1459,98 @@ impl Bigfloat {
 
     // TO FLOAT
 
+    /// Get the most 64-bits of the mantissa and if non-zero bits are truncated.
+    // TODO(ahuszagh) test
+    #[inline]
+    pub fn mantissa(&self) -> (u64, bool) {
+        // We need to generate a mask for the lower and upper bits of each
+        // number. The lower mask should be ((1<<(shift+1))-1), with
+        // wrapping overflow (so 31 bits wraps to 32). The upper mask
+        // should be the bitwise negation of the lower mask. We don't
+        // need an upper mask, just need to shift to extract those bits
+        // in the proper position.
+        let shift = self.leading_zeros();
+
+        // Ensure the resulting fraction is properly normalized.
+        // We want consistency.
+        match self.len() {
+            // No bytes, return a literal o-mantissa.
+            // Can never have truncated bits.
+            0 => (0, false),
+            // One int, can only add 1-32-bits.
+            // Can never have truncated bits.
+            1 => {
+                let v = (*self.rget(0) as u64) << (shift + 32);
+                (v, false)
+            },
+            // Two ints, can only add 33-64-bits.
+            // Can never have truncated bits.
+            2 => {
+                let v0 = (*self.rget(0) as u64) << (shift + 32);
+                let v1 = (*self.rget(1) as u64) << shift;
+                let v = v0 | v1;
+                (v, false)
+            },
+            // Three ints, can always add all 64+ bits.
+            // Can have truncated bits.
+            _ => {
+                // Get our value.
+                let v0 = (*self.rget(0) as u64) << (shift + 32);
+                let v1 = (*self.rget(1) as u64) << shift;
+                let v2 = (*self.rget(2) as u64) >> shift;
+                let v = v0 | v1 | v2;
+
+                // Check if all the truncated elements are 0.
+                let mut nonzero = (*self.rget(2) << shift) != 0;
+                let mut iter = self.iter().skip(3);
+                for value in iter {
+                    nonzero |= *value != 0;
+                }
+                (v, nonzero)
+            },
+        }
+    }
+
+    /// Calculate the real exponent for the float.
+    /// Same as `self.exp + (Self::BITS * self.len()) - 32 - leading_zeros()`.
+    /// Need to subtract an extra `32 + leading_zeros()` since that's the effective
+    /// bitshift we're adding to the mantissa.
+    // TODO(ahuszagh) test
+    // TODO(ahuszagh) Change to exponent
+    #[inline]
+    pub fn exponent(&self) -> i32 {
+        let shift = self.leading_zeros() + 32;
+        let bits = (Self::BITS * self.len()) - shift as usize;
+        self.exp + bits as i32
+    }
+
     /// Export native float from bigfloat.
-    pub fn as_float<F: Float>(&self) -> F {
-        unimplemented!()
+    /// Use the rounding machinery for the extended-precision float, since
+    /// we have total accuracy here.
+    #[inline]
+    pub fn as_float<F: FloatRounding<u64>>(&self) -> F {
+        // Get our initial values and create our floating point
+        let (mantissa, is_truncated) = self.mantissa();
+        let exp = self.exponent();
+        let mut fp = ExtendedFloat80 { frac: mantissa, exp: exp };
+
+        // Create our wrapper for round_nearest_tie_even.
+        // If there are truncated bits, and we are exactly halfway,
+        // then we need to set above to true and halfway to false.
+        let rounding = move | f: &mut ExtendedFloat80, params: &RoundingParameters<u64> | {
+            let (mut is_above, mut is_halfway) = round_nearest(f, params);
+            if is_halfway && is_truncated {
+                is_above = true;
+                is_halfway = false;
+            }
+            tie_even(f, is_above, is_halfway);
+        };
+
+        // Export to float. We can ignore normalization, since the value
+        // is already normalized.
+        round_to_float_impl::<F, u64, _>(&mut fp, rounding);
+        avoid_overflow::<F, u64>(&mut fp);
+        as_float(fp)
     }
 
     // VEC-LIKE
@@ -1539,15 +1627,14 @@ impl Bigfloat {
     #[inline(always)]
     fn back(&self) -> &u32 {
         debug_assert!(self.len() > 0);
-        self.get(self.len()-1)
+        self.rget(0)
     }
 
     /// Get the back integer as mutable.
     #[inline(always)]
     fn back_mut(&mut self) -> &mut u32 {
         debug_assert!(self.len() > 0);
-        let index = self.len()-1;
-        self.get_mut(index)
+        self.rget_mut(0)
     }
 
     /// Unchecked get.
@@ -1565,6 +1652,24 @@ impl Bigfloat {
     {
         unsafe { self.data.get_unchecked_mut(index) }
     }
+
+    /// Unchecked reverse get.
+    #[inline(always)]
+    fn rget(&self, index: usize) -> &u32
+    {
+        debug_assert!(index <= self.len(), "rget() out-of-bounds index.");
+        let index = self.len() - index - 1;
+        self.get(index)
+    }
+
+    /// Unchecked reverse get_mut.
+    #[inline(always)]
+    fn rget_mut(&mut self, index: usize) -> &mut u32
+    {
+        debug_assert!(index <= self.len(), "rget() out-of-bounds index.");
+        let index = self.len() - index - 1;
+        self.get_mut(index)
+    }
 }
 
 // TESTS
@@ -1580,31 +1685,33 @@ mod tests {
     #[test]
     fn new_test() {
         let bigfloat = Bigfloat::new();
-        assert_eq!(bigfloat, Bigfloat { data: smallvec![], exponent: 0 });
+        assert_eq!(bigfloat, Bigfloat { data: smallvec![], exp: 0 });
     }
 
     #[test]
     fn from_u32_test() {
         let bigfloat = Bigfloat::from_u32(255);
-        assert_eq!(bigfloat, Bigfloat { data: smallvec![255], exponent: 0 });
+        assert_eq!(bigfloat, Bigfloat { data: smallvec![255], exp: 0 });
     }
 
     #[test]
     fn from_u64_test() {
         let bigfloat = Bigfloat::from_u64(1152921504606847231);
-        assert_eq!(bigfloat, Bigfloat { data: smallvec![255, 1 << 28], exponent: 0 });
+        assert_eq!(bigfloat, Bigfloat { data: smallvec![255, 1 << 28], exp: 0 });
     }
 
     #[test]
     fn from_u128_test() {
         let bigfloat = Bigfloat::from_u128(1329227997022855913342108839786316031);
-        assert_eq!(bigfloat, Bigfloat { data: smallvec![255, 1 << 28, 1 << 26, 1<< 24], exponent: 0 });
+        assert_eq!(bigfloat, Bigfloat { data: smallvec![255, 1 << 28, 1 << 26, 1<< 24], exp: 0 });
     }
 
     // PROPERTIES
 
     #[test]
     fn leading_zero_values_test() {
+        assert_eq!(Bigfloat::new().leading_zero_values(), 0);
+
         assert_eq!(Bigfloat::from_u32(0xFF).leading_zero_values(), 0);
         assert_eq!(Bigfloat::from_u64(0xFF00000000).leading_zero_values(), 0);
         assert_eq!(Bigfloat::from_u128(0xFF000000000000000000000000).leading_zero_values(), 0);
@@ -1637,6 +1744,8 @@ mod tests {
 
     #[test]
     fn leading_zeros_test() {
+        assert_eq!(Bigfloat::new().leading_zeros(), 0);
+
         assert_eq!(Bigfloat::from_u32(0xFF).leading_zeros(), 24);
         assert_eq!(Bigfloat::from_u64(0xFF00000000).leading_zeros(), 24);
         assert_eq!(Bigfloat::from_u128(0xFF000000000000000000000000).leading_zeros(), 24);
@@ -1652,6 +1761,8 @@ mod tests {
 
     #[test]
     fn trailing_zeros_test() {
+        assert_eq!(Bigfloat::new().trailing_zeros(), 0);
+
         assert_eq!(Bigfloat::from_u32(0xFF).trailing_zeros(), 0);
         assert_eq!(Bigfloat::from_u64(0xFF00000000).trailing_zeros(), 32);
         assert_eq!(Bigfloat::from_u128(0xFF000000000000000000000000).trailing_zeros(), 96);
@@ -1676,22 +1787,22 @@ mod tests {
         // topmost bit to 1.
         let mut x = Bigfloat::from_u32(4294967295);
         x.add_small_assign(5);
-        assert_eq!(x, Bigfloat { data: smallvec![4, 1], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![4, 1], exp: 0 });
 
         // No overflow, single value
         let mut x = Bigfloat::from_u32(5);
         x.add_small_assign(7);
-        assert_eq!(x, Bigfloat { data: smallvec![12], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![12], exp: 0 });
 
         // Single carry, internal overflow
         let mut x = Bigfloat::from_u64(0x80000000FFFFFFFF);
         x.add_small_assign(7);
-        assert_eq!(x, Bigfloat { data: smallvec![6, 0x80000001], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![6, 0x80000001], exp: 0 });
 
         // Double carry, overflow
         let mut x = Bigfloat::from_u64(0xFFFFFFFFFFFFFFFF);
         x.add_small_assign(7);
-        assert_eq!(x, Bigfloat { data: smallvec![6, 0, 1], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![6, 0, 1], exp: 0 });
     }
 
     #[test]
@@ -1700,31 +1811,31 @@ mod tests {
         let mut x = Bigfloat::from_u32(5);
         let y = Bigfloat::from_u32(7);
         x.add_large_assign(&y);
-        assert_eq!(x, Bigfloat { data: smallvec![12], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![12], exp: 0 });
 
         // No overflow, symmetric (2- and 2-ints).
         let mut x = Bigfloat::from_u64(1125899906842624);
         let y = Bigfloat::from_u64(35184372088832);
         x.add_large_assign(&y);
-        assert_eq!(x, Bigfloat { data: smallvec![0, 270336], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![0, 270336], exp: 0 });
 
         // No overflow, asymmetric (1- and 2-ints).
         let mut x = Bigfloat::from_u32(5);
         let y = Bigfloat::from_u64(35184372088832);
         x.add_large_assign(&y);
-        assert_eq!(x, Bigfloat { data: smallvec![5, 8192], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![5, 8192], exp: 0 });
 
         // Internal overflow check.
         let mut x = Bigfloat::from_u32(0xF1111111);
         let y = Bigfloat::from_u64(0x12345678);
         x.add_large_assign(&y);
-        assert_eq!(x, Bigfloat { data: smallvec![0x3456789, 1], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![0x3456789, 1], exp: 0 });
 
         // Complete overflow check
         let mut x = Bigfloat::from_u32(4294967295);
         let y = Bigfloat::from_u32(4294967295);
         x.add_large_assign(&y);
-        assert_eq!(x, Bigfloat { data: smallvec![4294967294, 1], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![4294967294, 1], exp: 0 });
     }
 
     // MULTIPLICATION
@@ -1734,36 +1845,36 @@ mod tests {
         // No overflow check, 1-int.
         let mut x = Bigfloat::from_u32(5);
         x.mul_small_assign(7);
-        assert_eq!(x, Bigfloat { data: smallvec![35], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![35], exp: 0 });
 
         // No overflow check, 2-ints.
         let mut x = Bigfloat::from_u64(0x4000000040000);
         x.mul_small_assign(5);
-        assert_eq!(x, Bigfloat { data: smallvec![0x00140000, 0x140000], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![0x00140000, 0x140000], exp: 0 });
 
         // Overflow, 1 carry.
         let mut x = Bigfloat::from_u32(0x33333334);
         x.mul_small_assign(5);
-        assert_eq!(x, Bigfloat { data: smallvec![4, 1], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![4, 1], exp: 0 });
 
         // Overflow, 1 carry, internal.
         let mut x = Bigfloat::from_u64(0x133333334);
         x.mul_small_assign(5);
-        assert_eq!(x, Bigfloat { data: smallvec![4, 6], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![4, 6], exp: 0 });
 
         // Overflow, 2 carries.
         let mut x = Bigfloat::from_u64(0x3333333333333334);
         x.mul_small_assign(5);
-        assert_eq!(x, Bigfloat { data: smallvec![4, 0, 1], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![4, 0, 1], exp: 0 });
     }
 
     /// Checker for the pow tests.
     macro_rules! check_pow {
         ($input_data:expr, $input_exp:expr, $result_data:expr, $result_exp:expr, $n:expr, $func:ident)
         => ({
-            let mut i = Bigfloat { data: $input_data, exponent: $input_exp };
+            let mut i = Bigfloat { data: $input_data, exp: $input_exp };
             i.$func($n);
-            assert_eq!(Bigfloat {data: $result_data, exponent: $result_exp }, i);
+            assert_eq!(Bigfloat {data: $result_data, exp: $result_exp }, i);
         });
     }
 
@@ -1989,37 +2100,37 @@ mod tests {
     #[test]
     fn pad_division_test() {
         // Pad 0
-        let mut x = Bigfloat { data: smallvec![0, 0, 0, 1], exponent: 0 };
+        let mut x = Bigfloat { data: smallvec![0, 0, 0, 1], exp: 0 };
         x.pad_division(3);
-        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exponent: 0 });
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exp: 0 });
 
         // Pad 1
-        let mut x = Bigfloat { data: smallvec![0, 0, 1], exponent: 0 };
+        let mut x = Bigfloat { data: smallvec![0, 0, 1], exp: 0 };
         x.pad_division(3);
-        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exponent: -32 });
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exp: -32 });
 
         // Pad 2
-        let mut x = Bigfloat { data: smallvec![0, 1], exponent: 0 };
+        let mut x = Bigfloat { data: smallvec![0, 1], exp: 0 };
         x.pad_division(3);
-        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exponent: -64 });
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exp: -64 });
 
         // Pad 3
         let mut x = Bigfloat::from_u32(1);
         x.pad_division(3);
-        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exponent: -96 });
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exp: -96 });
 
         let mut x = Bigfloat::from_u64(0x100000001);
         x.pad_division(3);
-        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1, 1], exponent: -96 });
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1, 1], exp: -96 });
 
-        let mut x = Bigfloat { data: smallvec![1, 1, 1], exponent: 0 };
+        let mut x = Bigfloat { data: smallvec![1, 1, 1], exp: 0 };
         x.pad_division(3);
-        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1, 1, 1], exponent: -96 });
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1, 1, 1], exp: -96 });
 
         // Pad 4
         let mut x = Bigfloat::from_u128(0x1000000010000000100000001);
         x.pad_division(4);
-        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 0, 1, 1, 1, 1], exponent: -128 });
+        assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 0, 1, 1, 1, 1], exp: -128 });
     }
 
     #[test]
@@ -2028,31 +2139,31 @@ mod tests {
         let mut x = Bigfloat::from_u32(5);
         x.pad_division(2);
         x.div_small_assign(7);
-        assert_eq!(x, Bigfloat { data: smallvec![0xDB6DB6DC, 0xB6DB6DB6], exponent: -64 });
+        assert_eq!(x, Bigfloat { data: smallvec![0xDB6DB6DC, 0xB6DB6DB6], exp: -64 });
 
         // 2-ints.
         let mut x = Bigfloat::from_u64(0x4000000040000);
         x.pad_division(2);
         x.div_small_assign(5);
-        assert_eq!(x, Bigfloat { data: smallvec![0x9999999A, 0x99999999, 0xCCCD9999, 0xCCCC], exponent: -64 });
+        assert_eq!(x, Bigfloat { data: smallvec![0x9999999A, 0x99999999, 0xCCCD9999, 0xCCCC], exp: -64 });
 
         // 1-int.
         let mut x = Bigfloat::from_u32(0x33333334);
         x.pad_division(2);
         x.div_small_assign(5);
-        assert_eq!(x, Bigfloat { data: smallvec![0x0, 0x0, 0xA3D70A4], exponent: -64 });
+        assert_eq!(x, Bigfloat { data: smallvec![0x0, 0x0, 0xA3D70A4], exp: -64 });
 
         // 2-ints.
         let mut x = Bigfloat::from_u64(0x133333334);
         x.pad_division(2);
         x.div_small_assign(5);
-        assert_eq!(x, Bigfloat { data: smallvec![0x33333334, 0x33333333, 0x3D70A3D7], exponent: -64 });
+        assert_eq!(x, Bigfloat { data: smallvec![0x33333334, 0x33333333, 0x3D70A3D7], exp: -64 });
 
         // 2-ints.
         let mut x = Bigfloat::from_u64(0x3333333333333334);
         x.pad_division(2);
         x.div_small_assign(5);
-        assert_eq!(x, Bigfloat { data: smallvec![0xCCCCCCCD, 0xCCCCCCCC, 0xD70A3D70, 0xA3D70A3], exponent: -64 });
+        assert_eq!(x, Bigfloat { data: smallvec![0xCCCCCCCD, 0xCCCCCCCC, 0xD70A3D70, 0xA3D70A3], exp: -64 });
     }
 
     #[test]
@@ -2205,5 +2316,23 @@ mod tests {
             smallvec![625750939, 2388256588, 793309967, 255529], -224, div_pow35_assign ;
             smallvec![4163638954, 563173765], -172, div_pow36_assign ;
         );
+    }
+
+    // AS FLOAT
+
+    #[test]
+    fn mantissa_test() {
+        // TODO(ahuszagh) Implement...
+        // TODO(ahuszagh) Need to test the halfway rounding condition, and near misses.
+    }
+
+    #[test]
+    fn exponent_test() {
+        // TODO(ahuszagh) Implement...
+    }
+
+    #[test]
+    fn as_float_test() {
+        // TODO(ahuszagh) Implement...
     }
 }

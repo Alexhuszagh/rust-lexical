@@ -12,7 +12,11 @@ use super::mantissa::Mantissa;
 /// This works because we call normalize before any operation, which
 /// allows us to convert the integer representation to the float one.
 #[inline(always)]
-pub(super) fn from_int<M: Mantissa, T: Integer>(t: T) -> ExtendedFloat<M> {
+pub(crate) fn from_int<T, M>(t: T)
+    -> ExtendedFloat<M>
+    where T: Integer,
+          M: Mantissa
+{
     debug_assert!(mem::size_of::<T>() <= mem::size_of::<M>(), "Possible truncation in ExtendedFloat::from_int.");
 
     ExtendedFloat {
@@ -27,8 +31,10 @@ pub(super) fn from_int<M: Mantissa, T: Integer>(t: T) -> ExtendedFloat<M> {
 ///
 /// Generate fraction from mantissa and read exponent as signed magnitude value.
 #[inline(always)]
-pub(super) fn from_float<M: Mantissa, T: Float>(t: T)
+pub(crate) fn from_float<T, M>(t: T)
     -> ExtendedFloat<M>
+    where T: Float,
+          M: Mantissa
 {
     ExtendedFloat {
         frac: as_cast(t.mantissa()),
@@ -43,8 +49,10 @@ pub(super) fn from_float<M: Mantissa, T: Float>(t: T)
 /// The extended-precision float must be in native float representation,
 /// with overflow/underflow appropriately handled.
 #[inline]
-pub(super) fn as_float<M: Mantissa, T: Float>(fp: ExtendedFloat<M>)
+pub(crate) fn as_float<T, M>(fp: ExtendedFloat<M>)
     -> T
+    where T: Float,
+          M: Mantissa
 {
     // Export floating-point number.
     if fp.frac.is_zero() || fp.exp < T::DENORMAL_EXPONENT {

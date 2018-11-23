@@ -25,7 +25,7 @@ pub struct RoundingParameters<M: Mantissa> {
 ///
 /// Return if we are above halfway and if we are halfway.
 #[inline]
-pub(super) fn round_nearest<M>(fp: &mut ExtendedFloat<M>, params: &RoundingParameters<M>)
+pub(crate) fn round_nearest<M>(fp: &mut ExtendedFloat<M>, params: &RoundingParameters<M>)
     -> (bool, bool)
     where M: Mantissa
 {
@@ -45,17 +45,11 @@ pub(super) fn round_nearest<M>(fp: &mut ExtendedFloat<M>, params: &RoundingParam
     (is_above, is_halfway)
 }
 
-/// Shift right N-bytes and round nearest, tie-to-even.
-///
-/// Floating-point arithmetic uses round to nearest, ties to even,
-/// which rounds to the nearest value, if the value is halfway in between,
-/// round to an even value.
+/// Tie rounded floating point to event.
 #[inline]
-pub(super) fn round_nearest_tie_even<M>(fp: &mut ExtendedFloat<M>, params: &RoundingParameters<M>)
+pub(crate) fn tie_even<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_halfway: bool)
     where M: Mantissa
 {
-    let (is_above, is_halfway) = round_nearest(fp, params);
-
     // Extract the last bit after shifting (and determine if it is odd).
     let is_odd = fp.frac & M::ONE == M::ONE;
 
@@ -74,12 +68,18 @@ pub(super) fn round_nearest_tie_even<M>(fp: &mut ExtendedFloat<M>, params: &Roun
 /// which rounds to the nearest value, if the value is halfway in between,
 /// round to an even value.
 #[inline]
-#[allow(dead_code)]
-pub(super) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, params: &RoundingParameters<M>)
+pub(crate) fn round_nearest_tie_even<M>(fp: &mut ExtendedFloat<M>, params: &RoundingParameters<M>)
     where M: Mantissa
 {
     let (is_above, is_halfway) = round_nearest(fp, params);
+    tie_even(fp, is_above, is_halfway);
+}
 
+/// Tie rounded floating point away from zero.
+#[inline]
+pub(crate) fn tie_away_zero<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_halfway: bool)
+    where M: Mantissa
+{
     // Calculate if we need to roundup.
     // We need to roundup if we are halfway or above halfway,
     // since the value is always positive and we need to round away
@@ -88,6 +88,20 @@ pub(super) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, params: 
 
     // Roundup as needed.
     fp.frac += as_cast::<M, _>(is_roundup as u32);
+}
+
+/// Shift right N-bytes and round nearest, tie-away-zero.
+///
+/// Floating-point arithmetic defines round to nearest, ties away from zero,
+/// which rounds to the nearest value, if the value is halfway in between,
+/// ties away from zero.
+#[inline]
+#[allow(dead_code)]
+pub(crate) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, params: &RoundingParameters<M>)
+    where M: Mantissa
+{
+    let (is_above, is_halfway) = round_nearest(fp, params);
+    tie_away_zero(fp, is_above, is_halfway);
 }
 
 // NATIVE FLOAT
@@ -165,9 +179,10 @@ float_rounding_f64! { u64 u128 }
 /// which rounds to the nearest value, if the value is halfway in between,
 /// round to an even value.
 #[inline]
-pub(super) fn round_to_float<T, M>(fp: &mut ExtendedFloat<M>)
+pub(crate) fn round_to_float_impl<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
     where T: FloatRounding<M>,
-          M: Mantissa
+          M: Mantissa,
+          Cb: FnOnce(&mut ExtendedFloat<M>, &RoundingParameters<M>)
 {
     // Calculate the difference to allow a single calculation
     // rather than a loop, to minimize the number of ops required.
@@ -189,7 +204,7 @@ pub(super) fn round_to_float<T, M>(fp: &mut ExtendedFloat<M>)
             fp.exp = 0;
         }
     } else {
-        round_nearest_tie_even(fp, T::ROUNDING_PARAMS);
+        cb(fp, T::ROUNDING_PARAMS);
     }
 
     if fp.frac & T::CARRY_MASK == T::CARRY_MASK {
@@ -198,13 +213,26 @@ pub(super) fn round_to_float<T, M>(fp: &mut ExtendedFloat<M>)
     }
 }
 
+/// Shift the ExtendedFloat fraction to the fraction bits in a native float.
+///
+/// Floating-point arithmetic uses round to nearest, ties to even,
+/// which rounds to the nearest value, if the value is halfway in between,
+/// round to an even value.
+#[inline]
+pub(crate) fn round_to_float<T, M>(fp: &mut ExtendedFloat<M>)
+    where T: FloatRounding<M>,
+          M: Mantissa
+{
+    round_to_float_impl::<T, M, _>(fp, round_nearest_tie_even);
+}
+
 // AVOID OVERFLOW/UNDERFLOW
 
 /// Avoid overflow for large values, shift left as needed.
 ///
 /// Shift until a 1-bit is in the hidden bit, if the mantissa is not 0.
 #[inline]
-pub(super) fn avoid_overflow<T, M>(fp: &mut ExtendedFloat<M>)
+pub(crate) fn avoid_overflow<T, M>(fp: &mut ExtendedFloat<M>)
     where T: FloatRounding<M>,
           M: Mantissa
 {
@@ -229,7 +257,7 @@ pub(super) fn avoid_overflow<T, M>(fp: &mut ExtendedFloat<M>)
 
 /// Round an extended-precision float to a native float representation.
 #[inline]
-pub(super) fn round_to_native<T, M>(fp: &mut ExtendedFloat<M>)
+pub(crate) fn round_to_native<T, M>(fp: &mut ExtendedFloat<M>)
     where T: FloatRounding<M>,
           M: Mantissa
 {
@@ -240,7 +268,7 @@ pub(super) fn round_to_native<T, M>(fp: &mut ExtendedFloat<M>)
     // Round so the fraction is in a native mantissa representation,
     // and avoid overflow/underflow.
     round_to_float::<T, M>(fp);
-    avoid_overflow::<T, M>(fp)
+    avoid_overflow::<T, M>(fp);
 }
 
 
