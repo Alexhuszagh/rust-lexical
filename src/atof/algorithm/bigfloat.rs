@@ -423,10 +423,12 @@ impl Bigfloat {
     /// Create new Bigfloat from u32.
     #[inline]
     pub fn from_u32(x: u32) -> Bigfloat {
-        Bigfloat {
+        let mut bigfloat = Bigfloat {
             data: smallvec![x],
             exp: 0,
-        }
+        };
+        bigfloat.normalize();
+        bigfloat
     }
 
     /// Create new Bigfloat from u64.
@@ -434,10 +436,12 @@ impl Bigfloat {
     pub fn from_u64(x: u64) -> Bigfloat {
         let hi = (x >> 32) as u32;
         let lo = (x & u64::LOMASK) as u32;
-        Bigfloat {
+        let mut bigfloat = Bigfloat {
             data: smallvec![lo, hi],
             exp: 0,
-        }
+        };
+        bigfloat.normalize();
+        bigfloat
     }
 
     /// Create new Bigfloat from u128.
@@ -449,10 +453,12 @@ impl Bigfloat {
         let d2 = (lo64 >> 32) as u32;
         let d1 = (hi64 & u64::LOMASK) as u32;
         let d0 = (hi64 >> 32) as u32;
-        Bigfloat {
+        let mut bigfloat = Bigfloat {
             data: smallvec![d3, d2, d1, d0],
             exp: 0,
-        }
+        };
+        bigfloat.normalize();
+        bigfloat
     }
 
     /// Create new Bigfloat with the minimal value.
@@ -520,6 +526,16 @@ impl Bigfloat {
             count += self.get(index).trailing_zeros();
         }
         count
+    }
+
+    // NORMALIZATION
+
+    /// Set the most-significant int to be non-zero.
+    #[inline]
+    pub fn normalize(&mut self) {
+        while !self.is_empty() && self.back().is_zero() {
+            self.pop();
+        }
     }
 
     // ADDITION
@@ -1502,7 +1518,7 @@ impl Bigfloat {
 
                 // Check if all the truncated elements are 0.
                 let mut nonzero = (*self.rget(2) << shift) != 0;
-                let mut iter = self.iter().skip(3);
+                let mut iter = self.iter().rev().skip(3);
                 for value in iter {
                     nonzero |= *value != 0;
                 }
@@ -1716,12 +1732,18 @@ mod tests {
 
     #[test]
     fn from_u64_test() {
+        assert_eq!(Bigfloat::from_u32(255), Bigfloat::from_u64(255));
+
         let bigfloat = Bigfloat::from_u64(1152921504606847231);
         assert_eq!(bigfloat, Bigfloat { data: smallvec![255, 1 << 28], exp: 0 });
     }
 
     #[test]
     fn from_u128_test() {
+        assert_eq!(Bigfloat::from_u32(255), Bigfloat::from_u128(255));
+        assert_eq!(Bigfloat::from_u64(255), Bigfloat::from_u128(255));
+        assert_eq!(Bigfloat::from_u64(1152921504606847231), Bigfloat::from_u128(1152921504606847231));
+
         let bigfloat = Bigfloat::from_u128(1329227997022855913342108839786316031);
         assert_eq!(bigfloat, Bigfloat { data: smallvec![255, 1 << 28, 1 << 26, 1<< 24], exp: 0 });
     }
@@ -2342,19 +2364,79 @@ mod tests {
 
     #[test]
     fn mantissa_test() {
+        // Empty
+        let x = Bigfloat::new();
+        assert_eq!(x.mantissa(), (0, false));
+
+        // 1-int
+        let x = Bigfloat::from_u32(1);
+        assert_eq!(x.mantissa(), (1<<63, false));
+
+        // 2-ints
+        let x = Bigfloat::from_u64(0x1000000000000000);
+        assert_eq!(x.mantissa(), (1<<63, false));
+
+        // 3-ints
+        let x = Bigfloat::from_u128(0x40000000000000000000000);
+        assert_eq!(x.mantissa(), (1<<63, false));
+
+        // 4-ints
+        let x = Bigfloat::from_u128(0x1000000000000000000000000000000);
+        assert_eq!(x.mantissa(), (1<<63, false));
+
         // TODO(ahuszagh) Implement...
         // TODO(ahuszagh) Need to test the halfway rounding condition, and near misses.
     }
 
     #[test]
     fn exponent_test() {
+        // Empty
+        let x = Bigfloat::new();
+        assert_eq!(x.exponent(), -64);
+
+        // 1-int
+        let x = Bigfloat::from_u32(1);
+        assert_eq!(x.exponent(), -63);
+
+        // 2-ints
+        let x = Bigfloat::from_u64(0x1000000000000000);
+        assert_eq!(x.exponent(), -3);
+
+        // 3-ints
+        let x = Bigfloat::from_u128(0x40000000000000000000000);
+        assert_eq!(x.exponent(), 27);
+
+        // 4-ints
+        let x = Bigfloat::from_u128(0x1000000000000000000000000000000);
+        assert_eq!(x.exponent(), 57);
+
         // TODO(ahuszagh) Implement...
     }
 
     #[test]
     fn as_float_test() {
+        // Empty
+        let x = Bigfloat::new();
+        assert_eq!(x.as_f32(), 0.0);
+
+        // 1-int
         let x = Bigfloat::from_u32(1);
         assert_eq!(x.as_f32(), 1.0);
+
+        // 2-ints
+        let x = Bigfloat::from_u64(0x1000000000000000);
+        assert_eq!(x.as_f32(), 1152921504606846976.0);
+
+        // 3-ints
+        let x = Bigfloat::from_u128(0x40000000000000000000000);
+        assert_eq!(x.as_f32(), 1237940039285380274899124224.0);
+
+        // 4-ints
+        let x = Bigfloat::from_u128(0x1000000000000000000000000000000);
+        assert_eq!(x.as_f32(), 1329227995784915872903807060280344576.0);
+
+        // 4-ints + halfway
+        // 4-ints + halfway + truncated
 
         // TODO(ahuszagh) Implement...
     }
