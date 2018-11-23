@@ -223,28 +223,45 @@ fn padded_bits(i: u32, n:i32) -> u32 {
     v as u32
 }
 
+// ASSIGN
+
+/// Wrap operation in terms of OpAssign call.
+macro_rules! wrap_assign {
+    ($op:ident, $assign:ident $(, $arg:ident: $t:ty)*) => (
+        /// `$op` wrapper using `$assign`.
+        #[inline]
+        fn $op(&self $(, $arg:$t)*) -> Bigfloat {
+            let mut x = self.clone();
+            x.$assign($($arg, )*);
+            x
+        }
+    )
+}
+
 // MUL POW ASSIGN
 
 /// Wrap mul_pow2 implementation using implied call.
 macro_rules! wrap_mul_pow2_assign {
-    ($name:ident, $impl:ident, $b:expr) => (
+    ($op:ident, $assign:ident, $impl:ident, $b:expr) => (
         /// MulAssign by a power of $b (not safe to chain calls).
         #[inline(always)]
-        fn $name(&mut self, n: i32) {
-            debug_assert!(n >= 0, stringify!(Bigfloat::$name() must multiply by a positive power, n is {}.), n);
+        fn $assign(&mut self, n: i32) {
+            debug_assert!(n >= 0, stringify!(Bigfloat::$assign() must multiply by a positive power, n is {}.), n);
             // Don't bounds check, we already check for exponent overflow.
             self.$impl(n);
         }
+
+        wrap_assign!($op, $assign, n: i32);
     );
 }
 
 /// Wrap mul_pown implementation using implied call.
 macro_rules! wrap_mul_pown_assign {
-    ($name:ident, $impl:ident, $b:expr) => (
+    ($op:ident, $assign:ident, $impl:ident, $b:expr) => (
         /// MulAssign by a power of $b (not safe to chain calls).
         #[inline(always)]
-        fn $name(&mut self, n: i32) {
-            debug_assert!(n >= 0, stringify!(Bigfloat::$name() must multiply by a positive power, n is {}.), n);
+        fn $assign(&mut self, n: i32) {
+            debug_assert!(n >= 0, stringify!(Bigfloat::$assign() must multiply by a positive power, n is {}.), n);
             if n > 0x1400 {
                 // Comically large value, always infinity.
                 self.exp = i32::max_value();
@@ -252,6 +269,8 @@ macro_rules! wrap_mul_pown_assign {
                 self.$impl(n);
             }
         }
+
+        wrap_assign!($op, $assign, n: i32);
     );
 }
 
@@ -259,26 +278,28 @@ macro_rules! wrap_mul_pown_assign {
 
 /// Wrap div_pow2 implementation using implied call.
 macro_rules! wrap_div_pow2_assign {
-    ($name:ident, $impl:ident, $b:expr) => (
+    ($op:ident, $assign:ident, $impl:ident, $b:expr) => (
         /// DivAssign by a power of $b (not safe to chain calls).
         #[inline(always)]
-        fn $name(&mut self, n: i32) {
-            debug_assert!(n >= 0, stringify!(Bigfloat::$name() must divide by a positive power, n is {}.), n);
-            debug_assert!(n <= MAX_EXPONENT, stringify!(Bigfloat::$name() internal exponent overflow, n is {}.), n);
+        fn $assign(&mut self, n: i32) {
+            debug_assert!(n >= 0, stringify!(Bigfloat::$assign() must divide by a positive power, n is {}.), n);
+            debug_assert!(n <= MAX_EXPONENT, stringify!(Bigfloat::$assign() internal exponent overflow, n is {}.), n);
             // Don't pad or do bounds check, we already check for exponent underflow.
             self.$impl(n);
         }
+
+        wrap_assign!($op, $assign, n: i32);
     );
 }
 
 /// Wrap div_pown implementation using implied call.
 macro_rules! wrap_div_pown_assign {
-    ($name:ident, $impl:ident, $b:expr) => (
+    ($op:ident, $assign:ident, $impl:ident, $b:expr) => (
         /// DivAssign by a power of $b (not safe to chain calls).
         #[inline(always)]
-        fn $name(&mut self, n: i32) {
-            debug_assert!(n >= 0, stringify!(Bigfloat::$name() must divide by a positive power, n is {}.), n);
-            debug_assert!(n <= MAX_EXPONENT, stringify!(Bigfloat::$name() internal exponent overflow, n is {}.), n);
+        fn $assign(&mut self, n: i32) {
+            debug_assert!(n >= 0, stringify!(Bigfloat::$assign() must divide by a positive power, n is {}.), n);
+            debug_assert!(n <= MAX_EXPONENT, stringify!(Bigfloat::$assign() internal exponent overflow, n is {}.), n);
 
             // Calculate the number of bytes required to pad the vector,
             // and pad the vector. usize may be 16-bit, so use try_cast.
@@ -293,6 +314,8 @@ macro_rules! wrap_div_pown_assign {
             // Call the implied method after padding.
             self.$impl(n);
         }
+
+        wrap_assign!($op, $assign, n: i32);
     );
 }
 
@@ -570,13 +593,7 @@ impl Bigfloat {
         }
     }
 
-    /// Add small integer to bigfloat.
-    #[inline]
-    fn add_small(&self, y: u32) -> Bigfloat {
-        let mut x = self.clone();
-        x.add_small_assign(y);
-        x
-    }
+    wrap_assign!(add_small, add_small_assign, y:u32);
 
     /// AddAssign between two bigfloats.
     #[inline]
@@ -614,13 +631,7 @@ impl Bigfloat {
         }
     }
 
-    /// Add between two bigfloats.
-    #[inline]
-    fn add_large(&self, y: &Bigfloat) -> Bigfloat {
-        let mut x = self.clone();
-        x.add_large_assign(y);
-        x
-    }
+    wrap_assign!(add_large, add_large_assign, y:&Bigfloat);
 
     // MULTIPLICATION
 
@@ -638,13 +649,7 @@ impl Bigfloat {
         }
     }
 
-    /// Mul small integer to bigfloat.
-    #[inline]
-    fn mul_small(&self, y: u32) -> Bigfloat {
-        let mut x = self.clone();
-        x.mul_small_assign(y);
-        x
-    }
+    wrap_assign!(mul_small, mul_small_assign, y:u32);
 
     /// MulAssign using pre-calculated small powers.
     #[inline]
@@ -936,41 +941,41 @@ impl Bigfloat {
         self.mul_pow9_assign_impl(n);
     }
 
-    wrap_mul_pow2_assign!(mul_pow2_assign, mul_pow2_assign_impl, 2);
-    wrap_mul_pown_assign!(mul_pow3_assign, mul_pow3_assign_impl, 3);
-    wrap_mul_pow2_assign!(mul_pow4_assign, mul_pow4_assign_impl, 4);
-    wrap_mul_pown_assign!(mul_pow5_assign, mul_pow5_assign_impl, 5);
-    wrap_mul_pown_assign!(mul_pow6_assign, mul_pow6_assign_impl, 6);
-    wrap_mul_pown_assign!(mul_pow7_assign, mul_pow7_assign_impl, 7);
-    wrap_mul_pow2_assign!(mul_pow8_assign, mul_pow8_assign_impl, 8);
-    wrap_mul_pown_assign!(mul_pow9_assign, mul_pow9_assign_impl, 9);
-    wrap_mul_pown_assign!(mul_pow10_assign, mul_pow10_assign_impl, 10);
-    wrap_mul_pown_assign!(mul_pow11_assign, mul_pow11_assign_impl, 11);
-    wrap_mul_pown_assign!(mul_pow12_assign, mul_pow12_assign_impl, 12);
-    wrap_mul_pown_assign!(mul_pow13_assign, mul_pow13_assign_impl, 13);
-    wrap_mul_pown_assign!(mul_pow14_assign, mul_pow14_assign_impl, 14);
-    wrap_mul_pown_assign!(mul_pow15_assign, mul_pow15_assign_impl, 15);
-    wrap_mul_pow2_assign!(mul_pow16_assign, mul_pow16_assign_impl, 16);
-    wrap_mul_pown_assign!(mul_pow17_assign, mul_pow17_assign_impl, 17);
-    wrap_mul_pown_assign!(mul_pow18_assign, mul_pow18_assign_impl, 18);
-    wrap_mul_pown_assign!(mul_pow19_assign, mul_pow19_assign_impl, 19);
-    wrap_mul_pown_assign!(mul_pow20_assign, mul_pow20_assign_impl, 20);
-    wrap_mul_pown_assign!(mul_pow21_assign, mul_pow21_assign_impl, 21);
-    wrap_mul_pown_assign!(mul_pow22_assign, mul_pow22_assign_impl, 22);
-    wrap_mul_pown_assign!(mul_pow23_assign, mul_pow23_assign_impl, 23);
-    wrap_mul_pown_assign!(mul_pow24_assign, mul_pow24_assign_impl, 24);
-    wrap_mul_pown_assign!(mul_pow25_assign, mul_pow25_assign_impl, 25);
-    wrap_mul_pown_assign!(mul_pow26_assign, mul_pow26_assign_impl, 26);
-    wrap_mul_pown_assign!(mul_pow27_assign, mul_pow27_assign_impl, 27);
-    wrap_mul_pown_assign!(mul_pow28_assign, mul_pow28_assign_impl, 28);
-    wrap_mul_pown_assign!(mul_pow29_assign, mul_pow29_assign_impl, 29);
-    wrap_mul_pown_assign!(mul_pow30_assign, mul_pow30_assign_impl, 30);
-    wrap_mul_pown_assign!(mul_pow31_assign, mul_pow31_assign_impl, 31);
-    wrap_mul_pow2_assign!(mul_pow32_assign, mul_pow32_assign_impl, 32);
-    wrap_mul_pown_assign!(mul_pow33_assign, mul_pow33_assign_impl, 33);
-    wrap_mul_pown_assign!(mul_pow34_assign, mul_pow34_assign_impl, 34);
-    wrap_mul_pown_assign!(mul_pow35_assign, mul_pow35_assign_impl, 35);
-    wrap_mul_pown_assign!(mul_pow36_assign, mul_pow36_assign_impl, 36);
+    wrap_mul_pow2_assign!(mul_pow2, mul_pow2_assign, mul_pow2_assign_impl, 2);
+    wrap_mul_pown_assign!(mul_pow3, mul_pow3_assign, mul_pow3_assign_impl, 3);
+    wrap_mul_pow2_assign!(mul_pow4, mul_pow4_assign, mul_pow4_assign_impl, 4);
+    wrap_mul_pown_assign!(mul_pow5, mul_pow5_assign, mul_pow5_assign_impl, 5);
+    wrap_mul_pown_assign!(mul_pow6, mul_pow6_assign, mul_pow6_assign_impl, 6);
+    wrap_mul_pown_assign!(mul_pow7, mul_pow7_assign, mul_pow7_assign_impl, 7);
+    wrap_mul_pow2_assign!(mul_pow8, mul_pow8_assign, mul_pow8_assign_impl, 8);
+    wrap_mul_pown_assign!(mul_pow9, mul_pow9_assign, mul_pow9_assign_impl, 9);
+    wrap_mul_pown_assign!(mul_pow10, mul_pow10_assign, mul_pow10_assign_impl, 10);
+    wrap_mul_pown_assign!(mul_pow11, mul_pow11_assign, mul_pow11_assign_impl, 11);
+    wrap_mul_pown_assign!(mul_pow12, mul_pow12_assign, mul_pow12_assign_impl, 12);
+    wrap_mul_pown_assign!(mul_pow13, mul_pow13_assign, mul_pow13_assign_impl, 13);
+    wrap_mul_pown_assign!(mul_pow14, mul_pow14_assign, mul_pow14_assign_impl, 14);
+    wrap_mul_pown_assign!(mul_pow15, mul_pow15_assign, mul_pow15_assign_impl, 15);
+    wrap_mul_pow2_assign!(mul_pow16, mul_pow16_assign, mul_pow16_assign_impl, 16);
+    wrap_mul_pown_assign!(mul_pow17, mul_pow17_assign, mul_pow17_assign_impl, 17);
+    wrap_mul_pown_assign!(mul_pow18, mul_pow18_assign, mul_pow18_assign_impl, 18);
+    wrap_mul_pown_assign!(mul_pow19, mul_pow19_assign, mul_pow19_assign_impl, 19);
+    wrap_mul_pown_assign!(mul_pow20, mul_pow20_assign, mul_pow20_assign_impl, 20);
+    wrap_mul_pown_assign!(mul_pow21, mul_pow21_assign, mul_pow21_assign_impl, 21);
+    wrap_mul_pown_assign!(mul_pow22, mul_pow22_assign, mul_pow22_assign_impl, 22);
+    wrap_mul_pown_assign!(mul_pow23, mul_pow23_assign, mul_pow23_assign_impl, 23);
+    wrap_mul_pown_assign!(mul_pow24, mul_pow24_assign, mul_pow24_assign_impl, 24);
+    wrap_mul_pown_assign!(mul_pow25, mul_pow25_assign, mul_pow25_assign_impl, 25);
+    wrap_mul_pown_assign!(mul_pow26, mul_pow26_assign, mul_pow26_assign_impl, 26);
+    wrap_mul_pown_assign!(mul_pow27, mul_pow27_assign, mul_pow27_assign_impl, 27);
+    wrap_mul_pown_assign!(mul_pow28, mul_pow28_assign, mul_pow28_assign_impl, 28);
+    wrap_mul_pown_assign!(mul_pow29, mul_pow29_assign, mul_pow29_assign_impl, 29);
+    wrap_mul_pown_assign!(mul_pow30, mul_pow30_assign, mul_pow30_assign_impl, 30);
+    wrap_mul_pown_assign!(mul_pow31, mul_pow31_assign, mul_pow31_assign_impl, 31);
+    wrap_mul_pow2_assign!(mul_pow32, mul_pow32_assign, mul_pow32_assign_impl, 32);
+    wrap_mul_pown_assign!(mul_pow33, mul_pow33_assign, mul_pow33_assign_impl, 33);
+    wrap_mul_pown_assign!(mul_pow34, mul_pow34_assign, mul_pow34_assign_impl, 34);
+    wrap_mul_pown_assign!(mul_pow35, mul_pow35_assign, mul_pow35_assign_impl, 35);
+    wrap_mul_pown_assign!(mul_pow36, mul_pow36_assign, mul_pow36_assign_impl, 36);
 
     // DIVISION
 
@@ -1031,14 +1036,7 @@ impl Bigfloat {
         }
     }
 
-    /// Div small integer to bigfloat.
-    /// Warning: Bigfloat must have previously been padded `pad_division`.
-    #[inline]
-    fn div_small(&self, y: u32) -> Bigfloat {
-        let mut x = self.clone();
-        x.div_small_assign(y);
-        x
-    }
+    wrap_assign!(div_small, div_small_assign, y:u32);
 
     /// DivAssign using pre-calculated small powers.
     /// Warning: Bigfloat must have previously been padded `pad_division`.
@@ -1365,41 +1363,41 @@ impl Bigfloat {
         self.div_pow9_assign_impl(n);
     }
 
-    wrap_div_pow2_assign!(div_pow2_assign, div_pow2_assign_impl, 2);
-    wrap_div_pown_assign!(div_pow3_assign, div_pow3_assign_impl, 3);
-    wrap_div_pow2_assign!(div_pow4_assign, div_pow4_assign_impl, 4);
-    wrap_div_pown_assign!(div_pow5_assign, div_pow5_assign_impl, 5);
-    wrap_div_pown_assign!(div_pow6_assign, div_pow6_assign_impl, 6);
-    wrap_div_pown_assign!(div_pow7_assign, div_pow7_assign_impl, 7);
-    wrap_div_pow2_assign!(div_pow8_assign, div_pow8_assign_impl, 8);
-    wrap_div_pown_assign!(div_pow9_assign, div_pow9_assign_impl, 9);
-    wrap_div_pown_assign!(div_pow10_assign, div_pow10_assign_impl, 10);
-    wrap_div_pown_assign!(div_pow11_assign, div_pow11_assign_impl, 11);
-    wrap_div_pown_assign!(div_pow12_assign, div_pow12_assign_impl, 12);
-    wrap_div_pown_assign!(div_pow13_assign, div_pow13_assign_impl, 13);
-    wrap_div_pown_assign!(div_pow14_assign, div_pow14_assign_impl, 14);
-    wrap_div_pown_assign!(div_pow15_assign, div_pow15_assign_impl, 15);
-    wrap_div_pow2_assign!(div_pow16_assign, div_pow16_assign_impl, 16);
-    wrap_div_pown_assign!(div_pow17_assign, div_pow17_assign_impl, 17);
-    wrap_div_pown_assign!(div_pow18_assign, div_pow18_assign_impl, 18);
-    wrap_div_pown_assign!(div_pow19_assign, div_pow19_assign_impl, 19);
-    wrap_div_pown_assign!(div_pow20_assign, div_pow20_assign_impl, 20);
-    wrap_div_pown_assign!(div_pow21_assign, div_pow21_assign_impl, 21);
-    wrap_div_pown_assign!(div_pow22_assign, div_pow22_assign_impl, 22);
-    wrap_div_pown_assign!(div_pow23_assign, div_pow23_assign_impl, 23);
-    wrap_div_pown_assign!(div_pow24_assign, div_pow24_assign_impl, 24);
-    wrap_div_pown_assign!(div_pow25_assign, div_pow25_assign_impl, 25);
-    wrap_div_pown_assign!(div_pow26_assign, div_pow26_assign_impl, 26);
-    wrap_div_pown_assign!(div_pow27_assign, div_pow27_assign_impl, 27);
-    wrap_div_pown_assign!(div_pow28_assign, div_pow28_assign_impl, 28);
-    wrap_div_pown_assign!(div_pow29_assign, div_pow29_assign_impl, 29);
-    wrap_div_pown_assign!(div_pow30_assign, div_pow30_assign_impl, 30);
-    wrap_div_pown_assign!(div_pow31_assign, div_pow31_assign_impl, 31);
-    wrap_div_pow2_assign!(div_pow32_assign, div_pow32_assign_impl, 32);
-    wrap_div_pown_assign!(div_pow33_assign, div_pow33_assign_impl, 33);
-    wrap_div_pown_assign!(div_pow34_assign, div_pow34_assign_impl, 34);
-    wrap_div_pown_assign!(div_pow35_assign, div_pow35_assign_impl, 35);
-    wrap_div_pown_assign!(div_pow36_assign, div_pow36_assign_impl, 36);
+    wrap_div_pow2_assign!(div_pow2, div_pow2_assign, div_pow2_assign_impl, 2);
+    wrap_div_pown_assign!(div_pow3, div_pow3_assign, div_pow3_assign_impl, 3);
+    wrap_div_pow2_assign!(div_pow4, div_pow4_assign, div_pow4_assign_impl, 4);
+    wrap_div_pown_assign!(div_pow5, div_pow5_assign, div_pow5_assign_impl, 5);
+    wrap_div_pown_assign!(div_pow6, div_pow6_assign, div_pow6_assign_impl, 6);
+    wrap_div_pown_assign!(div_pow7, div_pow7_assign, div_pow7_assign_impl, 7);
+    wrap_div_pow2_assign!(div_pow8, div_pow8_assign, div_pow8_assign_impl, 8);
+    wrap_div_pown_assign!(div_pow9, div_pow9_assign, div_pow9_assign_impl, 9);
+    wrap_div_pown_assign!(div_pow10, div_pow10_assign, div_pow10_assign_impl, 10);
+    wrap_div_pown_assign!(div_pow11, div_pow11_assign, div_pow11_assign_impl, 11);
+    wrap_div_pown_assign!(div_pow12, div_pow12_assign, div_pow12_assign_impl, 12);
+    wrap_div_pown_assign!(div_pow13, div_pow13_assign, div_pow13_assign_impl, 13);
+    wrap_div_pown_assign!(div_pow14, div_pow14_assign, div_pow14_assign_impl, 14);
+    wrap_div_pown_assign!(div_pow15, div_pow15_assign, div_pow15_assign_impl, 15);
+    wrap_div_pow2_assign!(div_pow16, div_pow16_assign, div_pow16_assign_impl, 16);
+    wrap_div_pown_assign!(div_pow17, div_pow17_assign, div_pow17_assign_impl, 17);
+    wrap_div_pown_assign!(div_pow18, div_pow18_assign, div_pow18_assign_impl, 18);
+    wrap_div_pown_assign!(div_pow19, div_pow19_assign, div_pow19_assign_impl, 19);
+    wrap_div_pown_assign!(div_pow20, div_pow20_assign, div_pow20_assign_impl, 20);
+    wrap_div_pown_assign!(div_pow21, div_pow21_assign, div_pow21_assign_impl, 21);
+    wrap_div_pown_assign!(div_pow22, div_pow22_assign, div_pow22_assign_impl, 22);
+    wrap_div_pown_assign!(div_pow23, div_pow23_assign, div_pow23_assign_impl, 23);
+    wrap_div_pown_assign!(div_pow24, div_pow24_assign, div_pow24_assign_impl, 24);
+    wrap_div_pown_assign!(div_pow25, div_pow25_assign, div_pow25_assign_impl, 25);
+    wrap_div_pown_assign!(div_pow26, div_pow26_assign, div_pow26_assign_impl, 26);
+    wrap_div_pown_assign!(div_pow27, div_pow27_assign, div_pow27_assign_impl, 27);
+    wrap_div_pown_assign!(div_pow28, div_pow28_assign, div_pow28_assign_impl, 28);
+    wrap_div_pown_assign!(div_pow29, div_pow29_assign, div_pow29_assign_impl, 29);
+    wrap_div_pown_assign!(div_pow30, div_pow30_assign, div_pow30_assign_impl, 30);
+    wrap_div_pown_assign!(div_pow31, div_pow31_assign, div_pow31_assign_impl, 31);
+    wrap_div_pow2_assign!(div_pow32, div_pow32_assign, div_pow32_assign_impl, 32);
+    wrap_div_pown_assign!(div_pow33, div_pow33_assign, div_pow33_assign_impl, 33);
+    wrap_div_pown_assign!(div_pow34, div_pow34_assign, div_pow34_assign_impl, 34);
+    wrap_div_pown_assign!(div_pow35, div_pow35_assign, div_pow35_assign_impl, 35);
+    wrap_div_pown_assign!(div_pow36, div_pow36_assign, div_pow36_assign_impl, 36);
 
     // FROM BYTES
     from_bytes!(from_bytes_3);
@@ -1476,16 +1474,41 @@ impl Bigfloat {
     // TO FLOAT
 
     /// Get the most 64-bits of the mantissa and if non-zero bits are truncated.
-    // TODO(ahuszagh) test
     #[inline]
     pub fn mantissa(&self) -> (u64, bool) {
-        // We need to generate a mask for the lower and upper bits of each
-        // number. The lower mask should be ((1<<(shift+1))-1), with
-        // wrapping overflow (so 31 bits wraps to 32). The upper mask
-        // should be the bitwise negation of the lower mask. We don't
-        // need an upper mask, just need to shift to extract those bits
-        // in the proper position.
-        let shift = self.leading_zeros();
+        // We need to extract the following bit patterns. Say, for example,
+        // we have the following bit pattern for the least-significant int.
+        // Least-significant int: index 0.
+        //      00000000000000001010101010101010
+        //
+        // We need to set the result bits to be:
+        //      1010101010101010XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        //
+        // To do so, we calculate the bitshift required to put the value
+        // so the most-significant bit is 1 in the int using `leading_zeros()`
+        // (`u32_shift`), and then add a the number of bits required to
+        // shift it to into the u64 representation (`u64_shift`). We then
+        // widen the value, and shift left `u32_shift + u64_shift`.
+        //
+        // We then need to extract all the bits of the next int, and shift
+        // them into the start of the `X`s in the result.
+        //
+        // Next int: index 1:
+        //      10010010010010010010010010010010
+        //
+        // To do so, we just shift the int `u32_shift` to the left.
+        //      101010101010101010010010010010010010010010010010XXXXXXXXXXXXXXXX
+        //
+        // Finally, we need to extract the upper `32-u32_shift` bits from
+        // the value, right-shifted to the least-significant position.
+        //
+        // Next int: index 2:
+        //      11011011011011011011011011011011
+        //
+        // To do so, we just shift the int `u64_shift - u32_shift` to the right.
+        //      1010101010101010100100100100100100100100100100101101101101101101
+        let u32_shift = self.leading_zeros();
+        let u64_shift = Self::BITS as u32;
 
         // Ensure the resulting fraction is properly normalized.
         // We want consistency.
@@ -1496,14 +1519,14 @@ impl Bigfloat {
             // One int, can only add 1-32-bits.
             // Can never have truncated bits.
             1 => {
-                let v = (*self.rget(0) as u64) << (shift + 32);
+                let v = self.rget(0).as_u64() << (u32_shift + u64_shift);
                 (v, false)
             },
             // Two ints, can only add 33-64-bits.
             // Can never have truncated bits.
             2 => {
-                let v0 = (*self.rget(0) as u64) << (shift + 32);
-                let v1 = (*self.rget(1) as u64) << shift;
+                let v0 = self.rget(0).as_u64() << (u32_shift + u64_shift);
+                let v1 = self.rget(1).as_u64() << u32_shift;
                 let v = v0 | v1;
                 (v, false)
             },
@@ -1511,18 +1534,21 @@ impl Bigfloat {
             // Can have truncated bits.
             _ => {
                 // Get our value.
-                let v0 = (*self.rget(0) as u64) << (shift + 32);
-                let v1 = (*self.rget(1) as u64) << shift;
-                let v2 = (*self.rget(2) as u64) >> shift;
+                let v0 = self.rget(0).as_u64() << (u32_shift + u64_shift);
+                let v1 = self.rget(1).as_u64() << u32_shift;
+                // Get the upper `(u64_shift-u32_shift)` bits, right-u32_shift
+                // to zero out lower `u32_shift` bits.
+                let v2 = self.rget(2).as_u64() >> (u64_shift - u32_shift);
                 let v = v0 | v1 | v2;
 
                 // Check if all the truncated elements are 0.
-                let mut nonzero = (*self.rget(2) << shift) != 0;
-                let mut iter = self.iter().rev().skip(3);
-                for value in iter {
-                    nonzero |= *value != 0;
+                if (*self.rget(2) << u32_shift) != 0 {
+                    (v, true)
+                } else {
+                    let mut iter = self.iter().rev().skip(3);
+                    let nonzero = iter.any(|&x| x != 0);
+                    (v, nonzero)
                 }
-                (v, nonzero)
             },
         }
     }
@@ -1531,19 +1557,23 @@ impl Bigfloat {
     /// Same as `self.exp + (Self::BITS * self.len()) - 64 - leading_zeros()`.
     /// Need to subtract an extra `64 + leading_zeros()` since that's the effective
     /// bitshift we're adding to the mantissa.
-    // TODO(ahuszagh) test
-    // TODO(ahuszagh) Change to exponent
     #[inline]
     pub fn exponent(&self) -> i32 {
+        const U64_BYTES: i32 = mem::size_of::<u64>() as i32;
+        const U64_BITS: i32 = 8 * U64_BYTES;
+
         // Don't subtract 64 immediately, for small integers, can cause underflow.
         let shift = self.leading_zeros();
         let bits = (Self::BITS * self.len()) - shift as usize;
-        self.exp + bits as i32 - 64
+        self.exp + bits as i32 - U64_BITS
     }
 
     /// Export native float from bigfloat.
     /// Use the rounding machinery for the extended-precision float, since
-    /// we have total accuracy here.
+    /// we have total accuracy here, with a different callback that
+    /// forces us to be above when we were originally halfway and bit
+    /// truncation for the representation occurred, allowing accurate rounding
+    /// for all float representations.
     #[inline]
     pub fn as_float<F>(&self)
         -> F
@@ -1845,6 +1875,9 @@ mod tests {
         let mut x = Bigfloat::from_u64(0xFFFFFFFFFFFFFFFF);
         x.add_small_assign(7);
         assert_eq!(x, Bigfloat { data: smallvec![6, 0, 1], exp: 0 });
+
+        // Make sure the wrap_assign works
+        assert_eq!(x.add_small(7), Bigfloat { data: smallvec![13, 0, 1], exp: 0 });
     }
 
     #[test]
@@ -1878,6 +1911,9 @@ mod tests {
         let y = Bigfloat::from_u32(4294967295);
         x.add_large_assign(&y);
         assert_eq!(x, Bigfloat { data: smallvec![4294967294, 1], exp: 0 });
+
+        // Make sure the wrap_assign works
+        assert_eq!(x.add_large(&y), Bigfloat { data: smallvec![4294967293, 1, 1], exp: 0 });
     }
 
     // MULTIPLICATION
@@ -1908,6 +1944,9 @@ mod tests {
         let mut x = Bigfloat::from_u64(0x3333333333333334);
         x.mul_small_assign(5);
         assert_eq!(x, Bigfloat { data: smallvec![4, 0, 1], exp: 0 });
+
+        // Make sure the wrap_assign works
+        assert_eq!(x.mul_small(5), Bigfloat { data: smallvec![20, 0, 5], exp: 0 });
     }
 
     /// Checker for the pow tests.
@@ -1952,6 +1991,14 @@ mod tests {
         check_pow2!(mul_pow8_assign, 3);
         check_pow2!(mul_pow16_assign, 4);
         check_pow2!(mul_pow32_assign, 5);
+
+        // Make sure wrap assign works
+        let x = Bigfloat::from_u32(1);
+        assert_eq!(x.mul_pow2(1), Bigfloat { data: smallvec![1], exp: 1 });
+        assert_eq!(x.mul_pow4(1), Bigfloat { data: smallvec![1], exp: 2 });
+        assert_eq!(x.mul_pow8(1), Bigfloat { data: smallvec![1], exp: 3 });
+        assert_eq!(x.mul_pow16(1), Bigfloat { data: smallvec![1], exp: 4 });
+        assert_eq!(x.mul_pow32(1), Bigfloat { data: smallvec![1], exp: 5 });
     }
 
     #[test]
@@ -2095,6 +2142,12 @@ mod tests {
             smallvec![649085551, 1084312505, 1210820426, 823598], 0, mul_pow35_assign ;
             smallvec![363536663, 2971099641, 373], 44, mul_pow36_assign ;
         );
+
+        // Make sure wrap assign works (macro-driven, only test a few)
+        let x = Bigfloat::from_u32(1);
+        assert_eq!(x.mul_pow3(1), Bigfloat { data: smallvec![3], exp: 0 });
+        assert_eq!(x.mul_pow5(1), Bigfloat { data: smallvec![5], exp: 0 });
+        assert_eq!(x.mul_pow6(1), Bigfloat { data: smallvec![3], exp: 1 });
     }
 
     // DIVISION
@@ -2206,6 +2259,9 @@ mod tests {
         x.pad_division(2);
         x.div_small_assign(5);
         assert_eq!(x, Bigfloat { data: smallvec![0xCCCCCCCD, 0xCCCCCCCC, 0xD70A3D70, 0xA3D70A3], exp: -64 });
+
+        // Make sure wrap assign works
+        assert_eq!(x.div_small(5), Bigfloat { data: smallvec![687194768, 4123168604, 1580547964, 34359738], exp: -64 });
     }
 
     #[test]
@@ -2215,6 +2271,14 @@ mod tests {
         check_pow2!(@neg div_pow8_assign, 3);
         check_pow2!(@neg div_pow16_assign, 4);
         check_pow2!(@neg div_pow32_assign, 5);
+
+        // Make sure wrap assign works
+        let x = Bigfloat::from_u32(1);
+        assert_eq!(x.div_pow2(1), Bigfloat { data: smallvec![1], exp: -1 });
+        assert_eq!(x.div_pow4(1), Bigfloat { data: smallvec![1], exp: -2 });
+        assert_eq!(x.div_pow8(1), Bigfloat { data: smallvec![1], exp: -3 });
+        assert_eq!(x.div_pow16(1), Bigfloat { data: smallvec![1], exp: -4 });
+        assert_eq!(x.div_pow32(1), Bigfloat { data: smallvec![1], exp: -5 });
     }
 
     #[test]
@@ -2358,6 +2422,12 @@ mod tests {
             smallvec![625750939, 2388256588, 793309967, 255529], -224, div_pow35_assign ;
             smallvec![4163638954, 563173765], -172, div_pow36_assign ;
         );
+
+        // Make sure wrap assign works (macro-driven, only test a few)
+        let x = Bigfloat::from_u32(15);
+        assert_eq!(x.div_pow3(1), Bigfloat { data: smallvec![0, 0, 5], exp: -64 });
+        assert_eq!(x.div_pow5(1), Bigfloat { data: smallvec![0, 0, 3], exp: -64 });
+        assert_eq!(x.div_pow6(1), Bigfloat { data: smallvec![0, 0, 5], exp: -65 });
     }
 
     // AS FLOAT
@@ -2384,8 +2454,37 @@ mod tests {
         let x = Bigfloat::from_u128(0x1000000000000000000000000000000);
         assert_eq!(x.mantissa(), (1<<63, false));
 
-        // TODO(ahuszagh) Implement...
-        // TODO(ahuszagh) Need to test the halfway rounding condition, and near misses.
+        // 2-ints + halfway (round-down)
+        let x = Bigfloat::from_u64(0x20000000000001);
+        assert_eq!(x.mantissa(), (0x8000000000000400, false));
+
+        // 2-ints + halfway (round-up)
+        let x = Bigfloat::from_u64(0x20000000000003);
+        assert_eq!(x.mantissa(), (0x8000000000000C00, false));
+
+        // 2-ints + below halfway (not truncated)
+        let x = Bigfloat::from_u64(0x80000000000003FF);
+        assert_eq!(x.mantissa(), (0x80000000000003FF, false));
+
+        // 2-ints + above halfway (not truncated)
+        let x = Bigfloat::from_u64(0x8000000000000401);
+        assert_eq!(x.mantissa(), (0x8000000000000401, false));
+
+        // 3-ints + halfway (round-down) (not truncated)
+        let x = Bigfloat::from_u128(0x100000000000008000);
+        assert_eq!(x.mantissa(), (0x8000000000000400, false));
+
+        // 3-ints + halfway (round-up) (not truncated)
+        let x = Bigfloat::from_u128(0x100000000000018000);
+        assert_eq!(x.mantissa(), (0x8000000000000C00, false));
+
+        // 3-ints + below halfway (truncated)
+        let x = Bigfloat::from_u128(0x100000000000007FFF);
+        assert_eq!(x.mantissa(), (0x80000000000003FF, true));
+
+        // 3-ints + above halfway (truncated)
+        let x = Bigfloat::from_u128(0x100000000000008001);
+        assert_eq!(x.mantissa(), (0x8000000000000400, true));
     }
 
     #[test]
@@ -2410,6 +2509,10 @@ mod tests {
         let x = Bigfloat::from_u128(0x1000000000000000000000000000000);
         assert_eq!(x.exponent(), 57);
 
+        // Multiply by a power-of-two
+        //let x = Bigfloat::from_u32(1);
+        //let x = x.div_pow2()
+
         // TODO(ahuszagh) Implement...
     }
 
@@ -2417,27 +2520,54 @@ mod tests {
     fn as_float_test() {
         // Empty
         let x = Bigfloat::new();
-        assert_eq!(x.as_f32(), 0.0);
+        assert_eq!(x.as_f64(), 0.0);
 
         // 1-int
         let x = Bigfloat::from_u32(1);
-        assert_eq!(x.as_f32(), 1.0);
+        assert_eq!(x.as_f64(), 1 as f64);
 
         // 2-ints
         let x = Bigfloat::from_u64(0x1000000000000000);
-        assert_eq!(x.as_f32(), 1152921504606846976.0);
+        assert_eq!(x.as_f64(), 0x1000000000000000u64 as f64);
 
         // 3-ints
         let x = Bigfloat::from_u128(0x40000000000000000000000);
-        assert_eq!(x.as_f32(), 1237940039285380274899124224.0);
+        assert_eq!(x.as_f64(), 0x40000000000000000000000u128 as f64);
 
         // 4-ints
         let x = Bigfloat::from_u128(0x1000000000000000000000000000000);
-        assert_eq!(x.as_f32(), 1329227995784915872903807060280344576.0);
+        assert_eq!(x.as_f64(), 0x1000000000000000000000000000000u128 as f64);
 
-        // 4-ints + halfway
-        // 4-ints + halfway + truncated
+        // 2-ints + halfway (round-down)
+        let x = Bigfloat::from_u64(0x20000000000001);
+        assert_eq!(x.as_f64(), 0x20000000000000u64 as f64);
 
-        // TODO(ahuszagh) Implement...
+        // 2-ints + halfway (round-up)
+        let x = Bigfloat::from_u64(0x20000000000003);
+        assert_eq!(x.as_f64(), 0x20000000000004u64 as f64);
+
+        // 2-ints + below halfway (not truncated)
+        let x = Bigfloat::from_u64(0x80000000000003FF);
+        assert_eq!(x.as_f64(), 0x8000000000000000u64 as f64);
+
+        // 2-ints + above halfway (not truncated)
+        let x = Bigfloat::from_u64(0x8000000000000401);
+        assert_eq!(x.as_f64(), 0x8000000000000800u64 as f64);
+
+        // 3-ints + halfway (round-down) (not truncated)
+        let x = Bigfloat::from_u128(0x100000000000008000);
+        assert_eq!(x.as_f64(), 0x100000000000000000u128 as f64);
+
+        // 3-ints + halfway (round-up) (not truncated)
+        let x = Bigfloat::from_u128(0x100000000000018000);
+        assert_eq!(x.as_f64(), 0x100000000000020000u128 as f64);
+
+        // 3-ints + below halfway (truncated)
+        let x = Bigfloat::from_u128(0x100000000000007FFF);
+        assert_eq!(x.as_f64(), 0x100000000000000000u128 as f64);
+
+        // 3-ints + above halfway (truncated)
+        let x = Bigfloat::from_u128(0x100000000000008001);
+        assert_eq!(x.as_f64(), 0x100000000000010000u128 as f64);
     }
 }

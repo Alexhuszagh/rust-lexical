@@ -21,6 +21,7 @@ pub(crate) use self::algorithm::*;
 pub(crate) use self::cast::*;
 pub(crate) use self::num::*;
 pub(crate) use self::pow::*;
+pub(crate) use self::primitive::*;
 
 #[cfg(any(test, feature = "imprecise"))]
 pub(crate) use self::wrapped::*;
