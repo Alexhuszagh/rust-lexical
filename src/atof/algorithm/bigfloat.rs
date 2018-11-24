@@ -7,6 +7,7 @@
 #![allow(dead_code)]
 
 use smallvec;
+use atoi;
 use float::{ExtendedFloat80, FloatRounding, Mantissa};
 use float::convert::as_float;
 use float::rounding::*;
@@ -342,16 +343,47 @@ fn padded_bits(i: u32, n:i32) -> u32 {
 // PARSE MANTISSA
 
 /// Parse the mantissa into a bigfloat.
+/// Returns a pointer to the current buffer position.
 ///
-/// Use small powers to extract the proper digit.
-// TODO(ahuszagh) Needs to always multiply.
-#[allow(unused)]    // TODO(ahuszagh): remove
-fn parse_mantissa(bigfloat: &mut Bigfloat, bytes: &[u8], base: u32, small_powers: &[u32]) {
-    // TODO(ahuszagh) Likely need the base too....
-    // TODO(ahuszagh) Also need the string...
+/// Use small powers steps to extract the proper digit and minimize the number
+/// of big integer operations. None of the strings should have leading zeros.
+///
+/// * `bigfloat`      - Mutable bigfloat to store results in.
+/// * `integer`       - Integer component of float.
+/// * `fraction`      - Fraction component of float (used to modify the exponent).
+/// * `base`          - Radix for the number encoding.
+/// * `small_powers`  - Pre-calculated small powers
+#[inline]
+unsafe fn parse_mantissa(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32], mut first: *const u8, last: *const u8)
+    -> *const u8
+{
+    let step = small_powers.len() - 1;
+    loop {
+        // Cannot overflow, choosing the maximum number of digits to avoid
+        // overflow.
+        let mut value: u32 = 0;
+        let p = last.min(first.add(step));
+        let (p, _) = atoi::unchecked(&mut value, base, p, last);
+
+        // Find the number of digits parsed, multiply by the small power,
+        // and add the calculated value.
+        let digits = distance(first, p);
+        bigfloat.mul_small_assign(*small_powers.get_unchecked(digits));
+        bigfloat.add_small_assign(value);
+
+        // Reset pointers for next iteration
+        first = p;
+
+        // Carry condition, either we've reached last
+        if digits != step {
+            break;
+        }
+    }
+
+    first
 }
 
-
+// TODO(ahuszagh) Need to parse the correct
 // TODO(ahuszagh) Need parse_mantissa
 // Needs to take a slice and go over chunks
 
