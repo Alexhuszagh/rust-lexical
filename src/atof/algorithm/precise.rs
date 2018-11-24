@@ -14,7 +14,7 @@ use table::*;
 use util::*;
 use super::bigfloat::Bigfloat;
 use super::cached::CachedPowers;
-use super::exponent::parse_exponent;
+use super::exponent::*;
 
 // SHARED
 
@@ -90,21 +90,6 @@ pub(super) unsafe extern "C" fn parse_mantissa<M>(base: u32, mut first: *const u
         // negative to compensate.
         let dot_shift = -truncated.try_i32_or_max();
         (mantissa, dot_shift, f, truncated != 0)
-    }
-}
-
-/// Calculate the exact exponent without overflow.
-///
-/// Remove the number of digits that contributed to the mantissa past
-/// the dot.
-#[inline]
-pub(super) extern "C" fn normalize_exponent(exponent: i32, dot_shift: i32)
-    -> i32
-{
-    match exponent {
-         0x7FFFFFFF => i32::max_value(),
-        -0x80000000 => i32::min_value(),
-        _           => exponent - dot_shift,
     }
 }
 
@@ -577,14 +562,6 @@ mod tests {
             check_parse_mantissa::<u128>(10, "0.00000000000000000000000000001", (1, 29, 31, false));
             check_parse_mantissa::<u128>(10, "100000000000000000000", (100000000000000000000, 0, 21, false));
         }
-    }
-
-    #[test]
-    fn normalize_exponent_test() {
-        assert_eq!(normalize_exponent(10, 5), 5);
-        assert_eq!(normalize_exponent(0, 5), -5);
-        assert_eq!(normalize_exponent(i32::max_value(), 5), i32::max_value());
-        assert_eq!(normalize_exponent(i32::min_value(), 5), i32::min_value());
     }
 
     #[test]

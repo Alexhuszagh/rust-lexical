@@ -13,6 +13,7 @@ use float::convert::as_float;
 use float::rounding::*;
 use lib::{mem, slice};
 use util::*;
+use super::exponent::*;
 
 // CONSTANTS
 
@@ -342,7 +343,7 @@ fn padded_bits(i: u32, n:i32) -> u32 {
 
 // PARSE MANTISSA
 
-/// Parse the mantissa into a bigfloat.
+/// Parse digits into a bigfloat.
 /// Returns a pointer to the current buffer position.
 ///
 /// Use small powers steps to extract the proper digit and minimize the number
@@ -354,7 +355,7 @@ fn padded_bits(i: u32, n:i32) -> u32 {
 /// * `base`          - Radix for the number encoding.
 /// * `small_powers`  - Pre-calculated small powers
 #[inline]
-unsafe fn parse_mantissa(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32], mut first: *const u8, last: *const u8)
+unsafe fn parse_digits(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32], mut first: *const u8, last: *const u8)
     -> *const u8
 {
     let step = small_powers.len() - 1;
@@ -363,18 +364,21 @@ unsafe fn parse_mantissa(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32
         // overflow.
         let mut value: u32 = 0;
         let p = last.min(first.add(step));
-        let (p, _) = atoi::unchecked(&mut value, base, p, last);
+        let (p, _) = atoi::unchecked(&mut value, base, first, p);
 
         // Find the number of digits parsed, multiply by the small power,
         // and add the calculated value.
         let digits = distance(first, p);
         bigfloat.mul_small_assign(*small_powers.get_unchecked(digits));
-        bigfloat.add_small_assign(value);
+        if value != 0 {
+            bigfloat.add_small_assign(value);
+        }
 
         // Reset pointers for next iteration
         first = p;
 
-        // Carry condition, either we've reached last
+        // Break condition, either we've reached last or we've reached a
+        // non-digit character
         if digits != step {
             break;
         }
@@ -383,9 +387,63 @@ unsafe fn parse_mantissa(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32
     first
 }
 
-// TODO(ahuszagh) Need to parse the correct
-// TODO(ahuszagh) Need parse_mantissa
-// Needs to take a slice and go over chunks
+/// Parse the mantissa into a bigfloat.
+/// Returns a pointer to the current buffer position, and the shift in
+/// the mantissa relative to the dot.
+///
+/// Use small powers steps to extract the proper digit and minimize the number
+/// of big integer operations. None of the strings should have leading zeros.
+///
+/// * `bigfloat`      - Mutable bigfloat to store results in.
+/// * `integer`       - Integer component of float.
+/// * `fraction`      - Fraction component of float (used to modify the exponent).
+/// * `base`          - Radix for the number encoding.
+/// * `small_powers`  - Pre-calculated small powers
+#[inline]
+unsafe fn parse_mantissa(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32], first: *const u8, last: *const u8)
+    -> (*const u8, i32)
+{
+    let mut p = first;
+
+    // Trim the leading 0s.
+    p = ltrim_char_range(p, last, b'0');
+
+    // Parse the integer component.
+    p = parse_digits(bigfloat, base, small_powers, p, last);
+
+    // Parse the fraction component if present.
+    // We need to store the number of parsed digits after the dot.
+    let dot_shift: i32;
+    if distance(p, last) > 1 && *p == b'.' {
+        // Store a temporary pointer to the current first, so we can determine
+        // the number of parsed digits.
+        let tmp_first = p.add(1);
+        if bigfloat.is_empty() {
+            // Can ignore the leading digits while the mantissa is 0.
+            // Simplifies the computational expense of this.
+            p = ltrim_char_range(tmp_first, last, b'0');
+        } else {
+            p = tmp_first;
+        }
+        p = parse_digits(bigfloat, base, small_powers, p, last);
+        dot_shift = distance(tmp_first, p).try_i32_or_max();
+    } else {
+        dot_shift = 0;
+    }
+
+    (p, dot_shift)
+}
+
+/// Parse the mantissa and exponent from a string.
+unsafe fn parse_float(base: u32, small_powers: &[u32], first: *const u8, last: *const u8)
+    -> (Bigfloat, i32, *const u8)
+{
+    let mut bigfloat = Bigfloat::new();
+    let (first, dot_shift) = parse_mantissa(&mut bigfloat, base, small_powers, first, last);
+    let (exponent, first) = parse_exponent(base, first, last);
+    let exponent = normalize_exponent(exponent, dot_shift);
+    (bigfloat, exponent, first)
+}
 
 // ASSIGN
 
@@ -483,28 +541,32 @@ macro_rules! wrap_div_pown_assign {
     );
 }
 
-// TODO(ahuszagh) Implement...
-// TODO(ahuszagh) Need to enforce the MAX_EXPONENT during parsing.
-// We have no bounds checks internally, we need to max sure MAX_EXPONENT
-// is used to avoid overflows.
-
 // FROM BYTES
 
 /// Wrapper for basen from_bytes implementations.
-// TODO(ahuszagh) Likely need a faster path for the small bits.
-// Can I parse N digits at a time, iteratively, and then concatenate them?
-// Say I have `"12356"`.
-// Can I get `123456` from `"123"` and `"456"`.
-//      123 * 10**3 + 456
-// I can, using small powers. This actually works great for, example, with base 5
-// TODO(ahuszagh) Implement
 macro_rules! from_bytes {
-    ($name:ident) => (
+    ($name:ident, $base:expr, $small_powers:ident, $mul:ident, $div:ident) => (
         /// Initialize Bigfloat from bytes with base3.
-        #[allow(unused)] // TODO(ahuszagh) Remove
-        fn $name(first: *const u8, last: *const u8) -> (Bigfloat, *const u8) {
-            let bigfloat = Bigfloat::new();
-            unimplemented!()
+        unsafe fn $name(first: *const u8, last: *const u8)
+            -> (Bigfloat, *const u8)
+        {
+            let (mut bigfloat, exponent, p) = parse_float($base, &$small_powers, first, last);
+            if exponent == 0 {
+                // Do nothing
+            } else if exponent > MAX_EXPONENT {
+                // Set comically large exponent.
+                bigfloat.exp = i32::max_value();
+            } else if exponent < -MAX_EXPONENT {
+                // Set comically small exponent.
+                bigfloat.exp = i32::min_value();
+            } else if exponent > 0 {
+                // Get exact representation via multiplication.
+                bigfloat.$mul(exponent);
+            } else {
+                // Get exact representation via division.
+                bigfloat.$div(-exponent);
+            }
+            (bigfloat, p)
         }
     );
 }
@@ -516,8 +578,8 @@ macro_rules! from_bytes {
 /// This float aims to solve the half-way problem. If we have a mantissa,
 /// with the following representation:
 ///
-///     Mantissa          | Trailing | Truncated
-///     101010010110101010|1000000000|0000000001
+/// Mantissa          | Trailing | Truncated
+/// 101010010110101010|1000000000|0000000001
 ///
 /// We are supposed to round this up, since the truncated bits are above
 /// halfway, however, we have no way to determine this. Any lossy
@@ -1601,39 +1663,39 @@ impl Bigfloat {
     wrap_div_pown_assign!(div_pow36, div_pow36_assign, div_pow36_assign_impl, 36);
 
     // FROM BYTES
-    from_bytes!(from_bytes_3);
-    from_bytes!(from_bytes_5);
-    from_bytes!(from_bytes_6);
-    from_bytes!(from_bytes_7);
-    from_bytes!(from_bytes_9);
-    from_bytes!(from_bytes_10);
-    from_bytes!(from_bytes_11);
-    from_bytes!(from_bytes_12);
-    from_bytes!(from_bytes_13);
-    from_bytes!(from_bytes_14);
-    from_bytes!(from_bytes_15);
-    from_bytes!(from_bytes_17);
-    from_bytes!(from_bytes_18);
-    from_bytes!(from_bytes_19);
-    from_bytes!(from_bytes_20);
-    from_bytes!(from_bytes_21);
-    from_bytes!(from_bytes_22);
-    from_bytes!(from_bytes_23);
-    from_bytes!(from_bytes_24);
-    from_bytes!(from_bytes_25);
-    from_bytes!(from_bytes_26);
-    from_bytes!(from_bytes_27);
-    from_bytes!(from_bytes_28);
-    from_bytes!(from_bytes_29);
-    from_bytes!(from_bytes_30);
-    from_bytes!(from_bytes_31);
-    from_bytes!(from_bytes_33);
-    from_bytes!(from_bytes_34);
-    from_bytes!(from_bytes_35);
-    from_bytes!(from_bytes_36);
+    from_bytes!(from_bytes_3, 3, U32_POW3, mul_pow3_assign, div_pow3_assign);
+    from_bytes!(from_bytes_5, 5, U32_POW5, mul_pow5_assign, div_pow5_assign);
+    from_bytes!(from_bytes_6, 6, U32_POW6, mul_pow6_assign, div_pow6_assign);
+    from_bytes!(from_bytes_7, 7, U32_POW7, mul_pow7_assign, div_pow7_assign);
+    from_bytes!(from_bytes_9, 9, U32_POW9, mul_pow9_assign, div_pow9_assign);
+    from_bytes!(from_bytes_10, 10, U32_POW10, mul_pow10_assign, div_pow10_assign);
+    from_bytes!(from_bytes_11, 11, U32_POW11, mul_pow11_assign, div_pow11_assign);
+    from_bytes!(from_bytes_12, 12, U32_POW12, mul_pow12_assign, div_pow12_assign);
+    from_bytes!(from_bytes_13, 13, U32_POW13, mul_pow13_assign, div_pow13_assign);
+    from_bytes!(from_bytes_14, 14, U32_POW14, mul_pow14_assign, div_pow14_assign);
+    from_bytes!(from_bytes_15, 15, U32_POW15, mul_pow15_assign, div_pow15_assign);
+    from_bytes!(from_bytes_17, 17, U32_POW17, mul_pow17_assign, div_pow17_assign);
+    from_bytes!(from_bytes_18, 18, U32_POW18, mul_pow18_assign, div_pow18_assign);
+    from_bytes!(from_bytes_19, 19, U32_POW19, mul_pow19_assign, div_pow19_assign);
+    from_bytes!(from_bytes_20, 20, U32_POW20, mul_pow20_assign, div_pow20_assign);
+    from_bytes!(from_bytes_21, 21, U32_POW21, mul_pow21_assign, div_pow21_assign);
+    from_bytes!(from_bytes_22, 22, U32_POW22, mul_pow22_assign, div_pow22_assign);
+    from_bytes!(from_bytes_23, 23, U32_POW23, mul_pow23_assign, div_pow23_assign);
+    from_bytes!(from_bytes_24, 24, U32_POW24, mul_pow24_assign, div_pow24_assign);
+    from_bytes!(from_bytes_25, 25, U32_POW25, mul_pow25_assign, div_pow25_assign);
+    from_bytes!(from_bytes_26, 26, U32_POW26, mul_pow26_assign, div_pow26_assign);
+    from_bytes!(from_bytes_27, 27, U32_POW27, mul_pow27_assign, div_pow27_assign);
+    from_bytes!(from_bytes_28, 28, U32_POW28, mul_pow28_assign, div_pow28_assign);
+    from_bytes!(from_bytes_29, 29, U32_POW29, mul_pow29_assign, div_pow29_assign);
+    from_bytes!(from_bytes_30, 30, U32_POW30, mul_pow30_assign, div_pow30_assign);
+    from_bytes!(from_bytes_31, 31, U32_POW31, mul_pow31_assign, div_pow31_assign);
+    from_bytes!(from_bytes_33, 33, U32_POW33, mul_pow33_assign, div_pow33_assign);
+    from_bytes!(from_bytes_34, 34, U32_POW34, mul_pow34_assign, div_pow34_assign);
+    from_bytes!(from_bytes_35, 35, U32_POW35, mul_pow35_assign, div_pow35_assign);
+    from_bytes!(from_bytes_36, 36, U32_POW36, mul_pow36_assign, div_pow36_assign);
 
     /// Initialize Bigfloat from bytes with custom base.
-    pub fn from_bytes(base: u32, first: *const u8, last: *const u8)
+    pub unsafe fn from_bytes(base: u32, first: *const u8, last: *const u8)
         -> (Bigfloat, *const u8)
     {
         match base {
@@ -1763,10 +1825,17 @@ impl Bigfloat {
         const U64_BYTES: i32 = mem::size_of::<u64>() as i32;
         const U64_BITS: i32 = 8 * U64_BYTES;
 
-        // Don't subtract 64 immediately, for small integers, can cause underflow.
-        let shift = self.leading_zeros();
-        let bits = (Self::BITS * self.len()) - shift as usize;
-        self.exp + bits as i32 - U64_BITS
+        // Don't subtract U64_BITS immediately, for small integers, can cause underflow.
+        let bitshift = self.leading_zeros() as usize;
+        let bits = (Self::BITS * self.len()) - bitshift;
+        let bits: i32 = unwrap_or_max(try_cast(bits));
+        let shift = bits - U64_BITS;
+
+        // Can overflow or underflow, just return maximum value in that case.
+        match self.exp.checked_add(shift) {
+            Some(v) => v,
+            None    => if shift < 0 { i32::min_value() } else { i32::max_value() },
+        }
     }
 
     /// Export native float from bigfloat.
@@ -2772,5 +2841,49 @@ mod tests {
         // 3-ints + above halfway (truncated)
         let x = Bigfloat::from_u128(0x100000000000008001);
         assert_eq!(x.as_f64(), 0x100000000000010000u128 as f64);
+    }
+
+    // PARSING
+
+    unsafe fn check_parse_mantissa(base: u32, small_powers: &[u32], s: &str, tup: (Bigfloat, i32, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let mut v = Bigfloat::new();
+        let (p, dot_shift) = parse_mantissa(&mut v, base, small_powers, first, last);
+        assert_eq!(v, tup.0);
+        assert_eq!(dot_shift, tup.1);
+        assert_eq!(distance(first, p), tup.2);
+    }
+
+    #[test]
+    fn parse_mantissa_test() {
+        unsafe {
+            check_parse_mantissa(10, &U32_POW10, "1.2345", (Bigfloat::from_u32(12345), 4, 6));
+            check_parse_mantissa(10, &U32_POW10, "12.345", (Bigfloat::from_u32(12345), 3, 6));
+            check_parse_mantissa(10, &U32_POW10, "1.234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890", (Bigfloat { data: smallvec![3460238034, 2899308950, 4017877323, 1199904321, 1198752190, 2818107006, 390189029, 1795052211, 2368297274, 4229382910, 577], exp: 0 }, 99, 101));
+            check_parse_mantissa(10, &U32_POW10, "0", (Bigfloat::new(), 0, 1));
+            check_parse_mantissa(10, &U32_POW10, "12", (Bigfloat::from_u32(12), 0, 2));
+        }
+    }
+
+    unsafe fn check_parse_float(base: u32, small_powers: &[u32], s: &str, tup: (Bigfloat, i32, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let (v, exp, p) = parse_float(base, small_powers, first, last);
+        assert_eq!(v, tup.0);
+        assert_eq!(exp, tup.1);
+        assert_eq!(distance(first, p), tup.2);
+    }
+
+    #[test]
+    fn parse_float_test() {
+        unsafe {
+            check_parse_float(10, &U32_POW10, "1.2345", (Bigfloat::from_u32(12345), -4, 6));
+            check_parse_float(10, &U32_POW10, "12.345", (Bigfloat::from_u32(12345), -3, 6));
+            check_parse_float(10, &U32_POW10, "1.234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890", (Bigfloat { data: smallvec![3460238034, 2899308950, 4017877323, 1199904321, 1198752190, 2818107006, 390189029, 1795052211, 2368297274, 4229382910, 577], exp: 0 }, -99, 101));
+            check_parse_float(10, &U32_POW10, "0", (Bigfloat::new(), 0, 1));
+            check_parse_float(10, &U32_POW10, "12", (Bigfloat::from_u32(12), 0, 2));
+            check_parse_float(10, &U32_POW10, "1.234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890e308", (Bigfloat { data: smallvec![3460238034, 2899308950, 4017877323, 1199904321, 1198752190, 2818107006, 390189029, 1795052211, 2368297274, 4229382910, 577], exp: 0 }, 209, 105));
+        }
     }
 }
