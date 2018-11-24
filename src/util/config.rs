@@ -58,6 +58,9 @@ pub(crate) extern "C" fn exponent_notation_char(base: u32)
 
 #[cfg(test)]
 mod tests {
+    use atof::*;
+    use ftoa::*;
+    use util::*;
     use super::*;
 
     #[test]
@@ -71,12 +74,6 @@ mod tests {
             assert_eq!(exponent_notation_char(32), EXPONENT_BACKUP_CHAR);
         }
     }
-
-    cfg_if! {
-    if #[cfg(feature = "std")] {
-    use atof::*;
-    use ftoa::*;
-    use util::*;
 
     // Only enable when no other threads touch NAN_STRING or INFINITY_STRING.
     #[test]
@@ -107,6 +104,4 @@ mod tests {
             INFINITY_STRING = "inf";
         }
     }
-
-    }}  // cfg_if
 }

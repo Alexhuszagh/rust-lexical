@@ -39,6 +39,7 @@ pub(super) unsafe extern "C" fn parse_exponent(base: u32, first: *const u8, last
 /// Remove the number of digits that contributed to the mantissa past
 /// the dot.
 #[inline]
+#[cfg(any(test, not(feature = "imprecise")))]
 pub(super) extern "C" fn normalize_exponent(exponent: i32, dot_shift: i32)
     -> i32
 {

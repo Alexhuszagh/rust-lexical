@@ -63,7 +63,7 @@
 //  ax.figure.tight_layout()
 //  plt.show()
 
-use float::ExtendedFloat;
+use float::ExtendedFloat80;
 use lib::{mem, ptr};
 use util::*;
 
@@ -72,7 +72,7 @@ use util::*;
 /// Find cached power of 10 from the exponent.
 #[inline]
 pub(crate) unsafe extern "C" fn cached_grisu_power(exp: i32, k: *mut i32)
-    -> &'static ExtendedFloat
+    -> &'static ExtendedFloat80
 {
     // FLOATING POINT CONSTANTS
     const ONE_LOG_TEN: f64 = 0.30102999566398114;
@@ -110,94 +110,94 @@ pub(crate) unsafe extern "C" fn cached_grisu_power(exp: i32, k: *mut i32)
 ///
 /// Cached powers of 10^k, calculated as if by:
 /// `ceil((alpha-e+63) * ONE_LOG_TEN);`
-const GRISU_POWERS_OF_TEN: [ExtendedFloat; 87] = [
-    ExtendedFloat { frac: 18054884314459144840, exp: -1220 },
-    ExtendedFloat { frac: 13451937075301367670, exp: -1193 },
-    ExtendedFloat { frac: 10022474136428063862, exp: -1166 },
-    ExtendedFloat { frac: 14934650266808366570, exp: -1140 },
-    ExtendedFloat { frac: 11127181549972568877, exp: -1113 },
-    ExtendedFloat { frac: 16580792590934885855, exp: -1087 },
-    ExtendedFloat { frac: 12353653155963782858, exp: -1060 },
-    ExtendedFloat { frac: 18408377700990114895, exp: -1034 },
-    ExtendedFloat { frac: 13715310171984221708, exp: -1007 },
-    ExtendedFloat { frac: 10218702384817765436, exp: -980 },
-    ExtendedFloat { frac: 15227053142812498563, exp: -954 },
-    ExtendedFloat { frac: 11345038669416679861, exp: -927 },
-    ExtendedFloat { frac: 16905424996341287883, exp: -901 },
-    ExtendedFloat { frac: 12595523146049147757, exp: -874 },
-    ExtendedFloat { frac: 9384396036005875287, exp: -847 },
-    ExtendedFloat { frac: 13983839803942852151, exp: -821 },
-    ExtendedFloat { frac: 10418772551374772303, exp: -794 },
-    ExtendedFloat { frac: 15525180923007089351, exp: -768 },
-    ExtendedFloat { frac: 11567161174868858868, exp: -741 },
-    ExtendedFloat { frac: 17236413322193710309, exp: -715 },
-    ExtendedFloat { frac: 12842128665889583758, exp: -688 },
-    ExtendedFloat { frac: 9568131466127621947, exp: -661 },
-    ExtendedFloat { frac: 14257626930069360058, exp: -635 },
-    ExtendedFloat { frac: 10622759856335341974, exp: -608 },
-    ExtendedFloat { frac: 15829145694278690180, exp: -582 },
-    ExtendedFloat { frac: 11793632577567316726, exp: -555 },
-    ExtendedFloat { frac: 17573882009934360870, exp: -529 },
-    ExtendedFloat { frac: 13093562431584567480, exp: -502 },
-    ExtendedFloat { frac: 9755464219737475723, exp: -475 },
-    ExtendedFloat { frac: 14536774485912137811, exp: -449 },
-    ExtendedFloat { frac: 10830740992659433045, exp: -422 },
-    ExtendedFloat { frac: 16139061738043178685, exp: -396 },
-    ExtendedFloat { frac: 12024538023802026127, exp: -369 },
-    ExtendedFloat { frac: 17917957937422433684, exp: -343 },
-    ExtendedFloat { frac: 13349918974505688015, exp: -316 },
-    ExtendedFloat { frac: 9946464728195732843, exp: -289 },
-    ExtendedFloat { frac: 14821387422376473014, exp: -263 },
-    ExtendedFloat { frac: 11042794154864902060, exp: -236 },
-    ExtendedFloat { frac: 16455045573212060422, exp: -210 },
-    ExtendedFloat { frac: 12259964326927110867, exp: -183 },
-    ExtendedFloat { frac: 18268770466636286478, exp: -157 },
-    ExtendedFloat { frac: 13611294676837538539, exp: -130 },
-    ExtendedFloat { frac: 10141204801825835212, exp: -103 },
-    ExtendedFloat { frac: 15111572745182864684, exp: -77 },
-    ExtendedFloat { frac: 11258999068426240000, exp: -50 },
-    ExtendedFloat { frac: 16777216000000000000, exp: -24 },
-    ExtendedFloat { frac: 12500000000000000000, exp:  3 },
-    ExtendedFloat { frac: 9313225746154785156, exp:  30 },
-    ExtendedFloat { frac: 13877787807814456755, exp: 56 },
-    ExtendedFloat { frac: 10339757656912845936, exp: 83 },
-    ExtendedFloat { frac: 15407439555097886824, exp: 109 },
-    ExtendedFloat { frac: 11479437019748901445, exp: 136 },
-    ExtendedFloat { frac: 17105694144590052135, exp: 162 },
-    ExtendedFloat { frac: 12744735289059618216, exp: 189 },
-    ExtendedFloat { frac: 9495567745759798747, exp: 216 },
-    ExtendedFloat { frac: 14149498560666738074, exp: 242 },
-    ExtendedFloat { frac: 10542197943230523224, exp: 269 },
-    ExtendedFloat { frac: 15709099088952724970, exp: 295 },
-    ExtendedFloat { frac: 11704190886730495818, exp: 322 },
-    ExtendedFloat { frac: 17440603504673385349, exp: 348 },
-    ExtendedFloat { frac: 12994262207056124023, exp: 375 },
-    ExtendedFloat { frac: 9681479787123295682, exp: 402 },
-    ExtendedFloat { frac: 14426529090290212157, exp: 428 },
-    ExtendedFloat { frac: 10748601772107342003, exp: 455 },
-    ExtendedFloat { frac: 16016664761464807395, exp: 481 },
-    ExtendedFloat { frac: 11933345169920330789, exp: 508 },
-    ExtendedFloat { frac: 17782069995880619868, exp: 534 },
-    ExtendedFloat { frac: 13248674568444952270, exp: 561 },
-    ExtendedFloat { frac: 9871031767461413346, exp: 588 },
-    ExtendedFloat { frac: 14708983551653345445, exp: 614 },
-    ExtendedFloat { frac: 10959046745042015199, exp: 641 },
-    ExtendedFloat { frac: 16330252207878254650, exp: 667 },
-    ExtendedFloat { frac: 12166986024289022870, exp: 694 },
-    ExtendedFloat { frac: 18130221999122236476, exp: 720 },
-    ExtendedFloat { frac: 13508068024458167312, exp: 747 },
-    ExtendedFloat { frac: 10064294952495520794, exp: 774 },
-    ExtendedFloat { frac: 14996968138956309548, exp: 800 },
-    ExtendedFloat { frac: 11173611982879273257, exp: 827 },
-    ExtendedFloat { frac: 16649979327439178909, exp: 853 },
-    ExtendedFloat { frac: 12405201291620119593, exp: 880 },
-    ExtendedFloat { frac: 9242595204427927429, exp: 907 },
-    ExtendedFloat { frac: 13772540099066387757, exp: 933 },
-    ExtendedFloat { frac: 10261342003245940623, exp: 960 },
-    ExtendedFloat { frac: 15290591125556738113, exp: 986 },
-    ExtendedFloat { frac: 11392378155556871081, exp: 1013 },
-    ExtendedFloat { frac: 16975966327722178521, exp: 1039 },
-    ExtendedFloat { frac: 12648080533535911531, exp: 1066 }
+const GRISU_POWERS_OF_TEN: [ExtendedFloat80; 87] = [
+    ExtendedFloat80 { frac: 18054884314459144840, exp: -1220 },
+    ExtendedFloat80 { frac: 13451937075301367670, exp: -1193 },
+    ExtendedFloat80 { frac: 10022474136428063862, exp: -1166 },
+    ExtendedFloat80 { frac: 14934650266808366570, exp: -1140 },
+    ExtendedFloat80 { frac: 11127181549972568877, exp: -1113 },
+    ExtendedFloat80 { frac: 16580792590934885855, exp: -1087 },
+    ExtendedFloat80 { frac: 12353653155963782858, exp: -1060 },
+    ExtendedFloat80 { frac: 18408377700990114895, exp: -1034 },
+    ExtendedFloat80 { frac: 13715310171984221708, exp: -1007 },
+    ExtendedFloat80 { frac: 10218702384817765436, exp: -980 },
+    ExtendedFloat80 { frac: 15227053142812498563, exp: -954 },
+    ExtendedFloat80 { frac: 11345038669416679861, exp: -927 },
+    ExtendedFloat80 { frac: 16905424996341287883, exp: -901 },
+    ExtendedFloat80 { frac: 12595523146049147757, exp: -874 },
+    ExtendedFloat80 { frac: 9384396036005875287, exp: -847 },
+    ExtendedFloat80 { frac: 13983839803942852151, exp: -821 },
+    ExtendedFloat80 { frac: 10418772551374772303, exp: -794 },
+    ExtendedFloat80 { frac: 15525180923007089351, exp: -768 },
+    ExtendedFloat80 { frac: 11567161174868858868, exp: -741 },
+    ExtendedFloat80 { frac: 17236413322193710309, exp: -715 },
+    ExtendedFloat80 { frac: 12842128665889583758, exp: -688 },
+    ExtendedFloat80 { frac: 9568131466127621947, exp: -661 },
+    ExtendedFloat80 { frac: 14257626930069360058, exp: -635 },
+    ExtendedFloat80 { frac: 10622759856335341974, exp: -608 },
+    ExtendedFloat80 { frac: 15829145694278690180, exp: -582 },
+    ExtendedFloat80 { frac: 11793632577567316726, exp: -555 },
+    ExtendedFloat80 { frac: 17573882009934360870, exp: -529 },
+    ExtendedFloat80 { frac: 13093562431584567480, exp: -502 },
+    ExtendedFloat80 { frac: 9755464219737475723, exp: -475 },
+    ExtendedFloat80 { frac: 14536774485912137811, exp: -449 },
+    ExtendedFloat80 { frac: 10830740992659433045, exp: -422 },
+    ExtendedFloat80 { frac: 16139061738043178685, exp: -396 },
+    ExtendedFloat80 { frac: 12024538023802026127, exp: -369 },
+    ExtendedFloat80 { frac: 17917957937422433684, exp: -343 },
+    ExtendedFloat80 { frac: 13349918974505688015, exp: -316 },
+    ExtendedFloat80 { frac: 9946464728195732843, exp: -289 },
+    ExtendedFloat80 { frac: 14821387422376473014, exp: -263 },
+    ExtendedFloat80 { frac: 11042794154864902060, exp: -236 },
+    ExtendedFloat80 { frac: 16455045573212060422, exp: -210 },
+    ExtendedFloat80 { frac: 12259964326927110867, exp: -183 },
+    ExtendedFloat80 { frac: 18268770466636286478, exp: -157 },
+    ExtendedFloat80 { frac: 13611294676837538539, exp: -130 },
+    ExtendedFloat80 { frac: 10141204801825835212, exp: -103 },
+    ExtendedFloat80 { frac: 15111572745182864684, exp: -77 },
+    ExtendedFloat80 { frac: 11258999068426240000, exp: -50 },
+    ExtendedFloat80 { frac: 16777216000000000000, exp: -24 },
+    ExtendedFloat80 { frac: 12500000000000000000, exp:  3 },
+    ExtendedFloat80 { frac: 9313225746154785156, exp:  30 },
+    ExtendedFloat80 { frac: 13877787807814456755, exp: 56 },
+    ExtendedFloat80 { frac: 10339757656912845936, exp: 83 },
+    ExtendedFloat80 { frac: 15407439555097886824, exp: 109 },
+    ExtendedFloat80 { frac: 11479437019748901445, exp: 136 },
+    ExtendedFloat80 { frac: 17105694144590052135, exp: 162 },
+    ExtendedFloat80 { frac: 12744735289059618216, exp: 189 },
+    ExtendedFloat80 { frac: 9495567745759798747, exp: 216 },
+    ExtendedFloat80 { frac: 14149498560666738074, exp: 242 },
+    ExtendedFloat80 { frac: 10542197943230523224, exp: 269 },
+    ExtendedFloat80 { frac: 15709099088952724970, exp: 295 },
+    ExtendedFloat80 { frac: 11704190886730495818, exp: 322 },
+    ExtendedFloat80 { frac: 17440603504673385349, exp: 348 },
+    ExtendedFloat80 { frac: 12994262207056124023, exp: 375 },
+    ExtendedFloat80 { frac: 9681479787123295682, exp: 402 },
+    ExtendedFloat80 { frac: 14426529090290212157, exp: 428 },
+    ExtendedFloat80 { frac: 10748601772107342003, exp: 455 },
+    ExtendedFloat80 { frac: 16016664761464807395, exp: 481 },
+    ExtendedFloat80 { frac: 11933345169920330789, exp: 508 },
+    ExtendedFloat80 { frac: 17782069995880619868, exp: 534 },
+    ExtendedFloat80 { frac: 13248674568444952270, exp: 561 },
+    ExtendedFloat80 { frac: 9871031767461413346, exp: 588 },
+    ExtendedFloat80 { frac: 14708983551653345445, exp: 614 },
+    ExtendedFloat80 { frac: 10959046745042015199, exp: 641 },
+    ExtendedFloat80 { frac: 16330252207878254650, exp: 667 },
+    ExtendedFloat80 { frac: 12166986024289022870, exp: 694 },
+    ExtendedFloat80 { frac: 18130221999122236476, exp: 720 },
+    ExtendedFloat80 { frac: 13508068024458167312, exp: 747 },
+    ExtendedFloat80 { frac: 10064294952495520794, exp: 774 },
+    ExtendedFloat80 { frac: 14996968138956309548, exp: 800 },
+    ExtendedFloat80 { frac: 11173611982879273257, exp: 827 },
+    ExtendedFloat80 { frac: 16649979327439178909, exp: 853 },
+    ExtendedFloat80 { frac: 12405201291620119593, exp: 880 },
+    ExtendedFloat80 { frac: 9242595204427927429, exp: 907 },
+    ExtendedFloat80 { frac: 13772540099066387757, exp: 933 },
+    ExtendedFloat80 { frac: 10261342003245940623, exp: 960 },
+    ExtendedFloat80 { frac: 15290591125556738113, exp: 986 },
+    ExtendedFloat80 { frac: 11392378155556871081, exp: 1013 },
+    ExtendedFloat80 { frac: 16975966327722178521, exp: 1039 },
+    ExtendedFloat80 { frac: 12648080533535911531, exp: 1066 }
 ];
 
 // FTOA BASE10
@@ -229,13 +229,13 @@ fn round_digit(digits: *mut u8, ndigits: isize, delta: u64, mut rem: u64, kappa:
 
 /// Generate digits from upper and lower range on rounding of number.
 unsafe extern "C"
-fn generate_digits(fp: &ExtendedFloat, upper: &ExtendedFloat, lower: &ExtendedFloat, digits: *mut u8, k: *mut i32)
+fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &ExtendedFloat80, digits: *mut u8, k: *mut i32)
     -> i32
 {
     let wfrac = upper.frac - fp.frac;
     let mut delta = upper.frac - lower.frac;
 
-    let one = ExtendedFloat {
+    let one = ExtendedFloat80 {
         frac: 1 << -upper.exp,
         exp: upper.exp,
     };
@@ -298,7 +298,7 @@ fn generate_digits(fp: &ExtendedFloat, upper: &ExtendedFloat, lower: &ExtendedFl
 /// Core Grisu2 algorithm for the float formatter.
 unsafe extern "C" fn grisu2(d: f64, digits: *mut u8, k: *mut i32) -> i32
 {
-    let mut w = ExtendedFloat::from_f64(d);
+    let mut w = ExtendedFloat80::from_f64(d);
 
     let (mut lower, mut upper) = w.normalized_boundaries();
     w.normalize();

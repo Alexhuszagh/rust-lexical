@@ -11,8 +11,6 @@ matrix:
       script:
         - cargo test
         - cargo test --no-default-features
-        - cargo test --no-default-features --features=grisu3
-        - cargo test --no-default-features --features=ryu
         - cargo test --no-default-features --features=table
         - cargo test --no-default-features --features=table,grisu3
         - cargo test --no-default-features --features=table,ryu

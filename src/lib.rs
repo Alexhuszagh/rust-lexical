@@ -24,6 +24,7 @@
 extern crate cfg_if;
 
 #[macro_use]
+#[allow(unused_imports)]
 extern crate static_assertions;
 
 // CONFIG
