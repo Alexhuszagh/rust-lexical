@@ -9,7 +9,7 @@ use lib;
 
 // FROM BYTES
 
-/// Trait for types that are deserializable from strings or bytes.
+/// Trait for numerical types that can be parsed from bytes.
 pub trait FromBytes: Sized {
     /// Deserialize from byte slice.
     fn from_bytes(bytes: &[u8], base: u8) -> Self;
@@ -55,6 +55,7 @@ from_bytes!(f64, atof64_bytes, try_atof64_bytes);
 
 // FROM BYTES LOSSY
 
+/// Trait for floating-point types that can be parsed using lossy algorithms from bytes.
 pub trait FromBytesLossy: FromBytes {
     /// Deserialize from byte slice.
     fn from_bytes_lossy(bytes: &[u8], base: u8) -> Self;
@@ -90,7 +91,7 @@ from_bytes_lossy!(f64, atof64_lossy_bytes, try_atof64_lossy_bytes);
 
 // TO BYTES
 
-/// Trait for types that are serializable to string or bytes.
+/// Trait for numerical types that can be serialized to bytes.
 pub trait ToBytes: Sized {
     /// Serialize to string.
     fn to_bytes(&self, base: u8) -> lib::Vec<u8>;

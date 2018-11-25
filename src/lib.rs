@@ -111,10 +111,12 @@ pub use util::{INFINITY_STRING, NAN_STRING};
 // Re-export the Error and ErrorKind globally.
 pub use error::{Error, ErrorKind};
 
+// Publicly expose traits so they may be used for generic programming.
+pub use traits::{FromBytes, FromBytesLossy, ToBytes};
+
 // HIGH LEVEL
 
 use lib::convert::AsRef;
-use traits::{FromBytes, FromBytesLossy, ToBytes};
 
 /// High-level conversion of a number to a decimal-encoded string.
 ///
