@@ -2758,6 +2758,10 @@ mod tests {
         // 3-ints + above halfway (truncated)
         let x = Bigfloat::from_u128(0x100000000000008001);
         assert_eq!(x.mantissa(), (0x8000000000000400, true));
+
+        // Custom (bug fix), 0x20000000000001 << 100
+        let x = Bigfloat { data: smallvec![0, 0, 0, 16, 33554432], exp: 0 };
+        assert_eq!(x.mantissa(), (0x8000000000000400, false));
     }
 
     #[test]
@@ -2789,6 +2793,10 @@ mod tests {
         // Divide by a power-of-two
         let x = Bigfloat::from_u32(1).div_pow2(1);
         assert_eq!(x.exponent(), -64);
+
+        // Custom (bug fix), 0x20000000000001 << 100
+        let x = Bigfloat { data: smallvec![0, 0, 0, 16, 33554432], exp: 0 };
+        assert_eq!(x.exponent(), 90);
     }
 
     #[test]
@@ -2844,6 +2852,10 @@ mod tests {
         // 3-ints + above halfway (truncated)
         let x = Bigfloat::from_u128(0x100000000000008001);
         assert_eq!(x.as_f64(), 0x100000000000010000u128 as f64);
+
+        // Custom (bug fix), 0x20000000000001 << 100
+        let x = Bigfloat { data: smallvec![0, 0, 0, 16, 33554432], exp: 0 };
+        assert_eq!(x.as_f64(), 11417981541647679048466287755595961091061972992.0);
     }
 
     // PARSING
@@ -2866,6 +2878,20 @@ mod tests {
             check_parse_mantissa(10, &U32_POW10, "1.234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890", (Bigfloat { data: smallvec![3460238034, 2899308950, 4017877323, 1199904321, 1198752190, 2818107006, 390189029, 1795052211, 2368297274, 4229382910, 577], exp: 0 }, 99, 101));
             check_parse_mantissa(10, &U32_POW10, "0", (Bigfloat::new(), 0, 1));
             check_parse_mantissa(10, &U32_POW10, "12", (Bigfloat::from_u32(12), 0, 2));
+
+            // Check the bigfloat parser works with extremely difficult, close-to-halfway cases.
+            // Round-down, halfway
+            check_parse_mantissa(10, &U32_POW10, "11417981541647679048466287755595961091061972992", (Bigfloat { data: smallvec![0, 0, 0, 0, 33554432], exp: 0 }, 0, 47));
+            check_parse_mantissa(10, &U32_POW10, "11417981541647680316116887983825362587765178368", (Bigfloat { data: smallvec![0, 0, 0, 16, 33554432], exp: 0 }, 0, 47));
+            check_parse_mantissa(10, &U32_POW10, "11417981541647681583767488212054764084468383744", (Bigfloat { data: smallvec![0, 0, 0, 32, 33554432], exp: 0 }, 0, 47));
+
+            // Round-up, halfway
+            check_parse_mantissa(10, &U32_POW10, "11417981541647681583767488212054764084468383744", (Bigfloat { data: smallvec![0, 0, 0, 32, 33554432], exp: 0 }, 0, 47));
+            check_parse_mantissa(10, &U32_POW10, "11417981541647682851418088440284165581171589120", (Bigfloat { data: smallvec![0, 0, 0, 48, 33554432], exp: 0 }, 0, 47));
+            check_parse_mantissa(10, &U32_POW10, "11417981541647684119068688668513567077874794496", (Bigfloat { data: smallvec![0, 0, 0, 64, 33554432], exp: 0 }, 0, 47));
+
+            // Round-up, above halfway
+            check_parse_mantissa(10, &U32_POW10, "11417981541647680316116887983825362587765178369", (Bigfloat { data: smallvec![1, 0, 0, 16, 33554432], exp: 0 }, 0, 47));
         }
     }
 
@@ -2887,6 +2913,20 @@ mod tests {
             check_parse_float(10, &U32_POW10, "0", (Bigfloat::new(), 0, 1));
             check_parse_float(10, &U32_POW10, "12", (Bigfloat::from_u32(12), 0, 2));
             check_parse_float(10, &U32_POW10, "1.234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890e308", (Bigfloat { data: smallvec![3460238034, 2899308950, 4017877323, 1199904321, 1198752190, 2818107006, 390189029, 1795052211, 2368297274, 4229382910, 577], exp: 0 }, 209, 105));
+
+            // Check the bigfloat parser works with extremely difficult, close-to-halfway cases.
+            // Round-down, halfway
+            check_parse_float(10, &U32_POW10, "11417981541647679048466287755595961091061972992", (Bigfloat { data: smallvec![0, 0, 0, 0, 33554432], exp: 0 }, 0, 47));
+            check_parse_float(10, &U32_POW10, "11417981541647680316116887983825362587765178368", (Bigfloat { data: smallvec![0, 0, 0, 16, 33554432], exp: 0 }, 0, 47));
+            check_parse_float(10, &U32_POW10, "11417981541647681583767488212054764084468383744", (Bigfloat { data: smallvec![0, 0, 0, 32, 33554432], exp: 0 }, 0, 47));
+
+            // Round-up, halfway
+            check_parse_float(10, &U32_POW10, "11417981541647681583767488212054764084468383744", (Bigfloat { data: smallvec![0, 0, 0, 32, 33554432], exp: 0 }, 0, 47));
+            check_parse_float(10, &U32_POW10, "11417981541647682851418088440284165581171589120", (Bigfloat { data: smallvec![0, 0, 0, 48, 33554432], exp: 0 }, 0, 47));
+            check_parse_float(10, &U32_POW10, "11417981541647684119068688668513567077874794496", (Bigfloat { data: smallvec![0, 0, 0, 64, 33554432], exp: 0 }, 0, 47));
+
+            // Round-up, above halfway
+            check_parse_float(10, &U32_POW10, "11417981541647680316116887983825362587765178369", (Bigfloat { data: smallvec![1, 0, 0, 16, 33554432], exp: 0 }, 0, 47));
         }
     }
 }
