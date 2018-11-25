@@ -219,9 +219,8 @@ const TENS: [u64; 20] = [
 unsafe extern "C"
 fn round_digit(digits: *mut u8, ndigits: isize, delta: u64, mut rem: u64, kappa: u64, frac: u64)
 {
-    while rem < frac && delta - rem >= kappa &&
-           (rem + kappa < frac || frac - rem > rem + kappa - frac) {
-
+    while rem < frac && delta - rem >= kappa && (rem + kappa < frac || frac - rem > rem + kappa - frac)
+    {
         *digits.offset(ndigits - 1) -= 1;
         rem += kappa;
     }

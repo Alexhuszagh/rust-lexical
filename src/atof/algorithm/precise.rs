@@ -386,8 +386,9 @@ impl FloatErrors for u64 {
         });
 
         // Do a signed comparison, which will always be valid.
-        let halfway: i64 = as_cast(1u64 << (extrabits - 1));
-        let extra: i64 = as_cast(fp.frac & ((1u64 << extrabits) - 1));
+        let mask: u64 = lower_n_mask(extrabits.as_u64());
+        let halfway: i64 = as_cast(lower_n_halfway(extrabits.as_u64()));
+        let extra: i64 = as_cast(fp.frac & mask);
         let errors: i64 = as_cast(count);
         let cmp1 = (halfway - errors) < extra;
         let cmp2 = extra < (halfway + errors);

@@ -8,24 +8,13 @@ use super::shift::{shl, shr};
 // GENERIC
 // -------
 
-/// Parameters for general rounding operations.
-#[derive(Debug)]
-pub struct RoundingParameters<M: Mantissa> {
-    /// Bits to truncate from the mantissa.
-    pub mask: M,
-    /// Midway point for truncated bits.
-    pub mid: M,
-    /// Number of bits to shift
-    pub shift: i32,
-}
-
 // ROUND NEAREST TIE EVEN
 
 /// Shift right N-bytes and round to the nearest.
 ///
 /// Return if we are above halfway and if we are halfway.
 #[inline]
-pub(crate) fn round_nearest<M>(fp: &mut ExtendedFloat<M>, params: &RoundingParameters<M>)
+pub(crate) fn round_nearest<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     -> (bool, bool)
     where M: Mantissa
 {
@@ -35,12 +24,15 @@ pub(crate) fn round_nearest<M>(fp: &mut ExtendedFloat<M>, params: &RoundingParam
     //
     // For example, for 4 truncated bytes, the mask would be b1111
     // and the midway point would be b1000.
-    let truncated_bits = fp.frac & params.mask;
-    let is_above = truncated_bits > params.mid;
-    let is_halfway = truncated_bits == params.mid;
+    let mask: M = lower_n_mask(as_cast(shift));
+    let halfway: M = lower_n_halfway(as_cast(shift));
+
+    let truncated_bits = fp.frac & mask;
+    let is_above = truncated_bits > halfway;
+    let is_halfway = truncated_bits == halfway;
 
     // Bit shift so the leading bit is in the hidden bit.
-    shr(fp, params.shift);
+    shr(fp, shift);
 
     (is_above, is_halfway)
 }
@@ -68,10 +60,10 @@ pub(crate) fn tie_even<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_halfway:
 /// which rounds to the nearest value, if the value is halfway in between,
 /// round to an even value.
 #[inline]
-pub(crate) fn round_nearest_tie_even<M>(fp: &mut ExtendedFloat<M>, params: &RoundingParameters<M>)
+pub(crate) fn round_nearest_tie_even<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
 {
-    let (is_above, is_halfway) = round_nearest(fp, params);
+    let (is_above, is_halfway) = round_nearest(fp, shift);
     tie_even(fp, is_above, is_halfway);
 }
 
@@ -97,10 +89,10 @@ pub(crate) fn tie_away_zero<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_hal
 /// ties away from zero.
 #[inline]
 #[allow(dead_code)]
-pub(crate) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, params: &RoundingParameters<M>)
+pub(crate) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
 {
-    let (is_above, is_halfway) = round_nearest(fp, params);
+    let (is_above, is_halfway) = round_nearest(fp, shift);
     tie_away_zero(fp, is_above, is_halfway);
 }
 
@@ -115,10 +107,6 @@ pub trait FloatRounding<M: Mantissa>: Float {
     const DEFAULT_SHIFT: i32;
     /// Mask to determine if a full-carry occurred (1 in bit above hidden bit).
     const CARRY_MASK: M;
-    /// Mask from the hidden bit to the right, to see if we can prevent overflow.]
-    const OVERFLOW_MASK: &'static [M];
-    /// Rounding parameters to convert to native float.
-    const ROUNDING_PARAMS: &'static RoundingParameters<M> = &M::ROUNDING_PARAMETERS[Self::DEFAULT_SHIFT as usize];
 }
 
 // Literals don't work for generic types, we need to use this as a hack.
@@ -127,12 +115,6 @@ macro_rules! float_rounding_f32 {
         impl FloatRounding<$t> for f32 {
             const DEFAULT_SHIFT: i32    = $t::BITS - f32::MANTISSA_SIZE - 1;
             const CARRY_MASK: $t        = 0x1000000;
-            const OVERFLOW_MASK: &'static [$t] = &[
-                0x00800000, 0x00C00000, 0x00E00000, 0x00F00000, 0x00F80000, 0x00FC0000,
-                0x00FE0000, 0x00FF0000, 0x00FF8000, 0x00FFC000, 0x00FFE000, 0x00FFF000,
-                0x00FFF800, 0x00FFFC00, 0x00FFFE00, 0x00FFFF00, 0x00FFFF80, 0x00FFFFC0,
-                0x00FFFFE0, 0x00FFFFF0, 0x00FFFFF8, 0x00FFFFFC, 0x00FFFFFE, 0x00FFFFFF
-            ];
         }
     )*)
 }
@@ -145,26 +127,6 @@ macro_rules! float_rounding_f64 {
         impl FloatRounding<$t> for f64 {
             const DEFAULT_SHIFT: i32    = $t::BITS - f64::MANTISSA_SIZE - 1;
             const CARRY_MASK: $t        = 0x20000000000000;
-            const OVERFLOW_MASK: &'static [$t] = &[
-                0x0010000000000000, 0x0018000000000000, 0x001C000000000000,
-                0x001E000000000000, 0x001F000000000000, 0x001F800000000000,
-                0x001FC00000000000, 0x001FE00000000000, 0x001FF00000000000,
-                0x001FF80000000000, 0x001FFC0000000000, 0x001FFE0000000000,
-                0x001FFF0000000000, 0x001FFF8000000000, 0x001FFFC000000000,
-                0x001FFFE000000000, 0x001FFFF000000000, 0x001FFFF800000000,
-                0x001FFFFC00000000, 0x001FFFFE00000000, 0x001FFFFF00000000,
-                0x001FFFFF80000000, 0x001FFFFFC0000000, 0x001FFFFFE0000000,
-                0x001FFFFFF0000000, 0x001FFFFFF8000000, 0x001FFFFFFC000000,
-                0x001FFFFFFE000000, 0x001FFFFFFF000000, 0x001FFFFFFF800000,
-                0x001FFFFFFFC00000, 0x001FFFFFFFE00000, 0x001FFFFFFFF00000,
-                0x001FFFFFFFF80000, 0x001FFFFFFFFC0000, 0x001FFFFFFFFE0000,
-                0x001FFFFFFFFF0000, 0x001FFFFFFFFF8000, 0x001FFFFFFFFFC000,
-                0x001FFFFFFFFFE000, 0x001FFFFFFFFFF000, 0x001FFFFFFFFFF800,
-                0x001FFFFFFFFFFC00, 0x001FFFFFFFFFFE00, 0x001FFFFFFFFFFF00,
-                0x001FFFFFFFFFFF80, 0x001FFFFFFFFFFFC0, 0x001FFFFFFFFFFFE0,
-                0x001FFFFFFFFFFFF0, 0x001FFFFFFFFFFFF8, 0x001FFFFFFFFFFFFC,
-                0x001FFFFFFFFFFFFE, 0x001FFFFFFFFFFFFF
-            ];
         }
     )*)
 }
@@ -182,7 +144,7 @@ float_rounding_f64! { u64 u128 }
 pub(crate) fn round_to_float_impl<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
     where T: FloatRounding<M>,
           M: Mantissa,
-          Cb: FnOnce(&mut ExtendedFloat<M>, &RoundingParameters<M>)
+          Cb: FnOnce(&mut ExtendedFloat<M>, i32)
 {
     // Calculate the difference to allow a single calculation
     // rather than a loop, to minimize the number of ops required.
@@ -196,15 +158,14 @@ pub(crate) fn round_to_float_impl<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
         // out the value.
         let diff = T::DENORMAL_EXPONENT - fp.exp;
         if diff < M::BITS {
-            let params = unsafe { M::ROUNDING_PARAMETERS.get_unchecked(diff as usize) };
-            round_nearest_tie_even(fp, params);
+            round_nearest_tie_even(fp, diff);
         } else {
             // Certain underflow, assign literal 0s.
             fp.frac = M::ZERO;
             fp.exp = 0;
         }
     } else {
-        cb(fp, T::ROUNDING_PARAMS);
+        cb(fp, T::DEFAULT_SHIFT);
     }
 
     if fp.frac & T::CARRY_MASK == T::CARRY_MASK {
@@ -237,13 +198,17 @@ pub(crate) fn avoid_overflow<T, M>(fp: &mut ExtendedFloat<M>)
           M: Mantissa
 {
     // Calculate the difference to allow a single calculation
-    // rather than a loop, using a precalculated bitmask table,
-    // minimizing the number of ops required.
+    // rather than a loop, minimizing the number of ops required.
     if fp.exp >= T::MAX_EXPONENT {
         let diff = fp.exp - T::MAX_EXPONENT;
-        let idx = diff as usize;
-        if let Some(mask) = T::OVERFLOW_MASK.get(idx) {
-            if (fp.frac & *mask).is_zero() {
+        if diff <= T::MANTISSA_SIZE {
+            // Our overflow mask needs to start at the hidden bit, or at
+            // `T::MANTISSA_SIZE+1`, and needs to have `diff+1` bits set,
+            // to see if our value overflows.
+            let bit = as_cast(T::MANTISSA_SIZE+1);
+            let n = as_cast(diff+1);
+            let mask: M = internal_n_mask(bit, n);
+            if (fp.frac & mask).is_zero() {
                 // If we have no 1-bit in the hidden-bit position,
                 // which is index 0, we need to shift 1.
                 let shift = diff + 1;
@@ -282,25 +247,23 @@ mod tests {
 
     #[test]
     fn round_nearest_test() {
-        let round = &u64::ROUNDING_PARAMETERS[6];
-
         // Check exactly halfway (b'1100000')
         let mut fp = ExtendedFloat80 { frac: 0x60, exp: 0 };
-        let (above, halfway) = round_nearest(&mut fp, round);
+        let (above, halfway) = round_nearest(&mut fp, 6);
         assert!(!above);
         assert!(halfway);
         assert_eq!(fp.frac, 1);
 
         // Check above halfway (b'1100001')
         let mut fp = ExtendedFloat80 { frac: 0x61, exp: 0 };
-        let (above, halfway) = round_nearest(&mut fp, round);
+        let (above, halfway) = round_nearest(&mut fp, 6);
         assert!(above);
         assert!(!halfway);
         assert_eq!(fp.frac, 1);
 
         // Check below halfway (b'1011111')
         let mut fp = ExtendedFloat80 { frac: 0x5F, exp: 0 };
-        let (above, halfway) = round_nearest(&mut fp, round);
+        let (above, halfway) = round_nearest(&mut fp, 6);
         assert!(!above);
         assert!(!halfway);
         assert_eq!(fp.frac, 1);
@@ -308,66 +271,62 @@ mod tests {
 
     #[test]
     fn round_nearest_tie_even_test() {
-        let round = &u64::ROUNDING_PARAMETERS[6];
-
         // Check round-up, halfway
         let mut fp = ExtendedFloat80 { frac: 0x60, exp: 0 };
-        round_nearest_tie_even(&mut fp, round);
+        round_nearest_tie_even(&mut fp, 6);
         assert_eq!(fp.frac, 2);
 
         // Check round-down, halfway
         let mut fp = ExtendedFloat80 { frac: 0x20, exp: 0 };
-        round_nearest_tie_even(&mut fp, round);
+        round_nearest_tie_even(&mut fp, 6);
         assert_eq!(fp.frac, 0);
 
         // Check round-up, above halfway
         let mut fp = ExtendedFloat80 { frac: 0x61, exp: 0 };
-        round_nearest_tie_even(&mut fp, round);
+        round_nearest_tie_even(&mut fp, 6);
         assert_eq!(fp.frac, 2);
 
         let mut fp = ExtendedFloat80 { frac: 0x21, exp: 0 };
-        round_nearest_tie_even(&mut fp, round);
+        round_nearest_tie_even(&mut fp, 6);
         assert_eq!(fp.frac, 1);
 
         // Check round-down, below halfway
         let mut fp = ExtendedFloat80 { frac: 0x5F, exp: 0 };
-        round_nearest_tie_even(&mut fp, round);
+        round_nearest_tie_even(&mut fp, 6);
         assert_eq!(fp.frac, 1);
 
         let mut fp = ExtendedFloat80 { frac: 0x1F, exp: 0 };
-        round_nearest_tie_even(&mut fp, round);
+        round_nearest_tie_even(&mut fp, 6);
         assert_eq!(fp.frac, 0);
     }
 
     #[test]
     fn round_nearest_tie_away_zero_test() {
-        let round = &u64::ROUNDING_PARAMETERS[6];
-
         // Check round-up, halfway
         let mut fp = ExtendedFloat80 { frac: 0x60, exp: 0 };
-        round_nearest_tie_away_zero(&mut fp, round);
+        round_nearest_tie_away_zero(&mut fp, 6);
         assert_eq!(fp.frac, 2);
 
         let mut fp = ExtendedFloat80 { frac: 0x20, exp: 0 };
-        round_nearest_tie_away_zero(&mut fp, round);
+        round_nearest_tie_away_zero(&mut fp, 6);
         assert_eq!(fp.frac, 1);
 
         // Check round-up, above halfway
         let mut fp = ExtendedFloat80 { frac: 0x61, exp: 0 };
-        round_nearest_tie_away_zero(&mut fp, round);
+        round_nearest_tie_away_zero(&mut fp, 6);
         assert_eq!(fp.frac, 2);
 
         let mut fp = ExtendedFloat80 { frac: 0x21, exp: 0 };
-        round_nearest_tie_away_zero(&mut fp, round);
+        round_nearest_tie_away_zero(&mut fp, 6);
         assert_eq!(fp.frac, 1);
 
         // Check round-down, below halfway
         let mut fp = ExtendedFloat80 { frac: 0x5F, exp: 0 };
-        round_nearest_tie_away_zero(&mut fp, round);
+        round_nearest_tie_away_zero(&mut fp, 6);
         assert_eq!(fp.frac, 1);
 
         let mut fp = ExtendedFloat80 { frac: 0x1F, exp: 0 };
-        round_nearest_tie_away_zero(&mut fp, round);
+        round_nearest_tie_away_zero(&mut fp, 6);
         assert_eq!(fp.frac, 0);
     }
 

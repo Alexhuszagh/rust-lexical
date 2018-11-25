@@ -9,6 +9,7 @@ pub(crate) mod api;
 mod algorithm;
 mod cast;
 mod config;
+mod mask;
 mod num;
 mod pow;
 mod primitive;
@@ -19,6 +20,7 @@ mod wrapped;
 // Publicly export everything with crate-visibility.
 pub(crate) use self::algorithm::*;
 pub(crate) use self::cast::*;
+pub(crate) use self::mask::*;
 pub(crate) use self::num::*;
 pub(crate) use self::pow::*;
 pub(crate) use self::primitive::*;

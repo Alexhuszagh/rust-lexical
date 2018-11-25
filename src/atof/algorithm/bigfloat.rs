@@ -1860,8 +1860,8 @@ impl Bigfloat {
         // Create our wrapper for round_nearest_tie_even.
         // If there are truncated bits, and we are exactly halfway,
         // then we need to set above to true and halfway to false.
-        let rounding = move | f: &mut ExtendedFloat80, params: &RoundingParameters<u64> | {
-            let (mut is_above, mut is_halfway) = round_nearest(f, params);
+        let rounding = move | f: &mut ExtendedFloat80, shift: i32 | {
+            let (mut is_above, mut is_halfway) = round_nearest(f, shift);
             if is_halfway && is_truncated {
                 is_above = true;
                 is_halfway = false;
