@@ -8,6 +8,36 @@
 // Fix a compiler bug that thinks `ExactExponent` isn't used.
 #![allow(unused_imports)]
 
+// Code the generate the benchmark plot for f32:
+//  import numpy as np
+//  import pandas as pd
+//  import matplotlib.pyplot as plt
+//  plt.style.use('ggplot')
+//  lexical = np.array([176665, 607635, 832949, 867837, 1148750, 912004, 1460000]) / 1e6
+//  parse = np.array([198785, 10206859, 27092915, 90488388, 250777648, 29324566, 128600000]) / 1e6
+//  index = ["2", "8", "16", "32", "64", "random", "malicious"]
+//  df = pd.DataFrame({'lexical': lexical, 'parse': parse}, index = index)
+//  ax = df.plot.bar(rot=0)
+//  ax.set_yscale('log')
+//  ax.set_ylabel("ms/iter")
+//  ax.figure.tight_layout()
+//  plt.show()
+
+// Code the generate the benchmark plot for f64:
+//  import numpy as np
+//  import pandas as pd
+//  import matplotlib.pyplot as plt
+//  plt.style.use('ggplot')
+//  lexical = np.array([175465, 335195, 757436, 977333, 1281781, 968977, 4250000]) / 1e6
+//  parse = np.array([203726, 373929, 2770159, 4201497, 7961527, 133370247, 5856740000]) / 1e6
+//  index = ["2", "8", "16", "32", "64", "random", "malicious"]
+//  df = pd.DataFrame({'lexical': lexical, 'parse': parse}, index = index)
+//  ax = df.plot.bar(rot=0)
+//  ax.set_yscale('log')
+//  ax.set_ylabel("ms/iter")
+//  ax.figure.tight_layout()
+//  plt.show()
+
 use atoi;
 use float::*;
 use table::*;
@@ -162,14 +192,31 @@ fn pow2_exponent(base: u32) -> i32 {
     }
 }
 
+/// Detect if a value is exactly halfway.
+#[inline]
+fn is_halfway<F: Float>(mantissa: u64)
+    -> bool
+{
+    // Get the leading and trailing zeros from the least-significant bit.
+    let leading_zeros: i32 = as_cast(64 - mantissa.leading_zeros());
+    let trailing_zeros: i32 = as_cast(mantissa.trailing_zeros());
+
+    // We need exactly mantissa+2 elements between these if it is halfway.
+    // The hidden bit is mantissa+1 elements away, which is the last non-
+    // truncated bit, while mantissa+2
+    leading_zeros - trailing_zeros == F::MANTISSA_SIZE + 2
+}
+
 /// Convert power-of-two to exact value.
+///
+/// We will always get an exact representation.
 ///
 /// This works since multiplying by the exponent will not affect the
 /// mantissa unless the exponent is denormal, which will cause truncation
 /// regardless.
 #[inline]
 fn pow2_to_exact<F: StablePower>(mantissa: u64, base: u32, pow2_exp: i32, exponent: i32)
-    -> (F, bool)
+    -> F
 {
     debug_assert!(pow2_exp != 0, "Not a power of 2.");
 
@@ -184,9 +231,9 @@ fn pow2_to_exact<F: StablePower>(mantissa: u64, base: u32, pow2_exp: i32, expone
     let (min_exp, max_exp) = F::exponent_limit(base);
     let underflow_exp = min_exp - (65 / pow2_exp);
     if exponent > max_exp {
-        (F::INFINITY, true)
+        F::INFINITY
     } else if exponent < underflow_exp{
-        (F::ZERO, true)
+        F::ZERO
     } else if exponent < min_exp {
         // We know the mantissa is somewhere <= 65 below min_exp.
         // May still underflow, but it's close. Use the first multiplication
@@ -195,11 +242,11 @@ fn pow2_to_exact<F: StablePower>(mantissa: u64, base: u32, pow2_exp: i32, expone
         let remainder = exponent - min_exp;
         let float: F = as_cast(mantissa);
         let float = unsafe { float.pow2(pow2_exp * remainder).pow2(pow2_exp * min_exp) };
-        (float, true)
+        float
     } else {
         let float: F = as_cast(mantissa);
         let float = unsafe { float.pow2(pow2_exp * exponent) };
-        (float, true)
+        float
     }
 }
 
@@ -214,6 +261,8 @@ fn to_exact<F: StablePower>(mantissa: u64, base: u32, exponent: i32) -> (F, bool
     debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
     debug_assert!(pow2_exponent(base) == 0, "Cannot use `to_exact` with a power of 2.");
 
+    // `mantissa >> F::MANTISSA_SIZE != 0` effectively checks if the value
+    // has a no bits above the hidden bit, which is what we want.
     let (min_exp, max_exp) = F::exponent_limit(base);
     if mantissa >> F::MANTISSA_SIZE != 0 {
         // Would require truncation of the mantissa.
@@ -402,7 +451,7 @@ pub(super) fn to_extended<F, M>(mantissa: M, base: u32, exponent: i32, truncated
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-unsafe extern "C" fn to_native<F>(base: u32, first: *const u8, last: *const u8, optimize: bool)
+unsafe extern "C" fn to_native<F>(base: u32, first: *const u8, last: *const u8, lossy: bool)
     -> (F, *const u8)
     where F: FloatRounding<u64> + FloatRounding<u128> + StablePower
 {
@@ -417,9 +466,17 @@ unsafe extern "C" fn to_native<F>(base: u32, first: *const u8, last: *const u8, 
     } else if pow2_exp != 0 {
         // We have a power of 2, can get an exact value even if the mantissa
         // was truncated, since we introduce no rounding error during
-        // multiplication.
-        let (float, valid) = pow2_to_exact::<F>(mantissa, base, pow2_exp, exponent);
-        if valid {
+        // multiplication. If the value is **exactly halfway** and
+        // truncated, we need to use the bigfloat algorithm immediately.
+        if truncated && is_halfway::<F>(mantissa) {
+            // Need to determine if **any** of the truncated bits is non-zero.
+            // Multiplication will be super-cheap here, so this isn't actually
+            // that slow.
+            let (bigfloat, p) = Bigfloat::from_bytes(base, first, last);
+            return (bigfloat.as_float::<F>(), p);
+        } else {
+            // Not truncated straddling halfway, can get exact representation.
+            let float = pow2_to_exact::<F>(mantissa, base, pow2_exp, exponent);
             return (float, p);
         }
     } else if !truncated {
@@ -437,7 +494,7 @@ unsafe extern "C" fn to_native<F>(base: u32, first: *const u8, last: *const u8, 
     }
 
     // Slow path
-    if optimize {
+    if lossy {
         // Fast slow-path (use a 128-bit mantissa and extended 160-bit float).
         let (mantissa, exponent, p, truncated) = parse_float::<u128>(base, first, last);
         let (float, _) = to_extended::<F, _>(mantissa, base, exponent, truncated);
@@ -445,7 +502,7 @@ unsafe extern "C" fn to_native<F>(base: u32, first: *const u8, last: *const u8, 
     } else {
         // Extremely slow algorithm, use arbitrary-precision float.
         let (bigfloat, p) = Bigfloat::from_bytes(base, first, last);
-        (bigfloat.as_float::<F>(), p)
+        return (bigfloat.as_float::<F>(), p);
     }
 }
 
@@ -605,6 +662,42 @@ mod tests {
     }
 
     #[test]
+    fn is_halfway_test() {
+        // Variant of b1000000000000000000000001, a halfway value for f32.
+        assert!(is_halfway::<f32>(0x1000001));
+        assert!(is_halfway::<f32>(0x2000002));
+        assert!(is_halfway::<f32>(0x8000008000000000));
+        assert!(!is_halfway::<f64>(0x1000001));
+        assert!(!is_halfway::<f64>(0x2000002));
+        assert!(!is_halfway::<f64>(0x8000008000000000));
+
+        // Variant of b10000000000000000000000001, which is 1-off a halfway value.
+        assert!(!is_halfway::<f32>(0x2000001));
+        assert!(!is_halfway::<f64>(0x2000001));
+
+        // Variant of b100000000000000000000000000000000000000000000000000001,
+        // a halfway value for f64
+        assert!(!is_halfway::<f32>(0x20000000000001));
+        assert!(!is_halfway::<f32>(0x40000000000002));
+        assert!(!is_halfway::<f32>(0x8000000000000400));
+        assert!(is_halfway::<f64>(0x20000000000001));
+        assert!(is_halfway::<f64>(0x40000000000002));
+        assert!(is_halfway::<f64>(0x8000000000000400));
+
+        // Variant of b111111000000000000000000000000000000000000000000000001,
+        // a halfway value for f64.
+        assert!(!is_halfway::<f32>(0x3f000000000001));
+        assert!(!is_halfway::<f32>(0xFC00000000000400));
+        assert!(is_halfway::<f64>(0x3f000000000001));
+        assert!(is_halfway::<f64>(0xFC00000000000400));
+
+        // Variant of b1000000000000000000000000000000000000000000000000000001,
+        // which is 1-off a halfway value.
+        assert!(!is_halfway::<f32>(0x40000000000001));
+        assert!(!is_halfway::<f64>(0x40000000000001));
+    }
+
+    #[test]
     fn pow2_to_float_exact_test() {
         // Everything is valid.
         let mantissa = 1 << 63;
@@ -612,8 +705,8 @@ mod tests {
             let (min_exp, max_exp) = f32::exponent_limit(base);
             let pow2_exp = pow2_exponent(base);
             for exp in min_exp-20..max_exp+30 {
-                let (_, valid) = pow2_to_exact::<f32>(mantissa, base, pow2_exp, exp);
-                assert!(valid, "should be valid {:?}.", (mantissa, base, exp));
+                // Always valid, ignore result
+                pow2_to_exact::<f32>(mantissa, base, pow2_exp, exp);
             }
         }
     }
@@ -626,8 +719,8 @@ mod tests {
             let (min_exp, max_exp) = f64::exponent_limit(base);
             let pow2_exp = pow2_exponent(base);
             for exp in min_exp-20..max_exp+30 {
-                let (_, valid) = pow2_to_exact::<f64>(mantissa, base, pow2_exp, exp);
-                assert!(valid, "should be valid {:?}.", (mantissa, base, exp));
+                // Ignore result, always valid
+                pow2_to_exact::<f64>(mantissa, base, pow2_exp, exp);
             }
         }
     }

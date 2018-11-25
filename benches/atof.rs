@@ -1,3 +1,6 @@
+//! Sample, purely random-data for atof benchmarks.
+//! Mostly invokes the worst-case scenarios.
+
 #[macro_use]
 extern crate bencher;
 extern crate lexical;

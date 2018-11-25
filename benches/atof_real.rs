@@ -1,3 +1,5 @@
+//! Sample, real dataset for atof benchmarks.
+
 #[macro_use]
 extern crate bencher;
 #[macro_use]
