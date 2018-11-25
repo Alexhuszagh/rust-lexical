@@ -45,6 +45,11 @@ extern crate smallvec;
 #[macro_use]
 extern crate approx;
 
+// Test against randomly-generated data.
+#[cfg(test)]
+#[macro_use]
+extern crate quickcheck;
+
 // Ensure only one back-end is enabled.
 #[cfg(all(feature = "grisu3", feature = "ryu"))]
 compile_error!("Lexical only accepts one of the following backends: `grisu3` or `ryu`.");
@@ -337,6 +342,7 @@ pub fn try_parse<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes)
 }
 
 /// High-level lossy conversion of decimal-encoded bytes to a number.
+///
 /// This function uses aggressive optimizations to avoid worst-case
 /// scenarios, and can return inaccurate results. For guaranteed accurate
 /// floats, use [`try_parse`].

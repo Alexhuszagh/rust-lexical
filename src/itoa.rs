@@ -452,6 +452,7 @@ generate_to_bytes_api!(isizetoa_bytes, isize, isizetoa_local, 128);  // 65
 
 #[cfg(test)]
 mod tests {
+    use atoi::*;
     use super::*;
 
     #[test]
@@ -576,6 +577,48 @@ mod tests {
 
         for (base, expected) in data.iter() {
             assert_eq!(expected.as_bytes().to_vec(), i8toa_bytes(37, *base));
+        }
+    }
+
+    quickcheck! {
+        fn u8_quickcheck(i: u8) -> bool {
+            i == atou8_bytes(10, u8toa_bytes(i, 10).as_slice())
+        }
+
+        fn u16_quickcheck(i: u16) -> bool {
+            i == atou16_bytes(10, u16toa_bytes(i, 10).as_slice())
+        }
+
+        fn u32_quickcheck(i: u32) -> bool {
+            i == atou32_bytes(10, u32toa_bytes(i, 10).as_slice())
+        }
+
+        fn u64_quickcheck(i: u64) -> bool {
+            i == atou64_bytes(10, u64toa_bytes(i, 10).as_slice())
+        }
+
+        fn usize_quickcheck(i: usize) -> bool {
+            i == atousize_bytes(10, usizetoa_bytes(i, 10).as_slice())
+        }
+
+        fn i8_quickcheck(i: i8) -> bool {
+            i == atoi8_bytes(10, i8toa_bytes(i, 10).as_slice())
+        }
+
+        fn i16_quickcheck(i: i16) -> bool {
+            i == atoi16_bytes(10, i16toa_bytes(i, 10).as_slice())
+        }
+
+        fn i32_quickcheck(i: i32) -> bool {
+            i == atoi32_bytes(10, i32toa_bytes(i, 10).as_slice())
+        }
+
+        fn i64_quickcheck(i: i64) -> bool {
+            i == atoi64_bytes(10, i64toa_bytes(i, 10).as_slice())
+        }
+
+        fn isize_quickcheck(i: isize) -> bool {
+            i == atoisize_bytes(10, isizetoa_bytes(i, 10).as_slice())
         }
     }
 }

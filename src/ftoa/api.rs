@@ -330,4 +330,14 @@ mod tests {
             }
         }
     }
+
+    quickcheck! {
+        fn f32_quickcheck(f: f32) -> bool {
+            f == atof32_bytes(10, f32toa_bytes(f, 10).as_slice())
+        }
+
+        fn f64_quickcheck(f: f64) -> bool {
+            f == atof64_bytes(10, f64toa_bytes(f, 10).as_slice())
+        }
+    }
 }
