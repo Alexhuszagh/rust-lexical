@@ -7,7 +7,6 @@ extern crate lexical;
 use bencher::{black_box, Bencher};
 use lexical::atof::*;
 
-
 // F32
 
 const F32_DATA: [&'static str; 2] = ["1.7014118346046927e+38", "170141183460469250621729695946768384000"];

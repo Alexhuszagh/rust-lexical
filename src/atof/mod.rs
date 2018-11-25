@@ -6,3 +6,8 @@ mod api;
 
 // Re-exports
 pub use self::api::*;
+
+// Exposed for benchmarking only.
+#[doc(hidden)]
+#[cfg(not(feature = "imprecise"))]
+pub use self::algorithm::bigfloat::Bigfloat;

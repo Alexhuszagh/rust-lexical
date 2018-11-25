@@ -682,7 +682,7 @@ macro_rules! from_bytes {
 /// but would dramatically increase library complexity, or depend on GMP.
 /// Consider with caution.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Bigfloat {
+pub struct Bigfloat {
     /// Raw data for the underlying buffer (exactly 32**2 for the largest float).
     /// Don't store more bytes for small floats, since the denormal floats
     /// have almost no bytes of precision.

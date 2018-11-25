@@ -9,7 +9,7 @@ license = "MIT/Apache-2.0"
 name = "lexical"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
-version = "1.6.0"
+version = "1.6.1"
 exclude = [
     "benches/*",
 ]
@@ -84,6 +84,10 @@ harness = false
 
 [[bench]]
 name = "atoi"
+harness = false
+
+[[bench]]
+name = "bigfloat"
 harness = false
 
 [[bench]]
