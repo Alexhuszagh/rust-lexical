@@ -8,6 +8,56 @@
 // Fix a compiler bug that thinks `ExactExponent` isn't used.
 #![allow(unused_imports)]
 
+// BENCHMARKS
+//  The Python benchmarks were done by pre-parsing the data into a Python
+//  list, and then using the following code:
+//  ```text
+//  %%timeit
+//  for i in l:
+//      float(i)
+//  ```
+//
+// The C++ benchmarks (libstdc++) were done using the following code:
+//
+//  ```text
+//  #include <benchmark/benchmark.h>
+//  #include <cstdlib>
+//
+//  static void bench(benchmark::State& state)
+//  {
+//      for (auto _ : state) {
+//          for (auto value: DATA) {
+//              benchmark::DoNotOptimize(std::strtod(value, nullptr));
+//          }
+//      }
+//  }
+//  BENCHMARK(bench);
+//  BENCHMARK_MAIN();
+//  ```
+//
+// The Go benchmarks were done using the following code:
+//
+//  ```text
+//  package parse
+//
+//  import "strconv"
+//  import "testing"
+//
+//  var result float64
+//
+//  func Benchmark(b *testing.B) {
+//      var r float64
+//      for n := 0; n < b.N; n++ {
+//          for _, v := range data {
+//              if f, err := strconv.ParseFloat(v, 64); err == nil {
+//                  r = f
+//              }
+//          }
+//      }
+//      result = r
+//  }
+//  ```
+
 // Code the generate the benchmark plot for f32:
 //  import numpy as np
 //  import pandas as pd
@@ -30,8 +80,11 @@
 //  plt.style.use('ggplot')
 //  lexical = np.array([175465, 335195, 757436, 977333, 1281781, 968977, 4250000]) / 1e6
 //  parse = np.array([203726, 373929, 2770159, 4201497, 7961527, 133370247, 5856740000]) / 1e6
+//  python = np.array([1760000, 1910000, 4230000, 6070000, 7030000, 6540000, 268000000]) / 1e6
+//  cpp = np.array([970611, 1254091, 1601604, 1976854, 2329004, 3111764, 4160000]) / 1e6
+//  go = np.array([258830, 508871, 1437397, 2535061, 4476364, 2104273, 68840000]) / 1e6
 //  index = ["2", "8", "16", "32", "64", "random", "malicious"]
-//  df = pd.DataFrame({'lexical': lexical, 'parse': parse}, index = index)
+//  df = pd.DataFrame({'lexical': lexical, 'parse': parse, 'python': python, 'c++': cpp, 'go': go}, index = index)
 //  ax = df.plot.bar(rot=0)
 //  ax.set_yscale('log')
 //  ax.set_ylabel("ms/iter")
