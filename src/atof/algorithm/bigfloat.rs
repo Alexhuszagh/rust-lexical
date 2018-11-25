@@ -358,7 +358,10 @@ fn padded_bits(i: u32, n:i32) -> u32 {
 unsafe fn parse_digits(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32], mut first: *const u8, last: *const u8)
     -> *const u8
 {
-    let step = small_powers.len() - 1;
+    // We need to consider step - 2, since we guarantee up to the largest
+    // small power being <= u32::max_value(). Any large digit in the
+    // first position might lead to a larger value, especially for higher bases.
+    let step = small_powers.len() - 2;
     loop {
         // Cannot overflow, choosing the maximum number of digits to avoid
         // overflow.
