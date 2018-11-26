@@ -54,16 +54,14 @@ impl StringToFloat for f64 {
 unsafe extern "C" fn is_nan(first: *const u8, length: usize)
     -> bool
 {
-    // TODO(ahuszagh) Need to do a case-insensitive compare...
-    starts_with_range(first, length, NAN_STRING.as_ptr(), NAN_STRING.len())
+    case_insensitive_starts_with_range(first, length, NAN_STRING.as_ptr(), NAN_STRING.len())
 }
 
 #[inline(always)]
 unsafe extern "C" fn is_infinity(first: *const u8, length: usize)
     -> bool
 {
-    // TODO(ahuszagh) Need to do a case-insensitive compare...
-    starts_with_range(first, length, INFINITY_STRING.as_ptr(), INFINITY_STRING.len())
+    case_insensitive_starts_with_range(first, length, INFINITY_STRING.as_ptr(), INFINITY_STRING.len())
 }
 
 #[inline(always)]
@@ -221,7 +219,10 @@ mod tests {
         assert_f32_eq!(1.2345e-38, atof32_bytes(10, b"0.000000000000000000000000000000000000012345"));
 
         assert!(atof32_bytes(10, b"NaN").is_nan());
+        assert!(atof32_bytes(10, b"nan").is_nan());
+        assert!(atof32_bytes(10, b"NAN").is_nan());
         assert!(atof32_bytes(10, b"inf").is_infinite());
+        assert!(atof32_bytes(10, b"INF").is_infinite());
         assert!(atof32_bytes(10, b"+inf").is_infinite());
         assert!(atof32_bytes(10, b"-inf").is_infinite());
     }
@@ -303,7 +304,10 @@ mod tests {
         assert_eq!(5e-324, atof64_bytes(10, b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005"));
 
         assert!(atof64_bytes(10, b"NaN").is_nan());
+        assert!(atof64_bytes(10, b"nan").is_nan());
+        assert!(atof64_bytes(10, b"NAN").is_nan());
         assert!(atof64_bytes(10, b"inf").is_infinite());
+        assert!(atof64_bytes(10, b"INF").is_infinite());
         assert!(atof64_bytes(10, b"+inf").is_infinite());
         assert!(atof64_bytes(10, b"-inf").is_infinite());
     }

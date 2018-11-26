@@ -18,7 +18,7 @@ pub(super) unsafe extern "C" fn parse_exponent(base: u32, first: *const u8, last
 {
     let mut p = first;
     let dist = distance(first, last);
-    if dist > 1 && (*p).to_ascii_lowercase() == exponent_notation_char(base) {
+    if dist > 1 && (*p).to_ascii_lowercase() == exponent_notation_char(base).to_ascii_lowercase() {
         p = p.add(1);
         // Use atoi_sign so we can handle overflow differently for +/- numbers.
         // We care whether the value is positive.

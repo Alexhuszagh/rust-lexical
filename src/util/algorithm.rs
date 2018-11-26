@@ -51,13 +51,45 @@ extern {
     fn memcmp(l: *const u8, r: *const u8, n: usize) -> i32;
 }
 
+/// Compare two byte arrays (wrapper for memcmp).
+#[inline(always)]
+unsafe extern "C" fn compare(l: *const u8, r: *const u8, n: usize)
+    -> i32
+{
+    memcmp(l, r, n)
+}
+
+/// Compare two byte arrays without case-sensitivity.
+#[inline(always)]
+unsafe extern "C" fn case_insensitive_compare(l: *const u8, r: *const u8, n: usize)
+    -> i32
+{
+    for i in 0..n {
+        let li = (*l.add(i)).to_ascii_lowercase();
+        let ri = (*r.add(i)).to_ascii_lowercase();
+        if li != ri {
+            return if li < ri { -1 } else { 1 }
+        }
+    }
+    0
+}
+
 /// Check if two ranges are equal to each other.
 #[inline(always)]
 #[allow(dead_code)]
 pub unsafe extern "C" fn equal_to_range(l: *const u8, r: *const u8, n: usize)
     -> bool
 {
-    memcmp(l, r, n) == 0
+    compare(l, r, n) == 0
+}
+
+/// Check if two ranges are equal to each other without case-sensitivity.
+#[inline(always)]
+#[allow(dead_code)]
+pub unsafe extern "C" fn case_insensitive_equal_to_range(l: *const u8, r: *const u8, n: usize)
+    -> bool
+{
+    case_insensitive_compare(l, r, n) == 0
 }
 
 /// Check if two slices are equal to each other.
@@ -71,6 +103,17 @@ pub fn equal_to_slice<'a>(l: &'a [u8], r: &'a [u8])
     }
 }
 
+/// Check if two slices are equal to each other without case-sensitivity.
+#[inline(always)]
+#[allow(dead_code)]
+pub fn case_insensitive_equal_to_slice<'a>(l: &'a [u8], r: &'a [u8])
+    -> bool
+{
+    unsafe {
+        l.len() == r.len() && case_insensitive_equal_to_range(l.as_ptr(), r.as_ptr(), l.len())
+    }
+}
+
 /// Check if left range starts with right range.
 #[inline(always)]
 #[allow(dead_code)]
@@ -78,6 +121,15 @@ pub unsafe extern "C" fn starts_with_range(l: *const u8, ln: usize, r: *const u8
     -> bool
 {
     ln >= rn && equal_to_range(l, r, rn)
+}
+
+/// Check if left range starts with right range without case-sensitivity.
+#[inline(always)]
+#[allow(dead_code)]
+pub unsafe extern "C" fn case_insensitive_starts_with_range(l: *const u8, ln: usize, r: *const u8, rn: usize)
+    -> bool
+{
+    ln >= rn && case_insensitive_equal_to_range(l, r, rn)
 }
 
 /// Check if left slice starts with right slice.
@@ -91,6 +143,17 @@ pub fn starts_with_slice<'a>(l: &'a [u8], r: &'a [u8])
     }
 }
 
+/// Check if left slice starts with right slice without case-sensitivity.
+#[inline(always)]
+#[allow(dead_code)]
+pub fn case_insensitive_starts_with_slice<'a>(l: &'a [u8], r: &'a [u8])
+    -> bool
+{
+    unsafe {
+        case_insensitive_starts_with_range(l.as_ptr(), l.len(), r.as_ptr(), r.len())
+    }
+}
+
 /// Check if left range ends with right range.
 #[inline(always)]
 #[allow(dead_code)]
@@ -98,6 +161,15 @@ pub unsafe extern "C" fn ends_with_range(l: *const u8, ln: usize, r: *const u8, 
     -> bool
 {
     ln >= rn && equal_to_range(l.add(ln - rn), r, rn)
+}
+
+/// Check if left range ends with right range without case-sensitivity.
+#[inline(always)]
+#[allow(dead_code)]
+pub unsafe extern "C" fn case_insensitive_ends_with_range(l: *const u8, ln: usize, r: *const u8, rn: usize)
+    -> bool
+{
+    ln >= rn && case_insensitive_equal_to_range(l.add(ln - rn), r, rn)
 }
 
 /// Check if left slice ends with right slice.
@@ -111,14 +183,40 @@ pub fn ends_with_slice<'a>(l: &'a [u8], r: &'a [u8])
     }
 }
 
+/// Check if left slice ends with right slice without case-sensitivity.
+#[inline(always)]
+#[allow(dead_code)]
+pub fn case_insensitive_ends_with_slice<'a>(l: &'a [u8], r: &'a [u8])
+    -> bool
+{
+    unsafe {
+        case_insensitive_ends_with_range(l.as_ptr(), l.len(), r.as_ptr(), r.len())
+    }
+}
+
 /// Trim character from the left-side of a range.
 ///
 /// Returns a pointer to the new start of the range.
 #[inline(always)]
+#[allow(dead_code)]
 pub unsafe extern "C" fn ltrim_char_range(mut first: *const u8, last: *const u8, c: u8)
     -> *const u8
 {
     while first < last && *first == c {
+        first = first.add(1);
+    }
+    first
+}
+
+/// Trim character from the left-side of a range without case-sensitivity.
+///
+/// Returns a pointer to the new start of the range.
+#[inline(always)]
+#[allow(dead_code)]
+pub unsafe extern "C" fn case_insensitive_ltrim_char_range(mut first: *const u8, last: *const u8, c: u8)
+    -> *const u8
+{
+    while first < last && (*first).to_ascii_lowercase() == c.to_ascii_lowercase() {
         first = first.add(1);
     }
     first
@@ -134,6 +232,20 @@ pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
         let first = slc.as_ptr();
         let last = first.add(slc.len());
         let first = ltrim_char_range(first, last, c);
+        slice::from_raw_parts(first, distance(first, last))
+    }
+}
+
+/// Trim character from the left-side of a slice without case-sensitivity.
+#[inline(always)]
+#[allow(dead_code)]
+pub fn case_insensitive_ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
+    -> &'a [u8]
+{
+    unsafe {
+        let first = slc.as_ptr();
+        let last = first.add(slc.len());
+        let first = case_insensitive_ltrim_char_range(first, last, c);
         slice::from_raw_parts(first, distance(first, last))
     }
 }
@@ -192,6 +304,30 @@ mod tests {
     }
 
     #[test]
+    fn case_insensitive_equal_to_test() {
+        let w = "Hello";
+        let x = "Hello";
+        let y = "hello";
+        let z = "Strongbad";
+
+        assert!(case_insensitive_equal_to_slice(w.as_bytes(), x.as_bytes()));
+        assert!(case_insensitive_equal_to_slice(w.as_bytes(), y.as_bytes()));
+        assert!(case_insensitive_equal_to_slice(x.as_bytes(), y.as_bytes()));
+        assert!(!case_insensitive_equal_to_slice(w.as_bytes(), z.as_bytes()));
+        assert!(!case_insensitive_equal_to_slice(x.as_bytes(), z.as_bytes()));
+        assert!(!case_insensitive_equal_to_slice(y.as_bytes(), z.as_bytes()));
+
+        unsafe {
+            assert!(case_insensitive_equal_to_range(w.as_ptr(), x.as_ptr(), w.len()));
+            assert!(case_insensitive_equal_to_range(w.as_ptr(), y.as_ptr(), w.len()));
+            assert!(case_insensitive_equal_to_range(x.as_ptr(), y.as_ptr(), w.len()));
+            assert!(!case_insensitive_equal_to_range(w.as_ptr(), z.as_ptr(), w.len()));
+            assert!(!case_insensitive_equal_to_range(x.as_ptr(), z.as_ptr(), w.len()));
+            assert!(!case_insensitive_equal_to_range(y.as_ptr(), z.as_ptr(), w.len()));
+        }
+    }
+
+    #[test]
     fn starts_with_test() {
         let x = "Hello";
         let y = "H";
@@ -215,6 +351,42 @@ mod tests {
             // back
             assert!(!starts_with_range(y.as_ptr(), y.len(), x.as_ptr(), x.len()));
             assert!(!starts_with_range(z.as_ptr(), z.len(), x.as_ptr(), x.len()));
+        }
+    }
+
+    #[test]
+    fn case_insensitive_starts_with_test() {
+        let w = "Hello";
+        let x = "H";
+        let y = "h";
+        let z = "a";
+
+        // forward
+        assert!(case_insensitive_starts_with_slice(w.as_bytes(), x.as_bytes()));
+        assert!(case_insensitive_starts_with_slice(w.as_bytes(), y.as_bytes()));
+        assert!(case_insensitive_starts_with_slice(x.as_bytes(), y.as_bytes()));
+        assert!(!case_insensitive_starts_with_slice(w.as_bytes(), z.as_bytes()));
+        assert!(!case_insensitive_starts_with_slice(x.as_bytes(), z.as_bytes()));
+        assert!(!case_insensitive_starts_with_slice(y.as_bytes(), z.as_bytes()));
+
+        // back
+        assert!(!case_insensitive_starts_with_slice(x.as_bytes(), w.as_bytes()));
+        assert!(!case_insensitive_starts_with_slice(y.as_bytes(), w.as_bytes()));
+        assert!(!case_insensitive_starts_with_slice(z.as_bytes(), w.as_bytes()));
+
+        unsafe {
+            // forward
+            assert!(case_insensitive_starts_with_range(w.as_ptr(), w.len(), x.as_ptr(), x.len()));
+            assert!(case_insensitive_starts_with_range(w.as_ptr(), w.len(), y.as_ptr(), y.len()));
+            assert!(case_insensitive_starts_with_range(x.as_ptr(), x.len(), y.as_ptr(), y.len()));
+            assert!(!case_insensitive_starts_with_range(w.as_ptr(), w.len(), z.as_ptr(), z.len()));
+            assert!(!case_insensitive_starts_with_range(x.as_ptr(), x.len(), z.as_ptr(), z.len()));
+            assert!(!case_insensitive_starts_with_range(y.as_ptr(), y.len(), z.as_ptr(), z.len()));
+
+            // back
+            assert!(!case_insensitive_starts_with_range(x.as_ptr(), x.len(), w.as_ptr(), w.len()));
+            assert!(!case_insensitive_starts_with_range(y.as_ptr(), y.len(), w.as_ptr(), w.len()));
+            assert!(!case_insensitive_starts_with_range(z.as_ptr(), z.len(), w.as_ptr(), w.len()));
         }
     }
 
@@ -257,6 +429,57 @@ mod tests {
             assert!(!ends_with_range(y.as_ptr(), y.len(), x.as_ptr(), x.len()));
             assert!(!ends_with_range(y.as_ptr(), y.len(), w.as_ptr(), w.len()));
             assert!(!ends_with_range(x.as_ptr(), x.len(), w.as_ptr(), w.len()));
+        }
+    }
+
+    #[test]
+    fn case_insensitive_ends_with_test() {
+        let v = "a";
+        let w = "Hello";
+        let x = "lO";
+        let y = "lo";
+        let z = "o";
+
+        // forward
+        assert!(!case_insensitive_ends_with_slice(w.as_bytes(), v.as_bytes()));
+        assert!(!case_insensitive_ends_with_slice(x.as_bytes(), v.as_bytes()));
+        assert!(!case_insensitive_ends_with_slice(y.as_bytes(), v.as_bytes()));
+        assert!(!case_insensitive_ends_with_slice(z.as_bytes(), v.as_bytes()));
+        assert!(case_insensitive_ends_with_slice(w.as_bytes(), x.as_bytes()));
+        assert!(case_insensitive_ends_with_slice(w.as_bytes(), y.as_bytes()));
+        assert!(case_insensitive_ends_with_slice(w.as_bytes(), z.as_bytes()));
+        assert!(case_insensitive_ends_with_slice(x.as_bytes(), y.as_bytes()));
+        assert!(case_insensitive_ends_with_slice(x.as_bytes(), z.as_bytes()));
+        assert!(case_insensitive_ends_with_slice(y.as_bytes(), z.as_bytes()));
+
+        // back
+        assert!(!case_insensitive_ends_with_slice(z.as_bytes(), y.as_bytes()));
+        assert!(!case_insensitive_ends_with_slice(z.as_bytes(), x.as_bytes()));
+        assert!(!case_insensitive_ends_with_slice(z.as_bytes(), w.as_bytes()));
+        assert!(case_insensitive_ends_with_slice(y.as_bytes(), x.as_bytes()));
+        assert!(!case_insensitive_ends_with_slice(y.as_bytes(), w.as_bytes()));
+        assert!(!case_insensitive_ends_with_slice(x.as_bytes(), w.as_bytes()));
+
+        unsafe {
+            // forward
+            assert!(!case_insensitive_ends_with_range(w.as_ptr(), w.len(), v.as_ptr(), v.len()));
+            assert!(!case_insensitive_ends_with_range(x.as_ptr(), x.len(), v.as_ptr(), v.len()));
+            assert!(!case_insensitive_ends_with_range(y.as_ptr(), y.len(), v.as_ptr(), v.len()));
+            assert!(!case_insensitive_ends_with_range(z.as_ptr(), z.len(), v.as_ptr(), v.len()));
+            assert!(case_insensitive_ends_with_range(w.as_ptr(), w.len(), x.as_ptr(), x.len()));
+            assert!(case_insensitive_ends_with_range(w.as_ptr(), w.len(), y.as_ptr(), y.len()));
+            assert!(case_insensitive_ends_with_range(w.as_ptr(), w.len(), z.as_ptr(), z.len()));
+            assert!(case_insensitive_ends_with_range(x.as_ptr(), x.len(), y.as_ptr(), y.len()));
+            assert!(case_insensitive_ends_with_range(x.as_ptr(), x.len(), z.as_ptr(), z.len()));
+            assert!(case_insensitive_ends_with_range(y.as_ptr(), y.len(), z.as_ptr(), z.len()));
+
+            // back
+            assert!(!case_insensitive_ends_with_range(z.as_ptr(), z.len(), y.as_ptr(), y.len()));
+            assert!(!case_insensitive_ends_with_range(z.as_ptr(), z.len(), x.as_ptr(), x.len()));
+            assert!(!case_insensitive_ends_with_range(z.as_ptr(), z.len(), w.as_ptr(), w.len()));
+            assert!(case_insensitive_ends_with_range(y.as_ptr(), y.len(), x.as_ptr(), x.len()));
+            assert!(!case_insensitive_ends_with_range(y.as_ptr(), y.len(), w.as_ptr(), w.len()));
+            assert!(!case_insensitive_ends_with_range(x.as_ptr(), x.len(), w.as_ptr(), w.len()));
         }
     }
 
