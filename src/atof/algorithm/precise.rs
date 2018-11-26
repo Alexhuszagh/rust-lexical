@@ -380,23 +380,30 @@ impl FloatErrors for u64 {
         let denormal_exp = bias - 63;
         // This is always a valid u32, since (denormal_exp - fp.exp)
         // will always be positive and the significand size is {23, 52}.
-        let extrabits: u32 = as_cast(match fp.exp < denormal_exp {
+        let extrabits = match fp.exp < denormal_exp {
             true  => 63 - F::MANTISSA_SIZE + 1 + denormal_exp - fp.exp,
             false => 63 - F::MANTISSA_SIZE,
-        });
+        };
 
-        // Do a signed comparison, which will always be valid.
-        let mask: u64 = lower_n_mask(extrabits.as_u64());
-        let halfway: i64 = as_cast(lower_n_halfway(extrabits.as_u64()));
-        let extra: i64 = as_cast(fp.frac & mask);
-        let errors: i64 = as_cast(count);
-        let cmp1 = (halfway - errors) < extra;
-        let cmp2 = extra < (halfway + errors);
+        // If we have overflow in the number of extra bits, we have a
+        // literal 0, always. Just return the representation is true,
+        // and get our literal 0.
+        if extrabits > 64 {
+            true
+        } else {
+             // Do a signed comparison, which will always be valid.
+            let mask: u64 = lower_n_mask(extrabits.as_u64());
+            let halfway: u64 = lower_n_halfway(extrabits.as_u64());
+            let extra: u64 = fp.frac & mask;
+            let errors: u64 = as_cast(count);
+            let cmp1 = halfway.as_i64().wrapping_sub(errors.as_i64()) < extra.as_i64();
+            let cmp2 = extra.as_i64() < halfway.as_i64().wrapping_add(errors.as_i64());
 
-        // If both comparisons are true, we have significant rounding error,
-        // and the value cannot be exactly represented. Otherwise, the
-        // representation is valid.
-        !(cmp1 && cmp2)
+            // If both comparisons are true, we have significant rounding error,
+            // and the value cannot be exactly represented. Otherwise, the
+            // representation is valid.
+            !(cmp1 && cmp2)
+        }
     }
 }
 

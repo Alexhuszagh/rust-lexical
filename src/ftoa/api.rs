@@ -86,8 +86,8 @@ unsafe fn filter_special<F: FloatToString>(value: F, base: u32, first: *mut u8)
         first.add(NAN_STRING.len())
     } else if value.is_special() {
         // Must be positive infinity, we've already handled sign
-        ptr::copy_nonoverlapping(INFINITY_STRING.as_ptr(), first, INFINITY_STRING.len());
-        first.add(INFINITY_STRING.len())
+        ptr::copy_nonoverlapping(INF_STRING.as_ptr(), first, INF_STRING.len());
+        first.add(INF_STRING.len())
     } else {
         forward(value, base, first)
     }

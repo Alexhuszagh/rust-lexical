@@ -10,11 +10,17 @@
 /// Do not modify this value in threaded-code, as it is not thread-safe.
 pub static mut NAN_STRING: &str = "NaN";
 
-/// Infinity literal
+/// Short infinity literal
 ///
 /// To change the expected representation of Infinity as a string,
 /// change this value during before using lexical.
-pub static mut INFINITY_STRING: &str = "inf";
+pub static mut INF_STRING: &str = "inf";
+
+/// Long infinity literal
+///
+/// To change the expected backup representation of Infinity as a string,
+/// change this value during before using lexical.
+pub static mut INFINITY_STRING: &str = "infinity";
 
 /// Default character for scientific notation, used when the radix < 15.
 ///
@@ -80,29 +86,28 @@ mod tests {
     #[ignore]
     fn special_bytes_test() {
         // Test serializing and deserializing special strings.
-        assert!(atof32_bytes(10, b"NaN").is_nan());
-        assert!(atof32_bytes(10, b"nan").is_nan());
-        assert!(atof32_bytes(10, b"NAN").is_nan());
-        assert!(atof32_bytes(10, b"inf").is_infinite());
-        assert!(atof32_bytes(10, b"INF").is_infinite());
-        assert!(atof32_bytes(10, b"Infinity").is_infinite());
-        assert!(try_atof32_bytes(10, b"Infinity").is_err());
+        assert!(try_atof32_bytes(10, b"NaN").unwrap().is_nan());
+        assert!(try_atof32_bytes(10, b"nan").unwrap().is_nan());
+        assert!(try_atof32_bytes(10, b"NAN").unwrap().is_nan());
+        assert!(try_atof32_bytes(10, b"inf").unwrap().is_infinite());
+        assert!(try_atof32_bytes(10, b"INF").unwrap().is_infinite());
+        assert!(try_atof32_bytes(10, b"Infinity").unwrap().is_infinite());
         assert_eq!(f64toa_bytes(f64::NAN, 10), b"NaN".to_vec());
         assert_eq!(f64toa_bytes(f64::INFINITY, 10), b"inf".to_vec());
 
         unsafe {
             NAN_STRING = "nan";
-            INFINITY_STRING = "Infinity";
+            INF_STRING = "Infinity";
         }
 
         assert!(try_atof32_bytes(10, b"inf").is_err());
-        assert!(atof32_bytes(10, b"Infinity").is_infinite());
+        assert!(try_atof32_bytes(10, b"Infinity").unwrap().is_infinite());
         assert_eq!(f64toa_bytes(f64::NAN, 10), b"nan".to_vec());
         assert_eq!(f64toa_bytes(f64::INFINITY, 10), b"Infinity".to_vec());
 
         unsafe {
             NAN_STRING = "NaN";
-            INFINITY_STRING = "inf";
+            INF_STRING = "inf";
         }
     }
 }

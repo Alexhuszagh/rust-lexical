@@ -58,6 +58,13 @@ unsafe extern "C" fn is_nan(first: *const u8, length: usize)
 }
 
 #[inline(always)]
+unsafe extern "C" fn is_inf(first: *const u8, length: usize)
+    -> bool
+{
+    case_insensitive_starts_with_range(first, length, INF_STRING.as_ptr(), INF_STRING.len())
+}
+
+#[inline(always)]
 unsafe extern "C" fn is_infinity(first: *const u8, length: usize)
     -> bool
 {
@@ -84,12 +91,17 @@ unsafe extern "C" fn is_zero(first: *const u8, length: usize)
 unsafe fn filter_special<F: StringToFloat>(base: u32, first: *const u8, last: *const u8, lossy: bool)
     -> (F, *const u8)
 {
-    // special case checks
+    // Special case checks
+    // Check long infinity first before short infinity.
+    // Short infinity short-circuits, we want to parse as many characters
+    // as possible.
     let length = distance(first, last);
     if is_zero(first, length) {
         (F::ZERO, first.add(length))
     } else if is_infinity(first, length) {
         (F::INFINITY, first.add(INFINITY_STRING.len()))
+    } else if is_inf(first, length) {
+        (F::INFINITY, first.add(INF_STRING.len()))
     } else if is_nan(first, length) {
         (F::NAN, first.add(NAN_STRING.len()))
     } else if lossy {

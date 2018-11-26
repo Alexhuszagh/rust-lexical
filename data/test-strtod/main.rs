@@ -73,9 +73,12 @@ pub fn data_dir() -> PathBuf {
 }
 
 fn run_test(string: &str, hex: &str) {
-    // TODO(ahuszagh) Need to accept 'e' or 'E'.
-    let float: f64 = lexical::try_parse(string).unwrap();
-    println!("{:?}", (float, string, hex));
+    // We toggle between "inf" and "infinity" as valid Infinity identifiers.
+    let lower = string.to_lowercase();
+    if lower == "nan" || !lower.contains("nan") {
+        let float: f64 = lexical::try_parse(string).unwrap();
+        println!("{:?}", (float, string, hex));
+    }
 }
 
 fn main() {

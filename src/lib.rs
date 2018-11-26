@@ -105,8 +105,8 @@ pub mod ftoa;
 // Re-export EXPONENT_DEFAULT_CHAR and EXPONENT_BACKUP_CHAR globally.
 pub use util::{EXPONENT_DEFAULT_CHAR, EXPONENT_BACKUP_CHAR};
 
-// Re-export NAN_STRING and INFINITY_STRING globally.
-pub use util::{INFINITY_STRING, NAN_STRING};
+// Re-export NAN_STRING, INF_STRING and INFINITY_STRING globally.
+pub use util::{INF_STRING, INFINITY_STRING, NAN_STRING};
 
 // Re-export the Error and ErrorKind globally.
 pub use error::{Error, ErrorKind};
