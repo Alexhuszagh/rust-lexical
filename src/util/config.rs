@@ -80,11 +80,13 @@ mod tests {
     #[ignore]
     fn special_bytes_test() {
         // Test serializing and deserializing special strings.
-        // TODO(ahuszagh) Need case-insensitive checks for this
         assert!(atof32_bytes(10, b"NaN").is_nan());
+        assert!(atof32_bytes(10, b"nan").is_nan());
+        assert!(atof32_bytes(10, b"NAN").is_nan());
         assert!(atof32_bytes(10, b"inf").is_infinite());
-        assert!(!atof32_bytes(10, b"nan").is_nan());
-        assert!(!atof32_bytes(10, b"Infinity").is_infinite());
+        assert!(atof32_bytes(10, b"INF").is_infinite());
+        assert!(atof32_bytes(10, b"Infinity").is_infinite());
+        assert!(try_atof32_bytes(10, b"Infinity").is_err());
         assert_eq!(f64toa_bytes(f64::NAN, 10), b"NaN".to_vec());
         assert_eq!(f64toa_bytes(f64::INFINITY, 10), b"inf".to_vec());
 
@@ -93,10 +95,7 @@ mod tests {
             INFINITY_STRING = "Infinity";
         }
 
-        // TODO(ahuszagh) Need case-insensitive checks for this
-        assert!(!atof32_bytes(10, b"NaN").is_nan());
-        assert!(!atof32_bytes(10, b"inf").is_infinite());
-        assert!(atof32_bytes(10, b"nan").is_nan());
+        assert!(try_atof32_bytes(10, b"inf").is_err());
         assert!(atof32_bytes(10, b"Infinity").is_infinite());
         assert_eq!(f64toa_bytes(f64::NAN, 10), b"nan".to_vec());
         assert_eq!(f64toa_bytes(f64::INFINITY, 10), b"Infinity".to_vec());
