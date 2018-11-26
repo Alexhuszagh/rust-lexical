@@ -146,6 +146,9 @@ pub(crate) fn round_to_float_impl<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
           M: Mantissa,
           Cb: FnOnce(&mut ExtendedFloat<M>, i32)
 {
+    // WELL FUCK ME GENTLY...
+    let halfway: M = lower_n_halfway(as_cast(M::BITS));
+
     // Calculate the difference to allow a single calculation
     // rather than a loop, to minimize the number of ops required.
     // This does underflow detection.
@@ -158,7 +161,13 @@ pub(crate) fn round_to_float_impl<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
         // out the value.
         let diff = T::DENORMAL_EXPONENT - fp.exp;
         if diff < M::BITS {
+            // We can avoid underflow, can get a valid representation.
             round_nearest_tie_even(fp, diff);
+        } else if diff == M::BITS && fp.frac > halfway {
+            // We have a greater-than-halfway representation for the minimum
+            // possible float. Can round-up to the smallest denormal float.
+            fp.frac = M::ONE;
+            fp.exp = T::DENORMAL_EXPONENT;
         } else {
             // Certain underflow, assign literal 0s.
             fp.frac = M::ZERO;
@@ -435,5 +444,22 @@ mod tests {
         round_to_native::<f64, _>(&mut fp);
         assert_eq!(fp.frac, (1<<52) + 1);
         assert_eq!(fp.exp, -52);
+
+        // Underflow
+        // Adapted from failures in strtod.
+        let mut fp = ExtendedFloat80 { exp: -1139, frac: 18446744073709550712 };
+        round_to_native::<f64, _>(&mut fp);
+        assert_eq!(fp.frac, 0);
+        assert_eq!(fp.exp, 0);
+
+        let mut fp = ExtendedFloat80 { exp: -1139, frac: 18446744073709551460 };
+        round_to_native::<f64, _>(&mut fp);
+        assert_eq!(fp.frac, 0);
+        assert_eq!(fp.exp, 0);
+
+        let mut fp = ExtendedFloat80 { exp: -1138, frac: 9223372036854776103 };
+        round_to_native::<f64, _>(&mut fp);
+        assert_eq!(fp.frac, 1);
+        assert_eq!(fp.exp, -1074);
     }
 }

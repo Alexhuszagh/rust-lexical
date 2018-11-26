@@ -385,13 +385,12 @@ impl FloatErrors for u64 {
             false => 63 - F::MANTISSA_SIZE,
         };
 
-        // If we have overflow in the number of extra bits, we have a
-        // literal 0, always. Just return the representation is true,
-        // and get our literal 0.
         if extrabits > 64 {
+            // Underflow, we have a shift larger than the mantissa.
+            // Value will be literal 0, just return true.
             true
         } else {
-             // Do a signed comparison, which will always be valid.
+            // Do a signed comparison, which will always be valid.
             let mask: u64 = lower_n_mask(extrabits.as_u64());
             let halfway: u64 = lower_n_halfway(extrabits.as_u64());
             let extra: u64 = fp.frac & mask;

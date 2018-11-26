@@ -755,6 +755,17 @@ mod tests {
         let x = ExtendedFloat80 {frac: 18446744073709549568, exp: 961};
         assert_relative_eq!(x.as_f64(), f64::INFINITY);
 
+        // Underflow
+        // Adapted from failures in strtod.
+        let x = ExtendedFloat80 { exp: -1139, frac: 18446744073709550712 };
+        assert_relative_eq!(x.as_f64(), 0.0);
+
+        let x = ExtendedFloat80 { exp: -1139, frac: 18446744073709551460 };
+        assert_relative_eq!(x.as_f64(), 0.0);
+
+        let x = ExtendedFloat80 { exp: -1138, frac: 9223372036854776103 };
+        assert_relative_eq!(x.as_f64(), 5e-324);
+
         // Integers.
         for int in INTEGERS.iter() {
             let fp = ExtendedFloat80 {frac: *int, exp: 0};

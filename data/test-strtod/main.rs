@@ -77,7 +77,13 @@ fn run_test(string: &str, hex: &str) {
     let lower = string.to_lowercase();
     if lower == "nan" || !lower.contains("nan") {
         let float: f64 = lexical::try_parse(string).unwrap();
-        println!("{:?}", (float, string, hex));
+        let int: u64 = float.to_bits();
+        // Rust literals for NaN are not standard conforming:
+        // Rust uses 0x7ff8000000000000, not 0x7ff0000000000001
+        // We want to pad on the left with 0s, up to 16 characters.
+        if float.is_finite() {
+            assert_eq!(hex, format!("{:0>16x}", int));
+        }
     }
 }
 
