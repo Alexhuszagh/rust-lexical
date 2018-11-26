@@ -163,9 +163,9 @@ pub(super) unsafe extern "C" fn parse_mantissa<M>(base: u32, mut first: *const u
         while p < last && (char_to_digit(*p) as u32) < base {
             p = p.add(1);
         }
-        // Subtract the number of truncated digits from the dot shift, since these
-        // truncated digits are reflected in the distance but not in the mantissa.
-        let dot_shift = distance(f, p).try_i32_or_max() - truncated.try_i32_or_max();
+        // Any truncated digits did not increase the mantissa, make dot_shift
+        // negative to compensate.
+        let dot_shift = -truncated.try_i32_or_max();
         (mantissa, dot_shift, p, true)
     } else {
         // No decimal, just return, noting if truncation occurred.
@@ -380,15 +380,20 @@ impl FloatErrors for u64 {
         let denormal_exp = bias - 63;
         // This is always a valid u32, since (denormal_exp - fp.exp)
         // will always be positive and the significand size is {23, 52}.
-        let extrabits = match fp.exp < denormal_exp {
-            true  => 63 - F::MANTISSA_SIZE + 1 + denormal_exp - fp.exp,
+        let extrabits = match fp.exp <= denormal_exp {
+            true  => 64 - F::MANTISSA_SIZE + denormal_exp - fp.exp,
             false => 63 - F::MANTISSA_SIZE,
         };
 
-        if extrabits > 64 {
-            // Underflow, we have a shift larger than the mantissa.
-            // Value will be literal 0, just return true.
+        if extrabits > 65 {
+            // Underflow, we have a literal 0.
             true
+        } else if extrabits == 65 {
+            // Underflow, we have a shift larger than the mantissa.
+            // Representation is valid **only** if the value is close enough
+            // overflow to the next bit within errors. If it overflows,
+            // the representation is **not** valid.
+            !fp.frac.overflowing_add(as_cast(count)).1
         } else {
             // Do a signed comparison, which will always be valid.
             let mask: u64 = lower_n_mask(extrabits.as_u64());
@@ -670,6 +675,9 @@ mod tests {
             check_parse_mantissa::<u64>(10, "0.00000000000000000000000000001", (1, 29, 31, false));
             check_parse_mantissa::<u64>(10, "100000000000000000000", (10000000000000000000, -1, 21, true));
 
+            // Adapted from failures in strtod.
+            check_parse_mantissa::<u64>(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (17976931348623158079, -289, 380, true));
+
             // 128-bit
             check_parse_mantissa::<u128>(10, "1.2345", (12345, 4, 6, false));
             check_parse_mantissa::<u128>(10, "12.345", (12345, 3, 6, false));
@@ -710,6 +718,9 @@ mod tests {
             check_parse_float::<u64>(10, "1.2345e10", (12345, 6, 9, false));
             check_parse_float::<u64>(10, "100000000000000000000", (1, 20, 21, true));
             check_parse_float::<u64>(10, "100000000000000000001", (1, 20, 21, true));
+
+            // Adapted from failures in strtod.
+            check_parse_float::<u64>(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (17976931348623158079, 289, 380, true));
 
             // 128-bit
             check_parse_float::<u128>(10, "1.2345", (12345, -4, 6, false));
@@ -974,6 +985,11 @@ mod tests {
             // Round-up, above halfway
             check_atod(10, "9223372036854776833", (9223372036854777856.0, 19));
             check_atod(10, "11417981541647680316116887983825362587765178369", (11417981541647681583767488212054764084468383744.0, 47));
+
+            // Rounding error
+            // Adapted from failures in strtod.
+            check_atod(10, "2.2250738585072014e-308", (2.2250738585072014e-308, 23));
+            check_atod(10, "2.22507385850720113605740979670913197593481954635164564802342610972482222202107694551652952390813508791414915891303962110687008643869459464552765720740782062174337998814106326732925355228688137214901298112245145188984905722230728525513315575501591439747639798341180199932396254828901710708185069063066665599493827577257201576306269066333264756530000924588831643303777979186961204949739037782970490505108060994073026293712895895000358379996720725430436028407889577179615094551674824347103070260914462157228988025818254518032570701886087211312807951223342628836862232150377566662250398253433597456888442390026549819838548794829220689472168983109969836584681402285424333066033985088644580400103493397042756718644338377048603786162277173854562306587467901408672332763671875e-308", (2.2250738585072014e-308, 774));
         }
     }
 

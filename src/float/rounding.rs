@@ -3,7 +3,7 @@
 use util::*;
 use super::float::ExtendedFloat;
 use super::mantissa::Mantissa;
-use super::shift::{shl, shr};
+use super::shift::*;
 
 // GENERIC
 // -------
@@ -32,7 +32,7 @@ pub(crate) fn round_nearest<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     let is_halfway = truncated_bits == halfway;
 
     // Bit shift so the leading bit is in the hidden bit.
-    shr(fp, shift);
+    overflowing_shr(fp, shift);
 
     (is_above, is_halfway)
 }
@@ -146,9 +146,6 @@ pub(crate) fn round_to_float_impl<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
           M: Mantissa,
           Cb: FnOnce(&mut ExtendedFloat<M>, i32)
 {
-    // WELL FUCK ME GENTLY...
-    let halfway: M = lower_n_halfway(as_cast(M::BITS));
-
     // Calculate the difference to allow a single calculation
     // rather than a loop, to minimize the number of ops required.
     // This does underflow detection.
@@ -160,14 +157,9 @@ pub(crate) fn round_to_float_impl<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
         // is already normalized, so we shouldn't have any issue zeroing
         // out the value.
         let diff = T::DENORMAL_EXPONENT - fp.exp;
-        if diff < M::BITS {
+        if diff <= M::BITS {
             // We can avoid underflow, can get a valid representation.
-            round_nearest_tie_even(fp, diff);
-        } else if diff == M::BITS && fp.frac > halfway {
-            // We have a greater-than-halfway representation for the minimum
-            // possible float. Can round-up to the smallest denormal float.
-            fp.frac = M::ONE;
-            fp.exp = T::DENORMAL_EXPONENT;
+            cb(fp, diff);
         } else {
             // Certain underflow, assign literal 0s.
             fp.frac = M::ZERO;

@@ -389,7 +389,7 @@ mod tests {
         // This is lossy, so some of these values are **slightly** rounded.
 
         // underflow
-        check_round_to_f32(9223372036854775808, -213, 0, 0);
+        check_round_to_f32(9223372036854775808, -213, 0, -149);
 
         // min value
         check_round_to_f32(9223372036854775808, -212, 1, -149);
@@ -429,7 +429,7 @@ mod tests {
         // This is lossy, so some of these values are **slightly** rounded.
 
         // underflow
-        check_round_to_f64(9223372036854775808, -1138, 0, 0);
+        check_round_to_f64(9223372036854775808, -1138, 0, -1074);
 
         // min value
         check_round_to_f64(9223372036854775808, -1137, 1, -1074);
