@@ -134,7 +134,7 @@ pub(super) unsafe extern "C" fn parse_mantissa<M>(base: u32, mut first: *const u
     let (f, truncated) = atoi::checked(&mut mantissa, base, first, last);
 
     // Check for trailing digits
-    let has_fraction = distance(f, last) > 1 && *f == b'.';
+    let has_fraction = distance(f, last) >= 1 && *f == b'.';
     if has_fraction && truncated == 0 {
         // Has a decimal, calculate the rest of it.
         let f = f.add(1);

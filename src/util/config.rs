@@ -18,6 +18,11 @@ pub static mut INFINITY_STRING: &str = "inf";
 
 /// Default character for scientific notation, used when the radix < 15.
 ///
+/// This character will be used whenever exporting large floats to strings,
+/// and for recognizing the exponent portion when parsing a float from
+/// string. This character must be lowercase, since `c.to_ascii_lowercase()`
+/// when checking for an exponent.
+///
 /// To change the expected, default character for an exponent,
 /// change this value during before using lexical.
 pub static mut EXPONENT_DEFAULT_CHAR: u8 = b'e';
@@ -26,6 +31,11 @@ pub static mut EXPONENT_DEFAULT_CHAR: u8 = b'e';
 ///
 /// For numerical strings of radix >= 15, 'e' or 'E' is a valid digit,
 /// and therefore may no longer be used as a marker for the exponent.
+///
+/// This character will be used whenever exporting large floats to strings,
+/// and for recognizing the exponent portion when parsing a float from
+/// string. This character must be lowercase, since `c.to_ascii_lowercase()`
+/// when checking for an exponent.
 ///
 /// To change the expected, default character for an exponent,
 /// change this value during before using lexical.
@@ -80,6 +90,7 @@ mod tests {
     #[ignore]
     fn special_bytes_test() {
         // Test serializing and deserializing special strings.
+        // TODO(ahuszagh) Need case-insensitive checks for this
         assert!(atof32_bytes(10, b"NaN").is_nan());
         assert!(atof32_bytes(10, b"inf").is_infinite());
         assert!(!atof32_bytes(10, b"nan").is_nan());
@@ -92,6 +103,7 @@ mod tests {
             INFINITY_STRING = "Infinity";
         }
 
+        // TODO(ahuszagh) Need case-insensitive checks for this
         assert!(!atof32_bytes(10, b"NaN").is_nan());
         assert!(!atof32_bytes(10, b"inf").is_infinite());
         assert!(atof32_bytes(10, b"nan").is_nan());

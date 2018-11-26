@@ -83,7 +83,7 @@ unsafe extern "C" fn parse_fraction(base: u32, first: *const u8, last: *const u8
 {
     // Ensure if there's a decimal, there are trailing values, so
     // invalid floats like "0." lead to an error.
-    if distance(first, last) > 1 && *first == b'.' {
+    if distance(first, last) >= 1 && *first == b'.' {
         let mut fraction: f64 = 0.;
         let first = first.add(1);
         let mut f = first;

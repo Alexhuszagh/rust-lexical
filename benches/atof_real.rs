@@ -15,20 +15,20 @@ use lexical::atof::*;
 
 // PATH
 
-/// Return the `target/debug` directory path.
-pub fn debug_dir() -> PathBuf {
+/// Return the `target/debug` or `target/release` directory path.
+pub fn build_dir() -> PathBuf {
     env::current_exe()
         .expect("unittest executable path")
         .parent()
         .expect("unittest executable directory")
         .parent()
-        .expect("debug directory")
+        .expect("debug/release directory")
         .to_path_buf()
 }
 
 /// Return the `target` directory path.
 pub fn target_dir() -> PathBuf {
-    debug_dir()
+    build_dir()
         .parent()
         .expect("target directory")
         .to_path_buf()
@@ -42,17 +42,17 @@ pub fn project_dir() -> PathBuf {
         .to_path_buf()
 }
 
-/// Return the `benches` directory path.
-pub fn benches_dir() -> PathBuf {
+/// Return the `data` directory path.
+pub fn data_dir() -> PathBuf {
     let mut dir = project_dir();
-    dir.push("benches");
+    dir.push("data");
     dir
 }
 
 // SAMPLE DATA
 
 fn read_data_impl() -> String {
-    let mut path = benches_dir();
+    let mut path = data_dir();
     path.push("AURA_UVI_CLIM_M_2010-12-01_rgb_720x360.CSV");
     read_to_string(&path).unwrap()
 }

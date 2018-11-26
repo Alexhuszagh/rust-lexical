@@ -324,14 +324,14 @@ pub fn parse_lossy_radix<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, ra
 /// assert_eq!(lexical::try_parse::<i32, _>("1a"), Err(err(1)));
 /// assert_eq!(lexical::try_parse::<f32, _>("0"), Ok(0.0));
 /// assert_eq!(lexical::try_parse::<f32, _>("1.0"), Ok(1.0));
-/// assert_eq!(lexical::try_parse::<f32, _>("1."), Err(err(1)));
+/// assert_eq!(lexical::try_parse::<f32, _>("1."), Ok(1.0));
 ///
 /// // Bytes overloads
 /// assert_eq!(lexical::try_parse::<i32, _>(b"5"), Ok(5));
 /// assert_eq!(lexical::try_parse::<i32, _>(b"1a"), Err(err(1)));
 /// assert_eq!(lexical::try_parse::<f32, _>(b"0"), Ok(0.0));
 /// assert_eq!(lexical::try_parse::<f32, _>(b"1.0"), Ok(1.0));
-/// assert_eq!(lexical::try_parse::<f32, _>(b"1."), Err(err(1)));
+/// assert_eq!(lexical::try_parse::<f32, _>(b"1."), Ok(1.0));
 /// # }
 /// ```
 ///
@@ -363,12 +363,14 @@ pub fn try_parse<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes)
 /// // String overloads
 /// assert_eq!(lexical::try_parse_lossy::<f32, _>("0"), Ok(0.0));
 /// assert_eq!(lexical::try_parse_lossy::<f32, _>("1.0"), Ok(1.0));
-/// assert_eq!(lexical::try_parse_lossy::<f32, _>("1."), Err(err(1)));
+/// assert_eq!(lexical::try_parse_lossy::<f32, _>("1."), Ok(1.0));
+/// assert_eq!(lexical::try_parse_lossy::<f32, _>("1a"), Err(err(1)));
 ///
 /// // Bytes overloads
 /// assert_eq!(lexical::try_parse_lossy::<f32, _>(b"0"), Ok(0.0));
 /// assert_eq!(lexical::try_parse_lossy::<f32, _>(b"1.0"), Ok(1.0));
-/// assert_eq!(lexical::try_parse_lossy::<f32, _>(b"1."), Err(err(1)));
+/// assert_eq!(lexical::try_parse_lossy::<f32, _>(b"1."), Ok(1.0));
+/// assert_eq!(lexical::try_parse_lossy::<f32, _>(b"1a"), Err(err(1)));
 /// # }
 /// ```
 ///
@@ -404,7 +406,8 @@ pub fn try_parse_lossy<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
 /// assert_eq!(lexical::try_parse_radix::<i32, _>("1.", 10), Err(err(1)));
 /// assert_eq!(lexical::try_parse_radix::<f32, _>("0", 10), Ok(0.0));
 /// assert_eq!(lexical::try_parse_radix::<f32, _>("1.0", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>("1.", 10), Err(err(1)));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>("1.", 10), Ok(1.0));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>("1a", 10), Err(err(1)));
 /// assert_eq!(lexical::try_parse_radix::<f32, _>("1.0.", 10), Err(err(3)));
 ///
 /// // Bytes overloads
@@ -412,7 +415,8 @@ pub fn try_parse_lossy<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
 /// assert_eq!(lexical::try_parse_radix::<i32, _>(b"1a", 10), Err(err(1)));
 /// assert_eq!(lexical::try_parse_radix::<f32, _>(b"0", 10), Ok(0.0));
 /// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.0", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.", 10), Err(err(1)));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.", 10), Ok(1.0));
+/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1a", 10), Err(err(1)));
 /// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.0.", 10), Err(err(3)));
 /// # }
 /// ```
@@ -447,13 +451,15 @@ pub fn try_parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8
 /// // String overloads
 /// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>("0", 10), Ok(0.0));
 /// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>("1.0", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>("1.", 10), Err(err(1)));
+/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>("1.", 10), Ok(1.0));
+/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>("1a", 10), Err(err(1)));
 /// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>("1.0.", 10), Err(err(3)));
 ///
 /// // Bytes overloads
 /// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>(b"0", 10), Ok(0.0));
 /// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>(b"1.0", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>(b"1.", 10), Err(err(1)));
+/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>(b"1.", 10), Ok(1.0));
+/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>(b"1a", 10), Err(err(1)));
 /// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>(b"1.0.", 10), Err(err(3)));
 /// # }
 /// ```

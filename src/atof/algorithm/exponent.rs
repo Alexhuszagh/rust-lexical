@@ -129,6 +129,11 @@ mod test {
             check_parse_exponent(10, "e3000000000", (i32::max_value(), 11));
             check_parse_exponent(10, "e+3000000000", (i32::max_value(), 12));
             check_parse_exponent(10, "e-3000000000", (-i32::max_value(), 12));
+
+            // check uppercase characters
+            check_parse_exponent(10, "E45", (45, 3));
+            check_parse_exponent(10, "E+45", (45, 4));
+            check_parse_exponent(10, "E-45", (-45, 4));
         }
     }
 

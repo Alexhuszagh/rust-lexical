@@ -54,6 +54,7 @@ impl StringToFloat for f64 {
 unsafe extern "C" fn is_nan(first: *const u8, length: usize)
     -> bool
 {
+    // TODO(ahuszagh) Need to do a case-insensitive compare...
     starts_with_range(first, length, NAN_STRING.as_ptr(), NAN_STRING.len())
 }
 
@@ -61,6 +62,7 @@ unsafe extern "C" fn is_nan(first: *const u8, length: usize)
 unsafe extern "C" fn is_infinity(first: *const u8, length: usize)
     -> bool
 {
+    // TODO(ahuszagh) Need to do a case-insensitive compare...
     starts_with_range(first, length, INFINITY_STRING.as_ptr(), INFINITY_STRING.len())
 }
 
@@ -186,6 +188,11 @@ mod tests {
         assert_f32_eq!(1234567.0, atof32_bytes(10, b"1234567"));
         assert_f32_eq!(12345678.0, atof32_bytes(10, b"12345678"));
 
+        // No decimal but decimal point test
+        assert_f64_eq!(1.0, atof32_bytes(10, b"1."));
+        assert_f64_eq!(12.0, atof32_bytes(10, b"12."));
+        assert_f64_eq!(1234567.0, atof32_bytes(10, b"1234567."));
+
         // decimal test
         assert_f32_eq!(123.1, atof32_bytes(10, b"123.1"));
         assert_f32_eq!(123.12, atof32_bytes(10, b"123.12"));
@@ -237,6 +244,11 @@ mod tests {
         assert_f64_eq!(123456.0, atof64_bytes(10, b"123456"));
         assert_f64_eq!(1234567.0, atof64_bytes(10, b"1234567"));
         assert_f64_eq!(12345678.0, atof64_bytes(10, b"12345678"));
+
+        // No decimal but decimal point test
+        assert_f64_eq!(1.0, atof64_bytes(10, b"1."));
+        assert_f64_eq!(12.0, atof64_bytes(10, b"12."));
+        assert_f64_eq!(1234567.0, atof64_bytes(10, b"1234567."));
 
         // decimal test
         assert_f64_eq!(123456789.0, atof64_bytes(10, b"123456789"));

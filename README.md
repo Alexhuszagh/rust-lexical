@@ -11,6 +11,7 @@ Fast lexical conversion routines for both std and no_std environments. Lexical p
 - [Getting Started](#getting-started)
 - [Benchmarks](#benchmarks)
 - [Documentation](#documentation)
+- [Validation](#validation)
 - [Caveats](#caveats)
 - [License](#license)
 - [Contributing](#contributing)
@@ -107,6 +108,8 @@ For Float-To-String conversions, lexical uses one of three backends: an internal
 # Documentation
 
 Lexical's documentation can be found on [docs.rs](https://docs.rs/lexical).
+
+# Validation
 
 # Caveats
 

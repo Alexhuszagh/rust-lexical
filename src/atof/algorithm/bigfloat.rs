@@ -417,7 +417,7 @@ unsafe fn parse_mantissa(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32
     // Parse the fraction component if present.
     // We need to store the number of parsed digits after the dot.
     let dot_shift: i32;
-    if distance(p, last) > 1 && *p == b'.' {
+    if distance(p, last) >= 1 && *p == b'.' {
         // Store a temporary pointer to the current first, so we can determine
         // the number of parsed digits.
         let tmp_first = p.add(1);

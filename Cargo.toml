@@ -11,6 +11,7 @@ readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
 version = "1.6.3"
 exclude = [
+    "data/*",
     "benches/*",
 ]
 
@@ -26,6 +27,12 @@ smallvec = "0.6"
 dtoa = { version = "0.4", optional = true }
 # Optimized Ryu implementation, the fastest correct algorithm.
 ryu = { version = "^0.2.7", optional = true }
+# The following are only required for comprehensive float unittests.
+# IE, internal testing only:
+rand = { version = "0.4", optional = true }
+serde = { version = "1.0", optional = true }
+serde_derive = { version = "1.0", optional = true }
+toml = { version = "0.4", optional = true }
 
 [dev-dependencies]
 approx = "0.3.0"
@@ -47,6 +54,66 @@ std = []
 # Use precompiled tables for faster performance and accuracy, at the cost of larger binaries.
 # You should never disable table with precise.
 table = []
+# Build the comprehensive float parsing tests.
+comprehensive_float_test = ["rand", "serde", "serde_derive", "toml"]
+
+# Binaries
+# Special testing binaries for the runtests.py scripts.
+
+[[bin]]
+name = "few_ones"
+path = "data/test-float-parse/few_ones.rs"
+required-features = ["comprehensive_float_test"]
+
+[[bin]]
+name = "huge-pow10"
+path = "data/test-float-parse/huge-pow10.rs"
+required-features = ["comprehensive_float_test"]
+
+[[bin]]
+name = "long-fractions"
+path = "data/test-float-parse/long-fractions.rs"
+required-features = ["comprehensive_float_test"]
+
+[[bin]]
+name = "many-digits"
+path = "data/test-float-parse/many-digits.rs"
+required-features = ["comprehensive_float_test"]
+
+[[bin]]
+name = "rand-f64"
+path = "data/test-float-parse/rand-f64.rs"
+required-features = ["comprehensive_float_test"]
+
+[[bin]]
+name = "short-decimals"
+path = "data/test-float-parse/short-decimals.rs"
+required-features = ["comprehensive_float_test"]
+
+[[bin]]
+name = "subnorm"
+path = "data/test-float-parse/subnorm.rs"
+required-features = ["comprehensive_float_test"]
+
+[[bin]]
+name = "tiny-pow10"
+path = "data/test-float-parse/tiny-pow10.rs"
+required-features = ["comprehensive_float_test"]
+
+[[bin]]
+name = "u32-small"
+path = "data/test-float-parse/u32-small.rs"
+required-features = ["comprehensive_float_test"]
+
+[[bin]]
+name = "u64-pow2"
+path = "data/test-float-parse/u64-pow2.rs"
+required-features = ["comprehensive_float_test"]
+
+[[bin]]
+name = "test-strtod"
+path = "data/test-strtod/main.rs"
+required-features = ["comprehensive_float_test"]
 
 # Benchmarks
 
