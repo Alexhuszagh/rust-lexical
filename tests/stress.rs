@@ -1,6 +1,8 @@
 //! Stress tests adapted from:
 //!     https://www.icir.org/vern/papers/testbase-report.pdf
 
+#![allow(dead_code)]
+
 extern crate lexical;
 use std::fmt::Debug;
 
@@ -98,7 +100,6 @@ const STRESS_TESTS: StressTests = StressTests {
     },
 };
 
-#[allow(dead_code)]
 fn stress_test<T: 'static + Debug + PartialEq + lexical::FromBytes>(test: &StressTest<T>) {
     for (string, float) in test.below_ulp.iter() {
         let actual: T = lexical::try_parse(string).unwrap();

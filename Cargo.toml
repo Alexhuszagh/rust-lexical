@@ -9,7 +9,7 @@ license = "MIT/Apache-2.0"
 name = "lexical"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
-version = "1.6.6"
+version = "1.6.7"
 exclude = [
     "data/*",
     "benches/*",
@@ -55,7 +55,7 @@ std = []
 # You should never disable table with precise.
 table = []
 # Build the comprehensive float parsing tests.
-comprehensive_float_test = ["rand", "serde", "serde_derive", "toml"]
+comprehensive_float_test = ["rand/std", "serde/std", "serde_derive", "std", "toml"]
 
 # Binaries
 # Special testing binaries for the runtests.py scripts.
