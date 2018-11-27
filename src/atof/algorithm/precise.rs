@@ -437,8 +437,8 @@ impl FloatErrors for u128 {
 /// float, and return if new value and if the value can be represented
 /// accurately.
 #[inline]
-unsafe fn multiply_exponent_extended<F, M>(mut fp: ExtendedFloat<M>, base: u32, exponent: i32, truncated: bool)
-    -> (ExtendedFloat<M>, bool)
+unsafe fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, base: u32, exponent: i32, truncated: bool)
+    -> bool
     where M: FloatErrors,
           F: FloatRounding<M>,
           ExtendedFloat<M>: CachedPowers<M>
@@ -449,10 +449,13 @@ unsafe fn multiply_exponent_extended<F, M>(mut fp: ExtendedFloat<M>, base: u32, 
     let large_index = exponent / powers.step;
     if exponent < 0 {
         // Guaranteed underflow (assign 0).
-        (ExtendedFloat { frac: M::ZERO, exp: 0 }, true)
+        fp.frac = M::ZERO;
+        true
     } else if large_index as usize >= powers.large.len() {
         // Overflow (assign infinity)
-        (ExtendedFloat { frac: M::ONE << 63, exp: 0x7FF }, true)
+        fp.frac = M::ONE << 63;
+        fp.exp = 0x7FF;
+        true
     } else {
         // Within the valid exponent range, multiply by the large and small
         // exponents and return the resulting value.
@@ -486,7 +489,7 @@ unsafe fn multiply_exponent_extended<F, M>(mut fp: ExtendedFloat<M>, base: u32, 
         let shift = fp.normalize();
         errors <<= shift;
 
-        (fp, M::error_is_accurate::<F>(errors, &fp))
+        M::error_is_accurate::<F>(errors, &fp)
     }
 }
 
@@ -501,8 +504,9 @@ pub(super) fn to_extended<F, M>(mantissa: M, base: u32, exponent: i32, truncated
           F: FloatRounding<M>,
           ExtendedFloat<M>: CachedPowers<M>
 {
-    let fp = ExtendedFloat { frac: mantissa, exp: 0 };
-    let (fp, valid) = unsafe { multiply_exponent_extended::<F, M>(fp, base, exponent, truncated) };
+    let mut fp = ExtendedFloat { frac: mantissa, exp: 0 };
+    let valid = unsafe { multiply_exponent_extended::<F, M>(&mut fp, base, exponent, truncated) };
+    println!("fp={:?}, valid={:?}", fp, valid);
     if valid {
         (fp.as_float::<F>(), true)
     } else {
@@ -678,6 +682,10 @@ mod tests {
             // Adapted from failures in strtod.
             check_parse_mantissa::<u64>(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (17976931348623158079, -289, 380, true));
 
+            // Rounding error
+            // Adapted from test-float-parse failures.
+            check_parse_mantissa::<u64>(10, "1009e-31", (1009, 0, 4, false));
+
             // 128-bit
             check_parse_mantissa::<u128>(10, "1.2345", (12345, 4, 6, false));
             check_parse_mantissa::<u128>(10, "12.345", (12345, 3, 6, false));
@@ -721,6 +729,10 @@ mod tests {
 
             // Adapted from failures in strtod.
             check_parse_float::<u64>(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (17976931348623158079, 289, 380, true));
+
+            // Rounding error
+            // Adapted from test-float-parse failures.
+            check_parse_float::<u64>(10, "1009e-31", (1009, -31, 8, false));
 
             // 128-bit
             check_parse_float::<u128>(10, "1.2345", (12345, -4, 6, false));
@@ -888,6 +900,12 @@ mod tests {
         let (f, valid) = to_extended::<f64, _>(mantissa, 15, -9, false);
         assert_eq!(f, 123456.1);
         assert!(valid, "exponent should be valid");
+
+        // Rounding error
+        // Adapted from test-float-parse failures.
+        let mantissa: u64 = 1009;
+        let (_, valid) = to_extended::<f64, _>(mantissa, 10, -31, false);
+        assert!(!valid, "exponent should be valid");
     }
 
     unsafe fn check_atof(base: u32, s: &str, tup: (f32, usize)) {
@@ -1003,6 +1021,9 @@ mod tests {
             //  https://www.exploringbinary.com/how-glibc-strtod-works/
             check_atod(10, "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022250738585072008890245868760858598876504231122409594654935248025624400092282356951787758888037591552642309780950434312085877387158357291821993020294379224223559819827501242041788969571311791082261043971979604000454897391938079198936081525613113376149842043271751033627391549782731594143828136275113838604094249464942286316695429105080201815926642134996606517803095075913058719846423906068637102005108723282784678843631944515866135041223479014792369585208321597621066375401613736583044193603714778355306682834535634005074073040135602968046375918583163124224521599262546494300836851861719422417646455137135420132217031370496583210154654068035397417906022589503023501937519773030945763173210852507299305089761582519159720757232455434770912461317493580281734466552734375", (2.2250738585072011e-308, 1076));
 
+            // Rounding error
+            // Adapted from test-float-parse failures.
+            check_atod(10, "1009e-31", (1.009e-28, 8));
         }
     }
 

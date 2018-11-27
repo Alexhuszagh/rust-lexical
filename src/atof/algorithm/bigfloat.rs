@@ -270,9 +270,11 @@ fn div_small_assign<Wide, Narrow>(x: &mut Narrow, y: Narrow, rem: Narrow)
 
 /// Calculate the number of bits to pad for `i**n`.
 ///
-/// This function calculates the steepest slope for a repeating
-/// pattern inside the number of bits require to calculate `i**n` for
-/// `n ∀ [0, 350)`, calculating a reasonable upper bound on the slope.
+/// This function calculates the steepest slope using numerical simulations
+/// on primes, calculating a reasonable upper bound on the slope
+/// and intercept, allowing an accurate calculation on the number of padded
+/// bits required for any division operation without intermediate rounding
+/// error.
 ///
 /// The intercept was calculated by using the following code:
 /// ```text
@@ -288,11 +290,27 @@ fn div_small_assign<Wide, Narrow>(x: &mut Narrow, y: Narrow, rem: Narrow)
 ///         d += 1
 ///     return d
 ///
-/// def find_intercept(x, b):
+/// def find_equation(x, b):
 ///     x = np.array([find_guard(x, b, i) for i in range(1,150)])
 ///     slope = np.average(x[1:] - x[:-1])
 ///     x1 = x[0]
-///     return np.ceil(x1 - slope)
+///     return (slope, np.ceil(x1 - slope))
+///
+/// def iterate_equations(b):
+///     primes = [
+///         2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53,
+///         59, 61, 67, 71, 1009, 4999, 7919, 17077, 62297, 83009, 95747,
+///         95773, 104711, 15485867, 32452843, 49979687, 67867967, 86028121,
+///         104395301, 122949823, 141650939, 160481183, 179424673
+///     ]
+///     return [find_equation(x, b) for x in primes]
+///
+/// def find_max_equation(b):
+///     eqs = iterate_equations(b)
+///     max_slope = max(enumerate(eqs), key=lambda x: x[1][0])
+///     assert(max_slope[0] < len(eqs)//2)
+///     max_intercept = max(eqs, key=lambda x: x[1])
+///     return (max_slope[1][0], max_intercept[1])
 /// ```
 ///
 /// This showed at maximum 55 bits of extra precision were required, IE,
@@ -308,25 +326,23 @@ fn padded_bits(i: u32, n:i32) -> u32 {
     // Get slope and intercept.
     let (m, b) = match i {
         // Implement powers of 2 multipliers as the prime.
-        3 | 6 | 12 | 24 => (1.600, 55.0),  // [1, 2, 1, 2, 2]
-        5 | 10 | 20     => (2.334, 55.0),  // [2, 2, 3]
-        7 | 14 | 28     => (2.834, 55.0),   // [2, 3, 3, 3, 3, 3]
-        11 | 22         => (3.500, 55.0),   // [3, 4]
-        13 | 26         => (3.750, 55.0),   // [3, 4, 4, 4]
-        17 | 34         => (4.091, 55.0),   // [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5]
-        19              => (4.250, 55.0),   // [4, 4, 4, 5]
-        23              => (4.667, 55.0),   // [4, 5, 5]
-        29              => (4.875, 55.0),   // [4, 5, 5, 5, 5, 5, 5, 5]
-        31              => (4.955, 55.0),   // [4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
-
-        // Compound bases (multiply m, keep intercept)
-        9 | 18 | 36     => (2.560, 55.0),    // (3 * 3)
-        15 | 30         => (3.734, 55.0),    // (3 * 5)
-        21              => (4.534, 55.0),    // (3 * 7)
-        27              => (4.096, 55.0),    // (3 * 9)
-        33              => (5.600, 55.0),    // (3 * 11)
-        25              => (5.445, 55.0),    // (5 * 5)
-        35              => (6.612, 55.0),    // (5 * 7)
+        3 | 6 | 12 | 24 => (2.1, 55.0),     // (1.9459, 54.0)
+        5 | 10 | 20     => (2.8, 54.0),     // (2.6689, 53.0)
+        7 | 14 | 28     => (3.3, 54.0),     // (3.1622, 53.0)
+        9 | 18 | 36     => (3.4, 53.0),     // (3.2162, 52.0)
+        11 | 22         => (4.0, 54.0),     // (3.8108, 53.0)
+        13 | 26         => (4.2, 56.0),     // (4.0608, 55.0)
+        15 | 30         => (4.2, 55.0),     // (3.9527, 54.0)
+        17 | 34         => (4.6, 56.0),     // (4.4324, 55.0)
+        19              => (4.8, 54.0),     // (4.6081, 53.0)
+        21              => (4.6, 52.0),     // (4.4122, 51.0)
+        23              => (5.0, 53.0),     // (4.8851, 52.0)
+        25              => (4.8, 55.0),     // (4.6824, 54.0)
+        27              => (4.9, 55.0),     // (4.7973, 54.0)
+        29              => (5.4, 56.0),     // (5.2095, 55.0)
+        31              => (5.5, 54.0),     // (5.3108, 53.0)
+        33              => (5.2, 54.0),     // (5.0811, 53.0)
+        35              => (5.4, 56.0),     // (5.1689, 55.0)
 
         // Other bases (powers of 2)
         _               => unreachable!(),
@@ -2433,36 +2449,36 @@ mod tests {
         }
 
         // Check compared to known values.
-        assert_eq!(padded_bits(3, 10), 71);
-        assert_eq!(padded_bits(6, 10), 71);
-        assert_eq!(padded_bits(12, 10), 71);
-        assert_eq!(padded_bits(24, 10), 71);
-        assert_eq!(padded_bits(5, 10), 79);
-        assert_eq!(padded_bits(10, 10), 79);
-        assert_eq!(padded_bits(20, 10), 79);
-        assert_eq!(padded_bits(7, 10), 84);
-        assert_eq!(padded_bits(14, 10), 84);
-        assert_eq!(padded_bits(28, 10), 84);
-        assert_eq!(padded_bits(11, 10), 90);
-        assert_eq!(padded_bits(22, 10), 90);
-        assert_eq!(padded_bits(13, 10), 93);
-        assert_eq!(padded_bits(26, 10), 93);
-        assert_eq!(padded_bits(17, 10), 96);
-        assert_eq!(padded_bits(34, 10), 96);
-        assert_eq!(padded_bits(19, 10), 98);
-        assert_eq!(padded_bits(23, 10), 102);
-        assert_eq!(padded_bits(29, 10), 104);
-        assert_eq!(padded_bits(31, 10), 105);
-        assert_eq!(padded_bits(9, 10), 81);
-        assert_eq!(padded_bits(18, 10), 81);
-        assert_eq!(padded_bits(36, 10), 81);
-        assert_eq!(padded_bits(15, 10), 93);
-        assert_eq!(padded_bits(30, 10), 93);
-        assert_eq!(padded_bits(21, 10), 101);
-        assert_eq!(padded_bits(27, 10), 96);
-        assert_eq!(padded_bits(33, 10), 111);
-        assert_eq!(padded_bits(25, 10), 110);
-        assert_eq!(padded_bits(35, 10), 122);
+        assert_eq!(padded_bits(3, 10), 76);
+        assert_eq!(padded_bits(6, 10), 76);
+        assert_eq!(padded_bits(12, 10), 76);
+        assert_eq!(padded_bits(24, 10), 76);
+        assert_eq!(padded_bits(5, 10), 82);
+        assert_eq!(padded_bits(10, 10), 82);
+        assert_eq!(padded_bits(20, 10), 82);
+        assert_eq!(padded_bits(7, 10), 87);
+        assert_eq!(padded_bits(14, 10), 87);
+        assert_eq!(padded_bits(28, 10), 87);
+        assert_eq!(padded_bits(11, 10), 94);
+        assert_eq!(padded_bits(22, 10), 94);
+        assert_eq!(padded_bits(13, 10), 98);
+        assert_eq!(padded_bits(26, 10), 98);
+        assert_eq!(padded_bits(17, 10), 102);
+        assert_eq!(padded_bits(34, 10), 102);
+        assert_eq!(padded_bits(19, 10), 102);
+        assert_eq!(padded_bits(23, 10), 103);
+        assert_eq!(padded_bits(29, 10), 110);
+        assert_eq!(padded_bits(31, 10), 109);
+        assert_eq!(padded_bits(9, 10), 87);
+        assert_eq!(padded_bits(18, 10), 87);
+        assert_eq!(padded_bits(36, 10), 87);
+        assert_eq!(padded_bits(15, 10), 97);
+        assert_eq!(padded_bits(30, 10), 97);
+        assert_eq!(padded_bits(21, 10), 98);
+        assert_eq!(padded_bits(27, 10), 104);
+        assert_eq!(padded_bits(33, 10), 106);
+        assert_eq!(padded_bits(25, 10), 103);
+        assert_eq!(padded_bits(35, 10), 110);
     }
 
     #[test]
@@ -2602,26 +2618,26 @@ mod tests {
             smallvec![3607772529, 171798691], -66, div_pow10_assign ;
             smallvec![2094240252, 35495597], -64, div_pow11_assign ;
             smallvec![1908874354, 477218588], -68, div_pow12_assign ;
-            smallvec![2871782867, 25414007], -64, div_pow13_assign ;
+            smallvec![2388916721, 2871782866, 25414007], -96, div_pow13_assign ;
             smallvec![3418443359, 87652393], -66, div_pow14_assign ;
             smallvec![2309737969, 19088743], -64, div_pow15_assign ;
-            smallvec![2288667695, 14861478], -64, div_pow17_assign ;
+            smallvec![267506614, 2288667694, 14861478], -96, div_pow17_assign ;
             smallvec![2598190093, 53024287], -66, div_pow18_assign ;
             smallvec![1427689960, 11897416], -64, div_pow19_assign ;
             smallvec![3607772529, 171798691], -68, div_pow20_assign ;
-            smallvec![3837227018, 3720357158, 9739154], -96, div_pow21_assign ;
+            smallvec![3720357159, 9739154], -64, div_pow21_assign ;
             smallvec![2094240252, 35495597], -66, div_pow22_assign ;
-            smallvec![235451894, 3458707123, 8119030], -96, div_pow23_assign ;
+            smallvec![3458707124, 8119030], -64, div_pow23_assign ;
             smallvec![1908874354, 477218588], -70, div_pow24_assign ;
             smallvec![2515132849, 2893089970, 6871947], -96, div_pow25_assign ;
-            smallvec![2871782867, 25414007], -66, div_pow26_assign ;
-            smallvec![2197562142, 5891587], -64, div_pow27_assign ;
+            smallvec![2388916721, 2871782866, 25414007], -98, div_pow26_assign ;
+            smallvec![3646892670, 2197562141, 5891587], -96, div_pow27_assign ;
             smallvec![3418443359, 87652393], -68, div_pow28_assign ;
             smallvec![4121330093, 2451348753, 5106976], -96, div_pow29_assign ;
             smallvec![2309737969, 19088743], -66, div_pow30_assign ;
             smallvec![902792294, 3343013046, 4469268], -96, div_pow31_assign ;
             smallvec![844006430, 1187130538, 3943955], -96, div_pow33_assign ;
-            smallvec![2288667695, 14861478], -66, div_pow34_assign ;
+            smallvec![267506614, 2288667694, 14861478], -98, div_pow34_assign ;
             smallvec![1896797802, 3229114187, 3506095], -96, div_pow35_assign ;
             smallvec![2598190093, 53024287], -68, div_pow36_assign ;
         );
@@ -2637,26 +2653,26 @@ mod tests {
             smallvec![3779571221, 1202590842], -66, div_pow10_assign ;
             smallvec![1774779875, 248469182], -64, div_pow11_assign ;
             smallvec![477218589, 3340530119], -68, div_pow12_assign ;
-            smallvec![2922610882, 177898053], -64, div_pow13_assign ;
+            smallvec![3837515158, 2922610881, 177898053], -96, div_pow13_assign ;
             smallvec![2454267027, 613566756], -66, div_pow14_assign ;
             smallvec![3283263889, 133621204], -64, div_pow15_assign ;
-            smallvec![3135771971, 104030349], -64, div_pow17_assign ;
+            smallvec![1872546296, 3135771970, 104030349], -96, div_pow17_assign ;
             smallvec![1007461465, 371170013], -66, div_pow18_assign ;
             smallvec![1403895128, 83281914], -64, div_pow19_assign ;
             smallvec![3779571221, 1202590842], -68, div_pow20_assign ;
-            smallvec![1090785346, 272696336, 68174084], -96, div_pow21_assign ;
+            smallvec![272696337, 68174084], -64, div_pow21_assign ;
             smallvec![1774779875, 248469182], -66, div_pow22_assign ;
-            smallvec![1648163254, 2736113381, 56833215], -96, div_pow23_assign ;
+            smallvec![2736113382, 56833215], -64, div_pow23_assign ;
             smallvec![477218589, 3340530119], -70, div_pow24_assign ;
             smallvec![426060756, 3071760610, 48103633], -96, div_pow25_assign ;
-            smallvec![2922610882, 177898053], -66, div_pow26_assign ;
-            smallvec![2498033105, 41241112], -64, div_pow27_assign ;
+            smallvec![3837515158, 2922610881, 177898053], -98, div_pow26_assign ;
+            smallvec![4053412209, 2498033104, 41241112], -96, div_pow27_assign ;
             smallvec![2454267027, 613566756], -68, div_pow28_assign ;
             smallvec![3079506873, 4274539389, 35748835], -96, div_pow29_assign ;
             smallvec![3283263889, 133621204], -66, div_pow30_assign ;
             smallvec![2024578757, 1926254843, 31284881], -96, div_pow31_assign ;
             smallvec![1613077709, 4014946471, 27607686], -96, div_pow33_assign ;
-            smallvec![3135771971, 104030349], -66, div_pow34_assign ;
+            smallvec![1872546296, 3135771970, 104030349], -98, div_pow34_assign ;
             smallvec![392682725, 1128962832, 24542670], -96, div_pow35_assign ;
             smallvec![1007461465, 371170013], -68, div_pow36_assign ;
         );
@@ -2664,14 +2680,14 @@ mod tests {
         // More than 1 iteration
         check_pown!(
             smallvec![7], 0, 22 ;
-            smallvec![1097992198, 4114813525], -96, div_pow3_assign ;
+            smallvec![3517406855, 1097992197, 4114813525], -128, div_pow3_assign ;
             smallvec![1192962241, 3765478296, 54159], -128, div_pow5_assign ;
-            smallvec![1097992198, 4114813525], -118, div_pow6_assign ;
+            smallvec![3517406855, 1097992197, 4114813525], -150, div_pow6_assign ;
             smallvec![2709929360, 113271394, 33], -128, div_pow7_assign ;
             smallvec![4163638954, 563173765], -128, div_pow9_assign ;
             smallvec![1192962241, 3765478296, 54159], -150, div_pow10_assign ;
             smallvec![1846927277, 2280466835, 6813002], -160, div_pow11_assign ;
-            smallvec![1097992198, 4114813525], -140, div_pow12_assign ;
+            smallvec![3517406855, 1097992197, 4114813525], -172, div_pow12_assign ;
             smallvec![2762324558, 3336209160, 172672], -160, div_pow13_assign ;
             smallvec![2709929360, 113271394, 33], -150, div_pow14_assign ;
             smallvec![2920419711, 2530008966, 7412], -160, div_pow15_assign ;
@@ -2681,18 +2697,18 @@ mod tests {
             smallvec![1192962241, 3765478296, 54159], -172, div_pow20_assign ;
             smallvec![1444322040, 2234040319, 4], -160, div_pow21_assign ;
             smallvec![1846927277, 2280466835, 6813002], -182, div_pow22_assign ;
-            smallvec![2427835437, 2623765955], -160, div_pow23_assign ;
-            smallvec![1097992198, 4114813525], -162, div_pow24_assign ;
+            smallvec![1663574401, 2427835436, 2623765955], -192, div_pow23_assign ;
+            smallvec![3517406855, 1097992197, 4114813525], -194, div_pow24_assign ;
             smallvec![2607034598, 1956428404, 419041749], -192, div_pow25_assign ;
             smallvec![2762324558, 3336209160, 172672], -182, div_pow26_assign ;
-            smallvec![3707063943, 77078751], -160, div_pow27_assign ;
+            smallvec![630051582, 3707063942, 77078751], -192, div_pow27_assign ;
             smallvec![2709929360, 113271394, 33], -172, div_pow28_assign ;
             smallvec![1810784743, 2979999428, 16002267], -192, div_pow29_assign ;
             smallvec![2920419711, 2530008966, 7412], -182, div_pow30_assign ;
             smallvec![3974785410, 4053206930, 3689607], -192, div_pow31_assign ;
             smallvec![2574918056, 1209062500, 932461], -192, div_pow33_assign ;
             smallvec![1865691657, 743981915, 472], -182, div_pow34_assign ;
-            smallvec![625750939, 2388256588, 793309967, 255529], -224, div_pow35_assign ;
+            smallvec![2388256589, 793309967, 255529], -192, div_pow35_assign ;
             smallvec![4163638954, 563173765], -172, div_pow36_assign ;
         );
 
@@ -2946,6 +2962,10 @@ mod tests {
             // Underflow
             // Adapted from failures in strtod.
             check_parse_float(10, &U32_POW10, "2.4703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125001e-324", (Bigfloat { data: smallvec![1727738441, 330069557, 3509095598, 686205316, 156923684, 750687444, 2688855918, 28211928, 1887482096, 3222998811, 913348873, 1652282845, 1600735541, 1664240266, 84454144, 1487769792, 1855966778, 2832488299, 507030148, 1410055467, 2513359584, 3453963205, 779237894, 3456088326, 3671009895, 3094451696, 1250165638, 2682979794, 357925323, 1713890438, 3271046672, 3485897285, 3934710962, 1813530592, 199705026, 976390839, 2805488572, 2194288220, 2094065006, 2592523639, 3798974617, 586957244, 1409218821, 3442050171, 3789534764, 1380190380, 2055222457, 3535299831, 429482276, 389342206, 133558576, 721875297, 3013586570, 540178306, 2389746866, 2313334501, 422440635, 1288499129, 864978311, 842263325, 3016323856, 2282442263, 1440906063, 3931458696, 3511314276, 1884879882, 946366824, 4260548261, 1073379659, 1732329252, 3828972211, 1915607049, 3665440937, 1844358779, 3735281178, 2646335050, 1457460927, 2940016422, 1051], exp: 0 }, -1078, 761));
+
+            // Rounding error
+            // Adapted from test-float-parse failures.
+            check_parse_float(10, &U32_POW10, "1009e-31", (Bigfloat { data: smallvec![1009], exp: 0 }, -31, 8));
         }
     }
 
@@ -2962,7 +2982,12 @@ mod tests {
         unsafe {
             // Underflow
             // Adapted from failures in strtod.
-            check_from_bytes(10, "2.4703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125001e-324", (Bigfloat { data: smallvec![635365730, 2971208776, 32671145, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8], exp: -3670 }, 761));
+            check_from_bytes(10, "2.4703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125001e-324", (Bigfloat { data: smallvec![642017487, 3921539298, 3824343719, 91359114, 1738187133, 1383153214, 3150573688, 2249385240, 2573401083, 3095825845, 3660217666, 1733774432, 4281766689, 4040834041, 3939311820, 1480925659, 635365729, 2971208776, 32671145, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8], exp: -4182 }, 761));
+
+            // Rounding error
+            // Adapted from test-float-parse failures.
+            check_from_bytes(5, "0.00000000000000000000000000000000000000004243233340111410410443", (Bigfloat { data: smallvec![880090781, 186210280, 869146737, 1385950651, 4269719750, 7], exp: -256 }, 64));
+            check_from_bytes(10, "1009e-31", (Bigfloat { data: smallvec![1614477393, 692973567, 4282343523, 3], exp: -191 }, 8));
         }
     }
 }
