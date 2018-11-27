@@ -98,6 +98,7 @@ const STRESS_TESTS: StressTests = StressTests {
     },
 };
 
+#[allow(dead_code)]
 fn stress_test<T: 'static + Debug + PartialEq + lexical::FromBytes>(test: &StressTest<T>) {
     for (string, float) in test.below_ulp.iter() {
         let actual: T = lexical::try_parse(string).unwrap();
@@ -110,6 +111,9 @@ fn stress_test<T: 'static + Debug + PartialEq + lexical::FromBytes>(test: &Stres
     }
 }
 
+// Disable the stress tests when using the precise algorithm, since the
+// imprecise algorithms are expected to fail.
+#[cfg(not(all(feature = "imprecise", feature = "table")))]
 #[test]
 fn stress_tests() {
     stress_test(&STRESS_TESTS.bit24);

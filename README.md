@@ -13,6 +13,10 @@ Fast lexical conversion routines for both std and no_std environments. Lexical p
 - [Documentation](#documentation)
 - [Validation](#validation)
 - [Caveats](#caveats)
+- [Details](#details)
+  - [Float to String](#float-to-string)
+  - [String to Float](#string-to-float)
+  - [Arbitrary-Precision Arithmetic](#arbitrary-precision-arithmetic)
 - [License](#license)
 - [Contributing](#contributing)
 
@@ -111,27 +115,51 @@ Lexical's documentation can be found on [docs.rs](https://docs.rs/lexical).
 
 # Validation
 
+Float parsing is difficult to do correctly, and major bugs have been found in implementations from [libstdc++'s strtod](https://www.exploringbinary.com/glibc-strtod-incorrectly-converts-2-to-the-negative-1075/) to [Python](https://bugs.python.org/issue7632). In order to validate the accuracy of the lexical, we employ the following external tests:
+
+1. Hrvoje Abraham's [strtod](https://github.com/ahrvoje/numerics/tree/master/strtod) test cases.
+2. Rust's [test-float-parse](https://github.com/rust-lang/rust/tree/64185f205dcbd8db255ad6674e43c63423f2369a/src/etc/test-float-parse) unittests.
+3. Testbase's [stress tests](https://www.icir.org/vern/papers/testbase-report.pdf) for converting from decimal to binary.
+4. [Various](https://www.exploringbinary.com/glibc-strtod-incorrectly-converts-2-to-the-negative-1075/) [difficult](https://www.exploringbinary.com/how-glibc-strtod-works/) [cases](https://www.exploringbinary.com/how-strtod-works-and-sometimes-doesnt/) reported on blogs.
+
+Although Lexical is likely to contain bugs leading to rounding error, it is tested against a comprehensive suite of random-data and near-halfway representations, and should be fast and correct for the vast majority of use-cases.
+
 # Caveats
 
-Lexical heavily uses unsafe code for performance, and therefore may introduce memory-safety issues. Although the code is tested with wide variety of inputs to minimize the risk of memory-safety bugs, no guarantees are made and you should use it at your own risk.
+Lexical uses unsafe code in the back-end for performance, and therefore may introduce memory-safety issues. Although the code is tested with wide variety of inputs to minimize the risk of memory-safety bugs, no guarantees are made and you should use it at your own risk.
 
-Finally, for non-base10 floats, lexical's float-to-string implementations may lead to fairly lossy rounding for a small subset of inputs (up to 0.1% of the total value).
+Finally, for non-decimal (base 10) floats, lexical's float-to-string implementation is lossy, resulting in rounding for a small subset of inputs (up to 0.1% of the total value).
 
 # Details
+
+## Float to String
 
 For more information on the Grisu2 and Grisu3 algorithms, see [Printing Floating-Point Numbers Quickly and Accurately with Integers](https://www.cs.tufts.edu/~nr/cs257/archive/florian-loitsch/printf.pdf).
 
 For more information on the Ryu algorithm, see [Ryū: fast float-to-string conversion](https://dl.acm.org/citation.cfm?id=3192369).
 
-For float parsing, lexical uses a stepwise algorithm, using the first algorithm that produces a correct result:
+## String to Float
+
+For float parsing, lexical tries the following algorithms, using the first algorithm that produces a correct result:
 
 1. Create an exact representation using a native floating-point type from the significant digits and exponent.
 2. Create an approximate representation, exact within rounding error, using a custom floating-point type with 80-bits of precision, preventing rounding-error in the significant digits.
 3. Create an exact representation of the significant digits using arbitrary-precision arithmetic, and create the closest native float from this representation.
 
-Although using the 3rd algorithm only occurs when the estimated rounding error is greater than the difference between two floating-point representations (occurring in only extremely rare cases), maliciously constructed input could force use of the 3rd algorithm. This has seriously implications for performance, since arbitrary-precision arithmetic is extremely slow, and scales poorly for large numbers, and can lead to performance degradation of >100-1000x. The lossy float-parsing algorithms therefore avoid using arbitrary-precision arithmetic, and use a modified 2nd step using an extended floating-point type with 160-bits of precision, creating an accurate native float without major performance regressions in all but the most extenuating circumstances.
+Although using the 3<sup>rd</sup> algorithm only occurs when the estimated rounding error is greater than the difference between two floating-point representations (a rare occurrence), maliciously constructed input could force use of the 3<sup>rd</sup> algorithm. This has seriously implications for performance, since arbitrary-precision arithmetic scales poorly with large numbers, and can lead to performance degradation in excess of 100-1000 fold. The lossy float-parsing algorithms therefore avoid using arbitrary-precision arithmetic, and use a modified 2<sup>nd</sup> step with an extended floating-point type with 160-bits of precision, creating a nearly accurate native float (within 1 bit in the mantissa) without major performance regressions.
 
-For example, a carefully-constructed 1MB string representing an array of floats could force ~10 seconds of CPU usage with a correct algorithm, as opposed to ~6.7ms with a lossy algorithm on a 2.20GHz machine.
+## Arbitrary-Precision Arithmetic
+
+Lexical uses custom arbitrary-precision arithmetic to exactly represent complex floats, with various optimizations for multiplication and division relative to Rust's current implementation. Lexical uses a small vector of `u32`s for internal storage (storing up to 1024 bits on the stack), and an `i32` to store the binary exponent. Given `i^X` is largest power that can be stored in a `u32`, we use the following optimizations:
+
+1. During the parsing of digits, we use a simple optimization to minimize the number of arbitrary-precision operations required. Since `z+b(y+b(x+b(w))) == z+b(y) + b^2(x+b(w))`, we can parse `X-1` length segments of digits using native integers, multiply the big float by `i^(X-1)`, and then add the parsed digits to the big float. This never overflows, and results in `S/(X-1)` arbitrary-precision multiplications and additions, as opposed to `S` arbitrary-precision multiplications and additions, where `S` is the number of digits in the mantissa.
+2. Multiplication or division by a power of 2 can be represented by an increment or decrement of the binary exponent.
+3. Multiplication by `i^n` iteratively multiplies by the largest power that fits in a u32 (`i^X`) until the remaining exponent is less than or equal to `X`, and then multiplies by `i^r`, where `r` is the remainder, using precalculated powers.
+4. Division by `i^n` first pads the underlying storage with 0s (to avoid intermediate rounding, which is described below), and then iteratively divides by the largest power that fits in a u32 (`i^X`) until the remaining exponent is less than or equal to `X`, and then divides by `i^r`, where `r` is the remainder, using precalculated powers.
+
+Since rounding error may be introduced during division, lexical pads the big float with 0s to avoid any significant rounding error being introduced. Since we manually store the exponent, we can avoid denormal and subnormal results easily, without requiring both a numerator and a denominator. The number of bits required to avoid rounding for a given `i` was calculated using numerical simulations for `x/i^n ∀ n [1, 150], ∀ x {2, ..., 179424673}`, where `x` is in a set 39 primes meant to induce rounding error. The number of bits required to avoid introducing significant rounding error while dividing by `i^n` was found to be linear with `n`, and the change in the slope of the number of bits required at a given floating-point precision was also found to be linear, signifying the number of bits required to pad our big float was well approximated by a linear function of the exponent at a given number of bits of precision. We therefore estimated the required number of bits to pad our big float at ~70 bits of precision in the resulting value (greater than the precision of single- and double-precision IEEE754 floats), to avoid introducing any significant rounding error in our big float representation.
+
+These optimizations led to significant performance wins, with performance in the worst case rivaling libstdc++'s `strtod`, and significantly outperforming any other implementation.
 
 # License
 

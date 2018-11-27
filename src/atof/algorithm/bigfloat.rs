@@ -276,13 +276,27 @@ fn div_small_assign<Wide, Narrow>(x: &mut Narrow, y: Narrow, rem: Narrow)
 /// bits required for any division operation without intermediate rounding
 /// error.
 ///
+/// The intercepts required at N bits of precision were also calculated
+/// using the `bigfloat` Python module. The change in the slope with precision
+/// shown to be linear, and the slope <= 0.00676 for bases
+/// 3, 5, 7, and 33. This shows merely overestimating the results by ~0.15 gives
+/// us 20 extra bits of precision, and so we are accurate to >70+ bits of
+/// precision.
+///
 /// The intercept was calculated by using the following code:
 /// ```text
+/// PRECISION = 100 # or some value.
 /// def is_same_guard(x,b,exp,n):
 ///     v = (x << n) // b**exp
 ///     actual = v * 2**(-n)
 ///     expected = x / (b**exp)
 ///     return (actual, expected, (expected-actual)/expected)
+///     # Bigfloat code
+///     #with bigfloat.precision(PRECISION):
+///     #    v = (x << n) // (b**exp)
+///     #    actual = bigfloat.mul(v, bigfloat.pow(2, -n))
+///     #    expected = bigfloat.div(x, (b**exp))
+///     #    return (actual, expected, (expected-actual)/expected)
 ///
 /// def find_guard(x, b, n):
 ///     d = 1

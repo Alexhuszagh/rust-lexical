@@ -4,3 +4,4 @@ Cargo.lock
 src/**/tmp*
 benches/**/tmp*
 tmp*
+data/test-float-parse/errors.txt
