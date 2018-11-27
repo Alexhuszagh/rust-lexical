@@ -103,6 +103,8 @@ For all the following benchmarks, lower is better.
 
 **String to f64 Cross-Language Comparison**
 
+Note: Rust was unable to parse the "stress" benchmark, producing an error result of `ParseFloatError { kind: Invalid }`.
+
 ![atof64 language benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atof_language_comparison_f64.png)
 
 # Backends
