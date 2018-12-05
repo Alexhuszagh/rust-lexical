@@ -414,21 +414,19 @@ fn padded_bits(i: u32, n:i32) -> u32 {
 /// * `base`          - Radix for the number encoding.
 /// * `small_powers`  - Pre-calculated small powers
 #[inline]
-unsafe fn parse_digits(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32], first: *const u8, last: *const u8)
-    -> *const u8
+unsafe fn parse_digits(bigfloat: &mut Bigfloat, state: &mut ParseState, base: u32, small_powers: &[u32], last: *const u8)
 {
     // We need to consider step - 2, since we guarantee up to the largest
     // small power being <= u32::max_value(). Any large digit in the
     // first position might lead to a larger value, especially for higher bases.
     let step = small_powers.len() - 2;
-    let mut state = ParseIntState::new(first);
     loop {
         // Cannot overflow, choosing the maximum number of digits to avoid
         // overflow.
         let mut value: u32 = 0;
         let f = state.curr;
         let l = last.min(f.add(step));
-        atoi::unchecked(&mut value, &mut state, base, l);
+        atoi::unchecked(&mut value, state, base, l);
 
         // Find the number of digits parsed, multiply by the small power,
         // and add the calculated value.
@@ -444,13 +442,11 @@ unsafe fn parse_digits(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32],
             break;
         }
     }
-
-    state.curr
 }
 
 /// Parse the mantissa into a bigfloat.
-/// Returns a pointer to the current buffer position, and the shift in
-/// the mantissa relative to the dot.
+///
+/// Returns the number of digits parsed after the period.
 ///
 /// Use small powers steps to extract the proper digit and minimize the number
 /// of big integer operations. None of the strings should have leading zeros.
@@ -461,56 +457,43 @@ unsafe fn parse_digits(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32],
 /// * `base`          - Radix for the number encoding.
 /// * `small_powers`  - Pre-calculated small powers
 #[inline]
-unsafe fn parse_mantissa(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32], first: *const u8, last: *const u8)
-    -> (*const u8, i32)
+unsafe fn parse_mantissa(bigfloat: &mut Bigfloat, state: &mut ParseState, base: u32, small_powers: &[u32], last: *const u8)
+    -> usize
 {
-    let mut p = first;
-
     // Trim the leading 0s.
-    p = ltrim_char_range(p, last, b'0');
+    state.ltrim_char(last, b'0');
 
     // Parse the integer component.
-    p = parse_digits(bigfloat, base, small_powers, p, last);
+    parse_digits(bigfloat, state, base, small_powers, last);
 
     // Parse the fraction component if present.
     // We need to store the number of parsed digits after the dot.
-    let exp_shift: i32;
-    if distance(p, last) >= 1 && *p == b'.' {
-        // Store a temporary pointer to the current first, so we can determine
-        // the number of parsed digits.
-        let tmp_first = p.add(1);
+    if state.curr != last && *state.curr == b'.' {
+        state.increment();
+        let first = state.curr;
         if bigfloat.is_empty() {
             // Can ignore the leading digits while the mantissa is 0.
             // Simplifies the computational expense of this.
-            p = ltrim_char_range(tmp_first, last, b'0');
-        } else {
-            p = tmp_first;
+            state.ltrim_char(last, b'0');
         }
-        p = parse_digits(bigfloat, base, small_powers, p, last);
-        exp_shift = distance(tmp_first, p).try_i32_or_max();
-    } else {
-        exp_shift = 0;
-    }
 
-    (p, exp_shift)
+        parse_digits(bigfloat, state, base, small_powers, last);
+        distance(first, state.curr)
+    } else {
+        0
+    }
 }
 
 /// Parse the mantissa and exponent from a string.
 unsafe fn parse_float(base: u32, small_powers: &[u32], first: *const u8, last: *const u8)
-    -> (Bigfloat, i32, *const u8)
+    -> (Bigfloat, i32, ParseState)
 {
     let mut bigfloat = Bigfloat::new();
-    let (first, exp_shift) = parse_mantissa(&mut bigfloat, base, small_powers, first, last);
-
-    // Temporary code to avoid use of state here...
-    let mut state = ParseFloatState::new(first);
+    let mut state = ParseState::new(first);
+    let dot_shift = parse_mantissa(&mut bigfloat, &mut state, base, small_powers, last);
     let exponent = parse_exponent(&mut state, base, last);
-    let first = state.inner.curr;
-    // Temporary code to avoid use of state here...
-
-    // TODO(ahuszagh) Change to use the current version
-    let exponent = normalize_exponent_v1(exponent, exp_shift);
-    (bigfloat, exponent, first)
+    let exponent = normalize_exponent(exponent, dot_shift, 0);
+    (bigfloat, exponent, state)
 }
 
 // ASSIGN
@@ -612,11 +595,11 @@ macro_rules! from_bytes {
         ///
         /// Use the float to provide a tight lower bound on the max exponent.
         unsafe fn $name<F>(first: *const u8, last: *const u8)
-            -> (Bigfloat, *const u8)
+            -> (Bigfloat, ParseState)
             where F: FloatMaxExponent
         {
             // Rust guarantees 8-bits to a byte.
-            let (mut bigfloat, exponent, p) = parse_float($base, &$small_powers, first, last);
+            let (mut bigfloat, exponent, state) = parse_float($base, &$small_powers, first, last);
             let max_binary_exponent = F::max_binary_exponent();
             let binary_exponent = bigfloat.binary_exponent($base, exponent);
             if exponent == 0 {
@@ -636,7 +619,7 @@ macro_rules! from_bytes {
                 // Get exact representation via division.
                 bigfloat.$div(-exponent);
             }
-            (bigfloat, p)
+            (bigfloat, state)
         }
     );
 }
@@ -1767,7 +1750,7 @@ impl Bigfloat {
     /// from_bytes to ensure the number of digits is <= MAX_DIGITS and
     /// MAX_DIGITS is a suitable value to avoid i32 overflow
     pub unsafe fn from_bytes<F: FloatMaxExponent>(base: u32, first: *const u8, last: *const u8)
-        -> (Bigfloat, *const u8)
+        -> (Bigfloat, ParseState)
     {
         match base {
             3  => Self::from_bytes_3::<F>(first, last),
@@ -2999,14 +2982,15 @@ mod tests {
 
     // PARSING
 
-    unsafe fn check_parse_mantissa(base: u32, small_powers: &[u32], s: &str, tup: (Bigfloat, i32, usize)) {
+    unsafe fn check_parse_mantissa(base: u32, small_powers: &[u32], s: &str, tup: (Bigfloat, usize, usize)) {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let mut v = Bigfloat::new();
-        let (p, dot_shift) = parse_mantissa(&mut v, base, small_powers, first, last);
-        assert_eq!(v, tup.0);
+        let mut value = Bigfloat::new();
+        let mut state = ParseState::new(first);
+        let dot_shift = parse_mantissa(&mut value, &mut state, base, small_powers, last);
+        assert_eq!(value, tup.0);
         assert_eq!(dot_shift, tup.1);
-        assert_eq!(distance(first, p), tup.2);
+        assert_eq!(distance(first, state.curr), tup.2);
     }
 
     #[test]
@@ -3037,10 +3021,10 @@ mod tests {
     unsafe fn check_parse_float(base: u32, small_powers: &[u32], s: &str, tup: (Bigfloat, i32, usize)) {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let (v, exp, p) = parse_float(base, small_powers, first, last);
-        assert_eq!(v, tup.0);
+        let (value, exp, state) = parse_float(base, small_powers, first, last);
+        assert_eq!(value, tup.0);
         assert_eq!(exp, tup.1);
-        assert_eq!(distance(first, p), tup.2);
+        assert_eq!(distance(first, state.curr), tup.2);
     }
 
     #[test]
@@ -3080,9 +3064,9 @@ mod tests {
     unsafe fn check_from_bytes<F: FloatMaxExponent>(base: u32, s: &str, tup: (Bigfloat, usize)) {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let (v, p) = Bigfloat::from_bytes::<F>(base, first, last);
+        let (v, state) = Bigfloat::from_bytes::<F>(base, first, last);
         assert_eq!(v, tup.0);
-        assert_eq!(distance(first, p), tup.1);
+        assert_eq!(distance(first, state.curr), tup.1);
     }
 
     #[test]
