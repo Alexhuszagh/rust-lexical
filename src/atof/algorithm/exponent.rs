@@ -1,6 +1,6 @@
 //! Algorithm to parse an exponent from a float string.
 
-use lib::ptr;
+use lib::{mem, ptr};
 use atoi;
 use util::*;
 
@@ -17,11 +17,15 @@ use util::*;
 pub(super) unsafe extern "C" fn parse_exponent(state: &mut ParseState, base: u32, last: *const u8)
     -> i32
 {
-    // Turn off truncation before we parse the exponent, since we want to
-    // determine if the truncation currently overflows.
-    state.trunc = ptr::null();
     if state.curr != last && (*state.curr).to_ascii_lowercase() == exponent_notation_char(base).to_ascii_lowercase() {
         state.increment();
+
+        // Turn off truncation before we parse the exponent, since we want to
+        // determine if the truncation currently overflows. We also want to
+        // ensure we don't lose the current truncation status.
+        let mut trunc_tmp = ptr::null();
+        mem::swap(&mut state.trunc, &mut trunc_tmp);
+
         // Use atoi_sign so we can handle overflow differently for +/- numbers.
         // We care whether the value is positive.
         // Use i32::max_value() since it's valid in 2s complement for
@@ -31,6 +35,7 @@ pub(super) unsafe extern "C" fn parse_exponent(state: &mut ParseState, base: u32
         let exponent = if state.is_truncated() { i32::max_value() } else { exponent };
         let exponent = if sign == -1 { -exponent } else { exponent };
 
+        mem::swap(&mut state.trunc, &mut trunc_tmp);
         exponent
     } else {
         0
