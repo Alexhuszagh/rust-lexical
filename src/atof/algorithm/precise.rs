@@ -296,7 +296,8 @@ fn pow2_to_exact<F: StablePower>(mantissa: u64, base: u32, pow2_exp: i32, expone
 ///
 /// Returns the resulting float and if the value can be represented exactly.
 #[inline]
-fn to_exact<F: StablePower>(mantissa: u64, base: u32, exponent: i32) -> (F, bool)
+fn to_exact<F: StablePower>(mantissa: u64, base: u32, exponent: i32)
+    -> (F, bool)
 {
     // logic error, disable in release builds
     debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
@@ -363,7 +364,7 @@ impl FloatErrors for u64 {
         // If the error has affected too many units, the float will be
         // inaccurate, or if the representation is too close to halfway
         // that any operations could affect this halfway representation.
-        // See the documentation for Bigfloat for more information.
+        // See the documentation for dtoa for more information.
         let bias = -(F::EXPONENT_BIAS - F::MANTISSA_SIZE);
         let denormal_exp = bias - 63;
         // This is always a valid u32, since (denormal_exp - fp.exp)
@@ -487,18 +488,14 @@ unsafe fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, base: u32,
 /// represented with mantissa bits of precision.
 #[inline]
 pub(super) fn to_extended<F, M>(mantissa: M, base: u32, exponent: i32, truncated: bool)
-    -> (F, bool)
+    -> (ExtendedFloat<M>, bool)
     where M: FloatErrors,
           F: FloatRounding<M>,
           ExtendedFloat<M>: CachedPowers<M>
 {
     let mut fp = ExtendedFloat { frac: mantissa, exp: 0 };
     let valid = unsafe { multiply_exponent_extended::<F, M>(&mut fp, base, exponent, truncated) };
-    if valid {
-        (fp.as_float::<F>(), true)
-    } else {
-        (F::ZERO, false)
-    }
+    (fp, valid)
 }
 
 // ATOF/ATOD
@@ -558,9 +555,9 @@ unsafe extern "C" fn pown_to_native<F>(base: u32, first: *const u8, last: *const
     }
 
     // Moderate path (use an extended 80-bit representation).
-    let (float, valid) = to_extended::<F, _>(mantissa, base, exponent, state.is_truncated());
+    let (fp, valid) = to_extended::<F, _>(mantissa, base, exponent, state.is_truncated());
     if valid {
-        return (float, state);
+        return (fp.into_float::<F>(), state);
     }
 
     // Slow path
@@ -569,8 +566,8 @@ unsafe extern "C" fn pown_to_native<F>(base: u32, first: *const u8, last: *const
         // Ignore any and all truncation. Inaccurate, but resolves many borderline
         // cases between 16-19 digits that otherwise require the dtoa.
         let (mantissa, exponent, state) = parse_float::<u128>(base, first, last);
-        let (float, _) = to_extended::<F, _>(mantissa, base, exponent, false);
-        return (float, state);
+        let (fp, _) = to_extended::<F, _>(mantissa, base, exponent, false);
+        return (fp.into_float::<F>(), state);
     } else {
         // Extremely slow algorithm, use arbitrary-precision float.
         // TODO(ahuszagh) Replace with dtoa, since we can do that now...
@@ -841,12 +838,12 @@ mod tests {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
         let (f, valid) = to_extended::<f32, _>(mantissa, 3, 1, false);
-        assert_eq!(f, 2.7670116e+19);
+        assert_eq!(f.as_f32(), 2.7670116e+19);
         assert!(valid, "exponent should be valid");
 
         let mantissa: u64 = 4746067219335938;
         let (f, valid) = to_extended::<f32, _>(mantissa, 15, -9, false);
-        assert_eq!(f, 123456.1);
+        assert_eq!(f.as_f32(), 123456.1);
         assert!(valid, "exponent should be valid");
     }
 
@@ -855,12 +852,12 @@ mod tests {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
         let (f, valid) = to_extended::<f64, _>(mantissa, 3, 1, false);
-        assert_eq!(f, 2.7670116110564327e+19);
+        assert_eq!(f.as_f64(), 2.7670116110564327e+19);
         assert!(valid, "exponent should be valid");
 
         // valid (ends of the earth, salting the earth)
         let (f, valid) = to_extended::<f64, _>(mantissa, 3, -695, true);
-        assert_eq!(f, 2.32069302345e-313);
+        assert_eq!(f.as_f64(), 2.32069302345e-313);
         assert!(valid, "exponent should be valid");
 
         // invalid ("268A6.177777778", base 15)
@@ -872,7 +869,7 @@ mod tests {
         // 123456.10000000001300614743687445, exactly, should not round up.
         let mantissa: u128 = 4746067219335938;
         let (f, valid) = to_extended::<f64, _>(mantissa, 15, -9, false);
-        assert_eq!(f, 123456.1);
+        assert_eq!(f.as_f64(), 123456.1);
         assert!(valid, "exponent should be valid");
 
         // Rounding error

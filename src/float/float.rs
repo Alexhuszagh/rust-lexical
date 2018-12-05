@@ -35,13 +35,17 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Get the mantissa component.
     #[inline(always)]
-    pub fn mantissa(&self) -> M {
+    pub fn mantissa(&self)
+        -> M
+    {
         self.frac
     }
 
     /// Get the exponent component.
     #[inline(always)]
-    pub fn exponent(&self) -> i32 {
+    pub fn exponent(&self)
+        -> i32
+    {
         self.exp
     }
 
@@ -58,7 +62,8 @@ impl<M: Mantissa> ExtendedFloat<M> {
     ///     2. Normalization of the result (not done here).
     ///     3. Addition of exponents.
     #[inline]
-    pub unsafe fn mul(&self, b: &ExtendedFloat<M>) -> ExtendedFloat<M>
+    pub unsafe fn mul(&self, b: &ExtendedFloat<M>)
+        -> ExtendedFloat<M>
     {
         // Logic check, values must be decently normalized prior to multiplication.
         debug_assert!((self.frac & M::HIMASK != M::ZERO) && (b.frac & M::HIMASK != M::ZERO));
@@ -89,14 +94,16 @@ impl<M: Mantissa> ExtendedFloat<M> {
     ///
     /// The result is not normalized.
     #[inline]
-    pub unsafe fn imul(&mut self, b: &ExtendedFloat<M>) {
+    pub unsafe fn imul(&mut self, b: &ExtendedFloat<M>)
+    {
         *self = self.mul(b);
     }
 
     // NORMALIZE
 
     /// Get if extended-float is normalized, MSB is set.
-    pub fn is_normalized(&self) -> bool
+    pub fn is_normalized(&self)
+        -> bool
     {
         self.frac & M::NORMALIZED_MASK == M::NORMALIZED_MASK
     }
@@ -108,7 +115,8 @@ impl<M: Mantissa> ExtendedFloat<M> {
     ///
     /// Get the number of bytes shifted.
     #[inline]
-    pub fn normalize(&mut self) -> u32
+    pub fn normalize(&mut self)
+        -> u32
     {
         // Note:
         // Using the cltz intrinsic via leading_zeros is way faster (~10x)
@@ -131,7 +139,9 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Get normalized boundaries for float.
     #[inline]
-    pub fn normalized_boundaries(&self) -> (ExtendedFloat<M>, ExtendedFloat<M>) {
+    pub fn normalized_boundaries(&self)
+        -> (ExtendedFloat<M>, ExtendedFloat<M>)
+    {
         let mut upper = ExtendedFloat {
             frac: (self.frac << 1) + M::ONE,
             exp: self.exp - 1,
@@ -157,91 +167,177 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Lossy round float-point number to native fraction boundaries.
     #[inline]
-    fn round_to_native<F: FloatRounding<M>>(&mut self)
+    fn round_to_native<F, Cb>(&mut self, cb: Cb)
+        where F: FloatRounding<M>,
+              Cb: FnOnce(&mut ExtendedFloat<M>, i32)
     {
-        round_to_native::<F, M>(self)
+        round_to_native::<F, M, _>(self, cb)
     }
 
     /// Lossy round float-point number to f32 fraction boundaries.
     #[inline]
-    fn round_to_f32(&mut self)
-        where f32: FloatRounding<M>
+    fn round_to_f32<Cb>(&mut self, cb: Cb)
+        where f32: FloatRounding<M>,
+              Cb: FnOnce(&mut ExtendedFloat<M>, i32)
     {
-        self.round_to_native::<f32>()
+        self.round_to_native::<f32, Cb>(cb)
     }
 
     /// Lossy round float-point number to f64 fraction boundaries.
     #[inline]
-    fn round_to_f64(&mut self)
-        where f64: FloatRounding<M>
+    fn round_to_f64<Cb>(&mut self, cb: Cb)
+        where f64: FloatRounding<M>,
+              Cb: FnOnce(&mut ExtendedFloat<M>, i32)
     {
-        self.round_to_native::<f64>()
+        self.round_to_native::<f64, Cb>(cb)
     }
 
     // FROM
 
     /// Create extended float from 8-bit unsigned integer.
     #[inline]
-    pub fn from_int<T: Integer>(i: T) -> ExtendedFloat<M> {
+    pub fn from_int<T: Integer>(i: T)
+        -> ExtendedFloat<M>
+    {
         from_int(i)
     }
 
     /// Create extended float from 8-bit unsigned integer.
     #[inline]
-    pub fn from_u8(i: u8) -> ExtendedFloat<M> {
+    pub fn from_u8(i: u8)
+        -> ExtendedFloat<M>
+    {
         Self::from_int(i)
     }
 
     /// Create extended float from 16-bit unsigned integer.
     #[inline]
-    pub fn from_u16(i: u16) -> ExtendedFloat<M> {
+    pub fn from_u16(i: u16)
+        -> ExtendedFloat<M>
+    {
         Self::from_int(i)
     }
 
     /// Create extended float from 32-bit unsigned integer.
     #[inline]
-    pub fn from_u32(i: u32) -> ExtendedFloat<M> {
+    pub fn from_u32(i: u32)
+        -> ExtendedFloat<M>
+    {
         Self::from_int(i)
     }
 
     /// Create extended float from 64-bit unsigned integer.
     #[inline]
-    pub fn from_u64(i: u64) -> ExtendedFloat<M> {
+    pub fn from_u64(i: u64)
+        -> ExtendedFloat<M>
+    {
         Self::from_int(i)
     }
 
     /// Create extended float from native float.
     #[inline]
-    pub fn from_float<F: Float>(f: F) -> ExtendedFloat<M> {
+    pub fn from_float<F: Float>(f: F)
+        -> ExtendedFloat<M>
+    {
         from_float(f)
     }
 
     /// Create extended float from 32-bit float.
     #[inline]
-    pub fn from_f32(f: f32) -> ExtendedFloat<M> {
+    pub fn from_f32(f: f32)
+        -> ExtendedFloat<M>
+    {
         Self::from_float(f)
     }
 
     /// Create extended float from 64-bit float.
     #[inline]
-    pub fn from_f64(f: f64) -> ExtendedFloat<M> {
+    pub fn from_f64(f: f64)
+        -> ExtendedFloat<M>
+    {
         Self::from_float(f)
     }
 
-    // TO
+    // INTO
+
+    /// Convert into lower-precision native float.
+    #[inline]
+    pub fn into_float<F: FloatRounding<M>>(mut self)
+        -> F
+    {
+        self.round_to_native::<F, _>(round_nearest_tie_even);
+        into_float(self)
+    }
+
+    /// Convert into lower-precision 32-bit float.
+    #[inline]
+    pub fn into_f32(self)
+        -> f32
+        where f32: FloatRounding<M>
+    {
+        self.into_float()
+    }
+
+    /// Convert into lower-precision 64-bit float.
+    #[inline]
+    pub fn into_f64(self)
+        -> f64
+        where f64: FloatRounding<M>
+    {
+        self.into_float()
+    }
+
+    // INTO ROUNDED
+
+    /// Convert into lower-precision native float with custom rounding rules.
+    #[inline]
+    pub fn into_rounded_float<F>(mut self, kind: RoundingKind)
+        -> F
+        where F: FloatRounding<M>
+    {
+        let cb = match kind {
+            RoundingKind::NearestTieEven     => round_nearest_tie_even,
+            RoundingKind::NearestTieAwayZero => round_nearest_tie_even,
+            RoundingKind::TowardInfinity     => round_toward_infinity,
+            RoundingKind::TowardZero         => round_toward_zero,
+        };
+
+        self.round_to_native::<F, _>(cb);
+        into_float(self)
+    }
+
+    /// Convert into lower-precision 32-bit float with custom rounding rules.
+    #[inline]
+    pub fn into_rounded_f32(self, kind: RoundingKind)
+        -> f32
+        where f32: FloatRounding<M>
+    {
+        self.into_rounded_float(kind)
+    }
+
+    /// Convert into lower-precision 64-bit float with custom rounding rules.
+    #[inline]
+    pub fn into_rounded_f64(self, kind: RoundingKind)
+        -> f64
+        where f64: FloatRounding<M>
+    {
+        self.into_rounded_float(kind)
+    }
+
+    // AS
 
     /// Convert to lower-precision native float.
     #[inline]
-    pub fn as_float<F: FloatRounding<M>>(&self) -> F {
-        // Create a rounded and normalized fraction for export.
-        let mut x = *self;
-        x.round_to_native::<F>();
-        as_float(x)
+    pub fn as_float<F: FloatRounding<M>>(&self)
+        -> F
+    {
+        self.clone().into_float::<F>()
     }
 
     /// Convert to lower-precision 32-bit float.
     #[inline]
-    pub fn as_f32(&self) -> f32
+    pub fn as_f32(&self)
+        -> f32
         where f32: FloatRounding<M>
     {
         self.as_float()
@@ -249,10 +345,40 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Convert to lower-precision 64-bit float.
     #[inline]
-    pub fn as_f64(&self) -> f64
+    pub fn as_f64(&self)
+        -> f64
         where f64: FloatRounding<M>
     {
         self.as_float()
+    }
+
+    // AS ROUNDED
+
+    /// Convert to lower-precision native float with custom rounding rules.
+    #[inline]
+    pub fn as_rounded_float<F>(&self, kind: RoundingKind)
+        -> F
+        where F: FloatRounding<M>
+    {
+        self.clone().into_rounded_float::<F>(kind)
+    }
+
+    /// Convert to lower-precision 32-bit float with custom rounding rules.
+    #[inline]
+    pub fn as_rounded_f32(&self, kind: RoundingKind)
+        -> f32
+        where f32: FloatRounding<M>
+    {
+        self.as_rounded_float(kind)
+    }
+
+    /// Convert to lower-precision 64-bit float with custom rounding rules.
+    #[inline]
+    pub fn as_rounded_f64(&self, kind: RoundingKind)
+        -> f64
+        where f64: FloatRounding<M>
+    {
+        self.as_rounded_float(kind)
     }
 }
 
@@ -375,11 +501,11 @@ mod tests {
     fn check_round_to_f32(frac: u64, exp: i32, r_frac: u64, r_exp: i32)
     {
         let mut x = ExtendedFloat {frac: frac, exp: exp};
-        x.round_to_f32();
+        x.round_to_f32(round_nearest_tie_even);
         assert_eq!(x, ExtendedFloat {frac: r_frac, exp: r_exp});
 
         let mut x = ExtendedFloat {frac: (frac as u128) << 64, exp: exp-64};
-        x.round_to_f32();
+        x.round_to_f32(round_nearest_tie_even);
         assert_eq!(x, ExtendedFloat {frac: r_frac as u128, exp: r_exp});
     }
 
@@ -415,11 +541,11 @@ mod tests {
     fn check_round_to_f64(frac: u64, exp: i32, r_frac: u64, r_exp: i32)
     {
         let mut x = ExtendedFloat {frac: frac, exp: exp};
-        x.round_to_f64();
+        x.round_to_f64(round_nearest_tie_even);
         assert_eq!(x, ExtendedFloat {frac: r_frac, exp: r_exp});
 
         let mut x = ExtendedFloat {frac: (frac as u128) << 64, exp: exp-64};
-        x.round_to_f64();
+        x.round_to_f64(round_nearest_tie_even);
         assert_eq!(x, ExtendedFloat {frac: r_frac as u128, exp: r_exp});
     }
 
@@ -639,52 +765,52 @@ mod tests {
     fn to_f32_test() {
         // underflow
         let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -213};
-        assert_eq!(x.as_f32(), 0.0);
+        assert_eq!(x.into_f32(), 0.0);
 
         // min value
         let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -212};
-        assert_eq!(x.as_f32(), 1e-45);
+        assert_eq!(x.into_f32(), 1e-45);
 
         // 1.0e-40
         let x = ExtendedFloat80 {frac: 10043308644012916736, exp: -196};
-        assert_eq!(x.as_f32(), 1e-40);
+        assert_eq!(x.into_f32(), 1e-40);
 
         // 1.0e-20
         let x = ExtendedFloat80 {frac: 13611294244890214400, exp: -130};
-        assert_eq!(x.as_f32(), 1e-20);
+        assert_eq!(x.into_f32(), 1e-20);
 
         // 1.0
         let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -63};
-        assert_eq!(x.as_f32(), 1.0);
+        assert_eq!(x.into_f32(), 1.0);
 
         // 1e20
         let x = ExtendedFloat80 {frac: 12500000250510966784, exp: 3};
-        assert_eq!(x.as_f32(), 1e20);
+        assert_eq!(x.into_f32(), 1e20);
 
         // max value
         let x = ExtendedFloat80 {frac: 18446740775174668288, exp: 64};
-        assert_eq!(x.as_f32(), 3.402823e38);
+        assert_eq!(x.into_f32(), 3.402823e38);
 
         // almost max, high exp
         let x = ExtendedFloat80 {frac: 1048575, exp: 108};
-        assert_eq!(x.as_f32(), 3.4028204e38);
+        assert_eq!(x.into_f32(), 3.4028204e38);
 
         // max value + 1
         let x = ExtendedFloat80 {frac: 16777216, exp: 104};
-        assert_eq!(x.as_f32(), f32::INFINITY);
+        assert_eq!(x.into_f32(), f32::INFINITY);
 
         // max value + 1
         let x = ExtendedFloat80 {frac: 1048576, exp: 108};
-        assert_eq!(x.as_f32(), f32::INFINITY);
+        assert_eq!(x.into_f32(), f32::INFINITY);
 
         // 1e40
         let x = ExtendedFloat80 {frac: 16940658945086007296, exp: 69};
-        assert_eq!(x.as_f32(), f32::INFINITY);
+        assert_eq!(x.into_f32(), f32::INFINITY);
 
         // Integers.
         for int in INTEGERS.iter() {
             let fp = ExtendedFloat80 {frac: *int, exp: 0};
-            assert_eq!(fp.as_f32(), *int as f32, "{:?} as f32", *int);
+            assert_eq!(fp.into_f32(), *int as f32, "{:?} as f32", *int);
         }
     }
 
@@ -692,84 +818,104 @@ mod tests {
     fn to_f64_test() {
         // underflow
         let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -1138};
-        assert_relative_eq!(x.as_f64(), 0.0);
+        assert_relative_eq!(x.into_f64(), 0.0);
 
         // min value
         let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -1137};
-        assert_relative_eq!(x.as_f64(), 5e-324);
+        assert_relative_eq!(x.into_f64(), 5e-324);
 
         // 1.0e-250
         let x = ExtendedFloat80 {frac: 13207363278391631872, exp: -894};
-        assert_relative_eq!(x.as_f64(), 1e-250);
+        assert_relative_eq!(x.into_f64(), 1e-250);
 
         // 1.0e-150
         let x = ExtendedFloat80 {frac: 15095849699286165504, exp: -562};
-        assert_relative_eq!(x.as_f64(), 1e-150);
+        assert_relative_eq!(x.into_f64(), 1e-150);
 
         // 1.0e-45
         let x = ExtendedFloat80 {frac: 13164036458569648128, exp: -213};
-        assert_relative_eq!(x.as_f64(), 1e-45);
+        assert_relative_eq!(x.into_f64(), 1e-45);
 
         // 1.0e-40
         let x = ExtendedFloat80 {frac: 10043362776618688512, exp: -196};
-        assert_relative_eq!(x.as_f64(), 1e-40);
+        assert_relative_eq!(x.into_f64(), 1e-40);
 
         // 1.0e-20
         let x = ExtendedFloat80 {frac: 13611294676837537792, exp: -130};
-        assert_relative_eq!(x.as_f64(), 1e-20);
+        assert_relative_eq!(x.into_f64(), 1e-20);
 
         // 1.0
         let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -63};
-        assert_relative_eq!(x.as_f64(), 1.0);
+        assert_relative_eq!(x.into_f64(), 1.0);
 
         // 1e20
         let x = ExtendedFloat80 {frac: 12500000000000000000, exp: 3};
-        assert_relative_eq!(x.as_f64(), 1e20);
+        assert_relative_eq!(x.into_f64(), 1e20);
 
         // 1e40
         let x = ExtendedFloat80 {frac: 16940658945086007296, exp: 69};
-        assert_relative_eq!(x.as_f64(), 1e40);
+        assert_relative_eq!(x.into_f64(), 1e40);
 
         // 1e150
         let x = ExtendedFloat80 {frac: 11270725851789228032, exp: 435};
-        assert_relative_eq!(x.as_f64(), 1e150);
+        assert_relative_eq!(x.into_f64(), 1e150);
 
         // 1e250
         let x = ExtendedFloat80 {frac: 12882297539194265600, exp: 767};
-        assert_relative_eq!(x.as_f64(), 1e250);
+        assert_relative_eq!(x.into_f64(), 1e250);
 
         // max value
         let x = ExtendedFloat80 {frac: 9007199254740991, exp: 971};
-        assert_relative_eq!(x.as_f64(), 1.7976931348623157e308);
+        assert_relative_eq!(x.into_f64(), 1.7976931348623157e308);
 
         // max value
         let x = ExtendedFloat80 {frac: 18446744073709549568, exp: 960};
-        assert_relative_eq!(x.as_f64(), 1.7976931348623157e308);
+        assert_relative_eq!(x.into_f64(), 1.7976931348623157e308);
 
         // overflow
         let x = ExtendedFloat80 {frac: 9007199254740992, exp: 971};
-        assert_relative_eq!(x.as_f64(), f64::INFINITY);
+        assert_relative_eq!(x.into_f64(), f64::INFINITY);
 
         // overflow
         let x = ExtendedFloat80 {frac: 18446744073709549568, exp: 961};
-        assert_relative_eq!(x.as_f64(), f64::INFINITY);
+        assert_relative_eq!(x.into_f64(), f64::INFINITY);
 
         // Underflow
         // Adapted from failures in strtod.
         let x = ExtendedFloat80 { exp: -1139, frac: 18446744073709550712 };
-        assert_relative_eq!(x.as_f64(), 0.0);
+        assert_relative_eq!(x.into_f64(), 0.0);
 
         let x = ExtendedFloat80 { exp: -1139, frac: 18446744073709551460 };
-        assert_relative_eq!(x.as_f64(), 0.0);
+        assert_relative_eq!(x.into_f64(), 0.0);
 
         let x = ExtendedFloat80 { exp: -1138, frac: 9223372036854776103 };
-        assert_relative_eq!(x.as_f64(), 5e-324);
+        assert_relative_eq!(x.into_f64(), 5e-324);
 
         // Integers.
         for int in INTEGERS.iter() {
             let fp = ExtendedFloat80 {frac: *int, exp: 0};
-            assert_eq!(fp.as_f64(), *int as f64, "{:?} as f64", *int);
+            assert_eq!(fp.into_f64(), *int as f64, "{:?} as f64", *int);
         }
+    }
+
+    #[test]
+    fn to_rounded_f32_test() {
+        // Just check it compiles, we already check the underlying algorithms.
+        let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -63};
+        assert_eq!(x.as_rounded_f32(RoundingKind::NearestTieEven), 1.0);
+        assert_eq!(x.as_rounded_f32(RoundingKind::NearestTieAwayZero), 1.0);
+        assert_eq!(x.as_rounded_f32(RoundingKind::TowardInfinity), 1.0);
+        assert_eq!(x.as_rounded_f32(RoundingKind::TowardZero), 1.0);
+    }
+
+    #[test]
+    fn to_rounded_f64_test() {
+        // Just check it compiles, we already check the underlying algorithms.
+        let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -63};
+        assert_eq!(x.as_rounded_f64(RoundingKind::NearestTieEven), 1.0);
+        assert_eq!(x.as_rounded_f64(RoundingKind::NearestTieAwayZero), 1.0);
+        assert_eq!(x.as_rounded_f64(RoundingKind::TowardInfinity), 1.0);
+        assert_eq!(x.as_rounded_f64(RoundingKind::TowardZero), 1.0);
     }
 
     #[test]
@@ -779,10 +925,10 @@ mod tests {
         // 23-bits of precision, so go from 0-32.
         for int in 0..u32::max_value() {
             let fp = ExtendedFloat80 {frac: int as u64, exp: 0};
-            assert_eq!(fp.as_f32(), int as f32, "ExtendedFloat80 {:?} as f32", int);
+            assert_eq!(fp.into_f32(), int as f32, "ExtendedFloat80 {:?} as f32", int);
 
             let fp = ExtendedFloat160 {frac: int as u128, exp: 0};
-            assert_eq!(fp.as_f32(), int as f32, "ExtendedFloat160 {:?} as f64", int);
+            assert_eq!(fp.into_f32(), int as f32, "ExtendedFloat160 {:?} as f64", int);
         }
     }
 
@@ -796,10 +942,10 @@ mod tests {
         const END: u64 = START + U32_MAX;
         for int in START..END {
             let fp = ExtendedFloat80 {frac: int, exp: 0};
-            assert_eq!(fp.as_f64(), int as f64, "ExtendedFloat80 {:?} as f64", int);
+            assert_eq!(fp.into_f64(), int as f64, "ExtendedFloat80 {:?} as f64", int);
 
             let fp = ExtendedFloat160 {frac: int as u128, exp: 0};
-            assert_eq!(fp.as_f64(), int as f64, "ExtendedFloat160 {:?} as f64", int);
+            assert_eq!(fp.into_f64(), int as f64, "ExtendedFloat160 {:?} as f64", int);
         }
     }
 
@@ -833,24 +979,24 @@ mod tests {
             let mut b = ExtendedFloat80::from_u8(10);
             a.normalize();
             b.normalize();
-            assert_eq!(a.mul(&b).as_f64(), 100.0);
+            assert_eq!(a.mul(&b).into_f64(), 100.0);
 
             // 128-bit mantissa
             let mut a = ExtendedFloat160::from_u8(10);
             let mut b = ExtendedFloat160::from_u8(10);
             a.normalize();
             b.normalize();
-            assert_eq!(a.mul(&b).as_f64(), 100.0);
+            assert_eq!(a.mul(&b).into_f64(), 100.0);
 
             // Check both values need high bits set.
             let a = ExtendedFloat80 { frac: 1 << 32, exp: -31 };
             let b = ExtendedFloat80 { frac: 1 << 32, exp: -31 };
-            assert_eq!(a.mul(&b).as_f64(), 4.0);
+            assert_eq!(a.mul(&b).into_f64(), 4.0);
 
             // Check both values need high bits set.
             let a = ExtendedFloat80 { frac: 10 << 31, exp: -31 };
             let b = ExtendedFloat80 { frac: 10 << 31, exp: -31 };
-            assert_eq!(a.mul(&b).as_f64(), 100.0);
+            assert_eq!(a.mul(&b).into_f64(), 100.0);
         }
     }
 
@@ -883,7 +1029,7 @@ mod tests {
             a.normalize();
             b.normalize();
             a.imul(&b);
-            assert_eq!(a.as_f64(), 100.0);
+            assert_eq!(a.into_f64(), 100.0);
 
             // 128-bit mantissa
             let mut a = ExtendedFloat160::from_u8(10);
@@ -891,19 +1037,19 @@ mod tests {
             a.normalize();
             b.normalize();
             a.imul(&b);
-            assert_eq!(a.as_f64(), 100.0);
+            assert_eq!(a.into_f64(), 100.0);
 
             // Check both values need high bits set.
             let mut a = ExtendedFloat80 { frac: 1 << 32, exp: -31 };
             let b = ExtendedFloat80 { frac: 1 << 32, exp: -31 };
             a.imul(&b);
-            assert_eq!(a.as_f64(), 4.0);
+            assert_eq!(a.into_f64(), 4.0);
 
             // Check both values need high bits set.
             let mut a = ExtendedFloat80 { frac: 10 << 31, exp: -31 };
             let b = ExtendedFloat80 { frac: 10 << 31, exp: -31 };
             a.imul(&b);
-            assert_eq!(a.as_f64(), 100.0);
+            assert_eq!(a.into_f64(), 100.0);
         }
     }
 }

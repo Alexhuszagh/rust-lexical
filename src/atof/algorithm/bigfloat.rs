@@ -9,7 +9,7 @@
 use smallvec;
 use atoi;
 use float::{ExtendedFloat80, FloatRounding, Mantissa};
-use float::convert::as_float;
+use float::convert::into_float;
 use float::rounding::*;
 use lib::{mem, slice};
 use util::*;
@@ -1967,9 +1967,9 @@ impl Bigfloat {
 
         // Export to float. We can ignore normalization, since the value
         // is already normalized.
-        round_to_float_impl::<F, u64, _>(&mut fp, rounding);
+        round_to_float::<F, u64, _>(&mut fp, rounding);
         avoid_overflow::<F, u64>(&mut fp);
-        as_float(fp)
+        into_float(fp)
     }
 
     /// Export 32-bit native float from bigfloat.

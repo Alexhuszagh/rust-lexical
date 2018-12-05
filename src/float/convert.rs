@@ -49,7 +49,7 @@ pub(crate) fn from_float<T, M>(t: T)
 /// The extended-precision float must be in native float representation,
 /// with overflow/underflow appropriately handled.
 #[inline]
-pub(crate) fn as_float<T, M>(fp: ExtendedFloat<M>)
+pub(crate) fn into_float<T, M>(fp: ExtendedFloat<M>)
     -> T
     where T: Float,
           M: Mantissa
