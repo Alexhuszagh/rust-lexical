@@ -1,6 +1,6 @@
 //! Utilities for Rust numbers.
 
-pub(crate) use lib::{f32, f64};
+pub(crate) use lib::{f32, f64, mem};
 use lib::{fmt, iter, ops};
 use super::cast::{AsCast, TryCast};
 use super::primitive::Primitive;
@@ -94,11 +94,13 @@ pub trait Integer:
     ops::ShrAssign<i64> +
     ops::ShrAssign<isize>
 {
+    // CONSTANTS
     const ZERO: Self;
     const ONE: Self;
     const TWO: Self;
     const MAX: Self;
     const MIN: Self;
+    const BITS: usize;
 
     // FUNCTIONS (INHERITED)
     fn max_value() -> Self;
@@ -295,6 +297,7 @@ macro_rules! integer_impl {
             const TWO: $t = 2;
             const MAX: $t = $t::max_value();
             const MIN: $t = $t::min_value();
+            const BITS: usize = mem::size_of::<$t>() * 8;
 
             #[inline(always)]
             fn max_value() -> Self {
@@ -539,6 +542,7 @@ pub trait Float: Number + ops::Neg<Output=Self>
     const INFINITY: Self;
     const NEG_INFINITY: Self;
     const NAN: Self;
+    const BITS: usize;
 
     /// Bitmask for the sign bit.
     const SIGN_MASK: Self::Unsigned;
@@ -742,6 +746,7 @@ impl Float for f32 {
     const INFINITY: f32 = f32::INFINITY;
     const NEG_INFINITY: f32 = f32::NEG_INFINITY;
     const NAN: f32 = f32::NAN;
+    const BITS: usize = 32;
     const SIGN_MASK: u32            = 0x80000000;
     const EXPONENT_MASK: u32        = 0x7F800000;
     const HIDDEN_BIT_MASK: u32      = 0x00800000;
@@ -823,6 +828,7 @@ impl Float for f64 {
     const INFINITY: f64 = f64::INFINITY;
     const NEG_INFINITY: f64 = f64::NEG_INFINITY;
     const NAN: f64 = f64::NAN;
+    const BITS: usize = 64;
     const SIGN_MASK: u64            = 0x8000000000000000;
     const EXPONENT_MASK: u64        = 0x7FF0000000000000;
     const HIDDEN_BIT_MASK: u64      = 0x0010000000000000;

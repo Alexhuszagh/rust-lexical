@@ -10,22 +10,20 @@ pub trait Mantissa: UnsignedInteger {
     const HIMASK: Self;
     /// Mask to extract the low bits from the integer.
     const LOMASK: Self;
-    /// Size of the integer, in bits.
-    const BITS: i32;
-    /// Half the size of the integer, in bits
-    const HALF: i32 = Self::BITS / 2;
+    /// Full size of the integer, in bits.
+    const FULL: i32 = Self::BITS as i32;
+    /// Half size of the integer, in bits.
+    const HALF: i32 = Self::FULL / 2;
 }
 
 impl Mantissa for u64 {
     const NORMALIZED_MASK: u64  = 0x8000000000000000;
     const HIMASK: u64           = 0xFFFFFFFF00000000;
     const LOMASK: u64           = 0x00000000FFFFFFFF;
-    const BITS: i32             = 64;
 }
 
 impl Mantissa for u128 {
     const NORMALIZED_MASK: u128 = 0x80000000000000000000000000000000;
     const HIMASK: u128          = 0xFFFFFFFFFFFFFFFF0000000000000000;
     const LOMASK: u128          = 0x0000000000000000FFFFFFFFFFFFFFFF;
-    const BITS: i32             = 128;
 }

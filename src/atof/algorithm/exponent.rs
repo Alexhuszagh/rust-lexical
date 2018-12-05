@@ -58,6 +58,78 @@ pub(super) extern "C" fn normalize_exponent(exponent: i32, dot_shift: usize, tru
     }
 }
 
+/// Calculate the binary factor from a basen number.
+#[inline]
+#[cfg(any(test, not(feature = "imprecise")))]
+pub(super) extern "C" fn binary_factor(base: u32)
+    -> f64
+{
+    // logic error, disable in release builds
+    debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
+
+    #[cfg(feature = "table")] {
+        const TABLE: [f64; 35] = [1.0, 1.584962500721156, 2.0, 2.321928094887362, 2.584962500721156, 2.807354922057604, 3.0, 3.169925001442312, 3.321928094887362, 3.4594316186372973, 3.584962500721156, 3.700439718141092, 3.807354922057604, 3.9068905956085187, 4.0, 4.087462841250339, 4.169925001442312, 4.247927513443585, 4.321928094887363, 4.392317422778761, 4.459431618637297, 4.523561956057013, 4.584962500721156, 4.643856189774724, 4.700439718141092, 4.754887502163468, 4.807354922057604, 4.857980995127572, 4.906890595608519, 4.954196310386875, 5.0, 5.044394119358453, 5.087462841250339, 5.129283016944966, 5.169925001442312];
+        let idx: usize = as_cast(base - 2);
+        unsafe { *TABLE.get_unchecked(idx) }
+    }
+
+    #[cfg(not(feature = "table"))] {
+        (base as f64).log2()
+    }
+}
+
+/// Calculate the binary exponent from a basen exponent.
+/// Assume no possible overflow.
+#[inline]
+#[cfg(any(test, not(feature = "imprecise")))]
+pub(super) extern "C" fn binary_exponent(base: u32, exponent: i32)
+    -> i32
+{
+    if exponent == 0 {
+        0
+    } else if exponent > 0 {
+        as_cast((exponent as f64 * binary_factor(base)).ceil())
+    } else {
+        as_cast((exponent as f64 * binary_factor(base)).floor())
+    }
+}
+
+/// Calculate the basen factor from a binary number.
+#[inline]
+#[cfg(any(test, not(feature = "imprecise")))]
+pub(super) extern "C" fn basen_factor(base: u32)
+    -> f64
+{
+    // logic error, disable in release builds
+    debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
+
+    #[cfg(feature = "table")] {
+        // Calculated as 1
+        const TABLE: [f64; 35] = [1.0, 0.6309297535714575, 0.5, 0.43067655807339306, 0.38685280723454163, 0.3562071871080222, 0.3333333333333333, 0.31546487678572877, 0.3010299956639812, 0.2890648263178879, 0.27894294565112987, 0.27023815442731974, 0.26264953503719357, 0.2559580248098155, 0.25, 0.24465054211822604, 0.23981246656813146, 0.23540891336663824, 0.23137821315975915, 0.227670248696953, 0.22424382421757544, 0.22106472945750374, 0.21810429198553155, 0.21533827903669653, 0.21274605355336318, 0.2103099178571525, 0.20801459767650948, 0.20584683246043448, 0.2037950470905062, 0.20184908658209985, 0.2, 0.19823986317056053, 0.1965616322328226, 0.1949590218937863, 0.19342640361727081];
+        let idx: usize = as_cast(base - 2);
+        unsafe { *TABLE.get_unchecked(idx) }
+    }
+
+    #[cfg(not(feature = "table"))] {
+        1.0 / binary_exponent(base)
+    }
+}
+
+/// Calculate the basen exponent from a binary exponent.
+/// Assume no possible overflow.
+#[cfg(any(test, not(feature = "imprecise")))]
+pub(super) extern "C" fn basen_exponent(base: u32, exponent: i32)
+    -> i32
+{
+    if exponent == 0 {
+        0
+    } else if exponent > 0 {
+        as_cast((exponent as f64 * basen_factor(base)).ceil())
+    } else {
+        as_cast((exponent as f64 * basen_factor(base)).floor())
+    }
+}
+
 // TESTS
 // -----
 
@@ -180,4 +252,8 @@ mod test {
         assert_eq!(normalize_exponent(i32::min_value(), 5, 0), i32::min_value());
         assert_eq!(normalize_exponent(i32::min_value(), 0, 5), i32::min_value()+5);
     }
+
+    // TODO(ahuszagh) Add tests for:
+    //      binary_exponent
+    //      basen_exponent
 }

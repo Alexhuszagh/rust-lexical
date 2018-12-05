@@ -86,7 +86,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
         ExtendedFloat {
             frac: ah_bh + (ah_bl >> M::HALF) + (al_bh >> M::HALF) + (tmp >> M::HALF),
-            exp: self.exp + b.exp + M::BITS
+            exp: self.exp + b.exp + M::FULL
         }
     }
 

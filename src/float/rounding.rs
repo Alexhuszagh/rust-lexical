@@ -168,7 +168,7 @@ pub trait FloatRounding<M: Mantissa>: Float {
 macro_rules! float_rounding_f32 {
     ($($t:tt)*) => ($(
         impl FloatRounding<$t> for f32 {
-            const DEFAULT_SHIFT: i32    = $t::BITS - f32::MANTISSA_SIZE - 1;
+            const DEFAULT_SHIFT: i32    = $t::FULL - f32::MANTISSA_SIZE - 1;
             const CARRY_MASK: $t        = 0x1000000;
         }
     )*)
@@ -180,7 +180,7 @@ float_rounding_f32! { u64 u128 }
 macro_rules! float_rounding_f64 {
     ($($t:tt)*) => ($(
         impl FloatRounding<$t> for f64 {
-            const DEFAULT_SHIFT: i32    = $t::BITS - f64::MANTISSA_SIZE - 1;
+            const DEFAULT_SHIFT: i32    = $t::FULL - f64::MANTISSA_SIZE - 1;
             const CARRY_MASK: $t        = 0x20000000000000;
         }
     )*)
@@ -212,7 +212,7 @@ pub(crate) fn round_to_float<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
         // is already normalized, so we shouldn't have any issue zeroing
         // out the value.
         let diff = T::DENORMAL_EXPONENT - fp.exp;
-        if diff <= M::BITS {
+        if diff <= M::FULL {
             // We can avoid underflow, can get a valid representation.
             cb(fp, diff);
         } else {

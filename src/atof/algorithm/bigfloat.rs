@@ -1813,15 +1813,7 @@ impl Bigfloat {
             // Cannot overflow.
             // Convert the basen exponent to binary. This will give an exact
             // value of the binary exponent. Need to roundaway from zero.
-            let binary_exp: i32;
-            let factor = (base as f64).log(2.0);
-            if exponent == 0 {
-                binary_exp = 0;
-            } else if exponent > 0 {
-                binary_exp = as_cast((exponent as f64 * factor).ceil());
-            } else {
-                binary_exp = as_cast((exponent as f64 * factor).floor());
-            }
+            let binary_exp = binary_exponent(base, exponent);
 
             // Get the data contribution to the binary exponent
             let storage_exp = unwrap_or_max(

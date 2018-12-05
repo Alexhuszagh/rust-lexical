@@ -451,6 +451,7 @@ impl<T: Float> Integer for WrappedFloat <T> {
     const TWO: Self = WrappedFloat { data: T::TWO };
     const MAX: Self = WrappedFloat { data: T::MAX };
     const MIN: Self = WrappedFloat { data: T::MIN };
+    const BITS: usize = T::BITS;
 
     #[inline(always)]
     fn max_value() -> Self {
