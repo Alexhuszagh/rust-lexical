@@ -16,7 +16,7 @@ fn bigfloat_f32_lexical(bench: &mut Bencher) {
     bench.iter(|| { F32_DATA.iter().for_each(|x| unsafe {
         let first = x.as_ptr();
         let last = first.add(x.len());
-        let (bigfloat, _) = Bigfloat::from_bytes(10, first, last);
+        let (bigfloat, _) = Bigfloat::from_bytes::<f32>(10, first, last);
         black_box(bigfloat.as_float::<f32>());
     })})
 }
@@ -29,7 +29,7 @@ fn bigfloat_f64_lexical(bench: &mut Bencher) {
     bench.iter(|| { F64_DATA.iter().for_each(|x| unsafe {
         let first = x.as_ptr();
         let last = first.add(x.len());
-        let (bigfloat, _) = Bigfloat::from_bytes(10, first, last);
+        let (bigfloat, _) = Bigfloat::from_bytes::<f64>(10, first, last);
         black_box(bigfloat.as_float::<f64>());
     })})
 }

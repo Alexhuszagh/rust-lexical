@@ -21,7 +21,6 @@ use super::shift::*;
 /// Extended precision floating-point type.
 ///
 /// Private implementation, exposed only for testing purposes.
-#[repr(C)]
 #[doc(hidden)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ExtendedFloat<M: Mantissa> {

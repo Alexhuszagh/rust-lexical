@@ -48,6 +48,24 @@ pub static mut EXPONENT_BACKUP_CHAR: u8 = b'^';
 pub(crate) const MAX_FLOAT_SIZE: usize = 256;
 pub(crate) const BUFFER_SIZE: usize = MAX_FLOAT_SIZE;
 
+/// Maximum number of digits to parse before using dtoa algorithm.
+///
+/// This intersection point, as determined on an Intel x86-64 CPU @ 2.20GHz,
+/// is approximately 300 digits.
+///
+/// Comparison:
+///     | Digits |  Lexical  | dtoa  |
+///     |  200   |    8914   |  3800 |
+///     |  200   |   23238   | 13000 |
+///     |  350   |   45068   | 21600 |
+///     |  761   |  131177   | 48000 |
+///     | 1761   |  526400   | 47600 |
+///     | 2761   | 1285059   | 51700 |
+///     | 4096   | 2667299   | 52600 |
+// TODO(ahuszagh) I need to remove Bigfloat entirely, need to  use
+// dtoa's algorithm in general...
+pub(crate) const MAX_DIGITS: usize = 0x1000;
+
 // FUNCTIONS
 
 /// Get the exponent notation character.

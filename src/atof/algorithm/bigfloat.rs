@@ -15,13 +15,43 @@ use lib::{mem, slice};
 use util::*;
 use super::exponent::*;
 
-// CONSTANTS
+// MAX EXPONENT
 
-/// Maximum valid exponent internally.
-const MAX_EXPONENT: i32 = 0x1400;
+/// Calculate the reasonable maximum exponent for a float for `i^n`.
+///
+/// This value is `x+8`, where `x` is the maximum binary exponent
+/// for the float type. In practice, that exponent for a finite value
+/// could never be > `x+7`, since (for base 36) `35 * 2^X > 2^-(x+1) + 2^-(x+2)`,
+/// where `2^-(x+1) + 2^-(x+2)` is the halfway point between 0 and the
+/// smallest denormal float. Since 35 contains 6 bits, that sets the
+/// maximum, realistic exponent is `x+7`.
+///
+/// We allow 1 extra bit for potential rounding error.
+pub trait FloatMaxExponent: Float + FloatRounding<u64> {
+    /// Calculate the max exponent for base N.
+    fn max_binary_exponent() -> i32;
+}
 
-/// Maximum valid number of padded bytes (based of MAX_EXPONENT).
-const MAX_BYTES: usize = 1060;
+// `x` is 149.
+impl FloatMaxExponent for f32 {
+    #[inline(always)]
+    fn max_binary_exponent() -> i32 {
+        149 + 8
+    }
+}
+
+// `x` is 1074.
+impl FloatMaxExponent for f64 {
+    #[inline(always)]
+    fn max_binary_exponent() -> i32 {
+        1074 + 8
+    }
+}
+
+/// Maximum valid number of padded bytes (based of FloatMaxExponent).
+/// Worst case is 3, which is ceil(ceil(2.1 * 0x3F8 + 55) / 8)
+/// This really needs to go down.
+const MAX_BYTES: usize = 11065;
 
 // PRIME (EXCEPT 2)
 
@@ -332,7 +362,6 @@ fn div_small_assign<Wide, Narrow>(x: &mut Narrow, y: Narrow, rem: Narrow)
 #[inline]
 fn padded_bits(i: u32, n:i32) -> u32 {
     debug_assert!(i >= 2 && i <= 36, "padded_bits() numerical base must be from 2-36.");
-    debug_assert!(n <= MAX_EXPONENT, "padded_bits() internal exponent overflow, n is {}.", n);
 
     // 53-bit mantissa, all values can be **exactly** represented.
     const U32_MAX: f64 = u32::max_value() as f64;
@@ -385,30 +414,29 @@ fn padded_bits(i: u32, n:i32) -> u32 {
 /// * `base`          - Radix for the number encoding.
 /// * `small_powers`  - Pre-calculated small powers
 #[inline]
-unsafe fn parse_digits(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32], mut first: *const u8, last: *const u8)
+unsafe fn parse_digits(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32], first: *const u8, last: *const u8)
     -> *const u8
 {
     // We need to consider step - 2, since we guarantee up to the largest
     // small power being <= u32::max_value(). Any large digit in the
     // first position might lead to a larger value, especially for higher bases.
     let step = small_powers.len() - 2;
+    let mut state = ParseIntState::new(first);
     loop {
         // Cannot overflow, choosing the maximum number of digits to avoid
         // overflow.
         let mut value: u32 = 0;
-        let p = last.min(first.add(step));
-        let (p, _) = atoi::unchecked(&mut value, base, first, p);
+        let f = state.curr;
+        let l = last.min(f.add(step));
+        atoi::unchecked(&mut value, &mut state, base, l);
 
         // Find the number of digits parsed, multiply by the small power,
         // and add the calculated value.
-        let digits = distance(first, p);
+        let digits = distance(f, state.curr);
         bigfloat.mul_small_assign(*small_powers.get_unchecked(digits));
         if value != 0 {
             bigfloat.add_small_assign(value);
         }
-
-        // Reset pointers for next iteration
-        first = p;
 
         // Break condition, either we've reached last or we've reached a
         // non-digit character
@@ -417,7 +445,7 @@ unsafe fn parse_digits(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32],
         }
     }
 
-    first
+    state.curr
 }
 
 /// Parse the mantissa into a bigfloat.
@@ -446,7 +474,7 @@ unsafe fn parse_mantissa(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32
 
     // Parse the fraction component if present.
     // We need to store the number of parsed digits after the dot.
-    let dot_shift: i32;
+    let exp_shift: i32;
     if distance(p, last) >= 1 && *p == b'.' {
         // Store a temporary pointer to the current first, so we can determine
         // the number of parsed digits.
@@ -459,12 +487,12 @@ unsafe fn parse_mantissa(bigfloat: &mut Bigfloat, base: u32, small_powers: &[u32
             p = tmp_first;
         }
         p = parse_digits(bigfloat, base, small_powers, p, last);
-        dot_shift = distance(tmp_first, p).try_i32_or_max();
+        exp_shift = distance(tmp_first, p).try_i32_or_max();
     } else {
-        dot_shift = 0;
+        exp_shift = 0;
     }
 
-    (p, dot_shift)
+    (p, exp_shift)
 }
 
 /// Parse the mantissa and exponent from a string.
@@ -472,9 +500,16 @@ unsafe fn parse_float(base: u32, small_powers: &[u32], first: *const u8, last: *
     -> (Bigfloat, i32, *const u8)
 {
     let mut bigfloat = Bigfloat::new();
-    let (first, dot_shift) = parse_mantissa(&mut bigfloat, base, small_powers, first, last);
-    let (exponent, first) = parse_exponent(base, first, last);
-    let exponent = normalize_exponent(exponent, dot_shift);
+    let (first, exp_shift) = parse_mantissa(&mut bigfloat, base, small_powers, first, last);
+
+    // Temporary code to avoid use of state here...
+    let mut state = ParseFloatState::new(first);
+    let exponent = parse_exponent(&mut state, base, last);
+    let first = state.inner.curr;
+    // Temporary code to avoid use of state here...
+
+    // TODO(ahuszagh) Change to use the current version
+    let exponent = normalize_exponent_v1(exponent, exp_shift);
     (bigfloat, exponent, first)
 }
 
@@ -517,12 +552,8 @@ macro_rules! wrap_mul_pown_assign {
         #[inline(always)]
         pub fn $assign(&mut self, n: i32) {
             debug_assert!(n >= 0, stringify!(Bigfloat::$assign() must multiply by a positive power, n is {}.), n);
-            if n > 0x1400 {
-                // Comically large value, always infinity.
-                self.exp = i32::max_value();
-            } else {
-                self.$impl(n);
-            }
+            // Don't pad or do bounds check, we already check for exponent underflow.
+            self.$impl(n);
         }
 
         wrap_assign!($op, $assign, n: i32);
@@ -538,7 +569,6 @@ macro_rules! wrap_div_pow2_assign {
         #[inline(always)]
         pub fn $assign(&mut self, n: i32) {
             debug_assert!(n >= 0, stringify!(Bigfloat::$assign() must divide by a positive power, n is {}.), n);
-            debug_assert!(n <= MAX_EXPONENT, stringify!(Bigfloat::$assign() internal exponent overflow, n is {}.), n);
             // Don't pad or do bounds check, we already check for exponent underflow.
             self.$impl(n);
         }
@@ -554,7 +584,6 @@ macro_rules! wrap_div_pown_assign {
         #[inline(always)]
         pub fn $assign(&mut self, n: i32) {
             debug_assert!(n >= 0, stringify!(Bigfloat::$assign() must divide by a positive power, n is {}.), n);
-            debug_assert!(n <= MAX_EXPONENT, stringify!(Bigfloat::$assign() internal exponent overflow, n is {}.), n);
 
             // Calculate the number of bytes required to pad the vector,
             // and pad the vector. usize may be 16-bit, so use try_cast.
@@ -579,18 +608,26 @@ macro_rules! wrap_div_pown_assign {
 /// Wrapper for basen from_bytes implementations.
 macro_rules! from_bytes {
     ($name:ident, $base:expr, $small_powers:ident, $mul:ident, $div:ident) => (
-        /// Initialize Bigfloat from bytes with base3.
-        unsafe fn $name(first: *const u8, last: *const u8)
+        /// Initialize Bigfloat from bytes with base n.
+        ///
+        /// Use the float to provide a tight lower bound on the max exponent.
+        unsafe fn $name<F>(first: *const u8, last: *const u8)
             -> (Bigfloat, *const u8)
+            where F: FloatMaxExponent
         {
+            // Rust guarantees 8-bits to a byte.
             let (mut bigfloat, exponent, p) = parse_float($base, &$small_powers, first, last);
+            let max_binary_exponent = F::max_binary_exponent();
+            let binary_exponent = bigfloat.binary_exponent($base, exponent);
             if exponent == 0 {
                 // Do nothing
-            } else if exponent > MAX_EXPONENT {
-                // Set comically large exponent.
+            } else if binary_exponent > max_binary_exponent {
+                // Normalized exponent overflows practical max, or the
+                // number of digits is too large to accurately parse.
                 bigfloat.exp = i32::max_value();
-            } else if exponent < -MAX_EXPONENT {
-                // Set comically small exponent.
+            } else if binary_exponent < -max_binary_exponent {
+                // Normalized exponent overflows practical min, or the
+                // number of digits is too large to accurately parse.
                 bigfloat.exp = i32::min_value();
             } else if exponent > 0 {
                 // Get exact representation via multiplication.
@@ -968,7 +1005,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 2 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow2_assign_impl(&mut self, n: i32) {
         // Increment exponent to simulate actual addition.
@@ -976,14 +1013,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 3 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow3_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &U32_POW3);
     }
 
     /// Implied MulAssign by a power of 4 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow4_assign_impl(&mut self, n: i32) {
         // Use 4**n = 2**(2n) to minimize overflow checks.
@@ -991,14 +1028,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 5 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow5_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &U32_POW5);
     }
 
     /// Implied MulAssign by a power of 6 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow6_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -1006,14 +1043,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 7 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow7_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &U32_POW7);
     }
 
     /// Implied MulAssign by a power of 8 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow8_assign_impl(&mut self, n: i32) {
         // Use 8**n = 2**(3n) to minimize overflow checks.
@@ -1021,7 +1058,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 9 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow9_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -1029,7 +1066,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 10 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow10_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -1037,14 +1074,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 11 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow11_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &U32_POW11);
     }
 
     /// Implied MulAssign by a power of 12 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow12_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -1052,14 +1089,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 13 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow13_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &U32_POW13);
     }
 
     /// Implied MulAssign by a power of 14 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow14_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -1067,7 +1104,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 15 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow15_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -1075,7 +1112,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 16 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow16_assign_impl(&mut self, n: i32) {
         // Use 16**n = 2**(4n) to minimize overflow checks.
@@ -1083,14 +1120,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 17 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow17_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &U32_POW17);
     }
 
     /// Implied MulAssign by a power of 18 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow18_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -1098,14 +1135,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 19 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow19_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &U32_POW19);
     }
 
     /// Implied MulAssign by a power of 20 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow20_assign_impl(&mut self, n: i32) {
         self.mul_pow4_assign_impl(n);
@@ -1113,7 +1150,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 21 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow21_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -1121,7 +1158,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 22 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow22_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -1129,14 +1166,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 23 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow23_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &U32_POW23);
     }
 
     /// Implied MulAssign by a power of 24 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow24_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -1144,7 +1181,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 25 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow25_assign_impl(&mut self, n: i32) {
         self.mul_pow5_assign_impl(n);
@@ -1152,7 +1189,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 26 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow26_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -1160,7 +1197,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 27 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow27_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -1168,7 +1205,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 28 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow28_assign_impl(&mut self, n: i32) {
         self.mul_pow4_assign_impl(n);
@@ -1176,14 +1213,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 29 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow29_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &U32_POW29);
     }
 
     /// Implied MulAssign by a power of 30 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow30_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -1191,14 +1228,14 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 31 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow31_assign_impl(&mut self, n: i32) {
         self.mul_spowers_assign(n, &U32_POW31);
     }
 
     /// Implied MulAssign by a power of 32 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow32_assign_impl(&mut self, n: i32) {
         // Use 32**n = 2**(5n) to minimize overflow checks.
@@ -1206,7 +1243,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 33 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow33_assign_impl(&mut self, n: i32) {
         self.mul_pow3_assign_impl(n);
@@ -1214,7 +1251,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 34 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow34_assign_impl(&mut self, n: i32) {
         self.mul_pow2_assign_impl(n);
@@ -1222,7 +1259,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 35 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow35_assign_impl(&mut self, n: i32) {
         self.mul_pow5_assign_impl(n);
@@ -1230,7 +1267,7 @@ impl Bigfloat {
     }
 
     /// Implied MulAssign by a power of 36 (safe to chain calls).
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn mul_pow36_assign_impl(&mut self, n: i32) {
         self.mul_pow4_assign_impl(n);
@@ -1278,9 +1315,6 @@ impl Bigfloat {
     /// Pad ints for division. Called internally during `div_pow*_assign`.
     #[inline]
     fn pad_division(&mut self, bytes: usize) {
-        // Logic error, checked with max exponent.
-        debug_assert!(bytes <= MAX_BYTES, "Bigfloat::pad_division() internal bytes overflow, bytes is {}.", bytes);
-
         // Assume **no** overflow for the usize, since this would lead to
         // other memory errors. Add `bytes` 0s to the left of the current
         // buffer, and decrease the exponent accordingly.
@@ -1365,7 +1399,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 3 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow3_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &U32_POW3);
@@ -1373,7 +1407,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 4 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow4_assign_impl(&mut self, n: i32) {
         // Use 4**n = 2**(2n) to minimize overflow checks.
@@ -1382,7 +1416,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 5 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow5_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &U32_POW5);
@@ -1390,7 +1424,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 6 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow6_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1399,7 +1433,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 7 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow7_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &U32_POW7);
@@ -1407,7 +1441,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 8 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow8_assign_impl(&mut self, n: i32) {
         // Use 8**n = 2**(3n) to minimize overflow checks.
@@ -1416,7 +1450,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 9 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow9_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1425,7 +1459,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 10 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow10_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1434,7 +1468,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 11 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow11_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &U32_POW11);
@@ -1442,7 +1476,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 12 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow12_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1451,7 +1485,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 13 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow13_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &U32_POW13);
@@ -1459,7 +1493,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 14 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow14_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1468,7 +1502,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 15 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow15_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1477,7 +1511,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 16 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow16_assign_impl(&mut self, n: i32) {
         // Use 16**n = 2**(4n) to minimize overflow checks.
@@ -1486,7 +1520,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 17 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow17_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &U32_POW17);
@@ -1494,7 +1528,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 18 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow18_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1503,7 +1537,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 19 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow19_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &U32_POW19);
@@ -1511,7 +1545,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 20 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow20_assign_impl(&mut self, n: i32) {
         self.div_pow4_assign_impl(n);
@@ -1520,7 +1554,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 21 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow21_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1529,7 +1563,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 22 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow22_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1538,7 +1572,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 23 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow23_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &U32_POW23);
@@ -1546,7 +1580,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 24 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow24_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1555,7 +1589,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 25 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow25_assign_impl(&mut self, n: i32) {
         self.div_pow5_assign_impl(n);
@@ -1564,7 +1598,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 26 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow26_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1573,7 +1607,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 27 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow27_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1582,7 +1616,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 28 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow28_assign_impl(&mut self, n: i32) {
         self.div_pow4_assign_impl(n);
@@ -1591,7 +1625,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 29 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow29_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &U32_POW29);
@@ -1599,7 +1633,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 30 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow30_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1608,7 +1642,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 31 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow31_assign_impl(&mut self, n: i32) {
         self.div_spowers_assign(n, &U32_POW31);
@@ -1616,7 +1650,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 32 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow32_assign_impl(&mut self, n: i32) {
         // Use 32**n = 2**(5n) to minimize overflow checks.
@@ -1625,7 +1659,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 33 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow33_assign_impl(&mut self, n: i32) {
         self.div_pow3_assign_impl(n);
@@ -1634,7 +1668,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 34 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow34_assign_impl(&mut self, n: i32) {
         self.div_pow2_assign_impl(n);
@@ -1643,7 +1677,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 35 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow35_assign_impl(&mut self, n: i32) {
         self.div_pow5_assign_impl(n);
@@ -1652,7 +1686,7 @@ impl Bigfloat {
 
     /// Implied DivAssign by a power of 36 (safe to chain calls).
     /// Warning: Bigfloat must have previously been padded `pad_division`.
-    /// Warning: Exponent must be <= MAX_EXPONENT.
+    /// Warning: Exponent must be <= MAX_DIGITS.
     #[inline]
     fn div_pow36_assign_impl(&mut self, n: i32) {
         self.div_pow4_assign_impl(n);
@@ -1728,46 +1762,95 @@ impl Bigfloat {
     from_bytes!(from_bytes_36, 36, U32_POW36, mul_pow36_assign, div_pow36_assign);
 
     /// Initialize Bigfloat from bytes with custom base.
-    pub unsafe fn from_bytes(base: u32, first: *const u8, last: *const u8)
+    ///
+    /// WARNING: No exponent check occurs here, it is up to the caller of
+    /// from_bytes to ensure the number of digits is <= MAX_DIGITS and
+    /// MAX_DIGITS is a suitable value to avoid i32 overflow
+    pub unsafe fn from_bytes<F: FloatMaxExponent>(base: u32, first: *const u8, last: *const u8)
         -> (Bigfloat, *const u8)
     {
         match base {
-            3  => Self::from_bytes_3(first, last),
-            5  => Self::from_bytes_5(first, last),
-            6  => Self::from_bytes_6(first, last),
-            7  => Self::from_bytes_7(first, last),
-            9  => Self::from_bytes_9(first, last),
-            10 => Self::from_bytes_10(first, last),
-            11 => Self::from_bytes_11(first, last),
-            12 => Self::from_bytes_12(first, last),
-            13 => Self::from_bytes_13(first, last),
-            14 => Self::from_bytes_14(first, last),
-            15 => Self::from_bytes_15(first, last),
-            17 => Self::from_bytes_17(first, last),
-            18 => Self::from_bytes_18(first, last),
-            19 => Self::from_bytes_19(first, last),
-            20 => Self::from_bytes_20(first, last),
-            21 => Self::from_bytes_21(first, last),
-            22 => Self::from_bytes_22(first, last),
-            23 => Self::from_bytes_23(first, last),
-            24 => Self::from_bytes_24(first, last),
-            25 => Self::from_bytes_25(first, last),
-            26 => Self::from_bytes_26(first, last),
-            27 => Self::from_bytes_27(first, last),
-            28 => Self::from_bytes_28(first, last),
-            29 => Self::from_bytes_29(first, last),
-            30 => Self::from_bytes_30(first, last),
-            31 => Self::from_bytes_31(first, last),
-            33 => Self::from_bytes_33(first, last),
-            34 => Self::from_bytes_34(first, last),
-            35 => Self::from_bytes_35(first, last),
-            36 => Self::from_bytes_36(first, last),
+            3  => Self::from_bytes_3::<F>(first, last),
+            5  => Self::from_bytes_5::<F>(first, last),
+            6  => Self::from_bytes_6::<F>(first, last),
+            7  => Self::from_bytes_7::<F>(first, last),
+            9  => Self::from_bytes_9::<F>(first, last),
+            10 => Self::from_bytes_10::<F>(first, last),
+            11 => Self::from_bytes_11::<F>(first, last),
+            12 => Self::from_bytes_12::<F>(first, last),
+            13 => Self::from_bytes_13::<F>(first, last),
+            14 => Self::from_bytes_14::<F>(first, last),
+            15 => Self::from_bytes_15::<F>(first, last),
+            17 => Self::from_bytes_17::<F>(first, last),
+            18 => Self::from_bytes_18::<F>(first, last),
+            19 => Self::from_bytes_19::<F>(first, last),
+            20 => Self::from_bytes_20::<F>(first, last),
+            21 => Self::from_bytes_21::<F>(first, last),
+            22 => Self::from_bytes_22::<F>(first, last),
+            23 => Self::from_bytes_23::<F>(first, last),
+            24 => Self::from_bytes_24::<F>(first, last),
+            25 => Self::from_bytes_25::<F>(first, last),
+            26 => Self::from_bytes_26::<F>(first, last),
+            27 => Self::from_bytes_27::<F>(first, last),
+            28 => Self::from_bytes_28::<F>(first, last),
+            29 => Self::from_bytes_29::<F>(first, last),
+            30 => Self::from_bytes_30::<F>(first, last),
+            31 => Self::from_bytes_31::<F>(first, last),
+            33 => Self::from_bytes_33::<F>(first, last),
+            34 => Self::from_bytes_34::<F>(first, last),
+            35 => Self::from_bytes_35::<F>(first, last),
+            36 => Self::from_bytes_36::<F>(first, last),
             // We shouldn't have any powers of 2 here.
             _  => unimplemented!()
         }
     }
 
     // TO FLOAT
+
+    /// Estimate the binary exponent for the normalized value.
+    ///
+    /// Produces exact values for for exponents <= 1<<50, which is sufficient
+    /// for all realistic values.
+    ///
+    /// This converts the `base^exponent` to base2, as if by
+    /// `ceil(log(base^exponent, 2))`.
+    #[inline]
+    fn binary_exponent(&self, base: u32, exponent: i32) -> i32 {
+        debug_assert!(self.exp == 0, "binary_exponent() can only be called when self.exp == 0");
+
+        // Check the binary exponent won't overflow. These values are
+        // comically large, IE, i32::max_value() / log(36, 2).
+        // Avoid using i32::min_value(), we don't want weird issues overflowing
+        // on negation.
+        if exponent > 0x18c23246 {
+            i32::max_value()
+        } else if exponent < -0x18c23246 {
+            -i32::max_value()
+        } else {
+            // Cannot overflow.
+            // Convert the basen exponent to binary. This will give an exact
+            // value of the binary exponent. Need to roundaway from zero.
+            let binary_exp: i32;
+            let factor = (base as f64).log(2.0);
+            if exponent == 0 {
+                binary_exp = 0;
+            } else if exponent > 0 {
+                binary_exp = as_cast((exponent as f64 * factor).ceil());
+            } else {
+                binary_exp = as_cast((exponent as f64 * factor).floor());
+            }
+
+            // Get the data contribution to the binary exponent
+            let storage_exp = unwrap_or_max(
+                self.len().as_i32().checked_mul(32)
+                .and_then(|v| Some(v - self.leading_zeros() as i32))
+            );
+
+            // Get the estimated binary exponent, if it overflows, who cares,
+            // we'll assign infinity.
+            unwrap_or_max(binary_exp.checked_add(storage_exp))
+        }
+    }
 
     /// Get the most 64-bits of the mantissa and if non-zero bits are truncated.
     #[inline]
@@ -1849,7 +1932,7 @@ impl Bigfloat {
         }
     }
 
-    /// Calculate the real exponent for the float.
+    /// Calculate the real exponent, binary for the float.
     /// Same as `self.exp + (Self::BITS * self.len()) - 64 - leading_zeros()`.
     /// Need to subtract an extra `64 + leading_zeros()` since that's the effective
     /// bitshift we're adding to the mantissa.
@@ -2736,6 +2819,17 @@ mod tests {
     // AS FLOAT
 
     #[test]
+    fn binary_exponent_test() {
+        // Empty
+        let x = Bigfloat::new();
+        assert_eq!(x.binary_exponent(10, 0), 0);
+
+        // Denormal float, extreme halfway case
+        let x = Bigfloat { data: smallvec![1727738441, 330069557, 3509095598, 686205316, 156923684, 750687444, 2688855918, 28211928, 1887482096, 3222998811, 913348873, 1652282845, 1600735541, 1664240266, 84454144, 1487769792, 1855966778, 2832488299, 507030148, 1410055467, 2513359584, 3453963205, 779237894, 3456088326, 3671009895, 3094451696, 1250165638, 2682979794, 357925323, 1713890438, 3271046672, 3485897285, 3934710962, 1813530592, 199705026, 976390839, 2805488572, 2194288220, 2094065006, 2592523639, 3798974617, 586957244, 1409218821, 3442050171, 3789534764, 1380190380, 2055222457, 3535299831, 429482276, 389342206, 133558576, 721875297, 3013586570, 540178306, 2389746866, 2313334501, 422440635, 1288499129, 864978311, 842263325, 3016323856, 2282442263, 1440906063, 3931458696, 3511314276, 1884879882, 946366824, 4260548261, 1073379659, 1732329252, 3828972211, 1915607049, 3665440937, 1844358779, 3735281178, 2646335050, 1457460927, 2940016422, 1051], exp: 0 };
+        assert_eq!(x.binary_exponent(10, -1078), -1075);
+    }
+
+    #[test]
     fn mantissa_test() {
         // Empty
         let x = Bigfloat::new();
@@ -2983,10 +3077,10 @@ mod tests {
         }
     }
 
-    unsafe fn check_from_bytes(base: u32, s: &str, tup: (Bigfloat, usize)) {
+    unsafe fn check_from_bytes<F: FloatMaxExponent>(base: u32, s: &str, tup: (Bigfloat, usize)) {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let (v, p) = Bigfloat::from_bytes(base, first, last);
+        let (v, p) = Bigfloat::from_bytes::<F>(base, first, last);
         assert_eq!(v, tup.0);
         assert_eq!(distance(first, p), tup.1);
     }
@@ -2996,12 +3090,12 @@ mod tests {
         unsafe {
             // Underflow
             // Adapted from failures in strtod.
-            check_from_bytes(10, "2.4703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125001e-324", (Bigfloat { data: smallvec![642017487, 3921539298, 3824343719, 91359114, 1738187133, 1383153214, 3150573688, 2249385240, 2573401083, 3095825845, 3660217666, 1733774432, 4281766689, 4040834041, 3939311820, 1480925659, 635365729, 2971208776, 32671145, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8], exp: -4182 }, 761));
+            check_from_bytes::<f64>(10, "2.4703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125001e-324", (Bigfloat { data: smallvec![642017487, 3921539298, 3824343719, 91359114, 1738187133, 1383153214, 3150573688, 2249385240, 2573401083, 3095825845, 3660217666, 1733774432, 4281766689, 4040834041, 3939311820, 1480925659, 635365729, 2971208776, 32671145, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8], exp: -4182 }, 761));
 
             // Rounding error
             // Adapted from test-float-parse failures.
-            check_from_bytes(5, "0.00000000000000000000000000000000000000004243233340111410410443", (Bigfloat { data: smallvec![880090781, 186210280, 869146737, 1385950651, 4269719750, 7], exp: -256 }, 64));
-            check_from_bytes(10, "1009e-31", (Bigfloat { data: smallvec![1614477393, 692973567, 4282343523, 3], exp: -191 }, 8));
+            check_from_bytes::<f64>(5, "0.00000000000000000000000000000000000000004243233340111410410443", (Bigfloat { data: smallvec![880090781, 186210280, 869146737, 1385950651, 4269719750, 7], exp: -256 }, 64));
+            check_from_bytes::<f64>(10, "1009e-31", (Bigfloat { data: smallvec![1614477393, 692973567, 4282343523, 3], exp: -191 }, 8));
         }
     }
 }

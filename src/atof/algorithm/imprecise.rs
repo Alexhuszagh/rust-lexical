@@ -64,12 +64,17 @@ type Wrapped = WrappedFloat<f64>;
 ///
 /// Use a float since for large numbers, this may even overflow a u64.
 #[inline(always)]
-unsafe extern "C" fn parse_integer(base: u32, first: *const u8, last: *const u8)
-    -> (f64, *const u8)
+unsafe extern "C" fn parse_integer(state: &mut ParseFloatState, base: u32, last: *const u8)
+    -> f64
 {
-    let cb = atoi::unchecked::<Wrapped>;
-    let (integer, p, _) = atoi::value::<Wrapped, _>(base, first, last, cb);
-    (integer.into_inner(), p)
+    // Trim leading zeros, since we haven't parsed anything yet.
+    let inner = &mut state.inner;
+    inner.ltrim_char(last, b'0');
+
+    let mut value = Wrapped::ZERO;
+    atoi::unchecked(&mut value, inner, base, last);
+
+    value.into_inner()
 }
 
 /// Parse the fraction portion of a positive, normal float string.
@@ -78,25 +83,28 @@ unsafe extern "C" fn parse_integer(base: u32, first: *const u8, last: *const u8)
 /// values for each may be too small to change the integer components
 /// representation **immediately**.
 #[inline(always)]
-unsafe extern "C" fn parse_fraction(base: u32, first: *const u8, last: *const u8)
-    -> (f64, *const u8)
+unsafe extern "C" fn parse_fraction(state: &mut ParseFloatState, base: u32, last: *const u8)
+    -> f64
 {
     // Ensure if there's a decimal, there are trailing values, so
     // invalid floats like "0." lead to an error.
-    if distance(first, last) >= 1 && *first == b'.' {
+    let inner = &mut state.inner;
+    if inner.curr != last && *inner.curr == b'.' {
+        inner.increment();
+        let first = inner.curr;
         let mut fraction: f64 = 0.;
-        let first = first.add(1);
-        let mut f = first;
         loop {
             // Trim leading zeros, since that never gets called with the raw parser.
-            f = ltrim_char_range(f, last, b'0');
+            // Since if it's after the decimal place and this increments state.curr,
+            // but not first, this is safe.
+            inner.ltrim_char(last, b'0');
 
             // This would get better numerical precision using Horner's method,
             // but that would require.
             let mut value: u64 = 0;
-            let l = last.min(f.add(12));
-            f = atoi::unchecked(&mut value, base, f, l).0;
-            let digits = distance(first, f).try_i32_or_max();
+            let l = last.min(inner.curr.add(12));
+            atoi::unchecked(&mut value, inner, base, l);
+            let digits = distance(first, inner.curr).try_i32_or_max();
 
             // Ignore leading 0s, just not we've passed them.
             if value != 0 {
@@ -104,14 +112,31 @@ unsafe extern "C" fn parse_fraction(base: u32, first: *const u8, last: *const u8
             }
 
             // do/while condition
-            if f == last || char_to_digit(*f) as u32 >= base {
+            if inner.curr == last || char_to_digit(*inner.curr) as u32 >= base {
                 break;
             }
         }
-        (fraction, f)
+        // Store frac component over the parsed digits.
+        fraction
     } else {
-        (0.0, first)
+        // Store frac component as an empty slice, and return the value.
+        0.0
     }
+}
+
+/// Parse the mantissa from a string.
+///
+/// The float string must be non-special, non-zero, and positive.
+#[inline]
+unsafe extern "C" fn parse_mantissa(state: &mut ParseFloatState, base: u32, last: *const u8)
+    -> f64
+{
+    let first = state.inner.curr;
+    let integer = parse_integer(state, base, last);
+    let fraction = parse_fraction(state, base, last);
+    state.mant = Range::new(first, state.inner.curr);
+
+    integer + fraction
 }
 
 // PARSE
@@ -121,14 +146,13 @@ unsafe extern "C" fn parse_fraction(base: u32, first: *const u8, last: *const u8
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
 unsafe extern "C" fn parse_float(base: u32, first: *const u8, last: *const u8)
-    -> (f64, i32, *const u8)
+    -> (f64, i32, ParseFloatState)
 {
-    // Parse components
-    let (integer, p) = parse_integer(base, first, last);
-    let (fraction, p) = parse_fraction(base, p, last);
-    let (exponent, p) = parse_exponent(base, p, last);
+    let mut state = ParseFloatState::new(first);
+    let mantissa = parse_mantissa(&mut state, base, last);
+    let exponent = parse_exponent(&mut state, base, last);
 
-    (integer + fraction, exponent, p)
+    (mantissa, exponent, state)
 }
 
 // ATOF/ATOD
@@ -151,11 +175,11 @@ pub(crate) unsafe extern "C" fn atof(base: u32, first: *const u8, last: *const u
 pub(crate) unsafe extern "C" fn atod(base: u32, first: *const u8, last: *const u8)
     -> (f64, *const u8)
 {
-    let (mut value, exponent, p) = parse_float(base, first, last);
+    let (mut value, exponent, state) = parse_float(base, first, last);
     if exponent != 0 && value != 0.0 {
         value = value.iterative_pow(base, exponent);
     }
-    (value, p)
+    (value, state.inner.curr)
 }
 
 #[inline]
@@ -182,9 +206,10 @@ mod tests {
     unsafe fn check_parse_integer(base: u32, s: &str, tup: (f64, usize)) {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let (v, p) = parse_integer(base, first, last);
+        let mut state = ParseFloatState::new(first);
+        let v = parse_integer(&mut state, base, last);
         assert_eq!(v, tup.0);
-        assert_eq!(distance(first, p), tup.1);
+        assert_eq!(distance(first, state.inner.curr), tup.1);
     }
 
     #[test]
@@ -199,9 +224,10 @@ mod tests {
     unsafe fn check_parse_fraction(base: u32, s: &str, tup: (f64, usize)) {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let (v, p) = parse_fraction(base, first, last);
+        let mut state = ParseFloatState::new(first);
+        let v = parse_fraction(&mut state, base, last);
         assert_eq!(v, tup.0);
-        assert_eq!(distance(first, p), tup.1);
+        assert_eq!(distance(first, state.inner.curr), tup.1);
     }
 
     #[test]
@@ -213,22 +239,42 @@ mod tests {
         }
     }
 
-    unsafe fn check_parse_float(base: u32, s: &str, tup: (f64, i32, usize)) {
+    unsafe fn check_parse_mantissa(base: u32, s: &str, tup: (f64, usize)) {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let (v, e, p) = parse_float(base, first, last);
+        let mut state = ParseFloatState::new(first);
+        let v = parse_mantissa(&mut state, base, last);
+        assert_eq!(v, tup.0);
+        assert_eq!(distance(first, state.inner.curr), tup.1);
+    }
+
+    #[test]
+    fn parse_mantissa_test() {
+        unsafe {
+            check_parse_mantissa(10, "1.2345", (1.2345, 6));
+            check_parse_mantissa(10, "12.345", (12.345, 6));
+            check_parse_mantissa(10, "12345.6789", (12345.6789, 10));
+        }
+    }
+
+    unsafe fn check_parse_float(base: u32, s: &str, tup: (f64, i32, usize, usize, usize)) {
+        let first = s.as_ptr();
+        let last = first.add(s.len());
+        let (v, e, state) = parse_float(base, first, last);
         assert_eq!(v, tup.0);
         assert_eq!(e, tup.1);
-        assert_eq!(distance(first, p), tup.2);
+        assert_eq!(state.mant.distance(), tup.2);
+        assert_eq!(state.exp.distance(), tup.3);
+        assert_eq!(distance(first, state.inner.curr), tup.4);
     }
 
     #[test]
     fn parse_float_test() {
         unsafe {
-            check_parse_float(10, "1.2345", (1.2345, 0, 6));
-            check_parse_float(10, "12.345", (12.345, 0, 6));
-            check_parse_float(10, "12345.6789", (12345.6789, 0, 10));
-            check_parse_float(10, "1.2345e10", (1.2345, 10, 9));
+            check_parse_float(10, "1.2345", (1.2345, 0, 6, 0, 6));
+            check_parse_float(10, "12.345", (12.345, 0, 6, 0, 6));
+            check_parse_float(10, "12345.6789", (12345.6789, 0, 10, 0, 10));
+            check_parse_float(10, "1.2345e10", (1.2345, 10, 6, 2, 9));
         }
     }
 

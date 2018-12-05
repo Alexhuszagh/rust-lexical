@@ -6,7 +6,6 @@ use super::{cached80, cached160};
 // POWERS
 
 /// Precalculated powers of base N.
-#[repr(C)]
 #[doc(hidden)]
 pub(crate) struct Powers<M: Mantissa> {
     // Pre-calculated small powers.

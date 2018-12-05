@@ -7,6 +7,7 @@ cfg_if! {
 if #[cfg(any(test, not(feature = "imprecise")))] {
 // Needed for the actual items.
 pub(crate) mod bigfloat;
+pub(crate) mod dtoa;
 mod cached;
 mod cached80;
 mod cached160;

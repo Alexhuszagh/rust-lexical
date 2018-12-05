@@ -13,6 +13,8 @@ mod mask;
 mod num;
 mod pow;
 mod primitive;
+mod range;
+mod state;
 
 #[cfg(any(test, feature = "imprecise"))]
 mod wrapped;
@@ -24,6 +26,8 @@ pub(crate) use self::mask::*;
 pub(crate) use self::num::*;
 pub(crate) use self::pow::*;
 pub(crate) use self::primitive::*;
+pub(crate) use self::range::*;
+pub(crate) use self::state::*;
 
 #[cfg(any(test, feature = "imprecise"))]
 pub(crate) use self::wrapped::*;

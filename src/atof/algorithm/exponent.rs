@@ -13,24 +13,47 @@ use util::*;
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-pub(super) unsafe extern "C" fn parse_exponent(base: u32, first: *const u8, last: *const u8)
-    -> (i32, *const u8)
+pub(super) unsafe extern "C" fn parse_exponent(state: &mut ParseFloatState, base: u32, last: *const u8)
+    -> i32
 {
-    let mut p = first;
-    let dist = distance(first, last);
-    if dist > 1 && (*p).to_ascii_lowercase() == exponent_notation_char(base).to_ascii_lowercase() {
-        p = p.add(1);
+    let first = state.inner.curr;
+    if first != last && (*first).to_ascii_lowercase() == exponent_notation_char(base).to_ascii_lowercase() {
+        let first = first.add(1);
         // Use atoi_sign so we can handle overflow differently for +/- numbers.
         // We care whether the value is positive.
         // Use is32::max_value() since it's valid in 2s complement for
         // positive or negative numbers, and will trigger a short-circuit.
         let cb = atoi::unchecked::<i32>;
-        let (exponent, p, overflow, sign) = atoi::filter_sign::<i32, _>(base, p, last, cb);
-        let exponent = if overflow { i32::max_value() } else { exponent };
+        let (exponent, inner, sign) = atoi::filter_sign::<i32, _>(base, first, last, cb);
+        let exponent = if inner.is_truncated() { i32::max_value() } else { exponent };
         let exponent = if sign == -1 { -exponent } else { exponent };
-        (exponent, p)
+
+        // Since we use custom overflow logic for truncated values, use a
+        // different internal state, however, store the buffer position from
+        // the parsed state.
+        state.inner.curr = inner.curr;
+        state.exp = Range::new(first, inner.curr);
+        exponent
     } else {
-        (0, p)
+        // Store exp component as an empty slice, and return the value.
+        state.exp = Range::new(first, first);
+        0
+    }
+}
+
+/// Calculate the exact exponent without overflow.
+///
+/// Remove the number of digits that contributed to the mantissa past
+/// the dot, and add the number of truncated digits from the mantissa.
+#[inline]
+#[cfg(any(test, not(feature = "imprecise")))]
+pub(super) extern "C" fn normalize_exponent(exponent: i32, dot_shift: usize, truncated: usize)
+    -> i32
+{
+    if dot_shift > truncated {
+        unwrap_or_min(exponent.checked_sub((dot_shift - truncated).try_i32_or_max()))
+    } else {
+        unwrap_or_max(exponent.checked_add((truncated - dot_shift).try_i32_or_max()))
     }
 }
 
@@ -40,12 +63,12 @@ pub(super) unsafe extern "C" fn parse_exponent(base: u32, first: *const u8, last
 /// the dot.
 #[inline]
 #[cfg(any(test, not(feature = "imprecise")))]
-pub(super) extern "C" fn normalize_exponent(exponent: i32, dot_shift: i32)
+pub(super) extern "C" fn normalize_exponent_v1(exponent: i32, exp_shift: i32)
     -> i32
 {
-    match exponent.checked_sub(dot_shift) {
+    match exponent.checked_sub(exp_shift) {
         Some(v) => v,
-        None    => if dot_shift < 0 { i32::max_value() } else { i32::min_value() },
+        None    => if exp_shift < 0 { i32::max_value() } else { i32::min_value() },
     }
 }
 
@@ -59,9 +82,10 @@ mod test {
     unsafe fn check_parse_exponent(base: u32, s: &str, tup: (i32, usize)) {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let (v, p) = parse_exponent(base, first, last);
+        let mut state = ParseFloatState::new(first);
+        let v = parse_exponent(&mut state, base, last);
         assert_eq!(v, tup.0);
-        assert_eq!(distance(first, p), tup.1);
+        assert_eq!(distance(first, state.inner.curr), tup.1);
     }
 
     #[test]
@@ -109,6 +133,9 @@ mod test {
                 check_parse_exponent(item.0, item.1, (45, item.1.len()));
             }
 
+            // empty
+            check_parse_exponent(10, "", (0, 0));
+
             // invalid exponent character
             check_parse_exponent(28, "e1h", (0, 0));
             check_parse_exponent(10, "^45", (0, 0));
@@ -130,20 +157,42 @@ mod test {
             check_parse_exponent(10, "e+3000000000", (i32::max_value(), 12));
             check_parse_exponent(10, "e-3000000000", (-i32::max_value(), 12));
 
-            // check uppercase characters
+            // lowercase
+            check_parse_exponent(10, "e45", (45, 3));
+            check_parse_exponent(10, "e+45", (45, 4));
+            check_parse_exponent(10, "e-45", (-45, 4));
+            check_parse_exponent(10, "e20", (20, 3));
+            check_parse_exponent(10, "e+20", (20, 4));
+            check_parse_exponent(10, "e-20", (-20, 4));
+
+            // uppercase
             check_parse_exponent(10, "E45", (45, 3));
             check_parse_exponent(10, "E+45", (45, 4));
             check_parse_exponent(10, "E-45", (-45, 4));
+            check_parse_exponent(10, "E20", (20, 3));
+            check_parse_exponent(10, "E+20", (20, 4));
+            check_parse_exponent(10, "E-20", (-20, 4));
+
+            // >= base15
+            check_parse_exponent(15, "^20", (30, 3));
+            check_parse_exponent(15, "^+20", (30, 4));
+            check_parse_exponent(15, "^-20", (-30, 4));
+
+            // overflow
+            check_parse_exponent(10, "e10000000000", (i32::max_value(), 12));
+            check_parse_exponent(10, "e+10000000000", (i32::max_value(), 13));
+            check_parse_exponent(10, "e-10000000000", (-i32::max_value(), 13));
         }
     }
 
     #[test]
     fn normalize_exponent_test() {
-        assert_eq!(normalize_exponent(10, 5), 5);
-        assert_eq!(normalize_exponent(0, 5), -5);
-        assert_eq!(normalize_exponent(i32::max_value(), 5), i32::max_value()-5);
-        assert_eq!(normalize_exponent(i32::max_value(), -5), i32::max_value());
-        assert_eq!(normalize_exponent(i32::min_value(), 5), i32::min_value());
-        assert_eq!(normalize_exponent(i32::min_value(), -5), i32::min_value()+5);
+        // TODO(ahuszagh) Make these work with the new version
+        assert_eq!(normalize_exponent_v1(10, 5), 5);
+        assert_eq!(normalize_exponent_v1(0, 5), -5);
+        assert_eq!(normalize_exponent_v1(i32::max_value(), 5), i32::max_value()-5);
+        assert_eq!(normalize_exponent_v1(i32::max_value(), -5), i32::max_value());
+        assert_eq!(normalize_exponent_v1(i32::min_value(), 5), i32::min_value());
+        assert_eq!(normalize_exponent_v1(i32::min_value(), -5), i32::min_value()+5);
     }
 }

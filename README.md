@@ -17,6 +17,7 @@ Fast lexical conversion routines for both std and no_std environments. Lexical p
   - [Float to String](#float-to-string)
   - [String to Float](#string-to-float)
   - [Arbitrary-Precision Arithmetic](#arbitrary-precision-arithmetic)
+  - [Comparison to Algorithm M and dtoa](#comparison-to-algorithm-m-and-dtoa)
 - [License](#license)
 - [Contributing](#contributing)
 
@@ -152,16 +153,77 @@ Although using the 3<sup>rd</sup> algorithm only occurs when the estimated round
 
 ## Arbitrary-Precision Arithmetic
 
+# TODO(ahuszagh) Change to the actual dtoa implementation...
+
 Lexical uses custom arbitrary-precision arithmetic to exactly represent complex floats, with various optimizations for multiplication and division relative to Rust's current implementation. Lexical uses a small vector of `u32`s for internal storage (storing up to 1024 bits on the stack), and an `i32` to store the binary exponent. Given `i^X` is largest power that can be stored in a `u32`, we use the following optimizations:
 
-1. During the parsing of digits, we use a simple optimization to minimize the number of arbitrary-precision operations required. Since `z+b(y+b(x+b(w))) == z+b(y) + b^2(x+b(w))`, we can parse `X-1` length segments of digits using native integers, multiply the big float by `i^(X-1)`, and then add the parsed digits to the big float. This never overflows, and results in `S/(X-1)` arbitrary-precision multiplications and additions, as opposed to `S` arbitrary-precision multiplications and additions, where `S` is the number of digits in the mantissa.
+1. During the parsing of digits, we use a simple optimization to minimize the number of arbitrary-precision operations required. Since `z+b(y+b(x+b(w))) == z+b(y) + b^2(x+b(w))`, we can parse `X-1` length segments of digits using native integers, multiply the big float by `i^(X-1)`, and then add the parsed digits to the big float. This never overflows, and results in `S/(X-1)` arbitrary-precision multiplications and additions, as opposed to `S` arbitrary-precision multiplications and additions, where `S` is the number of digits in the fraction component.
 2. Multiplication or division by a power of 2 can be represented by an increment or decrement of the binary exponent.
 3. Multiplication by `i^n` iteratively multiplies by the largest power that fits in a u32 (`i^X`) until the remaining exponent is less than or equal to `X`, and then multiplies by `i^r`, where `r` is the remainder, using precalculated powers.
 4. Division by `i^n` first pads the underlying storage with 0s (to avoid intermediate rounding, which is described below), and then iteratively divides by the largest power that fits in a u32 (`i^X`) until the remaining exponent is less than or equal to `X`, and then divides by `i^r`, where `r` is the remainder, using precalculated powers.
 
-Since rounding error may be introduced during division, lexical pads the big float with 0s to avoid any significant rounding error being introduced. Since we manually store the exponent, we can avoid denormal and subnormal results easily, without requiring both a numerator and a denominator. The number of bits required to avoid rounding for a given `i` was calculated using numerical simulations for `x/i^n ∀ n [1, 150], ∀ x {2, ..., 179424673}`, where `x` is in a set 39 primes meant to induce rounding error. The number of bits required to avoid introducing significant rounding error while dividing by `i^n` was found to be linear with `n`, and the change in the slope of the number of bits required at a given floating-point precision was also found to be linear, signifying the number of bits required to pad our big float was well approximated by a linear function of the exponent at a given number of bits of precision. We therefore estimated the required number of bits to pad our big float at ~70 bits of precision in the resulting value (greater than the precision of single- and double-precision IEEE754 floats), to avoid introducing any significant rounding error in our big float representation.
+Since rounding error may be introduced during division, lexical pads the big float with 0s to avoid any significant rounding error being introduced. Since we manually store the exponent, we can avoid denormal and subnormal results easily, without requiring both a numerator and a denominator. The number of bits required to avoid rounding for a given `i` was calculated using numerical simulations for `x/i^n ∀ n [1, 150], ∀ x {2, ..., 179424673}`, where `x` is in a set 39 primes meant to induce rounding error. The number of padding bits required to avoid introducing significant rounding error while dividing by `i^n` was found to be linear with `n`, and the change in the slope of the number of padding bits required at a given floating-point precision was also found to be linear. However, the number of padding bits required was not correlated to the number of bits in our numerator, signifying the number of bits required to pad our big float was well approximated solely by a linear function of the exponent at a given number of bits of precision. We therefore estimated the required number of bits to pad our big float at ~70 bits of precision in the resulting value (greater than the precision of single- and double-precision IEEE754 floats), to avoid introducing any significant rounding error in our big float representation.
 
 These optimizations led to significant performance wins, with performance in the worst case rivaling libstdc++'s `strtod`, and significantly outperforming any other implementation.
+
+## Comparison to Algorithm M and dtoa
+
+For close-to-halfway representations of a decimal string `s`, where `s` is close between two representations, `b` and the next float `b+u`, arbitrary-precision arithmetic is used to determine the correct representation. This means `s` is close to `b+h`, where `h` is the halfway point between `b` and `b+u`.
+
+For the following example, we will use the following values for our test case: 
+
+* `s = 2.4703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125001e-324`
+* `b = 0.0`
+* `b+h = 2.4703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125e-324`
+* `b+u = 5e-324`
+
+**Algorithm M**
+
+Algorithm M is described [here](https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/) in depth, and Rust's libcore uses it internally. First, Algorithm M converts both the fraction and the exponent to a fraction of big integers. For example, `3.14159e2` is the same as `314159e-3`, which means a numerator of `314159` and denominator of `1000`. Next, Algorithm M calculates the quotient and remainder of the numerator and denominator until the quotient is the same representation as the mantissa in the native float, for example, in range range `[2^52, 2^53)` for f64, or in the range `[2^23, 2^24)` for f32. If the quotient is below the range, multiply the numerator by 2, and decrease the binary exponent.  If the quotient is above the range, multiply the denominator by 2, and increase the binary exponent. Therefore, Algorithm M requires `N` bitshifts and ~`N^2`<sup>1</sup> division/modulus operations per iteration, where `N` is the number of native ints in the big integer.
+
+A naive implementation, in Python, is as follows:
+
+```python
+def algorithm_m(num, b):
+    # Ensure numerator >= 2**52
+    bits = int(math.ceil(math.log2(num)))
+    if bits <= 53:
+        num <<= 53
+        b -= 53
+
+    # Track number of steps required (optional).
+    steps = 0
+    while True:
+        steps += 1
+        c = num//b
+        if c < 2**52:
+            b //= 2
+        elif c >= 2**53:
+            b *= 2
+        else:
+            break
+
+    return (num, b, steps-1)
+```
+
+For example, to `s` into the range `[2^52, 2^53)`, we need a a numerator of `247....`, and a denominator of `10^1078`, requiring 1127 iterations to scale the value. Similarly, scaling `2.4703282292062327e-324` requires 1127 iterations to scale, showing how Algorithm M scales poorly, even for relatively simple inputs.
+
+In practice, Algorithm M is too slow for production code, and well-established algorithms like [dtoa](https://www.ampl.com/netlib/fp/dtoa.c) use another approach.
+
+<sup>1</sup> Faster multiplication algorithms are available, however, these algorithms are too slow for small values of `N`, such as in Rust's case.
+
+**dtoa**
+
+David M. Gay's `dtoa` implementation is the canonical string-to-float parser, and uses another approach for performance, described in depth [here](https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/). dtoa represents `b` as an N-bit integer (24 for f32, 53 for f64) and a binary exponent and calculates `b+h` from `b`. Finally, dtoa scales `b+h` by a power of 10 such that the calculated value would be from [0, 10), and creates a fraction of big integers. It then calculates the generated digits from `b+h` by iteratively using calculating the quotient (the digit) and remainder of the fraction, setting the numerator to `10*remainder`. When the digits present in `s` or `b+h` differ from each other, the correct representation is determined. Therefore, dtoa requires `N^2` division/modulus operations and `N` multiplication operations, where `N` is the number of native ints in the big integer, similar to Algorithm M. However, dtoa converges in the average case much faster than Algorithm M.
+
+For example, differentiating `s` from `b+h` requires 756 iterations (close to the worst case of 768 iterations), a slight improvement over Algorithm M. However, differentiating `2.4703282292062327e-324` from `b+h` only requires 18 steps, dramatically faster than Algorithm M.
+
+**Lexical**
+
+Lexical departs from all of these approaches by using numerical simulations to calc
+
+
+By contrast, lexical potentially requires more memory usage for padding bytes to avoid significant rounding error during division. 
 
 # License
 
