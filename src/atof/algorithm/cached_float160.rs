@@ -26,7 +26,7 @@
 //! FP_STR_1 = "    ExtendedFloat160 {{ frac: {}, exp: {} }},"
 //! FP_STR_2 = "// {}^{}"
 //! BIAS_STR = "const BASE{0}_BIAS: i32 = {1};"
-//! POWER_STR = """pub(crate) const BASE{0}_POWERS: Powers<u128> = Powers {{
+//! POWER_STR = """pub(crate) const BASE{0}_POWERS: ExtendedPowers<u128> = ExtendedPowers {{
 //!     small: &BASE{0}_SMALL_POWERS,
 //!     small_int: &BASE{0}_SMALL_INT_POWERS,
 //!     large: &BASE{0}_LARGE_POWERS,
@@ -161,7 +161,7 @@
 //! ```
 
 use float::ExtendedFloat160;
-use super::cached::Powers;
+use super::cached::ExtendedPowers;
 
 // LOW-LEVEL
 // ---------
@@ -2906,7 +2906,7 @@ const BASE36_BIAS: i32 = 234;
 // HIGH LEVEL
 // ----------
 
-pub(crate) const BASE3_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE3_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE3_SMALL_POWERS,
     small_int: &BASE3_SMALL_INT_POWERS,
     large: &BASE3_LARGE_POWERS,
@@ -2914,7 +2914,7 @@ pub(crate) const BASE3_POWERS: Powers<u128> = Powers {
     bias: BASE3_BIAS,
 };
 
-pub(crate) const BASE5_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE5_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE5_SMALL_POWERS,
     small_int: &BASE5_SMALL_INT_POWERS,
     large: &BASE5_LARGE_POWERS,
@@ -2922,7 +2922,7 @@ pub(crate) const BASE5_POWERS: Powers<u128> = Powers {
     bias: BASE5_BIAS,
 };
 
-pub(crate) const BASE6_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE6_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE6_SMALL_POWERS,
     small_int: &BASE6_SMALL_INT_POWERS,
     large: &BASE6_LARGE_POWERS,
@@ -2930,7 +2930,7 @@ pub(crate) const BASE6_POWERS: Powers<u128> = Powers {
     bias: BASE6_BIAS,
 };
 
-pub(crate) const BASE7_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE7_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE7_SMALL_POWERS,
     small_int: &BASE7_SMALL_INT_POWERS,
     large: &BASE7_LARGE_POWERS,
@@ -2938,7 +2938,7 @@ pub(crate) const BASE7_POWERS: Powers<u128> = Powers {
     bias: BASE7_BIAS,
 };
 
-pub(crate) const BASE9_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE9_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE9_SMALL_POWERS,
     small_int: &BASE9_SMALL_INT_POWERS,
     large: &BASE9_LARGE_POWERS,
@@ -2946,7 +2946,7 @@ pub(crate) const BASE9_POWERS: Powers<u128> = Powers {
     bias: BASE9_BIAS,
 };
 
-pub(crate) const BASE10_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE10_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE10_SMALL_POWERS,
     small_int: &BASE10_SMALL_INT_POWERS,
     large: &BASE10_LARGE_POWERS,
@@ -2954,7 +2954,7 @@ pub(crate) const BASE10_POWERS: Powers<u128> = Powers {
     bias: BASE10_BIAS,
 };
 
-pub(crate) const BASE11_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE11_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE11_SMALL_POWERS,
     small_int: &BASE11_SMALL_INT_POWERS,
     large: &BASE11_LARGE_POWERS,
@@ -2962,7 +2962,7 @@ pub(crate) const BASE11_POWERS: Powers<u128> = Powers {
     bias: BASE11_BIAS,
 };
 
-pub(crate) const BASE12_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE12_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE12_SMALL_POWERS,
     small_int: &BASE12_SMALL_INT_POWERS,
     large: &BASE12_LARGE_POWERS,
@@ -2970,7 +2970,7 @@ pub(crate) const BASE12_POWERS: Powers<u128> = Powers {
     bias: BASE12_BIAS,
 };
 
-pub(crate) const BASE13_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE13_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE13_SMALL_POWERS,
     small_int: &BASE13_SMALL_INT_POWERS,
     large: &BASE13_LARGE_POWERS,
@@ -2978,7 +2978,7 @@ pub(crate) const BASE13_POWERS: Powers<u128> = Powers {
     bias: BASE13_BIAS,
 };
 
-pub(crate) const BASE14_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE14_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE14_SMALL_POWERS,
     small_int: &BASE14_SMALL_INT_POWERS,
     large: &BASE14_LARGE_POWERS,
@@ -2986,7 +2986,7 @@ pub(crate) const BASE14_POWERS: Powers<u128> = Powers {
     bias: BASE14_BIAS,
 };
 
-pub(crate) const BASE15_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE15_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE15_SMALL_POWERS,
     small_int: &BASE15_SMALL_INT_POWERS,
     large: &BASE15_LARGE_POWERS,
@@ -2994,7 +2994,7 @@ pub(crate) const BASE15_POWERS: Powers<u128> = Powers {
     bias: BASE15_BIAS,
 };
 
-pub(crate) const BASE17_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE17_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE17_SMALL_POWERS,
     small_int: &BASE17_SMALL_INT_POWERS,
     large: &BASE17_LARGE_POWERS,
@@ -3002,7 +3002,7 @@ pub(crate) const BASE17_POWERS: Powers<u128> = Powers {
     bias: BASE17_BIAS,
 };
 
-pub(crate) const BASE18_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE18_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE18_SMALL_POWERS,
     small_int: &BASE18_SMALL_INT_POWERS,
     large: &BASE18_LARGE_POWERS,
@@ -3010,7 +3010,7 @@ pub(crate) const BASE18_POWERS: Powers<u128> = Powers {
     bias: BASE18_BIAS,
 };
 
-pub(crate) const BASE19_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE19_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE19_SMALL_POWERS,
     small_int: &BASE19_SMALL_INT_POWERS,
     large: &BASE19_LARGE_POWERS,
@@ -3018,7 +3018,7 @@ pub(crate) const BASE19_POWERS: Powers<u128> = Powers {
     bias: BASE19_BIAS,
 };
 
-pub(crate) const BASE20_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE20_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE20_SMALL_POWERS,
     small_int: &BASE20_SMALL_INT_POWERS,
     large: &BASE20_LARGE_POWERS,
@@ -3026,7 +3026,7 @@ pub(crate) const BASE20_POWERS: Powers<u128> = Powers {
     bias: BASE20_BIAS,
 };
 
-pub(crate) const BASE21_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE21_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE21_SMALL_POWERS,
     small_int: &BASE21_SMALL_INT_POWERS,
     large: &BASE21_LARGE_POWERS,
@@ -3034,7 +3034,7 @@ pub(crate) const BASE21_POWERS: Powers<u128> = Powers {
     bias: BASE21_BIAS,
 };
 
-pub(crate) const BASE22_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE22_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE22_SMALL_POWERS,
     small_int: &BASE22_SMALL_INT_POWERS,
     large: &BASE22_LARGE_POWERS,
@@ -3042,7 +3042,7 @@ pub(crate) const BASE22_POWERS: Powers<u128> = Powers {
     bias: BASE22_BIAS,
 };
 
-pub(crate) const BASE23_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE23_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE23_SMALL_POWERS,
     small_int: &BASE23_SMALL_INT_POWERS,
     large: &BASE23_LARGE_POWERS,
@@ -3050,7 +3050,7 @@ pub(crate) const BASE23_POWERS: Powers<u128> = Powers {
     bias: BASE23_BIAS,
 };
 
-pub(crate) const BASE24_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE24_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE24_SMALL_POWERS,
     small_int: &BASE24_SMALL_INT_POWERS,
     large: &BASE24_LARGE_POWERS,
@@ -3058,7 +3058,7 @@ pub(crate) const BASE24_POWERS: Powers<u128> = Powers {
     bias: BASE24_BIAS,
 };
 
-pub(crate) const BASE25_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE25_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE25_SMALL_POWERS,
     small_int: &BASE25_SMALL_INT_POWERS,
     large: &BASE25_LARGE_POWERS,
@@ -3066,7 +3066,7 @@ pub(crate) const BASE25_POWERS: Powers<u128> = Powers {
     bias: BASE25_BIAS,
 };
 
-pub(crate) const BASE26_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE26_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE26_SMALL_POWERS,
     small_int: &BASE26_SMALL_INT_POWERS,
     large: &BASE26_LARGE_POWERS,
@@ -3074,7 +3074,7 @@ pub(crate) const BASE26_POWERS: Powers<u128> = Powers {
     bias: BASE26_BIAS,
 };
 
-pub(crate) const BASE27_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE27_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE27_SMALL_POWERS,
     small_int: &BASE27_SMALL_INT_POWERS,
     large: &BASE27_LARGE_POWERS,
@@ -3082,7 +3082,7 @@ pub(crate) const BASE27_POWERS: Powers<u128> = Powers {
     bias: BASE27_BIAS,
 };
 
-pub(crate) const BASE28_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE28_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE28_SMALL_POWERS,
     small_int: &BASE28_SMALL_INT_POWERS,
     large: &BASE28_LARGE_POWERS,
@@ -3090,7 +3090,7 @@ pub(crate) const BASE28_POWERS: Powers<u128> = Powers {
     bias: BASE28_BIAS,
 };
 
-pub(crate) const BASE29_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE29_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE29_SMALL_POWERS,
     small_int: &BASE29_SMALL_INT_POWERS,
     large: &BASE29_LARGE_POWERS,
@@ -3098,7 +3098,7 @@ pub(crate) const BASE29_POWERS: Powers<u128> = Powers {
     bias: BASE29_BIAS,
 };
 
-pub(crate) const BASE30_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE30_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE30_SMALL_POWERS,
     small_int: &BASE30_SMALL_INT_POWERS,
     large: &BASE30_LARGE_POWERS,
@@ -3106,7 +3106,7 @@ pub(crate) const BASE30_POWERS: Powers<u128> = Powers {
     bias: BASE30_BIAS,
 };
 
-pub(crate) const BASE31_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE31_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE31_SMALL_POWERS,
     small_int: &BASE31_SMALL_INT_POWERS,
     large: &BASE31_LARGE_POWERS,
@@ -3114,7 +3114,7 @@ pub(crate) const BASE31_POWERS: Powers<u128> = Powers {
     bias: BASE31_BIAS,
 };
 
-pub(crate) const BASE33_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE33_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE33_SMALL_POWERS,
     small_int: &BASE33_SMALL_INT_POWERS,
     large: &BASE33_LARGE_POWERS,
@@ -3122,7 +3122,7 @@ pub(crate) const BASE33_POWERS: Powers<u128> = Powers {
     bias: BASE33_BIAS,
 };
 
-pub(crate) const BASE34_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE34_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE34_SMALL_POWERS,
     small_int: &BASE34_SMALL_INT_POWERS,
     large: &BASE34_LARGE_POWERS,
@@ -3130,7 +3130,7 @@ pub(crate) const BASE34_POWERS: Powers<u128> = Powers {
     bias: BASE34_BIAS,
 };
 
-pub(crate) const BASE35_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE35_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE35_SMALL_POWERS,
     small_int: &BASE35_SMALL_INT_POWERS,
     large: &BASE35_LARGE_POWERS,
@@ -3138,7 +3138,7 @@ pub(crate) const BASE35_POWERS: Powers<u128> = Powers {
     bias: BASE35_BIAS,
 };
 
-pub(crate) const BASE36_POWERS: Powers<u128> = Powers {
+pub(crate) const BASE36_POWERS: ExtendedPowers<u128> = ExtendedPowers {
     small: &BASE36_SMALL_POWERS,
     small_int: &BASE36_SMALL_INT_POWERS,
     large: &BASE36_LARGE_POWERS,
@@ -3147,7 +3147,7 @@ pub(crate) const BASE36_POWERS: Powers<u128> = Powers {
 };
 
 /// Get powers from base.
-pub(crate) fn get_powers(base: u32) -> &'static Powers<u128> {
+pub(crate) fn get_powers(base: u32) -> &'static ExtendedPowers<u128> {
     match base {
         3  => &BASE3_POWERS,
         5  => &BASE5_POWERS,

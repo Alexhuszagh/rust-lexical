@@ -57,9 +57,9 @@ pub trait Integer:
     ops::Shl<usize, Output=Self> +
     ops::Shl<i8, Output=Self> +
     ops::Shl<i16, Output=Self> +
-    ops::Shl<i32, Output=Self> +
     ops::Shl<i64, Output=Self> +
     ops::Shl<isize, Output=Self> +
+    ops::Shl<i32, Output=Self> +
     ops::ShlAssign +
     ops::ShlAssign<u8> +
     ops::ShlAssign<u16> +

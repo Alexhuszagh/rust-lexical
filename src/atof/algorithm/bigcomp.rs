@@ -15,19 +15,30 @@ use super::exponent::*;
 
 /// Calculate `b` from a a representation of `b` as a float.
 ///
-/// Returns the mantissa (to F::MANTISSA_SIZE+1 bits)
+/// Returns the mantissa (to F::MANTISSA_SIZE+1 bits) and the exponent,
+/// so the float is represented as `mant * 2^exp`.
 #[inline]
 pub fn calculate_b<F: Float>(b: F)
     -> (F::Unsigned, i32)
 {
-    //let shift = F::BITS.as_i32() - F::MANTISSA_SIZE - 1;
-    // TODO(ahuszagh) Need to shift it to 53-bits..
-    //let mant = b.mantissa();
+    // Get our mantissa and exponent.
+    let mant = b.mantissa();
+    let exp = b.exponent();
+    debug_assert!(mant != F::Unsigned::ZERO, "calculate_b() mantissa is 0.");
 
-    (b.mantissa(), b.exponent())
+    // Need to shift to the hidden bit. This should never overflow,
+    // since we're grabbing the bottom MANTISSA_SIZE+1 bits.
+    let upper = F::BITS.as_i32() - (F::MANTISSA_SIZE+1);
+    let shift = mant.leading_zeros().as_i32() - upper;
+    debug_assert!(shift >= 0, "calculate_b() shift is negative {}.", shift);
+
+    (mant << shift, exp - shift)
 }
 
 /// Calculate `b+h` from a a representation of `b` as a float.
+///
+/// Returns the mantissa (to F::MANTISSA_SIZE+2 bits) and the exponent,
+/// so the float is represented as `mant * 2^exp`.
 #[inline]
 pub fn calculate_bh<F: Float>(b: F)
     -> (F::Unsigned, i32)
@@ -37,19 +48,6 @@ pub fn calculate_bh<F: Float>(b: F)
     (mant * F::Unsigned::TWO + F::Unsigned::ONE, exp - 1)
 }
 
-/// Calculate the scaling factor so exactly 1 digit is left of the decimal.
-///
-/// Normalize float so it can be represented in scientific notation, so
-/// we can compare digits.
-#[inline]
-pub fn scaling_factor<F: Float>(base: u32, mant: F::Unsigned, exp: i32)
-    -> (F::Unsigned, i32)
-{
-    // TODO(ahuszagh) Need to add the number of digits in the mantissa...
-    let basen_exp = basen_exponent(base, exp);
-    unimplemented!()
-}
-
 // TODO(ahuszagh):
 //      Steps:
 //          1. Determine `b` from the extended-precision float.
@@ -57,10 +55,12 @@ pub fn scaling_factor<F: Float>(base: u32, mant: F::Unsigned, exp: i32)
 //              rounding schemes.
 //          2. Extract the mantissa and the exponent from `b`.
 //          3. Determine `b+h` from `b`.
-
 //          4. Find a factor of `base` that scales it so exactly 1 digit
 //              is to the left of the decimal place.
-//              This can likely work using leading_zeros() + exp + some log magic.
+//              We can only do this exactly from a string, so this is easy.
+
+
+//
 //          5. Generate bignum representations of the numerator and denominator.
 //          6. Find the start of the digits in the coefficient.
 //          7. Generate digits via divmod until a difference is found.
@@ -72,21 +72,30 @@ mod tests {
 
     #[test]
     fn calculate_b_test() {
-//        assert_eq!(calculate_b(1e-45_f32), (1, -149));
-//        assert_eq!(calculate_b(5e-324_f64), (1, -1074));
-//        assert_eq!(calculate_b(1_f32), (8388608, -23));
-//        assert_eq!(calculate_b(1_f64), (4503599627370496, -52));
-//        assert_eq!(calculate_b(1e38_f32), (9860761, 103));
-//        assert_eq!(calculate_b(1e308_f64), (5010420900022432, 971));
+        assert_eq!(calculate_b(1e-45_f32), (8388608, -172));
+        assert_eq!(calculate_b(5e-324_f64), (4503599627370496, -1126));
+        assert_eq!(calculate_b(1e-323_f64), (4503599627370496, -1125));
+        assert_eq!(calculate_b(2e-323_f64), (4503599627370496, -1124));
+        assert_eq!(calculate_b(3e-323_f64), (6755399441055744, -1124));
+        assert_eq!(calculate_b(4e-323_f64), (4503599627370496, -1123));
+        assert_eq!(calculate_b(5e-323_f64), (5629499534213120, -1123));
+        assert_eq!(calculate_b(6e-323_f64), (6755399441055744, -1123));
+        assert_eq!(calculate_b(7e-323_f64), (7881299347898368, -1123));
+        assert_eq!(calculate_b(8e-323_f64), (4503599627370496, -1122));
+        assert_eq!(calculate_b(9e-323_f64), (5066549580791808, -1122));
+        assert_eq!(calculate_b(1_f32), (8388608, -23));
+        assert_eq!(calculate_b(1_f64), (4503599627370496, -52));
+        assert_eq!(calculate_b(1e38_f32), (9860761, 103));
+        assert_eq!(calculate_b(1e308_f64), (5010420900022432, 971));
     }
 
     #[test]
     fn calculate_bh_test() {
-//        assert_eq!(calculate_bh(1e-45_f32), (3, -150));
-//        assert_eq!(calculate_bh(5e-324_f64), (3, -1075));
-//        assert_eq!(calculate_bh(1_f32), (16777217, -24));
-//        assert_eq!(calculate_bh(1_f64), (9007199254740993, -53));
-//        assert_eq!(calculate_bh(1e38_f32), (19721523, 102));
-//        assert_eq!(calculate_bh(1e308_f64), (10020841800044865, 970));
+        assert_eq!(calculate_bh(1e-45_f32), (16777217, -173));
+        assert_eq!(calculate_bh(5e-324_f64), (9007199254740993, -1127));
+        assert_eq!(calculate_bh(1_f32), (16777217, -24));
+        assert_eq!(calculate_bh(1_f64), (9007199254740993, -53));
+        assert_eq!(calculate_bh(1e38_f32), (19721523, 102));
+        assert_eq!(calculate_bh(1e308_f64), (10020841800044865, 970));
     }
 }
