@@ -1941,9 +1941,9 @@ impl Bigfloat {
         where F: FloatRounding<u64>
     {
         // Get our initial values and create our floating point
-        let (mantissa, is_truncated) = self.mantissa();
+        let (mant, is_truncated) = self.mantissa();
         let exp = self.exponent();
-        let mut fp = ExtendedFloat80 { frac: mantissa, exp: exp };
+        let mut fp = ExtendedFloat80 { mant: mant, exp: exp };
 
         // Create our wrapper for round_nearest_tie_even.
         // If there are truncated bits, and we are exactly halfway,

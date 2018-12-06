@@ -13,9 +13,16 @@
 use util::*;
 use super::exponent::*;
 
+// TODO(ahuszagh) Can just return the.... Extended Float tbh...
+///// Simplified
+//pub struct Bigfloat<M: UnsignedInteger> {
+//    mant: M,
+//    exp: i32,
+//}
+
 /// Calculate `b` from a a representation of `b` as a float.
 ///
-/// Returns the mantissa (to F::MANTISSA_SIZE+1 bits) and the exponent,
+/// Returns the normalized mantissa in 128 bits and the exponent,
 /// so the float is represented as `mant * 2^exp`.
 #[inline]
 pub fn calculate_b<F: Float>(b: F)
@@ -28,6 +35,7 @@ pub fn calculate_b<F: Float>(b: F)
 
     // Need to shift to the hidden bit. This should never overflow,
     // since we're grabbing the bottom MANTISSA_SIZE+1 bits.
+    // This is only true for denormal floats.
     let upper = F::BITS.as_i32() - (F::MANTISSA_SIZE+1);
     let shift = mant.leading_zeros().as_i32() - upper;
     debug_assert!(shift >= 0, "calculate_b() shift is negative {}.", shift);
@@ -48,6 +56,9 @@ pub fn calculate_bh<F: Float>(b: F)
     (mant * F::Unsigned::TWO + F::Unsigned::ONE, exp - 1)
 }
 
+/// Normalize the mantissa and exponent.
+//#[inline]
+
 // TODO(ahuszagh):
 //      Steps:
 //          1. Determine `b` from the extended-precision float.
@@ -58,12 +69,19 @@ pub fn calculate_bh<F: Float>(b: F)
 //          4. Find a factor of `base` that scales it so exactly 1 digit
 //              is to the left of the decimal place.
 //              We can only do this exactly from a string, so this is easy.
-
-
 //
 //          5. Generate bignum representations of the numerator and denominator.
+//              We can do this with 128-bit values.
+
 //          6. Find the start of the digits in the coefficient.
 //          7. Generate digits via divmod until a difference is found.
+
+// Current example:
+//  b = 1e308_f64
+//      nd = 308
+//      mant, exp = (5010420900022432, 971)
+//      idx = nd + BIAS
+//      scale_mant, scale_exp = (189288349786683953755640255602884245064, 896)
 
 
 #[cfg(test)]

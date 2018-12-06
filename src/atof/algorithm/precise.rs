@@ -96,7 +96,7 @@ use float::*;
 use table::*;
 use util::*;
 use super::bigfloat::{Bigfloat, FloatMaxExponent};
-use super::cached::CachedExtendedPowers;
+use super::cached::ModeratePathCache;
 use super::exponent::*;
 
 // SHARED
@@ -255,8 +255,11 @@ unsafe fn parse_float<M>(base: u32, first: *const u8, last: *const u8)
     (mantissa, exponent, digit_count, state)
 }
 
-// EXACT
-// -----
+// FAST
+// ----
+
+// Generate exact representations of a float using solely native
+// floating-point intermediates.
 
 /// Check if value is power of 2 and get the power.
 #[inline]
@@ -294,7 +297,7 @@ fn is_halfway<F: Float>(mantissa: u64)
 /// mantissa unless the exponent is denormal, which will cause truncation
 /// regardless.
 #[inline]
-fn pow2_to_exact<F: StablePower>(mantissa: u64, base: u32, pow2_exp: i32, exponent: i32)
+fn pow2_fast_path<F: StablePower>(mantissa: u64, base: u32, pow2_exp: i32, exponent: i32)
     -> F
 {
     debug_assert!(pow2_exp != 0, "Not a power of 2.");
@@ -334,12 +337,12 @@ fn pow2_to_exact<F: StablePower>(mantissa: u64, base: u32, pow2_exp: i32, expone
 ///
 /// Returns the resulting float and if the value can be represented exactly.
 #[inline]
-fn to_exact<F: StablePower>(mantissa: u64, base: u32, exponent: i32)
+fn fast_path<F: StablePower>(mantissa: u64, base: u32, exponent: i32)
     -> (F, bool)
 {
     // logic error, disable in release builds
     debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
-    debug_assert!(pow2_exponent(base) == 0, "Cannot use `to_exact` with a power of 2.");
+    debug_assert!(pow2_exponent(base) == 0, "Cannot use `fast_path` with a power of 2.");
 
     // `mantissa >> F::MANTISSA_SIZE != 0` effectively checks if the value
     // has a no bits above the hidden bit, which is what we want.
@@ -364,14 +367,20 @@ fn to_exact<F: StablePower>(mantissa: u64, base: u32, exponent: i32)
     }
 }
 
-// EXTENDED
+// MODERATE
 // --------
 
-// Moderate/slow path for the parse algorithm.
+// Moderate path for the parse algorithm.
+//
 // In this case, the mantissa can be (partially) represented by an integer,
 // however, the exponent or mantissa cannot be fully represented without
 // truncating bytes. The moderate path uses a 64-bit integer, while
 // the slow path uses a 128-bit integer.
+//
+// If the value represents only one possible floating-point number, then
+// the moderate path is a good approximation. Otherwise, if the generated
+// value is close to a halfway representation, use the slow path for
+// an exact representation.
 
 // EXTENDED
 
@@ -420,12 +429,12 @@ impl FloatErrors for u64 {
             // Representation is valid **only** if the value is close enough
             // overflow to the next bit within errors. If it overflows,
             // the representation is **not** valid.
-            !fp.frac.overflowing_add(as_cast(count)).1
+            !fp.mant.overflowing_add(as_cast(count)).1
         } else {
             // Do a signed comparison, which will always be valid.
             let mask: u64 = lower_n_mask(extrabits.as_u64());
             let halfway: u64 = lower_n_halfway(extrabits.as_u64());
-            let extra: u64 = fp.frac & mask;
+            let extra: u64 = fp.mant & mask;
             let errors: u64 = as_cast(count);
             let cmp1 = halfway.as_i64().wrapping_sub(errors.as_i64()) < extra.as_i64();
             let cmp2 = extra.as_i64() < halfway.as_i64().wrapping_add(errors.as_i64());
@@ -435,26 +444,6 @@ impl FloatErrors for u64 {
             // representation is valid.
             !(cmp1 && cmp2)
         }
-    }
-}
-
-// 128-bit representation is always accurate, ignore this.
-impl FloatErrors for u128 {
-    #[inline(always)]
-    fn error_scale() -> u32 {
-        0
-    }
-
-    #[inline(always)]
-    fn error_halfscale() -> u32 {
-        0
-    }
-
-    #[inline]
-    fn error_is_accurate<F: Float>(_: u32, _: &ExtendedFloat<u128>) -> bool {
-        // Ignore the halfway problem, use more bits to aim for accuracy,
-        // but short-circuit to avoid extremely slow operations.
-        true
     }
 }
 
@@ -468,7 +457,7 @@ unsafe fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, base: u32,
     -> bool
     where M: FloatErrors,
           F: FloatRounding<M>,
-          ExtendedFloat<M>: CachedExtendedPowers<M>
+          ExtendedFloat<M>: ModeratePathCache<M>
 {
     let powers = ExtendedFloat::<M>::get_powers(base);
     let exponent = exponent + powers.bias;
@@ -476,11 +465,11 @@ unsafe fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, base: u32,
     let large_index = exponent / powers.step;
     if exponent < 0 {
         // Guaranteed underflow (assign 0).
-        fp.frac = M::ZERO;
+        fp.mant = M::ZERO;
         true
     } else if large_index as usize >= powers.large.len() {
         // Overflow (assign infinity)
-        fp.frac = M::ONE << 63;
+        fp.mant = M::ONE << 63;
         fp.exp = 0x7FF;
         true
     } else {
@@ -493,7 +482,7 @@ unsafe fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, base: u32,
         // Multiply by the small power.
         // Check if we can directly multiply by an integer, if not,
         // use extended-precision multiplication.
-        match fp.frac.overflowing_mul(powers.get_small_int(small_index as usize)) {
+        match fp.mant.overflowing_mul(powers.get_small_int(small_index as usize)) {
             // Overflow, multiplication unsuccessful, go slow path.
             (_, true)     => {
                 fp.normalize();
@@ -501,8 +490,8 @@ unsafe fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, base: u32,
                 errors += M::error_halfscale();
             },
             // No overflow, multiplication successful.
-            (frac, false) => {
-                fp.frac = frac;
+            (mant, false) => {
+                fp.mant = mant;
                 fp.normalize();
             },
         }
@@ -525,16 +514,18 @@ unsafe fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, base: u32,
 /// Return the float approximation and if the value can be accurately
 /// represented with mantissa bits of precision.
 #[inline]
-pub(super) fn to_extended<F, M>(mantissa: M, base: u32, exponent: i32, truncated: bool)
+pub(super) fn moderate_path<F, M>(mantissa: M, base: u32, exponent: i32, truncated: bool)
     -> (ExtendedFloat<M>, bool)
     where M: FloatErrors,
           F: FloatRounding<M>,
-          ExtendedFloat<M>: CachedExtendedPowers<M>
+          ExtendedFloat<M>: ModeratePathCache<M>
 {
-    let mut fp = ExtendedFloat { frac: mantissa, exp: 0 };
+    let mut fp = ExtendedFloat { mant: mantissa, exp: 0 };
     let valid = unsafe { multiply_exponent_extended::<F, M>(&mut fp, base, exponent, truncated) };
     (fp, valid)
 }
+
+// TODO(ahuszagh) Need the slow path
 
 // ATOF/ATOD
 
@@ -542,7 +533,7 @@ pub(super) fn to_extended<F, M>(mantissa: M, base: u32, exponent: i32, truncated
 #[inline]
 unsafe fn pow2_to_native<F>(base: u32, pow2_exp: i32, first: *const u8, last: *const u8)
     -> (F, ParseState)
-    where F: FloatRounding<u64> + FloatRounding<u128> + StablePower + FloatMaxExponent
+    where F: FloatRounding<u64> + StablePower + FloatMaxExponent
 {
     let (mut mantissa, exponent, _, state) = parse_float::<u64>(base, first, last);
 
@@ -566,53 +557,43 @@ unsafe fn pow2_to_native<F>(base: u32, pow2_exp: i32, first: *const u8, last: *c
     }
 
     // Create exact representation and return/
-    let float = pow2_to_exact::<F>(mantissa, base, pow2_exp, exponent);
-    return (float, state);
-
+    let float = pow2_fast_path::<F>(mantissa, base, pow2_exp, exponent);
+    (float, state)
 }
 
 /// Parse non-power-of-two radix string to native float.
 #[inline]
 unsafe fn pown_to_native<F>(base: u32, first: *const u8, last: *const u8, lossy: bool)
     -> (F, ParseState)
-    where F: FloatRounding<u64> + FloatRounding<u128> + StablePower + FloatMaxExponent
+    where F: FloatRounding<u64> + StablePower + FloatMaxExponent
 {
     // TODO(ahuszagh) Gonna need to use this digit count...
     let (mantissa, exponent, _digit_count, state) = parse_float::<u64>(base, first, last);
 
     if mantissa == 0 {
         // Literal 0, return early.
-        // Value cannot be truncated, since we discard leading 0s whenever we
-        // have mantissa == 0.
+        // Value cannot be truncated, since we discard leading 0s.
         return (F::ZERO, state);
     } else if !state.is_truncated() {
         // Try last fast path to exact, no mantissa truncation
-        let (float, valid) = to_exact::<F>(mantissa, base, exponent);
+        let (float, valid) = fast_path::<F>(mantissa, base, exponent);
         if valid {
             return (float, state);
         }
     }
 
     // Moderate path (use an extended 80-bit representation).
-    let (fp, valid) = to_extended::<F, _>(mantissa, base, exponent, state.is_truncated());
-    if valid {
+    let (fp, valid) = moderate_path::<F, _>(mantissa, base, exponent, state.is_truncated());
+    if valid || lossy {
         return (fp.into_float::<F>(), state);
     }
 
     // Slow path
-    if lossy {
-        // Fast slow-path (use a 128-bit mantissa and extended 160-bit float).
-        // Ignore any and all truncation. Inaccurate, but resolves many borderline
-        // cases between 16-19 digits that otherwise require the dtoa.
-        let (mantissa, exponent, _, state) = parse_float::<u128>(base, first, last);
-        let (fp, _) = to_extended::<F, _>(mantissa, base, exponent, false);
-        return (fp.into_float::<F>(), state);
-    } else {
-        // Extremely slow algorithm, use arbitrary-precision float.
-        // TODO(ahuszagh) Replace with dtoa, since we can do that now...
-        let (bigfloat, state) = Bigfloat::from_bytes::<F>(base, first, last);
-        return (bigfloat.as_float::<F>(), state);
-    }
+    // Extremely slow algorithm, use arbitrary-precision float.
+    // TODO(ahuszagh) Replace with dtoa, since we can do that now...
+    // Need to find out how many digits for the faster algorithm.
+    let (bigfloat, state) = Bigfloat::from_bytes::<F>(base, first, last);
+    return (bigfloat.as_float::<F>(), state);
 }
 
 /// Parse native float from string.
@@ -621,7 +602,7 @@ unsafe fn pown_to_native<F>(base: u32, first: *const u8, last: *const u8, lossy:
 #[inline]
 unsafe fn to_native<F>(base: u32, first: *const u8, last: *const u8, lossy: bool)
     -> (F, *const u8)
-    where F: FloatRounding<u64> + FloatRounding<u128> + StablePower + FloatMaxExponent
+    where F: FloatRounding<u64> + StablePower + FloatMaxExponent
 {
     let pow2_exp = pow2_exponent(base);
     let (f, state) = match pow2_exp {
@@ -703,15 +684,6 @@ mod tests {
             // Rounding error
             // Adapted from test-float-parse failures.
             check_parse_mantissa::<u64>(10, "1009e-31", (1009, 0, 4, 0, 4));
-
-            // 128-bit
-            check_parse_mantissa::<u128>(10, "1.2345", (12345, 4, 6, 0, 1));
-            check_parse_mantissa::<u128>(10, "12.345", (12345, 3, 6, 0, 2));
-            check_parse_mantissa::<u128>(10, "12345.6789", (123456789, 4, 10, 0, 5));
-            check_parse_mantissa::<u128>(10, "1.2345e10", (12345, 4, 6, 0, 1));
-            check_parse_mantissa::<u128>(10, "0.0000000000000000001", (1, 19, 21, 0, 0));
-            check_parse_mantissa::<u128>(10, "0.00000000000000000000000000001", (1, 29, 31, 0, 0));
-            check_parse_mantissa::<u128>(10, "100000000000000000000", (100000000000000000000, 0, 21, 0, 21));
         }
     }
 
@@ -745,14 +717,6 @@ mod tests {
             // Rounding error
             // Adapted from test-float-parse failures.
             check_parse_float::<u64>(10, "1009e-31", (1009, -31, -28, 8, false));
-
-            // 128-bit
-            check_parse_float::<u128>(10, "1.2345", (12345, -4, 0, 6, false));
-            check_parse_float::<u128>(10, "12.345", (12345, -3, 1, 6, false));
-            check_parse_float::<u128>(10, "12345.6789", (123456789, -4, 4, 10, false));
-            check_parse_float::<u128>(10, "1.2345e10", (12345, 6, 10, 9, false));
-            check_parse_float::<u128>(10, "100000000000000000000", (1, 20, 20, 21, false));
-            check_parse_float::<u128>(10, "100000000000000000001", (100000000000000000001, 0, 20, 21, false));
         }
     }
 
@@ -793,7 +757,7 @@ mod tests {
     }
 
     #[test]
-    fn pow2_to_float_exact_test() {
+    fn float_pow2_fast_path() {
         // Everything is valid.
         let mantissa = 1 << 63;
         for base in BASE_POW2.iter().cloned() {
@@ -801,13 +765,13 @@ mod tests {
             let pow2_exp = pow2_exponent(base);
             for exp in min_exp-20..max_exp+30 {
                 // Always valid, ignore result
-                pow2_to_exact::<f32>(mantissa, base, pow2_exp, exp);
+                pow2_fast_path::<f32>(mantissa, base, pow2_exp, exp);
             }
         }
     }
 
     #[test]
-    fn pow2_to_double_exact_test() {
+    fn double_pow2_fast_path_test() {
         // Everything is valid.
         let mantissa = 1 << 63;
         for base in BASE_POW2.iter().cloned() {
@@ -815,108 +779,101 @@ mod tests {
             let pow2_exp = pow2_exponent(base);
             for exp in min_exp-20..max_exp+30 {
                 // Ignore result, always valid
-                pow2_to_exact::<f64>(mantissa, base, pow2_exp, exp);
+                pow2_fast_path::<f64>(mantissa, base, pow2_exp, exp);
             }
         }
     }
 
     #[test]
-    fn to_float_exact_test() {
+    fn float_fast_path_test() {
         // valid
         let mantissa = 1 << (f32::MANTISSA_SIZE - 1);
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f32::exponent_limit(base);
             for exp in min_exp..max_exp+1 {
-                let (_, valid) = to_exact::<f32>(mantissa, base, exp);
+                let (_, valid) = fast_path::<f32>(mantissa, base, exp);
                 assert!(valid, "should be valid {:?}.", (mantissa, base, exp));
             }
         }
 
         // invalid mantissa
-        let (_, valid) = to_exact::<f32>(1<<f32::MANTISSA_SIZE, 3, 0);
+        let (_, valid) = fast_path::<f32>(1<<f32::MANTISSA_SIZE, 3, 0);
         assert!(!valid, "invalid mantissa");
 
         // invalid exponents
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f32::exponent_limit(base);
-            let (_, valid) = to_exact::<f32>(mantissa, base, min_exp-1);
+            let (_, valid) = fast_path::<f32>(mantissa, base, min_exp-1);
             assert!(!valid, "exponent under min_exp");
 
-            let (_, valid) = to_exact::<f32>(mantissa, base, max_exp+1);
+            let (_, valid) = fast_path::<f32>(mantissa, base, max_exp+1);
             assert!(!valid, "exponent above max_exp");
         }
     }
 
     #[test]
-    fn to_double_exact_test() {
+    fn double_fast_path_test() {
         // valid
         let mantissa = 1 << (f64::MANTISSA_SIZE - 1);
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f64::exponent_limit(base);
             for exp in min_exp..max_exp+1 {
-                let (_, valid) = to_exact::<f64>(mantissa, base, exp);
+                let (_, valid) = fast_path::<f64>(mantissa, base, exp);
                 assert!(valid, "should be valid {:?}.", (mantissa, base, exp));
             }
         }
 
         // invalid mantissa
-        let (_, valid) = to_exact::<f64>(1<<f64::MANTISSA_SIZE, 3, 0);
+        let (_, valid) = fast_path::<f64>(1<<f64::MANTISSA_SIZE, 3, 0);
         assert!(!valid, "invalid mantissa");
 
         // invalid exponents
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f64::exponent_limit(base);
-            let (_, valid) = to_exact::<f64>(mantissa, base, min_exp-1);
+            let (_, valid) = fast_path::<f64>(mantissa, base, min_exp-1);
             assert!(!valid, "exponent under min_exp");
 
-            let (_, valid) = to_exact::<f64>(mantissa, base, max_exp+1);
+            let (_, valid) = fast_path::<f64>(mantissa, base, max_exp+1);
             assert!(!valid, "exponent above max_exp");
         }
     }
 
     #[test]
-    fn to_float_extended_test() {
+    fn float_moderate_path_test() {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
-        let (f, valid) = to_extended::<f32, _>(mantissa, 3, 1, false);
+        let (f, valid) = moderate_path::<f32, _>(mantissa, 3, 1, false);
         assert_eq!(f.as_f32(), 2.7670116e+19);
         assert!(valid, "exponent should be valid");
 
         let mantissa: u64 = 4746067219335938;
-        let (f, valid) = to_extended::<f32, _>(mantissa, 15, -9, false);
+        let (f, valid) = moderate_path::<f32, _>(mantissa, 15, -9, false);
         assert_eq!(f.as_f32(), 123456.1);
         assert!(valid, "exponent should be valid");
     }
 
     #[test]
-    fn to_double_extended_test() {
+    fn double_moderate_path_test() {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
-        let (f, valid) = to_extended::<f64, _>(mantissa, 3, 1, false);
+        let (f, valid) = moderate_path::<f64, _>(mantissa, 3, 1, false);
         assert_eq!(f.as_f64(), 2.7670116110564327e+19);
         assert!(valid, "exponent should be valid");
 
         // valid (ends of the earth, salting the earth)
-        let (f, valid) = to_extended::<f64, _>(mantissa, 3, -695, true);
+        let (f, valid) = moderate_path::<f64, _>(mantissa, 3, -695, true);
         assert_eq!(f.as_f64(), 2.32069302345e-313);
         assert!(valid, "exponent should be valid");
 
         // invalid ("268A6.177777778", base 15)
         let mantissa: u64 = 4746067219335938;
-        let (_, valid) = to_extended::<f64, _>(mantissa, 15, -9, false);
+        let (_, valid) = moderate_path::<f64, _>(mantissa, 15, -9, false);
         assert!(!valid, "exponent should be invalid");
-
-        // valid ("268A6.177777778", base 15)
-        // 123456.10000000001300614743687445, exactly, should not round up.
-        let mantissa: u128 = 4746067219335938;
-        let (f, valid) = to_extended::<f64, _>(mantissa, 15, -9, false);
-        assert_eq!(f.as_f64(), 123456.1);
-        assert!(valid, "exponent should be valid");
 
         // Rounding error
         // Adapted from test-float-parse failures.
         let mantissa: u64 = 1009;
-        let (_, valid) = to_extended::<f64, _>(mantissa, 10, -31, false);
+        let (_, valid) = moderate_path::<f64, _>(mantissa, 10, -31, false);
         assert!(!valid, "exponent should be valid");
     }
 
@@ -967,7 +924,6 @@ mod tests {
     }
 
     unsafe fn check_atod(base: u32, s: &str, tup: (f64, usize)) {
-        println!("s={:?}", s);
         let first = s.as_ptr();
         let last = first.add(s.len());
         let (v, p) = atod(base, first, last);

@@ -1,7 +1,7 @@
 //! Extended precision floating-point types.
 //!
 //! Also contains helpers to convert to and from native rust floats.
-//! This representation stores the fraction as a 64-bit unsigned integer,
+//! This representation stores the mantissa as a 64-bit unsigned integer,
 //! and the exponent as a 32-bit unsigned integer, allowed ~80 bits of
 //! precision (only 16 bits of the 32-bit integer are used, u32 is used
 //! for performance). Since there is no storage for the sign bit,
@@ -24,10 +24,10 @@ use super::shift::*;
 #[doc(hidden)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ExtendedFloat<M: Mantissa> {
-    /// Has ~80 bits of precision (~16 for exponent).
-    /// Use the 32-bit type first, for a packed alignment.
+    /// Mantissa for the extended-precision float.
+    pub mant: M,
+    /// Binary exponent for the extended-precision float.
     pub exp: i32,
-    pub frac: M,
 }
 
 impl<M: Mantissa> ExtendedFloat<M> {
@@ -38,7 +38,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
     pub fn mantissa(&self)
         -> M
     {
-        self.frac
+        self.mant
     }
 
     /// Get the exponent component.
@@ -66,13 +66,13 @@ impl<M: Mantissa> ExtendedFloat<M> {
         -> ExtendedFloat<M>
     {
         // Logic check, values must be decently normalized prior to multiplication.
-        debug_assert!((self.frac & M::HIMASK != M::ZERO) && (b.frac & M::HIMASK != M::ZERO));
+        debug_assert!((self.mant & M::HIMASK != M::ZERO) && (b.mant & M::HIMASK != M::ZERO));
 
         // Extract high-and-low masks.
-        let ah = self.frac >> M::HALF;
-        let al = self.frac & M::LOMASK;
-        let bh = b.frac >> M::HALF;
-        let bl = b.frac & M::LOMASK;
+        let ah = self.mant >> M::HALF;
+        let al = self.mant & M::LOMASK;
+        let bh = b.mant >> M::HALF;
+        let bl = b.mant & M::LOMASK;
 
         // Get our products
         let ah_bl = ah * bl;
@@ -85,7 +85,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         tmp += M::ONE << (M::HALF-1);
 
         ExtendedFloat {
-            frac: ah_bh + (ah_bl >> M::HALF) + (al_bh >> M::HALF) + (tmp >> M::HALF),
+            mant: ah_bh + (ah_bl >> M::HALF) + (al_bh >> M::HALF) + (tmp >> M::HALF),
             exp: self.exp + b.exp + M::FULL
         }
     }
@@ -105,13 +105,13 @@ impl<M: Mantissa> ExtendedFloat<M> {
     pub fn is_normalized(&self)
         -> bool
     {
-        self.frac & M::NORMALIZED_MASK == M::NORMALIZED_MASK
+        self.mant & M::NORMALIZED_MASK == M::NORMALIZED_MASK
     }
 
     /// Normalize float-point number.
     ///
-    /// Let the integer component of the mantissa (significand) to be exactly
-    /// 1 and the decimal fraction and exponent to be whatever.
+    /// Shift the mantissa so the number of leading zeros is 0, or the value
+    /// itself is 0.
     ///
     /// Get the number of bytes shifted.
     #[inline]
@@ -130,8 +130,8 @@ impl<M: Mantissa> ExtendedFloat<M> {
         // code as it removes conditional logic.
 
         // Calculate the number of leading zeros, and then zero-out
-        // any overflowing bits, to avoid shl overflow when self.frac == 0.
-        let shift = self.frac.leading_zeros();
+        // any overflowing bits, to avoid shl overflow when self.mant == 0.
+        let shift = self.mant.leading_zeros();
         let shift = shift & (M::BITS as u32 - 1);
         shl(self, shift);
         shift
@@ -143,21 +143,21 @@ impl<M: Mantissa> ExtendedFloat<M> {
         -> (ExtendedFloat<M>, ExtendedFloat<M>)
     {
         let mut upper = ExtendedFloat {
-            frac: (self.frac << 1) + M::ONE,
+            mant: (self.mant << 1) + M::ONE,
             exp: self.exp - 1,
         };
         upper.normalize();
 
         // Use a boolean hack to get 2 if they're equal, else 1, without
         // any branching.
-        let is_hidden = self.frac == as_cast::<M, _>(f64::HIDDEN_BIT_MASK);
+        let is_hidden = self.mant == as_cast::<M, _>(f64::HIDDEN_BIT_MASK);
         let l_shift: i32 = is_hidden as i32 + 1;
 
         let mut lower = ExtendedFloat {
-            frac: (self.frac << l_shift) - M::ONE,
+            mant: (self.mant << l_shift) - M::ONE,
             exp: self.exp - l_shift,
         };
-        lower.frac <<= lower.exp - upper.exp;
+        lower.mant <<= lower.exp - upper.exp;
         lower.exp = upper.exp;
 
         (lower, upper)
@@ -165,7 +165,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     // ROUND
 
-    /// Lossy round float-point number to native fraction boundaries.
+    /// Lossy round float-point number to native mantissa boundaries.
     #[inline]
     fn round_to_native<F, Cb>(&mut self, cb: Cb)
         where F: FloatRounding<M>,
@@ -174,7 +174,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         round_to_native::<F, M, _>(self, cb)
     }
 
-    /// Lossy round float-point number to f32 fraction boundaries.
+    /// Lossy round float-point number to f32 mantissa boundaries.
     #[inline]
     fn round_to_f32<Cb>(&mut self, cb: Cb)
         where f32: FloatRounding<M>,
@@ -183,7 +183,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         self.round_to_native::<f32, Cb>(cb)
     }
 
-    /// Lossy round float-point number to f64 fraction boundaries.
+    /// Lossy round float-point number to f64 mantissa boundaries.
     #[inline]
     fn round_to_f64<Cb>(&mut self, cb: Cb)
         where f64: FloatRounding<M>,
@@ -407,20 +407,20 @@ mod tests {
 
     // NORMALIZE
 
-    fn check_normalize(frac: u64, exp: i32, shift: u32, r_frac: u64, r_exp: i32) {
-        let mut x = ExtendedFloat {frac: frac, exp: exp};
+    fn check_normalize(mant: u64, exp: i32, shift: u32, r_mant: u64, r_exp: i32) {
+        let mut x = ExtendedFloat {mant: mant, exp: exp};
         assert!(!x.is_normalized());
         assert_eq!(x.normalize(), shift);
-        assert_eq!(x, ExtendedFloat {frac: r_frac, exp: r_exp});
-        assert!(x.is_normalized() || x.frac.is_zero());
+        assert_eq!(x, ExtendedFloat {mant: r_mant, exp: r_exp});
+        assert!(x.is_normalized() || x.mant.is_zero());
 
-        let mut x = ExtendedFloat {frac: frac as u128, exp: exp};
+        let mut x = ExtendedFloat {mant: mant as u128, exp: exp};
         let shift = if shift == 0 { 0 } else { shift+64 };
         let r_exp = if r_exp == 0 { 0 } else { r_exp-64 };
         assert!(!x.is_normalized());
         assert_eq!(x.normalize(), shift);
-        assert_eq!(x, ExtendedFloat {frac: (r_frac as u128) << 64, exp: r_exp});
-        assert!(x.is_normalized() || x.frac.is_zero());
+        assert_eq!(x, ExtendedFloat {mant: (r_mant as u128) << 64, exp: r_exp});
+        assert!(x.is_normalized() || x.mant.is_zero());
     }
 
     #[test]
@@ -488,9 +488,9 @@ mod tests {
 
     #[test]
     fn normalized_boundaries_test() {
-        let fp = ExtendedFloat80 {frac: 4503599627370496, exp: -50};
-        let u = ExtendedFloat80 {frac: 9223372036854775296, exp: -61};
-        let l = ExtendedFloat80 {frac: 9223372036854776832, exp: -61};
+        let fp = ExtendedFloat80 {mant: 4503599627370496, exp: -50};
+        let u = ExtendedFloat80 {mant: 9223372036854775296, exp: -61};
+        let l = ExtendedFloat80 {mant: 9223372036854776832, exp: -61};
         let (upper, lower) = fp.normalized_boundaries();
         assert_eq!(upper, u);
         assert_eq!(lower, l);
@@ -498,15 +498,15 @@ mod tests {
 
     // ROUND
 
-    fn check_round_to_f32(frac: u64, exp: i32, r_frac: u64, r_exp: i32)
+    fn check_round_to_f32(mant: u64, exp: i32, r_mant: u64, r_exp: i32)
     {
-        let mut x = ExtendedFloat {frac: frac, exp: exp};
+        let mut x = ExtendedFloat {mant: mant, exp: exp};
         x.round_to_f32(round_nearest_tie_even);
-        assert_eq!(x, ExtendedFloat {frac: r_frac, exp: r_exp});
+        assert_eq!(x, ExtendedFloat {mant: r_mant, exp: r_exp});
 
-        let mut x = ExtendedFloat {frac: (frac as u128) << 64, exp: exp-64};
+        let mut x = ExtendedFloat {mant: (mant as u128) << 64, exp: exp-64};
         x.round_to_f32(round_nearest_tie_even);
-        assert_eq!(x, ExtendedFloat {frac: r_frac as u128, exp: r_exp});
+        assert_eq!(x, ExtendedFloat {mant: r_mant as u128, exp: r_exp});
     }
 
     #[test]
@@ -538,15 +538,15 @@ mod tests {
         check_round_to_f32(18446740775174668288, 65, 16777213, 105);
     }
 
-    fn check_round_to_f64(frac: u64, exp: i32, r_frac: u64, r_exp: i32)
+    fn check_round_to_f64(mant: u64, exp: i32, r_mant: u64, r_exp: i32)
     {
-        let mut x = ExtendedFloat {frac: frac, exp: exp};
+        let mut x = ExtendedFloat {mant: mant, exp: exp};
         x.round_to_f64(round_nearest_tie_even);
-        assert_eq!(x, ExtendedFloat {frac: r_frac, exp: r_exp});
+        assert_eq!(x, ExtendedFloat {mant: r_mant, exp: r_exp});
 
-        let mut x = ExtendedFloat {frac: (frac as u128) << 64, exp: exp-64};
+        let mut x = ExtendedFloat {mant: (mant as u128) << 64, exp: exp-64};
         x.round_to_f64(round_nearest_tie_even);
-        assert_eq!(x, ExtendedFloat {frac: r_frac as u128, exp: r_exp});
+        assert_eq!(x, ExtendedFloat {mant: r_mant as u128, exp: r_exp});
     }
 
     #[test]
@@ -602,83 +602,83 @@ mod tests {
     #[test]
     fn from_int_test() {
         // 0
-        assert_eq!(ExtendedFloat80::from_u8(0), ExtendedFloat80 {frac: 0, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u16(0), ExtendedFloat80 {frac: 0, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u32(0), ExtendedFloat80 {frac: 0, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u64(0), ExtendedFloat80 {frac: 0, exp: 0});
-        assert_eq!(ExtendedFloat160::from_u128(0), ExtendedFloat160 {frac: 0, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u8(0), ExtendedFloat80 {mant: 0, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u16(0), ExtendedFloat80 {mant: 0, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u32(0), ExtendedFloat80 {mant: 0, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u64(0), ExtendedFloat80 {mant: 0, exp: 0});
+        assert_eq!(ExtendedFloat160::from_u128(0), ExtendedFloat160 {mant: 0, exp: 0});
 
         // 1
-        assert_eq!(ExtendedFloat80::from_u8(1), ExtendedFloat80 {frac: 1, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u16(1), ExtendedFloat80 {frac: 1, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u32(1), ExtendedFloat80 {frac: 1, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u64(1), ExtendedFloat80 {frac: 1, exp: 0});
-        assert_eq!(ExtendedFloat160::from_u128(1), ExtendedFloat160 {frac: 1, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u8(1), ExtendedFloat80 {mant: 1, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u16(1), ExtendedFloat80 {mant: 1, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u32(1), ExtendedFloat80 {mant: 1, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u64(1), ExtendedFloat80 {mant: 1, exp: 0});
+        assert_eq!(ExtendedFloat160::from_u128(1), ExtendedFloat160 {mant: 1, exp: 0});
 
         // (2^8-1) 255
-        assert_eq!(ExtendedFloat80::from_u8(255), ExtendedFloat80 {frac: 255, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u16(255), ExtendedFloat80 {frac: 255, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u32(255), ExtendedFloat80 {frac: 255, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u64(255), ExtendedFloat80 {frac: 255, exp: 0});
-        assert_eq!(ExtendedFloat160::from_u128(255), ExtendedFloat160 {frac: 255, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u8(255), ExtendedFloat80 {mant: 255, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u16(255), ExtendedFloat80 {mant: 255, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u32(255), ExtendedFloat80 {mant: 255, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u64(255), ExtendedFloat80 {mant: 255, exp: 0});
+        assert_eq!(ExtendedFloat160::from_u128(255), ExtendedFloat160 {mant: 255, exp: 0});
 
         // (2^16-1) 65535
-        assert_eq!(ExtendedFloat80::from_u16(65535), ExtendedFloat80 {frac: 65535, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u32(65535), ExtendedFloat80 {frac: 65535, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u64(65535), ExtendedFloat80 {frac: 65535, exp: 0});
-        assert_eq!(ExtendedFloat160::from_u128(65535), ExtendedFloat160 {frac: 65535, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u16(65535), ExtendedFloat80 {mant: 65535, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u32(65535), ExtendedFloat80 {mant: 65535, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u64(65535), ExtendedFloat80 {mant: 65535, exp: 0});
+        assert_eq!(ExtendedFloat160::from_u128(65535), ExtendedFloat160 {mant: 65535, exp: 0});
 
         // (2^32-1) 4294967295
-        assert_eq!(ExtendedFloat80::from_u32(4294967295), ExtendedFloat80 {frac: 4294967295, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u64(4294967295), ExtendedFloat80 {frac: 4294967295, exp: 0});
-        assert_eq!(ExtendedFloat160::from_u128(4294967295), ExtendedFloat160 {frac: 4294967295, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u32(4294967295), ExtendedFloat80 {mant: 4294967295, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u64(4294967295), ExtendedFloat80 {mant: 4294967295, exp: 0});
+        assert_eq!(ExtendedFloat160::from_u128(4294967295), ExtendedFloat160 {mant: 4294967295, exp: 0});
 
         // (2^64-1) 18446744073709551615
-        assert_eq!(ExtendedFloat80::from_u64(18446744073709551615), ExtendedFloat80 {frac: 18446744073709551615, exp: 0});
-        assert_eq!(ExtendedFloat160::from_u128(18446744073709551615), ExtendedFloat160 {frac: 18446744073709551615, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u64(18446744073709551615), ExtendedFloat80 {mant: 18446744073709551615, exp: 0});
+        assert_eq!(ExtendedFloat160::from_u128(18446744073709551615), ExtendedFloat160 {mant: 18446744073709551615, exp: 0});
 
         // (2^128-1) 340282366920938463463374607431768211455
-        assert_eq!(ExtendedFloat160::from_u128(340282366920938463463374607431768211455), ExtendedFloat160 {frac: 340282366920938463463374607431768211455, exp: 0});
+        assert_eq!(ExtendedFloat160::from_u128(340282366920938463463374607431768211455), ExtendedFloat160 {mant: 340282366920938463463374607431768211455, exp: 0});
     }
 
     #[test]
     fn from_f32_test() {
-        assert_eq!(ExtendedFloat80::from_f32(0.), ExtendedFloat80 {frac: 0, exp: -149});
-        assert_eq!(ExtendedFloat80::from_f32(-0.), ExtendedFloat80 {frac: 0, exp: -149});
+        assert_eq!(ExtendedFloat80::from_f32(0.), ExtendedFloat80 {mant: 0, exp: -149});
+        assert_eq!(ExtendedFloat80::from_f32(-0.), ExtendedFloat80 {mant: 0, exp: -149});
 
-        assert_eq!(ExtendedFloat80::from_f32(1e-45), ExtendedFloat80 {frac: 1, exp: -149});
-        assert_eq!(ExtendedFloat80::from_f32(1e-40), ExtendedFloat80 {frac: 71362, exp: -149});
-        assert_eq!(ExtendedFloat80::from_f32(2e-40), ExtendedFloat80 {frac: 142725, exp: -149});
-        assert_eq!(ExtendedFloat80::from_f32(1e-20), ExtendedFloat80 {frac: 12379400, exp: -90});
-        assert_eq!(ExtendedFloat80::from_f32(2e-20), ExtendedFloat80 {frac: 12379400, exp: -89});
-        assert_eq!(ExtendedFloat80::from_f32(1.0), ExtendedFloat80 {frac: 8388608, exp: -23});
-        assert_eq!(ExtendedFloat80::from_f32(2.0), ExtendedFloat80 {frac: 8388608, exp: -22});
-        assert_eq!(ExtendedFloat80::from_f32(1e20), ExtendedFloat80 {frac: 11368684, exp: 43});
-        assert_eq!(ExtendedFloat80::from_f32(2e20), ExtendedFloat80 {frac: 11368684, exp: 44});
-        assert_eq!(ExtendedFloat80::from_f32(3.402823e38), ExtendedFloat80 {frac: 16777213, exp: 104});
+        assert_eq!(ExtendedFloat80::from_f32(1e-45), ExtendedFloat80 {mant: 1, exp: -149});
+        assert_eq!(ExtendedFloat80::from_f32(1e-40), ExtendedFloat80 {mant: 71362, exp: -149});
+        assert_eq!(ExtendedFloat80::from_f32(2e-40), ExtendedFloat80 {mant: 142725, exp: -149});
+        assert_eq!(ExtendedFloat80::from_f32(1e-20), ExtendedFloat80 {mant: 12379400, exp: -90});
+        assert_eq!(ExtendedFloat80::from_f32(2e-20), ExtendedFloat80 {mant: 12379400, exp: -89});
+        assert_eq!(ExtendedFloat80::from_f32(1.0), ExtendedFloat80 {mant: 8388608, exp: -23});
+        assert_eq!(ExtendedFloat80::from_f32(2.0), ExtendedFloat80 {mant: 8388608, exp: -22});
+        assert_eq!(ExtendedFloat80::from_f32(1e20), ExtendedFloat80 {mant: 11368684, exp: 43});
+        assert_eq!(ExtendedFloat80::from_f32(2e20), ExtendedFloat80 {mant: 11368684, exp: 44});
+        assert_eq!(ExtendedFloat80::from_f32(3.402823e38), ExtendedFloat80 {mant: 16777213, exp: 104});
     }
 
     #[test]
     fn from_f64_test() {
-        assert_eq!(ExtendedFloat80::from_f64(0.), ExtendedFloat80 {frac: 0, exp: -1074});
-        assert_eq!(ExtendedFloat80::from_f64(-0.), ExtendedFloat80 {frac: 0, exp: -1074});
-        assert_eq!(ExtendedFloat80::from_f64(5e-324), ExtendedFloat80 {frac: 1, exp: -1074});
-        assert_eq!(ExtendedFloat80::from_f64(1e-250), ExtendedFloat80 {frac: 6448907850777164, exp: -883});
-        assert_eq!(ExtendedFloat80::from_f64(1e-150), ExtendedFloat80 {frac: 7371020360979573, exp: -551});
-        assert_eq!(ExtendedFloat80::from_f64(1e-45), ExtendedFloat80 {frac: 6427752177035961, exp: -202});
-        assert_eq!(ExtendedFloat80::from_f64(1e-40), ExtendedFloat80 {frac: 4903985730770844, exp: -185});
-        assert_eq!(ExtendedFloat80::from_f64(2e-40), ExtendedFloat80 {frac: 4903985730770844, exp: -184});
-        assert_eq!(ExtendedFloat80::from_f64(1e-20), ExtendedFloat80 {frac: 6646139978924579, exp: -119});
-        assert_eq!(ExtendedFloat80::from_f64(2e-20), ExtendedFloat80 {frac: 6646139978924579, exp: -118});
-        assert_eq!(ExtendedFloat80::from_f64(1.0), ExtendedFloat80 {frac: 4503599627370496, exp: -52});
-        assert_eq!(ExtendedFloat80::from_f64(2.0), ExtendedFloat80 {frac: 4503599627370496, exp: -51});
-        assert_eq!(ExtendedFloat80::from_f64(1e20), ExtendedFloat80 {frac: 6103515625000000, exp: 14});
-        assert_eq!(ExtendedFloat80::from_f64(2e20), ExtendedFloat80 {frac: 6103515625000000, exp: 15});
-        assert_eq!(ExtendedFloat80::from_f64(1e40), ExtendedFloat80 {frac: 8271806125530277, exp: 80});
-        assert_eq!(ExtendedFloat80::from_f64(2e40), ExtendedFloat80 {frac: 8271806125530277, exp: 81});
-        assert_eq!(ExtendedFloat80::from_f64(1e150), ExtendedFloat80 {frac: 5503284107318959, exp: 446});
-        assert_eq!(ExtendedFloat80::from_f64(1e250), ExtendedFloat80 {frac: 6290184345309700, exp: 778});
-        assert_eq!(ExtendedFloat80::from_f64(1.7976931348623157e308), ExtendedFloat80 {frac: 9007199254740991, exp: 971});
+        assert_eq!(ExtendedFloat80::from_f64(0.), ExtendedFloat80 {mant: 0, exp: -1074});
+        assert_eq!(ExtendedFloat80::from_f64(-0.), ExtendedFloat80 {mant: 0, exp: -1074});
+        assert_eq!(ExtendedFloat80::from_f64(5e-324), ExtendedFloat80 {mant: 1, exp: -1074});
+        assert_eq!(ExtendedFloat80::from_f64(1e-250), ExtendedFloat80 {mant: 6448907850777164, exp: -883});
+        assert_eq!(ExtendedFloat80::from_f64(1e-150), ExtendedFloat80 {mant: 7371020360979573, exp: -551});
+        assert_eq!(ExtendedFloat80::from_f64(1e-45), ExtendedFloat80 {mant: 6427752177035961, exp: -202});
+        assert_eq!(ExtendedFloat80::from_f64(1e-40), ExtendedFloat80 {mant: 4903985730770844, exp: -185});
+        assert_eq!(ExtendedFloat80::from_f64(2e-40), ExtendedFloat80 {mant: 4903985730770844, exp: -184});
+        assert_eq!(ExtendedFloat80::from_f64(1e-20), ExtendedFloat80 {mant: 6646139978924579, exp: -119});
+        assert_eq!(ExtendedFloat80::from_f64(2e-20), ExtendedFloat80 {mant: 6646139978924579, exp: -118});
+        assert_eq!(ExtendedFloat80::from_f64(1.0), ExtendedFloat80 {mant: 4503599627370496, exp: -52});
+        assert_eq!(ExtendedFloat80::from_f64(2.0), ExtendedFloat80 {mant: 4503599627370496, exp: -51});
+        assert_eq!(ExtendedFloat80::from_f64(1e20), ExtendedFloat80 {mant: 6103515625000000, exp: 14});
+        assert_eq!(ExtendedFloat80::from_f64(2e20), ExtendedFloat80 {mant: 6103515625000000, exp: 15});
+        assert_eq!(ExtendedFloat80::from_f64(1e40), ExtendedFloat80 {mant: 8271806125530277, exp: 80});
+        assert_eq!(ExtendedFloat80::from_f64(2e40), ExtendedFloat80 {mant: 8271806125530277, exp: 81});
+        assert_eq!(ExtendedFloat80::from_f64(1e150), ExtendedFloat80 {mant: 5503284107318959, exp: 446});
+        assert_eq!(ExtendedFloat80::from_f64(1e250), ExtendedFloat80 {mant: 6290184345309700, exp: 778});
+        assert_eq!(ExtendedFloat80::from_f64(1.7976931348623157e308), ExtendedFloat80 {mant: 9007199254740991, exp: 971});
     }
 
     fn assert_normalized_eq<M: Mantissa>(mut x: ExtendedFloat<M>, mut y: ExtendedFloat<M>) {
@@ -764,52 +764,52 @@ mod tests {
     #[test]
     fn to_f32_test() {
         // underflow
-        let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -213};
+        let x = ExtendedFloat80 {mant: 9223372036854775808, exp: -213};
         assert_eq!(x.into_f32(), 0.0);
 
         // min value
-        let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -212};
+        let x = ExtendedFloat80 {mant: 9223372036854775808, exp: -212};
         assert_eq!(x.into_f32(), 1e-45);
 
         // 1.0e-40
-        let x = ExtendedFloat80 {frac: 10043308644012916736, exp: -196};
+        let x = ExtendedFloat80 {mant: 10043308644012916736, exp: -196};
         assert_eq!(x.into_f32(), 1e-40);
 
         // 1.0e-20
-        let x = ExtendedFloat80 {frac: 13611294244890214400, exp: -130};
+        let x = ExtendedFloat80 {mant: 13611294244890214400, exp: -130};
         assert_eq!(x.into_f32(), 1e-20);
 
         // 1.0
-        let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -63};
+        let x = ExtendedFloat80 {mant: 9223372036854775808, exp: -63};
         assert_eq!(x.into_f32(), 1.0);
 
         // 1e20
-        let x = ExtendedFloat80 {frac: 12500000250510966784, exp: 3};
+        let x = ExtendedFloat80 {mant: 12500000250510966784, exp: 3};
         assert_eq!(x.into_f32(), 1e20);
 
         // max value
-        let x = ExtendedFloat80 {frac: 18446740775174668288, exp: 64};
+        let x = ExtendedFloat80 {mant: 18446740775174668288, exp: 64};
         assert_eq!(x.into_f32(), 3.402823e38);
 
         // almost max, high exp
-        let x = ExtendedFloat80 {frac: 1048575, exp: 108};
+        let x = ExtendedFloat80 {mant: 1048575, exp: 108};
         assert_eq!(x.into_f32(), 3.4028204e38);
 
         // max value + 1
-        let x = ExtendedFloat80 {frac: 16777216, exp: 104};
+        let x = ExtendedFloat80 {mant: 16777216, exp: 104};
         assert_eq!(x.into_f32(), f32::INFINITY);
 
         // max value + 1
-        let x = ExtendedFloat80 {frac: 1048576, exp: 108};
+        let x = ExtendedFloat80 {mant: 1048576, exp: 108};
         assert_eq!(x.into_f32(), f32::INFINITY);
 
         // 1e40
-        let x = ExtendedFloat80 {frac: 16940658945086007296, exp: 69};
+        let x = ExtendedFloat80 {mant: 16940658945086007296, exp: 69};
         assert_eq!(x.into_f32(), f32::INFINITY);
 
         // Integers.
         for int in INTEGERS.iter() {
-            let fp = ExtendedFloat80 {frac: *int, exp: 0};
+            let fp = ExtendedFloat80 {mant: *int, exp: 0};
             assert_eq!(fp.into_f32(), *int as f32, "{:?} as f32", *int);
         }
     }
@@ -817,83 +817,83 @@ mod tests {
     #[test]
     fn to_f64_test() {
         // underflow
-        let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -1138};
+        let x = ExtendedFloat80 {mant: 9223372036854775808, exp: -1138};
         assert_relative_eq!(x.into_f64(), 0.0);
 
         // min value
-        let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -1137};
+        let x = ExtendedFloat80 {mant: 9223372036854775808, exp: -1137};
         assert_relative_eq!(x.into_f64(), 5e-324);
 
         // 1.0e-250
-        let x = ExtendedFloat80 {frac: 13207363278391631872, exp: -894};
+        let x = ExtendedFloat80 {mant: 13207363278391631872, exp: -894};
         assert_relative_eq!(x.into_f64(), 1e-250);
 
         // 1.0e-150
-        let x = ExtendedFloat80 {frac: 15095849699286165504, exp: -562};
+        let x = ExtendedFloat80 {mant: 15095849699286165504, exp: -562};
         assert_relative_eq!(x.into_f64(), 1e-150);
 
         // 1.0e-45
-        let x = ExtendedFloat80 {frac: 13164036458569648128, exp: -213};
+        let x = ExtendedFloat80 {mant: 13164036458569648128, exp: -213};
         assert_relative_eq!(x.into_f64(), 1e-45);
 
         // 1.0e-40
-        let x = ExtendedFloat80 {frac: 10043362776618688512, exp: -196};
+        let x = ExtendedFloat80 {mant: 10043362776618688512, exp: -196};
         assert_relative_eq!(x.into_f64(), 1e-40);
 
         // 1.0e-20
-        let x = ExtendedFloat80 {frac: 13611294676837537792, exp: -130};
+        let x = ExtendedFloat80 {mant: 13611294676837537792, exp: -130};
         assert_relative_eq!(x.into_f64(), 1e-20);
 
         // 1.0
-        let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -63};
+        let x = ExtendedFloat80 {mant: 9223372036854775808, exp: -63};
         assert_relative_eq!(x.into_f64(), 1.0);
 
         // 1e20
-        let x = ExtendedFloat80 {frac: 12500000000000000000, exp: 3};
+        let x = ExtendedFloat80 {mant: 12500000000000000000, exp: 3};
         assert_relative_eq!(x.into_f64(), 1e20);
 
         // 1e40
-        let x = ExtendedFloat80 {frac: 16940658945086007296, exp: 69};
+        let x = ExtendedFloat80 {mant: 16940658945086007296, exp: 69};
         assert_relative_eq!(x.into_f64(), 1e40);
 
         // 1e150
-        let x = ExtendedFloat80 {frac: 11270725851789228032, exp: 435};
+        let x = ExtendedFloat80 {mant: 11270725851789228032, exp: 435};
         assert_relative_eq!(x.into_f64(), 1e150);
 
         // 1e250
-        let x = ExtendedFloat80 {frac: 12882297539194265600, exp: 767};
+        let x = ExtendedFloat80 {mant: 12882297539194265600, exp: 767};
         assert_relative_eq!(x.into_f64(), 1e250);
 
         // max value
-        let x = ExtendedFloat80 {frac: 9007199254740991, exp: 971};
+        let x = ExtendedFloat80 {mant: 9007199254740991, exp: 971};
         assert_relative_eq!(x.into_f64(), 1.7976931348623157e308);
 
         // max value
-        let x = ExtendedFloat80 {frac: 18446744073709549568, exp: 960};
+        let x = ExtendedFloat80 {mant: 18446744073709549568, exp: 960};
         assert_relative_eq!(x.into_f64(), 1.7976931348623157e308);
 
         // overflow
-        let x = ExtendedFloat80 {frac: 9007199254740992, exp: 971};
+        let x = ExtendedFloat80 {mant: 9007199254740992, exp: 971};
         assert_relative_eq!(x.into_f64(), f64::INFINITY);
 
         // overflow
-        let x = ExtendedFloat80 {frac: 18446744073709549568, exp: 961};
+        let x = ExtendedFloat80 {mant: 18446744073709549568, exp: 961};
         assert_relative_eq!(x.into_f64(), f64::INFINITY);
 
         // Underflow
         // Adapted from failures in strtod.
-        let x = ExtendedFloat80 { exp: -1139, frac: 18446744073709550712 };
+        let x = ExtendedFloat80 { exp: -1139, mant: 18446744073709550712 };
         assert_relative_eq!(x.into_f64(), 0.0);
 
-        let x = ExtendedFloat80 { exp: -1139, frac: 18446744073709551460 };
+        let x = ExtendedFloat80 { exp: -1139, mant: 18446744073709551460 };
         assert_relative_eq!(x.into_f64(), 0.0);
 
-        let x = ExtendedFloat80 { exp: -1138, frac: 9223372036854776103 };
+        let x = ExtendedFloat80 { exp: -1138, mant: 9223372036854776103 };
         assert_relative_eq!(x.into_f64(), 5e-324);
 
         // Integers.
         for int in INTEGERS.iter() {
-            let fp = ExtendedFloat80 {frac: *int, exp: 0};
+            let fp = ExtendedFloat80 {mant: *int, exp: 0};
             assert_eq!(fp.into_f64(), *int as f64, "{:?} as f64", *int);
         }
     }
@@ -901,7 +901,7 @@ mod tests {
     #[test]
     fn to_rounded_f32_test() {
         // Just check it compiles, we already check the underlying algorithms.
-        let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -63};
+        let x = ExtendedFloat80 {mant: 9223372036854775808, exp: -63};
         assert_eq!(x.as_rounded_f32(RoundingKind::NearestTieEven), 1.0);
         assert_eq!(x.as_rounded_f32(RoundingKind::NearestTieAwayZero), 1.0);
         assert_eq!(x.as_rounded_f32(RoundingKind::TowardInfinity), 1.0);
@@ -911,7 +911,7 @@ mod tests {
     #[test]
     fn to_rounded_f64_test() {
         // Just check it compiles, we already check the underlying algorithms.
-        let x = ExtendedFloat80 {frac: 9223372036854775808, exp: -63};
+        let x = ExtendedFloat80 {mant: 9223372036854775808, exp: -63};
         assert_eq!(x.as_rounded_f64(RoundingKind::NearestTieEven), 1.0);
         assert_eq!(x.as_rounded_f64(RoundingKind::NearestTieAwayZero), 1.0);
         assert_eq!(x.as_rounded_f64(RoundingKind::TowardInfinity), 1.0);
@@ -924,10 +924,10 @@ mod tests {
         // Use exhaustive search to ensure both lossy and unlossy items are checked.
         // 23-bits of precision, so go from 0-32.
         for int in 0..u32::max_value() {
-            let fp = ExtendedFloat80 {frac: int as u64, exp: 0};
+            let fp = ExtendedFloat80 {mant: int as u64, exp: 0};
             assert_eq!(fp.into_f32(), int as f32, "ExtendedFloat80 {:?} as f32", int);
 
-            let fp = ExtendedFloat160 {frac: int as u128, exp: 0};
+            let fp = ExtendedFloat160 {mant: int as u128, exp: 0};
             assert_eq!(fp.into_f32(), int as f32, "ExtendedFloat160 {:?} as f64", int);
         }
     }
@@ -941,10 +941,10 @@ mod tests {
         const START: u64 = POW2_52 - U32_MAX / 2;
         const END: u64 = START + U32_MAX;
         for int in START..END {
-            let fp = ExtendedFloat80 {frac: int, exp: 0};
+            let fp = ExtendedFloat80 {mant: int, exp: 0};
             assert_eq!(fp.into_f64(), int as f64, "ExtendedFloat80 {:?} as f64", int);
 
-            let fp = ExtendedFloat160 {frac: int as u128, exp: 0};
+            let fp = ExtendedFloat160 {mant: int as u128, exp: 0};
             assert_eq!(fp.into_f64(), int as f64, "ExtendedFloat160 {:?} as f64", int);
         }
     }
@@ -961,15 +961,15 @@ mod tests {
     #[test]
     fn mul_test() {
         // Normalized (64-bit mantissa)
-        let a = ExtendedFloat80 {frac: 13164036458569648128, exp: -213};
-        let b = ExtendedFloat80 {frac: 9223372036854775808, exp: -62};
-        let c = ExtendedFloat80 {frac: 6582018229284824064, exp: -211};
+        let a = ExtendedFloat80 {mant: 13164036458569648128, exp: -213};
+        let b = ExtendedFloat80 {mant: 9223372036854775808, exp: -62};
+        let c = ExtendedFloat80 {mant: 6582018229284824064, exp: -211};
         check_mul(a, b, c);
 
         // Normalized (128-bit mantissa)
-        let a = ExtendedFloat160 {frac: 242833611528216130005140556221773774848, exp: -277};
-        let b = ExtendedFloat160 {frac: 170141183460469231731687303715884105728, exp: -126};
-        let c = ExtendedFloat160 {frac: 121416805764108065002570278110886887424, exp: -275};
+        let a = ExtendedFloat160 {mant: 242833611528216130005140556221773774848, exp: -277};
+        let b = ExtendedFloat160 {mant: 170141183460469231731687303715884105728, exp: -126};
+        let c = ExtendedFloat160 {mant: 121416805764108065002570278110886887424, exp: -275};
         check_mul(a, b, c);
 
         // Check with integers
@@ -989,13 +989,13 @@ mod tests {
             assert_eq!(a.mul(&b).into_f64(), 100.0);
 
             // Check both values need high bits set.
-            let a = ExtendedFloat80 { frac: 1 << 32, exp: -31 };
-            let b = ExtendedFloat80 { frac: 1 << 32, exp: -31 };
+            let a = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
+            let b = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
             assert_eq!(a.mul(&b).into_f64(), 4.0);
 
             // Check both values need high bits set.
-            let a = ExtendedFloat80 { frac: 10 << 31, exp: -31 };
-            let b = ExtendedFloat80 { frac: 10 << 31, exp: -31 };
+            let a = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
+            let b = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
             assert_eq!(a.mul(&b).into_f64(), 100.0);
         }
     }
@@ -1010,15 +1010,15 @@ mod tests {
     #[test]
     fn imul_test() {
         // Normalized (64-bit mantissa)
-        let a = ExtendedFloat80 {frac: 13164036458569648128, exp: -213};
-        let b = ExtendedFloat80 {frac: 9223372036854775808, exp: -62};
-        let c = ExtendedFloat80 {frac: 6582018229284824064, exp: -211};
+        let a = ExtendedFloat80 {mant: 13164036458569648128, exp: -213};
+        let b = ExtendedFloat80 {mant: 9223372036854775808, exp: -62};
+        let c = ExtendedFloat80 {mant: 6582018229284824064, exp: -211};
         check_imul(a, b, c);
 
         // Normalized (128-bit mantissa)
-        let a = ExtendedFloat160 {frac: 242833611528216130005140556221773774848, exp: -277};
-        let b = ExtendedFloat160 {frac: 170141183460469231731687303715884105728, exp: -126};
-        let c = ExtendedFloat160 {frac: 121416805764108065002570278110886887424, exp: -275};
+        let a = ExtendedFloat160 {mant: 242833611528216130005140556221773774848, exp: -277};
+        let b = ExtendedFloat160 {mant: 170141183460469231731687303715884105728, exp: -126};
+        let c = ExtendedFloat160 {mant: 121416805764108065002570278110886887424, exp: -275};
         check_imul(a, b, c);
 
         // Check with integers
@@ -1040,14 +1040,14 @@ mod tests {
             assert_eq!(a.into_f64(), 100.0);
 
             // Check both values need high bits set.
-            let mut a = ExtendedFloat80 { frac: 1 << 32, exp: -31 };
-            let b = ExtendedFloat80 { frac: 1 << 32, exp: -31 };
+            let mut a = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
+            let b = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
             a.imul(&b);
             assert_eq!(a.into_f64(), 4.0);
 
             // Check both values need high bits set.
-            let mut a = ExtendedFloat80 { frac: 10 << 31, exp: -31 };
-            let b = ExtendedFloat80 { frac: 10 << 31, exp: -31 };
+            let mut a = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
+            let b = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
             a.imul(&b);
             assert_eq!(a.into_f64(), 100.0);
         }

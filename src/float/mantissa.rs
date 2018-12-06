@@ -16,6 +16,8 @@ pub trait Mantissa: UnsignedInteger {
     const HALF: i32 = Self::FULL / 2;
 }
 
+// TODO(ahuszagh) Need u32....
+
 impl Mantissa for u64 {
     const NORMALIZED_MASK: u64  = 0x8000000000000000;
     const HIMASK: u64           = 0xFFFFFFFF00000000;

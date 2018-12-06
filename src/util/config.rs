@@ -64,6 +64,7 @@ pub(crate) const BUFFER_SIZE: usize = MAX_FLOAT_SIZE;
 ///     | 4096   | 2667299   | 52600 |
 // TODO(ahuszagh) I need to remove Bigfloat entirely, need to  use
 // dtoa's algorithm in general...
+#[allow(dead_code)] // TODO(ahuszagh) Remove
 pub(crate) const MAX_DIGITS: usize = 0x1000;
 
 // FUNCTIONS

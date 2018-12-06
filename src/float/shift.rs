@@ -14,7 +14,7 @@ pub(super) fn shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
     let bits: T = as_cast(mem::size_of::<M>() * 8);
     debug_assert!(shift < bits, "shr() overflow in shift right.");
 
-    fp.frac >>= as_cast::<M, _>(shift);
+    fp.mant >>= as_cast::<M, _>(shift);
     fp.exp += shift.as_i32();
 }
 
@@ -28,9 +28,9 @@ pub(super) fn overflowing_shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>
     let bits: T = as_cast(mem::size_of::<M>() * 8);
     debug_assert!(shift <= bits, "overflowing_shr() overflow in shift right.");
 
-    fp.frac = match shift == bits {
+    fp.mant = match shift == bits {
         true  => M::ZERO,
-        false => fp.frac >> as_cast::<M, _>(shift),
+        false => fp.mant >> as_cast::<M, _>(shift),
     };
     fp.exp += shift.as_i32();
 }
@@ -42,6 +42,6 @@ pub(super) fn shl<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
     let bits: T = as_cast(mem::size_of::<M>() * 8);
     debug_assert!(shift < bits, "shl() overflow in shift left.");
 
-    fp.frac <<= as_cast::<M, _>(shift);
+    fp.mant <<= as_cast::<M, _>(shift);
     fp.exp -= shift.as_i32();
 }

@@ -20,7 +20,7 @@ pub(crate) fn from_int<T, M>(t: T)
     debug_assert!(mem::size_of::<T>() <= mem::size_of::<M>(), "Possible truncation in ExtendedFloat::from_int.");
 
     ExtendedFloat {
-        frac: as_cast(t),
+        mant: as_cast(t),
         exp: 0,
     }
 }
@@ -28,8 +28,6 @@ pub(crate) fn from_int<T, M>(t: T)
 // FROM FLOAT
 
 /// Import ExtendedFloat from native float.
-///
-/// Generate fraction from mantissa and read exponent as signed magnitude value.
 #[inline(always)]
 pub(crate) fn from_float<T, M>(t: T)
     -> ExtendedFloat<M>
@@ -37,7 +35,7 @@ pub(crate) fn from_float<T, M>(t: T)
           M: Mantissa
 {
     ExtendedFloat {
-        frac: as_cast(t.mantissa()),
+        mant: as_cast(t.mantissa()),
         exp: t.exponent(),
     }
 }
@@ -55,7 +53,7 @@ pub(crate) fn into_float<T, M>(fp: ExtendedFloat<M>)
           M: Mantissa
 {
     // Export floating-point number.
-    if fp.frac.is_zero() || fp.exp < T::DENORMAL_EXPONENT {
+    if fp.mant.is_zero() || fp.exp < T::DENORMAL_EXPONENT {
         // sub-denormal, underflow
         T::ZERO
     } else if fp.exp >= T::MAX_EXPONENT {
@@ -64,13 +62,13 @@ pub(crate) fn into_float<T, M>(fp: ExtendedFloat<M>)
     } else {
         // calculate the exp and fraction bits, and return a float from bits.
         let exp: M;
-        if (fp.exp == T::DENORMAL_EXPONENT) && (fp.frac & as_cast::<M, _>(T::HIDDEN_BIT_MASK)).is_zero() {
+        if (fp.exp == T::DENORMAL_EXPONENT) && (fp.mant & as_cast::<M, _>(T::HIDDEN_BIT_MASK)).is_zero() {
             exp = M::ZERO;
         } else {
             exp = as_cast::<M, _>(fp.exp + T::EXPONENT_BIAS);
         }
         let exp = exp << T::MANTISSA_SIZE;
-        let frac = fp.frac & as_cast::<M, _>(T::MANTISSA_MASK);
-        T::from_bits(as_cast(frac | exp))
+        let mant = fp.mant & as_cast::<M, _>(T::MANTISSA_MASK);
+        T::from_bits(as_cast(mant | exp))
     }
 }
