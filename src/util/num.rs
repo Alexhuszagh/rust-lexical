@@ -614,6 +614,18 @@ pub trait Float: Number + ops::Neg<Output=Self>
         self.is_special() && !(self.to_bits() & Self::MANTISSA_MASK).is_zero()
     }
 
+    /// Returns true if the float's least-significant mantissa bit is odd.
+    #[inline]
+    fn is_odd(self) -> bool {
+        self.to_bits() & Self::Unsigned::ONE == Self::Unsigned::ONE
+    }
+
+    /// Returns true if the float's least-significant mantissa bit is even.
+    #[inline]
+    fn is_even(self) -> bool {
+        !self.is_odd()
+    }
+
     /// Get exponent component from the float.
     #[inline]
     fn exponent(self) -> i32 {
@@ -1129,5 +1141,20 @@ mod tests {
     fn float_test() {
         check_float(123f32);
         check_float(123f64);
+
+        // b00000000000000000000000000000001
+        let f: f32 = 1e-45;
+        assert!(f.is_odd());
+        assert!(f.next().is_even());
+
+        // b00111101110011001100110011001101
+        let f: f32 = 0.1;
+        assert!(f.is_odd());
+        assert!(f.next().is_even());
+
+        // b01000000000000000000000000000000
+        let f: f32 = 1.0;
+        assert!(f.is_even());
+        assert!(f.next().is_odd());
     }
 }

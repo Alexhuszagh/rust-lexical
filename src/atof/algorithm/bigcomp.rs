@@ -10,7 +10,9 @@
 
 #![allow(unused)]       // TODO(ahuszagh) Remove later
 
+use lib::{cmp, iter};
 use float::*;
+use table::*;
 use util::*;
 use super::cached::*;
 use super::exponent::*;
@@ -116,7 +118,9 @@ pub fn fast_normalize<M: Mantissa>(fp: ExtendedFloat<M>)
 /// * `base`            - Radix for the number parsing.
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
 #[inline]
-pub unsafe fn fast_scaling_factor(base: u32, sci_exponent: i32) -> ExtendedFloat160 {
+pub unsafe fn fast_scaling_factor(base: u32, sci_exponent: i32)
+    -> ExtendedFloat160
+{
     let powers = ExtendedFloat160::get_powers(base);
     let sci_exponent = sci_exponent + powers.bias;
     let small_index = sci_exponent % powers.step;
@@ -138,12 +142,12 @@ pub unsafe fn fast_scaling_factor(base: u32, sci_exponent: i32) -> ExtendedFloat
 ///
 /// * `base`            - Radix for the number parsing.
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
-///
-pub unsafe fn fast_ratio<F: Float>(base: u32, sci_exponent: i32, b: F)
+/// * `f`               - Sub-halfway (`b`) float.
+pub unsafe fn fast_ratio<F: Float>(base: u32, sci_exponent: i32, f: F)
     -> (u128, u128)
     where F::Unsigned: Mantissa
 {
-    let num = fast_normalize(bh(b));
+    let num = fast_normalize(bh(f));
     let den = fast_scaling_factor(base, sci_exponent);
 
     let diff = (den.exp - num.exp);
@@ -151,6 +155,62 @@ pub unsafe fn fast_ratio<F: Float>(base: u32, sci_exponent: i32, b: F)
 
     (num.mant >> diff, den.mant)
 }
+
+/// Compare digits between the generated values the ratio and the actual view.
+///
+/// * `digits`      - Actual digits from the mantissa.
+/// * `base`            - Radix for the number parsing.
+/// * `num`         - Numerator for the fraction.
+/// * `denm`        - Denominator for the fraction.
+pub unsafe fn fast_compare_digits<Iter>(mut digits: Iter, base: u128, mut num: u128, den: u128)
+    -> cmp::Ordering
+    where Iter: iter::Iterator<Item=u8>
+{
+    // Iterate until we get a difference in the generated digits.
+    // If we run out,return Equal.
+    loop {
+        let actual = match digits.next() {
+            Some(v) => v,
+            // Only return equal if the
+            None    => return if num == 0 { cmp::Ordering::Equal } else { cmp::Ordering::Less },
+        };
+        let expected = digit_to_char(num / den);
+        num = base * (num % den);
+        if actual < expected {
+            return cmp::Ordering::Less;
+        } else if actual > expected {
+            return cmp::Ordering::Greater;
+        }
+    }
+}
+
+
+/// Generate the correct representation from a halfway representation.
+///
+/// * `digits`          - Actual digits from the mantissa.
+/// * `base`            - Radix for the number parsing.
+/// * `sci_exponent`    - Exponent of basen string in scientific notation.
+/// * `f`               - Sub-halfway (`b`) float.
+pub unsafe fn fast_atof<F, Iter>(digits: Iter, base: u32, sci_exponent: i32, f: F)
+    -> F
+    where F: Float,
+          F::Unsigned: Mantissa,
+          Iter: iter::Iterator<Item=u8>
+{
+    let (num, den) = fast_ratio(base, sci_exponent, f);
+    match fast_compare_digits(digits, base.into(), num, den) {
+        // Greater than representation, return `b+u`
+        cmp::Ordering::Greater  => f.next(),
+        // Less than representation, return `b`
+        cmp::Ordering::Less     => f,
+        // Exactly halfway, tie to even.
+        cmp::Ordering::Equal    => if f.is_odd() { f.next() } else { f },
+    }
+}
+
+// SLOW PATH
+
+// TODO(ahuszagh) Need arbitrary-precision shit here...
 
 // TODO(ahuszagh):
 //      Steps:
@@ -212,8 +272,14 @@ mod tests {
 
     // FAST PATH
 
-    // TODO(ahuszagh) Need normalize tests
-    // calculate_scaling_factor
+    #[test]
+    fn fast_scaling_factor_test() {
+        unsafe {
+            assert_eq!(fast_scaling_factor(10, -324), (17218479456385750618067377696052635483, -1200).into());
+            assert_eq!(fast_scaling_factor(10, 0), (10633823966279326983230456482242756608, -123).into());
+            assert_eq!(fast_scaling_factor(10, 300), (15878657653273753079461938932723996012, 873).into());
+        }
+    }
 
     #[test]
     fn fast_ratio_test() {
@@ -221,6 +287,25 @@ mod tests {
             let num = 42535295865117307932921825928971026432;
             let den = 17218479456385750618067377696052635483;
             assert_eq!(fast_ratio(10, -324, 0f64), (num, den));
+        }
+    }
+
+    #[test]
+    fn fast_compare_digits_test() {
+        unsafe {
+            // Actually equal, but we have truncated digits.
+            let num = 42535295865117307932921825928971026432;
+            let den = 17218479456385750618067377696052635483;
+            let digits = "247032822920623272088284396434110686";
+            assert_eq!(fast_compare_digits(digits.bytes(), 10, num, den), cmp::Ordering::Less);
+
+            // Actual digits are greater than halfway.
+            let digits = "247032822920623272088284396435110686";
+            assert_eq!(fast_compare_digits(digits.bytes(), 10, num, den), cmp::Ordering::Greater);
+
+            // Actual digits are less than halfway.
+            let digits = "247032822920623272088284396433110686";
+            assert_eq!(fast_compare_digits(digits.bytes(), 10, num, den), cmp::Ordering::Less);
         }
     }
 }

@@ -125,7 +125,6 @@ pub(super) struct FloatSlice {
     raw_exponent: i32,
 }
 
-#[allow(unused)]    // TODO(ahuszagh) Remove...
 impl FloatSlice {
     /// Create uninitialized slice.
     #[inline]
@@ -196,15 +195,15 @@ impl FloatSlice {
 
     /// Iterate over the digits, by chaining two slices.
     pub(super) fn digits_iter(&self)
-        -> iter::Chain<SliceIter<u8>, iter::Skip<SliceIter<u8>>>
+        -> iter::Cloned<iter::Chain<SliceIter<u8>, iter::Skip<SliceIter<u8>>>>
     {
         if self.digits_start.is_zero() {
             // Integer component, digits start in the integer
-            self.integer.iter().chain(self.fraction.iter().skip(0))
+            self.integer.iter().chain(self.fraction.iter().skip(0)).cloned()
         } else {
             // No integer component, we need an offset from the
             // fraction, removing all leading zeros.
-            self.integer.iter().chain(self.fraction.iter().skip(self.digits_start))
+            self.integer.iter().chain(self.fraction.iter().skip(self.digits_start)).cloned()
         }
     }
 }
@@ -639,7 +638,10 @@ pub(super) fn moderate_path<F, M>(mantissa: M, base: u32, exponent: i32, truncat
 #[inline]
 unsafe fn pow2_to_native<F>(base: u32, pow2_exp: i32, first: *const u8, last: *const u8)
     -> (F, ParseState)
-    where F: FloatRounding<u64> + FloatRounding<u128> + StablePower + FloatMaxExponent
+    where F: FloatRounding<u64>,
+          F: FloatRounding<u128>,
+          F: StablePower,
+          F: FloatMaxExponent
 {
     let (mut mantissa, state, slc, exponent) = parse_float::<u64>(base, first, last);
 
@@ -672,7 +674,11 @@ unsafe fn pow2_to_native<F>(base: u32, pow2_exp: i32, first: *const u8, last: *c
 #[inline]
 unsafe fn pown_to_native<F>(base: u32, first: *const u8, last: *const u8, lossy: bool)
     -> (F, ParseState)
-    where F: FloatRounding<u64> + FloatRounding<u128> + StablePower + FloatMaxExponent
+    where F: FloatRounding<u64>,
+          F: FloatRounding<u128>,
+          F: StablePower,
+          F: FloatMaxExponent,
+          F::Unsigned: Mantissa
 {
     let (mantissa, state, slc, exponent) = parse_float::<u64>(base, first, last);
 
@@ -698,15 +704,17 @@ unsafe fn pown_to_native<F>(base: u32, first: *const u8, last: *const u8, lossy:
     if bigcomp::use_fast(base, slc.mantissa_digits()) {
         // Can use the fast path for the bigcomp calculation.
         // The number of digits is `<= (128 / log2(10)).floor() - 2;`
+        let b = fp.into_rounded_float::<F>(RoundingKind::TowardZero);
+        let float = bigcomp::fast_atof(slc.digits_iter(), base, slc.scientific_exponent(), b);
+        return (float, state);
     } else {
         // Use the slow bigcomp calculation.
         // Have too many digits to use 128-bit approximation.
+        // TODO(ahuszagh) Replace with dtoa, since we can do that now...
+        // Need to find out how many digits for the faster algorithm.
+        let (bigfloat, state) = Bigfloat::from_bytes::<F>(base, first, last);
+        return (bigfloat.as_float::<F>(), state);
     }
-
-    // TODO(ahuszagh) Replace with dtoa, since we can do that now...
-    // Need to find out how many digits for the faster algorithm.
-    let (bigfloat, state) = Bigfloat::from_bytes::<F>(base, first, last);
-    return (bigfloat.as_float::<F>(), state);
 }
 
 /// Parse native float from string.
@@ -715,7 +723,11 @@ unsafe fn pown_to_native<F>(base: u32, first: *const u8, last: *const u8, lossy:
 #[inline]
 unsafe fn to_native<F>(base: u32, first: *const u8, last: *const u8, lossy: bool)
     -> (F, *const u8)
-    where F: FloatRounding<u64> + FloatRounding<u128> + StablePower + FloatMaxExponent
+    where F: FloatRounding<u64>,
+          F: FloatRounding<u128>,
+          F: StablePower,
+          F: FloatMaxExponent,
+          F::Unsigned: Mantissa
 {
     let pow2_exp = pow2_exponent(base);
     let (f, state) = match pow2_exp {
@@ -773,7 +785,7 @@ mod tests {
         let mut state = ParseState::new(first);
         let mut slc = FloatSlice::uninitialized();
         let v = parse_mantissa::<M>(&mut state, &mut slc, base, last);
-        let digits = String::from_utf8_unchecked(slc.digits_iter().cloned().collect());
+        let digits = String::from_utf8_unchecked(slc.digits_iter().collect());
         assert_eq!(v, tup.0);
         assert_eq!(slc.integer_len(), tup.1);
         assert_eq!(slc.fraction_len(), tup.2);
@@ -818,7 +830,7 @@ mod tests {
         let first = s.as_ptr();
         let last = first.add(s.len());
         let (v, state, slc, e) = parse_float::<M>(base, first, last);
-        let digits = String::from_utf8_unchecked(slc.digits_iter().cloned().collect());
+        let digits = String::from_utf8_unchecked(slc.digits_iter().collect());
         assert_eq!(v, tup.0);
         assert_eq!(e, tup.1);
         assert_eq!(slc.scientific_exponent(), tup.2);
