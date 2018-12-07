@@ -5,26 +5,31 @@ use super::cached_float80;
 
 // POWERS
 
-///// Precalculated powers that uses two-separate arrays for memory-efficiency.
-//#[doc(hidden)]
-//pub(crate) struct ExtendedPowers<M: Mantissa> {
-//    // Pre-calculated mantissa for the powers.
-//    pub mant: &'static [M],
-//    // Pre-calculated binary exponents for the powers.
-//    pub exp: &'static [i32],
-//}
-//
-///// Allow indexing of values without bounds checking
-//impl<M: Mantissa> ExtendedPowers<M> {
-//    #[inline(always)]
-//    pub unsafe fn get_extended_float(&self, index: usize)
-//        -> ExtendedFloat<M>
-//    {
-//        let mant = *self.mant.get_unchecked(index);
-//        let exp = *self.exp.get_unchecked(index);
-//        ExtendedFloat { mant: mant, exp: exp }
-//    }
-//}
+/// Precalculated powers that uses two-separate arrays for memory-efficiency.
+#[doc(hidden)]
+pub(crate) struct ExtendedPowers<M: Mantissa> {
+    // Pre-calculated mantissa for the powers.
+    pub mant: &'static [M],
+    // Pre-calculated binary exponents for the powers.
+    pub exp: &'static [i32],
+}
+
+/// Allow indexing of values without bounds checking
+impl<M: Mantissa> ExtendedPowers<M> {
+    #[inline(always)]
+    pub unsafe fn get_extended_float(&self, index: usize)
+        -> ExtendedFloat<M>
+    {
+        let mant = *self.mant.get_unchecked(index);
+        let exp = *self.exp.get_unchecked(index);
+        ExtendedFloat { mant: mant, exp: exp }
+    }
+
+    #[inline(always)]
+    pub fn len(&self) -> usize {
+        self.mant.len()
+    }
+}
 
 // MODERATE PATH POWERS
 
@@ -32,11 +37,11 @@ use super::cached_float80;
 #[doc(hidden)]
 pub(crate) struct ModeratePathPowers<M: Mantissa> {
     // Pre-calculated small powers.
-    pub small: &'static [ExtendedFloat<M>],
+    pub small: ExtendedPowers<M>,
+    // Pre-calculated large powers.
+    pub large: ExtendedPowers<M>,
     /// Pre-calculated small powers as 64-bit integers
     pub small_int: &'static [M],
-    // Pre-calculated large powers.
-    pub large: &'static [ExtendedFloat<M>],
     // Step between large powers and number of small powers.
     pub step: i32,
     // Exponent bias for the large powers.
@@ -46,18 +51,18 @@ pub(crate) struct ModeratePathPowers<M: Mantissa> {
 /// Allow indexing of values without bounds checking
 impl<M: Mantissa> ModeratePathPowers<M> {
     #[inline(always)]
-    pub unsafe fn get_small(&self, index: usize) -> &'static ExtendedFloat<M> {
-        self.small.get_unchecked(index)
+    pub unsafe fn get_small(&self, index: usize) -> ExtendedFloat<M> {
+        self.small.get_extended_float(index)
+    }
+
+    #[inline(always)]
+    pub unsafe fn get_large(&self, index: usize) -> ExtendedFloat<M> {
+        self.large.get_extended_float(index)
     }
 
     #[inline(always)]
     pub unsafe fn get_small_int(&self, index: usize) -> M {
         *self.small_int.get_unchecked(index)
-    }
-
-    #[inline(always)]
-    pub unsafe fn get_large(&self, index: usize) -> &'static ExtendedFloat<M> {
-        self.large.get_unchecked(index)
     }
 }
 
@@ -78,19 +83,19 @@ impl ModeratePathCache<u64> for ExtendedFloat<u64> {
 
 // BIGCOMP POWERS
 
-/// Precalculated bigcomp powers of base N.
-#[doc(hidden)]
-pub(crate) struct BigcompPowers<M: Mantissa> {
-    // Pre-calculated mantissa for the power.
-    pub mant: &'static [M],
-    // Pre-calculated binary exponents for the power.
-    pub exp: &'static [i32],
-    /// Bias for the exponent power.
-    pub bias: i32,
-}
+// TODO(ahuszagh) Restore
+///// Precalculated bigcomp powers of base N.
+//#[doc(hidden)]
+//pub(crate) struct BigcompPowers<M: Mantissa> {
+//    // Pre-calculated mantissa for the power.
+//    pub mant: &'static [M],
+//    // Pre-calculated binary exponents for the power.
+//    pub exp: &'static [i32],
+//    /// Bias for the exponent power.
+//    pub bias: i32,
+//}
 
-impl<M: Mantissa> BigcompPowers<M> {
-    // TODO(ahuszagh) Restore
+//impl<M: Mantissa> BigcompPowers<M> {
 //    /// Get the precalculated scaling factor from the basen exponent.
 //    /// Does not do any index checking, it is up to the caller to ensure
 //    /// the index is valid (which should be true for any non-special float).
@@ -101,4 +106,4 @@ impl<M: Mantissa> BigcompPowers<M> {
 //        let idx: usize = as_cast(exp + self.bias);
 //        (self.mant.get_unchecked(idx), self.exp.get_unchecked(idx))
 //    }
-}
+//}

@@ -486,7 +486,7 @@ unsafe fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, base: u32,
             // Overflow, multiplication unsuccessful, go slow path.
             (_, true)     => {
                 fp.normalize();
-                fp.imul(powers.get_small(small_index as usize));
+                fp.imul(&powers.get_small(small_index as usize));
                 errors += M::error_halfscale();
             },
             // No overflow, multiplication successful.
@@ -497,7 +497,7 @@ unsafe fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, base: u32,
         }
 
         // Multiply by the large power
-        fp.imul(powers.get_large(large_index as usize));
+        fp.imul(&powers.get_large(large_index as usize));
         errors += (errors > 0) as u32;
         errors += M::error_halfscale();
 

@@ -9,7 +9,6 @@ if #[cfg(any(test, not(feature = "imprecise")))] {
 pub(crate) mod bigcomp;
 pub(crate) mod bigfloat;
 mod cached;
-mod cached_bigcomp;
 mod cached_float80;
 }}  // cfg_if
 
