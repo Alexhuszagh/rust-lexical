@@ -22,7 +22,10 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 cfg-if = "0.1"
 static_assertions = "0.2.5"
 # Use small-vector optimization for Bigfloat class.
+# TODO(ahuszagh) Remove...
 smallvec = "0.6"
+# Use stack-vector for dtoa.
+stackvector = "1.0"
 # Optimized Grisu3 implementation, a well-tested, correct algorithm.
 dtoa = { version = "0.4", optional = true }
 # Optimized Ryu implementation, the fastest correct algorithm.

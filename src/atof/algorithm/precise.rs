@@ -11,6 +11,8 @@
 // BENCHMARKS
 //  The Python benchmarks were done by pre-parsing the data into a Python
 //  list, and then using the following code:
+// TODO(ahuszagh) Need to change this to use C++ extensions to avoid
+// caching strings or responses, or have any effect from the interpreter.
 //  ```text
 //  %%timeit
 //  for i in l:
@@ -91,12 +93,14 @@
 //  ax.figure.tight_layout()
 //  plt.show()
 
+use lib::iter;
 use atoi;
 use float::*;
 use table::*;
 use util::*;
 use super::bigfloat::{Bigfloat, FloatMaxExponent};
 use super::cached::ModeratePathCache;
+use super::bigcomp;
 use super::exponent::*;
 
 // SHARED
@@ -105,25 +109,123 @@ use super::exponent::*;
 // In this case, the mantissa can be represented by an integer,
 // which allows any value to be exactly reconstructed.
 
+// FLOAT SLICE
+
+/// Substrings and information from parsing the float.
+pub(super) struct FloatSlice {
+    /// Substring for the integer component of the mantissa.
+    integer: Slice<u8>,
+    /// Substring for the fraction component of the mantissa.
+    fraction: Slice<u8>,
+    /// Offset to where the digits start in either integer or fraction.
+    digits_start: usize,
+    /// Number of truncated digits from the mantissa.
+    truncated: usize,
+    /// Raw exponent for the float.
+    raw_exponent: i32,
+}
+
+#[allow(unused)]    // TODO(ahuszagh) Remove...
+impl FloatSlice {
+    /// Create uninitialized slice.
+    #[inline]
+    pub(super) unsafe fn uninitialized() -> FloatSlice {
+        FloatSlice {
+            integer: mem::uninitialized(),
+            fraction: mem::uninitialized(),
+            digits_start: mem::uninitialized(),
+            truncated: mem::uninitialized(),
+            raw_exponent: mem::uninitialized(),
+        }
+    }
+
+    /// Get the length of the integer substring.
+    #[inline(always)]
+    pub(super) fn integer_len(&self) -> usize {
+        self.integer.len()
+    }
+
+    /// Get number of parsed integer digits.
+    #[inline(always)]
+    pub(super) fn integer_digits(&self) -> usize {
+        self.integer_len()
+    }
+
+    /// Get the length of the fraction substring.
+    #[inline(always)]
+    pub(super) fn fraction_len(&self) -> usize {
+        self.fraction.len()
+    }
+
+    /// Get number of parsed fraction digits.
+    #[inline(always)]
+    pub(super) fn fraction_digits(&self) -> usize {
+        if self.digits_start.is_zero() {
+            // Integer component, digits start in the integer
+            self.fraction_len()
+        } else {
+            // No integer component, we need an offset from the
+            // fraction, removing all leading zeros.
+            self.fraction_len() - self.digits_start
+        }
+    }
+
+    /// Get the number of digits in the mantissa.
+    /// Cannot overflow, since this is based off a single usize input string.
+    pub(super) fn mantissa_digits(&self) -> usize {
+        self.integer_digits() + self.fraction_digits()
+    }
+
+    /// Get number of truncated digits.
+    #[inline(always)]
+    pub(super) fn truncated_digits(&self) -> usize {
+        self.truncated
+    }
+
+    /// Get the mantissa exponent from the raw exponent.
+    #[inline(always)]
+    pub(super) fn mantissa_exponent(&self) -> i32 {
+        mantissa_exponent(self.raw_exponent, self.fraction_len(), self.truncated_digits())
+    }
+
+    /// Get the scientific exponent from the raw exponent.
+    #[inline(always)]
+    pub(super) fn scientific_exponent(&self) -> i32 {
+        scientific_exponent(self.raw_exponent, self.integer_len(), self.fraction_len())
+    }
+
+    /// Iterate over the digits, by chaining two slices.
+    pub(super) fn digits_iter(&self)
+        -> iter::Chain<SliceIter<u8>, iter::Skip<SliceIter<u8>>>
+    {
+        if self.digits_start.is_zero() {
+            // Integer component, digits start in the integer
+            self.integer.iter().chain(self.fraction.iter().skip(0))
+        } else {
+            // No integer component, we need an offset from the
+            // fraction, removing all leading zeros.
+            self.integer.iter().chain(self.fraction.iter().skip(self.digits_start))
+        }
+    }
+}
+
 // PARSE
 // -----
 
 /// Parse the mantissa from a string.
 ///
-/// Returns the mantissa, the number of digits parsed after the period,
-/// the number of truncated digits, and the number of parsed integer digits.
+/// Returns the mantissa, the the number of parsed integer digits,
+/// the number of parsed fraction digits, and the number of truncated
+/// digits (including those in both the integer and fraction).
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-unsafe fn parse_mantissa<M>(state: &mut ParseState, base: u32, last: *const u8)
-    -> (M, usize, usize, usize)
+unsafe fn parse_mantissa<M>(state: &mut ParseState, slc: &mut FloatSlice, base: u32, last: *const u8)
+    -> M
     where M: Mantissa
 {
     // Initialize our variables for the output
     let mut mantissa: M = M::ZERO;
-    let dot_shift: usize;
-    let truncated_bytes: usize;
-    let integer_digits: usize;
 
     // Trim the leading 0s.
     // Need to force this here, since if not, conversion of usize dot to
@@ -137,7 +239,7 @@ unsafe fn parse_mantissa<M>(state: &mut ParseState, base: u32, last: *const u8)
     // the entire value is not parsed.
     let first = state.curr;
     atoi::checked(&mut mantissa, state, base, last);
-    integer_digits = distance(first, state.curr);
+    slc.integer = from_raw_parts(first, distance(first, state.curr));
 
     // Check for trailing digits.
     let has_fraction = state.curr != last && *state.curr == b'.';
@@ -153,13 +255,16 @@ unsafe fn parse_mantissa<M>(state: &mut ParseState, base: u32, last: *const u8)
             // both "1e-29" and "0.0000000000000000000000000001",
             // otherwise, only the former would work.
             state.ltrim_char(last, b'0');
+            slc.digits_start = distance(first, state.curr);
+        } else {
+            slc.digits_start = 0;
         }
 
         // Parse the remaining decimal. Since the truncation is only in
         // the fraction, no decimal place affects it.
         atoi::checked(&mut mantissa, state, base, last);
-        dot_shift = distance(first, state.curr);
-        truncated_bytes = state.truncated_bytes();
+        slc.fraction = from_raw_parts(first, distance(first, state.curr));
+        slc.truncated = state.truncated_bytes();
     } else if has_fraction {
         // Integral overflow occurred, cannot add more values, but a fraction exists.
         // Ignore the remaining characters, but factor them into the dot exponent.
@@ -170,37 +275,17 @@ unsafe fn parse_mantissa<M>(state: &mut ParseState, base: u32, last: *const u8)
         }
         // Need to subtract 1, since there is a decimal point that came
         // before the truncation, artificially adding 1 to the number.
-        dot_shift = distance(first, state.curr);
-        truncated_bytes = state.truncated_bytes() - 1;
+        slc.digits_start = 0;
+        slc.fraction = from_raw_parts(first, distance(first, state.curr));
+        slc.truncated = state.truncated_bytes() - 1;
     } else {
         // No decimal, return the number of truncated bytes.
-        dot_shift = 0;
-        truncated_bytes = state.truncated_bytes();
+        slc.digits_start = 0;
+        slc.fraction = from_raw_parts(first, 0);
+        slc.truncated = state.truncated_bytes();
     }
 
-    (mantissa, dot_shift, truncated_bytes, integer_digits)
-}
-
-
-/// Calculate the number of digits relative tp [1, base).
-///
-/// For example, 0.1 would be -1, and 10 would be 1
-/// in base 10.
-#[inline]
-pub(super) fn calculated_digit_count(exponent: i32, integer_digits: usize, dot_shift: usize)
-    -> i32
-{
-    if integer_digits == 0 {
-        let dot_shift = dot_shift.try_i32_or_max();
-        let digit_count = exponent
-            .checked_sub(dot_shift)
-            .and_then(|v| v.checked_sub(1));
-        unwrap_or_min(digit_count)
-    } else {
-        let integer_shift = (integer_digits - 1).try_i32_or_max();
-        let digit_count = exponent.checked_add(integer_shift);
-        unwrap_or_max(digit_count)
-    }
+    mantissa
 }
 
 /// Normalize the mantissa to check if it can use the fast-path.
@@ -235,24 +320,27 @@ pub(super) fn normalize_mantissa<M>(mut mantissa: M, base: u32, mut exponent: i3
 
 /// Parse the mantissa and exponent from a string.
 ///
-/// Returns the mantissa, the exponent, the number of digits relative to
-/// [1-base), and the current parser state.
+/// Returns the mantissa, the exponent, the scientific-notation exponent,
+/// the number of parsed digits, and the current parser state.
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
 unsafe fn parse_float<M>(base: u32, first: *const u8, last: *const u8)
-    -> (M, i32, i32, ParseState)
+    -> (M, ParseState,FloatSlice, i32)
     where M: Mantissa
 {
     let mut state = ParseState::new(first);
+    let mut slc = FloatSlice::uninitialized();
 
-    let (mantissa, dot_shift, truncated, integer_digits) = parse_mantissa::<M>(&mut state, base, last);
-    let raw_exponent = parse_exponent(&mut state, base, last);
-    let exponent = normalize_exponent(raw_exponent, dot_shift, truncated);
-    let digit_count = calculated_digit_count(raw_exponent, integer_digits, dot_shift);
+    let mantissa = parse_mantissa::<M>(&mut state, &mut slc, base, last);
+    slc.raw_exponent = parse_exponent(&mut state, base, last);
+
+    // We need to try every trick for the fast path when possible, so
+    // we should try to normalize the mantissa exponent if possible.
+    let exponent = slc.mantissa_exponent();
     let (mantissa, exponent) = normalize_mantissa::<M>(mantissa, base, exponent);
 
-    (mantissa, exponent, digit_count, state)
+    (mantissa, state, slc, exponent)
 }
 
 // FAST
@@ -447,6 +535,26 @@ impl FloatErrors for u64 {
     }
 }
 
+// 128-bit representation is always accurate, ignore this.
+impl FloatErrors for u128 {
+    #[inline(always)]
+    fn error_scale() -> u32 {
+        0
+    }
+
+    #[inline(always)]
+    fn error_halfscale() -> u32 {
+        0
+    }
+
+    #[inline]
+    fn error_is_accurate<F: Float>(_: u32, _: &ExtendedFloat<u128>) -> bool {
+        // Ignore the halfway problem, use more bits to aim for accuracy,
+        // but short-circuit to avoid extremely slow operations.
+        true
+    }
+}
+
 /// Multiply the floating-point by the exponent.
 ///
 /// Multiply by pre-calculated powers of the base, modify the extended-
@@ -525,17 +633,15 @@ pub(super) fn moderate_path<F, M>(mantissa: M, base: u32, exponent: i32, truncat
     (fp, valid)
 }
 
-// TODO(ahuszagh) Need the slow path
-
 // ATOF/ATOD
 
 /// Parse power-of-two radix string to native float.
 #[inline]
 unsafe fn pow2_to_native<F>(base: u32, pow2_exp: i32, first: *const u8, last: *const u8)
     -> (F, ParseState)
-    where F: FloatRounding<u64> + StablePower + FloatMaxExponent
+    where F: FloatRounding<u64> + FloatRounding<u128> + StablePower + FloatMaxExponent
 {
-    let (mut mantissa, exponent, _, state) = parse_float::<u64>(base, first, last);
+    let (mut mantissa, state, slc, exponent) = parse_float::<u64>(base, first, last);
 
     // We have a power of 2, can get an exact value even if the mantissa
     // was truncated, since we introduce no rounding error during
@@ -544,8 +650,9 @@ unsafe fn pow2_to_native<F>(base: u32, pow2_exp: i32, first: *const u8, last: *c
     if state.is_truncated() && is_halfway::<F>(mantissa) {
         // Exactly straddling a halfway case, need to check if all the
         // digits from `trunc` to `mant.last` are 0, if so, use mantissa.
-        // Otherwise, round-up.
+        // Otherwise, round-up. Ensure we only go to the end of the fraction.
         let mut p = state.trunc;
+        let last = slc.fraction.as_ptr().add(slc.fraction.len());
         while p < last && (*p == b'0' || *p == b'.') {
             p = p.add(1);
         }
@@ -565,10 +672,9 @@ unsafe fn pow2_to_native<F>(base: u32, pow2_exp: i32, first: *const u8, last: *c
 #[inline]
 unsafe fn pown_to_native<F>(base: u32, first: *const u8, last: *const u8, lossy: bool)
     -> (F, ParseState)
-    where F: FloatRounding<u64> + StablePower + FloatMaxExponent
+    where F: FloatRounding<u64> + FloatRounding<u128> + StablePower + FloatMaxExponent
 {
-    // TODO(ahuszagh) Gonna need to use this digit count...
-    let (mantissa, exponent, _digit_count, state) = parse_float::<u64>(base, first, last);
+    let (mantissa, state, slc, exponent) = parse_float::<u64>(base, first, last);
 
     if mantissa == 0 {
         // Literal 0, return early.
@@ -589,7 +695,14 @@ unsafe fn pown_to_native<F>(base: u32, first: *const u8, last: *const u8, lossy:
     }
 
     // Slow path
-    // Extremely slow algorithm, use arbitrary-precision float.
+    if bigcomp::use_fast(base, slc.mantissa_digits()) {
+        // Can use the fast path for the bigcomp calculation.
+        // The number of digits is `<= (128 / log2(10)).floor() - 2;`
+    } else {
+        // Use the slow bigcomp calculation.
+        // Have too many digits to use 128-bit approximation.
+    }
+
     // TODO(ahuszagh) Replace with dtoa, since we can do that now...
     // Need to find out how many digits for the faster algorithm.
     let (bigfloat, state) = Bigfloat::from_bytes::<F>(base, first, last);
@@ -602,7 +715,7 @@ unsafe fn pown_to_native<F>(base: u32, first: *const u8, last: *const u8, lossy:
 #[inline]
 unsafe fn to_native<F>(base: u32, first: *const u8, last: *const u8, lossy: bool)
     -> (F, *const u8)
-    where F: FloatRounding<u64> + StablePower + FloatMaxExponent
+    where F: FloatRounding<u64> + FloatRounding<u128> + StablePower + FloatMaxExponent
 {
     let pow2_exp = pow2_exponent(base);
     let (f, state) = match pow2_exp {
@@ -652,71 +765,95 @@ mod tests {
     use test::*;
     use super::*;
 
-    unsafe fn check_parse_mantissa<M>(base: u32, s: &str, tup: (M, usize, usize, usize, usize))
+    unsafe fn check_parse_mantissa<M>(base: u32, s: &str, tup: (M, usize, usize, usize, usize, &str))
         where M: Mantissa
     {
         let first = s.as_ptr();
         let last = first.add(s.len());
         let mut state = ParseState::new(first);
-        let (v, d, t, p) = parse_mantissa::<M>(&mut state, base, last);
+        let mut slc = FloatSlice::uninitialized();
+        let v = parse_mantissa::<M>(&mut state, &mut slc, base, last);
+        let digits = String::from_utf8_unchecked(slc.digits_iter().cloned().collect());
         assert_eq!(v, tup.0);
-        assert_eq!(d, tup.1);
-        assert_eq!(distance(first, state.curr), tup.2);
-        assert_eq!(t, tup.3);
-        assert_eq!(p, tup.4);
+        assert_eq!(slc.integer_len(), tup.1);
+        assert_eq!(slc.fraction_len(), tup.2);
+        assert_eq!(slc.truncated_digits(), tup.3);
+        assert_eq!(distance(first, state.curr), tup.4);
+        assert_eq!(digits, tup.5);
     }
 
     #[test]
     fn parse_mantissa_test() {
         unsafe {
             // 64-bit
-            check_parse_mantissa::<u64>(10, "1.2345", (12345, 4, 6, 0, 1));
-            check_parse_mantissa::<u64>(10, "12.345", (12345, 3, 6, 0, 2));
-            check_parse_mantissa::<u64>(10, "12345.6789", (123456789, 4, 10, 0, 5));
-            check_parse_mantissa::<u64>(10, "1.2345e10", (12345, 4, 6, 0, 1));
-            check_parse_mantissa::<u64>(10, "0.0000000000000000001", (1, 19, 21, 0, 0));
-            check_parse_mantissa::<u64>(10, "0.00000000000000000000000000001", (1, 29, 31, 0, 0));
-            check_parse_mantissa::<u64>(10, "100000000000000000000", (10000000000000000000, 0, 21, 1, 21));
+            check_parse_mantissa::<u64>(10, "1.2345", (12345, 1, 4, 0, 6, "12345"));
+            check_parse_mantissa::<u64>(10, "12.345", (12345, 2, 3, 0, 6, "12345"));
+            check_parse_mantissa::<u64>(10, "12345.6789", (123456789, 5, 4, 0, 10, "123456789"));
+            check_parse_mantissa::<u64>(10, "1.2345e10", (12345, 1, 4, 0, 6, "12345"));
+            check_parse_mantissa::<u64>(10, "0.0000000000000000001", (1, 0, 19, 0, 21, "1"));
+            check_parse_mantissa::<u64>(10, "0.00000000000000000000000000001", (1, 0, 29, 0, 31, "1"));
+            check_parse_mantissa::<u64>(10, "100000000000000000000", (10000000000000000000, 21, 0, 1, 21, "100000000000000000000"));
 
             // Adapted from failures in strtod.
-            check_parse_mantissa::<u64>(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (17976931348623158079, 70, 380, 359, 309));
+            check_parse_mantissa::<u64>(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (17976931348623158079, 309, 70, 359, 380, "1797693134862315807937289714053034150799341327100378269361737789804449682927647509466490179775872070963302864166928879109465555478519404026306574886715058206819089020007083836762738548458177115317644757302700698555713669596228429148198608349364752927190741684443655107043427115596995080930428801779041744977919999999999999999999999999999999999999999999999999999999999999999999999"));
 
             // Rounding error
             // Adapted from test-float-parse failures.
-            check_parse_mantissa::<u64>(10, "1009e-31", (1009, 0, 4, 0, 4));
+            check_parse_mantissa::<u64>(10, "1009e-31", (1009, 4, 0, 0, 4, "1009"));
+
+            // 128-bit
+            check_parse_mantissa::<u128>(10, "1.2345", (12345, 1, 4, 0, 6,  "12345"));
+            check_parse_mantissa::<u128>(10, "12.345", (12345, 2, 3, 0, 6,  "12345"));
+            check_parse_mantissa::<u128>(10, "12345.6789", (123456789, 5, 4, 0, 10,  "123456789"));
+            check_parse_mantissa::<u128>(10, "1.2345e10", (12345, 1, 4, 0, 6,  "12345"));
+            check_parse_mantissa::<u128>(10, "0.0000000000000000001", (1, 0, 19, 0, 21,  "1"));
+            check_parse_mantissa::<u128>(10, "0.00000000000000000000000000001", (1, 0, 29, 0, 31,  "1"));
+            check_parse_mantissa::<u128>(10, "100000000000000000000", (100000000000000000000, 21, 0, 0, 21,  "100000000000000000000"));
         }
     }
 
-    unsafe fn check_parse_float<M>(base: u32, s: &str, tup: (M, i32, i32, usize, bool))
+    unsafe fn check_parse_float<M>(base: u32, s: &str, tup: (M, i32, i32, usize, usize, bool, &str))
         where M: Mantissa
     {
         let first = s.as_ptr();
         let last = first.add(s.len());
-        let (v, e, d, state) = parse_float::<M>(base, first, last);
+        let (v, state, slc, e) = parse_float::<M>(base, first, last);
+        let digits = String::from_utf8_unchecked(slc.digits_iter().cloned().collect());
         assert_eq!(v, tup.0);
         assert_eq!(e, tup.1);
-        assert_eq!(d, tup.2);
-        assert_eq!(distance(first, state.curr), tup.3);
-        assert_eq!(state.is_truncated(), tup.4);
+        assert_eq!(slc.scientific_exponent(), tup.2);
+        assert_eq!(slc.mantissa_digits(), tup.3);
+        assert_eq!(distance(first, state.curr), tup.4);
+        assert_eq!(state.is_truncated(), tup.5);
+        assert_eq!(digits, tup.6);
+        assert_eq!(digits.len(), slc.mantissa_digits());
     }
 
     #[test]
     fn parse_float_test() {
         unsafe {
             // 64-bit
-            check_parse_float::<u64>(10, "1.2345", (12345, -4, 0, 6, false));
-            check_parse_float::<u64>(10, "12.345", (12345, -3, 1, 6, false));
-            check_parse_float::<u64>(10, "12345.6789", (123456789, -4, 4, 10, false));
-            check_parse_float::<u64>(10, "1.2345e10", (12345, 6, 10, 9, false));
-            check_parse_float::<u64>(10, "100000000000000000000", (1, 20, 20, 21, true));
-            check_parse_float::<u64>(10, "100000000000000000001", (1, 20, 20, 21, true));
+            check_parse_float::<u64>(10, "1.2345", (12345, -4, 0, 5, 6, false, "12345"));
+            check_parse_float::<u64>(10, "12.345", (12345, -3, 1, 5, 6, false, "12345"));
+            check_parse_float::<u64>(10, "12345.6789", (123456789, -4, 4, 9, 10, false, "123456789"));
+            check_parse_float::<u64>(10, "1.2345e10", (12345, 6, 10, 5, 9, false, "12345"));
+            check_parse_float::<u64>(10, "100000000000000000000", (1, 20, 20, 21, 21, true, "100000000000000000000"));
+            check_parse_float::<u64>(10, "100000000000000000001", (1, 20, 20, 21, 21, true, "100000000000000000001"));
 
             // Adapted from failures in strtod.
-            check_parse_float::<u64>(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (17976931348623158079, 289, 308, 380, true));
+            check_parse_float::<u64>(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (17976931348623158079, 289, 308, 379, 380, true, "1797693134862315807937289714053034150799341327100378269361737789804449682927647509466490179775872070963302864166928879109465555478519404026306574886715058206819089020007083836762738548458177115317644757302700698555713669596228429148198608349364752927190741684443655107043427115596995080930428801779041744977919999999999999999999999999999999999999999999999999999999999999999999999"));
 
             // Rounding error
             // Adapted from test-float-parse failures.
-            check_parse_float::<u64>(10, "1009e-31", (1009, -31, -28, 8, false));
+            check_parse_float::<u64>(10, "1009e-31", (1009, -31, -28, 4, 8, false, "1009"));
+
+            // 128-bit
+            check_parse_float::<u128>(10, "1.2345", (12345, -4, 0, 5, 6, false, "12345"));
+            check_parse_float::<u128>(10, "12.345", (12345, -3, 1, 5, 6, false, "12345"));
+            check_parse_float::<u128>(10, "12345.6789", (123456789, -4, 4, 9, 10, false, "123456789"));
+            check_parse_float::<u128>(10, "1.2345e10", (12345, 6, 10, 5, 9, false, "12345"));
+            check_parse_float::<u128>(10, "100000000000000000000", (1, 20, 20, 21, 21, false, "100000000000000000000"));
+            check_parse_float::<u128>(10, "100000000000000000001", (100000000000000000001, 0, 20, 21, 21, false, "100000000000000000001"));
         }
     }
 
@@ -843,12 +980,12 @@ mod tests {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
         let (f, valid) = moderate_path::<f32, _>(mantissa, 3, 1, false);
-        assert_eq!(f.as_f32(), 2.7670116e+19);
+        assert_eq!(f.into_f32(), 2.7670116e+19);
         assert!(valid, "exponent should be valid");
 
         let mantissa: u64 = 4746067219335938;
         let (f, valid) = moderate_path::<f32, _>(mantissa, 15, -9, false);
-        assert_eq!(f.as_f32(), 123456.1);
+        assert_eq!(f.into_f32(), 123456.1);
         assert!(valid, "exponent should be valid");
     }
 
@@ -857,18 +994,25 @@ mod tests {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
         let (f, valid) = moderate_path::<f64, _>(mantissa, 3, 1, false);
-        assert_eq!(f.as_f64(), 2.7670116110564327e+19);
+        assert_eq!(f.into_f64(), 2.7670116110564327e+19);
         assert!(valid, "exponent should be valid");
 
         // valid (ends of the earth, salting the earth)
         let (f, valid) = moderate_path::<f64, _>(mantissa, 3, -695, true);
-        assert_eq!(f.as_f64(), 2.32069302345e-313);
+        assert_eq!(f.into_f64(), 2.32069302345e-313);
         assert!(valid, "exponent should be valid");
 
         // invalid ("268A6.177777778", base 15)
         let mantissa: u64 = 4746067219335938;
         let (_, valid) = moderate_path::<f64, _>(mantissa, 15, -9, false);
         assert!(!valid, "exponent should be invalid");
+
+        // valid ("268A6.177777778", base 15)
+        // 123456.10000000001300614743687445, exactly, should not round up.
+        let mantissa: u128 = 4746067219335938;
+        let (f, valid) = moderate_path::<f64, _>(mantissa, 15, -9, false);
+        assert_eq!(f.into_f64(), 123456.1);
+        assert!(valid, "exponent should be valid");
 
         // Rounding error
         // Adapted from test-float-parse failures.

@@ -1,5 +1,6 @@
 //! Convert between extended-precision and native floats/integers.
 
+use lib::convert::From;
 use lib::mem;
 use util::*;
 use super::float::ExtendedFloat;
@@ -70,5 +71,45 @@ pub(crate) fn into_float<T, M>(fp: ExtendedFloat<M>)
         let exp = exp << T::MANTISSA_SIZE;
         let mant = fp.mant & as_cast::<M, _>(T::MANTISSA_MASK);
         T::from_bits(as_cast(mant | exp))
+    }
+}
+
+// FROM CONVERSIONS
+
+/// Conversion from a float to an extended float of the same size.
+impl<F: Float> From<F> for ExtendedFloat<F::Unsigned> where F::Unsigned: Mantissa {
+    #[inline]
+    fn from(f: F) -> Self {
+        from_float(f)
+    }
+}
+
+/// Conversion from a (mant, exp) tuple to an extended float of the same size.
+impl<M: Mantissa> From<(M, i32)> for ExtendedFloat<M> {
+    #[inline]
+    fn from(t: (M, i32)) -> Self {
+        ExtendedFloat { mant: t.0, exp: t.1 }
+    }
+}
+
+// TESTS
+// -----
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn convert_float_test() {
+        let f: f32 = 1e-45;
+        let fp: ExtendedFloat<u32> = f.into();
+        assert_eq!(fp, ExtendedFloat { mant: 1u32, exp: -149 });
+    }
+
+    #[test]
+    fn convert_tuple_test() {
+        let t = (1u64, 0i32);
+        let fp: ExtendedFloat<u64> = t.into();
+        assert_eq!(fp, ExtendedFloat { mant: 1u64, exp: 0 });
     }
 }

@@ -10,6 +10,7 @@ pub(crate) mod bigcomp;
 pub(crate) mod bigfloat;
 mod cached;
 mod cached_float80;
+mod cached_float160;
 }}  // cfg_if
 
 // Export algorithms.

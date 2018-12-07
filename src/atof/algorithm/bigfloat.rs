@@ -490,9 +490,9 @@ unsafe fn parse_float(base: u32, small_powers: &[u32], first: *const u8, last: *
 {
     let mut bigfloat = Bigfloat::new();
     let mut state = ParseState::new(first);
-    let dot_shift = parse_mantissa(&mut bigfloat, &mut state, base, small_powers, last);
-    let exponent = parse_exponent(&mut state, base, last);
-    let exponent = normalize_exponent(exponent, dot_shift, 0);
+    let fraction_digits = parse_mantissa(&mut bigfloat, &mut state, base, small_powers, last);
+    let raw_exponent = parse_exponent(&mut state, base, last);
+    let exponent = mantissa_exponent(raw_exponent, fraction_digits, 0);
     (bigfloat, exponent, state)
 }
 
@@ -2979,9 +2979,9 @@ mod tests {
         let last = first.add(s.len());
         let mut value = Bigfloat::new();
         let mut state = ParseState::new(first);
-        let dot_shift = parse_mantissa(&mut value, &mut state, base, small_powers, last);
+        let fraction_digits = parse_mantissa(&mut value, &mut state, base, small_powers, last);
         assert_eq!(value, tup.0);
-        assert_eq!(dot_shift, tup.1);
+        assert_eq!(fraction_digits, tup.1);
         assert_eq!(distance(first, state.curr), tup.2);
     }
 

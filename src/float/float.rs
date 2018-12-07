@@ -131,9 +131,34 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
         // Calculate the number of leading zeros, and then zero-out
         // any overflowing bits, to avoid shl overflow when self.mant == 0.
-        let shift = self.mant.leading_zeros();
-        let shift = shift & (M::BITS as u32 - 1);
+        let shift = if self.mant.is_zero() { 0 } else { self.mant.leading_zeros() };
         shl(self, shift);
+        shift
+    }
+
+    /// Normalize floating-point number to n-bits away from the MSB.
+    ///
+    /// This may lead to lossy rounding, and will not use custom rounding
+    /// rules to accommodate for this.
+    #[inline]
+    pub fn normalize_to(&mut self, n: u32)
+        -> i32
+    {
+        debug_assert!(n <= M::BITS.as_u32(), "ExtendedFloat::normalize_to() attempting to shift beyond type size.");
+
+        // Get the shift, with any of the higher bits removed.
+        // This way, we can guarantee that we will not overflow
+        // with the shl/shr.
+        let leading = if self.mant.is_zero() { n } else { self.mant.leading_zeros() };
+        let shift = leading.as_i32() - n.as_i32();
+        if shift > 0 {
+            // Need to shift left
+            shl(self, shift);
+        } else if shift < 0 {
+            // Need to shift right.
+            shr(self, -shift);
+        }
+
         shift
     }
 
@@ -486,6 +511,100 @@ mod tests {
         check_normalize(9007199254740991, 971, 11, 18446744073709549568, 960);
     }
 
+    fn check_normalize_to(mant: u64, exp: i32, n: u32, shift: i32, r_mant: u64, r_exp: i32) {
+        let mut x = ExtendedFloat {mant: mant, exp: exp};
+        assert_eq!(x.normalize_to(n), shift);
+        assert_eq!(x, ExtendedFloat {mant: r_mant, exp: r_exp});
+
+        let mut x = ExtendedFloat {mant: mant as u128, exp: exp};
+        let shift = if shift == 0 { 0 } else { shift+64 };
+        let r_exp = if r_exp == 0 { 0 } else { r_exp-64 };
+        assert_eq!(x.normalize_to(n), shift);
+        assert_eq!(x, ExtendedFloat {mant: (r_mant as u128) << 64, exp: r_exp});
+    }
+
+    #[test]
+    fn normalize_to_test() {
+        // F32
+        // 0
+        check_normalize_to(0, 0, 0, 0, 0, 0);
+        check_normalize_to(0, 0, 2, 0, 0, 0);
+
+        // min value
+        check_normalize_to(1, -149, 0, 63, 9223372036854775808, -212);
+        check_normalize_to(1, -149, 2, 61, 2305843009213693952, -210);
+
+        // 1.0e-40
+        check_normalize_to(71362, -149, 0, 47, 10043308644012916736, -196);
+        check_normalize_to(71362, -149, 2, 45, 2510827161003229184, -194);
+
+        // 1.0e-20
+        check_normalize_to(12379400, -90, 0, 40, 13611294244890214400, -130);
+        check_normalize_to(12379400, -90, 2, 38, 3402823561222553600, -128);
+
+        // 1.0
+        check_normalize_to(8388608, -23, 0, 40, 9223372036854775808, -63);
+        check_normalize_to(8388608, -23, 2, 38, 2305843009213693952, -61);
+
+        // 1e20
+        check_normalize_to(11368684, 43, 0, 40, 12500000250510966784, 3);
+        check_normalize_to(11368684, 43, 2, 38, 3125000062627741696, 5);
+
+        // max value
+        check_normalize_to(16777213, 104, 0, 40, 18446740775174668288, 64);
+        check_normalize_to(16777213, 104, 2, 38, 4611685193793667072, 66);
+
+        // F64
+
+        // min value
+        check_normalize_to(1, -1074, 0, 63, 9223372036854775808, -1137);
+        check_normalize_to(1, -1074, 2, 61, 2305843009213693952, -1135);
+
+        // 1.0e-250
+        check_normalize_to(6448907850777164, -883, 0, 11, 13207363278391631872, -894);
+        check_normalize_to(6448907850777164, -883, 2, 9, 3301840819597907968, -892);
+
+        // 1.0e-150
+        check_normalize_to(7371020360979573, -551, 0, 11, 15095849699286165504, -562);
+        check_normalize_to(7371020360979573, -551, 2, 9, 3773962424821541376, -560);
+
+        // 1.0e-45
+        check_normalize_to(6427752177035961, -202, 0, 11, 13164036458569648128, -213);
+        check_normalize_to(6427752177035961, -202, 2, 9, 3291009114642412032, -211);
+
+        // 1.0e-40
+        check_normalize_to(4903985730770844, -185, 0, 11, 10043362776618688512, -196);
+        check_normalize_to(4903985730770844, -185, 2, 9, 2510840694154672128, -194);
+
+        // 1.0e-20
+        check_normalize_to(6646139978924579, -119, 0, 11, 13611294676837537792, -130);
+        check_normalize_to(6646139978924579, -119, 2, 9, 3402823669209384448, -128);
+
+        // 1.0
+        check_normalize_to(4503599627370496, -52, 0, 11, 9223372036854775808, -63);
+        check_normalize_to(4503599627370496, -52, 2, 9, 2305843009213693952, -61);
+
+        // 1e20
+        check_normalize_to(6103515625000000, 14, 0 ,11, 12500000000000000000, 3);
+        check_normalize_to(6103515625000000, 14, 2, 9, 3125000000000000000, 5);
+
+        // 1e40
+        check_normalize_to(8271806125530277, 80, 0, 11, 16940658945086007296, 69);
+        check_normalize_to(8271806125530277, 80, 2, 9, 4235164736271501824, 71);
+
+        // 1e150
+        check_normalize_to(5503284107318959, 446, 0, 11, 11270725851789228032, 435);
+        check_normalize_to(5503284107318959, 446, 2, 9, 2817681462947307008, 437);
+
+        // 1e250
+        check_normalize_to(6290184345309700, 778, 0, 11, 12882297539194265600, 767);
+        check_normalize_to(6290184345309700, 778, 2, 9, 3220574384798566400, 769);
+
+        // max value
+        check_normalize_to(9007199254740991, 971, 0, 11, 18446744073709549568, 960);
+        check_normalize_to(9007199254740991, 971, 2, 9, 4611686018427387392, 962);
+    }
+
     #[test]
     fn normalized_boundaries_test() {
         let fp = ExtendedFloat80 {mant: 4503599627370496, exp: -50};
@@ -602,83 +721,83 @@ mod tests {
     #[test]
     fn from_int_test() {
         // 0
-        assert_eq!(ExtendedFloat80::from_u8(0), ExtendedFloat80 {mant: 0, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u16(0), ExtendedFloat80 {mant: 0, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u32(0), ExtendedFloat80 {mant: 0, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u64(0), ExtendedFloat80 {mant: 0, exp: 0});
-        assert_eq!(ExtendedFloat160::from_u128(0), ExtendedFloat160 {mant: 0, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u8(0), (0, 0).into());
+        assert_eq!(ExtendedFloat80::from_u16(0), (0, 0).into());
+        assert_eq!(ExtendedFloat80::from_u32(0), (0, 0).into());
+        assert_eq!(ExtendedFloat80::from_u64(0), (0, 0).into());
+        assert_eq!(ExtendedFloat160::from_u128(0), (0, 0).into());
 
         // 1
-        assert_eq!(ExtendedFloat80::from_u8(1), ExtendedFloat80 {mant: 1, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u16(1), ExtendedFloat80 {mant: 1, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u32(1), ExtendedFloat80 {mant: 1, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u64(1), ExtendedFloat80 {mant: 1, exp: 0});
-        assert_eq!(ExtendedFloat160::from_u128(1), ExtendedFloat160 {mant: 1, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u8(1), (1, 0).into());
+        assert_eq!(ExtendedFloat80::from_u16(1), (1, 0).into());
+        assert_eq!(ExtendedFloat80::from_u32(1), (1, 0).into());
+        assert_eq!(ExtendedFloat80::from_u64(1), (1, 0).into());
+        assert_eq!(ExtendedFloat160::from_u128(1), (1, 0).into());
 
         // (2^8-1) 255
-        assert_eq!(ExtendedFloat80::from_u8(255), ExtendedFloat80 {mant: 255, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u16(255), ExtendedFloat80 {mant: 255, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u32(255), ExtendedFloat80 {mant: 255, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u64(255), ExtendedFloat80 {mant: 255, exp: 0});
-        assert_eq!(ExtendedFloat160::from_u128(255), ExtendedFloat160 {mant: 255, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u8(255), (255, 0).into());
+        assert_eq!(ExtendedFloat80::from_u16(255), (255, 0).into());
+        assert_eq!(ExtendedFloat80::from_u32(255), (255, 0).into());
+        assert_eq!(ExtendedFloat80::from_u64(255), (255, 0).into());
+        assert_eq!(ExtendedFloat160::from_u128(255), (255, 0).into());
 
         // (2^16-1) 65535
-        assert_eq!(ExtendedFloat80::from_u16(65535), ExtendedFloat80 {mant: 65535, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u32(65535), ExtendedFloat80 {mant: 65535, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u64(65535), ExtendedFloat80 {mant: 65535, exp: 0});
-        assert_eq!(ExtendedFloat160::from_u128(65535), ExtendedFloat160 {mant: 65535, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u16(65535), (65535, 0).into());
+        assert_eq!(ExtendedFloat80::from_u32(65535), (65535, 0).into());
+        assert_eq!(ExtendedFloat80::from_u64(65535), (65535, 0).into());
+        assert_eq!(ExtendedFloat160::from_u128(65535), (65535, 0).into());
 
         // (2^32-1) 4294967295
-        assert_eq!(ExtendedFloat80::from_u32(4294967295), ExtendedFloat80 {mant: 4294967295, exp: 0});
-        assert_eq!(ExtendedFloat80::from_u64(4294967295), ExtendedFloat80 {mant: 4294967295, exp: 0});
-        assert_eq!(ExtendedFloat160::from_u128(4294967295), ExtendedFloat160 {mant: 4294967295, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u32(4294967295), (4294967295, 0).into());
+        assert_eq!(ExtendedFloat80::from_u64(4294967295), (4294967295, 0).into());
+        assert_eq!(ExtendedFloat160::from_u128(4294967295), (4294967295, 0).into());
 
         // (2^64-1) 18446744073709551615
-        assert_eq!(ExtendedFloat80::from_u64(18446744073709551615), ExtendedFloat80 {mant: 18446744073709551615, exp: 0});
-        assert_eq!(ExtendedFloat160::from_u128(18446744073709551615), ExtendedFloat160 {mant: 18446744073709551615, exp: 0});
+        assert_eq!(ExtendedFloat80::from_u64(18446744073709551615), (18446744073709551615, 0).into());
+        assert_eq!(ExtendedFloat160::from_u128(18446744073709551615), (18446744073709551615, 0).into());
 
         // (2^128-1) 340282366920938463463374607431768211455
-        assert_eq!(ExtendedFloat160::from_u128(340282366920938463463374607431768211455), ExtendedFloat160 {mant: 340282366920938463463374607431768211455, exp: 0});
+        assert_eq!(ExtendedFloat160::from_u128(340282366920938463463374607431768211455), (340282366920938463463374607431768211455, 0).into());
     }
 
     #[test]
     fn from_f32_test() {
-        assert_eq!(ExtendedFloat80::from_f32(0.), ExtendedFloat80 {mant: 0, exp: -149});
-        assert_eq!(ExtendedFloat80::from_f32(-0.), ExtendedFloat80 {mant: 0, exp: -149});
+        assert_eq!(ExtendedFloat80::from_f32(0.), (0, -149).into());
+        assert_eq!(ExtendedFloat80::from_f32(-0.), (0, -149).into());
 
-        assert_eq!(ExtendedFloat80::from_f32(1e-45), ExtendedFloat80 {mant: 1, exp: -149});
-        assert_eq!(ExtendedFloat80::from_f32(1e-40), ExtendedFloat80 {mant: 71362, exp: -149});
-        assert_eq!(ExtendedFloat80::from_f32(2e-40), ExtendedFloat80 {mant: 142725, exp: -149});
-        assert_eq!(ExtendedFloat80::from_f32(1e-20), ExtendedFloat80 {mant: 12379400, exp: -90});
-        assert_eq!(ExtendedFloat80::from_f32(2e-20), ExtendedFloat80 {mant: 12379400, exp: -89});
-        assert_eq!(ExtendedFloat80::from_f32(1.0), ExtendedFloat80 {mant: 8388608, exp: -23});
-        assert_eq!(ExtendedFloat80::from_f32(2.0), ExtendedFloat80 {mant: 8388608, exp: -22});
-        assert_eq!(ExtendedFloat80::from_f32(1e20), ExtendedFloat80 {mant: 11368684, exp: 43});
-        assert_eq!(ExtendedFloat80::from_f32(2e20), ExtendedFloat80 {mant: 11368684, exp: 44});
-        assert_eq!(ExtendedFloat80::from_f32(3.402823e38), ExtendedFloat80 {mant: 16777213, exp: 104});
+        assert_eq!(ExtendedFloat80::from_f32(1e-45), (1, -149).into());
+        assert_eq!(ExtendedFloat80::from_f32(1e-40), (71362, -149).into());
+        assert_eq!(ExtendedFloat80::from_f32(2e-40), (142725, -149).into());
+        assert_eq!(ExtendedFloat80::from_f32(1e-20), (12379400, -90).into());
+        assert_eq!(ExtendedFloat80::from_f32(2e-20), (12379400, -89).into());
+        assert_eq!(ExtendedFloat80::from_f32(1.0), (8388608, -23).into());
+        assert_eq!(ExtendedFloat80::from_f32(2.0), (8388608, -22).into());
+        assert_eq!(ExtendedFloat80::from_f32(1e20), (11368684, 43).into());
+        assert_eq!(ExtendedFloat80::from_f32(2e20), (11368684, 44).into());
+        assert_eq!(ExtendedFloat80::from_f32(3.402823e38), (16777213, 104).into());
     }
 
     #[test]
     fn from_f64_test() {
-        assert_eq!(ExtendedFloat80::from_f64(0.), ExtendedFloat80 {mant: 0, exp: -1074});
-        assert_eq!(ExtendedFloat80::from_f64(-0.), ExtendedFloat80 {mant: 0, exp: -1074});
-        assert_eq!(ExtendedFloat80::from_f64(5e-324), ExtendedFloat80 {mant: 1, exp: -1074});
-        assert_eq!(ExtendedFloat80::from_f64(1e-250), ExtendedFloat80 {mant: 6448907850777164, exp: -883});
-        assert_eq!(ExtendedFloat80::from_f64(1e-150), ExtendedFloat80 {mant: 7371020360979573, exp: -551});
-        assert_eq!(ExtendedFloat80::from_f64(1e-45), ExtendedFloat80 {mant: 6427752177035961, exp: -202});
-        assert_eq!(ExtendedFloat80::from_f64(1e-40), ExtendedFloat80 {mant: 4903985730770844, exp: -185});
-        assert_eq!(ExtendedFloat80::from_f64(2e-40), ExtendedFloat80 {mant: 4903985730770844, exp: -184});
-        assert_eq!(ExtendedFloat80::from_f64(1e-20), ExtendedFloat80 {mant: 6646139978924579, exp: -119});
-        assert_eq!(ExtendedFloat80::from_f64(2e-20), ExtendedFloat80 {mant: 6646139978924579, exp: -118});
-        assert_eq!(ExtendedFloat80::from_f64(1.0), ExtendedFloat80 {mant: 4503599627370496, exp: -52});
-        assert_eq!(ExtendedFloat80::from_f64(2.0), ExtendedFloat80 {mant: 4503599627370496, exp: -51});
-        assert_eq!(ExtendedFloat80::from_f64(1e20), ExtendedFloat80 {mant: 6103515625000000, exp: 14});
-        assert_eq!(ExtendedFloat80::from_f64(2e20), ExtendedFloat80 {mant: 6103515625000000, exp: 15});
-        assert_eq!(ExtendedFloat80::from_f64(1e40), ExtendedFloat80 {mant: 8271806125530277, exp: 80});
-        assert_eq!(ExtendedFloat80::from_f64(2e40), ExtendedFloat80 {mant: 8271806125530277, exp: 81});
-        assert_eq!(ExtendedFloat80::from_f64(1e150), ExtendedFloat80 {mant: 5503284107318959, exp: 446});
-        assert_eq!(ExtendedFloat80::from_f64(1e250), ExtendedFloat80 {mant: 6290184345309700, exp: 778});
-        assert_eq!(ExtendedFloat80::from_f64(1.7976931348623157e308), ExtendedFloat80 {mant: 9007199254740991, exp: 971});
+        assert_eq!(ExtendedFloat80::from_f64(0.), (0, -1074).into());
+        assert_eq!(ExtendedFloat80::from_f64(-0.), (0, -1074).into());
+        assert_eq!(ExtendedFloat80::from_f64(5e-324), (1, -1074).into());
+        assert_eq!(ExtendedFloat80::from_f64(1e-250), (6448907850777164, -883).into());
+        assert_eq!(ExtendedFloat80::from_f64(1e-150), (7371020360979573, -551).into());
+        assert_eq!(ExtendedFloat80::from_f64(1e-45), (6427752177035961, -202).into());
+        assert_eq!(ExtendedFloat80::from_f64(1e-40), (4903985730770844, -185).into());
+        assert_eq!(ExtendedFloat80::from_f64(2e-40), (4903985730770844, -184).into());
+        assert_eq!(ExtendedFloat80::from_f64(1e-20), (6646139978924579, -119).into());
+        assert_eq!(ExtendedFloat80::from_f64(2e-20), (6646139978924579, -118).into());
+        assert_eq!(ExtendedFloat80::from_f64(1.0), (4503599627370496, -52).into());
+        assert_eq!(ExtendedFloat80::from_f64(2.0), (4503599627370496, -51).into());
+        assert_eq!(ExtendedFloat80::from_f64(1e20), (6103515625000000, 14).into());
+        assert_eq!(ExtendedFloat80::from_f64(2e20), (6103515625000000, 15).into());
+        assert_eq!(ExtendedFloat80::from_f64(1e40), (8271806125530277, 80).into());
+        assert_eq!(ExtendedFloat80::from_f64(2e40), (8271806125530277, 81).into());
+        assert_eq!(ExtendedFloat80::from_f64(1e150), (5503284107318959, 446).into());
+        assert_eq!(ExtendedFloat80::from_f64(1e250), (6290184345309700, 778).into());
+        assert_eq!(ExtendedFloat80::from_f64(1.7976931348623157e308), (9007199254740991, 971).into());
     }
 
     fn assert_normalized_eq<M: Mantissa>(mut x: ExtendedFloat<M>, mut y: ExtendedFloat<M>) {

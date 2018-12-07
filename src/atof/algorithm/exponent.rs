@@ -42,19 +42,42 @@ pub(super) unsafe extern "C" fn parse_exponent(state: &mut ParseState, base: u32
     }
 }
 
-/// Calculate the exact exponent without overflow.
+/// Calculate the scientific notation exponent without overflow.
 ///
-/// Remove the number of digits that contributed to the mantissa past
-/// the dot, and add the number of truncated digits from the mantissa.
+/// For example, 0.1 would be -1, and 10 would be 1
+/// in base 10.
 #[inline]
 #[cfg(any(test, not(feature = "imprecise")))]
-pub(super) extern "C" fn normalize_exponent(exponent: i32, dot_shift: usize, truncated: usize)
+pub(super) fn scientific_exponent(exponent: i32, integer_digits: usize, fraction_digits: usize)
     -> i32
 {
-    if dot_shift > truncated {
-        unwrap_or_min(exponent.checked_sub((dot_shift - truncated).try_i32_or_max()))
+    if integer_digits == 0 {
+        let fraction_digits = fraction_digits.try_i32_or_max();
+        let sci_exponent = exponent
+            .checked_sub(fraction_digits)
+            .and_then(|v| v.checked_sub(1));
+        unwrap_or_min(sci_exponent)
     } else {
-        unwrap_or_max(exponent.checked_add((truncated - dot_shift).try_i32_or_max()))
+        let integer_shift = (integer_digits - 1).try_i32_or_max();
+        let sci_exponent = exponent.checked_add(integer_shift);
+        unwrap_or_max(sci_exponent)
+    }
+}
+
+/// Calculate the mantissa exponent without overflow.
+///
+/// Remove the number of digits that contributed to the mantissa past
+/// the dot, and add the number of truncated digits from the mantissa,
+/// to calculate the scaling factor for the mantissa from a raw exponent.
+#[inline]
+#[cfg(any(test, not(feature = "imprecise")))]
+pub(super) extern "C" fn mantissa_exponent(raw_exponent: i32, fraction_digits: usize, truncated: usize)
+    -> i32
+{
+    if fraction_digits > truncated {
+        unwrap_or_min(raw_exponent.checked_sub((fraction_digits - truncated).try_i32_or_max()))
+    } else {
+        unwrap_or_max(raw_exponent.checked_add((truncated - fraction_digits).try_i32_or_max()))
     }
 }
 
@@ -75,6 +98,26 @@ pub(super) extern "C" fn binary_factor(base: u32)
 
     #[cfg(not(feature = "table"))] {
         (base as f64).log2()
+    }
+}
+
+/// Calculate the integral ceiling of the binary factor from a basen number.
+#[inline]
+#[cfg(any(test, not(feature = "imprecise")))]
+pub(super) extern "C" fn integral_binary_factor(base: u32)
+    -> u32
+{
+    // logic error, disable in release builds
+    debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
+
+    #[cfg(feature = "table")] {
+        const TABLE: [u32; 35] = [1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6];
+        let idx: usize = as_cast(base - 2);
+        unsafe { *TABLE.get_unchecked(idx) }
+    }
+
+    #[cfg(not(feature = "table"))] {
+        (base as f64).log2().ceil().as_u32()
     }
 }
 
@@ -211,13 +254,36 @@ mod test {
     }
 
     #[test]
-    fn normalize_exponent_test() {
-        assert_eq!(normalize_exponent(10, 5, 0), 5);
-        assert_eq!(normalize_exponent(0, 5, 0), -5);
-        assert_eq!(normalize_exponent(i32::max_value(), 5, 0), i32::max_value()-5);
-        assert_eq!(normalize_exponent(i32::max_value(), 0, 5), i32::max_value());
-        assert_eq!(normalize_exponent(i32::min_value(), 5, 0), i32::min_value());
-        assert_eq!(normalize_exponent(i32::min_value(), 0, 5), i32::min_value()+5);
+    fn scientific_exponent_test() {
+        // 0 digits in the integer
+        assert_eq!(scientific_exponent(0, 0, 5), -6);
+        assert_eq!(scientific_exponent(10, 0, 5), 4);
+        assert_eq!(scientific_exponent(-10, 0, 5), -16);
+
+        // >0 digits in the integer
+        assert_eq!(scientific_exponent(0, 1, 5), 0);
+        assert_eq!(scientific_exponent(0, 2, 5), 1);
+        assert_eq!(scientific_exponent(0, 2, 20), 1);
+        assert_eq!(scientific_exponent(10, 2, 20), 11);
+        assert_eq!(scientific_exponent(-10, 2, 20), -9);
+
+        // Underflow
+        assert_eq!(scientific_exponent(i32::min_value(), 0, 0), i32::min_value());
+        assert_eq!(scientific_exponent(i32::min_value(), 0, 5), i32::min_value());
+
+        // Overflow
+        assert_eq!(scientific_exponent(i32::max_value(), 0, 0), i32::max_value()-1);
+        assert_eq!(scientific_exponent(i32::max_value(), 5, 0), i32::max_value());
+    }
+
+    #[test]
+    fn mantissa_exponent_test() {
+        assert_eq!(mantissa_exponent(10, 5, 0), 5);
+        assert_eq!(mantissa_exponent(0, 5, 0), -5);
+        assert_eq!(mantissa_exponent(i32::max_value(), 5, 0), i32::max_value()-5);
+        assert_eq!(mantissa_exponent(i32::max_value(), 0, 5), i32::max_value());
+        assert_eq!(mantissa_exponent(i32::min_value(), 5, 0), i32::min_value());
+        assert_eq!(mantissa_exponent(i32::min_value(), 0, 5), i32::min_value()+5);
     }
 
     #[test]
@@ -225,6 +291,14 @@ mod test {
         const TABLE: [f64; 35] = [1.0, 1.584962500721156, 2.0, 2.321928094887362, 2.584962500721156, 2.807354922057604, 3.0, 3.169925001442312, 3.321928094887362, 3.4594316186372973, 3.584962500721156, 3.700439718141092, 3.807354922057604, 3.9068905956085187, 4.0, 4.087462841250339, 4.169925001442312, 4.247927513443585, 4.321928094887363, 4.392317422778761, 4.459431618637297, 4.523561956057013, 4.584962500721156, 4.643856189774724, 4.700439718141092, 4.754887502163468, 4.807354922057604, 4.857980995127572, 4.906890595608519, 4.954196310386875, 5.0, 5.044394119358453, 5.087462841250339, 5.129283016944966, 5.169925001442312];
         for (idx, base) in (2..37).enumerate() {
             assert_f64_eq!(binary_factor(base), TABLE[idx]);
+        }
+    }
+
+    #[test]
+    fn integral_binary_factor_test() {
+        const TABLE: [u32; 35] = [1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6];
+        for (idx, base) in (2..37).enumerate() {
+            assert_f64_eq!(integral_binary_factor(base), TABLE[idx]);
         }
     }
 

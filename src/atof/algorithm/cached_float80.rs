@@ -23,12 +23,12 @@
 //! SMALL_EXPONENT_STR = "const BASE{0}_SMALL_EXPONENT: [i32; {1}] = ["
 //! LARGE_MANTISSA_STR = "const BASE{0}_LARGE_MANTISSA: [u64; {1}] = ["
 //! LARGE_EXPONENT_STR = "const BASE{0}_LARGE_EXPONENT: [i32; {1}] = ["
-//! SMALL_INT_STR = "const BASE{0}_SMALL_INT_POWERS: [u64; BASE{0}_STEP as usize] = {1};"
+//! SMALL_INT_STR = "const BASE{0}_SMALL_INT_POWERS: [u64; {1}] = {2};"
 //! BIAS_STR = "const BASE{0}_BIAS: i32 = {1};"
 //! EXP_STR = "// {}^{}"
 //! POWER_STR = """pub(crate) const BASE{0}_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {{
-//!     small: ExtendedPowers {{ mant: &BASE{0}_SMALL_MANTISSA, exp: &BASE{0}_SMALL_EXPONENT }},
-//!     large: ExtendedPowers {{ mant: &BASE{0}_LARGE_MANTISSA, exp: &BASE{0}_LARGE_EXPONENT }},
+//!     small: ExtendedFloatArray {{ mant: &BASE{0}_SMALL_MANTISSA, exp: &BASE{0}_SMALL_EXPONENT }},
+//!     large: ExtendedFloatArray {{ mant: &BASE{0}_LARGE_MANTISSA, exp: &BASE{0}_LARGE_EXPONENT }},
 //!     small_int: &BASE{0}_SMALL_INT_POWERS,
 //!     step: BASE{0}_STEP,
 //!     bias: BASE{0}_BIAS,
@@ -129,7 +129,7 @@
 //!     print_array(base, SMALL_EXPONENT_STR, small, 1)
 //!     print_array(base, LARGE_MANTISSA_STR, large, 0)
 //!     print_array(base, LARGE_EXPONENT_STR, large, 1)
-//!     print(SMALL_INT_STR.format(base, ints))
+//!     print(SMALL_INT_STR.format(base, len(ints), ints))
 //!     print(STEP_STR.format(base, step))
 //!     print(BIAS_STR.format(base, bias))
 //!
@@ -157,10 +157,7 @@
 //!     generate()
 //! ```
 
-use super::cached::{ExtendedPowers, ModeratePathPowers};
-
-// TODO(ahuszagh) Should be able to calculate the slow path powers from
-// these powers....
+use super::cached::{ExtendedFloatArray, ModeratePathPowers};
 
 // LOW-LEVEL
 // ---------
@@ -353,7 +350,7 @@ const BASE3_LARGE_EXPONENT: [i32; 69] = [
     919,                      // 3^620
     951,                      // 3^640
 ];
-const BASE3_SMALL_INT_POWERS: [u64; BASE3_STEP as usize] = [1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049, 177147, 531441, 1594323, 4782969, 14348907, 43046721, 129140163, 387420489, 1162261467];
+const BASE3_SMALL_INT_POWERS: [u64; 20] = [1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049, 177147, 531441, 1594323, 4782969, 14348907, 43046721, 129140163, 387420489, 1162261467];
 const BASE3_STEP: i32 = 20;
 const BASE3_BIAS: i32 = 720;
 
@@ -531,7 +528,7 @@ const BASE5_LARGE_EXPONENT: [i32; 68] = [
     912,                      // 5^420
     944,                      // 5^434
 ];
-const BASE5_SMALL_INT_POWERS: [u64; BASE5_STEP as usize] = [1, 5, 25, 125, 625, 3125, 15625, 78125, 390625, 1953125, 9765625, 48828125, 244140625, 1220703125];
+const BASE5_SMALL_INT_POWERS: [u64; 14] = [1, 5, 25, 125, 625, 3125, 15625, 78125, 390625, 1953125, 9765625, 48828125, 244140625, 1220703125];
 const BASE5_STEP: i32 = 14;
 const BASE5_BIAS: i32 = 504;
 
@@ -711,7 +708,7 @@ const BASE6_LARGE_EXPONENT: [i32; 71] = [
     929,                      // 6^384
     960,                      // 6^396
 ];
-const BASE6_SMALL_INT_POWERS: [u64; BASE6_STEP as usize] = [1, 6, 36, 216, 1296, 7776, 46656, 279936, 1679616, 10077696, 60466176, 362797056];
+const BASE6_SMALL_INT_POWERS: [u64; 12] = [1, 6, 36, 216, 1296, 7776, 46656, 279936, 1679616, 10077696, 60466176, 362797056];
 const BASE6_STEP: i32 = 12;
 const BASE6_BIAS: i32 = 444;
 
@@ -889,7 +886,7 @@ const BASE7_LARGE_EXPONENT: [i32; 71] = [
     925,                      // 7^352
     956,                      // 7^363
 ];
-const BASE7_SMALL_INT_POWERS: [u64; BASE7_STEP as usize] = [1, 7, 49, 343, 2401, 16807, 117649, 823543, 5764801, 40353607, 282475249];
+const BASE7_SMALL_INT_POWERS: [u64; 11] = [1, 7, 49, 343, 2401, 16807, 117649, 823543, 5764801, 40353607, 282475249];
 const BASE7_STEP: i32 = 11;
 const BASE7_BIAS: i32 = 407;
 
@@ -1061,7 +1058,7 @@ const BASE9_LARGE_EXPONENT: [i32; 69] = [
     919,                      // 9^310
     951,                      // 9^320
 ];
-const BASE9_SMALL_INT_POWERS: [u64; BASE9_STEP as usize] = [1, 9, 81, 729, 6561, 59049, 531441, 4782969, 43046721, 387420489];
+const BASE9_SMALL_INT_POWERS: [u64; 10] = [1, 9, 81, 729, 6561, 59049, 531441, 4782969, 43046721, 387420489];
 const BASE9_STEP: i32 = 10;
 const BASE9_BIAS: i32 = 360;
 
@@ -1227,7 +1224,7 @@ const BASE10_LARGE_EXPONENT: [i32; 66] = [
     900,                      // 10^290
     933,                      // 10^300
 ];
-const BASE10_SMALL_INT_POWERS: [u64; BASE10_STEP as usize] = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000];
+const BASE10_SMALL_INT_POWERS: [u64; 10] = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000];
 const BASE10_STEP: i32 = 10;
 const BASE10_BIAS: i32 = 350;
 
@@ -1399,7 +1396,7 @@ const BASE11_LARGE_EXPONENT: [i32; 70] = [
     902,                      // 11^279
     933,                      // 11^288
 ];
-const BASE11_SMALL_INT_POWERS: [u64; BASE11_STEP as usize] = [1, 11, 121, 1331, 14641, 161051, 1771561, 19487171, 214358881];
+const BASE11_SMALL_INT_POWERS: [u64; 9] = [1, 11, 121, 1331, 14641, 161051, 1771561, 19487171, 214358881];
 const BASE11_STEP: i32 = 9;
 const BASE11_BIAS: i32 = 333;
 
@@ -1567,7 +1564,7 @@ const BASE12_LARGE_EXPONENT: [i32; 68] = [
     904,                      // 12^270
     937,                      // 12^279
 ];
-const BASE12_SMALL_INT_POWERS: [u64; BASE12_STEP as usize] = [1, 12, 144, 1728, 20736, 248832, 2985984, 35831808, 429981696];
+const BASE12_SMALL_INT_POWERS: [u64; 9] = [1, 12, 144, 1728, 20736, 248832, 2985984, 35831808, 429981696];
 const BASE12_STEP: i32 = 9;
 const BASE12_BIAS: i32 = 324;
 
@@ -1745,7 +1742,7 @@ const BASE13_LARGE_EXPONENT: [i32; 74] = [
     913,                      // 13^264
     943,                      // 13^272
 ];
-const BASE13_SMALL_INT_POWERS: [u64; BASE13_STEP as usize] = [1, 13, 169, 2197, 28561, 371293, 4826809, 62748517];
+const BASE13_SMALL_INT_POWERS: [u64; 8] = [1, 13, 169, 2197, 28561, 371293, 4826809, 62748517];
 const BASE13_STEP: i32 = 8;
 const BASE13_BIAS: i32 = 312;
 
@@ -1919,7 +1916,7 @@ const BASE14_LARGE_EXPONENT: [i32; 72] = [
     911,                      // 14^256
     942,                      // 14^264
 ];
-const BASE14_SMALL_INT_POWERS: [u64; BASE14_STEP as usize] = [1, 14, 196, 2744, 38416, 537824, 7529536, 105413504];
+const BASE14_SMALL_INT_POWERS: [u64; 8] = [1, 14, 196, 2744, 38416, 537824, 7529536, 105413504];
 const BASE14_STEP: i32 = 8;
 const BASE14_BIAS: i32 = 304;
 
@@ -2089,7 +2086,7 @@ const BASE15_LARGE_EXPONENT: [i32; 70] = [
     905,                      // 15^248
     937,                      // 15^256
 ];
-const BASE15_SMALL_INT_POWERS: [u64; BASE15_STEP as usize] = [1, 15, 225, 3375, 50625, 759375, 11390625, 170859375];
+const BASE15_SMALL_INT_POWERS: [u64; 8] = [1, 15, 225, 3375, 50625, 759375, 11390625, 170859375];
 const BASE15_STEP: i32 = 8;
 const BASE15_BIAS: i32 = 296;
 
@@ -2253,7 +2250,7 @@ const BASE17_LARGE_EXPONENT: [i32; 67] = [
     917,                      // 17^240
     950,                      // 17^248
 ];
-const BASE17_SMALL_INT_POWERS: [u64; BASE17_STEP as usize] = [1, 17, 289, 4913, 83521, 1419857, 24137569, 410338673];
+const BASE17_SMALL_INT_POWERS: [u64; 8] = [1, 17, 289, 4913, 83521, 1419857, 24137569, 410338673];
 const BASE17_STEP: i32 = 8;
 const BASE17_BIAS: i32 = 280;
 
@@ -2431,7 +2428,7 @@ const BASE18_LARGE_EXPONENT: [i32; 75] = [
     929,                      // 18^238
     958,                      // 18^245
 ];
-const BASE18_SMALL_INT_POWERS: [u64; BASE18_STEP as usize] = [1, 18, 324, 5832, 104976, 1889568, 34012224];
+const BASE18_SMALL_INT_POWERS: [u64; 7] = [1, 18, 324, 5832, 104976, 1889568, 34012224];
 const BASE18_STEP: i32 = 7;
 const BASE18_BIAS: i32 = 273;
 
@@ -2607,7 +2604,7 @@ const BASE19_LARGE_EXPONENT: [i32; 74] = [
     918,                      // 19^231
     948,                      // 19^238
 ];
-const BASE19_SMALL_INT_POWERS: [u64; BASE19_STEP as usize] = [1, 19, 361, 6859, 130321, 2476099, 47045881];
+const BASE19_SMALL_INT_POWERS: [u64; 7] = [1, 19, 361, 6859, 130321, 2476099, 47045881];
 const BASE19_STEP: i32 = 7;
 const BASE19_BIAS: i32 = 273;
 
@@ -2779,7 +2776,7 @@ const BASE20_LARGE_EXPONENT: [i32; 72] = [
     905,                      // 20^224
     935,                      // 20^231
 ];
-const BASE20_SMALL_INT_POWERS: [u64; BASE20_STEP as usize] = [1, 20, 400, 8000, 160000, 3200000, 64000000];
+const BASE20_SMALL_INT_POWERS: [u64; 7] = [1, 20, 400, 8000, 160000, 3200000, 64000000];
 const BASE20_STEP: i32 = 7;
 const BASE20_BIAS: i32 = 266;
 
@@ -2951,7 +2948,7 @@ const BASE21_LARGE_EXPONENT: [i32; 72] = [
     920,                      // 21^224
     951,                      // 21^231
 ];
-const BASE21_SMALL_INT_POWERS: [u64; BASE21_STEP as usize] = [1, 21, 441, 9261, 194481, 4084101, 85766121];
+const BASE21_SMALL_INT_POWERS: [u64; 7] = [1, 21, 441, 9261, 194481, 4084101, 85766121];
 const BASE21_STEP: i32 = 7;
 const BASE21_BIAS: i32 = 266;
 
@@ -3119,7 +3116,7 @@ const BASE22_LARGE_EXPONENT: [i32; 70] = [
     904,                      // 22^217
     935,                      // 22^224
 ];
-const BASE22_SMALL_INT_POWERS: [u64; BASE22_STEP as usize] = [1, 22, 484, 10648, 234256, 5153632, 113379904];
+const BASE22_SMALL_INT_POWERS: [u64; 7] = [1, 22, 484, 10648, 234256, 5153632, 113379904];
 const BASE22_STEP: i32 = 7;
 const BASE22_BIAS: i32 = 259;
 
@@ -3285,7 +3282,7 @@ const BASE23_LARGE_EXPONENT: [i32; 69] = [
     918,                      // 23^217
     950,                      // 23^224
 ];
-const BASE23_SMALL_INT_POWERS: [u64; BASE23_STEP as usize] = [1, 23, 529, 12167, 279841, 6436343, 148035889];
+const BASE23_SMALL_INT_POWERS: [u64; 7] = [1, 23, 529, 12167, 279841, 6436343, 148035889];
 const BASE23_STEP: i32 = 7;
 const BASE23_BIAS: i32 = 252;
 
@@ -3449,7 +3446,7 @@ const BASE24_LARGE_EXPONENT: [i32; 68] = [
     899,                      // 24^210
     931,                      // 24^217
 ];
-const BASE24_SMALL_INT_POWERS: [u64; BASE24_STEP as usize] = [1, 24, 576, 13824, 331776, 7962624, 191102976];
+const BASE24_SMALL_INT_POWERS: [u64; 7] = [1, 24, 576, 13824, 331776, 7962624, 191102976];
 const BASE24_STEP: i32 = 7;
 const BASE24_BIAS: i32 = 252;
 
@@ -3613,7 +3610,7 @@ const BASE25_LARGE_EXPONENT: [i32; 68] = [
     912,                      // 25^210
     944,                      // 25^217
 ];
-const BASE25_SMALL_INT_POWERS: [u64; BASE25_STEP as usize] = [1, 25, 625, 15625, 390625, 9765625, 244140625];
+const BASE25_SMALL_INT_POWERS: [u64; 7] = [1, 25, 625, 15625, 390625, 9765625, 244140625];
 const BASE25_STEP: i32 = 7;
 const BASE25_BIAS: i32 = 252;
 
@@ -3775,7 +3772,7 @@ const BASE26_LARGE_EXPONENT: [i32; 67] = [
     924,                      // 26^210
     956,                      // 26^217
 ];
-const BASE26_SMALL_INT_POWERS: [u64; BASE26_STEP as usize] = [1, 26, 676, 17576, 456976, 11881376, 308915776];
+const BASE26_SMALL_INT_POWERS: [u64; 7] = [1, 26, 676, 17576, 456976, 11881376, 308915776];
 const BASE26_STEP: i32 = 7;
 const BASE26_BIAS: i32 = 245;
 
@@ -3953,7 +3950,7 @@ const BASE27_LARGE_EXPONENT: [i32; 76] = [
     906,                      // 27^204
     935,                      // 27^210
 ];
-const BASE27_SMALL_INT_POWERS: [u64; BASE27_STEP as usize] = [1, 27, 729, 19683, 531441, 14348907];
+const BASE27_SMALL_INT_POWERS: [u64; 6] = [1, 27, 729, 19683, 531441, 14348907];
 const BASE27_STEP: i32 = 6;
 const BASE27_BIAS: i32 = 240;
 
@@ -4131,7 +4128,7 @@ const BASE28_LARGE_EXPONENT: [i32; 76] = [
     917,                      // 28^204
     946,                      // 28^210
 ];
-const BASE28_SMALL_INT_POWERS: [u64; BASE28_STEP as usize] = [1, 28, 784, 21952, 614656, 17210368];
+const BASE28_SMALL_INT_POWERS: [u64; 6] = [1, 28, 784, 21952, 614656, 17210368];
 const BASE28_STEP: i32 = 6;
 const BASE28_BIAS: i32 = 240;
 
@@ -4309,7 +4306,7 @@ const BASE29_LARGE_EXPONENT: [i32; 76] = [
     928,                      // 29^204
     957,                      // 29^210
 ];
-const BASE29_SMALL_INT_POWERS: [u64; BASE29_STEP as usize] = [1, 29, 841, 24389, 707281, 20511149];
+const BASE29_SMALL_INT_POWERS: [u64; 6] = [1, 29, 841, 24389, 707281, 20511149];
 const BASE29_STEP: i32 = 6;
 const BASE29_BIAS: i32 = 240;
 
@@ -4483,7 +4480,7 @@ const BASE30_LARGE_EXPONENT: [i32; 74] = [
     908,                      // 30^198
     938,                      // 30^204
 ];
-const BASE30_SMALL_INT_POWERS: [u64; BASE30_STEP as usize] = [1, 30, 900, 27000, 810000, 24300000];
+const BASE30_SMALL_INT_POWERS: [u64; 6] = [1, 30, 900, 27000, 810000, 24300000];
 const BASE30_STEP: i32 = 6;
 const BASE30_BIAS: i32 = 234;
 
@@ -4657,7 +4654,7 @@ const BASE31_LARGE_EXPONENT: [i32; 74] = [
     917,                      // 31^198
     947,                      // 31^204
 ];
-const BASE31_SMALL_INT_POWERS: [u64; BASE31_STEP as usize] = [1, 31, 961, 29791, 923521, 28629151];
+const BASE31_SMALL_INT_POWERS: [u64; 6] = [1, 31, 961, 29791, 923521, 28629151];
 const BASE31_STEP: i32 = 6;
 const BASE31_BIAS: i32 = 234;
 
@@ -4827,7 +4824,7 @@ const BASE33_LARGE_EXPONENT: [i32; 72] = [
     905,                      // 33^192
     935,                      // 33^198
 ];
-const BASE33_SMALL_INT_POWERS: [u64; BASE33_STEP as usize] = [1, 33, 1089, 35937, 1185921, 39135393];
+const BASE33_SMALL_INT_POWERS: [u64; 6] = [1, 33, 1089, 35937, 1185921, 39135393];
 const BASE33_STEP: i32 = 6;
 const BASE33_BIAS: i32 = 228;
 
@@ -4997,7 +4994,7 @@ const BASE34_LARGE_EXPONENT: [i32; 72] = [
     913,                      // 34^192
     944,                      // 34^198
 ];
-const BASE34_SMALL_INT_POWERS: [u64; BASE34_STEP as usize] = [1, 34, 1156, 39304, 1336336, 45435424];
+const BASE34_SMALL_INT_POWERS: [u64; 6] = [1, 34, 1156, 39304, 1336336, 45435424];
 const BASE34_STEP: i32 = 6;
 const BASE34_BIAS: i32 = 228;
 
@@ -5165,7 +5162,7 @@ const BASE35_LARGE_EXPONENT: [i32; 71] = [
     921,                      // 35^192
     952,                      // 35^198
 ];
-const BASE35_SMALL_INT_POWERS: [u64; BASE35_STEP as usize] = [1, 35, 1225, 42875, 1500625, 52521875];
+const BASE35_SMALL_INT_POWERS: [u64; 6] = [1, 35, 1225, 42875, 1500625, 52521875];
 const BASE35_STEP: i32 = 6;
 const BASE35_BIAS: i32 = 222;
 
@@ -5333,7 +5330,7 @@ const BASE36_LARGE_EXPONENT: [i32; 71] = [
     929,                      // 36^192
     960,                      // 36^198
 ];
-const BASE36_SMALL_INT_POWERS: [u64; BASE36_STEP as usize] = [1, 36, 1296, 46656, 1679616, 60466176];
+const BASE36_SMALL_INT_POWERS: [u64; 6] = [1, 36, 1296, 46656, 1679616, 60466176];
 const BASE36_STEP: i32 = 6;
 const BASE36_BIAS: i32 = 222;
 
@@ -5341,240 +5338,240 @@ const BASE36_BIAS: i32 = 222;
 // ----------
 
 pub(crate) const BASE3_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE3_SMALL_MANTISSA, exp: &BASE3_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE3_LARGE_MANTISSA, exp: &BASE3_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE3_SMALL_MANTISSA, exp: &BASE3_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE3_LARGE_MANTISSA, exp: &BASE3_LARGE_EXPONENT },
     small_int: &BASE3_SMALL_INT_POWERS,
     step: BASE3_STEP,
     bias: BASE3_BIAS,
 };
 
 pub(crate) const BASE5_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE5_SMALL_MANTISSA, exp: &BASE5_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE5_LARGE_MANTISSA, exp: &BASE5_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE5_SMALL_MANTISSA, exp: &BASE5_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE5_LARGE_MANTISSA, exp: &BASE5_LARGE_EXPONENT },
     small_int: &BASE5_SMALL_INT_POWERS,
     step: BASE5_STEP,
     bias: BASE5_BIAS,
 };
 
 pub(crate) const BASE6_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE6_SMALL_MANTISSA, exp: &BASE6_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE6_LARGE_MANTISSA, exp: &BASE6_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE6_SMALL_MANTISSA, exp: &BASE6_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE6_LARGE_MANTISSA, exp: &BASE6_LARGE_EXPONENT },
     small_int: &BASE6_SMALL_INT_POWERS,
     step: BASE6_STEP,
     bias: BASE6_BIAS,
 };
 
 pub(crate) const BASE7_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE7_SMALL_MANTISSA, exp: &BASE7_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE7_LARGE_MANTISSA, exp: &BASE7_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE7_SMALL_MANTISSA, exp: &BASE7_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE7_LARGE_MANTISSA, exp: &BASE7_LARGE_EXPONENT },
     small_int: &BASE7_SMALL_INT_POWERS,
     step: BASE7_STEP,
     bias: BASE7_BIAS,
 };
 
 pub(crate) const BASE9_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE9_SMALL_MANTISSA, exp: &BASE9_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE9_LARGE_MANTISSA, exp: &BASE9_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE9_SMALL_MANTISSA, exp: &BASE9_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE9_LARGE_MANTISSA, exp: &BASE9_LARGE_EXPONENT },
     small_int: &BASE9_SMALL_INT_POWERS,
     step: BASE9_STEP,
     bias: BASE9_BIAS,
 };
 
 pub(crate) const BASE10_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE10_SMALL_MANTISSA, exp: &BASE10_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE10_LARGE_MANTISSA, exp: &BASE10_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE10_SMALL_MANTISSA, exp: &BASE10_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE10_LARGE_MANTISSA, exp: &BASE10_LARGE_EXPONENT },
     small_int: &BASE10_SMALL_INT_POWERS,
     step: BASE10_STEP,
     bias: BASE10_BIAS,
 };
 
 pub(crate) const BASE11_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE11_SMALL_MANTISSA, exp: &BASE11_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE11_LARGE_MANTISSA, exp: &BASE11_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE11_SMALL_MANTISSA, exp: &BASE11_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE11_LARGE_MANTISSA, exp: &BASE11_LARGE_EXPONENT },
     small_int: &BASE11_SMALL_INT_POWERS,
     step: BASE11_STEP,
     bias: BASE11_BIAS,
 };
 
 pub(crate) const BASE12_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE12_SMALL_MANTISSA, exp: &BASE12_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE12_LARGE_MANTISSA, exp: &BASE12_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE12_SMALL_MANTISSA, exp: &BASE12_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE12_LARGE_MANTISSA, exp: &BASE12_LARGE_EXPONENT },
     small_int: &BASE12_SMALL_INT_POWERS,
     step: BASE12_STEP,
     bias: BASE12_BIAS,
 };
 
 pub(crate) const BASE13_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE13_SMALL_MANTISSA, exp: &BASE13_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE13_LARGE_MANTISSA, exp: &BASE13_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE13_SMALL_MANTISSA, exp: &BASE13_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE13_LARGE_MANTISSA, exp: &BASE13_LARGE_EXPONENT },
     small_int: &BASE13_SMALL_INT_POWERS,
     step: BASE13_STEP,
     bias: BASE13_BIAS,
 };
 
 pub(crate) const BASE14_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE14_SMALL_MANTISSA, exp: &BASE14_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE14_LARGE_MANTISSA, exp: &BASE14_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE14_SMALL_MANTISSA, exp: &BASE14_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE14_LARGE_MANTISSA, exp: &BASE14_LARGE_EXPONENT },
     small_int: &BASE14_SMALL_INT_POWERS,
     step: BASE14_STEP,
     bias: BASE14_BIAS,
 };
 
 pub(crate) const BASE15_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE15_SMALL_MANTISSA, exp: &BASE15_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE15_LARGE_MANTISSA, exp: &BASE15_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE15_SMALL_MANTISSA, exp: &BASE15_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE15_LARGE_MANTISSA, exp: &BASE15_LARGE_EXPONENT },
     small_int: &BASE15_SMALL_INT_POWERS,
     step: BASE15_STEP,
     bias: BASE15_BIAS,
 };
 
 pub(crate) const BASE17_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE17_SMALL_MANTISSA, exp: &BASE17_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE17_LARGE_MANTISSA, exp: &BASE17_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE17_SMALL_MANTISSA, exp: &BASE17_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE17_LARGE_MANTISSA, exp: &BASE17_LARGE_EXPONENT },
     small_int: &BASE17_SMALL_INT_POWERS,
     step: BASE17_STEP,
     bias: BASE17_BIAS,
 };
 
 pub(crate) const BASE18_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE18_SMALL_MANTISSA, exp: &BASE18_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE18_LARGE_MANTISSA, exp: &BASE18_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE18_SMALL_MANTISSA, exp: &BASE18_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE18_LARGE_MANTISSA, exp: &BASE18_LARGE_EXPONENT },
     small_int: &BASE18_SMALL_INT_POWERS,
     step: BASE18_STEP,
     bias: BASE18_BIAS,
 };
 
 pub(crate) const BASE19_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE19_SMALL_MANTISSA, exp: &BASE19_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE19_LARGE_MANTISSA, exp: &BASE19_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE19_SMALL_MANTISSA, exp: &BASE19_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE19_LARGE_MANTISSA, exp: &BASE19_LARGE_EXPONENT },
     small_int: &BASE19_SMALL_INT_POWERS,
     step: BASE19_STEP,
     bias: BASE19_BIAS,
 };
 
 pub(crate) const BASE20_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE20_SMALL_MANTISSA, exp: &BASE20_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE20_LARGE_MANTISSA, exp: &BASE20_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE20_SMALL_MANTISSA, exp: &BASE20_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE20_LARGE_MANTISSA, exp: &BASE20_LARGE_EXPONENT },
     small_int: &BASE20_SMALL_INT_POWERS,
     step: BASE20_STEP,
     bias: BASE20_BIAS,
 };
 
 pub(crate) const BASE21_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE21_SMALL_MANTISSA, exp: &BASE21_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE21_LARGE_MANTISSA, exp: &BASE21_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE21_SMALL_MANTISSA, exp: &BASE21_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE21_LARGE_MANTISSA, exp: &BASE21_LARGE_EXPONENT },
     small_int: &BASE21_SMALL_INT_POWERS,
     step: BASE21_STEP,
     bias: BASE21_BIAS,
 };
 
 pub(crate) const BASE22_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE22_SMALL_MANTISSA, exp: &BASE22_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE22_LARGE_MANTISSA, exp: &BASE22_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE22_SMALL_MANTISSA, exp: &BASE22_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE22_LARGE_MANTISSA, exp: &BASE22_LARGE_EXPONENT },
     small_int: &BASE22_SMALL_INT_POWERS,
     step: BASE22_STEP,
     bias: BASE22_BIAS,
 };
 
 pub(crate) const BASE23_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE23_SMALL_MANTISSA, exp: &BASE23_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE23_LARGE_MANTISSA, exp: &BASE23_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE23_SMALL_MANTISSA, exp: &BASE23_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE23_LARGE_MANTISSA, exp: &BASE23_LARGE_EXPONENT },
     small_int: &BASE23_SMALL_INT_POWERS,
     step: BASE23_STEP,
     bias: BASE23_BIAS,
 };
 
 pub(crate) const BASE24_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE24_SMALL_MANTISSA, exp: &BASE24_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE24_LARGE_MANTISSA, exp: &BASE24_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE24_SMALL_MANTISSA, exp: &BASE24_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE24_LARGE_MANTISSA, exp: &BASE24_LARGE_EXPONENT },
     small_int: &BASE24_SMALL_INT_POWERS,
     step: BASE24_STEP,
     bias: BASE24_BIAS,
 };
 
 pub(crate) const BASE25_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE25_SMALL_MANTISSA, exp: &BASE25_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE25_LARGE_MANTISSA, exp: &BASE25_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE25_SMALL_MANTISSA, exp: &BASE25_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE25_LARGE_MANTISSA, exp: &BASE25_LARGE_EXPONENT },
     small_int: &BASE25_SMALL_INT_POWERS,
     step: BASE25_STEP,
     bias: BASE25_BIAS,
 };
 
 pub(crate) const BASE26_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE26_SMALL_MANTISSA, exp: &BASE26_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE26_LARGE_MANTISSA, exp: &BASE26_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE26_SMALL_MANTISSA, exp: &BASE26_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE26_LARGE_MANTISSA, exp: &BASE26_LARGE_EXPONENT },
     small_int: &BASE26_SMALL_INT_POWERS,
     step: BASE26_STEP,
     bias: BASE26_BIAS,
 };
 
 pub(crate) const BASE27_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE27_SMALL_MANTISSA, exp: &BASE27_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE27_LARGE_MANTISSA, exp: &BASE27_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE27_SMALL_MANTISSA, exp: &BASE27_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE27_LARGE_MANTISSA, exp: &BASE27_LARGE_EXPONENT },
     small_int: &BASE27_SMALL_INT_POWERS,
     step: BASE27_STEP,
     bias: BASE27_BIAS,
 };
 
 pub(crate) const BASE28_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE28_SMALL_MANTISSA, exp: &BASE28_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE28_LARGE_MANTISSA, exp: &BASE28_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE28_SMALL_MANTISSA, exp: &BASE28_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE28_LARGE_MANTISSA, exp: &BASE28_LARGE_EXPONENT },
     small_int: &BASE28_SMALL_INT_POWERS,
     step: BASE28_STEP,
     bias: BASE28_BIAS,
 };
 
 pub(crate) const BASE29_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE29_SMALL_MANTISSA, exp: &BASE29_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE29_LARGE_MANTISSA, exp: &BASE29_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE29_SMALL_MANTISSA, exp: &BASE29_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE29_LARGE_MANTISSA, exp: &BASE29_LARGE_EXPONENT },
     small_int: &BASE29_SMALL_INT_POWERS,
     step: BASE29_STEP,
     bias: BASE29_BIAS,
 };
 
 pub(crate) const BASE30_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE30_SMALL_MANTISSA, exp: &BASE30_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE30_LARGE_MANTISSA, exp: &BASE30_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE30_SMALL_MANTISSA, exp: &BASE30_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE30_LARGE_MANTISSA, exp: &BASE30_LARGE_EXPONENT },
     small_int: &BASE30_SMALL_INT_POWERS,
     step: BASE30_STEP,
     bias: BASE30_BIAS,
 };
 
 pub(crate) const BASE31_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE31_SMALL_MANTISSA, exp: &BASE31_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE31_LARGE_MANTISSA, exp: &BASE31_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE31_SMALL_MANTISSA, exp: &BASE31_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE31_LARGE_MANTISSA, exp: &BASE31_LARGE_EXPONENT },
     small_int: &BASE31_SMALL_INT_POWERS,
     step: BASE31_STEP,
     bias: BASE31_BIAS,
 };
 
 pub(crate) const BASE33_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE33_SMALL_MANTISSA, exp: &BASE33_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE33_LARGE_MANTISSA, exp: &BASE33_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE33_SMALL_MANTISSA, exp: &BASE33_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE33_LARGE_MANTISSA, exp: &BASE33_LARGE_EXPONENT },
     small_int: &BASE33_SMALL_INT_POWERS,
     step: BASE33_STEP,
     bias: BASE33_BIAS,
 };
 
 pub(crate) const BASE34_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE34_SMALL_MANTISSA, exp: &BASE34_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE34_LARGE_MANTISSA, exp: &BASE34_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE34_SMALL_MANTISSA, exp: &BASE34_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE34_LARGE_MANTISSA, exp: &BASE34_LARGE_EXPONENT },
     small_int: &BASE34_SMALL_INT_POWERS,
     step: BASE34_STEP,
     bias: BASE34_BIAS,
 };
 
 pub(crate) const BASE35_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE35_SMALL_MANTISSA, exp: &BASE35_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE35_LARGE_MANTISSA, exp: &BASE35_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE35_SMALL_MANTISSA, exp: &BASE35_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE35_LARGE_MANTISSA, exp: &BASE35_LARGE_EXPONENT },
     small_int: &BASE35_SMALL_INT_POWERS,
     step: BASE35_STEP,
     bias: BASE35_BIAS,
 };
 
 pub(crate) const BASE36_POWERS: ModeratePathPowers<u64> = ModeratePathPowers {
-    small: ExtendedPowers { mant: &BASE36_SMALL_MANTISSA, exp: &BASE36_SMALL_EXPONENT },
-    large: ExtendedPowers { mant: &BASE36_LARGE_MANTISSA, exp: &BASE36_LARGE_EXPONENT },
+    small: ExtendedFloatArray { mant: &BASE36_SMALL_MANTISSA, exp: &BASE36_SMALL_EXPONENT },
+    large: ExtendedFloatArray { mant: &BASE36_LARGE_MANTISSA, exp: &BASE36_LARGE_EXPONENT },
     small_int: &BASE36_SMALL_INT_POWERS,
     step: BASE36_STEP,
     bias: BASE36_BIAS,
@@ -5629,16 +5626,17 @@ mod tests {
     #[test]
     fn normalization_test() {
         // Ensure each valid is normalized.
-        // TODO(ahuszagh) Restore...
-//        for base in BASE_POWN.iter().cloned() {
-//            let powers = get_powers(base);
-//            for fp in powers.small {
-//                assert_eq!(fp.mant.leading_zeros(), 0);
-//            }
-//            for fp in powers.large {
-//                assert_eq!(fp.mant.leading_zeros(), 0);
-//            }
-//        }
+        for base in BASE_POWN.iter().cloned() {
+            let powers = get_powers(base);
+            for idx in 0..powers.small.len() {
+                let fp = unsafe { powers.get_small(idx) };
+                assert_eq!(fp.mant.leading_zeros(), 0);
+            }
+            for idx in 0..powers.large.len() {
+                let fp = unsafe { powers.get_large(idx) };
+                assert_eq!(fp.mant.leading_zeros(), 0);
+            }
+        }
     }
 
     #[test]

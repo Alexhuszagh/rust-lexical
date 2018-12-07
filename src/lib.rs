@@ -35,10 +35,17 @@ extern crate static_assertions;
 extern crate alloc;
 
 // Use smallvec for Bigfloat class, which requires precise and a runtime.
+// TODO(ahuszagh) Remove
 #[cfg(any(test, not(feature = "imprecise")))]
 #[allow(unused_imports)]
 #[macro_use]
 extern crate smallvec;
+
+// Use stackvector for dtoa..
+#[cfg(any(test, not(feature = "imprecise")))]
+#[allow(unused_imports)]
+#[macro_use]
+extern crate stackvector;
 
 // Testing assertions for floating-point equality.
 #[cfg(test)]
