@@ -1,9 +1,12 @@
 //! Building-blocks for arbitrary-precision math.
 
-// SMALL
-// -----
+// NATIVE
+// ------
 
-mod small {
+// Native-to-native operations, for building-blocks for arbitrary-precision
+// operations.
+
+mod native {
 
 use util::*;
 
@@ -78,15 +81,18 @@ pub fn idiv(x: &mut u32, y: u32, rem: u32)
     t.1
 }
 
-}   // small
+}   // native
 
-// LARGE
+// SMALL
 // -----
 
-mod large {
+// Large-to-small operations, to modify a big integer from a native
+// operation
+
+mod small {
 
 use util::*;
-use super::small;
+use super::native;
 
 /// ADDITION
 
@@ -97,12 +103,12 @@ pub fn iadd<T: VecLike<u32>>(vec: &mut T, y: u32) {
     } else {
         unsafe {
             // Initial add
-            let mut carry = small::iadd(vec.get_unchecked_mut(0), y);
+            let mut carry = native::iadd(vec.get_unchecked_mut(0), y);
 
             // Increment until overflow stops occurring.
             let mut size = 1;
             while carry && size < vec.len() {
-                carry = small::iadd(vec.get_unchecked_mut(size), 1);
+                carry = native::iadd(vec.get_unchecked_mut(size), 1);
                 size += 1;
             }
 
@@ -122,7 +128,7 @@ pub fn imul<T: VecLike<u32>>(vec: &mut T, y: u32) {
     // Multiply iteratively over all elements, adding the carry each time.
     let mut carry: u32 = 0;
     for x in vec.iter_mut() {
-        carry = small::imul(x, y, carry);
+        carry = native::imul(x, y, carry);
     }
 
     // Overflow of value, add to end.
@@ -155,7 +161,7 @@ pub fn idiv<T: VecLike<u32>>(vec: &mut T, y: u32) {
     // Divide iteratively over all elements, adding the carry each time.
     let mut rem: u32 = 0;
     for x in vec.iter_mut().rev() {
-        rem = small::idiv(x, y, rem);
+        rem = native::idiv(x, y, rem);
     }
 
     unsafe {
@@ -194,7 +200,7 @@ pub fn idiv_power<T: VecLike<u32>>(vec: &mut T, mut n: u32, small_powers: &[u32]
     idiv(vec, get_power(n as usize));
 }
 
-}   // large
+}   // small
 
 use lib::iter;
 use float::Mantissa;
@@ -226,8 +232,9 @@ macro_rules! idiv_power {
 // TRAITS
 // ------
 
-pub(in atof::algorithm) trait Bignum: Clone + Sized {
-    /// Underlying storage type for a Bignum.
+/// Trait for small operations for arbitrary-precision numbers.
+pub(in atof::algorithm) trait SmallOps: Clone + Sized {
+    /// Underlying storage type for a SmallOps.
     type StorageType: VecLike<u32>;
 
     /// Get access to the underlying data
@@ -463,15 +470,15 @@ pub(in atof::algorithm) trait Bignum: Clone + Sized {
 
     /// AddAssign small integer.
     #[inline]
-    fn iadd(&mut self, y: u32) {
-        large::iadd(self.data_mut(), y);
+    fn iadd_small(&mut self, y: u32) {
+        small::iadd(self.data_mut(), y);
     }
 
     /// Add small integer to a copy of self.
     #[inline]
-    fn add(&mut self, y: u32) -> Self {
+    fn add_small(&mut self, y: u32) -> Self {
         let mut x = self.clone();
-        x.iadd(y);
+        x.iadd_small(y);
         x
     }
 
@@ -479,22 +486,22 @@ pub(in atof::algorithm) trait Bignum: Clone + Sized {
 
     /// MulAssign small integer.
     #[inline]
-    fn imul(&mut self, y: u32) {
-        large::imul(self.data_mut(), y);
+    fn imul_small(&mut self, y: u32) {
+        small::imul(self.data_mut(), y);
     }
 
     /// Mul small integer to a copy of self.
     #[inline]
-    fn mul(&mut self, y: u32) -> Self {
+    fn mul_small(&mut self, y: u32) -> Self {
         let mut x = self.clone();
-        x.imul(y);
+        x.imul_small(y);
         x
     }
 
     /// MulAssign by a power.
     #[inline]
     fn imul_power_impl(&mut self, n: u32, small_powers: &[u32]) {
-        large::imul_power(self.data_mut(), n, small_powers);
+        small::imul_power(self.data_mut(), n, small_powers);
     }
 
     fn imul_power(&mut self, n: u32, base: u32) {
@@ -731,22 +738,22 @@ pub(in atof::algorithm) trait Bignum: Clone + Sized {
 
     /// DivAssign small integer.
     #[inline]
-    fn idiv(&mut self, y: u32) {
-        large::idiv(self.data_mut(), y);
+    fn idiv_small(&mut self, y: u32) {
+        small::idiv(self.data_mut(), y);
     }
 
     /// Div small integer to a copy of self.
     #[inline]
-    fn div(&mut self, y: u32) -> Self {
+    fn div_small(&mut self, y: u32) -> Self {
         let mut x = self.clone();
-        x.idiv(y);
+        x.idiv_small(y);
         x
     }
 
     /// Implied divAssign by a power.
     #[inline]
     fn idiv_power_impl(&mut self, n: u32, small_powers: &[u32]) {
-        large::idiv_power(self.data_mut(), n, small_powers);
+        small::idiv_power(self.data_mut(), n, small_powers);
     }
 
     /// DivAssign by a power.
@@ -991,7 +998,7 @@ mod tests {
         data: Vec<u32>,
     }
 
-    impl Bignum for Bigint {
+    impl SmallOps for Bigint {
         type StorageType = Vec<u32>;
 
         #[inline]

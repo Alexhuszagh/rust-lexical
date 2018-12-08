@@ -14,7 +14,7 @@ use float::rounding::*;
 use lib::mem;
 use util::*;
 use super::exponent::*;
-use super::math::Bignum;
+use super::math::SmallOps;
 
 // MAX EXPONENT
 
@@ -190,9 +190,9 @@ unsafe fn parse_digits(bigfloat: &mut Bigfloat, state: &mut ParseState, base: u3
         // Find the number of digits parsed, multiply by the small power,
         // and add the calculated value.
         let digits = distance(f, state.curr);
-        bigfloat.imul(*small_powers.get_unchecked(digits));
+        bigfloat.imul_small(*small_powers.get_unchecked(digits));
         if value != 0 {
-            bigfloat.iadd(value);
+            bigfloat.iadd_small(value);
         }
 
         // Break condition, either we've reached last or we've reached a
@@ -467,7 +467,7 @@ impl Bigfloat {
     /// Pad the buffer with zeros to the least-significant digits.
     fn pad_zeros(&mut self, n: usize) {
         // Pad buffer, and get number of n padded.
-        let n = <Bigfloat as Bignum>::pad_zeros(self, as_cast(n));
+        let n = <Bigfloat as SmallOps>::pad_zeros(self, as_cast(n));
         let bits = n * u32::BITS;
         self.exp -= bits as i32;
     }
@@ -712,7 +712,7 @@ impl Bigfloat {
     }
 }
 
-impl Bignum for Bigfloat {
+impl SmallOps for Bigfloat {
     type StorageType = smallvec::SmallVec<[u32; 32]>;
 
     #[inline]
@@ -851,59 +851,59 @@ mod tests {
     // ADDITION
 
     #[test]
-    fn iadd_test() {
+    fn iadd_small_test() {
         // Overflow check (single)
         // This should set all the internal data values to 0, the top
         // value to (1<<31), and the bottom value to (4>>1).
         // This is because the max_value + 1 leads to all 0s, we set the
         // topmost bit to 1.
         let mut x = Bigfloat::from_u32(4294967295);
-        x.iadd(5);
+        x.iadd_small(5);
         assert_eq!(x, Bigfloat { data: smallvec![4, 1], exp: 0 });
 
         // No overflow, single value
         let mut x = Bigfloat::from_u32(5);
-        x.iadd(7);
+        x.iadd_small(7);
         assert_eq!(x, Bigfloat { data: smallvec![12], exp: 0 });
 
         // Single carry, internal overflow
         let mut x = Bigfloat::from_u64(0x80000000FFFFFFFF);
-        x.iadd(7);
+        x.iadd_small(7);
         assert_eq!(x, Bigfloat { data: smallvec![6, 0x80000001], exp: 0 });
 
         // Double carry, overflow
         let mut x = Bigfloat::from_u64(0xFFFFFFFFFFFFFFFF);
-        x.iadd(7);
+        x.iadd_small(7);
         assert_eq!(x, Bigfloat { data: smallvec![6, 0, 1], exp: 0 });
     }
 
     // MULTIPLICATION
 
     #[test]
-    fn imul_test() {
+    fn imul_small_test() {
         // No overflow check, 1-int.
         let mut x = Bigfloat::from_u32(5);
-        x.imul(7);
+        x.imul_small(7);
         assert_eq!(x, Bigfloat { data: smallvec![35], exp: 0 });
 
         // No overflow check, 2-ints.
         let mut x = Bigfloat::from_u64(0x4000000040000);
-        x.imul(5);
+        x.imul_small(5);
         assert_eq!(x, Bigfloat { data: smallvec![0x00140000, 0x140000], exp: 0 });
 
         // Overflow, 1 carry.
         let mut x = Bigfloat::from_u32(0x33333334);
-        x.imul(5);
+        x.imul_small(5);
         assert_eq!(x, Bigfloat { data: smallvec![4, 1], exp: 0 });
 
         // Overflow, 1 carry, internal.
         let mut x = Bigfloat::from_u64(0x133333334);
-        x.imul(5);
+        x.imul_small(5);
         assert_eq!(x, Bigfloat { data: smallvec![4, 6], exp: 0 });
 
         // Overflow, 2 carries.
         let mut x = Bigfloat::from_u64(0x3333333333333334);
-        x.imul(5);
+        x.imul_small(5);
         assert_eq!(x, Bigfloat { data: smallvec![4, 0, 1], exp: 0 });
     }
 
@@ -994,35 +994,35 @@ mod tests {
     }
 
     #[test]
-    fn idiv_test() {
+    fn idiv_small_test() {
         // 1-int.
         let mut x = Bigfloat::from_u32(5);
         x.pad_zeros(2);
-        x.idiv(7);
+        x.idiv_small(7);
         assert_eq!(x, Bigfloat { data: smallvec![0xDB6DB6DC, 0xB6DB6DB6], exp: -64 });
 
         // 2-ints.
         let mut x = Bigfloat::from_u64(0x4000000040000);
         x.pad_zeros(2);
-        x.idiv(5);
+        x.idiv_small(5);
         assert_eq!(x, Bigfloat { data: smallvec![0x9999999A, 0x99999999, 0xCCCD9999, 0xCCCC], exp: -64 });
 
         // 1-int.
         let mut x = Bigfloat::from_u32(0x33333334);
         x.pad_zeros(2);
-        x.idiv(5);
+        x.idiv_small(5);
         assert_eq!(x, Bigfloat { data: smallvec![0x0, 0x0, 0xA3D70A4], exp: -64 });
 
         // 2-ints.
         let mut x = Bigfloat::from_u64(0x133333334);
         x.pad_zeros(2);
-        x.idiv(5);
+        x.idiv_small(5);
         assert_eq!(x, Bigfloat { data: smallvec![0x33333334, 0x33333333, 0x3D70A3D7], exp: -64 });
 
         // 2-ints.
         let mut x = Bigfloat::from_u64(0x3333333333333334);
         x.pad_zeros(2);
-        x.idiv(5);
+        x.idiv_small(5);
         assert_eq!(x, Bigfloat { data: smallvec![0xCCCCCCCD, 0xCCCCCCCC, 0xD70A3D70, 0xA3D70A3], exp: -64 });
     }
 
