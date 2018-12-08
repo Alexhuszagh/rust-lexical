@@ -3,7 +3,7 @@
 // SMALL
 // -----
 
-pub(in atof::algorithm) mod small {
+mod small {
 
 use util::*;
 
@@ -83,7 +83,7 @@ pub fn idiv(x: &mut u32, y: u32, rem: u32)
 // LARGE
 // -----
 
-pub(in atof::algorithm) mod large {
+mod large {
 
 use util::*;
 use super::small;
@@ -197,6 +197,7 @@ pub fn idiv_power<T: VecLike<u32>>(vec: &mut T, mut n: u32, small_powers: &[u32]
 }   // large
 
 use lib::iter;
+use float::Mantissa;
 use util::*;
 use super::small_powers::*;
 
@@ -346,6 +347,118 @@ pub(in atof::algorithm) trait Bignum: Clone + Sized {
         n
     }
 
+    // INTEGER CONVERSIONS
+
+    /// Split u64 into two consecutive u32s, in little-endian order.
+    #[inline]
+    fn split_u64(x: u64) -> (u32, u32) {
+        let d0 = (x >> 32) as u32;
+        let d1 = (x & u64::LOMASK) as u32;
+        (d1, d0)
+    }
+
+    /// Split u128 into four consecutive u32s, in little-endian order.
+    #[inline]
+    fn split_u128(x: u128) -> (u32, u32, u32, u32) {
+        let hi64 = (x >> 64) as u64;
+        let lo64 = (x & u128::LOMASK) as u64;
+        let d3 = (lo64 & u64::LOMASK) as u32;
+        let d2 = (lo64 >> 32) as u32;
+        let d1 = (hi64 & u64::LOMASK) as u32;
+        let d0 = (hi64 >> 32) as u32;
+        (d3, d2, d1, d0)
+    }
+
+    // SHL
+
+    /// Shift-left bits < 32 bits with carry.
+    #[inline]
+    fn shl_impl(&mut self, n: u32) {
+        // Need to shift by the number of `bits % 32`.
+        let bits = u32::BITS.as_u32();
+        debug_assert!(n < bits && n != 0);
+
+        // Internally, for each item, we shift left by n, and add the previous
+        // right shifted 32-bits.
+        // For example, we transform (for u8) shifted left 2, to:
+        //      b10100100 b01000010
+        //      b10 b10010001 b00001000
+        let rshift = bits - n;
+        let lshift = n;
+        let mut prev: u32 = 0;
+        for x in self.data_mut().iter_mut() {
+            let tmp = *x;
+            *x <<= lshift;
+            *x |= prev >> rshift;
+            prev = tmp;
+        }
+
+        let carry = prev >> rshift;
+        if carry != 0 {
+            self.data_mut().push(carry);
+        }
+    }
+
+    /// Shift-left the entire buffer n bits.
+    fn shl(&mut self, n: u32) {
+        let bits = u32::BITS.as_u32();
+        // Need to pad with zeros for the number of `bits / 32`,
+        // and shift-left with carry for `bits % 32`.
+        let rem = n % bits;
+        let div = (n / bits).as_usize();
+        if rem != 0 {
+            self.shl_impl(rem);
+        }
+        if div != 0 {
+            self.pad_zeros(div);
+        }
+    }
+
+    /// Shift-right < 32 bits with carry.
+    #[inline]
+    fn shr_impl(&mut self, n: u32) {
+        // Need to shift by the number of `bits % 32`.
+        let bits = u32::BITS.as_u32();
+        debug_assert!(n < bits && n != 0);
+
+        // Internally, for each item, we shift left by n, and add the previous
+        // right shifted 32-bits.
+        // For example, we transform (for u8) shifted right 2, to:
+        //      b10100100 b01000010
+        //        b101001 b00010000
+        let lshift = bits - n;
+        let rshift = n;
+        let mut prev: u32 = 0;
+        for x in self.data_mut().iter_mut().rev() {
+            let tmp = *x;
+            *x >>= rshift;
+            *x |= prev << lshift;
+            prev = tmp;
+        }
+    }
+
+    /// Shift-right the entire buffer n bits.
+    fn shr(&mut self, n: u32) {
+        let bits = u32::BITS.as_u32();
+        // Need to remove the right-most `bits / 32`,
+        // and shift-right with carry for `bits % 32`.
+        let rem = n % bits;
+        let div = (n / bits).as_usize();
+        if rem != 0 {
+            self.shr_impl(rem);
+        }
+        if div != 0 {
+            self.data_mut().remove_many(0..div.as_usize());
+        }
+
+        // Pop the most significant byte, as long as it is 0.
+        unsafe {
+            while !self.data().is_empty() && self.data().back_unchecked().is_zero() {
+                self.data_mut().pop();
+            }
+        }
+    }
+
     // ADDITION
 
     /// AddAssign small integer.
@@ -426,13 +539,8 @@ pub(in atof::algorithm) trait Bignum: Clone + Sized {
     }
 
     /// Multiply by a power of 2.
-    #[allow(unused)]        // TODO(ahuszagh) Remove...
     fn imul_pow2(&mut self, n: u32) {
-        let quotient = n / u32::BITS.as_u32();
-        let remainder = n % u32::BITS.as_u32();
-        // TODO(ahuszagh) Need to shift left for the remainder
-        // Need to insert many on the left for the quotient...
-        unimplemented!()
+        self.shl(n)
     }
 
     imul_power!(imul_pow3, U32_POW3, 3);
@@ -684,13 +792,8 @@ pub(in atof::algorithm) trait Bignum: Clone + Sized {
     }
 
     /// Divide by a power of 2.
-    #[allow(unused)]        // TODO(ahuszagh) Remove...
     fn idiv_pow2(&mut self, n: u32) {
-        let quotient = n / u32::BITS.as_u32();
-        let remainder = n % u32::BITS.as_u32();
-        // TODO(ahuszagh) Need to shift left for the remainder
-        // Need to insert many on the left for the quotient...
-        unimplemented!()
+        self.shr(n)
     }
 
     idiv_power!(idiv_pow3, U32_POW3, 3);
@@ -875,5 +978,69 @@ pub(in atof::algorithm) trait Bignum: Clone + Sized {
     fn idiv_pow36(&mut self, n: u32) {
         self.idiv_pow9(n);
         self.idiv_pow4(n);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use lib::Vec;
+    use super::*;
+
+    #[derive(Clone)]
+    struct Bigint {
+        data: Vec<u32>,
+    }
+
+    impl Bignum for Bigint {
+        type StorageType = Vec<u32>;
+
+        #[inline]
+        fn data<'a>(&'a self) -> &'a Self::StorageType {
+            &self.data
+        }
+
+        #[inline]
+        fn data_mut<'a>(&'a mut self) -> &'a mut Self::StorageType {
+            &mut self.data
+        }
+    }
+
+    #[test]
+    fn shl_test() {
+        // Pattern generated via `''.join(["1" +"0"*i for i in range(20)])`
+        let mut big = Bigint { data: vec![0xD2210408] };
+        big.shl(5);
+        assert_eq!(big.data, vec![0x44208100, 0x1A]);
+        big.shl(32);
+        assert_eq!(big.data, vec![0, 0x44208100, 0x1A]);
+        big.shl(27);
+        assert_eq!(big.data, vec![0, 0, 0xD2210408]);
+
+        // 96-bits of previous pattern
+        let mut big = Bigint { data: vec![0x20020010, 0x8040100, 0xD2210408] };
+        big.shl(5);
+        assert_eq!(big.data, vec![0x400200, 0x802004, 0x44208101, 0x1A]);
+        big.shl(32);
+        assert_eq!(big.data, vec![0, 0x400200, 0x802004, 0x44208101, 0x1A]);
+        big.shl(27);
+        assert_eq!(big.data, vec![0, 0, 0x20020010, 0x8040100, 0xD2210408]);
+    }
+
+    #[test]
+    fn shr_test() {
+        let mut big = Bigint { data: vec![0xD2210408] };
+        big.shr(5);
+        assert_eq!(big.data, vec![0x6910820]);
+        big.shr(27);
+        assert_eq!(big.data, vec![]);
+
+        // Pattern generated via `''.join(["1" +"0"*i for i in range(20)])`
+        let mut big = Bigint { data: vec![0x20020010, 0x8040100, 0xD2210408] };
+        big.shr(5);
+        assert_eq!(big.data, vec![0x1001000, 0x40402008, 0x6910820]);
+        big.shr(32);
+        assert_eq!(big.data, vec![0x40402008, 0x6910820]);
+        big.shr(27);
+        assert_eq!(big.data, vec![0xD2210408]);
     }
 }

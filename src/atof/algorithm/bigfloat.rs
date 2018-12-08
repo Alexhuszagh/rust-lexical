@@ -8,7 +8,7 @@
 
 use smallvec;
 use atoi;
-use float::{ExtendedFloat80, FloatRounding, Mantissa};
+use float::{ExtendedFloat80, FloatRounding};
 use float::convert::into_float;
 use float::rounding::*;
 use lib::mem;
@@ -403,10 +403,9 @@ impl Bigfloat {
     /// Create new Bigfloat from u64.
     #[inline]
     pub fn from_u64(x: u64) -> Bigfloat {
-        let hi = (x >> 32) as u32;
-        let lo = (x & u64::LOMASK) as u32;
+        let (d1, d0) = Bigfloat::split_u64(x);
         let mut bigfloat = Bigfloat {
-            data: smallvec![lo, hi],
+            data: smallvec![d1, d0],
             exp: 0,
         };
         bigfloat.normalize();
@@ -416,12 +415,7 @@ impl Bigfloat {
     /// Create new Bigfloat from u128.
     #[inline]
     pub fn from_u128(x: u128) -> Bigfloat {
-        let hi64 = (x >> 64) as u64;
-        let lo64 = (x & u128::LOMASK) as u64;
-        let d3 = (lo64 & u64::LOMASK) as u32;
-        let d2 = (lo64 >> 32) as u32;
-        let d1 = (hi64 & u64::LOMASK) as u32;
-        let d0 = (hi64 >> 32) as u32;
+        let (d3, d2, d1, d0) = Bigfloat::split_u128(x);
         let mut bigfloat = Bigfloat {
             data: smallvec![d3, d2, d1, d0],
             exp: 0,
