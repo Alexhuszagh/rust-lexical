@@ -196,6 +196,7 @@ pub fn idiv_power<T: VecLike<u32>>(vec: &mut T, mut n: u32, small_powers: &[u32]
 
 }   // large
 
+use lib::iter;
 use util::*;
 use super::small_powers::*;
 
@@ -325,31 +326,25 @@ pub(in atof::algorithm) trait Bignum: Clone + Sized {
         count
     }
 
-// TODO(ahuszagh) Need a way to insert many...
-//    /// Pad the buffer with zeros to the least-significant bits.
-//    fn pad_zeros(&mut self, n: usize) -> usize {
-//        // Assume **no** overflow for the usize, since this would lead to
-//        // other memory errors. Add `bytes` 0s to the left of the current
-//        // buffer, and decrease the exponent accordingly.
-//
-//        // Remove the number of trailing zeros values for the padding.
-//        // If we don't need to pad the resulting buffer, return early.
-//        let n = n.checked_sub(self.trailing_zero_values() as usize).unwrap_or(0);
-//        if n.is_zero() || self.data().is_empty() {
-//            return n;
-//        }
-//
-//        // Move data to new buffer, prepend `bytes` 0s, and then append
-//        // current data.
-//        let mut data = smallvec::SmallVec::with_capacity(self.data().len() + n);
-//        data.resize(n, 0);
-//        data.extend_from_slice(self.data().as_slice());
-//
-//        // Swap the buffers.
-//        mem::swap(&mut data, &mut self.data);
-//
-//        n
-//    }
+    /// Pad the buffer with zeros to the least-significant bits.
+    fn pad_zeros(&mut self, n: usize) -> usize {
+        // Assume **no** overflow for the usize, since this would lead to
+        // other memory errors. Add `bytes` 0s to the left of the current
+        // buffer, and decrease the exponent accordingly.
+
+        // Remove the number of trailing zeros values for the padding.
+        // If we don't need to pad the resulting buffer, return early.
+        let n = n.checked_sub(self.trailing_zero_values() as usize).unwrap_or(0);
+        if n.is_zero() || self.data().is_empty() {
+            return n;
+        }
+
+        // Move data to new buffer, prepend `bytes` 0s, and then append
+        // current data.
+        self.data_mut().insert_many(0, iter::repeat(0).take(n));
+
+        n
+    }
 
     // ADDITION
 

@@ -470,42 +470,22 @@ impl Bigfloat {
 
     // DIVISION
 
-    /// Pad ints for division. Called internally during `div_pow*_assign`.
-    #[inline]
-    fn pad_bytes(&mut self, bytes: usize) {
-        // Assume **no** overflow for the usize, since this would lead to
-        // other memory errors. Add `bytes` 0s to the left of the current
-        // buffer, and decrease the exponent accordingly.
-
-        // Remove the number of trailing zeros values for the padding.
-        // If we don't need to pad the resulting buffer, return early.
-        let bytes = bytes.checked_sub(self.trailing_zero_values() as usize).unwrap_or(0);
-        if bytes.is_zero() || self.data.is_empty() {
-            return;
-        }
-
-        // Decrease the exponent component.
-        let bits = bytes * u32::BITS;
+    /// Pad the buffer with zeros to the least-significant digits.
+    fn pad_zeros(&mut self, n: usize) {
+        // Pad buffer, and get number of n padded.
+        let n = <Bigfloat as Bignum>::pad_zeros(self, as_cast(n));
+        let bits = n * u32::BITS;
         self.exp -= bits as i32;
-
-        // TODO(ahuszagh) Can I insert many here???
-        // Move data to new buffer, prepend `bytes` 0s, and then append
-        // current data.
-        let mut data = smallvec::SmallVec::with_capacity(self.data.len() + bytes);
-        data.resize(bytes, 0);
-        data.extend_from_slice(self.data.as_slice());
-
-        // Swap the buffers.
-        mem::swap(&mut data, &mut self.data);
     }
 
     /// Pad ints for division, based off the base and exponent.
     fn pad_division(&mut self, n: u32, base: u32) {
+        // Calculate total number of bytes to pad.
         let bits = padded_bits(base, n);
         let div = bits / 32;
         let rem = bits % 32;
-        let bytes = div + (rem != 0) as u32;
-        self.pad_bytes(as_cast(bytes));
+        let n = div + (rem != 0) as u32;
+        self.pad_zeros(as_cast(n));
     }
 
     /// Initialize Bigfloat from bytes with custom base.
@@ -976,38 +956,38 @@ mod tests {
     }
 
     #[test]
-    fn pad_bytes_test() {
+    fn pad_zeros_test() {
         // Pad 0
         let mut x = Bigfloat { data: smallvec![0, 0, 0, 1], exp: 0 };
-        x.pad_bytes(3);
+        x.pad_zeros(3);
         assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exp: 0 });
 
         // Pad 1
         let mut x = Bigfloat { data: smallvec![0, 0, 1], exp: 0 };
-        x.pad_bytes(3);
+        x.pad_zeros(3);
         assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exp: -32 });
 
         // Pad 2
         let mut x = Bigfloat { data: smallvec![0, 1], exp: 0 };
-        x.pad_bytes(3);
+        x.pad_zeros(3);
         assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exp: -64 });
 
         // Pad 3
         let mut x = Bigfloat::from_u32(1);
-        x.pad_bytes(3);
+        x.pad_zeros(3);
         assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1], exp: -96 });
 
         let mut x = Bigfloat::from_u64(0x100000001);
-        x.pad_bytes(3);
+        x.pad_zeros(3);
         assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1, 1], exp: -96 });
 
         let mut x = Bigfloat { data: smallvec![1, 1, 1], exp: 0 };
-        x.pad_bytes(3);
+        x.pad_zeros(3);
         assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 1, 1, 1], exp: -96 });
 
         // Pad 4
         let mut x = Bigfloat::from_u128(0x1000000010000000100000001);
-        x.pad_bytes(4);
+        x.pad_zeros(4);
         assert_eq!(x, Bigfloat { data: smallvec![0, 0, 0, 0, 1, 1, 1, 1], exp: -128 });
     }
 
@@ -1023,31 +1003,31 @@ mod tests {
     fn idiv_test() {
         // 1-int.
         let mut x = Bigfloat::from_u32(5);
-        x.pad_bytes(2);
+        x.pad_zeros(2);
         x.idiv(7);
         assert_eq!(x, Bigfloat { data: smallvec![0xDB6DB6DC, 0xB6DB6DB6], exp: -64 });
 
         // 2-ints.
         let mut x = Bigfloat::from_u64(0x4000000040000);
-        x.pad_bytes(2);
+        x.pad_zeros(2);
         x.idiv(5);
         assert_eq!(x, Bigfloat { data: smallvec![0x9999999A, 0x99999999, 0xCCCD9999, 0xCCCC], exp: -64 });
 
         // 1-int.
         let mut x = Bigfloat::from_u32(0x33333334);
-        x.pad_bytes(2);
+        x.pad_zeros(2);
         x.idiv(5);
         assert_eq!(x, Bigfloat { data: smallvec![0x0, 0x0, 0xA3D70A4], exp: -64 });
 
         // 2-ints.
         let mut x = Bigfloat::from_u64(0x133333334);
-        x.pad_bytes(2);
+        x.pad_zeros(2);
         x.idiv(5);
         assert_eq!(x, Bigfloat { data: smallvec![0x33333334, 0x33333333, 0x3D70A3D7], exp: -64 });
 
         // 2-ints.
         let mut x = Bigfloat::from_u64(0x3333333333333334);
-        x.pad_bytes(2);
+        x.pad_zeros(2);
         x.idiv(5);
         assert_eq!(x, Bigfloat { data: smallvec![0xCCCCCCCD, 0xCCCCCCCC, 0xD70A3D70, 0xA3D70A3], exp: -64 });
     }

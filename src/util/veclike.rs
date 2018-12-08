@@ -2,7 +2,7 @@
 
 #![allow(dead_code)]
 
-use lib::{ops, Vec};
+use lib::{iter, ops, Vec};
 use smallvec;
 use stackvector;
 
@@ -28,6 +28,9 @@ pub trait VecLike<T>:
 
     /// Pop an element from the end of the vector.
     fn pop(&mut self) -> Option<T>;
+
+    /// Insert many elements at index, pushing everything else to the back.
+    fn insert_many<I: iter::IntoIterator<Item=T>>(&mut self, index: usize, iterable: I);
 
     // FRONT
 
@@ -104,6 +107,11 @@ impl<T> VecLike<T> for Vec<T> {
     fn pop(&mut self) -> Option<T> {
         Vec::pop(self)
     }
+
+    #[inline]
+    fn insert_many<I: iter::IntoIterator<Item=T>>(&mut self, index: usize, iterable: I) {
+        self.splice(index..index, iterable);
+    }
 }
 
 // SMALLVEC
@@ -118,6 +126,11 @@ impl<A: smallvec::Array> VecLike<A::Item> for smallvec::SmallVec<A> {
     fn pop(&mut self) -> Option<A::Item> {
         smallvec::SmallVec::pop(self)
     }
+
+    #[inline]
+    fn insert_many<I: iter::IntoIterator<Item=A::Item>>(&mut self, index: usize, iterable: I) {
+        smallvec::SmallVec::insert_many(self, index, iterable)
+    }
 }
 
 // STACKVEC
@@ -131,5 +144,10 @@ impl<A: stackvector::Array> VecLike<A::Item> for stackvector::StackVec<A> {
     #[inline]
     fn pop(&mut self) -> Option<A::Item> {
         stackvector::StackVec::pop(self)
+    }
+
+    #[inline]
+    fn insert_many<I: iter::IntoIterator<Item=A::Item>>(&mut self, index: usize, iterable: I) {
+        stackvector::StackVec::insert_many(self, index, iterable)
     }
 }
