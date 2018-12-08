@@ -11,6 +11,8 @@ pub(crate) mod bigfloat;
 mod cached;
 mod cached_float80;
 mod cached_float160;
+mod math;
+mod small_powers;
 }}  // cfg_if
 
 // Export algorithms.

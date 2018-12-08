@@ -15,6 +15,7 @@ mod pow;
 mod primitive;
 mod span;
 mod state;
+mod veclike;
 
 #[cfg(any(test, feature = "imprecise"))]
 mod wrapped;
@@ -28,6 +29,7 @@ pub(crate) use self::pow::*;
 pub(crate) use self::primitive::*;
 pub(crate) use self::span::*;
 pub(crate) use self::state::*;
+pub(crate) use self::veclike::*;
 
 #[cfg(any(test, feature = "imprecise"))]
 pub(crate) use self::wrapped::*;

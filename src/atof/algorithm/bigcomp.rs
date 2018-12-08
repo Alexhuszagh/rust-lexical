@@ -10,6 +10,7 @@
 
 #![allow(unused)]       // TODO(ahuszagh) Remove later
 
+use stackvector;
 use lib::{cmp, iter};
 use float::*;
 use table::*;
@@ -184,7 +185,6 @@ pub unsafe fn fast_compare_digits<Iter>(mut digits: Iter, base: u128, mut num: u
     }
 }
 
-
 /// Generate the correct representation from a halfway representation.
 ///
 /// * `digits`          - Actual digits from the mantissa.
@@ -209,6 +209,47 @@ pub unsafe fn fast_atof<F, Iter>(digits: Iter, base: u32, sci_exponent: i32, f: 
 }
 
 // SLOW PATH
+
+/// Storage for a big integer type.
+pub(super) struct Bigint {
+    /// Internal storage for the BigInt, in little-endian order.
+    ///
+    /// Enough storage for up to 10^345, which is 2^1146, or more than
+    /// the max for f64.
+    data: stackvector::StackVec<[u32; 36]>,
+}
+
+impl Bigint {
+    // TODO(ahuszagh) Implement...
+    // Need from u32, u64, u128
+
+    /// Multiply-assign by a small value.
+    fn imul_small(&mut self, y: u32) {
+        // TODO(ahuszagh) Implement...
+        unimplemented!()
+    }
+
+    /// Fast division algorithm, since we can use solely the upper-most digit.
+    fn fast_div(&self, y: &Bigint) -> u32 {
+        debug_assert!(self.data.len() > 0);
+        debug_assert!(y.data.len() > 0);
+
+        let xidx = self.data.len() - 1;
+        let yidx = y.data.len() - 1;
+        let xi = unsafe { *self.data.get_unchecked(xidx) };
+        let yi = unsafe { *self.data.get_unchecked(yidx) };
+
+        xi / yi
+    }
+}
+
+
+// TODO(ahuszagh)
+//  slow_ratio
+//  slow_compare_digits
+//  slow_atof
+
+// Shouldn't be **too** hard...
 
 // TODO(ahuszagh) Need arbitrary-precision shit here...
 
