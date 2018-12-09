@@ -125,6 +125,7 @@ pub fn idiv(x: &mut u32, y: u32, rem: u32)
 
 mod small {
 
+use lib::iter;
 use util::*;
 use super::scalar;
 
@@ -136,7 +137,9 @@ use super::scalar;
 /// division where the remainder is near the halfway case.
 /// digit is odd, round-up (round-nearest, tie-even).
 #[inline]
-pub fn do_roundup<T: VecLike<u32>>(x: &mut T, y: u32, rem: u32) {
+pub fn check_do_roundup<T>(x: &mut T, y: u32, rem: u32)
+    where T: CloneableVecLike<u32>
+{
     unsafe {
         let (is_above, is_halfway) = scalar::cmp_remainder(y, rem);
         if is_above || (is_halfway && x.front_unchecked().is_odd()) {
@@ -145,11 +148,213 @@ pub fn do_roundup<T: VecLike<u32>>(x: &mut T, y: u32, rem: u32) {
     }
 }
 
+// SHR
+
+/// Shift-right bits inside a buffer and returns the truncated bits.
+///
+/// Returns the truncated bits.
+///
+/// Assumes `n < 32`, IE, internally shifting bits.
+#[inline]
+pub fn ishr_bits<T>(x: &mut T, n: u32)
+    -> u32
+    where T: CloneableVecLike<u32>
+{
+    // Need to shift by the number of `bits % 32`.
+    let bits = u32::BITS.as_u32();
+    debug_assert!(n < bits && n != 0);
+
+    // Internally, for each item, we shift left by n, and add the previous
+    // right shifted 32-bits.
+    // For example, we transform (for u8) shifted right 2, to:
+    //      b10100100 b01000010
+    //        b101001 b00010000
+    let lshift = bits - n;
+    let rshift = n;
+    let mut prev: u32 = 0;
+    for xi in x.iter_mut().rev() {
+        let tmp = *xi;
+        *xi >>= rshift;
+        *xi |= prev << lshift;
+        prev = tmp;
+    }
+
+    prev & lower_n_mask(rshift)
+}
+
+/// Shift-right `n` digits inside a buffer and returns if all the truncated digits are zero.
+///
+/// Assumes `n` is not 0.
+#[inline]
+pub fn ishr_digits<T>(x: &mut T, n: usize)
+    -> bool
+    where T: CloneableVecLike<u32>
+{
+    debug_assert!(n != 0);
+
+    if n >= x.len() {
+        unsafe {
+            x.set_len(0);
+        }
+        false
+    } else {
+        let is_zero = (&x[..n]).iter().all(|v| v.is_zero());
+        x.remove_many(0..n);
+        is_zero
+    }
+}
+
+/// Shift-left buffer by n bits and return if we should round-up.
+pub fn ishr<T>(x: &mut T, n: u32)
+    -> bool
+    where T: CloneableVecLike<u32>
+{
+    let bits = u32::BITS.as_u32();
+    // Need to pad with zeros for the number of `bits / 32`,
+    // and shift-left with carry for `bits % 32`.
+    let rem = n % bits;
+    let div = (n / bits).as_usize();
+    let is_zero = match div.is_zero() {
+        true  => true,
+        false => ishr_digits(x, div),
+    };
+    let truncated = match rem.is_zero() {
+        true  => 0,
+        false => ishr_bits(x, rem),
+    };
+
+    // Calculate if we need to roundup.
+    let roundup = unsafe {
+        let halfway = lower_n_halfway(rem);
+        if truncated > halfway {
+            // Above halfway
+            true
+        } else if truncated == halfway {
+            // Exactly halfway, if !is_zero, we have a tie-breaker,
+            // otherwise, we follow round-to-nearest, tie-even rules.
+            // Cannot be empty, since truncated is non-zero.
+            !is_zero || x.front_unchecked().is_odd()
+        } else {
+            // Below halfway
+            false
+        }
+    };
+
+    // Normalize the data
+    normalize(x);
+
+    roundup
+}
+
+/// Shift-left buffer by n bits.
+#[allow(dead_code)]
+pub fn shr<T>(x: &[u32], n: u32)
+    -> (T, bool)
+    where T: CloneableVecLike<u32>
+{
+    let mut z = T::default();
+    z.extend_from_slice(x);
+    let roundup = ishr(&mut z, n);
+    (z, roundup)
+}
+
+// SHL
+
+/// Shift-left bits inside a buffer.
+///
+/// Assumes `n < 32`, IE, internally shifting bits.
+#[inline]
+pub fn ishl_bits<T>(x: &mut T, n: u32)
+    where T: CloneableVecLike<u32>
+{
+    // Need to shift by the number of `bits % 32`.
+    let bits = u32::BITS.as_u32();
+    debug_assert!(n < bits && n != 0);
+
+    // Internally, for each item, we shift left by n, and add the previous
+    // right shifted 32-bits.
+    // For example, we transform (for u8) shifted left 2, to:
+    //      b10100100 b01000010
+    //      b10 b10010001 b00001000
+    let rshift = bits - n;
+    let lshift = n;
+    let mut prev: u32 = 0;
+    for xi in x.iter_mut() {
+        let tmp = *xi;
+        *xi <<= lshift;
+        *xi |= prev >> rshift;
+        prev = tmp;
+    }
+
+    let carry = prev >> rshift;
+    if carry != 0 {
+        x.push(carry);
+    }
+}
+
+/// Shift-left bits inside a buffer.
+///
+/// Assumes `n < 32`, IE, internally shifting bits.
+#[allow(dead_code)]
+pub fn shl_bits<T>(x: &[u32], n: u32)
+    -> T
+    where T: CloneableVecLike<u32>
+{
+    let mut z = T::default();
+    z.extend_from_slice(x);
+    ishl_bits(&mut z, n);
+    z
+}
+
+/// Shift-left `n` digits inside a buffer.
+///
+/// Assumes `n` is not 0.
+#[inline]
+pub fn ishl_digits<T>(x: &mut T, n: usize)
+    where T: CloneableVecLike<u32>
+{
+    debug_assert!(n != 0);
+    if !x.is_empty() {
+        x.insert_many(0, iter::repeat(0).take(n));
+    }
+}
+
+/// Shift-left buffer by n bits.
+pub fn ishl<T>(x: &mut T, n: u32)
+    where T: CloneableVecLike<u32>
+{
+    let bits = u32::BITS.as_u32();
+    // Need to pad with zeros for the number of `bits / 32`,
+    // and shift-left with carry for `bits % 32`.
+    let rem = n % bits;
+    let div = (n / bits).as_usize();
+    if !rem.is_zero() {
+        ishl_bits(x, rem);
+    }
+    if !div.is_zero() {
+        ishl_digits(x, div);
+    }
+}
+
+/// Shift-left buffer by n bits.
+#[allow(dead_code)]
+pub fn shl<T>(x: &[u32], n: u32)
+    -> T
+    where T: CloneableVecLike<u32>
+{
+    let mut z = T::default();
+    z.extend_from_slice(x);
+    ishl(&mut z, n);
+    z
+}
+
 // NORMALIZE
 
 /// Normalize the container by popping any leading zeros.
 #[inline]
-pub fn normalize<T: VecLike<u32>>(x: &mut T) {
+pub fn normalize<T>(x: &mut T)
+    where T: CloneableVecLike<u32>
+{
     unsafe {
         // Remove leading zero if we cause underflow. Since we're dividing
         // by a small power, we have at max 1 int removed.
@@ -165,7 +370,9 @@ pub fn normalize<T: VecLike<u32>>(x: &mut T) {
 ///
 /// Allows us to choose a start-index in x to store, to allow incrementing
 /// from a non-zero start.
-pub fn iadd_impl<T: CloneableVecLike<u32>>(x: &mut T, y: u32, xstart: usize) {
+pub fn iadd_impl<T>(x: &mut T, y: u32, xstart: usize)
+    where T: CloneableVecLike<u32>
+{
     if x.len() <= xstart {
         x.push(y);
     } else {
@@ -358,7 +565,7 @@ pub fn idiv_power<T>(x: &mut T, mut n: u32, small_powers: &[u32], roundup: bool)
     while n >= step {
         let rem = idiv(x, power);
         if roundup {
-            do_roundup(x, power, rem);
+            check_do_roundup(x, power, rem);
         }
         n -= step;
     }
@@ -367,7 +574,7 @@ pub fn idiv_power<T>(x: &mut T, mut n: u32, small_powers: &[u32], roundup: bool)
     let power = get_power(n as usize);
     let rem = idiv(x, power);
     if roundup {
-        do_roundup(x, power, rem);
+        check_do_roundup(x, power, rem);
     }
 }
 
@@ -401,7 +608,9 @@ use super::{scalar, small};
 ///
 /// Allows us to choose a start-index in x to store, so we can avoid
 /// padding the buffer with zeros when not needed, optimized for vectors.
-pub fn iadd_impl<T: CloneableVecLike<u32>>(x: &mut T, y: &[u32], xstart: usize) {
+pub fn iadd_impl<T>(x: &mut T, y: &[u32], xstart: usize)
+    where T: CloneableVecLike<u32>
+{
     // The effective x buffer is from `xstart..x.len()`, so we need to treat
     // that as the current range. If the effective y buffer is longer, need
     // to resize to that, + the start index.
@@ -430,7 +639,9 @@ pub fn iadd_impl<T: CloneableVecLike<u32>>(x: &mut T, y: &[u32], xstart: usize) 
 
 /// AddAssign bigint to bigint.
 #[allow(dead_code)]
-pub fn iadd<T: CloneableVecLike<u32>>(x: &mut T, y: &[u32]) {
+pub fn iadd<T>(x: &mut T, y: &[u32])
+    where T: CloneableVecLike<u32>
+{
     iadd_impl(x, y, 0)
 }
 
@@ -450,7 +661,9 @@ pub fn add<T>(x: &[u32], y: &[u32])
 
 /// SubAssign bigint to bigint.
 #[allow(dead_code)]
-pub fn isub<T: CloneableVecLike<u32>>(x: &mut T, y: &[u32]) {
+pub fn isub<T>(x: &mut T, y: &[u32])
+    where T: CloneableVecLike<u32>
+{
     // Basic underflow checks.
     debug_assert!(x.len() >= y.len());
     debug_assert!(x.len() > y.len() || x[x.len()-1] >= y[y.len()-1]);
@@ -490,6 +703,9 @@ pub fn sub<T>(x: &[u32], y: &[u32])
 // MULTIPLICATIION
 
 /// Number of digits to bottom-out to long division.
+///
+/// Karatsuba tends to out-perform long-multiplication at ~320-640 bits,
+/// so we go halfway.
 const KARATSUBA_MIN_DIGITS: usize = 15;
 
 /// Grade-school multiplication algorithm.
@@ -499,7 +715,10 @@ const KARATSUBA_MIN_DIGITS: usize = 15;
 /// but it's extremely simple, and works in O(n*m) time, which is fine
 /// by me. Each iteration, of which there are `m` iterations, requires
 /// `n` multiplications, and `n` additions, or grade-school multiplication.
-fn long_mul<T: CloneableVecLike<u32>>(x: &[u32], y: &[u32]) -> T {
+fn long_mul<T>(x: &[u32], y: &[u32])
+    -> T
+    where T: CloneableVecLike<u32>
+{
     // Make x and empty buffer, and z an immutable copy to the new data.
     let mut z = T::default();
     z.resize(x.len() + y.len(), 0);
@@ -528,7 +747,8 @@ pub fn karatsuba_split<'a>(z: &'a [u32], m: usize)
 /// Karatsuba multiplication algorithm with roughly equal input sizes.
 ///
 /// Assumes `y.len() >= x.len()`.
-fn karatsuba_mul<T>(x: &[u32], y: &[u32]) -> T
+fn karatsuba_mul<T>(x: &[u32], y: &[u32])
+    -> T
     where T: CloneableVecLike<u32>
 {
     if y.len() <= KARATSUBA_MIN_DIGITS {
@@ -569,7 +789,8 @@ fn karatsuba_mul<T>(x: &[u32], y: &[u32]) -> T
 ///
 /// Assumes `y.len() >= x.len()`.
 #[allow(unused)]
-fn karatsuba_uneven_mul<T>(x: &[u32], mut y: &[u32]) -> T
+fn karatsuba_uneven_mul<T>(x: &[u32], mut y: &[u32])
+    -> T
     where T: CloneableVecLike<u32>
 {
 
@@ -595,7 +816,10 @@ fn karatsuba_uneven_mul<T>(x: &[u32], mut y: &[u32]) -> T
 
 /// Forwarder to the proper Karatsuba algorithm.
 #[inline]
-fn karatsuba_mul_fwd<T: CloneableVecLike<u32>>(x: &[u32], y: &[u32]) -> T {
+fn karatsuba_mul_fwd<T>(x: &[u32], y: &[u32])
+    -> T
+    where T: CloneableVecLike<u32>
+{
     if x.len() < y.len() {
         karatsuba_mul(x, y)
     } else {
@@ -606,7 +830,9 @@ fn karatsuba_mul_fwd<T: CloneableVecLike<u32>>(x: &[u32], y: &[u32]) -> T {
 /// MulAssign bigint to bigint.
 #[allow(dead_code)]
 #[inline]
-pub fn imul<T: CloneableVecLike<u32>>(x: &mut T, y: &[u32]) {
+pub fn imul<T>(x: &mut T, y: &[u32])
+    where T: CloneableVecLike<u32>
+{
     unsafe {
         if y.len() == 1 {
             small::imul(x, *y.get_unchecked(0));
@@ -633,7 +859,12 @@ pub fn mul<T>(x: &[u32], y: &[u32])
 // TODO(ahuszagh) Follow Knuth to implement division.
 //  http://www.hackersdelight.org/hdcodetxt/divmnu64.c.txt
 
-/// Implementation of Knuth's Algorithm D.
+/// Shift y so that the highest order bit is set.
+// TODO(ahuszagh) Implement...
+
+/// Implementation of Knuth's Algorithm D, and store the remainder.
+///
+/// `x` is the dividend, and `y` is the divisor, and `rem` is the remainder.
 ///
 /// Based off the Hacker's Delight implementation of Knuth's Algorithm D
 /// in "The Art of Computer Programming".
@@ -641,105 +872,147 @@ pub fn mul<T>(x: &[u32], y: &[u32])
 ///
 /// All Hacker's Delight code is public domain, so this routine shall
 /// also be placed in the public domain.
-// TOOO(ahuszagh) Document more...
-#[allow(unused)]    // TODO(ahuszagh) Remove
-fn algorithm_d_div<T: CloneableVecLike<u32>>(x: &mut T, y: &[u32], rem: &mut T) {
-    unimplemented!()
+unsafe fn algorithm_d_div<T>(x: &mut T, y: &[u32], rem: &mut T)
+    where T: CloneableVecLike<u32>
+{
+    // Constants
+    const B: u64 = 1 << 32;
+    const M: u64 = B - 1;
 
-// TODO(ahuszagh) Adopt this C code.
-//    /* q[0], r[0], u[0], and v[0] contain the LEAST significant words.
-//    (The sequence is in little-endian order).
-//
-//    This is a fairly precise implementation of Knuth's Algorithm D, for a
-//    binary computer with base b = 2**32. The caller supplies:
-//       1. Space q for the quotient, m - n + 1 words (at least one).
-//       2. Space r for the remainder (optional), n words.
-//       3. The dividend u, m words, m >= 1.
-//       4. The divisor v, n words, n >= 2.
-//    The most significant digit of the divisor, v[n-1], must be nonzero.  The
-//    dividend u may have leading zeros; this just makes the algorithm take
-//    longer and makes the quotient contain more leading zeros.  A value of
-//    NULL may be given for the address of the remainder to signify that the
-//    caller does not want the remainder.
-//       The program does not alter the input parameters u and v.
-//       The quotient and remainder returned may have leading zeros.  The
-//    function itself returns a value of 0 for success and 1 for invalid
-//    parameters (e.g., division by 0).
-//       For now, we must have m >= n.  Knuth's Algorithm D also requires
-//    that the dividend be at least as long as the divisor.  (In his terms,
-//    m >= 0 (unstated).  Therefore m+n >= n.) */
-//
-//    const unsigned long long b = 4294967296LL; // Number base (2**32).
-//   unsigned *un, *vn;                         // Normalized form of u, v.
-//   unsigned long long qhat;                   // Estimated quotient digit.
-//   unsigned long long rhat;                   // A remainder.
-//   unsigned long long p;                      // Product of two digits.
-//   long long t, k;
-//   int s, i, j;
-//
-//   /* Normalize by shifting v left just enough so that its high-order
-//   bit is on, and shift u left the same amount. We may have to append a
-//   high-order digit on the dividend; we do that unconditionally. */
-//
-//   s = nlz(v[n-1]);             // 0 <= s <= 31.
-//   vn = (unsigned *)alloca(4*n);
-//   for (i = n - 1; i > 0; i--)
-//      vn[i] = (v[i] << s) | ((unsigned long long)v[i-1] >> (32-s));
-//   vn[0] = v[0] << s;
-//
-//   un = (unsigned *)alloca(4*(m + 1));
-//   un[m] = (unsigned long long)u[m-1] >> (32-s);
-//   for (i = m - 1; i > 0; i--)
-//      un[i] = (u[i] << s) | ((unsigned long long)u[i-1] >> (32-s));
-//   un[0] = u[0] << s;
-//
-//   for (j = m - n; j >= 0; j--) {       // Main loop.
-//      // Compute estimate qhat of q[j].
-//      qhat = (un[j+n]*b + un[j+n-1])/vn[n-1];
-//      rhat = (un[j+n]*b + un[j+n-1]) - qhat*vn[n-1];
-//again:
-//      if (qhat >= b || qhat*vn[n-2] > b*rhat + un[j+n-2])
-//      { qhat = qhat - 1;
-//        rhat = rhat + vn[n-1];
-//        if (rhat < b) goto again;
-//      }
-//
-//      // Multiply and subtract.
-//      k = 0;
-//      for (i = 0; i < n; i++) {
-//         p = qhat*vn[i];
-//         t = un[i+j] - k - (p & 0xFFFFFFFFLL);
-//         un[i+j] = t;
-//         k = (p >> 32) - (t >> 32);
-//      }
-//      t = un[j+n] - k;
-//      un[j+n] = t;
-//
-//      q[j] = qhat;              // Store quotient digit.
-//      if (t < 0) {              // If we subtracted too
-//         q[j] = q[j] - 1;       // much, add back.
-//         k = 0;
-//         for (i = 0; i < n; i++) {
-//            t = (unsigned long long)un[i+j] + vn[i] + k;
-//            un[i+j] = t;
-//            k = t >> 32;
-//         }
-//         un[j+n] = un[j+n] + k;
-//      }
-//   } // End j.
-//   // If the caller wants the remainder, unnormalize
-//   // it and pass it back.
-//   if (r != NULL) {
-//      for (i = 0; i < n-1; i++)
-//         r[i] = (un[i] >> s) | ((unsigned long long)un[i+1] << (32-s));
-//      r[n-1] = un[n-1] >> s;
-//   }
-//   return 0;
+    // Closures
+    let get = | x: &T, i: usize | *x.get_unchecked(i);
+    let set = | x: &mut T, i: usize, xi: u32 | *x.get_unchecked_mut(i) = xi;
+    let get_i64 = | x: &T, i: usize | get(x, i).as_i64();
+    let get_u64 = | x: &T, i: usize | get(x, i).as_u64();
+
+    // Normalize the divisor so the leading-bit is set to 1.
+    // x is the dividend, y is the divisor.
+    let s = y.get_unchecked(y.len()-1).leading_zeros();
+    let mut xn: T = small::shl_bits(x, s);
+    let yn: T = small::shl_bits(y, s);
+
+    // Store certain variables for the algorithm.
+    let m = x.len();
+    let n = y.len();
+    let mut t: i64;
+    let mut k: i64;
+    let mut p: u64;
+    let q = x;
+    let r = rem;
+
+    q.set_len(m-n+1);
+    for j in (0..m-n+1).rev() {
+        // Estimate qhat of q[j]
+        // Original Code:
+        //  qhat = (xn[j+n]*B + xn[j+n-1])/yn[n-1];
+        //  rhat = (xn[j+n]*B + xn[j+n-1]) - qhat*yn[n-1];
+        let xn_jn = get_u64(&xn, j+n);
+        let xn_jn1 = get_u64(&xn, j+n-1);
+        let num = xn_jn * B + xn_jn1;
+        let den = get_u64(&yn, n-1);
+        let mut qhat = num / den;
+        let mut rhat = num - qhat * den;
+
+        // Scale qhat and rhat
+        // Original Code:
+        //  again:
+        //    if (qhat >= B || qhat*yn[n-2] > B*rhat + xn[j+n-2])
+        //    { qhat = qhat - 1;
+        //      rhat = rhat + yn[n-1];
+        //      if (rhat < B) goto again;
+        //    }
+        let xn_jn2 = get_u64(&xn, j+n-2);
+        let yn_n2 = get_u64(&yn, n-2);
+        let yn_n1 = get_u64(&yn, n-1);
+        while qhat >= B || qhat * yn_n2 > B * rhat + xn_jn2 {
+            qhat -= 1;
+            rhat += yn_n1;
+            if rhat >= B {
+                break;
+            }
+        }
+
+        // Multiply and subtract
+        // Original Code:
+        //  k = 0;
+        //  for (i = 0; i < n; i++) {
+        //     p = qhat*yn[i];
+        //     t = xn[i+j] - k - (p & 0xFFFFFFFFLL);
+        //     xn[i+j] = t;
+        //     k = (p >> 32) - (t >> 32);
+        //  }
+        //  t = xn[j+n] - k;
+        //  xn[j+n] = t;
+        k = 0;
+        for i in 0..n {
+            let xn_ij = get_i64(&xn, i+j);
+            let yn_i = get_u64(&yn, i);
+            p = qhat * yn_i;
+            t = xn_ij.wrapping_sub(k).wrapping_sub((p & M).as_i64());
+            set(&mut xn, i+j, t.as_u32());
+            k = (p >> 32).as_i64() - (t >> 32);
+        }
+        t = get_i64(&xn, j+n) - k;
+        set(&mut xn, j+n, t.as_u32());
+
+        // Store quotient digits
+        // If we subtracted too much, add back.
+        // Original Code:
+        //  q[j] = qhat;              // Store quotient digit.
+        //  if (t < 0) {              // If we subtracted too
+        //     q[j] = q[j] - 1;       // much, add back.
+        //     k = 0;
+        //     for (i = 0; i < n; i++) {
+        //        t = (unsigned long long)xn[i+j] + yn[i] + k;
+        //        xn[i+j] = t;
+        //        k = t >> 32;
+        //     }
+        //     xn[j+n] = xn[j+n] + k;
+        //  }
+        set(q, j, qhat.as_u32());
+        if t < 0 {
+            let qj = get(q, j) - 1;
+            set(q, j, qj);
+            k = 0;
+            for i in 0..n {
+                t = (get_u64(&xn, i+j) + get_u64(&yn, i)).as_i64() + k;
+                set(&mut xn, i+j, t.as_u32());
+                k = t >> 32;
+            }
+            let xn_jn = get_i64(&xn, j+n) + k;
+            set(&mut xn, j+n, xn_jn.as_u32());
+        }
+    }
+
+    // Calculate the remainder.
+    // Original Code:
+    //  for (i = 0; i < n-1; i++)
+    //     r[i] = (xn[i] >> s) | ((unsigned long long)xn[i+1] << (32-s));
+    //  r[n-1] = xn[n-1] >> s;
+    r.reserve_exact(n);
+    let rs = 32 - s;
+    for i in 0..n-1 {
+        let xi = get_u64(&xn, i) >> s;
+        let xi1 = get_u64(&xn, i+1) << rs;
+        let ri = xi | xi1;
+        r.push(ri.as_u32());
+    }
+    let xn_n1 = get(&xn, n-1) >> s;
+    r.push(xn_n1.as_u32());
+
+    // Normalize our results
+    small::normalize(q);
+    small::normalize(r);
 }
 
 /// DivAssign bigint to bigint.
 #[allow(dead_code)]
-pub fn idiv<T: CloneableVecLike<u32>>(x: &mut T, y: &[u32]) -> T {
+pub fn idiv<T>(x: &mut T, y: &[u32])
+    -> T
+    where T: CloneableVecLike<u32>
+{
+    debug_assert!(y.len() != 0);
+
     let mut rem = T::default();
     unsafe {
         if y.len() == 1 {
@@ -769,10 +1042,17 @@ pub fn div<T>(x: &[u32], y: &[u32])
     (z, rem)
 }
 
+/// Fast division algorithm that calculates the remainder and the single-digit quotient.
+// TODO(ahuszagh) Need to write the assumptions later.
+#[allow(unused)]    // TODO(ahuszagh) Remove
+fn irem_fast<T>(x: &mut T, y: &[u32]) -> u32
+    where T: CloneableVecLike<u32>
+{
+    unimplemented!()
+}
+
 }   // large
 
-
-use lib::iter;
 use float::Mantissa;
 use util::*;
 use super::small_powers::*;
@@ -802,7 +1082,7 @@ macro_rules! idiv_power {
 // TRAITS
 // ------
 
-pub(in atof::algorithm) trait SharedOps: Clone + Sized {
+pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
     /// Underlying storage type for a SmallOps.
     type StorageType: CloneableVecLike<u32>;
 
@@ -864,12 +1144,8 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized {
 
     /// Pad the buffer with zeros to the least-significant bits.
     fn pad_zeros(&mut self, n: usize) -> usize {
-        if self.data().is_empty() {
-            n
-        } else {
-            self.data_mut().insert_many(0, iter::repeat(0).take(n));
-            n
-        }
+        small::ishl_digits(self.data_mut(), n);
+        n
     }
 
     // INTEGER CONVERSIONS
@@ -896,47 +1172,10 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized {
 
     // SHL
 
-    /// Shift-left bits < 32 bits with carry.
-    #[inline]
-    fn ishl_impl(&mut self, n: u32) {
-        // Need to shift by the number of `bits % 32`.
-        let bits = u32::BITS.as_u32();
-        debug_assert!(n < bits && n != 0);
-
-        // Internally, for each item, we shift left by n, and add the previous
-        // right shifted 32-bits.
-        // For example, we transform (for u8) shifted left 2, to:
-        //      b10100100 b01000010
-        //      b10 b10010001 b00001000
-        let rshift = bits - n;
-        let lshift = n;
-        let mut prev: u32 = 0;
-        for x in self.data_mut().iter_mut() {
-            let tmp = *x;
-            *x <<= lshift;
-            *x |= prev >> rshift;
-            prev = tmp;
-        }
-
-        let carry = prev >> rshift;
-        if carry != 0 {
-            self.data_mut().push(carry);
-        }
-    }
-
     /// Shift-left the entire buffer n bits.
+    #[inline]
     fn ishl(&mut self, n: u32) {
-        let bits = u32::BITS.as_u32();
-        // Need to pad with zeros for the number of `bits / 32`,
-        // and shift-left with carry for `bits % 32`.
-        let rem = n % bits;
-        let div = (n / bits).as_usize();
-        if rem != 0 {
-            self.ishl_impl(rem);
-        }
-        if div != 0 {
-            self.pad_zeros(div);
-        }
+        small::ishl(self.data_mut(), n);
     }
 
     /// Shift-left the entire buffer n bits.
@@ -946,99 +1185,19 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized {
         x
     }
 
-    /// Shift-right < 32 bits with carry.
-    #[inline]
-    fn ishr_impl(&mut self, n: u32) {
-        // Need to shift by the number of `bits % 32`.
-        let bits = u32::BITS.as_u32();
-        debug_assert!(n < bits && n != 0);
-
-        // Internally, for each item, we shift left by n, and add the previous
-        // right shifted 32-bits.
-        // For example, we transform (for u8) shifted right 2, to:
-        //      b10100100 b01000010
-        //        b101001 b00010000
-        let lshift = bits - n;
-        let rshift = n;
-        let mut prev: u32 = 0;
-        for x in self.data_mut().iter_mut().rev() {
-            let tmp = *x;
-            *x >>= rshift;
-            *x |= prev << lshift;
-            prev = tmp;
-        }
-    }
-
-    /// Check if we need to round-up after shift-right.
-    fn ishr_roundup_impl(&self, n: u32) -> bool {
-        let bits = u32::BITS.as_u32();
-        // Find the bit and index count.
-        // We're shifting right that bit, and removing all indexes after it.
-        let bit = n % bits;
-        let index = (n / bits).as_usize();
-        let mask = lower_n_mask(bit);
-        let halfway = lower_n_halfway(bit);
-
-        // We already know that the index is valid, from `shr`.
-        unsafe {
-            debug_assert!(index < self.data().len());
-            let digit = *self.data().get_unchecked(index);
-            let lower_n = digit & mask;
-            if lower_n == halfway {
-                // Currently at halfway, check.
-                let slc = &self.data()[..index];
-                if slc.iter().rev().all(|v| v.is_zero()) {
-                    // Absolute halfway, roundup if the bit above is odd.
-                    let oddmask = 1 << bit;
-                    digit & oddmask == oddmask
-                } else {
-                    // Above halfway
-                    true
-                }
-            } else if lower_n > halfway {
-                // Need to round-up, above halfway
-                true
-            } else {
-                // No need to round-up, below halfway
-                false
-            }
-        }
-    }
-
     /// Shift-right the entire buffer n bits.
-    fn ishr(&mut self, n: u32, roundup: bool) {
-        let bits = u32::BITS.as_u32();
-        // Need to remove the right-most `bits / 32`,
-        // and shift-right with carry for `bits % 32`.
-        let bit = n % bits;
-        let index = (n / bits).as_usize();
+    fn ishr(&mut self, n: u32, mut roundup: bool) {
+        roundup &= small::ishr(self.data_mut(), n);
 
-        // Clear the buffer if we go over the size of the buffer.
-        if index >= self.data().len() {
-            unsafe {
-                self.data_mut().set_len(0);
+        // Round-up the least significant bit.
+        if roundup {
+            if self.data().is_empty() {
+                self.data_mut().push(1);
+            } else {
+                unsafe {
+                    *self.data_mut().front_unchecked_mut() += 1;
+                }
             }
-            return;
-        }
-
-        // Pre-calculate if we need to roundup, then do the operations.
-        // First get rid of the previous indexes, so we do less work.
-        let roundup = roundup && self.ishr_roundup_impl(n);
-        if index != 0 {
-            self.data_mut().remove_many(0..index.as_usize());
-        }
-        if bit != 0 {
-            self.ishr_impl(bit);
-        }
-
-        unsafe {
-            // Round-up the least significant bit.
-            if roundup {
-                *self.data_mut().front_unchecked_mut() += 1;
-            }
-
-            // Pop the most significant byte, as long as it is 0.
-            small::normalize(self.data_mut());
         }
     }
 
@@ -1691,18 +1850,20 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
 
     // DIVISION
 
-    /// DivAssign large integer.
+    /// DivAssign large integer and get remainder.
     #[inline]
-    fn idiv_large(&mut self, y: &Self) {
-        large::idiv(self.data_mut(), y.data());
+    fn idiv_large(&mut self, y: &Self) -> Self {
+        let mut rem = Self::default();
+        *rem.data_mut() = large::idiv(self.data_mut(), y.data());
+        rem
     }
 
-    /// Div large integer to a copy of self.
+    /// Div large integer to a copy of self and get quotient and remainder.
     #[inline]
-    fn div_small(&mut self, y: &Self) -> Self {
+    fn div_small(&mut self, y: &Self) -> (Self, Self) {
         let mut x = self.clone();
-        x.idiv_large(y);
-        x
+        let rem = x.idiv_large(y);
+        (x, rem)
     }
 }
 
@@ -1711,7 +1872,7 @@ mod tests {
     use lib::Vec;
     use super::*;
 
-    #[derive(Clone)]
+    #[derive(Clone, Default)]
     struct Bigint {
         data: Vec<u32>,
     }
@@ -2123,5 +2284,36 @@ mod tests {
         assert_eq!(x.data, vec![4, 13, 28, 50, 80, 119, 168, 228, 300, 385, 484, 598, 728, 875, 1040, 1224, 1360, 1496, 1632, 1768, 1904, 2040, 2176, 2312, 2448, 2584, 2720, 2856, 2992, 3128, 3264, 3400, 3536, 3672, 3770, 3829, 3848, 3826, 3762, 3655, 3504, 3308, 3066, 2777, 2440, 2054, 1618, 1131, 592]);
     }
 
-    // TODO(ahuszagh) Add idiv test
+    #[test]
+    fn idiv_large_test() {
+        // Simple case.
+        let mut x = Bigint { data: vec![0xFFFFFFFF] };
+        let y = Bigint { data: vec![5] };
+        let rem = x.idiv_large(&y);
+        assert_eq!(x.data, vec![0x33333333]);
+        assert_eq!(rem.data, vec![0]);
+
+        // Two integer case
+        let mut x = Bigint { data: vec![0x2, 0xFFFFFFFF] };
+        let y = Bigint { data: vec![0xFFFFFFFE] };
+        let rem = x.idiv_large(&y);
+        assert_eq!(x.data, vec![1, 1]);
+        assert_eq!(rem.data, vec![4]);
+
+        // Larger large case
+        let mut x = Bigint { data: vec![0xCCCCCCCF, 0x5CCCCCCC, 0x9997FFFF, 0x33319999, 0x999A7333, 0xD999] };
+        let y = Bigint { data: vec![0x99999999, 0x99999999, 0xCCCD9999, 0xCCCC] };
+        let rem = x.idiv_large(&y);
+        assert_eq!(x.data, vec![0xFFFFFFFE, 0x0FFFFFFF, 1]);
+        assert_eq!(rem.data, vec![1]);
+
+        // Extremely large cases, examples from Karatsuba multiplication.
+        let mut x = Bigint { data: vec![4, 13, 29, 50, 80, 119, 168, 228, 300, 385, 484, 598, 728, 875, 1040, 1224, 1340, 1435, 1508, 1558, 1584, 1585, 1560, 1508, 1428, 1319, 1180, 1010, 808, 573, 304] };
+        let y = Bigint { data: vec![4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] };
+        let rem = x.idiv_large(&y);
+        assert_eq!(x.data, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+        assert_eq!(rem.data, vec![0, 0, 1]);
+    }
+
+    // TODO(ahuszagh) Add irem_fast test
 }

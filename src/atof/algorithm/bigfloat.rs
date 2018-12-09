@@ -366,7 +366,7 @@ unsafe fn parse_float(base: u32, first: *const u8, last: *const u8)
 /// both the exponentiation and multiplication. This could likely be optimized,
 /// but would dramatically increase library complexity, or depend on GMP.
 /// Consider with caution.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Bigfloat {
     /// Raw data for the underlying buffer (exactly 32**2 for the largest float).
     /// Don't store more bytes for small floats, since the denormal floats
