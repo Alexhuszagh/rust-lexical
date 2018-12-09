@@ -389,41 +389,6 @@ impl Bigfloat {
         Self::min_value()
     }
 
-    /// Create new Bigfloat from u32.
-    #[inline]
-    pub fn from_u32(x: u32) -> Bigfloat {
-        let mut bigfloat = Bigfloat {
-            data: smallvec![x],
-            exp: 0,
-        };
-        bigfloat.normalize();
-        bigfloat
-    }
-
-    /// Create new Bigfloat from u64.
-    #[inline]
-    pub fn from_u64(x: u64) -> Bigfloat {
-        let (d1, d0) = Bigfloat::split_u64(x);
-        let mut bigfloat = Bigfloat {
-            data: smallvec![d1, d0],
-            exp: 0,
-        };
-        bigfloat.normalize();
-        bigfloat
-    }
-
-    /// Create new Bigfloat from u128.
-    #[inline]
-    pub fn from_u128(x: u128) -> Bigfloat {
-        let (d3, d2, d1, d0) = Bigfloat::split_u128(x);
-        let mut bigfloat = Bigfloat {
-            data: smallvec![d3, d2, d1, d0],
-            exp: 0,
-        };
-        bigfloat.normalize();
-        bigfloat
-    }
-
     /// Create new Bigfloat with the minimal value.
     #[inline]
     pub fn min_value() -> Bigfloat {
@@ -439,26 +404,6 @@ impl Bigfloat {
         Bigfloat {
             data: smallvec![u32::max_value(); 32],
             exp: i32::max_value(),
-        }
-    }
-
-    // NORMALIZATION
-
-    /// Get if the float is normalized.
-    #[inline]
-    pub fn is_normalized(&self) -> bool {
-        unsafe {
-            self.data.is_empty() || !self.data.back_unchecked().is_zero()
-        }
-    }
-
-    /// Set the most-significant int to be non-zero.
-    #[inline]
-    pub fn normalize(&mut self) {
-        unsafe {
-            while !self.data.is_empty() && self.data.back_unchecked().is_zero() {
-                self.data.pop();
-            }
         }
     }
 
@@ -589,8 +534,8 @@ impl Bigfloat {
         //
         // To do so, we just shift the int `u64_shift - u32_shift` to the right.
         //      1010101010101010100100100100100100100100100100101101101101101101
-        let u32_shift = self.leading_zeros();
-        let u64_shift = u32::BITS as u32;
+        let u32_shift = self.leading_zeros().as_usize();
+        let u64_shift = u32::BITS.as_usize();
 
         let len = self.data.len();
         let rget = | index: usize | unsafe { *self.data.get_unchecked(len - index - 1) };

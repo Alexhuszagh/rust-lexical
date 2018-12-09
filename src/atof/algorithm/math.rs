@@ -148,6 +148,72 @@ pub fn check_do_roundup<T>(x: &mut T, y: u32, rem: u32)
     }
 }
 
+// PROPERTIES
+
+/// Get the number of leading zero values in the storage.
+/// Assumes the value is normalized.
+#[inline]
+#[allow(dead_code)]
+pub fn leading_zero_values(_: &[u32]) -> usize {
+    0
+}
+
+/// Get the number of trailing zero values in the storage.
+/// Assumes the value is normalized.
+#[inline]
+#[allow(dead_code)]
+pub fn trailing_zero_values(x: &[u32]) -> usize {
+    let mut iter = x.iter().enumerate();
+    let opt = iter.find(|&tup| !tup.1.is_zero());
+    let value = opt
+        .map(|t| t.0)
+        .unwrap_or(x.len());
+
+    value
+}
+
+/// Get number of leading zero bits in the storage.
+#[inline]
+#[allow(dead_code)]
+pub fn leading_zeros(x: &[u32]) -> usize {
+    if x.is_empty() {
+        0
+    } else {
+        unsafe {
+            let index = x.len() - 1;
+            x.get_unchecked(index).leading_zeros().as_usize()
+        }
+    }
+}
+
+/// Get number of trailing zero bits in the storage.
+/// Assumes the value is normalized.
+#[inline]
+#[allow(dead_code)]
+pub fn trailing_zeros(x: &[u32]) -> usize {
+    // Get the index of the last non-zero value
+    let index = trailing_zero_values(x);
+    let mut count = index.checked_mul(u32::BITS);
+    if let Some(value) = x.get(index) {
+        count = count.and_then(|v| v.checked_add(value.trailing_zeros().as_usize()));
+    }
+    count.unwrap_or(usize::max_value())
+}
+
+// BIT LENGTH
+
+/// Calculate the bit-length of the big-integer.
+#[inline]
+#[allow(dead_code)]
+pub fn bit_length(x: &[u32]) -> usize {
+    // Avoid overflowing, calculate via total number of bits
+    // minus leading zero bits.
+    let nlz = leading_zeros(x);
+    u32::BITS.checked_mul(x.len())
+        .map(|v| v - nlz)
+        .unwrap_or(usize::max_value())
+}
+
 // SHR
 
 /// Shift-right bits inside a buffer and returns the truncated bits.
@@ -205,15 +271,15 @@ pub fn ishr_digits<T>(x: &mut T, n: usize)
 }
 
 /// Shift-left buffer by n bits and return if we should round-up.
-pub fn ishr<T>(x: &mut T, n: u32)
+pub fn ishr<T>(x: &mut T, n: usize)
     -> bool
     where T: CloneableVecLike<u32>
 {
-    let bits = u32::BITS.as_u32();
+    let bits = u32::BITS;
     // Need to pad with zeros for the number of `bits / 32`,
     // and shift-left with carry for `bits % 32`.
-    let rem = n % bits;
-    let div = (n / bits).as_usize();
+    let rem = (n % bits).as_u32();
+    let div = n / bits;
     let is_zero = match div.is_zero() {
         true  => true,
         false => ishr_digits(x, div),
@@ -248,7 +314,7 @@ pub fn ishr<T>(x: &mut T, n: u32)
 
 /// Shift-left buffer by n bits.
 #[allow(dead_code)]
-pub fn shr<T>(x: &[u32], n: u32)
+pub fn shr<T>(x: &[u32], n: usize)
     -> (T, bool)
     where T: CloneableVecLike<u32>
 {
@@ -320,14 +386,14 @@ pub fn ishl_digits<T>(x: &mut T, n: usize)
 }
 
 /// Shift-left buffer by n bits.
-pub fn ishl<T>(x: &mut T, n: u32)
+pub fn ishl<T>(x: &mut T, n: usize)
     where T: CloneableVecLike<u32>
 {
-    let bits = u32::BITS.as_u32();
+    let bits = u32::BITS;
     // Need to pad with zeros for the number of `bits / 32`,
     // and shift-left with carry for `bits % 32`.
-    let rem = n % bits;
-    let div = (n / bits).as_usize();
+    let rem = (n % bits).as_u32();
+    let div = n / bits;
     if !rem.is_zero() {
         ishl_bits(x, rem);
     }
@@ -338,7 +404,7 @@ pub fn ishl<T>(x: &mut T, n: u32)
 
 /// Shift-left buffer by n bits.
 #[allow(dead_code)]
-pub fn shl<T>(x: &[u32], n: u32)
+pub fn shl<T>(x: &[u32], n: usize)
     -> T
     where T: CloneableVecLike<u32>
 {
@@ -702,11 +768,12 @@ pub fn sub<T>(x: &[u32], y: &[u32])
 
 // MULTIPLICATIION
 
-/// Number of digits to bottom-out to long division.
+/// Number of digits to bottom-out to asymptotically slow algorithms.
 ///
 /// Karatsuba tends to out-perform long-multiplication at ~320-640 bits,
-/// so we go halfway.
-const KARATSUBA_MIN_DIGITS: usize = 15;
+/// so we go halfway, while newton division tends to out-perform
+/// Algorithm D at ~1024 bits. We can toggle this for optimal performance.
+const DIGITS_CUTOFF: usize = 15;
 
 /// Grade-school multiplication algorithm.
 ///
@@ -751,7 +818,7 @@ fn karatsuba_mul<T>(x: &[u32], y: &[u32])
     -> T
     where T: CloneableVecLike<u32>
 {
-    if y.len() <= KARATSUBA_MIN_DIGITS {
+    if y.len() <= DIGITS_CUTOFF {
         // Bottom-out to long division for small cases.
         long_mul(x, y)
     } else if x.len() < y.len() / 2 {
@@ -856,15 +923,10 @@ pub fn mul<T>(x: &[u32], y: &[u32])
 
 // DIVISION
 
-// TODO(ahuszagh) Follow Knuth to implement division.
-//  http://www.hackersdelight.org/hdcodetxt/divmnu64.c.txt
-
-/// Shift y so that the highest order bit is set.
-// TODO(ahuszagh) Implement...
-
-/// Implementation of Knuth's Algorithm D, and store the remainder.
+/// Implementation of Knuth's Algorithm D, and return the quotient and remainder.
 ///
-/// `x` is the dividend, and `y` is the divisor, and `rem` is the remainder.
+/// `x` is the dividend, and `y` is the divisor.
+/// Assumes `x.len() >= y.len()`.
 ///
 /// Based off the Hacker's Delight implementation of Knuth's Algorithm D
 /// in "The Art of Computer Programming".
@@ -872,7 +934,8 @@ pub fn mul<T>(x: &[u32], y: &[u32])
 ///
 /// All Hacker's Delight code is public domain, so this routine shall
 /// also be placed in the public domain.
-unsafe fn algorithm_d_div<T>(x: &mut T, y: &[u32], rem: &mut T)
+unsafe fn algorithm_d_div<T>(x: &[u32], y: &[u32])
+    -> (T, T)
     where T: CloneableVecLike<u32>
 {
     // Constants
@@ -897,10 +960,10 @@ unsafe fn algorithm_d_div<T>(x: &mut T, y: &[u32], rem: &mut T)
     let mut t: i64;
     let mut k: i64;
     let mut p: u64;
-    let q = x;
-    let r = rem;
+    let mut q = T::default();
+    let mut r = T::default();
 
-    q.set_len(m-n+1);
+    q.resize(m-n+1, 0);
     for j in (0..m-n+1).rev() {
         // Estimate qhat of q[j]
         // Original Code:
@@ -969,10 +1032,10 @@ unsafe fn algorithm_d_div<T>(x: &mut T, y: &[u32], rem: &mut T)
         //     }
         //     xn[j+n] = xn[j+n] + k;
         //  }
-        set(q, j, qhat.as_u32());
+        set(&mut q, j, qhat.as_u32());
         if t < 0 {
-            let qj = get(q, j) - 1;
-            set(q, j, qj);
+            let qj = get(&q, j) - 1;
+            set(&mut q, j, qj);
             k = 0;
             for i in 0..n {
                 t = (get_u64(&xn, i+j) + get_u64(&yn, i)).as_i64() + k;
@@ -1001,8 +1064,10 @@ unsafe fn algorithm_d_div<T>(x: &mut T, y: &[u32], rem: &mut T)
     r.push(xn_n1.as_u32());
 
     // Normalize our results
-    small::normalize(q);
-    small::normalize(r);
+    small::normalize(&mut q);
+    small::normalize(&mut r);
+
+    (q, r)
 }
 
 /// DivAssign bigint to bigint.
@@ -1013,21 +1078,24 @@ pub fn idiv<T>(x: &mut T, y: &[u32])
 {
     debug_assert!(y.len() != 0);
 
-    let mut rem = T::default();
     unsafe {
         if y.len() == 1 {
             // Can optimize for division by a small value.
-            rem.push(small::idiv(x, *y.get_unchecked(0)));
+            let mut r = T::default();
+            r.push(small::idiv(x, *y.get_unchecked(0)));
+            r
         } else if x.len() < y.len() {
             // Can optimize easily, since the quotient is 0,
             // and the remainder is x.
-            mem::swap(x, &mut rem);
+            let mut r = T::default();
+            mem::swap(x, &mut r);
+            r
         } else {
-            algorithm_d_div(x, y, &mut rem);
+            let (q, r) = algorithm_d_div(x, y);
+            *x = q;
+            r
         }
     }
-
-    rem
 }
 
 /// Div bigint to bigint.
@@ -1099,47 +1167,29 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
     /// Get the number of leading zero values in the storage.
     /// Assumes the value is normalized.
     #[inline]
-    fn leading_zero_values(&self) -> u32 {
-        0
+    fn leading_zero_values(&self) -> usize {
+        small::leading_zero_values(self.data())
     }
 
     /// Get the number of trailing zero values in the storage.
     /// Assumes the value is normalized.
     #[inline]
-    fn trailing_zero_values(&self) -> u32 {
-        let mut iter = self.data().iter().enumerate();
-        let opt = iter.find(|&tup| !tup.1.is_zero());
-        let value = opt
-            .map(|t| t.0)
-            .unwrap_or(self.data().len());
-
-        value as u32
+    fn trailing_zero_values(&self) -> usize {
+        small::trailing_zero_values(self.data())
     }
 
     /// Get number of leading zero bits in the storage.
     /// Assumes the value is normalized.
     #[inline]
-    fn leading_zeros(&self) -> u32 {
-        unsafe {
-            if self.data().is_empty() {
-                0
-            } else {
-                self.data().back_unchecked().leading_zeros()
-            }
-        }
+    fn leading_zeros(&self) -> usize {
+        small::leading_zeros(self.data())
     }
 
     /// Get number of trailing zero bits in the storage.
     /// Assumes the value is normalized.
     #[inline]
-    fn trailing_zeros(&self) -> u32 {
-        // Get the index of the last non-zero value
-        let index: usize = self.trailing_zero_values() as usize;
-        let mut count = (index * u32::BITS) as u32;
-        if let Some(value) = self.data().get(index) {
-            count += value.trailing_zeros();
-        }
-        count
+    fn trailing_zeros(&self) -> usize {
+        small::trailing_zeros(self.data())
     }
 
     /// Pad the buffer with zeros to the least-significant bits.
@@ -1170,23 +1220,77 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
         (d3, d2, d1, d0)
     }
 
-    // SHL
+    // CREATION
+
+    /// Create new big integer from u32.
+    #[inline]
+    fn from_u32(x: u32) -> Self {
+        let mut v = Self::default();
+        v.data_mut().reserve(1);
+        v.data_mut().push(x);
+        v.normalize();
+        v
+    }
+
+    /// Create new big integer from u64.
+    #[inline]
+    fn from_u64(x: u64) -> Self {
+        let mut v = Self::default();
+        let (d1, d0) = Self::split_u64(x);
+        v.data_mut().reserve(2);
+        v.data_mut().push(d1);
+        v.data_mut().push(d0);
+        v.normalize();
+        v
+    }
+
+    /// Create new big integer from u128.
+    #[inline]
+    fn from_u128(x: u128) -> Self {
+        let mut v = Self::default();
+        let (d3, d2, d1, d0) = Self::split_u128(x);
+        v.data_mut().reserve(4);
+        v.data_mut().push(d3);
+        v.data_mut().push(d2);
+        v.data_mut().push(d1);
+        v.data_mut().push(d0);
+        v.normalize();
+        v
+    }
+
+    // NORMALIZE
+
+    /// Normalize the integer, so any leading zero values are removed.
+    #[inline]
+    fn normalize(&mut self) {
+        small::normalize(self.data_mut());
+    }
+
+    /// Get if the big integer is normalized.
+    #[inline]
+    fn is_normalized(&self) -> bool {
+        unsafe {
+            self.data().is_empty() || !self.data().back_unchecked().is_zero()
+        }
+    }
+
+    // SHIFTS
 
     /// Shift-left the entire buffer n bits.
     #[inline]
-    fn ishl(&mut self, n: u32) {
+    fn ishl(&mut self, n: usize) {
         small::ishl(self.data_mut(), n);
     }
 
     /// Shift-left the entire buffer n bits.
-    fn shl(&self, n: u32) -> Self {
+    fn shl(&self, n: usize) -> Self {
         let mut x = self.clone();
         x.ishl(n);
         x
     }
 
     /// Shift-right the entire buffer n bits.
-    fn ishr(&mut self, n: u32, mut roundup: bool) {
+    fn ishr(&mut self, n: usize, mut roundup: bool) {
         roundup &= small::ishr(self.data_mut(), n);
 
         // Round-up the least significant bit.
@@ -1202,10 +1306,19 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
     }
 
     /// Shift-right the entire buffer n bits.
-    fn shr(&self, n: u32, roundup: bool) -> Self {
+    fn shr(&self, n: usize, roundup: bool) -> Self {
         let mut x = self.clone();
         x.ishr(n, roundup);
         x
+    }
+
+    // BITLENGTH
+
+    /// Calculate the bit-length of the big-integer.
+    /// Returns usize::max_value() if the value overflows,
+    /// IE, if `self.data().len() > usize::max_value() / 8`.
+    fn bit_length(&self) -> usize {
+        small::bit_length(self.data())
     }
 }
 
@@ -1355,7 +1468,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
 
     /// Multiply by a power of 2.
     fn imul_pow2(&mut self, n: u32) {
-        self.ishl(n)
+        self.ishl(n.as_usize())
     }
 
     imul_power!(imul_pow3, U32_POW3, 3);
@@ -1608,7 +1721,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
 
     /// Divide by a power of 2.
     fn idiv_pow2(&mut self, n: u32, roundup: bool) {
-        self.ishr(n, roundup)
+        self.ishr(n.as_usize(), roundup)
     }
 
     idiv_power!(idiv_pow3, U32_POW3, 3);
@@ -1882,23 +1995,6 @@ mod tests {
         pub fn new() -> Bigint {
             Bigint { data: vec![] }
         }
-
-        #[inline]
-        pub fn from_u32(x: u32) -> Bigint {
-            Bigint { data: vec![x] }
-        }
-
-        #[inline]
-        pub fn from_u64(x: u64) -> Bigint {
-            let (d1, d0) = Bigint::split_u64(x);
-            Bigint { data: vec![d1, d0] }
-        }
-
-        #[inline]
-        pub fn from_u128(x: u128) -> Bigint {
-            let (d3, d2, d1, d0) = Bigint::split_u128(x);
-            Bigint { data: vec![d3, d2, d1, d0] }
-        }
     }
 
     impl SharedOps for Bigint {
@@ -2062,6 +2158,18 @@ mod tests {
         let mut big = Bigint { data: vec![0xD2210438] };
         big.ishr(5, true);
         assert_eq!(big.data, vec![0x6910822]);
+    }
+
+    #[test]
+    fn bit_length_test() {
+        let x = Bigint { data: vec![0, 0, 0, 1] };
+        assert_eq!(x.bit_length(), 97);
+
+        let x = Bigint { data: vec![0, 0, 0, 3] };
+        assert_eq!(x.bit_length(), 98);
+
+        let x = Bigint { data: vec![1<<31] };
+        assert_eq!(x.bit_length(), 32);
     }
 
     // SMALL OPS
