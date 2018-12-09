@@ -515,7 +515,19 @@ signed_integer_impl! { i8 i16 i32 i64 i128 isize }
 
 /// Defines a trait that supports unsigned integral operations.
 pub trait UnsignedInteger: Integer
-{}
+{
+    /// Returns true if the least-significant bit is odd.
+    #[inline]
+    fn is_odd(self) -> bool {
+        self & Self::ONE == Self::ONE
+    }
+
+    /// Returns true if the least-significant bit is even.
+    #[inline]
+    fn is_even(self) -> bool {
+        !self.is_odd()
+    }
+}
 
 macro_rules! unsigned_integer_impl {
     ($($t:ty)*) => ($(

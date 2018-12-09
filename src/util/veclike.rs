@@ -59,8 +59,79 @@ fn remove_many<V, T, R>(vec: &mut V, range: R)
     }
 }
 
+// EXTEND FROM SLICE
+
+/// Collection that can be extended from a slice.
+pub trait ExtendFromSlice<T: Clone>: Clone + Default {
+    /// Extend collection from slice.
+    fn extend_from_slice(&mut self, other: &[T]);
+}
+
+impl<T: Clone> ExtendFromSlice<T> for Vec<T> {
+    #[inline]
+    fn extend_from_slice(&mut self, other: &[T]) {
+        Vec::extend_from_slice(self, other)
+    }
+}
+
+impl<A: smallvec::Array> ExtendFromSlice<A::Item> for smallvec::SmallVec<A>
+    where A::Item: Copy + Clone
+{
+    #[inline]
+    fn extend_from_slice(&mut self, other: &[A::Item]) {
+        smallvec::SmallVec::extend_from_slice(self, other)
+    }
+}
+
+impl<A: stackvector::Array> ExtendFromSlice<A::Item> for stackvector::StackVec<A>
+    where A::Item: Copy + Clone
+{
+    #[inline]
+    fn extend_from_slice(&mut self, other: &[A::Item]) {
+        stackvector::StackVec::extend_from_slice(self, other)
+    }
+}
+
+// RESIZE
+
+/// Resizable container.
+///
+/// Implemented for Vec, SmallVec, and StackVec.
+pub trait Resize<T: Clone>: Clone + Default {
+    /// Resize container to new length, with a default value if adding elements.
+    fn resize(&mut self, len: usize, value: T);
+}
+
+impl<T: Clone> Resize<T> for Vec<T> {
+    #[inline]
+    fn resize(&mut self, len: usize, value: T) {
+        Vec::resize(self, len, value)
+    }
+}
+
+impl<A: smallvec::Array> Resize<A::Item> for smallvec::SmallVec<A>
+    where A::Item: Clone
+{
+    #[inline]
+    fn resize(&mut self, len: usize, value: A::Item) {
+        smallvec::SmallVec::resize(self, len, value)
+    }
+}
+
+impl<A: stackvector::Array> Resize<A::Item> for stackvector::StackVec<A>
+    where A::Item: Clone
+{
+    #[inline]
+    fn resize(&mut self, len: usize, value: A::Item) {
+        stackvector::StackVec::resize(self, len, value)
+    }
+}
+
 // VECLIKE
 
+/// Vector-like container.
+///
+/// Implemented for Vec, SmallVec, and StackVec.
 pub trait VecLike<T>:
     ops::Index<usize, Output=T> +
     ops::IndexMut<usize> +
@@ -73,7 +144,8 @@ pub trait VecLike<T>:
     ops::Index<ops::RangeFull, Output=[T]> +
     ops::IndexMut<ops::RangeFull> +
     ops::DerefMut<Target = [T]> +
-    Extend<T>
+    Extend<T> +
+    Default
 {
 
     /// Append an element to the vector.
@@ -154,8 +226,6 @@ pub trait VecLike<T>:
     }
 }
 
-// VEC
-
 impl<T> VecLike<T> for Vec<T> {
     #[inline]
     fn push(&mut self, value: T) {
@@ -182,8 +252,6 @@ impl<T> VecLike<T> for Vec<T> {
         remove_many(self, range)
     }
 }
-
-// SMALLVEC
 
 impl<A: smallvec::Array> VecLike<A::Item> for smallvec::SmallVec<A> {
     #[inline]
@@ -212,8 +280,6 @@ impl<A: smallvec::Array> VecLike<A::Item> for smallvec::SmallVec<A> {
     }
 }
 
-// STACKVEC
-
 impl<A: stackvector::Array> VecLike<A::Item> for stackvector::StackVec<A> {
     #[inline]
     fn push(&mut self, value: A::Item) {
@@ -240,6 +306,28 @@ impl<A: stackvector::Array> VecLike<A::Item> for stackvector::StackVec<A> {
         remove_many(self, range)
     }
 }
+
+// CLONEABLE VECLIKE
+
+/// Vector-like container with cloneable values.
+///
+/// Implemented for Vec, SmallVec, and StackVec.
+pub trait CloneableVecLike<T: Clone + Copy>:
+    ExtendFromSlice<T> +
+    Resize<T> +
+    VecLike<T>
+{}
+
+impl<T: Clone + Copy> CloneableVecLike<T> for Vec<T> {
+}
+
+impl<A: smallvec::Array> CloneableVecLike<A::Item> for smallvec::SmallVec<A>
+    where A::Item: Clone + Copy
+{}
+
+impl<A: stackvector::Array> CloneableVecLike<A::Item> for stackvector::StackVec<A>
+    where A::Item: Clone + Copy
+{}
 
 // TESTS
 // -----

@@ -11,10 +11,10 @@ use atoi;
 use float::{ExtendedFloat80, FloatRounding};
 use float::convert::into_float;
 use float::rounding::*;
-use lib::mem;
+use lib::{iter, mem};
 use util::*;
 use super::exponent::*;
-use super::math::SmallOps;
+use super::math::*;
 
 // MAX EXPONENT
 
@@ -467,7 +467,7 @@ impl Bigfloat {
     /// Pad the buffer with zeros to the least-significant digits.
     fn pad_zeros(&mut self, n: usize) {
         // Pad buffer, and get number of n padded.
-        let n = <Bigfloat as SmallOps>::pad_zeros(self, as_cast(n));
+        let n = <Bigfloat as SharedOps>::pad_zeros(self, as_cast(n));
         let bits = n * u32::BITS;
         self.exp -= bits as i32;
     }
@@ -511,7 +511,7 @@ impl Bigfloat {
             // Get exact representation via division.
             let exponent = (-exponent).as_u32();
             bigfloat.pad_division(exponent, base);
-            bigfloat.idiv_power(exponent, base);
+            bigfloat.idiv_power(exponent, base, true);
         }
         (bigfloat, state)
     }
@@ -712,7 +712,7 @@ impl Bigfloat {
     }
 }
 
-impl SmallOps for Bigfloat {
+impl SharedOps for Bigfloat {
     type StorageType = smallvec::SmallVec<[u32; 32]>;
 
     #[inline]
@@ -725,6 +725,28 @@ impl SmallOps for Bigfloat {
         &mut self.data
     }
 
+    // We want to conditionally pad zeros, since we only use it for the
+    // pad division operation.
+    fn pad_zeros(&mut self, n: usize) -> usize {
+        // Assume **no** overflow for the usize, since this would lead to
+        // other memory errors. Add `bytes` 0s to the left of the current
+        // buffer, and decrease the exponent accordingly.
+
+        // Remove the number of trailing zeros values for the padding.
+        // If we don't need to pad the resulting buffer, return early.
+        let n = n.checked_sub(self.trailing_zero_values() as usize).unwrap_or(0);
+        if n.is_zero() || self.data().is_empty() {
+            return n;
+        }
+
+        // Insert n `0`s at the start of the iterator.
+        self.data_mut().insert_many(0, iter::repeat(0).take(n));
+
+        n
+    }
+}
+
+impl SmallOps for Bigfloat {
     #[inline]
     fn imul_pow2(&mut self, n: u32) {
         // Increment exponent to simulate actual multiplication.
@@ -732,7 +754,7 @@ impl SmallOps for Bigfloat {
     }
 
     #[inline]
-    fn idiv_pow2(&mut self, n: u32) {
+    fn idiv_pow2(&mut self, n: u32, _: bool) {
         // Decrement exponent to simulate actual division.
         self.exp -= n.as_i32();
     }
@@ -776,135 +798,6 @@ mod tests {
 
         let bigfloat = Bigfloat::from_u128(1329227997022855913342108839786316031);
         assert_eq!(bigfloat, Bigfloat { data: smallvec![255, 1 << 28, 1 << 26, 1<< 24], exp: 0 });
-    }
-
-    // PROPERTIES
-
-    #[test]
-    fn leading_zero_values_test() {
-        assert_eq!(Bigfloat::new().leading_zero_values(), 0);
-
-        assert_eq!(Bigfloat::from_u32(0xFF).leading_zero_values(), 0);
-        assert_eq!(Bigfloat::from_u64(0xFF00000000).leading_zero_values(), 0);
-        assert_eq!(Bigfloat::from_u128(0xFF000000000000000000000000).leading_zero_values(), 0);
-
-        assert_eq!(Bigfloat::from_u32(0xF).leading_zero_values(), 0);
-        assert_eq!(Bigfloat::from_u64(0xF00000000).leading_zero_values(), 0);
-        assert_eq!(Bigfloat::from_u128(0xF000000000000000000000000).leading_zero_values(), 0);
-
-        assert_eq!(Bigfloat::from_u32(0xF0).leading_zero_values(), 0);
-        assert_eq!(Bigfloat::from_u64(0xF000000000).leading_zero_values(), 0);
-        assert_eq!(Bigfloat::from_u128(0xF0000000000000000000000000).leading_zero_values(), 0);
-    }
-
-    #[test]
-    fn trailing_zero_values_test() {
-        assert_eq!(Bigfloat::new().trailing_zero_values(), 0);
-
-        assert_eq!(Bigfloat::from_u32(0xFF).trailing_zero_values(), 0);
-        assert_eq!(Bigfloat::from_u64(0xFF00000000).trailing_zero_values(), 1);
-        assert_eq!(Bigfloat::from_u128(0xFF000000000000000000000000).trailing_zero_values(), 3);
-
-        assert_eq!(Bigfloat::from_u32(0xF).trailing_zero_values(), 0);
-        assert_eq!(Bigfloat::from_u64(0xF00000000).trailing_zero_values(), 1);
-        assert_eq!(Bigfloat::from_u128(0xF000000000000000000000000).trailing_zero_values(), 3);
-
-        assert_eq!(Bigfloat::from_u32(0xF0).trailing_zero_values(), 0);
-        assert_eq!(Bigfloat::from_u64(0xF000000000).trailing_zero_values(), 1);
-        assert_eq!(Bigfloat::from_u128(0xF0000000000000000000000000).trailing_zero_values(), 3);
-    }
-
-    #[test]
-    fn leading_zeros_test() {
-        assert_eq!(Bigfloat::new().leading_zeros(), 0);
-
-        assert_eq!(Bigfloat::from_u32(0xFF).leading_zeros(), 24);
-        assert_eq!(Bigfloat::from_u64(0xFF00000000).leading_zeros(), 24);
-        assert_eq!(Bigfloat::from_u128(0xFF000000000000000000000000).leading_zeros(), 24);
-
-        assert_eq!(Bigfloat::from_u32(0xF).leading_zeros(), 28);
-        assert_eq!(Bigfloat::from_u64(0xF00000000).leading_zeros(), 28);
-        assert_eq!(Bigfloat::from_u128(0xF000000000000000000000000).leading_zeros(), 28);
-
-        assert_eq!(Bigfloat::from_u32(0xF0).leading_zeros(), 24);
-        assert_eq!(Bigfloat::from_u64(0xF000000000).leading_zeros(), 24);
-        assert_eq!(Bigfloat::from_u128(0xF0000000000000000000000000).leading_zeros(), 24);
-    }
-
-    #[test]
-    fn trailing_zeros_test() {
-        assert_eq!(Bigfloat::new().trailing_zeros(), 0);
-
-        assert_eq!(Bigfloat::from_u32(0xFF).trailing_zeros(), 0);
-        assert_eq!(Bigfloat::from_u64(0xFF00000000).trailing_zeros(), 32);
-        assert_eq!(Bigfloat::from_u128(0xFF000000000000000000000000).trailing_zeros(), 96);
-
-        assert_eq!(Bigfloat::from_u32(0xF).trailing_zeros(), 0);
-        assert_eq!(Bigfloat::from_u64(0xF00000000).trailing_zeros(), 32);
-        assert_eq!(Bigfloat::from_u128(0xF000000000000000000000000).trailing_zeros(), 96);
-
-        assert_eq!(Bigfloat::from_u32(0xF0).trailing_zeros(), 4);
-        assert_eq!(Bigfloat::from_u64(0xF000000000).trailing_zeros(), 36);
-        assert_eq!(Bigfloat::from_u128(0xF0000000000000000000000000).trailing_zeros(), 100);
-    }
-
-    // ADDITION
-
-    #[test]
-    fn iadd_small_test() {
-        // Overflow check (single)
-        // This should set all the internal data values to 0, the top
-        // value to (1<<31), and the bottom value to (4>>1).
-        // This is because the max_value + 1 leads to all 0s, we set the
-        // topmost bit to 1.
-        let mut x = Bigfloat::from_u32(4294967295);
-        x.iadd_small(5);
-        assert_eq!(x, Bigfloat { data: smallvec![4, 1], exp: 0 });
-
-        // No overflow, single value
-        let mut x = Bigfloat::from_u32(5);
-        x.iadd_small(7);
-        assert_eq!(x, Bigfloat { data: smallvec![12], exp: 0 });
-
-        // Single carry, internal overflow
-        let mut x = Bigfloat::from_u64(0x80000000FFFFFFFF);
-        x.iadd_small(7);
-        assert_eq!(x, Bigfloat { data: smallvec![6, 0x80000001], exp: 0 });
-
-        // Double carry, overflow
-        let mut x = Bigfloat::from_u64(0xFFFFFFFFFFFFFFFF);
-        x.iadd_small(7);
-        assert_eq!(x, Bigfloat { data: smallvec![6, 0, 1], exp: 0 });
-    }
-
-    // MULTIPLICATION
-
-    #[test]
-    fn imul_small_test() {
-        // No overflow check, 1-int.
-        let mut x = Bigfloat::from_u32(5);
-        x.imul_small(7);
-        assert_eq!(x, Bigfloat { data: smallvec![35], exp: 0 });
-
-        // No overflow check, 2-ints.
-        let mut x = Bigfloat::from_u64(0x4000000040000);
-        x.imul_small(5);
-        assert_eq!(x, Bigfloat { data: smallvec![0x00140000, 0x140000], exp: 0 });
-
-        // Overflow, 1 carry.
-        let mut x = Bigfloat::from_u32(0x33333334);
-        x.imul_small(5);
-        assert_eq!(x, Bigfloat { data: smallvec![4, 1], exp: 0 });
-
-        // Overflow, 1 carry, internal.
-        let mut x = Bigfloat::from_u64(0x133333334);
-        x.imul_small(5);
-        assert_eq!(x, Bigfloat { data: smallvec![4, 6], exp: 0 });
-
-        // Overflow, 2 carries.
-        let mut x = Bigfloat::from_u64(0x3333333333333334);
-        x.imul_small(5);
-        assert_eq!(x, Bigfloat { data: smallvec![4, 0, 1], exp: 0 });
     }
 
     // DIVISION
@@ -998,32 +891,32 @@ mod tests {
         // 1-int.
         let mut x = Bigfloat::from_u32(5);
         x.pad_zeros(2);
-        x.idiv_small(7);
-        assert_eq!(x, Bigfloat { data: smallvec![0xDB6DB6DC, 0xB6DB6DB6], exp: -64 });
+        assert_eq!(x.idiv_small(7), 3);
+        assert_eq!(x, Bigfloat { data: smallvec![0xDB6DB6DB, 0xB6DB6DB6], exp: -64 });
 
         // 2-ints.
         let mut x = Bigfloat::from_u64(0x4000000040000);
         x.pad_zeros(2);
-        x.idiv_small(5);
-        assert_eq!(x, Bigfloat { data: smallvec![0x9999999A, 0x99999999, 0xCCCD9999, 0xCCCC], exp: -64 });
+        assert_eq!(x.idiv_small(5), 3);
+        assert_eq!(x, Bigfloat { data: smallvec![0x99999999, 0x99999999, 0xCCCD9999, 0xCCCC], exp: -64 });
 
         // 1-int.
         let mut x = Bigfloat::from_u32(0x33333334);
         x.pad_zeros(2);
-        x.idiv_small(5);
+        assert_eq!(x.idiv_small(5), 0);
         assert_eq!(x, Bigfloat { data: smallvec![0x0, 0x0, 0xA3D70A4], exp: -64 });
 
         // 2-ints.
         let mut x = Bigfloat::from_u64(0x133333334);
         x.pad_zeros(2);
-        x.idiv_small(5);
-        assert_eq!(x, Bigfloat { data: smallvec![0x33333334, 0x33333333, 0x3D70A3D7], exp: -64 });
+        assert_eq!(x.idiv_small(5), 1);
+        assert_eq!(x, Bigfloat { data: smallvec![0x33333333, 0x33333333, 0x3D70A3D7], exp: -64 });
 
         // 2-ints.
         let mut x = Bigfloat::from_u64(0x3333333333333334);
         x.pad_zeros(2);
-        x.idiv_small(5);
-        assert_eq!(x, Bigfloat { data: smallvec![0xCCCCCCCD, 0xCCCCCCCC, 0xD70A3D70, 0xA3D70A3], exp: -64 });
+        assert_eq!(x.idiv_small(5), 4);
+        assert_eq!(x, Bigfloat { data: smallvec![0xCCCCCCCC, 0xCCCCCCCC, 0xD70A3D70, 0xA3D70A3], exp: -64 });
     }
 
     // AS FLOAT
@@ -1132,7 +1025,7 @@ mod tests {
 
         // Divide by a power-of-two
         let mut x = Bigfloat::from_u32(1);
-        x.idiv_pow2(1);
+        x.idiv_pow2(1, true);
         assert_eq!(x.exponent(), -64);
 
         // Custom (bug fix), 0x20000000000001 << 100
@@ -1303,7 +1196,7 @@ mod tests {
         unsafe {
             // Underflow
             // Adapted from failures in strtod.
-            check_from_bytes::<f64>(10, "2.4703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125001e-324", (Bigfloat { data: smallvec![642017487, 3921539298, 3824343719, 91359114, 1738187133, 1383153214, 3150573688, 2249385240, 2573401083, 3095825845, 3660217666, 1733774432, 4281766689, 4040834041, 3939311820, 1480925659, 635365729, 2971208776, 32671145, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8], exp: -4182 }, 761));
+            check_from_bytes::<f64>(10, "2.4703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125001e-324", (Bigfloat { data: smallvec![642017486, 3921539298, 3824343719, 91359114, 1738187133, 1383153214, 3150573688, 2249385240, 2573401083, 3095825845, 3660217666, 1733774432, 4281766689, 4040834041, 3939311820, 1480925659, 635365729, 2971208776, 32671145, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8], exp: -4182 }, 761));
 
             // Rounding error
             // Adapted from test-float-parse failures.
