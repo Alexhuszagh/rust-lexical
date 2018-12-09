@@ -35,7 +35,7 @@ extern crate static_assertions;
 extern crate alloc;
 
 // Use smallvec for Bigfloat class, which requires precise and a runtime.
-// TODO(ahuszagh) Remove
+// TODO(ahuszagh) Make dependent on a never-used feature.
 #[cfg(any(test, not(feature = "imprecise")))]
 #[allow(unused_imports)]
 #[macro_use]

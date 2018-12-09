@@ -15,6 +15,8 @@ mod pow;
 mod primitive;
 mod span;
 mod state;
+
+#[cfg(any(test, not(feature = "imprecise")))]
 mod veclike;
 
 #[cfg(any(test, feature = "imprecise"))]
@@ -29,6 +31,8 @@ pub(crate) use self::pow::*;
 pub(crate) use self::primitive::*;
 pub(crate) use self::span::*;
 pub(crate) use self::state::*;
+
+#[cfg(any(test, not(feature = "imprecise")))]
 pub(crate) use self::veclike::*;
 
 #[cfg(any(test, feature = "imprecise"))]

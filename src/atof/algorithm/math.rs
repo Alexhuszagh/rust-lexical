@@ -502,6 +502,7 @@ const KARATSUBA_MIN_DIGITS: usize = 15;
 fn long_mul<T: CloneableVecLike<u32>>(x: &[u32], y: &[u32]) -> T {
     // Make x and empty buffer, and z an immutable copy to the new data.
     let mut z = T::default();
+    z.resize(x.len() + y.len(), 0);
 
     // Using the immutable value, multiply by all the scalars in y, using
     // the algorithm defined above.
@@ -511,78 +512,94 @@ fn long_mul<T: CloneableVecLike<u32>>(x: &[u32], y: &[u32]) -> T {
         small::imul(&mut xi, *yi);
         iadd_impl(&mut z, &xi, i);
     }
+    small::normalize(&mut z);
 
     z
 }
 
 
-/// Split two buffers into halfway, into (xl, xl, yl, yh).
-#[allow(unused)]
-pub fn karatsuba_split<'a>(x: &'a [u32], y: &'a [u32])
-    -> (usize, &'a [u32], &'a [u32], &'a [u32], &'a [u32])
+/// Split two buffers into halfway, into (lo, hi).
+pub fn karatsuba_split<'a>(z: &'a [u32], m: usize)
+    -> (&'a [u32], &'a [u32])
 {
-    let m = y.len() / 2;
-    (m, &x[..m], &x[m..], &y[..m], &y[m..])
+    (&z[..m], &z[m..])
 }
 
-
 /// Karatsuba multiplication algorithm with roughly equal input sizes.
-#[allow(unused)]
+///
+/// Assumes `y.len() >= x.len()`.
 fn karatsuba_mul<T>(x: &[u32], y: &[u32]) -> T
     where T: CloneableVecLike<u32>
 {
     if y.len() <= KARATSUBA_MIN_DIGITS {
+        // Bottom-out to long division for small cases.
         long_mul(x, y)
+    } else if x.len() < y.len() / 2 {
+        karatsuba_uneven_mul(x, y)
     } else {
         // Do our 3 multiplications.
-        let (m, xl, xh, yl, yh) = karatsuba_split(x, y);
+        let m = y.len() / 2;
+        let (xl, xh) = karatsuba_split(x, m);
+        let (yl, yh) = karatsuba_split(y, m);
         let sumx: T = add(xl, xh);
         let sumy: T = add(yl, yh);
         let z0: T = karatsuba_mul(xl, yl);
-        let z1: T = karatsuba_mul(&sumx, &sumy);
+        let mut z1: T = karatsuba_mul(&sumx, &sumy);
         let z2: T = karatsuba_mul(xh, yh);
+        // Properly scale z1, which is `z1 - z2 - zo`.
+        isub(&mut z1, &z2);
+        isub(&mut z1, &z0);
 
         // Create our result, which is equal to, in little-endian order:
         // [z0, z1 - z2 - z0, z2]
+        //  z1 must be shifted m digits (2^(32m)) over.
+        //  z2 must be shifted 2*m digits (2^(64m)) over.
         let mut result = T::default();
+        let len = z0.len().max(m + z1.len()).max(2*m + z2.len());
+        result.reserve_exact(len);
         result.extend_from_slice(&z0);
-        // TODO(ahuszagh) Need a subtraction algorithm
-        // (z2 * 10 ^ (m2 * 2)) + ((z1 - z2 - z0) * 10 ^ m2) + z0
-        result.extend_from_slice(&z2);
+        iadd_impl(&mut result, &z1, m);
+        iadd_impl(&mut result, &z2, 2*m);
 
-        unimplemented!()
+        result
     }
 }
 
 /// Karatsuba multiplication algorithm where y is substantially larger than x.
+///
+/// Assumes `y.len() >= x.len()`.
 #[allow(unused)]
-fn karatsuba_uneven_mul<T>(x: &[u32], y: &[u32]) -> T
+fn karatsuba_uneven_mul<T>(x: &[u32], mut y: &[u32]) -> T
     where T: CloneableVecLike<u32>
 {
-    if y.len() <= KARATSUBA_MIN_DIGITS {
-        long_mul(x, y)
-    } else {
-        // TODO(ahuszagh) Implement...
-        unimplemented!()
+
+    let mut result = T::default();
+    result.resize(x.len() + y.len(), 0);
+
+    // This effectively is like grade-school multiplication between
+    // two numbers, except we're using splits on `y`, and the intermediate
+    // step is a Karatsuba multiplication.
+    let mut start = 0;
+    while y.len() != 0 {
+        let m = x.len().min(y.len());
+        let (yl, yh) = karatsuba_split(y, m);
+        let prod: T = karatsuba_mul(x, yl);
+        iadd_impl(&mut result, &prod, start);
+        y = yh;
+        start += m;
     }
+    small::normalize(&mut result);
+
+    result
 }
 
 /// Forwarder to the proper Karatsuba algorithm.
 #[inline]
 fn karatsuba_mul_fwd<T: CloneableVecLike<u32>>(x: &[u32], y: &[u32]) -> T {
-    // Inner function to determine the proper forwarder.
-    let inner = | x: &[u32], y: &[u32] | -> T {
-        if x.len() < y.len() / 2 {
-            karatsuba_uneven_mul(x, y)
-        } else {
-            karatsuba_mul(x, y)
-        }
-    };
-
     if x.len() < y.len() {
-        inner(x, y)
+        karatsuba_mul(x, y)
     } else {
-        inner(y, x)
+        karatsuba_mul(y, x)
     }
 }
 
@@ -594,13 +611,7 @@ pub fn imul<T: CloneableVecLike<u32>>(x: &mut T, y: &[u32]) {
         if y.len() == 1 {
             small::imul(x, *y.get_unchecked(0));
         } else {
-            // Use long multiplication when there are not many digits.
-            let len = x.len().min(y.len());
-            if len <= KARATSUBA_MIN_DIGITS {
-                *x = long_mul(x, y);
-            } else {
-                *x = karatsuba_mul_fwd(x, y);
-            }
+            *x = karatsuba_mul_fwd(x, y);
         }
     }
 }
@@ -2072,6 +2083,12 @@ mod tests {
 
     #[test]
     fn imul_large_test() {
+        // Test by empty
+        let mut x = Bigint { data: vec![0xFFFFFFFF] };
+        let y = Bigint { data: vec![] };
+        x.imul_large(&y);
+        assert_eq!(x.data, vec![]);
+
         // Simple case
         let mut x = Bigint { data: vec![0xFFFFFFFF] };
         let y = Bigint { data: vec![5] };
@@ -2089,6 +2106,21 @@ mod tests {
         let y = Bigint { data: vec![0x99999999, 0x99999999, 0xCCCD9999, 0xCCCC] };
         x.imul_large(&y);
         assert_eq!(x.data, vec![0xCCCCCCCE, 0x5CCCCCCC, 0x9997FFFF, 0x33319999, 0x999A7333, 0xD999]);
+    }
+
+    #[test]
+    fn imul_karatsuba_mul_test() {
+        // Test cases triggered to use `karatsuba_mul`.
+        let mut x = Bigint { data: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] };
+        let y = Bigint { data: vec![4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] };
+        x.imul_large(&y);
+        assert_eq!(x.data, vec![4, 13, 28, 50, 80, 119, 168, 228, 300, 385, 484, 598, 728, 875, 1040, 1224, 1340, 1435, 1508, 1558, 1584, 1585, 1560, 1508, 1428, 1319, 1180, 1010, 808, 573, 304]);
+
+        // Test cases to use karatsuba_uneven_mul
+        let mut x = Bigint { data: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] };
+        let y = Bigint { data: vec![4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37] };
+        x.imul_large(&y);
+        assert_eq!(x.data, vec![4, 13, 28, 50, 80, 119, 168, 228, 300, 385, 484, 598, 728, 875, 1040, 1224, 1360, 1496, 1632, 1768, 1904, 2040, 2176, 2312, 2448, 2584, 2720, 2856, 2992, 3128, 3264, 3400, 3536, 3672, 3770, 3829, 3848, 3826, 3762, 3655, 3504, 3308, 3066, 2777, 2440, 2054, 1618, 1131, 592]);
     }
 
     // TODO(ahuszagh) Add idiv test

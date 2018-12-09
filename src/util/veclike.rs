@@ -92,6 +92,68 @@ impl<A: stackvector::Array> ExtendFromSlice<A::Item> for stackvector::StackVec<A
     }
 }
 
+// RESERVE
+
+/// Collection that can call reserve.
+pub trait Reserve<T>: {
+    /// Reserve additional capacity for the collection.
+    fn reserve(&mut self, capacity: usize);
+}
+
+impl<T> Reserve<T> for Vec<T> {
+    #[inline]
+    fn reserve(&mut self, capacity: usize) {
+        Vec::reserve(self, capacity)
+    }
+}
+
+impl<A: smallvec::Array> Reserve<A::Item> for smallvec::SmallVec<A>
+{
+    #[inline]
+    fn reserve(&mut self, capacity: usize) {
+        smallvec::SmallVec::reserve(self, capacity)
+    }
+}
+
+impl<A: stackvector::Array> Reserve<A::Item> for stackvector::StackVec<A>
+{
+    #[inline]
+    fn reserve(&mut self, capacity: usize) {
+        assert!(capacity < self.capacity());
+    }
+}
+
+// RESERVE EXACT
+
+/// Collection that can call reserve_exact.
+pub trait ReserveExact<T>: {
+    /// Reserve minimal additional capacity for the collection.
+    fn reserve_exact(&mut self, capacity: usize);
+}
+
+impl<T> ReserveExact<T> for Vec<T> {
+    #[inline]
+    fn reserve_exact(&mut self, capacity: usize) {
+        Vec::reserve_exact(self, capacity)
+    }
+}
+
+impl<A: smallvec::Array> ReserveExact<A::Item> for smallvec::SmallVec<A>
+{
+    #[inline]
+    fn reserve_exact(&mut self, capacity: usize) {
+        smallvec::SmallVec::reserve_exact(self, capacity)
+    }
+}
+
+impl<A: stackvector::Array> ReserveExact<A::Item> for stackvector::StackVec<A>
+{
+    #[inline]
+    fn reserve_exact(&mut self, capacity: usize) {
+        assert!(capacity < self.capacity());
+    }
+}
+
 // RESIZE
 
 /// Resizable container.
@@ -315,6 +377,8 @@ impl<A: stackvector::Array> VecLike<A::Item> for stackvector::StackVec<A> {
 pub trait CloneableVecLike<T: Clone + Copy>:
     ExtendFromSlice<T> +
     Resize<T> +
+    Reserve<T> +
+    ReserveExact<T> +
     VecLike<T>
 {}
 
