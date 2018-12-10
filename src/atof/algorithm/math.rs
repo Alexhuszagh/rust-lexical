@@ -330,7 +330,7 @@ pub fn shr<T>(x: &[u32], n: usize)
 ///
 /// Assumes `n < 32`, IE, internally shifting bits.
 #[inline]
-pub fn ishl_bits<T>(x: &mut T, n: u32)
+pub fn ishl_bits<T>(x: &mut T, n: u32, nonnormal: bool)
     where T: CloneableVecLike<u32>
 {
     // Need to shift by the number of `bits % 32`.
@@ -353,7 +353,7 @@ pub fn ishl_bits<T>(x: &mut T, n: u32)
     }
 
     let carry = prev >> rshift;
-    if carry != 0 {
+    if nonnormal || carry != 0 {
         x.push(carry);
     }
 }
@@ -362,13 +362,13 @@ pub fn ishl_bits<T>(x: &mut T, n: u32)
 ///
 /// Assumes `n < 32`, IE, internally shifting bits.
 #[allow(dead_code)]
-pub fn shl_bits<T>(x: &[u32], n: u32)
+pub fn shl_bits<T>(x: &[u32], n: u32, nonnormal: bool)
     -> T
     where T: CloneableVecLike<u32>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
-    ishl_bits(&mut z, n);
+    ishl_bits(&mut z, n, nonnormal);
     z
 }
 
@@ -395,7 +395,7 @@ pub fn ishl<T>(x: &mut T, n: usize)
     let rem = (n % bits).as_u32();
     let div = n / bits;
     if !rem.is_zero() {
-        ishl_bits(x, rem);
+        ishl_bits(x, rem, false);
     }
     if !div.is_zero() {
         ishl_digits(x, div);
@@ -923,145 +923,243 @@ pub fn mul<T>(x: &[u32], y: &[u32])
 
 // DIVISION
 
+/// Constants for algorithm D.
+const ALGORITHM_D_B: u64 = 1 << 32;
+const ALGORITHM_D_M: u64 = ALGORITHM_D_B - 1;
+
+/// Calculate qhat (an estimate for the quotient).
+///
+/// This is step D3 in Algorithm D in "The Art of Computer Programming".
+/// Assumes `x.len() >= y.len()` and `y.len() >= 2`.
+///
+/// * `j`   - Current index on the iteration of the loop.
+#[inline]
+unsafe fn calculate_qhat(x: &[u32], y: &[u32], j: usize)
+    -> u64
+{
+    let n = y.len();
+
+    // Closures
+    let get_u64 = | x: &[u32], i: usize | x.get_unchecked(i).as_u64();
+
+    // Estimate qhat of q[j]
+    // Original Code:
+    //  qhat = (x[j+n]*B + x[j+n-1])/y[n-1];
+    //  rhat = (x[j+n]*B + x[j+n-1]) - qhat*y[n-1];
+    let x_jn = get_u64(&x, j+n);
+    let x_jn1 = get_u64(&x, j+n-1);
+    let num = (x_jn << u32::BITS) + x_jn1;
+    let den = get_u64(&y, n-1);
+    let mut qhat = num / den;
+    let mut rhat = num - qhat * den;
+
+    // Scale qhat and rhat
+    // Original Code:
+    //  again:
+    //    if (qhat >= B || qhat*y[n-2] > B*rhat + x[j+n-2])
+    //    { qhat = qhat - 1;
+    //      rhat = rhat + y[n-1];
+    //      if (rhat < B) goto again;
+    //    }
+    let x_jn2 = get_u64(&x, j+n-2);
+    let y_n2 = get_u64(&y, n-2);
+    let y_n1 = get_u64(&y, n-1);
+    while qhat >= ALGORITHM_D_B || qhat * y_n2 > (rhat << u32::BITS) + x_jn2 {
+        qhat -= 1;
+        rhat += y_n1;
+        if rhat >= ALGORITHM_D_B {
+            break;
+        }
+    }
+
+    qhat
+}
+
+/// Multiply and subtract.
+///
+/// This is step D4 in Algorithm D in "The Art of Computer Programming",
+/// and returns the remainder.
+#[inline]
+unsafe fn multiply_and_subtract<T>(x: &mut T, y: &T, qhat: u64, j: usize)
+    -> i64
+    where T: CloneableVecLike<u32>
+{
+    let n = y.len();
+
+    // Closures
+    let set = | x: &mut T, i: usize, xi: u32 | *x.get_unchecked_mut(i) = xi;
+    let get_i64 = | x: &T, i: usize | x.get_unchecked(i).as_i64();
+    let get_u64 = | x: &T, i: usize | x.get_unchecked(i).as_u64();
+
+    // Multiply and subtract
+    // Original Code:
+    //  k = 0;
+    //  for (i = 0; i < n; i++) {
+    //     p = qhat*y[i];
+    //     t = x[i+j] - k - (p & 0xFFFFFFFFLL);
+    //     x[i+j] = t;
+    //     k = (p >> 32) - (t >> 32);
+    //  }
+    //  t = x[j+n] - k;
+    //  x[j+n] = t;
+    let mut k: i64 = 0;
+    let mut t: i64;
+    for i in 0..n {
+        let x_ij = get_i64(&x, i+j);
+        let y_i = get_u64(&y, i);
+        let p = qhat * y_i;
+        t = x_ij.wrapping_sub(k).wrapping_sub((p & ALGORITHM_D_M).as_i64());
+        set(x, i+j, t.as_u32());
+        k = (p >> 32).as_i64() - (t >> 32);
+    }
+    t = get_i64(&x, j+n) - k;
+    set(x, j+n, t.as_u32());
+
+    t
+}
+
+/// Calculate the quotient from the estimate and the test.
+///
+/// This is a mix of step D5 and D6 in Algorithm D, so the algorithm
+/// may work for single passes, without a quotient buffer.
+#[inline]
+unsafe fn test_quotient(qhat: u64, t: i64)
+    -> u64
+{
+    if t < 0 {
+        qhat - 1
+    } else {
+        qhat
+    }
+}
+
+/// Store the quotient from the estimate.
+///
+/// This is a mix of step D5 and D6 in Algorithm D, so the algorithm
+/// may work for single passes, without a quotient buffer.
+#[inline]
+unsafe fn store_quotient<T>(q: &mut T, qhat: u64, j: usize)
+    where T: CloneableVecLike<u32>
+{
+    *q.get_unchecked_mut(j) = qhat.as_u32();
+}
+
+/// Add back.
+///
+/// This is step D6 in Algorithm D in "The Art of Computer Programming",
+/// and adds back the remainder on the very unlikely scenario we overestimated
+/// the quotient by 1. Subtract 1 from the quotient, and add back the
+/// remainder.
+///
+/// This step should be specifically debugged, due to its low likelihood,
+/// since the probability is ~2/b, where b in this case is 2^32.
+#[inline]
+unsafe fn add_back<T>(x: &mut T, y: &T, mut t: i64, j: usize)
+    where T: CloneableVecLike<u32>
+{
+    let n = y.len();
+
+    // Closures
+    let set = | x: &mut T, i: usize, xi: u32 | *x.get_unchecked_mut(i) = xi;
+    let get_i64 = | x: &T, i: usize | x.get_unchecked(i).as_i64();
+    let get_u64 = | x: &T, i: usize | x.get_unchecked(i).as_u64();
+
+    // Store quotient digits
+    // If we subtracted too much, add back.
+    // Original Code:
+    //  q[j] = qhat;              // Store quotient digit.
+    //  if (t < 0) {              // If we subtracted too
+    //     q[j] = q[j] - 1;       // much, add back.
+    //     k = 0;
+    //     for (i = 0; i < n; i++) {
+    //        t = (unsigned long long)x[i+j] + y[i] + k;
+    //        x[i+j] = t;
+    //        k = t >> 32;
+    //     }
+    //     x[j+n] = x[j+n] + k;
+    //  }
+    if t < 0 {
+        let mut k: i64 = 0;
+        for i in 0..n {
+            t = (get_u64(x, i+j) + get_u64(y, i)).as_i64() + k;
+            set(x, i+j, t.as_u32());
+            k = t >> 32;
+        }
+        let x_jn = get_i64(x, j+n) + k;
+        set(x, j+n, x_jn.as_u32());
+    }
+}
+
+/// Calculate the remainder from the quotient.
+///
+/// This is step D8 in Algorithm D in "The Art of Computer Programming",
+/// and "unnormalizes" to calculate the remainder from the quotient.
+#[inline]
+unsafe fn calculate_remainder<T>(x: &[u32], y: &[u32], s: u32)
+    -> T
+    where T: CloneableVecLike<u32>
+{
+    // Closures
+    let get = | x: &[u32], i: usize | *x.get_unchecked(i);
+    let get_u64 = | x: &[u32], i: usize | get(x, i).as_u64();
+
+    // Calculate the remainder.
+    // Original Code:
+    //  for (i = 0; i < n-1; i++)
+    //     r[i] = (x[i] >> s) | ((unsigned long long)x[i+1] << (32-s));
+    //  r[n-1] = x[n-1] >> s;
+    let n = y.len();
+    let mut r = T::default();
+    r.reserve_exact(n);
+    let rs = 32 - s;
+    for i in 0..n-1 {
+        let xi = get_u64(x, i) >> s;
+        let xi1 = get_u64(x, i+1) << rs;
+        let ri = xi | xi1;
+        r.push(ri.as_u32());
+    }
+    let x_n1 = get(&x, n-1) >> s;
+    r.push(x_n1.as_u32());
+
+    r
+}
+
 /// Implementation of Knuth's Algorithm D, and return the quotient and remainder.
 ///
 /// `x` is the dividend, and `y` is the divisor.
-/// Assumes `x.len() >= y.len()`.
+/// Assumes `x.len() >= y.len()` and `y.len() >= 2`.
 ///
 /// Based off the Hacker's Delight implementation of Knuth's Algorithm D
 /// in "The Art of Computer Programming".
 ///     http://www.hackersdelight.org/hdcodetxt/divmnu64.c.txt
 ///
 /// All Hacker's Delight code is public domain, so this routine shall
-/// also be placed in the public domain.
+/// also be placed in the public domain. See:
+///     https://www.hackersdelight.org/permissions.htm
 unsafe fn algorithm_d_div<T>(x: &[u32], y: &[u32])
     -> (T, T)
     where T: CloneableVecLike<u32>
 {
-    // Constants
-    const B: u64 = 1 << 32;
-    const M: u64 = B - 1;
-
-    // Closures
-    let get = | x: &T, i: usize | *x.get_unchecked(i);
-    let set = | x: &mut T, i: usize, xi: u32 | *x.get_unchecked_mut(i) = xi;
-    let get_i64 = | x: &T, i: usize | get(x, i).as_i64();
-    let get_u64 = | x: &T, i: usize | get(x, i).as_u64();
-
     // Normalize the divisor so the leading-bit is set to 1.
     // x is the dividend, y is the divisor.
     let s = y.get_unchecked(y.len()-1).leading_zeros();
-    let mut xn: T = small::shl_bits(x, s);
-    let yn: T = small::shl_bits(y, s);
-
-    // Store certain variables for the algorithm.
     let m = x.len();
     let n = y.len();
-    let mut t: i64;
-    let mut k: i64;
-    let mut p: u64;
-    let mut q = T::default();
-    let mut r = T::default();
+    let mut xn: T = small::shl_bits(x, s, true);
+    let yn: T = small::shl_bits(y, s, false);
 
+    // Store certain variables for the algorithm.
+    let mut q = T::default();
     q.resize(m-n+1, 0);
     for j in (0..m-n+1).rev() {
-        // Estimate qhat of q[j]
-        // Original Code:
-        //  qhat = (xn[j+n]*B + xn[j+n-1])/yn[n-1];
-        //  rhat = (xn[j+n]*B + xn[j+n-1]) - qhat*yn[n-1];
-        let xn_jn = get_u64(&xn, j+n);
-        let xn_jn1 = get_u64(&xn, j+n-1);
-        let num = xn_jn * B + xn_jn1;
-        let den = get_u64(&yn, n-1);
-        let mut qhat = num / den;
-        let mut rhat = num - qhat * den;
-
-        // Scale qhat and rhat
-        // Original Code:
-        //  again:
-        //    if (qhat >= B || qhat*yn[n-2] > B*rhat + xn[j+n-2])
-        //    { qhat = qhat - 1;
-        //      rhat = rhat + yn[n-1];
-        //      if (rhat < B) goto again;
-        //    }
-        let xn_jn2 = get_u64(&xn, j+n-2);
-        let yn_n2 = get_u64(&yn, n-2);
-        let yn_n1 = get_u64(&yn, n-1);
-        while qhat >= B || qhat * yn_n2 > B * rhat + xn_jn2 {
-            qhat -= 1;
-            rhat += yn_n1;
-            if rhat >= B {
-                break;
-            }
-        }
-
-        // Multiply and subtract
-        // Original Code:
-        //  k = 0;
-        //  for (i = 0; i < n; i++) {
-        //     p = qhat*yn[i];
-        //     t = xn[i+j] - k - (p & 0xFFFFFFFFLL);
-        //     xn[i+j] = t;
-        //     k = (p >> 32) - (t >> 32);
-        //  }
-        //  t = xn[j+n] - k;
-        //  xn[j+n] = t;
-        k = 0;
-        for i in 0..n {
-            let xn_ij = get_i64(&xn, i+j);
-            let yn_i = get_u64(&yn, i);
-            p = qhat * yn_i;
-            t = xn_ij.wrapping_sub(k).wrapping_sub((p & M).as_i64());
-            set(&mut xn, i+j, t.as_u32());
-            k = (p >> 32).as_i64() - (t >> 32);
-        }
-        t = get_i64(&xn, j+n) - k;
-        set(&mut xn, j+n, t.as_u32());
-
-        // Store quotient digits
-        // If we subtracted too much, add back.
-        // Original Code:
-        //  q[j] = qhat;              // Store quotient digit.
-        //  if (t < 0) {              // If we subtracted too
-        //     q[j] = q[j] - 1;       // much, add back.
-        //     k = 0;
-        //     for (i = 0; i < n; i++) {
-        //        t = (unsigned long long)xn[i+j] + yn[i] + k;
-        //        xn[i+j] = t;
-        //        k = t >> 32;
-        //     }
-        //     xn[j+n] = xn[j+n] + k;
-        //  }
-        set(&mut q, j, qhat.as_u32());
-        if t < 0 {
-            let qj = get(&q, j) - 1;
-            set(&mut q, j, qj);
-            k = 0;
-            for i in 0..n {
-                t = (get_u64(&xn, i+j) + get_u64(&yn, i)).as_i64() + k;
-                set(&mut xn, i+j, t.as_u32());
-                k = t >> 32;
-            }
-            let xn_jn = get_i64(&xn, j+n) + k;
-            set(&mut xn, j+n, xn_jn.as_u32());
-        }
+        // Estimate the quotient
+        let qhat = calculate_qhat(&xn, &yn, j);
+        let t = multiply_and_subtract(&mut xn, &yn, qhat, j);
+        let qhat = test_quotient(qhat, t);
+        store_quotient(&mut q, qhat, j);
+        add_back(&mut xn, &yn, t, j);
     }
-
-    // Calculate the remainder.
-    // Original Code:
-    //  for (i = 0; i < n-1; i++)
-    //     r[i] = (xn[i] >> s) | ((unsigned long long)xn[i+1] << (32-s));
-    //  r[n-1] = xn[n-1] >> s;
-    r.reserve_exact(n);
-    let rs = 32 - s;
-    for i in 0..n-1 {
-        let xi = get_u64(&xn, i) >> s;
-        let xi1 = get_u64(&xn, i+1) << rs;
-        let ri = xi | xi1;
-        r.push(ri.as_u32());
-    }
-    let xn_n1 = get(&xn, n-1) >> s;
-    r.push(xn_n1.as_u32());
+    let mut r = calculate_remainder(&xn, &yn, s);
 
     // Normalize our results
     small::normalize(&mut q);
@@ -1079,16 +1177,17 @@ pub fn idiv<T>(x: &mut T, y: &[u32])
     debug_assert!(y.len() != 0);
 
     unsafe {
-        if y.len() == 1 {
+        if x.len() < y.len() {
+            // Can optimize easily, since the quotient is 0,
+            // and the remainder is x. Put before `y.len() == 1`, since
+            // it optimizes when `x.len() == 0` nicely.
+            let mut r = T::default();
+            mem::swap(x, &mut r);
+            r
+        } else if y.len() == 1 {
             // Can optimize for division by a small value.
             let mut r = T::default();
             r.push(small::idiv(x, *y.get_unchecked(0)));
-            r
-        } else if x.len() < y.len() {
-            // Can optimize easily, since the quotient is 0,
-            // and the remainder is x.
-            let mut r = T::default();
-            mem::swap(x, &mut r);
             r
         } else {
             let (q, r) = algorithm_d_div(x, y);
@@ -1111,12 +1210,62 @@ pub fn div<T>(x: &[u32], y: &[u32])
 }
 
 /// Fast division algorithm that calculates the remainder and the single-digit quotient.
-// TODO(ahuszagh) Need to write the assumptions later.
-#[allow(unused)]    // TODO(ahuszagh) Remove
-fn irem_fast<T>(x: &mut T, y: &[u32]) -> u32
+///
+/// Calculates a 32-bit quotient, and stores the remainder in the mutable buffer.
+/// Used for efficiency during digit calculation. This effectively
+/// does a single loop of Knuth's algorithm D, for specialized cases,
+/// and then calculates the remainder from this quotient.
+///
+/// Requires a normalized divisor, with the leading bit set.
+#[allow(dead_code)]
+pub unsafe fn irem_fast<T>(x: &mut T, y: &T)
+    -> u32
     where T: CloneableVecLike<u32>
 {
-    unimplemented!()
+    // Ensure we're only storing a single word remainder.
+    debug_assert!(y.len() != 0);
+    debug_assert!(x.len() < y.len() || x.len() - y.len() <= 1);
+
+    if x.len() < y.len() {
+        // Nothing happens, quotient is 0.
+        0
+    } else if y.len() == 1 {
+        // Carry out division
+        let num = match x.len() {
+            1 => x.get_unchecked(0).as_u64(),
+            2 => (x.get_unchecked(1).as_u64() << 32) | x.get_unchecked(0).as_u64(),
+            // Cannot be 0 or above 2.
+            _ => unreachable!(),
+        };
+        let den = y.get_unchecked(0).as_u64();
+        let q = num / den;
+        let r = num % den;
+
+        // Store remainders and return result.
+        x.set_len(0);
+        if r != 0 {
+            x.push(r.as_u32());
+        }
+        if r >> 32 != 0 {
+            x.push((r >> 32).as_u32());
+        }
+        q.as_u32()
+    } else {
+        // Estimate the quotient.
+        // y.len() and x.len() must be >= 2.
+        let j = x.len() - y.len() - 1;
+        let qhat = calculate_qhat(x, y, j);
+        let t = multiply_and_subtract(x, y, qhat, j);
+        let qhat = test_quotient(qhat, t);
+        add_back(x, y, t, j);
+
+        // Calculate the remainder. The shift, `s` is 0, since the
+        // denominator is already in the leading bit.
+        *x = calculate_remainder(x, y, 0);
+        small::normalize(x);
+
+        qhat.as_u32()
+    }
 }
 
 }   // large
@@ -1978,6 +2127,14 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
         let rem = x.idiv_large(y);
         (x, rem)
     }
+
+    /// Calculate the fast quotient for a single 32-bit quotient.
+    /// This requires a normalized divisor, with a leading-bit set,
+    /// and a quotient that can fit in a single 32-bit word.
+    #[inline]
+    unsafe fn irem_fast(&mut self, y: &Self) -> u32 {
+        large::irem_fast(self.data_mut(), y.data())
+    }
 }
 
 #[cfg(test)]
@@ -2423,5 +2580,29 @@ mod tests {
         assert_eq!(rem.data, vec![0, 0, 1]);
     }
 
-    // TODO(ahuszagh) Add irem_fast test
+    #[test]
+    fn irem_fast_large_test() {
+        unsafe {
+            // Simple, no remainder result.
+            let mut x = Bigint { data: vec![0xE0000000, 0x1FFFFFFF] };
+            let y = Bigint { data: vec![0xA0000000] };
+            let q = x.irem_fast(&y);
+            assert_eq!(x.data, vec![]);
+            assert_eq!(q, 0x33333333);
+
+            // Empty numerator
+            let mut x = Bigint { data: vec![] };
+            let y = Bigint { data: vec![0xA0000000] };
+            let q = x.irem_fast(&y);
+            assert_eq!(x.data, vec![]);
+            assert_eq!(q, 0);
+
+            // Sample with remainder
+            let mut x = Bigint { data: vec![0xEFFFFFFF, 0x1FFFFFFF] };
+            let y = Bigint { data: vec![0xA0000000] };
+            let q = x.irem_fast(&y);
+            assert_eq!(x.data, vec![0xFFFFFFF]);
+            assert_eq!(q, 0x33333333);
+        }
+    }
 }
