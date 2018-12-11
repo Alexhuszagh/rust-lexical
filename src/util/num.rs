@@ -164,6 +164,34 @@ pub trait Integer:
         self == Self::ONE
     }
 
+    // OPERATIONS
+
+    /// Get the fast ceiling of the quotient from integer division.
+    /// Not safe, since the remainder can easily overflow.
+    #[inline]
+    unsafe fn ceil_divmod(self, y: Self) -> (Self, i32) {
+        let q = self / y;
+        let r = self % y;
+        match r.is_zero() {
+            true  => (q, r.as_i32()),
+            false => (q+Self::ONE, r.as_i32() - y.as_i32())
+        }
+    }
+
+    /// Get the fast ceiling of the quotient from integer division.
+    /// Not safe, since the remainder can easily overflow.
+    #[inline]
+    unsafe fn ceil_div(self, y: Self) -> Self {
+        self.ceil_divmod(y).0
+    }
+
+    /// Get the fast ceiling modulus from integer division.
+    /// Not safe, since the remainder can easily overflow.
+    #[inline]
+    unsafe fn ceil_mod(self, y: Self) -> i32 {
+        self.ceil_divmod(y).1
+    }
+
     // TRY CAST OR MAX
 
     #[inline(always)]
@@ -1064,6 +1092,16 @@ mod tests {
         check_integer(65i64);
         check_integer(65i128);
         check_integer(65isize);
+    }
+
+    #[test]
+    fn ceil_divmod_test() {
+        unsafe {
+            assert_eq!(5usize.ceil_divmod(7), (1, -2));
+            assert_eq!(0usize.ceil_divmod(7), (0, 0));
+            assert_eq!(35usize.ceil_divmod(7), (5, 0));
+            assert_eq!(36usize.ceil_divmod(7), (6, -6));
+        }
     }
 
     #[test]

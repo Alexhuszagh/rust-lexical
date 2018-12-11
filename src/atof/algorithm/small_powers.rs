@@ -147,3 +147,47 @@ const_assert!(u32_base33; U32_POW33[1] / U32_POW33[0] == 33);
 const_assert!(u32_base34; U32_POW34[1] / U32_POW34[0] == 34);
 const_assert!(u32_base35; U32_POW35[1] / U32_POW35[0] == 35);
 const_assert!(u32_base36; U32_POW36[1] / U32_POW36[0] == 36);
+
+// HELPER
+
+/// Get the correct small power from the base.
+pub(in atof::algorithm) fn get_small_powers(base: u32) -> &'static [u32] {
+    match base {
+        2  => &U32_POW2,
+        3  => &U32_POW3,
+        4  => &U32_POW4,
+        5  => &U32_POW5,
+        6  => &U32_POW6,
+        7  => &U32_POW7,
+        8  => &U32_POW8,
+        9  => &U32_POW9,
+        10  => &U32_POW10,
+        11  => &U32_POW11,
+        12  => &U32_POW12,
+        13  => &U32_POW13,
+        14  => &U32_POW14,
+        15  => &U32_POW15,
+        16  => &U32_POW16,
+        17  => &U32_POW17,
+        18  => &U32_POW18,
+        19  => &U32_POW19,
+        20  => &U32_POW20,
+        21  => &U32_POW21,
+        22  => &U32_POW22,
+        23  => &U32_POW23,
+        24  => &U32_POW24,
+        25  => &U32_POW25,
+        26  => &U32_POW26,
+        27  => &U32_POW27,
+        28  => &U32_POW28,
+        29  => &U32_POW29,
+        30  => &U32_POW30,
+        31  => &U32_POW31,
+        32  => &U32_POW32,
+        33  => &U32_POW33,
+        34  => &U32_POW34,
+        35  => &U32_POW35,
+        36  => &U32_POW36,
+        _  => unreachable!(),
+    }
+}

@@ -10,7 +10,7 @@
 // Scalar-to-scalar operations, for building-blocks for arbitrary-precision
 // operations.
 
-mod scalar {
+pub(in atof::algorithm) mod scalar {
 
 use util::*;
 
@@ -123,11 +123,12 @@ pub fn idiv(x: &mut u32, y: u32, rem: u32)
 
 // Large-to-small operations, to modify a big integer from a native scalar.
 
-mod small {
+pub(in atof::algorithm) mod small {
 
 use lib::iter;
 use util::*;
-use super::scalar;
+use super::{large, scalar};
+use super::super::small_powers::*;
 
 // ROUNDUP
 
@@ -330,12 +331,12 @@ pub fn shr<T>(x: &[u32], n: usize)
 ///
 /// Assumes `n < 32`, IE, internally shifting bits.
 #[inline]
-pub fn ishl_bits<T>(x: &mut T, n: u32, nonnormal: bool)
+pub fn ishl_bits<T>(x: &mut T, n: u32)
     where T: CloneableVecLike<u32>
 {
     // Need to shift by the number of `bits % 32`.
     let bits = u32::BITS.as_u32();
-    debug_assert!(n < bits && n != 0);
+    debug_assert!(n != 0 && n != u32::BITS.as_u32());
 
     // Internally, for each item, we shift left by n, and add the previous
     // right shifted 32-bits.
@@ -352,8 +353,9 @@ pub fn ishl_bits<T>(x: &mut T, n: u32, nonnormal: bool)
         prev = tmp;
     }
 
+    // Always push the carry, even if it creates a non-normal result.
     let carry = prev >> rshift;
-    if nonnormal || carry != 0 {
+    if carry != 0 {
         x.push(carry);
     }
 }
@@ -362,13 +364,13 @@ pub fn ishl_bits<T>(x: &mut T, n: u32, nonnormal: bool)
 ///
 /// Assumes `n < 32`, IE, internally shifting bits.
 #[allow(dead_code)]
-pub fn shl_bits<T>(x: &[u32], n: u32, nonnormal: bool)
+pub fn shl_bits<T>(x: &[u32], n: u32)
     -> T
     where T: CloneableVecLike<u32>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
-    ishl_bits(&mut z, n, nonnormal);
+    ishl_bits(&mut z, n);
     z
 }
 
@@ -395,7 +397,7 @@ pub fn ishl<T>(x: &mut T, n: usize)
     let rem = (n % bits).as_u32();
     let div = n / bits;
     if !rem.is_zero() {
-        ishl_bits(x, rem, false);
+        ishl_bits(x, rem);
     }
     if !div.is_zero() {
         ishl_digits(x, div);
@@ -555,9 +557,35 @@ pub fn mul<T>(x: &[u32], y: u32)
 }
 
 /// MulAssign by a power.
-pub fn imul_power<T>(x: &mut T, mut n: u32, small_powers: &[u32])
+///
+/// Theoretically...
+
+/// Use an exponentiation by squaring method, since it reduces the time
+/// complexity of the multiplication to ~`O(log(n))` for the squaring,
+/// and `O(n*m)` for the result. Since `m` is typically a lower-order
+/// factor, this significantly reduces the number of multiplications
+/// we need to do. Iteratively multiplying by small powers follows
+/// the nth triangular number series, which scales as `O(p^2)`, but
+/// where `p` is `n+m`. In short, it scales very poorly.
+///
+/// Practically....
+///
+/// Exponentiation by Squaring:
+///     running 2 tests
+///     test bigcomp_f32_lexical ... bench:       1,018 ns/iter (+/- 78)
+///     test bigcomp_f64_lexical ... bench:       3,639 ns/iter (+/- 1,007)
+///
+/// Exponentiation by Iterative Small Powers:
+///     running 2 tests
+///     test bigcomp_f32_lexical ... bench:         518 ns/iter (+/- 31)
+///     test bigcomp_f64_lexical ... bench:         583 ns/iter (+/- 47)
+///
+/// Even using worst-case scenarios, exponentiation by squaring is
+/// significantly slower for our workloads. Just multiply by small powers.
+pub fn imul_power<T>(x: &mut T, base: u32, mut n: u32)
     where T: CloneableVecLike<u32>
 {
+    let small_powers = get_small_powers(base);
     let get_power = | i: usize | unsafe { *small_powers.get_unchecked(i) };
 
     // Multiply by the largest small power until n < step.
@@ -575,13 +603,13 @@ pub fn imul_power<T>(x: &mut T, mut n: u32, small_powers: &[u32])
 
 /// Mul by a power.
 #[allow(dead_code)]
-pub fn mul_power<T>(x: &[u32], n: u32, small_powers: &[u32])
+pub fn mul_power<T>(x: &[u32], base: u32, n: u32)
     -> T
     where T: CloneableVecLike<u32>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
-    imul_power(&mut z, n, small_powers);
+    imul_power(&mut z, base, n);
     z
 }
 
@@ -619,9 +647,14 @@ pub fn div<T>(x: &[u32], y: u32)
 /// It doesn't really make sense to iteratively store on to the remainders,
 /// so we truncate slightly at each step. Ideally, there's enough guard digits
 /// to avoid this.
-pub fn idiv_power<T>(x: &mut T, mut n: u32, small_powers: &[u32], roundup: bool)
+///
+/// See `imul_power` for why we do this iteratively, rather than calculate
+/// the exponent via exponentiation by squaring and then do a
+/// 1-shot division.
+pub fn idiv_power<T>(x: &mut T, base: u32, mut n: u32, roundup: bool)
     where T: CloneableVecLike<u32>
 {
+    let small_powers = get_small_powers(base);
     let get_power = | i: usize | unsafe { *small_powers.get_unchecked(i) };
 
     // Divide by the largest small power until n < step.
@@ -646,13 +679,53 @@ pub fn idiv_power<T>(x: &mut T, mut n: u32, small_powers: &[u32], roundup: bool)
 
 /// Div by a power.
 #[allow(dead_code)]
-pub fn div_power<T>(x: &[u32], n: u32, small_powers: &[u32], roundup: bool)
+pub fn div_power<T>(x: &[u32], base: u32, n: u32, roundup: bool)
     -> T
     where T: CloneableVecLike<u32>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
-    idiv_power(&mut z, n, small_powers, roundup);
+    idiv_power(&mut z, base, n, roundup);
+    z
+}
+
+// POWER
+
+/// Calculate x^n, using exponentiation by squaring.
+pub fn ipow<T>(x: &mut T, mut n: u32)
+    where T: CloneableVecLike<u32>
+{
+    // Store `x` as 1, and switch `base` to `x`.
+    let mut base = T::default();
+    base.push(1);
+    mem::swap(x, &mut base);
+
+    // Do main algorithm.
+    loop {
+        if n.is_odd() {
+            large::imul(x, &base);
+        }
+        n /= 2;
+
+        // We need to break as a post-condition, since the real work
+        // is in the `imul` and `mul` algorithms.
+        if n.is_zero() {
+            break;
+        } else {
+            base = large::mul(&base, &base);
+        }
+    }
+}
+
+/// Calculate x^n, using exponentiation by squaring.
+#[allow(dead_code)]
+pub fn pow<T>(x: &[u32], n: u32)
+    -> T
+    where T: CloneableVecLike<u32>
+{
+    let mut z = T::default();
+    z.extend_from_slice(x);
+    ipow(&mut z, n);
     z
 }
 
@@ -663,10 +736,78 @@ pub fn div_power<T>(x: &[u32], n: u32, small_powers: &[u32], roundup: bool)
 
 // Large-to-large operations, to modify a big integer from a native scalar.
 
-mod large {
+pub(in atof::algorithm) mod large {
 
 use util::*;
 use super::{scalar, small};
+
+// RELATIVE OPERATORS
+
+/// Check if x is greater than y.
+#[allow(dead_code)]
+#[inline]
+pub fn greater(x: &[u32], y: &[u32]) -> bool {
+    if x.len() > y.len() {
+        return true;
+    } else if x.len() < y.len() {
+        return false;
+    } else {
+        let iter = x.iter().rev().zip(y.iter().rev());
+        for (&xi, &yi) in iter {
+            if xi > yi {
+                return true;
+            } else if xi < yi {
+                return false;
+            }
+        }
+        // Equal case.
+        return false;
+    }
+}
+
+/// Check if x is greater than or equal to y.
+#[allow(dead_code)]
+#[inline]
+pub fn greater_equal(x: &[u32], y: &[u32]) -> bool {
+    !less(x, y)
+}
+
+/// Check if x is less than y.
+#[allow(dead_code)]
+#[inline]
+pub fn less(x: &[u32], y: &[u32]) -> bool {
+    if x.len() > y.len() {
+        return false;
+    } else if x.len() < y.len() {
+        return true;
+    } else {
+        let iter = x.iter().rev().zip(y.iter().rev());
+        for (&xi, &yi) in iter {
+            if xi > yi {
+                return false;
+            } else if xi < yi {
+                return true;
+            }
+        }
+        // Equal case.
+        return false;
+    }
+}
+
+/// Check if x is less than or equal to y.
+#[allow(dead_code)]
+#[inline]
+pub fn less_equal(x: &[u32], y: &[u32]) -> bool {
+    !greater(x, y)
+}
+
+/// Check if x is equal to y.
+#[allow(dead_code)]
+#[inline]
+pub fn equal(x: &[u32], y: &[u32]) -> bool {
+    let mut iter = x.iter().rev().zip(y.iter().rev());
+    x.len() == y.len() && iter.all(|(&xi, &yi)| xi == yi)
+}
 
 /// ADDITION
 
@@ -731,8 +872,7 @@ pub fn isub<T>(x: &mut T, y: &[u32])
     where T: CloneableVecLike<u32>
 {
     // Basic underflow checks.
-    debug_assert!(x.len() >= y.len());
-    debug_assert!(x.len() > y.len() || x[x.len()-1] >= y[y.len()-1]);
+    debug_assert!(greater_equal(x, y));
 
     // Iteratively add elements from y to x.
     let mut carry = false;
@@ -771,9 +911,9 @@ pub fn sub<T>(x: &[u32], y: &[u32])
 /// Number of digits to bottom-out to asymptotically slow algorithms.
 ///
 /// Karatsuba tends to out-perform long-multiplication at ~320-640 bits,
-/// so we go halfway, while newton division tends to out-perform
+/// so we go halfway, while Newton division tends to out-perform
 /// Algorithm D at ~1024 bits. We can toggle this for optimal performance.
-const DIGITS_CUTOFF: usize = 15;
+const DIGITS_CUTOFF: usize = 30;
 
 /// Grade-school multiplication algorithm.
 ///
@@ -855,12 +995,10 @@ fn karatsuba_mul<T>(x: &[u32], y: &[u32])
 /// Karatsuba multiplication algorithm where y is substantially larger than x.
 ///
 /// Assumes `y.len() >= x.len()`.
-#[allow(unused)]
 fn karatsuba_uneven_mul<T>(x: &[u32], mut y: &[u32])
     -> T
     where T: CloneableVecLike<u32>
 {
-
     let mut result = T::default();
     result.resize(x.len() + y.len(), 0);
 
@@ -883,6 +1021,7 @@ fn karatsuba_uneven_mul<T>(x: &[u32], mut y: &[u32])
 
 /// Forwarder to the proper Karatsuba algorithm.
 #[inline]
+#[allow(dead_code)]
 fn karatsuba_mul_fwd<T>(x: &[u32], y: &[u32])
     -> T
     where T: CloneableVecLike<u32>
@@ -904,7 +1043,11 @@ pub fn imul<T>(x: &mut T, y: &[u32])
         if y.len() == 1 {
             small::imul(x, *y.get_unchecked(0));
         } else {
-            *x = karatsuba_mul_fwd(x, y);
+            // We're not really in a condition where using Karatsuba
+            // multiplication makes sense, so we're just going to use long
+            // division. ~20% speedup compared to:
+            //      *x = karatsuba_mul_fwd(x, y);
+            *x = long_mul(x, y);
         }
     }
 }
@@ -930,7 +1073,7 @@ const ALGORITHM_D_M: u64 = ALGORITHM_D_B - 1;
 /// Calculate qhat (an estimate for the quotient).
 ///
 /// This is step D3 in Algorithm D in "The Art of Computer Programming".
-/// Assumes `x.len() >= y.len()` and `y.len() >= 2`.
+/// Assumes `x.len() > y.len()` and `y.len() >= 2`.
 ///
 /// * `j`   - Current index on the iteration of the loop.
 #[inline]
@@ -1127,7 +1270,7 @@ unsafe fn calculate_remainder<T>(x: &[u32], y: &[u32], s: u32)
 /// Implementation of Knuth's Algorithm D, and return the quotient and remainder.
 ///
 /// `x` is the dividend, and `y` is the divisor.
-/// Assumes `x.len() >= y.len()` and `y.len() >= 2`.
+/// Assumes `x.len() > y.len()` and `y.len() >= 2`.
 ///
 /// Based off the Hacker's Delight implementation of Knuth's Algorithm D
 /// in "The Art of Computer Programming".
@@ -1142,11 +1285,13 @@ unsafe fn algorithm_d_div<T>(x: &[u32], y: &[u32])
 {
     // Normalize the divisor so the leading-bit is set to 1.
     // x is the dividend, y is the divisor.
+    // Need a leading zero on the numerator.
     let s = y.get_unchecked(y.len()-1).leading_zeros();
     let m = x.len();
     let n = y.len();
-    let mut xn: T = small::shl_bits(x, s, true);
-    let yn: T = small::shl_bits(y, s, false);
+    let mut xn: T = small::shl_bits(x, s);
+    xn.push(0);
+    let yn: T = small::shl_bits(y, s);
 
     // Store certain variables for the algorithm.
     let mut q = T::default();
@@ -1209,63 +1354,73 @@ pub fn div<T>(x: &[u32], y: &[u32])
     (z, rem)
 }
 
-/// Fast division algorithm that calculates the remainder and the single-digit quotient.
+/// Emit a single digit for the quotient and store the remainder in-place.
 ///
-/// Calculates a 32-bit quotient, and stores the remainder in the mutable buffer.
-/// Used for efficiency during digit calculation. This effectively
-/// does a single loop of Knuth's algorithm D, for specialized cases,
-/// and then calculates the remainder from this quotient.
+/// An extremely efficient division algorithm for small quotients, requiring
+/// you to know the full range of the quotient prior to use. For example,
+/// with a quotient that can range from [0, 10), you must have 4 leading
+/// zeros in the divisor, so we can use a single-limb division to get
+/// an accurate estimate of the quotient. Since we always underestimate
+/// the quotient, we can add 1 and then emit the digit.
 ///
-/// Requires a normalized divisor, with the leading bit set.
+/// Requires a non-normalized denominator, with at least [1-6] leading
+/// zeros, depending on the base (for example, 1 for base2, 6 for base36).
+///
+/// Adapted from David M. Gay's dtoa, and therefore under an MIT license:
+///     www.netlib.org/fp/dtoa.c
 #[allow(dead_code)]
-pub unsafe fn irem_fast<T>(x: &mut T, y: &T)
+pub unsafe fn quorem<T>(x: &mut T, y: &T)
     -> u32
     where T: CloneableVecLike<u32>
 {
-    // Ensure we're only storing a single word remainder.
-    debug_assert!(y.len() != 0);
-    debug_assert!(x.len() < y.len() || x.len() - y.len() <= 1);
+    debug_assert!(y.len() > 0);
 
-    if x.len() < y.len() {
-        // Nothing happens, quotient is 0.
-        0
-    } else if y.len() == 1 {
-        // Carry out division
-        let num = match x.len() {
-            1 => x.get_unchecked(0).as_u64(),
-            2 => (x.get_unchecked(1).as_u64() << 32) | x.get_unchecked(0).as_u64(),
-            // Cannot be 0 or above 2.
-            _ => unreachable!(),
-        };
-        let den = y.get_unchecked(0).as_u64();
-        let q = num / den;
-        let r = num % den;
+    // Closures
+    let set = | x: &mut T, i: usize, xi: u32 | *x.get_unchecked_mut(i) = xi;
+    let get_u64 = | x: &T, i: usize | x.get_unchecked(i).as_u64();
 
-        // Store remainders and return result.
-        x.set_len(0);
-        if r != 0 {
-            x.push(r.as_u32());
-        }
-        if r >> 32 != 0 {
-            x.push((r >> 32).as_u32());
-        }
-        q.as_u32()
-    } else {
-        // Estimate the quotient.
-        // y.len() and x.len() must be >= 2.
-        let j = x.len() - y.len() - 1;
-        let qhat = calculate_qhat(x, y, j);
-        let t = multiply_and_subtract(x, y, qhat, j);
-        let qhat = test_quotient(qhat, t);
-        add_back(x, y, t, j);
-
-        // Calculate the remainder. The shift, `s` is 0, since the
-        // denominator is already in the leading bit.
-        *x = calculate_remainder(x, y, 0);
-        small::normalize(x);
-
-        qhat.as_u32()
+    // Numerator is smaller the denominator, quotient always 0.
+    let m = x.len();
+    let n = y.len();
+    if m < n {
+        return 0;
     }
+
+    // Calculate our initial estimate for q
+    let xi = *x.back_unchecked();
+    let yi = *y.back_unchecked();
+    let mut q = xi / (yi + 1);
+
+    // Need to calculate the remainder if we don't have a 0 quotient.
+    if q != 0 {
+        let mut borrow: u64 = 0;
+        let mut carry: u64 = 0;
+        for j in 0..m {
+            let p = get_u64(y, j) * q.as_u64() + carry;
+            carry = p >> 32;
+            let t = get_u64(x, j).wrapping_sub(p & 0xFFFFFFFF).wrapping_sub(borrow);
+            borrow = (t >> 32) & 1;
+            set(x, j, t.as_u32());
+        }
+        small::normalize(x);
+    }
+
+    // Check if we under-estimated x.
+    if greater_equal(x, y) {
+        q += 1;
+        let mut borrow: u64 = 0;
+        let mut carry: u64 = 0;
+        for j in 0..m {
+            let p = get_u64(y, j)+ carry;
+            carry = p >> 32;
+            let t = get_u64(x, j).wrapping_sub(p & 0xFFFFFFFF).wrapping_sub(borrow);
+            borrow = (t >> 32) & 1;
+            set(x, j, t.as_u32());
+        }
+        small::normalize(x);
+    }
+
+    q
 }
 
 }   // large
@@ -1276,22 +1431,22 @@ use super::small_powers::*;
 
 /// Generate the imul_pown wrappers.
 macro_rules! imul_power {
-    ($name:ident, $pow:ident, $base:expr) => (
+    ($name:ident, $base:expr) => (
         /// Multiply by a power of $base.
         #[inline]
         fn $name(&mut self, n: u32) {
-            self.imul_power_impl(n, &$pow)
+            self.imul_power_impl($base, n)
         }
     );
 }
 
 /// Generate the idiv_pown wrappers.
 macro_rules! idiv_power {
-    ($name:ident, $pow:ident, $base:expr) => (
+    ($name:ident, $base:expr) => (
         /// Divide by a power of $base.
         #[inline]
         fn $name(&mut self, n: u32, roundup: bool) {
-            self.idiv_power_impl(n, &$pow, roundup)
+            self.idiv_power_impl($base, n, roundup)
         }
     );
 }
@@ -1299,6 +1454,11 @@ macro_rules! idiv_power {
 // TRAITS
 // ------
 
+/// Traits for shared operations for big integers.
+///
+/// None of these are implemented using normal traits, since these
+/// are very expensive operations, and we want to deliberately
+/// and explicitly use these functions.
 pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
     /// Underlying storage type for a SmallOps.
     type StorageType: CloneableVecLike<u32>;
@@ -1310,6 +1470,38 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
 
     /// Get access to the underlying data
     fn data_mut<'a>(&'a mut self) -> &'a mut Self::StorageType;
+
+    // RELATIVE OPERATIONS
+
+    /// Check if self is greater than y.
+    #[inline]
+    fn greater(&self, y: &Self) -> bool {
+        large::greater(self.data(), y.data())
+    }
+
+    /// Check if self is greater than or equal to y.
+    #[inline]
+    fn greater_equal(&self, y: &Self) -> bool {
+        large::greater_equal(self.data(), y.data())
+    }
+
+    /// Check if self is less than y.
+    #[inline]
+    fn less(&self, y: &Self) -> bool {
+        large::less(self.data(), y.data())
+    }
+
+    /// Check if self is less than or equal to y.
+    #[inline]
+    fn less_equal(&self, y: &Self) -> bool {
+        large::less_equal(self.data(), y.data())
+    }
+
+    /// Check if self is equal to y.
+    #[inline]
+    fn equal(&self, y: &Self) -> bool {
+        large::equal(self.data(), y.data())
+    }
 
     // PROPERTIES
 
@@ -1478,44 +1670,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
     /// Get the small powers from the base.
     #[inline]
     fn small_powers(base: u32) -> &'static [u32] {
-        match base {
-            2  => &U32_POW2,
-            3  => &U32_POW3,
-            4  => &U32_POW4,
-            5  => &U32_POW5,
-            6  => &U32_POW6,
-            7  => &U32_POW7,
-            8  => &U32_POW8,
-            9  => &U32_POW9,
-            10 => &U32_POW10,
-            11 => &U32_POW11,
-            12 => &U32_POW12,
-            13 => &U32_POW13,
-            14 => &U32_POW14,
-            15 => &U32_POW15,
-            16 => &U32_POW16,
-            17 => &U32_POW17,
-            18 => &U32_POW18,
-            19 => &U32_POW19,
-            20 => &U32_POW20,
-            21 => &U32_POW21,
-            22 => &U32_POW22,
-            23 => &U32_POW23,
-            24 => &U32_POW24,
-            25 => &U32_POW25,
-            26 => &U32_POW26,
-            27 => &U32_POW27,
-            28 => &U32_POW28,
-            29 => &U32_POW29,
-            30 => &U32_POW30,
-            31 => &U32_POW31,
-            32 => &U32_POW32,
-            33 => &U32_POW33,
-            34 => &U32_POW34,
-            35 => &U32_POW35,
-            36 => &U32_POW36,
-            _  => unreachable!()
-        }
+        get_small_powers(base)
     }
 
     // ADDITION
@@ -1570,8 +1725,8 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
 
     /// MulAssign by a power.
     #[inline]
-    fn imul_power_impl(&mut self, n: u32, small_powers: &[u32]) {
-        small::imul_power(self.data_mut(), n, small_powers);
+    fn imul_power_impl(&mut self, base: u32, n: u32) {
+        small::imul_power(self.data_mut(), base, n);
     }
 
     fn imul_power(&mut self, n: u32, base: u32) {
@@ -1620,7 +1775,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.ishl(n.as_usize())
     }
 
-    imul_power!(imul_pow3, U32_POW3, 3);
+    imul_power!(imul_pow3, 3);
 
     /// Multiply by a power of 4.
     #[inline]
@@ -1628,7 +1783,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.imul_pow2(2*n);
     }
 
-    imul_power!(imul_pow5, U32_POW5, 5);
+    imul_power!(imul_pow5, 5);
 
     /// Multiply by a power of 6.
     #[inline]
@@ -1637,7 +1792,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.imul_pow2(n);
     }
 
-    imul_power!(imul_pow7, U32_POW7, 7);
+    imul_power!(imul_pow7, 7);
 
     /// Multiply by a power of 8.
     #[inline]
@@ -1659,7 +1814,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.imul_pow2(n);
     }
 
-    imul_power!(imul_pow11, U32_POW11, 11);
+    imul_power!(imul_pow11, 11);
 
     /// Multiply by a power of 12.
     #[inline]
@@ -1668,7 +1823,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.imul_pow4(n);
     }
 
-    imul_power!(imul_pow13, U32_POW13, 13);
+    imul_power!(imul_pow13, 13);
 
     /// Multiply by a power of 14.
     #[inline]
@@ -1690,7 +1845,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.imul_pow2(4*n);
     }
 
-    imul_power!(imul_pow17, U32_POW17, 17);
+    imul_power!(imul_pow17, 17);
 
     /// Multiply by a power of 18.
     #[inline]
@@ -1699,7 +1854,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.imul_pow2(n);
     }
 
-    imul_power!(imul_pow19, U32_POW19, 19);
+    imul_power!(imul_pow19, 19);
 
     /// Multiply by a power of 20.
     #[inline]
@@ -1722,7 +1877,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.imul_pow2(n);
     }
 
-    imul_power!(imul_pow23, U32_POW23, 23);
+    imul_power!(imul_pow23, 23);
 
     /// Multiply by a power of 24.
     #[inline]
@@ -1759,7 +1914,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.imul_pow4(n);
     }
 
-    imul_power!(imul_pow29, U32_POW29, 29);
+    imul_power!(imul_pow29, 29);
 
     /// Multiply by a power of 30.
     #[inline]
@@ -1768,7 +1923,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.imul_pow2(n);
     }
 
-    imul_power!(imul_pow31, U32_POW31, 31);
+    imul_power!(imul_pow31, 31);
 
     /// Multiply by a power of 32.
     #[inline]
@@ -1822,8 +1977,8 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
 
     /// Implied divAssign by a power.
     #[inline]
-    fn idiv_power_impl(&mut self, n: u32, small_powers: &[u32], roundup: bool) {
-        small::idiv_power(self.data_mut(), n, small_powers, roundup);
+    fn idiv_power_impl(&mut self, base: u32, n: u32, roundup: bool) {
+        small::idiv_power(self.data_mut(), base, n, roundup);
     }
 
     /// DivAssign by a power.
@@ -1873,7 +2028,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.ishr(n.as_usize(), roundup)
     }
 
-    idiv_power!(idiv_pow3, U32_POW3, 3);
+    idiv_power!(idiv_pow3, 3);
 
     /// Divide by a power of 4.
     #[inline]
@@ -1881,7 +2036,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.idiv_pow2(2*n, roundup);
     }
 
-    idiv_power!(idiv_pow5, U32_POW5, 5);
+    idiv_power!(idiv_pow5, 5);
 
     /// Divide by a power of 6.
     #[inline]
@@ -1890,7 +2045,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.idiv_pow2(n, roundup);
     }
 
-    idiv_power!(idiv_pow7, U32_POW7, 7);
+    idiv_power!(idiv_pow7, 7);
 
     /// Divide by a power of 8.
     #[inline]
@@ -1912,7 +2067,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.idiv_pow2(n, roundup);
     }
 
-    idiv_power!(idiv_pow11, U32_POW11, 11);
+    idiv_power!(idiv_pow11, 11);
 
     /// Divide by a power of 12.
     #[inline]
@@ -1921,7 +2076,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.idiv_pow4(n, roundup);
     }
 
-    idiv_power!(idiv_pow13, U32_POW13, 13);
+    idiv_power!(idiv_pow13, 13);
 
     /// Divide by a power of 14.
     #[inline]
@@ -1943,7 +2098,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.idiv_pow2(4*n, roundup);
     }
 
-    idiv_power!(idiv_pow17, U32_POW17, 17);
+    idiv_power!(idiv_pow17, 17);
 
     /// Divide by a power of 18.
     #[inline]
@@ -1952,7 +2107,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.idiv_pow2(n, roundup);
     }
 
-    idiv_power!(idiv_pow19, U32_POW19, 19);
+    idiv_power!(idiv_pow19, 19);
 
     /// Divide by a power of 20.
     #[inline]
@@ -1975,7 +2130,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.idiv_pow2(n, roundup);
     }
 
-    idiv_power!(idiv_pow23, U32_POW23, 23);
+    idiv_power!(idiv_pow23, 23);
 
     /// Divide by a power of 24.
     #[inline]
@@ -2012,7 +2167,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.idiv_pow4(n, roundup);
     }
 
-    idiv_power!(idiv_pow29, U32_POW29, 29);
+    idiv_power!(idiv_pow29, 29);
 
     /// Divide by a power of 30.
     #[inline]
@@ -2021,7 +2176,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         self.idiv_pow2(n, roundup);
     }
 
-    idiv_power!(idiv_pow31, U32_POW31, 31);
+    idiv_power!(idiv_pow31, 31);
 
     /// Divide by a power of 32.
     #[inline]
@@ -2055,6 +2210,22 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
     fn idiv_pow36(&mut self, n: u32, roundup: bool) {
         self.idiv_pow9(n, roundup);
         self.idiv_pow4(n, roundup);
+    }
+
+    // POWER
+
+    /// Calculate self^n
+    #[inline]
+    fn ipow(&mut self, n: u32) {
+        small::ipow(self.data_mut(), n);
+    }
+
+    /// Calculate self^n
+    #[inline]
+    fn pow(&self, n: u32) -> Self {
+        let mut x = self.clone();
+        x.ipow(n);
+        x
     }
 }
 
@@ -2129,11 +2300,16 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
     }
 
     /// Calculate the fast quotient for a single 32-bit quotient.
-    /// This requires a normalized divisor, with a leading-bit set,
-    /// and a quotient that can fit in a single 32-bit word.
+    ///
+    /// This requires a non-normalized divisor, where there at least
+    /// `integral_binary_factor` 0 bits set, to ensure at maximum a single
+    /// digit will be produced for a single base.
+    ///
+    /// Warning: This is not a general-purpose division algorithm,
+    /// it is highly specialized for peeling off singular digits.
     #[inline]
-    unsafe fn irem_fast(&mut self, y: &Self) -> u32 {
-        large::irem_fast(self.data_mut(), y.data())
+    unsafe fn quorem(&mut self, y: &Self) -> u32 {
+        large::quorem(self.data_mut(), y.data())
     }
 }
 
@@ -2175,6 +2351,126 @@ mod tests {
     }
 
     // SHARED OPS
+
+    #[test]
+    fn greater_test() {
+        // Simple
+        let x = Bigint { data: vec![1] };
+        let y = Bigint { data: vec![2] };
+        assert!(!x.greater(&y));
+        assert!(!x.greater(&x));
+        assert!(y.greater(&x));
+
+        // Check asymmetric
+        let x = Bigint { data: vec![5, 1] };
+        let y = Bigint { data: vec![2] };
+        assert!(x.greater(&y));
+        assert!(!x.greater(&x));
+        assert!(!y.greater(&x));
+
+        // Check when we use reverse ordering properly.
+        let x = Bigint { data: vec![5, 1, 9] };
+        let y = Bigint { data: vec![6, 2, 8] };
+        assert!(x.greater(&y));
+        assert!(!x.greater(&x));
+        assert!(!y.greater(&x));
+    }
+
+    #[test]
+    fn greater_equal_test() {
+        // Simple
+        let x = Bigint { data: vec![1] };
+        let y = Bigint { data: vec![2] };
+        assert!(!x.greater_equal(&y));
+        assert!(x.greater_equal(&x));
+        assert!(y.greater_equal(&x));
+
+        // Check asymmetric
+        let x = Bigint { data: vec![5, 1] };
+        let y = Bigint { data: vec![2] };
+        assert!(x.greater_equal(&y));
+        assert!(x.greater_equal(&x));
+        assert!(!y.greater_equal(&x));
+
+        // Check when we use reverse ordering properly.
+        let x = Bigint { data: vec![5, 1, 9] };
+        let y = Bigint { data: vec![6, 2, 8] };
+        assert!(x.greater_equal(&y));
+        assert!(x.greater_equal(&x));
+        assert!(!y.greater_equal(&x));
+    }
+
+    #[test]
+    fn equal_test() {
+        // Simple
+        let x = Bigint { data: vec![1] };
+        let y = Bigint { data: vec![2] };
+        assert!(!x.equal(&y));
+        assert!(x.equal(&x));
+        assert!(!y.equal(&x));
+
+        // Check asymmetric
+        let x = Bigint { data: vec![5, 1] };
+        let y = Bigint { data: vec![2] };
+        assert!(!x.equal(&y));
+        assert!(x.equal(&x));
+        assert!(!y.equal(&x));
+
+        // Check when we use reverse ordering properly.
+        let x = Bigint { data: vec![5, 1, 9] };
+        let y = Bigint { data: vec![6, 2, 8] };
+        assert!(!x.equal(&y));
+        assert!(x.equal(&x));
+        assert!(!y.equal(&x));
+    }
+
+    #[test]
+    fn less_test() {
+        // Simple
+        let x = Bigint { data: vec![1] };
+        let y = Bigint { data: vec![2] };
+        assert!(x.less(&y));
+        assert!(!x.less(&x));
+        assert!(!y.less(&x));
+
+        // Check asymmetric
+        let x = Bigint { data: vec![5, 1] };
+        let y = Bigint { data: vec![2] };
+        assert!(!x.less(&y));
+        assert!(!x.less(&x));
+        assert!(y.less(&x));
+
+        // Check when we use reverse ordering properly.
+        let x = Bigint { data: vec![5, 1, 9] };
+        let y = Bigint { data: vec![6, 2, 8] };
+        assert!(!x.less(&y));
+        assert!(!x.less(&x));
+        assert!(y.less(&x));
+    }
+
+    #[test]
+    fn less_equal_test() {
+        // Simple
+        let x = Bigint { data: vec![1] };
+        let y = Bigint { data: vec![2] };
+        assert!(x.less_equal(&y));
+        assert!(x.less_equal(&x));
+        assert!(!y.less_equal(&x));
+
+        // Check asymmetric
+        let x = Bigint { data: vec![5, 1] };
+        let y = Bigint { data: vec![2] };
+        assert!(!x.less_equal(&y));
+        assert!(x.less_equal(&x));
+        assert!(y.less_equal(&x));
+
+        // Check when we use reverse ordering properly.
+        let x = Bigint { data: vec![5, 1, 9] };
+        let y = Bigint { data: vec![6, 2, 8] };
+        assert!(!x.less_equal(&y));
+        assert!(x.less_equal(&x));
+        assert!(y.less_equal(&x));
+    }
 
     #[test]
     fn leading_zero_values_test() {
@@ -2437,6 +2733,16 @@ mod tests {
         assert_eq!(x.data, vec![0xD70A3D70, 0xA3D70A3]);
     }
 
+    #[test]
+    fn ipow_tes() {
+        let x = Bigint { data: vec![5] };
+        assert_eq!(x.pow(2).data, [25]);
+        assert_eq!(x.pow(15).data, [452807053, 7]);
+        assert_eq!(x.pow(16).data, [2264035265, 35]);
+        assert_eq!(x.pow(17).data, [2730241733, 177]);
+        assert_eq!(x.pow(302).data, [2443090281, 2149694430, 2297493928, 1584384001, 1279504719, 1930002239, 3312868939, 3735173465, 3523274756, 2025818732, 1641675015, 2431239749, 4292780461, 3719612855, 4174476133, 3296847770, 2677357556, 638848153, 2198928114, 3285049351, 2159526706, 626302612]);
+    }
+
     // LARGE OPS
 
     #[test]
@@ -2581,28 +2887,12 @@ mod tests {
     }
 
     #[test]
-    fn irem_fast_large_test() {
+    fn quorem_test() {
         unsafe {
-            // Simple, no remainder result.
-            let mut x = Bigint { data: vec![0xE0000000, 0x1FFFFFFF] };
-            let y = Bigint { data: vec![0xA0000000] };
-            let q = x.irem_fast(&y);
-            assert_eq!(x.data, vec![]);
-            assert_eq!(q, 0x33333333);
-
-            // Empty numerator
-            let mut x = Bigint { data: vec![] };
-            let y = Bigint { data: vec![0xA0000000] };
-            let q = x.irem_fast(&y);
-            assert_eq!(x.data, vec![]);
-            assert_eq!(q, 0);
-
-            // Sample with remainder
-            let mut x = Bigint { data: vec![0xEFFFFFFF, 0x1FFFFFFF] };
-            let y = Bigint { data: vec![0xA0000000] };
-            let q = x.irem_fast(&y);
-            assert_eq!(x.data, vec![0xFFFFFFF]);
-            assert_eq!(q, 0x33333333);
+            let mut x = Bigint::from_u128(42535295865117307932921825928971026432);
+            let y = Bigint::from_u128(17218479456385750618067377696052635483);
+            assert_eq!(x.quorem(&y), 2);
+            assert_eq!(x.data, [1873752394, 3049207402, 3024501058, 102215382]);
         }
     }
 }

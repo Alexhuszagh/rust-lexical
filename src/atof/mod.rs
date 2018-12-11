@@ -10,4 +10,4 @@ pub use self::api::*;
 // Exposed for benchmarking only.
 #[doc(hidden)]
 #[cfg(not(feature = "imprecise"))]
-pub use self::algorithm::bigfloat::Bigfloat;
+pub use self::algorithm::bigcomp::{fast_atof, slow_atof};

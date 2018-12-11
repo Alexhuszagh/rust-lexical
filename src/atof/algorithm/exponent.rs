@@ -81,26 +81,6 @@ pub(super) extern "C" fn mantissa_exponent(raw_exponent: i32, fraction_digits: u
     }
 }
 
-/// Calculate the binary factor from a basen number.
-#[inline]
-#[cfg(any(test, not(feature = "imprecise")))]
-pub(super) extern "C" fn binary_factor(base: u32)
-    -> f64
-{
-    // logic error, disable in release builds
-    debug_assert!(base >= 2 && base <= 36, "Numerical base must be from 2-36");
-
-    #[cfg(feature = "table")] {
-        const TABLE: [f64; 35] = [1.0, 1.584962500721156, 2.0, 2.321928094887362, 2.584962500721156, 2.807354922057604, 3.0, 3.169925001442312, 3.321928094887362, 3.4594316186372973, 3.584962500721156, 3.700439718141092, 3.807354922057604, 3.9068905956085187, 4.0, 4.087462841250339, 4.169925001442312, 4.247927513443585, 4.321928094887363, 4.392317422778761, 4.459431618637297, 4.523561956057013, 4.584962500721156, 4.643856189774724, 4.700439718141092, 4.754887502163468, 4.807354922057604, 4.857980995127572, 4.906890595608519, 4.954196310386875, 5.0, 5.044394119358453, 5.087462841250339, 5.129283016944966, 5.169925001442312];
-        let idx: usize = as_cast(base - 2);
-        unsafe { *TABLE.get_unchecked(idx) }
-    }
-
-    #[cfg(not(feature = "table"))] {
-        (base as f64).log2()
-    }
-}
-
 /// Calculate the integral ceiling of the binary factor from a basen number.
 #[inline]
 #[cfg(any(test, not(feature = "imprecise")))]
@@ -118,25 +98,6 @@ pub(super) extern "C" fn integral_binary_factor(base: u32)
 
     #[cfg(not(feature = "table"))] {
         (base as f64).log2().ceil().as_u32()
-    }
-}
-
-/// Calculate the binary exponent from a basen exponent.
-/// Assume no possible overflow.
-///
-/// This method doesn't have to be very accurate, since we give ourselves
-/// a padding bit of 1 to work with for Bigfloat.
-#[inline]
-#[cfg(any(test, not(feature = "imprecise")))]
-pub(super) extern "C" fn binary_exponent(base: u32, exponent: i32)
-    -> i32
-{
-    if exponent == 0 {
-        0
-    } else if exponent > 0 {
-        as_cast((exponent as f64 * binary_factor(base)).ceil())
-    } else {
-        as_cast((exponent as f64 * binary_factor(base)).floor())
     }
 }
 
@@ -287,31 +248,10 @@ mod test {
     }
 
     #[test]
-    fn binary_factor_test() {
-        const TABLE: [f64; 35] = [1.0, 1.584962500721156, 2.0, 2.321928094887362, 2.584962500721156, 2.807354922057604, 3.0, 3.169925001442312, 3.321928094887362, 3.4594316186372973, 3.584962500721156, 3.700439718141092, 3.807354922057604, 3.9068905956085187, 4.0, 4.087462841250339, 4.169925001442312, 4.247927513443585, 4.321928094887363, 4.392317422778761, 4.459431618637297, 4.523561956057013, 4.584962500721156, 4.643856189774724, 4.700439718141092, 4.754887502163468, 4.807354922057604, 4.857980995127572, 4.906890595608519, 4.954196310386875, 5.0, 5.044394119358453, 5.087462841250339, 5.129283016944966, 5.169925001442312];
-        for (idx, base) in (2..37).enumerate() {
-            assert_f64_eq!(binary_factor(base), TABLE[idx]);
-        }
-    }
-
-    #[test]
     fn integral_binary_factor_test() {
         const TABLE: [u32; 35] = [1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6];
         for (idx, base) in (2..37).enumerate() {
-            assert_f64_eq!(integral_binary_factor(base), TABLE[idx]);
+            assert_eq!(integral_binary_factor(base), TABLE[idx]);
         }
-    }
-
-    #[test]
-    fn binary_exponent_test() {
-        assert_eq!(binary_exponent(10, -324), -1077);
-        assert_eq!(binary_exponent(10, -323), -1073);
-        assert_eq!(binary_exponent(10, -150), -499);
-        assert_eq!(binary_exponent(10, -50), -167);
-        assert_eq!(binary_exponent(10, 0), 0);
-        assert_eq!(binary_exponent(10, 50), 167);
-        assert_eq!(binary_exponent(10, 150), 499);
-        assert_eq!(binary_exponent(10, 323), 1073);
-        assert_eq!(binary_exponent(10, 324), 1077);
     }
 }

@@ -3,7 +3,6 @@
 #![allow(dead_code)]
 
 use lib::{iter, ops, ptr, Vec};
-use smallvec;
 use stackvector;
 
 // REMOVE_MANY
@@ -74,15 +73,6 @@ impl<T: Clone> ExtendFromSlice<T> for Vec<T> {
     }
 }
 
-impl<A: smallvec::Array> ExtendFromSlice<A::Item> for smallvec::SmallVec<A>
-    where A::Item: Copy + Clone
-{
-    #[inline]
-    fn extend_from_slice(&mut self, other: &[A::Item]) {
-        smallvec::SmallVec::extend_from_slice(self, other)
-    }
-}
-
 impl<A: stackvector::Array> ExtendFromSlice<A::Item> for stackvector::StackVec<A>
     where A::Item: Copy + Clone
 {
@@ -104,14 +94,6 @@ impl<T> Reserve<T> for Vec<T> {
     #[inline]
     fn reserve(&mut self, capacity: usize) {
         Vec::reserve(self, capacity)
-    }
-}
-
-impl<A: smallvec::Array> Reserve<A::Item> for smallvec::SmallVec<A>
-{
-    #[inline]
-    fn reserve(&mut self, capacity: usize) {
-        smallvec::SmallVec::reserve(self, capacity)
     }
 }
 
@@ -138,14 +120,6 @@ impl<T> ReserveExact<T> for Vec<T> {
     }
 }
 
-impl<A: smallvec::Array> ReserveExact<A::Item> for smallvec::SmallVec<A>
-{
-    #[inline]
-    fn reserve_exact(&mut self, capacity: usize) {
-        smallvec::SmallVec::reserve_exact(self, capacity)
-    }
-}
-
 impl<A: stackvector::Array> ReserveExact<A::Item> for stackvector::StackVec<A>
 {
     #[inline]
@@ -168,15 +142,6 @@ impl<T: Clone> Resize<T> for Vec<T> {
     #[inline]
     fn resize(&mut self, len: usize, value: T) {
         Vec::resize(self, len, value)
-    }
-}
-
-impl<A: smallvec::Array> Resize<A::Item> for smallvec::SmallVec<A>
-    where A::Item: Clone
-{
-    #[inline]
-    fn resize(&mut self, len: usize, value: A::Item) {
-        smallvec::SmallVec::resize(self, len, value)
     }
 }
 
@@ -315,33 +280,6 @@ impl<T> VecLike<T> for Vec<T> {
     }
 }
 
-impl<A: smallvec::Array> VecLike<A::Item> for smallvec::SmallVec<A> {
-    #[inline]
-    fn push(&mut self, value: A::Item) {
-        smallvec::SmallVec::push(self, value);
-    }
-
-    #[inline]
-    fn pop(&mut self) -> Option<A::Item> {
-        smallvec::SmallVec::pop(self)
-    }
-
-    #[inline]
-    unsafe fn set_len(&mut self, new_len: usize) {
-        smallvec::SmallVec::set_len(self, new_len);
-    }
-
-    #[inline]
-    fn insert_many<I: iter::IntoIterator<Item=A::Item>>(&mut self, index: usize, iterable: I) {
-        smallvec::SmallVec::insert_many(self, index, iterable)
-    }
-
-    #[inline]
-    fn remove_many<R: ops::RangeBounds<usize>>(&mut self, range: R) {
-        remove_many(self, range)
-    }
-}
-
 impl<A: stackvector::Array> VecLike<A::Item> for stackvector::StackVec<A> {
     #[inline]
     fn push(&mut self, value: A::Item) {
@@ -384,10 +322,6 @@ pub trait CloneableVecLike<T: Clone + Copy>:
 
 impl<T: Clone + Copy> CloneableVecLike<T> for Vec<T> {
 }
-
-impl<A: smallvec::Array> CloneableVecLike<A::Item> for smallvec::SmallVec<A>
-    where A::Item: Clone + Copy
-{}
 
 impl<A: stackvector::Array> CloneableVecLike<A::Item> for stackvector::StackVec<A>
     where A::Item: Clone + Copy

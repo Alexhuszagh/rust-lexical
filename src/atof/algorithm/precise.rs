@@ -11,7 +11,6 @@
 // BENCHMARKS
 //  The Python benchmarks were done by pre-parsing the data into a Python
 //  list, and then using the following code:
-// TODO(ahuszagh) Need to change this to use C++ extensions to avoid
 // caching strings or responses, or have any effect from the interpreter.
 //  ```text
 //  %%timeit
@@ -98,7 +97,6 @@ use atoi;
 use float::*;
 use table::*;
 use util::*;
-use super::bigfloat::{Bigfloat, FloatMaxExponent};
 use super::cached::ModeratePathCache;
 use super::bigcomp;
 use super::exponent::*;
@@ -159,14 +157,7 @@ impl FloatSlice {
     /// Get number of parsed fraction digits.
     #[inline(always)]
     pub(super) fn fraction_digits(&self) -> usize {
-        if self.digits_start.is_zero() {
-            // Integer component, digits start in the integer
-            self.fraction_len()
-        } else {
-            // No integer component, we need an offset from the
-            // fraction, removing all leading zeros.
-            self.fraction_len() - self.digits_start
-        }
+        self.fraction_len() - self.digits_start
     }
 
     /// Get the number of digits in the mantissa.
@@ -190,21 +181,18 @@ impl FloatSlice {
     /// Get the scientific exponent from the raw exponent.
     #[inline(always)]
     pub(super) fn scientific_exponent(&self) -> i32 {
-        scientific_exponent(self.raw_exponent, self.integer_len(), self.fraction_len())
+        let fraction_len = match self.digits_start.is_zero() {
+            true  => self.fraction_len(),
+            false => self.digits_start,
+        };
+        scientific_exponent(self.raw_exponent, self.integer_len(), fraction_len)
     }
 
     /// Iterate over the digits, by chaining two slices.
     pub(super) fn digits_iter(&self)
         -> iter::Cloned<iter::Chain<SliceIter<u8>, iter::Skip<SliceIter<u8>>>>
     {
-        if self.digits_start.is_zero() {
-            // Integer component, digits start in the integer
-            self.integer.iter().chain(self.fraction.iter().skip(0)).cloned()
-        } else {
-            // No integer component, we need an offset from the
-            // fraction, removing all leading zeros.
-            self.integer.iter().chain(self.fraction.iter().skip(self.digits_start)).cloned()
-        }
+        self.integer.iter().chain(self.fraction.iter().skip(self.digits_start)).cloned()
     }
 }
 
@@ -640,8 +628,7 @@ unsafe fn pow2_to_native<F>(base: u32, pow2_exp: i32, first: *const u8, last: *c
     -> (F, ParseState)
     where F: FloatRounding<u64>,
           F: FloatRounding<u128>,
-          F: StablePower,
-          F: FloatMaxExponent
+          F: StablePower
 {
     let (mut mantissa, state, slc, exponent) = parse_float::<u64>(base, first, last);
 
@@ -677,8 +664,8 @@ unsafe fn pown_to_native<F>(base: u32, first: *const u8, last: *const u8, lossy:
     where F: FloatRounding<u64>,
           F: FloatRounding<u128>,
           F: StablePower,
-          F: FloatMaxExponent,
-          F::Unsigned: Mantissa
+          F::Unsigned: Mantissa,
+          ExtendedFloat<F::Unsigned>: bigcomp::ToBigInt<F::Unsigned>
 {
     let (mantissa, state, slc, exponent) = parse_float::<u64>(base, first, last);
 
@@ -701,19 +688,17 @@ unsafe fn pown_to_native<F>(base: u32, first: *const u8, last: *const u8, lossy:
     }
 
     // Slow path
+    let b = fp.into_rounded_float::<F>(RoundingKind::TowardZero);
     if bigcomp::use_fast(base, slc.mantissa_digits()) {
         // Can use the fast path for the bigcomp calculation.
         // The number of digits is `<= (128 / log2(10)).floor() - 2;`
-        let b = fp.into_rounded_float::<F>(RoundingKind::TowardZero);
         let float = bigcomp::fast_atof(slc.digits_iter(), base, slc.scientific_exponent(), b);
         return (float, state);
     } else {
         // Use the slow bigcomp calculation.
         // Have too many digits to use 128-bit approximation.
-        // TODO(ahuszagh) Replace with dtoa, since we can do that now...
-        // Need to find out how many digits for the faster algorithm.
-        let (bigfloat, state) = Bigfloat::from_bytes::<F>(base, first, last);
-        return (bigfloat.as_float::<F>(), state);
+        let float = bigcomp::slow_atof(slc.digits_iter(), base, slc.scientific_exponent(), b);
+        return (float, state);
     }
 }
 
@@ -726,8 +711,8 @@ unsafe fn to_native<F>(base: u32, first: *const u8, last: *const u8, lossy: bool
     where F: FloatRounding<u64>,
           F: FloatRounding<u128>,
           F: StablePower,
-          F: FloatMaxExponent,
-          F::Unsigned: Mantissa
+          F::Unsigned: Mantissa,
+          ExtendedFloat<F::Unsigned>: bigcomp::ToBigInt<F::Unsigned>
 {
     let pow2_exp = pow2_exponent(base);
     let (f, state) = match pow2_exp {
@@ -1134,6 +1119,9 @@ mod tests {
             check_atod(10, "2.2250738585072014e-308", (2.2250738585072014e-308, 23));
             check_atod(10, "2.22507385850720113605740979670913197593481954635164564802342610972482222202107694551652952390813508791414915891303962110687008643869459464552765720740782062174337998814106326732925355228688137214901298112245145188984905722230728525513315575501591439747639798341180199932396254828901710708185069063066665599493827577257201576306269066333264756530000924588831643303777979186961204949739037782970490505108060994073026293712895895000358379996720725430436028407889577179615094551674824347103070260914462157228988025818254518032570701886087211312807951223342628836862232150377566662250398253433597456888442390026549819838548794829220689472168983109969836584681402285424333066033985088644580400103493397042756718644338377048603786162277173854562306587467901408672332763671875e-308", (2.2250738585072014e-308, 774));
             check_atod(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (1.7976931348623157e+308, 380));
+            check_atod(10, "7.4109846876186981626485318930233205854758970392148714663837852375101326090531312779794975454245398856969484704316857659638998506553390969459816219401617281718945106978546710679176872575177347315553307795408549809608457500958111373034747658096871009590975442271004757307809711118935784838675653998783503015228055934046593739791790738723868299395818481660169122019456499931289798411362062484498678713572180352209017023903285791732520220528974020802906854021606612375549983402671300035812486479041385743401875520901590172592547146296175134159774938718574737870961645638908718119841271673056017045493004705269590165763776884908267986972573366521765567941072508764337560846003984904972149117463085539556354188641513168478436313080237596295773983001708984374999e-324", (5e-324, 761));
+            check_atod(10, "7.4109846876186981626485318930233205854758970392148714663837852375101326090531312779794975454245398856969484704316857659638998506553390969459816219401617281718945106978546710679176872575177347315553307795408549809608457500958111373034747658096871009590975442271004757307809711118935784838675653998783503015228055934046593739791790738723868299395818481660169122019456499931289798411362062484498678713572180352209017023903285791732520220528974020802906854021606612375549983402671300035812486479041385743401875520901590172592547146296175134159774938718574737870961645638908718119841271673056017045493004705269590165763776884908267986972573366521765567941072508764337560846003984904972149117463085539556354188641513168478436313080237596295773983001708984375e-324", (1e-323, 758));
+            check_atod(10, "7.4109846876186981626485318930233205854758970392148714663837852375101326090531312779794975454245398856969484704316857659638998506553390969459816219401617281718945106978546710679176872575177347315553307795408549809608457500958111373034747658096871009590975442271004757307809711118935784838675653998783503015228055934046593739791790738723868299395818481660169122019456499931289798411362062484498678713572180352209017023903285791732520220528974020802906854021606612375549983402671300035812486479041385743401875520901590172592547146296175134159774938718574737870961645638908718119841271673056017045493004705269590165763776884908267986972573366521765567941072508764337560846003984904972149117463085539556354188641513168478436313080237596295773983001708984375001e-324", (1e-323, 761));
 
             // Rounding error
             // Adapted from:

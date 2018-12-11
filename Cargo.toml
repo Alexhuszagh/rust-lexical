@@ -21,9 +21,6 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 [dependencies]
 cfg-if = "0.1"
 static_assertions = "0.2.5"
-# Use small-vector optimization for Bigfloat class.
-# TODO(ahuszagh) Make dependent on a never-used feature.
-smallvec = "0.6"
 # Use stack-vector for dtoa.
 stackvector = "^1.0.1"
 # Optimized Grisu3 implementation, a well-tested, correct algorithm.
@@ -161,7 +158,7 @@ name = "atoi"
 harness = false
 
 [[bench]]
-name = "bigfloat"
+name = "bigcomp"
 harness = false
 
 [[bench]]
