@@ -984,7 +984,7 @@ fn long_mul<T>(x: &[u32], y: &[u32])
         // Handle the iterative cases.
         for (i, yi) in y[1..].iter().enumerate() {
             let zi: T = small::mul(x, *yi);
-            iadd_impl(&mut z, &zi, i);
+            iadd_impl(&mut z, &zi, i+1);
         }
 
         small::normalize(&mut z);
