@@ -312,7 +312,8 @@ impl<A: stackvector::Array> VecLike<A::Item> for stackvector::StackVec<A> {
 /// Vector-like container with cloneable values.
 ///
 /// Implemented for Vec, SmallVec, and StackVec.
-pub trait CloneableVecLike<T: Clone + Copy>:
+pub trait CloneableVecLike<T: Clone + Copy + Send>:
+    Send +
     ExtendFromSlice<T> +
     Resize<T> +
     Reserve<T> +
@@ -320,11 +321,11 @@ pub trait CloneableVecLike<T: Clone + Copy>:
     VecLike<T>
 {}
 
-impl<T: Clone + Copy> CloneableVecLike<T> for Vec<T> {
+impl<T: Clone + Copy + Send> CloneableVecLike<T> for Vec<T> {
 }
 
 impl<A: stackvector::Array> CloneableVecLike<A::Item> for stackvector::StackVec<A>
-    where A::Item: Clone + Copy
+    where A::Item: Clone + Copy + Send
 {}
 
 // TESTS

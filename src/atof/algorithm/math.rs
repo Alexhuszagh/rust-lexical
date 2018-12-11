@@ -129,6 +129,7 @@ use lib::iter;
 use util::*;
 use super::{large, scalar};
 use super::super::small_powers::*;
+use super::super::large_powers::*;
 
 // ROUNDUP
 
@@ -465,6 +466,7 @@ pub fn iadd_impl<T>(x: &mut T, y: u32, xstart: usize)
 }
 
 /// AddAssign small integer to bigint.
+#[inline(always)]
 pub fn iadd<T>(x: &mut T, y: u32)
     where T: CloneableVecLike<u32>
 {
@@ -473,6 +475,7 @@ pub fn iadd<T>(x: &mut T, y: u32)
 
 /// Add small integer to bigint.
 #[allow(dead_code)]
+#[inline]
 pub fn add<T>(x: &[u32], y: u32)
     -> T
     where T: CloneableVecLike<u32>
@@ -508,6 +511,7 @@ pub fn isub_impl<T>(x: &mut T, y: u32, xstart: usize)
 
 /// SubAssign small integer to bigint.
 /// Does not do overflowing subtraction.
+#[inline(always)]
 pub fn isub<T>(x: &mut T, y: u32)
     where T: CloneableVecLike<u32>
 {
@@ -516,6 +520,7 @@ pub fn isub<T>(x: &mut T, y: u32)
 
 /// Sub small integer to bigint.
 #[allow(dead_code)]
+#[inline]
 pub fn sub<T>(x: &[u32], y: u32)
     -> T
     where T: CloneableVecLike<u32>
@@ -529,6 +534,7 @@ pub fn sub<T>(x: &[u32], y: u32)
 // MULTIPLICATION
 
 /// MulAssign small integer to bigint.
+#[inline]
 pub fn imul<T>(x: &mut T, y: u32)
     where T: CloneableVecLike<u32>
 {
@@ -546,6 +552,7 @@ pub fn imul<T>(x: &mut T, y: u32)
 
 /// Mul small integer to bigint.
 #[allow(dead_code)]
+#[inline]
 pub fn mul<T>(x: &[u32], y: u32)
     -> T
     where T: CloneableVecLike<u32>
@@ -580,29 +587,63 @@ pub fn mul<T>(x: &[u32], y: u32)
 ///     test bigcomp_f32_lexical ... bench:         518 ns/iter (+/- 31)
 ///     test bigcomp_f64_lexical ... bench:         583 ns/iter (+/- 47)
 ///
+/// Exponentiation by Iterative Large Powers (of 2):
+///     running 2 tests
+///     test bigcomp_f32_lexical ... bench:         671 ns/iter (+/- 31)
+///     test bigcomp_f64_lexical ... bench:       1,394 ns/iter (+/- 47)
+///
 /// Even using worst-case scenarios, exponentiation by squaring is
-/// significantly slower for our workloads. Just multiply by small powers.
-pub fn imul_power<T>(x: &mut T, base: u32, mut n: u32)
+/// significantly slower for our workloads. Just multiply by small powers,
+/// in simple cases, and use precalculated large powers in other cases.
+pub fn imul_power<T>(x: &mut T, base: u32, n: u32)
     where T: CloneableVecLike<u32>
 {
-    let small_powers = get_small_powers(base);
-    let get_power = | i: usize | unsafe { *small_powers.get_unchecked(i) };
+    use super::large::KARATSUBA_CUTOFF;
 
-    // Multiply by the largest small power until n < step.
-    let step = small_powers.len() - 1;
-    let power = get_power(step);
-    let step = step as u32;
-    while n >= step {
-        imul(x, power);
-        n -= step;
+    let bit_length = u32::BITS - n.leading_zeros().as_usize();
+    if x.len() < KARATSUBA_CUTOFF || bit_length < KARATSUBA_CUTOFF {
+        // We can use iterative small powers to make this faster for the
+        // easy cases.
+        let small_powers = get_small_powers(base);
+        let get_small = | i: usize | unsafe { *small_powers.get_unchecked(i) };
+
+        // Multiply by the largest small power until n < step.
+        let step = small_powers.len() - 1;
+        let power = get_small(step);
+        let mut n = n.as_usize();
+        while n >= step {
+            imul(x, power);
+            n -= step;
+        }
+
+        // Multiply by the remainder.
+        imul(x, get_small(n));
+    } else {
+        // In theory, this code should be asymptotically a lot faster,
+        // in practice, our small::imul seems to be the limiting step,
+        // and large imul is slow as well.
+        let large_powers = get_large_powers(base);
+        let get_large = | i: usize | unsafe { *large_powers.get_unchecked(i) };
+
+        // Multiply by higher order powers.
+        let mut idx: usize = 0;
+        let mut bit: usize = 1;
+        let mut n = n.as_usize();
+        while n != 0 {
+            if n & bit != 0 {
+                debug_assert!(idx < large_powers.len());
+                large::imul(x, get_large(idx));
+                n ^= bit;
+            }
+            idx += 1;
+            bit <<= 1;
+        }
     }
-
-    // Multiply by the remainder.
-    imul(x, get_power(n as usize));
 }
 
 /// Mul by a power.
 #[allow(dead_code)]
+#[inline]
 pub fn mul_power<T>(x: &[u32], base: u32, n: u32)
     -> T
     where T: CloneableVecLike<u32>
@@ -632,6 +673,7 @@ pub fn idiv<T>(x: &mut T, y: u32)
 
 /// Div small integer to bigint and get the remainder.
 #[allow(dead_code)]
+#[inline]
 pub fn div<T>(x: &[u32], y: u32)
     -> (T, u32)
     where T: CloneableVecLike<u32>
@@ -679,6 +721,7 @@ pub fn idiv_power<T>(x: &mut T, base: u32, mut n: u32, roundup: bool)
 
 /// Div by a power.
 #[allow(dead_code)]
+#[inline]
 pub fn div_power<T>(x: &[u32], base: u32, n: u32, roundup: bool)
     -> T
     where T: CloneableVecLike<u32>
@@ -719,6 +762,7 @@ pub fn ipow<T>(x: &mut T, mut n: u32)
 
 /// Calculate x^n, using exponentiation by squaring.
 #[allow(dead_code)]
+#[inline]
 pub fn pow<T>(x: &[u32], n: u32)
     -> T
     where T: CloneableVecLike<u32>
@@ -846,6 +890,7 @@ pub fn iadd_impl<T>(x: &mut T, y: &[u32], xstart: usize)
 
 /// AddAssign bigint to bigint.
 #[allow(dead_code)]
+#[inline(always)]
 pub fn iadd<T>(x: &mut T, y: &[u32])
     where T: CloneableVecLike<u32>
 {
@@ -854,6 +899,7 @@ pub fn iadd<T>(x: &mut T, y: &[u32])
 
 /// Add bigint to bigint.
 #[allow(dead_code)]
+#[inline]
 pub fn add<T>(x: &[u32], y: &[u32])
     -> T
     where T: CloneableVecLike<u32>
@@ -896,6 +942,7 @@ pub fn isub<T>(x: &mut T, y: &[u32])
 
 /// Sub bigint to bigint.
 #[allow(dead_code)]
+#[inline]
 pub fn sub<T>(x: &[u32], y: &[u32])
     -> T
     where T: CloneableVecLike<u32>
@@ -913,7 +960,7 @@ pub fn sub<T>(x: &[u32], y: &[u32])
 /// Karatsuba tends to out-perform long-multiplication at ~320-640 bits,
 /// so we go halfway, while Newton division tends to out-perform
 /// Algorithm D at ~1024 bits. We can toggle this for optimal performance.
-const DIGITS_CUTOFF: usize = 30;
+pub const KARATSUBA_CUTOFF: usize = 32;
 
 /// Grade-school multiplication algorithm.
 ///
@@ -926,25 +973,28 @@ fn long_mul<T>(x: &[u32], y: &[u32])
     -> T
     where T: CloneableVecLike<u32>
 {
-    // Make x and empty buffer, and z an immutable copy to the new data.
-    let mut z = T::default();
-    z.resize(x.len() + y.len(), 0);
-
     // Using the immutable value, multiply by all the scalars in y, using
-    // the algorithm defined above.
-    for (i, yi) in y.iter().enumerate() {
-        let mut xi = T::default();
-        xi.extend_from_slice(x);
-        small::imul(&mut xi, *yi);
-        iadd_impl(&mut z, &xi, i);
-    }
-    small::normalize(&mut z);
+    // the algorithm defined above. Use a single buffer to avoid
+    // frequent reallocations. Handle the first case to avoid a redundant
+    // addition, since we know y.len() >= 1.
+    unsafe {
+        let mut z: T = small::mul(x, *y.get_unchecked(0));
+        z.resize(x.len() + y.len(), 0);
 
-    z
+        // Handle the iterative cases.
+        for (i, yi) in y[1..].iter().enumerate() {
+            let zi: T = small::mul(x, *yi);
+            iadd_impl(&mut z, &zi, i);
+        }
+
+        small::normalize(&mut z);
+
+        z
+    }
 }
 
-
 /// Split two buffers into halfway, into (lo, hi).
+#[inline(always)]
 pub fn karatsuba_split<'a>(z: &'a [u32], m: usize)
     -> (&'a [u32], &'a [u32])
 {
@@ -958,7 +1008,7 @@ fn karatsuba_mul<T>(x: &[u32], y: &[u32])
     -> T
     where T: CloneableVecLike<u32>
 {
-    if y.len() <= DIGITS_CUTOFF {
+    if y.len() <= KARATSUBA_CUTOFF {
         // Bottom-out to long division for small cases.
         long_mul(x, y)
     } else if x.len() < y.len() / 2 {
@@ -1020,8 +1070,7 @@ fn karatsuba_uneven_mul<T>(x: &[u32], mut y: &[u32])
 }
 
 /// Forwarder to the proper Karatsuba algorithm.
-#[inline]
-#[allow(dead_code)]
+#[inline(always)]
 fn karatsuba_mul_fwd<T>(x: &[u32], y: &[u32])
     -> T
     where T: CloneableVecLike<u32>
@@ -1047,13 +1096,14 @@ pub fn imul<T>(x: &mut T, y: &[u32])
             // multiplication makes sense, so we're just going to use long
             // division. ~20% speedup compared to:
             //      *x = karatsuba_mul_fwd(x, y);
-            *x = long_mul(x, y);
+            *x = karatsuba_mul_fwd(x, y);
         }
     }
 }
 
 /// Mul bigint to bigint.
 #[allow(dead_code)]
+#[inline]
 pub fn mul<T>(x: &[u32], y: &[u32])
     -> T
     where T: CloneableVecLike<u32>
@@ -1344,6 +1394,7 @@ pub fn idiv<T>(x: &mut T, y: &[u32])
 
 /// Div bigint to bigint.
 #[allow(dead_code)]
+#[inline]
 pub fn div<T>(x: &[u32], y: &[u32])
     -> (T, T)
     where T: CloneableVecLike<u32>

@@ -95,21 +95,23 @@ For all the following benchmarks, lower is better.
 
 ![atoi benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atoi.png)
 
-**String to f32 Comprehensive**
+**String to f32 Simple Random Data**
 
 ![atof32 benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atof_digits_f32.png)
 
-**String to f64 Comprehensive**
+**String to f64 Simple Random Data**
 
 ![atof64 benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atof_digits_f64.png)
 
-**String to f64 Cross-Language Comparison**
+**Simple Random Data Cross-Language Comparison**
 
-Note: Rust was unable to parse the "stress" benchmark, producing an error result of `ParseFloatError { kind: Invalid }`.
+![atof64 simple language benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atof_simple_random_comparison_f64.png)
 
-// TODO(ahuszagh) Update with the larger integers.
+**Complex, Denormal Data Cross-Language Comparison**
 
-![atof64 language benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atof_language_comparison_f64.png)
+Note: Rust was unable to parse all but the 20-digit benchmark, producing an error result of `ParseFloatError { kind: Invalid }`. It performed ~2000x worse than lexical for that benchmark.
+
+![atof64 simple language benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atof_complex_denormal_comparison_f64.png)
 
 # Backends
 

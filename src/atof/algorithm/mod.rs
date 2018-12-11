@@ -10,6 +10,7 @@ pub(crate) mod bigcomp;
 mod cached;
 mod cached_float80;
 mod cached_float160;
+mod large_powers;
 mod math;
 mod small_powers;
 }}  // cfg_if

@@ -74,21 +74,39 @@
 //  ax.figure.tight_layout()
 //  plt.show()
 
-// Code the generate the benchmark plot for f64:
+// Code the generate the benchmark plot for f64, for simple random data:
 //  import numpy as np
 //  import pandas as pd
 //  import matplotlib.pyplot as plt
 //  plt.style.use('ggplot')
-//  lexical = np.array([175465, 335195, 757436, 977333, 1281781, 968977, 4250000, 5510000]) / 1e6
-//  parse = np.array([203726, 373929, 2770159, 4201497, 7961527, 133370247, 5856740000, np.nan]) / 1e6
-//  python = np.array([1760000, 1910000, 4230000, 6070000, 7030000, 6540000, 268000000, 474000000]) / 1e6
-//  cpp = np.array([970611, 1254091, 1601604, 1976854, 2329004, 3111764, 4160000, 30630000]) / 1e6
-//  go = np.array([258830, 508871, 1437397, 2535061, 4476364, 2104273, 68840000, 949880000]) / 1e6
-//  index = ["2", "8", "16", "32", "64", "random", "malicious", "stress"]
-//  df = pd.DataFrame({'lexical': lexical, 'parse': parse, 'python': python, 'c++': cpp, 'go': go}, index = index)
+//  lexical = np.array([175465, 335195, 757436, 977333, 1281781]) / 1e6
+//  python = np.array([2220000, 2430000, 6150000, 7250000, 8340000]) / 1e6
+//  rust = np.array([203726, 373929, 2770159, 4201497, 7961527]) / 1e6
+//  go = np.array([258830, 508871, 1437397, 2535061, 4476364]) / 1e6
+//  cpp = np.array([970611, 1254091, 1601604, 1976854, 2329004]) / 1e6
+//  index = ["3", "12", "24", "48", "96"]
+//  df = pd.DataFrame({'lexical': lexical, 'rust': rust, 'python': python, 'c++': cpp, 'go': go}, index = index)
 //  ax = df.plot.bar(rot=0)
 //  ax.set_yscale('log')
 //  ax.set_ylabel("ms/iter")
+//  ax.figure.tight_layout()
+//  plt.show()
+
+// Code to generate the benchmark plot for f64, for denormal, near-halfway data:
+//  import numpy as np
+//  import pandas as pd
+//  import matplotlib.pyplot as plt
+//  plt.style.use('ggplot')
+//  lexical = np.array([47, 441, 660, 2733, 2981, 11898, 20840, 45083, 46255, 47154, 49605, 50295])
+//  rust = np.array([95235, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+//  python = np.array([888, 985, 1050, 1200, 3970, 13300, 23300, 49700, 49500, 49200, 50700, 51000])
+//  go = np.array([80, 24200, 25757, 27641, 27640, 44506, 62391, 94021, 52488, 57787, 64356, 69617])
+//  cpp = np.array([324, 358, 367, 440, 435, 765, 1546, 2961, 3924, 4472, 5412, 6384])
+//  index = ["10", "20", "30", "40", "50", "200", "350", "761", "1761", "2761", "4096", "5096"]
+//  df = pd.DataFrame({'lexical': lexical, 'rust': rust, 'python': python, 'c++': cpp, 'go': go}, index = index)
+//  ax = df.plot.bar(rot=0)
+//  ax.set_yscale('log')
+//  ax.set_ylabel("ns/iter")
 //  ax.figure.tight_layout()
 //  plt.show()
 

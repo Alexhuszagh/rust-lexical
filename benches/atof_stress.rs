@@ -10,8 +10,12 @@ use lexical::atof::*;
 // F64
 
 // Rust fails to parse this, so we need to use it only with Lexical.
-const F64_DATA: [&'static str; 8] = [
+const F64_DATA: [&'static str; 12] = [
     // Force the slow algorithm.
+    "2.47032822e-324",
+    "2.470328229206232720e-324",
+    "2.4703282292062327208828439643e-324",
+    "2.47032822920623272088284396434110686182e-324",
     "2.4703282292062327208828439643411068618252990e-324",
     "2.4703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105e-324",
     "2.4703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465e-324",
@@ -30,40 +34,107 @@ fn atof_stress_f64_lexical_lossy(bench: &mut Bencher) {
     bench.iter(|| { F64_DATA.iter().for_each(|x| { black_box(atof64_lossy_bytes(10, x.as_bytes())); } ) })
 }
 
-// Specific sizes.
+// LEXICAL SPECIFIC SIZES
 
-fn atof_stress_f64_lexical_50(bench: &mut Bencher) {
+fn atof_stress_f64_lexical_10(bench: &mut Bencher) {
     bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[0].as_bytes())); })
 }
 
-fn atof_stress_f64_lexical_200(bench: &mut Bencher) {
+fn atof_stress_f64_lexical_20(bench: &mut Bencher) {
     bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[1].as_bytes())); })
 }
 
-fn atof_stress_f64_lexical_350(bench: &mut Bencher) {
+fn atof_stress_f64_lexical_30(bench: &mut Bencher) {
     bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[2].as_bytes())); })
 }
 
-fn atof_stress_f64_lexical_761(bench: &mut Bencher) {
+fn atof_stress_f64_lexical_40(bench: &mut Bencher) {
     bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[3].as_bytes())); })
 }
 
-fn atof_stress_f64_lexical_1761(bench: &mut Bencher) {
+fn atof_stress_f64_lexical_50(bench: &mut Bencher) {
     bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[4].as_bytes())); })
 }
 
-fn atof_stress_f64_lexical_2761(bench: &mut Bencher) {
+fn atof_stress_f64_lexical_200(bench: &mut Bencher) {
     bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[5].as_bytes())); })
 }
 
-fn atof_stress_f64_lexical_4096(bench: &mut Bencher) {
+fn atof_stress_f64_lexical_350(bench: &mut Bencher) {
     bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[6].as_bytes())); })
 }
 
-fn atof_stress_f64_lexical_5096(bench: &mut Bencher) {
+fn atof_stress_f64_lexical_761(bench: &mut Bencher) {
     bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[7].as_bytes())); })
 }
 
+fn atof_stress_f64_lexical_1761(bench: &mut Bencher) {
+    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[8].as_bytes())); })
+}
+
+fn atof_stress_f64_lexical_2761(bench: &mut Bencher) {
+    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[9].as_bytes())); })
+}
+
+fn atof_stress_f64_lexical_4096(bench: &mut Bencher) {
+    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[10].as_bytes())); })
+}
+
+fn atof_stress_f64_lexical_5096(bench: &mut Bencher) {
+    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[11].as_bytes())); })
+}
+
+// PARSE SPECIFIC SIZES
+
+fn atof_stress_f64_parse_10(bench: &mut Bencher) {
+    bench.iter(|| { black_box(F64_DATA[0].parse::<f64>().unwrap()); })
+}
+
+fn atof_stress_f64_parse_20(bench: &mut Bencher) {
+    bench.iter(|| { black_box(F64_DATA[1].parse::<f64>().unwrap()); })
+}
+
+fn atof_stress_f64_parse_30(bench: &mut Bencher) {
+    bench.iter(|| { black_box(F64_DATA[2].parse::<f64>().unwrap()); })
+}
+
+fn atof_stress_f64_parse_40(bench: &mut Bencher) {
+    bench.iter(|| { black_box(F64_DATA[3].parse::<f64>().unwrap()); })
+}
+
+fn atof_stress_f64_parse_50(bench: &mut Bencher) {
+    bench.iter(|| { black_box(F64_DATA[4].parse::<f64>().unwrap()); })
+}
+
+fn atof_stress_f64_parse_200(bench: &mut Bencher) {
+    bench.iter(|| { black_box(F64_DATA[5].parse::<f64>().unwrap()); })
+}
+
+fn atof_stress_f64_parse_350(bench: &mut Bencher) {
+    bench.iter(|| { black_box(F64_DATA[6].parse::<f64>().unwrap()); })
+}
+
+fn atof_stress_f64_parse_761(bench: &mut Bencher) {
+    bench.iter(|| { black_box(F64_DATA[7].parse::<f64>().unwrap()); })
+}
+
+fn atof_stress_f64_parse_1761(bench: &mut Bencher) {
+    bench.iter(|| { black_box(F64_DATA[8].parse::<f64>().unwrap()); })
+}
+
+fn atof_stress_f64_parse_2761(bench: &mut Bencher) {
+    bench.iter(|| { black_box(F64_DATA[9].parse::<f64>().unwrap()); })
+}
+
+fn atof_stress_f64_parse_4096(bench: &mut Bencher) {
+    bench.iter(|| { black_box(F64_DATA[10].parse::<f64>().unwrap()); })
+}
+
+fn atof_stress_f64_parse_5096(bench: &mut Bencher) {
+    bench.iter(|| { black_box(F64_DATA[11].parse::<f64>().unwrap()); })
+}
+
 benchmark_group!(f64_benches, atof_stress_f64_lexical, atof_stress_f64_lexical_lossy);
-benchmark_group!(f64_size_benches, atof_stress_f64_lexical_50, atof_stress_f64_lexical_200, atof_stress_f64_lexical_350, atof_stress_f64_lexical_761, atof_stress_f64_lexical_1761, atof_stress_f64_lexical_2761, atof_stress_f64_lexical_4096, atof_stress_f64_lexical_5096);
-benchmark_main!(f64_benches, f64_size_benches);
+benchmark_group!(f64_lexical_size_benches, atof_stress_f64_lexical_10, atof_stress_f64_lexical_20, atof_stress_f64_lexical_30, atof_stress_f64_lexical_40, atof_stress_f64_lexical_50, atof_stress_f64_lexical_200, atof_stress_f64_lexical_350, atof_stress_f64_lexical_761, atof_stress_f64_lexical_1761, atof_stress_f64_lexical_2761, atof_stress_f64_lexical_4096, atof_stress_f64_lexical_5096);
+benchmark_group!(f64_parse_size_benches, atof_stress_f64_parse_10, atof_stress_f64_parse_20, atof_stress_f64_parse_30, atof_stress_f64_parse_40, atof_stress_f64_parse_50, atof_stress_f64_parse_200, atof_stress_f64_parse_350, atof_stress_f64_parse_761, atof_stress_f64_parse_1761, atof_stress_f64_parse_2761, atof_stress_f64_parse_4096, atof_stress_f64_parse_5096);
+benchmark_main!(f64_benches, f64_lexical_size_benches, f64_parse_size_benches);
