@@ -59,14 +59,14 @@
 //  }
 //  ```
 
-// Code the generate the benchmark plot for f32:
+// Code the generate the benchmark plot for f32 for simple random data:
 //  import numpy as np
 //  import pandas as pd
 //  import matplotlib.pyplot as plt
 //  plt.style.use('ggplot')
-//  lexical = np.array([176665, 607635, 832949, 867837, 1148750, 912004, 1460000]) / 1e6
-//  parse = np.array([198785, 10206859, 27092915, 90488388, 250777648, 29324566, 128600000]) / 1e6
-//  index = ["2", "8", "16", "32", "64", "random", "malicious"]
+//  lexical = np.array([176665, 607635, 832949, 867837, 1148750]) / 1e6
+//  parse = np.array([198785, 10206859, 27092915, 90488388, 250777648]) / 1e6
+//  index = ["2", "8", "16", "32", "64"]
 //  df = pd.DataFrame({'lexical': lexical, 'parse': parse}, index = index)
 //  ax = df.plot.bar(rot=0)
 //  ax.set_yscale('log')
