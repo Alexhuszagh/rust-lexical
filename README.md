@@ -4,7 +4,7 @@ lexical
 [![Build Status](https://api.travis-ci.org/Alexhuszagh/rust-lexical.svg?branch=master)](https://travis-ci.org/Alexhuszagh/rust-lexical)
 [![Latest Version](https://img.shields.io/crates/v/lexical.svg)](https://crates.io/crates/lexical)
 
-Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical also supports non-base 10 numbers, for both integers and floats. Lexical is simple to use, focuses on performance and correctness, and exports only 10 functions in the high-level API.
+Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical also supports non-base 10 numbers, for both integers and floats. Lexical is simple to use, focuses on performance and correctness, and exports only 10 functions in the high-level API. Finally, lexical is suitable for environments without a memory allocator, without any internal allocations required for the low-level API.
 
 **Table of Contents**
 
@@ -18,6 +18,7 @@ Fast lexical conversion routines for both std and no_std environments. Lexical p
   - [String to Float](#string-to-float)
   - [Arbitrary-Precision Arithmetic](#arbitrary-precision-arithmetic)
   - [Comparison to Algorithm M and dtoa](#comparison-to-algorithm-m-and-dtoa)
+- [Roadmap](#roadmap)
 - [License](#license)
 - [Contributing](#contributing)
 
@@ -210,7 +211,18 @@ When the digits present in `s` or `b+h` differ from each other, the correct repr
 
 **Conclusion**
 
-In practice, this means for a 750 digit input string with a value near 5e-324, theoretically, algorithm M would perform ~250 times as many division/multiplication operations as bigcomp; for a 15,000 digit input string, nearly 100,000 times as many operations. In the worst scenario, for a 1MB string, on x86-64 hardware with a 2.2GHZ processor, using a correct float parser based off algorithm M could take nearly 6 minutes of computation time. Luckily, Rust does not implement a correct parser, avoiding denial-of-service attacks based off float parsing, however, it does so at the expense of correctness. Bigcomp both is more correct and more performant in all non-trivial cases, and the optimizations for trivial cases make lexical competitive with other float parsers for any input string.
+In practice, this means for a 750 digit input string with a value near 5e-324, theoretically, algorithm M would perform ~250 times as many division/multiplication operations as bigcomp; for a 15,000 digit input string, nearly 100,000 times as many operations. In the worst scenario, for a 1MB string, on x86-64 hardware with a 2.20 GHz CPU, using a correct float parser based off algorithm M could take nearly 6 minutes of computation time, while only 50 μs with bigcomp. Luckily, Rust does not implement a correct parser, avoiding denial-of-service attacks based off float parsing, however, it does so at the expense of correctness. Bigcomp both is more correct and more performant in all non-trivial cases, and the optimizations for trivial cases make lexical competitive with other float parsers for any input string.
+
+# Roadmap
+
+Ideally, Lexical's float-parsing algorithm or approach would be incorporated into libcore. Although Lexical greatly improves on Rust's float-parsing algorithm, in its current state it's insufficient to be included in the standard library, including numerous "anti-features":
+
+1. It supports non-decimal radices for float parsing, leading to significant binary bloat and increased code branching, for almost non-existent use-cases.
+2. It inlines aggressively, producing significant binary bloat.
+3. It makes extensive use of unsafe Rust, potentially hiding serious memory errors or other bugs.
+4. It contains dead code for efficient higher-order arbitrary-precision integer algorithms, in case rare use-cases require the use of more complex algorithms.
+
+I would love to contribute lexical back to the Rust community, however, some significant modifications would be needed. If there's a desire by the Rust team to incorporate lexical's float-parsing algorithm into libcore, I would glad re-write lexical, supporting only decimal strings and minimizing the use of unsafe code.
 
 # License
 
