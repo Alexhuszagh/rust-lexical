@@ -777,6 +777,7 @@ pub(crate) unsafe extern "C" fn atod_lossy(base: u32, first: *const u8, last: *c
 
 #[cfg(test)]
 mod tests {
+    use lib::String;
     use test::*;
     use super::*;
 
