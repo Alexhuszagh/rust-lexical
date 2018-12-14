@@ -194,7 +194,7 @@ def interact(proc, queue):
         line = proc.stdout.readline()
         if not line:
             continue
-        assert line.endswith('\n'), "incomplete line: " + repr(line)
+        assert line.endswith(b'\n'), "incomplete line: " + repr(line)
         queue.put(line)
         n += 1
         if n % UPDATE_EVERY_N == 0:
@@ -203,7 +203,7 @@ def interact(proc, queue):
     rest, stderr = proc.communicate()
     if stderr:
         msg("rust stderr output:", stderr)
-    for line in rest.split('\n'):
+    for line in rest.split(b'\n'):
         if not line:
             continue
         queue.put(line)
@@ -269,7 +269,7 @@ def do_work(queue):
             else:
                 continue
         bin64, bin32, text = line.rstrip().split()
-        validate(bin64, bin32, text)
+        validate(bin64, bin32, text.decode('utf-8'))
 
 
 def decode_binary64(x):
@@ -349,7 +349,11 @@ SINGLE_ZERO_CUTOFF = MIN_SUBNORMAL_SINGLE / 2
 SINGLE_INF_CUTOFF = MAX_SINGLE + 2 ** (MAX_ULP_SINGLE - 1)
 
 def validate(bin64, bin32, text):
-    double = decode_binary64(bin64)
+    try:
+        double = decode_binary64(bin64)
+    except AssertionError:
+        print(bin64, bin32, text)
+        raise
     single = decode_binary32(bin32)
     real = Fraction(text)
 

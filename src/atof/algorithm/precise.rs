@@ -753,7 +753,10 @@ unsafe fn pown_to_native<F>(base: u32, first: *const u8, last: *const u8, lossy:
     let iter = slc.digits_iter();
     let sci_exp = slc.scientific_exponent();
 
-    if bigcomp::use_fast(base, slc.mantissa_digits()) {
+    if b.is_special() {
+        // We have a non-finite number, we get to leave early.
+        return (b, state);
+    } else if bigcomp::use_fast(base, slc.mantissa_digits()) {
         // Can use the fast path for the bigcomp calculation.
         // The number of digits is `<= (128 / log2(10)).floor() - 2;`
         let float = bigcomp::fast_atof(iter, base, sci_exp, b);
@@ -1235,6 +1238,7 @@ mod tests {
             // Rounding error
             // Adapted from test-float-parse failures.
             check_atod(10, "1009e-31", (1.009e-28, 8));
+            check_atod(10, "18294e304", (f64::INFINITY, 9));
         }
     }
 
