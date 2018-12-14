@@ -6,28 +6,45 @@
 
 use util::*;
 
-// TODO(ahusagh) Change this to use 64-bit algorithms on 64-bit systems.
-
 // ALIASES
 // -------
-
-// TODO(ahuszagh) Make this compilation-dependent.
 
 /// Type for a single limb of the big integer.
 ///
 /// A limb is analogous to a digit in base10, except, it stores 32-bit
 /// or 64-bit numbers instead.
-type Limb = u32;
+#[cfg(target_pointer_width = "16")]
+pub type Limb = u16;
+
+#[cfg(target_pointer_width = "32")]
+pub type Limb = u32;
+
+#[cfg(target_pointer_width = "64")]
+pub type Limb = u64;
 
 /// Type for a wide limb, a type with double the size of the standard limb.
+#[cfg(target_pointer_width = "16")]
+type Wide = u32;
+
+#[cfg(target_pointer_width = "32")]
 type Wide = u64;
 
+#[cfg(target_pointer_width = "64")]
+type Wide = u128;
+
 /// Signed type for a wide limb.
+#[cfg(target_pointer_width = "16")]
+type SignedWide = i32;
+
+#[cfg(target_pointer_width = "32")]
 type SignedWide = i64;
+
+#[cfg(target_pointer_width = "64")]
+type SignedWide = i128;
 
 /// Cast to limb type.
 #[inline(always)]
-fn as_limb<T: Integer>(t: T)
+pub(super) fn as_limb<T: Integer>(t: T)
     -> Limb
 {
     as_cast(t)
@@ -49,8 +66,72 @@ fn as_signed_wide<T: Integer>(t: T)
     as_cast(t)
 }
 
-// TODO(ahuszagh) Need a way to split larger items to native storage.
-// Limbs.
+// SPLIT
+// -----
+
+/// Split u16 into limbs, in little-endian order.
+#[inline(always)]
+#[allow(dead_code)]
+fn split_u16(x: u16) -> [Limb; 1] {
+    [as_limb(x)]
+}
+
+/// Split u32 into limbs, in little-endian order.
+#[cfg(target_pointer_width = "16")]
+#[inline(always)]
+fn split_u32(x: u32) -> [Limb; 2] {
+    [as_limb(x), as_limb(x >> 16)]
+}
+
+/// Split u32 into limbs, in little-endian order.
+#[cfg(any(target_pointer_width = "32", target_pointer_width = "64"))]
+#[inline(always)]
+fn split_u32(x: u32) -> [Limb; 1] {
+    [as_limb(x)]
+}
+
+/// Split u64 into limbs, in little-endian order.
+#[cfg(target_pointer_width = "16")]
+#[inline(always)]
+fn split_u64(x: u64) -> [Limb; 4] {
+    [as_limb(x), as_limb(x >> 16), as_limb(x >> 32), as_limb(x >> 48)]
+}
+
+/// Split u64 into limbs, in little-endian order.
+#[cfg(target_pointer_width = "32")]
+#[inline(always)]
+fn split_u64(x: u64) -> [Limb; 2] {
+    [as_limb(x), as_limb(x >> 32)]
+}
+
+/// Split u64 into limbs, in little-endian order.
+#[cfg(target_pointer_width = "64")]
+#[inline(always)]
+fn split_u64(x: u64) -> [Limb; 1] {
+    [as_limb(x)]
+}
+
+/// Split u128 into limbs, in little-endian order.
+#[cfg(target_pointer_width = "16")]
+#[inline(always)]
+fn split_u128(x: u128) -> [Limb; 8] {
+    [as_limb(x), as_limb(x >> 16), as_limb(x >> 32), as_limb(x >> 48),
+     as_limb(x >> 64), as_limb(x >> 80), as_limb(x >> 96), as_limb(x >> 112)]
+}
+
+/// Split u128 into limbs, in little-endian order.
+#[cfg(target_pointer_width = "32")]
+#[inline(always)]
+fn split_u128(x: u128) -> [Limb; 4] {
+    [as_limb(x), as_limb(x >> 32), as_limb(x >> 64), as_limb(x >> 96)]
+}
+
+/// Split u128 into limbs, in little-endian order.
+#[cfg(target_pointer_width = "64")]
+#[inline(always)]
+fn split_u128(x: u128) -> [Limb; 2] {
+    [as_limb(x), as_limb(x >> 64)]
+}
 
 // HI BITS
 // -------
@@ -71,6 +152,7 @@ pub fn nonzero<T: Integer>(x: &[T], rindex: usize) -> bool {
 /// Shift 16-bit integer to high 16-bits.
 #[inline]
 fn u16_to_hi16_1(r0: u16) -> (u16, bool) {
+    debug_assert!(r0 != 0);
     let ls = r0.leading_zeros();
     (r0 << ls, false)
 }
@@ -78,9 +160,13 @@ fn u16_to_hi16_1(r0: u16) -> (u16, bool) {
 /// Shift 2 16-bit integers to high 16-bits.
 #[inline]
 fn u16_to_hi16_2(r0: u16, r1: u16) -> (u16, bool) {
+    debug_assert!(r0 != 0);
     let ls = r0.leading_zeros();
     let rs = 16 - ls;
-    let v = (r0 << ls) | (r1 >> rs);
+    let v = match ls {
+        0 => r0,
+        _ => (r0 << ls) | (r1 >> rs),
+    };
     let n = r1 << ls != 0;
     (v, n)
 }
@@ -189,6 +275,7 @@ impl Hi16<u64> for [u64] {
 /// Shift 32-bit integer to high 32-bits.
 #[inline]
 fn u32_to_hi32_1(r0: u32) -> (u32, bool) {
+    debug_assert!(r0 != 0);
     let ls = r0.leading_zeros();
     (r0 << ls, false)
 }
@@ -196,9 +283,13 @@ fn u32_to_hi32_1(r0: u32) -> (u32, bool) {
 /// Shift 2 32-bit integers to high 32-bits.
 #[inline]
 fn u32_to_hi32_2(r0: u32, r1: u32) -> (u32, bool) {
+    debug_assert!(r0 != 0);
     let ls = r0.leading_zeros();
     let rs = 32 - ls;
-    let v = (r0 << ls) | (r1 >> rs);
+    let v = match ls {
+        0 => r0,
+        _ => (r0 << ls) | (r1 >> rs),
+    };
     let n = r1 << ls != 0;
     (v, n)
 }
@@ -319,6 +410,7 @@ impl Hi32<u64> for [u64] {
 /// Shift 64-bit integer to high 64-bits.
 #[inline]
 fn u64_to_hi64_1(r0: u64) -> (u64, bool) {
+    debug_assert!(r0 != 0);
     let ls = r0.leading_zeros();
     (r0 << ls, false)
 }
@@ -326,9 +418,13 @@ fn u64_to_hi64_1(r0: u64) -> (u64, bool) {
 /// Shift 2 64-bit integers to high 64-bits.
 #[inline]
 fn u64_to_hi64_2(r0: u64, r1: u64) -> (u64, bool) {
+    debug_assert!(r0 != 0);
     let ls = r0.leading_zeros();
     let rs = 64 - ls;
-    let v = (r0 << ls) | (r1 >> rs);
+    let v = match ls {
+        0 => r0,
+        _ => (r0 << ls) | (r1 >> rs),
+    };
     let n = r1 << ls != 0;
     (v, n)
 }
@@ -741,7 +837,7 @@ impl Hi128<u64> for [u64] {
         let r1 = self.rget_unchecked(1).as_u128() << 64;
         let r2 = self.rget_unchecked(2).as_u128();
         let (v, n) = u128_to_hi128_2(r0, r1 | r2);
-        (v, n || nonzero(self, 2))
+        (v, n || nonzero(self, 3))
     }
 
     #[inline(always)]
@@ -790,7 +886,7 @@ use super::*;
 /// Add two small integers and return the resulting value and if overflow happens.
 #[inline(always)]
 pub fn add(x: Limb, y: Limb)
-    -> (u32, bool)
+    -> (Limb, bool)
 {
     x.overflowing_add(y)
 }
@@ -1345,7 +1441,7 @@ pub fn mul<T>(x: &[Limb], y: Limb)
 /// Even using worst-case scenarios, exponentiation by squaring is
 /// significantly slower for our workloads. Just multiply by small powers,
 /// in simple cases, and use precalculated large powers in other cases.
-pub fn imul_power<T>(x: &mut T, base: Limb, n: Limb)
+pub fn imul_power<T>(x: &mut T, base: u32, n: u32)
     where T: CloneableVecLike<Limb>
 {
     use super::large::KARATSUBA_CUTOFF;
@@ -1365,7 +1461,7 @@ pub fn imul_power<T>(x: &mut T, base: Limb, n: Limb)
     // We want to use the asymptotically faster algorithm if we're going
     // to be using Karabatsu multiplication sometime during the result,
     // otherwise, just use exponentiation by squaring.
-    let bit_length = Limb::BITS - n.leading_zeros().as_usize();
+    let bit_length = 32 - n.leading_zeros().as_usize();
     debug_assert!(bit_length != 0 && bit_length <= large_powers.len());
     if x.len() + get_large(bit_length-1).len() < 2*KARATSUBA_CUTOFF {
         // We can use iterative small powers to make this faster for the
@@ -1406,7 +1502,7 @@ pub fn imul_power<T>(x: &mut T, base: Limb, n: Limb)
 /// Mul by a power.
 #[allow(dead_code)]
 #[inline]
-pub fn mul_power<T>(x: &[Limb], base: Limb, n: Limb)
+pub fn mul_power<T>(x: &[Limb], base: u32, n: u32)
     -> T
     where T: CloneableVecLike<Limb>
 {
@@ -1840,12 +1936,12 @@ const ALGORITHM_D_M: Wide = ALGORITHM_D_B - 1;
 /// * `j`   - Current index on the iteration of the loop.
 #[inline]
 unsafe fn calculate_qhat(x: &[Limb], y: &[Limb], j: usize)
-    -> u64
+    -> Wide
 {
     let n = y.len();
 
     // Closures
-    let get_wide = | x: &[Limb], i: usize | x.get_unchecked(i).as_u64();
+    let get_wide = | x: &[Limb], i: usize | as_wide(*x.get_unchecked(i));
 
     // Estimate qhat of q[j]
     // Original Code:
@@ -2193,8 +2289,8 @@ pub unsafe fn quorem<T>(x: &mut T, y: &T)
 }   // large
 
 use lib::cmp;
-use float::Mantissa;
 use super::small_powers::*;
+use super::large_powers::*;
 
 /// Generate the imul_pown wrappers.
 macro_rules! imul_power {
@@ -2350,35 +2446,24 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
 
     // INTEGER CONVERSIONS
 
-    /// Split u64 into two consecutive u32s, in little-endian order.
-    #[inline]
-    fn split_u64(x: u64) -> (u32, u32) {
-        // TODO(ahuszagh) this needs to be dependent on the limb type...
-        let d0 = (x >> 32) as u32;
-        let d1 = (x & u64::LOMASK) as u32;
-        (d1, d0)
-    }
-
-    /// Split u128 into four consecutive u32s, in little-endian order.
-    #[inline]
-    fn split_u128(x: u128) -> (u32, u32, u32, u32) {
-        let hi64 = (x >> 64) as u64;
-        let lo64 = (x & u128::LOMASK) as u64;
-        let d3 = (lo64 & u64::LOMASK) as u32;
-        let d2 = (lo64 >> 32) as u32;
-        let d1 = (hi64 & u64::LOMASK) as u32;
-        let d0 = (hi64 >> 32) as u32;
-        (d3, d2, d1, d0)
-    }
-
     // CREATION
+
+    /// Create new big integer from u16.
+    #[inline]
+    fn from_u16(x: u16) -> Self {
+        let mut v = Self::default();
+        let slc = split_u16(x);
+        v.data_mut().extend_from_slice(&slc);
+        v.normalize();
+        v
+    }
 
     /// Create new big integer from u32.
     #[inline]
     fn from_u32(x: u32) -> Self {
         let mut v = Self::default();
-        v.data_mut().reserve(1);
-        v.data_mut().push(x);
+        let slc = split_u32(x);
+        v.data_mut().extend_from_slice(&slc);
         v.normalize();
         v
     }
@@ -2387,10 +2472,8 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
     #[inline]
     fn from_u64(x: u64) -> Self {
         let mut v = Self::default();
-        let (d1, d0) = Self::split_u64(x);
-        v.data_mut().reserve(2);
-        v.data_mut().push(d1);
-        v.data_mut().push(d0);
+        let slc = split_u64(x);
+        v.data_mut().extend_from_slice(&slc);
         v.normalize();
         v
     }
@@ -2399,12 +2482,8 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
     #[inline]
     fn from_u128(x: u128) -> Self {
         let mut v = Self::default();
-        let (d3, d2, d1, d0) = Self::split_u128(x);
-        v.data_mut().reserve(4);
-        v.data_mut().push(d3);
-        v.data_mut().push(d2);
-        v.data_mut().push(d1);
-        v.data_mut().push(d0);
+        let slc = split_u128(x);
+        v.data_mut().extend_from_slice(&slc);
         v.normalize();
         v
     }
@@ -2474,6 +2553,12 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
         get_small_powers(base)
     }
 
+    /// Get the large powers from the base.
+    #[inline]
+    fn large_powers(base: u32) -> &'static [&'static [Limb]] {
+        get_large_powers(base)
+    }
+
     // ADDITION
 
     /// AddAssign small integer.
@@ -2527,7 +2612,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
     /// MulAssign by a power.
     #[inline]
     fn imul_power_impl(&mut self, base: u32, n: u32) {
-        small::imul_power(self.data_mut(), as_limb(base), n);
+        small::imul_power(self.data_mut(), base, n);
     }
 
     fn imul_power(&mut self, base: u32, n: u32) {
@@ -2881,6 +2966,7 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
 mod tests {
     use lib::Vec;
     use super::*;
+    use test::*;
 
     #[derive(Clone, Default)]
     struct Bigint {
@@ -2919,22 +3005,22 @@ mod tests {
     #[test]
     fn greater_test() {
         // Simple
-        let x = Bigint { data: vec![1] };
-        let y = Bigint { data: vec![2] };
+        let x = Bigint { data: from_u32(&[1]) };
+        let y = Bigint { data: from_u32(&[2]) };
         assert!(!x.greater(&y));
         assert!(!x.greater(&x));
         assert!(y.greater(&x));
 
         // Check asymmetric
-        let x = Bigint { data: vec![5, 1] };
-        let y = Bigint { data: vec![2] };
+        let x = Bigint { data: from_u32(&[5, 1]) };
+        let y = Bigint { data: from_u32(&[2]) };
         assert!(x.greater(&y));
         assert!(!x.greater(&x));
         assert!(!y.greater(&x));
 
         // Check when we use reverse ordering properly.
-        let x = Bigint { data: vec![5, 1, 9] };
-        let y = Bigint { data: vec![6, 2, 8] };
+        let x = Bigint { data: from_u32(&[5, 1, 9]) };
+        let y = Bigint { data: from_u32(&[6, 2, 8]) };
         assert!(x.greater(&y));
         assert!(!x.greater(&x));
         assert!(!y.greater(&x));
@@ -2943,22 +3029,22 @@ mod tests {
     #[test]
     fn greater_equal_test() {
         // Simple
-        let x = Bigint { data: vec![1] };
-        let y = Bigint { data: vec![2] };
+        let x = Bigint { data: from_u32(&[1]) };
+        let y = Bigint { data: from_u32(&[2]) };
         assert!(!x.greater_equal(&y));
         assert!(x.greater_equal(&x));
         assert!(y.greater_equal(&x));
 
         // Check asymmetric
-        let x = Bigint { data: vec![5, 1] };
-        let y = Bigint { data: vec![2] };
+        let x = Bigint { data: from_u32(&[5, 1]) };
+        let y = Bigint { data: from_u32(&[2]) };
         assert!(x.greater_equal(&y));
         assert!(x.greater_equal(&x));
         assert!(!y.greater_equal(&x));
 
         // Check when we use reverse ordering properly.
-        let x = Bigint { data: vec![5, 1, 9] };
-        let y = Bigint { data: vec![6, 2, 8] };
+        let x = Bigint { data: from_u32(&[5, 1, 9]) };
+        let y = Bigint { data: from_u32(&[6, 2, 8]) };
         assert!(x.greater_equal(&y));
         assert!(x.greater_equal(&x));
         assert!(!y.greater_equal(&x));
@@ -2967,22 +3053,22 @@ mod tests {
     #[test]
     fn equal_test() {
         // Simple
-        let x = Bigint { data: vec![1] };
-        let y = Bigint { data: vec![2] };
+        let x = Bigint { data: from_u32(&[1]) };
+        let y = Bigint { data: from_u32(&[2]) };
         assert!(!x.equal(&y));
         assert!(x.equal(&x));
         assert!(!y.equal(&x));
 
         // Check asymmetric
-        let x = Bigint { data: vec![5, 1] };
-        let y = Bigint { data: vec![2] };
+        let x = Bigint { data: from_u32(&[5, 1]) };
+        let y = Bigint { data: from_u32(&[2]) };
         assert!(!x.equal(&y));
         assert!(x.equal(&x));
         assert!(!y.equal(&x));
 
         // Check when we use reverse ordering properly.
-        let x = Bigint { data: vec![5, 1, 9] };
-        let y = Bigint { data: vec![6, 2, 8] };
+        let x = Bigint { data: from_u32(&[5, 1, 9]) };
+        let y = Bigint { data: from_u32(&[6, 2, 8]) };
         assert!(!x.equal(&y));
         assert!(x.equal(&x));
         assert!(!y.equal(&x));
@@ -2991,22 +3077,22 @@ mod tests {
     #[test]
     fn less_test() {
         // Simple
-        let x = Bigint { data: vec![1] };
-        let y = Bigint { data: vec![2] };
+        let x = Bigint { data: from_u32(&[1]) };
+        let y = Bigint { data: from_u32(&[2]) };
         assert!(x.less(&y));
         assert!(!x.less(&x));
         assert!(!y.less(&x));
 
         // Check asymmetric
-        let x = Bigint { data: vec![5, 1] };
-        let y = Bigint { data: vec![2] };
+        let x = Bigint { data: from_u32(&[5, 1]) };
+        let y = Bigint { data: from_u32(&[2]) };
         assert!(!x.less(&y));
         assert!(!x.less(&x));
         assert!(y.less(&x));
 
         // Check when we use reverse ordering properly.
-        let x = Bigint { data: vec![5, 1, 9] };
-        let y = Bigint { data: vec![6, 2, 8] };
+        let x = Bigint { data: from_u32(&[5, 1, 9]) };
+        let y = Bigint { data: from_u32(&[6, 2, 8]) };
         assert!(!x.less(&y));
         assert!(!x.less(&x));
         assert!(y.less(&x));
@@ -3015,22 +3101,22 @@ mod tests {
     #[test]
     fn less_equal_test() {
         // Simple
-        let x = Bigint { data: vec![1] };
-        let y = Bigint { data: vec![2] };
+        let x = Bigint { data: from_u32(&[1]) };
+        let y = Bigint { data: from_u32(&[2]) };
         assert!(x.less_equal(&y));
         assert!(x.less_equal(&x));
         assert!(!y.less_equal(&x));
 
         // Check asymmetric
-        let x = Bigint { data: vec![5, 1] };
-        let y = Bigint { data: vec![2] };
+        let x = Bigint { data: from_u32(&[5, 1]) };
+        let y = Bigint { data: from_u32(&[2]) };
         assert!(!x.less_equal(&y));
         assert!(x.less_equal(&x));
         assert!(y.less_equal(&x));
 
         // Check when we use reverse ordering properly.
-        let x = Bigint { data: vec![5, 1, 9] };
-        let y = Bigint { data: vec![6, 2, 8] };
+        let x = Bigint { data: from_u32(&[5, 1, 9]) };
+        let y = Bigint { data: from_u32(&[6, 2, 8]) };
         assert!(!x.less_equal(&y));
         assert!(x.less_equal(&x));
         assert!(y.less_equal(&x));
@@ -3040,14 +3126,17 @@ mod tests {
     fn leading_zero_limbs_test() {
         assert_eq!(Bigint::new().leading_zero_limbs(), 0);
 
+        assert_eq!(Bigint::from_u16(0xF).leading_zero_limbs(), 0);
         assert_eq!(Bigint::from_u32(0xFF).leading_zero_limbs(), 0);
         assert_eq!(Bigint::from_u64(0xFF00000000).leading_zero_limbs(), 0);
         assert_eq!(Bigint::from_u128(0xFF000000000000000000000000).leading_zero_limbs(), 0);
 
+        assert_eq!(Bigint::from_u16(0xF).leading_zero_limbs(), 0);
         assert_eq!(Bigint::from_u32(0xF).leading_zero_limbs(), 0);
         assert_eq!(Bigint::from_u64(0xF00000000).leading_zero_limbs(), 0);
         assert_eq!(Bigint::from_u128(0xF000000000000000000000000).leading_zero_limbs(), 0);
 
+        assert_eq!(Bigint::from_u16(0xF0).leading_zero_limbs(), 0);
         assert_eq!(Bigint::from_u32(0xF0).leading_zero_limbs(), 0);
         assert_eq!(Bigint::from_u64(0xF000000000).leading_zero_limbs(), 0);
         assert_eq!(Bigint::from_u128(0xF0000000000000000000000000).leading_zero_limbs(), 0);
@@ -3057,32 +3146,27 @@ mod tests {
     fn trailing_zero_limbs_test() {
         assert_eq!(Bigint::new().trailing_zero_limbs(), 0);
 
-        assert_eq!(Bigint::from_u32(0xFF).trailing_zero_limbs(), 0);
-        assert_eq!(Bigint::from_u64(0xFF00000000).trailing_zero_limbs(), 1);
-        assert_eq!(Bigint::from_u128(0xFF000000000000000000000000).trailing_zero_limbs(), 3);
-
-        assert_eq!(Bigint::from_u32(0xF).trailing_zero_limbs(), 0);
-        assert_eq!(Bigint::from_u64(0xF00000000).trailing_zero_limbs(), 1);
-        assert_eq!(Bigint::from_u128(0xF000000000000000000000000).trailing_zero_limbs(), 3);
-
-        assert_eq!(Bigint::from_u32(0xF0).trailing_zero_limbs(), 0);
-        assert_eq!(Bigint::from_u64(0xF000000000).trailing_zero_limbs(), 1);
-        assert_eq!(Bigint::from_u128(0xF0000000000000000000000000).trailing_zero_limbs(), 3);
+        assert_eq!(Bigint { data: vec![0xFF] }.trailing_zero_limbs(), 0);
+        assert_eq!(Bigint { data: vec![0, 0xFF000] }.trailing_zero_limbs(), 1);
+        assert_eq!(Bigint { data: vec![0, 0, 0, 0xFF000] }.trailing_zero_limbs(), 3);
     }
 
     #[test]
     fn leading_zeros_test() {
         assert_eq!(Bigint::new().leading_zeros(), 0);
 
-        assert_eq!(Bigint::from_u32(0xFF).leading_zeros(), 24);
+        assert_eq!(Bigint::from_u16(0xFF).leading_zeros(), Limb::BITS-8);
+        assert_eq!(Bigint::from_u32(0xFF).leading_zeros(), Limb::BITS-8);
         assert_eq!(Bigint::from_u64(0xFF00000000).leading_zeros(), 24);
         assert_eq!(Bigint::from_u128(0xFF000000000000000000000000).leading_zeros(), 24);
 
-        assert_eq!(Bigint::from_u32(0xF).leading_zeros(), 28);
+        assert_eq!(Bigint::from_u16(0xF).leading_zeros(), Limb::BITS-4);
+        assert_eq!(Bigint::from_u32(0xF).leading_zeros(), Limb::BITS-4);
         assert_eq!(Bigint::from_u64(0xF00000000).leading_zeros(), 28);
         assert_eq!(Bigint::from_u128(0xF000000000000000000000000).leading_zeros(), 28);
 
-        assert_eq!(Bigint::from_u32(0xF0).leading_zeros(), 24);
+        assert_eq!(Bigint::from_u16(0xF0).leading_zeros(), Limb::BITS-8);
+        assert_eq!(Bigint::from_u32(0xF0).leading_zeros(), Limb::BITS-8);
         assert_eq!(Bigint::from_u64(0xF000000000).leading_zeros(), 24);
         assert_eq!(Bigint::from_u128(0xF0000000000000000000000000).leading_zeros(), 24);
     }
@@ -3091,14 +3175,17 @@ mod tests {
     fn trailing_zeros_test() {
         assert_eq!(Bigint::new().trailing_zeros(), 0);
 
+        assert_eq!(Bigint::from_u16(0xFF).trailing_zeros(), 0);
         assert_eq!(Bigint::from_u32(0xFF).trailing_zeros(), 0);
         assert_eq!(Bigint::from_u64(0xFF00000000).trailing_zeros(), 32);
         assert_eq!(Bigint::from_u128(0xFF000000000000000000000000).trailing_zeros(), 96);
 
+        assert_eq!(Bigint::from_u16(0xF).trailing_zeros(), 0);
         assert_eq!(Bigint::from_u32(0xF).trailing_zeros(), 0);
         assert_eq!(Bigint::from_u64(0xF00000000).trailing_zeros(), 32);
         assert_eq!(Bigint::from_u128(0xF000000000000000000000000).trailing_zeros(), 96);
 
+        assert_eq!(Bigint::from_u16(0xF0).trailing_zeros(), 4);
         assert_eq!(Bigint::from_u32(0xF0).trailing_zeros(), 4);
         assert_eq!(Bigint::from_u64(0xF000000000).trailing_zeros(), 36);
         assert_eq!(Bigint::from_u128(0xF0000000000000000000000000).trailing_zeros(), 100);
@@ -3106,6 +3193,7 @@ mod tests {
 
     #[test]
     fn hi32_test() {
+        assert_eq!(Bigint::from_u16(0xA).hi32(), (0xA0000000, false));
         assert_eq!(Bigint::from_u32(0xAB).hi32(), (0xAB000000, false));
         assert_eq!(Bigint::from_u64(0xAB00000000).hi32(), (0xAB000000, false));
         assert_eq!(Bigint::from_u64(0xA23456789A).hi32(), (0xA2345678, true));
@@ -3113,6 +3201,7 @@ mod tests {
 
     #[test]
     fn hi64_test() {
+        assert_eq!(Bigint::from_u16(0xA).hi64(), (0xA000000000000000, false));
         assert_eq!(Bigint::from_u32(0xAB).hi64(), (0xAB00000000000000, false));
         assert_eq!(Bigint::from_u64(0xAB00000000).hi64(), (0xAB00000000000000, false));
         assert_eq!(Bigint::from_u64(0xA23456789A).hi64(), (0xA23456789A000000, false));
@@ -3123,8 +3212,8 @@ mod tests {
     fn hi128_test() {
         assert_eq!(Bigint::from_u128(0xABCDEF0123456789ABCDEF0123).hi128(), (0xABCDEF0123456789ABCDEF0123000000, false));
         assert_eq!(Bigint::from_u128(0xABCDEF0123456789ABCDEF0123456789).hi128(), (0xABCDEF0123456789ABCDEF0123456789, false));
-        assert_eq!(Bigint { data: vec![0x34567890, 0xBCDEF012, 0x3456789A, 0xBCDEF012, 0xA] }.hi128(), (0xABCDEF0123456789ABCDEF0123456789, false));
-        assert_eq!(Bigint { data: vec![0x34567891, 0xBCDEF012, 0x3456789A, 0xBCDEF012, 0xA] }.hi128(), (0xABCDEF0123456789ABCDEF0123456789, true));
+        assert_eq!(Bigint { data: from_u32(&[0x34567890, 0xBCDEF012, 0x3456789A, 0xBCDEF012, 0xA]) }.hi128(), (0xABCDEF0123456789ABCDEF0123456789, false));
+        assert_eq!(Bigint { data: from_u32(&[0x34567891, 0xBCDEF012, 0x3456789A, 0xBCDEF012, 0xA]) }.hi128(), (0xABCDEF0123456789ABCDEF0123456789, true));
     }
 
     #[test]
@@ -3135,80 +3224,80 @@ mod tests {
 
         let mut x = Bigint { data: vec![1] };
         x.pad_zero_digits(1);
-        assert_eq!(x.data, vec![0, 1]);
+        assert_eq!(x.data, [0, 1]);
     }
 
     #[test]
     fn shl_test() {
         // Pattern generated via `''.join(["1" +"0"*i for i in range(20)])`
-        let mut big = Bigint { data: vec![0xD2210408] };
+        let mut big = Bigint { data: from_u32(&[0xD2210408]) };
         big.ishl(5);
-        assert_eq!(big.data, vec![0x44208100, 0x1A]);
+        assert_eq!(big.data, from_u32(&[0x44208100, 0x1A]));
         big.ishl(32);
-        assert_eq!(big.data, vec![0, 0x44208100, 0x1A]);
+        assert_eq!(big.data, from_u32(&[0, 0x44208100, 0x1A]));
         big.ishl(27);
-        assert_eq!(big.data, vec![0, 0, 0xD2210408]);
+        assert_eq!(big.data, from_u32(&[0, 0, 0xD2210408]));
 
         // 96-bits of previous pattern
-        let mut big = Bigint { data: vec![0x20020010, 0x8040100, 0xD2210408] };
+        let mut big = Bigint { data: from_u32(&[0x20020010, 0x8040100, 0xD2210408]) };
         big.ishl(5);
-        assert_eq!(big.data, vec![0x400200, 0x802004, 0x44208101, 0x1A]);
+        assert_eq!(big.data, from_u32(&[0x400200, 0x802004, 0x44208101, 0x1A]));
         big.ishl(32);
-        assert_eq!(big.data, vec![0, 0x400200, 0x802004, 0x44208101, 0x1A]);
+        assert_eq!(big.data, from_u32(&[0, 0x400200, 0x802004, 0x44208101, 0x1A]));
         big.ishl(27);
-        assert_eq!(big.data, vec![0, 0, 0x20020010, 0x8040100, 0xD2210408]);
+        assert_eq!(big.data, from_u32(&[0, 0, 0x20020010, 0x8040100, 0xD2210408]));
     }
 
     #[test]
     fn shr_test() {
         // Simple case.
-        let mut big = Bigint { data: vec![0xD2210408] };
+        let mut big = Bigint { data: from_u32(&[0xD2210408]) };
         big.ishr(5, false);
-        assert_eq!(big.data, vec![0x6910820]);
+        assert_eq!(big.data, from_u32(&[0x6910820]));
         big.ishr(27, false);
-        assert_eq!(big.data, vec![]);
+        assert_eq!(big.data, from_u32(&[]));
 
         // Pattern generated via `''.join(["1" +"0"*i for i in range(20)])`
-        let mut big = Bigint { data: vec![0x20020010, 0x8040100, 0xD2210408] };
+        let mut big = Bigint { data: from_u32(&[0x20020010, 0x8040100, 0xD2210408]) };
         big.ishr(5, false);
-        assert_eq!(big.data, vec![0x1001000, 0x40402008, 0x6910820]);
+        assert_eq!(big.data, from_u32(&[0x1001000, 0x40402008, 0x6910820]));
         big.ishr(32, false);
-        assert_eq!(big.data, vec![0x40402008, 0x6910820]);
+        assert_eq!(big.data, from_u32(&[0x40402008, 0x6910820]));
         big.ishr(27, false);
-        assert_eq!(big.data, vec![0xD2210408]);
+        assert_eq!(big.data, from_u32(&[0xD2210408]));
 
         // Check no-roundup with halfway and even
-        let mut big = Bigint { data: vec![0xD2210408] };
+        let mut big = Bigint { data: from_u32(&[0xD2210408]) };
         big.ishr(3, true);
-        assert_eq!(big.data, vec![0x1A442081]);
+        assert_eq!(big.data, from_u32(&[0x1A442081]));
         big.ishr(1, true);
-        assert_eq!(big.data, vec![0xD221040]);
+        assert_eq!(big.data, from_u32(&[0xD221040]));
 
-        let mut big = Bigint { data: vec![0xD2210408] };
+        let mut big = Bigint { data: from_u32(&[0xD2210408]) };
         big.ishr(4, true);
-        assert_eq!(big.data, vec![0xD221040]);
+        assert_eq!(big.data, from_u32(&[0xD221040]));
 
         // Check roundup with halfway and odd
-        let mut big = Bigint { data: vec![0xD2210438] };
+        let mut big = Bigint { data: from_u32(&[0xD2210438]) };
         big.ishr(3, true);
-        assert_eq!(big.data, vec![0x1A442087]);
+        assert_eq!(big.data, from_u32(&[0x1A442087]));
         big.ishr(1, true);
-        assert_eq!(big.data, vec![0xD221044]);
+        assert_eq!(big.data, from_u32(&[0xD221044]));
 
-        let mut big = Bigint { data: vec![0xD2210438] };
+        let mut big = Bigint { data: from_u32(&[0xD2210438]) };
         big.ishr(5, true);
-        assert_eq!(big.data, vec![0x6910822]);
+        assert_eq!(big.data, from_u32(&[0x6910822]));
     }
 
     #[test]
     fn bit_length_test() {
-        let x = Bigint { data: vec![0, 0, 0, 1] };
+        let x = Bigint { data: from_u32(&[0, 0, 0, 1]) };
         assert_eq!(x.bit_length(), 97);
 
-        let x = Bigint { data: vec![0, 0, 0, 3] };
+        let x = Bigint { data: from_u32(&[0, 0, 0, 3]) };
         assert_eq!(x.bit_length(), 98);
 
-        let x = Bigint { data: vec![1<<31] };
+        let x = Bigint { data: from_u32(&[1<<31]) };
         assert_eq!(x.bit_length(), 32);
     }
 
@@ -3221,113 +3310,113 @@ mod tests {
         // value to (1<<31), and the bottom value to (4>>1).
         // This is because the max_value + 1 leads to all 0s, we set the
         // topmost bit to 1.
-        let mut x = Bigint { data: vec![4294967295] };
+        let mut x = Bigint { data: from_u32(&[4294967295]) };
         x.iadd_small(5);
-        assert_eq!(x.data, vec![4, 1]);
+        assert_eq!(x.data, from_u32(&[4, 1]));
 
         // No overflow, single value
-        let mut x = Bigint { data: vec![5] };
+        let mut x = Bigint { data: from_u32(&[5]) };
         x.iadd_small(7);
-        assert_eq!(x.data, vec![12]);
+        assert_eq!(x.data, from_u32(&[12]));
 
         // Single carry, internal overflow
         let mut x = Bigint::from_u64(0x80000000FFFFFFFF);
         x.iadd_small(7);
-        assert_eq!(x.data, vec![6, 0x80000001]);
+        assert_eq!(x.data, from_u32(&[6, 0x80000001]));
 
         // Double carry, overflow
         let mut x = Bigint::from_u64(0xFFFFFFFFFFFFFFFF);
         x.iadd_small(7);
-        assert_eq!(x.data, vec![6, 0, 1]);
+        assert_eq!(x.data, from_u32(&[6, 0, 1]));
     }
 
     #[test]
     fn isub_small_test() {
         unsafe {
             // Overflow check (single)
-            let mut x = Bigint { data: vec![4, 1] };
+            let mut x = Bigint { data: from_u32(&[4, 1]) };
             x.isub_small(5);
-            assert_eq!(x.data, vec![4294967295]);
+            assert_eq!(x.data, from_u32(&[4294967295]));
 
             // No overflow, single value
-            let mut x = Bigint { data: vec![12] };
+            let mut x = Bigint { data: from_u32(&[12]) };
             x.isub_small(7);
-            assert_eq!(x.data, vec![5]);
+            assert_eq!(x.data, from_u32(&[5]));
 
             // Single carry, internal overflow
-            let mut x = Bigint { data: vec![6, 0x80000001] };
+            let mut x = Bigint { data: from_u32(&[6, 0x80000001]) };
             x.isub_small(7);
-            assert_eq!(x.data, vec![0xFFFFFFFF, 0x80000000]);
+            assert_eq!(x.data, from_u32(&[0xFFFFFFFF, 0x80000000]));
 
             // Double carry, overflow
-            let mut x = Bigint { data: vec![6, 0, 1] };
+            let mut x = Bigint { data: from_u32(&[6, 0, 1]) };
             x.isub_small(7);
-            assert_eq!(x.data, vec![0xFFFFFFFF, 0xFFFFFFFF]);
+            assert_eq!(x.data, from_u32(&[0xFFFFFFFF, 0xFFFFFFFF]));
         }
     }
 
     #[test]
     fn imul_small_test() {
         // No overflow check, 1-int.
-        let mut x = Bigint { data: vec![5] };
+        let mut x = Bigint { data: from_u32(&[5]) };
         x.imul_small(7);
-        assert_eq!(x.data, vec![35]);
+        assert_eq!(x.data, from_u32(&[35]));
 
         // No overflow check, 2-ints.
         let mut x = Bigint::from_u64(0x4000000040000);
         x.imul_small(5);
-        assert_eq!(x.data, vec![0x00140000, 0x140000]);
+        assert_eq!(x.data, from_u32(&[0x00140000, 0x140000]));
 
         // Overflow, 1 carry.
-        let mut x = Bigint { data: vec![0x33333334] };
+        let mut x = Bigint { data: from_u32(&[0x33333334]) };
         x.imul_small(5);
-        assert_eq!(x.data, vec![4, 1]);
+        assert_eq!(x.data, from_u32(&[4, 1]));
 
         // Overflow, 1 carry, internal.
         let mut x = Bigint::from_u64(0x133333334);
         x.imul_small(5);
-        assert_eq!(x.data, vec![4, 6]);
+        assert_eq!(x.data, from_u32(&[4, 6]));
 
         // Overflow, 2 carries.
         let mut x = Bigint::from_u64(0x3333333333333334);
         x.imul_small(5);
-        assert_eq!(x.data, vec![4, 0, 1]);
+        assert_eq!(x.data, from_u32(&[4, 0, 1]));
     }
 
     #[test]
     fn idiv_small_test() {
-        let mut x = Bigint { data: vec![4] };
+        let mut x = Bigint { data: from_u32(&[4]) };
         assert_eq!(x.idiv_small(7), 4);
-        assert_eq!(x.data, vec![]);
+        assert_eq!(x.data, from_u32(&[]));
 
-        let mut x = Bigint { data: vec![3] };
+        let mut x = Bigint { data: from_u32(&[3]) };
         assert_eq!(x.idiv_small(7), 3);
-        assert_eq!(x.data, vec![]);
+        assert_eq!(x.data, from_u32(&[]));
 
         // Check roundup, odd, halfway
-        let mut x = Bigint { data: vec![15] };
+        let mut x = Bigint { data: from_u32(&[15]) };
         assert_eq!(x.idiv_small(10), 5);
-        assert_eq!(x.data, vec![1]);
+        assert_eq!(x.data, from_u32(&[1]));
 
         // Check 1 carry.
         let mut x = Bigint::from_u64(0x133333334);
         assert_eq!(x.idiv_small(5), 1);
-        assert_eq!(x.data, vec![0x3D70A3D7]);
+        assert_eq!(x.data, from_u32(&[0x3D70A3D7]));
 
         // Check 2 carries.
         let mut x = Bigint::from_u64(0x3333333333333334);
         assert_eq!(x.idiv_small(5), 4);
-        assert_eq!(x.data, vec![0xD70A3D70, 0xA3D70A3]);
+        assert_eq!(x.data, from_u32(&[0xD70A3D70, 0xA3D70A3]));
     }
 
     #[test]
-    fn ipow_tes() {
-        let x = Bigint { data: vec![5] };
-        assert_eq!(x.pow(2).data, [25]);
-        assert_eq!(x.pow(15).data, [452807053, 7]);
-        assert_eq!(x.pow(16).data, [2264035265, 35]);
-        assert_eq!(x.pow(17).data, [2730241733, 177]);
-        assert_eq!(x.pow(302).data, [2443090281, 2149694430, 2297493928, 1584384001, 1279504719, 1930002239, 3312868939, 3735173465, 3523274756, 2025818732, 1641675015, 2431239749, 4292780461, 3719612855, 4174476133, 3296847770, 2677357556, 638848153, 2198928114, 3285049351, 2159526706, 626302612]);
+    fn ipow_test() {
+        let x = Bigint { data: from_u32(&[5]) };
+        assert_eq!(x.pow(2).data, from_u32(&[25]));
+        assert_eq!(x.pow(15).data, from_u32(&[452807053, 7]));
+        assert_eq!(x.pow(16).data, from_u32(&[2264035265, 35]));
+        assert_eq!(x.pow(17).data, from_u32(&[2730241733, 177]));
+        assert_eq!(x.pow(302).data, from_u32(&[2443090281, 2149694430, 2297493928, 1584384001, 1279504719, 1930002239, 3312868939, 3735173465, 3523274756, 2025818732, 1641675015, 2431239749, 4292780461, 3719612855, 4174476133, 3296847770, 2677357556, 638848153, 2198928114, 3285049351, 2159526706, 626302612]));
     }
 
     // LARGE OPS
@@ -3335,142 +3424,142 @@ mod tests {
     #[test]
     fn iadd_large_test() {
         // Overflow, both single values
-        let mut x = Bigint { data: vec![4294967295] };
-        let y = Bigint { data: vec![5] };
+        let mut x = Bigint { data: from_u32(&[4294967295]) };
+        let y = Bigint { data: from_u32(&[5]) };
         x.iadd_large(&y);
-        assert_eq!(x.data, vec![4, 1]);
+        assert_eq!(x.data, from_u32(&[4, 1]));
 
         // No overflow, single value
-        let mut x = Bigint { data: vec![5] };
-        let y = Bigint { data: vec![7] };
+        let mut x = Bigint { data: from_u32(&[5]) };
+        let y = Bigint { data: from_u32(&[7]) };
         x.iadd_large(&y);
-        assert_eq!(x.data, vec![12]);
+        assert_eq!(x.data, from_u32(&[12]));
 
         // Single carry, internal overflow
         let mut x = Bigint::from_u64(0x80000000FFFFFFFF);
-        let y = Bigint { data: vec![7] };
+        let y = Bigint { data: from_u32(&[7]) };
         x.iadd_large(&y);
-        assert_eq!(x.data, vec![6, 0x80000001]);
+        assert_eq!(x.data, from_u32(&[6, 0x80000001]));
 
         // 1st overflows, 2nd doesn't.
         let mut x = Bigint::from_u64(0x7FFFFFFFFFFFFFFF);
         let y = Bigint::from_u64(0x7FFFFFFFFFFFFFFF);
         x.iadd_large(&y);
-        assert_eq!(x.data, vec![0xFFFFFFFE, 0xFFFFFFFF]);
+        assert_eq!(x.data, from_u32(&[0xFFFFFFFE, 0xFFFFFFFF]));
 
         // Both overflow.
         let mut x = Bigint::from_u64(0x8FFFFFFFFFFFFFFF);
         let y = Bigint::from_u64(0x7FFFFFFFFFFFFFFF);
         x.iadd_large(&y);
-        assert_eq!(x.data, vec![0xFFFFFFFE, 0x0FFFFFFF, 1]);
+        assert_eq!(x.data, from_u32(&[0xFFFFFFFE, 0x0FFFFFFF, 1]));
     }
 
     #[test]
     fn isub_large_test() {
         unsafe {
             // Overflow, both single values
-            let mut x = Bigint { data: vec![4, 1] };
-            let y = Bigint { data: vec![5] };
+            let mut x = Bigint { data: from_u32(&[4, 1]) };
+            let y = Bigint { data: from_u32(&[5]) };
             x.isub_large(&y);
-            assert_eq!(x.data, vec![4294967295]);
+            assert_eq!(x.data, from_u32(&[4294967295]));
 
             // No overflow, single value
-            let mut x = Bigint { data: vec![12] };
-            let y = Bigint { data: vec![7] };
+            let mut x = Bigint { data: from_u32(&[12]) };
+            let y = Bigint { data: from_u32(&[7]) };
             x.isub_large(&y);
-            assert_eq!(x.data, vec![5]);
+            assert_eq!(x.data, from_u32(&[5]));
 
             // Single carry, internal overflow
-            let mut x = Bigint { data: vec![6, 0x80000001] };
-            let y = Bigint { data: vec![7] };
+            let mut x = Bigint { data: from_u32(&[6, 0x80000001]) };
+            let y = Bigint { data: from_u32(&[7]) };
             x.isub_large(&y);
-            assert_eq!(x.data, vec![0xFFFFFFFF, 0x80000000]);
+            assert_eq!(x.data, from_u32(&[0xFFFFFFFF, 0x80000000]));
 
             // Zeros out.
-            let mut x = Bigint { data: vec![0xFFFFFFFF, 0x7FFFFFFF] };
-            let y = Bigint { data: vec![0xFFFFFFFF, 0x7FFFFFFF] };
+            let mut x = Bigint { data: from_u32(&[0xFFFFFFFF, 0x7FFFFFFF]) };
+            let y = Bigint { data: from_u32(&[0xFFFFFFFF, 0x7FFFFFFF]) };
             x.isub_large(&y);
-            assert_eq!(x.data, vec![]);
+            assert_eq!(x.data, from_u32(&[]));
 
             // 1st overflows, 2nd doesn't.
-            let mut x = Bigint { data: vec![0xFFFFFFFE, 0x80000000] };
-            let y = Bigint { data: vec![0xFFFFFFFF, 0x7FFFFFFF] };
+            let mut x = Bigint { data: from_u32(&[0xFFFFFFFE, 0x80000000]) };
+            let y = Bigint { data: from_u32(&[0xFFFFFFFF, 0x7FFFFFFF]) };
             x.isub_large(&y);
-            assert_eq!(x.data, vec![0xFFFFFFFF]);
+            assert_eq!(x.data, from_u32(&[0xFFFFFFFF]));
         }
     }
 
     #[test]
     fn imul_large_test() {
         // Test by empty
-        let mut x = Bigint { data: vec![0xFFFFFFFF] };
-        let y = Bigint { data: vec![] };
+        let mut x = Bigint { data: from_u32(&[0xFFFFFFFF]) };
+        let y = Bigint { data: from_u32(&[]) };
         x.imul_large(&y);
-        assert_eq!(x.data, vec![]);
+        assert_eq!(x.data, from_u32(&[]));
 
         // Simple case
-        let mut x = Bigint { data: vec![0xFFFFFFFF] };
-        let y = Bigint { data: vec![5] };
+        let mut x = Bigint { data: from_u32(&[0xFFFFFFFF]) };
+        let y = Bigint { data: from_u32(&[5]) };
         x.imul_large(&y);
-        assert_eq!(x.data, vec![0xFFFFFFFB, 0x4]);
+        assert_eq!(x.data, from_u32(&[0xFFFFFFFB, 0x4]));
 
         // Large u32, but still just as easy.
-        let mut x = Bigint { data: vec![0xFFFFFFFF] };
-        let y = Bigint { data: vec![0xFFFFFFFE] };
+        let mut x = Bigint { data: from_u32(&[0xFFFFFFFF]) };
+        let y = Bigint { data: from_u32(&[0xFFFFFFFE]) };
         x.imul_large(&y);
-        assert_eq!(x.data, vec![0x2, 0xFFFFFFFD]);
+        assert_eq!(x.data, from_u32(&[0x2, 0xFFFFFFFD]));
 
         // Let's multiply two large values together
-        let mut x = Bigint { data: vec![0xFFFFFFFE, 0x0FFFFFFF, 1] };
-        let y = Bigint { data: vec![0x99999999, 0x99999999, 0xCCCD9999, 0xCCCC] };
+        let mut x = Bigint { data: from_u32(&[0xFFFFFFFE, 0x0FFFFFFF, 1]) };
+        let y = Bigint { data: from_u32(&[0x99999999, 0x99999999, 0xCCCD9999, 0xCCCC]) };
         x.imul_large(&y);
-        assert_eq!(x.data, vec![0xCCCCCCCE, 0x5CCCCCCC, 0x9997FFFF, 0x33319999, 0x999A7333, 0xD999]);
+        assert_eq!(x.data, from_u32(&[0xCCCCCCCE, 0x5CCCCCCC, 0x9997FFFF, 0x33319999, 0x999A7333, 0xD999]));
     }
 
     #[test]
     fn imul_karatsuba_mul_test() {
         // Test cases triggered to use `karatsuba_mul`.
-        let mut x = Bigint { data: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] };
-        let y = Bigint { data: vec![4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] };
+        let mut x = Bigint { data: from_u32(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]) };
+        let y = Bigint { data: from_u32(&[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]) };
         x.imul_large(&y);
-        assert_eq!(x.data, vec![4, 13, 28, 50, 80, 119, 168, 228, 300, 385, 484, 598, 728, 875, 1040, 1224, 1340, 1435, 1508, 1558, 1584, 1585, 1560, 1508, 1428, 1319, 1180, 1010, 808, 573, 304]);
+        assert_eq!(x.data, from_u32(&[4, 13, 28, 50, 80, 119, 168, 228, 300, 385, 484, 598, 728, 875, 1040, 1224, 1340, 1435, 1508, 1558, 1584, 1585, 1560, 1508, 1428, 1319, 1180, 1010, 808, 573, 304]));
 
         // Test cases to use karatsuba_uneven_mul
-        let mut x = Bigint { data: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] };
-        let y = Bigint { data: vec![4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37] };
+        let mut x = Bigint { data: from_u32(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]) };
+        let y = Bigint { data: from_u32(&[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37]) };
         x.imul_large(&y);
-        assert_eq!(x.data, vec![4, 13, 28, 50, 80, 119, 168, 228, 300, 385, 484, 598, 728, 875, 1040, 1224, 1360, 1496, 1632, 1768, 1904, 2040, 2176, 2312, 2448, 2584, 2720, 2856, 2992, 3128, 3264, 3400, 3536, 3672, 3770, 3829, 3848, 3826, 3762, 3655, 3504, 3308, 3066, 2777, 2440, 2054, 1618, 1131, 592]);
+        assert_eq!(x.data, from_u32(&[4, 13, 28, 50, 80, 119, 168, 228, 300, 385, 484, 598, 728, 875, 1040, 1224, 1360, 1496, 1632, 1768, 1904, 2040, 2176, 2312, 2448, 2584, 2720, 2856, 2992, 3128, 3264, 3400, 3536, 3672, 3770, 3829, 3848, 3826, 3762, 3655, 3504, 3308, 3066, 2777, 2440, 2054, 1618, 1131, 592]));
     }
 
     #[test]
     fn idiv_large_test() {
         // Simple case.
-        let mut x = Bigint { data: vec![0xFFFFFFFF] };
-        let y = Bigint { data: vec![5] };
+        let mut x = Bigint { data: from_u32(&[0xFFFFFFFF]) };
+        let y = Bigint { data: from_u32(&[5]) };
         let rem = x.idiv_large(&y);
-        assert_eq!(x.data, vec![0x33333333]);
-        assert_eq!(rem.data, vec![0]);
+        assert_eq!(x.data, from_u32(&[0x33333333]));
+        assert_eq!(rem.data, from_u32(&[0]));
 
         // Two integer case
-        let mut x = Bigint { data: vec![0x2, 0xFFFFFFFF] };
-        let y = Bigint { data: vec![0xFFFFFFFE] };
+        let mut x = Bigint { data: from_u32(&[0x2, 0xFFFFFFFF]) };
+        let y = Bigint { data: from_u32(&[0xFFFFFFFE]) };
         let rem = x.idiv_large(&y);
-        assert_eq!(x.data, vec![1, 1]);
-        assert_eq!(rem.data, vec![4]);
+        assert_eq!(x.data, from_u32(&[1, 1]));
+        assert_eq!(rem.data, from_u32(&[4]));
 
         // Larger large case
-        let mut x = Bigint { data: vec![0xCCCCCCCF, 0x5CCCCCCC, 0x9997FFFF, 0x33319999, 0x999A7333, 0xD999] };
-        let y = Bigint { data: vec![0x99999999, 0x99999999, 0xCCCD9999, 0xCCCC] };
+        let mut x = Bigint { data: from_u32(&[0xCCCCCCCF, 0x5CCCCCCC, 0x9997FFFF, 0x33319999, 0x999A7333, 0xD999]) };
+        let y = Bigint { data: from_u32(&[0x99999999, 0x99999999, 0xCCCD9999, 0xCCCC]) };
         let rem = x.idiv_large(&y);
-        assert_eq!(x.data, vec![0xFFFFFFFE, 0x0FFFFFFF, 1]);
-        assert_eq!(rem.data, vec![1]);
+        assert_eq!(x.data, from_u32(&[0xFFFFFFFE, 0x0FFFFFFF, 1]));
+        assert_eq!(rem.data, from_u32(&[1]));
 
         // Extremely large cases, examples from Karatsuba multiplication.
-        let mut x = Bigint { data: vec![4, 13, 29, 50, 80, 119, 168, 228, 300, 385, 484, 598, 728, 875, 1040, 1224, 1340, 1435, 1508, 1558, 1584, 1585, 1560, 1508, 1428, 1319, 1180, 1010, 808, 573, 304] };
-        let y = Bigint { data: vec![4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] };
+        let mut x = Bigint { data: from_u32(&[4, 13, 29, 50, 80, 119, 168, 228, 300, 385, 484, 598, 728, 875, 1040, 1224, 1340, 1435, 1508, 1558, 1584, 1585, 1560, 1508, 1428, 1319, 1180, 1010, 808, 573, 304]) };
+        let y = Bigint { data: from_u32(&[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]) };
         let rem = x.idiv_large(&y);
-        assert_eq!(x.data, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
-        assert_eq!(rem.data, vec![0, 0, 1]);
+        assert_eq!(x.data, from_u32(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]));
+        assert_eq!(rem.data, from_u32(&[0, 0, 1]));
     }
 
     #[test]
@@ -3479,7 +3568,7 @@ mod tests {
             let mut x = Bigint::from_u128(42535295865117307932921825928971026432);
             let y = Bigint::from_u128(17218479456385750618067377696052635483);
             assert_eq!(x.quorem(&y), 2);
-            assert_eq!(x.data, [1873752394, 3049207402, 3024501058, 102215382]);
+            assert_eq!(x.data, from_u32(&[1873752394, 3049207402, 3024501058, 102215382]));
         }
     }
 }

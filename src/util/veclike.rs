@@ -369,6 +369,8 @@ impl<A: stackvector::Array> Rget<A::Item> for stackvector::StackVec<A> {
 ///
 /// Implemented for Vec, SmallVec, and StackVec.
 pub trait VecLike<T>:
+    iter::FromIterator<T> +
+    iter::IntoIterator +
     ops::Index<usize, Output=T> +
     ops::IndexMut<usize> +
     ops::Index<ops::Range<usize>, Output=[T]> +
