@@ -101,13 +101,13 @@ For all the following benchmarks, lower is better.
 
 ![atof64 benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atof_simple_f64.png)
 
-**String to f64 Simple, Large Data Cross-Language Comparison**
+**String to f64 Complex, Large Data Cross-Language Comparison**
 
 ![atof64 simple language benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atof_large_f64.png)
 
 **String to f64 Complex, Denormal Data Cross-Language Comparison**
 
-Note: Rust was unable to parse all but the 20-digit benchmark, producing an error result of `ParseFloatError { kind: Invalid }`. It performed ~2000x worse than lexical for that benchmark.
+Note: Rust was unable to parse all but the 20-digit benchmark, producing an error result of `ParseFloatError { kind: Invalid }`. It performed ~2,000x worse than lexical for that benchmark.
 
 ![atof64 simple language benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atof_denormal_f64.png)
 
@@ -148,19 +148,20 @@ For more information on the Ryu algorithm, see [Ryū: fast float-to-string conve
 
 For float parsing, lexical tries the following algorithms, using the first algorithm that produces a correct result:
 
-1. Create an exact representation using a native floating-point type from the significant digits and exponent.
-2. Create an approximate representation, exact within rounding error, using a custom floating-point type with 80-bits of precision, preventing rounding-error in the significant digits.
-3. Create an approximate 128-bit representation of the numerator and denominator for the halfway point between two potentially valid representations, to determine which representation is correct by comparing the actual digits to theoretical digits generated from the halfway point. This is accurate for ~36 digits with decimal float strings.
-4a. (Default) Create an exact representation of the numerator and denominator for the halfway point between both representation, using arbitrary-precision integers, and determine which representation is accurate by comparing the actual digits to the theoretical digits. This is accurate for any number of digits, and the require amount of memory does not depend on the number of digits.
-4b. (Algorithm M) Create an exact representation of the digits as a big integer, to generate the significant digits (mantissa). If there is a fraction or a negative exponent, create a big ratio of both the numerator and the denominator, and generate the significant digits from the exact quotient and remainder.
+1. **Fast Path** Create an exact representation using a native floating-point type from the significant digits and exponent.
+2. **Moderate Path** Create an approximate representation, exact within rounding error, using a custom floating-point type with 80-bits of precision, preventing rounding-error in the significant digits.
+3. **Fallback Moderate Path** Create an approximate 128-bit representation of the numerator and denominator for the halfway point between two potentially valid representations, to determine which representation is correct by comparing the actual digits to theoretical digits generated from the halfway point. This is accurate for ~36 digits with decimal float strings.
+4. **Slow Path** Use arbitrary-precision arithmetic to disambiguate the correct representation.
+    - **Default** Create an exact representation of the numerator and denominator for the halfway point between both representation, using arbitrary-precision integers, and determine which representation is accurate by comparing the actual digits to the theoretical digits. This is accurate for any number of digits, and the required amount of memory does not depend on the number of digits.
+    - **Algorithm M** Create an exact representation of the digits as a big integer, to generate the significant digits (mantissa). If there is a fraction or a negative exponent, create a big ratio of both the numerator and the denominator, and generate the significant digits from the exact quotient and remainder.
 
 Although using the 4<sup>th</sup> algorithm only occurs when a float is indistinguishable from a halfway representation (between two neighboring floating-point representations) to within 36 digits, maliciously constructed input could force use of the 4<sup>th</sup> algorithm. This has seriously implications for performance, since arbitrary-precision arithmetic scales poorly with large numbers, and can lead to performance degradation in excess of 100-50,000 fold. The lossy parser therefore avoids using arbitrary-precision arithmetic, and returns the result from the 2<sup>nd</sup> step, creating a native float accurate to within 1 bit in the mantissa, without major performance regressions.
 
-To use algorithm 4b (which requires heap allocation internally), use the feature `algorithm_m` when compiling lexical.
+To use Algorithm M (which requires heap allocation internally), use the feature `algorithm_m` when compiling lexical.
 
 ## Arbitrary-Precision Arithmetic
 
-Lexical uses custom arbitrary-precision arithmetic to exactly represent strings between two floating-point representations with more than 36 digits, with various optimizations for multiplication and division relative to Rust's current implementation. Lexical uses a stack-allocated vector of `u32`s for internal storage (storing up to 1152 bits on the stack), and an `i32` to store the binary exponent.
+Lexical uses arbitrary-precision arithmetic to exactly represent strings between two floating-point representations with more than 36 digits, with various optimizations for multiplication and division relative to Rust's current implementation. The arbitrary-precision arithmetic logic is not independent on memory allocation: the default slow-path algorithm only uses the stack, while Algorithm M uses the heap.
 
 ## Comparison to Algorithm M
 
@@ -209,7 +210,8 @@ Luckily, Rust uses a simple optimization: a quick estimate of the bitshift requi
 Lexical's `algorithm_m` feature uses various optimizations to dramatically improve the approach.
 
 1. It requires only 1-2 iterations to scale a value so the resulting quotient is in the range `[2^52, 2^53)`. It does this by multiplying the numerator to be 52-bits larger than the denominator on the first iteration, resulting in a quotient of 52 or 53 bits. If the quotient is 52-bits, multiply the numerator by 2 and repeat.
-2. It uses basecase division (an implementation of Knuth's algorithm D), which is an `O(q*m)` algorithm, requiring only `q` native divisions and `q*m` multiplications and subtractions, where `m` is the number of limbs in the divisor, and `n` is the number of limbs of the numerator, and `q = n - m`. Since we set the numerator to be 52 or 53 bits large than the denominator, this means `q <= 3`, and therefore the algorithm is `O(m)`. In comparison, restoring division, used by libcore, is `O(n^2)`, and iterates over each bit in the numerator. To put this into perspective, for a numerator/denominator pair with ~2100 bits (1e307), restoring division requires ~140,000 native subtractions and comparisons, compared to ~96 multiplications and subtractions.
+2. It uses basecase division (an implementation of Knuth's Algorithm D), which is an `O(q*m)` algorithm, requiring only `q` native divisions and `q*m` multiplications and subtractions, where `m` is the number of limbs in the divisor, and `n` is the number of limbs of the numerator, and `q = n - m`. Since we set the numerator to be 52 or 53 bits larger than the denominator, this means `q <= 3`, and therefore the algorithm is `O(m)`. In comparison, restoring division, used by libcore, is `O(n^2)`, and iterates over each bit in the numerator. To put this into perspective, for a numerator/denominator pair with ~2100 bits (1e307), restoring division requires ~140,000 native subtractions and comparisons, compared to ~96 multiplications and subtractions in lexical.
+3. It limits the number of parsed digits used when representing the mantissa. Any decimal string for a binary float has a finite representation, after which, only the presence or absence of non-zero digits may affect the mantissa. By removing these trailing digits from the mantissa and only comparing them to '0', lexical provides an upper-bound on the computational cost in representing the significant digits of a float via an arbitrary-precision integer.
 
 **bigcomp**
 
