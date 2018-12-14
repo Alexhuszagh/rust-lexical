@@ -35,32 +35,22 @@
 //! test f64_ryu       ... bench:   1,015,171 ns/iter (+/- 187,552)
 //! test f64_to_string ... bench:   3,900,299 ns/iter (+/- 521,956)
 //! ```
-//!
-//! Raw Benchmarks (`no_std`)
-//!
-//! ```text
-//! test f32_dtoa      ... bench:   1,174,070 ns/iter (+/- 442,501)
-//! test f32_lexical   ... bench:   1,433,234 ns/iter (+/- 633,261)
-//! test f32_ryu       ... bench:     669,828 ns/iter (+/- 192,291)
-//! test f32_to_string ... bench:   3,341,733 ns/iter (+/- 1,346,744)
-//! test f64_dtoa      ... bench:   1,302,522 ns/iter (+/- 364,655)
-//! test f64_lexical   ... bench:   1,375,384 ns/iter (+/- 596,860)
-//! test f64_ryu       ... bench:   1,015,171 ns/iter (+/- 187,552)
-//! test f64_to_string ... bench:   3,900,299 ns/iter (+/- 521,956)
-//! ```
 
 // Code the generate the benchmark plot:
 //  import numpy as np
 //  import pandas as pd
 //  import matplotlib.pyplot as plt
 //  plt.style.use('ggplot')
-//  lexical = np.array([1221025, 1248397]) / 1e6
-//  to_string = np.array([2711290, 3558305]) / 1e6
+//  lexical = np.array([1221025, 1375384]) / 1e6
+//  dtoa = np.array([1174070, 1302522]) / 1e6
+//  ryu = np.array([669828, 1015171]) / 1e6
+//  rustcore = np.array([2711290, 3558305]) / 1e6
 //  index = ["f32", "f64"]
-//  df = pd.DataFrame({'lexical': lexical, 'to_string': to_string}, index = index)
-//  ax = df.plot.bar(rot=0)
+//  df = pd.DataFrame({'lexical': lexical, 'lexical (dtoa)': dtoa, 'lexical (ryu)': ryu, 'rustcore': rustcore}, index = index, columns=['lexical', 'lexical (dtoa)', 'lexical (ryu)', 'rustcore'])
+//  ax = df.plot.bar(rot=0, figsize=(16, 8), fontsize=14, color=['#E24A33', '#988ED5', '#8EBA42', '#348ABD'])
 //  ax.set_ylabel("ms/iter")
 //  ax.figure.tight_layout()
+//  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
 use float::ExtendedFloat80;

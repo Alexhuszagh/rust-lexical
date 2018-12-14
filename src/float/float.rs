@@ -192,7 +192,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Lossy round float-point number to native mantissa boundaries.
     #[inline]
-    fn round_to_native<F, Cb>(&mut self, cb: Cb)
+    pub(crate) fn round_to_native<F, Cb>(&mut self, cb: Cb)
         where F: FloatRounding<M>,
               Cb: FnOnce(&mut ExtendedFloat<M>, i32)
     {
@@ -201,7 +201,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Lossy round float-point number to f32 mantissa boundaries.
     #[inline]
-    fn round_to_f32<Cb>(&mut self, cb: Cb)
+    pub(crate) fn round_to_f32<Cb>(&mut self, cb: Cb)
         where f32: FloatRounding<M>,
               Cb: FnOnce(&mut ExtendedFloat<M>, i32)
     {
@@ -210,7 +210,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Lossy round float-point number to f64 mantissa boundaries.
     #[inline]
-    fn round_to_f64<Cb>(&mut self, cb: Cb)
+    pub(crate) fn round_to_f64<Cb>(&mut self, cb: Cb)
         where f64: FloatRounding<M>,
               Cb: FnOnce(&mut ExtendedFloat<M>, i32)
     {

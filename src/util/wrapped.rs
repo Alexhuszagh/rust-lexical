@@ -602,6 +602,21 @@ impl<T: Float> Integer for WrappedFloat <T> {
     fn overflowing_shr(self, _: u32) -> (Self, bool) {
         unimplemented!()
     }
+
+    #[inline(always)]
+    fn saturating_add(self, i: Self) -> Self {
+        self + i
+    }
+
+    #[inline(always)]
+    fn saturating_sub(self, i: Self) -> Self {
+        self - i
+    }
+
+    #[inline(always)]
+    fn saturating_mul(self, i: Self) -> Self {
+        self * i
+    }
 }
 
 // SIGNED INTEGER

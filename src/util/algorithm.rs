@@ -250,6 +250,62 @@ pub fn case_insensitive_ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
     }
 }
 
+/// Trim character from the right-side of a range.
+///
+/// Returns a pointer to the new start of the range.
+#[inline(always)]
+#[allow(dead_code)]
+pub unsafe extern "C" fn rtrim_char_range(first: *const u8, mut last: *const u8, c: u8)
+    -> *const u8
+{
+    while last > first && *last.sub(1) == c {
+        last = last.sub(1);
+    }
+    last
+}
+
+/// Trim character from the right-side of a range without case-sensitivity.
+///
+/// Returns a pointer to the new start of the range.
+#[inline(always)]
+#[allow(dead_code)]
+pub unsafe extern "C" fn case_insensitive_rtrim_char_range(first: *const u8, mut last: *const u8, c: u8)
+    -> *const u8
+{
+    while last > first && (*last.sub(1)).to_ascii_lowercase() == c {
+        last = last.sub(1);
+    }
+    last
+}
+
+/// Trim character from the right-side of a slice.
+#[inline(always)]
+#[allow(dead_code)]
+pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
+    -> &'a [u8]
+{
+    unsafe {
+        let first = slc.as_ptr();
+        let last = first.add(slc.len());
+        let last = rtrim_char_range(first, last, c);
+        slice::from_raw_parts(first, distance(first, last))
+    }
+}
+
+/// Trim character from the right-side of a slice without case-sensitivity.
+#[inline(always)]
+#[allow(dead_code)]
+pub fn case_insensitive_rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
+    -> &'a [u8]
+{
+    unsafe {
+        let first = slc.as_ptr();
+        let last = first.add(slc.len());
+        let last = case_insensitive_rtrim_char_range(first, last, c);
+        slice::from_raw_parts(first, distance(first, last))
+    }
+}
+
 // TEST
 // ----
 
@@ -512,6 +568,38 @@ mod tests {
             assert_eq!(ltrim_char_wrapper(y, b'1'), 1);
             assert_eq!(ltrim_char_wrapper(z, b'0'), 0);
             assert_eq!(ltrim_char_wrapper(z, b'1'), 1);
+        }
+    }
+
+    #[test]
+    fn rtrim_char_test() {
+        let w = "0001";
+        let x = "1010";
+        let y = "1.00";
+        let z = "1e05";
+
+        assert_eq!(rtrim_char_slice(w.as_bytes(), b'0').len(), 4);
+        assert_eq!(rtrim_char_slice(x.as_bytes(), b'0').len(), 3);
+        assert_eq!(rtrim_char_slice(x.as_bytes(), b'1').len(), 4);
+        assert_eq!(rtrim_char_slice(y.as_bytes(), b'0').len(), 2);
+        assert_eq!(rtrim_char_slice(y.as_bytes(), b'1').len(), 4);
+        assert_eq!(rtrim_char_slice(z.as_bytes(), b'0').len(), 4);
+        assert_eq!(rtrim_char_slice(z.as_bytes(), b'5').len(), 3);
+
+        unsafe {
+            let rtrim_char_wrapper = |w: &str, c: u8| {
+                let first = w.as_ptr();
+                let last = first.add(w.len());
+                distance(first, rtrim_char_range(first, last, c))
+            };
+
+            assert_eq!(rtrim_char_wrapper(w, b'0'), 4);
+            assert_eq!(rtrim_char_wrapper(x, b'0'), 3);
+            assert_eq!(rtrim_char_wrapper(x, b'1'), 4);
+            assert_eq!(rtrim_char_wrapper(y, b'0'), 2);
+            assert_eq!(rtrim_char_wrapper(y, b'1'), 4);
+            assert_eq!(rtrim_char_wrapper(z, b'0'), 4);
+            assert_eq!(rtrim_char_wrapper(z, b'5'), 3);
         }
     }
 }

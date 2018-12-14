@@ -133,6 +133,9 @@ pub trait Integer:
     fn overflowing_neg(self) -> (Self, bool);
     fn overflowing_shl(self, i: u32) -> (Self, bool);
     fn overflowing_shr(self, i: u32) -> (Self, bool);
+    fn saturating_add(self, i: Self) -> Self;
+    fn saturating_sub(self, i: Self) -> Self;
+    fn saturating_mul(self, i: Self) -> Self;
 
     /// Create literal zero.
     #[inline(always)]
@@ -190,6 +193,14 @@ pub trait Integer:
     #[inline]
     unsafe fn ceil_mod(self, y: Self) -> i32 {
         self.ceil_divmod(y).1
+    }
+
+    // PROPERTIES
+
+    /// Get the number of bits in a value.
+    #[inline]
+    fn bit_length(self) -> u32 {
+        Self::BITS as u32 - self.leading_zeros()
     }
 
     // TRY CAST OR MAX
@@ -475,6 +486,21 @@ macro_rules! integer_impl {
             #[inline(always)]
             fn overflowing_shr(self, i: u32) -> (Self, bool) {
                 $t::overflowing_shr(self,i)
+            }
+
+            #[inline(always)]
+            fn saturating_add(self, i: Self) -> Self {
+                $t::saturating_add(self, i)
+            }
+
+            #[inline(always)]
+            fn saturating_sub(self, i: Self) -> Self {
+                $t::saturating_sub(self, i)
+            }
+
+            #[inline(always)]
+            fn saturating_mul(self, i: Self) -> Self {
+                $t::saturating_mul(self, i)
             }
         }
     )*)

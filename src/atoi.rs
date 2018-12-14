@@ -76,12 +76,13 @@
 //  import matplotlib.pyplot as plt
 //  plt.style.use('ggplot')
 //  lexical = np.array([62790, 58896, 103962, 192792, 89828, 111592, 155172, 197747]) / 1e6
-//  parse = np.array([67926, 76602, 139434, 265931, 109099, 140172, 189377, 283541]) / 1e6
+//  rustcore = np.array([67926, 76602, 139434, 265931, 109099, 140172, 189377, 283541]) / 1e6
 //  index = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"]
-//  df = pd.DataFrame({'lexical': lexical, 'parse': parse}, index = index)
-//  ax = df.plot.bar(rot=0)
+//  df = pd.DataFrame({'lexical': lexical, 'rustcore': rustcore}, index = index, columns=['lexical', 'parse'])
+//  ax = df.plot.bar(rot=0, figsize=(16, 8), fontsize=14, color=['#E24A33', '#348ABD'])
 //  ax.set_ylabel("ms/iter")
 //  ax.figure.tight_layout()
+//  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
 use lib::{mem, ptr};

@@ -1,5 +1,7 @@
 //! Precalculated small powers.
 
+// TODO(ahuszagh) These need to use limb.
+
 // PRIME (EXCEPT 2)
 
 /// Small powers (u32) for base3 operations.

@@ -65,13 +65,16 @@
 //  import matplotlib.pyplot as plt
 //  plt.style.use('ggplot')
 //  lexical = np.array([176665, 607635, 832949, 867837, 1148750]) / 1e6
-//  parse = np.array([198785, 10206859, 27092915, 90488388, 250777648]) / 1e6
-//  index = ["2", "8", "16", "32", "64"]
-//  df = pd.DataFrame({'lexical': lexical, 'parse': parse}, index = index)
-//  ax = df.plot.bar(rot=0)
+//  lexical_algom = np.array([191322, 577580, 751092, 850774, 1183293]) / 1e6
+//  rustcore = np.array([198785, 10206859, 27092915, 90488388, 250777648]) / 1e6
+//  index = ["3", "12", "24", "48", "96"]
+//  df = pd.DataFrame({'lexical': lexical, 'lexical_algom': lexical_algom, 'rustcore': rustcore}, index = index, columns=['lexical', 'lexical_algom', 'rustcore'])
+//  ax = df.plot.bar(rot=0, figsize=(16, 8), fontsize=14, color=['#E24A33', '#988ED5', '#348ABD'])
 //  ax.set_yscale('log')
+//  ax.set_xlabel("digits")
 //  ax.set_ylabel("ms/iter")
 //  ax.figure.tight_layout()
+//  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
 // Code the generate the benchmark plot for f64, for simple random data:
@@ -80,16 +83,40 @@
 //  import matplotlib.pyplot as plt
 //  plt.style.use('ggplot')
 //  lexical = np.array([175465, 335195, 757436, 977333, 1281781]) / 1e6
+//  lexical_algom = np.array([198874, 343751, 708286, 1029345, 1434738]) / 1e6
 //  python = np.array([2220000, 2430000, 6150000, 7250000, 8340000]) / 1e6
-//  rust = np.array([203726, 373929, 2770159, 4201497, 7961527]) / 1e6
+//  rustcore = np.array([203726, 373929, 2770159, 4201497, 7961527]) / 1e6
 //  go = np.array([258830, 508871, 1437397, 2535061, 4476364]) / 1e6
 //  cpp = np.array([970611, 1254091, 1601604, 1976854, 2329004]) / 1e6
 //  index = ["3", "12", "24", "48", "96"]
-//  df = pd.DataFrame({'lexical': lexical, 'rust': rust, 'python': python, 'c++': cpp, 'go': go}, index = index)
-//  ax = df.plot.bar(rot=0)
+//  df = pd.DataFrame({'lexical': lexical, 'lexical_algom': lexical_algom, 'rustcore': rustcore, 'python': python, 'c++': cpp, 'go': go}, index = index, columns=['lexical', 'lexical_algom', 'c++', 'go', 'python', 'rustcore'])
+//  ax = df.plot.bar(rot=0, figsize=(16, 8), fontsize=14, color=['#E24A33', '#988ED5', '#8EBA42', '#BD6734', '#34BDAB', '#348ABD'])
 //  ax.set_yscale('log')
+//  ax.set_xlabel("digits")
 //  ax.set_ylabel("ms/iter")
 //  ax.figure.tight_layout()
+//  ax.legend(loc=2, prop={'size': 14})
+//  plt.show()
+
+// Code to generate the benchmark plot for f64, for large, near-halfway data:
+//  import numpy as np
+//  import pandas as pd
+//  import matplotlib.pyplot as plt
+//  plt.style.use('ggplot')
+//  lexical = np.array([54, 482, 713, 2623, 3134, 5886, 12015, 18390, 18755, 19964, 23018, 28536])
+//  lexical_algom = np.array([54, 470, 681, 478, 506, 698, 984, 1503, 2048, 3051, 5077, 9389])
+//  rustcore = np.array([233724, 223184, 219584, 220407, 221044, 222301, 225018, 223704, 224830, 226242, 226492, 229189])
+//  python = np.array([492, 598, 669, 700, 3830, 6680, 12400, 18600, 19200, 21000, 24400, 29900])
+//  go = np.array([78, 32310, 32210, 33796, 34117, 39789, 45578, 14587, 17689, 21819, 30347, 48458])
+//  cpp = np.array([151, 155, 201, 210, 211, 406, 706, 1000, 1533, 2695, 4900, 9286])
+//  index = ["10", "20", "30", "40", "50", "100", "200", "400", "800", "1600", "3200", "6400"]
+//  df = pd.DataFrame({'lexical': lexical, 'lexical_algom': lexical_algom, 'rustcore': rustcore, 'python': python, 'c++': cpp, 'go': go}, index = index, columns=['lexical', 'lexical_algom', 'c++', 'go', 'python', 'rustcore'])
+//  ax = df.plot.bar(rot=0, figsize=(16, 8), fontsize=14, color=['#E24A33', '#988ED5', '#8EBA42', '#BD6734', '#34BDAB', '#348ABD'])
+//  ax.set_yscale('log')
+//  ax.set_xlabel("digits")
+//  ax.set_ylabel("ns/iter")
+//  ax.figure.tight_layout()
+//  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
 // Code to generate the benchmark plot for f64, for denormal, near-halfway data:
@@ -97,17 +124,20 @@
 //  import pandas as pd
 //  import matplotlib.pyplot as plt
 //  plt.style.use('ggplot')
-//  lexical = np.array([47, 441, 660, 2733, 2981, 11898, 20840, 45083, 46255, 47154, 49605, 50295])
-//  rust = np.array([95235, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
-//  python = np.array([888, 985, 1050, 1200, 3970, 13300, 23300, 49700, 49500, 49200, 50700, 51000])
-//  go = np.array([80, 24200, 25757, 27641, 27640, 44506, 62391, 94021, 52488, 57787, 64356, 69617])
-//  cpp = np.array([324, 358, 367, 440, 435, 765, 1546, 2961, 3924, 4472, 5412, 6384])
-//  index = ["10", "20", "30", "40", "50", "200", "350", "761", "1761", "2761", "4096", "5096"]
-//  df = pd.DataFrame({'lexical': lexical, 'rust': rust, 'python': python, 'c++': cpp, 'go': go}, index = index)
-//  ax = df.plot.bar(rot=0)
+//  lexical = np.array([50, 420, 666, 2828, 3408, 6637, 12701, 25103, 47075, 47463, 48710, 50829])
+//  lexical_algom = np.array([47, 415, 633, 1602, 1638, 1992, 2660, 4813, 12529, 13470, 16769, 21168])
+//  rustcore = np.array([98540, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+//  python = np.array([860, 984, 1020, 1160, 4200, 7150, 13000, 25500, 47100, 47400, 48200, 49200])
+//  go = np.array([80, 24522, 25950, 27275, 28255, 33889, 46500, 69062, 60776, 52259, 60217, 77130])
+//  cpp = np.array([316, 291, 368, 444, 498, 651, 783, 1872, 3110, 3640, 4813, 6923])
+//  index = ["10", "20", "30", "40", "50", "100", "200", "400", "800", "1600", "3200", "6400"]
+//  df = pd.DataFrame({'lexical': lexical, 'lexical_algom': lexical_algom, 'rustcore': rustcore, 'python': python, 'c++': cpp, 'go': go}, index = index, columns=['lexical', 'lexical_algom', 'c++', 'go', 'python', 'rustcore'])
+//  ax = df.plot.bar(rot=0, figsize=(16, 8), fontsize=14, color=['#E24A33', '#988ED5', '#8EBA42', '#BD6734', '#34BDAB', '#348ABD'])
 //  ax.set_yscale('log')
+//  ax.set_xlabel("digits")
 //  ax.set_ylabel("ns/iter")
 //  ax.figure.tight_layout()
+//  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
 use lib::iter;
@@ -118,6 +148,9 @@ use util::*;
 use super::cached::ModeratePathCache;
 use super::bigcomp;
 use super::exponent::*;
+
+#[cfg(feature = "algorithm_m")]
+use super::algorithm_m as algom;
 
 // SHARED
 
@@ -180,6 +213,7 @@ impl FloatSlice {
 
     /// Get the number of digits in the mantissa.
     /// Cannot overflow, since this is based off a single usize input string.
+    #[inline(always)]
     pub(super) fn mantissa_digits(&self) -> usize {
         self.integer_digits() + self.fraction_digits()
     }
@@ -199,18 +233,27 @@ impl FloatSlice {
     /// Get the scientific exponent from the raw exponent.
     #[inline(always)]
     pub(super) fn scientific_exponent(&self) -> i32 {
-        let fraction_len = match self.digits_start.is_zero() {
-            true  => self.fraction_len(),
+        let fraction_start = match self.digits_start.is_zero() {
+            true  => 0,
             false => self.digits_start,
         };
-        scientific_exponent(self.raw_exponent, self.integer_len(), fraction_len)
+        scientific_exponent(self.raw_exponent, self.integer_len(), fraction_start)
     }
 
     /// Iterate over the digits, by chaining two slices.
+    #[inline]
     pub(super) fn digits_iter(&self)
         -> iter::Cloned<iter::Chain<SliceIter<u8>, iter::Skip<SliceIter<u8>>>>
     {
-        self.integer.iter().chain(self.fraction.iter().skip(self.digits_start)).cloned()
+        // We need to rtrim the zeros in the slice fraction.
+        // These are useless and just add computational complexity later,
+        // just like leading zeros in the integer.
+        // We need them to calculate the number of truncated bytes,
+        // but we should remove them before doing anything costly.
+        // In practice, we only call `digits_iter()` once per parse,
+        // so this is effectively free.
+        let fraction = rtrim_char_slice(self.fraction, b'0');
+        self.integer.iter().chain(fraction.iter().skip(self.digits_start)).cloned()
     }
 }
 
@@ -707,16 +750,26 @@ unsafe fn pown_to_native<F>(base: u32, first: *const u8, last: *const u8, lossy:
 
     // Slow path
     let b = fp.into_rounded_float::<F>(RoundingKind::TowardZero);
+    let iter = slc.digits_iter();
+    let sci_exp = slc.scientific_exponent();
+
     if bigcomp::use_fast(base, slc.mantissa_digits()) {
         // Can use the fast path for the bigcomp calculation.
         // The number of digits is `<= (128 / log2(10)).floor() - 2;`
-        let float = bigcomp::fast_atof(slc.digits_iter(), base, slc.scientific_exponent(), b);
+        let float = bigcomp::fast_atof(iter, base, sci_exp, b);
         return (float, state);
     } else {
-        // Use the slow bigcomp calculation.
         // Have too many digits to use 128-bit approximation.
-        let float = bigcomp::slow_atof(slc.digits_iter(), base, slc.scientific_exponent(), b);
-        return (float, state);
+        #[cfg(feature = "algorithm_m")] {
+            // Use the slow algorithm_m calculation.
+            let float = algom::atof(iter, base, sci_exp, b);
+            return (float, state);
+        }
+        #[cfg(not(feature = "algorithm_m"))] {
+            // Use the slow bigcomp calculation.
+            let float = bigcomp::slow_atof(iter, base, sci_exp, b);
+            return (float, state);
+        }
     }
 }
 
@@ -780,6 +833,31 @@ mod tests {
     use lib::String;
     use test::*;
     use super::*;
+
+    #[test]
+    fn scientific_exponent_test() {
+        // Check "1.2345", simple.
+        let slc = FloatSlice {
+            integer: "1".as_bytes(),
+            fraction: "2345".as_bytes(),
+            digits_start: 0,
+            truncated: 0,
+            raw_exponent: 0,
+        };
+        assert_eq!(slc.scientific_exponent(), 0);
+
+        // Check "0.12345", simple.
+        let slc = FloatSlice {
+            integer: "".as_bytes(),
+            fraction: "12345".as_bytes(),
+            digits_start: 0,
+            truncated: 0,
+            raw_exponent: 0,
+        };
+        assert_eq!(slc.scientific_exponent(), -1);
+    }
+
+    // PARSE MANTISSA
 
     unsafe fn check_parse_mantissa<M>(base: u32, s: &str, tup: (M, usize, usize, usize, usize, &str))
         where M: Mantissa

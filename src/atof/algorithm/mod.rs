@@ -3,6 +3,9 @@
 // Hide implementation details.
 mod exponent;
 
+#[cfg(any(test, feature = "algorithm_m"))]
+pub(crate) mod algorithm_m;
+
 cfg_if! {
 if #[cfg(any(test, not(feature = "imprecise")))] {
 // Needed for the actual items.

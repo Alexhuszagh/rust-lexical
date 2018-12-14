@@ -183,15 +183,18 @@ pub unsafe fn fast_compare_digits<Iter>(mut digits: Iter, base: u32, mut num: u1
         }
     }
 
-    // If there are remaining digits, and all are equal to 0, then we're
-    // equal, otherwise, we produced all the digits we could and we're above.
-    match digits.all(|v| v == b'0') {
+    // We cannot have any trailing zeros, so if there any remaining digits,
+    // we're >= to the value.
+    match digits.next().is_none() {
         true  => cmp::Ordering::Equal,
         false => cmp::Ordering::Greater,
     }
 }
 
 /// Generate the correct representation from a halfway representation.
+///
+/// The digits iterator must not have any trailing zeros (true for
+/// `FloatSlice`).
 ///
 /// * `digits`          - Actual digits from the mantissa.
 /// * `base`            - Radix for the number parsing.
@@ -249,12 +252,6 @@ impl SmallOps for Bigint {
         // Increment exponent to simulate actual multiplication.
         self.exp += n.as_i32();
     }
-
-    #[inline]
-    fn idiv_pow2(&mut self, n: u32, _: bool) {
-        // Decrement exponent to simulate actual division.
-        self.exp -= n.as_i32();
-    }
 }
 
 impl LargeOps for Bigint {
@@ -305,7 +302,7 @@ pub unsafe fn slow_scaling_factor(base: u32, sci_exponent: u32)
     -> Bigint
 {
     let mut factor = Bigint { data: stackvec![1], exp: 0 };
-    factor.imul_power(sci_exponent, base);
+    factor.imul_power(base, sci_exponent);
     factor
 }
 
@@ -340,10 +337,8 @@ pub unsafe fn slow_ratio<F: Float>(base: u32, sci_exponent: i32, f: F)
     // in the base as the number of leading zeros.
     let wlz = integral_binary_factor(base).as_usize();
     let nlz = den.leading_zeros().wrapping_sub(wlz) & (u32::BITS - 1);
-    if nlz != 0 {
-        small::ishl_bits(den.data_mut(), nlz.as_u32());
-        den.exp -= nlz.as_i32();
-    }
+    small::ishl_bits(den.data_mut(), nlz);
+    den.exp -= nlz.as_i32();
 
     // Need to scale the numerator or denominator to the same value.
     // We don't want to shift the denominator, so...
@@ -360,53 +355,18 @@ pub unsafe fn slow_ratio<F: Float>(base: u32, sci_exponent: i32, f: F)
         // We need to add one to the quotient,since we're calculating the
         // ceiling of the divmod.
         let (q, r) = shift.ceil_divmod(u32::BITS);
-        if !r.is_zero() {
-            // Since we're using a power from the denominator to the
-            // numerator, we to invert r, not add u32::BITS.
-            let r = -r;
-            small::ishl_bits(num.data_mut(), r.as_u32());
-            num.exp -= r;
-        }
+        // Since we're using a power from the denominator to the
+        // numerator, we to invert r, not add u32::BITS.
+        let r = -r;
+        small::ishl_bits(num.data_mut(), r.as_usize());
+        num.exp -= r;
         if !q.is_zero() {
-            den.pad_zeros(q);
+            den.pad_zero_digits(q);
             den.exp -= 32 * q.as_i32();
         }
     }
 
     (num, den)
-
-//    // Normalize the denominator, so it has a leading-bit in the
-//    // most-significant digit.
-//    let nlz = den.leading_zeros();
-//    if nlz != 0 {
-//        small::ishl_bits(den.data_mut(), nlz.as_u32());
-//        den.exp -= nlz.as_i32();
-//    }
-//
-//    // Need to scale the numerator or denominator to the same value.
-//    // We don't want to shift the denominator, so...
-//    let diff = den.exp - num.exp;
-//    let shift = diff.abs().as_usize();
-//    if diff < 0 {
-//        // Need to shift the numerator left.
-//        small::ishl(num.data_mut(), shift);
-//        num.exp -= shift.as_i32()
-//    } else if diff > 0 {
-//        // Need to shift denominator left, go by a power of 32.
-//        // After this, the numerator will be non-normalized, and the
-//        // denominator will be normalized.
-//        let (q, r) = shift.ceil_divmod(32);
-//        if !r.is_zero() {
-//            small::ishl_bits(num.data_mut(), (32 + r).as_u32());
-//            num.exp += r;
-//        }
-//        if !q.is_zero() {
-//            den.pad_zeros(q);
-//            den.exp -= 32 * q.as_i32();
-//        }
-//    }
-//
-//    (num, den)
 }
 
 /// Compare digits between the generated values the ratio and the actual view.
@@ -435,15 +395,18 @@ pub unsafe fn slow_compare_digits<Iter>(mut digits: Iter, base: u32, mut num: Bi
         }
     }
 
-    // If there are remaining digits, and all are equal to 0, then we're
-    // equal, otherwise, we produced all the digits we could and we're above.
-    match digits.all(|v| v == b'0') {
+    // We cannot have any trailing zeros, so if there any remaining digits,
+    // we're >= to the value.
+    match digits.next().is_none() {
         true  => cmp::Ordering::Equal,
         false => cmp::Ordering::Greater,
     }
 }
 
 /// Generate the correct representation from a halfway representation.
+///
+/// The digits iterator must not have any trailing zeros (true for
+/// `FloatSlice`).
 ///
 /// * `digits`          - Actual digits from the mantissa.
 /// * `base`            - Radix for the number parsing.

@@ -1,8 +1,779 @@
 //! Building-blocks for arbitrary-precision math.
 //!
 //! These algorithms assume little-endian order for the large integer
-//! buffers, so for a `vec![0, 1, 2, 3]`, `3` is the most significant `u32`,
-//! and `0` is the least significant `u32`.
+//! buffers, so for a `vec![0, 1, 2, 3]`, `3` is the most significant limb,
+//! and `0` is the least significant limb.
+
+use util::*;
+
+// TODO(ahusagh) Change this to use 64-bit algorithms on 64-bit systems.
+
+// ALIASES
+// -------
+
+// TODO(ahuszagh) Make this compilation-dependent.
+
+/// Type for a single limb of the big integer.
+///
+/// A limb is analogous to a digit in base10, except, it stores 32-bit
+/// or 64-bit numbers instead.
+type Limb = u32;
+
+/// Type for a wide limb, a type with double the size of the standard limb.
+type Wide = u64;
+
+/// Signed type for a wide limb.
+type SignedWide = i64;
+
+/// Cast to limb type.
+#[inline(always)]
+fn as_limb<T: Integer>(t: T)
+    -> Limb
+{
+    as_cast(t)
+}
+
+/// Cast to wide type.
+#[inline(always)]
+fn as_wide<T: Integer>(t: T)
+    -> Wide
+{
+    as_cast(t)
+}
+
+/// Cast tosigned wide type.
+#[inline(always)]
+fn as_signed_wide<T: Integer>(t: T)
+    -> SignedWide
+{
+    as_cast(t)
+}
+
+// TODO(ahuszagh) Need a way to split larger items to native storage.
+// Limbs.
+
+// HI BITS
+// -------
+
+// NONZERO
+
+/// Check if any of the remaining bits are non-zero.
+#[inline(always)]
+#[allow(dead_code)]
+pub fn nonzero<T: Integer>(x: &[T], rindex: usize) -> bool {
+    let len = x.len();
+    let slc = &x[..len-rindex];
+    slc.iter().rev().any(|&x| x != T::ZERO)
+}
+
+// HI16
+
+/// Shift 16-bit integer to high 16-bits.
+#[inline]
+fn u16_to_hi16_1(r0: u16) -> (u16, bool) {
+    let ls = r0.leading_zeros();
+    (r0 << ls, false)
+}
+
+/// Shift 2 16-bit integers to high 16-bits.
+#[inline]
+fn u16_to_hi16_2(r0: u16, r1: u16) -> (u16, bool) {
+    let ls = r0.leading_zeros();
+    let rs = 16 - ls;
+    let v = (r0 << ls) | (r1 >> rs);
+    let n = r1 << ls != 0;
+    (v, n)
+}
+
+/// Shift 32-bit integer to high 16-bits.
+#[inline]
+fn u32_to_hi16_1(r0: u32) -> (u16, bool) {
+    let r0 = u32_to_hi32_1(r0).0;
+    ((r0 >> 16).as_u16(), r0.as_u16() != 0)
+}
+
+/// Shift 2 32-bit integers to high 16-bits.
+#[inline]
+fn u32_to_hi16_2(r0: u32, r1: u32) -> (u16, bool) {
+    let (r0, n) = u32_to_hi32_2(r0, r1);
+    ((r0 >> 16).as_u16(), n || r0.as_u16() != 0)
+}
+
+/// Shift 64-bit integer to high 16-bits.
+#[inline]
+fn u64_to_hi16_1(r0: u64) -> (u16, bool) {
+    let r0 = u64_to_hi64_1(r0).0;
+    ((r0 >> 48).as_u16(), r0.as_u16() != 0)
+}
+
+/// Shift 2 64-bit integers to high 16-bits.
+#[inline]
+fn u64_to_hi16_2(r0: u64, r1: u64) -> (u16, bool) {
+    let (r0, n) = u64_to_hi64_2(r0, r1);
+    ((r0 >> 48).as_u16(), n || r0.as_u16() != 0)
+}
+
+/// Trait to export the high 16-bits from a little-endian slice.
+trait Hi16<T>: Len<T> {
+    /// Get the hi16 bits from a 1-limb slice.
+    unsafe fn hi16_1(&self) -> (u16, bool);
+
+    /// Get the hi16 bits from a 2-limb slice.
+    unsafe fn hi16_2(&self) -> (u16, bool);
+
+    /// High-level exporter to extract the high 16 bits from a little-endian slice.
+    fn hi16(&self) -> (u16, bool) {
+        unsafe {
+            match self.len() {
+                0 => (0, false),
+                1 => self.hi16_1(),
+                _ => self.hi16_2(),
+            }
+        }
+    }
+}
+
+impl Hi16<u16> for [u16] {
+    #[inline(always)]
+    unsafe fn hi16_1(&self) -> (u16, bool) {
+        debug_assert!(self.len() == 1);
+        let r0 = *self.rget_unchecked(0);
+        u16_to_hi16_1(r0)
+    }
+
+    #[inline(always)]
+    unsafe fn hi16_2(&self) -> (u16, bool) {
+        debug_assert!(self.len() == 2);
+        let r0 = *self.rget_unchecked(0);
+        let r1 = *self.rget_unchecked(1);
+        u16_to_hi16_2(r0, r1)
+    }
+}
+
+impl Hi16<u32> for [u32] {
+    #[inline(always)]
+    unsafe fn hi16_1(&self) -> (u16, bool) {
+        debug_assert!(self.len() == 1);
+        let r0 = *self.rget_unchecked(0);
+        u32_to_hi16_1(r0)
+    }
+
+    #[inline(always)]
+    unsafe fn hi16_2(&self) -> (u16, bool) {
+        debug_assert!(self.len() == 2);
+        let r0 = *self.rget_unchecked(0);
+        let r1 = *self.rget_unchecked(1);
+        u32_to_hi16_2(r0, r1)
+    }
+}
+
+impl Hi16<u64> for [u64] {
+    #[inline(always)]
+    unsafe fn hi16_1(&self) -> (u16, bool) {
+        debug_assert!(self.len() == 1);
+        let r0 = *self.rget_unchecked(0);
+        u64_to_hi16_1(r0)
+    }
+
+    #[inline(always)]
+    unsafe fn hi16_2(&self) -> (u16, bool) {
+        debug_assert!(self.len() == 2);
+        let r0 = *self.rget_unchecked(0);
+        let r1 = *self.rget_unchecked(1);
+        u64_to_hi16_2(r0, r1)
+    }
+}
+
+// HI32
+
+/// Shift 32-bit integer to high 32-bits.
+#[inline]
+fn u32_to_hi32_1(r0: u32) -> (u32, bool) {
+    let ls = r0.leading_zeros();
+    (r0 << ls, false)
+}
+
+/// Shift 2 32-bit integers to high 32-bits.
+#[inline]
+fn u32_to_hi32_2(r0: u32, r1: u32) -> (u32, bool) {
+    let ls = r0.leading_zeros();
+    let rs = 32 - ls;
+    let v = (r0 << ls) | (r1 >> rs);
+    let n = r1 << ls != 0;
+    (v, n)
+}
+
+/// Shift 64-bit integer to high 32-bits.
+#[inline]
+fn u64_to_hi32_1(r0: u64) -> (u32, bool) {
+    let r0 = u64_to_hi64_1(r0).0;
+    ((r0 >> 32).as_u32(), r0.as_u32() != 0)
+}
+
+/// Shift 2 64-bit integers to high 32-bits.
+#[inline]
+fn u64_to_hi32_2(r0: u64, r1: u64) -> (u32, bool) {
+    let (r0, n) = u64_to_hi64_2(r0, r1);
+    ((r0 >> 32).as_u32(), n || r0.as_u32() != 0)
+}
+
+/// Trait to export the high 32-bits from a little-endian slice.
+trait Hi32<T>: Len<T> {
+    /// Get the hi32 bits from a 1-limb slice.
+    unsafe fn hi32_1(&self) -> (u32, bool);
+
+    /// Get the hi32 bits from a 2-limb slice.
+    unsafe fn hi32_2(&self) -> (u32, bool);
+
+    /// Get the hi32 bits from a 3-limb slice.
+    unsafe fn hi32_3(&self) -> (u32, bool);
+
+    /// High-level exporter to extract the high 32 bits from a little-endian slice.
+    fn hi32(&self) -> (u32, bool) {
+        unsafe {
+            match self.len() {
+                0 => (0, false),
+                1 => self.hi32_1(),
+                2 => self.hi32_2(),
+                _ => self.hi32_3(),
+            }
+        }
+    }
+}
+
+impl Hi32<u16> for [u16] {
+    #[inline(always)]
+    unsafe fn hi32_1(&self) -> (u32, bool) {
+        debug_assert!(self.len() == 1);
+        let r0 = self.rget_unchecked(0).as_u32();
+        u32_to_hi32_1(r0)
+    }
+
+    #[inline(always)]
+    unsafe fn hi32_2(&self) -> (u32, bool) {
+        debug_assert!(self.len() == 2);
+        let r0 = self.rget_unchecked(0).as_u32() << 16;
+        let r1 = self.rget_unchecked(1).as_u32();
+        u32_to_hi32_1(r0 | r1)
+    }
+
+    #[inline(always)]
+    unsafe fn hi32_3(&self) -> (u32, bool) {
+        debug_assert!(self.len() >= 3);
+        let r0 = self.rget_unchecked(0).as_u32();
+        let r1 = self.rget_unchecked(1).as_u32() << 16;
+        let r2 = self.rget_unchecked(2).as_u32();
+        let (v, n) = u32_to_hi32_2( r0, r1 | r2);
+        (v, n || nonzero(self, 3))
+    }
+}
+
+impl Hi32<u32> for [u32] {
+    #[inline(always)]
+    unsafe fn hi32_1(&self) -> (u32, bool) {
+        debug_assert!(self.len() == 1);
+        let r0 = *self.rget_unchecked(0);
+        u32_to_hi32_1(r0)
+    }
+
+    #[inline(always)]
+    unsafe fn hi32_2(&self) -> (u32, bool) {
+        debug_assert!(self.len() >= 2);
+        let r0 = *self.rget_unchecked(0);
+        let r1 = *self.rget_unchecked(1);
+        let (v, n) = u32_to_hi32_2(r0, r1);
+        (v, n || nonzero(self, 2))
+    }
+
+    #[inline(always)]
+    unsafe fn hi32_3(&self) -> (u32, bool) {
+        self.hi32_2()
+    }
+}
+
+impl Hi32<u64> for [u64] {
+    #[inline(always)]
+    unsafe fn hi32_1(&self) -> (u32, bool) {
+        debug_assert!(self.len() == 1);
+        let r0 = *self.rget_unchecked(0);
+        u64_to_hi32_1(r0)
+    }
+
+    #[inline(always)]
+    unsafe fn hi32_2(&self) -> (u32, bool) {
+        debug_assert!(self.len() >= 2);
+        let r0 = *self.rget_unchecked(0);
+        let r1 = *self.rget_unchecked(1);
+        let (v, n) = u64_to_hi32_2(r0, r1);
+        (v, n || nonzero(self, 2))
+    }
+
+    #[inline(always)]
+    unsafe fn hi32_3(&self) -> (u32, bool) {
+        self.hi32_2()
+    }
+}
+
+// HI64
+
+/// Shift 64-bit integer to high 64-bits.
+#[inline]
+fn u64_to_hi64_1(r0: u64) -> (u64, bool) {
+    let ls = r0.leading_zeros();
+    (r0 << ls, false)
+}
+
+/// Shift 2 64-bit integers to high 64-bits.
+#[inline]
+fn u64_to_hi64_2(r0: u64, r1: u64) -> (u64, bool) {
+    let ls = r0.leading_zeros();
+    let rs = 64 - ls;
+    let v = (r0 << ls) | (r1 >> rs);
+    let n = r1 << ls != 0;
+    (v, n)
+}
+
+/// Trait to export the high 64-bits from a little-endian slice.
+trait Hi64<T>: Len<T> {
+    /// Get the hi64 bits from a 1-limb slice.
+    unsafe fn hi64_1(&self) -> (u64, bool);
+
+    /// Get the hi64 bits from a 2-limb slice.
+    unsafe fn hi64_2(&self) -> (u64, bool);
+
+    /// Get the hi64 bits from a 3-limb slice.
+    unsafe fn hi64_3(&self) -> (u64, bool);
+
+    /// Get the hi64 bits from a 4-limb slice.
+    unsafe fn hi64_4(&self) -> (u64, bool);
+
+    /// Get the hi64 bits from a 5-limb slice.
+    unsafe fn hi64_5(&self) -> (u64, bool);
+
+    /// High-level exporter to extract the high 64 bits from a little-endian slice.
+    fn hi64(&self) -> (u64, bool) {
+        unsafe {
+            match self.len() {
+                0 => (0, false),
+                1 => self.hi64_1(),
+                2 => self.hi64_2(),
+                3 => self.hi64_3(),
+                4 => self.hi64_4(),
+                _ => self.hi64_5(),
+            }
+        }
+    }
+}
+
+impl Hi64<u16> for [u16] {
+    #[inline(always)]
+    unsafe fn hi64_1(&self) -> (u64, bool) {
+        debug_assert!(self.len() == 1);
+        let r0 = self.rget_unchecked(0).as_u64();
+        u64_to_hi64_1(r0)
+    }
+
+    #[inline(always)]
+    unsafe fn hi64_2(&self) -> (u64, bool) {
+        debug_assert!(self.len() == 2);
+        let r0 = self.rget_unchecked(0).as_u64() << 16;
+        let r1 = self.rget_unchecked(1).as_u64();
+        u64_to_hi64_1(r0 | r1)
+    }
+
+    #[inline(always)]
+    unsafe fn hi64_3(&self) -> (u64, bool) {
+        debug_assert!(self.len() == 3);
+        let r0 = self.rget_unchecked(0).as_u64() << 32;
+        let r1 = self.rget_unchecked(1).as_u64() << 16;
+        let r2 = self.rget_unchecked(2).as_u64();
+        u64_to_hi64_1(r0 | r1 | r2)
+    }
+
+    #[inline(always)]
+    unsafe fn hi64_4(&self) -> (u64, bool) {
+        debug_assert!(self.len() == 4);
+        let r0 = self.rget_unchecked(0).as_u64() << 48;
+        let r1 = self.rget_unchecked(1).as_u64() << 32;
+        let r2 = self.rget_unchecked(2).as_u64() << 16;
+        let r3 = self.rget_unchecked(3).as_u64();
+        u64_to_hi64_1(r0 | r1 | r2 | r3)
+    }
+
+    #[inline(always)]
+    unsafe fn hi64_5(&self) -> (u64, bool) {
+        debug_assert!(self.len() >= 5);
+        let r0 = self.rget_unchecked(0).as_u64();
+        let r1 = self.rget_unchecked(1).as_u64() << 48;
+        let r2 = self.rget_unchecked(2).as_u64() << 32;
+        let r3 = self.rget_unchecked(3).as_u64() << 16;
+        let r4 = self.rget_unchecked(4).as_u64();
+        let (v, n) = u64_to_hi64_2(r0, r1 | r2 | r3 | r4);
+        (v, n || nonzero(self, 5))
+    }
+}
+
+impl Hi64<u32> for [u32] {
+    #[inline(always)]
+    unsafe fn hi64_1(&self) -> (u64, bool) {
+        debug_assert!(self.len() == 1);
+        let r0 = self.rget_unchecked(0).as_u64();
+        u64_to_hi64_1(r0)
+    }
+
+    #[inline(always)]
+    unsafe fn hi64_2(&self) -> (u64, bool) {
+        debug_assert!(self.len() == 2);
+        let r0 = self.rget_unchecked(0).as_u64() << 32;
+        let r1 = self.rget_unchecked(1).as_u64();
+        u64_to_hi64_1(r0 | r1)
+    }
+
+    #[inline(always)]
+    unsafe fn hi64_3(&self) -> (u64, bool) {
+        debug_assert!(self.len() >= 3);
+        let r0 = self.rget_unchecked(0).as_u64();
+        let r1 = self.rget_unchecked(1).as_u64() << 32;
+        let r2 = self.rget_unchecked(2).as_u64();
+        u64_to_hi64_2(r0, r1 | r2)
+    }
+
+    #[inline(always)]
+    unsafe fn hi64_4(&self) -> (u64, bool) {
+        self.hi64_3()
+    }
+
+    #[inline(always)]
+    unsafe fn hi64_5(&self) -> (u64, bool) {
+        self.hi64_3()
+    }
+}
+
+impl Hi64<u64> for [u64] {
+    #[inline(always)]
+    unsafe fn hi64_1(&self) -> (u64, bool) {
+        debug_assert!(self.len() == 1);
+        let r0 = *self.rget_unchecked(0);
+        u64_to_hi64_1(r0)
+    }
+
+    #[inline(always)]
+    unsafe fn hi64_2(&self) -> (u64, bool) {
+        debug_assert!(self.len() >= 2);
+        let r0 = self.rget_unchecked(0).as_u64();
+        let r1 = self.rget_unchecked(1).as_u64();
+        let (v, n) = u64_to_hi64_2(r0, r1);
+        (v, n || nonzero(self, 2))
+    }
+
+    #[inline(always)]
+    unsafe fn hi64_3(&self) -> (u64, bool) {
+        self.hi64_2()
+    }
+
+    #[inline(always)]
+    unsafe fn hi64_4(&self) -> (u64, bool) {
+        self.hi64_2()
+    }
+
+    #[inline(always)]
+    unsafe fn hi64_5(&self) -> (u64, bool) {
+        self.hi64_2()
+    }
+}
+
+// HI128
+
+/// Shift 128-bit integer to high 128-bits.
+#[inline]
+fn u128_to_hi128_1(r0: u128) -> (u128, bool) {
+    let ls = r0.leading_zeros();
+    (r0 << ls, false)
+}
+
+/// Shift 2 128-bit integers to high 128-bits.
+#[inline]
+fn u128_to_hi128_2(r0: u128, r1: u128) -> (u128, bool) {
+    let ls = r0.leading_zeros();
+    let rs = 128 - ls;
+    let v = (r0 << ls) | (r1 >> rs);
+    let n = r1 << ls != 0;
+    (v, n)
+}
+
+/// Trait to export the high 128-bits from a little-endian slice.
+trait Hi128<T>: Len<T> {
+    /// Get the hi128 bits from a 1-limb slice.
+    unsafe fn hi128_1(&self) -> (u128, bool);
+
+    /// Get the hi128 bits from a 2-limb slice.
+    unsafe fn hi128_2(&self) -> (u128, bool);
+
+    /// Get the hi128 bits from a 3-limb slice.
+    unsafe fn hi128_3(&self) -> (u128, bool);
+
+    /// Get the hi128 bits from a 4-limb slice.
+    unsafe fn hi128_4(&self) -> (u128, bool);
+
+    /// Get the hi128 bits from a 5-limb slice.
+    unsafe fn hi128_5(&self) -> (u128, bool);
+
+    /// Get the hi128 bits from a 5-limb slice.
+    unsafe fn hi128_6(&self) -> (u128, bool);
+
+    /// Get the hi128 bits from a 5-limb slice.
+    unsafe fn hi128_7(&self) -> (u128, bool);
+
+    /// Get the hi128 bits from a 5-limb slice.
+    unsafe fn hi128_8(&self) -> (u128, bool);
+
+    /// Get the hi128 bits from a 5-limb slice.
+    unsafe fn hi128_9(&self) -> (u128, bool);
+
+    /// High-level exporter to extract the high 128 bits from a little-endian slice.
+    fn hi128(&self) -> (u128, bool) {
+        unsafe {
+            match self.len() {
+                0 => (0, false),
+                1 => self.hi128_1(),
+                2 => self.hi128_2(),
+                3 => self.hi128_3(),
+                4 => self.hi128_4(),
+                6 => self.hi128_6(),
+                7 => self.hi128_7(),
+                8 => self.hi128_8(),
+                _ => self.hi128_9(),
+            }
+        }
+    }
+}
+
+impl Hi128<u16> for [u16] {
+    #[inline(always)]
+    unsafe fn hi128_1(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 1);
+        let r0 = self.rget_unchecked(0).as_u128();
+        u128_to_hi128_1(r0)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_2(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 2);
+        let r0 = self.rget_unchecked(0).as_u128() << 16;
+        let r1 = self.rget_unchecked(1).as_u128();
+        u128_to_hi128_1(r0 | r1)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_3(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 3);
+        let r0 = self.rget_unchecked(0).as_u128() << 32;
+        let r1 = self.rget_unchecked(1).as_u128() << 16;
+        let r2 = self.rget_unchecked(2).as_u128();
+        u128_to_hi128_1(r0 | r1 | r2)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_4(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 4);
+        let r0 = self.rget_unchecked(0).as_u128() << 48;
+        let r1 = self.rget_unchecked(1).as_u128() << 32;
+        let r2 = self.rget_unchecked(2).as_u128() << 16;
+        let r3 = self.rget_unchecked(3).as_u128();
+        u128_to_hi128_1(r0 | r1 | r2 | r3)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_5(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 5);
+        let r0 = self.rget_unchecked(0).as_u128() << 64;
+        let r1 = self.rget_unchecked(1).as_u128() << 48;
+        let r2 = self.rget_unchecked(2).as_u128() << 32;
+        let r3 = self.rget_unchecked(3).as_u128() << 16;
+        let r4 = self.rget_unchecked(4).as_u128();
+        u128_to_hi128_1(r0 | r1 | r2 | r3 | r4)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_6(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 6);
+        let r0 = self.rget_unchecked(0).as_u128() << 80;
+        let r1 = self.rget_unchecked(1).as_u128() << 64;
+        let r2 = self.rget_unchecked(2).as_u128() << 48;
+        let r3 = self.rget_unchecked(3).as_u128() << 32;
+        let r4 = self.rget_unchecked(4).as_u128() << 16;
+        let r5 = self.rget_unchecked(5).as_u128();
+        u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_7(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 7);
+        let r0 = self.rget_unchecked(0).as_u128() << 96;
+        let r1 = self.rget_unchecked(1).as_u128() << 80;
+        let r2 = self.rget_unchecked(2).as_u128() << 64;
+        let r3 = self.rget_unchecked(3).as_u128() << 48;
+        let r4 = self.rget_unchecked(4).as_u128() << 32;
+        let r5 = self.rget_unchecked(5).as_u128() << 16;
+        let r6 = self.rget_unchecked(6).as_u128();
+        u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5 | r6)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_8(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 8);
+        let r0 = self.rget_unchecked(0).as_u128() << 112;
+        let r1 = self.rget_unchecked(1).as_u128() << 96;
+        let r2 = self.rget_unchecked(2).as_u128() << 80;
+        let r3 = self.rget_unchecked(3).as_u128() << 64;
+        let r4 = self.rget_unchecked(4).as_u128() << 48;
+        let r5 = self.rget_unchecked(5).as_u128() << 32;
+        let r6 = self.rget_unchecked(6).as_u128() << 16;
+        let r7 = self.rget_unchecked(7).as_u128();
+        u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5 | r6 | r7)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_9(&self) -> (u128, bool) {
+        debug_assert!(self.len() >= 9);
+        let r0 = self.rget_unchecked(0).as_u128();
+        let r1 = self.rget_unchecked(1).as_u128() << 112;
+        let r2 = self.rget_unchecked(2).as_u128() << 96;
+        let r3 = self.rget_unchecked(3).as_u128() << 80;
+        let r4 = self.rget_unchecked(4).as_u128() << 64;
+        let r5 = self.rget_unchecked(5).as_u128() << 48;
+        let r6 = self.rget_unchecked(6).as_u128() << 32;
+        let r7 = self.rget_unchecked(7).as_u128() << 16;
+        let r8 = self.rget_unchecked(8).as_u128();
+        let (v, n) = u128_to_hi128_2(r0, r1 | r2 | r3 | r4 | r5 | r6 | r7 | r8);
+        (v, n || nonzero(self, 9))
+    }
+}
+
+impl Hi128<u32> for [u32] {
+    #[inline(always)]
+    unsafe fn hi128_1(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 1);
+        let r0 = self.rget_unchecked(0).as_u128();
+        u128_to_hi128_1(r0)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_2(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 2);
+        let r0 = self.rget_unchecked(0).as_u128() << 32;
+        let r1 = self.rget_unchecked(1).as_u128();
+        u128_to_hi128_1(r0 | r1)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_3(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 3);
+        let r0 = self.rget_unchecked(0).as_u128() << 64;
+        let r1 = self.rget_unchecked(1).as_u128() << 32;
+        let r2 = self.rget_unchecked(2).as_u128();
+        u128_to_hi128_1(r0 | r1 | r2)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_4(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 4);
+        let r0 = self.rget_unchecked(0).as_u128() << 96;
+        let r1 = self.rget_unchecked(1).as_u128() << 64;
+        let r2 = self.rget_unchecked(2).as_u128() << 32;
+        let r3 = self.rget_unchecked(3).as_u128();
+        u128_to_hi128_1(r0 | r1 | r2 | r3)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_5(&self) -> (u128, bool) {
+        debug_assert!(self.len() >= 5);
+        let r0 = self.rget_unchecked(0).as_u128();
+        let r1 = self.rget_unchecked(1).as_u128() << 96;
+        let r2 = self.rget_unchecked(2).as_u128() << 64;
+        let r3 = self.rget_unchecked(3).as_u128() << 32;
+        let r4 = self.rget_unchecked(4).as_u128();
+        let (v, n) = u128_to_hi128_2(r0, r1 | r2 | r3 | r4);
+        (v, n || nonzero(self, 5))
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_6(&self) -> (u128, bool) {
+        self.hi128_5()
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_7(&self) -> (u128, bool) {
+        self.hi128_5()
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_8(&self) -> (u128, bool) {
+        self.hi128_5()
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_9(&self) -> (u128, bool) {
+        self.hi128_5()
+    }
+}
+
+impl Hi128<u64> for [u64] {
+    #[inline(always)]
+    unsafe fn hi128_1(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 1);
+        let r0 = self.rget_unchecked(0).as_u128();
+        u128_to_hi128_1(r0)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_2(&self) -> (u128, bool) {
+        debug_assert!(self.len() == 2);
+        let r0 = self.rget_unchecked(0).as_u128() << 64;
+        let r1 = self.rget_unchecked(1).as_u128();
+        u128_to_hi128_1(r0 | r1)
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_3(&self) -> (u128, bool) {
+        debug_assert!(self.len() >= 3);
+        let r0 = self.rget_unchecked(0).as_u128();
+        let r1 = self.rget_unchecked(1).as_u128() << 64;
+        let r2 = self.rget_unchecked(2).as_u128();
+        let (v, n) = u128_to_hi128_2(r0, r1 | r2);
+        (v, n || nonzero(self, 2))
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_4(&self) -> (u128, bool) {
+        self.hi128_3()
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_5(&self) -> (u128, bool) {
+        self.hi128_3()
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_6(&self) -> (u128, bool) {
+        self.hi128_3()
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_7(&self) -> (u128, bool) {
+        self.hi128_3()
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_8(&self) -> (u128, bool) {
+        self.hi128_3()
+    }
+
+    #[inline(always)]
+    unsafe fn hi128_9(&self) -> (u128, bool) {
+        self.hi128_3()
+    }
+}
 
 // SCALAR
 // ------
@@ -12,24 +783,13 @@
 
 pub(in atof::algorithm) mod scalar {
 
-use util::*;
-
-// ABOVE HALFWAY
-
-/// Determine if `2*rem > den`, or `2*rem == den`.
-#[inline]
-pub fn cmp_remainder(den: u32, rem: u32) -> (bool, bool) {
-    match rem.checked_mul(2) {
-        None    => (true, false),
-        Some(v) => (v > den, v == den),
-    }
-}
+use super::*;
 
 // ADDITION
 
 /// Add two small integers and return the resulting value and if overflow happens.
 #[inline(always)]
-pub fn add(x: u32, y: u32)
+pub fn add(x: Limb, y: Limb)
     -> (u32, bool)
 {
     x.overflowing_add(y)
@@ -37,7 +797,7 @@ pub fn add(x: u32, y: u32)
 
 /// AddAssign two small integers and return if overflow happens.
 #[inline(always)]
-pub fn iadd(x: &mut u32, y: u32)
+pub fn iadd(x: &mut Limb, y: Limb)
     -> bool
 {
     let t = add(*x, y);
@@ -49,15 +809,15 @@ pub fn iadd(x: &mut u32, y: u32)
 
 /// Subtract two small integers and return the resulting value and if overflow happens.
 #[inline(always)]
-pub fn sub(x: u32, y: u32)
-    -> (u32, bool)
+pub fn sub(x: Limb, y: Limb)
+    -> (Limb, bool)
 {
     x.overflowing_sub(y)
 }
 
 /// SubAssign two small integers and return if overflow happens.
 #[inline(always)]
-pub fn isub(x: &mut u32, y: u32)
+pub fn isub(x: &mut Limb, y: Limb)
     -> bool
 {
     let t = sub(*x, y);
@@ -71,20 +831,20 @@ pub fn isub(x: &mut u32, y: u32)
 ///
 /// Returns the (low, high) components.
 #[inline(always)]
-pub fn mul(x: u32, y: u32, carry: u32)
-    -> (u32, u32)
+pub fn mul(x: Limb, y: Limb, carry: Limb)
+    -> (Limb, Limb)
 {
     // Cannot overflow, as long as wide is 2x as wide. This is because
     // the following is always true:
     // `Wide::max_value() - (Narrow::max_value() * Narrow::max_value()) >= Narrow::max_value()`
-    let z: u64 = x.as_u64() * y.as_u64() + carry.as_u64();
-    (z.as_u32(), (z >> u32::BITS).as_u32())
+    let z: Wide = as_wide(x) * as_wide(y) + as_wide(carry);
+    (as_limb(z), as_limb(z >> Limb::BITS))
 }
 
 /// Multiply two small integers (with carry) (and return if overflow happens).
 #[inline(always)]
-pub fn imul(x: &mut u32, y: u32, carry: u32)
-    -> u32
+pub fn imul(x: &mut Limb, y: Limb, carry: Limb)
+    -> Limb
 {
     let t = mul(*x, y, carry);
     *x = t.0;
@@ -97,19 +857,19 @@ pub fn imul(x: &mut u32, y: u32, carry: u32)
 ///
 /// Returns the (value, remainder) components.
 #[inline(always)]
-pub fn div(x: u32, y: u32, rem: u32)
-    -> (u32, u32)
+pub fn div(x: Limb, y: Limb, rem: Limb)
+    -> (Limb, Limb)
 {
     // Cannot overflow, as long as wide is 2x as wide.
-    let x = x.as_u64() | (rem.as_u64() << u32::BITS);
-    let y = y.as_u64();
-    ((x / y).as_u32(), (x % y).as_u32())
+    let x = as_wide(x) | (as_wide(rem) << Limb::BITS);
+    let y = as_wide(y);
+    (as_limb(x / y), as_limb(x % y))
 }
 
 /// DivAssign two small integers and return the remainder.
 #[inline(always)]
-pub fn idiv(x: &mut u32, y: u32, rem: u32)
-    -> u32
+pub fn idiv(x: &mut Limb, y: Limb, rem: Limb)
+    -> Limb
 {
     let t = div(*x, y, rem);
     *x = t.0;
@@ -126,29 +886,9 @@ pub fn idiv(x: &mut u32, y: u32, rem: u32)
 pub(in atof::algorithm) mod small {
 
 use lib::iter;
-use util::*;
-use super::{large, scalar};
+use super::*;
 use super::super::small_powers::*;
 use super::super::large_powers::*;
-
-// ROUNDUP
-
-/// Round to the nearest value if there's truncation during division.
-///
-/// If the `2*rem > y`, or `2*rem == y` and the last, then we have a
-/// division where the remainder is near the halfway case.
-/// digit is odd, round-up (round-nearest, tie-even).
-#[inline]
-pub fn check_do_roundup<T>(x: &mut T, y: u32, rem: u32)
-    where T: CloneableVecLike<u32>
-{
-    unsafe {
-        let (is_above, is_halfway) = scalar::cmp_remainder(y, rem);
-        if is_above || (is_halfway && x.front_unchecked().is_odd()) {
-            *x.front_unchecked_mut() += 1;
-        }
-    }
-}
 
 // PROPERTIES
 
@@ -156,7 +896,7 @@ pub fn check_do_roundup<T>(x: &mut T, y: u32, rem: u32)
 /// Assumes the value is normalized.
 #[inline]
 #[allow(dead_code)]
-pub fn leading_zero_values(_: &[u32]) -> usize {
+pub fn leading_zero_limbs(_: &[Limb]) -> usize {
     0
 }
 
@@ -164,7 +904,7 @@ pub fn leading_zero_values(_: &[u32]) -> usize {
 /// Assumes the value is normalized.
 #[inline]
 #[allow(dead_code)]
-pub fn trailing_zero_values(x: &[u32]) -> usize {
+pub fn trailing_zero_limbs(x: &[Limb]) -> usize {
     let mut iter = x.iter().enumerate();
     let opt = iter.find(|&tup| !tup.1.is_zero());
     let value = opt
@@ -177,7 +917,7 @@ pub fn trailing_zero_values(x: &[u32]) -> usize {
 /// Get number of leading zero bits in the storage.
 #[inline]
 #[allow(dead_code)]
-pub fn leading_zeros(x: &[u32]) -> usize {
+pub fn leading_zeros(x: &[Limb]) -> usize {
     if x.is_empty() {
         0
     } else {
@@ -192,14 +932,14 @@ pub fn leading_zeros(x: &[u32]) -> usize {
 /// Assumes the value is normalized.
 #[inline]
 #[allow(dead_code)]
-pub fn trailing_zeros(x: &[u32]) -> usize {
+pub fn trailing_zeros(x: &[Limb]) -> usize {
     // Get the index of the last non-zero value
-    let index = trailing_zero_values(x);
-    let mut count = index.checked_mul(u32::BITS);
+    let index = trailing_zero_limbs(x);
+    let mut count = index.saturating_mul(Limb::BITS);
     if let Some(value) = x.get(index) {
-        count = count.and_then(|v| v.checked_add(value.trailing_zeros().as_usize()));
+        count = count.saturating_add(value.trailing_zeros().as_usize());
     }
-    count.unwrap_or(usize::max_value())
+    count
 }
 
 // BIT LENGTH
@@ -207,13 +947,22 @@ pub fn trailing_zeros(x: &[u32]) -> usize {
 /// Calculate the bit-length of the big-integer.
 #[inline]
 #[allow(dead_code)]
-pub fn bit_length(x: &[u32]) -> usize {
+pub fn bit_length(x: &[Limb]) -> usize {
     // Avoid overflowing, calculate via total number of bits
     // minus leading zero bits.
     let nlz = leading_zeros(x);
-    u32::BITS.checked_mul(x.len())
+    Limb::BITS.checked_mul(x.len())
         .map(|v| v - nlz)
         .unwrap_or(usize::max_value())
+}
+
+// BIT LENGTH
+
+/// Calculate the limb-length of the big-integer.
+#[inline]
+#[allow(dead_code)]
+pub fn limb_length(x: &[Limb]) -> usize {
+    x.len()
 }
 
 // SHR
@@ -222,24 +971,24 @@ pub fn bit_length(x: &[u32]) -> usize {
 ///
 /// Returns the truncated bits.
 ///
-/// Assumes `n < 32`, IE, internally shifting bits.
+/// Assumes `n < Limb::BITS`, IE, internally shifting bits.
 #[inline]
-pub fn ishr_bits<T>(x: &mut T, n: u32)
-    -> u32
-    where T: CloneableVecLike<u32>
+pub fn ishr_bits<T>(x: &mut T, n: usize)
+    -> Limb
+    where T: CloneableVecLike<Limb>
 {
-    // Need to shift by the number of `bits % 32`.
-    let bits = u32::BITS.as_u32();
+    // Need to shift by the number of `bits % Limb::BITS`.
+    let bits = Limb::BITS;
     debug_assert!(n < bits && n != 0);
 
     // Internally, for each item, we shift left by n, and add the previous
-    // right shifted 32-bits.
+    // right shifted limb-bits.
     // For example, we transform (for u8) shifted right 2, to:
     //      b10100100 b01000010
     //        b101001 b00010000
     let lshift = bits - n;
     let rshift = n;
-    let mut prev: u32 = 0;
+    let mut prev: Limb = 0;
     for xi in x.iter_mut().rev() {
         let tmp = *xi;
         *xi >>= rshift;
@@ -247,16 +996,16 @@ pub fn ishr_bits<T>(x: &mut T, n: u32)
         prev = tmp;
     }
 
-    prev & lower_n_mask(rshift)
+    prev & lower_n_mask(as_limb(rshift))
 }
 
-/// Shift-right `n` digits inside a buffer and returns if all the truncated digits are zero.
+/// Shift-right `n` limbs inside a buffer and returns if all the truncated limbs are zero.
 ///
 /// Assumes `n` is not 0.
 #[inline]
-pub fn ishr_digits<T>(x: &mut T, n: usize)
+pub fn ishr_limbs<T>(x: &mut T, n: usize)
     -> bool
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     debug_assert!(n != 0);
 
@@ -275,16 +1024,16 @@ pub fn ishr_digits<T>(x: &mut T, n: usize)
 /// Shift-left buffer by n bits and return if we should round-up.
 pub fn ishr<T>(x: &mut T, n: usize)
     -> bool
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
-    let bits = u32::BITS;
-    // Need to pad with zeros for the number of `bits / 32`,
-    // and shift-left with carry for `bits % 32`.
-    let rem = (n % bits).as_u32();
+    let bits = Limb::BITS;
+    // Need to pad with zeros for the number of `bits / Limb::BITS`,
+    // and shift-left with carry for `bits % Limb::BITS`.
+    let rem = n % bits;
     let div = n / bits;
     let is_zero = match div.is_zero() {
         true  => true,
-        false => ishr_digits(x, div),
+        false => ishr_limbs(x, div),
     };
     let truncated = match rem.is_zero() {
         true  => 0,
@@ -293,7 +1042,7 @@ pub fn ishr<T>(x: &mut T, n: usize)
 
     // Calculate if we need to roundup.
     let roundup = unsafe {
-        let halfway = lower_n_halfway(rem);
+        let halfway = lower_n_halfway(as_limb(rem));
         if truncated > halfway {
             // Above halfway
             true
@@ -316,9 +1065,9 @@ pub fn ishr<T>(x: &mut T, n: usize)
 
 /// Shift-left buffer by n bits.
 #[allow(dead_code)]
-pub fn shr<T>(x: &[u32], n: usize)
+pub fn shr<T>(x: &[Limb], n: usize)
     -> (T, bool)
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
@@ -330,23 +1079,26 @@ pub fn shr<T>(x: &[u32], n: usize)
 
 /// Shift-left bits inside a buffer.
 ///
-/// Assumes `n < 32`, IE, internally shifting bits.
+/// Assumes `n < Limb::BITS`, IE, internally shifting bits.
 #[inline]
-pub fn ishl_bits<T>(x: &mut T, n: u32)
-    where T: CloneableVecLike<u32>
+pub fn ishl_bits<T>(x: &mut T, n: usize)
+    where T: CloneableVecLike<Limb>
 {
-    // Need to shift by the number of `bits % 32`.
-    let bits = u32::BITS.as_u32();
-    debug_assert!(n != 0 && n != u32::BITS.as_u32());
+    // Need to shift by the number of `bits % Limb::BITS)`.
+    let bits = Limb::BITS;
+    debug_assert!(n < bits);
+    if n.is_zero() {
+        return;
+    }
 
     // Internally, for each item, we shift left by n, and add the previous
-    // right shifted 32-bits.
+    // right shifted limb-bits.
     // For example, we transform (for u8) shifted left 2, to:
     //      b10100100 b01000010
     //      b10 b10010001 b00001000
     let rshift = bits - n;
     let lshift = n;
-    let mut prev: u32 = 0;
+    let mut prev: Limb = 0;
     for xi in x.iter_mut() {
         let tmp = *xi;
         *xi <<= lshift;
@@ -363,11 +1115,11 @@ pub fn ishl_bits<T>(x: &mut T, n: u32)
 
 /// Shift-left bits inside a buffer.
 ///
-/// Assumes `n < 32`, IE, internally shifting bits.
+/// Assumes `n < Limb::BITS`, IE, internally shifting bits.
 #[allow(dead_code)]
-pub fn shl_bits<T>(x: &[u32], n: u32)
+pub fn shl_bits<T>(x: &[Limb], n: usize)
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
@@ -379,8 +1131,8 @@ pub fn shl_bits<T>(x: &[u32], n: u32)
 ///
 /// Assumes `n` is not 0.
 #[inline]
-pub fn ishl_digits<T>(x: &mut T, n: usize)
-    where T: CloneableVecLike<u32>
+pub fn ishl_limbs<T>(x: &mut T, n: usize)
+    where T: CloneableVecLike<Limb>
 {
     debug_assert!(n != 0);
     if !x.is_empty() {
@@ -390,26 +1142,24 @@ pub fn ishl_digits<T>(x: &mut T, n: usize)
 
 /// Shift-left buffer by n bits.
 pub fn ishl<T>(x: &mut T, n: usize)
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
-    let bits = u32::BITS;
-    // Need to pad with zeros for the number of `bits / 32`,
-    // and shift-left with carry for `bits % 32`.
-    let rem = (n % bits).as_u32();
+    let bits = Limb::BITS;
+    // Need to pad with zeros for the number of `bits / Limb::BITS`,
+    // and shift-left with carry for `bits % Limb::BITS`.
+    let rem = n % bits;
     let div = n / bits;
-    if !rem.is_zero() {
-        ishl_bits(x, rem);
-    }
+    ishl_bits(x, rem);
     if !div.is_zero() {
-        ishl_digits(x, div);
+        ishl_limbs(x, div);
     }
 }
 
 /// Shift-left buffer by n bits.
 #[allow(dead_code)]
-pub fn shl<T>(x: &[u32], n: usize)
+pub fn shl<T>(x: &[Limb], n: usize)
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
@@ -422,7 +1172,7 @@ pub fn shl<T>(x: &[u32], n: usize)
 /// Normalize the container by popping any leading zeros.
 #[inline]
 pub fn normalize<T>(x: &mut T)
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     unsafe {
         // Remove leading zero if we cause underflow. Since we're dividing
@@ -435,12 +1185,12 @@ pub fn normalize<T>(x: &mut T)
 
 /// ADDITION
 
-/// Implied AddAssign implementation for adding a small integer to bigint..
+/// Implied AddAssign implementation for adding a small integer to bigint.
 ///
 /// Allows us to choose a start-index in x to store, to allow incrementing
 /// from a non-zero start.
-pub fn iadd_impl<T>(x: &mut T, y: u32, xstart: usize)
-    where T: CloneableVecLike<u32>
+pub fn iadd_impl<T>(x: &mut T, y: Limb, xstart: usize)
+    where T: CloneableVecLike<Limb>
 {
     if x.len() <= xstart {
         x.push(y);
@@ -467,8 +1217,8 @@ pub fn iadd_impl<T>(x: &mut T, y: u32, xstart: usize)
 
 /// AddAssign small integer to bigint.
 #[inline(always)]
-pub fn iadd<T>(x: &mut T, y: u32)
-    where T: CloneableVecLike<u32>
+pub fn iadd<T>(x: &mut T, y: Limb)
+    where T: CloneableVecLike<Limb>
 {
     iadd_impl(x, y, 0);
 }
@@ -476,9 +1226,9 @@ pub fn iadd<T>(x: &mut T, y: u32)
 /// Add small integer to bigint.
 #[allow(dead_code)]
 #[inline]
-pub fn add<T>(x: &[u32], y: u32)
+pub fn add<T>(x: &[Limb], y: Limb)
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
@@ -490,8 +1240,8 @@ pub fn add<T>(x: &[u32], y: u32)
 
 /// SubAssign small integer to bigint.
 /// Does not do overflowing subtraction.
-pub fn isub_impl<T>(x: &mut T, y: u32, xstart: usize)
-    where T: CloneableVecLike<u32>
+pub fn isub_impl<T>(x: &mut T, y: Limb, xstart: usize)
+    where T: CloneableVecLike<Limb>
 {
     debug_assert!(x.len() > xstart && (x[xstart] >= y || x.len() > xstart+1));
 
@@ -512,8 +1262,8 @@ pub fn isub_impl<T>(x: &mut T, y: u32, xstart: usize)
 /// SubAssign small integer to bigint.
 /// Does not do overflowing subtraction.
 #[inline(always)]
-pub fn isub<T>(x: &mut T, y: u32)
-    where T: CloneableVecLike<u32>
+pub fn isub<T>(x: &mut T, y: Limb)
+    where T: CloneableVecLike<Limb>
 {
     isub_impl(x, y, 0);
 }
@@ -521,9 +1271,9 @@ pub fn isub<T>(x: &mut T, y: u32)
 /// Sub small integer to bigint.
 #[allow(dead_code)]
 #[inline]
-pub fn sub<T>(x: &[u32], y: u32)
+pub fn sub<T>(x: &[Limb], y: Limb)
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
@@ -535,11 +1285,11 @@ pub fn sub<T>(x: &[u32], y: u32)
 
 /// MulAssign small integer to bigint.
 #[inline]
-pub fn imul<T>(x: &mut T, y: u32)
-    where T: CloneableVecLike<u32>
+pub fn imul<T>(x: &mut T, y: Limb)
+    where T: CloneableVecLike<Limb>
 {
     // Multiply iteratively over all elements, adding the carry each time.
-    let mut carry: u32 = 0;
+    let mut carry: Limb = 0;
     for xi in x.iter_mut() {
         carry = scalar::imul(xi, y, carry);
     }
@@ -553,9 +1303,9 @@ pub fn imul<T>(x: &mut T, y: u32)
 /// Mul small integer to bigint.
 #[allow(dead_code)]
 #[inline]
-pub fn mul<T>(x: &[u32], y: u32)
+pub fn mul<T>(x: &[Limb], y: Limb)
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
@@ -595,17 +1345,31 @@ pub fn mul<T>(x: &[u32], y: u32)
 /// Even using worst-case scenarios, exponentiation by squaring is
 /// significantly slower for our workloads. Just multiply by small powers,
 /// in simple cases, and use precalculated large powers in other cases.
-pub fn imul_power<T>(x: &mut T, base: u32, n: u32)
-    where T: CloneableVecLike<u32>
+pub fn imul_power<T>(x: &mut T, base: Limb, n: Limb)
+    where T: CloneableVecLike<Limb>
 {
     use super::large::KARATSUBA_CUTOFF;
 
-    let bit_length = u32::BITS - n.leading_zeros().as_usize();
-    if x.len() < KARATSUBA_CUTOFF || bit_length < KARATSUBA_CUTOFF {
+    let small_powers = get_small_powers(base);
+    let large_powers = get_large_powers(base);
+    let get_small = | i: usize | unsafe { *small_powers.get_unchecked(i) };
+    let get_large = | i: usize | unsafe { *large_powers.get_unchecked(i) };
+
+    if n == 0 {
+        // No exponent, just return.
+        // The 0-index of the large powers is `2^0`, which is 1, so we want
+        // to make sure we don't take that path with a literal 0.
+        return;
+    }
+
+    // We want to use the asymptotically faster algorithm if we're going
+    // to be using Karabatsu multiplication sometime during the result,
+    // otherwise, just use exponentiation by squaring.
+    let bit_length = Limb::BITS - n.leading_zeros().as_usize();
+    debug_assert!(bit_length != 0 && bit_length <= large_powers.len());
+    if x.len() + get_large(bit_length-1).len() < 2*KARATSUBA_CUTOFF {
         // We can use iterative small powers to make this faster for the
         // easy cases.
-        let small_powers = get_small_powers(base);
-        let get_small = | i: usize | unsafe { *small_powers.get_unchecked(i) };
 
         // Multiply by the largest small power until n < step.
         let step = small_powers.len() - 1;
@@ -622,8 +1386,6 @@ pub fn imul_power<T>(x: &mut T, base: u32, n: u32)
         // In theory, this code should be asymptotically a lot faster,
         // in practice, our small::imul seems to be the limiting step,
         // and large imul is slow as well.
-        let large_powers = get_large_powers(base);
-        let get_large = | i: usize | unsafe { *large_powers.get_unchecked(i) };
 
         // Multiply by higher order powers.
         let mut idx: usize = 0;
@@ -644,9 +1406,9 @@ pub fn imul_power<T>(x: &mut T, base: u32, n: u32)
 /// Mul by a power.
 #[allow(dead_code)]
 #[inline]
-pub fn mul_power<T>(x: &[u32], base: u32, n: u32)
+pub fn mul_power<T>(x: &[Limb], base: Limb, n: Limb)
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
@@ -657,12 +1419,12 @@ pub fn mul_power<T>(x: &[u32], base: u32, n: u32)
 /// DIVISION
 
 /// DivAssign small integer to bigint and get the remainder.
-pub fn idiv<T>(x: &mut T, y: u32)
-    -> u32
-    where T: CloneableVecLike<u32>
+pub fn idiv<T>(x: &mut T, y: Limb)
+    -> Limb
+    where T: CloneableVecLike<Limb>
 {
     // Divide iteratively over all elements, adding the carry each time.
-    let mut rem: u32 = 0;
+    let mut rem: Limb = 0;
     for xi in x.iter_mut().rev() {
         rem = scalar::idiv(xi, y, rem);
     }
@@ -674,9 +1436,9 @@ pub fn idiv<T>(x: &mut T, y: u32)
 /// Div small integer to bigint and get the remainder.
 #[allow(dead_code)]
 #[inline]
-pub fn div<T>(x: &[u32], y: u32)
-    -> (T, u32)
-    where T: CloneableVecLike<u32>
+pub fn div<T>(x: &[Limb], y: Limb)
+    -> (T, Limb)
+    where T: CloneableVecLike<Limb>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
@@ -684,59 +1446,15 @@ pub fn div<T>(x: &[u32], y: u32)
     (z, rem)
 }
 
-/// DivAssign by a power.
-///
-/// It doesn't really make sense to iteratively store on to the remainders,
-/// so we truncate slightly at each step. Ideally, there's enough guard digits
-/// to avoid this.
-///
-/// See `imul_power` for why we do this iteratively, rather than calculate
-/// the exponent via exponentiation by squaring and then do a
-/// 1-shot division.
-pub fn idiv_power<T>(x: &mut T, base: u32, mut n: u32, roundup: bool)
-    where T: CloneableVecLike<u32>
-{
-    let small_powers = get_small_powers(base);
-    let get_power = | i: usize | unsafe { *small_powers.get_unchecked(i) };
-
-    // Divide by the largest small power until n < step.
-    let step = small_powers.len() - 1;
-    let power = get_power(step);
-    let step = step as u32;
-    while n >= step {
-        let rem = idiv(x, power);
-        if roundup {
-            check_do_roundup(x, power, rem);
-        }
-        n -= step;
-    }
-
-    // Multiply by the remainder.
-    let power = get_power(n as usize);
-    let rem = idiv(x, power);
-    if roundup {
-        check_do_roundup(x, power, rem);
-    }
-}
-
-/// Div by a power.
-#[allow(dead_code)]
-#[inline]
-pub fn div_power<T>(x: &[u32], base: u32, n: u32, roundup: bool)
-    -> T
-    where T: CloneableVecLike<u32>
-{
-    let mut z = T::default();
-    z.extend_from_slice(x);
-    idiv_power(&mut z, base, n, roundup);
-    z
-}
-
 // POWER
 
 /// Calculate x^n, using exponentiation by squaring.
-pub fn ipow<T>(x: &mut T, mut n: u32)
-    where T: CloneableVecLike<u32>
+///
+/// This algorithm is slow, using `mul_power` should generally be preferred,
+/// as although it's not asymptotically faster, it precalculates a lot
+/// of results.
+pub fn ipow<T>(x: &mut T, mut n: Limb)
+    where T: CloneableVecLike<Limb>
 {
     // Store `x` as 1, and switch `base` to `x`.
     let mut base = T::default();
@@ -763,9 +1481,9 @@ pub fn ipow<T>(x: &mut T, mut n: u32)
 /// Calculate x^n, using exponentiation by squaring.
 #[allow(dead_code)]
 #[inline]
-pub fn pow<T>(x: &[u32], n: u32)
+pub fn pow<T>(x: &[Limb], n: Limb)
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
@@ -782,73 +1500,67 @@ pub fn pow<T>(x: &[u32], n: u32)
 
 pub(in atof::algorithm) mod large {
 
-use util::*;
-use super::{scalar, small};
+use lib::cmp;
+use super::*;
 
 // RELATIVE OPERATORS
 
-/// Check if x is greater than y.
+/// Compare `x` to `y`, in little-endian order.
 #[allow(dead_code)]
 #[inline]
-pub fn greater(x: &[u32], y: &[u32]) -> bool {
+pub fn compare(x: &[Limb], y: &[Limb]) -> cmp::Ordering {
     if x.len() > y.len() {
-        return true;
+        return cmp::Ordering::Greater;
     } else if x.len() < y.len() {
-        return false;
+        return cmp::Ordering::Less;
     } else {
         let iter = x.iter().rev().zip(y.iter().rev());
         for (&xi, &yi) in iter {
             if xi > yi {
-                return true;
+                return cmp::Ordering::Greater;
             } else if xi < yi {
-                return false;
+                return cmp::Ordering::Less;
             }
         }
         // Equal case.
-        return false;
+        return cmp::Ordering::Equal;
     }
+}
+
+/// Check if x is greater than y.
+#[allow(dead_code)]
+#[inline(always)]
+pub fn greater(x: &[Limb], y: &[Limb]) -> bool {
+    compare(x, y) == cmp::Ordering::Greater
 }
 
 /// Check if x is greater than or equal to y.
 #[allow(dead_code)]
-#[inline]
-pub fn greater_equal(x: &[u32], y: &[u32]) -> bool {
+#[inline(always)]
+pub fn greater_equal(x: &[Limb], y: &[Limb]) -> bool {
     !less(x, y)
 }
 
 /// Check if x is less than y.
 #[allow(dead_code)]
-#[inline]
-pub fn less(x: &[u32], y: &[u32]) -> bool {
-    if x.len() > y.len() {
-        return false;
-    } else if x.len() < y.len() {
-        return true;
-    } else {
-        let iter = x.iter().rev().zip(y.iter().rev());
-        for (&xi, &yi) in iter {
-            if xi > yi {
-                return false;
-            } else if xi < yi {
-                return true;
-            }
-        }
-        // Equal case.
-        return false;
-    }
+#[inline(always)]
+pub fn less(x: &[Limb], y: &[Limb]) -> bool {
+    compare(x, y) == cmp::Ordering::Less
 }
 
 /// Check if x is less than or equal to y.
 #[allow(dead_code)]
-#[inline]
-pub fn less_equal(x: &[u32], y: &[u32]) -> bool {
+#[inline(always)]
+pub fn less_equal(x: &[Limb], y: &[Limb]) -> bool {
     !greater(x, y)
 }
 
 /// Check if x is equal to y.
+/// Slightly optimized for equality comparisons, since it reduces the number
+/// of comparisons relative to `compare`.
 #[allow(dead_code)]
 #[inline]
-pub fn equal(x: &[u32], y: &[u32]) -> bool {
+pub fn equal(x: &[Limb], y: &[Limb]) -> bool {
     let mut iter = x.iter().rev().zip(y.iter().rev());
     x.len() == y.len() && iter.all(|(&xi, &yi)| xi == yi)
 }
@@ -859,8 +1571,8 @@ pub fn equal(x: &[u32], y: &[u32]) -> bool {
 ///
 /// Allows us to choose a start-index in x to store, so we can avoid
 /// padding the buffer with zeros when not needed, optimized for vectors.
-pub fn iadd_impl<T>(x: &mut T, y: &[u32], xstart: usize)
-    where T: CloneableVecLike<u32>
+pub fn iadd_impl<T>(x: &mut T, y: &[Limb], xstart: usize)
+    where T: CloneableVecLike<Limb>
 {
     // The effective x buffer is from `xstart..x.len()`, so we need to treat
     // that as the current range. If the effective y buffer is longer, need
@@ -873,7 +1585,7 @@ pub fn iadd_impl<T>(x: &mut T, y: &[u32], xstart: usize)
     let mut carry = false;
     for (xi, yi) in (&mut x[xstart..]).iter_mut().zip(y.iter()) {
         // Only one op of the two can overflow, since we added at max
-        // u32::max_value() + u32::max_value(). Add the previous carry,
+        // Limb::max_value() + Limb::max_value(). Add the previous carry,
         // and store the current carry for the next.
         let mut tmp = scalar::iadd(xi, *yi);
         if carry {
@@ -891,8 +1603,8 @@ pub fn iadd_impl<T>(x: &mut T, y: &[u32], xstart: usize)
 /// AddAssign bigint to bigint.
 #[allow(dead_code)]
 #[inline(always)]
-pub fn iadd<T>(x: &mut T, y: &[u32])
-    where T: CloneableVecLike<u32>
+pub fn iadd<T>(x: &mut T, y: &[Limb])
+    where T: CloneableVecLike<Limb>
 {
     iadd_impl(x, y, 0)
 }
@@ -900,9 +1612,9 @@ pub fn iadd<T>(x: &mut T, y: &[u32])
 /// Add bigint to bigint.
 #[allow(dead_code)]
 #[inline]
-pub fn add<T>(x: &[u32], y: &[u32])
+pub fn add<T>(x: &[Limb], y: &[Limb])
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
@@ -914,8 +1626,8 @@ pub fn add<T>(x: &[u32], y: &[u32])
 
 /// SubAssign bigint to bigint.
 #[allow(dead_code)]
-pub fn isub<T>(x: &mut T, y: &[u32])
-    where T: CloneableVecLike<u32>
+pub fn isub<T>(x: &mut T, y: &[Limb])
+    where T: CloneableVecLike<Limb>
 {
     // Basic underflow checks.
     debug_assert!(greater_equal(x, y));
@@ -924,7 +1636,7 @@ pub fn isub<T>(x: &mut T, y: &[u32])
     let mut carry = false;
     for (xi, yi) in x.iter_mut().zip(y.iter()) {
         // Only one op of the two can overflow, since we added at max
-        // u32::max_value() + u32::max_value(). Add the previous carry,
+        // Limb::max_value() + Limb::max_value(). Add the previous carry,
         // and store the current carry for the next.
         let mut tmp = scalar::isub(xi, *yi);
         if carry {
@@ -943,9 +1655,9 @@ pub fn isub<T>(x: &mut T, y: &[u32])
 /// Sub bigint to bigint.
 #[allow(dead_code)]
 #[inline]
-pub fn sub<T>(x: &[u32], y: &[u32])
+pub fn sub<T>(x: &[Limb], y: &[Limb])
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
@@ -964,14 +1676,14 @@ pub const KARATSUBA_CUTOFF: usize = 32;
 
 /// Grade-school multiplication algorithm.
 ///
-/// Slow, naive algorithm, using 32-bit bases and just shifting left for
+/// Slow, naive algorithm, using limb-bit bases and just shifting left for
 /// each iteration. This could be optimized with numerous other algorithms,
 /// but it's extremely simple, and works in O(n*m) time, which is fine
 /// by me. Each iteration, of which there are `m` iterations, requires
 /// `n` multiplications, and `n` additions, or grade-school multiplication.
-fn long_mul<T>(x: &[u32], y: &[u32])
+fn long_mul<T>(x: &[Limb], y: &[Limb])
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     // Using the immutable value, multiply by all the scalars in y, using
     // the algorithm defined above. Use a single buffer to avoid
@@ -995,8 +1707,8 @@ fn long_mul<T>(x: &[u32], y: &[u32])
 
 /// Split two buffers into halfway, into (lo, hi).
 #[inline(always)]
-pub fn karatsuba_split<'a>(z: &'a [u32], m: usize)
-    -> (&'a [u32], &'a [u32])
+pub fn karatsuba_split<'a>(z: &'a [Limb], m: usize)
+    -> (&'a [Limb], &'a [Limb])
 {
     (&z[..m], &z[m..])
 }
@@ -1004,9 +1716,9 @@ pub fn karatsuba_split<'a>(z: &'a [u32], m: usize)
 /// Karatsuba multiplication algorithm with roughly equal input sizes.
 ///
 /// Assumes `y.len() >= x.len()`.
-fn karatsuba_mul<T>(x: &[u32], y: &[u32])
+fn karatsuba_mul<T>(x: &[Limb], y: &[Limb])
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     if y.len() <= KARATSUBA_CUTOFF {
         // Bottom-out to long division for small cases.
@@ -1045,9 +1757,9 @@ fn karatsuba_mul<T>(x: &[u32], y: &[u32])
 /// Karatsuba multiplication algorithm where y is substantially larger than x.
 ///
 /// Assumes `y.len() >= x.len()`.
-fn karatsuba_uneven_mul<T>(x: &[u32], mut y: &[u32])
+fn karatsuba_uneven_mul<T>(x: &[Limb], mut y: &[Limb])
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     let mut result = T::default();
     result.resize(x.len() + y.len(), 0);
@@ -1071,9 +1783,9 @@ fn karatsuba_uneven_mul<T>(x: &[u32], mut y: &[u32])
 
 /// Forwarder to the proper Karatsuba algorithm.
 #[inline(always)]
-fn karatsuba_mul_fwd<T>(x: &[u32], y: &[u32])
+fn karatsuba_mul_fwd<T>(x: &[Limb], y: &[Limb])
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     if x.len() < y.len() {
         karatsuba_mul(x, y)
@@ -1085,8 +1797,8 @@ fn karatsuba_mul_fwd<T>(x: &[u32], y: &[u32])
 /// MulAssign bigint to bigint.
 #[allow(dead_code)]
 #[inline]
-pub fn imul<T>(x: &mut T, y: &[u32])
-    where T: CloneableVecLike<u32>
+pub fn imul<T>(x: &mut T, y: &[Limb])
+    where T: CloneableVecLike<Limb>
 {
     unsafe {
         if y.len() == 1 {
@@ -1104,9 +1816,9 @@ pub fn imul<T>(x: &mut T, y: &[u32])
 /// Mul bigint to bigint.
 #[allow(dead_code)]
 #[inline]
-pub fn mul<T>(x: &[u32], y: &[u32])
+pub fn mul<T>(x: &[Limb], y: &[Limb])
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
@@ -1117,8 +1829,8 @@ pub fn mul<T>(x: &[u32], y: &[u32])
 // DIVISION
 
 /// Constants for algorithm D.
-const ALGORITHM_D_B: u64 = 1 << 32;
-const ALGORITHM_D_M: u64 = ALGORITHM_D_B - 1;
+const ALGORITHM_D_B: Wide = 1 << Limb::BITS;
+const ALGORITHM_D_M: Wide = ALGORITHM_D_B - 1;
 
 /// Calculate qhat (an estimate for the quotient).
 ///
@@ -1127,22 +1839,22 @@ const ALGORITHM_D_M: u64 = ALGORITHM_D_B - 1;
 ///
 /// * `j`   - Current index on the iteration of the loop.
 #[inline]
-unsafe fn calculate_qhat(x: &[u32], y: &[u32], j: usize)
+unsafe fn calculate_qhat(x: &[Limb], y: &[Limb], j: usize)
     -> u64
 {
     let n = y.len();
 
     // Closures
-    let get_u64 = | x: &[u32], i: usize | x.get_unchecked(i).as_u64();
+    let get_wide = | x: &[Limb], i: usize | x.get_unchecked(i).as_u64();
 
     // Estimate qhat of q[j]
     // Original Code:
     //  qhat = (x[j+n]*B + x[j+n-1])/y[n-1];
     //  rhat = (x[j+n]*B + x[j+n-1]) - qhat*y[n-1];
-    let x_jn = get_u64(&x, j+n);
-    let x_jn1 = get_u64(&x, j+n-1);
-    let num = (x_jn << u32::BITS) + x_jn1;
-    let den = get_u64(&y, n-1);
+    let x_jn = get_wide(&x, j+n);
+    let x_jn1 = get_wide(&x, j+n-1);
+    let num = (x_jn << Limb::BITS) + x_jn1;
+    let den = get_wide(&y, n-1);
     let mut qhat = num / den;
     let mut rhat = num - qhat * den;
 
@@ -1154,10 +1866,11 @@ unsafe fn calculate_qhat(x: &[u32], y: &[u32], j: usize)
     //      rhat = rhat + y[n-1];
     //      if (rhat < B) goto again;
     //    }
-    let x_jn2 = get_u64(&x, j+n-2);
-    let y_n2 = get_u64(&y, n-2);
-    let y_n1 = get_u64(&y, n-1);
-    while qhat >= ALGORITHM_D_B || qhat * y_n2 > (rhat << u32::BITS) + x_jn2 {
+    let x_jn2 = get_wide(&x, j+n-2);
+    let y_n2 = get_wide(&y, n-2);
+    let y_n1 = get_wide(&y, n-1);
+    // This only happens when the leading bit of qhat is set.
+    while qhat >= ALGORITHM_D_B || qhat * y_n2 > (rhat << Limb::BITS) + x_jn2 {
         qhat -= 1;
         rhat += y_n1;
         if rhat >= ALGORITHM_D_B {
@@ -1173,16 +1886,16 @@ unsafe fn calculate_qhat(x: &[u32], y: &[u32], j: usize)
 /// This is step D4 in Algorithm D in "The Art of Computer Programming",
 /// and returns the remainder.
 #[inline]
-unsafe fn multiply_and_subtract<T>(x: &mut T, y: &T, qhat: u64, j: usize)
-    -> i64
-    where T: CloneableVecLike<u32>
+unsafe fn multiply_and_subtract<T>(x: &mut T, y: &T, qhat: Wide, j: usize)
+    -> SignedWide
+    where T: CloneableVecLike<Limb>
 {
     let n = y.len();
 
     // Closures
-    let set = | x: &mut T, i: usize, xi: u32 | *x.get_unchecked_mut(i) = xi;
-    let get_i64 = | x: &T, i: usize | x.get_unchecked(i).as_i64();
-    let get_u64 = | x: &T, i: usize | x.get_unchecked(i).as_u64();
+    let set = | x: &mut T, i: usize, xi: Limb | *x.get_unchecked_mut(i) = xi;
+    let get_signed_wide = | x: &T, i: usize | as_signed_wide(*x.get_unchecked(i));
+    let get_wide = | x: &T, i: usize | as_wide(*x.get_unchecked(i));
 
     // Multiply and subtract
     // Original Code:
@@ -1195,18 +1908,18 @@ unsafe fn multiply_and_subtract<T>(x: &mut T, y: &T, qhat: u64, j: usize)
     //  }
     //  t = x[j+n] - k;
     //  x[j+n] = t;
-    let mut k: i64 = 0;
-    let mut t: i64;
+    let mut k: SignedWide = 0;
+    let mut t: SignedWide;
     for i in 0..n {
-        let x_ij = get_i64(&x, i+j);
-        let y_i = get_u64(&y, i);
+        let x_ij = get_signed_wide(&x, i+j);
+        let y_i = get_wide(&y, i);
         let p = qhat * y_i;
-        t = x_ij.wrapping_sub(k).wrapping_sub((p & ALGORITHM_D_M).as_i64());
-        set(x, i+j, t.as_u32());
-        k = (p >> 32).as_i64() - (t >> 32);
+        t = x_ij.wrapping_sub(k).wrapping_sub(as_signed_wide(p & ALGORITHM_D_M));
+        set(x, i+j, as_limb(t));
+        k = as_signed_wide(p >> Limb::BITS) - (t >> Limb::BITS);
     }
-    t = get_i64(&x, j+n) - k;
-    set(x, j+n, t.as_u32());
+    t = get_signed_wide(&x, j+n) - k;
+    set(x, j+n, as_limb(t));
 
     t
 }
@@ -1216,8 +1929,8 @@ unsafe fn multiply_and_subtract<T>(x: &mut T, y: &T, qhat: u64, j: usize)
 /// This is a mix of step D5 and D6 in Algorithm D, so the algorithm
 /// may work for single passes, without a quotient buffer.
 #[inline]
-unsafe fn test_quotient(qhat: u64, t: i64)
-    -> u64
+unsafe fn test_quotient(qhat: Wide, t: SignedWide)
+    -> Wide
 {
     if t < 0 {
         qhat - 1
@@ -1231,10 +1944,10 @@ unsafe fn test_quotient(qhat: u64, t: i64)
 /// This is a mix of step D5 and D6 in Algorithm D, so the algorithm
 /// may work for single passes, without a quotient buffer.
 #[inline]
-unsafe fn store_quotient<T>(q: &mut T, qhat: u64, j: usize)
-    where T: CloneableVecLike<u32>
+unsafe fn store_quotient<T>(q: &mut T, qhat: Wide, j: usize)
+    where T: CloneableVecLike<Limb>
 {
-    *q.get_unchecked_mut(j) = qhat.as_u32();
+    *q.get_unchecked_mut(j) = as_limb(qhat);
 }
 
 /// Add back.
@@ -1245,17 +1958,17 @@ unsafe fn store_quotient<T>(q: &mut T, qhat: u64, j: usize)
 /// remainder.
 ///
 /// This step should be specifically debugged, due to its low likelihood,
-/// since the probability is ~2/b, where b in this case is 2^32.
+/// since the probability is ~2/b, where b in this case is 2^32 or 2^64.
 #[inline]
-unsafe fn add_back<T>(x: &mut T, y: &T, mut t: i64, j: usize)
-    where T: CloneableVecLike<u32>
+unsafe fn add_back<T>(x: &mut T, y: &T, mut t: SignedWide, j: usize)
+    where T: CloneableVecLike<Limb>
 {
     let n = y.len();
 
     // Closures
-    let set = | x: &mut T, i: usize, xi: u32 | *x.get_unchecked_mut(i) = xi;
-    let get_i64 = | x: &T, i: usize | x.get_unchecked(i).as_i64();
-    let get_u64 = | x: &T, i: usize | x.get_unchecked(i).as_u64();
+    let set = | x: &mut T, i: usize, xi: Limb | *x.get_unchecked_mut(i) = xi;
+    let get_signed_wide = | x: &T, i: usize | as_signed_wide(*x.get_unchecked(i));
+    let get_wide = | x: &T, i: usize | as_wide(*x.get_unchecked(i));
 
     // Store quotient digits
     // If we subtracted too much, add back.
@@ -1272,14 +1985,14 @@ unsafe fn add_back<T>(x: &mut T, y: &T, mut t: i64, j: usize)
     //     x[j+n] = x[j+n] + k;
     //  }
     if t < 0 {
-        let mut k: i64 = 0;
+        let mut k: SignedWide = 0;
         for i in 0..n {
-            t = (get_u64(x, i+j) + get_u64(y, i)).as_i64() + k;
-            set(x, i+j, t.as_u32());
-            k = t >> 32;
+            t = as_signed_wide(get_wide(x, i+j) + get_wide(y, i)) + k;
+            set(x, i+j, as_limb(t));
+            k = t >> Limb::BITS;
         }
-        let x_jn = get_i64(x, j+n) + k;
-        set(x, j+n, x_jn.as_u32());
+        let x_jn = get_signed_wide(x, j+n) + k;
+        set(x, j+n, as_limb(x_jn));
     }
 }
 
@@ -1288,13 +2001,13 @@ unsafe fn add_back<T>(x: &mut T, y: &T, mut t: i64, j: usize)
 /// This is step D8 in Algorithm D in "The Art of Computer Programming",
 /// and "unnormalizes" to calculate the remainder from the quotient.
 #[inline]
-unsafe fn calculate_remainder<T>(x: &[u32], y: &[u32], s: u32)
+unsafe fn calculate_remainder<T>(x: &[Limb], y: &[Limb], s: usize)
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     // Closures
-    let get = | x: &[u32], i: usize | *x.get_unchecked(i);
-    let get_u64 = | x: &[u32], i: usize | get(x, i).as_u64();
+    let get = | x: &[Limb], i: usize | *x.get_unchecked(i);
+    let get_wide = | x: &[Limb], i: usize | as_wide(get(x, i));
 
     // Calculate the remainder.
     // Original Code:
@@ -1304,15 +2017,15 @@ unsafe fn calculate_remainder<T>(x: &[u32], y: &[u32], s: u32)
     let n = y.len();
     let mut r = T::default();
     r.reserve_exact(n);
-    let rs = 32 - s;
+    let rs = Limb::BITS - s;
     for i in 0..n-1 {
-        let xi = get_u64(x, i) >> s;
-        let xi1 = get_u64(x, i+1) << rs;
+        let xi = get_wide(x, i) >> s;
+        let xi1 = get_wide(x, i+1) << rs;
         let ri = xi | xi1;
-        r.push(ri.as_u32());
+        r.push(as_limb(ri));
     }
     let x_n1 = get(&x, n-1) >> s;
-    r.push(x_n1.as_u32());
+    r.push(as_limb(x_n1));
 
     r
 }
@@ -1329,30 +2042,32 @@ unsafe fn calculate_remainder<T>(x: &[u32], y: &[u32], s: u32)
 /// All Hacker's Delight code is public domain, so this routine shall
 /// also be placed in the public domain. See:
 ///     https://www.hackersdelight.org/permissions.htm
-unsafe fn algorithm_d_div<T>(x: &[u32], y: &[u32])
+unsafe fn algorithm_d_div<T>(x: &[Limb], y: &[Limb])
     -> (T, T)
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     // Normalize the divisor so the leading-bit is set to 1.
     // x is the dividend, y is the divisor.
     // Need a leading zero on the numerator.
-    let s = y.get_unchecked(y.len()-1).leading_zeros();
+    let s = y.get_unchecked(y.len()-1).leading_zeros().as_usize();
     let m = x.len();
     let n = y.len();
     let mut xn: T = small::shl_bits(x, s);
-    xn.push(0);
     let yn: T = small::shl_bits(y, s);
+    xn.push(0);
 
     // Store certain variables for the algorithm.
     let mut q = T::default();
     q.resize(m-n+1, 0);
     for j in (0..m-n+1).rev() {
         // Estimate the quotient
-        let qhat = calculate_qhat(&xn, &yn, j);
-        let t = multiply_and_subtract(&mut xn, &yn, qhat, j);
-        let qhat = test_quotient(qhat, t);
+        let mut qhat = calculate_qhat(&xn, &yn, j);
+        if qhat != 0 {
+            let t = multiply_and_subtract(&mut xn, &yn, qhat, j);
+            qhat = test_quotient(qhat, t);
+            add_back(&mut xn, &yn, t, j);
+        }
         store_quotient(&mut q, qhat, j);
-        add_back(&mut xn, &yn, t, j);
     }
     let mut r = calculate_remainder(&xn, &yn, s);
 
@@ -1365,9 +2080,9 @@ unsafe fn algorithm_d_div<T>(x: &[u32], y: &[u32])
 
 /// DivAssign bigint to bigint.
 #[allow(dead_code)]
-pub fn idiv<T>(x: &mut T, y: &[u32])
+pub fn idiv<T>(x: &mut T, y: &[Limb])
     -> T
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     debug_assert!(y.len() != 0);
 
@@ -1395,9 +2110,9 @@ pub fn idiv<T>(x: &mut T, y: &[u32])
 /// Div bigint to bigint.
 #[allow(dead_code)]
 #[inline]
-pub fn div<T>(x: &[u32], y: &[u32])
+pub fn div<T>(x: &[Limb], y: &[Limb])
     -> (T, T)
-    where T: CloneableVecLike<u32>
+    where T: CloneableVecLike<Limb>
 {
     let mut z = T::default();
     z.extend_from_slice(x);
@@ -1421,14 +2136,15 @@ pub fn div<T>(x: &[u32], y: &[u32])
 ///     www.netlib.org/fp/dtoa.c
 #[allow(dead_code)]
 pub unsafe fn quorem<T>(x: &mut T, y: &T)
-    -> u32
-    where T: CloneableVecLike<u32>
+    -> Limb
+    where T: CloneableVecLike<Limb>
 {
     debug_assert!(y.len() > 0);
+    let mask = as_wide(Limb::max_value());
 
     // Closures
-    let set = | x: &mut T, i: usize, xi: u32 | *x.get_unchecked_mut(i) = xi;
-    let get_u64 = | x: &T, i: usize | x.get_unchecked(i).as_u64();
+    let set = | x: &mut T, i: usize, xi: Limb | *x.get_unchecked_mut(i) = xi;
+    let get_wide = | x: &T, i: usize | as_wide(*x.get_unchecked(i));
 
     // Numerator is smaller the denominator, quotient always 0.
     let m = x.len();
@@ -1444,14 +2160,14 @@ pub unsafe fn quorem<T>(x: &mut T, y: &T)
 
     // Need to calculate the remainder if we don't have a 0 quotient.
     if q != 0 {
-        let mut borrow: u64 = 0;
-        let mut carry: u64 = 0;
+        let mut borrow: Wide = 0;
+        let mut carry: Wide = 0;
         for j in 0..m {
-            let p = get_u64(y, j) * q.as_u64() + carry;
-            carry = p >> 32;
-            let t = get_u64(x, j).wrapping_sub(p & 0xFFFFFFFF).wrapping_sub(borrow);
-            borrow = (t >> 32) & 1;
-            set(x, j, t.as_u32());
+            let p = get_wide(y, j) * as_wide(q) + carry;
+            carry = p >> Limb::BITS;
+            let t = get_wide(x, j).wrapping_sub(p & mask).wrapping_sub(borrow);
+            borrow = (t >> Limb::BITS) & 1;
+            set(x, j, as_limb(t));
         }
         small::normalize(x);
     }
@@ -1459,14 +2175,14 @@ pub unsafe fn quorem<T>(x: &mut T, y: &T)
     // Check if we under-estimated x.
     if greater_equal(x, y) {
         q += 1;
-        let mut borrow: u64 = 0;
-        let mut carry: u64 = 0;
+        let mut borrow: Wide = 0;
+        let mut carry: Wide = 0;
         for j in 0..m {
-            let p = get_u64(y, j)+ carry;
-            carry = p >> 32;
-            let t = get_u64(x, j).wrapping_sub(p & 0xFFFFFFFF).wrapping_sub(borrow);
-            borrow = (t >> 32) & 1;
-            set(x, j, t.as_u32());
+            let p = get_wide(y, j) + carry;
+            carry = p >> Limb::BITS;
+            let t = get_wide(x, j).wrapping_sub(p & mask).wrapping_sub(borrow);
+            borrow = (t >> Limb::BITS) & 1;
+            set(x, j, as_limb(t));
         }
         small::normalize(x);
     }
@@ -1476,8 +2192,8 @@ pub unsafe fn quorem<T>(x: &mut T, y: &T)
 
 }   // large
 
+use lib::cmp;
 use float::Mantissa;
-use util::*;
 use super::small_powers::*;
 
 /// Generate the imul_pown wrappers.
@@ -1487,17 +2203,6 @@ macro_rules! imul_power {
         #[inline]
         fn $name(&mut self, n: u32) {
             self.imul_power_impl($base, n)
-        }
-    );
-}
-
-/// Generate the idiv_pown wrappers.
-macro_rules! idiv_power {
-    ($name:ident, $base:expr) => (
-        /// Divide by a power of $base.
-        #[inline]
-        fn $name(&mut self, n: u32, roundup: bool) {
-            self.idiv_power_impl($base, n, roundup)
         }
     );
 }
@@ -1512,7 +2217,7 @@ macro_rules! idiv_power {
 /// and explicitly use these functions.
 pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
     /// Underlying storage type for a SmallOps.
-    type StorageType: CloneableVecLike<u32>;
+    type StorageType: CloneableVecLike<Limb>;
 
     // DATA
 
@@ -1522,7 +2227,21 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
     /// Get access to the underlying data
     fn data_mut<'a>(&'a mut self) -> &'a mut Self::StorageType;
 
+    // ZERO
+
+    /// Check if the value is a normalized 0.
+    #[inline]
+    fn is_zero(&self) -> bool {
+        self.limb_length() == 0
+    }
+
     // RELATIVE OPERATIONS
+
+    /// Compare self to y.
+    #[inline]
+    fn compare(&self, y: &Self) -> cmp::Ordering {
+        large::compare(self.data(), y.data())
+    }
 
     /// Check if self is greater than y.
     #[inline]
@@ -1556,18 +2275,18 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
 
     // PROPERTIES
 
-    /// Get the number of leading zero values in the storage.
+    /// Get the number of leading zero digits in the storage.
     /// Assumes the value is normalized.
     #[inline]
-    fn leading_zero_values(&self) -> usize {
-        small::leading_zero_values(self.data())
+    fn leading_zero_limbs(&self) -> usize {
+        small::leading_zero_limbs(self.data())
     }
 
-    /// Get the number of trailing zero values in the storage.
+    /// Get the number of trailing zero digits in the storage.
     /// Assumes the value is normalized.
     #[inline]
-    fn trailing_zero_values(&self) -> usize {
-        small::trailing_zero_values(self.data())
+    fn trailing_zero_limbs(&self) -> usize {
+        small::trailing_zero_limbs(self.data())
     }
 
     /// Get number of leading zero bits in the storage.
@@ -1584,9 +2303,48 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
         small::trailing_zeros(self.data())
     }
 
+    /// Calculate the bit-length of the big-integer.
+    /// Returns usize::max_value() if the value overflows,
+    /// IE, if `self.data().len() > usize::max_value() / 8`.
+    #[inline]
+    fn bit_length(&self) -> usize {
+        small::bit_length(self.data())
+    }
+
+    /// Calculate the digit-length of the big-integer.
+    #[inline]
+    fn limb_length(&self) -> usize {
+        small::limb_length(self.data())
+    }
+
+    /// Get the high 16-bits from the bigint and if there are remaining bits.
+    #[inline]
+    fn hi16(&self) -> (u16, bool) {
+        self.data().as_slice().hi16()
+    }
+
+    /// Get the high 32-bits from the bigint and if there are remaining bits.
+    #[inline]
+    fn hi32(&self) -> (u32, bool) {
+        self.data().as_slice().hi32()
+    }
+
+    /// Get the high 64-bits from the bigint and if there are remaining bits.
+    #[inline]
+    fn hi64(&self) -> (u64, bool) {
+        self.data().as_slice().hi64()
+    }
+
+    /// Get the high 128-bits from the bigint and if there are remaining bits.
+    #[inline]
+    fn hi128(&self) -> (u128, bool) {
+        self.data().as_slice().hi128()
+    }
+
     /// Pad the buffer with zeros to the least-significant bits.
-    fn pad_zeros(&mut self, n: usize) -> usize {
-        small::ishl_digits(self.data_mut(), n);
+    #[inline]
+    fn pad_zero_digits(&mut self, n: usize) -> usize {
+        small::ishl_limbs(self.data_mut(), n);
         n
     }
 
@@ -1595,6 +2353,7 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
     /// Split u64 into two consecutive u32s, in little-endian order.
     #[inline]
     fn split_u64(x: u64) -> (u32, u32) {
+        // TODO(ahuszagh) this needs to be dependent on the limb type...
         let d0 = (x >> 32) as u32;
         let d1 = (x & u64::LOMASK) as u32;
         (d1, d0)
@@ -1703,15 +2462,6 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
         x.ishr(n, roundup);
         x
     }
-
-    // BITLENGTH
-
-    /// Calculate the bit-length of the big-integer.
-    /// Returns usize::max_value() if the value overflows,
-    /// IE, if `self.data().len() > usize::max_value() / 8`.
-    fn bit_length(&self) -> usize {
-        small::bit_length(self.data())
-    }
 }
 
 /// Trait for small operations for arbitrary-precision numbers.
@@ -1720,7 +2470,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
 
     /// Get the small powers from the base.
     #[inline]
-    fn small_powers(base: u32) -> &'static [u32] {
+    fn small_powers(base: u32) -> &'static [Limb] {
         get_small_powers(base)
     }
 
@@ -1728,13 +2478,13 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
 
     /// AddAssign small integer.
     #[inline]
-    fn iadd_small(&mut self, y: u32) {
+    fn iadd_small(&mut self, y: Limb) {
         small::iadd(self.data_mut(), y);
     }
 
     /// Add small integer to a copy of self.
     #[inline]
-    fn add_small(&self, y: u32) -> Self {
+    fn add_small(&self, y: Limb) -> Self {
         let mut x = self.clone();
         x.iadd_small(y);
         x
@@ -1745,14 +2495,14 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
     /// SubAssign small integer.
     /// Warning: Does no overflow checking, x must be >= y.
     #[inline]
-    unsafe fn isub_small(&mut self, y: u32) {
+    unsafe fn isub_small(&mut self, y: Limb) {
         small::isub(self.data_mut(), y);
     }
 
     /// Sub small integer to a copy of self.
     /// Warning: Does no overflow checking, x must be >= y.
     #[inline]
-    unsafe fn sub_small(&mut self, y: u32) -> Self {
+    unsafe fn sub_small(&mut self, y: Limb) -> Self {
         let mut x = self.clone();
         x.isub_small(y);
         x
@@ -1762,13 +2512,13 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
 
     /// MulAssign small integer.
     #[inline]
-    fn imul_small(&mut self, y: u32) {
+    fn imul_small(&mut self, y: Limb) {
         small::imul(self.data_mut(), y);
     }
 
     /// Mul small integer to a copy of self.
     #[inline]
-    fn mul_small(&self, y: u32) -> Self {
+    fn mul_small(&self, y: Limb) -> Self {
         let mut x = self.clone();
         x.imul_small(y);
         x
@@ -1777,10 +2527,10 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
     /// MulAssign by a power.
     #[inline]
     fn imul_power_impl(&mut self, base: u32, n: u32) {
-        small::imul_power(self.data_mut(), base, n);
+        small::imul_power(self.data_mut(), as_limb(base), n);
     }
 
-    fn imul_power(&mut self, n: u32, base: u32) {
+    fn imul_power(&mut self, base: u32, n: u32) {
         match base {
             2  => self.imul_pow2(n),
             3  => self.imul_pow3(n),
@@ -2014,266 +2764,29 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
 
     /// DivAssign small integer, and return the remainder.
     #[inline]
-    fn idiv_small(&mut self, y: u32) -> u32 {
+    fn idiv_small(&mut self, y: Limb) -> Limb {
         small::idiv(self.data_mut(), y)
     }
 
     /// Div small integer to a copy of self, and return the remainder.
     #[inline]
-    fn div_small(&self, y: u32) -> (Self, u32) {
+    fn div_small(&self, y: Limb) -> (Self, Limb) {
         let mut x = self.clone();
         let rem = x.idiv_small(y);
         (x, rem)
-    }
-
-    /// Implied divAssign by a power.
-    #[inline]
-    fn idiv_power_impl(&mut self, base: u32, n: u32, roundup: bool) {
-        small::idiv_power(self.data_mut(), base, n, roundup);
-    }
-
-    /// DivAssign by a power.
-    fn idiv_power(&mut self, n: u32, base: u32, roundup: bool) {
-        match base {
-            2  => self.idiv_pow2(n, roundup),
-            3  => self.idiv_pow3(n, roundup),
-            4  => self.idiv_pow4(n, roundup),
-            5  => self.idiv_pow5(n, roundup),
-            6  => self.idiv_pow6(n, roundup),
-            7  => self.idiv_pow7(n, roundup),
-            8  => self.idiv_pow8(n, roundup),
-            9  => self.idiv_pow9(n, roundup),
-            10 => self.idiv_pow10(n, roundup),
-            11 => self.idiv_pow11(n, roundup),
-            12 => self.idiv_pow12(n, roundup),
-            13 => self.idiv_pow13(n, roundup),
-            14 => self.idiv_pow14(n, roundup),
-            15 => self.idiv_pow15(n, roundup),
-            16 => self.idiv_pow16(n, roundup),
-            17 => self.idiv_pow17(n, roundup),
-            18 => self.idiv_pow18(n, roundup),
-            19 => self.idiv_pow19(n, roundup),
-            20 => self.idiv_pow20(n, roundup),
-            21 => self.idiv_pow21(n, roundup),
-            22 => self.idiv_pow22(n, roundup),
-            23 => self.idiv_pow23(n, roundup),
-            24 => self.idiv_pow24(n, roundup),
-            25 => self.idiv_pow25(n, roundup),
-            26 => self.idiv_pow26(n, roundup),
-            27 => self.idiv_pow27(n, roundup),
-            28 => self.idiv_pow28(n, roundup),
-            29 => self.idiv_pow29(n, roundup),
-            30 => self.idiv_pow30(n, roundup),
-            31 => self.idiv_pow31(n, roundup),
-            32 => self.idiv_pow32(n, roundup),
-            33 => self.idiv_pow33(n, roundup),
-            34 => self.idiv_pow34(n, roundup),
-            35 => self.idiv_pow35(n, roundup),
-            36 => self.idiv_pow36(n, roundup),
-            _  => unreachable!()
-        }
-    }
-
-    /// Divide by a power of 2.
-    fn idiv_pow2(&mut self, n: u32, roundup: bool) {
-        self.ishr(n.as_usize(), roundup)
-    }
-
-    idiv_power!(idiv_pow3, 3);
-
-    /// Divide by a power of 4.
-    #[inline]
-    fn idiv_pow4(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow2(2*n, roundup);
-    }
-
-    idiv_power!(idiv_pow5, 5);
-
-    /// Divide by a power of 6.
-    #[inline]
-    fn idiv_pow6(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow3(n, roundup);
-        self.idiv_pow2(n, roundup);
-    }
-
-    idiv_power!(idiv_pow7, 7);
-
-    /// Divide by a power of 8.
-    #[inline]
-    fn idiv_pow8(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow2(3*n, roundup);
-    }
-
-    /// Divide by a power of 9.
-    #[inline]
-    fn idiv_pow9(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow3(n, roundup);
-        self.idiv_pow3(n, roundup);
-    }
-
-    /// Divide by a power of 10.
-    #[inline]
-    fn idiv_pow10(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow5(n, roundup);
-        self.idiv_pow2(n, roundup);
-    }
-
-    idiv_power!(idiv_pow11, 11);
-
-    /// Divide by a power of 12.
-    #[inline]
-    fn idiv_pow12(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow3(n, roundup);
-        self.idiv_pow4(n, roundup);
-    }
-
-    idiv_power!(idiv_pow13, 13);
-
-    /// Divide by a power of 14.
-    #[inline]
-    fn idiv_pow14(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow7(n, roundup);
-        self.idiv_pow2(n, roundup);
-    }
-
-    /// Divide by a power of 15.
-    #[inline]
-    fn idiv_pow15(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow3(n, roundup);
-        self.idiv_pow5(n, roundup);
-    }
-
-    /// Divide by a power of 16.
-    #[inline]
-    fn idiv_pow16(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow2(4*n, roundup);
-    }
-
-    idiv_power!(idiv_pow17, 17);
-
-    /// Divide by a power of 18.
-    #[inline]
-    fn idiv_pow18(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow9(n, roundup);
-        self.idiv_pow2(n, roundup);
-    }
-
-    idiv_power!(idiv_pow19, 19);
-
-    /// Divide by a power of 20.
-    #[inline]
-    fn idiv_pow20(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow5(n, roundup);
-        self.idiv_pow4(n, roundup);
-    }
-
-    /// Divide by a power of 21.
-    #[inline]
-    fn idiv_pow21(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow3(n, roundup);
-        self.idiv_pow7(n, roundup);
-    }
-
-    /// Divide by a power of 22.
-    #[inline]
-    fn idiv_pow22(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow11(n, roundup);
-        self.idiv_pow2(n, roundup);
-    }
-
-    idiv_power!(idiv_pow23, 23);
-
-    /// Divide by a power of 24.
-    #[inline]
-    fn idiv_pow24(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow3(n, roundup);
-        self.idiv_pow8(n, roundup);
-    }
-
-    /// Divide by a power of 25.
-    #[inline]
-    fn idiv_pow25(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow5(n, roundup);
-        self.idiv_pow5(n, roundup);
-    }
-
-    /// Divide by a power of 26.
-    #[inline]
-    fn idiv_pow26(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow13(n, roundup);
-        self.idiv_pow2(n, roundup);
-    }
-
-    /// Divide by a power of 27.
-    #[inline]
-    fn idiv_pow27(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow9(n, roundup);
-        self.idiv_pow3(n, roundup);
-    }
-
-    /// Divide by a power of 28.
-    #[inline]
-    fn idiv_pow28(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow7(n, roundup);
-        self.idiv_pow4(n, roundup);
-    }
-
-    idiv_power!(idiv_pow29, 29);
-
-    /// Divide by a power of 30.
-    #[inline]
-    fn idiv_pow30(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow15(n, roundup);
-        self.idiv_pow2(n, roundup);
-    }
-
-    idiv_power!(idiv_pow31, 31);
-
-    /// Divide by a power of 32.
-    #[inline]
-    fn idiv_pow32(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow2(5*n, roundup);
-    }
-
-    /// Divide by a power of 33.
-    #[inline]
-    fn idiv_pow33(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow3(n, roundup);
-        self.idiv_pow11(n, roundup);
-    }
-
-    /// Divide by a power of 34.
-    #[inline]
-    fn idiv_pow34(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow17(n, roundup);
-        self.idiv_pow2(n, roundup);
-    }
-
-    /// Divide by a power of 35.
-    #[inline]
-    fn idiv_pow35(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow5(n, roundup);
-        self.idiv_pow7(n, roundup);
-    }
-
-    /// Divide by a power of 36.
-    #[inline]
-    fn idiv_pow36(&mut self, n: u32, roundup: bool) {
-        self.idiv_pow9(n, roundup);
-        self.idiv_pow4(n, roundup);
     }
 
     // POWER
 
     /// Calculate self^n
     #[inline]
-    fn ipow(&mut self, n: u32) {
+    fn ipow(&mut self, n: Limb) {
         small::ipow(self.data_mut(), n);
     }
 
     /// Calculate self^n
     #[inline]
-    fn pow(&self, n: u32) -> Self {
+    fn pow(&self, n: Limb) -> Self {
         let mut x = self.clone();
         x.ipow(n);
         x
@@ -2292,7 +2805,7 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
 
     /// Add large integer to a copy of self.
     #[inline]
-    fn add_small(&mut self, y: &Self) -> Self {
+    fn add_large(&mut self, y: &Self) -> Self {
         let mut x = self.clone();
         x.iadd_large(y);
         x
@@ -2310,7 +2823,7 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
     /// Sub large integer to a copy of self.
     /// Warning: Does no overflow checking, x must be >= y.
     #[inline]
-    unsafe fn sub_small(&mut self, y: &Self) -> Self {
+    unsafe fn sub_large(&mut self, y: &Self) -> Self {
         let mut x = self.clone();
         x.isub_large(y);
         x
@@ -2326,7 +2839,7 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
 
     /// Mul large integer to a copy of self.
     #[inline]
-    fn mul_small(&mut self, y: &Self) -> Self {
+    fn mul_large(&mut self, y: &Self) -> Self {
         let mut x = self.clone();
         x.imul_large(y);
         x
@@ -2344,13 +2857,13 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
 
     /// Div large integer to a copy of self and get quotient and remainder.
     #[inline]
-    fn div_small(&mut self, y: &Self) -> (Self, Self) {
+    fn div_large(&mut self, y: &Self) -> (Self, Self) {
         let mut x = self.clone();
         let rem = x.idiv_large(y);
         (x, rem)
     }
 
-    /// Calculate the fast quotient for a single 32-bit quotient.
+    /// Calculate the fast quotient for a single limb-bit quotient.
     ///
     /// This requires a non-normalized divisor, where there at least
     /// `integral_binary_factor` 0 bits set, to ensure at maximum a single
@@ -2359,7 +2872,7 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
     /// Warning: This is not a general-purpose division algorithm,
     /// it is highly specialized for peeling off singular digits.
     #[inline]
-    unsafe fn quorem(&mut self, y: &Self) -> u32 {
+    unsafe fn quorem(&mut self, y: &Self) -> Limb {
         large::quorem(self.data_mut(), y.data())
     }
 }
@@ -2371,7 +2884,7 @@ mod tests {
 
     #[derive(Clone, Default)]
     struct Bigint {
-        data: Vec<u32>,
+        data: Vec<Limb>,
     }
 
     impl Bigint {
@@ -2382,7 +2895,7 @@ mod tests {
     }
 
     impl SharedOps for Bigint {
-        type StorageType = Vec<u32>;
+        type StorageType = Vec<Limb>;
 
         #[inline]
         fn data<'a>(&'a self) -> &'a Self::StorageType {
@@ -2524,37 +3037,37 @@ mod tests {
     }
 
     #[test]
-    fn leading_zero_values_test() {
-        assert_eq!(Bigint::new().leading_zero_values(), 0);
+    fn leading_zero_limbs_test() {
+        assert_eq!(Bigint::new().leading_zero_limbs(), 0);
 
-        assert_eq!(Bigint::from_u32(0xFF).leading_zero_values(), 0);
-        assert_eq!(Bigint::from_u64(0xFF00000000).leading_zero_values(), 0);
-        assert_eq!(Bigint::from_u128(0xFF000000000000000000000000).leading_zero_values(), 0);
+        assert_eq!(Bigint::from_u32(0xFF).leading_zero_limbs(), 0);
+        assert_eq!(Bigint::from_u64(0xFF00000000).leading_zero_limbs(), 0);
+        assert_eq!(Bigint::from_u128(0xFF000000000000000000000000).leading_zero_limbs(), 0);
 
-        assert_eq!(Bigint::from_u32(0xF).leading_zero_values(), 0);
-        assert_eq!(Bigint::from_u64(0xF00000000).leading_zero_values(), 0);
-        assert_eq!(Bigint::from_u128(0xF000000000000000000000000).leading_zero_values(), 0);
+        assert_eq!(Bigint::from_u32(0xF).leading_zero_limbs(), 0);
+        assert_eq!(Bigint::from_u64(0xF00000000).leading_zero_limbs(), 0);
+        assert_eq!(Bigint::from_u128(0xF000000000000000000000000).leading_zero_limbs(), 0);
 
-        assert_eq!(Bigint::from_u32(0xF0).leading_zero_values(), 0);
-        assert_eq!(Bigint::from_u64(0xF000000000).leading_zero_values(), 0);
-        assert_eq!(Bigint::from_u128(0xF0000000000000000000000000).leading_zero_values(), 0);
+        assert_eq!(Bigint::from_u32(0xF0).leading_zero_limbs(), 0);
+        assert_eq!(Bigint::from_u64(0xF000000000).leading_zero_limbs(), 0);
+        assert_eq!(Bigint::from_u128(0xF0000000000000000000000000).leading_zero_limbs(), 0);
     }
 
     #[test]
-    fn trailing_zero_values_test() {
-        assert_eq!(Bigint::new().trailing_zero_values(), 0);
+    fn trailing_zero_limbs_test() {
+        assert_eq!(Bigint::new().trailing_zero_limbs(), 0);
 
-        assert_eq!(Bigint::from_u32(0xFF).trailing_zero_values(), 0);
-        assert_eq!(Bigint::from_u64(0xFF00000000).trailing_zero_values(), 1);
-        assert_eq!(Bigint::from_u128(0xFF000000000000000000000000).trailing_zero_values(), 3);
+        assert_eq!(Bigint::from_u32(0xFF).trailing_zero_limbs(), 0);
+        assert_eq!(Bigint::from_u64(0xFF00000000).trailing_zero_limbs(), 1);
+        assert_eq!(Bigint::from_u128(0xFF000000000000000000000000).trailing_zero_limbs(), 3);
 
-        assert_eq!(Bigint::from_u32(0xF).trailing_zero_values(), 0);
-        assert_eq!(Bigint::from_u64(0xF00000000).trailing_zero_values(), 1);
-        assert_eq!(Bigint::from_u128(0xF000000000000000000000000).trailing_zero_values(), 3);
+        assert_eq!(Bigint::from_u32(0xF).trailing_zero_limbs(), 0);
+        assert_eq!(Bigint::from_u64(0xF00000000).trailing_zero_limbs(), 1);
+        assert_eq!(Bigint::from_u128(0xF000000000000000000000000).trailing_zero_limbs(), 3);
 
-        assert_eq!(Bigint::from_u32(0xF0).trailing_zero_values(), 0);
-        assert_eq!(Bigint::from_u64(0xF000000000).trailing_zero_values(), 1);
-        assert_eq!(Bigint::from_u128(0xF0000000000000000000000000).trailing_zero_values(), 3);
+        assert_eq!(Bigint::from_u32(0xF0).trailing_zero_limbs(), 0);
+        assert_eq!(Bigint::from_u64(0xF000000000).trailing_zero_limbs(), 1);
+        assert_eq!(Bigint::from_u128(0xF0000000000000000000000000).trailing_zero_limbs(), 3);
     }
 
     #[test]
@@ -2592,13 +3105,36 @@ mod tests {
     }
 
     #[test]
-    fn pad_zeros_test() {
+    fn hi32_test() {
+        assert_eq!(Bigint::from_u32(0xAB).hi32(), (0xAB000000, false));
+        assert_eq!(Bigint::from_u64(0xAB00000000).hi32(), (0xAB000000, false));
+        assert_eq!(Bigint::from_u64(0xA23456789A).hi32(), (0xA2345678, true));
+    }
+
+    #[test]
+    fn hi64_test() {
+        assert_eq!(Bigint::from_u32(0xAB).hi64(), (0xAB00000000000000, false));
+        assert_eq!(Bigint::from_u64(0xAB00000000).hi64(), (0xAB00000000000000, false));
+        assert_eq!(Bigint::from_u64(0xA23456789A).hi64(), (0xA23456789A000000, false));
+        assert_eq!(Bigint::from_u128(0xABCDEF0123456789ABCDEF0123).hi64(), (0xABCDEF0123456789, true));
+    }
+
+    #[test]
+    fn hi128_test() {
+        assert_eq!(Bigint::from_u128(0xABCDEF0123456789ABCDEF0123).hi128(), (0xABCDEF0123456789ABCDEF0123000000, false));
+        assert_eq!(Bigint::from_u128(0xABCDEF0123456789ABCDEF0123456789).hi128(), (0xABCDEF0123456789ABCDEF0123456789, false));
+        assert_eq!(Bigint { data: vec![0x34567890, 0xBCDEF012, 0x3456789A, 0xBCDEF012, 0xA] }.hi128(), (0xABCDEF0123456789ABCDEF0123456789, false));
+        assert_eq!(Bigint { data: vec![0x34567891, 0xBCDEF012, 0x3456789A, 0xBCDEF012, 0xA] }.hi128(), (0xABCDEF0123456789ABCDEF0123456789, true));
+    }
+
+    #[test]
+    fn pad_zero_digits_test() {
         let mut x = Bigint { data: vec![0, 0, 0, 1] };
-        x.pad_zeros(3);
+        x.pad_zero_digits(3);
         assert_eq!(x.data, vec![0, 0, 0, 0, 0, 0, 1]);
 
         let mut x = Bigint { data: vec![1] };
-        x.pad_zeros(1);
+        x.pad_zero_digits(1);
         assert_eq!(x.data, vec![0, 1]);
     }
 

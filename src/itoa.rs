@@ -90,12 +90,14 @@
 //  import matplotlib.pyplot as plt
 //  plt.style.use('ggplot')
 //  lexical = np.array([233850, 263126, 266256, 335878, 264393, 277071, 313994, 335098]) / 1e6
-//  to_string = np.array([521612, 513183, 529319, 645835, 710683, 709717, 784850, 825617]) / 1e6
+//  itoa = np.array([278985, 288058, 271674, 360856, 290879, 291568, 315750, 339346]) / 1e6
+//  rustcore = np.array([521612, 513183, 529319, 645835, 710683, 709717, 784850, 825617]) / 1e6
 //  index = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"]
-//  df = pd.DataFrame({'lexical': lexical, 'to_string': to_string}, index = index, columns=['lexical', 'to_string'])
-//  ax = df.plot.bar(rot=0)
+//  df = pd.DataFrame({'lexical': lexical, 'itoa': itoa, 'rustcore': rustcore}, index = index, columns=['lexical', 'itoa', 'rustcore'])
+//  ax = df.plot.bar(rot=0, figsize=(16, 8), fontsize=14, color=['#E24A33', '#988ED5', '#348ABD'])
 //  ax.set_ylabel("ms/iter")
 //  ax.figure.tight_layout()
+//  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
 use lib::{mem, ptr};

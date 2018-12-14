@@ -48,19 +48,15 @@ pub(super) unsafe extern "C" fn parse_exponent(state: &mut ParseState, base: u32
 /// in base 10.
 #[inline]
 #[cfg(any(test, not(feature = "imprecise")))]
-pub(super) fn scientific_exponent(exponent: i32, integer_digits: usize, fraction_digits: usize)
+pub(super) fn scientific_exponent(exponent: i32, integer_digits: usize, fraction_start: usize)
     -> i32
 {
     if integer_digits == 0 {
-        let fraction_digits = fraction_digits.try_i32_or_max();
-        let sci_exponent = exponent
-            .checked_sub(fraction_digits)
-            .and_then(|v| v.checked_sub(1));
-        unwrap_or_min(sci_exponent)
+        let fraction_start = fraction_start.try_i32_or_max();
+        exponent.saturating_sub(fraction_start).saturating_sub(1)
     } else {
         let integer_shift = (integer_digits - 1).try_i32_or_max();
-        let sci_exponent = exponent.checked_add(integer_shift);
-        unwrap_or_max(sci_exponent)
+        exponent.saturating_add(integer_shift)
     }
 }
 
@@ -75,9 +71,9 @@ pub(super) extern "C" fn mantissa_exponent(raw_exponent: i32, fraction_digits: u
     -> i32
 {
     if fraction_digits > truncated {
-        unwrap_or_min(raw_exponent.checked_sub((fraction_digits - truncated).try_i32_or_max()))
+        raw_exponent.saturating_sub((fraction_digits - truncated).try_i32_or_max())
     } else {
-        unwrap_or_max(raw_exponent.checked_add((truncated - fraction_digits).try_i32_or_max()))
+        raw_exponent.saturating_add((truncated - fraction_digits).try_i32_or_max())
     }
 }
 
