@@ -1,7 +1,5 @@
 /target
+/lexical-core/target
 **/*.rs.bk
 Cargo.lock
-src/**/tmp*
-benches/**/tmp*
-tmp*
 data/test-float-parse/errors.txt
