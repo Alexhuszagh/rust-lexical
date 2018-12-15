@@ -17,10 +17,10 @@
 
 #[macro_use]
 extern crate bencher;
-extern crate lexical;
+extern crate lexical_core;
 
 use bencher::{black_box, Bencher};
-use lexical::atof::*;
+use lexical_core::atof::*;
 
 // DATA
 
@@ -29,7 +29,7 @@ const DATA: [&'static str; 10000] = ["4.03", "3.09", "5.27", "2.29", "9.70", "0.
 // F32
 
 fn atof_digits2_f32_lexical(bench: &mut Bencher) {
-    bench.iter(|| { DATA.iter().for_each(|x| { black_box(atof32_bytes(10, x.as_bytes())); } ) })
+    bench.iter(|| { DATA.iter().for_each(|x| { black_box(atof32_slice(10, x.as_bytes())); } ) })
 }
 
 fn atof_digits2_f32_parse(bench: &mut Bencher) {
@@ -39,7 +39,7 @@ fn atof_digits2_f32_parse(bench: &mut Bencher) {
 // F64
 
 fn atof_digits2_f64_lexical(bench: &mut Bencher) {
-    bench.iter(|| { DATA.iter().for_each(|x| { black_box(atof64_bytes(10, x.as_bytes())); } ) })
+    bench.iter(|| { DATA.iter().for_each(|x| { black_box(atof64_slice(10, x.as_bytes())); } ) })
 }
 
 fn atof_digits2_f64_parse(bench: &mut Bencher) {

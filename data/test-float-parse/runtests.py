@@ -100,11 +100,17 @@ import multiprocessing
 import threading
 import ctypes
 import binascii
+import argparse
 
 try:  # Python 3
     import queue as Queue
 except ImportError:  # Python 2
     import Queue
+
+parser = argparse.ArgumentParser(description='Process --algorithm-m flag.')
+parser.add_argument('--algorithm-m', action='store_true',
+                    help='Use optional algorithm_m feature.')
+args = parser.parse_args()
 
 NUM_WORKERS = 2
 UPDATE_EVERY_N = 50000
@@ -153,7 +159,11 @@ def releasedir():
 def rustc_lexical():
     path = os.getcwd()
     os.chdir(projectdir())
-    check_call(['cargo', 'build', '--release', '--features=comprehensive_float_test'])
+    features = ['comprehensive_float_test']
+    if args.algorithm_m:
+        features.append("algorithm_m")
+    features = '--features=' + ','.join(features)
+    check_call(['cargo', 'build', '--release', features])
     os.chdir(path)
 
 
@@ -213,7 +223,7 @@ def main():
     global MAILBOX
     tests = [os.path.splitext(f)[0] for f in glob('*.rs')
                                     if not f.startswith('_')]
-    whitelist = sys.argv[1:]
+    whitelist = [i for i in sys.argv[1:] if not i.startswith('-')]
     if whitelist:
         tests = [test for test in tests if test in whitelist]
     if not tests:

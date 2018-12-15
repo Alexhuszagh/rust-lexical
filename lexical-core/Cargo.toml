@@ -1,0 +1,44 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
+categories = ["parsing", "encoding", "no_std"]
+description = "Lexical, to- and from-string conversion routines."
+documentation = "https://docs.rs/lexical-core"
+keywords = ["parsing", "lexical", "encoding", "no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-core"
+readme = "README.md"
+repository = "https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core"
+version = "0.1.0"
+
+[badges]
+travis-ci = { repository = "Alexhuszagh/rust-lexical" }
+
+[dependencies]
+cfg-if = "0.1"
+static_assertions = "0.2.5"
+# Use stack-vector for the correct parser.
+stackvector = { version = "^1.0.1", optional = true }
+# Optimized Grisu3 implementation, a well-tested, correct algorithm.
+dtoa = { version = "0.4", optional = true }
+# Optimized Ryu implementation, the fastest correct algorithm.
+ryu = { version = "^0.2.7", optional = true }
+
+[dev-dependencies]
+approx = "0.3.0"
+quickcheck = "0.7"
+
+[features]
+default = ["correct", "ryu"]
+# Use algorithm M, which requires a system allocator.
+algorithm_m = ["correct"]
+# Use the correct atof parser.
+correct = ["stackvector", "table"]
+# Use the optimized Grisu3 implementation from dtoa (not recommended).
+grisu3 = ["dtoa"]
+# Add support for [parsing non-decimal float and integer strings.
+radix = []
+# Use the `std` library.
+std = []
+# Use precompiled tables for faster performance and accuracy, at the cost of larger binaries.
+table = []

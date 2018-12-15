@@ -2,10 +2,10 @@
 
 #[macro_use]
 extern crate bencher;
-extern crate lexical;
+extern crate lexical_core;
 
 use bencher::{black_box, Bencher};
-use lexical::atof::*;
+use lexical_core::atof::*;
 
 // F64
 
@@ -27,61 +27,61 @@ const F64_DATA: [&'static str; 12] = [
 ];
 
 fn atof_denormal_stress_f64_lexical(bench: &mut Bencher) {
-    bench.iter(|| { F64_DATA.iter().for_each(|x| { black_box(atof64_bytes(10, x.as_bytes())); } ) })
+    bench.iter(|| { F64_DATA.iter().for_each(|x| { black_box(atof64_slice(10, x.as_bytes())); } ) })
 }
 
 fn atof_denormal_stress_f64_lexical_lossy(bench: &mut Bencher) {
-    bench.iter(|| { F64_DATA.iter().for_each(|x| { black_box(atof64_lossy_bytes(10, x.as_bytes())); } ) })
+    bench.iter(|| { F64_DATA.iter().for_each(|x| { black_box(atof64_lossy_slice(10, x.as_bytes())); } ) })
 }
 
 // LEXICAL SPECIFIC SIZES
 
 fn atof_denormal_stress_f64_lexical_10(bench: &mut Bencher) {
-    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[0].as_bytes())); })
+    bench.iter(|| { black_box(atof64_slice(10, F64_DATA[0].as_bytes())); })
 }
 
 fn atof_denormal_stress_f64_lexical_20(bench: &mut Bencher) {
-    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[1].as_bytes())); })
+    bench.iter(|| { black_box(atof64_slice(10, F64_DATA[1].as_bytes())); })
 }
 
 fn atof_denormal_stress_f64_lexical_30(bench: &mut Bencher) {
-    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[2].as_bytes())); })
+    bench.iter(|| { black_box(atof64_slice(10, F64_DATA[2].as_bytes())); })
 }
 
 fn atof_denormal_stress_f64_lexical_40(bench: &mut Bencher) {
-    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[3].as_bytes())); })
+    bench.iter(|| { black_box(atof64_slice(10, F64_DATA[3].as_bytes())); })
 }
 
 fn atof_denormal_stress_f64_lexical_50(bench: &mut Bencher) {
-    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[4].as_bytes())); })
+    bench.iter(|| { black_box(atof64_slice(10, F64_DATA[4].as_bytes())); })
 }
 
 fn atof_denormal_stress_f64_lexical_100(bench: &mut Bencher) {
-    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[5].as_bytes())); })
+    bench.iter(|| { black_box(atof64_slice(10, F64_DATA[5].as_bytes())); })
 }
 
 fn atof_denormal_stress_f64_lexical_200(bench: &mut Bencher) {
-    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[6].as_bytes())); })
+    bench.iter(|| { black_box(atof64_slice(10, F64_DATA[6].as_bytes())); })
 }
 
 fn atof_denormal_stress_f64_lexical_400(bench: &mut Bencher) {
-    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[7].as_bytes())); })
+    bench.iter(|| { black_box(atof64_slice(10, F64_DATA[7].as_bytes())); })
 }
 
 fn atof_denormal_stress_f64_lexical_800(bench: &mut Bencher) {
-    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[8].as_bytes())); })
+    bench.iter(|| { black_box(atof64_slice(10, F64_DATA[8].as_bytes())); })
 }
 
 fn atof_denormal_stress_f64_lexical_1600(bench: &mut Bencher) {
-    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[9].as_bytes())); })
+    bench.iter(|| { black_box(atof64_slice(10, F64_DATA[9].as_bytes())); })
 }
 
 fn atof_denormal_stress_f64_lexical_3200(bench: &mut Bencher) {
-    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[10].as_bytes())); })
+    bench.iter(|| { black_box(atof64_slice(10, F64_DATA[10].as_bytes())); })
 }
 
 fn atof_denormal_stress_f64_lexical_6400(bench: &mut Bencher) {
-    bench.iter(|| { black_box(atof64_bytes(10, F64_DATA[11].as_bytes())); })
+    bench.iter(|| { black_box(atof64_slice(10, F64_DATA[11].as_bytes())); })
 }
 
 // PARSE SPECIFIC SIZES

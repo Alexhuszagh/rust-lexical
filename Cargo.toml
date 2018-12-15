@@ -1,15 +1,15 @@
 [package]
 authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
 autobenches = false
-categories = ["parsing", "encoding"]
+categories = ["parsing", "encoding", "no_std"]
 description = "Lexical, to- and from-string conversion routines."
 documentation = "https://docs.rs/lexical"
-keywords = ["parsing", "lexical", "encoding"]
+keywords = ["parsing", "lexical", "encoding", "no_std"]
 license = "MIT/Apache-2.0"
 name = "lexical"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
-version = "1.7.0"
+version = "1.8.0"
 exclude = [
     "data/*",
     "benches/*",
@@ -20,13 +20,7 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
 cfg-if = "0.1"
-static_assertions = "0.2.5"
-# Use stack-vector for dtoa.
-stackvector = "^1.0.1"
-# Optimized Grisu3 implementation, a well-tested, correct algorithm.
-dtoa = { version = "0.4", optional = true }
-# Optimized Ryu implementation, the fastest correct algorithm.
-ryu = { version = "^0.2.7", optional = true }
+lexical-core = { path = "lexical-core", version = "0.1.0" }
 # The following are only required for comprehensive float unittests.
 # IE, internal testing only:
 rand = { version = "0.4", optional = true }
@@ -40,23 +34,24 @@ bencher = "0.1.5"
 dtoa = "0.4"
 itoa = "0.4"
 lazy_static = "1"
-quickcheck = "0.7"
-ryu = "0.2"
+ryu_impl = { version = "0.2", package = "ryu" }
 
 [features]
-default = ["ryu", "std", "table"]
+default = ["correct", "ryu", "std"]
 # Use algorithm M, which requires a system allocator.
-algorithm_m = []
+algorithm_m = ["lexical-core/algorithm_m"]
+# Use the correct atof parser.
+correct = ["lexical-core/correct"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
-grisu3 = ["dtoa"]
-# Use the imprecise atof functionality with an intermediate float (unsupported as of now).
-imprecise = []
+grisu3 = ["lexical-core/grisu3"]
+# Add support for [parsing non-decimal float and integer strings.
+radix = ["lexical-core/radix"]
+# Use the optimized Ryu implementation.
+ryu = ["lexical-core/ryu"]
 # Use the `std` library.
-std = []
-# Use precompiled tables for faster performance and accuracy, at the cost of larger binaries.
-# You should never disable table with precise.
-table = []
+std = ["lexical-core/std"]
 # Build the comprehensive float parsing tests.
+# Testing only.
 comprehensive_float_test = ["rand/std", "serde/std", "serde_derive", "std", "toml"]
 
 # Binaries

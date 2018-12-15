@@ -16,51 +16,19 @@
 // Require intrinsics and alloc in a no_std context.
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(alloc))]
-#![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
 
 // EXTERNAL
 
 #[macro_use]
 extern crate cfg_if;
 
-#[macro_use]
-#[allow(unused_imports)]
-extern crate static_assertions;
+extern crate lexical_core;
 
 // CONFIG
 
+// Need an allocator for String/Vec.
 #[cfg(not(feature = "std"))]
-#[allow(unused_imports)]
-#[macro_use]
 extern crate alloc;
-
-// Use stackvector for dtoa.
-#[cfg(any(test, not(feature = "imprecise")))]
-#[allow(unused_imports)]
-#[macro_use]
-extern crate stackvector;
-
-// Testing assertions for floating-point equality.
-#[cfg(test)]
-#[macro_use]
-extern crate approx;
-
-// Test against randomly-generated data.
-#[cfg(test)]
-#[macro_use]
-extern crate quickcheck;
-
-// Ensure only one back-end is enabled.
-#[cfg(all(feature = "grisu3", feature = "ryu"))]
-compile_error!("Lexical only accepts one of the following backends: `grisu3` or `ryu`.");
-
-// Import the back-end, if applicable.
-cfg_if! {
-if #[cfg(feature = "grisu3")] {
-    extern crate dtoa;
-} else if #[cfg(feature = "ryu")] {
-    extern crate ryu;
-}}  // cfg_if
 
 /// Facade around the core features for name mangling.
 pub(crate) mod lib {
@@ -85,28 +53,13 @@ if #[cfg(feature = "std")] {
 
 // Hide the implementation details.
 mod error;
-mod float;
-mod table;
 mod traits;
 
-#[macro_use]
-mod util;
-
-#[cfg(test)]
-#[macro_use]
-mod test;
-
-// Publicly export the low-level APIs.
-pub mod atof;
-pub mod atoi;
-pub mod itoa;
-pub mod ftoa;
-
 // Re-export EXPONENT_DEFAULT_CHAR and EXPONENT_BACKUP_CHAR globally.
-pub use util::{EXPONENT_DEFAULT_CHAR, EXPONENT_BACKUP_CHAR};
+pub use lexical_core::{EXPONENT_DEFAULT_CHAR, EXPONENT_BACKUP_CHAR};
 
 // Re-export NAN_STRING, INF_STRING and INFINITY_STRING globally.
-pub use util::{INF_STRING, INFINITY_STRING, NAN_STRING};
+pub use lexical_core::{INF_STRING, INFINITY_STRING, NAN_STRING};
 
 // Re-export the Error and ErrorKind globally.
 pub use error::{Error, ErrorKind};
@@ -150,9 +103,9 @@ pub fn to_string<N: ToBytes>(n: N) -> lib::String {
 /// assert_eq!(lexical::to_string_radix(0.0, 10), "0.0");
 /// # }
 /// ```
+#[cfg(feature = "radix")]
 #[inline(always)]
 pub fn to_string_radix<N: ToBytes>(n: N, radix: u8) -> lib::String {
-    assert!(2 <= radix && radix <= 36, "to_string_radix, radix must be in range `[2, 36]`, got {}", radix);
     unsafe { lib::String::from_utf8_unchecked(n.to_bytes(radix)) }
 }
 
@@ -258,9 +211,9 @@ pub fn parse_lossy<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
 /// ```
 ///
 /// [`try_parse_radix`]: fn.try_parse_radix.html
+#[cfg(feature = "radix")]
 #[inline(always)]
 pub fn parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> N {
-    assert!(2 <= radix && radix <= 36, "parse_radix, radix must be in range `[2, 36]`, got {}", radix);
     N::from_bytes(bytes.as_ref(), radix)
 }
 
@@ -296,9 +249,9 @@ pub fn parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) ->
 ///
 /// [`parse_radix`]: fn.parse_radix.html
 /// [`try_parse_radix`]: fn.try_parse_radix.html
+#[cfg(feature = "radix")]
 #[inline(always)]
 pub fn parse_lossy_radix<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> N {
-    assert!(2 <= radix && radix <= 36, "parse_radix, radix must be in range `[2, 36]`, got {}", radix);
     N::from_bytes(bytes.as_ref(), radix)
 }
 
@@ -422,11 +375,11 @@ pub fn try_parse_lossy<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
 /// ```
 ///
 /// [`parse_radix`]: fn.parse_radix.html
+#[cfg(feature = "radix")]
 #[inline(always)]
 pub fn try_parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
     -> Result<N, Error>
 {
-    assert!(2 <= radix && radix <= 36, "try_parse_radix, radix must be in range `[2, 36]`, got {}", radix);
     N::try_from_bytes(bytes.as_ref(), radix)
 }
 
@@ -464,10 +417,10 @@ pub fn try_parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8
 /// # }
 /// ```
 /// [`try_parse_radix`]: fn.try_parse_radix.html
+#[cfg(feature = "radix")]
 #[inline(always)]
 pub fn try_parse_lossy_radix<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
     -> Result<N, Error>
 {
-    assert!(2 <= radix && radix <= 36, "try_parse_radix, radix must be in range `[2, 36]`, got {}", radix);
     N::try_from_bytes_lossy(bytes.as_ref(), radix)
 }

@@ -1,126 +1,149 @@
 //! High-level traits to translate the low-level API to idiomatic Rust.
 
-use atof::*;
-use atoi::*;
-use error::Error;
-use ftoa::*;
-use itoa::*;
+use lexical_core::ErrorCode;
+use lexical_core::atof::*;
+use lexical_core::atoi::*;
+use lexical_core::ftoa::*;
+use lexical_core::itoa::*;
 use lib;
+use error::*;
 
 // FROM BYTES
 
 /// Trait for numerical types that can be parsed from bytes.
 pub trait FromBytes: Sized {
     /// Deserialize from byte slice.
-    fn from_bytes(bytes: &[u8], base: u8) -> Self;
+    fn from_bytes(bytes: &[u8], radix: u8) -> Self;
 
     /// Error-checking deserialize from byte slice.
-    fn try_from_bytes(bytes: &[u8], base: u8) -> Result<Self, Error>;
+    fn try_from_bytes(bytes: &[u8], radix: u8) -> Result<Self, Error>;
 }
 
 macro_rules! from_bytes {
     ($t:ty, $bytes_cb:ident, $try_bytes_cb:ident) => (
         impl FromBytes for $t {
             #[inline(always)]
-            fn from_bytes(bytes: &[u8], base: u8) -> $t
+            fn from_bytes(bytes: &[u8], radix: u8) -> $t
             {
                 // We reverse the argument order, since the low-level API
-                // always uses (base: u8, first: *const u8, last: *const u8)
-                $bytes_cb(base, bytes)
+                // always uses (radix: u8, first: *const u8, last: *const u8)
+                $bytes_cb(radix, bytes)
             }
 
             #[inline(always)]
-            fn try_from_bytes(bytes: &[u8], base: u8) -> Result<$t, Error>
+            fn try_from_bytes(bytes: &[u8], radix: u8) -> Result<$t, Error>
             {
                 // We reverse the argument order, since the low-level API
-                // always uses (base: u8, first: *const u8, last: *const u8)
-                $try_bytes_cb(base, bytes)
+                // always uses (radix: u8, first: *const u8, last: *const u8)
+                let result = $try_bytes_cb(radix, bytes);
+                match result.error.code {
+                    ErrorCode::Success  => Ok(result.value),
+                    ErrorCode::Overflow => Err(overflow()),
+                    ErrorCode::InvalidDigit => Err(invalid_digit(result.error.index)),
+                }
             }
         }
     )
 }
 
-from_bytes!(u8, atou8_bytes, try_atou8_bytes);
-from_bytes!(u16, atou16_bytes, try_atou16_bytes);
-from_bytes!(u32, atou32_bytes, try_atou32_bytes);
-from_bytes!(u64, atou64_bytes, try_atou64_bytes);
-from_bytes!(usize, atousize_bytes, try_atousize_bytes);
-from_bytes!(i8, atoi8_bytes, try_atoi8_bytes);
-from_bytes!(i16, atoi16_bytes, try_atoi16_bytes);
-from_bytes!(i32, atoi32_bytes, try_atoi32_bytes);
-from_bytes!(i64, atoi64_bytes, try_atoi64_bytes);
-from_bytes!(isize, atoisize_bytes, try_atoisize_bytes);
-from_bytes!(f32, atof32_bytes, try_atof32_bytes);
-from_bytes!(f64, atof64_bytes, try_atof64_bytes);
+from_bytes!(u8, atou8_slice, try_atou8_slice);
+from_bytes!(u16, atou16_slice, try_atou16_slice);
+from_bytes!(u32, atou32_slice, try_atou32_slice);
+from_bytes!(u64, atou64_slice, try_atou64_slice);
+from_bytes!(usize, atousize_slice, try_atousize_slice);
+from_bytes!(i8, atoi8_slice, try_atoi8_slice);
+from_bytes!(i16, atoi16_slice, try_atoi16_slice);
+from_bytes!(i32, atoi32_slice, try_atoi32_slice);
+from_bytes!(i64, atoi64_slice, try_atoi64_slice);
+from_bytes!(isize, atoisize_slice, try_atoisize_slice);
+from_bytes!(f32, atof32_slice, try_atof32_slice);
+from_bytes!(f64, atof64_slice, try_atof64_slice);
 
 // FROM BYTES LOSSY
 
 /// Trait for floating-point types that can be parsed using lossy algorithms from bytes.
 pub trait FromBytesLossy: FromBytes {
     /// Deserialize from byte slice.
-    fn from_bytes_lossy(bytes: &[u8], base: u8) -> Self;
+    fn from_bytes_lossy(bytes: &[u8], radix: u8) -> Self;
 
     /// Error-checking deserialize from byte slice.
-    fn try_from_bytes_lossy(bytes: &[u8], base: u8) -> Result<Self, Error>;
+    fn try_from_bytes_lossy(bytes: &[u8], radix: u8) -> Result<Self, Error>;
 }
 
 macro_rules! from_bytes_lossy {
     ($t:ty, $bytes_cb:ident, $try_bytes_cb:ident) => (
         impl FromBytesLossy for $t {
             #[inline(always)]
-            fn from_bytes_lossy(bytes: &[u8], base: u8) -> $t
+            fn from_bytes_lossy(bytes: &[u8], radix: u8) -> $t
             {
                 // We reverse the argument order, since the low-level API
-                // always uses (base: u8, first: *const u8, last: *const u8)
-                $bytes_cb(base, bytes)
+                // always uses (radix: u8, first: *const u8, last: *const u8)
+                $bytes_cb(radix, bytes)
             }
 
             #[inline(always)]
-            fn try_from_bytes_lossy(bytes: &[u8], base: u8) -> Result<$t, Error>
+            fn try_from_bytes_lossy(bytes: &[u8], radix: u8) -> Result<$t, Error>
             {
                 // We reverse the argument order, since the low-level API
-                // always uses (base: u8, first: *const u8, last: *const u8)
-                $try_bytes_cb(base, bytes)
+                // always uses (radix: u8, first: *const u8, last: *const u8)
+                let result = $try_bytes_cb(radix, bytes);
+                match result.error.code {
+                    ErrorCode::Success  => Ok(result.value),
+                    ErrorCode::Overflow => Err(overflow()),
+                    ErrorCode::InvalidDigit => Err(invalid_digit(result.error.index)),
+                }
             }
         }
     )
 }
 
-from_bytes_lossy!(f32, atof32_lossy_bytes, try_atof32_lossy_bytes);
-from_bytes_lossy!(f64, atof64_lossy_bytes, try_atof64_lossy_bytes);
+from_bytes_lossy!(f32, atof32_lossy_slice, try_atof32_lossy_slice);
+from_bytes_lossy!(f64, atof64_lossy_slice, try_atof64_lossy_slice);
 
 // TO BYTES
 
 /// Trait for numerical types that can be serialized to bytes.
 pub trait ToBytes: Sized {
     /// Serialize to string.
-    fn to_bytes(&self, base: u8) -> lib::Vec<u8>;
+    fn to_bytes(&self, radix: u8) -> lib::Vec<u8>;
 }
 
 macro_rules! to_bytes {
-    ($t:ty, $string_cb:ident) => (
+    ($t:ty, $string_cb:ident, $capacity:expr) => (
         impl ToBytes for $t {
             #[inline(always)]
-            fn to_bytes(&self, base: u8) -> lib::Vec<u8>
+            fn to_bytes(&self, radix: u8) -> lib::Vec<u8>
             {
-                $string_cb(*self, base)
+                let mut buf = lib::Vec::<u8>::with_capacity($capacity);
+                let len = unsafe {
+                    let first = buf.as_mut_ptr();
+                    let slc = lib::slice::from_raw_parts_mut(first, buf.capacity());
+                    let slc = $string_cb(*self, radix, slc);
+                    slc.len()
+                };
+                unsafe {
+                    buf.set_len(len);
+                }
+                buf
             }
         }
     )
 }
 
-to_bytes!(u8, u8toa_bytes);
-to_bytes!(u16, u16toa_bytes);
-to_bytes!(u32, u32toa_bytes);
-to_bytes!(u64, u64toa_bytes);
-to_bytes!(usize, usizetoa_bytes);
-to_bytes!(i8, i8toa_bytes);
-to_bytes!(i16, i16toa_bytes);
-to_bytes!(i32, i32toa_bytes);
-to_bytes!(i64, i64toa_bytes);
-to_bytes!(isize, isizetoa_bytes);
-to_bytes!(f32, f32toa_bytes);
-to_bytes!(f64, f64toa_bytes);
+to_bytes!(u8, u8toa_slice, 16);             // 9
+to_bytes!(u16, u16toa_slice, 32);           // 17
+to_bytes!(u32, u32toa_slice, 64);           // 33
+to_bytes!(u64, u64toa_slice, 128);          // 65
+to_bytes!(u128, u128toa_slice, 256);        // 65
+to_bytes!(usize, usizetoa_slice, 128);      // <=65
+to_bytes!(i8, i8toa_slice, 16);             // 9
+to_bytes!(i16, i16toa_slice, 32);           // 17
+to_bytes!(i32, i32toa_slice, 64);           // 33
+to_bytes!(i64, i64toa_slice, 128);          // 65
+to_bytes!(i128, i128toa_slice, 256);        // 129
+to_bytes!(isize, isizetoa_slice, 128);      // <= 65
+to_bytes!(f32, f32toa_slice, 256);          // <= 20
+to_bytes!(f64, f64toa_slice, 256);          // <= 25
 
 // TESTS
 // -----

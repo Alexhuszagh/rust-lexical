@@ -18,6 +18,7 @@ pub enum ErrorKind {
 pub struct Error(ErrorKind);
 
 impl From<ErrorKind> for Error {
+    #[inline]
     fn from(kind: ErrorKind) -> Self {
         Error(kind)
     }
@@ -25,6 +26,7 @@ impl From<ErrorKind> for Error {
 
 impl Error {
     /// Get error type.
+    #[inline]
     pub fn kind(&self) -> &ErrorKind {
         &self.0
     }
@@ -44,13 +46,13 @@ impl fmt::Display for Error {
 // Internal helper methods for testing.
 
 /// Return an overflow error.
-#[cfg(test)]
+#[inline]
 pub(crate) fn overflow() -> Error {
     ErrorKind::Overflow.into()
 }
 
 /// Return an invalid digit error.
-#[cfg(test)]
+#[inline]
 pub(crate) fn invalid_digit(position: usize) -> Error {
     ErrorKind::InvalidDigit(position).into()
 }

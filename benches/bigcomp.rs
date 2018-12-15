@@ -6,10 +6,10 @@
 
 #[macro_use]
 extern crate bencher;
-extern crate lexical;
+extern crate lexical_core;
 
 use bencher::{black_box, Bencher};
-use lexical::atof::*;
+use lexical_core::atof::*;
 
 // F32
 
