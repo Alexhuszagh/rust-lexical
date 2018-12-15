@@ -2,12 +2,12 @@
 //!
 //! Fast lexical conversion routines for both std and no_std environments.
 //! Lexical provides routines to convert numbers to and from decimal
-//! strings. Lexical also supports non-base 10 numbers, for both integers
-//! and floats.  Lexical is simple to use, and exports only 6 functions
-//! in the high-level API.
+//! strings. Lexical also supports non-base 10 numbers, with the `radix`
+//! feature, for both integers and floats. Lexical is simple to use,
+//! and exports up to 10 functions in the high-level API.
 //!
-//! Lexical heavily uses unsafe code for performance, and therefore may
-//! introduce memory-safety issues. Although the code is tested with
+//! Lexical makes heavy use of unsafe code for performance, and therefore
+//! may introduce memory-safety issues. Although the code is tested with
 //! wide variety of inputs to minimize the risk of memory-safety bugs,
 //! no guarantees are made and you should use it at your own risk.
 

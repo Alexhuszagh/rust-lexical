@@ -63,6 +63,17 @@ let x: f32 = lexical::try_parse_lossy("3.5");   // Ok(3.5)
 
 In order to use lexical in generics, the type may use the trait bounds `FromBytes` (for `parse` and `try_parse`), `ToBytes` (for `to_string`), or `FromBytesLossy` (for `parse_lossy` and `try_parse_lossy`).
 
+```rust
+/// Multiply a value in a string by multiplier, and serialize to string.
+fn mul_2<T>(value: &str, multiplier: T) 
+    -> Result<String, lexical::Error>
+    where T: lexical::ToBytes + lexical::FromBytes + ops::Mul<Output=T>
+{
+    let value: T = lexical::try_parse(value)?;
+    Ok(lexical::to_string(value * multiplier))
+}
+```
+
 # Benchmarks
 
 The following benchmarks measure the time it takes to convert 10,000 random values, for different types. The values were randomly generated using NumPy, and run in both std (rustc 1.29.2) and no_std (rustc 1.31.0) contexts (only std is shown) on an x86-64 Intel processor. More information on these benchmarks can be found in the [benches](benches) folder and in the source code for the respective algorithms. Adding the flags "target-cpu=native" and "link-args=-s" were also used, however, they minimally affected the relative performance difference between different lexical conversion implementations.
@@ -125,7 +136,7 @@ Finally, there is work needed to optimize lexical: ideally, Rust should be able 
 
 # License
 
-Lexical is dual licensed under the Apache 2.0 license as well as the MIT license. See the LICENCE-MIT and the LICENCE-APACHE files for the licenses.
+Lexical is dual licensed under the Apache 2.0 license as well as the MIT license. See the LICENCE-MIT and the LICENCE-APACHE files for the licenses. 
 
 # Contributing
 

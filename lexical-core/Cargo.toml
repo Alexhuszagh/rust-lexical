@@ -29,7 +29,7 @@ approx = "0.3.0"
 quickcheck = "0.7"
 
 [features]
-default = ["correct", "ryu"]
+default = ["correct", "ryu", "std"]
 # Use algorithm M, which requires a system allocator.
 algorithm_m = ["correct"]
 # Use the correct atof parser.
@@ -42,3 +42,18 @@ radix = []
 std = []
 # Use precompiled tables for faster performance and accuracy, at the cost of larger binaries.
 table = []
+
+# Use heavy optimizations for release builds, and make our panics to detect
+# internal logic errors safe for FFI, via abort.
+[profile.dev]
+opt-level = 0
+debug = true
+lto = false
+panic = 'abort'
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+lto = true
+panic = 'abort'
