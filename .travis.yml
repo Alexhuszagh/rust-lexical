@@ -29,7 +29,7 @@ script:
   - cargo build
   - cargo test
   - cd lexical-core
-  - cargo test
+  - cargo test --features=std
   - cargo test --no-default-features --features=std
   - cargo test --no-default-features --features=std,table
   - cargo test --no-default-features --features=std,table,radix
