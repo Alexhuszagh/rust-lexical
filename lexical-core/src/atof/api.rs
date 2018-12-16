@@ -334,6 +334,14 @@ mod tests {
         assert!(atof64_slice(10, b"INF").is_infinite());
         assert!(atof64_slice(10, b"+inf").is_infinite());
         assert!(atof64_slice(10, b"-inf").is_infinite());
+
+        // Check various reports from a fuzzer
+        assert_eq!(0.0, atof64_slice(10, b"0e"));
+        assert_eq!(0.0, atof64_slice(10, b"0.0e"));
+        assert_eq!(0.0, atof64_slice(10, b".E"));
+        assert_eq!(0.0, atof64_slice(10, b".e"));
+        assert_eq!(0.0, atof64_slice(10, b"E2252525225"));
+        assert_eq!(f64::INFINITY, atof64_slice(10, b"2E200000000000"));
     }
 
     #[test]

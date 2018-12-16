@@ -352,15 +352,15 @@ pub(super) fn normalize_mantissa<M>(mut mantissa: M, radix: u32, mut exponent: i
     // to do.
     while mantissa >= radix4 && (mantissa % radix4).is_zero() {
         mantissa /= radix4;
-        exponent += 4;
+        exponent = exponent.saturating_add(4);
     }
     while mantissa >= radix2 && (mantissa % radix2).is_zero() {
         mantissa /= radix2;
-        exponent += 2;
+        exponent = exponent.saturating_add(2);
     }
     if (mantissa % radix).is_zero() {
         mantissa /= radix;
-        exponent += 1;
+        exponent = exponent.saturating_add(1);
     }
     (mantissa, exponent)
 }
@@ -386,7 +386,6 @@ unsafe fn parse_float<M>(radix: u32, first: *const u8, last: *const u8)
     // we should try to normalize the mantissa exponent if possible.
     let exponent = slc.mantissa_exponent();
     let (mantissa, exponent) = normalize_mantissa::<M>(mantissa, radix, exponent);
-
     (mantissa, state, slc, exponent)
 }
 
@@ -737,6 +736,14 @@ unsafe fn pown_to_native<F>(radix: u32, first: *const u8, last: *const u8, lossy
     if mantissa == 0 {
         // Literal 0, return early.
         // Value cannot be truncated, since we discard leading 0s.
+        return (F::ZERO, state);
+    } else if exponent > 0x40000000 {
+        // Extremely large exponent, will always be infinity.
+        // Avoid potential overflows in exponent addition.
+        return (F::INFINITY, state);
+    } else if exponent < -0x40000000 {
+        // Extremely small exponent, will always be zero.
+        // Avoid potential overflows in exponent addition.
         return (F::ZERO, state);
     } else if !state.is_truncated() {
         // Try last fast path to exact, no mantissa truncation

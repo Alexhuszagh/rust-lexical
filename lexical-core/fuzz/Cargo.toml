@@ -1,0 +1,75 @@
+
+[package]
+name = "lexical-core-fuzz"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies.lexical-core]
+path = ".."
+
+[dependencies.libfuzzer-sys]
+git = "https://github.com/rust-fuzz/libfuzzer-sys.git"
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "atof32"
+path = "fuzz_targets/atof32.rs"
+
+[[bin]]
+name = "atof64"
+path = "fuzz_targets/atof64.rs"
+
+[[bin]]
+name = "atoi8"
+path = "fuzz_targets/atoi8.rs"
+
+[[bin]]
+name = "atoi16"
+path = "fuzz_targets/atoi16.rs"
+
+[[bin]]
+name = "atoi32"
+path = "fuzz_targets/atoi32.rs"
+
+[[bin]]
+name = "atoi64"
+path = "fuzz_targets/atoi64.rs"
+
+[[bin]]
+name = "atoi128"
+path = "fuzz_targets/atoi128.rs"
+
+[[bin]]
+name = "atoisize"
+path = "fuzz_targets/atoisize.rs"
+
+[[bin]]
+name = "atou8"
+path = "fuzz_targets/atou8.rs"
+
+[[bin]]
+name = "atou16"
+path = "fuzz_targets/atou16.rs"
+
+[[bin]]
+name = "atou32"
+path = "fuzz_targets/atou32.rs"
+
+[[bin]]
+name = "atou64"
+path = "fuzz_targets/atou64.rs"
+
+[[bin]]
+name = "atou128"
+path = "fuzz_targets/atou128.rs"
+
+[[bin]]
+name = "atousize"
+path = "fuzz_targets/atousize.rs"

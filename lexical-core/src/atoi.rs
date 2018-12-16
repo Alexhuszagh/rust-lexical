@@ -227,21 +227,25 @@ pub(crate) unsafe fn filter_sign<T, Cb>(state: &mut ParseState, radix: u32, last
     where T: Integer,
           Cb: FnOnce(&mut T, &mut ParseState, u32, *const u8)
 {
-    match *state.curr {
-        b'+' => {
-            state.increment();
-            let value = value::<T, Cb>(state, radix, last, cb);
-            (value, 1)
-        },
-        b'-' => {
-            state.increment();
-            let value = value::<T, Cb>(state, radix, last, cb);
-            (value, -1)
-        },
-        _    => {
-            let value = value::<T, Cb>(state, radix, last, cb);
-            (value, 1)
-        },
+    if state.curr == last {
+        (T::ZERO, 1)
+    } else {
+        match *state.curr {
+            b'+' => {
+                state.increment();
+                let value = value::<T, Cb>(state, radix, last, cb);
+                (value, 1)
+            },
+            b'-' => {
+                state.increment();
+                let value = value::<T, Cb>(state, radix, last, cb);
+                (value, -1)
+            },
+            _    => {
+                let value = value::<T, Cb>(state, radix, last, cb);
+                (value, 1)
+            },
+        }
     }
 }
 

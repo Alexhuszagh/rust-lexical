@@ -14,7 +14,7 @@ Low-level, FFI-compatible, lexical conversion routines for use in a `no_std` con
   - [Float to String](#float-to-string)
   - [String to Float](#string-to-float)
   - [Arbitrary-Precision Arithmetic](#arbitrary-precision-arithmetic)
-  - [Comparison to Algorithm M and dtoa](#comparison-to-algorithm-m-and-dtoa)
+  - [Algorithm Background and Comparison](#algorithm-background-and-comparison)
 
 # Features
 
@@ -37,13 +37,15 @@ Float parsing is difficult to do correctly, and major bugs have been found in im
 
 Although Lexical may contain bugs leading to rounding error, it is tested against a comprehensive suite of random-data and near-halfway representations, and should be fast and correct for the vast majority of use-cases.
 
+Finally, due to the heavy use of unsafe code, Lexical-core is fuzzed using cargo-fuzz, to avoid memory errors.
+
 # Caveats
 
 Lexical uses unsafe code in the back-end for performance, and therefore may introduce memory-safety issues. Although the code is tested with wide variety of inputs to minimize the risk of memory-safety bugs, and then unittests are run are under Valgrind, no guarantees are made and you should use it at your own risk.
 
 Finally, for non-decimal (base 10) floats, lexical's float-to-string implementation is lossy, resulting in rounding for a small subset of inputs (up to 0.1% of the total value).
 
-# Details
+# Implementation Details
 
 ## Float to String
 
@@ -68,9 +70,9 @@ To use Algorithm M, use the feature `algorithm_m` when compiling lexical.
 
 ## Arbitrary-Precision Arithmetic
 
-Lexical uses arbitrary-precision arithmetic to exactly represent strings between two floating-point representations with more than 36 digits, with various optimizations for multiplication and division relative to Rust's current implementation. The arbitrary-precision arithmetic logic is not independent on memory allocation: the default slow-path algorithm only uses the stack, while Algorithm M uses the heap.
+Lexical uses arbitrary-precision arithmetic to exactly represent strings between two floating-point representations with more than 36 digits, with various optimizations for multiplication and division relative to Rust's current implementation. The arbitrary-precision arithmetic logic is not independent on memory allocation: the default slow-path algorithm only uses the stack, and Algorithm M only uses the heap when the `radix` feature is enabled.
 
-## Comparison to Algorithm M
+## Algorithm Background and Comparison
 
 For close-to-halfway representations of a decimal string `s`, where `s` is close between two representations, `b` and the next float `b+u`, arbitrary-precision arithmetic is used to determine the correct representation. This means `s` is close to `b+h`, where `h` is the halfway point between `b` and `b+u`.
 
