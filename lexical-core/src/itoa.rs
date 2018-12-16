@@ -103,37 +103,15 @@
 use lib::{mem, ptr};
 use util::*;
 
-// MACRO
+// CHECK BUFFER
 
-/// Calculate the number of digits in a number, with a given radix.
-#[inline]
-fn digits<Value: Integer>(value: Value, radix: u32) -> usize {
-    match value.is_zero() {
-        true  => 1,
-        false => {
-            let v: f64 = as_cast(value);
-            let b: f64 = as_cast(radix);
-            let digits = ((v.ln() / b.ln()) + 1.0).floor();
-            digits as usize
-        }
-    }
+/// Check the buffer has sufficient room for the output.
+macro_rules! assert_buffer {
+    ($first:ident, $last:ident, $size:expr) => ({
+        let dist = distance($first, $last);
+        assert!(dist >= $size);
+    });
 }
-
-/// Check if the supplied buffer has enough range for the encoded size.
-macro_rules! check_buffer {
-    ($value:ident, $first:ident, $last:ident, $radix:ident) => ({
-        let has_space = distance($first, $last) >= digits($value, $radix);
-        debug_assert!(has_space, "Need a larger buffer.");
-    })
-}
-
-// CONSTANTS
-
-/// Maximum digits possible for a u64 export.
-/// Value is `digits!(0XFFFFFFFFFFFFFFFF, 2)`, which is 65.
-/// Up to the nearest power of 2, since it notably increases
-/// performance (~25%) on x86-64 architectures.
-const MAX_DIGITS: usize = 128;
 
 // OPTIMIZED
 
@@ -158,7 +136,7 @@ unsafe fn optimized<T>(mut value: T, radix: T, table: *const u8, first: *mut u8)
 
     // Create a temporary buffer, and copy into it.
     // Way faster than reversing a buffer in-place.
-    let mut buffer: [u8; MAX_DIGITS] = mem::uninitialized();
+    let mut buffer: [u8; BUFFER_SIZE] = mem::uninitialized();
     let mut rem: usize;
     let mut curr = buffer.len();
     let p: *mut u8 = buffer.as_mut_ptr();
@@ -215,7 +193,7 @@ unsafe fn naive<T>(mut value: T, radix: T, first: *mut u8)
 {
     // Create a temporary buffer, and copy into it.
     // Way faster than reversing a buffer in-place.
-    let mut buffer: [u8; MAX_DIGITS] = mem::uninitialized();
+    let mut buffer: [u8; BUFFER_SIZE] = mem::uninitialized();
     let mut rem: usize;
     let mut curr = buffer.len();
     let p: *mut u8 = buffer.as_mut_ptr();
@@ -314,7 +292,6 @@ pub(crate) unsafe fn unsigned<Value, UWide>(value: Value, radix: u32, first: *mu
 {
     // Sanity checks
     debug_assert!(first <= last);
-    check_buffer!(value, first, last, radix);
 
     // Invoke forwarder
     let v: UWide = as_cast(value);
@@ -331,7 +308,6 @@ pub(crate) unsafe fn signed<Value, UWide, IWide>(value: Value, radix: u32, mut f
 {
     // Sanity checks
     debug_assert!(first <= last);
-    check_buffer!(value, first, last, radix);
 
     // Handle negative numbers, use an unsigned type to avoid overflow.
     // Use a wrapping neg to allow overflow.
@@ -364,7 +340,7 @@ pub(crate) unsafe fn signed<Value, UWide, IWide>(value: Value, radix: u32, mut f
 
 /// Generate the unsigned, unsafe wrappers.
 macro_rules! generate_unsafe_unsigned {
-    ($name:ident, $t:ty, $uwide:ty) => (
+    ($name:ident, $t:ty, $uwide:ty, $size:ident) => (
         /// Unsafe, C-like exporter for unsigned numbers.
         ///
         /// # Warning
@@ -381,21 +357,22 @@ macro_rules! generate_unsafe_unsigned {
         #[inline]
         unsafe fn $name(value: $t, radix: u8, first: *mut u8, last: *mut u8) -> *mut u8
         {
+            assert_buffer!(first, last, $size);
             unsigned::<$t, $uwide>(value, radix.into(), first, last)
         }
     )
 }
 
-generate_unsafe_unsigned!(u8toa_unsafe, u8, u32);
-generate_unsafe_unsigned!(u16toa_unsafe, u16, u32);
-generate_unsafe_unsigned!(u32toa_unsafe, u32, u32);
-generate_unsafe_unsigned!(u64toa_unsafe, u64, u64);
-generate_unsafe_unsigned!(u128toa_unsafe, u128, u128);
-generate_unsafe_unsigned!(usizetoa_unsafe, usize, usize);
+generate_unsafe_unsigned!(u8toa_unsafe, u8, u32, MAX_INT8_SIZE);
+generate_unsafe_unsigned!(u16toa_unsafe, u16, u32, MAX_INT16_SIZE);
+generate_unsafe_unsigned!(u32toa_unsafe, u32, u32, MAX_INT32_SIZE);
+generate_unsafe_unsigned!(u64toa_unsafe, u64, u64, MAX_INT64_SIZE);
+generate_unsafe_unsigned!(u128toa_unsafe, u128, u128, MAX_INT128_SIZE);
+generate_unsafe_unsigned!(usizetoa_unsafe, usize, usize, MAX_INTSIZE_SIZE);
 
 /// Generate the signed, unsafe wrappers.
 macro_rules! generate_unsafe_signed {
-    ($name:ident, $t:ty, $uwide:ty, $iwide:ty) => (
+    ($name:ident, $t:ty, $uwide:ty, $iwide:ty, $size:ident) => (
         /// Unsafe, C-like exporter for signed numbers.
         ///
         /// # Warning
@@ -413,17 +390,18 @@ macro_rules! generate_unsafe_signed {
         unsafe fn $name(value: $t, radix: u8, first: *mut u8, last: *mut u8)
             -> *mut u8
         {
+            assert_buffer!(first, last, $size);
             signed::<$t, $uwide, $iwide>(value, radix.into(), first, last)
         }
     )
 }
 
-generate_unsafe_signed!(i8toa_unsafe, i8, u32, i32);
-generate_unsafe_signed!(i16toa_unsafe, i16, u32, i32);
-generate_unsafe_signed!(i32toa_unsafe, i32, u32, i32);
-generate_unsafe_signed!(i64toa_unsafe, i64, u64, i64);
-generate_unsafe_signed!(i128toa_unsafe, i128, u128, i128);
-generate_unsafe_signed!(isizetoa_unsafe, isize, usize, isize);
+generate_unsafe_signed!(i8toa_unsafe, i8, u32, i32, MAX_INT8_SIZE);
+generate_unsafe_signed!(i16toa_unsafe, i16, u32, i32, MAX_INT16_SIZE);
+generate_unsafe_signed!(i32toa_unsafe, i32, u32, i32, MAX_INT32_SIZE);
+generate_unsafe_signed!(i64toa_unsafe, i64, u64, i64, MAX_INT64_SIZE);
+generate_unsafe_signed!(i128toa_unsafe, i128, u128, i128, MAX_INT128_SIZE);
+generate_unsafe_signed!(isizetoa_unsafe, isize, usize, isize, MAX_INTSIZE_SIZE);
 
 // LOW-LEVEL API
 // -------------

@@ -3,7 +3,7 @@
 //! Uses either the internal "Grisu2", or the external "Grisu3" or "Ryu"
 //! algorithms provided by `https://github.com/dtolnay`.
 
-use lib::{mem, ptr};
+use lib::ptr;
 use util::*;
 
 #[cfg(feature = "radix")]
@@ -131,23 +131,10 @@ unsafe fn filter_buffer<F: FloatToString>(value: F, radix: u32, first: *mut u8, 
 
     // check to use a temporary buffer
     let dist = distance(first, last);
-    if dist == 0 {
-        // Cannot write empty range, memory may be invalid.
-        first
-    } else if dist < BUFFER_SIZE {
-        // Use a temporary buffer and write number to buffer
-        let mut buffer: [u8; BUFFER_SIZE] = mem::uninitialized();
-        let p = buffer.as_mut_ptr();
-        filter_sign(value, radix, p);
+    assert!(dist >= MAX_FLOAT_SIZE);
 
-        // Copy as many bytes as possible.
-        let length = distance(p, p.add(BUFFER_SIZE)).min(dist);
-        ptr::copy_nonoverlapping(p, first, length);
-        first.add(length)
-    } else {
-        // Current buffer has sufficient capacity, use it
-        filter_sign(value, radix, first)
-    }
+    // Current buffer has sufficient capacity, use it.
+    filter_sign(value, radix, first)
 }
 
 // UNSAFE API
@@ -169,7 +156,20 @@ macro_rules! generate_unsafe_api {
         #[inline]
         unsafe fn $name(value: $t, base: u8, first: *mut u8, last: *mut u8) -> *mut u8
         {
-            filter_buffer(value, base.into(), first, last)
+            let p = filter_buffer(value, base.into(), first, last);
+
+            // Trim a trailing ".0" from a float.
+            #[cfg(feature = "trim_floats")] {
+                if ends_with_range(first, p, ".0".as_ptr(), 2) {
+                    p.sub(2)
+                } else {
+                    p
+                }
+            }
+
+            #[cfg(not(feature = "trim_floats"))] {
+                p
+            }
         }
     )
 }
@@ -211,10 +211,20 @@ mod tests {
     fn f32toa_base2_test() {
         let mut buffer = new_buffer();
         // positive
-        assert_eq!(as_slice(b"0.0"), f32toa_slice(0.0, 2, &mut buffer));
-        assert_eq!(as_slice(b"-0.0"), f32toa_slice(-0.0, 2, &mut buffer));
-        assert_eq!(as_slice(b"1.0"), f32toa_slice(1.0, 2, &mut buffer));
-        assert_eq!(as_slice(b"10.0"), f32toa_slice(2.0, 2, &mut buffer));
+        #[cfg(feature = "trim_floats")] {
+            assert_eq!(as_slice(b"0"), f32toa_slice(0.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"-0"), f32toa_slice(-0.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"1"), f32toa_slice(1.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"10"), f32toa_slice(2.0, 2, &mut buffer));
+        }
+
+        #[cfg(not(feature = "trim_floats"))] {
+            assert_eq!(as_slice(b"0.0"), f32toa_slice(0.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"-0.0"), f32toa_slice(-0.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"1.0"), f32toa_slice(1.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"10.0"), f32toa_slice(2.0, 2, &mut buffer));
+        }
+
         assert_eq!(as_slice(b"1.1"), f32toa_slice(1.5, 2, &mut buffer));
         assert_eq!(as_slice(b"1.01"), f32toa_slice(1.25, 2, &mut buffer));
         assert_eq!(b"1.001111000000110010", &f32toa_slice(1.2345678901234567890e0, 2, &mut buffer)[..20]);
@@ -240,10 +250,20 @@ mod tests {
     fn f32toa_base10_test() {
         let mut buffer = new_buffer();
         // positive
-        assert_eq!(as_slice(b"0.0"), f32toa_slice(0.0, 10, &mut buffer));
-        assert_eq!(as_slice(b"-0.0"), f32toa_slice(-0.0, 10, &mut buffer));
-        assert_eq!(as_slice(b"1.0"), f32toa_slice(1.0, 10, &mut buffer));
-        assert_eq!(as_slice(b"10.0"), f32toa_slice(10.0, 10, &mut buffer));
+        #[cfg(feature = "trim_floats")] {
+            assert_eq!(as_slice(b"0"), f32toa_slice(0.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"-0"), f32toa_slice(-0.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"1"), f32toa_slice(1.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"10"), f32toa_slice(10.0, 10, &mut buffer));
+        }
+
+        #[cfg(not(feature = "trim_floats"))] {
+            assert_eq!(as_slice(b"0.0"), f32toa_slice(0.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"-0.0"), f32toa_slice(-0.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"1.0"), f32toa_slice(1.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"10.0"), f32toa_slice(10.0, 10, &mut buffer));
+        }
+
         assert_eq!(as_slice(b"1.234567"), &f32toa_slice(1.2345678901234567890e0, 10, &mut buffer)[..8]);
         assert_eq!(as_slice(b"12.34567"), &f32toa_slice(1.2345678901234567890e1, 10, &mut buffer)[..8]);
         assert_eq!(as_slice(b"123.4567"), &f32toa_slice(1.2345678901234567890e2, 10, &mut buffer)[..8]);
@@ -288,10 +308,20 @@ mod tests {
     fn f64toa_base2_test() {
         let mut buffer = new_buffer();
         // positive
-        assert_eq!(as_slice(b"0.0"), f64toa_slice(0.0, 2, &mut buffer));
-        assert_eq!(as_slice(b"-0.0"), f64toa_slice(-0.0, 2, &mut buffer));
-        assert_eq!(as_slice(b"1.0"), f64toa_slice(1.0, 2, &mut buffer));
-        assert_eq!(as_slice(b"10.0"), f64toa_slice(2.0, 2, &mut buffer));
+        #[cfg(feature = "trim_floats")] {
+            assert_eq!(as_slice(b"0"), f64toa_slice(0.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"-0"), f64toa_slice(-0.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"1"), f64toa_slice(1.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"10"), f64toa_slice(10.0, 2, &mut buffer));
+        }
+
+        #[cfg(not(feature = "trim_floats"))] {
+            assert_eq!(as_slice(b"0.0"), f64toa_slice(0.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"-0.0"), f64toa_slice(-0.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"1.0"), f64toa_slice(1.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"10.0"), f64toa_slice(2.0, 2, &mut buffer));
+        }
+
         assert_eq!(as_slice(b"1.00111100000011001010010000101000110001"), &f64toa_slice(1.2345678901234567890e0, 2, &mut buffer)[..40]);
         assert_eq!(as_slice(b"1100.01011000011111100110100110010111101"), &f64toa_slice(1.2345678901234567890e1, 2, &mut buffer)[..40]);
         assert_eq!(as_slice(b"1111011.01110100111100000001111111101101"), &f64toa_slice(1.2345678901234567890e2, 2, &mut buffer)[..40]);
@@ -312,10 +342,20 @@ mod tests {
     fn f64toa_base10_test() {
         let mut buffer = new_buffer();
         // positive
-        assert_eq!(as_slice(b"0.0"), f64toa_slice(0.0, 10, &mut buffer));
-        assert_eq!(as_slice(b"-0.0"), f64toa_slice(-0.0, 10, &mut buffer));
-        assert_eq!(as_slice(b"1.0"), f64toa_slice(1.0, 10, &mut buffer));
-        assert_eq!(as_slice(b"10.0"), f64toa_slice(10.0, 10, &mut buffer));
+        #[cfg(feature = "trim_floats")] {
+            assert_eq!(as_slice(b"0"), f64toa_slice(0.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"-0"), f64toa_slice(-0.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"1"), f64toa_slice(1.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"10"), f64toa_slice(10.0, 10, &mut buffer));
+        }
+
+        #[cfg(not(feature = "trim_floats"))] {
+            assert_eq!(as_slice(b"0.0"), f64toa_slice(0.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"-0.0"), f64toa_slice(-0.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"1.0"), f64toa_slice(1.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"10.0"), f64toa_slice(10.0, 10, &mut buffer));
+        }
+
         assert_eq!(as_slice(b"1.234567"), &f64toa_slice(1.2345678901234567890e0, 10, &mut buffer)[..8]);
         assert_eq!(as_slice(b"12.34567"), &f64toa_slice(1.2345678901234567890e1, 10, &mut buffer)[..8]);
         assert_eq!(as_slice(b"123.4567"), &f64toa_slice(1.2345678901234567890e2, 10, &mut buffer)[..8]);
