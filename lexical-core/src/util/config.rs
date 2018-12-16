@@ -144,6 +144,7 @@ if #[cfg(target_pointer_width = "16")] {
     pub const MAX_USIZE_SIZE: usize = MAX_U64_SIZE;
 }}  // cfg_if
 
+/// The maximum number of bytes that any number-to-string function may write.
 pub const BUFFER_SIZE: usize = MAX_F64_SIZE;
 
 // FUNCTIONS

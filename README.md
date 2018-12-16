@@ -41,7 +41,7 @@ let d = lexical::try_parse::<f64, _>("3.5"); // Ok(3.5), error checking parse.
 let d = lexical::try_parse::<f64, _>("3a");  // Err(Error(_)), failed to parse.
 ```
 
-Lexical's parsers can be either error-checked and unchecked. The unchecked parsers continue to parse until they encounter invalid data or overflow, returning a number was successfully parsed up until that point. This is analogous to C's `strtod`, which may not be desirable for many applications. Therefore, lexical also includes checked parsers, which ensure the entire buffer is used while parsing, without discarding characters, and that the resulting number did not overflow. Upon erroring, the checked parsers will return the an enum indicating overflow or the index where the first invalid digit  was found.
+Lexical's parsers can be either error-checked and unchecked. The unchecked parsers continue to parse until they encounter invalid data, returning a number was successfully parsed up until that point. The unchecked parsers explicitly wrap on numeric overflow. This is somewhat analogous to C's `strtod`, which may not be desirable for many applications. Therefore, lexical also includes checked parsers, which ensure the entire buffer is used while parsing, without discarding characters, and that the resulting number did not overflow. Upon erroring, the checked parsers will return the an enum indicating overflow or the index where the first invalid digit was found.
 
 ```rust
 // This will return Err(Error(ErrorKind::InvalidDigit(3))), indicating 
@@ -108,7 +108,7 @@ For all the following benchmarks, lower is better.
 
 **String to f64 Complex, Denormal Data Cross-Language Comparison**
 
-Note: Rust was unable to parse all but the 20-digit benchmark, producing an error result of `ParseFloatError { kind: Invalid }`. It performed ~2,000x worse than lexical for that benchmark.
+Note: Rust was unable to parse all but the 10-digit benchmark, producing an error result of `ParseFloatError { kind: Invalid }`. It performed ~2,000x worse than lexical for that benchmark.
 
 ![atof64 simple language benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atof_denormal_f64.png)
 

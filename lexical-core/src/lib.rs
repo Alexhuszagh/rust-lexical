@@ -1,6 +1,87 @@
-//! Fast lexical conversion routines.
-//!
 //! Fast lexical conversion routines with a C FFI for a no_std environment.
+//!
+//! # Getting Started
+//!
+//! lexical-core is a low-level, partially FFI-compatible API for
+//! number-to-string and string-to-number conversions, without requiring
+//! a system allocator. If you would like to use a convenient, high-level
+//! API, please look at [lexical](https://crates.io/crates/lexical) instead.
+//!
+//! ```rust
+//! extern crate lexical_core;
+//!
+//! // String to number using slices
+//! // The first argument is the radix, which should be 10 for decimal strings,
+//! // and the second argument is the byte string parsed.
+//! let f = lexical_core::atof::atof64_slice(10, b"3.5");   // 3.5
+//! let i = lexical_core::atoi::atoi32(10, b"15");          // 15
+//!
+//! // String to number using ranges, for FFI-compatible code.
+//! // The first argument is the radix, which should be 10 for decimal strings,
+//! // the second argument is a pointer to the start of the parsed byte array,
+//! // and the third argument is a pointer to 1-past-the-end. It will process
+//! // bytes in the range [first, last).
+//! unsafe {
+//!     let bytes = b"3.5";
+//!     let first = bytes.as_ptr();
+//!     let last = first.add(bytes.len());
+//!     let f = lexical_core::atof::atof64_range(10, first, last);
+//! }
+//!
+//! // The ato*_slice and ato*_range parsers are not checked, they do not
+//! // validate that the input data is entirely correct, and discard trailing
+//! // bytes that are found. The explicit behavior is to wrap on overflow, and
+//! // to discard invalid digits.
+//! let i = lexical_core::atoi::atoi8(10, b"256");          // 0, wraps from 256
+//! let i = lexical_core::atoi::atoi8(10, b"1a5");          // 1, discards "a5"
+//!
+//! // You should prefer the checked parsers, whenever possible. These detect
+//! // numeric overflow, and no invalid trailing digits are present.
+//! // The error code for success is 0, all errors are less than 0.
+//!
+//! // Ideally, everything works great.
+//! let res = lexical_core::atoi::try_atoi8(10, b"15");
+//! assert_eq!(res.error.code, lexical_core::ErrorCode::Success);
+//! assert_eq!(res.value, 15);
+//!
+//! // However, it detects numeric overflow, setting `res.error.code`
+//! // to the appropriate value.
+//! let res = lexical_core::atoi::try_atoi8(10, b"256");
+//! assert_eq!(res.error.code == lexical_core::ErrorCode::Overflow);
+//!
+//! // Errors occurring prematurely terminating the parser due to invalid
+//! // digits return the index in the buffer where the invalid digit was
+//! // seen. This may useful in contexts like serde, which require numerical
+//! // parsers from complex data without having to extract a substring
+//! // containing only numeric data ahead of time. If the error is set
+//! // to a `InvalidDigit`, the value is guaranteed to be accurate up until
+//! // that point. For example, if the trailing data is whitespace,
+//! // the value from an invalid digit may be perfectly valid in some contexts.
+//! let res = lexical_core::atoi::try_atoi8(10, b"15 45");
+//! assert_eq!(res.error.code == lexical_core::ErrorCode::InvalidDigit);
+//! assert_eq!(res.error.index == 2);
+//! assert_eq!(res.value == 15);
+//!
+//! // Number to string using slices.
+//! // The first argument is the value, the second argument is the radix,
+//! // and the third argument is the buffer to write to.
+//! // The function returns a subslice of the original buffer, and will
+//! // always start at the same position (`buf.as_ptr() == slc.as_ptr()`).
+//! let mut buf = [b'0'; lexical_core::MAX_I64_SIZE];
+//! let slc = lexical_core::itoa::i64toa_slice(15, 10, &mut buf);
+//! assert_eq!(slc, "15");
+//!
+//! // If an insufficiently long buffer is passed, the serializer will panic.
+//! let mut buf = b['0'; 1];
+//! let slc = lexical_core::itoa::i64toa_slice(15, 10, &mut buf); // PANICS
+//!
+//! // In order to guarantee the buffer is long enough, always ensure there
+//! // are at least `MAX_XX_SIZE`, where XX is the type name in upperase,
+//! // IE, for `isize`, `MAX_ISIZE_SIZE`.
+//! let mut buf = [b'0'; lexical_core::MAX_F64_SIZE];
+//! let slc = lexical_core::ftoa::f64toa_slice(15.1, 10, &mut buf);
+//! assert_eq!(slc, "15.1");
+//! ```
 
 // FEATURES
 
@@ -91,7 +172,7 @@ pub use util::{EXPONENT_DEFAULT_CHAR, EXPONENT_BACKUP_CHAR};
 pub use util::{INF_STRING, INFINITY_STRING, NAN_STRING};
 
 // Re-export the error structs and enumerations.
-pub use util::{Error, ErrorCode, is_success};
+pub use util::{Error, ErrorCode, is_invalid_digit, is_overflow, is_success};
 
 // Re-export the required buffer sizes for the low-level API.
 pub use util::BUFFER_SIZE;

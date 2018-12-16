@@ -2,73 +2,73 @@
 //!
 //! These routines are wrapping, and therefore can accept any buffer for any
 //! size type, but will wrap to the desired value if overflow occurs.
-//!
-//! The following benchmarks were run on an "Intel(R) Core(TM) i7-6560U
-//! CPU @ 2.20GHz" CPU, on Fedora 28, Linux kernel version 4.18.16-200
-//! (x86-64), using the lexical formatter or `x.parse()`,
-//! avoiding any inefficiencies in Rust string parsing. The code was
-//! compiled with LTO and at an optimization level of 3.
-//!
-//! The benchmarks with `std` were compiled using "rustc 1.29.2 (17a9dc751
-//! 2018-10-05", and the `no_std` benchmarks were compiled using "rustc
-//! 1.31.0-nightly (46880f41b 2018-10-15)".
-//!
-//! The benchmark code may be found `benches/atoi.rs`.
-//!
-//! # Benchmarks
-//!
-//! | Type  |  lexical (ns/iter) | parse (ns/iter)       | Relative Increase |
-//! |:-----:|:------------------:|:---------------------:|:-----------------:|
-//! | u8    | 62,790             | 67,926                | 1.08x             |
-//! | u16   | 58,896             | 76,602                | 1.30x             |
-//! | u32   | 103,962            | 139,434               | 1.34x             |
-//! | u64   | 192,792            | 265,931               | 1.38x             |
-//! | i8    | 89,828             | 109,099               | 1.21x             |
-//! | i16   | 111,592            | 140,172               | 1.26x             |
-//! | i32   | 155,172            | 189,377               | 1.22x             |
-//! | i64   | 197,747            | 283,541               | 1.43x             |
-//!
-//! # Raw Benchmarks
-//!
-//! ```text
-//! test i8_lexical  ... bench:      89,828 ns/iter (+/- 9,172)
-//! test i8_parse    ... bench:     109,099 ns/iter (+/- 2,711)
-//! test i16_lexical ... bench:     111,592 ns/iter (+/- 3,862)
-//! test i16_parse   ... bench:     140,172 ns/iter (+/- 7,194)
-//! test i32_lexical ... bench:     155,172 ns/iter (+/- 5,248)
-//! test i32_parse   ... bench:     189,377 ns/iter (+/- 10,131)
-//! test i64_lexical ... bench:     197,747 ns/iter (+/- 18,041)
-//! test i64_parse   ... bench:     283,541 ns/iter (+/- 14,240)
-//! test u8_lexical  ... bench:      62,790 ns/iter (+/- 3,146)
-//! test u8_parse    ... bench:      67,926 ns/iter (+/- 3,767)
-//! test u16_lexical ... bench:      58,896 ns/iter (+/- 3,238)
-//! test u16_parse   ... bench:      76,602 ns/iter (+/- 3,771)
-//! test u32_lexical ... bench:     103,962 ns/iter (+/- 4,870)
-//! test u32_parse   ... bench:     139,434 ns/iter (+/- 3,944)
-//! test u64_lexical ... bench:     192,792 ns/iter (+/- 9,147)
-//! test u64_parse   ... bench:     265,931 ns/iter (+/- 8,308)
-//! ```
-//!
-//! Raw Benchmarks (`no_std`)
-//!
-//! ```text
-//! test i8_lexical  ... bench:      94,142 ns/iter (+/- 5,252)
-//! test i8_parse    ... bench:     107,092 ns/iter (+/- 4,121)
-//! test i16_lexical ... bench:     113,284 ns/iter (+/- 17,479)
-//! test i16_parse   ... bench:     141,393 ns/iter (+/- 5,804)
-//! test i32_lexical ... bench:     155,704 ns/iter (+/- 5,590)
-//! test i32_parse   ... bench:     191,977 ns/iter (+/- 8,241)
-//! test i64_lexical ... bench:     197,485 ns/iter (+/- 11,415)
-//! test i64_parse   ... bench:     298,771 ns/iter (+/- 13,941)
-//! test u8_lexical  ... bench:      61,893 ns/iter (+/- 1,171)
-//! test u8_parse    ... bench:      73,681 ns/iter (+/- 7,508)
-//! test u16_lexical ... bench:      60,014 ns/iter (+/- 2,605)
-//! test u16_parse   ... bench:      78,667 ns/iter (+/- 2,899)
-//! test u32_lexical ... bench:     102,840 ns/iter (+/- 2,770)
-//! test u32_parse   ... bench:     140,070 ns/iter (+/- 3,443)
-//! test u64_lexical ... bench:     191,493 ns/iter (+/- 2,648)
-//! test u64_parse   ... bench:     279,269 ns/iter (+/- 12,914)
-//! ```
+
+//  The following benchmarks were run on an "Intel(R) Core(TM) i7-6560U
+//  CPU @ 2.20GHz" CPU, on Fedora 28, Linux kernel version 4.18.16-200
+//  (x86-64), using the lexical formatter or `x.parse()`,
+//  avoiding any inefficiencies in Rust string parsing. The code was
+//  compiled with LTO and at an optimization level of 3.
+//
+//  The benchmarks with `std` were compiled using "rustc 1.29.2 (17a9dc751
+//  2018-10-05", and the `no_std` benchmarks were compiled using "rustc
+//  1.31.0-nightly (46880f41b 2018-10-15)".
+//
+//  The benchmark code may be found `benches/atoi.rs`.
+//
+//  # Benchmarks
+//
+//  | Type  |  lexical (ns/iter) | parse (ns/iter)       | Relative Increase |
+//  |:-----:|:------------------:|:---------------------:|:-----------------:|
+//  | u8    | 62,790             | 67,926                | 1.08x             |
+//  | u16   | 58,896             | 76,602                | 1.30x             |
+//  | u32   | 103,962            | 139,434               | 1.34x             |
+//  | u64   | 192,792            | 265,931               | 1.38x             |
+//  | i8    | 89,828             | 109,099               | 1.21x             |
+//  | i16   | 111,592            | 140,172               | 1.26x             |
+//  | i32   | 155,172            | 189,377               | 1.22x             |
+//  | i64   | 197,747            | 283,541               | 1.43x             |
+//
+//  # Raw Benchmarks
+//
+//  ```text
+//  test i8_lexical  ... bench:      89,828 ns/iter (+/- 9,172)
+//  test i8_parse    ... bench:     109,099 ns/iter (+/- 2,711)
+//  test i16_lexical ... bench:     111,592 ns/iter (+/- 3,862)
+//  test i16_parse   ... bench:     140,172 ns/iter (+/- 7,194)
+//  test i32_lexical ... bench:     155,172 ns/iter (+/- 5,248)
+//  test i32_parse   ... bench:     189,377 ns/iter (+/- 10,131)
+//  test i64_lexical ... bench:     197,747 ns/iter (+/- 18,041)
+//  test i64_parse   ... bench:     283,541 ns/iter (+/- 14,240)
+//  test u8_lexical  ... bench:      62,790 ns/iter (+/- 3,146)
+//  test u8_parse    ... bench:      67,926 ns/iter (+/- 3,767)
+//  test u16_lexical ... bench:      58,896 ns/iter (+/- 3,238)
+//  test u16_parse   ... bench:      76,602 ns/iter (+/- 3,771)
+//  test u32_lexical ... bench:     103,962 ns/iter (+/- 4,870)
+//  test u32_parse   ... bench:     139,434 ns/iter (+/- 3,944)
+//  test u64_lexical ... bench:     192,792 ns/iter (+/- 9,147)
+//  test u64_parse   ... bench:     265,931 ns/iter (+/- 8,308)
+//  ```
+//
+//  Raw Benchmarks (`no_std`)
+//
+//  ```text
+//  test i8_lexical  ... bench:      94,142 ns/iter (+/- 5,252)
+//  test i8_parse    ... bench:     107,092 ns/iter (+/- 4,121)
+//  test i16_lexical ... bench:     113,284 ns/iter (+/- 17,479)
+//  test i16_parse   ... bench:     141,393 ns/iter (+/- 5,804)
+//  test i32_lexical ... bench:     155,704 ns/iter (+/- 5,590)
+//  test i32_parse   ... bench:     191,977 ns/iter (+/- 8,241)
+//  test i64_lexical ... bench:     197,485 ns/iter (+/- 11,415)
+//  test i64_parse   ... bench:     298,771 ns/iter (+/- 13,941)
+//  test u8_lexical  ... bench:      61,893 ns/iter (+/- 1,171)
+//  test u8_parse    ... bench:      73,681 ns/iter (+/- 7,508)
+//  test u16_lexical ... bench:      60,014 ns/iter (+/- 2,605)
+//  test u16_parse   ... bench:      78,667 ns/iter (+/- 2,899)
+//  test u32_lexical ... bench:     102,840 ns/iter (+/- 2,770)
+//  test u32_parse   ... bench:     140,070 ns/iter (+/- 3,443)
+//  test u64_lexical ... bench:     191,493 ns/iter (+/- 2,648)
+//  test u64_parse   ... bench:     279,269 ns/iter (+/- 12,914)
+//  ```
 
 // Code the generate the benchmark plot:
 //  import numpy as np
@@ -638,6 +638,9 @@ mod tests {
         assert_eq!(success(0), try_atoi64_slice(10, b"0"));
         assert_eq!(invalid_digit_error(1, 1), try_atoi64_slice(10, b"1a"));
         assert_eq!(overflow_error(-9223372036854775808), try_atoi64_slice(10, b"9223372036854775808"));
+
+        // Check overflow and invalid digits, overflow should take precedence.
+        assert_eq!(overflow_error(-9223372036854775808), try_atoi64_slice(10, b"9223372036854775808abc"));
 
         // Add tests discovered via fuzzing.
         assert_eq!(overflow_error(-9223372036854775808), try_atoi64_slice(10, b"-000000000000000000000000066000000000000000000000000000000000000000000695092744062605721500000000695092744062600000000000000000000000000000000000000000000000000000000000000?0000000000000000000000000000000000000000000000000\x100000000006666600000000006000000066666666000766776676677000676766509274406260572150000000069509274406260572150000000000000000000000000000000000066000000000000000000000000000000000000000000600000950927440626057215000000006950927440062600057215000000666600666666666600001000000676766766766770000666000766776676000000000000000000000000006950927440626666676676676676660066666000000000060000000600000000000000000000000000000000000+?676677000695092744"));

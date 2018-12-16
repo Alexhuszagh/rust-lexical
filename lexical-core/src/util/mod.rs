@@ -54,5 +54,5 @@ if #[cfg(feature = "correct")] {
 
 // Publicly export config globally.
 pub use self::config::*;
-pub use self::error::{Error, ErrorCode, is_success};
+pub use self::error::{Error, ErrorCode, is_invalid_digit, is_overflow, is_success};
 pub use self::result::*;

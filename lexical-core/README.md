@@ -31,13 +31,13 @@ lexical-core = "0.1"
 ```rust
 extern crate lexical_core;
 
-// String to number using slices
+// String to number using Rust slices.
 // The first argument is the radix, which should be 10 for decimal strings,
 // and the second argument is the byte string parsed.
 let f = lexical_core::atof::atof64_slice(10, b"3.5");   // 3.5
 let i = lexical_core::atoi::atoi32(10, b"15");          // 15
 
-// String to number using ranges, for FFI-compatible code.
+// String to number using pointer ranges, for FFI-compatible code.
 // The first argument is the radix, which should be 10 for decimal strings,
 // the second argument is a pointer to the start of the parsed byte array,
 // and the third argument is a pointer to 1-past-the-end. It will process
@@ -50,27 +50,39 @@ unsafe {
 }
 
 // The ato*_slice and ato*_range parsers are not checked, they do not
-// validate that the input data is entirely correct, and discard trailing
-// bytes that are found. The explicit behavior is to wrap on overflow, and 
+// validate that the input data is entirely correct, and stop parsing
+// when invalid data is founding, returning whatever was parsed up until
+// that point. The explicit behavior is to wrap on overflow, and 
 // to discard invalid digits.
 let i = lexical_core::atoi::atoi8(10, b"256");          // 0, wraps from 256
+let i = lexical_core::atoi::atoi8(10, b"1a5");          // 1, discards "a5"
+
+// You should prefer the checked parsers, whenever possible. These detect 
+// numeric overflow, and no invalid trailing digits are present.
+// The error code for success is 0, all errors are less than 0.
 
 // Ideally, everything works great.
 let res = lexical_core::atoi::try_atoi8(10, b"15");
 assert_eq!(res.error.code, lexical_core::ErrorCode::Success);
 assert_eq!(res.value, 15);
 
-// You should prefer the checked parsers, whenever possible. These detect 
-// numeric overflow, and no invalid trailing digits are present.
-// The error code for success is 0, all errors are less than 0.
+// However, it detects numeric overflow, setting `res.error.code`
+// to the appropriate value.
 let res = lexical_core::atoi::try_atoi8(10, b"256");
 assert_eq!(res.error.code == lexical_core::ErrorCode::Overflow);
 
-// Errors occurring from parsing invalid digits return the index in
-// the buffer where the invalid digit was seen.
-let res = lexical_core::atoi::try_atoi8(10, b"15.45");
+// Errors occurring prematurely terminating the parser due to invalid 
+// digits return the index in the buffer where the invalid digit was 
+// seen. This may useful in contexts like serde, which require numerical
+// parsers from complex data without having to extract a substring 
+// containing only numeric data ahead of time. If the error is set
+// to a `InvalidDigit`, the value is guaranteed to be accurate up until
+// that point. For example, if the trailing data is whitespace,
+// the value from an invalid digit may be perfectly valid in some contexts.
+let res = lexical_core::atoi::try_atoi8(10, b"15 45");
 assert_eq!(res.error.code == lexical_core::ErrorCode::InvalidDigit);
 assert_eq!(res.error.index == 2);
+assert_eq!(res.value == 15);
 
 // Number to string using slices.
 // The first argument is the value, the second argument is the radix,
@@ -113,13 +125,13 @@ Float parsing is difficult to do correctly, and major bugs have been found in im
 3. Testbase's [stress tests](https://www.icir.org/vern/papers/testbase-report.pdf) for converting from decimal to binary.
 4. [Various](https://www.exploringbinary.com/glibc-strtod-incorrectly-converts-2-to-the-negative-1075/) [difficult](https://www.exploringbinary.com/how-glibc-strtod-works/) [cases](https://www.exploringbinary.com/how-strtod-works-and-sometimes-doesnt/) reported on blogs.
 
-Although Lexical may contain bugs leading to rounding error, it is tested against a comprehensive suite of random-data and near-halfway representations, and should be fast and correct for the vast majority of use-cases.
+Although lexical may contain bugs leading to rounding error, it is tested against a comprehensive suite of random-data and near-halfway representations, and should be fast and correct for the vast majority of use-cases.
 
-Finally, due to the heavy use of unsafe code, Lexical-core is fuzzed using cargo-fuzz, to avoid memory errors.
+Finally, due to the heavy use of unsafe code, lexical-core is fuzzed using cargo-fuzz, to avoid memory errors, and the unittests are periodically run under Valgrind.
 
 # Caveats
 
-Lexical uses unsafe code in the back-end for performance, and therefore may introduce memory-safety issues. Although the code is tested with wide variety of inputs to minimize the risk of memory-safety bugs, and the unittests are periodically run under Valgrind, no guarantees are made and you should use lexical-core at your own risk.
+Lexical uses unsafe code in the back-end for performance, and therefore may introduce memory-safety issues. Although the code is fuzzed and tested under Valgrind, no guarantees are made and you should use lexical-core at your own risk.
 
 Finally, for non-decimal (base 10) floats, lexical's float-to-string implementation is lossy, resulting in rounding for a small subset of inputs (up to 0.1% of the total value).
 
@@ -132,8 +144,6 @@ For more information on the Grisu2 and Grisu3 algorithms, see [Printing Floating
 For more information on the Ryu algorithm, see [Ryū: fast float-to-string conversion](https://dl.acm.org/citation.cfm?id=3192369).
 
 ## String to Float
-
-For float parsing, lexical tries the following algorithms, using the first algorithm that produces a correct result:
 
 In order to implement an efficient parser in Rust, lexical uses the following steps:
 

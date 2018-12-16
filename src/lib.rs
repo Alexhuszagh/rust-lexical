@@ -10,6 +10,23 @@
 //! may introduce memory-safety issues. Although the code is tested with
 //! wide variety of inputs to minimize the risk of memory-safety bugs,
 //! no guarantees are made and you should use it at your own risk.
+//!
+//! # Getting Started
+//!
+//! ```rust
+//! extern crate lexical;
+//!
+//! // Number to string
+//! lexical::to_string(3.0);            // "3.0", always has a fraction suffix,
+//! lexical::to_string(3);              // "3"
+//!
+//! // String to number.
+//! let i: i32 = lexical::parse("3");            // 3, auto-type deduction.
+//! let f: f32 = lexical::parse("3.5");          // 3.5
+//! let d = lexical::parse::<f64, _>("3.5");     // 3.5, explicit type hints.
+//! let d = lexical::try_parse::<f64, _>("3.5"); // Ok(3.5), error checking parse.
+//! let d = lexical::try_parse::<f64, _>("3a");  // Err(Error(_)), failed to parse.
+//! ```
 
 // FEATURES
 
