@@ -105,6 +105,11 @@ unsafe fn filter_special<F: StringToFloat>(radix: u32, first: *const u8, last: *
         (F::INFINITY, first.add(INF_STRING.len()))
     } else if is_nan(first, length) {
         (F::NAN, first.add(NAN_STRING.len()))
+    } else if length == 1 && *first == b'.' {
+        // Handle case where we have a decimal point, but no leading or trailing
+        // digits. This should return a value of 0, but the checked parsers
+        // should reject this out-right.
+        (F::ZERO, ptr::null())
     } else if lossy {
         F::basen_lossy(radix, first, last)
     } else {
@@ -366,6 +371,7 @@ mod tests {
 
     #[test]
     fn try_atof64_base10_test() {
+        assert_eq!(invalid_digit_error(0.0, 0), try_atof64_slice(10, b"."));
         assert_eq!(invalid_digit_error(0.0, 0), try_atof64_slice(10, b""));
         assert_eq!(success(0.0), try_atof64_slice(10, b"0.0"));
         assert_eq!(invalid_digit_error(1.0, 1), try_atof64_slice(10, b"1a"));
