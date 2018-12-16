@@ -93,6 +93,9 @@ pub use util::{INF_STRING, INFINITY_STRING, NAN_STRING};
 // Re-export the error structs and enumerations.
 pub use util::{Error, ErrorCode, is_success};
 
+// Re-export the required buffer size for the low-level API.
+pub use util::BUFFER_SIZE;
+
 // Re-export the result struct and expanded-template variants (for FFI).
 pub use util::Result;
 pub use util::{U8Result, U16Result, U32Result, U64Result, U128Result, UsizeResult};

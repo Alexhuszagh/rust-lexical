@@ -46,7 +46,7 @@ pub static mut EXPONENT_BACKUP_CHAR: u8 = b'^';
 // Use 256, actually, since we seem to have memory issues with 64-bits.
 // Clearly not sufficient memory allocated for non-base10 values.
 pub(crate) const MAX_FLOAT_SIZE: usize = 256;
-pub(crate) const BUFFER_SIZE: usize = MAX_FLOAT_SIZE;
+pub const BUFFER_SIZE: usize = MAX_FLOAT_SIZE;
 
 // FUNCTIONS
 
