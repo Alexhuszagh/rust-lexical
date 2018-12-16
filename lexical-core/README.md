@@ -6,6 +6,7 @@ lexical
 
 Low-level, FFI-compatible, lexical conversion routines for use in a `no_std` context. This crate by default does not use the Rust standard library.
 
+- [Getting Started](#getting-started)
 - [Features](#features)
 - [Documentation](#documentation)
 - [Validation](#validation)
@@ -16,11 +17,87 @@ Low-level, FFI-compatible, lexical conversion routines for use in a `no_std` con
   - [Arbitrary-Precision Arithmetic](#arbitrary-precision-arithmetic)
   - [Algorithm Background and Comparison](#algorithm-background-and-comparison)
 
+# Getting Started
+
+lexical-core is a low-level, partially FFI-compatible API for number-to-string and string-to-number conversions, without requiring a system allocator. If you would like to use a convenient, high-level API, please look at [lexical](../lexical) instead.
+
+Add lexical-core to your `Cargo.toml`:
+
+```yaml
+[dependencies]
+lexical-core = "0.1"
+```
+
+```rust
+extern crate lexical_core;
+
+// String to number using slices
+// The first argument is the radix, which should be 10 for decimal strings,
+// and the second argument is the byte string parsed.
+let f = lexical_core::atof::atof64_slice(10, b"3.5");   // 3.5
+let i = lexical_core::atoi::atoi32(10, b"15");          // 15
+
+// String to number using ranges, for FFI-compatible code.
+// The first argument is the radix, which should be 10 for decimal strings,
+// the second argument is a pointer to the start of the parsed byte array,
+// and the third argument is a pointer to 1-past-the-end. It will process
+// bytes in the range [first, last).
+unsafe {
+    let bytes = b"3.5";
+    let first = bytes.as_ptr();
+    let last = first.add(bytes.len());
+    let f = lexical_core::atof::atof64_range(10, first, last);
+}
+
+// The ato*_slice and ato*_range parsers are not checked, they do not
+// validate that the input data is entirely correct, and discard trailing
+// bytes that are found. The explicit behavior is to wrap on overflow, and 
+// to discard invalid digits.
+let i = lexical_core::atoi::atoi8(10, b"256");          // 0, wraps from 256
+
+// Ideally, everything works great.
+let res = lexical_core::atoi::try_atoi8(10, b"15");
+assert_eq!(res.error.code, lexical_core::ErrorCode::Success);
+assert_eq!(res.value, 15);
+
+// You should prefer the checked parsers, whenever possible. These detect 
+// numeric overflow, and no invalid trailing digits are present.
+// The error code for success is 0, all errors are less than 0.
+let res = lexical_core::atoi::try_atoi8(10, b"256");
+assert_eq!(res.error.code == lexical_core::ErrorCode::Overflow);
+
+// Errors occurring from parsing invalid digits return the index in
+// the buffer where the invalid digit was seen.
+let res = lexical_core::atoi::try_atoi8(10, b"15.45");
+assert_eq!(res.error.code == lexical_core::ErrorCode::InvalidDigit);
+assert_eq!(res.error.index == 2);
+
+// Number to string using slices.
+// The first argument is the value, the second argument is the radix,
+// and the third argument is the buffer to write to.
+// The function returns a subslice of the original buffer, and will
+// always start at the same position (`buf.as_ptr() == slc.as_ptr()`).
+let mut buf = [b'0'; lexical_core::MAX_I64_SIZE];
+let slc = lexical_core::itoa::i64toa_slice(15, 10, &mut buf);
+assert_eq!(slc, "15");
+
+// If an insufficiently long buffer is passed, the serializer will panic.
+let mut buf = b['0'; 1];
+let slc = lexical_core::itoa::i64toa_slice(15, 10, &mut buf); // PANICS
+
+// In order to guarantee the buffer is long enough, always ensure there
+// are at least `MAX_XX_SIZE`, where XX is the type name in upperase,
+// IE, for `isize`, `MAX_ISIZE_SIZE`.
+let mut buf = [b'0'; lexical_core::MAX_F64_SIZE];
+let slc = lexical_core::ftoa::f64toa_slice(15.1, 10, &mut buf);
+assert_eq!(slc, "15.1");
+```
+
 # Features
 
 - `algorithm_m` Use Algorithm M rather than bigcomp for the string-to-float parser. Algorithm M is ~4x faster than bigcomp, however, it may use significantly more memory. If and only if Algorithm M and radix are both active, lexical-core requires a system allocator.
-- `trim_floats` Export floats without a fraction as an integer, for example, as "0" and not "0.0". "-0.0" should be exported as "0".
-- `radix` For lexical conversions to and from non-base10 representations.
+- `trim_floats` Export floats without a fraction as an integer, for example, `0.0f64` will be serialized to "0" and not "0.0", and `-0.0` as "0" and not "-0.0".
+- `radix` Enable lexical conversions to and from non-base10 representations. With radix enabled, any radix from 2 to 36 (inclusive) is valid, otherwise, only 10 is valid.
 - `ryu` Use dtolnay's [ryu](https://github.com/dtolnay/ryu/) library for fast and accurate float-to-string conversions.
 
 # Documentation
@@ -42,7 +119,7 @@ Finally, due to the heavy use of unsafe code, Lexical-core is fuzzed using cargo
 
 # Caveats
 
-Lexical uses unsafe code in the back-end for performance, and therefore may introduce memory-safety issues. Although the code is tested with wide variety of inputs to minimize the risk of memory-safety bugs, and then unittests are run are under Valgrind, no guarantees are made and you should use it at your own risk.
+Lexical uses unsafe code in the back-end for performance, and therefore may introduce memory-safety issues. Although the code is tested with wide variety of inputs to minimize the risk of memory-safety bugs, and the unittests are periodically run under Valgrind, no guarantees are made and you should use lexical-core at your own risk.
 
 Finally, for non-decimal (base 10) floats, lexical's float-to-string implementation is lossy, resulting in rounding for a small subset of inputs (up to 0.1% of the total value).
 
@@ -58,20 +135,25 @@ For more information on the Ryu algorithm, see [Ryū: fast float-to-string conve
 
 For float parsing, lexical tries the following algorithms, using the first algorithm that produces a correct result:
 
-1. **Fast Path** Create an exact representation using a native floating-point type from the significant digits and exponent.
-2. **Moderate Path** Create an approximate representation, exact within rounding error, using a custom floating-point type with 80-bits of precision, preventing rounding-error in the significant digits.
-3. **Fallback Moderate Path** Create an approximate 128-bit representation of the numerator and denominator for the halfway point between two potentially valid representations, to determine which representation is correct by comparing the actual digits to theoretical digits generated from the halfway point. This is accurate for ~36 digits with decimal float strings.
-4. **Slow Path** Use arbitrary-precision arithmetic to disambiguate the correct representation.
-    - **Default** Create an exact representation of the numerator and denominator for the halfway point between both representation, using arbitrary-precision integers, and determine which representation is accurate by comparing the actual digits to the theoretical digits. This is accurate for any number of digits, and the required amount of memory does not depend on the number of digits.
-    - **Algorithm M** Create an exact representation of the digits as a big integer, to generate the significant digits (mantissa). If there is a fraction or a negative exponent, create a big ratio of both the numerator and the denominator, and generate the significant digits from the exact quotient and remainder.
+In order to implement an efficient parser in Rust, lexical uses the following steps:
 
-Although using the 4<sup>th</sup> algorithm only occurs when a float is indistinguishable from a halfway representation (between two neighboring floating-point representations) to within 36 digits, maliciously constructed input could force use of the 4<sup>th</sup> algorithm. This has seriously implications for performance, since arbitrary-precision arithmetic scales poorly with large numbers, and can lead to performance degradation in excess of 100-50,000 fold. The lossy parser therefore avoids using arbitrary-precision arithmetic, and returns the result from the 2<sup>nd</sup> step, creating a native float accurate to within 1 bit in the mantissa, without major performance regressions.
+1. We ignore the sign until the end, and merely toggle the sign bit after creating a correct representation of the positive float.
+2. We handle special floats, such as "NaN", "inf", "Infinity". If we do not have a special float, we continue to the next step.
+3. We parse up to 64-bits from the string for the mantissa, ignoring any trailing digits, and parse the exponent (if present) as a signed 32-bit integer. If the exponent overflows or underflows, we set the value to i32::max_value() or i32::min_value(), respectively.
+4. **Fast Path** We then try to create an exact representation of a native binary float from parsed mantissa and exponent. If both can be exactly represented, we multiply the two to create an exact representation, since IEEE754 floats mandate the use of guard digits to minimizing rounding error. If either component cannot be exactly represented as the native float, we continue to the next step.
+5. **Moderate Path** We create an approximate, extended, 80-bit float type (64-bits for the mantissa, 16-bits for the exponent) from both components, and multiplies them together. This minimizes the rounding error, through guard digits. We then estimate the error from the parsing and multiplication steps, and if the float +/- the error differs significantly from b+h, we return the correct representation (b or b+u). If we cannot unambiguously determine the correct floating-point representation, we continue to the next step.
+6. **Fallback Moderate Path** Next, we create a 128-bit representation of the numerator and denominator for b+h, to disambiguate b from b+u by comparing the actual digits in the input to theoretical digits generated from b+h. This is accurate for ~36 significant digits from a 128-bit approximation with decimal float strings. If the input is less than or equal to 36 digits, we return the value from this step. Otherwise, we continue to the next step.
+7. **Slow Path** We use arbitrary-precision arithmetic to disambiguate the correct representation without any rounding error.
+    - **Default** We create an exact representation of the numerator and denominator for b+h, using arbitrary-precision integers, and determine which representation is accurate by comparing the actual digits in the input to the theoretical digits generated from b+h. This is accurate for any number of digits, and the required amount of memory does not depend on the number of digits.
+    - **Algorithm M** We create an exact representation of the input digits as a big integer, to determine how to round the top 53 bits for the mantissa. If there is a fraction or a negative exponent, we create a big ratio of both the numerator and the denominator, and generate the significant digits from the exact quotient and remainder.
+
+Since arbitrary-precision arithmetic is slow and scales poorly for decimal strings with many digits or exponents of high magnitude, lexical also supports a lossy algorithm, which returns the result from the moderate path. The result from the lossy parser should be accurate to within 1 ULP.
 
 To use Algorithm M, use the feature `algorithm_m` when compiling lexical.
 
 ## Arbitrary-Precision Arithmetic
 
-Lexical uses arbitrary-precision arithmetic to exactly represent strings between two floating-point representations with more than 36 digits, with various optimizations for multiplication and division relative to Rust's current implementation. The arbitrary-precision arithmetic logic is not independent on memory allocation: the default slow-path algorithm only uses the stack, and Algorithm M only uses the heap when the `radix` feature is enabled.
+Lexical uses arbitrary-precision arithmetic to exactly represent strings between two floating-point representations with more than 36 digits, with various optimizations for multiplication and division relative to Rust's current implementation. The arbitrary-precision arithmetic logic is not dependent on memory allocation: the default slow-path algorithm only uses the stack, and Algorithm M only uses the heap when the `radix` feature is enabled.
 
 ## Algorithm Background and Comparison
 
@@ -86,7 +168,7 @@ For the following example, we will use the following values for our test case:
 
 **Algorithm M**
 
-Algorithm M is described [here](https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/) in depth, and Rust's libcore uses it internally. First, Algorithm M converts both the fraction and the exponent to a fraction of big integers. For example, `3.14159e2` is the same as `314159e-3`, which means a numerator of `314159` and denominator of `1000`. Next, Algorithm M calculates the quotient and remainder of the numerator and denominator until the quotient is the same representation as the mantissa in the native float, for example, in range range `[2^52, 2^53)` for f64, or in the range `[2^23, 2^24)` for f32. If the quotient is below the range, multiply the numerator by 2, and decrease the binary exponent.  If the quotient is above the range, multiply the denominator by 2, and increase the binary exponent.
+Algorithm M represents the significant digits of a float as a fraction of arbitrary-precision integers (a more in-depth description can be found [here](https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/)). For example, 1.23 would be 123/100, while 314.159 would be 314159/1000. We then scale the numerator and denominator by powers of 2 until the quotient is in the range `[2^52, 2^53)`, generating the correct significant digits of the mantissa. The use of Algorithm M may be enabled through the algorithm_m feature-gate, and tends to be more performant than bigcomp.
 
 A naive implementation, in Python, is as follows:
 
@@ -113,25 +195,17 @@ def algorithm_m(num, b):
     return (num, b, steps-1)
 ```
 
-For example, to scale `s` into the range `[2^52, 2^53)`, we would need a a numerator of `247....`, and a denominator of `10^1078`, requiring 1127 iterations to scale the value. Similarly, scaling `2.4703282292062327e-324` requires 1127 iterations to scale, each in `O(N^2)` time. 
-
-Luckily, Rust uses a simple optimization: a quick estimate of the bitshift required to generate the correct ratio is calculated from the number of bits in the numerator and denominator. Although this optimization  Rust's libcore also uses a [slow division algorithm](https://en.wikipedia.org/wiki/Division_algorithm#Restoring_division), and a slow exponentiation algorithm, scaling poorly for most inputs. 
-
-Lexical's `algorithm_m` feature uses various optimizations to dramatically improve the approach.
-
-1. It requires only 1-2 iterations to scale a value so the resulting quotient is in the range `[2^52, 2^53)`. It does this by multiplying the numerator to be 52-bits larger than the denominator on the first iteration, resulting in a quotient of 52 or 53 bits. If the quotient is 52-bits, multiply the numerator by 2 and repeat.
-2. It uses basecase division (an implementation of Knuth's Algorithm D), which is an `O(q*m)` algorithm, requiring only `q` native divisions and `q*m` multiplications and subtractions, where `m` is the number of limbs in the divisor, and `n` is the number of limbs of the numerator, and `q = n - m`. Since we set the numerator to be 52 or 53 bits larger than the denominator, this means `q <= 3`, and therefore the algorithm is `O(m)`. In comparison, restoring division, used by libcore, is `O(n^2)`, and iterates over each bit in the numerator. To put this into perspective, for a numerator/denominator pair with ~2100 bits (1e307), restoring division requires ~140,000 native subtractions and comparisons, compared to ~96 multiplications and subtractions in lexical.
-3. It limits the number of parsed digits used when representing the mantissa. Any decimal string for a binary float has a finite representation, after which, only the presence or absence of non-zero digits may affect the mantissa. By removing these trailing digits from the mantissa and only comparing them to '0', lexical provides an upper-bound on the computational cost in representing the significant digits of a float via an arbitrary-precision integer.
-
 **bigcomp**
 
-David M. Gay's `bigcomp` implementation in `dtoa` is the canonical string-to-float parser, and uses another approach for performance, described in depth [here](https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/). Bigcomp represents `b` as an N-bit integer (24 for f32, 53 for f64) and a binary exponent and calculates `b+h` from `b`. Finally, bigcomp scales `b+h` by a power of 10 such that the calculated value would be from [0, 10), and creates a fraction of big integers. It then calculates the generated digits from `b+h` by iteratively using calculating the quotient (the digit) and remainder of the fraction, setting the numerator to `10*remainder`. Each iteration requires ~1 division operation and `N` multiplication, addition and subtraction operations operations.
+Bigcomp is a re-implementation of the canonical string-to-float parser, which creates an exact representation b+h as big integers, and compares the theoretical digits from `b+h` scaled into the range `[1, 10)` by a power of 10 to the actual digits in the input string (a more in-depth description can be found [here](https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/)). A maximum of 767 digits need to be compared to determine the correct representation, and the size of the big integers in the ratio does not depend on the number of digits in the input string.
 
-When the digits present in `s` or `b+h` differ from each other, the correct representation is determined. Therefore, bigcomp requires `N` division operations and `N^2` multiplication operations, where `N` is the number of native ints in the big integer. Furthermore, since the number of digits in the input string does not affect the size of the numerator/denominator in bigcomp (but does in algorithm M), bigcomp uses less memory in edge cases and has a lower-order `N` for complex inputs. Finally, all halfway representations stop producing digits after 767 digits, requiring only a simple comparison to categorize larger strings. 
+**Comparison to dec2flt**
 
-**Conclusion**
-
-In practice, this means for a 750 digit input string with a value near 5e-324, theoretically, algorithm M would perform ~250 times as many division/multiplication operations as bigcomp; for a 15,000 digit input string, nearly 100,000 times as many operations. In the worst scenario, for a 1MB string, on x86-64 hardware with a 2.20 GHz CPU, using a correct float parser based off algorithm M could take nearly 6 minutes of computation time, while only 50 μs with bigcomp. Luckily, Rust does not implement a correct parser, avoiding denial-of-service attacks based off float parsing, however, it does so at the expense of correctness. Bigcomp both is more correct and more performant in all non-trivial cases, and the optimizations for trivial cases make lexical competitive with other float parsers for any input string.
+Rust's dec2flt also uses Algorithm M internally, however, numerous optimizations led to >100x performance improvements in lexical relative to dec2flt.
+1. We scale the ratio using only 1-2 "iterations", without using a loop, by scaling the numerator to have 52 more bits than the numerator, and multiply the numerator by 2 if we underestimated the result.
+2. We use an algorithm for basecase division that is optimized for arbitrary-precision integers of similar size (an implementation of Knuth's Algorithm D from "The Art of Computer Programming"), with a time complexity of `O(m)`, where m is the size of the denominator. In comparison, dec2flt uses restoring division, which is `O(n^2)`, where n is the size of the numerator. Furthermore, the restoring division algorithm iterates bit-by-bit and requires an `O(n)` comparison at each iteration. To put this into perspective, to calculate the quotient of a value of b+h close to 1e307, dec2flt requires ~140,000 native subtraction and comparison operations, while lexical requires ~96 multiplication and subtraction operations.
+3. We limit the number of parsed digits to 767, the theoretical max number of digits produced by b+h, and merely compare any trailing digits to '0'. This provides an upper-bound on the computation cost.
+4. The individual "limbs" of the big integers are comprised of integers the size of the architecture we compile on, for example, u32 on x86 and u64 on x86-64, minimizing the number of native operations required.
 
 # License
 
