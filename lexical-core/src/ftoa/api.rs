@@ -87,10 +87,15 @@ unsafe fn filter_special<F: FloatToString>(value: F, radix: u32, first: *mut u8)
     debug_assert!(value.is_sign_positive(), "Value cannot be negative.");
     debug_assert_radix!(radix);
 
-    if value.is_zero() {
-        ptr::copy_nonoverlapping(b"0.0".as_ptr(), first, 3);
-        first.add(3)
-    } else if value.is_nan() {
+    // We already check for 0 in `filter_sign` if value.is_zero().
+    #[cfg(not(feature = "trim_floats"))] {
+        if value.is_zero() {
+            ptr::copy_nonoverlapping(b"0.0".as_ptr(), first, 3);
+            return first.add(3);
+        }
+    }
+
+    if value.is_nan() {
         ptr::copy_nonoverlapping(NAN_STRING.as_ptr(), first, NAN_STRING.len());
         first.add(NAN_STRING.len())
     } else if value.is_special() {
@@ -108,6 +113,14 @@ unsafe fn filter_sign<F: FloatToString>(mut value: F, radix: u32, mut first: *mu
     -> *mut u8
 {
     debug_assert_radix!(radix);
+
+    // Export "-0.0" and "0.0" as "0" with trimmed floats.
+    #[cfg(feature = "trim_floats")] {
+        if value.is_zero() {
+            ptr::copy_nonoverlapping(b"0".as_ptr(), first, 1);
+            return first.add(1);
+        }
+    }
 
     // If the sign bit is set, invert it and just set the first
     // value to "-".
@@ -129,10 +142,6 @@ unsafe fn filter_buffer<F: FloatToString>(value: F, radix: u32, first: *mut u8, 
     debug_assert!(first <= last, "First must be <= last");
     debug_assert_radix!(radix);
 
-    // check to use a temporary buffer
-    let dist = distance(first, last);
-    assert!(dist >= MAX_FLOAT_SIZE);
-
     // Current buffer has sufficient capacity, use it.
     filter_sign(value, radix, first)
 }
@@ -144,7 +153,7 @@ unsafe fn filter_buffer<F: FloatToString>(value: F, radix: u32, first: *mut u8, 
 /// * `name`        Function name.
 /// * `f`           Float type.
 macro_rules! generate_unsafe_api {
-    ($name:ident, $t:ty) => (
+    ($name:ident, $t:ty, $size:expr) => (
         /// Unsafe, C-like exporter for float numbers.
         ///
         /// # Warning
@@ -156,11 +165,14 @@ macro_rules! generate_unsafe_api {
         #[inline]
         unsafe fn $name(value: $t, base: u8, first: *mut u8, last: *mut u8) -> *mut u8
         {
+            // check to use a temporary buffer
+            assert!(distance(first, last) >= $size);
             let p = filter_buffer(value, base.into(), first, last);
 
             // Trim a trailing ".0" from a float.
             #[cfg(feature = "trim_floats")] {
-                if ends_with_range(first, p, ".0".as_ptr(), 2) {
+                let dist = distance(first, p);
+                if ends_with_range(first, dist, ".0".as_ptr(), 2) {
                     p.sub(2)
                 } else {
                     p
@@ -174,8 +186,8 @@ macro_rules! generate_unsafe_api {
     )
 }
 
-generate_unsafe_api!(f32toa_unsafe, f32);
-generate_unsafe_api!(f64toa_unsafe, f64);
+generate_unsafe_api!(f32toa_unsafe, f32, MAX_F32_SIZE);
+generate_unsafe_api!(f64toa_unsafe, f64, MAX_F64_SIZE);
 
 // LOW-LEVEL API
 // -------------
@@ -213,7 +225,7 @@ mod tests {
         // positive
         #[cfg(feature = "trim_floats")] {
             assert_eq!(as_slice(b"0"), f32toa_slice(0.0, 2, &mut buffer));
-            assert_eq!(as_slice(b"-0"), f32toa_slice(-0.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"0"), f32toa_slice(-0.0, 2, &mut buffer));
             assert_eq!(as_slice(b"1"), f32toa_slice(1.0, 2, &mut buffer));
             assert_eq!(as_slice(b"10"), f32toa_slice(2.0, 2, &mut buffer));
         }
@@ -252,7 +264,7 @@ mod tests {
         // positive
         #[cfg(feature = "trim_floats")] {
             assert_eq!(as_slice(b"0"), f32toa_slice(0.0, 10, &mut buffer));
-            assert_eq!(as_slice(b"-0"), f32toa_slice(-0.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"0"), f32toa_slice(-0.0, 10, &mut buffer));
             assert_eq!(as_slice(b"1"), f32toa_slice(1.0, 10, &mut buffer));
             assert_eq!(as_slice(b"10"), f32toa_slice(10.0, 10, &mut buffer));
         }
@@ -310,9 +322,9 @@ mod tests {
         // positive
         #[cfg(feature = "trim_floats")] {
             assert_eq!(as_slice(b"0"), f64toa_slice(0.0, 2, &mut buffer));
-            assert_eq!(as_slice(b"-0"), f64toa_slice(-0.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"0"), f64toa_slice(-0.0, 2, &mut buffer));
             assert_eq!(as_slice(b"1"), f64toa_slice(1.0, 2, &mut buffer));
-            assert_eq!(as_slice(b"10"), f64toa_slice(10.0, 2, &mut buffer));
+            assert_eq!(as_slice(b"10"), f64toa_slice(2.0, 2, &mut buffer));
         }
 
         #[cfg(not(feature = "trim_floats"))] {
@@ -344,7 +356,7 @@ mod tests {
         // positive
         #[cfg(feature = "trim_floats")] {
             assert_eq!(as_slice(b"0"), f64toa_slice(0.0, 10, &mut buffer));
-            assert_eq!(as_slice(b"-0"), f64toa_slice(-0.0, 10, &mut buffer));
+            assert_eq!(as_slice(b"0"), f64toa_slice(-0.0, 10, &mut buffer));
             assert_eq!(as_slice(b"1"), f64toa_slice(1.0, 10, &mut buffer));
             assert_eq!(as_slice(b"10"), f64toa_slice(10.0, 10, &mut buffer));
         }
@@ -406,5 +418,19 @@ mod tests {
             let mut buffer = new_buffer();
             f == atof64_slice(10, f64toa_slice(f, 10, &mut buffer))
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn f32toa_buffer_test() {
+        let mut buffer = [b'0'; MAX_F32_SIZE-1];
+        f64toa_slice(1.2345, 10, &mut buffer);
+    }
+
+    #[test]
+    #[should_panic]
+    fn f64toa_buffer_test() {
+        let mut buffer = [b'0'; MAX_F64_SIZE-1];
+        f64toa_slice(1.2345, 10, &mut buffer);
     }
 }

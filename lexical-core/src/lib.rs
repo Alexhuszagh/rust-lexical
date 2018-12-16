@@ -93,11 +93,11 @@ pub use util::{INF_STRING, INFINITY_STRING, NAN_STRING};
 // Re-export the error structs and enumerations.
 pub use util::{Error, ErrorCode, is_success};
 
-// Re-export the required buffer size for the low-level API.
+// Re-export the required buffer sizes for the low-level API.
 pub use util::BUFFER_SIZE;
-
-// Re-export the required buffer size for individual types.
-pub use util::{MAX_INT8_SIZE, MAX_INT16_SIZE, MAX_INT32_SIZE, MAX_INT64_SIZE, MAX_INT128_SIZE, MAX_INTSIZE_SIZE, MAX_FLOAT_SIZE};
+pub use util::{MAX_I8_SIZE, MAX_I16_SIZE, MAX_I32_SIZE, MAX_I64_SIZE, MAX_I128_SIZE, MAX_ISIZE_SIZE};
+pub use util::{MAX_U8_SIZE, MAX_U16_SIZE, MAX_U32_SIZE, MAX_U64_SIZE, MAX_U128_SIZE, MAX_USIZE_SIZE};
+pub use util::{MAX_F32_SIZE, MAX_F64_SIZE};
 
 // Re-export the result struct and expanded-template variants (for FFI).
 pub use util::Result;

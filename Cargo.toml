@@ -50,8 +50,8 @@ radix = ["lexical-core/radix"]
 ryu = ["lexical-core/ryu"]
 # Use the `std` library.
 std = ["lexical-core/std"]
-# Trim a trailing ".0" from an exported float string.
-trim_floats = []
+# Trim a trailing ".0" from an exported float string, and represent -0.0 as "0".
+trim_floats = ["lexical-core/trim_floats"]
 # Build the comprehensive float parsing tests.
 # Testing only.
 comprehensive_float_test = ["rand/std", "serde/std", "serde_derive", "std", "toml"]

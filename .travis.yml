@@ -14,6 +14,8 @@ matrix:
         - cd lexical-core
         - cargo test
         - cargo test --no-default-features
+        - cargo test --no-default-features --features=trim_floats
+        - cargo test --no-default-features --features=trim_floats,radix
         - cargo test --no-default-features --features=table
         - cargo test --no-default-features --features=table,radix
         - cargo test --no-default-features --features=grisu3
@@ -31,6 +33,8 @@ script:
   - cd lexical-core
   - cargo test --features=std
   - cargo test --no-default-features --features=std
+  - cargo test --no-default-features --features=std,trim_floats
+  - cargo test --no-default-features --features=std,trim_floats,radix
   - cargo test --no-default-features --features=std,table
   - cargo test --no-default-features --features=std,table,radix
   - cargo test --no-default-features --features=std,grisu3

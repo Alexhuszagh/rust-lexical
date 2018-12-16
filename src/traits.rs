@@ -130,20 +130,20 @@ macro_rules! to_bytes {
     )
 }
 
-to_bytes!(u8, u8toa_slice, lexical_core::MAX_INT8_SIZE);
-to_bytes!(u16, u16toa_slice, lexical_core::MAX_INT16_SIZE);
-to_bytes!(u32, u32toa_slice, lexical_core::MAX_INT32_SIZE);
-to_bytes!(u64, u64toa_slice, lexical_core::MAX_INT64_SIZE);
-to_bytes!(u128, u128toa_slice, lexical_core::MAX_INT128_SIZE);
-to_bytes!(usize, usizetoa_slice, lexical_core::MAX_INTSIZE_SIZE);
-to_bytes!(i8, i8toa_slice, lexical_core::MAX_INT8_SIZE);
-to_bytes!(i16, i16toa_slice, lexical_core::MAX_INT16_SIZE);
-to_bytes!(i32, i32toa_slice, lexical_core::MAX_INT32_SIZE);
-to_bytes!(i64, i64toa_slice, lexical_core::MAX_INT64_SIZE);
-to_bytes!(i128, i128toa_slice, lexical_core::MAX_INT128_SIZE);
-to_bytes!(isize, isizetoa_slice, lexical_core::MAX_INTSIZE_SIZE);
-to_bytes!(f32, f32toa_slice, lexical_core::MAX_FLOAT_SIZE);
-to_bytes!(f64, f64toa_slice, lexical_core::MAX_FLOAT_SIZE);
+to_bytes!(u8, u8toa_slice, lexical_core::MAX_U8_SIZE);
+to_bytes!(u16, u16toa_slice, lexical_core::MAX_U16_SIZE);
+to_bytes!(u32, u32toa_slice, lexical_core::MAX_U32_SIZE);
+to_bytes!(u64, u64toa_slice, lexical_core::MAX_U64_SIZE);
+to_bytes!(u128, u128toa_slice, lexical_core::MAX_U128_SIZE);
+to_bytes!(usize, usizetoa_slice, lexical_core::MAX_USIZE_SIZE);
+to_bytes!(i8, i8toa_slice, lexical_core::MAX_I8_SIZE);
+to_bytes!(i16, i16toa_slice, lexical_core::MAX_I16_SIZE);
+to_bytes!(i32, i32toa_slice, lexical_core::MAX_I32_SIZE);
+to_bytes!(i64, i64toa_slice, lexical_core::MAX_I64_SIZE);
+to_bytes!(i128, i128toa_slice, lexical_core::MAX_I128_SIZE);
+to_bytes!(isize, isizetoa_slice, lexical_core::MAX_ISIZE_SIZE);
+to_bytes!(f32, f32toa_slice, lexical_core::MAX_F32_SIZE);
+to_bytes!(f64, f64toa_slice, lexical_core::MAX_F64_SIZE);
 
 // TESTS
 // -----

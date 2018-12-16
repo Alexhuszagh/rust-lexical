@@ -47,59 +47,104 @@ if #[cfg(feature = "radix")] {
     // Use 256, actually, since we seem to have memory issues with f64.
     // Clearly not sufficient memory allocated for non-base10 values.
 
-    /// The minimum buffer size required to serialize i8 and u8.
-    pub const MAX_INT8_SIZE: usize = 16;
+    /// The minimum buffer size required to serialize any i8 value.
+    pub const MAX_I8_SIZE: usize = 16;
 
-    /// The minimum buffer size required to serialize i16 and u16.
-    pub const MAX_INT16_SIZE: usize = 32;
+    /// The minimum buffer size required to serialize any i16 value.
+    pub const MAX_I16_SIZE: usize = 32;
 
-    /// The minimum buffer size required to serialize i32 and u32.
-    pub const MAX_INT32_SIZE: usize = 64;
+    /// The minimum buffer size required to serialize any i32 value.
+    pub const MAX_I32_SIZE: usize = 64;
 
-    /// The minimum buffer size required to serialize i64 and u64.
-    pub const MAX_INT64_SIZE: usize = 128;
+    /// The minimum buffer size required to serialize any i64 value.
+    pub const MAX_I64_SIZE: usize = 128;
 
-    /// The minimum buffer size required to serialize i128 and u128.
-    pub const MAX_INT128_SIZE: usize = 256;
+    /// The minimum buffer size required to serialize any i128 value.
+    pub const MAX_I128_SIZE: usize = 256;
 
-    /// The minimum buffer size required to serialize f32 and f64.
-    pub const MAX_FLOAT_SIZE: usize = 256;
+    /// The minimum buffer size required to serialize any u8 value.
+    pub const MAX_U8_SIZE: usize = 16;
+
+    /// The minimum buffer size required to serialize any u16 value.
+    pub const MAX_U16_SIZE: usize = 32;
+
+    /// The minimum buffer size required to serialize any u32 value.
+    pub const MAX_U32_SIZE: usize = 64;
+
+    /// The minimum buffer size required to serialize any u64 value.
+    pub const MAX_U64_SIZE: usize = 128;
+
+    /// The minimum buffer size required to serialize any u128 value.
+    pub const MAX_U128_SIZE: usize = 256;
+
+    /// The minimum buffer size required to serialize any f32 value.
+    pub const MAX_F32_SIZE: usize = 256;
+
+    /// The minimum buffer size required to serialize any f64 value.
+    pub const MAX_F64_SIZE: usize = 256;
 } else {
     // The f64 buffer is actually a size of 60, but use 64 since it's a
     // power of 2.
 
-    /// The minimum buffer size required to serialize i8 and u8.
-    pub const MAX_INT8_SIZE: usize = 3;
+    /// The minimum buffer size required to serialize any i8 value.
+    pub const MAX_I8_SIZE: usize = 4;
 
-    /// The minimum buffer size required to serialize i16 and u16.
-    pub const MAX_INT16_SIZE: usize = 5;
+    /// The minimum buffer size required to serialize any i16 value.
+    pub const MAX_I16_SIZE: usize = 6;
 
-    /// The minimum buffer size required to serialize i32 and u32.
-    pub const MAX_INT32_SIZE: usize = 10;
+    /// The minimum buffer size required to serialize any i32 value.
+    pub const MAX_I32_SIZE: usize = 11;
 
-    /// The minimum buffer size required to serialize i64 and u64.
-    pub const MAX_INT64_SIZE: usize = 20;
+    /// The minimum buffer size required to serialize any i64 value.
+    pub const MAX_I64_SIZE: usize = 20;
 
-    /// The minimum buffer size required to serialize i128 and u128.
-    pub const MAX_INT128_SIZE: usize = 39;
+    /// The minimum buffer size required to serialize any i128 value.
+    pub const MAX_I128_SIZE: usize = 40;
 
-    /// The minimum buffer size required to serialize f32 and f64.
-    pub const MAX_FLOAT_SIZE: usize = 64;
+    /// The minimum buffer size required to serialize any u8 value.
+    pub const MAX_U8_SIZE: usize = 3;
+
+    /// The minimum buffer size required to serialize any u16 value.
+    pub const MAX_U16_SIZE: usize = 5;
+
+    /// The minimum buffer size required to serialize any u32 value.
+    pub const MAX_U32_SIZE: usize = 10;
+
+    /// The minimum buffer size required to serialize any u64 value.
+    pub const MAX_U64_SIZE: usize = 20;
+
+    /// The minimum buffer size required to serialize any u128 value.
+    pub const MAX_U128_SIZE: usize = 39;
+
+    /// The minimum buffer size required to serialize any f32 value.
+    pub const MAX_F32_SIZE: usize = 64;
+
+    /// The minimum buffer size required to serialize any f64 value.
+    pub const MAX_F64_SIZE: usize = 64;
 }} // cfg_if
 
 cfg_if! {
 if #[cfg(target_pointer_width = "16")] {
-    /// The minimum buffer size required to serialize isize and usize.
-    pub const MAX_INTSIZE_SIZE: usize = MAX_INT16_SIZE;
+    /// The minimum buffer size required to serialize any isize value.
+    pub const MAX_ISIZE_SIZE: usize = MAX_I16_SIZE;
+
+    /// The minimum buffer size required to serialize any usize value.
+    pub const MAX_USIZE_SIZE: usize = MAX_U16_SIZE;
 } else if #[cfg(target_pointer_width = "32")] {
-    /// The minimum buffer size required to serialize isize and usize.
-    pub const MAX_INTSIZE_SIZE: usize = MAX_INT32_SIZE;
+    /// The minimum buffer size required to serialize any isize value.
+    pub const MAX_ISIZE_SIZE: usize = MAX_I32_SIZE;
+
+    /// The minimum buffer size required to serialize any usize value.
+    pub const MAX_USIZE_SIZE: usize = MAX_U32_SIZE;
 } else if #[cfg(target_pointer_width = "64")] {
-    /// The minimum buffer size required to serialize isize and usize.
-    pub const MAX_INTSIZE_SIZE: usize = MAX_INT64_SIZE;
+    /// The minimum buffer size required to serialize any isize value.
+    pub const MAX_ISIZE_SIZE: usize = MAX_I64_SIZE;
+
+    /// The minimum buffer size required to serialize any usize value.
+    pub const MAX_USIZE_SIZE: usize = MAX_U64_SIZE;
 }}  // cfg_if
 
-pub const BUFFER_SIZE: usize = MAX_FLOAT_SIZE;
+pub const BUFFER_SIZE: usize = MAX_F64_SIZE;
 
 // FUNCTIONS
 

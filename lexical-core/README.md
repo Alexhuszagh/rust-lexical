@@ -19,6 +19,7 @@ Low-level, FFI-compatible, lexical conversion routines for use in a `no_std` con
 # Features
 
 - `algorithm_m` Use Algorithm M rather than bigcomp for the string-to-float parser. Algorithm M is ~4x faster than bigcomp, however, it may use significantly more memory. If and only if Algorithm M and radix are both active, lexical-core requires a system allocator.
+- `trim_floats` Export floats without a fraction as an integer, for example, as "0" and not "0.0". "-0.0" should be exported as "0".
 - `radix` For lexical conversions to and from non-base10 representations.
 - `ryu` Use dtolnay's [ryu](https://github.com/dtolnay/ryu/) library for fast and accurate float-to-string conversions.
 

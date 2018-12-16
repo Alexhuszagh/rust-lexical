@@ -42,6 +42,8 @@ radix = []
 std = []
 # Use precompiled tables for faster performance and accuracy, at the cost of larger binaries.
 table = []
+# Trim a trailing ".0" from an exported float string, and represent -0.0 as "0".
+trim_floats = []
 
 # Use heavy optimizations for release builds, and make our panics to detect
 # internal logic errors safe for FFI, via abort.

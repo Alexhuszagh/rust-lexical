@@ -363,12 +363,12 @@ macro_rules! generate_unsafe_unsigned {
     )
 }
 
-generate_unsafe_unsigned!(u8toa_unsafe, u8, u32, MAX_INT8_SIZE);
-generate_unsafe_unsigned!(u16toa_unsafe, u16, u32, MAX_INT16_SIZE);
-generate_unsafe_unsigned!(u32toa_unsafe, u32, u32, MAX_INT32_SIZE);
-generate_unsafe_unsigned!(u64toa_unsafe, u64, u64, MAX_INT64_SIZE);
-generate_unsafe_unsigned!(u128toa_unsafe, u128, u128, MAX_INT128_SIZE);
-generate_unsafe_unsigned!(usizetoa_unsafe, usize, usize, MAX_INTSIZE_SIZE);
+generate_unsafe_unsigned!(u8toa_unsafe, u8, u32, MAX_U8_SIZE);
+generate_unsafe_unsigned!(u16toa_unsafe, u16, u32, MAX_U16_SIZE);
+generate_unsafe_unsigned!(u32toa_unsafe, u32, u32, MAX_U32_SIZE);
+generate_unsafe_unsigned!(u64toa_unsafe, u64, u64, MAX_U64_SIZE);
+generate_unsafe_unsigned!(u128toa_unsafe, u128, u128, MAX_U128_SIZE);
+generate_unsafe_unsigned!(usizetoa_unsafe, usize, usize, MAX_USIZE_SIZE);
 
 /// Generate the signed, unsafe wrappers.
 macro_rules! generate_unsafe_signed {
@@ -396,12 +396,12 @@ macro_rules! generate_unsafe_signed {
     )
 }
 
-generate_unsafe_signed!(i8toa_unsafe, i8, u32, i32, MAX_INT8_SIZE);
-generate_unsafe_signed!(i16toa_unsafe, i16, u32, i32, MAX_INT16_SIZE);
-generate_unsafe_signed!(i32toa_unsafe, i32, u32, i32, MAX_INT32_SIZE);
-generate_unsafe_signed!(i64toa_unsafe, i64, u64, i64, MAX_INT64_SIZE);
-generate_unsafe_signed!(i128toa_unsafe, i128, u128, i128, MAX_INT128_SIZE);
-generate_unsafe_signed!(isizetoa_unsafe, isize, usize, isize, MAX_INTSIZE_SIZE);
+generate_unsafe_signed!(i8toa_unsafe, i8, u32, i32, MAX_I8_SIZE);
+generate_unsafe_signed!(i16toa_unsafe, i16, u32, i32, MAX_I16_SIZE);
+generate_unsafe_signed!(i32toa_unsafe, i32, u32, i32, MAX_I32_SIZE);
+generate_unsafe_signed!(i64toa_unsafe, i64, u64, i64, MAX_I64_SIZE);
+generate_unsafe_signed!(i128toa_unsafe, i128, u128, i128, MAX_I128_SIZE);
+generate_unsafe_signed!(isizetoa_unsafe, isize, usize, isize, MAX_ISIZE_SIZE);
 
 // LOW-LEVEL API
 // -------------
@@ -642,5 +642,89 @@ mod tests {
             let mut buffer = new_buffer();
             i == atoisize_slice(10, isizetoa_slice(i, 10, &mut buffer))
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn i8toa_buffer_test() {
+        let mut buffer = [b'0'; MAX_I8_SIZE-1];
+        i8toa_slice(12, 10, &mut buffer);
+    }
+
+    #[test]
+    #[should_panic]
+    fn i16toa_buffer_test() {
+        let mut buffer = [b'0'; MAX_I16_SIZE-1];
+        i16toa_slice(12, 10, &mut buffer);
+    }
+
+    #[test]
+    #[should_panic]
+    fn i32toa_buffer_test() {
+        let mut buffer = [b'0'; MAX_I32_SIZE-1];
+        i32toa_slice(12, 10, &mut buffer);
+    }
+
+    #[test]
+    #[should_panic]
+    fn i64toa_buffer_test() {
+        let mut buffer = [b'0'; MAX_I64_SIZE-1];
+        i64toa_slice(12, 10, &mut buffer);
+    }
+
+    #[test]
+    #[should_panic]
+    fn i128toa_buffer_test() {
+        let mut buffer = [b'0'; MAX_I128_SIZE-1];
+        i128toa_slice(12, 10, &mut buffer);
+    }
+
+    #[test]
+    #[should_panic]
+    fn isizetoa_buffer_test() {
+        let mut buffer = [b'0'; MAX_ISIZE_SIZE-1];
+        isizetoa_slice(12, 10, &mut buffer);
+    }
+
+    #[test]
+    #[should_panic]
+    fn u8toa_buffer_test() {
+        let mut buffer = [b'0'; MAX_U8_SIZE-1];
+        i8toa_slice(12, 10, &mut buffer);
+    }
+
+    #[test]
+    #[should_panic]
+    fn u16toa_buffer_test() {
+        let mut buffer = [b'0'; MAX_U16_SIZE-1];
+        i16toa_slice(12, 10, &mut buffer);
+    }
+
+    #[test]
+    #[should_panic]
+    fn u32toa_buffer_test() {
+        let mut buffer = [b'0'; MAX_U32_SIZE-1];
+        i32toa_slice(12, 10, &mut buffer);
+    }
+
+    #[test]
+    #[should_panic]
+    fn u64toa_buffer_test() {
+        let mut buffer = [b'0'; MAX_U64_SIZE-1];
+        i64toa_slice(12, 10, &mut buffer);
+    }
+
+    #[test]
+    #[should_panic]
+    fn u128toa_buffer_test() {
+        let mut buffer = [b'0'; MAX_U128_SIZE-1];
+        i128toa_slice(12, 10, &mut buffer);
+    }
+
+    #[test]
+    #[should_panic]
+    fn usizetoa_buffer_test() {
+        let mut buffer = [b'0'; MAX_USIZE_SIZE-1];
+        usizetoa_slice(12, 10, &mut buffer);
     }
 }
