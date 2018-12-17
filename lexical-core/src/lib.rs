@@ -72,7 +72,7 @@
 //! assert_eq!(slc, "15");
 //!
 //! // If an insufficiently long buffer is passed, the serializer will panic.
-//! let mut buf = b['0'; 1];
+//! let mut buf = [b'0'; 1];
 //! let slc = lexical_core::itoa::i64toa_slice(15, 10, &mut buf); // PANICS
 //!
 //! // In order to guarantee the buffer is long enough, always ensure there
