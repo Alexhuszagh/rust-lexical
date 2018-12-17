@@ -52,6 +52,12 @@ macro_rules! generate_from_range_api {
         /// * `radix`   - Radix for the number parsing (normally 10).
         /// * `first`   - Pointer to the start of the input data.
         /// * `last`    - Pointer to the one-past-the-end of the input data.
+        ///
+        /// # Panics
+        ///
+        /// If the `radix` feature is enabled, panics if radix is not in
+        /// the range `[2, 36]`. If the `radix` feature is not enabled,
+        /// panics if `radix != 10`.
         #[inline]
         pub unsafe extern "C" fn $name(radix: u8, first: *const u8, last: *const u8)
             -> $t
@@ -72,6 +78,12 @@ macro_rules! generate_from_slice_api {
         ///
         /// * `radix`   - Radix for the number parsing (normally 10).
         /// * `bytes`   - Slice containing a numeric string.
+        ///
+        /// # Panics
+        ///
+        /// If the `radix` feature is enabled, panics if radix is not in
+        /// the range `[2, 36]`. If the `radix` feature is not enabled,
+        /// panics if `radix != 10`.
         #[inline]
         pub fn $name(radix: u8, bytes: &[u8])
             -> $t
@@ -119,6 +131,12 @@ macro_rules! generate_try_from_range_api {
         /// * `radix`   - Radix for the number parsing (normally 10).
         /// * `first`   - Pointer to the start of the input data.
         /// * `last`    - Pointer to the one-past-the-end of the input data.
+        ///
+        /// # Panics
+        ///
+        /// If the `radix` feature is enabled, panics if radix is not in
+        /// the range `[2, 36]`. If the `radix` feature is not enabled,
+        /// panics if `radix != 10`.
         #[inline]
         pub unsafe extern "C" fn $name(radix: u8, first: *const u8, last: *const u8)
             -> Result<$t>
@@ -142,6 +160,12 @@ macro_rules! generate_try_from_slice_api {
         ///
         /// * `radix`   - Radix for the number parsing (normally 10).
         /// * `bytes`   - Slice containing a numeric string.
+        ///
+        /// # Panics
+        ///
+        /// If the `radix` feature is enabled, panics if radix is not in
+        /// the range `[2, 36]`. If the `radix` feature is not enabled,
+        /// panics if `radix != 10`.
         #[inline]
         pub fn $name(radix: u8, bytes: &[u8])
             -> Result<$t>
@@ -186,16 +210,25 @@ macro_rules! generate_to_range_api {
         /// the range `[first, last)` contains the written bytes. No
         /// null-terminator is written.
         ///
-        /// If the buffer is not of sufficient size (see the constants
-        /// named `MAX_*_SIZE` in the lexical_core crate), this function
-        /// will panic (and call abort). You must provide a range
-        /// of sufficient length, and neither pointer may be null.
         /// The data in the range may be uninitialized, these values are
         /// never read, only written to.
         ///
         /// * `radix`   - Radix for the number parsing (normally 10).
         /// * `first`   - Pointer to the start of the buffer to write to.
         /// * `last`    - Pointer to the one-past-the-end of the buffer to write to.
+        ///
+        /// # Panics
+        ///
+        /// If the `radix` feature is enabled, panics if radix is not in
+        /// the range `[2, 36]`. If the `radix` feature is not enabled,
+        /// panics if `radix != 10`.
+        ///
+        /// Also panics if the buffer is not of sufficient size, The caller
+        /// must provide a range of sufficient size, and neither pointer
+        /// may be null. In order to ensure the function will not panic,
+        /// ensure the buffer has at least `MAX_*_SIZE` elements, using
+        /// the proper constant for the serialized type from the
+        /// lexical_core crate root.
         #[inline]
         pub unsafe extern "C" fn $name(value: $t, radix: u8, first: *mut u8, last: *mut u8)
             -> *mut u8
@@ -222,6 +255,18 @@ macro_rules! generate_to_slice_api {
         ///
         /// * `radix`   - Radix for the number parsing (normally 10).
         /// * `bytes`   - Slice containing a numeric string.
+        ///
+        /// # Panics
+        ///
+        /// If the `radix` feature is enabled, panics if radix is not in
+        /// the range `[2, 36]`. If the `radix` feature is not enabled,
+        /// panics if `radix != 10`.
+        ///
+        /// Also panics if the buffer is not of sufficient size, The caller
+        /// must provide a slice of sufficient size. In order to ensure
+        /// the function will not panic, ensure the buffer has at least
+        /// `MAX_*_SIZE` elements, using the proper constant for the
+        /// serialized type from the lexical_core crate root.
         #[inline]
         pub fn $name<'a>(value: $t, radix: u8, bytes: &mut [u8])
             -> &'a mut [u8]

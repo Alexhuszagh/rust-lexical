@@ -120,6 +120,10 @@ pub fn to_string<N: ToBytes>(n: N) -> lib::String {
 /// assert_eq!(lexical::to_string_radix(0.0, 10), "0.0");
 /// # }
 /// ```
+///
+/// # Panics
+///
+/// Panics if radix is not in the range `[2, 36]`
 #[cfg(feature = "radix")]
 #[inline(always)]
 pub fn to_string_radix<N: ToBytes>(n: N, radix: u8) -> lib::String {
@@ -227,6 +231,10 @@ pub fn parse_lossy<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
 /// # }
 /// ```
 ///
+/// # Panics
+///
+/// Panics if radix is not in the range `[2, 36]`
+///
 /// [`try_parse_radix`]: fn.try_parse_radix.html
 #[cfg(feature = "radix")]
 #[inline(always)]
@@ -263,6 +271,10 @@ pub fn parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) ->
 /// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"1.0", 10), 1.0);
 /// # }
 /// ```
+///
+/// # Panics
+///
+/// Panics if radix is not in the range `[2, 36]`
 ///
 /// [`parse_radix`]: fn.parse_radix.html
 /// [`try_parse_radix`]: fn.try_parse_radix.html
@@ -391,6 +403,10 @@ pub fn try_parse_lossy<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
 /// # }
 /// ```
 ///
+/// # Panics
+///
+/// Panics if radix is not in the range `[2, 36]`
+///
 /// [`parse_radix`]: fn.parse_radix.html
 #[cfg(feature = "radix")]
 #[inline(always)]
@@ -433,6 +449,11 @@ pub fn try_parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8
 /// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>(b"1.0.", 10), Err(err(3)));
 /// # }
 /// ```
+///
+/// # Panics
+///
+/// Panics if radix is not in the range `[2, 36]`
+///
 /// [`try_parse_radix`]: fn.try_parse_radix.html
 #[cfg(feature = "radix")]
 #[inline(always)]
