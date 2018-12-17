@@ -35,7 +35,7 @@ extern crate lexical_core;
 // The first argument is the radix, which should be 10 for decimal strings,
 // and the second argument is the byte string parsed.
 let f = lexical_core::atof::atof64_slice(10, b"3.5");   // 3.5
-let i = lexical_core::atoi::atoi32(10, b"15");          // 15
+let i = lexical_core::atoi::atoi32_slice(10, b"15");          // 15
 
 // String to number using pointer ranges, for FFI-compatible code.
 // The first argument is the radix, which should be 10 for decimal strings,
@@ -54,22 +54,23 @@ unsafe {
 // when invalid data is founding, returning whatever was parsed up until
 // that point. The explicit behavior is to wrap on overflow, and 
 // to discard invalid digits.
-let i = lexical_core::atoi::atoi8(10, b"256");          // 0, wraps from 256
-let i = lexical_core::atoi::atoi8(10, b"1a5");          // 1, discards "a5"
+let i = lexical_core::atoi::atoi8_slice(10, b"256");    // 0, wraps from 256
+let i = lexical_core::atoi::atoi8_slice(10, b"1a5");    // 1, discards "a5"
+//!
 
 // You should prefer the checked parsers, whenever possible. These detect 
 // numeric overflow, and no invalid trailing digits are present.
 // The error code for success is 0, all errors are less than 0.
 
 // Ideally, everything works great.
-let res = lexical_core::atoi::try_atoi8(10, b"15");
+let res = lexical_core::atoi::try_atoi8_slice(10, b"15");
 assert_eq!(res.error.code, lexical_core::ErrorCode::Success);
 assert_eq!(res.value, 15);
 
 // However, it detects numeric overflow, setting `res.error.code`
 // to the appropriate value.
-let res = lexical_core::atoi::try_atoi8(10, b"256");
-assert_eq!(res.error.code == lexical_core::ErrorCode::Overflow);
+let res = lexical_core::atoi::try_atoi8_slice(10, b"256");
+assert_eq!(res.error.code, lexical_core::ErrorCode::Overflow);
 
 // Errors occurring prematurely terminating the parser due to invalid 
 // digits return the index in the buffer where the invalid digit was 
@@ -79,10 +80,10 @@ assert_eq!(res.error.code == lexical_core::ErrorCode::Overflow);
 // to a `InvalidDigit`, the value is guaranteed to be accurate up until
 // that point. For example, if the trailing data is whitespace,
 // the value from an invalid digit may be perfectly valid in some contexts.
-let res = lexical_core::atoi::try_atoi8(10, b"15 45");
-assert_eq!(res.error.code == lexical_core::ErrorCode::InvalidDigit);
-assert_eq!(res.error.index == 2);
-assert_eq!(res.value == 15);
+let res = lexical_core::atoi::try_atoi8_slice(10, b"15 45");
+assert_eq!(res.error.code, lexical_core::ErrorCode::InvalidDigit);
+assert_eq!(res.error.index, 2);
+assert_eq!(res.value, 15);
 
 // Number to string using slices.
 // The first argument is the value, the second argument is the radix,
@@ -91,18 +92,19 @@ assert_eq!(res.value == 15);
 // always start at the same position (`buf.as_ptr() == slc.as_ptr()`).
 let mut buf = [b'0'; lexical_core::MAX_I64_SIZE];
 let slc = lexical_core::itoa::i64toa_slice(15, 10, &mut buf);
-assert_eq!(slc, "15");
+assert_eq!(slc, b"15");
 
 // If an insufficiently long buffer is passed, the serializer will panic.
-let mut buf = b['0'; 1];
-let slc = lexical_core::itoa::i64toa_slice(15, 10, &mut buf); // PANICS
+let mut buf = [b'0'; 1];
+// PANICS
+//let slc = lexical_core::itoa::i64toa_slice(15, 10, &mut buf); 
 
 // In order to guarantee the buffer is long enough, always ensure there
 // are at least `MAX_XX_SIZE`, where XX is the type name in upperase,
 // IE, for `isize`, `MAX_ISIZE_SIZE`.
 let mut buf = [b'0'; lexical_core::MAX_F64_SIZE];
 let slc = lexical_core::ftoa::f64toa_slice(15.1, 10, &mut buf);
-assert_eq!(slc, "15.1");
+assert_eq!(slc, b"15.1");
 ```
 
 # Features
