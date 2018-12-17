@@ -1,0 +1,27 @@
+[package]
+name = "lexical-benchmark"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+publish = false
+
+[dependencies.lexical-core]
+path = "../../lexical-core"
+
+[dev-dependencies]
+bencher = "0.1.5"
+lazy_static = "1"
+serde_json = "1.0"
+
+[features]
+default = []
+algorithm_m = ["lexical-core/algorithm_m"]
+
+[[bench]]
+name = "atof"
+harness = false
+
+[profile.bench]
+opt-level = 3
+debug = false
+debug-assertions = false
+lto = true

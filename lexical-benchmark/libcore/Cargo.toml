@@ -1,0 +1,20 @@
+[package]
+name = "libcore-benchmark"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+publish = false
+
+[dev-dependencies]
+bencher = "0.1.5"
+lazy_static = "1"
+serde_json = "1.0"
+
+[[bench]]
+name = "atof"
+harness = false
+
+[profile.bench]
+opt-level = 3
+debug = false
+debug-assertions = false
+lto = true

@@ -1,5 +1,15 @@
 /target
 lexical-core/target
+lexical-benchmark/lexical/target
+lexical-benchmark/libcore/target
+lexical-benchmark/double_conversion/build
+lexical-benchmark/from_chars/build
+lexical-benchmark/rapidjson/build
+lexical-benchmark/strtod/build
+lexical-benchmark/results
 **/*.rs.bk
 Cargo.lock
 data/test-float-parse/errors.txt
+/__pycache__
+/build
+*.pyc

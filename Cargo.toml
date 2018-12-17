@@ -13,6 +13,7 @@ version = "1.8.2"
 exclude = [
     "data/*",
     "benches/*",
+    "lexical-benchmark/*",
 ]
 
 [badges]
@@ -126,39 +127,7 @@ name = "atof"
 harness = false
 
 [[bench]]
-name = "atof_digits2"
-harness = false
-
-[[bench]]
-name = "atof_digits8"
-harness = false
-
-[[bench]]
-name = "atof_digits16"
-harness = false
-
-[[bench]]
-name = "atof_digits32"
-harness = false
-
-[[bench]]
-name = "atof_digits64"
-harness = false
-
-[[bench]]
 name = "atof_malicious"
-harness = false
-
-[[bench]]
-name = "atof_real"
-harness = false
-
-[[bench]]
-name = "atof_denormal_stress"
-harness = false
-
-[[bench]]
-name = "atof_large_stress"
 harness = false
 
 [[bench]]
