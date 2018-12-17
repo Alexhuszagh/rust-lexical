@@ -206,36 +206,6 @@ unsafe fn parse_mantissa<M>(state: &mut ParseState, slc: &mut FloatSlice, radix:
     mantissa
 }
 
-/// Normalize the mantissa to check if it can use the fast-path.
-///
-/// Move digits from the mantissa to the exponent when possible.
-#[inline]
-pub(super) fn normalize_mantissa<M>(mut mantissa: M, radix: u32, mut exponent: i32)
-    -> (M, i32)
-    where M: Mantissa
-{
-    let radix: M = as_cast(radix);
-    let radix2 = radix * radix;
-    let radix4 = radix2 * radix2;
-
-    // Use power-reduction, we're likely never going to enter most of these
-    // loops, but it minimizes the number of expensive operations we need
-    // to do.
-    while mantissa >= radix4 && (mantissa % radix4).is_zero() {
-        mantissa /= radix4;
-        exponent = exponent.saturating_add(4);
-    }
-    while mantissa >= radix2 && (mantissa % radix2).is_zero() {
-        mantissa /= radix2;
-        exponent = exponent.saturating_add(2);
-    }
-    if (mantissa % radix).is_zero() {
-        mantissa /= radix;
-        exponent = exponent.saturating_add(1);
-    }
-    (mantissa, exponent)
-}
-
 /// Parse the mantissa and exponent from a string.
 ///
 /// Returns the mantissa, the exponent, the scientific-notation exponent,
@@ -256,7 +226,6 @@ unsafe fn parse_float<M>(radix: u32, first: *const u8, last: *const u8)
     // We need to try every trick for the fast path when possible, so
     // we should try to normalize the mantissa exponent if possible.
     let exponent = slc.mantissa_exponent();
-    let (mantissa, exponent) = normalize_mantissa::<M>(mantissa, radix, exponent);
     (mantissa, state, slc, exponent)
 }
 
@@ -339,7 +308,6 @@ fn pow2_fast_path<F>(mantissa: u64, radix: u32, pow2_exp: i32, exponent: i32)
         float
     }
 }
-
 
 /// Convert mantissa to exact value for a non-base2 power.
 ///
