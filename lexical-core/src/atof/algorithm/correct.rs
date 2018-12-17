@@ -62,6 +62,7 @@ impl FloatSlice {
 
     /// Get number of parsed integer digits.
     #[inline(always)]
+    #[allow(dead_code)]
     pub(super) fn integer_digits(&self) -> usize {
         self.integer_len()
     }
@@ -74,6 +75,7 @@ impl FloatSlice {
 
     /// Get number of parsed fraction digits.
     #[inline(always)]
+    #[allow(dead_code)]
     pub(super) fn fraction_digits(&self) -> usize {
         self.fraction_len() - self.digits_start
     }
@@ -81,6 +83,7 @@ impl FloatSlice {
     /// Get the number of digits in the mantissa.
     /// Cannot overflow, since this is based off a single usize input string.
     #[inline(always)]
+    #[allow(dead_code)]
     pub(super) fn mantissa_digits(&self) -> usize {
         self.integer_digits() + self.fraction_digits()
     }
@@ -635,22 +638,26 @@ unsafe fn pown_to_native<F>(radix: u32, first: *const u8, last: *const u8, lossy
     if b.is_special() {
         // We have a non-finite number, we get to leave early.
         return (b, state);
-    } else if bigcomp::use_fast(radix, slc.mantissa_digits()) {
-        // Can use the fast path for the bigcomp calculation.
-        // The number of digits is `<= (128 / log2(10)).floor() - 2;`
-        let float = bigcomp::fast_atof(iter, radix, sci_exp, b);
-        return (float, state);
     } else {
-        // Have too many digits to use 128-bit approximation.
         #[cfg(feature = "algorithm_m")] {
-            // Use the slow algorithm_m calculation.
+            // whenever the exponent is negative.
+            // Use algorithm_m calculation. Algorithm M tends
+            // to be faster than the fast-path of bigcomp, so use it
+            // even when we have a short number of digits.
             let float = algom::atof(iter, radix, sci_exp, b);
             return (float, state);
         }
         #[cfg(not(feature = "algorithm_m"))] {
-            // Use the slow bigcomp calculation.
-            let float = bigcomp::slow_atof(iter, radix, sci_exp, b);
-            return (float, state);
+            if bigcomp::use_fast(radix, slc.mantissa_digits()) {
+                // Can use the fast path for the bigcomp calculation.
+                // The number of digits is `<= (128 / log2(10)).floor() - 2;`
+                let float = bigcomp::fast_atof(iter, radix, sci_exp, b);
+                return (float, state);
+            } else {
+                // Use the slow bigcomp calculation.
+                let float = bigcomp::slow_atof(iter, radix, sci_exp, b);
+                return (float, state);
+            }
         }
     }
 }

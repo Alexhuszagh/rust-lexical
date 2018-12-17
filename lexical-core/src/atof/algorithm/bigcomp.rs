@@ -59,6 +59,7 @@ pub fn bh<F: Float>(f: F)
 /// * `radix`           - Radix for the number parsing.
 /// * `mantissa_digits` - Number of digits in the mantissa.
 #[inline]
+#[allow(dead_code)]
 pub fn use_fast(radix: u32, mantissa_digits: usize) -> bool {
     debug_assert_radix!(radix);
 

@@ -311,14 +311,14 @@ def main():
     """Run the core benchmarks."""
 
     # Run the benchmarks.
-    golang_data = run_golang()
-    python_data = run_python()
-    strtod_data = run_strtod()
-    lexical_data = run_lexical()
+    #golang_data = run_golang()
+    #python_data = run_python()
+    #strtod_data = run_strtod()
+    #lexical_data = run_lexical()
     lexical_algom_data = run_lexical(True)
-    libcore_data = run_libcore()
-    rapidjson_data = run_rapidjson()
-    double_conversion_data = run_double_conversion()
+    #libcore_data = run_libcore()
+    #rapidjson_data = run_rapidjson()
+    #double_conversion_data = run_double_conversion()
     # Not supported on most C++17 compilers as of now.
     #from_chars_data = run_from_chars()
 
@@ -327,22 +327,22 @@ def main():
         os.makedirs("results")
 
     # Dump to disk
-    with open(os.path.join(HOME, "results","golang.json"), 'w') as f:
-        json.dump(golang_data, f)
-    with open(os.path.join(HOME, "results","python.json"), 'w') as f:
-        json.dump(python_data, f)
-    with open(os.path.join(HOME, "results","strtod.json"), 'w') as f:
-        json.dump(strtod_data, f)
-    with open(os.path.join(HOME, "results","lexical.json"), 'w') as f:
-        json.dump(lexical_data, f)
+    #with open(os.path.join(HOME, "results","golang.json"), 'w') as f:
+    #    json.dump(golang_data, f)
+    #with open(os.path.join(HOME, "results","python.json"), 'w') as f:
+    #    json.dump(python_data, f)
+    #with open(os.path.join(HOME, "results","strtod.json"), 'w') as f:
+    #    json.dump(strtod_data, f)
+    #with open(os.path.join(HOME, "results","lexical.json"), 'w') as f:
+    #    json.dump(lexical_data, f)
     with open(os.path.join(HOME, "results","lexical_algom.json"), 'w') as f:
         json.dump(lexical_algom_data, f)
-    with open(os.path.join(HOME, "results","libcore.json"), 'w') as f:
-        json.dump(libcore_data, f)
-    with open(os.path.join(HOME, "results","rapidjson.json"), 'w') as f:
-        json.dump(rapidjson_data, f)
-    with open(os.path.join(HOME, "results","double_conversion.json"), 'w') as f:
-        json.dump(double_conversion_data, f)
+    #with open(os.path.join(HOME, "results","libcore.json"), 'w') as f:
+    #    json.dump(libcore_data, f)
+    #with open(os.path.join(HOME, "results","rapidjson.json"), 'w') as f:
+    #    json.dump(rapidjson_data, f)
+    #with open(os.path.join(HOME, "results","double_conversion.json"), 'w') as f:
+    #    json.dump(double_conversion_data, f)
 
 if __name__== '__main__':
     main()

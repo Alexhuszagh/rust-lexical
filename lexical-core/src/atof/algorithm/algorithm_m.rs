@@ -327,6 +327,12 @@ pub unsafe fn atof<F, Iter>(digits: Iter, radix: u32, sci_exponent: i32, f: F)
         let mut fp = ExtendedFloat { mant: mant, exp: exp };
         fp.round_to_native::<F, _>(bigint_rounding(is_truncated));
         into_float(fp)
+    } else if use_fast(radix, digits.size_hint().0) {
+        // Use the bigcomp fast path when we have a small number of digits,
+        // since the native division is a lot faster. This is slower
+        // when the exponent is positive, not requiring division, but a lot
+        // faster otherwise.
+        return fast_atof(digits, radix, sci_exponent, f);
     } else {
         // Calculate the numerator and denominator.
         let exponent = -exponent;
