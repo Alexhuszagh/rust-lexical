@@ -1129,6 +1129,7 @@ private:
         RAPIDJSON_FORCEINLINE Ch Take() { return Base::TakePush(); }
     };
 
+public:
     template<unsigned parseFlags, typename InputStream, typename Handler>
     void ParseNumber(InputStream& is, Handler& handler) {
         internal::StreamLocalCopy<InputStream> copy(is);
@@ -1386,6 +1387,7 @@ private:
         if (RAPIDJSON_UNLIKELY(!cont))
             RAPIDJSON_PARSE_ERROR(kParseErrorTermination, startOffset);
     }
+private:
 
     // Parse any JSON value
     template<unsigned parseFlags, typename InputStream, typename Handler>
