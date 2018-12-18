@@ -58,10 +58,13 @@ macro_rules! generate_from_range_api {
         /// If the `radix` feature is enabled, panics if radix is not in
         /// the range `[2, 36]`. If the `radix` feature is not enabled,
         /// panics if `radix != 10`.
+        ///
+        /// Also panics if either pointer is null.
         #[inline]
         pub unsafe extern "C" fn $name(radix: u8, first: *const u8, last: *const u8)
             -> $t
         {
+            assert!(!first.is_null() || !last.is_null());
             $crate::util::api::from_bytes_wrapper::<$t, _>(radix, first, last, $cb)
         }
     )
@@ -137,10 +140,13 @@ macro_rules! generate_try_from_range_api {
         /// If the `radix` feature is enabled, panics if radix is not in
         /// the range `[2, 36]`. If the `radix` feature is not enabled,
         /// panics if `radix != 10`.
+        ///
+        /// Also panics if either pointer is null.
         #[inline]
         pub unsafe extern "C" fn $name(radix: u8, first: *const u8, last: *const u8)
             -> Result<$t>
         {
+            assert!(!first.is_null() || !last.is_null());
             $crate::util::api::try_from_bytes_wrapper::<$t, _>(radix, first, last, $cb)
         }
     )
@@ -233,6 +239,7 @@ macro_rules! generate_to_range_api {
         pub unsafe extern "C" fn $name(value: $t, radix: u8, first: *mut u8, last: *mut u8)
             -> *mut u8
         {
+            assert!(!first.is_null() || !last.is_null());
             $cb(value, radix, first, last)
         }
     )
