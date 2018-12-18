@@ -9,7 +9,7 @@ license = "MIT/Apache-2.0"
 name = "lexical-core"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core"
-version = "0.1.3"
+version = "0.2.0"
 
 [badges]
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
@@ -30,12 +30,12 @@ quickcheck = "0.7"
 proptest = "0.8.7"
 
 [features]
-default = ["bhcmp", "ryu", "std"]
+default = ["bhcomp", "ryu", "std"]
 # Use algorithm M, which requires a system allocator with radix.
 algorithm_m = ["correct"]
 # Use `b+h` comparison, which requires a system allocator with radix.
 # This is preferred, as it is the fastest algorithm in lexical.
-bhcmp = ["correct"]
+bhcomp = ["correct"]
 # Use the correct atof parser.
 correct = ["stackvector", "table"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).

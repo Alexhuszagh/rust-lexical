@@ -3,7 +3,7 @@
 // Hide implementation details.
 mod exponent;
 
-#[cfg(any(feature = "algorithm_m", feature = "bhcmp"))]
+#[cfg(any(feature = "algorithm_m", feature = "bhcomp"))]
 mod bigint;
 
 cfg_if! {
@@ -39,8 +39,8 @@ mod small_powers_64;
 #[cfg(feature = "algorithm_m")]
 pub(crate) mod algorithm_m;
 
-#[cfg(feature = "bhcmp")]
-pub(crate) mod bhcmp;
+#[cfg(feature = "bhcomp")]
+pub(crate) mod bhcomp;
 
 // Export algorithms.
 #[cfg(feature = "correct")]

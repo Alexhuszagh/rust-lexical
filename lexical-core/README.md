@@ -25,7 +25,7 @@ Add lexical-core to your `Cargo.toml`:
 
 ```yaml
 [dependencies]
-lexical-core = "0.1"
+lexical-core = "0.2"
 ```
 
 ```rust
@@ -109,7 +109,9 @@ assert_eq!(slc, b"15.1");
 
 # Features
 
-- `algorithm_m` Use Algorithm M rather than bigcomp for the string-to-float parser. Algorithm M is ~4x faster than bigcomp, however, it may use significantly more memory. If and only if Algorithm M and radix are both active, lexical-core requires a system allocator.
+- `correct` Use a correct string-to-float parser. Enabled by default, and may be turned off by setting `default-features = false`. If neither `algorithm_m` nor `bhcomp` is enabled while `correct` is enabled, lexical uses the bigcomp algorithm.
+- `algorithm_m` Use Algorithm M for the string-to-float parser. Not recommended. `bhcomp` must be disabled to use `algorithm_m`, requiring setting `default_features = false`. If and only if Algorithm M and radix are both active, lexical-core requires a system allocator.
+- `bhcomp` Use a comparison between the mantissa digits and the halfway-point for the string-to-float parser. bhcomp is faster for all inputs than any other algorithm. Enabled by default. If and only if bhcomp and radix are both active, lexical-core requires a system allocator.
 - `trim_floats` Export floats without a fraction as an integer, for example, `0.0f64` will be serialized to "0" and not "0.0", and `-0.0` as "0" and not "-0.0".
 - `radix` Enable lexical conversions to and from non-base10 representations. With radix enabled, any radix from 2 to 36 (inclusive) is valid, otherwise, only 10 is valid.
 - `ryu` Use dtolnay's [ryu](https://github.com/dtolnay/ryu/) library for fast and accurate float-to-string conversions.
@@ -165,7 +167,7 @@ To use Algorithm M, use the feature `algorithm_m` when compiling lexical.
 
 ## Arbitrary-Precision Arithmetic
 
-Lexical uses arbitrary-precision arithmetic to exactly represent strings between two floating-point representations with more than 36 digits, with various optimizations for multiplication and division relative to Rust's current implementation. The arbitrary-precision arithmetic logic is not dependent on memory allocation: the default slow-path algorithm only uses the stack, and Algorithm M only uses the heap when the `radix` feature is enabled.
+Lexical uses arbitrary-precision arithmetic to exactly represent strings between two floating-point representations with more than 36 digits, with various optimizations for multiplication and division relative to Rust's current implementation. The arbitrary-precision arithmetic logic is not dependent on memory allocation: the bigcomp only uses the stack, and Algorithm M and bhcomp only use the heap when the `radix` feature is enabled.
 
 ## Algorithm Background and Comparison
 
@@ -211,13 +213,28 @@ def algorithm_m(num, b):
 
 Bigcomp is a re-implementation of the canonical string-to-float parser, which creates an exact representation b+h as big integers, and compares the theoretical digits from `b+h` scaled into the range `[1, 10)` by a power of 10 to the actual digits in the input string (a more in-depth description can be found [here](https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/)). A maximum of 767 digits need to be compared to determine the correct representation, and the size of the big integers in the ratio does not depend on the number of digits in the input string.
 
-**Comparison to dec2flt**
+**bhcomp**
 
-Rust's dec2flt also uses Algorithm M internally, however, numerous optimizations led to >100x performance improvements in lexical relative to dec2flt.
+Bhcomp is a simple, performant algorithm that compared the significant digits to the theoretical significant digits for `b+h` in binary. Simply, the significant digits from the string are parsed, creating a ratio. A ratio is generated for `b+h`, and these two ratios are scaled using the binary and radix exponents.
+
+For example, "2.470328e-324" produces a ratio of `2470328/10^329`, while `b+h` produces a binary ratio of `1/2^1075`. We're looking to compare these ratios, so we need to scale them using common factors. Here, we convert this to `(2470328*5^329*2^1075)/10^329` and `(1*5^329*2^1075)/2^1075`, which converts to `2470328*2^746` and `1*5^329`.
+
+Our significant digits (real_digits) and `b+h` (bh_digits) therefore start like:
+```
+real_digits = 91438982...
+bh_digits   = 91438991...
+```
+
+Since our real digits are below the theoretical halfway point, we know we need to round-down, meaning our literal value is `b`, or `0.0`. This approach allows us to calculate whether we need to round-up or down with a single comparison step, without any native divisions required.
+
+**Improving Algorithm M Relative to Rust dec2flt**
+
+Rust's dec2flt uses Algorithm M internally, however, numerous optimizations led to >100x performance improvements in lexical relative to dec2flt.
 1. We scale the ratio using only 1-2 "iterations", without using a loop, by scaling the numerator to have 52 more bits than the numerator, and multiply the numerator by 2 if we underestimated the result.
 2. We use an algorithm for basecase division that is optimized for arbitrary-precision integers of similar size (an implementation of Knuth's Algorithm D from "The Art of Computer Programming"), with a time complexity of `O(m)`, where m is the size of the denominator. In comparison, dec2flt uses restoring division, which is `O(n^2)`, where n is the size of the numerator. Furthermore, the restoring division algorithm iterates bit-by-bit and requires an `O(n)` comparison at each iteration. To put this into perspective, to calculate the quotient of a value of b+h close to 1e307, dec2flt requires ~140,000 native subtraction and comparison operations, while lexical requires ~96 multiplication and subtraction operations.
-3. We limit the number of parsed digits to 767, the theoretical max number of digits produced by b+h, and merely compare any trailing digits to '0'. This provides an upper-bound on the computation cost.
-4. The individual "limbs" of the big integers are comprised of integers the size of the architecture we compile on, for example, u32 on x86 and u64 on x86-64, minimizing the number of native operations required.
+1. We limit the number of parsed digits to 767, the theoretical max number of digits produced by b+h, and merely compare any trailing digits to '0'. This provides an upper-bound on the computation cost.
+2. The individual "limbs" of the big integers are comprised of integers the size of the architecture we compile on, for example, u32 on x86 and u64 on x86-64, minimizing the number of native operations required.
+3. 
 
 # License
 

@@ -22,8 +22,8 @@ matrix:
         - cargo test --no-default-features --features=ryu
         - cargo test --no-default-features --features=algorithm_m
         - cargo test --no-default-features --features=algorithm_m,radix
-        - cargo test --no-default-features --features=bhcmp
-        - cargo test --no-default-features --features=bhcmp,radix
+        - cargo test --no-default-features --features=bhcomp
+        - cargo test --no-default-features --features=bhcomp,radix
         - cargo test --no-default-features --features=correct
         - cargo test --no-default-features --features=correct,radix
         - cd ..
@@ -43,8 +43,8 @@ script:
   - cargo test --no-default-features --features=std,ryu
   - cargo test --no-default-features --features=std,algorithm_m
   - cargo test --no-default-features --features=std,algorithm_m,radix
-  - cargo test --no-default-features --features=std,bhcmp
-  - cargo test --no-default-features --features=std,bhcmp,radix
+  - cargo test --no-default-features --features=std,bhcomp
+  - cargo test --no-default-features --features=std,bhcomp,radix
   - cargo test --no-default-features --features=std,correct
   - cargo test --no-default-features --features=std,correct,radix
   - cd ..

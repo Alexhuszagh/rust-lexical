@@ -20,8 +20,8 @@ use super::small_powers::get_small_powers_64;
 #[cfg(feature = "algorithm_m")]
 use super::algorithm_m;
 
-#[cfg(feature = "bhcmp")]
-use super::bhcmp;
+#[cfg(feature = "bhcomp")]
+use super::bhcomp;
 
 // SHARED
 
@@ -641,12 +641,12 @@ unsafe fn pown_to_native<F>(radix: u32, first: *const u8, last: *const u8, lossy
             let float = algorithm_m::atof(iter, radix, sci_exp, b);
             return (float, state);
         }
-        #[cfg(feature = "bhcmp")] {
+        #[cfg(feature = "bhcomp")] {
             // Use algorithm_m calculation.
-            let float = bhcmp::atof(iter, radix, sci_exp, b);
+            let float = bhcomp::atof(iter, radix, sci_exp, b);
             return (float, state);
         }
-        #[cfg(not(any(feature = "algorithm_m", feature = "bhcmp")))] {
+        #[cfg(not(any(feature = "algorithm_m", feature = "bhcomp")))] {
             // Use bigcomp calculation.
             let float = bigcomp::atof(iter, radix, sci_exp, b, slc.mantissa_digits());
             return (float, state);

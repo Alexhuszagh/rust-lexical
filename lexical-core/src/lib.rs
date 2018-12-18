@@ -88,7 +88,7 @@
 
 // Require intrinsics in a no_std context.
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(all(not(feature = "std"), any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"), feature(alloc))]
+#![cfg_attr(all(not(feature = "std"), any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"), feature(alloc))]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
 
 // DEPENDENCIES
@@ -117,7 +117,7 @@ extern crate proptest;
 
 // Use vec if there is a system allocator, which we require only if
 // we're using the correct and radix features.
-#[cfg(all(not(feature = "std"), any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))]
+#[cfg(all(not(feature = "std"), any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
 #[cfg_attr(test, macro_use)]
 extern crate alloc;
 
@@ -131,8 +131,8 @@ extern crate stackvector;
 compile_error!("Lexical only accepts one of the following backends: `grisu3` or `ryu`.");
 
 // Ensure only one float parsing algorithm is enabled.
-#[cfg(all(feature = "algorithm_m", feature = "bhcmp"))]
-compile_error!("Lexical only accepts one of the following float-parsing algorithms: `algorithm_m` or `bhcmp`.");
+#[cfg(all(feature = "algorithm_m", feature = "bhcomp"))]
+compile_error!("Lexical only accepts one of the following float-parsing algorithms: `algorithm_m` or `bhcomp`.");
 
 // Import the back-end, if applicable.
 cfg_if! {
@@ -151,7 +151,7 @@ pub(crate) use std::*;
 pub(crate) use core::*;
 
 cfg_if! {
-if #[cfg(all(any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))] {
+if #[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))] {
     #[cfg(feature = "std")]
     pub(crate) use std::vec::Vec;
 
