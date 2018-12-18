@@ -937,7 +937,8 @@ mod tests {
 
         // invalid mantissa
         #[cfg(feature = "radix")] {
-            let (_, valid) = fast_path::<f32>(1<<f32::MANTISSA_SIZE, 3, 0);
+            let (_, max_exp) = f64::exponent_limit(3);
+            let (_, valid) = fast_path::<f32>(1<<f32::MANTISSA_SIZE, 3, max_exp+1);
             assert!(!valid, "invalid mantissa");
         }
 
@@ -966,7 +967,8 @@ mod tests {
 
         // invalid mantissa
         #[cfg(feature = "radix")] {
-            let (_, valid) = fast_path::<f64>(1<<f64::MANTISSA_SIZE, 3, 0);
+            let (_, max_exp) = f64::exponent_limit(3);
+            let (_, valid) = fast_path::<f64>(1<<f64::MANTISSA_SIZE, 3, max_exp+1);
             assert!(!valid, "invalid mantissa");
         }
 

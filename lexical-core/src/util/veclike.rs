@@ -5,7 +5,7 @@
 use lib::{iter, ops, ptr, slice};
 use stackvector;
 
-#[cfg(all(feature = "algorithm_m", feature = "radix"))]
+#[cfg(all(any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))]
 use lib::Vec;
 
 // REMOVE_MANY
@@ -69,7 +69,7 @@ pub trait AsSlice<T>: {
     fn as_slice(&self) -> &[T];
 }
 
-#[cfg(all(feature = "algorithm_m", feature = "radix"))]
+#[cfg(all(any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))]
 impl<T> AsSlice<T> for Vec<T> {
     #[inline]
     fn as_slice(&self) -> &[T] {
@@ -92,7 +92,7 @@ pub trait ExtendFromSlice<T: Clone>: Clone + Default {
     fn extend_from_slice(&mut self, other: &[T]);
 }
 
-#[cfg(all(feature = "algorithm_m", feature = "radix"))]
+#[cfg(all(any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))]
 impl<T: Clone> ExtendFromSlice<T> for Vec<T> {
     #[inline]
     fn extend_from_slice(&mut self, other: &[T]) {
@@ -124,7 +124,7 @@ impl<T> Len<T> for [T] {
     }
 }
 
-#[cfg(all(feature = "algorithm_m", feature = "radix"))]
+#[cfg(all(any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))]
 impl<T> Len<T> for Vec<T> {
     #[inline]
     fn len(&self) -> usize {
@@ -147,7 +147,7 @@ pub trait Reserve<T>: {
     fn reserve(&mut self, capacity: usize);
 }
 
-#[cfg(all(feature = "algorithm_m", feature = "radix"))]
+#[cfg(all(any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))]
 impl<T> Reserve<T> for Vec<T> {
     #[inline]
     fn reserve(&mut self, capacity: usize) {
@@ -170,7 +170,7 @@ pub trait ReserveExact<T>: {
     fn reserve_exact(&mut self, capacity: usize);
 }
 
-#[cfg(all(feature = "algorithm_m", feature = "radix"))]
+#[cfg(all(any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))]
 impl<T> ReserveExact<T> for Vec<T> {
     #[inline]
     fn reserve_exact(&mut self, capacity: usize) {
@@ -196,7 +196,7 @@ pub trait Resize<T: Clone>: Clone + Default {
     fn resize(&mut self, len: usize, value: T);
 }
 
-#[cfg(all(feature = "algorithm_m", feature = "radix"))]
+#[cfg(all(any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))]
 impl<T: Clone> Resize<T> for Vec<T> {
     #[inline]
     fn resize(&mut self, len: usize, value: T) {
@@ -320,7 +320,7 @@ impl<T> Rget<T> for [T] {
     }
 }
 
-#[cfg(all(feature = "algorithm_m", feature = "radix"))]
+#[cfg(all(any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))]
 impl<T> Rget<T> for Vec<T> {
     fn rget<I: RSliceIndex<[T]>>(&self, index: I)
         -> Option<&I::Output>
@@ -470,7 +470,7 @@ pub trait VecLike<T>:
     }
 }
 
-#[cfg(all(feature = "algorithm_m", feature = "radix"))]
+#[cfg(all(any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))]
 impl<T> VecLike<T> for Vec<T> {
     #[inline]
     fn push(&mut self, value: T) {
@@ -539,7 +539,7 @@ pub trait CloneableVecLike<T: Clone + Copy + Send>:
     VecLike<T>
 {}
 
-#[cfg(all(feature = "algorithm_m", feature = "radix"))]
+#[cfg(all(any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))]
 impl<T: Clone + Copy + Send> CloneableVecLike<T> for Vec<T> {
 }
 
@@ -554,7 +554,7 @@ impl<A: stackvector::Array> CloneableVecLike<A::Item> for stackvector::StackVec<
 mod tests {
     use super::*;
 
-    #[cfg(all(feature = "algorithm_m", feature = "radix"))]
+    #[cfg(all(any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))]
     #[test]
     fn remove_many_test() {
         let mut x = vec![0, 1, 2, 3, 4, 5];

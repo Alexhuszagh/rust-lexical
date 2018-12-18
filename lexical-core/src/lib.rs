@@ -151,7 +151,7 @@ pub(crate) use std::*;
 pub(crate) use core::*;
 
 cfg_if! {
-if #[cfg(all(feature = "algorithm_m", feature = "radix"))] {
+if #[cfg(all(any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))] {
     #[cfg(feature = "std")]
     pub(crate) use std::vec::Vec;
 
