@@ -420,6 +420,21 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "correct")]
+    proptest! {
+        #[test]
+        fn f332_proptest(i in f32::MIN..f32::MAX) {
+            let mut buffer = new_buffer();
+            i == atof32_slice(10, f32toa_slice(i, 10, &mut buffer))
+        }
+
+        #[test]
+        fn f64_proptest(i in f64::MIN..f64::MAX) {
+            let mut buffer = new_buffer();
+            i == atof64_slice(10, f64toa_slice(i, 10, &mut buffer))
+        }
+    }
+
     #[test]
     #[should_panic]
     fn f32toa_buffer_test() {

@@ -453,7 +453,6 @@ generate_to_slice_api!(isizetoa_slice, isize, isizetoa_local);
 
 #[cfg(test)]
 mod tests {
-    //use proptest::prelude::*;
     use atoi::*;
     use util::test::*;
     use super::*;

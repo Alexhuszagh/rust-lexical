@@ -376,4 +376,44 @@ mod tests {
         assert_eq!(success(0.0), try_atof64_slice(10, b"0.0"));
         assert_eq!(invalid_digit_error(1.0, 1), try_atof64_slice(10, b"1a"));
     }
+
+    proptest! {
+        #[test]
+        fn f32_invalid_proptest(i in r"[+-]?[0-9]{2}\D?\.\D?[0-9]{2}\D?e[+-]?[0-9]+\D") {
+            let res = try_atof32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+        }
+
+        #[test]
+        fn f32_double_sign_proptest(i in r"[+-]{2}[0-9]{2}\.[0-9]{2}e[+-]?[0-9]+") {
+            let res = try_atof32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0 || res.error.index == 1);
+        }
+
+        #[test]
+        fn f32_double_exponent_sign_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]{2}[0-9]+") {
+            let res = try_atof32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+        }
+
+        #[test]
+        fn f64_invalid_proptest(i in r"[+-]?[0-9]{2}\D?\.\D?[0-9]{2}\D?e[+-]?[0-9]+\D") {
+            let res = try_atof64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+        }
+
+        #[test]
+        fn f64_double_sign_proptest(i in r"[+-]{2}[0-9]{2}\.[0-9]{2}e[+-]?[0-9]+") {
+            let res = try_atof64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0 || res.error.index == 1);
+        }
+
+        #[test]
+        fn f64_double_exponent_sign_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]{2}[0-9]+") {
+            let res = try_atof64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+        }
+    }
 }

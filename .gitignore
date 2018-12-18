@@ -13,3 +13,4 @@ data/test-float-parse/errors.txt
 /__pycache__
 /build
 *.pyc
+lexical-core/proptest-regressions/

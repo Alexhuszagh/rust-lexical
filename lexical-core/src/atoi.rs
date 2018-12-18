@@ -263,7 +263,8 @@ pub(crate) unsafe fn unsigned<T, Cb>(radix: u32, first: *const u8, last: *const 
         let mut state = ParseState::new(first);
         let (value, sign) = filter_sign::<T, Cb>(&mut state, radix, last, cb);
         match sign {
-            -1 => (value.wrapping_neg(), state.curr, true),
+            // Report an invalid digit if the value is negative at the first index.
+            -1 => (value.wrapping_neg(), first, state.is_truncated()),
             1  => (value, state.curr, state.is_truncated()),
             _  => unreachable!(),
         }
@@ -582,6 +583,9 @@ mod tests {
         assert_eq!(success(0), try_atou8_slice(10, b"0"));
         assert_eq!(invalid_digit_error(1, 1), try_atou8_slice(10, b"1a"));
         assert_eq!(overflow_error(0), try_atou8_slice(10, b"256"));
+
+        // Add tests discovered via proptests.
+        assert_eq!(invalid_digit_error(0, 0), try_atou8_slice(10, b"-+00"));
     }
 
     #[test]
@@ -646,5 +650,223 @@ mod tests {
         assert_eq!(overflow_error(-9223372036854775808), try_atoi64_slice(10, b"-000000000000000000000000066000000000000000000000000000000000000000000695092744062605721500000000695092744062600000000000000000000000000000000000000000000000000000000000000?0000000000000000000000000000000000000000000000000\x100000000006666600000000006000000066666666000766776676677000676766509274406260572150000000069509274406260572150000000000000000000000000000000000066000000000000000000000000000000000000000000600000950927440626057215000000006950927440062600057215000000666600666666666600001000000676766766766770000666000766776676000000000000000000000000006950927440626666676676676676660066666000000000060000000600000000000000000000000000000000000+?676677000695092744"));
         assert_eq!(overflow_error(2090691195633139712), try_atoi64_slice(10, b"406260572150672006000066000000060060007667760000000000000000000+00000006766767766666767665670000000000000000000000666"));
         assert_eq!(overflow_error(7125759012462002176), try_atoi64_slice(10, b"6260572000000000000000-3*+\x006666600099000066006660066665?666666666599990000666"));
+    }
+
+    proptest! {
+        #[test]
+        fn u8_invalid_proptest(i in r"[+]?[0-9]{2}\D") {
+            let res = try_atou8_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 2 || res.error.index == 3);
+        }
+
+        #[test]
+        fn u8_overflow_proptest(i in r"[+-]?[1-9][0-9]{3}\D") {
+            let res = try_atou8_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::Overflow);
+        }
+
+        #[test]
+        fn u8_double_sign_proptest(i in r"[+-]{2}[0-9]{2}") {
+            let res = try_atou8_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0 || res.error.index == 1);
+        }
+
+        #[test]
+        fn u8_trailing_digits_proptest(i in r"[+]?[0-9]{2}\D[0-9]{2}") {
+            let res = try_atou8_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 2 || res.error.index == 3);
+        }
+
+        #[test]
+        fn i8_invalid_proptest(i in r"[+-]?[0-9]{2}\D") {
+            let res = try_atoi8_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 2 || res.error.index == 3);
+        }
+
+        #[test]
+        fn i8_overflow_proptest(i in r"[+-]?[1-9][0-9]{3}\D") {
+            let res = try_atoi8_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::Overflow);
+        }
+
+        #[test]
+        fn i8_double_sign_proptest(i in r"[+-]{2}[0-9]{2}") {
+            let res = try_atoi8_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 1);
+        }
+
+        #[test]
+        fn i8_trailing_digits_proptest(i in r"[+-]?[0-9]{2}\D[0-9]{2}") {
+            let res = try_atoi8_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 2 || res.error.index == 3);
+        }
+
+        #[test]
+        fn u16_invalid_proptest(i in r"[+]?[0-9]{4}\D") {
+            let res = try_atou16_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 4 || res.error.index == 5);
+        }
+
+        #[test]
+        fn u16_overflow_proptest(i in r"[+-]?[1-9][0-9]{5}\D") {
+            let res = try_atou16_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::Overflow);
+        }
+
+        #[test]
+        fn u16_double_sign_proptest(i in r"[+-]{2}[0-9]{4}") {
+            let res = try_atou16_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0 || res.error.index == 1);
+        }
+
+        #[test]
+        fn u16_trailing_digits_proptest(i in r"[+]?[0-9]{4}\D[0-9]{2}") {
+            let res = try_atou16_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 4 || res.error.index == 5);
+        }
+
+        #[test]
+        fn i16_invalid_proptest(i in r"[+-]?[0-9]{4}\D") {
+            let res = try_atoi16_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 4 || res.error.index == 5);
+        }
+
+        #[test]
+        fn i16_overflow_proptest(i in r"[+-]?[1-9][0-9]{5}\D") {
+            let res = try_atoi16_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::Overflow);
+        }
+
+        #[test]
+        fn i16_double_sign_proptest(i in r"[+-]{2}[0-9]{4}") {
+            let res = try_atoi16_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 1);
+        }
+
+        #[test]
+        fn i16_trailing_digits_proptest(i in r"[+-]?[0-9]{4}\D[0-9]{2}") {
+            let res = try_atoi16_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 4 || res.error.index == 5);
+        }
+
+        #[test]
+        fn u32_invalid_proptest(i in r"[+]?[0-9]{9}\D") {
+            let res = try_atou32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 9 || res.error.index == 10);
+        }
+
+        #[test]
+        fn u32_overflow_proptest(i in r"[+-]?[1-9][0-9]{10}\D") {
+            let res = try_atou32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::Overflow);
+        }
+
+        #[test]
+        fn u32_double_sign_proptest(i in r"[+-]{2}[0-9]{9}") {
+            let res = try_atou32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0 || res.error.index == 1);
+        }
+
+        #[test]
+        fn u32_trailing_digits_proptest(i in r"[+]?[0-9]{9}\D[0-9]{2}") {
+            let res = try_atou32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 9 || res.error.index == 10);
+        }
+
+        #[test]
+        fn i32_invalid_proptest(i in r"[+-]?[0-9]{9}\D") {
+            let res = try_atoi32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 9 || res.error.index == 10);
+        }
+
+        #[test]
+        fn i32_overflow_proptest(i in r"[+-]?[1-9][0-9]{10}\D") {
+            let res = try_atoi32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::Overflow);
+        }
+
+        #[test]
+        fn i32_double_sign_proptest(i in r"[+-]{2}[0-9]{9}") {
+            let res = try_atoi32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 1);
+        }
+
+        #[test]
+        fn i32_trailing_digits_proptest(i in r"[+-]?[0-9]{9}\D[0-9]{2}") {
+            let res = try_atoi32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 9 || res.error.index == 10);
+        }
+
+        #[test]
+        fn u64_invalid_proptest(i in r"[+]?[0-9]{19}\D") {
+            let res = try_atou64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 19 || res.error.index == 20);
+        }
+
+        #[test]
+        fn u64_overflow_proptest(i in r"[+-]?[1-9][0-9]{21}\D") {
+            let res = try_atou64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::Overflow);
+        }
+
+        #[test]
+        fn u64_double_sign_proptest(i in r"[+-]{2}[0-9]{19}") {
+            let res = try_atou64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0 || res.error.index == 1);
+        }
+
+        #[test]
+        fn u64_trailing_digits_proptest(i in r"[+]?[0-9]{19}\D[0-9]{2}") {
+            let res = try_atou64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 19 || res.error.index == 20);
+        }
+
+        #[test]
+        fn i64_invalid_proptest(i in r"[+-]?[0-9]{18}\D") {
+            let res = try_atoi64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 18 || res.error.index == 19);
+        }
+
+        #[test]
+        fn i64_overflow_proptest(i in r"[+-]?[1-9][0-9]{19}\D") {
+            let res = try_atoi64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::Overflow);
+        }
+
+        #[test]
+        fn i64_double_sign_proptest(i in r"[+-]{2}[0-9]{18}") {
+            let res = try_atoi64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 1);
+        }
+
+        #[test]
+        fn i64_trailing_digits_proptest(i in r"[+-]?[0-9]{18}\D[0-9]{2}") {
+            let res = try_atoi64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 18 || res.error.index == 19);
+        }
     }
 }
