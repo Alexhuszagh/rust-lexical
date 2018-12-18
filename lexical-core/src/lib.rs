@@ -110,6 +110,11 @@ extern crate approx;
 #[macro_use]
 extern crate quickcheck;
 
+// Test against randomly-generated guided data.
+#[cfg(test)]
+#[macro_use]
+extern crate proptest;
+
 // Use vec if there is a system allocator, which we require only if
 // we're using the correct and radix features.
 #[cfg(all(not(feature = "std"), feature = "algorithm_m", feature = "radix"))]

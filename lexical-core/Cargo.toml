@@ -27,6 +27,7 @@ ryu = { version = "^0.2.7", optional = true }
 [dev-dependencies]
 approx = "0.3.0"
 quickcheck = "0.7"
+proptest = "0.8.7"
 
 [features]
 default = ["correct", "ryu", "std"]

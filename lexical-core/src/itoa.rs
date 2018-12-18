@@ -453,6 +453,7 @@ generate_to_slice_api!(isizetoa_slice, isize, isizetoa_local);
 
 #[cfg(test)]
 mod tests {
+    //use proptest::prelude::*;
     use atoi::*;
     use util::test::*;
     use super::*;
@@ -639,6 +640,80 @@ mod tests {
         }
 
         fn isize_quickcheck(i: isize) -> bool {
+            let mut buffer = new_buffer();
+            i == atoisize_slice(10, isizetoa_slice(i, 10, &mut buffer))
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn u8_proptest(i in u8::min_value()..u8::max_value()) {
+            let mut buffer = new_buffer();
+            i == atou8_slice(10, u8toa_slice(i, 10, &mut buffer))
+        }
+
+        #[test]
+        fn i8_proptest(i in i8::min_value()..i8::max_value()) {
+            let mut buffer = new_buffer();
+            i == atoi8_slice(10, i8toa_slice(i, 10, &mut buffer))
+        }
+
+        #[test]
+        fn u16_proptest(i in u16::min_value()..u16::max_value()) {
+            let mut buffer = new_buffer();
+            i == atou16_slice(10, u16toa_slice(i, 10, &mut buffer))
+        }
+
+        #[test]
+        fn i16_proptest(i in i16::min_value()..i16::max_value()) {
+            let mut buffer = new_buffer();
+            i == atoi16_slice(10, i16toa_slice(i, 10, &mut buffer))
+        }
+
+        #[test]
+        fn u32_proptest(i in u32::min_value()..u32::max_value()) {
+            let mut buffer = new_buffer();
+            i == atou32_slice(10, u32toa_slice(i, 10, &mut buffer))
+        }
+
+        #[test]
+        fn i32_proptest(i in i32::min_value()..i32::max_value()) {
+            let mut buffer = new_buffer();
+            i == atoi32_slice(10, i32toa_slice(i, 10, &mut buffer))
+        }
+
+        #[test]
+        fn u64_proptest(i in u64::min_value()..u64::max_value()) {
+            let mut buffer = new_buffer();
+            i == atou64_slice(10, u64toa_slice(i, 10, &mut buffer))
+        }
+
+        #[test]
+        fn i64_proptest(i in i64::min_value()..i64::max_value()) {
+            let mut buffer = new_buffer();
+            i == atoi64_slice(10, i64toa_slice(i, 10, &mut buffer))
+        }
+
+        #[test]
+        fn u128_proptest(i in u128::min_value()..u128::max_value()) {
+            let mut buffer = new_buffer();
+            i == atou128_slice(10, u128toa_slice(i, 10, &mut buffer))
+        }
+
+        #[test]
+        fn i128_proptest(i in i128::min_value()..i128::max_value()) {
+            let mut buffer = new_buffer();
+            i == atoi128_slice(10, i128toa_slice(i, 10, &mut buffer))
+        }
+
+        #[test]
+        fn usize_proptest(i in usize::min_value()..usize::max_value()) {
+            let mut buffer = new_buffer();
+            i == atousize_slice(10, usizetoa_slice(i, 10, &mut buffer))
+        }
+
+        #[test]
+        fn isize_proptest(i in isize::min_value()..isize::max_value()) {
             let mut buffer = new_buffer();
             i == atoisize_slice(10, isizetoa_slice(i, 10, &mut buffer))
         }
