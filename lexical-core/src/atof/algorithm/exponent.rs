@@ -17,7 +17,10 @@ use util::*;
 pub(super) unsafe extern "C" fn parse_exponent(state: &mut ParseState, radix: u32, last: *const u8)
     -> i32
 {
-    if state.curr != last && (*state.curr).to_ascii_lowercase() == exponent_notation_char(radix).to_ascii_lowercase() {
+    // Force a check that the distance is >= 2, so we ensure there's something
+    // after the exponent. This fixes a regression discovered via proptest.
+    let dist = distance(state.curr, last);
+    if dist >= 2 && (*state.curr).to_ascii_lowercase() == exponent_notation_char(radix).to_ascii_lowercase() {
         state.increment();
 
         // Turn off truncation before we parse the exponent, since we want to

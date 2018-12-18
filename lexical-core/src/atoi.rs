@@ -227,19 +227,28 @@ pub(crate) unsafe fn filter_sign<T, Cb>(state: &mut ParseState, radix: u32, last
     where T: Integer,
           Cb: FnOnce(&mut T, &mut ParseState, u32, *const u8)
 {
-    if state.curr == last {
+    let dist = distance(state.curr, last);
+    if dist == 0 {
         (T::ZERO, 1)
     } else {
         match *state.curr {
             b'+' => {
-                state.increment();
-                let value = value::<T, Cb>(state, radix, last, cb);
-                (value, 1)
+                if dist >= 2 {
+                    state.increment();
+                    let value = value::<T, Cb>(state, radix, last, cb);
+                    (value, 1)
+                } else {
+                    (T::ZERO, 1)
+                }
             },
             b'-' => {
-                state.increment();
-                let value = value::<T, Cb>(state, radix, last, cb);
-                (value, -1)
+                if dist >= 2 {
+                    state.increment();
+                    let value = value::<T, Cb>(state, radix, last, cb);
+                    (value, -1)
+                } else {
+                    (T::ZERO, -1)
+                }
             },
             _    => {
                 let value = value::<T, Cb>(state, radix, last, cb);
@@ -674,6 +683,13 @@ mod tests {
         }
 
         #[test]
+        fn u8_sign_only_proptest(i in r"[+-]") {
+            let res = try_atou8_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0);
+        }
+
+        #[test]
         fn u8_trailing_digits_proptest(i in r"[+]?[0-9]{2}\D[0-9]{2}") {
             let res = try_atou8_slice(10, i.as_bytes());
             assert_eq!(res.error.code, ErrorCode::InvalidDigit);
@@ -698,6 +714,13 @@ mod tests {
             let res = try_atoi8_slice(10, i.as_bytes());
             assert_eq!(res.error.code, ErrorCode::InvalidDigit);
             assert!(res.error.index == 1);
+        }
+
+        #[test]
+        fn i8_sign_only_proptest(i in r"[+-]") {
+            let res = try_atoi8_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0);
         }
 
         #[test]
@@ -728,6 +751,13 @@ mod tests {
         }
 
         #[test]
+        fn u16_sign_only_proptest(i in r"[+-]") {
+            let res = try_atou16_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0);
+        }
+
+        #[test]
         fn u16_trailing_digits_proptest(i in r"[+]?[0-9]{4}\D[0-9]{2}") {
             let res = try_atou16_slice(10, i.as_bytes());
             assert_eq!(res.error.code, ErrorCode::InvalidDigit);
@@ -752,6 +782,13 @@ mod tests {
             let res = try_atoi16_slice(10, i.as_bytes());
             assert_eq!(res.error.code, ErrorCode::InvalidDigit);
             assert!(res.error.index == 1);
+        }
+
+        #[test]
+        fn i16_sign_only_proptest(i in r"[+-]") {
+            let res = try_atoi16_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0);
         }
 
         #[test]
@@ -782,6 +819,13 @@ mod tests {
         }
 
         #[test]
+        fn u32_sign_only_proptest(i in r"[+-]") {
+            let res = try_atou32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0);
+        }
+
+        #[test]
         fn u32_trailing_digits_proptest(i in r"[+]?[0-9]{9}\D[0-9]{2}") {
             let res = try_atou32_slice(10, i.as_bytes());
             assert_eq!(res.error.code, ErrorCode::InvalidDigit);
@@ -806,6 +850,13 @@ mod tests {
             let res = try_atoi32_slice(10, i.as_bytes());
             assert_eq!(res.error.code, ErrorCode::InvalidDigit);
             assert!(res.error.index == 1);
+        }
+
+        #[test]
+        fn i32_sign_only_proptest(i in r"[+-]") {
+            let res = try_atoi32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0);
         }
 
         #[test]
@@ -836,6 +887,13 @@ mod tests {
         }
 
         #[test]
+        fn u64_sign_only_proptest(i in r"[+-]") {
+            let res = try_atou64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0);
+        }
+
+        #[test]
         fn u64_trailing_digits_proptest(i in r"[+]?[0-9]{19}\D[0-9]{2}") {
             let res = try_atou64_slice(10, i.as_bytes());
             assert_eq!(res.error.code, ErrorCode::InvalidDigit);
@@ -860,6 +918,13 @@ mod tests {
             let res = try_atoi64_slice(10, i.as_bytes());
             assert_eq!(res.error.code, ErrorCode::InvalidDigit);
             assert!(res.error.index == 1);
+        }
+
+        #[test]
+        fn i64_sign_only_proptest(i in r"[+-]") {
+            let res = try_atoi64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0);
         }
 
         #[test]

@@ -97,7 +97,9 @@ unsafe fn filter_special<F: StringToFloat>(radix: u32, first: *const u8, last: *
     // Short infinity short-circuits, we want to parse as many characters
     // as possible.
     let length = distance(first, last);
-    if is_zero(first, length) {
+    if length == 0 {
+        (F::ZERO, ptr::null())
+    } else if is_zero(first, length) {
         (F::ZERO, first.add(length))
     } else if is_infinity(first, length) {
         (F::INFINITY, first.add(INFINITY_STRING.len()))
@@ -347,6 +349,15 @@ mod tests {
         assert_eq!(0.0, atof64_slice(10, b".e"));
         assert_eq!(0.0, atof64_slice(10, b"E2252525225"));
         assert_eq!(f64::INFINITY, atof64_slice(10, b"2E200000000000"));
+
+        // Add various unittests from proptests.
+        assert_eq!(ErrorCode::InvalidDigit, try_atof64_slice(10, b"0e").error.code);
+        assert_eq!(ErrorCode::InvalidDigit, try_atof64_slice(10, b".").error.code);
+        assert_eq!(ErrorCode::InvalidDigit, try_atof64_slice(10, b"+.").error.code);
+        assert_eq!(ErrorCode::InvalidDigit, try_atof64_slice(10, b"-.").error.code);
+        assert_eq!(ErrorCode::InvalidDigit, try_atof64_slice(10, b"+").error.code);
+        assert_eq!(ErrorCode::InvalidDigit, try_atof64_slice(10, b"-").error.code);
+
     }
 
     #[test]
@@ -392,7 +403,20 @@ mod tests {
         }
 
         #[test]
+        fn f32_sign_or_dot_only_proptest(i in r"[+-]?\.?") {
+            let res = try_atof32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0);
+        }
+
+        #[test]
         fn f32_double_exponent_sign_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]{2}[0-9]+") {
+            let res = try_atof32_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+        }
+
+        #[test]
+        fn f32_missing_exponent_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]?") {
             let res = try_atof32_slice(10, i.as_bytes());
             assert_eq!(res.error.code, ErrorCode::InvalidDigit);
         }
@@ -411,7 +435,20 @@ mod tests {
         }
 
         #[test]
+        fn f64_sign_or_dot_only_proptest(i in r"[+-]?\.?") {
+            let res = try_atof64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            assert!(res.error.index == 0);
+        }
+
+        #[test]
         fn f64_double_exponent_sign_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]{2}[0-9]+") {
+            let res = try_atof64_slice(10, i.as_bytes());
+            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+        }
+
+        #[test]
+        fn f64_missing_exponent_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]?") {
             let res = try_atof64_slice(10, i.as_bytes());
             assert_eq!(res.error.code, ErrorCode::InvalidDigit);
         }
