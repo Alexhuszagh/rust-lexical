@@ -31,7 +31,7 @@ mod small_powers_32;
 #[cfg(target_pointer_width = "64")]
 mod large_powers_64;
 
-#[cfg(target_pointer_width = "64")]
+// Required for fast-path, keep on all platforms.
 mod small_powers_64;
 
 }}  // cfg_if

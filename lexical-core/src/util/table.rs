@@ -114,7 +114,10 @@ pub(crate) const DIGIT_TO_BASE36_SQUARED: [u8; 2592] = [b'0', b'0', b'0', b'1', 
 /// Get exact exponent limit for radix.
 pub(crate) trait ExactExponent {
     /// Get min and max exponent limits (exact) from radix.
-    fn exponent_limit<T: Integer>(radix: T) ->(i32, i32);
+    fn exponent_limit<T: Integer>(radix: T) -> (i32, i32);
+
+    /// Get the number of digits that can be shifted from exponent to mantissa.
+    fn mantissa_limit<T: Integer>(radix: T) -> i32;
 }
 
 /// Precalculated min and max exponents for values exactly representable as f32.
@@ -160,11 +163,56 @@ const F32_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
 ];
 
 impl ExactExponent for f32 {
-    fn exponent_limit<T: Integer>(radix: T) ->(i32, i32) {
+    #[inline]
+    fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
         debug_assert_radix!(radix);
         let idx: usize = as_cast(radix.as_i32() - 2);
 
         unsafe { *F32_EXACT_EXPONENT_LIMITS.get_unchecked(idx) }
+    }
+
+    #[inline]
+    fn mantissa_limit<T: Integer>(radix: T) -> i32 {
+        debug_assert_radix!(radix);
+        match radix.as_i32() {
+            2  => 23,
+            3  => 15,
+            4  => 11,
+            5  => 10,
+            6  => 9,
+            7  => 8,
+            8  => 7,
+            9  => 7,
+            10 => 7,
+            11 => 6,
+            12 => 6,
+            13 => 6,
+            14 => 6,
+            15 => 6,
+            16 => 5,
+            17 => 5,
+            18 => 5,
+            19 => 5,
+            20 => 5,
+            21 => 5,
+            22 => 5,
+            23 => 5,
+            24 => 5,
+            25 => 5,
+            26 => 5,
+            27 => 5,
+            28 => 4,
+            29 => 4,
+            30 => 4,
+            31 => 4,
+            32 => 4,
+            33 => 4,
+            34 => 4,
+            35 => 4,
+            36 => 4,
+            // Invalid radix
+            _  => unimplemented!(),
+        }
     }
 }
 
@@ -211,10 +259,55 @@ const F64_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
 ];
 
 impl ExactExponent for f64 {
-    fn exponent_limit<T: Integer>(radix: T) ->(i32, i32) {
+    #[inline]
+    fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
         debug_assert_radix!(radix);
         let idx: usize = as_cast(radix.as_i32() - 2);
         unsafe { *F64_EXACT_EXPONENT_LIMITS.get_unchecked(idx) }
+    }
+
+    #[inline]
+    fn mantissa_limit<T: Integer>(radix: T) -> i32 {
+        debug_assert_radix!(radix);
+        match radix.as_i32() {
+            2  => 52,
+            3  => 33,
+            4  => 26,
+            5  => 22,
+            6  => 20,
+            7  => 18,
+            8  => 17,
+            9  => 16,
+            10 => 15,
+            11 => 15,
+            12 => 14,
+            13 => 14,
+            14 => 13,
+            15 => 13,
+            16 => 13,
+            17 => 12,
+            18 => 12,
+            19 => 12,
+            20 => 12,
+            21 => 12,
+            22 => 11,
+            23 => 11,
+            24 => 11,
+            25 => 11,
+            26 => 11,
+            27 => 11,
+            28 => 11,
+            29 => 10,
+            30 => 10,
+            31 => 10,
+            32 => 10,
+            33 => 10,
+            34 => 10,
+            35 => 10,
+            36 => 10,
+            // Invalid radix
+            _  => unimplemented!(),
+        }
     }
 }
 

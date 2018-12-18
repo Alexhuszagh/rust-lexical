@@ -15,6 +15,7 @@ use util::*;
 use super::cached::ModeratePathCache;
 use super::bigcomp;
 use super::exponent::*;
+use super::small_powers::get_small_powers_64;
 
 #[cfg(feature = "algorithm_m")]
 use super::algorithm_m as algom;
@@ -320,23 +321,48 @@ fn fast_path<F>(mantissa: u64, radix: u32, exponent: i32)
     debug_assert_radix!(radix);
     debug_assert!(pow2_exponent(radix) == 0, "Cannot use `fast_path` with a power of 2.");
 
-    // `mantissa >> F::MANTISSA_SIZE != 0` effectively checks if the value
-    // has a no bits above the hidden bit, which is what we want.
+    // `mantissa >> (F::MANTISSA_SIZE+1) != 0` effectively checks if the
+    // value has a no bits above the hidden bit, which is what we want.
     let (min_exp, max_exp) = F::exponent_limit(radix);
-    if mantissa >> F::MANTISSA_SIZE != 0 {
+    let shift_exp = F::mantissa_limit(radix);
+    let mantissa_size = F::MANTISSA_SIZE + 1;
+    if mantissa >> mantissa_size != 0 {
         // Would require truncation of the mantissa.
         (F::ZERO, false)
     } else {
-        let float: F = as_cast(mantissa);
         if exponent == 0 {
             // 0 exponent, same as value, exact representation.
+            let float: F = as_cast(mantissa);
             (float,  true)
         } else if exponent >= min_exp && exponent <= max_exp {
             // Value can be exactly represented, return the value.
+            let float: F = as_cast(mantissa);
             let float = unsafe { float.pow(radix, exponent) };
             (float, true)
+        } else if exponent >= 0 && exponent <= max_exp + shift_exp {
+            // Check to see if we have a disguised fast-path, where the
+            // number of digits in the mantissa is very small, but and
+            // so digits can be shifted from the exponent to the mantissa.
+            // https://www.exploringbinary.com/fast-path-decimal-to-floating-point-conversion/
+            let small_powers = get_small_powers_64(radix);
+            let shift = exponent - max_exp;
+            let power = unsafe { *small_powers.get_unchecked(shift.as_usize()) };
+
+            // Compute the product of the power, if it overflows,
+            // prematurely return early, otherwise, if we didn't overshoot,
+            // we can get an exact value.
+            mantissa.checked_mul(power)
+                .map_or((F::ZERO, false), |v| {
+                    if v >> mantissa_size != 0 {
+                        (F::ZERO, false)
+                    } else {
+                        let float: F = as_cast(v);
+                        let float = unsafe { float.pow(radix, max_exp) };
+                        (float, true)
+                    }
+                })
         } else {
-            // Cannot be exactly represented, exponent multiplication
+            // Cannot be exactly represented, exponent too small or too big,
             // would require truncation.
             (F::ZERO, false)
         }
@@ -889,7 +915,7 @@ mod tests {
     #[test]
     fn float_fast_path_test() {
         // valid
-        let mantissa = 1 << (f32::MANTISSA_SIZE - 1);
+        let mantissa = (1 << f32::MANTISSA_SIZE) - 1;
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f32::exponent_limit(base);
             for exp in min_exp..max_exp+1 {
@@ -897,6 +923,19 @@ mod tests {
                 assert!(valid, "should be valid {:?}.", (mantissa, base, exp));
             }
         }
+
+        // Check slightly above valid exponents
+        let (f, valid) = fast_path::<f32>(123, 10, 15);
+        assert_eq!(f, 1.23e+17);
+        assert!(valid);
+
+        // Exponent is 1 too high, pushes over the mantissa.
+        let (_, valid) = fast_path::<f32>(123, 10, 16);
+        assert!(!valid);
+
+        // Mantissa is too large, checked_mul should overflow.
+        let (_, valid) = fast_path::<f32>(mantissa, 10, 11);
+        assert!(!valid);
 
         // invalid mantissa
         #[cfg(feature = "radix")] {
@@ -918,7 +957,7 @@ mod tests {
     #[test]
     fn double_fast_path_test() {
         // valid
-        let mantissa = 1 << (f64::MANTISSA_SIZE - 1);
+        let mantissa = (1 << f64::MANTISSA_SIZE) - 1;
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f64::exponent_limit(base);
             for exp in min_exp..max_exp+1 {
