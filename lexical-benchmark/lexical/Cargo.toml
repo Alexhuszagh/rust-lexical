@@ -6,6 +6,8 @@ publish = false
 
 [dependencies.lexical-core]
 path = "../../lexical-core"
+default-features = false
+features = ["correct", "ryu", "std"]
 
 [dev-dependencies]
 bencher = "0.1.5"
@@ -15,6 +17,7 @@ serde_json = "1.0"
 [features]
 default = []
 algorithm_m = ["lexical-core/algorithm_m"]
+bhcmp = ["lexical-core/bhcmp"]
 
 [[bench]]
 name = "atof"

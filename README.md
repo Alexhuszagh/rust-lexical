@@ -123,8 +123,6 @@ For detailed background on the algorithms and features in lexical, see [lexical-
 
 # Roadmap
 
-Lexical is currently fairly slow on one condition: small, denormal floats with 20-200 digits (see benchmarks). Although it's asymptotically quite fast, this is a simple optimization we should be able to fix.
-
 Ideally, Lexical's float-parsing algorithm or approach would be incorporated into libcore. Although Lexical greatly improves on Rust's float-parsing algorithm, in its current state it's insufficient to be included in the standard library, including numerous "anti-features":
 
 1. It supports non-decimal radices for float parsing, leading to significant binary bloat and increased code branching, for almost non-existent use-cases.
@@ -133,8 +131,6 @@ Ideally, Lexical's float-parsing algorithm or approach would be incorporated int
 4. It contains effectively dead code for efficient higher-order arbitrary-precision integer algorithms, for rare use-cases requiring asymptotically faster algorithms.
 
 I would love to contribute lexical back to the Rust community, however, some significant modifications would be needed. If there's a desire by the Rust team to incorporate lexical's float-parsing algorithm into libcore, I would glad re-write lexical, supporting only decimal strings and minimizing the use of unsafe code.
-
-Finally, there is work needed to optimize lexical: ideally, Rust should be able to match the performance of glibc's strtod. To do so, we would swap basecase division with a faster algorithm, only calculating the top 24- or 53-bits of the quotient, while retaining the ability to distinguish halfway cases for normal and denormal floats. Although generating 24- or 53-bits of a quotient is simple, I personally have no idea how to distinguish halfway cases without calculating the remainder, which incurs significant computational expense.
 
 # License
 

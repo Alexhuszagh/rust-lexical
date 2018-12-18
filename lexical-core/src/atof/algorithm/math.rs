@@ -3023,6 +3023,13 @@ mod tests {
         assert!(x.greater(&y));
         assert!(!x.greater(&x));
         assert!(!y.greater(&x));
+
+        // Complex scenario, check it properly uses reverse ordering.
+        let x = Bigint { data: from_u32(&[0, 1, 9]) };
+        let y = Bigint { data: from_u32(&[4294967295, 0, 9]) };
+        assert!(x.greater(&y));
+        assert!(!x.greater(&x));
+        assert!(!y.greater(&x));
     }
 
     #[test]
@@ -3044,6 +3051,13 @@ mod tests {
         // Check when we use reverse ordering properly.
         let x = Bigint { data: from_u32(&[5, 1, 9]) };
         let y = Bigint { data: from_u32(&[6, 2, 8]) };
+        assert!(x.greater_equal(&y));
+        assert!(x.greater_equal(&x));
+        assert!(!y.greater_equal(&x));
+
+        // Complex scenario, check it properly uses reverse ordering.
+        let x = Bigint { data: from_u32(&[0, 1, 9]) };
+        let y = Bigint { data: from_u32(&[4294967295, 0, 9]) };
         assert!(x.greater_equal(&y));
         assert!(x.greater_equal(&x));
         assert!(!y.greater_equal(&x));
@@ -3071,6 +3085,13 @@ mod tests {
         assert!(!x.equal(&y));
         assert!(x.equal(&x));
         assert!(!y.equal(&x));
+
+        // Complex scenario, check it properly uses reverse ordering.
+        let x = Bigint { data: from_u32(&[0, 1, 9]) };
+        let y = Bigint { data: from_u32(&[4294967295, 0, 9]) };
+        assert!(!x.equal(&y));
+        assert!(x.equal(&x));
+        assert!(!y.equal(&x));
     }
 
     #[test]
@@ -3095,6 +3116,13 @@ mod tests {
         assert!(!x.less(&y));
         assert!(!x.less(&x));
         assert!(y.less(&x));
+
+        // Complex scenario, check it properly uses reverse ordering.
+        let x = Bigint { data: from_u32(&[0, 1, 9]) };
+        let y = Bigint { data: from_u32(&[4294967295, 0, 9]) };
+        assert!(!x.less(&y));
+        assert!(!x.less(&x));
+        assert!(y.less(&x));
     }
 
     #[test]
@@ -3116,6 +3144,13 @@ mod tests {
         // Check when we use reverse ordering properly.
         let x = Bigint { data: from_u32(&[5, 1, 9]) };
         let y = Bigint { data: from_u32(&[6, 2, 8]) };
+        assert!(!x.less_equal(&y));
+        assert!(x.less_equal(&x));
+        assert!(y.less_equal(&x));
+
+        // Complex scenario, check it properly uses reverse ordering.
+        let x = Bigint { data: from_u32(&[0, 1, 9]) };
+        let y = Bigint { data: from_u32(&[4294967295, 0, 9]) };
         assert!(!x.less_equal(&y));
         assert!(x.less_equal(&x));
         assert!(y.less_equal(&x));

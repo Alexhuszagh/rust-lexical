@@ -128,14 +128,14 @@ def process_rust_benchmark(line):
 # RUNNERS
 
 
-def run_lexical(use_algorithm_m=False):
+def run_lexical(feature=""):
     """Build and run the benchmarks for lexical."""
 
     data = {}
     with change_directory(os.path.join(HOME, "lexical")):
         args = ["cargo", "bench"]
-        if use_algorithm_m:
-            args.append("--features=algorithm_m")
+        if feature:
+            args.append("--features={}".format(feature))
         proc = Popen(args, bufsize=1<<20 , stdout=PIPE, stderr=PIPE)
         for line in iter(proc.stdout.readline, b''):
             if line.startswith(b"test") and not line.startswith(b"test result"):
@@ -147,7 +147,7 @@ def run_lexical(use_algorithm_m=False):
     return data
 
 
-def run_libcore(use_algorithm_m=False):
+def run_libcore():
     """Build and run the benchmarks for libcore."""
 
     data = {}
@@ -315,7 +315,8 @@ def main():
     python_data = run_python()
     strtod_data = run_strtod()
     lexical_data = run_lexical()
-    lexical_algom_data = run_lexical(True)
+    lexical_algom_data = run_lexical("algorithm_m")
+    lexical_bhcmp_data = run_lexical("bhcmp")
     libcore_data = run_libcore()
     rapidjson_data = run_rapidjson()
     double_conversion_data = run_double_conversion()
@@ -337,12 +338,16 @@ def main():
         json.dump(lexical_data, f)
     with open(os.path.join(HOME, "results","lexical_algom.json"), 'w') as f:
         json.dump(lexical_algom_data, f)
+    with open(os.path.join(HOME, "results","lexical_bhcmp.json"), 'w') as f:
+        json.dump(lexical_bhcmp_data, f)
     with open(os.path.join(HOME, "results","libcore.json"), 'w') as f:
         json.dump(libcore_data, f)
     with open(os.path.join(HOME, "results","rapidjson.json"), 'w') as f:
         json.dump(rapidjson_data, f)
     with open(os.path.join(HOME, "results","double_conversion.json"), 'w') as f:
         json.dump(double_conversion_data, f)
+    #with open(os.path.join(HOME, "results","from_chars.json"), 'w') as f:
+    #    json.dump(from_chars_data, f)
 
 if __name__== '__main__':
     main()

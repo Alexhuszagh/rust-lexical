@@ -117,7 +117,7 @@ extern crate proptest;
 
 // Use vec if there is a system allocator, which we require only if
 // we're using the correct and radix features.
-#[cfg(all(not(feature = "std"), feature = "algorithm_m", feature = "radix"))]
+#[cfg(all(not(feature = "std"), any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"))]
 #[cfg_attr(test, macro_use)]
 extern crate alloc;
 
@@ -129,6 +129,10 @@ extern crate stackvector;
 // Ensure only one back-end is enabled.
 #[cfg(all(feature = "grisu3", feature = "ryu"))]
 compile_error!("Lexical only accepts one of the following backends: `grisu3` or `ryu`.");
+
+// Ensure only one float parsing algorithm is enabled.
+#[cfg(all(feature = "algorithm_m", feature = "bhcmp"))]
+compile_error!("Lexical only accepts one of the following float-parsing algorithms: `algorithm_m` or `bhcmp`.");
 
 // Import the back-end, if applicable.
 cfg_if! {

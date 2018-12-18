@@ -209,6 +209,7 @@ pub unsafe fn fast_compare_digits<Iter>(mut digits: Iter, radix: u32, mut num: u
 /// * `radix`           - Radix for the number parsing.
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
 /// * `f`               - Sub-halfway (`b`) float.
+#[inline]
 pub unsafe fn fast_atof<F, Iter>(digits: Iter, radix: u32, sci_exponent: i32, f: F)
     -> F
     where F: Float,
@@ -432,6 +433,7 @@ pub unsafe fn slow_compare_digits<Iter>(mut digits: Iter, radix: u32, mut num: B
 /// * `radix`           - Radix for the number parsing.
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
 /// * `f`               - Sub-halfway (`b`) float.
+#[inline]
 pub unsafe fn slow_atof<F, Iter>(digits: Iter, radix: u32, sci_exponent: i32, f: F)
     -> F
     where F: Float,
@@ -447,6 +449,36 @@ pub unsafe fn slow_atof<F, Iter>(digits: Iter, radix: u32, sci_exponent: i32, f:
         cmp::Ordering::Less     => f,
         // Exactly halfway, tie to even.
         cmp::Ordering::Equal    => if f.is_odd() { f.next() } else { f },
+    }
+}
+
+
+/// Generate the correct representation from comparing to a halfway representation.
+///
+/// The digits iterator must not have any trailing zeros (true for
+/// `FloatSlice`).
+///
+/// * `digits`          - Actual digits from the mantissa.
+/// * `radix`           - Radix for the number parsing.
+/// * `sci_exponent`    - Exponent of basen string in scientific notation.
+/// * `f`               - Sub-halfway (`b`) float.
+/// * `count`           - Number of digits in the mantissa.
+#[inline]
+#[allow(dead_code)]
+pub unsafe fn atof<F, Iter>(digits: Iter, radix: u32, sci_exponent: i32, f: F, count: usize)
+    -> F
+    where F: Float,
+          F::Unsigned: Mantissa,
+          ExtendedFloat<F::Unsigned>: ToBigInt<F::Unsigned>,
+          Iter: iter::Iterator<Item=u8>
+{
+    if use_fast(radix, count) {
+        // Can use the fast path for the bigcomp calculation.
+        // The number of digits is `<= (128 / log2(10)).floor() - 2;`
+        fast_atof(digits, radix, sci_exponent, f)
+    } else {
+        // Use the slow bigcomp calculation.
+        slow_atof(digits, radix, sci_exponent, f)
     }
 }
 
