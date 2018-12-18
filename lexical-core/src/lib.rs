@@ -88,7 +88,7 @@
 
 // Require intrinsics in a no_std context.
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(all(not(feature = "std"), feature = "algorithm_m", feature = "radix"), feature(alloc))]
+#![cfg_attr(all(not(feature = "std"), any(feature = "algorithm_m", feature = "bhcmp"), feature = "radix"), feature(alloc))]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
 
 // DEPENDENCIES
