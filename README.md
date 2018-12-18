@@ -78,7 +78,7 @@ fn mul_2<T>(value: &str, multiplier: T)
 
 Most of the following benchmarks measure the time it takes to convert 10,000 random values, for different types. The values were randomly generated using NumPy, and run in both std (rustc 1.29.2) and no_std (rustc 1.31.0) contexts (only std is shown) on an x86-64 Intel processor. More information on these benchmarks can be found in the [benches](benches) folder and in the source code for the respective algorithms. Adding the flags "target-cpu=native" and "link-args=-s" were also used, however, they minimally affected the relative performance difference between different lexical conversion implementations.
 
-For cross-language benchmarks, they measure the time it takes to convert a digit series of near-halfway decimal floating-point representations. The C++ benchmarks (RapidJSON, strtod, and double-conversion) were done using GCC 8.2.1 with glibc/libstdc++ using Google Benchmark and the `-O3` flag. The Python benchmark was done using IPython on Python 3.6.6. The Go benchmark was done using go1.10.4. All benchmarks used the same data. Please note, since RapidJSON parses floats incrementally, I had to use RapidJSON's full JSON parser, likely adding some constant overhead and biasing the results against RapidJSON slightly for the smaller benchmarks.
+For cross-language benchmarks, they measure the time it takes to convert a digit series of near-halfway decimal floating-point representations. The C++ benchmarks (RapidJSON, strtod, and double-conversion) were done using GCC 8.2.1 with glibc/libstdc++ using Google Benchmark and the `-O3` flag. The Python benchmark was done using IPython on Python 3.6.6. The Go benchmark was done using go1.10.4. All benchmarks used the same data. For RapidJSON, the benchmark was done by publicly exposing the `ParseNumber` method with a custom handler.
 
 For all the following benchmarks, lower is better.
 
@@ -122,6 +122,8 @@ Lexical's documentation can be found on [docs.rs](https://docs.rs/lexical).
 For detailed background on the algorithms and features in lexical, see [lexical-core](lexical-core).
 
 # Roadmap
+
+Lexical is currently fairly slow on one condition: small, denormal floats with 20-200 digits (see benchmarks). Although it's asymptotically quite fast, this is a simple optimization we should be able to fix.
 
 Ideally, Lexical's float-parsing algorithm or approach would be incorporated into libcore. Although Lexical greatly improves on Rust's float-parsing algorithm, in its current state it's insufficient to be included in the standard library, including numerous "anti-features":
 
