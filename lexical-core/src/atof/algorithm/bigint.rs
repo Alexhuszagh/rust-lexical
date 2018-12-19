@@ -25,10 +25,10 @@ if #[cfg(feature = "radix")] {
     // or 1091 digits, or approximately 3600 bits (round up to 4k).
     use stackvector;
 
-    #[cfg(not(target_arch = "x86_64"))]
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "mips64")))]
     type DataType = stackvector::StackVec<[Limb; 128]>;
 
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(any(target_arch = "x86_64", target_arch = "mips64"))]
     type DataType = stackvector::StackVec<[Limb; 64]>;
 }}  // cfg_if
 

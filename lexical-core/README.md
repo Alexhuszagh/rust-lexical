@@ -232,9 +232,8 @@ Since our real digits are below the theoretical halfway point, we know we need t
 Rust's dec2flt uses Algorithm M internally, however, numerous optimizations led to >100x performance improvements in lexical relative to dec2flt.
 1. We scale the ratio using only 1-2 "iterations", without using a loop, by scaling the numerator to have 52 more bits than the numerator, and multiply the numerator by 2 if we underestimated the result.
 2. We use an algorithm for basecase division that is optimized for arbitrary-precision integers of similar size (an implementation of Knuth's Algorithm D from "The Art of Computer Programming"), with a time complexity of `O(m)`, where m is the size of the denominator. In comparison, dec2flt uses restoring division, which is `O(n^2)`, where n is the size of the numerator. Furthermore, the restoring division algorithm iterates bit-by-bit and requires an `O(n)` comparison at each iteration. To put this into perspective, to calculate the quotient of a value of b+h close to 1e307, dec2flt requires ~140,000 native subtraction and comparison operations, while lexical requires ~96 multiplication and subtraction operations.
-1. We limit the number of parsed digits to 767, the theoretical max number of digits produced by b+h, and merely compare any trailing digits to '0'. This provides an upper-bound on the computation cost.
-2. The individual "limbs" of the big integers are comprised of integers the size of the architecture we compile on, for example, u32 on x86 and u64 on x86-64, minimizing the number of native operations required.
-3. 
+3. We limit the number of parsed digits to 767, the theoretical max number of digits produced by b+h, and merely compare any trailing digits to '0'. This provides an upper-bound on the computation cost.
+4. The individual "limbs" of the big integers are optimized to the architecture we compile on, for example, u32 on x86 and u64 on x86-64, minimizing the number of native operations required. Currently, 64-bit limbs are only used on target architectures `x86_64` and `mips64`.
 
 # License
 

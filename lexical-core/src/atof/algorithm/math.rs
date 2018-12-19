@@ -13,8 +13,19 @@ use util::*;
 ///
 /// A limb is analogous to a digit in base10, except, it stores 32-bit
 /// or 64-bit numbers instead.
+///
+/// This should be all-known 64-bit platforms supported by Rust.
+///     https://forge.rust-lang.org/platform-support.html
+///
+/// Platforms where native 128-bit multiplication is explicitly supported:
+///     - x86_64 (Supported via `MUL`).
+///     - mips64 (Supported via `DMULTU`, which `HI` and `LO` can be read-from).
+/// Platforms where native 128-bit multiplication is not supported:
+///     aarch64 (Requires `UMULH` and `MUL` to capture high and low bits).
+///     powerpc64 (Requires `MULHDU` and `MULLD` to capture high and low bits).
+///     sparc64 (`UMUL` only supported double-word arguments).
 cfg_if! {
-if #[cfg(target_arch = "x86_64")] {
+if #[cfg(any(target_arch = "x86_64", target_arch = "mips64"))] {
     pub type Limb = u64;
     type Wide = u128;
     type SignedWide = i128;
@@ -65,28 +76,28 @@ fn split_u32(x: u32) -> [Limb; 1] {
 }
 
 /// Split u64 into limbs, in little-endian order.
-#[cfg(not(target_arch = "x86_64"))]
+#[cfg(not(any(target_arch = "x86_64", target_arch = "mips64")))]
 #[inline(always)]
 fn split_u64(x: u64) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 32)]
 }
 
 /// Split u64 into limbs, in little-endian order.
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", target_arch = "mips64"))]
 #[inline(always)]
 fn split_u64(x: u64) -> [Limb; 1] {
     [as_limb(x)]
 }
 
 /// Split u128 into limbs, in little-endian order.
-#[cfg(not(target_arch = "x86_64"))]
+#[cfg(not(any(target_arch = "x86_64", target_arch = "mips64")))]
 #[inline(always)]
 fn split_u128(x: u128) -> [Limb; 4] {
     [as_limb(x), as_limb(x >> 32), as_limb(x >> 64), as_limb(x >> 96)]
 }
 
 /// Split u128 into limbs, in little-endian order.
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", target_arch = "mips64"))]
 #[inline(always)]
 fn split_u128(x: u128) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 64)]
