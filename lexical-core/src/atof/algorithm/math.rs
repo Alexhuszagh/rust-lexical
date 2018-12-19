@@ -9,23 +9,33 @@ use util::*;
 // ALIASES
 // -------
 
-/// Type for a single limb of the big integer.
-///
-/// A limb is analogous to a digit in base10, except, it stores 32-bit
-/// or 64-bit numbers instead.
-///
-/// This should be all-known 64-bit platforms supported by Rust.
-///     https://forge.rust-lang.org/platform-support.html
-///
-/// Platforms where native 128-bit multiplication is explicitly supported:
-///     - x86_64 (Supported via `MUL`).
-///     - mips64 (Supported via `DMULTU`, which `HI` and `LO` can be read-from).
-/// Platforms where native 128-bit multiplication is not supported:
-///     aarch64 (Requires `UMULH` and `MUL` to capture high and low bits).
-///     powerpc64 (Requires `MULHDU` and `MULLD` to capture high and low bits).
-///     sparc64 (`UMUL` only supported double-word arguments).
+//  Type for a single limb of the big integer.
+//
+//  A limb is analogous to a digit in base10, except, it stores 32-bit
+//  or 64-bit numbers instead.
+//
+//  This should be all-known 64-bit platforms supported by Rust.
+//      https://forge.rust-lang.org/platform-support.html
+//
+//  Platforms where native 128-bit multiplication is explicitly supported:
+//      - x86_64 (Supported via `MUL`).
+//      - mips64 (Supported via `DMULTU`, which `HI` and `LO` can be read-from).
+//
+//  Platforms where native 64-bit multiplication is supported and
+//  you can extract hi-lo for 64-bit multiplications.
+//      aarch64 (Requires `UMULH` and `MUL` to capture high and low bits).
+//      powerpc64 (Requires `MULHDU` and `MULLD` to capture high and low bits).
+//
+//  Platforms where native 128-bit multiplication is not supported,
+//  requiring software emulation.
+//      sparc64 (`UMUL` only supported double-word arguments).
 cfg_if! {
-if #[cfg(any(target_arch = "x86_64", target_arch = "mips64"))] {
+if #[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+))] {
     pub type Limb = u64;
     type Wide = u128;
     type SignedWide = i128;
@@ -76,28 +86,48 @@ fn split_u32(x: u32) -> [Limb; 1] {
 }
 
 /// Split u64 into limbs, in little-endian order.
-#[cfg(not(any(target_arch = "x86_64", target_arch = "mips64")))]
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+)))]
 #[inline(always)]
 fn split_u64(x: u64) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 32)]
 }
 
 /// Split u64 into limbs, in little-endian order.
-#[cfg(any(target_arch = "x86_64", target_arch = "mips64"))]
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+))]
 #[inline(always)]
 fn split_u64(x: u64) -> [Limb; 1] {
     [as_limb(x)]
 }
 
 /// Split u128 into limbs, in little-endian order.
-#[cfg(not(any(target_arch = "x86_64", target_arch = "mips64")))]
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+)))]
 #[inline(always)]
 fn split_u128(x: u128) -> [Limb; 4] {
     [as_limb(x), as_limb(x >> 32), as_limb(x >> 64), as_limb(x >> 96)]
 }
 
 /// Split u128 into limbs, in little-endian order.
-#[cfg(any(target_arch = "x86_64", target_arch = "mips64"))]
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+))]
 #[inline(always)]
 fn split_u128(x: u128) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 64)]

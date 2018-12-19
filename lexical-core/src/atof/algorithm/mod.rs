@@ -16,13 +16,28 @@ mod large_powers;
 mod math;
 mod small_powers;
 
-#[cfg(not(any(target_arch = "x86_64", target_arch = "mips64")))]
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+)))]
 mod large_powers_32;
 
-#[cfg(not(any(target_arch = "x86_64", target_arch = "mips64")))]
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+)))]
 mod small_powers_32;
 
-#[cfg(any(target_arch = "x86_64", target_arch = "mips64"))]
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+))]
 mod large_powers_64;
 
 // Required for fast-path, keep on all platforms.

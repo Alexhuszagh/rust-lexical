@@ -3,10 +3,20 @@
 use super::math::Limb;
 use super::small_powers_64;
 
-#[cfg(not(any(target_arch = "x86_64", target_arch = "mips64")))]
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+)))]
 use super::small_powers_32::*;
 
-#[cfg(any(target_arch = "x86_64", target_arch = "mips64"))]
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+))]
 use super::small_powers_64::*;
 
 // ASSERTIONS
