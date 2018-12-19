@@ -16,19 +16,13 @@ mod large_powers;
 mod math;
 mod small_powers;
 
-#[cfg(target_pointer_width = "16")]
-mod large_powers_16;
-
-#[cfg(target_pointer_width = "16")]
-mod small_powers_16;
-
-#[cfg(target_pointer_width = "32")]
+#[cfg(not(target_arch = "x86_64"))]
 mod large_powers_32;
 
-#[cfg(target_pointer_width = "32")]
+#[cfg(not(target_arch = "x86_64"))]
 mod small_powers_32;
 
-#[cfg(target_pointer_width = "64")]
+#[cfg(target_arch = "x86_64")]
 mod large_powers_64;
 
 // Required for fast-path, keep on all platforms.

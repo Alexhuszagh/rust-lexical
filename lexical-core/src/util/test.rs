@@ -46,38 +46,19 @@ if #[cfg(feature = "correct")] {
 
 // FROM U32
 
-#[cfg(target_pointer_width = "16")]
-pub(crate) type DataType = stackvector::StackVec<[u16; 256]>;
-
-#[cfg(target_pointer_width = "32")]
+#[cfg(not(target_arch = "x86_64"))]
 pub(crate) type DataType = stackvector::StackVec<[u32; 128]>;
 
-#[cfg(target_pointer_width = "64")]
+#[cfg(target_arch = "x86_64")]
 pub(crate) type DataType = stackvector::StackVec<[u64; 64]>;
 
-#[cfg(target_pointer_width = "16")]
-pub(crate) fn from_u32(x: &[u32]) -> DataType {
-    let mut v = DataType::default();
-    v.reserve(x.len() * 2);
-    for xi in x.iter().cloned() {
-        v.push(xi as u16);
-        v.push((xi >> 16) as u16);
-    }
 
-    let len = v.len();
-    if v.get_unchecked(len - 1) == 0 {
-        v.pop();
-    }
-
-    v
-}
-
-#[cfg(target_pointer_width = "32")]
+#[cfg(not(target_arch = "x86_64"))]
 pub(crate) fn from_u32(x: &[u32]) -> DataType {
     x.iter().cloned().collect()
 }
 
-#[cfg(target_pointer_width = "64")]
+#[cfg(target_arch = "x86_64")]
 pub(crate) fn from_u32(x: &[u32]) -> DataType {
     let mut v = DataType::default();
     v.reserve(x.len() / 2);
@@ -92,19 +73,13 @@ pub(crate) fn from_u32(x: &[u32]) -> DataType {
     v
 }
 
-#[cfg(target_pointer_width = "16")]
-pub(crate) fn deduce_from_u32<T: CloneableVecLike<u16>>(x: &[u32]) -> T
-{
-    from_u32(x).iter().cloned().collect()
-}
-
-#[cfg(target_pointer_width = "32")]
+#[cfg(not(target_arch = "x86_64"))]
 pub(crate) fn deduce_from_u32<T: CloneableVecLike<u32>>(x: &[u32]) -> T
 {
     from_u32(x).iter().cloned().collect()
 }
 
-#[cfg(target_pointer_width = "64")]
+#[cfg(target_arch = "x86_64")]
 pub(crate) fn deduce_from_u32<T: CloneableVecLike<u64>>(x: &[u32]) -> T
 {
     from_u32(x).iter().cloned().collect()

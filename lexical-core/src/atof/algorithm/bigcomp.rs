@@ -230,14 +230,12 @@ pub unsafe fn fast_atof<F, Iter>(digits: Iter, radix: u32, sci_exponent: i32, f:
 // BIG INT
 
 // Adjust the storage capacity for the underlying array.
-#[cfg(target_pointer_width = "16")]
-type DataType = stackvector::StackVec<[Limb; 72]>;
-
-#[cfg(target_pointer_width = "32")]
-type DataType = stackvector::StackVec<[Limb; 36]>;
-
-#[cfg(target_pointer_width = "64")]
-type DataType = stackvector::StackVec<[Limb; 20]>;
+cfg_if! {
+if #[cfg(target_arch = "x86_64")] {
+    type DataType = stackvector::StackVec<[Limb; 20]>;
+} else {
+    type DataType = stackvector::StackVec<[Limb; 36]>;
+}}   // cfg_if
 
 /// Storage for a big integer type.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -618,12 +616,7 @@ mod tests {
             let (num2, den2) = slow_ratio(10, -324, 5e-324f64);
             let (num3, den3) = slow_ratio(10, 307, 8.98846567431158e+307f64);
 
-            #[cfg(target_pointer_width = "16")] {
-                // TODO(ahuszagh) Someone needs to implement this with access to 16-bit hardware.
-                unimplemented!()
-            }
-
-            #[cfg(target_pointer_width = "32")] {
+            #[cfg(not(target_arch = "x86_64"))] {
                 assert_eq!(num1, Bigint { data: stackvec![1725370368, 1252154597, 1017462556, 675087593, 2805901938, 1401824593, 1124332496, 2380663002, 1612846757, 4128923878, 1492915356, 437569744, 2975325085, 3331531962, 3367627909, 730662168, 2699172281, 1440714968, 2778340312, 690527038, 1297115354, 763425880, 1453089653, 331561842], exp: 312 });
                 assert_eq!(den1, Bigint { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728], exp: 312 });
 
@@ -634,7 +627,7 @@ mod tests {
                 assert_eq!(den3, Bigint { data: stackvec![1978138624, 2671552565, 2938166866, 3588566204, 1860064291, 2104472219, 2014975858, 2797301608, 462262832, 318515330, 1101517094, 1738264167, 3721375114, 414401884, 1406861075, 3053102637, 387329537, 2051556775, 1867945454, 3717689914, 1434550525, 1446648206, 238915486], exp: 288 });
             }
 
-            #[cfg(target_pointer_width = "64")] {
+            #[cfg(target_arch = "x86_64")] {
                 assert_eq!(num1, Bigint { data: stackvec![7410409304047484928, 4369968404176723173, 12051257060168107241, 4828971301551875409, 6927124077155322074, 6412022633845121254, 12778923935480989904, 14463851737583396026, 11592856673895384344, 11932880778639151320, 5571068025259989822, 6240972538554414168, 331561842], exp: 280 });
                 assert_eq!(den1, Bigint { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728], exp: 280 });
 

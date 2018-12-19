@@ -9,13 +9,10 @@
 
 use super::math::Limb;
 
-#[cfg(target_pointer_width = "16")]
-use super::large_powers_16::*;
-
-#[cfg(target_pointer_width = "32")]
+#[cfg(not(target_arch = "x86_64"))]
 use super::large_powers_32::*;
 
-#[cfg(target_pointer_width = "64")]
+#[cfg(target_arch = "x86_64")]
 use super::large_powers_64::*;
 
 // HELPER

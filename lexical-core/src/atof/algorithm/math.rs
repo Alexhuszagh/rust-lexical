@@ -13,34 +13,16 @@ use util::*;
 ///
 /// A limb is analogous to a digit in base10, except, it stores 32-bit
 /// or 64-bit numbers instead.
-#[cfg(target_pointer_width = "16")]
-pub type Limb = u16;
-
-#[cfg(target_pointer_width = "32")]
-pub type Limb = u32;
-
-#[cfg(target_pointer_width = "64")]
-pub type Limb = u64;
-
-/// Type for a wide limb, a type with double the size of the standard limb.
-#[cfg(target_pointer_width = "16")]
-type Wide = u32;
-
-#[cfg(target_pointer_width = "32")]
-type Wide = u64;
-
-#[cfg(target_pointer_width = "64")]
-type Wide = u128;
-
-/// Signed type for a wide limb.
-#[cfg(target_pointer_width = "16")]
-type SignedWide = i32;
-
-#[cfg(target_pointer_width = "32")]
-type SignedWide = i64;
-
-#[cfg(target_pointer_width = "64")]
-type SignedWide = i128;
+cfg_if! {
+if #[cfg(target_arch = "x86_64")] {
+    pub type Limb = u64;
+    type Wide = u128;
+    type SignedWide = i128;
+} else {
+    pub type Limb = u32;
+    type Wide = u64;
+    type SignedWide = i64;
+}}   // cfg_if
 
 /// Cast to limb type.
 #[inline(always)]
@@ -77,57 +59,34 @@ fn split_u16(x: u16) -> [Limb; 1] {
 }
 
 /// Split u32 into limbs, in little-endian order.
-#[cfg(target_pointer_width = "16")]
-#[inline(always)]
-fn split_u32(x: u32) -> [Limb; 2] {
-    [as_limb(x), as_limb(x >> 16)]
-}
-
-/// Split u32 into limbs, in little-endian order.
-#[cfg(any(target_pointer_width = "32", target_pointer_width = "64"))]
 #[inline(always)]
 fn split_u32(x: u32) -> [Limb; 1] {
     [as_limb(x)]
 }
 
 /// Split u64 into limbs, in little-endian order.
-#[cfg(target_pointer_width = "16")]
-#[inline(always)]
-fn split_u64(x: u64) -> [Limb; 4] {
-    [as_limb(x), as_limb(x >> 16), as_limb(x >> 32), as_limb(x >> 48)]
-}
-
-/// Split u64 into limbs, in little-endian order.
-#[cfg(target_pointer_width = "32")]
+#[cfg(not(target_arch = "x86_64"))]
 #[inline(always)]
 fn split_u64(x: u64) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 32)]
 }
 
 /// Split u64 into limbs, in little-endian order.
-#[cfg(target_pointer_width = "64")]
+#[cfg(target_arch = "x86_64")]
 #[inline(always)]
 fn split_u64(x: u64) -> [Limb; 1] {
     [as_limb(x)]
 }
 
 /// Split u128 into limbs, in little-endian order.
-#[cfg(target_pointer_width = "16")]
-#[inline(always)]
-fn split_u128(x: u128) -> [Limb; 8] {
-    [as_limb(x), as_limb(x >> 16), as_limb(x >> 32), as_limb(x >> 48),
-     as_limb(x >> 64), as_limb(x >> 80), as_limb(x >> 96), as_limb(x >> 112)]
-}
-
-/// Split u128 into limbs, in little-endian order.
-#[cfg(target_pointer_width = "32")]
+#[cfg(not(target_arch = "x86_64"))]
 #[inline(always)]
 fn split_u128(x: u128) -> [Limb; 4] {
     [as_limb(x), as_limb(x >> 32), as_limb(x >> 64), as_limb(x >> 96)]
 }
 
 /// Split u128 into limbs, in little-endian order.
-#[cfg(target_pointer_width = "64")]
+#[cfg(target_arch = "x86_64")]
 #[inline(always)]
 fn split_u128(x: u128) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 64)]
@@ -232,7 +191,8 @@ impl Hi16<u16> for [u16] {
         debug_assert!(self.len() == 2);
         let r0 = *self.rget_unchecked(0);
         let r1 = *self.rget_unchecked(1);
-        u16_to_hi16_2(r0, r1)
+        let (v, n) = u16_to_hi16_2(r0, r1);
+        (v, n || nonzero(self, 2))
     }
 }
 
@@ -249,7 +209,8 @@ impl Hi16<u32> for [u32] {
         debug_assert!(self.len() == 2);
         let r0 = *self.rget_unchecked(0);
         let r1 = *self.rget_unchecked(1);
-        u32_to_hi16_2(r0, r1)
+        let (v, n) = u32_to_hi16_2(r0, r1);
+        (v, n || nonzero(self, 2))
     }
 }
 
@@ -266,7 +227,8 @@ impl Hi16<u64> for [u64] {
         debug_assert!(self.len() == 2);
         let r0 = *self.rget_unchecked(0);
         let r1 = *self.rget_unchecked(1);
-        u64_to_hi16_2(r0, r1)
+        let (v, n) = u64_to_hi16_2(r0, r1);
+        (v, n || nonzero(self, 2))
     }
 }
 
@@ -531,7 +493,8 @@ impl Hi64<u32> for [u32] {
         let r0 = self.rget_unchecked(0).as_u64();
         let r1 = self.rget_unchecked(1).as_u64() << 32;
         let r2 = self.rget_unchecked(2).as_u64();
-        u64_to_hi64_2(r0, r1 | r2)
+        let (v, n) = u64_to_hi64_2(r0, r1 | r2);
+        (v, n || nonzero(self, 3))
     }
 
     #[inline(always)]

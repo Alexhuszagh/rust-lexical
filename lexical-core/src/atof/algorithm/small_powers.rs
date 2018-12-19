@@ -3,13 +3,10 @@
 use super::math::Limb;
 use super::small_powers_64;
 
-#[cfg(target_pointer_width = "16")]
-use super::small_powers_16::*;
-
-#[cfg(target_pointer_width = "32")]
+#[cfg(not(target_arch = "x86_64"))]
 use super::small_powers_32::*;
 
-#[cfg(target_pointer_width = "64")]
+#[cfg(target_arch = "x86_64")]
 use super::small_powers_64::*;
 
 // ASSERTIONS
@@ -114,7 +111,7 @@ pub(in atof::algorithm) fn get_small_powers(radix: u32)
 
 /// Get the correct 64-bit small power from the radix.
 pub(in atof::algorithm) fn get_small_powers_64(radix: u32)
-    -> &'static [Limb]
+    -> &'static [u64]
 {
     #[cfg(not(feature = "radix"))] {
         match radix {
