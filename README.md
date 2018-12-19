@@ -54,7 +54,7 @@ let x: i32 = lexical::try_parse("123 456");
 let x: i32 = lexical::parse("123 456");
 ```
 
-For floating-points, Lexical also includes `parse_lossy` and `try_parse_lossy`, which may lead to minor rounding error (relative error of ~1e-16) in rare cases (see [details](#details) for more information), without using slow algorithms that lead to serious performance degradation.
+For floating-points, Lexical also includes `parse_lossy` and `try_parse_lossy`, which may lead to minor rounding error (relative error of ~1e-16) in rare cases (see [implementation details](lexical-core/README.md#implementation-details) for more information), without using slow algorithms that lead to serious performance degradation.
 
 ```rust
 let x: f32 = lexical::parse_lossy("3.5");       // 3.5

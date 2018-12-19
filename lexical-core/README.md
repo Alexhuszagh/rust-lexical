@@ -11,7 +11,7 @@ Low-level, FFI-compatible, lexical conversion routines for use in a `no_std` con
 - [Documentation](#documentation)
 - [Validation](#validation)
 - [Caveats](#caveats)
-- [Details](#details)
+- [Implementation Details](#implementation-details)
   - [Float to String](#float-to-string)
   - [String to Float](#string-to-float)
   - [Arbitrary-Precision Arithmetic](#arbitrary-precision-arithmetic)
