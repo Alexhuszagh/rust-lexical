@@ -169,13 +169,11 @@ pub fn case_insensitive_ends_with_slice<'a>(l: &'a [u8], r: &'a [u8])
 /// Returns a pointer to the new start of the range.
 #[inline(always)]
 #[allow(dead_code)]
-pub unsafe extern "C" fn ltrim_char_range(mut first: *const u8, last: *const u8, c: u8)
+pub unsafe extern "C" fn ltrim_char_range(first: *const u8, last: *const u8, c: u8)
     -> *const u8
 {
-    while first < last && *first == c {
-        first = first.add(1);
-    }
-    first
+    let slc = slice::from_raw_parts(first, distance(first, last));
+    ltrim_char_slice(slc, c).as_ptr()
 }
 
 /// Trim character from the left-side of a range without case-sensitivity.
@@ -183,13 +181,11 @@ pub unsafe extern "C" fn ltrim_char_range(mut first: *const u8, last: *const u8,
 /// Returns a pointer to the new start of the range.
 #[inline(always)]
 #[allow(dead_code)]
-pub unsafe extern "C" fn case_insensitive_ltrim_char_range(mut first: *const u8, last: *const u8, c: u8)
+pub unsafe extern "C" fn case_insensitive_ltrim_char_range(first: *const u8, last: *const u8, c: u8)
     -> *const u8
 {
-    while first < last && (*first).to_ascii_lowercase() == c.to_ascii_lowercase() {
-        first = first.add(1);
-    }
-    first
+    let slc = slice::from_raw_parts(first, distance(first, last));
+    case_insensitive_ltrim_char_slice(slc, c).as_ptr()
 }
 
 /// Trim character from the left-side of a slice.
@@ -198,12 +194,8 @@ pub unsafe extern "C" fn case_insensitive_ltrim_char_range(mut first: *const u8,
 pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
     -> &'a [u8]
 {
-    unsafe {
-        let first = slc.as_ptr();
-        let last = first.add(slc.len());
-        let first = ltrim_char_range(first, last, c);
-        slice::from_raw_parts(first, distance(first, last))
-    }
+    let count = slc.iter().take_while(|&&si| si == c).count();
+    &slc[count..]
 }
 
 /// Trim character from the left-side of a slice without case-sensitivity.
@@ -212,12 +204,9 @@ pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
 pub fn case_insensitive_ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
     -> &'a [u8]
 {
-    unsafe {
-        let first = slc.as_ptr();
-        let last = first.add(slc.len());
-        let first = case_insensitive_ltrim_char_range(first, last, c);
-        slice::from_raw_parts(first, distance(first, last))
-    }
+    let c = c.to_ascii_lowercase();
+    let count = slc.iter().take_while(|&&si| si.to_ascii_lowercase() == c).count();
+    &slc[count..]
 }
 
 /// Trim character from the right-side of a range.
@@ -225,13 +214,11 @@ pub fn case_insensitive_ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
 /// Returns a pointer to the new start of the range.
 #[inline(always)]
 #[allow(dead_code)]
-pub unsafe extern "C" fn rtrim_char_range(first: *const u8, mut last: *const u8, c: u8)
+pub unsafe extern "C" fn rtrim_char_range(first: *const u8, last: *const u8, c: u8)
     -> *const u8
 {
-    while last > first && *last.sub(1) == c {
-        last = last.sub(1);
-    }
-    last
+    let slc = slice::from_raw_parts(first, distance(first, last));
+    first.add(rtrim_char_slice(slc, c).len())
 }
 
 /// Trim character from the right-side of a range without case-sensitivity.
@@ -239,13 +226,11 @@ pub unsafe extern "C" fn rtrim_char_range(first: *const u8, mut last: *const u8,
 /// Returns a pointer to the new start of the range.
 #[inline(always)]
 #[allow(dead_code)]
-pub unsafe extern "C" fn case_insensitive_rtrim_char_range(first: *const u8, mut last: *const u8, c: u8)
+pub unsafe extern "C" fn case_insensitive_rtrim_char_range(first: *const u8, last: *const u8, c: u8)
     -> *const u8
 {
-    while last > first && (*last.sub(1)).to_ascii_lowercase() == c {
-        last = last.sub(1);
-    }
-    last
+    let slc = slice::from_raw_parts(first, distance(first, last));
+    first.add(case_insensitive_rtrim_char_slice(slc, c).len())
 }
 
 /// Trim character from the right-side of a slice.
@@ -254,12 +239,8 @@ pub unsafe extern "C" fn case_insensitive_rtrim_char_range(first: *const u8, mut
 pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
     -> &'a [u8]
 {
-    unsafe {
-        let first = slc.as_ptr();
-        let last = first.add(slc.len());
-        let last = rtrim_char_range(first, last, c);
-        slice::from_raw_parts(first, distance(first, last))
-    }
+    let count = slc.iter().rev().take_while(|&&si| si == c).count();
+    &slc[..slc.len()-count]
 }
 
 /// Trim character from the right-side of a slice without case-sensitivity.
@@ -268,12 +249,9 @@ pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
 pub fn case_insensitive_rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
     -> &'a [u8]
 {
-    unsafe {
-        let first = slc.as_ptr();
-        let last = first.add(slc.len());
-        let last = case_insensitive_rtrim_char_range(first, last, c);
-        slice::from_raw_parts(first, distance(first, last))
-    }
+    let c = c.to_ascii_lowercase();
+    let count = slc.iter().rev().take_while(|&&si| si.to_ascii_lowercase() == c).count();
+    &slc[..slc.len()-count]
 }
 
 /// Copy from source-to-dst.
