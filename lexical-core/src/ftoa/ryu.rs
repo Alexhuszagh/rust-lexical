@@ -11,7 +11,6 @@ use ryu::raw;
 pub(crate) fn float_decimal(f: f32, bytes: &mut [u8])
     -> usize
 {
-    // Not a public API, but we don't want the C-API.
     unsafe {
         raw::pretty_f2s_buffered_n(f, bytes.as_mut_ptr())
     }
@@ -26,7 +25,6 @@ pub(crate) fn float_decimal(f: f32, bytes: &mut [u8])
 pub(crate) fn double_decimal(d: f64, bytes: &mut [u8])
     -> usize
 {
-    // Not a public API, but we don't want the C-API.
     unsafe {
         raw::pretty_d2s_buffered_n(d, bytes.as_mut_ptr())
     }

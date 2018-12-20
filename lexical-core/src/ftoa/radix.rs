@@ -4,7 +4,6 @@
 //! and may be found [here](https://github.com/v8/v8).
 
 use itoa;
-use lib::ptr;
 use util::*;
 
 // FTOA BASEN
@@ -29,8 +28,8 @@ pub(crate) fn naive_exponent(d: f64, radix: u32) -> i32
 /// and non-zero.
 ///
 /// Adapted from the V8 implementation.
-unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, bytes: &mut [u8])
-    -> *mut u8
+fn ftoa_naive(value: f64, radix: u32, bytes: &mut [u8])
+    -> usize
 {
     debug_assert_radix!(radix);
 
@@ -182,37 +181,28 @@ unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, bytes: &mut [u8])
             exp = exponent as u32;
         }
         // Forward the exponent writer.
-        // TODO(ahuszagh) Fix to use raw slices.
-        let len = itoa::forward(exp, radix, &mut bytes[idx..]);
-        return bytes.as_mut_ptr().add(idx + len);
-
+        idx + itoa::forward(exp, radix, &mut bytes[idx..])
     } else {
-        // TODO(ahuszagh) Fix and remove...
-        let first = bytes.as_mut_ptr();
-        let mut p;
         // get component lengths
         let integer_length = initial_position - integer_cursor;
         let fraction_length = (fraction_cursor - initial_position).min(MAX_DIGIT_LENGTH - integer_length);
 
         // write integer component
-        let buffer = buffer.as_ptr();
-        ptr::copy_nonoverlapping(buffer.add(integer_cursor), first, integer_length);
-        p = first.add(integer_length);
+        let mut idx = copy_to_dst(bytes, &buffer[integer_cursor..integer_cursor+integer_length]);
 
         // write fraction component
         if fraction_length > 0 {
             // fraction exists, write it
-            *p = b'.';
-            p = p.add(1);
-            ptr::copy_nonoverlapping(buffer.add(initial_position), p, fraction_length);
-            p = p.add(fraction_length);
+            bytes[idx] = b'.';
+            idx += 1;
+            let src = &buffer[initial_position..initial_position+fraction_length];
+            idx += copy_to_dst(&mut bytes[idx..], src);
         } else {
             // no fraction, write decimal place
-            ptr::copy_nonoverlapping(b".0".as_ptr(), p, 2);
-            p = p.add(2);
+            idx += copy_to_dst(&mut bytes[idx..], ".0");
         }
 
-        return p;
+        idx
     }
 }
 
@@ -223,8 +213,8 @@ unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, bytes: &mut [u8])
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline(always)]
-pub(crate) unsafe extern "C" fn float_radix(f: f32, radix: u32, bytes: &mut [u8])
-    -> *mut u8
+pub(crate) fn float_radix(f: f32, radix: u32, bytes: &mut [u8])
+    -> usize
 {
     double_radix(f as f64, radix, bytes)
 }
@@ -236,8 +226,8 @@ pub(crate) unsafe extern "C" fn float_radix(f: f32, radix: u32, bytes: &mut [u8]
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline(always)]
-pub(crate) unsafe extern "C" fn double_radix(value: f64, radix: u32, bytes: &mut [u8])
-    -> *mut u8
+pub(crate) fn double_radix(value: f64, radix: u32, bytes: &mut [u8])
+    -> usize
 {
     ftoa_naive(value, radix, bytes)
 }

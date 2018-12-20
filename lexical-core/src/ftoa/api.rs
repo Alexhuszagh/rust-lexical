@@ -28,8 +28,7 @@ pub(crate) trait FloatToString: Float {
 
     /// Export float to radix string with slow algorithm.
     #[cfg(feature = "radix")]
-    // TODO(ahuszagh) Fix...
-    unsafe fn radix(self, radix: u32, bytes: &mut [u8]) -> *mut u8;
+    fn radix(self, radix: u32, bytes: &mut [u8]) -> usize;
 }
 
 impl FloatToString for f32 {
@@ -38,9 +37,9 @@ impl FloatToString for f32 {
         float_decimal(self, bytes)
     }
 
-    #[inline(always)]
     #[cfg(feature = "radix")]
-    unsafe fn radix(self, radix: u32, bytes: &mut [u8]) -> *mut u8 {
+    #[inline(always)]
+    fn radix(self, radix: u32, bytes: &mut [u8]) -> usize {
         float_radix(self, radix, bytes)
     }
 }
@@ -51,9 +50,9 @@ impl FloatToString for f64 {
         double_decimal(self, bytes)
     }
 
-    #[inline(always)]
     #[cfg(feature = "radix")]
-    unsafe fn radix(self, radix: u32, bytes: &mut [u8]) -> *mut u8 {
+    #[inline(always)]
+    fn radix(self, radix: u32, bytes: &mut [u8]) -> usize {
         double_radix(self, radix, bytes)
     }
 }
@@ -62,8 +61,7 @@ impl FloatToString for f64 {
 
 /// Forward the correct arguments the ideal encoder.
 #[inline]
-#[allow(unused_variables)]  // TODO(ahuszagh) Remove when we convert to slices.
-unsafe fn forward<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
+fn forward<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
     -> usize
 {
     debug_assert_radix!(radix);
@@ -73,18 +71,16 @@ unsafe fn forward<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
     }
 
     #[cfg(feature = "radix")] {
-        // TODO(ahuszagh) Fix to use slices internally...
-        let first = bytes.as_mut_ptr();
         match radix {
             10 => value.decimal(bytes),
-            _  => distance(first, value.radix(radix, bytes)),
+            _  => value.radix(radix, bytes),
         }
     }
 }
 
 /// Convert float-to-string and handle special (positive) floats.
 #[inline]
-unsafe fn filter_special<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
+fn filter_special<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
     -> usize
 {
     // Logic errors, disable in release builds.
@@ -99,10 +95,10 @@ unsafe fn filter_special<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8
     }
 
     if value.is_nan() {
-        copy_to_dst(bytes, NAN_STRING)
+        copy_to_dst(bytes, unsafe { NAN_STRING })
     } else if value.is_special() {
         // Must be positive infinity, we've already handled sign
-        copy_to_dst(bytes, INF_STRING)
+        copy_to_dst(bytes, unsafe { INF_STRING })
     } else {
         forward(value, radix, bytes)
     }
@@ -110,7 +106,7 @@ unsafe fn filter_special<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8
 
 /// Handle +/- values.
 #[inline]
-unsafe fn filter_sign<F: FloatToString>(mut value: F, radix: u32, bytes: &mut [u8])
+fn filter_sign<F: FloatToString>(mut value: F, radix: u32, bytes: &mut [u8])
     -> usize
 {
     debug_assert_radix!(radix);
