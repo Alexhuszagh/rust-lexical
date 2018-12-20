@@ -100,7 +100,7 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use lib::{mem, ptr};
+use lib::{mem, slice};
 use util::*;
 
 // CHECK BUFFER
@@ -122,60 +122,48 @@ macro_rules! assert_buffer {
 /// `value` must be non-negative and mutable.
 #[cfg(feature = "table")]
 #[inline]
-unsafe fn optimized<T>(mut value: T, radix: T, table: *const u8, first: *mut u8)
-    -> *mut u8
+fn optimized<T>(mut value: T, radix: T, table: &[u8], buffer: &mut [u8])
+    -> usize
     where T: UnsignedInteger
 {
+    // Use power-reduction to minimize the number of operations.
+    // Idea taken from "3 Optimization Tips for C++".
     let radix2 = radix * radix;
     let radix4 = radix2 * radix2;
 
-    if value == T::ZERO {
-        *first = b'0';
-        return first.add(1);
-    }
-
-    // Create a temporary buffer, and copy into it.
-    // Way faster than reversing a buffer in-place.
-    let mut buffer: [u8; BUFFER_SIZE] = mem::uninitialized();
-    let mut rem: usize;
-    let mut curr = buffer.len();
-    let p: *mut u8 = buffer.as_mut_ptr();
-
-    // Decode 4 digits at a time
+    // Decode 4-digits at a time
+    let mut iter = buffer.iter_mut().rev();
     while value >= radix4 {
         let rem = value % radix4;
         value /= radix4;
-        let r1: usize = as_cast(T::TWO * (rem / radix2));
-        let r2: usize = as_cast(T::TWO * (rem % radix2));
+        let r1 = (T::TWO * (rem / radix2)).as_usize();
+        let r2 = (T::TWO * (rem % radix2)).as_usize();
 
-        curr -= 4;
-        ptr::copy_nonoverlapping(table.add(r1), p.add(curr), 2);
-        ptr::copy_nonoverlapping(table.add(r2), p.add(curr + 2), 2);
+        *iter.next().unwrap() = table[r2+1];
+        *iter.next().unwrap() = table[r2];
+        *iter.next().unwrap() = table[r1+1];
+        *iter.next().unwrap() = table[r1];
     }
 
     // Decode 2 digits at a time.
     while value >= radix2 {
-        rem = as_cast(T::TWO * (value % radix2));
+        let rem = (T::TWO * (value % radix2)).as_usize();
         value /= radix2;
 
-        curr -= 2;
-        ptr::copy_nonoverlapping(table.add(rem), p.add(curr), 2);
+        *iter.next().unwrap() = table[rem+1];
+        *iter.next().unwrap() = table[rem];
     }
 
     // Decode last 2 digits.
     if value < radix {
-        curr -= 1;
-        *p.add(curr) = digit_to_char(value);
+        *iter.next().unwrap() = digit_to_char(value);
     } else {
-        rem = as_cast(T::TWO * value);
-        curr -= 2;
-        ptr::copy_nonoverlapping(table.add(rem), p.add(curr), 2);
+        let rem = (T::TWO * value).as_usize();
+        *iter.next().unwrap() = table[rem+1];
+        *iter.next().unwrap() = table[rem];
     }
 
-    let len = buffer.len() - curr;
-    ptr::copy_nonoverlapping(p.add(curr), first, len);
-
-    first.add(len)
+    iter.count()
 }
 
 // NAIVE
@@ -187,35 +175,24 @@ unsafe fn optimized<T>(mut value: T, radix: T, table: *const u8, first: *mut u8)
 /// `value` must be non-negative and mutable.
 #[cfg(not(feature = "table"))]
 #[inline]
-unsafe fn naive<T>(mut value: T, radix: T, first: *mut u8)
-    -> *mut u8
+fn naive<T>(mut value: T, radix: T, buffer: &mut [u8])
+    -> usize
     where T: UnsignedInteger
 {
-    // Create a temporary buffer, and copy into it.
-    // Way faster than reversing a buffer in-place.
-    let mut buffer: [u8; BUFFER_SIZE] = mem::uninitialized();
-    let mut rem: usize;
-    let mut curr = buffer.len();
-    let p: *mut u8 = buffer.as_mut_ptr();
-
     // Decode all but last digit, 1 at a time.
+    let mut iter = buffer.iter_mut().rev();
     while value >= radix {
-        rem = as_cast(value % radix);
+        let rem = (value % radix).as_usize();
         value /= radix;
 
-        curr -= 1;
-        *p.add(curr) = digit_to_char(rem);
+        *iter.next().unwrap() = digit_to_char(rem);
     }
 
     // Decode last digit.
-    rem = as_cast(value % radix);
-    curr -= 1;
-    *p.add(curr) = digit_to_char(rem);
+    let rem = (value % radix).as_usize();
+    *iter.next().unwrap() = digit_to_char(rem);
 
-    let len = buffer.len() - curr;
-    ptr::copy_nonoverlapping(p.add(curr), first, len);
-
-    first.add(len)
+    iter.count()
 }
 
 /// Forward the correct arguments to the implementation.
@@ -224,91 +201,101 @@ unsafe fn naive<T>(mut value: T, radix: T, first: *mut u8)
 ///
 /// `value` must be non-negative and mutable.
 #[inline]
-pub(crate) unsafe fn forward<T>(value: T, radix: u32, first: *mut u8)
-    -> *mut u8
+pub(crate) fn forward<T>(value: T, radix: u32, bytes: &mut [u8])
+    -> &mut [u8]
     where T: UnsignedInteger
 {
+    // Check simple use-cases
+    if value == T::ZERO {
+        bytes[0] = b'0';
+        return &mut bytes[..1];
+    }
+
+    // Create a temporary buffer, and copy into it.
+    // Way faster than reversing a buffer in-place.
     debug_assert_radix!(radix);
-    #[cfg(all(feature = "radix", feature = "table"))] {
-        let table = match radix {
-            2   => DIGIT_TO_BASE2_SQUARED.as_ptr(),
-            3   => DIGIT_TO_BASE3_SQUARED.as_ptr(),
-            4   => DIGIT_TO_BASE4_SQUARED.as_ptr(),
-            5   => DIGIT_TO_BASE5_SQUARED.as_ptr(),
-            6   => DIGIT_TO_BASE6_SQUARED.as_ptr(),
-            7   => DIGIT_TO_BASE7_SQUARED.as_ptr(),
-            8   => DIGIT_TO_BASE8_SQUARED.as_ptr(),
-            9   => DIGIT_TO_BASE9_SQUARED.as_ptr(),
-            10  => DIGIT_TO_BASE10_SQUARED.as_ptr(),
-            11  => DIGIT_TO_BASE11_SQUARED.as_ptr(),
-            12  => DIGIT_TO_BASE12_SQUARED.as_ptr(),
-            13  => DIGIT_TO_BASE13_SQUARED.as_ptr(),
-            14  => DIGIT_TO_BASE14_SQUARED.as_ptr(),
-            15  => DIGIT_TO_BASE15_SQUARED.as_ptr(),
-            16  => DIGIT_TO_BASE16_SQUARED.as_ptr(),
-            17  => DIGIT_TO_BASE17_SQUARED.as_ptr(),
-            18  => DIGIT_TO_BASE18_SQUARED.as_ptr(),
-            19  => DIGIT_TO_BASE19_SQUARED.as_ptr(),
-            20  => DIGIT_TO_BASE20_SQUARED.as_ptr(),
-            21  => DIGIT_TO_BASE21_SQUARED.as_ptr(),
-            22  => DIGIT_TO_BASE22_SQUARED.as_ptr(),
-            23  => DIGIT_TO_BASE23_SQUARED.as_ptr(),
-            24  => DIGIT_TO_BASE24_SQUARED.as_ptr(),
-            25  => DIGIT_TO_BASE25_SQUARED.as_ptr(),
-            26  => DIGIT_TO_BASE26_SQUARED.as_ptr(),
-            27  => DIGIT_TO_BASE27_SQUARED.as_ptr(),
-            28  => DIGIT_TO_BASE28_SQUARED.as_ptr(),
-            29  => DIGIT_TO_BASE29_SQUARED.as_ptr(),
-            30  => DIGIT_TO_BASE30_SQUARED.as_ptr(),
-            31  => DIGIT_TO_BASE31_SQUARED.as_ptr(),
-            32  => DIGIT_TO_BASE32_SQUARED.as_ptr(),
-            33  => DIGIT_TO_BASE33_SQUARED.as_ptr(),
-            34  => DIGIT_TO_BASE34_SQUARED.as_ptr(),
-            35  => DIGIT_TO_BASE35_SQUARED.as_ptr(),
-            36  => DIGIT_TO_BASE36_SQUARED.as_ptr(),
-            _   => unreachable!(),
-        };
-        let radix: T = as_cast(radix);
-        optimized(value, radix, table, first)
-    }
+    let mut buffer: [u8; BUFFER_SIZE] = unsafe { mem::uninitialized() };
 
-    #[cfg(all(not(feature = "radix"), feature = "table"))] {
-        let radix: T = as_cast(radix);
-        optimized(value, radix, DIGIT_TO_BASE10_SQUARED.as_ptr(), first)
-    }
+    let count = {
+        #[cfg(not(feature = "table"))] {
+            naive(value, as_cast(radix), &mut buffer)
+        }
 
-    #[cfg(not(feature = "table"))] {
-        let radix: T = as_cast(radix);
-        naive(value, radix, first)
-    }
+        #[cfg(all(not(feature = "radix"), feature = "table"))] {
+            optimized(value, as_cast(radix), &DIGIT_TO_BASE10_SQUARED, &mut buffer)
+        }
+
+        #[cfg(all(feature = "radix", feature = "table"))]{
+            let table: &[u8] = match radix {
+                2   => &DIGIT_TO_BASE2_SQUARED,
+                3   => &DIGIT_TO_BASE3_SQUARED,
+                4   => &DIGIT_TO_BASE4_SQUARED,
+                5   => &DIGIT_TO_BASE5_SQUARED,
+                6   => &DIGIT_TO_BASE6_SQUARED,
+                7   => &DIGIT_TO_BASE7_SQUARED,
+                8   => &DIGIT_TO_BASE8_SQUARED,
+                9   => &DIGIT_TO_BASE9_SQUARED,
+                10  => &DIGIT_TO_BASE10_SQUARED,
+                11  => &DIGIT_TO_BASE11_SQUARED,
+                12  => &DIGIT_TO_BASE12_SQUARED,
+                13  => &DIGIT_TO_BASE13_SQUARED,
+                14  => &DIGIT_TO_BASE14_SQUARED,
+                15  => &DIGIT_TO_BASE15_SQUARED,
+                16  => &DIGIT_TO_BASE16_SQUARED,
+                17  => &DIGIT_TO_BASE17_SQUARED,
+                18  => &DIGIT_TO_BASE18_SQUARED,
+                19  => &DIGIT_TO_BASE19_SQUARED,
+                20  => &DIGIT_TO_BASE20_SQUARED,
+                21  => &DIGIT_TO_BASE21_SQUARED,
+                22  => &DIGIT_TO_BASE22_SQUARED,
+                23  => &DIGIT_TO_BASE23_SQUARED,
+                24  => &DIGIT_TO_BASE24_SQUARED,
+                25  => &DIGIT_TO_BASE25_SQUARED,
+                26  => &DIGIT_TO_BASE26_SQUARED,
+                27  => &DIGIT_TO_BASE27_SQUARED,
+                28  => &DIGIT_TO_BASE28_SQUARED,
+                29  => &DIGIT_TO_BASE29_SQUARED,
+                30  => &DIGIT_TO_BASE30_SQUARED,
+                31  => &DIGIT_TO_BASE31_SQUARED,
+                32  => &DIGIT_TO_BASE32_SQUARED,
+                33  => &DIGIT_TO_BASE33_SQUARED,
+                34  => &DIGIT_TO_BASE34_SQUARED,
+                35  => &DIGIT_TO_BASE35_SQUARED,
+                36  => &DIGIT_TO_BASE36_SQUARED,
+                _   => unreachable!(),
+            };
+            optimized(value, as_cast(radix), table, &mut buffer)
+        }
+    };
+
+    let len = buffer.len() - count;
+    let dst = &mut bytes[..len];
+    let src = &buffer[count..];
+    dst.copy_from_slice(src);
+
+    dst
 }
 
 /// Sanitizer for an unsigned number-to-string implementation.
 #[inline]
-pub(crate) unsafe fn unsigned<Value, UWide>(value: Value, radix: u32, first: *mut u8, last: *mut u8)
-    -> *mut u8
+pub(crate) fn unsigned<Value, UWide>(value: Value, radix: u32, bytes: &mut [u8])
+    -> &mut [u8]
     where Value: UnsignedInteger,
           UWide: UnsignedInteger
 {
-    // Sanity checks
-    debug_assert!(first <= last);
-
     // Invoke forwarder
     let v: UWide = as_cast(value);
-    forward(v, radix, first)
+    forward(v, radix, bytes)
 }
 
 /// Sanitizer for an signed number-to-string implementation.
 #[inline]
-pub(crate) unsafe fn signed<Value, UWide, IWide>(value: Value, radix: u32, mut first: *mut u8, last: *mut u8)
-    -> *mut u8
+pub(crate) fn signed<Value, UWide, IWide>(value: Value, radix: u32, bytes: &mut [u8])
+    -> &mut [u8]
     where Value: SignedInteger,
           UWide: UnsignedInteger,
           IWide: SignedInteger
 {
-    // Sanity checks
-    debug_assert!(first <= last);
-
     // Handle negative numbers, use an unsigned type to avoid overflow.
     // Use a wrapping neg to allow overflow.
     // These routines wrap on one condition, where the input number is equal
@@ -324,16 +311,14 @@ pub(crate) unsafe fn signed<Value, UWide, IWide>(value: Value, radix: u32, mut f
     // complement representation for signed integers.
     let v: UWide;
     if value < Value::ZERO {
-        *first = b'-';
+        bytes[0] = b'-';
         let wide: IWide = as_cast(value);
         v = as_cast(wide.wrapping_neg());
-        first = first.add(1);
+        forward(v, radix, &mut bytes[1..])
     } else {
         v = as_cast(value);
+        forward(v, radix, bytes)
     }
-
-    // Invoke forwarder
-    forward(v, radix, first)
 }
 
 // UNSAFE API
@@ -355,10 +340,15 @@ macro_rules! generate_unsafe_unsigned {
         /// `u32 -> 33`
         /// `u64 -> 65`
         #[inline]
-        unsafe fn $name(value: $t, radix: u8, first: *mut u8, last: *mut u8) -> *mut u8
+        unsafe fn $name(value: $t, radix: u8, first: *mut u8, last: *mut u8)
+            -> *mut u8
         {
             assert_buffer!(first, last, $size);
-            unsigned::<$t, $uwide>(value, radix.into(), first, last)
+            // TODO(ahuszagh) Fix all this wrapper code.
+            let bytes = slice::from_raw_parts_mut(first, distance(first, last));
+            let slc = unsigned::<$t, $uwide>(value, radix.into(), bytes);
+            let len = slc.len();
+            slc.as_mut_ptr().add(len)
         }
     )
 }
@@ -391,7 +381,11 @@ macro_rules! generate_unsafe_signed {
             -> *mut u8
         {
             assert_buffer!(first, last, $size);
-            signed::<$t, $uwide, $iwide>(value, radix.into(), first, last)
+            // TODO(ahuszagh) Fix all this wrapper code.
+            let bytes = slice::from_raw_parts_mut(first, distance(first, last));
+            let slc = signed::<$t, $uwide, $iwide>(value, radix.into(), bytes);
+            let len = slc.len();
+            slc.as_mut_ptr().add(len)
         }
     )
 }

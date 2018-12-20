@@ -4,37 +4,6 @@ use lib::slice;
 
 // ALGORITHMS
 
-/// Reverse a range of pointers.
-#[inline(always)]
-#[allow(dead_code)]
-pub unsafe extern "C" fn reverse_range(first: *mut u8, last: *mut u8) {
-    let mut f = first;
-    let mut l = last;
-    let mut x: u8;
-    let mut li = l.sub(1);
-
-    while f != l && f != li {
-        l = li;
-        x = *f;
-        *f = *l;
-        *l = x;
-        li = l.sub(1);
-        f = f.add(1);
-    }
-}
-
-/// Reverse slice of bytes.
-#[inline(always)]
-#[allow(dead_code)]
-pub fn reverse_slice<'a>(slc: &'a mut [u8])
-{
-    unsafe {
-        let first = slc.as_mut_ptr();
-        let last = first.add(slc.len());
-        reverse_range(first, last);
-    }
-}
-
 /// Calculate the difference between two pointers.
 #[inline(always)]
 pub unsafe extern "C" fn distance(first: *const u8, last: *const u8)
@@ -312,24 +281,6 @@ pub fn case_insensitive_rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn reverse_test() {
-        let input: [u8; 10] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-        let reversed: [u8; 10] = [9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
-
-        let mut x = input;
-        reverse_slice(&mut x);
-        assert_eq!(x, reversed);
-
-        unsafe {
-            let mut x = input;
-            let first: *mut u8 = x.as_mut_ptr();
-            let last = first.add(x.len());
-            reverse_range(first, last);
-            assert_eq!(x, reversed);
-        }
-    }
 
     #[test]
     fn distance_test() {

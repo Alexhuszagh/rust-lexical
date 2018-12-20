@@ -304,11 +304,11 @@ fn pow2_fast_path<F>(mantissa: u64, radix: u32, pow2_exp: i32, exponent: i32)
         // which will round to the accurate representation.
         let remainder = exponent - min_exp;
         let float: F = as_cast(mantissa);
-        let float = unsafe { float.pow2(pow2_exp * remainder).pow2(pow2_exp * min_exp) };
+        let float = float.pow2(pow2_exp * remainder).pow2(pow2_exp * min_exp);
         float
     } else {
         let float: F = as_cast(mantissa);
-        let float = unsafe { float.pow2(pow2_exp * exponent) };
+        let float = float.pow2(pow2_exp * exponent);
         float
     }
 }
@@ -340,7 +340,7 @@ fn fast_path<F>(mantissa: u64, radix: u32, exponent: i32)
         } else if exponent >= min_exp && exponent <= max_exp {
             // Value can be exactly represented, return the value.
             let float: F = as_cast(mantissa);
-            let float = unsafe { float.pow(radix, exponent) };
+            let float = float.pow(radix, exponent);
             (float, true)
         } else if exponent >= 0 && exponent <= max_exp + shift_exp {
             // Check to see if we have a disguised fast-path, where the
@@ -349,7 +349,7 @@ fn fast_path<F>(mantissa: u64, radix: u32, exponent: i32)
             // https://www.exploringbinary.com/fast-path-decimal-to-floating-point-conversion/
             let small_powers = get_small_powers_64(radix);
             let shift = exponent - max_exp;
-            let power = unsafe { *small_powers.get_unchecked(shift.as_usize()) };
+            let power = small_powers[shift.as_usize()];
 
             // Compute the product of the power, if it overflows,
             // prematurely return early, otherwise, if we didn't overshoot,
@@ -360,7 +360,7 @@ fn fast_path<F>(mantissa: u64, radix: u32, exponent: i32)
                         (F::ZERO, false)
                     } else {
                         let float: F = as_cast(v);
-                        let float = unsafe { float.pow(radix, max_exp) };
+                        let float = float.pow(radix, max_exp);
                         (float, true)
                     }
                 })

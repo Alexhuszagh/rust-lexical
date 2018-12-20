@@ -150,6 +150,7 @@ pub const BUFFER_SIZE: usize = MAX_F64_SIZE;
 // FUNCTIONS
 
 /// Get the exponent notation character.
+#[inline]
 pub(crate) extern "C" fn exponent_notation_char(radix: u32)
     -> u8
 {

@@ -28,7 +28,7 @@ pub(crate) trait FloatToString: Float {
 
     /// Export float to radix string with slow algorithm.
     #[cfg(feature = "radix")]
-    unsafe extern "C" fn radix(self, radix: u32, first: *mut u8) -> *mut u8;
+    unsafe extern "C" fn radix(self, radix: u32, first: *mut u8, last: *mut u8) -> *mut u8;
 }
 
 impl FloatToString for f32 {
@@ -39,8 +39,8 @@ impl FloatToString for f32 {
 
     #[inline(always)]
     #[cfg(feature = "radix")]
-    unsafe extern "C" fn radix(self, radix: u32, first: *mut u8) -> *mut u8 {
-        float_radix(self, radix, first)
+    unsafe extern "C" fn radix(self, radix: u32, first: *mut u8, last: *mut u8) -> *mut u8 {
+        float_radix(self, radix, first, last)
     }
 }
 
@@ -52,8 +52,8 @@ impl FloatToString for f64 {
 
     #[inline(always)]
     #[cfg(feature = "radix")]
-    unsafe extern "C" fn radix(self, radix: u32, first: *mut u8) -> *mut u8 {
-        double_radix(self, radix, first)
+    unsafe extern "C" fn radix(self, radix: u32, first: *mut u8, last: *mut u8) -> *mut u8 {
+        double_radix(self, radix, first, last)
     }
 }
 
@@ -61,7 +61,8 @@ impl FloatToString for f64 {
 
 /// Forward the correct arguments the ideal encoder.
 #[inline]
-unsafe fn forward<F: FloatToString>(value: F, radix: u32, first: *mut u8)
+#[allow(unused_variables)]  // TODO(ahuszagh) Remove when we convert to slices.
+unsafe fn forward<F: FloatToString>(value: F, radix: u32, first: *mut u8, last: *mut u8)
     -> *mut u8
 {
     debug_assert_radix!(radix);
@@ -73,14 +74,14 @@ unsafe fn forward<F: FloatToString>(value: F, radix: u32, first: *mut u8)
     #[cfg(feature = "radix")] {
         match radix {
             10 => value.decimal(first),
-            _  => value.radix(radix, first),
+            _  => value.radix(radix, first, last),
         }
     }
 }
 
 /// Convert float-to-string and handle special (positive) floats.
 #[inline]
-unsafe fn filter_special<F: FloatToString>(value: F, radix: u32, first: *mut u8)
+unsafe fn filter_special<F: FloatToString>(value: F, radix: u32, first: *mut u8, last: *mut u8)
     -> *mut u8
 {
     // Logic errors, disable in release builds.
@@ -103,13 +104,13 @@ unsafe fn filter_special<F: FloatToString>(value: F, radix: u32, first: *mut u8)
         ptr::copy_nonoverlapping(INF_STRING.as_ptr(), first, INF_STRING.len());
         first.add(INF_STRING.len())
     } else {
-        forward(value, radix, first)
+        forward(value, radix, first, last)
     }
 }
 
 /// Handle +/- values.
 #[inline]
-unsafe fn filter_sign<F: FloatToString>(mut value: F, radix: u32, mut first: *mut u8)
+unsafe fn filter_sign<F: FloatToString>(mut value: F, radix: u32, mut first: *mut u8, last: *mut u8)
     -> *mut u8
 {
     debug_assert_radix!(radix);
@@ -130,7 +131,7 @@ unsafe fn filter_sign<F: FloatToString>(mut value: F, radix: u32, mut first: *mu
         first = first.add(1);
     }
 
-    filter_special(value, radix, first)
+    filter_special(value, radix, first, last)
 }
 
 /// Handle insufficient buffer sizes.
@@ -143,7 +144,7 @@ unsafe fn filter_buffer<F: FloatToString>(value: F, radix: u32, first: *mut u8, 
     debug_assert_radix!(radix);
 
     // Current buffer has sufficient capacity, use it.
-    filter_sign(value, radix, first)
+    filter_sign(value, radix, first, last)
 }
 
 // UNSAFE API
@@ -165,7 +166,7 @@ macro_rules! generate_unsafe_api {
         #[inline]
         unsafe fn $name(value: $t, base: u8, first: *mut u8, last: *mut u8) -> *mut u8
         {
-            // check to use a temporary buffer
+            // Check buffer has sufficient capacity.
             assert!(distance(first, last) >= $size);
             let p = filter_buffer(value, base.into(), first, last);
 

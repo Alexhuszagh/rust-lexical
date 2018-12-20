@@ -177,7 +177,7 @@ pub trait Integer:
         let r = self % y;
         match r.is_zero() {
             true  => (q, r.as_i32()),
-            false => (q+Self::ONE, r.as_i32() - y.as_i32())
+            false => (q + Self::ONE, r.as_i32() - y.as_i32())
         }
     }
 

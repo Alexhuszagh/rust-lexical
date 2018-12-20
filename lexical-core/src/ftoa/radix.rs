@@ -4,7 +4,7 @@
 //! and may be found [here](https://github.com/v8/v8).
 
 use itoa;
-use lib::{mem, ptr};
+use lib::{mem, ptr, slice};
 use util::*;
 
 // FTOA BASEN
@@ -29,7 +29,7 @@ pub(crate) fn naive_exponent(d: f64, radix: u32) -> i32
 /// and non-zero.
 ///
 /// Adapted from the V8 implementation.
-unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, first: *mut u8)
+unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, first: *mut u8, last: *mut u8)
     -> *mut u8
 {
     debug_assert_radix!(radix);
@@ -193,7 +193,11 @@ unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, first: *mut u8)
             exp = exponent as u32;
         }
         // Forward the exponent writer.
-        return itoa::forward(exp, radix, p);
+        // TODO(ahuszagh) Fix to use raw slices.
+        let buf = slice::from_raw_parts_mut(p, distance(p, last));
+        let slc = itoa::forward(exp, radix, buf);
+        let len = slc.len();
+        return slc.as_mut_ptr().add(len);
 
     } else {
         let mut p;
@@ -229,10 +233,10 @@ unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, first: *mut u8)
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline(always)]
-pub(crate) unsafe extern "C" fn float_radix(f: f32, radix: u32, first: *mut u8)
+pub(crate) unsafe extern "C" fn float_radix(f: f32, radix: u32, first: *mut u8, last: *mut u8)
     -> *mut u8
 {
-    double_radix(f as f64, radix, first)
+    double_radix(f as f64, radix, first,last)
 }
 
 // F64
@@ -242,8 +246,8 @@ pub(crate) unsafe extern "C" fn float_radix(f: f32, radix: u32, first: *mut u8)
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline(always)]
-pub(crate) unsafe extern "C" fn double_radix(value: f64, radix:u32, first: *mut u8)
+pub(crate) unsafe extern "C" fn double_radix(value: f64, radix:u32, first: *mut u8, last: *mut u8)
     -> *mut u8
 {
-    ftoa_naive(value, radix, first)
+    ftoa_naive(value, radix, first,last)
 }

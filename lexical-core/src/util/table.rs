@@ -12,8 +12,7 @@ const DIGIT_TO_CHAR: [u8; 36] = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7',
 #[inline(always)]
 pub(crate) fn digit_to_char<T: Integer>(digit: T) -> u8 {
     debug_assert!(digit.as_i32() >= 0 && digit.as_i32() < 36, "digit_to_char() invalid character.");
-    let idx: usize = as_cast(digit);
-    unsafe { *DIGIT_TO_CHAR.get_unchecked(idx) }
+    DIGIT_TO_CHAR[digit.as_usize()]
 }
 
 /// Translation table for a character to a digit, of any radix.
@@ -49,8 +48,7 @@ const CHAR_TO_DIGIT: [u8; 256] = [
 /// Get digit from character.
 #[inline(always)]
 pub(crate) fn char_to_digit(c: u8) -> u8 {
-    let idx: usize = as_cast(c);
-    unsafe { *CHAR_TO_DIGIT.get_unchecked(idx) }
+    CHAR_TO_DIGIT[c.as_usize()]
 }
 
 // Conditionally compile the precompiled radix**2 tables.
@@ -166,9 +164,7 @@ impl ExactExponent for f32 {
     #[inline]
     fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
         debug_assert_radix!(radix);
-        let idx: usize = as_cast(radix.as_i32() - 2);
-
-        unsafe { *F32_EXACT_EXPONENT_LIMITS.get_unchecked(idx) }
+        F32_EXACT_EXPONENT_LIMITS[radix.as_usize() - 2]
     }
 
     #[inline]
@@ -262,8 +258,7 @@ impl ExactExponent for f64 {
     #[inline]
     fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
         debug_assert_radix!(radix);
-        let idx: usize = as_cast(radix.as_i32() - 2);
-        unsafe { *F64_EXACT_EXPONENT_LIMITS.get_unchecked(idx) }
+        F64_EXACT_EXPONENT_LIMITS[radix.as_usize() - 2]
     }
 
     #[inline]
@@ -344,10 +339,10 @@ pub(crate) trait TablePower {
 
     /// Get power of 2 from exponent.
     #[cfg(feature = "radix")]
-    unsafe fn table_pow2(exponent: i32) -> Self;
+    fn table_pow2(exponent: i32) -> Self;
 
     /// Get power of 2 from exponent.
-    unsafe fn table_pow<T: Integer>(radix: T, exponent: i32) -> Self;
+    fn table_pow<T: Integer>(radix: T, exponent: i32) -> Self;
 }
 
 // F32
@@ -829,53 +824,52 @@ impl TablePower for f32 {
     const POW2_EXPONENT_BIAS: i32 = 149;
 
     #[cfg(feature = "radix")]
-    unsafe fn table_pow2(exponent: i32) -> f32 {
+    fn table_pow2(exponent: i32) -> f32 {
         debug_assert!(exponent + Self::POW2_EXPONENT_BIAS >= 0, "table_pow2() have negative exponent.");
-        let idx: usize = as_cast(exponent + Self::POW2_EXPONENT_BIAS);
-        *F32_POW2.get_unchecked(idx)
+        F32_POW2[(exponent + Self::POW2_EXPONENT_BIAS).as_usize()]
     }
 
-    unsafe fn table_pow<T: Integer>(radix: T, exponent: i32) -> f32 {
+    fn table_pow<T: Integer>(radix: T, exponent: i32) -> f32 {
         debug_assert!(exponent >= 0, "table_pow() have negative exponent.");
         debug_assert_radix!(radix);
         let exponent = exponent as usize;
 
         #[cfg(not(feature = "radix"))] {
-            *F32_POW10.get_unchecked(exponent)
+            F32_POW10[exponent]
         }
 
         #[cfg(feature = "radix")] {
             match radix.as_i32() {
-                3  => *F32_POW3 .get_unchecked(exponent),
-                5  => *F32_POW5 .get_unchecked(exponent),
-                6  => *F32_POW6 .get_unchecked(exponent),
-                7  => *F32_POW7 .get_unchecked(exponent),
-                9  => *F32_POW9 .get_unchecked(exponent),
-                10 => *F32_POW10.get_unchecked(exponent),
-                11 => *F32_POW11.get_unchecked(exponent),
-                12 => *F32_POW12.get_unchecked(exponent),
-                13 => *F32_POW13.get_unchecked(exponent),
-                14 => *F32_POW14.get_unchecked(exponent),
-                15 => *F32_POW15.get_unchecked(exponent),
-                17 => *F32_POW17.get_unchecked(exponent),
-                18 => *F32_POW18.get_unchecked(exponent),
-                19 => *F32_POW19.get_unchecked(exponent),
-                20 => *F32_POW20.get_unchecked(exponent),
-                21 => *F32_POW21.get_unchecked(exponent),
-                22 => *F32_POW22.get_unchecked(exponent),
-                23 => *F32_POW23.get_unchecked(exponent),
-                24 => *F32_POW24.get_unchecked(exponent),
-                25 => *F32_POW25.get_unchecked(exponent),
-                26 => *F32_POW26.get_unchecked(exponent),
-                27 => *F32_POW27.get_unchecked(exponent),
-                28 => *F32_POW28.get_unchecked(exponent),
-                29 => *F32_POW29.get_unchecked(exponent),
-                30 => *F32_POW30.get_unchecked(exponent),
-                31 => *F32_POW31.get_unchecked(exponent),
-                33 => *F32_POW33.get_unchecked(exponent),
-                34 => *F32_POW34.get_unchecked(exponent),
-                35 => *F32_POW35.get_unchecked(exponent),
-                36 => *F32_POW36.get_unchecked(exponent),
+                3  => F32_POW3 [exponent],
+                5  => F32_POW5 [exponent],
+                6  => F32_POW6 [exponent],
+                7  => F32_POW7 [exponent],
+                9  => F32_POW9 [exponent],
+                10 => F32_POW10[exponent],
+                11 => F32_POW11[exponent],
+                12 => F32_POW12[exponent],
+                13 => F32_POW13[exponent],
+                14 => F32_POW14[exponent],
+                15 => F32_POW15[exponent],
+                17 => F32_POW17[exponent],
+                18 => F32_POW18[exponent],
+                19 => F32_POW19[exponent],
+                20 => F32_POW20[exponent],
+                21 => F32_POW21[exponent],
+                22 => F32_POW22[exponent],
+                23 => F32_POW23[exponent],
+                24 => F32_POW24[exponent],
+                25 => F32_POW25[exponent],
+                26 => F32_POW26[exponent],
+                27 => F32_POW27[exponent],
+                28 => F32_POW28[exponent],
+                29 => F32_POW29[exponent],
+                30 => F32_POW30[exponent],
+                31 => F32_POW31[exponent],
+                33 => F32_POW33[exponent],
+                34 => F32_POW34[exponent],
+                35 => F32_POW35[exponent],
+                36 => F32_POW36[exponent],
                 _  => unreachable!(),
             }
         }
@@ -3182,53 +3176,52 @@ impl TablePower for f64 {
     const POW2_EXPONENT_BIAS: i32 = 1074;
 
     #[cfg(feature = "radix")]
-    unsafe fn table_pow2(exponent: i32) -> f64 {
+    fn table_pow2(exponent: i32) -> f64 {
         debug_assert!(exponent + Self::POW2_EXPONENT_BIAS >= 0, "table_pow2() have negative exponent.");
-        let idx: usize = as_cast(exponent + Self::POW2_EXPONENT_BIAS);
-        *F64_POW2.get_unchecked(idx)
+        F64_POW2[(exponent + Self::POW2_EXPONENT_BIAS).as_usize()]
     }
 
-    unsafe fn table_pow<T: Integer>(radix: T, exponent: i32) -> f64 {
+    fn table_pow<T: Integer>(radix: T, exponent: i32) -> f64 {
         debug_assert!(exponent >= 0, "table_pow() have negative exponent.");
         debug_assert_radix!(radix);
         let exponent = exponent as usize;
 
         #[cfg(not(feature = "radix"))] {
-            *F64_POW10.get_unchecked(exponent)
+            F64_POW10[exponent]
         }
 
         #[cfg(feature = "radix")] {
             match radix.as_i32() {
-                3  => *F64_POW3 .get_unchecked(exponent),
-                5  => *F64_POW5 .get_unchecked(exponent),
-                6  => *F64_POW6 .get_unchecked(exponent),
-                7  => *F64_POW7 .get_unchecked(exponent),
-                9  => *F64_POW9 .get_unchecked(exponent),
-                10 => *F64_POW10.get_unchecked(exponent),
-                11 => *F64_POW11.get_unchecked(exponent),
-                12 => *F64_POW12.get_unchecked(exponent),
-                13 => *F64_POW13.get_unchecked(exponent),
-                14 => *F64_POW14.get_unchecked(exponent),
-                15 => *F64_POW15.get_unchecked(exponent),
-                17 => *F64_POW17.get_unchecked(exponent),
-                18 => *F64_POW18.get_unchecked(exponent),
-                19 => *F64_POW19.get_unchecked(exponent),
-                20 => *F64_POW20.get_unchecked(exponent),
-                21 => *F64_POW21.get_unchecked(exponent),
-                22 => *F64_POW22.get_unchecked(exponent),
-                23 => *F64_POW23.get_unchecked(exponent),
-                24 => *F64_POW24.get_unchecked(exponent),
-                25 => *F64_POW25.get_unchecked(exponent),
-                26 => *F64_POW26.get_unchecked(exponent),
-                27 => *F64_POW27.get_unchecked(exponent),
-                28 => *F64_POW28.get_unchecked(exponent),
-                29 => *F64_POW29.get_unchecked(exponent),
-                30 => *F64_POW30.get_unchecked(exponent),
-                31 => *F64_POW31.get_unchecked(exponent),
-                33 => *F64_POW33.get_unchecked(exponent),
-                34 => *F64_POW34.get_unchecked(exponent),
-                35 => *F64_POW35.get_unchecked(exponent),
-                36 => *F64_POW36.get_unchecked(exponent),
+                3  => F64_POW3 [exponent],
+                5  => F64_POW5 [exponent],
+                6  => F64_POW6 [exponent],
+                7  => F64_POW7 [exponent],
+                9  => F64_POW9 [exponent],
+                10 => F64_POW10[exponent],
+                11 => F64_POW11[exponent],
+                12 => F64_POW12[exponent],
+                13 => F64_POW13[exponent],
+                14 => F64_POW14[exponent],
+                15 => F64_POW15[exponent],
+                17 => F64_POW17[exponent],
+                18 => F64_POW18[exponent],
+                19 => F64_POW19[exponent],
+                20 => F64_POW20[exponent],
+                21 => F64_POW21[exponent],
+                22 => F64_POW22[exponent],
+                23 => F64_POW23[exponent],
+                24 => F64_POW24[exponent],
+                25 => F64_POW25[exponent],
+                26 => F64_POW26[exponent],
+                27 => F64_POW27[exponent],
+                28 => F64_POW28[exponent],
+                29 => F64_POW29[exponent],
+                30 => F64_POW30[exponent],
+                31 => F64_POW31[exponent],
+                33 => F64_POW33[exponent],
+                34 => F64_POW34[exponent],
+                35 => F64_POW35[exponent],
+                36 => F64_POW36[exponent],
                 _  => unreachable!(),
             }
         }

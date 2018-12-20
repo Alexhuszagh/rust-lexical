@@ -93,7 +93,7 @@ use util::*;
 /// Store a parsed digit in a variable and return the parsed digit.
 /// Similar to `operator=(const T&) -> T&` in C++.
 #[inline(always)]
-pub(crate) unsafe fn parse_digit<T: Integer>(digit: &mut T, c: u8)
+pub(crate) fn parse_digit<T: Integer>(digit: &mut T, c: u8)
     -> T
 {
     let x = char_to_digit(c);

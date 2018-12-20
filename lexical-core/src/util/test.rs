@@ -30,7 +30,9 @@ pub(crate) const BASE_POWN: [u32; 1] = [10];
 /// Create new buffer for itoa or ftoa functionality.
 #[inline]
 pub(crate) fn new_buffer() -> [u8; BUFFER_SIZE] {
-    unsafe { mem::uninitialized() }
+    unsafe {
+        mem::uninitialized()
+    }
 }
 
 // BYTE SLICE
