@@ -255,7 +255,7 @@ mod tests {
         assert_eq!(as_slice(b"inf"), f32toa_slice(f32::INFINITY, 2, &mut buffer));
 
         // bugfixes
-        assert_eq!(as_slice(b"1.101010000010101111000e-11011"), f32toa_slice(0.000000012345, 2, &mut buffer));
+        assert_eq!(as_slice(b"1.1010100000101011110001e-11011"), f32toa_slice(0.000000012345, 2, &mut buffer));
     }
 
     #[test]

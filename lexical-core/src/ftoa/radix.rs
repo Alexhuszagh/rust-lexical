@@ -162,12 +162,7 @@ unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, first: *mut u8)
         let mut buf_last = buf_first.add(end - start);
 
         // 2.   Remove any trailing 0s in the selected range.
-        loop {
-            buf_last = buf_last.sub(1);
-            if *buf_last != b'0' {
-                break;
-            }
-        }
+        buf_last = rtrim_char_range(buf_first as *const u8, buf_last as *const u8, b'0') as *mut u8;
 
         // 3.   Write the fraction component
         let mut p = first;

@@ -136,8 +136,6 @@ Finally, due to the heavy use of unsafe code, lexical-core is fuzzed using cargo
 
 Lexical uses unsafe code in the back-end for performance, and therefore may introduce memory-safety issues. Although the code is fuzzed and tested under Valgrind, no guarantees are made and you should use lexical-core at your own risk.
 
-Finally, for non-decimal (base 10) floats, lexical's float-to-string implementation is lossy, resulting in rounding for a small subset of inputs (up to 0.1% of the total value).
-
 # Implementation Details
 
 ## Float to String
