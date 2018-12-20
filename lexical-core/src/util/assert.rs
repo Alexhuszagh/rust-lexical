@@ -1,5 +1,7 @@
 //! Macro to check if the radix is valid, in generic code.
 
+// RADIX
+
 /// Check radix is in range [2, 36] in debug builds.
 #[cfg(feature = "radix")]
 macro_rules! debug_assert_radix {
@@ -22,4 +24,14 @@ macro_rules! assert_radix {
 #[cfg(not(feature = "radix"))]
 macro_rules! assert_radix {
     ($radix:expr) => (assert!($radix.as_i32() == 10, "Numerical base must be 10.");)
+}
+
+// BUFFER
+
+/// Check the buffer has sufficient room for the output.
+// TODO(ahuszagh) Change to use slice.
+macro_rules! assert_buffer {
+    ($first:ident, $last:ident, $size:expr) => ({
+        assert!(distance($first, $last) >= $size);
+    });
 }

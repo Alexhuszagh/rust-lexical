@@ -3,7 +3,7 @@
 //! Uses either the internal "Grisu2", or the external "Grisu3" or "Ryu"
 //! algorithms provided by `https://github.com/dtolnay`.
 
-use lib::ptr;
+use lib::slice;
 use util::*;
 
 #[cfg(feature = "radix")]
@@ -24,36 +24,37 @@ if #[cfg(feature = "grisu3")] {
 /// Trait to define serialization of a float to string.
 pub(crate) trait FloatToString: Float {
     /// Export float to decimal string with optimized algorithm.
-    unsafe extern "C" fn decimal(self, first: *mut u8) -> *mut u8;
+    fn decimal(self, bytes: &mut [u8]) -> usize;
 
     /// Export float to radix string with slow algorithm.
     #[cfg(feature = "radix")]
-    unsafe extern "C" fn radix(self, radix: u32, first: *mut u8, last: *mut u8) -> *mut u8;
+    // TODO(ahuszagh) Fix...
+    unsafe fn radix(self, radix: u32, bytes: &mut [u8]) -> *mut u8;
 }
 
 impl FloatToString for f32 {
     #[inline(always)]
-    unsafe extern "C" fn decimal(self, first: *mut u8) -> *mut u8 {
-        float_decimal(self, first)
+    fn decimal(self, bytes: &mut [u8]) -> usize {
+        float_decimal(self, bytes)
     }
 
     #[inline(always)]
     #[cfg(feature = "radix")]
-    unsafe extern "C" fn radix(self, radix: u32, first: *mut u8, last: *mut u8) -> *mut u8 {
-        float_radix(self, radix, first, last)
+    unsafe fn radix(self, radix: u32, bytes: &mut [u8]) -> *mut u8 {
+        float_radix(self, radix, bytes)
     }
 }
 
 impl FloatToString for f64 {
     #[inline(always)]
-    unsafe extern "C" fn decimal(self, first: *mut u8) -> *mut u8 {
-        double_decimal(self, first)
+    fn decimal(self, bytes: &mut [u8]) -> usize {
+        double_decimal(self, bytes)
     }
 
     #[inline(always)]
     #[cfg(feature = "radix")]
-    unsafe extern "C" fn radix(self, radix: u32, first: *mut u8, last: *mut u8) -> *mut u8 {
-        double_radix(self, radix, first, last)
+    unsafe fn radix(self, radix: u32, bytes: &mut [u8]) -> *mut u8 {
+        double_radix(self, radix, bytes)
     }
 }
 
@@ -62,27 +63,29 @@ impl FloatToString for f64 {
 /// Forward the correct arguments the ideal encoder.
 #[inline]
 #[allow(unused_variables)]  // TODO(ahuszagh) Remove when we convert to slices.
-unsafe fn forward<F: FloatToString>(value: F, radix: u32, first: *mut u8, last: *mut u8)
-    -> *mut u8
+unsafe fn forward<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
+    -> usize
 {
     debug_assert_radix!(radix);
 
     #[cfg(not(feature = "radix"))] {
-        value.decimal(first)
+        value.decimal(bytes)
     }
 
     #[cfg(feature = "radix")] {
+        // TODO(ahuszagh) Fix to use slices internally...
+        let first = bytes.as_mut_ptr();
         match radix {
-            10 => value.decimal(first),
-            _  => value.radix(radix, first, last),
+            10 => value.decimal(bytes),
+            _  => distance(first, value.radix(radix, bytes)),
         }
     }
 }
 
 /// Convert float-to-string and handle special (positive) floats.
 #[inline]
-unsafe fn filter_special<F: FloatToString>(value: F, radix: u32, first: *mut u8, last: *mut u8)
-    -> *mut u8
+unsafe fn filter_special<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
+    -> usize
 {
     // Logic errors, disable in release builds.
     debug_assert!(value.is_sign_positive(), "Value cannot be negative.");
@@ -91,60 +94,44 @@ unsafe fn filter_special<F: FloatToString>(value: F, radix: u32, first: *mut u8,
     // We already check for 0 in `filter_sign` if value.is_zero().
     #[cfg(not(feature = "trim_floats"))] {
         if value.is_zero() {
-            ptr::copy_nonoverlapping(b"0.0".as_ptr(), first, 3);
-            return first.add(3);
+            return copy_to_dst(bytes, "0.0");
         }
     }
 
     if value.is_nan() {
-        ptr::copy_nonoverlapping(NAN_STRING.as_ptr(), first, NAN_STRING.len());
-        first.add(NAN_STRING.len())
+        copy_to_dst(bytes, NAN_STRING)
     } else if value.is_special() {
         // Must be positive infinity, we've already handled sign
-        ptr::copy_nonoverlapping(INF_STRING.as_ptr(), first, INF_STRING.len());
-        first.add(INF_STRING.len())
+        copy_to_dst(bytes, INF_STRING)
     } else {
-        forward(value, radix, first, last)
+        forward(value, radix, bytes)
     }
 }
 
 /// Handle +/- values.
 #[inline]
-unsafe fn filter_sign<F: FloatToString>(mut value: F, radix: u32, mut first: *mut u8, last: *mut u8)
-    -> *mut u8
+unsafe fn filter_sign<F: FloatToString>(mut value: F, radix: u32, bytes: &mut [u8])
+    -> usize
 {
     debug_assert_radix!(radix);
 
     // Export "-0.0" and "0.0" as "0" with trimmed floats.
     #[cfg(feature = "trim_floats")] {
         if value.is_zero() {
-            ptr::copy_nonoverlapping(b"0".as_ptr(), first, 1);
-            return first.add(1);
+            bytes[0] = b"0";
+            return 1;
         }
     }
 
     // If the sign bit is set, invert it and just set the first
     // value to "-".
     if value.is_sign_negative() {
-        *first= b'-';
+        bytes[0] = b'-';
         value = -value;
-        first = first.add(1);
+        filter_special(value, radix, &mut bytes[1..]) + 1
+    } else {
+        filter_special(value, radix, bytes)
     }
-
-    filter_special(value, radix, first, last)
-}
-
-/// Handle insufficient buffer sizes.
-#[inline]
-unsafe fn filter_buffer<F: FloatToString>(value: F, radix: u32, first: *mut u8, last: *mut u8)
-    -> *mut u8
-{
-    // Logic errors, disable in release builds.
-    debug_assert!(first <= last, "First must be <= last");
-    debug_assert_radix!(radix);
-
-    // Current buffer has sufficient capacity, use it.
-    filter_sign(value, radix, first, last)
 }
 
 // UNSAFE API
@@ -167,8 +154,11 @@ macro_rules! generate_unsafe_api {
         unsafe fn $name(value: $t, base: u8, first: *mut u8, last: *mut u8) -> *mut u8
         {
             // Check buffer has sufficient capacity.
-            assert!(distance(first, last) >= $size);
-            let p = filter_buffer(value, base.into(), first, last);
+            assert_buffer!(first, last, $size);
+            // TODO(ahuszagh) fix to use raw slices
+            let bytes = slice::from_raw_parts_mut(first, distance(first, last));
+            let len = filter_sign(value, base.into(), bytes);
+            let p = first.add(len);
 
             // Trim a trailing ".0" from a float.
             #[cfg(feature = "trim_floats")] {
@@ -256,7 +246,7 @@ mod tests {
         assert_eq!(as_slice(b"inf"), f32toa_slice(f32::INFINITY, 2, &mut buffer));
 
         // bugfixes
-        assert_eq!(as_slice(b"1.101010000010101111000e-11011"), f32toa_slice(0.000000012345, 2, &mut buffer));
+        assert_eq!(as_slice(b"1.1010100000101011110001e-11011"), f32toa_slice(0.000000012345, 2, &mut buffer));
     }
 
     #[test]

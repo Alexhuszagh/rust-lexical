@@ -62,7 +62,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
     ///     2. Normalization of the result (not done here).
     ///     3. Addition of exponents.
     #[inline]
-    pub unsafe fn mul(&self, b: &ExtendedFloat<M>)
+    pub fn mul(&self, b: &ExtendedFloat<M>)
         -> ExtendedFloat<M>
     {
         // Logic check, values must be decently normalized prior to multiplication.
@@ -94,7 +94,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
     ///
     /// The result is not normalized.
     #[inline]
-    pub unsafe fn imul(&mut self, b: &ExtendedFloat<M>)
+    pub fn imul(&mut self, b: &ExtendedFloat<M>)
     {
         *self = self.mul(b);
     }
@@ -1071,10 +1071,8 @@ mod tests {
     // OPERATIONS
 
     fn check_mul<M: Mantissa>(a: ExtendedFloat<M>, b: ExtendedFloat<M>, c: ExtendedFloat<M>) {
-        unsafe {
-            let r = a.mul(&b);
-            assert_eq!(r, c);
-        }
+        let r = a.mul(&b);
+        assert_eq!(r, c);
     }
 
     #[test]
@@ -1092,38 +1090,34 @@ mod tests {
         check_mul(a, b, c);
 
         // Check with integers
-        unsafe {
-            // 64-bit mantissa
-            let mut a = ExtendedFloat80::from_u8(10);
-            let mut b = ExtendedFloat80::from_u8(10);
-            a.normalize();
-            b.normalize();
-            assert_eq!(a.mul(&b).into_f64(), 100.0);
+        // 64-bit mantissa
+        let mut a = ExtendedFloat80::from_u8(10);
+        let mut b = ExtendedFloat80::from_u8(10);
+        a.normalize();
+        b.normalize();
+        assert_eq!(a.mul(&b).into_f64(), 100.0);
 
-            // 128-bit mantissa
-            let mut a = ExtendedFloat160::from_u8(10);
-            let mut b = ExtendedFloat160::from_u8(10);
-            a.normalize();
-            b.normalize();
-            assert_eq!(a.mul(&b).into_f64(), 100.0);
+        // 128-bit mantissa
+        let mut a = ExtendedFloat160::from_u8(10);
+        let mut b = ExtendedFloat160::from_u8(10);
+        a.normalize();
+        b.normalize();
+        assert_eq!(a.mul(&b).into_f64(), 100.0);
 
-            // Check both values need high bits set.
-            let a = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
-            let b = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
-            assert_eq!(a.mul(&b).into_f64(), 4.0);
+        // Check both values need high bits set.
+        let a = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
+        let b = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
+        assert_eq!(a.mul(&b).into_f64(), 4.0);
 
-            // Check both values need high bits set.
-            let a = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
-            let b = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
-            assert_eq!(a.mul(&b).into_f64(), 100.0);
-        }
+        // Check both values need high bits set.
+        let a = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
+        let b = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
+        assert_eq!(a.mul(&b).into_f64(), 100.0);
     }
 
     fn check_imul<M: Mantissa>(mut a: ExtendedFloat<M>, b: ExtendedFloat<M>, c: ExtendedFloat<M>) {
-        unsafe {
-            a.imul(&b);
-            assert_eq!(a, c);
-        }
+        a.imul(&b);
+        assert_eq!(a, c);
     }
 
     #[test]
@@ -1141,34 +1135,32 @@ mod tests {
         check_imul(a, b, c);
 
         // Check with integers
-        unsafe {
-            // 64-bit mantissa
-            let mut a = ExtendedFloat80::from_u8(10);
-            let mut b = ExtendedFloat80::from_u8(10);
-            a.normalize();
-            b.normalize();
-            a.imul(&b);
-            assert_eq!(a.into_f64(), 100.0);
+        // 64-bit mantissa
+        let mut a = ExtendedFloat80::from_u8(10);
+        let mut b = ExtendedFloat80::from_u8(10);
+        a.normalize();
+        b.normalize();
+        a.imul(&b);
+        assert_eq!(a.into_f64(), 100.0);
 
-            // 128-bit mantissa
-            let mut a = ExtendedFloat160::from_u8(10);
-            let mut b = ExtendedFloat160::from_u8(10);
-            a.normalize();
-            b.normalize();
-            a.imul(&b);
-            assert_eq!(a.into_f64(), 100.0);
+        // 128-bit mantissa
+        let mut a = ExtendedFloat160::from_u8(10);
+        let mut b = ExtendedFloat160::from_u8(10);
+        a.normalize();
+        b.normalize();
+        a.imul(&b);
+        assert_eq!(a.into_f64(), 100.0);
 
-            // Check both values need high bits set.
-            let mut a = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
-            let b = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
-            a.imul(&b);
-            assert_eq!(a.into_f64(), 4.0);
+        // Check both values need high bits set.
+        let mut a = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
+        let b = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
+        a.imul(&b);
+        assert_eq!(a.into_f64(), 4.0);
 
-            // Check both values need high bits set.
-            let mut a = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
-            let b = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
-            a.imul(&b);
-            assert_eq!(a.into_f64(), 100.0);
-        }
+        // Check both values need high bits set.
+        let mut a = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
+        let b = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
+        a.imul(&b);
+        assert_eq!(a.into_f64(), 100.0);
     }
 }

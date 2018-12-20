@@ -54,14 +54,13 @@
 //  plt.show()
 
 use float::ExtendedFloat80;
-use lib::{mem, ptr};
 use util::*;
 
 // CACHED POWERS
 
 /// Find cached power of 10 from the exponent.
 #[inline]
-pub(crate) unsafe fn cached_grisu_power(exp: i32, k: *mut i32)
+fn cached_grisu_power(exp: i32, k: &mut i32)
     -> &'static ExtendedFloat80
 {
     // FLOATING POINT CONSTANTS
@@ -72,12 +71,12 @@ pub(crate) unsafe fn cached_grisu_power(exp: i32, k: *mut i32)
     const EXPMAX: i32 = -32;
     const EXPMIN: i32 = -60;
 
-    let approx = -((exp + NPOWERS) as f64) * ONE_LOG_TEN;
-    let approx = approx as i32;
-    let mut idx = ((approx - FIRSTPOWER) / STEPPOWERS) as usize;
+    let approx = -((exp + NPOWERS).as_f64()) * ONE_LOG_TEN;
+    let approx = approx.as_i32();
+    let mut idx = ((approx - FIRSTPOWER) / STEPPOWERS).as_usize();
 
     loop {
-        let power = GRISU_POWERS_OF_TEN.get_unchecked(idx);
+        let power = &GRISU_POWERS_OF_TEN[idx];
         let current = exp + power.exp + 64;
         if current < EXPMIN {
             idx += 1;
@@ -89,7 +88,7 @@ pub(crate) unsafe fn cached_grisu_power(exp: i32, k: *mut i32)
             continue;
         }
 
-        *k = FIRSTPOWER + (idx as i32) * STEPPOWERS;
+        *k = FIRSTPOWER + idx.as_i32() * STEPPOWERS;
         return power;
     }
 }
@@ -204,18 +203,18 @@ const TENS: [u64; 20] = [
 // FPCONV GRISU
 
 /// Round digit to sane approximation.
-unsafe fn round_digit(digits: *mut u8, ndigits: isize, delta: u64, mut rem: u64, kappa: u64, mant: u64)
+fn round_digit(digits: &mut [u8], ndigits: usize, delta: u64, mut rem: u64, kappa: u64, mant: u64)
 {
     while rem < mant && delta - rem >= kappa && (rem + kappa < mant || mant - rem > rem + kappa - mant)
     {
-        *digits.offset(ndigits - 1) -= 1;
+        digits[ndigits - 1] -= 1;
         rem += kappa;
     }
 }
 
 /// Generate digits from upper and lower range on rounding of number.
-unsafe fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &ExtendedFloat80, digits: *mut u8, k: *mut i32)
-    -> i32
+fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &ExtendedFloat80, digits: &mut [u8], k: &mut i32)
+    -> usize
 {
     let wmant = upper.mant - fp.mant;
     let mut delta = upper.mant - lower.mant;
@@ -228,36 +227,32 @@ unsafe fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: 
     let mut part1 = upper.mant >> -one.exp;
     let mut part2 = upper.mant & (one.mant - 1);
 
-    let mut idx: isize = 0;
+    let mut idx: usize = 0;
     let mut kappa: i32 = 10;
     // 1000000000
-    let mut divp: *const u64 = TENS.as_ptr().add(10);
+    let mut divp = TENS[10..].iter();
     while kappa > 0 {
         // Remember not to continue! This loop has an increment condition.
-        let div = *divp;
+        let div = divp.next().unwrap();
         let digit = part1 / div;
         if digit != 0 || idx != 0 {
-            *digits.offset(idx) = (digit as u8) + b'0';
+            digits[idx] = digit.as_u8() + b'0';
             idx += 1;
         }
 
-        part1 -= (digit as u64) * div;
+        part1 -= digit.as_u64() * div;
         kappa -= 1;
 
         let tmp = (part1 <<-one.exp) + part2;
         if tmp <= delta {
             *k += kappa;
             round_digit(digits, idx, delta, tmp, div << -one.exp, wmant);
-            return idx as i32;
+            return idx;
         }
-
-        // Increment condition, DO NOT ADD continue.
-        divp = divp.add(1);
     }
 
     /* 10 */
-    let mut unit: *const u64 = TENS.as_ptr().add(18);
-
+    let mut unit = TENS[..=18].iter().rev();
     loop {
         part2 *= 10;
         delta *= 10;
@@ -265,30 +260,30 @@ unsafe fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: 
 
         let digit = part2 >> -one.exp;
         if digit != 0 || idx != 0 {
-            *digits.offset(idx) = (digit as u8) + b'0';
+            digits[idx] = digit.as_u8() + b'0';
             idx += 1;
         }
 
         part2 &= one.mant - 1;
+        let ten = unit.next().unwrap();
         if part2 < delta {
             *k += kappa;
-            round_digit(digits, idx, delta, part2, one.mant, wmant * *unit);
-            return idx as i32;
+            round_digit(digits, idx, delta, part2, one.mant, wmant * ten);
+            return idx;
         }
-
-        unit = unit.sub(1);
     }
 }
 
 /// Core Grisu2 algorithm for the float formatter.
-unsafe fn grisu2(d: f64, digits: *mut u8, k: *mut i32) -> i32
+fn grisu2(d: f64, digits: &mut [u8], k: &mut i32)
+    -> usize
 {
     let mut w = ExtendedFloat80::from_f64(d);
 
     let (mut lower, mut upper) = w.normalized_boundaries();
     w.normalize();
 
-    let mut ki: i32 = mem::uninitialized();
+    let mut ki: i32 = explicit_uninitialized();
     let cp = cached_grisu_power(upper.exp, &mut ki);
 
     w     = w.mul(&cp);
@@ -300,51 +295,48 @@ unsafe fn grisu2(d: f64, digits: *mut u8, k: *mut i32) -> i32
 
     *k = -ki;
 
-    return generate_digits(&w, &upper, &lower, digits, k);
+    generate_digits(&w, &upper, &lower, digits, k)
 }
 
 /// Write the produced digits to string.
 ///
 /// Adds formatting for exponents, and other types of information.
-unsafe fn emit_digits(digits: *mut u8, mut ndigits: i32, dest: *mut u8, k: i32)
-    -> i32
+fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
+    -> usize
 {
-    let exp = k + ndigits - 1;
-    let mut exp = exp.abs();
+    let exp = k + ndigits.as_i32() - 1;
+    let mut exp = exp.abs().as_usize();
 
     // write plain integer (with ".0" suffix).
     if k >= 0 && exp < (ndigits + 7) {
-        let idx = ndigits as usize;
-        let count = k as usize;
-        ptr::copy_nonoverlapping(digits, dest, idx);
-        ptr::write_bytes(dest.add(idx), b'0', count);
-        ptr::copy_nonoverlapping(b".0".as_ptr(), dest.add(idx + count), 2);
+        let idx = ndigits;
+        let count = k.as_usize();
+        copy_to_dst(dest, &digits[..idx]);
+        write_bytes(&mut dest[idx..idx+count], b'0');
+        copy_to_dst(&mut dest[idx+count..], ".0");
 
-        return ndigits + k + 2;
+        return ndigits + k.as_usize() + 2;
     }
 
     // write decimal w/o scientific notation
     if k < 0 && (k > -7 || exp < 4) {
-        let mut offset = ndigits - k.abs();
+        let offset = ndigits.as_isize() - k.abs().as_isize();
         // fp < 1.0 -> write leading zero
         if offset <= 0 {
-            offset = -offset;
-            *dest = b'0';
-            *dest.add(1) = b'.';
-            ptr::write_bytes(dest.add(2), b'0', offset as usize);
-            let dst = dest.add(offset as usize + 2);
-            ptr::copy_nonoverlapping(digits, dst, ndigits as usize);
+            let offset = (-offset).as_usize();
+            dest[0] = b'0';
+            dest[1] = b'.';
+            write_bytes(&mut dest[2..offset+2], b'0');
+            copy_to_dst(&mut dest[offset+2..], &digits[..ndigits]);
 
             return ndigits + 2 + offset;
 
         } else {
             // fp > 1.0
-            ptr::copy_nonoverlapping(digits, dest, offset as usize);
-            *dest.offset(offset as isize) = b'.';
-            let dst = dest.offset(offset as isize + 1);
-            let src = digits.offset(offset as isize);
-            let count = (ndigits - offset) as usize;
-            ptr::copy_nonoverlapping(src, dst, count);
+            let offset = offset.as_usize();
+            copy_to_dst(dest, &digits[..offset]);
+            dest[offset] = b'.';
+            copy_to_dst(&mut dest[offset+1..], &digits[offset..ndigits]);
 
             return ndigits + 1;
         }
@@ -353,60 +345,57 @@ unsafe fn emit_digits(digits: *mut u8, mut ndigits: i32, dest: *mut u8, k: i32)
     // write decimal w/ scientific notation
     ndigits = ndigits.min(18);
 
-    let mut idx: isize = 0;
-    *dest.offset(idx) = *digits;
+    let mut idx: usize = 0;
+    dest[idx] = digits[0];
     idx += 1;
 
     if ndigits > 1 {
-        *dest.offset(idx) = b'.';
+        dest[idx] = b'.';
         idx += 1;
-        let dst = dest.offset(idx);
-        let src = digits.add(1);
-        let count = (ndigits - 1) as usize;
-        ptr::copy_nonoverlapping(src, dst, count);
-        idx += (ndigits - 1) as isize;
+        copy_to_dst(&mut dest[idx..], &digits[1..ndigits]);
+        idx += ndigits - 1;
     }
 
-    *dest.offset(idx) = exponent_notation_char(10);
+    dest[idx] = exponent_notation_char(10);
     idx += 1;
 
-    let sign: u8 = match k + ndigits - 1 < 0 {
+    let sign: u8 = match k + ndigits.as_i32() - 1 < 0 {
         true    => b'-',
         false   => b'+',
     };
-    *dest.offset(idx) = sign;
+    dest[idx] = sign;
     idx += 1;
 
-    let mut cent: i32 = 0;
+    let mut cent: usize = 0;
     if exp > 99 {
         cent = exp / 100;
-        *dest.offset(idx) = (cent as u8) + b'0';
+        dest[idx] = cent.as_u8() + b'0';
         idx += 1;
         exp -= cent * 100;
     }
     if exp > 9 {
         let dec = exp / 10;
-        *dest.offset(idx) = (dec as u8) + b'0';
+        dest[idx] = dec.as_u8() + b'0';
         idx += 1;
         exp -= dec * 10;
     } else if cent != 0 {
-        *dest.offset(idx) = b'0';
+        dest[idx] = b'0';
         idx += 1;
     }
 
-    let shift: u8 = (exp % 10) as u8;
-    *dest.offset(idx) = shift + b'0';
+    let shift = (exp % 10).as_u8();
+    dest[idx] = shift + b'0';
     idx += 1;
 
-    idx as i32
+    idx
 }
 
-unsafe fn fpconv_dtoa(d: f64, dest: *mut u8) -> i32
+fn fpconv_dtoa(d: f64, dest: &mut [u8]) -> usize
 {
-    let mut digits: [u8; 18] = mem::uninitialized();
+    let mut digits: [u8; 18] = explicit_uninitialized();
     let mut k: i32 = 0;
-    let ndigits = grisu2(d, digits.as_mut_ptr(), &mut k);
-    emit_digits(digits.as_mut_ptr(), ndigits, dest, k)
+    let ndigits = grisu2(d, &mut digits, &mut k);
+    emit_digits(&mut digits, ndigits, dest, k)
 }
 
 // DECIMAL
@@ -416,10 +405,10 @@ unsafe fn fpconv_dtoa(d: f64, dest: *mut u8) -> i32
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline(always)]
-pub(crate) unsafe extern "C" fn float_decimal(f: f32, first: *mut u8)
-    -> *mut u8
+pub(crate) fn float_decimal(f: f32, bytes: &mut [u8])
+    -> usize
 {
-    double_decimal(f as f64, first)
+    double_decimal(f.as_f64(), bytes)
 }
 
 // F64
@@ -429,9 +418,8 @@ pub(crate) unsafe extern "C" fn float_decimal(f: f32, first: *mut u8)
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline(always)]
-pub(crate) unsafe extern "C" fn double_decimal(d: f64, first: *mut u8)
-    -> *mut u8
+pub(crate) fn double_decimal(d: f64, bytes: &mut [u8])
+    -> usize
 {
-    let len = fpconv_dtoa(d, first);
-    first.offset(len as isize)
+    fpconv_dtoa(d, bytes)
 }

@@ -8,12 +8,13 @@ use ryu::raw;
 ///
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-pub(crate) unsafe extern "C" fn float_decimal(f: f32, first: *mut u8)
-    -> *mut u8
+pub(crate) fn float_decimal(f: f32, bytes: &mut [u8])
+    -> usize
 {
     // Not a public API, but we don't want the C-API.
-    let len = raw::pretty_f2s_buffered_n(f, first);
-    first.add(len)
+    unsafe {
+        raw::pretty_f2s_buffered_n(f, bytes.as_mut_ptr())
+    }
 }
 
 // F64
@@ -22,10 +23,11 @@ pub(crate) unsafe extern "C" fn float_decimal(f: f32, first: *mut u8)
 ///
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-pub(crate) unsafe extern "C" fn double_decimal(d: f64, first: *mut u8)
-    -> *mut u8
+pub(crate) fn double_decimal(d: f64, bytes: &mut [u8])
+    -> usize
 {
     // Not a public API, but we don't want the C-API.
-    let len = raw::pretty_d2s_buffered_n(d, first);
-    first.add(len)
+    unsafe {
+        raw::pretty_d2s_buffered_n(d, bytes.as_mut_ptr())
+    }
 }

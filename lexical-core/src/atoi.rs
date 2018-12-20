@@ -85,7 +85,7 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use lib::{mem, ptr};
+use lib::ptr;
 use util::*;
 
 // ALGORITHM
@@ -116,7 +116,7 @@ unsafe fn unchecked_unsafe<T>(value: &mut T, state: &mut ParseState, radix: T, l
     // Don't add a short-circuit either, since it adds significant time
     // and we want to continue parsing until everything is done, since
     // otherwise it may give us invalid results elsewhere.
-    let mut digit: T = mem::uninitialized();
+    let mut digit: T = explicit_uninitialized();
     while state.curr < last && parse_digit(&mut digit, *state.curr) < radix {
         // Multiply by radix, and then add the parsed digit.
         // Assign the value regardless of whether overflow happens,
@@ -163,7 +163,7 @@ unsafe fn checked_unsafe<T>(value: &mut T, state: &mut ParseState, radix: T, las
     // Don't add a short-circuit either, since it adds significant time
     // and we want to continue parsing until everything is done, since
     // otherwise it may give us invalid results elsewhere.
-    let mut digit: T = mem::uninitialized();
+    let mut digit: T = explicit_uninitialized();
     while state.curr < last && parse_digit(&mut digit, *state.curr) < radix {
         // Increment our pointer, to continue parsing digits.
         // Only multiply to the radix and add the parsed digit if

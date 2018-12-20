@@ -50,11 +50,11 @@ impl FloatSlice {
     #[inline]
     pub(super) unsafe fn uninitialized() -> FloatSlice {
         FloatSlice {
-            integer: mem::uninitialized(),
-            fraction: mem::uninitialized(),
-            digits_start: mem::uninitialized(),
-            truncated: mem::uninitialized(),
-            raw_exponent: mem::uninitialized(),
+            integer: explicit_uninitialized(),
+            fraction: explicit_uninitialized(),
+            digits_start: explicit_uninitialized(),
+            truncated: explicit_uninitialized(),
+            raw_exponent: explicit_uninitialized(),
         }
     }
 

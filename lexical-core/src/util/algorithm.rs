@@ -1,6 +1,7 @@
 //! Simple, shared algorithm utilities.
 
-use lib::slice;
+use lib::convert::AsRef;
+use lib::{mem, ptr, slice};
 
 // ALGORITHMS
 
@@ -272,6 +273,36 @@ pub fn case_insensitive_rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
         let last = first.add(slc.len());
         let last = case_insensitive_rtrim_char_range(first, last, c);
         slice::from_raw_parts(first, distance(first, last))
+    }
+}
+
+/// Copy from source-to-dst.
+#[inline]
+pub fn copy_to_dst<Bytes: AsRef<[u8]>>(dst: &mut [u8], src: Bytes)
+    -> usize
+{
+    let src = src.as_ref();
+    let dst = &mut dst[..src.len()];
+    dst.copy_from_slice(src);
+    src.len()
+}
+
+/// Length-check variant of ptr::write_bytes for a slice..
+#[inline]
+#[allow(dead_code)] // TODO(ahuszagh) Remove
+pub fn write_bytes(dst: &mut [u8], byte: u8)
+{
+    unsafe {
+        ptr::write_bytes(dst.as_mut_ptr(), byte, dst.len());
+    }
+}
+
+/// Explicitly uninitialize, a wrapper for mem::uninitialize without unsafe.
+/// This is mostly to clean up internal code, but should not be used lightly.
+#[inline]
+pub fn explicit_uninitialized<T>() -> T {
+    unsafe {
+        mem::uninitialized()
     }
 }
 

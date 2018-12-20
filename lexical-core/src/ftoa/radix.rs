@@ -4,7 +4,7 @@
 //! and may be found [here](https://github.com/v8/v8).
 
 use itoa;
-use lib::{mem, ptr, slice};
+use lib::ptr;
 use util::*;
 
 // FTOA BASEN
@@ -29,7 +29,7 @@ pub(crate) fn naive_exponent(d: f64, radix: u32) -> i32
 /// and non-zero.
 ///
 /// Adapted from the V8 implementation.
-unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, first: *mut u8, last: *mut u8)
+unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, bytes: &mut [u8])
     -> *mut u8
 {
     debug_assert_radix!(radix);
@@ -64,8 +64,8 @@ unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, first: *mut u8, last: *m
     // either way, with additional space for sign, decimal point and string
     // termination should be sufficient.
     const SIZE: usize = 2200;
-    let mut buffer: [u8; SIZE] = mem::uninitialized();
-    let buffer = buffer.as_mut_ptr();
+    let mut buffer: [u8; SIZE] = explicit_uninitialized();
+    //let buffer = buffer.as_mut_ptr();
     let initial_position: usize = SIZE / 2;
     let mut integer_cursor = initial_position;
     let mut fraction_cursor = initial_position;
@@ -87,7 +87,7 @@ unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, first: *mut u8, last: *m
             delta *= base;
             // Write digit.
             let digit = fraction as i32;
-            *buffer.add(fraction_cursor) = digit_to_char(digit);
+            buffer[fraction_cursor] = digit_to_char(digit);
             fraction_cursor += 1;
             // Calculate remainder.
             fraction -= digit as f64;
@@ -103,11 +103,11 @@ unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, first: *mut u8, last: *m
                             break;
                         }
                         // Reconstruct digit.
-                        let c = *buffer.add(fraction_cursor);
+                        let c = buffer[fraction_cursor];
                         let digit = char_to_digit(c) as i32;
                         if digit <= radix as i32 {
                             let idx = (digit + 1) as usize;
-                            *buffer.add(fraction_cursor) = digit_to_char(idx);
+                            buffer[fraction_cursor] = digit_to_char(idx);
                             fraction_cursor += 1;
                             break;
                         }
@@ -126,14 +126,14 @@ unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, first: *mut u8, last: *m
     while (integer / base).exponent() > 0 {
         integer /= base;
         integer_cursor -= 1;
-        *buffer.add(integer_cursor) = b'0';
+        buffer[integer_cursor] = b'0';
     }
 
     loop {
         let remainder = integer % base;
         integer_cursor -= 1;
         let idx = remainder as usize;
-        *buffer.add(integer_cursor) = digit_to_char(idx);
+        buffer[integer_cursor] = digit_to_char(idx);
         integer = (integer - remainder) / base;
 
         if integer <= 0.0 {
@@ -158,54 +158,44 @@ unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, first: *mut u8, last: *m
             start = integer_cursor;
             end = fraction_cursor.min(start + MAX_DIGIT_LENGTH + 1);
         }
-        let mut buf_first = buffer.add(start);
-        let mut buf_last = buf_first.add(end - start);
+        let buffer = &buffer[start..end];
 
         // 2.   Remove any trailing 0s in the selected range.
-        loop {
-            buf_last = buf_last.sub(1);
-            if *buf_last != b'0' {
-                break;
-            }
-        }
+        let buffer = rtrim_char_slice(buffer, b'0');
 
         // 3.   Write the fraction component
-        let mut p = first;
-        *p = *buf_first;
-        p = p.add(1);
-        buf_first = buf_first.add(1);
-        *p = b'.';
-        p = p.add(1);
-        let dist = distance(buf_first, buf_last);
-        ptr::copy_nonoverlapping(buf_first, p, dist);
-        p = p.add(dist);
+        bytes[0] = buffer[0];
+        bytes[1] = b'.';
+        let mut idx: usize = 2;
+        idx += copy_to_dst(&mut bytes[2..], &buffer[1..]);
 
         // write the exponent component
-        *p = exponent_notation_char(radix);
+        bytes[idx] = exponent_notation_char(radix);
+        idx += 1;
         // Handle negative exponents.
         let exp: u32;
-        p = p.add(1);
         if exponent < 0 {
-            *p = b'-';
-            p = p.add(1);
+            bytes[idx] = b'-';
+            idx += 1;
             exp = exponent.wrapping_neg() as u32;
         } else {
             exp = exponent as u32;
         }
         // Forward the exponent writer.
         // TODO(ahuszagh) Fix to use raw slices.
-        let buf = slice::from_raw_parts_mut(p, distance(p, last));
-        let slc = itoa::forward(exp, radix, buf);
-        let len = slc.len();
-        return slc.as_mut_ptr().add(len);
+        let len = itoa::forward(exp, radix, &mut bytes[idx..]);
+        return bytes.as_mut_ptr().add(idx + len);
 
     } else {
+        // TODO(ahuszagh) Fix and remove...
+        let first = bytes.as_mut_ptr();
         let mut p;
         // get component lengths
         let integer_length = initial_position - integer_cursor;
         let fraction_length = (fraction_cursor - initial_position).min(MAX_DIGIT_LENGTH - integer_length);
 
         // write integer component
+        let buffer = buffer.as_ptr();
         ptr::copy_nonoverlapping(buffer.add(integer_cursor), first, integer_length);
         p = first.add(integer_length);
 
@@ -233,10 +223,10 @@ unsafe extern "C" fn ftoa_naive(value: f64, radix: u32, first: *mut u8, last: *m
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline(always)]
-pub(crate) unsafe extern "C" fn float_radix(f: f32, radix: u32, first: *mut u8, last: *mut u8)
+pub(crate) unsafe extern "C" fn float_radix(f: f32, radix: u32, bytes: &mut [u8])
     -> *mut u8
 {
-    double_radix(f as f64, radix, first,last)
+    double_radix(f as f64, radix, bytes)
 }
 
 // F64
@@ -246,8 +236,8 @@ pub(crate) unsafe extern "C" fn float_radix(f: f32, radix: u32, first: *mut u8, 
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline(always)]
-pub(crate) unsafe extern "C" fn double_radix(value: f64, radix:u32, first: *mut u8, last: *mut u8)
+pub(crate) unsafe extern "C" fn double_radix(value: f64, radix: u32, bytes: &mut [u8])
     -> *mut u8
 {
-    ftoa_naive(value, radix, first,last)
+    ftoa_naive(value, radix, bytes)
 }
