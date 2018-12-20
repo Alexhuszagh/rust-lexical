@@ -1,6 +1,6 @@
 //! Algorithm to parse an exponent from a float string.
 
-use lib::{mem, ptr};
+use lib::slice;
 use atoi;
 use util::*;
 
@@ -23,22 +23,22 @@ pub(super) unsafe extern "C" fn parse_exponent(state: &mut ParseState, radix: u3
     if dist >= 2 && (*state.curr).to_ascii_lowercase() == exponent_notation_char(radix).to_ascii_lowercase() {
         state.increment();
 
-        // Turn off truncation before we parse the exponent, since we want to
-        // determine if the truncation currently overflows. We also want to
-        // ensure we don't lose the current truncation status.
-        let mut trunc_tmp = ptr::null();
-        mem::swap(&mut state.trunc, &mut trunc_tmp);
-
         // Use atoi_sign so we can handle overflow differently for +/- numbers.
         // We care whether the value is positive.
         // Use i32::max_value() since it's valid in 2s complement for
         // positive or negative numbers, and will trigger a short-circuit.
+        // TODO(ahuszagh) Need to Rustify this...
         let cb = atoi::unchecked::<i32>;
-        let (exponent, sign) = atoi::filter_sign::<i32, _>(state, radix, last, cb);
-        let exponent = if state.is_truncated() { i32::max_value() } else { exponent };
-        let exponent = if sign == -1 { -exponent } else { exponent };
+        let slc = slice::from_raw_parts(state.curr, distance(state.curr, last));
+        let (exponent, sign, processed, truncated) = atoi::filter_sign::<i32, _>(radix, slc, cb);
+        state.curr = state.curr.add(processed);
+        let is_truncated = truncated != slc.len();
+        let exponent = if is_truncated { i32::max_value() } else { exponent };
+        let exponent = match sign {
+            Sign::Negative => -exponent,
+            Sign::Positive => exponent,
+        };
 
-        mem::swap(&mut state.trunc, &mut trunc_tmp);
         exponent
     } else {
         0

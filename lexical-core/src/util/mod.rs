@@ -21,9 +21,10 @@ mod error;
 mod mask;
 mod num;
 mod primitive;
-mod parse_state;
+mod parse_state;    // TODO(ahuszagh) Remove
 mod pow;
 mod result;
+mod sign;
 mod table;
 
 cfg_if! {
@@ -42,6 +43,7 @@ pub(crate) use self::num::*;
 pub(crate) use self::primitive::*;
 pub(crate) use self::parse_state::*;
 pub(crate) use self::pow::*;
+pub(crate) use self::sign::*;
 pub(crate) use self::table::*;
 
 cfg_if! {
@@ -54,5 +56,5 @@ if #[cfg(feature = "correct")] {
 
 // Publicly export config globally.
 pub use self::config::*;
-pub use self::error::{Error, ErrorCode, is_invalid_digit, is_overflow, is_success};
+pub use self::error::{Error, ErrorCode, is_empty, is_invalid_digit, is_overflow, is_success};
 pub use self::result::*;

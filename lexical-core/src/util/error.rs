@@ -17,6 +17,8 @@ pub enum ErrorCode {
     Overflow = -1,
     /// Invalid digit found before string termination.
     InvalidDigit = -2,
+    /// Empty byte array found.
+    Empty = -3,
 }
 
 /// C-compatible error for FFI.
@@ -47,6 +49,12 @@ pub extern "C" fn is_invalid_digit(error: Error) -> bool {
     error.code == ErrorCode::InvalidDigit
 }
 
+/// Check if the error code designates an empty byte array was encountered.
+#[inline(always)]
+pub extern "C" fn is_empty(error: Error) -> bool {
+    error.code == ErrorCode::Empty
+}
+
 /// Helper function to create a success message.
 #[inline(always)]
 pub(crate) fn success() -> Error {
@@ -63,4 +71,10 @@ pub(crate) fn overflow_error() -> Error {
 #[inline(always)]
 pub(crate) fn invalid_digit_error(index: usize) -> Error {
     Error { code: ErrorCode::InvalidDigit, index: index }
+}
+
+/// Helper function to create an empty error.
+#[inline(always)]
+pub(crate) fn empty_error() -> Error {
+    Error { code: ErrorCode::Empty, index: 0 }
 }

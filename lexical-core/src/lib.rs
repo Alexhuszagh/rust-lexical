@@ -182,7 +182,7 @@ pub use util::{EXPONENT_DEFAULT_CHAR, EXPONENT_BACKUP_CHAR};
 pub use util::{INF_STRING, INFINITY_STRING, NAN_STRING};
 
 // Re-export the error structs and enumerations.
-pub use util::{Error, ErrorCode, is_invalid_digit, is_overflow, is_success};
+pub use util::{Error, ErrorCode, is_empty, is_invalid_digit, is_overflow, is_success};
 
 // Re-export the required buffer sizes for the low-level API.
 pub use util::BUFFER_SIZE;

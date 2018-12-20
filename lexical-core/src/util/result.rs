@@ -40,6 +40,14 @@ pub(crate) fn invalid_digit_error<T>(value: T, index: usize)
     Result { value: value, error: error::invalid_digit_error(index) }
 }
 
+#[inline(always)]
+pub(crate) fn empty_error<T>(value: T)
+    -> Result<T>
+    where T: Number
+{
+    Result { value: value, error: error::empty_error() }
+}
+
 // FFI
 // Manually expand the templates for all known result types, since
 // no other language has Rust-compatible generics.

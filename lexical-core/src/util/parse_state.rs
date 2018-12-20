@@ -44,7 +44,6 @@ impl ParseState {
     pub unsafe extern "C" fn truncated_bytes(&self)
         -> usize
     {
-        //debug_assert!(!self.trunc.is_null(), "ParseState::is_truncated() set_default_trunc() not called.");
         if self.is_truncated() {
             distance(self.trunc, self.curr)
         } else {

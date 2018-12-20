@@ -85,28 +85,21 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use lib::ptr;
+use lib::slice;
 use util::*;
 
 // ALGORITHM
 
-/// Store a parsed digit in a variable and return the parsed digit.
-/// Similar to `operator=(const T&) -> T&` in C++.
-#[inline(always)]
-pub(crate) fn parse_digit<T: Integer>(digit: &mut T, c: u8)
-    -> T
-{
-    let x = char_to_digit(c);
-    *digit = as_cast(x);
-    *digit
-}
-
 /// Explicitly unsafe implied version of `unchecked`.
+///
+/// Returns the number of parsed bytes and the index where the input was
+/// truncated at.
 ///
 /// Don't trim leading zeros, since the value may be non-zero and
 /// therefore invalid.
 #[inline]
-unsafe fn unchecked_unsafe<T>(value: &mut T, state: &mut ParseState, radix: T, last: *const u8)
+pub(crate) fn unchecked<T>(value: &mut T, radix: T, bytes: &[u8])
+    -> (usize, usize)
     where T: Integer
 {
     // Continue while we have digits.
@@ -116,36 +109,22 @@ unsafe fn unchecked_unsafe<T>(value: &mut T, state: &mut ParseState, radix: T, l
     // Don't add a short-circuit either, since it adds significant time
     // and we want to continue parsing until everything is done, since
     // otherwise it may give us invalid results elsewhere.
-    let mut digit: T = explicit_uninitialized();
-    while state.curr < last && parse_digit(&mut digit, *state.curr) < radix {
-        // Multiply by radix, and then add the parsed digit.
-        // Assign the value regardless of whether overflow happens,
-        // and merely set the overflow bool.
-        let (v, o1) = value.overflowing_mul(radix);
-        let (v, o2) = v.overflowing_add(digit);
-        *value = v;
-        if state.trunc.is_null() && (o1 | o2) {
-            state.trunc = state.curr;
+    let mut truncated: usize = bytes.len();
+    for (i, &c) in bytes.iter().enumerate() {
+        let digit: T = as_cast(char_to_digit(c));
+        if digit < radix {
+            let (v, o1) = value.overflowing_mul(radix);
+            let (v, o2) = v.overflowing_add(digit);
+            *value = v;
+            if truncated == bytes.len() && (o1 | o2) {
+                truncated = i;
+            }
+        } else {
+            return (i, truncated);
         }
-        // Always increment the pointer.
-        state.increment();
     }
-}
 
-/// Optimized, unchecked atoi implementation that uses a translation table.
-///
-/// Returns a pointer to the end of the parsed digits and the number of
-/// digits truncated from the output (0 if no overflow).
-///
-/// Detects overflow, but ignores it until the end of the string. Generally
-/// faster than checking and modifying logic as a result.
-///
-/// This is an unsafe function, just needs to be safe to use FnOnce.
-#[inline]
-pub(crate) fn unchecked<T>(value: &mut T, state: &mut ParseState, radix: u32, last: *const u8)
-    where T: Integer
-{
-    unsafe { unchecked_unsafe::<T>(value, state, as_cast(radix), last) }
+    (bytes.len(), truncated)
 }
 
 /// Explicitly unsafe implied version of `checked`.
@@ -153,7 +132,9 @@ pub(crate) fn unchecked<T>(value: &mut T, state: &mut ParseState, radix: u32, la
 /// Don't trim leading zeros, since the value may be non-zero and
 /// therefore invalid.
 #[inline]
-unsafe fn checked_unsafe<T>(value: &mut T, state: &mut ParseState, radix: T, last: *const u8)
+#[allow(dead_code)] // TODO(ahuszagh) Find the configuration that sets this...
+pub(crate) fn checked<T>(value: &mut T, radix: T, bytes: &[u8])
+    -> (usize, usize)
     where T: Integer
 {
     // Continue while we have digits.
@@ -163,144 +144,123 @@ unsafe fn checked_unsafe<T>(value: &mut T, state: &mut ParseState, radix: T, las
     // Don't add a short-circuit either, since it adds significant time
     // and we want to continue parsing until everything is done, since
     // otherwise it may give us invalid results elsewhere.
-    let mut digit: T = explicit_uninitialized();
-    while state.curr < last && parse_digit(&mut digit, *state.curr) < radix {
-        // Increment our pointer, to continue parsing digits.
-        // Only multiply to the radix and add the parsed digit if
-        // the value hasn't overflowed yet, and only assign to the
-        // original value if the operations don't overflow.
-        if state.trunc.is_null() {
-            // Chain these two operations before we assign, since
-            // otherwise we get an invalid result.
-            match value.checked_mul(radix).and_then(|v| v.checked_add(digit)) {
-                // No overflow, assign the value.
-                Some(v) => *value = v,
-                // Overflow occurred, set truncated position
-                None    => state.trunc = state.curr,
+    let mut truncated: usize = bytes.len();
+    for (i, &c) in bytes.iter().enumerate() {
+        let digit: T = as_cast(char_to_digit(c));
+        if digit < radix {
+            // Increment our pointer, to continue parsing digits.
+            // Only multiply to the radix and add the parsed digit if
+            // the value hasn't overflowed yet, and only assign to the
+            // original value if the operations don't overflow.
+            if truncated == bytes.len() {
+                // Chain these two operations before we assign, since
+                // otherwise we get an invalid result.
+                match value.checked_mul(radix).and_then(|v| v.checked_add(digit)) {
+                    // No overflow, assign the value.
+                    Some(v) => *value = v,
+                    // Overflow occurred, set truncated position
+                    None    => truncated = i,
+                }
             }
+        } else {
+            return (i, truncated);
         }
-        // Always increment the pointer.
-        state.increment();
     }
-}
 
-/// Optimized, checked atoi implementation that uses a translation table.
-///
-/// Returns a pointer to the end of the parsed digits and the number of
-/// digits truncated from the output.
-///
-/// Detects overflow and aborts parsing, but increments the pointer until
-/// invalid characters are found. General slower than the unchecked variant.
-#[inline]
-#[allow(dead_code)]
-pub(crate) fn checked<T>(value: &mut T, state: &mut ParseState, radix: u32, last: *const u8)
-    where T: Integer
-{
-    unsafe { checked_unsafe::<T>(value, state, as_cast(radix), last) }
+    (bytes.len(), truncated)
 }
 
 /// Parse value from a positive numeric string.
 #[inline]
-pub(crate) unsafe fn value<T, Cb>(state: &mut ParseState, radix: u32, last: *const u8, cb: Cb)
-    -> T
+pub(crate) fn value<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
+    -> (T, usize, usize)
     where T: Integer,
-          Cb: FnOnce(&mut T, &mut ParseState, u32, *const u8)
+          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, usize)
 {
     debug_assert_radix!(radix);
 
     // Trim the leading 0s here, where we can guarantee the value is 0,
     // and therefore trimming these leading 0s is actually valid.
-    state.ltrim_char(last, b'0');
+    // TODO(ahuszagh) Shit son....
+    let len = bytes.len();
+    let bytes = ltrim_char_slice(bytes, b'0');
+    let shift = len - bytes.len();
 
     // Initialize a 0 version of our value, and invoke the low-level callback.
     let mut value: T = T::ZERO;
-    cb(&mut value, state, radix, last);
-    value
+    let (processed, truncated) = cb(&mut value, as_cast(radix), bytes);
+    (value, processed + shift, truncated + shift)
 }
 
 /// Handle +/- numbers and forward to implementation.
-///
-/// `first` must be less than or equal to `last`.
 #[inline]
-pub(crate) unsafe fn filter_sign<T, Cb>(state: &mut ParseState, radix: u32, last: *const u8, cb: Cb)
-    -> (T, i32)
+pub(crate) fn filter_sign<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
+    -> (T, Sign, usize, usize)
     where T: Integer,
-          Cb: FnOnce(&mut T, &mut ParseState, u32, *const u8)
+          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, usize)
 {
-    let dist = distance(state.curr, last);
-    if dist == 0 {
-        (T::ZERO, 1)
-    } else {
-        match *state.curr {
+    let len = bytes.len();
+    if let Some(&c) = bytes.get(0) {
+        match c {
             b'+' => {
-                if dist >= 2 {
-                    state.increment();
-                    let value = value::<T, Cb>(state, radix, last, cb);
-                    (value, 1)
+                if len >= 2 {
+                    let (value, processed, truncated) = value::<T, Cb>(radix, &bytes[1..], cb);
+                    (value, Sign::Positive, processed+1, truncated+1)
                 } else {
-                    (T::ZERO, 1)
+                    (T::ZERO, Sign::Positive, 0, len)
                 }
             },
             b'-' => {
-                if dist >= 2 {
-                    state.increment();
-                    let value = value::<T, Cb>(state, radix, last, cb);
-                    (value, -1)
+                if len >= 2 {
+                    let (value, processed, truncated) = value::<T, Cb>(radix, &bytes[1..], cb);
+                    (value, Sign::Negative, processed+1, truncated+1)
                 } else {
-                    (T::ZERO, -1)
+                    (T::ZERO, Sign::Negative, 0, len)
                 }
             },
             _    => {
-                let value = value::<T, Cb>(state, radix, last, cb);
-                (value, 1)
+                let (value, processed, truncated) = value::<T, Cb>(radix, bytes, cb);
+                (value, Sign::Positive, processed, truncated)
             },
         }
+    } else {
+        (T::ZERO, Sign::Positive, 0, len)
     }
 }
 
 /// Handle unsigned +/- numbers and forward to implied implementation.
 //  Can just use local namespace
 #[inline]
-pub(crate) unsafe fn unsigned<T, Cb>(radix: u32, first: *const u8, last: *const u8, cb: Cb)
-    -> (T, *const u8, bool)
+pub(crate) fn unsigned<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
+    -> (T, usize, bool)
     where T: UnsignedInteger,
-          Cb: FnOnce(&mut T, &mut ParseState, u32, *const u8)
+          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, usize)
 {
-    if first == last {
-        (T::ZERO, ptr::null(), false)
-    } else {
-        let mut state = ParseState::new(first);
-        let (value, sign) = filter_sign::<T, Cb>(&mut state, radix, last, cb);
-        match sign {
-            // Report an invalid digit if the value is negative at the first index.
-            -1 => (value.wrapping_neg(), first, state.is_truncated()),
-            1  => (value, state.curr, state.is_truncated()),
-            _  => unreachable!(),
-        }
+    let (value, sign, processed, truncated) = filter_sign::<T, Cb>(radix, bytes, cb);
+    let is_truncated = truncated != bytes.len();
+    match sign {
+        // Report an invalid digit if the value is negative at the first index.
+        Sign::Negative => (value.wrapping_neg(), 0, is_truncated),
+        Sign::Positive => (value, processed, is_truncated),
     }
 }
 
 /// Handle signed +/- numbers and forward to implied implementation.
 //  Can just use local namespace
 #[inline]
-pub(crate) unsafe fn signed<T, Cb>(radix: u32, first: *const u8, last: *const u8, cb: Cb)
-    -> (T, *const u8, bool)
+pub(crate) fn signed<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
+    -> (T, usize, bool)
     where T: SignedInteger,
-          Cb: FnOnce(&mut T, &mut ParseState, u32, *const u8)
+          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, usize)
 {
-    if first == last {
-        (T::ZERO, ptr::null(), false)
-    } else {
-        let mut state = ParseState::new(first);
-        let (value, sign) = filter_sign::<T, Cb>(&mut state, radix, last, cb);
-        match sign {
-            // -value overflowing can only occur when overflow happens,
-            // and specifically, when the overflow produces a value
-            // of exactly T::min_value().
-            -1 => (value.wrapping_neg(), state.curr, state.is_truncated()),
-            1  => (value, state.curr, state.is_truncated()),
-            _  => unreachable!(),
-        }
+    let (value, sign, processed, truncated) = filter_sign::<T, Cb>(radix, bytes, cb);
+    let is_truncated = truncated != bytes.len();
+    match sign {
+        // -value overflowing can only occur when overflow happens,
+        // and specifically, when the overflow produces a value
+        // of exactly T::min_value().
+        Sign::Negative => (value.wrapping_neg(), processed, is_truncated),
+        Sign::Positive => (value, processed, is_truncated),
     }
 }
 
@@ -314,7 +274,10 @@ macro_rules! generate_unsafe_unsigned {
         unsafe fn $func(radix: u8, first: *const u8, last: *const u8)
             -> ($t, *const u8, bool)
         {
-            unsigned::<$t, _>(radix.into(), first, last, unchecked::<$t>)
+            // TODO(ahuszagh) Fix all this wrapper code.
+            let bytes = slice::from_raw_parts(first, distance(first, last));
+            let (value, len, truncated) = unsigned::<$t, _>(radix.into(), bytes, unchecked::<$t>);
+            (value, first.add(len), truncated)
         }
     )
 }
@@ -334,7 +297,10 @@ macro_rules! generate_unsafe_signed {
         unsafe fn $func(radix: u8, first: *const u8, last: *const u8)
             -> ($t, *const u8, bool)
         {
-            signed::<$t, _>(radix.into(), first, last, unchecked::<$t>)
+            // TODO(ahuszagh) Fix all this wrapper code.
+            let bytes = slice::from_raw_parts(first, distance(first, last));
+            let (value, len, truncated) = signed::<$t, _>(radix.into(), bytes, unchecked::<$t>);
+            (value, first.add(len), truncated)
         }
     )
 }
@@ -461,33 +427,23 @@ mod tests {
     #[test]
     fn checked_test() {
         let s = "1234567891234567890123";
-        unsafe {
-            let first = s.as_ptr();
-            let last = first.add(s.len());
-            let mut value: u64 = 0;
-            let mut state = ParseState::new(first);
-            checked(&mut value, &mut state, 10, last);
-            // check it doesn't overflow
-            assert_eq!(value, 12345678912345678901);
-            assert_eq!(state.curr, last);
-            assert_eq!(state.truncated_bytes(), 2);
-        }
+        let mut value: u64 = 0;
+        let (processed, truncated) = checked(&mut value, 10, s.as_bytes());
+        // check it doesn't overflow
+        assert_eq!(value, 12345678912345678901);
+        assert_eq!(processed, s.len());
+        assert_eq!(truncated, s.len()-2);
     }
 
     #[test]
     fn unchecked_test() {
         let s = "1234567891234567890123";
-        unsafe {
-            let first = s.as_ptr();
-            let last = first.add(s.len());
-            let mut value: u64 = 0;
-            let mut state = ParseState::new(first);
-            unchecked(&mut value, &mut state, 10, last);
-            // check it does overflow
-            assert_eq!(value, 17082782369737483467);
-            assert_eq!(state.curr, last);
-            assert_eq!(state.truncated_bytes(), 2);
-        }
+        let mut value: u64 = 0;
+        let (processed, truncated) = unchecked(&mut value, 10, s.as_bytes());
+        // check it does overflow
+        assert_eq!(value, 17082782369737483467);
+        assert_eq!(processed, s.len());
+        assert_eq!(truncated, s.len()-2);
     }
 
     #[test]
@@ -588,7 +544,7 @@ mod tests {
     }
     #[test]
     fn try_atou8_base10_test() {
-        assert_eq!(invalid_digit_error(0, 0), try_atou8_slice(10, b""));
+        assert_eq!(empty_error(0), try_atou8_slice(10, b""));
         assert_eq!(success(0), try_atou8_slice(10, b"0"));
         assert_eq!(invalid_digit_error(1, 1), try_atou8_slice(10, b"1a"));
         assert_eq!(overflow_error(0), try_atou8_slice(10, b"256"));
@@ -599,7 +555,7 @@ mod tests {
 
     #[test]
     fn try_atoi8_base10_test() {
-        assert_eq!(invalid_digit_error(0, 0), try_atoi8_slice(10, b""));
+        assert_eq!(empty_error(0), try_atoi8_slice(10, b""));
         assert_eq!(success(0), try_atoi8_slice(10, b"0"));
         assert_eq!(invalid_digit_error(1, 1), try_atoi8_slice(10, b"1a"));
         assert_eq!(overflow_error(-128), try_atoi8_slice(10, b"128"));
@@ -607,7 +563,7 @@ mod tests {
 
     #[test]
     fn try_atou16_base10_test() {
-        assert_eq!(invalid_digit_error(0, 0), try_atou16_slice(10, b""));
+        assert_eq!(empty_error(0), try_atou16_slice(10, b""));
         assert_eq!(success(0), try_atou16_slice(10, b"0"));
         assert_eq!(invalid_digit_error(1, 1), try_atou16_slice(10, b"1a"));
         assert_eq!(overflow_error(0), try_atou16_slice(10, b"65536"));
@@ -615,7 +571,7 @@ mod tests {
 
     #[test]
     fn try_atoi16_base10_test() {
-        assert_eq!(invalid_digit_error(0, 0), try_atoi16_slice(10, b""));
+        assert_eq!(empty_error(0), try_atoi16_slice(10, b""));
         assert_eq!(success(0), try_atoi16_slice(10, b"0"));
         assert_eq!(invalid_digit_error(1, 1), try_atoi16_slice(10, b"1a"));
         assert_eq!(overflow_error(-32768), try_atoi16_slice(10, b"32768"));
@@ -623,7 +579,7 @@ mod tests {
 
     #[test]
     fn try_atou32_base10_test() {
-        assert_eq!(invalid_digit_error(0, 0), try_atou32_slice(10, b""));
+        assert_eq!(empty_error(0), try_atou32_slice(10, b""));
         assert_eq!(success(0), try_atou32_slice(10, b"0"));
         assert_eq!(invalid_digit_error(1, 1), try_atou32_slice(10, b"1a"));
         assert_eq!(overflow_error(0), try_atou32_slice(10, b"4294967296"));
@@ -631,7 +587,7 @@ mod tests {
 
     #[test]
     fn try_atoi32_base10_test() {
-        assert_eq!(invalid_digit_error(0, 0), try_atoi32_slice(10, b""));
+        assert_eq!(empty_error(0), try_atoi32_slice(10, b""));
         assert_eq!(success(0), try_atoi32_slice(10, b"0"));
         assert_eq!(invalid_digit_error(1, 1), try_atoi32_slice(10, b"1a"));
         assert_eq!(overflow_error(-2147483648), try_atoi32_slice(10, b"2147483648"));
@@ -639,7 +595,7 @@ mod tests {
 
     #[test]
     fn try_atou64_base10_test() {
-        assert_eq!(invalid_digit_error(0, 0), try_atou64_slice(10, b""));
+        assert_eq!(empty_error(0), try_atou64_slice(10, b""));
         assert_eq!(success(0), try_atou64_slice(10, b"0"));
         assert_eq!(invalid_digit_error(1, 1), try_atou64_slice(10, b"1a"));
         assert_eq!(overflow_error(0), try_atou64_slice(10, b"18446744073709551616"));
@@ -647,7 +603,7 @@ mod tests {
 
     #[test]
     fn try_atoi64_base10_test() {
-        assert_eq!(invalid_digit_error(0, 0), try_atoi64_slice(10, b""));
+        assert_eq!(empty_error(0), try_atoi64_slice(10, b""));
         assert_eq!(success(0), try_atoi64_slice(10, b"0"));
         assert_eq!(invalid_digit_error(1, 1), try_atoi64_slice(10, b"1a"));
         assert_eq!(overflow_error(-9223372036854775808), try_atoi64_slice(10, b"9223372036854775808"));

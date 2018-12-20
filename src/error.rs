@@ -11,6 +11,8 @@ pub enum ErrorKind {
     Overflow,
     /// Invalid digit occurred before string termination.
     InvalidDigit(usize),
+    /// Empty byte array found.
+    Empty,
 }
 
 /// Custom error for numeric parsing.
@@ -37,13 +39,14 @@ impl fmt::Display for Error {
         match self.kind() {
             ErrorKind::Overflow        => write!(f, "lexical error: integer overflow occurred during integer parsing."),
             ErrorKind::InvalidDigit(u) => write!(f, "lexical error: invalid digit found at {}.", u),
+            ErrorKind::Empty           => write!(f, "lexical error: empty input data."),
         }
     }
 }
 
 // HELPERS
 
-// Internal helper methods for testing.
+// Internal helper methods for error creation.
 
 /// Return an overflow error.
 #[inline]
@@ -55,4 +58,10 @@ pub(crate) fn overflow() -> Error {
 #[inline]
 pub(crate) fn invalid_digit(position: usize) -> Error {
     ErrorKind::InvalidDigit(position).into()
+}
+
+/// Return an empty error.
+#[inline]
+pub(crate) fn empty() -> Error {
+    ErrorKind::Empty.into()
 }

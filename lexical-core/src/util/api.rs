@@ -109,7 +109,9 @@ pub(crate) unsafe fn try_from_bytes_wrapper<T, Cb>(radix: u8, first: *const u8, 
           Cb: FnOnce(u8, *const u8, *const u8) -> (T, *const u8, bool)
 {
     let (value, p, overflow) = cb(radix, first, last);
-    if overflow {
+    if first == last {
+        empty_error(value)
+    } else if overflow {
         overflow_error(value)
     } else if p == last {
         success(value)

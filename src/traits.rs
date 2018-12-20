@@ -40,6 +40,7 @@ macro_rules! from_bytes {
                     ErrorCode::Success  => Ok(result.value),
                     ErrorCode::Overflow => Err(overflow()),
                     ErrorCode::InvalidDigit => Err(invalid_digit(result.error.index)),
+                    ErrorCode::Empty => Err(empty()),
                 }
             }
         }
@@ -91,6 +92,7 @@ macro_rules! from_bytes_lossy {
                     ErrorCode::Success  => Ok(result.value),
                     ErrorCode::Overflow => Err(overflow()),
                     ErrorCode::InvalidDigit => Err(invalid_digit(result.error.index)),
+                    ErrorCode::Empty => Err(empty()),
                 }
             }
         }
@@ -157,7 +159,7 @@ mod tests {
         ($($t:tt)*) => ($({
             assert_eq!($t::from_bytes(b"0", 10), 0);
             assert_eq!($t::try_from_bytes(b"0", 10), Ok(0));
-            assert_eq!($t::try_from_bytes(b"", 10), Err(invalid_digit(0)));
+            assert_eq!($t::try_from_bytes(b"", 10), Err(empty()));
             assert_eq!($t::try_from_bytes(b"1a", 10), Err(invalid_digit(1)));
         })*)
     }
@@ -168,6 +170,7 @@ mod tests {
             assert_eq!($t::from_bytes_lossy(b"0.0", 10), 0.0);
             assert_eq!($t::try_from_bytes(b"0.0", 10), Ok(0.0));
             assert_eq!($t::try_from_bytes(b"0.0a", 10), Err(invalid_digit(3)));
+            assert_eq!($t::try_from_bytes(b"", 10), Err(empty()));
             assert_eq!($t::try_from_bytes_lossy(b"0.0", 10), Ok(0.0));
         })*)
     }

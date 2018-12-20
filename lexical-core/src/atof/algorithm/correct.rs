@@ -8,7 +8,7 @@
 // Fix a compiler bug that thinks `ExactExponent` isn't used.
 #![allow(unused_imports)]
 
-use lib::iter;
+use lib::{iter, slice};
 use atoi;
 use float::*;
 use util::*;
@@ -159,9 +159,15 @@ unsafe fn parse_mantissa<M>(state: &mut ParseState, slc: &mut FloatSlice, radix:
     // Parse the integral value.
     // Use the checked parsers so the truncated value is valid even if
     // the entire value is not parsed.
+    // TODO(ahuszagh) Need to fix this dramatically...
     let first = state.curr;
-    atoi::checked(&mut mantissa, state, radix, last);
-    slc.integer = from_raw_parts(first, distance(first, state.curr));
+    let bytes = slice::from_raw_parts(first, distance(first, last));
+    let (processed, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
+    state.curr = bytes.as_ptr().add(processed);
+    slc.integer = from_raw_parts(first, processed);
+    if truncated != bytes.len() {
+        state.trunc = bytes.as_ptr().add(truncated);
+    }
 
     // Check for trailing digits.
     let has_fraction = state.curr != last && *state.curr == b'.';
@@ -184,7 +190,14 @@ unsafe fn parse_mantissa<M>(state: &mut ParseState, slc: &mut FloatSlice, radix:
 
         // Parse the remaining decimal. Since the truncation is only in
         // the fraction, no decimal place affects it.
-        atoi::checked(&mut mantissa, state, radix, last);
+        // TODO(ahuszagh) Need to fix this dramatically...
+        let bytes = slice::from_raw_parts(state.curr, distance(state.curr, last));
+        let (processed, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
+        state.curr = bytes.as_ptr().add(processed);
+        if truncated != bytes.len() {
+            state.trunc = bytes.as_ptr().add(truncated);
+        }
+
         slc.fraction = from_raw_parts(first, distance(first, state.curr));
         slc.truncated = state.truncated_bytes();
     } else if has_fraction {

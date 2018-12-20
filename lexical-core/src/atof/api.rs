@@ -375,7 +375,8 @@ mod tests {
 
     #[test]
     fn try_atof32_base10_test() {
-        assert_eq!(invalid_digit_error(0.0, 0), try_atof32_slice(10, b""));
+        assert_eq!(invalid_digit_error(0.0, 0), try_atof32_slice(10, b"."));
+        assert_eq!(empty_error(0.0), try_atof32_slice(10, b""));
         assert_eq!(success(0.0), try_atof32_slice(10, b"0.0"));
         assert_eq!(invalid_digit_error(1.0, 1), try_atof32_slice(10, b"1a"));
     }
@@ -383,7 +384,7 @@ mod tests {
     #[test]
     fn try_atof64_base10_test() {
         assert_eq!(invalid_digit_error(0.0, 0), try_atof64_slice(10, b"."));
-        assert_eq!(invalid_digit_error(0.0, 0), try_atof64_slice(10, b""));
+        assert_eq!(empty_error(0.0), try_atof64_slice(10, b""));
         assert_eq!(success(0.0), try_atof64_slice(10, b"0.0"));
         assert_eq!(invalid_digit_error(1.0, 1), try_atof64_slice(10, b"1a"));
     }
@@ -405,7 +406,11 @@ mod tests {
         #[test]
         fn f32_sign_or_dot_only_proptest(i in r"[+-]?\.?") {
             let res = try_atof32_slice(10, i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            if i.is_empty() {
+                assert_eq!(res.error.code, ErrorCode::Empty);
+            } else {
+                assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            }
             assert!(res.error.index == 0);
         }
 
@@ -437,7 +442,11 @@ mod tests {
         #[test]
         fn f64_sign_or_dot_only_proptest(i in r"[+-]?\.?") {
             let res = try_atof64_slice(10, i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            if i.is_empty() {
+                assert_eq!(res.error.code, ErrorCode::Empty);
+            } else {
+                assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            }
             assert!(res.error.index == 0);
         }
 

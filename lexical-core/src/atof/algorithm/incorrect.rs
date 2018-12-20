@@ -51,6 +51,7 @@
 //  ax.figure.tight_layout()
 //  plt.show()
 
+use lib::slice;
 use atoi;
 use util::*;
 use super::exponent::parse_exponent;
@@ -70,7 +71,13 @@ unsafe extern "C" fn parse_integer(state: &mut ParseState, radix: u32, last: *co
     state.ltrim_char(last, b'0');
 
     let mut value = Wrapped::ZERO;
-    atoi::unchecked(&mut value, state, radix, last);
+    // TODO(ahuszagh) Need to fix this dramatically.
+    let bytes = slice::from_raw_parts(state.curr, distance(state.curr, last));
+    let (processed, truncated) = atoi::unchecked(&mut value, as_cast(radix), bytes);
+    state.curr = bytes.as_ptr().add(processed);
+    if truncated != bytes.len() {
+        state.trunc = bytes.as_ptr().add(truncated);
+    }
 
     value.into_inner()
 }
@@ -100,7 +107,13 @@ unsafe extern "C" fn parse_fraction(state: &mut ParseState, radix: u32, last: *c
             // but that would require.
             let mut value: u64 = 0;
             let l = last.min(state.curr.add(12));
-            atoi::unchecked(&mut value, state, radix, l);
+            // TODO(ahuszagh) Need to fix this dramatically.
+            let bytes = slice::from_raw_parts(state.curr, distance(state.curr, l));
+            let (processed, truncated) = atoi::unchecked(&mut value, as_cast(radix), bytes);
+            state.curr = bytes.as_ptr().add(processed);
+            if truncated != bytes.len() {
+                state.trunc = bytes.as_ptr().add(truncated);
+            }
             let digits = distance(first, state.curr).try_i32_or_max();
 
             // Ignore leading 0s, just not we've passed them.
