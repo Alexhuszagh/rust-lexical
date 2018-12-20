@@ -51,12 +51,11 @@ unsafe {
 
 // The ato*_slice and ato*_range parsers are not checked, they do not
 // validate that the input data is entirely correct, and stop parsing
-// when invalid data is founding, returning whatever was parsed up until
+// when invalid data is found, returning whatever was parsed up until
 // that point. The explicit behavior is to wrap on overflow, and 
 // to discard invalid digits.
 let i = lexical_core::atoi::atoi8_slice(10, b"256");    // 0, wraps from 256
 let i = lexical_core::atoi::atoi8_slice(10, b"1a5");    // 1, discards "a5"
-//!
 
 // You should prefer the checked parsers, whenever possible. These detect 
 // numeric overflow, and no invalid trailing digits are present.
