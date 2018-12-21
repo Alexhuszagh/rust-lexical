@@ -315,8 +315,6 @@ def main():
     python_data = run_python()
     strtod_data = run_strtod()
     lexical_data = run_lexical()
-    lexical_algom_data = run_lexical("algorithm_m")
-    lexical_bhcomp_data = run_lexical("bhcomp")
     libcore_data = run_libcore()
     rapidjson_data = run_rapidjson()
     double_conversion_data = run_double_conversion()
@@ -336,10 +334,6 @@ def main():
         json.dump(strtod_data, f)
     with open(os.path.join(HOME, "results","lexical.json"), 'w') as f:
         json.dump(lexical_data, f)
-    with open(os.path.join(HOME, "results","lexical_algom.json"), 'w') as f:
-        json.dump(lexical_algom_data, f)
-    with open(os.path.join(HOME, "results","lexical_bhcomp.json"), 'w') as f:
-        json.dump(lexical_bhcomp_data, f)
     with open(os.path.join(HOME, "results","libcore.json"), 'w') as f:
         json.dump(libcore_data, f)
     with open(os.path.join(HOME, "results","rapidjson.json"), 'w') as f:

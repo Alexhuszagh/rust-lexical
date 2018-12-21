@@ -90,8 +90,6 @@ use util::*;
 
 // ALGORITHM
 
-/// Explicitly unsafe implied version of `unchecked`.
-///
 /// Returns the number of parsed bytes and the index where the input was
 /// truncated at.
 ///
@@ -129,7 +127,8 @@ pub(crate) fn unchecked<T>(value: &mut T, radix: T, bytes: &[u8])
     (bytes.len(), truncated)
 }
 
-/// Explicitly unsafe implied version of `checked`.
+/// Returns the number of parsed bytes and the index where the input was
+/// truncated at.
 ///
 /// Don't trim leading zeros, since the value may be non-zero and
 /// therefore invalid.

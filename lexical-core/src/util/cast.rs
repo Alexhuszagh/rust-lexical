@@ -1,5 +1,9 @@
 //! Rust cast utilities.
 
+// We have a lot of high-level casts that make the type-system work.
+// Don't delete them, fake they're being used.
+#![allow(dead_code)]
+
 use super::primitive::AsPrimitive;
 use super::num::{Integer};
 
@@ -49,7 +53,6 @@ as_cast!(f64, as_f64);
 
 /// High-level conversion of types using TryCast.
 #[inline(always)]
-#[allow(dead_code)]
 pub fn try_cast<U, T: TryCast<U>>(t: T) -> Option<U> {
     TryCast::try_cast(t)
 }

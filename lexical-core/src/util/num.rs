@@ -1,5 +1,9 @@
 //! Utilities for Rust numbers.
 
+// We have a lot of high-level casts that make the type-system work.
+// Don't delete them, fake they're being used.
+#![allow(dead_code)]
+
 pub(crate) use lib::{f32, f64, mem};
 use lib::{fmt, iter, ops};
 use super::cast::{AsCast, TryCast};
@@ -172,7 +176,7 @@ pub trait Integer:
     /// Get the fast ceiling of the quotient from integer division.
     /// Not safe, since the remainder can easily overflow.
     #[inline]
-    unsafe fn ceil_divmod(self, y: Self) -> (Self, i32) {
+    fn ceil_divmod(self, y: Self) -> (Self, i32) {
         let q = self / y;
         let r = self % y;
         match r.is_zero() {
@@ -184,14 +188,14 @@ pub trait Integer:
     /// Get the fast ceiling of the quotient from integer division.
     /// Not safe, since the remainder can easily overflow.
     #[inline]
-    unsafe fn ceil_div(self, y: Self) -> Self {
+    fn ceil_div(self, y: Self) -> Self {
         self.ceil_divmod(y).0
     }
 
     /// Get the fast ceiling modulus from integer division.
     /// Not safe, since the remainder can easily overflow.
     #[inline]
-    unsafe fn ceil_mod(self, y: Self) -> i32 {
+    fn ceil_mod(self, y: Self) -> i32 {
         self.ceil_divmod(y).1
     }
 
@@ -522,14 +526,12 @@ pub fn unwrap_or_min<T: Integer>(t: Option<T>) -> T {
 
 /// Try to convert to U, if not, return U::max_value().
 #[inline(always)]
-#[allow(dead_code)]
 pub fn try_cast_or_max<U: Integer, T: TryCast<U>>(t: T) -> U {
     unwrap_or_max(TryCast::try_cast(t))
 }
 
 /// Try to convert to U, if not, return U::min_value().
 #[inline(always)]
-#[allow(dead_code)]
 pub fn try_cast_or_min<U: Integer, T: TryCast<U>>(t: T) -> U {
     unwrap_or_min(TryCast::try_cast(t))
 }
@@ -1122,12 +1124,10 @@ mod tests {
 
     #[test]
     fn ceil_divmod_test() {
-        unsafe {
-            assert_eq!(5usize.ceil_divmod(7), (1, -2));
-            assert_eq!(0usize.ceil_divmod(7), (0, 0));
-            assert_eq!(35usize.ceil_divmod(7), (5, 0));
-            assert_eq!(36usize.ceil_divmod(7), (6, -6));
-        }
+        assert_eq!(5usize.ceil_divmod(7), (1, -2));
+        assert_eq!(0usize.ceil_divmod(7), (0, 0));
+        assert_eq!(35usize.ceil_divmod(7), (5, 0));
+        assert_eq!(36usize.ceil_divmod(7), (6, -6));
     }
 
     #[test]

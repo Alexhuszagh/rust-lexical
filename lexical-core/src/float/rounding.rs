@@ -5,24 +5,6 @@ use super::float::ExtendedFloat;
 use super::mantissa::Mantissa;
 use super::shift::*;
 
-// ENUM
-// ----
-
-/// Rounding type for float rounding.
-#[allow(dead_code)]
-#[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum RoundingKind {
-    /// Round to the nearest, tie to even.
-    NearestTieEven,
-    /// Round to the nearest, tie away from zero.
-    NearestTieAwayZero,
-    /// Round up (toward infinity, since ExtendedFloat is always positive).
-    TowardInfinity,
-    /// Round down (toward zero, since ExtendedFloat is always positive).
-    TowardZero,
-}
-
 // GENERIC
 // -------
 
@@ -104,7 +86,6 @@ pub(crate) fn tie_away_zero<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_hal
 /// which rounds to the nearest value, if the value is halfway in between,
 /// ties away from zero.
 #[inline]
-#[allow(dead_code)]
 pub(crate) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
 {
@@ -114,41 +95,65 @@ pub(crate) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, shift: i
 
 // DIRECTED ROUNDING
 
-/// Shift right N-bytes and round toward infinity.
+/// Shift right N-bytes and round towards a direction.
 ///
-/// Floating-point arithmetic defines round toward infinity, which rounds
-/// towards positive infinity.
+/// Return if we have any truncated bytes.
 #[inline]
-#[allow(dead_code)]
-pub(crate) fn round_toward_infinity<M>(fp: &mut ExtendedFloat<M>, shift: i32)
+pub(crate) fn round_toward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
+    -> bool
     where M: Mantissa
 {
-    // Extract the truncated bits using mask.
     let mask: M = lower_n_mask(as_cast(shift));
     let truncated_bits = fp.mant & mask;
 
     // Bit shift so the leading bit is in the hidden bit.
     overflowing_shr(fp, shift);
 
-    // If the truncated bits are non-zero, that is, any rounding error occurred,
-    // round-up.
-    if truncated_bits != M::ZERO {
+    truncated_bits != M::ZERO
+}
+
+/// Round toward infinity (always round up).
+#[inline]
+pub(crate) fn toward_infinity<M>(fp: &mut ExtendedFloat<M>, is_truncated: bool)
+    where M: Mantissa
+{
+    if is_truncated {
         fp.mant += M::ONE;
     }
 }
+
+/// Shift right N-bytes and round toward infinity.
+///
+/// Floating-point arithmetic defines round toward infinity, which rounds
+/// towards positive infinity.
+#[inline]
+pub(crate) fn round_toward_infinity<M>(fp: &mut ExtendedFloat<M>, shift: i32)
+    where M: Mantissa
+{
+    // If the truncated bits are non-zero, that is, any rounding error occurred,
+    // round-up.
+    let is_truncated = round_toward(fp, shift);
+    toward_infinity(fp, is_truncated);
+}
+
+/// Round toward zero (no-op).
+#[inline]
+pub(crate) fn toward_zero<M>(_: &mut ExtendedFloat<M>, _: bool)
+    where M: Mantissa
+{}
 
 /// Shift right N-bytes and round toward zero.
 ///
 /// Floating-point arithmetic defines round toward zero, which rounds
 /// towards positive zero.
 #[inline]
-#[allow(dead_code)]
 pub(crate) fn round_toward_zero<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
 {
     // Bit shift so the leading bit is in the hidden bit.
     // No rounding schemes, so we just ignore everything else.
-    overflowing_shr(fp, shift);
+    let is_truncated = round_toward(fp, shift);
+    toward_zero(fp, is_truncated);
 }
 
 // NATIVE FLOAT

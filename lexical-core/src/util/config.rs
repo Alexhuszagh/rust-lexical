@@ -1,5 +1,7 @@
 //! Config settings for lexical.
 
+use super::rounding::RoundingKind;
+
 // GLOBALS
 
 /// Not a Number literal
@@ -146,6 +148,10 @@ if #[cfg(target_pointer_width = "16")] {
 
 /// The maximum number of bytes that any number-to-string function may write.
 pub const BUFFER_SIZE: usize = MAX_F64_SIZE;
+
+/// The rounding scheme for float conversions.
+#[cfg(feature = "correct")]
+pub const FLOAT_ROUNDING: RoundingKind = RoundingKind::NearestTieEven;
 
 // FUNCTIONS
 

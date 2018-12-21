@@ -38,12 +38,7 @@ lazy_static = "1"
 ryu_impl = { version = "0.2", package = "ryu" }
 
 [features]
-default = ["bhcomp", "ryu", "std"]
-# Use algorithm M, which requires a system allocator.
-algorithm_m = ["correct", "lexical-core/algorithm_m"]
-# Use `b+h` comparison, which requires a system allocator with radix.
-# This is preferred, as it is the fastest algorithm in lexical.
-bhcomp = ["correct", "lexical-core/bhcomp"]
+default = ["correct", "ryu", "std"]
 # Use the correct atof parser.
 correct = ["lexical-core/correct"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
@@ -121,11 +116,6 @@ required-features = ["comprehensive_float_test"]
 # Benchmarks
 
 [[bench]]
-name = "algom"
-harness = false
-required-features = ["algorithm_m"]
-
-[[bench]]
 name = "atof"
 harness = false
 
@@ -135,10 +125,6 @@ harness = false
 
 [[bench]]
 name = "atoi"
-harness = false
-
-[[bench]]
-name = "bigcomp"
 harness = false
 
 [[bench]]

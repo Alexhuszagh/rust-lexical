@@ -322,7 +322,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
     {
         let cb = match kind {
             RoundingKind::NearestTieEven     => round_nearest_tie_even,
-            RoundingKind::NearestTieAwayZero => round_nearest_tie_even,
+            RoundingKind::NearestTieAwayZero => round_nearest_tie_away_zero,
             RoundingKind::TowardInfinity     => round_toward_infinity,
             RoundingKind::TowardZero         => round_toward_zero,
         };

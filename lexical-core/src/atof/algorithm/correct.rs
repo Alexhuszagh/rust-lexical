@@ -12,16 +12,11 @@ use lib::{iter, ptr, slice};
 use atoi;
 use float::*;
 use util::*;
+use super::alias::*;
 use super::cached::ModeratePathCache;
-use super::bigcomp;
+use super::bhcomp;
 use super::exponent::*;
 use super::small_powers::get_small_powers_64;
-
-#[cfg(feature = "algorithm_m")]
-use super::algorithm_m;
-
-#[cfg(feature = "bhcomp")]
-use super::bhcomp;
 
 // SHARED
 
@@ -65,13 +60,16 @@ impl<'a> FloatSlice<'a> {
         self.integer.len()
     }
 
-// TODO(ahuszagh) Remove conditional code paths.
-
     /// Get number of parsed integer digits.
     #[inline(always)]
-    #[allow(dead_code)]
     pub(super) fn integer_digits(&self) -> usize {
         self.integer_len()
+    }
+
+    /// Iterate over the integer digits.
+    #[inline]
+    pub(super) fn integer_iter(&self) -> SliceIter<u8> {
+        self.integer.iter()
     }
 
     /// Get the length of the fraction substring.
@@ -80,19 +78,37 @@ impl<'a> FloatSlice<'a> {
         self.fraction.len()
     }
 
-    /// Get number of parsed fraction digits.
+    /// Iterate over the fraction digits.
     #[inline(always)]
-    #[allow(dead_code)]
     pub(super) fn fraction_digits(&self) -> usize {
         self.fraction_len() - self.digits_start
+    }
+
+    /// Iterate over the digits, by chaining two slices.
+    #[inline]
+    pub(super) fn fraction_iter(&self) -> SliceIter<u8> {
+        // We need to rtrim the zeros in the slice fraction.
+        // These are useless and just add computational complexity later,
+        // just like leading zeros in the integer.
+        // We need them to calculate the number of truncated bytes,
+        // but we should remove them before doing anything costly.
+        // In practice, we only call `mantissa_iter()` once per parse,
+        // so this is effectively free.
+        let fraction = rtrim_char_slice(self.fraction, b'0').0;
+        fraction[self.digits_start..].iter()
     }
 
     /// Get the number of digits in the mantissa.
     /// Cannot overflow, since this is based off a single usize input string.
     #[inline(always)]
-    #[allow(dead_code)]
     pub(super) fn mantissa_digits(&self) -> usize {
         self.integer_digits() + self.fraction_digits()
+    }
+
+    /// Iterate over the mantissa digits, by chaining two slices.
+    #[inline]
+    pub(super) fn mantissa_iter(&self) -> ChainedSliceIter<u8> {
+        self.integer_iter().chain(self.fraction_iter())
     }
 
     /// Get number of truncated digits.
@@ -115,22 +131,6 @@ impl<'a> FloatSlice<'a> {
             false => self.digits_start,
         };
         scientific_exponent(self.raw_exponent, self.integer_digits(), fraction_start)
-    }
-
-    /// Iterate over the digits, by chaining two slices.
-    #[inline]
-    pub(super) fn digits_iter(&self)
-        -> iter::Cloned<iter::Chain<slice::Iter<'a, u8>, iter::Skip<slice::Iter<'a, u8>>>>
-    {
-        // We need to rtrim the zeros in the slice fraction.
-        // These are useless and just add computational complexity later,
-        // just like leading zeros in the integer.
-        // We need them to calculate the number of truncated bytes,
-        // but we should remove them before doing anything costly.
-        // In practice, we only call `digits_iter()` once per parse,
-        // so this is effectively free.
-        let fraction = rtrim_char_slice(self.fraction, b'0').0;
-        self.integer.iter().chain(fraction.iter().skip(self.digits_start)).cloned()
     }
 }
 
@@ -258,7 +258,7 @@ fn pow2_exponent(radix: u32) -> i32 {
 /// Detect if a value is exactly halfway.
 #[cfg(feature = "radix")]
 #[inline]
-fn is_halfway<F: Float>(mantissa: u64)
+fn is_halfway<F: FloatType>(mantissa: u64)
     -> bool
 {
     // Get the leading and trailing zeros from the least-significant bit.
@@ -282,7 +282,7 @@ fn is_halfway<F: Float>(mantissa: u64)
 #[inline]
 fn pow2_fast_path<F>(mantissa: u64, radix: u32, pow2_exp: i32, exponent: i32)
     -> F
-    where F: StablePower
+    where F: FloatType
 {
     debug_assert!(pow2_exp != 0, "Not a power of 2.");
 
@@ -322,7 +322,7 @@ fn pow2_fast_path<F>(mantissa: u64, radix: u32, pow2_exp: i32, exponent: i32)
 #[inline]
 fn fast_path<F>(mantissa: u64, radix: u32, exponent: i32)
     -> (F, bool)
-    where F: StablePower
+    where F: FloatType
 {
     debug_assert_radix!(radix);
     debug_assert!(pow2_exponent(radix) == 0, "Cannot use `fast_path` with a power of 2.");
@@ -550,8 +550,7 @@ fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32, expon
 pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, truncated: bool)
     -> (ExtendedFloat<M>, bool)
     where M: FloatErrors,
-          F: FloatRounding<M>,
-          F: StablePower,
+          F: FloatRounding<M> + StablePower,
           ExtendedFloat<M>: ModeratePathCache<M>
 {
     let mut fp = ExtendedFloat { mant: mantissa, exp: 0 };
@@ -566,9 +565,7 @@ pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, trunca
 #[inline]
 fn pow2_to_native<'a, F>(radix: u32, pow2_exp: i32, bytes: &'a [u8])
     -> (F, &'a [u8])
-    where F: FloatRounding<u64>,
-          F: FloatRounding<u128>,
-          F: StablePower
+    where F: FloatType
 {
     let (mut mantissa, slc, bytes, truncated) = parse_float::<u64>(radix, bytes);
 
@@ -601,11 +598,7 @@ fn pow2_to_native<'a, F>(radix: u32, pow2_exp: i32, bytes: &'a [u8])
 #[inline]
 fn pown_to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool)
     -> (F, &'a [u8])
-    where F: FloatRounding<u64>,
-          F: FloatRounding<u128>,
-          F: StablePower,
-          F::Unsigned: Mantissa,
-          ExtendedFloat<F::Unsigned>: bigcomp::ToBigInt<F::Unsigned>
+    where F: FloatType
 {
     let (mantissa, slc, bytes, _) = parse_float::<u64>(radix, bytes);
     let exponent = slc.mantissa_exponent();
@@ -633,35 +626,17 @@ fn pown_to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool)
     // Moderate path (use an extended 80-bit representation).
     let (fp, valid) = moderate_path::<F, _>(mantissa, radix, exponent, slc.truncated != 0);
     if valid || lossy {
-        return (fp.into_float::<F>(), bytes);
+        return (fp.into_rounded_float::<F>(FLOAT_ROUNDING), bytes);
     }
 
     // Slow path
     let b = fp.into_rounded_float::<F>(RoundingKind::TowardZero);
-    let iter = slc.digits_iter();
-    let sci_exp = slc.scientific_exponent();
-
     if b.is_special() {
         // We have a non-finite number, we get to leave early.
         return (b, bytes);
     } else {
-        // TODO(ahuszagh) Remove all but bhcomp
-        // TODO(ahuszagh) Make these functions safe...
-        #[cfg(feature = "algorithm_m")] {
-            // Use algorithm_m calculation.
-            let float = unsafe{algorithm_m::atof(iter, radix, sci_exp, b)};
-            return (float, bytes);
-        }
-        #[cfg(feature = "bhcomp")] {
-            // Use algorithm_m calculation.
-            let float = unsafe{bhcomp::atof(iter, radix, sci_exp, b)};
-            return (float, bytes);
-        }
-        #[cfg(not(any(feature = "algorithm_m", feature = "bhcomp")))] {
-            // Use bigcomp calculation.
-            let float = unsafe{bigcomp::atof(iter, radix, sci_exp, b, slc.mantissa_digits())};
-            return (float, bytes);
-        }
+        let float = bhcomp::atof(slc, radix, b);
+        return (float, bytes);
     }
 }
 
@@ -671,11 +646,7 @@ fn pown_to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool)
 #[inline]
 fn to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool)
     -> (F, &'a [u8])
-    where F: FloatRounding<u64>,
-          F: FloatRounding<u128>,
-          F: StablePower,
-          F::Unsigned: Mantissa,
-          ExtendedFloat<F::Unsigned>: bigcomp::ToBigInt<F::Unsigned>
+    where F: FloatType
 {
     #[cfg(not(feature = "radix"))] {
         pown_to_native(radix, bytes, lossy)
@@ -761,7 +732,7 @@ mod tests {
         where M: Mantissa
     {
         let (value, slc, bytes, _) = parse_mantissa::<M>(radix, s.as_bytes());
-        let digits: stackvector::StackVec<[u8; 1024]> = slc.digits_iter().collect();
+        let digits: stackvector::StackVec<[u8; 1024]> = slc.mantissa_iter().cloned().collect();
         let digits = str::from_utf8(&digits).unwrap();
         assert_eq!(value, tup.0);
         assert_eq!(slc.integer_len(), tup.1);
@@ -803,7 +774,7 @@ mod tests {
         where M: Mantissa
     {
         let (value, slc, bytes, truncated) = parse_float::<M>(radix, s.as_bytes());
-        let digits: stackvector::StackVec<[u8; 1024]> = slc.digits_iter().collect();
+        let digits: stackvector::StackVec<[u8; 1024]> = slc.mantissa_iter().cloned().collect();
         let digits = str::from_utf8(&digits).unwrap();
         assert_eq!(value, tup.0);
         assert_eq!(slc.mantissa_exponent(), tup.1);

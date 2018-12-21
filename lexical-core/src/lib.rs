@@ -88,7 +88,7 @@
 
 // Require intrinsics in a no_std context.
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(all(not(feature = "std"), any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"), feature(alloc))]
+#![cfg_attr(all(not(feature = "std"), feature = "correct", feature = "radix"), feature(alloc))]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
 
 // DEPENDENCIES
@@ -117,7 +117,7 @@ extern crate proptest;
 
 // Use vec if there is a system allocator, which we require only if
 // we're using the correct and radix features.
-#[cfg(all(not(feature = "std"), any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
+#[cfg(all(not(feature = "std"), feature = "correct", feature = "radix"))]
 #[cfg_attr(test, macro_use)]
 extern crate alloc;
 
@@ -129,10 +129,6 @@ extern crate stackvector;
 // Ensure only one back-end is enabled.
 #[cfg(all(feature = "grisu3", feature = "ryu"))]
 compile_error!("Lexical only accepts one of the following backends: `grisu3` or `ryu`.");
-
-// Ensure only one float parsing algorithm is enabled.
-#[cfg(all(feature = "algorithm_m", feature = "bhcomp"))]
-compile_error!("Lexical only accepts one of the following float-parsing algorithms: `algorithm_m` or `bhcomp`.");
 
 // Import the back-end, if applicable.
 cfg_if! {
@@ -151,7 +147,7 @@ pub(crate) use std::*;
 pub(crate) use core::*;
 
 cfg_if! {
-if #[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))] {
+if #[cfg(all(feature = "correct", feature = "radix"))] {
     #[cfg(feature = "std")]
     pub(crate) use std::vec::Vec;
 
@@ -189,6 +185,10 @@ pub use util::BUFFER_SIZE;
 pub use util::{MAX_I8_SIZE, MAX_I16_SIZE, MAX_I32_SIZE, MAX_I64_SIZE, MAX_I128_SIZE, MAX_ISIZE_SIZE};
 pub use util::{MAX_U8_SIZE, MAX_U16_SIZE, MAX_U32_SIZE, MAX_U64_SIZE, MAX_U128_SIZE, MAX_USIZE_SIZE};
 pub use util::{MAX_F32_SIZE, MAX_F64_SIZE};
+
+// Re-export the float rounding scheme used.
+#[cfg(feature = "correct")]
+pub use util::FLOAT_ROUNDING;
 
 // Re-export the result struct and expanded-template variants (for FFI).
 pub use util::Result;

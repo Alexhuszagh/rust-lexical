@@ -127,10 +127,7 @@ Ideally, Lexical's float-parsing algorithm or approach would be incorporated int
 
 1. It supports non-decimal radices for float parsing, leading to significant binary bloat and increased code branching, for almost non-existent use-cases.
 2. It inlines aggressively, producing significant binary bloat.
-3. It makes extensive use of unsafe Rust, potentially hiding serious memory errors or other bugs.
-4. It contains effectively dead code for efficient higher-order arbitrary-precision integer algorithms, for rare use-cases requiring asymptotically faster algorithms.
-
-I would love to contribute lexical back to the Rust community, however, some significant modifications would be needed. If there's a desire by the Rust team to incorporate lexical's float-parsing algorithm into libcore, I would glad re-write lexical, supporting only decimal strings and minimizing the use of unsafe code.
+3. It contains effectively dead code for efficient higher-order arbitrary-precision integer algorithms, for rare use-cases requiring asymptotically faster algorithms.
 
 # License
 

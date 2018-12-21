@@ -1,7 +1,7 @@
 //! Precalculated large powers for prime numbers for `b^2^i`.
 //!
 //! We only need powers such that `b^n <= 2^1075` for `bigcomp`.
-//! However, for `algorithm_m`, we need at least as many digits as are
+//! However, for `bhcomp`, we need at least as many digits as are
 //! input. We tentatively accept up to ~2^15.
 //!
 //! The larger powers are **quite** large (~3Kb per radix), so we'd rather
@@ -28,7 +28,7 @@ use super::large_powers_64::*;
 // HELPER
 
 /// Get the correct large power from the radix.
-#[allow(dead_code, unused_variables)]
+#[allow(unused_variables)]
 pub(in atof::algorithm) fn get_large_powers(radix: u32)
     -> &'static [&'static [Limb]]
 {

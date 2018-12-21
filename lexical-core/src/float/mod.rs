@@ -10,4 +10,4 @@ pub(crate) mod shift;
 // Re-export the extended-precision floating-point type.
 pub use self::float::{ExtendedFloat, ExtendedFloat80, ExtendedFloat160};
 pub use self::mantissa::Mantissa;
-pub use self::rounding::{FloatRounding, RoundingKind};
+pub use self::rounding::{FloatRounding};

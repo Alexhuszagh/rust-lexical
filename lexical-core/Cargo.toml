@@ -30,17 +30,12 @@ quickcheck = "0.7"
 proptest = "0.8.7"
 
 [features]
-default = ["bhcomp", "ryu", "std"]
-# Use algorithm M, which requires a system allocator with radix.
-algorithm_m = ["correct"]
-# Use `b+h` comparison, which requires a system allocator with radix.
-# This is preferred, as it is the fastest algorithm in lexical.
-bhcomp = ["correct"]
+default = ["correct", "ryu", "std"]
 # Use the correct atof parser.
 correct = ["stackvector", "table"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["dtoa"]
-# Add support for [parsing non-decimal float and integer strings.
+# Add support for parsing non-decimal float and integer strings.
 radix = []
 # Use the `std` library.
 std = []

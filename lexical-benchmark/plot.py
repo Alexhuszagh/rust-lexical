@@ -16,12 +16,6 @@ with open(os.path.join(HOME, "results", "golang.json"), 'r') as f:
 with open(os.path.join(HOME, "results", "lexical.json"), 'r') as f:
     LEXICAL = json.load(f)
 
-with open(os.path.join(HOME, "results", "lexical_algom.json"), 'r') as f:
-    LEXICAL_ALGOM = json.load(f)
-
-with open(os.path.join(HOME, "results", "lexical_bhcomp.json"), 'r') as f:
-    LEXICAL_BHCOMP = json.load(f)
-
 with open(os.path.join(HOME, "results", "libcore.json"), 'r') as f:
     LIBCORE = json.load(f)
 
@@ -51,8 +45,6 @@ def plot_digits():
     double_conversion = np.array([DOUBLE_CONVERSION[k][1] for k in keys])
     golang = np.array([GOLANG[k][1] for k in keys])
     lexical = np.array([LEXICAL[k][1] for k in keys])
-    lexical_algom = np.array([LEXICAL_ALGOM[k][1] for k in keys])
-    lexical_bhcomp = np.array([LEXICAL_BHCOMP[k][1] for k in keys])
     libcore = np.array([LIBCORE[k][1] for k in keys])
     python = np.array([PYTHON[k][1] for k in keys])
     rapidjson = np.array([RAPIDJSON[k][1] for k in keys])
@@ -63,8 +55,6 @@ def plot_digits():
         'double_conversion': double_conversion,
         'golang': golang,
         'lexical': lexical,
-        'lexical_algom': lexical_algom,
-        'lexical_bhcomp': lexical_bhcomp,
         'libcore': libcore,
         'python': python,
         'rapidjson': rapidjson,
@@ -86,8 +76,6 @@ def plot_series(keys, prefix):
     double_conversion = np.array([DOUBLE_CONVERSION[k][1] for k in keys])
     golang = np.array([GOLANG[k][1] for k in keys])
     lexical = np.array([LEXICAL[k][1] for k in keys])
-    lexical_algom = np.array([LEXICAL_ALGOM[k][1] for k in keys])
-    lexical_bhcomp = np.array([LEXICAL_BHCOMP[k][1] for k in keys])
     libcore = np.array([LIBCORE[k][1] for k in keys])
     python = np.array([PYTHON[k][1] for k in keys])
     rapidjson = np.array([RAPIDJSON[k][1] for k in keys])
@@ -98,8 +86,6 @@ def plot_series(keys, prefix):
         'double_conversion': double_conversion,
         'golang': golang,
         'lexical': lexical,
-        'lexical_algom': lexical_algom,
-        'lexical_bhcomp': lexical_bhcomp,
         'libcore': libcore,
         'python': python,
         'rapidjson': rapidjson,

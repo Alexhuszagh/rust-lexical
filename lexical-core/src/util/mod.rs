@@ -23,6 +23,7 @@ mod num;
 mod primitive;
 mod pow;
 mod result;
+mod rounding;
 mod sign;
 mod table;
 
@@ -40,6 +41,7 @@ pub(crate) use self::mask::*;
 pub(crate) use self::num::*;
 pub(crate) use self::primitive::*;
 pub(crate) use self::pow::*;
+pub(crate) use self::rounding::*;
 pub(crate) use self::sign::*;
 pub(crate) use self::table::*;
 
@@ -54,3 +56,4 @@ if #[cfg(feature = "correct")] {
 pub use self::config::*;
 pub use self::error::{Error, ErrorCode, is_empty, is_invalid_digit, is_overflow, is_success};
 pub use self::result::*;
+pub use self::rounding::RoundingKind;

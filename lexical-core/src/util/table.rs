@@ -18,7 +18,7 @@ pub(crate) fn digit_to_char<T: Integer>(digit: T) -> u8 {
 /// Translation table for a character to a digit, of any radix.
 ///
 /// To check if the radix is actually valid, you may use:
-/// `let x = CHAR_TO_DIGIT.get_unchecked(char); x < radix`.
+/// `let x = CHAR_TO_DIGIT[char]; x < radix`.
 ///
 /// This is going to get translated to different type sizes, just use
 /// a small size for compactness.

@@ -4,6 +4,10 @@
 //! buffers, so for a `vec![0, 1, 2, 3]`, `3` is the most significant limb,
 //! and `0` is the least significant limb.
 
+// We have a lot of higher-order, efficient math routines that may
+// come in handy later. These aren't trivial to implement, so keep them.
+#![allow(dead_code)]
+
 use util::*;
 
 // ALIASES
@@ -74,7 +78,6 @@ fn as_signed_wide<T: Integer>(t: T)
 
 /// Split u16 into limbs, in little-endian order.
 #[inline(always)]
-#[allow(dead_code)]
 fn split_u16(x: u16) -> [Limb; 1] {
     [as_limb(x)]
 }
@@ -140,7 +143,6 @@ fn split_u128(x: u128) -> [Limb; 2] {
 
 /// Check if any of the remaining bits are non-zero.
 #[inline(always)]
-#[allow(dead_code)]
 pub fn nonzero<T: Integer>(x: &[T], rindex: usize) -> bool {
     let len = x.len();
     let slc = &x[..len-rindex];
@@ -202,36 +204,36 @@ fn u64_to_hi16_2(r0: u64, r1: u64) -> (u16, bool) {
 /// Trait to export the high 16-bits from a little-endian slice.
 trait Hi16<T>: Len<T> {
     /// Get the hi16 bits from a 1-limb slice.
-    unsafe fn hi16_1(&self) -> (u16, bool);
+    fn hi16_1(&self) -> (u16, bool);
 
     /// Get the hi16 bits from a 2-limb slice.
-    unsafe fn hi16_2(&self) -> (u16, bool);
+    fn hi16_2(&self) -> (u16, bool);
 
     /// High-level exporter to extract the high 16 bits from a little-endian slice.
     fn hi16(&self) -> (u16, bool) {
-        unsafe {
-            match self.len() {
-                0 => (0, false),
-                1 => self.hi16_1(),
-                _ => self.hi16_2(),
-            }
+        match self.len() {
+            0 => (0, false),
+            1 => self.hi16_1(),
+            _ => self.hi16_2(),
         }
     }
 }
 
 impl Hi16<u16> for [u16] {
     #[inline(always)]
-    unsafe fn hi16_1(&self) -> (u16, bool) {
+    fn hi16_1(&self) -> (u16, bool) {
         debug_assert!(self.len() == 1);
-        let r0 = *self.rget_unchecked(0);
+        let rview = self.rview();
+        let r0 = rview[0];
         u16_to_hi16_1(r0)
     }
 
     #[inline(always)]
-    unsafe fn hi16_2(&self) -> (u16, bool) {
+    fn hi16_2(&self) -> (u16, bool) {
         debug_assert!(self.len() == 2);
-        let r0 = *self.rget_unchecked(0);
-        let r1 = *self.rget_unchecked(1);
+        let rview = self.rview();
+        let r0 = rview[0];
+        let r1 = rview[1];
         let (v, n) = u16_to_hi16_2(r0, r1);
         (v, n || nonzero(self, 2))
     }
@@ -239,17 +241,19 @@ impl Hi16<u16> for [u16] {
 
 impl Hi16<u32> for [u32] {
     #[inline(always)]
-    unsafe fn hi16_1(&self) -> (u16, bool) {
+    fn hi16_1(&self) -> (u16, bool) {
         debug_assert!(self.len() == 1);
-        let r0 = *self.rget_unchecked(0);
+        let rview = self.rview();
+        let r0 = rview[0];
         u32_to_hi16_1(r0)
     }
 
     #[inline(always)]
-    unsafe fn hi16_2(&self) -> (u16, bool) {
+    fn hi16_2(&self) -> (u16, bool) {
         debug_assert!(self.len() == 2);
-        let r0 = *self.rget_unchecked(0);
-        let r1 = *self.rget_unchecked(1);
+        let rview = self.rview();
+        let r0 = rview[0];
+        let r1 = rview[1];
         let (v, n) = u32_to_hi16_2(r0, r1);
         (v, n || nonzero(self, 2))
     }
@@ -257,17 +261,19 @@ impl Hi16<u32> for [u32] {
 
 impl Hi16<u64> for [u64] {
     #[inline(always)]
-    unsafe fn hi16_1(&self) -> (u16, bool) {
+    fn hi16_1(&self) -> (u16, bool) {
         debug_assert!(self.len() == 1);
-        let r0 = *self.rget_unchecked(0);
+        let rview = self.rview();
+        let r0 = rview[0];
         u64_to_hi16_1(r0)
     }
 
     #[inline(always)]
-    unsafe fn hi16_2(&self) -> (u16, bool) {
+    fn hi16_2(&self) -> (u16, bool) {
         debug_assert!(self.len() == 2);
-        let r0 = *self.rget_unchecked(0);
-        let r1 = *self.rget_unchecked(1);
+        let rview = self.rview();
+        let r0 = rview[0];
+        let r1 = rview[1];
         let (v, n) = u64_to_hi16_2(r0, r1);
         (v, n || nonzero(self, 2))
     }
@@ -314,49 +320,49 @@ fn u64_to_hi32_2(r0: u64, r1: u64) -> (u32, bool) {
 /// Trait to export the high 32-bits from a little-endian slice.
 trait Hi32<T>: Len<T> {
     /// Get the hi32 bits from a 1-limb slice.
-    unsafe fn hi32_1(&self) -> (u32, bool);
+    fn hi32_1(&self) -> (u32, bool);
 
     /// Get the hi32 bits from a 2-limb slice.
-    unsafe fn hi32_2(&self) -> (u32, bool);
+    fn hi32_2(&self) -> (u32, bool);
 
     /// Get the hi32 bits from a 3-limb slice.
-    unsafe fn hi32_3(&self) -> (u32, bool);
+    fn hi32_3(&self) -> (u32, bool);
 
     /// High-level exporter to extract the high 32 bits from a little-endian slice.
     fn hi32(&self) -> (u32, bool) {
-        unsafe {
-            match self.len() {
-                0 => (0, false),
-                1 => self.hi32_1(),
-                2 => self.hi32_2(),
-                _ => self.hi32_3(),
-            }
+        match self.len() {
+            0 => (0, false),
+            1 => self.hi32_1(),
+            2 => self.hi32_2(),
+            _ => self.hi32_3(),
         }
     }
 }
 
 impl Hi32<u16> for [u16] {
     #[inline(always)]
-    unsafe fn hi32_1(&self) -> (u32, bool) {
+    fn hi32_1(&self) -> (u32, bool) {
         debug_assert!(self.len() == 1);
-        let r0 = self.rget_unchecked(0).as_u32();
-        u32_to_hi32_1(r0)
+        let rview = self.rview();
+        u32_to_hi32_1(rview[0].as_u32())
     }
 
     #[inline(always)]
-    unsafe fn hi32_2(&self) -> (u32, bool) {
+    fn hi32_2(&self) -> (u32, bool) {
         debug_assert!(self.len() == 2);
-        let r0 = self.rget_unchecked(0).as_u32() << 16;
-        let r1 = self.rget_unchecked(1).as_u32();
+        let rview = self.rview();
+        let r0 = rview[0].as_u32() << 16;
+        let r1 = rview[1].as_u32();
         u32_to_hi32_1(r0 | r1)
     }
 
     #[inline(always)]
-    unsafe fn hi32_3(&self) -> (u32, bool) {
+    fn hi32_3(&self) -> (u32, bool) {
         debug_assert!(self.len() >= 3);
-        let r0 = self.rget_unchecked(0).as_u32();
-        let r1 = self.rget_unchecked(1).as_u32() << 16;
-        let r2 = self.rget_unchecked(2).as_u32();
+        let rview = self.rview();
+        let r0 = rview[0].as_u32();
+        let r1 = rview[1].as_u32() << 16;
+        let r2 = rview[2].as_u32();
         let (v, n) = u32_to_hi32_2( r0, r1 | r2);
         (v, n || nonzero(self, 3))
     }
@@ -364,46 +370,50 @@ impl Hi32<u16> for [u16] {
 
 impl Hi32<u32> for [u32] {
     #[inline(always)]
-    unsafe fn hi32_1(&self) -> (u32, bool) {
+    fn hi32_1(&self) -> (u32, bool) {
         debug_assert!(self.len() == 1);
-        let r0 = *self.rget_unchecked(0);
+        let rview = self.rview();
+        let r0 = rview[0];
         u32_to_hi32_1(r0)
     }
 
     #[inline(always)]
-    unsafe fn hi32_2(&self) -> (u32, bool) {
+    fn hi32_2(&self) -> (u32, bool) {
         debug_assert!(self.len() >= 2);
-        let r0 = *self.rget_unchecked(0);
-        let r1 = *self.rget_unchecked(1);
+        let rview = self.rview();
+        let r0 = rview[0];
+        let r1 = rview[1];
         let (v, n) = u32_to_hi32_2(r0, r1);
         (v, n || nonzero(self, 2))
     }
 
     #[inline(always)]
-    unsafe fn hi32_3(&self) -> (u32, bool) {
+    fn hi32_3(&self) -> (u32, bool) {
         self.hi32_2()
     }
 }
 
 impl Hi32<u64> for [u64] {
     #[inline(always)]
-    unsafe fn hi32_1(&self) -> (u32, bool) {
+    fn hi32_1(&self) -> (u32, bool) {
         debug_assert!(self.len() == 1);
-        let r0 = *self.rget_unchecked(0);
+        let rview = self.rview();
+        let r0 = rview[0];
         u64_to_hi32_1(r0)
     }
 
     #[inline(always)]
-    unsafe fn hi32_2(&self) -> (u32, bool) {
+    fn hi32_2(&self) -> (u32, bool) {
         debug_assert!(self.len() >= 2);
-        let r0 = *self.rget_unchecked(0);
-        let r1 = *self.rget_unchecked(1);
+        let rview = self.rview();
+        let r0 = rview[0];
+        let r1 = rview[1];
         let (v, n) = u64_to_hi32_2(r0, r1);
         (v, n || nonzero(self, 2))
     }
 
     #[inline(always)]
-    unsafe fn hi32_3(&self) -> (u32, bool) {
+    fn hi32_3(&self) -> (u32, bool) {
         self.hi32_2()
     }
 }
@@ -435,78 +445,81 @@ fn u64_to_hi64_2(r0: u64, r1: u64) -> (u64, bool) {
 /// Trait to export the high 64-bits from a little-endian slice.
 trait Hi64<T>: Len<T> {
     /// Get the hi64 bits from a 1-limb slice.
-    unsafe fn hi64_1(&self) -> (u64, bool);
+    fn hi64_1(&self) -> (u64, bool);
 
     /// Get the hi64 bits from a 2-limb slice.
-    unsafe fn hi64_2(&self) -> (u64, bool);
+    fn hi64_2(&self) -> (u64, bool);
 
     /// Get the hi64 bits from a 3-limb slice.
-    unsafe fn hi64_3(&self) -> (u64, bool);
+    fn hi64_3(&self) -> (u64, bool);
 
     /// Get the hi64 bits from a 4-limb slice.
-    unsafe fn hi64_4(&self) -> (u64, bool);
+    fn hi64_4(&self) -> (u64, bool);
 
     /// Get the hi64 bits from a 5-limb slice.
-    unsafe fn hi64_5(&self) -> (u64, bool);
+    fn hi64_5(&self) -> (u64, bool);
 
     /// High-level exporter to extract the high 64 bits from a little-endian slice.
     fn hi64(&self) -> (u64, bool) {
-        unsafe {
-            match self.len() {
-                0 => (0, false),
-                1 => self.hi64_1(),
-                2 => self.hi64_2(),
-                3 => self.hi64_3(),
-                4 => self.hi64_4(),
-                _ => self.hi64_5(),
-            }
+        match self.len() {
+            0 => (0, false),
+            1 => self.hi64_1(),
+            2 => self.hi64_2(),
+            3 => self.hi64_3(),
+            4 => self.hi64_4(),
+            _ => self.hi64_5(),
         }
     }
 }
 
 impl Hi64<u16> for [u16] {
     #[inline(always)]
-    unsafe fn hi64_1(&self) -> (u64, bool) {
+    fn hi64_1(&self) -> (u64, bool) {
         debug_assert!(self.len() == 1);
-        let r0 = self.rget_unchecked(0).as_u64();
+        let rview = self.rview();
+        let r0 = rview[0].as_u64();
         u64_to_hi64_1(r0)
     }
 
     #[inline(always)]
-    unsafe fn hi64_2(&self) -> (u64, bool) {
+    fn hi64_2(&self) -> (u64, bool) {
         debug_assert!(self.len() == 2);
-        let r0 = self.rget_unchecked(0).as_u64() << 16;
-        let r1 = self.rget_unchecked(1).as_u64();
+        let rview = self.rview();
+        let r0 = rview[0].as_u64() << 16;
+        let r1 = rview[1].as_u64();
         u64_to_hi64_1(r0 | r1)
     }
 
     #[inline(always)]
-    unsafe fn hi64_3(&self) -> (u64, bool) {
+    fn hi64_3(&self) -> (u64, bool) {
         debug_assert!(self.len() == 3);
-        let r0 = self.rget_unchecked(0).as_u64() << 32;
-        let r1 = self.rget_unchecked(1).as_u64() << 16;
-        let r2 = self.rget_unchecked(2).as_u64();
+        let rview = self.rview();
+        let r0 = rview[0].as_u64() << 32;
+        let r1 = rview[1].as_u64() << 16;
+        let r2 = rview[2].as_u64();
         u64_to_hi64_1(r0 | r1 | r2)
     }
 
     #[inline(always)]
-    unsafe fn hi64_4(&self) -> (u64, bool) {
+    fn hi64_4(&self) -> (u64, bool) {
         debug_assert!(self.len() == 4);
-        let r0 = self.rget_unchecked(0).as_u64() << 48;
-        let r1 = self.rget_unchecked(1).as_u64() << 32;
-        let r2 = self.rget_unchecked(2).as_u64() << 16;
-        let r3 = self.rget_unchecked(3).as_u64();
+        let rview = self.rview();
+        let r0 = rview[0].as_u64() << 48;
+        let r1 = rview[1].as_u64() << 32;
+        let r2 = rview[2].as_u64() << 16;
+        let r3 = rview[3].as_u64();
         u64_to_hi64_1(r0 | r1 | r2 | r3)
     }
 
     #[inline(always)]
-    unsafe fn hi64_5(&self) -> (u64, bool) {
+    fn hi64_5(&self) -> (u64, bool) {
         debug_assert!(self.len() >= 5);
-        let r0 = self.rget_unchecked(0).as_u64();
-        let r1 = self.rget_unchecked(1).as_u64() << 48;
-        let r2 = self.rget_unchecked(2).as_u64() << 32;
-        let r3 = self.rget_unchecked(3).as_u64() << 16;
-        let r4 = self.rget_unchecked(4).as_u64();
+        let rview = self.rview();
+        let r0 = rview[0].as_u64();
+        let r1 = rview[1].as_u64() << 48;
+        let r2 = rview[2].as_u64() << 32;
+        let r3 = rview[3].as_u64() << 16;
+        let r4 = rview[4].as_u64();
         let (v, n) = u64_to_hi64_2(r0, r1 | r2 | r3 | r4);
         (v, n || nonzero(self, 5))
     }
@@ -514,70 +527,75 @@ impl Hi64<u16> for [u16] {
 
 impl Hi64<u32> for [u32] {
     #[inline(always)]
-    unsafe fn hi64_1(&self) -> (u64, bool) {
+    fn hi64_1(&self) -> (u64, bool) {
         debug_assert!(self.len() == 1);
-        let r0 = self.rget_unchecked(0).as_u64();
+        let rview = self.rview();
+        let r0 = rview[0].as_u64();
         u64_to_hi64_1(r0)
     }
 
     #[inline(always)]
-    unsafe fn hi64_2(&self) -> (u64, bool) {
+    fn hi64_2(&self) -> (u64, bool) {
         debug_assert!(self.len() == 2);
-        let r0 = self.rget_unchecked(0).as_u64() << 32;
-        let r1 = self.rget_unchecked(1).as_u64();
+        let rview = self.rview();
+        let r0 = rview[0].as_u64() << 32;
+        let r1 = rview[1].as_u64();
         u64_to_hi64_1(r0 | r1)
     }
 
     #[inline(always)]
-    unsafe fn hi64_3(&self) -> (u64, bool) {
+    fn hi64_3(&self) -> (u64, bool) {
         debug_assert!(self.len() >= 3);
-        let r0 = self.rget_unchecked(0).as_u64();
-        let r1 = self.rget_unchecked(1).as_u64() << 32;
-        let r2 = self.rget_unchecked(2).as_u64();
+        let rview = self.rview();
+        let r0 = rview[0].as_u64();
+        let r1 = rview[1].as_u64() << 32;
+        let r2 = rview[2].as_u64();
         let (v, n) = u64_to_hi64_2(r0, r1 | r2);
         (v, n || nonzero(self, 3))
     }
 
     #[inline(always)]
-    unsafe fn hi64_4(&self) -> (u64, bool) {
+    fn hi64_4(&self) -> (u64, bool) {
         self.hi64_3()
     }
 
     #[inline(always)]
-    unsafe fn hi64_5(&self) -> (u64, bool) {
+    fn hi64_5(&self) -> (u64, bool) {
         self.hi64_3()
     }
 }
 
 impl Hi64<u64> for [u64] {
     #[inline(always)]
-    unsafe fn hi64_1(&self) -> (u64, bool) {
+    fn hi64_1(&self) -> (u64, bool) {
         debug_assert!(self.len() == 1);
-        let r0 = *self.rget_unchecked(0);
+        let rview = self.rview();
+        let r0 = rview[0];
         u64_to_hi64_1(r0)
     }
 
     #[inline(always)]
-    unsafe fn hi64_2(&self) -> (u64, bool) {
+    fn hi64_2(&self) -> (u64, bool) {
         debug_assert!(self.len() >= 2);
-        let r0 = self.rget_unchecked(0).as_u64();
-        let r1 = self.rget_unchecked(1).as_u64();
+        let rview = self.rview();
+        let r0 = rview[0];
+        let r1 = rview[1];
         let (v, n) = u64_to_hi64_2(r0, r1);
         (v, n || nonzero(self, 2))
     }
 
     #[inline(always)]
-    unsafe fn hi64_3(&self) -> (u64, bool) {
+    fn hi64_3(&self) -> (u64, bool) {
         self.hi64_2()
     }
 
     #[inline(always)]
-    unsafe fn hi64_4(&self) -> (u64, bool) {
+    fn hi64_4(&self) -> (u64, bool) {
         self.hi64_2()
     }
 
     #[inline(always)]
-    unsafe fn hi64_5(&self) -> (u64, bool) {
+    fn hi64_5(&self) -> (u64, bool) {
         self.hi64_2()
     }
 }
@@ -604,147 +622,154 @@ fn u128_to_hi128_2(r0: u128, r1: u128) -> (u128, bool) {
 /// Trait to export the high 128-bits from a little-endian slice.
 trait Hi128<T>: Len<T> {
     /// Get the hi128 bits from a 1-limb slice.
-    unsafe fn hi128_1(&self) -> (u128, bool);
+    fn hi128_1(&self) -> (u128, bool);
 
     /// Get the hi128 bits from a 2-limb slice.
-    unsafe fn hi128_2(&self) -> (u128, bool);
+    fn hi128_2(&self) -> (u128, bool);
 
     /// Get the hi128 bits from a 3-limb slice.
-    unsafe fn hi128_3(&self) -> (u128, bool);
+    fn hi128_3(&self) -> (u128, bool);
 
     /// Get the hi128 bits from a 4-limb slice.
-    unsafe fn hi128_4(&self) -> (u128, bool);
+    fn hi128_4(&self) -> (u128, bool);
 
     /// Get the hi128 bits from a 5-limb slice.
-    unsafe fn hi128_5(&self) -> (u128, bool);
+    fn hi128_5(&self) -> (u128, bool);
 
     /// Get the hi128 bits from a 5-limb slice.
-    unsafe fn hi128_6(&self) -> (u128, bool);
+    fn hi128_6(&self) -> (u128, bool);
 
     /// Get the hi128 bits from a 5-limb slice.
-    unsafe fn hi128_7(&self) -> (u128, bool);
+    fn hi128_7(&self) -> (u128, bool);
 
     /// Get the hi128 bits from a 5-limb slice.
-    unsafe fn hi128_8(&self) -> (u128, bool);
+    fn hi128_8(&self) -> (u128, bool);
 
     /// Get the hi128 bits from a 5-limb slice.
-    unsafe fn hi128_9(&self) -> (u128, bool);
+    fn hi128_9(&self) -> (u128, bool);
 
     /// High-level exporter to extract the high 128 bits from a little-endian slice.
     fn hi128(&self) -> (u128, bool) {
-        unsafe {
-            match self.len() {
-                0 => (0, false),
-                1 => self.hi128_1(),
-                2 => self.hi128_2(),
-                3 => self.hi128_3(),
-                4 => self.hi128_4(),
-                6 => self.hi128_6(),
-                7 => self.hi128_7(),
-                8 => self.hi128_8(),
-                _ => self.hi128_9(),
-            }
+        match self.len() {
+            0 => (0, false),
+            1 => self.hi128_1(),
+            2 => self.hi128_2(),
+            3 => self.hi128_3(),
+            4 => self.hi128_4(),
+            6 => self.hi128_6(),
+            7 => self.hi128_7(),
+            8 => self.hi128_8(),
+            _ => self.hi128_9(),
         }
     }
 }
 
 impl Hi128<u16> for [u16] {
     #[inline(always)]
-    unsafe fn hi128_1(&self) -> (u128, bool) {
+    fn hi128_1(&self) -> (u128, bool) {
         debug_assert!(self.len() == 1);
-        let r0 = self.rget_unchecked(0).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128();
         u128_to_hi128_1(r0)
     }
 
     #[inline(always)]
-    unsafe fn hi128_2(&self) -> (u128, bool) {
+    fn hi128_2(&self) -> (u128, bool) {
         debug_assert!(self.len() == 2);
-        let r0 = self.rget_unchecked(0).as_u128() << 16;
-        let r1 = self.rget_unchecked(1).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128() << 16;
+        let r1 = rview[1].as_u128();
         u128_to_hi128_1(r0 | r1)
     }
 
     #[inline(always)]
-    unsafe fn hi128_3(&self) -> (u128, bool) {
+    fn hi128_3(&self) -> (u128, bool) {
         debug_assert!(self.len() == 3);
-        let r0 = self.rget_unchecked(0).as_u128() << 32;
-        let r1 = self.rget_unchecked(1).as_u128() << 16;
-        let r2 = self.rget_unchecked(2).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128() << 32;
+        let r1 = rview[1].as_u128() << 16;
+        let r2 = rview[2].as_u128();
         u128_to_hi128_1(r0 | r1 | r2)
     }
 
     #[inline(always)]
-    unsafe fn hi128_4(&self) -> (u128, bool) {
+    fn hi128_4(&self) -> (u128, bool) {
         debug_assert!(self.len() == 4);
-        let r0 = self.rget_unchecked(0).as_u128() << 48;
-        let r1 = self.rget_unchecked(1).as_u128() << 32;
-        let r2 = self.rget_unchecked(2).as_u128() << 16;
-        let r3 = self.rget_unchecked(3).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128() << 48;
+        let r1 = rview[1].as_u128() << 32;
+        let r2 = rview[2].as_u128() << 16;
+        let r3 = rview[3].as_u128();
         u128_to_hi128_1(r0 | r1 | r2 | r3)
     }
 
     #[inline(always)]
-    unsafe fn hi128_5(&self) -> (u128, bool) {
+    fn hi128_5(&self) -> (u128, bool) {
         debug_assert!(self.len() == 5);
-        let r0 = self.rget_unchecked(0).as_u128() << 64;
-        let r1 = self.rget_unchecked(1).as_u128() << 48;
-        let r2 = self.rget_unchecked(2).as_u128() << 32;
-        let r3 = self.rget_unchecked(3).as_u128() << 16;
-        let r4 = self.rget_unchecked(4).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128() << 64;
+        let r1 = rview[1].as_u128() << 48;
+        let r2 = rview[2].as_u128() << 32;
+        let r3 = rview[3].as_u128() << 16;
+        let r4 = rview[4].as_u128();
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4)
     }
 
     #[inline(always)]
-    unsafe fn hi128_6(&self) -> (u128, bool) {
+    fn hi128_6(&self) -> (u128, bool) {
         debug_assert!(self.len() == 6);
-        let r0 = self.rget_unchecked(0).as_u128() << 80;
-        let r1 = self.rget_unchecked(1).as_u128() << 64;
-        let r2 = self.rget_unchecked(2).as_u128() << 48;
-        let r3 = self.rget_unchecked(3).as_u128() << 32;
-        let r4 = self.rget_unchecked(4).as_u128() << 16;
-        let r5 = self.rget_unchecked(5).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128() << 80;
+        let r1 = rview[1].as_u128() << 64;
+        let r2 = rview[2].as_u128() << 48;
+        let r3 = rview[3].as_u128() << 32;
+        let r4 = rview[4].as_u128() << 16;
+        let r5 = rview[5].as_u128();
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5)
     }
 
     #[inline(always)]
-    unsafe fn hi128_7(&self) -> (u128, bool) {
+    fn hi128_7(&self) -> (u128, bool) {
         debug_assert!(self.len() == 7);
-        let r0 = self.rget_unchecked(0).as_u128() << 96;
-        let r1 = self.rget_unchecked(1).as_u128() << 80;
-        let r2 = self.rget_unchecked(2).as_u128() << 64;
-        let r3 = self.rget_unchecked(3).as_u128() << 48;
-        let r4 = self.rget_unchecked(4).as_u128() << 32;
-        let r5 = self.rget_unchecked(5).as_u128() << 16;
-        let r6 = self.rget_unchecked(6).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128() << 96;
+        let r1 = rview[1].as_u128() << 80;
+        let r2 = rview[2].as_u128() << 64;
+        let r3 = rview[3].as_u128() << 48;
+        let r4 = rview[4].as_u128() << 32;
+        let r5 = rview[5].as_u128() << 16;
+        let r6 = rview[6].as_u128();
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5 | r6)
     }
 
     #[inline(always)]
-    unsafe fn hi128_8(&self) -> (u128, bool) {
+    fn hi128_8(&self) -> (u128, bool) {
         debug_assert!(self.len() == 8);
-        let r0 = self.rget_unchecked(0).as_u128() << 112;
-        let r1 = self.rget_unchecked(1).as_u128() << 96;
-        let r2 = self.rget_unchecked(2).as_u128() << 80;
-        let r3 = self.rget_unchecked(3).as_u128() << 64;
-        let r4 = self.rget_unchecked(4).as_u128() << 48;
-        let r5 = self.rget_unchecked(5).as_u128() << 32;
-        let r6 = self.rget_unchecked(6).as_u128() << 16;
-        let r7 = self.rget_unchecked(7).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128() << 112;
+        let r1 = rview[1].as_u128() << 96;
+        let r2 = rview[2].as_u128() << 80;
+        let r3 = rview[3].as_u128() << 64;
+        let r4 = rview[4].as_u128() << 48;
+        let r5 = rview[5].as_u128() << 32;
+        let r6 = rview[6].as_u128() << 16;
+        let r7 = rview[7].as_u128();
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5 | r6 | r7)
     }
 
     #[inline(always)]
-    unsafe fn hi128_9(&self) -> (u128, bool) {
+    fn hi128_9(&self) -> (u128, bool) {
         debug_assert!(self.len() >= 9);
-        let r0 = self.rget_unchecked(0).as_u128();
-        let r1 = self.rget_unchecked(1).as_u128() << 112;
-        let r2 = self.rget_unchecked(2).as_u128() << 96;
-        let r3 = self.rget_unchecked(3).as_u128() << 80;
-        let r4 = self.rget_unchecked(4).as_u128() << 64;
-        let r5 = self.rget_unchecked(5).as_u128() << 48;
-        let r6 = self.rget_unchecked(6).as_u128() << 32;
-        let r7 = self.rget_unchecked(7).as_u128() << 16;
-        let r8 = self.rget_unchecked(8).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128();
+        let r1 = rview[1].as_u128() << 112;
+        let r2 = rview[2].as_u128() << 96;
+        let r3 = rview[3].as_u128() << 80;
+        let r4 = rview[4].as_u128() << 64;
+        let r5 = rview[5].as_u128() << 48;
+        let r6 = rview[6].as_u128() << 32;
+        let r7 = rview[7].as_u128() << 16;
+        let r8 = rview[8].as_u128();
         let (v, n) = u128_to_hi128_2(r0, r1 | r2 | r3 | r4 | r5 | r6 | r7 | r8);
         (v, n || nonzero(self, 9))
     }
@@ -752,125 +777,133 @@ impl Hi128<u16> for [u16] {
 
 impl Hi128<u32> for [u32] {
     #[inline(always)]
-    unsafe fn hi128_1(&self) -> (u128, bool) {
+    fn hi128_1(&self) -> (u128, bool) {
         debug_assert!(self.len() == 1);
-        let r0 = self.rget_unchecked(0).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128();
         u128_to_hi128_1(r0)
     }
 
     #[inline(always)]
-    unsafe fn hi128_2(&self) -> (u128, bool) {
+    fn hi128_2(&self) -> (u128, bool) {
         debug_assert!(self.len() == 2);
-        let r0 = self.rget_unchecked(0).as_u128() << 32;
-        let r1 = self.rget_unchecked(1).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128() << 32;
+        let r1 = rview[1].as_u128();
         u128_to_hi128_1(r0 | r1)
     }
 
     #[inline(always)]
-    unsafe fn hi128_3(&self) -> (u128, bool) {
+    fn hi128_3(&self) -> (u128, bool) {
         debug_assert!(self.len() == 3);
-        let r0 = self.rget_unchecked(0).as_u128() << 64;
-        let r1 = self.rget_unchecked(1).as_u128() << 32;
-        let r2 = self.rget_unchecked(2).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128() << 64;
+        let r1 = rview[1].as_u128() << 32;
+        let r2 = rview[2].as_u128();
         u128_to_hi128_1(r0 | r1 | r2)
     }
 
     #[inline(always)]
-    unsafe fn hi128_4(&self) -> (u128, bool) {
+    fn hi128_4(&self) -> (u128, bool) {
         debug_assert!(self.len() == 4);
-        let r0 = self.rget_unchecked(0).as_u128() << 96;
-        let r1 = self.rget_unchecked(1).as_u128() << 64;
-        let r2 = self.rget_unchecked(2).as_u128() << 32;
-        let r3 = self.rget_unchecked(3).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128() << 96;
+        let r1 = rview[1].as_u128() << 64;
+        let r2 = rview[2].as_u128() << 32;
+        let r3 = rview[3].as_u128();
         u128_to_hi128_1(r0 | r1 | r2 | r3)
     }
 
     #[inline(always)]
-    unsafe fn hi128_5(&self) -> (u128, bool) {
+    fn hi128_5(&self) -> (u128, bool) {
         debug_assert!(self.len() >= 5);
-        let r0 = self.rget_unchecked(0).as_u128();
-        let r1 = self.rget_unchecked(1).as_u128() << 96;
-        let r2 = self.rget_unchecked(2).as_u128() << 64;
-        let r3 = self.rget_unchecked(3).as_u128() << 32;
-        let r4 = self.rget_unchecked(4).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128();
+        let r1 = rview[1].as_u128() << 96;
+        let r2 = rview[2].as_u128() << 64;
+        let r3 = rview[3].as_u128() << 32;
+        let r4 = rview[4].as_u128();
         let (v, n) = u128_to_hi128_2(r0, r1 | r2 | r3 | r4);
         (v, n || nonzero(self, 5))
     }
 
     #[inline(always)]
-    unsafe fn hi128_6(&self) -> (u128, bool) {
+    fn hi128_6(&self) -> (u128, bool) {
         self.hi128_5()
     }
 
     #[inline(always)]
-    unsafe fn hi128_7(&self) -> (u128, bool) {
+    fn hi128_7(&self) -> (u128, bool) {
         self.hi128_5()
     }
 
     #[inline(always)]
-    unsafe fn hi128_8(&self) -> (u128, bool) {
+    fn hi128_8(&self) -> (u128, bool) {
         self.hi128_5()
     }
 
     #[inline(always)]
-    unsafe fn hi128_9(&self) -> (u128, bool) {
+    fn hi128_9(&self) -> (u128, bool) {
         self.hi128_5()
     }
 }
 
 impl Hi128<u64> for [u64] {
     #[inline(always)]
-    unsafe fn hi128_1(&self) -> (u128, bool) {
+    fn hi128_1(&self) -> (u128, bool) {
         debug_assert!(self.len() == 1);
-        let r0 = self.rget_unchecked(0).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128();
         u128_to_hi128_1(r0)
     }
 
     #[inline(always)]
-    unsafe fn hi128_2(&self) -> (u128, bool) {
+    fn hi128_2(&self) -> (u128, bool) {
         debug_assert!(self.len() == 2);
-        let r0 = self.rget_unchecked(0).as_u128() << 64;
-        let r1 = self.rget_unchecked(1).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128() << 64;
+        let r1 = rview[1].as_u128();
         u128_to_hi128_1(r0 | r1)
     }
 
     #[inline(always)]
-    unsafe fn hi128_3(&self) -> (u128, bool) {
+    fn hi128_3(&self) -> (u128, bool) {
         debug_assert!(self.len() >= 3);
-        let r0 = self.rget_unchecked(0).as_u128();
-        let r1 = self.rget_unchecked(1).as_u128() << 64;
-        let r2 = self.rget_unchecked(2).as_u128();
+        let rview = self.rview();
+        let r0 = rview[0].as_u128();
+        let r1 = rview[1].as_u128() << 64;
+        let r2 = rview[2].as_u128();
         let (v, n) = u128_to_hi128_2(r0, r1 | r2);
         (v, n || nonzero(self, 3))
     }
 
     #[inline(always)]
-    unsafe fn hi128_4(&self) -> (u128, bool) {
+    fn hi128_4(&self) -> (u128, bool) {
         self.hi128_3()
     }
 
     #[inline(always)]
-    unsafe fn hi128_5(&self) -> (u128, bool) {
+    fn hi128_5(&self) -> (u128, bool) {
         self.hi128_3()
     }
 
     #[inline(always)]
-    unsafe fn hi128_6(&self) -> (u128, bool) {
+    fn hi128_6(&self) -> (u128, bool) {
         self.hi128_3()
     }
 
     #[inline(always)]
-    unsafe fn hi128_7(&self) -> (u128, bool) {
+    fn hi128_7(&self) -> (u128, bool) {
         self.hi128_3()
     }
 
     #[inline(always)]
-    unsafe fn hi128_8(&self) -> (u128, bool) {
+    fn hi128_8(&self) -> (u128, bool) {
         self.hi128_3()
     }
 
     #[inline(always)]
-    unsafe fn hi128_9(&self) -> (u128, bool) {
+    fn hi128_9(&self) -> (u128, bool) {
         self.hi128_3()
     }
 }
@@ -995,7 +1028,6 @@ use super::super::large_powers::*;
 /// Get the number of leading zero values in the storage.
 /// Assumes the value is normalized.
 #[inline]
-#[allow(dead_code)]
 pub fn leading_zero_limbs(_: &[Limb]) -> usize {
     0
 }
@@ -1003,7 +1035,6 @@ pub fn leading_zero_limbs(_: &[Limb]) -> usize {
 /// Get the number of trailing zero values in the storage.
 /// Assumes the value is normalized.
 #[inline]
-#[allow(dead_code)]
 pub fn trailing_zero_limbs(x: &[Limb]) -> usize {
     let mut iter = x.iter().enumerate();
     let opt = iter.find(|&tup| !tup.1.is_zero());
@@ -1016,22 +1047,17 @@ pub fn trailing_zero_limbs(x: &[Limb]) -> usize {
 
 /// Get number of leading zero bits in the storage.
 #[inline]
-#[allow(dead_code)]
 pub fn leading_zeros(x: &[Limb]) -> usize {
     if x.is_empty() {
         0
     } else {
-        unsafe {
-            let index = x.len() - 1;
-            x.get_unchecked(index).leading_zeros().as_usize()
-        }
+        x.rindex(0).leading_zeros().as_usize()
     }
 }
 
 /// Get number of trailing zero bits in the storage.
 /// Assumes the value is normalized.
 #[inline]
-#[allow(dead_code)]
 pub fn trailing_zeros(x: &[Limb]) -> usize {
     // Get the index of the last non-zero value
     let index = trailing_zero_limbs(x);
@@ -1046,7 +1072,6 @@ pub fn trailing_zeros(x: &[Limb]) -> usize {
 
 /// Calculate the bit-length of the big-integer.
 #[inline]
-#[allow(dead_code)]
 pub fn bit_length(x: &[Limb]) -> usize {
     // Avoid overflowing, calculate via total number of bits
     // minus leading zero bits.
@@ -1060,7 +1085,6 @@ pub fn bit_length(x: &[Limb]) -> usize {
 
 /// Calculate the limb-length of the big-integer.
 #[inline]
-#[allow(dead_code)]
 pub fn limb_length(x: &[Limb]) -> usize {
     x.len()
 }
@@ -1110,9 +1134,7 @@ pub fn ishr_limbs<T>(x: &mut T, n: usize)
     debug_assert!(n != 0);
 
     if n >= x.len() {
-        unsafe {
-            x.set_len(0);
-        }
+        x.clear();
         false
     } else {
         let is_zero = (&x[..n]).iter().all(|v| v.is_zero());
@@ -1141,7 +1163,7 @@ pub fn ishr<T>(x: &mut T, n: usize)
     };
 
     // Calculate if we need to roundup.
-    let roundup = unsafe {
+    let roundup = {
         let halfway = lower_n_halfway(as_limb(rem));
         if truncated > halfway {
             // Above halfway
@@ -1150,7 +1172,7 @@ pub fn ishr<T>(x: &mut T, n: usize)
             // Exactly halfway, if !is_zero, we have a tie-breaker,
             // otherwise, we follow round-to-nearest, tie-even rules.
             // Cannot be empty, since truncated is non-zero.
-            !is_zero || x.front_unchecked().is_odd()
+            !is_zero || x[0].is_odd()
         } else {
             // Below halfway
             false
@@ -1164,7 +1186,7 @@ pub fn ishr<T>(x: &mut T, n: usize)
 }
 
 /// Shift-left buffer by n bits.
-#[allow(dead_code)]
+#[inline]
 pub fn shr<T>(x: &[Limb], n: usize)
     -> (T, bool)
     where T: CloneableVecLike<Limb>
@@ -1216,7 +1238,7 @@ pub fn ishl_bits<T>(x: &mut T, n: usize)
 /// Shift-left bits inside a buffer.
 ///
 /// Assumes `n < Limb::BITS`, IE, internally shifting bits.
-#[allow(dead_code)]
+#[inline]
 pub fn shl_bits<T>(x: &[Limb], n: usize)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1241,6 +1263,7 @@ pub fn ishl_limbs<T>(x: &mut T, n: usize)
 }
 
 /// Shift-left buffer by n bits.
+#[inline]
 pub fn ishl<T>(x: &mut T, n: usize)
     where T: CloneableVecLike<Limb>
 {
@@ -1256,7 +1279,7 @@ pub fn ishl<T>(x: &mut T, n: usize)
 }
 
 /// Shift-left buffer by n bits.
-#[allow(dead_code)]
+#[inline]
 pub fn shl<T>(x: &[Limb], n: usize)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1274,12 +1297,10 @@ pub fn shl<T>(x: &[Limb], n: usize)
 pub fn normalize<T>(x: &mut T)
     where T: CloneableVecLike<Limb>
 {
-    unsafe {
-        // Remove leading zero if we cause underflow. Since we're dividing
-        // by a small power, we have at max 1 int removed.
-        while !x.is_empty() && x.back_unchecked().is_zero() {
-            x.pop();
-        }
+    // Remove leading zero if we cause underflow. Since we're dividing
+    // by a small power, we have at max 1 int removed.
+    while !x.is_empty() && x.rindex(0).is_zero() {
+        x.pop();
     }
 }
 
@@ -1295,22 +1316,20 @@ pub fn iadd_impl<T>(x: &mut T, y: Limb, xstart: usize)
     if x.len() <= xstart {
         x.push(y);
     } else {
-        unsafe {
-            // Initial add
-            let mut carry = scalar::iadd(x.get_unchecked_mut(xstart), y);
+        // Initial add
+        let mut carry = scalar::iadd(&mut x[xstart], y);
 
-            // Increment until overflow stops occurring.
-            let mut size = xstart + 1;
-            while carry && size < x.len() {
-                carry = scalar::iadd(x.get_unchecked_mut(size), 1);
-                size += 1;
-            }
+        // Increment until overflow stops occurring.
+        let mut size = xstart + 1;
+        while carry && size < x.len() {
+            carry = scalar::iadd(&mut x[size], 1);
+            size += 1;
+        }
 
-            // If we overflowed the buffer entirely, need to add 1 to the end
-            // of the buffer.
-            if carry {
-                x.push(1);
-            }
+        // If we overflowed the buffer entirely, need to add 1 to the end
+        // of the buffer.
+        if carry {
+            x.push(1);
         }
     }
 }
@@ -1324,7 +1343,6 @@ pub fn iadd<T>(x: &mut T, y: Limb)
 }
 
 /// Add small integer to bigint.
-#[allow(dead_code)]
 #[inline]
 pub fn add<T>(x: &[Limb], y: Limb)
     -> T
@@ -1345,18 +1363,16 @@ pub fn isub_impl<T>(x: &mut T, y: Limb, xstart: usize)
 {
     debug_assert!(x.len() > xstart && (x[xstart] >= y || x.len() > xstart+1));
 
-    unsafe {
-        // Initial subtraction
-        let mut carry = scalar::isub(x.get_unchecked_mut(xstart), y);
+    // Initial subtraction
+    let mut carry = scalar::isub(&mut x[xstart], y);
 
-        // Increment until overflow stops occurring.
-        let mut size = xstart + 1;
-        while carry && size < x.len() {
-            carry = scalar::isub(x.get_unchecked_mut(size), 1);
-            size += 1;
-        }
-        normalize(x);
+    // Increment until overflow stops occurring.
+    let mut size = xstart + 1;
+    while carry && size < x.len() {
+        carry = scalar::isub(&mut x[size], 1);
+        size += 1;
     }
+    normalize(x);
 }
 
 /// SubAssign small integer to bigint.
@@ -1369,7 +1385,6 @@ pub fn isub<T>(x: &mut T, y: Limb)
 }
 
 /// Sub small integer to bigint.
-#[allow(dead_code)]
 #[inline]
 pub fn sub<T>(x: &[Limb], y: Limb)
     -> T
@@ -1401,7 +1416,6 @@ pub fn imul<T>(x: &mut T, y: Limb)
 }
 
 /// Mul small integer to bigint.
-#[allow(dead_code)]
 #[inline]
 pub fn mul<T>(x: &[Limb], y: Limb)
     -> T
@@ -1416,7 +1430,7 @@ pub fn mul<T>(x: &[Limb], y: Limb)
 /// MulAssign by a power.
 ///
 /// Theoretically...
-
+///
 /// Use an exponentiation by squaring method, since it reduces the time
 /// complexity of the multiplication to ~`O(log(n))` for the squaring,
 /// and `O(n*m)` for the result. Since `m` is typically a lower-order
@@ -1452,8 +1466,6 @@ pub fn imul_power<T>(x: &mut T, radix: u32, n: u32)
 
     let small_powers = get_small_powers(radix);
     let large_powers = get_large_powers(radix);
-    let get_small = | i: usize | unsafe { *small_powers.get_unchecked(i) };
-    let get_large = | i: usize | unsafe { *large_powers.get_unchecked(i) };
 
     if n == 0 {
         // No exponent, just return.
@@ -1467,13 +1479,13 @@ pub fn imul_power<T>(x: &mut T, radix: u32, n: u32)
     // otherwise, just use exponentiation by squaring.
     let bit_length = 32 - n.leading_zeros().as_usize();
     debug_assert!(bit_length != 0 && bit_length <= large_powers.len());
-    if x.len() + get_large(bit_length-1).len() < 2*KARATSUBA_CUTOFF {
+    if x.len() + large_powers[bit_length-1].len() < 2*KARATSUBA_CUTOFF {
         // We can use iterative small powers to make this faster for the
         // easy cases.
 
         // Multiply by the largest small power until n < step.
         let step = small_powers.len() - 1;
-        let power = get_small(step);
+        let power = small_powers[step];
         let mut n = n.as_usize();
         while n >= step {
             imul(x, power);
@@ -1481,7 +1493,7 @@ pub fn imul_power<T>(x: &mut T, radix: u32, n: u32)
         }
 
         // Multiply by the remainder.
-        imul(x, get_small(n));
+        imul(x, small_powers[n]);
     } else {
         // In theory, this code should be asymptotically a lot faster,
         // in practice, our small::imul seems to be the limiting step,
@@ -1494,7 +1506,7 @@ pub fn imul_power<T>(x: &mut T, radix: u32, n: u32)
         while n != 0 {
             if n & bit != 0 {
                 debug_assert!(idx < large_powers.len());
-                large::imul(x, get_large(idx));
+                large::imul(x, large_powers[idx]);
                 n ^= bit;
             }
             idx += 1;
@@ -1504,7 +1516,6 @@ pub fn imul_power<T>(x: &mut T, radix: u32, n: u32)
 }
 
 /// Mul by a power.
-#[allow(dead_code)]
 #[inline]
 pub fn mul_power<T>(x: &[Limb], radix: u32, n: u32)
     -> T
@@ -1534,7 +1545,6 @@ pub fn idiv<T>(x: &mut T, y: Limb)
 }
 
 /// Div small integer to bigint and get the remainder.
-#[allow(dead_code)]
 #[inline]
 pub fn div<T>(x: &[Limb], y: Limb)
     -> (T, Limb)
@@ -1579,7 +1589,6 @@ pub fn ipow<T>(x: &mut T, mut n: Limb)
 }
 
 /// Calculate x^n, using exponentiation by squaring.
-#[allow(dead_code)]
 #[inline]
 pub fn pow<T>(x: &[Limb], n: Limb)
     -> T
@@ -1606,7 +1615,6 @@ use super::*;
 // RELATIVE OPERATORS
 
 /// Compare `x` to `y`, in little-endian order.
-#[allow(dead_code)]
 #[inline]
 pub fn compare(x: &[Limb], y: &[Limb]) -> cmp::Ordering {
     if x.len() > y.len() {
@@ -1628,28 +1636,24 @@ pub fn compare(x: &[Limb], y: &[Limb]) -> cmp::Ordering {
 }
 
 /// Check if x is greater than y.
-#[allow(dead_code)]
 #[inline(always)]
 pub fn greater(x: &[Limb], y: &[Limb]) -> bool {
     compare(x, y) == cmp::Ordering::Greater
 }
 
 /// Check if x is greater than or equal to y.
-#[allow(dead_code)]
 #[inline(always)]
 pub fn greater_equal(x: &[Limb], y: &[Limb]) -> bool {
     !less(x, y)
 }
 
 /// Check if x is less than y.
-#[allow(dead_code)]
 #[inline(always)]
 pub fn less(x: &[Limb], y: &[Limb]) -> bool {
     compare(x, y) == cmp::Ordering::Less
 }
 
 /// Check if x is less than or equal to y.
-#[allow(dead_code)]
 #[inline(always)]
 pub fn less_equal(x: &[Limb], y: &[Limb]) -> bool {
     !greater(x, y)
@@ -1658,7 +1662,6 @@ pub fn less_equal(x: &[Limb], y: &[Limb]) -> bool {
 /// Check if x is equal to y.
 /// Slightly optimized for equality comparisons, since it reduces the number
 /// of comparisons relative to `compare`.
-#[allow(dead_code)]
 #[inline]
 pub fn equal(x: &[Limb], y: &[Limb]) -> bool {
     let mut iter = x.iter().rev().zip(y.iter().rev());
@@ -1701,7 +1704,6 @@ pub fn iadd_impl<T>(x: &mut T, y: &[Limb], xstart: usize)
 }
 
 /// AddAssign bigint to bigint.
-#[allow(dead_code)]
 #[inline(always)]
 pub fn iadd<T>(x: &mut T, y: &[Limb])
     where T: CloneableVecLike<Limb>
@@ -1710,7 +1712,6 @@ pub fn iadd<T>(x: &mut T, y: &[Limb])
 }
 
 /// Add bigint to bigint.
-#[allow(dead_code)]
 #[inline]
 pub fn add<T>(x: &[Limb], y: &[Limb])
     -> T
@@ -1725,7 +1726,6 @@ pub fn add<T>(x: &[Limb], y: &[Limb])
 // SUBTRACTION
 
 /// SubAssign bigint to bigint.
-#[allow(dead_code)]
 pub fn isub<T>(x: &mut T, y: &[Limb])
     where T: CloneableVecLike<Limb>
 {
@@ -1753,7 +1753,6 @@ pub fn isub<T>(x: &mut T, y: &[Limb])
 }
 
 /// Sub bigint to bigint.
-#[allow(dead_code)]
 #[inline]
 pub fn sub<T>(x: &[Limb], y: &[Limb])
     -> T
@@ -1789,20 +1788,18 @@ fn long_mul<T>(x: &[Limb], y: &[Limb])
     // the algorithm defined above. Use a single buffer to avoid
     // frequent reallocations. Handle the first case to avoid a redundant
     // addition, since we know y.len() >= 1.
-    unsafe {
-        let mut z: T = small::mul(x, *y.get_unchecked(0));
-        z.resize(x.len() + y.len(), 0);
+    let mut z: T = small::mul(x, y[0]);
+    z.resize(x.len() + y.len(), 0);
 
-        // Handle the iterative cases.
-        for (i, yi) in y[1..].iter().enumerate() {
-            let zi: T = small::mul(x, *yi);
-            iadd_impl(&mut z, &zi, i+1);
-        }
-
-        small::normalize(&mut z);
-
-        z
+    // Handle the iterative cases.
+    for (i, &yi) in y[1..].iter().enumerate() {
+        let zi: T = small::mul(x, yi);
+        iadd_impl(&mut z, &zi, i+1);
     }
+
+    small::normalize(&mut z);
+
+    z
 }
 
 /// Split two buffers into halfway, into (lo, hi).
@@ -1895,26 +1892,22 @@ fn karatsuba_mul_fwd<T>(x: &[Limb], y: &[Limb])
 }
 
 /// MulAssign bigint to bigint.
-#[allow(dead_code)]
 #[inline]
 pub fn imul<T>(x: &mut T, y: &[Limb])
     where T: CloneableVecLike<Limb>
 {
-    unsafe {
-        if y.len() == 1 {
-            small::imul(x, *y.get_unchecked(0));
-        } else {
-            // We're not really in a condition where using Karatsuba
-            // multiplication makes sense, so we're just going to use long
-            // division. ~20% speedup compared to:
-            //      *x = karatsuba_mul_fwd(x, y);
-            *x = karatsuba_mul_fwd(x, y);
-        }
+    if y.len() == 1 {
+        small::imul(x, y[0]);
+    } else {
+        // We're not really in a condition where using Karatsuba
+        // multiplication makes sense, so we're just going to use long
+        // division. ~20% speedup compared to:
+        //      *x = karatsuba_mul_fwd(x, y);
+        *x = karatsuba_mul_fwd(x, y);
     }
 }
 
 /// Mul bigint to bigint.
-#[allow(dead_code)]
 #[inline]
 pub fn mul<T>(x: &[Limb], y: &[Limb])
     -> T
@@ -1939,22 +1932,19 @@ const ALGORITHM_D_M: Wide = ALGORITHM_D_B - 1;
 ///
 /// * `j`   - Current index on the iteration of the loop.
 #[inline]
-unsafe fn calculate_qhat(x: &[Limb], y: &[Limb], j: usize)
+fn calculate_qhat(x: &[Limb], y: &[Limb], j: usize)
     -> Wide
 {
     let n = y.len();
-
-    // Closures
-    let get_wide = | x: &[Limb], i: usize | as_wide(*x.get_unchecked(i));
 
     // Estimate qhat of q[j]
     // Original Code:
     //  qhat = (x[j+n]*B + x[j+n-1])/y[n-1];
     //  rhat = (x[j+n]*B + x[j+n-1]) - qhat*y[n-1];
-    let x_jn = get_wide(&x, j+n);
-    let x_jn1 = get_wide(&x, j+n-1);
+    let x_jn = as_wide(x[j+n]);
+    let x_jn1 = as_wide(x[j+n-1]);
     let num = (x_jn << Limb::BITS) + x_jn1;
-    let den = get_wide(&y, n-1);
+    let den = as_wide(y[n-1]);
     let mut qhat = num / den;
     let mut rhat = num - qhat * den;
 
@@ -1966,9 +1956,9 @@ unsafe fn calculate_qhat(x: &[Limb], y: &[Limb], j: usize)
     //      rhat = rhat + y[n-1];
     //      if (rhat < B) goto again;
     //    }
-    let x_jn2 = get_wide(&x, j+n-2);
-    let y_n2 = get_wide(&y, n-2);
-    let y_n1 = get_wide(&y, n-1);
+    let x_jn2 = as_wide(x[j+n-2]);
+    let y_n2 = as_wide(y[n-2]);
+    let y_n1 = as_wide(y[n-1]);
     // This only happens when the leading bit of qhat is set.
     while qhat >= ALGORITHM_D_B || qhat * y_n2 > (rhat << Limb::BITS) + x_jn2 {
         qhat -= 1;
@@ -1986,16 +1976,11 @@ unsafe fn calculate_qhat(x: &[Limb], y: &[Limb], j: usize)
 /// This is step D4 in Algorithm D in "The Art of Computer Programming",
 /// and returns the remainder.
 #[inline]
-unsafe fn multiply_and_subtract<T>(x: &mut T, y: &T, qhat: Wide, j: usize)
+fn multiply_and_subtract<T>(x: &mut T, y: &T, qhat: Wide, j: usize)
     -> SignedWide
     where T: CloneableVecLike<Limb>
 {
     let n = y.len();
-
-    // Closures
-    let set = | x: &mut T, i: usize, xi: Limb | *x.get_unchecked_mut(i) = xi;
-    let get_signed_wide = | x: &T, i: usize | as_signed_wide(*x.get_unchecked(i));
-    let get_wide = | x: &T, i: usize | as_wide(*x.get_unchecked(i));
 
     // Multiply and subtract
     // Original Code:
@@ -2011,15 +1996,15 @@ unsafe fn multiply_and_subtract<T>(x: &mut T, y: &T, qhat: Wide, j: usize)
     let mut k: SignedWide = 0;
     let mut t: SignedWide;
     for i in 0..n {
-        let x_ij = get_signed_wide(&x, i+j);
-        let y_i = get_wide(&y, i);
+        let x_ij = as_signed_wide(x[i+j]);
+        let y_i = as_wide(y[i]);
         let p = qhat * y_i;
         t = x_ij.wrapping_sub(k).wrapping_sub(as_signed_wide(p & ALGORITHM_D_M));
-        set(x, i+j, as_limb(t));
+        x[i+j] = as_limb(t);
         k = as_signed_wide(p >> Limb::BITS) - (t >> Limb::BITS);
     }
-    t = get_signed_wide(&x, j+n) - k;
-    set(x, j+n, as_limb(t));
+    t = as_signed_wide(x[j+n]) - k;
+    x[j+n] = as_limb(t);
 
     t
 }
@@ -2029,7 +2014,7 @@ unsafe fn multiply_and_subtract<T>(x: &mut T, y: &T, qhat: Wide, j: usize)
 /// This is a mix of step D5 and D6 in Algorithm D, so the algorithm
 /// may work for single passes, without a quotient buffer.
 #[inline]
-unsafe fn test_quotient(qhat: Wide, t: SignedWide)
+fn test_quotient(qhat: Wide, t: SignedWide)
     -> Wide
 {
     if t < 0 {
@@ -2037,17 +2022,6 @@ unsafe fn test_quotient(qhat: Wide, t: SignedWide)
     } else {
         qhat
     }
-}
-
-/// Store the quotient from the estimate.
-///
-/// This is a mix of step D5 and D6 in Algorithm D, so the algorithm
-/// may work for single passes, without a quotient buffer.
-#[inline]
-unsafe fn store_quotient<T>(q: &mut T, qhat: Wide, j: usize)
-    where T: CloneableVecLike<Limb>
-{
-    *q.get_unchecked_mut(j) = as_limb(qhat);
 }
 
 /// Add back.
@@ -2060,15 +2034,10 @@ unsafe fn store_quotient<T>(q: &mut T, qhat: Wide, j: usize)
 /// This step should be specifically debugged, due to its low likelihood,
 /// since the probability is ~2/b, where b in this case is 2^32 or 2^64.
 #[inline]
-unsafe fn add_back<T>(x: &mut T, y: &T, mut t: SignedWide, j: usize)
+fn add_back<T>(x: &mut T, y: &T, mut t: SignedWide, j: usize)
     where T: CloneableVecLike<Limb>
 {
     let n = y.len();
-
-    // Closures
-    let set = | x: &mut T, i: usize, xi: Limb | *x.get_unchecked_mut(i) = xi;
-    let get_signed_wide = | x: &T, i: usize | as_signed_wide(*x.get_unchecked(i));
-    let get_wide = | x: &T, i: usize | as_wide(*x.get_unchecked(i));
 
     // Store quotient digits
     // If we subtracted too much, add back.
@@ -2087,12 +2056,12 @@ unsafe fn add_back<T>(x: &mut T, y: &T, mut t: SignedWide, j: usize)
     if t < 0 {
         let mut k: SignedWide = 0;
         for i in 0..n {
-            t = as_signed_wide(get_wide(x, i+j) + get_wide(y, i)) + k;
-            set(x, i+j, as_limb(t));
+            t = as_signed_wide(as_wide(x[i+j]) + as_wide(y[i])) + k;
+            x[i+j] = as_limb(t);
             k = t >> Limb::BITS;
         }
-        let x_jn = get_signed_wide(x, j+n) + k;
-        set(x, j+n, as_limb(x_jn));
+        let x_jn = as_signed_wide(x[j+n]) + k;
+        x[j+n] = as_limb(x_jn);
     }
 }
 
@@ -2101,14 +2070,10 @@ unsafe fn add_back<T>(x: &mut T, y: &T, mut t: SignedWide, j: usize)
 /// This is step D8 in Algorithm D in "The Art of Computer Programming",
 /// and "unnormalizes" to calculate the remainder from the quotient.
 #[inline]
-unsafe fn calculate_remainder<T>(x: &[Limb], y: &[Limb], s: usize)
+fn calculate_remainder<T>(x: &[Limb], y: &[Limb], s: usize)
     -> T
     where T: CloneableVecLike<Limb>
 {
-    // Closures
-    let get = | x: &[Limb], i: usize | *x.get_unchecked(i);
-    let get_wide = | x: &[Limb], i: usize | as_wide(get(x, i));
-
     // Calculate the remainder.
     // Original Code:
     //  for (i = 0; i < n-1; i++)
@@ -2119,12 +2084,12 @@ unsafe fn calculate_remainder<T>(x: &[Limb], y: &[Limb], s: usize)
     r.reserve_exact(n);
     let rs = Limb::BITS - s;
     for i in 0..n-1 {
-        let xi = get_wide(x, i) >> s;
-        let xi1 = get_wide(x, i+1) << rs;
+        let xi = as_wide(x[i]) >> s;
+        let xi1 = as_wide(x[i+1]) << rs;
         let ri = xi | xi1;
         r.push(as_limb(ri));
     }
-    let x_n1 = get(&x, n-1) >> s;
+    let x_n1 = x[n-1] >> s;
     r.push(as_limb(x_n1));
 
     r
@@ -2142,14 +2107,14 @@ unsafe fn calculate_remainder<T>(x: &[Limb], y: &[Limb], s: usize)
 /// All Hacker's Delight code is public domain, so this routine shall
 /// also be placed in the public domain. See:
 ///     https://www.hackersdelight.org/permissions.htm
-unsafe fn algorithm_d_div<T>(x: &[Limb], y: &[Limb])
+fn algorithm_d_div<T>(x: &[Limb], y: &[Limb])
     -> (T, T)
     where T: CloneableVecLike<Limb>
 {
     // Normalize the divisor so the leading-bit is set to 1.
     // x is the dividend, y is the divisor.
     // Need a leading zero on the numerator.
-    let s = y.get_unchecked(y.len()-1).leading_zeros().as_usize();
+    let s = y.rindex(0).leading_zeros().as_usize();
     let m = x.len();
     let n = y.len();
     let mut xn: T = small::shl_bits(x, s);
@@ -2167,7 +2132,7 @@ unsafe fn algorithm_d_div<T>(x: &[Limb], y: &[Limb])
             qhat = test_quotient(qhat, t);
             add_back(&mut xn, &yn, t, j);
         }
-        store_quotient(&mut q, qhat, j);
+        q[j] = as_limb(qhat);
     }
     let mut r = calculate_remainder(&xn, &yn, s);
 
@@ -2179,36 +2144,32 @@ unsafe fn algorithm_d_div<T>(x: &[Limb], y: &[Limb])
 }
 
 /// DivAssign bigint to bigint.
-#[allow(dead_code)]
 pub fn idiv<T>(x: &mut T, y: &[Limb])
     -> T
     where T: CloneableVecLike<Limb>
 {
     debug_assert!(y.len() != 0);
 
-    unsafe {
-        if x.len() < y.len() {
-            // Can optimize easily, since the quotient is 0,
-            // and the remainder is x. Put before `y.len() == 1`, since
-            // it optimizes when `x.len() == 0` nicely.
-            let mut r = T::default();
-            mem::swap(x, &mut r);
-            r
-        } else if y.len() == 1 {
-            // Can optimize for division by a small value.
-            let mut r = T::default();
-            r.push(small::idiv(x, *y.get_unchecked(0)));
-            r
-        } else {
-            let (q, r) = algorithm_d_div(x, y);
-            *x = q;
-            r
-        }
+    if x.len() < y.len() {
+        // Can optimize easily, since the quotient is 0,
+        // and the remainder is x. Put before `y.len() == 1`, since
+        // it optimizes when `x.len() == 0` nicely.
+        let mut r = T::default();
+        mem::swap(x, &mut r);
+        r
+    } else if y.len() == 1 {
+        // Can optimize for division by a small value.
+        let mut r = T::default();
+        r.push(small::idiv(x, y[0]));
+        r
+    } else {
+        let (q, r) = algorithm_d_div(x, y);
+        *x = q;
+        r
     }
 }
 
 /// Div bigint to bigint.
-#[allow(dead_code)]
 #[inline]
 pub fn div<T>(x: &[Limb], y: &[Limb])
     -> (T, T)
@@ -2234,17 +2195,12 @@ pub fn div<T>(x: &[Limb], y: &[Limb])
 ///
 /// Adapted from David M. Gay's dtoa, and therefore under an MIT license:
 ///     www.netlib.org/fp/dtoa.c
-#[allow(dead_code)]
-pub unsafe fn quorem<T>(x: &mut T, y: &T)
+pub fn quorem<T>(x: &mut T, y: &T)
     -> Limb
     where T: CloneableVecLike<Limb>
 {
     debug_assert!(y.len() > 0);
     let mask = as_wide(Limb::max_value());
-
-    // Closures
-    let set = | x: &mut T, i: usize, xi: Limb | *x.get_unchecked_mut(i) = xi;
-    let get_wide = | x: &T, i: usize | as_wide(*x.get_unchecked(i));
 
     // Numerator is smaller the denominator, quotient always 0.
     let m = x.len();
@@ -2254,20 +2210,18 @@ pub unsafe fn quorem<T>(x: &mut T, y: &T)
     }
 
     // Calculate our initial estimate for q
-    let xi = *x.back_unchecked();
-    let yi = *y.back_unchecked();
-    let mut q = xi / (yi + 1);
+    let mut q = x[m-1] / (y[n-1] + 1);
 
     // Need to calculate the remainder if we don't have a 0 quotient.
     if q != 0 {
         let mut borrow: Wide = 0;
         let mut carry: Wide = 0;
         for j in 0..m {
-            let p = get_wide(y, j) * as_wide(q) + carry;
+            let p = as_wide(y[j]) * as_wide(q) + carry;
             carry = p >> Limb::BITS;
-            let t = get_wide(x, j).wrapping_sub(p & mask).wrapping_sub(borrow);
+            let t = as_wide(x[j]).wrapping_sub(p & mask).wrapping_sub(borrow);
             borrow = (t >> Limb::BITS) & 1;
-            set(x, j, as_limb(t));
+            x[j] = as_limb(t);
         }
         small::normalize(x);
     }
@@ -2278,11 +2232,11 @@ pub unsafe fn quorem<T>(x: &mut T, y: &T)
         let mut borrow: Wide = 0;
         let mut carry: Wide = 0;
         for j in 0..m {
-            let p = get_wide(y, j) + carry;
+            let p = as_wide(y[j]) + carry;
             carry = p >> Limb::BITS;
-            let t = get_wide(x, j).wrapping_sub(p & mask).wrapping_sub(borrow);
+            let t = as_wide(x[j]).wrapping_sub(p & mask).wrapping_sub(borrow);
             borrow = (t >> Limb::BITS) & 1;
-            set(x, j, as_limb(t));
+            x[j] = as_limb(t);
         }
         small::normalize(x);
     }
@@ -2503,9 +2457,7 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
     /// Get if the big integer is normalized.
     #[inline]
     fn is_normalized(&self) -> bool {
-        unsafe {
-            self.data().is_empty() || !self.data().back_unchecked().is_zero()
-        }
+        self.data().is_empty() || !self.data().rindex(0).is_zero()
     }
 
     // SHIFTS
@@ -2532,9 +2484,7 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
             if self.data().is_empty() {
                 self.data_mut().push(1);
             } else {
-                unsafe {
-                    *self.data_mut().front_unchecked_mut() += 1;
-                }
+                self.data_mut()[0] += 1;
             }
         }
     }
@@ -2584,14 +2534,14 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
     /// SubAssign small integer.
     /// Warning: Does no overflow checking, x must be >= y.
     #[inline]
-    unsafe fn isub_small(&mut self, y: Limb) {
+    fn isub_small(&mut self, y: Limb) {
         small::isub(self.data_mut(), y);
     }
 
     /// Sub small integer to a copy of self.
     /// Warning: Does no overflow checking, x must be >= y.
     #[inline]
-    unsafe fn sub_small(&mut self, y: Limb) -> Self {
+    fn sub_small(&mut self, y: Limb) -> Self {
         let mut x = self.clone();
         x.isub_small(y);
         x
@@ -2905,14 +2855,14 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
     /// SubAssign large integer.
     /// Warning: Does no overflow checking, x must be >= y.
     #[inline]
-    unsafe fn isub_large(&mut self, y: &Self) {
+    fn isub_large(&mut self, y: &Self) {
         large::isub(self.data_mut(), y.data());
     }
 
     /// Sub large integer to a copy of self.
     /// Warning: Does no overflow checking, x must be >= y.
     #[inline]
-    unsafe fn sub_large(&mut self, y: &Self) -> Self {
+    fn sub_large(&mut self, y: &Self) -> Self {
         let mut x = self.clone();
         x.isub_large(y);
         x
@@ -2961,7 +2911,7 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
     /// Warning: This is not a general-purpose division algorithm,
     /// it is highly specialized for peeling off singular digits.
     #[inline]
-    unsafe fn quorem(&mut self, y: &Self) -> Limb {
+    fn quorem(&mut self, y: &Self) -> Limb {
         large::quorem(self.data_mut(), y.data())
     }
 }
@@ -3370,27 +3320,25 @@ mod tests {
 
     #[test]
     fn isub_small_test() {
-        unsafe {
-            // Overflow check (single)
-            let mut x = Bigint { data: from_u32(&[4, 1]) };
-            x.isub_small(5);
-            assert_eq!(x.data, from_u32(&[4294967295]));
+        // Overflow check (single)
+        let mut x = Bigint { data: from_u32(&[4, 1]) };
+        x.isub_small(5);
+        assert_eq!(x.data, from_u32(&[4294967295]));
 
-            // No overflow, single value
-            let mut x = Bigint { data: from_u32(&[12]) };
-            x.isub_small(7);
-            assert_eq!(x.data, from_u32(&[5]));
+        // No overflow, single value
+        let mut x = Bigint { data: from_u32(&[12]) };
+        x.isub_small(7);
+        assert_eq!(x.data, from_u32(&[5]));
 
-            // Single carry, internal overflow
-            let mut x = Bigint { data: from_u32(&[6, 0x80000001]) };
-            x.isub_small(7);
-            assert_eq!(x.data, from_u32(&[0xFFFFFFFF, 0x80000000]));
+        // Single carry, internal overflow
+        let mut x = Bigint { data: from_u32(&[6, 0x80000001]) };
+        x.isub_small(7);
+        assert_eq!(x.data, from_u32(&[0xFFFFFFFF, 0x80000000]));
 
-            // Double carry, overflow
-            let mut x = Bigint { data: from_u32(&[6, 0, 1]) };
-            x.isub_small(7);
-            assert_eq!(x.data, from_u32(&[0xFFFFFFFF, 0xFFFFFFFF]));
-        }
+        // Double carry, overflow
+        let mut x = Bigint { data: from_u32(&[6, 0, 1]) };
+        x.isub_small(7);
+        assert_eq!(x.data, from_u32(&[0xFFFFFFFF, 0xFFFFFFFF]));
     }
 
     #[test]
@@ -3494,37 +3442,35 @@ mod tests {
 
     #[test]
     fn isub_large_test() {
-        unsafe {
-            // Overflow, both single values
-            let mut x = Bigint { data: from_u32(&[4, 1]) };
-            let y = Bigint { data: from_u32(&[5]) };
-            x.isub_large(&y);
-            assert_eq!(x.data, from_u32(&[4294967295]));
+        // Overflow, both single values
+        let mut x = Bigint { data: from_u32(&[4, 1]) };
+        let y = Bigint { data: from_u32(&[5]) };
+        x.isub_large(&y);
+        assert_eq!(x.data, from_u32(&[4294967295]));
 
-            // No overflow, single value
-            let mut x = Bigint { data: from_u32(&[12]) };
-            let y = Bigint { data: from_u32(&[7]) };
-            x.isub_large(&y);
-            assert_eq!(x.data, from_u32(&[5]));
+        // No overflow, single value
+        let mut x = Bigint { data: from_u32(&[12]) };
+        let y = Bigint { data: from_u32(&[7]) };
+        x.isub_large(&y);
+        assert_eq!(x.data, from_u32(&[5]));
 
-            // Single carry, internal overflow
-            let mut x = Bigint { data: from_u32(&[6, 0x80000001]) };
-            let y = Bigint { data: from_u32(&[7]) };
-            x.isub_large(&y);
-            assert_eq!(x.data, from_u32(&[0xFFFFFFFF, 0x80000000]));
+        // Single carry, internal overflow
+        let mut x = Bigint { data: from_u32(&[6, 0x80000001]) };
+        let y = Bigint { data: from_u32(&[7]) };
+        x.isub_large(&y);
+        assert_eq!(x.data, from_u32(&[0xFFFFFFFF, 0x80000000]));
 
-            // Zeros out.
-            let mut x = Bigint { data: from_u32(&[0xFFFFFFFF, 0x7FFFFFFF]) };
-            let y = Bigint { data: from_u32(&[0xFFFFFFFF, 0x7FFFFFFF]) };
-            x.isub_large(&y);
-            assert_eq!(x.data, from_u32(&[]));
+        // Zeros out.
+        let mut x = Bigint { data: from_u32(&[0xFFFFFFFF, 0x7FFFFFFF]) };
+        let y = Bigint { data: from_u32(&[0xFFFFFFFF, 0x7FFFFFFF]) };
+        x.isub_large(&y);
+        assert_eq!(x.data, from_u32(&[]));
 
-            // 1st overflows, 2nd doesn't.
-            let mut x = Bigint { data: from_u32(&[0xFFFFFFFE, 0x80000000]) };
-            let y = Bigint { data: from_u32(&[0xFFFFFFFF, 0x7FFFFFFF]) };
-            x.isub_large(&y);
-            assert_eq!(x.data, from_u32(&[0xFFFFFFFF]));
-        }
+        // 1st overflows, 2nd doesn't.
+        let mut x = Bigint { data: from_u32(&[0xFFFFFFFE, 0x80000000]) };
+        let y = Bigint { data: from_u32(&[0xFFFFFFFF, 0x7FFFFFFF]) };
+        x.isub_large(&y);
+        assert_eq!(x.data, from_u32(&[0xFFFFFFFF]));
     }
 
     #[test]
@@ -3602,11 +3548,9 @@ mod tests {
 
     #[test]
     fn quorem_test() {
-        unsafe {
-            let mut x = Bigint::from_u128(42535295865117307932921825928971026432);
-            let y = Bigint::from_u128(17218479456385750618067377696052635483);
-            assert_eq!(x.quorem(&y), 2);
-            assert_eq!(x.data, from_u32(&[1873752394, 3049207402, 3024501058, 102215382]));
-        }
+        let mut x = Bigint::from_u128(42535295865117307932921825928971026432);
+        let y = Bigint::from_u128(17218479456385750618067377696052635483);
+        assert_eq!(x.quorem(&y), 2);
+        assert_eq!(x.data, from_u32(&[1873752394, 3049207402, 3024501058, 102215382]));
     }
 }

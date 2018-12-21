@@ -10,7 +10,6 @@ Low-level, FFI-compatible, lexical conversion routines for use in a `no_std` con
 - [Features](#features)
 - [Documentation](#documentation)
 - [Validation](#validation)
-- [Caveats](#caveats)
 - [Implementation Details](#implementation-details)
   - [Float to String](#float-to-string)
   - [String to Float](#string-to-float)
@@ -129,12 +128,6 @@ Float parsing is difficult to do correctly, and major bugs have been found in im
 4. [Various](https://www.exploringbinary.com/glibc-strtod-incorrectly-converts-2-to-the-negative-1075/) [difficult](https://www.exploringbinary.com/how-glibc-strtod-works/) [cases](https://www.exploringbinary.com/how-strtod-works-and-sometimes-doesnt/) reported on blogs.
 
 Although lexical may contain bugs leading to rounding error, it is tested against a comprehensive suite of random-data and near-halfway representations, and should be fast and correct for the vast majority of use-cases.
-
-Finally, due to the heavy use of unsafe code, lexical-core is fuzzed using cargo-fuzz, to avoid memory errors, and the unittests are periodically run under Valgrind.
-
-# Caveats
-
-Lexical uses unsafe code in the back-end for performance, and therefore may introduce memory-safety issues. Although the code is fuzzed and tested under Valgrind, no guarantees are made and you should use lexical-core at your own risk.
 
 # Implementation Details
 

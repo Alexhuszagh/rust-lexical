@@ -28,7 +28,7 @@ mod private {
 pub(crate) trait StablePower: private::StablePowerImpl {
 //    /// Calculate pow2 with numeric exponent.
 //    #[cfg(any(test, not(feature = "imprecise")))]
-//    unsafe fn pow2(self, exponent: i32) -> Self;
+//    fn pow2(self, exponent: i32) -> Self;
 //
 //    /// Calculate base^n with numeric exponent and base.
 //    #[cfg(any(test, not(feature = "imprecise")))]
@@ -156,7 +156,7 @@ impl StablePower for f32 {
 
         debug_assert_radix!(radix);
         let idx: usize = as_cast(radix.as_i32() - 2);
-        unsafe { *MAX.get_unchecked(idx) }
+        MAX[idx]
     }
 
     fn iterative_step<T: Integer>(radix: T) -> i32 {
@@ -170,7 +170,7 @@ impl StablePower for f32 {
 
         debug_assert_radix!(radix);
         let idx: usize = as_cast(radix.as_i32() - 2);
-        unsafe { *STEP.get_unchecked(idx) }
+        STEP[idx]
     }
 }
 
