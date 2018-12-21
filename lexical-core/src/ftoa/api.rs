@@ -3,7 +3,6 @@
 //! Uses either the internal "Grisu2", or the external "Grisu3" or "Ryu"
 //! algorithms provided by `https://github.com/dtolnay`.
 
-use lib::slice;
 use util::*;
 
 #[cfg(feature = "radix")]
@@ -117,7 +116,7 @@ fn filter_sign<'a, F: FloatToString>(mut value: F, radix: u32, bytes: &'a mut [u
     // Export "-0.0" and "0.0" as "0" with trimmed floats.
     #[cfg(feature = "trim_floats")] {
         if value.is_zero() {
-            bytes[0] = b"0";
+            bytes[0] = b'0';
             return &mut bytes[1..];
         }
     }
@@ -133,66 +132,65 @@ fn filter_sign<'a, F: FloatToString>(mut value: F, radix: u32, bytes: &'a mut [u
     }
 }
 
+/// Iteratively filter simple cases then invoke serializer.
+#[inline(always)]
+fn ftoa<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
+    -> usize
+{
+    let first = bytes.as_ptr();
+    let slc = filter_sign(value, radix, bytes);
+    distance(first, slc.as_ptr())
+}
+
+/// Trim a trailing ".0" from a float.
+#[inline(always)]
+fn trim<'a>(bytes: &'a mut [u8])
+    -> &'a mut[u8]
+{
+    // Trim a trailing ".0" from a float.
+    #[cfg(feature = "trim_floats")] {
+        if ends_with_slice(bytes, b".0") {
+            slice_from_span_mut(bytes.as_mut_ptr(), bytes.len() - 2)
+        } else {
+            bytes
+        }
+    }
+
+    #[cfg(not(feature = "trim_floats"))] {
+        bytes
+    }
+}
+
 // UNSAFE API
 
-/// Generate the unsafe API wrappers.
-///
-/// * `name`        Function name.
-/// * `f`           Float type.
-macro_rules! generate_unsafe_api {
-    ($name:ident, $t:ty, $size:expr) => (
-        /// Unsafe, C-like exporter for float numbers.
-        ///
-        /// # Warning
-        ///
-        /// Do not call this function directly, unless you **know**
-        /// you have a buffer of sufficient size. No size checking is
-        /// done in release mode, this function is **highly** dangerous.
-        /// Sufficient buffer sizes is denoted by `BUFFER_SIZE`.
+/// Expand the generic ftoa function for specified types.
+macro_rules! wrap {
+    ($name:ident, $t:ty) => (
+        /// Serialize float and return bytes written to.
         #[inline]
-        unsafe fn $name(value: $t, base: u8, first: *mut u8, last: *mut u8)
-            -> *mut u8
+        fn $name<'a>(value: $t, base: u8, bytes: &'a mut [u8])
+            -> &'a mut [u8]
         {
             // Check buffer has sufficient capacity.
-            assert_buffer!(first, last, $size);
-            // TODO(ahuszagh) fix to use raw slices
-            let bytes = slice::from_raw_parts_mut(first, distance(first, last));
-            let bytes = filter_sign(value, base.into(), bytes);
-
-            // Trim a trailing ".0" from a float.
-            #[cfg(feature = "trim_floats")] {
-                if ends_with_slice(bytes, ".0") {
-                    bytes.as_mut_ptr().sub(2)
-                } else {
-                    bytes.as_mut_ptr()
-                }
-            }
-
-            #[cfg(not(feature = "trim_floats"))] {
-                bytes.as_mut_ptr()
-            }
+            let len = ftoa(value, base.into(), bytes);
+            trim(&mut bytes[..len])
         }
     )
 }
 
-generate_unsafe_api!(f32toa_unsafe, f32, MAX_F32_SIZE);
-generate_unsafe_api!(f64toa_unsafe, f64, MAX_F64_SIZE);
+wrap!(f32toa_impl, f32);
+wrap!(f64toa_impl, f64);
 
 // LOW-LEVEL API
 // -------------
 
-// WRAP UNSAFE LOCAL
-
-generate_to_bytes_local!(f32toa_local, f32, f32toa_unsafe);
-generate_to_bytes_local!(f64toa_local, f64, f64toa_unsafe);
-
 // RANGE API (FFI)
-generate_to_range_api!(f32toa_range, f32, f32toa_local);
-generate_to_range_api!(f64toa_range, f64, f64toa_local);
+generate_to_range_api!(f32toa_range, f32, f32toa_impl, MAX_F32_SIZE);
+generate_to_range_api!(f64toa_range, f64, f64toa_impl, MAX_F64_SIZE);
 
 // SLICE API
-generate_to_slice_api!(f32toa_slice, f32, f32toa_local);
-generate_to_slice_api!(f64toa_slice, f64, f64toa_local);
+generate_to_slice_api!(f32toa_slice, f32, f32toa_impl, MAX_F32_SIZE);
+generate_to_slice_api!(f64toa_slice, f64, f64toa_impl, MAX_F64_SIZE);
 
 // TESTS
 // -----

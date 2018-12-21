@@ -3,12 +3,9 @@
 use lib::convert::AsRef;
 use lib::{mem, ptr, slice};
 
-// TODO(ahuszagh) Remove the range functions.
-
 // ALGORITHMS
 
 /// Calculate the difference between two pointers.
-// TODO(ahuszagh) Should be for NonNull and with a type T parameters.
 #[inline(always)]
 pub fn distance<T>(first: *const T, last: *const T)
     -> usize
@@ -21,7 +18,7 @@ pub fn distance<T>(first: *const T, last: *const T)
 
 /// Check if two slices are equal to each other.
 #[inline(always)]
-pub fn equal_to_slice<'a>(l: &'a [u8], r: &'a [u8])
+pub fn equal_to_slice(l: &[u8], r: &[u8])
     -> bool
 {
     l == r
@@ -29,7 +26,7 @@ pub fn equal_to_slice<'a>(l: &'a [u8], r: &'a [u8])
 
 /// Check if two slices are equal to each other without case-sensitivity.
 #[inline(always)]
-pub fn case_insensitive_equal_to_slice<'a>(l: &'a [u8], r: &'a [u8])
+pub fn case_insensitive_equal_to_slice(l: &[u8], r: &[u8])
     -> bool
 {
     let liter = l.iter().map(|li| li.to_ascii_lowercase());
@@ -39,7 +36,7 @@ pub fn case_insensitive_equal_to_slice<'a>(l: &'a [u8], r: &'a [u8])
 
 /// Check if left slice starts with right slice without case-sensitivity.
 #[inline(always)]
-pub fn case_insensitive_starts_with_slice<'a>(l: &'a [u8], r: &'a [u8])
+pub fn case_insensitive_starts_with_slice(l: &[u8], r: &[u8])
     -> bool
 {
     l.len() >= r.len() && case_insensitive_equal_to_slice(&l[..r.len()], r)
@@ -48,7 +45,7 @@ pub fn case_insensitive_starts_with_slice<'a>(l: &'a [u8], r: &'a [u8])
 /// Check if left slice ends with right slice.
 #[cfg(feature = "trim_floats")]
 #[inline(always)]
-pub fn ends_with_slice<'a>(l: &'a [u8], r: &'a [u8])
+pub fn ends_with_slice(l: &[u8], r: &[u8])
     -> bool
 {
     l.len() >= r.len() && equal_to_slice(&l[l.len()-r.len()..], r)
@@ -64,7 +61,8 @@ pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
 }
 
 /// Trim character from the right-side of a slice.
-#[inline(always)]
+#[cfg(any(feature = "correct", feature = "radix"))]
+#[inline]
 pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
     -> &'a [u8]
 {
@@ -105,6 +103,7 @@ pub fn explicit_uninitialized<T>() -> T {
 }
 
 /// Create slice from pointer range.
+#[cfg(feature = "correct")]
 #[inline]
 pub fn slice_from_range<'a, T>(first: *const T, last: *const T)
     -> &'a [T]
@@ -112,13 +111,25 @@ pub fn slice_from_range<'a, T>(first: *const T, last: *const T)
     slice_from_span(first, distance(first, last))
 }
 
-/// Create slice from pointer range.
+/// Create slice from pointer and size.
+#[cfg(feature = "correct")]
 #[inline]
 pub fn slice_from_span<'a, T>(first: *const T, length: usize)
     -> &'a [T]
 {
     unsafe {
         slice::from_raw_parts(first, length)
+    }
+}
+
+/// Create mutable slice from pointer and size.
+#[cfg(feature = "trim_floats")]
+#[inline]
+pub fn slice_from_span_mut<'a, T>(first: *mut T, length: usize)
+    -> &'a mut [T]
+{
+    unsafe {
+        slice::from_raw_parts_mut(first, length)
     }
 }
 
@@ -186,6 +197,31 @@ mod tests {
         assert!(!case_insensitive_starts_with_slice(z.as_bytes(), w.as_bytes()));
     }
 
+    #[cfg(feature = "trim_floats")]
+    #[test]
+    fn ends_with_test() {
+        let w = "Hello";
+        let x = "lO";
+        let y = "lo";
+        let z = "o";
+
+        // forward
+        assert!(!ends_with_slice(w.as_bytes(), x.as_bytes()));
+        assert!(ends_with_slice(w.as_bytes(), y.as_bytes()));
+        assert!(ends_with_slice(w.as_bytes(), z.as_bytes()));
+        assert!(!ends_with_slice(x.as_bytes(), y.as_bytes()));
+        assert!(!ends_with_slice(x.as_bytes(), z.as_bytes()));
+        assert!(ends_with_slice(y.as_bytes(), z.as_bytes()));
+
+        // back
+        assert!(!ends_with_slice(z.as_bytes(), y.as_bytes()));
+        assert!(!ends_with_slice(z.as_bytes(), x.as_bytes()));
+        assert!(!ends_with_slice(z.as_bytes(), w.as_bytes()));
+        assert!(!ends_with_slice(y.as_bytes(), x.as_bytes()));
+        assert!(!ends_with_slice(y.as_bytes(), w.as_bytes()));
+        assert!(!ends_with_slice(x.as_bytes(), w.as_bytes()));
+    }
+
     #[test]
     fn ltrim_char_test() {
         let w = "0001";
@@ -202,6 +238,7 @@ mod tests {
         assert_eq!(ltrim_char_slice(z.as_bytes(), b'1').len(), 3);
     }
 
+    #[cfg(any(feature = "correct", feature = "radix"))]
     #[test]
     fn rtrim_char_test() {
         let w = "0001";

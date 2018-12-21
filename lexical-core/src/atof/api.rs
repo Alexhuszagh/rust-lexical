@@ -2,7 +2,6 @@
 //!
 //! Uses either the imprecise or the precise algorithm.
 
-use lib::slice;
 use util::*;
 
 // Select the back-end
@@ -142,67 +141,57 @@ fn filter_sign<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool)
 /// Iteratively filter simple cases and then invoke parser.
 /// Forcing inlining leads to much better codegen at high optimization levels.
 #[inline(always)]
-fn atof<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool)
-    -> (F, &'a [u8])
+fn atof<F: StringToFloat>(radix: u32, bytes: &[u8], lossy: bool)
+    -> (F, usize)
 {
     let (value, sign, slc) = filter_sign::<F>(radix, bytes, lossy);
+    let processed = distance(bytes.as_ptr(), slc.as_ptr());
     match sign {
-        Sign::Negative => (-value, slc),
-        Sign::Positive => (value, slc),
+        Sign::Negative => (-value, processed),
+        Sign::Positive => (value, processed),
     }
 }
 
 // UNSAFE API
 
-/// Generate the unsafe API wrappers.
-///
-/// * `name`        Function name.
-/// * `f`           Float type.
-macro_rules! generate_unsafe_api {
+/// Expand the generic atof function for specified types.
+macro_rules! wrap {
     ($name:ident, $f:tt, $lossy:expr) => (
-        /// Unsafe, C-like importer for floating-point numbers.
+        /// Parse float and return value, subslice read, and if truncated.
         #[inline]
-        unsafe fn $name(base: u8, first: *const u8, last: *const u8)
-            -> ($f, *const u8, bool)
+        fn $name<'a>(radix: u8, bytes: &'a [u8])
+            -> ($f, &'a [u8], bool)
         {
-            // TODO(ahuszagh) Fix these wrappers.
-            let bytes = slice::from_raw_parts(first, distance(first, last));
-            let (value, slc) = atof::<$f>(base.into(), bytes, $lossy);
-            (value, slc.as_ptr(), false)
+            let (value, len) = atof::<$f>(radix.into(), bytes, $lossy);
+            (value, &bytes[..len], false)
         }
     )
 }
 
-generate_unsafe_api!(atof32_unsafe, f32, false);
-generate_unsafe_api!(atof64_unsafe, f64, false);
-generate_unsafe_api!(atof32_lossy_unsafe, f32, true);
-generate_unsafe_api!(atof64_lossy_unsafe, f64, true);
-
-// WRAP UNSAFE LOCAL
-generate_from_bytes_local!(atof32_local, f32, atof32_unsafe);
-generate_from_bytes_local!(atof64_local, f64, atof64_unsafe);
-generate_from_bytes_local!(atof32_lossy_local, f32, atof32_lossy_unsafe);
-generate_from_bytes_local!(atof64_lossy_local, f64, atof64_lossy_unsafe);
+wrap!(atof32_impl, f32, false);
+wrap!(atof64_impl, f64, false);
+wrap!(atof32_lossy_impl, f32, true);
+wrap!(atof64_lossy_impl, f64, true);
 
 // RANGE API (FFI)
-generate_from_range_api!(atof32_range, f32, atof32_local);
-generate_from_range_api!(atof64_range, f64, atof64_local);
-generate_from_range_api!(atof32_lossy_range, f32, atof32_lossy_local);
-generate_from_range_api!(atof64_lossy_range, f64, atof64_lossy_local);
-generate_try_from_range_api!(try_atof32_range, f32, atof32_local);
-generate_try_from_range_api!(try_atof64_range, f64, atof64_local);
-generate_try_from_range_api!(try_atof32_lossy_range, f32, atof32_lossy_local);
-generate_try_from_range_api!(try_atof64_lossy_range, f64, atof64_lossy_local);
+generate_from_range_api!(atof32_range, f32, atof32_impl);
+generate_from_range_api!(atof64_range, f64, atof64_impl);
+generate_from_range_api!(atof32_lossy_range, f32, atof32_lossy_impl);
+generate_from_range_api!(atof64_lossy_range, f64, atof64_lossy_impl);
+generate_try_from_range_api!(try_atof32_range, f32, atof32_impl);
+generate_try_from_range_api!(try_atof64_range, f64, atof64_impl);
+generate_try_from_range_api!(try_atof32_lossy_range, f32, atof32_lossy_impl);
+generate_try_from_range_api!(try_atof64_lossy_range, f64, atof64_lossy_impl);
 
 // SLICE API
-generate_from_slice_api!(atof32_slice, f32, atof32_local);
-generate_from_slice_api!(atof64_slice, f64, atof64_local);
-generate_from_slice_api!(atof32_lossy_slice, f32, atof32_lossy_local);
-generate_from_slice_api!(atof64_lossy_slice, f64, atof64_lossy_local);
-generate_try_from_slice_api!(try_atof32_slice, f32, atof32_local);
-generate_try_from_slice_api!(try_atof64_slice, f64, atof64_local);
-generate_try_from_slice_api!(try_atof32_lossy_slice, f32, atof32_lossy_local);
-generate_try_from_slice_api!(try_atof64_lossy_slice, f64, atof64_lossy_local);
+generate_from_slice_api!(atof32_slice, f32, atof32_impl);
+generate_from_slice_api!(atof64_slice, f64, atof64_impl);
+generate_from_slice_api!(atof32_lossy_slice, f32, atof32_lossy_impl);
+generate_from_slice_api!(atof64_lossy_slice, f64, atof64_lossy_impl);
+generate_try_from_slice_api!(try_atof32_slice, f32, atof32_impl);
+generate_try_from_slice_api!(try_atof64_slice, f64, atof64_impl);
+generate_try_from_slice_api!(try_atof32_lossy_slice, f32, atof32_lossy_impl);
+generate_try_from_slice_api!(try_atof64_lossy_slice, f64, atof64_lossy_impl);
 
 // TESTS
 // -----

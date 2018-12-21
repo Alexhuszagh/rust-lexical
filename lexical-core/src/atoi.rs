@@ -85,7 +85,7 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use lib::{ptr, slice};
+use lib::ptr;
 use util::*;
 
 // ALGORITHM
@@ -132,8 +132,8 @@ pub(crate) fn unchecked<'a, T>(value: &mut T, radix: T, bytes: &'a [u8])
 ///
 /// Don't trim leading zeros, since the value may be non-zero and
 /// therefore invalid.
+#[cfg(feature = "correct")]
 #[inline]
-#[allow(dead_code)] // TODO(ahuszagh) Find the configuration that sets this...
 pub(crate) fn checked<'a, T>(value: &mut T, radix: T, bytes: &'a [u8])
     -> (&'a [u8], Option<ptr::NonNull<u8>>)
     where T: Integer
@@ -251,117 +251,99 @@ pub(crate) fn signed<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
 
 // UNSAFE API
 
-/// Generate the unsigned, unsafe wrappers.
-macro_rules! generate_unsafe_unsigned {
+/// Expand the generic unsigned atoi function for specified types.
+macro_rules! wrap_unsigned {
     ($func:ident, $t:tt) => (
-        /// Unsafe, C-like importer for unsigned numbers.
+        /// Parse unsigned integer and return value, subslice read, and if truncated.
         #[inline]
-        unsafe fn $func(radix: u8, first: *const u8, last: *const u8)
-            -> ($t, *const u8, bool)
+        fn $func<'a>(radix: u8, bytes: &'a [u8])
+            -> ($t, &'a [u8], bool)
         {
-            // TODO(ahuszagh) Fix all this wrapper code.
-            let bytes = slice::from_raw_parts(first, distance(first, last));
             let (value, len, truncated) = unsigned::<$t, _>(radix.into(), bytes, unchecked::<$t>);
-            (value, first.add(len), truncated)
+            (value, &bytes[..len], truncated)
         }
     )
 }
 
-generate_unsafe_unsigned!(atou8_unsafe, u8);
-generate_unsafe_unsigned!(atou16_unsafe, u16);
-generate_unsafe_unsigned!(atou32_unsafe, u32);
-generate_unsafe_unsigned!(atou64_unsafe, u64);
-generate_unsafe_unsigned!(atou128_unsafe, u128);
-generate_unsafe_unsigned!(atousize_unsafe, usize);
+wrap_unsigned!(atou8_impl, u8);
+wrap_unsigned!(atou16_impl, u16);
+wrap_unsigned!(atou32_impl, u32);
+wrap_unsigned!(atou64_impl, u64);
+wrap_unsigned!(atou128_impl, u128);
+wrap_unsigned!(atousize_impl, usize);
 
-/// Generate the signed, unsafe wrappers.
-macro_rules! generate_unsafe_signed {
+/// Expand the generic signed atoi function for specified types.
+macro_rules! wrap_signed {
     ($func:ident, $t:tt) => (
-        /// Unsafe, C-like importer for signed numbers.
+        /// Parse signed integer and return value, subslice read, and if truncated.
         #[inline]
-        unsafe fn $func(radix: u8, first: *const u8, last: *const u8)
-            -> ($t, *const u8, bool)
+        fn $func<'a>(radix: u8, bytes: &'a [u8])
+            -> ($t, &'a [u8], bool)
         {
-            // TODO(ahuszagh) Fix all this wrapper code.
-            let bytes = slice::from_raw_parts(first, distance(first, last));
             let (value, len, truncated) = signed::<$t, _>(radix.into(), bytes, unchecked::<$t>);
-            (value, first.add(len), truncated)
+            (value, &bytes[..len], truncated)
         }
     )
 }
 
-generate_unsafe_signed!(atoi8_unsafe, i8);
-generate_unsafe_signed!(atoi16_unsafe, i16);
-generate_unsafe_signed!(atoi32_unsafe, i32);
-generate_unsafe_signed!(atoi64_unsafe, i64);
-generate_unsafe_signed!(atoi128_unsafe, i128);
-generate_unsafe_signed!(atoisize_unsafe, isize);
-
-// WRAP UNSAFE LOCAL
-generate_from_bytes_local!(atou8_local, u8, atou8_unsafe);
-generate_from_bytes_local!(atou16_local, u16, atou16_unsafe);
-generate_from_bytes_local!(atou32_local, u32, atou32_unsafe);
-generate_from_bytes_local!(atou64_local, u64, atou64_unsafe);
-generate_from_bytes_local!(atou128_local, u128, atou128_unsafe);
-generate_from_bytes_local!(atousize_local, usize, atousize_unsafe);
-generate_from_bytes_local!(atoi8_local, i8, atoi8_unsafe);
-generate_from_bytes_local!(atoi16_local, i16, atoi16_unsafe);
-generate_from_bytes_local!(atoi32_local, i32, atoi32_unsafe);
-generate_from_bytes_local!(atoi64_local, i64, atoi64_unsafe);
-generate_from_bytes_local!(atoi128_local, i128, atoi128_unsafe);
-generate_from_bytes_local!(atoisize_local, isize, atoisize_unsafe);
+wrap_signed!(atoi8_impl, i8);
+wrap_signed!(atoi16_impl, i16);
+wrap_signed!(atoi32_impl, i32);
+wrap_signed!(atoi64_impl, i64);
+wrap_signed!(atoi128_impl, i128);
+wrap_signed!(atoisize_impl, isize);
 
 // RANGE API (FFI)
-generate_from_range_api!(atou8_range, u8, atou8_local);
-generate_from_range_api!(atou16_range, u16, atou16_local);
-generate_from_range_api!(atou32_range, u32, atou32_local);
-generate_from_range_api!(atou64_range, u64, atou64_local);
-generate_from_range_api!(atou128_range, u128, atou128_local);
-generate_from_range_api!(atousize_range, usize, atousize_local);
-generate_from_range_api!(atoi8_range, i8, atoi8_local);
-generate_from_range_api!(atoi16_range, i16, atoi16_local);
-generate_from_range_api!(atoi32_range, i32, atoi32_local);
-generate_from_range_api!(atoi64_range, i64, atoi64_local);
-generate_from_range_api!(atoi128_range, i128, atoi128_local);
-generate_from_range_api!(atoisize_range, isize, atoisize_local);
-generate_try_from_range_api!(try_atou8_range, u8, atou8_local);
-generate_try_from_range_api!(try_atou16_range, u16, atou16_local);
-generate_try_from_range_api!(try_atou32_range, u32, atou32_local);
-generate_try_from_range_api!(try_atou64_range, u64, atou64_local);
-generate_try_from_range_api!(try_atou128_range, u128, atou128_local);
-generate_try_from_range_api!(try_atousize_range, usize, atousize_local);
-generate_try_from_range_api!(try_atoi8_range, i8, atoi8_local);
-generate_try_from_range_api!(try_atoi16_range, i16, atoi16_local);
-generate_try_from_range_api!(try_atoi32_range, i32, atoi32_local);
-generate_try_from_range_api!(try_atoi64_range, i64, atoi64_local);
-generate_try_from_range_api!(try_atoi128_range, i128, atoi128_local);
-generate_try_from_range_api!(try_atoisize_range, isize, atoisize_local);
+generate_from_range_api!(atou8_range, u8, atou8_impl);
+generate_from_range_api!(atou16_range, u16, atou16_impl);
+generate_from_range_api!(atou32_range, u32, atou32_impl);
+generate_from_range_api!(atou64_range, u64, atou64_impl);
+generate_from_range_api!(atou128_range, u128, atou128_impl);
+generate_from_range_api!(atousize_range, usize, atousize_impl);
+generate_from_range_api!(atoi8_range, i8, atoi8_impl);
+generate_from_range_api!(atoi16_range, i16, atoi16_impl);
+generate_from_range_api!(atoi32_range, i32, atoi32_impl);
+generate_from_range_api!(atoi64_range, i64, atoi64_impl);
+generate_from_range_api!(atoi128_range, i128, atoi128_impl);
+generate_from_range_api!(atoisize_range, isize, atoisize_impl);
+generate_try_from_range_api!(try_atou8_range, u8, atou8_impl);
+generate_try_from_range_api!(try_atou16_range, u16, atou16_impl);
+generate_try_from_range_api!(try_atou32_range, u32, atou32_impl);
+generate_try_from_range_api!(try_atou64_range, u64, atou64_impl);
+generate_try_from_range_api!(try_atou128_range, u128, atou128_impl);
+generate_try_from_range_api!(try_atousize_range, usize, atousize_impl);
+generate_try_from_range_api!(try_atoi8_range, i8, atoi8_impl);
+generate_try_from_range_api!(try_atoi16_range, i16, atoi16_impl);
+generate_try_from_range_api!(try_atoi32_range, i32, atoi32_impl);
+generate_try_from_range_api!(try_atoi64_range, i64, atoi64_impl);
+generate_try_from_range_api!(try_atoi128_range, i128, atoi128_impl);
+generate_try_from_range_api!(try_atoisize_range, isize, atoisize_impl);
 
 // SLICE API
-generate_from_slice_api!(atou8_slice, u8, atou8_local);
-generate_from_slice_api!(atou16_slice, u16, atou16_local);
-generate_from_slice_api!(atou32_slice, u32, atou32_local);
-generate_from_slice_api!(atou64_slice, u64, atou64_local);
-generate_from_slice_api!(atou128_slice, u128, atou128_local);
-generate_from_slice_api!(atousize_slice, usize, atousize_local);
-generate_from_slice_api!(atoi8_slice, i8, atoi8_local);
-generate_from_slice_api!(atoi16_slice, i16, atoi16_local);
-generate_from_slice_api!(atoi32_slice, i32, atoi32_local);
-generate_from_slice_api!(atoi64_slice, i64, atoi64_local);
-generate_from_slice_api!(atoi128_slice, i128, atoi128_local);
-generate_from_slice_api!(atoisize_slice, isize, atoisize_local);
-generate_try_from_slice_api!(try_atou8_slice, u8, atou8_local);
-generate_try_from_slice_api!(try_atou16_slice, u16, atou16_local);
-generate_try_from_slice_api!(try_atou32_slice, u32, atou32_local);
-generate_try_from_slice_api!(try_atou64_slice, u64, atou64_local);
-generate_try_from_slice_api!(try_atou128_slice, u128, atou128_local);
-generate_try_from_slice_api!(try_atousize_slice, usize, atousize_local);
-generate_try_from_slice_api!(try_atoi8_slice, i8, atoi8_local);
-generate_try_from_slice_api!(try_atoi16_slice, i16, atoi16_local);
-generate_try_from_slice_api!(try_atoi32_slice, i32, atoi32_local);
-generate_try_from_slice_api!(try_atoi64_slice, i64, atoi64_local);
-generate_try_from_slice_api!(try_atoi128_slice, i128, atoi128_local);
-generate_try_from_slice_api!(try_atoisize_slice, isize, atoisize_local);
+generate_from_slice_api!(atou8_slice, u8, atou8_impl);
+generate_from_slice_api!(atou16_slice, u16, atou16_impl);
+generate_from_slice_api!(atou32_slice, u32, atou32_impl);
+generate_from_slice_api!(atou64_slice, u64, atou64_impl);
+generate_from_slice_api!(atou128_slice, u128, atou128_impl);
+generate_from_slice_api!(atousize_slice, usize, atousize_impl);
+generate_from_slice_api!(atoi8_slice, i8, atoi8_impl);
+generate_from_slice_api!(atoi16_slice, i16, atoi16_impl);
+generate_from_slice_api!(atoi32_slice, i32, atoi32_impl);
+generate_from_slice_api!(atoi64_slice, i64, atoi64_impl);
+generate_from_slice_api!(atoi128_slice, i128, atoi128_impl);
+generate_from_slice_api!(atoisize_slice, isize, atoisize_impl);
+generate_try_from_slice_api!(try_atou8_slice, u8, atou8_impl);
+generate_try_from_slice_api!(try_atou16_slice, u16, atou16_impl);
+generate_try_from_slice_api!(try_atou32_slice, u32, atou32_impl);
+generate_try_from_slice_api!(try_atou64_slice, u64, atou64_impl);
+generate_try_from_slice_api!(try_atou128_slice, u128, atou128_impl);
+generate_try_from_slice_api!(try_atousize_slice, usize, atousize_impl);
+generate_try_from_slice_api!(try_atoi8_slice, i8, atoi8_impl);
+generate_try_from_slice_api!(try_atoi16_slice, i16, atoi16_impl);
+generate_try_from_slice_api!(try_atoi32_slice, i32, atoi32_impl);
+generate_try_from_slice_api!(try_atoi64_slice, i64, atoi64_impl);
+generate_try_from_slice_api!(try_atoi128_slice, i128, atoi128_impl);
+generate_try_from_slice_api!(try_atoisize_slice, isize, atoisize_impl);
 
 // TESTS
 // -----
@@ -409,6 +391,7 @@ mod tests {
         (36, "11"),
     ];
 
+    #[cfg(feature = "correct")]
     #[test]
     fn checked_test() {
         let s = "1234567891234567890123";

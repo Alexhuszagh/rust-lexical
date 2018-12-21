@@ -29,9 +29,8 @@ macro_rules! assert_radix {
 // BUFFER
 
 /// Check the buffer has sufficient room for the output.
-// TODO(ahuszagh) Change to use slice.
 macro_rules! assert_buffer {
-    ($first:ident, $last:ident, $size:expr) => ({
-        assert!(distance($first, $last) >= $size);
+    ($slc:ident, $size:expr) => ({
+        assert!($slc.len() >= $size);
     });
 }

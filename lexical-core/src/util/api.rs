@@ -7,36 +7,6 @@ use super::result::*;
 
 // TO BYTES WRAPPER
 
-/// Wrap the unsafe API into the safe API parsing raw bytes.
-#[doc(hidden)]
-#[inline]
-pub(crate) fn from_bytes_wrapper<T, Cb>(radix: u8, first: *const u8, last: *const u8, cb: Cb)
-    -> T
-    where Cb: FnOnce(u8, *const u8, *const u8) -> (T, *const u8, bool)
-{
-    let (value, _, _) = cb(radix, first, last);
-    value
-}
-
-/// Generate local wrappers which falsely claim the function is safe.
-///
-/// Allows us to avoid macro magic and use FnOnce, don't export or expose
-/// these functions.
-#[doc(hidden)]
-macro_rules! generate_from_bytes_local {
-    ($name:ident, $t:ty, $cb:ident) => (
-        #[inline]
-        fn $name(radix: u8, first: *const u8, last: *const u8)
-            -> ($t, *const u8, bool)
-        {
-            // This is the "choke-point", where it panics at runtime
-            // if the radix is invalid.
-            assert_radix!(radix);
-            unsafe { $cb(radix, first, last) }
-        }
-    )
-}
-
 /// Macro to generate the low-level, FFI API using a pointer range.
 #[doc(hidden)]
 macro_rules! generate_from_range_api {
@@ -64,8 +34,10 @@ macro_rules! generate_from_range_api {
         pub unsafe extern "C" fn $name(radix: u8, first: *const u8, last: *const u8)
             -> $t
         {
-            assert!(!first.is_null() || !last.is_null());
-            $crate::util::api::from_bytes_wrapper::<$t, _>(radix, first, last, $cb)
+            assert_radix!(radix);
+            assert!(first <= last && !first.is_null() && !last.is_null());
+            let bytes = $crate::lib::slice::from_raw_parts(first, distance(first, last));
+            $cb(radix, bytes).0
         }
     )
 }
@@ -91,11 +63,8 @@ macro_rules! generate_from_slice_api {
         pub fn $name(radix: u8, bytes: &[u8])
             -> $t
         {
-            unsafe {
-                let first = bytes.as_ptr();
-                let last = first.add(bytes.len());
-                $crate::util::api::from_bytes_wrapper::<$t, _>(radix, first, last, $cb)
-            }
+            assert_radix!(radix);
+            $cb(radix, bytes).0
         }
     )
 }
@@ -103,21 +72,20 @@ macro_rules! generate_from_slice_api {
 /// Wrap the unsafe API into the safe, parse API trying to parse raw bytes.
 #[doc(hidden)]
 #[inline]
-pub(crate) unsafe fn try_from_bytes_wrapper<T, Cb>(radix: u8, first: *const u8, last: *const u8, cb: Cb)
+pub(crate) fn try_from_bytes_wrapper<'a, T, Cb>(radix: u8, bytes: &'a [u8], cb: Cb)
     -> Result<T>
     where T: Number,
-          Cb: FnOnce(u8, *const u8, *const u8) -> (T, *const u8, bool)
+          Cb: FnOnce(u8, &'a [u8]) -> (T, &'a [u8], bool)
 {
-    let (value, p, overflow) = cb(radix, first, last);
-    if first == last {
+    let (value, slc, overflow) = cb(radix, bytes);
+    if bytes.is_empty() {
         empty_error(value)
     } else if overflow {
         overflow_error(value)
-    } else if p == last {
+    } else if slc.len() == bytes.len() {
         success(value)
     } else {
-        let dist = if p == lib::ptr::null() { 0 } else { distance(first, p) };
-        invalid_digit_error(value, dist)
+        invalid_digit_error(value, slc.len())
     }
 }
 
@@ -148,8 +116,10 @@ macro_rules! generate_try_from_range_api {
         pub unsafe extern "C" fn $name(radix: u8, first: *const u8, last: *const u8)
             -> Result<$t>
         {
-            assert!(!first.is_null() || !last.is_null());
-            $crate::util::api::try_from_bytes_wrapper::<$t, _>(radix, first, last, $cb)
+            assert_radix!(radix);
+            assert!(first <= last && !first.is_null() && !last.is_null());
+            let bytes = $crate::lib::slice::from_raw_parts(first, distance(first, last));
+            $crate::util::api::try_from_bytes_wrapper::<$t, _>(radix, bytes, $cb)
         }
     )
 }
@@ -178,40 +148,18 @@ macro_rules! generate_try_from_slice_api {
         pub fn $name(radix: u8, bytes: &[u8])
             -> Result<$t>
         {
-            unsafe {
-                let first = bytes.as_ptr();
-                let last = first.add(bytes.len());
-                $crate::util::api::try_from_bytes_wrapper::<$t, _>(radix, first, last, $cb)
-            }
+            assert_radix!(radix);
+            $crate::util::api::try_from_bytes_wrapper::<$t, _>(radix, bytes, $cb)
         }
     )
 }
 
 // TO BYTES WRAPPER
 
-/// Generate local wrappers which falsely claim the function is safe.
-///
-/// Allows us to avoid macro magic and use FnOnce, don't export or expose
-/// these functions.
-#[doc(hidden)]
-macro_rules! generate_to_bytes_local {
-    ($name:ident, $t:ty, $cb:ident) => (
-        #[inline]
-        fn $name(value: $t, radix: u8, first: *mut u8, last: *mut u8)
-            -> *mut u8
-        {
-            // This is the "choke-point", where it panics at runtime
-            // if the radix is invalid.
-            assert_radix!(radix);
-            unsafe { $cb(value, radix, first, last) }
-        }
-    )
-}
-
 /// Macro to generate the low-level, FFI, to_string API using a range.
 #[doc(hidden)]
 macro_rules! generate_to_range_api {
-    ($name:ident, $t:ty, $cb:ident) => (
+    ($name:ident, $t:ty, $cb:ident, $size:ident) => (
         /// Serializer for a number-to-string conversion using pointer ranges.
         ///
         /// Returns a pointer to the 1-past-the-last-byte-written, so that
@@ -241,8 +189,15 @@ macro_rules! generate_to_range_api {
         pub unsafe extern "C" fn $name(value: $t, radix: u8, first: *mut u8, last: *mut u8)
             -> *mut u8
         {
-            assert!(!first.is_null() || !last.is_null());
-            $cb(value, radix, first, last)
+            assert_radix!(radix);
+            assert!(first <= last && !first.is_null() && !last.is_null());
+
+            let bytes = $crate::lib::slice::from_raw_parts_mut(first, distance(first, last));
+            assert_buffer!(bytes, $size);
+
+            let slc = $cb(value, radix, bytes);
+            let len = slc.len();
+            slc.as_mut_ptr().add(len)
         }
     )
 }
@@ -250,7 +205,7 @@ macro_rules! generate_to_range_api {
 /// Macro to generate the low-level, safe, to_string API using a slice.
 #[doc(hidden)]
 macro_rules! generate_to_slice_api {
-    ($name:ident, $t:ty, $cb:ident) => (
+    ($name:ident, $t:ty, $cb:ident, $size:ident) => (
         /// Serializer for a number-to-string conversion using Rust slices.
         ///
         /// Returns a subslice of the input buffer containing the written bytes,
@@ -277,15 +232,12 @@ macro_rules! generate_to_slice_api {
         /// `MAX_*_SIZE` elements, using the proper constant for the
         /// serialized type from the lexical_core crate root.
         #[inline]
-        pub fn $name<'a>(value: $t, radix: u8, bytes: &mut [u8])
+        pub fn $name<'a>(value: $t, radix: u8, bytes: &'a mut [u8])
             -> &'a mut [u8]
         {
-            unsafe {
-                let first = bytes.as_mut_ptr();
-                let last = first.add(bytes.len());
-                let last = $cb(value, radix, first, last);
-                $crate::lib::slice::from_raw_parts_mut(first, distance(first, last))
-            }
+            assert_radix!(radix);
+            assert_buffer!(bytes, $size);
+            $cb(value, radix, bytes)
         }
     )
 }

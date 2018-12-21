@@ -65,6 +65,8 @@ impl<'a> FloatSlice<'a> {
         self.integer.len()
     }
 
+// TODO(ahuszagh) Remove conditional code paths.
+
     /// Get number of parsed integer digits.
     #[inline(always)]
     #[allow(dead_code)]
@@ -112,7 +114,7 @@ impl<'a> FloatSlice<'a> {
             true  => 0,
             false => self.digits_start,
         };
-        scientific_exponent(self.raw_exponent, self.integer_len(), fraction_start)
+        scientific_exponent(self.raw_exponent, self.integer_digits(), fraction_start)
     }
 
     /// Iterate over the digits, by chaining two slices.

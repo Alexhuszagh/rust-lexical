@@ -12,7 +12,7 @@ use util::*;
 pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
     -> &'a mut [u8]
 {
-    let len = dtoa::write(bytes, f).expect("Write to in-memory buffer.");
+    let len = dtoa::write(&mut bytes[..], f).expect("Write to in-memory buffer.");
     &mut bytes[len..]
 }
 
@@ -25,6 +25,6 @@ pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
 pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
     -> &'a mut [u8]
 {
-    let len = dtoa::write(bytes, d).expect("Write to in-memory buffer.");
+    let len = dtoa::write(&mut bytes[..], d).expect("Write to in-memory buffer.");
     &mut bytes[len..]
 }

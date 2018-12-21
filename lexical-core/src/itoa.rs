@@ -100,7 +100,6 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use lib::slice;
 use util::*;
 
 // OPTIMIZED
@@ -263,20 +262,22 @@ pub(crate) fn forward<'a, T>(value: T, radix: u32, bytes: &'a mut [u8])
 
 /// Sanitizer for an unsigned number-to-string implementation.
 #[inline]
-pub(crate) fn unsigned<'a, Value, UWide>(value: Value, radix: u32, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+pub(crate) fn unsigned<Value, UWide>(value: Value, radix: u32, bytes: &mut [u8])
+    -> usize
     where Value: UnsignedInteger,
           UWide: UnsignedInteger
 {
     // Invoke forwarder
     let v: UWide = as_cast(value);
-    forward(v, radix, bytes)
+    let first = bytes.as_ptr();
+    let slc = forward(v, radix, bytes);
+    distance(first, slc.as_ptr())
 }
 
 /// Sanitizer for an signed number-to-string implementation.
 #[inline]
-pub(crate) fn signed<'a, Value, UWide, IWide>(value: Value, radix: u32, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+pub(crate) fn signed<'a, Value, UWide, IWide>(value: Value, radix: u32, bytes: &mut [u8])
+    -> usize
     where Value: SignedInteger,
           UWide: UnsignedInteger,
           IWide: SignedInteger
@@ -295,133 +296,94 @@ pub(crate) fn signed<'a, Value, UWide, IWide>(value: Value, radix: u32, bytes: &
     // for all numerical input values, since Rust guarantees two's
     // complement representation for signed integers.
     let v: UWide;
+    let first = bytes.as_ptr();
+    let slc;
     if value < Value::ZERO {
         bytes[0] = b'-';
         let wide: IWide = as_cast(value);
         v = as_cast(wide.wrapping_neg());
-        forward(v, radix, &mut bytes[1..])
+        slc = forward(v, radix, &mut bytes[1..]);
     } else {
         v = as_cast(value);
-        forward(v, radix, bytes)
+        slc = forward(v, radix, bytes);
     }
+    distance(first, slc.as_ptr())
 }
 
 // UNSAFE API
 
-/// Generate the unsigned, unsafe wrappers.
-macro_rules! generate_unsafe_unsigned {
-    ($name:ident, $t:ty, $uwide:ty, $size:ident) => (
-        /// Unsafe, C-like exporter for unsigned numbers.
-        ///
-        /// # Warning
-        ///
-        /// Do not call this function directly, unless you **know**
-        /// you have a buffer of sufficient size. No size checking is
-        /// done in release mode, this function is **highly** dangerous.
-        /// Sufficient buffer sizes are as follows:
-        ///
-        /// `u8  -> 9`
-        /// `u16 -> 17`
-        /// `u32 -> 33`
-        /// `u64 -> 65`
+/// Expand the generic unsigned itoa function for specified types.
+macro_rules! wrap_unsigned {
+    ($name:ident, $t:ty, $uwide:ty) => (
+        /// Serialize unsigned integer and return bytes written to.
         #[inline]
-        unsafe fn $name(value: $t, radix: u8, first: *mut u8, last: *mut u8)
-            -> *mut u8
+        fn $name<'a>(value: $t, radix: u8, bytes: &'a mut [u8])
+            -> &'a mut [u8]
         {
-            assert_buffer!(first, last, $size);
-            // TODO(ahuszagh) Fix all this wrapper code.
-            let bytes = slice::from_raw_parts_mut(first, distance(first, last));
-            unsigned::<$t, $uwide>(value, radix.into(), bytes).as_mut_ptr()
+            let len = unsigned::<$t, $uwide>(value, radix.into(), bytes);
+            &mut bytes[..len]
         }
     )
 }
 
-generate_unsafe_unsigned!(u8toa_unsafe, u8, u32, MAX_U8_SIZE);
-generate_unsafe_unsigned!(u16toa_unsafe, u16, u32, MAX_U16_SIZE);
-generate_unsafe_unsigned!(u32toa_unsafe, u32, u32, MAX_U32_SIZE);
-generate_unsafe_unsigned!(u64toa_unsafe, u64, u64, MAX_U64_SIZE);
-generate_unsafe_unsigned!(u128toa_unsafe, u128, u128, MAX_U128_SIZE);
-generate_unsafe_unsigned!(usizetoa_unsafe, usize, usize, MAX_USIZE_SIZE);
+wrap_unsigned!(u8toa_impl, u8, u32);
+wrap_unsigned!(u16toa_impl, u16, u32);
+wrap_unsigned!(u32toa_impl, u32, u32);
+wrap_unsigned!(u64toa_impl, u64, u64);
+wrap_unsigned!(u128toa_impl, u128, u128);
+wrap_unsigned!(usizetoa_impl, usize, usize);
 
-/// Generate the signed, unsafe wrappers.
-macro_rules! generate_unsafe_signed {
-    ($name:ident, $t:ty, $uwide:ty, $iwide:ty, $size:ident) => (
-        /// Unsafe, C-like exporter for signed numbers.
-        ///
-        /// # Warning
-        ///
-        /// Do not call this function directly, unless you **know**
-        /// you have a buffer of sufficient size. No size checking is
-        /// done in release mode, this function is **highly** dangerous.
-        /// Sufficient buffer sizes are as follows:
-        ///
-        /// `u8  -> 9`
-        /// `u16 -> 17`
-        /// `u32 -> 33`
-        /// `u64 -> 65`
+/// Expand the generic signed itoa function for specified types.
+macro_rules! wrap_signed {
+    ($name:ident, $t:ty, $uwide:ty, $iwide:ty) => (
+        /// Serialize signed integer and return bytes written to.
         #[inline]
-        unsafe fn $name(value: $t, radix: u8, first: *mut u8, last: *mut u8)
-            -> *mut u8
+        fn $name<'a>(value: $t, radix: u8, bytes: &'a mut [u8])
+            -> &'a mut [u8]
         {
-            assert_buffer!(first, last, $size);
-            // TODO(ahuszagh) Fix all this wrapper code.
-            let bytes = slice::from_raw_parts_mut(first, distance(first, last));
-            signed::<$t, $uwide, $iwide>(value, radix.into(), bytes).as_mut_ptr()
+            let len = signed::<$t, $uwide, $iwide>(value, radix.into(), bytes);
+            &mut bytes[..len]
         }
     )
 }
 
-generate_unsafe_signed!(i8toa_unsafe, i8, u32, i32, MAX_I8_SIZE);
-generate_unsafe_signed!(i16toa_unsafe, i16, u32, i32, MAX_I16_SIZE);
-generate_unsafe_signed!(i32toa_unsafe, i32, u32, i32, MAX_I32_SIZE);
-generate_unsafe_signed!(i64toa_unsafe, i64, u64, i64, MAX_I64_SIZE);
-generate_unsafe_signed!(i128toa_unsafe, i128, u128, i128, MAX_I128_SIZE);
-generate_unsafe_signed!(isizetoa_unsafe, isize, usize, isize, MAX_ISIZE_SIZE);
+wrap_signed!(i8toa_impl, i8, u32, i32);
+wrap_signed!(i16toa_impl, i16, u32, i32);
+wrap_signed!(i32toa_impl, i32, u32, i32);
+wrap_signed!(i64toa_impl, i64, u64, i64);
+wrap_signed!(i128toa_impl, i128, u128, i128);
+wrap_signed!(isizetoa_impl, isize, usize, isize);
 
 // LOW-LEVEL API
 // -------------
 
-// WRAP UNSAFE LOCAL
-generate_to_bytes_local!(u8toa_local, u8, u8toa_unsafe);
-generate_to_bytes_local!(u16toa_local, u16, u16toa_unsafe);
-generate_to_bytes_local!(u32toa_local, u32, u32toa_unsafe);
-generate_to_bytes_local!(u64toa_local, u64, u64toa_unsafe);
-generate_to_bytes_local!(u128toa_local, u128, u128toa_unsafe);
-generate_to_bytes_local!(usizetoa_local, usize, usizetoa_unsafe);
-generate_to_bytes_local!(i8toa_local, i8, i8toa_unsafe);
-generate_to_bytes_local!(i16toa_local, i16, i16toa_unsafe);
-generate_to_bytes_local!(i32toa_local, i32, i32toa_unsafe);
-generate_to_bytes_local!(i64toa_local, i64, i64toa_unsafe);
-generate_to_bytes_local!(i128toa_local, i128, i128toa_unsafe);
-generate_to_bytes_local!(isizetoa_local, isize, isizetoa_unsafe);
-
 // RANGE API (FFI)
-generate_to_range_api!(u8toa_range, u8, u8toa_local);
-generate_to_range_api!(u16toa_range, u16, u16toa_local);
-generate_to_range_api!(u32toa_range, u32, u32toa_local);
-generate_to_range_api!(u64toa_range, u64, u64toa_local);
-generate_to_range_api!(u128toa_range, u128, u128toa_local);
-generate_to_range_api!(usizetoa_range, usize, usizetoa_local);
-generate_to_range_api!(i8toa_range, i8, i8toa_local);
-generate_to_range_api!(i16toa_range, i16, i16toa_local);
-generate_to_range_api!(i32toa_range, i32, i32toa_local);
-generate_to_range_api!(i64toa_range, i64, i64toa_local);
-generate_to_range_api!(i128toa_range, i128, i128toa_local);
-generate_to_range_api!(isizetoa_range, isize, isizetoa_local);
+generate_to_range_api!(u8toa_range, u8, u8toa_impl, MAX_U8_SIZE);
+generate_to_range_api!(u16toa_range, u16, u16toa_impl, MAX_U16_SIZE);
+generate_to_range_api!(u32toa_range, u32, u32toa_impl, MAX_U32_SIZE);
+generate_to_range_api!(u64toa_range, u64, u64toa_impl, MAX_U64_SIZE);
+generate_to_range_api!(u128toa_range, u128, u128toa_impl, MAX_U128_SIZE);
+generate_to_range_api!(usizetoa_range, usize, usizetoa_impl, MAX_USIZE_SIZE);
+generate_to_range_api!(i8toa_range, i8, i8toa_impl, MAX_I8_SIZE);
+generate_to_range_api!(i16toa_range, i16, i16toa_impl, MAX_I16_SIZE);
+generate_to_range_api!(i32toa_range, i32, i32toa_impl, MAX_I32_SIZE);
+generate_to_range_api!(i64toa_range, i64, i64toa_impl, MAX_I64_SIZE);
+generate_to_range_api!(i128toa_range, i128, i128toa_impl, MAX_I128_SIZE);
+generate_to_range_api!(isizetoa_range, isize, isizetoa_impl, MAX_ISIZE_SIZE);
 
 // SLICE API
-generate_to_slice_api!(u8toa_slice, u8, u8toa_local);
-generate_to_slice_api!(u16toa_slice, u16, u16toa_local);
-generate_to_slice_api!(u32toa_slice, u32, u32toa_local);
-generate_to_slice_api!(u64toa_slice, u64, u64toa_local);
-generate_to_slice_api!(u128toa_slice, u128, u128toa_local);
-generate_to_slice_api!(usizetoa_slice, usize, usizetoa_local);
-generate_to_slice_api!(i8toa_slice, i8, i8toa_local);
-generate_to_slice_api!(i16toa_slice, i16, i16toa_local);
-generate_to_slice_api!(i32toa_slice, i32, i32toa_local);
-generate_to_slice_api!(i64toa_slice, i64, i64toa_local);
-generate_to_slice_api!(i128toa_slice, i128, i128toa_local);
-generate_to_slice_api!(isizetoa_slice, isize, isizetoa_local);
+generate_to_slice_api!(u8toa_slice, u8, u8toa_impl, MAX_U8_SIZE);
+generate_to_slice_api!(u16toa_slice, u16, u16toa_impl, MAX_U16_SIZE);
+generate_to_slice_api!(u32toa_slice, u32, u32toa_impl, MAX_U32_SIZE);
+generate_to_slice_api!(u64toa_slice, u64, u64toa_impl, MAX_U64_SIZE);
+generate_to_slice_api!(u128toa_slice, u128, u128toa_impl, MAX_U128_SIZE);
+generate_to_slice_api!(usizetoa_slice, usize, usizetoa_impl, MAX_USIZE_SIZE);
+generate_to_slice_api!(i8toa_slice, i8, i8toa_impl, MAX_I8_SIZE);
+generate_to_slice_api!(i16toa_slice, i16, i16toa_impl, MAX_I16_SIZE);
+generate_to_slice_api!(i32toa_slice, i32, i32toa_impl, MAX_I32_SIZE);
+generate_to_slice_api!(i64toa_slice, i64, i64toa_impl, MAX_I64_SIZE);
+generate_to_slice_api!(i128toa_slice, i128, i128toa_impl, MAX_I128_SIZE);
+generate_to_slice_api!(isizetoa_slice, isize, isizetoa_impl, MAX_ISIZE_SIZE);
 
 // TESTS
 // -----
