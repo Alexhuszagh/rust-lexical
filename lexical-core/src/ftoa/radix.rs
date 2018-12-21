@@ -160,7 +160,7 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
         let buffer = &buffer[start..end];
 
         // 2.   Remove any trailing 0s in the selected range.
-        let buffer = rtrim_char_slice(buffer, b'0');
+        let buffer = rtrim_char_slice(buffer, b'0').0;
 
         // 3.   Write the fraction component
         bytes[0] = buffer[0];

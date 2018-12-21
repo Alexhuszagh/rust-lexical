@@ -25,7 +25,7 @@ pub(super) fn parse_exponent<'a>(radix: u32, bytes: &'a [u8])
         // positive or negative numbers, and will trigger a short-circuit.
         let bytes = &bytes[1..];
         let cb = atoi::unchecked::<i32>;
-        let (exponent, sign, slc, truncated) = atoi::filter_sign::<i32, _>(radix, bytes, cb);
+        let (exponent, sign, len, truncated) = atoi::filter_sign::<i32, _>(radix, bytes, cb);
         let exponent = match truncated.is_some() {
             true  => i32::max_value(),
             false => exponent ,
@@ -35,7 +35,7 @@ pub(super) fn parse_exponent<'a>(radix: u32, bytes: &'a [u8])
             Sign::Positive => exponent,
         };
 
-        (exponent, slc)
+        (exponent, &bytes[len..])
     } else {
         (0, bytes)
     }

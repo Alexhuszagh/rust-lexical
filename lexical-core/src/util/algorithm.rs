@@ -54,20 +54,21 @@ pub fn ends_with_slice(l: &[u8], r: &[u8])
 /// Trim character from the left-side of a slice.
 #[inline(always)]
 pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
-    -> &'a [u8]
+    -> (&'a [u8], usize)
 {
     let count = slc.iter().take_while(|&&si| si == c).count();
-    &slc[count..]
+    (&slc[count..], count)
 }
 
 /// Trim character from the right-side of a slice.
 #[cfg(any(feature = "correct", feature = "radix"))]
 #[inline]
 pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
-    -> &'a [u8]
+    -> (&'a [u8], usize)
 {
     let count = slc.iter().rev().take_while(|&&si| si == c).count();
-    &slc[..slc.len()-count]
+    let index = slc.len() - count;
+    (&slc[..index], count)
 }
 
 /// Copy from source-to-dst.
@@ -103,7 +104,7 @@ pub fn explicit_uninitialized<T>() -> T {
 }
 
 /// Create slice from pointer range.
-#[cfg(feature = "correct")]
+#[cfg(all(feature = "correct", feature = "radix"))]
 #[inline]
 pub fn slice_from_range<'a, T>(first: *const T, last: *const T)
     -> &'a [T]
@@ -229,13 +230,13 @@ mod tests {
         let y = "1.00";
         let z = "1e05";
 
-        assert_eq!(ltrim_char_slice(w.as_bytes(), b'0').len(), 1);
-        assert_eq!(ltrim_char_slice(x.as_bytes(), b'0').len(), 4);
-        assert_eq!(ltrim_char_slice(x.as_bytes(), b'1').len(), 3);
-        assert_eq!(ltrim_char_slice(y.as_bytes(), b'0').len(), 4);
-        assert_eq!(ltrim_char_slice(y.as_bytes(), b'1').len(), 3);
-        assert_eq!(ltrim_char_slice(z.as_bytes(), b'0').len(), 4);
-        assert_eq!(ltrim_char_slice(z.as_bytes(), b'1').len(), 3);
+        assert_eq!(ltrim_char_slice(w.as_bytes(), b'0').1, 3);
+        assert_eq!(ltrim_char_slice(x.as_bytes(), b'0').1, 0);
+        assert_eq!(ltrim_char_slice(x.as_bytes(), b'1').1, 1);
+        assert_eq!(ltrim_char_slice(y.as_bytes(), b'0').1, 0);
+        assert_eq!(ltrim_char_slice(y.as_bytes(), b'1').1, 1);
+        assert_eq!(ltrim_char_slice(z.as_bytes(), b'0').1, 0);
+        assert_eq!(ltrim_char_slice(z.as_bytes(), b'1').1, 1);
     }
 
     #[cfg(any(feature = "correct", feature = "radix"))]
@@ -246,12 +247,12 @@ mod tests {
         let y = "1.00";
         let z = "1e05";
 
-        assert_eq!(rtrim_char_slice(w.as_bytes(), b'0').len(), 4);
-        assert_eq!(rtrim_char_slice(x.as_bytes(), b'0').len(), 3);
-        assert_eq!(rtrim_char_slice(x.as_bytes(), b'1').len(), 4);
-        assert_eq!(rtrim_char_slice(y.as_bytes(), b'0').len(), 2);
-        assert_eq!(rtrim_char_slice(y.as_bytes(), b'1').len(), 4);
-        assert_eq!(rtrim_char_slice(z.as_bytes(), b'0').len(), 4);
-        assert_eq!(rtrim_char_slice(z.as_bytes(), b'5').len(), 3);
+        assert_eq!(rtrim_char_slice(w.as_bytes(), b'0').1, 0);
+        assert_eq!(rtrim_char_slice(x.as_bytes(), b'0').1, 1);
+        assert_eq!(rtrim_char_slice(x.as_bytes(), b'1').1, 0);
+        assert_eq!(rtrim_char_slice(y.as_bytes(), b'0').1, 2);
+        assert_eq!(rtrim_char_slice(y.as_bytes(), b'1').1, 0);
+        assert_eq!(rtrim_char_slice(z.as_bytes(), b'0').1, 0);
+        assert_eq!(rtrim_char_slice(z.as_bytes(), b'5').1, 1);
     }
 }

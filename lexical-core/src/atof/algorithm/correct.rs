@@ -129,7 +129,7 @@ impl<'a> FloatSlice<'a> {
         // but we should remove them before doing anything costly.
         // In practice, we only call `digits_iter()` once per parse,
         // so this is effectively free.
-        let fraction = rtrim_char_slice(self.fraction, b'0');
+        let fraction = rtrim_char_slice(self.fraction, b'0').0;
         self.integer.iter().chain(fraction.iter().skip(self.digits_start)).cloned()
     }
 }
@@ -158,14 +158,15 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
     // i32 may truncate when mantissa does not, which would lead to faulty
     // results. If we trim the 0s here, we guarantee any time `dot as i32`
     // leads to a truncation, mantissa will overflow.
-    bytes = ltrim_char_slice(bytes, b'0');
+    bytes = ltrim_char_slice(bytes, b'0').0;
     let first = bytes.as_ptr();
 
     // Parse the integral value.
     // Use the checked parsers so the truncated value is valid even if
     // the entire value is not parsed.
-    let (mut bytes, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
-    slc.integer = slice_from_range(first, bytes.as_ptr());
+    let (processed, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
+    bytes = &bytes[processed..];
+    slc.integer = slice_from_span(first, processed);
 
     // Check for trailing digits.
     let has_fraction = Some(&b'.') == bytes.get(0);
@@ -180,16 +181,18 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
             // For example, this allows us to use the fast path for
             // both "1e-29" and "0.0000000000000000000000000001",
             // otherwise, only the former would work.
-            bytes = ltrim_char_slice(bytes, b'0');
-            slc.digits_start = distance(first, bytes.as_ptr());
+            let trim = ltrim_char_slice(bytes, b'0');
+            bytes = trim.0;
+            slc.digits_start = trim.1;
         } else {
             slc.digits_start = 0;
         }
 
         // Parse the remaining decimal. Since the truncation is only in
         // the fraction, no decimal place affects it.
-        let (bytes, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
-        slc.fraction = slice_from_range(first, bytes.as_ptr());
+        let (processed, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
+        let bytes = &bytes[processed..];
+        slc.fraction = slice_from_span(first, processed + slc.digits_start);
         slc.truncated = truncated.map_or(0, |p| distance(p.as_ptr(), bytes.as_ptr()));
         (mantissa, slc, bytes, truncated)
     } else if has_fraction {

@@ -67,12 +67,12 @@ fn parse_integer<'a>(radix: u32, bytes: &'a [u8])
     -> (f64, &'a [u8])
 {
     // Trim leading zeros, since we haven't parsed anything yet.
-    let bytes = ltrim_char_slice(bytes, b'0');
+    let bytes = ltrim_char_slice(bytes, b'0').0;
 
     let mut value = Wrapped::ZERO;
-    let (slc, _) = atoi::unchecked(&mut value, as_cast(radix), bytes);
+    let (processed, _) = atoi::unchecked(&mut value, as_cast(radix), bytes);
 
-    (value.into_inner(), slc)
+    (value.into_inner(), &bytes[processed..])
 }
 
 /// Parse the fraction portion of a positive, normal float string.
@@ -94,14 +94,13 @@ fn parse_fraction<'a>(radix: u32, mut bytes: &'a [u8])
             // Trim leading zeros, since that never gets called with the raw parser.
             // Since if it's after the decimal place and this increments state.curr,
             // but not first, this is safe.
-            bytes = ltrim_char_slice(bytes, b'0');
+            bytes = ltrim_char_slice(bytes, b'0').0;
 
             // This would get better numerical precision using Horner's method,
             // but that would require.
             let mut value: u64 = 0;
             let buf = &bytes[..bytes.len().min(12)];
-            let (slc, _) = atoi::unchecked(&mut value, radix.as_u64(), buf);
-            let processed = distance(buf.as_ptr(), slc.as_ptr());
+            let (processed, _) = atoi::unchecked(&mut value, radix.as_u64(), buf);
             bytes = &bytes[processed..];
             let digits = distance(first, bytes.as_ptr()).try_i32_or_max();
 
