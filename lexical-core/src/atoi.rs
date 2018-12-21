@@ -85,7 +85,7 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use lib::slice;
+use lib::{ptr, slice};
 use util::*;
 
 // ALGORITHM
@@ -98,8 +98,8 @@ use util::*;
 /// Don't trim leading zeros, since the value may be non-zero and
 /// therefore invalid.
 #[inline]
-pub(crate) fn unchecked<T>(value: &mut T, radix: T, bytes: &[u8])
-    -> (usize, usize)
+pub(crate) fn unchecked<'a, T>(value: &mut T, radix: T, bytes: &'a [u8])
+    -> (&'a [u8], Option<ptr::NonNull<u8>>)
     where T: Integer
 {
     // Continue while we have digits.
@@ -109,22 +109,23 @@ pub(crate) fn unchecked<T>(value: &mut T, radix: T, bytes: &[u8])
     // Don't add a short-circuit either, since it adds significant time
     // and we want to continue parsing until everything is done, since
     // otherwise it may give us invalid results elsewhere.
-    let mut truncated: usize = bytes.len();
-    for (i, &c) in bytes.iter().enumerate() {
-        let digit: T = as_cast(char_to_digit(c));
+    let mut truncated = None;
+    for c in bytes.iter() {
+        let digit: T = as_cast(char_to_digit(*c));
         if digit < radix {
             let (v, o1) = value.overflowing_mul(radix);
             let (v, o2) = v.overflowing_add(digit);
             *value = v;
-            if truncated == bytes.len() && (o1 | o2) {
-                truncated = i;
+            if truncated.is_none() && (o1 | o2) {
+                truncated = Some(c.into());
             }
         } else {
-            return (i, truncated);
+            let idx = distance(bytes.as_ptr(), c);
+            return (&bytes[idx..], truncated);
         }
     }
 
-    (bytes.len(), truncated)
+    (&bytes[bytes.len()..], truncated)
 }
 
 /// Explicitly unsafe implied version of `checked`.
@@ -133,8 +134,8 @@ pub(crate) fn unchecked<T>(value: &mut T, radix: T, bytes: &[u8])
 /// therefore invalid.
 #[inline]
 #[allow(dead_code)] // TODO(ahuszagh) Find the configuration that sets this...
-pub(crate) fn checked<T>(value: &mut T, radix: T, bytes: &[u8])
-    -> (usize, usize)
+pub(crate) fn checked<'a, T>(value: &mut T, radix: T, bytes: &'a [u8])
+    -> (&'a [u8], Option<ptr::NonNull<u8>>)
     where T: Integer
 {
     // Continue while we have digits.
@@ -144,123 +145,107 @@ pub(crate) fn checked<T>(value: &mut T, radix: T, bytes: &[u8])
     // Don't add a short-circuit either, since it adds significant time
     // and we want to continue parsing until everything is done, since
     // otherwise it may give us invalid results elsewhere.
-    let mut truncated: usize = bytes.len();
-    for (i, &c) in bytes.iter().enumerate() {
-        let digit: T = as_cast(char_to_digit(c));
+    let mut truncated = None;
+    for c in bytes.iter() {
+        let digit: T = as_cast(char_to_digit(*c));
         if digit < radix {
             // Increment our pointer, to continue parsing digits.
             // Only multiply to the radix and add the parsed digit if
             // the value hasn't overflowed yet, and only assign to the
             // original value if the operations don't overflow.
-            if truncated == bytes.len() {
+            if truncated.is_none() {
                 // Chain these two operations before we assign, since
                 // otherwise we get an invalid result.
                 match value.checked_mul(radix).and_then(|v| v.checked_add(digit)) {
                     // No overflow, assign the value.
                     Some(v) => *value = v,
                     // Overflow occurred, set truncated position
-                    None    => truncated = i,
+                    None    => truncated = Some(c.into()),
                 }
             }
         } else {
-            return (i, truncated);
+            let idx = distance(bytes.as_ptr(), c);
+            return (&bytes[idx..], truncated);
         }
     }
 
-    (bytes.len(), truncated)
+    (&bytes[bytes.len()..], truncated)
 }
 
 /// Parse value from a positive numeric string.
 #[inline]
-pub(crate) fn value<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
-    -> (T, usize, usize)
+pub(crate) fn value<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
+    -> (T, &'a [u8], Option<ptr::NonNull<u8>>)
     where T: Integer,
-          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, usize)
+          Cb: FnOnce(&mut T, T, &'a [u8]) -> (&'a [u8], Option<ptr::NonNull<u8>>)
 {
     debug_assert_radix!(radix);
 
     // Trim the leading 0s here, where we can guarantee the value is 0,
     // and therefore trimming these leading 0s is actually valid.
-    // TODO(ahuszagh) Shit son....
-    let len = bytes.len();
     let bytes = ltrim_char_slice(bytes, b'0');
-    let shift = len - bytes.len();
 
     // Initialize a 0 version of our value, and invoke the low-level callback.
     let mut value: T = T::ZERO;
-    let (processed, truncated) = cb(&mut value, as_cast(radix), bytes);
-    (value, processed + shift, truncated + shift)
+    let (slc, truncated) = cb(&mut value, as_cast(radix), bytes);
+    (value, slc, truncated)
 }
 
 /// Handle +/- numbers and forward to implementation.
 #[inline]
-pub(crate) fn filter_sign<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
-    -> (T, Sign, usize, usize)
+pub(crate) fn filter_sign<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
+    -> (T, Sign, &'a [u8], Option<ptr::NonNull<u8>>)
     where T: Integer,
-          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, usize)
+          Cb: FnOnce(&mut T, T, &'a [u8]) -> (&'a [u8], Option<ptr::NonNull<u8>>)
 {
     let len = bytes.len();
-    if let Some(&c) = bytes.get(0) {
-        match c {
-            b'+' => {
-                if len >= 2 {
-                    let (value, processed, truncated) = value::<T, Cb>(radix, &bytes[1..], cb);
-                    (value, Sign::Positive, processed+1, truncated+1)
-                } else {
-                    (T::ZERO, Sign::Positive, 0, len)
-                }
-            },
-            b'-' => {
-                if len >= 2 {
-                    let (value, processed, truncated) = value::<T, Cb>(radix, &bytes[1..], cb);
-                    (value, Sign::Negative, processed+1, truncated+1)
-                } else {
-                    (T::ZERO, Sign::Negative, 0, len)
-                }
-            },
-            _    => {
-                let (value, processed, truncated) = value::<T, Cb>(radix, bytes, cb);
-                (value, Sign::Positive, processed, truncated)
-            },
-        }
+    let (sign_bytes, sign) = match bytes.get(0) {
+        Some(b'+') => (1, Sign::Positive),
+        Some(b'-') => (1, Sign::Negative),
+        _          => (0, Sign::Positive),
+    };
+
+    if len > sign_bytes {
+        let (value, slc, truncated) = value::<T, Cb>(radix, &bytes[sign_bytes..], cb);
+        (value, sign, slc, truncated)
     } else {
-        (T::ZERO, Sign::Positive, 0, len)
+        (T::ZERO, sign, bytes, None)
     }
 }
 
 /// Handle unsigned +/- numbers and forward to implied implementation.
 //  Can just use local namespace
 #[inline]
-pub(crate) fn unsigned<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
+pub(crate) fn unsigned<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
     -> (T, usize, bool)
     where T: UnsignedInteger,
-          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, usize)
+          Cb: FnOnce(&mut T, T, &'a [u8]) -> (&'a [u8], Option<ptr::NonNull<u8>>)
 {
-    let (value, sign, processed, truncated) = filter_sign::<T, Cb>(radix, bytes, cb);
-    let is_truncated = truncated != bytes.len();
+    let (value, sign, slc, truncated) = filter_sign::<T, Cb>(radix, bytes, cb);
+    let processed = distance(bytes.as_ptr(), slc.as_ptr());
     match sign {
         // Report an invalid digit if the value is negative at the first index.
-        Sign::Negative => (value.wrapping_neg(), 0, is_truncated),
-        Sign::Positive => (value, processed, is_truncated),
+        Sign::Negative => (value.wrapping_neg(), 0, truncated.is_some()),
+        Sign::Positive => (value, processed, truncated.is_some()),
     }
 }
 
 /// Handle signed +/- numbers and forward to implied implementation.
 //  Can just use local namespace
 #[inline]
-pub(crate) fn signed<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
+pub(crate) fn signed<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
     -> (T, usize, bool)
     where T: SignedInteger,
-          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, usize)
+          Cb: FnOnce(&mut T, T, &'a [u8]) -> (&'a [u8], Option<ptr::NonNull<u8>>)
 {
-    let (value, sign, processed, truncated) = filter_sign::<T, Cb>(radix, bytes, cb);
-    let is_truncated = truncated != bytes.len();
+    let (value, sign, slc, truncated) = filter_sign::<T, Cb>(radix, bytes, cb);
+    let processed = distance(bytes.as_ptr(), slc.as_ptr());
     match sign {
         // -value overflowing can only occur when overflow happens,
         // and specifically, when the overflow produces a value
         // of exactly T::min_value().
-        Sign::Negative => (value.wrapping_neg(), processed, is_truncated),
-        Sign::Positive => (value, processed, is_truncated),
+        Sign::Negative => (value.wrapping_neg(), processed, truncated.is_some()),
+        Sign::Positive => (value, processed, truncated.is_some()),
     }
 }
 
@@ -428,22 +413,22 @@ mod tests {
     fn checked_test() {
         let s = "1234567891234567890123";
         let mut value: u64 = 0;
-        let (processed, truncated) = checked(&mut value, 10, s.as_bytes());
+        let (slc, truncated) = checked(&mut value, 10, s.as_bytes());
         // check it doesn't overflow
         assert_eq!(value, 12345678912345678901);
-        assert_eq!(processed, s.len());
-        assert_eq!(truncated, s.len()-2);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), s.len());
+        assert_eq!(distance(s.as_ptr(), truncated.unwrap().as_ptr()), s.len()-2);
     }
 
     #[test]
     fn unchecked_test() {
         let s = "1234567891234567890123";
         let mut value: u64 = 0;
-        let (processed, truncated) = unchecked(&mut value, 10, s.as_bytes());
+        let (slc, truncated) = unchecked(&mut value, 10, s.as_bytes());
         // check it does overflow
         assert_eq!(value, 17082782369737483467);
-        assert_eq!(processed, s.len());
-        assert_eq!(truncated, s.len()-2);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), s.len());
+        assert_eq!(distance(s.as_ptr(), truncated.unwrap().as_ptr()), s.len()-2);
     }
 
     #[test]

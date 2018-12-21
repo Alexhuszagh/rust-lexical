@@ -2,7 +2,7 @@
 //!
 //! Uses either the imprecise or the precise algorithm.
 
-use lib::ptr;
+use lib::slice;
 use util::*;
 
 // Select the back-end
@@ -17,34 +17,34 @@ if #[cfg(feature = "correct")] {
 
 /// Trait to define parsing of a string to float.
 trait StringToFloat: Float {
-    /// Load float from basen string, favoring correctness.
-    unsafe extern "C" fn basen(radix: u32, first: *const u8, last: *const u8) -> (Self, *const u8);
+    /// Serialize string to float, favoring correctness.
+    fn default<'a>(radix: u32, bytes: &'a [u8]) -> (Self, &'a [u8]);
 
-    /// Load float from string prioritizing speed over correctness.
-    unsafe extern "C" fn basen_lossy(radix: u32, first: *const u8, last: *const u8) -> (Self, *const u8);
+    /// Serialize string to float, prioritizing speed over correctness.
+    fn lossy<'a>(radix: u32, bytes: &'a [u8]) -> (Self, &'a [u8]);
 }
 
 impl StringToFloat for f32 {
     #[inline(always)]
-    unsafe extern "C" fn basen(radix: u32, first: *const u8, last: *const u8) -> (f32, *const u8) {
-        algorithm::atof(radix, first, last)
+    fn default<'a>(radix: u32, bytes: &'a [u8]) -> (f32, &'a [u8]) {
+        algorithm::atof(radix, bytes)
     }
 
     #[inline(always)]
-    unsafe extern "C" fn basen_lossy(radix: u32, first: *const u8, last: *const u8) -> (f32, *const u8) {
-        algorithm::atof_lossy(radix, first, last)
+    fn lossy<'a>(radix: u32, bytes: &'a [u8]) -> (f32, &'a [u8]) {
+        algorithm::atof_lossy(radix, bytes)
     }
 }
 
 impl StringToFloat for f64 {
     #[inline(always)]
-    unsafe extern "C" fn basen(radix: u32, first: *const u8, last: *const u8) -> (f64, *const u8) {
-        algorithm::atod(radix, first, last)
+    fn default<'a>(radix: u32, bytes: &'a [u8]) -> (f64, &'a [u8]) {
+        algorithm::atod(radix, bytes)
     }
 
     #[inline(always)]
-    unsafe extern "C" fn basen_lossy(radix: u32, first: *const u8, last: *const u8) -> (f64, *const u8) {
-        algorithm::atod_lossy(radix, first, last)
+    fn lossy<'a>(radix: u32, bytes: &'a [u8]) -> (f64, &'a [u8]) {
+        algorithm::atod_lossy(radix, bytes)
     }
 }
 
@@ -52,34 +52,32 @@ impl StringToFloat for f64 {
 // Utilities to filter special values.
 
 #[inline(always)]
-unsafe extern "C" fn is_nan(first: *const u8, length: usize)
-    -> bool
-{
-    case_insensitive_starts_with_range(first, length, NAN_STRING.as_ptr(), NAN_STRING.len())
+fn is_nan(bytes: &[u8]) -> bool {
+    unsafe {
+        case_insensitive_starts_with_slice(bytes, NAN_STRING.as_bytes())
+    }
 }
 
 #[inline(always)]
-unsafe extern "C" fn is_inf(first: *const u8, length: usize)
-    -> bool
-{
-    case_insensitive_starts_with_range(first, length, INF_STRING.as_ptr(), INF_STRING.len())
+fn is_inf(bytes: &[u8]) -> bool {
+    unsafe {
+        case_insensitive_starts_with_slice(bytes, INF_STRING.as_bytes())
+    }
 }
 
 #[inline(always)]
-unsafe extern "C" fn is_infinity(first: *const u8, length: usize)
-    -> bool
-{
-    case_insensitive_starts_with_range(first, length, INFINITY_STRING.as_ptr(), INFINITY_STRING.len())
+fn is_infinity(bytes: &[u8]) -> bool {
+    unsafe {
+        case_insensitive_starts_with_slice(bytes, INFINITY_STRING.as_bytes())
+    }
 }
 
 #[inline(always)]
-unsafe extern "C" fn is_zero(first: *const u8, length: usize)
-    -> bool
-{
+fn is_zero(bytes: &[u8]) -> bool {
     // Ignore other variants of 0, we just want to most common literal ones.
-    match length {
-        1 => equal_to_range(first, "0".as_ptr(), 1),
-        3 => equal_to_range(first, "0.0".as_ptr(), 3),
+    match bytes.len() {
+        1 => equal_to_slice(bytes, b"0"),
+        3 => equal_to_slice(bytes, b"0.0"),
         _ => false,
     }
 }
@@ -89,61 +87,69 @@ unsafe extern "C" fn is_zero(first: *const u8, length: usize)
 /// Convert string to float and handle special floating-point strings.
 /// Forcing inlining leads to much better codegen at high optimization levels.
 #[inline(always)]
-unsafe fn filter_special<F: StringToFloat>(radix: u32, first: *const u8, last: *const u8, lossy: bool)
-    -> (F, *const u8)
+fn filter_special<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool)
+    -> (F, &'a [u8])
 {
     // Special case checks
     // Check long infinity first before short infinity.
     // Short infinity short-circuits, we want to parse as many characters
     // as possible.
-    let length = distance(first, last);
-    if length == 0 {
-        (F::ZERO, ptr::null())
-    } else if is_zero(first, length) {
-        (F::ZERO, first.add(length))
-    } else if is_infinity(first, length) {
-        (F::INFINITY, first.add(INFINITY_STRING.len()))
-    } else if is_inf(first, length) {
-        (F::INFINITY, first.add(INF_STRING.len()))
-    } else if is_nan(first, length) {
-        (F::NAN, first.add(NAN_STRING.len()))
-    } else if length == 1 && *first == b'.' {
-        // Handle case where we have a decimal point, but no leading or trailing
-        // digits. This should return a value of 0, but the checked parsers
-        // should reject this out-right.
-        (F::ZERO, ptr::null())
-    } else if lossy {
-        F::basen_lossy(radix, first, last)
-    } else {
-        F::basen(radix, first, last)
+    // This is only unsafe due to access to global mutables, which the caller
+    // is not allowed to modify.
+    unsafe {
+        if is_zero(bytes) {
+            (F::ZERO, &bytes[bytes.len()..])
+        } else if is_infinity(bytes) {
+            (F::INFINITY, &bytes[INFINITY_STRING.len()..])
+        } else if is_inf(bytes) {
+            (F::INFINITY, &bytes[INF_STRING.len()..])
+        } else if is_nan(bytes) {
+            (F::NAN, &bytes[NAN_STRING.len()..])
+        } else if bytes.len() == 1 && bytes[0] == b'.' {
+            // Handle case where we have a decimal point, but no leading or trailing
+            // digits. This should return a value of 0, but the checked parsers
+            // should reject this out-right.
+            (F::ZERO, bytes)
+        } else if lossy {
+            F::lossy(radix, bytes)
+        } else {
+            F::default(radix, bytes)
+        }
     }
 }
 
 /// Handle +/- values and empty buffers.
 /// Forcing inlining leads to much better codegen at high optimization levels.
 #[inline(always)]
-unsafe fn filter_sign<F: StringToFloat>(radix: u32, first: *const u8, last: *const u8, lossy: bool)
-    -> (F, *const u8)
+fn filter_sign<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool)
+    -> (F, Sign, &'a [u8])
 {
-    if first == last {
-        (F::ZERO, ptr::null())
-    } else if *first == b'-' {
-        let (value, p) = filter_special::<F>(radix, first.add(1), last, lossy);
-        (-value, p)
-    } else if *first == b'+' {
-        filter_special::<F>(radix, first.add(1), last, lossy)
+    let len = bytes.len();
+    let (sign_bytes, sign) = match bytes.get(0) {
+        Some(b'+') => (1, Sign::Positive),
+        Some(b'-') => (1, Sign::Negative),
+        _          => (0, Sign::Positive),
+    };
+
+    if len > sign_bytes {
+        let (value, slc) = filter_special::<F>(radix, &bytes[sign_bytes..], lossy);
+        (value, sign, slc)
     } else {
-        filter_special::<F>(radix, first, last, lossy)
+        (F::ZERO, sign, bytes)
     }
 }
 
 /// Iteratively filter simple cases and then invoke parser.
 /// Forcing inlining leads to much better codegen at high optimization levels.
 #[inline(always)]
-unsafe fn atof<F: StringToFloat>(radix: u32, first: *const u8, last: *const u8, lossy: bool)
-    -> (F, *const u8)
+fn atof<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool)
+    -> (F, &'a [u8])
 {
-    filter_sign::<F>(radix, first, last, lossy)
+    let (value, sign, slc) = filter_sign::<F>(radix, bytes, lossy);
+    match sign {
+        Sign::Negative => (-value, slc),
+        Sign::Positive => (value, slc),
+    }
 }
 
 // UNSAFE API
@@ -156,10 +162,13 @@ macro_rules! generate_unsafe_api {
     ($name:ident, $f:tt, $lossy:expr) => (
         /// Unsafe, C-like importer for floating-point numbers.
         #[inline]
-        unsafe fn $name(base: u8, first: *const u8, last: *const u8) -> ($f, *const u8, bool)
+        unsafe fn $name(base: u8, first: *const u8, last: *const u8)
+            -> ($f, *const u8, bool)
         {
-            let (value, p) = atof::<$f>(base.into(), first, last, $lossy);
-            (value, p, false)
+            // TODO(ahuszagh) Fix these wrappers.
+            let bytes = slice::from_raw_parts(first, distance(first, last));
+            let (value, slc) = atof::<$f>(base.into(), bytes, $lossy);
+            (value, slc.as_ptr(), false)
         }
     )
 }
@@ -411,7 +420,7 @@ mod tests {
             } else {
                 assert_eq!(res.error.code, ErrorCode::InvalidDigit);
             }
-            assert!(res.error.index == 0);
+            assert!(res.error.index == 0 || res.error.index == 1);
         }
 
         #[test]
@@ -447,7 +456,7 @@ mod tests {
             } else {
                 assert_eq!(res.error.code, ErrorCode::InvalidDigit);
             }
-            assert!(res.error.index == 0);
+            assert!(res.error.index == 0 || res.error.index == 1);
         }
 
         #[test]

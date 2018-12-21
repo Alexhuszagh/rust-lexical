@@ -1,6 +1,5 @@
 //! Algorithm to parse an exponent from a float string.
 
-use lib::slice;
 use atoi;
 use util::*;
 
@@ -14,34 +13,31 @@ use util::*;
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-pub(super) unsafe extern "C" fn parse_exponent(state: &mut ParseState, radix: u32, last: *const u8)
-    -> i32
+pub(super) fn parse_exponent<'a>(radix: u32, bytes: &'a [u8])
+    -> (i32, &'a [u8])
 {
     // Force a check that the distance is >= 2, so we ensure there's something
     // after the exponent. This fixes a regression discovered via proptest.
-    let dist = distance(state.curr, last);
-    if dist >= 2 && (*state.curr).to_ascii_lowercase() == exponent_notation_char(radix).to_ascii_lowercase() {
-        state.increment();
-
+    if bytes.len() >= 2 && bytes[0].to_ascii_lowercase() == exponent_notation_char(radix).to_ascii_lowercase() {
         // Use atoi_sign so we can handle overflow differently for +/- numbers.
         // We care whether the value is positive.
         // Use i32::max_value() since it's valid in 2s complement for
         // positive or negative numbers, and will trigger a short-circuit.
-        // TODO(ahuszagh) Need to Rustify this...
+        let bytes = &bytes[1..];
         let cb = atoi::unchecked::<i32>;
-        let slc = slice::from_raw_parts(state.curr, distance(state.curr, last));
-        let (exponent, sign, processed, truncated) = atoi::filter_sign::<i32, _>(radix, slc, cb);
-        state.curr = state.curr.add(processed);
-        let is_truncated = truncated != slc.len();
-        let exponent = if is_truncated { i32::max_value() } else { exponent };
+        let (exponent, sign, slc, truncated) = atoi::filter_sign::<i32, _>(radix, bytes, cb);
+        let exponent = match truncated.is_some() {
+            true  => i32::max_value(),
+            false => exponent ,
+        };
         let exponent = match sign {
             Sign::Negative => -exponent,
             Sign::Positive => exponent,
         };
 
-        exponent
+        (exponent, slc)
     } else {
-        0
+        (0, bytes)
     }
 }
 
@@ -69,7 +65,7 @@ pub(super) fn scientific_exponent(exponent: i32, integer_digits: usize, fraction
 /// to calculate the scaling factor for the mantissa from a raw exponent.
 #[inline]
 #[cfg(feature = "correct")]
-pub(super) extern "C" fn mantissa_exponent(raw_exponent: i32, fraction_digits: usize, truncated: usize)
+pub(super) fn mantissa_exponent(raw_exponent: i32, fraction_digits: usize, truncated: usize)
     -> i32
 {
     if fraction_digits > truncated {
@@ -82,7 +78,7 @@ pub(super) extern "C" fn mantissa_exponent(raw_exponent: i32, fraction_digits: u
 /// Calculate the integral ceiling of the binary factor from a basen number.
 #[inline]
 #[cfg(feature = "correct")]
-pub(super) extern "C" fn integral_binary_factor(radix: u32)
+pub(super) fn integral_binary_factor(radix: u32)
     -> u32
 {
     debug_assert_radix!(radix);
@@ -93,8 +89,7 @@ pub(super) extern "C" fn integral_binary_factor(radix: u32)
 
     #[cfg(feature = "radix")] {
         const TABLE: [u32; 35] = [1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6];
-        let idx: usize = as_cast(radix - 2);
-        unsafe { *TABLE.get_unchecked(idx) }
+        TABLE[radix.as_usize() - 2]
     }
 }
 
@@ -105,65 +100,60 @@ pub(super) extern "C" fn integral_binary_factor(radix: u32)
 mod test {
     use super::*;
 
-    unsafe fn check_parse_exponent(radix: u32, s: &str, tup: (i32, usize)) {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let mut state = ParseState::new(first);
-        let v = parse_exponent(&mut state, radix, last);
-        assert_eq!(v, tup.0);
-        assert_eq!(distance(first, state.curr), tup.1);
+    fn check_parse_exponent(radix: u32, s: &str, tup: (i32, usize)) {
+        let (value, slc) = parse_exponent(radix, s.as_bytes());
+        assert_eq!(value, tup.0);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
 
     #[test]
     fn parse_exponent_test() {
-        unsafe {
-            // empty
-            check_parse_exponent(10, "", (0, 0));
+        // empty
+        check_parse_exponent(10, "", (0, 0));
 
-            // invalid exponent character
-            check_parse_exponent(28, "e1h", (0, 0));
-            check_parse_exponent(10, "^45", (0, 0));
+        // invalid exponent character
+        check_parse_exponent(28, "e1h", (0, 0));
+        check_parse_exponent(10, "^45", (0, 0));
 
-            // trailing characters
-            check_parse_exponent(10, "e45 ", (45, 3));
-            check_parse_exponent(10, "e45-", (45, 3));
-            check_parse_exponent(10, "e45+", (45, 3));
-            check_parse_exponent(10, "e45a", (45, 3));
+        // trailing characters
+        check_parse_exponent(10, "e45 ", (45, 3));
+        check_parse_exponent(10, "e45-", (45, 3));
+        check_parse_exponent(10, "e45+", (45, 3));
+        check_parse_exponent(10, "e45a", (45, 3));
 
-            // positive
-            check_parse_exponent(10, "e+45", (45, 4));
+        // positive
+        check_parse_exponent(10, "e+45", (45, 4));
 
-            // negative
-            check_parse_exponent(10, "e-45", (-45, 4));
+        // negative
+        check_parse_exponent(10, "e-45", (-45, 4));
 
-            // overflow
-            check_parse_exponent(10, "e3000000000", (i32::max_value(), 11));
-            check_parse_exponent(10, "e+3000000000", (i32::max_value(), 12));
-            check_parse_exponent(10, "e-3000000000", (-i32::max_value(), 12));
+        // overflow
+        check_parse_exponent(10, "e3000000000", (i32::max_value(), 11));
+        check_parse_exponent(10, "e+3000000000", (i32::max_value(), 12));
+        check_parse_exponent(10, "e-3000000000", (-i32::max_value(), 12));
 
-            // lowercase
-            check_parse_exponent(10, "e45", (45, 3));
-            check_parse_exponent(10, "e+45", (45, 4));
-            check_parse_exponent(10, "e-45", (-45, 4));
-            check_parse_exponent(10, "e20", (20, 3));
-            check_parse_exponent(10, "e+20", (20, 4));
-            check_parse_exponent(10, "e-20", (-20, 4));
+        // lowercase
+        check_parse_exponent(10, "e45", (45, 3));
+        check_parse_exponent(10, "e+45", (45, 4));
+        check_parse_exponent(10, "e-45", (-45, 4));
+        check_parse_exponent(10, "e20", (20, 3));
+        check_parse_exponent(10, "e+20", (20, 4));
+        check_parse_exponent(10, "e-20", (-20, 4));
 
-            // uppercase
-            check_parse_exponent(10, "E45", (45, 3));
-            check_parse_exponent(10, "E+45", (45, 4));
-            check_parse_exponent(10, "E-45", (-45, 4));
-            check_parse_exponent(10, "E20", (20, 3));
-            check_parse_exponent(10, "E+20", (20, 4));
-            check_parse_exponent(10, "E-20", (-20, 4));
+        // uppercase
+        check_parse_exponent(10, "E45", (45, 3));
+        check_parse_exponent(10, "E+45", (45, 4));
+        check_parse_exponent(10, "E-45", (-45, 4));
+        check_parse_exponent(10, "E20", (20, 3));
+        check_parse_exponent(10, "E+20", (20, 4));
+        check_parse_exponent(10, "E-20", (-20, 4));
 
-            // overflow
-            check_parse_exponent(10, "e10000000000", (i32::max_value(), 12));
-            check_parse_exponent(10, "e+10000000000", (i32::max_value(), 13));
-            check_parse_exponent(10, "e-10000000000", (-i32::max_value(), 13));
-        }
+        // overflow
+        check_parse_exponent(10, "e10000000000", (i32::max_value(), 12));
+        check_parse_exponent(10, "e+10000000000", (i32::max_value(), 13));
+        check_parse_exponent(10, "e-10000000000", (-i32::max_value(), 13));
 
-        #[cfg(feature = "radix")] unsafe {
+        #[cfg(feature = "radix")] {
             let data = [
                 (2, "e101101"),
                 (3, "e1200"),

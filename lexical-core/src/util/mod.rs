@@ -21,7 +21,6 @@ mod error;
 mod mask;
 mod num;
 mod primitive;
-mod parse_state;    // TODO(ahuszagh) Remove
 mod pow;
 mod result;
 mod sign;
@@ -29,7 +28,6 @@ mod table;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
-    mod slice;
     mod veclike;
 } else {
     mod wrapped;
@@ -41,14 +39,12 @@ pub(crate) use self::cast::*;
 pub(crate) use self::mask::*;
 pub(crate) use self::num::*;
 pub(crate) use self::primitive::*;
-pub(crate) use self::parse_state::*;
 pub(crate) use self::pow::*;
 pub(crate) use self::sign::*;
 pub(crate) use self::table::*;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
-    pub(crate) use self::slice::*;
     pub(crate) use self::veclike::*;
 } else {
     pub(crate) use self::wrapped::*;

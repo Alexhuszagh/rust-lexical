@@ -17,11 +17,11 @@ pub(crate) struct ExtendedFloatArray<M: Mantissa> {
 /// Allow indexing of values without bounds checking
 impl<M: Mantissa> ExtendedFloatArray<M> {
     #[inline(always)]
-    pub unsafe fn get_extended_float(&self, index: usize)
+    pub fn get_extended_float(&self, index: usize)
         -> ExtendedFloat<M>
     {
-        let mant = *self.mant.get_unchecked(index);
-        let exp = *self.exp.get_unchecked(index);
+        let mant = self.mant[index];
+        let exp = self.exp[index];
         ExtendedFloat { mant: mant, exp: exp }
     }
 
@@ -51,18 +51,18 @@ pub(crate) struct ModeratePathPowers<M: Mantissa> {
 /// Allow indexing of values without bounds checking
 impl<M: Mantissa> ModeratePathPowers<M> {
     #[inline(always)]
-    pub unsafe fn get_small(&self, index: usize) -> ExtendedFloat<M> {
+    pub fn get_small(&self, index: usize) -> ExtendedFloat<M> {
         self.small.get_extended_float(index)
     }
 
     #[inline(always)]
-    pub unsafe fn get_large(&self, index: usize) -> ExtendedFloat<M> {
+    pub fn get_large(&self, index: usize) -> ExtendedFloat<M> {
         self.large.get_extended_float(index)
     }
 
     #[inline(always)]
-    pub unsafe fn get_small_int(&self, index: usize) -> M {
-        *self.small_int.get_unchecked(index)
+    pub fn get_small_int(&self, index: usize) -> M {
+        self.small_int[index]
     }
 }
 

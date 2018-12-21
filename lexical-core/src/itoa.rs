@@ -191,14 +191,14 @@ fn naive<T>(mut value: T, radix: T, buffer: &mut [u8])
 ///
 /// `value` must be non-negative and mutable.
 #[inline]
-pub(crate) fn forward<T>(value: T, radix: u32, bytes: &mut [u8])
-    -> usize
+pub(crate) fn forward<'a, T>(value: T, radix: u32, bytes: &'a mut [u8])
+    -> &'a mut [u8]
     where T: UnsignedInteger
 {
     // Check simple use-cases
     if value == T::ZERO {
         bytes[0] = b'0';
-        return 1;
+        return &mut bytes[1..];
     }
 
     // Create a temporary buffer, and copy into it.
@@ -258,18 +258,13 @@ pub(crate) fn forward<T>(value: T, radix: u32, bytes: &mut [u8])
         }
     };
 
-    let len = buffer.len() - count;
-    let dst = &mut bytes[..len];
-    let src = &buffer[count..];
-    dst.copy_from_slice(src);
-
-    len
+    copy_to_dst(bytes, &buffer[count..])
 }
 
 /// Sanitizer for an unsigned number-to-string implementation.
 #[inline]
-pub(crate) fn unsigned<Value, UWide>(value: Value, radix: u32, bytes: &mut [u8])
-    -> usize
+pub(crate) fn unsigned<'a, Value, UWide>(value: Value, radix: u32, bytes: &'a mut [u8])
+    -> &'a mut [u8]
     where Value: UnsignedInteger,
           UWide: UnsignedInteger
 {
@@ -280,8 +275,8 @@ pub(crate) fn unsigned<Value, UWide>(value: Value, radix: u32, bytes: &mut [u8])
 
 /// Sanitizer for an signed number-to-string implementation.
 #[inline]
-pub(crate) fn signed<Value, UWide, IWide>(value: Value, radix: u32, bytes: &mut [u8])
-    -> usize
+pub(crate) fn signed<'a, Value, UWide, IWide>(value: Value, radix: u32, bytes: &'a mut [u8])
+    -> &'a mut [u8]
     where Value: SignedInteger,
           UWide: UnsignedInteger,
           IWide: SignedInteger
@@ -304,7 +299,7 @@ pub(crate) fn signed<Value, UWide, IWide>(value: Value, radix: u32, bytes: &mut 
         bytes[0] = b'-';
         let wide: IWide = as_cast(value);
         v = as_cast(wide.wrapping_neg());
-        forward(v, radix, &mut bytes[1..]) + 1
+        forward(v, radix, &mut bytes[1..])
     } else {
         v = as_cast(value);
         forward(v, radix, bytes)
@@ -336,8 +331,7 @@ macro_rules! generate_unsafe_unsigned {
             assert_buffer!(first, last, $size);
             // TODO(ahuszagh) Fix all this wrapper code.
             let bytes = slice::from_raw_parts_mut(first, distance(first, last));
-            let len = unsigned::<$t, $uwide>(value, radix.into(), bytes);
-            first.add(len)
+            unsigned::<$t, $uwide>(value, radix.into(), bytes).as_mut_ptr()
         }
     )
 }
@@ -372,8 +366,7 @@ macro_rules! generate_unsafe_signed {
             assert_buffer!(first, last, $size);
             // TODO(ahuszagh) Fix all this wrapper code.
             let bytes = slice::from_raw_parts_mut(first, distance(first, last));
-            let len = signed::<$t, $uwide, $iwide>(value, radix.into(), bytes);
-            first.add(len)
+            signed::<$t, $uwide, $iwide>(value, radix.into(), bytes).as_mut_ptr()
         }
     )
 }

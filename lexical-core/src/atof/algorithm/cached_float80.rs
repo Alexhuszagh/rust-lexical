@@ -5648,11 +5648,11 @@ mod tests {
         for base in BASE_POWN.iter().cloned() {
             let powers = get_powers(base);
             for idx in 0..powers.small.len() {
-                let fp = unsafe { powers.get_small(idx) };
+                let fp = powers.get_small(idx);
                 assert_eq!(fp.mant.leading_zeros(), 0);
             }
             for idx in 0..powers.large.len() {
-                let fp = unsafe { powers.get_large(idx) };
+                let fp = powers.get_large(idx);
                 assert_eq!(fp.mant.leading_zeros(), 0);
             }
         }

@@ -51,7 +51,6 @@
 //  ax.figure.tight_layout()
 //  plt.show()
 
-use lib::slice;
 use atoi;
 use util::*;
 use super::exponent::parse_exponent;
@@ -64,22 +63,16 @@ type Wrapped = WrappedFloat<f64>;
 ///
 /// Use a float since for large numbers, this may even overflow a u64.
 #[inline(always)]
-unsafe extern "C" fn parse_integer(state: &mut ParseState, radix: u32, last: *const u8)
-    -> f64
+fn parse_integer<'a>(radix: u32, bytes: &'a [u8])
+    -> (f64, &'a [u8])
 {
     // Trim leading zeros, since we haven't parsed anything yet.
-    state.ltrim_char(last, b'0');
+    let bytes = ltrim_char_slice(bytes, b'0');
 
     let mut value = Wrapped::ZERO;
-    // TODO(ahuszagh) Need to fix this dramatically.
-    let bytes = slice::from_raw_parts(state.curr, distance(state.curr, last));
-    let (processed, truncated) = atoi::unchecked(&mut value, as_cast(radix), bytes);
-    state.curr = bytes.as_ptr().add(processed);
-    if truncated != bytes.len() {
-        state.trunc = bytes.as_ptr().add(truncated);
-    }
+    let (slc, _) = atoi::unchecked(&mut value, as_cast(radix), bytes);
 
-    value.into_inner()
+    (value.into_inner(), slc)
 }
 
 /// Parse the fraction portion of a positive, normal float string.
@@ -88,33 +81,29 @@ unsafe extern "C" fn parse_integer(state: &mut ParseState, radix: u32, last: *co
 /// values for each may be too small to change the integer components
 /// representation **immediately**.
 #[inline(always)]
-unsafe extern "C" fn parse_fraction(state: &mut ParseState, radix: u32, last: *const u8)
-    -> f64
+fn parse_fraction<'a>(radix: u32, mut bytes: &'a [u8])
+    -> (f64, &'a [u8])
 {
     // Ensure if there's a decimal, there are trailing values, so
     // invalid floats like "0." lead to an error.
-    if state.curr != last && *state.curr == b'.' {
-        state.increment();
-        let first = state.curr;
+    if Some(&b'.') == bytes.get(0) {
+        bytes = &bytes[1..];
+        let first = bytes.as_ptr();
         let mut fraction: f64 = 0.;
         loop {
             // Trim leading zeros, since that never gets called with the raw parser.
             // Since if it's after the decimal place and this increments state.curr,
             // but not first, this is safe.
-            state.ltrim_char(last, b'0');
+            bytes = ltrim_char_slice(bytes, b'0');
 
             // This would get better numerical precision using Horner's method,
             // but that would require.
             let mut value: u64 = 0;
-            let l = last.min(state.curr.add(12));
-            // TODO(ahuszagh) Need to fix this dramatically.
-            let bytes = slice::from_raw_parts(state.curr, distance(state.curr, l));
-            let (processed, truncated) = atoi::unchecked(&mut value, as_cast(radix), bytes);
-            state.curr = bytes.as_ptr().add(processed);
-            if truncated != bytes.len() {
-                state.trunc = bytes.as_ptr().add(truncated);
-            }
-            let digits = distance(first, state.curr).try_i32_or_max();
+            let buf = &bytes[..bytes.len().min(12)];
+            let (slc, _) = atoi::unchecked(&mut value, radix.as_u64(), buf);
+            let processed = distance(buf.as_ptr(), slc.as_ptr());
+            bytes = &bytes[processed..];
+            let digits = distance(first, bytes.as_ptr()).try_i32_or_max();
 
             // Ignore leading 0s, just not we've passed them.
             if value != 0 {
@@ -122,15 +111,14 @@ unsafe extern "C" fn parse_fraction(state: &mut ParseState, radix: u32, last: *c
             }
 
             // do/while condition
-            if state.curr == last || char_to_digit(*state.curr) as u32 >= radix {
+            if bytes.is_empty() || char_to_digit(bytes[0]) as u32 >= radix {
                 break;
             }
         }
         // Store frac component over the parsed digits.
-        fraction
+        (fraction, bytes)
     } else {
-        // Store frac component as an empty slice, and return the value.
-        0.0
+        (0.0, bytes)
     }
 }
 
@@ -138,13 +126,13 @@ unsafe extern "C" fn parse_fraction(state: &mut ParseState, radix: u32, last: *c
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-unsafe extern "C" fn parse_mantissa(state: &mut ParseState, radix: u32, last: *const u8)
-    -> f64
+fn parse_mantissa<'a>(radix: u32, bytes: &'a [u8])
+    -> (f64, &'a [u8])
 {
-    let integer = parse_integer(state, radix, last);
-    let fraction = parse_fraction(state, radix, last);
+    let (integer, bytes) = parse_integer(radix, bytes);
+    let (fraction, bytes) = parse_fraction(radix, bytes);
 
-    integer + fraction
+    (integer + fraction, bytes)
 }
 
 // PARSE
@@ -153,14 +141,13 @@ unsafe extern "C" fn parse_mantissa(state: &mut ParseState, radix: u32, last: *c
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-unsafe extern "C" fn parse_float(radix: u32, first: *const u8, last: *const u8)
-    -> (f64, i32, ParseState)
+fn parse_float<'a>(radix: u32, bytes: &'a [u8])
+    -> (f64, i32, &'a [u8])
 {
-    let mut state = ParseState::new(first);
-    let mantissa = parse_mantissa(&mut state, radix, last);
-    let exponent = parse_exponent(&mut state, radix, last);
+    let (mantissa, bytes) = parse_mantissa(radix, bytes);
+    let (exponent, bytes) = parse_exponent(radix, bytes);
 
-    (mantissa, exponent, state)
+    (mantissa, exponent, bytes)
 }
 
 // ATOF/ATOD
@@ -169,39 +156,39 @@ unsafe extern "C" fn parse_float(radix: u32, first: *const u8, last: *const u8)
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-pub(crate) unsafe extern "C" fn atof(radix: u32, first: *const u8, last: *const u8)
-    -> (f32, *const u8)
+pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8])
+    -> (f32, &'a [u8])
 {
-    let (value, p) = atod(radix, first, last);
-    (value as f32, p)
+    let (value, ptr) = atod(radix, bytes);
+    (value as f32, ptr)
 }
 
 /// Parse 64-bit float from string.
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-pub(crate) unsafe extern "C" fn atod(radix: u32, first: *const u8, last: *const u8)
-    -> (f64, *const u8)
+pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8])
+    -> (f64, &'a [u8])
 {
-    let (mut value, exponent, state) = parse_float(radix, first, last);
+    let (mut value, exponent, ptr) = parse_float(radix, bytes);
     if exponent != 0 && value != 0.0 {
         value = value.iterative_pow(radix, exponent);
     }
-    (value, state.curr)
+    (value, ptr)
 }
 
 #[inline]
-pub(crate) unsafe extern "C" fn atof_lossy(radix: u32, first: *const u8, last: *const u8)
-    -> (f32, *const u8)
+pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8])
+    -> (f32, &'a [u8])
 {
-    atof(radix, first, last)
+    atof(radix, bytes)
 }
 
 #[inline]
-pub(crate) unsafe extern "C" fn atod_lossy(radix: u32, first: *const u8, last: *const u8)
-    -> (f64, *const u8)
+pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8])
+    -> (f64, &'a [u8])
 {
-    atod(radix, first, last)
+    atod(radix, bytes)
 }
 
 // TESTS
@@ -211,152 +198,117 @@ pub(crate) unsafe extern "C" fn atod_lossy(radix: u32, first: *const u8, last: *
 mod tests {
     use super::*;
 
-    unsafe fn check_parse_integer(radix: u32, s: &str, tup: (f64, usize)) {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let mut state = ParseState::new(first);
-        let v = parse_integer(&mut state, radix, last);
-        assert_eq!(v, tup.0);
-        assert_eq!(distance(first, state.curr), tup.1);
+    fn check_parse_integer(radix: u32, s: &str, tup: (f64, usize)) {
+        let (value, slc) = parse_integer(radix, s.as_bytes());
+        assert_eq!(value, tup.0);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
 
     #[test]
     fn parse_integer_test() {
-        unsafe {
-            check_parse_integer(10, "1.2345", (1.0, 1));
-            check_parse_integer(10, "12.345", (12.0, 2));
-            check_parse_integer(10, "12345.6789", (12345.0, 5));
-        }
+        check_parse_integer(10, "1.2345", (1.0, 1));
+        check_parse_integer(10, "12.345", (12.0, 2));
+        check_parse_integer(10, "12345.6789", (12345.0, 5));
     }
 
-    unsafe fn check_parse_fraction(radix: u32, s: &str, tup: (f64, usize)) {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let mut state = ParseState::new(first);
-        let v = parse_fraction(&mut state, radix, last);
-        assert_eq!(v, tup.0);
-        assert_eq!(distance(first, state.curr), tup.1);
+    fn check_parse_fraction(radix: u32, s: &str, tup: (f64, usize)) {
+        let (value, slc) = parse_fraction(radix, s.as_bytes());
+        assert_eq!(value, tup.0);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
 
     #[test]
     fn parse_fraction_test() {
-        unsafe {
-            check_parse_fraction(10, ".2345", (0.2345, 5));
-            check_parse_fraction(10, ".345", (0.345, 4));
-            check_parse_fraction(10, ".6789", (0.6789, 5));
-        }
+        check_parse_fraction(10, ".2345", (0.2345, 5));
+        check_parse_fraction(10, ".345", (0.345, 4));
+        check_parse_fraction(10, ".6789", (0.6789, 5));
     }
 
-    unsafe fn check_parse_mantissa(radix: u32, s: &str, tup: (f64, usize)) {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let mut state = ParseState::new(first);
-        let v = parse_mantissa(&mut state, radix, last);
-        assert_eq!(v, tup.0);
-        assert_eq!(distance(first, state.curr), tup.1);
+    fn check_parse_mantissa(radix: u32, s: &str, tup: (f64, usize)) {
+        let (value, slc) = parse_mantissa(radix, s.as_bytes());
+        assert_eq!(value, tup.0);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
 
     #[test]
     fn parse_mantissa_test() {
-        unsafe {
-            check_parse_mantissa(10, "1.2345", (1.2345, 6));
-            check_parse_mantissa(10, "12.345", (12.345, 6));
-            check_parse_mantissa(10, "12345.6789", (12345.6789, 10));
-        }
+        check_parse_mantissa(10, "1.2345", (1.2345, 6));
+        check_parse_mantissa(10, "12.345", (12.345, 6));
+        check_parse_mantissa(10, "12345.6789", (12345.6789, 10));
     }
 
-    unsafe fn check_parse_float(radix: u32, s: &str, tup: (f64, i32, usize)) {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let (v, e, state) = parse_float(radix, first, last);
-        assert_eq!(v, tup.0);
-        assert_eq!(e, tup.1);
-        assert_eq!(distance(first, state.curr), tup.2);
+    fn check_parse_float(radix: u32, s: &str, tup: (f64, i32, usize)) {
+        let (value, exponent, slc) = parse_float(radix, s.as_bytes());
+        assert_eq!(value, tup.0);
+        assert_eq!(exponent, tup.1);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.2);
     }
 
     #[test]
     fn parse_float_test() {
-        unsafe {
-            check_parse_float(10, "1.2345", (1.2345, 0, 6));
-            check_parse_float(10, "12.345", (12.345, 0, 6));
-            check_parse_float(10, "12345.6789", (12345.6789, 0, 10));
-            check_parse_float(10, "1.2345e10", (1.2345, 10, 9));
-        }
+        check_parse_float(10, "1.2345", (1.2345, 0, 6));
+        check_parse_float(10, "12.345", (12.345, 0, 6));
+        check_parse_float(10, "12345.6789", (12345.6789, 0, 10));
+        check_parse_float(10, "1.2345e10", (1.2345, 10, 9));
     }
 
-    unsafe fn check_atof(radix: u32, s: &str, tup: (f32, usize)) {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let (v, p) = atof(radix, first, last);
-        assert_eq!(v, tup.0);
-        assert_eq!(distance(first, p), tup.1);
+    fn check_atof(radix: u32, s: &str, tup: (f32, usize)) {
+        let (value, slc) = atof(radix, s.as_bytes());
+        assert_eq!(value, tup.0);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
 
     #[test]
     fn atof_test() {
-        unsafe {
-            check_atof(10, "1.2345", (1.2345, 6));
-            check_atof(10, "12.345", (12.345, 6));
-            check_atof(10, "12345.6789", (12345.6789, 10));
-            check_atof(10, "1.2345e10", (1.2345e10, 9));
-        }
+        check_atof(10, "1.2345", (1.2345, 6));
+        check_atof(10, "12.345", (12.345, 6));
+        check_atof(10, "12345.6789", (12345.6789, 10));
+        check_atof(10, "1.2345e10", (1.2345e10, 9));
     }
 
-    unsafe fn check_atod(radix: u32, s: &str, tup: (f64, usize)) {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let (v, p) = atod(radix, first, last);
-        assert_eq!(v, tup.0);
-        assert_eq!(distance(first, p), tup.1);
+    fn check_atod(radix: u32, s: &str, tup: (f64, usize)) {
+        let (value, slc) = atod(radix, s.as_bytes());
+        assert_eq!(value, tup.0);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
 
     #[test]
     fn atod_test() {
-        unsafe {
-            check_atod(10, "1.2345", (1.2345, 6));
-            check_atod(10, "12.345", (12.345, 6));
-            check_atod(10, "12345.6789", (12345.6789, 10));
-            check_atod(10, "1.2345e10", (1.2345e10, 9));
-        }
+        check_atod(10, "1.2345", (1.2345, 6));
+        check_atod(10, "12.345", (12.345, 6));
+        check_atod(10, "12345.6789", (12345.6789, 10));
+        check_atod(10, "1.2345e10", (1.2345e10, 9));
     }
 
     // Lossy
     // Just a synonym for the regular overloads, since we're not using the
     // correct feature. Use the same tests.
 
-    unsafe fn check_atof_lossy(radix: u32, s: &str, tup: (f32, usize)) {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let (v, p) = atof_lossy(radix, first, last);
-        assert_f32_eq!(v, tup.0);
-        assert_eq!(distance(first, p), tup.1);
+    fn check_atof_lossy(radix: u32, s: &str, tup: (f32, usize)) {
+        let (value, slc) = atof_lossy(radix, s.as_bytes());
+        assert_f32_eq!(value, tup.0);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
 
     #[test]
     fn atof_lossy_test() {
-        unsafe {
-            check_atof_lossy(10, "1.2345", (1.2345, 6));
-            check_atof_lossy(10, "12.345", (12.345, 6));
-            check_atof_lossy(10, "12345.6789", (12345.6789, 10));
-            check_atof_lossy(10, "1.2345e10", (1.2345e10, 9));
-        }
+        check_atof_lossy(10, "1.2345", (1.2345, 6));
+        check_atof_lossy(10, "12.345", (12.345, 6));
+        check_atof_lossy(10, "12345.6789", (12345.6789, 10));
+        check_atof_lossy(10, "1.2345e10", (1.2345e10, 9));
     }
 
-    unsafe fn check_atod_lossy(radix: u32, s: &str, tup: (f64, usize)) {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let (v, p) = atod_lossy(radix, first, last);
-        assert_f64_eq!(v, tup.0);
-        assert_eq!(distance(first, p), tup.1);
+    fn check_atod_lossy(radix: u32, s: &str, tup: (f64, usize)) {
+        let (value, slc) = atod_lossy(radix, s.as_bytes());
+        assert_f64_eq!(value, tup.0);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
 
     #[test]
     fn atod_lossy_test() {
-        unsafe {
-            check_atod_lossy(10, "1.2345", (1.2345, 6));
-            check_atod_lossy(10, "12.345", (12.345, 6));
-            check_atod_lossy(10, "12345.6789", (12345.6789, 10));
-            check_atod_lossy(10, "1.2345e10", (1.2345e10, 9));
-        }
+        check_atod_lossy(10, "1.2345", (1.2345, 6));
+        check_atod_lossy(10, "12.345", (12.345, 6));
+        check_atod_lossy(10, "12345.6789", (12345.6789, 10));
+        check_atod_lossy(10, "1.2345e10", (1.2345e10, 9));
     }
 }

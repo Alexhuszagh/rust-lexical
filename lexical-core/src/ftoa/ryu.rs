@@ -1,6 +1,7 @@
 //! Wrapper around David Tolnay's ryu.
 
 use ryu::raw;
+use util::*;
 
 // F32
 
@@ -8,12 +9,13 @@ use ryu::raw;
 ///
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-pub(crate) fn float_decimal(f: f32, bytes: &mut [u8])
-    -> usize
+pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
+    -> &'a mut [u8]
 {
-    unsafe {
+    let len = unsafe {
         raw::pretty_f2s_buffered_n(f, bytes.as_mut_ptr())
-    }
+    };
+    &mut bytes[len..]
 }
 
 // F64
@@ -22,10 +24,11 @@ pub(crate) fn float_decimal(f: f32, bytes: &mut [u8])
 ///
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-pub(crate) fn double_decimal(d: f64, bytes: &mut [u8])
-    -> usize
+pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
+    -> &'a mut [u8]
 {
-    unsafe {
+    let len = unsafe {
         raw::pretty_d2s_buffered_n(d, bytes.as_mut_ptr())
-    }
+    };
+    &mut bytes[len..]
 }

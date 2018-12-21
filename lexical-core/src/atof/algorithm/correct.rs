@@ -8,7 +8,7 @@
 // Fix a compiler bug that thinks `ExactExponent` isn't used.
 #![allow(unused_imports)]
 
-use lib::{iter, slice};
+use lib::{iter, ptr, slice};
 use atoi;
 use float::*;
 use util::*;
@@ -32,11 +32,12 @@ use super::bhcomp;
 // FLOAT SLICE
 
 /// Substrings and information from parsing the float.
-pub(super) struct FloatSlice {
+#[derive(Debug)]
+pub(super) struct FloatSlice<'a> {
     /// Substring for the integer component of the mantissa.
-    integer: Slice<u8>,
+    integer: &'a [u8],
     /// Substring for the fraction component of the mantissa.
-    fraction: Slice<u8>,
+    fraction: &'a [u8],
     /// Offset to where the digits start in either integer or fraction.
     digits_start: usize,
     /// Number of truncated digits from the mantissa.
@@ -45,10 +46,10 @@ pub(super) struct FloatSlice {
     raw_exponent: i32,
 }
 
-impl FloatSlice {
+impl<'a> FloatSlice<'a> {
     /// Create uninitialized slice.
     #[inline]
-    pub(super) unsafe fn uninitialized() -> FloatSlice {
+    pub(super) fn uninitialized() -> FloatSlice<'a> {
         FloatSlice {
             integer: explicit_uninitialized(),
             fraction: explicit_uninitialized(),
@@ -117,7 +118,7 @@ impl FloatSlice {
     /// Iterate over the digits, by chaining two slices.
     #[inline]
     pub(super) fn digits_iter(&self)
-        -> iter::Cloned<iter::Chain<SliceIter<u8>, iter::Skip<SliceIter<u8>>>>
+        -> iter::Cloned<iter::Chain<slice::Iter<'a, u8>, iter::Skip<slice::Iter<'a, u8>>>>
     {
         // We need to rtrim the zeros in the slice fraction.
         // These are useless and just add computational complexity later,
@@ -142,39 +143,34 @@ impl FloatSlice {
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-unsafe fn parse_mantissa<M>(state: &mut ParseState, slc: &mut FloatSlice, radix: u32, last: *const u8)
-    -> M
+fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
+    -> (M, FloatSlice, &'a [u8], Option<ptr::NonNull<u8>>)
     where M: Mantissa
 {
-    // Initialize our variables for the output
+    // Initialize our variables for the output.
     let mut mantissa: M = M::ZERO;
+    let mut slc = FloatSlice::uninitialized();
 
     // Trim the leading 0s.
     // Need to force this here, since if not, conversion of usize dot to
     // i32 may truncate when mantissa does not, which would lead to faulty
     // results. If we trim the 0s here, we guarantee any time `dot as i32`
     // leads to a truncation, mantissa will overflow.
-    state.ltrim_char(last, b'0');
+    bytes = ltrim_char_slice(bytes, b'0');
+    let first = bytes.as_ptr();
 
     // Parse the integral value.
     // Use the checked parsers so the truncated value is valid even if
     // the entire value is not parsed.
-    // TODO(ahuszagh) Need to fix this dramatically...
-    let first = state.curr;
-    let bytes = slice::from_raw_parts(first, distance(first, last));
-    let (processed, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
-    state.curr = bytes.as_ptr().add(processed);
-    slc.integer = from_raw_parts(first, processed);
-    if truncated != bytes.len() {
-        state.trunc = bytes.as_ptr().add(truncated);
-    }
+    let (mut bytes, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
+    slc.integer = slice_from_range(first, bytes.as_ptr());
 
     // Check for trailing digits.
-    let has_fraction = state.curr != last && *state.curr == b'.';
-    if has_fraction && !state.is_truncated() {
+    let has_fraction = Some(&b'.') == bytes.get(0);
+    if has_fraction && truncated.is_none() {
         // Has a decimal, no truncation, calculate the rest of it.
-        state.increment();
-        let first = state.curr;
+        bytes = &bytes[1..];
+        let first = bytes.as_ptr();
         if mantissa.is_zero() {
             // Can ignore the leading digits while the mantissa is 0.
             // This allows us to represent extremely small values
@@ -182,45 +178,39 @@ unsafe fn parse_mantissa<M>(state: &mut ParseState, slc: &mut FloatSlice, radix:
             // For example, this allows us to use the fast path for
             // both "1e-29" and "0.0000000000000000000000000001",
             // otherwise, only the former would work.
-            state.ltrim_char(last, b'0');
-            slc.digits_start = distance(first, state.curr);
+            bytes = ltrim_char_slice(bytes, b'0');
+            slc.digits_start = distance(first, bytes.as_ptr());
         } else {
             slc.digits_start = 0;
         }
 
         // Parse the remaining decimal. Since the truncation is only in
         // the fraction, no decimal place affects it.
-        // TODO(ahuszagh) Need to fix this dramatically...
-        let bytes = slice::from_raw_parts(state.curr, distance(state.curr, last));
-        let (processed, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
-        state.curr = bytes.as_ptr().add(processed);
-        if truncated != bytes.len() {
-            state.trunc = bytes.as_ptr().add(truncated);
-        }
-
-        slc.fraction = from_raw_parts(first, distance(first, state.curr));
-        slc.truncated = state.truncated_bytes();
+        let (bytes, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
+        slc.fraction = slice_from_range(first, bytes.as_ptr());
+        slc.truncated = truncated.map_or(0, |p| distance(p.as_ptr(), bytes.as_ptr()));
+        (mantissa, slc, bytes, truncated)
     } else if has_fraction {
         // Integral overflow occurred, cannot add more values, but a fraction exists.
         // Ignore the remaining characters, but factor them into the dot exponent.
-        state.increment();
-        let first = state.curr;
-        while state.curr < last && (char_to_digit(*state.curr) as u32) < radix {
-            state.increment();
-        }
-        // Need to subtract 1, since there is a decimal point that came
-        // before the truncation, artificially adding 1 to the number.
+        bytes = &bytes[1..];
+        let first = bytes.as_ptr();
+        let count = bytes.iter()
+            .take_while(|&&c| char_to_digit(c).as_u32() < radix)
+            .count();
+        bytes = &bytes[count..];
+
         slc.digits_start = 0;
-        slc.fraction = from_raw_parts(first, distance(first, state.curr));
-        slc.truncated = state.truncated_bytes() - 1;
+        slc.fraction = slice_from_span(first, count);
+        slc.truncated = distance(truncated.unwrap().as_ptr(), bytes.as_ptr()) - 1;
+        (mantissa, slc, bytes, truncated)
     } else {
         // No decimal, return the number of truncated bytes.
         slc.digits_start = 0;
-        slc.fraction = from_raw_parts(first, 0);
-        slc.truncated = state.truncated_bytes();
+        slc.fraction = slice_from_span(bytes.as_ptr(), 0);
+        slc.truncated = truncated.map_or(0, |p| distance(p.as_ptr(), bytes.as_ptr()));
+        (mantissa, slc, bytes, truncated)
     }
-
-    mantissa
 }
 
 /// Parse the mantissa and exponent from a string.
@@ -230,20 +220,15 @@ unsafe fn parse_mantissa<M>(state: &mut ParseState, slc: &mut FloatSlice, radix:
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-unsafe fn parse_float<M>(radix: u32, first: *const u8, last: *const u8)
-    -> (M, ParseState,FloatSlice, i32)
+fn parse_float<'a, M>(radix: u32, bytes: &'a [u8])
+    -> (M, FloatSlice, &'a [u8], Option<ptr::NonNull<u8>>)
     where M: Mantissa
 {
-    let mut state = ParseState::new(first);
-    let mut slc = FloatSlice::uninitialized();
+    let (mantissa, mut slc, bytes, truncated) = parse_mantissa::<M>(radix, bytes);
+    let (raw_exponent, bytes) = parse_exponent(radix, bytes);
+    slc.raw_exponent = raw_exponent;
 
-    let mantissa = parse_mantissa::<M>(&mut state, &mut slc, radix, last);
-    slc.raw_exponent = parse_exponent(&mut state, radix, last);
-
-    // We need to try every trick for the fast path when possible, so
-    // we should try to normalize the mantissa exponent if possible.
-    let exponent = slc.mantissa_exponent();
-    (mantissa, state, slc, exponent)
+    (mantissa, slc, bytes, truncated)
 }
 
 // FAST
@@ -491,7 +476,7 @@ impl FloatErrors for u128 {
 /// float, and return if new value and if the value can be represented
 /// accurately.
 #[inline]
-unsafe fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32, exponent: i32, truncated: bool)
+fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32, exponent: i32, truncated: bool)
     -> bool
     where M: FloatErrors,
           F: FloatRounding<M>,
@@ -515,16 +500,19 @@ unsafe fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32
         // exponents and return the resulting value.
 
         // Track errors to as a factor of unit in last-precision.
-        let mut errors: u32 = truncated as u32 * M::error_halfscale();
+        let mut errors: u32 = 0;
+        if truncated {
+            errors += M::error_halfscale();
+        }
 
         // Multiply by the small power.
         // Check if we can directly multiply by an integer, if not,
         // use extended-precision multiplication.
-        match fp.mant.overflowing_mul(powers.get_small_int(small_index as usize)) {
+        match fp.mant.overflowing_mul(powers.get_small_int(small_index.as_usize())) {
             // Overflow, multiplication unsuccessful, go slow path.
             (_, true)     => {
                 fp.normalize();
-                fp.imul(&powers.get_small(small_index as usize));
+                fp.imul(&powers.get_small(small_index.as_usize()));
                 errors += M::error_halfscale();
             },
             // No overflow, multiplication successful.
@@ -535,8 +523,10 @@ unsafe fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32
         }
 
         // Multiply by the large power
-        fp.imul(&powers.get_large(large_index as usize));
-        errors += (errors > 0) as u32;
+        fp.imul(&powers.get_large(large_index.as_usize()));
+        if errors > 0 {
+            errors += 1;
+        }
         errors += M::error_halfscale();
 
         // Normalize the floating point (and the errors).
@@ -560,7 +550,7 @@ pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, trunca
           ExtendedFloat<M>: ModeratePathCache<M>
 {
     let mut fp = ExtendedFloat { mant: mantissa, exp: 0 };
-    let valid = unsafe { multiply_exponent_extended::<F, M>(&mut fp, radix, exponent, truncated) };
+    let valid = multiply_exponent_extended::<F, M>(&mut fp, radix, exponent, truncated);
     (fp, valid)
 }
 
@@ -569,75 +559,76 @@ pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, trunca
 /// Parse power-of-two radix string to native float.
 #[cfg(feature = "radix")]
 #[inline]
-unsafe fn pow2_to_native<F>(radix: u32, pow2_exp: i32, first: *const u8, last: *const u8)
-    -> (F, ParseState)
+fn pow2_to_native<'a, F>(radix: u32, pow2_exp: i32, bytes: &'a [u8])
+    -> (F, &'a [u8])
     where F: FloatRounding<u64>,
           F: FloatRounding<u128>,
           F: StablePower
 {
-    let (mut mantissa, state, slc, exponent) = parse_float::<u64>(radix, first, last);
+    let (mut mantissa, slc, bytes, truncated) = parse_float::<u64>(radix, bytes);
 
     // We have a power of 2, can get an exact value even if the mantissa
     // was truncated, since we introduce no rounding error during
     // multiplication. Just check to see if all the remaining digits
     // are 0.
-    if state.is_truncated() && is_halfway::<F>(mantissa) {
+    if truncated.is_some() && is_halfway::<F>(mantissa) {
         // Exactly straddling a halfway case, need to check if all the
         // digits from `trunc` to `mant.last` are 0, if so, use mantissa.
         // Otherwise, round-up. Ensure we only go to the end of the fraction.
-        let mut p = state.trunc;
-        let last = slc.fraction.as_ptr().add(slc.fraction.len());
-        while p < last && (*p == b'0' || *p == b'.') {
-            p = p.add(1);
-        }
+        let bytes = slice_from_range(truncated.unwrap().as_ptr(), bytes.as_ptr());
+        let count = bytes.iter()
+            .take_while(|&&c| c == b'0' || c == b'.')
+            .count();
+        let bytes = &bytes[count..];
 
         // If the remaining digit is valid, then we are above halfway.
-        if p < last && (char_to_digit(*p) as u32) < radix {
+        if bytes.get(0).map_or(radix, |&c| char_to_digit(c).as_u32()) < radix {
             mantissa += 1;
         }
     }
 
     // Create exact representation and return/
-    let float = pow2_fast_path::<F>(mantissa, radix, pow2_exp, exponent);
-    (float, state)
+    let float = pow2_fast_path::<F>(mantissa, radix, pow2_exp, slc.mantissa_exponent());
+    (float, bytes)
 }
 
 /// Parse non-power-of-two radix string to native float.
 #[inline]
-unsafe fn pown_to_native<F>(radix: u32, first: *const u8, last: *const u8, lossy: bool)
-    -> (F, ParseState)
+fn pown_to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool)
+    -> (F, &'a [u8])
     where F: FloatRounding<u64>,
           F: FloatRounding<u128>,
           F: StablePower,
           F::Unsigned: Mantissa,
           ExtendedFloat<F::Unsigned>: bigcomp::ToBigInt<F::Unsigned>
 {
-    let (mantissa, state, slc, exponent) = parse_float::<u64>(radix, first, last);
+    let (mantissa, slc, bytes, _) = parse_float::<u64>(radix, bytes);
+    let exponent = slc.mantissa_exponent();
 
     if mantissa == 0 {
         // Literal 0, return early.
         // Value cannot be truncated, since we discard leading 0s.
-        return (F::ZERO, state);
+        return (F::ZERO, bytes);
     } else if exponent > 0x40000000 {
         // Extremely large exponent, will always be infinity.
         // Avoid potential overflows in exponent addition.
-        return (F::INFINITY, state);
+        return (F::INFINITY, bytes);
     } else if exponent < -0x40000000 {
         // Extremely small exponent, will always be zero.
         // Avoid potential overflows in exponent addition.
-        return (F::ZERO, state);
-    } else if !state.is_truncated() {
+        return (F::ZERO, bytes);
+    } else if slc.truncated.is_zero() {
         // Try last fast path to exact, no mantissa truncation
         let (float, valid) = fast_path::<F>(mantissa, radix, exponent);
         if valid {
-            return (float, state);
+            return (float, bytes);
         }
     }
 
     // Moderate path (use an extended 80-bit representation).
-    let (fp, valid) = moderate_path::<F, _>(mantissa, radix, exponent, state.is_truncated());
+    let (fp, valid) = moderate_path::<F, _>(mantissa, radix, exponent, slc.truncated != 0);
     if valid || lossy {
-        return (fp.into_float::<F>(), state);
+        return (fp.into_float::<F>(), bytes);
     }
 
     // Slow path
@@ -647,22 +638,24 @@ unsafe fn pown_to_native<F>(radix: u32, first: *const u8, last: *const u8, lossy
 
     if b.is_special() {
         // We have a non-finite number, we get to leave early.
-        return (b, state);
+        return (b, bytes);
     } else {
+        // TODO(ahuszagh) Remove all but bhcomp
+        // TODO(ahuszagh) Make these functions safe...
         #[cfg(feature = "algorithm_m")] {
             // Use algorithm_m calculation.
-            let float = algorithm_m::atof(iter, radix, sci_exp, b);
-            return (float, state);
+            let float = unsafe{algorithm_m::atof(iter, radix, sci_exp, b)};
+            return (float, bytes);
         }
         #[cfg(feature = "bhcomp")] {
             // Use algorithm_m calculation.
-            let float = bhcomp::atof(iter, radix, sci_exp, b);
-            return (float, state);
+            let float = unsafe{bhcomp::atof(iter, radix, sci_exp, b)};
+            return (float, bytes);
         }
         #[cfg(not(any(feature = "algorithm_m", feature = "bhcomp")))] {
             // Use bigcomp calculation.
-            let float = bigcomp::atof(iter, radix, sci_exp, b, slc.mantissa_digits());
-            return (float, state);
+            let float = unsafe{bigcomp::atof(iter, radix, sci_exp, b, slc.mantissa_digits())};
+            return (float, bytes);
         }
     }
 }
@@ -671,60 +664,57 @@ unsafe fn pown_to_native<F>(radix: u32, first: *const u8, last: *const u8, lossy
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-unsafe fn to_native<F>(radix: u32, first: *const u8, last: *const u8, lossy: bool)
-    -> (F, *const u8)
+fn to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool)
+    -> (F, &'a [u8])
     where F: FloatRounding<u64>,
           F: FloatRounding<u128>,
           F: StablePower,
           F::Unsigned: Mantissa,
           ExtendedFloat<F::Unsigned>: bigcomp::ToBigInt<F::Unsigned>
 {
-    let (f, state) = {
-        #[cfg(not(feature = "radix"))] {
-            pown_to_native(radix, first, last, lossy)
-        }
+    #[cfg(not(feature = "radix"))] {
+        pown_to_native(radix, bytes, lossy)
+    }
 
-        #[cfg(feature = "radix")] {
-            let pow2_exp = pow2_exponent(radix);
-            match pow2_exp {
-                0 => pown_to_native(radix, first, last, lossy),
-                _ => pow2_to_native(radix, pow2_exp, first, last),
-            }
+    #[cfg(feature = "radix")] {
+        let pow2_exp = pow2_exponent(radix);
+        match pow2_exp {
+            0 => pown_to_native(radix, bytes, lossy),
+            _ => pow2_to_native(radix, pow2_exp, bytes),
         }
-    };
-    (f, state.curr)
+    }
 }
 
 /// Parse 32-bit float from string.
 #[inline]
-pub(crate) unsafe extern "C" fn atof(radix: u32, first: *const u8, last: *const u8)
-    -> (f32, *const u8)
+pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8])
+    -> (f32, &'a [u8])
 {
-    to_native::<f32>(radix, first, last, false)
+    to_native::<f32>(radix, bytes, false)
 }
 
 /// Parse 64-bit float from string.
 #[inline]
-pub(crate) unsafe extern "C" fn atod(radix: u32, first: *const u8, last: *const u8)
-    -> (f64, *const u8)
+pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8])
+    -> (f64, &'a [u8])
 {
-    to_native::<f64>(radix, first, last, false)
+    to_native::<f64>(radix, bytes, false)
 }
 
 /// Parse 32-bit float from string.
 #[inline]
-pub(crate) unsafe extern "C" fn atof_lossy(radix: u32, first: *const u8, last: *const u8)
-    -> (f32, *const u8)
+pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8])
+    -> (f32, &'a [u8])
 {
-    to_native::<f32>(radix, first, last, true)
+    to_native::<f32>(radix, bytes, true)
 }
 
 /// Parse 64-bit float from string.
 #[inline]
-pub(crate) unsafe extern "C" fn atod_lossy(radix: u32, first: *const u8, last: *const u8)
-    -> (f64, *const u8)
+pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8])
+    -> (f64, &'a [u8])
 {
-    to_native::<f64>(radix, first, last, true)
+    to_native::<f64>(radix, bytes, true)
 }
 
 // TESTS
@@ -733,7 +723,7 @@ pub(crate) unsafe extern "C" fn atod_lossy(radix: u32, first: *const u8, last: *
 #[cfg(test)]
 mod tests {
     use stackvector;
-    use lib::str::from_utf8_unchecked;
+    use lib::str;
     use util::test::*;
     use super::*;
 
@@ -762,98 +752,88 @@ mod tests {
 
     // PARSE MANTISSA
 
-    unsafe fn check_parse_mantissa<M>(radix: u32, s: &str, tup: (M, usize, usize, usize, usize, &str))
+    fn check_parse_mantissa<M>(radix: u32, s: &str, tup: (M, usize, usize, usize, usize, &str))
         where M: Mantissa
     {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let mut state = ParseState::new(first);
-        let mut slc = FloatSlice::uninitialized();
-        let v = parse_mantissa::<M>(&mut state, &mut slc, radix, last);
-        let bytes: stackvector::StackVec<[u8; 1024]> = slc.digits_iter().collect();
-        let digits = from_utf8_unchecked(&bytes);
-        assert_eq!(v, tup.0);
+        let (value, slc, bytes, _) = parse_mantissa::<M>(radix, s.as_bytes());
+        let digits: stackvector::StackVec<[u8; 1024]> = slc.digits_iter().collect();
+        let digits = str::from_utf8(&digits).unwrap();
+        assert_eq!(value, tup.0);
         assert_eq!(slc.integer_len(), tup.1);
         assert_eq!(slc.fraction_len(), tup.2);
         assert_eq!(slc.truncated_digits(), tup.3);
-        assert_eq!(distance(first, state.curr), tup.4);
+        assert_eq!(distance(s.as_ptr(), bytes.as_ptr()), tup.4);
         assert_eq!(digits, tup.5);
     }
 
     #[test]
     fn parse_mantissa_test() {
-        unsafe {
-            // 64-bit
-            check_parse_mantissa::<u64>(10, "1.2345", (12345, 1, 4, 0, 6, "12345"));
-            check_parse_mantissa::<u64>(10, "12.345", (12345, 2, 3, 0, 6, "12345"));
-            check_parse_mantissa::<u64>(10, "12345.6789", (123456789, 5, 4, 0, 10, "123456789"));
-            check_parse_mantissa::<u64>(10, "1.2345e10", (12345, 1, 4, 0, 6, "12345"));
-            check_parse_mantissa::<u64>(10, "0.0000000000000000001", (1, 0, 19, 0, 21, "1"));
-            check_parse_mantissa::<u64>(10, "0.00000000000000000000000000001", (1, 0, 29, 0, 31, "1"));
-            check_parse_mantissa::<u64>(10, "100000000000000000000", (10000000000000000000, 21, 0, 1, 21, "100000000000000000000"));
+        // 64-bit
+        check_parse_mantissa::<u64>(10, "1.2345", (12345, 1, 4, 0, 6, "12345"));
+        check_parse_mantissa::<u64>(10, "12.345", (12345, 2, 3, 0, 6, "12345"));
+        check_parse_mantissa::<u64>(10, "12345.6789", (123456789, 5, 4, 0, 10, "123456789"));
+        check_parse_mantissa::<u64>(10, "1.2345e10", (12345, 1, 4, 0, 6, "12345"));
+        check_parse_mantissa::<u64>(10, "0.0000000000000000001", (1, 0, 19, 0, 21, "1"));
+        check_parse_mantissa::<u64>(10, "0.00000000000000000000000000001", (1, 0, 29, 0, 31, "1"));
+        check_parse_mantissa::<u64>(10, "100000000000000000000", (10000000000000000000, 21, 0, 1, 21, "100000000000000000000"));
 
-            // Adapted from failures in strtod.
-            check_parse_mantissa::<u64>(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (17976931348623158079, 309, 70, 359, 380, "1797693134862315807937289714053034150799341327100378269361737789804449682927647509466490179775872070963302864166928879109465555478519404026306574886715058206819089020007083836762738548458177115317644757302700698555713669596228429148198608349364752927190741684443655107043427115596995080930428801779041744977919999999999999999999999999999999999999999999999999999999999999999999999"));
+        // Adapted from failures in strtod.
+        check_parse_mantissa::<u64>(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (17976931348623158079, 309, 70, 359, 380, "1797693134862315807937289714053034150799341327100378269361737789804449682927647509466490179775872070963302864166928879109465555478519404026306574886715058206819089020007083836762738548458177115317644757302700698555713669596228429148198608349364752927190741684443655107043427115596995080930428801779041744977919999999999999999999999999999999999999999999999999999999999999999999999"));
 
-            // Rounding error
-            // Adapted from test-float-parse failures.
-            check_parse_mantissa::<u64>(10, "1009e-31", (1009, 4, 0, 0, 4, "1009"));
+        // Rounding error
+        // Adapted from test-float-parse failures.
+        check_parse_mantissa::<u64>(10, "1009e-31", (1009, 4, 0, 0, 4, "1009"));
 
-            // 128-bit
-            check_parse_mantissa::<u128>(10, "1.2345", (12345, 1, 4, 0, 6,  "12345"));
-            check_parse_mantissa::<u128>(10, "12.345", (12345, 2, 3, 0, 6,  "12345"));
-            check_parse_mantissa::<u128>(10, "12345.6789", (123456789, 5, 4, 0, 10,  "123456789"));
-            check_parse_mantissa::<u128>(10, "1.2345e10", (12345, 1, 4, 0, 6,  "12345"));
-            check_parse_mantissa::<u128>(10, "0.0000000000000000001", (1, 0, 19, 0, 21,  "1"));
-            check_parse_mantissa::<u128>(10, "0.00000000000000000000000000001", (1, 0, 29, 0, 31,  "1"));
-            check_parse_mantissa::<u128>(10, "100000000000000000000", (100000000000000000000, 21, 0, 0, 21,  "100000000000000000000"));
-        }
+        // 128-bit
+        check_parse_mantissa::<u128>(10, "1.2345", (12345, 1, 4, 0, 6,  "12345"));
+        check_parse_mantissa::<u128>(10, "12.345", (12345, 2, 3, 0, 6,  "12345"));
+        check_parse_mantissa::<u128>(10, "12345.6789", (123456789, 5, 4, 0, 10,  "123456789"));
+        check_parse_mantissa::<u128>(10, "1.2345e10", (12345, 1, 4, 0, 6,  "12345"));
+        check_parse_mantissa::<u128>(10, "0.0000000000000000001", (1, 0, 19, 0, 21,  "1"));
+        check_parse_mantissa::<u128>(10, "0.00000000000000000000000000001", (1, 0, 29, 0, 31,  "1"));
+        check_parse_mantissa::<u128>(10, "100000000000000000000", (100000000000000000000, 21, 0, 0, 21,  "100000000000000000000"));
     }
 
-    unsafe fn check_parse_float<M>(radix: u32, s: &str, tup: (M, i32, i32, usize, usize, bool, &str))
+    fn check_parse_float<M>(radix: u32, s: &str, tup: (M, i32, i32, usize, usize, bool, &str))
         where M: Mantissa
     {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let (v, state, slc, e) = parse_float::<M>(radix, first, last);
-        let bytes: stackvector::StackVec<[u8; 1024]> = slc.digits_iter().collect();
-        let digits = from_utf8_unchecked(&bytes);
-        assert_eq!(v, tup.0);
-        assert_eq!(e, tup.1);
+        let (value, slc, bytes, truncated) = parse_float::<M>(radix, s.as_bytes());
+        let digits: stackvector::StackVec<[u8; 1024]> = slc.digits_iter().collect();
+        let digits = str::from_utf8(&digits).unwrap();
+        assert_eq!(value, tup.0);
+        assert_eq!(slc.mantissa_exponent(), tup.1);
         assert_eq!(slc.scientific_exponent(), tup.2);
         assert_eq!(slc.mantissa_digits(), tup.3);
-        assert_eq!(distance(first, state.curr), tup.4);
-        assert_eq!(state.is_truncated(), tup.5);
+        assert_eq!(distance(s.as_ptr(), bytes.as_ptr()), tup.4);
+        assert_eq!(truncated.is_some(), tup.5);
         assert_eq!(digits, tup.6);
         assert_eq!(digits.len(), slc.mantissa_digits());
     }
 
     #[test]
     fn parse_float_test() {
-        unsafe {
-            // 64-bit
-            check_parse_float::<u64>(10, "1.2345", (12345, -4, 0, 5, 6, false, "12345"));
-            check_parse_float::<u64>(10, "12.345", (12345, -3, 1, 5, 6, false, "12345"));
-            check_parse_float::<u64>(10, "12345.6789", (123456789, -4, 4, 9, 10, false, "123456789"));
-            check_parse_float::<u64>(10, "1.2345e10", (12345, 6, 10, 5, 9, false, "12345"));
-            check_parse_float::<u64>(10, "100000000000000000000", (10000000000000000000, 1, 20, 21, 21, true, "100000000000000000000"));
-            check_parse_float::<u64>(10, "100000000000000000001", (10000000000000000000, 1, 20, 21, 21, true, "100000000000000000001"));
+        // 64-bit
+        check_parse_float::<u64>(10, "1.2345", (12345, -4, 0, 5, 6, false, "12345"));
+        check_parse_float::<u64>(10, "12.345", (12345, -3, 1, 5, 6, false, "12345"));
+        check_parse_float::<u64>(10, "12345.6789", (123456789, -4, 4, 9, 10, false, "123456789"));
+        check_parse_float::<u64>(10, "1.2345e10", (12345, 6, 10, 5, 9, false, "12345"));
+        check_parse_float::<u64>(10, "100000000000000000000", (10000000000000000000, 1, 20, 21, 21, true, "100000000000000000000"));
+        check_parse_float::<u64>(10, "100000000000000000001", (10000000000000000000, 1, 20, 21, 21, true, "100000000000000000001"));
 
-            // Adapted from failures in strtod.
-            check_parse_float::<u64>(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (17976931348623158079, 289, 308, 379, 380, true, "1797693134862315807937289714053034150799341327100378269361737789804449682927647509466490179775872070963302864166928879109465555478519404026306574886715058206819089020007083836762738548458177115317644757302700698555713669596228429148198608349364752927190741684443655107043427115596995080930428801779041744977919999999999999999999999999999999999999999999999999999999999999999999999"));
+        // Adapted from failures in strtod.
+        check_parse_float::<u64>(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (17976931348623158079, 289, 308, 379, 380, true, "1797693134862315807937289714053034150799341327100378269361737789804449682927647509466490179775872070963302864166928879109465555478519404026306574886715058206819089020007083836762738548458177115317644757302700698555713669596228429148198608349364752927190741684443655107043427115596995080930428801779041744977919999999999999999999999999999999999999999999999999999999999999999999999"));
 
-            // Rounding error
-            // Adapted from test-float-parse failures.
-            check_parse_float::<u64>(10, "1009e-31", (1009, -31, -28, 4, 8, false, "1009"));
+        // Rounding error
+        // Adapted from test-float-parse failures.
+        check_parse_float::<u64>(10, "1009e-31", (1009, -31, -28, 4, 8, false, "1009"));
 
-            // 128-bit
-            check_parse_float::<u128>(10, "1.2345", (12345, -4, 0, 5, 6, false, "12345"));
-            check_parse_float::<u128>(10, "12.345", (12345, -3, 1, 5, 6, false, "12345"));
-            check_parse_float::<u128>(10, "12345.6789", (123456789, -4, 4, 9, 10, false, "123456789"));
-            check_parse_float::<u128>(10, "1.2345e10", (12345, 6, 10, 5, 9, false, "12345"));
-            check_parse_float::<u128>(10, "100000000000000000000", (100000000000000000000, 0, 20, 21, 21, false, "100000000000000000000"));
-            check_parse_float::<u128>(10, "100000000000000000001", (100000000000000000001, 0, 20, 21, 21, false, "100000000000000000001"));
-        }
+        // 128-bit
+        check_parse_float::<u128>(10, "1.2345", (12345, -4, 0, 5, 6, false, "12345"));
+        check_parse_float::<u128>(10, "12.345", (12345, -3, 1, 5, 6, false, "12345"));
+        check_parse_float::<u128>(10, "12345.6789", (123456789, -4, 4, 9, 10, false, "123456789"));
+        check_parse_float::<u128>(10, "1.2345e10", (12345, 6, 10, 5, 9, false, "12345"));
+        check_parse_float::<u128>(10, "100000000000000000000", (100000000000000000000, 0, 20, 21, 21, false, "100000000000000000000"));
+        check_parse_float::<u128>(10, "100000000000000000001", (100000000000000000001, 0, 20, 21, 21, false, "100000000000000000001"));
     }
 
     #[cfg(feature = "radix")]
@@ -1044,175 +1024,159 @@ mod tests {
         assert!(!valid, "exponent should be valid");
     }
 
-    unsafe fn check_atof(radix: u32, s: &str, tup: (f32, usize)) {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let (v, p) = atof(radix, first, last);
-        assert_f32_eq!(v, tup.0);
-        assert_eq!(distance(first, p), tup.1);
+    fn check_atof(radix: u32, s: &str, tup: (f32, usize)) {
+        let (value, slc) = atof(radix, s.as_bytes());
+        assert_f32_eq!(value, tup.0);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
 
     #[test]
     fn atof_test() {
-        unsafe {
-            check_atof(10, "1.2345", (1.2345, 6));
-            check_atof(10, "12.345", (12.345, 6));
-            check_atof(10, "12345.6789", (12345.6789, 10));
-            check_atof(10, "1.2345e10", (1.2345e10, 9));
-            check_atof(10, "1.2345e-38", (1.2345e-38, 10));
+        check_atof(10, "1.2345", (1.2345, 6));
+        check_atof(10, "12.345", (12.345, 6));
+        check_atof(10, "12345.6789", (12345.6789, 10));
+        check_atof(10, "1.2345e10", (1.2345e10, 9));
+        check_atof(10, "1.2345e-38", (1.2345e-38, 10));
 
-            // Check expected rounding, using borderline cases.
-            // Round-down, halfway
-            check_atof(10, "16777216", (16777216.0, 8));
-            check_atof(10, "16777217", (16777216.0, 8));
-            check_atof(10, "16777218", (16777218.0, 8));
-            check_atof(10, "33554432", (33554432.0, 8));
-            check_atof(10, "33554434", (33554432.0, 8));
-            check_atof(10, "33554436", (33554436.0, 8));
-            check_atof(10, "17179869184", (17179869184.0, 11));
-            check_atof(10, "17179870208", (17179869184.0, 11));
-            check_atof(10, "17179871232", (17179871232.0, 11));
+        // Check expected rounding, using borderline cases.
+        // Round-down, halfway
+        check_atof(10, "16777216", (16777216.0, 8));
+        check_atof(10, "16777217", (16777216.0, 8));
+        check_atof(10, "16777218", (16777218.0, 8));
+        check_atof(10, "33554432", (33554432.0, 8));
+        check_atof(10, "33554434", (33554432.0, 8));
+        check_atof(10, "33554436", (33554436.0, 8));
+        check_atof(10, "17179869184", (17179869184.0, 11));
+        check_atof(10, "17179870208", (17179869184.0, 11));
+        check_atof(10, "17179871232", (17179871232.0, 11));
 
-            // Round-up, halfway
-            check_atof(10, "16777218", (16777218.0, 8));
-            check_atof(10, "16777219", (16777220.0, 8));
-            check_atof(10, "16777220", (16777220.0, 8));
-            check_atof(10, "33554436", (33554436.0, 8));
-            check_atof(10, "33554438", (33554440.0, 8));
-            check_atof(10, "33554440", (33554440.0, 8));
-            check_atof(10, "17179871232", (17179871232.0, 11));
-            check_atof(10, "17179872256", (17179873280.0, 11));
-            check_atof(10, "17179873280", (17179873280.0, 11));
+        // Round-up, halfway
+        check_atof(10, "16777218", (16777218.0, 8));
+        check_atof(10, "16777219", (16777220.0, 8));
+        check_atof(10, "16777220", (16777220.0, 8));
+        check_atof(10, "33554436", (33554436.0, 8));
+        check_atof(10, "33554438", (33554440.0, 8));
+        check_atof(10, "33554440", (33554440.0, 8));
+        check_atof(10, "17179871232", (17179871232.0, 11));
+        check_atof(10, "17179872256", (17179873280.0, 11));
+        check_atof(10, "17179873280", (17179873280.0, 11));
 
-            // Round-up, above halfway
-            check_atof(10, "33554435", (33554436.0, 8));
-            check_atof(10, "17179870209", (17179871232.0, 11));
+        // Round-up, above halfway
+        check_atof(10, "33554435", (33554436.0, 8));
+        check_atof(10, "17179870209", (17179871232.0, 11));
 
-            // Check exactly halfway, round-up at halfway
-            check_atof(10, "1.00000017881393432617187499", (1.0000001, 28));
-            check_atof(10, "1.000000178813934326171875", (1.0000002, 26));
-            check_atof(10, "1.00000017881393432617187501", (1.0000002, 28));
-        }
+        // Check exactly halfway, round-up at halfway
+        check_atof(10, "1.00000017881393432617187499", (1.0000001, 28));
+        check_atof(10, "1.000000178813934326171875", (1.0000002, 26));
+        check_atof(10, "1.00000017881393432617187501", (1.0000002, 28));
     }
 
-    unsafe fn check_atod(radix: u32, s: &str, tup: (f64, usize)) {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let (v, p) = atod(radix, first, last);
-        assert_f64_eq!(v, tup.0);
-        assert_eq!(distance(first, p), tup.1);
+    fn check_atod(radix: u32, s: &str, tup: (f64, usize)) {
+        let (value, slc) = atod(radix, s.as_bytes());
+        assert_f64_eq!(value, tup.0);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
 
     #[test]
     fn atod_test() {
-        unsafe {
-            check_atod(10, "1.2345", (1.2345, 6));
-            check_atod(10, "12.345", (12.345, 6));
-            check_atod(10, "12345.6789", (12345.6789, 10));
-            check_atod(10, "1.2345e10", (1.2345e10, 9));
-            check_atod(10, "1.2345e-308", (1.2345e-308, 11));
+        check_atod(10, "1.2345", (1.2345, 6));
+        check_atod(10, "12.345", (12.345, 6));
+        check_atod(10, "12345.6789", (12345.6789, 10));
+        check_atod(10, "1.2345e10", (1.2345e10, 9));
+        check_atod(10, "1.2345e-308", (1.2345e-308, 11));
 
-            // Check expected rounding, using borderline cases.
-            // Round-down, halfway
-            check_atod(10, "9007199254740992", (9007199254740992.0, 16));
-            check_atod(10, "9007199254740993", (9007199254740992.0, 16));
-            check_atod(10, "9007199254740994", (9007199254740994.0, 16));
-            check_atod(10, "18014398509481984", (18014398509481984.0, 17));
-            check_atod(10, "18014398509481986", (18014398509481984.0, 17));
-            check_atod(10, "18014398509481988", (18014398509481988.0, 17));
-            check_atod(10, "9223372036854775808", (9223372036854775808.0, 19));
-            check_atod(10, "9223372036854776832", (9223372036854775808.0, 19));
-            check_atod(10, "9223372036854777856", (9223372036854777856.0, 19));
-            check_atod(10, "11417981541647679048466287755595961091061972992", (11417981541647679048466287755595961091061972992.0, 47));
-            check_atod(10, "11417981541647680316116887983825362587765178368", (11417981541647679048466287755595961091061972992.0, 47));
-            check_atod(10, "11417981541647681583767488212054764084468383744", (11417981541647681583767488212054764084468383744.0, 47));
+        // Check expected rounding, using borderline cases.
+        // Round-down, halfway
+        check_atod(10, "9007199254740992", (9007199254740992.0, 16));
+        check_atod(10, "9007199254740993", (9007199254740992.0, 16));
+        check_atod(10, "9007199254740994", (9007199254740994.0, 16));
+        check_atod(10, "18014398509481984", (18014398509481984.0, 17));
+        check_atod(10, "18014398509481986", (18014398509481984.0, 17));
+        check_atod(10, "18014398509481988", (18014398509481988.0, 17));
+        check_atod(10, "9223372036854775808", (9223372036854775808.0, 19));
+        check_atod(10, "9223372036854776832", (9223372036854775808.0, 19));
+        check_atod(10, "9223372036854777856", (9223372036854777856.0, 19));
+        check_atod(10, "11417981541647679048466287755595961091061972992", (11417981541647679048466287755595961091061972992.0, 47));
+        check_atod(10, "11417981541647680316116887983825362587765178368", (11417981541647679048466287755595961091061972992.0, 47));
+        check_atod(10, "11417981541647681583767488212054764084468383744", (11417981541647681583767488212054764084468383744.0, 47));
 
-            // Round-up, halfway
-            check_atod(10, "9007199254740994", (9007199254740994.0, 16));
-            check_atod(10, "9007199254740995", (9007199254740996.0, 16));
-            check_atod(10, "9007199254740996", (9007199254740996.0, 16));
-            check_atod(10, "18014398509481988", (18014398509481988.0, 17));
-            check_atod(10, "18014398509481990", (18014398509481992.0, 17));
-            check_atod(10, "18014398509481992", (18014398509481992.0, 17));
-            check_atod(10, "9223372036854777856", (9223372036854777856.0, 19));
-            check_atod(10, "9223372036854778880", (9223372036854779904.0, 19));
-            check_atod(10, "9223372036854779904", (9223372036854779904.0, 19));
-            check_atod(10, "11417981541647681583767488212054764084468383744", (11417981541647681583767488212054764084468383744.0, 47));
-            check_atod(10, "11417981541647682851418088440284165581171589120", (11417981541647684119068688668513567077874794496.0, 47));
-            check_atod(10, "11417981541647684119068688668513567077874794496", (11417981541647684119068688668513567077874794496.0, 47));
+        // Round-up, halfway
+        check_atod(10, "9007199254740994", (9007199254740994.0, 16));
+        check_atod(10, "9007199254740995", (9007199254740996.0, 16));
+        check_atod(10, "9007199254740996", (9007199254740996.0, 16));
+        check_atod(10, "18014398509481988", (18014398509481988.0, 17));
+        check_atod(10, "18014398509481990", (18014398509481992.0, 17));
+        check_atod(10, "18014398509481992", (18014398509481992.0, 17));
+        check_atod(10, "9223372036854777856", (9223372036854777856.0, 19));
+        check_atod(10, "9223372036854778880", (9223372036854779904.0, 19));
+        check_atod(10, "9223372036854779904", (9223372036854779904.0, 19));
+        check_atod(10, "11417981541647681583767488212054764084468383744", (11417981541647681583767488212054764084468383744.0, 47));
+        check_atod(10, "11417981541647682851418088440284165581171589120", (11417981541647684119068688668513567077874794496.0, 47));
+        check_atod(10, "11417981541647684119068688668513567077874794496", (11417981541647684119068688668513567077874794496.0, 47));
 
-            // Round-up, above halfway
-            check_atod(10, "9223372036854776833", (9223372036854777856.0, 19));
-            check_atod(10, "11417981541647680316116887983825362587765178369", (11417981541647681583767488212054764084468383744.0, 47));
+        // Round-up, above halfway
+        check_atod(10, "9223372036854776833", (9223372036854777856.0, 19));
+        check_atod(10, "11417981541647680316116887983825362587765178369", (11417981541647681583767488212054764084468383744.0, 47));
 
-            // Rounding error
-            // Adapted from failures in strtod.
-            check_atod(10, "2.2250738585072014e-308", (2.2250738585072014e-308, 23));
-            check_atod(10, "2.2250738585072011360574097967091319759348195463516456480234261097248222220210769455165295239081350879141491589130396211068700864386945946455276572074078206217433799881410632673292535522868813721490129811224514518898490572223072852551331557550159143974763979834118019993239625482890171070818506906306666559949382757725720157630626906633326475653000092458883164330377797918696120494973903778297049050510806099407302629371289589500035837999672072543043602840788957717961509455167482434710307026091446215722898802581825451803257070188608721131280795122334262883686223215037756666225039825343359745688844239002654981983854879482922068947216898310996983658468140228542433306603398508864458040010349339704275671864433837704860378616227717385456230658746790140867233276367187499e-308", (2.225073858507201e-308, 776));
-            check_atod(10, "2.22507385850720113605740979670913197593481954635164564802342610972482222202107694551652952390813508791414915891303962110687008643869459464552765720740782062174337998814106326732925355228688137214901298112245145188984905722230728525513315575501591439747639798341180199932396254828901710708185069063066665599493827577257201576306269066333264756530000924588831643303777979186961204949739037782970490505108060994073026293712895895000358379996720725430436028407889577179615094551674824347103070260914462157228988025818254518032570701886087211312807951223342628836862232150377566662250398253433597456888442390026549819838548794829220689472168983109969836584681402285424333066033985088644580400103493397042756718644338377048603786162277173854562306587467901408672332763671875e-308", (2.2250738585072014e-308, 774));
-            check_atod(10, "2.2250738585072011360574097967091319759348195463516456480234261097248222220210769455165295239081350879141491589130396211068700864386945946455276572074078206217433799881410632673292535522868813721490129811224514518898490572223072852551331557550159143974763979834118019993239625482890171070818506906306666559949382757725720157630626906633326475653000092458883164330377797918696120494973903778297049050510806099407302629371289589500035837999672072543043602840788957717961509455167482434710307026091446215722898802581825451803257070188608721131280795122334262883686223215037756666225039825343359745688844239002654981983854879482922068947216898310996983658468140228542433306603398508864458040010349339704275671864433837704860378616227717385456230658746790140867233276367187501e-308", (2.2250738585072014e-308, 776));
-            check_atod(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (1.7976931348623157e+308, 380));
-            check_atod(10, "7.4109846876186981626485318930233205854758970392148714663837852375101326090531312779794975454245398856969484704316857659638998506553390969459816219401617281718945106978546710679176872575177347315553307795408549809608457500958111373034747658096871009590975442271004757307809711118935784838675653998783503015228055934046593739791790738723868299395818481660169122019456499931289798411362062484498678713572180352209017023903285791732520220528974020802906854021606612375549983402671300035812486479041385743401875520901590172592547146296175134159774938718574737870961645638908718119841271673056017045493004705269590165763776884908267986972573366521765567941072508764337560846003984904972149117463085539556354188641513168478436313080237596295773983001708984374999e-324", (5e-324, 761));
-            check_atod(10, "7.4109846876186981626485318930233205854758970392148714663837852375101326090531312779794975454245398856969484704316857659638998506553390969459816219401617281718945106978546710679176872575177347315553307795408549809608457500958111373034747658096871009590975442271004757307809711118935784838675653998783503015228055934046593739791790738723868299395818481660169122019456499931289798411362062484498678713572180352209017023903285791732520220528974020802906854021606612375549983402671300035812486479041385743401875520901590172592547146296175134159774938718574737870961645638908718119841271673056017045493004705269590165763776884908267986972573366521765567941072508764337560846003984904972149117463085539556354188641513168478436313080237596295773983001708984375e-324", (1e-323, 758));
-            check_atod(10, "7.4109846876186981626485318930233205854758970392148714663837852375101326090531312779794975454245398856969484704316857659638998506553390969459816219401617281718945106978546710679176872575177347315553307795408549809608457500958111373034747658096871009590975442271004757307809711118935784838675653998783503015228055934046593739791790738723868299395818481660169122019456499931289798411362062484498678713572180352209017023903285791732520220528974020802906854021606612375549983402671300035812486479041385743401875520901590172592547146296175134159774938718574737870961645638908718119841271673056017045493004705269590165763776884908267986972573366521765567941072508764337560846003984904972149117463085539556354188641513168478436313080237596295773983001708984375001e-324", (1e-323, 761));
+        // Rounding error
+        // Adapted from failures in strtod.
+        check_atod(10, "2.2250738585072014e-308", (2.2250738585072014e-308, 23));
+        check_atod(10, "2.2250738585072011360574097967091319759348195463516456480234261097248222220210769455165295239081350879141491589130396211068700864386945946455276572074078206217433799881410632673292535522868813721490129811224514518898490572223072852551331557550159143974763979834118019993239625482890171070818506906306666559949382757725720157630626906633326475653000092458883164330377797918696120494973903778297049050510806099407302629371289589500035837999672072543043602840788957717961509455167482434710307026091446215722898802581825451803257070188608721131280795122334262883686223215037756666225039825343359745688844239002654981983854879482922068947216898310996983658468140228542433306603398508864458040010349339704275671864433837704860378616227717385456230658746790140867233276367187499e-308", (2.225073858507201e-308, 776));
+        check_atod(10, "2.22507385850720113605740979670913197593481954635164564802342610972482222202107694551652952390813508791414915891303962110687008643869459464552765720740782062174337998814106326732925355228688137214901298112245145188984905722230728525513315575501591439747639798341180199932396254828901710708185069063066665599493827577257201576306269066333264756530000924588831643303777979186961204949739037782970490505108060994073026293712895895000358379996720725430436028407889577179615094551674824347103070260914462157228988025818254518032570701886087211312807951223342628836862232150377566662250398253433597456888442390026549819838548794829220689472168983109969836584681402285424333066033985088644580400103493397042756718644338377048603786162277173854562306587467901408672332763671875e-308", (2.2250738585072014e-308, 774));
+        check_atod(10, "2.2250738585072011360574097967091319759348195463516456480234261097248222220210769455165295239081350879141491589130396211068700864386945946455276572074078206217433799881410632673292535522868813721490129811224514518898490572223072852551331557550159143974763979834118019993239625482890171070818506906306666559949382757725720157630626906633326475653000092458883164330377797918696120494973903778297049050510806099407302629371289589500035837999672072543043602840788957717961509455167482434710307026091446215722898802581825451803257070188608721131280795122334262883686223215037756666225039825343359745688844239002654981983854879482922068947216898310996983658468140228542433306603398508864458040010349339704275671864433837704860378616227717385456230658746790140867233276367187501e-308", (2.2250738585072014e-308, 776));
+        check_atod(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", (1.7976931348623157e+308, 380));
+        check_atod(10, "7.4109846876186981626485318930233205854758970392148714663837852375101326090531312779794975454245398856969484704316857659638998506553390969459816219401617281718945106978546710679176872575177347315553307795408549809608457500958111373034747658096871009590975442271004757307809711118935784838675653998783503015228055934046593739791790738723868299395818481660169122019456499931289798411362062484498678713572180352209017023903285791732520220528974020802906854021606612375549983402671300035812486479041385743401875520901590172592547146296175134159774938718574737870961645638908718119841271673056017045493004705269590165763776884908267986972573366521765567941072508764337560846003984904972149117463085539556354188641513168478436313080237596295773983001708984374999e-324", (5e-324, 761));
+        check_atod(10, "7.4109846876186981626485318930233205854758970392148714663837852375101326090531312779794975454245398856969484704316857659638998506553390969459816219401617281718945106978546710679176872575177347315553307795408549809608457500958111373034747658096871009590975442271004757307809711118935784838675653998783503015228055934046593739791790738723868299395818481660169122019456499931289798411362062484498678713572180352209017023903285791732520220528974020802906854021606612375549983402671300035812486479041385743401875520901590172592547146296175134159774938718574737870961645638908718119841271673056017045493004705269590165763776884908267986972573366521765567941072508764337560846003984904972149117463085539556354188641513168478436313080237596295773983001708984375e-324", (1e-323, 758));
+        check_atod(10, "7.4109846876186981626485318930233205854758970392148714663837852375101326090531312779794975454245398856969484704316857659638998506553390969459816219401617281718945106978546710679176872575177347315553307795408549809608457500958111373034747658096871009590975442271004757307809711118935784838675653998783503015228055934046593739791790738723868299395818481660169122019456499931289798411362062484498678713572180352209017023903285791732520220528974020802906854021606612375549983402671300035812486479041385743401875520901590172592547146296175134159774938718574737870961645638908718119841271673056017045493004705269590165763776884908267986972573366521765567941072508764337560846003984904972149117463085539556354188641513168478436313080237596295773983001708984375001e-324", (1e-323, 761));
 
-            // Rounding error
-            // Adapted from:
-            //  https://www.exploringbinary.com/glibc-strtod-incorrectly-converts-2-to-the-negative-1075/
-            #[cfg(feature = "radix")]
-            check_atod(2, "1e-10000110010", (5e-324, 14));
+        // Rounding error
+        // Adapted from:
+        //  https://www.exploringbinary.com/glibc-strtod-incorrectly-converts-2-to-the-negative-1075/
+        #[cfg(feature = "radix")]
+        check_atod(2, "1e-10000110010", (5e-324, 14));
 
-            #[cfg(feature = "radix")]
-            check_atod(2, "1e-10000110011", (0.0, 14));
-            check_atod(10, "0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000024703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125", (0.0, 1077));
+        #[cfg(feature = "radix")]
+        check_atod(2, "1e-10000110011", (0.0, 14));
+        check_atod(10, "0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000024703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125", (0.0, 1077));
 
-            // Rounding error
-            // Adapted from:
-            //  https://www.exploringbinary.com/how-glibc-strtod-works/
-            check_atod(10, "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022250738585072008890245868760858598876504231122409594654935248025624400092282356951787758888037591552642309780950434312085877387158357291821993020294379224223559819827501242041788969571311791082261043971979604000454897391938079198936081525613113376149842043271751033627391549782731594143828136275113838604094249464942286316695429105080201815926642134996606517803095075913058719846423906068637102005108723282784678843631944515866135041223479014792369585208321597621066375401613736583044193603714778355306682834535634005074073040135602968046375918583163124224521599262546494300836851861719422417646455137135420132217031370496583210154654068035397417906022589503023501937519773030945763173210852507299305089761582519159720757232455434770912461317493580281734466552734375", (2.2250738585072011e-308, 1076));
+        // Rounding error
+        // Adapted from:
+        //  https://www.exploringbinary.com/how-glibc-strtod-works/
+        check_atod(10, "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022250738585072008890245868760858598876504231122409594654935248025624400092282356951787758888037591552642309780950434312085877387158357291821993020294379224223559819827501242041788969571311791082261043971979604000454897391938079198936081525613113376149842043271751033627391549782731594143828136275113838604094249464942286316695429105080201815926642134996606517803095075913058719846423906068637102005108723282784678843631944515866135041223479014792369585208321597621066375401613736583044193603714778355306682834535634005074073040135602968046375918583163124224521599262546494300836851861719422417646455137135420132217031370496583210154654068035397417906022589503023501937519773030945763173210852507299305089761582519159720757232455434770912461317493580281734466552734375", (2.2250738585072011e-308, 1076));
 
-            // Rounding error
-            // Adapted from test-float-parse failures.
-            check_atod(10, "1009e-31", (1.009e-28, 8));
-            check_atod(10, "18294e304", (f64::INFINITY, 9));
-        }
+        // Rounding error
+        // Adapted from test-float-parse failures.
+        check_atod(10, "1009e-31", (1.009e-28, 8));
+        check_atod(10, "18294e304", (f64::INFINITY, 9));
     }
 
     // Lossy
 
-    unsafe fn check_atof_lossy(radix: u32, s: &str, tup: (f32, usize)) {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let (v, p) = atof_lossy(radix, first, last);
-        assert_f32_eq!(v, tup.0);
-        assert_eq!(distance(first, p), tup.1);
+    fn check_atof_lossy(radix: u32, s: &str, tup: (f32, usize)) {
+        let (value, slc) = atof_lossy(radix, s.as_bytes());
+        assert_f32_eq!(value, tup.0);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
 
     #[test]
     fn atof_lossy_test() {
-        unsafe {
-            check_atof_lossy(10, "1.2345", (1.2345, 6));
-            check_atof_lossy(10, "12.345", (12.345, 6));
-            check_atof_lossy(10, "12345.6789", (12345.6789, 10));
-            check_atof_lossy(10, "1.2345e10", (1.2345e10, 9));
-        }
+        check_atof_lossy(10, "1.2345", (1.2345, 6));
+        check_atof_lossy(10, "12.345", (12.345, 6));
+        check_atof_lossy(10, "12345.6789", (12345.6789, 10));
+        check_atof_lossy(10, "1.2345e10", (1.2345e10, 9));
     }
 
-    unsafe fn check_atod_lossy(radix: u32, s: &str, tup: (f64, usize)) {
-        let first = s.as_ptr();
-        let last = first.add(s.len());
-        let (v, p) = atod_lossy(radix, first, last);
-        assert_f64_eq!(v, tup.0);
-        assert_eq!(distance(first, p), tup.1);
+    fn check_atod_lossy(radix: u32, s: &str, tup: (f64, usize)) {
+        let (value, slc) = atod_lossy(radix, s.as_bytes());
+        assert_f64_eq!(value, tup.0);
+        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
 
     #[test]
     fn atod_lossy_test() {
-        unsafe {
-            check_atod_lossy(10, "1.2345", (1.2345, 6));
-            check_atod_lossy(10, "12.345", (12.345, 6));
-            check_atod_lossy(10, "12345.6789", (12345.6789, 10));
-            check_atod_lossy(10, "1.2345e10", (1.2345e10, 9));
-        }
+        check_atod_lossy(10, "1.2345", (1.2345, 6));
+        check_atod_lossy(10, "12.345", (12.345, 6));
+        check_atod_lossy(10, "12345.6789", (12345.6789, 10));
+        check_atod_lossy(10, "1.2345e10", (1.2345e10, 9));
     }
 }

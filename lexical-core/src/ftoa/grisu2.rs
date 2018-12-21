@@ -405,8 +405,8 @@ fn fpconv_dtoa(d: f64, dest: &mut [u8]) -> usize
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline(always)]
-pub(crate) fn float_decimal(f: f32, bytes: &mut [u8])
-    -> usize
+pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
+    -> &'a mut [u8]
 {
     double_decimal(f.as_f64(), bytes)
 }
@@ -418,8 +418,9 @@ pub(crate) fn float_decimal(f: f32, bytes: &mut [u8])
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline(always)]
-pub(crate) fn double_decimal(d: f64, bytes: &mut [u8])
-    -> usize
+pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
+    -> &'a mut [u8]
 {
-    fpconv_dtoa(d, bytes)
+    let len = fpconv_dtoa(d, bytes);
+    &mut bytes[len..]
 }
