@@ -159,11 +159,11 @@ macro_rules! wrap {
     ($name:ident, $f:tt, $lossy:expr) => (
         /// Parse float and return value, subslice read, and if truncated.
         #[inline]
-        fn $name<'a>(radix: u8, bytes: &'a [u8])
-            -> ($f, &'a [u8], bool)
+        fn $name(radix: u8, bytes: &[u8])
+            -> ($f, usize, bool)
         {
             let (value, len) = atof::<$f>(radix.into(), bytes, $lossy);
-            (value, &bytes[..len], false)
+            (value, len, false)
         }
     )
 }

@@ -71,21 +71,21 @@ macro_rules! generate_from_slice_api {
 
 /// Wrap the unsafe API into the safe, parse API trying to parse raw bytes.
 #[doc(hidden)]
-#[inline]
+#[inline(always)]
 pub(crate) fn try_from_bytes_wrapper<'a, T, Cb>(radix: u8, bytes: &'a [u8], cb: Cb)
     -> Result<T>
     where T: Number,
-          Cb: FnOnce(u8, &'a [u8]) -> (T, &'a [u8], bool)
+          Cb: FnOnce(u8, &'a [u8]) -> (T, usize, bool)
 {
-    let (value, slc, overflow) = cb(radix, bytes);
+    let (value, processed, overflow) = cb(radix, bytes);
     if bytes.is_empty() {
         empty_error(value)
     } else if overflow {
         overflow_error(value)
-    } else if slc.len() == bytes.len() {
+    } else if processed == bytes.len() {
         success(value)
     } else {
-        invalid_digit_error(value, slc.len())
+        invalid_digit_error(value, processed)
     }
 }
 

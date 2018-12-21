@@ -97,7 +97,7 @@ use util::*;
 ///
 /// Don't trim leading zeros, since the value may be non-zero and
 /// therefore invalid.
-#[inline]
+#[inline(always)]
 pub(crate) fn unchecked<T>(value: &mut T, radix: T, bytes: &[u8])
     -> (usize, Option<ptr::NonNull<u8>>)
     where T: Integer
@@ -109,9 +109,11 @@ pub(crate) fn unchecked<T>(value: &mut T, radix: T, bytes: &[u8])
     // Don't add a short-circuit either, since it adds significant time
     // and we want to continue parsing until everything is done, since
     // otherwise it may give us invalid results elsewhere.
+    let mut digit: T;
     let mut truncated = None;
-    for c in bytes.iter() {
-        let digit: T = as_cast(char_to_digit(*c));
+    let mut iter = bytes.iter().enumerate();
+    while let Some((i, c)) = iter.next() {
+        digit = as_cast(char_to_digit(*c));
         if digit < radix {
             let (v, o1) = value.overflowing_mul(radix);
             let (v, o2) = v.overflowing_add(digit);
@@ -120,8 +122,7 @@ pub(crate) fn unchecked<T>(value: &mut T, radix: T, bytes: &[u8])
                 truncated = Some(c.into());
             }
         } else {
-            let idx = distance(bytes.as_ptr(), c);
-            return (idx, truncated);
+            return (i, truncated);
         }
     }
 
@@ -133,7 +134,7 @@ pub(crate) fn unchecked<T>(value: &mut T, radix: T, bytes: &[u8])
 /// Don't trim leading zeros, since the value may be non-zero and
 /// therefore invalid.
 #[cfg(feature = "correct")]
-#[inline]
+#[inline(always)]
 pub(crate) fn checked<T>(value: &mut T, radix: T, bytes: &[u8])
     -> (usize, Option<ptr::NonNull<u8>>)
     where T: Integer
@@ -145,9 +146,11 @@ pub(crate) fn checked<T>(value: &mut T, radix: T, bytes: &[u8])
     // Don't add a short-circuit either, since it adds significant time
     // and we want to continue parsing until everything is done, since
     // otherwise it may give us invalid results elsewhere.
+    let mut digit: T;
     let mut truncated = None;
-    for c in bytes.iter() {
-        let digit: T = as_cast(char_to_digit(*c));
+    let mut iter = bytes.iter().enumerate();
+    while let Some((i, c)) = iter.next() {
+        digit = as_cast(char_to_digit(*c));
         if digit < radix {
             // Increment our pointer, to continue parsing digits.
             // Only multiply to the radix and add the parsed digit if
@@ -164,8 +167,7 @@ pub(crate) fn checked<T>(value: &mut T, radix: T, bytes: &[u8])
                 }
             }
         } else {
-            let idx = distance(bytes.as_ptr(), c);
-            return (idx, truncated);
+            return (i, truncated);
         }
     }
 
@@ -173,14 +175,12 @@ pub(crate) fn checked<T>(value: &mut T, radix: T, bytes: &[u8])
 }
 
 /// Parse value from a positive numeric string.
-#[inline]
-pub(crate) fn value<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
+#[inline(always)]
+pub(crate) fn value<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
     -> (T, usize, Option<ptr::NonNull<u8>>)
     where T: Integer,
-          Cb: FnOnce(&mut T, T, &'a [u8]) -> (usize, Option<ptr::NonNull<u8>>)
+          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, Option<ptr::NonNull<u8>>)
 {
-    debug_assert_radix!(radix);
-
     // Trim the leading 0s here, where we can guarantee the value is 0,
     // and therefore trimming these leading 0s is actually valid.
     let (bytes, count) = ltrim_char_slice(bytes, b'0');
@@ -192,20 +192,19 @@ pub(crate) fn value<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
 }
 
 /// Handle +/- numbers and forward to implementation.
-#[inline]
-pub(crate) fn filter_sign<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
+#[inline(always)]
+pub(crate) fn filter_sign<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
     -> (T, Sign, usize, Option<ptr::NonNull<u8>>)
     where T: Integer,
-          Cb: FnOnce(&mut T, T, &'a [u8]) -> (usize, Option<ptr::NonNull<u8>>)
+          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, Option<ptr::NonNull<u8>>)
 {
-    let len = bytes.len();
     let (sign_bytes, sign) = match bytes.get(0) {
         Some(b'+') => (1, Sign::Positive),
         Some(b'-') => (1, Sign::Negative),
         _          => (0, Sign::Positive),
     };
 
-    if len > sign_bytes {
+    if bytes.len() > sign_bytes {
         let (value, len, truncated) = value::<T, Cb>(radix, &bytes[sign_bytes..], cb);
         (value, sign, sign_bytes + len, truncated)
     } else {
@@ -215,11 +214,11 @@ pub(crate) fn filter_sign<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
 
 /// Handle unsigned +/- numbers and forward to implied implementation.
 //  Can just use local namespace
-#[inline]
-pub(crate) fn unsigned<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
+#[inline(always)]
+pub(crate) fn unsigned<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
     -> (T, usize, bool)
     where T: UnsignedInteger,
-          Cb: FnOnce(&mut T, T, &'a [u8]) -> (usize, Option<ptr::NonNull<u8>>)
+          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, Option<ptr::NonNull<u8>>)
 {
     let (value, sign, processed, truncated) = filter_sign::<T, Cb>(radix, bytes, cb);
     match sign {
@@ -231,11 +230,11 @@ pub(crate) fn unsigned<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
 
 /// Handle signed +/- numbers and forward to implied implementation.
 //  Can just use local namespace
-#[inline]
-pub(crate) fn signed<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
+#[inline(always)]
+pub(crate) fn signed<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
     -> (T, usize, bool)
     where T: SignedInteger,
-          Cb: FnOnce(&mut T, T, &'a [u8]) -> (usize, Option<ptr::NonNull<u8>>)
+          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, Option<ptr::NonNull<u8>>)
 {
     let (value, sign, processed, truncated) = filter_sign::<T, Cb>(radix, bytes, cb);
     match sign {
@@ -254,11 +253,11 @@ macro_rules! wrap_unsigned {
     ($func:ident, $t:tt) => (
         /// Parse unsigned integer and return value, subslice read, and if truncated.
         #[inline]
-        fn $func<'a>(radix: u8, bytes: &'a [u8])
-            -> ($t, &'a [u8], bool)
+        fn $func(radix: u8, bytes: &[u8])
+            -> ($t, usize, bool)
         {
             let (value, len, truncated) = unsigned::<$t, _>(radix.into(), bytes, unchecked::<$t>);
-            (value, &bytes[..len], truncated)
+            (value, len, truncated)
         }
     )
 }
@@ -275,11 +274,11 @@ macro_rules! wrap_signed {
     ($func:ident, $t:tt) => (
         /// Parse signed integer and return value, subslice read, and if truncated.
         #[inline]
-        fn $func<'a>(radix: u8, bytes: &'a [u8])
-            -> ($t, &'a [u8], bool)
+        fn $func(radix: u8, bytes: &[u8])
+            -> ($t, usize, bool)
         {
             let (value, len, truncated) = signed::<$t, _>(radix.into(), bytes, unchecked::<$t>);
-            (value, &bytes[..len], truncated)
+            (value, len, truncated)
         }
     )
 }
