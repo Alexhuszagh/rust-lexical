@@ -11,4 +11,6 @@ pub(crate) mod shift;
 pub use self::float::{ExtendedFloat, ExtendedFloat80, ExtendedFloat160};
 pub use self::mantissa::Mantissa;
 pub use self::rounding::{FloatRounding};
+
+#[cfg(feature = "correct")]
 pub(crate) use self::rounding::global_rounding;

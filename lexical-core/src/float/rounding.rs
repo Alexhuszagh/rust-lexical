@@ -309,6 +309,7 @@ pub(crate) fn internal_rounding(kind: RoundingKind, sign: Sign) -> RoundingKind 
 }
 
 /// Get the global, default rounding scheme.
+#[cfg(feature = "correct")]
 #[inline]
 pub(crate) fn global_rounding(sign: Sign) -> RoundingKind {
     unsafe {

@@ -155,10 +155,10 @@ fn parse_float<'a>(radix: u32, bytes: &'a [u8])
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8], _: Sign)
+pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8], sign: Sign)
     -> (f32, &'a [u8])
 {
-    let (value, ptr) = atod(radix, bytes);
+    let (value, ptr) = atod(radix, bytes, sign);
     (value as f32, ptr)
 }
 
@@ -177,17 +177,17 @@ pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8], _: Sign)
 }
 
 #[inline]
-pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign)
+pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8], sign: Sign)
     -> (f32, &'a [u8])
 {
-    atof(radix, bytes)
+    atof(radix, bytes, sign)
 }
 
 #[inline]
-pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign)
+pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8], sign: Sign)
     -> (f64, &'a [u8])
 {
-    atod(radix, bytes)
+    atod(radix, bytes, sign)
 }
 
 // TESTS
