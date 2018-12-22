@@ -170,8 +170,9 @@ pub const BUFFER_SIZE: usize = MAX_F64_SIZE;
 /// The rounding scheme for float conversions.
 ///
 /// This defines the global rounding-scheme for float parsing operations.
-/// By default, this is set to round-nearest, tie-even. IEEE754 recommends
-/// this as the default for all for decimal and binary operations.
+/// By default, this is set to `RoundingKind::NearestTieEven`. IEEE754
+/// recommends this as the default for all for decimal and binary
+/// operations.
 ///
 /// # Warnings
 ///

@@ -625,6 +625,8 @@ pub trait Float: Number + ops::Neg<Output=Self>
 
     /// Positive infinity as bits.
     const INFINITY_BITS: Self::Unsigned;
+    /// Positive infinity as bits.
+    const NEGATIVE_INFINITY_BITS: Self::Unsigned;
     /// Size of the significand (mantissa) without hidden bit.
     const MANTISSA_SIZE: i32;
     /// Bias of the exponet
@@ -655,6 +657,8 @@ pub trait Float: Number + ops::Neg<Output=Self>
     /// Check if value is equal to zero.
     #[inline]
     fn is_zero(self) -> bool {
+        // IEEE754 guarantees `+0.0 == -0.0`, and Rust respects this,
+        // unlike some other languages.
         self == Self::ZERO
     }
 
@@ -680,6 +684,12 @@ pub trait Float: Number + ops::Neg<Output=Self>
     #[inline]
     fn is_nan(self) -> bool {
         self.is_special() && !(self.to_bits() & Self::MANTISSA_MASK).is_zero()
+    }
+
+    /// Returns true if the float is infinite.
+    #[inline]
+    fn is_inf(self) -> bool {
+        self.is_special() && (self.to_bits() & Self::MANTISSA_MASK).is_zero()
     }
 
     /// Returns true if the float's least-significant mantissa bit is odd.
@@ -725,23 +735,55 @@ pub trait Float: Number + ops::Neg<Output=Self>
         if self.is_sign_negative() && self.mantissa().is_zero() {
             // -0.0
             Self::ZERO
+        } else if bits == Self::INFINITY_BITS {
+            Self::from_bits(Self::INFINITY_BITS)
         } else if self.is_sign_negative() {
-            Self::from_bits(bits - Self::Unsigned::ONE)
+            Self::from_bits(bits.saturating_sub(Self::Unsigned::ONE))
         } else {
-            Self::from_bits(bits + Self::Unsigned::ONE)
+            Self::from_bits(bits.saturating_add(Self::Unsigned::ONE))
         }
     }
 
     /// Get next greater float for a positive float.
+    /// Value must be >= 0.0 and < INFINITY.
     #[inline]
     fn next_positive(self) -> Self {
-        debug_assert!(self.is_sign_positive());
+        debug_assert!(self.is_sign_positive() && !self.is_inf());
+        Self::from_bits(self.to_bits() + Self::Unsigned::ONE)
+    }
 
+    /// Get previous greater float, such that `self.prev().next() == self`.
+    #[inline]
+    fn prev(self) -> Self {
         let bits = self.to_bits();
-        if bits == Self::INFINITY_BITS {
-            return Self::from_bits(Self::INFINITY_BITS);
+        if self.is_sign_positive() && self.mantissa().is_zero() {
+            // +0.0
+            -Self::ZERO
+        } else if bits == Self::NEGATIVE_INFINITY_BITS {
+            Self::from_bits(Self::NEGATIVE_INFINITY_BITS)
+        } else if self.is_sign_negative() {
+            Self::from_bits(bits.saturating_add(Self::Unsigned::ONE))
+        } else {
+            Self::from_bits(bits.saturating_sub(Self::Unsigned::ONE))
         }
-        return Self::from_bits(bits + Self::Unsigned::ONE);
+    }
+
+    /// Get previous greater float for a positive float.
+    /// Value must be > 0.0.
+    #[inline]
+    fn prev_positive(self) -> Self {
+        debug_assert!(self.is_sign_positive() && !self.mantissa().is_zero());
+        return Self::from_bits(self.to_bits() - Self::Unsigned::ONE);
+    }
+
+    /// Round a positive number to even.
+    #[inline]
+    fn round_positive_even(self) -> Self {
+        if self.mantissa().is_odd() {
+            self.next_positive()
+        } else {
+            self
+        }
     }
 
     /// Get the max of two finite numbers.
@@ -832,6 +874,7 @@ impl Float for f32 {
     const HIDDEN_BIT_MASK: u32      = 0x00800000;
     const MANTISSA_MASK: u32        = 0x007FFFFF;
     const INFINITY_BITS: u32        = 0x7F800000;
+    const NEGATIVE_INFINITY_BITS: u32 = Self::INFINITY_BITS | Self::SIGN_MASK;
     const MANTISSA_SIZE: i32        = 23;
     const EXPONENT_BIAS: i32        = 127 + Self::MANTISSA_SIZE;
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
@@ -914,6 +957,7 @@ impl Float for f64 {
     const HIDDEN_BIT_MASK: u64      = 0x0010000000000000;
     const MANTISSA_MASK: u64        = 0x000FFFFFFFFFFFFF;
     const INFINITY_BITS: u64        = 0x7FF0000000000000;
+    const NEGATIVE_INFINITY_BITS: u64 = Self::INFINITY_BITS | Self::SIGN_MASK;
     const MANTISSA_SIZE: i32        = 52;
     const EXPONENT_BIAS: i32        = 1023 + Self::MANTISSA_SIZE;
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
@@ -1222,15 +1266,36 @@ mod tests {
         let f: f32 = 1e-45;
         assert!(f.is_odd());
         assert!(f.next().is_even());
+        assert!(f.next_positive().is_even());
+        assert!(f.prev().is_even());
+        assert!(f.prev_positive().is_even());
+        assert!(f.round_positive_even().is_even());
+        assert_eq!(f.prev().next(), f);
+        assert_eq!(f.prev_positive().next_positive(), f);
+        assert_eq!(f.round_positive_even(), f.next());
 
         // b00111101110011001100110011001101
         let f: f32 = 0.1;
         assert!(f.is_odd());
         assert!(f.next().is_even());
+        assert!(f.next_positive().is_even());
+        assert!(f.prev().is_even());
+        assert!(f.prev_positive().is_even());
+        assert!(f.round_positive_even().is_even());
+        assert_eq!(f.prev().next(), f);
+        assert_eq!(f.prev_positive().next_positive(), f);
+        assert_eq!(f.round_positive_even(), f.next());
 
         // b01000000000000000000000000000000
         let f: f32 = 1.0;
         assert!(f.is_even());
         assert!(f.next().is_odd());
+        assert!(f.next_positive().is_odd());
+        assert!(f.prev().is_odd());
+        assert!(f.prev_positive().is_odd());
+        assert!(f.round_positive_even().is_even());
+        assert_eq!(f.prev().next(), f);
+        assert_eq!(f.prev_positive().next_positive(), f);
+        assert_ne!(f.round_positive_even(), f.next());
     }
 }

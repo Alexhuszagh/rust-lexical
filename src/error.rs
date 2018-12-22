@@ -13,6 +13,11 @@ pub enum ErrorKind {
     InvalidDigit(usize),
     /// Empty byte array found.
     Empty,
+
+    // We may add additional variants later, so ensure that client matching
+    // does not depend on exhaustive matching.
+    #[doc(hidden)]
+    __Nonexhaustive,
 }
 
 /// Custom error for numeric parsing.
@@ -40,6 +45,7 @@ impl fmt::Display for Error {
             ErrorKind::Overflow        => write!(f, "lexical error: integer overflow occurred during integer parsing."),
             ErrorKind::InvalidDigit(u) => write!(f, "lexical error: invalid digit found at {}.", u),
             ErrorKind::Empty           => write!(f, "lexical error: empty input data."),
+            _                          => unreachable!(),
         }
     }
 }

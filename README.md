@@ -126,8 +126,9 @@ For detailed background on the algorithms and features in lexical, see [lexical-
 Ideally, Lexical's float-parsing algorithm or approach would be incorporated into libcore. Although Lexical greatly improves on Rust's float-parsing algorithm, in its current state it's insufficient to be included in the standard library, including numerous "anti-features":
 
 1. It supports non-decimal radices for float parsing, leading to significant binary bloat and increased code branching, for almost non-existent use-cases.
-2. It inlines aggressively, producing significant binary bloat.
-3. It contains effectively dead code for efficient higher-order arbitrary-precision integer algorithms, for rare use-cases requiring asymptotically faster algorithms.
+2. It supports rounding schemes other than round-to-nearest, tie-even.
+3. It inlines aggressively, producing significant binary bloat.
+4. It contains effectively dead code for efficient higher-order arbitrary-precision integer algorithms, for rare use-cases requiring asymptotically faster algorithms.
 
 # License
 

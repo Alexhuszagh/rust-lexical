@@ -48,8 +48,29 @@ pub(crate) fn lower_n_halfway<N>(n: N)
 
     match n.is_zero() {
         true  => N::ZERO,
-        false => N::ONE << (n - N::ONE),
+        false => nth_bit(n - N::ONE),
     }
+}
+
+/// Calculate a scalar factor of 2 above the halfway point.
+///
+/// # Examples
+///
+/// ```text
+/// # use lexical::util::nth_bit;
+/// # pub fn main() {
+/// nth_bit(2u32) -> b100u32;
+/// # }
+/// ```
+#[inline(always)]
+pub(crate) fn nth_bit<N>(n: N)
+    -> N
+    where N:UnsignedInteger
+{
+    let bits: N = as_cast(N::BITS);
+    debug_assert!(n < bits, "nth_bit() overflow in shl.");
+
+    N::ONE << n
 }
 
 /// Calculate a bitwise mask with `n` 1 bits starting at the `bit` position.
@@ -100,6 +121,15 @@ mod tests {
         assert_eq!(lower_n_halfway(2u32), 0b10);
         assert_eq!(lower_n_halfway(10u32), 0b1000000000);
         assert_eq!(lower_n_halfway(32u32), 0b10000000000000000000000000000000);
+    }
+
+    #[test]
+    fn nth_bit_test() {
+        assert_eq!(nth_bit(0u32), 0b1);
+        assert_eq!(nth_bit(1u32), 0b10);
+        assert_eq!(nth_bit(2u32), 0b100);
+        assert_eq!(nth_bit(10u32), 0b10000000000);
+        assert_eq!(nth_bit(31u32), 0b10000000000000000000000000000000);
     }
 
     #[test]

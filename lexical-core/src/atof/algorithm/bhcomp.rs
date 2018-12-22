@@ -3,7 +3,6 @@
 //! Compares the actual significant digits of the mantissa to the
 //! theoretical digits from `b+h`, scaled into the proper range.
 
-use float::*;
 use util::*;
 use super::alias::*;
 use super::bigcomp;
@@ -15,13 +14,10 @@ use super::math::*;
 ///
 /// This invokes the comparison with `b+h`.
 #[inline]
-pub(super) fn small_atof<F>(slc: FloatSlice, radix: u32, max_digits: usize, exponent: i32, f: F, sign: Sign)
+pub(super) fn small_atof<F>(slc: FloatSlice, radix: u32, max_digits: usize, exponent: i32, f: F, kind: RoundingKind)
     -> F
     where F: FloatType
 {
-    // Get information for our global rounding scheme.
-    let kind = global_rounding(sign);
-
     // Get the significant digits and radix exponent for the real digits.
     let mut real_digits = parse_mantissa(slc, radix, max_digits);
     let real_exp = exponent;
@@ -75,7 +71,7 @@ pub(super) fn small_atof<F>(slc: FloatSlice, radix: u32, max_digits: usize, expo
 ///     The digits iterator must not have any trailing zeros (true for
 ///     `FloatSlice`).
 ///     sci_exponent and digits.size_hint() must not overflow i32.
-pub(super) fn atof<'a, F>(slc: FloatSlice, radix: u32, f: F, sign: Sign)
+pub(super) fn atof<'a, F>(slc: FloatSlice, radix: u32, f: F, kind: RoundingKind)
     -> F
     where F: FloatType
 {
@@ -90,10 +86,10 @@ pub(super) fn atof<'a, F>(slc: FloatSlice, radix: u32, f: F, sign: Sign)
 
     if cfg!(feature = "radix") && use_bigcomp(radix, count) {
         // Use the slower algorithm for giant data, since we use a lot less memory.
-        bigcomp::atof(slc, radix, f, sign)
+        bigcomp::atof(slc, radix, f, kind)
     } else if exponent >= 0 {
-        large_atof(slc, radix, max_digits, exponent, sign)
+        large_atof(slc, radix, max_digits, exponent, kind)
     } else {
-        small_atof(slc, radix, max_digits, exponent, f, sign)
+        small_atof(slc, radix, max_digits, exponent, f, kind)
     }
 }

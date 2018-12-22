@@ -315,14 +315,13 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     // INTO ROUNDED
 
-    /// Convert into lower-precision native float with custom rounding rules.
+    /// Into rounded float where the rounding kind has been converted.
     #[inline]
-    pub fn into_rounded_float<F>(mut self, kind: RoundingKind, sign: Sign)
+    pub(crate) fn into_rounded_float_impl<F>(mut self, kind: RoundingKind)
         -> F
         where F: FloatRounding<M>
     {
         // Normalize the actual float rounding here.
-        let kind = internal_rounding(kind, sign);
         let cb = match kind {
             RoundingKind::NearestTieEven     => round_nearest_tie_even,
             RoundingKind::NearestTieAwayZero => round_nearest_tie_away_zero,
@@ -333,6 +332,15 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
         self.round_to_native::<F, _>(cb);
         into_float(self)
+    }
+
+    /// Convert into lower-precision native float with custom rounding rules.
+    #[inline]
+    pub fn into_rounded_float<F>(self, kind: RoundingKind, sign: Sign)
+        -> F
+        where F: FloatRounding<M>
+    {
+        self.into_rounded_float_impl(internal_rounding(kind, sign))
     }
 
     /// Convert into lower-precision 32-bit float with custom rounding rules.

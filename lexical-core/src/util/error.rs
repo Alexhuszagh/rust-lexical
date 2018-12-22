@@ -19,6 +19,11 @@ pub enum ErrorCode {
     InvalidDigit = -2,
     /// Empty byte array found.
     Empty = -3,
+
+    // We may add additional variants later, so ensure that client matching
+    // does not depend on exhaustive matching.
+    #[doc(hidden)]
+    __Nonexhaustive = -4,
 }
 
 /// C-compatible error for FFI.

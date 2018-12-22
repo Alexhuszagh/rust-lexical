@@ -85,7 +85,6 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use lib::ptr;
 use util::*;
 
 // ALGORITHM
@@ -96,8 +95,8 @@ use util::*;
 /// Don't trim leading zeros, since the value may be non-zero and
 /// therefore invalid.
 #[inline(always)]
-pub(crate) fn unchecked<T>(value: &mut T, radix: T, bytes: &[u8])
-    -> (usize, Option<ptr::NonNull<u8>>)
+pub(crate) fn unchecked<'a, T>(value: &mut T, radix: T, bytes: &'a [u8])
+    -> (usize, Option<&'a u8>)
     where T: Integer
 {
     // Continue while we have digits.
@@ -117,7 +116,7 @@ pub(crate) fn unchecked<T>(value: &mut T, radix: T, bytes: &[u8])
             let (v, o2) = v.overflowing_add(digit);
             *value = v;
             if truncated.is_none() && (o1 | o2) {
-                truncated = Some(c.into());
+                truncated = Some(c);
             }
         } else {
             return (i, truncated);
@@ -134,8 +133,8 @@ pub(crate) fn unchecked<T>(value: &mut T, radix: T, bytes: &[u8])
 /// therefore invalid.
 #[cfg(feature = "correct")]
 #[inline(always)]
-pub(crate) fn checked<T>(value: &mut T, radix: T, bytes: &[u8])
-    -> (usize, Option<ptr::NonNull<u8>>)
+pub(crate) fn checked<'a, T>(value: &mut T, radix: T, bytes: &'a [u8])
+    -> (usize, Option<&'a u8>)
     where T: Integer
 {
     // Continue while we have digits.
@@ -151,7 +150,6 @@ pub(crate) fn checked<T>(value: &mut T, radix: T, bytes: &[u8])
     while let Some((i, c)) = iter.next() {
         digit = as_cast(char_to_digit(*c));
         if digit < radix {
-            // Increment our pointer, to continue parsing digits.
             // Only multiply to the radix and add the parsed digit if
             // the value hasn't overflowed yet, and only assign to the
             // original value if the operations don't overflow.
@@ -162,7 +160,7 @@ pub(crate) fn checked<T>(value: &mut T, radix: T, bytes: &[u8])
                     // No overflow, assign the value.
                     Some(v) => *value = v,
                     // Overflow occurred, set truncated position
-                    None    => truncated = Some(c.into()),
+                    None    => truncated = Some(c),
                 }
             }
         } else {
@@ -175,10 +173,10 @@ pub(crate) fn checked<T>(value: &mut T, radix: T, bytes: &[u8])
 
 /// Parse value from a positive numeric string.
 #[inline(always)]
-pub(crate) fn value<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
-    -> (T, usize, Option<ptr::NonNull<u8>>)
+pub(crate) fn value<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
+    -> (T, usize, Option<&'a u8>)
     where T: Integer,
-          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, Option<ptr::NonNull<u8>>)
+          Cb: FnOnce(&mut T, T, &'a [u8]) -> (usize, Option<&'a u8>)
 {
     // Trim the leading 0s here, where we can guarantee the value is 0,
     // and therefore trimming these leading 0s is actually valid.
@@ -192,10 +190,10 @@ pub(crate) fn value<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
 
 /// Handle +/- numbers and forward to implementation.
 #[inline(always)]
-pub(crate) fn filter_sign<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
-    -> (T, Sign, usize, Option<ptr::NonNull<u8>>)
+pub(crate) fn filter_sign<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
+    -> (T, Sign, usize, Option<&'a u8>)
     where T: Integer,
-          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, Option<ptr::NonNull<u8>>)
+          Cb: FnOnce(&mut T, T, &'a [u8]) -> (usize, Option<&'a u8>)
 {
     let (sign_bytes, sign) = match bytes.get(0) {
         Some(b'+') => (1, Sign::Positive),
@@ -214,10 +212,10 @@ pub(crate) fn filter_sign<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
 /// Handle unsigned +/- numbers and forward to implied implementation.
 //  Can just use local namespace
 #[inline(always)]
-pub(crate) fn unsigned<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
+pub(crate) fn unsigned<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
     -> (T, usize, bool)
     where T: UnsignedInteger,
-          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, Option<ptr::NonNull<u8>>)
+          Cb: FnOnce(&mut T, T, &'a [u8]) -> (usize, Option<&'a u8>)
 {
     let (value, sign, processed, truncated) = filter_sign::<T, Cb>(radix, bytes, cb);
     match sign {
@@ -230,10 +228,10 @@ pub(crate) fn unsigned<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
 /// Handle signed +/- numbers and forward to implied implementation.
 //  Can just use local namespace
 #[inline(always)]
-pub(crate) fn signed<T, Cb>(radix: u32, bytes: &[u8], cb: Cb)
+pub(crate) fn signed<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
     -> (T, usize, bool)
     where T: SignedInteger,
-          Cb: FnOnce(&mut T, T, &[u8]) -> (usize, Option<ptr::NonNull<u8>>)
+          Cb: FnOnce(&mut T, T, &'a [u8]) -> (usize, Option<&'a u8>)
 {
     let (value, sign, processed, truncated) = filter_sign::<T, Cb>(radix, bytes, cb);
     match sign {
@@ -396,7 +394,7 @@ mod tests {
         // check it doesn't overflow
         assert_eq!(value, 12345678912345678901);
         assert_eq!(processed, s.len());
-        assert_eq!(distance(s.as_ptr(), truncated.unwrap().as_ptr()), s.len()-2);
+        assert_eq!(distance(s.as_ptr(), truncated.unwrap()), s.len()-2);
     }
 
     #[test]
@@ -407,7 +405,7 @@ mod tests {
         // check it does overflow
         assert_eq!(value, 17082782369737483467);
         assert_eq!(processed, s.len());
-        assert_eq!(distance(s.as_ptr(), truncated.unwrap().as_ptr()), s.len()-2);
+        assert_eq!(distance(s.as_ptr(), truncated.unwrap()), s.len()-2);
     }
 
     #[test]

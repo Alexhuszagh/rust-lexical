@@ -147,37 +147,36 @@ pub(super) fn round_to_native<F>(f: F, order: cmp::Ordering, kind: RoundingKind)
 {
     // Compare the actual digits to the round-down or halfway point.
     match order {
-        cmp::Ordering::Greater  => {
-            match kind {
-                // Comparison with `b+h`, above. Round-up.
-                RoundingKind::NearestTieEven     => f.next(),
-                RoundingKind::NearestTieAwayZero => f.next(),
-                // Comparison with `b`, above. Truncated digits.
-                RoundingKind::Upward             => f.next(),
-                RoundingKind::Downward           => f,
-                _                                => unimplemented!(),
-            }
+        cmp::Ordering::Greater  => match kind {
+            // Comparison with `b+h`, above. Round-up.
+            RoundingKind::NearestTieEven     => f.next_positive(),
+            RoundingKind::NearestTieAwayZero => f.next_positive(),
+            // Comparison with `b`, above. Truncated digits.
+            RoundingKind::Upward             => f.next_positive(),
+            RoundingKind::Downward           => f,
+            _                                => unimplemented!(),
         },
         // This cannot happen for RoundingKind Upward or Downward.
         // For round-nearest algorithms, we are below `b+h` so round-down.
-        cmp::Ordering::Less     => f,
-        cmp::Ordering::Equal    => {
-            match kind {
-                // Only round-up if the mantissa is odd.
-                RoundingKind::NearestTieEven     => {
-                    if f.mantissa().is_odd() {
-                        f.next()
-                    } else {
-                        f
-                    }
-                },
-                // Always round-up, we want to go away from 0.
-                RoundingKind::NearestTieAwayZero => f.next(),
-                // Comparison with `b`, equal. No truncated digits.
-                RoundingKind::Upward             => f,
-                RoundingKind::Downward           => f,
-                _                                => unimplemented!(),
-            }
+        cmp::Ordering::Less     => match kind {
+            // Comparison with `b+h`, below. Stay put.
+            RoundingKind::NearestTieEven     => f,
+            RoundingKind::NearestTieAwayZero => f,
+            // Comparison with `b`, below. Truncated digits, but below our
+            // estimate `b`.
+            RoundingKind::Upward             => f,
+            RoundingKind::Downward           => f.prev_positive(),
+            _                                => unimplemented!(),
+        },
+        cmp::Ordering::Equal    => match kind {
+            // Only round-up if the mantissa is odd.
+            RoundingKind::NearestTieEven     => f.round_positive_even(),
+            // Always round-up, we want to go away from 0.
+            RoundingKind::NearestTieAwayZero => f.next_positive(),
+            // Comparison with `b`, equal. No truncated digits.
+            RoundingKind::Upward             => f,
+            RoundingKind::Downward           => f,
+            _                                => unimplemented!(),
         },
     }
 }
@@ -304,12 +303,11 @@ pub(super) fn compare_digits<'a, Iter>(mut digits: Iter, radix: u32, mut num: Bi
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
 /// * `f`               - Sub-halfway (`b`) float.
 #[inline]
-pub(super) fn atof<F>(slc: FloatSlice, radix: u32, f: F, sign: Sign)
+pub(super) fn atof<F>(slc: FloatSlice, radix: u32, f: F, kind: RoundingKind)
     -> F
     where F: FloatType
 {
     // This works when we're doing, like, round-even.
-    let kind = global_rounding(sign);
     let (num, den) = make_ratio(radix, slc.scientific_exponent(), f, kind);
     let order = compare_digits(slc.mantissa_iter(), radix, num, den);
     round_to_native(f, order, kind)

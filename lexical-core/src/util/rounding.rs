@@ -5,7 +5,9 @@
 /// Rounding type for float-parsing.
 ///
 /// Defines the IEEE754 rounding scheme to be used during float parsing.
-/// In general, you should not toggle away from the default.
+/// In general, this should be set to `NearestTieEven`, the default
+/// recommended rounding scheme by IEEE754 for binary and decimal
+/// operations.
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum RoundingKind {
@@ -22,8 +24,16 @@ pub enum RoundingKind {
 
     // Hide the internal implementation details, for how we implement
     // TowardPositiveInfinity, TowardNegativeInfinity, and TowardZero.
+
+    /// Round to increase the magnitude of the float.
+    /// For example, for a negative number, this rounds to negative infinity,
+    /// for a positive number, to positive infinity.
     #[doc(hidden)]
     Upward,
+
+    /// Round to decrease the magnitude of the float.
+    /// This always rounds toward zero.
+    #[doc(hidden)]
     Downward,
 }
 

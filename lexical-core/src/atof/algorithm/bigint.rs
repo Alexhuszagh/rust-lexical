@@ -227,7 +227,7 @@ pub(super) fn max_digits<F>(radix: u32)
 // ROUNDING
 
 /// Custom rounding for round-nearest algorithms.
-pub(super) fn round_nearest_callback<M, Cb>(is_truncated: bool, cb: Cb)
+pub(super) fn nearest_cb<M, Cb>(is_truncated: bool, cb: Cb)
     -> impl FnOnce(&mut ExtendedFloat<M>, i32)
     where Cb: FnOnce(&mut ExtendedFloat<M>, bool, bool),
           M: Mantissa
@@ -246,7 +246,7 @@ pub(super) fn round_nearest_callback<M, Cb>(is_truncated: bool, cb: Cb)
 }
 
 /// Custom rounding for round-toward algorithms.
-pub(super) fn round_toward_callback<M, Cb>(is_truncated: bool, cb: Cb)
+pub(super) fn toward_cb<M, Cb>(is_truncated: bool, cb: Cb)
     -> impl FnOnce(&mut ExtendedFloat<M>, i32)
     where Cb: FnOnce(&mut ExtendedFloat<M>, bool),
           M: Mantissa
@@ -262,21 +262,21 @@ pub(super) fn round_toward_callback<M, Cb>(is_truncated: bool, cb: Cb)
 /// Custom rounding for truncated mantissa.
 ///
 /// Respect rounding rules in the config file.
-pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, sign: Sign)
+pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, kind: RoundingKind)
     where F: FloatType
 {
-    match global_rounding(sign) {
+    match kind {
         RoundingKind::NearestTieEven     => {
-            fp.round_to_native::<F, _>(round_nearest_callback(is_truncated, tie_even::<u64>))
+            fp.round_to_native::<F, _>(nearest_cb(is_truncated, tie_even::<u64>))
         },
         RoundingKind::NearestTieAwayZero => {
-            fp.round_to_native::<F, _>(round_nearest_callback(is_truncated, tie_away_zero::<u64>))
+            fp.round_to_native::<F, _>(nearest_cb(is_truncated, tie_away_zero::<u64>))
         },
         RoundingKind::Upward             => {
-            fp.round_to_native::<F, _>(round_toward_callback(is_truncated, upward::<u64>))
+            fp.round_to_native::<F, _>(toward_cb(is_truncated, upward::<u64>))
         },
         RoundingKind::Downward           => {
-            fp.round_to_native::<F, _>(round_toward_callback(is_truncated, downard::<u64>))
+            fp.round_to_native::<F, _>(toward_cb(is_truncated, downard::<u64>))
         },
         _                                => unreachable!(),
     }
@@ -300,7 +300,7 @@ pub(super) fn use_bigcomp(radix: u32, count: usize)
 
 /// Calculate the mantissa for a big integer with a positive exponent.
 #[inline]
-pub(super) fn large_atof<F>(slc: FloatSlice, radix: u32, max_digits: usize, exponent: i32, sign: Sign)
+pub(super) fn large_atof<F>(slc: FloatSlice, radix: u32, max_digits: usize, exponent: i32, kind: RoundingKind)
     -> F
     where F: FloatType
 {
@@ -315,7 +315,7 @@ pub(super) fn large_atof<F>(slc: FloatSlice, radix: u32, max_digits: usize, expo
     let (mant, is_truncated) = bigmant.hi64();
     let exp = bigmant.bit_length().as_i32() - u64::BITS.as_i32();
     let mut fp = ExtendedFloat { mant: mant, exp: exp };
-    round_to_native::<F>(&mut fp, is_truncated, sign);
+    round_to_native::<F>(&mut fp, is_truncated, kind);
     into_float(fp)
 }
 

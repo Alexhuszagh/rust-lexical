@@ -8,7 +8,6 @@
 // Fix a compiler bug that thinks `ExactExponent` isn't used.
 #![allow(unused_imports)]
 
-use lib::{iter, ptr, slice};
 use atoi;
 use float::*;
 use util::*;
@@ -146,7 +145,7 @@ impl<'a> FloatSlice<'a> {
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
 fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
-    -> (M, FloatSlice, &'a [u8], Option<ptr::NonNull<u8>>)
+    -> (M, FloatSlice, &'a [u8], Option<&'a u8>)
     where M: Mantissa
 {
     // Initialize our variables for the output.
@@ -193,7 +192,7 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
         let (processed, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
         let bytes = &bytes[processed..];
         slc.fraction = slice_from_span(first, processed + slc.digits_start);
-        slc.truncated = truncated.map_or(0, |p| distance(p.as_ptr(), bytes.as_ptr()));
+        slc.truncated = truncated.map_or(0, |p| distance(p, bytes.as_ptr()));
         (mantissa, slc, bytes, truncated)
     } else if has_fraction {
         // Integral overflow occurred, cannot add more values, but a fraction exists.
@@ -207,13 +206,13 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
 
         slc.digits_start = 0;
         slc.fraction = slice_from_span(first, count);
-        slc.truncated = distance(truncated.unwrap().as_ptr(), bytes.as_ptr()) - 1;
+        slc.truncated = distance(truncated.unwrap(), bytes.as_ptr()) - 1;
         (mantissa, slc, bytes, truncated)
     } else {
         // No decimal, return the number of truncated bytes.
         slc.digits_start = 0;
         slc.fraction = slice_from_span(bytes.as_ptr(), 0);
-        slc.truncated = truncated.map_or(0, |p| distance(p.as_ptr(), bytes.as_ptr()));
+        slc.truncated = truncated.map_or(0, |p| distance(p, bytes.as_ptr()));
         (mantissa, slc, bytes, truncated)
     }
 }
@@ -226,7 +225,7 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
 fn parse_float<'a, M>(radix: u32, bytes: &'a [u8])
-    -> (M, FloatSlice, &'a [u8], Option<ptr::NonNull<u8>>)
+    -> (M, FloatSlice, &'a [u8], Option<&'a u8>)
     where M: Mantissa
 {
     let (mantissa, mut slc, bytes, truncated) = parse_mantissa::<M>(radix, bytes);
@@ -418,7 +417,75 @@ pub trait FloatErrors: Mantissa {
     /// Get the half error scale.
     fn error_halfscale() -> u32;
     /// Determine if the number of errors is tolerable for float precision.
-    fn error_is_accurate<F: Float>(count: u32, fp: &ExtendedFloat<Self>) -> bool;
+    fn error_is_accurate<F: Float>(count: u32, fp: &ExtendedFloat<Self>, kind: RoundingKind) -> bool;
+}
+
+/// Check if the error is accurate with a round-nearest rounding scheme.
+#[inline]
+fn nearest_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64)
+    -> bool
+{
+    // Round-to-nearest, need to use the halfway point.
+    if extrabits == 65 {
+        // Underflow, we have a shift larger than the mantissa.
+        // Representation is valid **only** if the value is close enough
+        // overflow to the next bit within errors. If it overflows,
+        // the representation is **not** valid.
+        !fp.mant.overflowing_add(errors).1
+    } else {
+        let mask: u64 = lower_n_mask(extrabits);
+        let extra: u64 = fp.mant & mask;
+
+        // Round-to-nearest, need to check if we're close to halfway.
+        // IE, b10100 | 100000, where `|` signifies the truncation point.
+        let halfway: u64 = lower_n_halfway(extrabits);
+        let cmp1 = halfway.wrapping_sub(errors) < extra;
+        let cmp2 = extra < halfway.wrapping_add(errors);
+
+        // If both comparisons are true, we have significant rounding error,
+        // and the value cannot be exactly represented. Otherwise, the
+        // representation is valid.
+        !(cmp1 && cmp2)
+    }
+}
+
+/// Check if the error is accurate with a round-toward rounding scheme.
+#[inline]
+fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64)
+    -> bool
+{
+    if extrabits == 65 {
+        // Underflow, we have a literal 0.
+        true
+    } else {
+        let mask: u64 = lower_n_mask(extrabits);
+        let extra: u64 = fp.mant & mask;
+
+        // Round-towards, need to use `1 << extrabits`.
+        if extrabits == 64 {
+            // Round toward something, we need to check if either operation can overflow,
+            // since we cannot exactly represent the comparison point as the type
+            // in question.
+            let cmp1 = extra.checked_sub(errors).is_none();
+            let cmp2 = extra.checked_add(errors).is_none();
+            // If either comparison is true, we have significant rounding error,
+            // since we cannot distinguish the value (1 << 64).
+            cmp1 || cmp2
+        } else {
+            // Round toward something, need to check if we're close to
+            // IE, b10101 | 000000, where `|` signifies the truncation point.
+            // If the extract bits +/- the error can overflow, then  we have
+            // an issue.
+            let fullway: u64 = nth_bit(extrabits);
+            let cmp1 = fullway.wrapping_sub(errors) < extra;
+            let cmp2 = extra < fullway.wrapping_add(errors);
+
+            // If both comparisons are true, we have significant rounding error,
+            // and the value cannot be exactly represented. Otherwise, the
+            // representation is valid.
+            !(cmp1 && cmp2)
+        }
+    }
 }
 
 impl FloatErrors for u64 {
@@ -433,7 +500,8 @@ impl FloatErrors for u64 {
     }
 
     #[inline]
-    fn error_is_accurate<F: Float>(count: u32, fp: &ExtendedFloat<u64>) -> bool
+    fn error_is_accurate<F: Float>(count: u32, fp: &ExtendedFloat<u64>, kind: RoundingKind)
+        -> bool
     {
         // Determine if extended-precision float is a good approximation.
         // If the error has affected too many units, the float will be
@@ -449,28 +517,60 @@ impl FloatErrors for u64 {
             false => 63 - F::MANTISSA_SIZE,
         };
 
+        // Our logic is as follows: we want to determine if the actual
+        // mantissa and the errors during calculation differ significantly
+        // from the rounding point. The rounding point for round-nearest
+        // is the halfway point, IE, this when the truncated bits start
+        // with b1000..., while the rounding point for the round-toward
+        // is when the truncated bits are equal to 0.
+        // To do so, we can check whether the rounding point +/- the error
+        // are >/< the actual lower n bits.
+        //
+        // For whether we need to use signed or unsigned types for this
+        // analysis, see this example, using u8 rather than u64 to simplify
+        // things.
+        //
+        // # Comparisons
+        //      cmp1 = (halfway - errors) < extra
+        //      cmp1 = extra < (halfway + errors)
+        //
+        // # Large Extrabits, Low Errors
+        //
+        //      extrabits = 8
+        //      halfway          =  0b10000000
+        //      extra            =  0b10000010
+        //      errors           =  0b00000100
+        //      halfway - errors =  0b01111100
+        //      halfway + errors =  0b10000100
+        //
+        //      Unsigned:
+        //          halfway - errors = 124
+        //          halfway + errors = 132
+        //          extra            = 130
+        //          cmp1             = true
+        //          cmp2             = true
+        //      Signed:
+        //          halfway - errors = 124
+        //          halfway + errors = -124
+        //          extra            = -126
+        //          cmp1             = false
+        //          cmp2             = true
+        //
+        // # Conclusion
+        //
+        // Since errors will always be small, and since we want to detect
+        // if the representation is accurate, we need to use an **unsigned**
+        // type for comparisons.
+
+        let extrabits = extrabits.as_u64();
+        let errors = count.as_u64();
         if extrabits > 65 {
             // Underflow, we have a literal 0.
-            true
-        } else if extrabits == 65 {
-            // Underflow, we have a shift larger than the mantissa.
-            // Representation is valid **only** if the value is close enough
-            // overflow to the next bit within errors. If it overflows,
-            // the representation is **not** valid.
-            !fp.mant.overflowing_add(as_cast(count)).1
+            return true;
+        } else if is_nearest(kind) {
+            nearest_error_is_accurate(errors, fp, extrabits)
         } else {
-            // Do a signed comparison, which will always be valid.
-            let mask: u64 = lower_n_mask(extrabits.as_u64());
-            let halfway: u64 = lower_n_halfway(extrabits.as_u64());
-            let extra: u64 = fp.mant & mask;
-            let errors: u64 = as_cast(count);
-            let cmp1 = halfway.as_i64().wrapping_sub(errors.as_i64()) < extra.as_i64();
-            let cmp2 = extra.as_i64() < halfway.as_i64().wrapping_add(errors.as_i64());
-
-            // If both comparisons are true, we have significant rounding error,
-            // and the value cannot be exactly represented. Otherwise, the
-            // representation is valid.
-            !(cmp1 && cmp2)
+            toward_error_is_accurate(errors, fp, extrabits)
         }
     }
 }
@@ -488,7 +588,7 @@ impl FloatErrors for u128 {
     }
 
     #[inline]
-    fn error_is_accurate<F: Float>(_: u32, _: &ExtendedFloat<u128>) -> bool {
+    fn error_is_accurate<F: Float>(_: u32, _: &ExtendedFloat<u128>, _: RoundingKind) -> bool {
         // Ignore the halfway problem, use more bits to aim for accuracy,
         // but short-circuit to avoid extremely slow operations.
         true
@@ -501,7 +601,7 @@ impl FloatErrors for u128 {
 /// float, and return if new value and if the value can be represented
 /// accurately.
 #[inline]
-fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32, exponent: i32, truncated: bool)
+fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32, exponent: i32, truncated: bool, kind: RoundingKind)
     -> bool
     where M: FloatErrors,
           F: FloatRounding<M>,
@@ -558,7 +658,7 @@ fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32, expon
         let shift = fp.normalize();
         errors <<= shift;
 
-        M::error_is_accurate::<F>(errors, &fp)
+        M::error_is_accurate::<F>(errors, &fp, kind)
     }
 }
 
@@ -567,14 +667,14 @@ fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32, expon
 /// Return the float approximation and if the value can be accurately
 /// represented with mantissa bits of precision.
 #[inline]
-pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, truncated: bool)
+pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, truncated: bool, kind: RoundingKind)
     -> (ExtendedFloat<M>, bool)
     where M: FloatErrors,
           F: FloatRounding<M> + StablePower,
           ExtendedFloat<M>: ModeratePathCache<M>
 {
     let mut fp = ExtendedFloat { mant: mantissa, exp: 0 };
-    let valid = multiply_exponent_extended::<F, M>(&mut fp, radix, exponent, truncated);
+    let valid = multiply_exponent_extended::<F, M>(&mut fp, radix, exponent, truncated, kind);
     (fp, valid)
 }
 
@@ -623,12 +723,12 @@ fn pow2_to_native<'a, F>(radix: u32, pow2_exp: i32, bytes: &'a [u8], sign: Sign)
         // Create exact representation and return.
         let exponent = slc.mantissa_exponent().saturating_mul(pow2_exp);
         let fp = ExtendedFloat { mant: mantissa, exp: exponent };
-        (fp.into_rounded_float::<F>(kind, sign), bytes)
+        (fp.into_rounded_float_impl::<F>(kind), bytes)
     } else if mantissa >> mantissa_size != 0 {
         // Would be truncated, use the extended float.
         let exponent = slc.mantissa_exponent().saturating_mul(pow2_exp);
         let fp = ExtendedFloat { mant: mantissa, exp: exponent };
-        (fp.into_rounded_float::<F>(kind, sign), bytes)
+        (fp.into_rounded_float_impl::<F>(kind), bytes)
     } else {
         // Nothing above the hidden bit, so no rounding-error, can use the fast path.
         let float = pow2_fast_path(mantissa, radix, pow2_exp, slc.mantissa_exponent());
@@ -644,6 +744,7 @@ fn pown_to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool, sign: Sign)
 {
     let (mantissa, slc, bytes, _) = parse_float::<u64>(radix, bytes);
     let exponent = slc.mantissa_exponent();
+    let kind = global_rounding(sign);
 
     if mantissa == 0 {
         // Literal 0, return early.
@@ -666,19 +767,19 @@ fn pown_to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool, sign: Sign)
     }
 
     // Moderate path (use an extended 80-bit representation).
-    let (fp, valid) = moderate_path::<F, _>(mantissa, radix, exponent, slc.truncated != 0);
+    let (fp, valid) = moderate_path::<F, _>(mantissa, radix, exponent, slc.truncated != 0, kind);
     if valid || lossy {
-        let float = fp.into_rounded_float::<F>(global_rounding(sign), sign);
+        let float = fp.into_rounded_float_impl::<F>(kind);
         return (float, bytes);
     }
 
     // Slow path
-    let b = fp.into_rounded_float::<F>(RoundingKind::TowardZero, sign);
+    let b = fp.into_rounded_float_impl::<F>(RoundingKind::Downward);
     if b.is_special() {
         // We have a non-finite number, we get to leave early.
         return (b, bytes);
     } else {
-        let float = bhcomp::atof(slc, radix, b, sign);
+        let float = bhcomp::atof(slc, radix, b, kind);
         return (float, bytes);
     }
 }
