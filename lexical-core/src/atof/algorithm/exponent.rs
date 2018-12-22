@@ -112,6 +112,7 @@ mod test {
         check_parse_exponent(10, "", (0, 0));
 
         // invalid exponent character
+        #[cfg(feature = "radix")]
         check_parse_exponent(28, "e1h", (0, 0));
         check_parse_exponent(10, "^45", (0, 0));
 

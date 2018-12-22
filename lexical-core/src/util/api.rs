@@ -30,8 +30,8 @@ macro_rules! generate_from_range_api {
         /// panics if `radix != 10`.
         ///
         /// Also panics if either pointer is null.
-        #[inline]
-        pub unsafe extern "C" fn $name(radix: u8, first: *const u8, last: *const u8)
+        #[no_mangle]
+        pub unsafe extern fn $name(radix: u8, first: *const u8, last: *const u8)
             -> $t
         {
             assert_radix!(radix);
@@ -59,7 +59,6 @@ macro_rules! generate_from_slice_api {
         /// If the `radix` feature is enabled, panics if radix is not in
         /// the range `[2, 36]`. If the `radix` feature is not enabled,
         /// panics if `radix != 10`.
-        #[inline]
         pub fn $name(radix: u8, bytes: &[u8])
             -> $t
         {
@@ -112,8 +111,8 @@ macro_rules! generate_try_from_range_api {
         /// panics if `radix != 10`.
         ///
         /// Also panics if either pointer is null.
-        #[inline]
-        pub unsafe extern "C" fn $name(radix: u8, first: *const u8, last: *const u8)
+        #[no_mangle]
+        pub unsafe extern fn $name(radix: u8, first: *const u8, last: *const u8)
             -> Result<$t>
         {
             assert_radix!(radix);
@@ -144,7 +143,6 @@ macro_rules! generate_try_from_slice_api {
         /// If the `radix` feature is enabled, panics if radix is not in
         /// the range `[2, 36]`. If the `radix` feature is not enabled,
         /// panics if `radix != 10`.
-        #[inline]
         pub fn $name(radix: u8, bytes: &[u8])
             -> Result<$t>
         {
@@ -185,8 +183,8 @@ macro_rules! generate_to_range_api {
         /// ensure the buffer has at least `MAX_*_SIZE` elements, using
         /// the proper constant for the serialized type from the
         /// lexical_core crate root.
-        #[inline]
-        pub unsafe extern "C" fn $name(value: $t, radix: u8, first: *mut u8, last: *mut u8)
+        #[no_mangle]
+        pub unsafe extern fn $name(value: $t, radix: u8, first: *mut u8, last: *mut u8)
             -> *mut u8
         {
             assert_radix!(radix);
@@ -231,7 +229,6 @@ macro_rules! generate_to_slice_api {
         /// the function will not panic, ensure the buffer has at least
         /// `MAX_*_SIZE` elements, using the proper constant for the
         /// serialized type from the lexical_core crate root.
-        #[inline]
         pub fn $name<'a>(value: $t, radix: u8, bytes: &'a mut [u8])
             -> &'a mut [u8]
         {

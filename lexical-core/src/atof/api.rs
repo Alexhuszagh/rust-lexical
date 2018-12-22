@@ -53,21 +53,21 @@ impl StringToFloat for f64 {
 #[inline(always)]
 fn is_nan(bytes: &[u8]) -> bool {
     unsafe {
-        case_insensitive_starts_with_slice(bytes, NAN_STRING.as_bytes())
+        case_insensitive_starts_with_slice(bytes, NAN_STRING)
     }
 }
 
 #[inline(always)]
 fn is_inf(bytes: &[u8]) -> bool {
     unsafe {
-        case_insensitive_starts_with_slice(bytes, INF_STRING.as_bytes())
+        case_insensitive_starts_with_slice(bytes, INF_STRING)
     }
 }
 
 #[inline(always)]
 fn is_infinity(bytes: &[u8]) -> bool {
     unsafe {
-        case_insensitive_starts_with_slice(bytes, INFINITY_STRING.as_bytes())
+        case_insensitive_starts_with_slice(bytes, INFINITY_STRING)
     }
 }
 

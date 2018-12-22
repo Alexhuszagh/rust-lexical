@@ -5,7 +5,22 @@
 /// Success, or no error, is 0, while error messages are designating
 /// by an error code of less than 0. This is to be compatible with C
 /// conventions.
-#[repr(i8)]
+///
+/// # FFI
+///
+/// For interfacing with FFI-code, this may be approximated by:
+/// ```text
+/// const int32_t SUCCESS = 0;
+/// const int32_t OVERFLOW = -1;
+/// const int32_t INVALID_DIGIT = -2;
+/// const int32_t EMPTY = -3;
+/// ```
+///
+/// # Safety
+///
+/// Assigning any value outside the range `[-3, 0]` to value of type
+/// ErrorCode may invoke undefined-behavior.
+#[repr(i32)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ErrorCode {
     /// No error, success.
@@ -37,26 +52,30 @@ pub struct Error {
 }
 
 /// Check if the error code is successful.
+#[no_mangle]
 #[inline(always)]
-pub extern "C" fn is_success(error: Error) -> bool {
+pub extern fn is_success(error: Error) -> bool {
     error.code == ErrorCode::Success
 }
 
 /// Check if the error code designates integer overflow.
+#[no_mangle]
 #[inline(always)]
-pub extern "C" fn is_overflow(error: Error) -> bool {
+pub extern fn is_overflow(error: Error) -> bool {
     error.code == ErrorCode::Overflow
 }
 
 /// Check if the error code designates an invalid digit was encountered.
+#[no_mangle]
 #[inline(always)]
-pub extern "C" fn is_invalid_digit(error: Error) -> bool {
+pub extern fn is_invalid_digit(error: Error) -> bool {
     error.code == ErrorCode::InvalidDigit
 }
 
 /// Check if the error code designates an empty byte array was encountered.
+#[no_mangle]
 #[inline(always)]
-pub extern "C" fn is_empty(error: Error) -> bool {
+pub extern fn is_empty(error: Error) -> bool {
     error.code == ErrorCode::Empty
 }
 

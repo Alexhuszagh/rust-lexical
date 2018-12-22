@@ -695,7 +695,7 @@ pub trait Float: Number + ops::Neg<Output=Self>
     /// Returns true if the float's least-significant mantissa bit is odd.
     #[inline]
     fn is_odd(self) -> bool {
-        self.to_bits() & Self::Unsigned::ONE == Self::Unsigned::ONE
+        self.to_bits().is_odd()
     }
 
     /// Returns true if the float's least-significant mantissa bit is even.
@@ -732,7 +732,7 @@ pub trait Float: Number + ops::Neg<Output=Self>
     #[inline]
     fn next(self) -> Self {
         let bits = self.to_bits();
-        if self.is_sign_negative() && self.mantissa().is_zero() {
+        if self.is_sign_negative() && self.is_zero() {
             // -0.0
             Self::ZERO
         } else if bits == Self::INFINITY_BITS {
@@ -756,7 +756,7 @@ pub trait Float: Number + ops::Neg<Output=Self>
     #[inline]
     fn prev(self) -> Self {
         let bits = self.to_bits();
-        if self.is_sign_positive() && self.mantissa().is_zero() {
+        if self.is_sign_positive() && self.is_zero() {
             // +0.0
             -Self::ZERO
         } else if bits == Self::NEGATIVE_INFINITY_BITS {
@@ -772,7 +772,7 @@ pub trait Float: Number + ops::Neg<Output=Self>
     /// Value must be > 0.0.
     #[inline]
     fn prev_positive(self) -> Self {
-        debug_assert!(self.is_sign_positive() && !self.mantissa().is_zero());
+        debug_assert!(self.is_sign_positive() && !self.is_zero());
         return Self::from_bits(self.to_bits() - Self::Unsigned::ONE);
     }
 

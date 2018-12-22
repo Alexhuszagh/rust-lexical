@@ -163,19 +163,55 @@ if #[cfg(all(feature = "correct", feature = "radix"))] {
 #[macro_use]
 mod util;
 
+mod atof;
+mod atoi;
 mod float;
+mod ftoa;
+mod itoa;
 
-// Publicly export the low-level APIs.
-pub mod atof;
-pub mod atoi;
-pub mod ftoa;
-pub mod itoa;
+// Publicly re-export the low-level string-to-float functions.
+pub use atof::{atof32_range, atof32_slice, atof64_range, atof64_slice};
+pub use atof::{try_atof32_range, try_atof32_slice, try_atof64_range, try_atof64_slice};
+pub use atof::{atof32_lossy_range, atof32_lossy_slice, atof64_lossy_range, atof64_lossy_slice};
+pub use atof::{try_atof32_lossy_range, try_atof32_lossy_slice, try_atof64_lossy_range, try_atof64_lossy_slice};
+
+// Publicly re-export the low-level string-to-integer functions.
+pub use atoi::{atoi8_range, atoi8_slice, atou8_range, atou8_slice};
+pub use atoi::{try_atoi8_range, try_atoi8_slice, try_atou8_range, try_atou8_slice};
+pub use atoi::{atoi16_range, atoi16_slice, atou16_range, atou16_slice};
+pub use atoi::{try_atoi16_range, try_atoi16_slice, try_atou16_range, try_atou16_slice};
+pub use atoi::{atoi32_range, atoi32_slice, atou32_range, atou32_slice};
+pub use atoi::{try_atoi32_range, try_atoi32_slice, try_atou32_range, try_atou32_slice};
+pub use atoi::{atoi64_range, atoi64_slice, atou64_range, atou64_slice};
+pub use atoi::{try_atoi64_range, try_atoi64_slice, try_atou64_range, try_atou64_slice};
+pub use atoi::{atoi128_range, atoi128_slice, atou128_range, atou128_slice};
+pub use atoi::{try_atoi128_range, try_atoi128_slice, try_atou128_range, try_atou128_slice};
+pub use atoi::{atoisize_range, atoisize_slice, atousize_range, atousize_slice};
+pub use atoi::{try_atoisize_range, try_atoisize_slice, try_atousize_range, try_atousize_slice};
+
+// Publicly re-export the low-level float-to-string functions.
+pub use ftoa::{f32toa_range, f32toa_slice, f64toa_range, f64toa_slice};
+
+// Publicly re-export the low-level integer-to-string functions.
+pub use itoa::{i8toa_range, i8toa_slice, u8toa_range, u8toa_slice};
+pub use itoa::{i16toa_range, i16toa_slice, u16toa_range, u16toa_slice};
+pub use itoa::{i32toa_range, i32toa_slice, u32toa_range, u32toa_slice};
+pub use itoa::{i64toa_range, i64toa_slice, u64toa_range, u64toa_slice};
+pub use itoa::{i128toa_range, i128toa_slice, u128toa_range, u128toa_slice};
+pub use itoa::{isizetoa_range, isizetoa_slice, usizetoa_range, usizetoa_slice};
 
 // Re-export EXPONENT_DEFAULT_CHAR and EXPONENT_BACKUP_CHAR globally.
-pub use util::{EXPONENT_DEFAULT_CHAR, EXPONENT_BACKUP_CHAR};
+pub use util::EXPONENT_DEFAULT_CHAR;
+
+#[cfg(feature = "radix")]
+pub use util::EXPONENT_BACKUP_CHAR;
 
 // Re-export NAN_STRING, INF_STRING and INFINITY_STRING globally.
 pub use util::{INF_STRING, INFINITY_STRING, NAN_STRING};
+
+//Re-export the getters and setters for FFI code for the strings.
+pub use util::{get_inf_string, get_infinity_string, get_nan_string};
+pub use util::{set_inf_string, set_infinity_string, set_nan_string};
 
 // Re-export the error structs and enumerations.
 pub use util::{Error, ErrorCode, is_empty, is_invalid_digit, is_overflow, is_success};
@@ -185,6 +221,12 @@ pub use util::BUFFER_SIZE;
 pub use util::{MAX_I8_SIZE, MAX_I16_SIZE, MAX_I32_SIZE, MAX_I64_SIZE, MAX_I128_SIZE, MAX_ISIZE_SIZE};
 pub use util::{MAX_U8_SIZE, MAX_U16_SIZE, MAX_U32_SIZE, MAX_U64_SIZE, MAX_U128_SIZE, MAX_USIZE_SIZE};
 pub use util::{MAX_F32_SIZE, MAX_F64_SIZE};
+
+// Re-export the required FFI-compatible buffer sizes for the low-level API.
+pub use util::BUFFER_SIZE_FFI;
+pub use util::{MAX_I8_SIZE_FFI, MAX_I16_SIZE_FFI, MAX_I32_SIZE_FFI, MAX_I64_SIZE_FFI, MAX_I128_SIZE_FFI, MAX_ISIZE_SIZE_FFI};
+pub use util::{MAX_U8_SIZE_FFI, MAX_U16_SIZE_FFI, MAX_U32_SIZE_FFI, MAX_U64_SIZE_FFI, MAX_U128_SIZE_FFI, MAX_USIZE_SIZE_FFI};
+pub use util::{MAX_F32_SIZE_FFI, MAX_F64_SIZE_FFI};
 
 // Re-export the float rounding scheme used.
 #[cfg(feature = "correct")]

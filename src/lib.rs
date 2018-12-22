@@ -73,7 +73,10 @@ mod error;
 mod traits;
 
 // Re-export EXPONENT_DEFAULT_CHAR and EXPONENT_BACKUP_CHAR globally.
-pub use lexical_core::{EXPONENT_DEFAULT_CHAR, EXPONENT_BACKUP_CHAR};
+pub use lexical_core::EXPONENT_DEFAULT_CHAR;
+
+#[cfg(feature = "radix")]
+pub use lexical_core::EXPONENT_BACKUP_CHAR;
 
 // Re-export NAN_STRING, INF_STRING and INFINITY_STRING globally.
 pub use lexical_core::{INF_STRING, INFINITY_STRING, NAN_STRING};

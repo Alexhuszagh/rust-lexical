@@ -11,6 +11,11 @@ readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core"
 version = "0.2.1"
 
+# We want FFI support, so build a regular lib, a system static lib,
+# and a system shared lib.
+[lib]
+crate-type = ["lib", "staticlib", "cdylib"]
+
 [badges]
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 

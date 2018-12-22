@@ -1,10 +1,6 @@
 //! High-level traits to translate the low-level API to idiomatic Rust.
 
 use lexical_core::{self, ErrorCode};
-use lexical_core::atof::*;
-use lexical_core::atoi::*;
-use lexical_core::ftoa::*;
-use lexical_core::itoa::*;
 use lib;
 use error::*;
 
@@ -27,7 +23,7 @@ macro_rules! from_bytes {
             {
                 // We reverse the argument order, since the low-level API
                 // always uses (radix: u8, first: *const u8, last: *const u8)
-                $bytes_cb(radix, bytes)
+                lexical_core::$bytes_cb(radix, bytes)
             }
 
             #[inline(always)]
@@ -35,12 +31,13 @@ macro_rules! from_bytes {
             {
                 // We reverse the argument order, since the low-level API
                 // always uses (radix: u8, first: *const u8, last: *const u8)
-                let result = $try_bytes_cb(radix, bytes);
+                let result = lexical_core::$try_bytes_cb(radix, bytes);
                 match result.error.code {
                     ErrorCode::Success  => Ok(result.value),
                     ErrorCode::Overflow => Err(overflow()),
                     ErrorCode::InvalidDigit => Err(invalid_digit(result.error.index)),
                     ErrorCode::Empty => Err(empty()),
+                    _ => unimplemented!(),
                 }
             }
         }
@@ -79,7 +76,7 @@ macro_rules! from_bytes_lossy {
             {
                 // We reverse the argument order, since the low-level API
                 // always uses (radix: u8, first: *const u8, last: *const u8)
-                $bytes_cb(radix, bytes)
+                lexical_core::$bytes_cb(radix, bytes)
             }
 
             #[inline(always)]
@@ -87,12 +84,13 @@ macro_rules! from_bytes_lossy {
             {
                 // We reverse the argument order, since the low-level API
                 // always uses (radix: u8, first: *const u8, last: *const u8)
-                let result = $try_bytes_cb(radix, bytes);
+                let result = lexical_core::$try_bytes_cb(radix, bytes);
                 match result.error.code {
                     ErrorCode::Success  => Ok(result.value),
                     ErrorCode::Overflow => Err(overflow()),
                     ErrorCode::InvalidDigit => Err(invalid_digit(result.error.index)),
                     ErrorCode::Empty => Err(empty()),
+                    _ => unimplemented!(),
                 }
             }
         }
@@ -111,16 +109,16 @@ pub trait ToBytes: Sized {
 }
 
 macro_rules! to_bytes {
-    ($t:ty, $string_cb:ident, $capacity:expr) => (
+    ($t:ty, $string_cb:ident, $capacity:ident) => (
         impl ToBytes for $t {
             #[inline(always)]
             fn to_bytes(&self, radix: u8) -> lib::Vec<u8>
             {
-                let mut buf = lib::Vec::<u8>::with_capacity($capacity);
+                let mut buf = lib::Vec::<u8>::with_capacity(lexical_core::$capacity);
                 let len = unsafe {
                     let first = buf.as_mut_ptr();
                     let slc = lib::slice::from_raw_parts_mut(first, buf.capacity());
-                    let slc = $string_cb(*self, radix, slc);
+                    let slc = lexical_core::$string_cb(*self, radix, slc);
                     slc.len()
                 };
                 unsafe {
@@ -132,20 +130,20 @@ macro_rules! to_bytes {
     )
 }
 
-to_bytes!(u8, u8toa_slice, lexical_core::MAX_U8_SIZE);
-to_bytes!(u16, u16toa_slice, lexical_core::MAX_U16_SIZE);
-to_bytes!(u32, u32toa_slice, lexical_core::MAX_U32_SIZE);
-to_bytes!(u64, u64toa_slice, lexical_core::MAX_U64_SIZE);
-to_bytes!(u128, u128toa_slice, lexical_core::MAX_U128_SIZE);
-to_bytes!(usize, usizetoa_slice, lexical_core::MAX_USIZE_SIZE);
-to_bytes!(i8, i8toa_slice, lexical_core::MAX_I8_SIZE);
-to_bytes!(i16, i16toa_slice, lexical_core::MAX_I16_SIZE);
-to_bytes!(i32, i32toa_slice, lexical_core::MAX_I32_SIZE);
-to_bytes!(i64, i64toa_slice, lexical_core::MAX_I64_SIZE);
-to_bytes!(i128, i128toa_slice, lexical_core::MAX_I128_SIZE);
-to_bytes!(isize, isizetoa_slice, lexical_core::MAX_ISIZE_SIZE);
-to_bytes!(f32, f32toa_slice, lexical_core::MAX_F32_SIZE);
-to_bytes!(f64, f64toa_slice, lexical_core::MAX_F64_SIZE);
+to_bytes!(u8, u8toa_slice, MAX_U8_SIZE);
+to_bytes!(u16, u16toa_slice, MAX_U16_SIZE);
+to_bytes!(u32, u32toa_slice, MAX_U32_SIZE);
+to_bytes!(u64, u64toa_slice, MAX_U64_SIZE);
+to_bytes!(u128, u128toa_slice, MAX_U128_SIZE);
+to_bytes!(usize, usizetoa_slice, MAX_USIZE_SIZE);
+to_bytes!(i8, i8toa_slice, MAX_I8_SIZE);
+to_bytes!(i16, i16toa_slice, MAX_I16_SIZE);
+to_bytes!(i32, i32toa_slice, MAX_I32_SIZE);
+to_bytes!(i64, i64toa_slice, MAX_I64_SIZE);
+to_bytes!(i128, i128toa_slice, MAX_I128_SIZE);
+to_bytes!(isize, isizetoa_slice, MAX_ISIZE_SIZE);
+to_bytes!(f32, f32toa_slice, MAX_F32_SIZE);
+to_bytes!(f64, f64toa_slice, MAX_F64_SIZE);
 
 // TESTS
 // -----
