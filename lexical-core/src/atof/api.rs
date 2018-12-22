@@ -17,33 +17,33 @@ if #[cfg(feature = "correct")] {
 /// Trait to define parsing of a string to float.
 trait StringToFloat: Float {
     /// Serialize string to float, favoring correctness.
-    fn default<'a>(radix: u32, bytes: &'a [u8]) -> (Self, &'a [u8]);
+    fn default<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (Self, &'a [u8]);
 
     /// Serialize string to float, prioritizing speed over correctness.
-    fn lossy<'a>(radix: u32, bytes: &'a [u8]) -> (Self, &'a [u8]);
+    fn lossy<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (Self, &'a [u8]);
 }
 
 impl StringToFloat for f32 {
     #[inline(always)]
-    fn default<'a>(radix: u32, bytes: &'a [u8]) -> (f32, &'a [u8]) {
-        algorithm::atof(radix, bytes)
+    fn default<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (f32, &'a [u8]) {
+        algorithm::atof(radix, bytes, sign)
     }
 
     #[inline(always)]
-    fn lossy<'a>(radix: u32, bytes: &'a [u8]) -> (f32, &'a [u8]) {
-        algorithm::atof_lossy(radix, bytes)
+    fn lossy<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (f32, &'a [u8]) {
+        algorithm::atof_lossy(radix, bytes, sign)
     }
 }
 
 impl StringToFloat for f64 {
     #[inline(always)]
-    fn default<'a>(radix: u32, bytes: &'a [u8]) -> (f64, &'a [u8]) {
-        algorithm::atod(radix, bytes)
+    fn default<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (f64, &'a [u8]) {
+        algorithm::atod(radix, bytes, sign)
     }
 
     #[inline(always)]
-    fn lossy<'a>(radix: u32, bytes: &'a [u8]) -> (f64, &'a [u8]) {
-        algorithm::atod_lossy(radix, bytes)
+    fn lossy<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (f64, &'a [u8]) {
+        algorithm::atod_lossy(radix, bytes, sign)
     }
 }
 
@@ -86,7 +86,7 @@ fn is_zero(bytes: &[u8]) -> bool {
 /// Convert string to float and handle special floating-point strings.
 /// Forcing inlining leads to much better codegen at high optimization levels.
 #[inline(always)]
-fn filter_special<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool)
+fn filter_special<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool, sign: Sign)
     -> (F, &'a [u8])
 {
     // Special case checks
@@ -110,9 +110,9 @@ fn filter_special<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool
             // should reject this out-right.
             (F::ZERO, bytes)
         } else if lossy {
-            F::lossy(radix, bytes)
+            F::lossy(radix, bytes, sign)
         } else {
-            F::default(radix, bytes)
+            F::default(radix, bytes, sign)
         }
     }
 }
@@ -131,7 +131,7 @@ fn filter_sign<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool)
     };
 
     if len > sign_bytes {
-        let (value, slc) = filter_special::<F>(radix, &bytes[sign_bytes..], lossy);
+        let (value, slc) = filter_special::<F>(radix, &bytes[sign_bytes..], lossy, sign);
         (value, sign, slc)
     } else {
         (F::ZERO, sign, bytes)

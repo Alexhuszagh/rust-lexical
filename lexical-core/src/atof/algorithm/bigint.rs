@@ -262,22 +262,23 @@ pub(super) fn round_toward_callback<M, Cb>(is_truncated: bool, cb: Cb)
 /// Custom rounding for truncated mantissa.
 ///
 /// Respect rounding rules in the config file.
-pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool)
+pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, sign: Sign)
     where F: FloatType
 {
-    match FLOAT_ROUNDING {
+    match global_rounding(sign) {
         RoundingKind::NearestTieEven     => {
             fp.round_to_native::<F, _>(round_nearest_callback(is_truncated, tie_even::<u64>))
         },
         RoundingKind::NearestTieAwayZero => {
             fp.round_to_native::<F, _>(round_nearest_callback(is_truncated, tie_away_zero::<u64>))
         },
-        RoundingKind::TowardInfinity     => {
-            fp.round_to_native::<F, _>(round_toward_callback(is_truncated, toward_infinity::<u64>))
+        RoundingKind::Upward             => {
+            fp.round_to_native::<F, _>(round_toward_callback(is_truncated, upward::<u64>))
         },
-        RoundingKind::TowardZero         => {
-            fp.round_to_native::<F, _>(round_toward_callback(is_truncated, toward_zero::<u64>))
+        RoundingKind::Downward           => {
+            fp.round_to_native::<F, _>(round_toward_callback(is_truncated, downard::<u64>))
         },
+        _                                => unreachable!(),
     }
 }
 
@@ -299,7 +300,7 @@ pub(super) fn use_bigcomp(radix: u32, count: usize)
 
 /// Calculate the mantissa for a big integer with a positive exponent.
 #[inline]
-pub(super) fn positive_exponent_atof<F>(slc: FloatSlice, radix: u32, max_digits: usize, exponent: i32)
+pub(super) fn large_atof<F>(slc: FloatSlice, radix: u32, max_digits: usize, exponent: i32, sign: Sign)
     -> F
     where F: FloatType
 {
@@ -314,7 +315,7 @@ pub(super) fn positive_exponent_atof<F>(slc: FloatSlice, radix: u32, max_digits:
     let (mant, is_truncated) = bigmant.hi64();
     let exp = bigmant.bit_length().as_i32() - u64::BITS.as_i32();
     let mut fp = ExtendedFloat { mant: mant, exp: exp };
-    round_to_native::<F>(&mut fp, is_truncated);
+    round_to_native::<F>(&mut fp, is_truncated, sign);
     into_float(fp)
 }
 

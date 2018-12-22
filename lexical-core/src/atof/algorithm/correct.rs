@@ -255,20 +255,40 @@ fn pow2_exponent(radix: u32) -> i32 {
     }
 }
 
-/// Detect if a value is exactly halfway.
+/// Detect if a float representation is exactly halfway after truncation.
 #[cfg(feature = "radix")]
 #[inline]
 fn is_halfway<F: FloatType>(mantissa: u64)
     -> bool
 {
     // Get the leading and trailing zeros from the least-significant bit.
-    let leading_zeros: i32 = as_cast(64 - mantissa.leading_zeros());
-    let trailing_zeros: i32 = as_cast(mantissa.trailing_zeros());
+    let bit_length: i32 = 64 - mantissa.leading_zeros().as_i32();
+    let trailing_zeros: i32 = mantissa.trailing_zeros().as_i32();
 
     // We need exactly mantissa+2 elements between these if it is halfway.
     // The hidden bit is mantissa+1 elements away, which is the last non-
     // truncated bit, while mantissa+2
-    leading_zeros - trailing_zeros == F::MANTISSA_SIZE + 2
+    bit_length - trailing_zeros == F::MANTISSA_SIZE + 2
+}
+
+/// Detect if a float representation is odd after truncation.
+#[cfg(feature = "radix")]
+#[inline]
+fn is_odd<F: FloatType>(mantissa: u64)
+    -> bool
+{
+    // Get the leading and trailing zeros from the least-significant bit.
+    let bit_length: i32 = 64 - mantissa.leading_zeros().as_i32();
+    let shift = bit_length - (F::MANTISSA_SIZE + 1);
+    if shift >= 0 {
+        // Have enough bits to have a full mantissa in the float, need to
+        // check if that last bit is set.
+        let mask = 1u64 << shift;
+        mantissa & mask == mask
+    } else {
+        // Not enough bits for a full mantissa, must be even.
+        false
+    }
 }
 
 /// Convert power-of-two to exact value.
@@ -563,40 +583,62 @@ pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, trunca
 /// Parse power-of-two radix string to native float.
 #[cfg(feature = "radix")]
 #[inline]
-fn pow2_to_native<'a, F>(radix: u32, pow2_exp: i32, bytes: &'a [u8])
+fn pow2_to_native<'a, F>(radix: u32, pow2_exp: i32, bytes: &'a [u8], sign: Sign)
     -> (F, &'a [u8])
     where F: FloatType
 {
     let (mut mantissa, slc, bytes, truncated) = parse_float::<u64>(radix, bytes);
 
     // We have a power of 2, can get an exact value even if the mantissa
-    // was truncated, since we introduce no rounding error during
-    // multiplication. Just check to see if all the remaining digits
-    // are 0.
-    if truncated.is_some() && is_halfway::<F>(mantissa) {
-        // Exactly straddling a halfway case, need to check if all the
-        // digits from `trunc` to `mant.last` are 0, if so, use mantissa.
-        // Otherwise, round-up. Ensure we only go to the end of the fraction.
-        let bytes = slice_from_range(truncated.unwrap().as_ptr(), bytes.as_ptr());
-        let count = bytes.iter()
-            .take_while(|&&c| c == b'0' || c == b'.')
-            .count();
-        let bytes = &bytes[count..];
-
-        // If the remaining digit is valid, then we are above halfway.
-        if bytes.get(0).map_or(radix, |&c| char_to_digit(c).as_u32()) < radix {
-            mantissa += 1;
+    // was truncated. Check to see if there are any truncated digits, depending
+    // on our rounding scheme.
+    let kind = global_rounding(sign);
+    let mantissa_size = F::MANTISSA_SIZE + 1;
+    if truncated.is_some() {
+        if kind != RoundingKind::Downward {
+            // See if we need to round-up.
+            let bytes = slice_from_range(truncated.unwrap().as_ptr(), bytes.as_ptr());
+            let count = bytes.iter().take_while(|&&c| c == b'0' || c == b'.').count();
+            let bytes = &bytes[count..];
+            let is_truncated = bytes.get(0).map_or(false, |&c| char_to_digit(c).as_u32() < radix);
+            if kind == RoundingKind::NearestTieEven {
+                // Need to check if we're exactly halfway and if there are truncated digits.
+                if is_halfway::<F>(mantissa) && is_odd::<F>(mantissa) {
+                    mantissa += 1;
+                }
+            } else if kind == RoundingKind::NearestTieAwayZero {
+                // Need to check if we're exactly halfway and if there are truncated digits.
+                if is_halfway::<F>(mantissa) {
+                    mantissa += 1;
+                }
+            } else {
+                // Need to check if there are any bytes present.
+                // Check if there were any truncated bytes.
+                if is_truncated {
+                    mantissa += 1;
+                }
+            }
         }
-    }
 
-    // Create exact representation and return/
-    let float = pow2_fast_path::<F>(mantissa, radix, pow2_exp, slc.mantissa_exponent());
-    (float, bytes)
+        // Create exact representation and return.
+        let exponent = slc.mantissa_exponent().saturating_mul(pow2_exp);
+        let fp = ExtendedFloat { mant: mantissa, exp: exponent };
+        (fp.into_rounded_float::<F>(kind, sign), bytes)
+    } else if mantissa >> mantissa_size != 0 {
+        // Would be truncated, use the extended float.
+        let exponent = slc.mantissa_exponent().saturating_mul(pow2_exp);
+        let fp = ExtendedFloat { mant: mantissa, exp: exponent };
+        (fp.into_rounded_float::<F>(kind, sign), bytes)
+    } else {
+        // Nothing above the hidden bit, so no rounding-error, can use the fast path.
+        let float = pow2_fast_path(mantissa, radix, pow2_exp, slc.mantissa_exponent());
+        (float, bytes)
+    }
 }
 
 /// Parse non-power-of-two radix string to native float.
 #[inline]
-fn pown_to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool)
+fn pown_to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool, sign: Sign)
     -> (F, &'a [u8])
     where F: FloatType
 {
@@ -626,16 +668,17 @@ fn pown_to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool)
     // Moderate path (use an extended 80-bit representation).
     let (fp, valid) = moderate_path::<F, _>(mantissa, radix, exponent, slc.truncated != 0);
     if valid || lossy {
-        return (fp.into_rounded_float::<F>(FLOAT_ROUNDING), bytes);
+        let float = fp.into_rounded_float::<F>(global_rounding(sign), sign);
+        return (float, bytes);
     }
 
     // Slow path
-    let b = fp.into_rounded_float::<F>(RoundingKind::TowardZero);
+    let b = fp.into_rounded_float::<F>(RoundingKind::TowardZero, sign);
     if b.is_special() {
         // We have a non-finite number, we get to leave early.
         return (b, bytes);
     } else {
-        let float = bhcomp::atof(slc, radix, b);
+        let float = bhcomp::atof(slc, radix, b, sign);
         return (float, bytes);
     }
 }
@@ -644,53 +687,53 @@ fn pown_to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool)
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-fn to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool)
+fn to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool, sign: Sign)
     -> (F, &'a [u8])
     where F: FloatType
 {
     #[cfg(not(feature = "radix"))] {
-        pown_to_native(radix, bytes, lossy)
+        pown_to_native(radix, bytes, lossy, sign)
     }
 
     #[cfg(feature = "radix")] {
         let pow2_exp = pow2_exponent(radix);
         match pow2_exp {
-            0 => pown_to_native(radix, bytes, lossy),
-            _ => pow2_to_native(radix, pow2_exp, bytes),
+            0 => pown_to_native(radix, bytes, lossy, sign),
+            _ => pow2_to_native(radix, pow2_exp, bytes, sign),
         }
     }
 }
 
 /// Parse 32-bit float from string.
 #[inline]
-pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8])
+pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8], sign: Sign)
     -> (f32, &'a [u8])
 {
-    to_native::<f32>(radix, bytes, false)
+    to_native::<f32>(radix, bytes, false, sign)
 }
 
 /// Parse 64-bit float from string.
 #[inline]
-pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8])
+pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8], sign: Sign)
     -> (f64, &'a [u8])
 {
-    to_native::<f64>(radix, bytes, false)
+    to_native::<f64>(radix, bytes, false, sign)
 }
 
 /// Parse 32-bit float from string.
 #[inline]
-pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8])
+pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8], sign: Sign)
     -> (f32, &'a [u8])
 {
-    to_native::<f32>(radix, bytes, true)
+    to_native::<f32>(radix, bytes, true, sign)
 }
 
 /// Parse 64-bit float from string.
 #[inline]
-pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8])
+pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8], sign: Sign)
     -> (f64, &'a [u8])
 {
-    to_native::<f64>(radix, bytes, true)
+    to_native::<f64>(radix, bytes, true, sign)
 }
 
 // TESTS
@@ -810,6 +853,45 @@ mod tests {
         check_parse_float::<u128>(10, "1.2345e10", (12345, 6, 10, 5, 9, false, "12345"));
         check_parse_float::<u128>(10, "100000000000000000000", (100000000000000000000, 0, 20, 21, 21, false, "100000000000000000000"));
         check_parse_float::<u128>(10, "100000000000000000001", (100000000000000000001, 0, 20, 21, 21, false, "100000000000000000001"));
+    }
+
+    #[cfg(feature = "radix")]
+    #[test]
+    fn is_odd_test() {
+        // Variant of b1000000000000000000000001, a halfway value for f32.
+        assert!(is_odd::<f32>(0x1000002));
+        assert!(is_odd::<f32>(0x2000004));
+        assert!(is_odd::<f32>(0x8000010000000000));
+        assert!(!is_odd::<f64>(0x1000002));
+        assert!(!is_odd::<f64>(0x2000004));
+        assert!(!is_odd::<f64>(0x8000010000000000));
+
+        assert!(!is_odd::<f32>(0x1000001));
+        assert!(!is_odd::<f32>(0x2000002));
+        assert!(!is_odd::<f32>(0x8000008000000000));
+        assert!(!is_odd::<f64>(0x1000001));
+        assert!(!is_odd::<f64>(0x2000002));
+        assert!(!is_odd::<f64>(0x8000008000000000));
+
+        // Variant of b100000000000000000000000000000000000000000000000000001,
+        // a halfway value for f64
+        assert!(!is_odd::<f32>(0x3f000000000002));
+        assert!(!is_odd::<f32>(0x3f000000000003));
+        assert!(!is_odd::<f32>(0xFC00000000000800));
+        assert!(!is_odd::<f32>(0xFC00000000000C00));
+        assert!(is_odd::<f64>(0x3f000000000002));
+        assert!(is_odd::<f64>(0x3f000000000003));
+        assert!(is_odd::<f64>(0xFC00000000000800));
+        assert!(is_odd::<f64>(0xFC00000000000C00));
+
+        assert!(!is_odd::<f32>(0x3f000000000001));
+        assert!(!is_odd::<f32>(0x3f000000000004));
+        assert!(!is_odd::<f32>(0xFC00000000000400));
+        assert!(!is_odd::<f32>(0xFC00000000001000));
+        assert!(!is_odd::<f64>(0x3f000000000001));
+        assert!(!is_odd::<f64>(0x3f000000000004));
+        assert!(!is_odd::<f64>(0xFC00000000000400));
+        assert!(!is_odd::<f64>(0xFC00000000001000));
     }
 
     #[cfg(feature = "radix")]
@@ -1001,7 +1083,7 @@ mod tests {
     }
 
     fn check_atof(radix: u32, s: &str, tup: (f32, usize)) {
-        let (value, slc) = atof(radix, s.as_bytes());
+        let (value, slc) = atof(radix, s.as_bytes(), Sign::Positive);
         assert_f32_eq!(value, tup.0);
         assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
@@ -1048,7 +1130,7 @@ mod tests {
     }
 
     fn check_atod(radix: u32, s: &str, tup: (f64, usize)) {
-        let (value, slc) = atod(radix, s.as_bytes());
+        let (value, slc) = atod(radix, s.as_bytes(), Sign::Positive);
         assert_f64_eq!(value, tup.0);
         assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
@@ -1129,7 +1211,7 @@ mod tests {
     // Lossy
 
     fn check_atof_lossy(radix: u32, s: &str, tup: (f32, usize)) {
-        let (value, slc) = atof_lossy(radix, s.as_bytes());
+        let (value, slc) = atof_lossy(radix, s.as_bytes(), Sign::Positive);
         assert_f32_eq!(value, tup.0);
         assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
@@ -1143,7 +1225,7 @@ mod tests {
     }
 
     fn check_atod_lossy(radix: u32, s: &str, tup: (f64, usize)) {
-        let (value, slc) = atod_lossy(radix, s.as_bytes());
+        let (value, slc) = atod_lossy(radix, s.as_bytes(), Sign::Positive);
         assert_f64_eq!(value, tup.0);
         assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }

@@ -155,7 +155,7 @@ fn parse_float<'a>(radix: u32, bytes: &'a [u8])
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8])
+pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8], _: Sign)
     -> (f32, &'a [u8])
 {
     let (value, ptr) = atod(radix, bytes);
@@ -166,7 +166,7 @@ pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8])
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8])
+pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8], _: Sign)
     -> (f64, &'a [u8])
 {
     let (mut value, exponent, ptr) = parse_float(radix, bytes);
@@ -177,14 +177,14 @@ pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8])
 }
 
 #[inline]
-pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8])
+pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign)
     -> (f32, &'a [u8])
 {
     atof(radix, bytes)
 }
 
 #[inline]
-pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8])
+pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign)
     -> (f64, &'a [u8])
 {
     atod(radix, bytes)
@@ -252,7 +252,7 @@ mod tests {
     }
 
     fn check_atof(radix: u32, s: &str, tup: (f32, usize)) {
-        let (value, slc) = atof(radix, s.as_bytes());
+        let (value, slc) = atof(radix, s.as_bytes(), Sign::Positive);
         assert_eq!(value, tup.0);
         assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
@@ -266,7 +266,7 @@ mod tests {
     }
 
     fn check_atod(radix: u32, s: &str, tup: (f64, usize)) {
-        let (value, slc) = atod(radix, s.as_bytes());
+        let (value, slc) = atod(radix, s.as_bytes(), Sign::Positive);
         assert_eq!(value, tup.0);
         assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
@@ -284,7 +284,7 @@ mod tests {
     // correct feature. Use the same tests.
 
     fn check_atof_lossy(radix: u32, s: &str, tup: (f32, usize)) {
-        let (value, slc) = atof_lossy(radix, s.as_bytes());
+        let (value, slc) = atof_lossy(radix, s.as_bytes(), Sign::Positive);
         assert_f32_eq!(value, tup.0);
         assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }
@@ -298,7 +298,7 @@ mod tests {
     }
 
     fn check_atod_lossy(radix: u32, s: &str, tup: (f64, usize)) {
-        let (value, slc) = atod_lossy(radix, s.as_bytes());
+        let (value, slc) = atod_lossy(radix, s.as_bytes(), Sign::Positive);
         assert_f64_eq!(value, tup.0);
         assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
     }

@@ -112,9 +112,9 @@ pub(crate) fn round_toward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     truncated_bits != M::ZERO
 }
 
-/// Round toward infinity (always round up).
+/// Round up.
 #[inline]
-pub(crate) fn toward_infinity<M>(fp: &mut ExtendedFloat<M>, is_truncated: bool)
+pub(crate) fn upward<M>(fp: &mut ExtendedFloat<M>, is_truncated: bool)
     where M: Mantissa
 {
     if is_truncated {
@@ -127,18 +127,18 @@ pub(crate) fn toward_infinity<M>(fp: &mut ExtendedFloat<M>, is_truncated: bool)
 /// Floating-point arithmetic defines round toward infinity, which rounds
 /// towards positive infinity.
 #[inline]
-pub(crate) fn round_toward_infinity<M>(fp: &mut ExtendedFloat<M>, shift: i32)
+pub(crate) fn round_upward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
 {
     // If the truncated bits are non-zero, that is, any rounding error occurred,
     // round-up.
     let is_truncated = round_toward(fp, shift);
-    toward_infinity(fp, is_truncated);
+    upward(fp, is_truncated);
 }
 
-/// Round toward zero (no-op).
+/// Round down.
 #[inline]
-pub(crate) fn toward_zero<M>(_: &mut ExtendedFloat<M>, _: bool)
+pub(crate) fn downard<M>(_: &mut ExtendedFloat<M>, _: bool)
     where M: Mantissa
 {}
 
@@ -147,13 +147,13 @@ pub(crate) fn toward_zero<M>(_: &mut ExtendedFloat<M>, _: bool)
 /// Floating-point arithmetic defines round toward zero, which rounds
 /// towards positive zero.
 #[inline]
-pub(crate) fn round_toward_zero<M>(fp: &mut ExtendedFloat<M>, shift: i32)
+pub(crate) fn round_downward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
 {
     // Bit shift so the leading bit is in the hidden bit.
     // No rounding schemes, so we just ignore everything else.
     let is_truncated = round_toward(fp, shift);
-    toward_zero(fp, is_truncated);
+    downard(fp, is_truncated);
 }
 
 // NATIVE FLOAT
@@ -285,6 +285,36 @@ pub(crate) fn round_to_native<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
     avoid_overflow::<T, M>(fp);
 }
 
+/// Get the rounding scheme to determine if we should go up or down.
+#[inline]
+pub(crate) fn internal_rounding(kind: RoundingKind, sign: Sign) -> RoundingKind {
+    match sign {
+        Sign::Positive => {
+            match kind {
+                RoundingKind::TowardPositiveInfinity => RoundingKind::Upward,
+                RoundingKind::TowardNegativeInfinity => RoundingKind::Downward,
+                RoundingKind::TowardZero             => RoundingKind::Downward,
+                _                                    => kind,
+            }
+        },
+        Sign::Negative => {
+            match kind {
+                RoundingKind::TowardPositiveInfinity => RoundingKind::Downward,
+                RoundingKind::TowardNegativeInfinity => RoundingKind::Upward,
+                RoundingKind::TowardZero             => RoundingKind::Downward,
+                _                                    => kind,
+            }
+        },
+    }
+}
+
+/// Get the global, default rounding scheme.
+#[inline]
+pub(crate) fn global_rounding(sign: Sign) -> RoundingKind {
+    unsafe {
+        internal_rounding(FLOAT_ROUNDING, sign)
+    }
+}
 
 // TESTS
 // -----
@@ -384,48 +414,48 @@ mod tests {
     // DIRECTED ROUNDING
 
     #[test]
-    fn round_toward_infinity_test() {
+    fn round_upward_test() {
         // b0000000
         let mut fp = ExtendedFloat80 { mant: 0x00, exp: 0 };
-        round_toward_infinity(&mut fp, 6);
+        round_upward(&mut fp, 6);
         assert_eq!(fp.mant, 0);
 
         // b1000000
         let mut fp = ExtendedFloat80 { mant: 0x40, exp: 0 };
-        round_toward_infinity(&mut fp, 6);
+        round_upward(&mut fp, 6);
         assert_eq!(fp.mant, 1);
 
         // b1100000
         let mut fp = ExtendedFloat80 { mant: 0x60, exp: 0 };
-        round_toward_infinity(&mut fp, 6);
+        round_upward(&mut fp, 6);
         assert_eq!(fp.mant, 2);
 
         // b1110000
         let mut fp = ExtendedFloat80 { mant: 0x70, exp: 0 };
-        round_toward_infinity(&mut fp, 6);
+        round_upward(&mut fp, 6);
         assert_eq!(fp.mant, 2);
     }
 
     #[test]
-    fn round_toward_zero_test() {
+    fn round_downward_test() {
         // b0000000
         let mut fp = ExtendedFloat80 { mant: 0x00, exp: 0 };
-        round_toward_zero(&mut fp, 6);
+        round_downward(&mut fp, 6);
         assert_eq!(fp.mant, 0);
 
         // b1000000
         let mut fp = ExtendedFloat80 { mant: 0x40, exp: 0 };
-        round_toward_zero(&mut fp, 6);
+        round_downward(&mut fp, 6);
         assert_eq!(fp.mant, 1);
 
         // b1100000
         let mut fp = ExtendedFloat80 { mant: 0x60, exp: 0 };
-        round_toward_zero(&mut fp, 6);
+        round_downward(&mut fp, 6);
         assert_eq!(fp.mant, 1);
 
         // b1110000
         let mut fp = ExtendedFloat80 { mant: 0x70, exp: 0 };
-        round_toward_zero(&mut fp, 6);
+        round_downward(&mut fp, 6);
         assert_eq!(fp.mant, 1);
     }
 

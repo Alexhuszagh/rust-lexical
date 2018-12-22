@@ -9,6 +9,8 @@ use super::rounding::RoundingKind;
 /// To change the expected representation of NaN as a string,
 /// change this value during before using lexical.
 ///
+/// # Warnings
+///
 /// Do not modify this value in threaded-code, as it is not thread-safe.
 pub static mut NAN_STRING: &str = "NaN";
 
@@ -16,18 +18,30 @@ pub static mut NAN_STRING: &str = "NaN";
 ///
 /// To change the expected representation of Infinity as a string,
 /// change this value during before using lexical.
+///
+/// # Warnings
+///
+/// Do not modify this value in threaded-code, as it is not thread-safe.
 pub static mut INF_STRING: &str = "inf";
 
 /// Long infinity literal
 ///
 /// To change the expected backup representation of Infinity as a string,
 /// change this value during before using lexical.
+///
+/// # Warnings
+///
+/// Do not modify this value in threaded-code, as it is not thread-safe.
 pub static mut INFINITY_STRING: &str = "infinity";
 
 /// Default character for scientific notation, used when the radix < 15.
 ///
 /// To change the expected, default character for an exponent,
 /// change this value during before using lexical.
+///
+/// # Warnings
+///
+/// Do not modify this value in threaded-code, as it is not thread-safe.
 pub static mut EXPONENT_DEFAULT_CHAR: u8 = b'e';
 
 /// Backup character for scientific notation, used when the radix >= 15.
@@ -37,6 +51,10 @@ pub static mut EXPONENT_DEFAULT_CHAR: u8 = b'e';
 ///
 /// To change the expected, default character for an exponent,
 /// change this value during before using lexical.
+///
+/// # Warnings
+///
+/// Do not modify this value in threaded-code, as it is not thread-safe.
 pub static mut EXPONENT_BACKUP_CHAR: u8 = b'^';
 
 // CONSTANTS
@@ -150,8 +168,16 @@ if #[cfg(target_pointer_width = "16")] {
 pub const BUFFER_SIZE: usize = MAX_F64_SIZE;
 
 /// The rounding scheme for float conversions.
+///
+/// This defines the global rounding-scheme for float parsing operations.
+/// By default, this is set to round-nearest, tie-even. IEEE754 recommends
+/// this as the default for all for decimal and binary operations.
+///
+/// # Warnings
+///
+/// Do not modify this value in threaded-code, as it is not thread-safe.
 #[cfg(feature = "correct")]
-pub const FLOAT_ROUNDING: RoundingKind = RoundingKind::NearestTieEven;
+pub static mut FLOAT_ROUNDING: RoundingKind = RoundingKind::NearestTieEven;
 
 // FUNCTIONS
 
@@ -192,30 +218,75 @@ mod tests {
     #[test]
     #[ignore]
     fn special_bytes_test() {
-        let mut buffer = new_buffer();
-        // Test serializing and deserializing special strings.
-        assert!(try_atof32_slice(10, b"NaN").value.is_nan());
-        assert!(try_atof32_slice(10, b"nan").value.is_nan());
-        assert!(try_atof32_slice(10, b"NAN").value.is_nan());
-        assert!(try_atof32_slice(10, b"inf").value.is_infinite());
-        assert!(try_atof32_slice(10, b"INF").value.is_infinite());
-        assert!(try_atof32_slice(10, b"Infinity").value.is_infinite());
-        assert_eq!(f64toa_slice(f64::NAN, 10, &mut buffer), b"NaN");
-        assert_eq!(f64toa_slice(f64::INFINITY, 10, &mut buffer), b"inf");
-
         unsafe {
+            let mut buffer = new_buffer();
+            // Test serializing and deserializing special strings.
+            assert!(try_atof32_slice(10, b"NaN").value.is_nan());
+            assert!(try_atof32_slice(10, b"nan").value.is_nan());
+            assert!(try_atof32_slice(10, b"NAN").value.is_nan());
+            assert!(try_atof32_slice(10, b"inf").value.is_infinite());
+            assert!(try_atof32_slice(10, b"INF").value.is_infinite());
+            assert!(try_atof32_slice(10, b"Infinity").value.is_infinite());
+            assert_eq!(f64toa_slice(f64::NAN, 10, &mut buffer), b"NaN");
+            assert_eq!(f64toa_slice(f64::INFINITY, 10, &mut buffer), b"inf");
+
             NAN_STRING = "nan";
             INF_STRING = "Infinity";
-        }
 
-        assert!(try_atof32_slice(10, b"inf").error.code == ErrorCode::InvalidDigit);
-        assert!(try_atof32_slice(10, b"Infinity").value.is_infinite());
-        assert_eq!(f64toa_slice(f64::NAN, 10, &mut buffer), b"nan");
-        assert_eq!(f64toa_slice(f64::INFINITY, 10, &mut buffer), b"Infinity");
+            assert!(try_atof32_slice(10, b"inf").error.code == ErrorCode::InvalidDigit);
+            assert!(try_atof32_slice(10, b"Infinity").value.is_infinite());
+            assert_eq!(f64toa_slice(f64::NAN, 10, &mut buffer), b"nan");
+            assert_eq!(f64toa_slice(f64::INFINITY, 10, &mut buffer), b"Infinity");
 
-        unsafe {
             NAN_STRING = "NaN";
             INF_STRING = "inf";
+        }
+    }
+
+    // Only enable when no other threads touch FLOAT_ROUNDING.
+    #[test]
+    #[ignore]
+    fn special_rounding_test() {
+        // Each one of these pairs is halfway, and we can detect the
+        // rounding schemes from this.
+        unsafe {
+            // Nearest, tie-even
+            FLOAT_ROUNDING = RoundingKind::NearestTieEven;
+            assert_eq!(try_atof64_slice(10, b"-9007199254740993").value, -9007199254740992.0);
+            assert_eq!(try_atof64_slice(10, b"-9007199254740995").value, -9007199254740996.0);
+            assert_eq!(try_atof64_slice(10, b"9007199254740993").value, 9007199254740992.0);
+            assert_eq!(try_atof64_slice(10, b"9007199254740995").value, 9007199254740996.0);
+
+            // Nearest, tie-away-zero
+            FLOAT_ROUNDING = RoundingKind::NearestTieAwayZero;
+            assert_eq!(try_atof64_slice(10, b"-9007199254740993").value, -9007199254740994.0);
+            assert_eq!(try_atof64_slice(10, b"-9007199254740995").value, -9007199254740996.0);
+            assert_eq!(try_atof64_slice(10, b"9007199254740993").value, 9007199254740994.0);
+            assert_eq!(try_atof64_slice(10, b"9007199254740995").value, 9007199254740996.0);
+
+            // Toward positive infinity
+            FLOAT_ROUNDING = RoundingKind::TowardPositiveInfinity;
+            assert_eq!(try_atof64_slice(10, b"-9007199254740993").value, -9007199254740992.0);
+            assert_eq!(try_atof64_slice(10, b"-9007199254740995").value, -9007199254740994.0);
+            assert_eq!(try_atof64_slice(10, b"9007199254740993").value, 9007199254740994.0);
+            assert_eq!(try_atof64_slice(10, b"9007199254740995").value, 9007199254740996.0);
+
+            // Toward negative infinity
+            FLOAT_ROUNDING = RoundingKind::TowardNegativeInfinity;
+            assert_eq!(try_atof64_slice(10, b"-9007199254740993").value, -9007199254740994.0);
+            assert_eq!(try_atof64_slice(10, b"-9007199254740995").value, -9007199254740996.0);
+            assert_eq!(try_atof64_slice(10, b"9007199254740993").value, 9007199254740992.0);
+            assert_eq!(try_atof64_slice(10, b"9007199254740995").value, 9007199254740994.0);
+
+            // Toward zero
+            FLOAT_ROUNDING = RoundingKind::TowardZero;
+            assert_eq!(try_atof64_slice(10, b"-9007199254740993").value, -9007199254740992.0);
+            assert_eq!(try_atof64_slice(10, b"-9007199254740995").value, -9007199254740994.0);
+            assert_eq!(try_atof64_slice(10, b"9007199254740993").value, 9007199254740992.0);
+            assert_eq!(try_atof64_slice(10, b"9007199254740995").value, 9007199254740994.0);
+
+            // Reset to default
+            FLOAT_ROUNDING = RoundingKind::NearestTieEven;
         }
     }
 }

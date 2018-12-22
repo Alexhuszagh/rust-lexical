@@ -124,7 +124,65 @@ impl ToBigInt<u128> for ExtendedFloat<u128> {
     }
 }
 
-// SLOW PATH
+// ROUNDING
+
+/// Generate the theoretical float type for the rounding kind.
+#[inline]
+pub(super) fn theoretical_float<F>(f: F, kind: RoundingKind)
+    -> F::ExtendedFloat
+    where F: FloatType
+{
+    match is_nearest(kind) {
+        // We need to check if we're close to halfway, so use `b+h`.
+        true  => bh(f),
+        // Just care if there are any truncated digits, use `b`.
+        false => b(f),
+    }
+}
+
+/// Custom rounding for the ratio.
+pub(super) fn round_to_native<F>(f: F, order: cmp::Ordering, kind: RoundingKind)
+    -> F
+    where F: FloatType
+{
+    // Compare the actual digits to the round-down or halfway point.
+    match order {
+        cmp::Ordering::Greater  => {
+            match kind {
+                // Comparison with `b+h`, above. Round-up.
+                RoundingKind::NearestTieEven     => f.next(),
+                RoundingKind::NearestTieAwayZero => f.next(),
+                // Comparison with `b`, above. Truncated digits.
+                RoundingKind::Upward             => f.next(),
+                RoundingKind::Downward           => f,
+                _                                => unimplemented!(),
+            }
+        },
+        // This cannot happen for RoundingKind Upward or Downward.
+        // For round-nearest algorithms, we are below `b+h` so round-down.
+        cmp::Ordering::Less     => f,
+        cmp::Ordering::Equal    => {
+            match kind {
+                // Only round-up if the mantissa is odd.
+                RoundingKind::NearestTieEven     => {
+                    if f.mantissa().is_odd() {
+                        f.next()
+                    } else {
+                        f
+                    }
+                },
+                // Always round-up, we want to go away from 0.
+                RoundingKind::NearestTieAwayZero => f.next(),
+                // Comparison with `b`, equal. No truncated digits.
+                RoundingKind::Upward             => f,
+                RoundingKind::Downward           => f,
+                _                                => unimplemented!(),
+            }
+        },
+    }
+}
+
+// BIGCOMP
 
 /// Get the appropriate scaling factor from the digit count.
 ///
@@ -144,24 +202,24 @@ pub fn scaling_factor(radix: u32, sci_exponent: u32)
 /// * `radix`           - Radix for the number parsing.
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
 /// * `f`               - Sub-halfway (`b`) float.
-pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F)
+pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: RoundingKind)
     -> (Bigint, Bigint)
     where F: FloatType
 {
-    let bh = bh(f).to_bigint();
+    let theor = theoretical_float(f, kind).to_bigint();
     let factor = scaling_factor(radix, sci_exponent.abs().as_u32());
     let mut num: Bigint;
     let mut den: Bigint;
 
     if sci_exponent < 0 {
         // Need to have the basen factor be the numerator, and the fp
-        // be the denominator. Since we assumed that bh was the numerator,
+        // be the denominator. Since we assumed that theor was the numerator,
         // if it's the denominator, we need to multiply it into the numerator.
         num = factor;
-        num.imul_large(&bh);
-        den = Bigint { data: stackvec![1], exp: -bh.exp };
+        num.imul_large(&theor);
+        den = Bigint { data: stackvec![1], exp: -theor.exp };
     } else {
-        num = bh;
+        num = theor;
         den = factor;
     }
 
@@ -246,19 +304,15 @@ pub(super) fn compare_digits<'a, Iter>(mut digits: Iter, radix: u32, mut num: Bi
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
 /// * `f`               - Sub-halfway (`b`) float.
 #[inline]
-pub(super) fn atof<F>(slc: FloatSlice, radix: u32, f: F)
+pub(super) fn atof<F>(slc: FloatSlice, radix: u32, f: F, sign: Sign)
     -> F
     where F: FloatType
 {
-    let (num, den) = make_ratio(radix, slc.scientific_exponent(), f);
-    match compare_digits(slc.mantissa_iter(), radix, num, den) {
-        // Greater than representation, return `b+u`
-        cmp::Ordering::Greater  => f.next(),
-        // Less than representation, return `b`
-        cmp::Ordering::Less     => f,
-        // Exactly halfway, tie to even.
-        cmp::Ordering::Equal    => if f.is_odd() { f.next() } else { f },
-    }
+    // This works when we're doing, like, round-even.
+    let kind = global_rounding(sign);
+    let (num, den) = make_ratio(radix, slc.scientific_exponent(), f, kind);
+    let order = compare_digits(slc.mantissa_iter(), radix, num, den);
+    round_to_native(f, order, kind)
 }
 
 // TESTS
@@ -309,9 +363,9 @@ mod tests {
 
     #[test]
     fn make_ratio_test() {
-        let (num1, den1) = make_ratio(10, -324, 0f64);
-        let (num2, den2) = make_ratio(10, -324, 5e-324f64);
-        let (num3, den3) = make_ratio(10, 307, 8.98846567431158e+307f64);
+        let (num1, den1) = make_ratio(10, -324, 0f64, RoundingKind::NearestTieEven);
+        let (num2, den2) = make_ratio(10, -324, 5e-324f64, RoundingKind::NearestTieEven);
+        let (num3, den3) = make_ratio(10, 307, 8.98846567431158e+307f64, RoundingKind::NearestTieEven);
 
         #[cfg(not(any(
             target_arch = "aarch64",

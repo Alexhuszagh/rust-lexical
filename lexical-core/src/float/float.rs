@@ -287,11 +287,12 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Convert into lower-precision native float.
     #[inline]
-    pub fn into_float<F: FloatRounding<M>>(mut self)
+    pub fn into_float<F: FloatRounding<M>>(self)
         -> F
     {
-        self.round_to_native::<F, _>(round_nearest_tie_even);
-        into_float(self)
+        unsafe {
+            self.into_rounded_float::<F>(FLOAT_ROUNDING, Sign::Positive)
+        }
     }
 
     /// Convert into lower-precision 32-bit float.
@@ -316,15 +317,18 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Convert into lower-precision native float with custom rounding rules.
     #[inline]
-    pub fn into_rounded_float<F>(mut self, kind: RoundingKind)
+    pub fn into_rounded_float<F>(mut self, kind: RoundingKind, sign: Sign)
         -> F
         where F: FloatRounding<M>
     {
+        // Normalize the actual float rounding here.
+        let kind = internal_rounding(kind, sign);
         let cb = match kind {
             RoundingKind::NearestTieEven     => round_nearest_tie_even,
             RoundingKind::NearestTieAwayZero => round_nearest_tie_away_zero,
-            RoundingKind::TowardInfinity     => round_toward_infinity,
-            RoundingKind::TowardZero         => round_toward_zero,
+            RoundingKind::Upward             => round_upward,
+            RoundingKind::Downward           => round_downward,
+            _                                => unreachable!()
         };
 
         self.round_to_native::<F, _>(cb);
@@ -333,20 +337,20 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Convert into lower-precision 32-bit float with custom rounding rules.
     #[inline]
-    pub fn into_rounded_f32(self, kind: RoundingKind)
+    pub fn into_rounded_f32(self, kind: RoundingKind, sign: Sign)
         -> f32
         where f32: FloatRounding<M>
     {
-        self.into_rounded_float(kind)
+        self.into_rounded_float(kind, sign)
     }
 
     /// Convert into lower-precision 64-bit float with custom rounding rules.
     #[inline]
-    pub fn into_rounded_f64(self, kind: RoundingKind)
+    pub fn into_rounded_f64(self, kind: RoundingKind, sign: Sign)
         -> f64
         where f64: FloatRounding<M>
     {
-        self.into_rounded_float(kind)
+        self.into_rounded_float(kind, sign)
     }
 
     // AS
@@ -381,29 +385,29 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Convert to lower-precision native float with custom rounding rules.
     #[inline]
-    pub fn as_rounded_float<F>(&self, kind: RoundingKind)
+    pub fn as_rounded_float<F>(&self, kind: RoundingKind, sign: Sign)
         -> F
         where F: FloatRounding<M>
     {
-        self.clone().into_rounded_float::<F>(kind)
+        self.clone().into_rounded_float::<F>(kind, sign)
     }
 
     /// Convert to lower-precision 32-bit float with custom rounding rules.
     #[inline]
-    pub fn as_rounded_f32(&self, kind: RoundingKind)
+    pub fn as_rounded_f32(&self, kind: RoundingKind, sign: Sign)
         -> f32
         where f32: FloatRounding<M>
     {
-        self.as_rounded_float(kind)
+        self.as_rounded_float(kind, sign)
     }
 
     /// Convert to lower-precision 64-bit float with custom rounding rules.
     #[inline]
-    pub fn as_rounded_f64(&self, kind: RoundingKind)
+    pub fn as_rounded_f64(&self, kind: RoundingKind, sign: Sign)
         -> f64
         where f64: FloatRounding<M>
     {
-        self.as_rounded_float(kind)
+        self.as_rounded_float(kind, sign)
     }
 }
 
@@ -1021,20 +1025,22 @@ mod tests {
     fn to_rounded_f32_test() {
         // Just check it compiles, we already check the underlying algorithms.
         let x = ExtendedFloat80 {mant: 9223372036854775808, exp: -63};
-        assert_eq!(x.as_rounded_f32(RoundingKind::NearestTieEven), 1.0);
-        assert_eq!(x.as_rounded_f32(RoundingKind::NearestTieAwayZero), 1.0);
-        assert_eq!(x.as_rounded_f32(RoundingKind::TowardInfinity), 1.0);
-        assert_eq!(x.as_rounded_f32(RoundingKind::TowardZero), 1.0);
+        assert_eq!(x.as_rounded_f32(RoundingKind::NearestTieEven, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f32(RoundingKind::NearestTieAwayZero, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f32(RoundingKind::TowardPositiveInfinity, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f32(RoundingKind::TowardNegativeInfinity, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f32(RoundingKind::TowardZero, Sign::Positive), 1.0);
     }
 
     #[test]
     fn to_rounded_f64_test() {
         // Just check it compiles, we already check the underlying algorithms.
         let x = ExtendedFloat80 {mant: 9223372036854775808, exp: -63};
-        assert_eq!(x.as_rounded_f64(RoundingKind::NearestTieEven), 1.0);
-        assert_eq!(x.as_rounded_f64(RoundingKind::NearestTieAwayZero), 1.0);
-        assert_eq!(x.as_rounded_f64(RoundingKind::TowardInfinity), 1.0);
-        assert_eq!(x.as_rounded_f64(RoundingKind::TowardZero), 1.0);
+        assert_eq!(x.as_rounded_f64(RoundingKind::NearestTieEven, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f64(RoundingKind::NearestTieAwayZero, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f64(RoundingKind::TowardPositiveInfinity, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f64(RoundingKind::TowardNegativeInfinity, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f64(RoundingKind::TowardZero, Sign::Positive), 1.0);
     }
 
     #[test]

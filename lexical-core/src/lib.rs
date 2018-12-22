@@ -188,7 +188,7 @@ pub use util::{MAX_F32_SIZE, MAX_F64_SIZE};
 
 // Re-export the float rounding scheme used.
 #[cfg(feature = "correct")]
-pub use util::FLOAT_ROUNDING;
+pub use util::{FLOAT_ROUNDING, RoundingKind};
 
 // Re-export the result struct and expanded-template variants (for FFI).
 pub use util::Result;
