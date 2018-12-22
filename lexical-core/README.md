@@ -30,6 +30,8 @@ Add lexical-core to your `Cargo.toml`:
 lexical-core = "0.2"
 ```
 
+And an introduction through use:
+
 ```rust
 extern crate lexical_core;
 
@@ -121,11 +123,11 @@ assert_eq!(slc, b"15.1");
 
 Lexical-core also includes configuration options that allow you to configure float processing and formatting:
 
-- `NAN_STRING` The representation of Not a Number (NaN) as a string (default b"NaN"). For float parsing, lexical-core uses case-insensitive comparisons.
-- `INF_STRING` The short, default representation of infinity as a string (default b"inf"). For float parsing, lexical-core uses case-insensitive comparisons.
-- `INFINITY_STRING` The long, backup representation of infinity as a string (default b"infinity"). `INFINITY_STRING` must be at least as long as `INF_STRING`, and will only be used during float parsing.
-- `EXPONENT_DEFAULT_CHAR` - The default character designating the exponent component of a float (default b'e') for strings with a radix less than 15 (including decimal strings). For float parsing, lexical-core uses case-insensitive comparisons. This value should be not be in character set "[0-9a-eA-E]".
-- `EXPONENT_BACKUP_CHAR` - (radix only) The backup character designating the exponent component of a float (default b'^') for strings with a radix greater than or equal to 15. This value should not an alpha-numeric character.
+- `NAN_STRING` The representation of Not a Number (NaN) as a string (default `b"NaN"`). For float parsing, lexical-core uses case-insensitive comparisons.
+- `INF_STRING` The short, default representation of infinity as a string (default `b"inf"`). For float parsing, lexical-core uses case-insensitive comparisons.
+- `INFINITY_STRING` The long, backup representation of infinity as a string (default `b"infinity"`). `INFINITY_STRING` must be at least as long as `INF_STRING`, and will only be used during float parsing.
+- `EXPONENT_DEFAULT_CHAR` - The default character designating the exponent component of a float (default `b'e'`) for strings with a radix less than 15 (including decimal strings). For float parsing, lexical-core uses case-insensitive comparisons. This value should be not be in character set `[0-9a-eA-E]`.
+- `EXPONENT_BACKUP_CHAR` - (radix only) The backup character designating the exponent component of a float (default `b'^'`) for strings with a radix greater than or equal to 15. This value should not an alpha-numeric character.
 - `FLOAT_ROUNDING` - The IEEE754 float-rounding scheme to be used during float parsing. In almost every case, this should be set to `NearestTieEven`.
 
 # Constants
@@ -197,16 +199,21 @@ print(result.value)         # 1.2345000505447388
 print(result.error.code)    # 0
 
 # Call the number-to-string serializers.
+# First, create a buffer type of sufficient length.
 f32_size = c_size_t.in_dll(lib, "MAX_F32_SIZE_FFI")
 F32BufferType = c_char * f32_size.value
 buf = F32BufferType()
+
+# Next, initialize our arguments for the call.
 value = c_float(1.2345)
 first = to_charp(buf)
 last = to_charp(to_address(first) + len(buf))
+
+# Call the serializer and create a Python string from our result.
 ptr = lib.f32toa_range(value, 10, first, last)
 length = distance(first, ptr)
 result = string_at(buf, 6)
-print(result)               # 1.2345
+print(result)               # "1.2345"
 ```
 
 # Documentation
