@@ -697,7 +697,7 @@ fn pow2_to_native<'a, F>(radix: u32, pow2_exp: i32, bytes: &'a [u8], sign: Sign)
     if truncated.is_some() {
         if kind != RoundingKind::Downward {
             // See if we need to round-up.
-            let bytes = slice_from_range(truncated.unwrap().as_ptr(), bytes.as_ptr());
+            let bytes = slice_from_range(truncated.unwrap(), bytes.as_ptr());
             let count = bytes.iter().take_while(|&&c| c == b'0' || c == b'.').count();
             let bytes = &bytes[count..];
             let is_truncated = bytes.get(0).map_or(false, |&c| char_to_digit(c).as_u32() < radix);
@@ -1140,12 +1140,12 @@ mod tests {
     fn float_moderate_path_test() {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
-        let (f, valid) = moderate_path::<f32, _>(mantissa, 3, 1, false);
+        let (f, valid) = moderate_path::<f32, _>(mantissa, 3, 1, false, RoundingKind::NearestTieEven);
         assert_eq!(f.into_f32(), 2.7670116e+19);
         assert!(valid, "exponent should be valid");
 
         let mantissa: u64 = 4746067219335938;
-        let (f, valid) = moderate_path::<f32, _>(mantissa, 15, -9, false);
+        let (f, valid) = moderate_path::<f32, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
         assert_eq!(f.into_f32(), 123456.1);
         assert!(valid, "exponent should be valid");
     }
@@ -1155,31 +1155,31 @@ mod tests {
     fn double_moderate_path_test() {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
-        let (f, valid) = moderate_path::<f64, _>(mantissa, 3, 1, false);
+        let (f, valid) = moderate_path::<f64, _>(mantissa, 3, 1, false, RoundingKind::NearestTieEven);
         assert_eq!(f.into_f64(), 2.7670116110564327e+19);
         assert!(valid, "exponent should be valid");
 
         // valid (ends of the earth, salting the earth)
-        let (f, valid) = moderate_path::<f64, _>(mantissa, 3, -695, true);
+        let (f, valid) = moderate_path::<f64, _>(mantissa, 3, -695, true, RoundingKind::NearestTieEven);
         assert_eq!(f.into_f64(), 2.32069302345e-313);
         assert!(valid, "exponent should be valid");
 
         // invalid ("268A6.177777778", base 15)
         let mantissa: u64 = 4746067219335938;
-        let (_, valid) = moderate_path::<f64, _>(mantissa, 15, -9, false);
+        let (_, valid) = moderate_path::<f64, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
         assert!(!valid, "exponent should be invalid");
 
         // valid ("268A6.177777778", base 15)
         // 123456.10000000001300614743687445, exactly, should not round up.
         let mantissa: u128 = 4746067219335938;
-        let (f, valid) = moderate_path::<f64, _>(mantissa, 15, -9, false);
+        let (f, valid) = moderate_path::<f64, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
         assert_eq!(f.into_f64(), 123456.1);
         assert!(valid, "exponent should be valid");
 
         // Rounding error
         // Adapted from test-float-parse failures.
         let mantissa: u64 = 1009;
-        let (_, valid) = moderate_path::<f64, _>(mantissa, 10, -31, false);
+        let (_, valid) = moderate_path::<f64, _>(mantissa, 10, -31, false, RoundingKind::NearestTieEven);
         assert!(!valid, "exponent should be valid");
     }
 

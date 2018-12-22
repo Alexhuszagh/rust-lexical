@@ -1,10 +1,10 @@
-lexical
-=======
+lexical-core
+============
 
 [![Build Status](https://api.travis-ci.org/Alexhuszagh/rust-lexical.svg?branch=master)](https://travis-ci.org/Alexhuszagh/rust-lexical)
 [![Latest Version](https://img.shields.io/crates/v/lexical-core.svg)](https://crates.io/crates/lexical-core)
 
-Low-level, FFI-compatible, lexical conversion routines for use in a `no_std` context. This crate by default does not use the Rust standard library.
+Low-level, FFI-compatible, lexical conversion routines for use in a `no_std` context. This crate by default does not use the Rust standard library. And, as of version 0.3, lexical-core uses minimal unsafe features, limiting the chance of memory-unsafe code.
 
 - [Getting Started](#getting-started)
 - [Features](#features)

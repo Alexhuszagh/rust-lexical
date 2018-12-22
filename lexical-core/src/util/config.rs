@@ -486,6 +486,7 @@ mod tests {
     }
 
     // Only enable when no other threads touch FLOAT_ROUNDING.
+    #[cfg(feature = "correct")]
     #[test]
     #[ignore]
     fn special_rounding_test() {
@@ -526,6 +527,54 @@ mod tests {
             assert_eq!(try_atof64_slice(10, b"-9007199254740995").value, -9007199254740994.0);
             assert_eq!(try_atof64_slice(10, b"9007199254740993").value, 9007199254740992.0);
             assert_eq!(try_atof64_slice(10, b"9007199254740995").value, 9007199254740994.0);
+
+            // Reset to default
+            FLOAT_ROUNDING = RoundingKind::NearestTieEven;
+        }
+    }
+
+    // Only enable when no other threads touch FLOAT_ROUNDING.
+    #[cfg(all(feature = "correct", feature = "radix"))]
+    #[test]
+    #[ignore]
+    fn special_rounding_binary_test() {
+        // Each one of these pairs is halfway, and we can detect the
+        // rounding schemes from this.
+        unsafe {
+            // Nearest, tie-even
+            FLOAT_ROUNDING = RoundingKind::NearestTieEven;
+            assert_eq!(try_atof64_slice(2, b"-100000000000000000000000000000000000000000000000000001").value, -9007199254740992.0);
+            assert_eq!(try_atof64_slice(2, b"-100000000000000000000000000000000000000000000000000011").value, -9007199254740996.0);
+            assert_eq!(try_atof64_slice(2, b"100000000000000000000000000000000000000000000000000001").value, 9007199254740992.0);
+            assert_eq!(try_atof64_slice(2, b"100000000000000000000000000000000000000000000000000011").value, 9007199254740996.0);
+
+            // Nearest, tie-away-zero
+            FLOAT_ROUNDING = RoundingKind::NearestTieAwayZero;
+            assert_eq!(try_atof64_slice(2, b"-100000000000000000000000000000000000000000000000000001").value, -9007199254740994.0);
+            assert_eq!(try_atof64_slice(2, b"-100000000000000000000000000000000000000000000000000011").value, -9007199254740996.0);
+            assert_eq!(try_atof64_slice(2, b"100000000000000000000000000000000000000000000000000001").value, 9007199254740994.0);
+            assert_eq!(try_atof64_slice(2, b"100000000000000000000000000000000000000000000000000011").value, 9007199254740996.0);
+
+            // Toward positive infinity
+            FLOAT_ROUNDING = RoundingKind::TowardPositiveInfinity;
+            assert_eq!(try_atof64_slice(2, b"-100000000000000000000000000000000000000000000000000001").value, -9007199254740992.0);
+            assert_eq!(try_atof64_slice(2, b"-100000000000000000000000000000000000000000000000000011").value, -9007199254740994.0);
+            assert_eq!(try_atof64_slice(2, b"100000000000000000000000000000000000000000000000000001").value, 9007199254740994.0);
+            assert_eq!(try_atof64_slice(2, b"100000000000000000000000000000000000000000000000000011").value, 9007199254740996.0);
+
+            // Toward negative infinity
+            FLOAT_ROUNDING = RoundingKind::TowardNegativeInfinity;
+            assert_eq!(try_atof64_slice(2, b"-100000000000000000000000000000000000000000000000000001").value, -9007199254740994.0);
+            assert_eq!(try_atof64_slice(2, b"-100000000000000000000000000000000000000000000000000011").value, -9007199254740996.0);
+            assert_eq!(try_atof64_slice(2, b"100000000000000000000000000000000000000000000000000001").value, 9007199254740992.0);
+            assert_eq!(try_atof64_slice(2, b"100000000000000000000000000000000000000000000000000011").value, 9007199254740994.0);
+
+            // Toward zero
+            FLOAT_ROUNDING = RoundingKind::TowardZero;
+            assert_eq!(try_atof64_slice(2, b"-100000000000000000000000000000000000000000000000000001").value, -9007199254740992.0);
+            assert_eq!(try_atof64_slice(2, b"-100000000000000000000000000000000000000000000000000011").value, -9007199254740994.0);
+            assert_eq!(try_atof64_slice(2, b"100000000000000000000000000000000000000000000000000001").value, 9007199254740992.0);
+            assert_eq!(try_atof64_slice(2, b"100000000000000000000000000000000000000000000000000011").value, 9007199254740994.0);
 
             // Reset to default
             FLOAT_ROUNDING = RoundingKind::NearestTieEven;
