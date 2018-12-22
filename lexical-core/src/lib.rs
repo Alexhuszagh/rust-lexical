@@ -187,7 +187,6 @@ pub use util::{MAX_U8_SIZE, MAX_U16_SIZE, MAX_U32_SIZE, MAX_U64_SIZE, MAX_U128_S
 pub use util::{MAX_F32_SIZE, MAX_F64_SIZE};
 
 // Re-export the float rounding scheme used.
-#[cfg(feature = "correct")]
 pub use util::{FLOAT_ROUNDING, RoundingKind};
 
 // Re-export the result struct and expanded-template variants (for FFI).

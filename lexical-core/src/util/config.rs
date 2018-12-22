@@ -176,7 +176,6 @@ pub const BUFFER_SIZE: usize = MAX_F64_SIZE;
 /// # Warnings
 ///
 /// Do not modify this value in threaded-code, as it is not thread-safe.
-#[cfg(feature = "correct")]
 pub static mut FLOAT_ROUNDING: RoundingKind = RoundingKind::NearestTieEven;
 
 // FUNCTIONS

@@ -78,6 +78,9 @@ pub use lexical_core::{EXPONENT_DEFAULT_CHAR, EXPONENT_BACKUP_CHAR};
 // Re-export NAN_STRING, INF_STRING and INFINITY_STRING globally.
 pub use lexical_core::{INF_STRING, INFINITY_STRING, NAN_STRING};
 
+// Re-export the float rounding scheme used.
+pub use lexical_core::{FLOAT_ROUNDING, RoundingKind};
+
 // Re-export the Error and ErrorKind globally.
 pub use error::{Error, ErrorKind};
 
