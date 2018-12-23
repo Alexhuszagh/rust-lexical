@@ -36,15 +36,13 @@ And an introduction through use:
 extern crate lexical_core;
 
 // String to number using Rust slices.
-// The first argument is the radix, which should be 10 for decimal strings,
-// and the second argument is the byte string parsed.
+// The argument is the byte string parsed.
 let f = lexical_core::atof64_slice(b"3.5");   // 3.5
 let i = lexical_core::atoi32_slice(b"15");    // 15
 
 // String to number using pointer ranges, for FFI-compatible code.
-// The first argument is the radix, which should be 10 for decimal strings,
-// the second argument is a pointer to the start of the parsed byte array,
-// and the third argument is a pointer to 1-past-the-end. It will process
+// The first argument is a pointer to the start of the parsed byte array,
+// and the second argument is a pointer to 1-past-the-end. It will process
 // bytes in the range [first, last).
 unsafe {
     let bytes = b"3.5";
@@ -52,6 +50,11 @@ unsafe {
     let last = first.add(bytes.len());
     let f = lexical_core::atof64_range(first, last);
 }
+
+// If and only if the `radix` feature is enabled, you may use the radix
+// overloads to parse non-decimal floats and strings.
+let f = lexical_core::atof32_radix_slice(2, b"11.1");   // 3.5
+let i = lexical_core::atoi32_radix_slice(2, b"1111");   // 15
 
 // The ato*_slice and ato*_range parsers are not checked, they do not
 // validate that the input data is entirely correct, and stop parsing
