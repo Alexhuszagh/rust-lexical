@@ -11,7 +11,7 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 
 use bencher::{black_box, Bencher};
-use lexical_core::atof::*;
+use lexical_core::*;
 
 // PATH
 
@@ -74,7 +74,7 @@ fn atof_real_f32_lexical(bench: &mut Bencher) {
     bench.iter(|| {
         for line in data.lines() {
             for item in line.split(',') {
-                black_box(atof32_slice(10, item.as_bytes()));
+                black_box(atof32_slice(item.as_bytes()));
             }
         }
     })
@@ -101,7 +101,7 @@ fn atof_real_f64_lexical(bench: &mut Bencher) {
     bench.iter(|| {
         for line in data.lines() {
             for item in line.split(',') {
-                black_box(atof64_slice(10, item.as_bytes()));
+                black_box(atof64_slice(item.as_bytes()));
             }
         }
     })

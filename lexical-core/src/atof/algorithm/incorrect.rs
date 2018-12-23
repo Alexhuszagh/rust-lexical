@@ -62,7 +62,7 @@ type Wrapped = WrappedFloat<f64>;
 /// Parse the integer portion of a positive, normal float string.
 ///
 /// Use a float since for large numbers, this may even overflow a u64.
-#[inline(always)]
+#[inline]
 fn parse_integer<'a>(radix: u32, bytes: &'a [u8])
     -> (f64, &'a [u8])
 {
@@ -80,7 +80,7 @@ fn parse_integer<'a>(radix: u32, bytes: &'a [u8])
 /// Parse separately from the integer portion, since the small
 /// values for each may be too small to change the integer components
 /// representation **immediately**.
-#[inline(always)]
+#[inline]
 fn parse_fraction<'a>(radix: u32, mut bytes: &'a [u8])
     -> (f64, &'a [u8])
 {

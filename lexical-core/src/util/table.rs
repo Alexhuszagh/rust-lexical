@@ -9,7 +9,7 @@ use util::*;
 const DIGIT_TO_CHAR: [u8; 36] = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'A', b'B', b'C', b'D', b'E', b'F', b'G', b'H', b'I', b'J', b'K', b'L', b'M', b'N', b'O', b'P', b'Q', b'R', b'S', b'T', b'U', b'V', b'W', b'X', b'Y', b'Z'];
 
 /// Get character from digit.
-#[inline(always)]
+#[inline]
 pub(crate) fn digit_to_char<T: Integer>(digit: T) -> u8 {
     debug_assert!(digit.as_i32() >= 0 && digit.as_i32() < 36, "digit_to_char() invalid character.");
     DIGIT_TO_CHAR[digit.as_usize()]
@@ -46,7 +46,7 @@ const CHAR_TO_DIGIT: [u8; 256] = [
 ];
 
 /// Get digit from character.
-#[inline(always)]
+#[inline]
 pub(crate) fn char_to_digit(c: u8) -> u8 {
     CHAR_TO_DIGIT[c.as_usize()]
 }

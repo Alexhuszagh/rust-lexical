@@ -53,52 +53,48 @@ pub struct Error {
 
 /// Check if the error code is successful.
 #[no_mangle]
-#[inline(always)]
 pub extern fn is_success(error: Error) -> bool {
     error.code == ErrorCode::Success
 }
 
 /// Check if the error code designates integer overflow.
 #[no_mangle]
-#[inline(always)]
 pub extern fn is_overflow(error: Error) -> bool {
     error.code == ErrorCode::Overflow
 }
 
 /// Check if the error code designates an invalid digit was encountered.
 #[no_mangle]
-#[inline(always)]
 pub extern fn is_invalid_digit(error: Error) -> bool {
     error.code == ErrorCode::InvalidDigit
 }
 
 /// Check if the error code designates an empty byte array was encountered.
 #[no_mangle]
-#[inline(always)]
 pub extern fn is_empty(error: Error) -> bool {
     error.code == ErrorCode::Empty
 }
 
 /// Helper function to create a success message.
-#[inline(always)]
+#[inline]
 pub(crate) fn success() -> Error {
     Error { code: ErrorCode::Success, index: 0 }
 }
 
 /// Helper function to create an overflow error.
-#[inline(always)]
+#[inline]
 pub(crate) fn overflow_error() -> Error {
     Error { code: ErrorCode::Overflow, index: 0 }
 }
 
 /// Helper function to create an invalid digit error.
-#[inline(always)]
+#[inline]
 pub(crate) fn invalid_digit_error(index: usize) -> Error {
     Error { code: ErrorCode::InvalidDigit, index: index }
 }
 
 /// Helper function to create an empty error.
-#[inline(always)]
+#[inline]
 pub(crate) fn empty_error() -> Error {
     Error { code: ErrorCode::Empty, index: 0 }
 }

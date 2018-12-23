@@ -53,72 +53,72 @@ impl<T: Float> PartialEq for WrappedFloat<T> {
 }
 
 impl<T: Float> AsPrimitive for WrappedFloat<T> {
-    #[inline(always)]
+    #[inline]
     fn as_u8(self) -> u8 {
         as_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_u16(self) -> u16 {
         as_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_u32(self) -> u32 {
         as_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_u64(self) -> u64 {
         as_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_u128(self) -> u128 {
         as_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_usize(self) -> usize {
         as_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_i8(self) -> i8 {
         as_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_i16(self) -> i16 {
         as_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_i32(self) -> i32 {
         as_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_i64(self) -> i64 {
         as_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_i128(self) -> i128 {
         as_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_isize(self) -> isize {
         as_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_f32(self) -> f32 {
         as_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn as_f64(self) -> f64 {
         as_cast(self.data)
     }
@@ -127,72 +127,72 @@ impl<T: Float> AsPrimitive for WrappedFloat<T> {
 // IMPL TRY PRIMITIVE
 
 impl<T: Float> TryPrimitive for WrappedFloat<T> {
-    #[inline(always)]
+    #[inline]
     fn try_u8(self) -> Option<u8> {
         try_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u16(self) -> Option<u16> {
         try_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u32(self) -> Option<u32> {
         try_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u64(self) -> Option<u64> {
         try_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u128(self) -> Option<u128> {
         try_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_usize(self) -> Option<usize> {
         try_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i8(self) -> Option<i8> {
         try_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i16(self) -> Option<i16> {
         try_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i32(self) -> Option<i32> {
         try_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i64(self) -> Option<i64> {
         try_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i128(self) -> Option<i128> {
         try_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_isize(self) -> Option<isize> {
         try_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_f32(self) -> Option<f32> {
         try_cast(self.data)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_f64(self) -> Option<f64> {
         try_cast(self.data)
     }
@@ -201,7 +201,7 @@ impl<T: Float> TryPrimitive for WrappedFloat<T> {
 // IMPL AS CAST
 
 impl<T: Float> AsCast for WrappedFloat<T> {
-    #[inline(always)]
+    #[inline]
     fn as_cast<N: AsPrimitive>(n: N) -> Self {
         // Wrap to wide float and back down. Should be a no-op. Just indirection.
         WrappedFloat { data: as_cast(n.as_f64()) }
@@ -211,7 +211,7 @@ impl<T: Float> AsCast for WrappedFloat<T> {
 // IMPL TRY CAST
 
 impl<N: Primitive, T: Float + TryCast<N>> TryCast<N> for WrappedFloat<T> {
-    #[inline(always)]
+    #[inline]
     fn try_cast(self) -> Option<N> {
         try_cast(self.data)
     }
@@ -453,167 +453,167 @@ impl<T: Float> Integer for WrappedFloat <T> {
     const MIN: Self = WrappedFloat { data: T::MIN };
     const BITS: usize = T::BITS;
 
-    #[inline(always)]
+    #[inline]
     fn max_value() -> Self {
         Self::MAX
     }
 
-    #[inline(always)]
+    #[inline]
     fn min_value() -> Self {
         Self::MIN
     }
 
-    #[inline(always)]
+    #[inline]
     fn count_ones(self) -> u32 {
         unreachable!()
     }
 
-    #[inline(always)]
+    #[inline]
     fn count_zeros(self) -> u32 {
         unreachable!()
     }
 
-    #[inline(always)]
+    #[inline]
     fn leading_zeros(self) -> u32 {
         unreachable!()
     }
 
-    #[inline(always)]
+    #[inline]
     fn trailing_zeros(self) -> u32 {
         unreachable!()
     }
 
-    #[inline(always)]
+    #[inline]
     fn checked_add(self, i: Self) -> Option<Self> {
         Some(self + i)
     }
 
-    #[inline(always)]
+    #[inline]
     fn checked_sub(self, i: Self) -> Option<Self> {
         Some(self - i)
     }
 
-    #[inline(always)]
+    #[inline]
     fn checked_mul(self, i: Self) -> Option<Self> {
         Some(self * i)
     }
 
-    #[inline(always)]
+    #[inline]
     fn checked_div(self, i: Self) -> Option<Self> {
         Some(self / i)
     }
 
-    #[inline(always)]
+    #[inline]
     fn checked_rem(self, i: Self) -> Option<Self> {
         Some(self % i)
     }
 
-    #[inline(always)]
+    #[inline]
     fn checked_neg(self) -> Option<Self> {
         Some(-self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn checked_shl(self, _: u32) -> Option<Self> {
         unimplemented!()
     }
 
-    #[inline(always)]
+    #[inline]
     fn checked_shr(self, _: u32) -> Option<Self> {
         unimplemented!()
     }
 
-    #[inline(always)]
+    #[inline]
     fn wrapping_add(self, i: Self) -> Self {
         self + i
     }
 
-    #[inline(always)]
+    #[inline]
     fn wrapping_sub(self, i: Self) -> Self {
         self - i
     }
 
-    #[inline(always)]
+    #[inline]
     fn wrapping_mul(self, i: Self) -> Self {
         self * i
     }
 
-    #[inline(always)]
+    #[inline]
     fn wrapping_div(self, i: Self) -> Self {
         self / i
     }
 
-    #[inline(always)]
+    #[inline]
     fn wrapping_rem(self, i: Self) -> Self {
         self % i
     }
 
-    #[inline(always)]
+    #[inline]
     fn wrapping_neg(self) -> Self {
         -self
     }
 
-    #[inline(always)]
+    #[inline]
     fn wrapping_shl(self, _: u32) -> Self {
         unimplemented!()
     }
 
-    #[inline(always)]
+    #[inline]
     fn wrapping_shr(self, _: u32) -> Self {
         unimplemented!()
     }
 
-    #[inline(always)]
+    #[inline]
     fn overflowing_add(self, i: Self) -> (Self, bool) {
         (self + i, false)
     }
 
-    #[inline(always)]
+    #[inline]
     fn overflowing_sub(self, i: Self) -> (Self, bool) {
         (self - i, false)
     }
 
-    #[inline(always)]
+    #[inline]
     fn overflowing_mul(self, i: Self) -> (Self, bool) {
         (self * i, false)
     }
 
-    #[inline(always)]
+    #[inline]
     fn overflowing_div(self, i: Self) -> (Self, bool) {
         (self / i, false)
     }
 
-    #[inline(always)]
+    #[inline]
     fn overflowing_rem(self, i: Self) -> (Self, bool) {
         (self % i, false)
     }
 
-    #[inline(always)]
+    #[inline]
     fn overflowing_neg(self) -> (Self, bool) {
         (-self, false)
     }
 
-    #[inline(always)]
+    #[inline]
     fn overflowing_shl(self, _: u32) -> (Self, bool) {
         unimplemented!()
     }
 
-    #[inline(always)]
+    #[inline]
     fn overflowing_shr(self, _: u32) -> (Self, bool) {
         unimplemented!()
     }
 
-    #[inline(always)]
+    #[inline]
     fn saturating_add(self, i: Self) -> Self {
         self + i
     }
 
-    #[inline(always)]
+    #[inline]
     fn saturating_sub(self, i: Self) -> Self {
         self - i
     }
 
-    #[inline(always)]
+    #[inline]
     fn saturating_mul(self, i: Self) -> Self {
         self * i
     }
@@ -624,7 +624,7 @@ impl<T: Float> Integer for WrappedFloat <T> {
 impl<T: Float> ops::Neg for WrappedFloat<T> {
     type Output = Self;
 
-    #[inline(always)]
+    #[inline]
     fn neg(self) -> Self {
         WrappedFloat { data: -self.data }
     }

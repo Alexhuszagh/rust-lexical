@@ -10,7 +10,7 @@ use super::num::{Integer};
 // AS CAST
 
 /// Allows the high-level conversion of generic types as if `as` was used.
-#[inline(always)]
+#[inline]
 pub fn as_cast<U: AsCast, T: AsCast>(t: T) -> U {
     AsCast::as_cast(t)
 }
@@ -25,7 +25,7 @@ pub trait AsCast: AsPrimitive {
 macro_rules! as_cast {
     ($t:ty, $meth:ident) => {
         impl AsCast for $t {
-            #[inline(always)]
+            #[inline]
             fn as_cast<N: AsPrimitive>(n: N) -> $t {
                 n.$meth()
             }
@@ -52,7 +52,7 @@ as_cast!(f64, as_f64);
 // Analogous to TryInto.
 
 /// High-level conversion of types using TryCast.
-#[inline(always)]
+#[inline]
 pub fn try_cast<U, T: TryCast<U>>(t: T) -> Option<U> {
     TryCast::try_cast(t)
 }

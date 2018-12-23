@@ -50,7 +50,7 @@ if #[cfg(any(
 }}   // cfg_if
 
 /// Cast to limb type.
-#[inline(always)]
+#[inline]
 pub(super) fn as_limb<T: Integer>(t: T)
     -> Limb
 {
@@ -58,7 +58,7 @@ pub(super) fn as_limb<T: Integer>(t: T)
 }
 
 /// Cast to wide type.
-#[inline(always)]
+#[inline]
 fn as_wide<T: Integer>(t: T)
     -> Wide
 {
@@ -66,7 +66,7 @@ fn as_wide<T: Integer>(t: T)
 }
 
 /// Cast tosigned wide type.
-#[inline(always)]
+#[inline]
 fn as_signed_wide<T: Integer>(t: T)
     -> SignedWide
 {
@@ -77,13 +77,13 @@ fn as_signed_wide<T: Integer>(t: T)
 // -----
 
 /// Split u16 into limbs, in little-endian order.
-#[inline(always)]
+#[inline]
 fn split_u16(x: u16) -> [Limb; 1] {
     [as_limb(x)]
 }
 
 /// Split u32 into limbs, in little-endian order.
-#[inline(always)]
+#[inline]
 fn split_u32(x: u32) -> [Limb; 1] {
     [as_limb(x)]
 }
@@ -95,7 +95,7 @@ fn split_u32(x: u32) -> [Limb; 1] {
     target_arch = "powerpc64",
     target_arch = "x86_64"
 )))]
-#[inline(always)]
+#[inline]
 fn split_u64(x: u64) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 32)]
 }
@@ -107,7 +107,7 @@ fn split_u64(x: u64) -> [Limb; 2] {
     target_arch = "powerpc64",
     target_arch = "x86_64"
 ))]
-#[inline(always)]
+#[inline]
 fn split_u64(x: u64) -> [Limb; 1] {
     [as_limb(x)]
 }
@@ -119,7 +119,7 @@ fn split_u64(x: u64) -> [Limb; 1] {
     target_arch = "powerpc64",
     target_arch = "x86_64"
 )))]
-#[inline(always)]
+#[inline]
 fn split_u128(x: u128) -> [Limb; 4] {
     [as_limb(x), as_limb(x >> 32), as_limb(x >> 64), as_limb(x >> 96)]
 }
@@ -131,7 +131,7 @@ fn split_u128(x: u128) -> [Limb; 4] {
     target_arch = "powerpc64",
     target_arch = "x86_64"
 ))]
-#[inline(always)]
+#[inline]
 fn split_u128(x: u128) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 64)]
 }
@@ -142,7 +142,7 @@ fn split_u128(x: u128) -> [Limb; 2] {
 // NONZERO
 
 /// Check if any of the remaining bits are non-zero.
-#[inline(always)]
+#[inline]
 pub fn nonzero<T: Integer>(x: &[T], rindex: usize) -> bool {
     let len = x.len();
     let slc = &x[..len-rindex];
@@ -220,7 +220,7 @@ trait Hi16<T>: Len<T> {
 }
 
 impl Hi16<u16> for [u16] {
-    #[inline(always)]
+    #[inline]
     fn hi16_1(&self) -> (u16, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
@@ -228,7 +228,7 @@ impl Hi16<u16> for [u16] {
         u16_to_hi16_1(r0)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi16_2(&self) -> (u16, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
@@ -240,7 +240,7 @@ impl Hi16<u16> for [u16] {
 }
 
 impl Hi16<u32> for [u32] {
-    #[inline(always)]
+    #[inline]
     fn hi16_1(&self) -> (u16, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
@@ -248,7 +248,7 @@ impl Hi16<u32> for [u32] {
         u32_to_hi16_1(r0)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi16_2(&self) -> (u16, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
@@ -260,7 +260,7 @@ impl Hi16<u32> for [u32] {
 }
 
 impl Hi16<u64> for [u64] {
-    #[inline(always)]
+    #[inline]
     fn hi16_1(&self) -> (u16, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
@@ -268,7 +268,7 @@ impl Hi16<u64> for [u64] {
         u64_to_hi16_1(r0)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi16_2(&self) -> (u16, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
@@ -340,14 +340,14 @@ trait Hi32<T>: Len<T> {
 }
 
 impl Hi32<u16> for [u16] {
-    #[inline(always)]
+    #[inline]
     fn hi32_1(&self) -> (u32, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
         u32_to_hi32_1(rview[0].as_u32())
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi32_2(&self) -> (u32, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
@@ -356,7 +356,7 @@ impl Hi32<u16> for [u16] {
         u32_to_hi32_1(r0 | r1)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi32_3(&self) -> (u32, bool) {
         debug_assert!(self.len() >= 3);
         let rview = self.rview();
@@ -369,7 +369,7 @@ impl Hi32<u16> for [u16] {
 }
 
 impl Hi32<u32> for [u32] {
-    #[inline(always)]
+    #[inline]
     fn hi32_1(&self) -> (u32, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
@@ -377,7 +377,7 @@ impl Hi32<u32> for [u32] {
         u32_to_hi32_1(r0)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi32_2(&self) -> (u32, bool) {
         debug_assert!(self.len() >= 2);
         let rview = self.rview();
@@ -387,14 +387,14 @@ impl Hi32<u32> for [u32] {
         (v, n || nonzero(self, 2))
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi32_3(&self) -> (u32, bool) {
         self.hi32_2()
     }
 }
 
 impl Hi32<u64> for [u64] {
-    #[inline(always)]
+    #[inline]
     fn hi32_1(&self) -> (u32, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
@@ -402,7 +402,7 @@ impl Hi32<u64> for [u64] {
         u64_to_hi32_1(r0)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi32_2(&self) -> (u32, bool) {
         debug_assert!(self.len() >= 2);
         let rview = self.rview();
@@ -412,7 +412,7 @@ impl Hi32<u64> for [u64] {
         (v, n || nonzero(self, 2))
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi32_3(&self) -> (u32, bool) {
         self.hi32_2()
     }
@@ -473,7 +473,7 @@ trait Hi64<T>: Len<T> {
 }
 
 impl Hi64<u16> for [u16] {
-    #[inline(always)]
+    #[inline]
     fn hi64_1(&self) -> (u64, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
@@ -481,7 +481,7 @@ impl Hi64<u16> for [u16] {
         u64_to_hi64_1(r0)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi64_2(&self) -> (u64, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
@@ -490,7 +490,7 @@ impl Hi64<u16> for [u16] {
         u64_to_hi64_1(r0 | r1)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi64_3(&self) -> (u64, bool) {
         debug_assert!(self.len() == 3);
         let rview = self.rview();
@@ -500,7 +500,7 @@ impl Hi64<u16> for [u16] {
         u64_to_hi64_1(r0 | r1 | r2)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi64_4(&self) -> (u64, bool) {
         debug_assert!(self.len() == 4);
         let rview = self.rview();
@@ -511,7 +511,7 @@ impl Hi64<u16> for [u16] {
         u64_to_hi64_1(r0 | r1 | r2 | r3)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi64_5(&self) -> (u64, bool) {
         debug_assert!(self.len() >= 5);
         let rview = self.rview();
@@ -526,7 +526,7 @@ impl Hi64<u16> for [u16] {
 }
 
 impl Hi64<u32> for [u32] {
-    #[inline(always)]
+    #[inline]
     fn hi64_1(&self) -> (u64, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
@@ -534,7 +534,7 @@ impl Hi64<u32> for [u32] {
         u64_to_hi64_1(r0)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi64_2(&self) -> (u64, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
@@ -543,7 +543,7 @@ impl Hi64<u32> for [u32] {
         u64_to_hi64_1(r0 | r1)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi64_3(&self) -> (u64, bool) {
         debug_assert!(self.len() >= 3);
         let rview = self.rview();
@@ -554,19 +554,19 @@ impl Hi64<u32> for [u32] {
         (v, n || nonzero(self, 3))
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi64_4(&self) -> (u64, bool) {
         self.hi64_3()
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi64_5(&self) -> (u64, bool) {
         self.hi64_3()
     }
 }
 
 impl Hi64<u64> for [u64] {
-    #[inline(always)]
+    #[inline]
     fn hi64_1(&self) -> (u64, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
@@ -574,7 +574,7 @@ impl Hi64<u64> for [u64] {
         u64_to_hi64_1(r0)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi64_2(&self) -> (u64, bool) {
         debug_assert!(self.len() >= 2);
         let rview = self.rview();
@@ -584,17 +584,17 @@ impl Hi64<u64> for [u64] {
         (v, n || nonzero(self, 2))
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi64_3(&self) -> (u64, bool) {
         self.hi64_2()
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi64_4(&self) -> (u64, bool) {
         self.hi64_2()
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi64_5(&self) -> (u64, bool) {
         self.hi64_2()
     }
@@ -665,7 +665,7 @@ trait Hi128<T>: Len<T> {
 }
 
 impl Hi128<u16> for [u16] {
-    #[inline(always)]
+    #[inline]
     fn hi128_1(&self) -> (u128, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
@@ -673,7 +673,7 @@ impl Hi128<u16> for [u16] {
         u128_to_hi128_1(r0)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_2(&self) -> (u128, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
@@ -682,7 +682,7 @@ impl Hi128<u16> for [u16] {
         u128_to_hi128_1(r0 | r1)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_3(&self) -> (u128, bool) {
         debug_assert!(self.len() == 3);
         let rview = self.rview();
@@ -692,7 +692,7 @@ impl Hi128<u16> for [u16] {
         u128_to_hi128_1(r0 | r1 | r2)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_4(&self) -> (u128, bool) {
         debug_assert!(self.len() == 4);
         let rview = self.rview();
@@ -703,7 +703,7 @@ impl Hi128<u16> for [u16] {
         u128_to_hi128_1(r0 | r1 | r2 | r3)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_5(&self) -> (u128, bool) {
         debug_assert!(self.len() == 5);
         let rview = self.rview();
@@ -715,7 +715,7 @@ impl Hi128<u16> for [u16] {
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_6(&self) -> (u128, bool) {
         debug_assert!(self.len() == 6);
         let rview = self.rview();
@@ -728,7 +728,7 @@ impl Hi128<u16> for [u16] {
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_7(&self) -> (u128, bool) {
         debug_assert!(self.len() == 7);
         let rview = self.rview();
@@ -742,7 +742,7 @@ impl Hi128<u16> for [u16] {
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5 | r6)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_8(&self) -> (u128, bool) {
         debug_assert!(self.len() == 8);
         let rview = self.rview();
@@ -757,7 +757,7 @@ impl Hi128<u16> for [u16] {
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5 | r6 | r7)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_9(&self) -> (u128, bool) {
         debug_assert!(self.len() >= 9);
         let rview = self.rview();
@@ -776,7 +776,7 @@ impl Hi128<u16> for [u16] {
 }
 
 impl Hi128<u32> for [u32] {
-    #[inline(always)]
+    #[inline]
     fn hi128_1(&self) -> (u128, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
@@ -784,7 +784,7 @@ impl Hi128<u32> for [u32] {
         u128_to_hi128_1(r0)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_2(&self) -> (u128, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
@@ -793,7 +793,7 @@ impl Hi128<u32> for [u32] {
         u128_to_hi128_1(r0 | r1)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_3(&self) -> (u128, bool) {
         debug_assert!(self.len() == 3);
         let rview = self.rview();
@@ -803,7 +803,7 @@ impl Hi128<u32> for [u32] {
         u128_to_hi128_1(r0 | r1 | r2)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_4(&self) -> (u128, bool) {
         debug_assert!(self.len() == 4);
         let rview = self.rview();
@@ -814,7 +814,7 @@ impl Hi128<u32> for [u32] {
         u128_to_hi128_1(r0 | r1 | r2 | r3)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_5(&self) -> (u128, bool) {
         debug_assert!(self.len() >= 5);
         let rview = self.rview();
@@ -827,29 +827,29 @@ impl Hi128<u32> for [u32] {
         (v, n || nonzero(self, 5))
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_6(&self) -> (u128, bool) {
         self.hi128_5()
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_7(&self) -> (u128, bool) {
         self.hi128_5()
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_8(&self) -> (u128, bool) {
         self.hi128_5()
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_9(&self) -> (u128, bool) {
         self.hi128_5()
     }
 }
 
 impl Hi128<u64> for [u64] {
-    #[inline(always)]
+    #[inline]
     fn hi128_1(&self) -> (u128, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
@@ -857,7 +857,7 @@ impl Hi128<u64> for [u64] {
         u128_to_hi128_1(r0)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_2(&self) -> (u128, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
@@ -866,7 +866,7 @@ impl Hi128<u64> for [u64] {
         u128_to_hi128_1(r0 | r1)
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_3(&self) -> (u128, bool) {
         debug_assert!(self.len() >= 3);
         let rview = self.rview();
@@ -877,32 +877,32 @@ impl Hi128<u64> for [u64] {
         (v, n || nonzero(self, 3))
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_4(&self) -> (u128, bool) {
         self.hi128_3()
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_5(&self) -> (u128, bool) {
         self.hi128_3()
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_6(&self) -> (u128, bool) {
         self.hi128_3()
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_7(&self) -> (u128, bool) {
         self.hi128_3()
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_8(&self) -> (u128, bool) {
         self.hi128_3()
     }
 
-    #[inline(always)]
+    #[inline]
     fn hi128_9(&self) -> (u128, bool) {
         self.hi128_3()
     }
@@ -921,7 +921,7 @@ use super::*;
 // ADDITION
 
 /// Add two small integers and return the resulting value and if overflow happens.
-#[inline(always)]
+#[inline]
 pub fn add(x: Limb, y: Limb)
     -> (Limb, bool)
 {
@@ -929,7 +929,7 @@ pub fn add(x: Limb, y: Limb)
 }
 
 /// AddAssign two small integers and return if overflow happens.
-#[inline(always)]
+#[inline]
 pub fn iadd(x: &mut Limb, y: Limb)
     -> bool
 {
@@ -941,7 +941,7 @@ pub fn iadd(x: &mut Limb, y: Limb)
 // SUBTRACTION
 
 /// Subtract two small integers and return the resulting value and if overflow happens.
-#[inline(always)]
+#[inline]
 pub fn sub(x: Limb, y: Limb)
     -> (Limb, bool)
 {
@@ -949,7 +949,7 @@ pub fn sub(x: Limb, y: Limb)
 }
 
 /// SubAssign two small integers and return if overflow happens.
-#[inline(always)]
+#[inline]
 pub fn isub(x: &mut Limb, y: Limb)
     -> bool
 {
@@ -963,7 +963,7 @@ pub fn isub(x: &mut Limb, y: Limb)
 /// Multiply two small integers (with carry) (and return the overflow contribution).
 ///
 /// Returns the (low, high) components.
-#[inline(always)]
+#[inline]
 pub fn mul(x: Limb, y: Limb, carry: Limb)
     -> (Limb, Limb)
 {
@@ -975,7 +975,7 @@ pub fn mul(x: Limb, y: Limb, carry: Limb)
 }
 
 /// Multiply two small integers (with carry) (and return if overflow happens).
-#[inline(always)]
+#[inline]
 pub fn imul(x: &mut Limb, y: Limb, carry: Limb)
     -> Limb
 {
@@ -989,7 +989,7 @@ pub fn imul(x: &mut Limb, y: Limb, carry: Limb)
 /// Divide two small integers (with remainder) (and return the remainder contribution).
 ///
 /// Returns the (value, remainder) components.
-#[inline(always)]
+#[inline]
 pub fn div(x: Limb, y: Limb, rem: Limb)
     -> (Limb, Limb)
 {
@@ -1000,7 +1000,7 @@ pub fn div(x: Limb, y: Limb, rem: Limb)
 }
 
 /// DivAssign two small integers and return the remainder.
-#[inline(always)]
+#[inline]
 pub fn idiv(x: &mut Limb, y: Limb, rem: Limb)
     -> Limb
 {
@@ -1335,7 +1335,7 @@ pub fn iadd_impl<T>(x: &mut T, y: Limb, xstart: usize)
 }
 
 /// AddAssign small integer to bigint.
-#[inline(always)]
+#[inline]
 pub fn iadd<T>(x: &mut T, y: Limb)
     where T: CloneableVecLike<Limb>
 {
@@ -1377,7 +1377,7 @@ pub fn isub_impl<T>(x: &mut T, y: Limb, xstart: usize)
 
 /// SubAssign small integer to bigint.
 /// Does not do overflowing subtraction.
-#[inline(always)]
+#[inline]
 pub fn isub<T>(x: &mut T, y: Limb)
     where T: CloneableVecLike<Limb>
 {
@@ -1636,25 +1636,25 @@ pub fn compare(x: &[Limb], y: &[Limb]) -> cmp::Ordering {
 }
 
 /// Check if x is greater than y.
-#[inline(always)]
+#[inline]
 pub fn greater(x: &[Limb], y: &[Limb]) -> bool {
     compare(x, y) == cmp::Ordering::Greater
 }
 
 /// Check if x is greater than or equal to y.
-#[inline(always)]
+#[inline]
 pub fn greater_equal(x: &[Limb], y: &[Limb]) -> bool {
     !less(x, y)
 }
 
 /// Check if x is less than y.
-#[inline(always)]
+#[inline]
 pub fn less(x: &[Limb], y: &[Limb]) -> bool {
     compare(x, y) == cmp::Ordering::Less
 }
 
 /// Check if x is less than or equal to y.
-#[inline(always)]
+#[inline]
 pub fn less_equal(x: &[Limb], y: &[Limb]) -> bool {
     !greater(x, y)
 }
@@ -1704,7 +1704,7 @@ pub fn iadd_impl<T>(x: &mut T, y: &[Limb], xstart: usize)
 }
 
 /// AddAssign bigint to bigint.
-#[inline(always)]
+#[inline]
 pub fn iadd<T>(x: &mut T, y: &[Limb])
     where T: CloneableVecLike<Limb>
 {
@@ -1803,7 +1803,7 @@ fn long_mul<T>(x: &[Limb], y: &[Limb])
 }
 
 /// Split two buffers into halfway, into (lo, hi).
-#[inline(always)]
+#[inline]
 pub fn karatsuba_split<'a>(z: &'a [Limb], m: usize)
     -> (&'a [Limb], &'a [Limb])
 {
@@ -1879,7 +1879,7 @@ fn karatsuba_uneven_mul<T>(x: &[Limb], mut y: &[Limb])
 }
 
 /// Forwarder to the proper Karatsuba algorithm.
-#[inline(always)]
+#[inline]
 fn karatsuba_mul_fwd<T>(x: &[Limb], y: &[Limb])
     -> T
     where T: CloneableVecLike<Limb>

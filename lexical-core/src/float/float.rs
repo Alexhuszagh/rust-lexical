@@ -34,18 +34,14 @@ impl<M: Mantissa> ExtendedFloat<M> {
     // PROPERTIES
 
     /// Get the mantissa component.
-    #[inline(always)]
-    pub fn mantissa(&self)
-        -> M
-    {
+    #[inline]
+    pub fn mantissa(&self) -> M {
         self.mant
     }
 
     /// Get the exponent component.
-    #[inline(always)]
-    pub fn exponent(&self)
-        -> i32
-    {
+    #[inline]
+    pub fn exponent(&self) -> i32 {
         self.exp
     }
 

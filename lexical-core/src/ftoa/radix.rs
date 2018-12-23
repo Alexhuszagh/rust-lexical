@@ -206,7 +206,7 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
 ///
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-#[inline(always)]
+#[inline]
 pub(crate) fn float_radix<'a>(f: f32, radix: u32, bytes: &'a mut [u8])
     -> &'a mut [u8]
 {
@@ -219,7 +219,7 @@ pub(crate) fn float_radix<'a>(f: f32, radix: u32, bytes: &'a mut [u8])
 ///
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-#[inline(always)]
+#[inline]
 pub(crate) fn double_radix<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
     -> &'a mut [u8]
 {

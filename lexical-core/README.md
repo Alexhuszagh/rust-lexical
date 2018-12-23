@@ -27,7 +27,7 @@ Add lexical-core to your `Cargo.toml`:
 
 ```yaml
 [dependencies]
-lexical-core = "0.2"
+lexical-core = "0.3"
 ```
 
 And an introduction through use:
@@ -38,8 +38,8 @@ extern crate lexical_core;
 // String to number using Rust slices.
 // The first argument is the radix, which should be 10 for decimal strings,
 // and the second argument is the byte string parsed.
-let f = lexical_core::atof::atof64_slice(10, b"3.5");   // 3.5
-let i = lexical_core::atoi::atoi32_slice(10, b"15");          // 15
+let f = lexical_core::atof64_slice(b"3.5");   // 3.5
+let i = lexical_core::atoi32_slice(b"15");    // 15
 
 // String to number using pointer ranges, for FFI-compatible code.
 // The first argument is the radix, which should be 10 for decimal strings,
@@ -50,7 +50,7 @@ unsafe {
     let bytes = b"3.5";
     let first = bytes.as_ptr();
     let last = first.add(bytes.len());
-    let f = lexical_core::atof::atof64_range(10, first, last);
+    let f = lexical_core::atof64_range(first, last);
 }
 
 // The ato*_slice and ato*_range parsers are not checked, they do not
@@ -58,21 +58,21 @@ unsafe {
 // when invalid data is found, returning whatever was parsed up until
 // that point. The explicit behavior is to wrap on overflow, and 
 // to discard invalid digits.
-let i = lexical_core::atoi::atoi8_slice(10, b"256");    // 0, wraps from 256
-let i = lexical_core::atoi::atoi8_slice(10, b"1a5");    // 1, discards "a5"
+let i = lexical_core::atoi8_slice(b"256");    // 0, wraps from 256
+let i = lexical_core::atoi8_slice(b"1a5");    // 1, discards "a5"
 
 // You should prefer the checked parsers, whenever possible. These detect 
 // numeric overflow, and no invalid trailing digits are present.
 // The error code for success is 0, all errors are less than 0.
 
 // Ideally, everything works great.
-let res = lexical_core::atoi::try_atoi8_slice(10, b"15");
+let res = lexical_core::try_atoi8_slice(b"15");
 assert_eq!(res.error.code, lexical_core::ErrorCode::Success);
 assert_eq!(res.value, 15);
 
 // However, it detects numeric overflow, setting `res.error.code`
 // to the appropriate value.
-let res = lexical_core::atoi::try_atoi8_slice(10, b"256");
+let res = lexical_core::try_atoi8_slice(b"256");
 assert_eq!(res.error.code, lexical_core::ErrorCode::Overflow);
 
 // Errors occurring prematurely terminating the parser due to invalid 
@@ -83,7 +83,7 @@ assert_eq!(res.error.code, lexical_core::ErrorCode::Overflow);
 // to a `InvalidDigit`, the value is guaranteed to be accurate up until
 // that point. For example, if the trailing data is whitespace,
 // the value from an invalid digit may be perfectly valid in some contexts.
-let res = lexical_core::atoi::try_atoi8_slice(10, b"15 45");
+let res = lexical_core::try_atoi8_slice(b"15 45");
 assert_eq!(res.error.code, lexical_core::ErrorCode::InvalidDigit);
 assert_eq!(res.error.index, 2);
 assert_eq!(res.value, 15);
@@ -94,19 +94,19 @@ assert_eq!(res.value, 15);
 // The function returns a subslice of the original buffer, and will
 // always start at the same position (`buf.as_ptr() == slc.as_ptr()`).
 let mut buf = [b'0'; lexical_core::MAX_I64_SIZE];
-let slc = lexical_core::itoa::i64toa_slice(15, 10, &mut buf);
+let slc = lexical_core::i64toa_slice(15, &mut buf);
 assert_eq!(slc, b"15");
 
 // If an insufficiently long buffer is passed, the serializer will panic.
-let mut buf = [b'0'; 1];
 // PANICS
-//let slc = lexical_core::itoa::i64toa_slice(15, 10, &mut buf); 
+let mut buf = [b'0'; 1];
+//let slc = lexical_core::i64toa_slice(15, &mut buf); 
 
 // In order to guarantee the buffer is long enough, always ensure there
 // are at least `MAX_*_SIZE`, where * is the type name in upperase,
 // IE, for `isize`, `MAX_ISIZE_SIZE`.
 let mut buf = [b'0'; lexical_core::MAX_F64_SIZE];
-let slc = lexical_core::ftoa::f64toa_slice(15.1, 10, &mut buf);
+let slc = lexical_core::f64toa_slice(15.1, &mut buf);
 assert_eq!(slc, b"15.1");
 ```
 
@@ -191,10 +191,10 @@ def distance(first, last):
 data = b"1.2345"
 first = to_charp(data)
 last = to_charp(to_address(first) + len(data))
-result = lib.atof32_range(10, first, last)
+result = lib.atof32_range(first, last)
 print(result)               # 1.2345000505447388
 
-result = lib.try_atof32_range(10, first, last)
+result = lib.try_atof32_range(first, last)
 print(result.value)         # 1.2345000505447388
 print(result.error.code)    # 0
 
@@ -210,7 +210,7 @@ first = to_charp(buf)
 last = to_charp(to_address(first) + len(buf))
 
 # Call the serializer and create a Python string from our result.
-ptr = lib.f32toa_range(value, 10, first, last)
+ptr = lib.f32toa_range(value, first, last)
 length = distance(first, ptr)
 result = string_at(buf, 6)
 print(result)               # "1.2345"

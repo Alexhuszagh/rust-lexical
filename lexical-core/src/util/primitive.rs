@@ -24,47 +24,75 @@ pub trait AsPrimitive: Copy + PartialEq + PartialOrd + Send + Sync {
 macro_rules! as_primitive {
     ($($t:ty)*) => ($(
         impl AsPrimitive for $t {
-            #[inline(always)]
-            fn as_u8(self) -> u8 { self as u8 }
+            #[inline]
+            fn as_u8(self) -> u8 {
+                self as u8
+            }
 
-            #[inline(always)]
-            fn as_u16(self) -> u16 { self as u16 }
+            #[inline]
+            fn as_u16(self) -> u16 {
+                self as u16
+            }
 
-            #[inline(always)]
-            fn as_u32(self) -> u32 { self as u32 }
+            #[inline]
+            fn as_u32(self) -> u32 {
+                self as u32
+            }
 
-            #[inline(always)]
-            fn as_u64(self) -> u64 { self as u64 }
+            #[inline]
+            fn as_u64(self) -> u64 {
+                self as u64
+            }
 
-            #[inline(always)]
-            fn as_u128(self) -> u128 { self as u128 }
+            #[inline]
+            fn as_u128(self) -> u128 {
+                self as u128
+            }
 
-            #[inline(always)]
-            fn as_usize(self) -> usize { self as usize }
+            #[inline]
+            fn as_usize(self) -> usize {
+                self as usize
+            }
 
-            #[inline(always)]
-            fn as_i8(self) -> i8 { self as i8 }
+            #[inline]
+            fn as_i8(self) -> i8 {
+                self as i8
+            }
 
-            #[inline(always)]
-            fn as_i16(self) -> i16 { self as i16 }
+            #[inline]
+            fn as_i16(self) -> i16 {
+                self as i16
+            }
 
-            #[inline(always)]
-            fn as_i32(self) -> i32 { self as i32 }
+            #[inline]
+            fn as_i32(self) -> i32 {
+                self as i32
+            }
 
-            #[inline(always)]
-            fn as_i64(self) -> i64 { self as i64 }
+            #[inline]
+            fn as_i64(self) -> i64 {
+                self as i64
+            }
 
-            #[inline(always)]
-            fn as_i128(self) -> i128 { self as i128 }
+            #[inline]
+            fn as_i128(self) -> i128 {
+                self as i128
+            }
 
-            #[inline(always)]
-            fn as_isize(self) -> isize { self as isize }
+            #[inline]
+            fn as_isize(self) -> isize {
+                self as isize
+            }
 
-            #[inline(always)]
-            fn as_f32(self) -> f32 { self as f32 }
+            #[inline]
+            fn as_f32(self) -> f32 {
+                self as f32
+            }
 
-            #[inline(always)]
-            fn as_f64(self) -> f64 { self as f64 }
+            #[inline]
+            fn as_f64(self) -> f64 {
+                self as f64
+            }
         }
     )*)
 }
@@ -89,72 +117,72 @@ pub trait TryPrimitive:
     TryCast<f32> +
     TryCast<f64>
 {
-    #[inline(always)]
+    #[inline]
     fn try_u8(self) -> Option<u8> {
         self.try_cast()
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u16(self) -> Option<u16> {
         self.try_cast()
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u32(self) -> Option<u32> {
         self.try_cast()
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u64(self) -> Option<u64> {
         self.try_cast()
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u128(self) -> Option<u128> {
         self.try_cast()
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_usize(self) -> Option<usize> {
         self.try_cast()
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i8(self) -> Option<i8> {
         self.try_cast()
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i16(self) -> Option<i16> {
         self.try_cast()
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i32(self) -> Option<i32> {
         self.try_cast()
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i64(self) -> Option<i64> {
         self.try_cast()
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i128(self) -> Option<i128> {
         self.try_cast()
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_isize(self) -> Option<isize> {
         self.try_cast()
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_f32(self) -> Option<f32> {
         self.try_cast()
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_f64(self) -> Option<f64> {
         self.try_cast()
     }

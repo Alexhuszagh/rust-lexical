@@ -5,7 +5,7 @@ extern crate lexical_core;
 
 use bencher::{black_box, Bencher};
 use itoa::write as itoa_write;
-use lexical_core::itoa::*;
+use lexical_core::*;
 
 // U8
 
@@ -14,7 +14,7 @@ const U8_DATA: [u8; 10000] = [53, 100, 58, 37, 172, 42, 60, 236, 17, 104, 231, 9
 
 fn itoa_u8_lexical(bench: &mut Bencher) {
     let mut buffer: [u8; 256] = [b'0'; 256];
-    bench.iter(|| { U8_DATA.iter().for_each(|x| { black_box(u8toa_slice(*x, 10, &mut buffer)); } ) })
+    bench.iter(|| { U8_DATA.iter().for_each(|x| { black_box(u8toa_slice(*x, &mut buffer)); } ) })
 }
 
 fn itoa_u8_itoa(bench: &mut Bencher) {
@@ -36,7 +36,7 @@ const I8_DATA: [i8; 10000] = [-116, -78, 76, 68, 101, -54, -120, -128, 101, 103,
 
 fn itoa_i8_lexical(bench: &mut Bencher) {
     let mut buffer: [u8; 256] = [b'0'; 256];
-    bench.iter(|| { I8_DATA.iter().for_each(|x| { black_box(i8toa_slice(*x, 10, &mut buffer)); } ) })
+    bench.iter(|| { I8_DATA.iter().for_each(|x| { black_box(i8toa_slice(*x, &mut buffer)); } ) })
 }
 
 fn itoa_i8_itoa(bench: &mut Bencher) {
@@ -58,7 +58,7 @@ const U16_DATA: [u16; 10000] = [24169, 41703, 26374, 43480, 44763, 37747, 31577,
 
 fn itoa_u16_lexical(bench: &mut Bencher) {
     let mut buffer: [u8; 256] = [b'0'; 256];
-    bench.iter(|| { U16_DATA.iter().for_each(|x| { black_box(u16toa_slice(*x, 10, &mut buffer)); } ) })
+    bench.iter(|| { U16_DATA.iter().for_each(|x| { black_box(u16toa_slice(*x, &mut buffer)); } ) })
 }
 
 fn itoa_u16_itoa(bench: &mut Bencher) {
@@ -80,7 +80,7 @@ const I16_DATA: [i16; 10000] = [13955, 1461, 19688, -9260, 5321, 23767, 26577, 2
 
 fn itoa_i16_lexical(bench: &mut Bencher) {
     let mut buffer: [u8; 256] = [b'0'; 256];
-    bench.iter(|| { I16_DATA.iter().for_each(|x| { black_box(i16toa_slice(*x, 10, &mut buffer)); } ) })
+    bench.iter(|| { I16_DATA.iter().for_each(|x| { black_box(i16toa_slice(*x, &mut buffer)); } ) })
 }
 
 fn itoa_i16_itoa(bench: &mut Bencher) {
@@ -102,7 +102,7 @@ const U32_DATA: [u32; 10000] = [2684482862, 2054991180, 3692606912, 3396042225, 
 
 fn itoa_u32_lexical(bench: &mut Bencher) {
     let mut buffer: [u8; 256] = [b'0'; 256];
-    bench.iter(|| { U32_DATA.iter().for_each(|x| { black_box(u32toa_slice(*x, 10, &mut buffer)); } ) })
+    bench.iter(|| { U32_DATA.iter().for_each(|x| { black_box(u32toa_slice(*x, &mut buffer)); } ) })
 }
 
 fn itoa_u32_itoa(bench: &mut Bencher) {
@@ -124,7 +124,7 @@ const I32_DATA: [i32; 10000] = [1272427765, -1811628732, -1073566435, 498912448,
 
 fn itoa_i32_lexical(bench: &mut Bencher) {
     let mut buffer: [u8; 256] = [b'0'; 256];
-    bench.iter(|| { I32_DATA.iter().for_each(|x| { black_box(i32toa_slice(*x, 10, &mut buffer)); } ) })
+    bench.iter(|| { I32_DATA.iter().for_each(|x| { black_box(i32toa_slice(*x, &mut buffer)); } ) })
 }
 
 fn itoa_i32_itoa(bench: &mut Bencher) {
@@ -146,7 +146,7 @@ const U64_DATA: [u64; 10000] = [3945177632932793843, 939239760006111664, 7891153
 
 fn itoa_u64_lexical(bench: &mut Bencher) {
     let mut buffer: [u8; 256] = [b'0'; 256];
-    bench.iter(|| { U64_DATA.iter().for_each(|x| { black_box(u64toa_slice(*x, 10, &mut buffer)); } ) })
+    bench.iter(|| { U64_DATA.iter().for_each(|x| { black_box(u64toa_slice(*x, &mut buffer)); } ) })
 }
 
 fn itoa_u64_itoa(bench: &mut Bencher) {
@@ -168,7 +168,7 @@ const I64_DATA: [i64; 10000] = [9037715090353432884, -6734710292138552916, 58386
 
 fn itoa_i64_lexical(bench: &mut Bencher) {
     let mut buffer: [u8; 256] = [b'0'; 256];
-    bench.iter(|| { I64_DATA.iter().for_each(|x| { black_box(i64toa_slice(*x, 10, &mut buffer)); } ) })
+    bench.iter(|| { I64_DATA.iter().for_each(|x| { black_box(i64toa_slice(*x, &mut buffer)); } ) })
 }
 
 fn itoa_i64_itoa(bench: &mut Bencher) {

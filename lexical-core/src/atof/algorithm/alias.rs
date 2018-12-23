@@ -58,44 +58,44 @@ pub(super) trait ExtendedFloatType<F: FloatType>:
 }
 
 impl ExtendedFloatType<f32> for ExtendedFloat<u32> {
-    #[inline(always)]
+    #[inline]
     fn mant(&self) -> u32 {
         self.mant
     }
 
-    #[inline(always)]
+    #[inline]
     fn exp(&self) -> i32 {
         self.exp
     }
 
-    #[inline(always)]
+    #[inline]
     fn set_mant(&mut self, mant: u32) {
         self.mant = mant;
     }
 
-    #[inline(always)]
+    #[inline]
     fn set_exp(&mut self, exp: i32) {
         self.exp = exp;
     }
 }
 
 impl ExtendedFloatType<f64> for ExtendedFloat<u64> {
-    #[inline(always)]
+    #[inline]
     fn mant(&self) -> u64 {
         self.mant
     }
 
-    #[inline(always)]
+    #[inline]
     fn exp(&self) -> i32 {
         self.exp
     }
 
-    #[inline(always)]
+    #[inline]
     fn set_mant(&mut self, mant: u64) {
         self.mant = mant;
     }
 
-    #[inline(always)]
+    #[inline]
     fn set_exp(&mut self, exp: i32) {
         self.exp = exp;
     }

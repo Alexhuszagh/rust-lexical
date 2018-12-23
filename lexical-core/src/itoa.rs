@@ -358,32 +358,32 @@ wrap_signed!(isizetoa_impl, isize, usize, isize);
 // -------------
 
 // RANGE API (FFI)
-generate_to_range_api!(u8toa_range, u8, u8toa_impl, MAX_U8_SIZE);
-generate_to_range_api!(u16toa_range, u16, u16toa_impl, MAX_U16_SIZE);
-generate_to_range_api!(u32toa_range, u32, u32toa_impl, MAX_U32_SIZE);
-generate_to_range_api!(u64toa_range, u64, u64toa_impl, MAX_U64_SIZE);
-generate_to_range_api!(u128toa_range, u128, u128toa_impl, MAX_U128_SIZE);
-generate_to_range_api!(usizetoa_range, usize, usizetoa_impl, MAX_USIZE_SIZE);
-generate_to_range_api!(i8toa_range, i8, i8toa_impl, MAX_I8_SIZE);
-generate_to_range_api!(i16toa_range, i16, i16toa_impl, MAX_I16_SIZE);
-generate_to_range_api!(i32toa_range, i32, i32toa_impl, MAX_I32_SIZE);
-generate_to_range_api!(i64toa_range, i64, i64toa_impl, MAX_I64_SIZE);
-generate_to_range_api!(i128toa_range, i128, i128toa_impl, MAX_I128_SIZE);
-generate_to_range_api!(isizetoa_range, isize, isizetoa_impl, MAX_ISIZE_SIZE);
+generate_to_range_api!(u8toa_range, u8toa_radix_range, u8, u8toa_impl, MAX_U8_SIZE);
+generate_to_range_api!(u16toa_range, u16toa_radix_range, u16, u16toa_impl, MAX_U16_SIZE);
+generate_to_range_api!(u32toa_range, u32toa_radix_range, u32, u32toa_impl, MAX_U32_SIZE);
+generate_to_range_api!(u64toa_range, u64toa_radix_range, u64, u64toa_impl, MAX_U64_SIZE);
+generate_to_range_api!(u128toa_range, u128toa_radix_range, u128, u128toa_impl, MAX_U128_SIZE);
+generate_to_range_api!(usizetoa_range, usizetoa_radix_range, usize, usizetoa_impl, MAX_USIZE_SIZE);
+generate_to_range_api!(i8toa_range, i8toa_radix_range, i8, i8toa_impl, MAX_I8_SIZE);
+generate_to_range_api!(i16toa_range, i16toa_radix_range, i16, i16toa_impl, MAX_I16_SIZE);
+generate_to_range_api!(i32toa_range, i32toa_radix_range, i32, i32toa_impl, MAX_I32_SIZE);
+generate_to_range_api!(i64toa_range, i64toa_radix_range, i64, i64toa_impl, MAX_I64_SIZE);
+generate_to_range_api!(i128toa_range, i128toa_radix_range, i128, i128toa_impl, MAX_I128_SIZE);
+generate_to_range_api!(isizetoa_range, isizetoa_radix_range, isize, isizetoa_impl, MAX_ISIZE_SIZE);
 
 // SLICE API
-generate_to_slice_api!(u8toa_slice, u8, u8toa_impl, MAX_U8_SIZE);
-generate_to_slice_api!(u16toa_slice, u16, u16toa_impl, MAX_U16_SIZE);
-generate_to_slice_api!(u32toa_slice, u32, u32toa_impl, MAX_U32_SIZE);
-generate_to_slice_api!(u64toa_slice, u64, u64toa_impl, MAX_U64_SIZE);
-generate_to_slice_api!(u128toa_slice, u128, u128toa_impl, MAX_U128_SIZE);
-generate_to_slice_api!(usizetoa_slice, usize, usizetoa_impl, MAX_USIZE_SIZE);
-generate_to_slice_api!(i8toa_slice, i8, i8toa_impl, MAX_I8_SIZE);
-generate_to_slice_api!(i16toa_slice, i16, i16toa_impl, MAX_I16_SIZE);
-generate_to_slice_api!(i32toa_slice, i32, i32toa_impl, MAX_I32_SIZE);
-generate_to_slice_api!(i64toa_slice, i64, i64toa_impl, MAX_I64_SIZE);
-generate_to_slice_api!(i128toa_slice, i128, i128toa_impl, MAX_I128_SIZE);
-generate_to_slice_api!(isizetoa_slice, isize, isizetoa_impl, MAX_ISIZE_SIZE);
+generate_to_slice_api!(u8toa_slice, u8toa_radix_slice, u8, u8toa_impl, MAX_U8_SIZE);
+generate_to_slice_api!(u16toa_slice, u16toa_radix_slice, u16, u16toa_impl, MAX_U16_SIZE);
+generate_to_slice_api!(u32toa_slice, u32toa_radix_slice, u32, u32toa_impl, MAX_U32_SIZE);
+generate_to_slice_api!(u64toa_slice, u64toa_radix_slice, u64, u64toa_impl, MAX_U64_SIZE);
+generate_to_slice_api!(u128toa_slice, u128toa_radix_slice, u128, u128toa_impl, MAX_U128_SIZE);
+generate_to_slice_api!(usizetoa_slice, usizetoa_radix_slice, usize, usizetoa_impl, MAX_USIZE_SIZE);
+generate_to_slice_api!(i8toa_slice, i8toa_radix_slice, i8, i8toa_impl, MAX_I8_SIZE);
+generate_to_slice_api!(i16toa_slice, i16toa_radix_slice, i16, i16toa_impl, MAX_I16_SIZE);
+generate_to_slice_api!(i32toa_slice, i32toa_radix_slice, i32, i32toa_impl, MAX_I32_SIZE);
+generate_to_slice_api!(i64toa_slice, i64toa_radix_slice, i64, i64toa_impl, MAX_I64_SIZE);
+generate_to_slice_api!(i128toa_slice, i128toa_radix_slice, i128, i128toa_impl, MAX_I128_SIZE);
+generate_to_slice_api!(isizetoa_slice, isizetoa_radix_slice, isize, isizetoa_impl, MAX_ISIZE_SIZE);
 
 // TESTS
 // -----
@@ -397,89 +397,89 @@ mod tests {
     #[test]
     fn u8toa_test() {
         let mut buffer = new_buffer();
-        assert_eq!(b"0", u8toa_slice(0, 10, &mut buffer));
-        assert_eq!(b"1", u8toa_slice(1, 10, &mut buffer));
-        assert_eq!(b"127", u8toa_slice(127, 10, &mut buffer));
-        assert_eq!(b"128", u8toa_slice(128, 10, &mut buffer));
-        assert_eq!(b"255", u8toa_slice(255, 10, &mut buffer));
-        assert_eq!(b"255", u8toa_slice(-1i8 as u8, 10, &mut buffer));
+        assert_eq!(b"0", u8toa_slice(0, &mut buffer));
+        assert_eq!(b"1", u8toa_slice(1, &mut buffer));
+        assert_eq!(b"127", u8toa_slice(127, &mut buffer));
+        assert_eq!(b"128", u8toa_slice(128, &mut buffer));
+        assert_eq!(b"255", u8toa_slice(255, &mut buffer));
+        assert_eq!(b"255", u8toa_slice(-1i8 as u8, &mut buffer));
     }
 
     #[test]
     fn i8toa_test() {
         let mut buffer = new_buffer();
-        assert_eq!(b"0", i8toa_slice(0, 10, &mut buffer));
-        assert_eq!(b"1", i8toa_slice(1, 10, &mut buffer));
-        assert_eq!(b"127", i8toa_slice(127, 10, &mut buffer));
-        assert_eq!(b"-128", i8toa_slice(128u8 as i8, 10, &mut buffer));
-        assert_eq!(b"-1", i8toa_slice(255u8 as i8, 10, &mut buffer));
-        assert_eq!(b"-1", i8toa_slice(-1, 10, &mut buffer));
+        assert_eq!(b"0", i8toa_slice(0, &mut buffer));
+        assert_eq!(b"1", i8toa_slice(1, &mut buffer));
+        assert_eq!(b"127", i8toa_slice(127, &mut buffer));
+        assert_eq!(b"-128", i8toa_slice(128u8 as i8, &mut buffer));
+        assert_eq!(b"-1", i8toa_slice(255u8 as i8, &mut buffer));
+        assert_eq!(b"-1", i8toa_slice(-1, &mut buffer));
     }
 
     #[test]
     fn u16toa_test() {
         let mut buffer = new_buffer();
-        assert_eq!(b"0", u16toa_slice(0, 10, &mut buffer));
-        assert_eq!(b"1", u16toa_slice(1, 10, &mut buffer));
-        assert_eq!(b"32767", u16toa_slice(32767, 10, &mut buffer));
-        assert_eq!(b"32768", u16toa_slice(32768, 10, &mut buffer));
-        assert_eq!(b"65535", u16toa_slice(65535, 10, &mut buffer));
-        assert_eq!(b"65535", u16toa_slice(-1i16 as u16, 10, &mut buffer));
+        assert_eq!(b"0", u16toa_slice(0, &mut buffer));
+        assert_eq!(b"1", u16toa_slice(1, &mut buffer));
+        assert_eq!(b"32767", u16toa_slice(32767, &mut buffer));
+        assert_eq!(b"32768", u16toa_slice(32768, &mut buffer));
+        assert_eq!(b"65535", u16toa_slice(65535, &mut buffer));
+        assert_eq!(b"65535", u16toa_slice(-1i16 as u16, &mut buffer));
     }
 
     #[test]
     fn i16toa_test() {
         let mut buffer = new_buffer();
-        assert_eq!(b"0", i16toa_slice(0, 10, &mut buffer));
-        assert_eq!(b"1", i16toa_slice(1, 10, &mut buffer));
-        assert_eq!(b"32767", i16toa_slice(32767, 10, &mut buffer));
-        assert_eq!(b"-32768", i16toa_slice(32768u16 as i16, 10, &mut buffer));
-        assert_eq!(b"-1", i16toa_slice(65535u16 as i16, 10, &mut buffer));
-        assert_eq!(b"-1", i16toa_slice(-1, 10, &mut buffer));
+        assert_eq!(b"0", i16toa_slice(0, &mut buffer));
+        assert_eq!(b"1", i16toa_slice(1, &mut buffer));
+        assert_eq!(b"32767", i16toa_slice(32767, &mut buffer));
+        assert_eq!(b"-32768", i16toa_slice(32768u16 as i16, &mut buffer));
+        assert_eq!(b"-1", i16toa_slice(65535u16 as i16, &mut buffer));
+        assert_eq!(b"-1", i16toa_slice(-1, &mut buffer));
     }
 
     #[test]
     fn u32toa_test() {
         let mut buffer = new_buffer();
-        assert_eq!(b"0", u32toa_slice(0, 10, &mut buffer));
-        assert_eq!(b"1", u32toa_slice(1, 10, &mut buffer));
-        assert_eq!(b"2147483647", u32toa_slice(2147483647, 10, &mut buffer));
-        assert_eq!(b"2147483648", u32toa_slice(2147483648, 10, &mut buffer));
-        assert_eq!(b"4294967295", u32toa_slice(4294967295, 10, &mut buffer));
-        assert_eq!(b"4294967295", u32toa_slice(-1i32 as u32, 10, &mut buffer));
+        assert_eq!(b"0", u32toa_slice(0, &mut buffer));
+        assert_eq!(b"1", u32toa_slice(1, &mut buffer));
+        assert_eq!(b"2147483647", u32toa_slice(2147483647, &mut buffer));
+        assert_eq!(b"2147483648", u32toa_slice(2147483648, &mut buffer));
+        assert_eq!(b"4294967295", u32toa_slice(4294967295, &mut buffer));
+        assert_eq!(b"4294967295", u32toa_slice(-1i32 as u32, &mut buffer));
     }
 
     #[test]
     fn i32toa_test() {
         let mut buffer = new_buffer();
-        assert_eq!(b"0", i32toa_slice(0, 10, &mut buffer));
-        assert_eq!(b"1", i32toa_slice(1, 10, &mut buffer));
-        assert_eq!(b"2147483647", i32toa_slice(2147483647, 10, &mut buffer));
-        assert_eq!(b"-2147483648", i32toa_slice(2147483648u32 as i32, 10, &mut buffer));
-        assert_eq!(b"-1", i32toa_slice(4294967295u32 as i32, 10, &mut buffer));
-        assert_eq!(b"-1", i32toa_slice(-1, 10, &mut buffer));
+        assert_eq!(b"0", i32toa_slice(0, &mut buffer));
+        assert_eq!(b"1", i32toa_slice(1, &mut buffer));
+        assert_eq!(b"2147483647", i32toa_slice(2147483647, &mut buffer));
+        assert_eq!(b"-2147483648", i32toa_slice(2147483648u32 as i32, &mut buffer));
+        assert_eq!(b"-1", i32toa_slice(4294967295u32 as i32, &mut buffer));
+        assert_eq!(b"-1", i32toa_slice(-1, &mut buffer));
     }
 
     #[test]
     fn u64toa_test() {
         let mut buffer = new_buffer();
-        assert_eq!(b"0", u64toa_slice(0, 10, &mut buffer));
-        assert_eq!(b"1", u64toa_slice(1, 10, &mut buffer));
-        assert_eq!(b"9223372036854775807", u64toa_slice(9223372036854775807, 10, &mut buffer));
-        assert_eq!(b"9223372036854775808", u64toa_slice(9223372036854775808, 10, &mut buffer));
-        assert_eq!(b"18446744073709551615", u64toa_slice(18446744073709551615, 10, &mut buffer));
-        assert_eq!(b"18446744073709551615", u64toa_slice(-1i64 as u64, 10, &mut buffer));
+        assert_eq!(b"0", u64toa_slice(0, &mut buffer));
+        assert_eq!(b"1", u64toa_slice(1, &mut buffer));
+        assert_eq!(b"9223372036854775807", u64toa_slice(9223372036854775807, &mut buffer));
+        assert_eq!(b"9223372036854775808", u64toa_slice(9223372036854775808, &mut buffer));
+        assert_eq!(b"18446744073709551615", u64toa_slice(18446744073709551615, &mut buffer));
+        assert_eq!(b"18446744073709551615", u64toa_slice(-1i64 as u64, &mut buffer));
     }
 
     #[test]
     fn i64toa_test() {
         let mut buffer = new_buffer();
-        assert_eq!(b"0", i64toa_slice(0, 10, &mut buffer));
-        assert_eq!(b"1", i64toa_slice(1, 10, &mut buffer));
-        assert_eq!(b"9223372036854775807", i64toa_slice(9223372036854775807, 10, &mut buffer));
-        assert_eq!(b"-9223372036854775808", i64toa_slice(9223372036854775808u64 as i64, 10, &mut buffer));
-        assert_eq!(b"-1", i64toa_slice(18446744073709551615u64 as i64, 10, &mut buffer));
-        assert_eq!(b"-1", i64toa_slice(-1, 10, &mut buffer));
+        assert_eq!(b"0", i64toa_slice(0, &mut buffer));
+        assert_eq!(b"1", i64toa_slice(1, &mut buffer));
+        assert_eq!(b"9223372036854775807", i64toa_slice(9223372036854775807, &mut buffer));
+        assert_eq!(b"-9223372036854775808", i64toa_slice(9223372036854775808u64 as i64, &mut buffer));
+        assert_eq!(b"-1", i64toa_slice(18446744073709551615u64 as i64, &mut buffer));
+        assert_eq!(b"-1", i64toa_slice(-1, &mut buffer));
     }
 
     #[cfg(feature = "radix")]
@@ -525,59 +525,59 @@ mod tests {
 
         let mut buffer = new_buffer();
         for (base, expected) in data.iter() {
-            assert_eq!(expected.as_bytes(), i8toa_slice(37, *base, &mut buffer));
+            assert_eq!(expected.as_bytes(), i8toa_radix_slice(37, *base, &mut buffer));
         }
     }
 
     quickcheck! {
         fn u8_quickcheck(i: u8) -> bool {
             let mut buffer = new_buffer();
-            i == atou8_slice(10, u8toa_slice(i, 10, &mut buffer))
+            i == atou8_slice(u8toa_slice(i, &mut buffer))
         }
 
         fn u16_quickcheck(i: u16) -> bool {
             let mut buffer = new_buffer();
-            i == atou16_slice(10, u16toa_slice(i, 10, &mut buffer))
+            i == atou16_slice(u16toa_slice(i, &mut buffer))
         }
 
         fn u32_quickcheck(i: u32) -> bool {
             let mut buffer = new_buffer();
-            i == atou32_slice(10, u32toa_slice(i, 10, &mut buffer))
+            i == atou32_slice(u32toa_slice(i, &mut buffer))
         }
 
         fn u64_quickcheck(i: u64) -> bool {
             let mut buffer = new_buffer();
-            i == atou64_slice(10, u64toa_slice(i, 10, &mut buffer))
+            i == atou64_slice(u64toa_slice(i, &mut buffer))
         }
 
         fn usize_quickcheck(i: usize) -> bool {
             let mut buffer = new_buffer();
-            i == atousize_slice(10, usizetoa_slice(i, 10, &mut buffer))
+            i == atousize_slice(usizetoa_slice(i, &mut buffer))
         }
 
         fn i8_quickcheck(i: i8) -> bool {
             let mut buffer = new_buffer();
-            i == atoi8_slice(10, i8toa_slice(i, 10, &mut buffer))
+            i == atoi8_slice(i8toa_slice(i, &mut buffer))
         }
 
         fn i16_quickcheck(i: i16) -> bool {
             let mut buffer = new_buffer();
-            i == atoi16_slice(10, i16toa_slice(i, 10, &mut buffer))
+            i == atoi16_slice(i16toa_slice(i, &mut buffer))
         }
 
         fn i32_quickcheck(i: i32) -> bool {
             let mut buffer = new_buffer();
-            i == atoi32_slice(10, i32toa_slice(i, 10, &mut buffer))
+            i == atoi32_slice(i32toa_slice(i, &mut buffer))
         }
 
         fn i64_quickcheck(i: i64) -> bool {
             let mut buffer = new_buffer();
-            i == atoi64_slice(10, i64toa_slice(i, 10, &mut buffer))
+            i == atoi64_slice(i64toa_slice(i, &mut buffer))
         }
 
         fn isize_quickcheck(i: isize) -> bool {
             let mut buffer = new_buffer();
-            i == atoisize_slice(10, isizetoa_slice(i, 10, &mut buffer))
+            i == atoisize_slice(isizetoa_slice(i, &mut buffer))
         }
     }
 
@@ -585,73 +585,73 @@ mod tests {
         #[test]
         fn u8_proptest(i in u8::min_value()..u8::max_value()) {
             let mut buffer = new_buffer();
-            i == atou8_slice(10, u8toa_slice(i, 10, &mut buffer))
+            i == atou8_slice(u8toa_slice(i, &mut buffer))
         }
 
         #[test]
         fn i8_proptest(i in i8::min_value()..i8::max_value()) {
             let mut buffer = new_buffer();
-            i == atoi8_slice(10, i8toa_slice(i, 10, &mut buffer))
+            i == atoi8_slice(i8toa_slice(i, &mut buffer))
         }
 
         #[test]
         fn u16_proptest(i in u16::min_value()..u16::max_value()) {
             let mut buffer = new_buffer();
-            i == atou16_slice(10, u16toa_slice(i, 10, &mut buffer))
+            i == atou16_slice(u16toa_slice(i, &mut buffer))
         }
 
         #[test]
         fn i16_proptest(i in i16::min_value()..i16::max_value()) {
             let mut buffer = new_buffer();
-            i == atoi16_slice(10, i16toa_slice(i, 10, &mut buffer))
+            i == atoi16_slice(i16toa_slice(i, &mut buffer))
         }
 
         #[test]
         fn u32_proptest(i in u32::min_value()..u32::max_value()) {
             let mut buffer = new_buffer();
-            i == atou32_slice(10, u32toa_slice(i, 10, &mut buffer))
+            i == atou32_slice(u32toa_slice(i, &mut buffer))
         }
 
         #[test]
         fn i32_proptest(i in i32::min_value()..i32::max_value()) {
             let mut buffer = new_buffer();
-            i == atoi32_slice(10, i32toa_slice(i, 10, &mut buffer))
+            i == atoi32_slice(i32toa_slice(i, &mut buffer))
         }
 
         #[test]
         fn u64_proptest(i in u64::min_value()..u64::max_value()) {
             let mut buffer = new_buffer();
-            i == atou64_slice(10, u64toa_slice(i, 10, &mut buffer))
+            i == atou64_slice(u64toa_slice(i, &mut buffer))
         }
 
         #[test]
         fn i64_proptest(i in i64::min_value()..i64::max_value()) {
             let mut buffer = new_buffer();
-            i == atoi64_slice(10, i64toa_slice(i, 10, &mut buffer))
+            i == atoi64_slice(i64toa_slice(i, &mut buffer))
         }
 
         #[test]
         fn u128_proptest(i in u128::min_value()..u128::max_value()) {
             let mut buffer = new_buffer();
-            i == atou128_slice(10, u128toa_slice(i, 10, &mut buffer))
+            i == atou128_slice(u128toa_slice(i, &mut buffer))
         }
 
         #[test]
         fn i128_proptest(i in i128::min_value()..i128::max_value()) {
             let mut buffer = new_buffer();
-            i == atoi128_slice(10, i128toa_slice(i, 10, &mut buffer))
+            i == atoi128_slice(i128toa_slice(i, &mut buffer))
         }
 
         #[test]
         fn usize_proptest(i in usize::min_value()..usize::max_value()) {
             let mut buffer = new_buffer();
-            i == atousize_slice(10, usizetoa_slice(i, 10, &mut buffer))
+            i == atousize_slice(usizetoa_slice(i, &mut buffer))
         }
 
         #[test]
         fn isize_proptest(i in isize::min_value()..isize::max_value()) {
             let mut buffer = new_buffer();
-            i == atoisize_slice(10, isizetoa_slice(i, 10, &mut buffer))
+            i == atoisize_slice(isizetoa_slice(i, &mut buffer))
         }
     }
 
@@ -659,83 +659,83 @@ mod tests {
     #[should_panic]
     fn i8toa_buffer_test() {
         let mut buffer = [b'0'; MAX_I8_SIZE-1];
-        i8toa_slice(12, 10, &mut buffer);
+        i8toa_slice(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn i16toa_buffer_test() {
         let mut buffer = [b'0'; MAX_I16_SIZE-1];
-        i16toa_slice(12, 10, &mut buffer);
+        i16toa_slice(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn i32toa_buffer_test() {
         let mut buffer = [b'0'; MAX_I32_SIZE-1];
-        i32toa_slice(12, 10, &mut buffer);
+        i32toa_slice(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn i64toa_buffer_test() {
         let mut buffer = [b'0'; MAX_I64_SIZE-1];
-        i64toa_slice(12, 10, &mut buffer);
+        i64toa_slice(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn i128toa_buffer_test() {
         let mut buffer = [b'0'; MAX_I128_SIZE-1];
-        i128toa_slice(12, 10, &mut buffer);
+        i128toa_slice(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn isizetoa_buffer_test() {
         let mut buffer = [b'0'; MAX_ISIZE_SIZE-1];
-        isizetoa_slice(12, 10, &mut buffer);
+        isizetoa_slice(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn u8toa_buffer_test() {
         let mut buffer = [b'0'; MAX_U8_SIZE-1];
-        i8toa_slice(12, 10, &mut buffer);
+        i8toa_slice(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn u16toa_buffer_test() {
         let mut buffer = [b'0'; MAX_U16_SIZE-1];
-        i16toa_slice(12, 10, &mut buffer);
+        i16toa_slice(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn u32toa_buffer_test() {
         let mut buffer = [b'0'; MAX_U32_SIZE-1];
-        i32toa_slice(12, 10, &mut buffer);
+        i32toa_slice(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn u64toa_buffer_test() {
         let mut buffer = [b'0'; MAX_U64_SIZE-1];
-        i64toa_slice(12, 10, &mut buffer);
+        i64toa_slice(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn u128toa_buffer_test() {
         let mut buffer = [b'0'; MAX_U128_SIZE-1];
-        i128toa_slice(12, 10, &mut buffer);
+        i128toa_slice(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn usizetoa_buffer_test() {
         let mut buffer = [b'0'; MAX_USIZE_SIZE-1];
-        usizetoa_slice(12, 10, &mut buffer);
+        usizetoa_slice(12, &mut buffer);
     }
 }

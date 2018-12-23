@@ -54,13 +54,13 @@ impl<'a> FloatSlice<'a> {
     }
 
     /// Get the length of the integer substring.
-    #[inline(always)]
+    #[inline]
     pub(super) fn integer_len(&self) -> usize {
         self.integer.len()
     }
 
     /// Get number of parsed integer digits.
-    #[inline(always)]
+    #[inline]
     pub(super) fn integer_digits(&self) -> usize {
         self.integer_len()
     }
@@ -72,13 +72,13 @@ impl<'a> FloatSlice<'a> {
     }
 
     /// Get the length of the fraction substring.
-    #[inline(always)]
+    #[inline]
     pub(super) fn fraction_len(&self) -> usize {
         self.fraction.len()
     }
 
     /// Iterate over the fraction digits.
-    #[inline(always)]
+    #[inline]
     pub(super) fn fraction_digits(&self) -> usize {
         self.fraction_len() - self.digits_start
     }
@@ -99,7 +99,7 @@ impl<'a> FloatSlice<'a> {
 
     /// Get the number of digits in the mantissa.
     /// Cannot overflow, since this is based off a single usize input string.
-    #[inline(always)]
+    #[inline]
     pub(super) fn mantissa_digits(&self) -> usize {
         self.integer_digits() + self.fraction_digits()
     }
@@ -111,19 +111,19 @@ impl<'a> FloatSlice<'a> {
     }
 
     /// Get number of truncated digits.
-    #[inline(always)]
+    #[inline]
     pub(super) fn truncated_digits(&self) -> usize {
         self.truncated
     }
 
     /// Get the mantissa exponent from the raw exponent.
-    #[inline(always)]
+    #[inline]
     pub(super) fn mantissa_exponent(&self) -> i32 {
         mantissa_exponent(self.raw_exponent, self.fraction_len(), self.truncated_digits())
     }
 
     /// Get the scientific exponent from the raw exponent.
-    #[inline(always)]
+    #[inline]
     pub(super) fn scientific_exponent(&self) -> i32 {
         let fraction_start = match self.digits_start.is_zero() {
             true  => 0,
@@ -489,12 +489,12 @@ fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64
 }
 
 impl FloatErrors for u64 {
-    #[inline(always)]
+    #[inline]
     fn error_scale() -> u32 {
         8
     }
 
-    #[inline(always)]
+    #[inline]
     fn error_halfscale() -> u32 {
         u64::error_scale() / 2
     }
@@ -577,12 +577,12 @@ impl FloatErrors for u64 {
 
 // 128-bit representation is always accurate, ignore this.
 impl FloatErrors for u128 {
-    #[inline(always)]
+    #[inline]
     fn error_scale() -> u32 {
         0
     }
 
-    #[inline(always)]
+    #[inline]
     fn error_halfscale() -> u32 {
         0
     }

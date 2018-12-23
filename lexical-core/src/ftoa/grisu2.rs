@@ -203,6 +203,7 @@ const TENS: [u64; 20] = [
 // FPCONV GRISU
 
 /// Round digit to sane approximation.
+#[inline]
 fn round_digit(digits: &mut [u8], ndigits: usize, delta: u64, mut rem: u64, kappa: u64, mant: u64)
 {
     while rem < mant && delta - rem >= kappa && (rem + kappa < mant || mant - rem > rem + kappa - mant)
@@ -390,6 +391,7 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
     idx
 }
 
+#[inline]
 fn fpconv_dtoa(d: f64, dest: &mut [u8]) -> usize
 {
     let mut digits: [u8; 18] = explicit_uninitialized();
@@ -404,7 +406,7 @@ fn fpconv_dtoa(d: f64, dest: &mut [u8]) -> usize
 ///
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-#[inline(always)]
+#[inline]
 pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
     -> &'a mut [u8]
 {
@@ -417,7 +419,7 @@ pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
 ///
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-#[inline(always)]
+#[inline]
 pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
     -> &'a mut [u8]
 {

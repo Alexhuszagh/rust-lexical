@@ -142,31 +142,31 @@ pub trait Integer:
     fn saturating_mul(self, i: Self) -> Self;
 
     /// Create literal zero.
-    #[inline(always)]
+    #[inline]
     fn zero() -> Self {
         Self::ZERO
     }
 
     /// Create literal one.
-    #[inline(always)]
+    #[inline]
     fn one() -> Self {
         Self::ONE
     }
 
     /// Create literal two.
-    #[inline(always)]
+    #[inline]
     fn two() -> Self {
         Self::TWO
     }
 
     /// Check if value is equal to zero.
-    #[inline(always)]
+    #[inline]
     fn is_zero(self) -> bool {
         self == Self::ZERO
     }
 
     /// Check if value is equal to one.
-    #[inline(always)]
+    #[inline]
     fn is_one(self) -> bool {
         self == Self::ONE
     }
@@ -209,124 +209,124 @@ pub trait Integer:
 
     // TRY CAST OR MAX
 
-    #[inline(always)]
+    #[inline]
     fn try_u8_or_max(self) -> u8 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u16_or_max(self) -> u16 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u32_or_max(self) -> u32 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u64_or_max(self) -> u64 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u128_or_max(self) -> u128 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_usize_or_max(self) -> usize {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i8_or_max(self) -> i8 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i16_or_max(self) -> i16 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i32_or_max(self) -> i32 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i64_or_max(self) -> i64 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i128_or_max(self) -> i128 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_isize_or_max(self) -> isize {
         try_cast_or_max(self)
     }
 
     // TRY CAST OR MIN
 
-    #[inline(always)]
+    #[inline]
     fn try_u8_or_min(self) -> u8 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u16_or_min(self) -> u16 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u32_or_min(self) -> u32 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u64_or_min(self) -> u64 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u128_or_min(self) -> u128 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_usize_or_min(self) -> usize {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i8_or_min(self) -> i8 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i16_or_min(self) -> i16 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i32_or_min(self) -> i32 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i64_or_min(self) -> i64 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i128_or_min(self) -> i128 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_isize_or_min(self) -> isize {
         try_cast_or_min(self)
     }
@@ -342,167 +342,167 @@ macro_rules! integer_impl {
             const MIN: $t = $t::min_value();
             const BITS: usize = mem::size_of::<$t>() * 8;
 
-            #[inline(always)]
+            #[inline]
             fn max_value() -> Self {
                 Self::MAX
             }
 
-            #[inline(always)]
+            #[inline]
             fn min_value() -> Self {
                 Self::MIN
             }
 
-            #[inline(always)]
+            #[inline]
             fn count_ones(self) -> u32 {
                 $t::count_ones(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn count_zeros(self) -> u32 {
                 $t::count_zeros(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn leading_zeros(self) -> u32 {
                 $t::leading_zeros(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn trailing_zeros(self) -> u32 {
                 $t::trailing_zeros(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_add(self, i: Self) -> Option<Self> {
                 $t::checked_add(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_sub(self, i: Self) -> Option<Self> {
                 $t::checked_sub(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_mul(self, i: Self) -> Option<Self> {
                 $t::checked_mul(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_div(self, i: Self) -> Option<Self> {
                 $t::checked_div(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_rem(self, i: Self) -> Option<Self> {
                 $t::checked_rem(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_neg(self) -> Option<Self> {
                 $t::checked_neg(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_shl(self, i: u32) -> Option<Self> {
                 $t::checked_shl(self,i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_shr(self, i: u32) -> Option<Self> {
                 $t::checked_shr(self,i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_add(self, i: Self) -> Self {
                 $t::wrapping_add(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_sub(self, i: Self) -> Self {
                 $t::wrapping_sub(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_mul(self, i: Self) -> Self {
                 $t::wrapping_mul(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_div(self, i: Self) -> Self {
                 $t::wrapping_div(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_rem(self, i: Self) -> Self {
                 $t::wrapping_rem(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_neg(self) -> Self {
                 $t::wrapping_neg(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_shl(self, i: u32) -> Self {
                 $t::wrapping_shl(self,i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_shr(self, i: u32) -> Self {
                 $t::wrapping_shr(self,i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_add(self, i: Self) -> (Self, bool) {
                 $t::overflowing_add(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_sub(self, i: Self) -> (Self, bool) {
                 $t::overflowing_sub(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_mul(self, i: Self) -> (Self, bool) {
                 $t::overflowing_mul(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_div(self, i: Self) -> (Self, bool) {
                 $t::overflowing_div(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_rem(self, i: Self) -> (Self, bool) {
                 $t::overflowing_rem(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_neg(self) -> (Self, bool) {
                 $t::overflowing_neg(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_shl(self, i: u32) -> (Self, bool) {
                 $t::overflowing_shl(self,i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_shr(self, i: u32) -> (Self, bool) {
                 $t::overflowing_shr(self,i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn saturating_add(self, i: Self) -> Self {
                 $t::saturating_add(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn saturating_sub(self, i: Self) -> Self {
                 $t::saturating_sub(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn saturating_mul(self, i: Self) -> Self {
                 $t::saturating_mul(self, i)
             }
@@ -513,25 +513,25 @@ macro_rules! integer_impl {
 integer_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
 
 /// Unwrap or get T::max_value().
-#[inline(always)]
+#[inline]
 pub fn unwrap_or_max<T: Integer>(t: Option<T>) -> T {
     t.unwrap_or(T::max_value())
 }
 
 /// Unwrap or get T::min_value().
-#[inline(always)]
+#[inline]
 pub fn unwrap_or_min<T: Integer>(t: Option<T>) -> T {
     t.unwrap_or(T::min_value())
 }
 
 /// Try to convert to U, if not, return U::max_value().
-#[inline(always)]
+#[inline]
 pub fn try_cast_or_max<U: Integer, T: TryCast<U>>(t: T) -> U {
     unwrap_or_max(TryCast::try_cast(t))
 }
 
 /// Try to convert to U, if not, return U::min_value().
-#[inline(always)]
+#[inline]
 pub fn try_cast_or_min<U: Integer, T: TryCast<U>>(t: T) -> U {
     unwrap_or_min(TryCast::try_cast(t))
 }
@@ -880,62 +880,62 @@ impl Float for f32 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
 
-    #[inline(always)]
+    #[inline]
     fn abs(self) -> f32 {
         float_method!(self, f32, abs, fabsf32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn ceil(self) -> f32 {
         float_method_msvc!(self, f32, f64, ceil, ceilf32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn exp(self) -> f32 {
         float_method_msvc!(self, f32, f64, exp, expf32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn floor(self) -> f32 {
         float_method_msvc!(self, f32, f64, floor, floorf32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn ln(self) -> f32 {
         float_method_msvc!(self, f32, f64, ln, logf32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn powi(self, n: i32) -> f32 {
         float_method!(self, f32, powi, powif32, n)
     }
 
-    #[inline(always)]
+    #[inline]
     fn powf(self, n: f32) -> f32 {
         float_method_msvc!(self, f32, f64, powf, powf32, n as f32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn round(self) -> f32 {
         float_method!(self, f32, round, roundf32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn to_bits(self) -> u32 {
         f32::to_bits(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn from_bits(u: u32) -> f32 {
         f32::from_bits(u)
     }
 
-    #[inline(always)]
+    #[inline]
     fn is_sign_positive(self) -> bool {
         f32::is_sign_positive(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn is_sign_negative(self) -> bool {
         f32::is_sign_negative(self)
     }
@@ -963,62 +963,62 @@ impl Float for f64 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0x7FF - Self::EXPONENT_BIAS;
 
-    #[inline(always)]
+    #[inline]
     fn abs(self) -> f64 {
         float_method!(self, f64, abs, fabsf64)
     }
 
-    #[inline(always)]
+    #[inline]
     fn ceil(self) -> f64 {
         float_method!(self, f64, ceil, ceilf64)
     }
 
-    #[inline(always)]
+    #[inline]
     fn exp(self) -> f64 {
         float_method!(self, f64, exp, expf64)
     }
 
-    #[inline(always)]
+    #[inline]
     fn floor(self) -> f64 {
         float_method!(self, f64, floor, floorf64)
     }
 
-    #[inline(always)]
+    #[inline]
     fn ln(self) -> f64 {
         float_method_log_solaris!(self, f64, ln, logf64)
     }
 
-    #[inline(always)]
+    #[inline]
     fn powi(self, n: i32) -> f64 {
         float_method!(self, f64, powi, powif64, n)
     }
 
-    #[inline(always)]
+    #[inline]
     fn powf(self, n: f64) -> f64 {
         float_method!(self, f64, powf, powf64, n)
     }
 
-    #[inline(always)]
+    #[inline]
     fn round(self) -> f64 {
         float_method!(self, f64, round, roundf64)
     }
 
-    #[inline(always)]
+    #[inline]
     fn to_bits(self) -> u64 {
         f64::to_bits(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn from_bits(u: u64) -> f64 {
         f64::from_bits(u)
     }
 
-    #[inline(always)]
+    #[inline]
     fn is_sign_positive(self) -> bool {
         f64::is_sign_positive(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn is_sign_negative(self) -> bool {
         f64::is_sign_negative(self)
     }

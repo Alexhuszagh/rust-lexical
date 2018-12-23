@@ -14,7 +14,7 @@ use super::num::UnsignedInteger;
 /// lower_n_mask(2u32) -> b11u32;
 /// # }
 /// ```
-#[inline(always)]
+#[inline]
 pub(crate) fn lower_n_mask<N>(n: N)
     -> N
     where N:UnsignedInteger
@@ -38,7 +38,7 @@ pub(crate) fn lower_n_mask<N>(n: N)
 /// lower_n_halfway(2u32) -> b10u32;
 /// # }
 /// ```
-#[inline(always)]
+#[inline]
 pub(crate) fn lower_n_halfway<N>(n: N)
     -> N
     where N:UnsignedInteger
@@ -62,7 +62,7 @@ pub(crate) fn lower_n_halfway<N>(n: N)
 /// nth_bit(2u32) -> b100u32;
 /// # }
 /// ```
-#[inline(always)]
+#[inline]
 pub(crate) fn nth_bit<N>(n: N)
     -> N
     where N:UnsignedInteger
@@ -84,7 +84,7 @@ pub(crate) fn nth_bit<N>(n: N)
 /// internal_n_mask(10u32, 2u32) -> 0b1100000000;
 /// # }
 /// ```
-#[inline(always)]
+#[inline]
 pub(crate) fn internal_n_mask<N>(bit: N, n: N)
     -> N
     where N:UnsignedInteger

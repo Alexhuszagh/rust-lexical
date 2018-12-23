@@ -443,7 +443,7 @@ pub struct ReverseView<'a, T> {
 impl<'a, T> ops::Index<usize> for ReverseView<'a, T> {
     type Output = T;
 
-    #[inline(always)]
+    #[inline]
     fn index(&self, index: usize) -> &T {
         self.inner.rindex(index)
     }
@@ -459,14 +459,14 @@ pub struct ReverseViewMut<'a, T> {
 impl<'a, T> ops::Index<usize> for ReverseViewMut<'a, T> {
     type Output = T;
 
-    #[inline(always)]
+    #[inline]
     fn index(&self, index: usize) -> &T {
         self.inner.rindex(index)
     }
 }
 
 impl<'a, T> ops::IndexMut<usize> for ReverseViewMut<'a, T> {
-    #[inline(always)]
+    #[inline]
     fn index_mut(&mut self, index: usize) -> &mut T {
         self.inner.rindex_mut(index)
     }
@@ -494,45 +494,45 @@ pub trait SliceLike<T>:
     // GET/SET
 
     /// Get an immutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     fn get<I: slice::SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output>;
 
     /// Get a mutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     fn get_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output>;
 
     /// Get an immutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     unsafe fn get_unchecked<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output;
 
     /// Get a mutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     unsafe fn get_unchecked_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output;
 
     // FRONT
 
     /// Get an immutable reference to the front item.
-    #[inline(always)]
+    #[inline]
     fn front(&self) -> Option<&T> {
         self.get(0)
     }
 
     /// Get an mutable reference to the front item.
-    #[inline(always)]
+    #[inline]
     fn front_mut(&mut self) -> Option<&mut T> {
         debug_assert!(self.len() > 0);
         self.get_mut(0)
     }
 
     /// Get an immutable reference to the front item.
-    #[inline(always)]
+    #[inline]
     unsafe fn front_unchecked(&self) -> &T {
         debug_assert!(self.len() > 0);
         self.get_unchecked(0)
     }
 
     /// Get an mutable reference to the front item.
-    #[inline(always)]
+    #[inline]
     unsafe fn front_unchecked_mut(&mut self) -> &mut T {
         debug_assert!(self.len() > 0);
         self.get_unchecked_mut(0)
@@ -541,37 +541,37 @@ pub trait SliceLike<T>:
     // BACK
 
     /// Get an immutable reference to the back item.
-    #[inline(always)]
+    #[inline]
     fn back(&self) -> Option<&T> {
         self.rget(0)
     }
 
     /// Get an mutable reference to the back item.
-    #[inline(always)]
+    #[inline]
     fn back_mut(&mut self) -> Option<&mut T> {
         self.rget_mut(0)
     }
 
     /// Get an immutable reference to the back item.
-    #[inline(always)]
+    #[inline]
     unsafe fn back_unchecked(&self) -> &T {
         self.rget_unchecked(0)
     }
 
     /// Get an mutable reference to the back item.
-    #[inline(always)]
+    #[inline]
     unsafe fn back_unchecked_mut(&mut self) -> &mut T {
         self.rget_unchecked_mut(0)
     }
 
     /// Create a reverse view of the vector for indexing.
-    #[inline(always)]
+    #[inline]
     fn rview<'a>(&'a self) -> ReverseView<'a, T> {
         ReverseView { inner: &self[..] }
     }
 
     /// Create a reverse, mutable view of the vector for indexing.
-    #[inline(always)]
+    #[inline]
     fn rview_mut<'a>(&'a mut self) -> ReverseViewMut<'a, T> {
         ReverseViewMut { inner: &mut self[..] }
     }
@@ -579,25 +579,25 @@ pub trait SliceLike<T>:
 
 impl<T> SliceLike<T> for [T] {
     /// Get an immutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     fn get<I: slice::SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output> {
         <[T]>::get(self, index)
     }
 
     /// Get an mutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     fn get_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output> {
         <[T]>::get_mut(self, index)
     }
 
     /// Get an immutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     unsafe fn get_unchecked<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output {
         <[T]>::get_unchecked(self, index)
     }
 
     /// Get an mutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     unsafe fn get_unchecked_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
         <[T]>::get_unchecked_mut(self, index)
     }
@@ -606,25 +606,25 @@ impl<T> SliceLike<T> for [T] {
 #[cfg(all(feature = "correct", feature = "radix"))]
 impl<T> SliceLike<T> for Vec<T> {
     /// Get an immutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     fn get<I: slice::SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output> {
         self.as_slice().get(index)
     }
 
     /// Get an mutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     fn get_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output> {
         self.as_mut_slice().get_mut(index)
     }
 
     /// Get an immutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     unsafe fn get_unchecked<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output {
         self.as_slice().get_unchecked(index)
     }
 
     /// Get an mutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     unsafe fn get_unchecked_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
         self.as_mut_slice().get_unchecked_mut(index)
     }
@@ -632,25 +632,25 @@ impl<T> SliceLike<T> for Vec<T> {
 
 impl<A: stackvector::Array> SliceLike<A::Item> for stackvector::StackVec<A> {
     /// Get an immutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     fn get<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> Option<&I::Output> {
         self.as_slice().get(index)
     }
 
     /// Get an mutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     fn get_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> Option<&mut I::Output> {
         self.as_mut_slice().get_mut(index)
     }
 
     /// Get an immutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     unsafe fn get_unchecked<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
         self.as_slice().get_unchecked(index)
     }
 
     /// Get an mutable reference to item at index.
-    #[inline(always)]
+    #[inline]
     unsafe fn get_unchecked_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
         self.as_mut_slice().get_unchecked_mut(index)
     }

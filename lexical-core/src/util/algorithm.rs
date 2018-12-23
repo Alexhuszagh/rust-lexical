@@ -6,7 +6,7 @@ use lib::{mem, ptr, slice};
 // ALGORITHMS
 
 /// Calculate the difference between two pointers.
-#[inline(always)]
+#[inline]
 pub fn distance<T>(first: *const T, last: *const T)
     -> usize
 {
@@ -17,7 +17,7 @@ pub fn distance<T>(first: *const T, last: *const T)
 }
 
 /// Check if two slices are equal to each other.
-#[inline(always)]
+#[inline]
 pub fn equal_to_slice(l: &[u8], r: &[u8])
     -> bool
 {
@@ -25,7 +25,7 @@ pub fn equal_to_slice(l: &[u8], r: &[u8])
 }
 
 /// Check if two slices are equal to each other without case-sensitivity.
-#[inline(always)]
+#[inline]
 pub fn case_insensitive_equal_to_slice(l: &[u8], r: &[u8])
     -> bool
 {
@@ -35,7 +35,7 @@ pub fn case_insensitive_equal_to_slice(l: &[u8], r: &[u8])
 }
 
 /// Check if left slice starts with right slice without case-sensitivity.
-#[inline(always)]
+#[inline]
 pub fn case_insensitive_starts_with_slice(l: &[u8], r: &[u8])
     -> bool
 {
@@ -44,7 +44,7 @@ pub fn case_insensitive_starts_with_slice(l: &[u8], r: &[u8])
 
 /// Check if left slice ends with right slice.
 #[cfg(feature = "trim_floats")]
-#[inline(always)]
+#[inline]
 pub fn ends_with_slice(l: &[u8], r: &[u8])
     -> bool
 {
@@ -52,7 +52,7 @@ pub fn ends_with_slice(l: &[u8], r: &[u8])
 }
 
 /// Trim character from the left-side of a slice.
-#[inline(always)]
+#[inline]
 pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
     -> (&'a [u8], usize)
 {

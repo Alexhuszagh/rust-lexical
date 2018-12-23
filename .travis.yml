@@ -22,6 +22,7 @@ matrix:
         - cargo test --no-default-features --features=ryu
         - cargo test --no-default-features --features=correct
         - cargo test --no-default-features --features=correct,radix
+        - cargo test --features=radix special_rounding -- --ignored --test-threads=1
         - cd ..
         - cargo bench --verbose --no-run
 
@@ -39,5 +40,6 @@ script:
   - cargo test --no-default-features --features=std,ryu
   - cargo test --no-default-features --features=std,correct
   - cargo test --no-default-features --features=std,correct,radix
+  - cargo test --features=radix special_rounding -- --ignored --test-threads=1
   - cd ..
   - cargo bench --verbose --no-run
