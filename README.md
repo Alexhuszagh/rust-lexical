@@ -4,7 +4,7 @@ lexical
 [![Build Status](https://api.travis-ci.org/Alexhuszagh/rust-lexical.svg?branch=master)](https://travis-ci.org/Alexhuszagh/rust-lexical)
 [![Latest Version](https://img.shields.io/crates/v/lexical.svg)](https://crates.io/crates/lexical)
 
-Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical is simple to use, focuses on performance and correctness, and exports only 10 functions in the high-level API. Finally, [lexical-core](lexical-core) is suitable for environments without a memory allocator, without any internal allocations required for the low-level API.
+Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical is simple to use and focuses on performance and correctness. Finally, [lexical-core](lexical-core) is suitable for environments without a memory allocator, without any internal allocations required for the low-level API. And, as of version 2.0, lexical uses minimal unsafe features, limiting the chance of memory-unsafe code.
 
 **Table of Contents**
 
@@ -21,7 +21,7 @@ Add lexical to your `Cargo.toml`:
 
 ```yaml
 [dependencies]
-lexical = "1.9"
+lexical = "2.0"
 ```
 
 And get started using lexical:
@@ -126,11 +126,9 @@ For detailed background on the algorithms and features in lexical, see [lexical-
 Ideally, Lexical's float-parsing algorithm or approach would be incorporated into libcore. Although Lexical greatly improves on Rust's float-parsing algorithm, in its current state it's insufficient to be included in the standard library, including numerous "anti-features":
 
 1. It supports non-decimal radices for float parsing, leading to significant binary bloat and increased code branching, for almost non-existent use-cases.
-2. It inlines aggressively, producing significant binary bloat.
-3. It makes extensive use of unsafe Rust, potentially hiding serious memory errors or other bugs.
+2. It supports rounding schemes other than round-to-nearest, tie-even.
+3. It inlines aggressively, producing significant binary bloat.
 4. It contains effectively dead code for efficient higher-order arbitrary-precision integer algorithms, for rare use-cases requiring asymptotically faster algorithms.
-
-I would love to contribute lexical back to the Rust community, however, some significant modifications would be needed. If there's a desire by the Rust team to incorporate lexical's float-parsing algorithm into libcore, I would glad re-write lexical, supporting only decimal strings and minimizing the use of unsafe code.
 
 # License
 

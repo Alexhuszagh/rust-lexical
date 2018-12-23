@@ -12,7 +12,7 @@ use super::mantissa::Mantissa;
 ///
 /// This works because we call normalize before any operation, which
 /// allows us to convert the integer representation to the float one.
-#[inline(always)]
+#[inline]
 pub(crate) fn from_int<T, M>(t: T)
     -> ExtendedFloat<M>
     where T: Integer,
@@ -29,7 +29,7 @@ pub(crate) fn from_int<T, M>(t: T)
 // FROM FLOAT
 
 /// Import ExtendedFloat from native float.
-#[inline(always)]
+#[inline]
 pub(crate) fn from_float<T, M>(t: T)
     -> ExtendedFloat<M>
     where T: Float,

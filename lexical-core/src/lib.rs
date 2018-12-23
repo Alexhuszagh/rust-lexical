@@ -7,14 +7,16 @@
 //! a system allocator. If you would like to use a convenient, high-level
 //! API, please look at [lexical](https://crates.io/crates/lexical) instead.
 //!
+//! # Getting Started
+//!
 //! ```rust
 //! extern crate lexical_core;
 //!
 //! // String to number using slices
 //! // The first argument is the radix, which should be 10 for decimal strings,
 //! // and the second argument is the byte string parsed.
-//! let f = lexical_core::atof::atof64_slice(10, b"3.5");   // 3.5
-//! let i = lexical_core::atoi::atoi32_slice(10, b"15");          // 15
+//! let f = lexical_core::atof64_slice(b"3.5");   // 3.5
+//! let i = lexical_core::atoi32_slice(b"15");    // 15
 //!
 //! // String to number using ranges, for FFI-compatible code.
 //! // The first argument is the radix, which should be 10 for decimal strings,
@@ -25,28 +27,28 @@
 //!     let bytes = b"3.5";
 //!     let first = bytes.as_ptr();
 //!     let last = first.add(bytes.len());
-//!     let f = lexical_core::atof::atof64_range(10, first, last);
+//!     let f = lexical_core::atof64_range(first, last);
 //! }
 //!
 //! // The ato*_slice and ato*_range parsers are not checked, they do not
 //! // validate that the input data is entirely correct, and discard trailing
 //! // bytes that are found. The explicit behavior is to wrap on overflow, and
 //! // to discard invalid digits.
-//! let i = lexical_core::atoi::atoi8_slice(10, b"256");    // 0, wraps from 256
-//! let i = lexical_core::atoi::atoi8_slice(10, b"1a5");    // 1, discards "a5"
+//! let i = lexical_core::atoi8_slice(b"256");    // 0, wraps from 256
+//! let i = lexical_core::atoi8_slice(b"1a5");    // 1, discards "a5"
 //!
 //! // You should prefer the checked parsers, whenever possible. These detect
 //! // numeric overflow, and no invalid trailing digits are present.
 //! // The error code for success is 0, all errors are less than 0.
 //!
 //! // Ideally, everything works great.
-//! let res = lexical_core::atoi::try_atoi8_slice(10, b"15");
+//! let res = lexical_core::try_atoi8_slice(b"15");
 //! assert_eq!(res.error.code, lexical_core::ErrorCode::Success);
 //! assert_eq!(res.value, 15);
 //!
 //! // However, it detects numeric overflow, setting `res.error.code`
 //! // to the appropriate value.
-//! let res = lexical_core::atoi::try_atoi8_slice(10, b"256");
+//! let res = lexical_core::try_atoi8_slice(b"256");
 //! assert_eq!(res.error.code, lexical_core::ErrorCode::Overflow);
 //!
 //! // Errors occurring prematurely terminating the parser due to invalid
@@ -57,7 +59,7 @@
 //! // to a `InvalidDigit`, the value is guaranteed to be accurate up until
 //! // that point. For example, if the trailing data is whitespace,
 //! // the value from an invalid digit may be perfectly valid in some contexts.
-//! let res = lexical_core::atoi::try_atoi8_slice(10, b"15 45");
+//! let res = lexical_core::try_atoi8_slice(b"15 45");
 //! assert_eq!(res.error.code, lexical_core::ErrorCode::InvalidDigit);
 //! assert_eq!(res.error.index, 2);
 //! assert_eq!(res.value, 15);
@@ -68,19 +70,19 @@
 //! // The function returns a subslice of the original buffer, and will
 //! // always start at the same position (`buf.as_ptr() == slc.as_ptr()`).
 //! let mut buf = [b'0'; lexical_core::MAX_I64_SIZE];
-//! let slc = lexical_core::itoa::i64toa_slice(15, 10, &mut buf);
+//! let slc = lexical_core::i64toa_slice(15, &mut buf);
 //! assert_eq!(slc, b"15");
 //!
 //! // If an insufficiently long buffer is passed, the serializer will panic.
-//! let mut buf = [b'0'; 1];
 //! // PANICS
-//! //let slc = lexical_core::itoa::i64toa_slice(15, 10, &mut buf);
+//! let mut buf = [b'0'; 1];
+//! //let slc = lexical_core::i64toa_slice(15, &mut buf);
 //!
 //! // In order to guarantee the buffer is long enough, always ensure there
 //! // are at least `MAX_XX_SIZE`, where XX is the type name in upperase,
 //! // IE, for `isize`, `MAX_ISIZE_SIZE`.
 //! let mut buf = [b'0'; lexical_core::MAX_F64_SIZE];
-//! let slc = lexical_core::ftoa::f64toa_slice(15.1, 10, &mut buf);
+//! let slc = lexical_core::f64toa_slice(15.1, &mut buf);
 //! assert_eq!(slc, b"15.1");
 //! ```
 
@@ -88,8 +90,9 @@
 
 // Require intrinsics in a no_std context.
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(all(not(feature = "std"), any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"), feature(alloc))]
+#![cfg_attr(all(not(feature = "std"), feature = "correct", feature = "radix"), feature(alloc))]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
+#![cfg_attr(all(not(test), not(feature = "std")), feature(lang_items))]
 
 // DEPENDENCIES
 
@@ -117,7 +120,7 @@ extern crate proptest;
 
 // Use vec if there is a system allocator, which we require only if
 // we're using the correct and radix features.
-#[cfg(all(not(feature = "std"), any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
+#[cfg(all(not(feature = "std"), feature = "correct", feature = "radix"))]
 #[cfg_attr(test, macro_use)]
 extern crate alloc;
 
@@ -129,10 +132,6 @@ extern crate stackvector;
 // Ensure only one back-end is enabled.
 #[cfg(all(feature = "grisu3", feature = "ryu"))]
 compile_error!("Lexical only accepts one of the following backends: `grisu3` or `ryu`.");
-
-// Ensure only one float parsing algorithm is enabled.
-#[cfg(all(feature = "algorithm_m", feature = "bhcomp"))]
-compile_error!("Lexical only accepts one of the following float-parsing algorithms: `algorithm_m` or `bhcomp`.");
 
 // Import the back-end, if applicable.
 cfg_if! {
@@ -151,7 +150,7 @@ pub(crate) use std::*;
 pub(crate) use core::*;
 
 cfg_if! {
-if #[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))] {
+if #[cfg(all(feature = "correct", feature = "radix"))] {
     #[cfg(feature = "std")]
     pub(crate) use std::vec::Vec;
 
@@ -161,37 +160,51 @@ if #[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"
 
 }   // lib
 
+// PANIC
+
+// Need to define a panic handler when we're not testing (panic handler
+// then becomes "unwind" but there is no_std). This causes us to fail
+// with doctests, so ensure `--tests` is passed to `cargo test` whenever
+// we are in a  `no_std` context.
+cfg_if! {
+if #[cfg(all(not(test), not(feature = "std")))] {
+    use lib::intrinsics;
+    use lib::panic::PanicInfo;
+
+    #[panic_handler]
+    fn panic(_: &PanicInfo) -> ! {
+        unsafe {
+            intrinsics::abort();
+        }
+    }
+
+    #[lang = "eh_personality"]
+    extern fn eh_personality() {}
+}}  // cfg_if
+
 // API
 
 // Hide implementation details
 #[macro_use]
 mod util;
 
+mod atof;
+mod atoi;
 mod float;
+mod ftoa;
+mod itoa;
 
-// Publicly export the low-level APIs.
-pub mod atof;
-pub mod atoi;
-pub mod ftoa;
-pub mod itoa;
+// Publicly re-export the low-level string-to-float functions.
+pub use atof::*;
 
-// Re-export EXPONENT_DEFAULT_CHAR and EXPONENT_BACKUP_CHAR globally.
-pub use util::{EXPONENT_DEFAULT_CHAR, EXPONENT_BACKUP_CHAR};
+// Publicly re-export the low-level string-to-integer functions.
+pub use atoi::*;
 
-// Re-export NAN_STRING, INF_STRING and INFINITY_STRING globally.
-pub use util::{INF_STRING, INFINITY_STRING, NAN_STRING};
+// Publicly re-export the low-level float-to-string functions.
+pub use ftoa::*;
 
-// Re-export the error structs and enumerations.
-pub use util::{Error, ErrorCode, is_invalid_digit, is_overflow, is_success};
+// Publicly re-export the low-level integer-to-string functions.
+pub use itoa::*;
 
-// Re-export the required buffer sizes for the low-level API.
-pub use util::BUFFER_SIZE;
-pub use util::{MAX_I8_SIZE, MAX_I16_SIZE, MAX_I32_SIZE, MAX_I64_SIZE, MAX_I128_SIZE, MAX_ISIZE_SIZE};
-pub use util::{MAX_U8_SIZE, MAX_U16_SIZE, MAX_U32_SIZE, MAX_U64_SIZE, MAX_U128_SIZE, MAX_USIZE_SIZE};
-pub use util::{MAX_F32_SIZE, MAX_F64_SIZE};
-
-// Re-export the result struct and expanded-template variants (for FFI).
-pub use util::Result;
-pub use util::{U8Result, U16Result, U32Result, U64Result, U128Result, UsizeResult};
-pub use util::{I8Result, I16Result, I32Result, I64Result, I128Result, IsizeResult};
-pub use util::{F32Result, F64Result};
+// Re-export configuration and utilities globally.
+pub use util::*;

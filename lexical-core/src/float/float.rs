@@ -34,18 +34,14 @@ impl<M: Mantissa> ExtendedFloat<M> {
     // PROPERTIES
 
     /// Get the mantissa component.
-    #[inline(always)]
-    pub fn mantissa(&self)
-        -> M
-    {
+    #[inline]
+    pub fn mantissa(&self) -> M {
         self.mant
     }
 
     /// Get the exponent component.
-    #[inline(always)]
-    pub fn exponent(&self)
-        -> i32
-    {
+    #[inline]
+    pub fn exponent(&self) -> i32 {
         self.exp
     }
 
@@ -62,7 +58,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
     ///     2. Normalization of the result (not done here).
     ///     3. Addition of exponents.
     #[inline]
-    pub unsafe fn mul(&self, b: &ExtendedFloat<M>)
+    pub fn mul(&self, b: &ExtendedFloat<M>)
         -> ExtendedFloat<M>
     {
         // Logic check, values must be decently normalized prior to multiplication.
@@ -94,7 +90,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
     ///
     /// The result is not normalized.
     #[inline]
-    pub unsafe fn imul(&mut self, b: &ExtendedFloat<M>)
+    pub fn imul(&mut self, b: &ExtendedFloat<M>)
     {
         *self = self.mul(b);
     }
@@ -287,11 +283,12 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Convert into lower-precision native float.
     #[inline]
-    pub fn into_float<F: FloatRounding<M>>(mut self)
+    pub fn into_float<F: FloatRounding<M>>(self)
         -> F
     {
-        self.round_to_native::<F, _>(round_nearest_tie_even);
-        into_float(self)
+        unsafe {
+            self.into_rounded_float::<F>(FLOAT_ROUNDING, Sign::Positive)
+        }
     }
 
     /// Convert into lower-precision 32-bit float.
@@ -314,39 +311,50 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     // INTO ROUNDED
 
-    /// Convert into lower-precision native float with custom rounding rules.
+    /// Into rounded float where the rounding kind has been converted.
     #[inline]
-    pub fn into_rounded_float<F>(mut self, kind: RoundingKind)
+    pub(crate) fn into_rounded_float_impl<F>(mut self, kind: RoundingKind)
         -> F
         where F: FloatRounding<M>
     {
+        // Normalize the actual float rounding here.
         let cb = match kind {
             RoundingKind::NearestTieEven     => round_nearest_tie_even,
-            RoundingKind::NearestTieAwayZero => round_nearest_tie_even,
-            RoundingKind::TowardInfinity     => round_toward_infinity,
-            RoundingKind::TowardZero         => round_toward_zero,
+            RoundingKind::NearestTieAwayZero => round_nearest_tie_away_zero,
+            RoundingKind::Upward             => round_upward,
+            RoundingKind::Downward           => round_downward,
+            _                                => unreachable!()
         };
 
         self.round_to_native::<F, _>(cb);
         into_float(self)
     }
 
+    /// Convert into lower-precision native float with custom rounding rules.
+    #[inline]
+    pub fn into_rounded_float<F>(self, kind: RoundingKind, sign: Sign)
+        -> F
+        where F: FloatRounding<M>
+    {
+        self.into_rounded_float_impl(internal_rounding(kind, sign))
+    }
+
     /// Convert into lower-precision 32-bit float with custom rounding rules.
     #[inline]
-    pub fn into_rounded_f32(self, kind: RoundingKind)
+    pub fn into_rounded_f32(self, kind: RoundingKind, sign: Sign)
         -> f32
         where f32: FloatRounding<M>
     {
-        self.into_rounded_float(kind)
+        self.into_rounded_float(kind, sign)
     }
 
     /// Convert into lower-precision 64-bit float with custom rounding rules.
     #[inline]
-    pub fn into_rounded_f64(self, kind: RoundingKind)
+    pub fn into_rounded_f64(self, kind: RoundingKind, sign: Sign)
         -> f64
         where f64: FloatRounding<M>
     {
-        self.into_rounded_float(kind)
+        self.into_rounded_float(kind, sign)
     }
 
     // AS
@@ -381,29 +389,29 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Convert to lower-precision native float with custom rounding rules.
     #[inline]
-    pub fn as_rounded_float<F>(&self, kind: RoundingKind)
+    pub fn as_rounded_float<F>(&self, kind: RoundingKind, sign: Sign)
         -> F
         where F: FloatRounding<M>
     {
-        self.clone().into_rounded_float::<F>(kind)
+        self.clone().into_rounded_float::<F>(kind, sign)
     }
 
     /// Convert to lower-precision 32-bit float with custom rounding rules.
     #[inline]
-    pub fn as_rounded_f32(&self, kind: RoundingKind)
+    pub fn as_rounded_f32(&self, kind: RoundingKind, sign: Sign)
         -> f32
         where f32: FloatRounding<M>
     {
-        self.as_rounded_float(kind)
+        self.as_rounded_float(kind, sign)
     }
 
     /// Convert to lower-precision 64-bit float with custom rounding rules.
     #[inline]
-    pub fn as_rounded_f64(&self, kind: RoundingKind)
+    pub fn as_rounded_f64(&self, kind: RoundingKind, sign: Sign)
         -> f64
         where f64: FloatRounding<M>
     {
-        self.as_rounded_float(kind)
+        self.as_rounded_float(kind, sign)
     }
 }
 
@@ -1021,20 +1029,22 @@ mod tests {
     fn to_rounded_f32_test() {
         // Just check it compiles, we already check the underlying algorithms.
         let x = ExtendedFloat80 {mant: 9223372036854775808, exp: -63};
-        assert_eq!(x.as_rounded_f32(RoundingKind::NearestTieEven), 1.0);
-        assert_eq!(x.as_rounded_f32(RoundingKind::NearestTieAwayZero), 1.0);
-        assert_eq!(x.as_rounded_f32(RoundingKind::TowardInfinity), 1.0);
-        assert_eq!(x.as_rounded_f32(RoundingKind::TowardZero), 1.0);
+        assert_eq!(x.as_rounded_f32(RoundingKind::NearestTieEven, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f32(RoundingKind::NearestTieAwayZero, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f32(RoundingKind::TowardPositiveInfinity, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f32(RoundingKind::TowardNegativeInfinity, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f32(RoundingKind::TowardZero, Sign::Positive), 1.0);
     }
 
     #[test]
     fn to_rounded_f64_test() {
         // Just check it compiles, we already check the underlying algorithms.
         let x = ExtendedFloat80 {mant: 9223372036854775808, exp: -63};
-        assert_eq!(x.as_rounded_f64(RoundingKind::NearestTieEven), 1.0);
-        assert_eq!(x.as_rounded_f64(RoundingKind::NearestTieAwayZero), 1.0);
-        assert_eq!(x.as_rounded_f64(RoundingKind::TowardInfinity), 1.0);
-        assert_eq!(x.as_rounded_f64(RoundingKind::TowardZero), 1.0);
+        assert_eq!(x.as_rounded_f64(RoundingKind::NearestTieEven, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f64(RoundingKind::NearestTieAwayZero, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f64(RoundingKind::TowardPositiveInfinity, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f64(RoundingKind::TowardNegativeInfinity, Sign::Positive), 1.0);
+        assert_eq!(x.as_rounded_f64(RoundingKind::TowardZero, Sign::Positive), 1.0);
     }
 
     #[test]
@@ -1071,10 +1081,8 @@ mod tests {
     // OPERATIONS
 
     fn check_mul<M: Mantissa>(a: ExtendedFloat<M>, b: ExtendedFloat<M>, c: ExtendedFloat<M>) {
-        unsafe {
-            let r = a.mul(&b);
-            assert_eq!(r, c);
-        }
+        let r = a.mul(&b);
+        assert_eq!(r, c);
     }
 
     #[test]
@@ -1092,38 +1100,34 @@ mod tests {
         check_mul(a, b, c);
 
         // Check with integers
-        unsafe {
-            // 64-bit mantissa
-            let mut a = ExtendedFloat80::from_u8(10);
-            let mut b = ExtendedFloat80::from_u8(10);
-            a.normalize();
-            b.normalize();
-            assert_eq!(a.mul(&b).into_f64(), 100.0);
+        // 64-bit mantissa
+        let mut a = ExtendedFloat80::from_u8(10);
+        let mut b = ExtendedFloat80::from_u8(10);
+        a.normalize();
+        b.normalize();
+        assert_eq!(a.mul(&b).into_f64(), 100.0);
 
-            // 128-bit mantissa
-            let mut a = ExtendedFloat160::from_u8(10);
-            let mut b = ExtendedFloat160::from_u8(10);
-            a.normalize();
-            b.normalize();
-            assert_eq!(a.mul(&b).into_f64(), 100.0);
+        // 128-bit mantissa
+        let mut a = ExtendedFloat160::from_u8(10);
+        let mut b = ExtendedFloat160::from_u8(10);
+        a.normalize();
+        b.normalize();
+        assert_eq!(a.mul(&b).into_f64(), 100.0);
 
-            // Check both values need high bits set.
-            let a = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
-            let b = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
-            assert_eq!(a.mul(&b).into_f64(), 4.0);
+        // Check both values need high bits set.
+        let a = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
+        let b = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
+        assert_eq!(a.mul(&b).into_f64(), 4.0);
 
-            // Check both values need high bits set.
-            let a = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
-            let b = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
-            assert_eq!(a.mul(&b).into_f64(), 100.0);
-        }
+        // Check both values need high bits set.
+        let a = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
+        let b = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
+        assert_eq!(a.mul(&b).into_f64(), 100.0);
     }
 
     fn check_imul<M: Mantissa>(mut a: ExtendedFloat<M>, b: ExtendedFloat<M>, c: ExtendedFloat<M>) {
-        unsafe {
-            a.imul(&b);
-            assert_eq!(a, c);
-        }
+        a.imul(&b);
+        assert_eq!(a, c);
     }
 
     #[test]
@@ -1141,34 +1145,32 @@ mod tests {
         check_imul(a, b, c);
 
         // Check with integers
-        unsafe {
-            // 64-bit mantissa
-            let mut a = ExtendedFloat80::from_u8(10);
-            let mut b = ExtendedFloat80::from_u8(10);
-            a.normalize();
-            b.normalize();
-            a.imul(&b);
-            assert_eq!(a.into_f64(), 100.0);
+        // 64-bit mantissa
+        let mut a = ExtendedFloat80::from_u8(10);
+        let mut b = ExtendedFloat80::from_u8(10);
+        a.normalize();
+        b.normalize();
+        a.imul(&b);
+        assert_eq!(a.into_f64(), 100.0);
 
-            // 128-bit mantissa
-            let mut a = ExtendedFloat160::from_u8(10);
-            let mut b = ExtendedFloat160::from_u8(10);
-            a.normalize();
-            b.normalize();
-            a.imul(&b);
-            assert_eq!(a.into_f64(), 100.0);
+        // 128-bit mantissa
+        let mut a = ExtendedFloat160::from_u8(10);
+        let mut b = ExtendedFloat160::from_u8(10);
+        a.normalize();
+        b.normalize();
+        a.imul(&b);
+        assert_eq!(a.into_f64(), 100.0);
 
-            // Check both values need high bits set.
-            let mut a = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
-            let b = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
-            a.imul(&b);
-            assert_eq!(a.into_f64(), 4.0);
+        // Check both values need high bits set.
+        let mut a = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
+        let b = ExtendedFloat80 { mant: 1 << 32, exp: -31 };
+        a.imul(&b);
+        assert_eq!(a.into_f64(), 4.0);
 
-            // Check both values need high bits set.
-            let mut a = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
-            let b = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
-            a.imul(&b);
-            assert_eq!(a.into_f64(), 100.0);
-        }
+        // Check both values need high bits set.
+        let mut a = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
+        let b = ExtendedFloat80 { mant: 10 << 31, exp: -31 };
+        a.imul(&b);
+        assert_eq!(a.into_f64(), 100.0);
     }
 }

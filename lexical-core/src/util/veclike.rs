@@ -2,10 +2,10 @@
 
 #![allow(dead_code)]
 
-use lib::{iter, ops, ptr, slice};
+use lib::{iter, marker, ops, ptr, slice};
 use stackvector;
 
-#[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
+#[cfg(all(feature = "correct", feature = "radix"))]
 use lib::Vec;
 
 // REMOVE_MANY
@@ -69,7 +69,7 @@ pub trait AsSlice<T>: {
     fn as_slice(&self) -> &[T];
 }
 
-#[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
+#[cfg(all(feature = "correct", feature = "radix"))]
 impl<T> AsSlice<T> for Vec<T> {
     #[inline]
     fn as_slice(&self) -> &[T] {
@@ -92,7 +92,7 @@ pub trait ExtendFromSlice<T: Clone>: Clone + Default {
     fn extend_from_slice(&mut self, other: &[T]);
 }
 
-#[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
+#[cfg(all(feature = "correct", feature = "radix"))]
 impl<T: Clone> ExtendFromSlice<T> for Vec<T> {
     #[inline]
     fn extend_from_slice(&mut self, other: &[T]) {
@@ -124,7 +124,7 @@ impl<T> Len<T> for [T] {
     }
 }
 
-#[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
+#[cfg(all(feature = "correct", feature = "radix"))]
 impl<T> Len<T> for Vec<T> {
     #[inline]
     fn len(&self) -> usize {
@@ -147,7 +147,7 @@ pub trait Reserve<T>: {
     fn reserve(&mut self, capacity: usize);
 }
 
-#[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
+#[cfg(all(feature = "correct", feature = "radix"))]
 impl<T> Reserve<T> for Vec<T> {
     #[inline]
     fn reserve(&mut self, capacity: usize) {
@@ -170,7 +170,7 @@ pub trait ReserveExact<T>: {
     fn reserve_exact(&mut self, capacity: usize);
 }
 
-#[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
+#[cfg(all(feature = "correct", feature = "radix"))]
 impl<T> ReserveExact<T> for Vec<T> {
     #[inline]
     fn reserve_exact(&mut self, capacity: usize) {
@@ -196,7 +196,7 @@ pub trait Resize<T: Clone>: Clone + Default {
     fn resize(&mut self, len: usize, value: T);
 }
 
-#[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
+#[cfg(all(feature = "correct", feature = "radix"))]
 impl<T: Clone> Resize<T> for Vec<T> {
     #[inline]
     fn resize(&mut self, len: usize, value: T) {
@@ -320,7 +320,7 @@ impl<T> Rget<T> for [T] {
     }
 }
 
-#[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
+#[cfg(all(feature = "correct", feature = "radix"))]
 impl<T> Rget<T> for Vec<T> {
     fn rget<I: RSliceIndex<[T]>>(&self, index: I)
         -> Option<&I::Output>
@@ -373,6 +373,289 @@ impl<A: stackvector::Array> Rget<A::Item> for stackvector::StackVec<A> {
     }
 }
 
+// RINDEX
+
+/// Get items using reverse-indexing.
+pub trait RIndex<T> {
+    /// Get reference to element or subslice.
+    fn rindex<I: RSliceIndex<[T]>>(&self, index: I) -> &I::Output;
+}
+
+impl<T> RIndex<T> for [T] {
+    fn rindex<I: RSliceIndex<[T]>>(&self, index: I) -> &I::Output
+    {
+        index.rindex(self)
+    }
+}
+
+#[cfg(all(feature = "correct", feature = "radix"))]
+impl<T> RIndex<T> for Vec<T> {
+    fn rindex<I: RSliceIndex<[T]>>(&self, index: I) -> &I::Output
+    {
+        index.rindex(self.as_slice())
+    }
+}
+
+impl<A: stackvector::Array> RIndex<A::Item> for stackvector::StackVec<A> {
+    fn rindex<I: RSliceIndex<[A::Item]>>(&self, index: I) -> &I::Output
+    {
+        index.rindex(self.as_slice())
+    }
+}
+
+// RINDEXMUT
+
+/// Get mutable items using reverse-indexing.
+pub trait RIndexMut<T> {
+    /// Get mutable reference to element or subslice.
+    fn rindex_mut<I: RSliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output;
+}
+
+impl<T> RIndexMut<T> for [T] {
+    fn rindex_mut<I: RSliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output
+    {
+        index.rindex_mut(self)
+    }
+}
+
+#[cfg(all(feature = "correct", feature = "radix"))]
+impl<T> RIndexMut<T> for Vec<T> {
+    fn rindex_mut<I: RSliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output
+    {
+        index.rindex_mut(self.as_mut_slice())
+    }
+}
+
+impl<A: stackvector::Array> RIndexMut<A::Item> for stackvector::StackVec<A> {
+    fn rindex_mut<I: RSliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output
+    {
+        index.rindex_mut(self.as_mut_slice())
+    }
+}
+
+/// REVERSE VIEW
+
+/// Reverse, immutable view of a sequence.
+pub struct ReverseView<'a, T> {
+    inner: &'a [T],
+}
+
+impl<'a, T> ops::Index<usize> for ReverseView<'a, T> {
+    type Output = T;
+
+    #[inline]
+    fn index(&self, index: usize) -> &T {
+        self.inner.rindex(index)
+    }
+}
+
+/// REVERSE VIEW MUT
+
+/// Reverse, mutable view of a sequence.
+pub struct ReverseViewMut<'a, T> {
+    inner: &'a mut [T],
+}
+
+impl<'a, T> ops::Index<usize> for ReverseViewMut<'a, T> {
+    type Output = T;
+
+    #[inline]
+    fn index(&self, index: usize) -> &T {
+        self.inner.rindex(index)
+    }
+}
+
+impl<'a, T> ops::IndexMut<usize> for ReverseViewMut<'a, T> {
+    #[inline]
+    fn index_mut(&mut self, index: usize) -> &mut T {
+        self.inner.rindex_mut(index)
+    }
+}
+
+// SLICELIKE
+
+/// Slice-like container.
+pub trait SliceLike<T>:
+    ops::Index<usize, Output=T> +
+    ops::IndexMut<usize> +
+    ops::Index<ops::Range<usize>, Output=[T]> +
+    ops::IndexMut<ops::Range<usize>> +
+    ops::Index<ops::RangeFrom<usize>, Output=[T]> +
+    ops::IndexMut<ops::RangeFrom<usize>> +
+    ops::Index<ops::RangeTo<usize>, Output=[T]> +
+    ops::IndexMut<ops::RangeTo<usize>> +
+    ops::Index<ops::RangeFull, Output=[T]> +
+    ops::IndexMut<ops::RangeFull> +
+    Len<T> +
+    Rget<T> +
+    RIndex<T> +
+    RIndexMut<T>
+{
+    // GET/SET
+
+    /// Get an immutable reference to item at index.
+    #[inline]
+    fn get<I: slice::SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output>;
+
+    /// Get a mutable reference to item at index.
+    #[inline]
+    fn get_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output>;
+
+    /// Get an immutable reference to item at index.
+    #[inline]
+    unsafe fn get_unchecked<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output;
+
+    /// Get a mutable reference to item at index.
+    #[inline]
+    unsafe fn get_unchecked_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output;
+
+    // FRONT
+
+    /// Get an immutable reference to the front item.
+    #[inline]
+    fn front(&self) -> Option<&T> {
+        self.get(0)
+    }
+
+    /// Get an mutable reference to the front item.
+    #[inline]
+    fn front_mut(&mut self) -> Option<&mut T> {
+        debug_assert!(self.len() > 0);
+        self.get_mut(0)
+    }
+
+    /// Get an immutable reference to the front item.
+    #[inline]
+    unsafe fn front_unchecked(&self) -> &T {
+        debug_assert!(self.len() > 0);
+        self.get_unchecked(0)
+    }
+
+    /// Get an mutable reference to the front item.
+    #[inline]
+    unsafe fn front_unchecked_mut(&mut self) -> &mut T {
+        debug_assert!(self.len() > 0);
+        self.get_unchecked_mut(0)
+    }
+
+    // BACK
+
+    /// Get an immutable reference to the back item.
+    #[inline]
+    fn back(&self) -> Option<&T> {
+        self.rget(0)
+    }
+
+    /// Get an mutable reference to the back item.
+    #[inline]
+    fn back_mut(&mut self) -> Option<&mut T> {
+        self.rget_mut(0)
+    }
+
+    /// Get an immutable reference to the back item.
+    #[inline]
+    unsafe fn back_unchecked(&self) -> &T {
+        self.rget_unchecked(0)
+    }
+
+    /// Get an mutable reference to the back item.
+    #[inline]
+    unsafe fn back_unchecked_mut(&mut self) -> &mut T {
+        self.rget_unchecked_mut(0)
+    }
+
+    /// Create a reverse view of the vector for indexing.
+    #[inline]
+    fn rview<'a>(&'a self) -> ReverseView<'a, T> {
+        ReverseView { inner: &self[..] }
+    }
+
+    /// Create a reverse, mutable view of the vector for indexing.
+    #[inline]
+    fn rview_mut<'a>(&'a mut self) -> ReverseViewMut<'a, T> {
+        ReverseViewMut { inner: &mut self[..] }
+    }
+}
+
+impl<T> SliceLike<T> for [T] {
+    /// Get an immutable reference to item at index.
+    #[inline]
+    fn get<I: slice::SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output> {
+        <[T]>::get(self, index)
+    }
+
+    /// Get an mutable reference to item at index.
+    #[inline]
+    fn get_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output> {
+        <[T]>::get_mut(self, index)
+    }
+
+    /// Get an immutable reference to item at index.
+    #[inline]
+    unsafe fn get_unchecked<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output {
+        <[T]>::get_unchecked(self, index)
+    }
+
+    /// Get an mutable reference to item at index.
+    #[inline]
+    unsafe fn get_unchecked_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
+        <[T]>::get_unchecked_mut(self, index)
+    }
+}
+
+#[cfg(all(feature = "correct", feature = "radix"))]
+impl<T> SliceLike<T> for Vec<T> {
+    /// Get an immutable reference to item at index.
+    #[inline]
+    fn get<I: slice::SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output> {
+        self.as_slice().get(index)
+    }
+
+    /// Get an mutable reference to item at index.
+    #[inline]
+    fn get_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output> {
+        self.as_mut_slice().get_mut(index)
+    }
+
+    /// Get an immutable reference to item at index.
+    #[inline]
+    unsafe fn get_unchecked<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output {
+        self.as_slice().get_unchecked(index)
+    }
+
+    /// Get an mutable reference to item at index.
+    #[inline]
+    unsafe fn get_unchecked_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
+        self.as_mut_slice().get_unchecked_mut(index)
+    }
+}
+
+impl<A: stackvector::Array> SliceLike<A::Item> for stackvector::StackVec<A> {
+    /// Get an immutable reference to item at index.
+    #[inline]
+    fn get<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> Option<&I::Output> {
+        self.as_slice().get(index)
+    }
+
+    /// Get an mutable reference to item at index.
+    #[inline]
+    fn get_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> Option<&mut I::Output> {
+        self.as_mut_slice().get_mut(index)
+    }
+
+    /// Get an immutable reference to item at index.
+    #[inline]
+    unsafe fn get_unchecked<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
+        self.as_slice().get_unchecked(index)
+    }
+
+    /// Get an mutable reference to item at index.
+    #[inline]
+    unsafe fn get_unchecked_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
+        self.as_mut_slice().get_unchecked_mut(index)
+    }
+}
+
 // VECLIKE
 
 /// Vector-like container.
@@ -394,11 +677,9 @@ pub trait VecLike<T>:
     ops::DerefMut<Target = [T]> +
     AsSlice<T> +
     Extend<T> +
-    Len<T> +
-    Rget<T> +
+    SliceLike<T> +
     Default
 {
-
     /// Append an element to the vector.
     fn push(&mut self, value: T);
 
@@ -414,63 +695,11 @@ pub trait VecLike<T>:
     /// Set the buffer length (unsafe).
     unsafe fn set_len(&mut self, new_len: usize);
 
-    // FRONT
-
-    /// Get an immutable reference to the front item.
-    #[inline(always)]
-    fn front(&self) -> Option<&T> {
-        self.get(0)
-    }
-
-    /// Get an mutable reference to the front item.
-    #[inline(always)]
-    fn front_mut(&mut self) -> Option<&mut T> {
-        debug_assert!(self.len() > 0);
-        self.get_mut(0)
-    }
-
-    /// Get an immutable reference to the front item.
-    #[inline(always)]
-    unsafe fn front_unchecked(&self) -> &T {
-        debug_assert!(self.len() > 0);
-        self.get_unchecked(0)
-    }
-
-    /// Get an mutable reference to the front item.
-    #[inline(always)]
-    unsafe fn front_unchecked_mut(&mut self) -> &mut T {
-        debug_assert!(self.len() > 0);
-        self.get_unchecked_mut(0)
-    }
-
-    // BACK
-
-    /// Get an immutable reference to the back item.
-    #[inline(always)]
-    fn back(&self) -> Option<&T> {
-        self.rget(0)
-    }
-
-    /// Get an mutable reference to the back item.
-    #[inline(always)]
-    fn back_mut(&mut self) -> Option<&mut T> {
-        self.rget_mut(0)
-    }
-
-    /// Get an immutable reference to the back item.
-    #[inline(always)]
-    unsafe fn back_unchecked(&self) -> &T {
-        self.rget_unchecked(0)
-    }
-
-    /// Get an mutable reference to the back item.
-    #[inline(always)]
-    unsafe fn back_unchecked_mut(&mut self) -> &mut T {
-        self.rget_unchecked_mut(0)
-    }
+    /// Clear the buffer
+    fn clear(&mut self);
 }
 
-#[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
+#[cfg(all(feature = "correct", feature = "radix"))]
 impl<T> VecLike<T> for Vec<T> {
     #[inline]
     fn push(&mut self, value: T) {
@@ -485,6 +714,11 @@ impl<T> VecLike<T> for Vec<T> {
     #[inline]
     unsafe fn set_len(&mut self, new_len: usize) {
         Vec::set_len(self, new_len);
+    }
+
+    #[inline]
+    fn clear(&mut self) {
+        Vec::clear(self);
     }
 
     #[inline]
@@ -515,6 +749,11 @@ impl<A: stackvector::Array> VecLike<A::Item> for stackvector::StackVec<A> {
     }
 
     #[inline]
+    fn clear(&mut self) {
+        stackvector::StackVec::clear(self);
+    }
+
+    #[inline]
     fn insert_many<I: iter::IntoIterator<Item=A::Item>>(&mut self, index: usize, iterable: I) {
         stackvector::StackVec::insert_many(self, index, iterable)
     }
@@ -539,7 +778,7 @@ pub trait CloneableVecLike<T: Clone + Copy + Send>:
     VecLike<T>
 {}
 
-#[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
+#[cfg(all(feature = "correct", feature = "radix"))]
 impl<T: Clone + Copy + Send> CloneableVecLike<T> for Vec<T> {
 }
 
@@ -554,7 +793,7 @@ impl<A: stackvector::Array> CloneableVecLike<A::Item> for stackvector::StackVec<
 mod tests {
     use super::*;
 
-    #[cfg(all(any(feature = "algorithm_m", feature = "bhcomp"), feature = "radix"))]
+    #[cfg(all(feature = "correct", feature = "radix"))]
     #[test]
     fn remove_many_test() {
         let mut x = vec![0, 1, 2, 3, 4, 5];

@@ -16,8 +16,6 @@ serde_json = "1.0"
 
 [features]
 default = []
-algorithm_m = ["lexical-core/algorithm_m"]
-bhcomp = ["lexical-core/bhcomp"]
 
 [[bench]]
 name = "atof"

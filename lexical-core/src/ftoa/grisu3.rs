@@ -1,7 +1,6 @@
 //! Wrapper around David Tolnay's dtoa.
 
 use dtoa;
-use lib::slice;
 use util::*;
 
 // F32
@@ -10,12 +9,12 @@ use util::*;
 ///
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-pub(crate) unsafe extern "C" fn float_decimal(f: f32, first: *mut u8)
-    -> *mut u8
+#[inline]
+pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
+    -> &'a mut [u8]
 {
-    let mut s = slice::from_raw_parts_mut(first, BUFFER_SIZE);
-    let len = dtoa::write(&mut s, f).expect("Write to in-memory buffer.");
-    first.add(len)
+    let len = dtoa::write(&mut bytes[..], f).expect("Write to in-memory buffer.");
+    &mut bytes[len..]
 }
 
 // F64
@@ -24,10 +23,10 @@ pub(crate) unsafe extern "C" fn float_decimal(f: f32, first: *mut u8)
 ///
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-pub(crate) unsafe extern "C" fn double_decimal(d: f64, first: *mut u8)
-    -> *mut u8
+#[inline]
+pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
+    -> &'a mut [u8]
 {
-    let mut s = slice::from_raw_parts_mut(first, BUFFER_SIZE);
-    let len = dtoa::write(&mut s, d).expect("Write to in-memory buffer.");
-    first.add(len)
+    let len = dtoa::write(&mut bytes[..], d).expect("Write to in-memory buffer.");
+    &mut bytes[len..]
 }

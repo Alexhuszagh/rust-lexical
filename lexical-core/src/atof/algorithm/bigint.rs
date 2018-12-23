@@ -1,11 +1,11 @@
 //! Shared definitions for bigintegers.
 
-use lib::iter;
 use float::*;
 use float::convert::*;
 use float::rounding::*;
 use util::*;
-use super::bigcomp;
+use super::alias::*;
+use super::correct::FloatSlice;
 use super::exponent::*;
 use super::math::*;
 
@@ -46,7 +46,7 @@ if #[cfg(feature = "radix")] {
 
 /// Storage for a big integer type.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Bigint {
+pub(super) struct Bigint {
     /// Internal storage for the Bigint, in little-endian order.
     data: DataType,
 }
@@ -85,13 +85,11 @@ impl LargeOps for Bigint {
 /// Parse the full mantissa into a big integer.
 ///
 /// Max digits is the maximum number of digits plus one.
-pub fn parse_mantissa<Iter>(mut digits: Iter, radix: u32, max_digits: usize)
+pub(super) fn parse_mantissa(slc: FloatSlice, radix: u32, max_digits: usize)
     -> Bigint
-    where Iter: iter::Iterator<Item=u8>
 {
     let small_powers = Bigint::small_powers(radix);
-    let get_small = | i: usize | unsafe { *small_powers.get_unchecked(i) };
-    let count = digits.size_hint().0;
+    let count = slc.mantissa_digits();
     let bits = count / integral_binary_factor(radix).as_usize();
     let bytes = bits / Limb::BITS;
 
@@ -104,19 +102,17 @@ pub fn parse_mantissa<Iter>(mut digits: Iter, radix: u32, max_digits: usize)
     let mut i: usize = 0;
     let mut result = Bigint::default();
     result.data.reserve(bytes);
-    loop {
+
+    let mut iter = slc.mantissa_iter();
+    while let Some(&digit) = iter.next() {
         // We've parsed the max digits using small values, add to bignum
         if counter == step {
-            result.imul_small(get_small(counter));
+            result.imul_small(small_powers[counter]);
             result.iadd_small(value);
             counter = 0;
             value = 0;
         }
-        // Parse the next digit.
-        let digit = match digits.next() {
-            Some(v) => v,
-            None    => break,
-        };
+
         value *= base;
         value += as_limb(char_to_digit(digit));
 
@@ -131,15 +127,17 @@ pub fn parse_mantissa<Iter>(mut digits: Iter, radix: u32, max_digits: usize)
     // We will always have a remainder, as long as we entered the loop
     // once, or counter % step is 0.
     if counter != 0 {
-        result.imul_small(get_small(counter));
+        result.imul_small(small_powers[counter]);
         result.iadd_small(value);
     }
 
     // If we have any remaining digits after the last value, we need
     // to add a 1 after the rest of the array, it doesn't matter where,
     // just move it up. This is good for the worst-possible float
-    // representation. We also need to return an index
-    if digits.any(|v| v != b'0') {
+    // representation. We also need to return an index.
+    // Since we already trimmed trailing zeros, we know there has
+    // to be a non-zero digit if there are any left.
+    if let Some(_) = iter.next() {
         result.imul_small(base);
         result.iadd_small(1);
     }
@@ -228,20 +226,59 @@ pub(super) fn max_digits<F>(radix: u32)
 
 // ROUNDING
 
-/// Create a custom wrapper for big mantissa.
-pub(super) fn bigint_rounding(is_truncated: bool)
-    -> impl FnOnce(&mut ExtendedFloat80, i32)
+/// Custom rounding for round-nearest algorithms.
+pub(super) fn nearest_cb<M, Cb>(is_truncated: bool, cb: Cb)
+    -> impl FnOnce(&mut ExtendedFloat<M>, i32)
+    where Cb: FnOnce(&mut ExtendedFloat<M>, bool, bool),
+          M: Mantissa
 {
-    // Create our wrapper for round_nearest_tie_even.
+    // Create our wrapper for round_nearest_tie_*.
     // If there are truncated bits, and we are exactly halfway,
     // then we need to set above to true and halfway to false.
-    move | f: &mut ExtendedFloat80, shift: i32 | {
+    move | f: &mut ExtendedFloat<M>, shift: i32 | {
         let (mut is_above, mut is_halfway) = round_nearest(f, shift);
         if is_halfway && is_truncated {
             is_above = true;
             is_halfway = false;
         }
-        tie_even(f, is_above, is_halfway);
+        cb(f, is_above, is_halfway);
+    }
+}
+
+/// Custom rounding for round-toward algorithms.
+pub(super) fn toward_cb<M, Cb>(is_truncated: bool, cb: Cb)
+    -> impl FnOnce(&mut ExtendedFloat<M>, i32)
+    where Cb: FnOnce(&mut ExtendedFloat<M>, bool),
+          M: Mantissa
+{
+    // Create our wrapper for round_towards_tie_*.
+    // If there are truncated bits, and truncated is not set, set it.
+    move | f: &mut ExtendedFloat<M>, shift: i32 | {
+        let truncated = round_toward(f, shift);
+        cb(f, is_truncated | truncated);
+    }
+}
+
+/// Custom rounding for truncated mantissa.
+///
+/// Respect rounding rules in the config file.
+pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, kind: RoundingKind)
+    where F: FloatType
+{
+    match kind {
+        RoundingKind::NearestTieEven     => {
+            fp.round_to_native::<F, _>(nearest_cb(is_truncated, tie_even::<u64>))
+        },
+        RoundingKind::NearestTieAwayZero => {
+            fp.round_to_native::<F, _>(nearest_cb(is_truncated, tie_away_zero::<u64>))
+        },
+        RoundingKind::Upward             => {
+            fp.round_to_native::<F, _>(toward_cb(is_truncated, upward::<u64>))
+        },
+        RoundingKind::Downward           => {
+            fp.round_to_native::<F, _>(toward_cb(is_truncated, downard::<u64>))
+        },
+        _                                => unreachable!(),
     }
 }
 
@@ -261,38 +298,24 @@ pub(super) fn use_bigcomp(radix: u32, count: usize)
     radix.is_odd() && count > LARGE_POWER_MAX
 }
 
-/// Use the bigcomp atof function.
-#[inline(always)]
-pub(super) unsafe fn bigcomp_atof<F, Iter>(digits: Iter, radix: u32, sci_exponent: i32, f: F)
-    -> F
-    where F: Float,
-          F::Unsigned: Mantissa,
-          ExtendedFloat<F::Unsigned>: bigcomp::ToBigInt<F::Unsigned>,
-          Iter: iter::Iterator<Item=u8>
-{
-    bigcomp::slow_atof(digits, radix, sci_exponent, f)
-}
-
 /// Calculate the mantissa for a big integer with a positive exponent.
 #[inline]
-pub(super) unsafe fn positive_exponent_atof<F, Iter>(digits: Iter, radix: u32, max_digits: usize, exponent: i32)
+pub(super) fn large_atof<F>(slc: FloatSlice, radix: u32, max_digits: usize, exponent: i32, kind: RoundingKind)
     -> F
-    where F: FloatRounding<u64>,
-          F::Unsigned: Mantissa,
-          Iter: iter::Iterator<Item=u8>
+    where F: FloatType
 {
     // Simple, we just need to multiply by the power of the radix.
     // Now, we can calculate the mantissa and the exponent from this.
     // The binary exponent is the binary exponent for the mantissa
     // shifted to the hidden bit.
-    let mut bigmant = parse_mantissa(digits, radix, max_digits);
+    let mut bigmant = parse_mantissa(slc, radix, max_digits);
     bigmant.imul_power(radix, exponent.as_u32());
 
     // Get the exact representation of the float from the big integer.
     let (mant, is_truncated) = bigmant.hi64();
     let exp = bigmant.bit_length().as_i32() - u64::BITS.as_i32();
     let mut fp = ExtendedFloat { mant: mant, exp: exp };
-    fp.round_to_native::<F, _>(bigint_rounding(is_truncated));
+    round_to_native::<F>(&mut fp, is_truncated, kind);
     into_float(fp)
 }
 

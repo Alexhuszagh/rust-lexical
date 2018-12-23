@@ -1,12 +1,11 @@
 //! C-compatible result type.
 
 use super::error::{self, Error};
-use super::num::Number;
 
 /// C-compatible result type from parsing strings-to-numbers for FFI.
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Result<T: Number> {
+pub struct Result<T> {
     /// Value from the parser function call.
     pub value: T,
     /// Error information, including the error code and other metadata.
@@ -14,30 +13,34 @@ pub struct Result<T: Number> {
 }
 
 /// Helper function to create a success message.
-#[inline(always)]
+#[inline]
 pub(crate) fn success<T>(value: T)
     -> Result<T>
-    where T: Number
 {
     Result { value: value, error: error::success() }
 }
 
 /// Helper function to create an overflow error.
-#[inline(always)]
+#[inline]
 pub(crate) fn overflow_error<T>(value: T)
     -> Result<T>
-    where T: Number
 {
     Result { value: value, error: error::overflow_error() }
 }
 
 /// Helper function to create an invalid digit error.
-#[inline(always)]
+#[inline]
 pub(crate) fn invalid_digit_error<T>(value: T, index: usize)
     -> Result<T>
-    where T: Number
 {
     Result { value: value, error: error::invalid_digit_error(index) }
+}
+
+#[inline]
+pub(crate) fn empty_error<T>(value: T)
+    -> Result<T>
+{
+    Result { value: value, error: error::empty_error() }
 }
 
 // FFI

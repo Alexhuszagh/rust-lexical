@@ -21,14 +21,14 @@ mod error;
 mod mask;
 mod num;
 mod primitive;
-mod parse_state;
 mod pow;
 mod result;
+mod rounding;
+mod sign;
 mod table;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
-    mod slice;
     mod veclike;
 } else {
     mod wrapped;
@@ -40,13 +40,13 @@ pub(crate) use self::cast::*;
 pub(crate) use self::mask::*;
 pub(crate) use self::num::*;
 pub(crate) use self::primitive::*;
-pub(crate) use self::parse_state::*;
 pub(crate) use self::pow::*;
+pub(crate) use self::rounding::*;
+pub(crate) use self::sign::*;
 pub(crate) use self::table::*;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
-    pub(crate) use self::slice::*;
     pub(crate) use self::veclike::*;
 } else {
     pub(crate) use self::wrapped::*;
@@ -54,5 +54,6 @@ if #[cfg(feature = "correct")] {
 
 // Publicly export config globally.
 pub use self::config::*;
-pub use self::error::{Error, ErrorCode, is_invalid_digit, is_overflow, is_success};
+pub use self::error::{Error, ErrorCode, is_empty, is_invalid_digit, is_overflow, is_success};
 pub use self::result::*;
+pub use self::rounding::RoundingKind;

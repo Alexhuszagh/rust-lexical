@@ -9,7 +9,12 @@ license = "MIT/Apache-2.0"
 name = "lexical-core"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core"
-version = "0.2.1"
+version = "0.3.0"
+
+# We want FFI support, so build a regular lib, a system static lib,
+# and a system shared lib.
+[lib]
+crate-type = ["lib", "staticlib", "cdylib"]
 
 [badges]
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
@@ -30,17 +35,12 @@ quickcheck = "0.7"
 proptest = "0.8.7"
 
 [features]
-default = ["bhcomp", "ryu", "std"]
-# Use algorithm M, which requires a system allocator with radix.
-algorithm_m = ["correct"]
-# Use `b+h` comparison, which requires a system allocator with radix.
-# This is preferred, as it is the fastest algorithm in lexical.
-bhcomp = ["correct"]
+default = ["correct", "ryu", "std"]
 # Use the correct atof parser.
 correct = ["stackvector", "table"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["dtoa"]
-# Add support for [parsing non-decimal float and integer strings.
+# Add support for parsing non-decimal float and integer strings.
 radix = []
 # Use the `std` library.
 std = []

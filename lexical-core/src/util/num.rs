@@ -1,5 +1,9 @@
 //! Utilities for Rust numbers.
 
+// We have a lot of high-level casts that make the type-system work.
+// Don't delete them, fake they're being used.
+#![allow(dead_code)]
+
 pub(crate) use lib::{f32, f64, mem};
 use lib::{fmt, iter, ops};
 use super::cast::{AsCast, TryCast};
@@ -138,31 +142,31 @@ pub trait Integer:
     fn saturating_mul(self, i: Self) -> Self;
 
     /// Create literal zero.
-    #[inline(always)]
+    #[inline]
     fn zero() -> Self {
         Self::ZERO
     }
 
     /// Create literal one.
-    #[inline(always)]
+    #[inline]
     fn one() -> Self {
         Self::ONE
     }
 
     /// Create literal two.
-    #[inline(always)]
+    #[inline]
     fn two() -> Self {
         Self::TWO
     }
 
     /// Check if value is equal to zero.
-    #[inline(always)]
+    #[inline]
     fn is_zero(self) -> bool {
         self == Self::ZERO
     }
 
     /// Check if value is equal to one.
-    #[inline(always)]
+    #[inline]
     fn is_one(self) -> bool {
         self == Self::ONE
     }
@@ -172,26 +176,26 @@ pub trait Integer:
     /// Get the fast ceiling of the quotient from integer division.
     /// Not safe, since the remainder can easily overflow.
     #[inline]
-    unsafe fn ceil_divmod(self, y: Self) -> (Self, i32) {
+    fn ceil_divmod(self, y: Self) -> (Self, i32) {
         let q = self / y;
         let r = self % y;
         match r.is_zero() {
             true  => (q, r.as_i32()),
-            false => (q+Self::ONE, r.as_i32() - y.as_i32())
+            false => (q + Self::ONE, r.as_i32() - y.as_i32())
         }
     }
 
     /// Get the fast ceiling of the quotient from integer division.
     /// Not safe, since the remainder can easily overflow.
     #[inline]
-    unsafe fn ceil_div(self, y: Self) -> Self {
+    fn ceil_div(self, y: Self) -> Self {
         self.ceil_divmod(y).0
     }
 
     /// Get the fast ceiling modulus from integer division.
     /// Not safe, since the remainder can easily overflow.
     #[inline]
-    unsafe fn ceil_mod(self, y: Self) -> i32 {
+    fn ceil_mod(self, y: Self) -> i32 {
         self.ceil_divmod(y).1
     }
 
@@ -205,124 +209,124 @@ pub trait Integer:
 
     // TRY CAST OR MAX
 
-    #[inline(always)]
+    #[inline]
     fn try_u8_or_max(self) -> u8 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u16_or_max(self) -> u16 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u32_or_max(self) -> u32 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u64_or_max(self) -> u64 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u128_or_max(self) -> u128 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_usize_or_max(self) -> usize {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i8_or_max(self) -> i8 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i16_or_max(self) -> i16 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i32_or_max(self) -> i32 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i64_or_max(self) -> i64 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i128_or_max(self) -> i128 {
         try_cast_or_max(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_isize_or_max(self) -> isize {
         try_cast_or_max(self)
     }
 
     // TRY CAST OR MIN
 
-    #[inline(always)]
+    #[inline]
     fn try_u8_or_min(self) -> u8 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u16_or_min(self) -> u16 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u32_or_min(self) -> u32 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u64_or_min(self) -> u64 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_u128_or_min(self) -> u128 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_usize_or_min(self) -> usize {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i8_or_min(self) -> i8 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i16_or_min(self) -> i16 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i32_or_min(self) -> i32 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i64_or_min(self) -> i64 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_i128_or_min(self) -> i128 {
         try_cast_or_min(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn try_isize_or_min(self) -> isize {
         try_cast_or_min(self)
     }
@@ -338,167 +342,167 @@ macro_rules! integer_impl {
             const MIN: $t = $t::min_value();
             const BITS: usize = mem::size_of::<$t>() * 8;
 
-            #[inline(always)]
+            #[inline]
             fn max_value() -> Self {
                 Self::MAX
             }
 
-            #[inline(always)]
+            #[inline]
             fn min_value() -> Self {
                 Self::MIN
             }
 
-            #[inline(always)]
+            #[inline]
             fn count_ones(self) -> u32 {
                 $t::count_ones(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn count_zeros(self) -> u32 {
                 $t::count_zeros(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn leading_zeros(self) -> u32 {
                 $t::leading_zeros(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn trailing_zeros(self) -> u32 {
                 $t::trailing_zeros(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_add(self, i: Self) -> Option<Self> {
                 $t::checked_add(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_sub(self, i: Self) -> Option<Self> {
                 $t::checked_sub(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_mul(self, i: Self) -> Option<Self> {
                 $t::checked_mul(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_div(self, i: Self) -> Option<Self> {
                 $t::checked_div(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_rem(self, i: Self) -> Option<Self> {
                 $t::checked_rem(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_neg(self) -> Option<Self> {
                 $t::checked_neg(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_shl(self, i: u32) -> Option<Self> {
                 $t::checked_shl(self,i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn checked_shr(self, i: u32) -> Option<Self> {
                 $t::checked_shr(self,i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_add(self, i: Self) -> Self {
                 $t::wrapping_add(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_sub(self, i: Self) -> Self {
                 $t::wrapping_sub(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_mul(self, i: Self) -> Self {
                 $t::wrapping_mul(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_div(self, i: Self) -> Self {
                 $t::wrapping_div(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_rem(self, i: Self) -> Self {
                 $t::wrapping_rem(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_neg(self) -> Self {
                 $t::wrapping_neg(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_shl(self, i: u32) -> Self {
                 $t::wrapping_shl(self,i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn wrapping_shr(self, i: u32) -> Self {
                 $t::wrapping_shr(self,i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_add(self, i: Self) -> (Self, bool) {
                 $t::overflowing_add(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_sub(self, i: Self) -> (Self, bool) {
                 $t::overflowing_sub(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_mul(self, i: Self) -> (Self, bool) {
                 $t::overflowing_mul(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_div(self, i: Self) -> (Self, bool) {
                 $t::overflowing_div(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_rem(self, i: Self) -> (Self, bool) {
                 $t::overflowing_rem(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_neg(self) -> (Self, bool) {
                 $t::overflowing_neg(self)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_shl(self, i: u32) -> (Self, bool) {
                 $t::overflowing_shl(self,i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn overflowing_shr(self, i: u32) -> (Self, bool) {
                 $t::overflowing_shr(self,i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn saturating_add(self, i: Self) -> Self {
                 $t::saturating_add(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn saturating_sub(self, i: Self) -> Self {
                 $t::saturating_sub(self, i)
             }
 
-            #[inline(always)]
+            #[inline]
             fn saturating_mul(self, i: Self) -> Self {
                 $t::saturating_mul(self, i)
             }
@@ -509,27 +513,25 @@ macro_rules! integer_impl {
 integer_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
 
 /// Unwrap or get T::max_value().
-#[inline(always)]
+#[inline]
 pub fn unwrap_or_max<T: Integer>(t: Option<T>) -> T {
     t.unwrap_or(T::max_value())
 }
 
 /// Unwrap or get T::min_value().
-#[inline(always)]
+#[inline]
 pub fn unwrap_or_min<T: Integer>(t: Option<T>) -> T {
     t.unwrap_or(T::min_value())
 }
 
 /// Try to convert to U, if not, return U::max_value().
-#[inline(always)]
-#[allow(dead_code)]
+#[inline]
 pub fn try_cast_or_max<U: Integer, T: TryCast<U>>(t: T) -> U {
     unwrap_or_max(TryCast::try_cast(t))
 }
 
 /// Try to convert to U, if not, return U::min_value().
-#[inline(always)]
-#[allow(dead_code)]
+#[inline]
 pub fn try_cast_or_min<U: Integer, T: TryCast<U>>(t: T) -> U {
     unwrap_or_min(TryCast::try_cast(t))
 }
@@ -623,6 +625,8 @@ pub trait Float: Number + ops::Neg<Output=Self>
 
     /// Positive infinity as bits.
     const INFINITY_BITS: Self::Unsigned;
+    /// Positive infinity as bits.
+    const NEGATIVE_INFINITY_BITS: Self::Unsigned;
     /// Size of the significand (mantissa) without hidden bit.
     const MANTISSA_SIZE: i32;
     /// Bias of the exponet
@@ -653,6 +657,8 @@ pub trait Float: Number + ops::Neg<Output=Self>
     /// Check if value is equal to zero.
     #[inline]
     fn is_zero(self) -> bool {
+        // IEEE754 guarantees `+0.0 == -0.0`, and Rust respects this,
+        // unlike some other languages.
         self == Self::ZERO
     }
 
@@ -680,10 +686,16 @@ pub trait Float: Number + ops::Neg<Output=Self>
         self.is_special() && !(self.to_bits() & Self::MANTISSA_MASK).is_zero()
     }
 
+    /// Returns true if the float is infinite.
+    #[inline]
+    fn is_inf(self) -> bool {
+        self.is_special() && (self.to_bits() & Self::MANTISSA_MASK).is_zero()
+    }
+
     /// Returns true if the float's least-significant mantissa bit is odd.
     #[inline]
     fn is_odd(self) -> bool {
-        self.to_bits() & Self::Unsigned::ONE == Self::Unsigned::ONE
+        self.to_bits().is_odd()
     }
 
     /// Returns true if the float's least-significant mantissa bit is even.
@@ -720,26 +732,58 @@ pub trait Float: Number + ops::Neg<Output=Self>
     #[inline]
     fn next(self) -> Self {
         let bits = self.to_bits();
-        if self.is_sign_negative() && self.mantissa().is_zero() {
+        if self.is_sign_negative() && self.is_zero() {
             // -0.0
             Self::ZERO
+        } else if bits == Self::INFINITY_BITS {
+            Self::from_bits(Self::INFINITY_BITS)
         } else if self.is_sign_negative() {
-            Self::from_bits(bits - Self::Unsigned::ONE)
+            Self::from_bits(bits.saturating_sub(Self::Unsigned::ONE))
         } else {
-            Self::from_bits(bits + Self::Unsigned::ONE)
+            Self::from_bits(bits.saturating_add(Self::Unsigned::ONE))
         }
     }
 
     /// Get next greater float for a positive float.
+    /// Value must be >= 0.0 and < INFINITY.
     #[inline]
     fn next_positive(self) -> Self {
-        debug_assert!(self.is_sign_positive());
+        debug_assert!(self.is_sign_positive() && !self.is_inf());
+        Self::from_bits(self.to_bits() + Self::Unsigned::ONE)
+    }
 
+    /// Get previous greater float, such that `self.prev().next() == self`.
+    #[inline]
+    fn prev(self) -> Self {
         let bits = self.to_bits();
-        if bits == Self::INFINITY_BITS {
-            return Self::from_bits(Self::INFINITY_BITS);
+        if self.is_sign_positive() && self.is_zero() {
+            // +0.0
+            -Self::ZERO
+        } else if bits == Self::NEGATIVE_INFINITY_BITS {
+            Self::from_bits(Self::NEGATIVE_INFINITY_BITS)
+        } else if self.is_sign_negative() {
+            Self::from_bits(bits.saturating_add(Self::Unsigned::ONE))
+        } else {
+            Self::from_bits(bits.saturating_sub(Self::Unsigned::ONE))
         }
-        return Self::from_bits(bits + Self::Unsigned::ONE);
+    }
+
+    /// Get previous greater float for a positive float.
+    /// Value must be > 0.0.
+    #[inline]
+    fn prev_positive(self) -> Self {
+        debug_assert!(self.is_sign_positive() && !self.is_zero());
+        return Self::from_bits(self.to_bits() - Self::Unsigned::ONE);
+    }
+
+    /// Round a positive number to even.
+    #[inline]
+    fn round_positive_even(self) -> Self {
+        if self.mantissa().is_odd() {
+            self.next_positive()
+        } else {
+            self
+        }
     }
 
     /// Get the max of two finite numbers.
@@ -830,67 +874,68 @@ impl Float for f32 {
     const HIDDEN_BIT_MASK: u32      = 0x00800000;
     const MANTISSA_MASK: u32        = 0x007FFFFF;
     const INFINITY_BITS: u32        = 0x7F800000;
+    const NEGATIVE_INFINITY_BITS: u32 = Self::INFINITY_BITS | Self::SIGN_MASK;
     const MANTISSA_SIZE: i32        = 23;
     const EXPONENT_BIAS: i32        = 127 + Self::MANTISSA_SIZE;
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
 
-    #[inline(always)]
+    #[inline]
     fn abs(self) -> f32 {
         float_method!(self, f32, abs, fabsf32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn ceil(self) -> f32 {
         float_method_msvc!(self, f32, f64, ceil, ceilf32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn exp(self) -> f32 {
         float_method_msvc!(self, f32, f64, exp, expf32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn floor(self) -> f32 {
         float_method_msvc!(self, f32, f64, floor, floorf32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn ln(self) -> f32 {
         float_method_msvc!(self, f32, f64, ln, logf32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn powi(self, n: i32) -> f32 {
         float_method!(self, f32, powi, powif32, n)
     }
 
-    #[inline(always)]
+    #[inline]
     fn powf(self, n: f32) -> f32 {
         float_method_msvc!(self, f32, f64, powf, powf32, n as f32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn round(self) -> f32 {
         float_method!(self, f32, round, roundf32)
     }
 
-    #[inline(always)]
+    #[inline]
     fn to_bits(self) -> u32 {
         f32::to_bits(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn from_bits(u: u32) -> f32 {
         f32::from_bits(u)
     }
 
-    #[inline(always)]
+    #[inline]
     fn is_sign_positive(self) -> bool {
         f32::is_sign_positive(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn is_sign_negative(self) -> bool {
         f32::is_sign_negative(self)
     }
@@ -912,67 +957,68 @@ impl Float for f64 {
     const HIDDEN_BIT_MASK: u64      = 0x0010000000000000;
     const MANTISSA_MASK: u64        = 0x000FFFFFFFFFFFFF;
     const INFINITY_BITS: u64        = 0x7FF0000000000000;
+    const NEGATIVE_INFINITY_BITS: u64 = Self::INFINITY_BITS | Self::SIGN_MASK;
     const MANTISSA_SIZE: i32        = 52;
     const EXPONENT_BIAS: i32        = 1023 + Self::MANTISSA_SIZE;
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0x7FF - Self::EXPONENT_BIAS;
 
-    #[inline(always)]
+    #[inline]
     fn abs(self) -> f64 {
         float_method!(self, f64, abs, fabsf64)
     }
 
-    #[inline(always)]
+    #[inline]
     fn ceil(self) -> f64 {
         float_method!(self, f64, ceil, ceilf64)
     }
 
-    #[inline(always)]
+    #[inline]
     fn exp(self) -> f64 {
         float_method!(self, f64, exp, expf64)
     }
 
-    #[inline(always)]
+    #[inline]
     fn floor(self) -> f64 {
         float_method!(self, f64, floor, floorf64)
     }
 
-    #[inline(always)]
+    #[inline]
     fn ln(self) -> f64 {
         float_method_log_solaris!(self, f64, ln, logf64)
     }
 
-    #[inline(always)]
+    #[inline]
     fn powi(self, n: i32) -> f64 {
         float_method!(self, f64, powi, powif64, n)
     }
 
-    #[inline(always)]
+    #[inline]
     fn powf(self, n: f64) -> f64 {
         float_method!(self, f64, powf, powf64, n)
     }
 
-    #[inline(always)]
+    #[inline]
     fn round(self) -> f64 {
         float_method!(self, f64, round, roundf64)
     }
 
-    #[inline(always)]
+    #[inline]
     fn to_bits(self) -> u64 {
         f64::to_bits(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn from_bits(u: u64) -> f64 {
         f64::from_bits(u)
     }
 
-    #[inline(always)]
+    #[inline]
     fn is_sign_positive(self) -> bool {
         f64::is_sign_positive(self)
     }
 
-    #[inline(always)]
+    #[inline]
     fn is_sign_negative(self) -> bool {
         f64::is_sign_negative(self)
     }
@@ -1122,12 +1168,10 @@ mod tests {
 
     #[test]
     fn ceil_divmod_test() {
-        unsafe {
-            assert_eq!(5usize.ceil_divmod(7), (1, -2));
-            assert_eq!(0usize.ceil_divmod(7), (0, 0));
-            assert_eq!(35usize.ceil_divmod(7), (5, 0));
-            assert_eq!(36usize.ceil_divmod(7), (6, -6));
-        }
+        assert_eq!(5usize.ceil_divmod(7), (1, -2));
+        assert_eq!(0usize.ceil_divmod(7), (0, 0));
+        assert_eq!(35usize.ceil_divmod(7), (5, 0));
+        assert_eq!(36usize.ceil_divmod(7), (6, -6));
     }
 
     #[test]
@@ -1222,15 +1266,36 @@ mod tests {
         let f: f32 = 1e-45;
         assert!(f.is_odd());
         assert!(f.next().is_even());
+        assert!(f.next_positive().is_even());
+        assert!(f.prev().is_even());
+        assert!(f.prev_positive().is_even());
+        assert!(f.round_positive_even().is_even());
+        assert_eq!(f.prev().next(), f);
+        assert_eq!(f.prev_positive().next_positive(), f);
+        assert_eq!(f.round_positive_even(), f.next());
 
         // b00111101110011001100110011001101
         let f: f32 = 0.1;
         assert!(f.is_odd());
         assert!(f.next().is_even());
+        assert!(f.next_positive().is_even());
+        assert!(f.prev().is_even());
+        assert!(f.prev_positive().is_even());
+        assert!(f.round_positive_even().is_even());
+        assert_eq!(f.prev().next(), f);
+        assert_eq!(f.prev_positive().next_positive(), f);
+        assert_eq!(f.round_positive_even(), f.next());
 
         // b01000000000000000000000000000000
         let f: f32 = 1.0;
         assert!(f.is_even());
         assert!(f.next().is_odd());
+        assert!(f.next_positive().is_odd());
+        assert!(f.prev().is_odd());
+        assert!(f.prev_positive().is_odd());
+        assert!(f.round_positive_even().is_even());
+        assert_eq!(f.prev().next(), f);
+        assert_eq!(f.prev_positive().next_positive(), f);
+        assert_ne!(f.round_positive_even(), f.next());
     }
 }

@@ -28,7 +28,7 @@ mod private {
 pub(crate) trait StablePower: private::StablePowerImpl {
 //    /// Calculate pow2 with numeric exponent.
 //    #[cfg(any(test, not(feature = "imprecise")))]
-//    unsafe fn pow2(self, exponent: i32) -> Self;
+//    fn pow2(self, exponent: i32) -> Self;
 //
 //    /// Calculate base^n with numeric exponent and base.
 //    #[cfg(any(test, not(feature = "imprecise")))]
@@ -93,7 +93,7 @@ pub(crate) trait StablePower: private::StablePowerImpl {
     /// However, doing it in 2 shots for exact values is exact.
     #[cfg(all(feature = "radix", not(feature = "correct")))]
     #[inline]
-    unsafe fn pow2(self, exponent: i32) -> Self {
+    fn pow2(self, exponent: i32) -> Self {
         let step: i32 = 75;
         if exponent > step {
             self * Self::TWO.powi(step) * Self::TWO.powi(exponent - step)
@@ -107,7 +107,7 @@ pub(crate) trait StablePower: private::StablePowerImpl {
     /// Calculate power of 2 using precalculated table.
     #[cfg(all(feature = "radix", feature = "correct"))]
     #[inline]
-    unsafe fn pow2(self, exponent: i32) -> Self {
+    fn pow2(self, exponent: i32) -> Self {
         self * Self::table_pow2(exponent)
     }
 
@@ -116,7 +116,7 @@ pub(crate) trait StablePower: private::StablePowerImpl {
     /// Calculate power of n using powi.
     #[cfg(not(feature = "correct"))]
     #[inline]
-    unsafe fn pow<T: Integer>(self, base: T, exponent: i32) -> Self {
+    fn pow<T: Integer>(self, base: T, exponent: i32) -> Self {
         // Check the exponent is within bounds in debug builds.
         let (min, max) = Self::exponent_limit(base);
         debug_assert!(exponent >= min && exponent <= max);
@@ -128,7 +128,7 @@ pub(crate) trait StablePower: private::StablePowerImpl {
     /// Calculate power of n using precalculated table.
     #[cfg(feature = "correct")]
     #[inline]
-    unsafe fn pow<T: Integer>(self, base: T, exponent: i32) -> Self {
+    fn pow<T: Integer>(self, base: T, exponent: i32) -> Self {
         // Check the exponent is within bounds in debug builds.
         let (min, max) = Self::exponent_limit(base);
         debug_assert!(exponent >= min && exponent <= max);
@@ -156,7 +156,7 @@ impl StablePower for f32 {
 
         debug_assert_radix!(radix);
         let idx: usize = as_cast(radix.as_i32() - 2);
-        unsafe { *MAX.get_unchecked(idx) }
+        MAX[idx]
     }
 
     fn iterative_step<T: Integer>(radix: T) -> i32 {
@@ -170,7 +170,7 @@ impl StablePower for f32 {
 
         debug_assert_radix!(radix);
         let idx: usize = as_cast(radix.as_i32() - 2);
-        unsafe { *STEP.get_unchecked(idx) }
+        STEP[idx]
     }
 }
 
@@ -188,8 +188,7 @@ impl StablePower for f64 {
         ];
 
         debug_assert_radix!(radix);
-        let idx: usize = as_cast(radix.as_i32() - 2);
-        unsafe { *MAX.get_unchecked(idx) }
+        MAX[radix.as_usize() - 2]
     }
 
     fn iterative_step<T: Integer>(radix: T) -> i32 {
@@ -202,8 +201,7 @@ impl StablePower for f64 {
         ];
 
         debug_assert_radix!(radix);
-        let idx: usize = as_cast(radix.as_i32() - 2);
-        unsafe { *STEP.get_unchecked(idx) }
+        STEP[radix.as_usize() - 2]
     }
 }
 
@@ -290,33 +288,29 @@ mod tests {
     #[cfg(feature = "radix")]
     #[test]
     fn f32_pow2_test() {
-        unsafe {
-            let (min, max) = f32::exponent_limit(2);
-            for i in min+1..max+1 {
-                assert_eq!(f32::pow2(1.0, i) / f32::pow2(1.0, i-1), 2.0);
-            }
-            for i in 1..max+1 {
-                let f = f32::pow2(1.0, i);
-                if f < u64::max_value() as f32 {
-                    assert_eq!((f as u64) as f32, f);
-                }
+        let (min, max) = f32::exponent_limit(2);
+        for i in min+1..max+1 {
+            assert_eq!(f32::pow2(1.0, i) / f32::pow2(1.0, i-1), 2.0);
+        }
+        for i in 1..max+1 {
+            let f = f32::pow2(1.0, i);
+            if f < u64::max_value() as f32 {
+                assert_eq!((f as u64) as f32, f);
             }
         }
     }
 
     #[test]
     fn f32_pow_test() {
-        unsafe {
-            // Only check positive, since negative values round during division.
-            for b in BASE_POWN.iter().cloned() {
-                let (_, max) = f32::exponent_limit(b);
-                for i in 1..max+1 {
-                    let f = f32::pow(1.0, b, i);
-                    let p = f32::pow(1.0, b, i-1);
-                    assert_eq!(f / p, b as f32);
-                    if f < u64::max_value() as f32 {
-                        assert_eq!((f as u64) as f32, f);
-                    }
+        // Only check positive, since negative values round during division.
+        for b in BASE_POWN.iter().cloned() {
+            let (_, max) = f32::exponent_limit(b);
+            for i in 1..max+1 {
+                let f = f32::pow(1.0, b, i);
+                let p = f32::pow(1.0, b, i-1);
+                assert_eq!(f / p, b as f32);
+                if f < u64::max_value() as f32 {
+                    assert_eq!((f as u64) as f32, f);
                 }
             }
         }
@@ -325,35 +319,31 @@ mod tests {
     #[cfg(feature = "radix")]
     #[test]
     fn f64_pow2_test() {
-        unsafe {
-            let (min, max) = f64::exponent_limit(2);
-            for i in min+1..max+1 {
-                let curr = f64::pow2(1.0, i);
-                let prev = f64::pow2(1.0, i-1);
-                assert_eq!(curr / prev, 2.0);
-            }
-            for i in 1..max+1 {
-                let f = f64::pow2(1.0, i);
-                if f < u64::max_value() as f64 {
-                    assert_eq!((f as u64) as f64, f);
-                }
+        let (min, max) = f64::exponent_limit(2);
+        for i in min+1..max+1 {
+            let curr = f64::pow2(1.0, i);
+            let prev = f64::pow2(1.0, i-1);
+            assert_eq!(curr / prev, 2.0);
+        }
+        for i in 1..max+1 {
+            let f = f64::pow2(1.0, i);
+            if f < u64::max_value() as f64 {
+                assert_eq!((f as u64) as f64, f);
             }
         }
     }
 
     #[test]
     fn f64_pow_test() {
-        unsafe {
-            // Only check positive, since negative values round during division.
-            for b in BASE_POWN.iter().cloned() {
-                let (_, max) = f64::exponent_limit(b);
-                for i in 1..max+1 {
-                    let f = f64::pow(1.0, b, i);
-                    let p = f64::pow(1.0, b, i-1);
-                    assert_eq!(f / p, b as f64);
-                    if f < u64::max_value() as f64 {
-                        assert_eq!((f as u64) as f64, f);
-                    }
+        // Only check positive, since negative values round during division.
+        for b in BASE_POWN.iter().cloned() {
+            let (_, max) = f64::exponent_limit(b);
+            for i in 1..max+1 {
+                let f = f64::pow(1.0, b, i);
+                let p = f64::pow(1.0, b, i-1);
+                assert_eq!(f / p, b as f64);
+                if f < u64::max_value() as f64 {
+                    assert_eq!((f as u64) as f64, f);
                 }
             }
         }

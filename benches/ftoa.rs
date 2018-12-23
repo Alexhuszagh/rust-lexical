@@ -6,7 +6,7 @@ extern crate lexical_core;
 
 use bencher::{black_box, Bencher};
 use dtoa::write as dtoa_write;
-use lexical_core::ftoa::*;
+use lexical_core::*;
 
 // SHARED
 const F32_NAN: f32 = 0.0_f32 / 0.0_f32;
@@ -23,7 +23,7 @@ const F32_DATA: [f32; 10000] = [-1.2129985296099096e-14, -0.004396982025355101, 
 
 fn ftoa_f32_lexical(bench: &mut Bencher) {
     let mut buffer: [u8; 256] = [b'0'; 256];
-    bench.iter(|| { F32_DATA.iter().for_each(|x| { black_box(f32toa_slice(*x, 10, &mut buffer)); } ) })
+    bench.iter(|| { F32_DATA.iter().for_each(|x| { black_box(f32toa_slice(*x, &mut buffer)); } ) })
 }
 
 fn ftoa_f32_dtoa(bench: &mut Bencher) {
@@ -56,7 +56,7 @@ const F64_DATA: [f64; 10000] = [4.605903649704751e+215, 4.3777614830568243e-190,
 
 fn ftoa_f64_lexical(bench: &mut Bencher) {
     let mut buffer: [u8; 256] = [b'0'; 256];
-    bench.iter(|| { F64_DATA.iter().for_each(|x| { black_box(f64toa_slice(*x, 10, &mut buffer)); } ) })
+    bench.iter(|| { F64_DATA.iter().for_each(|x| { black_box(f64toa_slice(*x, &mut buffer)); } ) })
 }
 
 fn ftoa_f64_dtoa(bench: &mut Bencher) {

@@ -73,10 +73,17 @@ mod error;
 mod traits;
 
 // Re-export EXPONENT_DEFAULT_CHAR and EXPONENT_BACKUP_CHAR globally.
-pub use lexical_core::{EXPONENT_DEFAULT_CHAR, EXPONENT_BACKUP_CHAR};
+pub use lexical_core::EXPONENT_DEFAULT_CHAR;
+
+#[cfg(feature = "radix")]
+pub use lexical_core::EXPONENT_BACKUP_CHAR;
 
 // Re-export NAN_STRING, INF_STRING and INFINITY_STRING globally.
 pub use lexical_core::{INF_STRING, INFINITY_STRING, NAN_STRING};
+
+// Re-export the float rounding scheme used.
+#[cfg(feature = "correct")]
+pub use lexical_core::{FLOAT_ROUNDING, RoundingKind};
 
 // Re-export the Error and ErrorKind globally.
 pub use error::{Error, ErrorKind};
@@ -101,9 +108,11 @@ use lib::convert::AsRef;
 /// assert_eq!(lexical::to_string(0.0), "0.0");
 /// # }
 /// ```
-#[inline(always)]
+#[inline]
 pub fn to_string<N: ToBytes>(n: N) -> lib::String {
-    unsafe { lib::String::from_utf8_unchecked(n.to_bytes(10)) }
+    unsafe {
+        lib::String::from_utf8_unchecked(n.to_bytes())
+    }
 }
 
 /// High-level conversion of a number to string with a custom radix.
@@ -125,9 +134,11 @@ pub fn to_string<N: ToBytes>(n: N) -> lib::String {
 ///
 /// Panics if radix is not in the range `[2, 36]`
 #[cfg(feature = "radix")]
-#[inline(always)]
+#[inline]
 pub fn to_string_radix<N: ToBytes>(n: N, radix: u8) -> lib::String {
-    unsafe { lib::String::from_utf8_unchecked(n.to_bytes(radix)) }
+    unsafe {
+        lib::String::from_utf8_unchecked(n.to_bytes_radix(radix))
+    }
 }
 
 /// High-level conversion of decimal-encoded bytes to a number.
@@ -160,9 +171,9 @@ pub fn to_string_radix<N: ToBytes>(n: N, radix: u8) -> lib::String {
 /// ```
 ///
 /// [`try_parse`]: fn.try_parse.html
-#[inline(always)]
+#[inline]
 pub fn parse<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
-    N::from_bytes(bytes.as_ref(), 10)
+    N::from_bytes(bytes.as_ref())
 }
 
 /// High-level lossy conversion of decimal-encoded bytes to a number.
@@ -196,9 +207,9 @@ pub fn parse<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
 ///
 /// [`parse`]: fn.parse.html
 /// [`try_parse`]: fn.try_parse.html
-#[inline(always)]
+#[inline]
 pub fn parse_lossy<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
-    N::from_bytes(bytes.as_ref(), 10)
+    N::from_bytes_lossy(bytes.as_ref())
 }
 
 /// High-level conversion of bytes to a number with a custom radix.
@@ -237,9 +248,9 @@ pub fn parse_lossy<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
 ///
 /// [`try_parse_radix`]: fn.try_parse_radix.html
 #[cfg(feature = "radix")]
-#[inline(always)]
+#[inline]
 pub fn parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> N {
-    N::from_bytes(bytes.as_ref(), radix)
+    N::from_bytes_radix(bytes.as_ref(), radix)
 }
 
 /// High-level lossy conversion of bytes to a number with a custom radix.
@@ -279,9 +290,9 @@ pub fn parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) ->
 /// [`parse_radix`]: fn.parse_radix.html
 /// [`try_parse_radix`]: fn.try_parse_radix.html
 #[cfg(feature = "radix")]
-#[inline(always)]
+#[inline]
 pub fn parse_lossy_radix<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> N {
-    N::from_bytes(bytes.as_ref(), radix)
+    N::from_bytes_lossy_radix(bytes.as_ref(), radix)
 }
 
 /// High-level conversion of decimal-encoded bytes to a number.
@@ -318,11 +329,11 @@ pub fn parse_lossy_radix<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, ra
 /// ```
 ///
 /// [`parse`]: fn.parse.html
-#[inline(always)]
+#[inline]
 pub fn try_parse<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes)
     -> Result<N, Error>
 {
-    N::try_from_bytes(bytes.as_ref(), 10)
+    N::try_from_bytes(bytes.as_ref())
 }
 
 /// High-level lossy conversion of decimal-encoded bytes to a number.
@@ -357,11 +368,11 @@ pub fn try_parse<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes)
 /// ```
 ///
 /// [`try_parse`]: fn.try_parse.html
-#[inline(always)]
+#[inline]
 pub fn try_parse_lossy<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
     -> Result<N, Error>
 {
-    N::try_from_bytes_lossy(bytes.as_ref(), 10)
+    N::try_from_bytes_lossy(bytes.as_ref())
 }
 
 /// High-level conversion of bytes to a number with a custom radix.
@@ -409,11 +420,11 @@ pub fn try_parse_lossy<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
 ///
 /// [`parse_radix`]: fn.parse_radix.html
 #[cfg(feature = "radix")]
-#[inline(always)]
+#[inline]
 pub fn try_parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
     -> Result<N, Error>
 {
-    N::try_from_bytes(bytes.as_ref(), radix)
+    N::try_from_bytes_radix(bytes.as_ref(), radix)
 }
 
 /// High-level lossy conversion of bytes to a float with a custom radix.
@@ -456,9 +467,9 @@ pub fn try_parse_radix<N: FromBytes, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8
 ///
 /// [`try_parse_radix`]: fn.try_parse_radix.html
 #[cfg(feature = "radix")]
-#[inline(always)]
+#[inline]
 pub fn try_parse_lossy_radix<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
     -> Result<N, Error>
 {
-    N::try_from_bytes_lossy(bytes.as_ref(), radix)
+    N::try_from_bytes_lossy_radix(bytes.as_ref(), radix)
 }
