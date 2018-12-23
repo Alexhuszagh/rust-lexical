@@ -3,6 +3,55 @@
 //! Uses either the internal "Grisu2", or the external "Grisu3" or "Ryu"
 //! algorithms provided by `https://github.com/dtolnay`.
 
+//  The following benchmarks were run on an "Intel(R) Core(TM) i7-6560U
+//  CPU @ 2.20GHz" CPU, on Fedora 28, Linux kernel version 4.18.16-200
+//  (x86-64), using the lexical formatter or `x.parse()`,
+//  avoiding any inefficiencies in Rust string parsing. The code was
+//  compiled with LTO and at an optimization level of 3.
+//
+//  The benchmarks with `std` were compiled using "rustc 1.29.2 (17a9dc751
+//  2018-10-05", and the `no_std` benchmarks were compiled using "rustc
+//  1.31.0-nightly (46880f41b 2018-10-15)".
+//
+//  The benchmark code may be found `benches/atof.rs`.
+//
+//  # Benchmarks
+//
+//  | Type  |  lexical (ns/iter) | libcore (ns/iter)     | Relative Increase |
+//  |:-----:|:------------------:|:---------------------:|:-----------------:|
+//  | f32   | 460,934            | 2,980,259             | 6.46x             |
+//  | f64   | 556,810            | 3,893,028             | 6.99x             |
+//
+//  # Raw Benchmarks
+//
+//  ```text
+//  test ftoa_f32_dtoa      ... bench:     954,650 ns/iter (+/- 31,424)
+//  test ftoa_f32_lexical   ... bench:     460,934 ns/iter (+/- 13,460)
+//  test ftoa_f32_ryu       ... bench:     432,878 ns/iter (+/- 12,085)
+//  test ftoa_f32_to_string ... bench:   2,980,259 ns/iter (+/- 58,143)
+//  test ftoa_f64_dtoa      ... bench:   1,184,960 ns/iter (+/- 37,157)
+//  test ftoa_f64_lexical   ... bench:     556,810 ns/iter (+/- 15,454)
+//  test ftoa_f64_ryu       ... bench:     522,515 ns/iter (+/- 14,254)
+//  test ftoa_f64_to_string ... bench:   3,893,028 ns/iter (+/- 108,653)
+//  ```
+
+// Code the generate the benchmark plot:
+//  import numpy as np
+//  import pandas as pd
+//  import matplotlib.pyplot as plt
+//  plt.style.use('ggplot')
+//  lexical = np.array([460934, 556810]) / 1e6
+//  rustcore = np.array([2980259, 3893028]) / 1e6
+//  dtoa = np.array([954650, 1184960]) / 1e6
+//  ryu = np.array([432878, 522515]) / 1e6
+//  index = ["f32", "f64"]
+//  df = pd.DataFrame({'lexical': lexical, 'rustcore': rustcore, 'dtoa': dtoa, 'ryu': ryu}, index = index, columns=['lexical', 'dtoa', 'ryu', 'rustcore'])
+//  ax = df.plot.bar(rot=0, figsize=(16, 8), fontsize=14)
+//  ax.set_ylabel("ms/iter")
+//  ax.figure.tight_layout()
+//  ax.legend(loc=2, prop={'size': 14})
+//  plt.show()
+
 use util::*;
 
 #[cfg(feature = "radix")]

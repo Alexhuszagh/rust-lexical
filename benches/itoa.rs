@@ -18,10 +18,10 @@ fn itoa_u8_lexical(bench: &mut Bencher) {
 }
 
 fn itoa_u8_itoa(bench: &mut Bencher) {
+    let mut v: Vec<u8> = Vec::with_capacity(9);
     bench.iter(|| { U8_DATA.iter().for_each(|x| {
-        let mut v: Vec<u8> = Vec::with_capacity(9);
         itoa_write(&mut v, *x).unwrap();
-        black_box( unsafe { String::from_utf8_unchecked(v) } );
+        black_box(&v);
     })})
 }
 
@@ -40,10 +40,10 @@ fn itoa_i8_lexical(bench: &mut Bencher) {
 }
 
 fn itoa_i8_itoa(bench: &mut Bencher) {
+    let mut v: Vec<u8> = Vec::with_capacity(9);
     bench.iter(|| { I8_DATA.iter().for_each(|x| {
-        let mut v: Vec<u8> = Vec::with_capacity(9);
         itoa_write(&mut v, *x).unwrap();
-        black_box( unsafe { String::from_utf8_unchecked(v) } );
+        black_box(&v);
     })})
 }
 
@@ -62,10 +62,10 @@ fn itoa_u16_lexical(bench: &mut Bencher) {
 }
 
 fn itoa_u16_itoa(bench: &mut Bencher) {
+    let mut v: Vec<u8> = Vec::with_capacity(17);
     bench.iter(|| { U16_DATA.iter().for_each(|x| {
-        let mut v: Vec<u8> = Vec::with_capacity(17);
         itoa_write(&mut v, *x).unwrap();
-        black_box( unsafe { String::from_utf8_unchecked(v) } );
+        black_box(&v);
     })})
 }
 
@@ -84,10 +84,10 @@ fn itoa_i16_lexical(bench: &mut Bencher) {
 }
 
 fn itoa_i16_itoa(bench: &mut Bencher) {
+    let mut v: Vec<u8> = Vec::with_capacity(17);
     bench.iter(|| { I16_DATA.iter().for_each(|x| {
-        let mut v: Vec<u8> = Vec::with_capacity(17);
         itoa_write(&mut v, *x).unwrap();
-        black_box( unsafe { String::from_utf8_unchecked(v) } );
+        black_box(&v);
     })})
 }
 
@@ -106,10 +106,10 @@ fn itoa_u32_lexical(bench: &mut Bencher) {
 }
 
 fn itoa_u32_itoa(bench: &mut Bencher) {
+    let mut v: Vec<u8> = Vec::with_capacity(33);
     bench.iter(|| { U32_DATA.iter().for_each(|x| {
-        let mut v: Vec<u8> = Vec::with_capacity(33);
         itoa_write(&mut v, *x).unwrap();
-        black_box( unsafe { String::from_utf8_unchecked(v) } );
+        black_box(&v);
     })})
 }
 
@@ -128,10 +128,10 @@ fn itoa_i32_lexical(bench: &mut Bencher) {
 }
 
 fn itoa_i32_itoa(bench: &mut Bencher) {
+    let mut v: Vec<u8> = Vec::with_capacity(33);
     bench.iter(|| { I32_DATA.iter().for_each(|x| {
-        let mut v: Vec<u8> = Vec::with_capacity(33);
         itoa_write(&mut v, *x).unwrap();
-        black_box( unsafe { String::from_utf8_unchecked(v) } );
+        black_box(&v);
     })})
 }
 
@@ -150,10 +150,10 @@ fn itoa_u64_lexical(bench: &mut Bencher) {
 }
 
 fn itoa_u64_itoa(bench: &mut Bencher) {
+    let mut v: Vec<u8> = Vec::with_capacity(65);
     bench.iter(|| { U64_DATA.iter().for_each(|x| {
-        let mut v: Vec<u8> = Vec::with_capacity(65);
         itoa_write(&mut v, *x).unwrap();
-        black_box( unsafe { String::from_utf8_unchecked(v) } );
+        black_box(&v);
     })})
 }
 
@@ -172,10 +172,10 @@ fn itoa_i64_lexical(bench: &mut Bencher) {
 }
 
 fn itoa_i64_itoa(bench: &mut Bencher) {
+    let mut v: Vec<u8> = Vec::with_capacity(65);
     bench.iter(|| { I64_DATA.iter().for_each(|x| {
-        let mut v: Vec<u8> = Vec::with_capacity(65);
         itoa_write(&mut v, *x).unwrap();
-        black_box( unsafe { String::from_utf8_unchecked(v) } );
+        black_box(&v);
     })})
 }
 

@@ -19,66 +19,45 @@
 //
 //  | Type  |  lexical (ns/iter) | parse (ns/iter)       | Relative Increase |
 //  |:-----:|:------------------:|:---------------------:|:-----------------:|
-//  | u8    | 62,790             | 67,926                | 1.08x             |
-//  | u16   | 58,896             | 76,602                | 1.30x             |
-//  | u32   | 103,962            | 139,434               | 1.34x             |
-//  | u64   | 192,792            | 265,931               | 1.38x             |
-//  | i8    | 89,828             | 109,099               | 1.21x             |
-//  | i16   | 111,592            | 140,172               | 1.26x             |
-//  | i32   | 155,172            | 189,377               | 1.22x             |
-//  | i64   | 197,747            | 283,541               | 1.43x             |
+//  | u8    | 84,745             | 77,618                | 0.92x             |
+//  | u16   | 74,499             | 82,272                | 1.10x             |
+//  | u32   | 108,346            | 148,717               | 1.37x             |
+//  | u64   | 194,103            | 297,330               | 1.53x             |
+//  | i8    | 131,527            | 115,627               | 0.88x             |
+//  | i16   | 132,949            | 151,612               | 1.14x             |
+//  | i32   | 173,434            | 207,788               | 1.20x             |
+//  | i64   | 211,412            | 311,535               | 1.47x             |
 //
 //  # Raw Benchmarks
 //
 //  ```text
-//  test i8_lexical  ... bench:      89,828 ns/iter (+/- 9,172)
-//  test i8_parse    ... bench:     109,099 ns/iter (+/- 2,711)
-//  test i16_lexical ... bench:     111,592 ns/iter (+/- 3,862)
-//  test i16_parse   ... bench:     140,172 ns/iter (+/- 7,194)
-//  test i32_lexical ... bench:     155,172 ns/iter (+/- 5,248)
-//  test i32_parse   ... bench:     189,377 ns/iter (+/- 10,131)
-//  test i64_lexical ... bench:     197,747 ns/iter (+/- 18,041)
-//  test i64_parse   ... bench:     283,541 ns/iter (+/- 14,240)
-//  test u8_lexical  ... bench:      62,790 ns/iter (+/- 3,146)
-//  test u8_parse    ... bench:      67,926 ns/iter (+/- 3,767)
-//  test u16_lexical ... bench:      58,896 ns/iter (+/- 3,238)
-//  test u16_parse   ... bench:      76,602 ns/iter (+/- 3,771)
-//  test u32_lexical ... bench:     103,962 ns/iter (+/- 4,870)
-//  test u32_parse   ... bench:     139,434 ns/iter (+/- 3,944)
-//  test u64_lexical ... bench:     192,792 ns/iter (+/- 9,147)
-//  test u64_parse   ... bench:     265,931 ns/iter (+/- 8,308)
+//  test atoi_i8_lexical  ... bench:     131,527 ns/iter (+/- 5,839)
+//  test atoi_i8_parse    ... bench:     115,627 ns/iter (+/- 3,132)
+//  test atoi_i16_lexical ... bench:     132,949 ns/iter (+/- 4,467)
+//  test atoi_i16_parse   ... bench:     151,612 ns/iter (+/- 6,245)
+//  test atoi_i32_lexical ... bench:     173,434 ns/iter (+/- 5,765)
+//  test atoi_i32_parse   ... bench:     207,788 ns/iter (+/- 7,880)
+//  test atoi_i64_lexical ... bench:     211,412 ns/iter (+/- 13,169)
+//  test atoi_i64_parse   ... bench:     311,535 ns/iter (+/- 19,743)
+//  test atoi_u8_lexical  ... bench:      84,745 ns/iter (+/- 3,956)
+//  test atoi_u8_parse    ... bench:      77,618 ns/iter (+/- 2,617)
+//  test atoi_u16_lexical ... bench:      74,499 ns/iter (+/- 1,804)
+//  test atoi_u16_parse   ... bench:      82,272 ns/iter (+/- 2,262)
+//  test atoi_u32_lexical ... bench:     108,346 ns/iter (+/- 2,082)
+//  test atoi_u32_parse   ... bench:     148,717 ns/iter (+/- 3,446)
+//  test atoi_u64_lexical ... bench:     194,103 ns/iter (+/- 4,476)
+//  test atoi_u64_parse   ... bench:     297,330 ns/iter (+/- 7,243)
 //  ```
 //
-//  Raw Benchmarks (`no_std`)
-//
-//  ```text
-//  test i8_lexical  ... bench:      94,142 ns/iter (+/- 5,252)
-//  test i8_parse    ... bench:     107,092 ns/iter (+/- 4,121)
-//  test i16_lexical ... bench:     113,284 ns/iter (+/- 17,479)
-//  test i16_parse   ... bench:     141,393 ns/iter (+/- 5,804)
-//  test i32_lexical ... bench:     155,704 ns/iter (+/- 5,590)
-//  test i32_parse   ... bench:     191,977 ns/iter (+/- 8,241)
-//  test i64_lexical ... bench:     197,485 ns/iter (+/- 11,415)
-//  test i64_parse   ... bench:     298,771 ns/iter (+/- 13,941)
-//  test u8_lexical  ... bench:      61,893 ns/iter (+/- 1,171)
-//  test u8_parse    ... bench:      73,681 ns/iter (+/- 7,508)
-//  test u16_lexical ... bench:      60,014 ns/iter (+/- 2,605)
-//  test u16_parse   ... bench:      78,667 ns/iter (+/- 2,899)
-//  test u32_lexical ... bench:     102,840 ns/iter (+/- 2,770)
-//  test u32_parse   ... bench:     140,070 ns/iter (+/- 3,443)
-//  test u64_lexical ... bench:     191,493 ns/iter (+/- 2,648)
-//  test u64_parse   ... bench:     279,269 ns/iter (+/- 12,914)
-//  ```
-
 // Code the generate the benchmark plot:
 //  import numpy as np
 //  import pandas as pd
 //  import matplotlib.pyplot as plt
 //  plt.style.use('ggplot')
-//  lexical = np.array([62790, 58896, 103962, 192792, 89828, 111592, 155172, 197747]) / 1e6
-//  rustcore = np.array([67926, 76602, 139434, 265931, 109099, 140172, 189377, 283541]) / 1e6
+//  lexical = np.array([84745, 74499, 108346, 194103, 131527, 132949, 173434, 211412]) / 1e6
+//  rustcore = np.array([77618, 82272, 148717, 297330, 115627, 151612, 207788, 311535]) / 1e6
 //  index = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"]
-//  df = pd.DataFrame({'lexical': lexical, 'rustcore': rustcore}, index = index, columns=['lexical', 'parse'])
+//  df = pd.DataFrame({'lexical': lexical, 'rustcore': rustcore}, index = index, columns=['lexical', 'rustcore'])
 //  ax = df.plot.bar(rot=0, figsize=(16, 8), fontsize=14, color=['#E24A33', '#348ABD'])
 //  ax.set_ylabel("ms/iter")
 //  ax.figure.tight_layout()

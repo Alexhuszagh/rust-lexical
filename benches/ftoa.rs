@@ -27,17 +27,17 @@ fn ftoa_f32_lexical(bench: &mut Bencher) {
 }
 
 fn ftoa_f32_dtoa(bench: &mut Bencher) {
+    let mut v: Vec<u8> = Vec::with_capacity(50);
     bench.iter(|| { F32_DATA.iter().for_each(|x| {
-        let mut v: Vec<u8> = Vec::with_capacity(50);
         dtoa_write(&mut v, *x).unwrap();
-        black_box( unsafe { String::from_utf8_unchecked(v) } );
+        black_box(&v);
     })})
 }
 
 fn ftoa_f32_ryu(bench: &mut Bencher) {
+    let mut buffer = ryu_impl::Buffer::new();
     bench.iter(|| { F32_DATA.iter().for_each(|x| {
-        let mut buffer = ryu_impl::Buffer::new();
-        black_box(String::from(buffer.format(*x)));
+        black_box(buffer.format(*x));
     })})
 }
 
@@ -60,17 +60,17 @@ fn ftoa_f64_lexical(bench: &mut Bencher) {
 }
 
 fn ftoa_f64_dtoa(bench: &mut Bencher) {
+    let mut v: Vec<u8> = Vec::with_capacity(50);
     bench.iter(|| { F64_DATA.iter().for_each(|x| {
-        let mut v: Vec<u8> = Vec::with_capacity(50);
         dtoa_write(&mut v, *x).unwrap();
-        black_box( unsafe { String::from_utf8_unchecked(v) } );
+        black_box(&v);
     })})
 }
 
 fn ftoa_f64_ryu(bench: &mut Bencher) {
+    let mut buffer = ryu_impl::Buffer::new();
     bench.iter(|| { F64_DATA.iter().for_each(|x| {
-        let mut buffer = ryu_impl::Buffer::new();
-        black_box(String::from(buffer.format(*x)));
+        black_box(buffer.format(*x));
     })})
 }
 
