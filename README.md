@@ -94,10 +94,6 @@ For all the following benchmarks, lower is better.
 
 ![atoi benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atoi.png)
 
-**String to f32 Simple, Random Data**
-
-![atof32 benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/atof_simple_f32.png)
-
 **String to f64 Simple, Random Data**
 
 ![atof64 benchmark](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/lexical-benchmark/assets/atof_simple_f64.png)
