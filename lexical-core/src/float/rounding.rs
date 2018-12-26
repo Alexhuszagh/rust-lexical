@@ -287,33 +287,49 @@ pub(crate) fn round_to_native<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
 
 /// Get the rounding scheme to determine if we should go up or down.
 #[inline]
-pub(crate) fn internal_rounding(kind: RoundingKind, sign: Sign) -> RoundingKind {
-    match sign {
-        Sign::Positive => {
-            match kind {
-                RoundingKind::TowardPositiveInfinity => RoundingKind::Upward,
-                RoundingKind::TowardNegativeInfinity => RoundingKind::Downward,
-                RoundingKind::TowardZero             => RoundingKind::Downward,
-                _                                    => kind,
-            }
-        },
-        Sign::Negative => {
-            match kind {
-                RoundingKind::TowardPositiveInfinity => RoundingKind::Downward,
-                RoundingKind::TowardNegativeInfinity => RoundingKind::Upward,
-                RoundingKind::TowardZero             => RoundingKind::Downward,
-                _                                    => kind,
-            }
-        },
+#[allow(unused_variables)]
+pub(crate) fn internal_rounding(kind: RoundingKind, sign: Sign)
+    -> RoundingKind
+{
+    #[cfg(not(feature = "rounding"))] {
+        RoundingKind::NearestTieEven
+    }
+
+    #[cfg(feature = "rounding")] {
+        match sign {
+            Sign::Positive => {
+                match kind {
+                    RoundingKind::TowardPositiveInfinity => RoundingKind::Upward,
+                    RoundingKind::TowardNegativeInfinity => RoundingKind::Downward,
+                    RoundingKind::TowardZero             => RoundingKind::Downward,
+                    _                                    => kind,
+                }
+            },
+            Sign::Negative => {
+                match kind {
+                    RoundingKind::TowardPositiveInfinity => RoundingKind::Downward,
+                    RoundingKind::TowardNegativeInfinity => RoundingKind::Upward,
+                    RoundingKind::TowardZero             => RoundingKind::Downward,
+                    _                                    => kind,
+                }
+            },
+        }
     }
 }
 
 /// Get the global, default rounding scheme.
 #[cfg(feature = "correct")]
 #[inline]
+#[allow(unused_variables)]
 pub(crate) fn global_rounding(sign: Sign) -> RoundingKind {
-    unsafe {
-        internal_rounding(FLOAT_ROUNDING, sign)
+    #[cfg(not(feature = "rounding"))] {
+        RoundingKind::NearestTieEven
+    }
+
+    #[cfg(feature = "rounding")] {
+        unsafe {
+            internal_rounding(FLOAT_ROUNDING, sign)
+        }
     }
 }
 

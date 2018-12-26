@@ -42,6 +42,8 @@ correct = ["stackvector", "table"]
 grisu3 = ["dtoa"]
 # Add support for parsing non-decimal float and integer strings.
 radix = []
+# Allow custom rounding schemes, at the cost of slower performance.
+rounding = []
 # Use the `std` library.
 std = []
 # Use precompiled tables for faster performance and accuracy, at the cost of larger binaries.

@@ -45,6 +45,8 @@ correct = ["lexical-core/correct"]
 grisu3 = ["lexical-core/grisu3"]
 # Add support for [parsing non-decimal float and integer strings.
 radix = ["lexical-core/radix"]
+# Allow custom rounding schemes, at the cost of slower performance.
+rounding = ["lexical-core/rounding"]
 # Use the optimized Ryu implementation.
 ryu = ["lexical-core/ryu"]
 # Use the `std` library.

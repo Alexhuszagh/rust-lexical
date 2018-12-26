@@ -128,56 +128,74 @@ impl ToBigInt<u128> for ExtendedFloat<u128> {
 
 /// Generate the theoretical float type for the rounding kind.
 #[inline]
+#[allow(unused_variables)]
 pub(super) fn theoretical_float<F>(f: F, kind: RoundingKind)
     -> F::ExtendedFloat
     where F: FloatType
 {
-    match is_nearest(kind) {
-        // We need to check if we're close to halfway, so use `b+h`.
-        true  => bh(f),
-        // Just care if there are any truncated digits, use `b`.
-        false => b(f),
+    #[cfg(not(feature = "rounding"))] {
+        bh(f)
+    }
+
+    #[cfg(feature = "rounding")] {
+        match is_nearest(kind) {
+            // We need to check if we're close to halfway, so use `b+h`.
+            true  => bh(f),
+            // Just care if there are any truncated digits, use `b`.
+            false => b(f),
+        }
     }
 }
 
 /// Custom rounding for the ratio.
+#[allow(unused_variables)]
 pub(super) fn round_to_native<F>(f: F, order: cmp::Ordering, kind: RoundingKind)
     -> F
     where F: FloatType
 {
+    #[cfg(not(feature = "rounding"))] {
+        match order {
+            cmp::Ordering::Greater  => f.next_positive(),
+            cmp::Ordering::Less     => f,
+            cmp::Ordering::Equal    => f.round_positive_even(),
+        }
+    }
+
     // Compare the actual digits to the round-down or halfway point.
-    match order {
-        cmp::Ordering::Greater  => match kind {
-            // Comparison with `b+h`, above. Round-up.
-            RoundingKind::NearestTieEven     => f.next_positive(),
-            RoundingKind::NearestTieAwayZero => f.next_positive(),
-            // Comparison with `b`, above. Truncated digits.
-            RoundingKind::Upward             => f.next_positive(),
-            RoundingKind::Downward           => f,
-            _                                => unimplemented!(),
-        },
-        // This cannot happen for RoundingKind Upward or Downward.
-        // For round-nearest algorithms, we are below `b+h` so round-down.
-        cmp::Ordering::Less     => match kind {
-            // Comparison with `b+h`, below. Stay put.
-            RoundingKind::NearestTieEven     => f,
-            RoundingKind::NearestTieAwayZero => f,
-            // Comparison with `b`, below. Truncated digits, but below our
-            // estimate `b`.
-            RoundingKind::Upward             => f,
-            RoundingKind::Downward           => f.prev_positive(),
-            _                                => unimplemented!(),
-        },
-        cmp::Ordering::Equal    => match kind {
-            // Only round-up if the mantissa is odd.
-            RoundingKind::NearestTieEven     => f.round_positive_even(),
-            // Always round-up, we want to go away from 0.
-            RoundingKind::NearestTieAwayZero => f.next_positive(),
-            // Comparison with `b`, equal. No truncated digits.
-            RoundingKind::Upward             => f,
-            RoundingKind::Downward           => f,
-            _                                => unimplemented!(),
-        },
+    #[cfg(feature = "rounding")] {
+        match order {
+            cmp::Ordering::Greater  => match kind {
+                // Comparison with `b+h`, above. Round-up.
+                RoundingKind::NearestTieEven     => f.next_positive(),
+                RoundingKind::NearestTieAwayZero => f.next_positive(),
+                // Comparison with `b`, above. Truncated digits.
+                RoundingKind::Upward             => f.next_positive(),
+                RoundingKind::Downward           => f,
+                _                                => unimplemented!(),
+            },
+            // This cannot happen for RoundingKind Upward or Downward.
+            // For round-nearest algorithms, we are below `b+h` so round-down.
+            cmp::Ordering::Less     => match kind {
+                // Comparison with `b+h`, below. Stay put.
+                RoundingKind::NearestTieEven     => f,
+                RoundingKind::NearestTieAwayZero => f,
+                // Comparison with `b`, below. Truncated digits, but below our
+                // estimate `b`.
+                RoundingKind::Upward             => f,
+                RoundingKind::Downward           => f.prev_positive(),
+                _                                => unimplemented!(),
+            },
+            cmp::Ordering::Equal    => match kind {
+                // Only round-up if the mantissa is odd.
+                RoundingKind::NearestTieEven     => f.round_positive_even(),
+                // Always round-up, we want to go away from 0.
+                RoundingKind::NearestTieAwayZero => f.next_positive(),
+                // Comparison with `b`, equal. No truncated digits.
+                RoundingKind::Upward             => f,
+                RoundingKind::Downward           => f,
+                _                                => unimplemented!(),
+            },
+        }
     }
 }
 

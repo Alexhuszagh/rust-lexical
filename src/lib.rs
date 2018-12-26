@@ -82,7 +82,7 @@ pub use lexical_core::EXPONENT_BACKUP_CHAR;
 pub use lexical_core::{INF_STRING, INFINITY_STRING, NAN_STRING};
 
 // Re-export the float rounding scheme used.
-#[cfg(feature = "correct")]
+#[cfg(all(feature = "correct", feature = "rounding"))]
 pub use lexical_core::{FLOAT_ROUNDING, RoundingKind};
 
 // Re-export the Error and ErrorKind globally.

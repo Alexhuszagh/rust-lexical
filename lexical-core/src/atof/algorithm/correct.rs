@@ -450,6 +450,7 @@ fn nearest_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u6
 }
 
 /// Check if the error is accurate with a round-toward rounding scheme.
+#[cfg(feature = "rounding")]
 #[inline]
 fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64)
     -> bool
@@ -500,6 +501,7 @@ impl FloatErrors for u64 {
     }
 
     #[inline]
+    #[allow(unused_variables)]
     fn error_is_accurate<F: Float>(count: u32, fp: &ExtendedFloat<u64>, kind: RoundingKind)
         -> bool
     {
@@ -567,10 +569,18 @@ impl FloatErrors for u64 {
         if extrabits > 65 {
             // Underflow, we have a literal 0.
             return true;
-        } else if is_nearest(kind) {
+        }
+
+        #[cfg(not(feature = "rounding"))] {
             nearest_error_is_accurate(errors, fp, extrabits)
-        } else {
-            toward_error_is_accurate(errors, fp, extrabits)
+        }
+
+        #[cfg(feature = "rounding")] {
+            if is_nearest(kind) {
+                nearest_error_is_accurate(errors, fp, extrabits)
+            } else {
+                toward_error_is_accurate(errors, fp, extrabits)
+            }
         }
     }
 }
@@ -701,7 +711,7 @@ fn pow2_to_native<'a, F>(radix: u32, pow2_exp: i32, bytes: &'a [u8], sign: Sign)
             let count = bytes.iter().take_while(|&&c| c == b'0' || c == b'.').count();
             let bytes = &bytes[count..];
             let is_truncated = bytes.get(0).map_or(false, |&c| char_to_digit(c).as_u32() < radix);
-            if kind == RoundingKind::NearestTieEven {
+            if cfg!(feature = "rounding") || kind == RoundingKind::NearestTieEven {
                 // Need to check if we're exactly halfway and if there are truncated digits.
                 if is_halfway::<F>(mantissa) && is_odd::<F>(mantissa) {
                     mantissa += 1;

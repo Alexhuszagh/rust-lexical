@@ -413,6 +413,7 @@ pub static BUFFER_SIZE_FFI: usize = BUFFER_SIZE;
 ///
 /// [`RoundingKind`]: enum.RoundingKind.html
 #[no_mangle]
+#[cfg(feature = "rounding")]
 pub static mut FLOAT_ROUNDING: RoundingKind = RoundingKind::NearestTieEven;
 
 // FUNCTIONS
@@ -486,7 +487,7 @@ mod tests {
     }
 
     // Only enable when no other threads touch FLOAT_ROUNDING.
-    #[cfg(feature = "correct")]
+    #[cfg(all(feature = "correct", feature = "rounding"))]
     #[test]
     #[ignore]
     fn special_rounding_test() {
@@ -534,7 +535,7 @@ mod tests {
     }
 
     // Only enable when no other threads touch FLOAT_ROUNDING.
-    #[cfg(all(feature = "correct", feature = "radix"))]
+    #[cfg(all(feature = "correct", feature = "radix", feature = "rounding"))]
     #[test]
     #[ignore]
     fn special_rounding_binary_test() {

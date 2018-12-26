@@ -286,8 +286,14 @@ impl<M: Mantissa> ExtendedFloat<M> {
     pub fn into_float<F: FloatRounding<M>>(self)
         -> F
     {
-        unsafe {
-            self.into_rounded_float::<F>(FLOAT_ROUNDING, Sign::Positive)
+        #[cfg(not(feature = "rounding"))] {
+            self.into_rounded_float::<F>(RoundingKind::NearestTieEven, Sign::Positive)
+        }
+
+        #[cfg(feature = "rounding")] {
+            unsafe {
+                self.into_rounded_float::<F>(FLOAT_ROUNDING, Sign::Positive)
+            }
         }
     }
 

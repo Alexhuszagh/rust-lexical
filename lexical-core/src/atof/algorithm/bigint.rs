@@ -246,6 +246,7 @@ pub(super) fn nearest_cb<M, Cb>(is_truncated: bool, cb: Cb)
 }
 
 /// Custom rounding for round-toward algorithms.
+#[cfg(feature = "rounding")]
 pub(super) fn toward_cb<M, Cb>(is_truncated: bool, cb: Cb)
     -> impl FnOnce(&mut ExtendedFloat<M>, i32)
     where Cb: FnOnce(&mut ExtendedFloat<M>, bool),
@@ -262,23 +263,30 @@ pub(super) fn toward_cb<M, Cb>(is_truncated: bool, cb: Cb)
 /// Custom rounding for truncated mantissa.
 ///
 /// Respect rounding rules in the config file.
+#[allow(unused_variables)]
 pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, kind: RoundingKind)
     where F: FloatType
 {
-    match kind {
-        RoundingKind::NearestTieEven     => {
-            fp.round_to_native::<F, _>(nearest_cb(is_truncated, tie_even::<u64>))
-        },
-        RoundingKind::NearestTieAwayZero => {
-            fp.round_to_native::<F, _>(nearest_cb(is_truncated, tie_away_zero::<u64>))
-        },
-        RoundingKind::Upward             => {
-            fp.round_to_native::<F, _>(toward_cb(is_truncated, upward::<u64>))
-        },
-        RoundingKind::Downward           => {
-            fp.round_to_native::<F, _>(toward_cb(is_truncated, downard::<u64>))
-        },
-        _                                => unreachable!(),
+    #[cfg(not(feature = "rounding"))] {
+        fp.round_to_native::<F, _>(nearest_cb(is_truncated, tie_even::<u64>))
+    }
+
+    #[cfg(feature = "rounding")] {
+        match kind {
+            RoundingKind::NearestTieEven     => {
+                fp.round_to_native::<F, _>(nearest_cb(is_truncated, tie_even::<u64>))
+            },
+            RoundingKind::NearestTieAwayZero => {
+                fp.round_to_native::<F, _>(nearest_cb(is_truncated, tie_away_zero::<u64>))
+            },
+            RoundingKind::Upward             => {
+                fp.round_to_native::<F, _>(toward_cb(is_truncated, upward::<u64>))
+            },
+            RoundingKind::Downward           => {
+                fp.round_to_native::<F, _>(toward_cb(is_truncated, downard::<u64>))
+            },
+            _                                => unreachable!(),
+        }
     }
 }
 

@@ -120,6 +120,7 @@ assert_eq!(slc, b"15.1");
 - `bhcomp` Use a comparison between the mantissa digits and the halfway-point for the string-to-float parser. bhcomp is faster for all inputs than any other algorithm. Enabled by default. If and only if bhcomp and radix are both active, lexical-core requires a system allocator.
 - `trim_floats` Export floats without a fraction as an integer, for example, `0.0f64` will be serialized to "0" and not "0.0", and `-0.0` as "0" and not "-0.0".
 - `radix` Enable lexical conversions to and from non-base10 representations. With radix enabled, any radix from 2 to 36 (inclusive) is valid, otherwise, only 10 is valid.
+- `rounding` Enable the `FLOAT_ROUNDING` config variable to dictate how to round IEEE754 floats.
 - `ryu` Use dtolnay's [ryu](https://github.com/dtolnay/ryu/) library for fast and accurate float-to-string conversions.
 
 # Configuration
