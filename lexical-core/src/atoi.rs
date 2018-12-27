@@ -87,8 +87,7 @@ pub(crate) fn unchecked<'a, T>(value: &mut T, radix: T, bytes: &'a [u8])
     // otherwise it may give us invalid results elsewhere.
     let mut digit: T;
     let mut truncated = None;
-    let mut iter = bytes.iter().enumerate();
-    while let Some((i, c)) = iter.next() {
+    for (i, c) in bytes.iter().enumerate() {
         digit = as_cast(char_to_digit(*c));
         if digit < radix {
             let (v, o1) = value.overflowing_mul(radix);
@@ -125,8 +124,7 @@ pub(crate) fn checked<'a, T>(value: &mut T, radix: T, bytes: &'a [u8])
     // otherwise it may give us invalid results elsewhere.
     let mut digit: T;
     let mut truncated = None;
-    let mut iter = bytes.iter().enumerate();
-    while let Some((i, c)) = iter.next() {
+    for (i, c) in bytes.iter().enumerate() {
         digit = as_cast(char_to_digit(*c));
         if digit < radix {
             // Only multiply to the radix and add the parsed digit if
@@ -181,7 +179,9 @@ pub(crate) fn filter_sign<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
     };
 
     if bytes.len() > sign_bytes {
-        let (value, len, truncated) = value::<T, Cb>(radix, &bytes[sign_bytes..], cb);
+        // `bytes.len() > sign_bytes`, so this range is always valid.
+        let bytes = unsafe {bytes.get_unchecked(sign_bytes..)};
+        let (value, len, truncated) = value::<T, Cb>(radix, bytes, cb);
         (value, sign, sign_bytes + len, truncated)
     } else {
         (T::ZERO, sign, 0, None)

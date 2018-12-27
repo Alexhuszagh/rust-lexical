@@ -1,39 +1,58 @@
 //! Config settings for lexical.
 
 use lib::slice;
+use super::algorithm::copy_to_dst_unsafe;
 use super::rounding::RoundingKind;
+
+// HELPERS
+
+/// Fixed-size string for float configurations.
+///
+/// These values are guaranteed less than or equal to the maximum
+/// number of bytes after a sign byte has been written.
+pub(crate) struct FloatConfigString {
+    /// Storage data for the config string.
+    data: [u8; MAX_F32_SIZE - 1],
+    /// Actual length of the data.
+    length: usize,
+}
+
+impl FloatConfigString {
+    /// Reset data from a byte string.
+    pub(crate) fn load_bytes(&mut self, bytes: &[u8]) {
+        assert!(bytes.len() <= self.data.len());
+        unsafe {copy_to_dst_unsafe(&mut self.data, bytes)};
+        self.length = bytes.len();
+    }
+
+    /// Convert to byte slice.
+    pub(crate) fn as_bytes(&self) -> &[u8] {
+        unsafe {self.data.get_unchecked(..self.length)}
+    }
+}
 
 // GLOBALS
 
-/// Not a Number literal
-///
-/// To change the expected representation of NaN as a string,
-/// change this value during before using lexical.
-///
-/// # Safety
-///
-/// Do not modify this value in threaded-code, as it is not thread-safe.
-pub static mut NAN_STRING: &[u8] = b"NaN";
+/// Not a Number literal.
+static mut NAN_STRING: FloatConfigString = FloatConfigString {
+    // b"NaN"
+    data: [b'N', b'a', b'N', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0'],
+    length: 3
+};
 
-/// Short infinity literal
-///
-/// To change the expected representation of Infinity as a string,
-/// change this value during before using lexical.
-///
-/// # Safety
-///
-/// Do not modify this value in threaded-code, as it is not thread-safe.
-pub static mut INF_STRING: &[u8] = b"inf";
+/// Short infinity literal.
+static mut INF_STRING: FloatConfigString = FloatConfigString {
+    // b"inf"
+    data: [b'i', b'n', b'f', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0'],
+    length: 3
+};
 
-/// Long infinity literal
-///
-/// To change the expected backup representation of Infinity as a string,
-/// change this value during before using lexical.
-///
-/// # Safety
-///
-/// Do not modify this value in threaded-code, as it is not thread-safe.
-pub static mut INFINITY_STRING: &[u8] = b"infinity";
+/// Long infinity literal.
+static mut INFINITY_STRING: FloatConfigString = FloatConfigString {
+    // b"infinity"
+    data: [b'i', b'n', b'f', b'i', b'n', b'i', b't', b'y', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0', b'0'],
+    length: 8
+};
 
 /// Default character for scientific notation, used when the radix < 15.
 ///
@@ -63,10 +82,45 @@ pub static mut EXPONENT_BACKUP_CHAR: u8 = b'^';
 
 // GETTERS/SETTERS
 
-// Since these types are not all C-FFI-compatible, we need to define
-// a few getters and setters for the global constants.
+// We need both C-FFI compatible getters and setters, and non-FFI ones,
+// since we don't want to publicly expose the FloatConfigString type.
 
-/// Get [`NAN_STRING`] as a pointer and size.
+/// Helper to get a pointer and size from a FloatConfigString.
+#[inline]
+unsafe extern fn get_string_ffi(ptr: *mut *const u8, size: *mut usize, string: &'static FloatConfigString)
+    -> i32
+{
+    if ptr.is_null() || size.is_null() {
+        -1
+    } else {
+        let slc = string.as_bytes();
+        *ptr = slc.as_ptr();
+        *size = slc.len();
+        0
+    }
+}
+
+/// Helper to set a FloatConfigString from a pointer and size.
+#[inline]
+unsafe extern fn set_string_ffi(ptr: *const u8, size: usize, string: &'static mut FloatConfigString)
+    -> i32
+{
+    if ptr.is_null() {
+        -1
+    } else {
+        string.load_bytes(slice::from_raw_parts(ptr, size));
+        0
+    }
+}
+
+/// Get string representation of Not a Number as a byte slice.
+#[inline]
+pub fn get_nan_string() -> &'static [u8]
+{
+    unsafe {NAN_STRING.as_bytes()}
+}
+
+/// Get string representation of Not a Number as a pointer and size.
 ///
 /// Returns 0 on success, -1 on error. This string is **not**
 /// null-terminated.
@@ -76,24 +130,34 @@ pub static mut EXPONENT_BACKUP_CHAR: u8 = b'^';
 ///
 /// # Safety
 ///
-/// Only use this in C-FFI code, otherwise, you should directly use
-/// [`NAN_STRING`].
+/// Only use this in C-FFI code, otherwise, you use [`get_nan_string`].
 ///
-/// [`NAN_STRING`]: static.NAN_STRING.html
+/// [`get_nan_string`]: fn.get_nan_string.html
 #[no_mangle]
-pub unsafe extern fn get_nan_string(ptr: *mut *const u8, size: *mut usize)
+pub unsafe extern fn get_nan_string_ffi(ptr: *mut *const u8, size: *mut usize)
     -> i32
 {
-    if ptr.is_null() || size.is_null() {
-        -1
-    } else {
-        *ptr = NAN_STRING.as_ptr();
-        *size = NAN_STRING.len();
-        0
-    }
+    get_string_ffi(ptr, size, &NAN_STRING)
 }
 
-/// Set [`NAN_STRING`] from a pointer and size.
+/// Set representation of Not a Number from a byte slice.
+///
+/// * `bytes`    - Slice of bytes to assign as NaN string representation.
+///
+/// # Safety
+///
+/// Do not call this function in threaded-code, as it is not thread-safe.
+///
+/// # Panics
+///
+/// Panics if `bytes.len() >= MAX_F32_SIZE`.
+#[inline]
+pub unsafe fn set_nan_string(bytes: &[u8])
+{
+    NAN_STRING.load_bytes(bytes);
+}
+
+/// Set representation of Not a Number from a pointer and size.
 ///
 /// Returns 0 on success, -1 on error.
 ///
@@ -102,25 +166,29 @@ pub unsafe extern fn get_nan_string(ptr: *mut *const u8, size: *mut usize)
 ///
 /// # Safety
 ///
-/// Only use this in C-FFI code, otherwise, you should directly modify
-/// [`NAN_STRING`]. Do not call this function in threaded-code, as it is
-/// not thread-safe. The assigned string must be valid as long as
-/// lexical-core is in use (ideally static), no copies are made.
+/// Only use this in C-FFI code, otherwise, you use [`set_nan_string`].
+/// Do not call this function in threaded-code, as it is not thread-safe.
 ///
-/// [`NAN_STRING`]: static.NAN_STRING.html
+/// [`set_nan_string`]: fn.set_nan_string.html
+///
+/// # Panics
+///
+/// Panics if `bytes.len() >= MAX_F32_SIZE`.
 #[no_mangle]
-pub unsafe extern fn set_nan_string(ptr: *const u8, size: usize)
+pub unsafe extern fn set_nan_string_ffi(ptr: *const u8, size: usize)
     -> i32
 {
-    if ptr.is_null() {
-        -1
-    } else {
-        NAN_STRING = slice::from_raw_parts(ptr, size);
-        0
-    }
+    set_string_ffi(ptr, size, &mut NAN_STRING)
 }
 
-/// Get [`INF_STRING`] as a pointer and size.
+/// Get the short representation of an Infinity literal as a byte slice.
+#[inline]
+pub fn get_inf_string() -> &'static [u8]
+{
+    unsafe {INF_STRING.as_bytes()}
+}
+
+/// Get the short representation of an Infinity literal as a pointer and size.
 ///
 /// Returns 0 on success, -1 on error. This string is **not**
 /// null-terminated.
@@ -130,24 +198,34 @@ pub unsafe extern fn set_nan_string(ptr: *const u8, size: usize)
 ///
 /// # Safety
 ///
-/// Only use this in C-FFI code, otherwise, you should directly use
-/// [`INF_STRING`].
+/// Only use this in C-FFI code, otherwise, you use [`get_inf_string`].
 ///
-/// [`INF_STRING`]: static.INF_STRING.html
+/// [`get_inf_string`]: fn.get_inf_string.html
 #[no_mangle]
-pub unsafe extern fn get_inf_string(ptr: *mut *const u8, size: *mut usize)
+pub unsafe extern fn get_inf_string_ffi(ptr: *mut *const u8, size: *mut usize)
     -> i32
 {
-    if ptr.is_null() || size.is_null() {
-        -1
-    } else {
-        *ptr = INF_STRING.as_ptr();
-        *size = INF_STRING.len();
-        0
-    }
+    get_string_ffi(ptr, size, &mut INF_STRING)
 }
 
-/// Set [`INF_STRING`] from a pointer and size.
+/// Set the short representation of Infinity from a byte slice.
+///
+/// * `bytes`    - Slice of bytes to assign as Infinity string representation.
+///
+/// # Safety
+///
+/// Do not call this function in threaded-code, as it is not thread-safe.
+///
+/// # Panics
+///
+/// Panics if `bytes.len() >= MAX_F32_SIZE`.
+#[inline]
+pub unsafe fn set_inf_string(bytes: &[u8])
+{
+    INF_STRING.load_bytes(bytes);
+}
+
+/// Set the short representation of Infinity from a pointer and size.
 ///
 /// Returns 0 on success, -1 on error.
 ///
@@ -156,25 +234,29 @@ pub unsafe extern fn get_inf_string(ptr: *mut *const u8, size: *mut usize)
 ///
 /// # Safety
 ///
-/// Only use this in C-FFI code, otherwise, you should directly modify
-/// [`INF_STRING`]. Do not call this function in threaded-code, as it is
-/// not thread-safe. The assigned string must be valid as long as
-/// lexical-core is in use (ideally static), no copies are made.
+/// Only use this in C-FFI code, otherwise, you use [`set_inf_string`].
+/// Do not call this function in threaded-code, as it is not thread-safe.
 ///
-/// [`INF_STRING`]: static.INF_STRING.html
+/// [`set_inf_string`]: fn.set_inf_string.html
+///
+/// # Panics
+///
+/// Panics if `bytes.len() >= MAX_F32_SIZE`.
 #[no_mangle]
-pub unsafe extern fn set_inf_string(ptr: *const u8, size: usize)
+pub unsafe extern fn set_inf_string_ffi(ptr: *const u8, size: usize)
     -> i32
 {
-    if ptr.is_null() {
-        -1
-    } else {
-        INF_STRING = slice::from_raw_parts(ptr, size);
-        0
-    }
+    set_string_ffi(ptr, size, &mut INF_STRING)
 }
 
-/// Get [`INFINITY_STRING`] as a pointer and size.
+/// Get the long representation of an Infinity literal as a byte slice.
+#[inline]
+pub fn get_infinity_string() -> &'static [u8]
+{
+    unsafe {INFINITY_STRING.as_bytes()}
+}
+
+/// Get the long representation of an Infinity literal as a pointer and size.
 ///
 /// Returns 0 on success, -1 on error. This string is **not**
 /// null-terminated.
@@ -184,24 +266,34 @@ pub unsafe extern fn set_inf_string(ptr: *const u8, size: usize)
 ///
 /// # Safety
 ///
-/// Only use this in C-FFI code, otherwise, you should directly use
-/// [`INFINITY_STRING`].
+/// Only use this in C-FFI code, otherwise, you use [`get_infinity_string`].
 ///
-/// [`INFINITY_STRING`]: static.INFINITY_STRING.html
+/// [`get_infinity_string`]: fn.get_infinity_string.html
 #[no_mangle]
-pub unsafe extern fn get_infinity_string(ptr: *mut *const u8, size: *mut usize)
+pub unsafe extern fn get_infinity_string_ffi(ptr: *mut *const u8, size: *mut usize)
     -> i32
 {
-    if ptr.is_null() || size.is_null() {
-        -1
-    } else {
-        *ptr = INFINITY_STRING.as_ptr();
-        *size = INFINITY_STRING.len();
-        0
-    }
+    get_string_ffi(ptr, size, &mut INFINITY_STRING)
 }
 
-/// Set [`INFINITY_STRING`] from a pointer and size.
+/// Set the long representation of Infinity from a byte slice.
+///
+/// * `bytes`    - Slice of bytes to assign as Infinity string representation.
+///
+/// # Safety
+///
+/// Do not call this function in threaded-code, as it is not thread-safe.
+///
+/// # Panics
+///
+/// Panics if `bytes.len() >= MAX_F32_SIZE`.
+#[inline]
+pub unsafe fn set_infinity_string(bytes: &[u8])
+{
+    INFINITY_STRING.load_bytes(bytes);
+}
+
+/// Set the long representation of Infinity from a pointer and size.
 ///
 /// Returns 0 on success, -1 on error.
 ///
@@ -210,22 +302,19 @@ pub unsafe extern fn get_infinity_string(ptr: *mut *const u8, size: *mut usize)
 ///
 /// # Safety
 ///
-/// Only use this in C-FFI code, otherwise, you should directly modify
-/// [`INFINITY_STRING`]. Do not call this function in threaded-code, as
-/// it is not thread-safe. The assigned string must be valid as long as
-/// lexical-core is in use (ideally static), no copies are made.
+/// Only use this in C-FFI code, otherwise, you use [`set_infinity_string`].
+/// Do not call this function in threaded-code, as it is not thread-safe.
 ///
-/// [`INFINITY_STRING`]: static.INFINITY_STRING.html
+/// [`set_infinity_string`]: fn.set_infinity_string.html
+///
+/// # Panics
+///
+/// Panics if `bytes.len() >= MAX_F32_SIZE`.
 #[no_mangle]
-pub unsafe extern fn set_infinity_string(ptr: *const u8, size: usize)
+pub unsafe extern fn set_infinity_string_ffi(ptr: *const u8, size: usize)
     -> i32
 {
-    if ptr.is_null() {
-        -1
-    } else {
-        INFINITY_STRING = slice::from_raw_parts(ptr, size);
-        0
-    }
+    set_string_ffi(ptr, size, &mut INFINITY_STRING)
 }
 
 // CONSTANTS
@@ -473,16 +562,16 @@ mod tests {
             assert_eq!(f64toa_slice(f64::NAN, &mut buffer), b"NaN");
             assert_eq!(f64toa_slice(f64::INFINITY, &mut buffer), b"inf");
 
-            NAN_STRING = b"nan";
-            INF_STRING = b"Infinity";
+            NAN_STRING.load_bytes(b"nan");
+            INF_STRING.load_bytes(b"Infinity");
 
             assert!(try_atof32_slice(b"inf").error.code == ErrorCode::InvalidDigit);
             assert!(try_atof32_slice(b"Infinity").value.is_infinite());
             assert_eq!(f64toa_slice(f64::NAN, &mut buffer), b"nan");
             assert_eq!(f64toa_slice(f64::INFINITY, &mut buffer), b"Infinity");
 
-            NAN_STRING = b"NaN";
-            INF_STRING = b"inf";
+            NAN_STRING.load_bytes(b"NaN");
+            INF_STRING.load_bytes(b"inf");
         }
     }
 

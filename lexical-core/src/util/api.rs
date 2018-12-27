@@ -277,9 +277,8 @@ macro_rules! generate_to_range_api {
             let bytes = $crate::util::api::slice_from_range_mut(first, last);
 
             assert_buffer!(bytes, $size);
-            let slc = $cb(value, 10, bytes);
-            let len = slc.len();
-            slc.as_mut_ptr().add(len)
+            let len = $cb(value, 10, bytes);
+            bytes.as_mut_ptr().add(len)
         }
 
         /// Serializer for a number-to-string conversion using pointer ranges.
@@ -315,9 +314,8 @@ macro_rules! generate_to_range_api {
             let bytes = $crate::util::api::slice_from_range_mut(first, last);
 
             assert_buffer!(bytes, $size);
-            let slc = $cb(value, radix, bytes);
-            let len = slc.len();
-            slc.as_mut_ptr().add(len)
+            let len = $cb(value, radix, bytes);
+            bytes.as_mut_ptr().add(len)
         }
     )
 }
@@ -352,7 +350,8 @@ macro_rules! generate_to_slice_api {
             -> &'a mut [u8]
         {
             assert_buffer!(bytes, $size);
-            $cb(value, 10, bytes)
+            let len = $cb(value, 10, bytes);
+            unsafe {bytes.get_unchecked_mut(..len)}
         }
 
         /// Serializer for a number-to-string conversion using Rust slices.
@@ -386,7 +385,11 @@ macro_rules! generate_to_slice_api {
         {
             assert_radix!(radix);
             assert_buffer!(bytes, $size);
-            $cb(value, radix, bytes)
+            // This is always safe, since len is returned as
+            // `distance(bytes.as_ptr(), slc.as_ptr())`, where `slc` is
+            // a subslice from writes.
+            let len = $cb(value, radix, bytes);
+            unsafe {bytes.get_unchecked_mut(..len)}
         }
     )
 }

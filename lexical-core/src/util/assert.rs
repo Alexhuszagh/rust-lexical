@@ -28,3 +28,9 @@ macro_rules! assert_buffer {
         assert!($slc.len() >= $size);
     });
 }
+
+/// Check whether the bounds are valid.
+// TODO(ahuszagh) Change in certain modes to relax this?
+macro_rules! bounds_assert {
+    ($e:expr) => (assert!($e));
+}

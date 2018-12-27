@@ -39,16 +39,22 @@ pub fn case_insensitive_equal_to_slice(l: &[u8], r: &[u8])
 pub fn case_insensitive_starts_with_slice(l: &[u8], r: &[u8])
     -> bool
 {
-    l.len() >= r.len() && case_insensitive_equal_to_slice(&l[..r.len()], r)
+    // This cannot be out-of-bounds, since we check `l.len() >= r.len()`
+    // previous to extracting the subslice.
+    let lget = move || unsafe {l.get_unchecked(..r.len())};
+    l.len() >= r.len() && case_insensitive_equal_to_slice(lget(), r)
 }
 
 /// Check if left slice ends with right slice.
-#[cfg(feature = "trim_floats")]
 #[inline]
 pub fn ends_with_slice(l: &[u8], r: &[u8])
     -> bool
 {
-    l.len() >= r.len() && equal_to_slice(&l[l.len()-r.len()..], r)
+    // This cannot be out-of-bounds, since we check `l.len() >= r.len()`
+    // previous to extracting the subslice, so `l.len() - r.len()` must
+    // also be <= l.len() and >= 0.
+    let rget = move || unsafe {l.get_unchecked(l.len()-r.len()..)};
+    l.len() >= r.len() && equal_to_slice(rget(), r)
 }
 
 /// Trim character from the left-side of a slice.
@@ -57,7 +63,11 @@ pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
     -> (&'a [u8], usize)
 {
     let count = slc.iter().take_while(|&&si| si == c).count();
-    (&slc[count..], count)
+    //  This count cannot exceed the bounds of the slice, since it is
+    // derived from an iterator using the standard library to generate it.
+    debug_assert!(count <= slc.len());
+    let slc = unsafe {slc.get_unchecked(count..)};
+    (slc, count)
 }
 
 /// Trim character from the right-side of a slice.
@@ -68,7 +78,26 @@ pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
 {
     let count = slc.iter().rev().take_while(|&&si| si == c).count();
     let index = slc.len() - count;
-    (&slc[..index], count)
+    // Count must be <= slc.len(), and therefore, slc.len() - count must
+    // also be <= slc.len(), since this is derived from an iterator
+    // in the standard library.
+    debug_assert!(count <= slc.len());
+    debug_assert!(index <= slc.len());
+    let slc = unsafe {slc.get_unchecked(count..)};
+    (slc, count)
+}
+
+/// Copy from source-to-dst, when the `dst.len() >= src.len()`.
+#[inline]
+pub unsafe fn copy_to_dst_unsafe<'a, Bytes: AsRef<[u8]>>(dst: &'a mut [u8], src: Bytes)
+    -> &'a mut [u8]
+{
+    // We know this is safe, since dst.len() >= src.len(), so we  can safely
+    // extract a subslice of src.len() and then copy the bytes directly in.
+    let src = src.as_ref();
+    let dst = dst.get_unchecked_mut(..src.len());
+    ptr::copy_nonoverlapping(src.as_ptr(), dst.as_mut_ptr(), dst.len());
+    dst.get_unchecked_mut(src.len()..)
 }
 
 /// Copy from source-to-dst.
@@ -76,12 +105,11 @@ pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
 pub fn copy_to_dst<'a, Bytes: AsRef<[u8]>>(dst: &'a mut [u8], src: Bytes)
     -> &'a mut [u8]
 {
-    let src = src.as_ref();
-    {
-        let dst = &mut dst[..src.len()];
-        dst.copy_from_slice(src);
-    }
-    &mut dst[src.len()..]
+    // Do an initial bounds check, then we can do unbounded checks afterwards.
+    bounds_assert!(dst.len() >= src.as_ref().len());
+    // We know this is safe, since dst.len() >= src.len(), so we  can safely
+    // extract a subslice of src.len() and then copy the bytes directly in.
+    unsafe {copy_to_dst_unsafe(dst, src)}
 }
 
 /// Length-check variant of ptr::write_bytes for a slice.
@@ -126,17 +154,6 @@ pub fn slice_from_span<'a, T>(first: *const T, length: usize)
 {
     unsafe {
         slice::from_raw_parts(first, length)
-    }
-}
-
-/// Create mutable slice from pointer and size.
-#[cfg(feature = "trim_floats")]
-#[inline]
-pub fn slice_from_span_mut<'a, T>(first: *mut T, length: usize)
-    -> &'a mut [T]
-{
-    unsafe {
-        slice::from_raw_parts_mut(first, length)
     }
 }
 
@@ -204,7 +221,6 @@ mod tests {
         assert!(!case_insensitive_starts_with_slice(z.as_bytes(), w.as_bytes()));
     }
 
-    #[cfg(feature = "trim_floats")]
     #[test]
     fn ends_with_test() {
         let w = "Hello";

@@ -168,7 +168,9 @@ pub(crate) fn forward<'a, T>(value: T, radix: u32, bytes: &'a mut [u8])
     // Check simple use-cases
     if value == T::ZERO {
         bytes[0] = b'0';
-        return &mut bytes[1..];
+        // We know this is safe, because we confirmed the buffer is >= 2
+        // in total (since we also handled the sign by here).
+        return unsafe {bytes.get_unchecked_mut(1..)};
     }
 
     // Create a temporary buffer, and copy into it.
@@ -228,7 +230,12 @@ pub(crate) fn forward<'a, T>(value: T, radix: u32, bytes: &'a mut [u8])
         }
     };
 
-    copy_to_dst(bytes, &buffer[count..])
+    // We know that count <= buffer.len(), so we can safely extract a subslice
+    // of buffer. This is because count is generated from `buffer.iter_mut().count()`,
+    // after writing a certain number of elements, so it must be <= buffer.len().
+    debug_assert!(count <= buffer.len());
+    let buf = unsafe {buffer.get_unchecked(count..)};
+    copy_to_dst(bytes, buf)
 }
 
 /// Sanitizer for an unsigned number-to-string implementation.
@@ -273,7 +280,9 @@ pub(crate) fn signed<'a, Value, UWide, IWide>(value: Value, radix: u32, bytes: &
         bytes[0] = b'-';
         let wide: IWide = as_cast(value);
         v = as_cast(wide.wrapping_neg());
-        slc = forward(v, radix, &mut bytes[1..]);
+        // We know this is safe, because we confirmed the buffer is >= 1.
+        let bytes = unsafe {bytes.get_unchecked_mut(1..)};
+        slc = forward(v, radix, bytes);
     } else {
         v = as_cast(value);
         slc = forward(v, radix, bytes);
@@ -289,10 +298,9 @@ macro_rules! wrap_unsigned {
         /// Serialize unsigned integer and return bytes written to.
         #[inline]
         fn $name<'a>(value: $t, radix: u8, bytes: &'a mut [u8])
-            -> &'a mut [u8]
+            -> usize
         {
-            let len = unsigned::<$t, $uwide>(value, radix.into(), bytes);
-            &mut bytes[..len]
+            unsigned::<$t, $uwide>(value, radix.into(), bytes)
         }
     )
 }
@@ -310,10 +318,9 @@ macro_rules! wrap_signed {
         /// Serialize signed integer and return bytes written to.
         #[inline]
         fn $name<'a>(value: $t, radix: u8, bytes: &'a mut [u8])
-            -> &'a mut [u8]
+            -> usize
         {
-            let len = signed::<$t, $uwide, $iwide>(value, radix.into(), bytes);
-            &mut bytes[..len]
+            signed::<$t, $uwide, $iwide>(value, radix.into(), bytes)
         }
     )
 }

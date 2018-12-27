@@ -72,10 +72,12 @@ if #[cfg(feature = "grisu3")] {
 /// Trait to define serialization of a float to string.
 pub(crate) trait FloatToString: Float {
     /// Export float to decimal string with optimized algorithm.
+    // TODO: Should return a length?
     fn decimal<'a>(self, bytes: &'a mut [u8]) -> &'a mut [u8];
 
     /// Export float to radix string with slow algorithm.
     #[cfg(feature = "radix")]
+    // TODO: Should return a length?
     fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> &'a mut [u8];
 }
 
@@ -138,17 +140,24 @@ fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8
     // We already check for 0 in `filter_sign` if value.is_zero().
     #[cfg(not(feature = "trim_floats"))] {
         if value.is_zero() {
-            return copy_to_dst(bytes, "0.0");
+            // This is safe, because we confirmed the buffer is >= 4
+            // in total (since we also handled the sign by here).
+            return unsafe {copy_to_dst_unsafe(bytes, "0.0")};
         }
     }
 
     // Unsafe to allow read-access to global mutables.
     unsafe {
         if value.is_nan() {
-            copy_to_dst(bytes, NAN_STRING)
+            // This is safe, because we confirmed the buffer is >= MAX_F32_SIZE.
+            // We have up to `MAX_F32_SIZE - 1` bytes from `get_nan_string()`,
+            // and up to 1 byte from the sign.
+            copy_to_dst_unsafe(bytes, get_nan_string())
         } else if value.is_special() {
-            // Must be positive infinity, we've already handled sign
-            copy_to_dst(bytes, INF_STRING)
+            // This is safe, because we confirmed the buffer is >= MAX_F32_SIZE.
+            // We have up to `MAX_F32_SIZE - 1` bytes from `get_inf_string()`,
+            // and up to 1 byte from the sign.
+            copy_to_dst_unsafe(bytes, get_inf_string())
         } else {
             forward(value, radix, bytes)
         }
@@ -157,7 +166,7 @@ fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8
 
 /// Handle +/- values.
 #[inline]
-fn filter_sign<'a, F: FloatToString>(mut value: F, radix: u32, bytes: &'a mut [u8])
+fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     -> &'a mut [u8]
 {
     debug_assert_radix!(radix);
@@ -165,8 +174,9 @@ fn filter_sign<'a, F: FloatToString>(mut value: F, radix: u32, bytes: &'a mut [u
     // Export "-0.0" and "0.0" as "0" with trimmed floats.
     #[cfg(feature = "trim_floats")] {
         if value.is_zero() {
+            // We know this is safe, because we confirmed the buffer is >= 1.
             bytes[0] = b'0';
-            return &mut bytes[1..];
+            return unsafe {bytes.get_unchecked_mut(1..)};
         }
     }
 
@@ -174,8 +184,10 @@ fn filter_sign<'a, F: FloatToString>(mut value: F, radix: u32, bytes: &'a mut [u
     // value to "-".
     if value.is_sign_negative() {
         bytes[0] = b'-';
-        value = -value;
-        filter_special(value, radix, &mut bytes[1..])
+        let value = -value;
+        // We know this is safe, because we confirmed the buffer is >= 1.
+        let bytes = unsafe {bytes.get_unchecked_mut(1..)};
+        filter_special(value, radix, bytes)
     } else {
         filter_special(value, radix, bytes)
     }
@@ -194,19 +206,13 @@ fn ftoa<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
 /// Trim a trailing ".0" from a float.
 #[inline]
 fn trim<'a>(bytes: &'a mut [u8])
-    -> &'a mut[u8]
+    -> usize
 {
     // Trim a trailing ".0" from a float.
-    #[cfg(feature = "trim_floats")] {
-        if ends_with_slice(bytes, b".0") {
-            slice_from_span_mut(bytes.as_mut_ptr(), bytes.len() - 2)
-        } else {
-            bytes
-        }
-    }
-
-    #[cfg(not(feature = "trim_floats"))] {
-        bytes
+    if cfg!(feature = "trim_floats") && ends_with_slice(bytes, b".0") {
+        bytes.len() - 2
+    } else {
+        bytes.len()
     }
 }
 
@@ -218,11 +224,12 @@ macro_rules! wrap {
         /// Serialize float and return bytes written to.
         #[inline]
         fn $name<'a>(value: $t, base: u8, bytes: &'a mut [u8])
-            -> &'a mut [u8]
+            -> usize
         {
             // Check buffer has sufficient capacity.
             let len = ftoa(value, base.into(), bytes);
-            trim(&mut bytes[..len])
+            let bytes = unsafe {bytes.get_unchecked_mut(..len)};
+            trim(bytes)
         }
     )
 }

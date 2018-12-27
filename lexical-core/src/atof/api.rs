@@ -17,9 +17,11 @@ if #[cfg(feature = "correct")] {
 /// Trait to define parsing of a string to float.
 trait StringToFloat: Float {
     /// Serialize string to float, favoring correctness.
+    // TODO(ahuszagh) Should return a length?
     fn default<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (Self, &'a [u8]);
 
     /// Serialize string to float, prioritizing speed over correctness.
+    // TODO(ahuszagh) Should return a length?
     fn lossy<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (Self, &'a [u8]);
 }
 
@@ -52,23 +54,17 @@ impl StringToFloat for f64 {
 
 #[inline]
 fn is_nan(bytes: &[u8]) -> bool {
-    unsafe {
-        case_insensitive_starts_with_slice(bytes, NAN_STRING)
-    }
+    case_insensitive_starts_with_slice(bytes, get_nan_string())
 }
 
 #[inline]
 fn is_inf(bytes: &[u8]) -> bool {
-    unsafe {
-        case_insensitive_starts_with_slice(bytes, INF_STRING)
-    }
+    case_insensitive_starts_with_slice(bytes, get_inf_string())
 }
 
 #[inline]
 fn is_infinity(bytes: &[u8]) -> bool {
-    unsafe {
-        case_insensitive_starts_with_slice(bytes, INFINITY_STRING)
-    }
+    case_insensitive_starts_with_slice(bytes, get_infinity_string())
 }
 
 #[inline]
@@ -93,27 +89,41 @@ fn filter_special<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool
     // Check long infinity first before short infinity.
     // Short infinity short-circuits, we want to parse as many characters
     // as possible.
-    // This is only unsafe due to access to global mutables, which the caller
-    // is not allowed to modify.
-    unsafe {
-        if is_zero(bytes) {
-            (F::ZERO, &bytes[bytes.len()..])
-        } else if is_infinity(bytes) {
-            (F::INFINITY, &bytes[INFINITY_STRING.len()..])
-        } else if is_inf(bytes) {
-            (F::INFINITY, &bytes[INF_STRING.len()..])
-        } else if is_nan(bytes) {
-            (F::NAN, &bytes[NAN_STRING.len()..])
-        } else if bytes.len() == 1 && bytes[0] == b'.' {
-            // Handle case where we have a decimal point, but no leading or trailing
-            // digits. This should return a value of 0, but the checked parsers
-            // should reject this out-right.
-            (F::ZERO, bytes)
-        } else if lossy {
-            F::lossy(radix, bytes, sign)
-        } else {
-            F::default(radix, bytes, sign)
-        }
+    if is_zero(bytes) {
+        // We know this is always valid, since bytes is always bytes.len() length.
+        let bytes = unsafe {bytes.get_unchecked(bytes.len()..)};
+        (F::ZERO, bytes)
+    } else if is_infinity(bytes) {
+        // We know this is always valid, since we just checked if the range
+        // starts with `get_infinity_string()`, so it must be at least
+        // that long.
+        let len = get_infinity_string().len();
+        let bytes = unsafe {bytes.get_unchecked(len..)};
+        (F::INFINITY, bytes)
+    } else if is_inf(bytes) {
+        // We know this is always valid, since we just checked if the range
+        // starts with `get_inf_string()`, so it must be at least
+        // that long.
+        let len = get_inf_string().len();
+        let bytes = unsafe {bytes.get_unchecked(len..)};
+        (F::INFINITY, bytes)
+    } else if is_nan(bytes) {
+        // We know this is always valid, since we just checked if the range
+        // starts with `get_nan_string()`, so it must be at least
+        // that long.
+        let len = get_nan_string().len();
+        let bytes = unsafe {bytes.get_unchecked(len..)};
+        (F::NAN, bytes)
+    } else if bytes.len() == 1 && unsafe {bytes.get_unchecked(0)} == &b'.' {
+        // We know the above statement is safe, since `bytes.len() == 1`.
+        // Handle case where we have a decimal point, but no leading or trailing
+        // digits. This should return a value of 0, but the checked parsers
+        // should reject this out-right.
+        (F::ZERO, bytes)
+    } else if lossy {
+        F::lossy(radix, bytes, sign)
+    } else {
+        F::default(radix, bytes, sign)
     }
 }
 
@@ -131,7 +141,9 @@ fn filter_sign<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool)
     };
 
     if len > sign_bytes {
-        let (value, slc) = filter_special::<F>(radix, &bytes[sign_bytes..], lossy, sign);
+        // `bytes.len() > sign_bytes`, so this range is always valid.
+        let bytes = unsafe {bytes.get_unchecked(sign_bytes..)};
+        let (value, slc) = filter_special::<F>(radix, bytes, lossy, sign);
         (value, sign, slc)
     } else {
         (F::ZERO, sign, bytes)
