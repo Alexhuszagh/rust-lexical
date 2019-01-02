@@ -24,6 +24,14 @@ pub fn equal_to_slice(l: &[u8], r: &[u8])
     l == r
 }
 
+/// Check if values are equal to each other without case-sensitivity.
+#[inline]
+pub fn case_insensitive_equal(l: u8, r: u8)
+    -> bool
+{
+    l.to_ascii_lowercase() == r.to_ascii_lowercase()
+}
+
 /// Check if two slices are equal to each other without case-sensitivity.
 #[inline]
 pub fn case_insensitive_equal_to_slice(l: &[u8], r: &[u8])
@@ -83,27 +91,27 @@ pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
     // in the standard library.
     debug_assert!(count <= slc.len());
     debug_assert!(index <= slc.len());
-    let slc = unsafe {slc.get_unchecked(count..)};
+    let slc = unsafe {slc.get_unchecked(..index)};
     (slc, count)
 }
 
 /// Copy from source-to-dst, when the `dst.len() >= src.len()`.
 #[inline]
 pub unsafe fn copy_to_dst_unsafe<'a, Bytes: AsRef<[u8]>>(dst: &'a mut [u8], src: Bytes)
-    -> &'a mut [u8]
+    -> usize
 {
     // We know this is safe, since dst.len() >= src.len(), so we  can safely
     // extract a subslice of src.len() and then copy the bytes directly in.
     let src = src.as_ref();
     let dst = dst.get_unchecked_mut(..src.len());
     ptr::copy_nonoverlapping(src.as_ptr(), dst.as_mut_ptr(), dst.len());
-    dst.get_unchecked_mut(src.len()..)
+    src.len()
 }
 
 /// Copy from source-to-dst.
 #[inline]
 pub fn copy_to_dst<'a, Bytes: AsRef<[u8]>>(dst: &'a mut [u8], src: Bytes)
-    -> &'a mut [u8]
+    -> usize
 {
     // Do an initial bounds check, then we can do unbounded checks afterwards.
     bounds_assert!(dst.len() >= src.as_ref().len());

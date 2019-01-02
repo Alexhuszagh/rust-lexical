@@ -9,10 +9,18 @@ use util::*;
 const DIGIT_TO_CHAR: [u8; 36] = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'A', b'B', b'C', b'D', b'E', b'F', b'G', b'H', b'I', b'J', b'K', b'L', b'M', b'N', b'O', b'P', b'Q', b'R', b'S', b'T', b'U', b'V', b'W', b'X', b'Y', b'Z'];
 
 /// Get character from digit.
+/// Digit must be <= 36.
+#[inline]
+pub(crate) unsafe fn digit_to_char_unsafe<T: Integer>(digit: T) -> u8 {
+    debug_assert!(digit.as_i32() >= 0 && digit.as_i32() < 36, "digit_to_char() invalid character.");
+    *DIGIT_TO_CHAR.get_unchecked(digit.as_usize())
+}
+
+/// Get character from digit.
 #[inline]
 pub(crate) fn digit_to_char<T: Integer>(digit: T) -> u8 {
-    debug_assert!(digit.as_i32() >= 0 && digit.as_i32() < 36, "digit_to_char() invalid character.");
-    DIGIT_TO_CHAR[digit.as_usize()]
+    assert!(digit.as_i32() >= 0 && digit.as_i32() < 36, "digit_to_char() invalid character.");
+    unsafe {digit_to_char_unsafe(digit)}
 }
 
 /// Translation table for a character to a digit, of any radix.
@@ -48,7 +56,9 @@ const CHAR_TO_DIGIT: [u8; 256] = [
 /// Get digit from character.
 #[inline]
 pub(crate) fn char_to_digit(c: u8) -> u8 {
-    CHAR_TO_DIGIT[c.as_usize()]
+    // This is always safe, since c must be [0, 255],and CHAR_TO_DIGIT is
+    // 256 items long.
+    unsafe {*CHAR_TO_DIGIT.get_unchecked(c.as_usize())}
 }
 
 // Conditionally compile the precompiled radix**2 tables.
@@ -118,96 +128,104 @@ pub(crate) trait ExactExponent {
     fn mantissa_limit<T: Integer>(radix: T) -> i32;
 }
 
-/// Precalculated min and max exponents for values exactly representable as f32.
-///
-/// Table of values where `radix**min` and `radix**max` are the limits of types
-/// exactly representable as an f32.
-const F32_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
-    (-149, 127),    // 2
-    (-15, 15),      // 3
-    (-74, 63),      // 4
-    (-10, 10),      // 5
-    (-15, 15),      // 6
-    (-8, 8),        // 7
-    (-49, 42),      // 8
-    (-7, 7),        // 9
-    (-10, 10),      // 10
-    (-6, 6),        // 11
-    (-15, 15),      // 12
-    (-6, 6),        // 13
-    (-8, 8),        // 14
-    (-6, 6),        // 15
-    (-37, 31),      // 16
-    (-5, 5),        // 17
-    (-7, 7),        // 18
-    (-5, 5),        // 19
-    (-10, 10),      // 20
-    (-5, 5),        // 21
-    (-6, 6),        // 22
-    (-5, 5),        // 23
-    (-15, 15),      // 24
-    (-5, 5),        // 25
-    (-6, 6),        // 26
-    (-5, 5),        // 27
-    (-8, 8),        // 28
-    (-4, 4),        // 29
-    (-6, 6),        // 30
-    (-4, 4),        // 31
-    (-29, 25),      // 32
-    (-4, 4),        // 33
-    (-5, 5),        // 34
-    (-4, 4),        // 35
-    (-7, 7),        // 36
-];
-
 impl ExactExponent for f32 {
     #[inline]
     fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
         debug_assert_radix!(radix);
-        F32_EXACT_EXPONENT_LIMITS[radix.as_usize() - 2]
+        #[cfg(not(feature = "radix"))] {
+            (-10, 10)
+        }
+
+        #[cfg(feature = "radix")] {
+            match radix.as_i32() {
+                2  => (-149, 127),
+                3  => (-15, 15),
+                4  => (-74, 63),
+                5  => (-10, 10),
+                6  => (-15, 15),
+                7  => (-8, 8),
+                8  => (-49, 42),
+                9  => (-7, 7),
+                10 => (-10, 10),
+                11 => (-6, 6),
+                12 => (-15, 15),
+                13 => (-6, 6),
+                14 => (-8, 8),
+                15 => (-6, 6),
+                16 => (-37, 31),
+                17 => (-5, 5),
+                18 => (-7, 7),
+                19 => (-5, 5),
+                20 => (-10, 10),
+                21 => (-5, 5),
+                22 => (-6, 6),
+                23 => (-5, 5),
+                24 => (-15, 15),
+                25 => (-5, 5),
+                26 => (-6, 6),
+                27 => (-5, 5),
+                28 => (-8, 8),
+                29 => (-4, 4),
+                30 => (-6, 6),
+                31 => (-4, 4),
+                32 => (-29, 25),
+                33 => (-4, 4),
+                34 => (-5, 5),
+                35 => (-4, 4),
+                36 => (-7, 7),
+                // Invalid radix
+                _  => unreachable!(),
+            }
+        }
     }
 
     #[inline]
     fn mantissa_limit<T: Integer>(radix: T) -> i32 {
         debug_assert_radix!(radix);
-        match radix.as_i32() {
-            2  => 23,
-            3  => 15,
-            4  => 11,
-            5  => 10,
-            6  => 9,
-            7  => 8,
-            8  => 7,
-            9  => 7,
-            10 => 7,
-            11 => 6,
-            12 => 6,
-            13 => 6,
-            14 => 6,
-            15 => 6,
-            16 => 5,
-            17 => 5,
-            18 => 5,
-            19 => 5,
-            20 => 5,
-            21 => 5,
-            22 => 5,
-            23 => 5,
-            24 => 5,
-            25 => 5,
-            26 => 5,
-            27 => 5,
-            28 => 4,
-            29 => 4,
-            30 => 4,
-            31 => 4,
-            32 => 4,
-            33 => 4,
-            34 => 4,
-            35 => 4,
-            36 => 4,
-            // Invalid radix
-            _  => unimplemented!(),
+        #[cfg(not(feature = "radix"))] {
+            7
+        }
+
+        #[cfg(feature = "radix")] {
+            match radix.as_i32() {
+                2  => 23,
+                3  => 15,
+                4  => 11,
+                5  => 10,
+                6  => 9,
+                7  => 8,
+                8  => 7,
+                9  => 7,
+                10 => 7,
+                11 => 6,
+                12 => 6,
+                13 => 6,
+                14 => 6,
+                15 => 6,
+                16 => 5,
+                17 => 5,
+                18 => 5,
+                19 => 5,
+                20 => 5,
+                21 => 5,
+                22 => 5,
+                23 => 5,
+                24 => 5,
+                25 => 5,
+                26 => 5,
+                27 => 5,
+                28 => 4,
+                29 => 4,
+                30 => 4,
+                31 => 4,
+                32 => 4,
+                33 => 4,
+                34 => 4,
+                35 => 4,
+                36 => 4,
+                // Invalid radix
+                _  => unreachable!(),
+            }
         }
     }
 }
@@ -216,92 +234,105 @@ impl ExactExponent for f32 {
 ///
 /// Table of values where `radix**min` and `radix**max` are the limits of types
 /// exactly representable as an f64.
-const F64_EXACT_EXPONENT_LIMITS: [(i32, i32); 35] = [
-    (-1074, 1023),  // 2
-    (-33, 33),      // 3
-    (-537, 511),    // 4
-    (-22, 22),      // 5
-    (-33, 33),      // 6
-    (-18, 18),      // 7
-    (-358, 341),    // 8
-    (-16, 16),      // 9
-    (-22, 22),      // 10
-    (-15, 15),      // 11
-    (-33, 33),      // 12
-    (-14, 14),      // 13
-    (-18, 18),      // 14
-    (-13, 13),      // 15
-    (-268, 255),    // 16
-    (-12, 12),      // 17
-    (-16, 16),      // 18
-    (-12, 12),      // 19
-    (-22, 22),      // 20
-    (-12, 12),      // 21
-    (-15, 15),      // 22
-    (-11, 11),      // 23
-    (-33, 33),      // 24
-    (-11, 11),      // 25
-    (-14, 14),      // 26
-    (-11, 11),      // 27
-    (-18, 18),      // 28
-    (-10, 10),      // 29
-    (-13, 13),      // 30
-    (-10, 10),      // 31
-    (-214, 204),    // 32
-    (-10, 10),      // 33
-    (-12, 12),      // 34
-    (-10, 10),      // 35
-    (-16, 16),      // 36
-];
 
 impl ExactExponent for f64 {
     #[inline]
     fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
         debug_assert_radix!(radix);
-        F64_EXACT_EXPONENT_LIMITS[radix.as_usize() - 2]
+        #[cfg(not(feature = "radix"))] {
+            (-22, 22)
+        }
+
+        #[cfg(feature = "radix")] {
+            match radix.as_i32() {
+                2  => (-1074, 1023),
+                3  => (-33, 33),
+                4  => (-537, 511),
+                5  => (-22, 22),
+                6  => (-33, 33),
+                7  => (-18, 18),
+                8  => (-358, 341),
+                9  => (-16, 16),
+                10 => (-22, 22),
+                11 => (-15, 15),
+                12 => (-33, 33),
+                13 => (-14, 14),
+                14 => (-18, 18),
+                15 => (-13, 13),
+                16 => (-268, 255),
+                17 => (-12, 12),
+                18 => (-16, 16),
+                19 => (-12, 12),
+                20 => (-22, 22),
+                21 => (-12, 12),
+                22 => (-15, 15),
+                23 => (-11, 11),
+                24 => (-33, 33),
+                25 => (-11, 11),
+                26 => (-14, 14),
+                27 => (-11, 11),
+                28 => (-18, 18),
+                29 => (-10, 10),
+                30 => (-13, 13),
+                31 => (-10, 10),
+                32 => (-214, 204),
+                33 => (-10, 10),
+                34 => (-12, 12),
+                35 => (-10, 10),
+                36 => (-16, 16),
+                // Invalid radix
+                _  => unreachable!(),
+            }
+        }
     }
 
     #[inline]
     fn mantissa_limit<T: Integer>(radix: T) -> i32 {
         debug_assert_radix!(radix);
-        match radix.as_i32() {
-            2  => 52,
-            3  => 33,
-            4  => 26,
-            5  => 22,
-            6  => 20,
-            7  => 18,
-            8  => 17,
-            9  => 16,
-            10 => 15,
-            11 => 15,
-            12 => 14,
-            13 => 14,
-            14 => 13,
-            15 => 13,
-            16 => 13,
-            17 => 12,
-            18 => 12,
-            19 => 12,
-            20 => 12,
-            21 => 12,
-            22 => 11,
-            23 => 11,
-            24 => 11,
-            25 => 11,
-            26 => 11,
-            27 => 11,
-            28 => 11,
-            29 => 10,
-            30 => 10,
-            31 => 10,
-            32 => 10,
-            33 => 10,
-            34 => 10,
-            35 => 10,
-            36 => 10,
-            // Invalid radix
-            _  => unimplemented!(),
+        #[cfg(not(feature = "radix"))] {
+            15
+        }
+
+        #[cfg(feature = "radix")] {
+            match radix.as_i32() {
+                2  => 52,
+                3  => 33,
+                4  => 26,
+                5  => 22,
+                6  => 20,
+                7  => 18,
+                8  => 17,
+                9  => 16,
+                10 => 15,
+                11 => 15,
+                12 => 14,
+                13 => 14,
+                14 => 13,
+                15 => 13,
+                16 => 13,
+                17 => 12,
+                18 => 12,
+                19 => 12,
+                20 => 12,
+                21 => 12,
+                22 => 11,
+                23 => 11,
+                24 => 11,
+                25 => 11,
+                26 => 11,
+                27 => 11,
+                28 => 11,
+                29 => 10,
+                30 => 10,
+                31 => 10,
+                32 => 10,
+                33 => 10,
+                34 => 10,
+                35 => 10,
+                36 => 10,
+                // Invalid radix
+                _  => unreachable!(),
+            }
         }
     }
 }
@@ -870,6 +901,7 @@ impl TablePower for f32 {
                 34 => F32_POW34[exponent],
                 35 => F32_POW35[exponent],
                 36 => F32_POW36[exponent],
+                // Invalid radix
                 _  => unreachable!(),
             }
         }
@@ -3222,6 +3254,7 @@ impl TablePower for f64 {
                 34 => F64_POW34[exponent],
                 35 => F64_POW35[exponent],
                 36 => F64_POW36[exponent],
+                // Invalid radix
                 _  => unreachable!(),
             }
         }

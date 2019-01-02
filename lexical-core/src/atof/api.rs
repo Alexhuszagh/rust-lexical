@@ -17,34 +17,32 @@ if #[cfg(feature = "correct")] {
 /// Trait to define parsing of a string to float.
 trait StringToFloat: Float {
     /// Serialize string to float, favoring correctness.
-    // TODO(ahuszagh) Should return a length?
-    fn default<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (Self, &'a [u8]);
+    fn default(radix: u32, bytes: &[u8], sign: Sign) -> (Self, usize);
 
     /// Serialize string to float, prioritizing speed over correctness.
-    // TODO(ahuszagh) Should return a length?
-    fn lossy<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (Self, &'a [u8]);
+    fn lossy(radix: u32, bytes: &[u8], sign: Sign) -> (Self, usize);
 }
 
 impl StringToFloat for f32 {
     #[inline]
-    fn default<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (f32, &'a [u8]) {
+    fn default(radix: u32, bytes: &[u8], sign: Sign) -> (f32, usize) {
         algorithm::atof(radix, bytes, sign)
     }
 
     #[inline]
-    fn lossy<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (f32, &'a [u8]) {
+    fn lossy(radix: u32, bytes: &[u8], sign: Sign) -> (f32, usize) {
         algorithm::atof_lossy(radix, bytes, sign)
     }
 }
 
 impl StringToFloat for f64 {
     #[inline]
-    fn default<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (f64, &'a [u8]) {
+    fn default(radix: u32, bytes: &[u8], sign: Sign) -> (f64, usize) {
         algorithm::atod(radix, bytes, sign)
     }
 
     #[inline]
-    fn lossy<'a>(radix: u32, bytes: &'a [u8], sign: Sign) -> (f64, &'a [u8]) {
+    fn lossy(radix: u32, bytes: &[u8], sign: Sign) -> (f64, usize) {
         algorithm::atod_lossy(radix, bytes, sign)
     }
 }
@@ -83,43 +81,29 @@ fn is_zero(bytes: &[u8]) -> bool {
 /// Forcing inlining leads to much better codegen at high optimization levels.
 #[inline]
 fn filter_special<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool, sign: Sign)
-    -> (F, &'a [u8])
+    -> (F, usize)
 {
     // Special case checks
     // Check long infinity first before short infinity.
     // Short infinity short-circuits, we want to parse as many characters
     // as possible.
     if is_zero(bytes) {
-        // We know this is always valid, since bytes is always bytes.len() length.
-        let bytes = unsafe {bytes.get_unchecked(bytes.len()..)};
-        (F::ZERO, bytes)
+        (F::ZERO, bytes.len())
     } else if is_infinity(bytes) {
-        // We know this is always valid, since we just checked if the range
-        // starts with `get_infinity_string()`, so it must be at least
-        // that long.
         let len = get_infinity_string().len();
-        let bytes = unsafe {bytes.get_unchecked(len..)};
-        (F::INFINITY, bytes)
+        (F::INFINITY, len)
     } else if is_inf(bytes) {
-        // We know this is always valid, since we just checked if the range
-        // starts with `get_inf_string()`, so it must be at least
-        // that long.
         let len = get_inf_string().len();
-        let bytes = unsafe {bytes.get_unchecked(len..)};
-        (F::INFINITY, bytes)
+        (F::INFINITY, len)
     } else if is_nan(bytes) {
-        // We know this is always valid, since we just checked if the range
-        // starts with `get_nan_string()`, so it must be at least
-        // that long.
         let len = get_nan_string().len();
-        let bytes = unsafe {bytes.get_unchecked(len..)};
-        (F::NAN, bytes)
+        (F::NAN, len)
     } else if bytes.len() == 1 && unsafe {bytes.get_unchecked(0)} == &b'.' {
         // We know the above statement is safe, since `bytes.len() == 1`.
         // Handle case where we have a decimal point, but no leading or trailing
         // digits. This should return a value of 0, but the checked parsers
         // should reject this out-right.
-        (F::ZERO, bytes)
+        (F::ZERO, 0)
     } else if lossy {
         F::lossy(radix, bytes, sign)
     } else {
@@ -131,7 +115,7 @@ fn filter_special<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool
 /// Forcing inlining leads to much better codegen at high optimization levels.
 #[inline]
 fn filter_sign<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool)
-    -> (F, Sign, &'a [u8])
+    -> (F, Sign, usize)
 {
     let len = bytes.len();
     let (sign_bytes, sign) = match bytes.get(0) {
@@ -143,10 +127,10 @@ fn filter_sign<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool)
     if len > sign_bytes {
         // `bytes.len() > sign_bytes`, so this range is always valid.
         let bytes = unsafe {bytes.get_unchecked(sign_bytes..)};
-        let (value, slc) = filter_special::<F>(radix, bytes, lossy, sign);
-        (value, sign, slc)
+        let (value, len) = filter_special::<F>(radix, bytes, lossy, sign);
+        (value, sign, len + sign_bytes)
     } else {
-        (F::ZERO, sign, bytes)
+        (F::ZERO, sign, 0)
     }
 }
 
@@ -156,11 +140,10 @@ fn filter_sign<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool)
 fn atof<F: StringToFloat>(radix: u32, bytes: &[u8], lossy: bool)
     -> (F, usize)
 {
-    let (value, sign, slc) = filter_sign::<F>(radix, bytes, lossy);
-    let processed = distance(bytes.as_ptr(), slc.as_ptr());
+    let (value, sign, len) = filter_sign::<F>(radix, bytes, lossy);
     match sign {
-        Sign::Negative => (-value, processed),
-        Sign::Positive => (value, processed),
+        Sign::Negative => (-value, len),
+        Sign::Positive => (value, len),
     }
 }
 

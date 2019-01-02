@@ -18,12 +18,14 @@ pub(super) fn parse_exponent<'a>(radix: u32, bytes: &'a [u8])
 {
     // Force a check that the distance is >= 2, so we ensure there's something
     // after the exponent. This fixes a regression discovered via proptest.
-    if bytes.len() >= 2 && bytes[0].to_ascii_lowercase() == exponent_notation_char(radix).to_ascii_lowercase() {
+    // Safety: bytes.len() >= 2.
+    if bytes.len() >= 2 && case_insensitive_equal(unsafe {*bytes.get_unchecked(0)}, exponent_notation_char(radix)) {
         // Use atoi_sign so we can handle overflow differently for +/- numbers.
         // We care whether the value is positive.
         // Use i32::max_value() since it's valid in 2s complement for
         // positive or negative numbers, and will trigger a short-circuit.
-        let bytes = &bytes[1..];
+        // Safety: bytes.len() >= 2.
+        let bytes = unsafe {bytes.get_unchecked(1..)};
         let cb = atoi::unchecked::<i32>;
         let (exponent, sign, len, truncated) = atoi::filter_sign::<i32, _>(radix, bytes, cb);
         let exponent = match truncated.is_some() {
@@ -35,7 +37,8 @@ pub(super) fn parse_exponent<'a>(radix: u32, bytes: &'a [u8])
             Sign::Positive => exponent,
         };
 
-        (exponent, &bytes[len..])
+        // Safety: atoi always returns a value <= bytes.len().
+        (exponent, unsafe {bytes.get_unchecked(len..)})
     } else {
         (0, bytes)
     }
@@ -88,8 +91,45 @@ pub(super) fn integral_binary_factor(radix: u32)
     }
 
     #[cfg(feature = "radix")] {
-        const TABLE: [u32; 35] = [1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6];
-        TABLE[radix.as_usize() - 2]
+        match radix.as_i32() {
+            2  => 1,
+            3  => 2,
+            4  => 2,
+            5  => 3,
+            6  => 3,
+            7  => 3,
+            8  => 3,
+            9  => 4,
+            10 => 4,
+            11 => 4,
+            12 => 4,
+            13 => 4,
+            14 => 4,
+            15 => 4,
+            16 => 4,
+            17 => 5,
+            18 => 5,
+            19 => 5,
+            20 => 5,
+            21 => 5,
+            22 => 5,
+            23 => 5,
+            24 => 5,
+            25 => 5,
+            26 => 5,
+            27 => 5,
+            28 => 5,
+            29 => 5,
+            30 => 5,
+            31 => 5,
+            32 => 5,
+            33 => 6,
+            34 => 6,
+            35 => 6,
+            36 => 6,
+            // Invalid radix
+            _  => unreachable!(),
+        }
     }
 }
 

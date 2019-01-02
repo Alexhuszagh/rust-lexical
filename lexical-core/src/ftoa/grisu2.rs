@@ -231,7 +231,8 @@ fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &Extend
     let mut idx: usize = 0;
     let mut kappa: i32 = 10;
     // 1000000000
-    let mut divp = TENS[10..].iter();
+    // Guaranteed to be safe, TENS has 20 elements.
+    let mut divp = unsafe {TENS.get_unchecked(10..)}.iter();
     while kappa > 0 {
         // Remember not to continue! This loop has an increment condition.
         let div = divp.next().unwrap();
@@ -253,7 +254,8 @@ fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &Extend
     }
 
     /* 10 */
-    let mut unit = TENS[..=18].iter().rev();
+    // Guaranteed to be safe, TENS has 20 elements.
+    let mut unit = unsafe {TENS.get_unchecked(..=18)}.iter().rev();
     loop {
         part2 *= 10;
         delta *= 10;
@@ -312,9 +314,16 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
     if k >= 0 && exp < (ndigits + 7) {
         let idx = ndigits;
         let count = k.as_usize();
-        copy_to_dst(dest, &digits[..idx]);
-        write_bytes(&mut dest[idx..idx+count], b'0');
-        copy_to_dst(&mut dest[idx+count..], ".0");
+        // Add manually bounds checks for the remaining operations.
+        bounds_assert!(idx + count + 2 <= dest.len());
+        bounds_assert!(idx <= digits.len());
+        // These are all safe, since digits.len() >= idx, and
+        // dest.len() >= idx+count+2, so the range must be valid.
+        unsafe {
+            copy_to_dst(dest, digits.get_unchecked(..idx));
+            write_bytes(dest.get_unchecked_mut(idx..idx+count), b'0');
+            copy_to_dst(dest.get_unchecked_mut(idx+count..), b".0");
+        }
 
         return ndigits + k.as_usize() + 2;
     }
@@ -325,19 +334,33 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
         // fp < 1.0 -> write leading zero
         if offset <= 0 {
             let offset = (-offset).as_usize();
-            dest[0] = b'0';
-            dest[1] = b'.';
-            write_bytes(&mut dest[2..offset+2], b'0');
-            copy_to_dst(&mut dest[offset+2..], &digits[..ndigits]);
+            // Add manually bounds checks for the remaining operations.
+            bounds_assert!(ndigits + offset + 2 <= dest.len());
+            bounds_assert!(ndigits <= digits.len());
+            // These are all safe, since digits.len() >= ndigits, and
+            // dest.len() >= ndigits+offset+2, so the range must be valid.
+            unsafe {
+                *dest.get_unchecked_mut(0) = b'0';
+                *dest.get_unchecked_mut(1) = b'.';
+                write_bytes(dest.get_unchecked_mut(2..offset+2), b'0');
+                copy_to_dst(dest.get_unchecked_mut(offset+2..), digits.get_unchecked(..ndigits));
+            }
 
             return ndigits + 2 + offset;
 
         } else {
             // fp > 1.0
             let offset = offset.as_usize();
-            copy_to_dst(dest, &digits[..offset]);
-            dest[offset] = b'.';
-            copy_to_dst(&mut dest[offset+1..], &digits[offset..ndigits]);
+            // Add manually bounds checks for the remaining operations.
+            bounds_assert!(ndigits + 1 <= dest.len());
+            bounds_assert!(ndigits <= digits.len());
+            // These are all safe, since digits.len() >= ndigits, and
+            // dest.len() >= ndigits+1, so the range must be valid.
+            unsafe {
+                copy_to_dst(dest, digits.get_unchecked(..offset));
+                *dest.get_unchecked_mut(offset) = b'.';
+                copy_to_dst(dest.get_unchecked_mut(offset+1..), digits.get_unchecked(offset..ndigits));
+            }
 
             return ndigits + 1;
         }
@@ -346,49 +369,43 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
     // write decimal w/ scientific notation
     ndigits = ndigits.min(18);
 
-    let mut idx: usize = 0;
-    dest[idx] = digits[0];
-    idx += 1;
+    let dst_len = dest.len();
+    let mut dst_iter = dest.iter_mut();
+    let mut src_iter = digits.iter().take(ndigits);
+    *dst_iter.next().unwrap() = *src_iter.next().unwrap();
 
     if ndigits > 1 {
-        dest[idx] = b'.';
-        idx += 1;
-        copy_to_dst(&mut dest[idx..], &digits[1..ndigits]);
-        idx += ndigits - 1;
+        *dst_iter.next().unwrap() = b'.';
+        for &src in src_iter {
+            *dst_iter.next().unwrap() = src;
+        }
     }
 
-    dest[idx] = exponent_notation_char(10);
-    idx += 1;
+    *dst_iter.next().unwrap() = exponent_notation_char(10);
 
-    let sign: u8 = match k + ndigits.as_i32() - 1 < 0 {
+    *dst_iter.next().unwrap() = match k + ndigits.as_i32() - 1 < 0 {
         true    => b'-',
         false   => b'+',
     };
-    dest[idx] = sign;
-    idx += 1;
 
     let mut cent: usize = 0;
     if exp > 99 {
         cent = exp / 100;
-        dest[idx] = cent.as_u8() + b'0';
-        idx += 1;
+        *dst_iter.next().unwrap() = cent.as_u8() + b'0';
         exp -= cent * 100;
     }
     if exp > 9 {
         let dec = exp / 10;
-        dest[idx] = dec.as_u8() + b'0';
-        idx += 1;
+        *dst_iter.next().unwrap() = dec.as_u8() + b'0';
         exp -= dec * 10;
     } else if cent != 0 {
-        dest[idx] = b'0';
-        idx += 1;
+        *dst_iter.next().unwrap() = b'0';
     }
 
     let shift = (exp % 10).as_u8();
-    dest[idx] = shift + b'0';
-    idx += 1;
+    *dst_iter.next().unwrap() = shift + b'0';
 
-    idx
+    dst_len - dst_iter.count()
 }
 
 #[inline]
@@ -408,7 +425,7 @@ fn fpconv_dtoa(d: f64, dest: &mut [u8]) -> usize
 /// and non-zero.
 #[inline]
 pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+    -> usize
 {
     double_decimal(f.as_f64(), bytes)
 }
@@ -421,8 +438,7 @@ pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
 /// and non-zero.
 #[inline]
 pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+    -> usize
 {
-    let len = fpconv_dtoa(d, bytes);
-    &mut bytes[len..]
+    fpconv_dtoa(d, bytes)
 }

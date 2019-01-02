@@ -29,7 +29,7 @@ pub(crate) fn naive_exponent(d: f64, radix: u32) -> i32
 ///
 /// Adapted from the V8 implementation.
 fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+    -> usize
 {
     debug_assert_radix!(radix);
 
@@ -79,6 +79,9 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
     delta = 0.0.next_positive().max_finite(delta);
     debug_assert!(delta > 0.0);
 
+    // Don't remove bounds checks, for a few reasons.
+    //  1. Difficult to determine statically.
+    //  2. Algorithm is fairly slow, in general, so performance isn't a major deal.
     if fraction > delta {
         loop {
             // Shift up by one digit.
@@ -165,7 +168,8 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
         // 3.   Write the fraction component
         bytes[0] = buffer[0];
         bytes[1] = b'.';
-        let bytes = copy_to_dst(&mut bytes[2..], &buffer[1..]);
+        let count = copy_to_dst(&mut bytes[2..], &buffer[1..]);
+        let bytes = &mut bytes[count+2..];
 
         // write the exponent component
         bytes[0] = exponent_notation_char(radix);
@@ -174,10 +178,10 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
         if exponent < 0 {
             bytes[1] = b'-';
             exp = exponent.wrapping_neg() as u32;
-            itoa::forward(exp, radix, &mut bytes[2..])
+            itoa::forward(exp, radix, &mut bytes[2..]) + count + 4
         } else {
             exp = exponent as u32;
-            itoa::forward(exp, radix, &mut bytes[1..])
+            itoa::forward(exp, radix, &mut bytes[1..]) + count + 3
         }
     } else {
         // get component lengths
@@ -185,17 +189,23 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
         let fraction_length = (fraction_cursor - initial_position).min(MAX_DIGIT_LENGTH - integer_length);
 
         // write integer component
-        let bytes = copy_to_dst(bytes, &buffer[integer_cursor..integer_cursor+integer_length]);
+        let start = integer_cursor;
+        let end = integer_cursor + integer_length;
+        let count = copy_to_dst(bytes, &buffer[start..end]);
+        let bytes = &mut bytes[count..];
 
         // write fraction component
         if fraction_length > 0 {
             // fraction exists, write it
             bytes[0] = b'.';
-            let src = &buffer[initial_position..initial_position+fraction_length];
-            copy_to_dst(&mut bytes[1..], src)
+            let start = initial_position;
+            let end = initial_position + fraction_length;
+            copy_to_dst(&mut bytes[1..], &buffer[start..end]);
+            integer_length + fraction_length + 1
         } else {
             // no fraction, write decimal place
-            copy_to_dst(bytes, ".0")
+            copy_to_dst(bytes, ".0");
+            integer_length + 2
         }
     }
 }
@@ -208,7 +218,7 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
 /// and non-zero.
 #[inline]
 pub(crate) fn float_radix<'a>(f: f32, radix: u32, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+    -> usize
 {
     double_radix(f as f64, radix, bytes)
 }
@@ -221,7 +231,7 @@ pub(crate) fn float_radix<'a>(f: f32, radix: u32, bytes: &'a mut [u8])
 /// and non-zero.
 #[inline]
 pub(crate) fn double_radix<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+    -> usize
 {
     ftoa_naive(value, radix, bytes)
 }

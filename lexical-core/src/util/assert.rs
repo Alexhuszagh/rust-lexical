@@ -30,7 +30,14 @@ macro_rules! assert_buffer {
 }
 
 /// Check whether the bounds are valid.
-// TODO(ahuszagh) Change in certain modes to relax this?
 macro_rules! bounds_assert {
-    ($e:expr) => (assert!($e));
+    ($e:expr) => (
+        // Check at runtime for all builds.
+        #[cfg(not(feature = "unchecked_index"))]
+        assert!($e);
+
+        // Only check in debug builds for unchecked indexes when disabled.
+        #[cfg(feature = "unchecked_index")]
+        debug_assert!($e);
+    );
 }

@@ -11,10 +11,9 @@ use util::*;
 /// and non-zero.
 #[inline]
 pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+    -> usize
 {
-    let len = dtoa::write(&mut bytes[..], f).expect("Write to in-memory buffer.");
-    &mut bytes[len..]
+    dtoa::write(bytes, f).expect("Write to in-memory buffer.")
 }
 
 // F64
@@ -25,8 +24,7 @@ pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
 /// and non-zero.
 #[inline]
 pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+    -> usize
 {
-    let len = dtoa::write(&mut bytes[..], d).expect("Write to in-memory buffer.");
-    &mut bytes[len..]
+    dtoa::write(bytes, d).expect("Write to in-memory buffer.")
 }

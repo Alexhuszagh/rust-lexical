@@ -29,7 +29,10 @@ mod table;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
-    mod veclike;
+    // TODO(ahuszagh) Expose all the time.
+    // Gonna need to configure some of the traits, but I need this for..
+    // unchecked_index
+    mod sequence;
 } else {
     mod wrapped;
 }}  // cfg_if
@@ -47,7 +50,7 @@ pub(crate) use self::table::*;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
-    pub(crate) use self::veclike::*;
+    pub(crate) use self::sequence::*;
 } else {
     pub(crate) use self::wrapped::*;
 }}  // cfg_if

@@ -99,10 +99,16 @@ fn optimized<T>(mut value: T, radix: T, table: &[u8], buffer: &mut [u8])
         let r1 = (T::TWO * (rem / radix2)).as_usize();
         let r2 = (T::TWO * (rem % radix2)).as_usize();
 
-        *iter.next().unwrap() = table[r2+1];
-        *iter.next().unwrap() = table[r2];
-        *iter.next().unwrap() = table[r1+1];
-        *iter.next().unwrap() = table[r1];
+        // This is always safe, since the table is 2*radix^2, and
+        // r1 and r2 must be in the range [0, 2*radix^2-1), since the maximum
+        // value of rem is `radix4-1`, which must have a div and rem
+        // in the range [0, radix^2-1).
+        unsafe {
+            *iter.next().unwrap() = *table.get_unchecked(r2+1);
+            *iter.next().unwrap() = *table.get_unchecked(r2);
+            *iter.next().unwrap() = *table.get_unchecked(r1+1);
+            *iter.next().unwrap() = *table.get_unchecked(r1);
+        }
     }
 
     // Decode 2 digits at a time.
@@ -110,17 +116,29 @@ fn optimized<T>(mut value: T, radix: T, table: &[u8], buffer: &mut [u8])
         let rem = (T::TWO * (value % radix2)).as_usize();
         value /= radix2;
 
-        *iter.next().unwrap() = table[rem+1];
-        *iter.next().unwrap() = table[rem];
+        // This is always safe, since the table is 2*radix^2, and
+        // rem must be in the range [0, 2*radix^2-1).
+        unsafe {
+            *iter.next().unwrap() = *table.get_unchecked(rem+1);
+            *iter.next().unwrap() = *table.get_unchecked(rem);
+        }
     }
 
     // Decode last 2 digits.
     if value < radix {
-        *iter.next().unwrap() = digit_to_char(value);
+        // This is always safe, since value < radix, so it must be < 36.
+        // Digit must be <= 36.
+        unsafe {
+            *iter.next().unwrap() = digit_to_char_unsafe(value);
+        }
     } else {
         let rem = (T::TWO * value).as_usize();
-        *iter.next().unwrap() = table[rem+1];
-        *iter.next().unwrap() = table[rem];
+        // This is always safe, since the table is 2*radix^2, and the value
+        // must <= radix^2, so rem must be in the range [0, 2*radix^2-1).
+        unsafe {
+            *iter.next().unwrap() = *table.get_unchecked(rem+1);
+            *iter.next().unwrap() = *table.get_unchecked(rem);
+        }
     }
 
     iter.count()
@@ -145,12 +163,18 @@ fn naive<T>(mut value: T, radix: T, buffer: &mut [u8])
         let rem = (value % radix).as_usize();
         value /= radix;
 
-        *iter.next().unwrap() = digit_to_char(rem);
+        // This is always safe, since rem must be [0, radix).
+        unsafe {
+            *iter.next().unwrap() = digit_to_char_unsafe(rem);
+        }
     }
 
     // Decode last digit.
     let rem = (value % radix).as_usize();
-    *iter.next().unwrap() = digit_to_char(rem);
+    // This is always safe, since rem must be [0, radix).
+    unsafe {
+        *iter.next().unwrap() = digit_to_char_unsafe(rem);
+    }
 
     iter.count()
 }
@@ -161,16 +185,16 @@ fn naive<T>(mut value: T, radix: T, buffer: &mut [u8])
 ///
 /// `value` must be non-negative and mutable.
 #[inline]
-pub(crate) fn forward<'a, T>(value: T, radix: u32, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+pub(crate) fn forward<T>(value: T, radix: u32, bytes: &mut [u8])
+    -> usize
     where T: UnsignedInteger
 {
     // Check simple use-cases
     if value == T::ZERO {
-        bytes[0] = b'0';
         // We know this is safe, because we confirmed the buffer is >= 2
         // in total (since we also handled the sign by here).
-        return unsafe {bytes.get_unchecked_mut(1..)};
+        unsafe {*bytes.get_unchecked_mut(0) = b'0'};
+        return 1;
     }
 
     // Create a temporary buffer, and copy into it.
@@ -247,14 +271,12 @@ pub(crate) fn unsigned<Value, UWide>(value: Value, radix: u32, bytes: &mut [u8])
 {
     // Invoke forwarder
     let v: UWide = as_cast(value);
-    let first = bytes.as_ptr();
-    let slc = forward(v, radix, bytes);
-    distance(first, slc.as_ptr())
+    forward(v, radix, bytes)
 }
 
 /// Sanitizer for an signed number-to-string implementation.
 #[inline]
-pub(crate) fn signed<'a, Value, UWide, IWide>(value: Value, radix: u32, bytes: &mut [u8])
+pub(crate) fn signed<Value, UWide, IWide>(value: Value, radix: u32, bytes: &mut [u8])
     -> usize
     where Value: SignedInteger,
           UWide: UnsignedInteger,
@@ -274,20 +296,17 @@ pub(crate) fn signed<'a, Value, UWide, IWide>(value: Value, radix: u32, bytes: &
     // for all numerical input values, since Rust guarantees two's
     // complement representation for signed integers.
     let v: UWide;
-    let first = bytes.as_ptr();
-    let slc;
     if value < Value::ZERO {
-        bytes[0] = b'-';
         let wide: IWide = as_cast(value);
         v = as_cast(wide.wrapping_neg());
         // We know this is safe, because we confirmed the buffer is >= 1.
+        unsafe {*bytes.get_unchecked_mut(0) = b'-'};
         let bytes = unsafe {bytes.get_unchecked_mut(1..)};
-        slc = forward(v, radix, bytes);
+        forward(v, radix, bytes) + 1
     } else {
         v = as_cast(value);
-        slc = forward(v, radix, bytes);
+        forward(v, radix, bytes)
     }
-    distance(first, slc.as_ptr())
 }
 
 // UNSAFE API

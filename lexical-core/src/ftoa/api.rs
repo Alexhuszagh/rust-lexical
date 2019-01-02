@@ -72,37 +72,35 @@ if #[cfg(feature = "grisu3")] {
 /// Trait to define serialization of a float to string.
 pub(crate) trait FloatToString: Float {
     /// Export float to decimal string with optimized algorithm.
-    // TODO: Should return a length?
-    fn decimal<'a>(self, bytes: &'a mut [u8]) -> &'a mut [u8];
+    fn decimal<'a>(self, bytes: &'a mut [u8]) -> usize;
 
     /// Export float to radix string with slow algorithm.
     #[cfg(feature = "radix")]
-    // TODO: Should return a length?
-    fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> &'a mut [u8];
+    fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> usize;
 }
 
 impl FloatToString for f32 {
     #[inline]
-    fn decimal<'a>(self, bytes: &'a mut [u8]) -> &'a mut [u8] {
+    fn decimal<'a>(self, bytes: &'a mut [u8]) -> usize {
         float_decimal(self, bytes)
     }
 
     #[cfg(feature = "radix")]
     #[inline]
-    fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> &'a mut [u8] {
+    fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> usize {
         float_radix(self, radix, bytes)
     }
 }
 
 impl FloatToString for f64 {
     #[inline]
-    fn decimal<'a>(self, bytes: &'a mut [u8]) -> &'a mut [u8] {
+    fn decimal<'a>(self, bytes: &'a mut [u8]) -> usize {
         double_decimal(self, bytes)
     }
 
     #[cfg(feature = "radix")]
     #[inline]
-    fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> &'a mut [u8] {
+    fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> usize {
         double_radix(self, radix, bytes)
     }
 }
@@ -112,7 +110,7 @@ impl FloatToString for f64 {
 /// Forward the correct arguments the ideal encoder.
 #[inline]
 fn forward<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+    -> usize
 {
     debug_assert_radix!(radix);
 
@@ -131,7 +129,7 @@ fn forward<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
 /// Convert float-to-string and handle special (positive) floats.
 #[inline]
 fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+    -> usize
 {
     // Logic errors, disable in release builds.
     debug_assert!(value.is_sign_positive(), "Value cannot be negative.");
@@ -142,32 +140,29 @@ fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8
         if value.is_zero() {
             // This is safe, because we confirmed the buffer is >= 4
             // in total (since we also handled the sign by here).
-            return unsafe {copy_to_dst_unsafe(bytes, "0.0")};
+            return unsafe {copy_to_dst_unsafe(bytes, b"0.0")};
         }
     }
 
-    // Unsafe to allow read-access to global mutables.
-    unsafe {
-        if value.is_nan() {
-            // This is safe, because we confirmed the buffer is >= MAX_F32_SIZE.
-            // We have up to `MAX_F32_SIZE - 1` bytes from `get_nan_string()`,
-            // and up to 1 byte from the sign.
-            copy_to_dst_unsafe(bytes, get_nan_string())
-        } else if value.is_special() {
-            // This is safe, because we confirmed the buffer is >= MAX_F32_SIZE.
-            // We have up to `MAX_F32_SIZE - 1` bytes from `get_inf_string()`,
-            // and up to 1 byte from the sign.
-            copy_to_dst_unsafe(bytes, get_inf_string())
-        } else {
-            forward(value, radix, bytes)
-        }
+    if value.is_nan() {
+        // This is safe, because we confirmed the buffer is >= MAX_F32_SIZE.
+        // We have up to `MAX_F32_SIZE - 1` bytes from `get_nan_string()`,
+        // and up to 1 byte from the sign.
+        unsafe {copy_to_dst_unsafe(bytes, get_nan_string())}
+    } else if value.is_special() {
+        // This is safe, because we confirmed the buffer is >= MAX_F32_SIZE.
+        // We have up to `MAX_F32_SIZE - 1` bytes from `get_inf_string()`,
+        // and up to 1 byte from the sign.
+        unsafe {copy_to_dst_unsafe(bytes, get_inf_string())}
+    } else {
+        forward(value, radix, bytes)
     }
 }
 
 /// Handle +/- values.
 #[inline]
 fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+    -> usize
 {
     debug_assert_radix!(radix);
 
@@ -175,19 +170,19 @@ fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     #[cfg(feature = "trim_floats")] {
         if value.is_zero() {
             // We know this is safe, because we confirmed the buffer is >= 1.
-            bytes[0] = b'0';
-            return unsafe {bytes.get_unchecked_mut(1..)};
+            unsafe {*bytes.get_unchecked_mut(0) = b'0'};
+            return 1;
         }
     }
 
     // If the sign bit is set, invert it and just set the first
     // value to "-".
     if value.is_sign_negative() {
-        bytes[0] = b'-';
         let value = -value;
         // We know this is safe, because we confirmed the buffer is >= 1.
+        unsafe {*bytes.get_unchecked_mut(0) = b'-'};
         let bytes = unsafe {bytes.get_unchecked_mut(1..)};
-        filter_special(value, radix, bytes)
+        filter_special(value, radix, bytes) + 1
     } else {
         filter_special(value, radix, bytes)
     }
@@ -198,9 +193,7 @@ fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
 fn ftoa<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
     -> usize
 {
-    let first = bytes.as_ptr();
-    let slc = filter_sign(value, radix, bytes);
-    distance(first, slc.as_ptr())
+    filter_sign(value, radix, bytes)
 }
 
 /// Trim a trailing ".0" from a float.

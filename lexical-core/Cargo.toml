@@ -23,7 +23,7 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 cfg-if = "0.1"
 static_assertions = "0.2.5"
 # Use stack-vector for the correct parser.
-stackvector = { version = "^1.0.1", optional = true }
+stackvector = { version = "^1.0.2", optional = true }
 # Optimized Grisu3 implementation, a well-tested, correct algorithm.
 dtoa = { version = "0.4", optional = true }
 # Optimized Ryu implementation, the fastest correct algorithm.
@@ -50,6 +50,9 @@ std = []
 table = []
 # Trim a trailing ".0" from an exported float string, and represent -0.0 as "0".
 trim_floats = []
+# Don't force bounds checking with indexing not-known to be valid at compile time.
+# This may lead to memory safety issues.
+unchecked_index = []
 
 # Use heavy optimizations for release builds, and make our panics to detect
 # internal logic errors safe for FFI, via abort.

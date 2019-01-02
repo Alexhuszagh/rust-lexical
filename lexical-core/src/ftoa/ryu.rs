@@ -11,12 +11,9 @@ use util::*;
 /// and non-zero.
 #[inline]
 pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+    -> usize
 {
-    let len = unsafe {
-        raw::pretty_f2s_buffered_n(f, bytes.as_mut_ptr())
-    };
-    &mut bytes[len..]
+    unsafe {raw::pretty_f2s_buffered_n(f, bytes.as_mut_ptr())}
 }
 
 // F64
@@ -27,10 +24,7 @@ pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
 /// and non-zero.
 #[inline]
 pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
-    -> &'a mut [u8]
+    -> usize
 {
-    let len = unsafe {
-        raw::pretty_d2s_buffered_n(d, bytes.as_mut_ptr())
-    };
-    &mut bytes[len..]
+    unsafe {raw::pretty_d2s_buffered_n(d, bytes.as_mut_ptr())}
 }

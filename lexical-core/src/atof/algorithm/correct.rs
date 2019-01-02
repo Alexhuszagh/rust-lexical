@@ -163,15 +163,17 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
     // Parse the integral value.
     // Use the checked parsers so the truncated value is valid even if
     // the entire value is not parsed.
-    let (processed, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
-    bytes = &bytes[processed..];
-    slc.integer = slice_from_span(first, processed);
+    let (len, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
+    // We know this is safe, since atoi returns a value <= bytes.len().
+    bytes = unsafe {bytes.get_unchecked(len..)};
+    slc.integer = slice_from_span(first, len);
 
     // Check for trailing digits.
     let has_fraction = Some(&b'.') == bytes.get(0);
     if has_fraction && truncated.is_none() {
         // Has a decimal, no truncation, calculate the rest of it.
-        bytes = &bytes[1..];
+        // We know this is safe, since we know we have a fraction.
+        bytes = unsafe {bytes.get_unchecked(1..)};
         let first = bytes.as_ptr();
         if mantissa.is_zero() {
             // Can ignore the leading digits while the mantissa is 0.
@@ -189,23 +191,26 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
 
         // Parse the remaining decimal. Since the truncation is only in
         // the fraction, no decimal place affects it.
-        let (processed, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
-        let bytes = &bytes[processed..];
-        slc.fraction = slice_from_span(first, processed + slc.digits_start);
+        let (len, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
+        // We know this is safe, since atoi returns a a value <= bytes.len().
+        let bytes = unsafe {bytes.get_unchecked(len..)};
+        slc.fraction = slice_from_span(first, len + slc.digits_start);
         slc.truncated = truncated.map_or(0, |p| distance(p, bytes.as_ptr()));
         (mantissa, slc, bytes, truncated)
     } else if has_fraction {
         // Integral overflow occurred, cannot add more values, but a fraction exists.
         // Ignore the remaining characters, but factor them into the dot exponent.
-        bytes = &bytes[1..];
+        // We know this is safe, since we know we have a fraction.
+        bytes = unsafe {bytes.get_unchecked(1..)};
         let first = bytes.as_ptr();
-        let count = bytes.iter()
+        let len = bytes.iter()
             .take_while(|&&c| char_to_digit(c).as_u32() < radix)
             .count();
-        bytes = &bytes[count..];
+        // We know this is safe, since it's generated from the iterator.
+        bytes = unsafe {bytes.get_unchecked(len..)};
 
         slc.digits_start = 0;
-        slc.fraction = slice_from_span(first, count);
+        slc.fraction = slice_from_span(first, len);
         slc.truncated = distance(truncated.unwrap(), bytes.as_ptr()) - 1;
         (mantissa, slc, bytes, truncated)
     } else {
@@ -798,51 +803,53 @@ fn pown_to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool, sign: Sign)
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-fn to_native<'a, F>(radix: u32, bytes: &'a [u8], lossy: bool, sign: Sign)
-    -> (F, &'a [u8])
+fn to_native<F>(radix: u32, bytes: &[u8], lossy: bool, sign: Sign)
+    -> (F, usize)
     where F: FloatType
 {
     #[cfg(not(feature = "radix"))] {
-        pown_to_native(radix, bytes, lossy, sign)
+        let (f, slc) = pown_to_native(radix, bytes, lossy, sign);
+        (f, bytes.len() - slc.len())
     }
 
     #[cfg(feature = "radix")] {
         let pow2_exp = pow2_exponent(radix);
-        match pow2_exp {
+        let (f, slc) = match pow2_exp {
             0 => pown_to_native(radix, bytes, lossy, sign),
             _ => pow2_to_native(radix, pow2_exp, bytes, sign),
-        }
+        };
+        (f, bytes.len() - slc.len())
     }
 }
 
 /// Parse 32-bit float from string.
 #[inline]
-pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8], sign: Sign)
-    -> (f32, &'a [u8])
+pub(crate) fn atof(radix: u32, bytes: &[u8], sign: Sign)
+    -> (f32, usize)
 {
     to_native::<f32>(radix, bytes, false, sign)
 }
 
 /// Parse 64-bit float from string.
 #[inline]
-pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8], sign: Sign)
-    -> (f64, &'a [u8])
+pub(crate) fn atod(radix: u32, bytes: &[u8], sign: Sign)
+    -> (f64, usize)
 {
     to_native::<f64>(radix, bytes, false, sign)
 }
 
 /// Parse 32-bit float from string.
 #[inline]
-pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8], sign: Sign)
-    -> (f32, &'a [u8])
+pub(crate) fn atof_lossy(radix: u32, bytes: &[u8], sign: Sign)
+    -> (f32, usize)
 {
     to_native::<f32>(radix, bytes, true, sign)
 }
 
 /// Parse 64-bit float from string.
 #[inline]
-pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8], sign: Sign)
-    -> (f64, &'a [u8])
+pub(crate) fn atod_lossy(radix: u32, bytes: &[u8], sign: Sign)
+    -> (f64, usize)
 {
     to_native::<f64>(radix, bytes, true, sign)
 }
@@ -1194,9 +1201,9 @@ mod tests {
     }
 
     fn check_atof(radix: u32, s: &str, tup: (f32, usize)) {
-        let (value, slc) = atof(radix, s.as_bytes(), Sign::Positive);
+        let (value, len) = atof(radix, s.as_bytes(), Sign::Positive);
         assert_f32_eq!(value, tup.0);
-        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
+        assert_eq!(len, tup.1);
     }
 
     #[test]
@@ -1241,9 +1248,9 @@ mod tests {
     }
 
     fn check_atod(radix: u32, s: &str, tup: (f64, usize)) {
-        let (value, slc) = atod(radix, s.as_bytes(), Sign::Positive);
+        let (value, len) = atod(radix, s.as_bytes(), Sign::Positive);
         assert_f64_eq!(value, tup.0);
-        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
+        assert_eq!(len, tup.1);
     }
 
     #[test]
@@ -1322,9 +1329,9 @@ mod tests {
     // Lossy
 
     fn check_atof_lossy(radix: u32, s: &str, tup: (f32, usize)) {
-        let (value, slc) = atof_lossy(radix, s.as_bytes(), Sign::Positive);
+        let (value, len) = atof_lossy(radix, s.as_bytes(), Sign::Positive);
         assert_f32_eq!(value, tup.0);
-        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
+        assert_eq!(len, tup.1);
     }
 
     #[test]
@@ -1336,9 +1343,9 @@ mod tests {
     }
 
     fn check_atod_lossy(radix: u32, s: &str, tup: (f64, usize)) {
-        let (value, slc) = atod_lossy(radix, s.as_bytes(), Sign::Positive);
+        let (value, len) = atod_lossy(radix, s.as_bytes(), Sign::Positive);
         assert_f64_eq!(value, tup.0);
-        assert_eq!(distance(s.as_ptr(), slc.as_ptr()), tup.1);
+        assert_eq!(len, tup.1);
     }
 
     #[test]
