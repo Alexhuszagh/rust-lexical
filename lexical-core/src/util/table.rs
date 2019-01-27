@@ -9,18 +9,10 @@ use util::*;
 const DIGIT_TO_CHAR: [u8; 36] = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'A', b'B', b'C', b'D', b'E', b'F', b'G', b'H', b'I', b'J', b'K', b'L', b'M', b'N', b'O', b'P', b'Q', b'R', b'S', b'T', b'U', b'V', b'W', b'X', b'Y', b'Z'];
 
 /// Get character from digit.
-/// Digit must be <= 36.
-#[inline]
-pub(crate) unsafe fn digit_to_char_unsafe<T: Integer>(digit: T) -> u8 {
-    debug_assert!(digit.as_i32() >= 0 && digit.as_i32() < 36, "digit_to_char() invalid character.");
-    *DIGIT_TO_CHAR.get_unchecked(digit.as_usize())
-}
-
-/// Get character from digit.
 #[inline]
 pub(crate) fn digit_to_char<T: Integer>(digit: T) -> u8 {
-    assert!(digit.as_i32() >= 0 && digit.as_i32() < 36, "digit_to_char() invalid character.");
-    unsafe {digit_to_char_unsafe(digit)}
+    debug_assert!(digit.as_i32() >= 0 && digit.as_i32() < 36, "digit_to_char() invalid character.");
+    index!(DIGIT_TO_CHAR[digit.as_usize()])
 }
 
 /// Translation table for a character to a digit, of any radix.

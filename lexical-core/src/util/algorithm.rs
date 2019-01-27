@@ -95,29 +95,19 @@ pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
     (slc, count)
 }
 
-/// Copy from source-to-dst, when the `dst.len() >= src.len()`.
-#[inline]
-pub unsafe fn copy_to_dst_unsafe<'a, Bytes: AsRef<[u8]>>(dst: &'a mut [u8], src: Bytes)
-    -> usize
-{
-    // We know this is safe, since dst.len() >= src.len(), so we  can safely
-    // extract a subslice of src.len() and then copy the bytes directly in.
-    let src = src.as_ref();
-    let dst = dst.get_unchecked_mut(..src.len());
-    ptr::copy_nonoverlapping(src.as_ptr(), dst.as_mut_ptr(), dst.len());
-    src.len()
-}
-
 /// Copy from source-to-dst.
 #[inline]
 pub fn copy_to_dst<'a, Bytes: AsRef<[u8]>>(dst: &'a mut [u8], src: Bytes)
     -> usize
 {
-    // Do an initial bounds check, then we can do unbounded checks afterwards.
-    bounds_assert!(dst.len() >= src.as_ref().len());
-    // We know this is safe, since dst.len() >= src.len(), so we  can safely
-    // extract a subslice of src.len() and then copy the bytes directly in.
-    unsafe {copy_to_dst_unsafe(dst, src)}
+    let src = src.as_ref();
+    let dst = &mut index_mut!(dst[..src.len()]);
+
+    unsafe {
+        ptr::copy_nonoverlapping(src.as_ptr(), dst.as_mut_ptr(), dst.len());
+    }
+
+    src.len()
 }
 
 /// Length-check variant of ptr::write_bytes for a slice.

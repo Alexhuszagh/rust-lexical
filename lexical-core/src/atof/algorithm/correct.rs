@@ -165,7 +165,7 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
     // the entire value is not parsed.
     let (len, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
     // We know this is safe, since atoi returns a value <= bytes.len().
-    bytes = unsafe {bytes.get_unchecked(len..)};
+    bytes = &index!(bytes[len..]);
     slc.integer = slice_from_span(first, len);
 
     // Check for trailing digits.
@@ -173,7 +173,7 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
     if has_fraction && truncated.is_none() {
         // Has a decimal, no truncation, calculate the rest of it.
         // We know this is safe, since we know we have a fraction.
-        bytes = unsafe {bytes.get_unchecked(1..)};
+        bytes = &index!(bytes[1..]);
         let first = bytes.as_ptr();
         if mantissa.is_zero() {
             // Can ignore the leading digits while the mantissa is 0.
@@ -193,7 +193,7 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
         // the fraction, no decimal place affects it.
         let (len, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
         // We know this is safe, since atoi returns a a value <= bytes.len().
-        let bytes = unsafe {bytes.get_unchecked(len..)};
+        let bytes = &index!(bytes[len..]);
         slc.fraction = slice_from_span(first, len + slc.digits_start);
         slc.truncated = truncated.map_or(0, |p| distance(p, bytes.as_ptr()));
         (mantissa, slc, bytes, truncated)
@@ -201,13 +201,13 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
         // Integral overflow occurred, cannot add more values, but a fraction exists.
         // Ignore the remaining characters, but factor them into the dot exponent.
         // We know this is safe, since we know we have a fraction.
-        bytes = unsafe {bytes.get_unchecked(1..)};
+        bytes = &index!(bytes[1..]);
         let first = bytes.as_ptr();
         let len = bytes.iter()
             .take_while(|&&c| char_to_digit(c).as_u32() < radix)
             .count();
         // We know this is safe, since it's generated from the iterator.
-        bytes = unsafe {bytes.get_unchecked(len..)};
+        bytes = &index!(bytes[len..]);
 
         slc.digits_start = 0;
         slc.fraction = slice_from_span(first, len);

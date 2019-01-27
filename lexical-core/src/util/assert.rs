@@ -28,16 +28,3 @@ macro_rules! assert_buffer {
         assert!($slc.len() >= $size);
     });
 }
-
-/// Check whether the bounds are valid.
-macro_rules! bounds_assert {
-    ($e:expr) => (
-        // Check at runtime for all builds.
-        #[cfg(not(feature = "unchecked_index"))]
-        assert!($e);
-
-        // Only check in debug builds for unchecked indexes when disabled.
-        #[cfg(feature = "unchecked_index")]
-        debug_assert!($e);
-    );
-}

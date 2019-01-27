@@ -140,7 +140,7 @@ fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8
         if value.is_zero() {
             // This is safe, because we confirmed the buffer is >= 4
             // in total (since we also handled the sign by here).
-            return unsafe {copy_to_dst_unsafe(bytes, b"0.0")};
+            return copy_to_dst(bytes, b"0.0");
         }
     }
 
@@ -148,12 +148,12 @@ fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8
         // This is safe, because we confirmed the buffer is >= MAX_F32_SIZE.
         // We have up to `MAX_F32_SIZE - 1` bytes from `get_nan_string()`,
         // and up to 1 byte from the sign.
-        unsafe {copy_to_dst_unsafe(bytes, get_nan_string())}
+        copy_to_dst(bytes, get_nan_string())
     } else if value.is_special() {
         // This is safe, because we confirmed the buffer is >= MAX_F32_SIZE.
         // We have up to `MAX_F32_SIZE - 1` bytes from `get_inf_string()`,
         // and up to 1 byte from the sign.
-        unsafe {copy_to_dst_unsafe(bytes, get_inf_string())}
+        copy_to_dst(bytes, get_inf_string())
     } else {
         forward(value, radix, bytes)
     }
@@ -170,7 +170,7 @@ fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     #[cfg(feature = "trim_floats")] {
         if value.is_zero() {
             // We know this is safe, because we confirmed the buffer is >= 1.
-            unsafe {*bytes.get_unchecked_mut(0) = b'0'};
+            index_mut!(bytes[0] = b'0');
             return 1;
         }
     }
@@ -180,8 +180,8 @@ fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     if value.is_sign_negative() {
         let value = -value;
         // We know this is safe, because we confirmed the buffer is >= 1.
-        unsafe {*bytes.get_unchecked_mut(0) = b'-'};
-        let bytes = unsafe {bytes.get_unchecked_mut(1..)};
+        index_mut!(bytes[0] = b'-');
+        let bytes = &mut index_mut!(bytes[1..]);
         filter_special(value, radix, bytes) + 1
     } else {
         filter_special(value, radix, bytes)
@@ -221,7 +221,7 @@ macro_rules! wrap {
         {
             // Check buffer has sufficient capacity.
             let len = ftoa(value, base.into(), bytes);
-            let bytes = unsafe {bytes.get_unchecked_mut(..len)};
+            let bytes = &mut index_mut!(bytes[..len]);
             trim(bytes)
         }
     )

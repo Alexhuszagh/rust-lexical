@@ -202,7 +202,7 @@ fn u64_to_hi16_2(r0: u64, r1: u64) -> (u16, bool) {
 }
 
 /// Trait to export the high 16-bits from a little-endian slice.
-trait Hi16<T>: Len<T> {
+trait Hi16<T>: SliceLike<T> {
     /// Get the hi16 bits from a 1-limb slice.
     fn hi16_1(&self) -> (u16, bool);
 
@@ -318,7 +318,7 @@ fn u64_to_hi32_2(r0: u64, r1: u64) -> (u32, bool) {
 }
 
 /// Trait to export the high 32-bits from a little-endian slice.
-trait Hi32<T>: Len<T> {
+trait Hi32<T>: SliceLike<T> {
     /// Get the hi32 bits from a 1-limb slice.
     fn hi32_1(&self) -> (u32, bool);
 
@@ -443,7 +443,7 @@ fn u64_to_hi64_2(r0: u64, r1: u64) -> (u64, bool) {
 }
 
 /// Trait to export the high 64-bits from a little-endian slice.
-trait Hi64<T>: Len<T> {
+trait Hi64<T>: SliceLike<T> {
     /// Get the hi64 bits from a 1-limb slice.
     fn hi64_1(&self) -> (u64, bool);
 
@@ -620,7 +620,7 @@ fn u128_to_hi128_2(r0: u128, r1: u128) -> (u128, bool) {
 }
 
 /// Trait to export the high 128-bits from a little-endian slice.
-trait Hi128<T>: Len<T> {
+trait Hi128<T>: SliceLike<T> {
     /// Get the hi128 bits from a 1-limb slice.
     fn hi128_1(&self) -> (u128, bool);
 

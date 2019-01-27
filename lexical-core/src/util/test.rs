@@ -6,7 +6,7 @@ use super::config::BUFFER_SIZE;
 cfg_if! {
 if #[cfg(feature = "correct")] {
     use stackvector;
-    use super::sequence::{CloneableVecLike, Reserve};
+    use super::sequence::{CloneableVecLike, VecLike};
 }}  // cfg_if
 
 // BASES

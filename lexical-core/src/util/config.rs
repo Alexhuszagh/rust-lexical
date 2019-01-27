@@ -1,7 +1,7 @@
 //! Config settings for lexical.
 
 use lib::slice;
-use super::algorithm::copy_to_dst_unsafe;
+use super::algorithm::copy_to_dst;
 use super::rounding::RoundingKind;
 
 // HELPERS
@@ -21,13 +21,16 @@ impl FloatConfigString {
     /// Reset data from a byte string.
     pub(crate) fn load_bytes(&mut self, bytes: &[u8]) {
         assert!(bytes.len() <= self.data.len());
-        unsafe {copy_to_dst_unsafe(&mut self.data, bytes)};
+        copy_to_dst(&mut self.data, bytes);
         self.length = bytes.len();
     }
 
     /// Convert to byte slice.
     pub(crate) fn as_bytes(&self) -> &[u8] {
-        unsafe {self.data.get_unchecked(..self.length)}
+        // Always safe, since length can only be set from `load_bytes`.
+        unsafe {
+            self.data.get_unchecked(..self.length)
+        }
     }
 }
 
@@ -141,7 +144,9 @@ unsafe extern fn set_string_ffi(ptr: *const u8, size: usize, string: &'static mu
 #[inline]
 pub fn get_nan_string() -> &'static [u8]
 {
-    unsafe {NAN_STRING.as_bytes()}
+    unsafe {
+        NAN_STRING.as_bytes()
+    }
 }
 
 /// Get string representation of Not a Number as a pointer and size.
@@ -209,7 +214,9 @@ pub unsafe extern fn set_nan_string_ffi(ptr: *const u8, size: usize)
 #[inline]
 pub fn get_inf_string() -> &'static [u8]
 {
-    unsafe {INF_STRING.as_bytes()}
+    unsafe {
+        INF_STRING.as_bytes()
+    }
 }
 
 /// Get the short representation of an Infinity literal as a pointer and size.
@@ -277,7 +284,9 @@ pub unsafe extern fn set_inf_string_ffi(ptr: *const u8, size: usize)
 #[inline]
 pub fn get_infinity_string() -> &'static [u8]
 {
-    unsafe {INFINITY_STRING.as_bytes()}
+    unsafe {
+        INFINITY_STRING.as_bytes()
+    }
 }
 
 /// Get the long representation of an Infinity literal as a pointer and size.

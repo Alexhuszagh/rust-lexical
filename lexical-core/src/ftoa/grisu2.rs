@@ -232,7 +232,7 @@ fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &Extend
     let mut kappa: i32 = 10;
     // 1000000000
     // Guaranteed to be safe, TENS has 20 elements.
-    let mut divp = unsafe {TENS.get_unchecked(10..)}.iter();
+    let mut divp = index!(TENS[10..]).iter();
     while kappa > 0 {
         // Remember not to continue! This loop has an increment condition.
         let div = divp.next().unwrap();
@@ -255,7 +255,7 @@ fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &Extend
 
     /* 10 */
     // Guaranteed to be safe, TENS has 20 elements.
-    let mut unit = unsafe {TENS.get_unchecked(..=18)}.iter().rev();
+    let mut unit = index!(TENS[..=18]).iter().rev();
     loop {
         part2 *= 10;
         delta *= 10;
@@ -314,16 +314,11 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
     if k >= 0 && exp < (ndigits + 7) {
         let idx = ndigits;
         let count = k.as_usize();
-        // Add manually bounds checks for the remaining operations.
-        bounds_assert!(idx + count + 2 <= dest.len());
-        bounds_assert!(idx <= digits.len());
         // These are all safe, since digits.len() >= idx, and
         // dest.len() >= idx+count+2, so the range must be valid.
-        unsafe {
-            copy_to_dst(dest, digits.get_unchecked(..idx));
-            write_bytes(dest.get_unchecked_mut(idx..idx+count), b'0');
-            copy_to_dst(dest.get_unchecked_mut(idx+count..), b".0");
-        }
+        copy_to_dst(dest, &index!(digits[..idx]));
+        write_bytes(&mut index_mut!(dest[idx..idx+count]), b'0');
+        copy_to_dst(&mut index_mut!(dest[idx+count..]), b".0");
 
         return ndigits + k.as_usize() + 2;
     }
@@ -334,33 +329,23 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
         // fp < 1.0 -> write leading zero
         if offset <= 0 {
             let offset = (-offset).as_usize();
-            // Add manually bounds checks for the remaining operations.
-            bounds_assert!(ndigits + offset + 2 <= dest.len());
-            bounds_assert!(ndigits <= digits.len());
             // These are all safe, since digits.len() >= ndigits, and
             // dest.len() >= ndigits+offset+2, so the range must be valid.
-            unsafe {
-                *dest.get_unchecked_mut(0) = b'0';
-                *dest.get_unchecked_mut(1) = b'.';
-                write_bytes(dest.get_unchecked_mut(2..offset+2), b'0');
-                copy_to_dst(dest.get_unchecked_mut(offset+2..), digits.get_unchecked(..ndigits));
-            }
+            index_mut!(dest[0] = b'0');
+            index_mut!(dest[1] = b'.');
+            write_bytes(&mut index_mut!(dest[2..offset+2]), b'0');
+            copy_to_dst(&mut index_mut!(dest[offset+2..]), &index!(digits[..ndigits]));
 
             return ndigits + 2 + offset;
 
         } else {
             // fp > 1.0
             let offset = offset.as_usize();
-            // Add manually bounds checks for the remaining operations.
-            bounds_assert!(ndigits + 1 <= dest.len());
-            bounds_assert!(ndigits <= digits.len());
             // These are all safe, since digits.len() >= ndigits, and
             // dest.len() >= ndigits+1, so the range must be valid.
-            unsafe {
-                copy_to_dst(dest, digits.get_unchecked(..offset));
-                *dest.get_unchecked_mut(offset) = b'.';
-                copy_to_dst(dest.get_unchecked_mut(offset+1..), digits.get_unchecked(offset..ndigits));
-            }
+            copy_to_dst(dest, &index!(digits[..offset]));
+            index_mut!(dest[offset] = b'.');
+            copy_to_dst(&mut index_mut!(dest[offset+1..]), &index!(digits[offset..ndigits]));
 
             return ndigits + 1;
         }

@@ -180,7 +180,7 @@ pub(crate) fn filter_sign<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
 
     if bytes.len() > sign_bytes {
         // `bytes.len() > sign_bytes`, so this range is always valid.
-        let bytes = unsafe {bytes.get_unchecked(sign_bytes..)};
+        let bytes = &index!(bytes[sign_bytes..]);
         let (value, len, truncated) = value::<T, Cb>(radix, bytes, cb);
         (value, sign, sign_bytes + len, truncated)
     } else {

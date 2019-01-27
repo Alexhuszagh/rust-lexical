@@ -351,7 +351,7 @@ macro_rules! generate_to_slice_api {
         {
             assert_buffer!(bytes, $size);
             let len = $cb(value, 10, bytes);
-            unsafe {bytes.get_unchecked_mut(..len)}
+            &mut index_mut!(bytes[..len])
         }
 
         /// Serializer for a number-to-string conversion using Rust slices.
@@ -389,7 +389,7 @@ macro_rules! generate_to_slice_api {
             // `distance(bytes.as_ptr(), slc.as_ptr())`, where `slc` is
             // a subslice from writes.
             let len = $cb(value, radix, bytes);
-            unsafe {bytes.get_unchecked_mut(..len)}
+            &mut index_mut!(bytes[..len])
         }
     )
 }

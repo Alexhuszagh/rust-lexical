@@ -9,6 +9,9 @@ pub(crate) mod api;
 #[macro_use]
 mod assert;
 
+#[macro_use]
+mod index;
+
 #[cfg(test)]
 #[macro_use]
 pub(crate) mod test;
@@ -29,9 +32,6 @@ mod table;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
-    // TODO(ahuszagh) Expose all the time.
-    // Gonna need to configure some of the traits, but I need this for..
-    // unchecked_index
     mod sequence;
 } else {
     mod wrapped;

@@ -19,13 +19,13 @@ pub(super) fn parse_exponent<'a>(radix: u32, bytes: &'a [u8])
     // Force a check that the distance is >= 2, so we ensure there's something
     // after the exponent. This fixes a regression discovered via proptest.
     // Safety: bytes.len() >= 2.
-    if bytes.len() >= 2 && case_insensitive_equal(unsafe {*bytes.get_unchecked(0)}, exponent_notation_char(radix)) {
+    if bytes.len() >= 2 && case_insensitive_equal(index!(bytes[0]), exponent_notation_char(radix)) {
         // Use atoi_sign so we can handle overflow differently for +/- numbers.
         // We care whether the value is positive.
         // Use i32::max_value() since it's valid in 2s complement for
         // positive or negative numbers, and will trigger a short-circuit.
         // Safety: bytes.len() >= 2.
-        let bytes = unsafe {bytes.get_unchecked(1..)};
+        let bytes = &index!(bytes[1..]);
         let cb = atoi::unchecked::<i32>;
         let (exponent, sign, len, truncated) = atoi::filter_sign::<i32, _>(radix, bytes, cb);
         let exponent = match truncated.is_some() {
@@ -38,7 +38,7 @@ pub(super) fn parse_exponent<'a>(radix: u32, bytes: &'a [u8])
         };
 
         // Safety: atoi always returns a value <= bytes.len().
-        (exponent, unsafe {bytes.get_unchecked(len..)})
+        (exponent, &index!(bytes[len..]))
     } else {
         (0, bytes)
     }

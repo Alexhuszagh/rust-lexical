@@ -23,9 +23,7 @@ fn parse_integer<'a>(radix: u32, bytes: &'a [u8])
 
     // We know this is always true, since `len` is the length processed
     // from atoi, which must be <= bytes.len().
-    unsafe {
-        (value.into_inner(), bytes.get_unchecked(len..))
-    }
+    (value.into_inner(), &index!(bytes[len..]))
 }
 
 /// Parse the fraction portion of a positive, normal float string.
@@ -41,7 +39,7 @@ fn parse_fraction<'a>(radix: u32, bytes: &'a [u8])
     // invalid floats like "0." lead to an error.
     if Some(&b'.') == bytes.get(0) {
         // We know this must be true, since we just got the first value.
-        let mut bytes = unsafe {bytes.get_unchecked(1..)};
+        let mut bytes = &index!(bytes[1..]);
         let first = bytes.as_ptr();
         let mut fraction: f64 = 0.;
         loop {
@@ -55,10 +53,10 @@ fn parse_fraction<'a>(radix: u32, bytes: &'a [u8])
             let mut value: u64 = 0;
             // We know this is safe, since we grab 12 digits, or the length
             // of the buffer, whichever is smaller.
-            let buf = unsafe {bytes.get_unchecked(..bytes.len().min(12))};
+            let buf = &index!(bytes[..bytes.len().min(12)]);
             let (processed, _) = atoi::unchecked(&mut value, radix.as_u64(), buf);
             // We know this is safe, since atoi returns a value <= buf.len().
-            bytes = unsafe {bytes.get_unchecked(processed..)};
+            bytes = &index!(bytes[processed..]);
             let digits = distance(first, bytes.as_ptr()).try_i32_or_max();
 
             // Ignore leading 0s, just not we've passed them.

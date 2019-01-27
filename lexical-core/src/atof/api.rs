@@ -98,7 +98,7 @@ fn filter_special<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool
     } else if is_nan(bytes) {
         let len = get_nan_string().len();
         (F::NAN, len)
-    } else if bytes.len() == 1 && unsafe {bytes.get_unchecked(0)} == &b'.' {
+    } else if bytes.len() == 1 && index!(bytes[0]) == b'.' {
         // We know the above statement is safe, since `bytes.len() == 1`.
         // Handle case where we have a decimal point, but no leading or trailing
         // digits. This should return a value of 0, but the checked parsers
@@ -126,7 +126,7 @@ fn filter_sign<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool)
 
     if len > sign_bytes {
         // `bytes.len() > sign_bytes`, so this range is always valid.
-        let bytes = unsafe {bytes.get_unchecked(sign_bytes..)};
+        let bytes = &index!(bytes[sign_bytes..]);
         let (value, len) = filter_special::<F>(radix, bytes, lossy, sign);
         (value, sign, len + sign_bytes)
     } else {

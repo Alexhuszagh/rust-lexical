@@ -103,12 +103,10 @@ fn optimized<T>(mut value: T, radix: T, table: &[u8], buffer: &mut [u8])
         // r1 and r2 must be in the range [0, 2*radix^2-1), since the maximum
         // value of rem is `radix4-1`, which must have a div and rem
         // in the range [0, radix^2-1).
-        unsafe {
-            *iter.next().unwrap() = *table.get_unchecked(r2+1);
-            *iter.next().unwrap() = *table.get_unchecked(r2);
-            *iter.next().unwrap() = *table.get_unchecked(r1+1);
-            *iter.next().unwrap() = *table.get_unchecked(r1);
-        }
+        *iter.next().unwrap() = index!(table[r2+1]);
+        *iter.next().unwrap() = index!(table[r2]);
+        *iter.next().unwrap() = index!(table[r1+1]);
+        *iter.next().unwrap() = index!(table[r1]);
     }
 
     // Decode 2 digits at a time.
@@ -118,27 +116,21 @@ fn optimized<T>(mut value: T, radix: T, table: &[u8], buffer: &mut [u8])
 
         // This is always safe, since the table is 2*radix^2, and
         // rem must be in the range [0, 2*radix^2-1).
-        unsafe {
-            *iter.next().unwrap() = *table.get_unchecked(rem+1);
-            *iter.next().unwrap() = *table.get_unchecked(rem);
-        }
+        *iter.next().unwrap() = index!(table[rem+1]);
+        *iter.next().unwrap() = index!(table[rem]);
     }
 
     // Decode last 2 digits.
     if value < radix {
         // This is always safe, since value < radix, so it must be < 36.
         // Digit must be <= 36.
-        unsafe {
-            *iter.next().unwrap() = digit_to_char_unsafe(value);
-        }
+        *iter.next().unwrap() = digit_to_char(value);
     } else {
         let rem = (T::TWO * value).as_usize();
         // This is always safe, since the table is 2*radix^2, and the value
         // must <= radix^2, so rem must be in the range [0, 2*radix^2-1).
-        unsafe {
-            *iter.next().unwrap() = *table.get_unchecked(rem+1);
-            *iter.next().unwrap() = *table.get_unchecked(rem);
-        }
+        *iter.next().unwrap() = index!(table[rem+1]);
+        *iter.next().unwrap() = index!(table[rem]);
     }
 
     iter.count()
@@ -164,17 +156,13 @@ fn naive<T>(mut value: T, radix: T, buffer: &mut [u8])
         value /= radix;
 
         // This is always safe, since rem must be [0, radix).
-        unsafe {
-            *iter.next().unwrap() = digit_to_char_unsafe(rem);
-        }
+        *iter.next().unwrap() = digit_to_char(rem);
     }
 
     // Decode last digit.
     let rem = (value % radix).as_usize();
     // This is always safe, since rem must be [0, radix).
-    unsafe {
-        *iter.next().unwrap() = digit_to_char_unsafe(rem);
-    }
+    *iter.next().unwrap() = digit_to_char(rem);
 
     iter.count()
 }
@@ -193,7 +181,7 @@ pub(crate) fn forward<T>(value: T, radix: u32, bytes: &mut [u8])
     if value == T::ZERO {
         // We know this is safe, because we confirmed the buffer is >= 2
         // in total (since we also handled the sign by here).
-        unsafe {*bytes.get_unchecked_mut(0) = b'0'};
+        index_mut!(bytes[0] = b'0');
         return 1;
     }
 
@@ -258,8 +246,7 @@ pub(crate) fn forward<T>(value: T, radix: u32, bytes: &mut [u8])
     // of buffer. This is because count is generated from `buffer.iter_mut().count()`,
     // after writing a certain number of elements, so it must be <= buffer.len().
     debug_assert!(count <= buffer.len());
-    let buf = unsafe {buffer.get_unchecked(count..)};
-    copy_to_dst(bytes, buf)
+    copy_to_dst(bytes, &index!(buffer[count..]))
 }
 
 /// Sanitizer for an unsigned number-to-string implementation.
@@ -300,9 +287,8 @@ pub(crate) fn signed<Value, UWide, IWide>(value: Value, radix: u32, bytes: &mut 
         let wide: IWide = as_cast(value);
         v = as_cast(wide.wrapping_neg());
         // We know this is safe, because we confirmed the buffer is >= 1.
-        unsafe {*bytes.get_unchecked_mut(0) = b'-'};
-        let bytes = unsafe {bytes.get_unchecked_mut(1..)};
-        forward(v, radix, bytes) + 1
+        index_mut!(bytes[0] = b'-');
+        forward(v, radix, &mut index_mut!(bytes[1..])) + 1
     } else {
         v = as_cast(value);
         forward(v, radix, bytes)
