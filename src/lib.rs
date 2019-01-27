@@ -78,8 +78,9 @@ pub use lexical_core::EXPONENT_DEFAULT_CHAR;
 #[cfg(feature = "radix")]
 pub use lexical_core::EXPONENT_BACKUP_CHAR;
 
-// Re-export NAN_STRING, INF_STRING and INFINITY_STRING globally.
-pub use lexical_core::{INF_STRING, INFINITY_STRING, NAN_STRING};
+// Re-export NaN, short INF, and long INFINITY string getters and setters.
+pub use lexical_core::{get_inf_string, get_infinity_string, get_nan_string};
+pub use lexical_core::{set_inf_string, set_infinity_string, set_nan_string};
 
 // Re-export the float rounding scheme used.
 #[cfg(all(feature = "correct", feature = "rounding"))]
