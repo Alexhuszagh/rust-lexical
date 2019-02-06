@@ -163,7 +163,7 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
     // Parse the integral value.
     // Use the checked parsers so the truncated value is valid even if
     // the entire value is not parsed.
-    let (len, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
+    let (len, truncated) = atoi::checked_positive(&mut mantissa, as_cast(radix), bytes);
     // We know this is safe, since atoi returns a value <= bytes.len().
     bytes = &index!(bytes[len..]);
     slc.integer = slice_from_span(first, len);
@@ -191,7 +191,7 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
 
         // Parse the remaining decimal. Since the truncation is only in
         // the fraction, no decimal place affects it.
-        let (len, truncated) = atoi::checked(&mut mantissa, as_cast(radix), bytes);
+        let (len, truncated) = atoi::checked_positive(&mut mantissa, as_cast(radix), bytes);
         // We know this is safe, since atoi returns a a value <= bytes.len().
         let bytes = &index!(bytes[len..]);
         slc.fraction = slice_from_span(first, len + slc.digits_start);

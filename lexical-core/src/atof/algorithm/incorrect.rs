@@ -19,7 +19,7 @@ fn parse_integer<'a>(radix: u32, bytes: &'a [u8])
     let bytes = ltrim_char_slice(bytes, b'0').0;
 
     let mut value = Wrapped::ZERO;
-    let (len, _) = atoi::unchecked(&mut value, as_cast(radix), bytes);
+    let (len, _) = atoi::unchecked_positive(&mut value, as_cast(radix), bytes);
 
     // We know this is always true, since `len` is the length processed
     // from atoi, which must be <= bytes.len().
@@ -54,7 +54,7 @@ fn parse_fraction<'a>(radix: u32, bytes: &'a [u8])
             // We know this is safe, since we grab 12 digits, or the length
             // of the buffer, whichever is smaller.
             let buf = &index!(bytes[..bytes.len().min(12)]);
-            let (processed, _) = atoi::unchecked(&mut value, radix.as_u64(), buf);
+            let (processed, _) = atoi::unchecked_positive(&mut value, radix.as_u64(), buf);
             // We know this is safe, since atoi returns a value <= buf.len().
             bytes = &index!(bytes[processed..]);
             let digits = distance(first, bytes.as_ptr()).try_i32_or_max();

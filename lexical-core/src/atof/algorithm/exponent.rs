@@ -29,12 +29,11 @@ pub(super) fn parse_exponent<'a>(radix: u32, bytes: &'a [u8])
         let cb = atoi::unchecked::<i32>;
         let (exponent, sign, len, truncated) = atoi::filter_sign::<i32, _>(radix, bytes, cb);
         let exponent = match truncated.is_some() {
-            true  => i32::max_value(),
-            false => exponent ,
-        };
-        let exponent = match sign {
-            Sign::Negative => -exponent,
-            Sign::Positive => exponent,
+            true  => match sign {
+                Sign::Negative => -i32::max_value(),
+                Sign::Positive => i32::max_value(),
+            },
+            false => exponent,
         };
 
         // Safety: atoi always returns a value <= bytes.len().

@@ -68,101 +68,127 @@ use util::*;
 
 // ALGORITHM
 
-/// Returns the number of parsed bytes and the index where the input was
-/// truncated at.
-///
-/// Don't trim leading zeros, since the value may be non-zero and
-/// therefore invalid.
-#[inline]
-pub(crate) fn unchecked<'a, T>(value: &mut T, radix: T, bytes: &'a [u8])
-    -> (usize, Option<&'a u8>)
-    where T: Integer
-{
-    // Continue while we have digits.
-    // Don't check for overflow, we want to avoid as many conditions
-    // as possible, it leads to significant speed increases on x86-64.
-    // Just note it happens, and continue on.
-    // Don't add a short-circuit either, since it adds significant time
-    // and we want to continue parsing until everything is done, since
-    // otherwise it may give us invalid results elsewhere.
-    let mut digit: T;
-    let mut truncated = None;
-    for (i, c) in bytes.iter().enumerate() {
-        digit = as_cast(char_to_digit(*c));
-        if digit < radix {
-            let (v, o1) = value.overflowing_mul(radix);
-            let (v, o2) = v.overflowing_add(digit);
-            *value = v;
-            if truncated.is_none() && (o1 | o2) {
-                truncated = Some(c);
-            }
-        } else {
-            return (i, truncated);
-        }
-    }
-
-    (bytes.len(), truncated)
-}
-
-/// Returns the number of parsed bytes and the index where the input was
-/// truncated at.
-///
-/// Don't trim leading zeros, since the value may be non-zero and
-/// therefore invalid.
-#[cfg(feature = "correct")]
-#[inline]
-pub(crate) fn checked<'a, T>(value: &mut T, radix: T, bytes: &'a [u8])
-    -> (usize, Option<&'a u8>)
-    where T: Integer
-{
-    // Continue while we have digits.
-    // Don't check for overflow, we want to avoid as many conditions
-    // as possible, it leads to significant speed increases on x86-64.
-    // Just note it happens, and continue on.
-    // Don't add a short-circuit either, since it adds significant time
-    // and we want to continue parsing until everything is done, since
-    // otherwise it may give us invalid results elsewhere.
-    let mut digit: T;
-    let mut truncated = None;
-    for (i, c) in bytes.iter().enumerate() {
-        digit = as_cast(char_to_digit(*c));
-        if digit < radix {
-            // Only multiply to the radix and add the parsed digit if
-            // the value hasn't overflowed yet, and only assign to the
-            // original value if the operations don't overflow.
-            if truncated.is_none() {
-                // Chain these two operations before we assign, since
-                // otherwise we get an invalid result.
-                match value.checked_mul(radix).and_then(|v| v.checked_add(digit)) {
-                    // No overflow, assign the value.
-                    Some(v) => *value = v,
-                    // Overflow occurred, set truncated position
-                    None    => truncated = Some(c),
+/// Generate both the add and sub versions of unchecked.
+macro_rules! unchecked {
+    ($func:ident, $op:ident) => (
+        /// Returns the number of parsed bytes and the index where the input was
+        /// truncated at.
+        ///
+        /// Don't trim leading zeros, since the value may be non-zero and
+        /// therefore invalid.
+        #[inline]
+        pub(crate) fn $func<'a, T>(value: &mut T, radix: T, bytes: &'a [u8])
+            -> (usize, Option<&'a u8>)
+            where T: Integer
+        {
+            // Continue while we have digits.
+            // Don't check for overflow, we want to avoid as many conditions
+            // as possible, it leads to significant speed increases on x86-64.
+            // Just note it happens, and continue on.
+            // Don't add a short-circuit either, since it adds significant time
+            // and we want to continue parsing until everything is done, since
+            // otherwise it may give us invalid results elsewhere.
+            let mut digit: T;
+            let mut truncated = None;
+            for (i, c) in bytes.iter().enumerate() {
+                digit = as_cast(char_to_digit(*c));
+                if digit < radix {
+                    let (v, o1) = value.overflowing_mul(radix);
+                    let (v, o2) = v.$op(digit);
+                    *value = v;
+                    if truncated.is_none() && (o1 | o2) {
+                        truncated = Some(c);
+                    }
+                } else {
+                    return (i, truncated);
                 }
             }
-        } else {
-            return (i, truncated);
-        }
-    }
 
-    (bytes.len(), truncated)
+            (bytes.len(), truncated)
+        }
+    );
 }
 
-/// Parse value from a positive numeric string.
-#[inline]
-pub(crate) fn value<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
-    -> (T, usize, Option<&'a u8>)
-    where T: Integer,
-          Cb: FnOnce(&mut T, T, &'a [u8]) -> (usize, Option<&'a u8>)
-{
-    // Trim the leading 0s here, where we can guarantee the value is 0,
-    // and therefore trimming these leading 0s is actually valid.
-    let (bytes, count) = ltrim_char_slice(bytes, b'0');
+unchecked!(unchecked_positive, overflowing_add);
+unchecked!(unchecked_negative, overflowing_sub);
 
-    // Initialize a 0 version of our value, and invoke the low-level callback.
-    let mut value: T = T::ZERO;
-    let (len, truncated) = cb(&mut value, as_cast(radix), bytes);
-    (value, len + count, truncated)
+/// Unchecked callback for the string-to-integer parser.
+#[allow(dead_code)]
+#[inline]
+pub(crate) fn unchecked<'a, T>(value: &mut T, radix: T, bytes: &'a [u8], sign: Sign)
+    -> (usize, Option<&'a u8>)
+    where T: Integer
+{
+    match sign {
+        Sign::Positive => unchecked_positive(value, radix, bytes),
+        Sign::Negative => unchecked_negative(value, radix, bytes),
+    }
+}
+
+/// Generate both the add and sub versions of checked.
+macro_rules! checked {
+    ($func:ident, $op:ident) => (
+        /// Returns the number of parsed bytes and the index where the input was
+        /// truncated at.
+        ///
+        /// Don't trim leading zeros, since the value may be non-zero and
+        /// therefore invalid.
+        #[cfg(feature = "correct")]
+        #[inline]
+        pub(crate) fn $func<'a, T>(value: &mut T, radix: T, bytes: &'a [u8])
+            -> (usize, Option<&'a u8>)
+            where T: Integer
+        {
+            // Continue while we have digits.
+            // Don't check for overflow, we want to avoid as many conditions
+            // as possible, it leads to significant speed increases on x86-64.
+            // Just note it happens, and continue on.
+            // Don't add a short-circuit either, since it adds significant time
+            // and we want to continue parsing until everything is done, since
+            // otherwise it may give us invalid results elsewhere.
+            let mut digit: T;
+            let mut truncated = None;
+            for (i, c) in bytes.iter().enumerate() {
+                digit = as_cast(char_to_digit(*c));
+                if digit < radix {
+                    // Only multiply to the radix and add the parsed digit if
+                    // the value hasn't overflowed yet, and only assign to the
+                    // original value if the operations don't overflow.
+                    if truncated.is_none() {
+                        // Chain these two operations before we assign, since
+                        // otherwise we get an invalid result.
+                        match value.checked_mul(radix).and_then(|v| v.$op(digit)) {
+                            // No overflow, assign the value.
+                            Some(v) => *value = v,
+                            // Overflow occurred, set truncated position
+                            None    => truncated = Some(c),
+                        }
+                    }
+                } else {
+                    return (i, truncated);
+                }
+            }
+
+            (bytes.len(), truncated)
+        }
+    );
+}
+
+checked!(checked_positive, checked_add);
+checked!(checked_negative, checked_sub);
+
+/// Checked callback for the string-to-integer parser.
+#[allow(dead_code)]
+#[cfg(feature = "correct")]
+#[inline]
+pub(crate) fn checked<'a, T>(value: &mut T, radix: T, bytes: &'a [u8], sign: Sign)
+    -> (usize, Option<&'a u8>)
+    where T: Integer
+{
+    match sign {
+        Sign::Positive => checked_positive(value, radix, bytes),
+        Sign::Negative => checked_negative(value, radix, bytes),
+    }
 }
 
 /// Handle +/- numbers and forward to implementation.
@@ -170,7 +196,7 @@ pub(crate) fn value<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
 pub(crate) fn filter_sign<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
     -> (T, Sign, usize, Option<&'a u8>)
     where T: Integer,
-          Cb: FnOnce(&mut T, T, &'a [u8]) -> (usize, Option<&'a u8>)
+          Cb: FnOnce(&mut T, T, &'a [u8], Sign) -> (usize, Option<&'a u8>)
 {
     let (sign_bytes, sign) = match bytes.get(0) {
         Some(b'+') => (1, Sign::Positive),
@@ -181,8 +207,15 @@ pub(crate) fn filter_sign<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
     if bytes.len() > sign_bytes {
         // `bytes.len() > sign_bytes`, so this range is always valid.
         let bytes = &index!(bytes[sign_bytes..]);
-        let (value, len, truncated) = value::<T, Cb>(radix, bytes, cb);
-        (value, sign, sign_bytes + len, truncated)
+
+        // Trim the leading 0s here, where we can guarantee the value is 0,
+        // and therefore trimming these leading 0s is actually valid.
+        let (bytes, count) = ltrim_char_slice(bytes, b'0');
+
+        // Initialize a 0 version of our value, and invoke the low-level callback.
+        let mut value: T = T::ZERO;
+        let (len, truncated) = cb(&mut value, as_cast(radix), bytes, sign);
+        (value, sign, sign_bytes + count + len, truncated)
     } else {
         (T::ZERO, sign, 0, None)
     }
@@ -194,12 +227,12 @@ pub(crate) fn filter_sign<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
 pub(crate) fn unsigned<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
     -> (T, usize, bool)
     where T: UnsignedInteger,
-          Cb: FnOnce(&mut T, T, &'a [u8]) -> (usize, Option<&'a u8>)
+          Cb: FnOnce(&mut T, T, &'a [u8], Sign) -> (usize, Option<&'a u8>)
 {
     let (value, sign, processed, truncated) = filter_sign::<T, Cb>(radix, bytes, cb);
     match sign {
-        // Report an invalid digit if the value is negative at the first index.
-        Sign::Negative => (value.wrapping_neg(), 0, truncated.is_some()),
+        // Need to return 0 early if we have a 0 value.
+        Sign::Negative => (value, 0, truncated.is_some()),
         Sign::Positive => (value, processed, truncated.is_some()),
     }
 }
@@ -210,16 +243,10 @@ pub(crate) fn unsigned<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
 pub(crate) fn signed<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
     -> (T, usize, bool)
     where T: SignedInteger,
-          Cb: FnOnce(&mut T, T, &'a [u8]) -> (usize, Option<&'a u8>)
+          Cb: FnOnce(&mut T, T, &'a [u8], Sign) -> (usize, Option<&'a u8>)
 {
-    let (value, sign, processed, truncated) = filter_sign::<T, Cb>(radix, bytes, cb);
-    match sign {
-        // -value overflowing can only occur when overflow happens,
-        // and specifically, when the overflow produces a value
-        // of exactly T::min_value().
-        Sign::Negative => (value.wrapping_neg(), processed, truncated.is_some()),
-        Sign::Positive => (value, processed, truncated.is_some()),
-    }
+    let (value, _, processed, truncated) = filter_sign::<T, Cb>(radix, bytes, cb);
+    (value, processed, truncated.is_some())
 }
 
 // UNSAFE API
@@ -369,7 +396,7 @@ mod tests {
     fn checked_test() {
         let s = "1234567891234567890123";
         let mut value: u64 = 0;
-        let (processed, truncated) = checked(&mut value, 10, s.as_bytes());
+        let (processed, truncated) = checked_positive(&mut value, 10, s.as_bytes());
         // check it doesn't overflow
         assert_eq!(value, 12345678912345678901);
         assert_eq!(processed, s.len());
@@ -380,7 +407,7 @@ mod tests {
     fn unchecked_test() {
         let s = "1234567891234567890123";
         let mut value: u64 = 0;
-        let (processed, truncated) = unchecked(&mut value, 10, s.as_bytes());
+        let (processed, truncated) = unchecked_positive(&mut value, 10, s.as_bytes());
         // check it does overflow
         assert_eq!(value, 17082782369737483467);
         assert_eq!(processed, s.len());
@@ -499,6 +526,7 @@ mod tests {
         assert_eq!(empty_error(0), try_atoi8_slice(b""));
         assert_eq!(success(0), try_atoi8_slice(b"0"));
         assert_eq!(invalid_digit_error(1, 1), try_atoi8_slice(b"1a"));
+        assert_eq!(success(-128), try_atoi8_slice(b"-128"));
         assert_eq!(overflow_error(-128), try_atoi8_slice(b"128"));
     }
 
@@ -515,6 +543,7 @@ mod tests {
         assert_eq!(empty_error(0), try_atoi16_slice(b""));
         assert_eq!(success(0), try_atoi16_slice(b"0"));
         assert_eq!(invalid_digit_error(1, 1), try_atoi16_slice(b"1a"));
+        assert_eq!(success(-32768), try_atoi16_slice(b"-32768"));
         assert_eq!(overflow_error(-32768), try_atoi16_slice(b"32768"));
     }
 
@@ -531,6 +560,7 @@ mod tests {
         assert_eq!(empty_error(0), try_atoi32_slice(b""));
         assert_eq!(success(0), try_atoi32_slice(b"0"));
         assert_eq!(invalid_digit_error(1, 1), try_atoi32_slice(b"1a"));
+        assert_eq!(success(-2147483648), try_atoi32_slice(b"-2147483648"));
         assert_eq!(overflow_error(-2147483648), try_atoi32_slice(b"2147483648"));
     }
 
@@ -550,6 +580,7 @@ mod tests {
         assert_eq!(overflow_error(-9223372036854775808), try_atoi64_slice(b"9223372036854775808"));
 
         // Check overflow and invalid digits, overflow should take precedence.
+        assert_eq!(success(-9223372036854775808), try_atoi64_slice(b"-9223372036854775808"));
         assert_eq!(overflow_error(-9223372036854775808), try_atoi64_slice(b"9223372036854775808abc"));
 
         // Add tests discovered via fuzzing.
