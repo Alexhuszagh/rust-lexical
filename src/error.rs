@@ -1,6 +1,7 @@
 //! Error definitions for lexical.
 
 use lib::fmt;
+use lib::error::Error as StdError;
 
 // ERROR
 
@@ -47,6 +48,21 @@ impl fmt::Display for Error {
             ErrorKind::Empty           => write!(f, "lexical error: empty input data."),
             _                          => unreachable!(),
         }
+    }
+}
+
+impl StdError for Error {
+    fn description(&self) -> &str {
+        match self.kind() {
+            ErrorKind::Overflow        => "lexical error: integer overflow occurred during integer parsing.",
+            ErrorKind::InvalidDigit(_) => "lexical error: invalid digit found in string.",
+            ErrorKind::Empty           => "lexical error: empty input data.",
+            _                          => unreachable!(),
+        }
+    }
+
+    fn cause(&self) -> Option<&StdError> {
+        None
     }
 }
 
