@@ -327,7 +327,10 @@ pub(crate) fn global_rounding(sign: Sign) -> RoundingKind {
     }
 
     #[cfg(feature = "rounding")] {
-        internal_rounding(FLOAT_ROUNDING, sign)
+        // Use of static mutable `FLOAT_ROUNDING`.
+        unsafe {
+            internal_rounding(FLOAT_ROUNDING, sign)
+        }
     }
 }
 

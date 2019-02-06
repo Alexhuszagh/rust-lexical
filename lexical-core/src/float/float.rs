@@ -291,7 +291,10 @@ impl<M: Mantissa> ExtendedFloat<M> {
         }
 
         #[cfg(feature = "rounding")] {
-            self.into_rounded_float::<F>(FLOAT_ROUNDING, Sign::Positive)
+            // Use of static mutable `FLOAT_ROUNDING`.
+            unsafe {
+                self.into_rounded_float::<F>(FLOAT_ROUNDING, Sign::Positive)
+            }
         }
     }
 

@@ -263,6 +263,18 @@ mod tests {
         })*)
     }
 
+    #[cfg(feature = "trim_floats")]
+    macro_rules! serialize_float {
+        ($($t:tt)*) => ($({
+            let x: $t = 0.0;
+            assert_eq!(x.to_bytes(), b"0".to_vec());
+
+            #[cfg(feature = "radix")]
+            assert_eq!(x.to_bytes_radix(10), b"0".to_vec());
+        })*)
+    }
+
+    #[cfg(not(feature = "trim_floats"))]
     macro_rules! serialize_float {
         ($($t:tt)*) => ($({
             let x: $t = 0.0;

@@ -17,7 +17,7 @@
 //! extern crate lexical;
 //!
 //! // Number to string
-//! lexical::to_string(3.0);            // "3.0", always has a fraction suffix,
+//! lexical::to_string(3.0);            // "3.0", always has a fraction suffix.
 //! lexical::to_string(3);              // "3"
 //!
 //! // String to number.
@@ -106,6 +106,7 @@ use lib::convert::AsRef;
 /// # extern crate lexical;
 /// # pub fn main() {
 /// assert_eq!(lexical::to_string(5), "5");
+/// ##[cfg(not(feature = "trim_floats"))]
 /// assert_eq!(lexical::to_string(0.0), "0.0");
 /// # }
 /// ```
@@ -127,6 +128,7 @@ pub fn to_string<N: ToBytes>(n: N) -> lib::String {
 /// # extern crate lexical;
 /// # pub fn main() {
 /// assert_eq!(lexical::to_string_radix(5, 10), "5");
+/// ##[cfg(not(feature = "trim_floats"))]
 /// assert_eq!(lexical::to_string_radix(0.0, 10), "0.0");
 /// # }
 /// ```

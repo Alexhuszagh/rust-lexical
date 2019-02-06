@@ -14,6 +14,9 @@ matrix:
         - cd lexical-core
         - cargo test
         - cargo test --no-default-features --tests
+        - cargo test --no-default-features --features=rounding
+        - cargo test --no-default-features --features=rounding,radix
+        - cargo test --no-default-features --features=rounding,unchecked_index
         - cargo test --no-default-features --features=trim_floats --tests
         - cargo test --no-default-features --features=trim_floats,radix --tests
         - cargo test --no-default-features --features=trim_floats,unchecked_index --tests
@@ -26,6 +29,7 @@ matrix:
         - cargo test --no-default-features --features=correct,radix --tests
         - cargo test --no-default-features --features=correct,unchecked_index --tests
         - cargo test --no-default-features --features=correct,radix --tests special_rounding -- --ignored --test-threads=1
+        - cargo test --features=correct,rounding,radix special_rounding -- --ignored --test-threads=1
         - cd ..
         - cargo bench --verbose --no-run
 
@@ -35,6 +39,9 @@ script:
   - cd lexical-core
   - cargo test --features=std
   - cargo test --no-default-features --features=std
+  - cargo test --no-default-features --features=std,rounding
+  - cargo test --no-default-features --features=std,rounding,radix
+  - cargo test --no-default-features --features=std,rounding,unchecked_index
   - cargo test --no-default-features --features=std,trim_floats
   - cargo test --no-default-features --features=std,trim_floats,radix
   - cargo test --no-default-features --features=std,trim_floats,unchecked_index
@@ -46,6 +53,7 @@ script:
   - cargo test --no-default-features --features=std,correct
   - cargo test --no-default-features --features=std,correct,radix
   - cargo test --no-default-features --features=std,correct,unchecked_index
-  - cargo test --features=radix special_rounding -- --ignored --test-threads=1
+  - cargo test --features=correct,radix special_rounding -- --ignored --test-threads=1
+  - cargo test --features=correct,rounding,radix special_rounding -- --ignored --test-threads=1
   - cd ..
   - cargo bench --verbose --no-run
