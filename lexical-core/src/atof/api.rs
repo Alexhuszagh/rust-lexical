@@ -349,6 +349,9 @@ mod tests {
         assert_eq!(ErrorCode::InvalidDigit, try_atof64_slice(b"-.").error.code);
         assert_eq!(ErrorCode::InvalidDigit, try_atof64_slice(b"+").error.code);
         assert_eq!(ErrorCode::InvalidDigit, try_atof64_slice(b"-").error.code);
+
+        // Bug fix for Issue #8
+        assert_eq!(5.002868148396374, atof64_slice(b"5.002868148396374"));
     }
 
     #[test]
@@ -378,6 +381,9 @@ mod tests {
         assert_eq!(empty_error(0.0), try_atof64_slice(b""));
         assert_eq!(success(0.0), try_atof64_slice(b"0.0"));
         assert_eq!(invalid_digit_error(1.0, 1), try_atof64_slice(b"1a"));
+
+        // Bug fix for Issue #8
+        assert_eq!(success(5.002868148396374), try_atof64_slice(b"5.002868148396374"));
     }
 
     proptest! {
