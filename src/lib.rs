@@ -328,6 +328,7 @@ pub fn parse_lossy_radix<N: FromBytesLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, ra
 /// assert_eq!(lexical::try_parse::<f32, _>(b"0"), Ok(0.0));
 /// assert_eq!(lexical::try_parse::<f32, _>(b"1.0"), Ok(1.0));
 /// assert_eq!(lexical::try_parse::<f32, _>(b"1."), Ok(1.0));
+/// # assert_eq!(lexical::try_parse::<f32, _>(b"5.002868148396374"), Ok(5.002868148396374));
 /// # assert_eq!(lexical::try_parse::<f64, _>(b"5.002868148396374"), Ok(5.002868148396374));
 /// # }
 /// ```

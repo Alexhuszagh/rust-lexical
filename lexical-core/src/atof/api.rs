@@ -247,6 +247,9 @@ mod tests {
         assert!(atof32_slice(b"INF").is_infinite());
         assert!(atof32_slice(b"+inf").is_infinite());
         assert!(atof32_slice(b"-inf").is_infinite());
+
+        // Bug fix for Issue #8
+        assert_eq!(5.002868148396374, atof32_slice(b"5.002868148396374"));
     }
 
     #[cfg(feature = "radix")]
@@ -373,6 +376,9 @@ mod tests {
         assert_eq!(empty_error(0.0), try_atof32_slice(b""));
         assert_eq!(success(0.0), try_atof32_slice(b"0.0"));
         assert_eq!(invalid_digit_error(1.0, 1), try_atof32_slice(b"1a"));
+
+        // Bug fix for Issue #8
+        assert_eq!(success(5.002868148396374), try_atof32_slice(b"5.002868148396374"));
     }
 
     #[test]
