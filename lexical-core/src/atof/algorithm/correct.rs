@@ -8,6 +8,8 @@
 // Fix a compiler bug that thinks `ExactExponent` isn't used.
 #![allow(unused_imports)]
 
+use lib::ptr;
+
 use atoi;
 use float::*;
 use util::*;
@@ -45,8 +47,8 @@ impl<'a> FloatSlice<'a> {
     #[inline]
     pub(super) fn uninitialized() -> FloatSlice<'a> {
         FloatSlice {
-            integer: explicit_uninitialized(),
-            fraction: explicit_uninitialized(),
+            integer: &[],
+            fraction: &[],
             digits_start: explicit_uninitialized(),
             truncated: explicit_uninitialized(),
             raw_exponent: explicit_uninitialized(),
