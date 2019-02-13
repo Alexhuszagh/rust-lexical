@@ -14,9 +14,9 @@ matrix:
         - cd lexical-core
         - cargo test
         - cargo test --no-default-features --tests
-        - cargo test --no-default-features --features=rounding
-        - cargo test --no-default-features --features=rounding,radix
-        - cargo test --no-default-features --features=rounding,unchecked_index
+        - cargo test --no-default-features --features=rounding  --tests
+        - cargo test --no-default-features --features=rounding,radix  --tests
+        - cargo test --no-default-features --features=rounding,unchecked_index  --tests
         - cargo test --no-default-features --features=trim_floats --tests
         - cargo test --no-default-features --features=trim_floats,radix --tests
         - cargo test --no-default-features --features=trim_floats,unchecked_index --tests
