@@ -1,0 +1,20 @@
+[package]
+name = "lexical-test"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+publish = false
+
+[dependencies.lexical]
+path = ".."
+default-features = true
+
+[[test]]
+name = "issue8"
+
+# For issue8
+[profile.dev]
+debug-assertions = true
+
+# For issue8
+[profile.release]
+debug-assertions = true
