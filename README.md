@@ -21,7 +21,7 @@ Add lexical to your `Cargo.toml`:
 
 ```yaml
 [dependencies]
-lexical = "2.0"
+lexical = "2.1"
 ```
 
 And get started using lexical:
