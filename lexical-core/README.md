@@ -27,7 +27,7 @@ Add lexical-core to your `Cargo.toml`:
 
 ```yaml
 [dependencies]
-lexical-core = "0.3"
+lexical-core = "0.4"
 ```
 
 And an introduction through use:
