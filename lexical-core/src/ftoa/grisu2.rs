@@ -76,7 +76,13 @@ fn cached_grisu_power(exp: i32, k: &mut i32)
     let mut idx = ((approx - FIRSTPOWER) / STEPPOWERS).as_usize();
 
     loop {
-        let power = &GRISU_POWERS_OF_TEN[idx];
+        // Use `arr.get(idx)`, which explicitly provides a reference,
+        // instead of `arr[idx]`, which provides a value.
+        // We have a bug in versions <= 1.27.0 where it creates
+        // a local copy, which we then get the reference to and return.
+        // This allows use-after-free, without any warning, so we're
+        // using unidiomatic code to avoid any issue.
+        let power = GRISU_POWERS_OF_TEN.get(idx).unwrap();
         let current = exp + power.exp + 64;
         if current < EXPMIN {
             idx += 1;
@@ -286,12 +292,12 @@ fn grisu2(d: f64, digits: &mut [u8], k: &mut i32)
     let (mut lower, mut upper) = w.normalized_boundaries();
     w.normalize();
 
-    let mut ki: i32 = explicit_uninitialized();
+    let mut ki: i32 =  explicit_uninitialized();
     let cp = cached_grisu_power(upper.exp, &mut ki);
 
-    w     = w.mul(&cp);
-    upper = upper.mul(&cp);
-    lower = lower.mul(&cp);
+    w     = w.mul(cp);
+    upper = upper.mul(cp);
+    lower = lower.mul(cp);
 
     lower.mant += 1;
     upper.mant -= 1;

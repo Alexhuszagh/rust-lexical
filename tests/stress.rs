@@ -7,7 +7,7 @@ extern crate lexical;
 use std::fmt::Debug;
 
 
-struct StressTest<T: 'static + lexical::FromBytes> {
+struct StressTest<T: 'static + lexical::FromLexical> {
     below_ulp: &'static [(&'static str, T)],
     above_ulp: &'static [(&'static str, T)],
 }
@@ -100,7 +100,7 @@ const STRESS_TESTS: StressTests = StressTests {
     },
 };
 
-fn stress_test<T: 'static + Debug + PartialEq + lexical::FromBytes>(test: &StressTest<T>) {
+fn stress_test<T: 'static + Debug + PartialEq + lexical::FromLexical>(test: &StressTest<T>) {
     for (string, float) in test.below_ulp.iter() {
         let actual: T = lexical::try_parse(string).unwrap();
         assert_eq!(actual, *float);

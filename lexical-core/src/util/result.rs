@@ -60,6 +60,7 @@ pub type U32Result = Result<u32>;
 pub type U64Result = Result<u64>;
 
 /// Expanded generic for a result type containing a value of type u128.
+#[cfg(has_i128)]
 pub type U128Result = Result<u128>;
 
 /// Expanded generic for a result type containing a value of type usize.
@@ -78,6 +79,7 @@ pub type I32Result = Result<i32>;
 pub type I64Result = Result<i64>;
 
 /// Expanded generic for a result type containing a value of type i128.
+#[cfg(has_i128)]
 pub type I128Result = Result<i128>;
 
 /// Expanded generic for a result type containing a value of type isize.

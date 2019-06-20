@@ -1,0 +1,18 @@
+# Changelog
+
+Notes significant changes to lexical.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [2.2.0] - 2019-06-20
+### Added
+- Backwards compatible support for Rustc 1.24.0.
+
+### Changed
+- Changed public trait names for `FromBytes`, `FromBytesLossy`, and `ToBytes` to `FromLexical`, `FromLexicalLossy`, and `ToLexical`.
+- Changed method names for trait `ToLexical` from `to_bytes` and `to_bytes_radix` to `to_lexical` and `to_lexical_radix` to avoid conflict with unstable feature [int_to_from_bytes](https://doc.rust-lang.org/1.27.2/unstable-book/library-features/int-to-from-bytes.html#int_to_from_bytes).
+- Changed method names for trait `FromLexical` from `from_bytes`, `from_bytes_radix`, `try_from_bytes`, and `try_from_bytes_radix` to `from_lexical`, `from_lexical_radix`, `try_from_lexical`, and `try_from_lexical_radix` to avoid conflict with unstable feature [int_to_from_bytes](https://doc.rust-lang.org/1.27.2/unstable-book/library-features/int-to-from-bytes.html#int_to_from_bytes).
+- Changed method names for trait `FromLexicalLossy` from `from_bytes_lossy`, `from_bytes_lossy_radix`, `try_from_bytes_lossy`, and `try_from_bytes_lossy_radix` to `from_lexical_lossy`, `from_lexical_lossy_radix`, `try_from_lexical_lossy`, and `try_from_lexical_lossy_radix` to avoid conflict with unstable feature [int_to_from_bytes](https://doc.rust-lang.org/1.27.2/unstable-book/library-features/int-to-from-bytes.html#int_to_from_bytes).

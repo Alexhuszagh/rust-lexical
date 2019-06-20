@@ -18,6 +18,10 @@ Low-level, FFI-compatible, lexical conversion routines for use in a `no_std` con
   - [String to Float](#string-to-float)
   - [Arbitrary-Precision Arithmetic](#arbitrary-precision-arithmetic)
   - [Algorithm Background and Comparison](#algorithm-background-and-comparison)
+- [Version Support](#version-support)
+- [Changelog](#changelog)
+- [License](#license)
+- [Contributing](#contributing)
 
 # Getting Started
 
@@ -27,7 +31,7 @@ Add lexical-core to your `Cargo.toml`:
 
 ```yaml
 [dependencies]
-lexical-core = "0.4"
+lexical-core = "^0.4"
 ```
 
 And an introduction through use:
@@ -329,11 +333,19 @@ Since our real digits are below the theoretical halfway point, we know we need t
 4. For the fallback bigcomp algorithm, we use a division algorithm optimized for the generation of a single digit from a given radix, by setting the leading bit in the denominator 4 below the most-significant bit (in decimal strings). This requires only 1 native division per digit generated.
 4. The individual "limbs" of the big integers are optimized to the architecture we compile on, for example, u32 on x86 and u64 on x86-64, minimizing the number of native operations required. Currently, 64-bit limbs are used on target architectures `aarch64`, `powerpc64`, `mips64`, and `x86_64`.
 
+# Version Support
+
+Lexical-core is tested to work from Rustc versions of 1.24-1.35, and should work on newer versions as well. Please report any errors compiling lexical-core for any Rust compiler 1.24.0 or later.
+
+# Changelog
+
+All changes since 2.2.0 are documented in [CHANGELOG](CHANGELOG).
+
 # License
 
 Lexical-core is dual licensed under the Apache 2.0 license as well as the MIT license. See the LICENCE-MIT and the LICENCE-APACHE files for the licenses.
 
-Lexical-core also ports some code from [V8](https://github.com/v8/v8), [libgo](https://golang.org/src) and [fpconv](https://github.com/night-shift/fpconv), and therefore might be subject to the terms of a 3-clause BSD license or BSD-like license.
+Lexical-core also ports some code from [rust](https://github.com/rust-lang/rust) (for backwards compatibility), [V8](https://github.com/v8/v8), [libgo](https://golang.org/src) and [fpconv](https://github.com/night-shift/fpconv), and therefore might be subject to the terms of a 3-clause BSD license or BSD-like license.
 
 # Contributing
 

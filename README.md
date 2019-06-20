@@ -12,6 +12,8 @@ Fast lexical conversion routines for both std and no_std environments. Lexical p
 - [Benchmarks](#benchmarks)
 - [Documentation](#documentation)
 - [Roadmap](#roadmap)
+- [Version Support](#version-support)
+- [Changelog](#changelog)
 - [License](#license)
 - [Contributing](#contributing)
 
@@ -21,7 +23,7 @@ Add lexical to your `Cargo.toml`:
 
 ```yaml
 [dependencies]
-lexical = "2.1"
+lexical = "^2.1"
 ```
 
 And get started using lexical:
@@ -125,6 +127,14 @@ Ideally, Lexical's float-parsing algorithm or approach would be incorporated int
 2. It supports rounding schemes other than round-to-nearest, tie-even.
 3. It inlines aggressively, producing significant binary bloat.
 4. It contains effectively dead code for efficient higher-order arbitrary-precision integer algorithms, for rare use-cases requiring asymptotically faster algorithms.
+
+# Version Support
+
+Lexical is tested to work from Rustc versions of 1.24-1.35, and should work on newer versions as well. Please report any errors compiling lexical for any Rust compiler 1.24.0 or later.
+
+# Changelog
+
+All changes since 2.2.0 are documented in [CHANGELOG](CHANGELOG).
 
 # License
 

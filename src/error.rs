@@ -43,10 +43,10 @@ impl Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind() {
-            ErrorKind::Overflow        => write!(f, "lexical error: integer overflow occurred during integer parsing."),
-            ErrorKind::InvalidDigit(u) => write!(f, "lexical error: invalid digit found at {}.", u),
-            ErrorKind::Empty           => write!(f, "lexical error: empty input data."),
-            _                          => unreachable!(),
+            &ErrorKind::Overflow        => write!(f, "lexical error: integer overflow occurred during integer parsing."),
+            &ErrorKind::InvalidDigit(u) => write!(f, "lexical error: invalid digit found at {}.", u),
+            &ErrorKind::Empty           => write!(f, "lexical error: empty input data."),
+            _                           => unreachable!(),
         }
     }
 }
@@ -54,10 +54,10 @@ impl fmt::Display for Error {
 impl StdError for Error {
     fn description(&self) -> &str {
         match self.kind() {
-            ErrorKind::Overflow        => "lexical error: integer overflow occurred during integer parsing.",
-            ErrorKind::InvalidDigit(_) => "lexical error: invalid digit found in string.",
-            ErrorKind::Empty           => "lexical error: empty input data.",
-            _                          => unreachable!(),
+            &ErrorKind::Overflow        => "lexical error: integer overflow occurred during integer parsing.",
+            &ErrorKind::InvalidDigit(_) => "lexical error: invalid digit found in string.",
+            &ErrorKind::Empty           => "lexical error: empty input data.",
+            _                           => unreachable!(),
         }
     }
 

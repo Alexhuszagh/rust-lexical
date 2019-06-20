@@ -314,8 +314,10 @@ wrap_unsigned!(u8toa_impl, u8, u32);
 wrap_unsigned!(u16toa_impl, u16, u32);
 wrap_unsigned!(u32toa_impl, u32, u32);
 wrap_unsigned!(u64toa_impl, u64, u64);
-wrap_unsigned!(u128toa_impl, u128, u128);
 wrap_unsigned!(usizetoa_impl, usize, usize);
+
+#[cfg(has_i128)]
+wrap_unsigned!(u128toa_impl, u128, u128);
 
 /// Expand the generic signed itoa function for specified types.
 macro_rules! wrap_signed {
@@ -334,8 +336,10 @@ wrap_signed!(i8toa_impl, i8, u32, i32);
 wrap_signed!(i16toa_impl, i16, u32, i32);
 wrap_signed!(i32toa_impl, i32, u32, i32);
 wrap_signed!(i64toa_impl, i64, u64, i64);
-wrap_signed!(i128toa_impl, i128, u128, i128);
 wrap_signed!(isizetoa_impl, isize, usize, isize);
+
+#[cfg(has_i128)]
+wrap_signed!(i128toa_impl, i128, u128, i128);
 
 // LOW-LEVEL API
 // -------------
@@ -345,28 +349,30 @@ generate_to_range_api!(u8toa_range, u8toa_radix_range, u8, u8toa_impl, MAX_U8_SI
 generate_to_range_api!(u16toa_range, u16toa_radix_range, u16, u16toa_impl, MAX_U16_SIZE);
 generate_to_range_api!(u32toa_range, u32toa_radix_range, u32, u32toa_impl, MAX_U32_SIZE);
 generate_to_range_api!(u64toa_range, u64toa_radix_range, u64, u64toa_impl, MAX_U64_SIZE);
-generate_to_range_api!(u128toa_range, u128toa_radix_range, u128, u128toa_impl, MAX_U128_SIZE);
 generate_to_range_api!(usizetoa_range, usizetoa_radix_range, usize, usizetoa_impl, MAX_USIZE_SIZE);
 generate_to_range_api!(i8toa_range, i8toa_radix_range, i8, i8toa_impl, MAX_I8_SIZE);
 generate_to_range_api!(i16toa_range, i16toa_radix_range, i16, i16toa_impl, MAX_I16_SIZE);
 generate_to_range_api!(i32toa_range, i32toa_radix_range, i32, i32toa_impl, MAX_I32_SIZE);
 generate_to_range_api!(i64toa_range, i64toa_radix_range, i64, i64toa_impl, MAX_I64_SIZE);
-generate_to_range_api!(i128toa_range, i128toa_radix_range, i128, i128toa_impl, MAX_I128_SIZE);
 generate_to_range_api!(isizetoa_range, isizetoa_radix_range, isize, isizetoa_impl, MAX_ISIZE_SIZE);
+
+#[cfg(has_i128)] generate_to_range_api!(u128toa_range, u128toa_radix_range, u128, u128toa_impl, MAX_U128_SIZE);
+#[cfg(has_i128)] generate_to_range_api!(i128toa_range, i128toa_radix_range, i128, i128toa_impl, MAX_I128_SIZE);
 
 // SLICE API
 generate_to_slice_api!(u8toa_slice, u8toa_radix_slice, u8, u8toa_impl, MAX_U8_SIZE);
 generate_to_slice_api!(u16toa_slice, u16toa_radix_slice, u16, u16toa_impl, MAX_U16_SIZE);
 generate_to_slice_api!(u32toa_slice, u32toa_radix_slice, u32, u32toa_impl, MAX_U32_SIZE);
 generate_to_slice_api!(u64toa_slice, u64toa_radix_slice, u64, u64toa_impl, MAX_U64_SIZE);
-generate_to_slice_api!(u128toa_slice, u128toa_radix_slice, u128, u128toa_impl, MAX_U128_SIZE);
 generate_to_slice_api!(usizetoa_slice, usizetoa_radix_slice, usize, usizetoa_impl, MAX_USIZE_SIZE);
 generate_to_slice_api!(i8toa_slice, i8toa_radix_slice, i8, i8toa_impl, MAX_I8_SIZE);
 generate_to_slice_api!(i16toa_slice, i16toa_radix_slice, i16, i16toa_impl, MAX_I16_SIZE);
 generate_to_slice_api!(i32toa_slice, i32toa_radix_slice, i32, i32toa_impl, MAX_I32_SIZE);
 generate_to_slice_api!(i64toa_slice, i64toa_radix_slice, i64, i64toa_impl, MAX_I64_SIZE);
-generate_to_slice_api!(i128toa_slice, i128toa_radix_slice, i128, i128toa_impl, MAX_I128_SIZE);
 generate_to_slice_api!(isizetoa_slice, isizetoa_radix_slice, isize, isizetoa_impl, MAX_ISIZE_SIZE);
+
+#[cfg(has_i128)] generate_to_slice_api!(u128toa_slice, u128toa_radix_slice, u128, u128toa_impl, MAX_U128_SIZE);
+#[cfg(has_i128)] generate_to_slice_api!(i128toa_slice, i128toa_radix_slice, i128, i128toa_impl, MAX_I128_SIZE);
 
 // TESTS
 // -----

@@ -4,6 +4,10 @@
 
 use lib::{cmp, iter, marker, ops, ptr, slice};
 use stackvector;
+use super::bound::Bound;
+use super::pointer_methods::PointerMethods;
+use super::range_bounds::RangeBounds;
+use super::slice_index::SliceIndex;
 
 #[cfg(all(feature = "correct", feature = "radix"))]
 use lib::Vec;
@@ -17,19 +21,19 @@ use lib::Vec;
 /// and ideally before (to 0).
 fn remove_many<V, T, R>(vec: &mut V, range: R)
     where V: VecLike<T>,
-          R: ops::RangeBounds<usize>
+          R: RangeBounds<usize>
 {
     // Get the bounds on the items we're removing.
     let len = vec.len();
     let start = match range.start_bound() {
-        ops::Bound::Included(&n) => n,
-        ops::Bound::Excluded(&n) => n + 1,
-        ops::Bound::Unbounded    => 0,
+        Bound::Included(&n) => n,
+        Bound::Excluded(&n) => n + 1,
+        Bound::Unbounded    => 0,
     };
     let end = match range.end_bound() {
-        ops::Bound::Included(&n) => n + 1,
-        ops::Bound::Excluded(&n) => n,
-        ops::Bound::Unbounded    => len,
+        Bound::Included(&n) => n + 1,
+        Bound::Excluded(&n) => n,
+        Bound::Unbounded    => len,
     };
     assert!(start <= end);
     assert!(end <= len);
@@ -41,18 +45,18 @@ fn remove_many<V, T, R>(vec: &mut V, range: R)
         // or use after-free.
         vec.set_len(start);
         // Iteratively drop the range.
-        let mut first = vec.as_mut_ptr().add(start);
-        let last = vec.as_mut_ptr().add(end);
+        let mut first = vec.as_mut_ptr().padd(start);
+        let last = vec.as_mut_ptr().padd(end);
         while first < last {
             ptr::drop_in_place(first);
-            first = first.add(1);
+            first = first.padd(1);
         }
 
         // Now we need to copy the end range into the buffer.
         let count = len - end;
         if count != 0 {
-            let src = vec.as_ptr().add(end);
-            let dst = vec.as_mut_ptr().add(start);
+            let src = vec.as_ptr().padd(end);
+            let dst = vec.as_mut_ptr().padd(start);
             ptr::copy(src, dst, count);
         }
 
@@ -133,7 +137,7 @@ impl<T> RSliceIndex<[T]> for usize {
 /// REVERSE VIEW
 
 /// Reverse, immutable view of a sequence.
-pub struct ReverseView<'a, T> {
+pub struct ReverseView<'a, T: 'a> {
     inner: &'a [T],
 }
 
@@ -149,11 +153,11 @@ impl<'a, T> ops::Index<usize> for ReverseView<'a, T> {
 /// REVERSE VIEW MUT
 
 /// Reverse, mutable view of a sequence.
-pub struct ReverseViewMut<'a, T> {
+pub struct ReverseViewMut<'a, T: 'a> {
     inner: &'a mut [T],
 }
 
-impl<'a, T> ops::Index<usize> for ReverseViewMut<'a, T> {
+impl<'a, T: 'a> ops::Index<usize> for ReverseViewMut<'a, T> {
     type Output = T;
 
     #[inline]
@@ -162,7 +166,7 @@ impl<'a, T> ops::Index<usize> for ReverseViewMut<'a, T> {
     }
 }
 
-impl<'a, T> ops::IndexMut<usize> for ReverseViewMut<'a, T> {
+impl<'a, T: 'a> ops::IndexMut<usize> for ReverseViewMut<'a, T> {
     #[inline]
     fn index_mut(&mut self, index: usize) -> &mut T {
         self.inner.rindex_mut(index)
@@ -339,24 +343,24 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
     // GET
 
     /// Get an immutable reference to item at index.
-    fn get<I: slice::SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output>;
+    fn get<I: SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output>;
 
     /// Get a mutable reference to item at index.
-    fn get_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output>;
+    fn get_mut<I: SliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output>;
 
     /// Get an immutable reference to item at index.
-    unsafe fn get_unchecked<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output;
+    unsafe fn get_unchecked<I: SliceIndex<[T]>>(&self, index: I) -> &I::Output;
 
     /// Get a mutable reference to item at index.
-    unsafe fn get_unchecked_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output;
+    unsafe fn get_unchecked_mut<I: SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output;
 
     // INDEX
 
     /// Get immutable element(s) via indexing.
-    fn index<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output;
+    fn index<I: SliceIndex<[T]>>(&self, index: I) -> &I::Output;
 
     /// Get mutable element(s) via indexing.
-    fn index_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output;
+    fn index_mut<I: SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output;
 
     // RGET
 
@@ -433,18 +437,20 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
     }
 
     // CHUNKS EXACT
-
-    /// Get iterator over exactly `size`-length immutable elements in sequence.
-    #[inline]
-    fn chunks_exact(&self, size: usize) -> slice::ChunksExact<T> {
-        <[T]>::chunks_exact(self.as_slice(), size)
-    }
-
-    /// Get iterator over exactly `size`-length mutable elements in sequence.
-    #[inline]
-    fn chunks_exact_mut(&mut self, size: usize) -> slice::ChunksExactMut<T> {
-        <[T]>::chunks_exact_mut(self.as_mut_slice(), size)
-    }
+    // Currently unused, restore and add default implementation if required
+    // later. Requires rustc >= 1.31.0.
+//
+//    /// Get iterator over exactly `size`-length immutable elements in sequence.
+//    #[inline]
+//    fn chunks_exact(&self, size: usize) -> slice::ChunksExact<T> {
+//        <[T]>::chunks_exact(self.as_slice(), size)
+//    }
+//
+//    /// Get iterator over exactly `size`-length mutable elements in sequence.
+//    #[inline]
+//    fn chunks_exact_mut(&mut self, size: usize) -> slice::ChunksExactMut<T> {
+//        <[T]>::chunks_exact_mut(self.as_mut_slice(), size)
+//    }
 
     // FIRST
 
@@ -528,33 +534,35 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
         <[T]>::len(self.as_slice())
     }
 
-    // RCHUNKS
-
-    /// Get iterator over `size`-length immutable elements in sequence.
-    #[inline]
-    fn rchunks(&self, size: usize) -> slice::RChunks<T> {
-        <[T]>::rchunks(self.as_slice(), size)
-    }
-
-    /// Get iterator over `size`-length mutable elements in sequence.
-    #[inline]
-    fn rchunks_mut(&mut self, size: usize) -> slice::RChunksMut<T> {
-        <[T]>::rchunks_mut(self.as_mut_slice(), size)
-    }
-
-    // RCHUNKS EXACT
-
-    /// Get iterator over exactly `size`-length immutable elements in sequence.
-    #[inline]
-    fn rchunks_exact(&self, size: usize) -> slice::RChunksExact<T> {
-        <[T]>::rchunks_exact(self.as_slice(), size)
-    }
-
-    /// Get iterator over exactly `size`-length mutable elements in sequence.
-    #[inline]
-    fn rchunks_exact_mut(&mut self, size: usize) -> slice::RChunksExactMut<T> {
-        <[T]>::rchunks_exact_mut(self.as_mut_slice(), size)
-    }
+    // Currently unused, restore and add default implementation if required
+    // later. Requires rustc >= 1.31.0.
+//    // RCHUNKS
+//
+//    /// Get iterator over `size`-length immutable elements in sequence.
+//    #[inline]
+//    fn rchunks(&self, size: usize) -> slice::RChunks<T> {
+//        <[T]>::rchunks(self.as_slice(), size)
+//    }
+//
+//    /// Get iterator over `size`-length mutable elements in sequence.
+//    #[inline]
+//    fn rchunks_mut(&mut self, size: usize) -> slice::RChunksMut<T> {
+//        <[T]>::rchunks_mut(self.as_mut_slice(), size)
+//    }
+//
+//    // RCHUNKS EXACT
+//
+//    /// Get iterator over exactly `size`-length immutable elements in sequence.
+//    #[inline]
+//    fn rchunks_exact(&self, size: usize) -> slice::RChunksExact<T> {
+//        <[T]>::rchunks_exact(self.as_slice(), size)
+//    }
+//
+//    /// Get iterator over exactly `size`-length mutable elements in sequence.
+//    #[inline]
+//    fn rchunks_exact_mut(&mut self, size: usize) -> slice::RChunksExactMut<T> {
+//        <[T]>::rchunks_exact_mut(self.as_mut_slice(), size)
+//    }
 
     // REVERSE
 
@@ -566,31 +574,35 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
 
     // ROTATE
 
-    /// Rotate elements of slice left.
-    #[inline]
-    fn rotate_left(&mut self, mid: usize) {
-        <[T]>::rotate_left(self.as_mut_slice(), mid)
-    }
-
-    /// Rotate elements of slice right.
-    #[inline]
-    fn rotate_right(&mut self, mid: usize) {
-        <[T]>::rotate_right(self.as_mut_slice(), mid)
-    }
+    // Currently unused, restore and add default implementation if required
+    // later. Requires rustc >= 1.26.0.
+//    /// Rotate elements of slice left.
+//    #[inline]
+//    fn rotate_left(&mut self, mid: usize) {
+//        <[T]>::rotate_left(self.as_mut_slice(), mid)
+//    }
+//
+//    /// Rotate elements of slice right.
+//    #[inline]
+//    fn rotate_right(&mut self, mid: usize) {
+//        <[T]>::rotate_right(self.as_mut_slice(), mid)
+//    }
 
     // RSPLIT
 
-    /// Split on condition into immutable subslices, start from the back of the slice.
-    #[inline]
-    fn rsplit<F: FnMut(&T) -> bool>(&self, func: F) -> slice::RSplit<T, F> {
-        <[T]>::rsplit(self.as_slice(), func)
-    }
-
-    /// Split on condition into mutable subslices, start from the back of the slice.
-    #[inline]
-    fn rsplit_mut<F: FnMut(&T) -> bool>(&mut self, func: F) -> slice::RSplitMut<T, F> {
-        <[T]>::rsplit_mut(self.as_mut_slice(), func)
-    }
+    // Currently unused, restore and add default implementation if required
+    // later. Requires rustc >= 1.27.0.
+//    /// Split on condition into immutable subslices, start from the back of the slice.
+//    #[inline]
+//    fn rsplit<F: FnMut(&T) -> bool>(&self, func: F) -> slice::RSplit<T, F> {
+//        <[T]>::rsplit(self.as_slice(), func)
+//    }
+//
+//    /// Split on condition into mutable subslices, start from the back of the slice.
+//    #[inline]
+//    fn rsplit_mut<F: FnMut(&T) -> bool>(&mut self, func: F) -> slice::RSplitMut<T, F> {
+//        <[T]>::rsplit_mut(self.as_mut_slice(), func)
+//    }
 
     // RSPLITN
 
@@ -723,10 +735,16 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
     }
 
     /// Swap all elements in `self` with `other`.
-    #[inline]
-    fn swap_with_slice(&mut self, other: &mut [T]) {
-        <[T]>::swap_with_slice(self.as_mut_slice(), other)
-    }
+    // Currently unused, restore and add default implementation if required
+    // later. Requires rustc >= 1.27.0.
+    // swap_with_slice was introduced in 1.27, but experimental before.
+    // The lint to suppress this, `unstable_name_collision`, was introduced
+    // in 1.26, so we need to suppress that later.
+//    #[allow(unknown_lints, unstable_name_collision)]
+//    #[inline]
+//    fn swap_with_slice(&mut self, other: &mut [T]) {
+//        <[T]>::swap_with_slice(self.as_mut_slice(), other)
+//    }
 
     // WINDOWS
 
@@ -756,38 +774,62 @@ impl<T> SliceLike<T> for [T] {
 
     /// Get an immutable reference to item at index.
     #[inline]
-    fn get<I: slice::SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output> {
-        <[T]>::get(self, index)
+    fn get<I: SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output> {
+        #[cfg(has_slice_index)]
+        return <[T]>::get(self, index);
+
+        #[cfg(not(has_slice_index))]
+        return index.get(self);
     }
 
     /// Get an mutable reference to item at index.
     #[inline]
-    fn get_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output> {
-        <[T]>::get_mut(self, index)
+    fn get_mut<I: SliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output> {
+        #[cfg(has_slice_index)]
+        return <[T]>::get_mut(self, index);
+
+        #[cfg(not(has_slice_index))]
+        return index.get_mut(self);
     }
 
     /// Get an immutable reference to item at index.
     #[inline]
-    unsafe fn get_unchecked<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output {
-        <[T]>::get_unchecked(self, index)
+    unsafe fn get_unchecked<I: SliceIndex<[T]>>(&self, index: I) -> &I::Output {
+        #[cfg(has_slice_index)]
+        return <[T]>::get_unchecked(self, index);
+
+        #[cfg(not(has_slice_index))]
+        return index.get_unchecked(self);
     }
 
     /// Get an mutable reference to item at index.
     #[inline]
-    unsafe fn get_unchecked_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
-        <[T]>::get_unchecked_mut(self, index)
+    unsafe fn get_unchecked_mut<I: SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
+        #[cfg(has_slice_index)]
+        return <[T]>::get_unchecked_mut(self, index);
+
+        #[cfg(not(has_slice_index))]
+        return index.get_unchecked_mut(self);
     }
 
     // INDEX
 
     #[inline]
-    fn index<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output {
-        <[T] as ops::Index<I>>::index(self, index)
+    fn index<I: SliceIndex<[T]>>(&self, index: I) -> &I::Output {
+        #[cfg(has_slice_index)]
+        return <[T] as ops::Index<I>>::index(self, index);
+
+        #[cfg(not(has_slice_index))]
+        return index.index(self);
     }
 
     #[inline]
-    fn index_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
-        <[T] as ops::IndexMut<I>>::index_mut(self, index)
+    fn index_mut<I: SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
+        #[cfg(has_slice_index)]
+        return <[T] as ops::IndexMut<I>>::index_mut(self, index);
+
+        #[cfg(not(has_slice_index))]
+        return index.index_mut(self);
     }
 
     // RGET
@@ -839,38 +881,62 @@ impl<T> SliceLike<T> for Vec<T> {
 
     /// Get an immutable reference to item at index.
     #[inline]
-    fn get<I: slice::SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output> {
-        self.as_slice().get(index)
+    fn get<I: SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output> {
+        #[cfg(has_slice_index)]
+        return self.as_slice().get(index);
+
+        #[cfg(not(has_slice_index))]
+        return index.get(self.as_slice());
     }
 
     /// Get an mutable reference to item at index.
     #[inline]
-    fn get_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output> {
-        self.as_mut_slice().get_mut(index)
+    fn get_mut<I: SliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output> {
+        #[cfg(has_slice_index)]
+        return self.as_mut_slice().get_mut(index);
+
+        #[cfg(not(has_slice_index))]
+        return index.get_mut(self.as_mut_slice());
     }
 
     /// Get an immutable reference to item at index.
     #[inline]
-    unsafe fn get_unchecked<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output {
-        self.as_slice().get_unchecked(index)
+    unsafe fn get_unchecked<I: SliceIndex<[T]>>(&self, index: I) -> &I::Output {
+        #[cfg(has_slice_index)]
+        return self.as_slice().get_unchecked(index);
+
+        #[cfg(not(has_slice_index))]
+        return index.get_unchecked(self.as_slice());
     }
 
     /// Get an mutable reference to item at index.
     #[inline]
-    unsafe fn get_unchecked_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
-        self.as_mut_slice().get_unchecked_mut(index)
+    unsafe fn get_unchecked_mut<I: SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
+        #[cfg(has_slice_index)]
+        return self.as_mut_slice().get_unchecked_mut(index);
+
+        #[cfg(not(has_slice_index))]
+        return index.get_unchecked_mut(self.as_mut_slice());
     }
 
     // INDEX
 
     #[inline]
-    fn index<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output {
-        self.as_slice().index(index)
+    fn index<I: SliceIndex<[T]>>(&self, index: I) -> &I::Output {
+        #[cfg(has_slice_index)]
+        return self.as_slice().index(index);
+
+        #[cfg(not(has_slice_index))]
+        return index.index(self.as_slice());
     }
 
     #[inline]
-    fn index_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
-        self.as_mut_slice().index_mut(index)
+    fn index_mut<I: SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
+        #[cfg(has_slice_index)]
+        return self.as_mut_slice().index_mut(index);
+
+        #[cfg(not(has_slice_index))]
+        return index.index_mut(self.as_mut_slice());
     }
 
     // RGET
@@ -921,38 +987,62 @@ impl<A: stackvector::Array> SliceLike<A::Item> for stackvector::StackVec<A> {
 
     /// Get an immutable reference to item at index.
     #[inline]
-    fn get<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> Option<&I::Output> {
-        self.as_slice().get(index)
+    fn get<I: SliceIndex<[A::Item]>>(&self, index: I) -> Option<&I::Output> {
+        #[cfg(has_slice_index)]
+        return self.as_slice().get(index);
+
+        #[cfg(not(has_slice_index))]
+        return index.get(self.as_slice());
     }
 
     /// Get an mutable reference to item at index.
     #[inline]
-    fn get_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> Option<&mut I::Output> {
-        self.as_mut_slice().get_mut(index)
+    fn get_mut<I: SliceIndex<[A::Item]>>(&mut self, index: I) -> Option<&mut I::Output> {
+        #[cfg(has_slice_index)]
+        return self.as_mut_slice().get_mut(index);
+
+        #[cfg(not(has_slice_index))]
+        return index.get_mut(self.as_mut_slice());
     }
 
     /// Get an immutable reference to item at index.
     #[inline]
-    unsafe fn get_unchecked<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
-        self.as_slice().get_unchecked(index)
+    unsafe fn get_unchecked<I: SliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
+        #[cfg(has_slice_index)]
+        return self.as_slice().get_unchecked(index);
+
+        #[cfg(not(has_slice_index))]
+        return index.get_unchecked(self.as_slice());
     }
 
     /// Get an mutable reference to item at index.
     #[inline]
-    unsafe fn get_unchecked_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
-        self.as_mut_slice().get_unchecked_mut(index)
+    unsafe fn get_unchecked_mut<I: SliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
+        #[cfg(has_slice_index)]
+        return self.as_mut_slice().get_unchecked_mut(index);
+
+        #[cfg(not(has_slice_index))]
+        return index.get_unchecked_mut(self.as_mut_slice());
     }
 
     // INDEX
 
     #[inline]
-    fn index<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
-        self.as_slice().index(index)
+    fn index<I: SliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
+        #[cfg(has_slice_index)]
+        return self.as_slice().index(index);
+
+        #[cfg(not(has_slice_index))]
+        return index.index(self.as_slice());
     }
 
     #[inline]
-    fn index_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
-        self.as_mut_slice().index_mut(index)
+    fn index_mut<I: SliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
+        #[cfg(has_slice_index)]
+        return self.as_mut_slice().index_mut(index);
+
+        #[cfg(not(has_slice_index))]
+        return index.index_mut(self.as_mut_slice());
     }
 
     // RGET
@@ -1058,7 +1148,7 @@ pub trait VecLike<T>:
     fn insert_many<I: iter::IntoIterator<Item=T>>(&mut self, index: usize, iterable: I);
 
     /// Remove many elements from range.
-    fn remove_many<R: ops::RangeBounds<usize>>(&mut self, range: R);
+    fn remove_many<R: RangeBounds<usize>>(&mut self, range: R);
 }
 
 #[cfg(all(feature = "correct", feature = "radix"))]
@@ -1139,7 +1229,7 @@ impl<T> VecLike<T> for Vec<T> {
     }
 
     #[inline]
-    fn remove_many<R: ops::RangeBounds<usize>>(&mut self, range: R) {
+    fn remove_many<R: RangeBounds<usize>>(&mut self, range: R) {
         remove_many(self, range)
     }
 }
@@ -1222,7 +1312,7 @@ impl<A: stackvector::Array> VecLike<A::Item> for stackvector::StackVec<A> {
     }
 
     #[inline]
-    fn remove_many<R: ops::RangeBounds<usize>>(&mut self, range: R) {
+    fn remove_many<R: RangeBounds<usize>>(&mut self, range: R) {
         remove_many(self, range)
     }
 }

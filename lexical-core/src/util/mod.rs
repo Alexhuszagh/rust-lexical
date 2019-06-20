@@ -23,6 +23,7 @@ mod config;
 mod error;
 mod mask;
 mod num;
+mod pointer_methods;
 mod primitive;
 mod pow;
 mod result;
@@ -32,6 +33,9 @@ mod table;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
+    mod bound;
+    mod range_bounds;
+    mod slice_index;
     mod sequence;
 } else {
     mod wrapped;
@@ -42,6 +46,7 @@ pub(crate) use self::algorithm::*;
 pub(crate) use self::cast::*;
 pub(crate) use self::mask::*;
 pub(crate) use self::num::*;
+pub(crate) use self::pointer_methods::*;
 pub(crate) use self::primitive::*;
 pub(crate) use self::pow::*;
 pub(crate) use self::rounding::*;

@@ -593,6 +593,7 @@ impl FloatErrors for u64 {
 }
 
 // 128-bit representation is always accurate, ignore this.
+#[cfg(has_i128)]
 impl FloatErrors for u128 {
     #[inline]
     fn error_scale() -> u32 {

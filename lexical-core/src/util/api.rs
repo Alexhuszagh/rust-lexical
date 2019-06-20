@@ -3,6 +3,7 @@
 use lib::{self, slice};
 use super::algorithm::distance;
 use super::num::Number;
+use super::pointer_methods::PointerMethods;
 use super::result::*;
 
 // HELPERS
@@ -278,7 +279,7 @@ macro_rules! generate_to_range_api {
 
             assert_buffer!(bytes, $size);
             let len = $cb(value, 10, bytes);
-            bytes.as_mut_ptr().add(len)
+            bytes.as_mut_ptr().padd(len)
         }
 
         /// Serializer for a number-to-string conversion using pointer ranges.
@@ -315,7 +316,7 @@ macro_rules! generate_to_range_api {
 
             assert_buffer!(bytes, $size);
             let len = $cb(value, radix, bytes);
-            bytes.as_mut_ptr().add(len)
+            bytes.as_mut_ptr().padd(len)
         }
     )
 }

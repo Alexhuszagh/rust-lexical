@@ -33,6 +33,24 @@ matrix:
         - cd ..
         - cargo bench --verbose --no-run
 
+    # Tests fail below 1.27.0
+    - rust: 1.24.0
+      script:
+        - cargo build
+        - cd lexical-core
+        - cargo build
+
+    # Doc tests fail below 1.30.0.
+    - rust: 1.27.0
+      script:
+        - cargo build
+        - cargo test --tests
+        - cd lexical-core
+        - cargo test
+
+    # All tests should work.
+    - rust: 1.30.0
+
 script:
   - cargo build
   - cargo test
