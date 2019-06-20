@@ -61,6 +61,8 @@ impl StdError for Error {
         }
     }
 
+    // Remove when we drop support below 1.27.
+    #[allow(bare_trait_objects)]
     fn cause(&self) -> Option<&StdError> {
         None
     }
