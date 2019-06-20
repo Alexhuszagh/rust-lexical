@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate bencher;
 extern crate dtoa;
-extern crate ryu_impl;
 extern crate lexical_core;
 
 use bencher::{black_box, Bencher};
@@ -34,13 +33,6 @@ fn ftoa_f32_dtoa(bench: &mut Bencher) {
     })})
 }
 
-fn ftoa_f32_ryu(bench: &mut Bencher) {
-    let mut buffer = ryu_impl::Buffer::new();
-    bench.iter(|| { F32_DATA.iter().for_each(|x| {
-        black_box(buffer.format(*x));
-    })})
-}
-
 fn ftoa_f32_to_string(bench: &mut Bencher) {
     bench.iter(|| { F32_DATA.iter().for_each(|x| { black_box(x.to_string()); } ) })
 }
@@ -67,19 +59,12 @@ fn ftoa_f64_dtoa(bench: &mut Bencher) {
     })})
 }
 
-fn ftoa_f64_ryu(bench: &mut Bencher) {
-    let mut buffer = ryu_impl::Buffer::new();
-    bench.iter(|| { F64_DATA.iter().for_each(|x| {
-        black_box(buffer.format(*x));
-    })})
-}
-
 fn ftoa_f64_to_string(bench: &mut Bencher) {
     bench.iter(|| { F64_DATA.iter().for_each(|x| { black_box(x.to_string()); } ) })
 }
 
 // MAIN
 
-benchmark_group!(f32_benches, ftoa_f32_lexical, ftoa_f32_dtoa, ftoa_f32_ryu, ftoa_f32_to_string);
-benchmark_group!(f64_benches, ftoa_f64_lexical, ftoa_f64_dtoa, ftoa_f64_ryu, ftoa_f64_to_string);
+benchmark_group!(f32_benches, ftoa_f32_lexical, ftoa_f32_dtoa, ftoa_f32_to_string);
+benchmark_group!(f64_benches, ftoa_f64_lexical, ftoa_f64_dtoa, ftoa_f64_to_string);
 benchmark_main!(f32_benches, f64_benches);

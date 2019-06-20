@@ -46,39 +46,19 @@ if #[cfg(feature = "correct")] {
 
 // FROM U32
 
-#[cfg(not(any(
-    target_arch = "aarch64",
-    target_arch = "mips64",
-    target_arch = "powerpc64",
-    target_arch = "x86_64"
-)))]
+#[cfg(limb_width_32)]
 pub(crate) type DataType = stackvector::StackVec<[u32; 128]>;
 
-#[cfg(any(
-    target_arch = "aarch64",
-    target_arch = "mips64",
-    target_arch = "powerpc64",
-    target_arch = "x86_64"
-))]
+#[cfg(limb_width_64)]
 pub(crate) type DataType = stackvector::StackVec<[u64; 64]>;
 
 
-#[cfg(not(any(
-    target_arch = "aarch64",
-    target_arch = "mips64",
-    target_arch = "powerpc64",
-    target_arch = "x86_64"
-)))]
+#[cfg(limb_width_32)]
 pub(crate) fn from_u32(x: &[u32]) -> DataType {
     x.iter().cloned().collect()
 }
 
-#[cfg(any(
-    target_arch = "aarch64",
-    target_arch = "mips64",
-    target_arch = "powerpc64",
-    target_arch = "x86_64"
-))]
+#[cfg(limb_width_64)]
 pub(crate) fn from_u32(x: &[u32]) -> DataType {
     let mut v = DataType::default();
     v.reserve(x.len() / 2);
@@ -93,23 +73,13 @@ pub(crate) fn from_u32(x: &[u32]) -> DataType {
     v
 }
 
-#[cfg(not(any(
-    target_arch = "aarch64",
-    target_arch = "mips64",
-    target_arch = "powerpc64",
-    target_arch = "x86_64"
-)))]
+#[cfg(limb_width_32)]
 pub(crate) fn deduce_from_u32<T: CloneableVecLike<u32>>(x: &[u32]) -> T
 {
     from_u32(x).iter().cloned().collect()
 }
 
-#[cfg(any(
-    target_arch = "aarch64",
-    target_arch = "mips64",
-    target_arch = "powerpc64",
-    target_arch = "x86_64"
-))]
+#[cfg(limb_width_64)]
 pub(crate) fn deduce_from_u32<T: CloneableVecLike<u64>>(x: &[u32]) -> T
 {
     from_u32(x).iter().cloned().collect()

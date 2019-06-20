@@ -34,12 +34,7 @@ use util::*;
 //  requiring software emulation.
 //      sparc64 (`UMUL` only supported double-word arguments).
 cfg_if! {
-if #[cfg(any(
-    target_arch = "aarch64",
-    target_arch = "mips64",
-    target_arch = "powerpc64",
-    target_arch = "x86_64"
-))] {
+if #[cfg(limb_width_64)] {
     pub type Limb = u64;
     type Wide = u128;
     type SignedWide = i128;
@@ -89,48 +84,28 @@ fn split_u32(x: u32) -> [Limb; 1] {
 }
 
 /// Split u64 into limbs, in little-endian order.
-#[cfg(not(any(
-    target_arch = "aarch64",
-    target_arch = "mips64",
-    target_arch = "powerpc64",
-    target_arch = "x86_64"
-)))]
+#[cfg(limb_width_32)]
 #[inline]
 fn split_u64(x: u64) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 32)]
 }
 
 /// Split u64 into limbs, in little-endian order.
-#[cfg(any(
-    target_arch = "aarch64",
-    target_arch = "mips64",
-    target_arch = "powerpc64",
-    target_arch = "x86_64"
-))]
+#[cfg(limb_width_64)]
 #[inline]
 fn split_u64(x: u64) -> [Limb; 1] {
     [as_limb(x)]
 }
 
 /// Split u128 into limbs, in little-endian order.
-#[cfg(not(any(
-    target_arch = "aarch64",
-    target_arch = "mips64",
-    target_arch = "powerpc64",
-    target_arch = "x86_64"
-)))]
+#[cfg(all(has_i128, limb_width_32))]
 #[inline]
 fn split_u128(x: u128) -> [Limb; 4] {
     [as_limb(x), as_limb(x >> 32), as_limb(x >> 64), as_limb(x >> 96)]
 }
 
 /// Split u128 into limbs, in little-endian order.
-#[cfg(any(
-    target_arch = "aarch64",
-    target_arch = "mips64",
-    target_arch = "powerpc64",
-    target_arch = "x86_64"
-))]
+#[cfg(all(has_i128, limb_width_64))]
 #[inline]
 fn split_u128(x: u128) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 64)]
@@ -603,6 +578,7 @@ impl Hi64<u64> for [u64] {
 // HI128
 
 /// Shift 128-bit integer to high 128-bits.
+#[cfg(has_i128)]
 #[inline]
 fn u128_to_hi128_1(r0: u128) -> (u128, bool) {
     let ls = r0.leading_zeros();
@@ -610,6 +586,7 @@ fn u128_to_hi128_1(r0: u128) -> (u128, bool) {
 }
 
 /// Shift 2 128-bit integers to high 128-bits.
+#[cfg(has_i128)]
 #[inline]
 fn u128_to_hi128_2(r0: u128, r1: u128) -> (u128, bool) {
     let ls = r0.leading_zeros();
@@ -620,6 +597,7 @@ fn u128_to_hi128_2(r0: u128, r1: u128) -> (u128, bool) {
 }
 
 /// Trait to export the high 128-bits from a little-endian slice.
+#[cfg(has_i128)]
 trait Hi128<T>: SliceLike<T> {
     /// Get the hi128 bits from a 1-limb slice.
     fn hi128_1(&self) -> (u128, bool);
@@ -664,6 +642,7 @@ trait Hi128<T>: SliceLike<T> {
     }
 }
 
+#[cfg(has_i128)]
 impl Hi128<u16> for [u16] {
     #[inline]
     fn hi128_1(&self) -> (u128, bool) {
@@ -775,6 +754,7 @@ impl Hi128<u16> for [u16] {
     }
 }
 
+#[cfg(has_i128)]
 impl Hi128<u32> for [u32] {
     #[inline]
     fn hi128_1(&self) -> (u128, bool) {
@@ -848,6 +828,7 @@ impl Hi128<u32> for [u32] {
     }
 }
 
+#[cfg(has_i128)]
 impl Hi128<u64> for [u64] {
     #[inline]
     fn hi128_1(&self) -> (u128, bool) {
@@ -2390,6 +2371,7 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
     }
 
     /// Get the high 128-bits from the bigint and if there are remaining bits.
+    #[cfg(has_i128)]
     #[inline]
     fn hi128(&self) -> (u128, bool) {
         self.data().as_slice().hi128()
@@ -2437,6 +2419,7 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
     }
 
     /// Create new big integer from u128.
+    #[cfg(has_i128)]
     #[inline]
     fn from_u128(x: u128) -> Self {
         let mut v = Self::default();

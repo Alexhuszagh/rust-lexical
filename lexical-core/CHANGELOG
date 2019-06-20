@@ -1,0 +1,15 @@
+# Changelog
+
+Notes significant changes to lexical-core.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.4.1] - 2019-06-20
+### Added
+- Backwards compatible support for Rustc 1.24.0.
+
+### Changed
+- Worked around a bug in the internal float formatter where `&arr[idx]` creates a local copy in Rust versions before 1.28.0, creating a dangling reference after the scope ends. For more details, see `cached_grisu_power` in `/lexical-core/src/ftoa/grisu2.rs` .

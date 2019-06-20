@@ -9,16 +9,20 @@ pub trait AsPrimitive: Copy + PartialEq + PartialOrd + Send + Sync {
     fn as_u16(self) -> u16;
     fn as_u32(self) -> u32;
     fn as_u64(self) -> u64;
-    fn as_u128(self) -> u128;
     fn as_usize(self) -> usize;
     fn as_i8(self) -> i8;
     fn as_i16(self) -> i16;
     fn as_i32(self) -> i32;
     fn as_i64(self) -> i64;
-    fn as_i128(self) -> i128;
     fn as_isize(self) -> isize;
     fn as_f32(self) -> f32;
     fn as_f64(self) -> f64;
+
+    #[cfg(has_i128)]
+    fn as_u128(self) -> u128;
+
+    #[cfg(has_i128)]
+    fn as_i128(self) -> i128;
 }
 
 macro_rules! as_primitive {
@@ -44,6 +48,7 @@ macro_rules! as_primitive {
                 self as u64
             }
 
+            #[cfg(has_i128)]
             #[inline]
             fn as_u128(self) -> u128 {
                 self as u128
@@ -74,6 +79,7 @@ macro_rules! as_primitive {
                 self as i64
             }
 
+            #[cfg(has_i128)]
             #[inline]
             fn as_i128(self) -> i128 {
                 self as i128
@@ -97,96 +103,96 @@ macro_rules! as_primitive {
     )*)
 }
 
-as_primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
+as_primitive! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64 }
+#[cfg(has_i128)] as_primitive! { u128 i128 }
 
-/// Type that can be converted to primitive with `as`.
-pub trait TryPrimitive:
-    AsCast +
-    TryCast<u8> +
-    TryCast<u16> +
-    TryCast<u32> +
-    TryCast<u64> +
-    TryCast<u128> +
-    TryCast<usize> +
-    TryCast<i8> +
-    TryCast<i16> +
-    TryCast<i32> +
-    TryCast<i64> +
-    TryCast<i128> +
-    TryCast<isize> +
-    TryCast<f32> +
-    TryCast<f64>
-{
-    #[inline]
-    fn try_u8(self) -> Option<u8> {
-        self.try_cast()
-    }
+macro_rules! def_try_primitive {
+    ($($t:ty)*) => (
+        /// Type that can be converted to primitive with `as`.
+        pub trait TryPrimitive:
+            AsCast +
+            $(TryCast<$t> +)*
+        {
+            #[inline]
+            fn try_u8(self) -> Option<u8> {
+                self.try_cast()
+            }
 
-    #[inline]
-    fn try_u16(self) -> Option<u16> {
-        self.try_cast()
-    }
+            #[inline]
+            fn try_u16(self) -> Option<u16> {
+                self.try_cast()
+            }
 
-    #[inline]
-    fn try_u32(self) -> Option<u32> {
-        self.try_cast()
-    }
+            #[inline]
+            fn try_u32(self) -> Option<u32> {
+                self.try_cast()
+            }
 
-    #[inline]
-    fn try_u64(self) -> Option<u64> {
-        self.try_cast()
-    }
+            #[inline]
+            fn try_u64(self) -> Option<u64> {
+                self.try_cast()
+            }
 
-    #[inline]
-    fn try_u128(self) -> Option<u128> {
-        self.try_cast()
-    }
+            #[cfg(has_i128)]
+            #[inline]
+            fn try_u128(self) -> Option<u128> {
+                self.try_cast()
+            }
 
-    #[inline]
-    fn try_usize(self) -> Option<usize> {
-        self.try_cast()
-    }
+            #[inline]
+            fn try_usize(self) -> Option<usize> {
+                self.try_cast()
+            }
 
-    #[inline]
-    fn try_i8(self) -> Option<i8> {
-        self.try_cast()
-    }
+            #[inline]
+            fn try_i8(self) -> Option<i8> {
+                self.try_cast()
+            }
 
-    #[inline]
-    fn try_i16(self) -> Option<i16> {
-        self.try_cast()
-    }
+            #[inline]
+            fn try_i16(self) -> Option<i16> {
+                self.try_cast()
+            }
 
-    #[inline]
-    fn try_i32(self) -> Option<i32> {
-        self.try_cast()
-    }
+            #[inline]
+            fn try_i32(self) -> Option<i32> {
+                self.try_cast()
+            }
 
-    #[inline]
-    fn try_i64(self) -> Option<i64> {
-        self.try_cast()
-    }
+            #[inline]
+            fn try_i64(self) -> Option<i64> {
+                self.try_cast()
+            }
 
-    #[inline]
-    fn try_i128(self) -> Option<i128> {
-        self.try_cast()
-    }
+            #[cfg(has_i128)]
+            #[inline]
+            fn try_i128(self) -> Option<i128> {
+                self.try_cast()
+            }
 
-    #[inline]
-    fn try_isize(self) -> Option<isize> {
-        self.try_cast()
-    }
+            #[inline]
+            fn try_isize(self) -> Option<isize> {
+                self.try_cast()
+            }
 
-    #[inline]
-    fn try_f32(self) -> Option<f32> {
-        self.try_cast()
-    }
+            #[inline]
+            fn try_f32(self) -> Option<f32> {
+                self.try_cast()
+            }
 
-    #[inline]
-    fn try_f64(self) -> Option<f64> {
-        self.try_cast()
-    }
+            #[inline]
+            fn try_f64(self) -> Option<f64> {
+                self.try_cast()
+            }
+        }
+    );
 }
+
+#[cfg(has_i128)]
+def_try_primitive!(u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64);
+
+#[cfg(not(has_i128))]
+def_try_primitive!(u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64);
 
 macro_rules! try_primitive {
     ($($t:ty)*) => ($(
@@ -194,7 +200,8 @@ macro_rules! try_primitive {
     )*)
 }
 
-try_primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
+try_primitive! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64 }
+#[cfg(has_i128)] try_primitive! { u128 i128 }
 
 // PRIMITIVE
 
@@ -208,7 +215,8 @@ macro_rules! primitive {
     )*)
 }
 
-primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
+primitive! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64 }
+#[cfg(has_i128)] primitive! { u128 i128 }
 
 // TEST
 // ----

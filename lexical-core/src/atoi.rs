@@ -199,9 +199,9 @@ pub(crate) fn filter_sign<'a, T, Cb>(radix: u32, bytes: &'a [u8], cb: Cb)
           Cb: FnOnce(&mut T, T, &'a [u8], Sign) -> (usize, Option<&'a u8>)
 {
     let (sign_bytes, sign) = match bytes.get(0) {
-        Some(b'+') => (1, Sign::Positive),
-        Some(b'-') => (1, Sign::Negative),
-        _          => (0, Sign::Positive),
+        Some(&b'+') => (1, Sign::Positive),
+        Some(&b'-') => (1, Sign::Negative),
+        _           => (0, Sign::Positive),
     };
 
     if bytes.len() > sign_bytes {
@@ -269,8 +269,10 @@ wrap_unsigned!(atou8_impl, u8);
 wrap_unsigned!(atou16_impl, u16);
 wrap_unsigned!(atou32_impl, u32);
 wrap_unsigned!(atou64_impl, u64);
-wrap_unsigned!(atou128_impl, u128);
 wrap_unsigned!(atousize_impl, usize);
+
+#[cfg(has_i128)]
+wrap_unsigned!(atou128_impl, u128);
 
 /// Expand the generic signed atoi function for specified types.
 macro_rules! wrap_signed {
@@ -290,60 +292,64 @@ wrap_signed!(atoi8_impl, i8);
 wrap_signed!(atoi16_impl, i16);
 wrap_signed!(atoi32_impl, i32);
 wrap_signed!(atoi64_impl, i64);
-wrap_signed!(atoi128_impl, i128);
 wrap_signed!(atoisize_impl, isize);
+
+#[cfg(has_i128)]
+wrap_signed!(atoi128_impl, i128);
 
 // RANGE API (FFI)
 generate_from_range_api!(atou8_range, atou8_radix_range, u8, atou8_impl);
 generate_from_range_api!(atou16_range, atou16_radix_range, u16, atou16_impl);
 generate_from_range_api!(atou32_range, atou32_radix_range, u32, atou32_impl);
 generate_from_range_api!(atou64_range, atou64_radix_range, u64, atou64_impl);
-generate_from_range_api!(atou128_range, atou128_radix_range, u128, atou128_impl);
 generate_from_range_api!(atousize_range, atousize_radix_range, usize, atousize_impl);
 generate_from_range_api!(atoi8_range, atoi8_radix_range, i8, atoi8_impl);
 generate_from_range_api!(atoi16_range, atoi16_radix_range, i16, atoi16_impl);
 generate_from_range_api!(atoi32_range, atoi32_radix_range, i32, atoi32_impl);
 generate_from_range_api!(atoi64_range, atoi64_radix_range, i64, atoi64_impl);
-generate_from_range_api!(atoi128_range, atoi128_radix_range, i128, atoi128_impl);
 generate_from_range_api!(atoisize_range, atoisize_radix_range, isize, atoisize_impl);
 generate_try_from_range_api!(try_atou8_range, try_atou8_radix_range, u8, atou8_impl);
 generate_try_from_range_api!(try_atou16_range, try_atou16_radix_range, u16, atou16_impl);
 generate_try_from_range_api!(try_atou32_range, try_atou32_radix_range, u32, atou32_impl);
 generate_try_from_range_api!(try_atou64_range, try_atou64_radix_range, u64, atou64_impl);
-generate_try_from_range_api!(try_atou128_range, try_atou128_radix_range, u128, atou128_impl);
 generate_try_from_range_api!(try_atousize_range, try_atousize_radix_range, usize, atousize_impl);
 generate_try_from_range_api!(try_atoi8_range, try_atoi8_radix_range, i8, atoi8_impl);
 generate_try_from_range_api!(try_atoi16_range, try_atoi16_radix_range, i16, atoi16_impl);
 generate_try_from_range_api!(try_atoi32_range, try_atoi32_radix_range, i32, atoi32_impl);
 generate_try_from_range_api!(try_atoi64_range, try_atoi64_radix_range, i64, atoi64_impl);
-generate_try_from_range_api!(try_atoi128_range, try_atoi128_radix_range, i128, atoi128_impl);
 generate_try_from_range_api!(try_atoisize_range, try_atoisize_radix_range, isize, atoisize_impl);
+
+#[cfg(has_i128)] generate_from_range_api!(atou128_range, atou128_radix_range, u128, atou128_impl);
+#[cfg(has_i128)] generate_from_range_api!(atoi128_range, atoi128_radix_range, i128, atoi128_impl);
+#[cfg(has_i128)] generate_try_from_range_api!(try_atou128_range, try_atou128_radix_range, u128, atou128_impl);
+#[cfg(has_i128)] generate_try_from_range_api!(try_atoi128_range, try_atoi128_radix_range, i128, atoi128_impl);
 
 // SLICE API
 generate_from_slice_api!(atou8_slice, atou8_radix_slice, u8, atou8_impl);
 generate_from_slice_api!(atou16_slice, atou16_radix_slice, u16, atou16_impl);
 generate_from_slice_api!(atou32_slice, atou32_radix_slice, u32, atou32_impl);
 generate_from_slice_api!(atou64_slice, atou64_radix_slice, u64, atou64_impl);
-generate_from_slice_api!(atou128_slice, atou128_radix_slice, u128, atou128_impl);
 generate_from_slice_api!(atousize_slice, atousize_radix_slice, usize, atousize_impl);
 generate_from_slice_api!(atoi8_slice, atoi8_radix_slice, i8, atoi8_impl);
 generate_from_slice_api!(atoi16_slice, atoi16_radix_slice, i16, atoi16_impl);
 generate_from_slice_api!(atoi32_slice, atoi32_radix_slice, i32, atoi32_impl);
 generate_from_slice_api!(atoi64_slice, atoi64_radix_slice, i64, atoi64_impl);
-generate_from_slice_api!(atoi128_slice, atoi128_radix_slice, i128, atoi128_impl);
 generate_from_slice_api!(atoisize_slice, atoisize_radix_slice, isize, atoisize_impl);
 generate_try_from_slice_api!(try_atou8_slice, try_atou8_radix_slice, u8, atou8_impl);
 generate_try_from_slice_api!(try_atou16_slice, try_atou16_radix_slice, u16, atou16_impl);
 generate_try_from_slice_api!(try_atou32_slice, try_atou32_radix_slice, u32, atou32_impl);
 generate_try_from_slice_api!(try_atou64_slice, try_atou64_radix_slice, u64, atou64_impl);
-generate_try_from_slice_api!(try_atou128_slice, try_atou128_radix_slice, u128, atou128_impl);
 generate_try_from_slice_api!(try_atousize_slice, try_atousize_radix_slice, usize, atousize_impl);
 generate_try_from_slice_api!(try_atoi8_slice, try_atoi8_radix_slice, i8, atoi8_impl);
 generate_try_from_slice_api!(try_atoi16_slice, try_atoi16_radix_slice, i16, atoi16_impl);
 generate_try_from_slice_api!(try_atoi32_slice, try_atoi32_radix_slice, i32, atoi32_impl);
 generate_try_from_slice_api!(try_atoi64_slice, try_atoi64_radix_slice, i64, atoi64_impl);
-generate_try_from_slice_api!(try_atoi128_slice, try_atoi128_radix_slice, i128, atoi128_impl);
 generate_try_from_slice_api!(try_atoisize_slice, try_atoisize_radix_slice, isize, atoisize_impl);
+
+#[cfg(has_i128)] generate_from_slice_api!(atou128_slice, atou128_radix_slice, u128, atou128_impl);
+#[cfg(has_i128)] generate_from_slice_api!(atoi128_slice, atoi128_radix_slice, i128, atoi128_impl);
+#[cfg(has_i128)] generate_try_from_slice_api!(try_atou128_slice, try_atou128_radix_slice, u128, atou128_impl);
+#[cfg(has_i128)] generate_try_from_slice_api!(try_atoi128_slice, try_atoi128_radix_slice, i128, atoi128_impl);
 
 // TESTS
 // -----

@@ -105,6 +105,7 @@
 extern crate cfg_if;
 
 #[cfg(feature = "correct")]
+#[allow(unused_imports)]    // Not used before 1.26.
 #[macro_use]
 extern crate static_assertions;
 

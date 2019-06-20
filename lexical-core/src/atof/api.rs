@@ -119,9 +119,9 @@ fn filter_sign<'a, F: StringToFloat>(radix: u32, bytes: &'a [u8], lossy: bool)
 {
     let len = bytes.len();
     let (sign_bytes, sign) = match bytes.get(0) {
-        Some(b'+') => (1, Sign::Positive),
-        Some(b'-') => (1, Sign::Negative),
-        _          => (0, Sign::Positive),
+        Some(&b'+') => (1, Sign::Positive),
+        Some(&b'-') => (1, Sign::Negative),
+        _           => (0, Sign::Positive),
     };
 
     if len > sign_bytes {

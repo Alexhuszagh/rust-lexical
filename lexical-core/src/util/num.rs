@@ -35,7 +35,8 @@ macro_rules! number_impl {
     )*)
 }
 
-number_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
+number_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64 }
+#[cfg(has_i128)] number_impl! { u128 i128 }
 
 // INTEGER
 
@@ -53,7 +54,7 @@ pub trait Integer:
     ops::BitXor<Output=Self> +
     ops::BitXorAssign +
     ops::Not +
-    ops::Shl<Output=Self> +
+    ops::Shl<Self, Output=Self> +
     ops::Shl<u8, Output=Self> +
     ops::Shl<u16, Output=Self> +
     ops::Shl<u32, Output=Self> +
@@ -64,7 +65,7 @@ pub trait Integer:
     ops::Shl<i64, Output=Self> +
     ops::Shl<isize, Output=Self> +
     ops::Shl<i32, Output=Self> +
-    ops::ShlAssign +
+    ops::ShlAssign<Self> +
     ops::ShlAssign<u8> +
     ops::ShlAssign<u16> +
     ops::ShlAssign<u32> +
@@ -75,7 +76,7 @@ pub trait Integer:
     ops::ShlAssign<i32> +
     ops::ShlAssign<i64> +
     ops::ShlAssign<isize> +
-    ops::Shr<Output=Self> +
+    ops::Shr<Self, Output=Self> +
     ops::Shr<u8, Output=Self> +
     ops::Shr<u16, Output=Self> +
     ops::Shr<u32, Output=Self> +
@@ -86,7 +87,7 @@ pub trait Integer:
     ops::Shr<i64, Output=Self> +
     ops::Shr<isize, Output=Self> +
     ops::Shr<i32, Output=Self> +
-    ops::ShrAssign +
+    ops::ShrAssign<Self> +
     ops::ShrAssign<u8> +
     ops::ShrAssign<u16> +
     ops::ShrAssign<u32> +
@@ -229,6 +230,7 @@ pub trait Integer:
         try_cast_or_max(self)
     }
 
+    #[cfg(has_i128)]
     #[inline]
     fn try_u128_or_max(self) -> u128 {
         try_cast_or_max(self)
@@ -259,6 +261,7 @@ pub trait Integer:
         try_cast_or_max(self)
     }
 
+    #[cfg(has_i128)]
     #[inline]
     fn try_i128_or_max(self) -> i128 {
         try_cast_or_max(self)
@@ -291,6 +294,7 @@ pub trait Integer:
         try_cast_or_min(self)
     }
 
+    #[cfg(has_i128)]
     #[inline]
     fn try_u128_or_min(self) -> u128 {
         try_cast_or_min(self)
@@ -321,6 +325,7 @@ pub trait Integer:
         try_cast_or_min(self)
     }
 
+    #[cfg(has_i128)]
     #[inline]
     fn try_i128_or_min(self) -> i128 {
         try_cast_or_min(self)
@@ -510,7 +515,8 @@ macro_rules! integer_impl {
     )*)
 }
 
-integer_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
+integer_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
+#[cfg(has_i128)] integer_impl! { u128 i128 }
 
 /// Unwrap or get T::max_value().
 #[inline]
@@ -565,7 +571,8 @@ macro_rules! signed_integer_impl {
     )*)
 }
 
-signed_integer_impl! { i8 i16 i32 i64 i128 isize }
+signed_integer_impl! { i8 i16 i32 i64 isize }
+#[cfg(has_i128)] signed_integer_impl! { i128 }
 
 // UNSIGNED INTEGER
 
@@ -591,7 +598,8 @@ macro_rules! unsigned_integer_impl {
     )*)
 }
 
-unsigned_integer_impl! { u8 u16 u32 u64 u128 usize }
+unsigned_integer_impl! { u8 u16 u32 u64 usize }
+#[cfg(has_i128)] unsigned_integer_impl! { u128 }
 
 // FLOAT
 
