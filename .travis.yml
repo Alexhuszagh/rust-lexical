@@ -1,48 +1,32 @@
-sudo: false
+# Travis configurations are partially derived from trust.
+# See ci/README.md for license information.
 
+dist: trusty
 language: rust
+services: docker
+sudo: required
 
 matrix:
   include:
     - rust: stable
+      env: TARGET=x86_64-unknown-linux-gnu
+
     - rust: beta
+      env: TARGET=x86_64-unknown-linux-gnu
 
     - rust: nightly
-      script:
-        - cargo build
-        - cargo test
-        - cd lexical-core
-        - cargo test
-        - cargo test --no-default-features --tests
-        - cargo test --no-default-features --features=rounding  --tests
-        - cargo test --no-default-features --features=rounding,radix  --tests
-        - cargo test --no-default-features --features=rounding,unchecked_index  --tests
-        - cargo test --no-default-features --features=trim_floats --tests
-        - cargo test --no-default-features --features=trim_floats,radix --tests
-        - cargo test --no-default-features --features=trim_floats,unchecked_index --tests
-        - cargo test --no-default-features --features=table --tests
-        - cargo test --no-default-features --features=table,radix --tests
-        - cargo test --no-default-features --features=table,unchecked_index --tests
-        - cargo test --no-default-features --features=grisu3 --tests
-        - cargo test --no-default-features --features=ryu --tests
-        - cargo test --no-default-features --features=correct --tests
-        - cargo test --no-default-features --features=correct,radix --tests
-        - cargo test --no-default-features --features=correct,unchecked_index --tests
-        - cargo test --no-default-features --features=correct,radix --tests special_rounding -- --ignored --test-threads=1
-        - cargo test --features=correct,rounding,radix special_rounding -- --ignored --test-threads=1
-        - cd ..
-        - cargo bench --verbose --no-run
+      env: TARGET=x86_64-unknown-linux-gnu NO_STD=1
 
     # Tests fail below 1.27.0
     - rust: 1.24.0
-      script:
-        - cargo build
-        - cd lexical-core
-        - cargo build
+      env: TARGET=x86_64-unknown-linux-gnu DISABLE_TESTS=1
 
     # Doc tests fail below 1.30.0.
     - rust: 1.27.0
       script:
+        # Need to use a custom script since `cross` requires `fuchsia-cprng`,
+        # which does not work on Rustc 1.27.0 (due to `edition` in the
+        # Cargo.toml.
         - cargo build
         - cargo test --tests
         - cd lexical-core
@@ -50,28 +34,72 @@ matrix:
 
     # All tests should work.
     - rust: 1.30.0
+      env: TARGET=x86_64-unknown-linux-gnu
+
+    # Android
+    - env: TARGET=aarch64-linux-android DISABLE_TESTS=1
+    - env: TARGET=arm-linux-androideabi DISABLE_TESTS=1
+    - env: TARGET=armv7-linux-androideabi DISABLE_TESTS=1
+    - env: TARGET=i686-linux-android DISABLE_TESTS=1
+    - env: TARGET=x86_64-linux-android DISABLE_TESTS=1
+
+    # iOS
+    - env: TARGET=aarch64-apple-ios DISABLE_TESTS=1
+      os: osx
+    - env: TARGET=armv7-apple-ios DISABLE_TESTS=1
+      os: osx
+    - env: TARGET=armv7s-apple-ios DISABLE_TESTS=1
+      os: osx
+    - env: TARGET=i386-apple-ios DISABLE_TESTS=1
+      os: osx
+    - env: TARGET=x86_64-apple-ios DISABLE_TESTS=1
+      os: osx
+
+    # Linux
+    # All of the following fail to compile benches due to an issue
+    # with the binary format (ELF) and relocations in the bench binary.
+    # Every test, except for i686-unknown-linux-musl, fails on the benches.
+    - env: TARGET=aarch64-unknown-linux-gnu DISABLE_BENCHES=1
+    - env: TARGET=arm-unknown-linux-gnueabi DISABLE_BENCHES=1
+    - env: TARGET=armv7-unknown-linux-gnueabihf DISABLE_BENCHES=1
+    - env: TARGET=i686-unknown-linux-gnu DISABLE_BENCHES=1
+    - env: TARGET=i686-unknown-linux-musl
+    - env: TARGET=mips-unknown-linux-gnu DISABLE_BENCHES=1
+    - env: TARGET=mips64-unknown-linux-gnuabi64 DISABLE_BENCHES=1
+    - env: TARGET=mips64el-unknown-linux-gnuabi64 DISABLE_BENCHES=1
+    - env: TARGET=mipsel-unknown-linux-gnu DISABLE_BENCHES=1
+    - env: TARGET=powerpc-unknown-linux-gnu DISABLE_BENCHES=1
+    - env: TARGET=powerpc64-unknown-linux-gnu DISABLE_BENCHES=1
+    - env: TARGET=powerpc64le-unknown-linux-gnu DISABLE_BENCHES=1
+    - env: TARGET=s390x-unknown-linux-gnu DISABLE_TESTS=1
+    - env: TARGET=x86_64-unknown-linux-gnu DISABLE_BENCHES=1
+    - env: TARGET=x86_64-unknown-linux-musl DISABLE_BENCHES=1
+
+    # OSX
+    - env: TARGET=i686-apple-darwin
+      os: osx
+    - env: TARGET=x86_64-apple-darwin
+      os: osx
+
+    # *BSD
+    - env: TARGET=i686-unknown-freebsd DISABLE_TESTS=1
+    - env: TARGET=x86_64-unknown-freebsd DISABLE_TESTS=1
+    - env: TARGET=x86_64-unknown-netbsd DISABLE_TESTS=1
+
+    # Windows
+    # Benches fail since the following option is not recognized:
+    #   '--enable-long-section-names'
+    - env: TARGET=x86_64-pc-windows-gnu DISABLE_BENCHES=1
+
+before_install:
+  - set -e
+  - rustup self update
+
+install:
+  - sh ci/install.sh
+  - source ~/.cargo/env || true
 
 script:
-  - cargo build
-  - cargo test
-  - cd lexical-core
-  - cargo test --features=std
-  - cargo test --no-default-features --features=std
-  - cargo test --no-default-features --features=std,rounding
-  - cargo test --no-default-features --features=std,rounding,radix
-  - cargo test --no-default-features --features=std,rounding,unchecked_index
-  - cargo test --no-default-features --features=std,trim_floats
-  - cargo test --no-default-features --features=std,trim_floats,radix
-  - cargo test --no-default-features --features=std,trim_floats,unchecked_index
-  - cargo test --no-default-features --features=std,table
-  - cargo test --no-default-features --features=std,table,radix
-  - cargo test --no-default-features --features=std,table,unchecked_index
-  - cargo test --no-default-features --features=std,grisu3
-  - cargo test --no-default-features --features=std,ryu
-  - cargo test --no-default-features --features=std,correct
-  - cargo test --no-default-features --features=std,correct,radix
-  - cargo test --no-default-features --features=std,correct,unchecked_index
-  - cargo test --features=correct,radix special_rounding -- --ignored --test-threads=1
-  - cargo test --features=correct,rounding,radix special_rounding -- --ignored --test-threads=1
-  - cd ..
-  - cargo bench --verbose --no-run
+  - bash ci/script.sh
+
+after_script: set +e
