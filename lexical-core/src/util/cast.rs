@@ -288,9 +288,10 @@ if #[cfg(target_pointer_width = "16")] {
     #[cfg(has_i128)] try_cast! { @below u128, isize }
     #[cfg(has_i128)] try_cast! { @within i128, isize }
 } else if #[cfg(target_pointer_width = "32")] {
-    // 32-bit usize
     try_cast! { @below usize, u8, u16 }
+    try_cast! { @widen usize, u32, u64, usize }
     try_cast! { @below usize, i8, i16, i32, isize }
+    try_cast! { @widen usize, i64 }
     try_cast! { @into_float usize, f32 }
     try_cast! { @widen usize, f64 }
     try_cast! { @widen u8, usize }
