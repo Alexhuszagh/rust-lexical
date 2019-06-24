@@ -18,6 +18,7 @@ Low-level, FFI-compatible, lexical conversion routines for use in a `no_std` con
   - [String to Float](#string-to-float)
   - [Arbitrary-Precision Arithmetic](#arbitrary-precision-arithmetic)
   - [Algorithm Background and Comparison](#algorithm-background-and-comparison)
+- [Known Issues](#known-issues)
 - [Version Support](#version-support)
 - [Changelog](#changelog)
 - [License](#license)
@@ -332,6 +333,10 @@ Since our real digits are below the theoretical halfway point, we know we need t
 3. We use fast exponentiation and multiplication algorithms to scale the significant digits for comparison.
 4. For the fallback bigcomp algorithm, we use a division algorithm optimized for the generation of a single digit from a given radix, by setting the leading bit in the denominator 4 below the most-significant bit (in decimal strings). This requires only 1 native division per digit generated.
 4. The individual "limbs" of the big integers are optimized to the architecture we compile on, for example, u32 on x86 and u64 on x86-64, minimizing the number of native operations required. Currently, 64-bit limbs are used on target architectures `aarch64`, `powerpc64`, `mips64`, and `x86_64`.
+
+# Known Issues
+
+On the armv6 architecture, the stable exponentiation for the fast, incorrect float parser is not fully stable. For example, `1e-300` is correct, while `5e-324` rounds to `0`. This does not affect the default, correct float parser, nor armv7 or armv8 (aarch64) architectures. This bug may compound errors in the incorrect parser (feature-gated by disabling the `correct` feature`).
 
 # Version Support
 
