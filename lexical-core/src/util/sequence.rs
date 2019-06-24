@@ -238,7 +238,7 @@ pub trait Contains<T: PartialEq> {
 }
 
 // Remove when we drop support below 1.27.
-#[allow(bare_trait_objects)]
+#[allow(unknown_lints, bare_trait_objects)]
 impl<T: PartialEq> Contains<T> for SliceLikeImpl<T> {
     #[inline]
     fn contains(&self, x: &T) -> bool {
@@ -253,7 +253,7 @@ pub trait StartsWith<T: PartialEq> {
 }
 
 // Remove when we drop support below 1.27.
-#[allow(bare_trait_objects)]
+#[allow(unknown_lints, bare_trait_objects)]
 impl<T: PartialEq> StartsWith<T> for SliceLikeImpl<T> {
     #[inline]
     fn starts_with(&self, x: &[T]) -> bool {
@@ -268,7 +268,7 @@ pub trait EndsWith<T: PartialEq> {
 }
 
 // Remove when we drop support below 1.27.
-#[allow(bare_trait_objects)]
+#[allow(unknown_lints, bare_trait_objects)]
 impl<T: PartialEq> EndsWith<T> for SliceLikeImpl<T> {
     #[inline]
     fn ends_with(&self, x: &[T]) -> bool {
@@ -283,7 +283,7 @@ pub trait BinarySearch<T: Ord> {
 }
 
 // Remove when we drop support below 1.27.
-#[allow(bare_trait_objects)]
+#[allow(unknown_lints, bare_trait_objects)]
 impl<T: Ord> BinarySearch<T> for SliceLikeImpl<T> {
     #[inline]
     fn binary_search(&self, x: &T) -> Result<usize, usize> {
@@ -298,7 +298,7 @@ pub trait Sort<T: Ord> {
 }
 
 // Remove when we drop support below 1.27.
-#[allow(bare_trait_objects)]
+#[allow(unknown_lints, bare_trait_objects)]
 impl<T: Ord> Sort<T> for SliceLikeImpl<T> {
     #[inline]
     fn sort(&mut self) {
@@ -313,7 +313,7 @@ pub trait SortUnstable<T: Ord> {
 }
 
 // Remove when we drop support below 1.27.
-#[allow(bare_trait_objects)]
+#[allow(unknown_lints, bare_trait_objects)]
 impl<T: Ord> SortUnstable<T> for SliceLikeImpl<T> {
     #[inline]
     fn sort_unstable(&mut self) {
@@ -328,7 +328,7 @@ pub trait CloneFromSlice<T: Clone> {
 }
 
 // Remove when we drop support below 1.27.
-#[allow(bare_trait_objects)]
+#[allow(unknown_lints, bare_trait_objects)]
 impl<T: Clone> CloneFromSlice<T> for SliceLikeImpl<T> {
     #[inline]
     fn clone_from_slice(&mut self, src: &[T]) {
@@ -343,7 +343,7 @@ pub trait CopyFromSlice<T: Copy> {
 }
 
 // Remove when we drop support below 1.27.
-#[allow(bare_trait_objects)]
+#[allow(unknown_lints, bare_trait_objects)]
 impl<T: Copy> CopyFromSlice<T> for SliceLikeImpl<T> {
     #[inline]
     fn copy_from_slice(&mut self, src: &[T]) {
