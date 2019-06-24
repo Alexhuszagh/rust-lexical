@@ -263,6 +263,11 @@ mod tests {
         assert_relative_eq!(f64::iterative_pow_finite(1.0, 10, -200), 1e-200, epsilon=1e-15);
         assert_relative_eq!(f64::iterative_pow_finite(1.0, 10, -300), 1e-300, epsilon=1e-15);
         assert_relative_eq!(f64::iterative_pow_finite(1.0, 10, -308), 1e-308, epsilon=1e-15);
+
+        // This only affects armv6 and not armv7, but we'll skip this test
+        // both, since `target_arch` does not differentiate between
+        // the two.
+        #[cfg(not(target_arch = "arm"))]
         assert_eq!(f64::iterative_pow_finite(5.0, 10, -324), 5e-324);
 
         // overflow

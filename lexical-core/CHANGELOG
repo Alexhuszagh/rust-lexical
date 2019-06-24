@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.2] - 2019-06-24
 ### Added
 - Comprehensive continuous integration unittests for numerous platforms, based off the [trust](https://github.com/japaric/trust) templates.
+- Added known issue for a non-default, lossy setting on armv6 architectures.
 
 ### Changed
 - Bug fix for 32-bit targets.
