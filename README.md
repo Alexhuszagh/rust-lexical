@@ -21,7 +21,7 @@ Fast lexical conversion routines for both std and no_std environments. Lexical p
 
 Add lexical to your `Cargo.toml`:
 
-```yaml
+```toml
 [dependencies]
 lexical = "^2.1"
 ```
