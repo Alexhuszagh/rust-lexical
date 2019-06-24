@@ -29,7 +29,7 @@ lexical-core is a low-level, partially FFI-compatible API for number-to-string a
 
 Add lexical-core to your `Cargo.toml`:
 
-```yaml
+```toml
 [dependencies]
 lexical-core = "^0.4"
 ```
