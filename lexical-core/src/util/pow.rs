@@ -267,7 +267,7 @@ mod tests {
         // This only affects armv6 and not armv7, but we'll skip this test
         // both, since `target_arch` does not differentiate between
         // the two.
-        #[cfg(not(target_arch = "arm"))]
+        #[cfg(not(all(target_arch = "arm", not(target_feature = "v7"))))]
         assert_eq!(f64::iterative_pow_finite(5.0, 10, -324), 5e-324);
 
         // overflow
