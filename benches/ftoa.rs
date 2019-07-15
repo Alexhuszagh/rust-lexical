@@ -33,8 +33,15 @@ fn ftoa_f32_dtoa(bench: &mut Bencher) {
     })})
 }
 
-fn ftoa_f32_to_string(bench: &mut Bencher) {
-    bench.iter(|| { F32_DATA.iter().for_each(|x| { black_box(x.to_string()); } ) })
+fn ftoa_f32_std(bench: &mut Bencher) {
+    use std::io::Write;
+    let mut buffer = Vec::with_capacity(256);
+    bench.iter(|| {
+        F32_DATA.iter().for_each(|x| {
+            black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
+            unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
+        })
+    })
 }
 
 // F64
@@ -59,12 +66,19 @@ fn ftoa_f64_dtoa(bench: &mut Bencher) {
     })})
 }
 
-fn ftoa_f64_to_string(bench: &mut Bencher) {
-    bench.iter(|| { F64_DATA.iter().for_each(|x| { black_box(x.to_string()); } ) })
+fn ftoa_f64_std(bench: &mut Bencher) {
+    use std::io::Write;
+    let mut buffer = Vec::with_capacity(256);
+    bench.iter(|| {
+        F64_DATA.iter().for_each(|x| {
+            black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
+            unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
+        })
+    })
 }
 
 // MAIN
 
-benchmark_group!(f32_benches, ftoa_f32_lexical, ftoa_f32_dtoa, ftoa_f32_to_string);
-benchmark_group!(f64_benches, ftoa_f64_lexical, ftoa_f64_dtoa, ftoa_f64_to_string);
+benchmark_group!(f32_benches, ftoa_f32_lexical, ftoa_f32_dtoa, ftoa_f32_std);
+benchmark_group!(f64_benches, ftoa_f64_lexical, ftoa_f64_dtoa, ftoa_f64_std);
 benchmark_main!(f32_benches, f64_benches);
