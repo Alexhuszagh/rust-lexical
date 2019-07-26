@@ -25,8 +25,15 @@ fn itoa_u8_itoa(bench: &mut Bencher) {
     })})
 }
 
-fn itoa_u8_to_string(bench: &mut Bencher) {
-    bench.iter(|| { U8_DATA.iter().for_each(|x| { black_box(x.to_string()); } ) })
+fn itoa_u8_std(bench: &mut Bencher) {
+    use std::io::Write;
+    let mut buffer = vec![b'0'; 256];
+    bench.iter(|| {
+        U8_DATA.iter().for_each(|x| {
+            black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
+            unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
+        })
+    })
 }
 
 // I8
@@ -47,8 +54,15 @@ fn itoa_i8_itoa(bench: &mut Bencher) {
     })})
 }
 
-fn itoa_i8_to_string(bench: &mut Bencher) {
-    bench.iter(|| { I8_DATA.iter().for_each(|x| { black_box(x.to_string()); } ) })
+fn itoa_i8_std(bench: &mut Bencher) {
+    use std::io::Write;
+    let mut buffer = vec![b'0'; 256];
+    bench.iter(|| {
+        I8_DATA.iter().for_each(|x| {
+            black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
+            unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
+        })
+    })
 }
 
 // U16
@@ -69,8 +83,15 @@ fn itoa_u16_itoa(bench: &mut Bencher) {
     })})
 }
 
-fn itoa_u16_to_string(bench: &mut Bencher) {
-    bench.iter(|| { U16_DATA.iter().for_each(|x| { black_box(x.to_string()); } ) })
+fn itoa_u16_std(bench: &mut Bencher) {
+    use std::io::Write;
+    let mut buffer = vec![b'0'; 256];
+    bench.iter(|| {
+        U16_DATA.iter().for_each(|x| {
+            black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
+            unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
+        })
+    })
 }
 
 // I16
@@ -91,8 +112,15 @@ fn itoa_i16_itoa(bench: &mut Bencher) {
     })})
 }
 
-fn itoa_i16_to_string(bench: &mut Bencher) {
-    bench.iter(|| { I16_DATA.iter().for_each(|x| { black_box(x.to_string()); } ) })
+fn itoa_i16_std(bench: &mut Bencher) {
+    use std::io::Write;
+    let mut buffer = vec![b'0'; 256];
+    bench.iter(|| {
+        I16_DATA.iter().for_each(|x| {
+            black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
+            unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
+        })
+    })
 }
 
 // U32
@@ -113,8 +141,15 @@ fn itoa_u32_itoa(bench: &mut Bencher) {
     })})
 }
 
-fn itoa_u32_to_string(bench: &mut Bencher) {
-    bench.iter(|| { U32_DATA.iter().for_each(|x| { black_box(x.to_string()); } ) })
+fn itoa_u32_std(bench: &mut Bencher) {
+    use std::io::Write;
+    let mut buffer = vec![b'0'; 256];
+    bench.iter(|| {
+        U32_DATA.iter().for_each(|x| {
+            black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
+            unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
+        })
+    })
 }
 
 // I32
@@ -135,8 +170,15 @@ fn itoa_i32_itoa(bench: &mut Bencher) {
     })})
 }
 
-fn itoa_i32_to_string(bench: &mut Bencher) {
-    bench.iter(|| { I32_DATA.iter().for_each(|x| { black_box(x.to_string()); } ) })
+fn itoa_i32_std(bench: &mut Bencher) {
+    use std::io::Write;
+    let mut buffer = vec![b'0'; 256];
+    bench.iter(|| {
+        I32_DATA.iter().for_each(|x| {
+            black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
+            unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
+        })
+    })
 }
 
 // U64
@@ -157,8 +199,15 @@ fn itoa_u64_itoa(bench: &mut Bencher) {
     })})
 }
 
-fn itoa_u64_to_string(bench: &mut Bencher) {
-    bench.iter(|| { U64_DATA.iter().for_each(|x| { black_box(x.to_string()); } ) })
+fn itoa_u64_std(bench: &mut Bencher) {
+    use std::io::Write;
+    let mut buffer = vec![b'0'; 256];
+    bench.iter(|| {
+        U64_DATA.iter().for_each(|x| {
+            black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
+            unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
+        })
+    })
 }
 
 // I64
@@ -179,18 +228,25 @@ fn itoa_i64_itoa(bench: &mut Bencher) {
     })})
 }
 
-fn itoa_i64_to_string(bench: &mut Bencher) {
-    bench.iter(|| { I64_DATA.iter().for_each(|x| { black_box(x.to_string()); } ) })
+fn itoa_i64_std(bench: &mut Bencher) {
+    use std::io::Write;
+    let mut buffer = vec![b'0'; 256];
+    bench.iter(|| {
+        I64_DATA.iter().for_each(|x| {
+            black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
+            unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
+        })
+    })
 }
 
 // MAIN
 
-benchmark_group!(u8_benches, itoa_u8_lexical, itoa_u8_itoa, itoa_u8_to_string);
-benchmark_group!(u16_benches, itoa_u16_lexical, itoa_u16_itoa, itoa_u16_to_string);
-benchmark_group!(u32_benches, itoa_u32_lexical, itoa_u32_itoa, itoa_u32_to_string);
-benchmark_group!(u64_benches, itoa_u64_lexical, itoa_u64_itoa, itoa_u64_to_string);
-benchmark_group!(i8_benches, itoa_i8_lexical, itoa_i8_itoa, itoa_i8_to_string);
-benchmark_group!(i16_benches, itoa_i16_lexical, itoa_i16_itoa, itoa_i16_to_string);
-benchmark_group!(i32_benches, itoa_i32_lexical, itoa_i32_itoa, itoa_i32_to_string);
-benchmark_group!(i64_benches, itoa_i64_lexical, itoa_i64_itoa, itoa_i64_to_string);
+benchmark_group!(u8_benches, itoa_u8_lexical, itoa_u8_itoa, itoa_u8_std);
+benchmark_group!(u16_benches, itoa_u16_lexical, itoa_u16_itoa, itoa_u16_std);
+benchmark_group!(u32_benches, itoa_u32_lexical, itoa_u32_itoa, itoa_u32_std);
+benchmark_group!(u64_benches, itoa_u64_lexical, itoa_u64_itoa, itoa_u64_std);
+benchmark_group!(i8_benches, itoa_i8_lexical, itoa_i8_itoa, itoa_i8_std);
+benchmark_group!(i16_benches, itoa_i16_lexical, itoa_i16_itoa, itoa_i16_std);
+benchmark_group!(i32_benches, itoa_i32_lexical, itoa_i32_itoa, itoa_i32_std);
+benchmark_group!(i64_benches, itoa_i64_lexical, itoa_i64_itoa, itoa_i64_std);
 benchmark_main!(u8_benches, u16_benches, u32_benches, u64_benches, i8_benches, i16_benches, i32_benches, i64_benches);
