@@ -331,9 +331,9 @@ mod tests {
     #[test]
     fn f32toa_base10_roundtrip_test() {
         let mut buffer = new_buffer();
-        for f in F32_DATA.iter() {
-            let s = f32toa_slice(*f, &mut buffer);
-            assert_relative_eq!(atof32_slice(s), *f, epsilon=1e-6, max_relative=1e-6);
+        for &f in F32_DATA.iter() {
+            let s = f32toa_slice(f, &mut buffer);
+            assert_relative_eq!(atof32_slice(s), f, epsilon=1e-6, max_relative=1e-6);
         }
     }
 

@@ -114,6 +114,7 @@ pub trait Integer:
     fn count_zeros(self) -> u32;
     fn leading_zeros(self) -> u32;
     fn trailing_zeros(self) -> u32;
+    fn pow(self, i: u32) -> Self;
     fn checked_add(self, i: Self) -> Option<Self>;
     fn checked_sub(self, i: Self) -> Option<Self>;
     fn checked_mul(self, i: Self) -> Option<Self>;
@@ -375,6 +376,11 @@ macro_rules! integer_impl {
             #[inline]
             fn trailing_zeros(self) -> u32 {
                 $t::trailing_zeros(self)
+            }
+
+            #[inline]
+            fn pow(self, i: u32) -> Self {
+                $t::pow(self, i)
             }
 
             #[inline]

@@ -247,7 +247,6 @@ try_cast! { @from_float f64, usize }
 try_cast! { @from_float f32, isize }
 try_cast! { @from_float f64, isize }
 
-// TODO(ahuszagh) Continue here...
 cfg_if! {
 if #[cfg(target_pointer_width = "16")] {
     // 16-bit usize

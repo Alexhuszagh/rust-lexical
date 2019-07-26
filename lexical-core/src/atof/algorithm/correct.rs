@@ -21,6 +21,16 @@ use super::small_powers::get_small_powers_64;
 
 // SHARED
 
+// Left-trim leading 0s.
+macro_rules! ltrim_0 {
+    ($bytes:expr) => { ltrim_char_slice($bytes, b'0') };
+}
+
+// Right-trim leading 0s.
+macro_rules! rtrim_0 {
+    ($bytes:expr) => { rtrim_char_slice($bytes, b'0') };
+}
+
 // Fast path for the parse algorithm.
 // In this case, the mantissa can be represented by an integer,
 // which allows any value to be exactly reconstructed.
@@ -36,6 +46,8 @@ pub(super) struct FloatSlice<'a> {
     fraction: &'a [u8],
     /// Offset to where the digits start in either integer or fraction.
     digits_start: usize,
+    /// Offset to where the digits end in the fraction.
+    digits_end: usize,
     /// Number of truncated digits from the mantissa.
     truncated: usize,
     /// Raw exponent for the float.
@@ -50,6 +62,7 @@ impl<'a> FloatSlice<'a> {
             integer: &[],
             fraction: &[],
             digits_start: explicit_uninitialized(),
+            digits_end: explicit_uninitialized(),
             truncated: explicit_uninitialized(),
             raw_exponent: explicit_uninitialized(),
         }
@@ -76,7 +89,7 @@ impl<'a> FloatSlice<'a> {
     /// Get the length of the fraction substring.
     #[inline]
     pub(super) fn fraction_len(&self) -> usize {
-        self.fraction.len()
+        self.digits_end
     }
 
     /// Iterate over the fraction digits.
@@ -95,8 +108,7 @@ impl<'a> FloatSlice<'a> {
         // but we should remove them before doing anything costly.
         // In practice, we only call `mantissa_iter()` once per parse,
         // so this is effectively free.
-        let fraction = rtrim_char_slice(self.fraction, b'0').0;
-        fraction[self.digits_start..].iter()
+        self.fraction[self.digits_start..self.digits_end].iter()
     }
 
     /// Get the number of digits in the mantissa.
@@ -115,7 +127,13 @@ impl<'a> FloatSlice<'a> {
     /// Get number of truncated digits.
     #[inline]
     pub(super) fn truncated_digits(&self) -> usize {
-        self.truncated
+        // If we have truncated digits, need to remove the number of
+        // trailing zeros from that.
+        let trailing = self.fraction.len() - self.digits_end;
+        match self.truncated > trailing {
+            true  => self.truncated - trailing,
+            false => 0,
+        }
     }
 
     /// Get the mantissa exponent from the raw exponent.
@@ -138,6 +156,25 @@ impl<'a> FloatSlice<'a> {
 // PARSE
 // -----
 
+// Need to adjust the mantissa if we over-parsed it.
+#[inline]
+fn adjust_truncated_mantissa<M>(mantissa: M, radix: u32, trimmed: usize, truncated: usize)
+    -> M
+    where M: Mantissa
+{
+    if trimmed > truncated {
+        // We have truncated digits, need to adjust the mantissa.
+        // This is because we have digits that are not counted in the
+        // resulting fraction that are present otherwise, only include
+        // non-truncated digits.
+        let base: M = as_cast(radix);
+        let pow: M = base.pow(as_cast(trimmed - truncated));
+        mantissa / pow
+    } else {
+        mantissa
+    }
+}
+
 /// Parse the mantissa from a string.
 ///
 /// Returns the mantissa, the the number of parsed integer digits,
@@ -159,7 +196,7 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
     // i32 may truncate when mantissa does not, which would lead to faulty
     // results. If we trim the 0s here, we guarantee any time `dot as i32`
     // leads to a truncation, mantissa will overflow.
-    bytes = ltrim_char_slice(bytes, b'0').0;
+    bytes = ltrim_0!(bytes).0;
     let first = bytes.as_ptr();
 
     // Parse the integral value.
@@ -184,7 +221,7 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
             // For example, this allows us to use the fast path for
             // both "1e-29" and "0.0000000000000000000000000001",
             // otherwise, only the former would work.
-            let trim = ltrim_char_slice(bytes, b'0');
+            let trim = ltrim_0!(bytes);
             bytes = trim.0;
             slc.digits_start = trim.1;
         } else {
@@ -197,7 +234,10 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
         // We know this is safe, since atoi returns a a value <= bytes.len().
         let bytes = &index!(bytes[len..]);
         slc.fraction = slice_from_span(first, len + slc.digits_start);
+        let trim = rtrim_0!(slc.fraction);
+        slc.digits_end = len + slc.digits_start - trim.1;
         slc.truncated = truncated.map_or(0, |p| distance(p, bytes.as_ptr()));
+        mantissa = adjust_truncated_mantissa(mantissa, radix, trim.1, slc.truncated);
         (mantissa, slc, bytes, truncated)
     } else if has_fraction {
         // Integral overflow occurred, cannot add more values, but a fraction exists.
@@ -210,16 +250,19 @@ fn parse_mantissa<'a, M>(radix: u32, mut bytes: &'a [u8])
             .count();
         // We know this is safe, since it's generated from the iterator.
         bytes = &index!(bytes[len..]);
-
         slc.digits_start = 0;
         slc.fraction = slice_from_span(first, len);
+        let trim = rtrim_0!(slc.fraction);
+        slc.digits_end = len - trim.1;
         slc.truncated = distance(truncated.unwrap(), bytes.as_ptr()) - 1;
+        mantissa = adjust_truncated_mantissa(mantissa, radix, trim.1, slc.truncated);
         (mantissa, slc, bytes, truncated)
     } else {
         // No decimal, return the number of truncated bytes.
         slc.digits_start = 0;
         slc.fraction = slice_from_span(bytes.as_ptr(), 0);
         slc.truncated = truncated.map_or(0, |p| distance(p, bytes.as_ptr()));
+        slc.digits_end = 0;
         (mantissa, slc, bytes, truncated)
     }
 }
@@ -874,6 +917,7 @@ mod tests {
             integer: "1".as_bytes(),
             fraction: "2345".as_bytes(),
             digits_start: 0,
+            digits_end: 4,
             truncated: 0,
             raw_exponent: 0,
         };
@@ -884,6 +928,7 @@ mod tests {
             integer: "".as_bytes(),
             fraction: "12345".as_bytes(),
             digits_start: 0,
+            digits_end: 5,
             truncated: 0,
             raw_exponent: 0,
         };
@@ -1327,6 +1372,12 @@ mod tests {
         // Adapted from test-float-parse failures.
         check_atod(10, "1009e-31", (1.009e-28, 8));
         check_atod(10, "18294e304", (f64::INFINITY, 9));
+
+        // Rounding error
+        // Adapted from a @dangrabcad's issue #20.
+        check_atod(10, "7.689539722041643e164", (7.689539722041643e164, 21));
+        check_atod(10, "768953972204164300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", (7.689539722041643e164, 165));
+        check_atod(10, "768953972204164300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0", (7.689539722041643e164, 167));
     }
 
     // Lossy
