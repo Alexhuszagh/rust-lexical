@@ -14,7 +14,7 @@ pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
     -> usize
 {
     unsafe {
-        raw::pretty_f2s_buffered_n(f, bytes.as_mut_ptr())
+        raw::format32(f, bytes.as_mut_ptr())
     }
 }
 
@@ -29,6 +29,6 @@ pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
     -> usize
 {
     unsafe {
-        raw::pretty_d2s_buffered_n(d, bytes.as_mut_ptr())
+        raw::format64(d, bytes.as_mut_ptr())
     }
 }
