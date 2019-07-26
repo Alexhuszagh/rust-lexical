@@ -484,6 +484,11 @@ impl<T: Float> Integer for WrappedFloat <T> {
     }
 
     #[inline]
+    fn pow(self, _: u32) -> Self {
+        unreachable!()
+    }
+
+    #[inline]
     fn checked_add(self, i: Self) -> Option<Self> {
         Some(self + i)
     }
