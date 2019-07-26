@@ -338,6 +338,8 @@ Since our real digits are below the theoretical halfway point, we know we need t
 
 On the ARMVv6 architecture, the stable exponentiation for the fast, incorrect float parser is not fully stable. For example, `1e-300` is correct, while `5e-324` rounds to `0`, leading to "5e-324" being incorrectly parsed as `0`. This does not affect the default, correct float parser, nor ARMVv7 or ARMVv8 (aarch64) architectures. This bug can compound errors in the incorrect parser (feature-gated by disabling the `correct` feature`). It is not known if this bug is an artifact of Qemu emulation of ARMv6, or is actually representative the hardware.
 
+Versions of lexical-core prior to 0.4.3 could round parsed floating-point numbers with an error of up to 1 ULP. This occurred for strings with 16 or more digits and a trailing 0 in the fraction, the `b+h` comparison in the slow-path algorithm incorrectly scales the the theoretical digits due to an over-calculated real exponent. This affects a very small percentage of inputs, however, it is recommended to update immediately.
+
 # Version Support
 
 Lexical-core is tested to work from Rustc versions of 1.24-1.35, and should work on newer versions as well. Please report any errors compiling lexical-core for any Rust compiler 1.24.0 or later.

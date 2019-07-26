@@ -17,13 +17,13 @@ matrix:
     - rust: nightly
       env: TARGET=x86_64-unknown-linux-gnu NO_STD=1
 
-    # All tests fail below 1.27.0, due to a missing edition keyword
-    - rust: 1.24.0
-      env: TARGET=x86_64-unknown-linux-gnu DISABLE_TESTS=1
-
     # Need to use a custom script since `cross` requires `fuchsia-cprng`,
     # which does not work on Rustc 1.27.0 (due to `edition` in the
-    # Cargo.toml.
+    # Cargo.toml. All tests fail below 1.27.0, due to a missing edition
+    # keyword
+    - rust: 1.24.0
+      script: cargo build
+
     - rust: 1.27.0
       script: cargo build
 
