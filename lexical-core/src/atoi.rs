@@ -599,273 +599,273 @@ mod tests {
         #[test]
         fn u8_invalid_proptest(i in r"[+]?[0-9]{2}\D") {
             let res = try_atou8_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 2 || res.error.index == 3);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 2 || res.error.index == 3);
         }
 
         #[test]
         fn u8_overflow_proptest(i in r"[+-]?[1-9][0-9]{3}\D") {
             let res = try_atou8_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::Overflow);
+            prop_assert_eq!(res.error.code, ErrorCode::Overflow);
         }
 
         #[test]
         fn u8_double_sign_proptest(i in r"[+-]{2}[0-9]{2}") {
             let res = try_atou8_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0 || res.error.index == 1);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0 || res.error.index == 1);
         }
 
         #[test]
         fn u8_sign_only_proptest(i in r"[+-]") {
             let res = try_atou8_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0);
         }
 
         #[test]
         fn u8_trailing_digits_proptest(i in r"[+]?[0-9]{2}\D[0-9]{2}") {
             let res = try_atou8_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 2 || res.error.index == 3);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 2 || res.error.index == 3);
         }
 
         #[test]
         fn i8_invalid_proptest(i in r"[+-]?[0-9]{2}\D") {
             let res = try_atoi8_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 2 || res.error.index == 3);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 2 || res.error.index == 3);
         }
 
         #[test]
         fn i8_overflow_proptest(i in r"[+-]?[1-9][0-9]{3}\D") {
             let res = try_atoi8_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::Overflow);
+            prop_assert_eq!(res.error.code, ErrorCode::Overflow);
         }
 
         #[test]
         fn i8_double_sign_proptest(i in r"[+-]{2}[0-9]{2}") {
             let res = try_atoi8_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 1);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 1);
         }
 
         #[test]
         fn i8_sign_only_proptest(i in r"[+-]") {
             let res = try_atoi8_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0);
         }
 
         #[test]
         fn i8_trailing_digits_proptest(i in r"[+-]?[0-9]{2}\D[0-9]{2}") {
             let res = try_atoi8_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 2 || res.error.index == 3);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 2 || res.error.index == 3);
         }
 
         #[test]
         fn u16_invalid_proptest(i in r"[+]?[0-9]{4}\D") {
             let res = try_atou16_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 4 || res.error.index == 5);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 4 || res.error.index == 5);
         }
 
         #[test]
         fn u16_overflow_proptest(i in r"[+-]?[1-9][0-9]{5}\D") {
             let res = try_atou16_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::Overflow);
+            prop_assert_eq!(res.error.code, ErrorCode::Overflow);
         }
 
         #[test]
         fn u16_double_sign_proptest(i in r"[+-]{2}[0-9]{4}") {
             let res = try_atou16_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0 || res.error.index == 1);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0 || res.error.index == 1);
         }
 
         #[test]
         fn u16_sign_only_proptest(i in r"[+-]") {
             let res = try_atou16_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0);
         }
 
         #[test]
         fn u16_trailing_digits_proptest(i in r"[+]?[0-9]{4}\D[0-9]{2}") {
             let res = try_atou16_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 4 || res.error.index == 5);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 4 || res.error.index == 5);
         }
 
         #[test]
         fn i16_invalid_proptest(i in r"[+-]?[0-9]{4}\D") {
             let res = try_atoi16_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 4 || res.error.index == 5);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 4 || res.error.index == 5);
         }
 
         #[test]
         fn i16_overflow_proptest(i in r"[+-]?[1-9][0-9]{5}\D") {
             let res = try_atoi16_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::Overflow);
+            prop_assert_eq!(res.error.code, ErrorCode::Overflow);
         }
 
         #[test]
         fn i16_double_sign_proptest(i in r"[+-]{2}[0-9]{4}") {
             let res = try_atoi16_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 1);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 1);
         }
 
         #[test]
         fn i16_sign_only_proptest(i in r"[+-]") {
             let res = try_atoi16_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0);
         }
 
         #[test]
         fn i16_trailing_digits_proptest(i in r"[+-]?[0-9]{4}\D[0-9]{2}") {
             let res = try_atoi16_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 4 || res.error.index == 5);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 4 || res.error.index == 5);
         }
 
         #[test]
         fn u32_invalid_proptest(i in r"[+]?[0-9]{9}\D") {
             let res = try_atou32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 9 || res.error.index == 10);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 9 || res.error.index == 10);
         }
 
         #[test]
         fn u32_overflow_proptest(i in r"[+-]?[1-9][0-9]{10}\D") {
             let res = try_atou32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::Overflow);
+            prop_assert_eq!(res.error.code, ErrorCode::Overflow);
         }
 
         #[test]
         fn u32_double_sign_proptest(i in r"[+-]{2}[0-9]{9}") {
             let res = try_atou32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0 || res.error.index == 1);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0 || res.error.index == 1);
         }
 
         #[test]
         fn u32_sign_only_proptest(i in r"[+-]") {
             let res = try_atou32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0);
         }
 
         #[test]
         fn u32_trailing_digits_proptest(i in r"[+]?[0-9]{9}\D[0-9]{2}") {
             let res = try_atou32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 9 || res.error.index == 10);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 9 || res.error.index == 10);
         }
 
         #[test]
         fn i32_invalid_proptest(i in r"[+-]?[0-9]{9}\D") {
             let res = try_atoi32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 9 || res.error.index == 10);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 9 || res.error.index == 10);
         }
 
         #[test]
         fn i32_overflow_proptest(i in r"[+-]?[1-9][0-9]{10}\D") {
             let res = try_atoi32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::Overflow);
+            prop_assert_eq!(res.error.code, ErrorCode::Overflow);
         }
 
         #[test]
         fn i32_double_sign_proptest(i in r"[+-]{2}[0-9]{9}") {
             let res = try_atoi32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 1);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 1);
         }
 
         #[test]
         fn i32_sign_only_proptest(i in r"[+-]") {
             let res = try_atoi32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0);
         }
 
         #[test]
         fn i32_trailing_digits_proptest(i in r"[+-]?[0-9]{9}\D[0-9]{2}") {
             let res = try_atoi32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 9 || res.error.index == 10);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 9 || res.error.index == 10);
         }
 
         #[test]
         fn u64_invalid_proptest(i in r"[+]?[0-9]{19}\D") {
             let res = try_atou64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 19 || res.error.index == 20);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 19 || res.error.index == 20);
         }
 
         #[test]
         fn u64_overflow_proptest(i in r"[+-]?[1-9][0-9]{21}\D") {
             let res = try_atou64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::Overflow);
+            prop_assert_eq!(res.error.code, ErrorCode::Overflow);
         }
 
         #[test]
         fn u64_double_sign_proptest(i in r"[+-]{2}[0-9]{19}") {
             let res = try_atou64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0 || res.error.index == 1);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0 || res.error.index == 1);
         }
 
         #[test]
         fn u64_sign_only_proptest(i in r"[+-]") {
             let res = try_atou64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0);
         }
 
         #[test]
         fn u64_trailing_digits_proptest(i in r"[+]?[0-9]{19}\D[0-9]{2}") {
             let res = try_atou64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 19 || res.error.index == 20);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 19 || res.error.index == 20);
         }
 
         #[test]
         fn i64_invalid_proptest(i in r"[+-]?[0-9]{18}\D") {
             let res = try_atoi64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 18 || res.error.index == 19);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 18 || res.error.index == 19);
         }
 
         #[test]
         fn i64_overflow_proptest(i in r"[+-]?[1-9][0-9]{19}\D") {
             let res = try_atoi64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::Overflow);
+            prop_assert_eq!(res.error.code, ErrorCode::Overflow);
         }
 
         #[test]
         fn i64_double_sign_proptest(i in r"[+-]{2}[0-9]{18}") {
             let res = try_atoi64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 1);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 1);
         }
 
         #[test]
         fn i64_sign_only_proptest(i in r"[+-]") {
             let res = try_atoi64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0);
         }
 
         #[test]
         fn i64_trailing_digits_proptest(i in r"[+-]?[0-9]{18}\D[0-9]{2}") {
             let res = try_atoi64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 18 || res.error.index == 19);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 18 || res.error.index == 19);
         }
     }
 }

@@ -404,73 +404,109 @@ mod tests {
         #[test]
         fn f32_invalid_proptest(i in r"[+-]?[0-9]{2}\D?\.\D?[0-9]{2}\D?e[+-]?[0-9]+\D") {
             let res = try_atof32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
         }
 
         #[test]
         fn f32_double_sign_proptest(i in r"[+-]{2}[0-9]{2}\.[0-9]{2}e[+-]?[0-9]+") {
             let res = try_atof32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0 || res.error.index == 1);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0 || res.error.index == 1);
         }
 
         #[test]
         fn f32_sign_or_dot_only_proptest(i in r"[+-]?\.?") {
             let res = try_atof32_slice(i.as_bytes());
             if i.is_empty() {
-                assert_eq!(res.error.code, ErrorCode::Empty);
+                prop_assert_eq!(res.error.code, ErrorCode::Empty);
             } else {
-                assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+                prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
             }
-            assert!(res.error.index == 0 || res.error.index == 1);
+            prop_assert!(res.error.index == 0 || res.error.index == 1);
         }
 
         #[test]
         fn f32_double_exponent_sign_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]{2}[0-9]+") {
             let res = try_atof32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
         }
 
         #[test]
         fn f32_missing_exponent_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]?") {
             let res = try_atof32_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+        }
+
+        #[test]
+        fn f32_roundtrip_display_proptest(i in f32::MIN..f32::MAX) {
+            let input: String = format!("{}", i);
+            prop_assert_eq!(i, atof32_slice(input.as_bytes()));
+        }
+
+        #[test]
+        fn f32_roundtrip_debug_proptest(i in f32::MIN..f32::MAX) {
+            let input: String = format!("{:?}", i);
+            prop_assert_eq!(i, atof32_slice(input.as_bytes()));
+        }
+
+        #[test]
+        fn f32_roundtrip_scientific_proptest(i in f32::MIN..f32::MAX) {
+            let input: String = format!("{:e}", i);
+            prop_assert_eq!(i, atof32_slice(input.as_bytes()));
         }
 
         #[test]
         fn f64_invalid_proptest(i in r"[+-]?[0-9]{2}\D?\.\D?[0-9]{2}\D?e[+-]?[0-9]+\D") {
             let res = try_atof64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
         }
 
         #[test]
         fn f64_double_sign_proptest(i in r"[+-]{2}[0-9]{2}\.[0-9]{2}e[+-]?[0-9]+") {
             let res = try_atof64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
-            assert!(res.error.index == 0 || res.error.index == 1);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert!(res.error.index == 0 || res.error.index == 1);
         }
 
         #[test]
         fn f64_sign_or_dot_only_proptest(i in r"[+-]?\.?") {
             let res = try_atof64_slice(i.as_bytes());
             if i.is_empty() {
-                assert_eq!(res.error.code, ErrorCode::Empty);
+                prop_assert_eq!(res.error.code, ErrorCode::Empty);
             } else {
-                assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+                prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
             }
-            assert!(res.error.index == 0 || res.error.index == 1);
+            prop_assert!(res.error.index == 0 || res.error.index == 1);
         }
 
         #[test]
         fn f64_double_exponent_sign_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]{2}[0-9]+") {
             let res = try_atof64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
         }
 
         #[test]
         fn f64_missing_exponent_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]?") {
             let res = try_atof64_slice(i.as_bytes());
-            assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+            prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
+        }
+
+        #[test]
+        fn f64_roundtrip_display_proptest(i in f64::MIN..f64::MAX) {
+            let input: String = format!("{}", i);
+            prop_assert_eq!(i, atof64_slice(input.as_bytes()));
+        }
+
+        #[test]
+        fn f64_roundtrip_debug_proptest(i in f64::MIN..f64::MAX) {
+            let input: String = format!("{:?}", i);
+            prop_assert_eq!(i, atof64_slice(input.as_bytes()));
+        }
+
+        #[test]
+        fn f64_roundtrip_scientific_proptest(i in f64::MIN..f64::MAX) {
+            let input: String = format!("{:e}", i);
+            prop_assert_eq!(i, atof64_slice(input.as_bytes()));
         }
     }
 }
