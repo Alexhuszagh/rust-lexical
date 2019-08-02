@@ -415,10 +415,10 @@ if #[cfg(feature = "radix")] {
     pub const MAX_I128_SIZE: usize = 40;
 
     /// The minimum buffer size required to serialize any `u8` value.
-    pub const MAX_U8_SIZE: usize = 3;
+    pub const MAX_U8_SIZE: usize = 4;       // Rounded-up from 3
 
     /// The minimum buffer size required to serialize any `u16` value.
-    pub const MAX_U16_SIZE: usize = 5;
+    pub const MAX_U16_SIZE: usize = 6;      // Rounded-up from 5
 
     /// The minimum buffer size required to serialize any `u32` value.
     pub const MAX_U32_SIZE: usize = 10;
@@ -427,7 +427,7 @@ if #[cfg(feature = "radix")] {
     pub const MAX_U64_SIZE: usize = 20;
 
     /// The minimum buffer size required to serialize any `u128` value.
-    pub const MAX_U128_SIZE: usize = 39;
+    pub const MAX_U128_SIZE: usize = 40;    // Rounded-up from 39
 
     /// The minimum buffer size required to serialize any `f32` value.
     pub const MAX_F32_SIZE: usize = 64;

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.0] - 2019-07-XX
 ### Changed
 - Improved code generation and reduced binary bloat. There are a few algorithmic differences that make this possible, but the parsers now generally extract the float subcomponents first, then parsed known-good data after for enhanced performance.
+- Improved integer-to-string formatting using optimized for each type and bit-twiddling/magic numbers.
 
 ### Removed
 - Remove the unchecked parsers from the public API. `try_parse*` has been replaced with `parse*`.

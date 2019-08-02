@@ -7,6 +7,7 @@
 pub(crate) use lib::{f32, f64, mem};
 use lib::{fmt, iter, ops};
 use super::cast::{AsCast, TryCast};
+use super::config::*;
 use super::primitive::Primitive;
 
 // NUMBER
@@ -106,6 +107,7 @@ pub trait Integer:
     const MAX: Self;
     const MIN: Self;
     const BITS: usize;
+    const MAX_FMT_SIZE: usize;
 
     // FUNCTIONS (INHERITED)
     fn max_value() -> Self;
@@ -339,7 +341,7 @@ pub trait Integer:
 }
 
 macro_rules! integer_impl {
-    ($($t:tt)*) => ($(
+    ($($t:tt $max_size:ident ; )*) => ($(
         impl Integer for $t {
             const ZERO: $t = 0;
             const ONE: $t = 1;
@@ -347,6 +349,7 @@ macro_rules! integer_impl {
             const MAX: $t = $t::max_value();
             const MIN: $t = $t::min_value();
             const BITS: usize = mem::size_of::<$t>() * 8;
+            const MAX_FMT_SIZE: usize = $max_size;
 
             #[inline]
             fn max_value() -> Self {
@@ -521,8 +524,23 @@ macro_rules! integer_impl {
     )*)
 }
 
-integer_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
-#[cfg(has_i128)] integer_impl! { u128 i128 }
+integer_impl! {
+    u8 MAX_U8_SIZE ;
+    u16 MAX_U16_SIZE ;
+    u32 MAX_U32_SIZE ;
+    u64 MAX_U64_SIZE ;
+    usize MAX_USIZE_SIZE ;
+    i8 MAX_I8_SIZE ;
+    i16 MAX_I16_SIZE ;
+    i32 MAX_I32_SIZE ;
+    i64 MAX_I64_SIZE ;
+    isize MAX_ISIZE_SIZE ;
+}
+#[cfg(has_i128)]
+integer_impl! {
+    u128 MAX_U128_SIZE ;
+    i128 MAX_I128_SIZE ;
+}
 
 /// Unwrap or get T::max_value().
 #[inline]
