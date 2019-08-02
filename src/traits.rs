@@ -1,8 +1,7 @@
 //! High-level traits to translate the low-level API to idiomatic Rust.
 
-use lexical_core::{self, ErrorCode};
+use lexical_core::Result;
 use lib::{slice, Vec};
-use error::*;
 
 // HELPERS
 
@@ -15,141 +14,89 @@ unsafe fn vector_as_slice<'a, T>(buf: &'a mut Vec<T>)
     slice::from_raw_parts_mut(first, buf.capacity())
 }
 
-/// Convert a C-compatible result to an idiomatic Rust one.
-#[inline]
-fn convert_result<T>(result: lexical_core::Result<T>) -> Result<T, Error> {
-    match result.error.code {
-        ErrorCode::Success      => Ok(result.value),
-        ErrorCode::Overflow     => Err(overflow()),
-        ErrorCode::InvalidDigit => Err(invalid_digit(result.error.index)),
-        ErrorCode::Empty        => Err(empty()),
-        _                       => unimplemented!(),
-    }
-}
-
 // FROM BYTES
 
 /// Trait for numerical types that can be parsed from bytes.
 pub trait FromLexical: Sized {
     /// Deserialize from byte slice.
-    fn from_lexical(bytes: &[u8]) -> Self;
+    fn from_lexical(bytes: &[u8]) -> Result<Self>;
 
     /// Deserialize from byte slice with radix.
     #[cfg(feature = "radix")]
-    fn from_lexical_radix(bytes: &[u8], radix: u8) -> Self;
-
-    /// Error-checking deserialize from byte slice.
-    fn try_from_lexical(bytes: &[u8]) -> Result<Self, Error>;
-
-    /// Error-checking deserialize from byte slice with radix.
-    #[cfg(feature = "radix")]
-    fn try_from_lexical_radix(bytes: &[u8], radix: u8) -> Result<Self, Error>;
+    fn from_lexical_radix(bytes: &[u8], radix: u8) -> Result<Self>;
 }
 
 macro_rules! from_lexical {
-    ($t:ty, $decimal_cb:ident, $radix_cb:ident, $try_decimal_cb:ident, $try_radix_cb:ident) => (
+    ($t:ty, $decimal_cb:ident, $radix_cb:ident) => (
         impl FromLexical for $t {
             #[inline]
-            fn from_lexical(bytes: &[u8]) -> $t
+            fn from_lexical(bytes: &[u8]) -> Result<$t>
             {
                 lexical_core::$decimal_cb(bytes)
             }
 
             #[cfg(feature = "radix")]
             #[inline]
-            fn from_lexical_radix(bytes: &[u8], radix: u8) -> $t
+            fn from_lexical_radix(bytes: &[u8], radix: u8) -> Result<$t>
             {
                 lexical_core::$radix_cb(radix, bytes)
-            }
-
-            #[inline]
-            fn try_from_lexical(bytes: &[u8]) -> Result<$t, Error>
-            {
-                convert_result(lexical_core::$try_decimal_cb(bytes))
-            }
-
-            #[cfg(feature = "radix")]
-            #[inline]
-            fn try_from_lexical_radix(bytes: &[u8], radix: u8) -> Result<$t, Error>
-            {
-                convert_result(lexical_core::$try_radix_cb(radix, bytes))
             }
         }
     )
 }
 
-from_lexical!(u8, atou8_slice, atou8_radix_slice, try_atou8_slice, try_atou8_radix_slice);
-from_lexical!(u16, atou16_slice, atou16_radix_slice, try_atou16_slice, try_atou16_radix_slice);
-from_lexical!(u32, atou32_slice, atou32_radix_slice, try_atou32_slice, try_atou32_radix_slice);
-from_lexical!(u64, atou64_slice, atou64_radix_slice, try_atou64_slice, try_atou64_radix_slice);
-from_lexical!(usize, atousize_slice, atousize_radix_slice, try_atousize_slice, try_atousize_radix_slice);
-from_lexical!(i8, atoi8_slice, atoi8_radix_slice, try_atoi8_slice, try_atoi8_radix_slice);
-from_lexical!(i16, atoi16_slice, atoi16_radix_slice, try_atoi16_slice, try_atoi16_radix_slice);
-from_lexical!(i32, atoi32_slice, atoi32_radix_slice, try_atoi32_slice, try_atoi32_radix_slice);
-from_lexical!(i64, atoi64_slice, atoi64_radix_slice, try_atoi64_slice, try_atoi64_radix_slice);
-from_lexical!(isize, atoisize_slice, atoisize_radix_slice, try_atoisize_slice, try_atoisize_radix_slice);
-from_lexical!(f32, atof32_slice, atof32_radix_slice, try_atof32_slice, try_atof32_radix_slice);
-from_lexical!(f64, atof64_slice, atof64_radix_slice, try_atof64_slice, try_atof64_radix_slice);
+from_lexical!(u8, atou8_slice, atou8_radix_slice);
+from_lexical!(u16, atou16_slice, atou16_radix_slice);
+from_lexical!(u32, atou32_slice, atou32_radix_slice);
+from_lexical!(u64, atou64_slice, atou64_radix_slice);
+from_lexical!(usize, atousize_slice, atousize_radix_slice);
+from_lexical!(i8, atoi8_slice, atoi8_radix_slice);
+from_lexical!(i16, atoi16_slice, atoi16_radix_slice);
+from_lexical!(i32, atoi32_slice, atoi32_radix_slice);
+from_lexical!(i64, atoi64_slice, atoi64_radix_slice);
+from_lexical!(isize, atoisize_slice, atoisize_radix_slice);
+from_lexical!(f32, atof32_slice, atof32_radix_slice);
+from_lexical!(f64, atof64_slice, atof64_radix_slice);
 
 #[cfg(has_i128)]
-from_lexical!(u128, atou128_slice, atou128_radix_slice, try_atou128_slice, try_atou128_radix_slice);
+from_lexical!(u128, atou128_slice, atou128_radix_slice);
 
 #[cfg(has_i128)]
-from_lexical!(i128, atoi128_slice, atoi128_radix_slice, try_atoi128_slice, try_atoi128_radix_slice);
+from_lexical!(i128, atoi128_slice, atoi128_radix_slice);
 
 // FROM BYTES LOSSY
 
 /// Trait for floating-point types that can be parsed using lossy algorithms from bytes.
 pub trait FromLexicalLossy: FromLexical {
     /// Deserialize from byte slice.
-    fn from_lexical_lossy(bytes: &[u8]) -> Self;
+    fn from_lexical_lossy(bytes: &[u8]) -> Result<Self>;
 
     /// Deserialize from byte slice with radix.
     #[cfg(feature = "radix")]
-    fn from_lexical_lossy_radix(bytes: &[u8], radix: u8) -> Self;
-
-    /// Error-checking deserialize from byte slice.
-    fn try_from_lexical_lossy(bytes: &[u8]) -> Result<Self, Error>;
-
-    /// Error-checking deserialize from byte slice with radix.
-    #[cfg(feature = "radix")]
-    fn try_from_lexical_lossy_radix(bytes: &[u8], radix: u8) -> Result<Self, Error>;
+    fn from_lexical_lossy_radix(bytes: &[u8], radix: u8) -> Result<Self>;
 }
 
 macro_rules! from_lexical_lossy {
-    ($t:ty, $decimal_cb:ident, $radix_cb:ident, $try_decimal_cb:ident, $try_radix_cb:ident) => (
+    ($t:ty, $decimal_cb:ident, $radix_cb:ident) => (
         impl FromLexicalLossy for $t {
             #[inline]
-            fn from_lexical_lossy(bytes: &[u8]) -> $t
+            fn from_lexical_lossy(bytes: &[u8]) -> Result<$t>
             {
                 lexical_core::$decimal_cb(bytes)
             }
 
             #[cfg(feature = "radix")]
             #[inline]
-            fn from_lexical_lossy_radix(bytes: &[u8], radix: u8) -> $t
+            fn from_lexical_lossy_radix(bytes: &[u8], radix: u8) -> Result<$t>
             {
                 lexical_core::$radix_cb(radix, bytes)
-            }
-
-            #[inline]
-            fn try_from_lexical_lossy(bytes: &[u8]) -> Result<$t, Error>
-            {
-                convert_result(lexical_core::$try_decimal_cb(bytes))
-            }
-
-            #[cfg(feature = "radix")]
-            #[inline]
-            fn try_from_lexical_lossy_radix(bytes: &[u8], radix: u8) -> Result<$t, Error>
-            {
-                convert_result(lexical_core::$try_radix_cb(radix, bytes))
             }
         }
     )
 }
 
-from_lexical_lossy!(f32, atof32_lossy_slice, atof32_lossy_radix_slice, try_atof32_lossy_slice, try_atof32_lossy_radix_slice);
-from_lexical_lossy!(f64, atof64_lossy_slice, atof64_lossy_radix_slice, try_atof64_lossy_slice, try_atof64_lossy_radix_slice);
+from_lexical_lossy!(f32, atof32_lossy_slice, atof32_lossy_radix_slice);
+from_lexical_lossy!(f64, atof64_lossy_slice, atof64_lossy_radix_slice);
 
 // TO BYTES
 
@@ -214,44 +161,32 @@ to_lexical!(i128, i128toa_slice, i128toa_radix_slice, MAX_I128_SIZE);
 
 #[cfg(test)]
 mod tests {
-    use error::invalid_digit;
+    use lexical_core::ErrorCode;
     use super::*;
 
     macro_rules! deserialize_int {
         ($($t:tt)*) => ($({
-            assert_eq!($t::from_lexical(b"0"), 0);
-            assert_eq!($t::try_from_lexical(b"0"), Ok(0));
-            assert_eq!($t::try_from_lexical(b""), Err(empty()));
-            assert_eq!($t::try_from_lexical(b"1a"), Err(invalid_digit(1)));
+            assert_eq!($t::from_lexical(b"0"), Ok(0));
+            assert_eq!($t::from_lexical(b""), Err(ErrorCode::Empty.into()));
+            assert_eq!($t::from_lexical(b"1a"), Err((ErrorCode::InvalidDigit, 1).into()));
 
             #[cfg(feature = "radix")]
-            assert_eq!($t::from_lexical_radix(b"0", 10), 0);
-
-            #[cfg(feature = "radix")]
-            assert_eq!($t::try_from_lexical_radix(b"0", 10), Ok(0));
+            assert_eq!($t::from_lexical_radix(b"0", 10), Ok(0));
         })*)
     }
 
     macro_rules! deserialize_float {
         ($($t:tt)*) => ($({
-            assert_eq!($t::from_lexical(b"0.0"), 0.0);
-            assert_eq!($t::from_lexical_lossy(b"0.0"), 0.0);
-            assert_eq!($t::try_from_lexical(b"0.0"), Ok(0.0));
-            assert_eq!($t::try_from_lexical(b"0.0a"), Err(invalid_digit(3)));
-            assert_eq!($t::try_from_lexical(b""), Err(empty()));
-            assert_eq!($t::try_from_lexical_lossy(b"0.0"), Ok(0.0));
+            assert_eq!($t::from_lexical(b"0.0"), Ok(0.0));
+            assert_eq!($t::from_lexical(b"0.0a"), Err((ErrorCode::InvalidDigit, 3).into()));
+            assert_eq!($t::from_lexical(b""), Err(ErrorCode::Empty.into()));
+            assert_eq!($t::from_lexical_lossy(b"0.0"), Ok(0.0));
 
             #[cfg(feature = "radix")]
-            assert_eq!($t::from_lexical_radix(b"0.0", 10), 0.0);
+            assert_eq!($t::from_lexical_radix(b"0.0", 10), Ok(0.0));
 
             #[cfg(feature = "radix")]
-            assert_eq!($t::from_lexical_lossy_radix(b"0.0", 10), 0.0);
-
-            #[cfg(feature = "radix")]
-            assert_eq!($t::try_from_lexical_radix(b"0.0", 10), Ok(0.0));
-
-            #[cfg(feature = "radix")]
-            assert_eq!($t::try_from_lexical_lossy_radix(b"0.0", 10), Ok(0.0));
+            assert_eq!($t::from_lexical_lossy_radix(b"0.0", 10), Ok(0.0));
         })*)
     }
 

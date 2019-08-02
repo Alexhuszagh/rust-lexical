@@ -74,7 +74,7 @@ fn atof_real_f32_lexical(bench: &mut Bencher) {
     bench.iter(|| {
         for line in data.lines() {
             for item in line.split(',') {
-                black_box(atof32_slice(item.as_bytes()));
+                black_box(atof32_slice(item.as_bytes()).unwrap());
             }
         }
     })
@@ -99,9 +99,10 @@ fn atof_real_f32_parse(bench: &mut Bencher) {
 fn atof_real_f64_lexical(bench: &mut Bencher) {
     let data = read_data();
     bench.iter(|| {
-        for line in data.lines() {
+        //let line = data.lines().nth(45).unwrap();
+        for line in data.lines().skip(60).take(20) {
             for item in line.split(',') {
-                black_box(atof64_slice(item.as_bytes()));
+                black_box(atof64_slice(item.as_bytes()).unwrap());
             }
         }
     })
@@ -110,7 +111,8 @@ fn atof_real_f64_lexical(bench: &mut Bencher) {
 fn atof_real_f64_parse(bench: &mut Bencher) {
     let data = read_data();
     bench.iter(|| {
-        for line in data.lines() {
+        //let line = data.lines().nth(45).unwrap();
+        for line in data.lines().skip(60).take(20) {
             for item in line.split(',') {
                 black_box(item.parse::<f64>().unwrap());
             }

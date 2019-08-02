@@ -9,10 +9,20 @@
 
 use super::math::Limb;
 
-#[cfg(limb_width_32)]
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+)))]
 use super::large_powers_32::*;
 
-#[cfg(limb_width_64)]
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+))]
 use super::large_powers_64::*;
 
 // HELPER

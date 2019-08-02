@@ -12,7 +12,7 @@ use super::mantissa::Mantissa;
 ///
 /// This works because we call normalize before any operation, which
 /// allows us to convert the integer representation to the float one.
-#[inline]
+perftools_inline!{
 pub(crate) fn from_int<T, M>(t: T)
     -> ExtendedFloat<M>
     where T: Integer,
@@ -24,12 +24,12 @@ pub(crate) fn from_int<T, M>(t: T)
         mant: as_cast(t),
         exp: 0,
     }
-}
+}}
 
 // FROM FLOAT
 
 /// Import ExtendedFloat from native float.
-#[inline]
+perftools_inline!{
 pub(crate) fn from_float<T, M>(t: T)
     -> ExtendedFloat<M>
     where T: Float,
@@ -39,7 +39,7 @@ pub(crate) fn from_float<T, M>(t: T)
         mant: as_cast(t.mantissa()),
         exp: t.exponent(),
     }
-}
+}}
 
 // AS FLOAT
 
@@ -47,7 +47,7 @@ pub(crate) fn from_float<T, M>(t: T)
 ///
 /// The extended-precision float must be in native float representation,
 /// with overflow/underflow appropriately handled.
-#[inline]
+perftools_inline!{
 pub(crate) fn into_float<T, M>(fp: ExtendedFloat<M>)
     -> T
     where T: Float,
@@ -72,24 +72,24 @@ pub(crate) fn into_float<T, M>(fp: ExtendedFloat<M>)
         let mant = fp.mant & as_cast::<M, _>(T::MANTISSA_MASK);
         T::from_bits(as_cast(mant | exp))
     }
-}
+}}
 
 // FROM CONVERSIONS
 
 /// Conversion from a float to an extended float of the same size.
 impl<F: Float> From<F> for ExtendedFloat<F::Unsigned> where F::Unsigned: Mantissa {
-    #[inline]
+    perftools_inline!{
     fn from(f: F) -> Self {
         from_float(f)
-    }
+    }}
 }
 
 /// Conversion from a (mant, exp) tuple to an extended float of the same size.
 impl<M: Mantissa> From<(M, i32)> for ExtendedFloat<M> {
-    #[inline]
+    perftools_inline!{
     fn from(t: (M, i32)) -> Self {
         ExtendedFloat { mant: t.0, exp: t.1 }
-    }
+    }}
 }
 
 // TESTS

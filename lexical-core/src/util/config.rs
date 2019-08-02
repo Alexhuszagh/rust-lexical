@@ -586,20 +586,20 @@ mod tests {
         unsafe {
             let mut buffer = new_buffer();
             // Test serializing and deserializing special strings.
-            assert!(try_atof32_slice(b"NaN").value.is_nan());
-            assert!(try_atof32_slice(b"nan").value.is_nan());
-            assert!(try_atof32_slice(b"NAN").value.is_nan());
-            assert!(try_atof32_slice(b"inf").value.is_infinite());
-            assert!(try_atof32_slice(b"INF").value.is_infinite());
-            assert!(try_atof32_slice(b"Infinity").value.is_infinite());
+            assert!(atof32_slice(b"NaN").unwrap().is_nan());
+            assert!(atof32_slice(b"nan").unwrap().is_nan());
+            assert!(atof32_slice(b"NAN").unwrap().is_nan());
+            assert!(atof32_slice(b"inf").unwrap().is_infinite());
+            assert!(atof32_slice(b"INF").unwrap().is_infinite());
+            assert!(atof32_slice(b"Infinity").unwrap().is_infinite());
             assert_eq!(f64toa_slice(f64::NAN, &mut buffer), b"NaN");
             assert_eq!(f64toa_slice(f64::INFINITY, &mut buffer), b"inf");
 
             NAN_STRING.load_bytes(b"nan");
             INF_STRING.load_bytes(b"Infinity");
 
-            assert!(try_atof32_slice(b"inf").error.code == ErrorCode::InvalidDigit);
-            assert!(try_atof32_slice(b"Infinity").value.is_infinite());
+            assert!(atof32_slice(b"inf").err().unwrap().code == ErrorCode::InvalidDigit);
+            assert!(atof32_slice(b"Infinity").unwrap().is_infinite());
             assert_eq!(f64toa_slice(f64::NAN, &mut buffer), b"nan");
             assert_eq!(f64toa_slice(f64::INFINITY, &mut buffer), b"Infinity");
 
@@ -618,38 +618,38 @@ mod tests {
         unsafe {
             // Nearest, tie-even
             FLOAT_ROUNDING = RoundingKind::NearestTieEven;
-            assert_eq!(try_atof64_slice(b"-9007199254740993").value, -9007199254740992.0);
-            assert_eq!(try_atof64_slice(b"-9007199254740995").value, -9007199254740996.0);
-            assert_eq!(try_atof64_slice(b"9007199254740993").value, 9007199254740992.0);
-            assert_eq!(try_atof64_slice(b"9007199254740995").value, 9007199254740996.0);
+            assert_eq!(atof64_slice(b"-9007199254740993").unwrap(), -9007199254740992.0);
+            assert_eq!(atof64_slice(b"-9007199254740995").unwrap(), -9007199254740996.0);
+            assert_eq!(atof64_slice(b"9007199254740993").unwrap(), 9007199254740992.0);
+            assert_eq!(atof64_slice(b"9007199254740995").unwrap(), 9007199254740996.0);
 
             // Nearest, tie-away-zero
             FLOAT_ROUNDING = RoundingKind::NearestTieAwayZero;
-            assert_eq!(try_atof64_slice(b"-9007199254740993").value, -9007199254740994.0);
-            assert_eq!(try_atof64_slice(b"-9007199254740995").value, -9007199254740996.0);
-            assert_eq!(try_atof64_slice(b"9007199254740993").value, 9007199254740994.0);
-            assert_eq!(try_atof64_slice(b"9007199254740995").value, 9007199254740996.0);
+            assert_eq!(atof64_slice(b"-9007199254740993").unwrap(), -9007199254740994.0);
+            assert_eq!(atof64_slice(b"-9007199254740995").unwrap(), -9007199254740996.0);
+            assert_eq!(atof64_slice(b"9007199254740993").unwrap(), 9007199254740994.0);
+            assert_eq!(atof64_slice(b"9007199254740995").unwrap(), 9007199254740996.0);
 
             // Toward positive infinity
             FLOAT_ROUNDING = RoundingKind::TowardPositiveInfinity;
-            assert_eq!(try_atof64_slice(b"-9007199254740993").value, -9007199254740992.0);
-            assert_eq!(try_atof64_slice(b"-9007199254740995").value, -9007199254740994.0);
-            assert_eq!(try_atof64_slice(b"9007199254740993").value, 9007199254740994.0);
-            assert_eq!(try_atof64_slice(b"9007199254740995").value, 9007199254740996.0);
+            assert_eq!(atof64_slice(b"-9007199254740993").unwrap(), -9007199254740992.0);
+            assert_eq!(atof64_slice(b"-9007199254740995").unwrap(), -9007199254740994.0);
+            assert_eq!(atof64_slice(b"9007199254740993").unwrap(), 9007199254740994.0);
+            assert_eq!(atof64_slice(b"9007199254740995").unwrap(), 9007199254740996.0);
 
             // Toward negative infinity
             FLOAT_ROUNDING = RoundingKind::TowardNegativeInfinity;
-            assert_eq!(try_atof64_slice(b"-9007199254740993").value, -9007199254740994.0);
-            assert_eq!(try_atof64_slice(b"-9007199254740995").value, -9007199254740996.0);
-            assert_eq!(try_atof64_slice(b"9007199254740993").value, 9007199254740992.0);
-            assert_eq!(try_atof64_slice(b"9007199254740995").value, 9007199254740994.0);
+            assert_eq!(atof64_slice(b"-9007199254740993").unwrap(), -9007199254740994.0);
+            assert_eq!(atof64_slice(b"-9007199254740995").unwrap(), -9007199254740996.0);
+            assert_eq!(atof64_slice(b"9007199254740993").unwrap(), 9007199254740992.0);
+            assert_eq!(atof64_slice(b"9007199254740995").unwrap(), 9007199254740994.0);
 
             // Toward zero
             FLOAT_ROUNDING = RoundingKind::TowardZero;
-            assert_eq!(try_atof64_slice(b"-9007199254740993").value, -9007199254740992.0);
-            assert_eq!(try_atof64_slice(b"-9007199254740995").value, -9007199254740994.0);
-            assert_eq!(try_atof64_slice(b"9007199254740993").value, 9007199254740992.0);
-            assert_eq!(try_atof64_slice(b"9007199254740995").value, 9007199254740994.0);
+            assert_eq!(atof64_slice(b"-9007199254740993").unwrap(), -9007199254740992.0);
+            assert_eq!(atof64_slice(b"-9007199254740995").unwrap(), -9007199254740994.0);
+            assert_eq!(atof64_slice(b"9007199254740993").unwrap(), 9007199254740992.0);
+            assert_eq!(atof64_slice(b"9007199254740995").unwrap(), 9007199254740994.0);
 
             // Reset to default
             FLOAT_ROUNDING = RoundingKind::NearestTieEven;
@@ -666,38 +666,38 @@ mod tests {
         unsafe {
             // Nearest, tie-even
             FLOAT_ROUNDING = RoundingKind::NearestTieEven;
-            assert_eq!(try_atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000001").value, -9007199254740992.0);
-            assert_eq!(try_atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000011").value, -9007199254740996.0);
-            assert_eq!(try_atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000001").value, 9007199254740992.0);
-            assert_eq!(try_atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000011").value, 9007199254740996.0);
+            assert_eq!(atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000001").unwrap(), -9007199254740992.0);
+            assert_eq!(atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000011").unwrap(), -9007199254740996.0);
+            assert_eq!(atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000001").unwrap(), 9007199254740992.0);
+            assert_eq!(atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000011").unwrap(), 9007199254740996.0);
 
             // Nearest, tie-away-zero
             FLOAT_ROUNDING = RoundingKind::NearestTieAwayZero;
-            assert_eq!(try_atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000001").value, -9007199254740994.0);
-            assert_eq!(try_atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000011").value, -9007199254740996.0);
-            assert_eq!(try_atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000001").value, 9007199254740994.0);
-            assert_eq!(try_atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000011").value, 9007199254740996.0);
+            assert_eq!(atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000001").unwrap(), -9007199254740994.0);
+            assert_eq!(atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000011").unwrap(), -9007199254740996.0);
+            assert_eq!(atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000001").unwrap(), 9007199254740994.0);
+            assert_eq!(atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000011").unwrap(), 9007199254740996.0);
 
             // Toward positive infinity
             FLOAT_ROUNDING = RoundingKind::TowardPositiveInfinity;
-            assert_eq!(try_atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000001").value, -9007199254740992.0);
-            assert_eq!(try_atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000011").value, -9007199254740994.0);
-            assert_eq!(try_atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000001").value, 9007199254740994.0);
-            assert_eq!(try_atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000011").value, 9007199254740996.0);
+            assert_eq!(atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000001").unwrap(), -9007199254740992.0);
+            assert_eq!(atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000011").unwrap(), -9007199254740994.0);
+            assert_eq!(atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000001").unwrap(), 9007199254740994.0);
+            assert_eq!(atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000011").unwrap(), 9007199254740996.0);
 
             // Toward negative infinity
             FLOAT_ROUNDING = RoundingKind::TowardNegativeInfinity;
-            assert_eq!(try_atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000001").value, -9007199254740994.0);
-            assert_eq!(try_atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000011").value, -9007199254740996.0);
-            assert_eq!(try_atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000001").value, 9007199254740992.0);
-            assert_eq!(try_atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000011").value, 9007199254740994.0);
+            assert_eq!(atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000001").unwrap(), -9007199254740994.0);
+            assert_eq!(atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000011").unwrap(), -9007199254740996.0);
+            assert_eq!(atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000001").unwrap(), 9007199254740992.0);
+            assert_eq!(atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000011").unwrap(), 9007199254740994.0);
 
             // Toward zero
             FLOAT_ROUNDING = RoundingKind::TowardZero;
-            assert_eq!(try_atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000001").value, -9007199254740992.0);
-            assert_eq!(try_atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000011").value, -9007199254740994.0);
-            assert_eq!(try_atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000001").value, 9007199254740992.0);
-            assert_eq!(try_atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000011").value, 9007199254740994.0);
+            assert_eq!(atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000001").unwrap(), -9007199254740992.0);
+            assert_eq!(atof64_radix_slice(2, b"-100000000000000000000000000000000000000000000000000011").unwrap(), -9007199254740994.0);
+            assert_eq!(atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000001").unwrap(), 9007199254740992.0);
+            assert_eq!(atof64_radix_slice(2, b"100000000000000000000000000000000000000000000000000011").unwrap(), 9007199254740994.0);
 
             // Reset to default
             FLOAT_ROUNDING = RoundingKind::NearestTieEven;

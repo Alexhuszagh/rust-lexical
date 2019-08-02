@@ -24,14 +24,6 @@ pub fn equal_to_slice(l: &[u8], r: &[u8])
     l == r
 }
 
-/// Check if values are equal to each other without case-sensitivity.
-#[inline]
-pub fn case_insensitive_equal(l: u8, r: u8)
-    -> bool
-{
-    l.to_ascii_lowercase() == r.to_ascii_lowercase()
-}
-
 /// Check if two slices are equal to each other without case-sensitivity.
 #[inline]
 pub fn case_insensitive_equal_to_slice(l: &[u8], r: &[u8])
@@ -40,17 +32,6 @@ pub fn case_insensitive_equal_to_slice(l: &[u8], r: &[u8])
     let liter = l.iter().map(|li| li.to_ascii_lowercase());
     let riter = r.iter().map(|ri| ri.to_ascii_lowercase());
     l.len() == r.len() && liter.eq(riter)
-}
-
-/// Check if left slice starts with right slice without case-sensitivity.
-#[inline]
-pub fn case_insensitive_starts_with_slice(l: &[u8], r: &[u8])
-    -> bool
-{
-    // This cannot be out-of-bounds, since we check `l.len() >= r.len()`
-    // previous to extracting the subslice.
-    let lget = move || unsafe {l.get_unchecked(..r.len())};
-    l.len() >= r.len() && case_insensitive_equal_to_slice(lget(), r)
 }
 
 /// Check if left slice ends with right slice.
@@ -79,7 +60,6 @@ pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
 }
 
 /// Trim character from the right-side of a slice.
-#[cfg(any(feature = "correct", feature = "radix"))]
 #[inline]
 pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
     -> (&'a [u8], usize)
@@ -135,26 +115,6 @@ pub fn explicit_uninitialized<T>() -> T {
     }
 }
 
-/// Create slice from pointer range.
-#[cfg(all(feature = "correct", feature = "radix"))]
-#[inline]
-pub fn slice_from_range<'a, T>(first: *const T, last: *const T)
-    -> &'a [T]
-{
-    slice_from_span(first, distance(first, last))
-}
-
-/// Create slice from pointer and size.
-#[cfg(feature = "correct")]
-#[inline]
-pub fn slice_from_span<'a, T>(first: *const T, length: usize)
-    -> &'a [T]
-{
-    unsafe {
-        slice::from_raw_parts(first, length)
-    }
-}
-
 // TEST
 // ----
 
@@ -199,27 +159,6 @@ mod tests {
     }
 
     #[test]
-    fn case_insensitive_starts_with_test() {
-        let w = "Hello";
-        let x = "H";
-        let y = "h";
-        let z = "a";
-
-        // forward
-        assert!(case_insensitive_starts_with_slice(w.as_bytes(), x.as_bytes()));
-        assert!(case_insensitive_starts_with_slice(w.as_bytes(), y.as_bytes()));
-        assert!(case_insensitive_starts_with_slice(x.as_bytes(), y.as_bytes()));
-        assert!(!case_insensitive_starts_with_slice(w.as_bytes(), z.as_bytes()));
-        assert!(!case_insensitive_starts_with_slice(x.as_bytes(), z.as_bytes()));
-        assert!(!case_insensitive_starts_with_slice(y.as_bytes(), z.as_bytes()));
-
-        // back
-        assert!(!case_insensitive_starts_with_slice(x.as_bytes(), w.as_bytes()));
-        assert!(!case_insensitive_starts_with_slice(y.as_bytes(), w.as_bytes()));
-        assert!(!case_insensitive_starts_with_slice(z.as_bytes(), w.as_bytes()));
-    }
-
-    #[test]
     fn ends_with_test() {
         let w = "Hello";
         let x = "lO";
@@ -259,7 +198,6 @@ mod tests {
         assert_eq!(ltrim_char_slice(z.as_bytes(), b'1').1, 1);
     }
 
-    #[cfg(any(feature = "correct", feature = "radix"))]
     #[test]
     fn rtrim_char_test() {
         let w = "0001";

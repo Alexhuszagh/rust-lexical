@@ -1,4 +1,5 @@
 /target
+lexical-codegen/lexical/target
 lexical-core/target
 lexical-benchmark/lexical/target
 lexical-benchmark/libcore/target
@@ -14,3 +15,7 @@ data/test-float-parse/errors.txt
 /build
 *.pyc
 lexical-core/proptest-regressions/
+
+# Perftools
+perf.data
+perf.data.old

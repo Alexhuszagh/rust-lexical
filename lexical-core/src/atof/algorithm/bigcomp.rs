@@ -8,140 +8,15 @@
 //! Adapted from:
 //!     https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/
 
-use stackvector;
 use lib::cmp;
-use float::*;
 use util::*;
 use super::alias::*;
-use super::correct::FloatSlice;
+use super::bignum::*;
+use super::state::FloatState;
 use super::exponent::*;
 use super::math::*;
 
-// SHARED
-
-/// Calculate `b` from a a representation of `b` as a float.
-#[inline]
-pub(super) fn b<F: FloatType>(f: F) -> F::ExtendedFloat {
-    f.into()
-}
-
-/// Calculate `b+h` from a a representation of `b` as a float.
-#[inline]
-pub(super) fn bh<F: FloatType>(f: F) -> F::ExtendedFloat {
-    // None of these can overflow.
-    let mut b = b(f);
-    let mant = (b.mant() << 1) + as_cast(1);
-    let exp = b.exp() - 1;
-    b.set_mant(mant);
-    b.set_exp(exp);
-    b
-}
-
-// BIG INT
-
-// Adjust the storage capacity for the underlying array.
-cfg_if! {
-if #[cfg(limb_width_64)] {
-    type DataType = stackvector::StackVec<[Limb; 20]>;
-} else {
-    type DataType = stackvector::StackVec<[Limb; 36]>;
-}}   // cfg_if
-
-/// Storage for a big integer type.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Bigint {
-    /// Internal storage for the Bigint, in little-endian order.
-    ///
-    /// Enough storage for up to 10^345, which is 2^1146, or more than
-    /// the max for f64.
-    data: DataType,
-    /// It also makes sense to store an exponent, since this simplifies
-    /// normalizing and powers of 2.
-    exp: i32,
-}
-
-impl SharedOps for Bigint {
-    type StorageType = DataType;
-
-    #[inline]
-    fn data<'a>(&'a self) -> &'a Self::StorageType {
-        &self.data
-    }
-
-    #[inline]
-    fn data_mut<'a>(&'a mut self) -> &'a mut Self::StorageType {
-        &mut self.data
-    }
-}
-
-impl SmallOps for Bigint {
-    #[inline]
-    fn imul_pow2(&mut self, n: u32) {
-        // Increment exponent to simulate actual multiplication.
-        self.exp += n.as_i32();
-    }
-}
-
-impl LargeOps for Bigint {
-}
-
-// TO BIG INT
-
-/// Simple overloads to allow conversions of extended floats to big integers.
-pub trait ToBigInt<M: Mantissa> {
-    fn to_bigint(&self) -> Bigint;
-}
-
-impl ToBigInt<u32> for ExtendedFloat<u32> {
-    #[inline]
-    fn to_bigint(&self) -> Bigint {
-        let mut bigint = Bigint::from_u32(self.mant);
-        bigint.exp = self.exp;
-        bigint
-    }
-}
-
-impl ToBigInt<u64> for ExtendedFloat<u64> {
-    #[inline]
-    fn to_bigint(&self) -> Bigint {
-        let mut bigint = Bigint::from_u64(self.mant);
-        bigint.exp = self.exp;
-        bigint
-    }
-}
-
-#[cfg(has_i128)]
-impl ToBigInt<u128> for ExtendedFloat<u128> {
-    #[inline]
-    fn to_bigint(&self) -> Bigint {
-        let mut bigint = Bigint::from_u128(self.mant);
-        bigint.exp = self.exp;
-        bigint
-    }
-}
-
 // ROUNDING
-
-/// Generate the theoretical float type for the rounding kind.
-#[inline]
-#[allow(unused_variables)]
-pub(super) fn theoretical_float<F>(f: F, kind: RoundingKind)
-    -> F::ExtendedFloat
-    where F: FloatType
-{
-    #[cfg(not(feature = "rounding"))] {
-        bh(f)
-    }
-
-    #[cfg(feature = "rounding")] {
-        match is_nearest(kind) {
-            // We need to check if we're close to halfway, so use `b+h`.
-            true  => bh(f),
-            // Just care if there are any truncated digits, use `b`.
-            false => b(f),
-        }
-    }
-}
 
 /// Custom rounding for the ratio.
 #[allow(unused_variables)]
@@ -195,20 +70,61 @@ pub(super) fn round_to_native<F>(f: F, order: cmp::Ordering, kind: RoundingKind)
     }
 }
 
+// SHARED
+
+/// Calculate `b` from a a representation of `b` as a float.
+perftools_inline!{
+pub(super) fn b<F: FloatType>(f: F) -> F::ExtendedFloat {
+    f.into()
+}}
+
+/// Calculate `b+h` from a a representation of `b` as a float.
+perftools_inline!{
+pub(super) fn bh<F: FloatType>(f: F) -> F::ExtendedFloat {
+    // None of these can overflow.
+    let mut b = b(f);
+    let mant = (b.mant() << 1) + as_cast(1);
+    let exp = b.exp() - 1;
+    b.set_mant(mant);
+    b.set_exp(exp);
+    b
+}}
+
+/// Generate the theoretical float type for the rounding kind.
+perftools_inline!{
+#[allow(unused_variables)]
+pub(super) fn theoretical_float<F>(f: F, kind: RoundingKind)
+    -> F::ExtendedFloat
+    where F: FloatType
+{
+    #[cfg(not(feature = "rounding"))] {
+        bh(f)
+    }
+
+    #[cfg(feature = "rounding")] {
+        match is_nearest(kind) {
+            // We need to check if we're close to halfway, so use `b+h`.
+            true  => bh(f),
+            // Just care if there are any truncated digits, use `b`.
+            false => b(f),
+        }
+    }
+}}
+
 // BIGCOMP
 
 /// Get the appropriate scaling factor from the digit count.
 ///
 /// * `radix`           - Radix for the number parsing.
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
-#[inline]
+perftools_inline!{
 pub fn scaling_factor(radix: u32, sci_exponent: u32)
-    -> Bigint
+    -> Bigfloat
 {
-    let mut factor = Bigint { data: stackvec![1], exp: 0 };
+    let mut factor = Bigfloat { data: stackvec![1], exp: 0 };
     factor.imul_power(radix, sci_exponent);
     factor
-}
+}}
 
 /// Make a ratio for the numerator and denominator.
 ///
@@ -216,13 +132,13 @@ pub fn scaling_factor(radix: u32, sci_exponent: u32)
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
 /// * `f`               - Sub-halfway (`b`) float.
 pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: RoundingKind)
-    -> (Bigint, Bigint)
+    -> (Bigfloat, Bigfloat)
     where F: FloatType
 {
-    let theor = theoretical_float(f, kind).to_bigint();
+    let theor = theoretical_float(f, kind).to_bigfloat();
     let factor = scaling_factor(radix, sci_exponent.abs().as_u32());
-    let mut num: Bigint;
-    let mut den: Bigint;
+    let mut num: Bigfloat;
+    let mut den: Bigfloat;
 
     if sci_exponent < 0 {
         // Need to have the basen factor be the numerator, and the fp
@@ -230,7 +146,7 @@ pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: Ro
         // if it's the denominator, we need to multiply it into the numerator.
         num = factor;
         num.imul_large(&theor);
-        den = Bigint { data: stackvec![1], exp: -theor.exp };
+        den = Bigfloat { data: stackvec![1], exp: -theor.exp };
     } else {
         num = theor;
         den = factor;
@@ -278,7 +194,7 @@ pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: Ro
 /// * `radix`       - Radix for the number parsing.
 /// * `num`         - Numerator for the fraction.
 /// * `denm`        - Denominator for the fraction.
-pub(super) fn compare_digits<'a, Iter>(mut digits: Iter, radix: u32, mut num: Bigint, den: Bigint)
+pub(super) fn compare_digits<'a, Iter>(mut digits: Iter, radix: u32, mut num: Bigfloat, den: Bigfloat)
     -> cmp::Ordering
     where Iter: Iterator<Item=&'a u8>
 {
@@ -310,20 +226,19 @@ pub(super) fn compare_digits<'a, Iter>(mut digits: Iter, radix: u32, mut num: Bi
 /// Generate the correct representation from a halfway representation.
 ///
 /// The digits iterator must not have any trailing zeros (true for
-/// `FloatSlice`).
+/// `FloatState`).
 ///
 /// * `digits`          - Actual digits from the mantissa.
 /// * `radix`           - Radix for the number parsing.
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
 /// * `f`               - Sub-halfway (`b`) float.
-#[inline]
-pub(super) fn atof<F>(slc: FloatSlice, radix: u32, f: F, kind: RoundingKind)
+pub(super) fn atof<F>(state: FloatState, radix: u32, f: F, kind: RoundingKind)
     -> F
     where F: FloatType
 {
     // This works when we're doing, like, round-even.
-    let (num, den) = make_ratio(radix, slc.scientific_exponent(), f, kind);
-    let order = compare_digits(slc.mantissa_iter(), radix, num, den);
+    let (num, den) = make_ratio(radix, state.scientific_exponent(), f, kind);
+    let order = compare_digits(state.mantissa_iter(), radix, num, den);
     round_to_native(f, order, kind)
 }
 
@@ -368,9 +283,9 @@ mod tests {
 
     #[test]
     fn scaling_factor_test() {
-        assert_eq!(scaling_factor(10, 0), Bigint { data: deduce_from_u32(&[1]), exp: 0 });
-        assert_eq!(scaling_factor(10, 20), Bigint { data: deduce_from_u32(&[1977800241, 22204]), exp: 20 });
-        assert_eq!(scaling_factor(10, 300), Bigint { data: deduce_from_u32(&[2502905297, 773182544, 1122691908, 922368819, 2799959258, 2138784391, 2365897751, 2382789932, 3061508751, 1799019667, 3501640837, 269048281, 2748691596, 1866771432, 2228563347, 475471294, 278892994, 2258936920, 3352132269, 1505791508, 2147965370, 25052104]), exp: 300 });
+        assert_eq!(scaling_factor(10, 0), Bigfloat { data: deduce_from_u32(&[1]), exp: 0 });
+        assert_eq!(scaling_factor(10, 20), Bigfloat { data: deduce_from_u32(&[1977800241, 22204]), exp: 20 });
+        assert_eq!(scaling_factor(10, 300), Bigfloat { data: deduce_from_u32(&[2502905297, 773182544, 1122691908, 922368819, 2799959258, 2138784391, 2365897751, 2382789932, 3061508751, 1799019667, 3501640837, 269048281, 2748691596, 1866771432, 2228563347, 475471294, 278892994, 2258936920, 3352132269, 1505791508, 2147965370, 25052104]), exp: 300 });
     }
 
     #[test]
@@ -379,34 +294,44 @@ mod tests {
         let (num2, den2) = make_ratio(10, -324, 5e-324f64, RoundingKind::NearestTieEven);
         let (num3, den3) = make_ratio(10, 307, 8.98846567431158e+307f64, RoundingKind::NearestTieEven);
 
-        #[cfg(limb_width_32)] {
-            assert_eq!(num1, Bigint { data: stackvec![1725370368, 1252154597, 1017462556, 675087593, 2805901938, 1401824593, 1124332496, 2380663002, 1612846757, 4128923878, 1492915356, 437569744, 2975325085, 3331531962, 3367627909, 730662168, 2699172281, 1440714968, 2778340312, 690527038, 1297115354, 763425880, 1453089653, 331561842], exp: 312 });
-            assert_eq!(den1, Bigint { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728], exp: 312 });
+        #[cfg(not(any(
+            target_arch = "aarch64",
+            target_arch = "mips64",
+            target_arch = "powerpc64",
+            target_arch = "x86_64"
+        )))] {
+            assert_eq!(num1, Bigfloat { data: stackvec![1725370368, 1252154597, 1017462556, 675087593, 2805901938, 1401824593, 1124332496, 2380663002, 1612846757, 4128923878, 1492915356, 437569744, 2975325085, 3331531962, 3367627909, 730662168, 2699172281, 1440714968, 2778340312, 690527038, 1297115354, 763425880, 1453089653, 331561842], exp: 312 });
+            assert_eq!(den1, Bigfloat { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728], exp: 312 });
 
-            assert_eq!(num2, Bigint { data: stackvec![881143808, 3756463792, 3052387668, 2025262779, 4122738518, 4205473780, 3372997488, 2847021710, 543572976, 3796837043, 183778774, 1312709233, 336040663, 1404661296, 1512949137, 2191986506, 3802549547, 27177609, 4040053641, 2071581115, 3891346062, 2290277640, 64301663, 994685527], exp: 312 });
-            assert_eq!(den2, Bigint { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728], exp: 312 });
+            assert_eq!(num2, Bigfloat { data: stackvec![881143808, 3756463792, 3052387668, 2025262779, 4122738518, 4205473780, 3372997488, 2847021710, 543572976, 3796837043, 183778774, 1312709233, 336040663, 1404661296, 1512949137, 2191986506, 3802549547, 27177609, 4040053641, 2071581115, 3891346062, 2290277640, 64301663, 994685527], exp: 312 });
+            assert_eq!(den2, Bigfloat { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728], exp: 312 });
 
-            assert_eq!(num3, Bigint { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1024, 2147483648], exp: 288 });
-            assert_eq!(den3, Bigint { data: stackvec![1978138624, 2671552565, 2938166866, 3588566204, 1860064291, 2104472219, 2014975858, 2797301608, 462262832, 318515330, 1101517094, 1738264167, 3721375114, 414401884, 1406861075, 3053102637, 387329537, 2051556775, 1867945454, 3717689914, 1434550525, 1446648206, 238915486], exp: 288 });
+            assert_eq!(num3, Bigfloat { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1024, 2147483648], exp: 288 });
+            assert_eq!(den3, Bigfloat { data: stackvec![1978138624, 2671552565, 2938166866, 3588566204, 1860064291, 2104472219, 2014975858, 2797301608, 462262832, 318515330, 1101517094, 1738264167, 3721375114, 414401884, 1406861075, 3053102637, 387329537, 2051556775, 1867945454, 3717689914, 1434550525, 1446648206, 238915486], exp: 288 });
         }
 
-        #[cfg(limb_width_64)] {
-            assert_eq!(num1, Bigint { data: stackvec![7410409304047484928, 4369968404176723173, 12051257060168107241, 4828971301551875409, 6927124077155322074, 6412022633845121254, 12778923935480989904, 14463851737583396026, 11592856673895384344, 11932880778639151320, 5571068025259989822, 6240972538554414168, 331561842], exp: 280 });
-            assert_eq!(den1, Bigint { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728], exp: 280 });
+        #[cfg(any(
+            target_arch = "aarch64",
+            target_arch = "mips64",
+            target_arch = "powerpc64",
+            target_arch = "x86_64"
+        ))] {
+            assert_eq!(num1, Bigfloat { data: stackvec![7410409304047484928, 4369968404176723173, 12051257060168107241, 4828971301551875409, 6927124077155322074, 6412022633845121254, 12778923935480989904, 14463851737583396026, 11592856673895384344, 11932880778639151320, 5571068025259989822, 6240972538554414168, 331561842], exp: 280 });
+            assert_eq!(den1, Bigfloat { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728], exp: 280 });
 
-            assert_eq!(num2, Bigint { data: stackvec![3784483838432903168, 13109905212530169520, 17707027106794770107, 14486913904655626228, 2334628157756414606, 789323827825812147, 1443283659023866481, 6498067065331084848, 16331825947976601418, 17351898262207902345, 16713204075779969467, 276173541953690888, 994685527], exp: 280 });
-            assert_eq!(den2, Bigint { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728], exp: 280 });
+            assert_eq!(num2, Bigfloat { data: stackvec![3784483838432903168, 13109905212530169520, 17707027106794770107, 14486913904655626228, 2334628157756414606, 789323827825812147, 1443283659023866481, 6498067065331084848, 16331825947976601418, 17351898262207902345, 16713204075779969467, 276173541953690888, 994685527], exp: 280 });
+            assert_eq!(den2, Bigfloat { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728], exp: 280 });
 
-            assert_eq!(num3, Bigint { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4398046511104, 2147483648], exp: 288 });
-            assert_eq!(den3, Bigint { data: stackvec![11474230898198052864, 15412774488649031250, 9038639357805614115, 12014318925423187826, 1368012926086910512, 7465787750175199526, 1779842542902160778, 13112975978653220627, 8811369254899559937, 15967356599166997998, 6213306735021621501, 238915486], exp: 288 });
+            assert_eq!(num3, Bigfloat { data: stackvec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4398046511104, 2147483648], exp: 288 });
+            assert_eq!(den3, Bigfloat { data: stackvec![11474230898198052864, 15412774488649031250, 9038639357805614115, 12014318925423187826, 1368012926086910512, 7465787750175199526, 1779842542902160778, 13112975978653220627, 8811369254899559937, 15967356599166997998, 6213306735021621501, 238915486], exp: 288 });
         }
     }
 
     #[test]
     fn compare_digits_test() {
         // 2^-1074
-        let num = Bigint { data: deduce_from_u32(&[1725370368, 1252154597, 1017462556, 675087593, 2805901938, 1401824593, 1124332496, 2380663002, 1612846757, 4128923878, 1492915356, 437569744, 2975325085, 3331531962, 3367627909, 730662168, 2699172281, 1440714968, 2778340312, 690527038, 1297115354, 763425880, 1453089653, 331561842]), exp: 312 };
-        let den = Bigint { data: deduce_from_u32(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728]), exp: 312 };
+        let num = Bigfloat { data: deduce_from_u32(&[1725370368, 1252154597, 1017462556, 675087593, 2805901938, 1401824593, 1124332496, 2380663002, 1612846757, 4128923878, 1492915356, 437569744, 2975325085, 3331531962, 3367627909, 730662168, 2699172281, 1440714968, 2778340312, 690527038, 1297115354, 763425880, 1453089653, 331561842]), exp: 312 };
+        let den = Bigfloat { data: deduce_from_u32(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728]), exp: 312 };
 
         // Below halfway
         let digits = b"24703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328124999";
@@ -421,8 +346,8 @@ mod tests {
         assert_eq!(compare_digits(digits.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Greater);
 
         // 2*2^-1074
-        let num = Bigint { data: deduce_from_u32(&[881143808, 3756463792, 3052387668, 2025262779, 4122738518, 4205473780, 3372997488, 2847021710, 543572976, 3796837043, 183778774, 1312709233, 336040663, 1404661296, 1512949137, 2191986506, 3802549547, 27177609, 4040053641, 2071581115, 3891346062, 2290277640, 64301663, 994685527]), exp: 312 };
-        let den = Bigint { data: deduce_from_u32(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728]), exp: 312 };
+        let num = Bigfloat { data: deduce_from_u32(&[881143808, 3756463792, 3052387668, 2025262779, 4122738518, 4205473780, 3372997488, 2847021710, 543572976, 3796837043, 183778774, 1312709233, 336040663, 1404661296, 1512949137, 2191986506, 3802549547, 27177609, 4040053641, 2071581115, 3891346062, 2290277640, 64301663, 994685527]), exp: 312 };
+        let den = Bigfloat { data: deduce_from_u32(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728]), exp: 312 };
 
         // Below halfway
         let digits = b"74109846876186981626485318930233205854758970392148714663837852375101326090531312779794975454245398856969484704316857659638998506553390969459816219401617281718945106978546710679176872575177347315553307795408549809608457500958111373034747658096871009590975442271004757307809711118935784838675653998783503015228055934046593739791790738723868299395818481660169122019456499931289798411362062484498678713572180352209017023903285791732520220528974020802906854021606612375549983402671300035812486479041385743401875520901590172592547146296175134159774938718574737870961645638908718119841271673056017045493004705269590165763776884908267986972573366521765567941072508764337560846003984904972149117463085539556354188641513168478436313080237596295773983001708984374999";
@@ -437,8 +362,8 @@ mod tests {
         assert_eq!(compare_digits(digits.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Greater);
 
         // 4503599627370496*2^971
-        let num = Bigint { data: deduce_from_u32(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1024, 2147483648]), exp: 288 };
-        let den = Bigint { data: deduce_from_u32(&[1978138624, 2671552565, 2938166866, 3588566204, 1860064291, 2104472219, 2014975858, 2797301608, 462262832, 318515330, 1101517094, 1738264167, 3721375114, 414401884, 1406861075, 3053102637, 387329537, 2051556775, 1867945454, 3717689914, 1434550525, 1446648206, 238915486]), exp: 288 };
+        let num = Bigfloat { data: deduce_from_u32(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1024, 2147483648]), exp: 288 };
+        let den = Bigfloat { data: deduce_from_u32(&[1978138624, 2671552565, 2938166866, 3588566204, 1860064291, 2104472219, 2014975858, 2797301608, 462262832, 318515330, 1101517094, 1738264167, 3721375114, 414401884, 1406861075, 3053102637, 387329537, 2051556775, 1867945454, 3717689914, 1434550525, 1446648206, 238915486]), exp: 288 };
 
         // Below halfway
         let digits = b"89884656743115805365666807213050294962762414131308158973971342756154045415486693752413698006024096935349884403114202125541629105369684531108613657287705365884742938136589844238179474556051429647415148697857438797685859063890851407391008830874765563025951597582513936655578157348020066364210154316532161708031999";

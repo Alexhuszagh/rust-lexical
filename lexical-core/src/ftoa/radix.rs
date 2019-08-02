@@ -9,10 +9,15 @@ use util::*;
 // FTOA BASEN
 // ----------
 
+// Export a character to digit.
+macro_rules! to_digit {
+    ($c:expr, $radix:ident) => (($c as char).to_digit($radix));
+}
+
 /// Calculate the naive exponent from a minimal value.
 ///
 /// Don't export this for float, since it's specialized for radix.
-#[inline]
+perftools_inline!{
 pub(crate) fn naive_exponent(d: f64, radix: u32) -> i32
 {
     // floor returns the minimal value, which is our
@@ -20,7 +25,7 @@ pub(crate) fn naive_exponent(d: f64, radix: u32) -> i32
     // ln(1.1e-5) -> -4.95 -> -5
     // ln(1.1e5) -> -5.04 -> 5
     (d.ln() / (radix as f64).ln()).floor() as i32
-}
+}}
 
 /// Naive algorithm for converting a floating point to a custom radix.
 ///
@@ -106,8 +111,7 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
                         }
                         // Reconstruct digit.
                         let c = buffer[fraction_cursor];
-                        let digit = char_to_digit(c) as i32;
-                        if digit <= radix as i32 {
+                        if let Some(digit) = to_digit!(c, radix) {
                             let idx = (digit + 1) as usize;
                             buffer[fraction_cursor] = digit_to_char(idx);
                             fraction_cursor += 1;
@@ -216,12 +220,12 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
 ///
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-#[inline]
+perftools_inline!{
 pub(crate) fn float_radix<'a>(f: f32, radix: u32, bytes: &'a mut [u8])
     -> usize
 {
     double_radix(f as f64, radix, bytes)
-}
+}}
 
 // F64
 
@@ -229,9 +233,9 @@ pub(crate) fn float_radix<'a>(f: f32, radix: u32, bytes: &'a mut [u8])
 ///
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-#[inline]
+perftools_inline!{
 pub(crate) fn double_radix<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
     -> usize
 {
     ftoa_naive(value, radix, bytes)
-}
+}}

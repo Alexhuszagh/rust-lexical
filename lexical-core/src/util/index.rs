@@ -7,6 +7,11 @@ macro_rules! index {
     ($container:ident[$index:expr]) => (
         * unsafe { $container.get_unchecked($index) }
     );
+
+    // Get
+    ($obj:ident$(.$subobj:ident)*[$index:expr]) => (
+        * unsafe { $obj$(.$subobj)*.get_unchecked($index) }
+    );
 }
 
 /// Macro to mutably index without bounds checking.
@@ -29,6 +34,11 @@ macro_rules! index {
     // Get
     ($container:ident[$index:expr]) => (
         $container[$index]
+    );
+
+    // Get
+    ($obj:ident$(.$subobj:ident)*[$index:expr]) => (
+        $obj$(.$subobj)*[$index]
     );
 }
 

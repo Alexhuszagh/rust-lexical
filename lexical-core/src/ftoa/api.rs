@@ -80,35 +80,35 @@ pub(crate) trait FloatToString: Float {
 }
 
 impl FloatToString for f32 {
-    #[inline]
+    perftools_inline!{
     fn decimal<'a>(self, bytes: &'a mut [u8]) -> usize {
         float_decimal(self, bytes)
-    }
+    }}
 
+    perftools_inline!{
     #[cfg(feature = "radix")]
-    #[inline]
     fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> usize {
         float_radix(self, radix, bytes)
-    }
+    }}
 }
 
 impl FloatToString for f64 {
-    #[inline]
+    perftools_inline!{
     fn decimal<'a>(self, bytes: &'a mut [u8]) -> usize {
         double_decimal(self, bytes)
-    }
+    }}
 
+    perftools_inline!{
     #[cfg(feature = "radix")]
-    #[inline]
     fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> usize {
         double_radix(self, radix, bytes)
-    }
+    }}
 }
 
 // FTOA
 
 /// Forward the correct arguments the ideal encoder.
-#[inline]
+perftools_inline!{
 fn forward<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     -> usize
 {
@@ -124,10 +124,10 @@ fn forward<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
             _  => value.radix(radix, bytes),
         }
     }
-}
+}}
 
 /// Convert float-to-string and handle special (positive) floats.
-#[inline]
+perftools_inline!{
 fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     -> usize
 {
@@ -157,10 +157,10 @@ fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8
     } else {
         forward(value, radix, bytes)
     }
-}
+}}
 
 /// Handle +/- values.
-#[inline]
+perftools_inline!{
 fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     -> usize
 {
@@ -186,18 +186,18 @@ fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     } else {
         filter_special(value, radix, bytes)
     }
-}
+}}
 
 /// Iteratively filter simple cases then invoke serializer.
-#[inline]
+perftools_inline!{
 fn ftoa<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
     -> usize
 {
     filter_sign(value, radix, bytes)
-}
+}}
 
 /// Trim a trailing ".0" from a float.
-#[inline]
+perftools_inline!{
 fn trim<'a>(bytes: &'a mut [u8])
     -> usize
 {
@@ -207,7 +207,7 @@ fn trim<'a>(bytes: &'a mut [u8])
     } else {
         bytes.len()
     }
-}
+}}
 
 // UNSAFE API
 
@@ -215,7 +215,7 @@ fn trim<'a>(bytes: &'a mut [u8])
 macro_rules! wrap {
     ($name:ident, $t:ty) => (
         /// Serialize float and return bytes written to.
-        #[inline]
+        perftools_inline!{
         fn $name<'a>(value: $t, base: u8, bytes: &'a mut [u8])
             -> usize
         {
@@ -223,7 +223,7 @@ macro_rules! wrap {
             let len = ftoa(value, base.into(), bytes);
             let bytes = &mut index_mut!(bytes[..len]);
             trim(bytes)
-        }
+        }}
     )
 }
 
@@ -333,7 +333,7 @@ mod tests {
         let mut buffer = new_buffer();
         for &f in F32_DATA.iter() {
             let s = f32toa_slice(f, &mut buffer);
-            assert_relative_eq!(atof32_slice(s), f, epsilon=1e-6, max_relative=1e-6);
+            assert_relative_eq!(atof32_slice(s).unwrap(), f, epsilon=1e-6, max_relative=1e-6);
         }
     }
 
@@ -346,7 +346,7 @@ mod tests {
                 // The lower accuracy is due to slight rounding errors of
                 // ftoa for the Grisu method with non-10 bases.
                 let s = f32toa_radix_slice(*f, radix, &mut buffer);
-                assert_relative_eq!(atof32_radix_slice(radix, s), *f, max_relative=2e-5);
+                assert_relative_eq!(atof32_radix_slice(radix, s).unwrap(), *f, max_relative=2e-5);
             }
         }
     }
@@ -425,7 +425,7 @@ mod tests {
         let mut buffer = new_buffer();
         for f in F64_DATA.iter() {
             let s = f64toa_slice(*f, &mut buffer);
-            assert_relative_eq!(atof64_slice(s), *f, epsilon=1e-12, max_relative=1e-12);
+            assert_relative_eq!(atof64_slice(s).unwrap(), *f, epsilon=1e-12, max_relative=1e-12);
         }
     }
 
@@ -438,7 +438,7 @@ mod tests {
                 // The lower accuracy is due to slight rounding errors of
                 // ftoa for the Grisu method with non-10 bases.
                 let s = f64toa_radix_slice(*f, radix, &mut buffer);
-                assert_relative_eq!(atof64_radix_slice(radix, s), *f, max_relative=3e-5);
+                assert_relative_eq!(atof64_radix_slice(radix, s).unwrap(), *f, max_relative=3e-5);
             }
         }
     }
@@ -447,12 +447,12 @@ mod tests {
     quickcheck! {
         fn f32_quickcheck(f: f32) -> bool {
             let mut buffer = new_buffer();
-            f == atof32_slice(f32toa_slice(f, &mut buffer))
+            f == atof32_slice(f32toa_slice(f, &mut buffer)).unwrap()
         }
 
         fn f64_quickcheck(f: f64) -> bool {
             let mut buffer = new_buffer();
-            f == atof64_slice(f64toa_slice(f, &mut buffer))
+            f == atof64_slice(f64toa_slice(f, &mut buffer)).unwrap()
         }
     }
 
@@ -461,13 +461,13 @@ mod tests {
         #[test]
         fn f332_proptest(i in f32::MIN..f32::MAX) {
             let mut buffer = new_buffer();
-            i == atof32_slice(f32toa_slice(i, &mut buffer))
+            i == atof32_slice(f32toa_slice(i, &mut buffer)).unwrap()
         }
 
         #[test]
         fn f64_proptest(i in f64::MIN..f64::MAX) {
             let mut buffer = new_buffer();
-            i == atof64_slice(f64toa_slice(i, &mut buffer))
+            i == atof64_slice(f64toa_slice(i, &mut buffer)).unwrap()
         }
     }
 

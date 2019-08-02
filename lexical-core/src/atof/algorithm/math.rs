@@ -34,7 +34,12 @@ use util::*;
 //  requiring software emulation.
 //      sparc64 (`UMUL` only supported double-word arguments).
 cfg_if! {
-if #[cfg(limb_width_64)] {
+if #[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+))] {
     pub type Limb = u64;
     type Wide = u128;
     type SignedWide = i128;
@@ -45,71 +50,91 @@ if #[cfg(limb_width_64)] {
 }}   // cfg_if
 
 /// Cast to limb type.
-#[inline]
+perftools_inline!{
 pub(super) fn as_limb<T: Integer>(t: T)
     -> Limb
 {
     as_cast(t)
-}
+}}
 
 /// Cast to wide type.
-#[inline]
+perftools_inline!{
 fn as_wide<T: Integer>(t: T)
     -> Wide
 {
     as_cast(t)
-}
+}}
 
 /// Cast tosigned wide type.
-#[inline]
+perftools_inline!{
 fn as_signed_wide<T: Integer>(t: T)
     -> SignedWide
 {
     as_cast(t)
-}
+}}
 
 // SPLIT
 // -----
 
 /// Split u16 into limbs, in little-endian order.
-#[inline]
+perftools_inline!{
 fn split_u16(x: u16) -> [Limb; 1] {
     [as_limb(x)]
-}
+}}
 
 /// Split u32 into limbs, in little-endian order.
-#[inline]
+perftools_inline!{
 fn split_u32(x: u32) -> [Limb; 1] {
     [as_limb(x)]
-}
+}}
 
 /// Split u64 into limbs, in little-endian order.
-#[cfg(limb_width_32)]
-#[inline]
+perftools_inline!{
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+)))]
 fn split_u64(x: u64) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 32)]
-}
+}}
 
 /// Split u64 into limbs, in little-endian order.
-#[cfg(limb_width_64)]
-#[inline]
+perftools_inline!{
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+))]
 fn split_u64(x: u64) -> [Limb; 1] {
     [as_limb(x)]
-}
+}}
 
 /// Split u128 into limbs, in little-endian order.
-#[cfg(all(has_i128, limb_width_32))]
-#[inline]
+perftools_inline!{
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+)))]
 fn split_u128(x: u128) -> [Limb; 4] {
     [as_limb(x), as_limb(x >> 32), as_limb(x >> 64), as_limb(x >> 96)]
-}
+}}
 
 /// Split u128 into limbs, in little-endian order.
-#[cfg(all(has_i128, limb_width_64))]
-#[inline]
+perftools_inline!{
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+))]
 fn split_u128(x: u128) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 64)]
-}
+}}
 
 // HI BITS
 // -------
@@ -117,25 +142,25 @@ fn split_u128(x: u128) -> [Limb; 2] {
 // NONZERO
 
 /// Check if any of the remaining bits are non-zero.
-#[inline]
+perftools_inline!{
 pub fn nonzero<T: Integer>(x: &[T], rindex: usize) -> bool {
     let len = x.len();
     let slc = &x[..len-rindex];
     slc.iter().rev().any(|&x| x != T::ZERO)
-}
+}}
 
 // HI16
 
 /// Shift 16-bit integer to high 16-bits.
-#[inline]
+perftools_inline!{
 fn u16_to_hi16_1(r0: u16) -> (u16, bool) {
     debug_assert!(r0 != 0);
     let ls = r0.leading_zeros();
     (r0 << ls, false)
-}
+}}
 
 /// Shift 2 16-bit integers to high 16-bits.
-#[inline]
+perftools_inline!{
 fn u16_to_hi16_2(r0: u16, r1: u16) -> (u16, bool) {
     debug_assert!(r0 != 0);
     let ls = r0.leading_zeros();
@@ -146,35 +171,35 @@ fn u16_to_hi16_2(r0: u16, r1: u16) -> (u16, bool) {
     };
     let n = r1 << ls != 0;
     (v, n)
-}
+}}
 
 /// Shift 32-bit integer to high 16-bits.
-#[inline]
+perftools_inline!{
 fn u32_to_hi16_1(r0: u32) -> (u16, bool) {
     let r0 = u32_to_hi32_1(r0).0;
     ((r0 >> 16).as_u16(), r0.as_u16() != 0)
-}
+}}
 
 /// Shift 2 32-bit integers to high 16-bits.
-#[inline]
+perftools_inline!{
 fn u32_to_hi16_2(r0: u32, r1: u32) -> (u16, bool) {
     let (r0, n) = u32_to_hi32_2(r0, r1);
     ((r0 >> 16).as_u16(), n || r0.as_u16() != 0)
-}
+}}
 
 /// Shift 64-bit integer to high 16-bits.
-#[inline]
+perftools_inline!{
 fn u64_to_hi16_1(r0: u64) -> (u16, bool) {
     let r0 = u64_to_hi64_1(r0).0;
     ((r0 >> 48).as_u16(), r0.as_u16() != 0)
-}
+}}
 
 /// Shift 2 64-bit integers to high 16-bits.
-#[inline]
+perftools_inline!{
 fn u64_to_hi16_2(r0: u64, r1: u64) -> (u16, bool) {
     let (r0, n) = u64_to_hi64_2(r0, r1);
     ((r0 >> 48).as_u16(), n || r0.as_u16() != 0)
-}
+}}
 
 /// Trait to export the high 16-bits from a little-endian slice.
 trait Hi16<T>: SliceLike<T> {
@@ -185,25 +210,26 @@ trait Hi16<T>: SliceLike<T> {
     fn hi16_2(&self) -> (u16, bool);
 
     /// High-level exporter to extract the high 16 bits from a little-endian slice.
+    perftools_inline!{
     fn hi16(&self) -> (u16, bool) {
         match self.len() {
             0 => (0, false),
             1 => self.hi16_1(),
             _ => self.hi16_2(),
         }
-    }
+    }}
 }
 
 impl Hi16<u16> for [u16] {
-    #[inline]
+    perftools_inline!{
     fn hi16_1(&self) -> (u16, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
         let r0 = rview[0];
         u16_to_hi16_1(r0)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi16_2(&self) -> (u16, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
@@ -211,19 +237,19 @@ impl Hi16<u16> for [u16] {
         let r1 = rview[1];
         let (v, n) = u16_to_hi16_2(r0, r1);
         (v, n || nonzero(self, 2))
-    }
+    }}
 }
 
 impl Hi16<u32> for [u32] {
-    #[inline]
+    perftools_inline!{
     fn hi16_1(&self) -> (u16, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
         let r0 = rview[0];
         u32_to_hi16_1(r0)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi16_2(&self) -> (u16, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
@@ -231,19 +257,19 @@ impl Hi16<u32> for [u32] {
         let r1 = rview[1];
         let (v, n) = u32_to_hi16_2(r0, r1);
         (v, n || nonzero(self, 2))
-    }
+    }}
 }
 
 impl Hi16<u64> for [u64] {
-    #[inline]
+    perftools_inline!{
     fn hi16_1(&self) -> (u16, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
         let r0 = rview[0];
         u64_to_hi16_1(r0)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi16_2(&self) -> (u16, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
@@ -251,21 +277,21 @@ impl Hi16<u64> for [u64] {
         let r1 = rview[1];
         let (v, n) = u64_to_hi16_2(r0, r1);
         (v, n || nonzero(self, 2))
-    }
+    }}
 }
 
 // HI32
 
 /// Shift 32-bit integer to high 32-bits.
-#[inline]
+perftools_inline!{
 fn u32_to_hi32_1(r0: u32) -> (u32, bool) {
     debug_assert!(r0 != 0);
     let ls = r0.leading_zeros();
     (r0 << ls, false)
-}
+}}
 
 /// Shift 2 32-bit integers to high 32-bits.
-#[inline]
+perftools_inline!{
 fn u32_to_hi32_2(r0: u32, r1: u32) -> (u32, bool) {
     debug_assert!(r0 != 0);
     let ls = r0.leading_zeros();
@@ -276,21 +302,21 @@ fn u32_to_hi32_2(r0: u32, r1: u32) -> (u32, bool) {
     };
     let n = r1 << ls != 0;
     (v, n)
-}
+}}
 
 /// Shift 64-bit integer to high 32-bits.
-#[inline]
+perftools_inline!{
 fn u64_to_hi32_1(r0: u64) -> (u32, bool) {
     let r0 = u64_to_hi64_1(r0).0;
     ((r0 >> 32).as_u32(), r0.as_u32() != 0)
-}
+}}
 
 /// Shift 2 64-bit integers to high 32-bits.
-#[inline]
+perftools_inline!{
 fn u64_to_hi32_2(r0: u64, r1: u64) -> (u32, bool) {
     let (r0, n) = u64_to_hi64_2(r0, r1);
     ((r0 >> 32).as_u32(), n || r0.as_u32() != 0)
-}
+}}
 
 /// Trait to export the high 32-bits from a little-endian slice.
 trait Hi32<T>: SliceLike<T> {
@@ -304,6 +330,7 @@ trait Hi32<T>: SliceLike<T> {
     fn hi32_3(&self) -> (u32, bool);
 
     /// High-level exporter to extract the high 32 bits from a little-endian slice.
+    perftools_inline!{
     fn hi32(&self) -> (u32, bool) {
         match self.len() {
             0 => (0, false),
@@ -311,27 +338,27 @@ trait Hi32<T>: SliceLike<T> {
             2 => self.hi32_2(),
             _ => self.hi32_3(),
         }
-    }
+    }}
 }
 
 impl Hi32<u16> for [u16] {
-    #[inline]
+    perftools_inline!{
     fn hi32_1(&self) -> (u32, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
         u32_to_hi32_1(rview[0].as_u32())
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi32_2(&self) -> (u32, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
         let r0 = rview[0].as_u32() << 16;
         let r1 = rview[1].as_u32();
         u32_to_hi32_1(r0 | r1)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi32_3(&self) -> (u32, bool) {
         debug_assert!(self.len() >= 3);
         let rview = self.rview();
@@ -340,19 +367,19 @@ impl Hi32<u16> for [u16] {
         let r2 = rview[2].as_u32();
         let (v, n) = u32_to_hi32_2( r0, r1 | r2);
         (v, n || nonzero(self, 3))
-    }
+    }}
 }
 
 impl Hi32<u32> for [u32] {
-    #[inline]
+    perftools_inline!{
     fn hi32_1(&self) -> (u32, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
         let r0 = rview[0];
         u32_to_hi32_1(r0)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi32_2(&self) -> (u32, bool) {
         debug_assert!(self.len() >= 2);
         let rview = self.rview();
@@ -360,24 +387,24 @@ impl Hi32<u32> for [u32] {
         let r1 = rview[1];
         let (v, n) = u32_to_hi32_2(r0, r1);
         (v, n || nonzero(self, 2))
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi32_3(&self) -> (u32, bool) {
         self.hi32_2()
-    }
+    }}
 }
 
 impl Hi32<u64> for [u64] {
-    #[inline]
+    perftools_inline!{
     fn hi32_1(&self) -> (u32, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
         let r0 = rview[0];
         u64_to_hi32_1(r0)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi32_2(&self) -> (u32, bool) {
         debug_assert!(self.len() >= 2);
         let rview = self.rview();
@@ -385,26 +412,26 @@ impl Hi32<u64> for [u64] {
         let r1 = rview[1];
         let (v, n) = u64_to_hi32_2(r0, r1);
         (v, n || nonzero(self, 2))
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi32_3(&self) -> (u32, bool) {
         self.hi32_2()
-    }
+    }}
 }
 
 // HI64
 
 /// Shift 64-bit integer to high 64-bits.
-#[inline]
+perftools_inline!{
 fn u64_to_hi64_1(r0: u64) -> (u64, bool) {
     debug_assert!(r0 != 0);
     let ls = r0.leading_zeros();
     (r0 << ls, false)
-}
+}}
 
 /// Shift 2 64-bit integers to high 64-bits.
-#[inline]
+perftools_inline!{
 fn u64_to_hi64_2(r0: u64, r1: u64) -> (u64, bool) {
     debug_assert!(r0 != 0);
     let ls = r0.leading_zeros();
@@ -415,7 +442,7 @@ fn u64_to_hi64_2(r0: u64, r1: u64) -> (u64, bool) {
     };
     let n = r1 << ls != 0;
     (v, n)
-}
+}}
 
 /// Trait to export the high 64-bits from a little-endian slice.
 trait Hi64<T>: SliceLike<T> {
@@ -435,6 +462,7 @@ trait Hi64<T>: SliceLike<T> {
     fn hi64_5(&self) -> (u64, bool);
 
     /// High-level exporter to extract the high 64 bits from a little-endian slice.
+    perftools_inline!{
     fn hi64(&self) -> (u64, bool) {
         match self.len() {
             0 => (0, false),
@@ -444,28 +472,28 @@ trait Hi64<T>: SliceLike<T> {
             4 => self.hi64_4(),
             _ => self.hi64_5(),
         }
-    }
+    }}
 }
 
 impl Hi64<u16> for [u16] {
-    #[inline]
+    perftools_inline!{
     fn hi64_1(&self) -> (u64, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
         let r0 = rview[0].as_u64();
         u64_to_hi64_1(r0)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi64_2(&self) -> (u64, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
         let r0 = rview[0].as_u64() << 16;
         let r1 = rview[1].as_u64();
         u64_to_hi64_1(r0 | r1)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi64_3(&self) -> (u64, bool) {
         debug_assert!(self.len() == 3);
         let rview = self.rview();
@@ -473,9 +501,9 @@ impl Hi64<u16> for [u16] {
         let r1 = rview[1].as_u64() << 16;
         let r2 = rview[2].as_u64();
         u64_to_hi64_1(r0 | r1 | r2)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi64_4(&self) -> (u64, bool) {
         debug_assert!(self.len() == 4);
         let rview = self.rview();
@@ -484,9 +512,9 @@ impl Hi64<u16> for [u16] {
         let r2 = rview[2].as_u64() << 16;
         let r3 = rview[3].as_u64();
         u64_to_hi64_1(r0 | r1 | r2 | r3)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi64_5(&self) -> (u64, bool) {
         debug_assert!(self.len() >= 5);
         let rview = self.rview();
@@ -497,28 +525,28 @@ impl Hi64<u16> for [u16] {
         let r4 = rview[4].as_u64();
         let (v, n) = u64_to_hi64_2(r0, r1 | r2 | r3 | r4);
         (v, n || nonzero(self, 5))
-    }
+    }}
 }
 
 impl Hi64<u32> for [u32] {
-    #[inline]
+    perftools_inline!{
     fn hi64_1(&self) -> (u64, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
         let r0 = rview[0].as_u64();
         u64_to_hi64_1(r0)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi64_2(&self) -> (u64, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
         let r0 = rview[0].as_u64() << 32;
         let r1 = rview[1].as_u64();
         u64_to_hi64_1(r0 | r1)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi64_3(&self) -> (u64, bool) {
         debug_assert!(self.len() >= 3);
         let rview = self.rview();
@@ -527,29 +555,29 @@ impl Hi64<u32> for [u32] {
         let r2 = rview[2].as_u64();
         let (v, n) = u64_to_hi64_2(r0, r1 | r2);
         (v, n || nonzero(self, 3))
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi64_4(&self) -> (u64, bool) {
         self.hi64_3()
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi64_5(&self) -> (u64, bool) {
         self.hi64_3()
-    }
+    }}
 }
 
 impl Hi64<u64> for [u64] {
-    #[inline]
+    perftools_inline!{
     fn hi64_1(&self) -> (u64, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
         let r0 = rview[0];
         u64_to_hi64_1(r0)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi64_2(&self) -> (u64, bool) {
         debug_assert!(self.len() >= 2);
         let rview = self.rview();
@@ -557,47 +585,44 @@ impl Hi64<u64> for [u64] {
         let r1 = rview[1];
         let (v, n) = u64_to_hi64_2(r0, r1);
         (v, n || nonzero(self, 2))
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi64_3(&self) -> (u64, bool) {
         self.hi64_2()
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi64_4(&self) -> (u64, bool) {
         self.hi64_2()
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi64_5(&self) -> (u64, bool) {
         self.hi64_2()
-    }
+    }}
 }
 
 // HI128
 
 /// Shift 128-bit integer to high 128-bits.
-#[cfg(has_i128)]
-#[inline]
+perftools_inline!{
 fn u128_to_hi128_1(r0: u128) -> (u128, bool) {
     let ls = r0.leading_zeros();
     (r0 << ls, false)
-}
+}}
 
 /// Shift 2 128-bit integers to high 128-bits.
-#[cfg(has_i128)]
-#[inline]
+perftools_inline!{
 fn u128_to_hi128_2(r0: u128, r1: u128) -> (u128, bool) {
     let ls = r0.leading_zeros();
     let rs = 128 - ls;
     let v = (r0 << ls) | (r1 >> rs);
     let n = r1 << ls != 0;
     (v, n)
-}
+}}
 
 /// Trait to export the high 128-bits from a little-endian slice.
-#[cfg(has_i128)]
 trait Hi128<T>: SliceLike<T> {
     /// Get the hi128 bits from a 1-limb slice.
     fn hi128_1(&self) -> (u128, bool);
@@ -627,6 +652,7 @@ trait Hi128<T>: SliceLike<T> {
     fn hi128_9(&self) -> (u128, bool);
 
     /// High-level exporter to extract the high 128 bits from a little-endian slice.
+    perftools_inline!{
     fn hi128(&self) -> (u128, bool) {
         match self.len() {
             0 => (0, false),
@@ -639,29 +665,28 @@ trait Hi128<T>: SliceLike<T> {
             8 => self.hi128_8(),
             _ => self.hi128_9(),
         }
-    }
+    }}
 }
 
-#[cfg(has_i128)]
 impl Hi128<u16> for [u16] {
-    #[inline]
+    perftools_inline!{
     fn hi128_1(&self) -> (u128, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
         let r0 = rview[0].as_u128();
         u128_to_hi128_1(r0)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_2(&self) -> (u128, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
         let r0 = rview[0].as_u128() << 16;
         let r1 = rview[1].as_u128();
         u128_to_hi128_1(r0 | r1)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_3(&self) -> (u128, bool) {
         debug_assert!(self.len() == 3);
         let rview = self.rview();
@@ -669,9 +694,9 @@ impl Hi128<u16> for [u16] {
         let r1 = rview[1].as_u128() << 16;
         let r2 = rview[2].as_u128();
         u128_to_hi128_1(r0 | r1 | r2)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_4(&self) -> (u128, bool) {
         debug_assert!(self.len() == 4);
         let rview = self.rview();
@@ -680,9 +705,9 @@ impl Hi128<u16> for [u16] {
         let r2 = rview[2].as_u128() << 16;
         let r3 = rview[3].as_u128();
         u128_to_hi128_1(r0 | r1 | r2 | r3)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_5(&self) -> (u128, bool) {
         debug_assert!(self.len() == 5);
         let rview = self.rview();
@@ -692,9 +717,9 @@ impl Hi128<u16> for [u16] {
         let r3 = rview[3].as_u128() << 16;
         let r4 = rview[4].as_u128();
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_6(&self) -> (u128, bool) {
         debug_assert!(self.len() == 6);
         let rview = self.rview();
@@ -705,9 +730,9 @@ impl Hi128<u16> for [u16] {
         let r4 = rview[4].as_u128() << 16;
         let r5 = rview[5].as_u128();
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_7(&self) -> (u128, bool) {
         debug_assert!(self.len() == 7);
         let rview = self.rview();
@@ -719,9 +744,9 @@ impl Hi128<u16> for [u16] {
         let r5 = rview[5].as_u128() << 16;
         let r6 = rview[6].as_u128();
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5 | r6)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_8(&self) -> (u128, bool) {
         debug_assert!(self.len() == 8);
         let rview = self.rview();
@@ -734,9 +759,9 @@ impl Hi128<u16> for [u16] {
         let r6 = rview[6].as_u128() << 16;
         let r7 = rview[7].as_u128();
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5 | r6 | r7)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_9(&self) -> (u128, bool) {
         debug_assert!(self.len() >= 9);
         let rview = self.rview();
@@ -751,29 +776,28 @@ impl Hi128<u16> for [u16] {
         let r8 = rview[8].as_u128();
         let (v, n) = u128_to_hi128_2(r0, r1 | r2 | r3 | r4 | r5 | r6 | r7 | r8);
         (v, n || nonzero(self, 9))
-    }
+    }}
 }
 
-#[cfg(has_i128)]
 impl Hi128<u32> for [u32] {
-    #[inline]
+    perftools_inline!{
     fn hi128_1(&self) -> (u128, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
         let r0 = rview[0].as_u128();
         u128_to_hi128_1(r0)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_2(&self) -> (u128, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
         let r0 = rview[0].as_u128() << 32;
         let r1 = rview[1].as_u128();
         u128_to_hi128_1(r0 | r1)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_3(&self) -> (u128, bool) {
         debug_assert!(self.len() == 3);
         let rview = self.rview();
@@ -781,9 +805,9 @@ impl Hi128<u32> for [u32] {
         let r1 = rview[1].as_u128() << 32;
         let r2 = rview[2].as_u128();
         u128_to_hi128_1(r0 | r1 | r2)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_4(&self) -> (u128, bool) {
         debug_assert!(self.len() == 4);
         let rview = self.rview();
@@ -792,9 +816,9 @@ impl Hi128<u32> for [u32] {
         let r2 = rview[2].as_u128() << 32;
         let r3 = rview[3].as_u128();
         u128_to_hi128_1(r0 | r1 | r2 | r3)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_5(&self) -> (u128, bool) {
         debug_assert!(self.len() >= 5);
         let rview = self.rview();
@@ -805,49 +829,48 @@ impl Hi128<u32> for [u32] {
         let r4 = rview[4].as_u128();
         let (v, n) = u128_to_hi128_2(r0, r1 | r2 | r3 | r4);
         (v, n || nonzero(self, 5))
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_6(&self) -> (u128, bool) {
         self.hi128_5()
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_7(&self) -> (u128, bool) {
         self.hi128_5()
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_8(&self) -> (u128, bool) {
         self.hi128_5()
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_9(&self) -> (u128, bool) {
         self.hi128_5()
-    }
+    }}
 }
 
-#[cfg(has_i128)]
 impl Hi128<u64> for [u64] {
-    #[inline]
+    perftools_inline!{
     fn hi128_1(&self) -> (u128, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
         let r0 = rview[0].as_u128();
         u128_to_hi128_1(r0)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_2(&self) -> (u128, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
         let r0 = rview[0].as_u128() << 64;
         let r1 = rview[1].as_u128();
         u128_to_hi128_1(r0 | r1)
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_3(&self) -> (u128, bool) {
         debug_assert!(self.len() >= 3);
         let rview = self.rview();
@@ -856,37 +879,37 @@ impl Hi128<u64> for [u64] {
         let r2 = rview[2].as_u128();
         let (v, n) = u128_to_hi128_2(r0, r1 | r2);
         (v, n || nonzero(self, 3))
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_4(&self) -> (u128, bool) {
         self.hi128_3()
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_5(&self) -> (u128, bool) {
         self.hi128_3()
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_6(&self) -> (u128, bool) {
         self.hi128_3()
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_7(&self) -> (u128, bool) {
         self.hi128_3()
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_8(&self) -> (u128, bool) {
         self.hi128_3()
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn hi128_9(&self) -> (u128, bool) {
         self.hi128_3()
-    }
+    }}
 }
 
 // SCALAR
@@ -902,49 +925,49 @@ use super::*;
 // ADDITION
 
 /// Add two small integers and return the resulting value and if overflow happens.
-#[inline]
+perftools_inline!{
 pub fn add(x: Limb, y: Limb)
     -> (Limb, bool)
 {
     x.overflowing_add(y)
-}
+}}
 
 /// AddAssign two small integers and return if overflow happens.
-#[inline]
+perftools_inline!{
 pub fn iadd(x: &mut Limb, y: Limb)
     -> bool
 {
     let t = add(*x, y);
     *x = t.0;
     t.1
-}
+}}
 
 // SUBTRACTION
 
 /// Subtract two small integers and return the resulting value and if overflow happens.
-#[inline]
+perftools_inline!{
 pub fn sub(x: Limb, y: Limb)
     -> (Limb, bool)
 {
     x.overflowing_sub(y)
-}
+}}
 
 /// SubAssign two small integers and return if overflow happens.
-#[inline]
+perftools_inline!{
 pub fn isub(x: &mut Limb, y: Limb)
     -> bool
 {
     let t = sub(*x, y);
     *x = t.0;
     t.1
-}
+}}
 
 // MULTIPLICATION
 
 /// Multiply two small integers (with carry) (and return the overflow contribution).
 ///
 /// Returns the (low, high) components.
-#[inline]
+perftools_inline!{
 pub fn mul(x: Limb, y: Limb, carry: Limb)
     -> (Limb, Limb)
 {
@@ -953,24 +976,24 @@ pub fn mul(x: Limb, y: Limb, carry: Limb)
     // `Wide::max_value() - (Narrow::max_value() * Narrow::max_value()) >= Narrow::max_value()`
     let z: Wide = as_wide(x) * as_wide(y) + as_wide(carry);
     (as_limb(z), as_limb(z >> Limb::BITS))
-}
+}}
 
 /// Multiply two small integers (with carry) (and return if overflow happens).
-#[inline]
+perftools_inline!{
 pub fn imul(x: &mut Limb, y: Limb, carry: Limb)
     -> Limb
 {
     let t = mul(*x, y, carry);
     *x = t.0;
     t.1
-}
+}}
 
 // DIVISION
 
 /// Divide two small integers (with remainder) (and return the remainder contribution).
 ///
 /// Returns the (value, remainder) components.
-#[inline]
+perftools_inline!{
 pub fn div(x: Limb, y: Limb, rem: Limb)
     -> (Limb, Limb)
 {
@@ -978,17 +1001,17 @@ pub fn div(x: Limb, y: Limb, rem: Limb)
     let x = as_wide(x) | (as_wide(rem) << Limb::BITS);
     let y = as_wide(y);
     (as_limb(x / y), as_limb(x % y))
-}
+}}
 
 /// DivAssign two small integers and return the remainder.
-#[inline]
+perftools_inline!{
 pub fn idiv(x: &mut Limb, y: Limb, rem: Limb)
     -> Limb
 {
     let t = div(*x, y, rem);
     *x = t.0;
     t.1
-}
+}}
 
 }   // scalar
 
@@ -1008,14 +1031,14 @@ use super::super::large_powers::*;
 
 /// Get the number of leading zero values in the storage.
 /// Assumes the value is normalized.
-#[inline]
+perftools_inline!{
 pub fn leading_zero_limbs(_: &[Limb]) -> usize {
     0
-}
+}}
 
 /// Get the number of trailing zero values in the storage.
 /// Assumes the value is normalized.
-#[inline]
+perftools_inline!{
 pub fn trailing_zero_limbs(x: &[Limb]) -> usize {
     let mut iter = x.iter().enumerate();
     let opt = iter.find(|&tup| !tup.1.is_zero());
@@ -1024,21 +1047,21 @@ pub fn trailing_zero_limbs(x: &[Limb]) -> usize {
         .unwrap_or(x.len());
 
     value
-}
+}}
 
 /// Get number of leading zero bits in the storage.
-#[inline]
+perftools_inline!{
 pub fn leading_zeros(x: &[Limb]) -> usize {
     if x.is_empty() {
         0
     } else {
         x.rindex(0).leading_zeros().as_usize()
     }
-}
+}}
 
 /// Get number of trailing zero bits in the storage.
 /// Assumes the value is normalized.
-#[inline]
+perftools_inline!{
 pub fn trailing_zeros(x: &[Limb]) -> usize {
     // Get the index of the last non-zero value
     let index = trailing_zero_limbs(x);
@@ -1047,12 +1070,12 @@ pub fn trailing_zeros(x: &[Limb]) -> usize {
         count = count.saturating_add(value.trailing_zeros().as_usize());
     }
     count
-}
+}}
 
 // BIT LENGTH
 
 /// Calculate the bit-length of the big-integer.
-#[inline]
+perftools_inline!{
 pub fn bit_length(x: &[Limb]) -> usize {
     // Avoid overflowing, calculate via total number of bits
     // minus leading zero bits.
@@ -1060,15 +1083,15 @@ pub fn bit_length(x: &[Limb]) -> usize {
     Limb::BITS.checked_mul(x.len())
         .map(|v| v - nlz)
         .unwrap_or(usize::max_value())
-}
+}}
 
 // BIT LENGTH
 
 /// Calculate the limb-length of the big-integer.
-#[inline]
+perftools_inline!{
 pub fn limb_length(x: &[Limb]) -> usize {
     x.len()
-}
+}}
 
 // SHR
 
@@ -1077,7 +1100,7 @@ pub fn limb_length(x: &[Limb]) -> usize {
 /// Returns the truncated bits.
 ///
 /// Assumes `n < Limb::BITS`, IE, internally shifting bits.
-#[inline]
+perftools_inline!{
 pub fn ishr_bits<T>(x: &mut T, n: usize)
     -> Limb
     where T: CloneableVecLike<Limb>
@@ -1102,12 +1125,12 @@ pub fn ishr_bits<T>(x: &mut T, n: usize)
     }
 
     prev & lower_n_mask(as_limb(rshift))
-}
+}}
 
 /// Shift-right `n` limbs inside a buffer and returns if all the truncated limbs are zero.
 ///
 /// Assumes `n` is not 0.
-#[inline]
+perftools_inline!{
 pub fn ishr_limbs<T>(x: &mut T, n: usize)
     -> bool
     where T: CloneableVecLike<Limb>
@@ -1122,9 +1145,10 @@ pub fn ishr_limbs<T>(x: &mut T, n: usize)
         x.remove_many(0..n);
         is_zero
     }
-}
+}}
 
 /// Shift-left buffer by n bits and return if we should round-up.
+perftools_inline!{
 pub fn ishr<T>(x: &mut T, n: usize)
     -> bool
     where T: CloneableVecLike<Limb>
@@ -1164,10 +1188,10 @@ pub fn ishr<T>(x: &mut T, n: usize)
     normalize(x);
 
     roundup
-}
+}}
 
 /// Shift-left buffer by n bits.
-#[inline]
+perftools_inline!{
 pub fn shr<T>(x: &[Limb], n: usize)
     -> (T, bool)
     where T: CloneableVecLike<Limb>
@@ -1176,14 +1200,14 @@ pub fn shr<T>(x: &[Limb], n: usize)
     z.extend_from_slice(x);
     let roundup = ishr(&mut z, n);
     (z, roundup)
-}
+}}
 
 // SHL
 
 /// Shift-left bits inside a buffer.
 ///
 /// Assumes `n < Limb::BITS`, IE, internally shifting bits.
-#[inline]
+perftools_inline!{
 pub fn ishl_bits<T>(x: &mut T, n: usize)
     where T: CloneableVecLike<Limb>
 {
@@ -1214,12 +1238,12 @@ pub fn ishl_bits<T>(x: &mut T, n: usize)
     if carry != 0 {
         x.push(carry);
     }
-}
+}}
 
 /// Shift-left bits inside a buffer.
 ///
 /// Assumes `n < Limb::BITS`, IE, internally shifting bits.
-#[inline]
+perftools_inline!{
 pub fn shl_bits<T>(x: &[Limb], n: usize)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1228,12 +1252,12 @@ pub fn shl_bits<T>(x: &[Limb], n: usize)
     z.extend_from_slice(x);
     ishl_bits(&mut z, n);
     z
-}
+}}
 
 /// Shift-left `n` digits inside a buffer.
 ///
 /// Assumes `n` is not 0.
-#[inline]
+perftools_inline!{
 pub fn ishl_limbs<T>(x: &mut T, n: usize)
     where T: CloneableVecLike<Limb>
 {
@@ -1241,10 +1265,10 @@ pub fn ishl_limbs<T>(x: &mut T, n: usize)
     if !x.is_empty() {
         x.insert_many(0, iter::repeat(0).take(n));
     }
-}
+}}
 
 /// Shift-left buffer by n bits.
-#[inline]
+perftools_inline!{
 pub fn ishl<T>(x: &mut T, n: usize)
     where T: CloneableVecLike<Limb>
 {
@@ -1257,10 +1281,10 @@ pub fn ishl<T>(x: &mut T, n: usize)
     if !div.is_zero() {
         ishl_limbs(x, div);
     }
-}
+}}
 
 /// Shift-left buffer by n bits.
-#[inline]
+perftools_inline!{
 pub fn shl<T>(x: &[Limb], n: usize)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1269,12 +1293,12 @@ pub fn shl<T>(x: &[Limb], n: usize)
     z.extend_from_slice(x);
     ishl(&mut z, n);
     z
-}
+}}
 
 // NORMALIZE
 
 /// Normalize the container by popping any leading zeros.
-#[inline]
+perftools_inline!{
 pub fn normalize<T>(x: &mut T)
     where T: CloneableVecLike<Limb>
 {
@@ -1283,7 +1307,7 @@ pub fn normalize<T>(x: &mut T)
     while !x.is_empty() && x.rindex(0).is_zero() {
         x.pop();
     }
-}
+}}
 
 /// ADDITION
 
@@ -1291,6 +1315,7 @@ pub fn normalize<T>(x: &mut T)
 ///
 /// Allows us to choose a start-index in x to store, to allow incrementing
 /// from a non-zero start.
+perftools_inline!{
 pub fn iadd_impl<T>(x: &mut T, y: Limb, xstart: usize)
     where T: CloneableVecLike<Limb>
 {
@@ -1313,18 +1338,18 @@ pub fn iadd_impl<T>(x: &mut T, y: Limb, xstart: usize)
             x.push(1);
         }
     }
-}
+}}
 
 /// AddAssign small integer to bigint.
-#[inline]
+perftools_inline!{
 pub fn iadd<T>(x: &mut T, y: Limb)
     where T: CloneableVecLike<Limb>
 {
     iadd_impl(x, y, 0);
-}
+}}
 
 /// Add small integer to bigint.
-#[inline]
+perftools_inline!{
 pub fn add<T>(x: &[Limb], y: Limb)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1333,12 +1358,13 @@ pub fn add<T>(x: &[Limb], y: Limb)
     z.extend_from_slice(x);
     iadd(&mut z, y);
     z
-}
+}}
 
 // SUBTRACTION
 
 /// SubAssign small integer to bigint.
 /// Does not do overflowing subtraction.
+perftools_inline!{
 pub fn isub_impl<T>(x: &mut T, y: Limb, xstart: usize)
     where T: CloneableVecLike<Limb>
 {
@@ -1354,19 +1380,19 @@ pub fn isub_impl<T>(x: &mut T, y: Limb, xstart: usize)
         size += 1;
     }
     normalize(x);
-}
+}}
 
 /// SubAssign small integer to bigint.
 /// Does not do overflowing subtraction.
-#[inline]
+perftools_inline!{
 pub fn isub<T>(x: &mut T, y: Limb)
     where T: CloneableVecLike<Limb>
 {
     isub_impl(x, y, 0);
-}
+}}
 
 /// Sub small integer to bigint.
-#[inline]
+perftools_inline!{
 pub fn sub<T>(x: &[Limb], y: Limb)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1375,12 +1401,12 @@ pub fn sub<T>(x: &[Limb], y: Limb)
     z.extend_from_slice(x);
     isub(&mut z, y);
     z
-}
+}}
 
 // MULTIPLICATION
 
 /// MulAssign small integer to bigint.
-#[inline]
+perftools_inline!{
 pub fn imul<T>(x: &mut T, y: Limb)
     where T: CloneableVecLike<Limb>
 {
@@ -1394,10 +1420,10 @@ pub fn imul<T>(x: &mut T, y: Limb)
     if carry != 0 {
         x.push(carry);
     }
-}
+}}
 
 /// Mul small integer to bigint.
-#[inline]
+perftools_inline!{
 pub fn mul<T>(x: &[Limb], y: Limb)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1406,7 +1432,7 @@ pub fn mul<T>(x: &[Limb], y: Limb)
     z.extend_from_slice(x);
     imul(&mut z, y);
     z
-}
+}}
 
 /// MulAssign by a power.
 ///
@@ -1497,7 +1523,7 @@ pub fn imul_power<T>(x: &mut T, radix: u32, n: u32)
 }
 
 /// Mul by a power.
-#[inline]
+perftools_inline!{
 pub fn mul_power<T>(x: &[Limb], radix: u32, n: u32)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1506,11 +1532,12 @@ pub fn mul_power<T>(x: &[Limb], radix: u32, n: u32)
     z.extend_from_slice(x);
     imul_power(&mut z, radix, n);
     z
-}
+}}
 
 /// DIVISION
 
 /// DivAssign small integer to bigint and get the remainder.
+perftools_inline!{
 pub fn idiv<T>(x: &mut T, y: Limb)
     -> Limb
     where T: CloneableVecLike<Limb>
@@ -1523,10 +1550,10 @@ pub fn idiv<T>(x: &mut T, y: Limb)
     normalize(x);
 
     rem
-}
+}}
 
 /// Div small integer to bigint and get the remainder.
-#[inline]
+perftools_inline!{
 pub fn div<T>(x: &[Limb], y: Limb)
     -> (T, Limb)
     where T: CloneableVecLike<Limb>
@@ -1535,7 +1562,7 @@ pub fn div<T>(x: &[Limb], y: Limb)
     z.extend_from_slice(x);
     let rem = idiv(&mut z, y);
     (z, rem)
-}
+}}
 
 // POWER
 
@@ -1544,6 +1571,7 @@ pub fn div<T>(x: &[Limb], y: Limb)
 /// This algorithm is slow, using `mul_power` should generally be preferred,
 /// as although it's not asymptotically faster, it precalculates a lot
 /// of results.
+perftools_inline!{
 pub fn ipow<T>(x: &mut T, mut n: Limb)
     where T: CloneableVecLike<Limb>
 {
@@ -1567,10 +1595,10 @@ pub fn ipow<T>(x: &mut T, mut n: Limb)
             base = large::mul(&base, &base);
         }
     }
-}
+}}
 
 /// Calculate x^n, using exponentiation by squaring.
-#[inline]
+perftools_inline!{
 pub fn pow<T>(x: &[Limb], n: Limb)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1579,7 +1607,7 @@ pub fn pow<T>(x: &[Limb], n: Limb)
     z.extend_from_slice(x);
     ipow(&mut z, n);
     z
-}
+}}
 
 }   // small
 
@@ -1596,7 +1624,7 @@ use super::*;
 // RELATIVE OPERATORS
 
 /// Compare `x` to `y`, in little-endian order.
-#[inline]
+perftools_inline!{
 pub fn compare(x: &[Limb], y: &[Limb]) -> cmp::Ordering {
     if x.len() > y.len() {
         return cmp::Ordering::Greater;
@@ -1614,40 +1642,40 @@ pub fn compare(x: &[Limb], y: &[Limb]) -> cmp::Ordering {
         // Equal case.
         return cmp::Ordering::Equal;
     }
-}
+}}
 
 /// Check if x is greater than y.
-#[inline]
+perftools_inline!{
 pub fn greater(x: &[Limb], y: &[Limb]) -> bool {
     compare(x, y) == cmp::Ordering::Greater
-}
+}}
 
 /// Check if x is greater than or equal to y.
-#[inline]
+perftools_inline!{
 pub fn greater_equal(x: &[Limb], y: &[Limb]) -> bool {
     !less(x, y)
-}
+}}
 
 /// Check if x is less than y.
-#[inline]
+perftools_inline!{
 pub fn less(x: &[Limb], y: &[Limb]) -> bool {
     compare(x, y) == cmp::Ordering::Less
-}
+}}
 
 /// Check if x is less than or equal to y.
-#[inline]
+perftools_inline!{
 pub fn less_equal(x: &[Limb], y: &[Limb]) -> bool {
     !greater(x, y)
-}
+}}
 
 /// Check if x is equal to y.
 /// Slightly optimized for equality comparisons, since it reduces the number
 /// of comparisons relative to `compare`.
-#[inline]
+perftools_inline!{
 pub fn equal(x: &[Limb], y: &[Limb]) -> bool {
     let mut iter = x.iter().rev().zip(y.iter().rev());
     x.len() == y.len() && iter.all(|(&xi, &yi)| xi == yi)
-}
+}}
 
 /// ADDITION
 
@@ -1685,15 +1713,15 @@ pub fn iadd_impl<T>(x: &mut T, y: &[Limb], xstart: usize)
 }
 
 /// AddAssign bigint to bigint.
-#[inline]
+perftools_inline!{
 pub fn iadd<T>(x: &mut T, y: &[Limb])
     where T: CloneableVecLike<Limb>
 {
     iadd_impl(x, y, 0)
-}
+}}
 
 /// Add bigint to bigint.
-#[inline]
+perftools_inline!{
 pub fn add<T>(x: &[Limb], y: &[Limb])
     -> T
     where T: CloneableVecLike<Limb>
@@ -1702,7 +1730,7 @@ pub fn add<T>(x: &[Limb], y: &[Limb])
     z.extend_from_slice(x);
     iadd(&mut z, y);
     z
-}
+}}
 
 // SUBTRACTION
 
@@ -1734,7 +1762,7 @@ pub fn isub<T>(x: &mut T, y: &[Limb])
 }
 
 /// Sub bigint to bigint.
-#[inline]
+perftools_inline!{
 pub fn sub<T>(x: &[Limb], y: &[Limb])
     -> T
     where T: CloneableVecLike<Limb>
@@ -1743,7 +1771,7 @@ pub fn sub<T>(x: &[Limb], y: &[Limb])
     z.extend_from_slice(x);
     isub(&mut z, y);
     z
-}
+}}
 
 // MULTIPLICATIION
 
@@ -1784,12 +1812,12 @@ fn long_mul<T>(x: &[Limb], y: &[Limb])
 }
 
 /// Split two buffers into halfway, into (lo, hi).
-#[inline]
+perftools_inline!{
 pub fn karatsuba_split<'a>(z: &'a [Limb], m: usize)
     -> (&'a [Limb], &'a [Limb])
 {
     (&z[..m], &z[m..])
-}
+}}
 
 /// Karatsuba multiplication algorithm with roughly equal input sizes.
 ///
@@ -1860,7 +1888,7 @@ fn karatsuba_uneven_mul<T>(x: &[Limb], mut y: &[Limb])
 }
 
 /// Forwarder to the proper Karatsuba algorithm.
-#[inline]
+perftools_inline!{
 fn karatsuba_mul_fwd<T>(x: &[Limb], y: &[Limb])
     -> T
     where T: CloneableVecLike<Limb>
@@ -1870,10 +1898,10 @@ fn karatsuba_mul_fwd<T>(x: &[Limb], y: &[Limb])
     } else {
         karatsuba_mul(y, x)
     }
-}
+}}
 
 /// MulAssign bigint to bigint.
-#[inline]
+perftools_inline!{
 pub fn imul<T>(x: &mut T, y: &[Limb])
     where T: CloneableVecLike<Limb>
 {
@@ -1886,10 +1914,10 @@ pub fn imul<T>(x: &mut T, y: &[Limb])
         //      *x = karatsuba_mul_fwd(x, y);
         *x = karatsuba_mul_fwd(x, y);
     }
-}
+}}
 
 /// Mul bigint to bigint.
-#[inline]
+perftools_inline!{
 pub fn mul<T>(x: &[Limb], y: &[Limb])
     -> T
     where T: CloneableVecLike<Limb>
@@ -1898,7 +1926,7 @@ pub fn mul<T>(x: &[Limb], y: &[Limb])
     z.extend_from_slice(x);
     imul(&mut z, y);
     z
-}
+}}
 
 // DIVISION
 
@@ -1912,7 +1940,6 @@ const ALGORITHM_D_M: Wide = ALGORITHM_D_B - 1;
 /// Assumes `x.len() > y.len()` and `y.len() >= 2`.
 ///
 /// * `j`   - Current index on the iteration of the loop.
-#[inline]
 fn calculate_qhat(x: &[Limb], y: &[Limb], j: usize)
     -> Wide
 {
@@ -1956,7 +1983,6 @@ fn calculate_qhat(x: &[Limb], y: &[Limb], j: usize)
 ///
 /// This is step D4 in Algorithm D in "The Art of Computer Programming",
 /// and returns the remainder.
-#[inline]
 fn multiply_and_subtract<T>(x: &mut T, y: &T, qhat: Wide, j: usize)
     -> SignedWide
     where T: CloneableVecLike<Limb>
@@ -1994,7 +2020,7 @@ fn multiply_and_subtract<T>(x: &mut T, y: &T, qhat: Wide, j: usize)
 ///
 /// This is a mix of step D5 and D6 in Algorithm D, so the algorithm
 /// may work for single passes, without a quotient buffer.
-#[inline]
+perftools_inline!{
 fn test_quotient(qhat: Wide, t: SignedWide)
     -> Wide
 {
@@ -2003,7 +2029,7 @@ fn test_quotient(qhat: Wide, t: SignedWide)
     } else {
         qhat
     }
-}
+}}
 
 /// Add back.
 ///
@@ -2014,7 +2040,6 @@ fn test_quotient(qhat: Wide, t: SignedWide)
 ///
 /// This step should be specifically debugged, due to its low likelihood,
 /// since the probability is ~2/b, where b in this case is 2^32 or 2^64.
-#[inline]
 fn add_back<T>(x: &mut T, y: &T, mut t: SignedWide, j: usize)
     where T: CloneableVecLike<Limb>
 {
@@ -2050,7 +2075,6 @@ fn add_back<T>(x: &mut T, y: &T, mut t: SignedWide, j: usize)
 ///
 /// This is step D8 in Algorithm D in "The Art of Computer Programming",
 /// and "unnormalizes" to calculate the remainder from the quotient.
-#[inline]
 fn calculate_remainder<T>(x: &[Limb], y: &[Limb], s: usize)
     -> T
     where T: CloneableVecLike<Limb>
@@ -2125,6 +2149,7 @@ fn algorithm_d_div<T>(x: &[Limb], y: &[Limb])
 }
 
 /// DivAssign bigint to bigint.
+perftools_inline!{
 pub fn idiv<T>(x: &mut T, y: &[Limb])
     -> T
     where T: CloneableVecLike<Limb>
@@ -2148,10 +2173,10 @@ pub fn idiv<T>(x: &mut T, y: &[Limb])
         *x = q;
         r
     }
-}
+}}
 
 /// Div bigint to bigint.
-#[inline]
+perftools_inline!{
 pub fn div<T>(x: &[Limb], y: &[Limb])
     -> (T, T)
     where T: CloneableVecLike<Limb>
@@ -2160,7 +2185,7 @@ pub fn div<T>(x: &[Limb], y: &[Limb])
     z.extend_from_slice(x);
     let rem = idiv(&mut z, y);
     (z, rem)
-}
+}}
 
 /// Emit a single digit for the quotient and store the remainder in-place.
 ///
@@ -2235,10 +2260,10 @@ use super::large_powers::*;
 macro_rules! imul_power {
     ($name:ident, $base:expr) => (
         /// Multiply by a power of $base.
-        #[inline]
+        perftools_inline!{
         fn $name(&mut self, n: u32) {
             self.imul_power_impl($base, n)
-        }
+        }}
     );
 }
 
@@ -2265,200 +2290,200 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
     // ZERO
 
     /// Check if the value is a normalized 0.
-    #[inline]
+    perftools_inline!{
     fn is_zero(&self) -> bool {
         self.limb_length() == 0
-    }
+    }}
 
     // RELATIVE OPERATIONS
 
     /// Compare self to y.
-    #[inline]
+    perftools_inline!{
     fn compare(&self, y: &Self) -> cmp::Ordering {
         large::compare(self.data(), y.data())
-    }
+    }}
 
     /// Check if self is greater than y.
-    #[inline]
+    perftools_inline!{
     fn greater(&self, y: &Self) -> bool {
         large::greater(self.data(), y.data())
-    }
+    }}
 
     /// Check if self is greater than or equal to y.
-    #[inline]
+    perftools_inline!{
     fn greater_equal(&self, y: &Self) -> bool {
         large::greater_equal(self.data(), y.data())
-    }
+    }}
 
     /// Check if self is less than y.
-    #[inline]
+    perftools_inline!{
     fn less(&self, y: &Self) -> bool {
         large::less(self.data(), y.data())
-    }
+    }}
 
     /// Check if self is less than or equal to y.
-    #[inline]
+    perftools_inline!{
     fn less_equal(&self, y: &Self) -> bool {
         large::less_equal(self.data(), y.data())
-    }
+    }}
 
     /// Check if self is equal to y.
-    #[inline]
+    perftools_inline!{
     fn equal(&self, y: &Self) -> bool {
         large::equal(self.data(), y.data())
-    }
+    }}
 
     // PROPERTIES
 
     /// Get the number of leading zero digits in the storage.
     /// Assumes the value is normalized.
-    #[inline]
+    perftools_inline!{
     fn leading_zero_limbs(&self) -> usize {
         small::leading_zero_limbs(self.data())
-    }
+    }}
 
     /// Get the number of trailing zero digits in the storage.
     /// Assumes the value is normalized.
-    #[inline]
+    perftools_inline!{
     fn trailing_zero_limbs(&self) -> usize {
         small::trailing_zero_limbs(self.data())
-    }
+    }}
 
     /// Get number of leading zero bits in the storage.
     /// Assumes the value is normalized.
-    #[inline]
+    perftools_inline!{
     fn leading_zeros(&self) -> usize {
         small::leading_zeros(self.data())
-    }
+    }}
 
     /// Get number of trailing zero bits in the storage.
     /// Assumes the value is normalized.
-    #[inline]
+    perftools_inline!{
     fn trailing_zeros(&self) -> usize {
         small::trailing_zeros(self.data())
-    }
+    }}
 
     /// Calculate the bit-length of the big-integer.
     /// Returns usize::max_value() if the value overflows,
     /// IE, if `self.data().len() > usize::max_value() / 8`.
-    #[inline]
+    perftools_inline!{
     fn bit_length(&self) -> usize {
         small::bit_length(self.data())
-    }
+    }}
 
     /// Calculate the digit-length of the big-integer.
-    #[inline]
+    perftools_inline!{
     fn limb_length(&self) -> usize {
         small::limb_length(self.data())
-    }
+    }}
 
     /// Get the high 16-bits from the bigint and if there are remaining bits.
-    #[inline]
+    perftools_inline!{
     fn hi16(&self) -> (u16, bool) {
         self.data().as_slice().hi16()
-    }
+    }}
 
     /// Get the high 32-bits from the bigint and if there are remaining bits.
-    #[inline]
+    perftools_inline!{
     fn hi32(&self) -> (u32, bool) {
         self.data().as_slice().hi32()
-    }
+    }}
 
     /// Get the high 64-bits from the bigint and if there are remaining bits.
-    #[inline]
+    perftools_inline!{
     fn hi64(&self) -> (u64, bool) {
         self.data().as_slice().hi64()
-    }
+    }}
 
     /// Get the high 128-bits from the bigint and if there are remaining bits.
-    #[cfg(has_i128)]
-    #[inline]
+    perftools_inline!{
     fn hi128(&self) -> (u128, bool) {
         self.data().as_slice().hi128()
-    }
+    }}
 
     /// Pad the buffer with zeros to the least-significant bits.
-    #[inline]
+    perftools_inline!{
     fn pad_zero_digits(&mut self, n: usize) -> usize {
         small::ishl_limbs(self.data_mut(), n);
         n
-    }
+    }}
 
     // INTEGER CONVERSIONS
 
     // CREATION
 
     /// Create new big integer from u16.
-    #[inline]
+    perftools_inline!{
     fn from_u16(x: u16) -> Self {
         let mut v = Self::default();
         let slc = split_u16(x);
         v.data_mut().extend_from_slice(&slc);
         v.normalize();
         v
-    }
+    }}
 
     /// Create new big integer from u32.
-    #[inline]
+    perftools_inline!{
     fn from_u32(x: u32) -> Self {
         let mut v = Self::default();
         let slc = split_u32(x);
         v.data_mut().extend_from_slice(&slc);
         v.normalize();
         v
-    }
+    }}
 
     /// Create new big integer from u64.
-    #[inline]
+    perftools_inline!{
     fn from_u64(x: u64) -> Self {
         let mut v = Self::default();
         let slc = split_u64(x);
         v.data_mut().extend_from_slice(&slc);
         v.normalize();
         v
-    }
+    }}
 
     /// Create new big integer from u128.
-    #[cfg(has_i128)]
-    #[inline]
+    perftools_inline!{
     fn from_u128(x: u128) -> Self {
         let mut v = Self::default();
         let slc = split_u128(x);
         v.data_mut().extend_from_slice(&slc);
         v.normalize();
         v
-    }
+    }}
 
     // NORMALIZE
 
     /// Normalize the integer, so any leading zero values are removed.
-    #[inline]
+    perftools_inline!{
     fn normalize(&mut self) {
         small::normalize(self.data_mut());
-    }
+    }}
 
     /// Get if the big integer is normalized.
-    #[inline]
+    perftools_inline!{
     fn is_normalized(&self) -> bool {
         self.data().is_empty() || !self.data().rindex(0).is_zero()
-    }
+    }}
 
     // SHIFTS
 
     /// Shift-left the entire buffer n bits.
-    #[inline]
+    perftools_inline!{
     fn ishl(&mut self, n: usize) {
         small::ishl(self.data_mut(), n);
-    }
+    }}
 
     /// Shift-left the entire buffer n bits.
+    perftools_inline!{
     fn shl(&self, n: usize) -> Self {
         let mut x = self.clone();
         x.ishl(n);
         x
-    }
+    }}
 
     /// Shift-right the entire buffer n bits.
+    perftools_inline!{
     fn ishr(&mut self, n: usize, mut roundup: bool) {
         roundup &= small::ishr(self.data_mut(), n);
 
@@ -2470,14 +2495,15 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
                 self.data_mut()[0] += 1;
             }
         }
-    }
+    }}
 
     /// Shift-right the entire buffer n bits.
+    perftools_inline!{
     fn shr(&self, n: usize, roundup: bool) -> Self {
         let mut x = self.clone();
         x.ishr(n, roundup);
         x
-    }
+    }}
 }
 
 /// Trait for small operations for arbitrary-precision numbers.
@@ -2485,73 +2511,74 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
     // SMALL POWERS
 
     /// Get the small powers from the radix.
-    #[inline]
+    perftools_inline!{
     fn small_powers(radix: u32) -> &'static [Limb] {
         get_small_powers(radix)
-    }
+    }}
 
     /// Get the large powers from the radix.
-    #[inline]
+    perftools_inline!{
     fn large_powers(radix: u32) -> &'static [&'static [Limb]] {
         get_large_powers(radix)
-    }
+    }}
 
     // ADDITION
 
     /// AddAssign small integer.
-    #[inline]
+    perftools_inline!{
     fn iadd_small(&mut self, y: Limb) {
         small::iadd(self.data_mut(), y);
-    }
+    }}
 
     /// Add small integer to a copy of self.
-    #[inline]
+    perftools_inline!{
     fn add_small(&self, y: Limb) -> Self {
         let mut x = self.clone();
         x.iadd_small(y);
         x
-    }
+    }}
 
     // SUBTRACTION
 
     /// SubAssign small integer.
     /// Warning: Does no overflow checking, x must be >= y.
-    #[inline]
+    perftools_inline!{
     fn isub_small(&mut self, y: Limb) {
         small::isub(self.data_mut(), y);
-    }
+    }}
 
     /// Sub small integer to a copy of self.
     /// Warning: Does no overflow checking, x must be >= y.
-    #[inline]
+    perftools_inline!{
     fn sub_small(&mut self, y: Limb) -> Self {
         let mut x = self.clone();
         x.isub_small(y);
         x
-    }
+    }}
 
     // MULTIPLICATION
 
     /// MulAssign small integer.
-    #[inline]
+    perftools_inline!{
     fn imul_small(&mut self, y: Limb) {
         small::imul(self.data_mut(), y);
-    }
+    }}
 
     /// Mul small integer to a copy of self.
-    #[inline]
+    perftools_inline!{
     fn mul_small(&self, y: Limb) -> Self {
         let mut x = self.clone();
         x.imul_small(y);
         x
-    }
+    }}
 
     /// MulAssign by a power.
-    #[inline]
+    perftools_inline!{
     fn imul_power_impl(&mut self, radix: u32, n: u32) {
         small::imul_power(self.data_mut(), radix, n);
-    }
+    }}
 
+    perftools_inline!{
     fn imul_power(&mut self, radix: u32, n: u32) {
         match radix {
             2  => self.imul_pow2(n),
@@ -2591,228 +2618,229 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
             36 => self.imul_pow36(n),
             _  => unreachable!()
         }
-    }
+    }}
 
     /// Multiply by a power of 2.
+    perftools_inline!{
     fn imul_pow2(&mut self, n: u32) {
         self.ishl(n.as_usize())
-    }
+    }}
 
     imul_power!(imul_pow3, 3);
 
     /// Multiply by a power of 4.
-    #[inline]
+    perftools_inline!{
     fn imul_pow4(&mut self, n: u32) {
         self.imul_pow2(2*n);
-    }
+    }}
 
     imul_power!(imul_pow5, 5);
 
     /// Multiply by a power of 6.
-    #[inline]
+    perftools_inline!{
     fn imul_pow6(&mut self, n: u32) {
         self.imul_pow3(n);
         self.imul_pow2(n);
-    }
+    }}
 
     imul_power!(imul_pow7, 7);
 
     /// Multiply by a power of 8.
-    #[inline]
+    perftools_inline!{
     fn imul_pow8(&mut self, n: u32) {
         self.imul_pow2(3*n);
-    }
+    }}
 
     /// Multiply by a power of 9.
-    #[inline]
+    perftools_inline!{
     fn imul_pow9(&mut self, n: u32) {
         self.imul_pow3(n);
         self.imul_pow3(n);
-    }
+    }}
 
     /// Multiply by a power of 10.
-    #[inline]
+    perftools_inline!{
     fn imul_pow10(&mut self, n: u32) {
         self.imul_pow5(n);
         self.imul_pow2(n);
-    }
+    }}
 
     imul_power!(imul_pow11, 11);
 
     /// Multiply by a power of 12.
-    #[inline]
+    perftools_inline!{
     fn imul_pow12(&mut self, n: u32) {
         self.imul_pow3(n);
         self.imul_pow4(n);
-    }
+    }}
 
     imul_power!(imul_pow13, 13);
 
     /// Multiply by a power of 14.
-    #[inline]
+    perftools_inline!{
     fn imul_pow14(&mut self, n: u32) {
         self.imul_pow7(n);
         self.imul_pow2(n);
-    }
+    }}
 
     /// Multiply by a power of 15.
-    #[inline]
+    perftools_inline!{
     fn imul_pow15(&mut self, n: u32) {
         self.imul_pow3(n);
         self.imul_pow5(n);
-    }
+    }}
 
     /// Multiply by a power of 16.
-    #[inline]
+    perftools_inline!{
     fn imul_pow16(&mut self, n: u32) {
         self.imul_pow2(4*n);
-    }
+    }}
 
     imul_power!(imul_pow17, 17);
 
     /// Multiply by a power of 18.
-    #[inline]
+    perftools_inline!{
     fn imul_pow18(&mut self, n: u32) {
         self.imul_pow9(n);
         self.imul_pow2(n);
-    }
+    }}
 
     imul_power!(imul_pow19, 19);
 
     /// Multiply by a power of 20.
-    #[inline]
+    perftools_inline!{
     fn imul_pow20(&mut self, n: u32) {
         self.imul_pow5(n);
         self.imul_pow4(n);
-    }
+    }}
 
     /// Multiply by a power of 21.
-    #[inline]
+    perftools_inline!{
     fn imul_pow21(&mut self, n: u32) {
         self.imul_pow3(n);
         self.imul_pow7(n);
-    }
+    }}
 
     /// Multiply by a power of 22.
-    #[inline]
+    perftools_inline!{
     fn imul_pow22(&mut self, n: u32) {
         self.imul_pow11(n);
         self.imul_pow2(n);
-    }
+    }}
 
     imul_power!(imul_pow23, 23);
 
     /// Multiply by a power of 24.
-    #[inline]
+    perftools_inline!{
     fn imul_pow24(&mut self, n: u32) {
         self.imul_pow3(n);
         self.imul_pow8(n);
-    }
+    }}
 
     /// Multiply by a power of 25.
-    #[inline]
+    perftools_inline!{
     fn imul_pow25(&mut self, n: u32) {
         self.imul_pow5(n);
         self.imul_pow5(n);
-    }
+    }}
 
     /// Multiply by a power of 26.
-    #[inline]
+    perftools_inline!{
     fn imul_pow26(&mut self, n: u32) {
         self.imul_pow13(n);
         self.imul_pow2(n);
-    }
+    }}
 
     /// Multiply by a power of 27.
-    #[inline]
+    perftools_inline!{
     fn imul_pow27(&mut self, n: u32) {
         self.imul_pow9(n);
         self.imul_pow3(n);
-    }
+    }}
 
     /// Multiply by a power of 28.
-    #[inline]
+    perftools_inline!{
     fn imul_pow28(&mut self, n: u32) {
         self.imul_pow7(n);
         self.imul_pow4(n);
-    }
+    }}
 
     imul_power!(imul_pow29, 29);
 
     /// Multiply by a power of 30.
-    #[inline]
+    perftools_inline!{
     fn imul_pow30(&mut self, n: u32) {
         self.imul_pow15(n);
         self.imul_pow2(n);
-    }
+    }}
 
     imul_power!(imul_pow31, 31);
 
     /// Multiply by a power of 32.
-    #[inline]
+    perftools_inline!{
     fn imul_pow32(&mut self, n: u32) {
         self.imul_pow2(5*n);
-    }
+    }}
 
     /// Multiply by a power of 33.
-    #[inline]
+    perftools_inline!{
     fn imul_pow33(&mut self, n: u32) {
         self.imul_pow3(n);
         self.imul_pow11(n);
-    }
+    }}
 
     /// Multiply by a power of 34.
-    #[inline]
+    perftools_inline!{
     fn imul_pow34(&mut self, n: u32) {
         self.imul_pow17(n);
         self.imul_pow2(n);
-    }
+    }}
 
     /// Multiply by a power of 35.
-    #[inline]
+    perftools_inline!{
     fn imul_pow35(&mut self, n: u32) {
         self.imul_pow5(n);
         self.imul_pow7(n);
-    }
+    }}
 
     /// Multiply by a power of 36.
-    #[inline]
+    perftools_inline!{
     fn imul_pow36(&mut self, n: u32) {
         self.imul_pow9(n);
         self.imul_pow4(n);
-    }
+    }}
 
     // DIVISION
 
     /// DivAssign small integer, and return the remainder.
-    #[inline]
+    perftools_inline!{
     fn idiv_small(&mut self, y: Limb) -> Limb {
         small::idiv(self.data_mut(), y)
-    }
+    }}
 
     /// Div small integer to a copy of self, and return the remainder.
-    #[inline]
+    perftools_inline!{
     fn div_small(&self, y: Limb) -> (Self, Limb) {
         let mut x = self.clone();
         let rem = x.idiv_small(y);
         (x, rem)
-    }
+    }}
 
     // POWER
 
     /// Calculate self^n
-    #[inline]
+    perftools_inline!{
     fn ipow(&mut self, n: Limb) {
         small::ipow(self.data_mut(), n);
-    }
+    }}
 
     /// Calculate self^n
-    #[inline]
+    perftools_inline!{
     fn pow(&self, n: Limb) -> Self {
         let mut x = self.clone();
         x.ipow(n);
         x
-    }
+    }}
 }
 
 /// Trait for large operations for arbitrary-precision numbers.
@@ -2820,70 +2848,70 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
     // ADDITION
 
     /// AddAssign large integer.
-    #[inline]
+    perftools_inline!{
     fn iadd_large(&mut self, y: &Self) {
         large::iadd(self.data_mut(), y.data());
-    }
+    }}
 
     /// Add large integer to a copy of self.
-    #[inline]
+    perftools_inline!{
     fn add_large(&mut self, y: &Self) -> Self {
         let mut x = self.clone();
         x.iadd_large(y);
         x
-    }
+    }}
 
     // SUBTRACTION
 
     /// SubAssign large integer.
     /// Warning: Does no overflow checking, x must be >= y.
-    #[inline]
+    perftools_inline!{
     fn isub_large(&mut self, y: &Self) {
         large::isub(self.data_mut(), y.data());
-    }
+    }}
 
     /// Sub large integer to a copy of self.
     /// Warning: Does no overflow checking, x must be >= y.
-    #[inline]
+    perftools_inline!{
     fn sub_large(&mut self, y: &Self) -> Self {
         let mut x = self.clone();
         x.isub_large(y);
         x
-    }
+    }}
 
     // MULTIPLICATION
 
     /// MulAssign large integer.
-    #[inline]
+    perftools_inline!{
     fn imul_large(&mut self, y: &Self) {
         large::imul(self.data_mut(), y.data());
-    }
+    }}
 
     /// Mul large integer to a copy of self.
-    #[inline]
+    perftools_inline!{
     fn mul_large(&mut self, y: &Self) -> Self {
         let mut x = self.clone();
         x.imul_large(y);
         x
-    }
+    }}
 
     // DIVISION
 
     /// DivAssign large integer and get remainder.
-    #[inline]
+    perftools_inline!{
     fn idiv_large(&mut self, y: &Self) -> Self {
         let mut rem = Self::default();
         *rem.data_mut() = large::idiv(self.data_mut(), y.data());
         rem
-    }
+    }}
 
     /// Div large integer to a copy of self and get quotient and remainder.
-    #[inline]
+    perftools_inline!{
     fn div_large(&mut self, y: &Self) -> (Self, Self) {
         let mut x = self.clone();
         let rem = x.idiv_large(y);
         (x, rem)
-    }
+    }}
 
     /// Calculate the fast quotient for a single limb-bit quotient.
     ///
@@ -2893,10 +2921,10 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
     ///
     /// Warning: This is not a general-purpose division algorithm,
     /// it is highly specialized for peeling off singular digits.
-    #[inline]
+    perftools_inline!{
     fn quorem(&mut self, y: &Self) -> Limb {
         large::quorem(self.data_mut(), y.data())
-    }
+    }}
 }
 
 #[cfg(test)]

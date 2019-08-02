@@ -1,0 +1,20 @@
+[package]
+name = "lexical-codegen"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+publish = false
+
+[[bin]]
+name = "atoi"
+path = "bin/atoi.rs"
+
+[dependencies.lexical-core]
+path = "../../lexical-core"
+default-features = false
+features = ["correct", "ryu", "std"]
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+lto = true
