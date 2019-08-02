@@ -21,11 +21,10 @@
 //! lexical::to_string(3);              // "3"
 //!
 //! // String to number.
-//! let i: i32 = lexical::parse("3");            // 3, auto-type deduction.
-//! let f: f32 = lexical::parse("3.5");          // 3.5
-//! let d = lexical::parse::<f64, _>("3.5");     // 3.5, explicit type hints.
-//! let d = lexical::try_parse::<f64, _>("3.5"); // Ok(3.5), error checking parse.
-//! let d = lexical::try_parse::<f64, _>("3a");  // Err(Error(_)), failed to parse.
+//! let i: i32 = lexical::parse("3").unwrap();      // 3, auto-type deduction.
+//! let f: f32 = lexical::parse("3.5").unwrap();    // 3.5
+//! let d = lexical::parse::<f64, _>("3.5");        // Ok(3.5), successful parse.
+//! let d = lexical::parse::<f64, _>("3a");         // Err(Error(_)), failed to parse.
 //! ```
 
 // FEATURES
@@ -69,7 +68,6 @@ if #[cfg(feature = "std")] {
 // API
 
 // Hide the implementation details.
-mod error;
 mod traits;
 
 // Re-export EXPONENT_DEFAULT_CHAR and EXPONENT_BACKUP_CHAR globally.
@@ -86,8 +84,8 @@ pub use lexical_core::{set_inf_string, set_infinity_string, set_nan_string};
 #[cfg(all(feature = "correct", feature = "rounding"))]
 pub use lexical_core::{FLOAT_ROUNDING, RoundingKind};
 
-// Re-export the Error and ErrorKind globally.
-pub use error::{Error, ErrorKind};
+// Re-export the Result, Error and ErrorCode globally.
+pub use lexical_core::{Error, ErrorCode, Result};
 
 // Publicly expose traits so they may be used for generic programming.
 pub use traits::{FromLexical, FromLexicalLossy, ToLexical};
@@ -146,9 +144,8 @@ pub fn to_string_radix<N: ToLexical>(n: N, radix: u8) -> lib::String {
 
 /// High-level conversion of decimal-encoded bytes to a number.
 ///
-/// This function **always** returns a number, parsing until invalid
-/// digits are found. For an error-checking version of this function,
-/// use [`try_parse`].
+/// This function only returns a value if the entire string is
+/// successfully parsed.
 ///
 /// * `bytes`   - Byte slice to convert to number.
 ///
@@ -156,34 +153,36 @@ pub fn to_string_radix<N: ToLexical>(n: N, radix: u8) -> lib::String {
 ///
 /// ```rust
 /// # extern crate lexical;
+/// # use lexical::ErrorCode;
 /// # pub fn main() {
+/// // Create our error.
+/// let err = |u| (ErrorCode::InvalidDigit, u).into();
+///
 /// // String overloads
-/// assert_eq!(lexical::parse::<i32, _>("5"), 5);
-/// assert_eq!(lexical::parse::<i32, _>("1a"), 1);
-/// assert_eq!(lexical::parse::<f32, _>("0"), 0.0);
-/// assert_eq!(lexical::parse::<f32, _>("1."), 1.0);
-/// assert_eq!(lexical::parse::<f32, _>("1.0"), 1.0);
+/// assert_eq!(lexical::parse::<i32, _>("5"), Ok(5));
+/// assert_eq!(lexical::parse::<i32, _>("1a"), Err(err(1)));
+/// assert_eq!(lexical::parse::<f32, _>("0"), Ok(0.0));
+/// assert_eq!(lexical::parse::<f32, _>("1.0"), Ok(1.0));
+/// assert_eq!(lexical::parse::<f32, _>("1."), Ok(1.0));
 ///
 /// // Bytes overloads
-/// assert_eq!(lexical::parse::<i32, _>(b"5"), 5);
-/// assert_eq!(lexical::parse::<i32, _>(b"1a"), 1);
-/// assert_eq!(lexical::parse::<f32, _>(b"0"), 0.0);
-/// assert_eq!(lexical::parse::<f32, _>(b"1."), 1.0);
-/// assert_eq!(lexical::parse::<f32, _>(b"1.0"), 1.0);
+/// assert_eq!(lexical::parse::<i32, _>(b"5"), Ok(5));
+/// assert_eq!(lexical::parse::<i32, _>(b"1a"), Err(err(1)));
+/// assert_eq!(lexical::parse::<f32, _>(b"0"), Ok(0.0));
+/// assert_eq!(lexical::parse::<f32, _>(b"1.0"), Ok(1.0));
+/// assert_eq!(lexical::parse::<f32, _>(b"1."), Ok(1.0));
+/// # assert_eq!(lexical::parse::<f32, _>(b"5.002868148396374"), Ok(5.002868148396374));
+/// # assert_eq!(lexical::parse::<f64, _>(b"5.002868148396374"), Ok(5.002868148396374));
 /// # }
 /// ```
-///
-/// [`try_parse`]: fn.try_parse.html
 #[inline]
-pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
+pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes)
+    -> Result<N>
+{
     N::from_lexical(bytes.as_ref())
 }
 
 /// High-level lossy conversion of decimal-encoded bytes to a number.
-///
-/// This function **always** returns a number, parsing until invalid
-/// digits are found. For an error-checking version of this function,
-/// use [`try_parse`].
 ///
 /// This function uses aggressive optimizations to avoid worst-case
 /// scenarios, and can return inaccurate results. For guaranteed accurate
@@ -195,31 +194,37 @@ pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
 ///
 /// ```rust
 /// # extern crate lexical;
+/// # use lexical::ErrorCode;
 /// # pub fn main() {
+/// // Create our error.
+/// let err = |u| (ErrorCode::InvalidDigit, u).into();
+///
 /// // String overloads
-/// assert_eq!(lexical::parse_lossy::<f32, _>("0"), 0.0);
-/// assert_eq!(lexical::parse_lossy::<f32, _>("1."), 1.0);
-/// assert_eq!(lexical::parse_lossy::<f32, _>("1.0"), 1.0);
+/// assert_eq!(lexical::parse_lossy::<f32, _>("0"), Ok(0.0));
+/// assert_eq!(lexical::parse_lossy::<f32, _>("1.0"), Ok(1.0));
+/// assert_eq!(lexical::parse_lossy::<f32, _>("1."), Ok(1.0));
+/// assert_eq!(lexical::parse_lossy::<f32, _>("1a"), Err(err(1)));
 ///
 /// // Bytes overloads
-/// assert_eq!(lexical::parse_lossy::<f32, _>(b"0"), 0.0);
-/// assert_eq!(lexical::parse_lossy::<f32, _>(b"1."), 1.0);
-/// assert_eq!(lexical::parse_lossy::<f32, _>(b"1.0"), 1.0);
+/// assert_eq!(lexical::parse_lossy::<f32, _>(b"0"), Ok(0.0));
+/// assert_eq!(lexical::parse_lossy::<f32, _>(b"1.0"), Ok(1.0));
+/// assert_eq!(lexical::parse_lossy::<f32, _>(b"1."), Ok(1.0));
+/// assert_eq!(lexical::parse_lossy::<f32, _>(b"1a"), Err(err(1)));
 /// # }
 /// ```
 ///
 /// [`parse`]: fn.parse.html
-/// [`try_parse`]: fn.try_parse.html
 #[inline]
-pub fn parse_lossy<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
+pub fn parse_lossy<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
+    -> Result<N>
+{
     N::from_lexical_lossy(bytes.as_ref())
 }
 
 /// High-level conversion of bytes to a number with a custom radix.
 ///
-/// This function **always** returns a number, parsing until invalid
-/// digits are found. For an error-checking version of this function,
-/// use [`try_parse_radix`].
+/// This function only returns a value if the entire string is
+/// successfully parsed.
 ///
 /// * `bytes`   - Byte slice to convert to number.
 /// * `radix`   - Number of unique digits for the number (base).
@@ -228,39 +233,44 @@ pub fn parse_lossy<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes) -> N {
 ///
 /// ```rust
 /// # extern crate lexical;
+/// # use lexical::ErrorCode;
 /// # pub fn main() {
+/// // Create our error wrapper.
+/// let err = |u| (ErrorCode::InvalidDigit, u).into();
+///
 /// // String overloads
-/// assert_eq!(lexical::parse_radix::<i32, _>("5", 10), 5);
-/// assert_eq!(lexical::parse_radix::<i32, _>("1a", 10), 1);
-/// assert_eq!(lexical::parse_radix::<f32, _>("0", 10), 0.0);
-/// assert_eq!(lexical::parse_radix::<f32, _>("1.", 10), 1.0);
-/// assert_eq!(lexical::parse_radix::<f32, _>("1.0", 10), 1.0);
+/// assert_eq!(lexical::parse_radix::<i32, _>("5", 10), Ok(5));
+/// assert_eq!(lexical::parse_radix::<i32, _>("1a", 10), Err(err(1)));
+/// assert_eq!(lexical::parse_radix::<i32, _>("1.", 10), Err(err(1)));
+/// assert_eq!(lexical::parse_radix::<f32, _>("0", 10), Ok(0.0));
+/// assert_eq!(lexical::parse_radix::<f32, _>("1.0", 10), Ok(1.0));
+/// assert_eq!(lexical::parse_radix::<f32, _>("1.", 10), Ok(1.0));
+/// assert_eq!(lexical::parse_radix::<f32, _>("1a", 10), Err(err(1)));
+/// assert_eq!(lexical::parse_radix::<f32, _>("1.0.", 10), Err(err(3)));
 ///
 /// // Bytes overloads
-/// assert_eq!(lexical::parse_radix::<i32, _>(b"5", 10), 5);
-/// assert_eq!(lexical::parse_radix::<i32, _>(b"1a", 10), 1);
-/// assert_eq!(lexical::parse_radix::<f32, _>(b"0", 10), 0.0);
-/// assert_eq!(lexical::parse_radix::<f32, _>(b"1.", 10), 1.0);
-/// assert_eq!(lexical::parse_radix::<f32, _>(b"1.0", 10), 1.0);
+/// assert_eq!(lexical::parse_radix::<i32, _>(b"5", 10), Ok(5));
+/// assert_eq!(lexical::parse_radix::<i32, _>(b"1a", 10), Err(err(1)));
+/// assert_eq!(lexical::parse_radix::<f32, _>(b"0", 10), Ok(0.0));
+/// assert_eq!(lexical::parse_radix::<f32, _>(b"1.0", 10), Ok(1.0));
+/// assert_eq!(lexical::parse_radix::<f32, _>(b"1.", 10), Ok(1.0));
+/// assert_eq!(lexical::parse_radix::<f32, _>(b"1a", 10), Err(err(1)));
+/// assert_eq!(lexical::parse_radix::<f32, _>(b"1.0.", 10), Err(err(3)));
 /// # }
 /// ```
 ///
 /// # Panics
 ///
 /// Panics if radix is not in the range `[2, 36]`
-///
-/// [`try_parse_radix`]: fn.try_parse_radix.html
 #[cfg(feature = "radix")]
 #[inline]
-pub fn parse_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> N {
+pub fn parse_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
+    -> Result<N>
+{
     N::from_lexical_radix(bytes.as_ref(), radix)
 }
 
-/// High-level lossy conversion of bytes to a number with a custom radix.
-///
-/// This function **always** returns a number, parsing until invalid
-/// digits are found. For an error-checking version of this function,
-/// use [`try_parse_radix`].
+/// High-level lossy conversion of bytes to a float with a custom radix.
 ///
 /// This function uses aggressive optimizations to avoid worst-case
 /// scenarios, and can return inaccurate results. For guaranteed accurate
@@ -273,16 +283,24 @@ pub fn parse_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) 
 ///
 /// ```rust
 /// # extern crate lexical;
+/// # use lexical::ErrorCode;
 /// # pub fn main() {
+/// // Create our error wrapper.
+/// let err = |u| (ErrorCode::InvalidDigit, u).into();
+///
 /// // String overloads
-/// assert_eq!(lexical::parse_lossy_radix::<f32, _>("0", 10), 0.0);
-/// assert_eq!(lexical::parse_lossy_radix::<f32, _>("1.", 10), 1.0);
-/// assert_eq!(lexical::parse_lossy_radix::<f32, _>("1.0", 10), 1.0);
+/// assert_eq!(lexical::parse_lossy_radix::<f32, _>("0", 10), Ok(0.0));
+/// assert_eq!(lexical::parse_lossy_radix::<f32, _>("1.0", 10), Ok(1.0));
+/// assert_eq!(lexical::parse_lossy_radix::<f32, _>("1.", 10), Ok(1.0));
+/// assert_eq!(lexical::parse_lossy_radix::<f32, _>("1a", 10), Err(err(1)));
+/// assert_eq!(lexical::parse_lossy_radix::<f32, _>("1.0.", 10), Err(err(3)));
 ///
 /// // Bytes overloads
-/// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"0", 10), 0.0);
-/// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"1.", 10), 1.0);
-/// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"1.0", 10), 1.0);
+/// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"0", 10), Ok(0.0));
+/// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"1.0", 10), Ok(1.0));
+/// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"1.", 10), Ok(1.0));
+/// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"1a", 10), Err(err(1)));
+/// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"1.0.", 10), Err(err(3)));
 /// # }
 /// ```
 ///
@@ -291,190 +309,10 @@ pub fn parse_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) 
 /// Panics if radix is not in the range `[2, 36]`
 ///
 /// [`parse_radix`]: fn.parse_radix.html
-/// [`try_parse_radix`]: fn.try_parse_radix.html
 #[cfg(feature = "radix")]
 #[inline]
-pub fn parse_lossy_radix<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> N {
+pub fn parse_lossy_radix<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
+    -> Result<N>
+{
     N::from_lexical_lossy_radix(bytes.as_ref(), radix)
-}
-
-/// High-level conversion of decimal-encoded bytes to a number.
-///
-/// This function only returns a value if the entire string is
-/// successfully parsed. For an unchecked version of this function,
-/// use [`parse`].
-///
-/// * `bytes`   - Byte slice to convert to number.
-///
-/// # Examples
-///
-/// ```rust
-/// # extern crate lexical;
-/// # use lexical::ErrorKind;
-/// # pub fn main() {
-/// // Create our error.
-/// let err = |u| ErrorKind::InvalidDigit(u).into();
-///
-/// // String overloads
-/// assert_eq!(lexical::try_parse::<i32, _>("5"), Ok(5));
-/// assert_eq!(lexical::try_parse::<i32, _>("1a"), Err(err(1)));
-/// assert_eq!(lexical::try_parse::<f32, _>("0"), Ok(0.0));
-/// assert_eq!(lexical::try_parse::<f32, _>("1.0"), Ok(1.0));
-/// assert_eq!(lexical::try_parse::<f32, _>("1."), Ok(1.0));
-///
-/// // Bytes overloads
-/// assert_eq!(lexical::try_parse::<i32, _>(b"5"), Ok(5));
-/// assert_eq!(lexical::try_parse::<i32, _>(b"1a"), Err(err(1)));
-/// assert_eq!(lexical::try_parse::<f32, _>(b"0"), Ok(0.0));
-/// assert_eq!(lexical::try_parse::<f32, _>(b"1.0"), Ok(1.0));
-/// assert_eq!(lexical::try_parse::<f32, _>(b"1."), Ok(1.0));
-/// # assert_eq!(lexical::try_parse::<f32, _>(b"5.002868148396374"), Ok(5.002868148396374));
-/// # assert_eq!(lexical::try_parse::<f64, _>(b"5.002868148396374"), Ok(5.002868148396374));
-/// # }
-/// ```
-///
-/// [`parse`]: fn.parse.html
-#[inline]
-pub fn try_parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes)
-    -> Result<N, Error>
-{
-    N::try_from_lexical(bytes.as_ref())
-}
-
-/// High-level lossy conversion of decimal-encoded bytes to a number.
-///
-/// This function uses aggressive optimizations to avoid worst-case
-/// scenarios, and can return inaccurate results. For guaranteed accurate
-/// floats, use [`try_parse`].
-///
-/// * `bytes`   - Byte slice to convert to number.
-///
-/// # Examples
-///
-/// ```rust
-/// # extern crate lexical;
-/// # use lexical::ErrorKind;
-/// # pub fn main() {
-/// // Create our error.
-/// let err = |u| ErrorKind::InvalidDigit(u).into();
-///
-/// // String overloads
-/// assert_eq!(lexical::try_parse_lossy::<f32, _>("0"), Ok(0.0));
-/// assert_eq!(lexical::try_parse_lossy::<f32, _>("1.0"), Ok(1.0));
-/// assert_eq!(lexical::try_parse_lossy::<f32, _>("1."), Ok(1.0));
-/// assert_eq!(lexical::try_parse_lossy::<f32, _>("1a"), Err(err(1)));
-///
-/// // Bytes overloads
-/// assert_eq!(lexical::try_parse_lossy::<f32, _>(b"0"), Ok(0.0));
-/// assert_eq!(lexical::try_parse_lossy::<f32, _>(b"1.0"), Ok(1.0));
-/// assert_eq!(lexical::try_parse_lossy::<f32, _>(b"1."), Ok(1.0));
-/// assert_eq!(lexical::try_parse_lossy::<f32, _>(b"1a"), Err(err(1)));
-/// # }
-/// ```
-///
-/// [`try_parse`]: fn.try_parse.html
-#[inline]
-pub fn try_parse_lossy<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
-    -> Result<N, Error>
-{
-    N::try_from_lexical_lossy(bytes.as_ref())
-}
-
-/// High-level conversion of bytes to a number with a custom radix.
-///
-/// This function only returns a value if the entire string is
-/// successfully parsed. For an unchecked version of this function,
-/// use [`parse_radix`].
-///
-/// * `bytes`   - Byte slice to convert to number.
-/// * `radix`   - Number of unique digits for the number (base).
-///
-/// # Examples
-///
-/// ```rust
-/// # extern crate lexical;
-/// # use lexical::ErrorKind;
-/// # pub fn main() {
-/// // Create our error wrapper.
-/// let err = |u| ErrorKind::InvalidDigit(u).into();
-///
-/// // String overloads
-/// assert_eq!(lexical::try_parse_radix::<i32, _>("5", 10), Ok(5));
-/// assert_eq!(lexical::try_parse_radix::<i32, _>("1a", 10), Err(err(1)));
-/// assert_eq!(lexical::try_parse_radix::<i32, _>("1.", 10), Err(err(1)));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>("0", 10), Ok(0.0));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>("1.0", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>("1.", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>("1a", 10), Err(err(1)));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>("1.0.", 10), Err(err(3)));
-///
-/// // Bytes overloads
-/// assert_eq!(lexical::try_parse_radix::<i32, _>(b"5", 10), Ok(5));
-/// assert_eq!(lexical::try_parse_radix::<i32, _>(b"1a", 10), Err(err(1)));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"0", 10), Ok(0.0));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.0", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1a", 10), Err(err(1)));
-/// assert_eq!(lexical::try_parse_radix::<f32, _>(b"1.0.", 10), Err(err(3)));
-/// # }
-/// ```
-///
-/// # Panics
-///
-/// Panics if radix is not in the range `[2, 36]`
-///
-/// [`parse_radix`]: fn.parse_radix.html
-#[cfg(feature = "radix")]
-#[inline]
-pub fn try_parse_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
-    -> Result<N, Error>
-{
-    N::try_from_lexical_radix(bytes.as_ref(), radix)
-}
-
-/// High-level lossy conversion of bytes to a float with a custom radix.
-///
-/// This function uses aggressive optimizations to avoid worst-case
-/// scenarios, and can return inaccurate results. For guaranteed accurate
-/// floats, use [`try_parse_radix`].
-///
-/// * `bytes`   - Byte slice to convert to number.
-/// * `radix`   - Number of unique digits for the number (base).
-///
-/// # Examples
-///
-/// ```rust
-/// # extern crate lexical;
-/// # use lexical::ErrorKind;
-/// # pub fn main() {
-/// // Create our error wrapper.
-/// let err = |u| ErrorKind::InvalidDigit(u).into();
-///
-/// // String overloads
-/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>("0", 10), Ok(0.0));
-/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>("1.0", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>("1.", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>("1a", 10), Err(err(1)));
-/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>("1.0.", 10), Err(err(3)));
-///
-/// // Bytes overloads
-/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>(b"0", 10), Ok(0.0));
-/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>(b"1.0", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>(b"1.", 10), Ok(1.0));
-/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>(b"1a", 10), Err(err(1)));
-/// assert_eq!(lexical::try_parse_lossy_radix::<f32, _>(b"1.0.", 10), Err(err(3)));
-/// # }
-/// ```
-///
-/// # Panics
-///
-/// Panics if radix is not in the range `[2, 36]`
-///
-/// [`try_parse_radix`]: fn.try_parse_radix.html
-#[cfg(feature = "radix")]
-#[inline]
-pub fn try_parse_lossy_radix<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
-    -> Result<N, Error>
-{
-    N::try_from_lexical_lossy_radix(bytes.as_ref(), radix)
 }

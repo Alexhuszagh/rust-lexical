@@ -14,8 +14,8 @@
 //!
 //! // String to number using slices
 //! // The argument is the byte string parsed.
-//! let f = lexical_core::atof64_slice(b"3.5");   // 3.5
-//! let i = lexical_core::atoi32_slice(b"15");    // 15
+//! let f = lexical_core::atof64_slice(b"3.5").unwrap();   // 3.5
+//! let i = lexical_core::atoi32_slice(b"15").unwrap();    // 15
 //!
 //! // String to number using pointer ranges, for FFI-compatible code.
 //! // The first argument is a pointer to the start of the parsed byte array,
@@ -25,7 +25,7 @@
 //!     let bytes = b"3.5";
 //!     let first = bytes.as_ptr();
 //!     let last = first.add(bytes.len());
-//!     let f = lexical_core::atof64_range(first, last);
+//!     let f = lexical_core::atof64_range(first, last).unwrap();
 //! }
 //!
 //! // If and only if the `radix` feature is enabled, you may use the radix
@@ -47,27 +47,24 @@
 //! // The error code for success is 0, all errors are less than 0.
 //!
 //! // Ideally, everything works great.
-//! let res = lexical_core::try_atoi8_slice(b"15");
-//! assert_eq!(res.error.code, lexical_core::ErrorCode::Success);
-//! assert_eq!(res.value, 15);
+//! let res = lexical_core::atoi8_slice(b"15");
+//! assert!(res.is_ok());
+//! assert_eq!(res.unwrap(), 15);
 //!
 //! // However, it detects numeric overflow, setting `res.error.code`
 //! // to the appropriate value.
-//! let res = lexical_core::try_atoi8_slice(b"256");
-//! assert_eq!(res.error.code, lexical_core::ErrorCode::Overflow);
+//! let res = lexical_core::atoi8_slice(b"256");
+//! assert!(res.is_err());
+//! assert_eq!(res.err().unwrap().code, lexical_core::ErrorCode::Overflow);
 //!
 //! // Errors occurring prematurely terminating the parser due to invalid
 //! // digits return the index in the buffer where the invalid digit was
-//! // seen. This may useful in contexts like serde, which require numerical
-//! // parsers from complex data without having to extract a substring
-//! // containing only numeric data ahead of time. If the error is set
-//! // to a `InvalidDigit`, the value is guaranteed to be accurate up until
-//! // that point. For example, if the trailing data is whitespace,
-//! // the value from an invalid digit may be perfectly valid in some contexts.
-//! let res = lexical_core::try_atoi8_slice(b"15 45");
-//! assert_eq!(res.error.code, lexical_core::ErrorCode::InvalidDigit);
-//! assert_eq!(res.error.index, 2);
-//! assert_eq!(res.value, 15);
+//! // seen.
+//! let res = lexical_core::atoi8_slice(b"15 45");
+//! assert!(res.is_err());
+//! let error = res.err().unwrap();
+//! assert_eq!(error.code, lexical_core::ErrorCode::InvalidDigit);
+//! assert_eq!(error.index, 2);
 //!
 //! // Number to string using slices.
 //! // The first argument is the value, the second argument is the radix,

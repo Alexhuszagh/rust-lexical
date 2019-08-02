@@ -3,22 +3,29 @@
 use super::math::Limb;
 use super::small_powers_64;
 
-#[cfg(limb_width_32)]
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+)))]
 use super::small_powers_32::*;
 
-#[cfg(limb_width_64)]
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "powerpc64",
+    target_arch = "x86_64"
+))]
 use super::small_powers_64::*;
 
 // ASSERTIONS
 
-cfg_if! {
-if #[cfg(has_const_index)] {
 const_assert!(small_powers_radix5; POW5[1] / POW5[0] == 5);
 const_assert!(small_powers_radix10; POW10[1] / POW10[0] == 10);
-}}  //cfg_if
 
 cfg_if! {
-if #[cfg(all(has_const_index, feature = "radix"))] {
+if #[cfg(feature = "radix")] {
 // Ensure our small powers are valid.
 const_assert!(small_powers_radix2; POW2[1] / POW2[0] == 2);
 const_assert!(small_powers_radix3; POW3[1] / POW3[0] == 3);

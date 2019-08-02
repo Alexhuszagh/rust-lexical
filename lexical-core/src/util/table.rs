@@ -9,48 +9,10 @@ use util::*;
 const DIGIT_TO_CHAR: [u8; 36] = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'A', b'B', b'C', b'D', b'E', b'F', b'G', b'H', b'I', b'J', b'K', b'L', b'M', b'N', b'O', b'P', b'Q', b'R', b'S', b'T', b'U', b'V', b'W', b'X', b'Y', b'Z'];
 
 /// Get character from digit.
-#[inline]
+#[inline(always)]
 pub(crate) fn digit_to_char<T: Integer>(digit: T) -> u8 {
     debug_assert!(digit.as_i32() >= 0 && digit.as_i32() < 36, "digit_to_char() invalid character.");
     index!(DIGIT_TO_CHAR[digit.as_usize()])
-}
-
-/// Translation table for a character to a digit, of any radix.
-///
-/// To check if the radix is actually valid, you may use:
-/// `let x = CHAR_TO_DIGIT[char]; x < radix`.
-///
-/// This is going to get translated to different type sizes, just use
-/// a small size for compactness.
-const CHAR_TO_DIGIT: [u8; 256] = [
-    // Use 40 as a marker, since it's larger than any radix and round.
-    40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-    40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-    40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-    // Digits, [0-9] at [48-57]
-     0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 40, 40, 40, 40, 40, 40,
-    // Alpha, [A-Z] at [65-90]
-    40, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-    25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 40, 40, 40, 40,
-    // Alpha, [A-Z] at [65-90]
-    40, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-    25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 40, 40, 40, 40,
-    40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-    40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-    40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-    40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-    40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-    40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-    40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-    40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-];
-
-/// Get digit from character.
-#[inline]
-pub(crate) fn char_to_digit(c: u8) -> u8 {
-    // This is always safe, since c must be [0, 255],and CHAR_TO_DIGIT is
-    // 256 items long.
-    unsafe {*CHAR_TO_DIGIT.get_unchecked(c.as_usize())}
 }
 
 // Conditionally compile the precompiled radix**2 tables.
@@ -848,11 +810,13 @@ impl TablePower for f32 {
     const POW2_EXPONENT_BIAS: i32 = 149;
 
     #[cfg(feature = "radix")]
+    #[inline]
     fn table_pow2(exponent: i32) -> f32 {
         debug_assert!(exponent + Self::POW2_EXPONENT_BIAS >= 0, "table_pow2() have negative exponent.");
         F32_POW2[(exponent + Self::POW2_EXPONENT_BIAS).as_usize()]
     }
 
+    #[inline]
     fn table_pow<T: Integer>(radix: T, exponent: i32) -> f32 {
         debug_assert!(exponent >= 0, "table_pow() have negative exponent.");
         debug_assert_radix!(radix);
@@ -3202,11 +3166,13 @@ impl TablePower for f64 {
     const POW2_EXPONENT_BIAS: i32 = 1074;
 
     #[cfg(feature = "radix")]
+    #[inline]
     fn table_pow2(exponent: i32) -> f64 {
         debug_assert!(exponent + Self::POW2_EXPONENT_BIAS >= 0, "table_pow2() have negative exponent.");
         F64_POW2[(exponent + Self::POW2_EXPONENT_BIAS).as_usize()]
     }
 
+    #[inline]
     fn table_pow<T: Integer>(radix: T, exponent: i32) -> f64 {
         debug_assert!(exponent >= 0, "table_pow() have negative exponent.");
         debug_assert_radix!(radix);

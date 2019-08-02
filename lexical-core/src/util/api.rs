@@ -9,6 +9,7 @@ use super::result::*;
 // HELPERS
 
 /// Convert a pointer range to a slice safely.
+#[allow(dead_code)]
 #[inline]
 pub(crate) unsafe fn slice_from_range<'a, T>(first: *const T, last: *const T)
     -> &'a [T]
@@ -24,25 +25,6 @@ pub(crate) unsafe fn slice_from_range_mut<'a, T>(first: *mut T, last: *mut T)
 {
     assert!(first <= last && !first.is_null() && !last.is_null());
     slice::from_raw_parts_mut(first, distance(first, last))
-}
-
-/// Wrap the unsafe API into the safe, parse API trying to parse raw bytes.
-#[inline]
-pub(crate) fn try_from_bytes_wrapper<'a, T, Cb>(radix: u8, bytes: &'a [u8], cb: Cb)
-    -> Result<T>
-    where T: Number,
-          Cb: FnOnce(u8, &'a [u8]) -> (T, usize, bool)
-{
-    let (value, processed, overflow) = cb(radix, bytes);
-    if bytes.is_empty() {
-        empty_error(value)
-    } else if overflow {
-        overflow_error(value)
-    } else if processed == bytes.len() {
-        success(value)
-    } else {
-        invalid_digit_error(value, processed)
-    }
 }
 
 // TO BYTES WRAPPER
@@ -70,11 +52,11 @@ macro_rules! generate_from_range_api {
         /// Panics if either pointer is null.
         #[no_mangle]
         pub unsafe extern fn $decimal_name(first: *const u8, last: *const u8)
-            -> $t
+            -> Result<$t>
         {
             assert!(first <= last && !first.is_null() && !last.is_null());
             let bytes = $crate::lib::slice::from_raw_parts(first, distance(first, last));
-            $cb(10, bytes).0
+            $cb(10, bytes)
         }
 
         /// Unchecked parser for a string-to-number conversion using pointer ranges.
@@ -96,12 +78,12 @@ macro_rules! generate_from_range_api {
         #[cfg(feature = "radix")]
         #[no_mangle]
         pub unsafe extern fn $radix_name(radix: u8, first: *const u8, last: *const u8)
-            -> $t
+            -> Result<$t>
         {
             assert_radix!(radix);
             assert!(first <= last && !first.is_null() && !last.is_null());
             let bytes = $crate::lib::slice::from_raw_parts(first, distance(first, last));
-            $cb(radix, bytes).0
+            $cb(radix.as_u32(), bytes)
         }
     )
 }
@@ -118,9 +100,9 @@ macro_rules! generate_from_slice_api {
         /// * `bytes`   - Slice containing a numeric string.
         #[inline]
         pub fn $decimal_name(bytes: &[u8])
-            -> $t
+            -> Result<$t>
         {
-            $cb(10, bytes).0
+            $cb(10, bytes)
         }
 
         /// Unchecked parser for a string-to-number conversion using Rust slices.
@@ -137,109 +119,10 @@ macro_rules! generate_from_slice_api {
         #[cfg(feature = "radix")]
         #[inline]
         pub fn $radix_name(radix: u8, bytes: &[u8])
-            -> $t
-        {
-            assert_radix!(radix);
-            $cb(radix, bytes).0
-        }
-    )
-}
-
-/// Macro to generate the low-level, FFI, try_parse API using a pointer range.
-#[doc(hidden)]
-macro_rules! generate_try_from_range_api {
-    ($decimal_name:ident, $radix_name:ident, $t:ty, $cb:ident) => (
-        /// Checked parser for a string-to-number conversion using Rust pointer ranges.
-        ///
-        /// Returns a C-compatible result containing the parsed value,
-        /// and an error container any errors that occurred during parser.
-        ///
-        /// Numeric overflow takes precedence over the presence of an invalid
-        /// digit, and therefore may mask an invalid digit error.
-        ///
-        /// * `first`   - Pointer to the start of the input data.
-        /// * `last`    - Pointer to the one-past-the-end of the input data.
-        ///
-        /// # Panics
-        ///
-        /// Panics if either pointer is null.
-        #[no_mangle]
-        pub unsafe extern fn $decimal_name(first: *const u8, last: *const u8)
-            -> Result<$t>
-        {
-            let bytes = $crate::util::api::slice_from_range(first, last);
-            $crate::util::api::try_from_bytes_wrapper::<$t, _>(10, bytes, $cb)
-        }
-
-        /// Checked parser for a string-to-number conversion using Rust pointer ranges.
-        ///
-        /// Returns a C-compatible result containing the parsed value,
-        /// and an error container any errors that occurred during parser.
-        ///
-        /// Numeric overflow takes precedence over the presence of an invalid
-        /// digit, and therefore may mask an invalid digit error.
-        ///
-        /// * `radix`   - Radix for the number parsing.
-        /// * `first`   - Pointer to the start of the input data.
-        /// * `last`    - Pointer to the one-past-the-end of the input data.
-        ///
-        /// # Panics
-        ///
-        /// Panics if the radix is not in the range `[2, 36]`. Also panics
-        /// if either pointer is null.
-        #[cfg(feature = "radix")]
-        #[no_mangle]
-        pub unsafe extern fn $radix_name(radix: u8, first: *const u8, last: *const u8)
             -> Result<$t>
         {
             assert_radix!(radix);
-            let bytes = $crate::util::api::slice_from_range(first, last);
-            $crate::util::api::try_from_bytes_wrapper::<$t, _>(radix, bytes, $cb)
-        }
-    )
-}
-
-/// Macro to generate the low-level, safe, try_parse API using a slice.
-#[doc(hidden)]
-macro_rules! generate_try_from_slice_api {
-    ($decimal_name:ident, $radix_name:ident, $t:ty, $cb:ident) => (
-        /// Checked parser for a string-to-number conversion using Rust slices.
-        ///
-        /// Returns a C-compatible result containing the parsed value,
-        /// and an error container any errors that occurred during parser.
-        ///
-        /// Numeric overflow takes precedence over the presence of an invalid
-        /// digit, and therefore may mask an invalid digit error.
-        ///
-        /// * `bytes`   - Slice containing a numeric string.
-        #[inline]
-        pub fn $decimal_name(bytes: &[u8])
-            -> Result<$t>
-        {
-            $crate::util::api::try_from_bytes_wrapper::<$t, _>(10, bytes, $cb)
-        }
-
-        /// Checked parser for a string-to-number conversion using Rust slices.
-        ///
-        /// Returns a C-compatible result containing the parsed value,
-        /// and an error container any errors that occurred during parser.
-        ///
-        /// Numeric overflow takes precedence over the presence of an invalid
-        /// digit, and therefore may mask an invalid digit error.
-        ///
-        /// * `radix`   - Radix for the number parsing.
-        /// * `bytes`   - Slice containing a numeric string.
-        ///
-        /// # Panics
-        ///
-        /// Panics if the radix is not in the range `[2, 36]`.
-        #[cfg(feature = "radix")]
-        #[inline]
-        pub fn $radix_name(radix: u8, bytes: &[u8])
-            -> Result<$t>
-        {
-            assert_radix!(radix);
-            $crate::util::api::try_from_bytes_wrapper::<$t, _>(radix, bytes, $cb)
+            $cb(radix.as_u32(), bytes)
         }
     )
 }

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+# [3.0.0] - 2019-07-XX
+### Changed
+- Updated the low-level API lexical-core 0.5.0.
+- Updated the benchmarks and graphics.
+
+### Removed
+- Remove the unchecked parsers from the public API. `try_parse*` has been replaced with `parse*`.
+
 ## [2.2.0] - 2019-06-20
 ### Added
 - Backwards compatible support for Rustc 1.24.0.

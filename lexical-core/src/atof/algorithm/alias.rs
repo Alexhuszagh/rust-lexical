@@ -1,34 +1,26 @@
 //! Aliases and traits to simplify float-parsing.
 
 use lib::{iter, slice};
+
 use float::*;
 use util::*;
-use super::bigcomp::ToBigInt;
-use super::correct::FloatErrors;
+use super::bignum::ToBigfloat;
+use super::errors::FloatErrors;
 
 pub type SliceIter<'a, T> = slice::Iter<'a, T>;
 pub type ChainedSliceIter<'a, T> = iter::Chain<SliceIter<'a, T>, SliceIter<'a, T>>;
 
 // TRAITS
 
-macro_rules! def_float_type {
-    ($($t:ty)*) => (
-        /// Trait to simplify type signatures for atof.
-        pub(super) trait FloatType:
-            $(FloatRounding<$t> +)*
-            StablePower
-        {
-            type Mantissa: Mantissa;
-            type ExtendedFloat: ExtendedFloatType<Self>;
-        }
-    );
+/// Trait to simplify type signatures for atof.
+pub(super) trait FloatType:
+    FloatRounding<u64> +
+    FloatRounding<u128> +
+    StablePower
+{
+    type Mantissa: Mantissa;
+    type ExtendedFloat: ExtendedFloatType<Self>;
 }
-
-#[cfg(has_i128)]
-def_float_type!(u64 u128);
-
-#[cfg(not(has_i128))]
-def_float_type!(u64);
 
 impl FloatType for f32 {
     type Mantissa = Self::Unsigned;
@@ -49,13 +41,12 @@ pub(super) trait MantissaType:
 impl MantissaType for u64 {
 }
 
-#[cfg(has_i128)]
 impl MantissaType for u128 {
 }
 
 /// Trait for extended-float types.
 pub(super) trait ExtendedFloatType<F: FloatType>:
-    ToBigInt<F::Mantissa> +
+    ToBigfloat<F::Mantissa> +
     From<F>
 {
     // I really wish I had any other choice **other** than getters and setters,
@@ -68,45 +59,45 @@ pub(super) trait ExtendedFloatType<F: FloatType>:
 }
 
 impl ExtendedFloatType<f32> for ExtendedFloat<u32> {
-    #[inline]
+    perftools_inline!{
     fn mant(&self) -> u32 {
         self.mant
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn exp(&self) -> i32 {
         self.exp
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn set_mant(&mut self, mant: u32) {
         self.mant = mant;
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn set_exp(&mut self, exp: i32) {
         self.exp = exp;
-    }
+    }}
 }
 
 impl ExtendedFloatType<f64> for ExtendedFloat<u64> {
-    #[inline]
+    perftools_inline!{
     fn mant(&self) -> u64 {
         self.mant
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn exp(&self) -> i32 {
         self.exp
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn set_mant(&mut self, mant: u64) {
         self.mant = mant;
-    }
+    }}
 
-    #[inline]
+    perftools_inline!{
     fn set_exp(&mut self, exp: i32) {
         self.exp = exp;
-    }
+    }}
 }

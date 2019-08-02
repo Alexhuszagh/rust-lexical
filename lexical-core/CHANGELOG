@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.3]
+## [0.5.0] - 2019-07-XX
+### Changed
+- Improved code generation and reduced binary bloat. There are a few algorithmic differences that make this possible, but the parsers now generally extract the float subcomponents first, then parsed known-good data after for enhanced performance.
+
+### Removed
+- Remove the unchecked parsers from the public API. `try_parse*` has been replaced with `parse*`.
+
+## [0.4.3] - 2019-06-26
 - Fixed a bug (issue #20) leading to incorrect float parsing (1 ULP error) for slow-path algorithms containing floats with a trailing 0-digit in the fraction component (discovery by @dangrabcad). Added in comprehensive unittests to avoid future regressions.
 - Fixed CI for older Rustc versions due to issues with the `edition` keyword.
 - Updated dependencies (credit to @junhoo).

@@ -102,12 +102,12 @@ const STRESS_TESTS: StressTests = StressTests {
 
 fn stress_test<T: 'static + Debug + PartialEq + lexical::FromLexical>(test: &StressTest<T>) {
     for (string, float) in test.below_ulp.iter() {
-        let actual: T = lexical::try_parse(string).unwrap();
+        let actual: T = lexical::parse(string).unwrap();
         assert_eq!(actual, *float);
     }
 
     for (string, float) in test.above_ulp.iter() {
-        let actual: T = lexical::try_parse(string).unwrap();
+        let actual: T = lexical::parse(string).unwrap();
         assert_eq!(actual, *float);
     }
 }

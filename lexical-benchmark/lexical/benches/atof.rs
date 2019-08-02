@@ -72,168 +72,168 @@ lazy_static! {
 fn denormal10(bench: &mut Bencher) {
     let data: &[String] = &DENORMAL_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[0].as_bytes()));
+        black_box(atof64_slice(data[0].as_bytes()).unwrap());
     })
 }
 
 fn denormal20(bench: &mut Bencher) {
     let data: &[String] = &DENORMAL_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[1].as_bytes()));
+        black_box(atof64_slice(data[1].as_bytes()).unwrap());
     })
 }
 
 fn denormal30(bench: &mut Bencher) {
     let data: &[String] = &DENORMAL_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[2].as_bytes()));
+        black_box(atof64_slice(data[2].as_bytes()).unwrap());
     })
 }
 
 fn denormal40(bench: &mut Bencher) {
     let data: &[String] = &DENORMAL_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[3].as_bytes()));
+        black_box(atof64_slice(data[3].as_bytes()).unwrap());
     })
 }
 
 fn denormal50(bench: &mut Bencher) {
     let data: &[String] = &DENORMAL_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[4].as_bytes()));
+        black_box(atof64_slice(data[4].as_bytes()).unwrap());
     })
 }
 
 fn denormal100(bench: &mut Bencher) {
     let data: &[String] = &DENORMAL_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[5].as_bytes()));
+        black_box(atof64_slice(data[5].as_bytes()).unwrap());
     })
 }
 
 fn denormal200(bench: &mut Bencher) {
     let data: &[String] = &DENORMAL_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[6].as_bytes()));
+        black_box(atof64_slice(data[6].as_bytes()).unwrap());
     })
 }
 
 fn denormal400(bench: &mut Bencher) {
     let data: &[String] = &DENORMAL_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[7].as_bytes()));
+        black_box(atof64_slice(data[7].as_bytes()).unwrap());
     })
 }
 
 fn denormal800(bench: &mut Bencher) {
     let data: &[String] = &DENORMAL_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[8].as_bytes()));
+        black_box(atof64_slice(data[8].as_bytes()).unwrap());
     })
 }
 
 fn denormal1600(bench: &mut Bencher) {
     let data: &[String] = &DENORMAL_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[9].as_bytes()));
+        black_box(atof64_slice(data[9].as_bytes()).unwrap());
     })
 }
 
 fn denormal3200(bench: &mut Bencher) {
     let data: &[String] = &DENORMAL_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[10].as_bytes()));
+        black_box(atof64_slice(data[10].as_bytes()).unwrap());
     })
 }
 
 fn denormal6400(bench: &mut Bencher) {
     let data: &[String] = &DENORMAL_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[11].as_bytes()));
+        black_box(atof64_slice(data[11].as_bytes()).unwrap());
     })
 }
 
 fn large10(bench: &mut Bencher) {
     let data: &[String] = &LARGE_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[0].as_bytes()));
+        black_box(atof64_slice(data[0].as_bytes()).unwrap());
     })
 }
 
 fn large20(bench: &mut Bencher) {
     let data: &[String] = &LARGE_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[1].as_bytes()));
+        black_box(atof64_slice(data[1].as_bytes()).unwrap());
     })
 }
 
 fn large30(bench: &mut Bencher) {
     let data: &[String] = &LARGE_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[2].as_bytes()));
+        black_box(atof64_slice(data[2].as_bytes()).unwrap());
     })
 }
 
 fn large40(bench: &mut Bencher) {
     let data: &[String] = &LARGE_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[3].as_bytes()));
+        black_box(atof64_slice(data[3].as_bytes()).unwrap());
     })
 }
 
 fn large50(bench: &mut Bencher) {
     let data: &[String] = &LARGE_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[4].as_bytes()));
+        black_box(atof64_slice(data[4].as_bytes()).unwrap());
     })
 }
 
 fn large100(bench: &mut Bencher) {
     let data: &[String] = &LARGE_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[5].as_bytes()));
+        black_box(atof64_slice(data[5].as_bytes()).unwrap());
     })
 }
 
 fn large200(bench: &mut Bencher) {
     let data: &[String] = &LARGE_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[6].as_bytes()));
+        black_box(atof64_slice(data[6].as_bytes()).unwrap());
     })
 }
 
 fn large400(bench: &mut Bencher) {
     let data: &[String] = &LARGE_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[7].as_bytes()));
+        black_box(atof64_slice(data[7].as_bytes()).unwrap());
     })
 }
 
 fn large800(bench: &mut Bencher) {
     let data: &[String] = &LARGE_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[8].as_bytes()));
+        black_box(atof64_slice(data[8].as_bytes()).unwrap());
     })
 }
 
 fn large1600(bench: &mut Bencher) {
     let data: &[String] = &LARGE_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[9].as_bytes()));
+        black_box(atof64_slice(data[9].as_bytes()).unwrap());
     })
 }
 
 fn large3200(bench: &mut Bencher) {
     let data: &[String] = &LARGE_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[10].as_bytes()));
+        black_box(atof64_slice(data[10].as_bytes()).unwrap());
     })
 }
 
 fn large6400(bench: &mut Bencher) {
     let data: &[String] = &LARGE_DATA;
     bench.iter(|| {
-        black_box(atof64_slice(data[11].as_bytes()));
+        black_box(atof64_slice(data[11].as_bytes()).unwrap());
     })
 }
 
@@ -241,7 +241,7 @@ fn digits2(bench: &mut Bencher) {
     let data: &[String] = &DIGITS2_DATA;
     bench.iter(|| {
         for value in data.iter() {
-            black_box(atof64_slice(value.as_bytes()));
+            black_box(atof64_slice(value.as_bytes()).unwrap());
         }
     })
 }
@@ -250,7 +250,7 @@ fn digits8(bench: &mut Bencher) {
     let data: &[String] = &DIGITS8_DATA;
     bench.iter(|| {
         for value in data.iter() {
-            black_box(atof64_slice(value.as_bytes()));
+            black_box(atof64_slice(value.as_bytes()).unwrap());
         }
     })
 }
@@ -259,7 +259,7 @@ fn digits16(bench: &mut Bencher) {
     let data: &[String] = &DIGITS16_DATA;
     bench.iter(|| {
         for value in data.iter() {
-            black_box(atof64_slice(value.as_bytes()));
+            black_box(atof64_slice(value.as_bytes()).unwrap());
         }
     })
 }
@@ -268,7 +268,7 @@ fn digits32(bench: &mut Bencher) {
     let data: &[String] = &DIGITS32_DATA;
     bench.iter(|| {
         for value in data.iter() {
-            black_box(atof64_slice(value.as_bytes()));
+            black_box(atof64_slice(value.as_bytes()).unwrap());
         }
     })
 }
@@ -277,7 +277,7 @@ fn digits64(bench: &mut Bencher) {
     let data: &[String] = &DIGITS64_DATA;
     bench.iter(|| {
         for value in data.iter() {
-            black_box(atof64_slice(value.as_bytes()));
+            black_box(atof64_slice(value.as_bytes()).unwrap());
         }
     })
 }

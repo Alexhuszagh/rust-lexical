@@ -118,8 +118,10 @@ pub(crate) trait StablePower: private::StablePowerImpl {
     #[inline]
     fn pow<T: Integer>(self, base: T, exponent: i32) -> Self {
         // Check the exponent is within bounds in debug builds.
-        let (min, max) = Self::exponent_limit(base);
-        debug_assert!(exponent >= min && exponent <= max);
+        debug_assert!({
+            let (min, max) = Self::exponent_limit(base);
+            exponent >= min && exponent <= max
+        });
 
         let base: Self = as_cast(base);
         self * base.powi(exponent)
@@ -130,8 +132,10 @@ pub(crate) trait StablePower: private::StablePowerImpl {
     #[inline]
     fn pow<T: Integer>(self, base: T, exponent: i32) -> Self {
         // Check the exponent is within bounds in debug builds.
-        let (min, max) = Self::exponent_limit(base);
-        debug_assert!(exponent >= min && exponent <= max);
+        debug_assert!({
+            let (min, max) = Self::exponent_limit(base);
+            exponent >= min && exponent <= max
+        });
 
         if exponent > 0 {
             self * Self::table_pow(base, exponent)

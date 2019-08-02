@@ -59,7 +59,7 @@ use util::*;
 // CACHED POWERS
 
 /// Find cached power of 10 from the exponent.
-#[inline]
+perftools_inline!{
 fn cached_grisu_power(exp: i32, k: &mut i32)
     -> &'static ExtendedFloat80
 {
@@ -97,7 +97,7 @@ fn cached_grisu_power(exp: i32, k: &mut i32)
         *k = FIRSTPOWER + idx.as_i32() * STEPPOWERS;
         return power;
     }
-}
+}}
 
 /// Cached powers of ten as specified by the Grisu algorithm.
 ///
@@ -209,7 +209,7 @@ const TENS: [u64; 20] = [
 // FPCONV GRISU
 
 /// Round digit to sane approximation.
-#[inline]
+perftools_inline!{
 fn round_digit(digits: &mut [u8], ndigits: usize, delta: u64, mut rem: u64, kappa: u64, mant: u64)
 {
     while rem < mant && delta - rem >= kappa && (rem + kappa < mant || mant - rem > rem + kappa - mant)
@@ -217,7 +217,7 @@ fn round_digit(digits: &mut [u8], ndigits: usize, delta: u64, mut rem: u64, kapp
         digits[ndigits - 1] -= 1;
         rem += kappa;
     }
-}
+}}
 
 /// Generate digits from upper and lower range on rounding of number.
 fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &ExtendedFloat80, digits: &mut [u8], k: &mut i32)
@@ -399,14 +399,14 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
     dst_len - dst_iter.count()
 }
 
-#[inline]
+perftools_inline!{
 fn fpconv_dtoa(d: f64, dest: &mut [u8]) -> usize
 {
     let mut digits: [u8; 18] = explicit_uninitialized();
     let mut k: i32 = 0;
     let ndigits = grisu2(d, &mut digits, &mut k);
     emit_digits(&mut digits, ndigits, dest, k)
-}
+}}
 
 // DECIMAL
 
@@ -414,12 +414,12 @@ fn fpconv_dtoa(d: f64, dest: &mut [u8]) -> usize
 ///
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-#[inline]
+perftools_inline!{
 pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
     -> usize
 {
     double_decimal(f.as_f64(), bytes)
-}
+}}
 
 // F64
 
@@ -427,9 +427,9 @@ pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
 ///
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-#[inline]
+perftools_inline!{
 pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
     -> usize
 {
     fpconv_dtoa(d, bytes)
-}
+}}

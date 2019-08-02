@@ -23,22 +23,29 @@
 #[repr(i32)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ErrorCode {
-    /// No error, success.
-    Success = 0,
     /// Integral overflow occurred during numeric parsing.
     ///
     /// Numeric overflow takes precedence over the presence of an invalid
     /// digit.
     Overflow = -1,
+    /// Integral underflow occurred during numeric parsing.
+    ///
+    /// Numeric overflow takes precedence over the presence of an invalid
+    /// digit.
+    Underflow = -2,
     /// Invalid digit found before string termination.
-    InvalidDigit = -2,
+    InvalidDigit = -3,
     /// Empty byte array found.
-    Empty = -3,
+    Empty = -4,
+    /// Empty fraction found.
+    EmptyFraction = -5,
+    /// Empty exponent found.
+    EmptyExponent = -6,
 
     // We may add additional variants later, so ensure that client matching
     // does not depend on exhaustive matching.
     #[doc(hidden)]
-    __Nonexhaustive = -4,
+    __Nonexhaustive = -7,
 }
 
 /// C-compatible error for FFI.
@@ -51,50 +58,52 @@ pub struct Error {
     pub index: usize,
 }
 
-/// Check if the error code is successful.
-#[no_mangle]
-pub extern fn is_success(error: Error) -> bool {
-    error.code == ErrorCode::Success
+impl From<ErrorCode> for Error {
+    #[inline]
+    fn from(code: ErrorCode) -> Self {
+        Error { code: code, index: 0 }
+    }
+}
+
+impl From<(ErrorCode, usize)> for Error {
+    #[inline]
+    fn from(error: (ErrorCode, usize)) -> Self {
+        Error { code: error.0, index: error.1 }
+    }
 }
 
 /// Check if the error code designates integer overflow.
 #[no_mangle]
-pub extern fn is_overflow(error: Error) -> bool {
+pub extern fn error_is_overflow(error: Error) -> bool {
     error.code == ErrorCode::Overflow
+}
+
+/// Check if the error code designates integer underflow.
+#[no_mangle]
+pub extern fn error_is_underflow(error: Error) -> bool {
+    error.code == ErrorCode::Underflow
 }
 
 /// Check if the error code designates an invalid digit was encountered.
 #[no_mangle]
-pub extern fn is_invalid_digit(error: Error) -> bool {
+pub extern fn error_is_invalid_digit(error: Error) -> bool {
     error.code == ErrorCode::InvalidDigit
 }
 
 /// Check if the error code designates an empty byte array was encountered.
 #[no_mangle]
-pub extern fn is_empty(error: Error) -> bool {
+pub extern fn error_is_empty(error: Error) -> bool {
     error.code == ErrorCode::Empty
 }
 
-/// Helper function to create a success message.
-#[inline]
-pub(crate) fn success() -> Error {
-    Error { code: ErrorCode::Success, index: 0 }
+/// Check if the error code designates an empty fraction was encountered.
+#[no_mangle]
+pub extern fn error_is_empty_fraction(error: Error) -> bool {
+    error.code == ErrorCode::EmptyFraction
 }
 
-/// Helper function to create an overflow error.
-#[inline]
-pub(crate) fn overflow_error() -> Error {
-    Error { code: ErrorCode::Overflow, index: 0 }
-}
-
-/// Helper function to create an invalid digit error.
-#[inline]
-pub(crate) fn invalid_digit_error(index: usize) -> Error {
-    Error { code: ErrorCode::InvalidDigit, index: index }
-}
-
-/// Helper function to create an empty error.
-#[inline]
-pub(crate) fn empty_error() -> Error {
-    Error { code: ErrorCode::Empty, index: 0 }
+/// Check if the error code designates an empty exponent was encountered.
+#[no_mangle]
+pub extern fn error_is_empty_exponent(error: Error) -> bool {
+    error.code == ErrorCode::EmptyExponent
 }

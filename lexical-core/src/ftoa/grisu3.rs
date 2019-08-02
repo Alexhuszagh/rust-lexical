@@ -9,12 +9,12 @@ use util::*;
 ///
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-#[inline]
+perftools_inline!{
 pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
     -> usize
 {
     dtoa::write(bytes, f).expect("Write to in-memory buffer.")
-}
+}}
 
 // F64
 
@@ -22,9 +22,9 @@ pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
 ///
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
-#[inline]
+perftools_inline!{
 pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
     -> usize
 {
     dtoa::write(bytes, d).expect("Write to in-memory buffer.")
-}
+}}
