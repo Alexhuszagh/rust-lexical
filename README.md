@@ -23,7 +23,7 @@ Add lexical to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lexical = "^2.1"
+lexical = "^3.0"
 ```
 
 And get started using lexical:
