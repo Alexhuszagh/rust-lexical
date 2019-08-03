@@ -8,12 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ## [0.5.0] - 2019-07-XX
+### Added
+- Added ResultFfi, an FFI-compatible tagged union, to store results for FFI-compatible functions.
+- Added `MAX_*_SIZE_BASE10` and `MAX_*_SIZE_BASE10_FFI` constants, to determine the maximum size in bytes a formatted type will take in base 10.
+
 ### Changed
 - Improved code generation and reduced binary bloat. There are a few algorithmic differences that make this possible, but the parsers now generally extract the float subcomponents first, then parsed known-good data after for enhanced performance.
 - Improved integer-to-string formatting using optimized for each type and bit-twiddling/magic numbers.
+- Updated the benchmarks and benchmark results.
+- Add variants for lexical_core::ErrorCode. Added `Underflow`, to detect numerical underflow, `EmptyFraction`, to detect floats with an empty integer and fraction components, and `EmptyExponent`, to detect floats with no value following the exponent character.
+- Changed Result to use `std::result::Result`.
 
 ### Removed
-- Remove the unchecked parsers from the public API. `try_parse*` has been replaced with `parse*`.
+- Removed the unchecked parsers from the public API. `try_parse*` has been replaced with `parse*`.
+- Removed ErrorCode::Success, since with the new result types it was redundant.
 
 ## [0.4.3] - 2019-06-26
 - Fixed a bug (issue #20) leading to incorrect float parsing (1 ULP error) for slow-path algorithms containing floats with a trailing 0-digit in the fraction component (discovery by @dangrabcad). Added in comprehensive unittests to avoid future regressions.

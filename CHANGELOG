@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Updated the low-level API lexical-core 0.5.0.
 - Updated the benchmarks and graphics.
+- Moved lexical::Error to lexical_core::Error. Error is re-exported in lexical.
+- Moved lexical::ErrorKind to lexical_core::ErrorCode. ErrorCode is re-exported in lexical.
 
 ### Removed
 - Remove the unchecked parsers from the public API. `try_parse*` has been replaced with `parse*`.
