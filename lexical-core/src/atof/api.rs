@@ -1,4 +1,6 @@
-//! Prototype for version 3 of atof.
+//! Low-level API generator.
+//!
+//! Uses either the imprecise or the precise algorithm.
 
 use util::*;
 

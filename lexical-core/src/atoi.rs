@@ -1,4 +1,64 @@
-//! Prototype for version 2 of atoi.
+//! Fast lexical string-to-integer conversion routines.
+
+//  The following benchmarks were run on an "Intel(R) Core(TM) i7-6560U
+//  CPU @ 2.20GHz" CPU, on Fedora 28, Linux kernel version 4.18.16-200
+//  (x86-64), using the lexical formatter or `x.parse()`,
+//  avoiding any inefficiencies in Rust string parsing. The code was
+//  compiled with LTO and at an optimization level of 3.
+//
+//  The benchmarks with `std` were compiled using "rustc 1.32.0
+// (9fda7c223 2019-01-16)".
+//
+//  The benchmark code may be found `benches/atoi.rs`.
+//
+//  # Benchmarks
+//
+//  | Type  |  lexical (ns/iter) | parse (ns/iter)       | Relative Increase |
+//  |:-----:|:------------------:|:---------------------:|:-----------------:|
+//  | u8    | 75,622             | 80,021                | 1.06x             |
+//  | u16   | 80,926             | 82,185                | 1.02x             |
+//  | u32   | 131,221            | 148,231               | 1.13x             |
+//  | u64   | 243,315            | 296,713               | 1.22x             |
+//  | i8    | 112,152            | 115,147               | 1.03x             |
+//  | i16   | 153,670            | 150,231               | 0.98x             |
+//  | i32   | 202,512            | 204,880               | 1.01x             |
+//  | i64   | 309,731            | 309,584               | 1.00x             |
+//
+//  # Raw Benchmarks
+//
+//  ```text
+//  test atoi_u8_lexical  ... bench:      75,622 ns/iter (+/- 4,864)
+//  test atoi_u8_parse    ... bench:      80,021 ns/iter (+/- 6,511)
+//  test atoi_u16_lexical ... bench:      80,926 ns/iter (+/- 3,328)
+//  test atoi_u16_parse   ... bench:      82,185 ns/iter (+/- 2,721)
+//  test atoi_u32_lexical ... bench:     131,221 ns/iter (+/- 5,266)
+//  test atoi_u32_parse   ... bench:     148,231 ns/iter (+/- 3,812)
+//  test atoi_u64_lexical ... bench:     243,315 ns/iter (+/- 9,726)
+//  test atoi_u64_parse   ... bench:     296,713 ns/iter (+/- 8,321)
+//  test atoi_i8_lexical  ... bench:     112,152 ns/iter (+/- 4,527)
+//  test atoi_i8_parse    ... bench:     115,147 ns/iter (+/- 3,190)
+//  test atoi_i16_lexical ... bench:     153,670 ns/iter (+/- 9,993)
+//  test atoi_i16_parse   ... bench:     150,231 ns/iter (+/- 3,934)
+//  test atoi_i32_lexical ... bench:     202,512 ns/iter (+/- 18,486)
+//  test atoi_i32_parse   ... bench:     204,880 ns/iter (+/- 8,278)
+//  test atoi_i64_lexical ... bench:     309,731 ns/iter (+/- 22,313)
+//  test atoi_i64_parse   ... bench:     309,584 ns/iter (+/- 7,578)
+//  ```
+//
+// Code the generate the benchmark plot:
+//  import numpy as np
+//  import pandas as pd
+//  import matplotlib.pyplot as plt
+//  plt.style.use('ggplot')
+//  lexical = np.array([75622, 80926, 131221, 243315, 112152, 153670, 202512, 309731]) / 1e6
+//  rustcore = np.array([80021, 82185, 148231, 296713, 115147, 150231, 204880, 309584]) / 1e6
+//  index = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"]
+//  df = pd.DataFrame({'lexical': lexical, 'rustcore': rustcore}, index = index, columns=['lexical', 'rustcore'])
+//  ax = df.plot.bar(rot=0, figsize=(16, 8), fontsize=14, color=['#E24A33', '#348ABD'])
+//  ax.set_ylabel("ms/iter")
+//  ax.figure.tight_layout()
+//  ax.legend(loc=2, prop={'size': 14})
+//  plt.show()
 
 use util::*;
 use lib::result::Result as StdResult;
