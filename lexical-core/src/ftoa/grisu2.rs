@@ -292,7 +292,7 @@ fn grisu2(d: f64, digits: &mut [u8], k: &mut i32)
     let (mut lower, mut upper) = w.normalized_boundaries();
     w.normalize();
 
-    let mut ki: i32 =  explicit_uninitialized();
+    let mut ki: i32 =  0;
     let cp = cached_grisu_power(upper.exp, &mut ki);
 
     w     = w.mul(cp);
@@ -402,7 +402,7 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
 perftools_inline!{
 fn fpconv_dtoa(d: f64, dest: &mut [u8]) -> usize
 {
-    let mut digits: [u8; 18] = explicit_uninitialized();
+    let mut digits: [u8; 18] = [0; 18];
     let mut k: i32 = 0;
     let ndigits = grisu2(d, &mut digits, &mut k);
     emit_digits(&mut digits, ndigits, dest, k)

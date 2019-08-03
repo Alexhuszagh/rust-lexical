@@ -37,7 +37,7 @@ macro_rules! standalone {
     );
 }
 
-/// Standalone atoi processor.
+// Standalone atoi processor.
 perftools_inline!{
 pub(crate) fn standalone<T>(radix: u32, bytes: &[u8], is_signed: bool)
     -> Result<T>
@@ -48,10 +48,10 @@ pub(crate) fn standalone<T>(radix: u32, bytes: &[u8], is_signed: bool)
         return Err(ErrorCode::Empty.into());
     }
 
-    let (sign, offset, digits) = match &index!(bytes[0]) {
+    let (sign, offset, digits) = match index!(bytes[0]) {
         b'+'              => (Sign::Positive, 1, &index!(bytes[1..])),
         b'-' if is_signed => (Sign::Negative, 1, &index!(bytes[1..])),
-        _                 => (Sign::Positive, 0, bytes),
+        _                  => (Sign::Positive, 0, bytes),
     };
 
     // Filter out empty inputs.
@@ -69,7 +69,7 @@ pub(crate) fn standalone<T>(radix: u32, bytes: &[u8], is_signed: bool)
     Ok(value)
 }}
 
-/// Convert character to digit.
+// Convert character to digit.
 perftools_inline!{
 fn to_digit<'a>(c: &'a u8, radix: u32) -> StdResult<u32, &'a u8> {
     match to_digit!(*c, radix) {
@@ -78,7 +78,7 @@ fn to_digit<'a>(c: &'a u8, radix: u32) -> StdResult<u32, &'a u8> {
     }
 }}
 
-/// Add digit to mantissa.
+// Add digit to mantissa.
 perftools_inline!{
 #[cfg(feature = "correct")]
 fn add_digit<T>(value: T, digit: u32, radix: u32)
@@ -90,7 +90,7 @@ fn add_digit<T>(value: T, digit: u32, radix: u32)
         .and_then(|v| v.checked_add(as_cast(digit)))
 }}
 
-/// Calculate the mantissa and the number of truncated digits from a digits iterator.
+// Calculate the mantissa and the number of truncated digits from a digits iterator.
 perftools_inline!{
 #[cfg(feature = "correct")]
 pub(crate) fn standalone_mantissa<'a, T>(radix: u32, integer: &'a [u8], fraction: &'a [u8])
@@ -120,7 +120,7 @@ pub(crate) fn standalone_mantissa<'a, T>(radix: u32, integer: &'a [u8], fraction
     Ok((value, 0))
 }}
 
-/// Calculate the mantissa when it cannot have sign or other invalid digits..
+// Calculate the mantissa when it cannot have sign or other invalid digits..
 perftools_inline!{
 #[cfg(not(feature = "correct"))]
 pub(crate) fn standalone_mantissa<T>(radix: u32, bytes: &[u8])
@@ -156,13 +156,13 @@ macro_rules! standalone_exponent {
     );
 }
 
-/// Specialized parser for the exponent, which validates digits and
-/// returns a default min or max value on overflow.
+// Specialized parser for the exponent, which validates digits and
+// returns a default min or max value on overflow.
 perftools_inline!{
 pub(crate) fn standalone_exponent<'a>(radix: u32, bytes: &'a [u8])
     -> StdResult<i32, &'a u8>
 {
-    let (sign, digits) = match &index!(bytes[0]) {
+    let (sign, digits) = match index!(bytes[0]) {
         b'+'              => (Sign::Positive, &index!(bytes[1..])),
         b'-'              => (Sign::Negative, &index!(bytes[1..])),
         _                 => (Sign::Positive, bytes),
@@ -184,8 +184,8 @@ pub(crate) fn standalone_exponent<'a>(radix: u32, bytes: &'a [u8])
 }}
 
 
-/// Handle unsigned +/- numbers and forward to implied implementation.
-///  Can just use local namespace
+// Handle unsigned +/- numbers and forward to implied implementation.
+//  Can just use local namespace
 perftools_inline!{
 pub(crate) fn standalone_unsigned<'a, T>(radix: u32, bytes: &'a [u8])
     -> Result<T>
@@ -194,8 +194,8 @@ pub(crate) fn standalone_unsigned<'a, T>(radix: u32, bytes: &'a [u8])
     standalone(radix, bytes, false)
 }}
 
-/// Handle signed +/- numbers and forward to implied implementation.
-///  Can just use local namespace
+// Handle signed +/- numbers and forward to implied implementation.
+//  Can just use local namespace
 perftools_inline!{
 pub(crate) fn standalone_signed<'a, T>(radix: u32, bytes: &'a [u8])
     -> Result<T>

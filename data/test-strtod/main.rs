@@ -76,7 +76,7 @@ fn run_test(string: &str, hex: &str) {
     // We toggle between "inf" and "infinity" as valid Infinity identifiers.
     let lower = string.to_lowercase();
     if lower == "nan" || !lower.contains("nan") {
-        let float: f64 = lexical::try_parse(string).unwrap();
+        let float: f64 = lexical::parse(string).unwrap();
         let int: u64 = float.to_bits();
         // Rust literals for NaN are not standard conforming:
         // Rust uses 0x7ff8000000000000, not 0x7ff0000000000001

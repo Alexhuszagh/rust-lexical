@@ -1,6 +1,7 @@
 //! Macro to facilitate indexing for unchecked variants.
 
 /// Macro to index without bounds checking.
+#[allow(unused_macros)]
 macro_rules! unchecked_index {
     // Get
     ($container:ident[$index:expr]) => (
@@ -14,6 +15,7 @@ macro_rules! unchecked_index {
 }
 
 /// Macro to mutably index without bounds checking.
+#[allow(unused_macros)]
 macro_rules! unchecked_index_mut {
     // Get
     ($container:ident[$index:expr]) => (

@@ -8,6 +8,7 @@ lexical-benchmark/from_chars/build
 lexical-benchmark/rapidjson/build
 lexical-benchmark/strtod/build
 lexical-benchmark/results
+lexical-test/target/
 **/*.rs.bk
 Cargo.lock
 data/test-float-parse/errors.txt

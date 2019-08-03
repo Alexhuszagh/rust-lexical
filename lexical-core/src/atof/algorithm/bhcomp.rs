@@ -169,40 +169,34 @@ pub(super) fn max_digits<F>(radix: u32)
 // ROUNDING
 
 /// Custom rounding for round-nearest algorithms.
-perftools_inline!{
-pub(super) fn nearest_cb<M, Cb>(is_truncated: bool, cb: Cb)
-    -> impl FnOnce(&mut ExtendedFloat<M>, i32)
-    where Cb: FnOnce(&mut ExtendedFloat<M>, bool, bool),
-          M: Mantissa
-{
-    // Create our wrapper for round_nearest_tie_*.
-    // If there are truncated bits, and we are exactly halfway,
-    // then we need to set above to true and halfway to false.
-    move | f: &mut ExtendedFloat<M>, shift: i32 | {
-        let (mut is_above, mut is_halfway) = round_nearest(f, shift);
-        if is_halfway && is_truncated {
-            is_above = true;
-            is_halfway = false;
+macro_rules! nearest_cb {
+    ($m:tt, $is_truncated:ident, $cb:ident) => {
+        // Create our wrapper for round_nearest_tie_*.
+        // If there are truncated bits, and we are exactly halfway,
+        // then we need to set above to true and halfway to false.
+        move | f: &mut ExtendedFloat<$m>, shift: i32 | {
+            let (mut is_above, mut is_halfway) = round_nearest(f, shift);
+            if is_halfway && $is_truncated {
+                is_above = true;
+                is_halfway = false;
+            }
+            $cb::<$m>(f, is_above, is_halfway);
         }
-        cb(f, is_above, is_halfway);
-    }
-}}
+    };
+}
 
 /// Custom rounding for round-toward algorithms.
-perftools_inline!{
 #[cfg(feature = "rounding")]
-pub(super) fn toward_cb<M, Cb>(is_truncated: bool, cb: Cb)
-    -> impl FnOnce(&mut ExtendedFloat<M>, i32)
-    where Cb: FnOnce(&mut ExtendedFloat<M>, bool),
-          M: Mantissa
-{
-    // Create our wrapper for round_towards_tie_*.
-    // If there are truncated bits, and truncated is not set, set it.
-    move | f: &mut ExtendedFloat<M>, shift: i32 | {
-        let truncated = round_toward(f, shift);
-        cb(f, is_truncated | truncated);
-    }
-}}
+macro_rules! toward_cb {
+    ($m:tt, $is_truncated:ident, $cb:ident) => {
+        // Create our wrapper for round_towards_tie_*.
+        // If there are truncated bits, and truncated is not set, set it.
+        move | f: &mut ExtendedFloat<$m>, shift: i32 | {
+            let truncated = round_toward(f, shift);
+            $cb::<$m>(f, $is_truncated | truncated);
+        }
+    };
+}
 
 /// Custom rounding for truncated mantissa.
 ///
@@ -212,27 +206,29 @@ perftools_inline!{
 pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, kind: RoundingKind)
     where F: FloatType
 {
-    #[cfg(not(feature = "rounding"))] {
-        fp.round_to_native::<F, _>(nearest_cb(is_truncated, tie_even::<u64>))
+    type M = u64;
+
+    // Define a simplified function, since we can't store the callback to
+    // a variable without `impl Trait`, which requires 1.26.0.
+    #[inline(always)]
+    fn round<F, Cb>(fp: &mut ExtendedFloat80, cb: Cb)
+        where F: FloatRounding<M>,
+              Cb: FnOnce(&mut ExtendedFloat<M>, i32)
+    {
+        fp.round_to_native::<F, _>(cb);
     }
 
-    #[cfg(feature = "rounding")] {
-        match kind {
-            RoundingKind::NearestTieEven     => {
-                fp.round_to_native::<F, _>(nearest_cb(is_truncated, tie_even::<u64>))
-            },
-            RoundingKind::NearestTieAwayZero => {
-                fp.round_to_native::<F, _>(nearest_cb(is_truncated, tie_away_zero::<u64>))
-            },
-            RoundingKind::Upward             => {
-                fp.round_to_native::<F, _>(toward_cb(is_truncated, upward::<u64>))
-            },
-            RoundingKind::Downward           => {
-                fp.round_to_native::<F, _>(toward_cb(is_truncated, downard::<u64>))
-            },
-            _                                => unreachable!(),
-        }
-    }
+    #[cfg(feature = "rounding")]
+    match kind {
+        RoundingKind::NearestTieEven     => round::<F, _>(fp, nearest_cb!(M, is_truncated, tie_even)),
+        RoundingKind::NearestTieAwayZero => round::<F, _>(fp, nearest_cb!(M, is_truncated, tie_away_zero)),
+        RoundingKind::Upward             => round::<F, _>(fp, toward_cb!(M, is_truncated, upward)),
+        RoundingKind::Downward           => round::<F, _>(fp, toward_cb!(M, is_truncated, downard)),
+        _                                => unreachable!(),
+    };
+
+    #[cfg(not(feature = "rounding"))]
+    round::<F, _>(fp, nearest_cb!(M, is_truncated, tie_even));
 }}
 
 /// BIGCOMP PATH

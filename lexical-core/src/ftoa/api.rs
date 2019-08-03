@@ -107,7 +107,7 @@ impl FloatToString for f64 {
 
 // FTOA
 
-/// Forward the correct arguments the ideal encoder.
+// Forward the correct arguments the ideal encoder.
 perftools_inline!{
 fn forward<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     -> usize
@@ -126,7 +126,7 @@ fn forward<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     }
 }}
 
-/// Convert float-to-string and handle special (positive) floats.
+// Convert float-to-string and handle special (positive) floats.
 perftools_inline!{
 fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     -> usize
@@ -159,7 +159,7 @@ fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8
     }
 }}
 
-/// Handle +/- values.
+// Handle +/- values.
 perftools_inline!{
 fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     -> usize
@@ -188,7 +188,7 @@ fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     }
 }}
 
-/// Iteratively filter simple cases then invoke serializer.
+// Iteratively filter simple cases then invoke serializer.
 perftools_inline!{
 fn ftoa<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
     -> usize
@@ -196,7 +196,7 @@ fn ftoa<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
     filter_sign(value, radix, bytes)
 }}
 
-/// Trim a trailing ".0" from a float.
+// Trim a trailing ".0" from a float.
 perftools_inline!{
 fn trim<'a>(bytes: &'a mut [u8])
     -> usize

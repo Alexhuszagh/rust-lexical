@@ -10,6 +10,7 @@ const DIGIT_TO_CHAR: [u8; 36] = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7',
 
 /// Get character from digit.
 #[inline(always)]
+#[allow(dead_code)]
 pub(crate) fn digit_to_char<T: Integer>(digit: T) -> u8 {
     debug_assert!(digit.as_i32() >= 0 && digit.as_i32() < 36, "digit_to_char() invalid character.");
     index!(DIGIT_TO_CHAR[digit.as_usize()])

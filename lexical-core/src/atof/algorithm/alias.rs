@@ -13,9 +13,19 @@ pub type ChainedSliceIter<'a, T> = iter::Chain<SliceIter<'a, T>, SliceIter<'a, T
 // TRAITS
 
 /// Trait to simplify type signatures for atof.
+#[cfg(has_i128)]
 pub(super) trait FloatType:
     FloatRounding<u64> +
     FloatRounding<u128> +
+    StablePower
+{
+    type Mantissa: Mantissa;
+    type ExtendedFloat: ExtendedFloatType<Self>;
+}
+
+#[cfg(not(has_i128))]
+pub(super) trait FloatType:
+    FloatRounding<u64> +
     StablePower
 {
     type Mantissa: Mantissa;
@@ -41,6 +51,7 @@ pub(super) trait MantissaType:
 impl MantissaType for u64 {
 }
 
+#[cfg(has_i128)]
 impl MantissaType for u128 {
 }
 

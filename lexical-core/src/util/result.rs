@@ -1,9 +1,10 @@
 //! C-compatible result type.
 
+use lib::result;
 use super::error::{self, Error};
 
 /// C-compatible result type from parsing strings-to-numbers for FFI.
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = result::Result<T, Error>;
 
 // FFI
 // Manually expand the templates for all known result types, since

@@ -1,6 +1,5 @@
 //! Test utilities.
 
-use super::algorithm::explicit_uninitialized;
 use super::config::BUFFER_SIZE;
 
 cfg_if! {
@@ -30,7 +29,7 @@ pub(crate) const BASE_POWN: [u32; 1] = [10];
 /// Create new buffer for itoa or ftoa functionality.
 #[inline]
 pub(crate) fn new_buffer() -> [u8; BUFFER_SIZE] {
-    explicit_uninitialized()
+    [b'\0'; BUFFER_SIZE]
 }
 
 // BYTE SLICE

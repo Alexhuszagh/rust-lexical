@@ -8,7 +8,7 @@ use super::state::RawFloatState;
 
 type Wrapped<F> = WrappedFloat<F>;
 
-/// Process the integer component of the raw float.
+// Process the integer component of the raw float.
 perftools_inline!{
 fn process_integer<F: StablePower>(radix: u32, state: &RawFloatState)
     -> Result<F>
@@ -20,7 +20,7 @@ fn process_integer<F: StablePower>(radix: u32, state: &RawFloatState)
     })
 }}
 
-/// Process the fraction component of the raw float.
+// Process the fraction component of the raw float.
 perftools_inline!{
 fn process_fraction<F: StablePower>(radix: u32, state: &RawFloatState)
     -> Result<F>
@@ -46,7 +46,7 @@ fn process_fraction<F: StablePower>(radix: u32, state: &RawFloatState)
     })
 }}
 
-/// Convert the float string to a native floating-point number.
+// Convert the float string to a native floating-point number.
 perftools_inline!{
 fn to_native<F: StablePower>(radix: u32, bytes: &[u8], offset: usize)
     -> Result<F>
@@ -73,7 +73,7 @@ fn to_native<F: StablePower>(radix: u32, bytes: &[u8], offset: usize)
 // ATOF/ATOD
 // ---------
 
-/// Parse 32-bit float from string.
+// Parse 32-bit float from string.
 perftools_inline!{
 pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8], _: Sign, offset: usize)
     -> Result<f32>
@@ -81,7 +81,7 @@ pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8], _: Sign, offset: usize)
     to_native::<f32>(radix, bytes, offset)
 }}
 
-/// Parse 64-bit float from string.
+// Parse 64-bit float from string.
 perftools_inline!{
 pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8], _: Sign, offset: usize)
     -> Result<f64>
@@ -89,7 +89,7 @@ pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8], _: Sign, offset: usize)
     to_native::<f64>(radix, bytes, offset)
 }}
 
-/// Parse 32-bit float from string.
+// Parse 32-bit float from string.
 perftools_inline!{
 pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign, offset: usize)
     -> Result<f32>
@@ -97,7 +97,7 @@ pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign, offset: usize
     to_native::<f32>(radix, bytes, offset)
 }}
 
-/// Parse 64-bit float from string.
+// Parse 64-bit float from string.
 perftools_inline!{
 pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign, offset: usize)
     -> Result<f64>

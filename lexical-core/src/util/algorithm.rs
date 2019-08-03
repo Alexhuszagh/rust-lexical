@@ -100,21 +100,6 @@ pub fn write_bytes(dst: &mut [u8], byte: u8)
     }
 }
 
-/// Explicitly uninitialize, a wrapper for mem::uninitialize without unsafe.
-/// This is mostly to clean up internal code, but should not be used lightly.
-/// Zeroes memory on debug builds to try to catch any errors.
-#[inline]
-pub fn explicit_uninitialized<T>() -> T {
-    unsafe {
-        #[cfg(debug_assertions)] {
-            mem::zeroed()
-        }
-        #[cfg(not(debug_assertions))] {
-            mem::uninitialized()
-        }
-    }
-}
-
 // TEST
 // ----
 

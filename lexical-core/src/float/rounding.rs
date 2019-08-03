@@ -10,9 +10,9 @@ use super::shift::*;
 
 // NEAREST ROUNDING
 
-/// Shift right N-bytes and round to the nearest.
-///
-/// Return if we are above halfway and if we are halfway.
+// Shift right N-bytes and round to the nearest.
+//
+// Return if we are above halfway and if we are halfway.
 perftools_inline!{
 pub(crate) fn round_nearest<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     -> (bool, bool)
@@ -37,7 +37,7 @@ pub(crate) fn round_nearest<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     (is_above, is_halfway)
 }}
 
-/// Tie rounded floating point to event.
+// Tie rounded floating point to event.
 perftools_inline!{
 pub(crate) fn tie_even<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_halfway: bool)
     where M: Mantissa
@@ -53,11 +53,11 @@ pub(crate) fn tie_even<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_halfway:
     }
 }}
 
-/// Shift right N-bytes and round nearest, tie-to-even.
-///
-/// Floating-point arithmetic uses round to nearest, ties to even,
-/// which rounds to the nearest value, if the value is halfway in between,
-/// round to an even value.
+// Shift right N-bytes and round nearest, tie-to-even.
+//
+// Floating-point arithmetic uses round to nearest, ties to even,
+// which rounds to the nearest value, if the value is halfway in between,
+// round to an even value.
 perftools_inline!{
 pub(crate) fn round_nearest_tie_even<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
@@ -66,7 +66,7 @@ pub(crate) fn round_nearest_tie_even<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     tie_even(fp, is_above, is_halfway);
 }}
 
-/// Tie rounded floating point away from zero.
+// Tie rounded floating point away from zero.
 perftools_inline!{
 pub(crate) fn tie_away_zero<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_halfway: bool)
     where M: Mantissa
@@ -80,11 +80,11 @@ pub(crate) fn tie_away_zero<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_hal
     }
 }}
 
-/// Shift right N-bytes and round nearest, tie-away-zero.
-///
-/// Floating-point arithmetic defines round to nearest, ties away from zero,
-/// which rounds to the nearest value, if the value is halfway in between,
-/// ties away from zero.
+// Shift right N-bytes and round nearest, tie-away-zero.
+//
+// Floating-point arithmetic defines round to nearest, ties away from zero,
+// which rounds to the nearest value, if the value is halfway in between,
+// ties away from zero.
 perftools_inline!{
 pub(crate) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
@@ -95,9 +95,9 @@ pub(crate) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, shift: i
 
 // DIRECTED ROUNDING
 
-/// Shift right N-bytes and round towards a direction.
-///
-/// Return if we have any truncated bytes.
+// Shift right N-bytes and round towards a direction.
+//
+// Return if we have any truncated bytes.
 perftools_inline!{
 pub(crate) fn round_toward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     -> bool
@@ -112,7 +112,7 @@ pub(crate) fn round_toward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     truncated_bits != M::ZERO
 }}
 
-/// Round up.
+// Round up.
 perftools_inline!{
 pub(crate) fn upward<M>(fp: &mut ExtendedFloat<M>, is_truncated: bool)
     where M: Mantissa
@@ -122,10 +122,10 @@ pub(crate) fn upward<M>(fp: &mut ExtendedFloat<M>, is_truncated: bool)
     }
 }}
 
-/// Shift right N-bytes and round toward infinity.
-///
-/// Floating-point arithmetic defines round toward infinity, which rounds
-/// towards positive infinity.
+// Shift right N-bytes and round toward infinity.
+//
+// Floating-point arithmetic defines round toward infinity, which rounds
+// towards positive infinity.
 perftools_inline!{
 pub(crate) fn round_upward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
@@ -136,16 +136,16 @@ pub(crate) fn round_upward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     upward(fp, is_truncated);
 }}
 
-/// Round down.
+// Round down.
 perftools_inline!{
 pub(crate) fn downard<M>(_: &mut ExtendedFloat<M>, _: bool)
     where M: Mantissa
 {}}
 
-/// Shift right N-bytes and round toward zero.
-///
-/// Floating-point arithmetic defines round toward zero, which rounds
-/// towards positive zero.
+// Shift right N-bytes and round toward zero.
+//
+// Floating-point arithmetic defines round toward zero, which rounds
+// towards positive zero.
 perftools_inline!{
 pub(crate) fn round_downward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
@@ -203,11 +203,11 @@ float_rounding_f64! { u64 }
 
 // ROUND TO FLOAT
 
-/// Shift the ExtendedFloat fraction to the fraction bits in a native float.
-///
-/// Floating-point arithmetic uses round to nearest, ties to even,
-/// which rounds to the nearest value, if the value is halfway in between,
-/// round to an even value.
+// Shift the ExtendedFloat fraction to the fraction bits in a native float.
+//
+// Floating-point arithmetic uses round to nearest, ties to even,
+// which rounds to the nearest value, if the value is halfway in between,
+// round to an even value.
 perftools_inline!{
 pub(crate) fn round_to_float<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
     where T: FloatRounding<M>,
@@ -245,9 +245,9 @@ pub(crate) fn round_to_float<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
 
 // AVOID OVERFLOW/UNDERFLOW
 
-/// Avoid overflow for large values, shift left as needed.
-///
-/// Shift until a 1-bit is in the hidden bit, if the mantissa is not 0.
+// Avoid overflow for large values, shift left as needed.
+//
+// Shift until a 1-bit is in the hidden bit, if the mantissa is not 0.
 perftools_inline!{
 pub(crate) fn avoid_overflow<T, M>(fp: &mut ExtendedFloat<M>)
     where T: FloatRounding<M>,
@@ -276,7 +276,7 @@ pub(crate) fn avoid_overflow<T, M>(fp: &mut ExtendedFloat<M>)
 
 // ROUND TO NATIVE
 
-/// Round an extended-precision float to a native float representation.
+// Round an extended-precision float to a native float representation.
 perftools_inline!{
 pub(crate) fn round_to_native<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
     where T: FloatRounding<M>,
@@ -293,7 +293,7 @@ pub(crate) fn round_to_native<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
     avoid_overflow::<T, M>(fp);
 }}
 
-/// Get the rounding scheme to determine if we should go up or down.
+// Get the rounding scheme to determine if we should go up or down.
 perftools_inline!{
 #[allow(unused_variables)]
 pub(crate) fn internal_rounding(kind: RoundingKind, sign: Sign)
@@ -325,7 +325,7 @@ pub(crate) fn internal_rounding(kind: RoundingKind, sign: Sign)
     }
 }}
 
-/// Get the global, default rounding scheme.
+// Get the global, default rounding scheme.
 perftools_inline!{
 #[cfg(feature = "correct")]
 #[allow(unused_variables)]

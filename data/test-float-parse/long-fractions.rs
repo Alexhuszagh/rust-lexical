@@ -19,7 +19,7 @@ fn main() {
         let mut s = "0.".to_string();
         for _ in 0..400 {
             s.push(digit);
-            if lexical::try_parse::<f64, _>(&s).is_ok() {
+            if lexical::parse::<f64, _>(&s).is_ok() {
                 validate(&s);
             }
         }
