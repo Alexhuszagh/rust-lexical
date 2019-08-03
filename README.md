@@ -36,10 +36,10 @@ lexical::to_string(3.0);            // "3.0", always has a fraction suffix,
 lexical::to_string(3);              // "3"
 
 // String to number.
-let i: i32 = lexical::parse("3");           // 3, auto-type deduction.
-let f: f32 = lexical::parse("3.5");         // 3.5
-let d = lexical::parse::<f64, _>("3.5");    // Ok(3.5), error checking parse.
-let d = lexical::parse::<f64, _>("3a");     // Err(Error(_)), failed to parse.
+let i: i32 = lexical::parse("3").unwrap();   // Ok(3), auto-type deduction.
+let f: f32 = lexical::parse("3.5").unwrap(); // Ok(3.5)
+let d = lexical::parse::<f64, _>("3.5");     // Ok(3.5), error checking parse.
+let d = lexical::parse::<f64, _>("3a");      // Err(Error(_)), failed to parse.
 ```
 
 Lexical's parsers can be either error-checked and unchecked. The unchecked parsers continue to parse until they encounter invalid data, returning a number was successfully parsed up until that point. The unchecked parsers explicitly wrap on numeric overflow. This is somewhat analogous to C's `strtod`, which may not be desirable for many applications. Therefore, lexical also includes checked parsers, which ensure the entire buffer is used while parsing, without discarding characters, and that the resulting number did not overflow. Upon erroring, the checked parsers will return the an enum indicating overflow or the index where the first invalid digit was found.
@@ -54,7 +54,7 @@ let x: i32 = lexical::parse("123 456").unwrap();
 For floating-points, Lexical also includes `parse_lossy`, which may lead to minor rounding error (relative error of ~1e-16) in rare cases (see [implementation details](lexical-core/README.md#implementation-details) for more information), without using slow algorithms that lead to serious performance degradation.
 
 ```rust
-let x: f32 = lexical::parse_lossy("3.5");   // Ok(3.5)
+let x: f32 = lexical::parse_lossy("3.5").unwrap();   // 3.5
 ```
 
 In order to use lexical in generics, the type may use the trait bounds `FromLexical` (for `parse``), `ToLexical` (for `to_string`), or `FromLexicalLossy` (for `parse_lossy`).

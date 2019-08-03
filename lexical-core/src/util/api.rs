@@ -52,11 +52,11 @@ macro_rules! generate_from_range_api {
         /// Panics if either pointer is null.
         #[no_mangle]
         pub unsafe extern fn $decimal_name(first: *const u8, last: *const u8)
-            -> Result<$t>
+            -> ResultFfi<$t>
         {
             assert!(first <= last && !first.is_null() && !last.is_null());
             let bytes = $crate::lib::slice::from_raw_parts(first, distance(first, last));
-            $cb(10, bytes)
+            $cb(10, bytes).into()
         }
 
         /// Unchecked parser for a string-to-number conversion using pointer ranges.
@@ -78,12 +78,12 @@ macro_rules! generate_from_range_api {
         #[cfg(feature = "radix")]
         #[no_mangle]
         pub unsafe extern fn $radix_name(radix: u8, first: *const u8, last: *const u8)
-            -> Result<$t>
+            -> ResultFfi<$t>
         {
             assert_radix!(radix);
             assert!(first <= last && !first.is_null() && !last.is_null());
             let bytes = $crate::lib::slice::from_raw_parts(first, distance(first, last));
-            $cb(radix.as_u32(), bytes)
+            $cb(radix.as_u32(), bytes).into()
         }
     )
 }
