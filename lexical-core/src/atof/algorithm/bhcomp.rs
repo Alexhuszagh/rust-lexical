@@ -42,6 +42,7 @@ pub(super) fn parse_mantissa(state: FloatState, radix: u32, max_digits: usize)
     let mut result = Bigint::default();
     result.data.reserve(bytes);
 
+    // TODO(ahuszagh) Remove the chain here...
     let mut iter = state.mantissa_iter();
     while let Some(&digit) = iter.next() {
         // We've parsed the max digits using small values, add to bignum
