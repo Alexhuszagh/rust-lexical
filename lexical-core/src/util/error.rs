@@ -1,19 +1,20 @@
 //! C-compatible error type.
 
-/// Error code, indicating success or failure.
+/// Error code, indicating failure type.
 ///
-/// Success, or no error, is 0, while error messages are designating
-/// by an error code of less than 0. This is to be compatible with C
-/// conventions.
+/// Error messages are designating by an error code of less than 0.
+/// This is to be compatible with C conventions.
 ///
 /// # FFI
 ///
 /// For interfacing with FFI-code, this may be approximated by:
 /// ```text
-/// const int32_t SUCCESS = 0;
 /// const int32_t OVERFLOW = -1;
-/// const int32_t INVALID_DIGIT = -2;
-/// const int32_t EMPTY = -3;
+/// const int32_t UNDERFLOW = -2;
+/// const int32_t INVALID_DIGIT = -3;
+/// const int32_t EMPTY = -4;
+/// const int32_t EMPTY_FRACTION = -5;
+/// const int32_t EMPTY_EXPONENT = -6;
 /// ```
 ///
 /// # Safety

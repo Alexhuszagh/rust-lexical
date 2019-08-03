@@ -236,6 +236,8 @@ result = string_at(buf, 6)
 print(result)               # "1.2345"
 ```
 
+Further examples, and libraries to use lexical-core from FFI may be found in the [ffi](ffi) directory.
+
 # Documentation
 
 Lexical-core's documentation can be found on [docs.rs](https://docs.rs/lexical-core).
