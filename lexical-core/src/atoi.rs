@@ -150,6 +150,18 @@ fn add_digit<T>(value: T, digit: u32, radix: u32)
         .and_then(|v| v.checked_add(as_cast(digit)))
 }}
 
+/// Iterate over iterator and get if truncated.
+macro_rules! add_truncated {
+    ($iter:ident, $truncated:ident, $radix:ident) => (
+        for c in $iter {
+            $truncated += 1;
+            if to_digit!(*c, $radix).is_none() {
+                return Err(c);
+            }
+        }
+    );
+}
+
 // Calculate the mantissa and the number of truncated digits from a digits iterator.
 perftools_inline!{
 #[cfg(feature = "correct")]
@@ -157,22 +169,35 @@ pub(crate) fn standalone_mantissa<'a, T>(radix: u32, integer: &'a [u8], fraction
     -> StdResult<(T, usize), &'a u8>
     where T: UnsignedInteger
 {
-    let mut digits = integer.iter().chain(fraction.iter());
+    // Mote:
+    //  Do not use iter.chain(), since it is enormously slow.
+    //  Since we need to maintain backwards compatibility, even if
+    //  iter.chain() is patched, for older Rustc versions, it's nor
+    //  worth the performance penalty.
+
+    let mut integer_iter = integer.iter();
+    let mut fraction_iter = fraction.iter();
     let mut value: T = T::ZERO;
-    while let Some(c) = digits.next() {
+    // On overflow, validate that all the remaining characters are valid
+    // digits, if not, return the first invalid digit. Otherwise,
+    // calculate the number of truncated digits.
+    while let Some(c) = integer_iter.next() {
         value = match add_digit(value, to_digit(c, radix)?, radix) {
             Some(v) => v,
             None    => {
-                // Validate that all the remaining characters are valid digits,
-                // if not, return the first invalid digit.
-                // Otherwise, calculate the number of truncated digits.
                 let mut truncated: usize = 1;
-                for c in digits {
-                    truncated += 1;
-                    if to_digit!(*c, radix).is_none() {
-                        return Err(c);
-                    }
-                }
+                add_truncated!(integer_iter, truncated, radix);
+                add_truncated!(fraction_iter, truncated, radix);
+                return Ok((value, truncated));
+            },
+        };
+    }
+    while let Some(c) = fraction_iter.next() {
+        value = match add_digit(value, to_digit(c, radix)?, radix) {
+            Some(v) => v,
+            None    => {
+                let mut truncated: usize = 1;
+                add_truncated!(fraction_iter, truncated, radix);
                 return Ok((value, truncated));
             },
         };

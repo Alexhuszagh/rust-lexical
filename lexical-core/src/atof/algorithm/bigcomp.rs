@@ -238,6 +238,7 @@ pub(super) fn atof<F>(state: FloatState, radix: u32, f: F, kind: RoundingKind)
 {
     // This works when we're doing, like, round-even.
     let (num, den) = make_ratio(radix, state.scientific_exponent(), f, kind);
+    // TODO(ahuszagh) Remove the chain here...
     let order = compare_digits(state.mantissa_iter(), radix, num, den);
     round_to_native(f, order, kind)
 }
