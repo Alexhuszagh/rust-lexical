@@ -19,20 +19,18 @@
 //
 //  | Type  |  lexical (ns/iter) | libcore (ns/iter)     | Relative Increase |
 //  |:-----:|:------------------:|:---------------------:|:-----------------:|
-//  | f32   | 460,934            | 2,980,259             | 6.46x             |
-//  | f64   | 556,810            | 3,893,028             | 6.99x             |
+//  | f32   | 465,584            | 1,884,646             | 4.04x             |
+//  | f64   | 539,904            | 2,276,839             | 4.22x             |
 //
 //  # Raw Benchmarks
 //
 //  ```text
-//  test ftoa_f32_dtoa      ... bench:     954,650 ns/iter (+/- 31,424)
-//  test ftoa_f32_lexical   ... bench:     460,934 ns/iter (+/- 13,460)
-//  test ftoa_f32_ryu       ... bench:     432,878 ns/iter (+/- 12,085)
-//  test ftoa_f32_to_string ... bench:   2,980,259 ns/iter (+/- 58,143)
-//  test ftoa_f64_dtoa      ... bench:   1,184,960 ns/iter (+/- 37,157)
-//  test ftoa_f64_lexical   ... bench:     556,810 ns/iter (+/- 15,454)
-//  test ftoa_f64_ryu       ... bench:     522,515 ns/iter (+/- 14,254)
-//  test ftoa_f64_to_string ... bench:   3,893,028 ns/iter (+/- 108,653)
+//  test ftoa_f32_dtoa    ... bench:     917,561 ns/iter (+/- 45,458)
+//  test ftoa_f32_lexical ... bench:     465,584 ns/iter (+/- 76,158)
+//  test ftoa_f32_std     ... bench:   1,884,646 ns/iter (+/- 130,721)
+//  test ftoa_f64_dtoa    ... bench:   1,092,687 ns/iter (+/- 125,136)
+//  test ftoa_f64_lexical ... bench:     539,904 ns/iter (+/- 29,626)
+//  test ftoa_f64_std     ... bench:   2,276,839 ns/iter (+/- 64,515)
 //  ```
 
 // Code the generate the benchmark plot:
@@ -40,9 +38,9 @@
 //  import pandas as pd
 //  import matplotlib.pyplot as plt
 //  plt.style.use('ggplot')
-//  lexical = np.array([460934, 556810]) / 1e6
-//  rustcore = np.array([2980259, 3893028]) / 1e6
-//  dtoa = np.array([954650, 1184960]) / 1e6
+//  lexical = np.array([465584, 539904]) / 1e6
+//  rustcore = np.array([1884646, 2276839]) / 1e6
+//  dtoa = np.array([917561, 1092687]) / 1e6
 //  ryu = np.array([432878, 522515]) / 1e6
 //  index = ["f32", "f64"]
 //  df = pd.DataFrame({'lexical': lexical, 'rustcore': rustcore, 'dtoa': dtoa, 'ryu': ryu}, index = index, columns=['lexical', 'dtoa', 'ryu', 'rustcore'])

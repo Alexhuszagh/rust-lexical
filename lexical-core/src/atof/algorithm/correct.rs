@@ -1,4 +1,8 @@
 //! Correct algorithms for string-to-float conversions.
+//!
+//! This implementation is loosely based off the Golang implementation,
+//! found here:
+//!     https://golang.org/src/strconv/atof.go
 
 use atoi;
 use float::*;
