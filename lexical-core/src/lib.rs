@@ -25,7 +25,7 @@
 //!     let bytes = b"3.5";
 //!     let first = bytes.as_ptr();
 //!     let last = first.add(bytes.len());
-//!     let f = lexical_core::atof64_range(first, last).unwrap();
+//!     let f = lexical_core::atof64_range(first, last).ok().unwrap();
 //! }
 //!
 //! // If and only if the `radix` feature is enabled, you may use the radix

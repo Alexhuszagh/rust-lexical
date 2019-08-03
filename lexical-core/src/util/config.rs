@@ -517,6 +517,8 @@ if #[cfg(target_pointer_width = "16")] {
 /// The maximum number of bytes that any number-to-string function may write.
 pub const BUFFER_SIZE: usize = MAX_F64_SIZE;
 
+// FFI
+
 /// Symbol-generating constant for the minimum buffer required to serialize any `i8` value.
 #[no_mangle]
 pub static MAX_I8_SIZE_FFI: usize = MAX_I8_SIZE;
@@ -572,6 +574,66 @@ pub static MAX_F32_SIZE_FFI: usize = MAX_F32_SIZE;
 /// Symbol-generating constant for the minimum buffer required to serialize any `f64` value.
 #[no_mangle]
 pub static MAX_F64_SIZE_FFI: usize = MAX_F64_SIZE;
+
+// FFI BASE10
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `i8` value in base 10.
+#[no_mangle]
+pub static MAX_I8_SIZE_BASE10_FFI: usize = MAX_I8_SIZE_BASE10;
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `i16` value in base 10.
+#[no_mangle]
+pub static MAX_I16_SIZE_BASE10_FFI: usize = MAX_I16_SIZE_BASE10;
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `i32` value in base 10.
+#[no_mangle]
+pub static MAX_I32_SIZE_BASE10_FFI: usize = MAX_I32_SIZE_BASE10;
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `i64` value in base 10.
+#[no_mangle]
+pub static MAX_I64_SIZE_BASE10_FFI: usize = MAX_I64_SIZE_BASE10;
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `i128` value in base 10.
+#[no_mangle]
+pub static MAX_I128_SIZE_BASE10_FFI: usize = MAX_I128_SIZE_BASE10;
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `isize` value in base 10.
+#[no_mangle]
+pub static MAX_ISIZE_SIZE_BASE10_FFI: usize = MAX_ISIZE_SIZE_BASE10;
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `u8` value in base 10.
+#[no_mangle]
+pub static MAX_U8_SIZE_BASE10_FFI: usize = MAX_U8_SIZE_BASE10;
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `u16` value in base 10.
+#[no_mangle]
+pub static MAX_U16_SIZE_BASE10_FFI: usize = MAX_U16_SIZE_BASE10;
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `u32` value in base 10.
+#[no_mangle]
+pub static MAX_U32_SIZE_BASE10_FFI: usize = MAX_U32_SIZE_BASE10;
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `u64` value in base 10.
+#[no_mangle]
+pub static MAX_U64_SIZE_BASE10_FFI: usize = MAX_U64_SIZE_BASE10;
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `u128` value in base 10.
+#[no_mangle]
+pub static MAX_U128_SIZE_BASE10_FFI: usize = MAX_U128_SIZE_BASE10;
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `usize` value in base 10.
+#[no_mangle]
+pub static MAX_USIZE_SIZE_BASE10_FFI: usize = MAX_USIZE_SIZE_BASE10;
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `f32` value in base 10.
+#[no_mangle]
+pub static MAX_F32_SIZE_BASE10_FFI: usize = MAX_F32_SIZE_BASE10;
+
+/// Symbol-generating constant for the minimum buffer required to serialize an `f64` value in base 10.
+#[no_mangle]
+pub static MAX_F64_SIZE_BASE10_FFI: usize = MAX_F64_SIZE_BASE10;
+
+// FFI BUFFER SIZE
 
 /// Symbol-generating constant for the maximum number of bytes that any number-to-string function may write.
 #[no_mangle]
