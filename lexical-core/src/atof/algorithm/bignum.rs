@@ -15,20 +15,10 @@ if #[cfg(feature = "radix")] {
     // or 1091 digits, or approximately 3600 bits (round up to 4k).
     use stackvector;
 
-    #[cfg(not(any(
-        target_arch = "aarch64",
-        target_arch = "mips64",
-        target_arch = "powerpc64",
-        target_arch = "x86_64"
-    )))]
+    #[cfg(limb_width_32)]
     type IntStorageType = stackvector::StackVec<[Limb; 128]>;
 
-    #[cfg(any(
-        target_arch = "aarch64",
-        target_arch = "mips64",
-        target_arch = "powerpc64",
-        target_arch = "x86_64"
-    ))]
+    #[cfg(limb_width_64)]
     type IntStorageType = stackvector::StackVec<[Limb; 64]>;
 }}  // cfg_if
 
@@ -74,12 +64,7 @@ impl LargeOps for Bigint {
 
 // Adjust the storage capacity for the underlying array.
 cfg_if! {
-if #[cfg(any(
-    target_arch = "aarch64",
-    target_arch = "mips64",
-    target_arch = "powerpc64",
-    target_arch = "x86_64"
-))] {
+if #[cfg(limb_width_64)] {
     type FloatStorageType = stackvector::StackVec<[Limb; 20]>;
 } else {
     type FloatStorageType = stackvector::StackVec<[Limb; 36]>;
@@ -158,6 +143,7 @@ impl ToBigfloat<u64> for ExtendedFloat<u64> {
     }}
 }
 
+#[cfg(has_i128)]
 impl ToBigfloat<u128> for ExtendedFloat<u128> {
     perftools_inline!{
     fn to_bigfloat(&self) -> Bigfloat {

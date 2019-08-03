@@ -8,10 +8,10 @@ use super::mantissa::Mantissa;
 
 // FROM INT
 
-/// Import ExtendedFloat from integer.
-///
-/// This works because we call normalize before any operation, which
-/// allows us to convert the integer representation to the float one.
+// Import ExtendedFloat from integer.
+//
+// This works because we call normalize before any operation, which
+// allows us to convert the integer representation to the float one.
 perftools_inline!{
 pub(crate) fn from_int<T, M>(t: T)
     -> ExtendedFloat<M>
@@ -28,7 +28,7 @@ pub(crate) fn from_int<T, M>(t: T)
 
 // FROM FLOAT
 
-/// Import ExtendedFloat from native float.
+// Import ExtendedFloat from native float.
 perftools_inline!{
 pub(crate) fn from_float<T, M>(t: T)
     -> ExtendedFloat<M>
@@ -43,10 +43,10 @@ pub(crate) fn from_float<T, M>(t: T)
 
 // AS FLOAT
 
-/// Export extended-precision float to native float.
-///
-/// The extended-precision float must be in native float representation,
-/// with overflow/underflow appropriately handled.
+// Export extended-precision float to native float.
+//
+// The extended-precision float must be in native float representation,
+// with overflow/underflow appropriately handled.
 perftools_inline!{
 pub(crate) fn into_float<T, M>(fp: ExtendedFloat<M>)
     -> T

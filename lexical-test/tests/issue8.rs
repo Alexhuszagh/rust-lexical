@@ -6,7 +6,7 @@ fn vector_issue() {
     let line_split_vec = vec!["1", "2", "3"];
     results.extend({
           line_split_vec.iter().map(|x| {
-                lexical::try_parse::<f32, _>(x.trim()).unwrap()
+                lexical::parse::<f32, _>(x.trim()).unwrap()
            })
      });
     assert_eq!(results, vec![1f32, 2f32, 3f32]);
@@ -14,6 +14,6 @@ fn vector_issue() {
 
 #[test]
 fn float_test() {
-    let num: f64 = lexical::try_parse(b"5.002868148396374").unwrap();
+    let num: f64 = lexical::parse(b"5.002868148396374").unwrap();
     assert_eq!(num, 5.002868148396374);
 }

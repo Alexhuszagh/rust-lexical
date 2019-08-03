@@ -156,18 +156,20 @@ pub fn to_string_radix<N: ToLexical>(n: N, radix: u8) -> lib::String {
 /// # use lexical::ErrorCode;
 /// # pub fn main() {
 /// // Create our error.
-/// let err = |u| (ErrorCode::InvalidDigit, u).into();
+/// fn err_code<T>(r: lexical::Result<T>) -> ErrorCode {
+///     r.err().unwrap().code
+/// }
 ///
 /// // String overloads
 /// assert_eq!(lexical::parse::<i32, _>("5"), Ok(5));
-/// assert_eq!(lexical::parse::<i32, _>("1a"), Err(err(1)));
+/// assert_eq!(err_code(lexical::parse::<i32, _>("1a")), ErrorCode::InvalidDigit);
 /// assert_eq!(lexical::parse::<f32, _>("0"), Ok(0.0));
 /// assert_eq!(lexical::parse::<f32, _>("1.0"), Ok(1.0));
 /// assert_eq!(lexical::parse::<f32, _>("1."), Ok(1.0));
 ///
 /// // Bytes overloads
 /// assert_eq!(lexical::parse::<i32, _>(b"5"), Ok(5));
-/// assert_eq!(lexical::parse::<i32, _>(b"1a"), Err(err(1)));
+/// assert_eq!(err_code(lexical::parse::<i32, _>(b"1a")), ErrorCode::InvalidDigit);
 /// assert_eq!(lexical::parse::<f32, _>(b"0"), Ok(0.0));
 /// assert_eq!(lexical::parse::<f32, _>(b"1.0"), Ok(1.0));
 /// assert_eq!(lexical::parse::<f32, _>(b"1."), Ok(1.0));
@@ -196,20 +198,22 @@ pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes)
 /// # extern crate lexical;
 /// # use lexical::ErrorCode;
 /// # pub fn main() {
-/// // Create our error.
-/// let err = |u| (ErrorCode::InvalidDigit, u).into();
+/// // Get our error code.
+/// fn err_code<T>(r: lexical::Result<T>) -> ErrorCode {
+///     r.err().unwrap().code
+/// }
 ///
 /// // String overloads
 /// assert_eq!(lexical::parse_lossy::<f32, _>("0"), Ok(0.0));
 /// assert_eq!(lexical::parse_lossy::<f32, _>("1.0"), Ok(1.0));
 /// assert_eq!(lexical::parse_lossy::<f32, _>("1."), Ok(1.0));
-/// assert_eq!(lexical::parse_lossy::<f32, _>("1a"), Err(err(1)));
+/// assert_eq!(err_code(lexical::parse_lossy::<f32, _>("1a")), ErrorCode::InvalidDigit);
 ///
 /// // Bytes overloads
 /// assert_eq!(lexical::parse_lossy::<f32, _>(b"0"), Ok(0.0));
 /// assert_eq!(lexical::parse_lossy::<f32, _>(b"1.0"), Ok(1.0));
 /// assert_eq!(lexical::parse_lossy::<f32, _>(b"1."), Ok(1.0));
-/// assert_eq!(lexical::parse_lossy::<f32, _>(b"1a"), Err(err(1)));
+/// assert_eq!(err_code(lexical::parse_lossy::<f32, _>(b"1a")), ErrorCode::InvalidDigit);
 /// # }
 /// ```
 ///
@@ -235,27 +239,29 @@ pub fn parse_lossy<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
 /// # extern crate lexical;
 /// # use lexical::ErrorCode;
 /// # pub fn main() {
-/// // Create our error wrapper.
-/// let err = |u| (ErrorCode::InvalidDigit, u).into();
+/// // Get our error code wrapper.
+/// fn err_code<T>(r: lexical::Result<T>) -> ErrorCode {
+///     r.err().unwrap().code
+/// }
 ///
 /// // String overloads
 /// assert_eq!(lexical::parse_radix::<i32, _>("5", 10), Ok(5));
-/// assert_eq!(lexical::parse_radix::<i32, _>("1a", 10), Err(err(1)));
-/// assert_eq!(lexical::parse_radix::<i32, _>("1.", 10), Err(err(1)));
+/// assert_eq!(err_code(lexical::parse_radix::<i32, _>("1a", 10)), ErrorCode::InvalidDigit);
+/// assert_eq!(err_code(lexical::parse_radix::<i32, _>("1.", 10)), ErrorCode::InvalidDigit);
 /// assert_eq!(lexical::parse_radix::<f32, _>("0", 10), Ok(0.0));
 /// assert_eq!(lexical::parse_radix::<f32, _>("1.0", 10), Ok(1.0));
 /// assert_eq!(lexical::parse_radix::<f32, _>("1.", 10), Ok(1.0));
-/// assert_eq!(lexical::parse_radix::<f32, _>("1a", 10), Err(err(1)));
-/// assert_eq!(lexical::parse_radix::<f32, _>("1.0.", 10), Err(err(3)));
+/// assert_eq!(err_code(lexical::parse_radix::<f32, _>("1a", 10)), ErrorCode::InvalidDigit);
+/// assert_eq!(err_code(lexical::parse_radix::<f32, _>("1.0.", 10)), ErrorCode::InvalidDigit);
 ///
 /// // Bytes overloads
 /// assert_eq!(lexical::parse_radix::<i32, _>(b"5", 10), Ok(5));
-/// assert_eq!(lexical::parse_radix::<i32, _>(b"1a", 10), Err(err(1)));
+/// assert_eq!(err_code(lexical::parse_radix::<i32, _>(b"1a", 10)), ErrorCode::InvalidDigit);
 /// assert_eq!(lexical::parse_radix::<f32, _>(b"0", 10), Ok(0.0));
 /// assert_eq!(lexical::parse_radix::<f32, _>(b"1.0", 10), Ok(1.0));
 /// assert_eq!(lexical::parse_radix::<f32, _>(b"1.", 10), Ok(1.0));
-/// assert_eq!(lexical::parse_radix::<f32, _>(b"1a", 10), Err(err(1)));
-/// assert_eq!(lexical::parse_radix::<f32, _>(b"1.0.", 10), Err(err(3)));
+/// assert_eq!(err_code(lexical::parse_radix::<f32, _>(b"1a", 10)), ErrorCode::InvalidDigit);
+/// assert_eq!(err_code(lexical::parse_radix::<f32, _>(b"1.0.", 10)), ErrorCode::InvalidDigit);
 /// # }
 /// ```
 ///
@@ -286,21 +292,23 @@ pub fn parse_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
 /// # use lexical::ErrorCode;
 /// # pub fn main() {
 /// // Create our error wrapper.
-/// let err = |u| (ErrorCode::InvalidDigit, u).into();
+/// fn err_code<T>(r: lexical::Result<T>) -> ErrorCode {
+///     r.err().unwrap().code
+/// }
 ///
 /// // String overloads
 /// assert_eq!(lexical::parse_lossy_radix::<f32, _>("0", 10), Ok(0.0));
 /// assert_eq!(lexical::parse_lossy_radix::<f32, _>("1.0", 10), Ok(1.0));
 /// assert_eq!(lexical::parse_lossy_radix::<f32, _>("1.", 10), Ok(1.0));
-/// assert_eq!(lexical::parse_lossy_radix::<f32, _>("1a", 10), Err(err(1)));
-/// assert_eq!(lexical::parse_lossy_radix::<f32, _>("1.0.", 10), Err(err(3)));
+/// assert_eq!(err_code(lexical::parse_lossy_radix::<f32, _>("1a", 10)), ErrorCode::InvalidDigit);
+/// assert_eq!(err_code(lexical::parse_lossy_radix::<f32, _>("1.0.", 10)), ErrorCode::InvalidDigit);
 ///
 /// // Bytes overloads
 /// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"0", 10), Ok(0.0));
 /// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"1.0", 10), Ok(1.0));
 /// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"1.", 10), Ok(1.0));
-/// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"1a", 10), Err(err(1)));
-/// assert_eq!(lexical::parse_lossy_radix::<f32, _>(b"1.0.", 10), Err(err(3)));
+/// assert_eq!(err_code(lexical::parse_lossy_radix::<f32, _>(b"1a", 10)), ErrorCode::InvalidDigit);
+/// assert_eq!(err_code(lexical::parse_lossy_radix::<f32, _>(b"1.0.", 10)), ErrorCode::InvalidDigit);
 /// # }
 /// ```
 ///

@@ -8,6 +8,7 @@
 
 use lib::{cmp, fmt, iter, ops};
 use super::cast::*;
+use super::config::*;
 use super::num::*;
 use super::primitive::*;
 
@@ -452,6 +453,8 @@ impl<T: Float> Integer for WrappedFloat <T> {
     const MAX: Self = WrappedFloat { data: T::MAX };
     const MIN: Self = WrappedFloat { data: T::MIN };
     const BITS: usize = T::BITS;
+    const MAX_SIZE: usize = MAX_F64_SIZE;
+    const MAX_SIZE_BASE10: usize = MAX_F64_SIZE_BASE10;
 
     #[inline]
     fn max_value() -> Self {

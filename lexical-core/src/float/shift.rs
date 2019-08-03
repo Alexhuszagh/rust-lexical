@@ -7,7 +7,7 @@ use super::mantissa::Mantissa;
 
 // SHIFT RIGHT
 
-/// Shift extended-precision float right `shift` bytes.
+// Shift extended-precision float right `shift` bytes.
 perftools_inline!{
 pub(super) fn shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
 {
@@ -18,10 +18,10 @@ pub(super) fn shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
     fp.exp += shift.as_i32();
 }}
 
-/// Shift extended-precision float right `shift` bytes.
-///
-/// Accepts when the shift is the same as the type size, and
-/// sets the value to 0.
+// Shift extended-precision float right `shift` bytes.
+//
+// Accepts when the shift is the same as the type size, and
+// sets the value to 0.
 perftools_inline!{
 pub(super) fn overflowing_shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
 {
@@ -35,7 +35,7 @@ pub(super) fn overflowing_shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>
     fp.exp += shift.as_i32();
 }}
 
-/// Shift extended-precision float left `shift` bytes.
+// Shift extended-precision float left `shift` bytes.
 perftools_inline!{
 pub(super) fn shl<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
 {

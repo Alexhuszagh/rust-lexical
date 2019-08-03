@@ -1,6 +1,6 @@
 //! High-level traits to translate the low-level API to idiomatic Rust.
 
-use lexical_core::Result;
+use lexical_core::{self, Result};
 use lib::{slice, Vec};
 
 // HELPERS
@@ -178,7 +178,7 @@ mod tests {
     macro_rules! deserialize_float {
         ($($t:tt)*) => ($({
             assert_eq!($t::from_lexical(b"0.0"), Ok(0.0));
-            assert_eq!($t::from_lexical(b"0.0a"), Err((ErrorCode::InvalidDigit, 3).into()));
+            assert_eq!($t::from_lexical(b"0.0a").err().unwrap().code, ErrorCode::InvalidDigit);
             assert_eq!($t::from_lexical(b""), Err(ErrorCode::Empty.into()));
             assert_eq!($t::from_lexical_lossy(b"0.0"), Ok(0.0));
 

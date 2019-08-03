@@ -15,8 +15,8 @@ use lib::result::Result as StdResult;
 // HELPERS
 // -------
 
-/// Parse the raw float state into a mantissa, calculating the number
-/// of truncated digits and the offset.
+// Parse the raw float state into a mantissa, calculating the number
+// of truncated digits and the offset.
 perftools_inline!{
 fn process_mantissa<'a, M: Mantissa>(radix: u32, state: &RawFloatState<'a>)
     -> StdResult<(M, usize), &'a u8>
@@ -87,7 +87,7 @@ fn fast_path<F>(mantissa: u64, radix: u32, exponent: i32)
 
 // POW2
 
-/// Detect if a float representation is exactly halfway after truncation.
+// Detect if a float representation is exactly halfway after truncation.
 #[cfg(feature = "radix")]
 perftools_inline!{
 fn is_halfway<F: FloatType>(mantissa: u64)
@@ -103,7 +103,7 @@ fn is_halfway<F: FloatType>(mantissa: u64)
     bit_length - trailing_zeros == F::MANTISSA_SIZE + 2
 }}
 
-/// Detect if a float representation is odd after truncation.
+// Detect if a float representation is odd after truncation.
 #[cfg(feature = "radix")]
 perftools_inline!{
 fn is_odd<F: FloatType>(mantissa: u64)
@@ -236,10 +236,10 @@ fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32, expon
     }
 }
 
-/// Create a precise native float using an intermediate extended-precision float.
-///
-/// Return the float approximation and if the value can be accurately
-/// represented with mantissa bits of precision.
+// Create a precise native float using an intermediate extended-precision float.
+//
+// Return the float approximation and if the value can be accurately
+// represented with mantissa bits of precision.
 perftools_inline_always!{
 pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, truncated: bool, kind: RoundingKind)
     -> (ExtendedFloat<M>, bool)
@@ -406,7 +406,7 @@ fn pow2_to_native<F>(radix: u32, pow2_exp: i32, bytes: &[u8], sign: Sign, offset
     }
 }
 
-/// Check if value is power of 2 and get the power.
+// Check if value is power of 2 and get the power.
 perftools_inline!{
 fn pow2_exponent(radix: u32) -> i32 {
     match radix {
@@ -421,9 +421,9 @@ fn pow2_exponent(radix: u32) -> i32 {
 
 // DISPATCHER
 
-/// Parse native float from string.
-///
-/// The float string must be non-special, non-zero, and positive.
+// Parse native float from string.
+//
+// The float string must be non-special, non-zero, and positive.
 perftools_inline!{
 fn to_native<F>(radix: u32, bytes: &[u8], lossy: bool, sign: Sign, offset: usize)
     -> Result<F>
@@ -445,7 +445,7 @@ fn to_native<F>(radix: u32, bytes: &[u8], lossy: bool, sign: Sign, offset: usize
 // ATOF/ATOD
 // ---------
 
-/// Parse 32-bit float from string.
+// Parse 32-bit float from string.
 perftools_inline!{
 pub(crate) fn atof(radix: u32, bytes: &[u8], sign: Sign, offset: usize)
     -> Result<f32>
@@ -453,7 +453,7 @@ pub(crate) fn atof(radix: u32, bytes: &[u8], sign: Sign, offset: usize)
     to_native::<f32>(radix, bytes, false, sign, offset)
 }}
 
-/// Parse 64-bit float from string.
+// Parse 64-bit float from string.
 perftools_inline!{
 pub(crate) fn atod(radix: u32, bytes: &[u8], sign: Sign, offset: usize)
     -> Result<f64>
@@ -461,7 +461,7 @@ pub(crate) fn atod(radix: u32, bytes: &[u8], sign: Sign, offset: usize)
     to_native::<f64>(radix, bytes, false, sign, offset)
 }}
 
-/// Parse 32-bit float from string.
+// Parse 32-bit float from string.
 perftools_inline!{
 pub(crate) fn atof_lossy(radix: u32, bytes: &[u8], sign: Sign, offset: usize)
     -> Result<f32>
@@ -469,7 +469,7 @@ pub(crate) fn atof_lossy(radix: u32, bytes: &[u8], sign: Sign, offset: usize)
     to_native::<f32>(radix, bytes, true, sign, offset)
 }}
 
-/// Parse 64-bit float from string.
+// Parse 64-bit float from string.
 perftools_inline!{
 pub(crate) fn atod_lossy(radix: u32, bytes: &[u8], sign: Sign, offset: usize)
     -> Result<f64>
@@ -877,6 +877,11 @@ mod tests {
         assert_eq!(Ok(18014398509481992.0), atod10(b"18014398509481990.0"));
         assert_eq!(Ok(9223372036854779904.0), atod10(b"9223372036854778880.0"));
         assert_eq!(Ok(11417981541647684119068688668513567077874794496.0), atod10(b"11417981541647682851418088440284165581171589120.0"));
+
+        // Check other cases ostensibly identified via proptest.
+        assert_eq!(Ok(71610528364411830000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0), atod10(b"71610528364411830000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"));
+        assert_eq!(Ok(126769393745745060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0), atod10(b"126769393745745060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"));
+        assert_eq!(Ok(38652960461239320000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0), atod10(b"38652960461239320000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"));
     }
 
     #[test]

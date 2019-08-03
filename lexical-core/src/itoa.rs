@@ -7,9 +7,8 @@
 //  or `write!()` macros. The code was compiled with LTO and at an optimization
 //  level of 3.
 //
-//  The benchmarks with `std` were compiled using "rustc 1.29.2 (17a9dc751
-//  2018-10-05", and the `no_std` benchmarks were compiled using "rustc
-//  1.31.0-nightly (46880f41b 2018-10-15)".
+//  The benchmarks with `std` were compiled using "rustc 1.32.0
+// (9fda7c223 2019-01-16".
 //
 //  The benchmark code may be found `benches/itoa.rs`.
 //
@@ -81,28 +80,68 @@ use util::*;
 // tricks so they may not be very legible.
 
 // Calculate the number of leading 0s.
+#[cfg(feature = "table")]
 macro_rules! cltz {
     ($value:ident) => {
-        ($value | 1).leading_zeros().as_usize()
+        $value.leading_zeros().as_usize()
     };
 }
 
 // Calculate the offset where the digits were first written.
+#[cfg(feature = "table")]
 macro_rules! calculate_offset {
-    ($value:ident, $digits:ident, $max_digits:ident) => ({
-        // 1233 / 2**12 ≈ log10(2)
-        let neg_log2 = cltz!($value);
-        let mut offset = neg_log2 * 1233 >> 12;
-        // If we have a 0 at the offset, shift 1.
-        if index!($digits[offset]) == b'0' {
-            offset += 1;
+    ($value:ident, $digits:ident, $max_digits:ident, $size:expr) => ({
+        const GUESS: [u8; 129] = [
+             0,  0,  0,  0,  1,  1,  1,  2,  2,  2,  3,  3,  3,  3,  4,  4,
+             4,  5,  5,  5,  6,  6,  6,  6,  7,  7,  7,  8,  8,  8,  9,  9,
+             9,  9, 10, 10, 10, 11, 11, 11, 12, 12, 12, 12, 13, 13, 13, 14,
+            14, 14, 15, 15, 15, 15, 16, 16, 16, 17, 17, 17, 18, 18, 18, 18,
+            19, 19, 19, 20, 20, 20, 21, 21, 21, 21, 22, 22, 22, 23, 23, 23,
+            24, 24, 24, 24, 25, 25, 25, 26, 26, 26, 27, 27, 27, 27, 28, 28,
+            28, 29, 29, 29, 30, 30, 30, 31, 31, 31, 31, 32, 32, 32, 33, 33,
+            33, 34, 34, 34, 34, 35, 35, 35, 36, 36, 36, 37, 37, 37, 37, 38, 38
+        ];
+        cfg_if!{
+        if #[cfg(has_i128)] {
+            type T = u128;
+            const POW10: [u128; 39] = [
+                 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000,
+                 1000000000, 10000000000, 100000000000, 1000000000000,
+                 10000000000000, 100000000000000, 1000000000000000,
+                 10000000000000000, 100000000000000000, 1000000000000000000,
+                 10000000000000000000, 100000000000000000000,
+                 1000000000000000000000, 10000000000000000000000,
+                 100000000000000000000000, 1000000000000000000000000,
+                 10000000000000000000000000, 100000000000000000000000000,
+                 1000000000000000000000000000, 10000000000000000000000000000,
+                 100000000000000000000000000000, 1000000000000000000000000000000,
+                 10000000000000000000000000000000,
+                 100000000000000000000000000000000,
+                 1000000000000000000000000000000000,
+                 10000000000000000000000000000000000,
+                 100000000000000000000000000000000000,
+                 1000000000000000000000000000000000000,
+                 10000000000000000000000000000000000000,
+                 100000000000000000000000000000000000000
+            ];
+        } else {
+            type T = u64;
+            const POW10: [u64; 20] = [
+                 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000,
+                 1000000000, 10000000000, 100000000000, 1000000000000,
+                 10000000000000, 100000000000000, 1000000000000000,
+                 10000000000000000, 100000000000000000, 1000000000000000000,
+                 10000000000000000000
+            ];
+        }}
+
+        let value = $value | 1;
+        let log2 = $size - cltz!(value);
+        let mut digits = GUESS[log2].as_usize();
+        if as_cast::<T, _>(value) >= POW10[digits] {
+            digits += 1;
         }
-        // If we have no digits, add the last, trailing 0 digits.
-        let count = $max_digits - offset;
-        if count.is_zero() {
-            offset -= 1;
-        }
-        offset
+        $max_digits - digits
     });
 }
 
@@ -119,12 +158,12 @@ pub(crate) trait OptimizedItoaBase10
 
 /// Implement OptimizedItoaBase10 for type.
 macro_rules! optimized_itoa_base10 {
-    ($t:ty, $cb:ident) => {
+    ($t:ty, $optimized_cb:ident) => {
         #[cfg(feature = "table")]
         impl OptimizedItoaBase10 for $t {
             perftools_inline_always!{
             fn optimized_itoa(self, buffer: &mut [u8]) -> usize {
-                $cb(self, buffer)
+                $optimized_cb(self, buffer)
             }}
         }
 
@@ -136,7 +175,7 @@ macro_rules! optimized_itoa_base10 {
 
 // U8
 
-/// Highly-optimized float formatter for u8.
+// Highly-optimized float formatter for u8.
 perftools_inline!{
 #[cfg(feature = "table")]
 #[allow(unused_unsafe)]
@@ -150,6 +189,8 @@ fn optimized_u8(value: u8, digits: &mut [u8])
     // Magic numbers for very fast 32-bit division.
     // 1e-2 ~= 1374389535 / 2**37
     const E_2: u64 = 1374389535;
+    // Check constantly we have no indexing issues.
+    debug_assert!(digits.len() >= MAX_DIGITS);
 
     let uvalue_0 = value.as_u32();
     let uvalue_1 = ((uvalue_0.as_u64() * E_2) >> 37).as_u32();
@@ -161,14 +202,14 @@ fn optimized_u8(value: u8, digits: &mut [u8])
     unchecked_index_mut!(digits[0] = unchecked_index!(TABLE[index_1]));
     unchecked_index_mut!(digits[1] = unchecked_index!(TABLE[index_1+1]));
 
-    calculate_offset!(value, digits, MAX_DIGITS)
+    calculate_offset!(value, digits, MAX_DIGITS, 8)
 }}
 
 optimized_itoa_base10! { u8, optimized_u8 }
 
 // U16
 
-/// Highly-optimized float formatter for u16.
+// Highly-optimized float formatter for u16.
 perftools_inline!{
 #[cfg(feature = "table")]
 #[allow(unused_unsafe)]
@@ -184,6 +225,8 @@ fn optimized_u16(value: u16, digits: &mut [u8])
     const E_2: u64 = 1374389535;
     // 1e-4 ~= 3518437209 / 2**45
     const E_4: u64 = 3518437209;
+    // Check constantly we have no indexing issues.
+    debug_assert!(digits.len() >= MAX_DIGITS);
 
     let uvalue_0 = value.as_u32();
     let uvalue_1 = ((uvalue_0.as_u64() * E_2) >> 37).as_u32();
@@ -199,14 +242,14 @@ fn optimized_u16(value: u16, digits: &mut [u8])
     unchecked_index_mut!(digits[0] = unchecked_index!(TABLE[index_2]));
     unchecked_index_mut!(digits[1] = unchecked_index!(TABLE[index_2+1]));
 
-    calculate_offset!(value, digits, MAX_DIGITS)
+    calculate_offset!(value, digits, MAX_DIGITS, 16)
 }}
 
 optimized_itoa_base10! { u16, optimized_u16 }
 
 // U32
 
-/// Highly-optimized float formatter for u32.
+// Highly-optimized float formatter for u32.
 perftools_inline!{
 #[cfg(feature = "table")]
 #[allow(unused_unsafe)]
@@ -224,6 +267,8 @@ fn optimized_u32(value: u32, digits: &mut [u8])
     const E_4: u64 = 3518437209;
     // 1e-5 ~= 1125899907 / 2**50
     const E_6: u64 = 1125899907;
+    // Check constantly we have no indexing issues.
+    debug_assert!(digits.len() >= MAX_DIGITS);
 
     // A u32 has 10 digits, therefore, the top2 refers to `value / 1e8`.
     let top2 = (value / 100000000).as_u32();
@@ -253,16 +298,16 @@ fn optimized_u32(value: u32, digits: &mut [u8])
     unchecked_index_mut!(digits[0] = unchecked_index!(TABLE[index_4]));
     unchecked_index_mut!(digits[1] = unchecked_index!(TABLE[index_4+1]));
 
-    calculate_offset!(value, digits, MAX_DIGITS)
+    calculate_offset!(value, digits, MAX_DIGITS, 32)
 }}
 
 optimized_itoa_base10! { u32, optimized_u32 }
 
 // U64
 
-/// Highly-optimized float formatter for u64.
-/// Adapted from:
-///     https://gist.github.com/Veedrac/069dd35f896de4df4e14b881a455ca47
+// Highly-optimized float formatter for u64.
+// Adapted from:
+//     https://gist.github.com/Veedrac/069dd35f896de4df4e14b881a455ca47
 perftools_inline!{
 #[cfg(feature = "table")]
 #[allow(unused_unsafe)]
@@ -335,14 +380,14 @@ fn optimized_u64(value: u64, digits: &mut [u8])
     unchecked_index_mut!(digits[0] = unchecked_index!(TABLE[index_9]));
     unchecked_index_mut!(digits[1] = unchecked_index!(TABLE[index_9+1]));
 
-    calculate_offset!(value, digits, MAX_DIGITS)
+    calculate_offset!(value, digits, MAX_DIGITS, 64)
 }}
 
 optimized_itoa_base10! { u64, optimized_u64 }
 
 // U128
 
-/// Highly-optimized float formatter for u128.
+// Highly-optimized float formatter for u128.
 perftools_inline!{
 #[cfg(all(has_i128, feature = "table"))]
 #[allow(unused_unsafe)]
@@ -360,6 +405,8 @@ fn optimized_u128(value: u128, digits: &mut [u8])
     const E_4: u64 = 3518437209;
     // 1e-5 ~= 1125899907 / 2**50
     const E_6: u64 = 1125899907;
+    // Check constantly we have no indexing issues.
+    debug_assert!(digits.len() >= MAX_DIGITS);
 
     let top32 = (value / 100000000).as_u32();
     let top24 = (value / 10000000000000000).as_u32();
@@ -457,7 +504,7 @@ fn optimized_u128(value: u128, digits: &mut [u8])
     unchecked_index_mut!(digits[0] = unchecked_index!(TABLE[index_19]));
     unchecked_index_mut!(digits[1] = unchecked_index!(TABLE[index_19+1]));
 
-    calculate_offset!(value, digits, MAX_DIGITS)
+    calculate_offset!(value, digits, MAX_DIGITS, 128)
 }}
 
 #[cfg(has_i128)]
@@ -499,11 +546,11 @@ optimized_itoa_base10! { usize, optimized_usize }
 
 // OPTIMIZED
 
-/// Optimized implementation for radix-N numbers.
-///
-/// Use a macro to allow for u32 or u64 to be used (u32 is generally faster).
-///
-/// `value` must be non-negative and mutable.
+// Optimized implementation for radix-N numbers.
+//
+// Use a macro to allow for u32 or u64 to be used (u32 is generally faster).
+//
+// `value` must be non-negative and mutable.
 perftools_inline!{
 #[cfg(all(feature = "radix", feature = "table"))]
 fn optimized_generic<T>(mut value: T, radix: T, table: &[u8], buffer: &mut [u8])
@@ -562,11 +609,11 @@ fn optimized_generic<T>(mut value: T, radix: T, table: &[u8], buffer: &mut [u8])
 
 // NAIVE
 
-/// Naive implementation for radix-N numbers.
-///
-/// Use a macro to allow for u32 or u64 to be used (u32 is generally faster).
-///
-/// `value` must be non-negative and mutable.
+// Naive implementation for radix-N numbers.
+//
+// Use a macro to allow for u32 or u64 to be used (u32 is generally faster).
+//
+// `value` must be non-negative and mutable.
 perftools_inline!{
 #[cfg(not(feature = "table"))]
 fn naive<T>(mut value: T, radix: T, buffer: &mut [u8])
@@ -591,11 +638,11 @@ fn naive<T>(mut value: T, radix: T, buffer: &mut [u8])
     iter.count()
 }}
 
-/// Forward the correct arguments to the implementation.
-///
-/// Use a macro to allow for u32 or u64 to be used (u32 is generally faster).
-///
-/// `value` must be non-negative and mutable.
+// Forward the correct arguments to the implementation.
+//
+// Use a macro to allow for u32 or u64 to be used (u32 is generally faster).
+//
+// `value` must be non-negative and mutable.
 perftools_inline!{
 pub(crate) fn forward<T>(value: T, radix: u32, bytes: &mut [u8])
     -> usize
@@ -611,23 +658,29 @@ pub(crate) fn forward<T>(value: T, radix: u32, bytes: &mut [u8])
 
     // Create a temporary buffer, and copy into it.
     // Way faster than reversing a buffer in-place.
+    // Need to ensure the buffer size is adequate for basen, but small
+    // for the optimized base10 formatters.
     debug_assert_radix!(radix);
-    let buffer_size = T::MAX_FMT_SIZE;
-    let mut buffer: [u8; BUFFER_SIZE] = explicit_uninitialized();
-    let buffer = &mut buffer[..buffer_size];
+    let mut buffer: [u8; BUFFER_SIZE] = [b'\0'; BUFFER_SIZE];
+    let digits;
+    if cfg!(not(feature = "radix")) || radix == 10 {
+        digits = &mut buffer[..T::MAX_SIZE_BASE10];
+    } else {
+        digits = &mut buffer[..T::MAX_SIZE];
+    }
 
     let offset = {
         #[cfg(not(feature = "table"))] {
-            naive(value, as_cast(radix), buffer)
+            naive(value, as_cast(radix), digits)
         }
 
         #[cfg(all(not(feature = "radix"), feature = "table"))] {
-            value.optimized_itoa(buffer)
+            value.optimized_itoa(digits)
         }
 
         #[cfg(all(feature = "radix", feature = "table"))] {
             if radix == 10 {
-                value.optimized_itoa(buffer)
+                value.optimized_itoa(digits)
             } else {
                 let table: &[u8] = match radix {
                     2   => &DIGIT_TO_BASE2_SQUARED,
@@ -666,16 +719,16 @@ pub(crate) fn forward<T>(value: T, radix: u32, bytes: &mut [u8])
                     36  => &DIGIT_TO_BASE36_SQUARED,
                     _   => unreachable!(),
                 };
-                optimized_generic(value, as_cast(radix), table, buffer)
+                optimized_generic(value, as_cast(radix), table, digits)
             }
         }
     };
 
     debug_assert!(offset <= bytes.len());
-    copy_to_dst(bytes, &index!(buffer[offset..]))
+    copy_to_dst(bytes, &index!(digits[offset..]))
 }}
 
-/// Sanitizer for an unsigned number-to-string implementation.
+// Sanitizer for an unsigned number-to-string implementation.
 perftools_inline!{
 pub(crate) fn unsigned<Value, UWide>(value: Value, radix: u32, bytes: &mut [u8])
     -> usize
@@ -687,7 +740,7 @@ pub(crate) fn unsigned<Value, UWide>(value: Value, radix: u32, bytes: &mut [u8])
     forward(v, radix, bytes)
 }}
 
-/// Sanitizer for an signed number-to-string implementation.
+// Sanitizer for an signed number-to-string implementation.
 perftools_inline!{
 pub(crate) fn signed<Value, UWide, IWide>(value: Value, radix: u32, bytes: &mut [u8])
     -> usize
@@ -815,11 +868,11 @@ mod tests {
     macro_rules! check_internal {
         ($value:expr, $expected:expr, $cb:ident, $t:tt) => {
             let mut buffer = new_buffer();
-            let digits = &mut buffer[..$t::MAX_FMT_SIZE];
+            let digits = &mut buffer[..$t::MAX_SIZE_BASE10];
             let offset = $cb($value, digits);
             let slc = &digits[offset..];
             assert_eq!($expected.len(), slc.len());
-            assert_eq!($expected.as_slice(), slc);
+            assert_eq!(&$expected[..], slc);
         };
     }
 
@@ -880,6 +933,7 @@ mod tests {
         let mut buffer = new_buffer();
         assert_eq!(b"0", u8toa_slice(0, &mut buffer));
         assert_eq!(b"1", u8toa_slice(1, &mut buffer));
+        assert_eq!(b"5", u8toa_slice(5, &mut buffer));
         assert_eq!(b"127", u8toa_slice(127, &mut buffer));
         assert_eq!(b"128", u8toa_slice(128, &mut buffer));
         assert_eq!(b"255", u8toa_slice(255, &mut buffer));
@@ -891,6 +945,7 @@ mod tests {
         let mut buffer = new_buffer();
         assert_eq!(b"0", i8toa_slice(0, &mut buffer));
         assert_eq!(b"1", i8toa_slice(1, &mut buffer));
+        assert_eq!(b"5", i8toa_slice(5, &mut buffer));
         assert_eq!(b"127", i8toa_slice(127, &mut buffer));
         assert_eq!(b"-128", i8toa_slice(128u8 as i8, &mut buffer));
         assert_eq!(b"-1", i8toa_slice(255u8 as i8, &mut buffer));
@@ -902,6 +957,7 @@ mod tests {
         let mut buffer = new_buffer();
         assert_eq!(b"0", u16toa_slice(0, &mut buffer));
         assert_eq!(b"1", u16toa_slice(1, &mut buffer));
+        assert_eq!(b"5", u16toa_slice(5, &mut buffer));
         assert_eq!(b"32767", u16toa_slice(32767, &mut buffer));
         assert_eq!(b"32768", u16toa_slice(32768, &mut buffer));
         assert_eq!(b"65535", u16toa_slice(65535, &mut buffer));
@@ -913,6 +969,7 @@ mod tests {
         let mut buffer = new_buffer();
         assert_eq!(b"0", i16toa_slice(0, &mut buffer));
         assert_eq!(b"1", i16toa_slice(1, &mut buffer));
+        assert_eq!(b"5", i16toa_slice(5, &mut buffer));
         assert_eq!(b"32767", i16toa_slice(32767, &mut buffer));
         assert_eq!(b"-32768", i16toa_slice(32768u16 as i16, &mut buffer));
         assert_eq!(b"-1", i16toa_slice(65535u16 as i16, &mut buffer));
@@ -924,6 +981,7 @@ mod tests {
         let mut buffer = new_buffer();
         assert_eq!(b"0", u32toa_slice(0, &mut buffer));
         assert_eq!(b"1", u32toa_slice(1, &mut buffer));
+        assert_eq!(b"5", u32toa_slice(5, &mut buffer));
         assert_eq!(b"2147483647", u32toa_slice(2147483647, &mut buffer));
         assert_eq!(b"2147483648", u32toa_slice(2147483648, &mut buffer));
         assert_eq!(b"4294967295", u32toa_slice(4294967295, &mut buffer));
@@ -935,6 +993,7 @@ mod tests {
         let mut buffer = new_buffer();
         assert_eq!(b"0", i32toa_slice(0, &mut buffer));
         assert_eq!(b"1", i32toa_slice(1, &mut buffer));
+        assert_eq!(b"5", i32toa_slice(5, &mut buffer));
         assert_eq!(b"2147483647", i32toa_slice(2147483647, &mut buffer));
         assert_eq!(b"-2147483648", i32toa_slice(2147483648u32 as i32, &mut buffer));
         assert_eq!(b"-1", i32toa_slice(4294967295u32 as i32, &mut buffer));
@@ -946,6 +1005,7 @@ mod tests {
         let mut buffer = new_buffer();
         assert_eq!(b"0", u64toa_slice(0, &mut buffer));
         assert_eq!(b"1", u64toa_slice(1, &mut buffer));
+        assert_eq!(b"5", u64toa_slice(5, &mut buffer));
         assert_eq!(b"9223372036854775807", u64toa_slice(9223372036854775807, &mut buffer));
         assert_eq!(b"9223372036854775808", u64toa_slice(9223372036854775808, &mut buffer));
         assert_eq!(b"18446744073709551615", u64toa_slice(18446744073709551615, &mut buffer));
@@ -957,6 +1017,7 @@ mod tests {
         let mut buffer = new_buffer();
         assert_eq!(b"0", i64toa_slice(0, &mut buffer));
         assert_eq!(b"1", i64toa_slice(1, &mut buffer));
+        assert_eq!(b"5", i64toa_slice(5, &mut buffer));
         assert_eq!(b"9223372036854775807", i64toa_slice(9223372036854775807, &mut buffer));
         assert_eq!(b"-9223372036854775808", i64toa_slice(9223372036854775808u64 as i64, &mut buffer));
         assert_eq!(b"-1", i64toa_slice(18446744073709551615u64 as i64, &mut buffer));
@@ -969,10 +1030,11 @@ mod tests {
         let mut buffer = new_buffer();
         assert_eq!(b"0", u128toa_slice(0, &mut buffer));
         assert_eq!(b"1", u128toa_slice(1, &mut buffer));
-        assert_eq!(b"170141183460469231731687303715884105727".as_slice(), u128toa_slice(170141183460469231731687303715884105727, &mut buffer));
-        assert_eq!(b"170141183460469231731687303715884105728".as_slice(), u128toa_slice(170141183460469231731687303715884105728, &mut buffer));
-        assert_eq!(b"340282366920938463463374607431768211455".as_slice(), u128toa_slice(340282366920938463463374607431768211455, &mut buffer));
-        assert_eq!(b"340282366920938463463374607431768211455".as_slice(), u128toa_slice(-1i128 as u128, &mut buffer));
+        assert_eq!(b"5", u128toa_slice(5, &mut buffer));
+        assert_eq!(&b"170141183460469231731687303715884105727"[..], u128toa_slice(170141183460469231731687303715884105727, &mut buffer));
+        assert_eq!(&b"170141183460469231731687303715884105728"[..], u128toa_slice(170141183460469231731687303715884105728, &mut buffer));
+        assert_eq!(&b"340282366920938463463374607431768211455"[..], u128toa_slice(340282366920938463463374607431768211455, &mut buffer));
+        assert_eq!(&b"340282366920938463463374607431768211455"[..], u128toa_slice(-1i128 as u128, &mut buffer));
     }
 
     #[cfg(has_i128)]
@@ -981,8 +1043,9 @@ mod tests {
         let mut buffer = new_buffer();
         assert_eq!(b"0", i128toa_slice(0, &mut buffer));
         assert_eq!(b"1", i128toa_slice(1, &mut buffer));
-        assert_eq!(b"170141183460469231731687303715884105727".as_slice(), i128toa_slice(170141183460469231731687303715884105727, &mut buffer));
-        assert_eq!(b"-170141183460469231731687303715884105728".as_slice(), i128toa_slice(170141183460469231731687303715884105728u128 as i128, &mut buffer));
+        assert_eq!(b"5", i128toa_slice(5, &mut buffer));
+        assert_eq!(&b"170141183460469231731687303715884105727"[..], i128toa_slice(170141183460469231731687303715884105727, &mut buffer));
+        assert_eq!(&b"-170141183460469231731687303715884105728"[..], i128toa_slice(170141183460469231731687303715884105728u128 as i128, &mut buffer));
         assert_eq!(b"-1", i128toa_slice(340282366920938463463374607431768211455u128 as i128, &mut buffer));
         assert_eq!(b"-1", i128toa_slice(-1, &mut buffer));
     }

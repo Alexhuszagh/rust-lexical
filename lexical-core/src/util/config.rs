@@ -352,6 +352,45 @@ pub unsafe extern fn set_infinity_string_ffi(ptr: *const u8, size: usize)
 
 // CONSTANTS
 
+// The f64 buffer is actually a size of 60, but use 64 since it's a
+// power of 2.
+
+/// The minimum buffer size required to serialize an `i8` value in base 10.
+pub const MAX_I8_SIZE_BASE10: usize = 4;
+
+/// The minimum buffer size required to serialize an `i16` value in base 10.
+pub const MAX_I16_SIZE_BASE10: usize = 6;
+
+/// The minimum buffer size required to serialize an `i32` value in base 10.
+pub const MAX_I32_SIZE_BASE10: usize = 11;
+
+/// The minimum buffer size required to serialize an `i64` value in base 10.
+pub const MAX_I64_SIZE_BASE10: usize = 20;
+
+/// The minimum buffer size required to serialize an `i128` value in base 10.
+pub const MAX_I128_SIZE_BASE10: usize = 40;
+
+/// The minimum buffer size required to serialize an `u8` value in base 10.
+pub const MAX_U8_SIZE_BASE10: usize = 4;       // Rounded-up from 3
+
+/// The minimum buffer size required to serialize an `u16` value in base 10.
+pub const MAX_U16_SIZE_BASE10: usize = 6;      // Rounded-up from 5
+
+/// The minimum buffer size required to serialize an `u32` value in base 10.
+pub const MAX_U32_SIZE_BASE10: usize = 10;
+
+/// The minimum buffer size required to serialize an `u64` value in base 10.
+pub const MAX_U64_SIZE_BASE10: usize = 20;
+
+/// The minimum buffer size required to serialize an `u128` value in base 10.
+pub const MAX_U128_SIZE_BASE10: usize = 40;    // Rounded-up from 39
+
+/// The minimum buffer size required to serialize an `f32` value in base 10.
+pub const MAX_F32_SIZE_BASE10: usize = 64;
+
+/// The minimum buffer size required to serialize an `f64` value in base 10.
+pub const MAX_F64_SIZE_BASE10: usize = 64;
+
 // Simple, fast optimization.
 // Since we're declaring a variable on the stack, and our power-of-two
 // alignment dramatically improved atoi performance, do it.
@@ -400,40 +439,40 @@ if #[cfg(feature = "radix")] {
     // power of 2.
 
     /// The minimum buffer size required to serialize any `i8` value.
-    pub const MAX_I8_SIZE: usize = 4;
+    pub const MAX_I8_SIZE: usize = MAX_I8_SIZE_BASE10;
 
     /// The minimum buffer size required to serialize any `i16` value.
-    pub const MAX_I16_SIZE: usize = 6;
+    pub const MAX_I16_SIZE: usize = MAX_I16_SIZE_BASE10;
 
     /// The minimum buffer size required to serialize any `i32` value.
-    pub const MAX_I32_SIZE: usize = 11;
+    pub const MAX_I32_SIZE: usize = MAX_I32_SIZE_BASE10;
 
     /// The minimum buffer size required to serialize any `i64` value.
-    pub const MAX_I64_SIZE: usize = 20;
+    pub const MAX_I64_SIZE: usize = MAX_I64_SIZE_BASE10;
 
     /// The minimum buffer size required to serialize any `i128` value.
-    pub const MAX_I128_SIZE: usize = 40;
+    pub const MAX_I128_SIZE: usize = MAX_I128_SIZE_BASE10;
 
     /// The minimum buffer size required to serialize any `u8` value.
-    pub const MAX_U8_SIZE: usize = 4;       // Rounded-up from 3
+    pub const MAX_U8_SIZE: usize = MAX_U8_SIZE_BASE10;
 
     /// The minimum buffer size required to serialize any `u16` value.
-    pub const MAX_U16_SIZE: usize = 6;      // Rounded-up from 5
+    pub const MAX_U16_SIZE: usize = MAX_U16_SIZE_BASE10;
 
     /// The minimum buffer size required to serialize any `u32` value.
-    pub const MAX_U32_SIZE: usize = 10;
+    pub const MAX_U32_SIZE: usize = MAX_U32_SIZE_BASE10;
 
     /// The minimum buffer size required to serialize any `u64` value.
-    pub const MAX_U64_SIZE: usize = 20;
+    pub const MAX_U64_SIZE: usize = MAX_U64_SIZE_BASE10;
 
     /// The minimum buffer size required to serialize any `u128` value.
-    pub const MAX_U128_SIZE: usize = 40;    // Rounded-up from 39
+    pub const MAX_U128_SIZE: usize = MAX_U128_SIZE_BASE10;
 
     /// The minimum buffer size required to serialize any `f32` value.
-    pub const MAX_F32_SIZE: usize = 64;
+    pub const MAX_F32_SIZE: usize = MAX_F32_SIZE_BASE10;
 
     /// The minimum buffer size required to serialize any `f64` value.
-    pub const MAX_F64_SIZE: usize = 64;
+    pub const MAX_F64_SIZE: usize = MAX_F64_SIZE_BASE10;
 }} // cfg_if
 
 cfg_if! {
@@ -441,20 +480,38 @@ if #[cfg(target_pointer_width = "16")] {
     /// The minimum buffer size required to serialize any `isize` value.
     pub const MAX_ISIZE_SIZE: usize = MAX_I16_SIZE;
 
+    /// The minimum buffer size required to serialize an `isize` value in base 10.
+    pub const MAX_ISIZE_SIZE_BASE10: usize = MAX_I16_SIZE_BASE10;
+
     /// The minimum buffer size required to serialize any `usize` value.
     pub const MAX_USIZE_SIZE: usize = MAX_U16_SIZE;
+
+    /// The minimum buffer size required to serialize an `usize` value in base 10.
+    pub const MAX_USIZE_SIZE_BASE10: usize = MAX_U16_SIZE_BASE10;
 } else if #[cfg(target_pointer_width = "32")] {
     /// The minimum buffer size required to serialize any `isize` value.
     pub const MAX_ISIZE_SIZE: usize = MAX_I32_SIZE;
 
+    /// The minimum buffer size required to serialize an `isize` value in base 10.
+    pub const MAX_ISIZE_SIZE_BASE10: usize = MAX_I32_SIZE_BASE10;
+
     /// The minimum buffer size required to serialize any `usize` value.
     pub const MAX_USIZE_SIZE: usize = MAX_U32_SIZE;
+
+    /// The minimum buffer size required to serialize an `usize` value in base 10.
+    pub const MAX_USIZE_SIZE_BASE10: usize = MAX_U32_SIZE_BASE10;
 } else if #[cfg(target_pointer_width = "64")] {
     /// The minimum buffer size required to serialize any `isize` value.
     pub const MAX_ISIZE_SIZE: usize = MAX_I64_SIZE;
 
+    /// The minimum buffer size required to serialize an `isize` value in base 10.
+    pub const MAX_ISIZE_SIZE_BASE10: usize = MAX_I64_SIZE_BASE10;
+
     /// The minimum buffer size required to serialize any `usize` value.
     pub const MAX_USIZE_SIZE: usize = MAX_U64_SIZE;
+
+    /// The minimum buffer size required to serialize an `usize` value in base 10.
+    pub const MAX_USIZE_SIZE_BASE10: usize = MAX_U64_SIZE_BASE10;
 }}  // cfg_if
 
 /// The maximum number of bytes that any number-to-string function may write.

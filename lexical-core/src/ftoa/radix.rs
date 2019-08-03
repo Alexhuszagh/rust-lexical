@@ -14,9 +14,9 @@ macro_rules! to_digit {
     ($c:expr, $radix:ident) => (($c as char).to_digit($radix));
 }
 
-/// Calculate the naive exponent from a minimal value.
-///
-/// Don't export this for float, since it's specialized for radix.
+// Calculate the naive exponent from a minimal value.
+//
+// Don't export this for float, since it's specialized for radix.
 perftools_inline!{
 pub(crate) fn naive_exponent(d: f64, radix: u32) -> i32
 {
@@ -68,7 +68,7 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
     // either way, with additional space for sign, decimal point and string
     // termination should be sufficient.
     const SIZE: usize = 2200;
-    let mut buffer: [u8; SIZE] = explicit_uninitialized();
+    let mut buffer: [u8; SIZE] = [b'\0'; SIZE];
     //let buffer = buffer.as_mut_ptr();
     let initial_position: usize = SIZE / 2;
     let mut integer_cursor = initial_position;
@@ -216,10 +216,10 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
 
 // F32
 
-/// Forward to double_radix.
-///
-/// `f` must be non-special (NaN or infinite), non-negative,
-/// and non-zero.
+// Forward to double_radix.
+//
+// `f` must be non-special (NaN or infinite), non-negative,
+// and non-zero.
 perftools_inline!{
 pub(crate) fn float_radix<'a>(f: f32, radix: u32, bytes: &'a mut [u8])
     -> usize
@@ -229,10 +229,10 @@ pub(crate) fn float_radix<'a>(f: f32, radix: u32, bytes: &'a mut [u8])
 
 // F64
 
-/// Algorithm for non-decimal string representations.
-///
-/// `d` must be non-special (NaN or infinite), non-negative,
-/// and non-zero.
+// Algorithm for non-decimal string representations.
+//
+// `d` must be non-special (NaN or infinite), non-negative,
+// and non-zero.
 perftools_inline!{
 pub(crate) fn double_radix<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
     -> usize
