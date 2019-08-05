@@ -71,7 +71,7 @@ macro_rules! offset {
 }
 
 macro_rules! to_digit {
-    ($c:expr, $radix:ident) => (($c as char).to_digit($radix));
+    ($c:expr, $radix:expr) => (($c as char).to_digit($radix));
 }
 
 // STANDALONE
@@ -130,7 +130,7 @@ pub(crate) fn standalone<T>(radix: u32, bytes: &[u8], is_signed: bool)
 }}
 
 // Convert character to digit.
-perftools_inline!{
+perftools_inline_always!{
 fn to_digit<'a>(c: &'a u8, radix: u32) -> StdResult<u32, &'a u8> {
     match to_digit!(*c, radix) {
         Some(v) => Ok(v),
@@ -138,31 +138,26 @@ fn to_digit<'a>(c: &'a u8, radix: u32) -> StdResult<u32, &'a u8> {
     }
 }}
 
+// Convert character to digit.
+perftools_inline_always!{
+fn is_not_digit_char(c: u8, radix: u32) -> bool {
+    to_digit!(c, radix).is_none()
+}}
+
 // Add digit to mantissa.
-perftools_inline!{
+perftools_inline_always!{
 #[cfg(feature = "correct")]
 fn add_digit<T>(value: T, digit: u32, radix: u32)
     -> Option<T>
     where T: UnsignedInteger
 {
-    value
-        .checked_mul(as_cast(radix))
-        .and_then(|v| v.checked_add(as_cast(digit)))
+    return value
+        .checked_mul(as_cast(radix))?
+        .checked_add(as_cast(digit))
 }}
 
-/// Iterate over iterator and get if truncated.
-macro_rules! add_truncated {
-    ($iter:ident, $truncated:ident, $radix:ident) => (
-        for c in $iter {
-            $truncated += 1;
-            if to_digit!(*c, $radix).is_none() {
-                return Err(c);
-            }
-        }
-    );
-}
-
 // Calculate the mantissa and the number of truncated digits from a digits iterator.
+// All the data **must** be a valid digit.
 perftools_inline!{
 #[cfg(feature = "correct")]
 pub(crate) fn standalone_mantissa<'a, T>(radix: u32, integer: &'a [u8], fraction: &'a [u8])
@@ -182,22 +177,19 @@ pub(crate) fn standalone_mantissa<'a, T>(radix: u32, integer: &'a [u8], fraction
     // digits, if not, return the first invalid digit. Otherwise,
     // calculate the number of truncated digits.
     while let Some(c) = integer_iter.next() {
-        value = match add_digit(value, to_digit(c, radix)?, radix) {
+        value = match add_digit(value, to_digit!(*c, radix).unwrap(), radix) {
             Some(v) => v,
             None    => {
-                let mut truncated: usize = 1;
-                add_truncated!(integer_iter, truncated, radix);
-                add_truncated!(fraction_iter, truncated, radix);
+                let truncated = 1 + integer_iter.len() + fraction_iter.len();
                 return Ok((value, truncated));
             },
         };
     }
     while let Some(c) = fraction_iter.next() {
-        value = match add_digit(value, to_digit(c, radix)?, radix) {
+        value = match add_digit(value, to_digit!(*c, radix).unwrap(), radix) {
             Some(v) => v,
             None    => {
-                let mut truncated: usize = 1;
-                add_truncated!(fraction_iter, truncated, radix);
+                let truncated = 1 + fraction_iter.len();
                 return Ok((value, truncated));
             },
         };
@@ -205,7 +197,7 @@ pub(crate) fn standalone_mantissa<'a, T>(radix: u32, integer: &'a [u8], fraction
     Ok((value, 0))
 }}
 
-// Calculate the mantissa when it cannot have sign or other invalid digits..
+// Calculate the mantissa when it cannot have sign or other invalid digits.
 perftools_inline!{
 #[cfg(not(feature = "correct"))]
 pub(crate) fn standalone_mantissa<T>(radix: u32, bytes: &[u8])
@@ -218,21 +210,29 @@ pub(crate) fn standalone_mantissa<T>(radix: u32, bytes: &[u8])
     Ok(value)
 }}
 
+// Add digit to mantissa.
+macro_rules! add_digit {
+    ($value:ident, $radix:ident, $op:ident, $digit:ident) => {
+        match $value.checked_mul(as_cast($radix)) {
+            Some(v) => v.$op(as_cast($digit)),
+            None    => None,
+        }
+    };
+}
+
 /// Iterate over the digits and iteratively process them.
 macro_rules! standalone_exponent {
     ($value:ident, $radix:ident, $digits:ident, $op:ident, $default:expr) => (
         let mut iter = $digits.iter();
         while let Some(c) = iter.next() {
             let digit = to_digit(c, $radix)?;
-            $value = match $value.checked_mul(as_cast($radix)).and_then(|v| v.$op(as_cast(digit))) {
+            $value = match add_digit!($value, $radix, $op, digit) {
                 Some(v) => v,
                 None    => {
-                    // Consume rthe rest of the iterator to validate
+                    // Consume the rest of the iterator to validate
                     // the remaining data.
-                    for c in iter {
-                        if to_digit!(*c, $radix).is_none() {
-                            return Err(c);
-                        }
+                    if let Some(c) = iter.find(|&c| is_not_digit_char(*c, $radix)) {
+                        return Err(c);
                     }
                     return Ok($default);
                 },
