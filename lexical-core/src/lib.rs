@@ -117,7 +117,7 @@ extern crate approx;
 extern crate quickcheck;
 
 // Test against randomly-generated guided data.
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 #[macro_use]
 extern crate proptest;
 

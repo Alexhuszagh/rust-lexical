@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated the benchmarks and benchmark results.
 - Add variants for lexical_core::ErrorCode. Added `Underflow`, to detect numerical underflow, `EmptyFraction`, to detect floats with an empty integer and fraction components, and `EmptyExponent`, to detect floats with no value following the exponent character.
 - Changed Result to use `std::result::Result`.
+- Fixed proptests and added more comprehensive proptests thanks to @dangrabcad.
 
 ### Removed
 - Removed the unchecked parsers from the public API. `try_parse*` has been replaced with `parse*`.

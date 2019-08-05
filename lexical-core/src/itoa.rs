@@ -1149,6 +1149,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "std")]
     proptest! {
         #[test]
         fn u8_proptest(i in u8::min_value()..u8::max_value()) {
