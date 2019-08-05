@@ -23,6 +23,27 @@ macro_rules! rtrim_0 {
     ($bytes:expr) => { rtrim_char_slice($bytes, b'0') };
 }
 
+// Convert radix to value.
+macro_rules! to_digit {
+    ($c:expr, $radix:expr) => (($c as char).to_digit($radix));
+}
+
+// Convert character to digit.
+perftools_inline_always!{
+#[allow(unused_variables)]
+fn is_digit(c: u8, radix: u32) -> bool {
+    to_digit!(c, radix).is_some()
+}}
+
+// Consume until a non-digit character is found.
+perftools_inline!{
+fn consume_digits<'a>(radix: u32, digits: &'a [u8]) -> (&'a [u8], &'a [u8]) {
+    match digits.iter().position(|&c| !is_digit(c, radix)) {
+        Some(v) => (&digits[..v], &digits[v..]),
+        None    => (digits, &[]),
+    }
+}}
+
 // RAW FLOAT STATE
 // ---------------
 
@@ -48,39 +69,48 @@ impl<'a> RawFloatState<'a> {
         }
     }}
 
-    /// Parse the float state from raw bytes.
+    // Parse the float state from raw bytes.
+    // This parser is validating, and will leave the resulting float with
+    // following components:
+    //      1. Validated integer component.
+    //      2. Validated fraction component.
+    //      3. Validated sign bit (optional) on the exponent.
+    //      4. Non-empty exponent.
+    //      5. Exponent substring (otherwise not validated).
     perftools_inline!{
     pub(super) fn parse(&mut self, radix: u32, bytes: &'a [u8]) -> Result<()>
     {
-        // Initialize our needles and start our search.
-        let mut digits = bytes;
-        let mut exponent_found = false;
+        // Parse the integer.
+        let digits = bytes;
+        let (integer, digits) = consume_digits(radix, digits);
+        self.integer = integer;
+
+        // Parse the remainder, which may be a fraction or exponent char..
         let exp_char = exponent_notation_char(radix).to_ascii_lowercase();
-        match digits.iter().position(|&c| c == b'.' || c.to_ascii_lowercase() == exp_char) {
-            None    => self.integer = digits,
-            Some(v) => {
-                match index!(digits[v]) {
-                    b'.' => {
-                        // Have our fraction, now need to search for the exponent.
-                        self.integer = &index!(digits[..v]);
-                        digits = &index!(digits[v+1..]);
-                        match digits.iter().position(|&c| c.to_ascii_lowercase() == exp_char) {
-                            None    => self.fraction = digits,
-                            Some(v) => {
-                                // Have a fraction and exponent.
-                                self.fraction = &index!(digits[..v]);
-                                self.exponent = &index!(digits[v+1..]);
-                                exponent_found = true;
-                            }
-                        }
-                    },
-                    _   => {
-                        // No fraction, only integer and exponent.
-                        self.integer = &index!(digits[..v]);
-                        self.exponent = &index!(digits[v+1..]);
+        let mut exponent_found = false;
+        if let Some(c) = digits.first() {
+            if *c == b'.' {
+                // Have a fraction
+                let (fraction, digits) = consume_digits(radix, &index!(digits[1..]));
+                self.fraction = fraction;
+                // May have an exponent.
+                if let Some(c) = digits.first() {
+                    if c.to_ascii_lowercase() == exp_char {
+                        // Have an exponent.
                         exponent_found = true;
+                        self.exponent = &index!(digits[1..]);
+                    } else {
+                        let index = distance(bytes.as_ptr(), c);
+                        return Err((ErrorCode::InvalidDigit, index).into());
                     }
                 }
+            } else if c.to_ascii_lowercase() == exp_char {
+                // Have an exponent.
+                exponent_found = true;
+                self.exponent = &index!(digits[1..]);
+            } else {
+                let index = distance(bytes.as_ptr(), c);
+                return Err((ErrorCode::InvalidDigit, index).into());
             }
         }
 
@@ -107,7 +137,7 @@ impl<'a> RawFloatState<'a> {
         Ok(())
     }}
 
-    /// Parse the raw float state into an exponent.
+    // Parse the raw float state into an exponent.
     perftools_inline!{
     pub(super) fn raw_exponent(&self, radix: u32)
         -> StdResult<i32, &'a u8>
@@ -120,7 +150,7 @@ impl<'a> RawFloatState<'a> {
         }
     }}
 
-    /// Process the float state for the moderate or slow atof processor.
+    // Process the float state for the moderate or slow atof processor.
     perftools_inline!{
     #[cfg(feature = "correct")]
     pub(super) fn process(self, truncated: usize, raw_exponent: i32) -> FloatState<'a> {

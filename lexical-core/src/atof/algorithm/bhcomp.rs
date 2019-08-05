@@ -21,6 +21,35 @@ macro_rules! to_digit {
 
 // PARSE MANTISSA
 
+/// Iteratively add small digits to the mantissa and increment the counter.
+macro_rules! add_digits {
+    (
+        $iter:expr, $result:ident, $value:ident, $i:ident,
+        $counter:ident, $step:ident, $small_powers:ident,
+        $base:ident, $radix:ident, $max_digits:ident
+    ) => {
+        while let Some(&digit) = $iter.next() {
+            // We've parsed the max digits using small values, add to bignum
+            if $counter == $step {
+                $result.imul_small($small_powers[$counter]);
+                $result.iadd_small($value);
+                $counter = 0;
+                $value = 0;
+            }
+
+            $value *= $base;
+            $value += as_limb(to_digit!(digit, $radix).unwrap());
+
+            // Check if we've parsed all our possible digits.
+            $i += 1;
+            $counter += 1;
+            if $i == $max_digits {
+                break;
+            }
+        }
+    };
+}
+
 /// Parse the full mantissa into a big integer.
 ///
 /// Max digits is the maximum number of digits plus one.
@@ -42,26 +71,13 @@ pub(super) fn parse_mantissa(state: FloatState, radix: u32, max_digits: usize)
     let mut result = Bigint::default();
     result.data.reserve(bytes);
 
-    // TODO(ahuszagh) Remove the chain here...
-    let mut iter = state.mantissa_iter();
-    while let Some(&digit) = iter.next() {
-        // We've parsed the max digits using small values, add to bignum
-        if counter == step {
-            result.imul_small(small_powers[counter]);
-            result.iadd_small(value);
-            counter = 0;
-            value = 0;
-        }
-
-        value *= base;
-        value += as_limb(to_digit!(digit, radix).unwrap());
-
-        // Check if we've parsed all our possible digits.
-        i += 1;
-        counter += 1;
-        if i == max_digits {
-            break;
-        }
+    // Iteratively process all the data in the mantissa.
+    let mut integer_iter = state.integer_iter();
+    let mut fraction_iter = state.fraction_iter();
+    add_digits!(integer_iter, result, value, i, counter, step, small_powers, base, radix, max_digits);
+    if integer_iter.len().is_zero() {
+        // Continue if we haven't already processed the max digits.
+        add_digits!(fraction_iter, result, value, i, counter, step, small_powers, base, radix, max_digits);
     }
 
     // We will always have a remainder, as long as we entered the loop
@@ -77,7 +93,8 @@ pub(super) fn parse_mantissa(state: FloatState, radix: u32, max_digits: usize)
     // representation. We also need to return an index.
     // Since we already trimmed trailing zeros, we know there has
     // to be a non-zero digit if there are any left.
-    if let Some(_) = iter.next() {
+    let remaining = integer_iter.len() + fraction_iter.len();
+    if !remaining.is_zero() {
         result.imul_small(base);
         result.iadd_small(1);
     }
