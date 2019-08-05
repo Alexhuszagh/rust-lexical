@@ -454,18 +454,18 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "correct")]
+    #[cfg(all(feature = "correct", feature = "std"))]
     proptest! {
         #[test]
-        fn f332_proptest(i in f32::MIN..f32::MAX) {
+        fn f32_proptest(i in f32::MIN..f32::MAX) {
             let mut buffer = new_buffer();
-            i == atof32_slice(f32toa_slice(i, &mut buffer)).unwrap()
+            prop_assert_eq!(i, atof32_slice(f32toa_slice(i, &mut buffer)).unwrap());
         }
 
         #[test]
         fn f64_proptest(i in f64::MIN..f64::MAX) {
             let mut buffer = new_buffer();
-            i == atof64_slice(f64toa_slice(i, &mut buffer)).unwrap()
+            prop_assert_eq!(i, atof64_slice(f64toa_slice(i, &mut buffer)).unwrap());
         }
     }
 
