@@ -437,18 +437,21 @@ mod tests {
             prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
         }
 
+        #[cfg(feature = "correct")]
         #[test]
         fn f32_roundtrip_display_proptest(i in f32::MIN..f32::MAX) {
             let input: String = format!("{}", i);
             prop_assert_eq!(i, atof32_slice(input.as_bytes()));
         }
 
+        #[cfg(feature = "correct")]
         #[test]
         fn f32_roundtrip_debug_proptest(i in f32::MIN..f32::MAX) {
             let input: String = format!("{:?}", i);
             prop_assert_eq!(i, atof32_slice(input.as_bytes()));
         }
 
+        #[cfg(feature = "correct")]
         #[test]
         fn f32_roundtrip_scientific_proptest(i in f32::MIN..f32::MAX) {
             let input: String = format!("{:e}", i);
@@ -491,18 +494,21 @@ mod tests {
             prop_assert_eq!(res.error.code, ErrorCode::InvalidDigit);
         }
 
+        #[cfg(feature = "correct")]
         #[test]
         fn f64_roundtrip_display_proptest(i in f64::MIN..f64::MAX) {
             let input: String = format!("{}", i);
             prop_assert_eq!(i, atof64_slice(input.as_bytes()));
         }
 
+        #[cfg(feature = "correct")]
         #[test]
         fn f64_roundtrip_debug_proptest(i in f64::MIN..f64::MAX) {
             let input: String = format!("{:?}", i);
             prop_assert_eq!(i, atof64_slice(input.as_bytes()));
         }
 
+        #[cfg(feature = "correct")]
         #[test]
         fn f64_roundtrip_scientific_proptest(i in f64::MIN..f64::MAX) {
             let input: String = format!("{:e}", i);
