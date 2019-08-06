@@ -36,13 +36,13 @@ pub(crate) unsafe fn slice_from_range_mut<'a, T>(first: *mut T, last: *mut T)
 #[doc(hidden)]
 macro_rules! generate_from_range_api {
     ($decimal_name:ident, $radix_name:ident, $t:ty, $cb:ident) => (
-        /// Unchecked parser for a string-to-number conversion using pointer ranges.
+        /// Checked parser for a string-to-number conversion using Rust pointer ranges.
         ///
-        /// Returns the parsed value, ignoring any trailing invalid digits,
-        /// and explicitly wrapping on arithmetic overflow.
+        /// Returns a C-compatible result containing the parsed value,
+        /// and an error container any errors that occurred during parser.
         ///
-        /// This parser is FFI-compatible, and therefore may be called externally
-        /// from C code.
+        /// Numeric overflow takes precedence over the presence of an invalid
+        /// digit, and therefore may mask an invalid digit error.
         ///
         /// * `first`   - Pointer to the start of the input data.
         /// * `last`    - Pointer to the one-past-the-end of the input data.
@@ -59,13 +59,13 @@ macro_rules! generate_from_range_api {
             $cb(10, bytes).into()
         }
 
-        /// Unchecked parser for a string-to-number conversion using pointer ranges.
+        /// Checked parser for a string-to-number conversion using Rust pointer ranges.
         ///
-        /// Returns the parsed value, ignoring any trailing invalid digits,
-        /// and explicitly wrapping on arithmetic overflow.
+        /// Returns a C-compatible result containing the parsed value,
+        /// and an error container any errors that occurred during parser.
         ///
-        /// This parser is FFI-compatible, and therefore may be called externally
-        /// from C code.
+        /// Numeric overflow takes precedence over the presence of an invalid
+        /// digit, and therefore may mask an invalid digit error.
         ///
         /// * `radix`   - Radix for the number parsing.
         /// * `first`   - Pointer to the start of the input data.
@@ -92,10 +92,13 @@ macro_rules! generate_from_range_api {
 #[doc(hidden)]
 macro_rules! generate_from_slice_api {
     ($decimal_name:ident, $radix_name:ident, $t:ty, $cb:ident) => (
-        /// Unchecked parser for a string-to-number conversion using Rust slices.
+        /// Checked parser for a string-to-number conversion using Rust slices.
         ///
-        /// Returns the parsed value, ignoring any trailing invalid digits,
-        /// and explicitly wrapping on arithmetic overflow.
+        /// Returns a `Result` containing either the parsed value,
+        /// or an error container any errors that occurred during parsing.
+        ///
+        /// Numeric overflow takes precedence over the presence of an invalid
+        /// digit, and therefore may mask an invalid digit error.
         ///
         /// * `bytes`   - Slice containing a numeric string.
         #[inline]
@@ -105,10 +108,13 @@ macro_rules! generate_from_slice_api {
             $cb(10, bytes)
         }
 
-        /// Unchecked parser for a string-to-number conversion using Rust slices.
+        /// Checked parser for a string-to-number conversion using Rust slices.
         ///
-        /// Returns the parsed value, ignoring any trailing invalid digits,
-        /// and explicitly wrapping on arithmetic overflow.
+        /// Returns a `Result` containing either the parsed value,
+        /// or an error container any errors that occurred during parsing.
+        ///
+        /// Numeric overflow takes precedence over the presence of an invalid
+        /// digit, and therefore may mask an invalid digit error.
         ///
         /// * `radix`   - Radix for the number parsing.
         /// * `bytes`   - Slice containing a numeric string.
