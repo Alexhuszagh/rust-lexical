@@ -3,6 +3,7 @@
 use atoi;
 use util::*;
 use super::state::RawFloatState;
+use lib::result::Result as StdResult;
 
 // FRACTION
 
@@ -11,21 +12,25 @@ type Wrapped<F> = WrappedFloat<F>;
 // Process the integer component of the raw float.
 perftools_inline!{
 fn process_integer<F: StablePower>(radix: u32, state: &RawFloatState)
-    -> Result<F>
+    -> F
 {
-    Ok(match state.integer.len() {
+    match state.integer.len() {
         0 => F::ZERO,
-        _ => atoi::standalone_mantissa::<Wrapped<F>>(radix, state.integer)?
+        // This cannot error, since we cannot overflow and cannot have
+        // invalid digits.
+        _ => atoi::standalone_mantissa::<Wrapped<F>>(radix, state.integer)
+                .unwrap()
+                .0
                 .into_inner()
-    })
+    }
 }}
 
 // Process the fraction component of the raw float.
 perftools_inline!{
 fn process_fraction<F: StablePower>(radix: u32, state: &RawFloatState)
-    -> Result<F>
+    -> F
 {
-    Ok(match state.fraction.len() {
+    match state.fraction.len() {
         0 => F::ZERO,
         _ => {
             // We don't really care about numerical precision, so just break
@@ -36,38 +41,32 @@ fn process_fraction<F: StablePower>(radix: u32, state: &RawFloatState)
             let mut digits: i32 = 0;
             for chunk in state.fraction.chunks(12) {
                 digits = digits.saturating_add(chunk.len().as_i32());
-                let value: u64 = atoi::standalone_mantissa(radix, chunk)?;
+                // This cannot error, since we have validated digits.
+                let value: u64 = atoi::standalone_mantissa(radix, chunk).unwrap().0;
                 if !value.is_zero() {
                     fraction += F::iterative_pow(as_cast(value), radix, -digits);
                 }
             }
             fraction
         },
-    })
+    }
 }}
 
 // Convert the float string to a native floating-point number.
 perftools_inline!{
-fn to_native<F: StablePower>(radix: u32, bytes: &[u8], offset: usize)
-    -> Result<F>
+fn to_native<F: StablePower>(radix: u32, bytes: &[u8])
+    -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
 {
     let mut state = RawFloatState::new();
-    state.parse(radix, bytes)?;
+    let ptr = state.parse(radix, bytes)?;
 
-    let integer: F = process_integer(radix, &state)?;
-    let fraction: F = process_fraction(radix, &state)?;
+    let integer: F = process_integer(radix, &state);
+    let fraction: F = process_fraction(radix, &state);
     let mut value = integer + fraction;
-    let exponent = match state.raw_exponent(radix) {
-        Ok(v)  => v,
-        Err(c) => {
-            let index = offset + distance(bytes.as_ptr(), c);
-            return Err((ErrorCode::InvalidDigit, index).into())
-        },
-    };
-    if !exponent.is_zero() && !value.is_zero() {
-        value = value.iterative_pow(radix, exponent);
+    if !state.exponent.is_zero() && !value.is_zero() {
+        value = value.iterative_pow(radix, state.exponent);
     }
-    Ok(value)
+    Ok((value, ptr))
 }}
 
 // ATOF/ATOD
@@ -75,34 +74,34 @@ fn to_native<F: StablePower>(radix: u32, bytes: &[u8], offset: usize)
 
 // Parse 32-bit float from string.
 perftools_inline!{
-pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8], _: Sign, offset: usize)
-    -> Result<f32>
+pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8], _: Sign)
+    -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
 {
-    to_native::<f32>(radix, bytes, offset)
+    to_native::<f32>(radix, bytes)
 }}
 
 // Parse 64-bit float from string.
 perftools_inline!{
-pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8], _: Sign, offset: usize)
-    -> Result<f64>
+pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8], _: Sign)
+    -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
 {
-    to_native::<f64>(radix, bytes, offset)
+    to_native::<f64>(radix, bytes)
 }}
 
 // Parse 32-bit float from string.
 perftools_inline!{
-pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign, offset: usize)
-    -> Result<f32>
+pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign)
+    -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
 {
-    to_native::<f32>(radix, bytes, offset)
+    to_native::<f32>(radix, bytes)
 }}
 
 // Parse 64-bit float from string.
 perftools_inline!{
-pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign, offset: usize)
-    -> Result<f64>
+pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign)
+    -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
 {
-    to_native::<f64>(radix, bytes, offset)
+    to_native::<f64>(radix, bytes)
 }}
 
 // TESTS
@@ -112,7 +111,7 @@ pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign, offset: usize
 mod tests {
     use super::*;
 
-    fn new_state<'a>(integer: &'a [u8], fraction: &'a [u8], exponent: &'a [u8])
+    fn new_state<'a>(integer: &'a [u8], fraction: &'a [u8], exponent: i32)
         -> RawFloatState<'a>
     {
         RawFloatState { integer, fraction, exponent }
@@ -120,36 +119,43 @@ mod tests {
 
     #[test]
     fn process_integer_test() {
-        assert_eq!(Ok(1.0), process_integer::<f64>(10, &new_state(b"1", b"2345", b"")));
-        assert_eq!(Ok(12.0), process_integer::<f64>(10, &new_state(b"12", b"345", b"")));
-        assert_eq!(Ok(12345.0), process_integer::<f64>(10, &new_state(b"12345", b"6789", b"")));
+        assert_eq!(1.0, process_integer::<f64>(10, &new_state(b"1", b"2345", 0)));
+        assert_eq!(12.0, process_integer::<f64>(10, &new_state(b"12", b"345", 0)));
+        assert_eq!(12345.0, process_integer::<f64>(10, &new_state(b"12345", b"6789", 0)));
     }
 
     #[test]
     fn process_fraction_test() {
-        assert_eq!(Ok(0.2345), process_fraction::<f64>(10, &new_state(b"1", b"2345", b"")));
-        assert_eq!(Ok(0.345), process_fraction::<f64>(10, &new_state(b"12", b"345", b"")));
-        assert_eq!(Ok(0.6789), process_fraction::<f64>(10, &new_state(b"12345", b"6789", b"")));
+        assert_eq!(0.2345, process_fraction::<f64>(10, &new_state(b"1", b"2345",0)));
+        assert_eq!(0.345, process_fraction::<f64>(10, &new_state(b"12", b"345",0)));
+        assert_eq!(0.6789, process_fraction::<f64>(10, &new_state(b"12345", b"6789",0)));
     }
 
+// TODO(ahuszagh) Restore...
     #[test]
     fn atof_test() {
-        let atof10 = move |x| atof(10, x, Sign::Positive, 0);
+        let atof10 = move |x| match atof(10, x, Sign::Positive) {
+            Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
+            Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
+        };
 
-        assert_eq!(Ok(1.2345), atof10(b"1.2345"));
-        assert_eq!(Ok(12.345), atof10(b"12.345"));
-        assert_eq!(Ok(12345.6789), atof10(b"12345.6789"));
-        assert_f32_eq!(1.2345e10, atof10(b"1.2345e10").unwrap());
+        assert_eq!(Ok((1.2345, 6)), atof10(b"1.2345"));
+        assert_eq!(Ok((12.345, 6)), atof10(b"12.345"));
+        assert_eq!(Ok((12345.6789, 10)), atof10(b"12345.6789"));
+        assert_f32_eq!(1.2345e10, atof10(b"1.2345e10").unwrap().0);
     }
 
     #[test]
     fn atod_test() {
-        let atod10 = move |x| atod(10, x, Sign::Positive, 0);
+        let atod10 = move |x| match atod(10, x, Sign::Positive) {
+            Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
+            Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
+        };
 
-        assert_eq!(Ok(1.2345), atod10(b"1.2345"));
-        assert_eq!(Ok(12.345), atod10(b"12.345"));
-        assert_eq!(Ok(12345.6789), atod10(b"12345.6789"));
-        assert_f64_eq!(1.2345e10, atod10(b"1.2345e10").unwrap());
+        assert_eq!(Ok((1.2345, 6)), atod10(b"1.2345"));
+        assert_eq!(Ok((12.345, 6)), atod10(b"12.345"));
+        assert_eq!(Ok((12345.6789, 10)), atod10(b"12345.6789"));
+        assert_f64_eq!(1.2345e10, atod10(b"1.2345e10").unwrap().0);
     }
 
     // Lossy
@@ -158,21 +164,27 @@ mod tests {
 
     #[test]
     fn atof_lossy_test() {
-        let atof10 = move |x| atof_lossy(10, x, Sign::Positive, 0);
+        let atof10 = move |x| match atof_lossy(10, x, Sign::Positive) {
+            Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
+            Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
+        };
 
-        assert_eq!(Ok(1.2345), atof10(b"1.2345"));
-        assert_eq!(Ok(12.345), atof10(b"12.345"));
-        assert_eq!(Ok(12345.6789), atof10(b"12345.6789"));
-        assert_f32_eq!(1.2345e10, atof10(b"1.2345e10").unwrap());
+        assert_eq!(Ok((1.2345, 6)), atof10(b"1.2345"));
+        assert_eq!(Ok((12.345, 6)), atof10(b"12.345"));
+        assert_eq!(Ok((12345.6789, 10)), atof10(b"12345.6789"));
+        assert_f32_eq!(1.2345e10, atof10(b"1.2345e10").unwrap().0);
     }
 
     #[test]
     fn atod_lossy_test() {
-        let atod10 = move |x| atod_lossy(10, x, Sign::Positive, 0);
+        let atod10 = move |x| match atod_lossy(10, x, Sign::Positive) {
+            Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
+            Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
+        };
 
-        assert_eq!(Ok(1.2345), atod10(b"1.2345"));
-        assert_eq!(Ok(12.345), atod10(b"12.345"));
-        assert_eq!(Ok(12345.6789), atod10(b"12345.6789"));
-        assert_f64_eq!(1.2345e10, atod10(b"1.2345e10").unwrap());
+        assert_eq!(Ok((1.2345, 6)), atod10(b"1.2345"));
+        assert_eq!(Ok((12.345, 6)), atod10(b"12.345"));
+        assert_eq!(Ok((12345.6789, 10)), atod10(b"12345.6789"));
+        assert_f64_eq!(1.2345e10, atod10(b"1.2345e10").unwrap().0);
     }
 }

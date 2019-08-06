@@ -63,13 +63,6 @@
 use util::*;
 use lib::result::Result as StdResult;
 
-// Calculate the offset of a reference inside an array.
-macro_rules! offset {
-    ($arr:ident, $v:ident) => (
-        distance($arr.as_ptr(), $v)
-    );
-}
-
 macro_rules! to_digit {
     ($c:expr, $radix:expr) => (($c as char).to_digit($radix));
 }
@@ -78,20 +71,19 @@ macro_rules! to_digit {
 
 /// Iterate over the digits and iteratively process them.
 macro_rules! standalone {
-    ($value:ident, $radix:ident, $digits:ident, $offset:expr, $op:ident, $code:ident) => (
-        let index = move | c: &u8 | -> usize { offset!($digits, c) + $offset };
+    ($value:ident, $radix:ident, $digits:ident, $op:ident, $code:ident) => (
         for c in $digits.iter() {
             let digit = match to_digit!(*c, $radix) {
                 Some(v) => v,
-                None    => return Err((ErrorCode::InvalidDigit, index(c)).into()),
+                None    => return (Ok($value), c),
             };
             $value = match $value.checked_mul(as_cast($radix)) {
                 Some(v) => v,
-                None    => return Err((ErrorCode::$code, index(c)).into()),
+                None    => return (Err(ErrorCode::$code), c),
             };
             $value = match $value.$op(as_cast(digit)) {
                 Some(v) => v,
-                None    => return Err((ErrorCode::$code, index(c)).into()),
+                None    => return (Err(ErrorCode::$code), c),
             };
         }
     );
@@ -100,33 +92,34 @@ macro_rules! standalone {
 // Standalone atoi processor.
 perftools_inline!{
 pub(crate) fn standalone<T>(radix: u32, bytes: &[u8], is_signed: bool)
-    -> Result<T>
+    -> (StdResult<T, ErrorCode>, *const u8)
     where T: Integer
 {
     // Filter out empty inputs.
     if bytes.is_empty() {
-        return Err(ErrorCode::Empty.into());
+        return (Err(ErrorCode::Empty), bytes.as_ptr());
     }
 
-    let (sign, offset, digits) = match index!(bytes[0]) {
-        b'+'              => (Sign::Positive, 1, &index!(bytes[1..])),
-        b'-' if is_signed => (Sign::Negative, 1, &index!(bytes[1..])),
-        _                  => (Sign::Positive, 0, bytes),
+    let (sign, digits) = match index!(bytes[0]) {
+        b'+'              => (Sign::Positive, &index!(bytes[1..])),
+        b'-' if is_signed => (Sign::Negative, &index!(bytes[1..])),
+        _                 => (Sign::Positive, bytes),
     };
 
     // Filter out empty inputs.
     if digits.is_empty() {
-        return Err(ErrorCode::Empty.into());
+        return (Err(ErrorCode::Empty), digits.as_ptr());
     }
 
     // Parse the integer.
     let mut value = T::ZERO;
     if sign == Sign::Positive {
-        standalone!(value, radix, digits, offset, checked_add, Overflow);
+        standalone!(value, radix, digits, checked_add, Overflow);
     } else {
-        standalone!(value, radix, digits, offset, checked_sub, Underflow);
+        standalone!(value, radix, digits, checked_sub, Underflow);
     }
-    Ok(value)
+    let ptr = index!(bytes[bytes.len()..]).as_ptr();
+    (Ok(value), ptr)
 }}
 
 // Convert character to digit.
@@ -161,7 +154,7 @@ fn add_digit<T>(value: T, digit: u32, radix: u32)
 perftools_inline!{
 #[cfg(feature = "correct")]
 pub(crate) fn standalone_mantissa<'a, T>(radix: u32, integer: &'a [u8], fraction: &'a [u8])
-    -> StdResult<(T, usize), &'a u8>
+    -> (T, usize)
     where T: UnsignedInteger
 {
     // Mote:
@@ -181,7 +174,7 @@ pub(crate) fn standalone_mantissa<'a, T>(radix: u32, integer: &'a [u8], fraction
             Some(v) => v,
             None    => {
                 let truncated = 1 + integer_iter.len() + fraction_iter.len();
-                return Ok((value, truncated));
+                return (value, truncated);
             },
         };
     }
@@ -190,24 +183,24 @@ pub(crate) fn standalone_mantissa<'a, T>(radix: u32, integer: &'a [u8], fraction
             Some(v) => v,
             None    => {
                 let truncated = 1 + fraction_iter.len();
-                return Ok((value, truncated));
+                return (value, truncated);
             },
         };
     }
-    Ok((value, 0))
+    (value, 0)
 }}
 
 // Calculate the mantissa when it cannot have sign or other invalid digits.
 perftools_inline!{
 #[cfg(not(feature = "correct"))]
 pub(crate) fn standalone_mantissa<T>(radix: u32, bytes: &[u8])
-    -> Result<T>
+    -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
     where T: Integer
 {
     // Parse the integer.
     let mut value = T::ZERO;
-    standalone!(value, radix, bytes, 0, checked_add, Overflow);
-    Ok(value)
+    standalone!(value, radix, bytes, checked_add, Overflow);
+    Ok((value, bytes[bytes.len()..].as_ptr()))
 }}
 
 // Add digit to mantissa.
@@ -220,21 +213,24 @@ macro_rules! add_digit {
     };
 }
 
-/// Iterate over the digits and iteratively process them.
+// Iterate over the digits and iteratively process them.
 macro_rules! standalone_exponent {
     ($value:ident, $radix:ident, $digits:ident, $op:ident, $default:expr) => (
         let mut iter = $digits.iter();
         while let Some(c) = iter.next() {
-            let digit = to_digit(c, $radix)?;
+            let digit = match to_digit(c, $radix) {
+                Ok(v)  => v,
+                Err(c) => return Ok(($value, c)),
+            };
             $value = match add_digit!($value, $radix, $op, digit) {
                 Some(v) => v,
                 None    => {
                     // Consume the rest of the iterator to validate
                     // the remaining data.
                     if let Some(c) = iter.find(|&c| is_not_digit_char(*c, $radix)) {
-                        return Err(c);
+                        return Ok(($default, c));
                     }
-                    return Ok($default);
+                    $default
                 },
             };
         }
@@ -244,18 +240,23 @@ macro_rules! standalone_exponent {
 // Specialized parser for the exponent, which validates digits and
 // returns a default min or max value on overflow.
 perftools_inline!{
-pub(crate) fn standalone_exponent<'a>(radix: u32, bytes: &'a [u8])
-    -> StdResult<i32, &'a u8>
+pub(crate) fn standalone_exponent(radix: u32, bytes: &[u8])
+    -> StdResult<(i32, *const u8), (ErrorCode, *const u8)>
 {
+    // Filter out empty inputs.
+    if bytes.is_empty() {
+        return Err((ErrorCode::EmptyExponent, bytes.as_ptr()));
+    }
+
     let (sign, digits) = match index!(bytes[0]) {
-        b'+'              => (Sign::Positive, &index!(bytes[1..])),
-        b'-'              => (Sign::Negative, &index!(bytes[1..])),
-        _                 => (Sign::Positive, bytes),
+        b'+' => (Sign::Positive, &index!(bytes[1..])),
+        b'-' => (Sign::Negative, &index!(bytes[1..])),
+        _    => (Sign::Positive, bytes),
     };
 
     // Filter out empty inputs.
     if digits.is_empty() {
-        return Err(&index!(bytes[0]));
+        return Err((ErrorCode::EmptyExponent, digits.as_ptr()));
     }
 
     // Parse the integer.
@@ -265,62 +266,92 @@ pub(crate) fn standalone_exponent<'a>(radix: u32, bytes: &'a [u8])
     } else {
         standalone_exponent!(value, radix, digits, checked_sub, i32::min_value());
     }
-    Ok(value)
+    let ptr = index!(bytes[bytes.len()..]).as_ptr();
+    Ok((value, ptr))
 }}
-
 
 // Handle unsigned +/- numbers and forward to implied implementation.
 //  Can just use local namespace
 perftools_inline!{
 pub(crate) fn standalone_unsigned<'a, T>(radix: u32, bytes: &'a [u8])
-    -> Result<T>
+    -> Result<(T, usize)>
     where T: UnsignedInteger
 {
-    standalone(radix, bytes, false)
+    let index = | ptr | distance(bytes.as_ptr(), ptr);
+    match standalone(radix, bytes, false) {
+        (Ok(value), ptr) => Ok((value, index(ptr))),
+        (Err(code), ptr) => Err((code, index(ptr)).into()),
+    }
 }}
 
 // Handle signed +/- numbers and forward to implied implementation.
 //  Can just use local namespace
 perftools_inline!{
 pub(crate) fn standalone_signed<'a, T>(radix: u32, bytes: &'a [u8])
-    -> Result<T>
+    -> Result<(T, usize)>
     where T: SignedInteger
 {
-    standalone(radix, bytes, true)
+    let index = | ptr | distance(bytes.as_ptr(), ptr);
+    match standalone(radix, bytes, true) {
+        (Ok(value), ptr) => Ok((value, index(ptr))),
+        (Err(code), ptr) => Err((code, index(ptr)).into()),
+    }
 }}
 
 // API
 // ---
 
 // RANGE API (FFI)
-generate_from_range_api!(atou8_range, atou8_radix_range, u8, standalone_unsigned);
-generate_from_range_api!(atou16_range, atou16_radix_range, u16, standalone_unsigned);
-generate_from_range_api!(atou32_range, atou32_radix_range, u32, standalone_unsigned);
-generate_from_range_api!(atou64_range, atou64_radix_range, u64, standalone_unsigned);
-generate_from_range_api!(atousize_range, atousize_radix_range, usize, standalone_unsigned);
-generate_from_range_api!(atoi8_range, atoi8_radix_range, i8, standalone_signed);
-generate_from_range_api!(atoi16_range, atoi16_radix_range, i16, standalone_signed);
-generate_from_range_api!(atoi32_range, atoi32_radix_range, i32, standalone_signed);
-generate_from_range_api!(atoi64_range, atoi64_radix_range, i64, standalone_signed);
-generate_from_range_api!(atoisize_range, atoisize_radix_range, isize, standalone_signed);
 
-#[cfg(has_i128)] generate_from_range_api!(atou128_range, atou128_radix_range, u128, standalone_unsigned);
-#[cfg(has_i128)] generate_from_range_api!(atoi128_range, atoi128_radix_range, i128, standalone_signed);
+macro_rules! generate_unsigned_range {
+    ($t:ty $(, $i:ident)+) => { generate_from_range_api!($($i, )* $t, standalone_unsigned); };
+}
+
+macro_rules! generate_signed_range {
+    ($t:ty $(, $i:ident)+) => { generate_from_range_api!($($i, )* $t, standalone_signed); };
+}
+
+generate_unsigned_range!(u8, atou8_range, atou8_radix_range, leading_atou8_range, leading_atou8_radix_range);
+generate_unsigned_range!(u16, atou16_range, atou16_radix_range, leading_atou16_range, leading_atou16_radix_range);
+generate_unsigned_range!(u32, atou32_range, atou32_radix_range, leading_atou32_range, leading_atou32_radix_range);
+generate_unsigned_range!(u64, atou64_range, atou64_radix_range, leading_atou64_range, leading_atou64_radix_range);
+generate_unsigned_range!(usize, atousize_range, atousize_radix_range, leading_atousize_range, leading_atousize_radix_range);
+#[cfg(has_i128)]
+generate_unsigned_range!(u128, atou128_range, atou128_radix_range, leading_atou128_range, leading_atou128_radix_range);
+
+generate_signed_range!(i8, atoi8_range, atoi8_radix_range, leading_atoi8_range, leading_atoi8_radix_range);
+generate_signed_range!(i16, atoi16_range, atoi16_radix_range, leading_atoi16_range, leading_atoi16_radix_range);
+generate_signed_range!(i32, atoi32_range, atoi32_radix_range, leading_atoi32_range, leading_atoi32_radix_range);
+generate_signed_range!(i64, atoi64_range, atoi64_radix_range, leading_atoi64_range, leading_atoi64_radix_range);
+generate_signed_range!(isize, atoisize_range, atoisize_radix_range, leading_atoisize_range, leading_atoisize_radix_range);
+#[cfg(has_i128)]
+generate_signed_range!(i128, atoi128_range, atoi128_radix_range, leading_atoi128_range, leading_atoi128_radix_range);
 
 // SLICE API
-generate_from_slice_api!(atou8_slice, atou8_radix_slice, u8, standalone_unsigned);
-generate_from_slice_api!(atou16_slice, atou16_radix_slice, u16, standalone_unsigned);
-generate_from_slice_api!(atou32_slice, atou32_radix_slice, u32, standalone_unsigned);
-generate_from_slice_api!(atou64_slice, atou64_radix_slice, u64, standalone_unsigned);
-generate_from_slice_api!(atousize_slice, atousize_radix_slice, usize, standalone_unsigned);
-generate_from_slice_api!(atoi8_slice, atoi8_radix_slice, i8, standalone_signed);
-generate_from_slice_api!(atoi16_slice, atoi16_radix_slice, i16, standalone_signed);
-generate_from_slice_api!(atoi32_slice, atoi32_radix_slice, i32, standalone_signed);
-generate_from_slice_api!(atoi64_slice, atoi64_radix_slice, i64, standalone_signed);
-generate_from_slice_api!(atoisize_slice, atoisize_radix_slice, isize, standalone_signed);
 
-#[cfg(has_i128)] generate_from_slice_api!(atou128_slice, atou128_radix_slice, u128, standalone_unsigned);
-#[cfg(has_i128)] generate_from_slice_api!(atoi128_slice, atoi128_radix_slice, i128, standalone_signed);
+macro_rules! generate_unsigned_slice {
+    ($t:ty $(, $i:ident)+) => { generate_from_slice_api!($($i, )* $t, standalone_unsigned); };
+}
+
+macro_rules! generate_signed_slice {
+    ($t:ty $(, $i:ident)+) => { generate_from_slice_api!($($i, )* $t, standalone_signed); };
+}
+
+generate_unsigned_slice!(u8, atou8_slice, atou8_radix_slice, leading_atou8_slice, leading_atou8_radix_slice);
+generate_unsigned_slice!(u16, atou16_slice, atou16_radix_slice, leading_atou16_slice, leading_atou16_radix_slice);
+generate_unsigned_slice!(u32, atou32_slice, atou32_radix_slice, leading_atou32_slice, leading_atou32_radix_slice);
+generate_unsigned_slice!(u64, atou64_slice, atou64_radix_slice, leading_atou64_slice, leading_atou64_radix_slice);
+generate_unsigned_slice!(usize, atousize_slice, atousize_radix_slice, leading_atousize_slice, leading_atousize_radix_slice);
+#[cfg(has_i128)]
+generate_unsigned_slice!(u128, atou128_slice, atou128_radix_slice, leading_atou128_slice, leading_atou128_radix_slice);
+
+generate_signed_slice!(i8, atoi8_slice, atoi8_radix_slice, leading_atoi8_slice, leading_atoi8_radix_slice);
+generate_signed_slice!(i16, atoi16_slice, atoi16_radix_slice, leading_atoi16_slice, leading_atoi16_radix_slice);
+generate_signed_slice!(i32, atoi32_slice, atoi32_radix_slice, leading_atoi32_slice, leading_atoi32_radix_slice);
+generate_signed_slice!(i64, atoi64_slice, atoi64_radix_slice, leading_atoi64_slice, leading_atoi64_radix_slice);
+generate_signed_slice!(isize, atoisize_slice, atoisize_radix_slice, leading_atoisize_slice, leading_atoisize_radix_slice);
+#[cfg(has_i128)]
+generate_signed_slice!(i128, atoi128_slice, atoi128_radix_slice, leading_atoi128_slice, leading_atoi128_radix_slice);
 
 // TESTS
 // -----

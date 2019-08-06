@@ -3,6 +3,7 @@
 //! Uses either the imprecise or the precise algorithm.
 
 use util::*;
+use lib::result::Result as StdResult;
 
 // Select the back-end
 cfg_if! {
@@ -17,33 +18,41 @@ if #[cfg(feature = "correct")] {
 /// Trait to define parsing of a string to float.
 trait StringToFloat: Float {
     /// Serialize string to float, favoring correctness.
-    fn default(radix: u32, bytes: &[u8], sign: Sign, offset: usize) -> Result<Self>;
+    fn default(radix: u32, bytes: &[u8], sign: Sign) -> StdResult<(Self, *const u8), (ErrorCode, *const u8)>;
 
     /// Serialize string to float, prioritizing speed over correctness.
-    fn lossy(radix: u32, bytes: &[u8], sign: Sign, offset: usize) -> Result<Self>;
+    fn lossy(radix: u32, bytes: &[u8], sign: Sign) -> StdResult<(Self, *const u8), (ErrorCode, *const u8)>;
 }
 
 impl StringToFloat for f32 {
     perftools_inline_always!{
-    fn default(radix: u32, bytes: &[u8], sign: Sign, offset: usize) -> Result<f32> {
-        algorithm::atof(radix, bytes, sign, offset)
+    fn default(radix: u32, bytes: &[u8], sign: Sign)
+        -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
+    {
+        algorithm::atof(radix, bytes, sign)
     }}
 
     perftools_inline_always!{
-    fn lossy(radix: u32, bytes: &[u8], sign: Sign, offset: usize) -> Result<f32> {
-        algorithm::atof_lossy(radix, bytes, sign, offset)
+    fn lossy(radix: u32, bytes: &[u8], sign: Sign)
+        -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
+    {
+        algorithm::atof_lossy(radix, bytes, sign)
     }}
 }
 
 impl StringToFloat for f64 {
     perftools_inline_always!{
-    fn default(radix: u32, bytes: &[u8], sign: Sign, offset: usize) -> Result<f64> {
-        algorithm::atod(radix, bytes, sign, offset)
+    fn default(radix: u32, bytes: &[u8], sign: Sign)
+        -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
+    {
+        algorithm::atod(radix, bytes, sign)
     }}
 
     perftools_inline_always!{
-    fn lossy(radix: u32, bytes: &[u8], sign: Sign, offset: usize) -> Result<f64> {
-        algorithm::atod_lossy(radix, bytes, sign, offset)
+    fn lossy(radix: u32, bytes: &[u8], sign: Sign)
+        -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
+    {
+        algorithm::atod_lossy(radix, bytes, sign)
     }}
 }
 
@@ -68,12 +77,12 @@ fn is_infinity(bytes: &[u8]) -> bool {
 // PARSER
 
 perftools_inline!{
-fn parse_float<F: StringToFloat>(radix: u32, bytes: &[u8], lossy: bool, sign: Sign, offset: usize)
-    -> Result<F>
+fn parse_float<F: StringToFloat>(radix: u32, bytes: &[u8], lossy: bool, sign: Sign)
+    -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
 {
     match lossy {
-        true  => F::lossy(radix, bytes, sign, offset),
-        false => F::default(radix, bytes, sign, offset),
+        true  => F::lossy(radix, bytes, sign),
+        false => F::default(radix, bytes, sign),
     }
 }}
 
@@ -82,95 +91,105 @@ fn parse_float<F: StringToFloat>(radix: u32, bytes: &[u8], lossy: bool, sign: Si
 // Standalone atof processor.
 perftools_inline!{
 fn atof<F: StringToFloat>(radix: u32, bytes: &[u8], lossy: bool)
-    -> Result<F>
+    -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
 {
     // Filter out empty inputs.
     if bytes.is_empty() {
-        return Err(ErrorCode::Empty.into());
+        return Err((ErrorCode::Empty, bytes.as_ptr()));
     }
 
-    let (sign, offset, bytes) = match index!(bytes[0]) {
-        b'+' => (Sign::Positive, 1, &index!(bytes[1..])),
-        b'-' => (Sign::Negative, 1, &index!(bytes[1..])),
-        _    => (Sign::Positive, 0, bytes),
+    let (sign, bytes) = match index!(bytes[0]) {
+        b'+' => (Sign::Positive, &index!(bytes[1..])),
+        b'-' => (Sign::Negative, &index!(bytes[1..])),
+        _    => (Sign::Positive, bytes),
     };
 
     // Filter out empty inputs.
     if bytes.is_empty() {
-        return Err(ErrorCode::Empty.into());
+        return Err((ErrorCode::Empty, bytes.as_ptr()));
     }
 
     // Special case checks
     // Use predictive parsing to filter special cases. This leads to
     // dramatic performance gains.
-    let float = match index!(bytes[0]) {
+    let last = || index!(bytes[bytes.len()..]).as_ptr();
+    let (float, ptr) = match index!(bytes[0]) {
         b'i' | b'I' => {
             // Check long infinity first before short infinity.
             // Short infinity short-circuits, we want to parse as many characters
             // as possible.
             if is_infinity(bytes) || is_inf(bytes) {
                 // Have a valid long-form or short-form infinity.
-                Ok(F::INFINITY)
+                Ok((F::INFINITY, last()))
             } else {
                 // Not infinity, may be valid with a different radix.
                 if cfg!(feature = "radix"){
-                    parse_float(radix, bytes, lossy, sign, offset)
+                    parse_float(radix, bytes, lossy, sign)
                 } else {
-                    Err((ErrorCode::InvalidDigit, offset).into())
+                    Err((ErrorCode::InvalidDigit, bytes.as_ptr()))
                 }
             }
         },
         b'N' | b'n' => {
             if is_nan(bytes) {
                 // Have a valid NaN.
-                Ok(F::NAN)
+                Ok((F::NAN, last()))
             } else {
                 // Not NaN, may be valid with a different radix.
                 if cfg!(feature = "radix"){
-                    parse_float(radix, bytes, lossy, sign, offset)
+                    parse_float(radix, bytes, lossy, sign)
                 } else {
-                    Err((ErrorCode::InvalidDigit, offset).into())
+                    Err((ErrorCode::InvalidDigit, bytes.as_ptr()))
                 }
             }
         },
-        _   => parse_float(radix, bytes, lossy, sign, offset),
+        _   => parse_float(radix, bytes, lossy, sign),
     }?;
 
     // Process the sign.
-    Ok(match sign {
+    let signed_float = match sign {
         Sign::Positive => float,
         Sign::Negative => -float,
-    })
+    };
+    Ok((signed_float, ptr))
 }}
 
 perftools_inline!{
 fn atof_lossy<F: StringToFloat>(radix: u32, bytes: &[u8])
-    -> Result<F>
+    -> Result<(F, usize)>
 {
-    atof::<F>(radix, bytes, true)
+    let index = | ptr | distance(bytes.as_ptr(), ptr);
+    match atof::<F>(radix, bytes, true) {
+        Ok((value, ptr)) => Ok((value, index(ptr))),
+        Err((code, ptr)) => Err((code, index(ptr)).into()),
+    }
 }}
 
 perftools_inline!{
 fn atof_nonlossy<F: StringToFloat>(radix: u32, bytes: &[u8])
-    -> Result<F>
+    -> Result<(F, usize)>
 {
-    atof::<F>(radix, bytes, false)
+    let index = | ptr | distance(bytes.as_ptr(), ptr);
+    match atof::<F>(radix, bytes, false) {
+        Ok((value, ptr)) => Ok((value, index(ptr))),
+        Err((code, ptr)) => Err((code, index(ptr)).into()),
+    }
 }}
 
 // API
 // ---
 
 // RANGE API (FFI)
-generate_from_range_api!(atof32_range, atof32_radix_range, f32, atof_nonlossy);
-generate_from_range_api!(atof32_lossy_range, atof32_lossy_radix_range, f32, atof_lossy);
-generate_from_range_api!(atof64_range, atof64_radix_range, f64, atof_nonlossy);
-generate_from_range_api!(atof64_lossy_range, atof64_lossy_radix_range, f64, atof_lossy);
+generate_from_range_api!(atof32_range, atof32_radix_range, leading_atof32_range, leading_atof32_radix_range, f32, atof_nonlossy);
+generate_from_range_api!(atof32_lossy_range, atof32_lossy_radix_range, leading_atof32_lossy_range, leading_atof32_lossy_radix_range, f32, atof_lossy);
+generate_from_range_api!(atof64_range, atof64_radix_range, leading_atof64_range, leading_atof64_radix_range, f64, atof_nonlossy);
+generate_from_range_api!(atof64_lossy_range, atof64_lossy_radix_range, leading_atof64_lossy_range, leading_atof64_lossy_radix_range, f64, atof_lossy);
 
 // SLICE API
-generate_from_slice_api!(atof32_slice, atof32_radix_slice, f32, atof_nonlossy);
-generate_from_slice_api!(atof32_lossy_slice, atof32_lossy_radix_slice, f32, atof_lossy);
-generate_from_slice_api!(atof64_slice, atof64_radix_slice, f64, atof_nonlossy);
-generate_from_slice_api!(atof64_lossy_slice, atof64_lossy_radix_slice, f64, atof_lossy);
+generate_from_slice_api!(atof32_slice, atof32_radix_slice, leading_atof32_slice, leading_atof32_radix_slice, f32, atof_nonlossy);
+generate_from_slice_api!(atof32_lossy_slice, atof32_lossy_radix_slice, leading_atof32_lossy_slice, leading_atof32_lossy_radix_slice, f32, atof_lossy);
+generate_from_slice_api!(atof64_slice, atof64_radix_slice, leading_atof64_slice, leading_atof64_radix_slice, f64, atof_nonlossy);
+generate_from_slice_api!(atof64_lossy_slice, atof64_lossy_radix_slice, leading_atof64_lossy_slice, leading_atof64_lossy_radix_slice, f64, atof_lossy);
 
 // TESTS
 // -----
@@ -234,14 +253,14 @@ mod tests {
 
         // Check various expected failures.
         assert_eq!(Err(ErrorCode::Empty.into()), atof32_slice(b""));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), atof32_slice(b"e"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), atof32_slice(b"E"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), atof32_slice(b"e"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), atof32_slice(b"E"));
         assert_eq!(Err(ErrorCode::EmptyFraction.into()), atof32_slice(b".e1"));
         assert_eq!(Err(ErrorCode::EmptyFraction.into()), atof32_slice(b".e-1"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), atof32_slice(b"e1"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), atof32_slice(b"e-1"));
-        assert_eq!(Err(ErrorCode::Empty.into()), atof32_slice(b"+"));
-        assert_eq!(Err(ErrorCode::Empty.into()), atof32_slice(b"-"));
+        assert_eq!(Err((ErrorCode::Empty, 1).into()), atof32_slice(b"+"));
+        assert_eq!(Err((ErrorCode::Empty, 1).into()), atof32_slice(b"-"));
 
         // Bug fix for Issue #8
         assert_eq!(Ok(5.002868148396374), atof32_slice(b"5.002868148396374"));
@@ -348,29 +367,29 @@ mod tests {
 
         // Check various expected failures.
         assert_eq!(Err(ErrorCode::Empty.into()), atof64_slice(b""));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), atof64_slice(b"e"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), atof64_slice(b"E"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), atof64_slice(b"e"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), atof64_slice(b"E"));
         assert_eq!(Err(ErrorCode::EmptyFraction.into()), atof64_slice(b".e1"));
         assert_eq!(Err(ErrorCode::EmptyFraction.into()), atof64_slice(b".e-1"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), atof64_slice(b"e1"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), atof64_slice(b"e-1"));
 
         // Check various reports from a fuzzer.
-        assert_eq!(Err(ErrorCode::EmptyExponent.into()), atof64_slice(b"0e"));
-        assert_eq!(Err(ErrorCode::EmptyExponent.into()), atof64_slice(b"0.0e"));
-        assert_eq!(Err(ErrorCode::EmptyFraction.into()), atof64_slice(b".E"));
-        assert_eq!(Err(ErrorCode::EmptyFraction.into()), atof64_slice(b".e"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 2).into()), atof64_slice(b"0e"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 4).into()), atof64_slice(b"0.0e"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 2).into()), atof64_slice(b".E"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 2).into()), atof64_slice(b".e"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), atof64_slice(b"E2252525225"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), atof64_slice(b"e2252525225"));
         assert_eq!(Ok(f64::INFINITY), atof64_slice(b"2E200000000000"));
 
         // Add various unittests from proptests.
-        assert_eq!(Err(ErrorCode::EmptyExponent.into()), atof64_slice(b"0e"));
-        assert_eq!(Err(ErrorCode::EmptyFraction.into()), atof64_slice(b"."));
-        assert_eq!(Err(ErrorCode::EmptyFraction.into()), atof64_slice(b"+."));
-        assert_eq!(Err(ErrorCode::EmptyFraction.into()), atof64_slice(b"-."));
-        assert_eq!(Err(ErrorCode::Empty.into()), atof64_slice(b"+"));
-        assert_eq!(Err(ErrorCode::Empty.into()), atof64_slice(b"-"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 2).into()), atof64_slice(b"0e"));
+        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), atof64_slice(b"."));
+        assert_eq!(Err((ErrorCode::EmptyFraction, 1).into()), atof64_slice(b"+."));
+        assert_eq!(Err((ErrorCode::EmptyFraction, 1).into()), atof64_slice(b"-."));
+        assert_eq!(Err((ErrorCode::Empty, 1).into()), atof64_slice(b"+"));
+        assert_eq!(Err((ErrorCode::Empty, 1).into()), atof64_slice(b"-"));
 
         // Bug fix for Issue #8
         assert_eq!(Ok(5.002868148396374), atof64_slice(b"5.002868148396374"));
@@ -390,25 +409,25 @@ mod tests {
     }
 
     #[test]
-    fn try_atof32_base10_test() {
-        assert_eq!(Err(ErrorCode::EmptyFraction.into()), atof32_slice(b"."));
-        assert_eq!(Err(ErrorCode::Empty.into()), atof32_slice(b""));
-        assert_eq!(Ok(0.0), atof32_slice(b"0.0"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atof32_slice(b"1a"));
+    fn atof32_lossy_base10_test() {
+        assert_eq!(Err(ErrorCode::EmptyFraction.into()), atof32_lossy_slice(b"."));
+        assert_eq!(Err(ErrorCode::Empty.into()), atof32_lossy_slice(b""));
+        assert_eq!(Ok(0.0), atof32_lossy_slice(b"0.0"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atof32_lossy_slice(b"1a"));
 
         // Bug fix for Issue #8
-        assert_eq!(Ok(5.002868148396374), atof32_slice(b"5.002868148396374"));
+        assert_eq!(Ok(5.002868148396374), atof32_lossy_slice(b"5.002868148396374"));
     }
 
     #[test]
-    fn try_atof64_base10_test() {
-        assert_eq!(Err(ErrorCode::EmptyFraction.into()), atof64_slice(b"."));
-        assert_eq!(Err(ErrorCode::Empty.into()), atof64_slice(b""));
-        assert_eq!(Ok(0.0), atof64_slice(b"0.0"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atof64_slice(b"1a"));
+    fn atof64_lossy_base10_test() {
+        assert_eq!(Err(ErrorCode::EmptyFraction.into()), atof64_lossy_slice(b"."));
+        assert_eq!(Err(ErrorCode::Empty.into()), atof64_lossy_slice(b""));
+        assert_eq!(Ok(0.0), atof64_lossy_slice(b"0.0"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atof64_lossy_slice(b"1a"));
 
         // Bug fix for Issue #8
-        assert_eq!(Ok(5.002868148396374), atof64_slice(b"5.002868148396374"));
+        assert_eq!(Ok(5.002868148396374), atof64_lossy_slice(b"5.002868148396374"));
     }
 
     #[cfg(feature = "std")]
@@ -426,7 +445,7 @@ mod tests {
             let res = atof32_slice(i.as_bytes());
             prop_assert!(res.is_err());
             let err = res.err().unwrap();
-            prop_assert_eq!(err.code, ErrorCode::InvalidDigit);
+            prop_assert!(err.code == ErrorCode::InvalidDigit || err.code == ErrorCode::EmptyFraction);
             prop_assert!(err.index == 0 || err.index == 1);
         }
 
@@ -489,7 +508,7 @@ mod tests {
             let res = atof64_slice(i.as_bytes());
             prop_assert!(res.is_err());
             let err = res.err().unwrap();
-            prop_assert_eq!(err.code, ErrorCode::InvalidDigit);
+            prop_assert!(err.code == ErrorCode::InvalidDigit || err.code == ErrorCode::EmptyFraction);
             prop_assert!(err.index == 0 || err.index == 1);
         }
 
