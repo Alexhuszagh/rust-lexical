@@ -5,19 +5,8 @@ use super::algorithm::distance;
 use super::error::ErrorCode;
 use super::num::Number;
 use super::pointer_methods::PointerMethods;
-use super::result::*;
 
 // HELPERS
-
-/// Convert a pointer range to a slice safely.
-#[allow(dead_code)]
-#[inline]
-pub(crate) unsafe fn slice_from_range<'a, T>(first: *const T, last: *const T)
-    -> &'a [T]
-{
-    assert!(first <= last && !first.is_null() && !last.is_null());
-    slice::from_raw_parts(first, distance(first, last))
-}
 
 /// Convert a mutable pointer range to a mutable slice safely.
 #[inline]
@@ -74,7 +63,7 @@ macro_rules! generate_from_range_api {
         /// Panics if either pointer is null.
         #[no_mangle]
         pub unsafe extern fn $decimal_name(first: *const u8, last: *const u8)
-            -> ResultFfi<$t>
+            -> $crate::ffi::Result<$t>
         {
             assert!(first <= last && !first.is_null() && !last.is_null());
             let bytes = $crate::lib::slice::from_raw_parts(first, distance(first, last));
@@ -101,11 +90,14 @@ macro_rules! generate_from_range_api {
         /// Panics if either pointer is null.
         #[no_mangle]
         pub unsafe extern fn $leading_decimal_name(first: *const u8, last: *const u8)
-            -> ResultFfi<($t, usize)>
+            -> $crate::ffi::Result<$crate::ffi::Tuple<$t, usize>>
         {
             assert!(first <= last && !first.is_null() && !last.is_null());
             let bytes = $crate::lib::slice::from_raw_parts(first, distance(first, last));
-            $cb(10, bytes).into()
+            match $cb(10, bytes) {
+                Ok(v)  => Ok(v.into()),
+                Err(e) => Err(e),
+            }.into()
         }
 
         /// Checked parser for a string-to-number conversion using Rust pointer ranges.
@@ -127,7 +119,7 @@ macro_rules! generate_from_range_api {
         #[cfg(feature = "radix")]
         #[no_mangle]
         pub unsafe extern fn $radix_name(radix: u8, first: *const u8, last: *const u8)
-            -> ResultFfi<$t>
+            -> $crate::ffi::Result<$t>
         {
             assert_radix!(radix);
             assert!(first <= last && !first.is_null() && !last.is_null());
@@ -158,12 +150,15 @@ macro_rules! generate_from_range_api {
         #[cfg(feature = "radix")]
         #[no_mangle]
         pub unsafe extern fn $leading_radix_name(radix: u8, first: *const u8, last: *const u8)
-            -> ResultFfi<($t, usize)>
+            -> $crate::ffi::Result<$crate::ffi::Tuple<$t, usize>>
         {
             assert_radix!(radix);
             assert!(first <= last && !first.is_null() && !last.is_null());
             let bytes = $crate::lib::slice::from_raw_parts(first, distance(first, last));
-            $cb(radix.as_u32(), bytes).into()
+            match $cb(radix.as_u32(), bytes) {
+                Ok(v)  => Ok(v.into()),
+                Err(e) => Err(e),
+            }.into()
         }
     )
 }

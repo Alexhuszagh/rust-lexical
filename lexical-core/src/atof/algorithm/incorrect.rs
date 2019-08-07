@@ -131,7 +131,6 @@ mod tests {
         assert_eq!(0.6789, process_fraction::<f64>(10, &new_state(b"12345", b"6789",0)));
     }
 
-// TODO(ahuszagh) Restore...
     #[test]
     fn atof_test() {
         let atof10 = move |x| match atof(10, x, Sign::Positive) {

@@ -184,6 +184,47 @@ pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes)
     N::from_lexical(bytes.as_ref())
 }
 
+/// High-level, partial conversion of decimal-encoded bytes to a number.
+///
+/// This functions parses as many digits as possible, returning the parsed
+/// value and the number of digits processed if at least one character
+/// is processed. If another error, such as numerical overflow or underflow
+/// occurs, this function returns the error code and the index at which
+/// the error occurred.
+///
+/// * `bytes`   - Byte slice to convert to number.
+///
+/// # Examples
+///
+/// ```rust
+/// # extern crate lexical;
+/// # use lexical::ErrorCode;
+/// # pub fn main() {
+///
+/// // String overloads
+/// assert_eq!(lexical::parse_partial::<i32, _>("5"), Ok((5, 1)));
+/// assert_eq!(lexical::parse_partial::<i32, _>("1a"), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial::<f32, _>("0"), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial::<f32, _>("1.0"), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial::<f32, _>("1."), Ok((1.0, 2)));
+///
+/// // Bytes overloads
+/// assert_eq!(lexical::parse_partial::<i32, _>(b"5"), Ok((5, 1)));
+/// assert_eq!(lexical::parse_partial::<i32, _>(b"1a"), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial::<f32, _>(b"0"), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial::<f32, _>(b"1.0"), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial::<f32, _>(b"1."), Ok((1.0, 2)));
+/// # assert_eq!(lexical::parse_partial::<f32, _>(b"5.002868148396374"), Ok((5.002868148396374, 17)));
+/// # assert_eq!(lexical::parse_partial::<f64, _>(b"5.002868148396374"), Ok((5.002868148396374, 17)));
+/// # }
+/// ```
+#[inline]
+pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial(bytes.as_ref())
+}
+
 /// High-level lossy conversion of decimal-encoded bytes to a number.
 ///
 /// This function uses aggressive optimizations to avoid worst-case
@@ -223,6 +264,47 @@ pub fn parse_lossy<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
     -> Result<N>
 {
     N::from_lexical_lossy(bytes.as_ref())
+}
+
+/// High-level, partial, lossy conversion of decimal-encoded bytes to a number.
+///
+/// This function uses aggressive optimizations to avoid worst-case
+/// scenarios, and can return inaccurate results. For guaranteed accurate
+/// floats, use [`parse_partial`].
+///
+/// This functions parses as many digits as possible, returning the parsed
+/// value and the number of digits processed if at least one character
+/// is processed. If another error, such as numerical overflow or underflow
+/// occurs, this function returns the error code and the index at which
+/// the error occurred.
+///
+/// * `bytes`   - Byte slice to convert to number.
+///
+/// # Examples
+///
+/// ```rust
+/// # extern crate lexical;
+/// # use lexical::ErrorCode;
+/// # pub fn main() {
+///
+/// // String overloads
+/// assert_eq!(lexical::parse_partial_lossy::<f32, _>("0"), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_lossy::<f32, _>("1.0"), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_lossy::<f32, _>("1."), Ok((1.0, 2)));
+///
+/// // Bytes overloads
+/// assert_eq!(lexical::parse_partial_lossy::<f32, _>(b"0"), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_lossy::<f32, _>(b"1.0"), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_lossy::<f32, _>(b"1."), Ok((1.0, 2)));
+/// # }
+/// ```
+///
+/// [`parse_partial`]: fn.parse_partial.html
+#[inline]
+pub fn parse_partial_lossy<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_lossy(bytes.as_ref())
 }
 
 /// High-level conversion of bytes to a number with a custom radix.
@@ -276,7 +358,58 @@ pub fn parse_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
     N::from_lexical_radix(bytes.as_ref(), radix)
 }
 
-/// High-level lossy conversion of bytes to a float with a custom radix.
+/// High-level, partial conversion of bytes to a number with a custom radix.
+///
+/// This functions parses as many digits as possible, returning the parsed
+/// value and the number of digits processed if at least one character
+/// is processed. If another error, such as numerical overflow or underflow
+/// occurs, this function returns the error code and the index at which
+/// the error occurred.
+///
+/// * `bytes`   - Byte slice to convert to number.
+/// * `radix`   - Number of unique digits for the number (base).
+///
+/// # Examples
+///
+/// ```rust
+/// # extern crate lexical;
+/// # use lexical::ErrorCode;
+/// # pub fn main() {
+///
+/// // String overloads
+/// assert_eq!(lexical::parse_partial_radix::<i32, _>("5", 10), Ok((5, 1)));
+/// assert_eq!(lexical::parse_partial_radix::<i32, _>("1a", 10), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_radix::<i32, _>("1.", 10), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_radix::<f32, _>("0", 10), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_radix::<f32, _>("1.0", 10), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_radix::<f32, _>("1.", 10), Ok((1.0, 2)));
+/// assert_eq!(lexical::parse_partial_radix::<f32, _>("1a", 10), Ok((1.0, 1)));
+/// assert_eq!(lexical::parse_partial_radix::<f32, _>("1.0.", 10), Ok((1.0, 3)));
+///
+/// // Bytes overloads
+/// assert_eq!(lexical::parse_partial_radix::<i32, _>(b"5", 10), Ok((5, 1)));
+/// assert_eq!(lexical::parse_partial_radix::<i32, _>(b"1a", 10), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_radix::<i32, _>(b"1.", 10), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_radix::<f32, _>(b"0", 10), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_radix::<f32, _>(b"1.0", 10), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_radix::<f32, _>(b"1.", 10), Ok((1.0, 2)));
+/// assert_eq!(lexical::parse_partial_radix::<f32, _>(b"1a", 10), Ok((1.0, 1)));
+/// assert_eq!(lexical::parse_partial_radix::<f32, _>(b"1.0.", 10), Ok((1.0, 3)));
+/// # }
+/// ```
+///
+/// # Panics
+///
+/// Panics if radix is not in the range `[2, 36]`
+#[cfg(feature = "radix")]
+#[inline]
+pub fn parse_partial_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_radix(bytes.as_ref(), radix)
+}
+
+/// High-level, lossy conversion of bytes to a float with a custom radix.
 ///
 /// This function uses aggressive optimizations to avoid worst-case
 /// scenarios, and can return inaccurate results. For guaranteed accurate
@@ -323,4 +456,53 @@ pub fn parse_lossy_radix<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, 
     -> Result<N>
 {
     N::from_lexical_lossy_radix(bytes.as_ref(), radix)
+}
+
+/// High-level, partial lossy conversion of bytes to a number with a custom radix.
+///
+/// This function uses aggressive optimizations to avoid worst-case
+/// scenarios, and can return inaccurate results. For guaranteed accurate
+/// floats, use [`parse_radix`].
+///
+/// This functions parses as many digits as possible, returning the parsed
+/// value and the number of digits processed if at least one character
+/// is processed. If another error, such as numerical overflow or underflow
+/// occurs, this function returns the error code and the index at which
+/// the error occurred.
+///
+/// * `bytes`   - Byte slice to convert to number.
+/// * `radix`   - Number of unique digits for the number (base).
+///
+/// # Examples
+///
+/// ```rust
+/// # extern crate lexical;
+/// # use lexical::ErrorCode;
+/// # pub fn main() {
+///
+/// // String overloads
+/// assert_eq!(lexical::parse_partial_lossy_radix::<f32, _>("0", 10), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_lossy_radix::<f32, _>("1.0", 10), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_lossy_radix::<f32, _>("1.", 10), Ok((1.0, 2)));
+/// assert_eq!(lexical::parse_partial_lossy_radix::<f32, _>("1a", 10), Ok((1.0, 1)));
+/// assert_eq!(lexical::parse_partial_lossy_radix::<f32, _>("1.0.", 10), Ok((1.0, 3)));
+///
+/// // Bytes overloads
+/// assert_eq!(lexical::parse_partial_lossy_radix::<f32, _>(b"0", 10), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_lossy_radix::<f32, _>(b"1.0", 10), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_lossy_radix::<f32, _>(b"1.", 10), Ok((1.0, 2)));
+/// assert_eq!(lexical::parse_partial_lossy_radix::<f32, _>(b"1a", 10), Ok((1.0, 1)));
+/// assert_eq!(lexical::parse_partial_lossy_radix::<f32, _>(b"1.0.", 10), Ok((1.0, 3)));
+/// # }
+/// ```
+///
+/// # Panics
+///
+/// Panics if radix is not in the range `[2, 36]`
+#[cfg(feature = "radix")]
+#[inline]
+pub fn parse_partial_lossy_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_radix(bytes.as_ref(), radix)
 }

@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.0] - 2019-06-20
 ### Added
 - Backwards compatible support for Rustc 1.24.0.
+- Added `parse_partial*` parsers, which parse until an invalid digit is found, returning the value and number of processed digits.
 
 ### Changed
 - Changed public trait names for `FromBytes`, `FromBytesLossy`, and `ToBytes` to `FromLexical`, `FromLexicalLossy`, and `ToLexical`.

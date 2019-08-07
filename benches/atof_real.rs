@@ -74,7 +74,7 @@ fn atof_real_f32_lexical(bench: &mut Bencher) {
     bench.iter(|| {
         for line in data.lines() {
             for item in line.split(',') {
-                black_box(atof32_slice(item.as_bytes()).unwrap());
+                black_box(atof32(item.as_bytes()).unwrap());
             }
         }
     })
@@ -102,7 +102,7 @@ fn atof_real_f64_lexical(bench: &mut Bencher) {
         //let line = data.lines().nth(45).unwrap();
         for line in data.lines().skip(60).take(20) {
             for item in line.split(',') {
-                black_box(atof64_slice(item.as_bytes()).unwrap());
+                black_box(atof64(item.as_bytes()).unwrap());
             }
         }
     })

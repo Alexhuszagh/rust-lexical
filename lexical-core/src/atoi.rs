@@ -75,15 +75,15 @@ macro_rules! standalone {
         for c in $digits.iter() {
             let digit = match to_digit!(*c, $radix) {
                 Some(v) => v,
-                None    => return (Ok($value), c),
+                None    => return Ok(($value, c)),
             };
             $value = match $value.checked_mul(as_cast($radix)) {
                 Some(v) => v,
-                None    => return (Err(ErrorCode::$code), c),
+                None    => return Err((ErrorCode::$code, c)),
             };
             $value = match $value.$op(as_cast(digit)) {
                 Some(v) => v,
-                None    => return (Err(ErrorCode::$code), c),
+                None    => return Err((ErrorCode::$code, c)),
             };
         }
     );
@@ -92,12 +92,12 @@ macro_rules! standalone {
 // Standalone atoi processor.
 perftools_inline!{
 pub(crate) fn standalone<T>(radix: u32, bytes: &[u8], is_signed: bool)
-    -> (StdResult<T, ErrorCode>, *const u8)
+    -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
     where T: Integer
 {
     // Filter out empty inputs.
     if bytes.is_empty() {
-        return (Err(ErrorCode::Empty), bytes.as_ptr());
+        return Err((ErrorCode::Empty, bytes.as_ptr()));
     }
 
     let (sign, digits) = match index!(bytes[0]) {
@@ -108,7 +108,7 @@ pub(crate) fn standalone<T>(radix: u32, bytes: &[u8], is_signed: bool)
 
     // Filter out empty inputs.
     if digits.is_empty() {
-        return (Err(ErrorCode::Empty), digits.as_ptr());
+        return Err((ErrorCode::Empty, digits.as_ptr()));
     }
 
     // Parse the integer.
@@ -119,7 +119,7 @@ pub(crate) fn standalone<T>(radix: u32, bytes: &[u8], is_signed: bool)
         standalone!(value, radix, digits, checked_sub, Underflow);
     }
     let ptr = index!(bytes[bytes.len()..]).as_ptr();
-    (Ok(value), ptr)
+    Ok((value, ptr))
 }}
 
 // Convert character to digit.
@@ -279,8 +279,8 @@ pub(crate) fn standalone_unsigned<'a, T>(radix: u32, bytes: &'a [u8])
 {
     let index = | ptr | distance(bytes.as_ptr(), ptr);
     match standalone(radix, bytes, false) {
-        (Ok(value), ptr) => Ok((value, index(ptr))),
-        (Err(code), ptr) => Err((code, index(ptr)).into()),
+        Ok((value, ptr)) => Ok((value, index(ptr))),
+        Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
 }}
 
@@ -293,39 +293,13 @@ pub(crate) fn standalone_signed<'a, T>(radix: u32, bytes: &'a [u8])
 {
     let index = | ptr | distance(bytes.as_ptr(), ptr);
     match standalone(radix, bytes, true) {
-        (Ok(value), ptr) => Ok((value, index(ptr))),
-        (Err(code), ptr) => Err((code, index(ptr)).into()),
+        Ok((value, ptr)) => Ok((value, index(ptr))),
+        Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
 }}
 
 // API
 // ---
-
-// RANGE API (FFI)
-
-macro_rules! generate_unsigned_range {
-    ($t:ty $(, $i:ident)+) => { generate_from_range_api!($($i, )* $t, standalone_unsigned); };
-}
-
-macro_rules! generate_signed_range {
-    ($t:ty $(, $i:ident)+) => { generate_from_range_api!($($i, )* $t, standalone_signed); };
-}
-
-generate_unsigned_range!(u8, atou8_range, atou8_radix_range, leading_atou8_range, leading_atou8_radix_range);
-generate_unsigned_range!(u16, atou16_range, atou16_radix_range, leading_atou16_range, leading_atou16_radix_range);
-generate_unsigned_range!(u32, atou32_range, atou32_radix_range, leading_atou32_range, leading_atou32_radix_range);
-generate_unsigned_range!(u64, atou64_range, atou64_radix_range, leading_atou64_range, leading_atou64_radix_range);
-generate_unsigned_range!(usize, atousize_range, atousize_radix_range, leading_atousize_range, leading_atousize_radix_range);
-#[cfg(has_i128)]
-generate_unsigned_range!(u128, atou128_range, atou128_radix_range, leading_atou128_range, leading_atou128_radix_range);
-
-generate_signed_range!(i8, atoi8_range, atoi8_radix_range, leading_atoi8_range, leading_atoi8_radix_range);
-generate_signed_range!(i16, atoi16_range, atoi16_radix_range, leading_atoi16_range, leading_atoi16_radix_range);
-generate_signed_range!(i32, atoi32_range, atoi32_radix_range, leading_atoi32_range, leading_atoi32_radix_range);
-generate_signed_range!(i64, atoi64_range, atoi64_radix_range, leading_atoi64_range, leading_atoi64_radix_range);
-generate_signed_range!(isize, atoisize_range, atoisize_radix_range, leading_atoisize_range, leading_atoisize_radix_range);
-#[cfg(has_i128)]
-generate_signed_range!(i128, atoi128_range, atoi128_radix_range, leading_atoi128_range, leading_atoi128_radix_range);
 
 // SLICE API
 
@@ -337,21 +311,49 @@ macro_rules! generate_signed_slice {
     ($t:ty $(, $i:ident)+) => { generate_from_slice_api!($($i, )* $t, standalone_signed); };
 }
 
-generate_unsigned_slice!(u8, atou8_slice, atou8_radix_slice, leading_atou8_slice, leading_atou8_radix_slice);
-generate_unsigned_slice!(u16, atou16_slice, atou16_radix_slice, leading_atou16_slice, leading_atou16_radix_slice);
-generate_unsigned_slice!(u32, atou32_slice, atou32_radix_slice, leading_atou32_slice, leading_atou32_radix_slice);
-generate_unsigned_slice!(u64, atou64_slice, atou64_radix_slice, leading_atou64_slice, leading_atou64_radix_slice);
-generate_unsigned_slice!(usize, atousize_slice, atousize_radix_slice, leading_atousize_slice, leading_atousize_radix_slice);
-#[cfg(has_i128)]
-generate_unsigned_slice!(u128, atou128_slice, atou128_radix_slice, leading_atou128_slice, leading_atou128_radix_slice);
+generate_unsigned_slice!(u8, atou8, atou8_radix, atou8_partial, atou8_partial_radix);
+generate_unsigned_slice!(u16, atou16, atou16_radix, atou16_partial, atou16_partial_radix);
+generate_unsigned_slice!(u32, atou32, atou32_radix, atou32_partial, atou32_partial_radix);
+generate_unsigned_slice!(u64, atou64, atou64_radix, atou64_partial, atou64_partial_radix);
+generate_unsigned_slice!(usize, atousize, atousize_radix, atousize_partial, atousize_partial_radix);
+#[cfg(has_i128)] generate_unsigned_slice!(u128, atou128, atou128_radix, atou128_partial, atou128_partial_radix);
 
-generate_signed_slice!(i8, atoi8_slice, atoi8_radix_slice, leading_atoi8_slice, leading_atoi8_radix_slice);
-generate_signed_slice!(i16, atoi16_slice, atoi16_radix_slice, leading_atoi16_slice, leading_atoi16_radix_slice);
-generate_signed_slice!(i32, atoi32_slice, atoi32_radix_slice, leading_atoi32_slice, leading_atoi32_radix_slice);
-generate_signed_slice!(i64, atoi64_slice, atoi64_radix_slice, leading_atoi64_slice, leading_atoi64_radix_slice);
-generate_signed_slice!(isize, atoisize_slice, atoisize_radix_slice, leading_atoisize_slice, leading_atoisize_radix_slice);
-#[cfg(has_i128)]
-generate_signed_slice!(i128, atoi128_slice, atoi128_radix_slice, leading_atoi128_slice, leading_atoi128_radix_slice);
+generate_signed_slice!(i8, atoi8, atoi8_radix, atoi8_partial, atoi8_partial_radix);
+generate_signed_slice!(i16, atoi16, atoi16_radix, atoi16_partial, atoi16_partial_radix);
+generate_signed_slice!(i32, atoi32, atoi32_radix, atoi32_partial, atoi32_partial_radix);
+generate_signed_slice!(i64, atoi64, atoi64_radix, atoi64_partial, atoi64_partial_radix);
+generate_signed_slice!(isize, atoisize, atoisize_radix, atoisize_partial, atoisize_partial_radix);
+#[cfg(has_i128)] generate_signed_slice!(i128, atoi128, atoi128_radix, atoi128_partial, atoi128_partial_radix);
+
+pub(crate) mod atoi_ffi {
+
+use super::*;
+
+// RANGE API (FFI)
+
+macro_rules! generate_unsigned_range {
+    ($t:ty $(, $i:ident)+) => { generate_from_range_api!($($i, )* $t, standalone_unsigned); };
+}
+
+macro_rules! generate_signed_range {
+    ($t:ty $(, $i:ident)+) => { generate_from_range_api!($($i, )* $t, standalone_signed); };
+}
+
+generate_unsigned_range!(u8, atou8, atou8_radix, atou8_partial, atou8_partial_radix);
+generate_unsigned_range!(u16, atou16, atou16_radix, atou16_partial, atou16_partial_radix);
+generate_unsigned_range!(u32, atou32, atou32_radix, atou32_partial, atou32_partial_radix);
+generate_unsigned_range!(u64, atou64, atou64_radix, atou64_partial, atou64_partial_radix);
+generate_unsigned_range!(usize, atousize, atousize_radix, atousize_partial, atousize_partial_radix);
+#[cfg(has_i128)] generate_unsigned_range!(u128, atou128, atou128_radix, atou128_partial, atou128_partial_radix);
+
+generate_signed_range!(i8, atoi8, atoi8_radix, atoi8_partial, atoi8_partial_radix);
+generate_signed_range!(i16, atoi16, atoi16_radix, atoi16_partial, atoi16_partial_radix);
+generate_signed_range!(i32, atoi32, atoi32_radix, atoi32_partial, atoi32_partial_radix);
+generate_signed_range!(i64, atoi64, atoi64_radix, atoi64_partial, atoi64_partial_radix);
+generate_signed_range!(isize, atoisize, atoisize_radix, atoisize_partial, atoisize_partial_radix);
+#[cfg(has_i128)] generate_signed_range!(i128, atoi128, atoi128_radix, atoi128_partial, atoi128_partial_radix);
+
+}   // atoi_ffi
 
 // TESTS
 // -----
@@ -401,117 +403,117 @@ mod tests {
 
     #[test]
     fn atou8_base10_test() {
-        assert_eq!(Ok(0), atou8_slice(b"0"));
-        assert_eq!(Ok(127), atou8_slice(b"127"));
-        assert_eq!(Ok(128), atou8_slice(b"128"));
-        assert_eq!(Ok(255), atou8_slice(b"255"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), atou8_slice(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atou8_slice(b"1a"));
+        assert_eq!(Ok(0), atou8(b"0"));
+        assert_eq!(Ok(127), atou8(b"127"));
+        assert_eq!(Ok(128), atou8(b"128"));
+        assert_eq!(Ok(255), atou8(b"255"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), atou8(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atou8(b"1a"));
     }
 
     #[cfg(feature = "radix")]
     #[test]
     fn atou8_basen_test() {
         for (b, s) in DATA.iter() {
-            assert_eq!(atou8_radix_slice(*b, s.as_bytes()), Ok(37));
+            assert_eq!(atou8_radix(*b, s.as_bytes()), Ok(37));
         }
     }
 
     #[test]
     fn atoi8_base10_test() {
-        assert_eq!(Ok(0), atoi8_slice(b"0"));
-        assert_eq!(Ok(127), atoi8_slice(b"127"));
-        assert_eq!(Err((ErrorCode::Overflow, 2).into()), atoi8_slice(b"128"));
-        assert_eq!(Err((ErrorCode::Overflow, 2).into()), atoi8_slice(b"255"));
-        assert_eq!(Ok(-1), atoi8_slice(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atoi8_slice(b"1a"));
+        assert_eq!(Ok(0), atoi8(b"0"));
+        assert_eq!(Ok(127), atoi8(b"127"));
+        assert_eq!(Err((ErrorCode::Overflow, 2).into()), atoi8(b"128"));
+        assert_eq!(Err((ErrorCode::Overflow, 2).into()), atoi8(b"255"));
+        assert_eq!(Ok(-1), atoi8(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atoi8(b"1a"));
     }
 
     #[cfg(feature = "radix")]
     #[test]
     fn atoi8_basen_test() {
         for (b, s) in DATA.iter() {
-            assert_eq!(atoi8_radix_slice(*b, s.as_bytes()), Ok(37));
+            assert_eq!(atoi8_radix(*b, s.as_bytes()), Ok(37));
         }
     }
 
     #[test]
     fn atou16_base10_test() {
-        assert_eq!(Ok(0), atou16_slice(b"0"));
-        assert_eq!(Ok(32767), atou16_slice(b"32767"));
-        assert_eq!(Ok(32768), atou16_slice(b"32768"));
-        assert_eq!(Ok(65535), atou16_slice(b"65535"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), atou16_slice(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atou16_slice(b"1a"));
+        assert_eq!(Ok(0), atou16(b"0"));
+        assert_eq!(Ok(32767), atou16(b"32767"));
+        assert_eq!(Ok(32768), atou16(b"32768"));
+        assert_eq!(Ok(65535), atou16(b"65535"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), atou16(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atou16(b"1a"));
     }
 
     #[test]
     fn atoi16_base10_test() {
-        assert_eq!(Ok(0), atoi16_slice(b"0"));
-        assert_eq!(Ok(32767), atoi16_slice(b"32767"));
-        assert_eq!(Err((ErrorCode::Overflow, 4).into()), atoi16_slice(b"32768"));
-        assert_eq!(Err((ErrorCode::Overflow, 4).into()), atoi16_slice(b"65535"));
-        assert_eq!(Ok(-1), atoi16_slice(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atoi16_slice(b"1a"));
+        assert_eq!(Ok(0), atoi16(b"0"));
+        assert_eq!(Ok(32767), atoi16(b"32767"));
+        assert_eq!(Err((ErrorCode::Overflow, 4).into()), atoi16(b"32768"));
+        assert_eq!(Err((ErrorCode::Overflow, 4).into()), atoi16(b"65535"));
+        assert_eq!(Ok(-1), atoi16(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atoi16(b"1a"));
     }
 
     #[cfg(feature = "radix")]
     #[test]
     fn atoi16_basen_test() {
         for (b, s) in DATA.iter() {
-            assert_eq!(atoi16_radix_slice(*b, s.as_bytes()), Ok(37));
+            assert_eq!(atoi16_radix(*b, s.as_bytes()), Ok(37));
         }
-        assert_eq!(atoi16_radix_slice(36, b"YA"), Ok(1234));
+        assert_eq!(atoi16_radix(36, b"YA"), Ok(1234));
     }
 
     #[test]
     fn atou32_base10_test() {
-        assert_eq!(Ok(0), atou32_slice(b"0"));
-        assert_eq!(Ok(2147483647), atou32_slice(b"2147483647"));
-        assert_eq!(Ok(2147483648), atou32_slice(b"2147483648"));
-        assert_eq!(Ok(4294967295), atou32_slice(b"4294967295"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), atou32_slice(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atou32_slice(b"1a"));
+        assert_eq!(Ok(0), atou32(b"0"));
+        assert_eq!(Ok(2147483647), atou32(b"2147483647"));
+        assert_eq!(Ok(2147483648), atou32(b"2147483648"));
+        assert_eq!(Ok(4294967295), atou32(b"4294967295"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), atou32(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atou32(b"1a"));
     }
 
     #[test]
     fn atoi32_base10_test() {
-        assert_eq!(Ok(0), atoi32_slice(b"0"));
-        assert_eq!(Ok(2147483647), atoi32_slice(b"2147483647"));
-        assert_eq!(Err((ErrorCode::Overflow, 9).into()), atoi32_slice(b"2147483648"));
-        assert_eq!(Err((ErrorCode::Overflow, 9).into()), atoi32_slice(b"4294967295"));
-        assert_eq!(Ok(-1), atoi32_slice(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atoi32_slice(b"1a"));
+        assert_eq!(Ok(0), atoi32(b"0"));
+        assert_eq!(Ok(2147483647), atoi32(b"2147483647"));
+        assert_eq!(Err((ErrorCode::Overflow, 9).into()), atoi32(b"2147483648"));
+        assert_eq!(Err((ErrorCode::Overflow, 9).into()), atoi32(b"4294967295"));
+        assert_eq!(Ok(-1), atoi32(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atoi32(b"1a"));
     }
 
     #[test]
     fn atou64_base10_test() {
-        assert_eq!(Ok(0), atou64_slice(b"0"));
-        assert_eq!(Ok(9223372036854775807), atou64_slice(b"9223372036854775807"));
-        assert_eq!(Ok(9223372036854775808), atou64_slice(b"9223372036854775808"));
-        assert_eq!(Ok(18446744073709551615), atou64_slice(b"18446744073709551615"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), atou64_slice(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atou64_slice(b"1a"));
+        assert_eq!(Ok(0), atou64(b"0"));
+        assert_eq!(Ok(9223372036854775807), atou64(b"9223372036854775807"));
+        assert_eq!(Ok(9223372036854775808), atou64(b"9223372036854775808"));
+        assert_eq!(Ok(18446744073709551615), atou64(b"18446744073709551615"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), atou64(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atou64(b"1a"));
     }
 
     #[test]
     fn atoi64_base10_test() {
-        assert_eq!(Ok(0), atoi64_slice(b"0"));
-        assert_eq!(Ok(9223372036854775807), atoi64_slice(b"9223372036854775807"));
-        assert_eq!(Err((ErrorCode::Overflow, 18).into()), atoi64_slice(b"9223372036854775808"));
-        assert_eq!(Err((ErrorCode::Overflow, 19).into()), atoi64_slice(b"18446744073709551615"));
-        assert_eq!(Ok(-1), atoi64_slice(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atoi64_slice(b"1a"));
+        assert_eq!(Ok(0), atoi64(b"0"));
+        assert_eq!(Ok(9223372036854775807), atoi64(b"9223372036854775807"));
+        assert_eq!(Err((ErrorCode::Overflow, 18).into()), atoi64(b"9223372036854775808"));
+        assert_eq!(Err((ErrorCode::Overflow, 19).into()), atoi64(b"18446744073709551615"));
+        assert_eq!(Ok(-1), atoi64(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atoi64(b"1a"));
 
         // Add tests discovered via fuzzing.
-        assert_eq!(Err((ErrorCode::Overflow, 19).into()), atoi64_slice(b"406260572150672006000066000000060060007667760000000000000000000+00000006766767766666767665670000000000000000000000666"));
+        assert_eq!(Err((ErrorCode::Overflow, 19).into()), atoi64(b"406260572150672006000066000000060060007667760000000000000000000+00000006766767766666767665670000000000000000000000666"));
     }
 
     #[cfg(feature = "std")]
     proptest! {
         #[test]
         fn u8_invalid_proptest(i in r"[+]?[0-9]{2}\D") {
-            let result = atou8_slice(i.as_bytes());
+            let result = atou8(i.as_bytes());
             prop_assert!(result.is_err());
             let index = result.err().unwrap().index;
             prop_assert!(index == 2 || index == 3);
@@ -519,7 +521,7 @@ mod tests {
 
         #[test]
         fn u8_overflow_proptest(i in r"[+]?[1-9][0-9]{3}") {
-            let result = atou8_slice(i.as_bytes());
+            let result = atou8(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
@@ -527,7 +529,7 @@ mod tests {
 
         #[test]
         fn u8_negative_proptest(i in r"[-][1-9][0-9]{2}") {
-            let result = atou8_slice(i.as_bytes());
+            let result = atou8(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::InvalidDigit);
@@ -535,7 +537,7 @@ mod tests {
 
         #[test]
         fn u8_double_sign_proptest(i in r"[+]{2}[0-9]{2}") {
-            let result = atou8_slice(i.as_bytes());
+            let result = atou8(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -544,7 +546,7 @@ mod tests {
 
         #[test]
         fn u8_sign_only_proptest(i in r"[+]") {
-            let result = atou8_slice(i.as_bytes());
+            let result = atou8(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -552,7 +554,7 @@ mod tests {
 
         #[test]
         fn u8_trailing_digits_proptest(i in r"[+]?[0-9]{2}\D[0-9]{2}") {
-            let result = atou8_slice(i.as_bytes());
+            let result = atou8(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -561,7 +563,7 @@ mod tests {
 
         #[test]
         fn i8_invalid_proptest(i in r"[+-]?[0-9]{2}\D") {
-            let result = atoi8_slice(i.as_bytes());
+            let result = atoi8(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -570,21 +572,21 @@ mod tests {
 
         #[test]
         fn i8_overflow_proptest(i in r"[+]?[1-9][0-9]{3}\D") {
-            let result = atoi8_slice(i.as_bytes());
+            let result = atoi8(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn i8_underflow_proptest(i in r"[-][1-9][0-9]{3}\D") {
-            let result = atoi8_slice(i.as_bytes());
+            let result = atoi8(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Underflow);
         }
 
         #[test]
         fn i8_double_sign_proptest(i in r"[+-]{2}[0-9]{2}") {
-            let result = atoi8_slice(i.as_bytes());
+            let result = atoi8(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 1);
@@ -592,14 +594,14 @@ mod tests {
 
         #[test]
         fn i8_sign_only_proptest(i in r"[+-]") {
-            let result = atoi8_slice(i.as_bytes());
+            let result = atoi8(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::Empty);
         }
 
         #[test]
         fn i8_trailing_digits_proptest(i in r"[+-]?[0-9]{2}\D[0-9]{2}") {
-            let result = atoi8_slice(i.as_bytes());
+            let result = atoi8(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 2 || error.index == 3);
@@ -607,7 +609,7 @@ mod tests {
 
         #[test]
         fn u16_invalid_proptest(i in r"[+]?[0-9]{4}\D") {
-            let result = atou16_slice(i.as_bytes());
+            let result = atou16(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 4 || error.index == 5);
@@ -615,14 +617,14 @@ mod tests {
 
         #[test]
         fn u16_overflow_proptest(i in r"[+]?[1-9][0-9]{5}\D") {
-            let result = atou16_slice(i.as_bytes());
+            let result = atou16(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn u16_negative_proptest(i in r"[-][1-9][0-9]{4}") {
-            let result = atou16_slice(i.as_bytes());
+            let result = atou16(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::InvalidDigit);
@@ -630,7 +632,7 @@ mod tests {
 
         #[test]
         fn u16_double_sign_proptest(i in r"[+]{2}[0-9]{4}") {
-            let result = atou16_slice(i.as_bytes());
+            let result = atou16(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -639,7 +641,7 @@ mod tests {
 
         #[test]
         fn u16_sign_only_proptest(i in r"[+]") {
-            let result = atou16_slice(i.as_bytes());
+            let result = atou16(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -647,7 +649,7 @@ mod tests {
 
         #[test]
         fn u16_trailing_digits_proptest(i in r"[+]?[0-9]{4}\D[0-9]{2}") {
-            let result = atou16_slice(i.as_bytes());
+            let result = atou16(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -656,7 +658,7 @@ mod tests {
 
         #[test]
         fn i16_invalid_proptest(i in r"[+-]?[0-9]{4}\D") {
-            let result = atoi16_slice(i.as_bytes());
+            let result = atoi16(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -665,21 +667,21 @@ mod tests {
 
         #[test]
         fn i16_overflow_proptest(i in r"[+]?[1-9][0-9]{5}\D") {
-            let result = atoi16_slice(i.as_bytes());
+            let result = atoi16(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn i16_underflow_proptest(i in r"[-][1-9][0-9]{5}\DD") {
-            let result = atoi16_slice(i.as_bytes());
+            let result = atoi16(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Underflow);
         }
 
         #[test]
         fn i16_double_sign_proptest(i in r"[+-]{2}[0-9]{4}") {
-            let result = atoi16_slice(i.as_bytes());
+            let result = atoi16(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 1);
@@ -687,7 +689,7 @@ mod tests {
 
         #[test]
         fn i16_sign_only_proptest(i in r"[+-]") {
-            let result = atoi16_slice(i.as_bytes());
+            let result = atoi16(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -695,7 +697,7 @@ mod tests {
 
         #[test]
         fn i16_trailing_digits_proptest(i in r"[+-]?[0-9]{4}\D[0-9]{2}") {
-            let result = atoi16_slice(i.as_bytes());
+            let result = atoi16(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 4 || error.index == 5);
@@ -703,7 +705,7 @@ mod tests {
 
         #[test]
         fn u32_invalid_proptest(i in r"[+]?[0-9]{9}\D") {
-            let result = atou32_slice(i.as_bytes());
+            let result = atou32(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 9 || error.index == 10);
@@ -711,14 +713,14 @@ mod tests {
 
         #[test]
         fn u32_overflow_proptest(i in r"[+]?[1-9][0-9]{10}\D") {
-            let result = atou32_slice(i.as_bytes());
+            let result = atou32(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn u32_negative_proptest(i in r"[-][1-9][0-9]{9}") {
-            let result = atou32_slice(i.as_bytes());
+            let result = atou32(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::InvalidDigit);
@@ -726,7 +728,7 @@ mod tests {
 
         #[test]
         fn u32_double_sign_proptest(i in r"[+]{2}[0-9]{9}") {
-            let result = atou32_slice(i.as_bytes());
+            let result = atou32(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -735,7 +737,7 @@ mod tests {
 
         #[test]
         fn u32_sign_only_proptest(i in r"[+]") {
-            let result = atou32_slice(i.as_bytes());
+            let result = atou32(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -743,7 +745,7 @@ mod tests {
 
         #[test]
         fn u32_trailing_digits_proptest(i in r"[+]?[0-9]{9}\D[0-9]{2}") {
-            let result = atou32_slice(i.as_bytes());
+            let result = atou32(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -752,7 +754,7 @@ mod tests {
 
         #[test]
         fn i32_invalid_proptest(i in r"[+-]?[0-9]{9}\D") {
-            let result = atoi32_slice(i.as_bytes());
+            let result = atoi32(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -761,21 +763,21 @@ mod tests {
 
         #[test]
         fn i32_overflow_proptest(i in r"[+]?[1-9][0-9]{10}\D") {
-            let result = atoi32_slice(i.as_bytes());
+            let result = atoi32(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn i32_underflow_proptest(i in r"-[1-9][0-9]{10}\D") {
-            let result = atoi32_slice(i.as_bytes());
+            let result = atoi32(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Underflow);
         }
 
         #[test]
         fn i32_double_sign_proptest(i in r"[+-]{2}[0-9]{9}") {
-            let result = atoi32_slice(i.as_bytes());
+            let result = atoi32(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 1);
@@ -783,7 +785,7 @@ mod tests {
 
         #[test]
         fn i32_sign_only_proptest(i in r"[+-]") {
-            let result = atoi32_slice(i.as_bytes());
+            let result = atoi32(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -791,7 +793,7 @@ mod tests {
 
         #[test]
         fn i32_trailing_digits_proptest(i in r"[+-]?[0-9]{9}\D[0-9]{2}") {
-            let result = atoi32_slice(i.as_bytes());
+            let result = atoi32(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 9 || error.index == 10);
@@ -799,7 +801,7 @@ mod tests {
 
         #[test]
         fn u64_invalid_proptest(i in r"[+]?[0-9]{19}\D") {
-            let result = atou64_slice(i.as_bytes());
+            let result = atou64(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 19 || error.index == 20);
@@ -807,14 +809,14 @@ mod tests {
 
         #[test]
         fn u64_overflow_proptest(i in r"[+]?[1-9][0-9]{21}\D") {
-            let result = atou64_slice(i.as_bytes());
+            let result = atou64(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn u64_negative_proptest(i in r"[-][1-9][0-9]{21}") {
-            let result = atou64_slice(i.as_bytes());
+            let result = atou64(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::InvalidDigit);
@@ -822,7 +824,7 @@ mod tests {
 
         #[test]
         fn u64_double_sign_proptest(i in r"[+]{2}[0-9]{19}") {
-            let result = atou64_slice(i.as_bytes());
+            let result = atou64(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -831,7 +833,7 @@ mod tests {
 
         #[test]
         fn u64_sign_only_proptest(i in r"[+]") {
-            let result = atou64_slice(i.as_bytes());
+            let result = atou64(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -839,7 +841,7 @@ mod tests {
 
         #[test]
         fn u64_trailing_digits_proptest(i in r"[+]?[0-9]{19}\D[0-9]{2}") {
-            let result = atou64_slice(i.as_bytes());
+            let result = atou64(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -848,7 +850,7 @@ mod tests {
 
         #[test]
         fn i64_invalid_proptest(i in r"[+-]?[0-9]{18}\D") {
-            let result = atoi64_slice(i.as_bytes());
+            let result = atoi64(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -857,21 +859,21 @@ mod tests {
 
         #[test]
         fn i64_overflow_proptest(i in r"[+]?[1-9][0-9]{19}\D") {
-            let result = atoi64_slice(i.as_bytes());
+            let result = atoi64(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn i64_underflow_proptest(i in r"-[1-9][0-9]{19}\D") {
-            let result = atoi64_slice(i.as_bytes());
+            let result = atoi64(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Underflow);
         }
 
         #[test]
         fn i64_double_sign_proptest(i in r"[+-]{2}[0-9]{18}") {
-            let result = atoi64_slice(i.as_bytes());
+            let result = atoi64(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 1);
@@ -879,7 +881,7 @@ mod tests {
 
         #[test]
         fn i64_sign_only_proptest(i in r"[+-]") {
-            let result = atoi32_slice(i.as_bytes());
+            let result = atoi32(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -887,7 +889,7 @@ mod tests {
 
         #[test]
         fn i64_trailing_digits_proptest(i in r"[+-]?[0-9]{18}\D[0-9]{2}") {
-            let result = atoi64_slice(i.as_bytes());
+            let result = atoi64(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 18 || error.index == 19);
