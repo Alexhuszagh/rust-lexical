@@ -298,7 +298,7 @@ macro_rules! generate_to_range_api {
         {
             let bytes = $crate::util::api::slice_from_range_mut(first, last);
 
-            assert_buffer!(bytes, $size);
+            assert_buffer!(10, bytes, $t);
             let len = $cb(value, 10, bytes);
             bytes.as_mut_ptr().padd(len)
         }
@@ -335,7 +335,7 @@ macro_rules! generate_to_range_api {
             assert_radix!(radix);
             let bytes = $crate::util::api::slice_from_range_mut(first, last);
 
-            assert_buffer!(bytes, $size);
+            assert_buffer!(radix, bytes, $t);
             let len = $cb(value, radix, bytes);
             bytes.as_mut_ptr().padd(len)
         }
@@ -371,7 +371,7 @@ macro_rules! generate_to_slice_api {
         pub fn $decimal_name<'a>(value: $t, bytes: &'a mut [u8])
             -> &'a mut [u8]
         {
-            assert_buffer!(bytes, $size);
+            assert_buffer!(10, bytes, $t);
             let len = $cb(value, 10, bytes);
             &mut index_mut!(bytes[..len])
         }
@@ -406,7 +406,7 @@ macro_rules! generate_to_slice_api {
             -> &'a mut [u8]
         {
             assert_radix!(radix);
-            assert_buffer!(bytes, $size);
+            assert_buffer!(radix, bytes, $t);
             // This is always safe, since len is returned as
             // `distance(bytes.as_ptr(), slc.as_ptr())`, where `slc` is
             // a subslice from writes.

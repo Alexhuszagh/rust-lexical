@@ -1201,84 +1201,84 @@ mod tests {
     #[test]
     #[should_panic]
     fn i8toa_buffer_test() {
-        let mut buffer = [b'0'; MAX_I8_SIZE-1];
+        let mut buffer = [b'0'; i8::MAX_SIZE_BASE10-1];
         i8toa(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn i16toa_buffer_test() {
-        let mut buffer = [b'0'; MAX_I16_SIZE-1];
+        let mut buffer = [b'0'; i16::MAX_SIZE_BASE10-1];
         i16toa(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn i32toa_buffer_test() {
-        let mut buffer = [b'0'; MAX_I32_SIZE-1];
+        let mut buffer = [b'0'; i32::MAX_SIZE_BASE10-1];
         i32toa(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn i64toa_buffer_test() {
-        let mut buffer = [b'0'; MAX_I64_SIZE-1];
+        let mut buffer = [b'0'; i64::MAX_SIZE_BASE10-1];
         i64toa(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn i128toa_buffer_test() {
-        let mut buffer = [b'0'; MAX_I128_SIZE-1];
+        let mut buffer = [b'0'; i128::MAX_SIZE_BASE10-1];
         i128toa(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn isizetoa_buffer_test() {
-        let mut buffer = [b'0'; MAX_ISIZE_SIZE-1];
+        let mut buffer = [b'0'; isize::MAX_SIZE_BASE10-1];
         isizetoa(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn u8toa_buffer_test() {
-        let mut buffer = [b'0'; MAX_U8_SIZE-1];
+        let mut buffer = [b'0'; u8::MAX_SIZE_BASE10-1];
         i8toa(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn u16toa_buffer_test() {
-        let mut buffer = [b'0'; MAX_U16_SIZE-1];
+        let mut buffer = [b'0'; u16::MAX_SIZE_BASE10-1];
         i16toa(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn u32toa_buffer_test() {
-        let mut buffer = [b'0'; MAX_U32_SIZE-1];
+        let mut buffer = [b'0'; u32::MAX_SIZE_BASE10-1];
         i32toa(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn u64toa_buffer_test() {
-        let mut buffer = [b'0'; MAX_U64_SIZE-1];
+        let mut buffer = [b'0'; u64::MAX_SIZE_BASE10-1];
         i64toa(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn u128toa_buffer_test() {
-        let mut buffer = [b'0'; MAX_U128_SIZE-1];
+        let mut buffer = [b'0'; u128::MAX_SIZE_BASE10-1];
         i128toa(12, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn usizetoa_buffer_test() {
-        let mut buffer = [b'0'; MAX_USIZE_SIZE-1];
+        let mut buffer = [b'0'; usize::MAX_SIZE_BASE10-1];
         usizetoa(12, &mut buffer);
     }
 }
