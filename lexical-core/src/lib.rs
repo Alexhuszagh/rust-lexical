@@ -12,79 +12,106 @@
 //! ```rust
 //! extern crate lexical_core;
 //!
-//! // String to number using slices
+//! // String to number using Rust slices.
 //! // The argument is the byte string parsed.
-//! let f = lexical_core::atof64_slice(b"3.5").unwrap();   // 3.5
-//! let i = lexical_core::atoi32_slice(b"15").unwrap();    // 15
+//! let f = lexical_core::atof64(b"3.5").unwrap();   // 3.5
+//! let i = lexical_core::atoi32(b"15").unwrap();    // 15
 //!
 //! // String to number using pointer ranges, for FFI-compatible code.
 //! // The first argument is a pointer to the start of the parsed byte array,
 //! // and the second argument is a pointer to 1-past-the-end. It will process
 //! // bytes in the range [first, last).
 //! unsafe {
+//!     // Get an FFI-compatible range.
 //!     let bytes = b"3.5";
 //!     let first = bytes.as_ptr();
 //!     let last = first.add(bytes.len());
-//!     let f = lexical_core::atof64_range(first, last).ok().unwrap();
+//!     // Get our result and extract our value using C-compatible functions.
+//!     let res = lexical_core::ffi::atof64(first, last);
+//!     let f = lexical_core::ffi::f64_result_ok(res); // Aborts if res is not ok.
 //! }
 //!
-//! // If and only if the `radix` feature is enabled, you may use the radix
-//! // overloads to parse non-decimal floats and strings.
-//! ##[cfg(feature = "radix")]
-//! let f = lexical_core::atof32_radix_slice(2, b"11.1");   // 3.5
-//! ##[cfg(feature = "radix")]
-//! let i = lexical_core::atoi32_radix_slice(2, b"1111");   // 15
+//! // The ato* and ffi::ato* parsers are checked, they validate the
+//! // input data is entirely correct, and stop parsing when invalid data
+//! // is found, or upon numerical overflow.
+//! let r = lexical_core::atoi8(b"256"); // Err(ErrorCode::Overflow.into())
+//! let r = lexical_core::atoi8(b"1a5"); // Err(ErrorCode::InvalidDigit.into())
 //!
-//! // The ato*_slice and ato*_range parsers are not checked, they do not
-//! // validate that the input data is entirely correct, and discard trailing
-//! // bytes that are found. The explicit behavior is to wrap on overflow, and
-//! // to discard invalid digits.
-//! let i = lexical_core::atoi8_slice(b"256");    // 0, wraps from 256
-//! let i = lexical_core::atoi8_slice(b"1a5");    // 1, discards "a5"
+//! // In order to extract and parse a number from a substring of the input
+//! // data, use the ato*_partial and ffi::ato*_partial parsers.
+//! // These functions return the parsed value and the number of processed
+//! // digits, allowing you to extract and parse the number in a single pass.
+//! let r = lexical_core::atoi8(b"3a5"); // Ok((3, 1))
 //!
-//! // You should prefer the checked parsers, whenever possible. These detect
-//! // numeric overflow, and no invalid trailing digits are present.
-//! // The error code for success is 0, all errors are less than 0.
+//! // Lexical-core includes FFI functions to properly extract data and handle
+//! // errors during routines. All the following functions may be used in
+//! // external libraries, include from C.
 //!
-//! // Ideally, everything works great.
-//! let res = lexical_core::atoi8_slice(b"15");
-//! assert!(res.is_ok());
-//! assert_eq!(res.unwrap(), 15);
+//! unsafe {
+//!     unsafe fn to_range(bytes: &'static [u8]) -> (*const u8, *const u8) {
+//!         let first = bytes.as_ptr();
+//!         let last = first.add(bytes.len());
+//!         (first, last)
+//!     }
 //!
-//! // However, it detects numeric overflow, setting `res.error.code`
-//! // to the appropriate value.
-//! let res = lexical_core::atoi8_slice(b"256");
-//! assert!(res.is_err());
-//! assert_eq!(res.err().unwrap().code, lexical_core::ErrorCode::Overflow);
+//!     // Ideally, everything works great.
+//!     let (first, last) = to_range(b"15");
+//!     let res = lexical_core::ffi::atoi8(first, last);
+//!     if lexical_core::ffi::i8_result_is_ok(res) {
+//!         let i = lexical_core::ffi::i8_result_ok(res);
+//!         assert_eq!(i, 15);
+//!     }
 //!
-//! // Errors occurring prematurely terminating the parser due to invalid
-//! // digits return the index in the buffer where the invalid digit was
-//! // seen.
-//! let res = lexical_core::atoi8_slice(b"15 45");
-//! assert!(res.is_err());
-//! let error = res.err().unwrap();
-//! assert_eq!(error.code, lexical_core::ErrorCode::InvalidDigit);
-//! assert_eq!(error.index, 2);
+//!     // However, it detects numeric overflow, returning an error with
+//!     // an error code equal to `ErrorCode::Overflow`.
+//!     let (first, last) = to_range(b"256");
+//!     let res = lexical_core::ffi::atoi8(first, last);
+//!     if lexical_core::ffi::i8_result_is_err(res) {
+//!         let err = lexical_core::ffi::i8_result_err(res);
+//!         assert_eq!(err.code, lexical_core::ffi::ErrorCode::Overflow);
+//!     }
 //!
-//! // Number to string using slices.
-//! // The first argument is the value, the second argument is the radix,
-//! // and the third argument is the buffer to write to.
-//! // The function returns a subslice of the original buffer, and will
-//! // always start at the same position (`buf.as_ptr() == slc.as_ptr()`).
-//! let mut buf = [b'0'; lexical_core::MAX_I64_SIZE];
-//! let slc = lexical_core::i64toa_slice(15, &mut buf);
-//! assert_eq!(slc, b"15");
+//!     // Errors occurring prematurely terminating the parser due to invalid
+//!     // digits return the index in the buffer where the invalid digit was
+//!     // seen. This may useful in contexts like serde, which require numerical
+//!     // parsers from complex data without having to extract a substring
+//!     // containing only numeric data ahead of time.
+//!     let (first, last) = to_range(b"15 45");
+//!     let res = lexical_core::ffi::atoi8(first, last);
+//!     if lexical_core::ffi::i8_result_is_err(res) {
+//!         let err = lexical_core::ffi::i8_result_err(res);
+//!         assert_eq!(err.code, lexical_core::ffi::ErrorCode::InvalidDigit);
+//!         assert_eq!(err.index, 2);
+//!     }
+//!
+//!     // Number to string using slices.
+//!     // The first argument is the value, the second argument is the radix,
+//!     // and the third argument is the buffer to write to.
+//!     // The function returns a subslice of the original buffer, and will
+//!     // always start at the same position (`buf.as_ptr() == slc.as_ptr()`).
+//!     let mut buf = [b'0'; lexical_core::MAX_I64_SIZE];
+//!     let slc = lexical_core::i64toa(15, &mut buf);
+//!     assert_eq!(slc, b"15");
+//! }
 //!
 //! // If an insufficiently long buffer is passed, the serializer will panic.
 //! // PANICS
 //! let mut buf = [b'0'; 1];
-//! //let slc = lexical_core::i64toa_slice(15, &mut buf);
+//! //let slc = lexical_core::i64toa(15, &mut buf);
 //!
 //! // In order to guarantee the buffer is long enough, always ensure there
-//! // are at least `MAX_XX_SIZE`, where XX is the type name in upperase,
+//! // are at least `MAX_*_SIZE`, where * is the type name in upperase,
 //! // IE, for `isize`, `MAX_ISIZE_SIZE`.
 //! let mut buf = [b'0'; lexical_core::MAX_F64_SIZE];
-//! let slc = lexical_core::f64toa_slice(15.1, &mut buf);
+//! let slc = lexical_core::f64toa(15.1, &mut buf);
+//! assert_eq!(slc, b"15.1");
+//!
+//! // When the `radix` feature is enabled, for base10 floats, using `MAX_*_SIZE`
+//! // may significantly overestimate the space required to format the number.
+//! // Therefore, the `MAX_*_SIZE_BASE10` constants allow you to get a much
+//! // tighter bound on the space required.
+//! let mut buf = [b'0'; lexical_core::MAX_F64_SIZE_BASE10];
+//! let slc = lexical_core::f64toa(15.1, &mut buf);
 //! assert_eq!(slc, b"15.1");
 //! ```
 
@@ -196,6 +223,9 @@ mod atoi;
 mod float;
 mod ftoa;
 mod itoa;
+
+// Publicly expose the FFI module for documentation purposes.
+pub mod ffi;
 
 // Publicly re-export the low-level string-to-float functions.
 pub use atof::*;

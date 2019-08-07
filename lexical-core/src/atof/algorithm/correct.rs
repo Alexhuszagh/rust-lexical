@@ -292,12 +292,8 @@ fn pown_fallback<'a, F>(radix: u32, mantissa: u64, state: FloatState, lossy: boo
 /// Parse non-power-of-two radix string to native float.
 fn pown_to_native<F>(radix: u32, bytes: &[u8], lossy: bool, sign: Sign)
     -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
-    //-> (StdResult<F, ErrorCode>, *const u8)
     where F: FloatType
 {
-    // TODO(ahuszagh) Need to re-write this as...
-    //-> (StdResult<F, ErrorCode>, *const u8)
-
     // Parse the mantissa and exponent.
     let mut state = RawFloatState::new();
     let ptr = state.parse(radix, bytes)?;

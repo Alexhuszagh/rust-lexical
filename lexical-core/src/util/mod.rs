@@ -22,14 +22,14 @@ pub(crate) mod test;
 // Hide implementation details.
 mod algorithm;
 mod cast;
-mod config;
-mod error;
+pub(crate) mod config;
+pub(crate) mod error;
 mod mask;
 mod num;
 mod pointer_methods;
 mod primitive;
 mod pow;
-mod result;
+pub(crate) mod result;
 mod rounding;
 mod sign;
 mod table;

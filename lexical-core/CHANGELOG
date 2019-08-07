@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.0] - 2019-07-XX
 ### Added
-- Added ResultFfi, an FFI-compatible tagged union, to store results for FFI-compatible functions.
-- Added `MAX_*_SIZE_BASE10` and `MAX_*_SIZE_BASE10_FFI` constants, to determine the maximum size in bytes a formatted type will take in base 10.
+- Added ffi::Result, an FFI-compatible tagged union, to store results for FFI-compatible functions.
+- Added `MAX_*_SIZE_BASE10` constants, to determine the maximum size in bytes a formatted type will take in base 10.
+- Added `ato*_partial` functions, which parse until an invalid digit is found, returning the value and number of processed digits.
 
 ### Changed
 - Improved code generation and reduced binary bloat. There are a few algorithmic differences that make this possible, but the parsers now generally extract the float subcomponents first, then parsed known-good data after for enhanced performance.
@@ -19,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add variants for lexical_core::ErrorCode. Added `Underflow`, to detect numerical underflow, `EmptyFraction`, to detect floats with an empty integer and fraction components, and `EmptyExponent`, to detect floats with no value following the exponent character.
 - Changed Result to use `std::result::Result`.
 - Fixed proptests and added more comprehensive proptests thanks to @dangrabcad.
+- Moved FFI-compatible code to the public `ffi` module.
+- Removed `*_slice` from functions in the public API, since there is no naming conflict with FFI code.
+- Removed `*_ffi` and `*_FFI` from public functions and constants.
 
 ### Removed
 - Removed the unchecked parsers from the public API. `try_parse*` has been replaced with `parse*`.

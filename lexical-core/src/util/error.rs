@@ -73,6 +73,10 @@ impl From<(ErrorCode, usize)> for Error {
     }
 }
 
+pub(crate) mod error_ffi {
+
+pub use super::{Error, ErrorCode};
+
 /// Check if the error code designates integer overflow.
 #[no_mangle]
 pub extern fn error_is_overflow(error: Error) -> bool {
@@ -108,3 +112,5 @@ pub extern fn error_is_empty_fraction(error: Error) -> bool {
 pub extern fn error_is_empty_exponent(error: Error) -> bool {
     error.code == ErrorCode::EmptyExponent
 }
+
+}   // error_ffi
