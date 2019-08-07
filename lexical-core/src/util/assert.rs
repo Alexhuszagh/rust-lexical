@@ -24,7 +24,14 @@ macro_rules! assert_radix {
 
 /// Check the buffer has sufficient room for the output.
 macro_rules! assert_buffer {
-    ($slc:ident, $size:expr) => ({
-        assert!($slc.len() >= $size);
+    ($radix:expr, $slc:ident, $t:ty) => ({
+        #[cfg(feature = "radix")]
+        match $radix {
+            10 => assert!($slc.len() >= <$t>::MAX_SIZE_BASE10),
+            _  => assert!($slc.len() >= <$t>::MAX_SIZE),
+        }
+
+        #[cfg(not(feature = "radix"))]
+        assert!($slc.len() >= <$t>::MAX_SIZE);
     });
 }

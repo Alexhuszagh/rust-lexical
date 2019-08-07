@@ -478,14 +478,14 @@ mod tests {
     #[test]
     #[should_panic]
     fn f32toa_buffer_test() {
-        let mut buffer = [b'0'; MAX_F32_SIZE-1];
+        let mut buffer = [b'0'; f32::MAX_SIZE_BASE10-1];
         f64toa(1.2345, &mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn f64toa_buffer_test() {
-        let mut buffer = [b'0'; MAX_F64_SIZE-1];
+        let mut buffer = [b'0'; f64::MAX_SIZE_BASE10-1];
         f64toa(1.2345, &mut buffer);
     }
 }

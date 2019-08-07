@@ -645,6 +645,8 @@ pub trait Float: Number + ops::Neg<Output=Self>
     const NEG_INFINITY: Self;
     const NAN: Self;
     const BITS: usize;
+    const MAX_SIZE: usize;
+    const MAX_SIZE_BASE10: usize;
 
     /// Bitmask for the sign bit.
     const SIGN_MASK: Self::Unsigned;
@@ -903,6 +905,8 @@ impl Float for f32 {
     const NEG_INFINITY: f32 = f32::NEG_INFINITY;
     const NAN: f32 = f32::NAN;
     const BITS: usize = 32;
+    const MAX_SIZE: usize = MAX_F32_SIZE;
+    const MAX_SIZE_BASE10: usize = MAX_F32_SIZE_BASE10;
     const SIGN_MASK: u32            = 0x80000000;
     const EXPONENT_MASK: u32        = 0x7F800000;
     const HIDDEN_BIT_MASK: u32      = 0x00800000;
@@ -986,6 +990,8 @@ impl Float for f64 {
     const NEG_INFINITY: f64 = f64::NEG_INFINITY;
     const NAN: f64 = f64::NAN;
     const BITS: usize = 64;
+    const MAX_SIZE: usize = MAX_F64_SIZE;
+    const MAX_SIZE_BASE10: usize = MAX_F64_SIZE_BASE10;
     const SIGN_MASK: u64            = 0x8000000000000000;
     const EXPONENT_MASK: u64        = 0x7FF0000000000000;
     const HIDDEN_BIT_MASK: u64      = 0x0010000000000000;
