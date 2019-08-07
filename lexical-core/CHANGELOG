@@ -15,7 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Improved code generation and reduced binary bloat. There are a few algorithmic differences that make this possible, but the parsers now generally extract the float subcomponents first, then parsed known-good data after for enhanced performance.
-- Improved integer-to-string formatting using optimized for each type and bit-twiddling/magic numbers.
 - Updated the benchmarks and benchmark results.
 - Add variants for lexical_core::ErrorCode. Added `Underflow`, to detect numerical underflow, `EmptyFraction`, to detect floats with an empty integer and fraction components, and `EmptyExponent`, to detect floats with no value following the exponent character.
 - Changed Result to use `std::result::Result`.
