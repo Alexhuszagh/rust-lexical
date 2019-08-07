@@ -72,446 +72,6 @@
 
 use util::*;
 
-// BASE10
-// ------
-
-// Hyper-optimized integer formatters using bit-twiddling tricks for
-// base10. These are meant to be correct, however, they use bit-twiddling
-// tricks so they may not be very legible.
-
-// Calculate the number of leading 0s.
-#[cfg(feature = "table")]
-macro_rules! cltz {
-    ($value:ident) => {
-        $value.leading_zeros().as_usize()
-    };
-}
-
-// Calculate the offset where the digits were first written.
-#[cfg(feature = "table")]
-macro_rules! calculate_offset {
-    ($value:ident, $digits:ident, $max_digits:ident, $size:expr) => ({
-        // Get the log2 of the value to estimate the log10 quickly.
-        // log2(0) is undefined, always ensure 1 bit is set.
-        let value = $value | 1;
-        let log2 = $size - cltz!(value);
-
-        // Estimate log10(value) to calculate number of digits.
-        // Put in safe guards so we always have at least 1 digit.
-        // Our magic numbers are:
-        //  1233 / 2^12 == log10(2)
-        // These magic numbers are valid for any value <= 2**18,
-        // which encompasses all offsets (<= 40).
-        let digits = (log2 * 1233) >> 12;
-        let mut offset = $max_digits - digits - 1;
-        debug_assert!(offset < $digits.len());
-        if digits != 0 && unchecked_index!($digits[offset]) == b'0' {
-            offset += 1;
-        }
-
-        offset
-    });
-}
-
-/// Trait for highly-optimized base10 implementations.
-#[cfg(feature = "table")]
-pub(crate) trait OptimizedItoaBase10 {
-    fn optimized_itoa(self, buffer: &mut [u8]) -> usize;
-}
-
-/// Trait for highly-optimized base10 implementations.
-#[cfg(not(feature = "table"))]
-pub(crate) trait OptimizedItoaBase10
-{}
-
-/// Implement OptimizedItoaBase10 for type.
-macro_rules! optimized_itoa_base10 {
-    ($t:ty, $optimized_cb:ident) => {
-        #[cfg(feature = "table")]
-        impl OptimizedItoaBase10 for $t {
-            perftools_inline_always!{
-            fn optimized_itoa(self, buffer: &mut [u8]) -> usize {
-                $optimized_cb(self, buffer)
-            }}
-        }
-
-        #[cfg(not(feature = "table"))]
-        impl OptimizedItoaBase10 for $t
-        {}
-    };
-}
-
-// U8
-
-// Highly-optimized float formatter for u8.
-perftools_inline!{
-#[cfg(feature = "table")]
-#[allow(unused_unsafe)]
-fn optimized_u8(value: u8, digits: &mut [u8])
-    -> usize
-{
-    // Lookup table for base-10 digits.
-    const TABLE: &[u8] = &DIGIT_TO_BASE10_SQUARED;
-    // Max number of digits in a u8.
-    const MAX_DIGITS: usize = 4;
-    // Magic numbers for very fast 32-bit division.
-    // 1e-2 ~= 1374389535 / 2**37
-    const E_2: u64 = 1374389535;
-    // Check constantly we have no indexing issues.
-    debug_assert!(digits.len() >= MAX_DIGITS);
-
-    let uvalue_0 = value.as_u32();
-    let uvalue_1 = ((uvalue_0.as_u64() * E_2) >> 37).as_u32();
-    let index_0 = (uvalue_0 * 2 - uvalue_1 * 200).as_usize();
-    let index_1 = (uvalue_1 * 2).as_usize();
-
-    unchecked_index_mut!(digits[2] = unchecked_index!(TABLE[index_0]));
-    unchecked_index_mut!(digits[3] = unchecked_index!(TABLE[index_0+1]));
-    unchecked_index_mut!(digits[0] = unchecked_index!(TABLE[index_1]));
-    unchecked_index_mut!(digits[1] = unchecked_index!(TABLE[index_1+1]));
-
-    calculate_offset!(value, digits, MAX_DIGITS, 8)
-}}
-
-optimized_itoa_base10! { u8, optimized_u8 }
-
-// U16
-
-// Highly-optimized float formatter for u16.
-perftools_inline!{
-#[cfg(feature = "table")]
-#[allow(unused_unsafe)]
-fn optimized_u16(value: u16, digits: &mut [u8])
-    -> usize
-{
-    // Lookup table for base-10 digits.
-    const TABLE: &[u8] = &DIGIT_TO_BASE10_SQUARED;
-    // Max number of digits in a u16.
-    const MAX_DIGITS: usize = 6;
-    // Magic numbers for very fast 32-bit division.
-    // 1e-2 ~= 1374389535 / 2**37
-    const E_2: u64 = 1374389535;
-    // 1e-4 ~= 3518437209 / 2**45
-    const E_4: u64 = 3518437209;
-    // Check constantly we have no indexing issues.
-    debug_assert!(digits.len() >= MAX_DIGITS);
-
-    let uvalue_0 = value.as_u32();
-    let uvalue_1 = ((uvalue_0.as_u64() * E_2) >> 37).as_u32();
-    let uvalue_2 = ((uvalue_0.as_u64() * E_4) >> 45).as_u32();
-    let index_0 = (uvalue_0 * 2 - uvalue_1 * 200).as_usize();
-    let index_1 = (uvalue_1 * 2 - uvalue_2 * 200).as_usize();
-    let index_2 = (uvalue_2 * 2).as_usize();
-
-    unchecked_index_mut!(digits[4] = unchecked_index!(TABLE[index_0]));
-    unchecked_index_mut!(digits[5] = unchecked_index!(TABLE[index_0+1]));
-    unchecked_index_mut!(digits[2] = unchecked_index!(TABLE[index_1]));
-    unchecked_index_mut!(digits[3] = unchecked_index!(TABLE[index_1+1]));
-    unchecked_index_mut!(digits[0] = unchecked_index!(TABLE[index_2]));
-    unchecked_index_mut!(digits[1] = unchecked_index!(TABLE[index_2+1]));
-
-    calculate_offset!(value, digits, MAX_DIGITS, 16)
-}}
-
-optimized_itoa_base10! { u16, optimized_u16 }
-
-// U32
-
-// Highly-optimized float formatter for u32.
-perftools_inline!{
-#[cfg(feature = "table")]
-#[allow(unused_unsafe)]
-fn optimized_u32(value: u32, digits: &mut [u8])
-    -> usize
-{
-    // Lookup table for base-10 digits.
-    const TABLE: &[u8] = &DIGIT_TO_BASE10_SQUARED;
-    // Max number of digits in a 32.
-    const MAX_DIGITS: usize = 10;
-    // Magic numbers for very fast 32-bit division.
-    // 1e-2 ~= 1374389535 / 2**37
-    const E_2: u64 = 1374389535;
-    // 1e-4 ~= 3518437209 / 2**45
-    const E_4: u64 = 3518437209;
-    // 1e-5 ~= 1125899907 / 2**50
-    const E_6: u64 = 1125899907;
-    // Check constantly we have no indexing issues.
-    debug_assert!(digits.len() >= MAX_DIGITS);
-
-    // A u32 has 10 digits, therefore, the top2 refers to `value / 1e8`.
-    let top2 = (value / 100000000).as_u32();
-
-    // Extremely fast division based on Terje Mathiesen.
-    let uvalue_0 = value.as_u32().wrapping_sub(top2.wrapping_mul(100000000));
-    let uvalue_1 = ((uvalue_0.as_u64() * E_2) >> 37).as_u32();
-    let uvalue_2 = ((uvalue_0.as_u64() * E_4) >> 45).as_u32();
-    let uvalue_3 = ((uvalue_0.as_u64() * E_6) >> 50).as_u32();
-    let index_0 = (uvalue_0 * 2 - uvalue_1 * 200).as_usize();
-    let index_1 = (uvalue_1 * 2 - uvalue_2 * 200).as_usize();
-    let index_2 = (uvalue_2 * 2 - uvalue_3 * 200).as_usize();
-    let index_3 = (uvalue_3 * 2).as_usize();
-
-    unchecked_index_mut!(digits[8] = unchecked_index!(TABLE[index_0]));
-    unchecked_index_mut!(digits[9] = unchecked_index!(TABLE[index_0+1]));
-    unchecked_index_mut!(digits[6] = unchecked_index!(TABLE[index_1]));
-    unchecked_index_mut!(digits[7] = unchecked_index!(TABLE[index_1+1]));
-    unchecked_index_mut!(digits[4] = unchecked_index!(TABLE[index_2]));
-    unchecked_index_mut!(digits[5] = unchecked_index!(TABLE[index_2+1]));
-    unchecked_index_mut!(digits[2] = unchecked_index!(TABLE[index_3]));
-    unchecked_index_mut!(digits[3] = unchecked_index!(TABLE[index_3+1]));
-
-    let uvalue_4 = top2;
-    let index_4 = (uvalue_4 * 2).as_usize();
-
-    unchecked_index_mut!(digits[0] = unchecked_index!(TABLE[index_4]));
-    unchecked_index_mut!(digits[1] = unchecked_index!(TABLE[index_4+1]));
-
-    calculate_offset!(value, digits, MAX_DIGITS, 32)
-}}
-
-optimized_itoa_base10! { u32, optimized_u32 }
-
-// U64
-
-// Highly-optimized float formatter for u64.
-// Adapted from:
-//     https://gist.github.com/Veedrac/069dd35f896de4df4e14b881a455ca47
-perftools_inline!{
-#[cfg(feature = "table")]
-#[allow(unused_unsafe)]
-fn optimized_u64(value: u64, digits: &mut [u8])
-    -> usize
-{
-    // Lookup table for base-10 digits.
-    const TABLE: &[u8] = &DIGIT_TO_BASE10_SQUARED;
-    // Max number of digits in a u64.
-    const MAX_DIGITS: usize = 20;
-    // Magic numbers for very fast 32-bit division.
-    // 1e-2 ~= 1374389535 / 2**37
-    const E_2: u64 = 1374389535;
-    // 1e-4 ~= 3518437209 / 2**45
-    const E_4: u64 = 3518437209;
-    // 1e-5 ~= 1125899907 / 2**50
-    const E_6: u64 = 1125899907;
-    // Check constantly we have no indexing issues.
-    debug_assert!(digits.len() >= MAX_DIGITS);
-
-    // A u64 has 20 digits, therefore, the top12 and top4 refer to
-    // `value / 1e8` and `value / 1e16`, respectively.
-    let top12 = (value / 100000000).as_u32();
-    let top4 = (value / 10000000000000000).as_u32();
-
-    // Extremely fast division based on Terje Mathiesen.
-    let uvalue_0 = value.as_u32().wrapping_sub(top12.wrapping_mul(100000000));
-    let uvalue_1 = ((uvalue_0.as_u64() * E_2) >> 37).as_u32();
-    let uvalue_2 = ((uvalue_0.as_u64() * E_4) >> 45).as_u32();
-    let uvalue_3 = ((uvalue_0.as_u64() * E_6) >> 50).as_u32();
-    let index_0 = (uvalue_0 * 2 - uvalue_1 * 200).as_usize();
-    let index_1 = (uvalue_1 * 2 - uvalue_2 * 200).as_usize();
-    let index_2 = (uvalue_2 * 2 - uvalue_3 * 200).as_usize();
-    let index_3 = (uvalue_3 * 2).as_usize();
-
-    unchecked_index_mut!(digits[18] = unchecked_index!(TABLE[index_0]));
-    unchecked_index_mut!(digits[19] = unchecked_index!(TABLE[index_0+1]));
-    unchecked_index_mut!(digits[16] = unchecked_index!(TABLE[index_1]));
-    unchecked_index_mut!(digits[17] = unchecked_index!(TABLE[index_1+1]));
-    unchecked_index_mut!(digits[14] = unchecked_index!(TABLE[index_2]));
-    unchecked_index_mut!(digits[15] = unchecked_index!(TABLE[index_2+1]));
-    unchecked_index_mut!(digits[12] = unchecked_index!(TABLE[index_3]));
-    unchecked_index_mut!(digits[13] = unchecked_index!(TABLE[index_3+1]));
-
-    let uvalue_4 = top12.wrapping_sub(top4.wrapping_mul(100000000));
-    let uvalue_5 = ((uvalue_4.as_u64() * E_2) >> 37).as_u32();
-    let uvalue_6 = ((uvalue_4.as_u64() * E_4) >> 45).as_u32();
-    let uvalue_7 = ((uvalue_4.as_u64() * E_6) >> 50).as_u32();
-    let index_4 = (uvalue_4 * 2 - uvalue_5 * 200).as_usize();
-    let index_5 = (uvalue_5 * 2 - uvalue_6 * 200).as_usize();
-    let index_6 = (uvalue_6 * 2 - uvalue_7 * 200).as_usize();
-    let index_7 = (uvalue_7 * 2).as_usize();
-
-    unchecked_index_mut!(digits[10] = unchecked_index!(TABLE[index_4]));
-    unchecked_index_mut!(digits[11] = unchecked_index!(TABLE[index_4+1]));
-    unchecked_index_mut!(digits[8] = unchecked_index!(TABLE[index_5]));
-    unchecked_index_mut!(digits[9] = unchecked_index!(TABLE[index_5+1]));
-    unchecked_index_mut!(digits[6] = unchecked_index!(TABLE[index_6]));
-    unchecked_index_mut!(digits[7] = unchecked_index!(TABLE[index_6+1]));
-    unchecked_index_mut!(digits[4] = unchecked_index!(TABLE[index_7]));
-    unchecked_index_mut!(digits[5] = unchecked_index!(TABLE[index_7+1]));
-
-    let uvalue_8 = top4;
-    let uvalue_9 = ((uvalue_8.as_u64() * E_2) >> 37).as_u32();
-    let index_8 = (uvalue_8 * 2 - uvalue_9 * 200).as_usize();
-    let index_9 = (uvalue_9 * 2).as_usize();
-
-    unchecked_index_mut!(digits[2] = unchecked_index!(TABLE[index_8]));
-    unchecked_index_mut!(digits[3] = unchecked_index!(TABLE[index_8+1]));
-    unchecked_index_mut!(digits[0] = unchecked_index!(TABLE[index_9]));
-    unchecked_index_mut!(digits[1] = unchecked_index!(TABLE[index_9+1]));
-
-    calculate_offset!(value, digits, MAX_DIGITS, 64)
-}}
-
-optimized_itoa_base10! { u64, optimized_u64 }
-
-// U128
-
-// Highly-optimized float formatter for u128.
-perftools_inline!{
-#[cfg(all(has_i128, feature = "table"))]
-#[allow(unused_unsafe)]
-fn optimized_u128(value: u128, digits: &mut [u8])
-    -> usize
-{
-    // Lookup table for base-10 digits.
-    const TABLE: &[u8] = &DIGIT_TO_BASE10_SQUARED;
-    // Max number of digits in a u64.
-    const MAX_DIGITS: usize = 40;
-    // Magic numbers for very fast 32-bit division.
-    // 1e-2 ~= 1374389535 / 2**37
-    const E_2: u64 = 1374389535;
-    // 1e-4 ~= 3518437209 / 2**45
-    const E_4: u64 = 3518437209;
-    // 1e-5 ~= 1125899907 / 2**50
-    const E_6: u64 = 1125899907;
-    // Check constantly we have no indexing issues.
-    debug_assert!(digits.len() >= MAX_DIGITS);
-
-    let top32 = (value / 100000000).as_u32();
-    let top24 = (value / 10000000000000000).as_u32();
-    let top16 = (value / 1000000000000000000000000).as_u32();
-    let top8 = (value / 100000000000000000000000000000000).as_u32();
-
-    // Extremely fast division based on Terje Mathiesen.
-    let uvalue_0 = value.as_u32().wrapping_sub(top32.wrapping_mul(100000000));
-    let uvalue_1 = ((uvalue_0.as_u64() * E_2) >> 37).as_u32();
-    let uvalue_2 = ((uvalue_0.as_u64() * E_4) >> 45).as_u32();
-    let uvalue_3 = ((uvalue_0.as_u64() * E_6) >> 50).as_u32();
-    let index_0 = (uvalue_0 * 2 - uvalue_1 * 200).as_usize();
-    let index_1 = (uvalue_1 * 2 - uvalue_2 * 200).as_usize();
-    let index_2 = (uvalue_2 * 2 - uvalue_3 * 200).as_usize();
-    let index_3 = (uvalue_3 * 2).as_usize();
-
-    unchecked_index_mut!(digits[38] = unchecked_index!(TABLE[index_0]));
-    unchecked_index_mut!(digits[39] = unchecked_index!(TABLE[index_0+1]));
-    unchecked_index_mut!(digits[36] = unchecked_index!(TABLE[index_1]));
-    unchecked_index_mut!(digits[37] = unchecked_index!(TABLE[index_1+1]));
-    unchecked_index_mut!(digits[34] = unchecked_index!(TABLE[index_2]));
-    unchecked_index_mut!(digits[35] = unchecked_index!(TABLE[index_2+1]));
-    unchecked_index_mut!(digits[32] = unchecked_index!(TABLE[index_3]));
-    unchecked_index_mut!(digits[33] = unchecked_index!(TABLE[index_3+1]));
-
-    let uvalue_4 = top32.wrapping_sub(top24.wrapping_mul(100000000));
-    let uvalue_5 = ((uvalue_4.as_u64() * E_2) >> 37).as_u32();
-    let uvalue_6 = ((uvalue_4.as_u64() * E_4) >> 45).as_u32();
-    let uvalue_7 = ((uvalue_4.as_u64() * E_6) >> 50).as_u32();
-    let index_4 = (uvalue_4 * 2 - uvalue_5 * 200).as_usize();
-    let index_5 = (uvalue_5 * 2 - uvalue_6 * 200).as_usize();
-    let index_6 = (uvalue_6 * 2 - uvalue_7 * 200).as_usize();
-    let index_7 = (uvalue_7 * 2).as_usize();
-
-    unchecked_index_mut!(digits[30] = unchecked_index!(TABLE[index_4]));
-    unchecked_index_mut!(digits[31] = unchecked_index!(TABLE[index_4+1]));
-    unchecked_index_mut!(digits[28] = unchecked_index!(TABLE[index_5]));
-    unchecked_index_mut!(digits[29] = unchecked_index!(TABLE[index_5+1]));
-    unchecked_index_mut!(digits[26] = unchecked_index!(TABLE[index_6]));
-    unchecked_index_mut!(digits[27] = unchecked_index!(TABLE[index_6+1]));
-    unchecked_index_mut!(digits[24] = unchecked_index!(TABLE[index_7]));
-    unchecked_index_mut!(digits[25] = unchecked_index!(TABLE[index_7+1]));
-
-    let uvalue_8 = top24.wrapping_sub(top16.wrapping_mul(100000000));
-    let uvalue_9 = ((uvalue_8.as_u64() * E_2) >> 37).as_u32();
-    let uvalue_10 = ((uvalue_8.as_u64() * E_4) >> 45).as_u32();
-    let uvalue_11 = ((uvalue_8.as_u64() * E_6) >> 50).as_u32();
-    let index_8 = (uvalue_8 * 2 - uvalue_9 * 200).as_usize();
-    let index_9 = (uvalue_9 * 2 - uvalue_10 * 200).as_usize();
-    let index_10 = (uvalue_10 * 2 - uvalue_11 * 200).as_usize();
-    let index_11 = (uvalue_11 * 2).as_usize();
-
-    unchecked_index_mut!(digits[22] = unchecked_index!(TABLE[index_8]));
-    unchecked_index_mut!(digits[23] = unchecked_index!(TABLE[index_8+1]));
-    unchecked_index_mut!(digits[20] = unchecked_index!(TABLE[index_9]));
-    unchecked_index_mut!(digits[21] = unchecked_index!(TABLE[index_9+1]));
-    unchecked_index_mut!(digits[18] = unchecked_index!(TABLE[index_10]));
-    unchecked_index_mut!(digits[19] = unchecked_index!(TABLE[index_10+1]));
-    unchecked_index_mut!(digits[16] = unchecked_index!(TABLE[index_11]));
-    unchecked_index_mut!(digits[17] = unchecked_index!(TABLE[index_11+1]));
-
-    let uvalue_12 = top16.wrapping_sub(top8.wrapping_mul(100000000));
-    let uvalue_13 = ((uvalue_12.as_u64() * E_2) >> 37).as_u32();
-    let uvalue_14 = ((uvalue_12.as_u64() * E_4) >> 45).as_u32();
-    let uvalue_15 = ((uvalue_12.as_u64() * E_6) >> 50).as_u32();
-    let index_12 = (uvalue_12 * 2 - uvalue_13 * 200).as_usize();
-    let index_13 = (uvalue_13 * 2 - uvalue_14 * 200).as_usize();
-    let index_14 = (uvalue_14 * 2 - uvalue_15 * 200).as_usize();
-    let index_15 = (uvalue_15 * 2).as_usize();
-
-    unchecked_index_mut!(digits[14] = unchecked_index!(TABLE[index_12]));
-    unchecked_index_mut!(digits[15] = unchecked_index!(TABLE[index_12+1]));
-    unchecked_index_mut!(digits[12] = unchecked_index!(TABLE[index_13]));
-    unchecked_index_mut!(digits[13] = unchecked_index!(TABLE[index_13+1]));
-    unchecked_index_mut!(digits[10] = unchecked_index!(TABLE[index_14]));
-    unchecked_index_mut!(digits[11] = unchecked_index!(TABLE[index_14+1]));
-    unchecked_index_mut!(digits[8] = unchecked_index!(TABLE[index_15]));
-    unchecked_index_mut!(digits[9] = unchecked_index!(TABLE[index_15+1]));
-
-    let uvalue_16 = top8;
-    let uvalue_17 = ((uvalue_16.as_u64() * E_2) >> 37).as_u32();
-    let uvalue_18 = ((uvalue_16.as_u64() * E_4) >> 45).as_u32();
-    let uvalue_19 = ((uvalue_16.as_u64() * E_6) >> 50).as_u32();
-    let index_16 = (uvalue_16 * 2 - uvalue_17 * 200).as_usize();
-    let index_17 = (uvalue_17 * 2 - uvalue_18 * 200).as_usize();
-    let index_18 = (uvalue_18 * 2 - uvalue_19 * 200).as_usize();
-    let index_19 = (uvalue_19 * 2).as_usize();
-
-    unchecked_index_mut!(digits[6] = unchecked_index!(TABLE[index_16]));
-    unchecked_index_mut!(digits[7] = unchecked_index!(TABLE[index_16+1]));
-    unchecked_index_mut!(digits[4] = unchecked_index!(TABLE[index_17]));
-    unchecked_index_mut!(digits[5] = unchecked_index!(TABLE[index_17+1]));
-    unchecked_index_mut!(digits[2] = unchecked_index!(TABLE[index_18]));
-    unchecked_index_mut!(digits[3] = unchecked_index!(TABLE[index_18+1]));
-    unchecked_index_mut!(digits[0] = unchecked_index!(TABLE[index_19]));
-    unchecked_index_mut!(digits[1] = unchecked_index!(TABLE[index_19+1]));
-
-    calculate_offset!(value, digits, MAX_DIGITS, 128)
-}}
-
-#[cfg(has_i128)]
-optimized_itoa_base10! { u128, optimized_u128 }
-
-// USIZE
-
-cfg_if! {
-if #[cfg(target_pointer_width = "16")] {
-    // Cast usize as u16.
-    perftools_inline!{
-    #[cfg(feature = "table")]
-    fn optimized_usize(value: usize, buffer: &mut [u8])
-        -> usize
-    {
-        optimized_u16(value.as_u16(), buffer)
-    }}
-} else if #[cfg(target_pointer_width = "32")] {
-    // Cast usize as u32.
-    perftools_inline!{
-    #[cfg(feature = "table")]
-    fn optimized_usize(value: usize, buffer: &mut [u8])
-        -> usize
-    {
-        optimized_u32(value.as_u32(), buffer)
-    }}
-} else if #[cfg(target_pointer_width = "64")] {
-    // Cast usize as u64.
-    perftools_inline!{
-    #[cfg(feature = "table")]
-    fn optimized_usize(value: usize, buffer: &mut [u8])
-        -> usize
-    {
-        optimized_u64(value.as_u64(), buffer)
-    }}
-}}  // cfg_if
-
-optimized_itoa_base10! { usize, optimized_usize }
-
 // OPTIMIZED
 
 // Optimized implementation for radix-N numbers.
@@ -520,7 +80,8 @@ optimized_itoa_base10! { usize, optimized_usize }
 //
 // `value` must be non-negative and mutable.
 perftools_inline!{
-#[cfg(all(feature = "radix", feature = "table"))]
+#[allow(unused_unsafe)]
+#[cfg(feature = "table")]
 fn optimized_generic<T>(mut value: T, radix: T, table: &[u8], buffer: &mut [u8])
     -> usize
     where T: UnsignedInteger
@@ -531,7 +92,7 @@ fn optimized_generic<T>(mut value: T, radix: T, table: &[u8], buffer: &mut [u8])
     let radix4 = radix2 * radix2;
 
     // Decode 4-digits at a time
-    let mut iter = buffer.iter_mut().rev();
+    let mut index = buffer.len();
     while value >= radix4 {
         let rem = value % radix4;
         value /= radix4;
@@ -542,37 +103,47 @@ fn optimized_generic<T>(mut value: T, radix: T, table: &[u8], buffer: &mut [u8])
         // r1 and r2 must be in the range [0, 2*radix^2-1), since the maximum
         // value of rem is `radix4-1`, which must have a div and rem
         // in the range [0, radix^2-1).
-        *iter.next().unwrap() = index!(table[r2+1]);
-        *iter.next().unwrap() = index!(table[r2]);
-        *iter.next().unwrap() = index!(table[r1+1]);
-        *iter.next().unwrap() = index!(table[r1]);
+        index -= 1;
+        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r2+1]));
+        index -= 1;
+        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r2]));
+        index -= 1;
+        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r1+1]));
+        index -= 1;
+        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r1]));
     }
 
     // Decode 2 digits at a time.
     while value >= radix2 {
-        let rem = (T::TWO * (value % radix2)).as_usize();
+        let r = (T::TWO * (value % radix2)).as_usize();
         value /= radix2;
 
         // This is always safe, since the table is 2*radix^2, and
-        // rem must be in the range [0, 2*radix^2-1).
-        *iter.next().unwrap() = index!(table[rem+1]);
-        *iter.next().unwrap() = index!(table[rem]);
+        // r must be in the range [0, 2*radix^2-1).
+        index -= 1;
+        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r+1]));
+        index -= 1;
+        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r]));
     }
 
     // Decode last 2 digits.
     if value < radix {
         // This is always safe, since value < radix, so it must be < 36.
         // Digit must be <= 36.
-        *iter.next().unwrap() = digit_to_char(value);
+        index -= 1;
+        unchecked_index_mut!(buffer[index] = digit_to_char(value));
+        //*iter.next().unwrap() = digit_to_char(value);
     } else {
-        let rem = (T::TWO * value).as_usize();
+        let r = (T::TWO * value).as_usize();
         // This is always safe, since the table is 2*radix^2, and the value
         // must <= radix^2, so rem must be in the range [0, 2*radix^2-1).
-        *iter.next().unwrap() = index!(table[rem+1]);
-        *iter.next().unwrap() = index!(table[rem]);
+        index -= 1;
+        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r+1]));
+        index -= 1;
+        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r]));
     }
 
-    iter.count()
+    index
 }}
 
 // NAIVE
@@ -614,7 +185,7 @@ fn naive<T>(mut value: T, radix: T, buffer: &mut [u8])
 perftools_inline!{
 pub(crate) fn forward<T>(value: T, radix: u32, bytes: &mut [u8])
     -> usize
-    where T: UnsignedInteger + OptimizedItoaBase10
+    where T: UnsignedInteger
 {
     // Check simple use-cases
     if value == T::ZERO {
@@ -643,52 +214,49 @@ pub(crate) fn forward<T>(value: T, radix: u32, bytes: &mut [u8])
         }
 
         #[cfg(all(not(feature = "radix"), feature = "table"))] {
-            value.optimized_itoa(digits)
+            optimized_generic(value, as_cast(10), &DIGIT_TO_BASE10_SQUARED, digits)
         }
 
         #[cfg(all(feature = "radix", feature = "table"))] {
-            if radix == 10 {
-                value.optimized_itoa(digits)
-            } else {
-                let table: &[u8] = match radix {
-                    2   => &DIGIT_TO_BASE2_SQUARED,
-                    3   => &DIGIT_TO_BASE3_SQUARED,
-                    4   => &DIGIT_TO_BASE4_SQUARED,
-                    5   => &DIGIT_TO_BASE5_SQUARED,
-                    6   => &DIGIT_TO_BASE6_SQUARED,
-                    7   => &DIGIT_TO_BASE7_SQUARED,
-                    8   => &DIGIT_TO_BASE8_SQUARED,
-                    9   => &DIGIT_TO_BASE9_SQUARED,
-                    11  => &DIGIT_TO_BASE11_SQUARED,
-                    12  => &DIGIT_TO_BASE12_SQUARED,
-                    13  => &DIGIT_TO_BASE13_SQUARED,
-                    14  => &DIGIT_TO_BASE14_SQUARED,
-                    15  => &DIGIT_TO_BASE15_SQUARED,
-                    16  => &DIGIT_TO_BASE16_SQUARED,
-                    17  => &DIGIT_TO_BASE17_SQUARED,
-                    18  => &DIGIT_TO_BASE18_SQUARED,
-                    19  => &DIGIT_TO_BASE19_SQUARED,
-                    20  => &DIGIT_TO_BASE20_SQUARED,
-                    21  => &DIGIT_TO_BASE21_SQUARED,
-                    22  => &DIGIT_TO_BASE22_SQUARED,
-                    23  => &DIGIT_TO_BASE23_SQUARED,
-                    24  => &DIGIT_TO_BASE24_SQUARED,
-                    25  => &DIGIT_TO_BASE25_SQUARED,
-                    26  => &DIGIT_TO_BASE26_SQUARED,
-                    27  => &DIGIT_TO_BASE27_SQUARED,
-                    28  => &DIGIT_TO_BASE28_SQUARED,
-                    29  => &DIGIT_TO_BASE29_SQUARED,
-                    30  => &DIGIT_TO_BASE30_SQUARED,
-                    31  => &DIGIT_TO_BASE31_SQUARED,
-                    32  => &DIGIT_TO_BASE32_SQUARED,
-                    33  => &DIGIT_TO_BASE33_SQUARED,
-                    34  => &DIGIT_TO_BASE34_SQUARED,
-                    35  => &DIGIT_TO_BASE35_SQUARED,
-                    36  => &DIGIT_TO_BASE36_SQUARED,
-                    _   => unreachable!(),
-                };
-                optimized_generic(value, as_cast(radix), table, digits)
-            }
+            let table: &[u8] = match radix {
+                2   => &DIGIT_TO_BASE2_SQUARED,
+                3   => &DIGIT_TO_BASE3_SQUARED,
+                4   => &DIGIT_TO_BASE4_SQUARED,
+                5   => &DIGIT_TO_BASE5_SQUARED,
+                6   => &DIGIT_TO_BASE6_SQUARED,
+                7   => &DIGIT_TO_BASE7_SQUARED,
+                8   => &DIGIT_TO_BASE8_SQUARED,
+                9   => &DIGIT_TO_BASE9_SQUARED,
+                10  => &DIGIT_TO_BASE10_SQUARED,
+                11  => &DIGIT_TO_BASE11_SQUARED,
+                12  => &DIGIT_TO_BASE12_SQUARED,
+                13  => &DIGIT_TO_BASE13_SQUARED,
+                14  => &DIGIT_TO_BASE14_SQUARED,
+                15  => &DIGIT_TO_BASE15_SQUARED,
+                16  => &DIGIT_TO_BASE16_SQUARED,
+                17  => &DIGIT_TO_BASE17_SQUARED,
+                18  => &DIGIT_TO_BASE18_SQUARED,
+                19  => &DIGIT_TO_BASE19_SQUARED,
+                20  => &DIGIT_TO_BASE20_SQUARED,
+                21  => &DIGIT_TO_BASE21_SQUARED,
+                22  => &DIGIT_TO_BASE22_SQUARED,
+                23  => &DIGIT_TO_BASE23_SQUARED,
+                24  => &DIGIT_TO_BASE24_SQUARED,
+                25  => &DIGIT_TO_BASE25_SQUARED,
+                26  => &DIGIT_TO_BASE26_SQUARED,
+                27  => &DIGIT_TO_BASE27_SQUARED,
+                28  => &DIGIT_TO_BASE28_SQUARED,
+                29  => &DIGIT_TO_BASE29_SQUARED,
+                30  => &DIGIT_TO_BASE30_SQUARED,
+                31  => &DIGIT_TO_BASE31_SQUARED,
+                32  => &DIGIT_TO_BASE32_SQUARED,
+                33  => &DIGIT_TO_BASE33_SQUARED,
+                34  => &DIGIT_TO_BASE34_SQUARED,
+                35  => &DIGIT_TO_BASE35_SQUARED,
+                36  => &DIGIT_TO_BASE36_SQUARED,
+                _   => unreachable!(),
+            };
+            optimized_generic(value, as_cast(radix), table, digits)
         }
     };
 
@@ -701,7 +269,7 @@ perftools_inline!{
 pub(crate) fn unsigned<Value, UWide>(value: Value, radix: u32, bytes: &mut [u8])
     -> usize
     where Value: UnsignedInteger,
-          UWide: UnsignedInteger + OptimizedItoaBase10
+          UWide: UnsignedInteger
 {
     // Invoke forwarder
     let v: UWide = as_cast(value);
@@ -713,7 +281,7 @@ perftools_inline!{
 pub(crate) fn signed<Value, UWide, IWide>(value: Value, radix: u32, bytes: &mut [u8])
     -> usize
     where Value: SignedInteger,
-          UWide: UnsignedInteger + OptimizedItoaBase10,
+          UWide: UnsignedInteger,
           IWide: SignedInteger
 {
     // Handle negative numbers, use an unsigned type to avoid overflow.
@@ -835,70 +403,6 @@ mod tests {
     use atoi::*;
     use util::test::*;
     use super::*;
-
-    // OPTIMIZED
-
-    #[cfg(feature = "table")]
-    macro_rules! check_internal {
-        ($value:expr, $expected:expr, $cb:ident, $t:tt) => {
-            let mut buffer = new_buffer();
-            let digits = &mut buffer[..$t::MAX_SIZE_BASE10];
-            let offset = $cb($value, digits);
-            let slc = &digits[offset..];
-            assert_eq!($expected.len(), slc.len());
-            assert_eq!(&$expected[..], slc);
-        };
-    }
-
-    #[cfg(feature = "table")]
-    #[test]
-    fn optimized_u8_test() {
-        check_internal!(0, b"0", optimized_u8, u8);
-        check_internal!(1, b"1", optimized_u8, u8);
-        check_internal!(127, b"127", optimized_u8, u8);
-        check_internal!(128, b"128", optimized_u8, u8);
-        check_internal!(255, b"255", optimized_u8, u8);
-    }
-
-    #[cfg(feature = "table")]
-    #[test]
-    fn optimized_u16_test() {
-        check_internal!(0, b"0", optimized_u16, u16);
-        check_internal!(1, b"1", optimized_u16, u16);
-        check_internal!(32767, b"32767", optimized_u16, u16);
-        check_internal!(32768, b"32768", optimized_u16, u16);
-        check_internal!(65535, b"65535", optimized_u16, u16);
-    }
-
-    #[cfg(feature = "table")]
-    #[test]
-    fn optimized_u32_test() {
-        check_internal!(0, b"0", optimized_u32, u32);
-        check_internal!(1, b"1", optimized_u32, u32);
-        check_internal!(2147483647, b"2147483647", optimized_u32, u32);
-        check_internal!(2147483648, b"2147483648", optimized_u32, u32);
-        check_internal!(4294967295, b"4294967295", optimized_u32, u32);
-    }
-
-    #[cfg(feature = "table")]
-    #[test]
-    fn optimized_u64_test() {
-        check_internal!(0, b"0", optimized_u64, u64);
-        check_internal!(1, b"1", optimized_u64, u64);
-        check_internal!(9223372036854775807, b"9223372036854775807", optimized_u64, u64);
-        check_internal!(9223372036854775808, b"9223372036854775808", optimized_u64, u64);
-        check_internal!(18446744073709551615, b"18446744073709551615", optimized_u64, u64);
-    }
-
-    #[cfg(all(has_i128, feature = "table"))]
-    #[test]
-    fn optimized_u128_test() {
-        check_internal!(0, b"0", optimized_u128, u128);
-        check_internal!(1, b"1", optimized_u128, u128);
-        check_internal!(170141183460469231731687303715884105727, b"170141183460469231731687303715884105727", optimized_u128, u128);
-        check_internal!(170141183460469231731687303715884105728, b"170141183460469231731687303715884105728", optimized_u128, u128);
-        check_internal!(340282366920938463463374607431768211455, b"340282366920938463463374607431768211455", optimized_u128, u128);
-    }
 
     // GENERIC
 
