@@ -182,10 +182,10 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8])
         if exponent < 0 {
             bytes[1] = b'-';
             exp = exponent.wrapping_neg() as u32;
-            itoa::forward(exp, radix, &mut bytes[2..]) + count + 4
+            itoa::itoa_positive(exp, radix, &mut bytes[2..]) + count + 4
         } else {
             exp = exponent as u32;
-            itoa::forward(exp, radix, &mut bytes[1..]) + count + 3
+            itoa::itoa_positive(exp, radix, &mut bytes[1..]) + count + 3
         }
     } else {
         // get component lengths
