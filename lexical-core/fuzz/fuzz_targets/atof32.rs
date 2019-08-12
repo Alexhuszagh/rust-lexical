@@ -3,5 +3,5 @@
 extern crate lexical_core;
 
 fuzz_target!(|data: &[u8]| {
-    let _ = lexical_core::try_atof32_slice(data);
+    let _ = lexical_core::atof32(data);
 });
