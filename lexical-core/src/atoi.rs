@@ -146,10 +146,12 @@ fn step_u64(radix: u32) -> usize {
 #[cfg(has_i128)]
 macro_rules! add_temporary_128 {
     ($value:ident, $tmp:ident, $step_power:ident, $ptr:ident, $op:ident, $code:ident) => (
-        $value = match $value.checked_mul(as_cast($step_power)) {
-            Some(v) => v,
-            None    => return Err((ErrorCode::$code, $ptr)),
-        };
+        if !$value.is_zero() {
+            $value = match $value.checked_mul(as_cast($step_power)) {
+                Some(v) => v,
+                None    => return Err((ErrorCode::$code, $ptr)),
+            };
+        }
         $value = match $value.$op(as_cast($tmp)) {
             Some(v) => v,
             None    => return Err((ErrorCode::$code, $ptr)),
@@ -160,7 +162,7 @@ macro_rules! add_temporary_128 {
 /// Iterate over the digits and iteratively process them.
 #[cfg(has_i128)]
 macro_rules! standalone_128 {
-    ($radix:ident, $digits:ident, $t:tt, $op:tt, $code:ident) => ({
+    ($radix:ident, $digits:ident, $t:tt, $op:ident, $code:ident) => ({
         let mut value: $t = $t::ZERO;
         let step = step_u64($radix);
         for chunk in $digits.chunks(step) {
@@ -260,7 +262,13 @@ impl Atoi for u128 {
     fn atoi(radix: u32, bytes: &[u8], is_signed: bool)
         -> StdResult<(u128, *const u8), (ErrorCode, *const u8)>
     {
-        standalone_128(radix, bytes, is_signed)
+        let step = step_u64(radix);
+        if bytes.len() <= step {
+            let (value, ptr) = standalone::<u64>(radix, bytes, is_signed)?;
+            Ok((value as u128, ptr))
+        } else {
+            standalone_128(radix, bytes, is_signed)
+        }
     }}
 }
 
@@ -270,7 +278,16 @@ impl Atoi for i128 {
     fn atoi(radix: u32, bytes: &[u8], is_signed: bool)
         -> StdResult<(i128, *const u8), (ErrorCode, *const u8)>
     {
-        standalone_128(radix, bytes, is_signed)
+        // This is guaranteed to be safe, since if the length is
+        // 1 less than step, and the min radix is 2, the value must be
+        // less than 2x u64::MAX, which means it must fit in an i64.
+        let step = step_u64(radix);
+        if bytes.len() < step {
+            let (value, ptr) = standalone::<i64>(radix, bytes, is_signed)?;
+            Ok((value as i128, ptr))
+        } else {
+            standalone_128(radix, bytes, is_signed)
+        }
     }}
 }
 
