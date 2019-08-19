@@ -111,13 +111,14 @@
 //  import pandas as pd
 //  import matplotlib.pyplot as plt
 //  plt.style.use('ggplot')
-//  lexical = np.array([55072, 51219, 120378, 187850, 81346, 102664, 149340, 230283]) / 1e3
-//  itoa = np.array([105066, 90015, 114494, 205365, 126392, 142794, 173478, 198176]) / 1e3
-//  rustcore = np.array([376625, 385722, 410117, 489783, 414715, 447581, 475189, 527589]) / 1e3
-//  index = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"]
+//  lexical = np.array([55072, 51219, 120378, 187850, 2056008, 81346, 102664, 149340, 230283, 2052915]) / 1e3
+//  itoa = np.array([105066, 90015, 114494, 205365, 2084005, 126392, 142794, 173478, 198176, 2047257]) / 1e3
+//  rustcore = np.array([376625, 385722, 410117, 489783, 14556649, 414715, 447581, 475189, 527589, 14600861]) / 1e3
+//  index = ["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128"]
 //  df = pd.DataFrame({'lexical': lexical, 'itoa': itoa, 'rustcore': rustcore}, index = index, columns=['lexical', 'itoa', 'rustcore'])
 //  ax = df.plot.bar(rot=0, figsize=(16, 8), fontsize=14, color=['#E24A33', '#988ED5', '#348ABD'])
 //  ax.set_ylabel("ms/iter")
+//  ax.set_yscale('log')
 //  ax.figure.tight_layout()
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()

@@ -204,26 +204,6 @@ fn generic<T>(mut value: T, radix: u32, table: &[u8], buffer: &mut [u8])
     index
 }}
 
-pub(crate) trait Generic {
-    // Export integer to string.
-    fn generic(self, radix: u32, buffer: &mut [u8]) -> usize;
-}
-
-// Implement generic for type.
-macro_rules! generic_impl {
-    ($($t:ty)*) => ($(
-        impl Generic for $t {
-            perftools_inline_always!{
-            fn generic(self, radix: u32, buffer: &mut [u8]) -> usize {
-                let table = get_table(radix);
-                generic(self, radix, table, buffer)
-            }}
-        }
-    )*);
-}
-
-generic_impl! { u8 u16 u32 u64 usize }
-
 // Optimized implementation for radix-N numbers.
 // Precondition:
 //  `value` must be non-negative and mutable.
@@ -271,6 +251,25 @@ fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [u8])
     index
 }}
 
+pub(crate) trait Generic {
+    // Export integer to string.
+    fn generic(self, radix: u32, buffer: &mut [u8]) -> usize;
+}
+
+// Implement generic for type.
+macro_rules! generic_impl {
+    ($($t:ty)*) => ($(
+        impl Generic for $t {
+            perftools_inline_always!{
+            fn generic(self, radix: u32, buffer: &mut [u8]) -> usize {
+                let table = get_table(radix);
+                generic(self, radix, table, buffer)
+            }}
+        }
+    )*);
+}
+
+generic_impl! { u8 u16 u32 u64 usize }
 
 #[cfg(has_i128)]
 impl Generic for u128 {
