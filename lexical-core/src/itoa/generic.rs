@@ -72,7 +72,64 @@
 
 use util::*;
 
-/// Get lookup table for 2 digit radix conversions.
+// Generic itoa algorithm.
+macro_rules! generic_algorithm {
+    ($value:ident, $radix:ident, $buffer:ident, $t:tt, $table:ident, $index:ident, $radix2:ident, $radix4:ident) => ({
+        while $value >= $radix4 {
+            let r = $value % $radix4;
+            $value /= $radix4;
+            let r1 = ($t::TWO * (r / $radix2)).as_usize();
+            let r2 = ($t::TWO * (r % $radix2)).as_usize();
+
+            // This is always safe, since the table is 2*radix^2, and
+            // r1 and r2 must be in the range [0, 2*radix^2-1), since the maximum
+            // value of r is `radix4-1`, which must have a div and r
+            // in the range [0, radix^2-1).
+            $index -= 1;
+            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r2+1]));
+            $index -= 1;
+            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r2]));
+            $index -= 1;
+            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r1+1]));
+            $index -= 1;
+            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r1]));
+        }
+
+        // Decode 2 digits at a time.
+        while $value >= $radix2 {
+            let r = ($t::TWO * ($value % $radix2)).as_usize();
+            $value /= $radix2;
+
+            // This is always safe, since the table is 2*radix^2, and
+            // r must be in the range [0, 2*radix^2-1).
+            $index -= 1;
+            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r+1]));
+            $index -= 1;
+            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r]));
+        }
+
+        // Decode last 2 digits.
+        if $value < $radix {
+            // This is always safe, since value < radix, so it must be < 36.
+            // Digit must be <= 36.
+            $index -= 1;
+            unchecked_index_mut!($buffer[$index] = digit_to_char($value));
+            //*iter.next().unwrap() = digit_to_char(value);
+        } else {
+            let r = ($t::TWO * $value).as_usize();
+            // This is always safe, since the table is 2*radix^2, and the value
+            // must <= radix^2, so rem must be in the range [0, 2*radix^2-1).
+            $index -= 1;
+            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r+1]));
+            $index -= 1;
+            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r]));
+        }
+    });
+}
+
+// Get lookup table for 2 digit radix conversions.
+perftools_inline!{
+#[cfg(feature = "radix")]
 fn get_table(radix: u32) -> &'static [u8] {
     match radix {
         2   => &DIGIT_TO_BASE2_SQUARED,
@@ -112,16 +169,20 @@ fn get_table(radix: u32) -> &'static [u8] {
         36  => &DIGIT_TO_BASE36_SQUARED,
         _   => unreachable!(),
     }
-}
+}}
+
+// Get lookup table for 2 digit radix conversions.
+perftools_inline!{
+#[cfg(not(feature = "radix"))]
+fn get_table(_: u32) -> &'static [u8] {
+   &DIGIT_TO_BASE10_SQUARED
+}}
 
 // Optimized implementation for radix-N numbers.
-//
-// Use a macro to allow for u32 or u64 to be used (u32 is generally faster).
-//
-// `value` must be non-negative and mutable.
+// Precondition: `value` must be non-negative and mutable.
 perftools_inline!{
 #[allow(unused_unsafe)]
-fn generic<T>(mut value: T, radix: T, table: &[u8], buffer: &mut [u8])
+fn generic<T>(mut value: T, radix: u32, table: &[u8], buffer: &mut [u8])
     -> usize
     where T: UnsignedInteger
 {
@@ -133,61 +194,13 @@ fn generic<T>(mut value: T, radix: T, table: &[u8], buffer: &mut [u8])
 
     // Use power-reduction to minimize the number of operations.
     // Idea taken from "3 Optimization Tips for C++".
+    let radix: T = as_cast(radix);
     let radix2 = radix * radix;
     let radix4 = radix2 * radix2;
 
     // Decode 4-digits at a time
     let mut index = buffer.len();
-    while value >= radix4 {
-        let rem = value % radix4;
-        value /= radix4;
-        let r1 = (T::TWO * (rem / radix2)).as_usize();
-        let r2 = (T::TWO * (rem % radix2)).as_usize();
-
-        // This is always safe, since the table is 2*radix^2, and
-        // r1 and r2 must be in the range [0, 2*radix^2-1), since the maximum
-        // value of rem is `radix4-1`, which must have a div and rem
-        // in the range [0, radix^2-1).
-        index -= 1;
-        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r2+1]));
-        index -= 1;
-        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r2]));
-        index -= 1;
-        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r1+1]));
-        index -= 1;
-        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r1]));
-    }
-
-    // Decode 2 digits at a time.
-    while value >= radix2 {
-        let r = (T::TWO * (value % radix2)).as_usize();
-        value /= radix2;
-
-        // This is always safe, since the table is 2*radix^2, and
-        // r must be in the range [0, 2*radix^2-1).
-        index -= 1;
-        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r+1]));
-        index -= 1;
-        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r]));
-    }
-
-    // Decode last 2 digits.
-    if value < radix {
-        // This is always safe, since value < radix, so it must be < 36.
-        // Digit must be <= 36.
-        index -= 1;
-        unchecked_index_mut!(buffer[index] = digit_to_char(value));
-        //*iter.next().unwrap() = digit_to_char(value);
-    } else {
-        let r = (T::TWO * value).as_usize();
-        // This is always safe, since the table is 2*radix^2, and the value
-        // must <= radix^2, so rem must be in the range [0, 2*radix^2-1).
-        index -= 1;
-        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r+1]));
-        index -= 1;
-        unchecked_index_mut!(buffer[index] = unchecked_index!(table[r]));
-    }
-
+    generic_algorithm!(value, radix, buffer, T, table, index, radix2, radix4);
     index
 }}
 
@@ -203,12 +216,67 @@ macro_rules! generic_impl {
             perftools_inline_always!{
             fn generic(self, radix: u32, buffer: &mut [u8]) -> usize {
                 let table = get_table(radix);
-                generic(self, radix as $t, table, buffer)
+                generic(self, radix, table, buffer)
             }}
         }
     )*);
 }
 
 generic_impl! { u8 u16 u32 u64 usize }
+
+// Optimized implementation for radix-N numbers.
+// Precondition:
+//  `value` must be non-negative and mutable.
+//  Buffer must be 0-initialized.
+perftools_inline!{
 #[cfg(has_i128)]
-generic_impl! { u128 }
+#[allow(unused_unsafe)]
+fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [u8])
+    -> usize
+{
+    // Both forms of unchecked indexing cannot overflow.
+    // The table always has 2*radix^2 elements, so it must be a legal index.
+    // The buffer is ensured to have at least MAX_DIGITS or MAX_DIGITS_BASE10
+    // characters, which is the maximum number of digits an integer of
+    // that size may write.
+
+    // Use power-reduction to minimize the number of operations.
+    // Idea taken from "3 Optimization Tips for C++".
+    let (divisor, digits_per_iter, d_cltz) = u128_divisor(radix);
+    let radix: u64 = as_cast(radix);
+    let radix2 = radix * radix;
+    let radix4 = radix2 * radix2;
+
+    // Decode 4-digits at a time.
+    // To deal with internal 0 values or values with internal 0 digits set,
+    // we store the starting index, and if not all digits are written,
+    // we just skip down `digits` digits for the next value.
+    let mut index = buffer.len();
+    let mut start_index = index;
+    let (value, mut low) = u128_divrem(value, divisor, d_cltz);
+    generic_algorithm!(low, radix, buffer, u64, table, index, radix2, radix4);
+    if value != 0 {
+        start_index -= digits_per_iter;
+        index = index.min(start_index);
+        let (value, mut mid) = u128_divrem(value, divisor, d_cltz);
+        generic_algorithm!(mid, radix, buffer, u64, table, index, radix2, radix4);
+
+        if value != 0 {
+            start_index -= digits_per_iter;
+            index = index.min(start_index);
+            let mut high = value as u64;
+            generic_algorithm!(high, radix, buffer, u64, table, index, radix2, radix4);
+        }
+    }
+    index
+}}
+
+
+#[cfg(has_i128)]
+impl Generic for u128 {
+    perftools_inline_always!{
+    fn generic(self, radix: u32, buffer: &mut [u8]) -> usize {
+        let table = get_table(radix);
+        generic_u128(self, radix, table, buffer)
+    }}
+}

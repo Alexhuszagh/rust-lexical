@@ -19,6 +19,9 @@ mod perftools;
 #[macro_use]
 pub(crate) mod test;
 
+#[cfg(has_i128)]
+mod div128;
+
 // Hide implementation details.
 mod algorithm;
 mod cast;
@@ -55,6 +58,9 @@ pub(crate) use self::pow::*;
 pub(crate) use self::rounding::*;
 pub(crate) use self::sign::*;
 pub(crate) use self::table::*;
+
+#[cfg(has_i128)]
+pub(crate) use self::div128::*;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {

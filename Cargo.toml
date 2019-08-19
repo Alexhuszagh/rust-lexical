@@ -35,7 +35,7 @@ toml = { version = "0.4", optional = true }
 approx = "0.3.0"
 bencher = "0.1.5"
 dtoa = "0.4"
-itoa = "0.4"
+itoa = { version = "0.4", features = ["i128"] }
 lazy_static = "1"
 
 [build-dependencies]
