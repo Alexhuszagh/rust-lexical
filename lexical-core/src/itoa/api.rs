@@ -5,7 +5,7 @@
 
 use util::*;
 
-/// Select the back-end
+/// Select the back-end.
 #[cfg(feature = "table")]
 use super::base10::Base10;
 
@@ -27,7 +27,7 @@ macro_rules! write_backwards {
         // Need to ensure the buffer size is adequate for basen, but small
         // for the optimized base10 formatters.
         debug_assert_radix!($radix);
-        let mut buffer: [u8; BUFFER_SIZE] = [b'\0'; BUFFER_SIZE];
+        let mut buffer: [u8; BUFFER_SIZE] = [b'0'; BUFFER_SIZE];
         let digits;
         if cfg!(not(feature = "radix")) || $radix == 10 {
             digits = &mut buffer[..$t::MAX_SIZE_BASE10];
@@ -47,6 +47,17 @@ macro_rules! write_backwards {
 // Forward itoa arguments to an optimized backend.
 //  Preconditions: `value` must be non-negative and unsigned.
 perftools_inline!{
+#[cfg(all(feature = "table", not(feature = "radix")))]
+pub(crate) fn itoa_positive<T>(value: T, _: u32, buffer: &mut [u8])
+    -> usize
+    where T: Base10 + UnsignedInteger
+{
+    value.base10(buffer)
+}}
+
+// Forward itoa arguments to an optimized backend.
+//  Preconditions: `value` must be non-negative and unsigned.
+perftools_inline!{
 #[cfg(all(feature = "table", feature = "radix"))]
 pub(crate) fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8])
     -> usize
@@ -57,17 +68,6 @@ pub(crate) fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8])
     } else {
         write_backwards!(value, radix, buffer, T, generic)
     }
-}}
-
-// Forward itoa arguments to a base10 optimized backend.
-//  Preconditions: `value` must be non-negative and unsigned.
-perftools_inline!{
-#[cfg(all(feature = "table", not(feature = "radix")))]
-pub(crate) fn itoa_positive<T>(value: T, _: u32, buffer: &mut [u8])
-    -> usize
-    where T: Base10
-{
-    value.base10(buffer)
 }}
 
 // Forward itoa arguments to a naive backend.
@@ -85,21 +85,27 @@ pub(crate) fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8])
 
 // Generate unsigned wrappers for impl methods.
 macro_rules! unsigned {
-    ($name:ident, $t:ty) => (
+    ($name:ident, $type:ty, $unsigned:ty) => (
         perftools_inline!{
-        fn $name(value: $t, radix: u8, buffer: &mut [u8]) -> usize {
-            itoa_positive(value, radix.as_u32(), buffer)
+        fn $name(value: $type, radix: u8, buffer: &mut [u8]) -> usize {
+            itoa_positive(value as $unsigned, radix.as_u32(), buffer)
         }}
     );
 }
 
-unsigned!(u8toa_impl, u8);
-unsigned!(u16toa_impl, u16);
-unsigned!(u32toa_impl, u32);
-unsigned!(u64toa_impl, u64);
-unsigned!(usizetoa_impl, usize);
+unsigned!(u8toa_impl, u8, u32);
+unsigned!(u16toa_impl, u16, u32);
+unsigned!(u32toa_impl, u32, u32);
+unsigned!(u64toa_impl, u64, u64);
+
+#[cfg(any(target_pointer_width = "16", target_pointer_width = "32"))]
+unsigned!(usizetoa_impl, usize, u32);
+
+#[cfg(target_pointer_width = "64")]
+unsigned!(usizetoa_impl, usize, u64);
+
 #[cfg(has_i128)]
-unsigned!(u128toa_impl, u128);
+unsigned!(u128toa_impl, u128, u128);
 
 // Generate signed wrappers for impl methods.
 macro_rules! signed {
@@ -121,7 +127,13 @@ signed!(i8toa_impl, i8, i32, u32);
 signed!(i16toa_impl, i16, i32, u32);
 signed!(i32toa_impl, i32, i32, u32);
 signed!(i64toa_impl, i64, i64, u64);
+
+#[cfg(any(target_pointer_width = "16", target_pointer_width = "32"))]
+signed!(isizetoa_impl, isize, i32, u32);
+
+#[cfg(target_pointer_width = "64")]
 signed!(isizetoa_impl, isize, i64, u64);
+
 #[cfg(has_i128)]
 signed!(i128toa_impl, i128, i128, u128);
 

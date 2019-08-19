@@ -1,7 +1,7 @@
 //! Integer-to-string formatting routines.
 
 // Hide internal implementation details.
-#[cfg(all(feature = "table"))]
+#[cfg(feature = "table")]
 mod base10;
 
 #[cfg(all(feature = "table", feature = "radix"))]

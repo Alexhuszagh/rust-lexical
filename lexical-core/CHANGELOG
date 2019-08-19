@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `*_slice` from functions in the public API, since there is no naming conflict with FFI code.
 - Removed `*_ffi` and `*_FFI` from public functions and constants.
 - Optimized the itoa exporters using specialized optimizations for the type size and number of digits. The resulting performance excels for all values, providing 2-3x performance improvements, with exceptional performance for values with a small number of digits.
+- Optimized integer division algorithm based off the compiler-builtins crate to avoid redundant calls to an expensive compiler intrinsic (`__udivmodti4`).
 
 ### Removed
 - Removed the unchecked parsers from the public API. `try_parse*` has been replaced with `parse*`.
