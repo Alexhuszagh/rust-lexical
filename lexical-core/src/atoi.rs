@@ -19,10 +19,12 @@
 //  | u16   | 80,926             | 82,185                | 1.02x             |
 //  | u32   | 131,221            | 148,231               | 1.13x             |
 //  | u64   | 243,315            | 296,713               | 1.22x             |
+//  | u128  | 512,552            | 1,175,946             | 2.29x             |
 //  | i8    | 112,152            | 115,147               | 1.03x             |
 //  | i16   | 153,670            | 150,231               | 0.98x             |
 //  | i32   | 202,512            | 204,880               | 1.01x             |
 //  | i64   | 309,731            | 309,584               | 1.00x             |
+//  | i128  | 4,362,672          | 149,418,085           | 34.3x             |
 //
 //  # Raw Benchmarks
 //
@@ -35,6 +37,8 @@
 //  test atoi_u32_parse   ... bench:     148,231 ns/iter (+/- 3,812)
 //  test atoi_u64_lexical ... bench:     243,315 ns/iter (+/- 9,726)
 //  test atoi_u64_parse   ... bench:     296,713 ns/iter (+/- 8,321)
+//  test atoi_u128_lexical ... bench:     512,552 ns/iter (+/- 46,606)
+//  test atoi_u128_parse   ... bench:   1,175,946 ns/iter (+/- 103,312)
 //  test atoi_i8_lexical  ... bench:     112,152 ns/iter (+/- 4,527)
 //  test atoi_i8_parse    ... bench:     115,147 ns/iter (+/- 3,190)
 //  test atoi_i16_lexical ... bench:     153,670 ns/iter (+/- 9,993)
@@ -43,6 +47,8 @@
 //  test atoi_i32_parse   ... bench:     204,880 ns/iter (+/- 8,278)
 //  test atoi_i64_lexical ... bench:     309,731 ns/iter (+/- 22,313)
 //  test atoi_i64_parse   ... bench:     309,584 ns/iter (+/- 7,578)
+//  test atoi_i128_lexical ... bench:   4,362,672 ns/iter (+/- 229,620)
+//  test atoi_i128_parse   ... bench: 149,418,085 ns/iter (+/- 7,271,887)
 //  ```
 //
 // Code the generate the benchmark plot:
@@ -50,12 +56,13 @@
 //  import pandas as pd
 //  import matplotlib.pyplot as plt
 //  plt.style.use('ggplot')
-//  lexical = np.array([75622, 80926, 131221, 243315, 112152, 153670, 202512, 309731]) / 1e6
-//  rustcore = np.array([80021, 82185, 148231, 296713, 115147, 150231, 204880, 309584]) / 1e6
-//  index = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64"]
+//  lexical = np.array([75622, 80926, 131221, 243315, 512552, 112152, 153670, 202512, 309731, 4362672]) / 1e6
+//  rustcore = np.array([80021, 82185, 148231, 296713, 1175946, 115147, 150231, 204880, 309584, 149418085]) / 1e6
+//  index = ["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128"]
 //  df = pd.DataFrame({'lexical': lexical, 'rustcore': rustcore}, index = index, columns=['lexical', 'rustcore'])
 //  ax = df.plot.bar(rot=0, figsize=(16, 8), fontsize=14, color=['#E24A33', '#348ABD'])
 //  ax.set_ylabel("ms/iter")
+//  ax.set_yscale('log')
 //  ax.figure.tight_layout()
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
@@ -68,6 +75,7 @@ macro_rules! to_digit {
 }
 
 // STANDALONE
+// ----------
 
 /// Iterate over the digits and iteratively process them.
 macro_rules! standalone {
@@ -121,6 +129,153 @@ pub(crate) fn standalone<T>(radix: u32, bytes: &[u8], is_signed: bool)
     let ptr = index!(bytes[bytes.len()..]).as_ptr();
     Ok((value, ptr))
 }}
+
+// STANDALONE U128
+// ---------------
+
+// Grab the step size and power for step_u64.
+// This is the same as the u128 divisor, so don't duplicate the values
+// there.
+perftools_inline!{
+#[cfg(has_i128)]
+fn step_u64(radix: u32) -> usize {
+    u128_divisor(radix).1
+}}
+
+// Add temporary to the value.
+#[cfg(has_i128)]
+macro_rules! add_temporary_128 {
+    ($value:ident, $tmp:ident, $step_power:ident, $ptr:ident, $op:ident, $code:ident) => (
+        $value = match $value.checked_mul(as_cast($step_power)) {
+            Some(v) => v,
+            None    => return Err((ErrorCode::$code, $ptr)),
+        };
+        $value = match $value.$op(as_cast($tmp)) {
+            Some(v) => v,
+            None    => return Err((ErrorCode::$code, $ptr)),
+        };
+    );
+}
+
+/// Iterate over the digits and iteratively process them.
+#[cfg(has_i128)]
+macro_rules! standalone_128 {
+    ($radix:ident, $digits:ident, $t:tt, $op:tt, $code:ident) => ({
+        let mut value: $t = $t::ZERO;
+        let step = step_u64($radix);
+        for chunk in $digits.chunks(step) {
+            let mut tmp: u64 = 0;
+            let mut i = 0;
+            for c in chunk.iter() {
+                let digit = match to_digit!(*c, $radix) {
+                    Some(v) => v,
+                    None    => {
+                        // Add temporary to value and return early.
+                        let step_power = $radix.as_u64().pow(i);
+                        add_temporary_128!(value, tmp, step_power, c, $op, $code);
+                        return Ok((value, c));
+                    },
+                };
+                // Increment the number of digits processed.
+                i += 1;
+                // Don't have to worry about overflows.
+                tmp *= $radix.as_u64();
+                tmp += digit.as_u64();
+            }
+
+            // Add the temporary value to the total value.
+            let step_power = $radix.as_u64().pow(i);
+            let ptr = chunk[chunk.len()..].as_ptr();
+            add_temporary_128!(value, tmp, step_power, ptr, $op, $code);
+        }
+        let ptr = index!($digits[$digits.len()..]).as_ptr();
+        Ok((value, ptr))
+    });
+}
+
+// Standalone atoi processor for u128.
+// This algorithm may overestimate the number of digits to overflow
+// on numeric overflow or underflow, otherwise, it will be accurate.
+// This is because we break costly u128 addition/multiplications into
+// temporary steps using u64, allowing much better performance.
+// This is a similar approach to what we take in the arbitrary-precision
+// arithmetic
+perftools_inline!{
+#[cfg(has_i128)]
+pub(crate) fn standalone_128<T>(radix: u32, bytes: &[u8], is_signed: bool)
+    -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
+    where T: Integer
+{
+    // Filter out empty inputs.
+    if bytes.is_empty() {
+        return Err((ErrorCode::Empty, bytes.as_ptr()));
+    }
+
+    let (sign, digits) = match index!(bytes[0]) {
+        b'+'              => (Sign::Positive, &index!(bytes[1..])),
+        b'-' if is_signed => (Sign::Negative, &index!(bytes[1..])),
+        _                 => (Sign::Positive, bytes),
+    };
+
+    // Filter out empty inputs.
+    if digits.is_empty() {
+        return Err((ErrorCode::Empty, digits.as_ptr()));
+    }
+
+    // Parse the integer.
+    if sign == Sign::Positive {
+        standalone_128!(radix, digits, T, checked_add, Overflow)
+    } else {
+        standalone_128!(radix, digits, T, checked_sub, Underflow)
+    }
+}}
+
+// ATOI TRAIT
+// ----------
+
+pub(crate) trait Atoi: Integer {
+    // Parse integer from string.
+    fn atoi(radix: u32, bytes: &[u8], is_signed: bool) -> StdResult<(Self, *const u8), (ErrorCode, *const u8)>;
+}
+
+// Implement atoi for type.
+macro_rules! atoi_impl {
+    ($($t:ty)*) => ($(
+        impl Atoi for $t {
+            perftools_inline_always!{
+            fn atoi(radix: u32, bytes: &[u8], is_signed: bool)
+                -> StdResult<($t, *const u8), (ErrorCode, *const u8)>
+            {
+                standalone(radix, bytes, is_signed)
+            }}
+        }
+    )*);
+}
+
+atoi_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
+
+#[cfg(has_i128)]
+impl Atoi for u128 {
+    perftools_inline_always!{
+    fn atoi(radix: u32, bytes: &[u8], is_signed: bool)
+        -> StdResult<(u128, *const u8), (ErrorCode, *const u8)>
+    {
+        standalone_128(radix, bytes, is_signed)
+    }}
+}
+
+#[cfg(has_i128)]
+impl Atoi for i128 {
+    perftools_inline_always!{
+    fn atoi(radix: u32, bytes: &[u8], is_signed: bool)
+        -> StdResult<(i128, *const u8), (ErrorCode, *const u8)>
+    {
+        standalone_128(radix, bytes, is_signed)
+    }}
+}
+
+// STANDALONE MANTISSA
+// -------------------
 
 // Convert character to digit.
 perftools_inline_always!{
@@ -203,6 +358,9 @@ pub(crate) fn standalone_mantissa<T>(radix: u32, bytes: &[u8])
     Ok((value, bytes[bytes.len()..].as_ptr()))
 }}
 
+// STANDALONE EXPONENT
+// -------------------
+
 // Add digit to mantissa.
 macro_rules! add_digit {
     ($value:ident, $radix:ident, $op:ident, $digit:ident) => {
@@ -270,15 +428,18 @@ pub(crate) fn standalone_exponent(radix: u32, bytes: &[u8])
     Ok((value, ptr))
 }}
 
+// INTERNAL
+// --------
+
 // Handle unsigned +/- numbers and forward to implied implementation.
 //  Can just use local namespace
 perftools_inline!{
 pub(crate) fn standalone_unsigned<'a, T>(radix: u32, bytes: &'a [u8])
     -> Result<(T, usize)>
-    where T: UnsignedInteger
+    where T: Atoi + UnsignedInteger
 {
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match standalone(radix, bytes, false) {
+    match T::atoi(radix, bytes, false) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
@@ -289,10 +450,10 @@ pub(crate) fn standalone_unsigned<'a, T>(radix: u32, bytes: &'a [u8])
 perftools_inline!{
 pub(crate) fn standalone_signed<'a, T>(radix: u32, bytes: &'a [u8])
     -> Result<(T, usize)>
-    where T: SignedInteger
+    where T: Atoi + SignedInteger
 {
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match standalone(radix, bytes, true) {
+    match T::atoi(radix, bytes, true) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }

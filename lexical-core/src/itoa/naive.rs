@@ -63,7 +63,7 @@ fn naive_u128(value: u128, radix: u32, buffer: &mut [u8])
     -> usize
 {
     // Decode all but last digit, 1 at a time.
-    let (divisor, digits_per_iter) = u128_divisor(radix);
+    let (divisor, digits_per_iter, d_cltz) = u128_divisor(radix);
     let radix: u64 = as_cast(radix);
 
     // To deal with internal 0 values or values with internal 0 digits set,
@@ -71,12 +71,12 @@ fn naive_u128(value: u128, radix: u32, buffer: &mut [u8])
     // we just skip down `digits` digits for the next value.
     let mut index = buffer.len();
     let mut start_index = index;
-    let (value, mut low) = u128_divrem(value, divisor);
+    let (value, mut low) = u128_divrem(value, divisor, d_cltz);
     naive_algorithm!(low, radix, buffer, index);
     if value != 0 {
         start_index -= digits_per_iter;
         index = index.min(start_index);
-        let (value, mut mid) = u128_divrem(value, divisor);
+        let (value, mut mid) = u128_divrem(value, divisor, d_cltz);
         naive_algorithm!(mid, radix, buffer, index);
 
         if value != 0 {
