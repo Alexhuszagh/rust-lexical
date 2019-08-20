@@ -80,15 +80,42 @@
 use util::*;
 use lib::result::Result as StdResult;
 
+// SHARED
+// ------
+
+// Convert u8 to digit.
 macro_rules! to_digit {
     ($c:expr, $radix:expr) => (($c as char).to_digit($radix));
+}
+
+// Parse the sign bit and filter empty inputs from the atoi data.
+macro_rules! parse_sign {
+    ($bytes:ident, $is_signed:expr, $code:ident) => ({
+        // Filter out empty inputs.
+        if $bytes.is_empty() {
+            return Err((ErrorCode::$code, $bytes.as_ptr()));
+        }
+
+        let (sign, digits) = match index!($bytes[0]) {
+            b'+'               => (Sign::Positive, &index!($bytes[1..])),
+            b'-' if $is_signed => (Sign::Negative, &index!($bytes[1..])),
+            _                  => (Sign::Positive, $bytes),
+        };
+
+        // Filter out empty inputs.
+        if digits.is_empty() {
+            return Err((ErrorCode::$code, digits.as_ptr()));
+        }
+
+        (sign, digits)
+    });
 }
 
 // STANDALONE
 // ----------
 
 /// Iterate over the digits and iteratively process them.
-macro_rules! standalone {
+macro_rules! parse_digits {
     ($value:ident, $radix:ident, $digits:ident, $op:ident, $code:ident) => (
         for c in $digits.iter() {
             let digit = match to_digit!(*c, $radix) {
@@ -107,37 +134,30 @@ macro_rules! standalone {
     );
 }
 
+// Parse the digits for the atoi processor.
+perftools_inline!{
+pub(crate) fn parse_digits<T>(radix: u32, digits: &[u8], sign: Sign)
+    -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
+    where T: Integer
+{
+    let mut value = T::ZERO;
+    if sign == Sign::Positive {
+        parse_digits!(value, radix, digits, checked_add, Overflow);
+    } else {
+        parse_digits!(value, radix, digits, checked_sub, Underflow);
+    }
+    let ptr = index!(digits[digits.len()..]).as_ptr();
+    Ok((value, ptr))
+}}
+
 // Standalone atoi processor.
 perftools_inline!{
 pub(crate) fn standalone<T>(radix: u32, bytes: &[u8], is_signed: bool)
     -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
     where T: Integer
 {
-    // Filter out empty inputs.
-    if bytes.is_empty() {
-        return Err((ErrorCode::Empty, bytes.as_ptr()));
-    }
-
-    let (sign, digits) = match index!(bytes[0]) {
-        b'+'              => (Sign::Positive, &index!(bytes[1..])),
-        b'-' if is_signed => (Sign::Negative, &index!(bytes[1..])),
-        _                 => (Sign::Positive, bytes),
-    };
-
-    // Filter out empty inputs.
-    if digits.is_empty() {
-        return Err((ErrorCode::Empty, digits.as_ptr()));
-    }
-
-    // Parse the integer.
-    let mut value = T::ZERO;
-    if sign == Sign::Positive {
-        standalone!(value, radix, digits, checked_add, Overflow);
-    } else {
-        standalone!(value, radix, digits, checked_sub, Underflow);
-    }
-    let ptr = index!(bytes[bytes.len()..]).as_ptr();
-    Ok((value, ptr))
+    let (sign, digits) = parse_sign!(bytes, is_signed, Empty);
+    parse_digits(radix, digits, sign)
 }}
 
 // STANDALONE U128
@@ -152,7 +172,7 @@ fn step_u64(radix: u32) -> usize {
     u128_divisor(radix).1
 }}
 
-// Add temporary to the value.
+// Add 64-bit temporary to the 128-bit value.
 #[cfg(has_i128)]
 macro_rules! add_temporary_128 {
     ($value:ident, $tmp:ident, $step_power:ident, $ptr:ident, $op:ident, $code:ident) => (
@@ -171,20 +191,20 @@ macro_rules! add_temporary_128 {
 
 /// Iterate over the digits and iteratively process them.
 #[cfg(has_i128)]
-macro_rules! standalone_128 {
-    ($radix:ident, $digits:ident, $t:tt, $op:ident, $code:ident) => ({
-        let mut value: $t = $t::ZERO;
-        let step = step_u64($radix);
-        for chunk in $digits.chunks(step) {
+macro_rules! parse_digits_u128 {
+    ($value:ident, $radix:ident, $digits:ident, $step:ident, $op:ident, $code:ident) => ({
+        // Break the input into chunks of len `step`, which can be parsed
+        // as a 64-bit integer.
+        for chunk in $digits.chunks($step) {
             let mut tmp: u64 = 0;
             for (i, c) in chunk.iter().enumerate() {
                 let digit = match to_digit!(*c, $radix) {
                     Some(v) => v,
                     None    => {
                         // Add temporary to value and return early.
-                        let step_power = $radix.as_u64().pow(i.as_u32());
-                        add_temporary_128!(value, tmp, step_power, c, $op, $code);
-                        return Ok((value, c));
+                        let radix_pow = $radix.as_u64().pow(i.as_u32());
+                        add_temporary_128!($value, tmp, radix_pow, c, $op, $code);
+                        return Ok(($value, c));
                     },
                 };
                 // Don't have to worry about overflows.
@@ -193,14 +213,28 @@ macro_rules! standalone_128 {
             }
 
             // Add the temporary value to the total value.
-            let step_power = $radix.as_u64().pow(chunk.len().as_u32());
+            let radix_pow = $radix.as_u64().pow(chunk.len().as_u32());
             let ptr = chunk[chunk.len()..].as_ptr();
-            add_temporary_128!(value, tmp, step_power, ptr, $op, $code);
+            add_temporary_128!($value, tmp, radix_pow, ptr, $op, $code);
         }
-        let ptr = index!($digits[$digits.len()..]).as_ptr();
-        Ok((value, ptr))
     });
 }
+
+// Parse the digits for the 128-bit atoi processor.
+perftools_inline!{
+pub(crate) fn parse_digits_u128<T>(radix: u32, digits: &[u8], step: usize, sign: Sign)
+    -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
+    where T: Integer
+{
+    let mut value = T::ZERO;
+    if sign == Sign::Positive {
+        parse_digits_u128!(value, radix, digits, step, checked_add, Overflow)
+    } else {
+        parse_digits_u128!(value, radix, digits, step, checked_sub, Underflow)
+    }
+    let ptr = index!(digits[digits.len()..]).as_ptr();
+    Ok((value, ptr))
+}}
 
 // Standalone atoi processor for u128.
 // This algorithm may overestimate the number of digits to overflow
@@ -211,31 +245,23 @@ macro_rules! standalone_128 {
 // arithmetic
 perftools_inline!{
 #[cfg(has_i128)]
-pub(crate) fn standalone_128<T>(radix: u32, bytes: &[u8], is_signed: bool)
-    -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
-    where T: Integer
+pub(crate) fn standalone_128<W, N>(radix: u32, bytes: &[u8], is_signed: bool)
+    -> StdResult<(W, *const u8), (ErrorCode, *const u8)>
+    where W: Integer,
+          N: Integer
 {
-    // Filter out empty inputs.
-    if bytes.is_empty() {
-        return Err((ErrorCode::Empty, bytes.as_ptr()));
-    }
-
-    let (sign, digits) = match index!(bytes[0]) {
-        b'+'              => (Sign::Positive, &index!(bytes[1..])),
-        b'-' if is_signed => (Sign::Negative, &index!(bytes[1..])),
-        _                 => (Sign::Positive, bytes),
-    };
-
-    // Filter out empty inputs.
-    if digits.is_empty() {
-        return Err((ErrorCode::Empty, digits.as_ptr()));
-    }
-
-    // Parse the integer.
-    if sign == Sign::Positive {
-        standalone_128!(radix, digits, T, checked_add, Overflow)
+    // This is guaranteed to be safe, since if the length is
+    // 1 less than step, and the min radix is 2, the value must be
+    // less than 2x u64::MAX, which means it must fit in an i64.
+    let (sign, digits) = parse_sign!(bytes, is_signed, Empty);
+    let step = step_u64(radix);
+    if digits.len() < step {
+        // Parse as narrow.
+        let (value, ptr) = parse_digits::<N>(radix, digits, sign)?;
+        Ok((as_cast(value), ptr))
     } else {
-        standalone_128!(radix, digits, T, checked_sub, Underflow)
+        // Parse as wide.
+        parse_digits_u128(radix, digits, step, sign)
     }
 }}
 
@@ -269,13 +295,7 @@ impl Atoi for u128 {
     fn atoi(radix: u32, bytes: &[u8], is_signed: bool)
         -> StdResult<(u128, *const u8), (ErrorCode, *const u8)>
     {
-        let step = step_u64(radix);
-        if bytes.len() <= step {
-            let (value, ptr) = standalone::<u64>(radix, bytes, is_signed)?;
-            Ok((value as u128, ptr))
-        } else {
-            standalone_128(radix, bytes, is_signed)
-        }
+        standalone_128::<u128, u64>(radix, bytes, is_signed)
     }}
 }
 
@@ -285,21 +305,17 @@ impl Atoi for i128 {
     fn atoi(radix: u32, bytes: &[u8], is_signed: bool)
         -> StdResult<(i128, *const u8), (ErrorCode, *const u8)>
     {
-        // This is guaranteed to be safe, since if the length is
-        // 1 less than step, and the min radix is 2, the value must be
-        // less than 2x u64::MAX, which means it must fit in an i64.
-        let step = step_u64(radix);
-        if bytes.len() < step {
-            let (value, ptr) = standalone::<i64>(radix, bytes, is_signed)?;
-            Ok((value as i128, ptr))
-        } else {
-            standalone_128(radix, bytes, is_signed)
-        }
+        standalone_128::<i128, i64>(radix, bytes, is_signed)
     }}
 }
 
 // STANDALONE MANTISSA
 // -------------------
+
+// These routines are a specialized parser for the mantissa of a floating-
+// point number, from two buffers containing valid digits. We want to
+// exit early on numeric overflow, returning the value parsed up until
+// that point.
 
 // Convert character to digit.
 perftools_inline_always!{
@@ -378,12 +394,19 @@ pub(crate) fn standalone_mantissa<T>(radix: u32, bytes: &[u8])
 {
     // Parse the integer.
     let mut value = T::ZERO;
-    standalone!(value, radix, bytes, checked_add, Overflow);
+    parse_digits!(value, radix, bytes, checked_add, Overflow);
     Ok((value, bytes[bytes.len()..].as_ptr()))
 }}
 
 // STANDALONE EXPONENT
 // -------------------
+
+// These routines are a specialized parser for the exponent of a floating-
+// point number, from an unvalidated buffer with a potential sign bit.
+// On numeric overflow or underflow, we want to return the max or min
+// value possible, respectively. On overflow, find the first non-digit
+// char (if applicable), and return the max/min value and the number
+// of digits parsed.
 
 // Add digit to mantissa.
 macro_rules! add_digit {
@@ -396,7 +419,7 @@ macro_rules! add_digit {
 }
 
 // Iterate over the digits and iteratively process them.
-macro_rules! standalone_exponent {
+macro_rules! parse_digits_exponent {
     ($value:ident, $radix:ident, $digits:ident, $op:ident, $default:expr) => (
         let mut iter = $digits.iter();
         while let Some(c) = iter.next() {
@@ -425,30 +448,14 @@ perftools_inline!{
 pub(crate) fn standalone_exponent(radix: u32, bytes: &[u8])
     -> StdResult<(i32, *const u8), (ErrorCode, *const u8)>
 {
-    // Filter out empty inputs.
-    if bytes.is_empty() {
-        return Err((ErrorCode::EmptyExponent, bytes.as_ptr()));
-    }
-
-    let (sign, digits) = match index!(bytes[0]) {
-        b'+' => (Sign::Positive, &index!(bytes[1..])),
-        b'-' => (Sign::Negative, &index!(bytes[1..])),
-        _    => (Sign::Positive, bytes),
-    };
-
-    // Filter out empty inputs.
-    if digits.is_empty() {
-        return Err((ErrorCode::EmptyExponent, digits.as_ptr()));
-    }
-
-    // Parse the integer.
+    let (sign, digits) = parse_sign!(bytes, true, EmptyExponent);
     let mut value = 0;
     if sign == Sign::Positive {
-        standalone_exponent!(value, radix, digits, checked_add, i32::max_value());
+        parse_digits_exponent!(value, radix, digits, checked_add, i32::max_value());
     } else {
-        standalone_exponent!(value, radix, digits, checked_sub, i32::min_value());
+        parse_digits_exponent!(value, radix, digits, checked_sub, i32::min_value());
     }
-    let ptr = index!(bytes[bytes.len()..]).as_ptr();
+    let ptr = index!(digits[digits.len()..]).as_ptr();
     Ok((value, ptr))
 }}
 
