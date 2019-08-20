@@ -64,61 +64,55 @@ fn read_data() -> &'static String {
     &DATA
 }
 
+// BENCHMARK GENERATORS
+
+// Lexical atoi generator.
+macro_rules! lexical_generator {
+    ($name:ident, $cb:ident) => (
+        fn $name(bench: &mut Bencher) {
+            let data = read_data();
+            bench.iter(|| {
+                for line in data.lines() {
+                    for item in line.split(',') {
+                        black_box($cb(item.as_bytes()).unwrap());
+                    }
+                }
+            })
+        }
+    );
+}
+
+// Parse atoi generator.
+macro_rules! parse_generator {
+    ($name:ident, $t:tt) => (
+        fn $name(bench: &mut Bencher) {
+            let data = read_data();
+            bench.iter(|| {
+                for line in data.lines() {
+                    for item in line.split(',') {
+                        black_box(item.parse::<$t>().unwrap());
+                    }
+                }
+            })
+        }
+    );
+}
+
 // F32
 
 // Benchmark to real data, downloaded from NASA Earth Observation.
 // http://neo.sci.gsfc.nasa.gov/servlet/RenderData?si=1582435&cs=rgb&format=CSV&width=720&height=360
 
-fn atof_real_f32_lexical(bench: &mut Bencher) {
-    let data = read_data();
-    bench.iter(|| {
-        for line in data.lines() {
-            for item in line.split(',') {
-                black_box(atof32(item.as_bytes()).unwrap());
-            }
-        }
-    })
-}
-
-fn atof_real_f32_parse(bench: &mut Bencher) {
-    let data = read_data();
-    bench.iter(|| {
-        for line in data.lines() {
-            for item in line.split(',') {
-                black_box(item.parse::<f32>().unwrap());
-            }
-        }
-    })
-}
+lexical_generator!(atof_real_f32_lexical, atof32);
+parse_generator!(atof_real_f32_parse, f32);
 
 // F64
 
 // Benchmark to real data, downloaded from NASA Earth Observation.
 // http://neo.sci.gsfc.nasa.gov/servlet/RenderData?si=1582435&cs=rgb&format=CSV&width=720&height=360
 
-fn atof_real_f64_lexical(bench: &mut Bencher) {
-    let data = read_data();
-    bench.iter(|| {
-        //let line = data.lines().nth(45).unwrap();
-        for line in data.lines().skip(60).take(20) {
-            for item in line.split(',') {
-                black_box(atof64(item.as_bytes()).unwrap());
-            }
-        }
-    })
-}
-
-fn atof_real_f64_parse(bench: &mut Bencher) {
-    let data = read_data();
-    bench.iter(|| {
-        //let line = data.lines().nth(45).unwrap();
-        for line in data.lines().skip(60).take(20) {
-            for item in line.split(',') {
-                black_box(item.parse::<f64>().unwrap());
-            }
-        }
-    })
-}
+lexical_generator!(atof_real_f64_lexical, atof64);
+parse_generator!(atof_real_f64_parse, f64);
 
 // MAIN
 

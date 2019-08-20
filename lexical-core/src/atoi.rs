@@ -29,26 +29,36 @@
 //  # Raw Benchmarks
 //
 //  ```text
-//  test atoi_u8_lexical  ... bench:      75,622 ns/iter (+/- 4,864)
-//  test atoi_u8_parse    ... bench:      80,021 ns/iter (+/- 6,511)
-//  test atoi_u16_lexical ... bench:      80,926 ns/iter (+/- 3,328)
-//  test atoi_u16_parse   ... bench:      82,185 ns/iter (+/- 2,721)
-//  test atoi_u32_lexical ... bench:     131,221 ns/iter (+/- 5,266)
-//  test atoi_u32_parse   ... bench:     148,231 ns/iter (+/- 3,812)
-//  test atoi_u64_lexical ... bench:     243,315 ns/iter (+/- 9,726)
-//  test atoi_u64_parse   ... bench:     296,713 ns/iter (+/- 8,321)
-//  test atoi_u128_lexical ... bench:     512,552 ns/iter (+/- 46,606)
-//  test atoi_u128_parse   ... bench:   1,175,946 ns/iter (+/- 103,312)
-//  test atoi_i8_lexical  ... bench:     112,152 ns/iter (+/- 4,527)
-//  test atoi_i8_parse    ... bench:     115,147 ns/iter (+/- 3,190)
-//  test atoi_i16_lexical ... bench:     153,670 ns/iter (+/- 9,993)
-//  test atoi_i16_parse   ... bench:     150,231 ns/iter (+/- 3,934)
-//  test atoi_i32_lexical ... bench:     202,512 ns/iter (+/- 18,486)
-//  test atoi_i32_parse   ... bench:     204,880 ns/iter (+/- 8,278)
-//  test atoi_i64_lexical ... bench:     309,731 ns/iter (+/- 22,313)
-//  test atoi_i64_parse   ... bench:     309,584 ns/iter (+/- 7,578)
-//  test atoi_i128_lexical ... bench:   4,362,672 ns/iter (+/- 229,620)
-//  test atoi_i128_parse   ... bench: 149,418,085 ns/iter (+/- 7,271,887)
+//  test atoi_i128_lexical        ... bench:   4,305,621 ns/iter (+/- 132,707)
+//  test atoi_i128_parse          ... bench: 146,893,478 ns/iter (+/- 2,822,002)
+//  test atoi_i16_lexical         ... bench:     132,255 ns/iter (+/- 5,503)
+//  test atoi_i16_parse           ... bench:     137,965 ns/iter (+/- 5,906)
+//  test atoi_i32_lexical         ... bench:     207,101 ns/iter (+/- 79,541)
+//  test atoi_i32_parse           ... bench:     194,225 ns/iter (+/- 9,065)
+//  test atoi_i64_lexical         ... bench:     271,538 ns/iter (+/- 9,137)
+//  test atoi_i64_parse           ... bench:     293,542 ns/iter (+/- 9,706)
+//  test atoi_i8_lexical          ... bench:     106,368 ns/iter (+/- 5,919)
+//  test atoi_i8_parse            ... bench:     108,316 ns/iter (+/- 3,418)
+//  test atoi_u128_lexical        ... bench:     496,426 ns/iter (+/- 40,197)
+//  test atoi_u128_parse          ... bench:   1,119,213 ns/iter (+/- 54,945)
+//  test atoi_u128_simple_lexical ... bench:     121,121 ns/iter (+/- 4,858)
+//  test atoi_u128_simple_parse   ... bench:      97,518 ns/iter (+/- 2,739)
+//  test atoi_u16_lexical         ... bench:      80,886 ns/iter (+/- 2,366)
+//  test atoi_u16_parse           ... bench:      81,881 ns/iter (+/- 1,708)
+//  test atoi_u16_simple_lexical  ... bench:      62,819 ns/iter (+/- 1,707)
+//  test atoi_u16_simple_parse    ... bench:      60,916 ns/iter (+/- 8,340)
+//  test atoi_u32_lexical         ... bench:     139,264 ns/iter (+/- 3,945)
+//  test atoi_u32_parse           ... bench:     139,649 ns/iter (+/- 5,735)
+//  test atoi_u32_simple_lexical  ... bench:      61,398 ns/iter (+/- 1,248)
+//  test atoi_u32_simple_parse    ... bench:      59,560 ns/iter (+/- 3,388)
+//  test atoi_u64_lexical         ... bench:     257,116 ns/iter (+/- 6,810)
+//  test atoi_u64_parse           ... bench:     273,811 ns/iter (+/- 6,871)
+//  test atoi_u64_simple_lexical  ... bench:      59,674 ns/iter (+/- 4,852)
+//  test atoi_u64_simple_parse    ... bench:      55,982 ns/iter (+/- 2,288)
+//  test atoi_u8_lexical          ... bench:      70,637 ns/iter (+/- 1,889)
+//  test atoi_u8_parse            ... bench:      67,606 ns/iter (+/- 1,924)
+//  test atoi_u8_simple_lexical   ... bench:      41,190 ns/iter (+/- 6,948)
+//  test atoi_u8_simple_parse     ... bench:      36,836 ns/iter (+/- 2,958)
 //  ```
 //
 // Code the generate the benchmark plot:
@@ -167,26 +177,23 @@ macro_rules! standalone_128 {
         let step = step_u64($radix);
         for chunk in $digits.chunks(step) {
             let mut tmp: u64 = 0;
-            let mut i = 0;
-            for c in chunk.iter() {
+            for (i, c) in chunk.iter().enumerate() {
                 let digit = match to_digit!(*c, $radix) {
                     Some(v) => v,
                     None    => {
                         // Add temporary to value and return early.
-                        let step_power = $radix.as_u64().pow(i);
+                        let step_power = $radix.as_u64().pow(i.as_u32());
                         add_temporary_128!(value, tmp, step_power, c, $op, $code);
                         return Ok((value, c));
                     },
                 };
-                // Increment the number of digits processed.
-                i += 1;
                 // Don't have to worry about overflows.
                 tmp *= $radix.as_u64();
                 tmp += digit.as_u64();
             }
 
             // Add the temporary value to the total value.
-            let step_power = $radix.as_u64().pow(i);
+            let step_power = $radix.as_u64().pow(chunk.len().as_u32());
             let ptr = chunk[chunk.len()..].as_ptr();
             add_temporary_128!(value, tmp, step_power, ptr, $op, $code);
         }
