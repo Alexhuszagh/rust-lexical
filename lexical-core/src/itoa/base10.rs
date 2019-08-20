@@ -312,6 +312,7 @@ fn write_15(value: u64, buffer: &mut [u8]) {
 
 // Write 19 digits to buffer (used internally for the u128 writers).
 perftools_inline!{
+#[cfg(has_i128)]
 #[allow(unused_unsafe)]
 fn write_19(value: u64, buffer: &mut [u8]) {
     let t_0 = (value / 100000000).as_u32();
