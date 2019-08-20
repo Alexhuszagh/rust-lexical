@@ -222,6 +222,7 @@ macro_rules! parse_digits_u128 {
 
 // Parse the digits for the 128-bit atoi processor.
 perftools_inline!{
+#[cfg(has_i128)]
 pub(crate) fn parse_digits_u128<T>(radix: u32, digits: &[u8], step: usize, sign: Sign)
     -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
     where T: Integer
