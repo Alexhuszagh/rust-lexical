@@ -3,7 +3,7 @@
 #![allow(dead_code)]
 
 use lib::{cmp, iter, marker, ops, ptr, slice};
-use stackvector;
+use arrayvec;
 use super::bound::Bound;
 use super::pointer_methods::PointerMethods;
 use super::range_bounds::RangeBounds;
@@ -11,6 +11,69 @@ use super::slice_index::SliceIndex;
 
 #[cfg(all(feature = "correct", feature = "radix"))]
 use lib::Vec;
+
+// ARRVEC
+
+/// Macro to automate simplify the creation of an ArrayVec.
+#[macro_export]
+macro_rules! arrvec {
+    // This only works if the ArrayVec is the same size as the input array.
+    ($elem:expr; $n:expr) => ({
+        $crate::arrayvec::ArrayVec::from([$elem; $n])
+    });
+    // This just repeatedly calls `push`. I don't believe there's a concise way to count the number of expressions.
+    ($($x:expr),*$(,)*) => ({
+        // Allow an unused mut variable, since if the sequence is empty,
+        // the vec will never be mutated.
+        #[allow(unused_mut)] {
+            let mut vec = $crate::arrayvec::ArrayVec::new();
+            $(vec.push($x);)*
+            vec
+        }
+    });
+}
+
+// INSERT MANY
+
+/// Insert multiple elements at position `index`.
+///
+/// Shifts all following elements toward the
+/// back.
+pub fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
+    where V: VecLike<T>,
+          I: iter::IntoIterator<Item=T>
+{
+    assert!(index <= vec.len());
+
+    let iter = iterable.into_iter();
+    let (lower_bound, upper_bound) = iter.size_hint();
+    let upper_bound = upper_bound.expect("iterable must provide upper bound.");
+    assert!(vec.len() + upper_bound <= vec.capacity());
+
+    if index == vec.len() {
+        return vec.extend(iter);
+    }
+
+    unsafe {
+        let old_len = vec.len();
+        let ptr = vec.as_mut_ptr().padd(index);
+
+        // Move the trailing elements.
+        ptr::copy(ptr, ptr.padd(lower_bound), old_len - index);
+
+        // In case the iterator panics, don't double-drop the items we just copied above.
+        vec.set_len(index);
+
+        let mut num_added = 0;
+        for element in iter {
+            let cur = ptr.padd(num_added);
+            ptr::write(cur, element);
+            num_added += 1;
+        }
+
+        vec.set_len(old_len + num_added);
+    }
+}
 
 // REMOVE_MANY
 
@@ -217,17 +280,17 @@ impl<T> SliceLikeImpl<T> for Vec<T> {
     }
 }
 
-impl<A: stackvector::Array> SliceLikeImpl<A::Item> for stackvector::StackVec<A> {
+impl<A: arrayvec::Array> SliceLikeImpl<A::Item> for arrayvec::ArrayVec<A> {
     // AS SLICE
 
     #[inline]
     fn as_slice(&self) -> &[A::Item] {
-        stackvector::StackVec::as_slice(self)
+        arrayvec::ArrayVec::as_slice(self)
     }
 
     #[inline]
     fn as_mut_slice(&mut self) -> &mut [A::Item] {
-        stackvector::StackVec::as_mut_slice(self)
+        arrayvec::ArrayVec::as_mut_slice(self)
     }
 }
 
@@ -998,7 +1061,7 @@ impl<T> SliceLike<T> for Vec<T> {
     }
 }
 
-impl<A: stackvector::Array> SliceLike<A::Item> for stackvector::StackVec<A> {
+impl<A: arrayvec::Array> SliceLike<A::Item> for arrayvec::ArrayVec<A> {
     // GET
 
     /// Get an immutable reference to item at index.
@@ -1250,22 +1313,22 @@ impl<T> VecLike<T> for Vec<T> {
     }
 }
 
-impl<A: stackvector::Array> VecLike<A::Item> for stackvector::StackVec<A> {
+impl<A: arrayvec::Array> VecLike<A::Item> for arrayvec::ArrayVec<A> {
     #[inline]
-    fn new() -> stackvector::StackVec<A> {
-        stackvector::StackVec::new()
+    fn new() -> arrayvec::ArrayVec<A> {
+        arrayvec::ArrayVec::new()
     }
 
     #[inline]
-    fn with_capacity(capacity: usize) -> stackvector::StackVec<A> {
-        let mut v = stackvector::StackVec::new();
+    fn with_capacity(capacity: usize) -> arrayvec::ArrayVec<A> {
+        let mut v = arrayvec::ArrayVec::new();
         v.reserve(capacity);
         v
     }
 
     #[inline]
     fn capacity(&self) -> usize {
-        stackvector::StackVec::capacity(self)
+        arrayvec::ArrayVec::capacity(self)
     }
 
     #[inline]
@@ -1284,47 +1347,47 @@ impl<A: stackvector::Array> VecLike<A::Item> for stackvector::StackVec<A> {
 
     #[inline]
     fn truncate(&mut self, len: usize) {
-        stackvector::StackVec::truncate(self, len)
+        arrayvec::ArrayVec::truncate(self, len)
     }
 
     #[inline]
     unsafe fn set_len(&mut self, new_len: usize) {
-        stackvector::StackVec::set_len(self, new_len);
+        arrayvec::ArrayVec::set_len(self, new_len);
     }
 
     #[inline]
     fn swap_remove(&mut self, index: usize) -> A::Item {
-        stackvector::StackVec::swap_remove(self, index)
+        arrayvec::ArrayVec::swap_remove(self, index)
     }
 
     #[inline]
     fn insert(&mut self, index: usize, element: A::Item) {
-        stackvector::StackVec::insert(self, index, element)
+        arrayvec::ArrayVec::insert(self, index, element)
     }
 
     #[inline]
     fn remove(&mut self, index: usize) -> A::Item {
-        stackvector::StackVec::remove(self, index)
+        arrayvec::ArrayVec::remove(self, index)
     }
 
     #[inline]
     fn push(&mut self, value: A::Item) {
-        stackvector::StackVec::push(self, value);
+        arrayvec::ArrayVec::push(self, value);
     }
 
     #[inline]
     fn pop(&mut self) -> Option<A::Item> {
-        stackvector::StackVec::pop(self)
+        arrayvec::ArrayVec::pop(self)
     }
 
     #[inline]
     fn clear(&mut self) {
-        stackvector::StackVec::clear(self);
+        arrayvec::ArrayVec::clear(self);
     }
 
     #[inline]
     fn insert_many<I: iter::IntoIterator<Item=A::Item>>(&mut self, index: usize, iterable: I) {
-        stackvector::StackVec::insert_many(self, index, iterable)
+        insert_many(self, index, iterable)
     }
 
     #[inline]
@@ -1362,17 +1425,25 @@ impl<T> CloneableVecLike<T> for Vec<T>
     }
 }
 
-impl<A: stackvector::Array> CloneableVecLike<A::Item> for stackvector::StackVec<A>
-    where A::Item: Clone + Copy + Send
+impl<A: arrayvec::Array> CloneableVecLike<A::Item> for arrayvec::ArrayVec<A>
+    where A: Send,
+          A::Index: Send,
+          A::Item: Clone + Copy + Send
 {
     #[inline]
     fn extend_from_slice(&mut self, other: &[A::Item]) {
-        stackvector::StackVec::extend_from_slice(self, other)
+        self.extend(other.iter().cloned())
     }
 
     #[inline]
     fn resize(&mut self, len: usize, value: A::Item) {
-        stackvector::StackVec::resize(self, len, value)
+        assert!(len <= self.capacity());
+        let old_len = self.len();
+        if len > old_len {
+            self.extend(iter::repeat(value).take(len - old_len));
+        } else {
+            self.truncate(len);
+        }
     }
 }
 

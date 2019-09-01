@@ -23,8 +23,8 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 [dependencies]
 cfg-if = "0.1"
 static_assertions = "0.3.3"
-# Use stack-vector for the correct parser.
-stackvector = { version = "^1.0.5", optional = true }
+# Use arrayvec for the correct parser.
+arrayvec = { version = "^0.4.0", optional = true, features = ["array-sizes-33-128"] }
 # Optimized Grisu3 implementation, a well-tested, correct algorithm.
 dtoa = { version = "0.4", optional = true }
 # Optimized Ryu implementation, the fastest correct algorithm.
@@ -41,7 +41,7 @@ rustc_version = "0.2"
 [features]
 default = ["correct", "ryu", "std"]
 # Use the correct atof parser.
-correct = ["stackvector", "table"]
+correct = ["arrayvec", "table"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["dtoa"]
 # Add support for parsing non-decimal float and integer strings.

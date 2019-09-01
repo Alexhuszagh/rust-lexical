@@ -2923,7 +2923,7 @@ mod tests {
     impl Bigint {
         #[inline]
         pub fn new() -> Bigint {
-            Bigint { data: stackvec![] }
+            Bigint { data: arrvec![] }
         }
     }
 
@@ -3128,9 +3128,9 @@ mod tests {
     fn trailing_zero_limbs_test() {
         assert_eq!(Bigint::new().trailing_zero_limbs(), 0);
 
-        assert_eq!(Bigint { data: stackvec![0xFF] }.trailing_zero_limbs(), 0);
-        assert_eq!(Bigint { data: stackvec![0, 0xFF000] }.trailing_zero_limbs(), 1);
-        assert_eq!(Bigint { data: stackvec![0, 0, 0, 0xFF000] }.trailing_zero_limbs(), 3);
+        assert_eq!(Bigint { data: arrvec![0xFF] }.trailing_zero_limbs(), 0);
+        assert_eq!(Bigint { data: arrvec![0, 0xFF000] }.trailing_zero_limbs(), 1);
+        assert_eq!(Bigint { data: arrvec![0, 0, 0, 0xFF000] }.trailing_zero_limbs(), 3);
     }
 
     #[test]
@@ -3200,11 +3200,11 @@ mod tests {
 
     #[test]
     fn pad_zero_digits_test() {
-        let mut x = Bigint { data: stackvec![0, 0, 0, 1] };
+        let mut x = Bigint { data: arrvec![0, 0, 0, 1] };
         x.pad_zero_digits(3);
         assert_eq!(x.data.as_slice(), &[0, 0, 0, 0, 0, 0, 1]);
 
-        let mut x = Bigint { data: stackvec![1] };
+        let mut x = Bigint { data: arrvec![1] };
         x.pad_zero_digits(1);
         assert_eq!(x.data.as_slice(), &[0, 1]);
     }
