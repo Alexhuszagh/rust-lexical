@@ -116,7 +116,7 @@ macro_rules! parse_sign {
 
 /// Iterate over the digits and iteratively process them.
 macro_rules! parse_digits {
-    ($value:ident, $radix:ident, $digits:ident, $op:ident, $code:ident) => (
+    ($value:ident, $digits:ident, $radix:ident, $op:ident, $code:ident) => (
         for c in $digits.iter() {
             let digit = match to_digit!(*c, $radix) {
                 Some(v) => v,
@@ -136,15 +136,15 @@ macro_rules! parse_digits {
 
 // Parse the digits for the atoi processor.
 perftools_inline!{
-pub(crate) fn parse_digits<T>(radix: u32, digits: &[u8], sign: Sign)
+pub(crate) fn parse_digits<T>(digits: &[u8], radix: u32, sign: Sign)
     -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
     where T: Integer
 {
     let mut value = T::ZERO;
     if sign == Sign::Positive {
-        parse_digits!(value, radix, digits, checked_add, Overflow);
+        parse_digits!(value, digits, radix, checked_add, Overflow);
     } else {
-        parse_digits!(value, radix, digits, checked_sub, Underflow);
+        parse_digits!(value, digits, radix, checked_sub, Underflow);
     }
     let ptr = index!(digits[digits.len()..]).as_ptr();
     Ok((value, ptr))
@@ -152,12 +152,12 @@ pub(crate) fn parse_digits<T>(radix: u32, digits: &[u8], sign: Sign)
 
 // Standalone atoi processor.
 perftools_inline!{
-pub(crate) fn standalone<T>(radix: u32, bytes: &[u8], is_signed: bool)
+pub(crate) fn standalone<T>(bytes: &[u8], radix: u32, is_signed: bool)
     -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
     where T: Integer
 {
     let (sign, digits) = parse_sign!(bytes, is_signed, Empty);
-    parse_digits(radix, digits, sign)
+    parse_digits(digits, radix, sign)
 }}
 
 // STANDALONE U128
@@ -192,7 +192,7 @@ macro_rules! add_temporary_128 {
 /// Iterate over the digits and iteratively process them.
 #[cfg(has_i128)]
 macro_rules! parse_digits_u128 {
-    ($value:ident, $radix:ident, $digits:ident, $step:ident, $op:ident, $code:ident) => ({
+    ($value:ident, $digits:ident, $radix:ident, $step:ident, $op:ident, $code:ident) => ({
         // Break the input into chunks of len `step`, which can be parsed
         // as a 64-bit integer.
         for chunk in $digits.chunks($step) {
@@ -223,15 +223,15 @@ macro_rules! parse_digits_u128 {
 // Parse the digits for the 128-bit atoi processor.
 perftools_inline!{
 #[cfg(has_i128)]
-pub(crate) fn parse_digits_u128<T>(radix: u32, digits: &[u8], step: usize, sign: Sign)
+pub(crate) fn parse_digits_u128<T>(digits: &[u8], radix: u32, step: usize, sign: Sign)
     -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
     where T: Integer
 {
     let mut value = T::ZERO;
     if sign == Sign::Positive {
-        parse_digits_u128!(value, radix, digits, step, checked_add, Overflow)
+        parse_digits_u128!(value, digits, radix, step, checked_add, Overflow)
     } else {
-        parse_digits_u128!(value, radix, digits, step, checked_sub, Underflow)
+        parse_digits_u128!(value, digits, radix, step, checked_sub, Underflow)
     }
     let ptr = index!(digits[digits.len()..]).as_ptr();
     Ok((value, ptr))
@@ -246,7 +246,7 @@ pub(crate) fn parse_digits_u128<T>(radix: u32, digits: &[u8], step: usize, sign:
 // arithmetic
 perftools_inline!{
 #[cfg(has_i128)]
-pub(crate) fn standalone_128<W, N>(radix: u32, bytes: &[u8], is_signed: bool)
+pub(crate) fn standalone_128<W, N>(bytes: &[u8], radix: u32, is_signed: bool)
     -> StdResult<(W, *const u8), (ErrorCode, *const u8)>
     where W: Integer,
           N: Integer
@@ -258,11 +258,11 @@ pub(crate) fn standalone_128<W, N>(radix: u32, bytes: &[u8], is_signed: bool)
     let step = step_u64(radix);
     if digits.len() < step {
         // Parse as narrow.
-        let (value, ptr) = parse_digits::<N>(radix, digits, sign)?;
+        let (value, ptr) = parse_digits::<N>(digits, radix, sign)?;
         Ok((as_cast(value), ptr))
     } else {
         // Parse as wide.
-        parse_digits_u128(radix, digits, step, sign)
+        parse_digits_u128(digits, radix, step, sign)
     }
 }}
 
@@ -271,7 +271,7 @@ pub(crate) fn standalone_128<W, N>(radix: u32, bytes: &[u8], is_signed: bool)
 
 pub(crate) trait Atoi: Integer {
     // Parse integer from string.
-    fn atoi(radix: u32, bytes: &[u8], is_signed: bool) -> StdResult<(Self, *const u8), (ErrorCode, *const u8)>;
+    fn atoi(bytes: &[u8], radix: u32, is_signed: bool) -> StdResult<(Self, *const u8), (ErrorCode, *const u8)>;
 }
 
 // Implement atoi for type.
@@ -279,10 +279,10 @@ macro_rules! atoi_impl {
     ($($t:ty)*) => ($(
         impl Atoi for $t {
             perftools_inline_always!{
-            fn atoi(radix: u32, bytes: &[u8], is_signed: bool)
+            fn atoi(bytes: &[u8], radix: u32, is_signed: bool)
                 -> StdResult<($t, *const u8), (ErrorCode, *const u8)>
             {
-                standalone(radix, bytes, is_signed)
+                standalone(bytes, radix, is_signed)
             }}
         }
     )*);
@@ -293,20 +293,20 @@ atoi_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
 #[cfg(has_i128)]
 impl Atoi for u128 {
     perftools_inline_always!{
-    fn atoi(radix: u32, bytes: &[u8], is_signed: bool)
+    fn atoi(bytes: &[u8], radix: u32, is_signed: bool)
         -> StdResult<(u128, *const u8), (ErrorCode, *const u8)>
     {
-        standalone_128::<u128, u64>(radix, bytes, is_signed)
+        standalone_128::<u128, u64>(bytes, radix, is_signed)
     }}
 }
 
 #[cfg(has_i128)]
 impl Atoi for i128 {
     perftools_inline_always!{
-    fn atoi(radix: u32, bytes: &[u8], is_signed: bool)
+    fn atoi(bytes: &[u8], radix: u32, is_signed: bool)
         -> StdResult<(i128, *const u8), (ErrorCode, *const u8)>
     {
-        standalone_128::<i128, i64>(radix, bytes, is_signed)
+        standalone_128::<i128, i64>(bytes, radix, is_signed)
     }}
 }
 
@@ -349,7 +349,7 @@ fn add_digit<T>(value: T, digit: u32, radix: u32)
 // All the data **must** be a valid digit.
 perftools_inline!{
 #[cfg(feature = "correct")]
-pub(crate) fn standalone_mantissa<'a, T>(radix: u32, integer: &'a [u8], fraction: &'a [u8])
+pub(crate) fn standalone_mantissa<'a, T>(integer: &'a [u8], fraction: &'a [u8], radix: u32)
     -> (T, usize)
     where T: UnsignedInteger
 {
@@ -389,13 +389,13 @@ pub(crate) fn standalone_mantissa<'a, T>(radix: u32, integer: &'a [u8], fraction
 // Calculate the mantissa when it cannot have sign or other invalid digits.
 perftools_inline!{
 #[cfg(not(feature = "correct"))]
-pub(crate) fn standalone_mantissa<T>(radix: u32, bytes: &[u8])
+pub(crate) fn standalone_mantissa<T>(bytes: &[u8], radix: u32)
     -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
     where T: Integer
 {
     // Parse the integer.
     let mut value = T::ZERO;
-    parse_digits!(value, radix, bytes, checked_add, Overflow);
+    parse_digits!(value, bytes, radix, checked_add, Overflow);
     Ok((value, bytes[bytes.len()..].as_ptr()))
 }}
 
@@ -421,7 +421,7 @@ macro_rules! add_digit {
 
 // Iterate over the digits and iteratively process them.
 macro_rules! parse_digits_exponent {
-    ($value:ident, $radix:ident, $digits:ident, $op:ident, $default:expr) => (
+    ($value:ident, $digits:ident, $radix:ident, $op:ident, $default:expr) => (
         let mut iter = $digits.iter();
         while let Some(c) = iter.next() {
             let digit = match to_digit(c, $radix) {
@@ -446,15 +446,15 @@ macro_rules! parse_digits_exponent {
 // Specialized parser for the exponent, which validates digits and
 // returns a default min or max value on overflow.
 perftools_inline!{
-pub(crate) fn standalone_exponent(radix: u32, bytes: &[u8])
+pub(crate) fn standalone_exponent(bytes: &[u8], radix: u32)
     -> StdResult<(i32, *const u8), (ErrorCode, *const u8)>
 {
     let (sign, digits) = parse_sign!(bytes, true, EmptyExponent);
     let mut value = 0;
     if sign == Sign::Positive {
-        parse_digits_exponent!(value, radix, digits, checked_add, i32::max_value());
+        parse_digits_exponent!(value, digits, radix, checked_add, i32::max_value());
     } else {
-        parse_digits_exponent!(value, radix, digits, checked_sub, i32::min_value());
+        parse_digits_exponent!(value, digits, radix, checked_sub, i32::min_value());
     }
     let ptr = index!(digits[digits.len()..]).as_ptr();
     Ok((value, ptr))
@@ -466,12 +466,12 @@ pub(crate) fn standalone_exponent(radix: u32, bytes: &[u8])
 // Handle unsigned +/- numbers and forward to implied implementation.
 //  Can just use local namespace
 perftools_inline!{
-pub(crate) fn standalone_unsigned<'a, T>(radix: u32, bytes: &'a [u8])
+pub(crate) fn standalone_unsigned<'a, T>(bytes: &'a [u8], radix: u32)
     -> Result<(T, usize)>
     where T: Atoi + UnsignedInteger
 {
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match T::atoi(radix, bytes, false) {
+    match T::atoi(bytes, radix, false) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
@@ -480,80 +480,40 @@ pub(crate) fn standalone_unsigned<'a, T>(radix: u32, bytes: &'a [u8])
 // Handle signed +/- numbers and forward to implied implementation.
 //  Can just use local namespace
 perftools_inline!{
-pub(crate) fn standalone_signed<'a, T>(radix: u32, bytes: &'a [u8])
+pub(crate) fn standalone_signed<'a, T>(bytes: &'a [u8], radix: u32)
     -> Result<(T, usize)>
     where T: Atoi + SignedInteger
 {
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match T::atoi(radix, bytes, true) {
+    match T::atoi(bytes, radix, true) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
 }}
 
-// API
-// ---
+// FROM LEXICAL
+// ------------
 
-// SLICE API
+from_lexical!(standalone_unsigned, u8);
+from_lexical!(standalone_unsigned, u16);
+from_lexical!(standalone_unsigned, u32);
+from_lexical!(standalone_unsigned, u64);
+from_lexical!(standalone_unsigned, usize);
+#[cfg(has_i128)] from_lexical!(standalone_unsigned, u128);
 
-macro_rules! generate_unsigned_slice {
-    ($t:ty $(, $i:ident)+) => { generate_from_slice_api!($($i, )* $t, standalone_unsigned); };
-}
-
-macro_rules! generate_signed_slice {
-    ($t:ty $(, $i:ident)+) => { generate_from_slice_api!($($i, )* $t, standalone_signed); };
-}
-
-generate_unsigned_slice!(u8, atou8, atou8_radix, atou8_partial, atou8_partial_radix);
-generate_unsigned_slice!(u16, atou16, atou16_radix, atou16_partial, atou16_partial_radix);
-generate_unsigned_slice!(u32, atou32, atou32_radix, atou32_partial, atou32_partial_radix);
-generate_unsigned_slice!(u64, atou64, atou64_radix, atou64_partial, atou64_partial_radix);
-generate_unsigned_slice!(usize, atousize, atousize_radix, atousize_partial, atousize_partial_radix);
-#[cfg(has_i128)] generate_unsigned_slice!(u128, atou128, atou128_radix, atou128_partial, atou128_partial_radix);
-
-generate_signed_slice!(i8, atoi8, atoi8_radix, atoi8_partial, atoi8_partial_radix);
-generate_signed_slice!(i16, atoi16, atoi16_radix, atoi16_partial, atoi16_partial_radix);
-generate_signed_slice!(i32, atoi32, atoi32_radix, atoi32_partial, atoi32_partial_radix);
-generate_signed_slice!(i64, atoi64, atoi64_radix, atoi64_partial, atoi64_partial_radix);
-generate_signed_slice!(isize, atoisize, atoisize_radix, atoisize_partial, atoisize_partial_radix);
-#[cfg(has_i128)] generate_signed_slice!(i128, atoi128, atoi128_radix, atoi128_partial, atoi128_partial_radix);
-
-pub(crate) mod atoi_ffi {
-
-use super::*;
-
-// RANGE API (FFI)
-
-macro_rules! generate_unsigned_range {
-    ($t:ty $(, $i:ident)+) => { generate_from_range_api!($($i, )* $t, standalone_unsigned); };
-}
-
-macro_rules! generate_signed_range {
-    ($t:ty $(, $i:ident)+) => { generate_from_range_api!($($i, )* $t, standalone_signed); };
-}
-
-generate_unsigned_range!(u8, atou8, atou8_radix, atou8_partial, atou8_partial_radix);
-generate_unsigned_range!(u16, atou16, atou16_radix, atou16_partial, atou16_partial_radix);
-generate_unsigned_range!(u32, atou32, atou32_radix, atou32_partial, atou32_partial_radix);
-generate_unsigned_range!(u64, atou64, atou64_radix, atou64_partial, atou64_partial_radix);
-generate_unsigned_range!(usize, atousize, atousize_radix, atousize_partial, atousize_partial_radix);
-#[cfg(has_i128)] generate_unsigned_range!(u128, atou128, atou128_radix, atou128_partial, atou128_partial_radix);
-
-generate_signed_range!(i8, atoi8, atoi8_radix, atoi8_partial, atoi8_partial_radix);
-generate_signed_range!(i16, atoi16, atoi16_radix, atoi16_partial, atoi16_partial_radix);
-generate_signed_range!(i32, atoi32, atoi32_radix, atoi32_partial, atoi32_partial_radix);
-generate_signed_range!(i64, atoi64, atoi64_radix, atoi64_partial, atoi64_partial_radix);
-generate_signed_range!(isize, atoisize, atoisize_radix, atoisize_partial, atoisize_partial_radix);
-#[cfg(has_i128)] generate_signed_range!(i128, atoi128, atoi128_radix, atoi128_partial, atoi128_partial_radix);
-
-}   // atoi_ffi
+from_lexical!(standalone_signed, i8);
+from_lexical!(standalone_signed, i16);
+from_lexical!(standalone_signed, i32);
+from_lexical!(standalone_signed, i64);
+from_lexical!(standalone_signed, isize);
+#[cfg(has_i128)] from_lexical!(standalone_signed, i128);
 
 // TESTS
 // -----
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use util::*;
 
     #[cfg(feature = "radix")]
     const DATA: [(u8, &'static str); 35] = [
@@ -595,118 +555,118 @@ mod tests {
     ];
 
     #[test]
-    fn atou8_base10_test() {
-        assert_eq!(Ok(0), atou8(b"0"));
-        assert_eq!(Ok(127), atou8(b"127"));
-        assert_eq!(Ok(128), atou8(b"128"));
-        assert_eq!(Ok(255), atou8(b"255"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), atou8(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atou8(b"1a"));
+    fn u8_decimal_test() {
+        assert_eq!(Ok(0), u8::from_lexical(b"0"));
+        assert_eq!(Ok(127), u8::from_lexical(b"127"));
+        assert_eq!(Ok(128), u8::from_lexical(b"128"));
+        assert_eq!(Ok(255), u8::from_lexical(b"255"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), u8::from_lexical(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), u8::from_lexical(b"1a"));
     }
 
     #[cfg(feature = "radix")]
     #[test]
-    fn atou8_basen_test() {
+    fn u8_radix_test() {
         for (b, s) in DATA.iter() {
-            assert_eq!(atou8_radix(*b, s.as_bytes()), Ok(37));
+            assert_eq!(u8::from_lexical_radix(s.as_bytes(), *b), Ok(37));
         }
     }
 
     #[test]
-    fn atoi8_base10_test() {
-        assert_eq!(Ok(0), atoi8(b"0"));
-        assert_eq!(Ok(127), atoi8(b"127"));
-        assert_eq!(Err((ErrorCode::Overflow, 2).into()), atoi8(b"128"));
-        assert_eq!(Err((ErrorCode::Overflow, 2).into()), atoi8(b"255"));
-        assert_eq!(Ok(-1), atoi8(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atoi8(b"1a"));
+    fn i8_decimal_test() {
+        assert_eq!(Ok(0), i8::from_lexical(b"0"));
+        assert_eq!(Ok(127), i8::from_lexical(b"127"));
+        assert_eq!(Err((ErrorCode::Overflow, 2).into()), i8::from_lexical(b"128"));
+        assert_eq!(Err((ErrorCode::Overflow, 2).into()), i8::from_lexical(b"255"));
+        assert_eq!(Ok(-1), i8::from_lexical(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i8::from_lexical(b"1a"));
     }
 
     #[cfg(feature = "radix")]
     #[test]
-    fn atoi8_basen_test() {
+    fn i8_radix_test() {
         for (b, s) in DATA.iter() {
-            assert_eq!(atoi8_radix(*b, s.as_bytes()), Ok(37));
+            assert_eq!(i8::from_lexical_radix(s.as_bytes(), *b), Ok(37));
         }
     }
 
     #[test]
-    fn atou16_base10_test() {
-        assert_eq!(Ok(0), atou16(b"0"));
-        assert_eq!(Ok(32767), atou16(b"32767"));
-        assert_eq!(Ok(32768), atou16(b"32768"));
-        assert_eq!(Ok(65535), atou16(b"65535"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), atou16(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atou16(b"1a"));
+    fn u16_decimal_test() {
+        assert_eq!(Ok(0), u16::from_lexical(b"0"));
+        assert_eq!(Ok(32767), u16::from_lexical(b"32767"));
+        assert_eq!(Ok(32768), u16::from_lexical(b"32768"));
+        assert_eq!(Ok(65535), u16::from_lexical(b"65535"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), u16::from_lexical(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), u16::from_lexical(b"1a"));
     }
 
     #[test]
-    fn atoi16_base10_test() {
-        assert_eq!(Ok(0), atoi16(b"0"));
-        assert_eq!(Ok(32767), atoi16(b"32767"));
-        assert_eq!(Err((ErrorCode::Overflow, 4).into()), atoi16(b"32768"));
-        assert_eq!(Err((ErrorCode::Overflow, 4).into()), atoi16(b"65535"));
-        assert_eq!(Ok(-1), atoi16(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atoi16(b"1a"));
+    fn i16_decimal_test() {
+        assert_eq!(Ok(0), i16::from_lexical(b"0"));
+        assert_eq!(Ok(32767), i16::from_lexical(b"32767"));
+        assert_eq!(Err((ErrorCode::Overflow, 4).into()), i16::from_lexical(b"32768"));
+        assert_eq!(Err((ErrorCode::Overflow, 4).into()), i16::from_lexical(b"65535"));
+        assert_eq!(Ok(-1), i16::from_lexical(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i16::from_lexical(b"1a"));
     }
 
     #[cfg(feature = "radix")]
     #[test]
-    fn atoi16_basen_test() {
+    fn i16_radix_test() {
         for (b, s) in DATA.iter() {
-            assert_eq!(atoi16_radix(*b, s.as_bytes()), Ok(37));
+            assert_eq!(i16::from_lexical_radix(s.as_bytes(), *b), Ok(37));
         }
-        assert_eq!(atoi16_radix(36, b"YA"), Ok(1234));
+        assert_eq!(i16::from_lexical_radix(b"YA", 36), Ok(1234));
     }
 
     #[test]
-    fn atou32_base10_test() {
-        assert_eq!(Ok(0), atou32(b"0"));
-        assert_eq!(Ok(2147483647), atou32(b"2147483647"));
-        assert_eq!(Ok(2147483648), atou32(b"2147483648"));
-        assert_eq!(Ok(4294967295), atou32(b"4294967295"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), atou32(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atou32(b"1a"));
+    fn u32_decimal_test() {
+        assert_eq!(Ok(0), u32::from_lexical(b"0"));
+        assert_eq!(Ok(2147483647), u32::from_lexical(b"2147483647"));
+        assert_eq!(Ok(2147483648), u32::from_lexical(b"2147483648"));
+        assert_eq!(Ok(4294967295), u32::from_lexical(b"4294967295"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), u32::from_lexical(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), u32::from_lexical(b"1a"));
     }
 
     #[test]
-    fn atoi32_base10_test() {
-        assert_eq!(Ok(0), atoi32(b"0"));
-        assert_eq!(Ok(2147483647), atoi32(b"2147483647"));
-        assert_eq!(Err((ErrorCode::Overflow, 9).into()), atoi32(b"2147483648"));
-        assert_eq!(Err((ErrorCode::Overflow, 9).into()), atoi32(b"4294967295"));
-        assert_eq!(Ok(-1), atoi32(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atoi32(b"1a"));
+    fn i32_decimal_test() {
+        assert_eq!(Ok(0), i32::from_lexical(b"0"));
+        assert_eq!(Ok(2147483647), i32::from_lexical(b"2147483647"));
+        assert_eq!(Err((ErrorCode::Overflow, 9).into()), i32::from_lexical(b"2147483648"));
+        assert_eq!(Err((ErrorCode::Overflow, 9).into()), i32::from_lexical(b"4294967295"));
+        assert_eq!(Ok(-1), i32::from_lexical(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i32::from_lexical(b"1a"));
     }
 
     #[test]
-    fn atou64_base10_test() {
-        assert_eq!(Ok(0), atou64(b"0"));
-        assert_eq!(Ok(9223372036854775807), atou64(b"9223372036854775807"));
-        assert_eq!(Ok(9223372036854775808), atou64(b"9223372036854775808"));
-        assert_eq!(Ok(18446744073709551615), atou64(b"18446744073709551615"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), atou64(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atou64(b"1a"));
+    fn u64_decimal_test() {
+        assert_eq!(Ok(0), u64::from_lexical(b"0"));
+        assert_eq!(Ok(9223372036854775807), u64::from_lexical(b"9223372036854775807"));
+        assert_eq!(Ok(9223372036854775808), u64::from_lexical(b"9223372036854775808"));
+        assert_eq!(Ok(18446744073709551615), u64::from_lexical(b"18446744073709551615"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), u64::from_lexical(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), u64::from_lexical(b"1a"));
     }
 
     #[test]
-    fn atoi64_base10_test() {
-        assert_eq!(Ok(0), atoi64(b"0"));
-        assert_eq!(Ok(9223372036854775807), atoi64(b"9223372036854775807"));
-        assert_eq!(Err((ErrorCode::Overflow, 18).into()), atoi64(b"9223372036854775808"));
-        assert_eq!(Err((ErrorCode::Overflow, 19).into()), atoi64(b"18446744073709551615"));
-        assert_eq!(Ok(-1), atoi64(b"-1"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), atoi64(b"1a"));
+    fn i64_decimal_test() {
+        assert_eq!(Ok(0), i64::from_lexical(b"0"));
+        assert_eq!(Ok(9223372036854775807), i64::from_lexical(b"9223372036854775807"));
+        assert_eq!(Err((ErrorCode::Overflow, 18).into()), i64::from_lexical(b"9223372036854775808"));
+        assert_eq!(Err((ErrorCode::Overflow, 19).into()), i64::from_lexical(b"18446744073709551615"));
+        assert_eq!(Ok(-1), i64::from_lexical(b"-1"));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i64::from_lexical(b"1a"));
 
         // Add tests discovered via fuzzing.
-        assert_eq!(Err((ErrorCode::Overflow, 19).into()), atoi64(b"406260572150672006000066000000060060007667760000000000000000000+00000006766767766666767665670000000000000000000000666"));
+        assert_eq!(Err((ErrorCode::Overflow, 19).into()), i64::from_lexical(b"406260572150672006000066000000060060007667760000000000000000000+00000006766767766666767665670000000000000000000000666"));
     }
 
     #[cfg(feature = "std")]
     proptest! {
         #[test]
         fn u8_invalid_proptest(i in r"[+]?[0-9]{2}\D") {
-            let result = atou8(i.as_bytes());
+            let result = u8::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let index = result.err().unwrap().index;
             prop_assert!(index == 2 || index == 3);
@@ -714,7 +674,7 @@ mod tests {
 
         #[test]
         fn u8_overflow_proptest(i in r"[+]?[1-9][0-9]{3}") {
-            let result = atou8(i.as_bytes());
+            let result = u8::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
@@ -722,7 +682,7 @@ mod tests {
 
         #[test]
         fn u8_negative_proptest(i in r"[-][1-9][0-9]{2}") {
-            let result = atou8(i.as_bytes());
+            let result = u8::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::InvalidDigit);
@@ -730,7 +690,7 @@ mod tests {
 
         #[test]
         fn u8_double_sign_proptest(i in r"[+]{2}[0-9]{2}") {
-            let result = atou8(i.as_bytes());
+            let result = u8::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -739,7 +699,7 @@ mod tests {
 
         #[test]
         fn u8_sign_only_proptest(i in r"[+]") {
-            let result = atou8(i.as_bytes());
+            let result = u8::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -747,7 +707,7 @@ mod tests {
 
         #[test]
         fn u8_trailing_digits_proptest(i in r"[+]?[0-9]{2}\D[0-9]{2}") {
-            let result = atou8(i.as_bytes());
+            let result = u8::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -756,7 +716,7 @@ mod tests {
 
         #[test]
         fn i8_invalid_proptest(i in r"[+-]?[0-9]{2}\D") {
-            let result = atoi8(i.as_bytes());
+            let result = i8::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -765,21 +725,21 @@ mod tests {
 
         #[test]
         fn i8_overflow_proptest(i in r"[+]?[1-9][0-9]{3}\D") {
-            let result = atoi8(i.as_bytes());
+            let result = i8::from_lexical(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn i8_underflow_proptest(i in r"[-][1-9][0-9]{3}\D") {
-            let result = atoi8(i.as_bytes());
+            let result = i8::from_lexical(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Underflow);
         }
 
         #[test]
         fn i8_double_sign_proptest(i in r"[+-]{2}[0-9]{2}") {
-            let result = atoi8(i.as_bytes());
+            let result = i8::from_lexical(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 1);
@@ -787,14 +747,14 @@ mod tests {
 
         #[test]
         fn i8_sign_only_proptest(i in r"[+-]") {
-            let result = atoi8(i.as_bytes());
+            let result = i8::from_lexical(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::Empty);
         }
 
         #[test]
         fn i8_trailing_digits_proptest(i in r"[+-]?[0-9]{2}\D[0-9]{2}") {
-            let result = atoi8(i.as_bytes());
+            let result = i8::from_lexical(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 2 || error.index == 3);
@@ -802,7 +762,7 @@ mod tests {
 
         #[test]
         fn u16_invalid_proptest(i in r"[+]?[0-9]{4}\D") {
-            let result = atou16(i.as_bytes());
+            let result = u16::from_lexical(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 4 || error.index == 5);
@@ -810,14 +770,14 @@ mod tests {
 
         #[test]
         fn u16_overflow_proptest(i in r"[+]?[1-9][0-9]{5}\D") {
-            let result = atou16(i.as_bytes());
+            let result = u16::from_lexical(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn u16_negative_proptest(i in r"[-][1-9][0-9]{4}") {
-            let result = atou16(i.as_bytes());
+            let result = u16::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::InvalidDigit);
@@ -825,7 +785,7 @@ mod tests {
 
         #[test]
         fn u16_double_sign_proptest(i in r"[+]{2}[0-9]{4}") {
-            let result = atou16(i.as_bytes());
+            let result = u16::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -834,7 +794,7 @@ mod tests {
 
         #[test]
         fn u16_sign_only_proptest(i in r"[+]") {
-            let result = atou16(i.as_bytes());
+            let result = u16::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -842,7 +802,7 @@ mod tests {
 
         #[test]
         fn u16_trailing_digits_proptest(i in r"[+]?[0-9]{4}\D[0-9]{2}") {
-            let result = atou16(i.as_bytes());
+            let result = u16::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -851,7 +811,7 @@ mod tests {
 
         #[test]
         fn i16_invalid_proptest(i in r"[+-]?[0-9]{4}\D") {
-            let result = atoi16(i.as_bytes());
+            let result = i16::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -860,21 +820,21 @@ mod tests {
 
         #[test]
         fn i16_overflow_proptest(i in r"[+]?[1-9][0-9]{5}\D") {
-            let result = atoi16(i.as_bytes());
+            let result = i16::from_lexical(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn i16_underflow_proptest(i in r"[-][1-9][0-9]{5}\DD") {
-            let result = atoi16(i.as_bytes());
+            let result = i16::from_lexical(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Underflow);
         }
 
         #[test]
         fn i16_double_sign_proptest(i in r"[+-]{2}[0-9]{4}") {
-            let result = atoi16(i.as_bytes());
+            let result = i16::from_lexical(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 1);
@@ -882,7 +842,7 @@ mod tests {
 
         #[test]
         fn i16_sign_only_proptest(i in r"[+-]") {
-            let result = atoi16(i.as_bytes());
+            let result = i16::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -890,7 +850,7 @@ mod tests {
 
         #[test]
         fn i16_trailing_digits_proptest(i in r"[+-]?[0-9]{4}\D[0-9]{2}") {
-            let result = atoi16(i.as_bytes());
+            let result = i16::from_lexical(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 4 || error.index == 5);
@@ -898,7 +858,7 @@ mod tests {
 
         #[test]
         fn u32_invalid_proptest(i in r"[+]?[0-9]{9}\D") {
-            let result = atou32(i.as_bytes());
+            let result = u32::from_lexical(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 9 || error.index == 10);
@@ -906,14 +866,14 @@ mod tests {
 
         #[test]
         fn u32_overflow_proptest(i in r"[+]?[1-9][0-9]{10}\D") {
-            let result = atou32(i.as_bytes());
+            let result = u32::from_lexical(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn u32_negative_proptest(i in r"[-][1-9][0-9]{9}") {
-            let result = atou32(i.as_bytes());
+            let result = u32::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::InvalidDigit);
@@ -921,7 +881,7 @@ mod tests {
 
         #[test]
         fn u32_double_sign_proptest(i in r"[+]{2}[0-9]{9}") {
-            let result = atou32(i.as_bytes());
+            let result = u32::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -930,7 +890,7 @@ mod tests {
 
         #[test]
         fn u32_sign_only_proptest(i in r"[+]") {
-            let result = atou32(i.as_bytes());
+            let result = u32::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -938,7 +898,7 @@ mod tests {
 
         #[test]
         fn u32_trailing_digits_proptest(i in r"[+]?[0-9]{9}\D[0-9]{2}") {
-            let result = atou32(i.as_bytes());
+            let result = u32::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -947,7 +907,7 @@ mod tests {
 
         #[test]
         fn i32_invalid_proptest(i in r"[+-]?[0-9]{9}\D") {
-            let result = atoi32(i.as_bytes());
+            let result = i32::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -956,21 +916,21 @@ mod tests {
 
         #[test]
         fn i32_overflow_proptest(i in r"[+]?[1-9][0-9]{10}\D") {
-            let result = atoi32(i.as_bytes());
+            let result = i32::from_lexical(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn i32_underflow_proptest(i in r"-[1-9][0-9]{10}\D") {
-            let result = atoi32(i.as_bytes());
+            let result = i32::from_lexical(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Underflow);
         }
 
         #[test]
         fn i32_double_sign_proptest(i in r"[+-]{2}[0-9]{9}") {
-            let result = atoi32(i.as_bytes());
+            let result = i32::from_lexical(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 1);
@@ -978,7 +938,7 @@ mod tests {
 
         #[test]
         fn i32_sign_only_proptest(i in r"[+-]") {
-            let result = atoi32(i.as_bytes());
+            let result = i32::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -986,7 +946,7 @@ mod tests {
 
         #[test]
         fn i32_trailing_digits_proptest(i in r"[+-]?[0-9]{9}\D[0-9]{2}") {
-            let result = atoi32(i.as_bytes());
+            let result = i32::from_lexical(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 9 || error.index == 10);
@@ -994,7 +954,7 @@ mod tests {
 
         #[test]
         fn u64_invalid_proptest(i in r"[+]?[0-9]{19}\D") {
-            let result = atou64(i.as_bytes());
+            let result = u64::from_lexical(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 19 || error.index == 20);
@@ -1002,14 +962,14 @@ mod tests {
 
         #[test]
         fn u64_overflow_proptest(i in r"[+]?[1-9][0-9]{21}\D") {
-            let result = atou64(i.as_bytes());
+            let result = u64::from_lexical(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn u64_negative_proptest(i in r"[-][1-9][0-9]{21}") {
-            let result = atou64(i.as_bytes());
+            let result = u64::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::InvalidDigit);
@@ -1017,7 +977,7 @@ mod tests {
 
         #[test]
         fn u64_double_sign_proptest(i in r"[+]{2}[0-9]{19}") {
-            let result = atou64(i.as_bytes());
+            let result = u64::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -1026,7 +986,7 @@ mod tests {
 
         #[test]
         fn u64_sign_only_proptest(i in r"[+]") {
-            let result = atou64(i.as_bytes());
+            let result = u64::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -1034,7 +994,7 @@ mod tests {
 
         #[test]
         fn u64_trailing_digits_proptest(i in r"[+]?[0-9]{19}\D[0-9]{2}") {
-            let result = atou64(i.as_bytes());
+            let result = u64::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -1043,7 +1003,7 @@ mod tests {
 
         #[test]
         fn i64_invalid_proptest(i in r"[+-]?[0-9]{18}\D") {
-            let result = atoi64(i.as_bytes());
+            let result = i64::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
@@ -1052,21 +1012,21 @@ mod tests {
 
         #[test]
         fn i64_overflow_proptest(i in r"[+]?[1-9][0-9]{19}\D") {
-            let result = atoi64(i.as_bytes());
+            let result = i64::from_lexical(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Overflow);
         }
 
         #[test]
         fn i64_underflow_proptest(i in r"-[1-9][0-9]{19}\D") {
-            let result = atoi64(i.as_bytes());
+            let result = i64::from_lexical(i.as_bytes());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Underflow);
         }
 
         #[test]
         fn i64_double_sign_proptest(i in r"[+-]{2}[0-9]{18}") {
-            let result = atoi64(i.as_bytes());
+            let result = i64::from_lexical(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 1);
@@ -1074,7 +1034,7 @@ mod tests {
 
         #[test]
         fn i64_sign_only_proptest(i in r"[+-]") {
-            let result = atoi32(i.as_bytes());
+            let result = i32::from_lexical(i.as_bytes());
             prop_assert!(result.is_err());
             let code = result.err().unwrap().code;
             prop_assert_eq!(code, ErrorCode::Empty);
@@ -1082,7 +1042,7 @@ mod tests {
 
         #[test]
         fn i64_trailing_digits_proptest(i in r"[+-]?[0-9]{18}\D[0-9]{2}") {
-            let result = atoi64(i.as_bytes());
+            let result = i64::from_lexical(i.as_bytes());
             let error = result.err().unwrap();
             prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
             prop_assert!(error.index == 18 || error.index == 19);

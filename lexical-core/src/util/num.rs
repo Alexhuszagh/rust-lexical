@@ -13,6 +13,7 @@ use super::primitive::Primitive;
 // NUMBER
 
 /// Numerical type trait.
+#[doc(hidden)]
 pub trait Number:
     Primitive +
     // Iteration
@@ -28,20 +29,46 @@ pub trait Number:
     ops::RemAssign +
     ops::Sub<Output=Self> +
     ops::SubAssign
-{}
+{
+    /// Maximum number of bytes required to serialize a number to string.
+    const FORMATTED_SIZE: usize;
+    /// Maximum number of bytes required to serialize a number to a decimal string.
+    const FORMATTED_SIZE_DECIMAL: usize;
+}
 
 macro_rules! number_impl {
-    ($($t:ty)*) => ($(
-        impl Number for $t {}
+    ($($t:tt $radix_size:ident $decimal_size:ident ; )*) => ($(
+        impl Number for $t {
+            const FORMATTED_SIZE: usize = $radix_size;
+            const FORMATTED_SIZE_DECIMAL: usize = $decimal_size;
+        }
     )*)
 }
 
-number_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64 }
-#[cfg(has_i128)] number_impl! { u128 i128 }
+number_impl! {
+    u8 U8_FORMATTED_SIZE U8_FORMATTED_SIZE_DECIMAL ;
+    u16 U16_FORMATTED_SIZE U16_FORMATTED_SIZE_DECIMAL ;
+    u32 U32_FORMATTED_SIZE U32_FORMATTED_SIZE_DECIMAL ;
+    u64 U64_FORMATTED_SIZE U64_FORMATTED_SIZE_DECIMAL ;
+    usize USIZE_FORMATTED_SIZE USIZE_FORMATTED_SIZE_DECIMAL ;
+    i8 I8_FORMATTED_SIZE I8_FORMATTED_SIZE_DECIMAL ;
+    i16 I16_FORMATTED_SIZE I16_FORMATTED_SIZE_DECIMAL ;
+    i32 I32_FORMATTED_SIZE I32_FORMATTED_SIZE_DECIMAL ;
+    i64 I64_FORMATTED_SIZE I64_FORMATTED_SIZE_DECIMAL ;
+    isize ISIZE_FORMATTED_SIZE ISIZE_FORMATTED_SIZE_DECIMAL ;
+    f32 F32_FORMATTED_SIZE F32_FORMATTED_SIZE_DECIMAL ;
+    f64 F64_FORMATTED_SIZE F64_FORMATTED_SIZE_DECIMAL ;
+}
+#[cfg(has_i128)]
+number_impl! {
+    u128 U128_FORMATTED_SIZE U128_FORMATTED_SIZE_DECIMAL ;
+    i128 I128_FORMATTED_SIZE I128_FORMATTED_SIZE_DECIMAL ;
+}
 
 // INTEGER
 
 /// Defines a trait that supports integral operations.
+#[doc(hidden)]
 pub trait Integer:
     // Basic
     Number + Eq + Ord +
@@ -107,8 +134,6 @@ pub trait Integer:
     const MAX: Self;
     const MIN: Self;
     const BITS: usize;
-    const MAX_SIZE: usize;
-    const MAX_SIZE_BASE10: usize;
 
     // FUNCTIONS (INHERITED)
     fn max_value() -> Self;
@@ -342,7 +367,7 @@ pub trait Integer:
 }
 
 macro_rules! integer_impl {
-    ($($t:tt $basen_size:ident $base10_size:ident ; )*) => ($(
+    ($($t:tt)*) => ($(
         impl Integer for $t {
             const ZERO: $t = 0;
             const ONE: $t = 1;
@@ -350,8 +375,6 @@ macro_rules! integer_impl {
             const MAX: $t = $t::max_value();
             const MIN: $t = $t::min_value();
             const BITS: usize = mem::size_of::<$t>() * 8;
-            const MAX_SIZE: usize = $basen_size;
-            const MAX_SIZE_BASE10: usize = $base10_size;
 
             #[inline]
             fn max_value() -> Self {
@@ -526,51 +549,38 @@ macro_rules! integer_impl {
     )*)
 }
 
-integer_impl! {
-    u8 MAX_U8_SIZE MAX_U8_SIZE_BASE10 ;
-    u16 MAX_U16_SIZE MAX_U16_SIZE_BASE10 ;
-    u32 MAX_U32_SIZE MAX_U32_SIZE_BASE10 ;
-    u64 MAX_U64_SIZE MAX_U64_SIZE_BASE10 ;
-    usize MAX_USIZE_SIZE MAX_USIZE_SIZE_BASE10 ;
-    i8 MAX_I8_SIZE MAX_I8_SIZE_BASE10 ;
-    i16 MAX_I16_SIZE MAX_I16_SIZE_BASE10 ;
-    i32 MAX_I32_SIZE MAX_I32_SIZE_BASE10 ;
-    i64 MAX_I64_SIZE MAX_I64_SIZE_BASE10 ;
-    isize MAX_ISIZE_SIZE MAX_ISIZE_SIZE_BASE10 ;
-}
+integer_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
 #[cfg(has_i128)]
-integer_impl! {
-    u128 MAX_U128_SIZE MAX_U128_SIZE_BASE10 ;
-    i128 MAX_I128_SIZE MAX_I128_SIZE_BASE10 ;
-}
+integer_impl! { u128 i128 }
 
 /// Unwrap or get T::max_value().
 #[inline]
-pub fn unwrap_or_max<T: Integer>(t: Option<T>) -> T {
+pub(crate) fn unwrap_or_max<T: Integer>(t: Option<T>) -> T {
     t.unwrap_or(T::max_value())
 }
 
 /// Unwrap or get T::min_value().
 #[inline]
-pub fn unwrap_or_min<T: Integer>(t: Option<T>) -> T {
+pub(crate) fn unwrap_or_min<T: Integer>(t: Option<T>) -> T {
     t.unwrap_or(T::min_value())
 }
 
 /// Try to convert to U, if not, return U::max_value().
 #[inline]
-pub fn try_cast_or_max<U: Integer, T: TryCast<U>>(t: T) -> U {
+pub(crate) fn try_cast_or_max<U: Integer, T: TryCast<U>>(t: T) -> U {
     unwrap_or_max(TryCast::try_cast(t))
 }
 
 /// Try to convert to U, if not, return U::min_value().
 #[inline]
-pub fn try_cast_or_min<U: Integer, T: TryCast<U>>(t: T) -> U {
+pub(crate) fn try_cast_or_min<U: Integer, T: TryCast<U>>(t: T) -> U {
     unwrap_or_min(TryCast::try_cast(t))
 }
 
 // SIGNED INTEGER
 
 /// Defines a trait that supports signed integral operations.
+#[doc(hidden)]
 pub trait SignedInteger: Integer + ops::Neg<Output=Self>
 {
     // FUNCTIONS (INHERITED)
@@ -603,6 +613,7 @@ signed_integer_impl! { i8 i16 i32 i64 isize }
 // UNSIGNED INTEGER
 
 /// Defines a trait that supports unsigned integral operations.
+#[doc(hidden)]
 pub trait UnsignedInteger: Integer
 {
     /// Returns true if the least-significant bit is odd.
@@ -630,6 +641,7 @@ unsigned_integer_impl! { u8 u16 u32 u64 usize }
 // FLOAT
 
 /// Float information for native float types.
+#[doc(hidden)]
 pub trait Float: Number + ops::Neg<Output=Self>
 {
     /// Unsigned type of the same size.
@@ -645,8 +657,6 @@ pub trait Float: Number + ops::Neg<Output=Self>
     const NEG_INFINITY: Self;
     const NAN: Self;
     const BITS: usize;
-    const MAX_SIZE: usize;
-    const MAX_SIZE_BASE10: usize;
 
     /// Bitmask for the sign bit.
     const SIGN_MASK: Self::Unsigned;
@@ -905,8 +915,6 @@ impl Float for f32 {
     const NEG_INFINITY: f32 = f32::NEG_INFINITY;
     const NAN: f32 = f32::NAN;
     const BITS: usize = 32;
-    const MAX_SIZE: usize = MAX_F32_SIZE;
-    const MAX_SIZE_BASE10: usize = MAX_F32_SIZE_BASE10;
     const SIGN_MASK: u32            = 0x80000000;
     const EXPONENT_MASK: u32        = 0x7F800000;
     const HIDDEN_BIT_MASK: u32      = 0x00800000;
@@ -990,8 +998,6 @@ impl Float for f64 {
     const NEG_INFINITY: f64 = f64::NEG_INFINITY;
     const NAN: f64 = f64::NAN;
     const BITS: usize = 64;
-    const MAX_SIZE: usize = MAX_F64_SIZE;
-    const MAX_SIZE_BASE10: usize = MAX_F64_SIZE_BASE10;
     const SIGN_MASK: u64            = 0x8000000000000000;
     const EXPONENT_MASK: u64        = 0x7FF0000000000000;
     const HIDDEN_BIT_MASK: u64      = 0x0010000000000000;

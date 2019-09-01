@@ -1,11 +1,10 @@
-//! Fast lexical conversion routines with a C FFI for a no_std environment.
+//! Fast lexical conversion routines for a no_std environment.
 //!
-//! # Getting Started
-//!
-//! lexical-core is a low-level, partially FFI-compatible API for
-//! number-to-string and string-to-number conversions, without requiring
-//! a system allocator. If you would like to use a convenient, high-level
-//! API, please look at [lexical](https://crates.io/crates/lexical) instead.
+//! lexical-core is a low-level API for number-to-string and
+//! string-to-number conversions, without requiring a system
+//! allocator. If you would like to use a convenient, high-level
+//! API, please look at [lexical](https://crates.io/crates/lexical)
+//! instead.
 //!
 //! # Getting Started
 //!
@@ -14,106 +13,102 @@
 //!
 //! // String to number using Rust slices.
 //! // The argument is the byte string parsed.
-//! let f = lexical_core::atof64(b"3.5").unwrap();   // 3.5
-//! let i = lexical_core::atoi32(b"15").unwrap();    // 15
+//! let f: f32 = lexical_core::parse(b"3.5").unwrap();   // 3.5
+//! let i: i32 = lexical_core::parse(b"15").unwrap();    // 15
 //!
-//! // String to number using pointer ranges, for FFI-compatible code.
-//! // The first argument is a pointer to the start of the parsed byte array,
-//! // and the second argument is a pointer to 1-past-the-end. It will process
-//! // bytes in the range [first, last).
-//! unsafe {
-//!     // Get an FFI-compatible range.
-//!     let bytes = b"3.5";
-//!     let first = bytes.as_ptr();
-//!     let last = first.add(bytes.len());
-//!     // Get our result and extract our value using C-compatible functions.
-//!     let res = lexical_core::ffi::atof64(first, last);
-//!     let f = lexical_core::ffi::f64_result_ok(res); // Aborts if res is not ok.
-//! }
-//!
-//! // The ato* and ffi::ato* parsers are checked, they validate the
+//! // All lexical_core parsers are checked, they validate the
 //! // input data is entirely correct, and stop parsing when invalid data
 //! // is found, or upon numerical overflow.
-//! let r = lexical_core::atoi8(b"256"); // Err(ErrorCode::Overflow.into())
-//! let r = lexical_core::atoi8(b"1a5"); // Err(ErrorCode::InvalidDigit.into())
+//! let r = lexical_core::parse::<u8>(b"256"); // Err(ErrorCode::Overflow.into())
+//! let r = lexical_core::parse::<u8>(b"1a5"); // Err(ErrorCode::InvalidDigit.into())
 //!
 //! // In order to extract and parse a number from a substring of the input
 //! // data, use the ato*_partial and ffi::ato*_partial parsers.
 //! // These functions return the parsed value and the number of processed
 //! // digits, allowing you to extract and parse the number in a single pass.
-//! let r = lexical_core::atoi8(b"3a5"); // Ok((3, 1))
-//!
-//! // Lexical-core includes FFI functions to properly extract data and handle
-//! // errors during routines. All the following functions may be used in
-//! // external libraries, include from C.
-//!
-//! unsafe {
-//!     unsafe fn to_range(bytes: &'static [u8]) -> (*const u8, *const u8) {
-//!         let first = bytes.as_ptr();
-//!         let last = first.add(bytes.len());
-//!         (first, last)
-//!     }
-//!
-//!     // Ideally, everything works great.
-//!     let (first, last) = to_range(b"15");
-//!     let res = lexical_core::ffi::atoi8(first, last);
-//!     if lexical_core::ffi::i8_result_is_ok(res) {
-//!         let i = lexical_core::ffi::i8_result_ok(res);
-//!         assert_eq!(i, 15);
-//!     }
-//!
-//!     // However, it detects numeric overflow, returning an error with
-//!     // an error code equal to `ErrorCode::Overflow`.
-//!     let (first, last) = to_range(b"256");
-//!     let res = lexical_core::ffi::atoi8(first, last);
-//!     if lexical_core::ffi::i8_result_is_err(res) {
-//!         let err = lexical_core::ffi::i8_result_err(res);
-//!         assert_eq!(err.code, lexical_core::ffi::ErrorCode::Overflow);
-//!     }
-//!
-//!     // Errors occurring prematurely terminating the parser due to invalid
-//!     // digits return the index in the buffer where the invalid digit was
-//!     // seen. This may useful in contexts like serde, which require numerical
-//!     // parsers from complex data without having to extract a substring
-//!     // containing only numeric data ahead of time.
-//!     let (first, last) = to_range(b"15 45");
-//!     let res = lexical_core::ffi::atoi8(first, last);
-//!     if lexical_core::ffi::i8_result_is_err(res) {
-//!         let err = lexical_core::ffi::i8_result_err(res);
-//!         assert_eq!(err.code, lexical_core::ffi::ErrorCode::InvalidDigit);
-//!         assert_eq!(err.index, 2);
-//!     }
-//!
-//!     // Number to string using slices.
-//!     // The first argument is the value, the second argument is the radix,
-//!     // and the third argument is the buffer to write to.
-//!     // The function returns a subslice of the original buffer, and will
-//!     // always start at the same position (`buf.as_ptr() == slc.as_ptr()`).
-//!     let mut buf = [b'0'; lexical_core::MAX_I64_SIZE];
-//!     let slc = lexical_core::i64toa(15, &mut buf);
-//!     assert_eq!(slc, b"15");
-//! }
+//! let r = lexical_core::parse::<i8>(b"3a5"); // Ok((3, 1))
 //!
 //! // If an insufficiently long buffer is passed, the serializer will panic.
 //! // PANICS
 //! let mut buf = [b'0'; 1];
-//! //let slc = lexical_core::i64toa(15, &mut buf);
+//! //let slc = lexical_core::write::<i64>(15, &mut buf);
 //!
 //! // In order to guarantee the buffer is long enough, always ensure there
-//! // are at least `MAX_*_SIZE`, where * is the type name in upperase,
-//! // IE, for `isize`, `MAX_ISIZE_SIZE`.
-//! let mut buf = [b'0'; lexical_core::MAX_F64_SIZE];
-//! let slc = lexical_core::f64toa(15.1, &mut buf);
+//! // are at least `T::FORMATTED_SIZE` bytes, which requires the
+//! // `lexical_core::Number` trait to be in scope.
+//! use lexical_core::Number;
+//! let mut buf = [b'0'; f64::FORMATTED_SIZE];
+//! let slc = lexical_core::write::<f64>(15.1, &mut buf);
 //! assert_eq!(slc, b"15.1");
 //!
-//! // When the `radix` feature is enabled, for base10 floats, using `MAX_*_SIZE`
-//! // may significantly overestimate the space required to format the number.
-//! // Therefore, the `MAX_*_SIZE_BASE10` constants allow you to get a much
+//! // When the `radix` feature is enabled, for decimal floats, using
+//! // `T::FORMATTED_SIZE` may significantly overestimate the space
+//! // required to format the number. Therefore, the
+//! // `T::FORMATTED_SIZE_DECIMAL` constants allow you to get a much
 //! // tighter bound on the space required.
-//! let mut buf = [b'0'; lexical_core::MAX_F64_SIZE_BASE10];
-//! let slc = lexical_core::f64toa(15.1, &mut buf);
+//! let mut buf = [b'0'; f64::FORMATTED_SIZE_DECIMAL];
+//! let slc = lexical_core::write::<f64>(15.1, &mut buf);
 //! assert_eq!(slc, b"15.1");
 //! ```
+//!
+//! # Conversion API
+//!
+//! **To String**
+//! - [`write`]
+#![cfg_attr(feature = "radix", doc = " - [`write_radix`]")]
+//!
+//! **From String**
+//! - [`parse`]
+#![cfg_attr(feature = "radix", doc = " - [`parse_radix`]")]
+//! - [`parse_partial`]
+#![cfg_attr(feature = "radix", doc = " - [`parse_partial_radix`]")]
+//! - [`parse_lossy`]
+#![cfg_attr(feature = "radix", doc = " - [`parse_lossy_radix`]")]
+//! - [`parse_partial_lossy`]
+#![cfg_attr(feature = "radix", doc = " - [`parse_partial_lossy_radix`]")]
+//!
+//! # Configuration Settings
+//!
+//! **Get Configuration**
+//! - [`get_exponent_default_char`]
+#![cfg_attr(feature = "radix", doc = " - [`get_exponent_backup_char`]")]
+#![cfg_attr(all(feature = "correct", feature = "rounding"), doc = " - [`get_float_rounding`]")]
+//! - [`get_nan_string`]
+//! - [`get_inf_string`]
+//! - [`get_infinity_string`]
+//!
+//! **Set Configuration**
+//! - [`set_exponent_default_char`]
+#![cfg_attr(feature = "radix", doc = " - [`set_exponent_backup_char`]")]
+#![cfg_attr(all(feature = "correct", feature = "rounding"), doc = " - [`set_float_rounding`]")]
+//! - [`set_nan_string`]
+//! - [`set_inf_string`]
+//! - [`set_infinity_string`]
+//!
+//! [`write`]: fn.write.html
+#![cfg_attr(feature = "radix", doc = " [`write_radix`]: fn.write_radix.html")]
+//! [`parse`]: fn.parse.html
+#![cfg_attr(feature = "radix", doc = " [`parse_radix`]: fn.parse_radix.html")]
+//! [`parse_partial`]: fn.parse_partial.html
+#![cfg_attr(feature = "radix", doc = " [`parse_partial_radix`]: fn.parse_partial_radix.html")]
+//! [`parse_lossy`]: fn.parse_lossy.html
+#![cfg_attr(feature = "radix", doc = " [`parse_lossy_radix`]: fn.parse_lossy_radix.html")]
+//! [`parse_partial_lossy`]: fn.parse_partial_lossy.html
+#![cfg_attr(feature = "radix", doc = " [`parse_partial_lossy_radix`]: fn.parse_partial_lossy_radix.html")]
+//!
+//! [`get_exponent_default_char`]: fn.get_exponent_default_char.html
+#![cfg_attr(feature = "radix", doc = " [`get_exponent_backup_char`]: fn.get_exponent_backup_char.html")]
+#![cfg_attr(all(feature = "correct", feature = "rounding"), doc = " [`get_float_rounding`]: fn.get_float_rounding.html")]
+//! [`get_nan_string`]: fn.get_nan_string.html
+//! [`get_inf_string`]: fn.get_inf_string.html
+//! [`get_infinity_string`]: fn.get_infinity_string.html
+//!
+//! [`set_exponent_default_char`]: fn.set_exponent_default_char.html
+#![cfg_attr(feature = "radix", doc = " [`set_exponent_backup_char`]: fn.set_exponent_backup_char.html")]
+#![cfg_attr(all(feature = "correct", feature = "rounding"), doc = " [`set_float_rounding`]: fn.set_float_rounding.html")]
+//! [`set_nan_string`]: fn.set_nan_string.html
+//! [`set_inf_string`]: fn.set_inf_string.html
+//! [`set_infinity_string`]: fn.set_infinity_string.html
 
 // FEATURES
 
@@ -224,20 +219,189 @@ mod float;
 mod ftoa;
 mod itoa;
 
-// Publicly expose the FFI module for documentation purposes.
-pub mod ffi;
-
-// Publicly re-export the low-level string-to-float functions.
-pub use atof::*;
-
-// Publicly re-export the low-level string-to-integer functions.
-pub use atoi::*;
-
-// Publicly re-export the low-level float-to-string functions.
-pub use ftoa::*;
-
-// Publicly re-export the low-level integer-to-string functions.
-pub use itoa::*;
-
 // Re-export configuration and utilities globally.
 pub use util::*;
+
+/// Write number to string.
+///
+/// Returns a subslice of the input buffer containing the written bytes,
+/// starting from the same address in memory as the input slice.
+///
+/// * `value`   - Number to serialize.
+/// * `bytes`   - Slice containing a numeric string.
+///
+/// # Panics
+///
+/// Panics if the buffer may not be large enough to hold the serialized
+/// number. In order to ensure the function will not panic, provide a
+/// buffer with at least [`FORMATTED_SIZE_DECIMAL`] elements.
+///
+/// [`FORMATTED_SIZE_DECIMAL`]: trait.Number.html#associatedconstant.FORMATTED_SIZE_DECIMAL
+#[inline]
+pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8])
+    -> &'a mut [u8]
+{
+    n.to_lexical(bytes)
+}
+
+/// Write number to string with a custom radix.
+///
+/// Returns a subslice of the input buffer containing the written bytes,
+/// starting from the same address in memory as the input slice.
+///
+/// * `value`   - Number to serialize.
+/// * `radix`   - Radix for number encoding.
+/// * `bytes`   - Slice containing a numeric string.
+///
+/// # Panics
+///
+/// Panics if the radix is not in the range `[2, 36]`.
+///
+/// Also panics if the buffer may not be large enough to hold the
+/// serialized number. In order to ensure the function will not panic,
+/// provide a buffer with at least [`FORMATTED_SIZE`] elements.
+///
+/// [`FORMATTED_SIZE`]: trait.Number.html#associatedconstant.FORMATTED_SIZE
+#[inline]
+#[cfg(feature = "radix")]
+pub fn write_radix<'a, N: ToLexical>(n: N, radix: u8, bytes: &'a mut [u8])
+    -> &'a mut [u8]
+{
+    n.to_lexical_radix(radix, bytes)
+}
+
+/// Parse number from string.
+///
+/// This method parses the entire string, returning an error if
+/// any invalid digits are found during parsing.
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+#[inline]
+pub fn parse<N: FromLexical>(bytes: &[u8])
+    -> Result<N>
+{
+    N::from_lexical(bytes)
+}
+
+/// Parse number from string.
+///
+/// This method parses until an invalid digit is found (or the end
+/// of the string), returning the number of processed digits
+/// and the parsed value until that point.
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+#[inline]
+pub fn parse_partial<N: FromLexical>(bytes: &[u8])
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial(bytes)
+}
+
+/// Lossily parse number from string.
+///
+/// This method parses the entire string, returning an error if
+/// any invalid digits are found during parsing. This parser is
+/// lossy, so numerical rounding may occur during parsing.
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+#[inline]
+pub fn parse_lossy<N: FromLexicalLossy>(bytes: &[u8])
+    -> Result<N>
+{
+    N::from_lexical_lossy(bytes)
+}
+
+/// Lossily parse number from string.
+///
+/// This method parses until an invalid digit is found (or the end
+/// of the string), returning the number of processed digits
+/// and the parsed value until that point. This parser is
+/// lossy, so numerical rounding may occur during parsing.
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+#[inline]
+pub fn parse_partial_lossy<N: FromLexicalLossy>(bytes: &[u8])
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_lossy(bytes)
+}
+
+/// Parse number from string with a custom radix.
+///
+/// This method parses the entire string, returning an error if
+/// any invalid digits are found during parsing.
+///
+/// * `radix`   - Radix for number decoding.
+/// * `bytes`   - Byte slice containing a numeric string.
+///
+/// # Panics
+///
+/// Panics if the radix is not in the range `[2, 36]`.
+#[inline]
+#[cfg(feature = "radix")]
+pub fn parse_radix<N: FromLexical>(bytes: &[u8], radix: u8)
+    -> Result<N>
+{
+    N::from_lexical_radix(bytes, radix)
+}
+
+/// Parse number from string with a custom radix.
+///
+/// This method parses until an invalid digit is found (or the end
+/// of the string), returning the number of processed digits
+/// and the parsed value until that point.
+///
+/// * `radix`   - Radix for number decoding.
+/// * `bytes`   - Byte slice containing a numeric string.
+///
+/// # Panics
+///
+/// Panics if the radix is not in the range `[2, 36]`.
+#[inline]
+#[cfg(feature = "radix")]
+pub fn parse_partial_radix<N: FromLexical>(bytes: &[u8], radix: u8)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_radix(bytes, radix)
+}
+
+/// Lossily parse number from string with a custom radix.
+///
+/// This method parses the entire string, returning an error if
+/// any invalid digits are found during parsing. This parser is
+/// lossy, so numerical rounding may occur during parsing.
+///
+/// * `radix`   - Radix for number decoding.
+/// * `bytes`   - Byte slice containing a numeric string.
+///
+/// # Panics
+///
+/// Panics if the radix is not in the range `[2, 36]`.
+#[inline]
+#[cfg(feature = "radix")]
+pub fn parse_lossy_radix<N: FromLexicalLossy>(bytes: &[u8], radix: u8)
+    -> Result<N>
+{
+    N::from_lexical_lossy_radix(bytes, radix)
+}
+
+/// Lossily parse number from string with a custom radix.
+///
+/// This method parses until an invalid digit is found (or the end
+/// of the string), returning the number of processed digits
+/// and the parsed value until that point. This parser is
+/// lossy, so numerical rounding may occur during parsing.
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+/// * `radix`   - Radix for number decoding.
+///
+/// # Panics
+///
+/// Panics if the radix is not in the range `[2, 36]`.
+#[inline]
+#[cfg(feature = "radix")]
+pub fn parse_partial_lossy_radix<N: FromLexicalLossy>(bytes: &[u8], radix: u8)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_lossy_radix(bytes, radix)
+}

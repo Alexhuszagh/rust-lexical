@@ -22,10 +22,10 @@ use lib::result::Result as StdResult;
 // Parse the raw float state into a mantissa, calculating the number
 // of truncated digits and the offset.
 perftools_inline!{
-fn process_mantissa<'a, M: Mantissa>(radix: u32, state: &RawFloatState<'a>)
+fn process_mantissa<'a, M: Mantissa>(state: &RawFloatState<'a>, radix: u32)
     -> (M, usize)
 {
-    atoi::standalone_mantissa(radix, state.integer, state.fraction)
+    atoi::standalone_mantissa(state.integer, state.fraction, radix)
 }}
 
 // FAST
@@ -263,7 +263,7 @@ pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, trunca
 
 /// Fallback method. Do not inline so the stack requirements only occur
 /// if required.
-fn pown_fallback<'a, F>(radix: u32, mantissa: u64, state: FloatState, lossy: bool, sign: Sign)
+fn pown_fallback<'a, F>(state: FloatState, mantissa: u64, radix: u32, lossy: bool, sign: Sign)
     -> F
     where F: FloatType
 {
@@ -290,14 +290,14 @@ fn pown_fallback<'a, F>(radix: u32, mantissa: u64, state: FloatState, lossy: boo
 }
 
 /// Parse non-power-of-two radix string to native float.
-fn pown_to_native<F>(radix: u32, bytes: &[u8], lossy: bool, sign: Sign)
+fn pown_to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
     -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
     where F: FloatType
 {
     // Parse the mantissa and exponent.
     let mut state = RawFloatState::new();
-    let ptr = state.parse(radix, bytes)?;
-    let (mantissa, truncated) = process_mantissa::<u64>(radix, &state);
+    let ptr = state.parse(bytes, radix)?;
+    let (mantissa, truncated) = process_mantissa::<u64>(&state, radix);
 
     // Process the state to a float.
     let float = if mantissa.is_zero() {
@@ -312,12 +312,12 @@ fn pown_to_native<F>(radix: u32, bytes: &[u8], lossy: bool, sign: Sign)
             float
         } else {
             let state = state.process(truncated);
-            pown_fallback(radix, mantissa, state, lossy, sign)
+            pown_fallback(state, mantissa, radix, lossy, sign)
         }
     } else {
         // Can only use the moderate/slow path.
         let state = state.process(truncated);
-        pown_fallback(radix, mantissa, state, lossy, sign)
+        pown_fallback(state, mantissa, radix, lossy, sign)
     };
     Ok((float, ptr))
 }
@@ -326,14 +326,14 @@ fn pown_to_native<F>(radix: u32, bytes: &[u8], lossy: bool, sign: Sign)
 
 /// Parse power-of-two radix string to native float.
 #[cfg(feature = "radix")]
-fn pow2_to_native<F>(radix: u32, pow2_exp: i32, bytes: &[u8], sign: Sign)
+fn pow2_to_native<F>(bytes: &[u8], radix: u32, pow2_exp: i32, sign: Sign)
     -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
     where F: FloatType
 {
     // Parse the mantissa and exponent.
     let mut state = RawFloatState::new();
-    let ptr = state.parse(radix, bytes)?;
-    let (mut mantissa, truncated) = process_mantissa::<u64>(radix, &state);
+    let ptr = state.parse(bytes, radix)?;
+    let (mut mantissa, truncated) = process_mantissa::<u64>(&state, radix);
 
     // We have a power of 2, can get an exact value even if the mantissa
     // was truncated. Check to see if there are any truncated digits, depending
@@ -405,19 +405,19 @@ fn pow2_exponent(radix: u32) -> i32 {
 //
 // The float string must be non-special, non-zero, and positive.
 perftools_inline!{
-fn to_native<F>(radix: u32, bytes: &[u8], lossy: bool, sign: Sign)
+fn to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
     -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
     where F: FloatType
 {
     #[cfg(not(feature = "radix"))] {
-        pown_to_native(radix, bytes, lossy, sign)
+        pown_to_native(bytes, radix, lossy, sign)
     }
 
     #[cfg(feature = "radix")] {
         let pow2_exp = pow2_exponent(radix);
         match pow2_exp {
-            0 => pown_to_native(radix, bytes, lossy, sign),
-            _ => pow2_to_native(radix, pow2_exp, bytes, sign),
+            0 => pown_to_native(bytes, radix, lossy, sign),
+            _ => pow2_to_native(bytes, radix, pow2_exp, sign),
         }
     }
 }}
@@ -427,34 +427,34 @@ fn to_native<F>(radix: u32, bytes: &[u8], lossy: bool, sign: Sign)
 
 // Parse 32-bit float from string.
 perftools_inline!{
-pub(crate) fn atof(radix: u32, bytes: &[u8], sign: Sign)
+pub(crate) fn atof(bytes: &[u8], radix: u32, sign: Sign)
     -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
 {
-    to_native::<f32>(radix, bytes, false, sign)
+    to_native::<f32>(bytes, radix, false, sign)
 }}
 
 // Parse 64-bit float from string.
 perftools_inline!{
-pub(crate) fn atod(radix: u32, bytes: &[u8], sign: Sign)
+pub(crate) fn atod(bytes: &[u8], radix: u32, sign: Sign)
     -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
 {
-    to_native::<f64>(radix, bytes, false, sign)
+    to_native::<f64>(bytes, radix, false, sign)
 }}
 
 // Parse 32-bit float from string.
 perftools_inline!{
-pub(crate) fn atof_lossy(radix: u32, bytes: &[u8], sign: Sign)
+pub(crate) fn atof_lossy(bytes: &[u8], radix: u32, sign: Sign)
     -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
 {
-    to_native::<f32>(radix, bytes, true, sign)
+    to_native::<f32>(bytes, radix, true, sign)
 }}
 
 // Parse 64-bit float from string.
 perftools_inline!{
-pub(crate) fn atod_lossy(radix: u32, bytes: &[u8], sign: Sign)
+pub(crate) fn atod_lossy(bytes: &[u8], radix: u32, sign: Sign)
     -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
 {
-    to_native::<f64>(radix, bytes, true, sign)
+    to_native::<f64>(bytes, radix, true, sign)
 }}
 
 // TESTS
@@ -474,22 +474,22 @@ mod tests {
     #[test]
     fn process_mantissa_test() {
         // 64-bits
-        assert_eq!((12345, 0), process_mantissa::<u64>(10, &new_state(b"1", b"2345", 0)));
-        assert_eq!((12345, 0), process_mantissa::<u64>(10, &new_state(b"12", b"345", 0)));
-        assert_eq!((123456789, 0), process_mantissa::<u64>(10, &new_state(b"12345", b"6789", 0)));
-        assert_eq!((12345, 0), process_mantissa::<u64>(10, &new_state(b"1", b"2345", 10)));
-        assert_eq!((10000000000000000000, 1), process_mantissa::<u64>(10, &new_state(b"100000000000000000000", b"", 0)));
-        assert_eq!((10000000000000000000, 1), process_mantissa::<u64>(10, &new_state(b"100000000000000000001", b"", 0)));
-        assert_eq!((17976931348623158079, 359), process_mantissa::<u64>(10, &new_state(b"179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791", b"9999999999999999999999999999999999999999999999999999999999999999999999", 0)));
-        assert_eq!((1009, 0), process_mantissa::<u64>(10, &new_state(b"1009", b"", -31)));
+        assert_eq!((12345, 0), process_mantissa::<u64>(&new_state(b"1", b"2345", 0), 10));
+        assert_eq!((12345, 0), process_mantissa::<u64>(&new_state(b"12", b"345", 0), 10));
+        assert_eq!((123456789, 0), process_mantissa::<u64>(&new_state(b"12345", b"6789", 0), 10));
+        assert_eq!((12345, 0), process_mantissa::<u64>(&new_state(b"1", b"2345", 10), 10));
+        assert_eq!((10000000000000000000, 1), process_mantissa::<u64>(&new_state(b"100000000000000000000", b"", 0), 10));
+        assert_eq!((10000000000000000000, 1), process_mantissa::<u64>(&new_state(b"100000000000000000001", b"", 0), 10));
+        assert_eq!((17976931348623158079, 359), process_mantissa::<u64>(&new_state(b"179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791", b"9999999999999999999999999999999999999999999999999999999999999999999999", 0), 10));
+        assert_eq!((1009, 0), process_mantissa::<u64>(&new_state(b"1009", b"", -31), 10));
 
         // 128-bit
-        assert_eq!((12345, 0), process_mantissa::<u128>(10, &new_state(b"1", b"2345", 0)));
-        assert_eq!((12345, 0), process_mantissa::<u128>(10, &new_state(b"12", b"345", 0)));
-        assert_eq!((123456789, 0), process_mantissa::<u128>(10, &new_state(b"12345", b"6789", 0)));
-        assert_eq!((12345, 0), process_mantissa::<u128>(10, &new_state(b"1", b"2345", 10)));
-        assert_eq!((100000000000000000000, 0), process_mantissa::<u128>(10, &new_state(b"100000000000000000000", b"", 0)));
-        assert_eq!((100000000000000000001, 0), process_mantissa::<u128>(10, &new_state(b"100000000000000000001", b"", 0)));
+        assert_eq!((12345, 0), process_mantissa::<u128>(&new_state(b"1", b"2345", 0), 10));
+        assert_eq!((12345, 0), process_mantissa::<u128>(&new_state(b"12", b"345", 0), 10));
+        assert_eq!((123456789, 0), process_mantissa::<u128>(&new_state(b"12345", b"6789", 0), 10));
+        assert_eq!((12345, 0), process_mantissa::<u128>(&new_state(b"1", b"2345", 10), 10));
+        assert_eq!((100000000000000000000, 0), process_mantissa::<u128>(&new_state(b"100000000000000000000", b"", 0), 10));
+        assert_eq!((100000000000000000001, 0), process_mantissa::<u128>(&new_state(b"100000000000000000001", b"", 0), 10));
     }
 
     #[cfg(feature = "radix")]
@@ -720,7 +720,7 @@ mod tests {
 
     #[test]
     fn atof_test() {
-        let atof10 = move |x| match atof(10, x, Sign::Positive) {
+        let atof10 = move |x| match atof(x, 10, Sign::Positive) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -774,7 +774,7 @@ mod tests {
 
     #[test]
     fn atod_test() {
-        let adod_impl = move | x, r | match atod(r, x, Sign::Positive) {
+        let adod_impl = move | x, r | match atod(x, r, Sign::Positive) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -875,7 +875,7 @@ mod tests {
 
     #[test]
     fn atof_lossy_test() {
-        let atof10 = move |x| match atof_lossy(10, x, Sign::Positive) {
+        let atof10 = move |x| match atof_lossy(x, 10, Sign::Positive) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -888,7 +888,7 @@ mod tests {
 
     #[test]
     fn atod_lossy_test() {
-        let atod10 = move |x| match atod_lossy(10, x, Sign::Positive) {
+        let atod10 = move |x| match atod_lossy(x, 10, Sign::Positive) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };

@@ -11,7 +11,7 @@ use super::num::{Integer};
 
 /// Allows the high-level conversion of generic types as if `as` was used.
 #[inline]
-pub fn as_cast<U: AsCast, T: AsCast>(t: T) -> U {
+pub(crate) fn as_cast<U: AsCast, T: AsCast>(t: T) -> U {
     AsCast::as_cast(t)
 }
 
@@ -57,7 +57,7 @@ as_cast!(i128, as_i128);
 
 /// High-level conversion of types using TryCast.
 #[inline]
-pub fn try_cast<U, T: TryCast<U>>(t: T) -> Option<U> {
+pub(crate) fn try_cast<U, T: TryCast<U>>(t: T) -> Option<U> {
     TryCast::try_cast(t)
 }
 

@@ -288,6 +288,8 @@ ops_assign_impl! {
 }
 
 impl<T: Float> Number for WrappedFloat<T> {
+    const FORMATTED_SIZE: usize = T::FORMATTED_SIZE;
+    const FORMATTED_SIZE_DECIMAL: usize = T::FORMATTED_SIZE_DECIMAL;
 }
 
 // IMPL INTEGER
@@ -446,15 +448,13 @@ bitshift_assign_impl! {
     ShrAssign, shr_assign ;
 }
 
-impl<T: Float> Integer for WrappedFloat <T> {
+impl<T: Float> Integer for WrappedFloat<T> {
     const ZERO: Self = WrappedFloat { data: T::ZERO };
     const ONE: Self = WrappedFloat { data: T::ONE };
     const TWO: Self = WrappedFloat { data: T::TWO };
     const MAX: Self = WrappedFloat { data: T::MAX };
     const MIN: Self = WrappedFloat { data: T::MIN };
     const BITS: usize = T::BITS;
-    const MAX_SIZE: usize = MAX_F64_SIZE;
-    const MAX_SIZE_BASE10: usize = MAX_F64_SIZE_BASE10;
 
     #[inline]
     fn max_value() -> Self {

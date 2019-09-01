@@ -4,9 +4,6 @@
 
 // Hide implementation details.
 #[macro_use]
-pub(crate) mod api;
-
-#[macro_use]
 mod assert;
 
 #[macro_use]
@@ -14,6 +11,9 @@ mod index;
 
 #[macro_use]
 mod perftools;
+
+#[macro_use]
+mod traits;
 
 #[cfg(test)]
 #[macro_use]
@@ -51,7 +51,6 @@ if #[cfg(feature = "correct")] {
 pub(crate) use self::algorithm::*;
 pub(crate) use self::cast::*;
 pub(crate) use self::mask::*;
-pub(crate) use self::num::*;
 pub(crate) use self::pointer_methods::*;
 pub(crate) use self::primitive::*;
 pub(crate) use self::pow::*;
@@ -72,5 +71,9 @@ if #[cfg(feature = "correct")] {
 // Publicly export config globally.
 pub use self::config::*;
 pub use self::error::*;
+pub use self::num::*;
 pub use self::result::*;
+pub use self::traits::*;
+
+#[cfg(feature = "rounding")]
 pub use self::rounding::RoundingKind;

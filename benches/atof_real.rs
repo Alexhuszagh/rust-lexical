@@ -11,7 +11,7 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 
 use bencher::{black_box, Bencher};
-use lexical_core::*;
+use lexical_core::parse as lexical_parse;
 
 // PATH
 
@@ -68,13 +68,13 @@ fn read_data() -> &'static String {
 
 // Lexical atoi generator.
 macro_rules! lexical_generator {
-    ($name:ident, $cb:ident) => (
+    ($name:ident, $t:ty) => (
         fn $name(bench: &mut Bencher) {
             let data = read_data();
             bench.iter(|| {
                 for line in data.lines() {
                     for item in line.split(',') {
-                        black_box($cb(item.as_bytes()).unwrap());
+                        black_box(lexical_parse::<$t>(item.as_bytes()).unwrap());
                     }
                 }
             })
@@ -103,7 +103,7 @@ macro_rules! parse_generator {
 // Benchmark to real data, downloaded from NASA Earth Observation.
 // http://neo.sci.gsfc.nasa.gov/servlet/RenderData?si=1582435&cs=rgb&format=CSV&width=720&height=360
 
-lexical_generator!(atof_real_f32_lexical, atof32);
+lexical_generator!(atof_real_f32_lexical, f32);
 parse_generator!(atof_real_f32_parse, f32);
 
 // F64
@@ -111,7 +111,7 @@ parse_generator!(atof_real_f32_parse, f32);
 // Benchmark to real data, downloaded from NASA Earth Observation.
 // http://neo.sci.gsfc.nasa.gov/servlet/RenderData?si=1582435&cs=rgb&format=CSV&width=720&height=360
 
-lexical_generator!(atof_real_f64_lexical, atof64);
+lexical_generator!(atof_real_f64_lexical, f64);
 parse_generator!(atof_real_f64_parse, f64);
 
 // MAIN

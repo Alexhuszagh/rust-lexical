@@ -4,13 +4,12 @@ lexical-core
 [![Build Status](https://api.travis-ci.org/Alexhuszagh/rust-lexical.svg?branch=master)](https://travis-ci.org/Alexhuszagh/rust-lexical)
 [![Latest Version](https://img.shields.io/crates/v/lexical-core.svg)](https://crates.io/crates/lexical-core)
 
-Low-level, FFI-compatible, lexical conversion routines for use in a `no_std` context. This crate by default does not use the Rust standard library. And, as of version 0.3, lexical-core uses minimal unsafe features, limiting the chance of memory-unsafe code.
+Low-level, lexical conversion routines for use in a `no_std` context. This crate by default does not use the Rust standard library.
 
 - [Getting Started](#getting-started)
 - [Features](#features)
 - [Configuration](#configuration)
 - [Constants](#constants)
-- [FFI Example](#ffi-example)
 - [Documentation](#documentation)
 - [Validation](#validation)
 - [Implementation Details](#implementation-details)
@@ -26,13 +25,13 @@ Low-level, FFI-compatible, lexical conversion routines for use in a `no_std` con
 
 # Getting Started
 
-lexical-core is a low-level, partially FFI-compatible API for number-to-string and string-to-number conversions, without requiring a system allocator. If you would like to use a convenient, high-level API, please look at [lexical](../lexical) instead.
+lexical-core is a low-level API for number-to-string and string-to-number conversions, without requiring a system allocator. If you would like to use a convenient, high-level API, please look at [lexical](../lexical) instead.
 
 Add lexical-core to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lexical-core = "^0.5"
+lexical-core = "^0.6"
 ```
 
 And an introduction through use:
@@ -42,218 +41,96 @@ extern crate lexical_core;
 
 // String to number using Rust slices.
 // The argument is the byte string parsed.
-let f = lexical_core::atof64(b"3.5").unwrap();   // 3.5
-let i = lexical_core::atoi32(b"15").unwrap();    // 15
+let f: f32 = lexical_core::parse(b"3.5").unwrap();   // 3.5
+let i: i32 = lexical_core::parse(b"15").unwrap();    // 15
 
-// String to number using pointer ranges, for FFI-compatible code.
-// The first argument is a pointer to the start of the parsed byte array,
-// and the second argument is a pointer to 1-past-the-end. It will process
-// bytes in the range [first, last).
-unsafe {
-    // Get an FFI-compatible range.
-    let bytes = b"3.5";
-    let first = bytes.as_ptr();
-    let last = first.add(bytes.len());
-    // Get our result and extract our value using C-compatible functions.
-    let res = lexical_core::ffi::atof64(first, last);
-    let f = lexical_core::ffi::f64_result_ok(res); // Aborts if res is not ok.
-}
-
-// If and only if the `radix` feature is enabled, you may use the radix
-// overloads to parse non-decimal floats and strings.
-let f = lexical_core::atof32_radix(2, b"11.1").unwrap();   // 3.5
-let i = lexical_core::atoi32_radix(2, b"1111").unwrap();   // 15
-
-// The ato* and ffi::ato* parsers are checked, they validate the
-// input data is entirely correct, and stop parsing when invalid data 
-// is found, or upon numerical overflow. 
-let r = lexical_core::atoi8(b"256"); // Err(ErrorCode::Overflow.into())
-let r = lexical_core::atoi8(b"1a5"); // Err(ErrorCode::InvalidDigit.into())
+// All lexical_core parsers are checked, they validate the
+// input data is entirely correct, and stop parsing when invalid data
+// is found, or upon numerical overflow.
+let r = lexical_core::parse::<u8>(b"256"); // Err(ErrorCode::Overflow.into())
+let r = lexical_core::parse::<u8>(b"1a5"); // Err(ErrorCode::InvalidDigit.into())
 
 // In order to extract and parse a number from a substring of the input
 // data, use the ato*_partial and ffi::ato*_partial parsers.
 // These functions return the parsed value and the number of processed
 // digits, allowing you to extract and parse the number in a single pass.
-let r = lexical_core::atoi8(b"3a5"); // Ok((3, 1))
-
-// Lexical-core includes FFI functions to properly extract data and handle
-// errors during routines. All the following functions may be used in 
-// external libraries, include from C.
-
-unsafe {
-    unsafe fn to_range(bytes: &'static [u8]) -> (*const u8, *const u8) {
-        let first = bytes.as_ptr();
-        let last = first.add(bytes.len());
-        (first, last)
-    }
-
-    // Ideally, everything works great.
-    let (first, last) = to_range(b"15");
-    let res = lexical_core::ffi::atoi8(first, last);
-    if lexical_core::ffi::i8_result_is_ok(res) {
-        let i = lexical_core::ffi::i8_result_ok(res);
-        assert_eq!(i, 15);
-    }
-
-    // However, it detects numeric overflow, returning an error with
-    // an error code equal to `ErrorCode::Overflow`.
-    let (first, last) = to_range(b"256");
-    let res = lexical_core::ffi::atoi8(first, last);
-    if lexical_core::ffi::i8_result_is_err(res) {
-        let err = lexical_core::ffi::i8_result_err(res);
-        assert_eq!(err.code, lexical_core::ffi::ErrorCode::Overflow);
-    }
-
-    // Errors occurring prematurely terminating the parser due to invalid 
-    // digits return the index in the buffer where the invalid digit was 
-    // seen. This may useful in contexts like serde, which require numerical
-    // parsers from complex data without having to extract a substring 
-    // containing only numeric data ahead of time. 
-    let (first, last) = to_range(b"15 45");
-    let res = lexical_core::ffi::atoi8(first, last);
-    if lexical_core::ffi::i8_result_is_err(res) {
-        let err = lexical_core::ffi::i8_result_err(res);
-        assert_eq!(err.code, lexical_core::ffi::ErrorCode::InvalidDigit);
-        assert_eq!(err.index, 2);
-    }
-}
-
-// Number to string using slices.
-// The first argument is the value, the second argument is the radix,
-// and the third argument is the buffer to write to.
-// The function returns a subslice of the original buffer, and will
-// always start at the same position (`buf.as_ptr() == slc.as_ptr()`).
-let mut buf = [b'0'; lexical_core::MAX_I64_SIZE];
-let slc = lexical_core::i64toa(15, &mut buf);
-assert_eq!(slc, b"15");
+let r = lexical_core::parse::<i8>(b"3a5"); // Ok((3, 1))
 
 // If an insufficiently long buffer is passed, the serializer will panic.
 // PANICS
 let mut buf = [b'0'; 1];
-//let slc = lexical_core::i64toa(15, &mut buf); 
+//let slc = lexical_core::write::<i64>(15, &mut buf);
 
 // In order to guarantee the buffer is long enough, always ensure there
-// are at least `MAX_*_SIZE`, where * is the type name in upperase,
-// IE, for `isize`, `MAX_ISIZE_SIZE`.
-let mut buf = [b'0'; lexical_core::MAX_F64_SIZE];
-let slc = lexical_core::f64toa(15.1, &mut buf);
+// are at least `T::FORMATTED_SIZE` bytes, which requires the
+// `lexical_core::Number` trait to be in scope.
+use lexical_core::Number;
+let mut buf = [b'0'; f64::FORMATTED_SIZE];
+let slc = lexical_core::write::<f64>(15.1, &mut buf);
 assert_eq!(slc, b"15.1");
 
-// When the `radix` feature is enabled, for base10 floats, using `MAX_*_SIZE`
-// may significantly overestimate the space required to format the number.
-// Therefore, the `MAX_*_SIZE_BASE10` constants allow you to get a much
+// When the `radix` feature is enabled, for decimal floats, using
+// `T::FORMATTED_SIZE` may significantly overestimate the space
+// required to format the number. Therefore, the
+// `T::FORMATTED_SIZE_DECIMAL` constants allow you to get a much
 // tighter bound on the space required.
-let mut buf = [b'0'; lexical_core::MAX_F64_SIZE_BASE10];
-let slc = lexical_core::f64toa(15.1, &mut buf);
+let mut buf = [b'0'; f64::FORMATTED_SIZE_DECIMAL];
+let slc = lexical_core::write::<f64>(15.1, &mut buf);
 assert_eq!(slc, b"15.1");
 ```
 
 # Features
 
-- `correct` Use a correct string-to-float parser. Enabled by default, and may be turned off by setting `default-features = false`. If neither `algorithm_m` nor `bhcomp` is enabled while `correct` is enabled, lexical uses the bigcomp algorithm.
-- `trim_floats` Export floats without a fraction as an integer, for example, `0.0f64` will be serialized to "0" and not "0.0", and `-0.0` as "0" and not "-0.0".
-- `radix` Enable lexical conversions to and from non-base10 representations. With radix enabled, any radix from 2 to 36 (inclusive) is valid, otherwise, only 10 is valid.
-- `rounding` Enable the `FLOAT_ROUNDING` config variable to dictate how to round IEEE754 floats.
-- `ryu` Use dtolnay's [ryu](https://github.com/dtolnay/ryu/) library for fast and accurate float-to-string conversions.
+- **correct** Use a correct string-to-float parser. 
+    <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. If neither <code>algorithm_m</code> nor <code>bhcomp</code> is enabled while <code>correct</code> is enabled, lexical uses the <code>bigcomp</code> algorithm.</blockquote>
+- **trim_floats** Export floats without a fraction as an integer. 
+    <blockquote>For example, <code>0.0f64</code> will be serialized to "0" and not "0.0", and <code>-0.0</code> as "0" and not "-0.0".</blockquote>
+- **radix** Allow conversions to and from non-decimal strings. 
+    <blockquote>With radix enabled, any radix from 2 to 36 (inclusive) is valid, otherwise, only 10 is valid.</blockquote>
+- **rounding** Enable custom rounding for IEEE754 floats.
+    <blockquote>By default, lexical uses round-nearest, tie-even for float rounding (recommended by IEE754).</blockquote>
+- **ryu** Use dtolnay's [ryu](https://github.com/dtolnay/ryu/) library for float-to-string conversions.
+    <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. Ryu is ~2x as fast as other float formatters.</blockquote>
 
 # Configuration
 
-Lexical-core also includes configuration options that allow you to configure float processing and formatting:
+Lexical-core also includes configuration options that allow you to configure float processing and formatting. These are provided as getters and setters, so lexical-core can validate the input.
 
-- `NAN_STRING` The representation of Not a Number (NaN) as a string (default `b"NaN"`). For float parsing, lexical-core uses case-insensitive comparisons. This string **must** start with an `'N'` or `'n'`.
-- `INF_STRING` The short, default representation of infinity as a string (default `b"inf"`). For float parsing, lexical-core uses case-insensitive comparisons. This string **must** start with an `'I'` or `'i'`.
-- `INFINITY_STRING` The long, backup representation of infinity as a string (default `b"infinity"`). `INFINITY_STRING` must be at least as long as `INF_STRING`, and will only be used during float parsing. This string **must** start with an `'I'` or `'i'`.
-- `EXPONENT_DEFAULT_CHAR` - The default character designating the exponent component of a float (default `b'e'`) for strings with a radix less than 15 (including decimal strings). For float parsing, lexical-core uses case-insensitive comparisons. This value should be not be in character set `[0-9a-eA-E.+\-]`.
-- `EXPONENT_BACKUP_CHAR` - (radix only) The backup character designating the exponent component of a float (default `b'^'`) for strings with a radix greater than or equal to 15. This value should be not be in character set `[0-9a-zA-Z.+\-]`.
-- `FLOAT_ROUNDING` - The IEEE754 float-rounding scheme to be used during float parsing. In almost every case, this should be set to `NearestTieEven`.
+- **NaN**
+    - `get_nan_string`
+    - `set_nan_string`
+    <blockquote>The representation of Not a Number (NaN) as a string (default <code>b"NaN"</code>). For float parsing, lexical-core uses case-insensitive comparisons. This string <b>must</b> start with an <code>'N'</code> or <code>'n'</code>.</blockquote>
+- **Short Infinity**
+    - `get_inf_string`
+    - `set_inf_string`
+    <blockquote>The short, default representation of infinity as a string (default <code>b"inf"</code>). For float parsing, lexical-core uses case-insensitive comparisons. This string **must** start with an <code>'I'</code> or <code>'i'</code>.</blockquote>
+- **Long Infinity**
+    - `get_infinity_string`
+    - `set_infinity_string`
+    <blockquote>The long, backup representation of infinity as a string (default <code>b"infinity"</code>). The long infinity must be at least as long as the short infinity, and will only be used during float parsing (and is case-insensitive). This string **must** start with an <code>'I'</code> or <code>'i'</code>.</blockquote>
+- **Exponent Default Character**
+    - `get_exponent_default_char`
+    - `set_exponent_default_char`
+    <blockquote>The default character designating the exponent component of a float (default <code>b'e'</code>) for strings with a radix less than 15 (including decimal strings). For float parsing, lexical-core uses case-insensitive comparisons. This value should be not be in character set <code>[0-9a-eA-E.+\-]</code>.</blockquote>
+- **Exponent Backup Character** (radix only) 
+    - `get_exponent_backup_char`
+    - `set_exponent_backup_char`
+    <blockquote>The backup character designating the exponent component of a float (default <code>b'^'</code>) for strings with a radix greater than or equal to 15. This value should be not be in character set <code>[0-9a-zA-Z.+\-]</code>.</blockquote>
+- **Float Rounding** (rounding only)
+    - `get_float_rounding`
+    - `set_float_rounding`
+    <blockquote>The IEEE754 float-rounding scheme to be used during float parsing. In almost every case, this should be set to <code>RoundingKind::NearestTieEven</code>.</blockquote>
 
 # Constants
 
-Lexical-core also includes a few constants to simplify interfacing with number-to-string code. These are named `MAX_*_SIZE`, and indicate the maximum number of characters a number-to-string function may write. For example, `atoi32_range` may write up to `MAX_I32_SIZE` characters. When the radix feature is enabled, these constants may significantly overestimate the number of bytes required, so another set of constants named `MAX_*_SIZE_BASE10` are exported, signifying the maximum number of characters a number-to-string function may write in base 10. These are provided as Rust constants so they may be used as the size element in arrays. For FFI-code, lexical-core exports unmangled constants named `MAX_*_SIZE_FFI` and `MAX_*_SIZE_BASE10_FFI`, to allow their use in non-Rust code.
+Lexical-core also includes a few constants to simplify interfacing with number-to-string code, and are implemented for the `lexical_core::Number` trait, which is required by `ToLexical`. 
 
-# FFI Example
+- **FORMATTED_SIZE** The maximum number of bytes a formatter may write.
+    <blockquote>For example, <code>lexical_core::write_radix::&lt;i32&gt;</code> may write up to <code>i32::FORMATTED_SIZE</code> characters. This constant may significantly overestimate the number of characters required for decimal strings when the radix feature is enabled.</blockquote>
+- **FORMATTED_SIZE_DECIMAL** The maximum number of bytes a formatter may write in decimal (base 10).
+    <blockquote>For example, <code>lexical_core::write::&lt;i32&gt;</code> may write up to <code>i32::FORMATTED_SIZE_DECIMAL</code> characters.</blockquote>
 
-First, build lexical-core in release mode from the project home:
-
-```bash
-cargo build --release
-```
-
-Next, add the shared library to the search path, or load it exactly. For example, to use lexical-core from Python, from the project home directory:
-
-```python
-from ctypes import *
-import os
-
-# This is the path on Unix, on Windows use *.dll and on MacOS X, use *.dylib.
-path = os.path.join(os.getcwd(), "target", "release", "liblexical_core.so")
-lib = CDLL(path)
-
-# To access global variables, use $type.in_dll($lib, "$variable")
-i8_size = c_size_t.in_dll(lib, "MAX_I8_SIZE_FFI")
-print(i8_size)          # c_ulong(4)
-
-exponent_char = c_char.in_dll(lib, "EXPONENT_DEFAULT_CHAR")
-print(exponent_char)    # c_char(b'e')
-
-# Define our result types for the error-checked parsers.
-class error(Structure):
-    _fields_ = [("code", c_int),
-                ("index", c_size_t)]
-
-class union_f32(Union):
-    _fields_ = [("value", c_float),
-                ("error", error)]
-
-class result_f32(Structure):
-    _fields_ = [("tag", c_uint),
-                ("data", union_f32)]
-
-# Need to set the appropriate restypes for our functions, Python assumes
-# they're all `c_int`.
-lib.f32_result_ffi_ok.restype = c_float
-lib.atof32_range.restype = result_f32
-lib.f32toa_range.restype = POINTER(c_char)
-
-# Call string-to-number parsers. This isn't elegant, because we want
-# a valid range of values, but it works.
-def to_address(ptr):
-    '''Get address from pointer.'''
-    return cast(ptr, c_voidp).value
-
-def to_ucharp(address):
-    '''Get unsigned char* pointer from address or another pointer.'''
-    return cast(address, POINTER(c_ubyte))
-
-def distance(first, last):
-    '''Calculate the distance between two ranges'''
-    return to_address(last) - to_address(first)
-
-data = b"1.2345"
-first = to_ucharp(data)
-last = to_ucharp(to_address(first) + len(data))
-result = lib.f32_result_ffi_ok(lib.atof32_range(first, last))
-print(result)               # 1.2345000505447388
-
-# Call the number-to-string serializers.
-# First, create a buffer type of sufficient length.
-f32_size = c_size_t.in_dll(lib, "MAX_F32_SIZE_FFI")
-F32BufferType = c_char * f32_size.value
-buf = F32BufferType()
-
-# Next, initialize our arguments for the call.
-value = c_float(1.2345)
-first = to_ucharp(buf)
-last = to_ucharp(to_address(first) + len(buf))
-
-# Call the serializer and create a Python string from our result.
-ptr = lib.f32toa_range(value, first, last)
-length = distance(first, ptr)
-result = string_at(buf, 6)
-print(result)               # "1.2345"
-```
-
-Further examples, and libraries to use lexical-core from FFI may be found in the [ffi](ffi) directory.
+These are provided as Rust constants so they may be used as the size element in arrays.
 
 # Documentation
 

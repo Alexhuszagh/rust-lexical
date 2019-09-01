@@ -27,11 +27,11 @@ macro_rules! assert_buffer {
     ($radix:expr, $slc:ident, $t:ty) => ({
         #[cfg(feature = "radix")]
         match $radix {
-            10 => assert!($slc.len() >= <$t>::MAX_SIZE_BASE10),
-            _  => assert!($slc.len() >= <$t>::MAX_SIZE),
+            10 => assert!($slc.len() >= <$t>::FORMATTED_SIZE_DECIMAL),
+            _  => assert!($slc.len() >= <$t>::FORMATTED_SIZE),
         }
 
         #[cfg(not(feature = "radix"))]
-        assert!($slc.len() >= <$t>::MAX_SIZE);
+        assert!($slc.len() >= <$t>::FORMATTED_SIZE);
     });
 }

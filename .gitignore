@@ -1,4 +1,6 @@
 /target
+lexical-capi/target
+lexical-capi/tests/build
 lexical-codegen/lexical/target
 lexical-core/target
 lexical-benchmark/lexical/target
