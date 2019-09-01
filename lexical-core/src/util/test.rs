@@ -4,7 +4,7 @@ use super::config::BUFFER_SIZE;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
-    use stackvector;
+    use arrayvec;
     use super::sequence::{CloneableVecLike, VecLike};
 }}  // cfg_if
 
@@ -46,10 +46,10 @@ if #[cfg(feature = "correct")] {
 // FROM U32
 
 #[cfg(limb_width_32)]
-pub(crate) type DataType = stackvector::StackVec<[u32; 128]>;
+pub(crate) type DataType = arrayvec::ArrayVec<[u32; 128]>;
 
 #[cfg(limb_width_64)]
-pub(crate) type DataType = stackvector::StackVec<[u64; 64]>;
+pub(crate) type DataType = arrayvec::ArrayVec<[u64; 64]>;
 
 
 #[cfg(limb_width_32)]
