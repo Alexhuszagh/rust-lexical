@@ -38,7 +38,7 @@ fn is_digit(c: u8, radix: u32) -> bool {
 
 // Consume until a non-digit character is found.
 perftools_inline!{
-fn consume_digits<'a>(radix: u32, digits: &'a [u8]) -> (&'a [u8], &'a [u8]) {
+fn consume_digits<'a>(digits: &'a [u8], radix: u32) -> (&'a [u8], &'a [u8]) {
     match digits.iter().position(|&c| !is_digit(c, radix)) {
         Some(v) => (&digits[..v], &digits[v..]),
         None    => (&digits[..], &digits[digits.len()..]),
@@ -73,26 +73,26 @@ impl<'a> RawFloatState<'a> {
 
     // Extract the integer substring from the float.
     perftools_inline!{
-    fn extract_integer(&mut self, radix: u32, bytes: &'a [u8]) -> &'a [u8] {
-        let (integer, trailing) = consume_digits(radix, bytes);
+    fn extract_integer(&mut self, bytes: &'a [u8], radix: u32) -> &'a [u8] {
+        let (integer, trailing) = consume_digits(bytes, radix);
         self.integer = integer;
         trailing
     }}
 
     // Extract the fraction substring from the float.
     perftools_inline!{
-    fn extract_fraction(&mut self, radix: u32, bytes: &'a [u8]) -> &'a [u8] {
-        let (fraction, trailing) = consume_digits(radix, &index!(bytes[1..]));
+    fn extract_fraction(&mut self, bytes: &'a [u8], radix: u32) -> &'a [u8] {
+        let (fraction, trailing) = consume_digits(&index!(bytes[1..]), radix);
         self.fraction = fraction;
         trailing
     }}
 
     // Extract and parse the exponent substring from the float.
     perftools_inline!{
-    fn parse_exponent(&mut self, radix: u32, bytes: &'a [u8])
+    fn parse_exponent(&mut self, bytes: &'a [u8], radix: u32)
         -> StdResult<&'a [u8] , (ErrorCode, *const u8)>
     {
-        let (exp, first) = atoi::standalone_exponent(radix, &index!(bytes[1..]))?;
+        let (exp, first) = atoi::standalone_exponent(&index!(bytes[1..]), radix)?;
         self.exponent = exp;
         let last = index!(bytes[bytes.len()..]).as_ptr();
         Ok(unsafe { slice::from_raw_parts(first, distance(first, last)) })
@@ -127,26 +127,26 @@ impl<'a> RawFloatState<'a> {
 
     // Parse the float state from raw bytes.
     perftools_inline!{
-    pub(super) fn parse(&mut self, radix: u32, bytes: &'a [u8])
+    pub(super) fn parse(&mut self, bytes: &'a [u8], radix: u32)
         -> StdResult<*const u8, (ErrorCode, *const u8)>
     {
         let mut digits = bytes;
-        digits = self.extract_integer(radix, digits);
+        digits = self.extract_integer(digits, radix);
         // Parse the remaining digits, which may include a fraction,
         // an exponent, or both.
         let exp_char = exponent_notation_char(radix).to_ascii_lowercase();
         if let Some(c) = digits.first() {
             if *c == b'.' {
                 // Extract the fraction, and then check for a subsequent exponent.
-                digits = self.extract_fraction(radix, digits);
+                digits = self.extract_fraction(digits, radix);
                 if let Some(c) = digits.first() {
                     if c.to_ascii_lowercase() == exp_char {
-                        digits = self.parse_exponent(radix, digits)?;
+                        digits = self.parse_exponent(digits, radix)?;
                     }
                 }
             } else if c.to_ascii_lowercase() == exp_char {
                 // Parse the exponent.
-                digits = self.parse_exponent(radix, digits)?;
+                digits = self.parse_exponent(digits, radix)?;
             }
         }
         self.validate(bytes)?;
@@ -278,10 +278,10 @@ mod tests {
         RawFloatState { integer, fraction, exponent }
     }
 
-    fn check_parse(radix: u32, digits: &str, expected: StdResult<RawFloatState, ErrorCode>)
+    fn check_parse(digits: &str, radix: u32, expected: StdResult<RawFloatState, ErrorCode>)
     {
         let mut state = RawFloatState::new();
-        match state.parse(radix, digits.as_bytes()) {
+        match state.parse(digits.as_bytes(), radix) {
             Ok(_)       => {
                 let expected = expected.unwrap();
                 assert_eq!(state.integer, expected.integer);
@@ -295,21 +295,21 @@ mod tests {
     #[test]
     fn parse_test() {
         // Valid
-        check_parse(10, "1.2345", Ok(new_state(b"1", b"2345", 0)));
-        check_parse(10, "12.345", Ok(new_state(b"12", b"345", 0)));
-        check_parse(10, "12345.6789", Ok(new_state(b"12345", b"6789", 0)));
-        check_parse(10, "1.2345e10", Ok(new_state(b"1", b"2345", 10)));
-        check_parse(10, "1.2345e+10", Ok(new_state(b"1", b"2345", 10)));
-        check_parse(10, "1.2345e-10", Ok(new_state(b"1", b"2345", -10)));
-        check_parse(10, "100000000000000000000", Ok(new_state(b"100000000000000000000", b"", 0)));
-        check_parse(10, "100000000000000000001", Ok(new_state(b"100000000000000000001", b"", 0)));
-        check_parse(10, "179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", Ok(new_state(b"179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791", b"9999999999999999999999999999999999999999999999999999999999999999999999", 0)));
-        check_parse(10, "1009e-31", Ok(new_state(b"1009", b"", -31)));
-        check_parse(10, "001.0", Ok(new_state(b"1", b"", 0)));
+        check_parse("1.2345", 10, Ok(new_state(b"1", b"2345", 0)));
+        check_parse("12.345", 10, Ok(new_state(b"12", b"345", 0)));
+        check_parse("12345.6789", 10, Ok(new_state(b"12345", b"6789", 0)));
+        check_parse("1.2345e10", 10, Ok(new_state(b"1", b"2345", 10)));
+        check_parse("1.2345e+10", 10, Ok(new_state(b"1", b"2345", 10)));
+        check_parse("1.2345e-10", 10, Ok(new_state(b"1", b"2345", -10)));
+        check_parse("100000000000000000000", 10, Ok(new_state(b"100000000000000000000", b"", 0)));
+        check_parse("100000000000000000001", 10, Ok(new_state(b"100000000000000000001", b"", 0)));
+        check_parse("179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", 10, Ok(new_state(b"179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791", b"9999999999999999999999999999999999999999999999999999999999999999999999", 0)));
+        check_parse("1009e-31", 10, Ok(new_state(b"1009", b"", -31)));
+        check_parse("001.0", 10, Ok(new_state(b"1", b"", 0)));
 
         // Invalid
-        check_parse(10, "1.2345e", Err(ErrorCode::EmptyExponent));
-        check_parse(10, ".", Err(ErrorCode::EmptyFraction));
+        check_parse("1.2345e", 10, Err(ErrorCode::EmptyExponent));
+        check_parse(".", 10, Err(ErrorCode::EmptyFraction));
     }
 
     #[cfg(feature = "correct")]

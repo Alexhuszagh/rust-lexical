@@ -2,38 +2,28 @@
 authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
 autobenches = false
 categories = ["parsing", "encoding", "no-std", "value-formatting"]
-description = "Lexical, to- and from-string conversion routines."
-documentation = "https://docs.rs/lexical-core"
+description = "A C-API for rust-lexical."
+documentation = "https://docs.rs/lexical-capi"
 keywords = ["parsing", "lexical", "encoding", "no_std"]
 license = "MIT/Apache-2.0"
-name = "lexical-core"
+name = "lexical-capi"
 readme = "README.md"
-repository = "https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core"
+repository = "https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-capi"
 version = "0.6.0"
 build = "build.rs"
 exclude = [
-    "fuzz/*",
-    "scripts/*",
-    "ffi/*",
+    "data/*",
 ]
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
 
 [badges]
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
 cfg-if = "0.1"
-static_assertions = "0.3.3"
-# Use stack-vector for the correct parser.
-stackvector = { version = "^1.0.5", optional = true }
-# Optimized Grisu3 implementation, a well-tested, correct algorithm.
-dtoa = { version = "0.4", optional = true }
-# Optimized Ryu implementation, the fastest correct algorithm.
-ryu = { version = "^1.0", optional = true }
-
-[dev-dependencies]
-approx = "0.3.0"
-quickcheck = "0.8.5"
-proptest = "0.9.4"
+lexical-core = { path = "../lexical-core", version = "^0.6.0", default-features = false }
 
 [build-dependencies]
 rustc_version = "0.2"
@@ -41,25 +31,25 @@ rustc_version = "0.2"
 [features]
 default = ["correct", "ryu", "std"]
 # Use the correct atof parser.
-correct = ["stackvector", "table"]
+correct = ["lexical-core/correct"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
-grisu3 = ["dtoa"]
-# Add support for parsing non-decimal float and integer strings.
-radix = []
+grisu3 = ["lexical-core/grisu3"]
+# Add support for [parsing non-decimal float and integer strings.
+radix = ["lexical-core/radix"]
 # Allow custom rounding schemes, at the cost of slower performance.
-rounding = []
+rounding = ["lexical-core/rounding"]
+# Use the optimized Ryu implementation.
+ryu = ["lexical-core/ryu"]
 # Use the `std` library.
-std = []
-# Use precompiled tables for faster performance and accuracy, at the cost of larger binaries.
-table = []
+std = ["lexical-core/std"]
 # Trim a trailing ".0" from an exported float string, and represent -0.0 as "0".
-trim_floats = []
+trim_floats = ["lexical-core/trim_floats"]
 # Don't force bounds checking with indexing not-known to be valid at compile time.
 # This may lead to memory safety issues.
-unchecked_index = []
-# Don't inline when using perftools
+unchecked_index = ["lexical-core/unchecked_index"]
+# Don't inline when using perftools.
 # Testing only.
-noinline = []
+noinline = ["lexical-core/noinline"]
 
 # Use heavy optimizations for release builds, and make our panics to detect
 # internal logic errors safe for FFI, via abort.
@@ -67,9 +57,11 @@ noinline = []
 opt-level = 0
 debug = true
 lto = false
+panic = 'abort'
 
 [profile.release]
 opt-level = 3
 debug = false
 debug-assertions = false
 lto = true
+panic = 'abort'

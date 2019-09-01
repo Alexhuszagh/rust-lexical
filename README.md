@@ -4,7 +4,7 @@ lexical
 [![Build Status](https://api.travis-ci.org/Alexhuszagh/rust-lexical.svg?branch=master)](https://travis-ci.org/Alexhuszagh/rust-lexical)
 [![Latest Version](https://img.shields.io/crates/v/lexical.svg)](https://crates.io/crates/lexical)
 
-Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical is simple to use and focuses on performance and correctness. Finally, [lexical-core](lexical-core) is suitable for environments without a memory allocator, without any internal allocations required for the low-level API. And, as of version 2.0, lexical uses minimal unsafe features, limiting the chance of memory-unsafe code.
+Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical is simple to use and focuses on performance and correctness. Finally, [lexical-core](lexical-core) is suitable for environments without a memory allocator, not requiring any internal allocations by default. And, as of version 2.0, lexical uses minimal unsafe features, limiting the chance of memory-unsafe code.
 
 **Table of Contents**
 
@@ -23,7 +23,7 @@ Add lexical to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lexical = "^3.0"
+lexical = "^4.0"
 ```
 
 And get started using lexical:
@@ -42,7 +42,7 @@ let d = lexical::parse::<f64, _>("3.5");     // Ok(3.5), error checking parse.
 let d = lexical::parse::<f64, _>("3a");      // Err(Error(_)), failed to parse.
 ```
 
-Lexical's parsers can be either error-checked and unchecked. The unchecked parsers continue to parse until they encounter invalid data, returning a number was successfully parsed up until that point. The unchecked parsers explicitly wrap on numeric overflow. This is somewhat analogous to C's `strtod`, which may not be desirable for many applications. Therefore, lexical also includes checked parsers, which ensure the entire buffer is used while parsing, without discarding characters, and that the resulting number did not overflow. Upon erroring, the checked parsers will return the an enum indicating overflow or the index where the first invalid digit was found.
+Lexical has both partial and complete parsers: the complete parsers ensure the entire buffer is used while parsing, without ignoring trailing characters, while the partial parsers parse as many characters as possible, returning both the parsed value and the number of parsed digits. Upon encountering an error, lexical will return an error indicating both the error type and the index at which the error occurred inside the buffer.
 
 ```rust
 // This will return Err(Error(ErrorKind::InvalidDigit(3))), indicating 
@@ -51,7 +51,7 @@ Lexical's parsers can be either error-checked and unchecked. The unchecked parse
 let x: i32 = lexical::parse("123 456").unwrap();
 ```
 
-For floating-points, Lexical also includes `parse_lossy`, which may lead to minor rounding error (relative error of ~1e-16) in rare cases (see [implementation details](lexical-core/README.md#implementation-details) for more information), without using slow algorithms that lead to serious performance degradation.
+For floating-points, Lexical also includes `parse_lossy`, which may lead to minor rounding error (relative error of ~1e-16) in rare cases (see [implementation details](lexical-core/README.md#implementation-details) for more information), without using slow algorithms that may lead to serious performance degradation.
 
 ```rust
 let x: f32 = lexical::parse_lossy("3.5").unwrap();   // 3.5
@@ -63,7 +63,7 @@ In order to use lexical in generics, the type may use the trait bounds `FromLexi
 /// Multiply a value in a string by multiplier, and serialize to string.
 fn mul_2<T>(value: &str, multiplier: T) 
     -> Result<String, lexical::Error>
-    where T: lexical::ToLexical + lexical::FromLexical + ops::Mul<Output=T>
+    where T: lexical::ToLexical + lexical::FromLexical
 {
     let value: T = lexical::parse(value)?;
     Ok(lexical::to_string(value * multiplier))
@@ -111,7 +111,7 @@ For Float-To-String conversions, lexical uses one of three backends: an internal
 # Documentation
 
 Lexical's documentation can be found on [docs.rs](https://docs.rs/lexical).
-For detailed background on the algorithms and features in lexical, see [lexical-core](lexical-core).
+For detailed background on the algorithms and features in lexical, see [lexical-core](lexical-core). Finally, for information on how to use lexical from C, C++, or Python, see [lexical-capi](lexical-capi).
 
 # Roadmap
 

@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added `get/set_exponent_default_char`, `get/set_exponent_backup_char`, and `get/set_float_rounding`, to allow validation logic for config variables.
+- Added the `write*` functions, which replace the `*toa` methods.
+- Added `parse*` functions, which replace the `ato*` methods.
+
+### Removed
+- Removed `EXPONENT_DEFAULT_CHAR`, `EXPONENT_BACKUP_CHAR`, and `FLOAT_ROUNDING`.
+- Removed all expanded API signatures for `ato*` to `*toa`, since these were for compatibility with the C-API and were therefore redundant.
+- Removed the FFI submodule, and moved all functionality to the `lexical-capi` crate.
 
 ## [0.5.0] - 2019-08-20
 ### Added

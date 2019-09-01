@@ -6,11 +6,6 @@
 //! feature, for both integers and floats. Lexical is simple to use,
 //! and exports up to 10 functions in the high-level API.
 //!
-//! Lexical makes heavy use of unsafe code for performance, and therefore
-//! may introduce memory-safety issues. Although the code is tested with
-//! wide variety of inputs to minimize the risk of memory-safety bugs,
-//! no guarantees are made and you should use it at your own risk.
-//!
 //! # Getting Started
 //!
 //! ```rust
@@ -26,6 +21,65 @@
 //! let d = lexical::parse::<f64, _>("3.5");        // Ok(3.5), successful parse.
 //! let d = lexical::parse::<f64, _>("3a");         // Err(Error(_)), failed to parse.
 //! ```
+//!
+//! # Conversion API
+//!
+//! **To String**
+//! - [`to_string`]
+#![cfg_attr(feature = "radix", doc = " - [`to_string_radix`]")]
+//!
+//! **From String**
+//! - [`parse`]
+#![cfg_attr(feature = "radix", doc = " - [`parse_radix`]")]
+//! - [`parse_partial`]
+#![cfg_attr(feature = "radix", doc = " - [`parse_partial_radix`]")]
+//! - [`parse_lossy`]
+#![cfg_attr(feature = "radix", doc = " - [`parse_lossy_radix`]")]
+//! - [`parse_partial_lossy`]
+#![cfg_attr(feature = "radix", doc = " - [`parse_partial_lossy_radix`]")]
+//!
+//! # Configuration Settings
+//!
+//! **Get Configuration**
+//! - [`get_exponent_default_char`]
+#![cfg_attr(feature = "radix", doc = " - [`get_exponent_backup_char`]")]
+#![cfg_attr(all(feature = "correct", feature = "rounding"), doc = " - [`get_float_rounding`]")]
+//! - [`get_nan_string`]
+//! - [`get_inf_string`]
+//! - [`get_infinity_string`]
+//!
+//! **Set Configuration**
+//! - [`set_exponent_default_char`]
+#![cfg_attr(feature = "radix", doc = " - [`set_exponent_backup_char`]")]
+#![cfg_attr(all(feature = "correct", feature = "rounding"), doc = " - [`set_float_rounding`]")]
+//! - [`set_nan_string`]
+//! - [`set_inf_string`]
+//! - [`set_infinity_string`]
+//!
+//! [`to_string`]: fn.to_string.html
+#![cfg_attr(feature = "radix", doc = " [`to_string_radix`]: fn.to_string_radix.html")]
+//! [`parse`]: fn.parse.html
+#![cfg_attr(feature = "radix", doc = " [`parse_radix`]: fn.parse_radix.html")]
+//! [`parse_partial`]: fn.parse_partial.html
+#![cfg_attr(feature = "radix", doc = " [`parse_partial_radix`]: fn.parse_partial_radix.html")]
+//! [`parse_lossy`]: fn.parse_lossy.html
+#![cfg_attr(feature = "radix", doc = " [`parse_lossy_radix`]: fn.parse_lossy_radix.html")]
+//! [`parse_partial_lossy`]: fn.parse_partial_lossy.html
+#![cfg_attr(feature = "radix", doc = " [`parse_partial_lossy_radix`]: fn.parse_partial_lossy_radix.html")]
+//!
+//! [`get_exponent_default_char`]: fn.get_exponent_default_char.html
+#![cfg_attr(feature = "radix", doc = " [`get_exponent_backup_char`]: fn.get_exponent_backup_char.html")]
+#![cfg_attr(all(feature = "correct", feature = "rounding"), doc = " [`get_float_rounding`]: fn.get_float_rounding.html")]
+//! [`get_nan_string`]: fn.get_nan_string.html
+//! [`get_inf_string`]: fn.get_inf_string.html
+//! [`get_infinity_string`]: fn.get_infinity_string.html
+//!
+//! [`set_exponent_default_char`]: fn.set_exponent_default_char.html
+#![cfg_attr(feature = "radix", doc = " [`set_exponent_backup_char`]: fn.set_exponent_backup_char.html")]
+#![cfg_attr(all(feature = "correct", feature = "rounding"), doc = " [`set_float_rounding`]: fn.set_float_rounding.html")]
+//! [`set_nan_string`]: fn.set_nan_string.html
+//! [`set_inf_string`]: fn.set_inf_string.html
+//! [`set_infinity_string`]: fn.set_infinity_string.html
 
 // FEATURES
 
@@ -67,14 +121,11 @@ if #[cfg(feature = "std")] {
 
 // API
 
-// Hide the implementation details.
-mod traits;
-
-// Re-export EXPONENT_DEFAULT_CHAR and EXPONENT_BACKUP_CHAR globally.
-pub use lexical_core::EXPONENT_DEFAULT_CHAR;
+// Re-export exponent character getters and setters.
+pub use lexical_core::{get_exponent_default_char, set_exponent_default_char};
 
 #[cfg(feature = "radix")]
-pub use lexical_core::EXPONENT_BACKUP_CHAR;
+pub use lexical_core::{get_exponent_backup_char, set_exponent_backup_char};
 
 // Re-export NaN, short INF, and long INFINITY string getters and setters.
 pub use lexical_core::{get_inf_string, get_infinity_string, get_nan_string};
@@ -82,13 +133,24 @@ pub use lexical_core::{set_inf_string, set_infinity_string, set_nan_string};
 
 // Re-export the float rounding scheme used.
 #[cfg(all(feature = "correct", feature = "rounding"))]
-pub use lexical_core::{FLOAT_ROUNDING, RoundingKind};
+pub use lexical_core::{get_float_rounding, set_float_rounding, RoundingKind};
 
 // Re-export the Result, Error and ErrorCode globally.
 pub use lexical_core::{Error, ErrorCode, Result};
 
 // Publicly expose traits so they may be used for generic programming.
-pub use traits::{FromLexical, FromLexicalLossy, ToLexical};
+pub use lexical_core::{FromLexical, FromLexicalLossy, ToLexical};
+
+// HELPERS
+
+/// Get a vector as a slice, including the capacity.
+#[inline]
+unsafe fn vector_as_slice<'a, T>(buf: &'a mut Vec<T>)
+    -> &'a mut [T]
+{
+    let first = buf.as_mut_ptr();
+    lib::slice::from_raw_parts_mut(first, buf.capacity())
+}
 
 // HIGH LEVEL
 
@@ -111,7 +173,10 @@ use lib::convert::AsRef;
 #[inline]
 pub fn to_string<N: ToLexical>(n: N) -> lib::String {
     unsafe {
-        lib::String::from_utf8_unchecked(n.to_lexical())
+        let mut buf = lib::Vec::<u8>::with_capacity(N::FORMATTED_SIZE_DECIMAL);
+        let len = lexical_core::write(n, vector_as_slice(&mut buf)).len();
+        buf.set_len(len);
+        lib::String::from_utf8_unchecked(buf)
     }
 }
 
@@ -138,7 +203,10 @@ pub fn to_string<N: ToLexical>(n: N) -> lib::String {
 #[inline]
 pub fn to_string_radix<N: ToLexical>(n: N, radix: u8) -> lib::String {
     unsafe {
-        lib::String::from_utf8_unchecked(n.to_lexical_radix(radix))
+        let mut buf = lib::Vec::<u8>::with_capacity(N::FORMATTED_SIZE);
+        let len = lexical_core::write_radix(n, radix, vector_as_slice(&mut buf)).len();
+        buf.set_len(len);
+        lib::String::from_utf8_unchecked(buf)
     }
 }
 

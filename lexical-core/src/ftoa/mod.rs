@@ -14,6 +14,3 @@ if #[cfg(feature = "grisu3")] {
 }}  // cfg_if
 
 mod api;
-
-// Re-exports
-pub use self::api::*;

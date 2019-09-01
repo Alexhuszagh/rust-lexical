@@ -2,7 +2,7 @@
 
 // Hide internal implementation details.
 #[cfg(feature = "table")]
-mod base10;
+mod decimal;
 
 #[cfg(all(feature = "table", feature = "radix"))]
 mod generic;
@@ -12,5 +12,5 @@ mod naive;
 
 mod api;
 
-// Re-export everything from the API.
-pub use self::api::*;
+#[cfg(feature = "radix")]
+pub(crate) use self::api::itoa_positive;

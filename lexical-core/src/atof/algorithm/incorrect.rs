@@ -11,14 +11,14 @@ type Wrapped<F> = WrappedFloat<F>;
 
 // Process the integer component of the raw float.
 perftools_inline!{
-fn process_integer<F: StablePower>(radix: u32, state: &RawFloatState)
+fn process_integer<F: StablePower>(state: &RawFloatState, radix: u32)
     -> F
 {
     match state.integer.len() {
         0 => F::ZERO,
         // This cannot error, since we cannot overflow and cannot have
         // invalid digits.
-        _ => atoi::standalone_mantissa::<Wrapped<F>>(radix, state.integer)
+        _ => atoi::standalone_mantissa::<Wrapped<F>>(state.integer, radix)
                 .unwrap()
                 .0
                 .into_inner()
@@ -27,7 +27,7 @@ fn process_integer<F: StablePower>(radix: u32, state: &RawFloatState)
 
 // Process the fraction component of the raw float.
 perftools_inline!{
-fn process_fraction<F: StablePower>(radix: u32, state: &RawFloatState)
+fn process_fraction<F: StablePower>(state: &RawFloatState, radix: u32)
     -> F
 {
     match state.fraction.len() {
@@ -42,7 +42,7 @@ fn process_fraction<F: StablePower>(radix: u32, state: &RawFloatState)
             for chunk in state.fraction.chunks(12) {
                 digits = digits.saturating_add(chunk.len().as_i32());
                 // This cannot error, since we have validated digits.
-                let value: u64 = atoi::standalone_mantissa(radix, chunk).unwrap().0;
+                let value: u64 = atoi::standalone_mantissa(chunk, radix).unwrap().0;
                 if !value.is_zero() {
                     fraction += F::iterative_pow(as_cast(value), radix, -digits);
                 }
@@ -54,14 +54,14 @@ fn process_fraction<F: StablePower>(radix: u32, state: &RawFloatState)
 
 // Convert the float string to a native floating-point number.
 perftools_inline!{
-fn to_native<F: StablePower>(radix: u32, bytes: &[u8])
+fn to_native<F: StablePower>(bytes: &[u8], radix: u32)
     -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
 {
     let mut state = RawFloatState::new();
-    let ptr = state.parse(radix, bytes)?;
+    let ptr = state.parse(bytes, radix)?;
 
-    let integer: F = process_integer(radix, &state);
-    let fraction: F = process_fraction(radix, &state);
+    let integer: F = process_integer(&state, radix);
+    let fraction: F = process_fraction(&state, radix);
     let mut value = integer + fraction;
     if !state.exponent.is_zero() && !value.is_zero() {
         value = value.iterative_pow(radix, state.exponent);
@@ -74,34 +74,34 @@ fn to_native<F: StablePower>(radix: u32, bytes: &[u8])
 
 // Parse 32-bit float from string.
 perftools_inline!{
-pub(crate) fn atof<'a>(radix: u32, bytes: &'a [u8], _: Sign)
+pub(crate) fn atof<'a>(bytes: &'a [u8], radix: u32, _: Sign)
     -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
 {
-    to_native::<f32>(radix, bytes)
+    to_native::<f32>(bytes, radix)
 }}
 
 // Parse 64-bit float from string.
 perftools_inline!{
-pub(crate) fn atod<'a>(radix: u32, bytes: &'a [u8], _: Sign)
+pub(crate) fn atod<'a>(bytes: &'a [u8], radix: u32, _: Sign)
     -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
 {
-    to_native::<f64>(radix, bytes)
+    to_native::<f64>(bytes, radix)
 }}
 
 // Parse 32-bit float from string.
 perftools_inline!{
-pub(crate) fn atof_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign)
+pub(crate) fn atof_lossy<'a>(bytes: &'a [u8], radix: u32, _: Sign)
     -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
 {
-    to_native::<f32>(radix, bytes)
+    to_native::<f32>(bytes, radix)
 }}
 
 // Parse 64-bit float from string.
 perftools_inline!{
-pub(crate) fn atod_lossy<'a>(radix: u32, bytes: &'a [u8], _: Sign)
+pub(crate) fn atod_lossy<'a>(bytes: &'a [u8], radix: u32, _: Sign)
     -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
 {
-    to_native::<f64>(radix, bytes)
+    to_native::<f64>(bytes, radix)
 }}
 
 // TESTS
@@ -119,21 +119,21 @@ mod tests {
 
     #[test]
     fn process_integer_test() {
-        assert_eq!(1.0, process_integer::<f64>(10, &new_state(b"1", b"2345", 0)));
-        assert_eq!(12.0, process_integer::<f64>(10, &new_state(b"12", b"345", 0)));
-        assert_eq!(12345.0, process_integer::<f64>(10, &new_state(b"12345", b"6789", 0)));
+        assert_eq!(1.0, process_integer::<f64>(&new_state(b"1", b"2345", 0), 10));
+        assert_eq!(12.0, process_integer::<f64>(&new_state(b"12", b"345", 0), 10));
+        assert_eq!(12345.0, process_integer::<f64>(&new_state(b"12345", b"6789", 0), 10));
     }
 
     #[test]
     fn process_fraction_test() {
-        assert_eq!(0.2345, process_fraction::<f64>(10, &new_state(b"1", b"2345",0)));
-        assert_eq!(0.345, process_fraction::<f64>(10, &new_state(b"12", b"345",0)));
-        assert_eq!(0.6789, process_fraction::<f64>(10, &new_state(b"12345", b"6789",0)));
+        assert_eq!(0.2345, process_fraction::<f64>(&new_state(b"1", b"2345",0), 10));
+        assert_eq!(0.345, process_fraction::<f64>(&new_state(b"12", b"345",0), 10));
+        assert_eq!(0.6789, process_fraction::<f64>(&new_state(b"12345", b"6789",0), 10));
     }
 
     #[test]
     fn atof_test() {
-        let atof10 = move |x| match atof(10, x, Sign::Positive) {
+        let atof10 = move |x| match atof(x, 10, Sign::Positive) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn atod_test() {
-        let atod10 = move |x| match atod(10, x, Sign::Positive) {
+        let atod10 = move |x| match atod(x, 10, Sign::Positive) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn atof_lossy_test() {
-        let atof10 = move |x| match atof_lossy(10, x, Sign::Positive) {
+        let atof10 = move |x| match atof_lossy(x, 10, Sign::Positive) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn atod_lossy_test() {
-        let atod10 = move |x| match atod_lossy(10, x, Sign::Positive) {
+        let atod10 = move |x| match atod_lossy(x, 10, Sign::Positive) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };

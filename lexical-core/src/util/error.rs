@@ -3,7 +3,8 @@
 /// Error code, indicating failure type.
 ///
 /// Error messages are designating by an error code of less than 0.
-/// This is to be compatible with C conventions.
+/// This is to be compatible with C conventions. This enumeration is
+/// FFI-compatible for interfacing with C code.
 ///
 /// # FFI
 ///
@@ -19,7 +20,7 @@
 ///
 /// # Safety
 ///
-/// Assigning any value outside the range `[-3, 0]` to value of type
+/// Assigning any value outside the range `[-6, -1]` to value of type
 /// ErrorCode may invoke undefined-behavior.
 #[repr(i32)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -49,7 +50,9 @@ pub enum ErrorCode {
     __Nonexhaustive = -7,
 }
 
-/// C-compatible error for FFI.
+/// Error type for lexical parsing.
+///
+/// This error is FFI-compatible for interfacing with C code.
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Error {
@@ -72,45 +75,3 @@ impl From<(ErrorCode, usize)> for Error {
         Error { code: error.0, index: error.1 }
     }
 }
-
-pub(crate) mod error_ffi {
-
-pub use super::{Error, ErrorCode};
-
-/// Check if the error code designates integer overflow.
-#[no_mangle]
-pub extern fn error_is_overflow(error: Error) -> bool {
-    error.code == ErrorCode::Overflow
-}
-
-/// Check if the error code designates integer underflow.
-#[no_mangle]
-pub extern fn error_is_underflow(error: Error) -> bool {
-    error.code == ErrorCode::Underflow
-}
-
-/// Check if the error code designates an invalid digit was encountered.
-#[no_mangle]
-pub extern fn error_is_invalid_digit(error: Error) -> bool {
-    error.code == ErrorCode::InvalidDigit
-}
-
-/// Check if the error code designates an empty byte array was encountered.
-#[no_mangle]
-pub extern fn error_is_empty(error: Error) -> bool {
-    error.code == ErrorCode::Empty
-}
-
-/// Check if the error code designates an empty fraction was encountered.
-#[no_mangle]
-pub extern fn error_is_empty_fraction(error: Error) -> bool {
-    error.code == ErrorCode::EmptyFraction
-}
-
-/// Check if the error code designates an empty exponent was encountered.
-#[no_mangle]
-pub extern fn error_is_empty_exponent(error: Error) -> bool {
-    error.code == ErrorCode::EmptyExponent
-}
-
-}   // error_ffi

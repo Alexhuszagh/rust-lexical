@@ -1,4 +1,4 @@
-//! Fast lexical integer-to-string conversion routines for base10.
+//! Fast lexical integer-to-string conversion routines for decimal strings.
 
 //  The following algorithms aim to minimize the number of conditional
 //  jumps required, by requiring at most 5 linear conditions before
@@ -762,28 +762,28 @@ if #[cfg(target_pointer_width = "16")] {
 // TRAIT
 // -----
 
-pub(crate) trait Base10 {
+pub(crate) trait Decimal {
     // Export integer to string.
-    fn base10(self, buffer: &mut [u8]) -> usize;
+    fn decimal(self, buffer: &mut [u8]) -> usize;
 }
 
-// Implement base10 for type.
-macro_rules! base10_impl {
+// Implement decimal for type.
+macro_rules! decimal_impl {
     ($t:ty, $cb:ident) => (
-        impl Base10 for $t {
+        impl Decimal for $t {
             perftools_inline_always!{
-            fn base10(self, buffer: &mut [u8]) -> usize {
+            fn decimal(self, buffer: &mut [u8]) -> usize {
                 $cb(self, buffer)
             }}
         }
     );
 }
 
-base10_impl!(u8, u8toa);
-base10_impl!(u16, u16toa);
-base10_impl!(u32, u32toa);
-base10_impl!(u64, u64toa);
-base10_impl!(usize, usizetoa);
+decimal_impl!(u8, u8toa);
+decimal_impl!(u16, u16toa);
+decimal_impl!(u32, u32toa);
+decimal_impl!(u64, u64toa);
+decimal_impl!(usize, usizetoa);
 
 #[cfg(has_i128)]
-base10_impl!(u128, u128toa);
+decimal_impl!(u128, u128toa);
