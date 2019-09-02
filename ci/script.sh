@@ -123,7 +123,8 @@ derive_tests() {
         return
     fi
 
-    $CARGO test
+    # Don't use cross, since we have a relative path.
+    cargo test
 }
 
 main() {
