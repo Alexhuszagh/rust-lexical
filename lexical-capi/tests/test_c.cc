@@ -30,6 +30,7 @@
  *  For more information, please refer to <http://unlicense.org/>
  */
 
+#include <stdexcept>
 #include <gtest/gtest.h>
 #include "lexical.h"
 
