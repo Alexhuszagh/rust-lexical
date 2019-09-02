@@ -65,30 +65,30 @@ pub fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
     unsafe {
         let old_len = vec.len();
         assert!(index <= old_len);
-        let mut ptr = vec.as_mut_ptr().add(index);
+        let mut ptr = vec.as_mut_ptr().padd(index);
 
         // Move the trailing elements.
-        ptr::copy(ptr, ptr.add(lower_size_bound), old_len - index);
+        ptr::copy(ptr, ptr.padd(lower_size_bound), old_len - index);
 
         // In case the iterator panics, don't double-drop the items we just copied above.
         vec.set_len(index);
 
         let mut num_added = 0;
         for element in iter {
-            let mut cur = ptr.add(num_added);
+            let mut cur = ptr.padd(num_added);
             if num_added >= lower_size_bound {
                 // Iterator provided more elements than the hint.  Move trailing items again.
                 vec.reserve(1);
-                ptr = vec.as_mut_ptr().add(index);
-                cur = ptr.add(num_added);
-                ptr::copy(cur, cur.add(1), old_len - index);
+                ptr = vec.as_mut_ptr().padd(index);
+                cur = ptr.padd(num_added);
+                ptr::copy(cur, cur.padd(1), old_len - index);
             }
             ptr::write(cur, element);
             num_added += 1;
         }
         if num_added < lower_size_bound {
             // Iterator provided fewer elements than the hint
-            ptr::copy(ptr.add(lower_size_bound), ptr.add(num_added), old_len - index);
+            ptr::copy(ptr.padd(lower_size_bound), ptr.padd(num_added), old_len - index);
         }
 
         vec.set_len(old_len + num_added);
