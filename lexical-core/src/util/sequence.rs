@@ -58,8 +58,8 @@ pub fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
     }
 
     let (lower_size_bound, _) = iter.size_hint();
-    assert!(lower_size_bound <= std::isize::MAX as usize);  // Ensure offset is indexable
-    assert!(index + lower_size_bound >= index);             // Protect against overflow
+    assert!(lower_size_bound <= isize::max_value() as usize);   // Ensure offset is indexable
+    assert!(index + lower_size_bound >= index);                 // Protect against overflow
     vec.reserve(lower_size_bound);
 
     unsafe {
