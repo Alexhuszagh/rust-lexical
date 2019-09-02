@@ -339,6 +339,7 @@ type F32Transmute = Transmute<u32, f32>;
 
 /// Precalculated values of 2**i for i in range [-149, 127].
 #[cfg(feature = "radix")]
+#[allow(const_err)]     // This warning is fixed in 1.26.0
 const F32_POW2: [f32; 277] = unsafe {[
     // Denormal floats ([-149, -127])
     F32Transmute { u: 0x00000001 }.f,
@@ -874,6 +875,7 @@ type F64Transmute = Transmute<u64, f64>;
 
 /// Precalculated values of 2**i for i in range [-1074, 1023].
 #[cfg(feature = "radix")]
+#[allow(const_err)]     // This warning is fixed in 1.26.0
 const F64_POW2: [f64; 2098] = unsafe {[
     // Denormal floats ([-1074, -1023])
     F64Transmute { u: 0x0000000000000001 }.f,

@@ -53,3 +53,8 @@ if #[cfg(not(feature = "std"))] {
 mod api;
 mod config;
 mod result;
+
+// We need to export them to the root crate for them to generate symbols.
+// Hide all documentation.
+pub use self::api::*;
+pub use self::config::*;

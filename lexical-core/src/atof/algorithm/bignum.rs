@@ -1,5 +1,6 @@
 //! Big integer type definition.
 
+use arrayvec;
 use float::*;
 use util::*;
 use super::math::*;
@@ -13,8 +14,6 @@ if #[cfg(feature = "radix")] {
 } else {
     // Maximum denominator is 767 mantissa digits + 324 exponent,
     // or 1091 digits, or approximately 3600 bits (round up to 4k).
-    use arrayvec;
-
     #[cfg(limb_width_32)]
     type IntStorageType = arrayvec::ArrayVec<[Limb; 128]>;
 

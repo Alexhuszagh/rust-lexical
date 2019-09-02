@@ -47,6 +47,7 @@ macro_rules! decimal_from_range {
         /// # Panics
         ///
         /// Panics if either pointer is null.
+        #[doc(hidden)]
         #[no_mangle]
         pub unsafe extern fn $name(first: *const u8, last: *const u8)
             -> $crate::result::Result<$t>
@@ -79,6 +80,7 @@ macro_rules! partial_decimal_from_range {
         /// # Panics
         ///
         /// Panics if either pointer is null.
+        #[doc(hidden)]
         #[no_mangle]
         pub unsafe extern fn $name(first: *const u8, last: *const u8)
             -> $crate::result::Result<$crate::result::Tuple<$t, usize>>
@@ -113,6 +115,7 @@ macro_rules! radix_from_range {
         /// Panics if the radix is not in the range `[2, 36]`. Also panics
         /// if either pointer is null.
         #[cfg(feature = "radix")]
+        #[doc(hidden)]
         #[no_mangle]
         pub unsafe extern fn $name(first: *const u8, last: *const u8, radix: u8)
             -> $crate::result::Result<$t>
@@ -148,6 +151,7 @@ macro_rules! partial_radix_from_range {
         /// Panics if the radix is not in the range `[2, 36]`. Also panics
         /// if either pointer is null.
         #[cfg(feature = "radix")]
+        #[doc(hidden)]
         #[no_mangle]
         pub unsafe extern fn $name(first: *const u8, last: *const u8, radix: u8)
             -> $crate::result::Result<$crate::result::Tuple<$t, usize>>
@@ -214,6 +218,7 @@ macro_rules! decimal_to_range {
         /// ensure the buffer has at least `MAX_*_SIZE` elements, using
         /// the proper constant for the serialized type from the
         /// lexical_core crate root.
+        #[doc(hidden)]
         #[no_mangle]
         pub unsafe extern fn $name(value: $t, first: *mut u8, last: *mut u8)
             -> *mut u8
@@ -254,6 +259,7 @@ macro_rules! radix_to_range {
         /// the proper constant for the serialized type from the
         /// lexical_core crate root.
         #[cfg(feature = "radix")]
+        #[doc(hidden)]
         #[no_mangle]
         pub unsafe extern fn $name(value: $t, radix: u8, first: *mut u8, last: *mut u8)
             -> *mut u8
