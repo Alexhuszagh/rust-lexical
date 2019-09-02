@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `get/set_exponent_default_char`, `get/set_exponent_backup_char`, and `get/set_float_rounding`, to allow validation logic for config variables.
 - Added the `write*` functions, which replace the `*toa` methods.
 - Added `parse*` functions, which replace the `ato*` methods.
+- Added tests to ensure lexical-core works with proc-macros.
+- Substituted rust-stackvector with arrayvec, which has better support.
 
 ### Removed
 - Removed `EXPONENT_DEFAULT_CHAR`, `EXPONENT_BACKUP_CHAR`, and `FLOAT_ROUNDING`.

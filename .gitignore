@@ -1,8 +1,4 @@
 /target
-lexical-capi/target
-lexical-capi/tests/build
-lexical-codegen/lexical/target
-lexical-core/target
 lexical-benchmark/lexical/target
 lexical-benchmark/libcore/target
 lexical-benchmark/double_conversion/build
@@ -10,6 +6,11 @@ lexical-benchmark/from_chars/build
 lexical-benchmark/rapidjson/build
 lexical-benchmark/strtod/build
 lexical-benchmark/results
+lexical-capi/target
+lexical-capi/tests/build
+lexical-codegen/lexical/target
+lexical-core/target
+lexical-derive/target
 lexical-test/target/
 **/*.rs.bk
 Cargo.lock

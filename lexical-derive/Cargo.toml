@@ -1,0 +1,30 @@
+[package]
+name = "lexical-derive"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+publish = false
+
+[dependencies]
+quote = "1.0"
+syn = "1.0"
+lexical-core = { path = "../lexical-core", version = "0.6.0", default-features = false }
+
+[lib]
+proc-macro = true
+
+[features]
+default = ["correct", "ryu", "std"]
+# Use the correct atof parser.
+correct = ["lexical-core/correct"]
+# Use the optimized Grisu3 implementation from dtoa (not recommended).
+grisu3 = ["lexical-core/grisu3"]
+# Add support for [parsing non-decimal float and integer strings.
+radix = ["lexical-core/radix"]
+# Allow custom rounding schemes, at the cost of slower performance.
+rounding = ["lexical-core/rounding"]
+# Use the optimized Ryu implementation.
+ryu = ["lexical-core/ryu"]
+# Use the `std` library.
+std = ["lexical-core/std"]
+# Trim a trailing ".0" from an exported float string, and represent -0.0 as "0".
+trim_floats = ["lexical-core/trim_floats"]

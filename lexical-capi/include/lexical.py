@@ -66,7 +66,7 @@ if PATH is not None:
     LIB = CDLL(PATH)
 else:
     for suffix in SHARED_LIBRARY_SUFFIX.split(','):
-        path = os.path.join(os.getcwd(), f'liblexical_capi.{suffix}')
+        path = os.path.join(os.getcwd(), 'liblexical_capi.{}'.format(suffix))
         with contextlib.suppress(OSError):
             LIB = CDLL(path)
 if LIB is None:
@@ -95,7 +95,7 @@ def _get_string(name):
     ptr = POINTER(c_ubyte)()
     size = c_size_t()
     if cb(byref(ptr), byref(size)) != 0:
-        raise OSError(f"Unexpected error in lexical_capi.{name}")
+        raise OSError('Unexpected error in lexical_capi.{}'.format(name))
     return string_at(ptr, size.value).decode('ascii')
 
 def _set_string(name, data):
@@ -107,7 +107,7 @@ def _set_string(name, data):
     ptr = cast(data, POINTER(c_ubyte))
     size = c_size_t(len(data))
     if cb(ptr, size) != 0:
-        raise OSError(f"Unexpected error in lexical_capi.{name}")
+        raise OSError('Unexpected error in lexical_capi.{}'.format(name))
 
 def get_nan_string():
     '''Get string representation of Not a Number as a byte slice.'''
@@ -268,17 +268,17 @@ class LexicalError(Exception):
     def __repr__(self):
         code = self.error.code
         if code == ErrorCode.Overflow:
-            return f'Numeric overflow occurred at index {self.error.index}'
+            return 'Numeric overflow occurred at index {}'.format(self.error.index)
         elif code == ErrorCode.Underflow:
-            return f'Numeric underflow occurred at index {self.error.index}'
+            return 'Numeric underflow occurred at index {}'.format(self.error.index)
         elif code == ErrorCode.InvalidDigit:
-            return f'Invalid digit found at index {self.error.index}'
+            return 'Invalid digit found at index {}'.format(self.error.index)
         elif code == ErrorCode.Empty:
-            return f'Empty input found, starting at index {self.error.index}'
+            return 'Empty input found, starting at index {}'.format(self.error.index)
         elif code == ErrorCode.EmptyFraction:
-            return f'Empty fraction found, starting at index {self.error.index}'
+            return 'Empty fraction found, starting at index {}'.format(self.error.index)
         elif code == ErrorCode.EmptyExponent:
-            return f'Empty exponent found, starting at index {self.error.index}'
+            return 'Empty exponent found, starting at index {}'.format(self.error.index)
         else:
             raise ValueError('Invalid ErrorCode for lexical error.')
 
