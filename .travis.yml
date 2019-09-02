@@ -92,11 +92,13 @@ matrix:
 before_install:
   - set -e
   - rustup self update
-  # Build essential is already installed, so we just need Python3.
-  - if [ ! -z $ENABLE_DERIVE_TESTS ]; then sudo apt-get install python3; fi
 
 install:
-  - sh ci/install.sh
+  # Build essential is already installed, so we just need Python3 and Googletest.
+  - if [ ! -z $ENABLE_DERIVE_TESTS ]; then sudo apt-get install python3 ; fi
+  - if [ ! -z $ENABLE_FFI_TESTS ]; then sh ci/install_gtest.sh ; fi
+  # Install rust target and source the correct environment.
+  - sh ci/install_rust.sh
   - source ~/.cargo/env || true
 
 script:
