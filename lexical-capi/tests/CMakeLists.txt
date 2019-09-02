@@ -8,6 +8,8 @@ enable_testing()
 # GTEST
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIR})
+# Gtest requires a threads library.
+find_package(Threads REQUIRED)
 
 # LEXICAL
 set(RELEASE_DIR "${PROJECT_SOURCE_DIR}/../target/release")
@@ -46,8 +48,8 @@ target_include_directories(lexical_c_test PRIVATE "${PROJECT_SOURCE_DIR}/../incl
 target_include_directories(lexical_cpp_test PRIVATE "${PROJECT_SOURCE_DIR}/../include")
 
 # LINK
-target_link_libraries(lexical_c_test lexical gtest gtest_main)
-target_link_libraries(lexical_cpp_test lexical gtest gtest_main)
+target_link_libraries(lexical_c_test lexical gtest gtest_main ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(lexical_cpp_test lexical gtest gtest_main ${CMAKE_THREAD_LIBS_INIT})
 
 # RUN
 add_test(
