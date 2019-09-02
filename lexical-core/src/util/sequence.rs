@@ -37,38 +37,58 @@ macro_rules! arrvec {
 
 /// Insert multiple elements at position `index`.
 ///
-/// Shifts all following elements toward the
-/// back.
+/// Shifts all elements before index to the back of the iterator.
+/// It uses size hints to try to minimize the number of moves,
+/// however, it does not rely on them. We cannot internally allocate, so
+/// if we overstep the lower_size_bound, we have to do extensive
+/// moves to shift each item back incrementally.
+///
+/// This implementation is adapted from [`smallvec`], which has a battle-tested
+/// implementation that has been revised for at least a security advisory
+/// warning. Smallvec is similarly licensed under an MIT/Apache dual license.
+///
+/// [`smallvec`]: https://github.com/servo/rust-smallvec
 pub fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
     where V: VecLike<T>,
           I: iter::IntoIterator<Item=T>
 {
-    assert!(index <= vec.len());
-
     let iter = iterable.into_iter();
-    let (lower_bound, upper_bound) = iter.size_hint();
-    let upper_bound = upper_bound.expect("iterable must provide upper bound.");
-    assert!(vec.len() + upper_bound <= vec.capacity());
-
     if index == vec.len() {
         return vec.extend(iter);
     }
 
+    let (lower_size_bound, _) = iter.size_hint();
+    assert!(lower_size_bound <= std::isize::MAX as usize);  // Ensure offset is indexable
+    assert!(index + lower_size_bound >= index);             // Protect against overflow
+    vec.reserve(lower_size_bound);
+
     unsafe {
         let old_len = vec.len();
-        let ptr = vec.as_mut_ptr().padd(index);
+        assert!(index <= old_len);
+        let mut ptr = vec.as_mut_ptr().add(index);
 
         // Move the trailing elements.
-        ptr::copy(ptr, ptr.padd(lower_bound), old_len - index);
+        ptr::copy(ptr, ptr.add(lower_size_bound), old_len - index);
 
         // In case the iterator panics, don't double-drop the items we just copied above.
         vec.set_len(index);
 
         let mut num_added = 0;
         for element in iter {
-            let cur = ptr.padd(num_added);
+            let mut cur = ptr.add(num_added);
+            if num_added >= lower_size_bound {
+                // Iterator provided more elements than the hint.  Move trailing items again.
+                vec.reserve(1);
+                ptr = vec.as_mut_ptr().add(index);
+                cur = ptr.add(num_added);
+                ptr::copy(cur, cur.add(1), old_len - index);
+            }
             ptr::write(cur, element);
             num_added += 1;
+        }
+        if num_added < lower_size_bound {
+            // Iterator provided fewer elements than the hint
+            ptr::copy(ptr.add(lower_size_bound), ptr.add(num_added), old_len - index);
         }
 
         vec.set_len(old_len + num_added);
@@ -1333,12 +1353,12 @@ impl<A: arrayvec::Array> VecLike<A::Item> for arrayvec::ArrayVec<A> {
 
     #[inline]
     fn reserve(&mut self, capacity: usize) {
-        assert!(capacity < self.capacity());
+        assert!(self.len() + capacity <= self.capacity());
     }
 
     #[inline]
     fn reserve_exact(&mut self, capacity: usize) {
-        assert!(capacity < self.capacity());
+        assert!(self.len() + capacity <= self.capacity());
     }
 
     #[inline]
@@ -1453,6 +1473,18 @@ impl<A: arrayvec::Array> CloneableVecLike<A::Item> for arrayvec::ArrayVec<A>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_insert_many() {
+        type V = arrayvec::ArrayVec<[u8; 8]>;
+        let mut v: V = V::new();
+        for x in 0..4 {
+            v.push(x);
+        }
+        assert_eq!(v.len(), 4);
+        v.insert_many(1, [5, 6].iter().cloned());
+        assert_eq!(&v[..], &[0, 5, 6, 1, 2, 3]);
+    }
 
     #[cfg(all(feature = "correct", feature = "radix"))]
     #[test]
