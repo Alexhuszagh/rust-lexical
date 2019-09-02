@@ -308,9 +308,9 @@ struct result {
         // Pretty much any approach would result in UB, even the platform-
         // specific bindings, since the structs aren't **guaranteed**
         // to be the same as what we're using.
-        static_assert(sizeof(ResultT) == sizeof(result));
-        static_assert(std::is_standard_layout<ResultT>::value);
-        static_assert(std::is_standard_layout<result>::value);
+        static_assert(sizeof(ResultT) == sizeof(result), "Invalid sizes");
+        static_assert(std::is_standard_layout<ResultT>::value, "Not std layout");
+        static_assert(std::is_standard_layout<result>::value, "Not std layout");
 
         result cc_res;
         std::memcpy(&cc_res, &c_res, sizeof(result));
@@ -404,9 +404,9 @@ struct partial_result {
         // Pretty much any approach would result in UB, even the platform-
         // specific bindings, since the structs aren't **guaranteed**
         // to be the same as what we're using.
-        static_assert(sizeof(ResultT) == sizeof(partial_result));
-        static_assert(std::is_standard_layout<ResultT>::value);
-        static_assert(std::is_standard_layout<partial_result>::value);
+        static_assert(sizeof(ResultT) == sizeof(partial_result), "Invalid sizes");
+        static_assert(std::is_standard_layout<ResultT>::value, "Not std layout");
+        static_assert(std::is_standard_layout<partial_result>::value, "Not std layout");
 
         partial_result cc_res;
         std::memcpy(&cc_res, &c_res, sizeof(partial_result));
