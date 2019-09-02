@@ -102,6 +102,30 @@ bench() {
     $CARGO bench $CARGO_TARGET $DEFAULT_FEATURES --verbose --no-run
 }
 
+# Run ffi tests.
+ffi_tests() {
+    if [ ! -z $DISABLE_TESTS ]; then
+        return
+    fi
+    if [ -z $ENABLE_FFI_TESTS ]; then
+        return
+    fi
+
+    python3 runtests.py
+}
+
+# Run derive tests.
+derive_tests() {
+    if [ ! -z $DISABLE_TESTS ]; then
+        return
+    fi
+    if [ -z $ENABLE_DERIVE_TESTS ]; then
+        return
+    fi
+
+    $CARGO test
+}
+
 main() {
     # Build and test lexical (only on std).
     if [ -z $NO_STD ]; then
@@ -114,6 +138,14 @@ main() {
     cd lexical-core
     build
     test "${CORE_FEATURES[@]}"
+
+    # Build and test lexical-capi
+    cd ../lexical-capi
+    ffi_tests
+
+    # Build and test lexical-derive
+    cd ../lexical-derive
+    derive_tests
 }
 
 # we don't run the "test phase" when doing deploys

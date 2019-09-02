@@ -9,7 +9,7 @@ sudo: required
 matrix:
   include:
     - rust: stable
-      env: TARGET=x86_64-unknown-linux-gnu
+      env: TARGET=x86_64-unknown-linux-gnu ENABLE_FFI_TESTS=1 ENABLE_DERIVE_TESTS=1
 
     - rust: beta
       env: TARGET=x86_64-unknown-linux-gnu
@@ -92,6 +92,8 @@ matrix:
 before_install:
   - set -e
   - rustup self update
+  # Build essential is already installed, so we just need Python3.
+  - if [ ! -z $ENABLE_DERIVE_TESTS ]; then sudo apt-get install python3; fi
 
 install:
   - sh ci/install.sh
