@@ -3,6 +3,7 @@ lexical
 
 [![Build Status](https://api.travis-ci.org/Alexhuszagh/rust-lexical.svg?branch=master)](https://travis-ci.org/Alexhuszagh/rust-lexical)
 [![Latest Version](https://img.shields.io/crates/v/lexical.svg)](https://crates.io/crates/lexical)
+[![Rustc Version 1.24+](https://img.shields.io/badge/rustc-1.24+-lightgray.svg)](https://blog.rust-lang.org/2018/02/15/Rust-1.24.html)
 
 Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical is simple to use and focuses on performance and correctness. Finally, [lexical-core](lexical-core) is suitable for environments without a memory allocator, not requiring any internal allocations by default. And, as of version 2.0, lexical uses minimal unsafe features, limiting the chance of memory-unsafe code.
 

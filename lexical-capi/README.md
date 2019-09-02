@@ -2,6 +2,7 @@ lexical-capi
 ============
 
 [![Build Status](https://api.travis-ci.org/Alexhuszagh/rust-lexical.svg?branch=master)](https://travis-ci.org/Alexhuszagh/rust-lexical)
+[![Rustc Version 1.24+](https://img.shields.io/badge/rustc-1.24+-lightgray.svg)](https://blog.rust-lang.org/2018/02/15/Rust-1.24.html)
 
 **Table of Contents**
 
