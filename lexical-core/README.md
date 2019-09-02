@@ -3,6 +3,7 @@ lexical-core
 
 [![Build Status](https://api.travis-ci.org/Alexhuszagh/rust-lexical.svg?branch=master)](https://travis-ci.org/Alexhuszagh/rust-lexical)
 [![Latest Version](https://img.shields.io/crates/v/lexical-core.svg)](https://crates.io/crates/lexical-core)
+[![Rustc Version 1.24+](https://img.shields.io/badge/rustc-1.24+-lightgray.svg)](https://blog.rust-lang.org/2018/02/15/Rust-1.24.html)
 
 Low-level, lexical conversion routines for use in a `no_std` context. This crate by default does not use the Rust standard library.
 
