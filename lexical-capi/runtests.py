@@ -49,8 +49,11 @@ def run_c_tests():
     os.chdir(BUILD_DIR)
 
     # Clean up previous builds.
-    os.remove(os.path.join(BUILD_DIR, 'CMakeCache.txt'))
-    shutil.rmtree(os.path.join(BUILD_DIR, 'CMakeFiles'))
+    try:
+        os.remove(os.path.join(BUILD_DIR, 'CMakeCache.txt'))
+        shutil.rmtree(os.path.join(BUILD_DIR, 'CMakeFiles'))
+    except OSError:
+        pass
     subprocess.check_call([CMAKE, TESTS_DIR, '-DCMAKE_BUILD_TYPE={}'.format(BUILD_TYPE)])
 
     # Build and test.
