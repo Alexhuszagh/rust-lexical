@@ -49,8 +49,8 @@ fn consume_digits<'a>(digits: &'a [u8], radix: u32) -> (&'a [u8], &'a [u8]) {
 // ---------------
 
 /// Raw substring and information from parsing the float.
-#[derive(Debug)]
 #[allow(dead_code)]
+#[cfg_attr(test, derive(Debug))]
 pub(super) struct RawFloatState<'a> {
     /// Substring for the integer component of the mantissa.
     pub(super) integer: &'a [u8],
@@ -174,7 +174,7 @@ impl<'a> RawFloatState<'a> {
 
 /// Substrings and information from parsing the float.
 #[cfg(feature = "correct")]
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub(super) struct FloatState<'a> {
     /// Substring for the integer component of the mantissa.
     pub(super) integer: &'a [u8],

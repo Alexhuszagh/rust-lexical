@@ -24,7 +24,8 @@ if #[cfg(feature = "radix")] {
 // BIGINT
 
 /// Storage for a big integer type.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug))]
 pub(crate) struct Bigint {
     /// Internal storage for the Bigint, in little-endian order.
     pub(crate) data: IntStorageType,
@@ -70,7 +71,8 @@ if #[cfg(limb_width_64)] {
 }}   // cfg_if
 
 /// Storage for a big floating-point type.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug))]
 pub struct Bigfloat {
     /// Internal storage for the Bigint, in little-endian order.
     ///
