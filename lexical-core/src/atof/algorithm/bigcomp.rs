@@ -48,7 +48,8 @@ if #[cfg(limb_width_64)] {
 }}   // cfg_if
 
 /// Storage for a big integer type.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Clone, Default, PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug))]
 pub struct Bigint {
     /// Internal storage for the Bigint, in little-endian order.
     ///

@@ -38,7 +38,7 @@ macro_rules! rtrim_0 {
 // FLOAT SLICE
 
 /// Substrings and information from parsing the float.
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug))]
 pub(super) struct FloatSlice<'a> {
     /// Substring for the integer component of the mantissa.
     integer: &'a [u8],

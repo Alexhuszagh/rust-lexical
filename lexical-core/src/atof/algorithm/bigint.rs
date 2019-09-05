@@ -35,7 +35,8 @@ if #[cfg(feature = "radix")] {
 // BIGINT
 
 /// Storage for a big integer type.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug))]
 pub(super) struct Bigint {
     /// Internal storage for the Bigint, in little-endian order.
     data: DataType,
