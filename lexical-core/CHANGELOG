@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2019-09-05
+### Changed
+- Fixed a bug with proc-macros on the lexical-core "0.4" version.
+
 ## [0.4.3]
 - Fixed a bug (issue #20) leading to incorrect float parsing (1 ULP error) for slow-path algorithms containing floats with a trailing 0-digit in the fraction component (discovery by @dangrabcad). Added in comprehensive unittests to avoid future regressions.
 - Fixed CI for older Rustc versions due to issues with the `edition` keyword.
