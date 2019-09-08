@@ -130,10 +130,9 @@ extern crate proptest;
 #[cfg_attr(test, macro_use)]
 extern crate alloc;
 
-// Use stackvector for atof.
+// Use arrayvec for atof.
 #[cfg(feature = "correct")]
-#[macro_use]
-extern crate stackvector;
+extern crate arrayvec;
 
 // Ensure only one back-end is enabled.
 #[cfg(all(feature = "grisu3", feature = "ryu"))]

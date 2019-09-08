@@ -36,6 +36,8 @@ if #[cfg(feature = "correct")] {
     mod bound;
     mod range_bounds;
     mod slice_index;
+
+    #[macro_use]
     mod sequence;
 } else {
     mod wrapped;

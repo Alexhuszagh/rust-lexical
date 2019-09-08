@@ -23,13 +23,13 @@ if #[cfg(feature = "radix")] {
 } else {
     // Maximum denominator is 767 mantissa digits + 324 exponent,
     // or 1091 digits, or approximately 3600 bits (round up to 4k).
-    use stackvector;
+    use arrayvec;
 
     #[cfg(limb_width_32)]
-    type DataType = stackvector::StackVec<[Limb; 128]>;
+    type DataType = arrayvec::ArrayVec<[Limb; 128]>;
 
     #[cfg(limb_width_64)]
-    type DataType = stackvector::StackVec<[Limb; 64]>;
+    type DataType = arrayvec::ArrayVec<[Limb; 64]>;
 }}  // cfg_if
 
 // BIGINT
