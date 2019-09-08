@@ -905,7 +905,7 @@ pub(crate) fn atod_lossy(radix: u32, bytes: &[u8], sign: Sign)
 
 #[cfg(test)]
 mod tests {
-    use stackvector;
+    use arrayvec;
     use lib::str;
     use util::test::*;
     use super::*;
@@ -941,7 +941,7 @@ mod tests {
         where M: Mantissa
     {
         let (value, slc, bytes, _) = parse_mantissa::<M>(radix, s.as_bytes());
-        let digits: stackvector::StackVec<[u8; 1024]> = slc.mantissa_iter().cloned().collect();
+        let digits: arrayvec::ArrayVec<[u8; 1024]> = slc.mantissa_iter().cloned().collect();
         let digits = str::from_utf8(&digits).unwrap();
         assert_eq!(value, tup.0);
         assert_eq!(slc.integer_len(), tup.1);
@@ -983,7 +983,7 @@ mod tests {
         where M: Mantissa
     {
         let (value, slc, bytes, truncated) = parse_float::<M>(radix, s.as_bytes());
-        let digits: stackvector::StackVec<[u8; 1024]> = slc.mantissa_iter().cloned().collect();
+        let digits: arrayvec::ArrayVec<[u8; 1024]> = slc.mantissa_iter().cloned().collect();
         let digits = str::from_utf8(&digits).unwrap();
         assert_eq!(value, tup.0);
         assert_eq!(slc.mantissa_exponent(), tup.1);
