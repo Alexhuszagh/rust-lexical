@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.6.1] - 2019-09-16
+### Changed
+- Removed panic handler, allowing use in `no_std` environments.
+
+## [0.6.0] - 2019-09-08
 ### Added
 - Added `get/set_exponent_default_char`, `get/set_exponent_backup_char`, and `get/set_float_rounding`, to allow validation logic for config variables.
 - Added the `write*` functions, which replace the `*toa` methods.
