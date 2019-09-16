@@ -116,7 +116,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(all(not(feature = "std"), feature = "correct", feature = "radix"), feature(alloc))]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
-#![cfg_attr(all(not(test), not(feature = "std")), feature(lang_items))]
 
 // DEPENDENCIES
 
@@ -183,28 +182,6 @@ if #[cfg(all(feature = "correct", feature = "radix"))] {
 }}  // cfg_if
 
 }   // lib
-
-// PANIC
-
-// Need to define a panic handler when we're not testing (panic handler
-// then becomes "unwind" but there is no_std). This causes us to fail
-// with doctests, so ensure `--tests` is passed to `cargo test` whenever
-// we are in a  `no_std` context.
-cfg_if! {
-if #[cfg(all(not(test), not(feature = "std")))] {
-    use lib::intrinsics;
-    use lib::panic::PanicInfo;
-
-    #[panic_handler]
-    fn panic(_: &PanicInfo) -> ! {
-        unsafe {
-            intrinsics::abort();
-        }
-    }
-
-    #[lang = "eh_personality"]
-    extern fn eh_personality() {}
-}}  // cfg_if
 
 // API
 
