@@ -8,6 +8,8 @@
 
 // Require intrinsics in a no_std context.
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
+#![cfg_attr(not(feature = "std"), feature(lang_items))]
 
 // EXTERNAL
 
@@ -28,8 +30,7 @@ pub(crate) use core::*;
 
 // PANIC
 
-// Need to define a panic handler with no_std. We don't have built-in
-// tests, so disable those.
+// Need to define a panic handler with no_std.
 cfg_if! {
 if #[cfg(not(feature = "std"))] {
     use lib::intrinsics;
