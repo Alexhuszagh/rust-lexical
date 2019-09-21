@@ -3,8 +3,8 @@
 set -ex
 
 # Detect our build command if we are on travis or not (so we can test locally).
-if [ -z $CI ]; then
-    # Not on CI, use cargo
+if [ -z $CI ] || [ ! -z $DISABLE_CROSS ]; then
+    # Not on CI or explicitly disabled cross, use cargo
     CARGO=cargo
 else
     # On CI, use cross
