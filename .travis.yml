@@ -89,6 +89,11 @@ matrix:
     #   '--enable-long-section-names'
     - env: TARGET=x86_64-pc-windows-gnu DISABLE_BENCHES=1
 
+    - rust: nightly
+      os: windows
+      install:
+      script: DISABLE_CROSS=1 bash ci/script.sh
+
 before_install:
   - set -e
   - rustup self update
