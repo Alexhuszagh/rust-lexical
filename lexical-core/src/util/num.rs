@@ -871,7 +871,7 @@ macro_rules! float_method_msvc {
         return unsafe { core::intrinsics::$intr($f $(,$i)*) };
 
         #[cfg(all(not(feature = "std"), target_env = "msvc"))]
-        return ($f as $tl).$meth() as $ts;
+        return $tl::$meth($f as $tl $(,$i)*) as $ts;
     })
 }
 
