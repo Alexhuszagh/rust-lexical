@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2019-09-22
+### Changed
+- Fixed a bug causing compilation issues on MSVC.
+
 ## [0.6.1] - 2019-09-16
 ### Changed
 - Removed panic handler, allowing use in `no_std` environments.
