@@ -871,7 +871,7 @@ macro_rules! float_method_msvc {
         return unsafe { core::intrinsics::$intr($f $(,$i)*) };
 
         #[cfg(all(not(feature = "std"), target_env = "msvc"))]
-        return $tl::$meth($f as $tl $(,$i)*) as $ts;
+        return $tl::$meth($f as $tl $(,$i as $tl)*) as $ts;
     })
 }
 
@@ -958,7 +958,7 @@ impl Float for f32 {
 
     #[inline]
     fn powf(self, n: f32) -> f32 {
-        float_method_msvc!(self, f32, f64, powf, powf32, n as f32)
+        float_method_msvc!(self, f32, f64, powf, powf32, n)
     }
 
     #[inline]
