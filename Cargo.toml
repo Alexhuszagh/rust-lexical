@@ -26,10 +26,10 @@ cfg-if = "0.1"
 lexical-core = { path = "lexical-core", version = "0.6.0", default-features = false }
 # The following are only required for comprehensive float unittests.
 # IE, internal testing only:
-rand = { version = "0.4", optional = true }
+rand = { version = "0.7", optional = true }
 serde = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }
-toml = { version = "0.4", optional = true }
+toml = { version = "0.5", optional = true }
 
 [dev-dependencies]
 approx = "0.3.0"
