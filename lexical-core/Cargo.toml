@@ -9,8 +9,11 @@ license = "MIT/Apache-2.0"
 name = "lexical-core"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core"
-version = "0.4.6"
+version = "0.4.7"
 build = "build.rs"
+
+# TODO(ahuszagh) Dependency Versioning and Rustc Roadmap:
+#   - Update cfg-if to "0.1.10" when we support only Rustc >= 1.32.0.
 
 # We want FFI support, so build a regular lib, a system static lib,
 # and a system shared lib.
@@ -21,7 +24,7 @@ crate-type = ["lib", "staticlib", "cdylib"]
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
-cfg-if = "0.1"
+cfg-if = "=0.1.9"
 static_assertions = "0.3.3"
 # Use arrayvec for the correct parser.
 arrayvec = { version = "0.4", optional = true, features = ["array-sizes-33-128"] }

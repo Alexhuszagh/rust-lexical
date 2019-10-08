@@ -9,7 +9,7 @@ license = "MIT/Apache-2.0"
 name = "lexical"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
-version = "2.2.2"
+version = "2.2.3"
 build = "build.rs"
 exclude = [
     "data/*",
@@ -17,18 +17,26 @@ exclude = [
     "lexical-benchmark/*",
 ]
 
+# TODO(ahuszagh) Dependency Versioning and Rustc Roadmap:
+#   - Update cfg-if to "0.1.10" when we support only Rustc >= 1.32.0.
+#   - Update arrayvec to "0.5" when we support Rustc >= 1.36.0.
+#   - Update static_assertions to "1.0.0" when we support Rustc >= 1.37.0.
+#   - Remove support for Rustc <= 1.27.0 with next minor release.
+#       - Remove allowed lints for bare_trait_objects, const_err.
+#       - Remove PointerMethods trait.
+
 [badges]
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
-cfg-if = "0.1"
+cfg-if = "=0.1.9"
 lexical-core = { path = "lexical-core", version = "^0.4.3", default-features = false }
 # The following are only required for comprehensive float unittests.
 # IE, internal testing only:
 rand = { version = "0.4", optional = true }
 serde = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }
-toml = { version = "0.4", optional = true }
+toml = { version = "0.5", optional = true }
 
 [dev-dependencies]
 approx = "0.3.0"
