@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.1] - 2019-10-08
+### Changed
+- Forced version `0.1.9` for cfg-if to support older Rustc versions.
+- Documented dependency versioning and upgrade procedure.
+
 ## [4.0.0] - 2019-09-08
 ### Added
 - Added `get/set_exponent_default_char`, `get/set_exponent_backup_char`, and `get/set_float_rounding`, to allow validation logic for config variables.
