@@ -11,8 +11,11 @@ name = "lexical-capi"
 publish = false
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-capi"
-version = "0.6.1"
+version = "0.6.3"
 build = "build.rs"
+
+# TODO(ahuszagh) Dependency Versioning and Rustc Roadmap:
+#   - Update cfg-if to "0.1.10" when we support only Rustc >= 1.32.0.
 
 [lib]
 crate-type = ["cdylib", "staticlib"]
@@ -21,7 +24,7 @@ crate-type = ["cdylib", "staticlib"]
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
-cfg-if = "0.1"
+cfg-if = "=0.1.9"
 lexical-core = { path = "../lexical-core", version = "0.6.0", default-features = false }
 
 [build-dependencies]
