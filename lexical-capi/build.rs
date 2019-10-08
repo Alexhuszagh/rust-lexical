@@ -5,8 +5,6 @@ fn version_parse(version: &str) -> rustc_version::Version {
 }
 
 fn main() {
-    println!("cargo:rerun-if-changed=build.rs");
-
     let version = rustc_version::version().unwrap();
 
     // VERSIONS
