@@ -420,7 +420,6 @@ impl<M: Mantissa> ExtendedFloat<M> {
     }}
 }
 
-#[cfg(has_i128)]
 impl ExtendedFloat<u128> {
     /// Create extended float from 64-bit unsigned integer.
     perftools_inline!{
@@ -435,7 +434,6 @@ impl ExtendedFloat<u128> {
 pub type ExtendedFloat80 = ExtendedFloat<u64>;
 
 /// Alias with ~160 bits of precision, 128 for the mantissa and 32 for exponent.
-#[cfg(has_i128)]
 pub type ExtendedFloat160 = ExtendedFloat<u128>;
 
 // TESTS

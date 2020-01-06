@@ -11,14 +11,12 @@ mod alias;
 mod bignum;
 mod cached;
 mod cached_float80;
+mod cached_float160;
 mod errors;
 mod exponent;
 mod large_powers;
 mod math;
 mod small_powers;
-
-#[cfg(has_i128)]
-mod cached_float160;
 
 #[cfg(limb_width_32)]
 mod large_powers_32;

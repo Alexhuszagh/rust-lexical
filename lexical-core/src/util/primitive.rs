@@ -9,20 +9,16 @@ pub trait AsPrimitive: Copy + PartialEq + PartialOrd + Send + Sync {
     fn as_u16(self) -> u16;
     fn as_u32(self) -> u32;
     fn as_u64(self) -> u64;
+    fn as_u128(self) -> u128;
     fn as_usize(self) -> usize;
     fn as_i8(self) -> i8;
     fn as_i16(self) -> i16;
     fn as_i32(self) -> i32;
     fn as_i64(self) -> i64;
+    fn as_i128(self) -> i128;
     fn as_isize(self) -> isize;
     fn as_f32(self) -> f32;
     fn as_f64(self) -> f64;
-
-    #[cfg(has_i128)]
-    fn as_u128(self) -> u128;
-
-    #[cfg(has_i128)]
-    fn as_i128(self) -> i128;
 }
 
 macro_rules! as_primitive {
@@ -48,7 +44,6 @@ macro_rules! as_primitive {
                 self as u64
             }
 
-            #[cfg(has_i128)]
             #[inline]
             fn as_u128(self) -> u128 {
                 self as u128
@@ -79,7 +74,6 @@ macro_rules! as_primitive {
                 self as i64
             }
 
-            #[cfg(has_i128)]
             #[inline]
             fn as_i128(self) -> i128 {
                 self as i128
@@ -103,8 +97,7 @@ macro_rules! as_primitive {
     )*)
 }
 
-as_primitive! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64 }
-#[cfg(has_i128)] as_primitive! { u128 i128 }
+as_primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
 
 macro_rules! def_try_primitive {
     ($($t:ty)*) => (
@@ -133,7 +126,6 @@ macro_rules! def_try_primitive {
                 self.try_cast()
             }
 
-            #[cfg(has_i128)]
             #[inline]
             fn try_u128(self) -> Option<u128> {
                 self.try_cast()
@@ -164,7 +156,6 @@ macro_rules! def_try_primitive {
                 self.try_cast()
             }
 
-            #[cfg(has_i128)]
             #[inline]
             fn try_i128(self) -> Option<i128> {
                 self.try_cast()
@@ -188,11 +179,7 @@ macro_rules! def_try_primitive {
     );
 }
 
-#[cfg(has_i128)]
 def_try_primitive!(u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64);
-
-#[cfg(not(has_i128))]
-def_try_primitive!(u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64);
 
 macro_rules! try_primitive {
     ($($t:ty)*) => ($(
@@ -200,8 +187,7 @@ macro_rules! try_primitive {
     )*)
 }
 
-try_primitive! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64 }
-#[cfg(has_i128)] try_primitive! { u128 i128 }
+try_primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
 
 // PRIMITIVE
 
@@ -215,8 +201,7 @@ macro_rules! primitive {
     )*)
 }
 
-primitive! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize f32 f64 }
-#[cfg(has_i128)] primitive! { u128 i128 }
+primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
 
 // TEST
 // ----

@@ -19,17 +19,14 @@ mod traits;
 #[macro_use]
 pub(crate) mod test;
 
-#[cfg(has_i128)]
-mod div128;
-
 // Hide implementation details.
 mod algorithm;
 mod cast;
 pub(crate) mod config;
+mod div128;
 pub(crate) mod error;
 mod mask;
 mod num;
-mod pointer_methods;
 mod primitive;
 mod pow;
 pub(crate) mod result;
@@ -39,10 +36,6 @@ mod table;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
-    mod bound;
-    mod range_bounds;
-    mod slice_index;
-
     #[macro_use]
     mod sequence;
 } else {
@@ -52,16 +45,13 @@ if #[cfg(feature = "correct")] {
 // Publicly export everything with crate-visibility.
 pub(crate) use self::algorithm::*;
 pub(crate) use self::cast::*;
+pub(crate) use self::div128::*;
 pub(crate) use self::mask::*;
-pub(crate) use self::pointer_methods::*;
 pub(crate) use self::primitive::*;
 pub(crate) use self::pow::*;
 pub(crate) use self::rounding::*;
 pub(crate) use self::sign::*;
 pub(crate) use self::table::*;
-
-#[cfg(has_i128)]
-pub(crate) use self::div128::*;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {

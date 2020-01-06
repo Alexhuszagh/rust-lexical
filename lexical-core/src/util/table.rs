@@ -715,97 +715,96 @@ const F32_POW35: [f32; 5] = [1.0, 35.0, 1225.0, 42875.0, 1500625.0];
 const F32_POW36: [f32; 8] = [1.0, 36.0, 1296.0, 46656.0, 1679616.0, 60466176.0, 2176782336.0, 78364164096.0];
 
 // Compile-time guarantees for our tables.
-#[cfg(has_const_index)]
 const_assert!(f32_pow10; F32_POW10[1] / F32_POW10[0] == 10.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow2; F32_POW2[1] / F32_POW2[0] == 2.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow3; F32_POW3[1] / F32_POW3[0] == 3.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow5; F32_POW5[1] / F32_POW5[0] == 5.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow6; F32_POW6[1] / F32_POW6[0] == 6.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow7; F32_POW7[1] / F32_POW7[0] == 7.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow9; F32_POW9[1] / F32_POW9[0] == 9.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow11; F32_POW11[1] / F32_POW11[0] == 11.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow12; F32_POW12[1] / F32_POW12[0] == 12.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow13; F32_POW13[1] / F32_POW13[0] == 13.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow14; F32_POW14[1] / F32_POW14[0] == 14.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow15; F32_POW15[1] / F32_POW15[0] == 15.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow17; F32_POW17[1] / F32_POW17[0] == 17.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow18; F32_POW18[1] / F32_POW18[0] == 18.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow19; F32_POW19[1] / F32_POW19[0] == 19.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow20; F32_POW20[1] / F32_POW20[0] == 20.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow21; F32_POW21[1] / F32_POW21[0] == 21.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow22; F32_POW22[1] / F32_POW22[0] == 22.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow23; F32_POW23[1] / F32_POW23[0] == 23.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow24; F32_POW24[1] / F32_POW24[0] == 24.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow25; F32_POW25[1] / F32_POW25[0] == 25.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow26; F32_POW26[1] / F32_POW26[0] == 26.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow27; F32_POW27[1] / F32_POW27[0] == 27.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow28; F32_POW28[1] / F32_POW28[0] == 28.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow29; F32_POW29[1] / F32_POW29[0] == 29.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow30; F32_POW30[1] / F32_POW30[0] == 30.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow31; F32_POW31[1] / F32_POW31[0] == 31.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow33; F32_POW33[1] / F32_POW33[0] == 33.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow34; F32_POW34[1] / F32_POW34[0] == 34.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow35; F32_POW35[1] / F32_POW35[0] == 35.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f32_pow36; F32_POW36[1] / F32_POW36[0] == 36.0);
 
 impl TablePower for f32 {
@@ -3072,97 +3071,96 @@ const F64_POW35: [f64; 11] = [1.0, 35.0, 1225.0, 42875.0, 1500625.0, 52521875.0,
 const F64_POW36: [f64; 17] = [1.0, 36.0, 1296.0, 46656.0, 1679616.0, 60466176.0, 2176782336.0, 78364164096.0, 2821109907456.0, 101559956668416.0, 3656158440062976.0, 131621703842267136.0, 4738381338321616896.0, 170581728179578208256.0, 6140942214464815497216.0, 221073919720733357899776.0, 7958661109946400884391936.0];
 
 // Compile-time guarantees for our tables.
-#[cfg(has_const_index)]
 const_assert!(f64_pow10; F64_POW10[1] / F64_POW10[0] == 10.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow2; F64_POW2[1] / F64_POW2[0] == 2.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow3; F64_POW3[1] / F64_POW3[0] == 3.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow5; F64_POW5[1] / F64_POW5[0] == 5.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow6; F64_POW6[1] / F64_POW6[0] == 6.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow7; F64_POW7[1] / F64_POW7[0] == 7.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow9; F64_POW9[1] / F64_POW9[0] == 9.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow11; F64_POW11[1] / F64_POW11[0] == 11.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow12; F64_POW12[1] / F64_POW12[0] == 12.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow13; F64_POW13[1] / F64_POW13[0] == 13.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow14; F64_POW14[1] / F64_POW14[0] == 14.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow15; F64_POW15[1] / F64_POW15[0] == 15.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow17; F64_POW17[1] / F64_POW17[0] == 17.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow18; F64_POW18[1] / F64_POW18[0] == 18.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow19; F64_POW19[1] / F64_POW19[0] == 19.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow20; F64_POW20[1] / F64_POW20[0] == 20.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow21; F64_POW21[1] / F64_POW21[0] == 21.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow22; F64_POW22[1] / F64_POW22[0] == 22.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow23; F64_POW23[1] / F64_POW23[0] == 23.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow24; F64_POW24[1] / F64_POW24[0] == 24.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow25; F64_POW25[1] / F64_POW25[0] == 25.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow26; F64_POW26[1] / F64_POW26[0] == 26.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow27; F64_POW27[1] / F64_POW27[0] == 27.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow28; F64_POW28[1] / F64_POW28[0] == 28.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow29; F64_POW29[1] / F64_POW29[0] == 29.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow30; F64_POW30[1] / F64_POW30[0] == 30.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow31; F64_POW31[1] / F64_POW31[0] == 31.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow33; F64_POW33[1] / F64_POW33[0] == 33.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow34; F64_POW34[1] / F64_POW34[0] == 34.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow35; F64_POW35[1] / F64_POW35[0] == 35.0);
 
-#[cfg(all(has_const_index, feature = "radix"))]
+#[cfg(feature = "radix")]
 const_assert!(f64_pow36; F64_POW36[1] / F64_POW36[0] == 36.0);
 
 impl TablePower for f64 {

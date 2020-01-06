@@ -209,7 +209,6 @@ fn generic<T>(mut value: T, radix: u32, table: &[u8], buffer: &mut [u8])
 //  `value` must be non-negative and mutable.
 //  Buffer must be 0-initialized.
 perftools_inline!{
-#[cfg(has_i128)]
 #[allow(unused_unsafe)]
 fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [u8])
     -> usize
@@ -271,7 +270,6 @@ macro_rules! generic_impl {
 
 generic_impl! { u8 u16 u32 u64 usize }
 
-#[cfg(has_i128)]
 impl Generic for u128 {
     perftools_inline_always!{
     fn generic(self, radix: u32, buffer: &mut [u8]) -> usize {

@@ -8,16 +8,14 @@ use super::rounding::RoundingKind;
 
 /// Determine if the character is a control character for integers or floats.
 /// Control characters include digits, `.`, `+`, and `-`.
-#[inline]
-#[allow(unknown_lints, ellipsis_inclusive_range_patterns)]
 fn is_control_character(ch: u8, is_default: bool) -> bool {
     if is_default {
         // Default character handles radixes < 15 (where 'e'/'E' is a
         // a valid exponent character).
         match ch as char {
-            '0' ... '9'     => true,
-            'a' ... 'd'     => true,
-            'A' ... 'D'     => true,
+            '0' ..= '9'     => true,
+            'a' ..= 'd'     => true,
+            'A' ..= 'D'     => true,
             '.' | '+' | '-' => true,
             _               => false,
         }
@@ -25,9 +23,9 @@ fn is_control_character(ch: u8, is_default: bool) -> bool {
         // Backup character handles radixes >= 15 (where no digit is
         // a valid exponent character).
         match ch as char {
-            '0' ... '9'     => true,
-            'a' ... 'z'     => true,
-            'A' ... 'Z'     => true,
+            '0' ..= '9'     => true,
+            'a' ..= 'z'     => true,
+            'A' ..= 'Z'     => true,
             '.' | '+' | '-' => true,
             _               => false,
         }
@@ -350,8 +348,8 @@ pub(crate) const U32_FORMATTED_SIZE_DECIMAL: usize = 10;
 pub(crate) const U64_FORMATTED_SIZE_DECIMAL: usize = 20;
 pub(crate) const F32_FORMATTED_SIZE_DECIMAL: usize = 64;
 pub(crate) const F64_FORMATTED_SIZE_DECIMAL: usize = 64;
-#[cfg(has_i128)] pub(crate) const I128_FORMATTED_SIZE_DECIMAL: usize = 40;
-#[cfg(has_i128)] pub(crate) const U128_FORMATTED_SIZE_DECIMAL: usize = 39;
+pub(crate) const I128_FORMATTED_SIZE_DECIMAL: usize = 40;
+pub(crate) const U128_FORMATTED_SIZE_DECIMAL: usize = 39;
 
 // Simple, fast optimization.
 // Since we're declaring a variable on the stack, and our power-of-two
@@ -370,8 +368,8 @@ if #[cfg(feature = "radix")] {
     pub(crate) const U64_FORMATTED_SIZE: usize = 128;
     pub(crate) const F32_FORMATTED_SIZE: usize = 256;
     pub(crate) const F64_FORMATTED_SIZE: usize = 256;
-    #[cfg(has_i128)] pub(crate) const I128_FORMATTED_SIZE: usize = 256;
-    #[cfg(has_i128)] pub(crate) const U128_FORMATTED_SIZE: usize = 256;
+    pub(crate) const I128_FORMATTED_SIZE: usize = 256;
+    pub(crate) const U128_FORMATTED_SIZE: usize = 256;
 } else {
     // The f64 buffer is actually a size of 60, but use 64 since it's a
     // power of 2.
@@ -385,8 +383,8 @@ if #[cfg(feature = "radix")] {
     pub(crate) const U64_FORMATTED_SIZE: usize = U64_FORMATTED_SIZE_DECIMAL;
     pub(crate) const F32_FORMATTED_SIZE: usize = F32_FORMATTED_SIZE_DECIMAL;
     pub(crate) const F64_FORMATTED_SIZE: usize = F64_FORMATTED_SIZE_DECIMAL;
-    #[cfg(has_i128)] pub(crate) const I128_FORMATTED_SIZE: usize = I128_FORMATTED_SIZE_DECIMAL;
-    #[cfg(has_i128)] pub(crate) const U128_FORMATTED_SIZE: usize = U128_FORMATTED_SIZE_DECIMAL;
+    pub(crate) const I128_FORMATTED_SIZE: usize = I128_FORMATTED_SIZE_DECIMAL;
+    pub(crate) const U128_FORMATTED_SIZE: usize = U128_FORMATTED_SIZE_DECIMAL;
 }} // cfg_if
 
 cfg_if! {
