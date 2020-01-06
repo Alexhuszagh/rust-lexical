@@ -18,14 +18,11 @@ exclude = [
     "lexical-benchmark/*",
 ]
 
-# TODO(ahuszagh) Dependency Versioning and Rustc Roadmap:
-#   - Update cfg-if to "0.1.10" when we support only Rustc >= 1.32.0.
-
 [badges]
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
-cfg-if = "=0.1.9"
+cfg-if = "0.1"
 lexical-core = { path = "lexical-core", version = "0.7.0", default-features = false }
 # The following are only required for comprehensive float unittests.
 # IE, internal testing only:
