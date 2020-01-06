@@ -9,7 +9,7 @@ license = "MIT/Apache-2.0"
 name = "lexical-core"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core"
-version = "0.6.3"
+version = "0.7.0"
 build = "build.rs"
 exclude = [
     "fuzz/*",
@@ -31,7 +31,7 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 cfg-if = "=0.1.9"
 static_assertions = "1"
 # Use arrayvec for the correct parser.
-arrayvec = { version = "0.4", optional = true, features = ["array-sizes-33-128"] }
+arrayvec = { version = "0.5", optional = true, features = ["array-sizes-33-128"] }
 # Optimized Grisu3 implementation, a well-tested, correct algorithm.
 dtoa = { version = "0.4", optional = true }
 # Optimized Ryu implementation, the fastest correct algorithm.

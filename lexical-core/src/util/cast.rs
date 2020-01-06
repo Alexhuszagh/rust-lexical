@@ -37,20 +37,16 @@ as_cast!(u8, as_u8);
 as_cast!(u16, as_u16);
 as_cast!(u32, as_u32);
 as_cast!(u64, as_u64);
+as_cast!(u128, as_u128);
 as_cast!(usize, as_usize);
 as_cast!(i8, as_i8);
 as_cast!(i16, as_i16);
 as_cast!(i32, as_i32);
 as_cast!(i64, as_i64);
+as_cast!(i128, as_i128);
 as_cast!(isize, as_isize);
 as_cast!(f32, as_f32);
 as_cast!(f64, as_f64);
-
-#[cfg(has_i128)]
-as_cast!(u128, as_u128);
-
-#[cfg(has_i128)]
-as_cast!(i128, as_i128);
 
 // TRY CAST
 // Analogous to TryInto.
@@ -142,104 +138,78 @@ macro_rules! try_cast {
 }
 
 // u8
-try_cast! { @widen u8, u8, u16, u32, u64 }
+try_cast! { @widen u8, u8, u16, u32, u64, u128 }
 try_cast! { @below u8, i8 }
-try_cast! { @widen u8, i16, i32, i64 }
+try_cast! { @widen u8, i16, i32, i64, i128 }
 try_cast! { @widen u8, f32, f64 }
-
-#[cfg(has_i128)] try_cast! { @widen u8, u128 }
-#[cfg(has_i128)] try_cast! { @widen u8, i128 }
 
 // u16
 try_cast! { @below u16, u8 }
-try_cast! { @widen u16, u16, u32, u64 }
+try_cast! { @widen u16, u16, u32, u64, u128 }
 try_cast! { @below u16, i8, i16 }
-try_cast! { @widen u16, i32, i64 }
+try_cast! { @widen u16, i32, i64, i128 }
 try_cast! { @widen u16, f32, f64 }
-
-#[cfg(has_i128)] try_cast! { @widen u16, u128 }
-#[cfg(has_i128)] try_cast! { @widen u16, i128 }
 
 // u32
 try_cast! { @below u32, u8, u16 }
-try_cast! { @widen u32, u32, u64 }
+try_cast! { @widen u32, u32, u64, u128 }
 try_cast! { @below u32, i8, i16, i32 }
-try_cast! { @widen u32, i64 }
+try_cast! { @widen u32, i64, i128 }
 try_cast! { @into_float u32, f32 }
 try_cast! { @widen u32, f64 }
 
-#[cfg(has_i128)] try_cast! { @widen u32, u128 }
-#[cfg(has_i128)] try_cast! { @widen u32, i128 }
-
 // u64
 try_cast! { @below u64, u8, u16, u32 }
-try_cast! { @widen u64, u64 }
+try_cast! { @widen u64, u64, u128 }
 try_cast! { @below u64, i8, i16, i32, i64 }
-//try_cast! { @widen u64 }
+try_cast! { @widen u64, i128}
 try_cast! { @into_float u64, f32, f64 }
 
-#[cfg(has_i128)] try_cast! { @widen u64, u128 }
-#[cfg(has_i128)] try_cast! { @widen u64, i128 }
-
 // u128
-#[cfg(has_i128)] try_cast! { @below u128, u8, u16, u32, u64 }
-#[cfg(has_i128)] try_cast! { @widen u128, u128 }
-#[cfg(has_i128)] try_cast! { @below u128, i8, i16, i32, i64, i128 }
-#[cfg(has_i128)] try_cast! { @into_float u128, f32, f64 }
+try_cast! { @below u128, u8, u16, u32, u64 }
+try_cast! { @widen u128, u128 }
+try_cast! { @below u128, i8, i16, i32, i64, i128 }
+try_cast! { @into_float u128, f32, f64 }
 
 // i8
-try_cast! { @positive i8, u8, u16, u32, u64 }
-try_cast! { @widen i8, i8, i16, i32, i64 }
+try_cast! { @positive i8, u8, u16, u32, u64, u128 }
+try_cast! { @widen i8, i8, i16, i32, i64, i128 }
 try_cast! { @widen i8, f32, f64 }
-
-#[cfg(has_i128)] try_cast! { @positive i8, u128 }
-#[cfg(has_i128)] try_cast! { @widen i8, i128 }
 
 // i16
 try_cast! { @within i16, u8 }
-try_cast! { @positive i16, u16, u32, u64 }
+try_cast! { @positive i16, u16, u32, u64, u128 }
 try_cast! { @within i16, i8 }
-try_cast! { @widen i16, i16, i32, i64 }
+try_cast! { @widen i16, i16, i32, i64, i128 }
 try_cast! { @widen i16, f32, f64 }
-
-#[cfg(has_i128)] try_cast! { @positive i16, u128 }
-#[cfg(has_i128)] try_cast! { @widen i16, i128 }
 
 // i32
 try_cast! { @within i32, u8, u16 }
-try_cast! { @positive i32, u32, u64 }
+try_cast! { @positive i32, u32, u64, u128 }
 try_cast! { @within i32, i8, i16 }
-try_cast! { @widen i32, i32, i64 }
+try_cast! { @widen i32, i32, i64, i128 }
 try_cast! { @into_float i32, f32 }
 try_cast! { @widen i32, f64 }
 
-#[cfg(has_i128)] try_cast! { @positive i32, u128 }
-#[cfg(has_i128)] try_cast! { @widen i32, i128 }
-
 // i64
 try_cast! { @within i64, u8, u16, u32 }
-try_cast! { @positive i64, u64 }
+try_cast! { @positive i64, u64, u128 }
 try_cast! { @within i64, i8, i16, i32 }
-try_cast! { @widen i64, i64 }
+try_cast! { @widen i64, i64, i128 }
 try_cast! { @into_float i64, f32, f64 }
 
-#[cfg(has_i128)] try_cast! { @positive i64, u128 }
-#[cfg(has_i128)] try_cast! { @widen i64, i128 }
-
 // i128
-#[cfg(has_i128)] try_cast! { @within i128, u8, u16, u32, u64 }
-#[cfg(has_i128)] try_cast! { @positive i128, u128 }
-#[cfg(has_i128)] try_cast! { @within i128, i8, i16, i32, i64 }
-#[cfg(has_i128)] try_cast! { @widen i128, i128 }
-#[cfg(has_i128)] try_cast! { @into_float i128, f32, f64 }
+try_cast! { @within i128, u8, u16, u32, u64 }
+try_cast! { @positive i128, u128 }
+try_cast! { @within i128, i8, i16, i32, i64 }
+try_cast! { @widen i128, i128 }
+try_cast! { @into_float i128, f32, f64 }
 
 // f32
-try_cast! { @from_float f32, u8, u16, u32, u64, i8, i16, i32, i64, f32, f64 }
-#[cfg(has_i128)] try_cast! { @from_float f32, u128, i128 }
+try_cast! { @from_float f32, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64 }
 
 // f64
-try_cast! { @from_float f64, u8, u16, u32, u64, i8, i16, i32, i64, f32, f64 }
-#[cfg(has_i128)] try_cast! { @from_float f64, u128, i128 }
+try_cast! { @from_float f64, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64 }
 
 // usize/isize shared
 try_cast! { @from_float f32, usize }
@@ -251,118 +221,106 @@ cfg_if! {
 if #[cfg(target_pointer_width = "16")] {
     // 16-bit usize
     try_cast! { @below usize, u8 }
-    try_cast! { @widen usize, u16, u32, u64, usize }
+    try_cast! { @widen usize, u16, u32, u64, u128, usize }
     try_cast! { @below usize, i8, i16, isize }
-    try_cast! { @widen usize, i32, i64 }
+    try_cast! { @widen usize, i32, i64, i128 }
     try_cast! { @widen usize, f32, f64 }
     try_cast! { @widen u8, usize }
     try_cast! { @widen u16, usize }
     try_cast! { @below u32, usize }
     try_cast! { @below u64, usize }
+    try_cast! { @below u128, usize }
     try_cast! { @positive i8, usize }
     try_cast! { @positive i16, usize }
     try_cast! { @within i32, usize }
     try_cast! { @within i64, usize }
-    #[cfg(has_i128)] try_cast! { @widen usize, u128 }
-    #[cfg(has_i128)] try_cast! { @widen usize, i128 }
-    #[cfg(has_i128)] try_cast! { @below u128, usize }
-    #[cfg(has_i128)] try_cast! { @within i128, usize }
+    try_cast! { @within i128, usize }
 
     // 16-bit isize
     try_cast! { @within isize, u8 }
-    try_cast! { @positive isize, u16, u32, u64, usize }
+    try_cast! { @positive isize, u16, u32, u64, u128, usize }
     try_cast! { @within isize, i8 }
-    try_cast! { @widen isize, i16, i32, i64, isize }
+    try_cast! { @widen isize, i16, i32, i64, i128, isize }
     try_cast! { @widen isize, f32, f64 }
     try_cast! { @widen u8, isize }
     try_cast! { @below u16, isize }
     try_cast! { @below u32, isize }
     try_cast! { @below u64, isize }
+    try_cast! { @below u128, isize }
     try_cast! { @widen i8, isize }
     try_cast! { @widen i16, isize }
     try_cast! { @within i32, isize }
     try_cast! { @within i64, isize }
-    #[cfg(has_i128)] try_cast! { @positive isize, u128 }
-    #[cfg(has_i128)] try_cast! { @widen isize, i128 }
-    #[cfg(has_i128)] try_cast! { @below u128, isize }
-    #[cfg(has_i128)] try_cast! { @within i128, isize }
+    try_cast! { @within i128, isize }
 } else if #[cfg(target_pointer_width = "32")] {
     try_cast! { @below usize, u8, u16 }
-    try_cast! { @widen usize, u32, u64, usize }
+    try_cast! { @widen usize, u32, u64, u128, usize }
     try_cast! { @below usize, i8, i16, i32, isize }
-    try_cast! { @widen usize, i64 }
+    try_cast! { @widen usize, i64, i128 }
     try_cast! { @into_float usize, f32 }
     try_cast! { @widen usize, f64 }
     try_cast! { @widen u8, usize }
     try_cast! { @widen u16, usize }
     try_cast! { @widen u32, usize }
     try_cast! { @below u64, usize }
+    try_cast! { @below u128, usize }
     try_cast! { @positive i8, usize }
     try_cast! { @positive i16, usize }
     try_cast! { @positive i32, usize }
     try_cast! { @within i64, usize }
-    #[cfg(has_i128)] try_cast! { @widen usize, u128 }
-    #[cfg(has_i128)] try_cast! { @widen usize, i128 }
-    #[cfg(has_i128)] try_cast! { @below u128, usize }
-    #[cfg(has_i128)] try_cast! { @within i128, usize }
+    try_cast! { @within i128, usize }
 
     // 32-bit isize
     try_cast! { @within isize, u8, u16 }
-    try_cast! { @positive isize, u32, u64, usize }
+    try_cast! { @positive isize, u32, u64, u128, usize }
     try_cast! { @within isize, i8, i16 }
-    try_cast! { @widen isize, i32, i64, isize }
+    try_cast! { @widen isize, i32, i64, i128, isize }
     try_cast! { @into_float isize, f32 }
     try_cast! { @widen isize, f64 }
     try_cast! { @widen u8, isize }
     try_cast! { @widen u16, isize }
     try_cast! { @below u32, isize }
     try_cast! { @below u64, isize }
+    try_cast! { @below u128, isize }
     try_cast! { @widen i8, isize }
     try_cast! { @widen i16, isize }
     try_cast! { @widen i32, isize }
     try_cast! { @within i64, isize }
-    #[cfg(has_i128)] try_cast! { @positive isize, u128 }
-    #[cfg(has_i128)] try_cast! { @widen isize, i128 }
-    #[cfg(has_i128)] try_cast! { @below u128, isize }
-    #[cfg(has_i128)] try_cast! { @within i128, isize }
+    try_cast! { @within i128, isize }
 } else if #[cfg(target_pointer_width = "64")] {
     // 64-bit usize
     try_cast! { @below usize, u8, u16, u32 }
-    try_cast! { @widen usize, u64, usize }
+    try_cast! { @widen usize, u64, u128, usize }
     try_cast! { @below usize, i8, i16, i32, i64, isize }
-    //try_cast! { @widen usize }
+    try_cast! { @widen usize, i128 }
     try_cast! { @into_float usize, f32, f64 }
     try_cast! { @widen u8, usize }
     try_cast! { @widen u16, usize }
     try_cast! { @widen u32, usize }
     try_cast! { @widen u64, usize }
+    try_cast! { @below u128, usize }
     try_cast! { @positive i8, usize }
     try_cast! { @positive i16, usize }
     try_cast! { @positive i32, usize }
     try_cast! { @positive i64, usize }
-    #[cfg(has_i128)] try_cast! { @widen usize, u128 }
-    #[cfg(has_i128)] try_cast! { @widen usize, i128 }
-    #[cfg(has_i128)] try_cast! { @below u128, usize }
-    #[cfg(has_i128)] try_cast! { @within i128, usize }
+    try_cast! { @within i128, usize }
 
     // 64-bit isize
     try_cast! { @within isize, u8, u16, u32 }
-    try_cast! { @positive isize, u64, usize }
+    try_cast! { @positive isize, u64, u128, usize }
     try_cast! { @within isize, i8, i16, i32 }
-    try_cast! { @widen isize, i64, isize }
+    try_cast! { @widen isize, i64, i128, isize }
     try_cast! { @into_float isize, f32, f64 }
     try_cast! { @widen u8, isize }
     try_cast! { @widen u16, isize }
     try_cast! { @widen u32, isize }
     try_cast! { @below u64, isize }
+    try_cast! { @below u128, isize }
     try_cast! { @widen i8, isize }
     try_cast! { @widen i16, isize }
     try_cast! { @widen i32, isize }
     try_cast! { @widen i64, isize }
-    #[cfg(has_i128)] try_cast! { @positive isize, u128 }
-    #[cfg(has_i128)] try_cast! { @widen isize, i128 }
-    #[cfg(has_i128)] try_cast! { @below u128, isize }
-    #[cfg(has_i128)] try_cast! { @within i128, isize }
+    try_cast! { @within i128, isize }
 }}  // cfg_if
 
 // TEST

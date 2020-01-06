@@ -60,8 +60,7 @@ macro_rules! atoi_impl {
     )*)
 }
 
-atoi_impl! { u8 u16 u32 u64 usize }
-#[cfg(has_i128)] atoi_impl! { u128 }
+atoi_impl! { u8 u16 u32 u64 u128 usize }
 
 // FORWARD
 
@@ -125,15 +124,13 @@ unsigned_to_lexical!(u8, u32);
 unsigned_to_lexical!(u16, u32);
 unsigned_to_lexical!(u32, u32);
 unsigned_to_lexical!(u64, u64);
+unsigned_to_lexical!(u128, u128);
 
 #[cfg(any(target_pointer_width = "16", target_pointer_width = "32"))]
 unsigned_to_lexical!(usize, u32);
 
 #[cfg(target_pointer_width = "64")]
 unsigned_to_lexical!(usize, u64);
-
-#[cfg(has_i128)]
-unsigned_to_lexical!(u128, u128);
 
 // Callback for signed integer formatter.
 perftools_inline!{
@@ -164,15 +161,13 @@ signed_to_lexical!(i8, i32, u32);
 signed_to_lexical!(i16, i32, u32);
 signed_to_lexical!(i32, i32, u32);
 signed_to_lexical!(i64, i64, u64);
+signed_to_lexical!(i128, i128, u128);
 
 #[cfg(any(target_pointer_width = "16", target_pointer_width = "32"))]
 signed_to_lexical!(isize, i32, u32);
 
 #[cfg(target_pointer_width = "64")]
 signed_to_lexical!(isize, i64, u64);
-
-#[cfg(has_i128)]
-signed_to_lexical!(i128, i128, u128);
 
 // TESTS
 // -----
@@ -281,7 +276,6 @@ mod tests {
         assert_eq!(b"-1", (-1i64).to_lexical(&mut buffer));
     }
 
-    #[cfg(has_i128)]
     #[test]
     fn u128_test() {
         let mut buffer = new_buffer();
@@ -294,7 +288,6 @@ mod tests {
         assert_eq!(&b"340282366920938463463374607431768211455"[..], (-1i128 as u128).to_lexical(&mut buffer));
     }
 
-    #[cfg(has_i128)]
     #[test]
     fn i128_test() {
         let mut buffer = new_buffer();
@@ -428,7 +421,6 @@ mod tests {
         }
     }
 
-    #[cfg(has_i128)]
     #[test]
     fn u128_pow2_test() {
         let mut buffer = new_buffer();
@@ -438,7 +430,6 @@ mod tests {
         }
     }
 
-    #[cfg(has_i128)]
     #[test]
     fn u128_pow10_test() {
         let mut buffer = new_buffer();
@@ -471,7 +462,6 @@ mod tests {
             i == u64::from_lexical(i.to_lexical(&mut buffer)).unwrap()
         }
 
-        #[cfg(has_i128)]
         fn u128_quickcheck(i: u128) -> bool {
             let mut buffer = new_buffer();
             i == u128::from_lexical(i.to_lexical(&mut buffer)).unwrap()
@@ -502,7 +492,6 @@ mod tests {
             i == i64::from_lexical(i.to_lexical(&mut buffer)).unwrap()
         }
 
-        #[cfg(has_i128)]
         fn i128_quickcheck(i: i128) -> bool {
             let mut buffer = new_buffer();
             i == i128::from_lexical(i.to_lexical(&mut buffer)).unwrap()
@@ -566,14 +555,12 @@ mod tests {
             i == i64::from_lexical(i.to_lexical(&mut buffer)).unwrap()
         }
 
-        #[cfg(has_i128)]
         #[test]
         fn u128_proptest(i in u128::min_value()..u128::max_value()) {
             let mut buffer = new_buffer();
             i == u128::from_lexical(i.to_lexical(&mut buffer)).unwrap()
         }
 
-        #[cfg(has_i128)]
         #[test]
         fn i128_proptest(i in i128::min_value()..i128::max_value()) {
             let mut buffer = new_buffer();
@@ -623,7 +610,6 @@ mod tests {
         12i64.to_lexical(&mut buffer);
     }
 
-    #[cfg(has_i128)]
     #[test]
     #[should_panic]
     fn i128_buffer_test() {
@@ -666,7 +652,6 @@ mod tests {
         12i64.to_lexical(&mut buffer);
     }
 
-    #[cfg(has_i128)]
     #[test]
     #[should_panic]
     fn u128_buffer_test() {

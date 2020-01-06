@@ -10,15 +10,11 @@ use super::small_powers_32::*;
 use super::small_powers_64::*;
 
 // ASSERTIONS
-
-cfg_if! {
-if #[cfg(has_const_index)] {
 const_assert!(POW5[1] / POW5[0] == 5);
 const_assert!(POW10[1] / POW10[0] == 10);
-}}  //cfg_if
 
 cfg_if! {
-if #[cfg(all(has_const_index, feature = "radix"))] {
+if #[cfg(feature = "radix")] {
 // Ensure our small powers are valid.
 const_assert!(POW2[1] / POW2[0] == 2);
 const_assert!(POW3[1] / POW3[0] == 3);

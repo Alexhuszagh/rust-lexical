@@ -99,14 +99,14 @@ fn split_u64(x: u64) -> [Limb; 1] {
 
 /// Split u128 into limbs, in little-endian order.
 perftools_inline!{
-#[cfg(all(has_i128, limb_width_32))]
+#[cfg(limb_width_32)]
 fn split_u128(x: u128) -> [Limb; 4] {
     [as_limb(x), as_limb(x >> 32), as_limb(x >> 64), as_limb(x >> 96)]
 }}
 
 /// Split u128 into limbs, in little-endian order.
 perftools_inline!{
-#[cfg(all(has_i128, limb_width_64))]
+#[cfg(limb_width_64)]
 fn split_u128(x: u128) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 64)]
 }}
@@ -582,7 +582,6 @@ impl Hi64<u64> for [u64] {
 
 /// Shift 128-bit integer to high 128-bits.
 perftools_inline!{
-#[cfg(has_i128)]
 fn u128_to_hi128_1(r0: u128) -> (u128, bool) {
     let ls = r0.leading_zeros();
     (r0 << ls, false)
@@ -590,7 +589,6 @@ fn u128_to_hi128_1(r0: u128) -> (u128, bool) {
 
 /// Shift 2 128-bit integers to high 128-bits.
 perftools_inline!{
-#[cfg(has_i128)]
 fn u128_to_hi128_2(r0: u128, r1: u128) -> (u128, bool) {
     let ls = r0.leading_zeros();
     let rs = 128 - ls;
@@ -600,7 +598,6 @@ fn u128_to_hi128_2(r0: u128, r1: u128) -> (u128, bool) {
 }}
 
 /// Trait to export the high 128-bits from a little-endian slice.
-#[cfg(has_i128)]
 trait Hi128<T>: SliceLike<T> {
     /// Get the hi128 bits from a 1-limb slice.
     fn hi128_1(&self) -> (u128, bool);
@@ -646,7 +643,6 @@ trait Hi128<T>: SliceLike<T> {
     }}
 }
 
-#[cfg(has_i128)]
 impl Hi128<u16> for [u16] {
     perftools_inline!{
     fn hi128_1(&self) -> (u128, bool) {
@@ -758,7 +754,6 @@ impl Hi128<u16> for [u16] {
     }}
 }
 
-#[cfg(has_i128)]
 impl Hi128<u32> for [u32] {
     perftools_inline!{
     fn hi128_1(&self) -> (u128, bool) {
@@ -832,7 +827,6 @@ impl Hi128<u32> for [u32] {
     }}
 }
 
-#[cfg(has_i128)]
 impl Hi128<u64> for [u64] {
     perftools_inline!{
     fn hi128_1(&self) -> (u128, bool) {
@@ -2378,7 +2372,6 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
 
     /// Get the high 128-bits from the bigint and if there are remaining bits.
     perftools_inline!{
-    #[cfg(has_i128)]
     fn hi128(&self) -> (u128, bool) {
         self.data().as_slice().hi128()
     }}
@@ -2426,7 +2419,6 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
 
     /// Create new big integer from u128.
     perftools_inline!{
-    #[cfg(has_i128)]
     fn from_u128(x: u128) -> Self {
         let mut v = Self::default();
         let slc = split_u128(x);

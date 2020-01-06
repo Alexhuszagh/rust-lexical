@@ -179,11 +179,7 @@ macro_rules! float_rounding_f32 {
     )*)
 }
 
-#[cfg(has_i128)]
 float_rounding_f32! { u64 u128 }
-
-#[cfg(not(has_i128))]
-float_rounding_f32! { u64 }
 
 // Literals don't work for generic types, we need to use this as a hack.
 macro_rules! float_rounding_f64 {
@@ -195,11 +191,7 @@ macro_rules! float_rounding_f64 {
     )*)
 }
 
-#[cfg(has_i128)]
 float_rounding_f64! { u64 u128 }
-
-#[cfg(not(has_i128))]
-float_rounding_f64! { u64 }
 
 // ROUND TO FLOAT
 

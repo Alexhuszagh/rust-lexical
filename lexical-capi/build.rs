@@ -10,10 +10,6 @@ fn main() {
     // VERSIONS
     // --------
 
-    // We need at minimum version 1.20.0.
-    assert!(version >= version_parse("1.20.0"));
-
-    if version >= version_parse("1.26.0") {
-        println!("cargo:rustc-cfg=has_i128");
-    }
+    // We need at minimum version 1.32.0.
+    assert!(version >= version_parse("1.32.0"));
 }

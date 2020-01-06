@@ -312,7 +312,6 @@ fn write_15(value: u64, buffer: &mut [u8]) {
 
 // Write 19 digits to buffer (used internally for the u128 writers).
 perftools_inline!{
-#[cfg(has_i128)]
 #[allow(unused_unsafe)]
 fn write_19(value: u64, buffer: &mut [u8]) {
     let t_0 = (value / 100000000).as_u32();
@@ -408,7 +407,6 @@ fn write_20(value: u64, buffer: &mut [u8]) {
 
 // Write 25 digits to buffer.
 perftools_inline!{
-#[cfg(has_i128)]
 #[allow(unused_unsafe)]
 fn write_25(value: u128, buffer: &mut [u8]) {
     // Split value into high 6 and low 19.
@@ -435,7 +433,6 @@ fn write_25(value: u128, buffer: &mut [u8]) {
 
 // Write 29 digits to buffer.
 perftools_inline!{
-#[cfg(has_i128)]
 #[allow(unused_unsafe)]
 fn write_29(value: u128, buffer: &mut [u8]) {
     // Split value into high 10 and low 19.
@@ -471,7 +468,6 @@ fn write_29(value: u128, buffer: &mut [u8]) {
 
 // Write 34 digits to buffer.
 perftools_inline!{
-#[cfg(has_i128)]
 #[allow(unused_unsafe)]
 fn write_34(value: u128, buffer: &mut [u8]) {
     // Split value into high 15 and low 19.
@@ -518,7 +514,6 @@ fn write_34(value: u128, buffer: &mut [u8]) {
 
 // Write 39 digits to buffer.
 perftools_inline!{
-#[cfg(has_i128)]
 #[allow(unused_unsafe)]
 fn write_39(value: u128, buffer: &mut [u8]) {
     // Split value into high 20 and low 19.
@@ -614,7 +609,6 @@ fn write_15_20(value: u64, buffer: &mut [u8]) -> usize {
 
 // Write 20-25 digits (from a u64 value).
 perftools_inline!{
-#[cfg(has_i128)]
 fn write_20_25(value: u128, buffer: &mut [u8]) -> usize {
     // Use a temporary buffer so we only need a single code path.
     let mut tmp_buf: [u8; 64] = [b'0'; 64];
@@ -626,7 +620,6 @@ fn write_20_25(value: u128, buffer: &mut [u8]) -> usize {
 
 // Write 25-29 digits (from a u64 value).
 perftools_inline!{
-#[cfg(has_i128)]
 fn write_25_29(value: u128, buffer: &mut [u8]) -> usize {
     // Use a temporary buffer so we only need a single code path.
     let mut tmp_buf: [u8; 64] = [b'0'; 64];
@@ -638,7 +631,6 @@ fn write_25_29(value: u128, buffer: &mut [u8]) -> usize {
 
 // Write 29-34 digits (from a u64 value).
 perftools_inline!{
-#[cfg(has_i128)]
 fn write_29_34(value: u128, buffer: &mut [u8]) -> usize {
     // Use a temporary buffer so we only need a single code path.
     let mut tmp_buf: [u8; 64] = [b'0'; 64];
@@ -650,7 +642,6 @@ fn write_29_34(value: u128, buffer: &mut [u8]) -> usize {
 
 // Write 34-39 digits (from a u64 value).
 perftools_inline!{
-#[cfg(has_i128)]
 fn write_34_39(value: u128, buffer: &mut [u8]) -> usize {
     // Use a temporary buffer so we only need a single code path.
     let mut tmp_buf: [u8; 64] = [b'0'; 64];
@@ -712,7 +703,6 @@ fn u64toa(value: u64, buffer: &mut [u8]) -> usize {
 
 // Internal integer formatter for u128.
 perftools_inline!{
-#[cfg(has_i128)]
 fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
     if value >> 16 == 0 {
         // [0, 2^16 - 1]
@@ -783,7 +773,5 @@ decimal_impl!(u8, u8toa);
 decimal_impl!(u16, u16toa);
 decimal_impl!(u32, u32toa);
 decimal_impl!(u64, u64toa);
-decimal_impl!(usize, usizetoa);
-
-#[cfg(has_i128)]
 decimal_impl!(u128, u128toa);
+decimal_impl!(usize, usizetoa);
