@@ -20,7 +20,6 @@ exclude = [
 # TODO(ahuszagh) Dependency Versioning and Rustc Roadmap:
 #   - Update cfg-if to "0.1.10" when we support only Rustc >= 1.32.0.
 #   - Update arrayvec to "0.5" when we support Rustc >= 1.36.0.
-#   - Update static_assertions to "1.0.0" when we support Rustc >= 1.37.0.
 #   - Remove support for Rustc <= 1.27.0 with next minor release.
 #       - Remove allowed lints for bare_trait_objects, const_err.
 #       - Remove PointerMethods trait.
@@ -30,7 +29,7 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
 cfg-if = "=0.1.9"
-static_assertions = "0.3.3"
+static_assertions = "1"
 # Use arrayvec for the correct parser.
 arrayvec = { version = "0.5", optional = true, features = ["array-sizes-33-128"] }
 # Optimized Grisu3 implementation, a well-tested, correct algorithm.
