@@ -167,13 +167,11 @@ pub(crate) fn standalone<T>(bytes: &[u8], radix: u32, is_signed: bool)
 // This is the same as the u128 divisor, so don't duplicate the values
 // there.
 perftools_inline!{
-#[cfg(has_i128)]
 fn step_u64(radix: u32) -> usize {
     u128_divisor(radix).1
 }}
 
 // Add 64-bit temporary to the 128-bit value.
-#[cfg(has_i128)]
 macro_rules! add_temporary_128 {
     ($value:ident, $tmp:ident, $step_power:ident, $ptr:ident, $op:ident, $code:ident) => (
         if !$value.is_zero() {
@@ -190,7 +188,6 @@ macro_rules! add_temporary_128 {
 }
 
 /// Iterate over the digits and iteratively process them.
-#[cfg(has_i128)]
 macro_rules! parse_digits_u128 {
     ($value:ident, $digits:ident, $radix:ident, $step:ident, $op:ident, $code:ident) => ({
         // Break the input into chunks of len `step`, which can be parsed
@@ -222,7 +219,6 @@ macro_rules! parse_digits_u128 {
 
 // Parse the digits for the 128-bit atoi processor.
 perftools_inline!{
-#[cfg(has_i128)]
 pub(crate) fn parse_digits_u128<T>(digits: &[u8], radix: u32, step: usize, sign: Sign)
     -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
     where T: Integer
@@ -245,7 +241,6 @@ pub(crate) fn parse_digits_u128<T>(digits: &[u8], radix: u32, step: usize, sign:
 // This is a similar approach to what we take in the arbitrary-precision
 // arithmetic
 perftools_inline!{
-#[cfg(has_i128)]
 pub(crate) fn standalone_128<W, N>(bytes: &[u8], radix: u32, is_signed: bool)
     -> StdResult<(W, *const u8), (ErrorCode, *const u8)>
     where W: Integer,
@@ -290,7 +285,6 @@ macro_rules! atoi_impl {
 
 atoi_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
 
-#[cfg(has_i128)]
 impl Atoi for u128 {
     perftools_inline_always!{
     fn atoi(bytes: &[u8], radix: u32, is_signed: bool)
@@ -300,7 +294,6 @@ impl Atoi for u128 {
     }}
 }
 
-#[cfg(has_i128)]
 impl Atoi for i128 {
     perftools_inline_always!{
     fn atoi(bytes: &[u8], radix: u32, is_signed: bool)
@@ -499,14 +492,14 @@ from_lexical!(standalone_unsigned, u16);
 from_lexical!(standalone_unsigned, u32);
 from_lexical!(standalone_unsigned, u64);
 from_lexical!(standalone_unsigned, usize);
-#[cfg(has_i128)] from_lexical!(standalone_unsigned, u128);
+from_lexical!(standalone_unsigned, u128);
 
 from_lexical!(standalone_signed, i8);
 from_lexical!(standalone_signed, i16);
 from_lexical!(standalone_signed, i32);
 from_lexical!(standalone_signed, i64);
 from_lexical!(standalone_signed, isize);
-#[cfg(has_i128)] from_lexical!(standalone_signed, i128);
+from_lexical!(standalone_signed, i128);
 
 // TESTS
 // -----

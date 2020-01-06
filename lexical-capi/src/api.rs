@@ -294,14 +294,14 @@ from_lexical!(lexical_atou16, lexical_atou16_partial, lexical_atou16_radix, lexi
 from_lexical!(lexical_atou32, lexical_atou32_partial, lexical_atou32_radix, lexical_atou32_partial_radix, u32);
 from_lexical!(lexical_atou64, lexical_atou64_partial, lexical_atou64_radix, lexical_atou64_partial_radix, u64);
 from_lexical!(lexical_atousize, lexical_atousize_partial, lexical_atousize_radix, lexical_atousize_partial_radix, usize);
-#[cfg(has_i128)] from_lexical!(lexical_atou128, lexical_atou128_partial, lexical_atou128_radix, lexical_atou128_partial_radix, u128);
+from_lexical!(lexical_atou128, lexical_atou128_partial, lexical_atou128_radix, lexical_atou128_partial_radix, u128);
 
 from_lexical!(lexical_atoi8, lexical_atoi8_partial, lexical_atoi8_radix, lexical_atoi8_partial_radix, i8);
 from_lexical!(lexical_atoi16, lexical_atoi16_partial, lexical_atoi16_radix, lexical_atoi16_partial_radix, i16);
 from_lexical!(lexical_atoi32, lexical_atoi32_partial, lexical_atoi32_radix, lexical_atoi32_partial_radix, i32);
 from_lexical!(lexical_atoi64, lexical_atoi64_partial, lexical_atoi64_radix, lexical_atoi64_partial_radix, i64);
 from_lexical!(lexical_atoisize, lexical_atoisize_partial, lexical_atoisize_radix, lexical_atoisize_partial_radix, isize);
-#[cfg(has_i128)] from_lexical!(lexical_atoi128, lexical_atoi128_partial, lexical_atoi128_radix, lexical_atoi128_partial_radix, i128);
+from_lexical!(lexical_atoi128, lexical_atoi128_partial, lexical_atoi128_radix, lexical_atoi128_partial_radix, i128);
 
 // FTOA
 to_lexical!(lexical_f32toa, lexical_f32toa_radix, f32);
@@ -313,11 +313,11 @@ to_lexical!(lexical_u16toa, lexical_u16toa_radix, u16);
 to_lexical!(lexical_u32toa, lexical_u32toa_radix, u32);
 to_lexical!(lexical_u64toa, lexical_u64toa_radix, u64);
 to_lexical!(lexical_usizetoa, lexical_usizetoa_radix, usize);
-#[cfg(has_i128)] to_lexical!(lexical_u128toa, lexical_u128toa_radix, u128);
+to_lexical!(lexical_u128toa, lexical_u128toa_radix, u128);
 
 to_lexical!(lexical_i8toa, lexical_i8toa_radix, i8);
 to_lexical!(lexical_i16toa, lexical_i16toa_radix, i16);
 to_lexical!(lexical_i32toa, lexical_i32toa_radix, i32);
 to_lexical!(lexical_i64toa, lexical_i64toa_radix, i64);
 to_lexical!(lexical_isizetoa, lexical_isizetoa_radix, isize);
-#[cfg(has_i128)] to_lexical!(lexical_i128toa, lexical_i128toa_radix, i128);
+to_lexical!(lexical_i128toa, lexical_i128toa_radix, i128);

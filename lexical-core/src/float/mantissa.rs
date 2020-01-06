@@ -40,7 +40,6 @@ impl Mantissa for u64 {
     const LOMASK: u64           = 0x00000000FFFFFFFF;
 }
 
-#[cfg(has_i128)]
 impl Mantissa for u128 {
     const NORMALIZED_MASK: u128 = 0x80000000000000000000000000000000;
     const HIMASK: u128          = 0xFFFFFFFFFFFFFFFF0000000000000000;

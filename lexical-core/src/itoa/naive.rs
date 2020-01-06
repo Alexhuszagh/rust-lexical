@@ -58,7 +58,6 @@ naive_impl! { u8 u16 u32 u64 usize }
 // Naive implementation for 128-bit radix-N numbers.
 // Precondition: `value` must be non-negative and mutable.
 perftools_inline!{
-#[cfg(has_i128)]
 fn naive_u128(value: u128, radix: u32, buffer: &mut [u8])
     -> usize
 {
@@ -89,7 +88,6 @@ fn naive_u128(value: u128, radix: u32, buffer: &mut [u8])
     index
 }}
 
-#[cfg(has_i128)]
 impl Naive for u128 {
     perftools_inline_always!{
     fn naive(self, radix: u32, buffer: &mut [u8]) -> usize {
