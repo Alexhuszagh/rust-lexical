@@ -50,19 +50,16 @@ number_impl! {
     u16 U16_FORMATTED_SIZE U16_FORMATTED_SIZE_DECIMAL ;
     u32 U32_FORMATTED_SIZE U32_FORMATTED_SIZE_DECIMAL ;
     u64 U64_FORMATTED_SIZE U64_FORMATTED_SIZE_DECIMAL ;
+    u128 U128_FORMATTED_SIZE U128_FORMATTED_SIZE_DECIMAL ;
     usize USIZE_FORMATTED_SIZE USIZE_FORMATTED_SIZE_DECIMAL ;
     i8 I8_FORMATTED_SIZE I8_FORMATTED_SIZE_DECIMAL ;
     i16 I16_FORMATTED_SIZE I16_FORMATTED_SIZE_DECIMAL ;
     i32 I32_FORMATTED_SIZE I32_FORMATTED_SIZE_DECIMAL ;
     i64 I64_FORMATTED_SIZE I64_FORMATTED_SIZE_DECIMAL ;
+    i128 I128_FORMATTED_SIZE I128_FORMATTED_SIZE_DECIMAL ;
     isize ISIZE_FORMATTED_SIZE ISIZE_FORMATTED_SIZE_DECIMAL ;
     f32 F32_FORMATTED_SIZE F32_FORMATTED_SIZE_DECIMAL ;
     f64 F64_FORMATTED_SIZE F64_FORMATTED_SIZE_DECIMAL ;
-}
-#[cfg(has_i128)]
-number_impl! {
-    u128 U128_FORMATTED_SIZE U128_FORMATTED_SIZE_DECIMAL ;
-    i128 I128_FORMATTED_SIZE I128_FORMATTED_SIZE_DECIMAL ;
 }
 
 // INTEGER
@@ -259,7 +256,6 @@ pub trait Integer:
         try_cast_or_max(self)
     }
 
-    #[cfg(has_i128)]
     #[inline]
     fn try_u128_or_max(self) -> u128 {
         try_cast_or_max(self)
@@ -290,7 +286,6 @@ pub trait Integer:
         try_cast_or_max(self)
     }
 
-    #[cfg(has_i128)]
     #[inline]
     fn try_i128_or_max(self) -> i128 {
         try_cast_or_max(self)
@@ -323,7 +318,6 @@ pub trait Integer:
         try_cast_or_min(self)
     }
 
-    #[cfg(has_i128)]
     #[inline]
     fn try_u128_or_min(self) -> u128 {
         try_cast_or_min(self)
@@ -354,7 +348,6 @@ pub trait Integer:
         try_cast_or_min(self)
     }
 
-    #[cfg(has_i128)]
     #[inline]
     fn try_i128_or_min(self) -> i128 {
         try_cast_or_min(self)
@@ -549,9 +542,7 @@ macro_rules! integer_impl {
     )*)
 }
 
-integer_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
-#[cfg(has_i128)]
-integer_impl! { u128 i128 }
+integer_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
 
 /// Unwrap or get T::max_value().
 #[inline]
@@ -607,8 +598,7 @@ macro_rules! signed_integer_impl {
     )*)
 }
 
-signed_integer_impl! { i8 i16 i32 i64 isize }
-#[cfg(has_i128)] signed_integer_impl! { i128 }
+signed_integer_impl! { i8 i16 i32 i64 i128 isize }
 
 // UNSIGNED INTEGER
 
@@ -635,8 +625,7 @@ macro_rules! unsigned_integer_impl {
     )*)
 }
 
-unsigned_integer_impl! { u8 u16 u32 u64 usize }
-#[cfg(has_i128)] unsigned_integer_impl! { u128 }
+unsigned_integer_impl! { u8 u16 u32 u64 u128 usize }
 
 // FLOAT
 

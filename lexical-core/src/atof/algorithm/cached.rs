@@ -2,8 +2,6 @@
 
 use float::{ExtendedFloat, Mantissa};
 use super::cached_float80;
-
-#[cfg(has_i128)]
 use super::cached_float160;
 
 // POWERS
@@ -84,7 +82,6 @@ impl ModeratePathCache<u64> for ExtendedFloat<u64> {
     }}
 }
 
-#[cfg(has_i128)]
 impl ModeratePathCache<u128> for ExtendedFloat<u128> {
     perftools_inline!{
     fn get_powers(radix: u32) -> &'static ModeratePathPowers<u128> {

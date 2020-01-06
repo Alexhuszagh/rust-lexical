@@ -260,7 +260,6 @@ pub static LEXICAL_I32_FORMATTED_SIZE: usize = i32::FORMATTED_SIZE;
 pub static LEXICAL_I64_FORMATTED_SIZE: usize = i64::FORMATTED_SIZE;
 
 /// Maximum number of bytes required to serialize an `i128` value to string.
-#[cfg(has_i128)]
 #[doc(hidden)]
 #[no_mangle]
 pub static LEXICAL_I128_FORMATTED_SIZE: usize = i128::FORMATTED_SIZE;
@@ -291,7 +290,6 @@ pub static LEXICAL_U32_FORMATTED_SIZE: usize = u32::FORMATTED_SIZE;
 pub static LEXICAL_U64_FORMATTED_SIZE: usize = u64::FORMATTED_SIZE;
 
 /// Maximum number of bytes required to serialize a `u128` value to string.
-#[cfg(has_i128)]
 #[doc(hidden)]
 #[no_mangle]
 pub static LEXICAL_U128_FORMATTED_SIZE: usize = u128::FORMATTED_SIZE;
@@ -334,7 +332,6 @@ pub static LEXICAL_I32_FORMATTED_SIZE_DECIMAL: usize = i32::FORMATTED_SIZE_DECIM
 pub static LEXICAL_I64_FORMATTED_SIZE_DECIMAL: usize = i64::FORMATTED_SIZE_DECIMAL;
 
 /// Maximum number of bytes required to serialize an `i128` value to a decimal string.
-#[cfg(has_i128)]
 #[doc(hidden)]
 #[no_mangle]
 pub static LEXICAL_I128_FORMATTED_SIZE_DECIMAL: usize = i128::FORMATTED_SIZE_DECIMAL;
@@ -365,7 +362,6 @@ pub static LEXICAL_U32_FORMATTED_SIZE_DECIMAL: usize = u32::FORMATTED_SIZE_DECIM
 pub static LEXICAL_U64_FORMATTED_SIZE_DECIMAL: usize = u64::FORMATTED_SIZE_DECIMAL;
 
 /// Maximum number of bytes required to serialize a `u128` value to a decimal string.
-#[cfg(has_i128)]
 #[doc(hidden)]
 #[no_mangle]
 pub static LEXICAL_U128_FORMATTED_SIZE_DECIMAL: usize = u128::FORMATTED_SIZE_DECIMAL;

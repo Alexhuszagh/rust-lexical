@@ -144,7 +144,6 @@ impl ToBigfloat<u64> for ExtendedFloat<u64> {
     }}
 }
 
-#[cfg(has_i128)]
 impl ToBigfloat<u128> for ExtendedFloat<u128> {
     perftools_inline!{
     fn to_bigfloat(&self) -> Bigfloat {
