@@ -3,7 +3,7 @@ lexical
 
 [![Build Status](https://api.travis-ci.org/Alexhuszagh/rust-lexical.svg?branch=master)](https://travis-ci.org/Alexhuszagh/rust-lexical)
 [![Latest Version](https://img.shields.io/crates/v/lexical.svg)](https://crates.io/crates/lexical)
-[![Rustc Version 1.32+](https://img.shields.io/badge/rustc-1.32+-lightgray.svg)](https://blog.rust-lang.org/2019/01/17/Rust-1.32.0.html)
+[![Rustc Version 1.37+](https://img.shields.io/badge/rustc-1.37+-lightgray.svg)](https://blog.rust-lang.org/2019/08/15/Rust-1.37.0.html)
 
 Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical is simple to use and focuses on performance and correctness. Finally, [lexical-core](lexical-core) is suitable for environments without a memory allocator, not requiring any internal allocations by default. And, as of version 2.0, lexical uses minimal unsafe features, limiting the chance of memory-unsafe code.
 
@@ -125,17 +125,9 @@ Ideally, Lexical's float-parsing algorithm or approach would be incorporated int
 
 # Version Support
 
-Lexical is tested to work from Rustc versions of 1.32-1.35, and should work on newer versions as well. Please report any errors compiling lexical for any Rust compiler 1.32.0 or later.
+Lexical is tested to work from Rustc versions of 1.37-stable, and should work on newer versions as well. Please report any errors compiling lexical for any Rust compiler 1.37.0 or later. Any changes in Rustc version support will always incur a major version change.
 
-Any changes in Rustc version support will always incur a major version change. The minimum Rustc version supported will always be guaranteed to be at lower than the Rustc version installed from the default package manager for the following distributions:
-- Ubuntu LTS (Xenial, 1.36.0)
-- Debian Stable (Buster, 1.34.2)
-- Fedora (31, 1.40.0)
-- Homebrew (1.40.0)
-- Macports (1.39.0)
-- Chocolatey (1.40.0)
-
-Version 4.x is that last to support Rustc 1.24.0-1.31.1.
+Version 4.x is that last to support Rustc 1.24.0-1.36.0.
 
 # Changelog
 
