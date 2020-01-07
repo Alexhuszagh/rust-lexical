@@ -11,7 +11,6 @@ name = "lexical"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
 version = "5.0.0"
-build = "build.rs"
 exclude = [
     "data/*",
     "benches/*",
@@ -38,9 +37,6 @@ bencher = "0.1.5"
 dtoa = "0.4"
 itoa = { version = "0.4", features = ["i128"] }
 lazy_static = "1"
-
-[build-dependencies]
-rustc_version = "0.2"
 
 [features]
 default = ["correct", "ryu", "std"]

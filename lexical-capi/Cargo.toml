@@ -13,7 +13,6 @@ publish = false
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-capi"
 version = "0.6.3"
-build = "build.rs"
 
 [lib]
 crate-type = ["cdylib", "staticlib"]
@@ -23,9 +22,6 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
 lexical-core = { path = "../lexical-core", version = "0.7.0", default-features = false }
-
-[build-dependencies]
-rustc_version = "0.2"
 
 [features]
 default = ["correct", "ryu", "std"]
