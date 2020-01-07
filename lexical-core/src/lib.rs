@@ -114,7 +114,6 @@
 
 // Require intrinsics in a no_std context.
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(all(not(feature = "std"), feature = "correct", feature = "radix"), feature(alloc))]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
 
 // DEPENDENCIES
@@ -178,7 +177,7 @@ if #[cfg(all(feature = "correct", feature = "radix"))] {
     pub(crate) use std::vec::Vec;
 
     #[cfg(not(feature = "std"))]
-    pub(crate) use alloc::vec::Vec;
+    pub(crate) use ::alloc::vec::Vec;
 }}  // cfg_if
 
 }   // lib

@@ -85,7 +85,6 @@
 
 // Require intrinsics and alloc in a no_std context.
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(not(feature = "std"), feature(alloc))]
 
 // EXTERNAL
 
@@ -114,8 +113,8 @@ if #[cfg(feature = "std")] {
     pub(crate) use std::string::String;
     pub(crate) use std::vec::Vec;
 } else {
-    pub(crate) use alloc::string::String;
-    pub(crate) use alloc::vec::Vec;
+    pub(crate) use ::alloc::string::String;
+    pub(crate) use ::alloc::vec::Vec;
 }
 }}  // cfg_if
 
@@ -145,7 +144,7 @@ pub use lexical_core::{FromLexical, FromLexicalLossy, ToLexical};
 
 /// Get a vector as a slice, including the capacity.
 #[inline]
-unsafe fn vector_as_slice<'a, T>(buf: &'a mut Vec<T>)
+unsafe fn vector_as_slice<'a, T>(buf: &'a mut lib::Vec<T>)
     -> &'a mut [T]
 {
     let first = buf.as_mut_ptr();
