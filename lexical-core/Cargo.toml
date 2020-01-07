@@ -36,9 +36,6 @@ approx = "0.3.0"
 quickcheck = "0.9.0"
 proptest = "0.9.4"
 
-[build-dependencies]
-rustc_version = "0.2"
-
 [features]
 default = ["correct", "ryu", "std"]
 # Use the correct atof parser.
