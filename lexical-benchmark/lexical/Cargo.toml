@@ -21,6 +21,7 @@ unchecked_index = ["lexical-core/unchecked_index"]
 
 [[bench]]
 name = "atof"
+path = "benches/atof.rs"
 harness = false
 
 [profile.bench]
