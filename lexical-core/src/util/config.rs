@@ -1,6 +1,6 @@
 //! Config settings for lexical-core.
 
-use lib::slice;
+use crate::lib::slice;
 use super::algorithm::copy_to_dst;
 use super::rounding::RoundingKind;
 
@@ -432,8 +432,8 @@ pub(crate) fn exponent_notation_char(radix: u32) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    use util::*;
-    use util::test::*;
+    use crate::util::*;
+    use crate::util::test::*;
     use super::*;
 
     #[cfg(feature ="radix")]

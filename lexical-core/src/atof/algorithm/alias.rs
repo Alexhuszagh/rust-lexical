@@ -1,9 +1,9 @@
 //! Aliases and traits to simplify float-parsing.
 
-use lib::{iter, slice};
+use crate::lib::{iter, slice};
 
-use float::*;
-use util::*;
+use crate::float::*;
+use crate::util::*;
 use super::bignum::ToBigfloat;
 use super::errors::FloatErrors;
 
@@ -54,8 +54,8 @@ pub(super) trait ExtendedFloatType<F: FloatType>:
     // C'est la vie.
     fn mant(&self) -> F::Mantissa;
     fn exp(&self) -> i32;
-    fn set_mant(&mut self, F::Mantissa);
-    fn set_exp(&mut self, i32);
+    fn set_mant(&mut self, mant: F::Mantissa);
+    fn set_exp(&mut self, exp: i32);
 }
 
 impl ExtendedFloatType<f32> for ExtendedFloat<u32> {

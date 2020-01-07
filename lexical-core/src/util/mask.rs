@@ -1,6 +1,6 @@
 //! Bit masks for extracting bits.
 
-use lib::mem;
+use crate::lib::mem;
 use super::cast::as_cast;
 use super::num::UnsignedInteger;
 

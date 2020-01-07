@@ -1,6 +1,6 @@
 //! Utilities for Rust primitives.
 
-use lib::fmt;
+use crate::lib::fmt;
 use super::cast::{AsCast, TryCast};
 
 /// Type that can be converted to primitive with `as`.

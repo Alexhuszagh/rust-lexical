@@ -1,6 +1,6 @@
 //! Cached powers trait for extended-precision floats.
 
-use float::{ExtendedFloat, Mantissa};
+use crate::float::{ExtendedFloat, Mantissa};
 use super::cached_float80;
 use super::cached_float160;
 

@@ -3,7 +3,7 @@
 //! Uses either the optimized decimal algorithm, the optimized generic
 //! algorithm, or the naive algorithm.
 
-use util::*;
+use crate::util::*;
 
 /// Select the back-end.
 #[cfg(feature = "table")]
@@ -175,8 +175,8 @@ signed_to_lexical!(isize, i64, u64);
 #[cfg(test)]
 mod tests {
     // Shouldn't need to include atoi, should be fine with ToLexical in scope.
-    use util::*;
-    use util::test::*;
+    use crate::util::*;
+    use crate::util::test::*;
 
     // GENERIC
 

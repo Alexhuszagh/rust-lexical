@@ -2,8 +2,8 @@
 //!
 //! Uses either the imprecise or the precise algorithm.
 
-use util::*;
-use lib::result::Result as StdResult;
+use crate::util::*;
+use crate::lib::result::Result as StdResult;
 
 // Select the back-end
 cfg_if! {
@@ -205,7 +205,7 @@ from_lexical_lossy!(atof_lossy, f64);
 
 #[cfg(test)]
 mod tests {
-    use util::*;
+    use crate::util::*;
 
     #[test]
     fn f32_decimal_test() {

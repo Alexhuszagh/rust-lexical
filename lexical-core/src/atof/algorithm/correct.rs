@@ -4,9 +4,9 @@
 //! found here:
 //!     https://golang.org/src/strconv/atof.go
 
-use atoi;
-use float::*;
-use util::*;
+use crate::atoi;
+use crate::float::*;
+use crate::util::*;
 use super::alias::*;
 use super::bhcomp;
 use super::cached::ModeratePathCache;
@@ -14,7 +14,7 @@ use super::errors::FloatErrors;
 use super::exponent::*;
 use super::state::{FloatState, RawFloatState};
 use super::small_powers::get_small_powers_64;
-use lib::result::Result as StdResult;
+use crate::lib::result::Result as StdResult;
 
 // HELPERS
 // -------
@@ -462,7 +462,7 @@ pub(crate) fn atod_lossy(bytes: &[u8], radix: u32, sign: Sign)
 
 #[cfg(test)]
 mod tests {
-    use util::test::*;
+    use crate::util::test::*;
     use super::*;
 
     fn new_state<'a>(integer: &'a [u8], fraction: &'a [u8], exponent: i32)

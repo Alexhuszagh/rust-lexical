@@ -4,6 +4,7 @@ autobenches = false
 categories = ["parsing", "encoding", "no-std", "value-formatting"]
 description = "A C-API for rust-lexical."
 documentation = "https://docs.rs/lexical-capi"
+edition = "2018"
 keywords = ["parsing", "lexical", "encoding", "no_std"]
 license = "MIT/Apache-2.0"
 name = "lexical-capi"

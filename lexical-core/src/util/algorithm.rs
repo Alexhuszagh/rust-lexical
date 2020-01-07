@@ -1,7 +1,7 @@
 //! Simple, shared algorithm utilities.
 
-use lib::convert::AsRef;
-use lib::{mem, ptr, slice};
+use crate::lib::convert::AsRef;
+use crate::lib::{mem, ptr, slice};
 
 // ALGORITHMS
 

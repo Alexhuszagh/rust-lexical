@@ -1,7 +1,7 @@
 //! Wrapper around David Tolnay's dtoa.
 
 use dtoa;
-use util::*;
+use crate::util::*;
 
 // F32
 

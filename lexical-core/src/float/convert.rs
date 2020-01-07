@@ -1,8 +1,8 @@
 //! Convert between extended-precision and native floats/integers.
 
-use lib::convert::From;
-use lib::mem;
-use util::*;
+use crate::lib::convert::From;
+use crate::lib::mem;
+use crate::util::*;
 use super::float::ExtendedFloat;
 use super::mantissa::Mantissa;
 

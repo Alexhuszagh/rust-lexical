@@ -1,6 +1,6 @@
 //! Slow, simple lexical integer-to-string conversion routine.
 
-use util::*;
+use crate::util::*;
 
 // Naive itoa algorithm.
 macro_rules! naive_algorithm {

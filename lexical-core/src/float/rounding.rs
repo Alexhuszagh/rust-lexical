@@ -1,6 +1,6 @@
 //! Defines rounding schemes for floating-point numbers.
 
-use util::*;
+use crate::util::*;
 use super::float::ExtendedFloat;
 use super::mantissa::Mantissa;
 use super::shift::*;
@@ -336,7 +336,7 @@ pub(crate) fn global_rounding(sign: Sign) -> RoundingKind {
 
 #[cfg(test)]
 mod tests {
-    use float::ExtendedFloat80;
+    use crate::float::ExtendedFloat80;
     use super::*;
 
     // NEAREST ROUNDING

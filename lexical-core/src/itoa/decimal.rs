@@ -123,7 +123,7 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use util::*;
+use crate::util::*;
 
 // Lookup table for optimized base10 itoa.
 const TABLE: &[u8] = &DIGIT_TO_BASE10_SQUARED;

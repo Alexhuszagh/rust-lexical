@@ -1,7 +1,7 @@
 //! Macros for bit-wise shifts.
 
-use lib::mem;
-use util::*;
+use crate::lib::mem;
+use crate::util::*;
 use super::float::ExtendedFloat;
 use super::mantissa::Mantissa;
 

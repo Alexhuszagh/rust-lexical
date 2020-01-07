@@ -1,9 +1,9 @@
 //! Stores the current state of the parsed float.
 
-use atoi;
-use util::*;
-use lib::slice;
-use lib::result::Result as StdResult;
+use crate::atoi;
+use crate::util::*;
+use crate::lib::slice;
+use crate::lib::result::Result as StdResult;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {

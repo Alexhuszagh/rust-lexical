@@ -1,6 +1,6 @@
 // C-compatible API for lexical conversion routines.
 
-use lib::slice;
+use crate::lib::slice;
 use lexical_core;
 
 // HELPERS

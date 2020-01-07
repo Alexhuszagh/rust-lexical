@@ -50,7 +50,7 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use util::*;
+use crate::util::*;
 
 #[cfg(feature = "radix")]
 use super::radix::{double_radix, float_radix};
@@ -219,8 +219,8 @@ to_lexical!(ftoa, f64);
 
 #[cfg(test)]
 mod tests {
-    use util::*;
-    use util::test::*;
+    use crate::util::*;
+    use crate::util::test::*;
 
     // Test data for roundtrips.
     const F32_DATA : [f32; 31] = [0., 0.1, 1., 1.1, 12., 12.1, 123., 123.1, 1234., 1234.1, 12345., 12345.1, 123456., 123456.1, 1234567., 1234567.1, 12345678., 12345678.1, 123456789., 123456789.1, 123456789.12, 123456789.123, 123456789.1234, 123456789.12345, 1.2345678912345e8, 1.2345e+8, 1.2345e+11, 1.2345e+38, 1.2345e-8, 1.2345e-11, 1.2345e-38];

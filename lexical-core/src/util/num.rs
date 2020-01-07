@@ -4,8 +4,8 @@
 // Don't delete them, fake they're being used.
 #![allow(dead_code)]
 
-pub(crate) use lib::{f32, f64, mem};
-use lib::{fmt, iter, ops};
+pub(crate) use crate::lib::{f32, f64, mem};
+use crate::lib::{fmt, iter, ops};
 use super::cast::{AsCast, TryCast};
 use super::config::*;
 use super::primitive::Primitive;

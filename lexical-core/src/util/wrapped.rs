@@ -6,7 +6,7 @@
 //! those that can be mocked (like overflow-checked operations)
 //! are implemented, and others (like bitshift assigns) are unimplemented.
 
-use lib::{cmp, fmt, iter, ops};
+use crate::lib::{cmp, fmt, iter, ops};
 use super::cast::*;
 use super::config::*;
 use super::num::*;

@@ -1,6 +1,6 @@
 //! C-compatible result type.
 
-use lib::result::Result as StdResult;
+use crate::lib::result::Result as StdResult;
 use lexical_core::Error;
 
 /// C-compatible tuple for the partial parsers.
