@@ -1,15 +1,14 @@
 //! Big integer type definition.
 
-use arrayvec;
-use float::*;
-use util::*;
+use crate::float::*;
+use crate::util::*;
 use super::math::*;
 
 // DATA TYPE
 
 cfg_if! {
 if #[cfg(feature = "radix")] {
-    use lib::Vec;
+    use crate::lib::Vec;
     type IntStorageType = Vec<Limb>;
 } else {
     // Maximum denominator is 767 mantissa digits + 324 exponent,

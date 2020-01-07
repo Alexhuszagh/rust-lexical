@@ -70,7 +70,7 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use util::*;
+use crate::util::*;
 
 // Generic itoa algorithm.
 macro_rules! generic_algorithm {

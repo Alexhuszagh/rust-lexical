@@ -8,7 +8,7 @@
 // come in handy later. These aren't trivial to implement, so keep them.
 #![allow(dead_code)]
 
-use util::*;
+use crate::util::*;
 
 // ALIASES
 // -------
@@ -893,7 +893,7 @@ impl Hi128<u64> for [u64] {
 // Scalar-to-scalar operations, for building-blocks for arbitrary-precision
 // operations.
 
-pub(in atof::algorithm) mod scalar {
+pub(in crate::atof::algorithm) mod scalar {
 
 use super::*;
 
@@ -995,9 +995,9 @@ pub fn idiv(x: &mut Limb, y: Limb, rem: Limb)
 
 // Large-to-small operations, to modify a big integer from a native scalar.
 
-pub(in atof::algorithm) mod small {
+pub(in crate::atof::algorithm) mod small {
 
-use lib::iter;
+use crate::lib::iter;
 use super::*;
 use super::super::small_powers::*;
 use super::super::large_powers::*;
@@ -1591,9 +1591,9 @@ pub fn pow<T>(x: &[Limb], n: Limb)
 
 // Large-to-large operations, to modify a big integer from a native scalar.
 
-pub(in atof::algorithm) mod large {
+pub(in crate::atof::algorithm) mod large {
 
-use lib::cmp;
+use crate::lib::cmp;
 use super::*;
 
 // RELATIVE OPERATORS
@@ -2227,7 +2227,7 @@ pub fn quorem<T>(x: &mut T, y: &T)
 
 }   // large
 
-use lib::cmp;
+use crate::lib::cmp;
 use super::small_powers::*;
 use super::large_powers::*;
 
@@ -2250,7 +2250,7 @@ macro_rules! imul_power {
 /// None of these are implemented using normal traits, since these
 /// are very expensive operations, and we want to deliberately
 /// and explicitly use these functions.
-pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
+pub(in crate::atof::algorithm) trait SharedOps: Clone + Sized + Default {
     /// Underlying storage type for a SmallOps.
     type StorageType: CloneableVecLike<Limb>;
 
@@ -2482,7 +2482,7 @@ pub(in atof::algorithm) trait SharedOps: Clone + Sized + Default {
 }
 
 /// Trait for small operations for arbitrary-precision numbers.
-pub(in atof::algorithm) trait SmallOps: SharedOps {
+pub(in crate::atof::algorithm) trait SmallOps: SharedOps {
     // SMALL POWERS
 
     /// Get the small powers from the radix.
@@ -2819,7 +2819,7 @@ pub(in atof::algorithm) trait SmallOps: SharedOps {
 }
 
 /// Trait for large operations for arbitrary-precision numbers.
-pub(in atof::algorithm) trait LargeOps: SmallOps {
+pub(in crate::atof::algorithm) trait LargeOps: SmallOps {
     // ADDITION
 
     /// AddAssign large integer.
@@ -2904,7 +2904,7 @@ pub(in atof::algorithm) trait LargeOps: SmallOps {
 
 #[cfg(test)]
 mod tests {
-    use util::test::*;
+    use crate::util::test::*;
     use super::*;
 
     #[derive(Clone, Default)]

@@ -8,8 +8,8 @@
 //! Adapted from:
 //!     https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/
 
-use lib::cmp;
-use util::*;
+use crate::lib::cmp;
+use crate::util::*;
 use super::alias::*;
 use super::bignum::*;
 use super::state::FloatState;
@@ -247,7 +247,7 @@ pub(super) fn atof<F>(state: FloatState, radix: u32, f: F, kind: RoundingKind)
 
 #[cfg(test)]
 mod tests {
-    use util::test::*;
+    use crate::util::test::*;
     use super::*;
 
     #[test]

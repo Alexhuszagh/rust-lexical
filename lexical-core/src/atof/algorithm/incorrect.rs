@@ -1,9 +1,9 @@
 //! Incorrect, fast algorithms for string-to-float conversions.
 
-use atoi;
-use util::*;
+use crate::atoi;
+use crate::util::*;
 use super::state::RawFloatState;
-use lib::result::Result as StdResult;
+use crate::lib::result::Result as StdResult;
 
 // FRACTION
 

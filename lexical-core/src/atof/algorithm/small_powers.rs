@@ -55,7 +55,7 @@ const_assert!(POW36[1] / POW36[0] == 36);
 // HELPER
 
 /// Get the correct small power from the radix.
-pub(in atof::algorithm) fn get_small_powers(radix: u32)
+pub(in crate::atof::algorithm) fn get_small_powers(radix: u32)
     -> &'static [Limb]
 {
     #[cfg(not(feature = "radix"))] {
@@ -109,7 +109,7 @@ pub(in atof::algorithm) fn get_small_powers(radix: u32)
 }
 
 /// Get the correct 64-bit small power from the radix.
-pub(in atof::algorithm) fn get_small_powers_64(radix: u32)
+pub(in crate::atof::algorithm) fn get_small_powers_64(radix: u32)
     -> &'static [u64]
 {
     #[cfg(not(feature = "radix"))] {

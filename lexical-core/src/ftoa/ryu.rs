@@ -1,7 +1,7 @@
 //! Wrapper around David Tolnay's ryu.
 
 use ryu::raw;
-use util::*;
+use crate::util::*;
 
 // F32
 

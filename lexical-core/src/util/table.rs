@@ -1,6 +1,6 @@
 //! Cached tables for precalculated values.
 
-use util::*;
+use crate::util::*;
 
 /// Precalculated table for a digit to a character.
 ///

@@ -2,11 +2,11 @@
 
 #![allow(dead_code)]
 
-use lib::{cmp, iter, marker, ops, ptr, slice};
+use crate::lib::{cmp, iter, marker, ops, ptr, slice};
 use arrayvec;
 
 #[cfg(all(feature = "correct", feature = "radix"))]
-use lib::Vec;
+use crate::lib::Vec;
 
 // ARRVEC
 

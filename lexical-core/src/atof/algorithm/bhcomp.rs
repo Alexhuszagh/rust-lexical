@@ -3,10 +3,10 @@
 //! Compares the actual significant digits of the mantissa to the
 //! theoretical digits from `b+h`, scaled into the proper range.
 
-use float::*;
-use float::convert::*;
-use float::rounding::*;
-use util::*;
+use crate::float::*;
+use crate::float::convert::*;
+use crate::float::rounding::*;
+use crate::util::*;
 use super::alias::*;
 use super::bigcomp;
 use super::state::FloatState;

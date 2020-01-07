@@ -6,9 +6,8 @@
 //! found here:
 //!     https://golang.org/src/strconv/atof.go
 
-use float::*;
-use util::*;
-
+use crate::float::*;
+use crate::util::*;
 
 pub trait FloatErrors: Mantissa {
     /// Get the full error scale.

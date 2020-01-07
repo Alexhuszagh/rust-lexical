@@ -3,8 +3,8 @@
 //! This algorithm is adapted from the V8 codebase,
 //! and may be found [here](https://github.com/v8/v8).
 
-use itoa;
-use util::*;
+use crate::itoa;
+use crate::util::*;
 
 // FTOA BASEN
 // ----------

@@ -10,7 +10,7 @@
 // We want to make sure this code is not accidentally deleted.
 #![allow(dead_code)]
 
-use util::*;
+use crate::util::*;
 use super::convert::*;
 use super::mantissa::Mantissa;
 use super::rounding::*;

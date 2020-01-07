@@ -1,6 +1,6 @@
 //! Config settings for lexical-capi.
 
-use lib::slice;
+use crate::lib::slice;
 use lexical_core;
 
 // FFI

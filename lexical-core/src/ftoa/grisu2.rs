@@ -53,8 +53,8 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use float::ExtendedFloat80;
-use util::*;
+use crate::float::ExtendedFloat80;
+use crate::util::*;
 
 // CACHED POWERS
 

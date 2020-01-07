@@ -19,7 +19,7 @@ use super::large_powers_64::*;
 
 /// Get the correct large power from the radix.
 #[allow(unused_variables)]
-pub(in atof::algorithm) fn get_large_powers(radix: u32)
+pub(in crate::atof::algorithm) fn get_large_powers(radix: u32)
     -> &'static [&'static [Limb]]
 {
     #[cfg(not(feature = "radix"))] {

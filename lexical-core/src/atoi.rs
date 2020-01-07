@@ -77,8 +77,8 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use util::*;
-use lib::result::Result as StdResult;
+use crate::util::*;
+use crate::lib::result::Result as StdResult;
 
 // SHARED
 // ------
@@ -506,7 +506,7 @@ from_lexical!(standalone_signed, i128);
 
 #[cfg(test)]
 mod tests {
-    use util::*;
+    use crate::util::*;
 
     #[cfg(feature = "radix")]
     const DATA: [(u8, &'static str); 35] = [

@@ -1,6 +1,6 @@
 //! Algorithm to parse an exponent from a float string.
 
-use util::*;
+use crate::util::*;
 
 /// Calculate the scientific notation exponent without overflow.
 ///

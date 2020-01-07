@@ -214,7 +214,7 @@ impl StablePower for f64 {
 
 #[cfg(test)]
 mod tests {
-    use util::test::*;
+    use crate::util::test::*;
     use super::*;
 
     #[test]

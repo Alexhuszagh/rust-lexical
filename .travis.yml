@@ -18,13 +18,13 @@ matrix:
       env: TARGET=x86_64-unknown-linux-gnu NO_STD=1
 
     # All tests should work.
-    - rust: 1.32.0
-      env: TARGET=x86_64-unknown-linux-gnu
-
-    - rust: 1.35.0
+    - rust: 1.37.0
       env: TARGET=x86_64-unknown-linux-gnu
 
     - rust: 1.38.0
+      env: TARGET=x86_64-unknown-linux-gnu
+
+    - rust: 1.39.0
       env: TARGET=x86_64-unknown-linux-gnu
 
     # Android
