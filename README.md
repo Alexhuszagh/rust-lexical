@@ -127,7 +127,7 @@ Ideally, Lexical's float-parsing algorithm or approach would be incorporated int
 
 Lexical is tested to work from Rustc versions of 1.37-stable, and should work on newer versions as well. Please report any errors compiling lexical for any Rust compiler 1.37.0 or later. Any changes in Rustc version support will always incur a major version change.
 
-Version 4.x is that last to support Rustc 1.24.0-1.36.0.
+v4.0.1 is the last version to support Rustc 1.24.0-1.36.0.
 
 # Changelog
 
