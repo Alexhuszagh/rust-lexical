@@ -10,8 +10,8 @@ fn main() {
     // VERSIONS
     // --------
 
-    // We need at minimum version 1.36.0.
-    assert!(version >= version_parse("1.36.0"));
+    // We need at minimum version 1.37.0.
+    assert!(version >= version_parse("1.37.0"));
 
     // TARGET
     // ------
