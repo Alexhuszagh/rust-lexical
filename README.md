@@ -13,7 +13,7 @@ Fast lexical conversion routines for both std and no_std environments. Lexical p
 - [Benchmarks](#benchmarks)
 - [Documentation](#documentation)
 - [Roadmap](#roadmap)
-- [Version Support](#version-support)
+- [Versioning and Version Support](#versioning-and-version-support)
 - [Changelog](#changelog)
 - [License](#license)
 - [Contributing](#contributing)
@@ -123,11 +123,24 @@ Ideally, Lexical's float-parsing algorithm or approach would be incorporated int
 3. It inlines aggressively, producing significant binary bloat.
 4. It contains effectively dead code for efficient higher-order arbitrary-precision integer algorithms, for rare use-cases requiring asymptotically faster algorithms.
 
-# Version Support
+# Versioning and Version Support
 
-Lexical is tested to work from Rustc versions of 1.37-stable, and should work on newer versions as well. Please report any errors compiling lexical for any Rust compiler 1.37.0 or later. Any changes in Rustc version support will always incur a major version change.
+**Version Support**
 
-v4.0.1 is the last version to support Rustc 1.24.0-1.36.0.
+The currently supported versions are:
+- v5.x
+- v4.x (Maintenace)
+
+**Rustc Compatibility**
+
+v5.x is tested to work on 1.37+, including stable, beta, and nightly.
+v4.x is the last version to support Rustc 1.24+, including stable, beta, and nightly.
+
+Please report any errors compiling a supported lexical version on a compatible Rustc version.
+
+**Versioning**
+
+Lexical uses [semantic versioning](https://semver.org/). Removing support for older Rustc versions is considered an incompatible API change, requiring a major version change.
 
 # Changelog
 
