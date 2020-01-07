@@ -19,7 +19,7 @@ Low-level, lexical conversion routines for use in a `no_std` context. This crate
   - [Arbitrary-Precision Arithmetic](#arbitrary-precision-arithmetic)
   - [Algorithm Background and Comparison](#algorithm-background-and-comparison)
 - [Known Issues](#known-issues)
-- [Version Support](#version-support)
+- [Versioning and Version Support](#versioning-and-version-support)
 - [Changelog](#changelog)
 - [License](#license)
 - [Contributing](#contributing)
@@ -248,15 +248,28 @@ On the ARMVv6 architecture, the stable exponentiation for the fast, incorrect fl
 
 Versions of lexical-core prior to 0.4.3 could round parsed floating-point numbers with an error of up to 1 ULP. This occurred for strings with 16 or more digits and a trailing 0 in the fraction, the `b+h` comparison in the slow-path algorithm incorrectly scales the the theoretical digits due to an over-calculated real exponent. This affects a very small percentage of inputs, however, it is recommended to update immediately.
 
-# Version Support
+# Versioning and Version Support
 
-Lexical-core is tested to work from Rustc versions of 1.37-stable, and should work on newer versions as well. Please report any errors compiling lexical for any Rust compiler 1.37.0 or later. Any changes in Rustc version support will always incur a major (pre-1.0, a minor) version change.
+**Version Support**
 
-v0.6.3 is the last version to support Rustc 1.24.0-1.36.0.
+The currently supported versions are:
+- v0.7.x
+- v0.6.x (Maintenace)
+
+**Rustc Compatibility**
+
+v0.7.x supports 1.37+, including stable, beta, and nightly.
+v0.6.x supports Rustc 1.24+, including stable, beta, and nightly.
+
+Please report any errors compiling a supported lexical-core version on a compatible Rustc version.
+
+**Versioning**
+
+Lexical-core uses [semantic versioning](https://semver.org/). Removing support for older Rustc versions is considered an incompatible API change, requiring a major version change.
 
 # Changelog
 
-All changes since 2.2.0 are documented in [CHANGELOG](CHANGELOG).
+All changes since 0.4.1 are documented in [CHANGELOG](CHANGELOG).
 
 # License
 
