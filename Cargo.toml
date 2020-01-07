@@ -126,26 +126,32 @@ required-features = ["comprehensive_float_test"]
 
 [[bench]]
 name = "atof"
+path = "benches/atof.rs"
 harness = false
 
 [[bench]]
 name = "atof_malicious"
+path = "benches/atof_malicious.rs"
 harness = false
 
 [[bench]]
 name = "atof_real"
+path = "benches/atof_real.rs"
 harness = false
 
 [[bench]]
 name = "atoi"
+path = "benches/atoi.rs"
 harness = false
 
 [[bench]]
 name = "itoa"
+path = "benches/itoa.rs"
 harness = false
 
 [[bench]]
 name = "ftoa"
+path = "benches/ftoa.rs"
 harness = false
 
 [profile.dev]
