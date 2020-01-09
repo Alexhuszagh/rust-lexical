@@ -19,4 +19,4 @@ If applicable to the issue, here are a few things you should provide to help me 
 Please include a clear and concise description of the issue.
 
 ## Additional Context
-Add any other context or screenshots about the feature request here.
+Add any other context or screenshots about the issue here.
