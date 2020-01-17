@@ -23,11 +23,11 @@
 //! let r = lexical_core::parse::<u8>(b"1a5"); // Err(ErrorCode::InvalidDigit.into())
 //!
 //! // In order to extract and parse a number from a substring of the input
-//! // data, use `parse_partial`. These functions return the parsed value and 
-//! // the number of processed digits, allowing you to extract and parse the 
+//! // data, use `parse_partial`. These functions return the parsed value and
+//! // the number of processed digits, allowing you to extract and parse the
 //! // number in a single pass.
 //! let r = lexical_core::parse_partial::<i8>(b"3a5"); // Ok((3, 1))
-//! 
+//!
 //! // If an insufficiently long buffer is passed, the serializer will panic.
 //! // PANICS
 //! let mut buf = [b'0'; 1];
@@ -122,7 +122,6 @@
 extern crate cfg_if;
 
 #[cfg(feature = "correct")]
-#[allow(unused_imports)]    // Not used before 1.26.
 #[macro_use]
 extern crate static_assertions;
 
