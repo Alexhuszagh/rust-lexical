@@ -1,6 +1,7 @@
 //! Specialized float parsers for different formats.
 
 use crate::atof::algorithm::state::FloatState1;
+use crate::lib::slice;
 use super::consume::*;
 use super::exponent::*;
 use super::result::*;
@@ -17,9 +18,9 @@ use super::validate::*;
 /// The requirements:
 ///     1). Must contain significant digits.
 ///     2). Must contain exponent digits if an exponent is present.
-pub(crate) struct Standard;
+pub(crate) struct StandardParser;
 
-impl FormatParser for Standard {
+impl FormatParser for StandardParser {
     perftools_inline!{
     fn consume_digits<'a>(
         digits: &'a [u8],
@@ -64,12 +65,47 @@ impl FormatParser for Standard {
     }}
 
     perftools_inline!{
-    fn trim(
-        state: &mut FloatState1,
-        digit_separator: u8
+    fn ltrim<'a>(bytes: &'a [u8], digit_separator: u8) -> (&'a [u8], usize) {
+        ltrim_no_separator(bytes, digit_separator)
+    }}
+
+    perftools_inline!{
+    fn rtrim<'a>(bytes: &'a [u8], digit_separator: u8) -> (&'a [u8], usize) {
+        rtrim_no_separator(bytes, digit_separator)
+    }}
+}
+
+/// Standard float iterator.
+///
+/// Guaranteed to parse `FloatFormat::RUST_STRING`, and
+/// therefore will track that exact specification.
+///
+/// The requirements:
+///     1). Does not contain any digit separators
+pub(crate) struct StandardIterator;
+
+impl<'a> FormatIterator<'a> for StandardIterator {
+    type IntegerIter = slice::Iter<'a, u8>;
+    type FractionIter = slice::Iter<'a, u8>;
+
+    perftools_inline!{
+    fn integer_iter(
+        integer: &'a [u8],
+        _: u8
     )
+        -> Self::IntegerIter
     {
-        trim_no_separator(state, digit_separator);
+        integer.iter()
+    }}
+
+    perftools_inline!{
+    fn fraction_iter(
+        fraction: &'a [u8],
+        _: u8
+    )
+        -> Self::FractionIter
+    {
+        fraction.iter()
     }}
 }
 
@@ -83,7 +119,7 @@ mod tests {
 
     #[test]
     fn standard_parse_test() {
-        Standard::run_tests([
+        StandardParser::run_tests([
             // Valid
             ("1.2345", Ok((b!("1"), b!("2345"), b!(""), 0).into())),
             ("12.345", Ok((b!("12"), b!("345"), b!(""), 0).into())),

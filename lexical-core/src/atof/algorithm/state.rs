@@ -1,6 +1,5 @@
 //! Stores the current state of the parsed float.
 
-use crate::util::*;
 use super::format::*;
 
 cfg_if! {
@@ -44,18 +43,15 @@ impl<'a> FloatState1<'a> {
         -> ParseResult<*const u8>
     {
         // TODO(ahuszagh) Change depending on the format.
-        Standard::parse(self, bytes, radix, b'\x00')
+        StandardParser::parse(self, bytes, radix, b'\x00')
     }}
 
     // Process the float state for the moderate or slow atof processor.
     perftools_inline!{
     #[cfg(feature = "correct")]
     pub(crate) fn process(self, truncated: usize) -> FloatState2<'a> {
-        let digits_start = match self.integer.len() {
-            0 => ltrim_char_slice(self.fraction, b'0').1,
-            _ => 0,
-        };
-
+        // TODO(ahuszagh) Change depending on the format.
+        let digits_start = StandardParser::digits_start(self.integer, self.fraction, b'\x00');
         (self.integer, self.fraction, digits_start, truncated, self.raw_exponent).into()
     }}
 }
@@ -95,52 +91,38 @@ pub(crate) struct FloatState2<'a> {
 
 #[cfg(feature = "correct")]
 impl<'a> FloatState2<'a> {
-    /// Get the length of the integer substring.
-    perftools_inline!{
-    pub(crate) fn integer_len(&self) -> usize {
-        // TODO(ahuszagh) This is going to need to consider formats.
-        self.integer.len()
-    }}
-
     /// Get number of parsed integer digits.
     perftools_inline!{
     pub(crate) fn integer_digits(&self) -> usize {
-        self.integer_len()
+        self.integer_iter().count()
     }}
 
     /// Iterate over the integer digits.
     perftools_inline!{
     pub(crate) fn integer_iter(&self) -> SliceIter<u8> {
         // TODO(ahuszagh) This is going to need to consider formats.
-        self.integer.iter()
+        StandardIterator::integer_iter(self.integer, b'\x00')
     }}
 
-    /// Get the length of the fraction substring.
+    /// Get the total number of digits in the fraction substring.
     perftools_inline!{
-    pub(crate) fn fraction_len(&self) -> usize {
-        // TODO(ahuszagh) This is going to need to consider formats.
-        self.fraction.len()
+    pub(crate) fn total_fraction_digits(&self) -> usize {
+        // TODO(ahuszagh) Change depending on the format.
+        StandardIterator::fraction_iter(self.fraction, b'\x00').count()
     }}
 
     /// Iterate over the fraction digits.
     perftools_inline!{
     pub(crate) fn fraction_digits(&self) -> usize {
-        // TODO(ahuszagh) This is going to need to consider formats.
-        self.fraction_len() - self.digits_start
+        self.fraction_iter().count()
     }}
 
     /// Iterate over the digits, by chaining two slices.
     perftools_inline!{
     pub(crate) fn fraction_iter(&self) -> SliceIter<u8> {
         // TODO(ahuszagh) This is going to need to consider formats.
-        // We need to rtrim the zeros in the slice fraction.
-        // These are useless and just add computational complexity later,
-        // just like leading zeros in the integer.
-        // We need them to calculate the number of truncated bytes,
-        // but we should remove them before doing anything costly.
-        // In practice, we only call `mantissa_iter()` once per parse,
-        // so this is effectively free.
-        self.fraction[self.digits_start..].iter()
+        let fraction = &self.fraction[self.digits_start..];
+        StandardIterator::fraction_iter(fraction, b'\x00')
     }}
 
     /// Get the number of digits in the mantissa.
@@ -165,7 +147,7 @@ impl<'a> FloatState2<'a> {
     /// Get the mantissa exponent from the raw exponent.
     perftools_inline!{
     pub(crate) fn mantissa_exponent(&self) -> i32 {
-        mantissa_exponent(self.raw_exponent, self.fraction_len(), self.truncated_digits())
+        mantissa_exponent(self.raw_exponent, self.total_fraction_digits(), self.truncated_digits())
     }}
 
     /// Get the scientific exponent from the raw exponent.
@@ -201,10 +183,9 @@ mod tests {
     fn float_state_test() {
         // Check "1.2345", simple.
         let state: FloatState2 = (b!("1"), b!("2345"), 0, 0, 0).into();
-        assert_eq!(state.integer_len(), 1);
         assert_eq!(state.integer_digits(), 1);
         assert!(state.integer_iter().eq(b"1".iter()));
-        assert_eq!(state.fraction_len(), 4);
+        assert_eq!(state.total_fraction_digits(), 4);
         assert_eq!(state.fraction_digits(), 4);
         assert!(state.fraction_iter().eq(b"2345".iter()));
         assert_eq!(state.mantissa_exponent(), -4);
@@ -215,10 +196,9 @@ mod tests {
 
         // Check "0.12345", simple.
         let state: FloatState2 = (b!(""), b!("12345"), 0, 0, 0).into();
-        assert_eq!(state.integer_len(), 0);
         assert_eq!(state.integer_digits(), 0);
         assert!(state.integer_iter().eq(b"".iter()));
-        assert_eq!(state.fraction_len(), 5);
+        assert_eq!(state.total_fraction_digits(), 5);
         assert_eq!(state.fraction_digits(), 5);
         assert!(state.fraction_iter().eq(b"12345".iter()));
         assert_eq!(state.mantissa_exponent(), -5);
