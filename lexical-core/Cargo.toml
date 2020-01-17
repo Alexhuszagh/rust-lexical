@@ -29,6 +29,7 @@ exclude = [
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
+bitflags = "1.2"
 cfg-if = "=0.1.9"
 static_assertions = "0.3.3"
 # Use arrayvec for the correct parser.
@@ -50,6 +51,8 @@ rustc_version = "0.2"
 default = ["correct", "ryu", "std"]
 # Use the correct atof parser.
 correct = ["arrayvec", "table"]
+# Add support for different float string formats.
+format = []
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["dtoa"]
 # Add support for parsing non-decimal float and integer strings.

@@ -165,6 +165,7 @@ pub fn get_exponent_default_char() -> u8
 /// # Safety
 ///
 /// Do not call this function in threaded-code, as it is not thread-safe.
+/// Do not call this function after compiling any formats.
 ///
 /// # Panics
 ///
@@ -202,6 +203,7 @@ pub fn get_exponent_backup_char() -> u8
 /// # Safety
 ///
 /// Do not call this function in threaded-code, as it is not thread-safe.
+/// Do not call this function after compiling any formats.
 ///
 /// # Panics
 ///
