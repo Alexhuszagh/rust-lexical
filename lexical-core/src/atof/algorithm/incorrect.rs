@@ -1,9 +1,9 @@
 //! Incorrect, fast algorithms for string-to-float conversions.
 
-use atoi;
-use util::*;
-use super::state::RawFloatState;
-use lib::result::Result as StdResult;
+use crate::atoi;
+use crate::util::*;
+use super::state::FloatState1;
+use crate::lib::result::Result as StdResult;
 
 // FRACTION
 
@@ -11,7 +11,7 @@ type Wrapped<F> = WrappedFloat<F>;
 
 // Process the integer component of the raw float.
 perftools_inline!{
-fn process_integer<F: StablePower>(state: &RawFloatState, radix: u32)
+fn process_integer<F: StablePower>(state: &FloatState1, radix: u32)
     -> F
 {
     match state.integer.len() {
@@ -27,7 +27,7 @@ fn process_integer<F: StablePower>(state: &RawFloatState, radix: u32)
 
 // Process the fraction component of the raw float.
 perftools_inline!{
-fn process_fraction<F: StablePower>(state: &RawFloatState, radix: u32)
+fn process_fraction<F: StablePower>(state: &FloatState1, radix: u32)
     -> F
 {
     match state.fraction.len() {
@@ -57,7 +57,7 @@ perftools_inline!{
 fn to_native<F: StablePower>(bytes: &[u8], radix: u32)
     -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
 {
-    let mut state = RawFloatState::new();
+    let mut state = FloatState1::new();
     let ptr = state.parse(bytes, radix)?;
 
     let integer: F = process_integer(&state, radix);
@@ -112,9 +112,9 @@ mod tests {
     use super::*;
 
     fn new_state<'a>(integer: &'a [u8], fraction: &'a [u8], exponent: &'a [u8], raw_exponent: i32)
-        -> RawFloatState<'a>
+        -> FloatState1<'a>
     {
-        RawFloatState { integer, fraction, exponent, raw_exponent }
+        FloatState1 { integer, fraction, exponent, raw_exponent }
     }
 
     #[test]
