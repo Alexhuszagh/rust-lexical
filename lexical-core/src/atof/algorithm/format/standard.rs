@@ -1,68 +1,127 @@
 //! Specialized float parsers for different formats.
 
-use crate::atoi;
-use crate::util::*;
-use crate::lib::slice;
-use crate::lib::result::Result as StdResult;
-use crate::atof::algorithm::state::RawFloatState;
-use super::shared::*;
+use crate::atof::algorithm::state::FloatState1;
+use super::consume::*;
+use super::exponent::*;
+use super::result::*;
+use super::traits::*;
+use super::trim::*;
+use super::validate::*;
 
-pub(in crate::atof::algorithm) struct Standard;
+
+/// Standard float parser.
+///
+/// Guaranteed to parse `FloatFormat::RUST_STRING`, and
+/// therefore will track that exact specification.
+///
+/// The requirements:
+///     1). Must contain significant digits.
+///     2). Must contain exponent digits if an exponent is present.
+pub(crate) struct Standard;
 
 impl FormatParser for Standard {
-    // Consume until a non-digit character is found.
     perftools_inline!{
-    fn consume_digits<'a>(digits: &'a [u8], radix: u32, _: u8)
+    fn consume_digits<'a>(
+        digits: &'a [u8],
+        radix: u32,
+        character_separator: u8
+    )
         -> (&'a [u8], &'a [u8])
     {
-        match digits.iter().position(|&c| !is_digit(c, radix)) {
-            Some(v) => (&digits[..v], &digits[v..]),
-            None    => (&digits[..], &digits[digits.len()..]),
-        }
+        consume_digits_no_separator(digits, radix, character_separator)
     }}
 
-    // Extract and parse the exponent substring from the float.
-    //
-    //  This validates that the exponent is non-empty.
     perftools_inline!{
-    fn parse_exponent<'a>(state: &mut RawFloatState<'a>, bytes: &'a [u8], radix: u32, _: u8)
-        -> StdResult<&'a [u8] , (ErrorCode, *const u8)>
+    fn parse_exponent<'a>(
+        state: &mut FloatState1<'a>,
+        bytes: &'a [u8],
+        radix: u32,
+        character_separator: u8
+    )
+        -> ParseResult<&'a [u8]>
     {
-        // TODO(ahuszagh)
-        //  This throws an error with an invalid result, without the
-        //  exponent required digits, just always return a value.
-        //  Sacrifices performance in the poor case for good performance
-        //  in the common case.
-        let digits = &index!(bytes[1..]);
-        let (exp, ptr) = atoi::standalone_exponent(digits, radix)?;
-        let first = digits.as_ptr();
-        let last = index!(digits[digits.len()..]).as_ptr();
-        state.exponent = unsafe { slice::from_raw_parts(first, distance(first, last)) };
-        state.raw_exponent = exp;
-        Ok(unsafe { slice::from_raw_parts(ptr, distance(ptr, last)) })
+        parse_required_no_separator(state, bytes, radix, character_separator)
     }}
 
-    // Validate the extracted float components.
-    //      1. Validate all integer characters are digits.
-    //      2. Validate all fraction characters are digits.
-    //      3. Validate non-empty significant digits (integer or fraction).
     perftools_inline!{
-    fn validate(state: &RawFloatState, bytes: &[u8], _: u8)
-        -> StdResult<(), (ErrorCode, *const u8)>
+    fn validate_mantissa(
+        state: &FloatState1,
+        character_separator: u8
+    )
+        -> ParseResult<()>
     {
-        // Do a simple verification of the parsed data.
-        if state.integer.len().is_zero() && state.fraction.len().is_zero() {
-            // Invalid floating-point number, no integer or fraction components.
-            Err((ErrorCode::EmptyFraction, bytes.as_ptr()))
-        } else {
-            Ok(())
-        }
+        validate_required_digits_no_separator(state, character_separator)
     }}
 
-    // Post-process float to trim leading and trailing 0s and digit separators.
     perftools_inline!{
-    fn trim(state: &mut RawFloatState, _: u8) {
-        state.integer = ltrim_0!(state.integer).0;
-        state.fraction = rtrim_0!(state.fraction).0;
+    fn validate_exponent(
+        state: &FloatState1,
+        character_separator: u8
+    )
+        -> ParseResult<()>
+    {
+        validate_required_exponent_no_separator(state, character_separator)
     }}
+
+    perftools_inline!{
+    fn trim(
+        state: &mut FloatState1,
+        digit_separator: u8
+    )
+    {
+        trim_no_separator(state, digit_separator);
+    }}
+}
+
+// TESTS
+// -----
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::util::*;
+
+    #[test]
+    fn standard_parse_test() {
+        Standard::run_tests([
+            // Valid
+            ("1.2345", Ok((b!("1"), b!("2345"), b!(""), 0).into())),
+            ("12.345", Ok((b!("12"), b!("345"), b!(""), 0).into())),
+            ("12345.6789", Ok((b!("12345"), b!("6789"), b!(""), 0).into())),
+            ("1.2345e10", Ok((b!("1"), b!("2345"), b!("10"), 10).into())),
+            ("1.2345e+10", Ok((b!("1"), b!("2345"), b!("+10"), 10).into())),
+            ("1.2345e-10", Ok((b!("1"), b!("2345"), b!("-10"), -10).into())),
+            ("100000000000000000000", Ok((b!("100000000000000000000"), b!(""), b!(""), 0).into())),
+            ("100000000000000000001", Ok((b!("100000000000000000001"), b!(""), b!(""), 0).into())),
+            ("179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", Ok((b!("179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791"), b!("9999999999999999999999999999999999999999999999999999999999999999999999"), b!(""), 0).into())),
+            ("1009e-31", Ok((b!("1009"), b!(""), b!("-31"), -31).into())),
+            ("001.0", Ok((b!("1"), b!(""), b!(""), 0).into())),
+            ("1.", Ok((b!("1"), b!(""), b!(""), 0).into())),
+            ("12.", Ok((b!("12"), b!(""), b!(""), 0).into())),
+            ("1234567.", Ok((b!("1234567"), b!(""), b!(""), 0).into())),
+            (".1", Ok((b!(""), b!("1"), b!(""), 0).into())),
+            (".12", Ok((b!(""), b!("12"), b!(""), 0).into())),
+            (".1234567", Ok((b!(""), b!("1234567"), b!(""), 0).into())),
+
+            // Invalid
+            ("1.2345e", Err(ErrorCode::EmptyExponent)),
+            ("", Err(ErrorCode::EmptyFraction)),
+            ("+", Err(ErrorCode::EmptyFraction)),
+            ("-", Err(ErrorCode::EmptyFraction)),
+            (".", Err(ErrorCode::EmptyFraction)),
+            ("+.", Err(ErrorCode::EmptyFraction)),
+            ("-.", Err(ErrorCode::EmptyFraction)),
+            ("e", Err(ErrorCode::EmptyFraction)),
+            ("E", Err(ErrorCode::EmptyFraction)),
+            ("e1", Err(ErrorCode::EmptyFraction)),
+            ("e+1", Err(ErrorCode::EmptyFraction)),
+            ("e-1", Err(ErrorCode::EmptyFraction)),
+            (".e", Err(ErrorCode::EmptyFraction)),
+            (".E", Err(ErrorCode::EmptyFraction)),
+            (".e1", Err(ErrorCode::EmptyFraction)),
+            (".e+1", Err(ErrorCode::EmptyFraction)),
+            (".e-1", Err(ErrorCode::EmptyFraction)),
+            (".3e", Err(ErrorCode::EmptyExponent))
+        ].iter().map(|x| (x.0, b'\x00', &x.1)));
+    }
 }

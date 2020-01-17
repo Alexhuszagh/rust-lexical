@@ -12,7 +12,7 @@ use super::bhcomp;
 use super::cached::ModeratePathCache;
 use super::errors::FloatErrors;
 use super::exponent::*;
-use super::state::{FloatState, RawFloatState};
+use super::state::{FloatState1, FloatState2};
 use super::small_powers::get_small_powers_64;
 use crate::lib::result::Result as StdResult;
 
@@ -22,7 +22,7 @@ use crate::lib::result::Result as StdResult;
 // Parse the raw float state into a mantissa, calculating the number
 // of truncated digits and the offset.
 perftools_inline!{
-fn process_mantissa<'a, M: Mantissa>(state: &RawFloatState<'a>, radix: u32)
+fn process_mantissa<'a, M: Mantissa>(state: &FloatState1<'a>, radix: u32)
     -> (M, usize)
 {
     atoi::standalone_mantissa(state.integer, state.fraction, radix)
@@ -263,7 +263,7 @@ pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, trunca
 
 /// Fallback method. Do not inline so the stack requirements only occur
 /// if required.
-fn pown_fallback<'a, F>(state: FloatState, mantissa: u64, radix: u32, lossy: bool, sign: Sign)
+fn pown_fallback<'a, F>(state: FloatState2, mantissa: u64, radix: u32, lossy: bool, sign: Sign)
     -> F
     where F: FloatType
 {
@@ -295,7 +295,7 @@ fn pown_to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
     where F: FloatType
 {
     // Parse the mantissa and exponent.
-    let mut state = RawFloatState::new();
+    let mut state = FloatState1::new();
     let ptr = state.parse(bytes, radix)?;
     let (mantissa, truncated) = process_mantissa::<u64>(&state, radix);
 
@@ -331,7 +331,7 @@ fn pow2_to_native<F>(bytes: &[u8], radix: u32, pow2_exp: i32, sign: Sign)
     where F: FloatType
 {
     // Parse the mantissa and exponent.
-    let mut state = RawFloatState::new();
+    let mut state = FloatState1::new();
     let ptr = state.parse(bytes, radix)?;
     let (mut mantissa, truncated) = process_mantissa::<u64>(&state, radix);
 
@@ -466,9 +466,9 @@ mod tests {
     use super::*;
 
     fn new_state<'a>(integer: &'a [u8], fraction: &'a [u8], exponent: &'a [u8], raw_exponent: i32)
-        -> RawFloatState<'a>
+        -> FloatState1<'a>
     {
-        RawFloatState { integer, fraction, exponent, raw_exponent }
+        FloatState1 { integer, fraction, exponent, raw_exponent }
     }
 
     #[test]

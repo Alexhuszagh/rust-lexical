@@ -737,7 +737,7 @@ bitflags! {
     ///
     /// This is used to derive the high-level bitflags.The default
     /// representation has no digit separators, no required integer or
-    /// fraction, a required exponent, and no digit separators.
+    /// fraction digits, required exponent digits, and no digit separators.
     ///
     /// Bit Flags Layout
     /// ----------------
@@ -781,6 +781,17 @@ bitflags! {
     ///     F/C = Fraction consecutive digit separator.
     ///     E/C = Exponent consecutive digit separator.
     /// ```
+    ///
+    /// Note:
+    /// -----
+    ///
+    /// In order to limit the format specification and avoid parsing
+    /// non-float data, all float formats require some significant digits.
+    ///  Examples of always invalid floats include:
+    /// - ``
+    /// - `.`
+    /// - `e`
+    /// - `e7`
     ///
     /// Test Cases:
     /// -----------

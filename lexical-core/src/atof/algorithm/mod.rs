@@ -1,6 +1,7 @@
 //! Algorithms for parsing strings to floats.
 
 // Hide implementation details.
+mod format;
 mod state;
 
 cfg_if! {
@@ -14,7 +15,6 @@ mod cached_float80;
 mod cached_float160;
 mod errors;
 mod exponent;
-mod format;
 mod large_powers;
 mod math;
 mod small_powers;

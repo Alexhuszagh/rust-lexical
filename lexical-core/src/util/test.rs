@@ -86,6 +86,13 @@ pub(crate) fn deduce_from_u32<T: CloneableVecLike<u64>>(x: &[u32]) -> T
 
 }}  // cfg_if
 
+// LITERAL BYTE SLICES
+
+/// Create a literal byte slice.
+macro_rules! b {
+    ($l:expr) => ($l.as_bytes());
+}
+
 // FLOATING-POINT EQUALITY
 
 cfg_if! {
