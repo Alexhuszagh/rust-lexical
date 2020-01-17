@@ -12,7 +12,7 @@ use lib::cmp;
 use util::*;
 use super::alias::*;
 use super::bignum::*;
-use super::state::FloatState;
+use super::state::FloatState2;
 use super::exponent::*;
 use super::math::*;
 
@@ -226,13 +226,13 @@ pub(super) fn compare_digits<'a, Iter>(mut digits: Iter, radix: u32, mut num: Bi
 /// Generate the correct representation from a halfway representation.
 ///
 /// The digits iterator must not have any trailing zeros (true for
-/// `FloatState`).
+/// `FloatState2`).
 ///
 /// * `digits`          - Actual digits from the mantissa.
 /// * `radix`           - Radix for the number parsing.
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
 /// * `f`               - Sub-halfway (`b`) float.
-pub(super) fn atof<F>(state: FloatState, radix: u32, f: F, kind: RoundingKind)
+pub(super) fn atof<F>(state: FloatState2, radix: u32, f: F, kind: RoundingKind)
     -> F
     where F: FloatType
 {
