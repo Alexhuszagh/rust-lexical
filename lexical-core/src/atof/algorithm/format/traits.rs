@@ -45,13 +45,11 @@ pub(crate) trait FormatParser {
         digit_separator: u8
     ) -> ParseResult<()>;
 
-    // Post-process float to trim leading and trailing 0s and digit separators.
-    // This is required for accurate results in the slow-path algorithm,
-    // otherwise, we may incorrect guess the mantissa or scientific exponent.
-    fn trim(
-        state: &mut FloatState1,
-        digit_separator: u8
-    );
+    // Trim leading 0s and digit separators.
+    fn ltrim<'a>(bytes: &'a [u8], digit_separator: u8) -> (&'a [u8], usize);
+
+    // Trim trailing 0s and digit separators.
+    fn rtrim<'a>(bytes: &'a [u8], digit_separator: u8) -> (&'a [u8], usize);
 
     // IMPLEMENTED
 
@@ -89,6 +87,15 @@ pub(crate) trait FormatParser {
         result.1
     }}
 
+    // Post-process float to trim leading and trailing 0s and digit separators.
+    // This is required for accurate results in the slow-path algorithm,
+    // otherwise, we may incorrect guess the mantissa or scientific exponent.
+    perftools_inline!{
+    fn trim(state: &mut FloatState1, digit_separator: u8) {
+        state.integer = Self::ltrim(state.integer, digit_separator).0;
+        state.fraction = Self::rtrim(state.fraction, digit_separator).0;
+    }}
+
     // Parse the float state from raw bytes.
     perftools_inline!{
     fn parse<'a>(
@@ -124,6 +131,16 @@ pub(crate) trait FormatParser {
         Ok(digits.as_ptr())
     }}
 
+    // Calculate the digit start from the integer and fraction slices.
+    perftools_inline!{
+    #[cfg(feature = "correct")]
+    fn digits_start<'a>(integer: &'a [u8], fraction: &'a [u8], digit_separator: u8) -> usize {
+        match integer.len() {
+            0 => Self::ltrim(fraction, digit_separator).1,
+            _ => 0,
+        }
+    }}
+
     // TESTS
 
     /// Check the float state parses the desired data.
@@ -157,4 +174,29 @@ pub(crate) trait FormatParser {
             Self::check_parse(value.0.as_bytes(), 10, value.1, &value.2);
         }
     }
+}
+
+/// Generic trait to implement a specialized float iterator.
+pub(crate) trait FormatIterator<'a> {
+    /// Integer iterator type.
+    type IntegerIter: Iterator<Item=&'a u8>;
+    type FractionIter: Iterator<Item=&'a u8>;
+
+    /// Iterate over the integer digits.
+    /// This should ignore any digit separator characters, since the
+    /// input has previously been validated.
+    fn integer_iter(
+        integer: &'a [u8],
+        digit_separator: u8
+    ) -> Self::IntegerIter;
+
+    /// Iterate over the fraction digits.
+    /// This should ignore any digit separator characters, since the
+    /// input has previously been validated.
+    fn fraction_iter(
+        integer: &'a [u8],
+        digit_separator: u8
+    ) -> Self::FractionIter;
+
+    // TODO(ahuszagh) Implement...
 }
