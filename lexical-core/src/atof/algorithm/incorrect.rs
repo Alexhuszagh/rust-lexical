@@ -63,8 +63,8 @@ fn to_native<F: StablePower>(bytes: &[u8], radix: u32)
     let integer: F = process_integer(&state, radix);
     let fraction: F = process_fraction(&state, radix);
     let mut value = integer + fraction;
-    if !state.exponent.is_zero() && !value.is_zero() {
-        value = value.iterative_pow(radix, state.exponent);
+    if !state.raw_exponent.is_zero() && !value.is_zero() {
+        value = value.iterative_pow(radix, state.raw_exponent);
     }
     Ok((value, ptr))
 }}
@@ -111,24 +111,24 @@ pub(crate) fn atod_lossy<'a>(bytes: &'a [u8], radix: u32, _: Sign)
 mod tests {
     use super::*;
 
-    fn new_state<'a>(integer: &'a [u8], fraction: &'a [u8], exponent: i32)
+    fn new_state<'a>(integer: &'a [u8], fraction: &'a [u8], exponent: &'a [u8], raw_exponent: i32)
         -> RawFloatState<'a>
     {
-        RawFloatState { integer, fraction, exponent }
+        RawFloatState { integer, fraction, exponent, raw_exponent }
     }
 
     #[test]
     fn process_integer_test() {
-        assert_eq!(1.0, process_integer::<f64>(&new_state(b"1", b"2345", 0), 10));
-        assert_eq!(12.0, process_integer::<f64>(&new_state(b"12", b"345", 0), 10));
-        assert_eq!(12345.0, process_integer::<f64>(&new_state(b"12345", b"6789", 0), 10));
+        assert_eq!(1.0, process_integer::<f64>(&new_state(b"1", b"2345", b"", 0), 10));
+        assert_eq!(12.0, process_integer::<f64>(&new_state(b"12", b"345", b"", 0), 10));
+        assert_eq!(12345.0, process_integer::<f64>(&new_state(b"12345", b"6789", b"", 0), 10));
     }
 
     #[test]
     fn process_fraction_test() {
-        assert_eq!(0.2345, process_fraction::<f64>(&new_state(b"1", b"2345",0), 10));
-        assert_eq!(0.345, process_fraction::<f64>(&new_state(b"12", b"345",0), 10));
-        assert_eq!(0.6789, process_fraction::<f64>(&new_state(b"12345", b"6789",0), 10));
+        assert_eq!(0.2345, process_fraction::<f64>(&new_state(b"1", b"2345", b"", 0), 10));
+        assert_eq!(0.345, process_fraction::<f64>(&new_state(b"12", b"345", b"", 0), 10));
+        assert_eq!(0.6789, process_fraction::<f64>(&new_state(b"12345", b"6789", b"", 0), 10));
     }
 
     #[test]

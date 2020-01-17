@@ -307,7 +307,7 @@ fn pown_to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
         F::ZERO
     } else if truncated.is_zero() {
         // Try the fast path, no mantissa truncation.
-        let mant_exp = mantissa_exponent(state.exponent, state.fraction.len(), 0);
+        let mant_exp = mantissa_exponent(state.raw_exponent, state.fraction.len(), 0);
         if let Some(float) = fast_path::<F>(mantissa, radix, mant_exp) {
             float
         } else {
@@ -380,7 +380,7 @@ fn pow2_to_native<F>(bytes: &[u8], radix: u32, pow2_exp: i32, sign: Sign)
         fp.into_rounded_float_impl::<F>(kind)
     } else {
         // Nothing above the hidden bit, so no rounding-error, can use the fast path.
-        let mant_exp = mantissa_exponent(state.exponent, state.fraction.len(), 0);
+        let mant_exp = mantissa_exponent(state.raw_exponent, state.fraction.len(), 0);
         pow2_fast_path(mantissa, radix, pow2_exp, mant_exp)
     };
     Ok((float, ptr))
@@ -465,31 +465,31 @@ mod tests {
     use util::test::*;
     use super::*;
 
-    fn new_state<'a>(integer: &'a [u8], fraction: &'a [u8], exponent: i32)
+    fn new_state<'a>(integer: &'a [u8], fraction: &'a [u8], exponent: &'a [u8], raw_exponent: i32)
         -> RawFloatState<'a>
     {
-        RawFloatState { integer, fraction, exponent }
+        RawFloatState { integer, fraction, exponent, raw_exponent }
     }
 
     #[test]
     fn process_mantissa_test() {
         // 64-bits
-        assert_eq!((12345, 0), process_mantissa::<u64>(&new_state(b"1", b"2345", 0), 10));
-        assert_eq!((12345, 0), process_mantissa::<u64>(&new_state(b"12", b"345", 0), 10));
-        assert_eq!((123456789, 0), process_mantissa::<u64>(&new_state(b"12345", b"6789", 0), 10));
-        assert_eq!((12345, 0), process_mantissa::<u64>(&new_state(b"1", b"2345", 10), 10));
-        assert_eq!((10000000000000000000, 1), process_mantissa::<u64>(&new_state(b"100000000000000000000", b"", 0), 10));
-        assert_eq!((10000000000000000000, 1), process_mantissa::<u64>(&new_state(b"100000000000000000001", b"", 0), 10));
-        assert_eq!((17976931348623158079, 359), process_mantissa::<u64>(&new_state(b"179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791", b"9999999999999999999999999999999999999999999999999999999999999999999999", 0), 10));
-        assert_eq!((1009, 0), process_mantissa::<u64>(&new_state(b"1009", b"", -31), 10));
+        assert_eq!((12345, 0), process_mantissa::<u64>(&new_state(b"1", b"2345", b"", 0), 10));
+        assert_eq!((12345, 0), process_mantissa::<u64>(&new_state(b"12", b"345", b"", 0), 10));
+        assert_eq!((123456789, 0), process_mantissa::<u64>(&new_state(b"12345", b"6789", b"", 0), 10));
+        assert_eq!((12345, 0), process_mantissa::<u64>(&new_state(b"1", b"2345", b"10", 10), 10));
+        assert_eq!((10000000000000000000, 1), process_mantissa::<u64>(&new_state(b"100000000000000000000", b"", b"", 0), 10));
+        assert_eq!((10000000000000000000, 1), process_mantissa::<u64>(&new_state(b"100000000000000000001", b"", b"", 0), 10));
+        assert_eq!((17976931348623158079, 359), process_mantissa::<u64>(&new_state(b"179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791", b"9999999999999999999999999999999999999999999999999999999999999999999999", b"", 0), 10));
+        assert_eq!((1009, 0), process_mantissa::<u64>(&new_state(b"1009", b"", b"", -31), 10));
 
         // 128-bit
-        assert_eq!((12345, 0), process_mantissa::<u128>(&new_state(b"1", b"2345", 0), 10));
-        assert_eq!((12345, 0), process_mantissa::<u128>(&new_state(b"12", b"345", 0), 10));
-        assert_eq!((123456789, 0), process_mantissa::<u128>(&new_state(b"12345", b"6789", 0), 10));
-        assert_eq!((12345, 0), process_mantissa::<u128>(&new_state(b"1", b"2345", 10), 10));
-        assert_eq!((100000000000000000000, 0), process_mantissa::<u128>(&new_state(b"100000000000000000000", b"", 0), 10));
-        assert_eq!((100000000000000000001, 0), process_mantissa::<u128>(&new_state(b"100000000000000000001", b"", 0), 10));
+        assert_eq!((12345, 0), process_mantissa::<u128>(&new_state(b"1", b"2345", b"", 0), 10));
+        assert_eq!((12345, 0), process_mantissa::<u128>(&new_state(b"12", b"345", b"", 0), 10));
+        assert_eq!((123456789, 0), process_mantissa::<u128>(&new_state(b"12345", b"6789", b"", 0), 10));
+        assert_eq!((12345, 0), process_mantissa::<u128>(&new_state(b"1", b"2345", b"10", 10), 10));
+        assert_eq!((100000000000000000000, 0), process_mantissa::<u128>(&new_state(b"100000000000000000000", b"", b"", 0), 10));
+        assert_eq!((100000000000000000001, 0), process_mantissa::<u128>(&new_state(b"100000000000000000001", b"", b"", 0), 10));
     }
 
     #[cfg(feature = "radix")]
