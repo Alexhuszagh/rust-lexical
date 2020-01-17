@@ -37,6 +37,9 @@ mod rounding;
 mod sign;
 mod table;
 
+#[cfg(feature = "format")]
+mod format;
+
 cfg_if! {
 if #[cfg(feature = "correct")] {
     mod bound;
@@ -76,6 +79,9 @@ pub use self::error::*;
 pub use self::num::*;
 pub use self::result::*;
 pub use self::traits::*;
+
+#[cfg(feature = "format")]
+pub use self::format::*;
 
 #[cfg(feature = "rounding")]
 pub use self::rounding::RoundingKind;

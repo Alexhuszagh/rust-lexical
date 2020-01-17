@@ -119,6 +119,10 @@
 
 // DEPENDENCIES
 
+#[cfg(feature = "format")]
+#[macro_use]
+extern crate bitflags;
+
 #[macro_use]
 extern crate cfg_if;
 
