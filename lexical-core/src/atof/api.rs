@@ -220,10 +220,15 @@ mod tests {
         assert_f32_eq!(1234567.0, f32::from_lexical(b"1234567").unwrap());
         assert_f32_eq!(12345678.0, f32::from_lexical(b"12345678").unwrap());
 
-        // No decimal but decimal point test
-        assert_f64_eq!(1.0, f32::from_lexical(b"1.").unwrap());
-        assert_f64_eq!(12.0, f32::from_lexical(b"12.").unwrap());
-        assert_f64_eq!(1234567.0, f32::from_lexical(b"1234567.").unwrap());
+         // No fraction after decimal point test
+        assert_f32_eq!(1.0, f32::from_lexical(b"1.").unwrap());
+        assert_f32_eq!(12.0, f32::from_lexical(b"12.").unwrap());
+        assert_f32_eq!(1234567.0, f32::from_lexical(b"1234567.").unwrap());
+
+        // No integer before decimal point test
+        assert_f32_eq!(0.1, f32::from_lexical(b".1").unwrap());
+        assert_f32_eq!(0.12, f32::from_lexical(b".12").unwrap());
+        assert_f32_eq!(0.1234567, f32::from_lexical(b".1234567").unwrap());
 
         // decimal test
         assert_f32_eq!(123.1, f32::from_lexical(b"123.1").unwrap());
@@ -262,8 +267,8 @@ mod tests {
 
         // Check various expected failures.
         assert_eq!(Err(ErrorCode::Empty.into()), f32::from_lexical(b""));
-        assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), f32::from_lexical(b"e"));
-        assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), f32::from_lexical(b"E"));
+        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f32::from_lexical(b"e"));
+        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f32::from_lexical(b"E"));
         assert_eq!(Err(ErrorCode::EmptyFraction.into()), f32::from_lexical(b".e1"));
         assert_eq!(Err(ErrorCode::EmptyFraction.into()), f32::from_lexical(b".e-1"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f32::from_lexical(b"e1"));
@@ -295,10 +300,15 @@ mod tests {
         assert_f64_eq!(1234567.0, f64::from_lexical(b"1234567").unwrap());
         assert_f64_eq!(12345678.0, f64::from_lexical(b"12345678").unwrap());
 
-        // No decimal but decimal point test
+        // No fraction after decimal point test
         assert_f64_eq!(1.0, f64::from_lexical(b"1.").unwrap());
         assert_f64_eq!(12.0, f64::from_lexical(b"12.").unwrap());
         assert_f64_eq!(1234567.0, f64::from_lexical(b"1234567.").unwrap());
+
+        // No integer before decimal point test
+        assert_f64_eq!(0.1, f64::from_lexical(b".1").unwrap());
+        assert_f64_eq!(0.12, f64::from_lexical(b".12").unwrap());
+        assert_f64_eq!(0.1234567, f64::from_lexical(b".1234567").unwrap());
 
         // decimal test
         assert_f64_eq!(123456789.0, f64::from_lexical(b"123456789").unwrap());
@@ -376,8 +386,8 @@ mod tests {
 
         // Check various expected failures.
         assert_eq!(Err(ErrorCode::Empty.into()), f64::from_lexical(b""));
-        assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), f64::from_lexical(b"e"));
-        assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), f64::from_lexical(b"E"));
+        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"e"));
+        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"E"));
         assert_eq!(Err(ErrorCode::EmptyFraction.into()), f64::from_lexical(b".e1"));
         assert_eq!(Err(ErrorCode::EmptyFraction.into()), f64::from_lexical(b".e-1"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"e1"));
@@ -386,8 +396,8 @@ mod tests {
         // Check various reports from a fuzzer.
         assert_eq!(Err((ErrorCode::EmptyExponent, 2).into()), f64::from_lexical(b"0e"));
         assert_eq!(Err((ErrorCode::EmptyExponent, 4).into()), f64::from_lexical(b"0.0e"));
-        assert_eq!(Err((ErrorCode::EmptyExponent, 2).into()), f64::from_lexical(b".E"));
-        assert_eq!(Err((ErrorCode::EmptyExponent, 2).into()), f64::from_lexical(b".e"));
+        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b".E"));
+        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b".e"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"E2252525225"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"e2252525225"));
         assert_eq!(Ok(f64::INFINITY), f64::from_lexical(b"2E200000000000"));

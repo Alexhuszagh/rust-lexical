@@ -9,7 +9,7 @@ use crate::float::rounding::*;
 use crate::util::*;
 use super::alias::*;
 use super::bigcomp;
-use super::state::FloatState;
+use super::state::FloatState2;
 use super::bignum::Bigint;
 use super::exponent::*;
 use super::math::*;
@@ -53,7 +53,7 @@ macro_rules! add_digits {
 /// Parse the full mantissa into a big integer.
 ///
 /// Max digits is the maximum number of digits plus one.
-pub(super) fn parse_mantissa(state: FloatState, radix: u32, max_digits: usize)
+pub(super) fn parse_mantissa(state: FloatState2, radix: u32, max_digits: usize)
     -> Bigint
 {
     let small_powers = Bigint::small_powers(radix);
@@ -269,7 +269,7 @@ pub(super) fn use_bigcomp(radix: u32, count: usize)
 }}
 
 /// Calculate the mantissa for a big integer with a positive exponent.
-pub(super) fn large_atof<F>(state: FloatState, radix: u32, max_digits: usize, exponent: i32, kind: RoundingKind)
+pub(super) fn large_atof<F>(state: FloatState2, radix: u32, max_digits: usize, exponent: i32, kind: RoundingKind)
     -> F
     where F: FloatType
 {
@@ -293,7 +293,7 @@ pub(super) fn large_atof<F>(state: FloatState, radix: u32, max_digits: usize, ex
 /// Calculate the mantissa for a big integer with a negative exponent.
 ///
 /// This invokes the comparison with `b+h`.
-pub(super) fn small_atof<F>(state: FloatState, radix: u32, max_digits: usize, exponent: i32, f: F, kind: RoundingKind)
+pub(super) fn small_atof<F>(state: FloatState2, radix: u32, max_digits: usize, exponent: i32, f: F, kind: RoundingKind)
     -> F
     where F: FloatType
 {
@@ -348,9 +348,9 @@ pub(super) fn small_atof<F>(state: FloatState, radix: u32, max_digits: usize, ex
 ///
 /// Notes:
 ///     The digits iterator must not have any trailing zeros (true for
-///     `FloatState`).
+///     `FloatState2`).
 ///     sci_exponent and digits.size_hint() must not overflow i32.
-pub(super) fn atof<'a, F>(state: FloatState, radix: u32, f: F, kind: RoundingKind)
+pub(super) fn atof<'a, F>(state: FloatState2, radix: u32, f: F, kind: RoundingKind)
     -> F
     where F: FloatType
 {
