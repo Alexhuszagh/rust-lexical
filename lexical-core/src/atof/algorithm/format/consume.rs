@@ -15,7 +15,7 @@ fn is_digit(c: u8, radix: u32) -> bool {
 // Consume until a non-digit separator is found.
 // Does not consume any digit separators.
 perftools_inline!{
-pub(super) fn consume_digits_no_separator<'a>(digits: &'a [u8], radix: u32, _: u8)
+pub(super) fn consume_digits_no_separator<'a>(digits: &'a [u8], radix: u32)
 -> (&'a [u8], &'a [u8])
 {
     match digits.iter().position(|&c| !is_digit(c, radix)) {
@@ -23,8 +23,6 @@ pub(super) fn consume_digits_no_separator<'a>(digits: &'a [u8], radix: u32, _: u
         None    => (&digits[..], &digits[digits.len()..]),
     }
 }}
-
-// TODO(ahuszagh) Add format-dependent features here....
 
 // TESTS
 // -----
@@ -35,11 +33,11 @@ mod tests {
 
     #[test]
     fn test_consume_digits_no_separator() {
-        assert_eq!(consume_digits_no_separator(b!("123.45"), 10, 0), (b!("123"), b!(".45")));
-        assert_eq!(consume_digits_no_separator(b!("_45"), 10, 0), (b!(""), b!("_45")));
-        assert_eq!(consume_digits_no_separator(b!("1e45"), 10, 0), (b!("1"), b!("e45")));
-        assert_eq!(consume_digits_no_separator(b!("1e"), 10, 0), (b!("1"), b!("e")));
-        assert_eq!(consume_digits_no_separator(b!("1"), 10, 0), (b!("1"), b!("")));
+        assert_eq!(consume_digits_no_separator(b!("123.45"), 10), (b!("123"), b!(".45")));
+        assert_eq!(consume_digits_no_separator(b!("_45"), 10), (b!(""), b!("_45")));
+        assert_eq!(consume_digits_no_separator(b!("1e45"), 10), (b!("1"), b!("e45")));
+        assert_eq!(consume_digits_no_separator(b!("1e"), 10), (b!("1"), b!("e")));
+        assert_eq!(consume_digits_no_separator(b!("1"), 10), (b!("1"), b!("")));
     }
 }
 

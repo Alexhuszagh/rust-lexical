@@ -2,7 +2,7 @@
 
 use crate::atoi;
 use crate::util::*;
-use super::state::FloatState1;
+use super::format::*;
 use crate::lib::result::Result as StdResult;
 
 // FRACTION
@@ -11,60 +11,57 @@ type Wrapped<F> = WrappedFloat<F>;
 
 // Process the integer component of the raw float.
 perftools_inline!{
-fn process_integer<F: StablePower>(state: &FloatState1, radix: u32)
+fn process_integer<'a, F, Data>(data: &Data, radix: u32)
     -> F
+    where F: StablePower,
+          Data: FastDataInterface<'a>
 {
-    match state.integer.len() {
+    match data.integer().len() {
         0 => F::ZERO,
-        // This cannot error, since we cannot overflow and cannot have
-        // invalid digits.
-        _ => atoi::standalone_mantissa::<Wrapped<F>>(state.integer, radix)
-                .unwrap()
-                .0
+        // Cannot overflow and cannot have invalid digits.
+        _ => atoi::standalone_mantissa::<Wrapped<F>, _>(data.integer_iter(), radix)
                 .into_inner()
     }
 }}
 
 // Process the fraction component of the raw float.
 perftools_inline!{
-fn process_fraction<F: StablePower>(state: &FloatState1, radix: u32)
+fn process_fraction<'a, F, Data>(data: &Data, radix: u32)
     -> F
+    where F: StablePower,
+          Data: FastDataInterface<'a>
 {
-    match state.fraction.len() {
-        0 => F::ZERO,
-        _ => {
-            // We don't really care about numerical precision, so just break
-            // the fraction into 12-digit pieces.
-            // 12 is the maximum number of digits we can use without
-            // potentially overflowing  a 36-radix float string.
-            let mut fraction = F::ZERO;
-            let mut digits: i32 = 0;
-            for chunk in state.fraction.chunks(12) {
-                digits = digits.saturating_add(chunk.len().as_i32());
-                // This cannot error, since we have validated digits.
-                let value: u64 = atoi::standalone_mantissa(chunk, radix).unwrap().0;
-                if !value.is_zero() {
-                    fraction += F::iterative_pow(as_cast(value), radix, -digits);
-                }
-            }
-            fraction
-        },
+    // We don't really care about numerical precision, so just break
+    // the fraction into 12-digit pieces.
+    // 12 is the maximum number of digits we can use without
+    // potentially overflowing  a 36-radix float string.
+    let mut fraction = F::ZERO;
+    let mut digits: i32 = 0;
+    let mut iter = data.fraction_iter();
+    while !iter.consumed() {
+        let (value, length) = atoi::standalone_mantissa_n::<u64, _>(&mut iter, radix, 12);
+        digits = digits.saturating_add(length.as_i32());
+        if !value.is_zero() {
+            fraction += F::iterative_pow(as_cast(value), radix, -digits);
+        }
     }
+
+    fraction
 }}
 
 // Convert the float string to a native floating-point number.
 perftools_inline!{
 fn to_native<F: StablePower>(bytes: &[u8], radix: u32)
-    -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
+    -> ParseResult<(F, *const u8)>
 {
-    let mut state = FloatState1::new();
-    let ptr = state.parse(bytes, radix)?;
+    let mut data = StandardFastDataInterface::new(0);
+    let ptr = data.extract(bytes, radix)?;
 
-    let integer: F = process_integer(&state, radix);
-    let fraction: F = process_fraction(&state, radix);
+    let integer: F = process_integer(&data, radix);
+    let fraction: F = process_fraction(&data, radix);
     let mut value = integer + fraction;
-    if !state.raw_exponent.is_zero() && !value.is_zero() {
-        value = value.iterative_pow(radix, state.raw_exponent);
+    if !data.raw_exponent().is_zero() && !value.is_zero() {
+        value = value.iterative_pow(radix, data.raw_exponent());
     }
     Ok((value, ptr))
 }}
@@ -111,24 +108,32 @@ pub(crate) fn atod_lossy<'a>(bytes: &'a [u8], radix: u32, _: Sign)
 mod tests {
     use super::*;
 
-    fn new_state<'a>(integer: &'a [u8], fraction: &'a [u8], exponent: &'a [u8], raw_exponent: i32)
-        -> FloatState1<'a>
-    {
-        FloatState1 { integer, fraction, exponent, raw_exponent }
-    }
-
     #[test]
     fn process_integer_test() {
-        assert_eq!(1.0, process_integer::<f64>(&new_state(b"1", b"2345", b"", 0), 10));
-        assert_eq!(12.0, process_integer::<f64>(&new_state(b"12", b"345", b"", 0), 10));
-        assert_eq!(12345.0, process_integer::<f64>(&new_state(b"12345", b"6789", b"", 0), 10));
+        type Data<'a> = StandardFastDataInterface<'a>;
+
+        let data = (b!("1"), b!("2345"), b!(""), 0).into();
+        assert_eq!(1.0, process_integer::<f64, Data>(&data, 10));
+
+        let data = (b!("12"), b!("345"), b!(""), 0).into();
+        assert_eq!(12.0, process_integer::<f64, Data>(&data, 10));
+
+        let data = (b!("12345"), b!("6789"), b!(""), 0).into();
+        assert_eq!(12345.0, process_integer::<f64, Data>(&data, 10));
     }
 
     #[test]
     fn process_fraction_test() {
-        assert_eq!(0.2345, process_fraction::<f64>(&new_state(b"1", b"2345", b"", 0), 10));
-        assert_eq!(0.345, process_fraction::<f64>(&new_state(b"12", b"345", b"", 0), 10));
-        assert_eq!(0.6789, process_fraction::<f64>(&new_state(b"12345", b"6789", b"", 0), 10));
+        type Data<'a> = StandardFastDataInterface<'a>;
+
+        let data = (b!("1"), b!("2345"), b!(""), 0).into();
+        assert_eq!(0.2345, process_fraction::<f64, Data>(&data, 10));
+
+        let data = (b!("12"), b!("345"), b!(""), 0).into();
+        assert_eq!(0.345, process_fraction::<f64, Data>(&data, 10));
+
+        let data = (b!("12345"), b!("6789"), b!(""), 0).into();
+        assert_eq!(0.6789, process_fraction::<f64, Data>(&data, 10));
     }
 
     #[test]

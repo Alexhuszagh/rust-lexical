@@ -2,7 +2,6 @@
 
 // Hide implementation details.
 mod format;
-mod state;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
