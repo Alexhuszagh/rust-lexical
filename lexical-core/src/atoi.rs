@@ -346,12 +346,14 @@ fn add_digit<T>(value: T, digit: u32, radix: u32)
 }}
 
 // Calculate the mantissa and the number of truncated digits from a digits iterator.
-// All the data **must** be a valid digit.
+// Will stop once the iterators produce a non-valid digit character.
 perftools_inline!{
 #[cfg(feature = "correct")]
-pub(crate) fn standalone_mantissa<'a, T>(integer: &'a [u8], fraction: &'a [u8], radix: u32)
+pub(crate) fn standalone_mantissa<'a, T, Iter1, Iter2>(mut integer: Iter1, mut fraction: Iter2, radix: u32)
     -> (T, usize)
-    where T: UnsignedInteger
+    where T: UnsignedInteger,
+          Iter1: Iterator<Item=&'a u8>,
+          Iter2: Iterator<Item=&'a u8>
 {
     // Mote:
     //  Do not use iter.chain(), since it is enormously slow.
@@ -359,26 +361,24 @@ pub(crate) fn standalone_mantissa<'a, T>(integer: &'a [u8], fraction: &'a [u8], 
     //  iter.chain() is patched, for older Rustc versions, it's nor
     //  worth the performance penalty.
 
-    let mut integer_iter = integer.iter();
-    let mut fraction_iter = fraction.iter();
     let mut value: T = T::ZERO;
     // On overflow, validate that all the remaining characters are valid
     // digits, if not, return the first invalid digit. Otherwise,
     // calculate the number of truncated digits.
-    while let Some(c) = integer_iter.next() {
+    while let Some(c) = integer.next() {
         value = match add_digit(value, to_digit!(*c, radix).unwrap(), radix) {
             Some(v) => v,
             None    => {
-                let truncated = 1 + integer_iter.len() + fraction_iter.len();
+                let truncated = 1 + integer.count() + fraction.count();
                 return (value, truncated);
             },
         };
     }
-    while let Some(c) = fraction_iter.next() {
+    while let Some(c) = fraction.next() {
         value = match add_digit(value, to_digit!(*c, radix).unwrap(), radix) {
             Some(v) => v,
             None    => {
-                let truncated = 1 + fraction_iter.len();
+                let truncated = 1 + fraction.count();
                 return (value, truncated);
             },
         };
@@ -389,14 +389,41 @@ pub(crate) fn standalone_mantissa<'a, T>(integer: &'a [u8], fraction: &'a [u8], 
 // Calculate the mantissa when it cannot have sign or other invalid digits.
 perftools_inline!{
 #[cfg(not(feature = "correct"))]
-pub(crate) fn standalone_mantissa<T>(bytes: &[u8], radix: u32)
-    -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
-    where T: Integer
+pub(crate) fn standalone_mantissa<'a, T, Iter>(mut iter: Iter, radix: u32)
+    -> T
+    where T: Integer,
+          Iter: Iterator<Item=&'a u8>
 {
     // Parse the integer.
     let mut value = T::ZERO;
-    parse_digits!(value, bytes, radix, checked_add, Overflow);
-    Ok((value, bytes[bytes.len()..].as_ptr()))
+    while let Some(c) = iter.next() {
+        // Cannot overflow, since using a wrapped float.
+        value = (value * as_cast(radix)) + as_cast(to_digit!(*c, radix).unwrap());
+    }
+   value
+}}
+
+// Calculate mantissa and only take first N digits.
+perftools_inline!{
+#[cfg(not(feature = "correct"))]
+pub(crate) fn standalone_mantissa_n<'a, T, Iter>(iter: &mut Iter, radix: u32, max: usize)
+    -> (T, usize)
+    where T: Integer,
+          Iter: Iterator<Item=&'a u8>
+{
+    // Parse the integer.
+    let mut value = T::ZERO;
+    let mut index = 0;
+    while index < max {
+        if let Some(c) = iter.next() {
+            // Cannot overflow, since we're limiting it to non-overflowing digit counts.
+            index += 1;
+            value = (value * as_cast(radix)) + as_cast(to_digit!(*c, radix).unwrap());
+        } else {
+            break;
+        }
+    }
+    (value, index)
 }}
 
 // STANDALONE EXPONENT
@@ -421,20 +448,19 @@ macro_rules! add_digit {
 
 // Iterate over the digits and iteratively process them.
 macro_rules! parse_digits_exponent {
-    ($value:ident, $digits:ident, $radix:ident, $op:ident, $default:expr) => (
-        let mut iter = $digits.iter();
-        while let Some(c) = iter.next() {
+    ($value:ident, $iter:ident, $radix:ident, $op:ident, $default:expr) => (
+        while let Some(c) = $iter.next() {
             let digit = match to_digit(c, $radix) {
                 Ok(v)  => v,
-                Err(c) => return Ok(($value, c)),
+                Err(c) => return ($value, c),
             };
             $value = match add_digit!($value, $radix, $op, digit) {
                 Some(v) => v,
                 None    => {
                     // Consume the rest of the iterator to validate
                     // the remaining data.
-                    if let Some(c) = iter.find(|&c| is_not_digit_char(*c, $radix)) {
-                        return Ok(($default, c));
+                    if let Some(c) = $iter.find(|&c| is_not_digit_char(*c, $radix)) {
+                        return ($default, c);
                     }
                     $default
                 },
@@ -446,18 +472,33 @@ macro_rules! parse_digits_exponent {
 // Specialized parser for the exponent, which validates digits and
 // returns a default min or max value on overflow.
 perftools_inline!{
-pub(crate) fn standalone_exponent(bytes: &[u8], radix: u32)
-    -> StdResult<(i32, *const u8), (ErrorCode, *const u8)>
+pub(crate) fn standalone_exponent<'a, Iter>(mut iter: Iter, radix: u32)
+    -> (i32, *const u8)
+    where Iter: AsPtrIterator<'a, u8>
 {
-    let (sign, digits) = parse_sign!(bytes, true, EmptyExponent);
+    // Parse the sign bit or current data.
     let mut value = 0;
-    if sign == Sign::Positive {
-        parse_digits_exponent!(value, digits, radix, checked_add, i32::max_value());
-    } else {
-        parse_digits_exponent!(value, digits, radix, checked_sub, i32::min_value());
+    match iter.next() {
+        None               => (),
+        Some(&b'+')        => {
+            parse_digits_exponent!(value, iter, radix, checked_add, i32::max_value());
+        },
+        Some(&b'-')        => {
+            parse_digits_exponent!(value, iter, radix, checked_sub, i32::min_value());
+        },
+        Some(c)            => {
+            // Assume we have a digit.
+            let digit = match to_digit(c, radix) {
+                Ok(v)  => v,
+                Err(c) => return (value, c),
+            };
+            // Cannot overflow on first digit.
+            value += digit.as_i32();
+            parse_digits_exponent!(value, iter, radix, checked_add, i32::max_value());
+        }
     }
-    let ptr = index!(digits[digits.len()..]).as_ptr();
-    Ok((value, ptr))
+
+    (value, iter.as_ptr())
 }}
 
 // INTERNAL

@@ -12,8 +12,8 @@ use lib::cmp;
 use util::*;
 use super::alias::*;
 use super::bignum::*;
-use super::state::FloatState2;
 use super::exponent::*;
+use super::format::*;
 use super::math::*;
 
 // ROUNDING
@@ -188,36 +188,56 @@ pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: Ro
     (num, den)
 }
 
+// Compare digits in BigFloat with a given iterator.
+// This macro allows us to avoid chaining the integer and fraction
+// iterators together, which causes a severe performance hit.
+macro_rules! compare_digits {
+    ($iter:ident, $radix:ident, $num:ident, $den:ident) => {
+        while !$num.data.is_empty() {
+            let actual = match $iter.next() {
+                Some(&v) => v,
+                None    => return cmp::Ordering::Less,
+            };
+            let expected = digit_to_char($num.quorem(&$den));
+            $num.imul_small($radix);
+            if actual < expected {
+                return cmp::Ordering::Less;
+            } else if actual > expected {
+                return cmp::Ordering::Greater;
+            }
+        }
+    };
+}
+
 /// Compare digits between the generated values the ratio and the actual view.
 ///
-/// * `digits`      - Actual digits from the mantissa.
+/// * `integer`     - Digits from the integer component of the mantissa.
+/// * `fraction`    - Digits from the fraction component of the mantissa.
 /// * `radix`       - Radix for the number parsing.
 /// * `num`         - Numerator for the fraction.
 /// * `denm`        - Denominator for the fraction.
-pub(super) fn compare_digits<'a, Iter>(mut digits: Iter, radix: u32, mut num: Bigfloat, den: Bigfloat)
+pub(super) fn compare_digits<'a, Iter1, Iter2>(
+    mut integer: Iter1,
+    mut fraction: Iter2,
+    radix: u32,
+    mut num: Bigfloat,
+    den: Bigfloat
+)
     -> cmp::Ordering
-    where Iter: Iterator<Item=&'a u8>
+    where Iter1: Iterator<Item=&'a u8>,
+          Iter2: Iterator<Item=&'a u8>
 {
     // Iterate until we get a difference in the generated digits.
     // If we run out,return Equal.
     let radix = as_limb(radix);
-    while !num.data.is_empty() {
-        let actual = match digits.next() {
-            Some(&v) => v,
-            None    => return cmp::Ordering::Less,
-        };
-        let expected = digit_to_char(num.quorem(&den));
-        num.imul_small(radix);
-        if actual < expected {
-            return cmp::Ordering::Less;
-        } else if actual > expected {
-            return cmp::Ordering::Greater;
-        }
-    }
+    compare_digits!(integer, radix, num, den);
+    compare_digits!(fraction, radix, num, den);
 
     // We cannot have any trailing zeros, so if there any remaining digits,
-    // we're >= to the value.
-    match digits.next().is_none() {
+    // we're >= to the value. We've already exhausted num.data here,
+    // so need to check if integer and fraction don't have data.
+    let is_none = integer.next().is_none() && fraction.next().is_none();
+    match is_none {
         true  => cmp::Ordering::Equal,
         false => cmp::Ordering::Greater,
     }
@@ -226,19 +246,22 @@ pub(super) fn compare_digits<'a, Iter>(mut digits: Iter, radix: u32, mut num: Bi
 /// Generate the correct representation from a halfway representation.
 ///
 /// The digits iterator must not have any trailing zeros (true for
-/// `FloatState2`).
+/// `SlowDataInterface`).
 ///
 /// * `digits`          - Actual digits from the mantissa.
 /// * `radix`           - Radix for the number parsing.
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
 /// * `f`               - Sub-halfway (`b`) float.
-pub(super) fn atof<F>(state: FloatState2, radix: u32, f: F, kind: RoundingKind)
+pub(super) fn atof<'a, F, Data>(data: Data, radix: u32, f: F, kind: RoundingKind)
     -> F
-    where F: FloatType
+    where F: FloatType,
+          Data: SlowDataInterface<'a>
 {
     // This works when we're doing, like, round-even.
-    let (num, den) = make_ratio(radix, state.scientific_exponent(), f, kind);
-    let order = compare_digits(state.mantissa_iter(), radix, num, den);
+    let (num, den) = make_ratio(radix, data.scientific_exponent(), f, kind);
+    let integer_iter = data.integer_iter();
+    let fraction_iter = data.significant_fraction_iter();
+    let order = compare_digits(integer_iter, fraction_iter, radix, num, den);
     round_to_native(f, order, kind)
 }
 
@@ -325,15 +348,16 @@ mod tests {
 
         // Below halfway
         let digits = b"24703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328124999";
-        assert_eq!(compare_digits(digits.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Less);
+        let empty = b"";
+        assert_eq!(compare_digits(digits.iter(), empty.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Less);
 
         // Exactly halfway.
         let digits = b"24703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125";
-        assert_eq!(compare_digits(digits.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Equal);
+        assert_eq!(compare_digits(digits.iter(), empty.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Equal);
 
         // Above halfway.
         let digits = b"24703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125001";
-        assert_eq!(compare_digits(digits.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Greater);
+        assert_eq!(compare_digits(digits.iter(), empty.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Greater);
 
         // 2*2^-1074
         let num = Bigfloat { data: deduce_from_u32(&[881143808, 3756463792, 3052387668, 2025262779, 4122738518, 4205473780, 3372997488, 2847021710, 543572976, 3796837043, 183778774, 1312709233, 336040663, 1404661296, 1512949137, 2191986506, 3802549547, 27177609, 4040053641, 2071581115, 3891346062, 2290277640, 64301663, 994685527]), exp: 312 };
@@ -341,15 +365,15 @@ mod tests {
 
         // Below halfway
         let digits = b"74109846876186981626485318930233205854758970392148714663837852375101326090531312779794975454245398856969484704316857659638998506553390969459816219401617281718945106978546710679176872575177347315553307795408549809608457500958111373034747658096871009590975442271004757307809711118935784838675653998783503015228055934046593739791790738723868299395818481660169122019456499931289798411362062484498678713572180352209017023903285791732520220528974020802906854021606612375549983402671300035812486479041385743401875520901590172592547146296175134159774938718574737870961645638908718119841271673056017045493004705269590165763776884908267986972573366521765567941072508764337560846003984904972149117463085539556354188641513168478436313080237596295773983001708984374999";
-        assert_eq!(compare_digits(digits.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Less);
+        assert_eq!(compare_digits(digits.iter(), empty.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Less);
 
         // Exactly halfway.
         let digits = b"74109846876186981626485318930233205854758970392148714663837852375101326090531312779794975454245398856969484704316857659638998506553390969459816219401617281718945106978546710679176872575177347315553307795408549809608457500958111373034747658096871009590975442271004757307809711118935784838675653998783503015228055934046593739791790738723868299395818481660169122019456499931289798411362062484498678713572180352209017023903285791732520220528974020802906854021606612375549983402671300035812486479041385743401875520901590172592547146296175134159774938718574737870961645638908718119841271673056017045493004705269590165763776884908267986972573366521765567941072508764337560846003984904972149117463085539556354188641513168478436313080237596295773983001708984375";
-        assert_eq!(compare_digits(digits.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Equal);
+        assert_eq!(compare_digits(digits.iter(), empty.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Equal);
 
         // Above halfway.
         let digits = b"74109846876186981626485318930233205854758970392148714663837852375101326090531312779794975454245398856969484704316857659638998506553390969459816219401617281718945106978546710679176872575177347315553307795408549809608457500958111373034747658096871009590975442271004757307809711118935784838675653998783503015228055934046593739791790738723868299395818481660169122019456499931289798411362062484498678713572180352209017023903285791732520220528974020802906854021606612375549983402671300035812486479041385743401875520901590172592547146296175134159774938718574737870961645638908718119841271673056017045493004705269590165763776884908267986972573366521765567941072508764337560846003984904972149117463085539556354188641513168478436313080237596295773983001708984375001";
-        assert_eq!(compare_digits(digits.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Greater);
+        assert_eq!(compare_digits(digits.iter(), empty.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Greater);
 
         // 4503599627370496*2^971
         let num = Bigfloat { data: deduce_from_u32(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1024, 2147483648]), exp: 288 };
@@ -357,14 +381,14 @@ mod tests {
 
         // Below halfway
         let digits = b"89884656743115805365666807213050294962762414131308158973971342756154045415486693752413698006024096935349884403114202125541629105369684531108613657287705365884742938136589844238179474556051429647415148697857438797685859063890851407391008830874765563025951597582513936655578157348020066364210154316532161708031999";
-        assert_eq!(compare_digits(digits.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Less);
+        assert_eq!(compare_digits(digits.iter(), empty.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Less);
 
         // Exactly halfway.
         let digits = b"89884656743115805365666807213050294962762414131308158973971342756154045415486693752413698006024096935349884403114202125541629105369684531108613657287705365884742938136589844238179474556051429647415148697857438797685859063890851407391008830874765563025951597582513936655578157348020066364210154316532161708032";
-        assert_eq!(compare_digits(digits.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Equal);
+        assert_eq!(compare_digits(digits.iter(), empty.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Equal);
 
         // Above halfway.
         let digits = b"89884656743115805365666807213050294962762414131308158973971342756154045415486693752413698006024096935349884403114202125541629105369684531108613657287705365884742938136589844238179474556051429648741514697857438797685859063890851407391008830874765563025951597582513936655578157348020066364210154316532161708032001";
-        assert_eq!(compare_digits(digits.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Greater);
+        assert_eq!(compare_digits(digits.iter(), empty.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Greater);
     }
 }

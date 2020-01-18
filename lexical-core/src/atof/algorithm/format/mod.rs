@@ -1,17 +1,20 @@
-//! Parsers for different formats.
+//! Module specifying float.
 
-// Parsing utilities.
+// Utilities.
 mod consume;
 mod exponent;
+mod iterator;
 mod result;
-mod traits;
 mod trim;
 mod validate;
 
-// Formats.
+#[macro_use]
+mod traits;
+
+// Formats
 mod standard;
 
-// Re-export formats.
+// Re-export formats and traits.
+pub(super) use standard::*;
 pub(super) use result::*;
 pub(super) use traits::*;
-pub(super) use standard::*;

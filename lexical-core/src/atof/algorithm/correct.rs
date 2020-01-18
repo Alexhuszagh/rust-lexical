@@ -11,10 +11,8 @@ use super::alias::*;
 use super::bhcomp;
 use super::cached::ModeratePathCache;
 use super::errors::FloatErrors;
-use super::exponent::*;
-use super::state::{FloatState1, FloatState2};
+use super::format::*;
 use super::small_powers::get_small_powers_64;
-use lib::result::Result as StdResult;
 
 // HELPERS
 // -------
@@ -22,10 +20,12 @@ use lib::result::Result as StdResult;
 // Parse the raw float state into a mantissa, calculating the number
 // of truncated digits and the offset.
 perftools_inline!{
-fn process_mantissa<'a, M: Mantissa>(state: &FloatState1<'a>, radix: u32)
+fn process_mantissa<'a, M, Data>(data: &Data, radix: u32)
     -> (M, usize)
+    where M: Mantissa,
+          Data: FastDataInterface<'a>
 {
-    atoi::standalone_mantissa(state.integer, state.fraction, radix)
+    atoi::standalone_mantissa(data.integer_iter(), data.fraction_iter(), radix)
 }}
 
 // FAST
@@ -263,15 +263,16 @@ pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, trunca
 
 /// Fallback method. Do not inline so the stack requirements only occur
 /// if required.
-fn pown_fallback<'a, F>(state: FloatState2, mantissa: u64, radix: u32, lossy: bool, sign: Sign)
+fn pown_fallback<'a, F, Data>(data: Data, mantissa: u64, radix: u32, lossy: bool, sign: Sign)
     -> F
-    where F: FloatType
+    where F: FloatType,
+          Data: SlowDataInterface<'a>
 {
     let kind = global_rounding(sign);
 
     // Moderate path (use an extended 80-bit representation).
-    let exponent = state.mantissa_exponent();
-    let is_truncated = state.truncated != 0;
+    let exponent = data.mantissa_exponent();
+    let is_truncated = data.truncated_digits() != 0;
     let (fp, valid) = moderate_path::<F, _>(mantissa, radix, exponent, is_truncated, kind);
     if valid || lossy {
         let float = fp.into_rounded_float_impl::<F>(kind);
@@ -284,20 +285,20 @@ fn pown_fallback<'a, F>(state: FloatState2, mantissa: u64, radix: u32, lossy: bo
         // We have a non-finite number, we get to leave early.
         return b;
     } else {
-        let float = bhcomp::atof(state, radix, b, kind);
+        let float = bhcomp::atof(data, radix, b, kind);
         return float;
     }
 }
 
 /// Parse non-power-of-two radix string to native float.
 fn pown_to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
-    -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
+    -> ParseResult<(F, *const u8)>
     where F: FloatType
 {
     // Parse the mantissa and exponent.
-    let mut state = FloatState1::new();
-    let ptr = state.parse(bytes, radix)?;
-    let (mantissa, truncated) = process_mantissa::<u64>(&state, radix);
+    let mut data = StandardFastDataInterface::new(0);
+    let ptr = data.extract(bytes, radix)?;
+    let (mantissa, truncated) = process_mantissa::<u64, _>(&data, radix);
 
     // Process the state to a float.
     let float = if mantissa.is_zero() {
@@ -307,17 +308,17 @@ fn pown_to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
         F::ZERO
     } else if truncated.is_zero() {
         // Try the fast path, no mantissa truncation.
-        let mant_exp = mantissa_exponent(state.raw_exponent, state.fraction.len(), 0);
+        let mant_exp = data.mantissa_exponent(0);
         if let Some(float) = fast_path::<F>(mantissa, radix, mant_exp) {
             float
         } else {
-            let state = state.process(truncated);
-            pown_fallback(state, mantissa, radix, lossy, sign)
+            let slow = data.to_slow(truncated);
+            pown_fallback(slow, mantissa, radix, lossy, sign)
         }
     } else {
         // Can only use the moderate/slow path.
-        let state = state.process(truncated);
-        pown_fallback(state, mantissa, radix, lossy, sign)
+        let slow = data.to_slow(truncated);
+        pown_fallback(slow, mantissa, radix, lossy, sign)
     };
     Ok((float, ptr))
 }
@@ -327,13 +328,13 @@ fn pown_to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
 /// Parse power-of-two radix string to native float.
 #[cfg(feature = "radix")]
 fn pow2_to_native<F>(bytes: &[u8], radix: u32, pow2_exp: i32, sign: Sign)
-    -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
+    -> ParseResult<(F, *const u8)>
     where F: FloatType
 {
     // Parse the mantissa and exponent.
-    let mut state = FloatState1::new();
-    let ptr = state.parse(bytes, radix)?;
-    let (mut mantissa, truncated) = process_mantissa::<u64>(&state, radix);
+    let mut data = StandardFastDataInterface::new(0);
+    let ptr = data.extract(bytes, radix)?;
+    let (mut mantissa, truncated) = process_mantissa::<u64, _>(&data, radix);
 
     // We have a power of 2, can get an exact value even if the mantissa
     // was truncated. Check to see if there are any truncated digits, depending
@@ -342,7 +343,7 @@ fn pow2_to_native<F>(bytes: &[u8], radix: u32, pow2_exp: i32, sign: Sign)
     let float = if !truncated.is_zero() {
         // Truncated mantissa.
         let kind = global_rounding(sign);
-        let state = state.process(truncated);
+        let slow = data.to_slow(truncated);
         if kind != RoundingKind::Downward {
             if cfg!(feature = "rounding") || kind == RoundingKind::NearestTieEven {
                 // Need to check if we're exactly halfway and if there are truncated digits.
@@ -357,10 +358,10 @@ fn pow2_to_native<F>(bytes: &[u8], radix: u32, pow2_exp: i32, sign: Sign)
             } else {
                 // Need to check if there are any bytes present.
                 // Check if there were any truncated bytes.
-                let index = state.mantissa_digits() - state.truncated_digits();
-                let iter = state.mantissa_iter().skip(index);
+                let index = slow.mantissa_digits() - slow.truncated_digits();
+                let iter = slow.integer_iter().chain(slow.fraction_iter()).skip(index);
                 let count = iter.take_while(|&&c| c == b'0').count();
-                let is_truncated = count < state.truncated_digits();
+                let is_truncated = count < slow.truncated_digits();
                 if is_truncated {
                     mantissa += 1;
                 }
@@ -368,19 +369,19 @@ fn pow2_to_native<F>(bytes: &[u8], radix: u32, pow2_exp: i32, sign: Sign)
         }
 
         // Create exact representation and return.
-        let exponent = state.mantissa_exponent().saturating_mul(pow2_exp);
+        let exponent = slow.mantissa_exponent().saturating_mul(pow2_exp);
         let fp = ExtendedFloat { mant: mantissa, exp: exponent };
         fp.into_rounded_float_impl::<F>(kind)
     } else if mantissa >> mantissa_size != 0 {
         // Would be truncated, use the extended float.
         let kind = global_rounding(sign);
-        let state = state.process(truncated);
-        let exponent = state.mantissa_exponent().saturating_mul(pow2_exp);
+        let slow = data.to_slow(truncated);
+        let exponent = slow.mantissa_exponent().saturating_mul(pow2_exp);
         let fp = ExtendedFloat { mant: mantissa, exp: exponent };
         fp.into_rounded_float_impl::<F>(kind)
     } else {
         // Nothing above the hidden bit, so no rounding-error, can use the fast path.
-        let mant_exp = mantissa_exponent(state.raw_exponent, state.fraction.len(), 0);
+        let mant_exp = data.mantissa_exponent(0);
         pow2_fast_path(mantissa, radix, pow2_exp, mant_exp)
     };
     Ok((float, ptr))
@@ -406,7 +407,7 @@ fn pow2_exponent(radix: u32) -> i32 {
 // The float string must be non-special, non-zero, and positive.
 perftools_inline!{
 fn to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
-    -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
+    -> ParseResult<(F, *const u8)>
     where F: FloatType
 {
     #[cfg(not(feature = "radix"))] {
@@ -428,7 +429,7 @@ fn to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
 // Parse 32-bit float from string.
 perftools_inline!{
 pub(crate) fn atof(bytes: &[u8], radix: u32, sign: Sign)
-    -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
+    -> ParseResult<(f32, *const u8)>
 {
     to_native::<f32>(bytes, radix, false, sign)
 }}
@@ -436,7 +437,7 @@ pub(crate) fn atof(bytes: &[u8], radix: u32, sign: Sign)
 // Parse 64-bit float from string.
 perftools_inline!{
 pub(crate) fn atod(bytes: &[u8], radix: u32, sign: Sign)
-    -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
+    -> ParseResult<(f64, *const u8)>
 {
     to_native::<f64>(bytes, radix, false, sign)
 }}
@@ -444,7 +445,7 @@ pub(crate) fn atod(bytes: &[u8], radix: u32, sign: Sign)
 // Parse 32-bit float from string.
 perftools_inline!{
 pub(crate) fn atof_lossy(bytes: &[u8], radix: u32, sign: Sign)
-    -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
+    -> ParseResult<(f32, *const u8)>
 {
     to_native::<f32>(bytes, radix, true, sign)
 }}
@@ -452,7 +453,7 @@ pub(crate) fn atof_lossy(bytes: &[u8], radix: u32, sign: Sign)
 // Parse 64-bit float from string.
 perftools_inline!{
 pub(crate) fn atod_lossy(bytes: &[u8], radix: u32, sign: Sign)
-    -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
+    -> ParseResult<(f64, *const u8)>
 {
     to_native::<f64>(bytes, radix, true, sign)
 }}
@@ -465,31 +466,52 @@ mod tests {
     use util::test::*;
     use super::*;
 
-    fn new_state<'a>(integer: &'a [u8], fraction: &'a [u8], exponent: &'a [u8], raw_exponent: i32)
-        -> FloatState1<'a>
-    {
-        FloatState1 { integer, fraction, exponent, raw_exponent }
-    }
-
     #[test]
     fn process_mantissa_test() {
+        type Data<'a> = StandardFastDataInterface<'a>;
         // 64-bits
-        assert_eq!((12345, 0), process_mantissa::<u64>(&new_state(b"1", b"2345", b"", 0), 10));
-        assert_eq!((12345, 0), process_mantissa::<u64>(&new_state(b"12", b"345", b"", 0), 10));
-        assert_eq!((123456789, 0), process_mantissa::<u64>(&new_state(b"12345", b"6789", b"", 0), 10));
-        assert_eq!((12345, 0), process_mantissa::<u64>(&new_state(b"1", b"2345", b"10", 10), 10));
-        assert_eq!((10000000000000000000, 1), process_mantissa::<u64>(&new_state(b"100000000000000000000", b"", b"", 0), 10));
-        assert_eq!((10000000000000000000, 1), process_mantissa::<u64>(&new_state(b"100000000000000000001", b"", b"", 0), 10));
-        assert_eq!((17976931348623158079, 359), process_mantissa::<u64>(&new_state(b"179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791", b"9999999999999999999999999999999999999999999999999999999999999999999999", b"", 0), 10));
-        assert_eq!((1009, 0), process_mantissa::<u64>(&new_state(b"1009", b"", b"", -31), 10));
+        let data = (b!("1"), b!("2345"), b!(""), 0).into();
+        assert_eq!((12345, 0), process_mantissa::<u64, Data>(&data, 10));
+
+        let data = (b!("12"), b!("345"), b!(""), 0).into();
+        assert_eq!((12345, 0), process_mantissa::<u64, Data>(&data, 10));
+
+        let data = (b!("12345"), b!("6789"), b!(""), 0).into();
+        assert_eq!((123456789, 0), process_mantissa::<u64, Data>(&data, 10));
+
+        let data = (b!("1"), b!("2345"), b!("10"), 10).into();
+        assert_eq!((12345, 0), process_mantissa::<u64, Data>(&data, 10));
+
+        let data = (b!("100000000000000000000"), b!(""), b!(""), 0).into();
+        assert_eq!((10000000000000000000, 1), process_mantissa::<u64, Data>(&data, 10));
+
+        let data = (b!("100000000000000000001"), b!(""), b!(""), 0).into();
+        assert_eq!((10000000000000000000, 1), process_mantissa::<u64, Data>(&data, 10));
+
+        let data = (b!("179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791"), b!("9999999999999999999999999999999999999999999999999999999999999999999999"), b!(""), 0).into();
+        assert_eq!((17976931348623158079, 359), process_mantissa::<u64, Data>(&data, 10));
+
+        let data = (b!("1009"), b!(""), b!(""), -31).into();
+        assert_eq!((1009, 0), process_mantissa::<u64, Data>(&data, 10));
 
         // 128-bit
-        assert_eq!((12345, 0), process_mantissa::<u128>(&new_state(b"1", b"2345", b"", 0), 10));
-        assert_eq!((12345, 0), process_mantissa::<u128>(&new_state(b"12", b"345", b"", 0), 10));
-        assert_eq!((123456789, 0), process_mantissa::<u128>(&new_state(b"12345", b"6789", b"", 0), 10));
-        assert_eq!((12345, 0), process_mantissa::<u128>(&new_state(b"1", b"2345", b"10", 10), 10));
-        assert_eq!((100000000000000000000, 0), process_mantissa::<u128>(&new_state(b"100000000000000000000", b"", b"", 0), 10));
-        assert_eq!((100000000000000000001, 0), process_mantissa::<u128>(&new_state(b"100000000000000000001", b"", b"", 0), 10));
+        let data = (b!("1"), b!("2345"), b!(""), 0).into();
+        assert_eq!((12345, 0), process_mantissa::<u128, Data>(&data, 10));
+
+        let data = (b!("12"), b!("345"), b!(""), 0).into();
+        assert_eq!((12345, 0), process_mantissa::<u128, Data>(&data, 10));
+
+        let data = (b!("12345"), b!("6789"), b!(""), 0).into();
+        assert_eq!((123456789, 0), process_mantissa::<u128, Data>(&data, 10));
+
+        let data = (b!("1"), b!("2345"), b!("10"), 10).into();
+        assert_eq!((12345, 0), process_mantissa::<u128, Data>(&data, 10));
+
+        let data = (b!("100000000000000000000"), b!(""), b!(""), 0).into();
+        assert_eq!((100000000000000000000, 0), process_mantissa::<u128, Data>(&data, 10));
+
+        let data = (b!("100000000000000000001"), b!(""), b!(""), 0).into();
+        assert_eq!((100000000000000000001, 0), process_mantissa::<u128, Data>(&data, 10));
     }
 
     #[cfg(feature = "radix")]
@@ -768,7 +790,7 @@ mod tests {
         assert_eq!(Err((ErrorCode::EmptyFraction, 0)), atof10(b"e10"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0)), atof10(b"."));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0)), atof10(b".e10"));
-        assert_eq!(Err((ErrorCode::EmptyExponent, 2)), atof10(b"0e"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 1)), atof10(b"0e"));
         assert_eq!(Ok((1.23, 4)), atof10(b"1.23/"));
     }
 
