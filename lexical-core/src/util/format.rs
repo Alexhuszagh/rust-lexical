@@ -787,7 +787,7 @@ bitflags! {
     ///
     /// In order to limit the format specification and avoid parsing
     /// non-float data, all float formats require some significant digits.
-    ///  Examples of always invalid floats include:
+    /// Examples of always invalid floats include:
     /// - ``
     /// - `.`
     /// - `e`

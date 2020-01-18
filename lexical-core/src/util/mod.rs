@@ -27,6 +27,7 @@ mod algorithm;
 mod cast;
 pub(crate) mod config;
 pub(crate) mod error;
+pub(crate) mod iterator;
 mod mask;
 mod num;
 mod pointer_methods;
@@ -55,6 +56,7 @@ if #[cfg(feature = "correct")] {
 // Publicly export everything with crate-visibility.
 pub(crate) use self::algorithm::*;
 pub(crate) use self::cast::*;
+pub(crate) use self::iterator::*;
 pub(crate) use self::mask::*;
 pub(crate) use self::pointer_methods::*;
 pub(crate) use self::primitive::*;
