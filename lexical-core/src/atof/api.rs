@@ -394,8 +394,8 @@ mod tests {
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"e-1"));
 
         // Check various reports from a fuzzer.
-        assert_eq!(Err((ErrorCode::EmptyExponent, 2).into()), f64::from_lexical(b"0e"));
-        assert_eq!(Err((ErrorCode::EmptyExponent, 4).into()), f64::from_lexical(b"0.0e"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), f64::from_lexical(b"0e"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 3).into()), f64::from_lexical(b"0.0e"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b".E"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b".e"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"E2252525225"));
@@ -403,7 +403,7 @@ mod tests {
         assert_eq!(Ok(f64::INFINITY), f64::from_lexical(b"2E200000000000"));
 
         // Add various unittests from proptests.
-        assert_eq!(Err((ErrorCode::EmptyExponent, 2).into()), f64::from_lexical(b"0e"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), f64::from_lexical(b"0e"));
         assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"."));
         assert_eq!(Err((ErrorCode::EmptyFraction, 1).into()), f64::from_lexical(b"+."));
         assert_eq!(Err((ErrorCode::EmptyFraction, 1).into()), f64::from_lexical(b"-."));

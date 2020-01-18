@@ -1,14 +1,9 @@
 //! Aliases and traits to simplify float-parsing.
 
-use crate::lib::{iter, slice};
-
 use crate::float::*;
 use crate::util::*;
 use super::bignum::ToBigfloat;
 use super::errors::FloatErrors;
-
-pub type SliceIter<'a, T> = slice::Iter<'a, T>;
-pub type ChainedSliceIter<'a, T> = iter::Chain<SliceIter<'a, T>, SliceIter<'a, T>>;
 
 // TRAITS
 

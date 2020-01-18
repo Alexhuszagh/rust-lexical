@@ -8,3 +8,7 @@ pub(crate) type ParseError = (ErrorCode, *const u8);
 
 /// Specialized result type for format parsers.
 pub(crate) type ParseResult<T> = StdResult<T, ParseError>;
+
+/// Type definition for a test result when testing the parsing.
+#[cfg(test)]
+pub(crate) type TestResult<T> = StdResult<T, ErrorCode>;

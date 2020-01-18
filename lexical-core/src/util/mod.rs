@@ -25,6 +25,7 @@ mod cast;
 pub(crate) mod config;
 mod div128;
 pub(crate) mod error;
+pub(crate) mod iterator;
 mod mask;
 mod num;
 mod primitive;
@@ -49,6 +50,7 @@ if #[cfg(feature = "correct")] {
 pub(crate) use self::algorithm::*;
 pub(crate) use self::cast::*;
 pub(crate) use self::div128::*;
+pub(crate) use self::iterator::*;
 pub(crate) use self::mask::*;
 pub(crate) use self::primitive::*;
 pub(crate) use self::pow::*;

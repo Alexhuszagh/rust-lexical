@@ -9,9 +9,9 @@ use crate::float::rounding::*;
 use crate::util::*;
 use super::alias::*;
 use super::bigcomp;
-use super::state::FloatState2;
 use super::bignum::Bigint;
 use super::exponent::*;
+use super::format::*;
 use super::math::*;
 
 // Export a character to digit.
@@ -53,11 +53,12 @@ macro_rules! add_digits {
 /// Parse the full mantissa into a big integer.
 ///
 /// Max digits is the maximum number of digits plus one.
-pub(super) fn parse_mantissa(state: FloatState2, radix: u32, max_digits: usize)
+pub(super) fn parse_mantissa<'a, Data>(data: Data, radix: u32, max_digits: usize)
     -> Bigint
+    where Data: SlowDataInterface<'a>
 {
     let small_powers = Bigint::small_powers(radix);
-    let count = state.mantissa_digits();
+    let count = data.mantissa_digits();
     let bits = count / integral_binary_factor(radix).as_usize();
     let bytes = bits / Limb::BITS;
 
@@ -72,10 +73,10 @@ pub(super) fn parse_mantissa(state: FloatState2, radix: u32, max_digits: usize)
     result.data.reserve(bytes);
 
     // Iteratively process all the data in the mantissa.
-    let mut integer_iter = state.integer_iter();
-    let mut fraction_iter = state.fraction_iter();
+    let mut integer_iter = data.integer_iter();
+    let mut fraction_iter = data.significant_fraction_iter();
     add_digits!(integer_iter, result, value, i, counter, step, small_powers, base, radix, max_digits);
-    if integer_iter.len().is_zero() {
+    if integer_iter.consumed() {
         // Continue if we haven't already processed the max digits.
         add_digits!(fraction_iter, result, value, i, counter, step, small_powers, base, radix, max_digits);
     }
@@ -93,8 +94,8 @@ pub(super) fn parse_mantissa(state: FloatState2, radix: u32, max_digits: usize)
     // representation. We also need to return an index.
     // Since we already trimmed trailing zeros, we know there has
     // to be a non-zero digit if there are any left.
-    let remaining = integer_iter.len() + fraction_iter.len();
-    if !remaining.is_zero() {
+    let is_consumed = integer_iter.consumed() && fraction_iter.consumed();
+    if !is_consumed {
         result.imul_small(base);
         result.iadd_small(1);
     }
@@ -269,15 +270,16 @@ pub(super) fn use_bigcomp(radix: u32, count: usize)
 }}
 
 /// Calculate the mantissa for a big integer with a positive exponent.
-pub(super) fn large_atof<F>(state: FloatState2, radix: u32, max_digits: usize, exponent: i32, kind: RoundingKind)
+pub(super) fn large_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize, exponent: i32, kind: RoundingKind)
     -> F
-    where F: FloatType
+    where F: FloatType,
+          Data: SlowDataInterface<'a>
 {
     // Simple, we just need to multiply by the power of the radix.
     // Now, we can calculate the mantissa and the exponent from this.
     // The binary exponent is the binary exponent for the mantissa
     // shifted to the hidden bit.
-    let mut bigmant = parse_mantissa(state, radix, max_digits);
+    let mut bigmant = parse_mantissa(data, radix, max_digits);
     bigmant.imul_power(radix, exponent.as_u32());
 
     // Get the exact representation of the float from the big integer.
@@ -293,12 +295,13 @@ pub(super) fn large_atof<F>(state: FloatState2, radix: u32, max_digits: usize, e
 /// Calculate the mantissa for a big integer with a negative exponent.
 ///
 /// This invokes the comparison with `b+h`.
-pub(super) fn small_atof<F>(state: FloatState2, radix: u32, max_digits: usize, exponent: i32, f: F, kind: RoundingKind)
+pub(super) fn small_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize, exponent: i32, f: F, kind: RoundingKind)
     -> F
-    where F: FloatType
+    where F: FloatType,
+          Data: SlowDataInterface<'a>
 {
     // Get the significant digits and radix exponent for the real digits.
-    let mut real_digits = parse_mantissa(state, radix, max_digits);
+    let mut real_digits = parse_mantissa(data, radix, max_digits);
     let real_exp = exponent;
     debug_assert!(real_exp < 0);
 
@@ -350,9 +353,10 @@ pub(super) fn small_atof<F>(state: FloatState2, radix: u32, max_digits: usize, e
 ///     The digits iterator must not have any trailing zeros (true for
 ///     `FloatState2`).
 ///     sci_exponent and digits.size_hint() must not overflow i32.
-pub(super) fn atof<'a, F>(state: FloatState2, radix: u32, f: F, kind: RoundingKind)
+pub(super) fn atof<'a, F, Data>(data: Data, radix: u32, f: F, kind: RoundingKind)
     -> F
-    where F: FloatType
+    where F: FloatType,
+          Data: SlowDataInterface<'a>
 {
     // We have a finite conversions number of digits for base10.
     // In order for a float in radix `b` with a finite number of digits
@@ -360,15 +364,15 @@ pub(super) fn atof<'a, F>(state: FloatState2, radix: u32, f: F, kind: RoundingKi
     // an integer power of `y`. This means for binary, all even radixes
     // have finite representations, and all odd ones do not.
     let max_digits = unwrap_or_max(max_digits::<F>(radix));
-    let count = max_digits.min(state.mantissa_digits());
-    let exponent = state.scientific_exponent() + 1 - count.as_i32();
+    let count = max_digits.min(data.mantissa_digits());
+    let exponent = data.scientific_exponent() + 1 - count.as_i32();
 
     if cfg!(feature = "radix") && use_bigcomp(radix, count) {
         // Use the slower algorithm for giant data, since we use a lot less memory.
-        bigcomp::atof(state, radix, f, kind)
+        bigcomp::atof(data, radix, f, kind)
     } else if exponent >= 0 {
-        large_atof(state, radix, max_digits, exponent, kind)
+        large_atof(data, radix, max_digits, exponent, kind)
     } else {
-        small_atof(state, radix, max_digits, exponent, f, kind)
+        small_atof(data, radix, max_digits, exponent, f, kind)
     }
 }
