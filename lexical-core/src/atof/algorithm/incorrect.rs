@@ -3,7 +3,6 @@
 use crate::atoi;
 use crate::util::*;
 use super::format::*;
-use crate::lib::result::Result as StdResult;
 
 // FRACTION
 
@@ -51,12 +50,12 @@ fn process_fraction<'a, F, Data>(data: &Data, radix: u32)
 
 // Convert the float string to a native floating-point number.
 perftools_inline!{
-fn to_native<F: StablePower>(bytes: &[u8], radix: u32)
+fn to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32)
     -> ParseResult<(F, *const u8)>
+    where F: StablePower,
+          Data: FastDataInterface<'a>
 {
-    let mut data = StandardFastDataInterface::new(0);
     let ptr = data.extract(bytes, radix)?;
-
     let integer: F = process_integer(&data, radix);
     let fraction: F = process_fraction(&data, radix);
     let mut value = integer + fraction;
@@ -66,39 +65,31 @@ fn to_native<F: StablePower>(bytes: &[u8], radix: u32)
     Ok((value, ptr))
 }}
 
+perftools_inline!{
+pub(crate) fn atof_generic<'a, F>(bytes: &'a [u8], radix: u32, _: bool, _: Sign, format: FloatFormat)
+    -> ParseResult<(F, *const u8)>
+    where F: StablePower
+{
+    apply_interface!(to_native, format, bytes, radix)
+}}
+
 // ATOF/ATOD
 // ---------
 
 // Parse 32-bit float from string.
 perftools_inline!{
-pub(crate) fn atof<'a>(bytes: &'a [u8], radix: u32, _: Sign)
-    -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
+pub(crate) fn atof<'a>(bytes: &'a [u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+    -> ParseResult<(f32, *const u8)>
 {
-    to_native::<f32>(bytes, radix)
+    atof_generic(bytes, radix, lossy, sign, format)
 }}
 
 // Parse 64-bit float from string.
 perftools_inline!{
-pub(crate) fn atod<'a>(bytes: &'a [u8], radix: u32, _: Sign)
-    -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
+pub(crate) fn atod<'a>(bytes: &'a [u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+    -> ParseResult<(f64, *const u8)>
 {
-    to_native::<f64>(bytes, radix)
-}}
-
-// Parse 32-bit float from string.
-perftools_inline!{
-pub(crate) fn atof_lossy<'a>(bytes: &'a [u8], radix: u32, _: Sign)
-    -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
-{
-    to_native::<f32>(bytes, radix)
-}}
-
-// Parse 64-bit float from string.
-perftools_inline!{
-pub(crate) fn atod_lossy<'a>(bytes: &'a [u8], radix: u32, _: Sign)
-    -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
-{
-    to_native::<f64>(bytes, radix)
+    atof_generic(bytes, radix, lossy, sign, format)
 }}
 
 // TESTS
@@ -138,7 +129,7 @@ mod tests {
 
     #[test]
     fn atof_test() {
-        let atof10 = move |x| match atof(x, 10, Sign::Positive) {
+        let atof10 = move |x| match atof(x, 10, false, Sign::Positive, FloatFormat::RUST_STRING) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -151,7 +142,7 @@ mod tests {
 
     #[test]
     fn atod_test() {
-        let atod10 = move |x| match atod(x, 10, Sign::Positive) {
+        let atod10 = move |x| match atod(x, 10, false, Sign::Positive, FloatFormat::RUST_STRING) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -168,7 +159,7 @@ mod tests {
 
     #[test]
     fn atof_lossy_test() {
-        let atof10 = move |x| match atof_lossy(x, 10, Sign::Positive) {
+        let atof10 = move |x| match atof(x, 10, true, Sign::Positive, FloatFormat::RUST_STRING) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -181,7 +172,7 @@ mod tests {
 
     #[test]
     fn atod_lossy_test() {
-        let atod10 = move |x| match atod_lossy(x, 10, Sign::Positive) {
+        let atod10 = move |x| match atod(x, 10, true, Sign::Positive, FloatFormat::RUST_STRING) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };

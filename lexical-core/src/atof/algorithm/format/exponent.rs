@@ -45,7 +45,7 @@ pub(super) fn mantissa_exponent(raw_exponent: i32, fraction_digits: usize, trunc
 // Exponent is required (cannot be empty).
 perftools_inline!{
 #[allow(unused_unsafe)]
-pub(super) fn extract_required_exponent_no_separator<'a, Data>(
+pub(super) fn extract_exponent_no_separator<'a, Data>(
     data: &mut Data,
     bytes: &'a [u8],
     radix: u32
@@ -61,10 +61,10 @@ pub(super) fn extract_required_exponent_no_separator<'a, Data>(
     unsafe {
         // Extract the exponent subslice.
         let first = bytes.as_ptr();
-        let last = index!(bytes[bytes.len()..]).as_ptr();
-        data.set_exponent(slice::from_raw_parts(first, distance(first, last)));
+        data.set_exponent(slice::from_raw_parts(first, distance(first, ptr)));
 
         // Return the remaining bytes.
+        let last = index!(bytes[bytes.len()..]).as_ptr();
         slice::from_raw_parts(ptr, distance(ptr, last))
     }
 }}
@@ -113,11 +113,18 @@ mod test {
     }
 
     #[test]
-    fn extract_required_exponent_no_separator_test() {
+    fn extract_exponent_no_separator_test() {
+        // Allows required exponents.
         type Data<'a> = StandardFastDataInterface<'a>;
-        let mut data = Data::new(0);
-        extract_required_exponent_no_separator(&mut data, b"e+23", 10);
+        let mut data = Data::new(FloatFormat::RUST_STRING);
+        extract_exponent_no_separator(&mut data, b"e+23", 10);
         assert_eq!(data.exponent(), b"e+23");
         assert_eq!(data.raw_exponent(), 23);
+
+        // Allows optional exponents.
+        let mut data = Data::new(FloatFormat::RUST_STRING);
+        extract_exponent_no_separator(&mut data, b"e", 10);
+        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.raw_exponent(), 0);
     }
 }
