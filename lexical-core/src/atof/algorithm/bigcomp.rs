@@ -189,8 +189,6 @@ pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: Ro
 }
 
 // Compare digits in BigFloat with a given iterator.
-// This macro allows us to avoid chaining the integer and fraction
-// iterators together, which causes a severe performance hit.
 macro_rules! compare_digits {
     ($iter:ident, $radix:ident, $num:ident, $den:ident) => {
         while !$num.data.is_empty() {
@@ -217,8 +215,8 @@ macro_rules! compare_digits {
 /// * `num`         - Numerator for the fraction.
 /// * `denm`        - Denominator for the fraction.
 pub(super) fn compare_digits<'a, Iter1, Iter2>(
-    mut integer: Iter1,
-    mut fraction: Iter2,
+    integer: Iter1,
+    fraction: Iter2,
     radix: u32,
     mut num: Bigfloat,
     den: Bigfloat
@@ -230,13 +228,13 @@ pub(super) fn compare_digits<'a, Iter1, Iter2>(
     // Iterate until we get a difference in the generated digits.
     // If we run out,return Equal.
     let radix = as_limb(radix);
-    compare_digits!(integer, radix, num, den);
-    compare_digits!(fraction, radix, num, den);
+    let mut iter = integer.chain(fraction);
+    compare_digits!(iter, radix, num, den);
 
     // We cannot have any trailing zeros, so if there any remaining digits,
     // we're >= to the value. We've already exhausted num.data here,
     // so need to check if integer and fraction don't have data.
-    let is_none = integer.next().is_none() && fraction.next().is_none();
+    let is_none = iter.next().is_none();
     match is_none {
         true  => cmp::Ordering::Equal,
         false => cmp::Ordering::Greater,
