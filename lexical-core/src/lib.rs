@@ -118,14 +118,13 @@
 
 // DEPENDENCIES
 
-#[cfg(feature = "format")]
 #[macro_use]
 extern crate bitflags;
 
 #[macro_use]
 extern crate cfg_if;
 
-#[cfg(feature = "correct")]
+#[cfg(any(feature = "correct", feature = "format"))]
 #[macro_use]
 extern crate static_assertions;
 

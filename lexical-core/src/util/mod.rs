@@ -22,21 +22,19 @@ pub(crate) mod test;
 // Hide implementation details.
 mod algorithm;
 mod cast;
-pub(crate) mod config;
+mod config;
 mod div128;
-pub(crate) mod error;
-pub(crate) mod iterator;
+mod error;
+mod format;
+mod iterator;
 mod mask;
 mod num;
 mod primitive;
 mod pow;
-pub(crate) mod result;
+mod result;
 mod rounding;
 mod sign;
 mod table;
-
-#[cfg(feature = "format")]
-mod format;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
@@ -68,12 +66,10 @@ if #[cfg(feature = "correct")] {
 // Publicly export config globally.
 pub use self::config::*;
 pub use self::error::*;
+pub use self::format::*;
 pub use self::num::*;
 pub use self::result::*;
 pub use self::traits::*;
-
-#[cfg(feature = "format")]
-pub use self::format::*;
 
 #[cfg(feature = "rounding")]
 pub use self::rounding::RoundingKind;

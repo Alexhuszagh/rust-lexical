@@ -137,7 +137,7 @@ macro_rules! parse_digits {
 // Parse the digits for the atoi processor.
 perftools_inline!{
 pub(crate) fn parse_digits<T>(digits: &[u8], radix: u32, sign: Sign)
-    -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
+    -> ParseResult<(T, *const u8)>
     where T: Integer
 {
     let mut value = T::ZERO;
@@ -153,7 +153,7 @@ pub(crate) fn parse_digits<T>(digits: &[u8], radix: u32, sign: Sign)
 // Standalone atoi processor.
 perftools_inline!{
 pub(crate) fn standalone<T>(bytes: &[u8], radix: u32, is_signed: bool)
-    -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
+    -> ParseResult<(T, *const u8)>
     where T: Integer
 {
     let (sign, digits) = parse_sign!(bytes, is_signed, Empty);
@@ -220,7 +220,7 @@ macro_rules! parse_digits_u128 {
 // Parse the digits for the 128-bit atoi processor.
 perftools_inline!{
 pub(crate) fn parse_digits_u128<T>(digits: &[u8], radix: u32, step: usize, sign: Sign)
-    -> StdResult<(T, *const u8), (ErrorCode, *const u8)>
+    -> ParseResult<(T, *const u8)>
     where T: Integer
 {
     let mut value = T::ZERO;
@@ -242,7 +242,7 @@ pub(crate) fn parse_digits_u128<T>(digits: &[u8], radix: u32, step: usize, sign:
 // arithmetic
 perftools_inline!{
 pub(crate) fn standalone_128<W, N>(bytes: &[u8], radix: u32, is_signed: bool)
-    -> StdResult<(W, *const u8), (ErrorCode, *const u8)>
+    -> ParseResult<(W, *const u8)>
     where W: Integer,
           N: Integer
 {
@@ -266,7 +266,7 @@ pub(crate) fn standalone_128<W, N>(bytes: &[u8], radix: u32, is_signed: bool)
 
 pub(crate) trait Atoi: Integer {
     // Parse integer from string.
-    fn atoi(bytes: &[u8], radix: u32, is_signed: bool) -> StdResult<(Self, *const u8), (ErrorCode, *const u8)>;
+    fn atoi(bytes: &[u8], radix: u32, is_signed: bool) -> ParseResult<(Self, *const u8)>;
 }
 
 // Implement atoi for type.
@@ -275,7 +275,7 @@ macro_rules! atoi_impl {
         impl Atoi for $t {
             perftools_inline_always!{
             fn atoi(bytes: &[u8], radix: u32, is_signed: bool)
-                -> StdResult<($t, *const u8), (ErrorCode, *const u8)>
+                -> ParseResult<($t, *const u8)>
             {
                 standalone(bytes, radix, is_signed)
             }}
@@ -288,7 +288,7 @@ atoi_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
 impl Atoi for u128 {
     perftools_inline_always!{
     fn atoi(bytes: &[u8], radix: u32, is_signed: bool)
-        -> StdResult<(u128, *const u8), (ErrorCode, *const u8)>
+        -> ParseResult<(u128, *const u8)>
     {
         standalone_128::<u128, u64>(bytes, radix, is_signed)
     }}
@@ -297,7 +297,7 @@ impl Atoi for u128 {
 impl Atoi for i128 {
     perftools_inline_always!{
     fn atoi(bytes: &[u8], radix: u32, is_signed: bool)
-        -> StdResult<(i128, *const u8), (ErrorCode, *const u8)>
+        -> ParseResult<(i128, *const u8)>
     {
         standalone_128::<i128, i64>(bytes, radix, is_signed)
     }}
