@@ -1,28 +1,63 @@
 //! Standard float-parsing data.
 
+use crate::util::*;
 use super::consume::*;
 use super::exponent::*;
 use super::iterator::*;
-use super::result::*;
 use super::traits::*;
 use super::trim::*;
 use super::validate::*;
 
-/// Standard data interface for fast float parsers.
-///
-/// Guaranteed to parse `FloatFormat::RUST_STRING`, and
-/// therefore will track that exact specification.
-///
-/// The requirements:
-///     1). Must contain significant digits.
-///     2). Must contain exponent digits if an exponent is present.
-///     3). Does not contain any digit separators.
-pub(crate) struct StandardFastDataInterface<'a> {
-    integer: &'a [u8],
-    fraction: &'a [u8],
-    exponent: &'a [u8],
-    raw_exponent: i32
-}
+// Standard data interface for fast float parsers.
+//
+// Guaranteed to parse `FloatFormat::RUST_STRING`, and
+// therefore will track that exact specification.
+//
+// The requirements:
+//     1). Must contain significant digits.
+//     2). Must contain exponent digits if an exponent is present.
+//     3). Does not contain any digit separators.
+fast_data_interface!(
+    struct StandardFastDataInterface,
+    fields => {},
+    integer_iter => (IteratorNoSeparator, iterate_no_separator),
+    fraction_iter => (IteratorNoSeparator, iterate_no_separator),
+    slow_interface => StandardSlowDataInterface,
+    consume_digits => consume_digits_no_separator,
+    extract_exponent => extract_exponent_no_separator,
+    validate_mantissa => validate_mantissa_no_separator,
+    validate_exponent => validate_required_exponent_no_separator,
+    ltrim_zero => ltrim_zero_no_separator,
+    ltrim_separator => ltrim_separator_no_separator,
+    rtrim_zero => rtrim_zero_no_separator,
+    rtrim_separator => rtrim_separator_no_separator,
+    new => fn new(format: FloatFormat) -> Self {
+        Self {
+            integer: &[],
+            fraction: &[],
+            exponent: &[],
+            raw_exponent: 0
+        }
+    }
+);
+
+// Standard data interface for moderate/slow float parsers.
+//
+// Guaranteed to parse `FloatFormat::RUST_STRING`, and
+// therefore will track that exact specification.
+//
+// The requirements:
+//     1). Must contain significant digits.
+//     2). Must contain exponent digits if an exponent is present.
+//     3). Does not contain any digit separators.
+slow_data_interface!(
+    struct StandardSlowDataInterface,
+    fields => {},
+    integer_iter => (IteratorNoSeparator, iterate_no_separator),
+    fraction_iter => (IteratorNoSeparator, iterate_no_separator)
+);
+
+// FROM
 
 type DataTuple<'a> = (&'a [u8], &'a [u8], &'a [u8], i32);
 
@@ -39,180 +74,45 @@ impl<'a> From<DataTuple<'a>> for StandardFastDataInterface<'a> {
     }}
 }
 
-fast_data_interface_impl!(StandardFastDataInterface);
-
-impl<'a> FastDataInterface<'a> for StandardFastDataInterface<'a> {
-    type IntegerIter = IteratorNoSeparator<'a>;
-    type FractionIter = IteratorNoSeparator<'a>;
-
-    #[cfg(feature = "correct")]
-    type SlowInterface = StandardSlowDataInterface<'a>;
-
-    perftools_inline!{
-    fn new(_: u32) -> Self {
-        Self {
-            integer: &[],
-            fraction: &[],
-            exponent: &[],
-            raw_exponent: 0
-        }
-    }}
-
-    // DATA
-
-    perftools_inline!{
-    fn integer_iter(&self) -> Self::IntegerIter {
-        iterate_no_separator(self.integer)
-    }}
-
-    perftools_inline!{
-    fn fraction_iter(&self) -> Self::IntegerIter {
-        iterate_no_separator(self.fraction)
-    }}
-
-    // EXTRACT
-
-    perftools_inline!{
-    fn consume_digits(&self, digits: &'a [u8], radix: u32)
-        -> (&'a [u8], &'a [u8])
-    {
-        consume_digits_no_separator(digits, radix)
-    }}
-
-    perftools_inline!{
-    fn extract_exponent(&mut self, bytes: &'a [u8], radix: u32) -> &'a [u8]
-    {
-        extract_required_exponent_no_separator(self, bytes, radix)
-    }}
-
-    perftools_inline!{
-    fn validate_mantissa(&self) -> ParseResult<()> {
-        validate_mantissa_no_separator(self)
-    }}
-
-    perftools_inline!{
-    fn validate_exponent(&self) -> ParseResult<()> {
-        validate_required_exponent_no_separator(self)
-    }}
-
-    perftools_inline!{
-    fn ltrim_zero(&self, bytes: &'a [u8]) -> (&'a [u8], usize) {
-        ltrim_zero_no_separator(bytes)
-    }}
-
-    perftools_inline!{
-    fn ltrim_separator(&self, bytes: &'a [u8]) -> (&'a [u8], usize) {
-        ltrim_separator_no_separator(bytes)
-    }}
-
-    perftools_inline!{
-    fn rtrim_zero(&self, bytes: &'a [u8]) -> (&'a [u8], usize) {
-        rtrim_zero_no_separator(bytes)
-    }}
-
-    perftools_inline!{
-    fn rtrim_separator(&self, bytes: &'a [u8]) -> (&'a [u8], usize) {
-        rtrim_separator_no_separator(bytes)
-    }}
-
-    // TO SLOW DATA
-
-    #[cfg(feature = "correct")]
-    perftools_inline!{
-    fn to_slow(self, truncated_digits: usize) -> Self::SlowInterface {
-        let digits_start = self.digits_start();
-        Self::SlowInterface {
-            digits_start,
-            truncated_digits,
-            integer: self.integer,
-            fraction: self.fraction,
-            raw_exponent: self.raw_exponent
-        }
-    }}
-}
-
-/// Standard data interface for moderate/slow float parsers.
-///
-/// Guaranteed to parse `FloatFormat::RUST_STRING`, and
-/// therefore will track that exact specification.
-///
-/// The requirements:
-///     1). Must contain significant digits.
-///     2). Must contain exponent digits if an exponent is present.
-///     3). Does not contain any digit separators.
-#[cfg(feature = "correct")]
-pub(crate) struct StandardSlowDataInterface<'a> {
-    integer: &'a [u8],
-    fraction: &'a [u8],
-    digits_start: usize,
-    truncated_digits: usize,
-    raw_exponent: i32
-}
-
-#[cfg(feature = "correct")]
-slow_data_interface_impl!(StandardSlowDataInterface);
-
-#[cfg(feature = "correct")]
-impl<'a> SlowDataInterface<'a> for StandardSlowDataInterface<'a> {
-    type IntegerIter = IteratorNoSeparator<'a>;
-    type FractionIter = IteratorNoSeparator<'a>;
-
-    perftools_inline!{
-    fn integer_iter(&self) -> Self::IntegerIter {
-        iterate_no_separator(self.integer)
-    }}
-
-    perftools_inline!{
-    fn fraction_iter(&self) -> Self::IntegerIter {
-        iterate_no_separator(self.fraction)
-    }}
-
-    perftools_inline!{
-    fn significant_fraction_iter(&self) -> Self::IntegerIter {
-        let fraction = &index!(self.fraction[self.digits_start..]);
-        iterate_no_separator(fraction)
-    }}
-
-    perftools_inline!{
-    fn digits_start(&self) -> usize {
-        self.digits_start
-    }}
-
-    perftools_inline!{
-    fn truncated_digits(&self) -> usize {
-        self.truncated_digits
-    }}
-}
-
 // TESTS
 // -----
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::util::*;
+
+    macro_rules! standard {
+        ($integer:expr, $fraction:expr, $exponent:expr, $raw_exponent:expr) => {
+            StandardFastDataInterface {
+                integer: $integer,
+                fraction: $fraction,
+                exponent: $exponent,
+                raw_exponent: $raw_exponent
+            }
+        };
+    }
 
     #[test]
     fn extract_test() {
-        StandardFastDataInterface::new(0).run_tests([
+        StandardFastDataInterface::new(FloatFormat::default()).run_tests([
             // Valid
-            ("1.2345", Ok((b!("1"), b!("2345"), b!(""), 0).into())),
-            ("12.345", Ok((b!("12"), b!("345"), b!(""), 0).into())),
-            ("12345.6789", Ok((b!("12345"), b!("6789"), b!(""), 0).into())),
-            ("1.2345e10", Ok((b!("1"), b!("2345"), b!("e10"), 10).into())),
-            ("1.2345e+10", Ok((b!("1"), b!("2345"), b!("e+10"), 10).into())),
-            ("1.2345e-10", Ok((b!("1"), b!("2345"), b!("e-10"), -10).into())),
-            ("100000000000000000000", Ok((b!("100000000000000000000"), b!(""), b!(""), 0).into())),
-            ("100000000000000000001", Ok((b!("100000000000000000001"), b!(""), b!(""), 0).into())),
-            ("179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", Ok((b!("179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791"), b!("9999999999999999999999999999999999999999999999999999999999999999999999"), b!(""), 0).into())),
-            ("1009e-31", Ok((b!("1009"), b!(""), b!("e-31"), -31).into())),
-            ("001.0", Ok((b!("1"), b!(""), b!(""), 0).into())),
-            ("1.", Ok((b!("1"), b!(""), b!(""), 0).into())),
-            ("12.", Ok((b!("12"), b!(""), b!(""), 0).into())),
-            ("1234567.", Ok((b!("1234567"), b!(""), b!(""), 0).into())),
-            (".1", Ok((b!(""), b!("1"), b!(""), 0).into())),
-            (".12", Ok((b!(""), b!("12"), b!(""), 0).into())),
-            (".1234567", Ok((b!(""), b!("1234567"), b!(""), 0).into())),
+            ("1.2345", Ok(standard!(b"1", b"2345", b"", 0))),
+            ("12.345", Ok(standard!(b"12", b"345", b"", 0))),
+            ("12345.6789", Ok(standard!(b"12345", b"6789", b"", 0))),
+            ("1.2345e10", Ok(standard!(b"1", b"2345", b"e10", 10))),
+            ("1.2345e+10", Ok(standard!(b"1", b"2345", b"e+10", 10))),
+            ("1.2345e-10", Ok(standard!(b"1", b"2345", b"e-10", -10))),
+            ("100000000000000000000", Ok(standard!(b"100000000000000000000", b"", b"", 0))),
+            ("100000000000000000001", Ok(standard!(b"100000000000000000001", b"", b"", 0))),
+            ("179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791.9999999999999999999999999999999999999999999999999999999999999999999999", Ok(standard!(b"179769313486231580793728971405303415079934132710037826936173778980444968292764750946649017977587207096330286416692887910946555547851940402630657488671505820681908902000708383676273854845817711531764475730270069855571366959622842914819860834936475292719074168444365510704342711559699508093042880177904174497791", b"9999999999999999999999999999999999999999999999999999999999999999999999", b"", 0))),
+            ("1009e-31", Ok(standard!(b"1009", b"", b"e-31", -31))),
+            ("001.0", Ok(standard!(b"1", b"", b"", 0))),
+            ("1.", Ok(standard!(b"1", b"", b"", 0))),
+            ("12.", Ok(standard!(b"12", b"", b"", 0))),
+            ("1234567.", Ok(standard!(b"1234567", b"", b"", 0))),
+            (".1", Ok(standard!(b"", b"1", b"", 0))),
+            (".12", Ok(standard!(b"", b"12", b"", 0))),
+            (".1234567", Ok(standard!(b"", b"1234567", b"", 0))),
 
             // Invalid
             ("1.2345e", Err(ErrorCode::EmptyExponent)),

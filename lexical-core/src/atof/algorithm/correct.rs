@@ -291,12 +291,12 @@ fn pown_fallback<'a, F, Data>(data: Data, mantissa: u64, radix: u32, lossy: bool
 }
 
 /// Parse non-power-of-two radix string to native float.
-fn pown_to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
+fn pown_to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32, lossy: bool, sign: Sign)
     -> ParseResult<(F, *const u8)>
-    where F: FloatType
+    where F: FloatType,
+          Data: FastDataInterface<'a>
 {
     // Parse the mantissa and exponent.
-    let mut data = StandardFastDataInterface::new(0);
     let ptr = data.extract(bytes, radix)?;
     let (mantissa, truncated) = process_mantissa::<u64, _>(&data, radix);
 
@@ -327,12 +327,12 @@ fn pown_to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
 
 /// Parse power-of-two radix string to native float.
 #[cfg(feature = "radix")]
-fn pow2_to_native<F>(bytes: &[u8], radix: u32, pow2_exp: i32, sign: Sign)
+fn pow2_to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32, pow2_exp: i32, sign: Sign)
     -> ParseResult<(F, *const u8)>
-    where F: FloatType
+    where F: FloatType,
+          Data: FastDataInterface<'a>
 {
     // Parse the mantissa and exponent.
-    let mut data = StandardFastDataInterface::new(0);
     let ptr = data.extract(bytes, radix)?;
     let (mut mantissa, truncated) = process_mantissa::<u64, _>(&data, radix);
 
@@ -406,19 +406,19 @@ fn pow2_exponent(radix: u32) -> i32 {
 //
 // The float string must be non-special, non-zero, and positive.
 perftools_inline!{
-fn to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
+fn to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
     -> ParseResult<(F, *const u8)>
     where F: FloatType
 {
     #[cfg(not(feature = "radix"))] {
-        pown_to_native(bytes, radix, lossy, sign)
+        apply_interface!(pown_to_native, format, bytes, radix,  lossy, sign)
     }
 
     #[cfg(feature = "radix")] {
         let pow2_exp = pow2_exponent(radix);
         match pow2_exp {
-            0 => pown_to_native(bytes, radix, lossy, sign),
-            _ => pow2_to_native(bytes, radix, pow2_exp, sign),
+            0 => apply_interface!(pown_to_native, format, bytes, radix, lossy, sign),
+            _ => apply_interface!(pow2_to_native, format, bytes, radix, pow2_exp, sign)
         }
     }
 }}
@@ -428,34 +428,18 @@ fn to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
 
 // Parse 32-bit float from string.
 perftools_inline!{
-pub(crate) fn atof(bytes: &[u8], radix: u32, sign: Sign)
+pub(crate) fn atof(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
     -> ParseResult<(f32, *const u8)>
 {
-    to_native::<f32>(bytes, radix, false, sign)
+    to_native::<f32>(bytes, radix, lossy, sign, format)
 }}
 
 // Parse 64-bit float from string.
 perftools_inline!{
-pub(crate) fn atod(bytes: &[u8], radix: u32, sign: Sign)
+pub(crate) fn atod(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
     -> ParseResult<(f64, *const u8)>
 {
-    to_native::<f64>(bytes, radix, false, sign)
-}}
-
-// Parse 32-bit float from string.
-perftools_inline!{
-pub(crate) fn atof_lossy(bytes: &[u8], radix: u32, sign: Sign)
-    -> ParseResult<(f32, *const u8)>
-{
-    to_native::<f32>(bytes, radix, true, sign)
-}}
-
-// Parse 64-bit float from string.
-perftools_inline!{
-pub(crate) fn atod_lossy(bytes: &[u8], radix: u32, sign: Sign)
-    -> ParseResult<(f64, *const u8)>
-{
-    to_native::<f64>(bytes, radix, true, sign)
+    to_native::<f64>(bytes, radix, lossy, sign, format)
 }}
 
 // TESTS
@@ -742,7 +726,7 @@ mod tests {
 
     #[test]
     fn atof_test() {
-        let atof10 = move |x| match atof(x, 10, Sign::Positive) {
+        let atof10 = move |x| match atof(x, 10, false, Sign::Positive, FloatFormat::RUST_STRING) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -796,7 +780,7 @@ mod tests {
 
     #[test]
     fn atod_test() {
-        let adod_impl = move | x, r | match atod(x, r, Sign::Positive) {
+        let adod_impl = move | x, r | match atod(x, r, false, Sign::Positive, FloatFormat::RUST_STRING) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -897,7 +881,7 @@ mod tests {
 
     #[test]
     fn atof_lossy_test() {
-        let atof10 = move |x| match atof_lossy(x, 10, Sign::Positive) {
+        let atof10 = move |x| match atof(x, 10, true, Sign::Positive, FloatFormat::RUST_STRING) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -910,7 +894,7 @@ mod tests {
 
     #[test]
     fn atod_lossy_test() {
-        let atod10 = move |x| match atod_lossy(x, 10, Sign::Positive) {
+        let atod10 = move |x| match atod(x, 10, true, Sign::Positive, FloatFormat::RUST_STRING) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };

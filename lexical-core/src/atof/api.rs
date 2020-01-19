@@ -3,7 +3,6 @@
 //! Uses either the imprecise or the precise algorithm.
 
 use crate::util::*;
-use crate::lib::result::Result as StdResult;
 
 // Select the back-end
 cfg_if! {
@@ -18,41 +17,24 @@ if #[cfg(feature = "correct")] {
 /// Trait to define parsing of a string to float.
 trait StringToFloat: Float {
     /// Serialize string to float, favoring correctness.
-    fn default(bytes: &[u8], radix: u32, sign: Sign) -> StdResult<(Self, *const u8), (ErrorCode, *const u8)>;
-
-    /// Serialize string to float, prioritizing speed over correctness.
-    fn lossy(bytes: &[u8], radix: u32, sign: Sign) -> StdResult<(Self, *const u8), (ErrorCode, *const u8)>;
+    fn default(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat) -> ParseResult<(Self, *const u8)>;
 }
 
 impl StringToFloat for f32 {
     perftools_inline_always!{
-    fn default(bytes: &[u8], radix: u32, sign: Sign)
-        -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
+    fn default(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+        -> ParseResult<(f32, *const u8)>
     {
-        algorithm::atof(bytes, radix, sign)
-    }}
-
-    perftools_inline_always!{
-    fn lossy(bytes: &[u8], radix: u32, sign: Sign)
-        -> StdResult<(f32, *const u8), (ErrorCode, *const u8)>
-    {
-        algorithm::atof_lossy(bytes, radix, sign)
+        algorithm::atof(bytes, radix, lossy, sign, format)
     }}
 }
 
 impl StringToFloat for f64 {
     perftools_inline_always!{
-    fn default(bytes: &[u8], radix: u32, sign: Sign)
-        -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
+    fn default(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+        -> ParseResult<(f64, *const u8)>
     {
-        algorithm::atod(bytes, radix, sign)
-    }}
-
-    perftools_inline_always!{
-    fn lossy(bytes: &[u8], radix: u32, sign: Sign)
-        -> StdResult<(f64, *const u8), (ErrorCode, *const u8)>
-    {
-        algorithm::atod_lossy(bytes, radix, sign)
+        algorithm::atod(bytes, radix, lossy, sign, format)
     }}
 }
 
@@ -81,20 +63,10 @@ fn last(bytes: &[u8]) -> *const u8 {
     index!(bytes[bytes.len()..]).as_ptr()
 }}
 
-perftools_inline!{
-fn parse_float<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
-    -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
-{
-    match lossy {
-        true  => F::lossy(bytes, radix, sign),
-        false => F::default(bytes, radix, sign),
-    }
-}}
-
 // Parse infinity from string.
 perftools_inline!{
-fn parse_infinity<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
-    -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
+fn parse_infinity<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+    -> ParseResult<(F, *const u8)>
 {
     // Check long infinity first before short infinity.
     // Short infinity short-circuits, we want to parse as many characters
@@ -105,7 +77,7 @@ fn parse_infinity<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign:
     } else {
         // Not infinity, may be valid with a different radix.
         if cfg!(feature = "radix"){
-            parse_float(bytes, radix, lossy, sign)
+            F::default(bytes, radix, lossy, sign, format)
         } else {
             Err((ErrorCode::InvalidDigit, bytes.as_ptr()))
         }
@@ -114,8 +86,8 @@ fn parse_infinity<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign:
 
 // Parse NaN from string.
 perftools_inline!{
-fn parse_nan<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign)
-    -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
+fn parse_nan<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+    -> ParseResult<(F, *const u8)>
 {
     if is_nan(bytes) {
         // Have a valid NaN.
@@ -123,7 +95,7 @@ fn parse_nan<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign
     } else {
         // Not NaN, may be valid with a different radix.
         if cfg!(feature = "radix"){
-            parse_float(bytes, radix, lossy, sign)
+            F::default(bytes, radix, lossy, sign, format)
         } else {
             Err((ErrorCode::InvalidDigit, bytes.as_ptr()))
         }
@@ -134,8 +106,8 @@ fn parse_nan<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign
 
 // Standalone atof processor.
 perftools_inline!{
-fn atof<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool)
-    -> StdResult<(F, *const u8), (ErrorCode, *const u8)>
+fn atof<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, format: FloatFormat)
+    -> ParseResult<(F, *const u8)>
 {
     // Filter out empty inputs.
     if bytes.is_empty() {
@@ -157,9 +129,9 @@ fn atof<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool)
     // Use predictive parsing to filter special cases. This leads to
     // dramatic performance gains.
     let (float, ptr): (F, *const u8) = match index!(bytes[0]) {
-        b'i' | b'I' => parse_infinity(bytes, radix, lossy, sign),
-        b'N' | b'n' => parse_nan(bytes, radix, lossy, sign),
-        _           => parse_float(bytes, radix, lossy, sign),
+        b'i' | b'I' => parse_infinity(bytes, radix, lossy, sign, format),
+        b'N' | b'n' => parse_nan(bytes, radix, lossy, sign, format),
+        _           => F::default(bytes, radix, lossy, sign, format),
     }?;
 
     // Process the sign.
@@ -175,7 +147,7 @@ fn atof_lossy<F: StringToFloat>(bytes: &[u8], radix: u32)
     -> Result<(F, usize)>
 {
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, radix, true) {
+    match atof::<F>(bytes, radix, true, FloatFormat::RUST_STRING) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
@@ -186,11 +158,13 @@ fn atof_nonlossy<F: StringToFloat>(bytes: &[u8], radix: u32)
     -> Result<(F, usize)>
 {
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, radix, false) {
+    match atof::<F>(bytes, radix, false, FloatFormat::RUST_STRING) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
 }}
+
+// TODO(ahuszagh) Need to add format if applicable here.
 
 // FROM LEXICAL
 // ------------
@@ -452,7 +426,7 @@ mod tests {
     #[cfg(feature = "std")]
     proptest! {
         #[test]
-        fn f32_invalid_proptest(i in r"[+-]?[0-9]{2}\D?\.\D?[0-9]{2}\D?e[+-]?[0-9]+\D") {
+        fn f32_invalid_proptest(i in r"[+-]?[0-9]{2}[^\deE]?\.[^\deE]?[0-9]{2}[^\deE]?e[+-]?[0-9]+[^\deE]") {
             let res = f32::from_lexical(i.as_bytes());
             prop_assert!(res.is_err());
             let err = res.err().unwrap();
@@ -482,7 +456,7 @@ mod tests {
             let res = f32::from_lexical(i.as_bytes());
             prop_assert!(res.is_err());
             let err = res.err().unwrap();
-            prop_assert_eq!(err.code, ErrorCode::InvalidDigit);
+            prop_assert_eq!(err.code, ErrorCode::EmptyExponent);
         }
 
         #[test]
@@ -515,7 +489,7 @@ mod tests {
         }
 
         #[test]
-        fn f64_invalid_proptest(i in r"[+-]?[0-9]{2}\D?\.\D?[0-9]{2}\D?e[+-]?[0-9]+\D") {
+        fn f64_invalid_proptest(i in r"[+-]?[0-9]{2}[^\deE]?\.[^\deE]?[0-9]{2}[^\deE]?e[+-]?[0-9]+[^\deE]") {
             let res = f64::from_lexical(i.as_bytes());
             prop_assert!(res.is_err());
             let err = res.err().unwrap();
@@ -545,7 +519,7 @@ mod tests {
             let res = f64::from_lexical(i.as_bytes());
             prop_assert!(res.is_err());
             let err = res.err().unwrap();
-            prop_assert_eq!(err.code, ErrorCode::InvalidDigit);
+            prop_assert_eq!(err.code, ErrorCode::EmptyExponent);
         }
 
         #[test]

@@ -37,6 +37,7 @@ else
         "trim_floats,unchecked_index"
         "grisu3"
         "ryu"
+        "format"
         "correct"
         "correct,radix"
         "correct,unchecked_index"

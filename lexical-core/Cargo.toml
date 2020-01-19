@@ -24,7 +24,8 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 [dependencies]
 bitflags = "1.2"
 cfg-if = "0.1"
-static_assertions = "1"
+# Use static_assertions for correct or format features.
+static_assertions = { version = "1", optional = true }
 # Use arrayvec for the correct parser.
 arrayvec = { version = "0.5", optional = true, features = ["array-sizes-33-128"] }
 # Optimized Grisu3 implementation, a well-tested, correct algorithm.
@@ -40,9 +41,9 @@ proptest = "0.9.4"
 [features]
 default = ["correct", "ryu", "std"]
 # Use the correct atof parser.
-correct = ["arrayvec", "table"]
+correct = ["arrayvec", "static_assertions", "table"]
 # Add support for different float string formats.
-format = []
+format = ["static_assertions"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["dtoa"]
 # Add support for parsing non-decimal float and integer strings.

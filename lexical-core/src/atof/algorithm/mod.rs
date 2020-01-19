@@ -1,6 +1,7 @@
 //! Algorithms for parsing strings to floats.
 
 // Hide implementation details.
+#[macro_use]
 mod format;
 
 cfg_if! {
@@ -38,4 +39,3 @@ pub(crate) mod correct;
 
 #[cfg(not(feature = "correct"))]
 pub(crate) mod incorrect;
-
