@@ -7,7 +7,7 @@ publish = false
 [dependencies.lexical-core]
 path = "../../lexical-core"
 default-features = false
-features = ["correct", "ryu", "std"]
+features = []
 
 [dev-dependencies]
 bencher = "0.1.5"
@@ -15,7 +15,15 @@ lazy_static = "1"
 serde_json = "1.0"
 
 [features]
-default = []
+default = ["correct", "ryu", "std"]
+correct = ["lexical-core/correct"]
+format = ["lexical-core/format"]
+grisu3 = ["lexical-core/grisu3"]
+radix = ["lexical-core/radix"]
+rounding = ["lexical-core/rounding"]
+ryu = ["lexical-core/ryu"]
+std = ["lexical-core/std"]
+trim_floats = ["lexical-core/trim_floats"]
 noinline = ["lexical-core/noinline"]
 unchecked_index = ["lexical-core/unchecked_index"]
 
