@@ -2,6 +2,7 @@
 //!
 //! Uses either the imprecise or the precise algorithm.
 
+use crate::lib::slice;
 use crate::util::*;
 
 // Select the back-end
@@ -17,12 +18,12 @@ if #[cfg(feature = "correct")] {
 /// Trait to define parsing of a string to float.
 trait StringToFloat: Float {
     /// Serialize string to float, favoring correctness.
-    fn default(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat) -> ParseResult<(Self, *const u8)>;
+    fn default(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat) -> ParseResult<(Self, *const u8)>;
 }
 
 impl StringToFloat for f32 {
     perftools_inline_always!{
-    fn default(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+    fn default(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
         -> ParseResult<(f32, *const u8)>
     {
         algorithm::atof(bytes, radix, lossy, sign, format)
@@ -31,7 +32,7 @@ impl StringToFloat for f32 {
 
 impl StringToFloat for f64 {
     perftools_inline_always!{
-    fn default(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+    fn default(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
         -> ParseResult<(f64, *const u8)>
     {
         algorithm::atod(bytes, radix, lossy, sign, format)
@@ -41,39 +42,44 @@ impl StringToFloat for f64 {
 // SPECIAL
 // Utilities to filter special values.
 
+// Convert slice to iterator without digit separators.
 perftools_inline!{
-fn is_nan(bytes: &[u8]) -> bool {
-    case_insensitive_equal_to_slice(bytes, get_nan_string())
+fn to_iter<'a>(bytes: &'a [u8], _: u8) -> slice::Iter<'a, u8> {
+    bytes.iter()
 }}
 
+// Convert slice to iterator with digit separators.
 perftools_inline!{
-fn is_inf(bytes: &[u8]) -> bool {
-    case_insensitive_equal_to_slice(bytes, get_inf_string())
-}}
-
-perftools_inline!{
-fn is_infinity(bytes: &[u8]) -> bool {
-    case_insensitive_equal_to_slice(bytes, get_infinity_string())
+#[cfg(feature = "format")]
+fn to_iter_s<'a>(bytes: &'a [u8], digit_separator: u8) -> SkipValueIterator<'a, u8> {
+    SkipValueIterator::new(bytes, digit_separator)
 }}
 
 // PARSER
 
-perftools_inline!{
-fn last(bytes: &[u8]) -> *const u8 {
-    index!(bytes[bytes.len()..]).as_ptr()
-}}
-
 // Parse infinity from string.
 perftools_inline!{
-fn parse_infinity<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+fn parse_infinity<'a, ToIter, StartsWith, Iter, F>(
+    bytes: &'a [u8],
+    radix: u32,
+    lossy: bool,
+    sign: Sign,
+    format: NumberFormat,
+    to_iter: ToIter,
+    starts_with: StartsWith
+)
     -> ParseResult<(F, *const u8)>
+    where F: StringToFloat,
+          ToIter: Fn(&'a [u8], u8) -> Iter,
+          Iter: AsPtrIterator<'a, u8>,
+          StartsWith: Fn(Iter, slice::Iter<'a, u8>) -> (bool, Iter)
 {
-    // Check long infinity first before short infinity.
-    // Short infinity short-circuits, we want to parse as many characters
-    // as possible.
-    if is_infinity(bytes) || is_inf(bytes) {
-        // Have a valid long-form or short-form infinity.
-        Ok((F::INFINITY, last(bytes)))
+    let infinity = get_infinity_string();
+    let inf = get_inf_string();
+    if let (true, iter) = starts_with(to_iter(bytes, format.digit_separator()), infinity.iter()) {
+        Ok((F::INFINITY, iter.as_ptr()))
+    } else if let (true, iter) = starts_with(to_iter(bytes, format.digit_separator()), inf.iter()) {
+        Ok((F::INFINITY, iter.as_ptr()))
     } else {
         // Not infinity, may be valid with a different radix.
         if cfg!(feature = "radix"){
@@ -86,12 +92,24 @@ fn parse_infinity<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign:
 
 // Parse NaN from string.
 perftools_inline!{
-fn parse_nan<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
-    -> ParseResult<(F, *const u8)>
+fn parse_nan<'a, ToIter, StartsWith, Iter, F>(
+    bytes: &'a [u8],
+    radix: u32,
+    lossy: bool,
+    sign: Sign,
+    format: NumberFormat,
+    to_iter: ToIter,
+    starts_with: StartsWith
+)
+-> ParseResult<(F, *const u8)>
+    where F: StringToFloat,
+          ToIter: Fn(&'a [u8], u8) -> Iter,
+          Iter: AsPtrIterator<'a, u8>,
+          StartsWith: Fn(Iter, slice::Iter<'a, u8>) -> (bool, Iter)
 {
-    if is_nan(bytes) {
-        // Have a valid NaN.
-        Ok((F::NAN, last(bytes)))
+    let nan = get_nan_string();
+    if let (true, iter) = starts_with(to_iter(bytes, format.digit_separator()), nan.iter()) {
+        Ok((F::NAN, iter.as_ptr()))
     } else {
         // Not NaN, may be valid with a different radix.
         if cfg!(feature = "radix"){
@@ -104,42 +122,154 @@ fn parse_nan<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign
 
 // ATOF/ATOD
 
-// Standalone atof processor.
+// Parse special or float values with the standard format.
+// Special values are allowed, the match is case-insensitive,
+// and no digit separators are allowed.
 perftools_inline!{
-fn atof<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, format: FloatFormat)
+fn parse_float_standard<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
     -> ParseResult<(F, *const u8)>
 {
-    // Filter out empty inputs.
-    if bytes.is_empty() {
-        return Err((ErrorCode::Empty, bytes.as_ptr()));
-    }
-
-    let (sign, bytes) = match index!(bytes[0]) {
-        b'+' => (Sign::Positive, &index!(bytes[1..])),
-        b'-' => (Sign::Negative, &index!(bytes[1..])),
-        _    => (Sign::Positive, bytes),
-    };
-
-    // Filter out empty inputs.
-    if bytes.is_empty() {
-        return Err((ErrorCode::Empty, bytes.as_ptr()));
-    }
-
-    // Special case checks
     // Use predictive parsing to filter special cases. This leads to
     // dramatic performance gains.
-    let (float, ptr): (F, *const u8) = match index!(bytes[0]) {
-        b'i' | b'I' => parse_infinity(bytes, radix, lossy, sign, format),
-        b'N' | b'n' => parse_nan(bytes, radix, lossy, sign, format),
+    let starts_with = case_insensitive_starts_with_iter;
+    match index!(bytes[0]) {
+        b'i' | b'I' => parse_infinity(bytes, radix, lossy, sign, format, to_iter, starts_with),
+        b'N' | b'n' => parse_nan(bytes, radix, lossy, sign, format, to_iter, starts_with),
         _           => F::default(bytes, radix, lossy, sign, format),
-    }?;
+    }
+}}
 
-    // Process the sign.
-    let signed_float = match sign {
+// Parse special or float values.
+// Special values are allowed, the match is case-sensitive,
+// and digit separators are allowed.
+perftools_inline!{
+#[cfg(feature = "format")]
+fn parse_float_cs<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+    -> ParseResult<(F, *const u8)>
+{
+    let digit_separator = format.digit_separator();
+    let starts_with = starts_with_iter;
+    match SkipValueIterator::new(bytes, digit_separator).next()  {
+        Some(&b'i') | Some(&b'I')   => parse_infinity(bytes, radix, lossy, sign, format, to_iter_s, starts_with),
+        Some(&b'n') | Some(&b'N')   => parse_nan(bytes, radix, lossy, sign, format, to_iter_s, starts_with),
+        _                           => F::default(bytes, radix, lossy, sign, format),
+    }
+}}
+
+// Parse special or float values.
+// Special values are allowed, the match is case-sensitive,
+// and no digit separators are allowed.
+perftools_inline!{
+#[cfg(feature = "format")]
+fn parse_float_c<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+    -> ParseResult<(F, *const u8)>
+{
+    // Use predictive parsing to filter special cases. This leads to
+    // dramatic performance gains.
+    let starts_with = starts_with_iter;
+    match index!(bytes[0]) {
+        b'i' | b'I' => parse_infinity(bytes, radix, lossy, sign, format, to_iter, starts_with),
+        b'N' | b'n' => parse_nan(bytes, radix, lossy, sign, format, to_iter, starts_with),
+        _           => F::default(bytes, radix, lossy, sign, format),
+    }
+}}
+
+// Parse special or float values.
+// Special values are allowed, the match is case-insensitive,
+// and digit separators are allowed.
+perftools_inline!{
+#[cfg(feature = "format")]
+fn parse_float_s<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+    -> ParseResult<(F, *const u8)>
+{
+    let digit_separator = format.digit_separator();
+    let starts_with = case_insensitive_starts_with_iter;
+    match SkipValueIterator::new(bytes, digit_separator).next()  {
+        Some(&b'i') | Some(&b'I')   => parse_infinity(bytes, radix, lossy, sign, format, to_iter_s, starts_with),
+        Some(&b'n') | Some(&b'N')   => parse_nan(bytes, radix, lossy, sign, format, to_iter_s, starts_with),
+        _                           => F::default(bytes, radix, lossy, sign, format),
+    }
+}}
+
+// Parse special or float values with the default formatter.
+perftools_inline!{
+#[cfg(not(feature = "format"))]
+fn parse_float<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+    -> ParseResult<(F, *const u8)>
+{
+    parse_float_standard(bytes, radix, lossy, sign, format)
+}}
+
+// Parse special or float values with the default formatter.
+perftools_inline!{
+#[cfg(feature = "format")]
+fn parse_float<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+    -> ParseResult<(F, *const u8)>
+{
+    // Need to consider 3 possibilities:
+    //  1). No special values are allowed.
+    //  2). Special values are case-sensitive.
+    //  3). Digit separators are allowed in the special.
+    let no_special = format.no_special();
+    let case = format.case_sensitive_special();
+    let has_sep = format.special_digit_separator();
+    match (no_special, case, has_sep) {
+        (true, _, _)            => F::default(bytes, radix, lossy, sign, format),
+        (false, true, true)     => parse_float_cs(bytes, radix, lossy, sign, format),
+        (false, false, true)    => parse_float_s(bytes, radix, lossy, sign, format),
+        (false, true, false)    => parse_float_c(bytes, radix, lossy, sign, format),
+        (false, false, false)   => parse_float_standard(bytes, radix, lossy, sign, format),
+    }
+}}
+
+// Validate sign byte is valid.
+perftools_inline!{
+#[cfg(not(feature = "format"))]
+fn validate_sign(_: &[u8], _: &[u8], _: Sign, _: NumberFormat)
+    -> ParseResult<()>
+{
+    Ok(())
+}}
+
+// Validate sign byte is valid.
+perftools_inline!{
+#[cfg(feature = "format")]
+fn validate_sign(bytes: &[u8], digits: &[u8], sign: Sign, format: NumberFormat)
+    -> ParseResult<()>
+{
+    let has_sign = bytes.as_ptr() != digits.as_ptr();
+    if format.no_positive_mantissa_sign() && has_sign && sign == Sign::Positive {
+        Err((ErrorCode::InvalidPositiveMantissaSign, bytes.as_ptr()))
+    } else if format.required_mantissa_sign() && !has_sign {
+        Err((ErrorCode::MissingMantissaSign, bytes.as_ptr()))
+    } else {
+        Ok(())
+    }
+}}
+
+// Convert float to signed representation.
+perftools_inline!{
+fn to_signed<F: StringToFloat>(float: F, sign: Sign) -> F
+{
+    match sign {
         Sign::Positive => float,
-        Sign::Negative => -float,
-    };
-    Ok((signed_float, ptr))
+        Sign::Negative => -float
+    }
+}}
+
+// Standalone atof processor.
+perftools_inline!{
+fn atof<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, format: NumberFormat)
+    -> ParseResult<(F, *const u8)>
+{
+    let (sign, digits) = parse_sign(bytes, format);
+    if digits.is_empty() {
+        return Err((ErrorCode::Empty, digits.as_ptr()));
+    }
+    let (float, ptr): (F, *const u8) = parse_float(digits, radix, lossy, sign, format)?;
+    validate_sign(bytes, digits, sign, format)?;
+
+    Ok((to_signed(float, sign), ptr))
 }}
 
 perftools_inline!{
@@ -147,7 +277,7 @@ fn atof_lossy<F: StringToFloat>(bytes: &[u8], radix: u32)
     -> Result<(F, usize)>
 {
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, radix, true, FloatFormat::RUST_STRING) {
+    match atof::<F>(bytes, radix, true, NumberFormat::standard().unwrap()) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
@@ -158,13 +288,23 @@ fn atof_nonlossy<F: StringToFloat>(bytes: &[u8], radix: u32)
     -> Result<(F, usize)>
 {
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, radix, false, FloatFormat::RUST_STRING) {
+    match atof::<F>(bytes, radix, false, NumberFormat::standard().unwrap()) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
 }}
 
-// TODO(ahuszagh) Need to add format if applicable here.
+perftools_inline!{
+#[cfg(feature = "format")]
+fn atof_format<F: StringToFloat>(bytes: &[u8], radix: u32, format: NumberFormat)
+    -> Result<(F, usize)>
+{
+    let index = | ptr | distance(bytes.as_ptr(), ptr);
+    match atof::<F>(bytes, radix, false, format) {
+        Ok((value, ptr)) => Ok((value, index(ptr))),
+        Err((code, ptr)) => Err((code, index(ptr)).into()),
+    }
+}}
 
 // FROM LEXICAL
 // ------------
@@ -173,6 +313,12 @@ from_lexical!(atof_nonlossy, f32);
 from_lexical!(atof_nonlossy, f64);
 from_lexical_lossy!(atof_lossy, f32);
 from_lexical_lossy!(atof_lossy, f64);
+
+cfg_if!{
+if #[cfg(feature = "format")] {
+    from_lexical_format!(atof_format, f32);
+    from_lexical_format!(atof_format, f64);
+}}
 
 // TESTS
 // -----
@@ -241,12 +387,12 @@ mod tests {
 
         // Check various expected failures.
         assert_eq!(Err(ErrorCode::Empty.into()), f32::from_lexical(b""));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f32::from_lexical(b"e"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f32::from_lexical(b"E"));
-        assert_eq!(Err(ErrorCode::EmptyFraction.into()), f32::from_lexical(b".e1"));
-        assert_eq!(Err(ErrorCode::EmptyFraction.into()), f32::from_lexical(b".e-1"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f32::from_lexical(b"e1"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f32::from_lexical(b"e-1"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f32::from_lexical(b"e"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f32::from_lexical(b"E"));
+        assert_eq!(Err(ErrorCode::EmptyMantissa.into()), f32::from_lexical(b".e1"));
+        assert_eq!(Err(ErrorCode::EmptyMantissa.into()), f32::from_lexical(b".e-1"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f32::from_lexical(b"e1"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f32::from_lexical(b"e-1"));
         assert_eq!(Err((ErrorCode::Empty, 1).into()), f32::from_lexical(b"+"));
         assert_eq!(Err((ErrorCode::Empty, 1).into()), f32::from_lexical(b"-"));
 
@@ -360,27 +506,27 @@ mod tests {
 
         // Check various expected failures.
         assert_eq!(Err(ErrorCode::Empty.into()), f64::from_lexical(b""));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"e"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"E"));
-        assert_eq!(Err(ErrorCode::EmptyFraction.into()), f64::from_lexical(b".e1"));
-        assert_eq!(Err(ErrorCode::EmptyFraction.into()), f64::from_lexical(b".e-1"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"e1"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"e-1"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b"e"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b"E"));
+        assert_eq!(Err(ErrorCode::EmptyMantissa.into()), f64::from_lexical(b".e1"));
+        assert_eq!(Err(ErrorCode::EmptyMantissa.into()), f64::from_lexical(b".e-1"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b"e1"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b"e-1"));
 
         // Check various reports from a fuzzer.
         assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), f64::from_lexical(b"0e"));
         assert_eq!(Err((ErrorCode::EmptyExponent, 3).into()), f64::from_lexical(b"0.0e"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b".E"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b".e"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"E2252525225"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"e2252525225"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b".E"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b".e"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b"E2252525225"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b"e2252525225"));
         assert_eq!(Ok(f64::INFINITY), f64::from_lexical(b"2E200000000000"));
 
         // Add various unittests from proptests.
         assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), f64::from_lexical(b"0e"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0).into()), f64::from_lexical(b"."));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 1).into()), f64::from_lexical(b"+."));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 1).into()), f64::from_lexical(b"-."));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b"."));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 1).into()), f64::from_lexical(b"+."));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 1).into()), f64::from_lexical(b"-."));
         assert_eq!(Err((ErrorCode::Empty, 1).into()), f64::from_lexical(b"+"));
         assert_eq!(Err((ErrorCode::Empty, 1).into()), f64::from_lexical(b"-"));
 
@@ -403,7 +549,7 @@ mod tests {
 
     #[test]
     fn f32_lossy_decimal_test() {
-        assert_eq!(Err(ErrorCode::EmptyFraction.into()), f32::from_lexical_lossy(b"."));
+        assert_eq!(Err(ErrorCode::EmptyMantissa.into()), f32::from_lexical_lossy(b"."));
         assert_eq!(Err(ErrorCode::Empty.into()), f32::from_lexical_lossy(b""));
         assert_eq!(Ok(0.0), f32::from_lexical_lossy(b"0.0"));
         assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), f32::from_lexical_lossy(b"1a"));
@@ -414,7 +560,7 @@ mod tests {
 
     #[test]
     fn f64_lossy_decimal_test() {
-        assert_eq!(Err(ErrorCode::EmptyFraction.into()), f64::from_lexical_lossy(b"."));
+        assert_eq!(Err(ErrorCode::EmptyMantissa.into()), f64::from_lexical_lossy(b"."));
         assert_eq!(Err(ErrorCode::Empty.into()), f64::from_lexical_lossy(b""));
         assert_eq!(Ok(0.0), f64::from_lexical_lossy(b"0.0"));
         assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), f64::from_lexical_lossy(b"1a"));
@@ -422,6 +568,87 @@ mod tests {
         // Bug fix for Issue #8
         assert_eq!(Ok(5.002868148396374), f64::from_lexical_lossy(b"5.002868148396374"));
     }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_special_test() {
+        //  Comments match (no_special, case_sensitive, has_sep)
+        let f1 = NumberFormat::standard().unwrap();         // false, false, false
+        let f2 = NumberFormat::ignore(b'_').unwrap();       // false, false, true
+        let f3 = f1 | NumberFormat::NO_SPECIAL;             // true, _, _
+        let f4 = f1 | NumberFormat::CASE_SENSITIVE_SPECIAL; // false, true, false
+        let f5 = f2 | NumberFormat::CASE_SENSITIVE_SPECIAL; // false, true, true
+
+        // Easy NaN
+        assert!(f64::from_lexical_format(b"NaN", f1).unwrap().is_nan());
+        assert!(f64::from_lexical_format(b"NaN", f2).unwrap().is_nan());
+        assert!(f64::from_lexical_format(b"NaN", f3).is_err());
+        assert!(f64::from_lexical_format(b"NaN", f4).unwrap().is_nan());
+        assert!(f64::from_lexical_format(b"NaN", f5).unwrap().is_nan());
+
+        // Case-sensitive NaN.
+        assert!(f64::from_lexical_format(b"nan", f1).unwrap().is_nan());
+        assert!(f64::from_lexical_format(b"nan", f2).unwrap().is_nan());
+        assert!(f64::from_lexical_format(b"nan", f3).is_err());
+        assert!(f64::from_lexical_format(b"nan", f4).is_err());
+        assert!(f64::from_lexical_format(b"nan", f5).is_err());
+
+        // Digit-separator NaN.
+        assert!(f64::from_lexical_format(b"N_aN", f1).is_err());
+        assert!(f64::from_lexical_format(b"N_aN", f2).unwrap().is_nan());
+        assert!(f64::from_lexical_format(b"N_aN", f3).is_err());
+        assert!(f64::from_lexical_format(b"N_aN", f4).is_err());
+        assert!(f64::from_lexical_format(b"N_aN", f5).unwrap().is_nan());
+
+        // Digit-separator + case-sensitive NaN.
+        assert!(f64::from_lexical_format(b"n_an", f1).is_err());
+        assert!(f64::from_lexical_format(b"n_an", f2).unwrap().is_nan());
+        assert!(f64::from_lexical_format(b"n_an", f3).is_err());
+        assert!(f64::from_lexical_format(b"n_an", f4).is_err());
+        assert!(f64::from_lexical_format(b"n_an", f5).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_no_positive_mantissa_sign_test() {
+        let format = NumberFormat::NO_POSITIVE_MANTISSA_SIGN;
+        assert!(f64::from_lexical_format(b"+3.0", format).is_err());
+        assert!(f64::from_lexical_format(b"-3.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"3.0", format).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_required_mantissa_sign_test() {
+        let format = NumberFormat::REQUIRED_MANTISSA_SIGN;
+        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"-3.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"3.0", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_optional_exponent_test() {
+        let format = NumberFormat::permissive().unwrap();
+        assert!(f64::from_lexical_format(b"+3.0e7", format).is_ok());
+        assert!(f64::from_lexical_format(b"+3.0e-7", format).is_ok());
+        assert!(f64::from_lexical_format(b"+3.0e", format).is_ok());
+        assert!(f64::from_lexical_format(b"+3.0e-", format).is_ok());
+        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_required_exponent_test() {
+        let format = NumberFormat::REQUIRED_EXPONENT_DIGITS;
+        assert!(f64::from_lexical_format(b"+3.0e7", format).is_ok());
+        assert!(f64::from_lexical_format(b"+3.0e-7", format).is_ok());
+        assert!(f64::from_lexical_format(b"+3.0e", format).is_err());
+        assert!(f64::from_lexical_format(b"+3.0e-", format).is_err());
+        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+    }
+
+    // TODO(ahuszagh) Need to add format tests
 
     #[cfg(feature = "std")]
     proptest! {
@@ -438,7 +665,7 @@ mod tests {
             let res = f32::from_lexical(i.as_bytes());
             prop_assert!(res.is_err());
             let err = res.err().unwrap();
-            prop_assert!(err.code == ErrorCode::InvalidDigit || err.code == ErrorCode::EmptyFraction);
+            prop_assert!(err.code == ErrorCode::InvalidDigit || err.code == ErrorCode::EmptyMantissa);
             prop_assert!(err.index == 0 || err.index == 1);
         }
 
@@ -447,7 +674,7 @@ mod tests {
             let res = f32::from_lexical(i.as_bytes());
             prop_assert!(res.is_err());
             let err = res.err().unwrap();
-            prop_assert!(err.code == ErrorCode::Empty || err.code == ErrorCode::EmptyFraction);
+            prop_assert!(err.code == ErrorCode::Empty || err.code == ErrorCode::EmptyMantissa);
             prop_assert!(err.index == 0 || err.index == 1);
         }
 
@@ -501,7 +728,7 @@ mod tests {
             let res = f64::from_lexical(i.as_bytes());
             prop_assert!(res.is_err());
             let err = res.err().unwrap();
-            prop_assert!(err.code == ErrorCode::InvalidDigit || err.code == ErrorCode::EmptyFraction);
+            prop_assert!(err.code == ErrorCode::InvalidDigit || err.code == ErrorCode::EmptyMantissa);
             prop_assert!(err.index == 0 || err.index == 1);
         }
 
@@ -510,7 +737,7 @@ mod tests {
             let res = f64::from_lexical(i.as_bytes());
             prop_assert!(res.is_err());
             let err = res.err().unwrap();
-            prop_assert!(err.code == ErrorCode::Empty || err.code == ErrorCode::EmptyFraction);
+            prop_assert!(err.code == ErrorCode::Empty || err.code == ErrorCode::EmptyMantissa);
             prop_assert!(err.index == 0 || err.index == 1);
         }
 

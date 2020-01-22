@@ -73,41 +73,27 @@ inline result<T> result_err(error_code code, size_t index)
     return r;
 }
 
-template <typename T>
-inline result<T> result_overflow(size_t index)
-{
-    return result_err<T>(error_code::overflow, index);
-}
+#define lexical_result_error(type)                                              \
+    template <typename T>                                                       \
+    inline result<T> result_##type(size_t index)                                \
+    {                                                                           \
+        return result_err<T>(error_code::type, index);                          \
+    }
 
-template <typename T>
-inline result<T> result_underflow(size_t index)
-{
-    return result_err<T>(error_code::underflow, index);
-}
-
-template <typename T>
-inline result<T> result_invalid_digit(size_t index)
-{
-    return result_err<T>(error_code::invalid_digit, index);
-}
-
-template <typename T>
-inline result<T> result_empty(size_t index)
-{
-    return result_err<T>(error_code::empty, index);
-}
-
-template <typename T>
-inline result<T> result_empty_fraction(size_t index)
-{
-    return result_err<T>(error_code::empty_fraction, index);
-}
-
-template <typename T>
-inline result<T> result_empty_exponent(size_t index)
-{
-    return result_err<T>(error_code::empty_exponent, index);
-}
+lexical_result_error(overflow);
+lexical_result_error(underflow);
+lexical_result_error(invalid_digit);
+lexical_result_error(empty);
+lexical_result_error(empty_mantissa);
+lexical_result_error(empty_exponent);
+lexical_result_error(empty_integer);
+lexical_result_error(empty_fraction);
+lexical_result_error(invalid_positive_mantissa_sign);
+lexical_result_error(missing_mantissa_sign);
+lexical_result_error(invalid_exponent);
+lexical_result_error(invalid_positive_exponent_sign);
+lexical_result_error(missing_exponent_sign);
+lexical_result_error(exponent_without_fraction);
 
 template <typename T>
 inline partial_result<T> partial_result_ok(T value, size_t index)
@@ -149,41 +135,27 @@ inline partial_result<T> partial_result_err(error_code code, size_t index)
     return r;
 }
 
-template <typename T>
-inline partial_result<T> partial_result_overflow(size_t index)
-{
-    return partial_result_err<T>(error_code::overflow, index);
-}
+#define lexical_partial_result_error(type)                                      \
+    template <typename T>                                                       \
+    inline partial_result<T> partial_result_##type(size_t index)                \
+    {                                                                           \
+        return partial_result_err<T>(error_code::type, index);                  \
+    }
 
-template <typename T>
-inline partial_result<T> partial_result_underflow(size_t index)
-{
-    return partial_result_err<T>(error_code::underflow, index);
-}
-
-template <typename T>
-inline partial_result<T> partial_result_invalid_digit(size_t index)
-{
-    return partial_result_err<T>(error_code::invalid_digit, index);
-}
-
-template <typename T>
-inline partial_result<T> partial_result_empty(size_t index)
-{
-    return partial_result_err<T>(error_code::empty, index);
-}
-
-template <typename T>
-inline partial_result<T> partial_result_empty_fraction(size_t index)
-{
-    return partial_result_err<T>(error_code::empty_fraction, index);
-}
-
-template <typename T>
-inline partial_result<T> partial_result_empty_exponent(size_t index)
-{
-    return partial_result_err<T>(error_code::empty_exponent, index);
-}
+lexical_partial_result_error(overflow);
+lexical_partial_result_error(underflow);
+lexical_partial_result_error(invalid_digit);
+lexical_partial_result_error(empty);
+lexical_partial_result_error(empty_mantissa);
+lexical_partial_result_error(empty_exponent);
+lexical_partial_result_error(empty_integer);
+lexical_partial_result_error(empty_fraction);
+lexical_partial_result_error(invalid_positive_mantissa_sign);
+lexical_partial_result_error(missing_mantissa_sign);
+lexical_partial_result_error(invalid_exponent);
+lexical_partial_result_error(invalid_positive_exponent_sign);
+lexical_partial_result_error(missing_exponent_sign);
+lexical_partial_result_error(exponent_without_fraction);
 
 // CONFIG TESTS
 // ------------
@@ -318,12 +290,12 @@ TEST(test_is_empty, error_tests)
     EXPECT_TRUE(empty.is_empty());
 }
 
-TEST(test_is_empty_fraction, error_tests)
+TEST(test_is_empty_mantissa, error_tests)
 {
     error overflow = { error_code::overflow, 0 };
-    error empty_fraction = { error_code::empty_fraction, 0 };
-    EXPECT_FALSE(overflow.is_empty_fraction());
-    EXPECT_TRUE(empty_fraction.is_empty_fraction());
+    error empty_mantissa = { error_code::empty_mantissa, 0 };
+    EXPECT_FALSE(overflow.is_empty_mantissa());
+    EXPECT_TRUE(empty_mantissa.is_empty_mantissa());
 }
 
 TEST(test_is_empty_exponent, error_tests)
@@ -332,6 +304,71 @@ TEST(test_is_empty_exponent, error_tests)
     error empty_exponent = { error_code::empty_exponent, 0 };
     EXPECT_FALSE(overflow.is_empty_exponent());
     EXPECT_TRUE(empty_exponent.is_empty_exponent());
+}
+
+TEST(test_is_empty_integer, error_tests)
+{
+    error overflow = { error_code::overflow, 0 };
+    error empty_integer = { error_code::empty_integer, 0 };
+    EXPECT_FALSE(overflow.is_empty_integer());
+    EXPECT_TRUE(empty_integer.is_empty_integer());
+}
+
+TEST(test_is_empty_fraction, error_tests)
+{
+    error overflow = { error_code::overflow, 0 };
+    error empty_fraction = { error_code::empty_fraction, 0 };
+    EXPECT_FALSE(overflow.is_empty_fraction());
+    EXPECT_TRUE(empty_fraction.is_empty_fraction());
+}
+
+TEST(test_is_invalid_positive_mantissa_sign, error_tests)
+{
+    error overflow = { error_code::overflow, 0 };
+    error invalid_positive_mantissa_sign = { error_code::invalid_positive_mantissa_sign, 0 };
+    EXPECT_FALSE(overflow.is_invalid_positive_mantissa_sign());
+    EXPECT_TRUE(invalid_positive_mantissa_sign.is_invalid_positive_mantissa_sign());
+}
+
+TEST(test_is_missing_mantissa_sign, error_tests)
+{
+    error overflow = { error_code::overflow, 0 };
+    error missing_mantissa_sign = { error_code::missing_mantissa_sign, 0 };
+    EXPECT_FALSE(overflow.is_missing_mantissa_sign());
+    EXPECT_TRUE(missing_mantissa_sign.is_missing_mantissa_sign());
+}
+
+TEST(test_is_invalid_exponent, error_tests)
+{
+    error overflow = { error_code::overflow, 0 };
+    error invalid_exponent = { error_code::invalid_exponent, 0 };
+    EXPECT_FALSE(overflow.is_invalid_exponent());
+    EXPECT_TRUE(invalid_exponent.is_invalid_exponent());
+}
+
+TEST(test_is_invalid_positive_exponent_sign, error_tests)
+{
+    error overflow = { error_code::overflow, 0 };
+    error invalid_positive_exponent_sign = { error_code::invalid_positive_exponent_sign, 0 };
+    EXPECT_FALSE(overflow.is_invalid_positive_exponent_sign());
+    EXPECT_TRUE(invalid_positive_exponent_sign.is_invalid_positive_exponent_sign());
+}
+
+TEST(test_is_missing_exponent_sign, error_tests)
+{
+    error overflow = { error_code::overflow, 0 };
+    error missing_exponent_sign = { error_code::missing_exponent_sign, 0 };
+    EXPECT_FALSE(overflow.is_missing_exponent_sign());
+    EXPECT_TRUE(missing_exponent_sign.is_missing_exponent_sign());
+}
+
+
+TEST(test_is_exponent_without_fraction, error_tests)
+{
+    error overflow = { error_code::overflow, 0 };
+    error exponent_without_fraction = { error_code::exponent_without_fraction, 0 };
+    EXPECT_FALSE(overflow.is_exponent_without_fraction());
+    EXPECT_TRUE(exponent_without_fraction.is_exponent_without_fraction());
 }
 
 // RESULT TESTS
@@ -343,8 +380,16 @@ TEST(result, result_tests)
     auto underflow = result_underflow<u8>(0);
     auto invalid_digit = result_invalid_digit<u8>(0);
     auto empty = result_empty<u8>(0);
-    auto empty_fraction = result_empty_fraction<u8>(0);
+    auto empty_mantissa = result_empty_mantissa<u8>(0);
     auto empty_exponent = result_empty_exponent<u8>(0);
+    auto empty_integer = result_empty_integer<u8>(0);
+    auto empty_fraction = result_empty_fraction<u8>(0);
+    auto invalid_positive_mantissa_sign = result_invalid_positive_mantissa_sign<u8>(0);
+    auto missing_mantissa_sign = result_missing_mantissa_sign<u8>(0);
+    auto invalid_exponent = result_invalid_exponent<u8>(0);
+    auto invalid_positive_exponent_sign = result_invalid_positive_exponent_sign<u8>(0);
+    auto missing_exponent_sign = result_missing_exponent_sign<u8>(0);
+    auto exponent_without_fraction = result_exponent_without_fraction<u8>(0);
 
     EXPECT_TRUE(ok.is_ok());
     EXPECT_FALSE(ok.is_err());
@@ -352,16 +397,32 @@ TEST(result, result_tests)
     EXPECT_TRUE(underflow.is_err());
     EXPECT_TRUE(invalid_digit.is_err());
     EXPECT_TRUE(empty.is_err());
-    EXPECT_TRUE(empty_fraction.is_err());
+    EXPECT_TRUE(empty_mantissa.is_err());
     EXPECT_TRUE(empty_exponent.is_err());
+    EXPECT_TRUE(empty_integer.is_err());
+    EXPECT_TRUE(empty_fraction.is_err());
+    EXPECT_TRUE(invalid_positive_mantissa_sign.is_err());
+    EXPECT_TRUE(missing_mantissa_sign.is_err());
+    EXPECT_TRUE(invalid_exponent.is_err());
+    EXPECT_TRUE(invalid_positive_exponent_sign.is_err());
+    EXPECT_TRUE(missing_exponent_sign.is_err());
+    EXPECT_TRUE(exponent_without_fraction.is_err());
 
     EXPECT_EQ(ok.ok(), 0);
     EXPECT_TRUE(overflow.err().is_overflow());
     EXPECT_TRUE(underflow.err().is_underflow());
     EXPECT_TRUE(invalid_digit.err().is_invalid_digit());
     EXPECT_TRUE(empty.err().is_empty());
-    EXPECT_TRUE(empty_fraction.err().is_empty_fraction());
+    EXPECT_TRUE(empty_mantissa.err().is_empty_mantissa());
     EXPECT_TRUE(empty_exponent.err().is_empty_exponent());
+    EXPECT_TRUE(empty_integer.err().is_empty_integer());
+    EXPECT_TRUE(empty_fraction.err().is_empty_fraction());
+    EXPECT_TRUE(invalid_positive_mantissa_sign.err().is_invalid_positive_mantissa_sign());
+    EXPECT_TRUE(missing_mantissa_sign.err().is_missing_mantissa_sign());
+    EXPECT_TRUE(invalid_exponent.err().is_invalid_exponent());
+    EXPECT_TRUE(invalid_positive_exponent_sign.err().is_invalid_positive_exponent_sign());
+    EXPECT_TRUE(missing_exponent_sign.err().is_missing_exponent_sign());
+    EXPECT_TRUE(exponent_without_fraction.err().is_exponent_without_fraction());
 }
 
 // PARTIAL RESULT TESTS
@@ -373,8 +434,16 @@ TEST(partial_result, partial_result_tests)
     auto underflow = partial_result_underflow<u8>(0);
     auto invalid_digit = partial_result_invalid_digit<u8>(0);
     auto empty = partial_result_empty<u8>(0);
-    auto empty_fraction = partial_result_empty_fraction<u8>(0);
+    auto empty_mantissa = partial_result_empty_mantissa<u8>(0);
     auto empty_exponent = partial_result_empty_exponent<u8>(0);
+    auto empty_integer = partial_result_empty_integer<u8>(0);
+    auto empty_fraction = partial_result_empty_fraction<u8>(0);
+    auto invalid_positive_mantissa_sign = partial_result_invalid_positive_mantissa_sign<u8>(0);
+    auto missing_mantissa_sign = partial_result_missing_mantissa_sign<u8>(0);
+    auto invalid_exponent = partial_result_invalid_exponent<u8>(0);
+    auto invalid_positive_exponent_sign = partial_result_invalid_positive_exponent_sign<u8>(0);
+    auto missing_exponent_sign = partial_result_missing_exponent_sign<u8>(0);
+    auto exponent_without_fraction = partial_result_exponent_without_fraction<u8>(0);
 
     EXPECT_TRUE(ok.is_ok());
     EXPECT_FALSE(ok.is_err());
@@ -382,16 +451,32 @@ TEST(partial_result, partial_result_tests)
     EXPECT_TRUE(underflow.is_err());
     EXPECT_TRUE(invalid_digit.is_err());
     EXPECT_TRUE(empty.is_err());
-    EXPECT_TRUE(empty_fraction.is_err());
+    EXPECT_TRUE(empty_mantissa.is_err());
     EXPECT_TRUE(empty_exponent.is_err());
+    EXPECT_TRUE(empty_integer.is_err());
+    EXPECT_TRUE(empty_fraction.is_err());
+    EXPECT_TRUE(invalid_positive_mantissa_sign.is_err());
+    EXPECT_TRUE(missing_mantissa_sign.is_err());
+    EXPECT_TRUE(invalid_exponent.is_err());
+    EXPECT_TRUE(invalid_positive_exponent_sign.is_err());
+    EXPECT_TRUE(missing_exponent_sign.is_err());
+    EXPECT_TRUE(exponent_without_fraction.is_err());
 
     EXPECT_EQ(ok.ok(), std::make_tuple(0, 1));
     EXPECT_TRUE(overflow.err().is_overflow());
     EXPECT_TRUE(underflow.err().is_underflow());
     EXPECT_TRUE(invalid_digit.err().is_invalid_digit());
     EXPECT_TRUE(empty.err().is_empty());
-    EXPECT_TRUE(empty_fraction.err().is_empty_fraction());
+    EXPECT_TRUE(empty_mantissa.err().is_empty_mantissa());
     EXPECT_TRUE(empty_exponent.err().is_empty_exponent());
+    EXPECT_TRUE(empty_integer.err().is_empty_integer());
+    EXPECT_TRUE(empty_fraction.err().is_empty_fraction());
+    EXPECT_TRUE(invalid_positive_mantissa_sign.err().is_invalid_positive_mantissa_sign());
+    EXPECT_TRUE(missing_mantissa_sign.err().is_missing_mantissa_sign());
+    EXPECT_TRUE(invalid_exponent.err().is_invalid_exponent());
+    EXPECT_TRUE(invalid_positive_exponent_sign.err().is_invalid_positive_exponent_sign());
+    EXPECT_TRUE(missing_exponent_sign.err().is_missing_exponent_sign());
+    EXPECT_TRUE(exponent_without_fraction.err().is_exponent_without_fraction());
 }
 
 // TO STRING TESTS
@@ -457,9 +542,9 @@ TEST(to_string, api_tests)
     PARSE_TEST(t);                                                              \
     EXPECT_EQ(result_ok<t>(10.5), parse<t>("10.5"));                            \
     EXPECT_EQ(result_ok<t>(10e5), parse<t>("10e5"));                            \
-    EXPECT_EQ(result_empty_fraction<t>(0), parse<t>("."));                      \
-    EXPECT_EQ(result_empty_fraction<t>(0), parse<t>("e5"));                     \
-    EXPECT_EQ(result_empty_exponent<t>(4), parse<t>("10e+"))
+    EXPECT_EQ(result_empty_mantissa<t>(0), parse<t>("."));                      \
+    EXPECT_EQ(result_empty_mantissa<t>(0), parse<t>("e5"));                     \
+    EXPECT_EQ(result_empty_exponent<t>(2), parse<t>("10e+"))
 
 TEST(parse, api_tests)
 {
@@ -492,9 +577,9 @@ TEST(parse, api_tests)
         EXPECT_EQ(result_ok<t>(10.5), parse_radix<t>("1010.1", 2));             \
         EXPECT_EQ(result_ok<t>(10.5), parse_radix<t>("10.5", 10));              \
         EXPECT_EQ(result_ok<t>(10.5), parse_radix<t>("A.8", 16));               \
-        EXPECT_EQ(result_empty_fraction<t>(0), parse_radix<t>(".", 10));        \
-        EXPECT_EQ(result_empty_fraction<t>(0), parse_radix<t>("e5", 10));       \
-        EXPECT_EQ(result_empty_exponent<t>(4), parse_radix<t>("10e+", 10))
+        EXPECT_EQ(result_empty_mantissa<t>(0), parse_radix<t>(".", 10));        \
+        EXPECT_EQ(result_empty_mantissa<t>(0), parse_radix<t>("e5", 10));       \
+        EXPECT_EQ(result_empty_exponent<t>(2), parse_radix<t>("10e+", 10))
 
     TEST(parse_radix, api_tests)
     {
@@ -522,9 +607,9 @@ TEST(parse, api_tests)
     PARSE_PARTIAL_TEST(t);                                                      \
     EXPECT_EQ(partial_result_ok<t>(10.5, 4), parse_partial<t>("10.5"));         \
     EXPECT_EQ(partial_result_ok<t>(10e5, 4), parse_partial<t>("10e5"));         \
-    EXPECT_EQ(partial_result_empty_fraction<t>(0), parse_partial<t>("."));      \
-    EXPECT_EQ(partial_result_empty_fraction<t>(0), parse_partial<t>("e5"));     \
-    EXPECT_EQ(partial_result_empty_exponent<t>(4), parse_partial<t>("10e+"))
+    EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial<t>("."));      \
+    EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial<t>("e5"));     \
+    EXPECT_EQ(partial_result_empty_exponent<t>(2), parse_partial<t>("10e+"))
 
 TEST(parse_partial, api_tests)
 {
@@ -557,9 +642,9 @@ TEST(parse_partial, api_tests)
         EXPECT_EQ(partial_result_ok<t>(10.5, 6), parse_partial_radix<t>("1010.1", 2));      \
         EXPECT_EQ(partial_result_ok<t>(10.5, 4), parse_partial_radix<t>("10.5", 10));       \
         EXPECT_EQ(partial_result_ok<t>(10.5, 3), parse_partial_radix<t>("A.8", 16));        \
-        EXPECT_EQ(partial_result_empty_fraction<t>(0), parse_partial_radix<t>(".", 10));    \
-        EXPECT_EQ(partial_result_empty_fraction<t>(0), parse_partial_radix<t>("e5", 10));   \
-        EXPECT_EQ(partial_result_empty_exponent<t>(4), parse_partial_radix<t>("10e+", 10))
+        EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_radix<t>(".", 10));    \
+        EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_radix<t>("e5", 10));   \
+        EXPECT_EQ(partial_result_empty_exponent<t>(2), parse_partial_radix<t>("10e+", 10))
 
     TEST(parse_partial_radix, api_tests)
     {
@@ -589,9 +674,9 @@ TEST(parse_partial, api_tests)
     PARSE_LOSSY_TEST(t);                                                        \
     EXPECT_EQ(result_ok<t>(10.5), parse_lossy<t>("10.5"));                      \
     EXPECT_EQ(result_ok<t>(10e5), parse_lossy<t>("10e5"));                      \
-    EXPECT_EQ(result_empty_fraction<t>(0), parse_lossy<t>("."));                \
-    EXPECT_EQ(result_empty_fraction<t>(0), parse_lossy<t>("e5"));               \
-    EXPECT_EQ(result_empty_exponent<t>(4), parse_lossy<t>("10e+"))
+    EXPECT_EQ(result_empty_mantissa<t>(0), parse_lossy<t>("."));                \
+    EXPECT_EQ(result_empty_mantissa<t>(0), parse_lossy<t>("e5"));               \
+    EXPECT_EQ(result_empty_exponent<t>(2), parse_lossy<t>("10e+"))
 
 TEST(parse_lossy, api_tests)
 {
@@ -609,9 +694,9 @@ TEST(parse_lossy, api_tests)
         PARSE_LOSSY_TEST(t);                                                        \
         EXPECT_EQ(result_ok<t>(10.5), parse_lossy_radix<t>("10.5", 10));            \
         EXPECT_EQ(result_ok<t>(10e5), parse_lossy_radix<t>("10e5", 10));            \
-        EXPECT_EQ(result_empty_fraction<t>(0), parse_lossy_radix<t>(".", 10));      \
-        EXPECT_EQ(result_empty_fraction<t>(0), parse_lossy_radix<t>("e5", 10));     \
-        EXPECT_EQ(result_empty_exponent<t>(4), parse_lossy_radix<t>("10e+", 10))
+        EXPECT_EQ(result_empty_mantissa<t>(0), parse_lossy_radix<t>(".", 10));      \
+        EXPECT_EQ(result_empty_mantissa<t>(0), parse_lossy_radix<t>("e5", 10));     \
+        EXPECT_EQ(result_empty_exponent<t>(2), parse_lossy_radix<t>("10e+", 10))
 
     TEST(parse_lossy_radix, api_tests)
     {
@@ -629,9 +714,9 @@ TEST(parse_lossy, api_tests)
     PARSE_PARTIAL_LOSSY_TEST(t);                                                            \
     EXPECT_EQ(partial_result_ok<t>(10.5, 4), parse_partial_lossy<t>("10.5"));               \
     EXPECT_EQ(partial_result_ok<t>(10e5, 4), parse_partial_lossy<t>("10e5"));               \
-    EXPECT_EQ(partial_result_empty_fraction<t>(0), parse_partial_lossy<t>("."));            \
-    EXPECT_EQ(partial_result_empty_fraction<t>(0), parse_partial_lossy<t>("e5"));           \
-    EXPECT_EQ(partial_result_empty_exponent<t>(4), parse_partial_lossy<t>("10e+"))
+    EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_lossy<t>("."));            \
+    EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_lossy<t>("e5"));           \
+    EXPECT_EQ(partial_result_empty_exponent<t>(2), parse_partial_lossy<t>("10e+"))
 
 TEST(parse_partial_lossy, api_tests)
 {
@@ -649,9 +734,9 @@ TEST(parse_partial_lossy, api_tests)
         PARSE_PARTIAL_LOSSY_RADIX_TEST(t);                                                      \
         EXPECT_EQ(partial_result_ok<t>(10.5, 4), parse_partial_lossy_radix<t>("10.5", 10));     \
         EXPECT_EQ(partial_result_ok<t>(10e5, 4), parse_partial_lossy_radix<t>("10e5", 10));     \
-        EXPECT_EQ(partial_result_empty_fraction<t>(0), parse_partial_lossy_radix<t>(".", 10));  \
-        EXPECT_EQ(partial_result_empty_fraction<t>(0), parse_partial_lossy_radix<t>("e5", 10)); \
-        EXPECT_EQ(partial_result_empty_exponent<t>(4), parse_partial_lossy_radix<t>("10e+", 10))
+        EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_lossy_radix<t>(".", 10));  \
+        EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_lossy_radix<t>("e5", 10)); \
+        EXPECT_EQ(partial_result_empty_exponent<t>(2), parse_partial_lossy_radix<t>("10e+", 10))
 
     TEST(parse_partial_lossy_radix, api_tests)
     {

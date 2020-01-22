@@ -1,7 +1,6 @@
-//! Permissive float-parsing data.
+//! Permissive float-parsing data interface.
 
 use crate::util::*;
-use super::consume::*;
 use super::exponent::*;
 use super::iterator::*;
 use super::traits::*;
@@ -10,26 +9,31 @@ use super::validate::*;
 
 // Permissive data interface for fast float parsers.
 //
-// Guaranteed to parse `FloatFormat::default()`.
+// Guaranteed to parse `NumberFormat::permissive()`.
 //
 // The requirements:
 //     1). Must contain significant digits.
 //     2). Does not contain any digit separators.
-fast_data_interface!(
+data_interface!(
     struct PermissiveFastDataInterface,
+    struct PermissiveSlowDataInterface,
     fields => {},
     integer_iter => (IteratorNoSeparator, iterate_no_separator),
     fraction_iter => (IteratorNoSeparator, iterate_no_separator),
-    slow_interface => PermissiveSlowDataInterface,
-    consume_digits => consume_digits_no_separator,
+    exponent_iter => (IteratorNoSeparator, iterate_no_separator),
+    format => |_| NumberFormat::default(),
+    consume_integer_digits => consume_digits_no_separator,
+    consume_fraction_digits =>  consume_digits_no_separator,
     extract_exponent => extract_exponent_no_separator,
-    validate_mantissa => validate_mantissa_no_separator,
-    validate_exponent => validate_optional_exponent_no_separator,
+    validate_mantissa => validate_permissive_mantissa,
+    validate_exponent => validate_optional_exponent,
+    validate_exponent_fraction => validate_exponent_optional_fraction,
+    validate_exponent_sign => validate_optional_exponent_sign,
     ltrim_zero => ltrim_zero_no_separator,
     ltrim_separator => ltrim_separator_no_separator,
     rtrim_zero => rtrim_zero_no_separator,
     rtrim_separator => rtrim_separator_no_separator,
-    new => fn new(format: FloatFormat) -> Self {
+    new => fn new(format: NumberFormat) -> Self {
         Self {
             integer: &[],
             fraction: &[],
@@ -37,20 +41,6 @@ fast_data_interface!(
             raw_exponent: 0
         }
     }
-);
-
-// Permissive data interface for moderate/slow float parsers.
-//
-// Guaranteed to parse `FloatFormat::default()`.
-//
-// The requirements:
-//     1). Must contain significant digits.
-//     2). Does not contain any digit separators.
-slow_data_interface!(
-    struct PermissiveSlowDataInterface,
-    fields => {},
-    integer_iter => (IteratorNoSeparator, iterate_no_separator),
-    fraction_iter => (IteratorNoSeparator, iterate_no_separator)
 );
 
 // TESTS
@@ -73,7 +63,7 @@ mod tests {
 
     #[test]
     fn extract_test() {
-        PermissiveFastDataInterface::new(FloatFormat::default()).run_tests([
+        PermissiveFastDataInterface::new(NumberFormat::permissive().unwrap()).run_tests([
             // Valid
             ("1.2345", Ok(permissive!(b"1", b"2345", b"", 0))),
             ("12.345", Ok(permissive!(b"12", b"345", b"", 0))),
@@ -96,22 +86,22 @@ mod tests {
             (".3e", Ok(permissive!(b"", b"3", b"e", 0))),
 
             // Invalid
-            ("", Err(ErrorCode::EmptyFraction)),
-            ("+", Err(ErrorCode::EmptyFraction)),
-            ("-", Err(ErrorCode::EmptyFraction)),
-            (".", Err(ErrorCode::EmptyFraction)),
-            ("+.", Err(ErrorCode::EmptyFraction)),
-            ("-.", Err(ErrorCode::EmptyFraction)),
-            ("e", Err(ErrorCode::EmptyFraction)),
-            ("E", Err(ErrorCode::EmptyFraction)),
-            ("e1", Err(ErrorCode::EmptyFraction)),
-            ("e+1", Err(ErrorCode::EmptyFraction)),
-            ("e-1", Err(ErrorCode::EmptyFraction)),
-            (".e", Err(ErrorCode::EmptyFraction)),
-            (".E", Err(ErrorCode::EmptyFraction)),
-            (".e1", Err(ErrorCode::EmptyFraction)),
-            (".e+1", Err(ErrorCode::EmptyFraction)),
-            (".e-1", Err(ErrorCode::EmptyFraction)),
+            ("", Err(ErrorCode::EmptyMantissa)),
+            ("+", Err(ErrorCode::EmptyMantissa)),
+            ("-", Err(ErrorCode::EmptyMantissa)),
+            (".", Err(ErrorCode::EmptyMantissa)),
+            ("+.", Err(ErrorCode::EmptyMantissa)),
+            ("-.", Err(ErrorCode::EmptyMantissa)),
+            ("e", Err(ErrorCode::EmptyMantissa)),
+            ("E", Err(ErrorCode::EmptyMantissa)),
+            ("e1", Err(ErrorCode::EmptyMantissa)),
+            ("e+1", Err(ErrorCode::EmptyMantissa)),
+            ("e-1", Err(ErrorCode::EmptyMantissa)),
+            (".e", Err(ErrorCode::EmptyMantissa)),
+            (".E", Err(ErrorCode::EmptyMantissa)),
+            (".e1", Err(ErrorCode::EmptyMantissa)),
+            (".e+1", Err(ErrorCode::EmptyMantissa)),
+            (".e-1", Err(ErrorCode::EmptyMantissa)),
         ].iter());
     }
 }

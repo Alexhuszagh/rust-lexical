@@ -220,9 +220,24 @@ enum class error_code: int32_t {
     underflow = ::lexical_underflow,
     invalid_digit = ::lexical_invalid_digit,
     empty = ::lexical_empty,
-    empty_fraction = ::lexical_empty_fraction,
+    empty_mantissa = ::lexical_empty_mantissa,
     empty_exponent = ::lexical_empty_exponent,
+    empty_integer = ::lexical_empty_integer,
+    empty_fraction = ::lexical_empty_fraction,
+    invalid_positive_mantissa_sign = ::lexical_invalid_positive_mantissa_sign,
+    missing_mantissa_sign = ::lexical_missing_mantissa_sign,
+    invalid_exponent = ::lexical_invalid_exponent,
+    invalid_positive_exponent_sign = ::lexical_invalid_positive_exponent_sign,
+    missing_exponent_sign = ::lexical_missing_exponent_sign,
+    exponent_without_fraction = ::lexical_exponent_without_fraction,
 };
+
+// Determine if an error code matches the desired code.
+#define lexical_is_error(type)                                                  \
+    inline bool is_##type()                                                     \
+    {                                                                           \
+        return code == error_code::type;                                        \
+    }
 
 // C-compatible error type.
 struct error
@@ -230,35 +245,20 @@ struct error
     error_code code;
     size_t index;
 
-    inline bool is_overflow()
-    {
-        return code == error_code::overflow;
-    }
-
-    inline bool is_underflow()
-    {
-        return code == error_code::underflow;
-    }
-
-    inline bool is_invalid_digit()
-    {
-        return code == error_code::invalid_digit;
-    }
-
-    inline bool is_empty()
-    {
-        return code == error_code::empty;
-    }
-
-    inline bool is_empty_fraction()
-    {
-        return code == error_code::empty_fraction;
-    }
-
-    inline bool is_empty_exponent()
-    {
-        return code == error_code::empty_exponent;
-    }
+    lexical_is_error(overflow);
+    lexical_is_error(underflow);
+    lexical_is_error(invalid_digit);
+    lexical_is_error(empty);
+    lexical_is_error(empty_mantissa);
+    lexical_is_error(empty_exponent);
+    lexical_is_error(empty_integer);
+    lexical_is_error(empty_fraction);
+    lexical_is_error(invalid_positive_mantissa_sign);
+    lexical_is_error(missing_mantissa_sign);
+    lexical_is_error(invalid_exponent);
+    lexical_is_error(invalid_positive_exponent_sign);
+    lexical_is_error(missing_exponent_sign);
+    lexical_is_error(exponent_without_fraction);
 
     inline friend bool operator==(const error& lhs, const error& rhs)
     {
@@ -879,6 +879,7 @@ inline partial_result<T> parse_partial_lossy(string_type string)
 
 #undef lexical_get_string
 #undef lexical_set_string
+#undef lexical_is_error
 #undef lexical_to_lexical
 #undef lexical_to_lexical_radix
 #undef lexical_from_lexical

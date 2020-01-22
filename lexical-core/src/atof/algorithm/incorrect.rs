@@ -66,7 +66,7 @@ fn to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32)
 }}
 
 perftools_inline!{
-pub(crate) fn atof_generic<'a, F>(bytes: &'a [u8], radix: u32, _: bool, _: Sign, format: FloatFormat)
+pub(crate) fn atof_generic<'a, F>(bytes: &'a [u8], radix: u32, _: bool, _: Sign, format: NumberFormat)
     -> ParseResult<(F, *const u8)>
     where F: StablePower
 {
@@ -78,7 +78,7 @@ pub(crate) fn atof_generic<'a, F>(bytes: &'a [u8], radix: u32, _: bool, _: Sign,
 
 // Parse 32-bit float from string.
 perftools_inline!{
-pub(crate) fn atof<'a>(bytes: &'a [u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+pub(crate) fn atof<'a>(bytes: &'a [u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
     -> ParseResult<(f32, *const u8)>
 {
     atof_generic(bytes, radix, lossy, sign, format)
@@ -86,7 +86,7 @@ pub(crate) fn atof<'a>(bytes: &'a [u8], radix: u32, lossy: bool, sign: Sign, for
 
 // Parse 64-bit float from string.
 perftools_inline!{
-pub(crate) fn atod<'a>(bytes: &'a [u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+pub(crate) fn atod<'a>(bytes: &'a [u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
     -> ParseResult<(f64, *const u8)>
 {
     atof_generic(bytes, radix, lossy, sign, format)
@@ -129,7 +129,7 @@ mod tests {
 
     #[test]
     fn atof_test() {
-        let atof10 = move |x| match atof(x, 10, false, Sign::Positive, FloatFormat::RUST_STRING) {
+        let atof10 = move |x| match atof(x, 10, false, Sign::Positive, NumberFormat::standard().unwrap()) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn atod_test() {
-        let atod10 = move |x| match atod(x, 10, false, Sign::Positive, FloatFormat::RUST_STRING) {
+        let atod10 = move |x| match atod(x, 10, false, Sign::Positive, NumberFormat::standard().unwrap()) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -159,7 +159,7 @@ mod tests {
 
     #[test]
     fn atof_lossy_test() {
-        let atof10 = move |x| match atof(x, 10, true, Sign::Positive, FloatFormat::RUST_STRING) {
+        let atof10 = move |x| match atof(x, 10, true, Sign::Positive, NumberFormat::standard().unwrap()) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn atod_lossy_test() {
-        let atod10 = move |x| match atod(x, 10, true, Sign::Positive, FloatFormat::RUST_STRING) {
+        let atod10 = move |x| match atod(x, 10, true, Sign::Positive, NumberFormat::standard().unwrap()) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };

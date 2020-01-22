@@ -24,14 +24,41 @@ pub fn equal_to_slice(l: &[u8], r: &[u8])
     l == r
 }
 
-/// Check if two slices are equal to each other without case-sensitivity.
+/// Check if left iter starts with right iter.
 #[inline]
-pub fn case_insensitive_equal_to_slice(l: &[u8], r: &[u8])
-    -> bool
+#[cfg(feature = "format")]
+pub fn starts_with_iter<'a, Iter1, Iter2>(mut l: Iter1, mut r: Iter2)
+    -> (bool, Iter1)
+    where Iter1: Iterator<Item=&'a u8>,
+          Iter2: Iterator<Item=&'a u8>
 {
-    let liter = l.iter().map(|li| li.to_ascii_lowercase());
-    let riter = r.iter().map(|ri| ri.to_ascii_lowercase());
-    l.len() == r.len() && liter.eq(riter)
+    loop {
+        let li = l.next();
+        let ri = r.next();
+        if ri.is_none() {
+            return (true, l);
+        } else if li != ri {
+            return (false, l);
+        }
+    }
+}
+
+/// Check if left iter starts with right iter without case-sensitivity.
+#[inline]
+pub fn case_insensitive_starts_with_iter<'a, Iter1, Iter2>(mut l: Iter1, mut r: Iter2)
+    -> (bool, Iter1)
+    where Iter1: Iterator<Item=&'a u8>,
+          Iter2: Iterator<Item=&'a u8>
+{
+    loop {
+        let li = l.next().map(|x| x.to_ascii_lowercase());
+        let ri = r.next().map(|x| x.to_ascii_lowercase());
+        if ri.is_none() {
+            return (true, l);
+        } else if li != ri {
+            return (false, l);
+        }
+    }
 }
 
 /// Check if left slice ends with right slice.
@@ -59,12 +86,43 @@ pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
     (slc, count)
 }
 
+/// Trim characters from the left-side of a slice.
+#[inline]
+#[cfg(feature = "format")]
+pub fn ltrim_char2_slice<'a>(slc: &'a [u8], c1: u8, c2: u8)
+    -> (&'a [u8], usize)
+{
+    let count = slc.iter().take_while(|&&si| si == c1 || si == c2).count();
+    //  This count cannot exceed the bounds of the slice, since it is
+    // derived from an iterator using the standard library to generate it.
+    debug_assert!(count <= slc.len());
+    let slc = unsafe {slc.get_unchecked(count..)};
+    (slc, count)
+}
+
 /// Trim character from the right-side of a slice.
 #[inline]
 pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
     -> (&'a [u8], usize)
 {
     let count = slc.iter().rev().take_while(|&&si| si == c).count();
+    let index = slc.len() - count;
+    // Count must be <= slc.len(), and therefore, slc.len() - count must
+    // also be <= slc.len(), since this is derived from an iterator
+    // in the standard library.
+    debug_assert!(count <= slc.len());
+    debug_assert!(index <= slc.len());
+    let slc = unsafe {slc.get_unchecked(..index)};
+    (slc, count)
+}
+
+/// Trim character from the right-side of a slice.
+#[inline]
+#[cfg(feature = "format")]
+pub fn rtrim_char2_slice<'a>(slc: &'a [u8], c1: u8, c2: u8)
+    -> (&'a [u8], usize)
+{
+    let count = slc.iter().rev().take_while(|&&si| si == c1 || si == c2).count();
     let index = slc.len() - count;
     // Count must be <= slc.len(), and therefore, slc.len() - count must
     // also be <= slc.len(), since this is derived from an iterator
@@ -129,18 +187,46 @@ mod tests {
     }
 
     #[test]
-    fn case_insensitive_equal_to_test() {
-        let w = "Hello";
-        let x = "Hello";
-        let y = "hello";
-        let z = "Strongbad";
+    #[cfg(feature = "format")]
+    fn starts_with_test() {
+        let w = b"Hello";
+        let x = b"H";
+        let y = b"h";
+        let z = b"a";
 
-        assert!(case_insensitive_equal_to_slice(w.as_bytes(), x.as_bytes()));
-        assert!(case_insensitive_equal_to_slice(w.as_bytes(), y.as_bytes()));
-        assert!(case_insensitive_equal_to_slice(x.as_bytes(), y.as_bytes()));
-        assert!(!case_insensitive_equal_to_slice(w.as_bytes(), z.as_bytes()));
-        assert!(!case_insensitive_equal_to_slice(x.as_bytes(), z.as_bytes()));
-        assert!(!case_insensitive_equal_to_slice(y.as_bytes(), z.as_bytes()));
+        // forward
+        assert!(starts_with_iter(w.iter(), x.iter()).0);
+        assert!(!starts_with_iter(w.iter(), y.iter()).0);
+        assert!(!starts_with_iter(x.iter(), y.iter()).0);
+        assert!(!starts_with_iter(w.iter(), z.iter()).0);
+        assert!(!starts_with_iter(x.iter(), z.iter()).0);
+        assert!(!starts_with_iter(y.iter(), z.iter()).0);
+
+        // back
+        assert!(!starts_with_iter(x.iter(), w.iter()).0);
+        assert!(!starts_with_iter(y.iter(), w.iter()).0);
+        assert!(!starts_with_iter(z.iter(), w.iter()).0);
+    }
+
+    #[test]
+    fn case_insensitive_starts_with_test() {
+        let w = b"Hello";
+        let x = b"H";
+        let y = b"h";
+        let z = b"a";
+
+        // forward
+        assert!(case_insensitive_starts_with_iter(w.iter(), x.iter()).0);
+        assert!(case_insensitive_starts_with_iter(w.iter(), y.iter()).0);
+        assert!(case_insensitive_starts_with_iter(x.iter(), y.iter()).0);
+        assert!(!case_insensitive_starts_with_iter(w.iter(), z.iter()).0);
+        assert!(!case_insensitive_starts_with_iter(x.iter(), z.iter()).0);
+        assert!(!case_insensitive_starts_with_iter(y.iter(), z.iter()).0);
+
+        // back
+        assert!(!case_insensitive_starts_with_iter(x.iter(), w.iter()).0);
+        assert!(!case_insensitive_starts_with_iter(y.iter(), w.iter()).0);
+        assert!(!case_insensitive_starts_with_iter(z.iter(), w.iter()).0);
     }
 
     #[test]
@@ -184,6 +270,26 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "format")]
+    fn ltrim_char2_test() {
+        let w = "0001";
+        let x = "1010";
+        let y = "1.00";
+        let z = "1e05";
+        let a = "0_01";
+
+        assert_eq!(ltrim_char2_slice(w.as_bytes(), b'0', b'_').1, 3);
+        assert_eq!(ltrim_char2_slice(x.as_bytes(), b'0', b'_').1, 0);
+        assert_eq!(ltrim_char2_slice(x.as_bytes(), b'1', b'_').1, 1);
+        assert_eq!(ltrim_char2_slice(y.as_bytes(), b'0', b'_').1, 0);
+        assert_eq!(ltrim_char2_slice(y.as_bytes(), b'1', b'_').1, 1);
+        assert_eq!(ltrim_char2_slice(z.as_bytes(), b'0', b'_').1, 0);
+        assert_eq!(ltrim_char2_slice(z.as_bytes(), b'1', b'_').1, 1);
+        assert_eq!(ltrim_char2_slice(a.as_bytes(), b'0', b'_').1, 3);
+        assert_eq!(ltrim_char2_slice(a.as_bytes(), b'1', b'_').1, 0);
+    }
+
+    #[test]
     fn rtrim_char_test() {
         let w = "0001";
         let x = "1010";
@@ -197,5 +303,25 @@ mod tests {
         assert_eq!(rtrim_char_slice(y.as_bytes(), b'1').1, 0);
         assert_eq!(rtrim_char_slice(z.as_bytes(), b'0').1, 0);
         assert_eq!(rtrim_char_slice(z.as_bytes(), b'5').1, 1);
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn rtrim_char2_test() {
+        let w = "0001";
+        let x = "1010";
+        let y = "1.00";
+        let z = "1e05";
+        let a = "0_01";
+
+        assert_eq!(rtrim_char2_slice(w.as_bytes(), b'0', b'_').1, 0);
+        assert_eq!(rtrim_char2_slice(x.as_bytes(), b'0', b'_').1, 1);
+        assert_eq!(rtrim_char2_slice(x.as_bytes(), b'1', b'_').1, 0);
+        assert_eq!(rtrim_char2_slice(y.as_bytes(), b'0', b'_').1, 2);
+        assert_eq!(rtrim_char2_slice(y.as_bytes(), b'1', b'_').1, 0);
+        assert_eq!(rtrim_char2_slice(z.as_bytes(), b'0', b'_').1, 0);
+        assert_eq!(rtrim_char2_slice(z.as_bytes(), b'1', b'_').1, 0);
+        assert_eq!(rtrim_char2_slice(a.as_bytes(), b'0', b'_').1, 0);
+        assert_eq!(rtrim_char2_slice(a.as_bytes(), b'1', b'_').1, 1);
     }
 }

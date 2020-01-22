@@ -465,31 +465,35 @@ macro_rules! parse_digits_exponent {
 // Specialized parser for the exponent, which validates digits and
 // returns a default min or max value on overflow.
 perftools_inline!{
-pub(crate) fn standalone_exponent<'a, Iter>(mut iter: Iter, radix: u32)
+pub(crate) fn standalone_exponent<'a, Iter>(mut iter: Iter, radix: u32, sign: Sign)
     -> (i32, *const u8)
     where Iter: AsPtrIterator<'a, u8>
 {
     // Parse the sign bit or current data.
     let mut value = 0;
-    match iter.next() {
-        None               => (),
-        Some(&b'+')        => {
-            parse_digits_exponent!(value, iter, radix, checked_add, i32::max_value());
-        },
-        Some(&b'-')        => {
-            parse_digits_exponent!(value, iter, radix, checked_sub, i32::min_value());
-        },
-        Some(c)            => {
-            // Assume we have a digit.
-            let digit = match to_digit(c, radix) {
-                Ok(v)  => v,
-                Err(c) => return (value, c),
-            };
-            // Cannot overflow on first digit.
-            value += digit.as_i32();
-            parse_digits_exponent!(value, iter, radix, checked_add, i32::max_value());
-        }
+    match sign {
+        Sign::Positive => parse_digits_exponent!(value, iter, radix, checked_add, i32::max_value()),
+        Sign::Negative => parse_digits_exponent!(value, iter, radix, checked_sub, i32::min_value())
     }
+//    match iter.next() {
+//        None               => (),
+//        Some(&b'+')        => {
+//            parse_digits_exponent!(value, iter, radix, checked_add, i32::max_value());
+//        },
+//        Some(&b'-')        => {
+//            parse_digits_exponent!(value, iter, radix, checked_sub, i32::min_value());
+//        },
+//        Some(c)            => {
+//            // Assume we have a digit.
+//            let digit = match to_digit(c, radix) {
+//                Ok(v)  => v,
+//                Err(c) => return (value, c),
+//            };
+//            // Cannot overflow on first digit.
+//            value += digit.as_i32();
+//            parse_digits_exponent!(value, iter, radix, checked_add, i32::max_value());
+//        }
+//    }
 
     (value, iter.as_ptr())
 }}

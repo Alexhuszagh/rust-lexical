@@ -6,15 +6,14 @@ mod format;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
-pub(crate) mod bhcomp;
-pub(crate) mod bigcomp;
+mod bhcomp;
+mod bigcomp;
 mod alias;
 mod bignum;
 mod cached;
 mod cached_float80;
 mod cached_float160;
 mod errors;
-mod exponent;
 mod large_powers;
 mod math;
 mod small_powers;
