@@ -195,5 +195,155 @@ generic_data_interface!(
 
 #[cfg(test)]
 mod tests {
-    // TODO(ahuszagh) Implement...
+    use super::*;
+
+    macro_rules! generic {
+        ($cls:ident, $integer:expr, $fraction:expr, $exponent:expr, $raw_exponent:expr) => {
+            $cls {
+                format: NumberFormat::default(),
+                integer: $integer,
+                fraction: $fraction,
+                exponent: $exponent,
+                raw_exponent: $raw_exponent
+            }
+        };
+    }
+
+    #[test]
+    fn extract_test() {
+        type Generic<'a> = GenericFastDataInterface<'a>;
+        let format = NumberFormat::from_separator(b'_');
+        Generic::new(format).run_tests([
+            // Valid
+            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
+
+            // Invalid
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2", b"", 0))),
+            ("1_.2_345e+10", Ok(generic!(Generic, b"1", b"", b"", 0))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1", 1)))
+        ].iter())
+    }
+
+    #[test]
+    fn extract_i_test() {
+        type Generic<'a> = GenericIFastDataInterface<'a>;
+        let format = NumberFormat::from_separator(b'_')
+            | NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK;
+        Generic::new(format).run_tests([
+            // Valid
+            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
+            ("1_.2_345e+10", Ok(generic!(Generic, b"1_", b"2", b"", 0))),
+
+            // Invalid
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2", b"", 0))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1", 1)))
+        ].iter())
+    }
+
+    #[test]
+    fn extract_f_test() {
+        type Generic<'a> = GenericFFastDataInterface<'a>;
+        let format = NumberFormat::from_separator(b'_')
+            | NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK;
+        Generic::new(format).run_tests([
+            // Valid
+            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2_345", b"e+10", 10))),
+
+            // Invalid
+            ("1_.2_345e+10", Ok(generic!(Generic, b"1", b"", b"", 0))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1", 1)))
+        ].iter())
+    }
+
+    #[test]
+    fn extract_e_test() {
+        type Generic<'a> = GenericEFastDataInterface<'a>;
+        let format = NumberFormat::from_separator(b'_')
+            | NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK;
+        Generic::new(format).run_tests([
+            // Valid
+            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1_0", 10))),
+
+            // Invalid
+            ("1_.2_345e+10", Ok(generic!(Generic, b"1", b"", b"", 0))),
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2", b"", 0)))
+        ].iter())
+    }
+
+    #[test]
+    fn extract_if_test() {
+        type Generic<'a> = GenericIFFastDataInterface<'a>;
+        let format = NumberFormat::from_separator(b'_')
+            | NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK
+            | NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK;
+        Generic::new(format).run_tests([
+            // Valid
+            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
+            ("1_.2_345e+10", Ok(generic!(Generic, b"1_", b"2_345", b"e+10", 10))),
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2_345", b"e+10", 10))),
+
+            // Invalid
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1", 1)))
+        ].iter())
+    }
+
+    #[test]
+    fn extract_ie_test() {
+        type Generic<'a> = GenericIEFastDataInterface<'a>;
+        let format = NumberFormat::from_separator(b'_')
+            | NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK
+            | NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK;
+        Generic::new(format).run_tests([
+            // Valid
+            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
+            ("1_.2345e+10", Ok(generic!(Generic, b"1_", b"2345", b"e+10", 10))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1_0", 10))),
+
+            // Invalid
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2", b"", 0)))
+        ].iter())
+    }
+
+    #[test]
+    fn extract_fe_test() {
+        type Generic<'a> = GenericFEFastDataInterface<'a>;
+        let format = NumberFormat::from_separator(b'_')
+            | NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK
+            | NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK;
+        Generic::new(format).run_tests([
+            // Valid
+            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2_345", b"e+10", 10))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1_0", 10))),
+
+            // Invalid
+            ("1_.2345e+10", Ok(generic!(Generic, b"1", b"", b"", 0)))
+        ].iter())
+    }
+
+    #[test]
+    fn extract_ife_test() {
+        type Generic<'a> = GenericIFEFastDataInterface<'a>;
+        let format = NumberFormat::from_separator(b'_')
+            | NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK
+            | NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK
+            | NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK;
+        Generic::new(format).run_tests([
+            // Valid
+            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
+            ("1_.2345e+10", Ok(generic!(Generic, b"1_", b"2345", b"e+10", 0))),
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2_345", b"e+10", 10))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1_0", 10)))
+        ].iter())
+    }
 }
