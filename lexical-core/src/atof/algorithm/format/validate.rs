@@ -48,7 +48,10 @@ pub(super) fn validate_required_fraction<'a, Data>(data: &Data)
 {
     if data.fraction_iter().next().is_none() {
         // Invalid floating-point number, no fraction component.
-        Err((ErrorCode::EmptyFraction, data.fraction().as_ptr()))
+        // Get a ptr to the past-end of integer, since fraction is not guaranteed
+        // to be from the same array (if no decimal point was found).
+        let integer = data.integer();
+        Err((ErrorCode::EmptyFraction, index!(integer[integer.len()..]).as_ptr()))
     } else {
         Ok(())
     }
@@ -63,12 +66,15 @@ pub(super) fn validate_required_digits<'a, Data>(data: &Data)
     -> ParseResult<()>
     where Data: FastDataInterface<'a>
 {
+    let integer = data.integer();
     if data.integer_iter().next().is_none() {
         // Invalid floating-point number, no integer component.
-        Err((ErrorCode::EmptyInteger, data.integer().as_ptr()))
+        Err((ErrorCode::EmptyInteger, integer.as_ptr()))
     } else if data.fraction_iter().next().is_none() {
         // Invalid floating-point number, no fraction component.
-        Err((ErrorCode::EmptyFraction, data.fraction().as_ptr()))
+        // Get a ptr to the past-end of integer, since fraction is not guaranteed
+        // to be from the same array (if no decimal point was found).
+        Err((ErrorCode::EmptyFraction, index!(integer[integer.len()..]).as_ptr()))
     } else {
         Ok(())
     }
