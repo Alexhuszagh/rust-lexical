@@ -1,9 +1,8 @@
-#[macro_use]
-extern crate bencher;
+extern crate criterion;
 extern crate itoa;
 extern crate lexical_core;
 
-use bencher::{black_box, Bencher};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use itoa::write as itoa_write;
 use lexical_core::write as lexical_write;
 
@@ -101,13 +100,13 @@ fn chain_random<T, U>(t: T, u: U) -> ChainRandom<T, U> {
 // Lexical itoa generator.
 macro_rules! lexical_generator {
     ($name:ident, $iter:expr) => (
-        fn $name(bench: &mut Bencher) {
+        fn $name(criterion: &mut Criterion) {
             let mut buffer: [u8; 256] = [b'0'; 256];
-            bench.iter(|| {
+            criterion.bench_function(stringify!($name), |b| b.iter(|| {
                 $iter.for_each(|x| {
                     black_box(lexical_write(*x, &mut buffer));
                 })
-            })
+            }));
         }
     );
 }
@@ -115,15 +114,15 @@ macro_rules! lexical_generator {
 // dtolnay/itoa itoa generator.
 macro_rules! itoa_generator {
     ($name:ident, $iter:expr) => (
-        fn $name(bench: &mut Bencher) {
+        fn $name(criterion: &mut Criterion) {
             let mut buffer = vec![b'0'; 256];
-            bench.iter(|| {
+            criterion.bench_function(stringify!($name), |b| b.iter(|| {
                 $iter.for_each(|x| {
                     itoa_write(&mut buffer, *x).unwrap();
                     black_box(&buffer);
                     unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
                 })
-            })
+            }));
         }
     );
 }
@@ -131,15 +130,15 @@ macro_rules! itoa_generator {
 // fmt itoa generator.
 macro_rules! fmt_generator {
     ($name:ident, $iter:expr) => (
-        fn $name(bench: &mut Bencher) {
+        fn $name(criterion: &mut Criterion) {
             use std::io::Write;
             let mut buffer = vec![b'0'; 256];
-            bench.iter(|| {
+            criterion.bench_function(stringify!($name), |b| b.iter(|| {
                 $iter.for_each(|x| {
                     black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
                     unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
                 })
-            })
+            }));
         }
     );
 }
@@ -293,32 +292,32 @@ fmt_generator!(itoa_i128_std, I128_DATA.iter());
 // MAIN
 
 // Random data
-benchmark_group!(u8_benches, itoa_u8_lexical, itoa_u8_itoa, itoa_u8_std);
-benchmark_group!(u16_benches, itoa_u16_lexical, itoa_u16_itoa, itoa_u16_std);
-benchmark_group!(u32_benches, itoa_u32_lexical, itoa_u32_itoa, itoa_u32_std);
-benchmark_group!(u64_benches, itoa_u64_lexical, itoa_u64_itoa, itoa_u64_std);
-benchmark_group!(u128_benches, itoa_u128_lexical, itoa_u128_itoa, itoa_u128_std);
-benchmark_group!(i8_benches, itoa_i8_lexical, itoa_i8_itoa, itoa_i8_std);
-benchmark_group!(i16_benches, itoa_i16_lexical, itoa_i16_itoa, itoa_i16_std);
-benchmark_group!(i32_benches, itoa_i32_lexical, itoa_i32_itoa, itoa_i32_std);
-benchmark_group!(i64_benches, itoa_i64_lexical, itoa_i64_itoa, itoa_i64_std);
-benchmark_group!(i128_benches, itoa_i128_lexical, itoa_i128_itoa, itoa_i128_std);
+criterion_group!(u8_benches, itoa_u8_lexical, itoa_u8_itoa, itoa_u8_std);
+criterion_group!(u16_benches, itoa_u16_lexical, itoa_u16_itoa, itoa_u16_std);
+criterion_group!(u32_benches, itoa_u32_lexical, itoa_u32_itoa, itoa_u32_std);
+criterion_group!(u64_benches, itoa_u64_lexical, itoa_u64_itoa, itoa_u64_std);
+criterion_group!(u128_benches, itoa_u128_lexical, itoa_u128_itoa, itoa_u128_std);
+criterion_group!(i8_benches, itoa_i8_lexical, itoa_i8_itoa, itoa_i8_std);
+criterion_group!(i16_benches, itoa_i16_lexical, itoa_i16_itoa, itoa_i16_std);
+criterion_group!(i32_benches, itoa_i32_lexical, itoa_i32_itoa, itoa_i32_std);
+criterion_group!(i64_benches, itoa_i64_lexical, itoa_i64_itoa, itoa_i64_std);
+criterion_group!(i128_benches, itoa_i128_lexical, itoa_i128_itoa, itoa_i128_std);
 
 // Simple data
-benchmark_group!(u8_simple_benches, itoa_u8_simple_lexical, itoa_u8_simple_itoa, itoa_u8_simple_std);
-benchmark_group!(u16_simple_benches, itoa_u16_simple_lexical, itoa_u16_simple_itoa, itoa_u16_simple_std);
-benchmark_group!(u32_simple_benches, itoa_u32_simple_lexical, itoa_u32_simple_itoa, itoa_u32_simple_std);
-benchmark_group!(u64_simple_benches, itoa_u64_simple_lexical, itoa_u64_simple_itoa, itoa_u64_simple_std);
-benchmark_group!(u128_simple_benches, itoa_u128_simple_lexical, itoa_u128_simple_itoa, itoa_u128_simple_std);
+criterion_group!(u8_simple_benches, itoa_u8_simple_lexical, itoa_u8_simple_itoa, itoa_u8_simple_std);
+criterion_group!(u16_simple_benches, itoa_u16_simple_lexical, itoa_u16_simple_itoa, itoa_u16_simple_std);
+criterion_group!(u32_simple_benches, itoa_u32_simple_lexical, itoa_u32_simple_itoa, itoa_u32_simple_std);
+criterion_group!(u64_simple_benches, itoa_u64_simple_lexical, itoa_u64_simple_itoa, itoa_u64_simple_std);
+criterion_group!(u128_simple_benches, itoa_u128_simple_lexical, itoa_u128_simple_itoa, itoa_u128_simple_std);
 
 // Heterogeneous data
-benchmark_group!(u8_heterogeneous_benches, itoa_u8_heterogeneous_lexical, itoa_u8_heterogeneous_itoa, itoa_u8_heterogeneous_std);
-benchmark_group!(u16_heterogeneous_benches, itoa_u16_heterogeneous_lexical, itoa_u16_heterogeneous_itoa, itoa_u16_heterogeneous_std);
-benchmark_group!(u32_heterogeneous_benches, itoa_u32_heterogeneous_lexical, itoa_u32_heterogeneous_itoa, itoa_u32_heterogeneous_std);
-benchmark_group!(u64_heterogeneous_benches, itoa_u64_heterogeneous_lexical, itoa_u64_heterogeneous_itoa, itoa_u64_heterogeneous_std);
-benchmark_group!(u128_heterogeneous_benches, itoa_u128_heterogeneous_lexical, itoa_u128_heterogeneous_itoa, itoa_u128_heterogeneous_std);
+criterion_group!(u8_heterogeneous_benches, itoa_u8_heterogeneous_lexical, itoa_u8_heterogeneous_itoa, itoa_u8_heterogeneous_std);
+criterion_group!(u16_heterogeneous_benches, itoa_u16_heterogeneous_lexical, itoa_u16_heterogeneous_itoa, itoa_u16_heterogeneous_std);
+criterion_group!(u32_heterogeneous_benches, itoa_u32_heterogeneous_lexical, itoa_u32_heterogeneous_itoa, itoa_u32_heterogeneous_std);
+criterion_group!(u64_heterogeneous_benches, itoa_u64_heterogeneous_lexical, itoa_u64_heterogeneous_itoa, itoa_u64_heterogeneous_std);
+criterion_group!(u128_heterogeneous_benches, itoa_u128_heterogeneous_lexical, itoa_u128_heterogeneous_itoa, itoa_u128_heterogeneous_std);
 
-benchmark_main!(
+criterion_main!(
     // Random data
     u8_benches, u16_benches, u32_benches, u64_benches, u128_benches, i8_benches, i16_benches, i32_benches, i64_benches, i128_benches,
     // Simple data
