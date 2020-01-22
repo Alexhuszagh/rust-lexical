@@ -3,8 +3,11 @@
 use crate::atoi;
 use crate::lib::slice;
 use crate::util::*;
-use super::iterator::*;
 use super::traits::*;
+
+/// The actual float-type doesn't matter, it just needs to be used for
+/// signed/unsigned detection during sign parsing.
+type FloatType = f64;
 
 // EXPONENT CALCULATION
 
@@ -98,7 +101,7 @@ fn parse_exponent<'a, Data>(
 {
     // Get an iterator over our digits and sign bits, and parse the exponent.
     let digits_len = digits.len() - trailing.len();
-    let iter = iterate_separator(&index!(digits[..digits_len]), digit_separator);
+    let iter = iterate_digits_ignore_separator(&index!(digits[..digits_len]), digit_separator);
 
     // Parse the exponent and store the extracted digits.
     let bytes_len = bytes.len() - trailing.len();
@@ -130,8 +133,8 @@ fn extract_exponent<'a, Data>(
 {
     // Remove leading exponent character and parse exponent.
     let digits = &index!(bytes[1..]);
-    let (sign, digits) = parse_sign_no_separator(digits, digit_separator);
-    let iter = iterate_no_separator(digits, digit_separator);
+    let (sign, digits) = parse_sign_no_separator::<FloatType>(digits, digit_separator);
+    let iter = iterate_digits_no_separator(digits, digit_separator);
     extract_and_parse_exponent(data, iter, bytes, radix, sign)
 }}
 
@@ -151,8 +154,8 @@ fn extract_exponent_iltc<'a, Data>(
     // Remove leading exponent character and parse exponent.
     // We're not calling `consumed()`, so it's fine to have trailing underscores.
     let digits = &index!(bytes[1..]);
-    let (sign, digits) = parse_sign_lc_separator(digits, digit_separator);
-    let iter = iterate_separator(digits, digit_separator);
+    let (sign, digits) = parse_sign_lc_separator::<FloatType>(digits, digit_separator);
+    let iter = iterate_digits_ignore_separator(digits, digit_separator);
     extract_and_parse_exponent(data, iter, bytes, radix, sign)
 }}
 
@@ -171,7 +174,7 @@ macro_rules! extract_exponent_separator {
         fn $name:ident,
         sign => $sign:ident,
         consume => $consume:ident
-    ) => {
+    ) => (
         perftools_inline!{
         #[cfg(feature = "format")]
         fn $name<'a, Data>(
@@ -184,12 +187,12 @@ macro_rules! extract_exponent_separator {
             where Data: FastDataInterface<'a>
         {
             let digits = &index!(bytes[1..]);
-            let (sign, digits) = $sign(digits, digit_separator);
+            let (sign, digits) = $sign::<FloatType>(digits, digit_separator);
             let trailing = $consume(digits, radix, digit_separator).1;
 
             parse_exponent(data, bytes, digits, trailing, radix, digit_separator, sign)
         }}
-    };
+    );
 }
 
 extract_exponent_separator!(

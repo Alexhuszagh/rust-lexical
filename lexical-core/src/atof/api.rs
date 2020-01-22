@@ -262,7 +262,7 @@ perftools_inline!{
 fn atof<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, format: NumberFormat)
     -> ParseResult<(F, *const u8)>
 {
-    let (sign, digits) = parse_sign(bytes, format);
+    let (sign, digits) = parse_sign::<F>(bytes, format);
     if digits.is_empty() {
         return Err((ErrorCode::Empty, digits.as_ptr()));
     }
@@ -306,6 +306,18 @@ fn atof_format<F: StringToFloat>(bytes: &[u8], radix: u32, format: NumberFormat)
     }
 }}
 
+perftools_inline!{
+#[cfg(feature = "format")]
+fn atof_lossy_format<F: StringToFloat>(bytes: &[u8], radix: u32, format: NumberFormat)
+    -> Result<(F, usize)>
+{
+    let index = | ptr | distance(bytes.as_ptr(), ptr);
+    match atof::<F>(bytes, radix, true, format) {
+        Ok((value, ptr)) => Ok((value, index(ptr))),
+        Err((code, ptr)) => Err((code, index(ptr)).into()),
+    }
+}}
+
 // FROM LEXICAL
 // ------------
 
@@ -318,6 +330,8 @@ cfg_if!{
 if #[cfg(feature = "format")] {
     from_lexical_format!(atof_format, f32);
     from_lexical_format!(atof_format, f64);
+    from_lexical_lossy_format!(atof_lossy_format, f32);
+    from_lexical_lossy_format!(atof_lossy_format, f64);
 }}
 
 // TESTS

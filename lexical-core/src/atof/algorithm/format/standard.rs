@@ -2,7 +2,6 @@
 
 use crate::util::*;
 use super::exponent::*;
-use super::iterator::*;
 use super::traits::*;
 use super::trim::*;
 use super::validate::*;
@@ -20,9 +19,9 @@ data_interface!(
     struct StandardFastDataInterface,
     struct StandardSlowDataInterface,
     fields => {},
-    integer_iter => (IteratorNoSeparator, iterate_no_separator),
-    fraction_iter => (IteratorNoSeparator, iterate_no_separator),
-    exponent_iter => (IteratorNoSeparator, iterate_no_separator),
+    integer_iter => (IteratorNoSeparator, iterate_digits_no_separator),
+    fraction_iter => (IteratorNoSeparator, iterate_digits_no_separator),
+    exponent_iter => (IteratorNoSeparator, iterate_digits_no_separator),
     format => |_| NumberFormat::default(),
     consume_integer_digits => consume_digits_no_separator,
     consume_fraction_digits =>  consume_digits_no_separator,
