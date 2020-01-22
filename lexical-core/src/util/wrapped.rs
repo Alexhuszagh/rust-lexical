@@ -290,6 +290,7 @@ ops_assign_impl! {
 impl<T: Float> Number for WrappedFloat<T> {
     const FORMATTED_SIZE: usize = T::FORMATTED_SIZE;
     const FORMATTED_SIZE_DECIMAL: usize = T::FORMATTED_SIZE_DECIMAL;
+    const IS_SIGNED: bool = T::IS_SIGNED;
 }
 
 // IMPL INTEGER

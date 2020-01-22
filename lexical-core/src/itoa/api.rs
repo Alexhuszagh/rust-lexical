@@ -43,25 +43,25 @@ macro_rules! write_backwards {
 }
 
 #[cfg(all(feature = "table", not(feature = "radix")))]
-pub(crate) trait Atoi: Decimal + UnsignedInteger
+pub(crate) trait Itoa: Decimal + UnsignedInteger
 {}
 
 #[cfg(all(feature = "table", feature = "radix"))]
-pub(crate) trait Atoi: Decimal + Generic + UnsignedInteger
+pub(crate) trait Itoa: Decimal + Generic + UnsignedInteger
 {}
 
 #[cfg(not(feature = "table"))]
-pub(crate) trait Atoi: Naive + UnsignedInteger
+pub(crate) trait Itoa: Naive + UnsignedInteger
 {}
 
-macro_rules! atoi_impl {
+macro_rules! itoa_impl {
     ($($t:ty)*) => ($(
-        impl Atoi for $t {}
+        impl Itoa for $t {}
     )*)
 }
 
-atoi_impl! { u8 u16 u32 u64 usize }
-#[cfg(has_i128)] atoi_impl! { u128 }
+itoa_impl! { u8 u16 u32 u64 usize }
+#[cfg(has_i128)] itoa_impl! { u128 }
 
 // FORWARD
 
@@ -71,7 +71,7 @@ perftools_inline!{
 #[cfg(all(feature = "table", not(feature = "radix")))]
 pub(crate) fn itoa_positive<T>(value: T, _: u32, buffer: &mut [u8])
     -> usize
-    where T: Atoi
+    where T: Itoa
 {
     value.decimal(buffer)
 }}
@@ -82,7 +82,7 @@ perftools_inline!{
 #[cfg(all(feature = "table", feature = "radix"))]
 pub(crate) fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8])
     -> usize
-    where T: Atoi
+    where T: Itoa
 {
     if radix == 10 {
         value.decimal(buffer)
@@ -97,7 +97,7 @@ perftools_inline!{
 #[cfg(not(feature = "table"))]
 pub(crate) fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8])
     -> usize
-    where T: Atoi
+    where T: Itoa
 {
     write_backwards!(value, radix, buffer, T, naive)
 }}
@@ -109,7 +109,7 @@ perftools_inline!{
 fn unsigned<Narrow, Wide>(value: Narrow, radix: u32, buffer: &mut [u8])
     -> usize
     where Narrow: UnsignedInteger,
-          Wide: Atoi
+          Wide: Itoa
 {
     let value: Wide = as_cast(value);
     itoa_positive(value, radix, buffer)
@@ -141,7 +141,7 @@ fn signed<Narrow, Wide, Unsigned>(value: Narrow, radix: u32, buffer: &mut [u8])
     -> usize
     where Narrow: SignedInteger,
           Wide: SignedInteger,
-          Unsigned: Atoi
+          Unsigned: Itoa
 {
     if value < Narrow::ZERO {
         unchecked_index_mut!(buffer[0] = b'-');

@@ -2,7 +2,6 @@
 
 use crate::util::*;
 use super::exponent::*;
-use super::iterator::*;
 use super::traits::*;
 use super::trim::*;
 use super::validate::*;
@@ -67,9 +66,9 @@ macro_rules! generic_data_interface {
 generic_data_interface!(
     struct GenericFastDataInterface,
     struct GenericSlowDataInterface,
-    integer_iter => (IteratorNoSeparator, iterate_no_separator),
-    fraction_iter => (IteratorNoSeparator, iterate_no_separator),
-    exponent_iter => (IteratorNoSeparator, iterate_no_separator),
+    integer_iter => (IteratorNoSeparator, iterate_digits_no_separator),
+    fraction_iter => (IteratorNoSeparator, iterate_digits_no_separator),
+    exponent_iter => (IteratorNoSeparator, iterate_digits_no_separator),
     consume_integer_digits => consume_digits_no_separator,
     consume_fraction_digits => consume_digits_no_separator,
     extract_exponent => extract_exponent_no_separator,
@@ -83,9 +82,9 @@ generic_data_interface!(
 generic_data_interface!(
     struct GenericIFastDataInterface,
     struct GenericISlowDataInterface,
-    integer_iter => (IteratorSeparator, iterate_separator),
-    fraction_iter => (IteratorNoSeparator, iterate_no_separator),
-    exponent_iter => (IteratorNoSeparator, iterate_no_separator),
+    integer_iter => (IteratorSeparator, iterate_digits_ignore_separator),
+    fraction_iter => (IteratorNoSeparator, iterate_digits_no_separator),
+    exponent_iter => (IteratorNoSeparator, iterate_digits_no_separator),
     consume_integer_digits => consume_integer_digits_separator,
     consume_fraction_digits => consume_digits_no_separator,
     extract_exponent => extract_exponent_no_separator,
@@ -99,9 +98,9 @@ generic_data_interface!(
 generic_data_interface!(
     struct GenericFFastDataInterface,
     struct GenericFSlowDataInterface,
-    integer_iter => (IteratorNoSeparator, iterate_no_separator),
-    fraction_iter => (IteratorSeparator, iterate_separator),
-    exponent_iter => (IteratorNoSeparator, iterate_no_separator),
+    integer_iter => (IteratorNoSeparator, iterate_digits_no_separator),
+    fraction_iter => (IteratorSeparator, iterate_digits_ignore_separator),
+    exponent_iter => (IteratorNoSeparator, iterate_digits_no_separator),
     consume_integer_digits => consume_digits_no_separator,
     consume_fraction_digits => consume_fraction_digits_separator,
     extract_exponent => extract_exponent_no_separator,
@@ -115,9 +114,9 @@ generic_data_interface!(
 generic_data_interface!(
     struct GenericEFastDataInterface,
     struct GenericESlowDataInterface,
-    integer_iter => (IteratorNoSeparator, iterate_no_separator),
-    fraction_iter => (IteratorNoSeparator, iterate_no_separator),
-    exponent_iter => (IteratorSeparator, iterate_separator),
+    integer_iter => (IteratorNoSeparator, iterate_digits_no_separator),
+    fraction_iter => (IteratorNoSeparator, iterate_digits_no_separator),
+    exponent_iter => (IteratorSeparator, iterate_digits_ignore_separator),
     consume_integer_digits => consume_digits_no_separator,
     consume_fraction_digits => consume_digits_no_separator,
     extract_exponent => extract_exponent_separator,
@@ -131,9 +130,9 @@ generic_data_interface!(
 generic_data_interface!(
     struct GenericIFFastDataInterface,
     struct GenericIFSlowDataInterface,
-    integer_iter => (IteratorSeparator, iterate_separator),
-    fraction_iter => (IteratorSeparator, iterate_separator),
-    exponent_iter => (IteratorNoSeparator, iterate_no_separator),
+    integer_iter => (IteratorSeparator, iterate_digits_ignore_separator),
+    fraction_iter => (IteratorSeparator, iterate_digits_ignore_separator),
+    exponent_iter => (IteratorNoSeparator, iterate_digits_no_separator),
     consume_integer_digits => consume_integer_digits_separator,
     consume_fraction_digits => consume_fraction_digits_separator,
     extract_exponent => extract_exponent_no_separator,
@@ -147,9 +146,9 @@ generic_data_interface!(
 generic_data_interface!(
     struct GenericIEFastDataInterface,
     struct GenericIESlowDataInterface,
-    integer_iter => (IteratorSeparator, iterate_separator),
-    fraction_iter => (IteratorNoSeparator, iterate_no_separator),
-    exponent_iter => (IteratorSeparator, iterate_separator),
+    integer_iter => (IteratorSeparator, iterate_digits_ignore_separator),
+    fraction_iter => (IteratorNoSeparator, iterate_digits_no_separator),
+    exponent_iter => (IteratorSeparator, iterate_digits_ignore_separator),
     consume_integer_digits => consume_integer_digits_separator,
     consume_fraction_digits => consume_digits_no_separator,
     extract_exponent => extract_exponent_separator,
@@ -163,9 +162,9 @@ generic_data_interface!(
 generic_data_interface!(
     struct GenericFEFastDataInterface,
     struct GenericFESlowDataInterface,
-    integer_iter => (IteratorNoSeparator, iterate_no_separator),
-    fraction_iter => (IteratorSeparator, iterate_separator),
-    exponent_iter => (IteratorSeparator, iterate_separator),
+    integer_iter => (IteratorNoSeparator, iterate_digits_no_separator),
+    fraction_iter => (IteratorSeparator, iterate_digits_ignore_separator),
+    exponent_iter => (IteratorSeparator, iterate_digits_ignore_separator),
     consume_integer_digits => consume_digits_no_separator,
     consume_fraction_digits => consume_fraction_digits_separator,
     extract_exponent => extract_exponent_separator,
@@ -179,9 +178,9 @@ generic_data_interface!(
 generic_data_interface!(
     struct GenericIFEFastDataInterface,
     struct GenericIFESlowDataInterface,
-    integer_iter => (IteratorSeparator, iterate_separator),
-    fraction_iter => (IteratorSeparator, iterate_separator),
-    exponent_iter => (IteratorSeparator, iterate_separator),
+    integer_iter => (IteratorSeparator, iterate_digits_ignore_separator),
+    fraction_iter => (IteratorSeparator, iterate_digits_ignore_separator),
+    exponent_iter => (IteratorSeparator, iterate_digits_ignore_separator),
     consume_integer_digits => consume_integer_digits_separator,
     consume_fraction_digits => consume_fraction_digits_separator,
     extract_exponent => extract_exponent_separator,
