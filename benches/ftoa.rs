@@ -1,10 +1,11 @@
-#[macro_use]
-extern crate bencher;
+extern crate criterion;
 extern crate dtoa;
+extern crate ryu_impl;
 extern crate lexical_core;
 
-use bencher::{black_box, Bencher};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use dtoa::write as dtoa_write;
+use ryu_impl::raw as ryu_raw;
 use lexical_core::write as lexical_write;
 
 // SHARED
@@ -16,13 +17,13 @@ const F64_NAN: f64 = 0.0_f64 / 0.0_f64;
 // Lexical dtoa generator.
 macro_rules! lexical_generator {
     ($name:ident, $iter:expr) => (
-        fn $name(bench: &mut Bencher) {
+        fn $name(criterion: &mut Criterion) {
             let mut buffer: [u8; 256] = [b'0'; 256];
-            bench.iter(|| {
+            criterion.bench_function(stringify!($name), |b| b.iter(|| {
                 $iter.for_each(|x| {
                     black_box(lexical_write(*x, &mut buffer));
                 })
-            })
+            }));
         }
     );
 }
@@ -30,15 +31,31 @@ macro_rules! lexical_generator {
 // dtolnay/dtoa dtoa generator.
 macro_rules! dtoa_generator {
     ($name:ident, $iter:expr) => (
-        fn $name(bench: &mut Bencher) {
+        fn $name(criterion: &mut Criterion) {
             let mut buffer = vec![b'0'; 256];
-            bench.iter(|| {
+            criterion.bench_function(stringify!($name), |b| b.iter(|| {
                 $iter.for_each(|x| {
                     dtoa_write(&mut buffer, *x).unwrap();
                     black_box(&buffer);
                     unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
                 })
-            })
+            }));
+        }
+    );
+}
+
+// dtolnay/ryu ryu generator.
+macro_rules! ryu_generator {
+    ($name:ident, $iter:expr, $fmt:ident) => (
+        fn $name(criterion: &mut Criterion) {
+            let mut buffer: [u8; 256] = [b'0'; 256];
+            criterion.bench_function(stringify!($name), |b| b.iter(|| {
+                $iter.for_each(|x| {
+                    unsafe {
+                        black_box(ryu_raw::$fmt(*x, buffer.as_mut_ptr()));
+                    }
+                })
+            }));
         }
     );
 }
@@ -46,15 +63,15 @@ macro_rules! dtoa_generator {
 // fmt dtoa generator.
 macro_rules! fmt_generator {
     ($name:ident, $iter:expr) => (
-        fn $name(bench: &mut Bencher) {
+        fn $name(criterion: &mut Criterion) {
             use std::io::Write;
             let mut buffer = vec![b'0'; 256];
-            bench.iter(|| {
+            criterion.bench_function(stringify!($name), |b| b.iter(|| {
                 $iter.for_each(|x| {
                     black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
                     unsafe { buffer.set_len(0); } // Way faster than Vec::clear().
                 })
-            })
+            }));
         }
     );
 }
@@ -70,6 +87,7 @@ const F32_DATA: [f32; 10000] = [-1.2129985296099096e-14, -0.004396982025355101, 
 
 lexical_generator!(ftoa_f32_lexical, F32_DATA.iter());
 dtoa_generator!(ftoa_f32_dtoa, F32_DATA.iter());
+ryu_generator!(ftoa_f32_ryu, F32_DATA.iter(), format32);
 fmt_generator!(ftoa_f32_std, F32_DATA.iter());
 
 // F64
@@ -83,10 +101,11 @@ const F64_DATA: [f64; 10000] = [4.605903649704751e+215, 4.3777614830568243e-190,
 
 lexical_generator!(ftoa_f64_lexical, F64_DATA.iter());
 dtoa_generator!(ftoa_f64_dtoa, F64_DATA.iter());
+ryu_generator!(ftoa_f64_ryu, F64_DATA.iter(), format64);
 fmt_generator!(ftoa_f64_std, F64_DATA.iter());
 
 // MAIN
 
-benchmark_group!(f32_benches, ftoa_f32_lexical, ftoa_f32_dtoa, ftoa_f32_std);
-benchmark_group!(f64_benches, ftoa_f64_lexical, ftoa_f64_dtoa, ftoa_f64_std);
-benchmark_main!(f32_benches, f64_benches);
+criterion_group!(f32_benches, ftoa_f32_lexical, ftoa_f32_dtoa, ftoa_f32_ryu, ftoa_f32_std);
+criterion_group!(f64_benches, ftoa_f64_lexical, ftoa_f64_dtoa, ftoa_f64_ryu, ftoa_f64_std);
+criterion_main!(f32_benches, f64_benches);

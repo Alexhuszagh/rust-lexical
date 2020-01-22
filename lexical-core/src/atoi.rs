@@ -117,7 +117,8 @@ macro_rules! parse_sign {
 /// Iterate over the digits and iteratively process them.
 macro_rules! parse_digits {
     ($value:ident, $digits:ident, $radix:ident, $op:ident, $code:ident) => (
-        for c in $digits.iter() {
+        let mut iter = $digits.iter();
+        while let Some(c) = iter.next() {
             let digit = match to_digit!(*c, $radix) {
                 Some(v) => v,
                 None    => return Ok(($value, c)),
@@ -482,25 +483,6 @@ pub(crate) fn standalone_exponent<'a, Iter>(mut iter: Iter, radix: u32, sign: Si
         Sign::Positive => parse_digits_exponent!(value, iter, radix, checked_add, i32::max_value()),
         Sign::Negative => parse_digits_exponent!(value, iter, radix, checked_sub, i32::min_value())
     }
-//    match iter.next() {
-//        None               => (),
-//        Some(&b'+')        => {
-//            parse_digits_exponent!(value, iter, radix, checked_add, i32::max_value());
-//        },
-//        Some(&b'-')        => {
-//            parse_digits_exponent!(value, iter, radix, checked_sub, i32::min_value());
-//        },
-//        Some(c)            => {
-//            // Assume we have a digit.
-//            let digit = match to_digit(c, radix) {
-//                Ok(v)  => v,
-//                Err(c) => return (value, c),
-//            };
-//            // Cannot overflow on first digit.
-//            value += digit.as_i32();
-//            parse_digits_exponent!(value, iter, radix, checked_add, i32::max_value());
-//        }
-//    }
 
     (value, iter.as_ptr())
 }}

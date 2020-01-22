@@ -36,8 +36,9 @@ toml = { version = "0.5", optional = true }
 
 [dev-dependencies]
 approx = "0.3.0"
-bencher = "0.1.5"
+criterion = "0.3"
 dtoa = "0.4"
+ryu_impl = { version = "1.0", package = "ryu" }
 itoa = { version = "0.4", features = ["i128"] }
 lazy_static = "1"
 
