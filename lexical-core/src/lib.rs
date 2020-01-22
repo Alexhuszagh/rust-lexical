@@ -382,3 +382,171 @@ pub fn parse_partial_lossy_radix<N: FromLexicalLossy>(bytes: &[u8], radix: u8)
 {
     N::from_lexical_partial_lossy_radix(bytes, radix)
 }
+
+/// Parse number from string with a custom numerical format.
+///
+/// This method parses the entire string, returning an error if
+/// any invalid digits are found during parsing. The numerical format
+/// is specified by the format bitflags, which customize the required
+/// components, digit separators, and other parameters of the number.
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+/// * `format`  - Numerical format.
+#[inline]
+#[cfg(feature = "format")]
+pub fn parse_format<N: FromLexicalFormat>(bytes: &[u8], format: NumberFormat)
+    -> Result<N>
+{
+    N::from_lexical_format(bytes, format)
+}
+
+/// Parse number from string with a custom numerical format.
+///
+/// This method parses until an invalid digit is found (or the end
+/// of the string), returning the number of processed digits
+/// and the parsed value until that point. The numerical format
+/// is specified by the format bitflags, which customize the required
+/// components, digit separators, and other parameters of the number.
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+/// * `format`  - Numerical format.
+#[inline]
+#[cfg(feature = "format")]
+pub fn parse_partial_format<N: FromLexicalFormat>(bytes: &[u8], format: NumberFormat)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_format(bytes, format)
+}
+
+/// Lossily parse number from string with a custom numerical format.
+///
+/// This method parses the entire string, returning an error if
+/// any invalid digits are found during parsing. This parser is
+/// lossy, so numerical rounding may occur during parsing. The
+/// numerical format is specified by the format bitflags, which
+/// customize the required components, digit separators, and other
+/// parameters of the number.
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+/// * `format`  - Numerical format.
+#[inline]
+#[cfg(feature = "format")]
+pub fn parse_lossy_format<N: FromLexicalLossyFormat>(bytes: &[u8], format: NumberFormat)
+    -> Result<N>
+{
+    N::from_lexical_lossy_format(bytes, format)
+}
+
+/// Lossily parse number from string with a custom numerical format.
+///
+/// This method parses until an invalid digit is found (or the end
+/// of the string), returning the number of processed digits
+/// and the parsed value until that point. This parser is
+/// lossy, so numerical rounding may occur during parsing. The
+/// numerical format is specified by the format bitflags, which
+/// customize the required components, digit separators, and other
+/// parameters of the number.
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+/// * `format`  - Numerical format.
+#[inline]
+#[cfg(feature = "format")]
+pub fn parse_partial_lossy_format<N: FromLexicalLossyFormat>(bytes: &[u8], format: NumberFormat)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_lossy_format(bytes, format)
+}
+
+/// Parse number from string with a custom radix and numerical format.
+///
+/// This method parses the entire string, returning an error if
+/// any invalid digits are found during parsing. The numerical format
+/// is specified by the format bitflags, which customize the required
+/// components, digit separators, and other parameters of the number.
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+/// * `radix`   - Radix for number decoding.
+/// * `format`  - Numerical format.
+///
+/// # Panics
+///
+/// Panics if the radix is not in the range `[2, 36]`.
+#[inline]
+#[cfg(all(feature = "radix", feature = "format"))]
+pub fn parse_format_radix<N: FromLexicalFormat>(bytes: &[u8], radix: u8, format: NumberFormat)
+    -> Result<N>
+{
+    N::from_lexical_format_radix(bytes, radix, format)
+}
+
+/// Parse number from string with a custom radix and numerical format.
+///
+/// This method parses until an invalid digit is found (or the end
+/// of the string), returning the number of processed digits
+/// and the parsed value until that point. The numerical format
+/// is specified by the format bitflags, which customize the required
+/// components, digit separators, and other parameters of the number.
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+/// * `radix`   - Radix for number decoding.
+/// * `format`  - Numerical format.
+///
+/// # Panics
+///
+/// Panics if the radix is not in the range `[2, 36]`.
+#[inline]
+#[cfg(all(feature = "radix", feature = "format"))]
+pub fn parse_partial_format_radix<N: FromLexicalFormat>(bytes: &[u8], radix: u8, format: NumberFormat)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_format_radix(bytes, radix, format)
+}
+
+/// Lossily parse number from string with a custom radix and numerical format.
+///
+/// This method parses the entire string, returning an error if
+/// any invalid digits are found during parsing. This parser is
+/// lossy, so numerical rounding may occur during parsing. The
+/// numerical format is specified by the format bitflags, which
+/// customize the required components, digit separators, and other
+/// parameters of the number.
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+/// * `radix`   - Radix for number decoding.
+/// * `format`  - Numerical format.
+///
+/// # Panics
+///
+/// Panics if the radix is not in the range `[2, 36]`.
+#[inline]
+#[cfg(all(feature = "radix", feature = "format"))]
+pub fn parse_lossy_format_radix<N: FromLexicalLossyFormat>(bytes: &[u8], radix: u8, format: NumberFormat)
+    -> Result<N>
+{
+    N::from_lexical_lossy_format_radix(bytes, radix, format)
+}
+
+/// Lossily parse number from string with a custom radix and numerical format.
+///
+/// This method parses until an invalid digit is found (or the end
+/// of the string), returning the number of processed digits
+/// and the parsed value until that point. This parser is
+/// lossy, so numerical rounding may occur during parsing. The
+/// numerical format is specified by the format bitflags, which
+/// customize the required components, digit separators, and other
+/// parameters of the number.
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+/// * `radix`   - Radix for number decoding.
+/// * `format`  - Numerical format.
+///
+/// # Panics
+///
+/// Panics if the radix is not in the range `[2, 36]`.
+#[inline]
+#[cfg(all(feature = "radix", feature = "format"))]
+pub fn parse_partial_lossy_format_radix<N: FromLexicalLossyFormat>(bytes: &[u8], radix: u8, format: NumberFormat)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_lossy_format_radix(bytes, radix, format)
+}

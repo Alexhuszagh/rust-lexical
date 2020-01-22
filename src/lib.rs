@@ -134,11 +134,17 @@ pub use lexical_core::{set_inf_string, set_infinity_string, set_nan_string};
 #[cfg(all(feature = "correct", feature = "rounding"))]
 pub use lexical_core::{get_float_rounding, set_float_rounding, RoundingKind};
 
+// Re-export the numerical format.
+#[cfg(feature = "format")]
+pub use lexical_core::NumberFormat;
+
 // Re-export the Result, Error and ErrorCode globally.
 pub use lexical_core::{Error, ErrorCode, Result};
 
 // Publicly expose traits so they may be used for generic programming.
 pub use lexical_core::{FromLexical, FromLexicalLossy, ToLexical};
+#[cfg(feature = "format")]
+pub use lexical_core::{FromLexicalFormat,FromLexicalLossyFormat};
 
 // HELPERS
 
@@ -529,7 +535,7 @@ pub fn parse_lossy_radix<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, 
 ///
 /// This function uses aggressive optimizations to avoid worst-case
 /// scenarios, and can return inaccurate results. For guaranteed accurate
-/// floats, use [`parse_radix`].
+/// floats, use [`parse_partial_radix`].
 ///
 /// This functions parses as many digits as possible, returning the parsed
 /// value and the number of digits processed if at least one character
@@ -566,10 +572,422 @@ pub fn parse_lossy_radix<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, 
 /// # Panics
 ///
 /// Panics if radix is not in the range `[2, 36]`
+///
+/// [`parse_partial_radix`]: fn.parse_partial_radix.html
 #[cfg(feature = "radix")]
 #[inline]
-pub fn parse_partial_lossy_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
+pub fn parse_partial_lossy_radix<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
     -> Result<(N, usize)>
 {
-    N::from_lexical_partial_radix(bytes.as_ref(), radix)
+    N::from_lexical_partial_lossy_radix(bytes.as_ref(), radix)
+}
+
+/// High-level, format-dependent conversion of decimal-encoded bytes to a number.
+///
+/// This function only returns a value if the entire string is
+/// successfully parsed. The numerical format is specified by
+/// the format bitflags, which customize the required components,
+/// digit separators, and other parameters of the number.
+///
+/// * `bytes`   - Byte slice to convert to number.
+/// * `format`  - Numerical format.
+///
+/// # Examples
+///
+/// ```rust
+/// # extern crate lexical;
+/// # use lexical::ErrorCode;
+/// # pub fn main() {
+/// // Create our error.
+/// fn err_code<T>(r: lexical::Result<T>) -> ErrorCode {
+///     r.err().unwrap().code
+/// }
+///
+/// let format = lexical::NumberFormat::RUST_STRING;
+///
+/// // String overloads
+/// assert_eq!(lexical::parse_format::<i32, _>("5", format), Ok(5));
+/// assert_eq!(err_code(lexical::parse_format::<i32, _>("1a", format)), ErrorCode::InvalidDigit);
+/// assert_eq!(lexical::parse_format::<f32, _>("0", format), Ok(0.0));
+/// assert_eq!(lexical::parse_format::<f32, _>("1.0", format), Ok(1.0));
+/// assert_eq!(lexical::parse_format::<f32, _>("1.", format), Ok(1.0));
+///
+/// // Bytes overloads
+/// assert_eq!(lexical::parse_format::<i32, _>(b"5", format), Ok(5));
+/// assert_eq!(err_code(lexical::parse_format::<i32, _>(b"1a", format)), ErrorCode::InvalidDigit);
+/// assert_eq!(lexical::parse_format::<f32, _>(b"0", format), Ok(0.0));
+/// assert_eq!(lexical::parse_format::<f32, _>(b"1.0", format), Ok(1.0));
+/// assert_eq!(lexical::parse_format::<f32, _>(b"1.", format), Ok(1.0));
+/// # assert_eq!(lexical::parse_format::<f32, _>(b"5.002868148396374", format), Ok(5.002868148396374));
+/// # assert_eq!(lexical::parse_format::<f64, _>(b"5.002868148396374", format), Ok(5.002868148396374));
+/// # }
+/// ```
+#[inline]
+#[cfg(feature = "format")]
+pub fn parse_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, format: NumberFormat)
+    -> Result<N>
+{
+    N::from_lexical_format(bytes.as_ref(), format)
+}
+
+/// High-level, partial, format-dependent conversion of decimal-encoded bytes to a number.
+///
+/// This functions parses as many digits as possible, returning the parsed
+/// value and the number of digits processed if at least one character
+/// is processed. If another error, such as numerical overflow or underflow
+/// occurs, this function returns the error code and the index at which
+/// the error occurred. The numerical format is specified by the format
+/// bitflags, which customize the required components, digit separators,
+/// and other parameters of the number.
+///
+/// * `bytes`   - Byte slice to convert to number.
+/// * `format`  - Numerical format.
+///
+/// # Examples
+///
+/// ```rust
+/// # extern crate lexical;
+/// # use lexical::ErrorCode;
+/// # pub fn main() {
+///
+/// let format = lexical::NumberFormat::RUST_STRING;
+///
+/// // String overloads
+/// assert_eq!(lexical::parse_partial_format::<i32, _>("5", format), Ok((5, 1)));
+/// assert_eq!(lexical::parse_partial_format::<i32, _>("1a", format), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_format::<f32, _>("0", format), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_format::<f32, _>("1.0", format), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_format::<f32, _>("1.", format), Ok((1.0, 2)));
+///
+/// // Bytes overloads
+/// assert_eq!(lexical::parse_partial_format::<i32, _>(b"5", format), Ok((5, 1)));
+/// assert_eq!(lexical::parse_partial_format::<i32, _>(b"1a", format), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_format::<f32, _>(b"0", format), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_format::<f32, _>(b"1.0", format), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_format::<f32, _>(b"1.", format), Ok((1.0, 2)));
+/// # assert_eq!(lexical::parse_partial_format::<f32, _>(b"5.002868148396374", format), Ok((5.002868148396374, 17)));
+/// # assert_eq!(lexical::parse_partial_format::<f64, _>(b"5.002868148396374", format), Ok((5.002868148396374, 17)));
+/// # }
+/// ```
+#[inline]
+#[cfg(feature = "format")]
+pub fn parse_partial_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, format: NumberFormat)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_format(bytes.as_ref(), format)
+}
+
+/// High-level, lossy, format-dependent conversion of decimal-encoded bytes to a number.
+///
+/// This function uses aggressive optimizations to avoid worst-case
+/// scenarios, and can return inaccurate results. For guaranteed accurate
+/// floats, use [`parse_format`]. The numerical format is specified by
+/// the format bitflags, which customize the required components, digit
+/// separators, and other parameters of the number.
+///
+/// * `bytes`   - Byte slice to convert to number.
+/// * `format`  - Numerical format.
+///
+/// # Examples
+///
+/// ```rust
+/// # extern crate lexical;
+/// # use lexical::ErrorCode;
+/// # pub fn main() {
+/// // Get our error code.
+/// fn err_code<T>(r: lexical::Result<T>) -> ErrorCode {
+///     r.err().unwrap().code
+/// }
+///
+/// let format = lexical::NumberFormat::RUST_STRING;
+///
+/// // String overloads
+/// assert_eq!(lexical::parse_lossy_format::<f32, _>("0", format), Ok(0.0));
+/// assert_eq!(lexical::parse_lossy_format::<f32, _>("1.0", format), Ok(1.0));
+/// assert_eq!(lexical::parse_lossy_format::<f32, _>("1.", format), Ok(1.0));
+/// assert_eq!(err_code(lexical::parse_lossy_format::<f32, _>("1a", format)), ErrorCode::InvalidDigit);
+///
+/// // Bytes overloads
+/// assert_eq!(lexical::parse_lossy_format::<f32, _>(b"0", format), Ok(0.0));
+/// assert_eq!(lexical::parse_lossy_format::<f32, _>(b"1.0", format), Ok(1.0));
+/// assert_eq!(lexical::parse_lossy_format::<f32, _>(b"1.", format), Ok(1.0));
+/// assert_eq!(err_code(lexical::parse_lossy_format::<f32, _>(b"1a", format)), ErrorCode::InvalidDigit);
+/// # }
+/// ```
+///
+/// [`parse_format`]: fn.parse_format.html
+#[inline]
+#[cfg(feature = "format")]
+pub fn parse_lossy_format<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, format: NumberFormat)
+    -> Result<N>
+{
+    N::from_lexical_lossy_format(bytes.as_ref(), format)
+}
+
+/// High-level, partial, lossy, format-dependent conversion of decimal-encoded bytes to a number.
+///
+/// This function uses aggressive optimizations to avoid worst-case
+/// scenarios, and can return inaccurate results. For guaranteed accurate
+/// floats, use [`parse_partial_format`].
+///
+/// This functions parses as many digits as possible, returning the parsed
+/// value and the number of digits processed if at least one character
+/// is processed. If another error, such as numerical overflow or underflow
+/// occurs, this function returns the error code and the index at which
+/// the error occurred. The numerical format is specified by the format
+/// bitflags, which customize the required components, digit separators,
+/// and other parameters of the number.
+///
+/// * `bytes`   - Byte slice to convert to number.
+/// * `format`  - Numerical format.
+///
+/// # Examples
+///
+/// ```rust
+/// # extern crate lexical;
+/// # use lexical::ErrorCode;
+/// # pub fn main() {
+///
+/// let format = lexical::NumberFormat::RUST_STRING;
+///
+/// // String overloads
+/// assert_eq!(lexical::parse_partial_lossy_format::<f32, _>("0", format), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_lossy_format::<f32, _>("1.0", format), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_lossy_format::<f32, _>("1.", format), Ok((1.0, 2)));
+///
+/// // Bytes overloads
+/// assert_eq!(lexical::parse_partial_lossy_format::<f32, _>(b"0", format), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_lossy_format::<f32, _>(b"1.0", format), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_lossy_format::<f32, _>(b"1.", format), Ok((1.0, 2)));
+/// # }
+/// ```
+///
+/// [`parse_partial_format`]: fn.parse_partial_format.html
+#[inline]
+#[cfg(feature = "format")]
+pub fn parse_partial_lossy_format<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, format: NumberFormat)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_lossy_format(bytes.as_ref(), format)
+}
+
+/// High-level, format-dependent conversion of bytes to a number with a custom radix.
+///
+/// This function only returns a value if the entire string is
+/// successfully parsed. The numerical format is specified by the format
+/// bitflags, which customize the required components, digit separators,
+/// and other parameters of the number.
+///
+/// * `bytes`   - Byte slice to convert to number.
+/// * `radix`   - Number of unique digits for the number (base).
+/// * `format`  - Numerical format.
+///
+/// # Examples
+///
+/// ```rust
+/// # extern crate lexical;
+/// # use lexical::ErrorCode;
+/// # pub fn main() {
+/// // Get our error code wrapper.
+/// fn err_code<T>(r: lexical::Result<T>) -> ErrorCode {
+///     r.err().unwrap().code
+/// }
+///
+/// let format = lexical::NumberFormat::RUST_STRING;
+///
+/// // String overloads
+/// assert_eq!(lexical::parse_radix_format::<i32, _>("5", 10, format), Ok(5));
+/// assert_eq!(err_code(lexical::parse_radix_format::<i32, _>("1a", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(err_code(lexical::parse_radix_format::<i32, _>("1.", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(lexical::parse_radix_format::<f32, _>("0", 10, format), Ok(0.0));
+/// assert_eq!(lexical::parse_radix_format::<f32, _>("1.0", 10, format), Ok(1.0));
+/// assert_eq!(lexical::parse_radix_format::<f32, _>("1.", 10, format), Ok(1.0));
+/// assert_eq!(err_code(lexical::parse_radix_format::<f32, _>("1a", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(err_code(lexical::parse_radix_format::<f32, _>("1.0.", 10, format)), ErrorCode::InvalidDigit);
+///
+/// // Bytes overloads
+/// assert_eq!(lexical::parse_radix_format::<i32, _>(b"5", 10, format), Ok(5));
+/// assert_eq!(err_code(lexical::parse_radix_format::<i32, _>(b"1a", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(lexical::parse_radix_format::<f32, _>(b"0", 10, format), Ok(0.0));
+/// assert_eq!(lexical::parse_radix_format::<f32, _>(b"1.0", 10, format), Ok(1.0));
+/// assert_eq!(lexical::parse_radix_format::<f32, _>(b"1.", 10, format), Ok(1.0));
+/// assert_eq!(err_code(lexical::parse_radix_format::<f32, _>(b"1a", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(err_code(lexical::parse_radix_format::<f32, _>(b"1.0.", 10, format)), ErrorCode::InvalidDigit);
+/// # }
+/// ```
+///
+/// # Panics
+///
+/// Panics if radix is not in the range `[2, 36]`
+#[inline]
+#[cfg(all(feature = "radix", feature = "format"))]
+pub fn parse_radix_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8, format: NumberFormat)
+    -> Result<N>
+{
+    N::from_lexical_format_radix(bytes.as_ref(), radix, format)
+}
+
+/// High-level, partial, format-dependent conversion of bytes to a number with a custom radix.
+///
+/// This functions parses as many digits as possible, returning the parsed
+/// value and the number of digits processed if at least one character
+/// is processed. If another error, such as numerical overflow or underflow
+/// occurs, this function returns the error code and the index at which
+/// the error occurred. The numerical format is specified by the format
+/// bitflags, which customize the required components, digit separators,
+/// and other parameters of the number.
+///
+/// * `bytes`   - Byte slice to convert to number.
+/// * `radix`   - Number of unique digits for the number (base).
+/// * `format`  - Numerical format.
+///
+/// # Examples
+///
+/// ```rust
+/// # extern crate lexical;
+/// # use lexical::ErrorCode;
+/// # pub fn main() {
+///
+/// let format = lexical::NumberFormat::RUST_STRING;
+///
+/// // String overloads
+/// assert_eq!(lexical::parse_partial_radix_format::<i32, _>("5", 10, format), Ok((5, 1)));
+/// assert_eq!(lexical::parse_partial_radix_format::<i32, _>("1a", 10, format), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_radix_format::<i32, _>("1.", 10, format), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>("0", 10, format), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>("1.0", 10, format), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>("1.", 10, format), Ok((1.0, 2)));
+/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>("1a", 10, format), Ok((1.0, 1)));
+/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>("1.0.", 10, format), Ok((1.0, 3)));
+///
+/// // Bytes overloads
+/// assert_eq!(lexical::parse_partial_radix_format::<i32, _>(b"5", 10, format), Ok((5, 1)));
+/// assert_eq!(lexical::parse_partial_radix_format::<i32, _>(b"1a", 10, format), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_radix_format::<i32, _>(b"1.", 10, format), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>(b"0", 10, format), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>(b"1.0", 10, format), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>(b"1.", 10, format), Ok((1.0, 2)));
+/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>(b"1a", 10, format), Ok((1.0, 1)));
+/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>(b"1.0.", 10, format), Ok((1.0, 3)));
+/// # }
+/// ```
+///
+/// # Panics
+///
+/// Panics if radix is not in the range `[2, 36]`
+#[inline]
+#[cfg(all(feature = "radix", feature = "format"))]
+pub fn parse_partial_radix_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8, format: NumberFormat)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_format_radix(bytes.as_ref(), radix, format)
+}
+
+/// High-level, lossy, format-dependent conversion of bytes to a float with a custom radix.
+///
+/// This function uses aggressive optimizations to avoid worst-case
+/// scenarios, and can return inaccurate results. For guaranteed accurate
+/// floats, use [`parse_format_radix`]. The numerical format is specified
+/// by the format bitflags, which customize the required components,
+/// digit separators, and other parameters of the number.
+///
+/// * `bytes`   - Byte slice to convert to number.
+/// * `radix`   - Number of unique digits for the number (base).
+/// * `format`  - Numerical format.
+///
+/// # Examples
+///
+/// ```rust
+/// # extern crate lexical;
+/// # use lexical::ErrorCode;
+/// # pub fn main() {
+/// // Create our error wrapper.
+/// fn err_code<T>(r: lexical::Result<T>) -> ErrorCode {
+///     r.err().unwrap().code
+/// }
+///
+/// let format = lexical::NumberFormat::RUST_STRING;
+///
+/// // String overloads
+/// assert_eq!(lexical::parse_lossy_format_radix::<f32, _>("0", 10, format), Ok(0.0));
+/// assert_eq!(lexical::parse_lossy_format_radix::<f32, _>("1.0", 10, format), Ok(1.0));
+/// assert_eq!(lexical::parse_lossy_format_radix::<f32, _>("1.", 10, format), Ok(1.0));
+/// assert_eq!(err_code(lexical::parse_lossy_format_radix::<f32, _>("1a", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(err_code(lexical::parse_lossy_format_radix::<f32, _>("1.0.", 10, format)), ErrorCode::InvalidDigit);
+///
+/// // Bytes overloads
+/// assert_eq!(lexical::parse_lossy_format_radix::<f32, _>(b"0", 10, format), Ok(0.0));
+/// assert_eq!(lexical::parse_lossy_format_radix::<f32, _>(b"1.0", 10, format), Ok(1.0));
+/// assert_eq!(lexical::parse_lossy_format_radix::<f32, _>(b"1.", 10, format), Ok(1.0));
+/// assert_eq!(err_code(lexical::parse_lossy_format_radix::<f32, _>(b"1a", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(err_code(lexical::parse_lossy_format_radix::<f32, _>(b"1.0.", 10, format)), ErrorCode::InvalidDigit);
+/// # }
+/// ```
+///
+/// # Panics
+///
+/// Panics if radix is not in the range `[2, 36]`
+///
+/// [`parse_format_radix`]: fn.parse_format_radix.html
+#[inline]
+#[cfg(all(feature = "radix", feature = "format"))]
+pub fn parse_lossy_format_radix<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8, format: NumberFormat)
+    -> Result<N>
+{
+    N::from_lexical_lossy_format_radix(bytes.as_ref(), radix, format)
+}
+
+/// High-level, partial, lossy, format-dependent conversion of bytes to a number with a custom radix.
+///
+/// This function uses aggressive optimizations to avoid worst-case
+/// scenarios, and can return inaccurate results. For guaranteed accurate
+/// floats, use [`parse_partial_format_radix`]. The numerical format is
+/// specified by the format bitflags, which customize the required
+/// components, digit separators, and other parameters of the number.
+///
+/// This functions parses as many digits as possible, returning the parsed
+/// value and the number of digits processed if at least one character
+/// is processed. If another error, such as numerical overflow or underflow
+/// occurs, this function returns the error code and the index at which
+/// the error occurred.
+///
+/// * `bytes`   - Byte slice to convert to number.
+/// * `radix`   - Number of unique digits for the number (base).
+///
+/// # Examples
+///
+/// ```rust
+/// # extern crate lexical;
+/// # use lexical::ErrorCode;
+/// # pub fn main() {
+///
+/// let format = lexical::NumberFormat::RUST_STRING;
+///
+/// // String overloads
+/// assert_eq!(lexical::parse_partial_lossy_format_radix::<f32, _>("0", 10, format), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_lossy_format_radix::<f32, _>("1.0", 10, format), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_lossy_format_radix::<f32, _>("1.", 10, format), Ok((1.0, 2)));
+/// assert_eq!(lexical::parse_partial_lossy_format_radix::<f32, _>("1a", 10, format), Ok((1.0, 1)));
+/// assert_eq!(lexical::parse_partial_lossy_format_radix::<f32, _>("1.0.", 10, format), Ok((1.0, 3)));
+///
+/// // Bytes overloads
+/// assert_eq!(lexical::parse_partial_lossy_format_radix::<f32, _>(b"0", 10, format), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_lossy_format_radix::<f32, _>(b"1.0", 10, format), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_lossy_format_radix::<f32, _>(b"1.", 10, format), Ok((1.0, 2)));
+/// assert_eq!(lexical::parse_partial_lossy_format_radix::<f32, _>(b"1a", 10, format), Ok((1.0, 1)));
+/// assert_eq!(lexical::parse_partial_lossy_format_radix::<f32, _>(b"1.0.", 10, format), Ok((1.0, 3)));
+/// # }
+/// ```
+///
+/// # Panics
+///
+/// Panics if radix is not in the range `[2, 36]`
+///
+/// [`parse_partial_format_radix`]: fn.parse_partial_format_radix.html
+#[inline]
+#[cfg(all(feature = "radix", feature = "format"))]
+pub fn parse_partial_lossy_format_radix<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8, format: NumberFormat)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_partial_lossy_format_radix(bytes.as_ref(), radix, format)
 }
