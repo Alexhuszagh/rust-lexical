@@ -220,8 +220,16 @@ class ErrorCode(enum.Enum):
     Underflow = -2
     InvalidDigit = -3
     Empty = -4
-    EmptyFraction = -5
+    EmptyMantissa = -5
     EmptyExponent = -6
+    EmptyInteger = -7
+    EmptyFraction = -8
+    InvalidPositiveMantissaSign = -9
+    MissingMantissaSign = -10
+    InvalidExponent = -11
+    InvalidPositiveExponentSign = -12
+    MissingExponentSign = -13
+    ExponentWithoutFraction = -14
 
 class Error(Structure):
     '''C-compatible error for FFI.'''
@@ -253,11 +261,35 @@ class Error(Structure):
     def is_empty(self):
         return self.code == ErrorCode.Empty
 
-    def is_empty_fraction(self):
-        return self.code == ErrorCode.EmptyFraction
+    def is_empty_mantissa(self):
+        return self.code == ErrorCode.EmptyMantissa
 
     def is_empty_exponent(self):
         return self.code == ErrorCode.EmptyExponent
+
+    def is_empty_integer(self):
+        return self.code == ErrorCode.EmptyInteger
+
+    def is_empty_fraction(self):
+        return self.code == ErrorCode.EmptyFraction
+
+    def is_invalid_positive_mantissa_sign(self):
+        return self.code == ErrorCode.InvalidPositiveMantissaSign
+
+    def is_missing_mantissa_sign(self):
+        return self.code == ErrorCode.MissingMantissaSign
+
+    def is_invalid_exponent(self):
+        return self.code == ErrorCode.InvalidExponent
+
+    def is_invalid_positive_exponent_sign(self):
+        return self.code == ErrorCode.InvalidPositiveExponentSign
+
+    def is_missing_exponent_sign(self):
+        return self.code == ErrorCode.MissingExponentSign
+
+    def is_exponent_without_fraction(self):
+        return self.code == ErrorCode.ExponentWithoutFraction
 
 class LexicalError(Exception):
     '''Python-native exception raised during errors in lexical parsing.'''
@@ -275,10 +307,26 @@ class LexicalError(Exception):
             return 'Invalid digit found at index {}'.format(self.error.index)
         elif code == ErrorCode.Empty:
             return 'Empty input found, starting at index {}'.format(self.error.index)
-        elif code == ErrorCode.EmptyFraction:
-            return 'Empty fraction found, starting at index {}'.format(self.error.index)
+        elif code == ErrorCode.EmptyMantissa:
+            return 'Empty mantissa found, starting at index {}'.format(self.error.index)
         elif code == ErrorCode.EmptyExponent:
             return 'Empty exponent found, starting at index {}'.format(self.error.index)
+        elif code == ErrorCode.EmptyInteger:
+            return 'Empty integer found, starting at index {}'.format(self.error.index)
+        elif code == ErrorCode.EmptyFraction:
+            return 'Empty fraction found, starting at index {}'.format(self.error.index)
+        elif code == ErrorCode.InvalidPositiveMantissaSign:
+            return 'Invalid "+" sign found for mantissa, starting at index {}'.format(self.error.index)
+        elif code == ErrorCode.MissingMantissaSign:
+            return 'Missing required sign for mantissa, starting at index {}'.format(self.error.index)
+        elif code == ErrorCode.InvalidExponent:
+            return 'Disallowed exponent was found, starting at index {}'.format(self.error.index)
+        elif code == ErrorCode.InvalidPositiveExponentSign:
+            return 'Invalid "+" sign found for exponent, starting at index {}'.format(self.error.index)
+        elif code == ErrorCode.MissingExponentSign:
+            return 'Missing required sign for exponent, starting at index {}'.format(self.error.index)
+        elif code == ErrorCode.ExponentWithoutFraction:
+            return 'Exponent found without fraction, starting at index {}'.format(self.error.index)
         else:
             raise ValueError('Invalid ErrorCode for lexical error.')
 
