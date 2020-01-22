@@ -149,12 +149,15 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     /// Float digits iterator type.
     type FractionIter: ConsumedIterator<Item=&'a u8> + AsPtrIterator<'a, u8>;
 
+    /// Exponent digits iterator type.
+    type ExponentIter: ConsumedIterator<Item=&'a u8> + AsPtrIterator<'a, u8>;
+
     /// Associated slow data type.
     #[cfg(feature = "correct")]
     type SlowInterface: SlowDataInterface<'a>;
 
     /// Create new float data from format specification.
-    fn new(format: FloatFormat) -> Self;
+    fn new(format: NumberFormat) -> Self;
 
     // DATA
 
@@ -163,6 +166,12 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
 
     /// Iterate over all fraction digits
     fn fraction_iter(&self) -> Self::FractionIter;
+
+    /// Iterate over all exponent digits
+    fn exponent_iter(&self) -> Self::ExponentIter;
+
+    /// Get the number format.
+    fn format(&self) -> NumberFormat;
 
     /// Get the mantissa exponent from the raw exponent.
     perftools_inline!{
@@ -173,15 +182,18 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
 
     // EXTRACT
 
-    // Consume until a non-digit character is found.
-    fn consume_digits(&self, bytes: &'a [u8], radix: u32) -> (&'a [u8], &'a [u8]);
+    // Consume integer digits until a non-digit character is found.
+    fn consume_integer_digits(&self, bytes: &'a [u8], radix: u32) -> (&'a [u8], &'a [u8]);
+
+    // Consume fraction digits until a non-digit character is found.
+    fn consume_fraction_digits(&self, bytes: &'a [u8], radix: u32) -> (&'a [u8], &'a [u8]);
 
     // Extract the integer substring from the float.
     perftools_inline!{
     fn extract_integer(&mut self, bytes: &'a [u8], radix: u32)
         -> &'a [u8]
     {
-        let result = self.consume_digits(bytes, radix);
+        let result = self.consume_integer_digits(bytes, radix);
         self.set_integer(result.0);
         result.1
     }}
@@ -195,7 +207,7 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
         -> &'a [u8]
     {
         let digits = &index!(bytes[1..]);
-        let result = self.consume_digits(digits, radix);
+        let result = self.consume_fraction_digits(digits, radix);
         self.set_fraction(result.0);
         result.1
     }}
@@ -208,6 +220,12 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
 
     // Validate the extracted exponent component.
     fn validate_exponent(&self) -> ParseResult<()>;
+
+    // Validate the extracted exponent depending on the fraction component.
+    fn validate_exponent_fraction(&self) -> ParseResult<()>;
+
+    // Validate the extracted exponent sign.
+    fn validate_exponent_sign(&self) -> ParseResult<()>;
 
     // Trim leading 0s and digit separators.
     fn ltrim_zero(&self, bytes: &'a [u8]) -> (&'a [u8], usize);
@@ -227,7 +245,6 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     perftools_inline!{
     fn trim(&mut self) {
         self.set_integer(self.ltrim_zero(self.integer()).0);
-        self.set_integer(self.rtrim_separator(self.integer()).0);
         self.set_fraction(self.rtrim_zero(self.fraction()).0);
     }}
 
@@ -252,6 +269,8 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
             }
         }
         self.validate_exponent()?;
+        self.validate_exponent_fraction()?;
+        self.validate_exponent_sign()?;
 
         // Trim the remaining digits.
         self.trim();
@@ -265,9 +284,11 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     perftools_inline!{
     #[cfg(feature = "correct")]
     fn digits_start(&self) -> usize {
-        // Since integer is trimmed, any digit separators have been removed.
-        // Just need to check if it's empty.
-        match self.integer().is_empty() {
+        // If there are no returned values in the integer iterator
+        // since we've trimmed leading 0s, then we have to trim
+        // leading zeros to get to the start of the significant
+        // digits in the fraction.
+        match self.integer_iter().next().is_none() {
             true  => self.ltrim_zero(self.fraction()).1,
             false => 0,
         }
@@ -322,11 +343,16 @@ macro_rules! fast_data_interface {
         fields => { $( $field:ident : $type:tt, )* },
         integer_iter => ( $integer_iter:tt, $integer_iter_fn:ident ),
         fraction_iter => ( $fraction_iter:tt, $fraction_iter_fn:ident ),
+        exponent_iter => ( $exponent_iter:tt, $exponent_iter_fn:ident ),
+        format => $format:expr,
         slow_interface => $slow_interface:tt,
-        consume_digits => $consume_digits:ident,
-        extract_exponent => $extract_exponent:ident,
-        validate_mantissa => $validate_mantissa:ident,
-        validate_exponent => $validate_exponent:ident,
+        consume_integer_digits => $consume_integer_digits:expr,
+        consume_fraction_digits => $consume_fraction_digits:expr,
+        extract_exponent => $extract_exponent:expr,
+        validate_mantissa => $validate_mantissa:expr,
+        validate_exponent => $validate_exponent:expr,
+        validate_exponent_fraction => $validate_exponent_fraction:expr,
+        validate_exponent_sign => $validate_exponent_sign:expr,
         ltrim_zero => $ltrim_zero:ident,
         ltrim_separator => $ltrim_separator:ident,
         rtrim_zero => $rtrim_zero:ident,
@@ -346,6 +372,7 @@ macro_rules! fast_data_interface {
         impl<'a> FastDataInterface<'a> for $name<'a> {
             type IntegerIter = $integer_iter<'a>;
             type FractionIter = $fraction_iter<'a>;
+            type ExponentIter = $exponent_iter<'a>;
 
             #[cfg(feature = "correct")]
             type SlowInterface = $slow_interface<'a>;
@@ -359,24 +386,42 @@ macro_rules! fast_data_interface {
 
             perftools_inline!{
             fn integer_iter(&self) -> Self::IntegerIter {
-                $integer_iter_fn(self.integer)
+                $integer_iter_fn(self.integer, self.format().digit_separator())
             }}
 
             perftools_inline!{
             fn fraction_iter(&self) -> Self::FractionIter {
-                $fraction_iter_fn(self.fraction)
+                $fraction_iter_fn(self.fraction, self.format().digit_separator())
             }}
 
             perftools_inline!{
-            fn consume_digits(&self, digits: &'a [u8], radix: u32) -> (&'a [u8], &'a [u8])
+            fn exponent_iter(&self) -> Self::ExponentIter {
+                $exponent_iter_fn(self.exponent, self.format().digit_separator())
+            }}
+
+            perftools_inline!{
+            fn format(&self) -> NumberFormat {
+                $format(self)
+            }}
+
+            perftools_inline!{
+            fn consume_integer_digits(&self, digits: &'a [u8], radix: u32)
+                -> (&'a [u8], &'a [u8])
             {
-                $consume_digits(digits, radix)
+                $consume_integer_digits(digits, radix, self.format())
+            }}
+
+            perftools_inline!{
+            fn consume_fraction_digits(&self, digits: &'a [u8], radix: u32)
+                -> (&'a [u8], &'a [u8])
+            {
+                $consume_fraction_digits(digits, radix, self.format())
             }}
 
             perftools_inline!{
             fn extract_exponent(&mut self, bytes: &'a [u8], radix: u32) -> &'a [u8]
             {
-                $extract_exponent(self, bytes, radix)
+                $extract_exponent(self, bytes, radix, self.format())
             }}
 
             perftools_inline!{
@@ -390,23 +435,33 @@ macro_rules! fast_data_interface {
             }}
 
             perftools_inline!{
+            fn validate_exponent_fraction(&self) -> ParseResult<()> {
+                $validate_exponent_fraction(self)
+            }}
+
+            perftools_inline!{
+            fn validate_exponent_sign(&self) -> ParseResult<()> {
+                $validate_exponent_sign(self)
+            }}
+
+            perftools_inline!{
             fn ltrim_zero(&self, bytes: &'a [u8]) -> (&'a [u8], usize) {
-                $ltrim_zero(bytes)
+                $ltrim_zero(bytes, self.format().digit_separator())
             }}
 
             perftools_inline!{
             fn ltrim_separator(&self, bytes: &'a [u8]) -> (&'a [u8], usize) {
-                $ltrim_separator(bytes)
+                $ltrim_separator(bytes, self.format().digit_separator())
             }}
 
             perftools_inline!{
             fn rtrim_zero(&self, bytes: &'a [u8]) -> (&'a [u8], usize) {
-                $rtrim_zero(bytes)
+                $rtrim_zero(bytes, self.format().digit_separator())
             }}
 
             perftools_inline!{
             fn rtrim_separator(&self, bytes: &'a [u8]) -> (&'a [u8], usize) {
-                $rtrim_separator(bytes)
+                $rtrim_separator(bytes, self.format().digit_separator())
             }}
 
             // TO SLOW DATA
@@ -416,7 +471,7 @@ macro_rules! fast_data_interface {
             fn to_slow(self, truncated_digits: usize) -> Self::SlowInterface {
                 let digits_start = self.digits_start();
                 Self::SlowInterface {
-                    $( self.$field, )*
+                    $( $field: self.$field, )*
                     digits_start,
                     truncated_digits,
                     integer: self.integer,
@@ -471,6 +526,9 @@ pub(crate) trait SlowDataInterface<'a>: SlowDataInterfaceImpl<'a> {
         self.integer_digits() + self.significant_fraction_digits()
     }}
 
+    /// Get the number format.
+    fn format(&self) -> NumberFormat;
+
     /// Get index to start of significant digits in the fraction.
     fn digits_start(&self) -> usize;
 
@@ -496,7 +554,8 @@ macro_rules! slow_data_interface {
         struct $name:ident,
         fields => { $( $field:ident : $type:tt, )* },
         integer_iter => ( $integer_iter:tt, $integer_iter_fn:ident ),
-        fraction_iter => ( $fraction_iter:tt, $fraction_iter_fn:ident )
+        fraction_iter => ( $fraction_iter:tt, $fraction_iter_fn:ident ),
+        format => $format:expr
     ) => (
         #[cfg(feature = "correct")]
         pub(crate) struct $name<'a> {
@@ -520,18 +579,23 @@ macro_rules! slow_data_interface {
 
             perftools_inline!{
             fn integer_iter(&self) -> Self::IntegerIter {
-                $integer_iter_fn(self.integer)
+                $integer_iter_fn(self.integer, self.format().digit_separator())
             }}
 
             perftools_inline!{
             fn fraction_iter(&self) -> Self::FractionIter {
-                $fraction_iter_fn(self.fraction)
+                $fraction_iter_fn(self.fraction, self.format().digit_separator())
             }}
 
             perftools_inline!{
             fn significant_fraction_iter(&self) -> Self::FractionIter {
                 let fraction = &index!(self.fraction[self.digits_start..]);
-                $fraction_iter_fn(fraction)
+                $fraction_iter_fn(fraction, self.format().digit_separator())
+            }}
+
+            perftools_inline!{
+            fn format(&self) -> NumberFormat {
+                $format(self)
             }}
 
             perftools_inline!{
@@ -544,5 +608,60 @@ macro_rules! slow_data_interface {
                 self.truncated_digits
             }}
         }
+    );
+}
+
+/// Shared definition for all data interfaces.
+macro_rules! data_interface {
+    (
+        struct $fast:ident,
+        struct $slow:ident,
+        fields => { $( $field:ident : $type:tt, )* },
+        integer_iter => ( $integer_iter:tt, $integer_iter_fn:ident ),
+        fraction_iter => ( $fraction_iter:tt, $fraction_iter_fn:ident ),
+        exponent_iter => ( $exponent_iter:tt, $exponent_iter_fn:ident ),
+        format => $format:expr,
+        consume_integer_digits => $consume_integer_digits:expr,
+        consume_fraction_digits => $consume_fraction_digits:expr,
+        extract_exponent => $extract_exponent:expr,
+        validate_mantissa => $validate_mantissa:expr,
+        validate_exponent => $validate_exponent:expr,
+        validate_exponent_fraction => $validate_exponent_fraction:expr,
+        validate_exponent_sign => $validate_exponent_sign:expr,
+        ltrim_zero => $ltrim_zero:ident,
+        ltrim_separator => $ltrim_separator:ident,
+        rtrim_zero => $rtrim_zero:ident,
+        rtrim_separator => $rtrim_separator:ident,
+        new => $($new:tt)*
+    ) => (
+        fast_data_interface!(
+            struct $fast,
+            fields => { $( $field : $type , )* },
+            integer_iter => ($integer_iter, $integer_iter_fn),
+            fraction_iter => ($fraction_iter, $fraction_iter_fn),
+            exponent_iter => ($exponent_iter, $exponent_iter_fn),
+            format => $format,
+            slow_interface => $slow,
+            consume_integer_digits => $consume_integer_digits,
+            consume_fraction_digits => $consume_fraction_digits,
+            extract_exponent => $extract_exponent,
+            validate_mantissa => $validate_mantissa,
+            validate_exponent => $validate_exponent,
+            validate_exponent_fraction => $validate_exponent_fraction,
+            validate_exponent_sign => $validate_exponent_sign,
+            ltrim_zero => $ltrim_zero,
+            ltrim_separator => $ltrim_separator,
+            rtrim_zero => $rtrim_zero,
+            rtrim_separator => $rtrim_separator,
+            new => $($new)*
+        );
+
+        slow_data_interface!(
+            struct $slow,
+            fields => { $( $field : $type , )* },
+            integer_iter => ($integer_iter, $integer_iter_fn),
+            fraction_iter => ($fraction_iter, $fraction_iter_fn),
+            format => $format
+        );
     );
 }

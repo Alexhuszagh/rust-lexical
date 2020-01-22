@@ -9,8 +9,7 @@ use float::rounding::*;
 use util::*;
 use super::alias::*;
 use super::bigcomp;
-use super::bignum::Bigint;
-use super::exponent::*;
+use super::bignum::*;
 use super::format::*;
 use super::math::*;
 

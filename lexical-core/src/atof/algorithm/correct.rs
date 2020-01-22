@@ -406,7 +406,7 @@ fn pow2_exponent(radix: u32) -> i32 {
 //
 // The float string must be non-special, non-zero, and positive.
 perftools_inline!{
-fn to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+fn to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
     -> ParseResult<(F, *const u8)>
     where F: FloatType
 {
@@ -428,7 +428,7 @@ fn to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: Float
 
 // Parse 32-bit float from string.
 perftools_inline!{
-pub(crate) fn atof(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+pub(crate) fn atof(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
     -> ParseResult<(f32, *const u8)>
 {
     to_native::<f32>(bytes, radix, lossy, sign, format)
@@ -436,7 +436,7 @@ pub(crate) fn atof(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: Fl
 
 // Parse 64-bit float from string.
 perftools_inline!{
-pub(crate) fn atod(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: FloatFormat)
+pub(crate) fn atod(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
     -> ParseResult<(f64, *const u8)>
 {
     to_native::<f64>(bytes, radix, lossy, sign, format)
@@ -726,7 +726,7 @@ mod tests {
 
     #[test]
     fn atof_test() {
-        let atof10 = move |x| match atof(x, 10, false, Sign::Positive, FloatFormat::RUST_STRING) {
+        let atof10 = move |x| match atof(x, 10, false, Sign::Positive, NumberFormat::standard().unwrap()) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -771,16 +771,16 @@ mod tests {
         assert_eq!(Ok((1.0000002, 28)), atof10(b"1.00000017881393432617187501"));
 
         // Invalid or partially-parsed
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0)), atof10(b"e10"));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0)), atof10(b"."));
-        assert_eq!(Err((ErrorCode::EmptyFraction, 0)), atof10(b".e10"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0)), atof10(b"e10"));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0)), atof10(b"."));
+        assert_eq!(Err((ErrorCode::EmptyMantissa, 0)), atof10(b".e10"));
         assert_eq!(Err((ErrorCode::EmptyExponent, 1)), atof10(b"0e"));
         assert_eq!(Ok((1.23, 4)), atof10(b"1.23/"));
     }
 
     #[test]
     fn atod_test() {
-        let adod_impl = move | x, r | match atod(x, r, false, Sign::Positive, FloatFormat::RUST_STRING) {
+        let adod_impl = move | x, r | match atod(x, r, false, Sign::Positive, NumberFormat::standard().unwrap()) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -881,7 +881,7 @@ mod tests {
 
     #[test]
     fn atof_lossy_test() {
-        let atof10 = move |x| match atof(x, 10, true, Sign::Positive, FloatFormat::RUST_STRING) {
+        let atof10 = move |x| match atof(x, 10, true, Sign::Positive, NumberFormat::standard().unwrap()) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -894,7 +894,7 @@ mod tests {
 
     #[test]
     fn atod_lossy_test() {
-        let atod10 = move |x| match atod(x, 10, true, Sign::Positive, FloatFormat::RUST_STRING) {
+        let atod10 = move |x| match atod(x, 10, true, Sign::Positive, NumberFormat::standard().unwrap()) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };

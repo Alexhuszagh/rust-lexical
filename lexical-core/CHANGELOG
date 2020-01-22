@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added `format` feature to control parsing integers and floats from number specifications.
+- Added the `NumberFormat` bitflag to control Number format specifications. This bitflag controls the use of digit separators, and control grammar in numbers.
+- Added preset language formats (`RUST_STRING`, `PYTHON_LITERAL`) to simplify choosing the right format.
+- Added the `FromLexicalFormat` trait with the `format` feature, which enables you to specify the number format during parsing.
+- Implemented algorithms in terms of generic iterators, to allow skipping digit iterators.
+- Implemented data interfaces to simplify parsing and validating number format. 
+- Added more values to `ErrorCode` to signify more parse failures.
+
+### Changed
+- Changed `ErrorCode::MissingFraction` to be `ErrorCode::MissingMantissa`, to differentiate between missing integers, missing fractions, and missing significant digits (mantissa).
+- Remove `RawFloatState` and `FloatState` and replaced it logically with `FastDataInterface` and `SlowDataInterface`, allowing format-defined parsing.
 
 ## [0.6.3] - 2019-10-08
 ### Changed

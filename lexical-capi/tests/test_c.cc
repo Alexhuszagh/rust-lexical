@@ -37,6 +37,7 @@
 // HELPERS
 // -------
 
+// C++ wrapper for get_*_string.
 #define lexical_get_string(cb)                                                  \
     uint8_t* ptr;                                                               \
     size_t size;                                                                \
@@ -86,35 +87,26 @@ inline lexical_i8_result result_err(int32_t code, size_t index)
     return r;
 }
 
-inline lexical_i8_result result_overflow(size_t index)
-{
-    return result_err(lexical_overflow, index);
-}
+#define lexical_result_error(type)                                              \
+    inline lexical_i8_result result_##type(size_t index)                        \
+    {                                                                           \
+        return result_err(lexical_##type, index);                               \
+    }
 
-inline lexical_i8_result result_underflow(size_t index)
-{
-    return result_err(lexical_underflow, index);
-}
-
-inline lexical_i8_result result_invalid_digit(size_t index)
-{
-    return result_err(lexical_invalid_digit, index);
-}
-
-inline lexical_i8_result result_empty(size_t index)
-{
-    return result_err(lexical_empty, index);
-}
-
-inline lexical_i8_result result_empty_fraction(size_t index)
-{
-    return result_err(lexical_empty_fraction, index);
-}
-
-inline lexical_i8_result result_empty_exponent(size_t index)
-{
-    return result_err(lexical_empty_exponent, index);
-}
+lexical_result_error(overflow);
+lexical_result_error(underflow);
+lexical_result_error(invalid_digit);
+lexical_result_error(empty);
+lexical_result_error(empty_mantissa);
+lexical_result_error(empty_exponent);
+lexical_result_error(empty_integer);
+lexical_result_error(empty_fraction);
+lexical_result_error(invalid_positive_mantissa_sign);
+lexical_result_error(missing_mantissa_sign);
+lexical_result_error(invalid_exponent);
+lexical_result_error(invalid_positive_exponent_sign);
+lexical_result_error(missing_exponent_sign);
+lexical_result_error(exponent_without_fraction);
 
 inline lexical_i8_partial_result partial_result_ok(lexical_i8 value, size_t index)
 {
@@ -154,65 +146,47 @@ inline lexical_i8_partial_result partial_result_err(int32_t code, size_t index)
     return r;
 }
 
-inline lexical_i8_partial_result partial_result_overflow(size_t index)
-{
-    return partial_result_err(lexical_overflow, index);
-}
+#define lexical_partial_result_error(type)                                      \
+    inline lexical_i8_partial_result partial_result_##type(size_t index)        \
+    {                                                                           \
+        return partial_result_err(lexical_##type, index);                       \
+    }
 
-inline lexical_i8_partial_result partial_result_underflow(size_t index)
-{
-    return partial_result_err(lexical_underflow, index);
-}
+lexical_partial_result_error(overflow);
+lexical_partial_result_error(underflow);
+lexical_partial_result_error(invalid_digit);
+lexical_partial_result_error(empty);
+lexical_partial_result_error(empty_mantissa);
+lexical_partial_result_error(empty_exponent);
+lexical_partial_result_error(empty_integer);
+lexical_partial_result_error(empty_fraction);
+lexical_partial_result_error(invalid_positive_mantissa_sign);
+lexical_partial_result_error(missing_mantissa_sign);
+lexical_partial_result_error(invalid_exponent);
+lexical_partial_result_error(invalid_positive_exponent_sign);
+lexical_partial_result_error(missing_exponent_sign);
+lexical_partial_result_error(exponent_without_fraction);
 
-inline lexical_i8_partial_result partial_result_invalid_digit(size_t index)
-{
-    return partial_result_err(lexical_invalid_digit, index);
-}
+#define lexical_is_error(type)                                                  \
+    inline bool is_##type(lexical_error error)                                  \
+    {                                                                           \
+        return lexical_error_is_##type(&error);                                 \
+    }
 
-inline lexical_i8_partial_result partial_result_empty(size_t index)
-{
-    return partial_result_err(lexical_empty, index);
-}
-
-inline lexical_i8_partial_result partial_result_empty_fraction(size_t index)
-{
-    return partial_result_err(lexical_empty_fraction, index);
-}
-
-inline lexical_i8_partial_result partial_result_empty_exponent(size_t index)
-{
-    return partial_result_err(lexical_empty_exponent, index);
-}
-
-inline bool is_overflow(lexical_error error)
-{
-    return lexical_error_is_overflow(&error);
-}
-
-inline bool is_underflow(lexical_error error)
-{
-    return lexical_error_is_underflow(&error);
-}
-
-inline bool is_invalid_digit(lexical_error error)
-{
-    return lexical_error_is_invalid_digit(&error);
-}
-
-inline bool is_empty(lexical_error error)
-{
-    return lexical_error_is_empty(&error);
-}
-
-inline bool is_empty_fraction(lexical_error error)
-{
-    return lexical_error_is_empty_fraction(&error);
-}
-
-inline bool is_empty_exponent(lexical_error error)
-{
-    return lexical_error_is_empty_exponent(&error);
-}
+lexical_is_error(overflow);
+lexical_is_error(underflow);
+lexical_is_error(invalid_digit);
+lexical_is_error(empty);
+lexical_is_error(empty_mantissa);
+lexical_is_error(empty_exponent);
+lexical_is_error(empty_integer);
+lexical_is_error(empty_fraction);
+lexical_is_error(invalid_positive_mantissa_sign);
+lexical_is_error(missing_mantissa_sign);
+lexical_is_error(invalid_exponent);
+lexical_is_error(invalid_positive_exponent_sign);
+lexical_is_error(missing_exponent_sign);
+lexical_is_error(exponent_without_fraction);
 
 // CONFIG TESTS
 // ------------
@@ -357,12 +331,12 @@ TEST(test_is_empty, error_tests)
     EXPECT_TRUE(lexical_error_is_empty(&empty));
 }
 
-TEST(test_is_empty_fraction, error_tests)
+TEST(test_is_empty_mantissa, error_tests)
 {
     lexical_error overflow = { lexical_overflow, 0 };
-    lexical_error empty_fraction = { lexical_empty_fraction, 0 };
-    EXPECT_FALSE(lexical_error_is_empty_fraction(&overflow));
-    EXPECT_TRUE(lexical_error_is_empty_fraction(&empty_fraction));
+    lexical_error empty_mantissa = { lexical_empty_mantissa, 0 };
+    EXPECT_FALSE(lexical_error_is_empty_mantissa(&overflow));
+    EXPECT_TRUE(lexical_error_is_empty_mantissa(&empty_mantissa));
 }
 
 TEST(test_is_empty_exponent, error_tests)
@@ -371,6 +345,70 @@ TEST(test_is_empty_exponent, error_tests)
     lexical_error empty_exponent = { lexical_empty_exponent, 0 };
     EXPECT_FALSE(lexical_error_is_empty_exponent(&overflow));
     EXPECT_TRUE(lexical_error_is_empty_exponent(&empty_exponent));
+}
+
+TEST(test_is_empty_integer, error_tests)
+{
+    lexical_error overflow = { lexical_overflow, 0 };
+    lexical_error empty_integer = { lexical_empty_integer, 0 };
+    EXPECT_FALSE(lexical_error_is_empty_integer(&overflow));
+    EXPECT_TRUE(lexical_error_is_empty_integer(&empty_integer));
+}
+
+TEST(test_is_empty_fraction, error_tests)
+{
+    lexical_error overflow = { lexical_overflow, 0 };
+    lexical_error empty_fraction = { lexical_empty_fraction, 0 };
+    EXPECT_FALSE(lexical_error_is_empty_fraction(&overflow));
+    EXPECT_TRUE(lexical_error_is_empty_fraction(&empty_fraction));
+}
+
+TEST(test_is_invalid_positive_mantissa_sign, error_tests)
+{
+    lexical_error overflow = { lexical_overflow, 0 };
+    lexical_error invalid_positive_mantissa_sign = { lexical_invalid_positive_mantissa_sign, 0 };
+    EXPECT_FALSE(lexical_error_is_invalid_positive_mantissa_sign(&overflow));
+    EXPECT_TRUE(lexical_error_is_invalid_positive_mantissa_sign(&invalid_positive_mantissa_sign));
+}
+
+TEST(test_is_missing_mantissa_sign, error_tests)
+{
+    lexical_error overflow = { lexical_overflow, 0 };
+    lexical_error missing_mantissa_sign = { lexical_missing_mantissa_sign, 0 };
+    EXPECT_FALSE(lexical_error_is_missing_mantissa_sign(&overflow));
+    EXPECT_TRUE(lexical_error_is_missing_mantissa_sign(&missing_mantissa_sign));
+}
+
+TEST(test_is_invalid_exponent, error_tests)
+{
+    lexical_error overflow = { lexical_overflow, 0 };
+    lexical_error invalid_exponent = { lexical_invalid_exponent, 0 };
+    EXPECT_FALSE(lexical_error_is_invalid_exponent(&overflow));
+    EXPECT_TRUE(lexical_error_is_invalid_exponent(&invalid_exponent));
+}
+
+TEST(test_is_invalid_positive_exponent_sign, error_tests)
+{
+    lexical_error overflow = { lexical_overflow, 0 };
+    lexical_error invalid_positive_exponent_sign = { lexical_invalid_positive_exponent_sign, 0 };
+    EXPECT_FALSE(lexical_error_is_invalid_positive_exponent_sign(&overflow));
+    EXPECT_TRUE(lexical_error_is_invalid_positive_exponent_sign(&invalid_positive_exponent_sign));
+}
+
+TEST(test_is_missing_exponent_sign, error_tests)
+{
+    lexical_error overflow = { lexical_overflow, 0 };
+    lexical_error missing_exponent_sign = { lexical_missing_exponent_sign, 0 };
+    EXPECT_FALSE(lexical_error_is_missing_exponent_sign(&overflow));
+    EXPECT_TRUE(lexical_error_is_missing_exponent_sign(&missing_exponent_sign));
+}
+
+TEST(test_is_exponent_without_fraction, error_tests)
+{
+    lexical_error overflow = { lexical_overflow, 0 };
+    lexical_error exponent_without_fraction = { lexical_exponent_without_fraction, 0 };
+    EXPECT_FALSE(lexical_error_is_exponent_without_fraction(&overflow));
+    EXPECT_TRUE(lexical_error_is_exponent_without_fraction(&exponent_without_fraction));
 }
 
 // RESULT TESTS
@@ -382,8 +420,16 @@ TEST(result, result_tests)
     auto underflow = result_underflow(0);
     auto invalid_digit = result_invalid_digit(0);
     auto empty = result_empty(0);
-    auto empty_fraction = result_empty_fraction(0);
+    auto empty_mantissa = result_empty_mantissa(0);
     auto empty_exponent = result_empty_exponent(0);
+    auto empty_integer = result_empty_integer(0);
+    auto empty_fraction = result_empty_fraction(0);
+    auto invalid_positive_mantissa_sign = result_invalid_positive_mantissa_sign(0);
+    auto missing_mantissa_sign = result_missing_mantissa_sign(0);
+    auto invalid_exponent = result_invalid_exponent(0);
+    auto invalid_positive_exponent_sign = result_invalid_positive_exponent_sign(0);
+    auto missing_exponent_sign = result_missing_exponent_sign(0);
+    auto exponent_without_fraction = result_exponent_without_fraction(0);
 
     EXPECT_TRUE(lexical_i8_result_is_ok(&ok));
     EXPECT_FALSE(lexical_i8_result_is_err(&ok));
@@ -391,16 +437,32 @@ TEST(result, result_tests)
     EXPECT_TRUE(lexical_i8_result_is_err(&underflow));
     EXPECT_TRUE(lexical_i8_result_is_err(&invalid_digit));
     EXPECT_TRUE(lexical_i8_result_is_err(&empty));
-    EXPECT_TRUE(lexical_i8_result_is_err(&empty_fraction));
+    EXPECT_TRUE(lexical_i8_result_is_err(&empty_mantissa));
     EXPECT_TRUE(lexical_i8_result_is_err(&empty_exponent));
+    EXPECT_TRUE(lexical_i8_result_is_err(&empty_integer));
+    EXPECT_TRUE(lexical_i8_result_is_err(&empty_fraction));
+    EXPECT_TRUE(lexical_i8_result_is_err(&invalid_positive_mantissa_sign));
+    EXPECT_TRUE(lexical_i8_result_is_err(&missing_mantissa_sign));
+    EXPECT_TRUE(lexical_i8_result_is_err(&invalid_exponent));
+    EXPECT_TRUE(lexical_i8_result_is_err(&invalid_positive_exponent_sign));
+    EXPECT_TRUE(lexical_i8_result_is_err(&missing_exponent_sign));
+    EXPECT_TRUE(lexical_i8_result_is_err(&exponent_without_fraction));
 
     EXPECT_EQ(lexical_i8_result_ok(ok), 0);
     EXPECT_TRUE(is_overflow(lexical_i8_result_err(overflow)));
     EXPECT_TRUE(is_underflow(lexical_i8_result_err(underflow)));
     EXPECT_TRUE(is_invalid_digit(lexical_i8_result_err(invalid_digit)));
     EXPECT_TRUE(is_empty(lexical_i8_result_err(empty)));
-    EXPECT_TRUE(is_empty_fraction(lexical_i8_result_err(empty_fraction)));
+    EXPECT_TRUE(is_empty_mantissa(lexical_i8_result_err(empty_mantissa)));
     EXPECT_TRUE(is_empty_exponent(lexical_i8_result_err(empty_exponent)));
+    EXPECT_TRUE(is_empty_integer(lexical_i8_result_err(empty_integer)));
+    EXPECT_TRUE(is_empty_fraction(lexical_i8_result_err(empty_fraction)));
+    EXPECT_TRUE(is_invalid_positive_mantissa_sign(lexical_i8_result_err(invalid_positive_mantissa_sign)));
+    EXPECT_TRUE(is_missing_mantissa_sign(lexical_i8_result_err(missing_mantissa_sign)));
+    EXPECT_TRUE(is_invalid_exponent(lexical_i8_result_err(invalid_exponent)));
+    EXPECT_TRUE(is_invalid_positive_exponent_sign(lexical_i8_result_err(invalid_positive_exponent_sign)));
+    EXPECT_TRUE(is_missing_exponent_sign(lexical_i8_result_err(missing_exponent_sign)));
+    EXPECT_TRUE(is_exponent_without_fraction(lexical_i8_result_err(exponent_without_fraction)));
 }
 
 // PARTIAL RESULT TESTS
@@ -412,8 +474,16 @@ TEST(partial_result, partial_result_tests)
     auto underflow = partial_result_underflow(0);
     auto invalid_digit = partial_result_invalid_digit(0);
     auto empty = partial_result_empty(0);
-    auto empty_fraction = partial_result_empty_fraction(0);
+    auto empty_mantissa = partial_result_empty_mantissa(0);
     auto empty_exponent = partial_result_empty_exponent(0);
+    auto empty_integer = partial_result_empty_integer(0);
+    auto empty_fraction = partial_result_empty_fraction(0);
+    auto invalid_positive_mantissa_sign = partial_result_invalid_positive_mantissa_sign(0);
+    auto missing_mantissa_sign = partial_result_missing_mantissa_sign(0);
+    auto invalid_exponent = partial_result_invalid_exponent(0);
+    auto invalid_positive_exponent_sign = partial_result_invalid_positive_exponent_sign(0);
+    auto missing_exponent_sign = partial_result_missing_exponent_sign(0);
+    auto exponent_without_fraction = partial_result_exponent_without_fraction(0);
 
     EXPECT_TRUE(lexical_i8_partial_result_is_ok(&ok));
     EXPECT_FALSE(lexical_i8_partial_result_is_err(&ok));
@@ -421,14 +491,30 @@ TEST(partial_result, partial_result_tests)
     EXPECT_TRUE(lexical_i8_partial_result_is_err(&underflow));
     EXPECT_TRUE(lexical_i8_partial_result_is_err(&invalid_digit));
     EXPECT_TRUE(lexical_i8_partial_result_is_err(&empty));
-    EXPECT_TRUE(lexical_i8_partial_result_is_err(&empty_fraction));
+    EXPECT_TRUE(lexical_i8_partial_result_is_err(&empty_mantissa));
     EXPECT_TRUE(lexical_i8_partial_result_is_err(&empty_exponent));
+    EXPECT_TRUE(lexical_i8_partial_result_is_err(&empty_integer));
+    EXPECT_TRUE(lexical_i8_partial_result_is_err(&empty_fraction));
+    EXPECT_TRUE(lexical_i8_partial_result_is_err(&invalid_positive_mantissa_sign));
+    EXPECT_TRUE(lexical_i8_partial_result_is_err(&missing_mantissa_sign));
+    EXPECT_TRUE(lexical_i8_partial_result_is_err(&invalid_exponent));
+    EXPECT_TRUE(lexical_i8_partial_result_is_err(&invalid_positive_exponent_sign));
+    EXPECT_TRUE(lexical_i8_partial_result_is_err(&missing_exponent_sign));
+    EXPECT_TRUE(lexical_i8_partial_result_is_err(&exponent_without_fraction));
 
     EXPECT_EQ(lexical_i8_partial_result_ok(ok).x, 0);
     EXPECT_TRUE(is_overflow(lexical_i8_partial_result_err(overflow)));
     EXPECT_TRUE(is_underflow(lexical_i8_partial_result_err(underflow)));
     EXPECT_TRUE(is_invalid_digit(lexical_i8_partial_result_err(invalid_digit)));
     EXPECT_TRUE(is_empty(lexical_i8_partial_result_err(empty)));
-    EXPECT_TRUE(is_empty_fraction(lexical_i8_partial_result_err(empty_fraction)));
+    EXPECT_TRUE(is_empty_mantissa(lexical_i8_partial_result_err(empty_mantissa)));
     EXPECT_TRUE(is_empty_exponent(lexical_i8_partial_result_err(empty_exponent)));
+    EXPECT_TRUE(is_empty_integer(lexical_i8_partial_result_err(empty_integer)));
+    EXPECT_TRUE(is_empty_fraction(lexical_i8_partial_result_err(empty_fraction)));
+    EXPECT_TRUE(is_invalid_positive_mantissa_sign(lexical_i8_partial_result_err(invalid_positive_mantissa_sign)));
+    EXPECT_TRUE(is_missing_mantissa_sign(lexical_i8_partial_result_err(missing_mantissa_sign)));
+    EXPECT_TRUE(is_invalid_exponent(lexical_i8_partial_result_err(invalid_exponent)));
+    EXPECT_TRUE(is_invalid_positive_exponent_sign(lexical_i8_partial_result_err(invalid_positive_exponent_sign)));
+    EXPECT_TRUE(is_missing_exponent_sign(lexical_i8_partial_result_err(missing_exponent_sign)));
+    EXPECT_TRUE(is_exponent_without_fraction(lexical_i8_partial_result_err(exponent_without_fraction)));
 }

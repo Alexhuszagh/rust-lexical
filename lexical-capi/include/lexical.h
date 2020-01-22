@@ -161,10 +161,26 @@ enum lexical_error_code {
     lexical_invalid_digit = -3,
     // Empty byte array found.
     lexical_empty = -4,
-    // Empty fraction found.
-    lexical_empty_fraction = -5,
+    // Empty mantissa found.
+    lexical_empty_mantissa = -5,
     // Empty exponent found.
     lexical_empty_exponent = -6,
+    // Empty integer found.
+    lexical_empty_integer = -7,
+    // Empty fraction found.
+    lexical_empty_fraction = -8,
+    // Invalid positive mantissa sign was found.
+    lexical_invalid_positive_mantissa_sign = -9,
+    // Mantissa sign was required, but not found.
+    lexical_missing_mantissa_sign = -10,
+    // Exponent was present but not allowed.
+    lexical_invalid_exponent = -11,
+    // invalid positive exponent sign was found.
+    lexical_invalid_positive_exponent_sign = -12,
+    // Exponent sign was required, but not found.
+    lexical_missing_exponent_sign = -13,
+    // Exponent was present without fraction component.
+    lexical_exponent_without_fraction = -14,
 };
 
 // C-compatible error for FFI.
@@ -173,35 +189,27 @@ struct lexical_error {
     size_t index;
 };
 
-inline bool lexical_error_is_overflow(lexical_error* error)
-{
-    return error->code == lexical_overflow;
-}
+// Determine if an error code matches the desired code.
+#define lexical_is_error(type)                                          \
+    inline bool lexical_error_is_##type(lexical_error* error)           \
+    {                                                                   \
+        return error->code == lexical_##type;                           \
+    }
 
-inline bool lexical_error_is_underflow(lexical_error* error)
-{
-    return error->code == lexical_underflow;
-}
-
-inline bool lexical_error_is_invalid_digit(lexical_error* error)
-{
-    return error->code == lexical_invalid_digit;
-}
-
-inline bool lexical_error_is_empty(lexical_error* error)
-{
-    return error->code == lexical_empty;
-}
-
-inline bool lexical_error_is_empty_fraction(lexical_error* error)
-{
-    return error->code == lexical_empty_fraction;
-}
-
-inline bool lexical_error_is_empty_exponent(lexical_error* error)
-{
-    return error->code == lexical_empty_exponent;
-}
+lexical_is_error(overflow);
+lexical_is_error(underflow);
+lexical_is_error(invalid_digit);
+lexical_is_error(empty);
+lexical_is_error(empty_mantissa);
+lexical_is_error(empty_exponent);
+lexical_is_error(empty_integer);
+lexical_is_error(empty_fraction);
+lexical_is_error(invalid_positive_mantissa_sign);
+lexical_is_error(missing_mantissa_sign);
+lexical_is_error(invalid_exponent);
+lexical_is_error(invalid_positive_exponent_sign);
+lexical_is_error(missing_exponent_sign);
+lexical_is_error(exponent_without_fraction);
 
 // RESULT TAG
 
@@ -601,6 +609,7 @@ lexical_to_lexical(usize);
 
 #undef lexical_static_assert
 #undef lexical_type
+#undef lexical_is_error
 #undef lexical_result_union_type
 #undef lexical_result_union
 #undef lexical_result_type

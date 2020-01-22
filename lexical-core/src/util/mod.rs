@@ -26,6 +26,7 @@ mod div128;
 mod algorithm;
 mod cast;
 mod config;
+mod consume;
 mod error;
 mod format;
 mod iterator;
@@ -38,6 +39,9 @@ mod result;
 mod rounding;
 mod sign;
 mod table;
+
+#[cfg(feature = "format")]
+mod skip_value;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
@@ -54,6 +58,7 @@ if #[cfg(feature = "correct")] {
 // Publicly export everything with crate-visibility.
 pub(crate) use self::algorithm::*;
 pub(crate) use self::cast::*;
+pub(crate) use self::consume::*;
 pub(crate) use self::iterator::*;
 pub(crate) use self::mask::*;
 pub(crate) use self::pointer_methods::*;
@@ -65,6 +70,9 @@ pub(crate) use self::table::*;
 
 #[cfg(has_i128)]
 pub(crate) use self::div128::*;
+
+#[cfg(feature = "format")]
+pub(crate) use self::skip_value::*;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
