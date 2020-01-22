@@ -610,6 +610,36 @@ mod tests {
 
     #[test]
     #[cfg(feature = "format")]
+    fn f64_required_integer_digits_test() {
+        let format = NumberFormat::REQUIRED_INTEGER_DIGITS;
+        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"3.0", format).is_ok());
+        assert!(f64::from_lexical_format(b".0", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_required_fraction_digits_test() {
+        let format = NumberFormat::REQUIRED_FRACTION_DIGITS;
+        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"3.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"3.", format).is_err());
+        assert!(f64::from_lexical_format(b"3", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_required_digits_test() {
+        let format = NumberFormat::REQUIRED_DIGITS;
+        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"3.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"3.", format).is_err());
+        assert!(f64::from_lexical_format(b"3", format).is_err());
+        assert!(f64::from_lexical_format(b".0", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
     fn f64_no_positive_mantissa_sign_test() {
         let format = NumberFormat::NO_POSITIVE_MANTISSA_SIGN;
         assert!(f64::from_lexical_format(b"+3.0", format).is_err());
@@ -624,6 +654,18 @@ mod tests {
         assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"-3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"3.0", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_no_exponent_notation_test() {
+        let format = NumberFormat::NO_EXPONENT_NOTATION;
+        assert!(f64::from_lexical_format(b"+3.0e7", format).is_err());
+        assert!(f64::from_lexical_format(b"+3.0e-7", format).is_err());
+        assert!(f64::from_lexical_format(b"+3e", format).is_err());
+        assert!(f64::from_lexical_format(b"+3e-", format).is_err());
+        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"+3", format).is_ok());
     }
 
     #[test]
@@ -648,7 +690,146 @@ mod tests {
         assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
     }
 
-    // TODO(ahuszagh) Need to add format tests
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_no_positive_exponent_sign_test() {
+        let format = NumberFormat::NO_POSITIVE_EXPONENT_SIGN;
+        assert!(f64::from_lexical_format(b"3.0e7", format).is_ok());
+        assert!(f64::from_lexical_format(b"3.0e+7", format).is_err());
+        assert!(f64::from_lexical_format(b"3.0e-7", format).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_required_exponent_sign_test() {
+        let format = NumberFormat::REQUIRED_EXPONENT_SIGN;
+        assert!(f64::from_lexical_format(b"3.0e7", format).is_err());
+        assert!(f64::from_lexical_format(b"3.0e+7", format).is_ok());
+        assert!(f64::from_lexical_format(b"3.0e-7", format).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_no_exponent_without_fraction_test() {
+        let format = NumberFormat::NO_EXPONENT_WITHOUT_FRACTION;
+        assert!(f64::from_lexical_format(b"3.0e7", format).is_ok());
+        assert!(f64::from_lexical_format(b"3.e7", format).is_err());
+        assert!(f64::from_lexical_format(b"3e7", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_integer_internal_digit_separator_test() {
+        let format = NumberFormat::from_separator(b'_') | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
+        assert!(f64::from_lexical_format(b"3_1.0e7", format).is_ok());
+        assert!(f64::from_lexical_format(b"_31.0e7", format).is_err());
+        assert!(f64::from_lexical_format(b"31_.0e7", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_fraction_internal_digit_separator_test() {
+        let format = NumberFormat::from_separator(b'_') | NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR;
+        assert!(f64::from_lexical_format(b"31.0_1e7", format).is_ok());
+        assert!(f64::from_lexical_format(b"31._01e7", format).is_err());
+        assert!(f64::from_lexical_format(b"31.01_e7", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_exponent_internal_digit_separator_test() {
+        let format = NumberFormat::from_separator(b'_') | NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR;
+        assert!(f64::from_lexical_format(b"31.01e7_1", format).is_ok());
+        assert!(f64::from_lexical_format(b"31.01e_71", format).is_err());
+        assert!(f64::from_lexical_format(b"31.01e71_", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_integer_leading_digit_separator_test() {
+        let format = NumberFormat::from_separator(b'_') | NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
+        assert!(f64::from_lexical_format(b"3_1.0e7", format).is_err());
+        assert!(f64::from_lexical_format(b"_31.0e7", format).is_ok());
+        assert!(f64::from_lexical_format(b"31_.0e7", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_fraction_leading_digit_separator_test() {
+        let format = NumberFormat::from_separator(b'_') | NumberFormat::FRACTION_LEADING_DIGIT_SEPARATOR;
+        assert!(f64::from_lexical_format(b"31.0_1e7", format).is_err());
+        assert!(f64::from_lexical_format(b"31._01e7", format).is_ok());
+        assert!(f64::from_lexical_format(b"31.01_e7", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_exponent_leading_digit_separator_test() {
+        let format = NumberFormat::from_separator(b'_') | NumberFormat::EXPONENT_LEADING_DIGIT_SEPARATOR;
+        assert!(f64::from_lexical_format(b"31.01e7_1", format).is_err());
+        assert!(f64::from_lexical_format(b"31.01e_71", format).is_ok());
+        assert!(f64::from_lexical_format(b"31.01e71_", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_integer_trailing_digit_separator_test() {
+        let format = NumberFormat::from_separator(b'_') | NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
+        assert!(f64::from_lexical_format(b"3_1.0e7", format).is_err());
+        assert!(f64::from_lexical_format(b"_31.0e7", format).is_err());
+        assert!(f64::from_lexical_format(b"31_.0e7", format).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_fraction_trailing_digit_separator_test() {
+        let format = NumberFormat::from_separator(b'_') | NumberFormat::FRACTION_TRAILING_DIGIT_SEPARATOR;
+        assert!(f64::from_lexical_format(b"31.0_1e7", format).is_err());
+        assert!(f64::from_lexical_format(b"31._01e7", format).is_err());
+        assert!(f64::from_lexical_format(b"31.01_e7", format).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_exponent_trailing_digit_separator_test() {
+        let format = NumberFormat::from_separator(b'_') | NumberFormat::EXPONENT_TRAILING_DIGIT_SEPARATOR;
+        assert!(f64::from_lexical_format(b"31.01e7_1", format).is_err());
+        assert!(f64::from_lexical_format(b"31.01e_71", format).is_err());
+        assert!(f64::from_lexical_format(b"31.01e71_", format).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_integer_consecutive_digit_separator_test() {
+        let format = NumberFormat::from_separator(b'_')
+            | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR
+            | NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
+        assert!(f64::from_lexical_format(b"3__1.0e7", format).is_ok());
+        assert!(f64::from_lexical_format(b"_31.0e7", format).is_err());
+        assert!(f64::from_lexical_format(b"31_.0e7", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_fraction_consecutive_digit_separator_test() {
+        let format = NumberFormat::from_separator(b'_')
+            | NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR
+            | NumberFormat::FRACTION_CONSECUTIVE_DIGIT_SEPARATOR;
+        assert!(f64::from_lexical_format(b"31.0__1e7", format).is_ok());
+        assert!(f64::from_lexical_format(b"31._01e7", format).is_err());
+        assert!(f64::from_lexical_format(b"31.01_e7", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_exponent_consecutive_digit_separator_test() {
+        let format = NumberFormat::from_separator(b'_')
+            | NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR
+            | NumberFormat::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
+        assert!(f64::from_lexical_format(b"31.01e7__1", format).is_ok());
+        assert!(f64::from_lexical_format(b"31.01e_71", format).is_err());
+        assert!(f64::from_lexical_format(b"31.01e71_", format).is_err());
+    }
 
     #[cfg(feature = "std")]
     proptest! {
