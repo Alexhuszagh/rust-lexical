@@ -157,7 +157,7 @@ macro_rules! standalone_atoi_separator {
         sign => $sign:ident,
         consume => $consume:ident
     ) => (
-        perftools_inline!{
+        perftools_inline_always!{
         #[cfg(feature = "format")]
         fn $name<T>(
             bytes: &[u8],
@@ -271,7 +271,7 @@ pub(crate) fn standalone_no_separator<T>(bytes: &[u8], radix: u32)
 }}
 
 // Extract exponent with a digit separator in the exponent component.
-perftools_inline!{
+perftools_inline_always!{
 #[cfg(feature = "format")]
 pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFormat)
     -> ParseResult<(V, *const u8)>
@@ -320,7 +320,7 @@ pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFo
 // Grab the step size and power for step_u64.
 // This is the same as the u128 divisor, so don't duplicate the values
 // there.
-perftools_inline!{
+perftools_inline_always!{
 fn step_u64(radix: u32) -> usize {
     u128_divisor(radix).1
 }}
@@ -378,7 +378,7 @@ macro_rules! parse_digits_u128 {
 }
 
 // Quickly parse digits using a 64-bit intermediate for the 128-bit atoi processor.
-perftools_inline!{
+perftools_inline_always!{
 fn parse_digits_128_fast<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, sign: Sign)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
@@ -390,7 +390,7 @@ fn parse_digits_128_fast<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, 
 }}
 
 // Slowly parse digits for the 128-bit atoi processor.
-perftools_inline!{
+perftools_inline_always!{
 fn parse_digits_128_slow<'a, T, Iter>(digits: &[u8], mut iter: Iter, radix: u32, step: usize, sign: Sign)
     -> ParseResult<(T, *const u8)>
     where T: Integer,
@@ -413,7 +413,7 @@ fn parse_digits_128_slow<'a, T, Iter>(digits: &[u8], mut iter: Iter, radix: u32,
 // temporary steps using u64, allowing much better performance.
 // This is a similar approach to what we take in the arbitrary-precision
 // arithmetic.
-perftools_inline!{
+perftools_inline_always!{
 fn parse_digits_128<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, sign: Sign)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
@@ -434,7 +434,7 @@ fn parse_digits_128<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, sign:
 // PARSE THEN EXTRACT
 
 // Standalone atoi processor for 128-bit integers without a digit separator.
-perftools_inline!{
+perftools_inline_always!{
 fn standalone_128<W, N>(bytes: &[u8], radix: u32)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
@@ -587,7 +587,7 @@ pub(crate) fn standalone_128_no_separator<W, N>(bytes: &[u8], radix: u32)
 }}
 
 // Extract exponent with a digit separator in the exponent component.
-perftools_inline!{
+perftools_inline_always!{
 #[cfg(feature = "format")]
 pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], radix: u32, format: NumberFormat)
     -> ParseResult<(W, *const u8)>
