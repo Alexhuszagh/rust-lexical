@@ -1,11 +1,10 @@
 //! Sample, purely random-data for atof benchmarks.
 //! Mostly invokes the worst-case scenarios.
 
-#[macro_use]
-extern crate bencher;
+extern crate criterion;
 extern crate lexical_core;
 
-use bencher::{black_box, Bencher};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lexical_core::parse as lexical_parse;
 
 // BENCH GENERATORS
@@ -13,12 +12,12 @@ use lexical_core::parse as lexical_parse;
 // Lexical atoi generator.
 macro_rules! lexical_generator {
     ($name:ident, $data:ident, $t:ty) => (
-        fn $name(bench: &mut Bencher) {
-            bench.iter(|| {
+        fn $name(criterion: &mut Criterion) {
+            criterion.bench_function(stringify!($name), |b| b.iter(|| {
                 $data.iter().for_each(|x| {
                     black_box(lexical_parse::<$t>(x.as_bytes()).unwrap());
                 })
-            })
+            }));
         }
     );
 }
@@ -26,12 +25,12 @@ macro_rules! lexical_generator {
 // Parse atoi generator.
 macro_rules! parse_generator {
     ($name:ident, $data:ident, $t:tt) => (
-        fn $name(bench: &mut Bencher) {
-            bench.iter(|| {
+        fn $name(criterion: &mut Criterion) {
+            criterion.bench_function(stringify!($name), |b| b.iter(|| {
                 $data.iter().for_each(|x| {
                     black_box(x.parse::<$t>().unwrap());
                 })
-            })
+            }));
         }
     );
 }
@@ -54,6 +53,6 @@ parse_generator!(atof_f64_parse, F64_DATA, f64);
 
 // MAIN
 
-benchmark_group!(f32_benches, atof_f32_lexical, atof_f32_parse);
-benchmark_group!(f64_benches, atof_f64_lexical, atof_f64_parse);
-benchmark_main!(f32_benches, f64_benches);
+criterion_group!(f32_benches, atof_f32_lexical, atof_f32_parse);
+criterion_group!(f64_benches, atof_f64_lexical, atof_f64_parse);
+criterion_main!(f32_benches, f64_benches);

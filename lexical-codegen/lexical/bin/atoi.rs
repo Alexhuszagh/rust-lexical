@@ -1,16 +1,15 @@
 extern crate lexical_core;
-use lexical_core::*;
 
 #[no_mangle]
 #[inline(never)]
-pub fn parse_u8(data: &str) -> Option<u8,> {
-    atoi_v2::unsigned::<u8>(10, data.as_bytes())
+pub fn parse_u8(data: &str) -> lexical_core::Result<u8> {
+    lexical_core::parse::<u8>(data.as_bytes())
 }
 
 #[no_mangle]
 #[inline(never)]
-pub fn parse_u16(data: &str) -> Option<u16> {
-    atoi_v2::unsigned::<u16>(10, data.as_bytes())
+pub fn parse_u16(data: &str) -> lexical_core::Result<u16> {
+    lexical_core::parse::<u16>(data.as_bytes())
 }
 
 //#[no_mangle]
