@@ -117,10 +117,19 @@ def process_python_benchmark(line):
 def process_rust_benchmark(line):
     """Process the result of an individual Golang benchmark."""
 
-    pattern = r"test (\w+)\s+\.\.\. bench:\s+([0-9,]+) ns/iter"
+    pattern = r"(\w+)\s+time:\s+\[\d*\.\d*\s+\w+\s+(\d*\.\d*)\s+(\w+)\s+\d*\.\d*\s+\w+\]"
     match = re.match(pattern, line)
     name = match.group(1)
-    speed = float(match.group(2).replace(",", ""))
+    speed = float(match.group(2))
+    unit = match.group(3)
+    if unit == "ns":
+        pass
+    elif unit == "us":
+        speed *= 1e3
+    elif unit == "ms":
+        speed *= 1e6
+    else:
+        raise ValueError("Unknown unit: " + unit)
 
     return name, 0, speed
 
@@ -138,7 +147,7 @@ def run_lexical(feature=""):
             args.append("--features={}".format(feature))
         proc = Popen(args, bufsize=1<<20 , stdout=PIPE, stderr=PIPE)
         for line in iter(proc.stdout.readline, b''):
-            if line.startswith(b"test") and not line.startswith(b"test result"):
+            if b'time:' in line:
                 name, *d = process_rust_benchmark(line.decode('utf-8'))
                 data[name] = d
         proc.stdout.close()
@@ -155,7 +164,7 @@ def run_libcore():
         args = ["cargo", "bench"]
         proc = Popen(args, bufsize=1<<20 , stdout=PIPE, stderr=PIPE)
         for line in iter(proc.stdout.readline, b''):
-            if line.startswith(b"test") and not line.startswith(b"test result"):
+            if b'time:' in line:
                 name, *d = process_rust_benchmark(line.decode('utf-8'))
                 data[name] = d
         proc.stdout.close()
