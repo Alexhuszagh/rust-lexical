@@ -2187,6 +2187,13 @@ if #[cfg(not(feature = "format"))] {
             Some(format)
         }
 
+        /// Create float format directly from digit separator for unittests.
+        #[cfg(test)]
+        #[inline]
+        pub(crate) fn from_separator(digit_separator: u8) -> NumberFormat {
+            NumberFormat { bits: digit_separator_to_flags(digit_separator) }
+        }
+
         /// Get the flag bits from the compiled float format.
         #[inline]
         pub fn flags(self) -> NumberFormat {
