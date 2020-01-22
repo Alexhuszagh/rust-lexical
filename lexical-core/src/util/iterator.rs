@@ -4,32 +4,34 @@ use crate::lib::slice;
 
 /// An iterator that knows if it has been fully consumed yet.
 ///
-/// The `ConsumedIterator` does not need to be an `ExactSizedIterator`,
-/// however, that drastically simplifies the process. All it needs to
-/// know is by some logic whether the next value will return a value,
-/// or not. A default implementation is provided for `ExactSizeIterator`.
+/// A consumed iterator will guarantee to return `None` for the next
+/// value. It is effectively a weak variant of `is_empty()` on
+/// `ExactSizeIterator`. When the length of an iterator is known,
+/// `ConsumedIterator` will be implemented in terms of that length..
 pub(crate) trait ConsumedIterator: Iterator {
-    /// Return if the iterator has been fully consumed.
+    /// Return if the iterator has been consumed.
     fn consumed(&self) -> bool;
 }
 
 impl<T: ExactSizeIterator> ConsumedIterator for T {
+    #[inline]
     fn consumed(&self) -> bool {
         self.len() == 0
     }
 }
 
-/// Get access to a raw pointer from the underlying data.
+/// Get access to a raw, const pointer from the underlying data.
 ///
 /// A default implementation is provided for slice iterators.
-/// This trait **should never** return null or outside the bounds
-/// of the current slice.
+/// This trait **should never** return null, or be implemented
+/// for non-contiguous data.
 pub(crate) trait AsPtrIterator<'a, T: 'a>: Iterator<Item=&'a T> {
     /// Get raw pointer from iterator state.
     fn as_ptr(&self) -> *const T;
 }
 
 impl<'a, T> AsPtrIterator<'a, T> for slice::Iter<'a, T> {
+    #[inline]
     fn as_ptr(&self) -> *const T {
         self.as_slice().as_ptr()
     }

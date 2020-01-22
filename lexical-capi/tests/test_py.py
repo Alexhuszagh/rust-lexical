@@ -136,8 +136,16 @@ class ErrorTests(unittest.TestCase):
         self.underflow = lexical.Error(lexical.ErrorCode.Underflow.value, 0)
         self.invalid_digit = lexical.Error(lexical.ErrorCode.InvalidDigit.value, 0)
         self.empty = lexical.Error(lexical.ErrorCode.Empty.value, 0)
-        self.empty_fraction = lexical.Error(lexical.ErrorCode.EmptyFraction.value, 0)
+        self.empty_mantissa = lexical.Error(lexical.ErrorCode.EmptyMantissa.value, 0)
         self.empty_exponent = lexical.Error(lexical.ErrorCode.EmptyExponent.value, 0)
+        self.empty_integer = lexical.Error(lexical.ErrorCode.EmptyInteger.value, 0)
+        self.empty_fraction = lexical.Error(lexical.ErrorCode.EmptyFraction.value, 0)
+        self.invalid_positive_mantissa_sign = lexical.Error(lexical.ErrorCode.InvalidPositiveMantissaSign.value, 0)
+        self.missing_mantissa_sign = lexical.Error(lexical.ErrorCode.MissingMantissaSign.value, 0)
+        self.invalid_exponent = lexical.Error(lexical.ErrorCode.InvalidExponent.value, 0)
+        self.invalid_positive_exponent_sign = lexical.Error(lexical.ErrorCode.InvalidPositiveExponentSign.value, 0)
+        self.missing_exponent_sign = lexical.Error(lexical.ErrorCode.MissingExponentSign.value, 0)
+        self.exponent_without_fraction = lexical.Error(lexical.ErrorCode.ExponentWithoutFraction.value, 0)
 
     def test_is_overflow(self):
         self.assertTrue(self.overflow.is_overflow())
@@ -155,13 +163,46 @@ class ErrorTests(unittest.TestCase):
         self.assertFalse(self.overflow.is_empty())
         self.assertTrue(self.empty.is_empty())
 
-    def test_is_empty_fraction(self):
-        self.assertFalse(self.overflow.is_empty_fraction())
-        self.assertTrue(self.empty_fraction.is_empty_fraction())
+    def test_is_empty_mantissa(self):
+        self.assertFalse(self.overflow.is_empty_mantissa())
+        self.assertTrue(self.empty_mantissa.is_empty_mantissa())
 
     def test_is_empty_exponent(self):
         self.assertFalse(self.overflow.is_empty_exponent())
         self.assertTrue(self.empty_exponent.is_empty_exponent())
+
+    def test_is_empty_integer(self):
+        self.assertFalse(self.overflow.is_empty_integer())
+        self.assertTrue(self.empty_integer.is_empty_integer())
+
+    def test_is_empty_fraction(self):
+        self.assertFalse(self.overflow.is_empty_fraction())
+        self.assertTrue(self.empty_fraction.is_empty_fraction())
+
+    def test_is_invalid_positive_mantissa_sign(self):
+        self.assertFalse(self.overflow.is_invalid_positive_mantissa_sign())
+        self.assertTrue(self.invalid_positive_mantissa_sign.is_invalid_positive_mantissa_sign())
+
+    def test_is_missing_mantissa_sign(self):
+        self.assertFalse(self.overflow.is_missing_mantissa_sign())
+        self.assertTrue(self.missing_mantissa_sign.is_missing_mantissa_sign())
+
+    def test_is_invalid_exponent(self):
+        self.assertFalse(self.overflow.is_invalid_exponent())
+        self.assertTrue(self.invalid_exponent.is_invalid_exponent())
+
+    def test_is_invalid_positive_exponent_sign(self):
+        self.assertFalse(self.overflow.is_invalid_positive_exponent_sign())
+        self.assertTrue(self.invalid_positive_exponent_sign.is_invalid_positive_exponent_sign())
+
+    def test_is_missing_exponent_sign(self):
+        self.assertFalse(self.overflow.is_missing_exponent_sign())
+        self.assertTrue(self.missing_exponent_sign.is_missing_exponent_sign())
+
+    def test_is_exponent_without_fraction(self):
+        self.assertFalse(self.overflow.is_exponent_without_fraction())
+        self.assertTrue(self.exponent_without_fraction.is_exponent_without_fraction())
+
 
 class ResultTests(unittest.TestCase):
     '''Test complete and partial result types.'''

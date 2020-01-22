@@ -12,7 +12,6 @@ use crate::lib::cmp;
 use crate::util::*;
 use super::alias::*;
 use super::bignum::*;
-use super::exponent::*;
 use super::format::*;
 use super::math::*;
 

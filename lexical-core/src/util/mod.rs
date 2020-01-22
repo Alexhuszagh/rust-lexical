@@ -23,6 +23,7 @@ pub(crate) mod test;
 mod algorithm;
 mod cast;
 mod config;
+mod consume;
 mod div128;
 mod error;
 mod format;
@@ -36,6 +37,9 @@ mod rounding;
 mod sign;
 mod table;
 
+#[cfg(feature = "format")]
+mod skip_value;
+
 cfg_if! {
 if #[cfg(feature = "correct")] {
     #[macro_use]
@@ -47,6 +51,7 @@ if #[cfg(feature = "correct")] {
 // Publicly export everything with crate-visibility.
 pub(crate) use self::algorithm::*;
 pub(crate) use self::cast::*;
+pub(crate) use self::consume::*;
 pub(crate) use self::div128::*;
 pub(crate) use self::iterator::*;
 pub(crate) use self::mask::*;
@@ -55,6 +60,9 @@ pub(crate) use self::pow::*;
 pub(crate) use self::rounding::*;
 pub(crate) use self::sign::*;
 pub(crate) use self::table::*;
+
+#[cfg(feature = "format")]
+pub(crate) use self::skip_value::*;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {

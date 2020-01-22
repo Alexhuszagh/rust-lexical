@@ -1,14 +1,15 @@
 //! Wrap the low-level API into idiomatic serializers.
 
-use super::result::Result;
+use super::format::NumberFormat;
 use super::num::Number;
+use super::result::Result;
 
 // HELPERS
 
 /// Map partial result to complete result.
 macro_rules! to_complete {
-    ($cb:expr, $bytes:expr, $radix:expr) => {
-        match $cb($bytes, $radix) {
+    ($cb:expr, $bytes:expr $(,$args:expr)*) => {
+        match $cb($bytes $(,$args)*) {
             Err(e)                  => Err(e),
             Ok((value, processed))  => if processed == $bytes.len() {
                 Ok(value)
@@ -220,6 +221,118 @@ macro_rules! from_lexical_lossy {
             fn from_lexical_partial_lossy_radix(bytes: &[u8], radix: u8) -> Result<($t, usize)>
             {
                 $cb(bytes, radix.as_u32())
+            }
+        }
+    )
+}
+
+// FROM LEXICAL FORMAT
+
+/// Trait for number that can be parsed using a custom format specification.
+#[cfg(feature = "format")]
+pub trait FromLexicalFormat: FromLexical {
+    /// Checked parser for a string-to-number conversion.
+    ///
+    /// This method parses the entire string, returning an error if
+    /// any invalid digits are found during parsing. The numerical format
+    /// is specified by the format bitflags, which customize the required
+    /// components, digit separators, and other parameters of the number.
+    ///
+    /// Returns a `Result` containing either the parsed value,
+    /// or an error containing any errors that occurred during parsing.
+    ///
+    /// * `bytes`   - Slice containing a numeric string.
+    /// * `format`  - Numerical format.
+    fn from_lexical_format(bytes: &[u8], format: NumberFormat) -> Result<Self>;
+
+    /// Checked parser for a string-to-number conversion.
+    ///
+    /// This method parses until an invalid digit is found (or the end
+    /// of the string), returning the number of processed digits
+    /// and the parsed value until that point. The numerical format
+    /// is specified by the format bitflags, which customize the required
+    /// components, digit separators, and other parameters of the number.
+    ///
+    /// Returns a `Result` containing either the parsed value
+    /// and the number of processed digits, or an error containing
+    /// any errors that occurred during parsing.
+    ///
+    /// * `bytes`   - Slice containing a numeric string.
+    /// * `format`  - Numerical format.
+    fn from_lexical_partial_format(bytes: &[u8], format: NumberFormat) -> Result<(Self, usize)>;
+
+    /// Checked parser for a string-to-number conversion.
+    ///
+    /// This method parses the entire string, returning an error if
+    /// any invalid digits are found during parsing. The numerical format
+    /// is specified by the format bitflags, which customize the required
+    /// components, digit separators, and other parameters of the number.
+    ///
+    /// Returns a `Result` containing either the parsed value,
+    /// or an error containing any errors that occurred during parsing.
+    ///
+    /// * `bytes`   - Slice containing a numeric string.
+    /// * `radix`   - Radix for the number parsing.
+    /// * `format`  - Numerical format.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the radix is not in the range `[2, 36]`.
+    #[cfg(feature = "radix")]
+    fn from_lexical_format_radix(bytes: &[u8], radix: u8, format: NumberFormat) -> Result<Self>;
+
+    /// Checked parser for a string-to-number conversion.
+    ///
+    /// This method parses until an invalid digit is found (or the end
+    /// of the string), returning the number of processed digits
+    /// and the parsed value until that point. The numerical format
+    /// is specified by the format bitflags, which customize the required
+    /// components, digit separators, and other parameters of the number.
+    ///
+    /// Returns a `Result` containing either the parsed value
+    /// and the number of processed digits, or an error containing
+    /// any errors that occurred during parsing.
+    ///
+    /// * `bytes`   - Slice containing a numeric string.
+    /// * `radix`   - Radix for the number parsing.
+    /// * `format`  - Numerical format.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the radix is not in the range `[2, 36]`.
+    #[cfg(feature = "radix")]
+    fn from_lexical_partial_format_radix(bytes: &[u8], radix: u8, format: NumberFormat) -> Result<(Self, usize)>;
+}
+
+// Implement FromLexicalFormat for numeric type.
+#[cfg(feature = "format")]
+macro_rules! from_lexical_format {
+    ($cb:expr, $t:ty) => (
+        impl FromLexicalFormat for $t {
+            #[inline]
+            fn from_lexical_format(bytes: &[u8], format: NumberFormat) -> Result<$t>
+            {
+                to_complete!($cb, bytes, 10, format)
+            }
+
+            #[inline]
+            fn from_lexical_partial_format(bytes: &[u8], format: NumberFormat) -> Result<($t, usize)>
+            {
+                $cb(bytes, 10, format)
+            }
+
+            #[cfg(feature = "radix")]
+            #[inline]
+            fn from_lexical_format_radix(bytes: &[u8], radix: u8, format: NumberFormat) -> Result<$t>
+            {
+                to_complete!($cb, bytes, radix.as_u32(), format)
+            }
+
+            #[cfg(feature = "radix")]
+            #[inline]
+            fn from_lexical_partial_format_radix(bytes: &[u8], radix: u8, format: NumberFormat) -> Result<($t, usize)>
+            {
+                $cb(bytes, radix.as_u32(), format)
             }
         }
     )
