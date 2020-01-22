@@ -2,7 +2,6 @@
 
 use crate::util::*;
 use super::exponent::*;
-use super::iterator::*;
 use super::traits::*;
 use super::trim::*;
 use super::validate::*;
@@ -19,9 +18,9 @@ data_interface!(
     fields => {
         format: NumberFormat,
     },
-    integer_iter => (IteratorSeparator, iterate_separator),
-    fraction_iter => (IteratorSeparator, iterate_separator),
-    exponent_iter => (IteratorSeparator, iterate_separator),
+    integer_iter => (IteratorSeparator, iterate_digits_ignore_separator),
+    fraction_iter => (IteratorSeparator, iterate_digits_ignore_separator),
+    exponent_iter => (IteratorSeparator, iterate_digits_ignore_separator),
     format => |this: &Self| this.format,
     consume_integer_digits => consume_digits_ignore_separator,
     consume_fraction_digits => consume_digits_ignore_separator,

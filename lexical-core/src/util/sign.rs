@@ -1,6 +1,7 @@
 //! Enumerations for the sign-bit of a number.
 
 use super::format::NumberFormat;
+use super::num::Number;
 
 // ENUMERATION
 
@@ -25,11 +26,14 @@ fn is_digit_separator(option: Option<&u8>, digit_separator: u8) -> bool {
 // Convert option of byte to option of sign.
 #[inline(always)]
 #[cfg(feature = "format")]
-fn to_sign(option: Option<&u8>) -> Option<Sign> {
+fn to_sign<T>(option: Option<&u8>)
+    -> Option<Sign>
+    where T: Number
+{
     match option {
-        Some(&b'+') => Some(Sign::Positive),
-        Some(&b'-') => Some(Sign::Negative),
-        _           => None
+        Some(&b'+')                 => Some(Sign::Positive),
+        Some(&b'-') if T::IS_SIGNED => Some(Sign::Negative),
+        _                           => None
     }
 }
 
@@ -37,13 +41,14 @@ fn to_sign(option: Option<&u8>) -> Option<Sign> {
 
 /// Find and parse sign without any possible digit separators.
 #[inline(always)]
-pub(crate) fn parse_sign_no_separator<'a>(bytes: &'a [u8], _: u8)
+pub(crate) fn parse_sign_no_separator<'a, T>(bytes: &'a [u8], _: u8)
     -> (Sign, &'a [u8])
+    where T: Number
 {
     match bytes.get(0) {
-        Some(&b'+') => (Sign::Positive, &index!(bytes[1..])),
-        Some(&b'-') => (Sign::Negative, &index!(bytes[1..])),
-        _           => (Sign::Positive, bytes)
+        Some(&b'+')                 => (Sign::Positive, &index!(bytes[1..])),
+        Some(&b'-') if T::IS_SIGNED => (Sign::Negative, &index!(bytes[1..])),
+        _                           => (Sign::Positive, bytes)
     }
 }
 
@@ -53,14 +58,15 @@ pub(crate) fn parse_sign_no_separator<'a>(bytes: &'a [u8], _: u8)
 ///     1). _*[+-]\d+
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn parse_sign_lc_separator<'a>(bytes: &'a [u8], digit_separator: u8)
+pub(crate) fn parse_sign_lc_separator<'a, T>(bytes: &'a [u8], digit_separator: u8)
     -> (Sign, &'a [u8])
+    where T: Number
 {
     let mut index = 0;
     while is_digit_separator(bytes.get(index), digit_separator) {
         index += 1;
     }
-    if let Some(sign) = to_sign(bytes.get(index)) {
+    if let Some(sign) = to_sign::<T>(bytes.get(index)) {
         (sign, &index!(bytes[index+1..]))
     } else {
         (Sign::Positive, bytes)
@@ -74,14 +80,15 @@ pub(crate) fn parse_sign_lc_separator<'a>(bytes: &'a [u8], digit_separator: u8)
 ///     2). _[+-]\d+
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn parse_sign_l_separator<'a>(bytes: &'a [u8], digit_separator: u8)
+pub(crate) fn parse_sign_l_separator<'a, T>(bytes: &'a [u8], digit_separator: u8)
     -> (Sign, &'a [u8])
+    where T: Number
 {
     let b0 = bytes.get(0);
-    if let Some(sign) = to_sign(b0) {
+    if let Some(sign) = to_sign::<T>(b0) {
         (sign, &index!(bytes[1..]))
     } else if is_digit_separator(b0, digit_separator) {
-        if let Some(sign) = to_sign(bytes.get(1)) {
+        if let Some(sign) = to_sign::<T>(bytes.get(1)) {
             (sign, &index!(bytes[2..]))
         } else {
             (Sign::Positive, bytes)
@@ -94,8 +101,9 @@ pub(crate) fn parse_sign_l_separator<'a>(bytes: &'a [u8], digit_separator: u8)
 /// Find and parse sign with digit separators.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn parse_sign_separator<'a>(bytes: &'a [u8], format: NumberFormat)
+pub(crate) fn parse_sign_separator<'a, T>(bytes: &'a [u8], format: NumberFormat)
     -> (Sign, &'a [u8])
+    where T: Number
 {
     // If the integer cannot have leading digit separators, we know the sign
     // byte must by the first byte. Otherwise, we must consider digit separators
@@ -103,22 +111,23 @@ pub(crate) fn parse_sign_separator<'a>(bytes: &'a [u8], format: NumberFormat)
     let leading = format.integer_leading_digit_separator();
     let consecutive = format.integer_consecutive_digit_separator();
     match (leading, consecutive) {
-        (true, true)    => parse_sign_lc_separator(bytes, format.digit_separator()),
-        (true, false)   => parse_sign_l_separator(bytes, format.digit_separator()),
-        (false, _)      => parse_sign_no_separator(bytes, format.digit_separator())
+        (true, true)    => parse_sign_lc_separator::<T>(bytes, format.digit_separator()),
+        (true, false)   => parse_sign_l_separator::<T>(bytes, format.digit_separator()),
+        (false, _)      => parse_sign_no_separator::<T>(bytes, format.digit_separator())
     }
 }
 
 /// Find and parse sign.
 #[inline]
-pub(crate) fn parse_sign<'a>(bytes: &'a [u8], format: NumberFormat)
+pub(crate) fn parse_sign<'a, T>(bytes: &'a [u8], format: NumberFormat)
     -> (Sign, &'a [u8])
+    where T: Number
 {
     #[cfg(not(feature = "format"))]
-    return parse_sign_no_separator(bytes, format.digit_separator());
+    return parse_sign_no_separator::<T>(bytes, format.digit_separator());
 
     #[cfg(feature = "format")]
-    return parse_sign_separator(bytes, format);
+    return parse_sign_separator::<T>(bytes, format);
 }
 
 // TESTS
@@ -131,61 +140,82 @@ mod tests {
 
     #[test]
     fn parse_sign_no_separator_test() {
-        assert_eq!(parse_sign_no_separator(b"", b'_'), (Sign::Positive, b!("")));
-        assert_eq!(parse_sign_no_separator(b"+", b'_'), (Sign::Positive, b!("")));
-        assert_eq!(parse_sign_no_separator(b"-", b'_'), (Sign::Negative, b!("")));
-        assert_eq!(parse_sign_no_separator(b"+5", b'_'), (Sign::Positive, b!("5")));
-        assert_eq!(parse_sign_no_separator(b"-5", b'_'), (Sign::Negative, b!("5")));
-        assert_eq!(parse_sign_no_separator(b"_-5", b'_'), (Sign::Positive, b!("_-5")));
-        assert_eq!(parse_sign_no_separator(b"___-5", b'_'), (Sign::Positive, b!("___-5")));
+        // Signed
+        assert_eq!(parse_sign_no_separator::<i32>(b"", b'_'), (Sign::Positive, b!("")));
+        assert_eq!(parse_sign_no_separator::<i32>(b"+", b'_'), (Sign::Positive, b!("")));
+        assert_eq!(parse_sign_no_separator::<i32>(b"-", b'_'), (Sign::Negative, b!("")));
+        assert_eq!(parse_sign_no_separator::<i32>(b"+5", b'_'), (Sign::Positive, b!("5")));
+        assert_eq!(parse_sign_no_separator::<i32>(b"-5", b'_'), (Sign::Negative, b!("5")));
+        assert_eq!(parse_sign_no_separator::<i32>(b"_-5", b'_'), (Sign::Positive, b!("_-5")));
+        assert_eq!(parse_sign_no_separator::<i32>(b"___-5", b'_'), (Sign::Positive, b!("___-5")));
+
+        // Unsigned
+        assert_eq!(parse_sign_no_separator::<u32>(b"+5", b'_'), (Sign::Positive, b!("5")));
+        assert_eq!(parse_sign_no_separator::<u32>(b"-5", b'_'), (Sign::Positive, b!("-5")));
     }
 
     #[test]
     #[cfg(feature = "format")]
     fn parse_sign_lc_separator_test() {
-        assert_eq!(parse_sign_lc_separator(b"", b'_'), (Sign::Positive, b!("")));
-        assert_eq!(parse_sign_lc_separator(b"+", b'_'), (Sign::Positive, b!("")));
-        assert_eq!(parse_sign_lc_separator(b"-", b'_'), (Sign::Negative, b!("")));
-        assert_eq!(parse_sign_lc_separator(b"+5", b'_'), (Sign::Positive, b!("5")));
-        assert_eq!(parse_sign_lc_separator(b"-5", b'_'), (Sign::Negative, b!("5")));
-        assert_eq!(parse_sign_lc_separator(b"_-5", b'_'), (Sign::Negative, b!("5")));
-        assert_eq!(parse_sign_lc_separator(b"___-5", b'_'), (Sign::Negative, b!("5")));
+        assert_eq!(parse_sign_lc_separator::<i32>(b"", b'_'), (Sign::Positive, b!("")));
+        assert_eq!(parse_sign_lc_separator::<i32>(b"+", b'_'), (Sign::Positive, b!("")));
+        assert_eq!(parse_sign_lc_separator::<i32>(b"-", b'_'), (Sign::Negative, b!("")));
+        assert_eq!(parse_sign_lc_separator::<i32>(b"+5", b'_'), (Sign::Positive, b!("5")));
+        assert_eq!(parse_sign_lc_separator::<i32>(b"-5", b'_'), (Sign::Negative, b!("5")));
+        assert_eq!(parse_sign_lc_separator::<i32>(b"_-5", b'_'), (Sign::Negative, b!("5")));
+        assert_eq!(parse_sign_lc_separator::<i32>(b"___-5", b'_'), (Sign::Negative, b!("5")));
+
+        // Unsigned
+        assert_eq!(parse_sign_lc_separator::<u32>(b"___+5", b'_'), (Sign::Positive, b!("5")));
+        assert_eq!(parse_sign_lc_separator::<u32>(b"___-5", b'_'), (Sign::Positive, b!("___-5")));
     }
 
     #[test]
     #[cfg(feature = "format")]
     fn parse_sign_l_separator_test() {
-        assert_eq!(parse_sign_l_separator(b"", b'_'), (Sign::Positive, b!("")));
-        assert_eq!(parse_sign_l_separator(b"+", b'_'), (Sign::Positive, b!("")));
-        assert_eq!(parse_sign_l_separator(b"-", b'_'), (Sign::Negative, b!("")));
-        assert_eq!(parse_sign_l_separator(b"+5", b'_'), (Sign::Positive, b!("5")));
-        assert_eq!(parse_sign_l_separator(b"-5", b'_'), (Sign::Negative, b!("5")));
-        assert_eq!(parse_sign_l_separator(b"_-5", b'_'), (Sign::Negative, b!("5")));
-        assert_eq!(parse_sign_l_separator(b"___-5", b'_'), (Sign::Positive, b!("___-5")));
+        assert_eq!(parse_sign_l_separator::<i32>(b"", b'_'), (Sign::Positive, b!("")));
+        assert_eq!(parse_sign_l_separator::<i32>(b"+", b'_'), (Sign::Positive, b!("")));
+        assert_eq!(parse_sign_l_separator::<i32>(b"-", b'_'), (Sign::Negative, b!("")));
+        assert_eq!(parse_sign_l_separator::<i32>(b"+5", b'_'), (Sign::Positive, b!("5")));
+        assert_eq!(parse_sign_l_separator::<i32>(b"-5", b'_'), (Sign::Negative, b!("5")));
+        assert_eq!(parse_sign_l_separator::<i32>(b"_-5", b'_'), (Sign::Negative, b!("5")));
+        assert_eq!(parse_sign_l_separator::<i32>(b"___-5", b'_'), (Sign::Positive, b!("___-5")));
+
+        // Unsigned
+        assert_eq!(parse_sign_l_separator::<u32>(b"_+5", b'_'), (Sign::Positive, b!("5")));
+        assert_eq!(parse_sign_l_separator::<u32>(b"_-5", b'_'), (Sign::Positive, b!("_-5")));
     }
 
     #[test]
     #[cfg(feature = "format")]
     fn parse_sign_separator_test() {
         let format = NumberFormat::ignore(b'_').unwrap();
-        assert_eq!(parse_sign_separator(b"", format), (Sign::Positive, b!("")));
-        assert_eq!(parse_sign_separator(b"+", format), (Sign::Positive, b!("")));
-        assert_eq!(parse_sign_separator(b"-", format), (Sign::Negative, b!("")));
-        assert_eq!(parse_sign_separator(b"+5", format), (Sign::Positive, b!("5")));
-        assert_eq!(parse_sign_separator(b"-5", format), (Sign::Negative, b!("5")));
-        assert_eq!(parse_sign_separator(b"_-5", format), (Sign::Negative, b!("5")));
-        assert_eq!(parse_sign_separator(b"___-5", format), (Sign::Negative, b!("5")));
+        assert_eq!(parse_sign_separator::<i32>(b"", format), (Sign::Positive, b!("")));
+        assert_eq!(parse_sign_separator::<i32>(b"+", format), (Sign::Positive, b!("")));
+        assert_eq!(parse_sign_separator::<i32>(b"-", format), (Sign::Negative, b!("")));
+        assert_eq!(parse_sign_separator::<i32>(b"+5", format), (Sign::Positive, b!("5")));
+        assert_eq!(parse_sign_separator::<i32>(b"-5", format), (Sign::Negative, b!("5")));
+        assert_eq!(parse_sign_separator::<i32>(b"_-5", format), (Sign::Negative, b!("5")));
+        assert_eq!(parse_sign_separator::<i32>(b"___-5", format), (Sign::Negative, b!("5")));
+
+        // Unsigned
+        assert_eq!(parse_sign_separator::<u32>(b"__+5", format), (Sign::Positive, b!("5")));
+        assert_eq!(parse_sign_separator::<u32>(b"__-5", format), (Sign::Positive, b!("__-5")));
     }
 
     #[test]
     fn parse_sign_test() {
         let format = NumberFormat::standard().unwrap();
-        assert_eq!(parse_sign(b"", format), (Sign::Positive, b!("")));
-        assert_eq!(parse_sign(b"+", format), (Sign::Positive, b!("")));
-        assert_eq!(parse_sign(b"-", format), (Sign::Negative, b!("")));
-        assert_eq!(parse_sign(b"+5", format), (Sign::Positive, b!("5")));
-        assert_eq!(parse_sign(b"-5", format), (Sign::Negative, b!("5")));
-        assert_eq!(parse_sign(b"_-5", format), (Sign::Positive, b!("_-5")));
-        assert_eq!(parse_sign(b"___-5", format), (Sign::Positive, b!("___-5")));
+        assert_eq!(parse_sign::<i32>(b"", format), (Sign::Positive, b!("")));
+        assert_eq!(parse_sign::<i32>(b"+", format), (Sign::Positive, b!("")));
+        assert_eq!(parse_sign::<i32>(b"-", format), (Sign::Negative, b!("")));
+        assert_eq!(parse_sign::<i32>(b"+5", format), (Sign::Positive, b!("5")));
+        assert_eq!(parse_sign::<i32>(b"-5", format), (Sign::Negative, b!("5")));
+        assert_eq!(parse_sign::<i32>(b"_-5", format), (Sign::Positive, b!("_-5")));
+        assert_eq!(parse_sign::<i32>(b"___-5", format), (Sign::Positive, b!("___-5")));
+
+        // Unsigned
+        assert_eq!(parse_sign::<u32>(b"+5", format), (Sign::Positive, b!("5")));
+        assert_eq!(parse_sign::<u32>(b"-5", format), (Sign::Positive, b!("-5")));
     }
 }
