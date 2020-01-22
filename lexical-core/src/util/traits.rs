@@ -338,6 +338,130 @@ macro_rules! from_lexical_format {
     )
 }
 
+// FROM LEXICAL LOSSY
+
+/// Trait for floating-point types that can be parsed using lossy algorithms with a custom format specification.
+#[cfg(feature = "format")]
+pub trait FromLexicalLossyFormat: FromLexical {
+    /// Lossy, checked parser for a string-to-number conversion.
+    ///
+    /// This method parses the entire string, returning an error if
+    /// any invalid digits are found during parsing. This parser is
+    /// lossy, so numerical rounding may occur during parsing. The
+    /// numerical format is specified by the format bitflags, which
+    /// customize the required components, digit separators, and other
+    /// parameters of the number.
+    ///
+    /// Returns a `Result` containing either the parsed value,
+    /// or an error containing any errors that occurred during parsing.
+    ///
+    /// * `bytes`   - Slice containing a numeric string.
+    /// * `format`  - Numerical format.
+    fn from_lexical_lossy_format(bytes: &[u8], format: NumberFormat) -> Result<Self>;
+
+    /// Lossy, checked parser for a string-to-number conversion.
+    ///
+    /// This method parses until an invalid digit is found (or the end
+    /// of the string), returning the number of processed digits
+    /// and the parsed value until that point. This parser is
+    /// lossy, so numerical rounding may occur during parsing. The
+    /// numerical format is specified by the format bitflags, which
+    /// customize the required components, digit separators, and other
+    /// parameters of the number.
+    ///
+    /// Returns a `Result` containing either the parsed value
+    /// and the number of processed digits, or an error containing
+    /// any errors that occurred during parsing.
+    ///
+    /// * `bytes`   - Slice containing a numeric string.
+    /// * `format`  - Numerical format.
+    fn from_lexical_partial_lossy_format(bytes: &[u8], format: NumberFormat) -> Result<(Self, usize)>;
+
+    /// Lossy, checked parser for a string-to-number conversion.
+    ///
+    /// This method parses the entire string, returning an error if
+    /// any invalid digits are found during parsing. This parser is
+    /// lossy, so numerical rounding may occur during parsing. The
+    /// numerical format is specified by the format bitflags, which
+    /// customize the required components, digit separators, and other
+    /// parameters of the number.
+    ///
+    /// Returns a `Result` containing either the parsed value,
+    /// or an error containing any errors that occurred during parsing.
+    ///
+    /// * `bytes`   - Slice containing a numeric string.
+    /// * `radix`   - Radix for the number parsing.
+    /// * `format`  - Numerical format.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the radix is not in the range `[2, 36]`.
+    #[cfg(feature = "radix")]
+    fn from_lexical_lossy_format_radix(bytes: &[u8], radix: u8, format: NumberFormat) -> Result<Self>;
+
+    /// Lossy, checked parser for a string-to-number conversion.
+    ///
+    /// This method parses until an invalid digit is found (or the end
+    /// of the string), returning the number of processed digits
+    /// and the parsed value until that point. This parser is
+    /// lossy, so numerical rounding may occur during parsing. The
+    /// numerical format is specified by the format bitflags, which
+    /// customize the required components, digit separators, and other
+    /// parameters of the number.
+    ///
+    /// Returns a `Result` containing either the parsed value
+    /// and the number of processed digits, or an error containing
+    /// any errors that occurred during parsing.
+    ///
+    /// * `bytes`   - Slice containing a numeric string.
+    /// * `radix`   - Radix for the number parsing.
+    /// * `format`  - Numerical format.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the radix is not in the range `[2, 36]`.
+    #[cfg(feature = "radix")]
+    fn from_lexical_partial_lossy_format_radix(bytes: &[u8], radix: u8, format: NumberFormat) -> Result<(Self, usize)>;
+}
+
+// Implement FromLexicalLossyFormat for numeric type.
+#[cfg(feature = "format")]
+macro_rules! from_lexical_lossy_format {
+    ($cb:expr, $t:ty) => (
+        impl FromLexicalLossyFormat for $t {
+            #[inline]
+            fn from_lexical_lossy_format(bytes: &[u8], format: NumberFormat)
+                -> Result<$t>
+            {
+                to_complete!($cb, bytes, 10, format)
+            }
+
+            #[inline]
+            fn from_lexical_partial_lossy_format(bytes: &[u8], format: NumberFormat)
+                -> Result<($t, usize)>
+            {
+                $cb(bytes, 10, format)
+            }
+
+            #[cfg(feature = "radix")]
+            #[inline]
+            fn from_lexical_lossy_format_radix(bytes: &[u8], radix: u8, format: NumberFormat)
+                -> Result<$t>
+            {
+                to_complete!($cb, bytes, radix.as_u32(), format)
+            }
+
+            #[cfg(feature = "radix")]
+            #[inline]
+            fn from_lexical_partial_lossy_format_radix(bytes: &[u8], radix: u8, format: NumberFormat)
+                -> Result<($t, usize)>
+            {
+                $cb(bytes, radix.as_u32(), format)
+            }
+        }
+    )
+}
+
 // TO LEXICAL
 
 /// Trait for numerical types that can be serialized to bytes.

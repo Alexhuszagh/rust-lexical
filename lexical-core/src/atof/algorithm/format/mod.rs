@@ -2,7 +2,6 @@
 
 // Utilities.
 mod exponent;
-mod iterator;
 mod trim;
 mod validate;
 
