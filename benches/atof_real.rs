@@ -1,16 +1,15 @@
 //! Sample, real dataset for atof benchmarks.
 
 #[macro_use]
-extern crate bencher;
-#[macro_use]
 extern crate lazy_static;
+extern crate criterion;
 extern crate lexical_core;
 
 use std::env;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
-use bencher::{black_box, Bencher};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lexical_core::parse as lexical_parse;
 
 // PATH
@@ -69,15 +68,15 @@ fn read_data() -> &'static String {
 // Lexical atoi generator.
 macro_rules! lexical_generator {
     ($name:ident, $t:ty) => (
-        fn $name(bench: &mut Bencher) {
+        fn $name(criterion: &mut Criterion) {
             let data = read_data();
-            bench.iter(|| {
+            criterion.bench_function(stringify!($name), |b| b.iter(|| {
                 for line in data.lines() {
                     for item in line.split(',') {
                         black_box(lexical_parse::<$t>(item.as_bytes()).unwrap());
                     }
                 }
-            })
+            }));
         }
     );
 }
@@ -85,15 +84,15 @@ macro_rules! lexical_generator {
 // Parse atoi generator.
 macro_rules! parse_generator {
     ($name:ident, $t:tt) => (
-        fn $name(bench: &mut Bencher) {
+        fn $name(criterion: &mut Criterion) {
             let data = read_data();
-            bench.iter(|| {
+            criterion.bench_function(stringify!($name), |b| b.iter(|| {
                 for line in data.lines() {
                     for item in line.split(',') {
                         black_box(item.parse::<$t>().unwrap());
                     }
                 }
-            })
+            }));
         }
     );
 }
@@ -116,6 +115,6 @@ parse_generator!(atof_real_f64_parse, f64);
 
 // MAIN
 
-benchmark_group!(f32_benches, atof_real_f32_lexical, atof_real_f32_parse);
-benchmark_group!(f64_benches, atof_real_f64_lexical, atof_real_f64_parse);
-benchmark_main!(f32_benches, f64_benches);
+criterion_group!(f32_benches, atof_real_f32_lexical, atof_real_f32_parse);
+criterion_group!(f64_benches, atof_real_f64_lexical, atof_real_f64_parse);
+criterion_main!(f32_benches, f64_benches);

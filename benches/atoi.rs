@@ -1,8 +1,7 @@
-#[macro_use]
-extern crate bencher;
+extern crate criterion;
 extern crate lexical_core;
 
-use bencher::{black_box, Bencher};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lexical_core::parse as lexical_parse;
 
 // BENCH GENERATORS
@@ -10,12 +9,12 @@ use lexical_core::parse as lexical_parse;
 // Lexical atoi generator.
 macro_rules! lexical_generator {
     ($name:ident, $data:ident, $t:ty) => (
-        fn $name(bench: &mut Bencher) {
-            bench.iter(|| {
+        fn $name(criterion: &mut Criterion) {
+            criterion.bench_function(stringify!($name), |b| b.iter(|| {
                 $data.iter().for_each(|x| {
                     black_box(lexical_parse::<$t>(x.as_bytes()).unwrap());
                 })
-            })
+            }));
         }
     );
 }
@@ -23,12 +22,12 @@ macro_rules! lexical_generator {
 // Parse atoi generator.
 macro_rules! parse_generator {
     ($name:ident, $data:ident, $t:tt) => (
-        fn $name(bench: &mut Bencher) {
-            bench.iter(|| {
+        fn $name(criterion: &mut Criterion) {
+            criterion.bench_function(stringify!($name), |b| b.iter(|| {
                 $data.iter().for_each(|x| {
                     black_box(x.parse::<$t>().unwrap());
                 })
-            })
+            }));
         }
     );
 }
@@ -146,25 +145,25 @@ parse_generator!(atoi_i128_parse, I128_DATA, i128);
 // MAIN
 
 // Random data
-benchmark_group!(u8_benches, atoi_u8_lexical, atoi_u8_parse);
-benchmark_group!(u16_benches, atoi_u16_lexical, atoi_u16_parse);
-benchmark_group!(u32_benches, atoi_u32_lexical, atoi_u32_parse);
-benchmark_group!(u64_benches, atoi_u64_lexical, atoi_u64_parse);
-benchmark_group!(u128_benches, atoi_u128_lexical, atoi_u128_parse);
-benchmark_group!(i8_benches, atoi_i8_lexical, atoi_i8_parse);
-benchmark_group!(i16_benches, atoi_i16_lexical, atoi_i16_parse);
-benchmark_group!(i32_benches, atoi_i32_lexical, atoi_i32_parse);
-benchmark_group!(i64_benches, atoi_i64_lexical, atoi_i64_parse);
-benchmark_group!(i128_benches, atoi_i128_lexical, atoi_i128_parse);
+criterion_group!(u8_benches, atoi_u8_lexical, atoi_u8_parse);
+criterion_group!(u16_benches, atoi_u16_lexical, atoi_u16_parse);
+criterion_group!(u32_benches, atoi_u32_lexical, atoi_u32_parse);
+criterion_group!(u64_benches, atoi_u64_lexical, atoi_u64_parse);
+criterion_group!(u128_benches, atoi_u128_lexical, atoi_u128_parse);
+criterion_group!(i8_benches, atoi_i8_lexical, atoi_i8_parse);
+criterion_group!(i16_benches, atoi_i16_lexical, atoi_i16_parse);
+criterion_group!(i32_benches, atoi_i32_lexical, atoi_i32_parse);
+criterion_group!(i64_benches, atoi_i64_lexical, atoi_i64_parse);
+criterion_group!(i128_benches, atoi_i128_lexical, atoi_i128_parse);
 
 // Simple data
-benchmark_group!(u8_simple_benches, atoi_u8_simple_lexical, atoi_u8_simple_parse);
-benchmark_group!(u16_simple_benches, atoi_u16_simple_lexical, atoi_u16_simple_parse);
-benchmark_group!(u32_simple_benches, atoi_u32_simple_lexical, atoi_u32_simple_parse);
-benchmark_group!(u64_simple_benches, atoi_u64_simple_lexical, atoi_u64_simple_parse);
-benchmark_group!(u128_simple_benches, atoi_u128_simple_lexical, atoi_u128_simple_parse);
+criterion_group!(u8_simple_benches, atoi_u8_simple_lexical, atoi_u8_simple_parse);
+criterion_group!(u16_simple_benches, atoi_u16_simple_lexical, atoi_u16_simple_parse);
+criterion_group!(u32_simple_benches, atoi_u32_simple_lexical, atoi_u32_simple_parse);
+criterion_group!(u64_simple_benches, atoi_u64_simple_lexical, atoi_u64_simple_parse);
+criterion_group!(u128_simple_benches, atoi_u128_simple_lexical, atoi_u128_simple_parse);
 
-benchmark_main!(
+criterion_main!(
     // Random data
     u8_benches, u16_benches, u32_benches, u64_benches, u128_benches, i8_benches, i16_benches, i32_benches, i64_benches, i128_benches,
     // Simple data
