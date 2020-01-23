@@ -756,7 +756,7 @@ if #[cfg(not(feature = "format"))] {
     // BITFLAGS
 
     bitflags! {
-        /// Bitflags for the a serialized number format.
+        /// Bitflags for a serialized number format.
         ///
         /// This is used to derive the high-level bitflags.The default
         /// representation has no digit separators, no required integer or
@@ -1199,9 +1199,12 @@ if #[cfg(not(feature = "format"))] {
             /// Float format to parse a C++14 float from string.
             const CXX14_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // C++11 LITERAL [013456]
+            // C++11 LITERAL [0134568]
             /// Float format for a C++11 literal floating-point number.
-            const CXX11_LITERAL = Self::REQUIRED_EXPONENT_DIGITS.bits;
+            const CXX11_LITERAL = (
+                Self::REQUIRED_EXPONENT_DIGITS.bits
+                | Self::CASE_SENSITIVE_SPECIAL.bits
+            );
 
             // C++11 STRING [013456]
             /// Float format to parse a C++11 float from string.
@@ -1988,7 +1991,6 @@ if #[cfg(not(feature = "format"))] {
             /// Ignore interface float format flags.
             #[doc(hidden)]
             const IGNORE_INTERFACE = Self::IGNORE.bits & Self::INTERFACE_FLAG_MASK.bits;
-
         }
     }
 
