@@ -75,6 +75,7 @@ if LIB is None:
 # FEATURES
 # --------
 
+HAVE_FORMAT = hasattr(LIB, 'lexical_atou8_format')
 HAVE_RADIX = hasattr(LIB, 'lexical_get_exponent_backup_char')
 HAVE_ROUNDING = hasattr(LIB, 'lexical_get_float_rounding')
 HAVE_I128 = hasattr(LIB, 'LEXICAL_I128_FORMATTED_SIZE')
@@ -169,6 +170,1196 @@ if HAVE_ROUNDING:
     def set_float_rounding(rounding):
         '''Set the default rounding scheme.'''
         LIB.lexical_set_float_rounding(c_int(rounding.value))
+
+if HAVE_FORMAT:
+
+    def digit_separator_to_flags(digit_separator):
+        '''Convert digit separator byte to 32-bit flags.'''
+        return ord(digit_separator) << 24
+
+    def digit_separator_from_flags(flags):
+        '''Extract digit separator byte from 32-bit flags.'''
+        return chr(flags.value >> 24).encode('ascii')
+
+    def is_ascii(ch):
+        '''Determine if character is valid ASCII.'''
+        return ord(ch) < 0x80
+
+    if HAVE_RADIX:
+        def is_valid_separator(ch):
+            '''Determine if the digit separator is valid.'''
+
+            code = ord(ch)
+            if code >= ord(b'A') and code <= ord(b'Z'):
+                return False
+            elif code >= ord(b'a') and code <= ord(b'z'):
+                return False
+            elif code >= ord(b'0') and code <= ord(b'9'):
+                return False
+            elif ch == b'+' or b == b'.' or b == b'-':
+                return False
+            return (
+                is_ascii(ch)
+                and code != ord(get_exponent_default_char())
+                and code != ord(get_exponent_backup_char())
+            )
+
+    else:
+        def is_valid_separator(ch):
+            '''Determine if the digit separator is valid.'''
+
+            code = ord(ch)
+            if code >= ord(b'0') and code <= ord(b'9'):
+                return False
+            elif ch == b'+' or b == b'.' or b == b'-':
+                return False
+            return is_ascii(ch) and code != ord(get_exponent_default_char())
+
+
+    class NumberFormat(enum.Flag):
+        '''Bitflags for a serialized number format.'''
+
+        # FLAGS
+
+        RequiredIntegerDigits               = 0b000000000000000000000001
+        RequiredFractionDigits              = 0b000000000000000000000010
+        RequiredExponentDigits              = 0b000000000000000000000100
+        NoPositiveMantissaSign              = 0b000000000000000000001000
+        RequiredMantissaSign                = 0b000000000000000000010000
+        NoExponentNotation                  = 0b000000000000000000100000
+        NoPositiveExponentSign              = 0b000000000000000001000000
+        RequiredExponentSign                = 0b000000000000000010000000
+        NoExponentWithoutFraction           = 0b000000000000000100000000
+        NoSpecial                           = 0b000000000000001000000000
+        CaseSensitiveSpecial                = 0b000000000000010000000000
+        IntegerInternalDigitSeparator       = 0b000000000000100000000000
+        FractionInternalDigitSeparator      = 0b000000000001000000000000
+        ExponentInternalDigitSeparator      = 0b000000000010000000000000
+        IntegerLeadingDigitSeparator        = 0b000000000100000000000000
+        FractionLeadingDigitSeparator       = 0b000000001000000000000000
+        ExponentLeadingDigitSeparator       = 0b000000010000000000000000
+        IntegerTrailingDigitSeparator       = 0b000000100000000000000000
+        FractionTrailingDigitSeparator      = 0b000001000000000000000000
+        ExponentTrailingDigitSeparator      = 0b000010000000000000000000
+        IntegerConsecutiveDigitSeparator    = 0b000100000000000000000000
+        FractionConsecutiveDigitSeparator   = 0b001000000000000000000000
+        ExponentConsecutiveDigitSeparator   = 0b010000000000000000000000
+        SpecialDigitSeparator               = 0b100000000000000000000000
+
+        # MASKS
+
+        FlagMask                            = (
+            RequiredDigits
+            | NoPositiveMantissaSign
+            | RequiredMantissaSign
+            | NoExponentNotation
+            | NoPositiveExponentSign
+            | RequiredExponentSign
+            | NoExponentWithoutFraction
+            | NoSpecial
+            | CaseSensitiveSpecial
+            | InternalDigitSeparator
+            | LeadingDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+            | SpecialDigitSeparator
+        )
+
+        InterfaceFlagMask                   = (
+            RequiredDigits
+            | NoExponentNotation
+            | NoPositiveExponentSign
+            | RequiredExponentSign
+            | NoExponentWithoutFraction
+            | InternalDigitSeparator
+            | LeadingDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        DigitSeparatorFlagMask              = (
+            InternalDigitSeparator
+            | LeadingDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+            | SpecialDigitSeparator
+        )
+
+        IntegerDigitSeparatorFlagMask       = (
+            IntegerInternalDigitSeparator
+            | IntegerLeadingDigitSeparator
+            | IntegerTrailingDigitSeparator
+            | IntegerConsecutiveDigitSeparator
+        )
+
+        FractionDigitSeparatorFlagMask      = (
+            FractionInternalDigitSeparator
+            | FractionLeadingDigitSeparator
+            | FractionTrailingDigitSeparator
+            | FractionConsecutiveDigitSeparator
+        )
+
+        ExponentDigitSeparatorFlagMask      = (
+            ExponentInternalDigitSeparator
+            | ExponentLeadingDigitSeparator
+            | ExponentTrailingDigitSeparator
+            | ExponentConsecutiveDigitSeparator
+        )
+
+        ExponentFlagMask                    = (
+            RequiredExponentDigits
+            | NoPositiveExponentSign
+            | RequiredExponentSign
+            | NoExponentWithoutFraction
+            | ExponentInternalDigitSeparator
+            | ExponentLeadingDigitSeparator
+            | ExponentTrailingDigitSeparator
+            | ExponentConsecutiveDigitSeparator
+        )
+
+        RequiredDigits                      = (
+            RequiredIntegerDigits
+            | RequiredFractionDigits
+            | RequiredExponentDigits
+        )
+
+        InternalDigitSeparator              = (
+            IntegerInternalDigitSeparator
+            | FractionInternalDigitSeparator
+            | ExponentInternalDigitSeparator
+        )
+
+        LeadingDigitSeparator               = (
+            IntegerLeadingDigitSeparator
+            | FractionLeadingDigitSeparator
+            | ExponentLeadingDigitSeparator
+        )
+
+        TrailingDigitSeparator              = (
+            IntegerTrailingDigitSeparator
+            | FractionTrailingDigitSeparator
+            | ExponentTrailingDigitSeparator
+        )
+
+        ConsecutiveDigitSeparator           = (
+            IntegerConsecutiveDigitSeparator
+            | FractionConsecutiveDigitSeparator
+            | ExponentConsecutiveDigitSeparator
+        )
+
+        # PRE-DEFINED CONSTANTS
+
+        # Float format for a Rust literal floating-point number.
+        RustLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredDigits
+            | NoPositiveMantissaSign
+            | NoSpecial
+            | InternalDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format to parse a Rust float from string.
+        RustString = RequiredExponentDigits
+
+        # `RustString`, but enforces strict equality for special values.
+        RustStringStrict = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for a Python literal floating-point number.
+        PythonLiteral = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a Python float from string.
+        PythonString = RequiredExponentDigits
+
+        # Float format for a C++17 literal floating-point number.
+        Cxx17Literal = (
+            digit_separator_to_flags(b'\'')
+            | RequiredExponentDigits
+            | CaseSensitiveSpecial
+            | InternalDigitSeparator
+        )
+
+        Cxx17String = RequiredExponentDigits
+
+        # Float format for a C++14 literal floating-point number.
+        Cxx14Literal = (
+            digit_separator_to_flags(b'\'')
+            | RequiredExponentDigits
+            | CaseSensitiveSpecial
+            | InternalDigitSeparator
+        )
+
+        # Float format to parse a C++14 float from string.
+        Cxx14String = RequiredExponentDigits
+
+        # Float format for a C++11 literal floating-point number.
+        Cxx11Literal = RequiredExponentDigits
+
+        # Float format to parse a C++11 float from string.
+        Cxx11String = RequiredExponentDigits
+
+        # Float format for a C++03 literal floating-point number.
+        Cxx03Literal = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a C++03 float from string.
+        Cxx03String = RequiredExponentDigits
+
+        # Float format for a C++98 literal floating-point number.
+        Cxx98Literal = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a C++98 float from string.
+        Cxx98String = RequiredExponentDigits
+
+        # Float format for a C18 literal floating-point number.
+        C18Literal = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format to parse a C18 float from string.
+        C18String = RequiredExponentDigits
+
+        # Float format for a C11 literal floating-point number.
+        C11Literal = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format to parse a C11 float from string.
+        C11String = RequiredExponentDigits
+
+        # Float format for a C99 literal floating-point number.
+        C99Literal = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format to parse a C99 float from string.
+        C99String = RequiredExponentDigits
+
+        # Float format for a C90 literal floating-point number.
+        C90Literal = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a C90 float from string.
+        C90String = RequiredExponentDigits
+
+        # Float format for a C89 literal floating-point number.
+        C89Literal = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a C89 float from string.
+        C89String = RequiredExponentDigits
+
+        # Float format for a Ruby literal floating-point number.
+        RubyLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredDigits
+            | NoSpecial
+            | InternalDigitSeparator
+        )
+
+        # Float format to parse a Ruby float from string.
+        RubyString = (
+            digit_separator_to_flags(b'_')
+            | NoSpecial
+            | InternalDigitSeparator
+        )
+
+        # Float format for a Swift literal floating-point number.
+        SwiftLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredDigits
+            | NoSpecial
+            | InternalDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format to parse a Swift float from string.
+        SwiftString = RequiredFractionDigits
+
+        # Float format for a Golang literal floating-point number.
+        GoLiteral = (
+            RequiredFractionDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a Golang float from string.
+        GoString = RequiredFractionDigits
+
+        # Float format for a Haskell literal floating-point number.
+        HaskellLiteral = (
+            RequiredDigits
+            | NoPositiveMantissaSign
+            | NoSpecial
+        )
+
+        # Float format to parse a Haskell float from string.
+        HaskellString = (
+            RequiredDigits
+            | NoPositiveMantissaSign
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for a Javascript literal floating-point number.
+        JavascriptLiteral = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format to parse a Javascript float from string.
+        JavascriptString = CaseSensitiveSpecial
+
+        # Float format for a Perl literal floating-point number.
+        PerlLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredExponentDigits
+            | NoSpecial
+            | InternalDigitSeparator
+            | FractionLeadingDigitSeparator
+            | ExponentLeadingDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format to parse a Perl float from string.
+        PerlString = 0
+
+        # Float format for a PHP literal floating-point number.
+        PhpLiteral = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format to parse a PHP float from string.
+        PhpString = NoSpecial
+
+        # Float format for a Java literal floating-point number.
+        JavaLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredExponentDigits
+            | NoSpecial
+            | InternalDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format to parse a Java float from string.
+        JavaString = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for a R literal floating-point number.
+        RLiteral = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format to parse a R float from string.
+        RString = 0
+
+        # Float format for a Kotlin literal floating-point number.
+        KotlinLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredExponentDigits
+            | NoSpecial
+            | InternalDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format to parse a Kotlin float from string.
+        KotlinString = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for a Julia literal floating-point number.
+        JuliaLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredExponentDigits
+            | CaseSensitiveSpecial
+            | IntegerInternalDigitSeparator
+            | FractionInternalDigitSeparator
+        )
+
+        # Float format to parse a Julia float from string.
+        JuliaString = RequiredExponentDigits
+
+        # Float format for a C#7 literal floating-point number.
+        Csharp7Literal = (
+            digit_separator_to_flags(b'_')
+            | RequiredFractionDigits
+            | RequiredExponentDigits
+            | NoSpecial
+            | InternalDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format to parse a C#7 float from string.
+        Csharp7String = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for a C#6 literal floating-point number.
+        Csharp6Literal = (
+            RequiredFractionDigits
+            | RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a C#6 float from string.
+        Csharp6String = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for a C#5 literal floating-point number.
+        Csharp5Literal = (
+            RequiredFractionDigits
+            | RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a C#5 float from string.
+        Csharp5String = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for a C#4 literal floating-point number.
+        Csharp4Literal = (
+            RequiredFractionDigits
+            | RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a C#4 float from string.
+        Csharp4String = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for a C#3 literal floating-point number.
+        Csharp3Literal = (
+            RequiredFractionDigits
+            | RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a C#3 float from string.
+        Csharp3String = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for a C#2 literal floating-point number.
+        Csharp2Literal = (
+            RequiredFractionDigits
+            | RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a C#2 float from string.
+        Csharp2String = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for a C#1 literal floating-point number.
+        Csharp1Literal = (
+            RequiredFractionDigits
+            | RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a C#1 float from string.
+        Csharp1String = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for a Kawa literal floating-point number.
+        KawaLiteral = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a Kawa float from string.
+        KawaString = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format for a Gambit-C literal floating-point number.
+        GambitcLiteral = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a Gambit-C float from string.
+        GambitcString = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format for a Guile literal floating-point number.
+        GuileLiteral = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a Guile float from string.
+        GuileString = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format for a Clojure literal floating-point number.
+        ClojureLiteral = (
+            RequiredIntegerDigits
+            | RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a Clojure float from string.
+        ClojureString = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for an Erlang literal floating-point number.
+        ErlangLiteral = (
+            RequiredDigits
+            | NoExponentWithoutFraction
+            | CaseSensitiveSpecial
+        )
+
+        # Float format to parse an Erlang float from string.
+        ErlangString = (
+            RequiredDigits
+            | NoExponentWithoutFraction
+            | NoSpecial
+        )
+
+        # Float format for an Elm literal floating-point number.
+        ElmLiteral = (
+            RequiredDigits
+            | NoPositiveMantissaSign
+        )
+
+        # Float format to parse an Elm float from string.
+        ElmString = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for a Scala literal floating-point number.
+        ScalaLiteral = (
+            RequiredDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a Scala float from string.
+        ScalaString = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for an Elixir literal floating-point number.
+        ElixirLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredDigits
+            | NoExponentWithoutFraction
+            | NoSpecial
+            | InternalDigitSeparator
+        )
+
+        # Float format to parse an Elixir float from string.
+        ElixirString = (
+            RequiredDigits
+            | NoExponentWithoutFraction
+            | NoSpecial
+        )
+
+        # Float format for a FORTRAN literal floating-point number.
+        FortranLiteral = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a FORTRAN float from string.
+        FortranString = RequiredExponentDigits
+
+        # Float format for a D literal floating-point number.
+        DLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredExponentDigits
+            | NoSpecial
+            | InternalDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format to parse a D float from string.
+        DString = (
+            digit_separator_to_flags(b'_')
+            | RequiredExponentDigits
+            | IntegerInternalDigitSeparator
+            | FractionInternalDigitSeparator
+            | IntegerTrailingDigitSeparator
+            | FractionTrailingDigitSeparator
+        )
+
+        # Float format for a Coffeescript literal floating-point number.
+        CoffeescriptLiteral = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format to parse a Coffeescript float from string.
+        CoffeescriptString = CaseSensitiveSpecial
+
+        # Float format for a Cobol literal floating-point number.
+        CobolLiteral = (
+            RequiredFractionDigits
+            | RequiredExponentDigits
+            | NoExponentWithoutFraction
+            | NoSpecial
+        )
+
+        # Float format to parse a Cobol float from string.
+        CobolString = (
+            RequiredExponentSign
+            | NoSpecial
+        )
+
+        # Float format for a F# literal floating-point number.
+        FsharpLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredIntegerDigits
+            | RequiredExponentDigits
+            | CaseSensitiveSpecial
+            | InternalDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format to parse a F# float from string.
+        FsharpString = (
+            digit_separator_to_flags(b'_')
+            | RequiredExponentDigits
+            | InternalDigitSeparator
+            | CaseSensitiveSpecial
+            | LeadingDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+            | SpecialDigitSeparator
+        )
+
+        # Float format for a Visual Basic literal floating-point number.
+        VbLiteral = (
+            RequiredFractionDigits
+            | RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse a Visual Basic float from string.
+        VbString = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format for an OCaml literal floating-point number.
+        OcamlLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredIntegerDigits
+            | RequiredExponentDigits
+            | NoPositiveMantissaSign
+            | CaseSensitiveSpecial
+            | InternalDigitSeparator
+            | FractionLeadingDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format to parse an OCaml float from string.
+        OcamlString = (
+            digit_separator_to_flags(b'_')
+            | RequiredExponentDigits
+            | InternalDigitSeparator
+            | LeadingDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+            | SpecialDigitSeparator
+        )
+
+        # Float format for an Objective-C literal floating-point number.
+        ObjectivecLiteral = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format to parse an Objective-C float from string.
+        ObjectivecString = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format for a ReasonML literal floating-point number.
+        ReasonmlLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredIntegerDigits
+            | RequiredExponentDigits
+            | CaseSensitiveSpecial
+            | InternalDigitSeparator
+            | FractionLeadingDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format to parse a ReasonML float from string.
+        ReasonmlString = (
+            digit_separator_to_flags(b'_')
+            | RequiredExponentDigits
+            | InternalDigitSeparator
+            | LeadingDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+            | SpecialDigitSeparator
+        )
+
+        # Float format for an Octave literal floating-point number.
+        OctaveLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredExponentDigits
+            | CaseSensitiveSpecial
+            | InternalDigitSeparator
+            | FractionLeadingDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format to parse an Octave float from string.
+        OctaveString = (
+            digit_separator_to_flags(b',')
+            | RequiredExponentDigits
+            | InternalDigitSeparator
+            | LeadingDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format for an Matlab literal floating-point number.
+        MatlabLiteral = (
+            digit_separator_to_flags(b'_')
+            | RequiredExponentDigits
+            | CaseSensitiveSpecial
+            | InternalDigitSeparator
+            | FractionLeadingDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format to parse an Matlab float from string.
+        MatlabString = (
+            digit_separator_to_flags(b',')
+            | RequiredExponentDigits
+            | InternalDigitSeparator
+            | LeadingDigitSeparator
+            | TrailingDigitSeparator
+            | ConsecutiveDigitSeparator
+        )
+
+        # Float format for a Zig literal floating-point number.
+        ZigLiteral = (
+            RequiredIntegerDigits
+            | NoPositiveMantissaSign
+            | NoSpecial
+        )
+
+        # Float format to parse a Zig float from string.
+        ZigString = 0
+
+        # Float format for a Sage literal floating-point number.
+        SageLiteral = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # Float format to parse a Sage float from string.
+        SageString = (
+            digit_separator_to_flags(b'_')
+            | RequiredExponentDigits
+            | InternalDigitSeparator
+        )
+
+        # Float format for a JSON literal floating-point number.
+        Json = (
+            RequiredDigits
+            | NoPositiveMantissaSign
+            | NoSpecial
+        )
+
+        # Float format for a TOML literal floating-point number.
+        Toml = (
+            RequiredDigits
+            | NoSpecial
+            | InternalDigitSeparator
+        )
+
+        # Float format for a YAML literal floating-point number.
+        Yaml = Json
+
+        # Float format for a XML literal floating-point number.
+        Xml = CaseSensitiveSpecial
+
+        # Float format for a SQLite literal floating-point number.
+        Sqlite = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format for a PostgreSQL literal floating-point number.
+        Postgresql = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format for a MySQL literal floating-point number.
+        Mysql = (
+            RequiredExponentDigits
+            | NoSpecial
+        )
+
+        # Float format for a MongoDB literal floating-point number.
+        Mongodb = (
+            RequiredExponentDigits
+            | CaseSensitiveSpecial
+        )
+
+        # HIDDEN DEFAULTS
+
+        Permissive = 0
+        Standard = RustString
+        Ignore = DigitSeparatorFlagMask
+
+        def compile(
+            digit_separator,
+            required_integer_digits,
+            required_fraction_digits,
+            required_exponent_digits,
+            no_positive_mantissa_sign,
+            required_mantissa_sign,
+            no_exponent_notation,
+            no_positive_exponent_sign,
+            required_exponent_sign,
+            no_exponent_without_fraction,
+            no_special,
+            case_sensitive_special,
+            integer_internal_digit_separator,
+            fraction_internal_digit_separator,
+            exponent_internal_digit_separator,
+            integer_leading_digit_separator,
+            fraction_leading_digit_separator,
+            exponent_leading_digit_separator,
+            integer_trailing_digit_separator,
+            fraction_trailing_digit_separator,
+            exponent_trailing_digit_separator,
+            integer_consecutive_digit_separator,
+            fraction_consecutive_digit_separator,
+            exponent_consecutive_digit_separator,
+            special_digit_separator
+        ):
+            '''
+            Compile float format value from specifications.
+
+            * `digit_separator`                         - Character to separate digits.
+            * `required_integer_digits`                 - If digits are required before the decimal point.
+            * `required_fraction_digits`                - If digits are required after the decimal point.
+            * `required_exponent_digits`                - If digits are required after the exponent character.
+            * `no_positive_mantissa_sign`               - If positive sign before the mantissa is not allowed.
+            * `required_mantissa_sign`                  - If positive sign before the mantissa is required.
+            * `no_exponent_notation`                    - If exponent notation is not allowed.
+            * `no_positive_exponent_sign`               - If positive sign before the exponent is not allowed.
+            * `required_exponent_sign`                  - If sign before the exponent is required.
+            * `no_exponent_without_fraction`            - If exponent without fraction is not allowed.
+            * `no_special`                              - If special (non-finite) values are not allowed.
+            * `case_sensitive_special`                  - If special (non-finite) values are case-sensitive.
+            * `integer_internal_digit_separator`        - If digit separators are allowed between integer digits.
+            * `fraction_internal_digit_separator`       - If digit separators are allowed between fraction digits.
+            * `exponent_internal_digit_separator`       - If digit separators are allowed between exponent digits.
+            * `integer_leading_digit_separator`         - If a digit separator is allowed before any integer digits.
+            * `fraction_leading_digit_separator`        - If a digit separator is allowed before any fraction digits.
+            * `exponent_leading_digit_separator`        - If a digit separator is allowed before any exponent digits.
+            * `integer_trailing_digit_separator`        - If a digit separator is allowed after any integer digits.
+            * `fraction_trailing_digit_separator`       - If a digit separator is allowed after any fraction digits.
+            * `exponent_trailing_digit_separator`       - If a digit separator is allowed after any exponent digits.
+            * `integer_consecutive_digit_separator`     - If multiple consecutive integer digit separators are allowed.
+            * `fraction_consecutive_digit_separator`    - If multiple consecutive fraction digit separators are allowed.
+            * `special_digit_separator`                 - If any digit separators are allowed in special (non-finite) values.
+
+            Returns the value if it was able to compile the format,
+            otherwise, returns None. Digit separators must not be
+            in the character group `[A-Za-z0-9+.-]`, nor be equal to
+            `get_exponent_default_char` or `get_exponent_backup_char`.
+            '''
+
+            format = NumberFormat(0)
+            # Generic flags.
+            if required_integer_digits:
+                format |= NumberFormat.RequiredIntegerDigits
+            if required_fraction_digits:
+                format |= NumberFormat.RequiredFractionDigits
+            if required_exponent_digits:
+                format |= NumberFormat.RequiredExponentDigits
+            if no_positive_mantissa_sign:
+                format |= NumberFormat.NoPositiveMantissaSign
+            if required_mantissa_sign:
+                format |= NumberFormat.RequiredMantissaSign
+            if no_exponent_notation:
+                format |= NumberFormat.NoExponentNotation
+            if no_positive_exponent_sign:
+                format |= NumberFormat.NoPositiveExponentSign
+            if required_exponent_sign:
+                format |= NumberFormat.RequiredExponentSign
+            if no_exponent_without_fraction:
+                format |= NumberFormat.NoExponentWithoutFraction
+            if no_special:
+                format |= NumberFormat.NoSpecial
+            if case_sensitive_special:
+                format |= NumberFormat.CaseSensitiveSpecial
+
+            # Digit separator flags.
+            if integer_internal_digit_separator:
+                format |= NumberFormat.IntegerInternalDigitSeparator
+            if fraction_internal_digit_separator:
+                format |= NumberFormat.FractionInternalDigitSeparator
+            if exponent_internal_digit_separator:
+                format |= NumberFormat.ExponentInternalDigitSeparator
+            if integer_leading_digit_separator:
+                format |= NumberFormat.IntegerLeadingDigitSeparator
+            if fraction_leading_digit_separator:
+                format |= NumberFormat.FractionLeadingDigitSeparator
+            if exponent_leading_digit_separator:
+                format |= NumberFormat.ExponentLeadingDigitSeparator
+            if integer_trailing_digit_separator:
+                format |= NumberFormat.IntegerTrailingDigitSeparator
+            if fraction_trailing_digit_separator:
+                format |= NumberFormat.FractionTrailingDigitSeparator
+            if exponent_trailing_digit_separator:
+                format |= NumberFormat.ExponentTrailingDigitSeparator
+            if integer_consecutive_digit_separator:
+                format |= NumberFormat.IntegerConsecutiveDigitSeparator
+            if fraction_consecutive_digit_separator:
+                format |= NumberFormat.FractionConsecutiveDigitSeparator
+            if exponent_consecutive_digit_separator:
+                format |= NumberFormat.ExponentConsecutiveDigitSeparator
+            if special_digit_separator:
+                format |= NumberFormat.SpecialDigitSeparator
+
+            # Digit separator.
+            if format.intersects(NumberFormat.DigitSeparatorFlagMask):
+                format |= NumberFormat(digit_separator_to_flags(digit_separator))
+
+            # Validation.
+            is_invalid = (
+                not is_valid_separator(digit_separator)
+                or (format.intersects(NumberFormat.NoExponentNotation) and format.intersects(NumberFormat.ExponentFlagMask))
+                or (no_positive_mantissa_sign and required_mantissa_sign)
+                or (no_positive_exponent_sign and required_exponent_sign)
+                or (no_special and (case_sensitive_special or special_digit_separator))
+                or (format & NumberFormat.IntegerDigitSeparatorFlagMask == NumberFormat.IntegerConsecutiveDigitSeparator)
+                or (format & NumberFormat.FractionDigitSeparatorFlagMask == NumberFormat.FractionConsecutiveDigitSeparator)
+                or (format & NumberFormat.ExponentDigitSeparatorFlagMask == NumberFormat.ExponentConsecutiveDigitSeparator)
+            )
+            if is_invalid:
+                raise ValueError('invalid number format with value {}'.format(format))
+
+            return format
+
+        @staticmethod
+        def permissive():
+            '''
+            Compile permissive number format.
+
+            The permissive number format does not require any control
+            grammar, besides the presence of mantissa digits.
+            '''
+            return NumberFormat.Permissive
+
+        @staticmethod
+        def standard():
+            '''
+            Compile standard number format.
+
+            The standard number format is guaranteed to be identical
+            to the format expected by Rust's string to number parsers.
+            '''
+            return NumberFormat.Standard
+
+        @staticmethod
+        def ignore(digit_separator):
+            '''
+            Compile ignore number format.
+
+            The ignore number format ignores all digit separators,
+            and is permissive for all other control grammar, so
+            implements a fast parser.
+
+            * `digit_separator`                         - Character to separate digits.
+            '''
+
+            if not is_valid_separator(digit_separator):
+                raise ValueError('invalid digit separator {}'.format(digit_separator))
+
+            format = NumberFormat.Ignore
+            return format | NumberFormat(digit_separator_to_flags(digit_separator))
+
+        def intersects(self, flags):
+            '''Determine if a flag'''
+            return self.value & flags.value != 0
+
+        def flags(self):
+            '''Get the flag bits from the compiled float format.'''
+            return self & NumberFormat.FlagMask
+
+        def digit_separator(self):
+            '''Get the digit separator from the compiled float format.'''
+            return digit_separator_from_flags(self.value)
+
+        def required_integer_digits(self):
+            '''Get if digits are required before the decimal point.'''
+            return self.intersects(NumberFormat.RequiredIntegerDigits)
+
+        def required_fraction_digits(self):
+            '''Get if digits are required after the decimal point.'''
+            return self.intersects(NumberFormat.RequiredFractionDigits)
+
+        def required_exponent_digits(self):
+            '''Get if digits are required after the exponent character.'''
+            return self.intersects(NumberFormat.RequiredExponentDigits)
+
+        def required_digits(self):
+            '''Get if digits are required before or after the decimal point.'''
+            return self.intersects(NumberFormat.RequiredDigits)
+
+        def no_positive_mantissa_sign(self):
+            '''Get if positive sign before the mantissa is not allowed.'''
+            return self.intersects(NumberFormat.NoPositiveMantissaSign)
+
+        def required_mantissa_sign(self):
+            '''Get if positive sign before the mantissa is required.'''
+            return self.intersects(NumberFormat.RequiredMantissaSign)
+
+        def no_exponent_notation(self):
+            '''Get if exponent notation is not allowed.'''
+            return self.intersects(NumberFormat.NoExponentNotation)
+
+        def no_positive_exponent_sign(self):
+            '''Get if positive sign before the exponent is not allowed.'''
+            self.intersects(NumberFormat.NoPositiveExponentSign)
+
+        def required_exponent_sign(self):
+            '''Get if sign before the exponent is required.'''
+            self.intersects(NumberFormat.RequiredExponentSign)
+
+        def no_exponent_without_fraction(self):
+            '''Get if exponent without fraction is not allowed.'''
+            self.intersects(NumberFormat.NoExponentWithoutFraction)
+
+        def no_special(self):
+            '''Get if special (non-finite) values are not allowed.'''
+            self.intersects(NumberFormat.NoSpecial)
+
+        def case_sensitive_special(self):
+            '''Get if special (non-finite) values are case-sensitive.'''
+            self.intersects(NumberFormat.CaseSensitiveSpecial)
+
+        def integer_internal_digit_separator(self):
+            '''Get if digit separators are allowed between integer digits.'''
+            self.intersects(NumberFormat.IntegerInternalDigitSeparator)
+
+        def fraction_internal_digit_separator(self):
+            '''Get if digit separators are allowed between fraction digits.'''
+            self.intersects(NumberFormat.FractionInternalDigitSeparator)
+
+        def exponent_internal_digit_separator(self):
+            '''Get if digit separators are allowed between exponent digits.'''
+            self.intersects(NumberFormat.ExponentInternalDigitSeparator)
+
+        def internal_digit_separator(self):
+            '''Get if digit separators are allowed between digits.'''
+            self.intersects(NumberFormat.InternalDigitSeparator)
+
+        def integer_leading_digit_separator(self):
+            '''Get if a digit separator is allowed before any integer digits.'''
+            self.intersects(NumberFormat.IntegerLeadingDigitSeparator)
+
+        def fraction_leading_digit_separator(self):
+            '''Get if a digit separator is allowed before any fraction digits.'''
+            self.intersects(NumberFormat.FractionLeadingDigitSeparator)
+
+        def exponent_leading_digit_separator(self):
+            '''Get if a digit separator is allowed before any exponent digits.'''
+            self.intersects(NumberFormat.ExponentLeadingDigitSeparator)
+
+        def leading_digit_separator(self):
+            '''Get if a digit separator is allowed before any digits.'''
+            self.intersects(NumberFormat.LeadingDigitSeparator)
+
+        def integer_trailing_digit_separator(self):
+            '''Get if a digit separator is allowed after any integer digits.'''
+            self.intersects(NumberFormat.IntegerTrailingDigitSeparator)
+
+        def fraction_trailing_digit_separator(self):
+            '''Get if a digit separator is allowed after any fraction digits.'''
+            self.intersects(NumberFormat.FractionTrailingDigitSeparator)
+
+        def exponent_trailing_digit_separator(self):
+            '''Get if a digit separator is allowed after any exponent digits.'''
+            self.intersects(NumberFormat.ExponentTrailingDigitSeparator)
+
+        def trailing_digit_separator(self):
+            '''Get if a digit separator is allowed after any digits.'''
+            self.intersects(NumberFormat.TrailingDigitSeparator)
+
+        def integer_consecutive_digit_separator(self):
+            '''Get if multiple consecutive integer digit separators are allowed.'''
+            self.intersects(NumberFormat.IntegerConsecutiveDigitSeparator)
+
+        def fraction_consecutive_digit_separator(self):
+            '''Get if multiple consecutive fraction digit separators are allowed.'''
+            self.intersects(NumberFormat.FractionConsecutiveDigitSeparator)
+
+        def exponent_consecutive_digit_separator(self):
+            '''Get if multiple consecutive exponent digit separators are allowed.'''
+            self.intersects(NumberFormat.ExponentConsecutiveDigitSeparator)
+
+        def consecutive_digit_separator(self):
+            '''Get if multiple consecutive digit separators are allowed.'''
+            self.intersects(NumberFormat.ConsecutiveDigitSeparator)
+
+        def special_digit_separator(self):
+            '''Get if any digit separators are allowed in special (non-finite) values.'''
+            self.intersects(NumberFormat.SpecialDigitSeparator)
 
 # GLOBALS
 # -------

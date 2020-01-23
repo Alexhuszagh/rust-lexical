@@ -91,6 +91,11 @@ class ConfigTests(unittest.TestCase):
         if lexical.HAVE_ROUNDING:
             lexical.set_float_rounding(lexical.RoundingKind.NearestTieEven)
 
+    def test_number_format(self):
+        if lexical.HAVE_FORMAT:
+            import pdb; pdb.set_trace()
+            pass
+
 
 class GlobalTests(unittest.TestCase):
     '''Test the global config variables.'''
