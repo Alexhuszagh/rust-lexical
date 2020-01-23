@@ -63,6 +63,9 @@ def run_c_tests():
 def run_suite(features):
     '''Run suite of tests for a given set of features.'''
 
+    print("------------------------------------------------------------")
+    print("Running lexical test suite with features={}".format(features))
+    print("------------------------------------------------------------")
     build_lexical(features)
     run_python_tests()
     run_c_tests()
