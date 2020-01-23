@@ -183,6 +183,1355 @@ enum lexical_error_code {
     lexical_exponent_without_fraction = -14,
 };
 
+// Declare extern to lexical function definitions.
+#ifdef HAVE_FORMAT
+    // Convert digit separator to flags.
+    #define lexical_digit_separator_to_flags(ch) (((uint32_t) ch) << 24)
+
+    // Extract digit separator from flags.
+    #define lexical_digit_separator_from_flags(flag) ((uint8_t) (flag >> 24))
+
+    // Determine if character is valid ASCII.
+    inline bool lexical_is_ascii(uint8_t ch)
+    {
+        return ch < 0x80;
+    }
+
+    // Determine if the digit separator is valid.
+    inline bool lexical_is_valid_separator(uint8_t ch);
+
+    #ifdef HAVE_RADIX
+        inline bool lexical_is_valid_separator(uint8_t ch)
+        {
+            uint8_t a_upper = 'A';
+            uint8_t z_upper = 'Z';
+            uint8_t a_lower = 'a';
+            uint8_t z_lower = 'z';
+            uint8_t zero = '0';
+            uint8_t nine = '9';
+            uint8_t plus = '+';
+            uint8_t period = '.';
+            uint8_t minus = '-';
+            if (ch >= a_upper && ch <= z_upper) {
+                return false;
+            } else if (ch >= a_lower && ch <= z_lower) {
+                return false;
+            } else if (ch >= zero && ch <= nine) {
+                return false;
+            } else if (ch == plus || ch == period || ch == minus) {
+                return false;
+            } else {
+                return (
+                    lexical_is_ascii(ch)
+                    && ch != lexical_get_exponent_default_char()
+                    && ch != lexical_get_exponent_backup_char()
+                );
+            }
+        }
+    #else   // HAVE_RADIX
+        inline bool lexical_is_valid_separator(uint8_t ch)
+        {
+            uint8_t zero = '0';
+            uint8_t nine = '9';
+            uint8_t plus = '+';
+            uint8_t period = '.';
+            uint8_t minus = '-';
+            if (ch >= zero && ch <= nine) {
+                return false;
+            } else if (ch == plus || ch == period || ch == minus) {
+                return false;
+            } else {
+                return (
+                    lexical_is_ascii(ch)
+                    && ch != lexical_get_exponent_default_char()
+                );
+            }
+        }
+    #endif  // HAVE_RADIX
+
+    // BITFLAGS
+
+    // Bitflags for a serialized number format.
+    enum lexical_number_format {
+        // FLAGS
+
+        lexical_required_integer_digits                 = 0x1,
+        lexical_required_fraction_digits                = 0x2,
+        lexical_required_exponent_digits                = 0x4,
+        lexical_no_positive_mantissa_sign               = 0x8,
+        lexical_required_mantissa_sign                  = 0x10,
+        lexical_no_exponent_notation                    = 0x20,
+        lexical_no_positive_exponent_sign               = 0x40,
+        lexical_required_exponent_sign                  = 0x80,
+        lexical_no_exponent_without_fraction            = 0x100,
+        lexical_no_special                              = 0x200,
+        lexical_case_sensitive_special                  = 0x400,
+        lexical_integer_internal_digit_separator        = 0x800,
+        lexical_fraction_internal_digit_separator       = 0x1000,
+        lexical_exponent_internal_digit_separator       = 0x2000,
+        lexical_integer_leading_digit_separator         = 0x4000,
+        lexical_fraction_leading_digit_separator        = 0x8000,
+        lexical_exponent_leading_digit_separator        = 0x10000,
+        lexical_integer_trailing_digit_separator        = 0x20000,
+        lexical_fraction_trailing_digit_separator       = 0x40000,
+        lexical_exponent_trailing_digit_separator       = 0x80000,
+        lexical_integer_consecutive_digit_separator     = 0x100000,
+        lexical_fraction_consecutive_digit_separator    = 0x200000,
+        lexical_exponent_consecutive_digit_separator    = 0x400000,
+        lexical_special_digit_separator                 = 0x800000,
+
+        // MASKS
+
+        lexical_required_digits = (
+            lexical_required_integer_digits
+            | lexical_required_fraction_digits
+            | lexical_required_exponent_digits
+        ),
+
+        lexical_internal_digit_separator = (
+            lexical_integer_internal_digit_separator
+            | lexical_fraction_internal_digit_separator
+            | lexical_exponent_internal_digit_separator
+        ),
+
+        lexical_leading_digit_separator = (
+            lexical_integer_leading_digit_separator
+            | lexical_fraction_leading_digit_separator
+            | lexical_exponent_leading_digit_separator
+        ),
+
+        lexical_trailing_digit_separator = (
+            lexical_integer_trailing_digit_separator
+            | lexical_fraction_trailing_digit_separator
+            | lexical_exponent_trailing_digit_separator
+        ),
+
+        lexical_consecutive_digit_separator = (
+            lexical_integer_consecutive_digit_separator
+            | lexical_fraction_consecutive_digit_separator
+            | lexical_exponent_consecutive_digit_separator
+        ),
+
+        lexical_digit_separator_flag_mask = (
+            lexical_internal_digit_separator
+            | lexical_leading_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+            | lexical_special_digit_separator
+        ),
+
+        lexical_integer_digit_separator_flag_mask = (
+            lexical_integer_internal_digit_separator
+            | lexical_integer_leading_digit_separator
+            | lexical_integer_trailing_digit_separator
+            | lexical_integer_consecutive_digit_separator
+        ),
+
+        lexical_fraction_digit_separator_flag_mask = (
+            lexical_fraction_internal_digit_separator
+            | lexical_fraction_leading_digit_separator
+            | lexical_fraction_trailing_digit_separator
+            | lexical_fraction_consecutive_digit_separator
+        ),
+
+        lexical_exponent_digit_separator_flag_mask = (
+            lexical_exponent_internal_digit_separator
+            | lexical_exponent_leading_digit_separator
+            | lexical_exponent_trailing_digit_separator
+            | lexical_exponent_consecutive_digit_separator
+        ),
+
+        lexical_exponent_flag_mask = (
+            lexical_required_exponent_digits
+            | lexical_no_positive_exponent_sign
+            | lexical_required_exponent_sign
+            | lexical_no_exponent_without_fraction
+            | lexical_exponent_internal_digit_separator
+            | lexical_exponent_leading_digit_separator
+            | lexical_exponent_trailing_digit_separator
+            | lexical_exponent_consecutive_digit_separator
+        ),
+
+        lexical_flag_mask = (
+            lexical_required_digits
+            | lexical_no_positive_mantissa_sign
+            | lexical_required_mantissa_sign
+            | lexical_no_exponent_notation
+            | lexical_no_positive_exponent_sign
+            | lexical_required_exponent_sign
+            | lexical_no_exponent_without_fraction
+            | lexical_no_special
+            | lexical_case_sensitive_special
+            | lexical_internal_digit_separator
+            | lexical_leading_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+            | lexical_special_digit_separator
+        ),
+
+        // PRE-DEFINED
+
+        // Float format for a Rust literal floating-point number.
+        lexical_rust_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_digits
+            | lexical_no_positive_mantissa_sign
+            | lexical_no_special
+            | lexical_internal_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format to parse a Rust float from string.
+        lexical_rust_string = lexical_required_exponent_digits,
+
+        // `RUST_STRING`, but enforces strict equality for special values.
+        lexical_rust_string_strict = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for a Python literal floating-point number.
+        lexical_python_literal = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a Python float from string.
+        lexical_python_string = lexical_required_exponent_digits,
+
+        // Float format for a C++17 literal floating-point number.
+        lexical_cxx17_literal = (
+            lexical_digit_separator_to_flags('\'')
+            | lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+            | lexical_internal_digit_separator
+        ),
+
+        // Float format for a C++17 float from string.
+        lexical_cxx17_string = lexical_required_exponent_digits,
+
+        // Float format for a C++14 literal floating-point number.
+        lexical_cxx14_literal = (
+            lexical_digit_separator_to_flags('\'')
+            | lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+            | lexical_internal_digit_separator
+        ),
+
+        // Float format to parse a C++14 float from string.
+        lexical_cxx14_string = lexical_required_exponent_digits,
+
+        // Float format for a C++11 literal floating-point number.
+        lexical_cxx11_literal = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format to parse a C++11 float from string.
+        lexical_cxx11_string = lexical_required_exponent_digits,
+
+        // Float format for a C++03 literal floating-point number.
+        lexical_cxx03_literal = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a C++03 float from string.
+        lexical_cxx03_string = lexical_required_exponent_digits,
+
+        // Float format for a C++98 literal floating-point number.
+        lexical_cxx98_literal = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a C++98 float from string.
+        lexical_cxx98_string = lexical_required_exponent_digits,
+
+        // Float format for a C18 literal floating-point number.
+        lexical_c18_literal = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format to parse a C18 float from string.
+        lexical_c18_string = lexical_required_exponent_digits,
+
+        // Float format for a C11 literal floating-point number.
+        lexical_c11_literal = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format to parse a C11 float from string.
+        lexical_c11_string = lexical_required_exponent_digits,
+
+        // Float format for a C99 literal floating-point number.
+        lexical_c99_literal = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format to parse a C99 float from string.
+        lexical_c99_string = lexical_required_exponent_digits,
+
+        // Float format for a C90 literal floating-point number.
+        lexical_c90_literal = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a C90 float from string.
+        lexical_c90_string = lexical_required_exponent_digits,
+
+        // Float format for a C89 literal floating-point number.
+        lexical_c89_literal = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a C89 float from string.
+        lexical_c89_string = lexical_required_exponent_digits,
+
+        // Float format for a Ruby literal floating-point number.
+        lexical_ruby_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_digits
+            | lexical_no_special
+            | lexical_internal_digit_separator
+        ),
+
+        // Float format to parse a Ruby float from string.
+        lexical_ruby_string = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_no_special
+            | lexical_internal_digit_separator
+        ),
+
+        // Float format for a Swift literal floating-point number.
+        lexical_swift_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_digits
+            | lexical_no_special
+            | lexical_internal_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format to parse a Swift float from string.
+        lexical_swift_string = lexical_required_fraction_digits,
+
+        // Float format for a Golang literal floating-point number.
+        lexical_go_literal = (
+            lexical_required_fraction_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a Golang float from string.
+        lexical_go_string = lexical_required_fraction_digits,
+
+        // Float format for a Haskell literal floating-point number.
+        lexical_haskell_literal = (
+            lexical_required_digits
+            | lexical_no_positive_mantissa_sign
+            | lexical_no_special
+        ),
+
+        // Float format to parse a Haskell float from string.
+        lexical_haskell_string = (
+            lexical_required_digits
+            | lexical_no_positive_mantissa_sign
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for a Javascript literal floating-point number.
+        lexical_javascript_literal = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format to parse a Javascript float from string.
+        lexical_javascript_string = lexical_case_sensitive_special,
+
+        // Float format for a Perl literal floating-point number.
+        lexical_perl_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_exponent_digits
+            | lexical_no_special
+            | lexical_internal_digit_separator
+            | lexical_fraction_leading_digit_separator
+            | lexical_exponent_leading_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format to parse a Perl float from string.
+        lexical_perl_string = 0,
+
+        // Float format for a PHP literal floating-point number.
+        lexical_php_literal = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format to parse a PHP float from string.
+        lexical_php_string = lexical_no_special,
+
+        // Float format for a Java literal floating-point number.
+        lexical_java_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_exponent_digits
+            | lexical_no_special
+            | lexical_internal_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format to parse a Java float from string.
+        lexical_java_string = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for a R literal floating-point number.
+        lexical_r_literal = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format to parse a R float from string.
+        lexical_r_string = 0,
+
+        // Float format for a Kotlin literal floating-point number.
+        lexical_kotlin_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_exponent_digits
+            | lexical_no_special
+            | lexical_internal_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format to parse a Kotlin float from string.
+        lexical_kotlin_string = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for a Julia literal floating-point number.
+        lexical_julia_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+            | lexical_integer_internal_digit_separator
+            | lexical_fraction_internal_digit_separator
+        ),
+
+        // Float format to parse a Julia float from string.
+        lexical_julia_string = lexical_required_exponent_digits,
+
+        // Float format for a C#7 literal floating-point number.
+        lexical_csharp7_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_fraction_digits
+            | lexical_required_exponent_digits
+            | lexical_no_special
+            | lexical_internal_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format to parse a C#7 float from string.
+        lexical_csharp7_string = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for a C#6 literal floating-point number.
+        lexical_csharp6_literal = (
+            lexical_required_fraction_digits
+            | lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a C#6 float from string.
+        lexical_csharp6_string = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for a C#5 literal floating-point number.
+        lexical_csharp5_literal = (
+            lexical_required_fraction_digits
+            | lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a C#5 float from string.
+        lexical_csharp5_string = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for a C#4 literal floating-point number.
+        lexical_csharp4_literal = (
+            lexical_required_fraction_digits
+            | lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a C#4 float from string.
+        lexical_csharp4_string = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for a C#3 literal floating-point number.
+        lexical_csharp3_literal = (
+            lexical_required_fraction_digits
+            | lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a C#3 float from string.
+        lexical_csharp3_string = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for a C#2 literal floating-point number.
+        lexical_csharp2_literal = (
+            lexical_required_fraction_digits
+            | lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a C#2 float from string.
+        lexical_csharp2_string = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for a C#1 literal floating-point number.
+        lexical_csharp1_literal = (
+            lexical_required_fraction_digits
+            | lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a C#1 float from string.
+        lexical_csharp1_string = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for a Kawa literal floating-point number.
+        lexical_kawa_literal = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a Kawa float from string.
+        lexical_kawa_string = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format for a Gambit-C literal floating-point number.
+        lexical_gambitc_literal = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a Gambit-C float from string.
+        lexical_gambitc_string = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format for a Guile literal floating-point number.
+        lexical_guile_literal = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a Guile float from string.
+        lexical_guile_string = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format for a Clojure literal floating-point number.
+        lexical_clojure_literal = (
+            lexical_required_integer_digits
+            | lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a Clojure float from string.
+        lexical_clojure_string = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for an Erlang literal floating-point number.
+        lexical_erlang_literal = (
+            lexical_required_digits
+            | lexical_no_exponent_without_fraction
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format to parse an Erlang float from string.
+        lexical_erlang_string = (
+            lexical_required_digits
+            | lexical_no_exponent_without_fraction
+            | lexical_no_special
+        ),
+
+        // Float format for an Elm literal floating-point number.
+        lexical_elm_literal = (
+            lexical_required_digits
+            | lexical_no_positive_mantissa_sign
+        ),
+
+        // Float format to parse an Elm float from string.
+        lexical_elm_string = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for a Scala literal floating-point number.
+        lexical_scala_literal = (
+            lexical_required_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a Scala float from string.
+        lexical_scala_string = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for an Elixir literal floating-point number.
+        lexical_elixir_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_digits
+            | lexical_no_exponent_without_fraction
+            | lexical_no_special
+            | lexical_internal_digit_separator
+        ),
+
+        // Float format to parse an Elixir float from string.
+        lexical_elixir_string = (
+            lexical_required_digits
+            | lexical_no_exponent_without_fraction
+            | lexical_no_special
+        ),
+
+        // Float format for a FORTRAN literal floating-point number.
+        lexical_fortran_literal = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a FORTRAN float from string.
+        lexical_fortran_string = lexical_required_exponent_digits,
+
+        // Float format for a D literal floating-point number.
+        lexical_d_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_exponent_digits
+            | lexical_no_special
+            | lexical_internal_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format to parse a D float from string.
+        lexical_d_string = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_exponent_digits
+            | lexical_integer_internal_digit_separator
+            | lexical_fraction_internal_digit_separator
+            | lexical_integer_trailing_digit_separator
+            | lexical_fraction_trailing_digit_separator
+        ),
+
+        // Float format for a Coffeescript literal floating-point number.
+        lexical_coffeescript_literal = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format to parse a Coffeescript float from string.
+        lexical_coffeescript_string = lexical_case_sensitive_special,
+
+        // Float format for a Cobol literal floating-point number.
+        lexical_cobol_literal = (
+            lexical_required_fraction_digits
+            | lexical_required_exponent_digits
+            | lexical_no_exponent_without_fraction
+            | lexical_no_special
+        ),
+
+        // Float format to parse a Cobol float from string.
+        lexical_cobol_string = (
+            lexical_required_exponent_sign
+            | lexical_no_special
+        ),
+
+        // Float format for a F# literal floating-point number.
+        lexical_fsharp_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_integer_digits
+            | lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+            | lexical_internal_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format to parse a F# float from string.
+        lexical_fsharp_string = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_exponent_digits
+            | lexical_internal_digit_separator
+            | lexical_case_sensitive_special
+            | lexical_leading_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+            | lexical_special_digit_separator
+        ),
+
+        // Float format for a Visual Basic literal floating-point number.
+        lexical_vb_literal = (
+            lexical_required_fraction_digits
+            | lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse a Visual Basic float from string.
+        lexical_vb_string = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format for an OCaml literal floating-point number.
+        lexical_ocaml_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_integer_digits
+            | lexical_required_exponent_digits
+            | lexical_no_positive_mantissa_sign
+            | lexical_case_sensitive_special
+            | lexical_internal_digit_separator
+            | lexical_fraction_leading_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format to parse an OCaml float from string.
+        lexical_ocaml_string = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_exponent_digits
+            | lexical_internal_digit_separator
+            | lexical_leading_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+            | lexical_special_digit_separator
+        ),
+
+        // Float format for an Objective-C literal floating-point number.
+        lexical_objectivec_literal = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format to parse an Objective-C float from string.
+        lexical_objectivec_string = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format for a ReasonML literal floating-point number.
+        lexical_reasonml_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_integer_digits
+            | lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+            | lexical_internal_digit_separator
+            | lexical_fraction_leading_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format to parse a ReasonML float from string.
+        lexical_reasonml_string = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_exponent_digits
+            | lexical_internal_digit_separator
+            | lexical_leading_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+            | lexical_special_digit_separator
+        ),
+
+        // Float format for an Octave literal floating-point number.
+        lexical_octave_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+            | lexical_internal_digit_separator
+            | lexical_fraction_leading_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format to parse an Octave float from string.
+        lexical_octave_string = (
+            lexical_digit_separator_to_flags(',')
+            | lexical_required_exponent_digits
+            | lexical_internal_digit_separator
+            | lexical_leading_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format for an Matlab literal floating-point number.
+        lexical_matlab_literal = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+            | lexical_internal_digit_separator
+            | lexical_fraction_leading_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format to parse an Matlab float from string.
+        lexical_matlab_string = (
+            lexical_digit_separator_to_flags(',')
+            | lexical_required_exponent_digits
+            | lexical_internal_digit_separator
+            | lexical_leading_digit_separator
+            | lexical_trailing_digit_separator
+            | lexical_consecutive_digit_separator
+        ),
+
+        // Float format for a Zig literal floating-point number.
+        lexical_zig_literal = (
+            lexical_required_integer_digits
+            | lexical_no_positive_mantissa_sign
+            | lexical_no_special
+        ),
+
+        // Float format to parse a Zig float from string.
+        lexical_zig_string = 0,
+
+        // Float format for a Sage literal floating-point number.
+        lexical_sage_literal = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // Float format to parse a Sage float from string.
+        lexical_sage_string = (
+            lexical_digit_separator_to_flags('_')
+            | lexical_required_exponent_digits
+            | lexical_internal_digit_separator
+        ),
+
+        // Float format for a JSON literal floating-point number.
+        lexical_json = (
+            lexical_required_digits
+            | lexical_no_positive_mantissa_sign
+            | lexical_no_special
+        ),
+
+        // Float format for a TOML literal floating-point number.
+        lexical_toml = (
+            lexical_required_digits
+            | lexical_no_special
+            | lexical_internal_digit_separator
+        ),
+
+        // Float format for a YAML literal floating-point number.
+        lexical_yaml = lexical_json,
+
+        // Float format for a XML literal floating-point number.
+        lexical_xml = lexical_case_sensitive_special,
+
+        // Float format for a SQLite literal floating-point number.
+        lexical_sqlite = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format for a PostgreSQL literal floating-point number.
+        lexical_postgresql = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format for a MySQL literal floating-point number.
+        lexical_mysql = (
+            lexical_required_exponent_digits
+            | lexical_no_special
+        ),
+
+        // Float format for a MongoDB literal floating-point number.
+        lexical_mongodb = (
+            lexical_required_exponent_digits
+            | lexical_case_sensitive_special
+        ),
+
+        // HIDDEN DEFAULTS
+
+        // Float format when no flags are set.
+        lexical_permissive = 0,
+
+        // Standard float format.
+        lexical_standard = lexical_rust_string,
+
+        // Float format when all digit separator flags are set.
+        lexical_ignore = lexical_digit_separator_flag_mask,
+    };
+
+    // OPTION TAG
+
+    // Tag for the option type in the tagged enum.
+    enum lexical_option_tag {
+        lexical_some = 0,
+        lexical_none = 1,
+    };
+
+    // OPTION
+
+    // Struct to define the number option.
+    struct lexical_number_format_option {
+        uint32_t tag;
+        uint32_t data;
+    };
+
+    inline bool lexical_number_format_option_is_some(lexical_number_format_option* option)
+    {
+        return option->tag == lexical_some;
+    }
+
+    inline bool lexical_number_format_option_is_none(lexical_number_format_option* option)
+    {
+        return option->tag == lexical_none;
+    }
+
+    inline uint32_t lexical_number_format_option_unwrap(lexical_number_format_option option)
+    {
+        assert(lexical_number_format_option_is_some(&option));
+        return option.data;
+    }
+
+    inline bool lexical_number_format_intersects(uint32_t x, uint32_t y)
+    {
+        return (x & y) != 0;
+    }
+
+    // COMPILER
+
+    // Compile float format value from specifications.
+    //
+    // * `digit_separator`                         - Character to separate digits.
+    // * `required_integer_digits`                 - If digits are required before the decimal point.
+    // * `required_fraction_digits`                - If digits are required after the decimal point.
+    // * `required_exponent_digits`                - If digits are required after the exponent character.
+    // * `no_positive_mantissa_sign`               - If positive sign before the mantissa is not allowed.
+    // * `required_mantissa_sign`                  - If positive sign before the mantissa is required.
+    // * `no_exponent_notation`                    - If exponent notation is not allowed.
+    // * `no_positive_exponent_sign`               - If positive sign before the exponent is not allowed.
+    // * `required_exponent_sign`                  - If sign before the exponent is required.
+    // * `no_exponent_without_fraction`            - If exponent without fraction is not allowed.
+    // * `no_special`                              - If special (non-finite) values are not allowed.
+    // * `case_sensitive_special`                  - If special (non-finite) values are case-sensitive.
+    // * `integer_internal_digit_separator`        - If digit separators are allowed between integer digits.
+    // * `fraction_internal_digit_separator`       - If digit separators are allowed between fraction digits.
+    // * `exponent_internal_digit_separator`       - If digit separators are allowed between exponent digits.
+    // * `integer_leading_digit_separator`         - If a digit separator is allowed before any integer digits.
+    // * `fraction_leading_digit_separator`        - If a digit separator is allowed before any fraction digits.
+    // * `exponent_leading_digit_separator`        - If a digit separator is allowed before any exponent digits.
+    // * `integer_trailing_digit_separator`        - If a digit separator is allowed after any integer digits.
+    // * `fraction_trailing_digit_separator`       - If a digit separator is allowed after any fraction digits.
+    // * `exponent_trailing_digit_separator`       - If a digit separator is allowed after any exponent digits.
+    // * `integer_consecutive_digit_separator`     - If multiple consecutive integer digit separators are allowed.
+    // * `fraction_consecutive_digit_separator`    - If multiple consecutive fraction digit separators are allowed.
+    // * `special_digit_separator`                 - If any digit separators are allowed in special (non-finite) values.
+    //
+    // Returns the value if it was able to compile the format,
+    // otherwise, returns None. Digit separators must not be
+    // in the character group `[A-Za-z0-9+.-]`, nor be equal to
+    // `get_exponent_default_char` or `get_exponent_backup_char`.
+    inline lexical_number_format_option lexical_number_format_compile(
+        char digit_separator = '_',
+        bool required_integer_digits = false,
+        bool required_fraction_digits = false,
+        bool required_exponent_digits = false,
+        bool no_positive_mantissa_sign = false,
+        bool required_mantissa_sign = false,
+        bool no_exponent_notation = false,
+        bool no_positive_exponent_sign = false,
+        bool required_exponent_sign = false,
+        bool no_exponent_without_fraction = false,
+        bool no_special = false,
+        bool case_sensitive_special = false,
+        bool integer_internal_digit_separator = false,
+        bool fraction_internal_digit_separator = false,
+        bool exponent_internal_digit_separator = false,
+        bool integer_leading_digit_separator = false,
+        bool fraction_leading_digit_separator = false,
+        bool exponent_leading_digit_separator = false,
+        bool integer_trailing_digit_separator = false,
+        bool fraction_trailing_digit_separator = false,
+        bool exponent_trailing_digit_separator = false,
+        bool integer_consecutive_digit_separator = false,
+        bool fraction_consecutive_digit_separator = false,
+        bool exponent_consecutive_digit_separator = false,
+        bool special_digit_separator = false
+    )
+    {
+        int flags = 0;
+        // Generic flags.
+        if (required_integer_digits) {
+            flags |= lexical_required_integer_digits;
+        }
+        if (required_fraction_digits) {
+            flags |= lexical_required_fraction_digits;
+        }
+        if (required_exponent_digits) {
+            flags |= lexical_required_exponent_digits;
+        }
+        if (no_positive_mantissa_sign) {
+            flags |= lexical_no_positive_mantissa_sign;
+        }
+        if (required_mantissa_sign) {
+            flags |= lexical_required_mantissa_sign;
+        }
+        if (no_exponent_notation) {
+            flags |= lexical_no_exponent_notation;
+        }
+        if (no_positive_exponent_sign) {
+            flags |= lexical_no_positive_exponent_sign;
+        }
+        if (required_exponent_sign) {
+            flags |= lexical_required_exponent_sign;
+        }
+        if (no_exponent_without_fraction) {
+            flags |= lexical_no_exponent_without_fraction;
+        }
+        if (no_special) {
+            flags |= lexical_no_special;
+        }
+        if (case_sensitive_special) {
+            flags |= lexical_case_sensitive_special;
+        }
+
+        // Digit separator flags.
+        if (integer_internal_digit_separator) {
+            flags |= lexical_integer_internal_digit_separator;
+        }
+        if (fraction_internal_digit_separator) {
+            flags |= lexical_fraction_internal_digit_separator;
+        }
+        if (exponent_internal_digit_separator) {
+            flags |= lexical_exponent_internal_digit_separator;
+        }
+        if (integer_leading_digit_separator) {
+            flags |= lexical_integer_leading_digit_separator;
+        }
+        if (fraction_leading_digit_separator) {
+            flags |= lexical_fraction_leading_digit_separator;
+        }
+        if (exponent_leading_digit_separator) {
+            flags |= lexical_exponent_leading_digit_separator;
+        }
+        if (integer_trailing_digit_separator) {
+            flags |= lexical_integer_trailing_digit_separator;
+        }
+        if (fraction_trailing_digit_separator) {
+            flags |= lexical_fraction_trailing_digit_separator;
+        }
+        if (exponent_trailing_digit_separator) {
+            flags |= lexical_exponent_trailing_digit_separator;
+        }
+        if (integer_consecutive_digit_separator) {
+            flags |= lexical_integer_consecutive_digit_separator;
+        }
+        if (fraction_consecutive_digit_separator) {
+            flags |= lexical_fraction_consecutive_digit_separator;
+        }
+        if (exponent_consecutive_digit_separator) {
+            flags |= lexical_exponent_consecutive_digit_separator;
+        }
+        if (special_digit_separator) {
+            flags |= lexical_special_digit_separator;
+        }
+
+        // Digit separator.
+        if (lexical_number_format_intersects(flags, lexical_digit_separator_flag_mask)) {
+            flags |= lexical_digit_separator_to_flags(digit_separator);
+        }
+
+        // Validation.
+        bool is_invalid = (
+            !lexical_is_valid_separator(digit_separator)
+            || (lexical_number_format_intersects(flags, lexical_no_exponent_notation) && lexical_number_format_intersects(flags, lexical_exponent_flag_mask))
+            || (no_positive_mantissa_sign && required_mantissa_sign)
+            || (no_positive_exponent_sign && required_exponent_sign)
+            || (no_special && (case_sensitive_special || special_digit_separator))
+            || (flags & lexical_integer_digit_separator_flag_mask) == lexical_integer_consecutive_digit_separator
+            || (flags & lexical_fraction_digit_separator_flag_mask) == lexical_fraction_consecutive_digit_separator
+            || (flags & lexical_exponent_digit_separator_flag_mask) == lexical_exponent_consecutive_digit_separator
+        );
+
+        // Return an option with the compiled format.
+        lexical_number_format_option result;
+        if (is_invalid) {
+            result.tag = lexical_none;
+        } else {
+            result.tag = lexical_some;
+            result.data = flags;
+        }
+        return result;
+    }
+
+    // Compile permissive number format.
+    //
+    // The permissive number format does not require any control
+    // grammar, besides the presence of mantissa digits.
+    inline lexical_number_format_option lexical_number_format_permissive()
+    {
+        lexical_number_format_option result;
+        result.tag = lexical_some;
+        result.data = lexical_permissive;
+
+        return result;
+    }
+
+    // Compile standard number format.
+    //
+    // The standard number format is guaranteed to be identical
+    // to the format expected by Rust's string to number parsers.
+    inline lexical_number_format_option lexical_number_format_standard()
+    {
+        lexical_number_format_option result;
+        result.tag = lexical_some;
+        result.data = lexical_standard;
+
+        return result;
+    }
+
+    // Compile ignore number format.
+    //
+    // The ignore number format ignores all digit separators,
+    // and is permissive for all other control grammar, so
+    // implements a fast parser.
+    //
+    // * `digit_separator`                         - Character to separate digits.
+    inline lexical_number_format_option lexical_number_format_ignore(uint8_t digit_separator)
+    {
+        lexical_number_format_option result;
+        if (!lexical_is_valid_separator(digit_separator)) {
+            result.tag = lexical_none;
+        } else {
+            result.tag = lexical_some;
+            result.data = (
+                lexical_ignore
+                | lexical_digit_separator_to_flags(digit_separator)
+            );
+        }
+
+        return result;
+    }
+
+    // Get the flag bits from the compiled float format.
+    inline uint32_t lexical_number_format_flags(uint32_t format)
+    {
+        return format & lexical_flag_mask;
+    }
+
+    // Get the digit separator from the compiled float format.
+    inline uint8_t lexical_number_format_digit_separator(uint32_t format)
+    {
+        return lexical_digit_separator_from_flags(format);
+    }
+
+    // Get if digits are required before the decimal point.
+    inline bool lexical_number_format_required_integer_digits(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_required_integer_digits);
+    }
+
+    // Get if digits are required after the decimal point.
+    inline bool lexical_number_format_required_fraction_digits(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_required_fraction_digits);
+    }
+
+    // Get if digits are required after the exponent character.
+    inline bool lexical_number_format_required_exponent_digits(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_required_exponent_digits);
+    }
+
+    // Get if digits are required before or after the decimal point.
+    inline bool lexical_number_format_required_digits(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_required_digits);
+    }
+
+    // Get if positive sign before the mantissa is not allowed.
+    inline bool lexical_number_format_no_positive_mantissa_sign(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_no_positive_mantissa_sign);
+    }
+
+    // Get if positive sign before the mantissa is required.
+    inline bool lexical_number_format_required_mantissa_sign(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_required_mantissa_sign);
+    }
+
+    // Get if exponent notation is not allowed.
+    inline bool lexical_number_format_no_exponent_notation(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_no_exponent_notation);
+    }
+
+    // Get if positive sign before the exponent is not allowed.
+    inline bool lexical_number_format_no_positive_exponent_sign(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_no_positive_exponent_sign);
+    }
+
+    // Get if sign before the exponent is required.
+    inline bool lexical_number_format_required_exponent_sign(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_required_exponent_sign);
+    }
+
+    // Get if exponent without fraction is not allowed.
+    inline bool lexical_number_format_no_exponent_without_fraction(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_no_exponent_without_fraction);
+    }
+
+    // Get if special (non-finite) values are not allowed.
+    inline bool lexical_number_format_no_special(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_no_special);
+    }
+
+    // Get if special (non-finite) values are case-sensitive.
+    inline bool lexical_number_format_case_sensitive_special(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_case_sensitive_special);
+    }
+
+    // Get if digit separators are allowed between integer digits.
+    inline bool lexical_number_format_integer_internal_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_integer_internal_digit_separator);
+    }
+
+    // Get if digit separators are allowed between fraction digits.
+    inline bool lexical_number_format_fraction_internal_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_fraction_internal_digit_separator);
+    }
+
+    // Get if digit separators are allowed between exponent digits.
+    inline bool lexical_number_format_exponent_internal_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_exponent_internal_digit_separator);
+    }
+
+    // Get if digit separators are allowed between digits.
+    inline bool lexical_number_format_internal_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_internal_digit_separator);
+    }
+
+    // Get if a digit separator is allowed before any integer digits.
+    inline bool lexical_number_format_integer_leading_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_integer_leading_digit_separator);
+    }
+
+    // Get if a digit separator is allowed before any fraction digits.
+    inline bool lexical_number_format_fraction_leading_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_fraction_leading_digit_separator);
+    }
+
+    // Get if a digit separator is allowed before any exponent digits.
+    inline bool lexical_number_format_exponent_leading_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_exponent_leading_digit_separator);
+    }
+
+    // Get if a digit separator is allowed before any digits.
+    inline bool lexical_number_format_leading_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_leading_digit_separator);
+    }
+
+    // Get if a digit separator is allowed after any integer digits.
+    inline bool lexical_number_format_integer_trailing_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_integer_trailing_digit_separator);
+    }
+
+    // Get if a digit separator is allowed after any fraction digits.
+    inline bool lexical_number_format_fraction_trailing_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_fraction_trailing_digit_separator);
+    }
+
+    // Get if a digit separator is allowed after any exponent digits.
+    inline bool lexical_number_format_exponent_trailing_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_exponent_trailing_digit_separator);
+    }
+
+    // Get if a digit separator is allowed after any digits.
+    inline bool lexical_number_format_trailing_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_trailing_digit_separator);
+    }
+
+    // Get if multiple consecutive integer digit separators are allowed.
+    inline bool lexical_number_format_integer_consecutive_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_integer_consecutive_digit_separator);
+    }
+
+    // Get if multiple consecutive fraction digit separators are allowed.
+    inline bool lexical_number_format_fraction_consecutive_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_fraction_consecutive_digit_separator);
+    }
+
+    // Get if multiple consecutive exponent digit separators are allowed.
+    inline bool lexical_number_format_exponent_consecutive_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_exponent_consecutive_digit_separator);
+    }
+
+    // Get if multiple consecutive digit separators are allowed.
+    inline bool lexical_number_format_consecutive_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_consecutive_digit_separator);
+    }
+
+    // Get if any digit separators are allowed in special (non-finite) values.
+    inline bool lexical_number_format_special_digit_separator(uint32_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_special_digit_separator);
+    }
+#endif  // HAVE_FORMAT
+
 // C-compatible error for FFI.
 struct lexical_error {
     int32_t code;
@@ -568,6 +1917,123 @@ lexical_partial_result(f64);
         lexical_lossy_partial_decimal_from_range(type)
 #endif  // HAVE_RADIX
 
+#ifdef HAVE_FORMAT
+    // FROM LEXICAL FORMAT
+
+    // Declare extern format from lexical function definitions for type.
+    #define lexical_format_decimal_from_range(type)                             \
+        extern                                                                  \
+        lexical_result_type(type)                                               \
+        lexical_ato##type##_format(                                             \
+            uint8_t const* first,                                               \
+            uint8_t const* last,                                                \
+            uint32_t format                                                     \
+        )
+
+    // Declare extern partial, format from lexical function definitions for type.
+    #define lexical_partial_format_decimal_from_range(type)                     \
+        extern                                                                  \
+        lexical_partial_result_type(type)                                       \
+        lexical_ato##type##_partial_format(                                     \
+            uint8_t const* first,                                               \
+            uint8_t const* last,                                                \
+            uint32_t format                                                     \
+        )
+
+    // Declare extern format from lexical function definitions for type.
+    #define lexical_format_radix_from_range(type)                               \
+        extern                                                                  \
+        lexical_result_type(type)                                               \
+        lexical_ato##type##_format_radix(                                       \
+            uint8_t const* first,                                               \
+            uint8_t const* last,                                                \
+            uint8_t radix,                                                      \
+            uint32_t format                                                     \
+        )
+
+    // Declare extern partial, format from lexical function definitions for type.
+    #define lexical_partial_format_radix_from_range(type)                       \
+        extern                                                                  \
+        lexical_partial_result_type(type)                                       \
+        lexical_ato##type##_partial_format_radix(                               \
+            uint8_t const* first,                                               \
+            uint8_t const* last,                                                \
+            uint8_t radix,                                                      \
+            uint32_t format                                                     \
+        )
+
+    // Declare extern format from lexical function definitions.
+    #ifdef HAVE_RADIX
+        #define lexical_from_lexical_format(type)                               \
+            lexical_format_decimal_from_range(type);                            \
+            lexical_partial_format_decimal_from_range(type);                    \
+            lexical_format_radix_from_range(type);                              \
+            lexical_partial_format_radix_from_range(type)
+    #else   // !HAVE_RADIX
+        #define lexical_from_lexical_format(type)                               \
+            lexical_format_decimal_from_range(type);                            \
+            lexical_partial_format_decimal_from_range(type)
+    #endif  // HAVE_RADIX
+
+    // FROM LEXICAL LOSSY FORMAT
+
+    // Declare extern lossy, format from lexical function definitions for type.
+    #define lexical_lossy_format_decimal_from_range(type)                       \
+        extern                                                                  \
+        lexical_result_type(type)                                               \
+        lexical_ato##type##_lossy_format(                                       \
+            uint8_t const* first,                                               \
+            uint8_t const* last,                                                \
+            uint32_t format                                                     \
+        )
+
+    // Declare extern lossy, partial, format from lexical function definitions for type.
+    #define lexical_lossy_partial_format_decimal_from_range(type)               \
+        extern                                                                  \
+        lexical_partial_result_type(type)                                       \
+        lexical_ato##type##_partial_lossy_format(                               \
+            uint8_t const* first,                                               \
+            uint8_t const* last,                                                \
+            uint32_t format                                                     \
+        )
+
+    // Declare extern lossy, format from lexical function definitions for type.
+    #define lexical_lossy_format_radix_from_range(type)                         \
+        extern                                                                  \
+        lexical_result_type(type)                                               \
+        lexical_ato##type##_lossy_format_radix(                                 \
+            uint8_t const* first,                                               \
+            uint8_t const* last,                                                \
+            uint8_t radix,                                                      \
+            uint32_t format                                                     \
+        )
+
+    // Declare extern lossy, partial, format from lexical function definitions for type.
+    #define lexical_lossy_partial_format_radix_from_range(type)                 \
+        extern                                                                  \
+        lexical_partial_result_type(type)                                       \
+        lexical_ato##type##_partial_lossy_format_radix(                         \
+            uint8_t const* first,                                               \
+            uint8_t const* last,                                                \
+            uint8_t radix,                                                      \
+            uint32_t format                                                     \
+        )
+
+    // Declare extern from lexical lossy function definitions.
+    #ifdef HAVE_RADIX
+        #define lexical_from_lexical_lossy_format(type)                         \
+            lexical_lossy_format_decimal_from_range(type);                      \
+            lexical_lossy_partial_format_decimal_from_range(type);              \
+            lexical_lossy_format_radix_from_range(type);                        \
+            lexical_lossy_partial_format_radix_from_range(type)
+    #else   // !HAVE_RADIX
+        #define lexical_from_lexical_lossy_format(type)                         \
+            lexical_lossy_format_decimal_from_range(type);                      \
+            lexical_lossy_partial_format_decimal_from_range(type)
+    #endif  // HAVE_RADIX
+
+#endif  // HAVE_FORMAT
+
 // ATOF
 lexical_from_lexical(f32);
 lexical_from_lexical(f64);
@@ -604,11 +2070,34 @@ lexical_to_lexical(u32);
 lexical_to_lexical(u64);
 lexical_to_lexical(usize);
 
+#ifdef HAVE_FORMAT
+    // ATOF
+    lexical_from_lexical_format(f32);
+    lexical_from_lexical_format(f64);
+    lexical_from_lexical_lossy_format(f32);
+    lexical_from_lexical_lossy_format(f64);
+
+    // ATOI
+    lexical_from_lexical_format(i8);
+    lexical_from_lexical_format(i16);
+    lexical_from_lexical_format(i32);
+    lexical_from_lexical_format(i64);
+    lexical_from_lexical_format(isize);
+
+    lexical_from_lexical_format(u8);
+    lexical_from_lexical_format(u16);
+    lexical_from_lexical_format(u32);
+    lexical_from_lexical_format(u64);
+    lexical_from_lexical_format(usize);
+#endif  // HAVE_FORMAT
+
 // CLEANUP
 // -------
 
 #undef lexical_static_assert
 #undef lexical_type
+#undef lexical_digit_separator_to_flags
+#undef lexical_digit_separator_from_flags
 #undef lexical_is_error
 #undef lexical_result_union_type
 #undef lexical_result_union
@@ -633,6 +2122,16 @@ lexical_to_lexical(usize);
 #undef lexical_lossy_radix_from_range
 #undef lexical_lossy_partial_radix_from_range
 #undef lexical_from_lexical_lossy
+#undef lexical_format_decimal_from_range
+#undef lexical_partial_format_decimal_from_range
+#undef lexical_format_radix_from_range
+#undef lexical_partial_format_radix_from_range
+#undef lexical_from_lexical_format
+#undef lexical_lossy_format_decimal_from_range
+#undef lexical_lossy_partial_format_decimal_from_range
+#undef lexical_lossy_radix_from_range
+#undef lexical_lossy_partial_radix_from_range
+#undef lexical_from_lexical_lossy_format
 
 #ifdef __cplusplus
 }

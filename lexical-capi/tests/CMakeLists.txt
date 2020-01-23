@@ -20,6 +20,7 @@ set_target_properties(lexical PROPERTIES IMPORTED_LOCATION "${RELEASE_DIR}/${LIB
 # Check for symbols within the lexical library.
 include(CheckFunctionExists)
 list(APPEND CMAKE_REQUIRED_LIBRARIES lexical)
+check_function_exists(lexical_atou8_format HAVE_FORMAT)
 check_function_exists(lexical_get_exponent_backup_char HAVE_RADIX)
 check_function_exists(lexical_get_float_rounding HAVE_ROUNDING)
 
@@ -33,6 +34,11 @@ add_executable(lexical_cpp_test
 )
 
 # DEFINITIONS
+if(HAVE_FORMAT)
+    target_compile_definitions(lexical_c_test PRIVATE HAVE_FORMAT=1)
+    target_compile_definitions(lexical_cpp_test PRIVATE HAVE_FORMAT=1)
+endif()
+
 if(HAVE_RADIX)
     target_compile_definitions(lexical_c_test PRIVATE HAVE_RADIX=1)
     target_compile_definitions(lexical_cpp_test PRIVATE HAVE_RADIX=1)
