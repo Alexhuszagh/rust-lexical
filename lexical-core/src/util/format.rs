@@ -741,16 +741,16 @@ if #[cfg(not(feature = "format"))] {
         }
     }
 
-    /// Serialize digit separator to flags.
+    /// Convert digit separator to flags.
     #[inline]
     const fn digit_separator_to_flags(ch: u8) -> u32 {
         (ch as u32) << 24
     }
 
-    /// Serialize digit separator to flags.
+    /// Extract digit separator from flags.
     #[inline]
-    const fn digit_separator_from_flags(ch: u32) -> u8 {
-        (ch >> 24) as u8
+    const fn digit_separator_from_flags(flag: u32) -> u8 {
+        (flag >> 24) as u8
     }
 
     // BITFLAGS
