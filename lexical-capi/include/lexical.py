@@ -248,37 +248,37 @@ if HAVE_FORMAT:
 
         # MASKS
 
-        RequiredDigits                      = (
+        RequiredDigits = (
             RequiredIntegerDigits
             | RequiredFractionDigits
             | RequiredExponentDigits
         )
 
-        InternalDigitSeparator              = (
+        InternalDigitSeparator = (
             IntegerInternalDigitSeparator
             | FractionInternalDigitSeparator
             | ExponentInternalDigitSeparator
         )
 
-        LeadingDigitSeparator               = (
+        LeadingDigitSeparator = (
             IntegerLeadingDigitSeparator
             | FractionLeadingDigitSeparator
             | ExponentLeadingDigitSeparator
         )
 
-        TrailingDigitSeparator              = (
+        TrailingDigitSeparator = (
             IntegerTrailingDigitSeparator
             | FractionTrailingDigitSeparator
             | ExponentTrailingDigitSeparator
         )
 
-        ConsecutiveDigitSeparator           = (
+        ConsecutiveDigitSeparator = (
             IntegerConsecutiveDigitSeparator
             | FractionConsecutiveDigitSeparator
             | ExponentConsecutiveDigitSeparator
         )
 
-        DigitSeparatorFlagMask              = (
+        DigitSeparatorFlagMask = (
             InternalDigitSeparator
             | LeadingDigitSeparator
             | TrailingDigitSeparator
@@ -286,28 +286,28 @@ if HAVE_FORMAT:
             | SpecialDigitSeparator
         )
 
-        IntegerDigitSeparatorFlagMask       = (
+        IntegerDigitSeparatorFlagMask = (
             IntegerInternalDigitSeparator
             | IntegerLeadingDigitSeparator
             | IntegerTrailingDigitSeparator
             | IntegerConsecutiveDigitSeparator
         )
 
-        FractionDigitSeparatorFlagMask      = (
+        FractionDigitSeparatorFlagMask = (
             FractionInternalDigitSeparator
             | FractionLeadingDigitSeparator
             | FractionTrailingDigitSeparator
             | FractionConsecutiveDigitSeparator
         )
 
-        ExponentDigitSeparatorFlagMask      = (
+        ExponentDigitSeparatorFlagMask = (
             ExponentInternalDigitSeparator
             | ExponentLeadingDigitSeparator
             | ExponentTrailingDigitSeparator
             | ExponentConsecutiveDigitSeparator
         )
 
-        ExponentFlagMask                    = (
+        ExponentFlagMask = (
             RequiredExponentDigits
             | NoPositiveExponentSign
             | RequiredExponentSign
@@ -318,7 +318,7 @@ if HAVE_FORMAT:
             | ExponentConsecutiveDigitSeparator
         )
 
-        InterfaceFlagMask                   = (
+        InterfaceFlagMask = (
             RequiredDigits
             | NoExponentNotation
             | NoPositiveExponentSign
@@ -330,7 +330,7 @@ if HAVE_FORMAT:
             | ConsecutiveDigitSeparator
         )
 
-        FlagMask                            = (
+        FlagMask = (
             RequiredDigits
             | NoPositiveMantissaSign
             | RequiredMantissaSign
