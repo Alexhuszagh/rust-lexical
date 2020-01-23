@@ -70,7 +70,7 @@ def run_suite(features):
 def main():
     '''Run the main code block.'''
 
-    feature_list = ['radix', 'rounding']
+    feature_list = ['format', 'radix', 'rounding']
     for length in range(len(feature_list)+1):
         for features in it.combinations(feature_list, length):
             run_suite(features)
