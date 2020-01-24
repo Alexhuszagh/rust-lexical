@@ -24,11 +24,11 @@ if #[cfg(feature = "format")] {
 }}
 
 // Re-export interface and traits.
-pub(super) use standard::*;
-pub(super) use traits::*;
+pub(super) use self::standard::*;
+pub(super) use self::traits::*;
 
 cfg_if! {
 if #[cfg(feature = "format")] {
-    pub(super) use permissive::*;
+    pub(super) use self::permissive::*;
     // TODO(ahuszagh) Add more here...
 }}
