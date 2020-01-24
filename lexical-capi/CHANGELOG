@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.7.1] 2020-01-23
 ### Added
+- Added `format` feature to control parsing integers and floats from number specifications.
+- Added the `NumberFormat` bitflags to control Number format specifications. These flags control how a number is parsed, including enabling the use of digit separators, requiring integer or fraction digits, and more.
 - Added more values to `ErrorCode` to signify more parse failures.
 
 ### Changed

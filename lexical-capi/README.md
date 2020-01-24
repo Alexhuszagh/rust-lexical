@@ -61,6 +61,14 @@ if lexical.HAVE_RADIX:
     # Parse 64-bit integer from string in hexadecimal, `10`.
     print(lexical.atoi64_radix('A', 16))
 
+if lexical.HAVE_FORMAT:
+    # Parse 64-bit integer from string in binary with digit separators, `10`.
+    format = lexical.NumberFormat.ignore(b'_')
+    print(lexical.atoi64_format('1_0', format))
+
+    # Parse 64-bit float from string in binary with digit separators, `10.51`.
+    print(lexical.atof64_format('1_0.5_1', format))
+
 # PARTIAL PARSERS
 
 # While parsing, it's frequently required to identify the substring to
@@ -81,6 +89,13 @@ if lexical.HAVE_RADIX:
 
     # Parse 64-bit integer from string in hexadecimal, `(10, 1)`.
     print(lexical.atoi64_partial_radix('AG', 16))
+
+if lexical.HAVE_FORMAT:
+    # Parse 64-bit integer from string in binary with digit separators, (`10`, 3).
+    print(lexical.atoi64_partial_format('1_0a', format))
+
+    # Parse 64-bit float from string in binary with digit separators, (`10.51`, 7).
+    print(lexical.atof64_partial_format('1_0.5_1a', format))
 ```
 
 # CMake
@@ -121,6 +136,7 @@ Next, determine the features the binary supports (`HAVE_RADIX` and `HAVE_ROUNDIN
 ```cmake
 include(CheckFunctionExists)
 list(APPEND CMAKE_REQUIRED_LIBRARIES lexical)
+check_function_exists(lexical_atou8_format HAVE_FORMAT)
 check_function_exists(lexical_get_exponent_backup_char HAVE_RADIX)
 check_function_exists(lexical_get_float_rounding HAVE_ROUNDING)
 ```
@@ -130,6 +146,11 @@ Finally, add the include directories, library path, and compile definitions to a
 ```cmake
 target_link_libraries(target lexical)
 target_include_directories(target PRIVATE "path/to/liblexical-capi/include")
+
+if(HAVE_FORMAT)
+    target_compile_definitions(target PRIVATE HAVE_FORMAT=1)
+endif()
+
 if(HAVE_RADIX)
     target_compile_definitions(target PRIVATE HAVE_RADIX=1)
 endif()
@@ -196,6 +217,13 @@ int main() {
         lx::parse_radix<uint64_t>("A", 16);
     #endif
 
+    #ifdef HAVE_FORMAT
+        // Parse 64-bit integer from string in binary with digit separators, 
+        // a result with value 10.
+        auto format = lx::number_format_ignore('_').unwrap();
+        lx::parse_format<uint64_t>("1_0", format);
+    #endif
+
     // PARTIAL PARSERS
 
     // While parsing, it's frequently required to identify the substring to
@@ -217,6 +245,13 @@ int main() {
 
         // Parse 64-bit integer from string in hexadecimal, a result with value std::tuple(10, 1).
         lx::parse_partial_radix<uint64_t>("AG", 16);
+    #endif
+
+    #ifdef HAVE_FORMAT
+        // Parse 64-bit integer from string in binary with digit separators, 
+        // a result with value `std::tuple(10, 3)`.
+        auto format = lx::number_format_ignore('_').unwrap();
+        lx::parse_partial_format<uint64_t>("1_0a", format);
     #endif
 
     return 0;
