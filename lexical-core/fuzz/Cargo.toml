@@ -7,11 +7,12 @@ publish = false
 [package.metadata]
 cargo-fuzz = true
 
-[dependencies.lexical-core]
-path = ".."
+[features]
+format = ["lexical-core/format"]
 
-[dependencies.libfuzzer-sys]
-git = "https://github.com/rust-fuzz/libfuzzer-sys.git"
+[dependencies]
+lexical-core = { path = ".." }
+libfuzzer-sys = "0.2.0"
 
 # Prevent this from interfering with workspaces
 [workspace]
