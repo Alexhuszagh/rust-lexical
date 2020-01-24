@@ -23,8 +23,7 @@ Fast lexical conversion routines for both std and no_std environments. Lexical p
 Add lexical to your `Cargo.toml`:
 
 ```toml
-[dependencies]
-lexical = "^4.0"
+lexical = "^4.1"
 ```
 
 And get started using lexical:
