@@ -14,16 +14,16 @@ pub(crate) trait FastDataInterfaceImpl<'a>: Sized {
     fn set_integer(&mut self, integer: &'a [u8]);
 
     /// Get fraction component of float.
-    fn fraction(&self) -> &'a [u8];
+    fn fraction(&self) -> Option<&'a [u8]>;
 
     /// Set fraction component of float.
-    fn set_fraction(&mut self, fraction: &'a [u8]);
+    fn set_fraction(&mut self, fraction: Option<&'a [u8]>);
 
     /// Get exponent component of float.
-    fn exponent(&self) -> &'a [u8];
+    fn exponent(&self) -> Option<&'a [u8]>;
 
     /// Set exponent component of float.
-    fn set_exponent(&mut self, exponent: &'a [u8]);
+    fn set_exponent(&mut self, exponent: Option<&'a [u8]>);
 
     /// Get raw exponent component of float.
     fn raw_exponent(&self) -> i32;
@@ -69,22 +69,22 @@ macro_rules! fast_data_interface_impl {
             }}
 
             perftools_inline!{
-            fn fraction(&self) -> &'a [u8] {
+            fn fraction(&self) -> Option<&'a [u8]> {
                 self.fraction
             }}
 
             perftools_inline!{
-            fn set_fraction(&mut self, fraction: &'a [u8]) {
+            fn set_fraction(&mut self, fraction: Option<&'a [u8]>) {
                 self.fraction = fraction
             }}
 
             perftools_inline!{
-            fn exponent(&self) -> &'a [u8] {
+            fn exponent(&self) -> Option<&'a [u8]> {
                 self.exponent
             }}
 
             perftools_inline!{
-            fn set_exponent(&mut self, exponent: &'a [u8]) {
+            fn set_exponent(&mut self, exponent: Option<&'a [u8]>) {
                 self.exponent = exponent
             }}
 
@@ -208,7 +208,7 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     {
         let digits = &index!(bytes[1..]);
         let result = self.consume_fraction_digits(digits, radix);
-        self.set_fraction(result.0);
+        self.set_fraction(Some(result.0));
         result.1
     }}
 
@@ -245,7 +245,7 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     perftools_inline!{
     fn trim(&mut self) {
         self.set_integer(self.ltrim_zero(self.integer()).0);
-        self.set_fraction(self.rtrim_zero(self.fraction()).0);
+        self.set_fraction(self.fraction().map(|x| self.rtrim_zero(x).0));
     }}
 
     /// Extract float subcomponents from input bytes.
@@ -288,8 +288,8 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
         // since we've trimmed leading 0s, then we have to trim
         // leading zeros to get to the start of the significant
         // digits in the fraction.
-        match self.integer_iter().next().is_none() {
-            true  => self.ltrim_zero(self.fraction()).1,
+        match self.integer().is_empty() {
+            true  => self.ltrim_zero(self.fraction().unwrap_or(&[])).1,
             false => 0,
         }
     }}
@@ -303,8 +303,8 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     #[cfg(test)]
     fn clear(&mut self) {
         self.set_integer(&[]);
-        self.set_fraction(&[]);
-        self.set_exponent(&[]);
+        self.set_fraction(None);
+        self.set_exponent(None);
         self.set_raw_exponent(0);
     }
 
@@ -362,8 +362,8 @@ macro_rules! fast_data_interface {
         pub(crate) struct $name<'a> {
             $( $field : $type, )*
             integer: &'a [u8],
-            fraction: &'a [u8],
-            exponent: &'a [u8],
+            fraction: Option<&'a [u8]>,
+            exponent: Option<&'a [u8]>,
             raw_exponent: i32
         }
 
@@ -391,12 +391,14 @@ macro_rules! fast_data_interface {
 
             perftools_inline!{
             fn fraction_iter(&self) -> Self::FractionIter {
-                $fraction_iter_fn(self.fraction, self.format().digit_separator())
+                let fraction = self.fraction.unwrap_or(&[]);
+                $fraction_iter_fn(fraction, self.format().digit_separator())
             }}
 
             perftools_inline!{
             fn exponent_iter(&self) -> Self::ExponentIter {
-                $exponent_iter_fn(self.exponent, self.format().digit_separator())
+                let exponent = self.exponent.unwrap_or(&[]);
+                $exponent_iter_fn(exponent, self.format().digit_separator())
             }}
 
             perftools_inline!{
@@ -475,7 +477,7 @@ macro_rules! fast_data_interface {
                     digits_start,
                     truncated_digits,
                     integer: self.integer,
-                    fraction: self.fraction,
+                    fraction: self.fraction.unwrap_or(&[]),
                     raw_exponent: self.raw_exponent
                 }
             }}

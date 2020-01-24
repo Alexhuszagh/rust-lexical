@@ -786,7 +786,7 @@ if #[cfg(not(feature = "format"))] {
         ///     F/R = Required fraction digits.
         ///     E/R = Required exponent digits.
         ///     +/M = No mantissa positive sign.
-        ///     R/M = No mantissa positive sign.
+        ///     R/M = Required positive sign.
         ///     e/e = No exponent notation.
         ///     +/E = No exponent positive sign.
         ///     R/E = Required exponent sign.
@@ -998,10 +998,12 @@ if #[cfg(not(feature = "format"))] {
             const REQUIRED_INTEGER_DIGITS               = 0b000000000000000000000001;
 
             /// Digits are required after the decimal point.
+            /// This check will only occur if the decimal point is present.
             #[doc(hidden)]
             const REQUIRED_FRACTION_DIGITS              = 0b000000000000000000000010;
 
             /// Digits are required after the exponent character.
+            /// This check will only occur if the exponent character is present.
             #[doc(hidden)]
             const REQUIRED_EXPONENT_DIGITS              = 0b000000000000000000000100;
 
@@ -1033,7 +1035,11 @@ if #[cfg(not(feature = "format"))] {
             #[doc(hidden)]
             const REQUIRED_EXPONENT_SIGN                = 0b000000000000000010000000;
 
-            /// Exponent without fraction is not allowed.
+            /// Exponent without a fraction component is not allowed.
+            ///
+            /// This only checks if a decimal point precedes the exponent character.
+            /// To require fraction digits or exponent digits with this check,
+            /// please use the appropriate flags.
             #[doc(hidden)]
             const NO_EXPONENT_WITHOUT_FRACTION          = 0b000000000000000100000000;
 
