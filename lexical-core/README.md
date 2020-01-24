@@ -9,6 +9,7 @@ Low-level, lexical conversion routines for use in a `no_std` context. This crate
 
 - [Getting Started](#getting-started)
 - [Features](#features)
+  - [Format](#format)
 - [Configuration](#configuration)
 - [Constants](#constants)
 - [Documentation](#documentation)
@@ -88,10 +89,204 @@ assert_eq!(slc, b"15.1");
     <blockquote>For example, <code>0.0f64</code> will be serialized to "0" and not "0.0", and <code>-0.0</code> as "0" and not "-0.0".</blockquote>
 - **radix** Allow conversions to and from non-decimal strings. 
     <blockquote>With radix enabled, any radix from 2 to 36 (inclusive) is valid, otherwise, only 10 is valid.</blockquote>
+- **format** Customize accepted inputs for number parsing.
+    <blockquote>With format enabled, the number format is dictated through the <code>NumberFormat</code> bitflags, which allow you to toggle how to parse a string into a number. Various flags including enabling digit separators, requiring integer or fraction digits, and toggling special values.</blockquote>
 - **rounding** Enable custom rounding for IEEE754 floats.
     <blockquote>By default, lexical uses round-nearest, tie-even for float rounding (recommended by IEE754).</blockquote>
 - **ryu** Use dtolnay's [ryu](https://github.com/dtolnay/ryu/) library for float-to-string conversions.
     <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. Ryu is ~2x as fast as other float formatters.</blockquote>
+
+
+## Format
+
+Every language has competing specifications for valid numerical input, meaning a number parser for Rust will incorrectly accept or reject input for different programming or data languages. For example:
+
+```rust
+extern crate lexical_core;
+
+use lexical_core::*;
+
+// Valid in Rust strings.
+// Not valid in JSON.
+let f: f64 = parse(b"3.e7").unwrap();                       // 3e7
+
+// Let's only accept JSON floats.
+let format = NumberFormat::JSON;
+let f: f64 = parse_format(b"3.0e7", format).unwrap();       // 3e7
+let f: f64 = parse_format(b"3.e7", format).unwrap();        // Panics!
+
+// We can also allow digit separators, for example.
+// OCaml, a programming language that inspired Rust,
+// accepts digit separators pretty much anywhere.
+let format = NumberFormat::OCAML_STRING;
+let f: f64 = parse(b"3_4.__0_1").unwrap();                  // Panics!
+let f: f64 = parse_format(b"3_4.__0_1", format).unwrap();   // 34.01
+```
+
+The parsing specification is defined by `NumberFormat`, which provides pre-defined constants for over 40 programming and data languages. However, it also allows you to create your own specification, to dictate parsing.
+
+```rust
+extern crate lexical_core;
+
+use lexical_core::*;
+
+// Let's use the standard, Rust grammar.
+let format = NumberFormat::standard().unwrap();
+
+// Let's use a permissive grammar, one that allows anything besides
+// digit separators.
+let format = NumberFormat::permissive().unwrap();
+
+// Let's ignore digit separators and have an otherwise permissive grammar.
+let format = NumberFormat::ignore(b'_').unwrap();
+
+// Create our own grammar.
+// A NumberFormat is compiled from options into binary flags, each
+// taking 1-bit, allowing high-performance, customizable parsing
+// once they're compiled. Each flag will be explained while defining it.
+
+// The '_' character will be used as a digit separator.
+let digit_separator = b'_';
+
+// Require digits in the integer component of a float.
+// `0.1` is valid, but `.1` is not.
+let required_integer_digits = false;
+
+// Require digits in the fraction component of a float.
+// `1.0` is valid, but `1.` and `1` are not.
+let required_fraction_digits = false;
+
+// Require digits in the exponent component of a float.
+// `1.0` and `1.0e7` is valid, but `1.0e` is not.
+let required_exponent_digits = false;
+
+// Do not allow a positive sign before the mantissa.
+// `1.0` and `-1.0` are valid, but `+1.0` is not.
+let no_positive_mantissa_sign = false;
+
+// Require a sign before the mantissa.
+// `+1.0` and `-1.0` are valid, but `1.0` is not.
+let required_mantissa_sign = false;
+
+// Do not allow the use of exponents.
+// `300.0` is valid, but `3.0e2` is not.
+let no_exponent_notation = false;
+
+// Do not allow a positive sign before the exponent.
+// `3.0e2` and 3.0e-2` are valid, but `3.0e+2` is not.
+let no_positive_exponent_sign = false;
+
+// Require a sign before the exponent.
+// `3.0e+2` and `3.0e-2` are valid, but `3.0e2` is not.
+let required_exponent_sign = false;
+
+// Do not allow an exponent without fraction digits.
+// `3.0e7` is valid, but `3e7` and `3.e7` are not.
+let no_exponent_without_fraction = false;
+
+// Do not allow special values.
+// `1.0` is valid, but `NaN` and `inf` are not.
+let no_special = false;
+
+// Use case-sensitive matching when parsing special values.
+// `NaN` is valid, but `nan` and `NAN` are not.
+let case_sensitive_special = false;
+
+// Allow digit separators between digits in the integer component.
+// `3_4.01` is valid, but `_34.01`, `34_.01` and `34.0_1` are not.
+let integer_internal_digit_separator = false;
+
+// Allow digit separators between digits in the fraction component.
+// `34.0_1` is valid, but `34._01`, `34.01_` and `3_4.01` are not.
+let fraction_internal_digit_separator = false;
+
+// Allow digit separators between digits in the exponent component.
+// `1.0e6_7` is valid, but `1.0e_67`, `1.0e67_` and `1_2.0e67` are not.
+let exponent_internal_digit_separator = false;
+
+// Allow digit separators before any digits in the integer component.
+// These digit separators may occur before or after the sign, as long
+// as they occur before any digits.
+// `_34.01` is valid, but `3_4.01`, `34_.01` and `34._01` are not.
+let integer_leading_digit_separator = false;
+
+// Allow digit separators before any digits in the fraction component.
+// `34._01` is valid, but `34.0_1`, `34.01_` and `_34.01` are not.
+let fraction_leading_digit_separator = false;
+
+// Allow digit separators before any digits in the exponent component.
+// These digit separators may occur before or after the sign, as long
+// as they occur before any digits.
+// `1.0e_67` is valid, but `1.0e6_7`, `1.0e67_` and `_1.0e67` are not.
+let exponent_leading_digit_separator = false;
+
+// Allow digit separators after any digits in the integer component.
+// If `required_integer_digits` is not set, `_.01` is valid.
+// `34_.01` is valid, but `3_4.01`, `_34.01` and `34.01_` are not.
+let integer_trailing_digit_separator = false;
+
+// Allow digit separators after any digits in the fraction component.
+// If `required_fraction_digits` is not set, `1._` is valid.
+// `34.01_` is valid, but `34.0_1`, `34._01` and `34_.01` are not.
+let fraction_trailing_digit_separator = false;
+
+// Allow digit separators after any digits in the exponent component.
+// If `required_exponent_digits` is not set, `1.0e_` is valid.
+// `1.0e67_` is valid, but `1.0e6_7`, `1.0e_67` and `1.0_e67` are not.
+let exponent_trailing_digit_separator = false;
+
+// Allow consecutive separators in the integer component.
+// This requires another integer digit separator flag to be set.
+// For example, if `integer_internal_digit_separator` and this flag are set,
+// `3__4.01` is valid, but `__34.01`, `34__.01` and `34.0__1` are not.
+let integer_consecutive_digit_separator = false;
+
+// Allow consecutive separators in the fraction component.
+// This requires another fraction digit separator flag to be set.
+// For example, if `fraction_internal_digit_separator` and this flag are set,
+// `34.0__1` is valid, but `34.__01`, `34.01__` and `3__4.01` are not.
+let fraction_consecutive_digit_separator = false;
+
+// Allow consecutive separators in the exponent component.
+// This requires another exponent digit separator flag to be set.
+// For example, if `exponent_internal_digit_separator` and this flag are set,
+// `1.0e6__7` is valid, but `1.0e__67`, `1.0e67__` and `1__2.0e67` are not.
+let exponent_consecutive_digit_separator = false;
+
+// Allow digit separators in special values.
+// If set, allow digit separators in special values will be ignored.
+// `N_a_N__` is valid, but `i_n_f_e` is not.
+let special_digit_separator = false;
+
+// Compile the grammar.
+let format = NumberFormat::compile(
+    digit_separator,
+    required_integer_digits,
+    required_fraction_digits,
+    required_exponent_digits,
+    no_positive_mantissa_sign,
+    required_mantissa_sign,
+    no_exponent_notation,
+    no_positive_exponent_sign,
+    required_exponent_sign,
+    no_exponent_without_fraction,
+    no_special,
+    case_sensitive_special,
+    integer_internal_digit_separator,
+    fraction_internal_digit_separator,
+    exponent_internal_digit_separator,
+    integer_leading_digit_separator,
+    fraction_leading_digit_separator,
+    exponent_leading_digit_separator,
+    integer_trailing_digit_separator,
+    fraction_trailing_digit_separator,
+    exponent_trailing_digit_separator,
+    integer_consecutive_digit_separator,
+    fraction_consecutive_digit_separator,
+    exponent_consecutive_digit_separator,
+    special_digit_separator
+).unwrap();
+```
 
 # Configuration
 

@@ -147,6 +147,9 @@ inline void set_exponent_default_char(uint8_t ch)
         flag_mask = ::lexical_flag_mask,
 
         // PRE-DEFINED
+        // Note:
+        //  The pre-defined enum definitions are the public API for
+        //  lexical_number_format.
         rust_literal = ::lexical_rust_literal,
         rust_string = ::lexical_rust_string,
         rust_string_strict = ::lexical_rust_string_strict,
