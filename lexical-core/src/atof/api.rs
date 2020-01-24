@@ -528,8 +528,8 @@ mod tests {
         assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b"e-1"));
 
         // Check various reports from a fuzzer.
-        assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), f64::from_lexical(b"0e"));
-        assert_eq!(Err((ErrorCode::EmptyExponent, 3).into()), f64::from_lexical(b"0.0e"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 2).into()), f64::from_lexical(b"0e"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 4).into()), f64::from_lexical(b"0.0e"));
         assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b".E"));
         assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b".e"));
         assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b"E2252525225"));
@@ -537,7 +537,7 @@ mod tests {
         assert_eq!(Ok(f64::INFINITY), f64::from_lexical(b"2E200000000000"));
 
         // Add various unittests from proptests.
-        assert_eq!(Err((ErrorCode::EmptyExponent, 1).into()), f64::from_lexical(b"0e"));
+        assert_eq!(Err((ErrorCode::EmptyExponent, 2).into()), f64::from_lexical(b"0e"));
         assert_eq!(Err((ErrorCode::EmptyMantissa, 0).into()), f64::from_lexical(b"."));
         assert_eq!(Err((ErrorCode::EmptyMantissa, 1).into()), f64::from_lexical(b"+."));
         assert_eq!(Err((ErrorCode::EmptyMantissa, 1).into()), f64::from_lexical(b"-."));
@@ -638,7 +638,7 @@ mod tests {
         assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"3.", format).is_err());
-        assert!(f64::from_lexical_format(b"3", format).is_err());
+        assert!(f64::from_lexical_format(b"3", format).is_ok());
     }
 
     #[test]
@@ -648,7 +648,7 @@ mod tests {
         assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"3.", format).is_err());
-        assert!(f64::from_lexical_format(b"3", format).is_err());
+        assert!(f64::from_lexical_format(b"3", format).is_ok());
         assert!(f64::from_lexical_format(b".0", format).is_err());
     }
 
@@ -726,6 +726,11 @@ mod tests {
     #[cfg(feature = "format")]
     fn f64_no_exponent_without_fraction_test() {
         let format = NumberFormat::NO_EXPONENT_WITHOUT_FRACTION;
+        assert!(f64::from_lexical_format(b"3.0e7", format).is_ok());
+        assert!(f64::from_lexical_format(b"3.e7", format).is_ok());
+        assert!(f64::from_lexical_format(b"3e7", format).is_err());
+
+        let format = format | NumberFormat::REQUIRED_FRACTION_DIGITS;
         assert!(f64::from_lexical_format(b"3.0e7", format).is_ok());
         assert!(f64::from_lexical_format(b"3.e7", format).is_err());
         assert!(f64::from_lexical_format(b"3e7", format).is_err());
@@ -843,6 +848,38 @@ mod tests {
         assert!(f64::from_lexical_format(b"31.01e7__1", format).is_ok());
         assert!(f64::from_lexical_format(b"31.01e_71", format).is_err());
         assert!(f64::from_lexical_format(b"31.01e71_", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_json_exponent_without_dot() {
+        // Tests courtesy of @ijl:
+        //  https://github.com/Alexhuszagh/rust-lexical/issues/24#issuecomment-578153783
+        let format = NumberFormat::JSON;
+        // JSONTestSuite/test_parsing/y_number_0e1.json
+        assert!(f64::from_lexical_format(b"0e1", format).is_ok());
+        // JSONTestSuite/test_parsing/y_number_int_with_exp.json
+        assert!(f64::from_lexical_format(b"20e1", format).is_ok());
+        // JSONTestSuite/test_parsing/y_number_real_capital_e_pos_exp.json
+        assert!(f64::from_lexical_format(b"1E+2", format).is_ok());
+        // JSONTestSuite/test_transform/number_1e-999.json
+        assert!(f64::from_lexical_format(b"1E-999", format).is_ok());
+        // nativejson-benchmark/data/jsonchecker/pass01.json
+        assert!(f64::from_lexical_format(b"23456789012E66", format).is_ok());
+    }
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_json_exponent_requires_digit() {
+        // Tests courtesy of @ijl:
+        //  https://github.com/Alexhuszagh/rust-lexical/issues/24#issuecomment-578153783
+        let format = NumberFormat::JSON;
+        assert!(f64::from_lexical_format(b"1e", format).is_err());
+        // JSONTestSuite/test_parsing/n_number_9.e+.json
+        assert!(f64::from_lexical_format(b"9.e+", format).is_err());
+        // JSONTestSuite/test_parsing/n_number_2.e-3.json
+        assert!(f64::from_lexical_format(b"2.e-3", format).is_err());
+        // JSONTestSuite/test_parsing/n_number_real_without_fractional_part.json
+        assert!(f64::from_lexical_format(b"1.", format).is_err());
     }
 
     #[cfg(feature = "std")]
