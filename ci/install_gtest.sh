@@ -1,7 +1,7 @@
 set -ex
 
 main() {
-    sudo apt-get install libgtest-dev
+    sudo apt-get install libgtest-dev -y
     cd /usr/src/gtest
     # We need super-user privileges to build in this directory,
     # however, travis only provides make and cmake in the local
