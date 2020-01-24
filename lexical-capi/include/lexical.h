@@ -370,6 +370,9 @@ enum lexical_error_code {
         ),
 
         // PRE-DEFINED
+        // Note:
+        //  The pre-defined enum definitions are the public API for
+        //  lexical_number_format.
 
         // Float format for a Rust literal floating-point number.
         lexical_rust_literal = (
