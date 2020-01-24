@@ -7,9 +7,18 @@ if [ -z $CI ] || [ ! -z $DISABLE_CROSS ]; then
     # Not on CI or explicitly disabled cross, use cargo
     CARGO=cargo
 else
-    # On CI, use cross
+    # On CI, use cross.
     CARGO=cross
     CARGO_TARGET="--target $TARGET"
+fi
+
+# Detect our Python command if we are on travis or not (so we can test locally).
+if [ -z $CI ]; then
+    # Not on CI, use latest Python3.
+    PYTHON3=python3
+else
+    # On CI, use python3.6.
+    PYTHON3=python3.6
 fi
 
 # Force default tests to disable default feature on NO_STD.
@@ -112,7 +121,7 @@ ffi_tests() {
         return
     fi
 
-    python3 runtests.py
+    $PYTHON3 runtests.py
 }
 
 # Run derive tests.

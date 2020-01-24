@@ -1,10 +1,16 @@
 # Travis configurations are partially derived from trust.
 # See ci/README.md for license information.
 
-dist: trusty
+dist: xenial
 language: rust
 services: docker
 sudo: required
+
+addons:
+  apt:
+    update: true
+    sources:
+    - deadsnakes
 
 matrix:
   include:
@@ -92,8 +98,8 @@ before_install:
   - rustup self update
 
 install:
-  # Build essential is already installed, so we just need Python3 and Googletest.
-  - if [ ! -z $ENABLE_DERIVE_TESTS ]; then sudo apt-get install python3 ; fi
+  # Build essential is already installed, so we just need Python3.6+ and Googletest.
+  - if [ ! -z $ENABLE_FFI_TESTS ]; then sudo apt-get install python3.6 -y ; fi
   - if [ ! -z $ENABLE_FFI_TESTS ]; then sh ci/install_gtest.sh ; fi
   # Install rust target and source the correct environment.
   - sh ci/install_rust.sh
