@@ -53,8 +53,8 @@ macro_rules! generic_data_interface {
                 Self {
                     format: format,
                     integer: &[],
-                    fraction: &[],
-                    exponent: &[],
+                    fraction: None,
+                    exponent: None,
                     raw_exponent: 0
                 }
             }
@@ -215,13 +215,13 @@ mod tests {
         let format = NumberFormat::from_separator(b'_');
         Generic::new(format).run_tests([
             // Valid
-            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
-            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
+            ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", None, Some(b!("-31")), -31))),
 
             // Invalid
-            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2", b"", 0))),
-            ("1_.2_345e+10", Ok(generic!(Generic, b"1", b"", b"", 0))),
-            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1", 1)))
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", Some(b!("2")), None, 0))),
+            ("1_.2_345e+10", Ok(generic!(Generic, b"1", None, None, 0))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", Some(b!("2345")), Some(b!("+1")), 1)))
         ].iter())
     }
 
@@ -232,13 +232,13 @@ mod tests {
             | NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK;
         Generic::new(format).run_tests([
             // Valid
-            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
-            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
-            ("1_.2_345e+10", Ok(generic!(Generic, b"1_", b"2", b"", 0))),
+            ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", None, Some(b!("-31")), -31))),
+            ("1_.2_345e+10", Ok(generic!(Generic, b"1_", Some(b!("2")), None, 0))),
 
             // Invalid
-            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2", b"", 0))),
-            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1", 1)))
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", Some(b!("2")), None, 0))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", Some(b!("2345")), Some(b!("+1")), 1)))
         ].iter())
     }
 
@@ -249,13 +249,13 @@ mod tests {
             | NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK;
         Generic::new(format).run_tests([
             // Valid
-            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
-            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
-            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2_345", b"e+10", 10))),
+            ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", None, Some(b!("-31")), -31))),
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", Some(b!("2_345")), Some(b!("+10")), 10))),
 
             // Invalid
-            ("1_.2_345e+10", Ok(generic!(Generic, b"1", b"", b"", 0))),
-            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1", 1)))
+            ("1_.2_345e+10", Ok(generic!(Generic, b"1", None, None, 0))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", Some(b!("2345")), Some(b!("+1")), 1)))
         ].iter())
     }
 
@@ -266,13 +266,13 @@ mod tests {
             | NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK;
         Generic::new(format).run_tests([
             // Valid
-            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
-            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
-            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1_0", 10))),
+            ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", None, Some(b!("-31")), -31))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", Some(b!("2345")), Some(b!("+1_0")), 10))),
 
             // Invalid
-            ("1_.2_345e+10", Ok(generic!(Generic, b"1", b"", b"", 0))),
-            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2", b"", 0)))
+            ("1_.2_345e+10", Ok(generic!(Generic, b"1", None, None, 0))),
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", Some(b!("2")), None, 0)))
         ].iter())
     }
 
@@ -284,13 +284,13 @@ mod tests {
             | NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK;
         Generic::new(format).run_tests([
             // Valid
-            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
-            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
-            ("1_.2_345e+10", Ok(generic!(Generic, b"1_", b"2_345", b"e+10", 10))),
-            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2_345", b"e+10", 10))),
+            ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", None, Some(b!("-31")), -31))),
+            ("1_.2_345e+10", Ok(generic!(Generic, b"1_", Some(b!("2_345")), Some(b!("+10")), 10))),
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", Some(b!("2_345")), Some(b!("+10")), 10))),
 
             // Invalid
-            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1", 1)))
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", Some(b!("2345")), Some(b!("+1")), 1)))
         ].iter())
     }
 
@@ -302,13 +302,13 @@ mod tests {
             | NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK;
         Generic::new(format).run_tests([
             // Valid
-            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
-            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
-            ("1_.2345e+10", Ok(generic!(Generic, b"1_", b"2345", b"e+10", 10))),
-            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1_0", 10))),
+            ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", None, Some(b!("-31")), -31))),
+            ("1_.2345e+10", Ok(generic!(Generic, b"1_", Some(b!("2345")), Some(b!("+10")), 10))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", Some(b!("2345")), Some(b!("+1_0")), 10))),
 
             // Invalid
-            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2", b"", 0)))
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", Some(b!("2")), None, 0)))
         ].iter())
     }
 
@@ -320,13 +320,13 @@ mod tests {
             | NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK;
         Generic::new(format).run_tests([
             // Valid
-            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
-            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
-            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2_345", b"e+10", 10))),
-            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1_0", 10))),
+            ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", None, Some(b!("-31")), -31))),
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", Some(b!("2_345")), Some(b!("+10")), 10))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", Some(b!("2345")), Some(b!("+1_0")), 10))),
 
             // Invalid
-            ("1_.2345e+10", Ok(generic!(Generic, b"1", b"", b"", 0)))
+            ("1_.2345e+10", Ok(generic!(Generic, b"1", None, None, 0)))
         ].iter())
     }
 
@@ -339,11 +339,11 @@ mod tests {
             | NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK;
         Generic::new(format).run_tests([
             // Valid
-            ("1.2345", Ok(generic!(Generic, b"1", b"2345", b"", 0))),
-            ("1009e-31", Ok(generic!(Generic, b"1009", b"", b"e-31", -31))),
-            ("1_.2345e+10", Ok(generic!(Generic, b"1_", b"2345", b"e+10", 0))),
-            ("1.2_345e+10", Ok(generic!(Generic, b"1", b"2_345", b"e+10", 10))),
-            ("1.2345e+1_0", Ok(generic!(Generic, b"1", b"2345", b"e+1_0", 10)))
+            ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
+            ("1009e-31", Ok(generic!(Generic, b"1009", None, Some(b!("-31")), -31))),
+            ("1_.2345e+10", Ok(generic!(Generic, b"1_", Some(b!("2345")), Some(b!("+10")), 0))),
+            ("1.2_345e+10", Ok(generic!(Generic, b"1", Some(b!("2_345")), Some(b!("+10")), 10))),
+            ("1.2345e+1_0", Ok(generic!(Generic, b"1", Some(b!("2345")), Some(b!("+1_0")), 10)))
         ].iter())
     }
 }
