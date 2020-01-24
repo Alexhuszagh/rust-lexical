@@ -103,13 +103,13 @@ mod tests {
     fn process_integer_test() {
         type Data<'a> = StandardFastDataInterface<'a>;
 
-        let data = (b!("1"), b!("2345"), b!(""), 0).into();
+        let data = (b!("1"), Some(b!("2345")), None, 0).into();
         assert_eq!(1.0, process_integer::<f64, Data>(&data, 10));
 
-        let data = (b!("12"), b!("345"), b!(""), 0).into();
+        let data = (b!("12"), Some(b!("345")), None, 0).into();
         assert_eq!(12.0, process_integer::<f64, Data>(&data, 10));
 
-        let data = (b!("12345"), b!("6789"), b!(""), 0).into();
+        let data = (b!("12345"), Some(b!("6789")), None, 0).into();
         assert_eq!(12345.0, process_integer::<f64, Data>(&data, 10));
     }
 
@@ -117,13 +117,13 @@ mod tests {
     fn process_fraction_test() {
         type Data<'a> = StandardFastDataInterface<'a>;
 
-        let data = (b!("1"), b!("2345"), b!(""), 0).into();
+        let data = (b!("1"), Some(b!("2345")), None, 0).into();
         assert_eq!(0.2345, process_fraction::<f64, Data>(&data, 10));
 
-        let data = (b!("12"), b!("345"), b!(""), 0).into();
+        let data = (b!("12"), Some(b!("345")), None, 0).into();
         assert_eq!(0.345, process_fraction::<f64, Data>(&data, 10));
 
-        let data = (b!("12345"), b!("6789"), b!(""), 0).into();
+        let data = (b!("12345"), Some(b!("6789")), None, 0).into();
         assert_eq!(0.6789, process_fraction::<f64, Data>(&data, 10));
     }
 

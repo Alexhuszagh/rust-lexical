@@ -33,7 +33,7 @@ Add lexical-core to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lexical-core = "^0.7"
+lexical-core = "^0.7.1"
 ```
 
 And an introduction through use:
