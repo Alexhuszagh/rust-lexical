@@ -106,19 +106,19 @@ pub(crate) fn atoi_format<'a, T>(bytes: &'a [u8], radix: u32, format: NumberForm
 // FROM LEXICAL
 // ------------
 
-from_lexical!(standalone_unsigned, u8);
-from_lexical!(standalone_unsigned, u16);
-from_lexical!(standalone_unsigned, u32);
-from_lexical!(standalone_unsigned, u64);
-from_lexical!(standalone_unsigned, usize);
-#[cfg(has_i128)] from_lexical!(standalone_unsigned, u128);
+from_lexical!(atoi, u8);
+from_lexical!(atoi, u16);
+from_lexical!(atoi, u32);
+from_lexical!(atoi, u64);
+from_lexical!(atoi, usize);
+#[cfg(has_i128)] from_lexical!(atoi, u128);
 
-from_lexical!(standalone_signed, i8);
-from_lexical!(standalone_signed, i16);
-from_lexical!(standalone_signed, i32);
-from_lexical!(standalone_signed, i64);
-from_lexical!(standalone_signed, isize);
-#[cfg(has_i128)] from_lexical!(standalone_signed, i128);
+from_lexical!(atoi, i8);
+from_lexical!(atoi, i16);
+from_lexical!(atoi, i32);
+from_lexical!(atoi, i64);
+from_lexical!(atoi, isize);
+#[cfg(has_i128)] from_lexical!(atoi, i128);
 
 cfg_if!{
 if #[cfg(feature = "format")] {
