@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] 2020-01-23
+### Added
+- Added `format` feature to control parsing integers and floats from number specifications.
+- Added the `NumberFormat` bitflags to control Number format specifications. These flags control how a number is parsed, including enabling the use of digit separators, requiring integer or fraction digits, and more.
+- Added more values to `ErrorCode` to signify more parse failures.
+
 ## [4.0.1] - 2019-10-08
 ### Changed
 - Forced version `0.1.9` for cfg-if to support older Rustc versions.
