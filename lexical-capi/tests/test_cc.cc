@@ -626,7 +626,7 @@ TEST(to_string, api_tests)
     EXPECT_EQ(result_ok<t>(10e5), parse<t>("10e5"));                            \
     EXPECT_EQ(result_empty_mantissa<t>(0), parse<t>("."));                      \
     EXPECT_EQ(result_empty_mantissa<t>(0), parse<t>("e5"));                     \
-    EXPECT_EQ(result_empty_exponent<t>(2), parse<t>("10e+"))
+    EXPECT_EQ(result_empty_exponent<t>(3), parse<t>("10e+"))
 
 TEST(parse, api_tests)
 {
@@ -661,7 +661,7 @@ TEST(parse, api_tests)
         EXPECT_EQ(result_ok<t>(10.5), parse_radix<t>("A.8", 16));               \
         EXPECT_EQ(result_empty_mantissa<t>(0), parse_radix<t>(".", 10));        \
         EXPECT_EQ(result_empty_mantissa<t>(0), parse_radix<t>("e5", 10));       \
-        EXPECT_EQ(result_empty_exponent<t>(2), parse_radix<t>("10e+", 10))
+        EXPECT_EQ(result_empty_exponent<t>(3), parse_radix<t>("10e+", 10))
 
     TEST(parse_radix, api_tests)
     {
@@ -694,7 +694,7 @@ TEST(parse, api_tests)
         EXPECT_EQ(result_ok<t>(10e5), parse_format<t>("10e5", FORMAT));         \
         EXPECT_EQ(result_empty_mantissa<t>(0), parse_format<t>(".", FORMAT));   \
         EXPECT_EQ(result_empty_mantissa<t>(0), parse_format<t>("e5", FORMAT));  \
-        EXPECT_EQ(result_empty_exponent<t>(2), parse_format<t>("10e+", FORMAT))
+        EXPECT_EQ(result_empty_exponent<t>(3), parse_format<t>("10e+", FORMAT))
 
     TEST(parse_format, api_tests)
     {
@@ -729,7 +729,7 @@ TEST(parse, api_tests)
             EXPECT_EQ(result_ok<t>(10.5), parse_format_radix<t>("A.8", 16, FORMAT));            \
             EXPECT_EQ(result_empty_mantissa<t>(0), parse_format_radix<t>(".", 10, FORMAT));     \
             EXPECT_EQ(result_empty_mantissa<t>(0), parse_format_radix<t>("e5", 10, FORMAT));    \
-            EXPECT_EQ(result_empty_exponent<t>(2), parse_format_radix<t>("10e+", 10, FORMAT))
+            EXPECT_EQ(result_empty_exponent<t>(3), parse_format_radix<t>("10e+", 10, FORMAT))
 
         TEST(parse_format_radix, api_tests)
         {
@@ -760,7 +760,7 @@ TEST(parse, api_tests)
     EXPECT_EQ(partial_result_ok<t>(10e5, 4), parse_partial<t>("10e5"));         \
     EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial<t>("."));      \
     EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial<t>("e5"));     \
-    EXPECT_EQ(partial_result_empty_exponent<t>(2), parse_partial<t>("10e+"))
+    EXPECT_EQ(partial_result_empty_exponent<t>(3), parse_partial<t>("10e+"))
 
 TEST(parse_partial, api_tests)
 {
@@ -795,7 +795,7 @@ TEST(parse_partial, api_tests)
         EXPECT_EQ(partial_result_ok<t>(10.5, 3), parse_partial_radix<t>("A.8", 16));        \
         EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_radix<t>(".", 10));    \
         EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_radix<t>("e5", 10));   \
-        EXPECT_EQ(partial_result_empty_exponent<t>(2), parse_partial_radix<t>("10e+", 10))
+        EXPECT_EQ(partial_result_empty_exponent<t>(3), parse_partial_radix<t>("10e+", 10))
 
     TEST(parse_partial_radix, api_tests)
     {
@@ -826,7 +826,7 @@ TEST(parse_partial, api_tests)
         EXPECT_EQ(partial_result_ok<t>(10e5, 4), parse_partial_format<t>("10e5", FORMAT));      \
         EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_format<t>(".", FORMAT));   \
         EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_format<t>("e5", FORMAT));  \
-        EXPECT_EQ(partial_result_empty_exponent<t>(2), parse_partial_format<t>("10e+", FORMAT))
+        EXPECT_EQ(partial_result_empty_exponent<t>(3), parse_partial_format<t>("10e+", FORMAT))
 
     TEST(parse_partial_format, api_tests)
     {
@@ -860,7 +860,7 @@ TEST(parse_partial, api_tests)
             EXPECT_EQ(partial_result_ok<t>(10.5, 3), parse_partial_format_radix<t>("A.8", 16, FORMAT));         \
             EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_format_radix<t>(".", 10, FORMAT));     \
             EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_format_radix<t>("e5", 10, FORMAT));    \
-            EXPECT_EQ(partial_result_empty_exponent<t>(2), parse_partial_format_radix<t>("10e+", 10, FORMAT))
+            EXPECT_EQ(partial_result_empty_exponent<t>(3), parse_partial_format_radix<t>("10e+", 10, FORMAT))
 
         TEST(parse_partial_format_radix, api_tests)
         {
@@ -893,7 +893,7 @@ TEST(parse_partial, api_tests)
     EXPECT_EQ(result_ok<t>(10e5), parse_lossy<t>("10e5"));                      \
     EXPECT_EQ(result_empty_mantissa<t>(0), parse_lossy<t>("."));                \
     EXPECT_EQ(result_empty_mantissa<t>(0), parse_lossy<t>("e5"));               \
-    EXPECT_EQ(result_empty_exponent<t>(2), parse_lossy<t>("10e+"))
+    EXPECT_EQ(result_empty_exponent<t>(3), parse_lossy<t>("10e+"))
 
 TEST(parse_lossy, api_tests)
 {
@@ -913,7 +913,7 @@ TEST(parse_lossy, api_tests)
         EXPECT_EQ(result_ok<t>(10e5), parse_lossy_radix<t>("10e5", 10));            \
         EXPECT_EQ(result_empty_mantissa<t>(0), parse_lossy_radix<t>(".", 10));      \
         EXPECT_EQ(result_empty_mantissa<t>(0), parse_lossy_radix<t>("e5", 10));     \
-        EXPECT_EQ(result_empty_exponent<t>(2), parse_lossy_radix<t>("10e+", 10))
+        EXPECT_EQ(result_empty_exponent<t>(3), parse_lossy_radix<t>("10e+", 10))
 
     TEST(parse_lossy_radix, api_tests)
     {
@@ -934,7 +934,7 @@ TEST(parse_lossy, api_tests)
         EXPECT_EQ(result_ok<t>(10e5), parse_lossy_format<t>("10e5", FORMAT));           \
         EXPECT_EQ(result_empty_mantissa<t>(0), parse_lossy_format<t>(".", FORMAT));     \
         EXPECT_EQ(result_empty_mantissa<t>(0), parse_lossy_format<t>("e5", FORMAT));    \
-        EXPECT_EQ(result_empty_exponent<t>(2), parse_lossy_format<t>("10e+", FORMAT))
+        EXPECT_EQ(result_empty_exponent<t>(3), parse_lossy_format<t>("10e+", FORMAT))
 
     TEST(parse_lossy_format, api_tests)
     {
@@ -954,7 +954,7 @@ TEST(parse_lossy, api_tests)
             EXPECT_EQ(result_ok<t>(10e5), parse_lossy_format_radix<t>("10e5", 10, FORMAT));         \
             EXPECT_EQ(result_empty_mantissa<t>(0), parse_lossy_format_radix<t>(".", 10, FORMAT));   \
             EXPECT_EQ(result_empty_mantissa<t>(0), parse_lossy_format_radix<t>("e5", 10, FORMAT));  \
-            EXPECT_EQ(result_empty_exponent<t>(2), parse_lossy_format_radix<t>("10e+", 10, FORMAT))
+            EXPECT_EQ(result_empty_exponent<t>(3), parse_lossy_format_radix<t>("10e+", 10, FORMAT))
 
         TEST(parse_lossy_format_radix, api_tests)
         {
@@ -975,7 +975,7 @@ TEST(parse_lossy, api_tests)
     EXPECT_EQ(partial_result_ok<t>(10e5, 4), parse_partial_lossy<t>("10e5"));               \
     EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_lossy<t>("."));            \
     EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_lossy<t>("e5"));           \
-    EXPECT_EQ(partial_result_empty_exponent<t>(2), parse_partial_lossy<t>("10e+"))
+    EXPECT_EQ(partial_result_empty_exponent<t>(3), parse_partial_lossy<t>("10e+"))
 
 TEST(parse_partial_lossy, api_tests)
 {
@@ -995,7 +995,7 @@ TEST(parse_partial_lossy, api_tests)
         EXPECT_EQ(partial_result_ok<t>(10e5, 4), parse_partial_lossy_radix<t>("10e5", 10));     \
         EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_lossy_radix<t>(".", 10));  \
         EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_lossy_radix<t>("e5", 10)); \
-        EXPECT_EQ(partial_result_empty_exponent<t>(2), parse_partial_lossy_radix<t>("10e+", 10))
+        EXPECT_EQ(partial_result_empty_exponent<t>(3), parse_partial_lossy_radix<t>("10e+", 10))
 
     TEST(parse_partial_lossy_radix, api_tests)
     {
@@ -1016,7 +1016,7 @@ TEST(parse_partial_lossy, api_tests)
         EXPECT_EQ(partial_result_ok<t>(10e5, 4), parse_partial_lossy_format<t>("10e5", FORMAT));        \
         EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_lossy_format<t>(".", FORMAT));     \
         EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_lossy_format<t>("e5", FORMAT));    \
-        EXPECT_EQ(partial_result_empty_exponent<t>(2), parse_partial_lossy_format<t>("10e+", FORMAT))
+        EXPECT_EQ(partial_result_empty_exponent<t>(3), parse_partial_lossy_format<t>("10e+", FORMAT))
 
     TEST(parse_partial_lossy_format, api_tests)
     {
@@ -1036,7 +1036,7 @@ TEST(parse_partial_lossy, api_tests)
             EXPECT_EQ(partial_result_ok<t>(10e5, 4), parse_partial_lossy_format_radix<t>("10e5", 10, FORMAT));      \
             EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_lossy_format_radix<t>(".", 10, FORMAT));   \
             EXPECT_EQ(partial_result_empty_mantissa<t>(0), parse_partial_lossy_format_radix<t>("e5", 10, FORMAT));  \
-            EXPECT_EQ(partial_result_empty_exponent<t>(2), parse_partial_lossy_format_radix<t>("10e+", 10, FORMAT))
+            EXPECT_EQ(partial_result_empty_exponent<t>(3), parse_partial_lossy_format_radix<t>("10e+", 10, FORMAT))
 
         TEST(parse_partial_lossy_format_radix, api_tests)
         {
