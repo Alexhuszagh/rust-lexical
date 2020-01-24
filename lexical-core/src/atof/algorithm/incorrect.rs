@@ -1,7 +1,7 @@
 //! Incorrect, fast algorithms for string-to-float conversions.
 
-use crate::atoi;
-use crate::util::*;
+use atoi;
+use util::*;
 use super::format::*;
 
 // FRACTION

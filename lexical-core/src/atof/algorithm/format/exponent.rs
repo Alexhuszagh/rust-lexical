@@ -1,8 +1,8 @@
 //! Utilities to parse, extract, and interpret exponent components.
 
-use crate::atoi;
-use crate::lib::slice;
-use crate::util::*;
+use atoi;
+use lib::slice;
+use util::*;
 use super::traits::*;
 
 /// The actual float-type doesn't matter, it just needs to be used for
@@ -301,21 +301,20 @@ pub(super) fn extract_exponent_separator<'a, Data>(data: &mut Data, bytes: &'a [
     -> &'a [u8]
     where Data: FastDataInterface<'a>
 {
-    const I: NumberFormat = NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR;
-    const L: NumberFormat = NumberFormat::EXPONENT_LEADING_DIGIT_SEPARATOR;
-    const T: NumberFormat = NumberFormat::EXPONENT_TRAILING_DIGIT_SEPARATOR;
-    const C: NumberFormat = NumberFormat::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
-    const IL: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | L.bits());
-    const IT: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | T.bits());
-    const LT: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | T.bits());
-    const ILT: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | T.bits());
-    const IC: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | C.bits());
-    const LC: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | C.bits());
-    const TC: NumberFormat = NumberFormat::from_bits_truncate(T.bits() | C.bits());
-    const ILC: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | C.bits());
-    const ITC: NumberFormat = NumberFormat::from_bits_truncate(IT.bits() | C.bits());
-    const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
-    const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
+    const I: NumberFormat = NumberFormat::EXPONENT_I;
+    const L: NumberFormat = NumberFormat::EXPONENT_L;
+    const T: NumberFormat = NumberFormat::EXPONENT_T;
+    const IL: NumberFormat = NumberFormat::EXPONENT_IL;
+    const IT: NumberFormat = NumberFormat::EXPONENT_IT;
+    const LT: NumberFormat = NumberFormat::EXPONENT_LT;
+    const ILT: NumberFormat = NumberFormat::EXPONENT_ILT;
+    const IC: NumberFormat = NumberFormat::EXPONENT_IC;
+    const LC: NumberFormat = NumberFormat::EXPONENT_LC;
+    const TC: NumberFormat = NumberFormat::EXPONENT_TC;
+    const ILC: NumberFormat = NumberFormat::EXPONENT_ILC;
+    const ITC: NumberFormat = NumberFormat::EXPONENT_ITC;
+    const LTC: NumberFormat = NumberFormat::EXPONENT_LTC;
+    const ILTC: NumberFormat = NumberFormat::EXPONENT_ILTC;
 
     let digit_separator = format.digit_separator();
     match format & NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK {

@@ -2,8 +2,8 @@
 //!
 //! Uses either the imprecise or the precise algorithm.
 
-use crate::lib::slice;
-use crate::util::*;
+use lib::slice;
+use util::*;
 
 // Select the back-end
 cfg_if! {

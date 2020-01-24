@@ -77,7 +77,7 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use crate::util::*;
+use util::*;
 use super::shared::*;
 
 // STANDALONE
@@ -277,21 +277,20 @@ pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFo
     -> ParseResult<(V, *const u8)>
     where V: Integer
 {
-    const I: NumberFormat = NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
-    const L: NumberFormat = NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
-    const T: NumberFormat = NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
-    const C: NumberFormat = NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
-    const IL: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | L.bits());
-    const IT: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | T.bits());
-    const LT: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | T.bits());
-    const ILT: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | T.bits());
-    const IC: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | C.bits());
-    const LC: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | C.bits());
-    const TC: NumberFormat = NumberFormat::from_bits_truncate(T.bits() | C.bits());
-    const ILC: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | C.bits());
-    const ITC: NumberFormat = NumberFormat::from_bits_truncate(IT.bits() | C.bits());
-    const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
-    const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
+    const I: NumberFormat = NumberFormat::INTEGER_I;
+    const L: NumberFormat = NumberFormat::INTEGER_L;
+    const T: NumberFormat = NumberFormat::INTEGER_T;
+    const IL: NumberFormat = NumberFormat::INTEGER_IL;
+    const IT: NumberFormat = NumberFormat::INTEGER_IT;
+    const LT: NumberFormat = NumberFormat::INTEGER_LT;
+    const ILT: NumberFormat = NumberFormat::INTEGER_ILT;
+    const IC: NumberFormat = NumberFormat::INTEGER_IC;
+    const LC: NumberFormat = NumberFormat::INTEGER_LC;
+    const TC: NumberFormat = NumberFormat::INTEGER_TC;
+    const ILC: NumberFormat = NumberFormat::INTEGER_ILC;
+    const ITC: NumberFormat = NumberFormat::INTEGER_ITC;
+    const LTC: NumberFormat = NumberFormat::INTEGER_LTC;
+    const ILTC: NumberFormat = NumberFormat::INTEGER_ILTC;
 
     let digit_separator = format.digit_separator();
     match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {
@@ -321,11 +320,13 @@ pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFo
 // This is the same as the u128 divisor, so don't duplicate the values
 // there.
 perftools_inline_always!{
+#[cfg(has_i128)]
 fn step_u64(radix: u32) -> usize {
     u128_divisor(radix).1
 }}
 
 // Add 64-bit temporary to the 128-bit value.
+#[cfg(has_i128)]
 macro_rules! add_temporary_128 {
     ($value:ident, $tmp:ident, $step_power:ident, $ptr:expr, $op:ident, $code:ident) => (
         if !$value.is_zero() {
@@ -342,6 +343,7 @@ macro_rules! add_temporary_128 {
 }
 
 /// Iterate over the digits and iteratively process them.
+#[cfg(has_i128)]
 macro_rules! parse_digits_u128 {
     ($value:ident, $iter:ident, $radix:ident, $step:ident, $op:ident, $code:ident) => ({
         // Break the input into chunks of len `step`, which can be parsed
@@ -379,6 +381,7 @@ macro_rules! parse_digits_u128 {
 
 // Quickly parse digits using a 64-bit intermediate for the 128-bit atoi processor.
 perftools_inline_always!{
+#[cfg(has_i128)]
 fn parse_digits_128_fast<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, sign: Sign)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
@@ -391,6 +394,7 @@ fn parse_digits_128_fast<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, 
 
 // Slowly parse digits for the 128-bit atoi processor.
 perftools_inline_always!{
+#[cfg(has_i128)]
 fn parse_digits_128_slow<'a, T, Iter>(digits: &[u8], mut iter: Iter, radix: u32, step: usize, sign: Sign)
     -> ParseResult<(T, *const u8)>
     where T: Integer,
@@ -414,6 +418,7 @@ fn parse_digits_128_slow<'a, T, Iter>(digits: &[u8], mut iter: Iter, radix: u32,
 // This is a similar approach to what we take in the arbitrary-precision
 // arithmetic.
 perftools_inline_always!{
+#[cfg(has_i128)]
 fn parse_digits_128<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, sign: Sign)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
@@ -435,6 +440,7 @@ fn parse_digits_128<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, sign:
 
 // Standalone atoi processor for 128-bit integers without a digit separator.
 perftools_inline_always!{
+#[cfg(has_i128)]
 fn standalone_128<W, N>(bytes: &[u8], radix: u32)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
@@ -448,7 +454,7 @@ fn standalone_128<W, N>(bytes: &[u8], radix: u32)
 // Standalone atoi processor for 128-bit integers with digit separators.
 // Consumes leading, internal, trailing, and consecutive digit separators.
 perftools_inline_always!{
-#[cfg(feature = "format")]
+#[cfg(all(has_i128, feature = "format"))]
 fn standalone_128_iltc<W, N>(bytes: &[u8], radix: u32, digit_separator: u8)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
@@ -472,7 +478,7 @@ macro_rules! standalone_atoi_128_separator {
         consume => $consume:ident
     ) => (
         perftools_inline!{
-        #[cfg(feature = "format")]
+        #[cfg(all(has_i128, feature = "format"))]
         fn $name<W, N>(
             bytes: &[u8],
             radix: u32,
@@ -578,6 +584,7 @@ standalone_atoi_128_separator!(
 
 // Standalone atoi processor for u128 without a digit separator.
 perftools_inline_always!{
+#[cfg(has_i128)]
 pub(crate) fn standalone_128_no_separator<W, N>(bytes: &[u8], radix: u32)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
@@ -588,27 +595,26 @@ pub(crate) fn standalone_128_no_separator<W, N>(bytes: &[u8], radix: u32)
 
 // Extract exponent with a digit separator in the exponent component.
 perftools_inline_always!{
-#[cfg(feature = "format")]
+#[cfg(all(has_i128, feature = "format"))]
 pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], radix: u32, format: NumberFormat)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
           N: Integer
 {
-    const I: NumberFormat = NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
-    const L: NumberFormat = NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
-    const T: NumberFormat = NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
-    const C: NumberFormat = NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
-    const IL: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | L.bits());
-    const IT: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | T.bits());
-    const LT: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | T.bits());
-    const ILT: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | T.bits());
-    const IC: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | C.bits());
-    const LC: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | C.bits());
-    const TC: NumberFormat = NumberFormat::from_bits_truncate(T.bits() | C.bits());
-    const ILC: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | C.bits());
-    const ITC: NumberFormat = NumberFormat::from_bits_truncate(IT.bits() | C.bits());
-    const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
-    const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
+    const I: NumberFormat = NumberFormat::INTEGER_I;
+    const L: NumberFormat = NumberFormat::INTEGER_L;
+    const T: NumberFormat = NumberFormat::INTEGER_T;
+    const IL: NumberFormat = NumberFormat::INTEGER_IL;
+    const IT: NumberFormat = NumberFormat::INTEGER_IT;
+    const LT: NumberFormat = NumberFormat::INTEGER_LT;
+    const ILT: NumberFormat = NumberFormat::INTEGER_ILT;
+    const IC: NumberFormat = NumberFormat::INTEGER_IC;
+    const LC: NumberFormat = NumberFormat::INTEGER_LC;
+    const TC: NumberFormat = NumberFormat::INTEGER_TC;
+    const ILC: NumberFormat = NumberFormat::INTEGER_ILC;
+    const ITC: NumberFormat = NumberFormat::INTEGER_ITC;
+    const LTC: NumberFormat = NumberFormat::INTEGER_LTC;
+    const ILTC: NumberFormat = NumberFormat::INTEGER_ILTC;
 
     let digit_separator = format.digit_separator();
     match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {

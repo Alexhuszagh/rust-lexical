@@ -1,6 +1,6 @@
 //! Permissive float-parsing data interface.
 
-use crate::util::*;
+use util::*;
 use super::exponent::*;
 use super::traits::*;
 use super::trim::*;

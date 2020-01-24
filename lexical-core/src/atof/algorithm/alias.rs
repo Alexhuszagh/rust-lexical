@@ -1,7 +1,7 @@
 //! Aliases and traits to simplify float-parsing.
 
-use crate::float::*;
-use crate::util::*;
+use float::*;
+use util::*;
 use super::bignum::ToBigfloat;
 use super::errors::FloatErrors;
 

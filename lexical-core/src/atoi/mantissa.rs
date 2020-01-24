@@ -1,6 +1,6 @@
 //! String-to-integer routines specialized to parse the mantissa of a float.
 
-use crate::util::*;
+use util::*;
 
 #[cfg(feature = "correct")]
 use super::shared::*;
