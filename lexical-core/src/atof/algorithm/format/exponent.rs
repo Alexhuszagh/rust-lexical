@@ -74,7 +74,7 @@ fn extract_and_parse_exponent<'a, Data, Iter>(
     unsafe {
         // Extract the exponent subslice.
         let first = bytes.as_ptr();
-        data.set_exponent(slice::from_raw_parts(first, distance(first, ptr)));
+        data.set_exponent(Some(slice::from_raw_parts(first, distance(first, ptr))));
 
         // Return the remaining bytes.
         let last = index!(bytes[bytes.len()..]).as_ptr();
@@ -90,25 +90,21 @@ perftools_inline!{
 fn parse_exponent<'a, Data>(
     data: &mut Data,
     bytes: &'a [u8],
-    digits: &'a [u8],
+    leading: &'a [u8],
     trailing: &'a [u8],
     radix: u32,
     digit_separator: u8,
     sign: Sign
 )
-    -> &'a [u8]
     where Data: FastDataInterface<'a>
 {
     // Get an iterator over our digits and sign bits, and parse the exponent.
-    let digits_len = digits.len() - trailing.len();
-    let iter = iterate_digits_ignore_separator(&index!(digits[..digits_len]), digit_separator);
+    let iter = iterate_digits_ignore_separator(leading, digit_separator);
 
     // Parse the exponent and store the extracted digits.
     let bytes_len = bytes.len() - trailing.len();
     data.set_raw_exponent(atoi::standalone_exponent(iter, radix, sign).0);
-    data.set_exponent(&index!(bytes[..bytes_len]));
-
-    trailing
+    data.set_exponent(Some(&index!(bytes[..bytes_len])));
 }}
 
 // PARSE THEN EXTRACT
@@ -132,8 +128,8 @@ fn extract_exponent<'a, Data>(
     where Data: FastDataInterface<'a>
 {
     // Remove leading exponent character and parse exponent.
-    let digits = &index!(bytes[1..]);
-    let (sign, digits) = parse_sign_no_separator::<FloatType>(digits, digit_separator);
+    let bytes = &index!(bytes[1..]);
+    let (sign, digits) = parse_sign_no_separator::<FloatType>(bytes, digit_separator);
     let iter = iterate_digits_no_separator(digits, digit_separator);
     extract_and_parse_exponent(data, iter, bytes, radix, sign)
 }}
@@ -153,8 +149,8 @@ fn extract_exponent_iltc<'a, Data>(
 {
     // Remove leading exponent character and parse exponent.
     // We're not calling `consumed()`, so it's fine to have trailing underscores.
-    let digits = &index!(bytes[1..]);
-    let (sign, digits) = parse_sign_lc_separator::<FloatType>(digits, digit_separator);
+    let bytes = &index!(bytes[1..]);
+    let (sign, digits) = parse_sign_lc_separator::<FloatType>(bytes, digit_separator);
     let iter = iterate_digits_ignore_separator(digits, digit_separator);
     extract_and_parse_exponent(data, iter, bytes, radix, sign)
 }}
@@ -186,11 +182,12 @@ macro_rules! extract_exponent_separator {
             -> &'a [u8]
             where Data: FastDataInterface<'a>
         {
-            let digits = &index!(bytes[1..]);
-            let (sign, digits) = $sign::<FloatType>(digits, digit_separator);
-            let trailing = $consume(digits, radix, digit_separator).1;
+            let bytes = &index!(bytes[1..]);
+            let (sign, digits) = $sign::<FloatType>(bytes, digit_separator);
+            let (leading, trailing) = $consume(digits, radix, digit_separator);
+            parse_exponent(data, bytes, leading, trailing, radix, digit_separator, sign);
 
-            parse_exponent(data, bytes, digits, trailing, radix, digit_separator, sign)
+            trailing
         }}
     );
 }
@@ -388,13 +385,13 @@ mod test {
         type Data<'a> = StandardFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::standard().unwrap());
         extract_exponent(&mut data, b"e+23", 10, b'_');
-        assert_eq!(data.exponent(), b"e+23");
+        assert_eq!(data.exponent(), Some(b!("+23")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::standard().unwrap());
         extract_exponent(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
     }
 
@@ -405,25 +402,25 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_iltc(&mut data, b"e__+__2__3____", 10, b'_');
-        assert_eq!(data.exponent(), b"e__+__2__3____");
+        assert_eq!(data.exponent(), Some(b!("__+__2__3____")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows present exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_iltc(&mut data, b"e__+_2_3_", 10, b'_');
-        assert_eq!(data.exponent(), b"e__+_2_3_");
+        assert_eq!(data.exponent(), Some(b!("__+_2_3_")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows present exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_iltc(&mut data, b"e_+__2_3_", 10, b'_');
-        assert_eq!(data.exponent(), b"e_+__2_3_");
+        assert_eq!(data.exponent(), Some(b!("_+__2_3_")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_iltc(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
     }
 
@@ -434,25 +431,25 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_i(&mut data, b"e+2_3", 10, b'_');
-        assert_eq!(data.exponent(), b"e+2_3");
+        assert_eq!(data.exponent(), Some(b!("+2_3")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_i(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_i(&mut data, b"e+_2_3", 10, b'_');
-        assert_eq!(data.exponent(), b"e+");
+        assert_eq!(data.exponent(), Some(b!("+")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_i(&mut data, b"e+2__3", 10, b'_');
-        assert_eq!(data.exponent(), b"e+2");
+        assert_eq!(data.exponent(), Some(b!("+2")));
         assert_eq!(data.raw_exponent(), 2);
     }
 
@@ -463,25 +460,25 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ic(&mut data, b"e+2__3", 10, b'_');
-        assert_eq!(data.exponent(), b"e+2__3");
+        assert_eq!(data.exponent(), Some(b!("+2__3")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ic(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ic(&mut data, b"e+_2_3", 10, b'_');
-        assert_eq!(data.exponent(), b"e+");
+        assert_eq!(data.exponent(), Some(b!("+")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ic(&mut data, b"e_+2__3", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
     }
 
@@ -492,25 +489,25 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_l(&mut data, b"e+_23", 10, b'_');
-        assert_eq!(data.exponent(), b"e+_23");
+        assert_eq!(data.exponent(), Some(b!("+_23")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_l(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_l(&mut data, b"e+_2_3", 10, b'_');
-        assert_eq!(data.exponent(), b"e+_2");
+        assert_eq!(data.exponent(), Some(b!("+_2")));
         assert_eq!(data.raw_exponent(), 2);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_l(&mut data, b"e_+__2__3", 10, b'_');
-        assert_eq!(data.exponent(), b"e_+");
+        assert_eq!(data.exponent(), Some(b!("_+")));
         assert_eq!(data.raw_exponent(), 0);
     }
 
@@ -521,25 +518,25 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_lc(&mut data, b"e+__23", 10, b'_');
-        assert_eq!(data.exponent(), b"e+__23");
+        assert_eq!(data.exponent(), Some(b!("+__23")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_lc(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_lc(&mut data, b"e+_2_3", 10, b'_');
-        assert_eq!(data.exponent(), b"e+_2");
+        assert_eq!(data.exponent(), Some(b!("+_2")));
         assert_eq!(data.raw_exponent(), 2);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_lc(&mut data, b"e_+__2__3", 10, b'_');
-        assert_eq!(data.exponent(), b"e_+__2");
+        assert_eq!(data.exponent(), Some(b!("_+__2")));
         assert_eq!(data.raw_exponent(), 2);
     }
 
@@ -550,25 +547,25 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_t(&mut data, b"e+23_", 10, b'_');
-        assert_eq!(data.exponent(), b"e+23_");
+        assert_eq!(data.exponent(), Some(b!("+23_")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_t(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_t(&mut data, b"e+23__", 10, b'_');
-        assert_eq!(data.exponent(), b"e+23");
+        assert_eq!(data.exponent(), Some(b!("+23")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_t(&mut data, b"e_+__2__3", 10, b'_');
-        assert_eq!(data.exponent(), b"e_");
+        assert_eq!(data.exponent(), Some(b!("_")));
         assert_eq!(data.raw_exponent(), 0);
     }
 
@@ -579,25 +576,25 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_tc(&mut data, b"e+23__", 10, b'_');
-        assert_eq!(data.exponent(), b"e+23__");
+        assert_eq!(data.exponent(), Some(b!("+23__")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_tc(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_tc(&mut data, b"e+_2_3", 10, b'_');
-        assert_eq!(data.exponent(), b"e+");
+        assert_eq!(data.exponent(), Some(b!("+")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_tc(&mut data, b"e_+__2__3", 10, b'_');
-        assert_eq!(data.exponent(), b"e_");
+        assert_eq!(data.exponent(), Some(b!("_")));
         assert_eq!(data.raw_exponent(), 0);
     }
 
@@ -608,25 +605,25 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_il(&mut data, b"e+_2_3", 10, b'_');
-        assert_eq!(data.exponent(), b"e+_2_3");
+        assert_eq!(data.exponent(), Some(b!("+_2_3")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_il(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_il(&mut data, b"e+23__", 10, b'_');
-        assert_eq!(data.exponent(), b"e+23");
+        assert_eq!(data.exponent(), Some(b!("+23")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_il(&mut data, b"e+2__3__", 10, b'_');
-        assert_eq!(data.exponent(), b"e+2");
+        assert_eq!(data.exponent(), Some(b!("+2")));
         assert_eq!(data.raw_exponent(), 2);
     }
 
@@ -637,25 +634,25 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ilc(&mut data, b"e+__2__3", 10, b'_');
-        assert_eq!(data.exponent(), b"e+__2__3");
+        assert_eq!(data.exponent(), Some(b!("+__2__3")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ilc(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ilc(&mut data, b"e+23__", 10, b'_');
-        assert_eq!(data.exponent(), b"e+23");
+        assert_eq!(data.exponent(), Some(b!("+23")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ilc(&mut data, b"e+2__3__", 10, b'_');
-        assert_eq!(data.exponent(), b"e+2__3");
+        assert_eq!(data.exponent(), Some(b!("+2__3")));
         assert_eq!(data.raw_exponent(), 23);
     }
 
@@ -666,25 +663,25 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_it(&mut data, b"e+2_3_", 10, b'_');
-        assert_eq!(data.exponent(), b"e+2_3_");
+        assert_eq!(data.exponent(), Some(b!("+2_3_")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_it(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_it(&mut data, b"e+_23", 10, b'_');
-        assert_eq!(data.exponent(), b"e+");
+        assert_eq!(data.exponent(), Some(b!("+")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_it(&mut data, b"e+2__3__", 10, b'_');
-        assert_eq!(data.exponent(), b"e+2");
+        assert_eq!(data.exponent(), Some(b!("+2")));
         assert_eq!(data.raw_exponent(), 2);
     }
 
@@ -695,25 +692,25 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_itc(&mut data, b"e+2__3__", 10, b'_');
-        assert_eq!(data.exponent(), b"e+2__3__");
+        assert_eq!(data.exponent(), Some(b!("+2__3__")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_itc(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_itc(&mut data, b"e+_23", 10, b'_');
-        assert_eq!(data.exponent(), b"e+");
+        assert_eq!(data.exponent(), Some(b!("+")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_itc(&mut data, b"e_+2__3__", 10, b'_');
-        assert_eq!(data.exponent(), b"e_");
+        assert_eq!(data.exponent(), Some(b!("_")));
         assert_eq!(data.raw_exponent(), 0);
     }
 
@@ -724,25 +721,25 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_lt(&mut data, b"e_+_23_", 10, b'_');
-        assert_eq!(data.exponent(), b"e_+_23_");
+        assert_eq!(data.exponent(), Some(b!("_+_23_")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_lt(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_lt(&mut data, b"e+2_3", 10, b'_');
-        assert_eq!(data.exponent(), b"e+2");
+        assert_eq!(data.exponent(), Some(b!("+2")));
         assert_eq!(data.raw_exponent(), 2);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_lt(&mut data, b"e__+__2__3__", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
     }
 
     #[test]
@@ -752,25 +749,25 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ltc(&mut data, b"e__+__23__", 10, b'_');
-        assert_eq!(data.exponent(), b"e__+__23__");
+        assert_eq!(data.exponent(), Some(b!("__+__23__")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ltc(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ltc(&mut data, b"e+2_3", 10, b'_');
-        assert_eq!(data.exponent(), b"e+2");
+        assert_eq!(data.exponent(), Some(b!("+2")));
         assert_eq!(data.raw_exponent(), 2);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ltc(&mut data, b"e__+__2__3__", 10, b'_');
-        assert_eq!(data.exponent(), b"e__+__2");
+        assert_eq!(data.exponent(), Some(b!("__+__2")));
         assert_eq!(data.raw_exponent(), 2);
     }
 
@@ -781,23 +778,23 @@ mod test {
         type Data<'a> = IgnoreFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ilt(&mut data, b"e_+_2_3_", 10, b'_');
-        assert_eq!(data.exponent(), b"e_+_2_3_");
+        assert_eq!(data.exponent(), Some(b!("_+_2_3_")));
         assert_eq!(data.raw_exponent(), 23);
 
         // Allows absent exponents.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ilt(&mut data, b"e", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
         assert_eq!(data.raw_exponent(), 0);
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ilt(&mut data, b"e__+_2_3_", 10, b'_');
-        assert_eq!(data.exponent(), b"e");
+        assert_eq!(data.exponent(), Some(b!("")));
 
         // Ignores invalid data.
         let mut data = Data::new(NumberFormat::ignore(b'_').unwrap());
         extract_exponent_ilt(&mut data, b"e_+__2_3_", 10, b'_');
-        assert_eq!(data.exponent(), b"e_+");
+        assert_eq!(data.exponent(), Some(b!("_+")));
     }
 }
