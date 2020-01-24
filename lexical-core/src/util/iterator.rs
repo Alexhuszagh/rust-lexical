@@ -1,6 +1,6 @@
 //! Helper traits for iterators.
 
-use crate::lib::slice;
+use lib::slice;
 
 #[cfg(feature = "format")]
 use super::skip_value::*;

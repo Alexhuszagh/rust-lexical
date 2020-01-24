@@ -1,6 +1,6 @@
 //! Fast lexical string-to-integer conversion routines.
 
-use crate::util::*;
+use util::*;
 use super::generic::*;
 
 // ATOI TRAIT

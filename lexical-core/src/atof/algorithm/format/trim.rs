@@ -1,6 +1,6 @@
 //! Trim leading and trailing 0s and digit separators.
 
-use crate::util::*;
+use util::*;
 
 // TRIM
 

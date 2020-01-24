@@ -616,21 +616,20 @@ pub(crate) fn consume_digits_ignore_separator<'a>(bytes: &'a [u8], radix: u32, f
 pub(crate) fn consume_integer_digits_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> (&'a [u8], &'a [u8])
 {
-    const I: NumberFormat = NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
-    const L: NumberFormat = NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
-    const T: NumberFormat = NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
-    const C: NumberFormat = NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
-    const IL: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | L.bits());
-    const IT: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | T.bits());
-    const LT: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | T.bits());
-    const ILT: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | T.bits());
-    const IC: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | C.bits());
-    const LC: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | C.bits());
-    const TC: NumberFormat = NumberFormat::from_bits_truncate(T.bits() | C.bits());
-    const ILC: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | C.bits());
-    const ITC: NumberFormat = NumberFormat::from_bits_truncate(IT.bits() | C.bits());
-    const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
-    const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
+    const I: NumberFormat = NumberFormat::INTEGER_I;
+    const L: NumberFormat = NumberFormat::INTEGER_L;
+    const T: NumberFormat = NumberFormat::INTEGER_T;
+    const IL: NumberFormat = NumberFormat::INTEGER_IL;
+    const IT: NumberFormat = NumberFormat::INTEGER_IT;
+    const LT: NumberFormat = NumberFormat::INTEGER_LT;
+    const ILT: NumberFormat = NumberFormat::INTEGER_ILT;
+    const IC: NumberFormat = NumberFormat::INTEGER_IC;
+    const LC: NumberFormat = NumberFormat::INTEGER_LC;
+    const TC: NumberFormat = NumberFormat::INTEGER_TC;
+    const ILC: NumberFormat = NumberFormat::INTEGER_ILC;
+    const ITC: NumberFormat = NumberFormat::INTEGER_ITC;
+    const LTC: NumberFormat = NumberFormat::INTEGER_LTC;
+    const ILTC: NumberFormat = NumberFormat::INTEGER_ILTC;
 
     let digit_separator = format.digit_separator();
     match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {
@@ -658,21 +657,20 @@ pub(crate) fn consume_integer_digits_separator<'a>(bytes: &'a [u8], radix: u32, 
 pub(crate) fn consume_fraction_digits_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> (&'a [u8], &'a [u8])
 {
-    const I: NumberFormat = NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR;
-    const L: NumberFormat = NumberFormat::FRACTION_LEADING_DIGIT_SEPARATOR;
-    const T: NumberFormat = NumberFormat::FRACTION_TRAILING_DIGIT_SEPARATOR;
-    const C: NumberFormat = NumberFormat::FRACTION_CONSECUTIVE_DIGIT_SEPARATOR;
-    const IL: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | L.bits());
-    const IT: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | T.bits());
-    const LT: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | T.bits());
-    const ILT: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | T.bits());
-    const IC: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | C.bits());
-    const LC: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | C.bits());
-    const TC: NumberFormat = NumberFormat::from_bits_truncate(T.bits() | C.bits());
-    const ILC: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | C.bits());
-    const ITC: NumberFormat = NumberFormat::from_bits_truncate(IT.bits() | C.bits());
-    const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
-    const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
+    const I: NumberFormat = NumberFormat::FRACTION_I;
+    const L: NumberFormat = NumberFormat::FRACTION_L;
+    const T: NumberFormat = NumberFormat::FRACTION_T;
+    const IL: NumberFormat = NumberFormat::FRACTION_IL;
+    const IT: NumberFormat = NumberFormat::FRACTION_IT;
+    const LT: NumberFormat = NumberFormat::FRACTION_LT;
+    const ILT: NumberFormat = NumberFormat::FRACTION_ILT;
+    const IC: NumberFormat = NumberFormat::FRACTION_IC;
+    const LC: NumberFormat = NumberFormat::FRACTION_LC;
+    const TC: NumberFormat = NumberFormat::FRACTION_TC;
+    const ILC: NumberFormat = NumberFormat::FRACTION_ILC;
+    const ITC: NumberFormat = NumberFormat::FRACTION_ITC;
+    const LTC: NumberFormat = NumberFormat::FRACTION_LTC;
+    const ILTC: NumberFormat = NumberFormat::FRACTION_ILTC;
 
     let digit_separator = format.digit_separator();
     match format & NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK {

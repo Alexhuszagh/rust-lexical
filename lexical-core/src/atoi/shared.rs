@@ -1,9 +1,9 @@
 //! Shared definitions for string-to-integer conversions.
 
-use crate::lib::result::Result as StdResult;
+use lib::result::Result as StdResult;
 
 #[cfg(feature = "correct")]
-use crate::util::*;
+use util::*;
 
 // SHARED
 // ------

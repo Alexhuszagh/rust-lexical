@@ -1,6 +1,6 @@
 //! Parser result type.
 
-use crate::lib::result::Result as StdResult;
+use lib::result::Result as StdResult;
 use super::error::{Error, ErrorCode};
 
 /// A specialized Result type for lexical operations.

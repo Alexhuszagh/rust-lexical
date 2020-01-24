@@ -1,6 +1,6 @@
 //! Traits that provide format-dependent data for floating parsing algorithms.
 
-use crate::util::*;
+use util::*;
 
 #[cfg(feature = "correct")]
 use super::exponent::*;
@@ -244,8 +244,10 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     // otherwise, we may incorrect guess the mantissa or scientific exponent.
     perftools_inline!{
     fn trim(&mut self) {
-        self.set_integer(self.ltrim_zero(self.integer()).0);
-        self.set_fraction(self.rtrim_zero(self.fraction()).0);
+        let integer = self.ltrim_zero(self.integer()).0;
+        let fraction = self.rtrim_zero(self.fraction()).0;
+        self.set_integer(integer);
+        self.set_fraction(fraction);
     }}
 
     /// Extract float subcomponents from input bytes.
@@ -421,7 +423,8 @@ macro_rules! fast_data_interface {
             perftools_inline!{
             fn extract_exponent(&mut self, bytes: &'a [u8], radix: u32) -> &'a [u8]
             {
-                $extract_exponent(self, bytes, radix, self.format())
+                let format = self.format();
+                $extract_exponent(self, bytes, radix, format)
             }}
 
             perftools_inline!{

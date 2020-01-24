@@ -1,6 +1,6 @@
 //! Validate buffers and other information.
 
-use crate::util::*;
+use util::*;
 use super::traits::*;
 
 // MANTISSA

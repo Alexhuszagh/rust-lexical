@@ -11,7 +11,7 @@
 //! assert!(iter.eq([1, 5, 6, 7].iter()));
 //! ```
 
-use crate::lib::slice;
+use lib::slice;
 use super::iterator::*;
 
 /// Slice iterator that skips characters matching a given value.

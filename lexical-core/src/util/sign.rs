@@ -136,7 +136,7 @@ pub(crate) fn parse_sign<'a, T>(bytes: &'a [u8], format: NumberFormat)
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::util::test::*;
+    use util::test::*;
 
     #[test]
     fn parse_sign_no_separator_test() {
