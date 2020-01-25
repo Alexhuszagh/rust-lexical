@@ -14,7 +14,7 @@ lexical-derive/target
 lexical-test/target/
 **/*.rs.bk
 Cargo.lock
-data/test-float-parse/errors.txt
+data/test-parse-random/errors.txt
 /__pycache__
 /build
 *.pyc
