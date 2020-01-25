@@ -87,17 +87,41 @@ fn run_test(string: &str, hex: &str) {
     }
 }
 
-fn main() {
-    let mut test_path = data_dir();
-    test_path.push("test-strtod");
-    test_path.push("strtod_tests.toml");
-    let test_data = read_to_string(test_path).unwrap();
-    let tests: StrtodTests = toml::from_str(&test_data).unwrap();
-
+fn run_tests(tests: StrtodTests) {
+    let negative_tests_count = tests.negativeFormattingTests.len();
+    let formatting_tests_count = tests.FormattingTests.len();
+    let conversion_tests_count = tests.ConversionTests.len();
+    for test in tests.negativeFormattingTests {
+        assert!(lexical::parse::<f64, _>(test).is_err());
+    }
     for test in tests.FormattingTests {
         run_test(&test.str, &test.hex)
     }
     for test in tests.ConversionTests {
         run_test(&test.str, &test.hex)
+    }
+    println!("Ran {} negative tests.", negative_tests_count);
+    println!("Ran {} formatting tests.", formatting_tests_count);
+    println!("Ran {} conversion tests.", conversion_tests_count);
+    println!("");
+}
+
+fn parse_tests(name: &str) -> StrtodTests {
+    let mut test_path = data_dir();
+    test_path.push("test-parse-unittests");
+    test_path.push(name);
+    let test_data = read_to_string(test_path).unwrap();
+
+    toml::from_str(&test_data).unwrap()
+}
+
+fn main() {
+    let filenames = [
+        "strtod_tests.toml",
+        "rust_parse_tests.toml",
+    ];
+    for filename in filenames.iter() {
+        println!("Running Test: {}", filename);
+        run_tests(parse_tests(filename));
     }
 }
