@@ -33,11 +33,12 @@ pub fn starts_with_iter<'a, Iter1, Iter2>(mut l: Iter1, mut r: Iter2)
           Iter2: Iterator<Item=&'a u8>
 {
     loop {
-        let li = l.next();
+        // Only call `next()` on l if r is not None, otherwise,
+        // we may incorrectly consume an l character.
         let ri = r.next();
         if ri.is_none() {
             return (true, l);
-        } else if li != ri {
+        } else if l.next() != ri {
             return (false, l);
         }
     }
@@ -51,11 +52,10 @@ pub fn case_insensitive_starts_with_iter<'a, Iter1, Iter2>(mut l: Iter1, mut r: 
           Iter2: Iterator<Item=&'a u8>
 {
     loop {
-        let li = l.next().map(|x| x.to_ascii_lowercase());
         let ri = r.next().map(|x| x.to_ascii_lowercase());
         if ri.is_none() {
             return (true, l);
-        } else if li != ri {
+        } else if l.next().map(|x| x.to_ascii_lowercase()) != ri {
             return (false, l);
         }
     }
