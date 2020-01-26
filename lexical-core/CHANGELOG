@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.6] 2020-01-26
+### Changed
+- Updated the format bitflags to make matches more efficient, allowing jumptables to be used for most situations.
+
+## [0.6.5] 2020-01-25
+### Changed
+- Fixed a regression in parsing special values.
+
 ## [0.6.4] 2020-01-23
 ### Added
 - Added `format` feature to control parsing integers and floats from number specifications.

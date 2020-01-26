@@ -1058,13 +1058,49 @@ if #[cfg(not(feature = "format"))] {
             #[doc(hidden)]
             const INTEGER_INTERNAL_DIGIT_SEPARATOR      = 0b000000000000100000000000;
 
+            /// A digit separator is allowed before any integer digits.
+            #[doc(hidden)]
+            const INTEGER_LEADING_DIGIT_SEPARATOR       = 0b000000000001000000000000;
+
+            /// A digit separator is allowed after any integer digits.
+            #[doc(hidden)]
+            const INTEGER_TRAILING_DIGIT_SEPARATOR      = 0b000000000010000000000000;
+
+            /// Multiple consecutive integer digit separators are allowed.
+            #[doc(hidden)]
+            const INTEGER_CONSECUTIVE_DIGIT_SEPARATOR   = 0b000000000100000000000000;
+
             /// Digit separators are allowed between fraction digits.
             #[doc(hidden)]
-            const FRACTION_INTERNAL_DIGIT_SEPARATOR     = 0b000000000001000000000000;
+            const FRACTION_INTERNAL_DIGIT_SEPARATOR     = 0b000000001000000000000000;
+
+            /// A digit separator is allowed before any fraction digits.
+            #[doc(hidden)]
+            const FRACTION_LEADING_DIGIT_SEPARATOR      = 0b000000010000000000000000;
+
+            /// A digit separator is allowed after any fraction digits.
+            #[doc(hidden)]
+            const FRACTION_TRAILING_DIGIT_SEPARATOR     = 0b000000100000000000000000;
+
+            /// Multiple consecutive fraction digit separators are allowed.
+            #[doc(hidden)]
+            const FRACTION_CONSECUTIVE_DIGIT_SEPARATOR  = 0b000001000000000000000000;
 
             /// Digit separators are allowed between exponent digits.
             #[doc(hidden)]
-            const EXPONENT_INTERNAL_DIGIT_SEPARATOR     = 0b000000000010000000000000;
+            const EXPONENT_INTERNAL_DIGIT_SEPARATOR     = 0b000010000000000000000000;
+
+            /// A digit separator is allowed before any exponent digits.
+            #[doc(hidden)]
+            const EXPONENT_LEADING_DIGIT_SEPARATOR      = 0b000100000000000000000000;
+
+            /// A digit separator is allowed after any exponent digits.
+            #[doc(hidden)]
+            const EXPONENT_TRAILING_DIGIT_SEPARATOR     = 0b001000000000000000000000;
+
+            /// Multiple consecutive exponent digit separators are allowed.
+            #[doc(hidden)]
+            const EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR  = 0b010000000000000000000000;
 
             /// Digit separators are allowed between digits.
             #[doc(hidden)]
@@ -1074,18 +1110,6 @@ if #[cfg(not(feature = "format"))] {
                 | Self::EXPONENT_INTERNAL_DIGIT_SEPARATOR.bits
             );
 
-            /// A digit separator is allowed before any integer digits.
-            #[doc(hidden)]
-            const INTEGER_LEADING_DIGIT_SEPARATOR       = 0b000000000100000000000000;
-
-            /// A digit separator is allowed before any fraction digits.
-            #[doc(hidden)]
-            const FRACTION_LEADING_DIGIT_SEPARATOR      = 0b000000001000000000000000;
-
-            /// A digit separator is allowed before any exponent digits.
-            #[doc(hidden)]
-            const EXPONENT_LEADING_DIGIT_SEPARATOR      = 0b000000010000000000000000;
-
             /// A digit separator is allowed before any digits.
             #[doc(hidden)]
             const LEADING_DIGIT_SEPARATOR               = (
@@ -1093,18 +1117,6 @@ if #[cfg(not(feature = "format"))] {
                 | Self::FRACTION_LEADING_DIGIT_SEPARATOR.bits
                 | Self::EXPONENT_LEADING_DIGIT_SEPARATOR.bits
             );
-
-            /// A digit separator is allowed after any integer digits.
-            #[doc(hidden)]
-            const INTEGER_TRAILING_DIGIT_SEPARATOR      = 0b000000100000000000000000;
-
-            /// A digit separator is allowed after any fraction digits.
-            #[doc(hidden)]
-            const FRACTION_TRAILING_DIGIT_SEPARATOR     = 0b000001000000000000000000;
-
-            /// A digit separator is allowed after any exponent digits.
-            #[doc(hidden)]
-            const EXPONENT_TRAILING_DIGIT_SEPARATOR     = 0b000010000000000000000000;
 
             /// A digit separator is allowed after any digits.
             #[doc(hidden)]
@@ -1114,22 +1126,6 @@ if #[cfg(not(feature = "format"))] {
                 | Self::EXPONENT_TRAILING_DIGIT_SEPARATOR.bits
             );
 
-            /// Multiple consecutive integer digit separators are allowed.
-            #[doc(hidden)]
-            const INTEGER_CONSECUTIVE_DIGIT_SEPARATOR   = 0b000100000000000000000000;
-
-            /// Multiple consecutive fraction digit separators are allowed.
-            #[doc(hidden)]
-            const FRACTION_CONSECUTIVE_DIGIT_SEPARATOR  = 0b001000000000000000000000;
-
-            /// Multiple consecutive exponent digit separators are allowed.
-            #[doc(hidden)]
-            const EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR  = 0b010000000000000000000000;
-
-            /// Any digit separators are allowed in special (non-finite) values.
-            #[doc(hidden)]
-            const SPECIAL_DIGIT_SEPARATOR               = 0b100000000000000000000000;
-
             /// Multiple consecutive digit separators are allowed.
             #[doc(hidden)]
             const CONSECUTIVE_DIGIT_SEPARATOR           = (
@@ -1137,6 +1133,10 @@ if #[cfg(not(feature = "format"))] {
                 | Self::FRACTION_CONSECUTIVE_DIGIT_SEPARATOR.bits
                 | Self::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
+
+            /// Any digit separators are allowed in special (non-finite) values.
+            #[doc(hidden)]
+            const SPECIAL_DIGIT_SEPARATOR               = 0b100000000000000000000000;
 
             // PRE-DEFINED
             //
@@ -2159,17 +2159,17 @@ if #[cfg(not(feature = "format"))] {
     check_subsequent_flags!(flags8; NO_EXPONENT_WITHOUT_FRACTION, NO_SPECIAL);
     check_subsequent_flags!(flags9; NO_SPECIAL, CASE_SENSITIVE_SPECIAL);
     check_subsequent_flags!(flags10; CASE_SENSITIVE_SPECIAL, INTEGER_INTERNAL_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags11; INTEGER_INTERNAL_DIGIT_SEPARATOR, FRACTION_INTERNAL_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags12; FRACTION_INTERNAL_DIGIT_SEPARATOR, EXPONENT_INTERNAL_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags13; EXPONENT_INTERNAL_DIGIT_SEPARATOR, INTEGER_LEADING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags14; INTEGER_LEADING_DIGIT_SEPARATOR, FRACTION_LEADING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags15; FRACTION_LEADING_DIGIT_SEPARATOR, EXPONENT_LEADING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags16; EXPONENT_LEADING_DIGIT_SEPARATOR, INTEGER_TRAILING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags17; INTEGER_TRAILING_DIGIT_SEPARATOR, FRACTION_TRAILING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags18; FRACTION_TRAILING_DIGIT_SEPARATOR, EXPONENT_TRAILING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags19; EXPONENT_TRAILING_DIGIT_SEPARATOR, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags20; INTEGER_CONSECUTIVE_DIGIT_SEPARATOR, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags21; FRACTION_CONSECUTIVE_DIGIT_SEPARATOR, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags11; INTEGER_INTERNAL_DIGIT_SEPARATOR, INTEGER_LEADING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags12; INTEGER_LEADING_DIGIT_SEPARATOR, INTEGER_TRAILING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags13; INTEGER_TRAILING_DIGIT_SEPARATOR, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags14; INTEGER_CONSECUTIVE_DIGIT_SEPARATOR, FRACTION_INTERNAL_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags15; FRACTION_INTERNAL_DIGIT_SEPARATOR, FRACTION_LEADING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags16; FRACTION_LEADING_DIGIT_SEPARATOR, FRACTION_TRAILING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags17; FRACTION_TRAILING_DIGIT_SEPARATOR, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags18; FRACTION_CONSECUTIVE_DIGIT_SEPARATOR, EXPONENT_INTERNAL_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags19; EXPONENT_INTERNAL_DIGIT_SEPARATOR, EXPONENT_LEADING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags20; EXPONENT_LEADING_DIGIT_SEPARATOR, EXPONENT_TRAILING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags21; EXPONENT_TRAILING_DIGIT_SEPARATOR, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
     check_subsequent_flags!(flags22; EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPARATOR);
 
     /// Add flag to flags
