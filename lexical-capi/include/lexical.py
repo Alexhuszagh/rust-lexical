@@ -233,16 +233,16 @@ if HAVE_FORMAT:
         NoSpecial                           = 0b000000000000001000000000
         CaseSensitiveSpecial                = 0b000000000000010000000000
         IntegerInternalDigitSeparator       = 0b000000000000100000000000
-        FractionInternalDigitSeparator      = 0b000000000001000000000000
-        ExponentInternalDigitSeparator      = 0b000000000010000000000000
-        IntegerLeadingDigitSeparator        = 0b000000000100000000000000
-        FractionLeadingDigitSeparator       = 0b000000001000000000000000
-        ExponentLeadingDigitSeparator       = 0b000000010000000000000000
-        IntegerTrailingDigitSeparator       = 0b000000100000000000000000
-        FractionTrailingDigitSeparator      = 0b000001000000000000000000
-        ExponentTrailingDigitSeparator      = 0b000010000000000000000000
-        IntegerConsecutiveDigitSeparator    = 0b000100000000000000000000
-        FractionConsecutiveDigitSeparator   = 0b001000000000000000000000
+        IntegerLeadingDigitSeparator        = 0b000000000001000000000000
+        IntegerTrailingDigitSeparator       = 0b000000000010000000000000
+        IntegerConsecutiveDigitSeparator    = 0b000000000100000000000000
+        FractionInternalDigitSeparator      = 0b000000001000000000000000
+        FractionLeadingDigitSeparator       = 0b000000010000000000000000
+        FractionTrailingDigitSeparator      = 0b000000100000000000000000
+        FractionConsecutiveDigitSeparator   = 0b000001000000000000000000
+        ExponentInternalDigitSeparator      = 0b000010000000000000000000
+        ExponentLeadingDigitSeparator       = 0b000100000000000000000000
+        ExponentTrailingDigitSeparator      = 0b001000000000000000000000
         ExponentConsecutiveDigitSeparator   = 0b010000000000000000000000
         SpecialDigitSeparator               = 0b100000000000000000000000
 
