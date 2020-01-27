@@ -1514,6 +1514,7 @@ class ErrorCode(enum.Enum):
     InvalidPositiveExponentSign = -12
     MissingExponentSign = -13
     ExponentWithoutFraction = -14
+    InvalidLeadingZeros = -15
 
 class Error(Structure):
     '''C-compatible error for FFI.'''
@@ -1575,6 +1576,9 @@ class Error(Structure):
     def is_exponent_without_fraction(self):
         return self.code == ErrorCode.ExponentWithoutFraction
 
+    def is_invalid_leading_zeros(self):
+        return self.code == ErrorCode.InvalidLeadingZeros
+
 class LexicalError(Exception):
     '''Python-native exception raised during errors in lexical parsing.'''
 
@@ -1611,6 +1615,8 @@ class LexicalError(Exception):
             return 'Missing required sign for exponent, starting at index {}'.format(self.error.index)
         elif code == ErrorCode.ExponentWithoutFraction:
             return 'Exponent found without fraction, starting at index {}'.format(self.error.index)
+        elif code == ErrorCode.InvalidPositiveExponentSign:
+            return 'Number was found with invalid leading zeros at index {}'.format(self.error.index)
         else:
             raise ValueError('Invalid ErrorCode for lexical error.')
 

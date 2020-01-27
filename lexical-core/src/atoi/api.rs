@@ -313,6 +313,17 @@ mod tests {
 
     #[test]
     #[cfg(feature = "format")]
+    fn i32_no_leading_zeros_test() {
+        let format = NumberFormat::NO_LEADING_ZEROS;
+        assert!(i32::from_lexical_format(b"1", format).is_ok());
+        assert!(i32::from_lexical_format(b"0", format).is_ok());
+        assert!(i32::from_lexical_format(b"01", format).is_err());
+        assert!(i32::from_lexical_format(b"10", format).is_ok());
+        assert!(i32::from_lexical_format(b"010", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
     fn i32_integer_internal_digit_separator_test() {
         let format = NumberFormat::from_separator(b'_') | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
         assert!(i32::from_lexical_format(b"3_1", format).is_ok());

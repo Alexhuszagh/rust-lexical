@@ -51,6 +51,27 @@ fn option_as_ptr(option: Option<&[u8]>) -> *const u8
 
 // MANTISSA
 
+// Validate the extracted integer has no leading zeros.
+perftools_inline!{
+#[cfg(feature = "format")]
+pub(super) fn validate_no_leading_zeros<'a, Data>(data: &Data)
+    -> ParseResult<()>
+    where Data: FastDataInterface<'a>
+{
+    // Check if the next character is a sign symbol.
+    let mut iter = data.integer_iter();
+    match iter.next() {
+        Some(&b'0')     => (),
+        _               => return Ok(())
+    };
+
+    // Only here if we have a leading 0 symbol.
+    match iter.next() {
+        Some(_) => Err((ErrorCode::InvalidLeadingZeros, data.integer().as_ptr())),
+        None    => Ok(())
+    }
+}}
+
 // Validate the extracted mantissa float components.
 //      1. Validate non-empty significant digits (integer or fraction).
 perftools_inline!{
@@ -127,6 +148,12 @@ pub(super) fn validate_mantissa<'a, Data>(data: &Data, format: NumberFormat)
     -> ParseResult<()>
     where Data: FastDataInterface<'a>
 {
+    // Check no leading zeros.
+    if format.no_leading_zeros() {
+        validate_no_leading_zeros(data)?;
+    }
+
+    // Check required digits.
     let required_integer = format.required_integer_digits();
     let required_fraction = format.required_fraction_digits();
     match (required_integer, required_fraction) {
@@ -146,7 +173,7 @@ pub(super) fn validate_required_exponent<'a, Data>(data: &Data)
     -> ParseResult<()>
     where Data: FastDataInterface<'a>
 {
-    // If we don't have an exponent stored, we're fine..
+    // If we don't have an exponent stored, we're fine.
     if !has_exponent(data) {
         return Ok(())
     }
@@ -309,6 +336,23 @@ pub(super) fn validate_exponent_fraction<'a, Data>(data: &Data, format: NumberFo
 mod tests {
     use super::*;
     use super::super::standard::*;
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn validate_no_leading_zeros_test() {
+        type Data<'a> = StandardFastDataInterface<'a>;
+        let data: Data = (b!("01"), Some(b!("23450")), None, 0).into();
+        assert!(validate_no_leading_zeros(&data).is_err());
+
+        let data: Data = (b!("1"), Some(b!("23450")), None, 0).into();
+        assert!(validate_no_leading_zeros(&data).is_ok());
+
+        let data: Data = (b!("0"), Some(b!("23450")), None, 0).into();
+        assert!(validate_no_leading_zeros(&data).is_ok());
+
+        let data: Data = (b!(""), Some(b!("23450")), None, 0).into();
+        assert!(validate_no_leading_zeros(&data).is_ok());
+    }
 
     #[test]
     fn validate_permissive_mantissa_test() {
