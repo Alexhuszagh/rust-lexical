@@ -252,849 +252,850 @@ enum lexical_error_code {
     // BITFLAGS
 
     // Bitflags for a serialized number format.
-    enum lexical_number_format {
-        // NON-DIGIT SEPARATOR FLAGS
-        lexical_required_integer_digits                 = 0x1,
-        lexical_required_fraction_digits                = 0x2,
-        lexical_required_exponent_digits                = 0x4,
-        lexical_no_positive_mantissa_sign               = 0x8,
-        lexical_required_mantissa_sign                  = 0x10,
-        lexical_no_exponent_notation                    = 0x20,
-        lexical_no_positive_exponent_sign               = 0x40,
-        lexical_required_exponent_sign                  = 0x80,
-        lexical_no_exponent_without_fraction            = 0x100,
-        lexical_no_special                              = 0x200,
-        lexical_case_sensitive_special                  = 0x400,
-        // DIGIT SEPARATOR FLAGS
-        lexical_integer_internal_digit_separator        = 0x100000000,
-        lexical_integer_leading_digit_separator         = 0x200000000,
-        lexical_integer_trailing_digit_separator        = 0x400000000,
-        lexical_integer_consecutive_digit_separator     = 0x800000000,
-        lexical_fraction_internal_digit_separator       = 0x1000000000,
-        lexical_fraction_leading_digit_separator        = 0x2000000000,
-        lexical_fraction_trailing_digit_separator       = 0x4000000000,
-        lexical_fraction_consecutive_digit_separator    = 0x8000000000,
-        lexical_exponent_internal_digit_separator       = 0x10000000000,
-        lexical_exponent_leading_digit_separator        = 0x20000000000,
-        lexical_exponent_trailing_digit_separator       = 0x40000000000,
-        lexical_exponent_consecutive_digit_separator    = 0x80000000000,
-        lexical_special_digit_separator                 = 0x100000000000,
-
-        // MASKS
-
-        lexical_required_digits = (
-            lexical_required_integer_digits
-            | lexical_required_fraction_digits
-            | lexical_required_exponent_digits
-        ),
-
-        lexical_internal_digit_separator = (
-            lexical_integer_internal_digit_separator
-            | lexical_fraction_internal_digit_separator
-            | lexical_exponent_internal_digit_separator
-        ),
-
-        lexical_leading_digit_separator = (
-            lexical_integer_leading_digit_separator
-            | lexical_fraction_leading_digit_separator
-            | lexical_exponent_leading_digit_separator
-        ),
-
-        lexical_trailing_digit_separator = (
-            lexical_integer_trailing_digit_separator
-            | lexical_fraction_trailing_digit_separator
-            | lexical_exponent_trailing_digit_separator
-        ),
-
-        lexical_consecutive_digit_separator = (
-            lexical_integer_consecutive_digit_separator
-            | lexical_fraction_consecutive_digit_separator
-            | lexical_exponent_consecutive_digit_separator
-        ),
-
-        lexical_digit_separator_flag_mask = (
-            lexical_internal_digit_separator
-            | lexical_leading_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-            | lexical_special_digit_separator
-        ),
-
-        lexical_integer_digit_separator_flag_mask = (
-            lexical_integer_internal_digit_separator
-            | lexical_integer_leading_digit_separator
-            | lexical_integer_trailing_digit_separator
-            | lexical_integer_consecutive_digit_separator
-        ),
-
-        lexical_fraction_digit_separator_flag_mask = (
-            lexical_fraction_internal_digit_separator
-            | lexical_fraction_leading_digit_separator
-            | lexical_fraction_trailing_digit_separator
-            | lexical_fraction_consecutive_digit_separator
-        ),
-
-        lexical_exponent_digit_separator_flag_mask = (
-            lexical_exponent_internal_digit_separator
-            | lexical_exponent_leading_digit_separator
-            | lexical_exponent_trailing_digit_separator
-            | lexical_exponent_consecutive_digit_separator
-        ),
-
-        lexical_exponent_flag_mask = (
-            lexical_required_exponent_digits
-            | lexical_no_positive_exponent_sign
-            | lexical_required_exponent_sign
-            | lexical_no_exponent_without_fraction
-            | lexical_exponent_internal_digit_separator
-            | lexical_exponent_leading_digit_separator
-            | lexical_exponent_trailing_digit_separator
-            | lexical_exponent_consecutive_digit_separator
-        ),
-
-        lexical_flag_mask = (
-            lexical_required_digits
-            | lexical_no_positive_mantissa_sign
-            | lexical_required_mantissa_sign
-            | lexical_no_exponent_notation
-            | lexical_no_positive_exponent_sign
-            | lexical_required_exponent_sign
-            | lexical_no_exponent_without_fraction
-            | lexical_no_special
-            | lexical_case_sensitive_special
-            | lexical_internal_digit_separator
-            | lexical_leading_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-            | lexical_special_digit_separator
-        ),
-
-        // PRE-DEFINED
-        // Note:
-        //  The pre-defined enum definitions are the public API for
-        //  lexical_number_format.
-
-        // Float format for a Rust literal floating-point number.
-        lexical_rust_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_digits
-            | lexical_no_positive_mantissa_sign
-            | lexical_no_special
-            | lexical_internal_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format to parse a Rust float from string.
-        lexical_rust_string = lexical_required_exponent_digits,
-
-        // `RUST_STRING`, but enforces strict equality for special values.
-        lexical_rust_string_strict = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for a Python literal floating-point number.
-        lexical_python_literal = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a Python float from string.
-        lexical_python_string = lexical_required_exponent_digits,
-
-        // Float format for a C++17 literal floating-point number.
-        lexical_cxx17_literal = (
-            lexical_digit_separator_to_flags('\'')
-            | lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-            | lexical_internal_digit_separator
-        ),
-
-        // Float format for a C++17 float from string.
-        lexical_cxx17_string = lexical_required_exponent_digits,
-
-        // Float format for a C++14 literal floating-point number.
-        lexical_cxx14_literal = (
-            lexical_digit_separator_to_flags('\'')
-            | lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-            | lexical_internal_digit_separator
-        ),
-
-        // Float format to parse a C++14 float from string.
-        lexical_cxx14_string = lexical_required_exponent_digits,
-
-        // Float format for a C++11 literal floating-point number.
-        lexical_cxx11_literal = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format to parse a C++11 float from string.
-        lexical_cxx11_string = lexical_required_exponent_digits,
-
-        // Float format for a C++03 literal floating-point number.
-        lexical_cxx03_literal = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a C++03 float from string.
-        lexical_cxx03_string = lexical_required_exponent_digits,
-
-        // Float format for a C++98 literal floating-point number.
-        lexical_cxx98_literal = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a C++98 float from string.
-        lexical_cxx98_string = lexical_required_exponent_digits,
-
-        // Float format for a C18 literal floating-point number.
-        lexical_c18_literal = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format to parse a C18 float from string.
-        lexical_c18_string = lexical_required_exponent_digits,
-
-        // Float format for a C11 literal floating-point number.
-        lexical_c11_literal = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format to parse a C11 float from string.
-        lexical_c11_string = lexical_required_exponent_digits,
-
-        // Float format for a C99 literal floating-point number.
-        lexical_c99_literal = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format to parse a C99 float from string.
-        lexical_c99_string = lexical_required_exponent_digits,
-
-        // Float format for a C90 literal floating-point number.
-        lexical_c90_literal = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a C90 float from string.
-        lexical_c90_string = lexical_required_exponent_digits,
-
-        // Float format for a C89 literal floating-point number.
-        lexical_c89_literal = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a C89 float from string.
-        lexical_c89_string = lexical_required_exponent_digits,
-
-        // Float format for a Ruby literal floating-point number.
-        lexical_ruby_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_digits
-            | lexical_no_special
-            | lexical_internal_digit_separator
-        ),
-
-        // Float format to parse a Ruby float from string.
-        lexical_ruby_string = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_no_special
-            | lexical_internal_digit_separator
-        ),
-
-        // Float format for a Swift literal floating-point number.
-        lexical_swift_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_digits
-            | lexical_no_special
-            | lexical_internal_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format to parse a Swift float from string.
-        lexical_swift_string = lexical_required_fraction_digits,
-
-        // Float format for a Golang literal floating-point number.
-        lexical_go_literal = (
-            lexical_required_fraction_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a Golang float from string.
-        lexical_go_string = lexical_required_fraction_digits,
-
-        // Float format for a Haskell literal floating-point number.
-        lexical_haskell_literal = (
-            lexical_required_digits
-            | lexical_no_positive_mantissa_sign
-            | lexical_no_special
-        ),
-
-        // Float format to parse a Haskell float from string.
-        lexical_haskell_string = (
-            lexical_required_digits
-            | lexical_no_positive_mantissa_sign
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for a Javascript literal floating-point number.
-        lexical_javascript_literal = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format to parse a Javascript float from string.
-        lexical_javascript_string = lexical_case_sensitive_special,
-
-        // Float format for a Perl literal floating-point number.
-        lexical_perl_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_exponent_digits
-            | lexical_no_special
-            | lexical_internal_digit_separator
-            | lexical_fraction_leading_digit_separator
-            | lexical_exponent_leading_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format to parse a Perl float from string.
-        lexical_perl_string = 0,
-
-        // Float format for a PHP literal floating-point number.
-        lexical_php_literal = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format to parse a PHP float from string.
-        lexical_php_string = lexical_no_special,
-
-        // Float format for a Java literal floating-point number.
-        lexical_java_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_exponent_digits
-            | lexical_no_special
-            | lexical_internal_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format to parse a Java float from string.
-        lexical_java_string = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for a R literal floating-point number.
-        lexical_r_literal = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format to parse a R float from string.
-        lexical_r_string = 0,
-
-        // Float format for a Kotlin literal floating-point number.
-        lexical_kotlin_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_exponent_digits
-            | lexical_no_special
-            | lexical_internal_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format to parse a Kotlin float from string.
-        lexical_kotlin_string = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for a Julia literal floating-point number.
-        lexical_julia_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-            | lexical_integer_internal_digit_separator
-            | lexical_fraction_internal_digit_separator
-        ),
-
-        // Float format to parse a Julia float from string.
-        lexical_julia_string = lexical_required_exponent_digits,
-
-        // Float format for a C#7 literal floating-point number.
-        lexical_csharp7_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_fraction_digits
-            | lexical_required_exponent_digits
-            | lexical_no_special
-            | lexical_internal_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format to parse a C#7 float from string.
-        lexical_csharp7_string = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for a C#6 literal floating-point number.
-        lexical_csharp6_literal = (
-            lexical_required_fraction_digits
-            | lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a C#6 float from string.
-        lexical_csharp6_string = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for a C#5 literal floating-point number.
-        lexical_csharp5_literal = (
-            lexical_required_fraction_digits
-            | lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a C#5 float from string.
-        lexical_csharp5_string = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for a C#4 literal floating-point number.
-        lexical_csharp4_literal = (
-            lexical_required_fraction_digits
-            | lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a C#4 float from string.
-        lexical_csharp4_string = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for a C#3 literal floating-point number.
-        lexical_csharp3_literal = (
-            lexical_required_fraction_digits
-            | lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a C#3 float from string.
-        lexical_csharp3_string = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for a C#2 literal floating-point number.
-        lexical_csharp2_literal = (
-            lexical_required_fraction_digits
-            | lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a C#2 float from string.
-        lexical_csharp2_string = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for a C#1 literal floating-point number.
-        lexical_csharp1_literal = (
-            lexical_required_fraction_digits
-            | lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a C#1 float from string.
-        lexical_csharp1_string = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for a Kawa literal floating-point number.
-        lexical_kawa_literal = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a Kawa float from string.
-        lexical_kawa_string = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format for a Gambit-C literal floating-point number.
-        lexical_gambitc_literal = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a Gambit-C float from string.
-        lexical_gambitc_string = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format for a Guile literal floating-point number.
-        lexical_guile_literal = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a Guile float from string.
-        lexical_guile_string = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format for a Clojure literal floating-point number.
-        lexical_clojure_literal = (
-            lexical_required_integer_digits
-            | lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a Clojure float from string.
-        lexical_clojure_string = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for an Erlang literal floating-point number.
-        lexical_erlang_literal = (
-            lexical_required_digits
-            | lexical_no_exponent_without_fraction
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format to parse an Erlang float from string.
-        lexical_erlang_string = (
-            lexical_required_digits
-            | lexical_no_exponent_without_fraction
-            | lexical_no_special
-        ),
-
-        // Float format for an Elm literal floating-point number.
-        lexical_elm_literal = (
-            lexical_required_digits
-            | lexical_no_positive_mantissa_sign
-        ),
-
-        // Float format to parse an Elm float from string.
-        lexical_elm_string = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for a Scala literal floating-point number.
-        lexical_scala_literal = (
-            lexical_required_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a Scala float from string.
-        lexical_scala_string = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for an Elixir literal floating-point number.
-        lexical_elixir_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_digits
-            | lexical_no_exponent_without_fraction
-            | lexical_no_special
-            | lexical_internal_digit_separator
-        ),
-
-        // Float format to parse an Elixir float from string.
-        lexical_elixir_string = (
-            lexical_required_digits
-            | lexical_no_exponent_without_fraction
-            | lexical_no_special
-        ),
-
-        // Float format for a FORTRAN literal floating-point number.
-        lexical_fortran_literal = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a FORTRAN float from string.
-        lexical_fortran_string = lexical_required_exponent_digits,
-
-        // Float format for a D literal floating-point number.
-        lexical_d_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_exponent_digits
-            | lexical_no_special
-            | lexical_internal_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format to parse a D float from string.
-        lexical_d_string = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_exponent_digits
-            | lexical_integer_internal_digit_separator
-            | lexical_fraction_internal_digit_separator
-            | lexical_integer_trailing_digit_separator
-            | lexical_fraction_trailing_digit_separator
-        ),
-
-        // Float format for a Coffeescript literal floating-point number.
-        lexical_coffeescript_literal = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format to parse a Coffeescript float from string.
-        lexical_coffeescript_string = lexical_case_sensitive_special,
-
-        // Float format for a Cobol literal floating-point number.
-        lexical_cobol_literal = (
-            lexical_required_fraction_digits
-            | lexical_required_exponent_digits
-            | lexical_no_exponent_without_fraction
-            | lexical_no_special
-        ),
-
-        // Float format to parse a Cobol float from string.
-        lexical_cobol_string = (
-            lexical_required_exponent_sign
-            | lexical_no_special
-        ),
-
-        // Float format for a F# literal floating-point number.
-        lexical_fsharp_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_integer_digits
-            | lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-            | lexical_internal_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format to parse a F# float from string.
-        lexical_fsharp_string = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_exponent_digits
-            | lexical_internal_digit_separator
-            | lexical_case_sensitive_special
-            | lexical_leading_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-            | lexical_special_digit_separator
-        ),
-
-        // Float format for a Visual Basic literal floating-point number.
-        lexical_vb_literal = (
-            lexical_required_fraction_digits
-            | lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse a Visual Basic float from string.
-        lexical_vb_string = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format for an OCaml literal floating-point number.
-        lexical_ocaml_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_integer_digits
-            | lexical_required_exponent_digits
-            | lexical_no_positive_mantissa_sign
-            | lexical_case_sensitive_special
-            | lexical_internal_digit_separator
-            | lexical_fraction_leading_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format to parse an OCaml float from string.
-        lexical_ocaml_string = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_exponent_digits
-            | lexical_internal_digit_separator
-            | lexical_leading_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-            | lexical_special_digit_separator
-        ),
-
-        // Float format for an Objective-C literal floating-point number.
-        lexical_objectivec_literal = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format to parse an Objective-C float from string.
-        lexical_objectivec_string = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format for a ReasonML literal floating-point number.
-        lexical_reasonml_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_integer_digits
-            | lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-            | lexical_internal_digit_separator
-            | lexical_fraction_leading_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format to parse a ReasonML float from string.
-        lexical_reasonml_string = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_exponent_digits
-            | lexical_internal_digit_separator
-            | lexical_leading_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-            | lexical_special_digit_separator
-        ),
-
-        // Float format for an Octave literal floating-point number.
-        lexical_octave_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-            | lexical_internal_digit_separator
-            | lexical_fraction_leading_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format to parse an Octave float from string.
-        lexical_octave_string = (
-            lexical_digit_separator_to_flags(',')
-            | lexical_required_exponent_digits
-            | lexical_internal_digit_separator
-            | lexical_leading_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format for an Matlab literal floating-point number.
-        lexical_matlab_literal = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-            | lexical_internal_digit_separator
-            | lexical_fraction_leading_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format to parse an Matlab float from string.
-        lexical_matlab_string = (
-            lexical_digit_separator_to_flags(',')
-            | lexical_required_exponent_digits
-            | lexical_internal_digit_separator
-            | lexical_leading_digit_separator
-            | lexical_trailing_digit_separator
-            | lexical_consecutive_digit_separator
-        ),
-
-        // Float format for a Zig literal floating-point number.
-        lexical_zig_literal = (
-            lexical_required_integer_digits
-            | lexical_no_positive_mantissa_sign
-            | lexical_no_special
-        ),
-
-        // Float format to parse a Zig float from string.
-        lexical_zig_string = 0,
-
-        // Float format for a Sage literal floating-point number.
-        lexical_sage_literal = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // Float format to parse a Sage float from string.
-        lexical_sage_string = (
-            lexical_digit_separator_to_flags('_')
-            | lexical_required_exponent_digits
-            | lexical_internal_digit_separator
-        ),
-
-        // Float format for a JSON literal floating-point number.
-        lexical_json = (
-            lexical_required_digits
-            | lexical_no_positive_mantissa_sign
-            | lexical_no_special
-        ),
-
-        // Float format for a TOML literal floating-point number.
-        lexical_toml = (
-            lexical_required_digits
-            | lexical_no_special
-            | lexical_internal_digit_separator
-        ),
-
-        // Float format for a YAML literal floating-point number.
-        lexical_yaml = lexical_json,
-
-        // Float format for a XML literal floating-point number.
-        lexical_xml = lexical_case_sensitive_special,
-
-        // Float format for a SQLite literal floating-point number.
-        lexical_sqlite = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format for a PostgreSQL literal floating-point number.
-        lexical_postgresql = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format for a MySQL literal floating-point number.
-        lexical_mysql = (
-            lexical_required_exponent_digits
-            | lexical_no_special
-        ),
-
-        // Float format for a MongoDB literal floating-point number.
-        lexical_mongodb = (
-            lexical_required_exponent_digits
-            | lexical_case_sensitive_special
-        ),
-
-        // HIDDEN DEFAULTS
-
-        // Float format when no flags are set.
-        lexical_permissive = 0,
-
-        // Standard float format.
-        lexical_standard = lexical_rust_string,
-
-        // Float format when all digit separator flags are set.
-        lexical_ignore = lexical_digit_separator_flag_mask,
-    };
+    // Use macros because we have no other choices for 64-bit values.
+    //  We either need to have a compilation unit, which won't work,
+    //  or an enumeration, which also won't work.
+    // NON-DIGIT SEPARATOR FLAGS
+    #define lexical_required_integer_digits                 0x1ull
+    #define lexical_required_fraction_digits                0x2ull
+    #define lexical_required_exponent_digits                0x4ull
+    #define lexical_no_positive_mantissa_sign               0x8ull
+    #define lexical_required_mantissa_sign                  0x10ull
+    #define lexical_no_exponent_notation                    0x20ull
+    #define lexical_no_positive_exponent_sign               0x40ull
+    #define lexical_required_exponent_sign                  0x80ull
+    #define lexical_no_exponent_without_fraction            0x100ull
+    #define lexical_no_special                              0x200ull
+    #define lexical_case_sensitive_special                  0x400ull
+
+    // DIGIT SEPARATOR FLAGS
+    #define lexical_integer_internal_digit_separator        0x100000000ull
+    #define lexical_integer_leading_digit_separator         0x200000000ull
+    #define lexical_integer_trailing_digit_separator        0x400000000ull
+    #define lexical_integer_consecutive_digit_separator     0x800000000ull
+    #define lexical_fraction_internal_digit_separator       0x1000000000ull
+    #define lexical_fraction_leading_digit_separator        0x2000000000ull
+    #define lexical_fraction_trailing_digit_separator       0x4000000000ull
+    #define lexical_fraction_consecutive_digit_separator    0x8000000000ull
+    #define lexical_exponent_internal_digit_separator       0x10000000000ull
+    #define lexical_exponent_leading_digit_separator        0x20000000000ull
+    #define lexical_exponent_trailing_digit_separator       0x40000000000ull
+    #define lexical_exponent_consecutive_digit_separator    0x80000000000ull
+    #define lexical_special_digit_separator                 0x100000000000ull
+
+    // MASKS
+    #define lexical_required_digits (                                   \
+        lexical_required_integer_digits                                 \
+            | lexical_required_fraction_digits                          \
+            | lexical_required_exponent_digits                          \
+    )
+
+    #define lexical_internal_digit_separator (                          \
+        lexical_integer_internal_digit_separator                        \
+        | lexical_fraction_internal_digit_separator                     \
+        | lexical_exponent_internal_digit_separator                     \
+    )
+
+    #define lexical_leading_digit_separator (                           \
+        lexical_integer_leading_digit_separator                         \
+        | lexical_fraction_leading_digit_separator                      \
+        | lexical_exponent_leading_digit_separator                      \
+    )
+
+    #define lexical_trailing_digit_separator (                          \
+        lexical_integer_trailing_digit_separator                        \
+        | lexical_fraction_trailing_digit_separator                     \
+        | lexical_exponent_trailing_digit_separator                     \
+    )
+
+    #define lexical_consecutive_digit_separator (                       \
+        lexical_integer_consecutive_digit_separator                     \
+        | lexical_fraction_consecutive_digit_separator                  \
+        | lexical_exponent_consecutive_digit_separator                  \
+    )
+
+    #define lexical_digit_separator_flag_mask (                         \
+        lexical_internal_digit_separator                                \
+        | lexical_leading_digit_separator                               \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+        | lexical_special_digit_separator                               \
+    )
+
+    #define lexical_integer_digit_separator_flag_mask (                 \
+        lexical_integer_internal_digit_separator                        \
+        | lexical_integer_leading_digit_separator                       \
+        | lexical_integer_trailing_digit_separator                      \
+        | lexical_integer_consecutive_digit_separator                   \
+    )
+
+    #define lexical_fraction_digit_separator_flag_mask (                \
+        lexical_fraction_internal_digit_separator                       \
+        | lexical_fraction_leading_digit_separator                      \
+        | lexical_fraction_trailing_digit_separator                     \
+        | lexical_fraction_consecutive_digit_separator                  \
+    )
+
+    #define lexical_exponent_digit_separator_flag_mask (                \
+        lexical_exponent_internal_digit_separator                       \
+        | lexical_exponent_leading_digit_separator                      \
+        | lexical_exponent_trailing_digit_separator                     \
+        | lexical_exponent_consecutive_digit_separator                  \
+    )
+
+    #define lexical_exponent_flag_mask (                                \
+        lexical_required_exponent_digits                                \
+        | lexical_no_positive_exponent_sign                             \
+        | lexical_required_exponent_sign                                \
+        | lexical_no_exponent_without_fraction                          \
+        | lexical_exponent_internal_digit_separator                     \
+        | lexical_exponent_leading_digit_separator                      \
+        | lexical_exponent_trailing_digit_separator                     \
+        | lexical_exponent_consecutive_digit_separator                  \
+    )
+
+    #define lexical_flag_mask (                                         \
+        lexical_required_digits                                         \
+        | lexical_no_positive_mantissa_sign                             \
+        | lexical_required_mantissa_sign                                \
+        | lexical_no_exponent_notation                                  \
+        | lexical_no_positive_exponent_sign                             \
+        | lexical_required_exponent_sign                                \
+        | lexical_no_exponent_without_fraction                          \
+        | lexical_no_special                                            \
+        | lexical_case_sensitive_special                                \
+        | lexical_internal_digit_separator                              \
+        | lexical_leading_digit_separator                               \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+        | lexical_special_digit_separator                               \
+    )
+
+    // PRE-DEFINED
+    // Note:
+    //  The pre-defined enum definitions are the public API for
+    //  lexical_number_format.
+
+    // Float format for a Rust literal floating-point number.
+    #define lexical_rust_literal (                                      \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_digits                                       \
+        | lexical_no_positive_mantissa_sign                             \
+        | lexical_no_special                                            \
+        | lexical_internal_digit_separator                              \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format to parse a Rust float from string.
+    #define lexical_rust_string lexical_required_exponent_digits
+
+    // `RUST_STRING`, but enforces strict equality for special values.
+    #define lexical_rust_string_strict (                                \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for a Python literal floating-point number.
+    #define lexical_python_literal (                                    \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a Python float from string.
+    #define lexical_python_string lexical_required_exponent_digits
+
+    // Float format for a C++17 literal floating-point number.
+    #define lexical_cxx17_literal (                                     \
+        lexical_digit_separator_to_flags('\'')                          \
+        | lexical_required_exponent_digits                              \
+        | lexical_case_sensitive_special                                \
+        | lexical_internal_digit_separator                              \
+    )
+
+    // Float format for a C++17 float from string.
+    #define lexical_cxx17_string lexical_required_exponent_digits
+
+    // Float format for a C++14 literal floating-point number.
+    #define lexical_cxx14_literal (                                     \
+        lexical_digit_separator_to_flags('\'')                          \
+        | lexical_required_exponent_digits                              \
+        | lexical_case_sensitive_special                                \
+        | lexical_internal_digit_separator                              \
+    )
+
+    // Float format to parse a C++14 float from string.
+    #define lexical_cxx14_string lexical_required_exponent_digits
+
+    // Float format for a C++11 literal floating-point number.
+    #define lexical_cxx11_literal (                                     \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format to parse a C++11 float from string.
+    #define lexical_cxx11_string lexical_required_exponent_digits
+
+    // Float format for a C++03 literal floating-point number.
+    #define lexical_cxx03_literal (                                     \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a C++03 float from string.
+    #define lexical_cxx03_string lexical_required_exponent_digits
+
+    // Float format for a C++98 literal floating-point number.
+    #define lexical_cxx98_literal (                                     \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a C++98 float from string.
+    #define lexical_cxx98_string lexical_required_exponent_digits
+
+    // Float format for a C18 literal floating-point number.
+    #define lexical_c18_literal (                                       \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format to parse a C18 float from string.
+    #define lexical_c18_string lexical_required_exponent_digits
+
+    // Float format for a C11 literal floating-point number.
+    #define lexical_c11_literal (                                       \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format to parse a C11 float from string.
+    #define lexical_c11_string lexical_required_exponent_digits
+
+    // Float format for a C99 literal floating-point number.
+    #define lexical_c99_literal (                                       \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format to parse a C99 float from string.
+    #define lexical_c99_string lexical_required_exponent_digits
+
+    // Float format for a C90 literal floating-point number.
+    #define lexical_c90_literal (                                       \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a C90 float from string.
+    #define lexical_c90_string lexical_required_exponent_digits
+
+    // Float format for a C89 literal floating-point number.
+    #define lexical_c89_literal (                                       \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a C89 float from string.
+    #define lexical_c89_string lexical_required_exponent_digits
+
+    // Float format for a Ruby literal floating-point number.
+    #define lexical_ruby_literal (                                      \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_digits                                       \
+        | lexical_no_special                                            \
+        | lexical_internal_digit_separator                              \
+    )
+
+    // Float format to parse a Ruby float from string.
+    #define lexical_ruby_string (                                       \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_no_special                                            \
+        | lexical_internal_digit_separator                              \
+    )
+
+    // Float format for a Swift literal floating-point number.
+    #define lexical_swift_literal (                                     \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_digits                                       \
+        | lexical_no_special                                            \
+        | lexical_internal_digit_separator                              \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format to parse a Swift float from string.
+    #define lexical_swift_string lexical_required_fraction_digits
+
+    // Float format for a Golang literal floating-point number.
+    #define lexical_go_literal (                                        \
+        lexical_required_fraction_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a Golang float from string.
+    #define lexical_go_string lexical_required_fraction_digits
+
+    // Float format for a Haskell literal floating-point number.
+    #define lexical_haskell_literal (                                   \
+        lexical_required_digits                                         \
+        | lexical_no_positive_mantissa_sign                             \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a Haskell float from string.
+    #define lexical_haskell_string (                                    \
+        lexical_required_digits                                         \
+        | lexical_no_positive_mantissa_sign                             \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for a Javascript literal floating-point number.
+    #define lexical_javascript_literal (                                \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format to parse a Javascript float from string.
+    #define lexical_javascript_string lexical_case_sensitive_special
+
+    // Float format for a Perl literal floating-point number.
+    #define lexical_perl_literal (                                      \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_special                                            \
+        | lexical_internal_digit_separator                              \
+        | lexical_fraction_leading_digit_separator                      \
+        | lexical_exponent_leading_digit_separator                      \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format to parse a Perl float from string.
+    #define lexical_perl_string 0ull
+
+    // Float format for a PHP literal floating-point number.
+    #define lexical_php_literal (                                       \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format to parse a PHP float from string.
+    #define lexical_php_string lexical_no_special
+
+    // Float format for a Java literal floating-point number.
+    #define lexical_java_literal (                                      \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_special                                            \
+        | lexical_internal_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format to parse a Java float from string.
+    #define lexical_java_string (                                       \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for a R literal floating-point number.
+    #define lexical_r_literal (                                         \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format to parse a R float from string.
+    #define lexical_r_string 0ull
+
+    // Float format for a Kotlin literal floating-point number.
+    #define lexical_kotlin_literal (                                    \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_special                                            \
+        | lexical_internal_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format to parse a Kotlin float from string.
+    #define lexical_kotlin_string (                                     \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for a Julia literal floating-point number.
+    #define lexical_julia_literal (                                     \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_case_sensitive_special                                \
+        | lexical_integer_internal_digit_separator                      \
+        | lexical_fraction_internal_digit_separator                     \
+    )
+
+    // Float format to parse a Julia float from string.
+    #define lexical_julia_string lexical_required_exponent_digits
+
+    // Float format for a C#7 literal floating-point number.
+    #define lexical_csharp7_literal (                                   \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_fraction_digits                              \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_special                                            \
+        | lexical_internal_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format to parse a C#7 float from string.
+    #define lexical_csharp7_string (                                    \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for a C#6 literal floating-point number.
+    #define lexical_csharp6_literal (                                   \
+        lexical_required_fraction_digits                                \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a C#6 float from string.
+    #define lexical_csharp6_string (                                    \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for a C#5 literal floating-point number.
+    #define lexical_csharp5_literal (                                   \
+        lexical_required_fraction_digits                                \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a C#5 float from string.
+    #define lexical_csharp5_string (                                    \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for a C#4 literal floating-point number.
+    #define lexical_csharp4_literal (                                   \
+        lexical_required_fraction_digits                                \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a C#4 float from string.
+    #define lexical_csharp4_string (                                    \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for a C#3 literal floating-point number.
+    #define lexical_csharp3_literal (                                   \
+        lexical_required_fraction_digits                                \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a C#3 float from string.
+    #define lexical_csharp3_string (                                    \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for a C#2 literal floating-point number.
+    #define lexical_csharp2_literal (                                   \
+        lexical_required_fraction_digits                                \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a C#2 float from string.
+    #define lexical_csharp2_string (                                    \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for a C#1 literal floating-point number.
+    #define lexical_csharp1_literal (                                   \
+        lexical_required_fraction_digits                                \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a C#1 float from string.
+    #define lexical_csharp1_string (                                    \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for a Kawa literal floating-point number.
+    #define lexical_kawa_literal (                                      \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a Kawa float from string.
+    #define lexical_kawa_string (                                       \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format for a Gambit-C literal floating-point number.
+    #define lexical_gambitc_literal (                                   \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a Gambit-C float from string.
+    #define lexical_gambitc_string (                                    \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format for a Guile literal floating-point number.
+    #define lexical_guile_literal (                                     \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a Guile float from string.
+    #define lexical_guile_string (                                      \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format for a Clojure literal floating-point number.
+    #define lexical_clojure_literal (                                   \
+        lexical_required_integer_digits                                 \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a Clojure float from string.
+    #define lexical_clojure_string (                                    \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for an Erlang literal floating-point number.
+    #define lexical_erlang_literal (                                    \
+        lexical_required_digits                                         \
+        | lexical_no_exponent_without_fraction                          \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format to parse an Erlang float from string.
+    #define lexical_erlang_string (                                     \
+        lexical_required_digits                                         \
+        | lexical_no_exponent_without_fraction                          \
+        | lexical_no_special                                            \
+    )
+
+    // Float format for an Elm literal floating-point number.
+    #define lexical_elm_literal (                                       \
+        lexical_required_digits                                         \
+        | lexical_no_positive_mantissa_sign                             \
+    )
+
+    // Float format to parse an Elm float from string.
+    #define lexical_elm_string (                                        \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for a Scala literal floating-point number.
+    #define lexical_scala_literal (                                     \
+        lexical_required_digits                                         \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a Scala float from string.
+    #define lexical_scala_string (                                      \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for an Elixir literal floating-point number.
+    #define lexical_elixir_literal (                                    \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_digits                                       \
+        | lexical_no_exponent_without_fraction                          \
+        | lexical_no_special                                            \
+        | lexical_internal_digit_separator                              \
+    )
+
+    // Float format to parse an Elixir float from string.
+    #define lexical_elixir_string (                                     \
+        lexical_required_digits                                         \
+        | lexical_no_exponent_without_fraction                          \
+        | lexical_no_special                                            \
+    )
+
+    // Float format for a FORTRAN literal floating-point number.
+    #define lexical_fortran_literal (                                   \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a FORTRAN float from string.
+    #define lexical_fortran_string lexical_required_exponent_digits
+
+    // Float format for a D literal floating-point number.
+    #define lexical_d_literal (                                         \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_special                                            \
+        | lexical_internal_digit_separator                              \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format to parse a D float from string.
+    #define lexical_d_string (                                          \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_integer_internal_digit_separator                      \
+        | lexical_fraction_internal_digit_separator                     \
+        | lexical_integer_trailing_digit_separator                      \
+        | lexical_fraction_trailing_digit_separator                     \
+    )
+
+    // Float format for a Coffeescript literal floating-point number.
+    #define lexical_coffeescript_literal (                              \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format to parse a Coffeescript float from string.
+    #define lexical_coffeescript_string lexical_case_sensitive_special
+
+    // Float format for a Cobol literal floating-point number.
+    #define lexical_cobol_literal (                                     \
+        lexical_required_fraction_digits                                \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_exponent_without_fraction                          \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a Cobol float from string.
+    #define lexical_cobol_string (                                      \
+        lexical_required_exponent_sign                                  \
+        | lexical_no_special                                            \
+    )
+
+    // Float format for a F# literal floating-point number.
+    #define lexical_fsharp_literal (                                    \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_integer_digits                               \
+        | lexical_required_exponent_digits                              \
+        | lexical_case_sensitive_special                                \
+        | lexical_internal_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format to parse a F# float from string.
+    #define lexical_fsharp_string (                                     \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_internal_digit_separator                              \
+        | lexical_case_sensitive_special                                \
+        | lexical_leading_digit_separator                               \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+        | lexical_special_digit_separator                               \
+    )
+
+    // Float format for a Visual Basic literal floating-point number.
+    #define lexical_vb_literal (                                        \
+        lexical_required_fraction_digits                                \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a Visual Basic float from string.
+    #define lexical_vb_string (                                         \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format for an OCaml literal floating-point number.
+    #define lexical_ocaml_literal (                                     \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_integer_digits                               \
+        | lexical_required_exponent_digits                              \
+        | lexical_no_positive_mantissa_sign                             \
+        | lexical_case_sensitive_special                                \
+        | lexical_internal_digit_separator                              \
+        | lexical_fraction_leading_digit_separator                      \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format to parse an OCaml float from string.
+    #define lexical_ocaml_string (                                      \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_internal_digit_separator                              \
+        | lexical_leading_digit_separator                               \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+        | lexical_special_digit_separator                               \
+    )
+
+    // Float format for an Objective-C literal floating-point number.
+    #define lexical_objectivec_literal (                                \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse an Objective-C float from string.
+    #define lexical_objectivec_string (                                 \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format for a ReasonML literal floating-point number.
+    #define lexical_reasonml_literal (                                  \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_integer_digits                               \
+        | lexical_required_exponent_digits                              \
+        | lexical_case_sensitive_special                                \
+        | lexical_internal_digit_separator                              \
+        | lexical_fraction_leading_digit_separator                      \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format to parse a ReasonML float from string.
+    #define lexical_reasonml_string (                                   \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_internal_digit_separator                              \
+        | lexical_leading_digit_separator                               \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+        | lexical_special_digit_separator                               \
+    )
+
+    // Float format for an Octave literal floating-point number.
+    #define lexical_octave_literal (                                    \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_case_sensitive_special                                \
+        | lexical_internal_digit_separator                              \
+        | lexical_fraction_leading_digit_separator                      \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format to parse an Octave float from string.
+    #define lexical_octave_string (                                     \
+        lexical_digit_separator_to_flags(',')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_internal_digit_separator                              \
+        | lexical_leading_digit_separator                               \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format for an Matlab literal floating-point number.
+    #define lexical_matlab_literal (                                    \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_case_sensitive_special                                \
+        | lexical_internal_digit_separator                              \
+        | lexical_fraction_leading_digit_separator                      \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format to parse an Matlab float from string.
+    #define lexical_matlab_string (                                     \
+        lexical_digit_separator_to_flags(',')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_internal_digit_separator                              \
+        | lexical_leading_digit_separator                               \
+        | lexical_trailing_digit_separator                              \
+        | lexical_consecutive_digit_separator                           \
+    )
+
+    // Float format for a Zig literal floating-point number.
+    #define lexical_zig_literal (                                       \
+        lexical_required_integer_digits                                 \
+        | lexical_no_positive_mantissa_sign                             \
+        | lexical_no_special                                            \
+    )
+
+    // Float format to parse a Zig float from string.
+    #define lexical_zig_string 0ull
+
+    // Float format for a Sage literal floating-point number.
+    #define lexical_sage_literal (                                      \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // Float format to parse a Sage float from string.
+    #define lexical_sage_string (                                       \
+        lexical_digit_separator_to_flags('_')                           \
+        | lexical_required_exponent_digits                              \
+        | lexical_internal_digit_separator                              \
+    )
+
+    // Float format for a JSON literal floating-point number.
+    #define lexical_json (                                              \
+        lexical_required_digits                                         \
+        | lexical_no_positive_mantissa_sign                             \
+        | lexical_no_special                                            \
+    )
+
+    // Float format for a TOML literal floating-point number.
+    #define lexical_toml (                                              \
+        lexical_required_digits                                         \
+        | lexical_no_special                                            \
+        | lexical_internal_digit_separator                              \
+    )
+
+    // Float format for a YAML literal floating-point number.
+    #define lexical_yaml lexical_json
+
+    // Float format for a XML literal floating-point number.
+    #define lexical_xml lexical_case_sensitive_special
+
+    // Float format for a SQLite literal floating-point number.
+    #define lexical_sqlite (                                             \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format for a PostgreSQL literal floating-point number.
+    #define lexical_postgresql (                                        \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format for a MySQL literal floating-point number.
+    #define lexical_mysql (                                             \
+        lexical_required_exponent_digits                                \
+        | lexical_no_special                                            \
+    )
+
+    // Float format for a MongoDB literal floating-point number.
+    #define lexical_mongodb (                                           \
+        lexical_required_exponent_digits                                \
+        | lexical_case_sensitive_special                                \
+    )
+
+    // HIDDEN DEFAULTS
+
+    // Float format when no flags are set.
+    #define lexical_permissive 0ull
+
+    // Standard float format.
+    #define lexical_standard lexical_rust_string
+
+    // Float format when all digit separator flags are set.
+    #define lexical_ignore lexical_digit_separator_flag_mask
 
     // OPTION TAG
 
@@ -1194,7 +1195,7 @@ enum lexical_error_code {
         bool special_digit_separator = false
     )
     {
-        int flags = 0;
+        uint64_t flags = 0;
         // Generic flags.
         if (required_integer_digits) {
             flags |= lexical_required_integer_digits;
@@ -2099,7 +2100,6 @@ lexical_to_lexical(usize);
 
 #undef lexical_static_assert
 #undef lexical_type
-#undef lexical_digit_separator_to_flags
 #undef lexical_digit_separator_from_flags
 #undef lexical_is_error
 #undef lexical_result_union_type
