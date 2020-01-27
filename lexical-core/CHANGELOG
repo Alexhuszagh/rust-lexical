@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Changed NumberFormat to use 64-bit flags.
+- Added `NO_LEADING_ZEROS` NumberFormat flag.
+- Added `InvalidLeadingZeros` to ErrorCode enum.
+- Added `validate_no_leading_zeros` validator.
 
 ## [0.7.3] 2020-01-26
 ### Changed

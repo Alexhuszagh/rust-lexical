@@ -107,6 +107,7 @@ lexical_result_error(invalid_exponent);
 lexical_result_error(invalid_positive_exponent_sign);
 lexical_result_error(missing_exponent_sign);
 lexical_result_error(exponent_without_fraction);
+lexical_result_error(invalid_leading_zeros);
 
 inline lexical_i8_partial_result partial_result_ok(lexical_i8 value, size_t index)
 {
@@ -166,6 +167,7 @@ lexical_partial_result_error(invalid_exponent);
 lexical_partial_result_error(invalid_positive_exponent_sign);
 lexical_partial_result_error(missing_exponent_sign);
 lexical_partial_result_error(exponent_without_fraction);
+lexical_partial_result_error(invalid_leading_zeros);
 
 #define lexical_is_error(type)                                                  \
     inline bool is_##type(lexical_error error)                                  \
@@ -187,6 +189,7 @@ lexical_is_error(invalid_exponent);
 lexical_is_error(invalid_positive_exponent_sign);
 lexical_is_error(missing_exponent_sign);
 lexical_is_error(exponent_without_fraction);
+lexical_is_error(invalid_leading_zeros);
 
 // CONFIG TESTS
 // ------------
@@ -411,6 +414,14 @@ TEST(test_is_exponent_without_fraction, error_tests)
     EXPECT_TRUE(lexical_error_is_exponent_without_fraction(&exponent_without_fraction));
 }
 
+TEST(test_is_invalid_leading_zeros, error_tests)
+{
+    lexical_error overflow = { lexical_overflow, 0 };
+    lexical_error invalid_leading_zeros = { lexical_invalid_leading_zeros, 0 };
+    EXPECT_FALSE(lexical_error_is_invalid_leading_zeros(&overflow));
+    EXPECT_TRUE(lexical_error_is_invalid_leading_zeros(&invalid_leading_zeros));
+}
+
 // RESULT TESTS
 
 TEST(result, result_tests)
@@ -430,6 +441,7 @@ TEST(result, result_tests)
     auto invalid_positive_exponent_sign = result_invalid_positive_exponent_sign(0);
     auto missing_exponent_sign = result_missing_exponent_sign(0);
     auto exponent_without_fraction = result_exponent_without_fraction(0);
+    auto invalid_leading_zeros = result_invalid_leading_zeros(0);
 
     EXPECT_TRUE(lexical_i8_result_is_ok(&ok));
     EXPECT_FALSE(lexical_i8_result_is_err(&ok));
@@ -447,6 +459,7 @@ TEST(result, result_tests)
     EXPECT_TRUE(lexical_i8_result_is_err(&invalid_positive_exponent_sign));
     EXPECT_TRUE(lexical_i8_result_is_err(&missing_exponent_sign));
     EXPECT_TRUE(lexical_i8_result_is_err(&exponent_without_fraction));
+    EXPECT_TRUE(lexical_i8_result_is_err(&invalid_leading_zeros));
 
     EXPECT_EQ(lexical_i8_result_ok(ok), 0);
     EXPECT_TRUE(is_overflow(lexical_i8_result_err(overflow)));
@@ -463,6 +476,7 @@ TEST(result, result_tests)
     EXPECT_TRUE(is_invalid_positive_exponent_sign(lexical_i8_result_err(invalid_positive_exponent_sign)));
     EXPECT_TRUE(is_missing_exponent_sign(lexical_i8_result_err(missing_exponent_sign)));
     EXPECT_TRUE(is_exponent_without_fraction(lexical_i8_result_err(exponent_without_fraction)));
+    EXPECT_TRUE(is_invalid_leading_zeros(lexical_i8_result_err(invalid_leading_zeros)));
 }
 
 // PARTIAL RESULT TESTS
@@ -484,6 +498,7 @@ TEST(partial_result, partial_result_tests)
     auto invalid_positive_exponent_sign = partial_result_invalid_positive_exponent_sign(0);
     auto missing_exponent_sign = partial_result_missing_exponent_sign(0);
     auto exponent_without_fraction = partial_result_exponent_without_fraction(0);
+    auto invalid_leading_zeros = partial_result_invalid_leading_zeros(0);
 
     EXPECT_TRUE(lexical_i8_partial_result_is_ok(&ok));
     EXPECT_FALSE(lexical_i8_partial_result_is_err(&ok));
@@ -501,6 +516,7 @@ TEST(partial_result, partial_result_tests)
     EXPECT_TRUE(lexical_i8_partial_result_is_err(&invalid_positive_exponent_sign));
     EXPECT_TRUE(lexical_i8_partial_result_is_err(&missing_exponent_sign));
     EXPECT_TRUE(lexical_i8_partial_result_is_err(&exponent_without_fraction));
+    EXPECT_TRUE(lexical_i8_partial_result_is_err(&invalid_leading_zeros));
 
     EXPECT_EQ(lexical_i8_partial_result_ok(ok).x, 0);
     EXPECT_TRUE(is_overflow(lexical_i8_partial_result_err(overflow)));
@@ -517,4 +533,5 @@ TEST(partial_result, partial_result_tests)
     EXPECT_TRUE(is_invalid_positive_exponent_sign(lexical_i8_partial_result_err(invalid_positive_exponent_sign)));
     EXPECT_TRUE(is_missing_exponent_sign(lexical_i8_partial_result_err(missing_exponent_sign)));
     EXPECT_TRUE(is_exponent_without_fraction(lexical_i8_partial_result_err(exponent_without_fraction)));
+    EXPECT_TRUE(is_invalid_leading_zeros(lexical_i8_partial_result_err(invalid_leading_zeros)));
 }
