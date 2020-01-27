@@ -186,10 +186,10 @@ enum lexical_error_code {
 // Declare extern to lexical function definitions.
 #ifdef HAVE_FORMAT
     // Convert digit separator to flags.
-    #define lexical_digit_separator_to_flags(ch) (((uint32_t) ch) << 24)
+    #define lexical_digit_separator_to_flags(ch) (((uint64_t) ch) << 56)
 
     // Extract digit separator from flags.
-    #define lexical_digit_separator_from_flags(flag) ((uint8_t) (flag >> 24))
+    #define lexical_digit_separator_from_flags(flag) ((uint8_t) (flag >> 56))
 
     // Determine if character is valid ASCII.
     inline bool lexical_is_ascii(uint8_t ch)
@@ -253,8 +253,7 @@ enum lexical_error_code {
 
     // Bitflags for a serialized number format.
     enum lexical_number_format {
-        // FLAGS
-
+        // NON-DIGIT SEPARATOR FLAGS
         lexical_required_integer_digits                 = 0x1,
         lexical_required_fraction_digits                = 0x2,
         lexical_required_exponent_digits                = 0x4,
@@ -266,19 +265,20 @@ enum lexical_error_code {
         lexical_no_exponent_without_fraction            = 0x100,
         lexical_no_special                              = 0x200,
         lexical_case_sensitive_special                  = 0x400,
-        lexical_integer_internal_digit_separator        = 0x800,
-        lexical_integer_leading_digit_separator         = 0x1000,
-        lexical_integer_trailing_digit_separator        = 0x2000,
-        lexical_integer_consecutive_digit_separator     = 0x4000,
-        lexical_fraction_internal_digit_separator       = 0x8000,
-        lexical_fraction_leading_digit_separator        = 0x10000,
-        lexical_fraction_trailing_digit_separator       = 0x20000,
-        lexical_fraction_consecutive_digit_separator    = 0x40000,
-        lexical_exponent_internal_digit_separator       = 0x80000,
-        lexical_exponent_leading_digit_separator        = 0x100000,
-        lexical_exponent_trailing_digit_separator       = 0x200000,
-        lexical_exponent_consecutive_digit_separator    = 0x400000,
-        lexical_special_digit_separator                 = 0x800000,
+        // DIGIT SEPARATOR FLAGS
+        lexical_integer_internal_digit_separator        = 0x100000000,
+        lexical_integer_leading_digit_separator         = 0x200000000,
+        lexical_integer_trailing_digit_separator        = 0x400000000,
+        lexical_integer_consecutive_digit_separator     = 0x800000000,
+        lexical_fraction_internal_digit_separator       = 0x1000000000,
+        lexical_fraction_leading_digit_separator        = 0x2000000000,
+        lexical_fraction_trailing_digit_separator       = 0x4000000000,
+        lexical_fraction_consecutive_digit_separator    = 0x8000000000,
+        lexical_exponent_internal_digit_separator       = 0x10000000000,
+        lexical_exponent_leading_digit_separator        = 0x20000000000,
+        lexical_exponent_trailing_digit_separator       = 0x40000000000,
+        lexical_exponent_consecutive_digit_separator    = 0x80000000000,
+        lexical_special_digit_separator                 = 0x100000000000,
 
         // MASKS
 
@@ -1109,7 +1109,7 @@ enum lexical_error_code {
     // Struct to define the number option.
     struct lexical_number_format_option {
         uint32_t tag;
-        uint32_t data;
+        uint64_t data;
     };
 
     inline bool lexical_number_format_option_is_some(lexical_number_format_option* option)
@@ -1122,13 +1122,13 @@ enum lexical_error_code {
         return option->tag == lexical_none;
     }
 
-    inline uint32_t lexical_number_format_option_unwrap(lexical_number_format_option option)
+    inline uint64_t lexical_number_format_option_unwrap(lexical_number_format_option option)
     {
         assert(lexical_number_format_option_is_some(&option));
         return option.data;
     }
 
-    inline bool lexical_number_format_intersects(uint32_t x, uint32_t y)
+    inline bool lexical_number_format_intersects(uint64_t x, uint64_t y)
     {
         return (x & y) != 0;
     }
@@ -1349,187 +1349,187 @@ enum lexical_error_code {
     }
 
     // Get the flag bits from the compiled float format.
-    inline uint32_t lexical_number_format_flags(uint32_t format)
+    inline uint64_t lexical_number_format_flags(uint64_t format)
     {
         return format & lexical_flag_mask;
     }
 
     // Get the digit separator from the compiled float format.
-    inline uint8_t lexical_number_format_digit_separator(uint32_t format)
+    inline uint8_t lexical_number_format_digit_separator(uint64_t format)
     {
         return lexical_digit_separator_from_flags(format);
     }
 
     // Get if digits are required before the decimal point.
-    inline bool lexical_number_format_required_integer_digits(uint32_t format)
+    inline bool lexical_number_format_required_integer_digits(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_required_integer_digits);
     }
 
     // Get if digits are required after the decimal point.
-    inline bool lexical_number_format_required_fraction_digits(uint32_t format)
+    inline bool lexical_number_format_required_fraction_digits(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_required_fraction_digits);
     }
 
     // Get if digits are required after the exponent character.
-    inline bool lexical_number_format_required_exponent_digits(uint32_t format)
+    inline bool lexical_number_format_required_exponent_digits(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_required_exponent_digits);
     }
 
     // Get if digits are required before or after the decimal point.
-    inline bool lexical_number_format_required_digits(uint32_t format)
+    inline bool lexical_number_format_required_digits(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_required_digits);
     }
 
     // Get if positive sign before the mantissa is not allowed.
-    inline bool lexical_number_format_no_positive_mantissa_sign(uint32_t format)
+    inline bool lexical_number_format_no_positive_mantissa_sign(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_no_positive_mantissa_sign);
     }
 
     // Get if positive sign before the mantissa is required.
-    inline bool lexical_number_format_required_mantissa_sign(uint32_t format)
+    inline bool lexical_number_format_required_mantissa_sign(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_required_mantissa_sign);
     }
 
     // Get if exponent notation is not allowed.
-    inline bool lexical_number_format_no_exponent_notation(uint32_t format)
+    inline bool lexical_number_format_no_exponent_notation(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_no_exponent_notation);
     }
 
     // Get if positive sign before the exponent is not allowed.
-    inline bool lexical_number_format_no_positive_exponent_sign(uint32_t format)
+    inline bool lexical_number_format_no_positive_exponent_sign(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_no_positive_exponent_sign);
     }
 
     // Get if sign before the exponent is required.
-    inline bool lexical_number_format_required_exponent_sign(uint32_t format)
+    inline bool lexical_number_format_required_exponent_sign(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_required_exponent_sign);
     }
 
     // Get if exponent without fraction is not allowed.
-    inline bool lexical_number_format_no_exponent_without_fraction(uint32_t format)
+    inline bool lexical_number_format_no_exponent_without_fraction(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_no_exponent_without_fraction);
     }
 
     // Get if special (non-finite) values are not allowed.
-    inline bool lexical_number_format_no_special(uint32_t format)
+    inline bool lexical_number_format_no_special(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_no_special);
     }
 
     // Get if special (non-finite) values are case-sensitive.
-    inline bool lexical_number_format_case_sensitive_special(uint32_t format)
+    inline bool lexical_number_format_case_sensitive_special(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_case_sensitive_special);
     }
 
     // Get if digit separators are allowed between integer digits.
-    inline bool lexical_number_format_integer_internal_digit_separator(uint32_t format)
+    inline bool lexical_number_format_integer_internal_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_integer_internal_digit_separator);
     }
 
     // Get if digit separators are allowed between fraction digits.
-    inline bool lexical_number_format_fraction_internal_digit_separator(uint32_t format)
+    inline bool lexical_number_format_fraction_internal_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_fraction_internal_digit_separator);
     }
 
     // Get if digit separators are allowed between exponent digits.
-    inline bool lexical_number_format_exponent_internal_digit_separator(uint32_t format)
+    inline bool lexical_number_format_exponent_internal_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_exponent_internal_digit_separator);
     }
 
     // Get if digit separators are allowed between digits.
-    inline bool lexical_number_format_internal_digit_separator(uint32_t format)
+    inline bool lexical_number_format_internal_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_internal_digit_separator);
     }
 
     // Get if a digit separator is allowed before any integer digits.
-    inline bool lexical_number_format_integer_leading_digit_separator(uint32_t format)
+    inline bool lexical_number_format_integer_leading_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_integer_leading_digit_separator);
     }
 
     // Get if a digit separator is allowed before any fraction digits.
-    inline bool lexical_number_format_fraction_leading_digit_separator(uint32_t format)
+    inline bool lexical_number_format_fraction_leading_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_fraction_leading_digit_separator);
     }
 
     // Get if a digit separator is allowed before any exponent digits.
-    inline bool lexical_number_format_exponent_leading_digit_separator(uint32_t format)
+    inline bool lexical_number_format_exponent_leading_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_exponent_leading_digit_separator);
     }
 
     // Get if a digit separator is allowed before any digits.
-    inline bool lexical_number_format_leading_digit_separator(uint32_t format)
+    inline bool lexical_number_format_leading_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_leading_digit_separator);
     }
 
     // Get if a digit separator is allowed after any integer digits.
-    inline bool lexical_number_format_integer_trailing_digit_separator(uint32_t format)
+    inline bool lexical_number_format_integer_trailing_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_integer_trailing_digit_separator);
     }
 
     // Get if a digit separator is allowed after any fraction digits.
-    inline bool lexical_number_format_fraction_trailing_digit_separator(uint32_t format)
+    inline bool lexical_number_format_fraction_trailing_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_fraction_trailing_digit_separator);
     }
 
     // Get if a digit separator is allowed after any exponent digits.
-    inline bool lexical_number_format_exponent_trailing_digit_separator(uint32_t format)
+    inline bool lexical_number_format_exponent_trailing_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_exponent_trailing_digit_separator);
     }
 
     // Get if a digit separator is allowed after any digits.
-    inline bool lexical_number_format_trailing_digit_separator(uint32_t format)
+    inline bool lexical_number_format_trailing_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_trailing_digit_separator);
     }
 
     // Get if multiple consecutive integer digit separators are allowed.
-    inline bool lexical_number_format_integer_consecutive_digit_separator(uint32_t format)
+    inline bool lexical_number_format_integer_consecutive_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_integer_consecutive_digit_separator);
     }
 
     // Get if multiple consecutive fraction digit separators are allowed.
-    inline bool lexical_number_format_fraction_consecutive_digit_separator(uint32_t format)
+    inline bool lexical_number_format_fraction_consecutive_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_fraction_consecutive_digit_separator);
     }
 
     // Get if multiple consecutive exponent digit separators are allowed.
-    inline bool lexical_number_format_exponent_consecutive_digit_separator(uint32_t format)
+    inline bool lexical_number_format_exponent_consecutive_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_exponent_consecutive_digit_separator);
     }
 
     // Get if multiple consecutive digit separators are allowed.
-    inline bool lexical_number_format_consecutive_digit_separator(uint32_t format)
+    inline bool lexical_number_format_consecutive_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_consecutive_digit_separator);
     }
 
     // Get if any digit separators are allowed in special (non-finite) values.
-    inline bool lexical_number_format_special_digit_separator(uint32_t format)
+    inline bool lexical_number_format_special_digit_separator(uint64_t format)
     {
         return lexical_number_format_intersects(format, lexical_special_digit_separator);
     }
@@ -1930,7 +1930,7 @@ lexical_partial_result(f64);
         lexical_ato##type##_format(                                             \
             uint8_t const* first,                                               \
             uint8_t const* last,                                                \
-            uint32_t format                                                     \
+            uint64_t format                                                     \
         )
 
     // Declare extern partial, format from lexical function definitions for type.
@@ -1940,7 +1940,7 @@ lexical_partial_result(f64);
         lexical_ato##type##_partial_format(                                     \
             uint8_t const* first,                                               \
             uint8_t const* last,                                                \
-            uint32_t format                                                     \
+            uint64_t format                                                     \
         )
 
     // Declare extern format from lexical function definitions for type.
@@ -1951,7 +1951,7 @@ lexical_partial_result(f64);
             uint8_t const* first,                                               \
             uint8_t const* last,                                                \
             uint8_t radix,                                                      \
-            uint32_t format                                                     \
+            uint64_t format                                                     \
         )
 
     // Declare extern partial, format from lexical function definitions for type.
@@ -1962,7 +1962,7 @@ lexical_partial_result(f64);
             uint8_t const* first,                                               \
             uint8_t const* last,                                                \
             uint8_t radix,                                                      \
-            uint32_t format                                                     \
+            uint64_t format                                                     \
         )
 
     // Declare extern format from lexical function definitions.
@@ -1987,7 +1987,7 @@ lexical_partial_result(f64);
         lexical_ato##type##_lossy_format(                                       \
             uint8_t const* first,                                               \
             uint8_t const* last,                                                \
-            uint32_t format                                                     \
+            uint64_t format                                                     \
         )
 
     // Declare extern lossy, partial, format from lexical function definitions for type.
@@ -1997,7 +1997,7 @@ lexical_partial_result(f64);
         lexical_ato##type##_partial_lossy_format(                               \
             uint8_t const* first,                                               \
             uint8_t const* last,                                                \
-            uint32_t format                                                     \
+            uint64_t format                                                     \
         )
 
     // Declare extern lossy, format from lexical function definitions for type.
@@ -2008,7 +2008,7 @@ lexical_partial_result(f64);
             uint8_t const* first,                                               \
             uint8_t const* last,                                                \
             uint8_t radix,                                                      \
-            uint32_t format                                                     \
+            uint64_t format                                                     \
         )
 
     // Declare extern lossy, partial, format from lexical function definitions for type.
@@ -2019,7 +2019,7 @@ lexical_partial_result(f64);
             uint8_t const* first,                                               \
             uint8_t const* last,                                                \
             uint8_t radix,                                                      \
-            uint32_t format                                                     \
+            uint64_t format                                                     \
         )
 
     // Declare extern from lexical lossy function definitions.

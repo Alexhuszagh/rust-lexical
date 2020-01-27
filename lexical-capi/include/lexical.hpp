@@ -106,7 +106,7 @@ inline void set_exponent_default_char(uint8_t ch)
     // BITFLAGS
 
     // Bitflags for a serialized number format.
-    enum class number_format: uint32_t {
+    enum class number_format: uint64_t {
         // FLAGS
         required_integer_digits = ::lexical_required_integer_digits,
         required_fraction_digits = ::lexical_required_fraction_digits,
@@ -457,219 +457,219 @@ inline void set_exponent_default_char(uint8_t ch)
     }
 
     // Get the flag bits from the compiled float format.
-    inline uint32_t number_format_flags(number_format format)
+    inline uint64_t number_format_flags(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_flags(f);
     }
 
     // Get the digit separator from the compiled float format.
     inline uint8_t number_format_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_digit_separator(f);
     }
 
     // Get if digits are required before the decimal point.
     inline bool number_format_required_integer_digits(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_required_integer_digits(f);
     }
 
     // Get if digits are required after the decimal point.
     inline bool number_format_required_fraction_digits(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_required_fraction_digits(f);
     }
 
     // Get if digits are required after the exponent character.
     inline bool number_format_required_exponent_digits(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_required_exponent_digits(f);
     }
 
     // Get if digits are required before or after the decimal point.
     inline bool number_format_required_digits(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_required_digits(f);
     }
 
     // Get if positive sign before the mantissa is not allowed.
     inline bool number_format_no_positive_mantissa_sign(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_no_positive_mantissa_sign(f);
     }
 
     // Get if positive sign before the mantissa is required.
     inline bool number_format_required_mantissa_sign(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_required_mantissa_sign(f);
     }
 
     // Get if exponent notation is not allowed.
     inline bool number_format_no_exponent_notation(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_no_exponent_notation(f);
     }
 
     // Get if positive sign before the exponent is not allowed.
     inline bool number_format_no_positive_exponent_sign(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_no_positive_exponent_sign(f);
     }
 
     // Get if sign before the exponent is required.
     inline bool number_format_required_exponent_sign(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_required_exponent_sign(f);
     }
 
     // Get if exponent without fraction is not allowed.
     inline bool number_format_no_exponent_without_fraction(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_no_exponent_without_fraction(f);
     }
 
     // Get if special (non-finite) values are not allowed.
     inline bool number_format_no_special(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_no_special(f);
     }
 
     // Get if special (non-finite) values are case-sensitive.
     inline bool number_format_case_sensitive_special(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_case_sensitive_special(f);
     }
 
     // Get if digit separators are allowed between integer digits.
     inline bool number_format_integer_internal_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_integer_internal_digit_separator(f);
     }
 
     // Get if digit separators are allowed between fraction digits.
     inline bool number_format_fraction_internal_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_fraction_internal_digit_separator(f);
     }
 
     // Get if digit separators are allowed between exponent digits.
     inline bool number_format_exponent_internal_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_exponent_internal_digit_separator(f);
     }
 
     // Get if digit separators are allowed between digits.
     inline bool number_format_internal_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_internal_digit_separator(f);
     }
 
     // Get if a digit separator is allowed before any integer digits.
     inline bool number_format_integer_leading_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_integer_leading_digit_separator(f);
     }
 
     // Get if a digit separator is allowed before any fraction digits.
     inline bool number_format_fraction_leading_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_fraction_leading_digit_separator(f);
     }
 
     // Get if a digit separator is allowed before any exponent digits.
     inline bool number_format_exponent_leading_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_exponent_leading_digit_separator(f);
     }
 
     // Get if a digit separator is allowed before any digits.
     inline bool number_format_leading_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_leading_digit_separator(f);
     }
 
     // Get if a digit separator is allowed after any integer digits.
     inline bool number_format_integer_trailing_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_integer_trailing_digit_separator(f);
     }
 
     // Get if a digit separator is allowed after any fraction digits.
     inline bool number_format_fraction_trailing_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_fraction_trailing_digit_separator(f);
     }
 
     // Get if a digit separator is allowed after any exponent digits.
     inline bool number_format_exponent_trailing_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_exponent_trailing_digit_separator(f);
     }
 
     // Get if a digit separator is allowed after any digits.
     inline bool number_format_trailing_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_trailing_digit_separator(f);
     }
 
     // Get if multiple consecutive integer digit separators are allowed.
     inline bool number_format_integer_consecutive_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_integer_consecutive_digit_separator(f);
     }
 
     // Get if multiple consecutive fraction digit separators are allowed.
     inline bool number_format_fraction_consecutive_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_fraction_consecutive_digit_separator(f);
     }
 
     // Get if multiple consecutive exponent digit separators are allowed.
     inline bool number_format_exponent_consecutive_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_exponent_consecutive_digit_separator(f);
     }
 
     // Get if multiple consecutive digit separators are allowed.
     inline bool number_format_consecutive_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_consecutive_digit_separator(f);
     }
 
     // Get if any digit separators are allowed in special (non-finite) values.
     inline bool number_format_special_digit_separator(number_format format)
     {
-        auto f = static_cast<uint32_t>(format);
+        auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_special_digit_separator(f);
     }
 #endif  // HAVE_FORMAT
@@ -1261,7 +1261,7 @@ lexical_lossy_dispatcher(f64);
         )                                                                       \
         {                                                                       \
             using result_type = result<type>;                                   \
-            auto f = static_cast<uint32_t>(format);                             \
+            auto f = static_cast<uint64_t>(format);                             \
             auto r = ::lexical_ato##type##_format(first, last, f);              \
             return result_type::from(r);                                        \
         }
@@ -1277,7 +1277,7 @@ lexical_lossy_dispatcher(f64);
         )                                                                       \
         {                                                                       \
             using partial_result_type = partial_result<type>;                   \
-            auto f = static_cast<uint32_t>(format);                             \
+            auto f = static_cast<uint64_t>(format);                             \
             auto r = ::lexical_ato##type##_partial_format(first, last, f);      \
             return partial_result_type::from(r);                                \
         }
@@ -1294,7 +1294,7 @@ lexical_lossy_dispatcher(f64);
         )                                                                       \
         {                                                                       \
             using result_type = result<type>;                                   \
-            auto f = static_cast<uint32_t>(format);                             \
+            auto f = static_cast<uint64_t>(format);                             \
             auto r = ::lexical_ato##type##_format_radix(first, last, radix, f); \
             return result_type::from(r);                                        \
         }
@@ -1311,7 +1311,7 @@ lexical_lossy_dispatcher(f64);
         )                                                                       \
         {                                                                       \
             using partial_result_type = partial_result<type>;                   \
-            auto f = static_cast<uint32_t>(format);                             \
+            auto f = static_cast<uint64_t>(format);                             \
             auto r = ::lexical_ato##type##_partial_format_radix(                \
                 first, last, radix, f                                           \
             );                                                                  \
@@ -1371,7 +1371,7 @@ lexical_lossy_dispatcher(f64);
         )                                                                       \
         {                                                                       \
             using result_type = result<type>;                                   \
-            auto f = static_cast<uint32_t>(format);                             \
+            auto f = static_cast<uint64_t>(format);                             \
             auto r = ::lexical_ato##type##_lossy_format(first, last, f);        \
             return result_type::from(r);                                        \
         }
@@ -1387,7 +1387,7 @@ lexical_lossy_dispatcher(f64);
         )                                                                       \
         {                                                                       \
             using partial_result_type = partial_result<type>;                   \
-            auto f = static_cast<uint32_t>(format);                             \
+            auto f = static_cast<uint64_t>(format);                             \
             auto r = ::lexical_ato##type##_partial_lossy_format(first, last, f);\
             return partial_result_type::from(r);                                \
         }
@@ -1404,7 +1404,7 @@ lexical_lossy_dispatcher(f64);
         )                                                                       \
         {                                                                       \
             using result_type = result<type>;                                   \
-            auto f = static_cast<uint32_t>(format);                             \
+            auto f = static_cast<uint64_t>(format);                             \
             auto r = ::lexical_ato##type##_lossy_format_radix(                  \
                 first, last, radix, f                                           \
             );                                                                  \
@@ -1423,7 +1423,7 @@ lexical_lossy_dispatcher(f64);
         )                                                                       \
         {                                                                       \
             using partial_result_type = partial_result<type>;                   \
-            auto f = static_cast<uint32_t>(format);                             \
+            auto f = static_cast<uint64_t>(format);                             \
             auto r = ::lexical_ato##type##_partial_lossy_format_radix(          \
                 first, last, radix, f                                           \
             );                                                                  \
