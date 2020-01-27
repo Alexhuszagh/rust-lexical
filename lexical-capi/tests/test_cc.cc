@@ -271,7 +271,7 @@ TEST(test_set_exponent_default_char, config_tests)
     TEST(number_format_ignore, config_tests)
     {
         auto format = number_format_ignore('_').unwrap();
-        EXPECT_EQ(number_format_flags(format), uint32_t(number_format::ignore));
+        EXPECT_EQ(number_format_flags(format), uint64_t(number_format::ignore));
         EXPECT_EQ(number_format_digit_separator(format), '_');
     }
 #endif  // HAVE_FORMAT
