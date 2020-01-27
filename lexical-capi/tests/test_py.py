@@ -178,6 +178,7 @@ class ErrorTests(unittest.TestCase):
         self.invalid_positive_exponent_sign = lexical.Error(lexical.ErrorCode.InvalidPositiveExponentSign.value, 0)
         self.missing_exponent_sign = lexical.Error(lexical.ErrorCode.MissingExponentSign.value, 0)
         self.exponent_without_fraction = lexical.Error(lexical.ErrorCode.ExponentWithoutFraction.value, 0)
+        self.invalid_leading_zeros = lexical.Error(lexical.ErrorCode.InvalidLeadingZeros.value, 0)
 
     def test_is_overflow(self):
         self.assertTrue(self.overflow.is_overflow())
@@ -234,6 +235,10 @@ class ErrorTests(unittest.TestCase):
     def test_is_exponent_without_fraction(self):
         self.assertFalse(self.overflow.is_exponent_without_fraction())
         self.assertTrue(self.exponent_without_fraction.is_exponent_without_fraction())
+
+    def test_is_invalid_leading_zeros(self):
+        self.assertFalse(self.overflow.is_invalid_leading_zeros())
+        self.assertTrue(self.invalid_leading_zeros.is_invalid_leading_zeros())
 
 
 class ResultTests(unittest.TestCase):

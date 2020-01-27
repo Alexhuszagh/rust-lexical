@@ -94,6 +94,7 @@ lexical_result_error(invalid_exponent);
 lexical_result_error(invalid_positive_exponent_sign);
 lexical_result_error(missing_exponent_sign);
 lexical_result_error(exponent_without_fraction);
+lexical_result_error(invalid_leading_zeros);
 
 template <typename T>
 inline partial_result<T> partial_result_ok(T value, size_t index)
@@ -156,6 +157,7 @@ lexical_partial_result_error(invalid_exponent);
 lexical_partial_result_error(invalid_positive_exponent_sign);
 lexical_partial_result_error(missing_exponent_sign);
 lexical_partial_result_error(exponent_without_fraction);
+lexical_partial_result_error(invalid_leading_zeros);
 
 // CONFIG TESTS
 // ------------
@@ -208,6 +210,7 @@ TEST(test_set_exponent_default_char, config_tests)
         bool no_exponent_without_fraction = false;
         bool no_special = true;
         bool case_sensitive_special = false;
+        bool no_leading_zeros = false;
         bool integer_internal_digit_separator = true;
         bool fraction_internal_digit_separator = false;
         bool exponent_internal_digit_separator = false;
@@ -233,6 +236,7 @@ TEST(test_set_exponent_default_char, config_tests)
             required_exponent_sign,
             no_exponent_without_fraction,
             no_special,
+            no_leading_zeros,
             case_sensitive_special,
             integer_internal_digit_separator,
             fraction_internal_digit_separator,
@@ -444,13 +448,20 @@ TEST(test_is_missing_exponent_sign, error_tests)
     EXPECT_TRUE(missing_exponent_sign.is_missing_exponent_sign());
 }
 
-
 TEST(test_is_exponent_without_fraction, error_tests)
 {
     error overflow = { error_code::overflow, 0 };
     error exponent_without_fraction = { error_code::exponent_without_fraction, 0 };
     EXPECT_FALSE(overflow.is_exponent_without_fraction());
     EXPECT_TRUE(exponent_without_fraction.is_exponent_without_fraction());
+}
+
+TEST(test_is_invalid_leading_zeros, error_tests)
+{
+    error overflow = { error_code::overflow, 0 };
+    error invalid_leading_zeros = { error_code::invalid_leading_zeros, 0 };
+    EXPECT_FALSE(overflow.is_invalid_leading_zeros());
+    EXPECT_TRUE(invalid_leading_zeros.is_invalid_leading_zeros());
 }
 
 // RESULT TESTS
@@ -472,6 +483,7 @@ TEST(result, result_tests)
     auto invalid_positive_exponent_sign = result_invalid_positive_exponent_sign<u8>(0);
     auto missing_exponent_sign = result_missing_exponent_sign<u8>(0);
     auto exponent_without_fraction = result_exponent_without_fraction<u8>(0);
+    auto invalid_leading_zeros = result_invalid_leading_zeros<u8>(0);
 
     EXPECT_TRUE(ok.is_ok());
     EXPECT_FALSE(ok.is_err());
@@ -489,6 +501,7 @@ TEST(result, result_tests)
     EXPECT_TRUE(invalid_positive_exponent_sign.is_err());
     EXPECT_TRUE(missing_exponent_sign.is_err());
     EXPECT_TRUE(exponent_without_fraction.is_err());
+    EXPECT_TRUE(invalid_leading_zeros.is_err());
 
     EXPECT_EQ(ok.ok(), 0);
     EXPECT_TRUE(overflow.err().is_overflow());
@@ -505,6 +518,7 @@ TEST(result, result_tests)
     EXPECT_TRUE(invalid_positive_exponent_sign.err().is_invalid_positive_exponent_sign());
     EXPECT_TRUE(missing_exponent_sign.err().is_missing_exponent_sign());
     EXPECT_TRUE(exponent_without_fraction.err().is_exponent_without_fraction());
+    EXPECT_TRUE(invalid_leading_zeros.err().is_invalid_leading_zeros());
 }
 
 // PARTIAL RESULT TESTS
@@ -526,6 +540,7 @@ TEST(partial_result, partial_result_tests)
     auto invalid_positive_exponent_sign = partial_result_invalid_positive_exponent_sign<u8>(0);
     auto missing_exponent_sign = partial_result_missing_exponent_sign<u8>(0);
     auto exponent_without_fraction = partial_result_exponent_without_fraction<u8>(0);
+    auto invalid_leading_zeros = partial_result_invalid_leading_zeros<u8>(0);
 
     EXPECT_TRUE(ok.is_ok());
     EXPECT_FALSE(ok.is_err());
@@ -543,6 +558,7 @@ TEST(partial_result, partial_result_tests)
     EXPECT_TRUE(invalid_positive_exponent_sign.is_err());
     EXPECT_TRUE(missing_exponent_sign.is_err());
     EXPECT_TRUE(exponent_without_fraction.is_err());
+    EXPECT_TRUE(invalid_leading_zeros.is_err());
 
     EXPECT_EQ(ok.ok(), std::make_tuple(0, 1));
     EXPECT_TRUE(overflow.err().is_overflow());
@@ -559,6 +575,7 @@ TEST(partial_result, partial_result_tests)
     EXPECT_TRUE(invalid_positive_exponent_sign.err().is_invalid_positive_exponent_sign());
     EXPECT_TRUE(missing_exponent_sign.err().is_missing_exponent_sign());
     EXPECT_TRUE(exponent_without_fraction.err().is_exponent_without_fraction());
+    EXPECT_TRUE(invalid_leading_zeros.err().is_invalid_leading_zeros());
 }
 
 // TO STRING TESTS
