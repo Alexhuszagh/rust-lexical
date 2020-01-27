@@ -60,12 +60,20 @@
 //! **From String**
 //! - [`parse`]
 #![cfg_attr(feature = "radix", doc = " - [`parse_radix`]")]
+#![cfg_attr(feature = "format", doc = " - [`parse_format`]")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " - [`parse_format_radix`]")]
 //! - [`parse_partial`]
 #![cfg_attr(feature = "radix", doc = " - [`parse_partial_radix`]")]
+#![cfg_attr(feature = "format", doc = " - [`parse_partial_format`]")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " - [`parse_partial_format_radix`]")]
 //! - [`parse_lossy`]
 #![cfg_attr(feature = "radix", doc = " - [`parse_lossy_radix`]")]
+#![cfg_attr(feature = "format", doc = " - [`parse_lossy_format`]")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " - [`parse_lossy_format_radix`]")]
 //! - [`parse_partial_lossy`]
 #![cfg_attr(feature = "radix", doc = " - [`parse_partial_lossy_radix`]")]
+#![cfg_attr(feature = "format", doc = " - [`parse_partial_lossy_format`]")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " - [`parse_partial_lossy_format_radix`]")]
 //!
 //! # Configuration Settings
 //!
@@ -89,12 +97,20 @@
 #![cfg_attr(feature = "radix", doc = " [`write_radix`]: fn.write_radix.html")]
 //! [`parse`]: fn.parse.html
 #![cfg_attr(feature = "radix", doc = " [`parse_radix`]: fn.parse_radix.html")]
+#![cfg_attr(feature = "format", doc = " [`parse_format`]: fn.parse_format.html")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " [`parse_format_radix`]: fn.parse_format_radix.html")]
 //! [`parse_partial`]: fn.parse_partial.html
 #![cfg_attr(feature = "radix", doc = " [`parse_partial_radix`]: fn.parse_partial_radix.html")]
+#![cfg_attr(feature = "format", doc = " [`parse_partial_format`]: fn.parse_partial_format.html")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " [`parse_partial_format_radix`]: fn.parse_partial_format_radix.html")]
 //! [`parse_lossy`]: fn.parse_lossy.html
 #![cfg_attr(feature = "radix", doc = " [`parse_lossy_radix`]: fn.parse_lossy_radix.html")]
+#![cfg_attr(feature = "format", doc = " [`parse_lossy_format`]: fn.parse_lossy_format.html")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " [`parse_lossy_format_radix`]: fn.parse_lossy_format_radix.html")]
 //! [`parse_partial_lossy`]: fn.parse_partial_lossy.html
 #![cfg_attr(feature = "radix", doc = " [`parse_partial_lossy_radix`]: fn.parse_partial_lossy_radix.html")]
+#![cfg_attr(feature = "format", doc = " [`parse_partial_lossy_format`]: fn.parse_partial_lossy_format.html")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " [`parse_partial_lossy_format_radix`]: fn.parse_partial_lossy_format_radix.html")]
 //!
 //! [`get_exponent_default_char`]: fn.get_exponent_default_char.html
 #![cfg_attr(feature = "radix", doc = " [`get_exponent_backup_char`]: fn.get_exponent_backup_char.html")]
