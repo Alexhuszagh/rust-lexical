@@ -31,12 +31,20 @@
 //! **From String**
 //! - [`parse`]
 #![cfg_attr(feature = "radix", doc = " - [`parse_radix`]")]
+#![cfg_attr(feature = "format", doc = " - [`parse_format`]")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " - [`parse_format_radix`]")]
 //! - [`parse_partial`]
 #![cfg_attr(feature = "radix", doc = " - [`parse_partial_radix`]")]
+#![cfg_attr(feature = "format", doc = " - [`parse_partial_format`]")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " - [`parse_partial_format_radix`]")]
 //! - [`parse_lossy`]
 #![cfg_attr(feature = "radix", doc = " - [`parse_lossy_radix`]")]
+#![cfg_attr(feature = "format", doc = " - [`parse_lossy_format`]")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " - [`parse_lossy_format_radix`]")]
 //! - [`parse_partial_lossy`]
 #![cfg_attr(feature = "radix", doc = " - [`parse_partial_lossy_radix`]")]
+#![cfg_attr(feature = "format", doc = " - [`parse_partial_lossy_format`]")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " - [`parse_partial_lossy_format_radix`]")]
 //!
 //! # Configuration Settings
 //!
@@ -60,12 +68,20 @@
 #![cfg_attr(feature = "radix", doc = " [`to_string_radix`]: fn.to_string_radix.html")]
 //! [`parse`]: fn.parse.html
 #![cfg_attr(feature = "radix", doc = " [`parse_radix`]: fn.parse_radix.html")]
+#![cfg_attr(feature = "format", doc = " [`parse_format`]: fn.parse_format.html")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " [`parse_format_radix`]: fn.parse_format_radix.html")]
 //! [`parse_partial`]: fn.parse_partial.html
 #![cfg_attr(feature = "radix", doc = " [`parse_partial_radix`]: fn.parse_partial_radix.html")]
+#![cfg_attr(feature = "format", doc = " [`parse_partial_format`]: fn.parse_partial_format.html")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " [`parse_partial_format_radix`]: fn.parse_partial_format_radix.html")]
 //! [`parse_lossy`]: fn.parse_lossy.html
 #![cfg_attr(feature = "radix", doc = " [`parse_lossy_radix`]: fn.parse_lossy_radix.html")]
+#![cfg_attr(feature = "format", doc = " [`parse_lossy_format`]: fn.parse_lossy_format.html")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " [`parse_lossy_format_radix`]: fn.parse_lossy_format_radix.html")]
 //! [`parse_partial_lossy`]: fn.parse_partial_lossy.html
 #![cfg_attr(feature = "radix", doc = " [`parse_partial_lossy_radix`]: fn.parse_partial_lossy_radix.html")]
+#![cfg_attr(feature = "format", doc = " [`parse_partial_lossy_format`]: fn.parse_partial_lossy_format.html")]
+#![cfg_attr(all(feature = "format", feature = "radix"), doc = " [`parse_partial_lossy_format_radix`]: fn.parse_partial_lossy_format_radix.html")]
 //!
 //! [`get_exponent_default_char`]: fn.get_exponent_default_char.html
 #![cfg_attr(feature = "radix", doc = " [`get_exponent_backup_char`]: fn.get_exponent_backup_char.html")]
@@ -797,23 +813,23 @@ pub fn parse_partial_lossy_format<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>
 /// let format = lexical::NumberFormat::RUST_STRING;
 ///
 /// // String overloads
-/// assert_eq!(lexical::parse_radix_format::<i32, _>("5", 10, format), Ok(5));
-/// assert_eq!(err_code(lexical::parse_radix_format::<i32, _>("1a", 10, format)), ErrorCode::InvalidDigit);
-/// assert_eq!(err_code(lexical::parse_radix_format::<i32, _>("1.", 10, format)), ErrorCode::InvalidDigit);
-/// assert_eq!(lexical::parse_radix_format::<f32, _>("0", 10, format), Ok(0.0));
-/// assert_eq!(lexical::parse_radix_format::<f32, _>("1.0", 10, format), Ok(1.0));
-/// assert_eq!(lexical::parse_radix_format::<f32, _>("1.", 10, format), Ok(1.0));
-/// assert_eq!(err_code(lexical::parse_radix_format::<f32, _>("1a", 10, format)), ErrorCode::InvalidDigit);
-/// assert_eq!(err_code(lexical::parse_radix_format::<f32, _>("1.0.", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(lexical::parse_format_radix::<i32, _>("5", 10, format), Ok(5));
+/// assert_eq!(err_code(lexical::parse_format_radix::<i32, _>("1a", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(err_code(lexical::parse_format_radix::<i32, _>("1.", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(lexical::parse_format_radix::<f32, _>("0", 10, format), Ok(0.0));
+/// assert_eq!(lexical::parse_format_radix::<f32, _>("1.0", 10, format), Ok(1.0));
+/// assert_eq!(lexical::parse_format_radix::<f32, _>("1.", 10, format), Ok(1.0));
+/// assert_eq!(err_code(lexical::parse_format_radix::<f32, _>("1a", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(err_code(lexical::parse_format_radix::<f32, _>("1.0.", 10, format)), ErrorCode::InvalidDigit);
 ///
 /// // Bytes overloads
-/// assert_eq!(lexical::parse_radix_format::<i32, _>(b"5", 10, format), Ok(5));
-/// assert_eq!(err_code(lexical::parse_radix_format::<i32, _>(b"1a", 10, format)), ErrorCode::InvalidDigit);
-/// assert_eq!(lexical::parse_radix_format::<f32, _>(b"0", 10, format), Ok(0.0));
-/// assert_eq!(lexical::parse_radix_format::<f32, _>(b"1.0", 10, format), Ok(1.0));
-/// assert_eq!(lexical::parse_radix_format::<f32, _>(b"1.", 10, format), Ok(1.0));
-/// assert_eq!(err_code(lexical::parse_radix_format::<f32, _>(b"1a", 10, format)), ErrorCode::InvalidDigit);
-/// assert_eq!(err_code(lexical::parse_radix_format::<f32, _>(b"1.0.", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(lexical::parse_format_radix::<i32, _>(b"5", 10, format), Ok(5));
+/// assert_eq!(err_code(lexical::parse_format_radix::<i32, _>(b"1a", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(lexical::parse_format_radix::<f32, _>(b"0", 10, format), Ok(0.0));
+/// assert_eq!(lexical::parse_format_radix::<f32, _>(b"1.0", 10, format), Ok(1.0));
+/// assert_eq!(lexical::parse_format_radix::<f32, _>(b"1.", 10, format), Ok(1.0));
+/// assert_eq!(err_code(lexical::parse_format_radix::<f32, _>(b"1a", 10, format)), ErrorCode::InvalidDigit);
+/// assert_eq!(err_code(lexical::parse_format_radix::<f32, _>(b"1.0.", 10, format)), ErrorCode::InvalidDigit);
 /// # }
 /// ```
 ///
@@ -822,7 +838,7 @@ pub fn parse_partial_lossy_format<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>
 /// Panics if radix is not in the range `[2, 36]`
 #[inline]
 #[cfg(all(feature = "radix", feature = "format"))]
-pub fn parse_radix_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8, format: NumberFormat)
+pub fn parse_format_radix<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8, format: NumberFormat)
     -> Result<N>
 {
     N::from_lexical_format_radix(bytes.as_ref(), radix, format)
@@ -852,24 +868,24 @@ pub fn parse_radix_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes
 /// let format = lexical::NumberFormat::RUST_STRING;
 ///
 /// // String overloads
-/// assert_eq!(lexical::parse_partial_radix_format::<i32, _>("5", 10, format), Ok((5, 1)));
-/// assert_eq!(lexical::parse_partial_radix_format::<i32, _>("1a", 10, format), Ok((1, 1)));
-/// assert_eq!(lexical::parse_partial_radix_format::<i32, _>("1.", 10, format), Ok((1, 1)));
-/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>("0", 10, format), Ok((0.0, 1)));
-/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>("1.0", 10, format), Ok((1.0, 3)));
-/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>("1.", 10, format), Ok((1.0, 2)));
-/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>("1a", 10, format), Ok((1.0, 1)));
-/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>("1.0.", 10, format), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_format_radix::<i32, _>("5", 10, format), Ok((5, 1)));
+/// assert_eq!(lexical::parse_partial_format_radix::<i32, _>("1a", 10, format), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_format_radix::<i32, _>("1.", 10, format), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_format_radix::<f32, _>("0", 10, format), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_format_radix::<f32, _>("1.0", 10, format), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_format_radix::<f32, _>("1.", 10, format), Ok((1.0, 2)));
+/// assert_eq!(lexical::parse_partial_format_radix::<f32, _>("1a", 10, format), Ok((1.0, 1)));
+/// assert_eq!(lexical::parse_partial_format_radix::<f32, _>("1.0.", 10, format), Ok((1.0, 3)));
 ///
 /// // Bytes overloads
-/// assert_eq!(lexical::parse_partial_radix_format::<i32, _>(b"5", 10, format), Ok((5, 1)));
-/// assert_eq!(lexical::parse_partial_radix_format::<i32, _>(b"1a", 10, format), Ok((1, 1)));
-/// assert_eq!(lexical::parse_partial_radix_format::<i32, _>(b"1.", 10, format), Ok((1, 1)));
-/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>(b"0", 10, format), Ok((0.0, 1)));
-/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>(b"1.0", 10, format), Ok((1.0, 3)));
-/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>(b"1.", 10, format), Ok((1.0, 2)));
-/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>(b"1a", 10, format), Ok((1.0, 1)));
-/// assert_eq!(lexical::parse_partial_radix_format::<f32, _>(b"1.0.", 10, format), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_format_radix::<i32, _>(b"5", 10, format), Ok((5, 1)));
+/// assert_eq!(lexical::parse_partial_format_radix::<i32, _>(b"1a", 10, format), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_format_radix::<i32, _>(b"1.", 10, format), Ok((1, 1)));
+/// assert_eq!(lexical::parse_partial_format_radix::<f32, _>(b"0", 10, format), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_format_radix::<f32, _>(b"1.0", 10, format), Ok((1.0, 3)));
+/// assert_eq!(lexical::parse_partial_format_radix::<f32, _>(b"1.", 10, format), Ok((1.0, 2)));
+/// assert_eq!(lexical::parse_partial_format_radix::<f32, _>(b"1a", 10, format), Ok((1.0, 1)));
+/// assert_eq!(lexical::parse_partial_format_radix::<f32, _>(b"1.0.", 10, format), Ok((1.0, 3)));
 /// # }
 /// ```
 ///
@@ -878,7 +894,7 @@ pub fn parse_radix_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes
 /// Panics if radix is not in the range `[2, 36]`
 #[inline]
 #[cfg(all(feature = "radix", feature = "format"))]
-pub fn parse_partial_radix_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8, format: NumberFormat)
+pub fn parse_partial_format_radix<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8, format: NumberFormat)
     -> Result<(N, usize)>
 {
     N::from_lexical_partial_format_radix(bytes.as_ref(), radix, format)

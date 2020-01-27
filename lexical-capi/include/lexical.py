@@ -175,11 +175,11 @@ if HAVE_FORMAT:
 
     def digit_separator_to_flags(digit_separator):
         '''Convert digit separator byte to 32-bit flags.'''
-        return ord(digit_separator) << 24
+        return ord(digit_separator) << 56
 
     def digit_separator_from_flags(flags):
         '''Extract digit separator byte from 32-bit flags.'''
-        return chr(flags >> 24).encode('ascii')
+        return chr(flags >> 56).encode('ascii')
 
     def is_ascii(ch):
         '''Determine if character is valid ASCII.'''
@@ -219,32 +219,33 @@ if HAVE_FORMAT:
     class NumberFormatFlags(enum.Flag):
         '''Bitflags for a serialized number format.'''
 
-        # FLAGS
+        # NON-DIGIT SEPARATOR FLAGS
+        RequiredIntegerDigits               = 0b0000000000000000000000000000000000000000000000000000000000000001
+        RequiredFractionDigits              = 0b0000000000000000000000000000000000000000000000000000000000000010
+        RequiredExponentDigits              = 0b0000000000000000000000000000000000000000000000000000000000000100
+        NoPositiveMantissaSign              = 0b0000000000000000000000000000000000000000000000000000000000001000
+        RequiredMantissaSign                = 0b0000000000000000000000000000000000000000000000000000000000010000
+        NoExponentNotation                  = 0b0000000000000000000000000000000000000000000000000000000000100000
+        NoPositiveExponentSign              = 0b0000000000000000000000000000000000000000000000000000000001000000
+        RequiredExponentSign                = 0b0000000000000000000000000000000000000000000000000000000010000000
+        NoExponentWithoutFraction           = 0b0000000000000000000000000000000000000000000000000000000100000000
+        NoSpecial                           = 0b0000000000000000000000000000000000000000000000000000001000000000
+        CaseSensitiveSpecial                = 0b0000000000000000000000000000000000000000000000000000010000000000
 
-        RequiredIntegerDigits               = 0b000000000000000000000001
-        RequiredFractionDigits              = 0b000000000000000000000010
-        RequiredExponentDigits              = 0b000000000000000000000100
-        NoPositiveMantissaSign              = 0b000000000000000000001000
-        RequiredMantissaSign                = 0b000000000000000000010000
-        NoExponentNotation                  = 0b000000000000000000100000
-        NoPositiveExponentSign              = 0b000000000000000001000000
-        RequiredExponentSign                = 0b000000000000000010000000
-        NoExponentWithoutFraction           = 0b000000000000000100000000
-        NoSpecial                           = 0b000000000000001000000000
-        CaseSensitiveSpecial                = 0b000000000000010000000000
-        IntegerInternalDigitSeparator       = 0b000000000000100000000000
-        IntegerLeadingDigitSeparator        = 0b000000000001000000000000
-        IntegerTrailingDigitSeparator       = 0b000000000010000000000000
-        IntegerConsecutiveDigitSeparator    = 0b000000000100000000000000
-        FractionInternalDigitSeparator      = 0b000000001000000000000000
-        FractionLeadingDigitSeparator       = 0b000000010000000000000000
-        FractionTrailingDigitSeparator      = 0b000000100000000000000000
-        FractionConsecutiveDigitSeparator   = 0b000001000000000000000000
-        ExponentInternalDigitSeparator      = 0b000010000000000000000000
-        ExponentLeadingDigitSeparator       = 0b000100000000000000000000
-        ExponentTrailingDigitSeparator      = 0b001000000000000000000000
-        ExponentConsecutiveDigitSeparator   = 0b010000000000000000000000
-        SpecialDigitSeparator               = 0b100000000000000000000000
+        # DIGIT SEPARATOR FLAGS
+        IntegerInternalDigitSeparator       = 0b0000000000000000000000000000000100000000000000000000000000000000
+        IntegerLeadingDigitSeparator        = 0b0000000000000000000000000000001000000000000000000000000000000000
+        IntegerTrailingDigitSeparator       = 0b0000000000000000000000000000010000000000000000000000000000000000
+        IntegerConsecutiveDigitSeparator    = 0b0000000000000000000000000000100000000000000000000000000000000000
+        FractionInternalDigitSeparator      = 0b0000000000000000000000000001000000000000000000000000000000000000
+        FractionLeadingDigitSeparator       = 0b0000000000000000000000000010000000000000000000000000000000000000
+        FractionTrailingDigitSeparator      = 0b0000000000000000000000000100000000000000000000000000000000000000
+        FractionConsecutiveDigitSeparator   = 0b0000000000000000000000001000000000000000000000000000000000000000
+        ExponentInternalDigitSeparator      = 0b0000000000000000000000010000000000000000000000000000000000000000
+        ExponentLeadingDigitSeparator       = 0b0000000000000000000000100000000000000000000000000000000000000000
+        ExponentTrailingDigitSeparator      = 0b0000000000000000000001000000000000000000000000000000000000000000
+        ExponentConsecutiveDigitSeparator   = 0b0000000000000000000010000000000000000000000000000000000000000000
+        SpecialDigitSeparator               = 0b0000000000000000000100000000000000000000000000000000000000000000
 
         # MASKS
 

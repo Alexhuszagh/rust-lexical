@@ -685,7 +685,7 @@ if #[cfg(not(feature = "format"))] {
         /// Dummy bitflags for the float format.
         #[doc(hidden)]
         #[derive(Default)]
-        pub struct NumberFormat: u32 {
+        pub struct NumberFormat: u64 {
             const __NONEXHAUSTIVE = 0;
         }
     }
@@ -746,14 +746,14 @@ if #[cfg(not(feature = "format"))] {
     /// Convert digit separator to flags.
     macro_rules! digit_separator_to_flags {
         ($ch:expr) => {
-            ($ch as u32) << 24
+            ($ch as u64) << 56
         };
     }
 
     /// Extract digit separator from flags.
     #[inline]
-    fn digit_separator_from_flags(flag: u32) -> u8 {
-        (flag >> 24) as u8
+    fn digit_separator_from_flags(flag: u64) -> u8 {
+        (flag >> 56) as u8
     }
 
     // BITFLAGS
@@ -771,17 +771,29 @@ if #[cfg(not(feature = "format"))] {
         /// The bitflags has the lower bits designated for flags that modify
         /// the parsing behavior of lexical, and the upper 8 bits set for the
         /// digit separator, allowing any valid ASCII character as a
-        /// separator.
-        ///
+        /// separator. The first 32-bits are reserved for non-digit separator
+        /// flags, bits 32-55 are reserved for digit separator flags, and
+        /// the last 8 bits for the digit separator.
+        //
         /// ```text
         ///  0   1   2   3   4   5   6   7   8   9   0   1   2   3   4   5
         /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-        /// |I/R|F/R|E/R|+/M|R/M|e/e|+/E|R/E|e/F|S/S|S/C|I/I|F/I|E/I|I/L|F/L|
+        /// |I/R|F/R|E/R|+/M|R/M|e/e|+/E|R/E|e/F|S/S|S/C|     RESERVED      |
         /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
         ///
-        ///  0   1   2   3   4   5   6   7   8   9   0   1   2   3   4   5
+        ///  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31
         /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-        /// |E/L|I/T|F/T|E/T|I/C|F/C|E/C|S/D|        Digit Separator        |
+        /// |                           RESERVED                            |
+        /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+        ///
+        ///  32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47
+        /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+        /// |I/I|F/I|E/I|I/L|F/L|E/L|I/T|F/T|E/T|I/C|F/C|E/C|S/D| RESERVED  |
+        /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+        ///
+        ///  48  49  50  51  52  53  54  55  56  57  58  59  60  62  62  63
+        /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+        /// |           RESERVED            |        Digit Separator        |
         /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
         ///
         /// Where:
@@ -906,7 +918,7 @@ if #[cfg(not(feature = "format"))] {
         /// 43. MySQL
         /// 44. MongoDB
         #[derive(Default)]
-        pub struct NumberFormat: u32 {
+        pub struct NumberFormat: u64 {
             // MASKS & FLAGS
 
             /// Mask to extract the flag bits.
@@ -996,19 +1008,21 @@ if #[cfg(not(feature = "format"))] {
                 | Self::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
+            // NON-DIGIT SEPARATOR FLAGS & MASKS
+
             /// Digits are required before the decimal point.
             #[doc(hidden)]
-            const REQUIRED_INTEGER_DIGITS               = 0b000000000000000000000001;
+            const REQUIRED_INTEGER_DIGITS               = 0b0000000000000000000000000000000000000000000000000000000000000001;
 
             /// Digits are required after the decimal point.
             /// This check will only occur if the decimal point is present.
             #[doc(hidden)]
-            const REQUIRED_FRACTION_DIGITS              = 0b000000000000000000000010;
+            const REQUIRED_FRACTION_DIGITS              = 0b0000000000000000000000000000000000000000000000000000000000000010;
 
             /// Digits are required after the exponent character.
             /// This check will only occur if the exponent character is present.
             #[doc(hidden)]
-            const REQUIRED_EXPONENT_DIGITS              = 0b000000000000000000000100;
+            const REQUIRED_EXPONENT_DIGITS              = 0b0000000000000000000000000000000000000000000000000000000000000100;
 
             /// Digits are required before or after the control characters.
             #[doc(hidden)]
@@ -1020,23 +1034,23 @@ if #[cfg(not(feature = "format"))] {
 
             /// Positive sign before the mantissa is not allowed.
             #[doc(hidden)]
-            const NO_POSITIVE_MANTISSA_SIGN             = 0b000000000000000000001000;
+            const NO_POSITIVE_MANTISSA_SIGN             = 0b0000000000000000000000000000000000000000000000000000000000001000;
 
             /// Positive sign before the mantissa is required.
             #[doc(hidden)]
-            const REQUIRED_MANTISSA_SIGN                = 0b000000000000000000010000;
+            const REQUIRED_MANTISSA_SIGN                = 0b0000000000000000000000000000000000000000000000000000000000010000;
 
             /// Exponent notation is not allowed.
             #[doc(hidden)]
-            const NO_EXPONENT_NOTATION                  = 0b000000000000000000100000;
+            const NO_EXPONENT_NOTATION                  = 0b0000000000000000000000000000000000000000000000000000000000100000;
 
             /// Positive sign before the exponent is not allowed.
             #[doc(hidden)]
-            const NO_POSITIVE_EXPONENT_SIGN             = 0b000000000000000001000000;
+            const NO_POSITIVE_EXPONENT_SIGN             = 0b0000000000000000000000000000000000000000000000000000000001000000;
 
             /// Positive sign before the exponent is required.
             #[doc(hidden)]
-            const REQUIRED_EXPONENT_SIGN                = 0b000000000000000010000000;
+            const REQUIRED_EXPONENT_SIGN                = 0b0000000000000000000000000000000000000000000000000000000010000000;
 
             /// Exponent without a fraction component is not allowed.
             ///
@@ -1044,63 +1058,65 @@ if #[cfg(not(feature = "format"))] {
             /// To require fraction digits or exponent digits with this check,
             /// please use the appropriate flags.
             #[doc(hidden)]
-            const NO_EXPONENT_WITHOUT_FRACTION          = 0b000000000000000100000000;
+            const NO_EXPONENT_WITHOUT_FRACTION          = 0b0000000000000000000000000000000000000000000000000000000100000000;
 
             /// Special (non-finite) values are not allowed.
             #[doc(hidden)]
-            const NO_SPECIAL                            = 0b000000000000001000000000;
+            const NO_SPECIAL                            = 0b0000000000000000000000000000000000000000000000000000001000000000;
 
             /// Special (non-finite) values are case-sensitive.
             #[doc(hidden)]
-            const CASE_SENSITIVE_SPECIAL                = 0b000000000000010000000000;
+            const CASE_SENSITIVE_SPECIAL                = 0b0000000000000000000000000000000000000000000000000000010000000000;
+
+            // DIGIT SEPARATOR FLAGS & MASKS
 
             /// Digit separators are allowed between integer digits.
             #[doc(hidden)]
-            const INTEGER_INTERNAL_DIGIT_SEPARATOR      = 0b000000000000100000000000;
+            const INTEGER_INTERNAL_DIGIT_SEPARATOR      = 0b0000000000000000000000000000000100000000000000000000000000000000;
 
             /// A digit separator is allowed before any integer digits.
             #[doc(hidden)]
-            const INTEGER_LEADING_DIGIT_SEPARATOR       = 0b000000000001000000000000;
+            const INTEGER_LEADING_DIGIT_SEPARATOR       = 0b0000000000000000000000000000001000000000000000000000000000000000;
 
             /// A digit separator is allowed after any integer digits.
             #[doc(hidden)]
-            const INTEGER_TRAILING_DIGIT_SEPARATOR      = 0b000000000010000000000000;
+            const INTEGER_TRAILING_DIGIT_SEPARATOR      = 0b0000000000000000000000000000010000000000000000000000000000000000;
 
             /// Multiple consecutive integer digit separators are allowed.
             #[doc(hidden)]
-            const INTEGER_CONSECUTIVE_DIGIT_SEPARATOR   = 0b000000000100000000000000;
+            const INTEGER_CONSECUTIVE_DIGIT_SEPARATOR   = 0b0000000000000000000000000000100000000000000000000000000000000000;
 
             /// Digit separators are allowed between fraction digits.
             #[doc(hidden)]
-            const FRACTION_INTERNAL_DIGIT_SEPARATOR     = 0b000000001000000000000000;
+            const FRACTION_INTERNAL_DIGIT_SEPARATOR     = 0b0000000000000000000000000001000000000000000000000000000000000000;
 
             /// A digit separator is allowed before any fraction digits.
             #[doc(hidden)]
-            const FRACTION_LEADING_DIGIT_SEPARATOR      = 0b000000010000000000000000;
+            const FRACTION_LEADING_DIGIT_SEPARATOR      = 0b0000000000000000000000000010000000000000000000000000000000000000;
 
             /// A digit separator is allowed after any fraction digits.
             #[doc(hidden)]
-            const FRACTION_TRAILING_DIGIT_SEPARATOR     = 0b000000100000000000000000;
+            const FRACTION_TRAILING_DIGIT_SEPARATOR     = 0b0000000000000000000000000100000000000000000000000000000000000000;
 
             /// Multiple consecutive fraction digit separators are allowed.
             #[doc(hidden)]
-            const FRACTION_CONSECUTIVE_DIGIT_SEPARATOR  = 0b000001000000000000000000;
+            const FRACTION_CONSECUTIVE_DIGIT_SEPARATOR  = 0b0000000000000000000000001000000000000000000000000000000000000000;
 
             /// Digit separators are allowed between exponent digits.
             #[doc(hidden)]
-            const EXPONENT_INTERNAL_DIGIT_SEPARATOR     = 0b000010000000000000000000;
+            const EXPONENT_INTERNAL_DIGIT_SEPARATOR     = 0b0000000000000000000000010000000000000000000000000000000000000000;
 
             /// A digit separator is allowed before any exponent digits.
             #[doc(hidden)]
-            const EXPONENT_LEADING_DIGIT_SEPARATOR      = 0b000100000000000000000000;
+            const EXPONENT_LEADING_DIGIT_SEPARATOR      = 0b0000000000000000000000100000000000000000000000000000000000000000;
 
             /// A digit separator is allowed after any exponent digits.
             #[doc(hidden)]
-            const EXPONENT_TRAILING_DIGIT_SEPARATOR     = 0b001000000000000000000000;
+            const EXPONENT_TRAILING_DIGIT_SEPARATOR     = 0b0000000000000000000001000000000000000000000000000000000000000000;
 
             /// Multiple consecutive exponent digit separators are allowed.
             #[doc(hidden)]
-            const EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR  = 0b010000000000000000000000;
+            const EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR  = 0b0000000000000000000010000000000000000000000000000000000000000000;
 
             /// Digit separators are allowed between digits.
             #[doc(hidden)]
@@ -1136,7 +1152,7 @@ if #[cfg(not(feature = "format"))] {
 
             /// Any digit separators are allowed in special (non-finite) values.
             #[doc(hidden)]
-            const SPECIAL_DIGIT_SEPARATOR               = 0b100000000000000000000000;
+            const SPECIAL_DIGIT_SEPARATOR               = 0b0000000000000000000100000000000000000000000000000000000000000000;
 
             // PRE-DEFINED
             //
@@ -2148,29 +2164,34 @@ if #[cfg(not(feature = "format"))] {
             const_assert!($name; NumberFormat::$x.bits << 1 == NumberFormat::$y.bits);
         );
     }
-    check_subsequent_flags!(flags0; REQUIRED_INTEGER_DIGITS, REQUIRED_FRACTION_DIGITS);
-    check_subsequent_flags!(flags1; REQUIRED_FRACTION_DIGITS, REQUIRED_EXPONENT_DIGITS);
-    check_subsequent_flags!(flags2; REQUIRED_EXPONENT_DIGITS, NO_POSITIVE_MANTISSA_SIGN);
-    check_subsequent_flags!(flags3; NO_POSITIVE_MANTISSA_SIGN, REQUIRED_MANTISSA_SIGN);
-    check_subsequent_flags!(flags4; REQUIRED_MANTISSA_SIGN, NO_EXPONENT_NOTATION);
-    check_subsequent_flags!(flags5; NO_EXPONENT_NOTATION, NO_POSITIVE_EXPONENT_SIGN);
-    check_subsequent_flags!(flags6; NO_POSITIVE_EXPONENT_SIGN, REQUIRED_EXPONENT_SIGN);
-    check_subsequent_flags!(flags7; REQUIRED_EXPONENT_SIGN, NO_EXPONENT_WITHOUT_FRACTION);
-    check_subsequent_flags!(flags8; NO_EXPONENT_WITHOUT_FRACTION, NO_SPECIAL);
-    check_subsequent_flags!(flags9; NO_SPECIAL, CASE_SENSITIVE_SPECIAL);
-    check_subsequent_flags!(flags10; CASE_SENSITIVE_SPECIAL, INTEGER_INTERNAL_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags11; INTEGER_INTERNAL_DIGIT_SEPARATOR, INTEGER_LEADING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags12; INTEGER_LEADING_DIGIT_SEPARATOR, INTEGER_TRAILING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags13; INTEGER_TRAILING_DIGIT_SEPARATOR, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags14; INTEGER_CONSECUTIVE_DIGIT_SEPARATOR, FRACTION_INTERNAL_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags15; FRACTION_INTERNAL_DIGIT_SEPARATOR, FRACTION_LEADING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags16; FRACTION_LEADING_DIGIT_SEPARATOR, FRACTION_TRAILING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags17; FRACTION_TRAILING_DIGIT_SEPARATOR, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags18; FRACTION_CONSECUTIVE_DIGIT_SEPARATOR, EXPONENT_INTERNAL_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags19; EXPONENT_INTERNAL_DIGIT_SEPARATOR, EXPONENT_LEADING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags20; EXPONENT_LEADING_DIGIT_SEPARATOR, EXPONENT_TRAILING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags21; EXPONENT_TRAILING_DIGIT_SEPARATOR, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags22; EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPARATOR);
+
+    // Non-digit separator flags.
+    const_assert!(flags0; NumberFormat::REQUIRED_INTEGER_DIGITS.bits == 1);
+    check_subsequent_flags!(flags1; REQUIRED_INTEGER_DIGITS, REQUIRED_FRACTION_DIGITS);
+    check_subsequent_flags!(flags2; REQUIRED_FRACTION_DIGITS, REQUIRED_EXPONENT_DIGITS);
+    check_subsequent_flags!(flags3; REQUIRED_EXPONENT_DIGITS, NO_POSITIVE_MANTISSA_SIGN);
+    check_subsequent_flags!(flags4; NO_POSITIVE_MANTISSA_SIGN, REQUIRED_MANTISSA_SIGN);
+    check_subsequent_flags!(flags5; REQUIRED_MANTISSA_SIGN, NO_EXPONENT_NOTATION);
+    check_subsequent_flags!(flags6; NO_EXPONENT_NOTATION, NO_POSITIVE_EXPONENT_SIGN);
+    check_subsequent_flags!(flags7; NO_POSITIVE_EXPONENT_SIGN, REQUIRED_EXPONENT_SIGN);
+    check_subsequent_flags!(flags8; REQUIRED_EXPONENT_SIGN, NO_EXPONENT_WITHOUT_FRACTION);
+    check_subsequent_flags!(flags9; NO_EXPONENT_WITHOUT_FRACTION, NO_SPECIAL);
+    check_subsequent_flags!(flags10; NO_SPECIAL, CASE_SENSITIVE_SPECIAL);
+
+    // Digit separator flags.
+    const_assert!(flags11; NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR.bits == 1 << 32);
+    check_subsequent_flags!(flags12; INTEGER_INTERNAL_DIGIT_SEPARATOR, INTEGER_LEADING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags13; INTEGER_LEADING_DIGIT_SEPARATOR, INTEGER_TRAILING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags14; INTEGER_TRAILING_DIGIT_SEPARATOR, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags15; INTEGER_CONSECUTIVE_DIGIT_SEPARATOR, FRACTION_INTERNAL_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags16; FRACTION_INTERNAL_DIGIT_SEPARATOR, FRACTION_LEADING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags17; FRACTION_LEADING_DIGIT_SEPARATOR, FRACTION_TRAILING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags18; FRACTION_TRAILING_DIGIT_SEPARATOR, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags19; FRACTION_CONSECUTIVE_DIGIT_SEPARATOR, EXPONENT_INTERNAL_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags20; EXPONENT_INTERNAL_DIGIT_SEPARATOR, EXPONENT_LEADING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags21; EXPONENT_LEADING_DIGIT_SEPARATOR, EXPONENT_TRAILING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags22; EXPONENT_TRAILING_DIGIT_SEPARATOR, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags23; EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPARATOR);
 
     /// Add flag to flags
     macro_rules! add_flag {
@@ -2216,6 +2237,14 @@ if #[cfg(not(feature = "format"))] {
         #[cfg_attr(feature = "radix", doc = " [`get_exponent_backup_char`](fn.get_exponent_backup_char.html).")]
         #[cfg_attr(not(feature = "radix"), doc = " Digit separators must not be in the character group `[0-9+.-]`, nor be equal to")]
         #[cfg_attr(not(feature = "radix"), doc = " [get_exponent_default_char](fn.get_exponent_default_char.html).")]
+        ///
+        /// # Versioning
+        ///
+        /// Due to the potential addition of bitflags required to parse a given
+        /// number, this function is not considered stable and will not
+        /// be stabilized until lexical-core version 1.0. Any changes will
+        /// ensure they introduce compile errors in existing code, and will
+        /// not the current major/minor version.
         #[inline]
         pub fn compile(
             digit_separator: u8,
