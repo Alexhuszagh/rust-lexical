@@ -358,7 +358,7 @@ if HAVE_FORMAT:
         '''Immutable wrapper around bitflags for a serialized number format.'''
 
         _fields_ = [
-            ("_value", c_uint32)
+            ("_value", c_uint64)
         ]
 
         @property
