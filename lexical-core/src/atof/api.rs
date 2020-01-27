@@ -738,6 +738,17 @@ mod tests {
 
     #[test]
     #[cfg(feature = "format")]
+    fn f64_no_leading_zeros_test() {
+        let format = NumberFormat::NO_LEADING_ZEROS;
+        assert!(f64::from_lexical_format(b"1.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"0.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"01.0", format).is_err());
+        assert!(f64::from_lexical_format(b"10.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"010.0", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
     fn f64_integer_internal_digit_separator_test() {
         let format = NumberFormat::from_separator(b'_') | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
         assert!(f64::from_lexical_format(b"3_1.0e7", format).is_ok());

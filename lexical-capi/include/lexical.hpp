@@ -119,6 +119,7 @@ inline void set_exponent_default_char(uint8_t ch)
         no_exponent_without_fraction = lexical_no_exponent_without_fraction,
         no_special = lexical_no_special,
         case_sensitive_special = lexical_case_sensitive_special,
+        no_leading_zeros = lexical_no_leading_zeros,
         integer_internal_digit_separator = lexical_integer_internal_digit_separator,
         fraction_internal_digit_separator = lexical_fraction_internal_digit_separator,
         exponent_internal_digit_separator = lexical_exponent_internal_digit_separator,
@@ -352,6 +353,7 @@ inline void set_exponent_default_char(uint8_t ch)
     // * `no_exponent_without_fraction`            - If exponent without fraction is not allowed.
     // * `no_special`                              - If special (non-finite) values are not allowed.
     // * `case_sensitive_special`                  - If special (non-finite) values are case-sensitive.
+    // * `no_leading_zeros`                        - If leading zeros before the integer are not allowed.
     // * `integer_internal_digit_separator`        - If digit separators are allowed between integer digits.
     // * `fraction_internal_digit_separator`       - If digit separators are allowed between fraction digits.
     // * `exponent_internal_digit_separator`       - If digit separators are allowed between exponent digits.
@@ -382,6 +384,7 @@ inline void set_exponent_default_char(uint8_t ch)
         bool no_exponent_without_fraction = false,
         bool no_special = false,
         bool case_sensitive_special = false,
+        bool no_leading_zeros = false,
         bool integer_internal_digit_separator = false,
         bool fraction_internal_digit_separator = false,
         bool exponent_internal_digit_separator = false,
@@ -410,6 +413,7 @@ inline void set_exponent_default_char(uint8_t ch)
             no_exponent_without_fraction,
             no_special,
             case_sensitive_special,
+            no_leading_zeros,
             integer_internal_digit_separator,
             fraction_internal_digit_separator,
             exponent_internal_digit_separator,
@@ -552,6 +556,13 @@ inline void set_exponent_default_char(uint8_t ch)
     {
         auto f = static_cast<uint64_t>(format);
         return ::lexical_number_format_case_sensitive_special(f);
+    }
+
+    // Get if leading zeros before the integer are not allowed.
+    inline bool number_format_no_leading_zeros(number_format format)
+    {
+        auto f = static_cast<uint64_t>(format);
+        return ::lexical_number_format_no_leading_zeros(f);
     }
 
     // Get if digit separators are allowed between integer digits.
@@ -802,6 +813,7 @@ enum class error_code: int32_t {
     invalid_positive_exponent_sign = ::lexical_invalid_positive_exponent_sign,
     missing_exponent_sign = ::lexical_missing_exponent_sign,
     exponent_without_fraction = ::lexical_exponent_without_fraction,
+    invalid_leading_zeros = ::lexical_invalid_leading_zeros,
 };
 
 // Determine if an error code matches the desired code.
@@ -831,6 +843,7 @@ struct error
     lexical_is_error(invalid_positive_exponent_sign);
     lexical_is_error(missing_exponent_sign);
     lexical_is_error(exponent_without_fraction);
+    lexical_is_error(invalid_leading_zeros);
 
     inline friend bool operator==(const error& lhs, const error& rhs)
     {

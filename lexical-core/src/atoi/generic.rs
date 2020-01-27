@@ -80,6 +80,31 @@
 use util::*;
 use super::shared::*;
 
+// SHARED
+// ------
+
+// Validate the extracted integer has no leading zeros.
+perftools_inline!{
+#[cfg(feature = "format")]
+fn validate_no_leading_zeros<'a>(digits: &[u8], digit_separator: u8, ptr: *const u8)
+    -> ParseResult<()>
+{
+    // Check if the next character is a sign symbol.
+    let index = distance(digits.as_ptr(), ptr);
+    let digits = &index!(digits[..index]);
+    let mut iter = iterate_digits_ignore_separator(digits, digit_separator);
+    match iter.next() {
+        Some(&b'0')     => (),
+        _               => return Ok(())
+    };
+
+    // Only here if we have a leading 0 symbol.
+    match iter.next() {
+        Some(_) => Err((ErrorCode::InvalidLeadingZeros, digits.as_ptr())),
+        None    => Ok(())
+    }
+}}
+
 // STANDALONE
 // ----------
 
@@ -176,6 +201,7 @@ macro_rules! standalone_atoi_separator {
             // Extract the integer subslice, then parse.
             let leading = $consume(digits, radix, digit_separator).0;
             let iter = iterate_digits_ignore_separator(leading, digit_separator);
+
             parse_digits(leading, iter, radix, sign)
         }}
     );
@@ -293,7 +319,7 @@ pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFo
     const ILTC: NumberFormat = NumberFormat::INTEGER_ILTC;
 
     let digit_separator = format.digit_separator();
-    match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {
+    let (value, ptr) = match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {
         I       => standalone_i(bytes, radix, digit_separator),
         IC      => standalone_ic(bytes, radix, digit_separator),
         L       => standalone_l(bytes, radix, digit_separator),
@@ -310,7 +336,14 @@ pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFo
         ILTC    => standalone_iltc(bytes, radix, digit_separator),
         // No digit separator match.
         _       => standalone(bytes, radix)
+    }?;
+
+    // Check if we have any leading zeros.
+    if format.intersects(NumberFormat::NO_LEADING_ZEROS) {
+        validate_no_leading_zeros(bytes, digit_separator, ptr)?;
     }
+
+    Ok((value, ptr))
 }}
 
 // STANDALONE U128
@@ -617,7 +650,7 @@ pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], radix: u32, format: N
     const ILTC: NumberFormat = NumberFormat::INTEGER_ILTC;
 
     let digit_separator = format.digit_separator();
-    match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {
+    let (value, ptr) = match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {
         I       => standalone_128_i::<W, N>(bytes, radix, digit_separator),
         IC      => standalone_128_ic::<W, N>(bytes, radix, digit_separator),
         L       => standalone_128_l::<W, N>(bytes, radix, digit_separator),
@@ -634,5 +667,12 @@ pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], radix: u32, format: N
         ILTC    => standalone_128_iltc::<W, N>(bytes, radix, digit_separator),
         // No digit separator match.
         _       => standalone_128::<W, N>(bytes, radix)
+    }?;
+
+    // Check if we have any leading zeros.
+    if format.intersects(NumberFormat::NO_LEADING_ZEROS) {
+        validate_no_leading_zeros(bytes, digit_separator, ptr)?;
     }
+
+    Ok((value, ptr))
 }}

@@ -868,6 +868,7 @@ if #[cfg(not(feature = "format"))] {
         /// J: '3.0__1'     // Fraction consecutive digit separator.
         /// K: '3.0e7__1'   // Exponent consecutive digit separator.
         /// L: 'In_f'       // Special (non-finite) digit separator.
+        /// M: '003.0'      // Leading zeros.
         /// ```
         ///
         /// Currently Supported Programming and Data Languages:
@@ -933,6 +934,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_EXPONENT_WITHOUT_FRACTION.bits
                 | Self::NO_SPECIAL.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
+                | Self::NO_LEADING_ZEROS.bits
                 | Self::INTERNAL_DIGIT_SEPARATOR.bits
                 | Self::LEADING_DIGIT_SEPARATOR.bits
                 | Self::TRAILING_DIGIT_SEPARATOR.bits
@@ -952,6 +954,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_POSITIVE_EXPONENT_SIGN.bits
                 | Self::REQUIRED_EXPONENT_SIGN.bits
                 | Self::NO_EXPONENT_WITHOUT_FRACTION.bits
+                | Self::NO_LEADING_ZEROS.bits
                 | Self::INTERNAL_DIGIT_SEPARATOR.bits
                 | Self::LEADING_DIGIT_SEPARATOR.bits
                 | Self::TRAILING_DIGIT_SEPARATOR.bits
@@ -1067,6 +1070,10 @@ if #[cfg(not(feature = "format"))] {
             /// Special (non-finite) values are case-sensitive.
             #[doc(hidden)]
             const CASE_SENSITIVE_SPECIAL                = 0b0000000000000000000000000000000000000000000000000000010000000000;
+
+            /// Leading zeros before the integer are not allowed.
+            #[doc(hidden)]
+            const NO_LEADING_ZEROS                      = 0b0000000000000000000000000000000000000000000000000000100000000000;
 
             // DIGIT SEPARATOR FLAGS & MASKS
 
@@ -2177,21 +2184,22 @@ if #[cfg(not(feature = "format"))] {
     check_subsequent_flags!(flags8; REQUIRED_EXPONENT_SIGN, NO_EXPONENT_WITHOUT_FRACTION);
     check_subsequent_flags!(flags9; NO_EXPONENT_WITHOUT_FRACTION, NO_SPECIAL);
     check_subsequent_flags!(flags10; NO_SPECIAL, CASE_SENSITIVE_SPECIAL);
+    check_subsequent_flags!(flags11; CASE_SENSITIVE_SPECIAL, NO_LEADING_ZEROS);
 
     // Digit separator flags.
-    const_assert!(flags11; NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR.bits == 1 << 32);
-    check_subsequent_flags!(flags12; INTEGER_INTERNAL_DIGIT_SEPARATOR, INTEGER_LEADING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags13; INTEGER_LEADING_DIGIT_SEPARATOR, INTEGER_TRAILING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags14; INTEGER_TRAILING_DIGIT_SEPARATOR, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags15; INTEGER_CONSECUTIVE_DIGIT_SEPARATOR, FRACTION_INTERNAL_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags16; FRACTION_INTERNAL_DIGIT_SEPARATOR, FRACTION_LEADING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags17; FRACTION_LEADING_DIGIT_SEPARATOR, FRACTION_TRAILING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags18; FRACTION_TRAILING_DIGIT_SEPARATOR, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags19; FRACTION_CONSECUTIVE_DIGIT_SEPARATOR, EXPONENT_INTERNAL_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags20; EXPONENT_INTERNAL_DIGIT_SEPARATOR, EXPONENT_LEADING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags21; EXPONENT_LEADING_DIGIT_SEPARATOR, EXPONENT_TRAILING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags22; EXPONENT_TRAILING_DIGIT_SEPARATOR, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags23; EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPARATOR);
+    const_assert!(flags12; NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR.bits == 1 << 32);
+    check_subsequent_flags!(flags13; INTEGER_INTERNAL_DIGIT_SEPARATOR, INTEGER_LEADING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags14; INTEGER_LEADING_DIGIT_SEPARATOR, INTEGER_TRAILING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags15; INTEGER_TRAILING_DIGIT_SEPARATOR, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags16; INTEGER_CONSECUTIVE_DIGIT_SEPARATOR, FRACTION_INTERNAL_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags17; FRACTION_INTERNAL_DIGIT_SEPARATOR, FRACTION_LEADING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags18; FRACTION_LEADING_DIGIT_SEPARATOR, FRACTION_TRAILING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags19; FRACTION_TRAILING_DIGIT_SEPARATOR, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags20; FRACTION_CONSECUTIVE_DIGIT_SEPARATOR, EXPONENT_INTERNAL_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags21; EXPONENT_INTERNAL_DIGIT_SEPARATOR, EXPONENT_LEADING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags22; EXPONENT_LEADING_DIGIT_SEPARATOR, EXPONENT_TRAILING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags23; EXPONENT_TRAILING_DIGIT_SEPARATOR, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags24; EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPARATOR);
 
     /// Add flag to flags
     macro_rules! add_flag {
@@ -2217,6 +2225,7 @@ if #[cfg(not(feature = "format"))] {
         /// * `no_exponent_without_fraction`            - If exponent without fraction is not allowed.
         /// * `no_special`                              - If special (non-finite) values are not allowed.
         /// * `case_sensitive_special`                  - If special (non-finite) values are case-sensitive.
+        /// * `no_leading_zeros`                        - If leading zeros before the integer are not allowed.
         /// * `integer_internal_digit_separator`        - If digit separators are allowed between integer digits.
         /// * `fraction_internal_digit_separator`       - If digit separators are allowed between fraction digits.
         /// * `exponent_internal_digit_separator`       - If digit separators are allowed between exponent digits.
@@ -2259,6 +2268,7 @@ if #[cfg(not(feature = "format"))] {
             no_exponent_without_fraction: bool,
             no_special: bool,
             case_sensitive_special: bool,
+            no_leading_zeros: bool,
             integer_internal_digit_separator: bool,
             fraction_internal_digit_separator: bool,
             exponent_internal_digit_separator: bool,
@@ -2286,6 +2296,7 @@ if #[cfg(not(feature = "format"))] {
             add_flag!(format, no_exponent_without_fraction, NO_EXPONENT_WITHOUT_FRACTION);
             add_flag!(format, no_special, NO_SPECIAL);
             add_flag!(format, case_sensitive_special, CASE_SENSITIVE_SPECIAL);
+            add_flag!(format, no_leading_zeros, NO_LEADING_ZEROS);
 
             // Digit separator flags.
             add_flag!(format, integer_internal_digit_separator, INTEGER_INTERNAL_DIGIT_SEPARATOR);
@@ -2463,6 +2474,12 @@ if #[cfg(not(feature = "format"))] {
             self.intersects(NumberFormat::CASE_SENSITIVE_SPECIAL)
         }
 
+        /// Get if leading zeros before the integer are not allowed.
+        #[inline]
+        pub fn no_leading_zeros(self) -> bool {
+            self.intersects(NumberFormat::NO_LEADING_ZEROS)
+        }
+
         /// Get if digit separators are allowed between integer digits.
         #[inline]
         pub fn integer_internal_digit_separator(self) -> bool {
@@ -2584,7 +2601,7 @@ if #[cfg(not(feature = "format"))] {
         #[test]
         fn test_compile() {
             // Test all false
-            let flags = NumberFormat::compile(b'_', false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false).unwrap();
+            let flags = NumberFormat::compile(b'_', false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false).unwrap();
             assert_eq!(flags.flags(), NumberFormat::default());
             assert_eq!(flags.digit_separator(), 0);
         }
@@ -2612,6 +2629,7 @@ if #[cfg(not(feature = "format"))] {
             assert_eq!(flags.no_exponent_without_fraction(), false);
             assert_eq!(flags.no_special(), false);
             assert_eq!(flags.case_sensitive_special(), false);
+            assert_eq!(flags.no_leading_zeros(), false);
             assert_eq!(flags.integer_internal_digit_separator(), true);
             assert_eq!(flags.fraction_internal_digit_separator(), true);
             assert_eq!(flags.exponent_internal_digit_separator(), true);
@@ -2645,6 +2663,7 @@ if #[cfg(not(feature = "format"))] {
                 NumberFormat::NO_EXPONENT_WITHOUT_FRACTION,
                 NumberFormat::NO_SPECIAL,
                 NumberFormat::CASE_SENSITIVE_SPECIAL,
+                NumberFormat::NO_LEADING_ZEROS,
                 NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR,
                 NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR,
                 NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR,

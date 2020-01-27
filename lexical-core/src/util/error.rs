@@ -59,6 +59,8 @@ pub enum ErrorCode {
     MissingExponentSign = -13,
     /// Exponent was present without fraction component.
     ExponentWithoutFraction = -14,
+    /// Integer had invalid leading zeros.
+    InvalidLeadingZeros = -15,
 
     // We may add additional variants later, so ensure that client matching
     // does not depend on exhaustive matching.
