@@ -210,7 +210,8 @@ TEST(test_set_exponent_default_char, config_tests)
         bool no_exponent_without_fraction = false;
         bool no_special = true;
         bool case_sensitive_special = false;
-        bool no_leading_zeros = false;
+        bool no_integer_leading_zeros = false;
+        bool no_float_leading_zeros = false;
         bool integer_internal_digit_separator = true;
         bool fraction_internal_digit_separator = false;
         bool exponent_internal_digit_separator = false;
@@ -236,7 +237,8 @@ TEST(test_set_exponent_default_char, config_tests)
             required_exponent_sign,
             no_exponent_without_fraction,
             no_special,
-            no_leading_zeros,
+            no_integer_leading_zeros,
+            no_float_leading_zeros,
             case_sensitive_special,
             integer_internal_digit_separator,
             fraction_internal_digit_separator,
