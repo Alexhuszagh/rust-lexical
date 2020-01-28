@@ -231,6 +231,8 @@ if HAVE_FORMAT:
         NoExponentWithoutFraction           = 0b0000000000000000000000000000000000000000000000000000000100000000
         NoSpecial                           = 0b0000000000000000000000000000000000000000000000000000001000000000
         CaseSensitiveSpecial                = 0b0000000000000000000000000000000000000000000000000000010000000000
+        NoIntegerLeadingZeros               = 0b0000000000000000000000000000000000000000000000000000100000000000
+        NoFloatLeadingZeros                 = 0b0000000000000000000000000000000000000000000000000001000000000000
 
         # DIGIT SEPARATOR FLAGS
         IntegerInternalDigitSeparator       = 0b0000000000000000000000000000000100000000000000000000000000000000
@@ -319,18 +321,6 @@ if HAVE_FORMAT:
             | ExponentConsecutiveDigitSeparator
         )
 
-        InterfaceFlagMask = (
-            RequiredDigits
-            | NoExponentNotation
-            | NoPositiveExponentSign
-            | RequiredExponentSign
-            | NoExponentWithoutFraction
-            | InternalDigitSeparator
-            | LeadingDigitSeparator
-            | TrailingDigitSeparator
-            | ConsecutiveDigitSeparator
-        )
-
         FlagMask = (
             RequiredDigits
             | NoPositiveMantissaSign
@@ -341,6 +331,8 @@ if HAVE_FORMAT:
             | NoExponentWithoutFraction
             | NoSpecial
             | CaseSensitiveSpecial
+            | NoIntegerLeadingZeros
+            | NoFloatLeadingZeros
             | InternalDigitSeparator
             | LeadingDigitSeparator
             | TrailingDigitSeparator
@@ -384,6 +376,8 @@ if HAVE_FORMAT:
             no_exponent_without_fraction=False,
             no_special=False,
             case_sensitive_special=False,
+            no_integer_leading_zeros=False,
+            no_float_leading_zeros=False,
             integer_internal_digit_separator=False,
             fraction_internal_digit_separator=False,
             exponent_internal_digit_separator=False,
@@ -456,6 +450,10 @@ if HAVE_FORMAT:
                 flags |= NumberFormatFlags.NoSpecial.value
             if case_sensitive_special:
                 flags |= NumberFormatFlags.CaseSensitiveSpecial.value
+            if no_integer_leading_zeros:
+                flags |= NumberFormatFlags.NoIntegerLeadingZeros.value
+            if no_float_leading_zeros:
+                flags |= NumberFormatFlags.NoFloatLeadingZeros.value
 
             # Digit separator flags.
             if integer_internal_digit_separator:
@@ -617,6 +615,16 @@ if HAVE_FORMAT:
         def case_sensitive_special(self):
             '''Get if special (non-finite) values are case-sensitive.'''
             return self.intersects(NumberFormatFlags.CaseSensitiveSpecial)
+
+        @property
+        def no_integer_leading_zeros(self):
+            '''Get if leading zeros before an integer are not allowed.'''
+            return self.intersects(NumberFormatFlags.NoIntegerLeadingZeros)
+
+        @property
+        def no_float_leading_zeros(self):
+            '''Get if leading zeros before a float are not allowed.'''
+            return self.intersects(NumberFormatFlags.NoFloatLeadingZeros)
 
         @property
         def integer_internal_digit_separator(self):

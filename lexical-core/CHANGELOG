@@ -8,9 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - Changed NumberFormat to use 64-bit flags.
-- Added `NO_LEADING_ZEROS` NumberFormat flag.
+- Added `NO_INTEGER_LEADING_ZEROS` and `NO_FLOAT_LEADING_ZEROS` NumberFormat flags.
 - Added `InvalidLeadingZeros` to ErrorCode enum.
-- Added `validate_no_leading_zeros` validator.
+- Added `validate_no_leading_zeros` to reject invalid inputs.
+- Added new leading zero checks to all pre-defined NumberFormat constants.
 
 ## [0.6.6] 2020-01-26
 ### Changed

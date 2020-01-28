@@ -868,7 +868,8 @@ if #[cfg(not(feature = "format"))] {
         /// J: '3.0__1'     // Fraction consecutive digit separator.
         /// K: '3.0e7__1'   // Exponent consecutive digit separator.
         /// L: 'In_f'       // Special (non-finite) digit separator.
-        /// M: '003.0'      // Leading zeros.
+        /// M: '010'        // No integer leading zeros.
+        /// N: '010.0'      // No float leading zeros.
         /// ```
         ///
         /// Currently Supported Programming and Data Languages:
@@ -934,7 +935,8 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_EXPONENT_WITHOUT_FRACTION.bits
                 | Self::NO_SPECIAL.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
-                | Self::NO_LEADING_ZEROS.bits
+                | Self::NO_INTEGER_LEADING_ZEROS.bits
+                | Self::NO_FLOAT_LEADING_ZEROS.bits
                 | Self::INTERNAL_DIGIT_SEPARATOR.bits
                 | Self::LEADING_DIGIT_SEPARATOR.bits
                 | Self::TRAILING_DIGIT_SEPARATOR.bits
@@ -954,7 +956,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_POSITIVE_EXPONENT_SIGN.bits
                 | Self::REQUIRED_EXPONENT_SIGN.bits
                 | Self::NO_EXPONENT_WITHOUT_FRACTION.bits
-                | Self::NO_LEADING_ZEROS.bits
+                | Self::NO_FLOAT_LEADING_ZEROS.bits
                 | Self::INTERNAL_DIGIT_SEPARATOR.bits
                 | Self::LEADING_DIGIT_SEPARATOR.bits
                 | Self::TRAILING_DIGIT_SEPARATOR.bits
@@ -1071,9 +1073,39 @@ if #[cfg(not(feature = "format"))] {
             #[doc(hidden)]
             const CASE_SENSITIVE_SPECIAL                = 0b0000000000000000000000000000000000000000000000000000010000000000;
 
-            /// Leading zeros before the integer are not allowed.
+            /// Leading zeros before an integer value are not allowed.
+            ///
+            /// If the value is a literal, then this distinction applies
+            /// when the value is treated like an integer literal, typically
+            /// when there is no decimal point. If the value is parsed,
+            /// then this distinction applies when the value as parsed
+            /// as an integer.
+            ///
+            /// # Warning
+            ///
+            /// This also does not mean that the value parsed will be correct,
+            /// for example, in languages like C, this will not auto-
+            /// deduce that the radix is 8 with leading zeros, for an octal
+            /// literal.
             #[doc(hidden)]
-            const NO_LEADING_ZEROS                      = 0b0000000000000000000000000000000000000000000000000000100000000000;
+            const NO_INTEGER_LEADING_ZEROS              = 0b0000000000000000000000000000000000000000000000000000100000000000;
+
+            /// Leading zeros before a float value are not allowed.
+            ///
+            /// If the value is a literal, then this distinction applies
+            /// when the value is treated like an integer float, typically
+            /// when there is a decimal point. If the value is parsed,
+            /// then this distinction applies when the value as parsed
+            /// as a float.
+            ///
+            /// # Warning
+            ///
+            /// This also does not mean that the value parsed will be correct,
+            /// for example, in languages like C, this will not auto-
+            /// deduce that the radix is 8 with leading zeros, for an octal
+            /// literal.
+            #[doc(hidden)]
+            const NO_FLOAT_LEADING_ZEROS                = 0b0000000000000000000000000000000000000000000000000001000000000000;
 
             // DIGIT SEPARATOR FLAGS & MASKS
 
@@ -1172,7 +1204,7 @@ if #[cfg(not(feature = "format"))] {
             // `'_'` as a digit-separator character. Meanwhile, `[0]` means it
             // passes test 0, and has no digit separator.
 
-            // RUST LITERAL [4569ABFGHIJK-_]
+            // RUST LITERAL [4569ABFGHIJKMN-_]
             /// Float format for a Rust literal floating-point number.
             const RUST_LITERAL = (
                 digit_separator_to_flags!(b'_')
@@ -1184,29 +1216,53 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // RUST STRING [0134567]
+            // RUST STRING [0134567MN]
             /// Float format to parse a Rust float from string.
             const RUST_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // RUST STRING STRICT [01345678]
+            // RUST STRING STRICT [01345678MN]
             /// `RUST_STRING`, but enforces strict equality for special values.
             const RUST_STRING_STRICT = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // PYTHON LITERAL [013456]
             /// Float format for a Python literal floating-point number.
-            const PYTHON_LITERAL = (
+            const PYTHON_LITERAL = Self::PYTHON3_LITERAL.bits;
+
+            /// Float format to parse a Python float from string.
+            const PYTHON_STRING = Self::PYTHON3_STRING.bits;
+
+            // PYTHON3 LITERAL [013456N]
+            /// Float format for a Python3 literal floating-point number.
+            const PYTHON3_LITERAL = (
+                Self::REQUIRED_EXPONENT_DIGITS.bits
+                | Self::NO_SPECIAL.bits
+                | Self::NO_INTEGER_LEADING_ZEROS.bits
+            );
+
+            // PYTHON3 STRING [0134567MN]
+            /// Float format to parse a Python3 float from string.
+            const PYTHON3_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
+
+            // PYTHON2 LITERAL [013456MN]
+            /// Float format for a Python2 literal floating-point number.
+            const PYTHON2_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // PYTHON STRING [0134567]
-            /// Float format to parse a Python float from string.
-            const PYTHON_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
+            // PYTHON2 STRING [0134567MN]
+            /// Float format to parse a Python2 float from string.
+            const PYTHON2_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // C++17 LITERAL [01345689AB-']
+            /// Float format for a C++ literal floating-point number.
+            const CXX_LITERAL = Self::CXX17_LITERAL.bits;
+
+            /// Float format to parse a C++ float from string.
+            const CXX_STRING = Self::CXX17_STRING.bits;
+
+            // C++17 LITERAL [01345689ABMN-']
             /// Float format for a C++17 literal floating-point number.
             const CXX17_LITERAL = (
                 digit_separator_to_flags!(b'\'')
@@ -1215,10 +1271,10 @@ if #[cfg(not(feature = "format"))] {
                 | Self::INTERNAL_DIGIT_SEPARATOR.bits
             );
 
-            // C++17 STRING [013456]
+            // C++17 STRING [013456MN]
             const CXX17_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // C++14 LITERAL [01345689AB-']
+            // C++14 LITERAL [01345689ABMN-']
             /// Float format for a C++14 literal floating-point number.
             const CXX14_LITERAL = (
                 digit_separator_to_flags!(b'\'')
@@ -1227,108 +1283,115 @@ if #[cfg(not(feature = "format"))] {
                 | Self::INTERNAL_DIGIT_SEPARATOR.bits
             );
 
-            // C++14 STRING [013456]
+            // C++14 STRING [013456MN]
             /// Float format to parse a C++14 float from string.
             const CXX14_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // C++11 LITERAL [0134568]
+            // C++11 LITERAL [0134568MN]
             /// Float format for a C++11 literal floating-point number.
             const CXX11_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // C++11 STRING [013456]
+            // C++11 STRING [013456MN]
             /// Float format to parse a C++11 float from string.
             const CXX11_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // C++03 LITERAL [0134567]
+            // C++03 LITERAL [0134567MN]
             /// Float format for a C++03 literal floating-point number.
             const CXX03_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // C++03 STRING [013456]
+            // C++03 STRING [013456MN]
             /// Float format to parse a C++03 float from string.
             const CXX03_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // C++98 LITERAL [0134567]
+            // C++98 LITERAL [0134567MN]
             /// Float format for a C++98 literal floating-point number.
             const CXX98_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // C++98 STRING [013456]
+            // C++98 STRING [013456MN]
             /// Float format to parse a C++98 float from string.
             const CXX98_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // C18 LITERAL [0134568]
+            /// Float format for a C literal floating-point number.
+            const C_LITERAL = Self::C18_LITERAL.bits;
+
+            /// Float format to parse a C float from string.
+            const C_STRING = Self::C18_STRING.bits;
+
+            // C18 LITERAL [0134568MN]
             /// Float format for a C18 literal floating-point number.
             const C18_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // C18 STRING [013456]
+            // C18 STRING [013456MN]
             /// Float format to parse a C18 float from string.
             const C18_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // C11 LITERAL [0134568]
+            // C11 LITERAL [0134568MN]
             /// Float format for a C11 literal floating-point number.
             const C11_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // C11 STRING [013456]
+            // C11 STRING [013456MN]
             /// Float format to parse a C11 float from string.
             const C11_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // C99 LITERAL [0134568]
+            // C99 LITERAL [0134568MN]
             /// Float format for a C99 literal floating-point number.
             const C99_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // C99 STRING [013456]
+            // C99 STRING [013456MN]
             /// Float format to parse a C99 float from string.
             const C99_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // C90 LITERAL [0134567]
+            // C90 LITERAL [0134567MN]
             /// Float format for a C90 literal floating-point number.
             const C90_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // C90 STRING [013456]
+            // C90 STRING [013456MN]
             /// Float format to parse a C90 float from string.
             const C90_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // C89 LITERAL [0134567]
+            // C89 LITERAL [0134567MN]
             /// Float format for a C89 literal floating-point number.
             const C89_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // C89 STRING [013456]
+            // C89 STRING [013456MN]
             /// Float format to parse a C89 float from string.
             const C89_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // RUBY LITERAL [345689A-_]
+            // RUBY LITERAL [345689AM-_]
             /// Float format for a Ruby literal floating-point number.
             const RUBY_LITERAL = (
                 digit_separator_to_flags!(b'_')
                 | Self::REQUIRED_DIGITS.bits
                 | Self::NO_SPECIAL.bits
+                | Self::NO_FLOAT_LEADING_ZEROS.bits
                 | Self::INTERNAL_DIGIT_SEPARATOR.bits
             );
 
-            // RUBY STRING [01234569AB-_]
+            // RUBY STRING [01234569ABMN-_]
             /// Float format to parse a Ruby float from string.
             // Note: Amazingly, Ruby 1.8+ do not allow parsing special values.
             const RUBY_STRING = (
@@ -1337,7 +1400,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::INTERNAL_DIGIT_SEPARATOR.bits
             );
 
-            // SWIFT LITERAL [34569ABFGHIJK-_]
+            // SWIFT LITERAL [34569ABFGHIJKMN-_]
             /// Float format for a Swift literal floating-point number.
             const SWIFT_LITERAL = (
                 digit_separator_to_flags!(b'_')
@@ -1348,22 +1411,22 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // SWIFT STRING [13456]
+            // SWIFT STRING [13456MN]
             /// Float format to parse a Swift float from string.
             const SWIFT_STRING = Self::REQUIRED_FRACTION_DIGITS.bits;
 
-            // GO LITERAL [0134567]
+            // GO LITERAL [0134567MN]
             /// Float format for a Golang literal floating-point number.
             const GO_LITERAL = (
                 Self::REQUIRED_FRACTION_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // GO STRING [013456]
+            // GO STRING [013456MN]
             /// Float format to parse a Golang float from string.
             const GO_STRING = Self::REQUIRED_FRACTION_DIGITS.bits;
 
-            // HASKELL LITERAL [456]
+            // HASKELL LITERAL [456MN]
             /// Float format for a Haskell literal floating-point number.
             const HASKELL_LITERAL = (
                 Self::REQUIRED_DIGITS.bits
@@ -1371,7 +1434,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_SPECIAL.bits
             );
 
-            // HASKELL STRING [45678]
+            // HASKELL STRING [45678MN]
             /// Float format to parse a Haskell float from string.
             const HASKELL_STRING = (
                 Self::REQUIRED_DIGITS.bits
@@ -1379,18 +1442,19 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // JAVASCRIPT LITERAL [01345678]
+            // JAVASCRIPT LITERAL [01345678M]
             /// Float format for a Javascript literal floating-point number.
             const JAVASCRIPT_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
+                | Self::NO_FLOAT_LEADING_ZEROS.bits
             );
 
-            // JAVASCRIPT STRING [012345678]
+            // JAVASCRIPT STRING [012345678MN]
             /// Float format to parse a Javascript float from string.
             const JAVASCRIPT_STRING = Self::CASE_SENSITIVE_SPECIAL.bits;
 
-            // PERL LITERAL [0134569ABDEFGHIJK-_]
+            // PERL LITERAL [0134569ABDEFGHIJKMN-_]
             /// Float format for a Perl literal floating-point number.
             const PERL_LITERAL = (
                 digit_separator_to_flags!(b'_')
@@ -1403,22 +1467,22 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // PERL STRING [01234567]
+            // PERL STRING [01234567MN]
             /// Float format to parse a Perl float from string.
             const PERL_STRING = 0;
 
-            // PHP LITERAL [01345678]
+            // PHP LITERAL [01345678MN]
             /// Float format for a PHP literal floating-point number.
             const PHP_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // PHP STRING [0123456]
+            // PHP STRING [0123456MN]
             /// Float format to parse a PHP float from string.
             const PHP_STRING = Self::NO_SPECIAL.bits;
 
-            // JAVA LITERAL [0134569ABIJK-_]
+            // JAVA LITERAL [0134569ABIJKMN-_]
             /// Float format for a Java literal floating-point number.
             const JAVA_LITERAL = (
                 digit_separator_to_flags!(b'_')
@@ -1428,42 +1492,43 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // JAVA STRING [01345678]
+            // JAVA STRING [01345678MN]
             /// Float format to parse a Java float from string.
             const JAVA_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // R LITERAL [01345678]
+            // R LITERAL [01345678MN]
             /// Float format for a R literal floating-point number.
             const R_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // R STRING [01234567]
+            // R STRING [01234567MN]
             /// Float format to parse a R float from string.
             const R_STRING = 0;
 
-            // KOTLIN LITERAL [0134569ABIJK-_]
+            // KOTLIN LITERAL [0134569ABIJKN-_]
             /// Float format for a Kotlin literal floating-point number.
             const KOTLIN_LITERAL = (
                 digit_separator_to_flags!(b'_')
                 | Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
+                | Self::NO_INTEGER_LEADING_ZEROS.bits
                 | Self::INTERNAL_DIGIT_SEPARATOR.bits
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // KOTLIN STRING [0134568]
+            // KOTLIN STRING [0134568MN]
             /// Float format to parse a Kotlin float from string.
             const KOTLIN_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // JULIA LITERAL [01345689A-_]
+            // JULIA LITERAL [01345689AMN-_]
             /// Float format for a Julia literal floating-point number.
             const JULIA_LITERAL = (
                 digit_separator_to_flags!(b'_')
@@ -1473,11 +1538,17 @@ if #[cfg(not(feature = "format"))] {
                 | Self::FRACTION_INTERNAL_DIGIT_SEPARATOR.bits
             );
 
-            // JULIA STRING [01345678]
+            // JULIA STRING [01345678MN]
             /// Float format to parse a Julia float from string.
             const JULIA_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // CSHARP7 LITERAL [034569ABIJK-_]
+            /// Float format for a C# literal floating-point number.
+            const CSHARP_LITERAL = Self::CSHARP7_LITERAL.bits;
+
+            /// Float format to parse a C# float from string.
+            const CSHARP_STRING = Self::CSHARP7_STRING.bits;
+
+            // CSHARP7 LITERAL [034569ABIJKMN-_]
             /// Float format for a C#7 literal floating-point number.
             const CSHARP7_LITERAL = (
                 digit_separator_to_flags!(b'_')
@@ -1488,14 +1559,14 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // CSHARP7 STRING [0134568]
+            // CSHARP7 STRING [0134568MN]
             /// Float format to parse a C#7 float from string.
             const CSHARP7_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // CSHARP6 LITERAL [03456]
+            // CSHARP6 LITERAL [03456MN]
             /// Float format for a C#6 literal floating-point number.
             const CSHARP6_LITERAL = (
                 Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1503,14 +1574,14 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_SPECIAL.bits
             );
 
-            // CSHARP6 STRING [0134568]
+            // CSHARP6 STRING [0134568MN]
             /// Float format to parse a C#6 float from string.
             const CSHARP6_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // CSHARP5 LITERAL [03456]
+            // CSHARP5 LITERAL [03456MN]
             /// Float format for a C#5 literal floating-point number.
             const CSHARP5_LITERAL = (
                 Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1518,14 +1589,14 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_SPECIAL.bits
             );
 
-            // CSHARP5 STRING [0134568]
+            // CSHARP5 STRING [0134568MN]
             /// Float format to parse a C#5 float from string.
             const CSHARP5_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // CSHARP4 LITERAL [03456]
+            // CSHARP4 LITERAL [03456MN]
             /// Float format for a C#4 literal floating-point number.
             const CSHARP4_LITERAL = (
                 Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1533,14 +1604,14 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_SPECIAL.bits
             );
 
-            // CSHARP4 STRING [0134568]
+            // CSHARP4 STRING [0134568MN]
             /// Float format to parse a C#4 float from string.
             const CSHARP4_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // CSHARP3 LITERAL [03456]
+            // CSHARP3 LITERAL [03456MN]
             /// Float format for a C#3 literal floating-point number.
             const CSHARP3_LITERAL = (
                 Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1548,14 +1619,14 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_SPECIAL.bits
             );
 
-            // CSHARP3 STRING [0134568]
+            // CSHARP3 STRING [0134568MN]
             /// Float format to parse a C#3 float from string.
             const CSHARP3_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // CSHARP2 LITERAL [03456]
+            // CSHARP2 LITERAL [03456MN]
             /// Float format for a C#2 literal floating-point number.
             const CSHARP2_LITERAL = (
                 Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1563,14 +1634,14 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_SPECIAL.bits
             );
 
-            // CSHARP2 STRING [0134568]
+            // CSHARP2 STRING [0134568MN]
             /// Float format to parse a C#2 float from string.
             const CSHARP2_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // CSHARP1 LITERAL [03456]
+            // CSHARP1 LITERAL [03456MN]
             /// Float format for a C#1 literal floating-point number.
             const CSHARP1_LITERAL = (
                 Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1578,56 +1649,56 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_SPECIAL.bits
             );
 
-            // CSHARP1 STRING [0134568]
+            // CSHARP1 STRING [0134568MN]
             /// Float format to parse a C#1 float from string.
             const CSHARP1_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // KAWA LITERAL [013456]
+            // KAWA LITERAL [013456MN]
             /// Float format for a Kawa literal floating-point number.
             const KAWA_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // KAWA STRING [013456]
+            // KAWA STRING [013456MN]
             /// Float format to parse a Kawa float from string.
             const KAWA_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // GAMBITC LITERAL [013456]
+            // GAMBITC LITERAL [013456MN]
             /// Float format for a Gambit-C literal floating-point number.
             const GAMBITC_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // GAMBITC STRING [013456]
+            // GAMBITC STRING [013456MN]
             /// Float format to parse a Gambit-C float from string.
             const GAMBITC_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // GUILE LITERAL [013456]
+            // GUILE LITERAL [013456MN]
             /// Float format for a Guile literal floating-point number.
             const GUILE_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // GUILE STRING [013456]
+            // GUILE STRING [013456MN]
             /// Float format to parse a Guile float from string.
             const GUILE_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // CLOJURE LITERAL [13456]
+            // CLOJURE LITERAL [13456MN]
             /// Float format for a Clojure literal floating-point number.
             const CLOJURE_LITERAL = (
                 Self::REQUIRED_INTEGER_DIGITS.bits
@@ -1635,14 +1706,14 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_SPECIAL.bits
             );
 
-            // CLOJURE STRING [01345678]
+            // CLOJURE STRING [01345678MN]
             /// Float format to parse a Clojure float from string.
             const CLOJURE_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // ERLANG LITERAL [34578]
+            // ERLANG LITERAL [34578MN]
             /// Float format for an Erlang literal floating-point number.
             const ERLANG_LITERAL = (
                 Self::REQUIRED_DIGITS.bits
@@ -1650,7 +1721,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // ERLANG STRING [345]
+            // ERLANG STRING [345MN]
             /// Float format to parse an Erlang float from string.
             const ERLANG_STRING = (
                 Self::REQUIRED_DIGITS.bits
@@ -1663,9 +1734,11 @@ if #[cfg(not(feature = "format"))] {
             const ELM_LITERAL = (
                 Self::REQUIRED_DIGITS.bits
                 | Self::NO_POSITIVE_MANTISSA_SIGN.bits
+                | Self::NO_INTEGER_LEADING_ZEROS.bits
+                | Self::NO_FLOAT_LEADING_ZEROS.bits
             );
 
-            // ELM STRING [01345678]
+            // ELM STRING [01345678MN]
             /// Float format to parse an Elm float from string.
             // Note: There is no valid representation of NaN, just Infinity.
             const ELM_STRING = (
@@ -1678,16 +1751,18 @@ if #[cfg(not(feature = "format"))] {
             const SCALA_LITERAL = (
                 Self::REQUIRED_DIGITS.bits
                 | Self::NO_SPECIAL.bits
+                | Self::NO_INTEGER_LEADING_ZEROS.bits
+                | Self::NO_FLOAT_LEADING_ZEROS.bits
             );
 
-            // SCALA STRING [01345678]
+            // SCALA STRING [01345678MN]
             /// Float format to parse a Scala float from string.
             const SCALA_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // ELIXIR LITERAL [3459AB-_]
+            // ELIXIR LITERAL [3459ABMN-_]
             /// Float format for an Elixir literal floating-point number.
             const ELIXIR_LITERAL = (
                 digit_separator_to_flags!(b'_')
@@ -1697,7 +1772,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::INTERNAL_DIGIT_SEPARATOR.bits
             );
 
-            // ELIXIR STRING [345]
+            // ELIXIR STRING [345MN]
             /// Float format to parse an Elixir float from string.
             const ELIXIR_STRING = (
                 Self::REQUIRED_DIGITS.bits
@@ -1705,29 +1780,30 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_SPECIAL.bits
             );
 
-            // FORTRAN LITERAL [013456]
+            // FORTRAN LITERAL [013456MN]
             /// Float format for a FORTRAN literal floating-point number.
             const FORTRAN_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // FORTRAN STRING [0134567]
+            // FORTRAN STRING [0134567MN]
             /// Float format to parse a FORTRAN float from string.
             const FORTRAN_STRING = Self::REQUIRED_EXPONENT_DIGITS.bits;
 
-            // D LITERAL [0134569ABFGHIJK-_]
+            // D LITERAL [0134569ABFGHIJKN-_]
             /// Float format for a D literal floating-point number.
             const D_LITERAL = (
                 digit_separator_to_flags!(b'_')
                 | Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
+                | Self::NO_INTEGER_LEADING_ZEROS.bits
                 | Self::INTERNAL_DIGIT_SEPARATOR.bits
                 | Self::TRAILING_DIGIT_SEPARATOR.bits
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // D STRING [01345679AFG-_]
+            // D STRING [01345679AFGMN-_]
             /// Float format to parse a D float from string.
             const D_STRING = (
                 digit_separator_to_flags!(b'_')
@@ -1743,13 +1819,15 @@ if #[cfg(not(feature = "format"))] {
             const COFFEESCRIPT_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
+                | Self::NO_INTEGER_LEADING_ZEROS.bits
+                | Self::NO_FLOAT_LEADING_ZEROS.bits
             );
 
-            // COFFEESCRIPT STRING [012345678]
+            // COFFEESCRIPT STRING [012345678MN]
             /// Float format to parse a Coffeescript float from string.
             const COFFEESCRIPT_STRING = Self::CASE_SENSITIVE_SPECIAL.bits;
 
-            // COBOL LITERAL [0345]
+            // COBOL LITERAL [0345MN]
             /// Float format for a Cobol literal floating-point number.
             const COBOL_LITERAL = (
                 Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1758,14 +1836,14 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_SPECIAL.bits
             );
 
-            // COBOL STRING [012356]
+            // COBOL STRING [012356MN]
             /// Float format to parse a Cobol float from string.
             const COBOL_STRING = (
                 Self::REQUIRED_EXPONENT_SIGN.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // FSHARP LITERAL [13456789ABIJK-_]
+            // FSHARP LITERAL [13456789ABIJKMN-_]
             /// Float format for a F# literal floating-point number.
             const FSHARP_LITERAL = (
                 digit_separator_to_flags!(b'_')
@@ -1776,7 +1854,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // FSHARP STRING [013456789ABCDEFGHIJKL-_]
+            // FSHARP STRING [013456789ABCDEFGHIJKLMN-_]
             /// Float format to parse a F# float from string.
             const FSHARP_STRING = (
                 digit_separator_to_flags!(b'_')
@@ -1789,7 +1867,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::SPECIAL_DIGIT_SEPARATOR.bits
             );
 
-            // VB LITERAL [03456]
+            // VB LITERAL [03456MN]
             /// Float format for a Visual Basic literal floating-point number.
             const VB_LITERAL = (
                 Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1797,7 +1875,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_SPECIAL.bits
             );
 
-            // VB STRING [01345678]
+            // VB STRING [01345678MN]
             /// Float format to parse a Visual Basic float from string.
             // Note: To my knowledge, Visual Basic cannot parse infinity.
             const VB_STRING = (
@@ -1805,7 +1883,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // OCAML LITERAL [1456789ABDFGHIJK-_]
+            // OCAML LITERAL [1456789ABDFGHIJKMN-_]
             /// Float format for an OCaml literal floating-point number.
             const OCAML_LITERAL = (
                 digit_separator_to_flags!(b'_')
@@ -1819,7 +1897,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // OCAML STRING [01345679ABCDEFGHIJKL-_]
+            // OCAML STRING [01345679ABCDEFGHIJKLMN-_]
             /// Float format to parse an OCaml float from string.
             const OCAML_STRING = (
                 digit_separator_to_flags!(b'_')
@@ -1831,21 +1909,21 @@ if #[cfg(not(feature = "format"))] {
                 | Self::SPECIAL_DIGIT_SEPARATOR.bits
             );
 
-            // OBJECTIVEC LITERAL [013456]
+            // OBJECTIVEC LITERAL [013456MN]
             /// Float format for an Objective-C literal floating-point number.
             const OBJECTIVEC_LITERAL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // OBJECTIVEC STRING [013456]
+            // OBJECTIVEC STRING [013456MN]
             /// Float format to parse an Objective-C float from string.
             const OBJECTIVEC_STRING = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // REASONML LITERAL [13456789ABDFGHIJK-_]
+            // REASONML LITERAL [13456789ABDFGHIJKMN-_]
             /// Float format for a ReasonML literal floating-point number.
             const REASONML_LITERAL = (
                 digit_separator_to_flags!(b'_')
@@ -1858,7 +1936,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // REASONML STRING [01345679ABCDEFGHIJKL-_]
+            // REASONML STRING [01345679ABCDEFGHIJKLMN-_]
             /// Float format to parse a ReasonML float from string.
             const REASONML_STRING = (
                 digit_separator_to_flags!(b'_')
@@ -1870,7 +1948,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::SPECIAL_DIGIT_SEPARATOR.bits
             );
 
-            // OCTAVE LITERAL [013456789ABDFGHIJK-_]
+            // OCTAVE LITERAL [013456789ABDFGHIJKMN-_]
             /// Float format for an Octave literal floating-point number.
             // Note: Octave accepts both NaN and nan, Inf and inf.
             const OCTAVE_LITERAL = (
@@ -1883,7 +1961,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // OCTAVE STRING [01345679ABCDEFGHIJK-,]
+            // OCTAVE STRING [01345679ABCDEFGHIJKMN-,]
             /// Float format to parse an Octave float from string.
             const OCTAVE_STRING = (
                 digit_separator_to_flags!(b',')
@@ -1894,7 +1972,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // MATLAB LITERAL [013456789ABDFGHIJK-_]
+            // MATLAB LITERAL [013456789ABDFGHIJKMN-_]
             /// Float format for an Matlab literal floating-point number.
             // Note: Matlab accepts both NaN and nan, Inf and inf.
             const MATLAB_LITERAL = (
@@ -1907,7 +1985,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // MATLAB STRING [01345679ABCDEFGHIJK-,]
+            // MATLAB STRING [01345679ABCDEFGHIJKMN-,]
             /// Float format to parse an Matlab float from string.
             const MATLAB_STRING = (
                 digit_separator_to_flags!(b',')
@@ -1918,7 +1996,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
             );
 
-            // ZIG LITERAL [1456]
+            // ZIG LITERAL [1456MN]
             /// Float format for a Zig literal floating-point number.
             const ZIG_LITERAL = (
                 Self::REQUIRED_INTEGER_DIGITS.bits
@@ -1926,11 +2004,11 @@ if #[cfg(not(feature = "format"))] {
                 | Self::NO_SPECIAL.bits
             );
 
-            // ZIG STRING [01234567]
+            // ZIG STRING [01234567MN]
             /// Float format to parse a Zig float from string.
             const ZIG_STRING = 0;
 
-            // SAGE LITERAL [012345678]
+            // SAGE LITERAL [012345678MN]
             /// Float format for a Sage literal floating-point number.
             // Note: Both Infinity and infinity are accepted.
             const SAGE_LITERAL = (
@@ -1938,7 +2016,7 @@ if #[cfg(not(feature = "format"))] {
                 | Self::CASE_SENSITIVE_SPECIAL.bits
             );
 
-            // SAGE STRING [01345679AB-_]
+            // SAGE STRING [01345679ABMN-_]
             /// Float format to parse a Sage float from string.
             const SAGE_STRING = (
                 digit_separator_to_flags!(b'_')
@@ -1952,6 +2030,8 @@ if #[cfg(not(feature = "format"))] {
                 Self::REQUIRED_DIGITS.bits
                 | Self::NO_POSITIVE_MANTISSA_SIGN.bits
                 | Self::NO_SPECIAL.bits
+                | Self::NO_INTEGER_LEADING_ZEROS.bits
+                | Self::NO_FLOAT_LEADING_ZEROS.bits
             );
 
             // TOML [34569AB]
@@ -1960,42 +2040,45 @@ if #[cfg(not(feature = "format"))] {
                 Self::REQUIRED_DIGITS.bits
                 | Self::NO_SPECIAL.bits
                 | Self::INTERNAL_DIGIT_SEPARATOR.bits
+                | Self::NO_INTEGER_LEADING_ZEROS.bits
+                | Self::NO_FLOAT_LEADING_ZEROS.bits
             );
 
             // YAML (defined in-terms of JSON schema).
             /// Float format for a YAML literal floating-point number.
             const YAML = Self::JSON.bits;
 
-            // XML [01234578]
+            // XML [01234578MN]
             /// Float format for a XML literal floating-point number.
             const XML = Self::CASE_SENSITIVE_SPECIAL.bits;
 
-            // SQLITE [013456]
+            // SQLITE [013456MN]
             /// Float format for a SQLite literal floating-point number.
             const SQLITE = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // POSTGRESQL [013456]
+            // POSTGRESQL [013456MN]
             /// Float format for a PostgreSQL literal floating-point number.
             const POSTGRESQL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // MYSQL [013456]
+            // MYSQL [013456MN]
             /// Float format for a MySQL literal floating-point number.
             const MYSQL = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::NO_SPECIAL.bits
             );
 
-            // MONGODB [01345678]
+            // MONGODB [01345678M]
             /// Float format for a MongoDB literal floating-point number.
             const MONGODB = (
                 Self::REQUIRED_EXPONENT_DIGITS.bits
                 | Self::CASE_SENSITIVE_SPECIAL.bits
+                | Self::NO_FLOAT_LEADING_ZEROS.bits
             );
 
             // HIDDEN DEFAULTS
@@ -2184,22 +2267,23 @@ if #[cfg(not(feature = "format"))] {
     check_subsequent_flags!(flags8; REQUIRED_EXPONENT_SIGN, NO_EXPONENT_WITHOUT_FRACTION);
     check_subsequent_flags!(flags9; NO_EXPONENT_WITHOUT_FRACTION, NO_SPECIAL);
     check_subsequent_flags!(flags10; NO_SPECIAL, CASE_SENSITIVE_SPECIAL);
-    check_subsequent_flags!(flags11; CASE_SENSITIVE_SPECIAL, NO_LEADING_ZEROS);
+    check_subsequent_flags!(flags11; CASE_SENSITIVE_SPECIAL, NO_INTEGER_LEADING_ZEROS);
+    check_subsequent_flags!(flags12; NO_INTEGER_LEADING_ZEROS, NO_FLOAT_LEADING_ZEROS);
 
     // Digit separator flags.
-    const_assert!(flags12; NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR.bits == 1 << 32);
-    check_subsequent_flags!(flags13; INTEGER_INTERNAL_DIGIT_SEPARATOR, INTEGER_LEADING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags14; INTEGER_LEADING_DIGIT_SEPARATOR, INTEGER_TRAILING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags15; INTEGER_TRAILING_DIGIT_SEPARATOR, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags16; INTEGER_CONSECUTIVE_DIGIT_SEPARATOR, FRACTION_INTERNAL_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags17; FRACTION_INTERNAL_DIGIT_SEPARATOR, FRACTION_LEADING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags18; FRACTION_LEADING_DIGIT_SEPARATOR, FRACTION_TRAILING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags19; FRACTION_TRAILING_DIGIT_SEPARATOR, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags20; FRACTION_CONSECUTIVE_DIGIT_SEPARATOR, EXPONENT_INTERNAL_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags21; EXPONENT_INTERNAL_DIGIT_SEPARATOR, EXPONENT_LEADING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags22; EXPONENT_LEADING_DIGIT_SEPARATOR, EXPONENT_TRAILING_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags23; EXPONENT_TRAILING_DIGIT_SEPARATOR, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
-    check_subsequent_flags!(flags24; EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPARATOR);
+    const_assert!(flags13; NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR.bits == 1 << 32);
+    check_subsequent_flags!(flags14; INTEGER_INTERNAL_DIGIT_SEPARATOR, INTEGER_LEADING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags15; INTEGER_LEADING_DIGIT_SEPARATOR, INTEGER_TRAILING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags16; INTEGER_TRAILING_DIGIT_SEPARATOR, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags17; INTEGER_CONSECUTIVE_DIGIT_SEPARATOR, FRACTION_INTERNAL_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags18; FRACTION_INTERNAL_DIGIT_SEPARATOR, FRACTION_LEADING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags19; FRACTION_LEADING_DIGIT_SEPARATOR, FRACTION_TRAILING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags20; FRACTION_TRAILING_DIGIT_SEPARATOR, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags21; FRACTION_CONSECUTIVE_DIGIT_SEPARATOR, EXPONENT_INTERNAL_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags22; EXPONENT_INTERNAL_DIGIT_SEPARATOR, EXPONENT_LEADING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags23; EXPONENT_LEADING_DIGIT_SEPARATOR, EXPONENT_TRAILING_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags24; EXPONENT_TRAILING_DIGIT_SEPARATOR, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
+    check_subsequent_flags!(flags25; EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPARATOR);
 
     /// Add flag to flags
     macro_rules! add_flag {
@@ -2225,7 +2309,8 @@ if #[cfg(not(feature = "format"))] {
         /// * `no_exponent_without_fraction`            - If exponent without fraction is not allowed.
         /// * `no_special`                              - If special (non-finite) values are not allowed.
         /// * `case_sensitive_special`                  - If special (non-finite) values are case-sensitive.
-        /// * `no_leading_zeros`                        - If leading zeros before the integer are not allowed.
+        /// * `no_integer_leading_zeros`                - If leading zeros before an integer are not allowed.
+        /// * `no_float_leading_zeros`                  - If leading zeros before a float are not allowed.
         /// * `integer_internal_digit_separator`        - If digit separators are allowed between integer digits.
         /// * `fraction_internal_digit_separator`       - If digit separators are allowed between fraction digits.
         /// * `exponent_internal_digit_separator`       - If digit separators are allowed between exponent digits.
@@ -2268,7 +2353,8 @@ if #[cfg(not(feature = "format"))] {
             no_exponent_without_fraction: bool,
             no_special: bool,
             case_sensitive_special: bool,
-            no_leading_zeros: bool,
+            no_integer_leading_zeros: bool,
+            no_float_leading_zeros: bool,
             integer_internal_digit_separator: bool,
             fraction_internal_digit_separator: bool,
             exponent_internal_digit_separator: bool,
@@ -2296,7 +2382,8 @@ if #[cfg(not(feature = "format"))] {
             add_flag!(format, no_exponent_without_fraction, NO_EXPONENT_WITHOUT_FRACTION);
             add_flag!(format, no_special, NO_SPECIAL);
             add_flag!(format, case_sensitive_special, CASE_SENSITIVE_SPECIAL);
-            add_flag!(format, no_leading_zeros, NO_LEADING_ZEROS);
+            add_flag!(format, no_integer_leading_zeros, NO_INTEGER_LEADING_ZEROS);
+            add_flag!(format, no_float_leading_zeros, NO_FLOAT_LEADING_ZEROS);
 
             // Digit separator flags.
             add_flag!(format, integer_internal_digit_separator, INTEGER_INTERNAL_DIGIT_SEPARATOR);
@@ -2474,10 +2561,16 @@ if #[cfg(not(feature = "format"))] {
             self.intersects(NumberFormat::CASE_SENSITIVE_SPECIAL)
         }
 
-        /// Get if leading zeros before the integer are not allowed.
+        /// Get if leading zeros before an integer are not allowed.
         #[inline]
-        pub fn no_leading_zeros(self) -> bool {
-            self.intersects(NumberFormat::NO_LEADING_ZEROS)
+        pub fn no_integer_leading_zeros(self) -> bool {
+            self.intersects(NumberFormat::NO_INTEGER_LEADING_ZEROS)
+        }
+
+        /// Get if leading zeros before a float are not allowed.
+        #[inline]
+        pub fn no_float_leading_zeros(self) -> bool {
+            self.intersects(NumberFormat::NO_FLOAT_LEADING_ZEROS)
         }
 
         /// Get if digit separators are allowed between integer digits.
@@ -2601,7 +2694,7 @@ if #[cfg(not(feature = "format"))] {
         #[test]
         fn test_compile() {
             // Test all false
-            let flags = NumberFormat::compile(b'_', false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false).unwrap();
+            let flags = NumberFormat::compile(b'_', false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false).unwrap();
             assert_eq!(flags.flags(), NumberFormat::default());
             assert_eq!(flags.digit_separator(), 0);
         }
@@ -2629,7 +2722,8 @@ if #[cfg(not(feature = "format"))] {
             assert_eq!(flags.no_exponent_without_fraction(), false);
             assert_eq!(flags.no_special(), false);
             assert_eq!(flags.case_sensitive_special(), false);
-            assert_eq!(flags.no_leading_zeros(), false);
+            assert_eq!(flags.no_integer_leading_zeros(), false);
+            assert_eq!(flags.no_float_leading_zeros(), false);
             assert_eq!(flags.integer_internal_digit_separator(), true);
             assert_eq!(flags.fraction_internal_digit_separator(), true);
             assert_eq!(flags.exponent_internal_digit_separator(), true);
@@ -2663,7 +2757,8 @@ if #[cfg(not(feature = "format"))] {
                 NumberFormat::NO_EXPONENT_WITHOUT_FRACTION,
                 NumberFormat::NO_SPECIAL,
                 NumberFormat::CASE_SENSITIVE_SPECIAL,
-                NumberFormat::NO_LEADING_ZEROS,
+                NumberFormat::NO_INTEGER_LEADING_ZEROS,
+                NumberFormat::NO_FLOAT_LEADING_ZEROS,
                 NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR,
                 NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR,
                 NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR,

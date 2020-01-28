@@ -269,7 +269,8 @@ enum lexical_error_code {
     #define lexical_no_exponent_without_fraction            0x100ull
     #define lexical_no_special                              0x200ull
     #define lexical_case_sensitive_special                  0x400ull
-    #define lexical_no_leading_zeros                        0x800ull
+    #define lexical_no_integer_leading_zeros                0x800ull
+    #define lexical_no_float_leading_zeros                  0x1000ull
 
     // DIGIT SEPARATOR FLAGS
     #define lexical_integer_internal_digit_separator        0x100000000ull
@@ -367,7 +368,8 @@ enum lexical_error_code {
         | lexical_no_exponent_without_fraction                          \
         | lexical_no_special                                            \
         | lexical_case_sensitive_special                                \
-        | lexical_no_leading_zeros                                      \
+        | lexical_no_integer_leading_zeros                              \
+        | lexical_no_float_leading_zeros                                \
         | lexical_internal_digit_separator                              \
         | lexical_leading_digit_separator                               \
         | lexical_trailing_digit_separator                              \
@@ -1154,7 +1156,8 @@ enum lexical_error_code {
     // * `no_exponent_without_fraction`            - If exponent without fraction is not allowed.
     // * `no_special`                              - If special (non-finite) values are not allowed.
     // * `case_sensitive_special`                  - If special (non-finite) values are case-sensitive.
-    // * `no_leading_zeros`                        - If leading zeros before the integer are not allowed.
+    // * `no_integer_leading_zeros`                - If leading zeros before an integer are not allowed.
+    // * `no_float_leading_zeros`                  - If leading zeros before a float are not allowed.
     // * `integer_internal_digit_separator`        - If digit separators are allowed between integer digits.
     // * `fraction_internal_digit_separator`       - If digit separators are allowed between fraction digits.
     // * `exponent_internal_digit_separator`       - If digit separators are allowed between exponent digits.
@@ -1185,7 +1188,8 @@ enum lexical_error_code {
         bool no_exponent_without_fraction = false,
         bool no_special = false,
         bool case_sensitive_special = false,
-        bool no_leading_zeros = false,
+        bool no_integer_leading_zeros = false,
+        bool no_float_leading_zeros = false,
         bool integer_internal_digit_separator = false,
         bool fraction_internal_digit_separator = false,
         bool exponent_internal_digit_separator = false,
@@ -1236,8 +1240,11 @@ enum lexical_error_code {
         if (case_sensitive_special) {
             flags |= lexical_case_sensitive_special;
         }
-        if (no_leading_zeros) {
-            flags |= lexical_no_leading_zeros;
+        if (no_integer_leading_zeros) {
+            flags |= lexical_no_integer_leading_zeros;
+        }
+        if (no_float_leading_zeros) {
+            flags |= lexical_no_float_leading_zeros;
         }
 
         // Digit separator flags.
@@ -1442,10 +1449,16 @@ enum lexical_error_code {
         return lexical_number_format_intersects(format, lexical_case_sensitive_special);
     }
 
-    // Get if leading zeros before the integer are not allowed.
-    inline bool lexical_number_format_no_leading_zeros(uint64_t format)
+    // Get if leading zeros before an integer are not allowed.
+    inline bool lexical_number_format_no_integer_leading_zeros(uint64_t format)
     {
-        return lexical_number_format_intersects(format, lexical_no_leading_zeros);
+        return lexical_number_format_intersects(format, lexical_no_integer_leading_zeros);
+    }
+
+    // Get if leading zeros before a float are not allowed.
+    inline bool lexical_number_format_no_float_leading_zeros(uint64_t format)
+    {
+        return lexical_number_format_intersects(format, lexical_no_float_leading_zeros);
     }
 
     // Get if digit separators are allowed between integer digits.
