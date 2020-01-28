@@ -739,7 +739,7 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_no_leading_zeros_test() {
-        let format = NumberFormat::NO_LEADING_ZEROS;
+        let format = NumberFormat::NO_FLOAT_LEADING_ZEROS;
         assert!(f64::from_lexical_format(b"1.0", format).is_ok());
         assert!(f64::from_lexical_format(b"0.0", format).is_ok());
         assert!(f64::from_lexical_format(b"01.0", format).is_err());
@@ -891,6 +891,16 @@ mod tests {
         assert!(f64::from_lexical_format(b"2.e-3", format).is_err());
         // JSONTestSuite/test_parsing/n_number_real_without_fractional_part.json
         assert!(f64::from_lexical_format(b"1.", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn f64_json_no_leading_zero() {
+        let format = NumberFormat::JSON;
+        assert!(f64::from_lexical_format(b"12.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"-12.0", format).is_ok());
+        assert!(f64::from_lexical_format(b"012.0", format).is_err());
+        assert!(f64::from_lexical_format(b"-012.0", format).is_err());
     }
 
     #[cfg(feature = "std")]
