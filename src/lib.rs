@@ -100,6 +100,8 @@
 // FEATURES
 
 // Require intrinsics and alloc in a no_std context.
+// Alloc was stabilized in 1.36.0, but we still support 1.24.0+.
+#![allow(stable_features)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(alloc))]
 
@@ -167,7 +169,7 @@ pub use lexical_core::{FromLexicalFormat,FromLexicalLossyFormat};
 
 /// Get a vector as a slice, including the capacity.
 #[inline]
-unsafe fn vector_as_slice<'a, T>(buf: &'a mut Vec<T>)
+unsafe fn vector_as_slice<'a, T>(buf: &'a mut lib::Vec<T>)
     -> &'a mut [T]
 {
     let first = buf.as_mut_ptr();
