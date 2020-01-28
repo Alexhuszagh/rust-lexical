@@ -93,6 +93,9 @@ matrix:
       install:
       script: DISABLE_CROSS=1 bash ci/script.sh
 
+  allow_failures:
+    - rust: nightly
+
 before_install:
   - set -e
   - rustup self update
