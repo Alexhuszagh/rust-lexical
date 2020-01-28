@@ -9,7 +9,7 @@ license = "MIT/Apache-2.0"
 name = "lexical"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
-version = "4.1.0"
+version = "4.2.0"
 build = "build.rs"
 exclude = [
     "data/*",
@@ -26,7 +26,7 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
 cfg-if = "=0.1.9"
-lexical-core = { path = "lexical-core", version = "^0.6.4", default-features = false }
+lexical-core = { path = "lexical-core", version = "^0.6.7", default-features = false }
 # The following are only required for comprehensive float unittests.
 # IE, internal testing only:
 rand = { version = "0.4", optional = true }

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] 2020-01-27
+- Fixed bug in API with improper method order.
+
 ## [4.1.0] 2020-01-23
 ### Added
 - Added `format` feature to control parsing integers and floats from number specifications.
