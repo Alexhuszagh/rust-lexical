@@ -314,7 +314,7 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn i32_no_leading_zeros_test() {
-        let format = NumberFormat::NO_LEADING_ZEROS;
+        let format = NumberFormat::NO_INTEGER_LEADING_ZEROS;
         assert!(i32::from_lexical_format(b"1", format).is_ok());
         assert!(i32::from_lexical_format(b"0", format).is_ok());
         assert!(i32::from_lexical_format(b"01", format).is_err());
@@ -359,6 +359,16 @@ mod tests {
         assert!(i32::from_lexical_format(b"3__1", format).is_ok());
         assert!(i32::from_lexical_format(b"_31", format).is_err());
         assert!(i32::from_lexical_format(b"31_", format).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
+    fn i32_json_no_leading_zero() {
+        let format = NumberFormat::JSON;
+        assert!(i32::from_lexical_format(b"12", format).is_ok());
+        assert!(i32::from_lexical_format(b"-12", format).is_ok());
+        assert!(i32::from_lexical_format(b"012", format).is_err());
+        assert!(i32::from_lexical_format(b"-012", format).is_err());
     }
 
     #[cfg(feature = "std")]

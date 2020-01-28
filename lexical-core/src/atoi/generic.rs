@@ -93,15 +93,23 @@ fn validate_no_leading_zeros<'a>(digits: &[u8], digit_separator: u8, ptr: *const
     let index = distance(digits.as_ptr(), ptr);
     let digits = &index!(digits[..index]);
     let mut iter = iterate_digits_ignore_separator(digits, digit_separator);
-    match iter.next() {
-        Some(&b'0')     => (),
-        _               => return Ok(())
+    let is_zero = match iter.next() {
+        Some(&b'+') | Some(&b'-')   => false,
+        Some(&b'0')                 => true,
+        _                           => return Ok(())
     };
+
+    // Only here if we have a leading 0 or sign symbol.
+    match iter.next() {
+        Some(_) if is_zero  => return Err((ErrorCode::InvalidLeadingZeros, digits.as_ptr())),
+        Some(&b'0')         => (),
+        _                   => return Ok(())
+    }
 
     // Only here if we have a leading 0 symbol.
     match iter.next() {
-        Some(_) => Err((ErrorCode::InvalidLeadingZeros, digits.as_ptr())),
-        None    => Ok(())
+        Some(_)             => Err((ErrorCode::InvalidLeadingZeros, digits.as_ptr())),
+        _                   => Ok(())
     }
 }}
 
@@ -339,7 +347,7 @@ pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFo
     }?;
 
     // Check if we have any leading zeros.
-    if format.intersects(NumberFormat::NO_LEADING_ZEROS) {
+    if format.no_integer_leading_zeros() {
         validate_no_leading_zeros(bytes, digit_separator, ptr)?;
     }
 
@@ -670,7 +678,7 @@ pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], radix: u32, format: N
     }?;
 
     // Check if we have any leading zeros.
-    if format.intersects(NumberFormat::NO_LEADING_ZEROS) {
+    if format.no_integer_leading_zeros() {
         validate_no_leading_zeros(bytes, digit_separator, ptr)?;
     }
 

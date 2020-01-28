@@ -149,7 +149,7 @@ pub(super) fn validate_mantissa<'a, Data>(data: &Data, format: NumberFormat)
     where Data: FastDataInterface<'a>
 {
     // Check no leading zeros.
-    if format.no_leading_zeros() {
+    if format.no_float_leading_zeros() {
         validate_no_leading_zeros(data)?;
     }
 
