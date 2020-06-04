@@ -1,5 +1,8 @@
 //! C-compatible error type.
 
+use std::error::Error as StdError;
+use std::fmt;
+
 /// Error code, indicating failure type.
 ///
 /// Error messages are designating by an error code of less than 0.
@@ -91,5 +94,17 @@ impl From<(ErrorCode, usize)> for Error {
     #[inline]
     fn from(error: (ErrorCode, usize)) -> Self {
         Error { code: error.0, index: error.1 }
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "lexical error: {:?} at index {}.", self.code, self.index)
+    }
+}
+
+impl StdError for Error {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        None
     }
 }
