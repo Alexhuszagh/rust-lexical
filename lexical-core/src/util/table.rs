@@ -1,6 +1,8 @@
 //! Cached tables for precalculated values.
 
 use crate::util::*;
+#[cfg(any(feature = "correct", feature = "format"))]
+use static_assertions::const_assert;
 
 /// Precalculated table for a digit to a character.
 ///

@@ -443,6 +443,8 @@ pub type ExtendedFloat160 = ExtendedFloat<u128>;
 mod tests {
     use super::*;
 
+    use approx::assert_relative_eq;
+
     // NORMALIZE
 
     fn check_normalize(mant: u64, exp: i32, shift: u32, r_mant: u64, r_exp: i32) {

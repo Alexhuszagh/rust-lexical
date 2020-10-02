@@ -678,6 +678,7 @@
 //      ```
 
 use super::config;
+use bitflags::bitflags;
 
 cfg_if! {
 if #[cfg(not(feature = "format"))] {

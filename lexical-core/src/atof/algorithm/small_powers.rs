@@ -1,5 +1,8 @@
 //! Precalculated small powers.
 
+#[cfg(any(feature = "correct", feature = "format"))]
+use static_assertions::const_assert;
+
 use super::math::Limb;
 use super::small_powers_64;
 

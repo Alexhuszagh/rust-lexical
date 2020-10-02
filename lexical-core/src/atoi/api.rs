@@ -142,6 +142,8 @@ if #[cfg(feature = "format")] {
 mod tests {
     use crate::util::*;
 
+    use proptest::{proptest, prop_assert_eq, prop_assert};
+
     #[cfg(feature = "radix")]
     const DATA: [(u8, &'static str); 35] = [
         (2, "100101"),
