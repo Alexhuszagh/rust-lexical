@@ -175,29 +175,30 @@ compile_error!("Lexical only accepts one of the following backends: `grisu3` or 
 
 // Import the back-end, if applicable.
 cfg_if! {
-if #[cfg(feature = "grisu3")] {
-    extern crate dtoa;
-} else if #[cfg(feature = "ryu")] {
-    extern crate ryu;
-}}  // cfg_if
+    if #[cfg(feature = "grisu3")] {
+        extern crate dtoa;
+    } else if #[cfg(feature = "ryu")] {
+        extern crate ryu;
+    }
+}  // cfg_if
 
 /// Facade around the core features for name mangling.
 pub(crate) mod lib {
-#[cfg(feature = "std")]
-pub(crate) use std::*;
-
-#[cfg(not(feature = "std"))]
-pub(crate) use core::*;
-
-cfg_if! {
-if #[cfg(all(feature = "correct", feature = "radix"))] {
     #[cfg(feature = "std")]
-    pub(crate) use std::vec::Vec;
+    pub(crate) use std::*;
 
     #[cfg(not(feature = "std"))]
-    pub(crate) use ::alloc::vec::Vec;
-}}  // cfg_if
+    pub(crate) use core::*;
 
+    cfg_if! {
+        if #[cfg(all(feature = "correct", feature = "radix"))] {
+            #[cfg(feature = "std")]
+            pub(crate) use std::vec::Vec;
+
+            #[cfg(not(feature = "std"))]
+            pub(crate) use ::alloc::vec::Vec;
+        }
+    }  // cfg_if
 }   // lib
 
 // API
