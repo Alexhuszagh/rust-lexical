@@ -178,6 +178,9 @@ mod tests {
     use crate::util::*;
     use crate::util::test::*;
 
+    use quickcheck::quickcheck;
+    use proptest::proptest;
+
     // GENERIC
 
     #[test]

@@ -217,6 +217,8 @@ mod tests {
     use crate::util::test::*;
     use super::*;
 
+    use approx::assert_relative_eq;
+
     #[test]
     fn f32_iterative_pow_finite_test() {
         assert_relative_eq!(f32::iterative_pow_finite(1.0, 10, 38), 1e38, max_relative=1e-6);
