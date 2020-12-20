@@ -22,7 +22,7 @@ exclude = [
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
-cfg-if = "0.1"
+cfg-if = "1.0"
 lexical-core = { path = "lexical-core", version = "^0.7.4", default-features = false }
 # The following are only required for comprehensive float unittests.
 # IE, internal testing only:
