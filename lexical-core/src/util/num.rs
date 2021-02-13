@@ -133,7 +133,7 @@ pub trait Integer:
     const TWO: Self;
     const MAX: Self;
     const MIN: Self;
-    const BITS: usize;
+    const BITS: u32;
 
     // FUNCTIONS (INHERITED)
     fn max_value() -> Self;
@@ -370,7 +370,7 @@ macro_rules! integer_impl {
             const TWO: $t = 2;
             const MAX: $t = $t::max_value();
             const MIN: $t = $t::min_value();
-            const BITS: usize = mem::size_of::<$t>() * 8;
+            const BITS: u32 = (mem::size_of::<$t>() * 8) as u32;
 
             #[inline]
             fn max_value() -> Self {

@@ -950,7 +950,7 @@ pub fn mul(x: Limb, y: Limb, carry: Limb)
     // the following is always true:
     // `Wide::max_value() - (Narrow::max_value() * Narrow::max_value()) >= Narrow::max_value()`
     let z: Wide = as_wide(x) * as_wide(y) + as_wide(carry);
-    (as_limb(z), as_limb(z >> Limb::BITS))
+    (as_limb(z), as_limb(z >> (<Limb as crate::util::Integer>::BITS as usize)))
 }}
 
 /// Multiply two small integers (with carry) (and return if overflow happens).
@@ -973,7 +973,7 @@ pub fn div(x: Limb, y: Limb, rem: Limb)
     -> (Limb, Limb)
 {
     // Cannot overflow, as long as wide is 2x as wide.
-    let x = as_wide(x) | (as_wide(rem) << Limb::BITS);
+    let x = as_wide(x) | (as_wide(rem) << (<Limb as crate::util::Integer>::BITS as usize));
     let y = as_wide(y);
     (as_limb(x / y), as_limb(x % y))
 }}
@@ -1040,7 +1040,7 @@ perftools_inline!{
 pub fn trailing_zeros(x: &[Limb]) -> usize {
     // Get the index of the last non-zero value
     let index = trailing_zero_limbs(x);
-    let mut count = index.saturating_mul(Limb::BITS);
+    let mut count = index.saturating_mul(<Limb as crate::util::Integer>::BITS as usize);
     if let Some(value) = x.get(index) {
         count = count.saturating_add(value.trailing_zeros().as_usize());
     }
@@ -1055,7 +1055,7 @@ pub fn bit_length(x: &[Limb]) -> usize {
     // Avoid overflowing, calculate via total number of bits
     // minus leading zero bits.
     let nlz = leading_zeros(x);
-    Limb::BITS.checked_mul(x.len())
+    (<Limb as crate::util::Integer>::BITS as usize).checked_mul(x.len())
         .map(|v| v - nlz)
         .unwrap_or(usize::max_value())
 }}
@@ -1081,7 +1081,7 @@ pub fn ishr_bits<T>(x: &mut T, n: usize)
     where T: CloneableVecLike<Limb>
 {
     // Need to shift by the number of `bits % Limb::BITS`.
-    let bits = Limb::BITS;
+    let bits = <Limb as crate::util::Integer>::BITS as usize;
     debug_assert!(n < bits && n != 0);
 
     // Internally, for each item, we shift left by n, and add the previous
@@ -1128,7 +1128,7 @@ pub fn ishr<T>(x: &mut T, n: usize)
     -> bool
     where T: CloneableVecLike<Limb>
 {
-    let bits = Limb::BITS;
+    let bits = <Limb as crate::util::Integer>::BITS as usize;
     // Need to pad with zeros for the number of `bits / Limb::BITS`,
     // and shift-left with carry for `bits % Limb::BITS`.
     let rem = n % bits;
@@ -1187,7 +1187,7 @@ pub fn ishl_bits<T>(x: &mut T, n: usize)
     where T: CloneableVecLike<Limb>
 {
     // Need to shift by the number of `bits % Limb::BITS)`.
-    let bits = Limb::BITS;
+    let bits = <Limb as crate::util::Integer>::BITS as usize;
     debug_assert!(n < bits);
     if n.is_zero() {
         return;
@@ -1247,7 +1247,7 @@ perftools_inline!{
 pub fn ishl<T>(x: &mut T, n: usize)
     where T: CloneableVecLike<Limb>
 {
-    let bits = Limb::BITS;
+    let bits = <Limb as crate::util::Integer>::BITS as usize;
     // Need to pad with zeros for the number of `bits / Limb::BITS`,
     // and shift-left with carry for `bits % Limb::BITS`.
     let rem = n % bits;
@@ -1906,7 +1906,7 @@ pub fn mul<T>(x: &[Limb], y: &[Limb])
 // DIVISION
 
 /// Constants for algorithm D.
-const ALGORITHM_D_B: Wide = 1 << Limb::BITS;
+const ALGORITHM_D_B: Wide = 1 << (<Limb as crate::util::Integer>::BITS as usize);
 const ALGORITHM_D_M: Wide = ALGORITHM_D_B - 1;
 
 /// Calculate qhat (an estimate for the quotient).
@@ -1926,7 +1926,7 @@ fn calculate_qhat(x: &[Limb], y: &[Limb], j: usize)
     //  rhat = (x[j+n]*B + x[j+n-1]) - qhat*y[n-1];
     let x_jn = as_wide(x[j+n]);
     let x_jn1 = as_wide(x[j+n-1]);
-    let num = (x_jn << Limb::BITS) + x_jn1;
+    let num = (x_jn << <Limb as crate::util::Integer>::BITS as usize) + x_jn1;
     let den = as_wide(y[n-1]);
     let mut qhat = num / den;
     let mut rhat = num - qhat * den;
@@ -1943,7 +1943,7 @@ fn calculate_qhat(x: &[Limb], y: &[Limb], j: usize)
     let y_n2 = as_wide(y[n-2]);
     let y_n1 = as_wide(y[n-1]);
     // This only happens when the leading bit of qhat is set.
-    while qhat >= ALGORITHM_D_B || qhat * y_n2 > (rhat << Limb::BITS) + x_jn2 {
+    while qhat >= ALGORITHM_D_B || qhat * y_n2 > (rhat << <Limb as crate::util::Integer>::BITS as usize) + x_jn2 {
         qhat -= 1;
         rhat += y_n1;
         if rhat >= ALGORITHM_D_B {
@@ -1983,7 +1983,7 @@ fn multiply_and_subtract<T>(x: &mut T, y: &T, qhat: Wide, j: usize)
         let p = qhat * y_i;
         t = x_ij.wrapping_sub(k).wrapping_sub(as_signed_wide(p & ALGORITHM_D_M));
         x[i+j] = as_limb(t);
-        k = as_signed_wide(p >> Limb::BITS) - (t >> Limb::BITS);
+        k = as_signed_wide(p >> <Limb as crate::util::Integer>::BITS as usize) - (t >> <Limb as crate::util::Integer>::BITS as usize);
     }
     t = as_signed_wide(x[j+n]) - k;
     x[j+n] = as_limb(t);
@@ -2039,7 +2039,7 @@ fn add_back<T>(x: &mut T, y: &T, mut t: SignedWide, j: usize)
         for i in 0..n {
             t = as_signed_wide(as_wide(x[i+j]) + as_wide(y[i])) + k;
             x[i+j] = as_limb(t);
-            k = t >> Limb::BITS;
+            k = t >> <Limb as crate::util::Integer>::BITS as usize;
         }
         let x_jn = as_signed_wide(x[j+n]) + k;
         x[j+n] = as_limb(x_jn);
@@ -2062,7 +2062,7 @@ fn calculate_remainder<T>(x: &[Limb], y: &[Limb], s: usize)
     let n = y.len();
     let mut r = T::default();
     r.reserve_exact(n);
-    let rs = Limb::BITS - s;
+    let rs = <Limb as crate::util::Integer>::BITS as usize - s;
     for i in 0..n-1 {
         let xi = as_wide(x[i]) >> s;
         let xi1 = as_wide(x[i+1]) << rs;
@@ -2199,9 +2199,9 @@ pub fn quorem<T>(x: &mut T, y: &T)
         let mut carry: Wide = 0;
         for j in 0..m {
             let p = as_wide(y[j]) * as_wide(q) + carry;
-            carry = p >> Limb::BITS;
+            carry = p >> <Limb as crate::util::Integer>::BITS as usize;
             let t = as_wide(x[j]).wrapping_sub(p & mask).wrapping_sub(borrow);
-            borrow = (t >> Limb::BITS) & 1;
+            borrow = (t >> <Limb as crate::util::Integer>::BITS as usize) & 1;
             x[j] = as_limb(t);
         }
         small::normalize(x);
@@ -2214,9 +2214,9 @@ pub fn quorem<T>(x: &mut T, y: &T)
         let mut carry: Wide = 0;
         for j in 0..m {
             let p = as_wide(y[j]) + carry;
-            carry = p >> Limb::BITS;
+            carry = p >> <Limb as crate::util::Integer>::BITS as usize;
             let t = as_wide(x[j]).wrapping_sub(p & mask).wrapping_sub(borrow);
-            borrow = (t >> Limb::BITS) & 1;
+            borrow = (t >> <Limb as crate::util::Integer>::BITS as usize) & 1;
             x[j] = as_limb(t);
         }
         small::normalize(x);
