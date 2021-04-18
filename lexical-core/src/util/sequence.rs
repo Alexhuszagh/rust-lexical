@@ -48,7 +48,7 @@ pub fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
     where V: VecLike<T>,
           I: iter::IntoIterator<Item=T>
 {
-    let iter = iterable.into_iter();
+    let mut iter = iterable.into_iter();
     if index == vec.len() {
         return vec.extend(iter);
     }
@@ -70,7 +70,7 @@ pub fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
         vec.set_len(index);
 
         let mut num_added = 0;
-        for element in iter {
+        for element in iter.by_ref().take(lower_size_bound) {
             let mut cur = ptr.add(num_added);
             if num_added >= lower_size_bound {
                 // Iterator provided more elements than the hint.  Move trailing items again.
@@ -88,6 +88,10 @@ pub fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
         }
 
         vec.set_len(old_len + num_added);
+
+        //  If the iterator had more than its lower bound indicated, collect in
+        //  a slow path.
+        vec.extend(iter);
     }
 }
 
