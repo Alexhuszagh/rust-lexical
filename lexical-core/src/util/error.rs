@@ -1,7 +1,9 @@
 //! C-compatible error type.
 
+use crate::lib::fmt::{self, Display, Formatter};
+
+#[cfg(feature = "std")]
 use std::error::Error as StdError;
-use std::fmt;
 
 /// Error code, indicating failure type.
 ///
@@ -97,14 +99,11 @@ impl From<(ErrorCode, usize)> for Error {
     }
 }
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "lexical error: {:?} at index {}.", self.code, self.index)
     }
 }
 
-impl StdError for Error {
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        None
-    }
-}
+#[cfg(feature = "std")]
+impl StdError for Error {}
