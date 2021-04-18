@@ -166,8 +166,7 @@ pub use lexical_core::{FromLexicalFormat,FromLexicalLossyFormat};
 
 /// Get a vector as a slice, including the capacity.
 #[inline]
-unsafe fn vector_as_slice<'a, T>(buf: &'a mut lib::Vec<T>)
-    -> &'a mut [T]
+unsafe fn vector_as_slice<T>(buf: &mut lib::Vec<T>) -> &mut [T]
 {
     let first = buf.as_mut_ptr();
     lib::slice::from_raw_parts_mut(first, buf.capacity())
