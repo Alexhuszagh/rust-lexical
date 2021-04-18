@@ -126,6 +126,9 @@
 //! [`set_inf_string`]: fn.set_inf_string.html
 //! [`set_infinity_string`]: fn.set_infinity_string.html
 
+// silence warnings for unused doc comments
+#![allow(unused_doc_comments)]
+
 // FEATURES
 
 // Require intrinsics in a no_std context.
