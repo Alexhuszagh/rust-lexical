@@ -87,11 +87,14 @@ pub fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
             ptr::copy(ptr.add(lower_size_bound), ptr.add(num_added), old_len - index);
         }
 
-        vec.set_len(old_len + num_added);
-
         //  If the iterator had more than its lower bound indicated, collect in
         //  a slow path.
-        vec.extend(iter);
+        for elem in iter {
+            vec.insert(index + num_added, elem);
+            num_added += 1;
+        }
+
+        vec.set_len(old_len + num_added);
     }
 }
 
