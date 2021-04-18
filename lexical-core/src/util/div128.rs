@@ -163,6 +163,8 @@ pub(crate) fn u128_divrem_1e19(n: u128) -> (u128, u64) {
 mod tests {
     use super::*;
 
+    use proptest::{proptest, prop_assert_eq, prop_assert};
+
     #[cfg(feature = "std")]
     proptest! {
         #[test]

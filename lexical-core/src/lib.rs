@@ -135,29 +135,7 @@
 // DEPENDENCIES
 
 #[macro_use]
-extern crate bitflags;
-
-#[macro_use]
 extern crate cfg_if;
-
-#[cfg(any(feature = "correct", feature = "format"))]
-#[macro_use]
-extern crate static_assertions;
-
-// Testing assertions for floating-point equality.
-#[cfg(test)]
-#[macro_use]
-extern crate approx;
-
-// Test against randomly-generated data.
-#[cfg(test)]
-#[macro_use]
-extern crate quickcheck;
-
-// Test against randomly-generated guided data.
-#[cfg(all(test, feature = "std"))]
-#[macro_use]
-extern crate proptest;
 
 // Use vec if there is a system allocator, which we require only if
 // we're using the correct and radix features.

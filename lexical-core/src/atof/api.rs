@@ -341,6 +341,9 @@ if #[cfg(feature = "format")] {
 mod tests {
     use crate::util::*;
 
+    use approx::assert_relative_eq;
+    use proptest::{proptest, prop_assert_eq, prop_assert};
+
     #[test]
     fn f32_decimal_test() {
         // integer test
