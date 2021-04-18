@@ -14,12 +14,12 @@ bitflags! {
 
 impl NumberFormat {
     #[inline]
-    pub fn standard() -> Option<NumberFormat> {
-        Some(NumberFormat::default())
+    pub const fn standard() -> Option<NumberFormat> {
+        Some(NumberFormat::__NONEXHAUSTIVE)
     }
 
     #[inline]
-    pub fn digit_separator(&self) -> u8 {
+    pub const fn digit_separator(&self) -> u8 {
         0
     }
 }

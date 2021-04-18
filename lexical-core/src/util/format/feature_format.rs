@@ -8,7 +8,7 @@ use static_assertions::const_assert;
 
 // Determine if character is valid ASCII.
 #[inline]
-fn is_ascii(ch: u8) -> bool {
+const fn is_ascii(ch: u8) -> bool {
     ch.is_ascii()
 }
 
@@ -26,10 +26,23 @@ fn is_valid_separator(ch: u8) -> bool {
     }
 }
 
+#[inline]
+#[cfg(not(feature = "radix"))]
+const fn const_is_valid_separator(ch: u8) -> bool {
+    match ch {
+        b'0' ..= b'9'       => false,
+        b'+' | b'.' | b'-'  => false,
+        _                   => (
+            is_ascii(ch)
+            && ch != b'e' // config::EXPONENT_DEFAULT_CHAR
+        )
+    }
+}
+
 /// Determine if the digit separator is valid.
 #[inline]
 #[cfg(feature = "radix")]
-fn is_valid_separator(ch: u8) -> bool {
+const fn is_valid_separator(ch: u8) -> bool {
     match ch {
         b'A' ..= b'Z'       => false,
         b'a' ..= b'z'       => false,
@@ -1449,7 +1462,7 @@ check_subsequent_flags!(EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPA
 macro_rules! add_flag {
     ($flags:ident, $bool:ident, $flag:ident) => {
         if $bool {
-            $flags |= NumberFormat::$flag;
+            $flags.bits |= NumberFormat::$flag.bits;
         }
     };
 }
@@ -1500,7 +1513,7 @@ impl NumberFormat {
     /// ensure they introduce compile errors in existing code, and will
     /// not the current major/minor version.
     #[inline]
-    pub fn compile(
+    pub const fn compile(
         digit_separator: u8,
         required_integer_digits: bool,
         required_fraction_digits: bool,
@@ -1529,7 +1542,7 @@ impl NumberFormat {
         exponent_consecutive_digit_separator: bool,
         special_digit_separator: bool
     ) -> Option<NumberFormat> {
-        let mut format = NumberFormat::default();
+        let mut format = NumberFormat::empty();
         // Generic flags.
         add_flag!(format, required_integer_digits, REQUIRED_INTEGER_DIGITS);
         add_flag!(format, required_fraction_digits, REQUIRED_FRACTION_DIGITS);
@@ -1567,14 +1580,14 @@ impl NumberFormat {
 
         // Validation.
         let is_invalid =
-            !is_valid_separator(digit_separator)
+            !const_is_valid_separator(digit_separator)
             || format.intersects(NumberFormat::NO_EXPONENT_NOTATION) && format.intersects(NumberFormat::EXPONENT_FLAG_MASK)
             || no_positive_mantissa_sign && required_mantissa_sign
             || no_positive_exponent_sign && required_exponent_sign
             || no_special && (case_sensitive_special || special_digit_separator)
-            || format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK == NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR
-            || format & NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK == NumberFormat::FRACTION_CONSECUTIVE_DIGIT_SEPARATOR
-            || format & NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK == NumberFormat::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
+            || format.bits & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK.bits == NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR.bits
+            || format.bits & NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK.bits == NumberFormat::FRACTION_CONSECUTIVE_DIGIT_SEPARATOR.bits
+            || format.bits & NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK.bits == NumberFormat::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR.bits;
         match is_invalid {
             true  => None,
             false => Some(format)
