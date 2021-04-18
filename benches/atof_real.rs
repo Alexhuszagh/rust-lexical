@@ -67,34 +67,38 @@ fn read_data() -> &'static String {
 
 // Lexical atoi generator.
 macro_rules! lexical_generator {
-    ($name:ident, $t:ty) => (
+    ($name:ident, $t:ty) => {
         fn $name(criterion: &mut Criterion) {
             let data = read_data();
-            criterion.bench_function(stringify!($name), |b| b.iter(|| {
-                for line in data.lines() {
-                    for item in line.split(',') {
-                        black_box(lexical_parse::<$t>(item.as_bytes()).unwrap());
+            criterion.bench_function(stringify!($name), |b| {
+                b.iter(|| {
+                    for line in data.lines() {
+                        for item in line.split(',') {
+                            black_box(lexical_parse::<$t>(item.as_bytes()).unwrap());
+                        }
                     }
-                }
-            }));
+                })
+            });
         }
-    );
+    };
 }
 
 // Parse atoi generator.
 macro_rules! parse_generator {
-    ($name:ident, $t:tt) => (
+    ($name:ident, $t:tt) => {
         fn $name(criterion: &mut Criterion) {
             let data = read_data();
-            criterion.bench_function(stringify!($name), |b| b.iter(|| {
-                for line in data.lines() {
-                    for item in line.split(',') {
-                        black_box(item.parse::<$t>().unwrap());
+            criterion.bench_function(stringify!($name), |b| {
+                b.iter(|| {
+                    for line in data.lines() {
+                        for item in line.split(',') {
+                            black_box(item.parse::<$t>().unwrap());
+                        }
                     }
-                }
-            }));
+                })
+            });
         }
-    );
+    };
 }
 
 // F32

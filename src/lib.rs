@@ -32,26 +32,41 @@
 //! - [`parse`]
 #![cfg_attr(feature = "radix", doc = " - [`parse_radix`]")]
 #![cfg_attr(feature = "format", doc = " - [`parse_format`]")]
-#![cfg_attr(all(feature = "format", feature = "radix"), doc = " - [`parse_format_radix`]")]
+#![cfg_attr(
+    all(feature = "format", feature = "radix"),
+    doc = " - [`parse_format_radix`]"
+)]
 //! - [`parse_partial`]
 #![cfg_attr(feature = "radix", doc = " - [`parse_partial_radix`]")]
 #![cfg_attr(feature = "format", doc = " - [`parse_partial_format`]")]
-#![cfg_attr(all(feature = "format", feature = "radix"), doc = " - [`parse_partial_format_radix`]")]
+#![cfg_attr(
+    all(feature = "format", feature = "radix"),
+    doc = " - [`parse_partial_format_radix`]"
+)]
 //! - [`parse_lossy`]
 #![cfg_attr(feature = "radix", doc = " - [`parse_lossy_radix`]")]
 #![cfg_attr(feature = "format", doc = " - [`parse_lossy_format`]")]
-#![cfg_attr(all(feature = "format", feature = "radix"), doc = " - [`parse_lossy_format_radix`]")]
+#![cfg_attr(
+    all(feature = "format", feature = "radix"),
+    doc = " - [`parse_lossy_format_radix`]"
+)]
 //! - [`parse_partial_lossy`]
 #![cfg_attr(feature = "radix", doc = " - [`parse_partial_lossy_radix`]")]
 #![cfg_attr(feature = "format", doc = " - [`parse_partial_lossy_format`]")]
-#![cfg_attr(all(feature = "format", feature = "radix"), doc = " - [`parse_partial_lossy_format_radix`]")]
+#![cfg_attr(
+    all(feature = "format", feature = "radix"),
+    doc = " - [`parse_partial_lossy_format_radix`]"
+)]
 //!
 //! # Configuration Settings
 //!
 //! **Get Configuration**
 //! - [`get_exponent_default_char`]
 #![cfg_attr(feature = "radix", doc = " - [`get_exponent_backup_char`]")]
-#![cfg_attr(all(feature = "correct", feature = "rounding"), doc = " - [`get_float_rounding`]")]
+#![cfg_attr(
+    all(feature = "correct", feature = "rounding"),
+    doc = " - [`get_float_rounding`]"
+)]
 //! - [`get_nan_string`]
 //! - [`get_inf_string`]
 //! - [`get_infinity_string`]
@@ -59,40 +74,88 @@
 //! **Set Configuration**
 //! - [`set_exponent_default_char`]
 #![cfg_attr(feature = "radix", doc = " - [`set_exponent_backup_char`]")]
-#![cfg_attr(all(feature = "correct", feature = "rounding"), doc = " - [`set_float_rounding`]")]
+#![cfg_attr(
+    all(feature = "correct", feature = "rounding"),
+    doc = " - [`set_float_rounding`]"
+)]
 //! - [`set_nan_string`]
 //! - [`set_inf_string`]
 //! - [`set_infinity_string`]
 //!
 //! [`to_string`]: fn.to_string.html
-#![cfg_attr(feature = "radix", doc = " [`to_string_radix`]: fn.to_string_radix.html")]
+#![cfg_attr(
+    feature = "radix",
+    doc = " [`to_string_radix`]: fn.to_string_radix.html"
+)]
 //! [`parse`]: fn.parse.html
 #![cfg_attr(feature = "radix", doc = " [`parse_radix`]: fn.parse_radix.html")]
 #![cfg_attr(feature = "format", doc = " [`parse_format`]: fn.parse_format.html")]
-#![cfg_attr(all(feature = "format", feature = "radix"), doc = " [`parse_format_radix`]: fn.parse_format_radix.html")]
+#![cfg_attr(
+    all(feature = "format", feature = "radix"),
+    doc = " [`parse_format_radix`]: fn.parse_format_radix.html"
+)]
 //! [`parse_partial`]: fn.parse_partial.html
-#![cfg_attr(feature = "radix", doc = " [`parse_partial_radix`]: fn.parse_partial_radix.html")]
-#![cfg_attr(feature = "format", doc = " [`parse_partial_format`]: fn.parse_partial_format.html")]
-#![cfg_attr(all(feature = "format", feature = "radix"), doc = " [`parse_partial_format_radix`]: fn.parse_partial_format_radix.html")]
+#![cfg_attr(
+    feature = "radix",
+    doc = " [`parse_partial_radix`]: fn.parse_partial_radix.html"
+)]
+#![cfg_attr(
+    feature = "format",
+    doc = " [`parse_partial_format`]: fn.parse_partial_format.html"
+)]
+#![cfg_attr(
+    all(feature = "format", feature = "radix"),
+    doc = " [`parse_partial_format_radix`]: fn.parse_partial_format_radix.html"
+)]
 //! [`parse_lossy`]: fn.parse_lossy.html
-#![cfg_attr(feature = "radix", doc = " [`parse_lossy_radix`]: fn.parse_lossy_radix.html")]
-#![cfg_attr(feature = "format", doc = " [`parse_lossy_format`]: fn.parse_lossy_format.html")]
-#![cfg_attr(all(feature = "format", feature = "radix"), doc = " [`parse_lossy_format_radix`]: fn.parse_lossy_format_radix.html")]
+#![cfg_attr(
+    feature = "radix",
+    doc = " [`parse_lossy_radix`]: fn.parse_lossy_radix.html"
+)]
+#![cfg_attr(
+    feature = "format",
+    doc = " [`parse_lossy_format`]: fn.parse_lossy_format.html"
+)]
+#![cfg_attr(
+    all(feature = "format", feature = "radix"),
+    doc = " [`parse_lossy_format_radix`]: fn.parse_lossy_format_radix.html"
+)]
 //! [`parse_partial_lossy`]: fn.parse_partial_lossy.html
-#![cfg_attr(feature = "radix", doc = " [`parse_partial_lossy_radix`]: fn.parse_partial_lossy_radix.html")]
-#![cfg_attr(feature = "format", doc = " [`parse_partial_lossy_format`]: fn.parse_partial_lossy_format.html")]
-#![cfg_attr(all(feature = "format", feature = "radix"), doc = " [`parse_partial_lossy_format_radix`]: fn.parse_partial_lossy_format_radix.html")]
+#![cfg_attr(
+    feature = "radix",
+    doc = " [`parse_partial_lossy_radix`]: fn.parse_partial_lossy_radix.html"
+)]
+#![cfg_attr(
+    feature = "format",
+    doc = " [`parse_partial_lossy_format`]: fn.parse_partial_lossy_format.html"
+)]
+#![cfg_attr(
+    all(feature = "format", feature = "radix"),
+    doc = " [`parse_partial_lossy_format_radix`]: fn.parse_partial_lossy_format_radix.html"
+)]
 //!
 //! [`get_exponent_default_char`]: fn.get_exponent_default_char.html
-#![cfg_attr(feature = "radix", doc = " [`get_exponent_backup_char`]: fn.get_exponent_backup_char.html")]
-#![cfg_attr(all(feature = "correct", feature = "rounding"), doc = " [`get_float_rounding`]: fn.get_float_rounding.html")]
+#![cfg_attr(
+    feature = "radix",
+    doc = " [`get_exponent_backup_char`]: fn.get_exponent_backup_char.html"
+)]
+#![cfg_attr(
+    all(feature = "correct", feature = "rounding"),
+    doc = " [`get_float_rounding`]: fn.get_float_rounding.html"
+)]
 //! [`get_nan_string`]: fn.get_nan_string.html
 //! [`get_inf_string`]: fn.get_inf_string.html
 //! [`get_infinity_string`]: fn.get_infinity_string.html
 //!
 //! [`set_exponent_default_char`]: fn.set_exponent_default_char.html
-#![cfg_attr(feature = "radix", doc = " [`set_exponent_backup_char`]: fn.set_exponent_backup_char.html")]
-#![cfg_attr(all(feature = "correct", feature = "rounding"), doc = " [`set_float_rounding`]: fn.set_float_rounding.html")]
+#![cfg_attr(
+    feature = "radix",
+    doc = " [`set_exponent_backup_char`]: fn.set_exponent_backup_char.html"
+)]
+#![cfg_attr(
+    all(feature = "correct", feature = "rounding"),
+    doc = " [`set_float_rounding`]: fn.set_float_rounding.html"
+)]
 //! [`set_nan_string`]: fn.set_nan_string.html
 //! [`set_inf_string`]: fn.set_inf_string.html
 //! [`set_infinity_string`]: fn.set_infinity_string.html
@@ -117,22 +180,23 @@ extern crate alloc;
 
 /// Facade around the core features for name mangling.
 pub(crate) mod lib {
-cfg_if! {
-if #[cfg(feature = "std")] {
-    pub(crate) use std::*;
-} else {
-    pub(crate) use core::*;
-}}  // cfg_if
+    cfg_if! {
+    if #[cfg(feature = "std")] {
+        pub(crate) use std::*;
+    } else {
+        pub(crate) use core::*;
+    }} // cfg_if
 
-cfg_if! {
-if #[cfg(feature = "std")] {
-    pub(crate) use std::string::String;
-    pub(crate) use std::vec::Vec;
-} else {
-    pub(crate) use ::alloc::string::String;
-    pub(crate) use ::alloc::vec::Vec;
-}
-}}  // cfg_if
+    cfg_if! {
+    if #[cfg(feature = "std")] {
+        pub(crate) use std::string::String;
+        pub(crate) use std::vec::Vec;
+    } else {
+        pub(crate) use ::alloc::string::String;
+        pub(crate) use ::alloc::vec::Vec;
+    }
+    }
+} // cfg_if
 
 // API
 
@@ -160,14 +224,13 @@ pub use lexical_core::{Error, ErrorCode, Result};
 // Publicly expose traits so they may be used for generic programming.
 pub use lexical_core::{FromLexical, FromLexicalLossy, ToLexical};
 #[cfg(feature = "format")]
-pub use lexical_core::{FromLexicalFormat,FromLexicalLossyFormat};
+pub use lexical_core::{FromLexicalFormat, FromLexicalLossyFormat};
 
 // HELPERS
 
 /// Get a vector as a slice, including the capacity.
 #[inline]
-unsafe fn vector_as_slice<T>(buf: &mut lib::Vec<T>) -> &mut [T]
-{
+unsafe fn vector_as_slice<T>(buf: &mut lib::Vec<T>) -> &mut [T] {
     let first = buf.as_mut_ptr();
     lib::slice::from_raw_parts_mut(first, buf.capacity())
 }
@@ -266,9 +329,7 @@ pub fn to_string_radix<N: ToLexical>(n: N, radix: u8) -> lib::String {
 /// # }
 /// ```
 #[inline]
-pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes)
-    -> Result<N>
-{
+pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
     N::from_lexical(bytes.as_ref())
 }
 
@@ -307,9 +368,7 @@ pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes)
 /// # }
 /// ```
 #[inline]
-pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes)
-    -> Result<(N, usize)>
-{
+pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<(N, usize)> {
     N::from_lexical_partial(bytes.as_ref())
 }
 
@@ -348,9 +407,7 @@ pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes)
 ///
 /// [`parse`]: fn.parse.html
 #[inline]
-pub fn parse_lossy<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
-    -> Result<N>
-{
+pub fn parse_lossy<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
     N::from_lexical_lossy(bytes.as_ref())
 }
 
@@ -389,9 +446,9 @@ pub fn parse_lossy<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
 ///
 /// [`parse_partial`]: fn.parse_partial.html
 #[inline]
-pub fn parse_partial_lossy<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes)
-    -> Result<(N, usize)>
-{
+pub fn parse_partial_lossy<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+) -> Result<(N, usize)> {
     N::from_lexical_partial_lossy(bytes.as_ref())
 }
 
@@ -440,9 +497,7 @@ pub fn parse_partial_lossy<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes
 /// Panics if radix is not in the range `[2, 36]`
 #[cfg(feature = "radix")]
 #[inline]
-pub fn parse_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
-    -> Result<N>
-{
+pub fn parse_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8) -> Result<N> {
     N::from_lexical_radix(bytes.as_ref(), radix)
 }
 
@@ -491,9 +546,10 @@ pub fn parse_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
 /// Panics if radix is not in the range `[2, 36]`
 #[cfg(feature = "radix")]
 #[inline]
-pub fn parse_partial_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
-    -> Result<(N, usize)>
-{
+pub fn parse_partial_radix<N: FromLexical, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+    radix: u8,
+) -> Result<(N, usize)> {
     N::from_lexical_partial_radix(bytes.as_ref(), radix)
 }
 
@@ -540,9 +596,10 @@ pub fn parse_partial_radix<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes, rad
 /// [`parse_radix`]: fn.parse_radix.html
 #[cfg(feature = "radix")]
 #[inline]
-pub fn parse_lossy_radix<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
-    -> Result<N>
-{
+pub fn parse_lossy_radix<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+    radix: u8,
+) -> Result<N> {
     N::from_lexical_lossy_radix(bytes.as_ref(), radix)
 }
 
@@ -591,9 +648,10 @@ pub fn parse_lossy_radix<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, 
 /// [`parse_partial_radix`]: fn.parse_partial_radix.html
 #[cfg(feature = "radix")]
 #[inline]
-pub fn parse_partial_lossy_radix<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8)
-    -> Result<(N, usize)>
-{
+pub fn parse_partial_lossy_radix<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+    radix: u8,
+) -> Result<(N, usize)> {
     N::from_lexical_partial_lossy_radix(bytes.as_ref(), radix)
 }
 
@@ -639,9 +697,10 @@ pub fn parse_partial_lossy_radix<N: FromLexicalLossy, Bytes: AsRef<[u8]>>(bytes:
 /// ```
 #[inline]
 #[cfg(feature = "format")]
-pub fn parse_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, format: NumberFormat)
-    -> Result<N>
-{
+pub fn parse_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+    format: NumberFormat,
+) -> Result<N> {
     N::from_lexical_format(bytes.as_ref(), format)
 }
 
@@ -686,9 +745,10 @@ pub fn parse_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, form
 /// ```
 #[inline]
 #[cfg(feature = "format")]
-pub fn parse_partial_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, format: NumberFormat)
-    -> Result<(N, usize)>
-{
+pub fn parse_partial_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+    format: NumberFormat,
+) -> Result<(N, usize)> {
     N::from_lexical_partial_format(bytes.as_ref(), format)
 }
 
@@ -733,9 +793,10 @@ pub fn parse_partial_format<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Byt
 /// [`parse_format`]: fn.parse_format.html
 #[inline]
 #[cfg(feature = "format")]
-pub fn parse_lossy_format<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, format: NumberFormat)
-    -> Result<N>
-{
+pub fn parse_lossy_format<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+    format: NumberFormat,
+) -> Result<N> {
     N::from_lexical_lossy_format(bytes.as_ref(), format)
 }
 
@@ -780,9 +841,10 @@ pub fn parse_lossy_format<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(bytes: 
 /// [`parse_partial_format`]: fn.parse_partial_format.html
 #[inline]
 #[cfg(feature = "format")]
-pub fn parse_partial_lossy_format<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, format: NumberFormat)
-    -> Result<(N, usize)>
-{
+pub fn parse_partial_lossy_format<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+    format: NumberFormat,
+) -> Result<(N, usize)> {
     N::from_lexical_partial_lossy_format(bytes.as_ref(), format)
 }
 
@@ -836,9 +898,11 @@ pub fn parse_partial_lossy_format<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>
 /// Panics if radix is not in the range `[2, 36]`
 #[inline]
 #[cfg(all(feature = "radix", feature = "format"))]
-pub fn parse_format_radix<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8, format: NumberFormat)
-    -> Result<N>
-{
+pub fn parse_format_radix<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+    radix: u8,
+    format: NumberFormat,
+) -> Result<N> {
     N::from_lexical_format_radix(bytes.as_ref(), radix, format)
 }
 
@@ -892,9 +956,11 @@ pub fn parse_format_radix<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes
 /// Panics if radix is not in the range `[2, 36]`
 #[inline]
 #[cfg(all(feature = "radix", feature = "format"))]
-pub fn parse_partial_format_radix<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8, format: NumberFormat)
-    -> Result<(N, usize)>
-{
+pub fn parse_partial_format_radix<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+    radix: u8,
+    format: NumberFormat,
+) -> Result<(N, usize)> {
     N::from_lexical_partial_format_radix(bytes.as_ref(), radix, format)
 }
 
@@ -946,9 +1012,11 @@ pub fn parse_partial_format_radix<N: FromLexicalFormat, Bytes: AsRef<[u8]>>(byte
 /// [`parse_format_radix`]: fn.parse_format_radix.html
 #[inline]
 #[cfg(all(feature = "radix", feature = "format"))]
-pub fn parse_lossy_format_radix<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8, format: NumberFormat)
-    -> Result<N>
-{
+pub fn parse_lossy_format_radix<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+    radix: u8,
+    format: NumberFormat,
+) -> Result<N> {
     N::from_lexical_lossy_format_radix(bytes.as_ref(), radix, format)
 }
 
@@ -1001,8 +1069,10 @@ pub fn parse_lossy_format_radix<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(b
 /// [`parse_partial_format_radix`]: fn.parse_partial_format_radix.html
 #[inline]
 #[cfg(all(feature = "radix", feature = "format"))]
-pub fn parse_partial_lossy_format_radix<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(bytes: Bytes, radix: u8, format: NumberFormat)
-    -> Result<(N, usize)>
-{
+pub fn parse_partial_lossy_format_radix<N: FromLexicalLossyFormat, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+    radix: u8,
+    format: NumberFormat,
+) -> Result<(N, usize)> {
     N::from_lexical_partial_lossy_format_radix(bytes.as_ref(), radix, format)
 }

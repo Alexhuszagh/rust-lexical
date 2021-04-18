@@ -10,8 +10,8 @@
 
 mod _common;
 
-use std::char;
 use _common::validate;
+use std::char;
 
 fn main() {
     for n in 0..10 {

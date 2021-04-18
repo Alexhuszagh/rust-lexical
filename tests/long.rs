@@ -4,7 +4,6 @@
 
 extern crate lexical;
 
-
 #[cfg(feature = "correct")]
 fn check_atod_long(s: &str) {
     let f = lexical::parse::<f64, _>(s.as_bytes());

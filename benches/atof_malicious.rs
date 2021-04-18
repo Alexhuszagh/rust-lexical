@@ -11,47 +11,56 @@ use lexical_core::parse_lossy as lexical_parse_lossy;
 
 // Lexical atoi generator.
 macro_rules! lexical_generator {
-    ($name:ident, $data:ident, $t:ty) => (
+    ($name:ident, $data:ident, $t:ty) => {
         fn $name(criterion: &mut Criterion) {
-            criterion.bench_function(stringify!($name), |b| b.iter(|| {
-                $data.iter().for_each(|x| {
-                    black_box(lexical_parse::<$t>(x.as_bytes()).unwrap());
+            criterion.bench_function(stringify!($name), |b| {
+                b.iter(|| {
+                    $data.iter().for_each(|x| {
+                        black_box(lexical_parse::<$t>(x.as_bytes()).unwrap());
+                    })
                 })
-            }));
+            });
         }
-    );
+    };
 }
 
 // Lexical atoi generator.
 macro_rules! lexical_lossy_generator {
-    ($name:ident, $data:ident, $t:ty) => (
+    ($name:ident, $data:ident, $t:ty) => {
         fn $name(criterion: &mut Criterion) {
-            criterion.bench_function(stringify!($name), |b| b.iter(|| {
-                $data.iter().for_each(|x| {
-                    black_box(lexical_parse_lossy::<$t>(x.as_bytes()).unwrap());
-                    black_box(lexical_parse::<$t>(x.as_bytes()).unwrap());
+            criterion.bench_function(stringify!($name), |b| {
+                b.iter(|| {
+                    $data.iter().for_each(|x| {
+                        black_box(lexical_parse_lossy::<$t>(x.as_bytes()).unwrap());
+                        black_box(lexical_parse::<$t>(x.as_bytes()).unwrap());
+                    })
                 })
-            }));
+            });
         }
-    );
+    };
 }
 
 // Parse atoi generator.
 macro_rules! parse_generator {
-    ($name:ident, $data:ident, $t:tt) => (
+    ($name:ident, $data:ident, $t:tt) => {
         fn $name(criterion: &mut Criterion) {
-            criterion.bench_function(stringify!($name), |b| b.iter(|| {
-                $data.iter().for_each(|x| {
-                    black_box(x.parse::<$t>().unwrap());
+            criterion.bench_function(stringify!($name), |b| {
+                b.iter(|| {
+                    $data.iter().for_each(|x| {
+                        black_box(x.parse::<$t>().unwrap());
+                    })
                 })
-            }));
+            });
         }
-    );
+    };
 }
 
 // F32
 
-const F32_DATA: [&'static str; 2] = ["1.7014118346046927e+38", "170141183460469250621729695946768384000"];
+const F32_DATA: [&'static str; 2] = [
+    "1.7014118346046927e+38",
+    "170141183460469250621729695946768384000",
+];
 
 lexical_generator!(atof_malicious_f32_lexical, F32_DATA, f32);
 lexical_lossy_generator!(atof_malicious_f32_lexical_lossy, F32_DATA, f32);
@@ -67,6 +76,16 @@ parse_generator!(atof_malicious_f64_parse, F64_DATA, f64);
 
 // MAIN
 
-criterion_group!(f32_benches, atof_malicious_f32_lexical, atof_malicious_f32_lexical_lossy, atof_malicious_f32_parse);
-criterion_group!(f64_benches, atof_malicious_f64_lexical, atof_malicious_f64_lexical_lossy, atof_malicious_f64_parse);
+criterion_group!(
+    f32_benches,
+    atof_malicious_f32_lexical,
+    atof_malicious_f32_lexical_lossy,
+    atof_malicious_f32_parse
+);
+criterion_group!(
+    f64_benches,
+    atof_malicious_f64_lexical,
+    atof_malicious_f64_lexical_lossy,
+    atof_malicious_f64_parse
+);
 criterion_main!(f32_benches, f64_benches);

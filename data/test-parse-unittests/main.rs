@@ -116,10 +116,7 @@ fn parse_tests(name: &str) -> StrtodTests {
 }
 
 fn main() {
-    let filenames = [
-        "strtod_tests.toml",
-        "rust_parse_tests.toml",
-    ];
+    let filenames = ["strtod_tests.toml", "rust_parse_tests.toml"];
     for filename in filenames.iter() {
         println!("Running Test: {}", filename);
         run_tests(parse_tests(filename));

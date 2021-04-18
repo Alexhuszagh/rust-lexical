@@ -6,7 +6,6 @@
 extern crate lexical;
 use std::fmt::Debug;
 
-
 struct StressTest<T: 'static + lexical::FromLexical> {
     below_ulp: &'static [(&'static str, T)],
     above_ulp: &'static [(&'static str, T)],
