@@ -228,9 +228,31 @@ pub use util::*;
 ///
 /// Panics if the buffer may not be large enough to hold the serialized
 /// number. In order to ensure the function will not panic, provide a
-/// buffer with at least [`FORMATTED_SIZE_DECIMAL`] elements.
+/// buffer with at least `{integer}::FORMATTED_SIZE_DECIMAL` elements.
 ///
-/// [`FORMATTED_SIZE_DECIMAL`]: trait.Number.html#associatedconstant.FORMATTED_SIZE_DECIMAL
+/// # Example
+///
+/// ```
+/// // import `Number` trait to get the `FORMATTED_SIZE_DECIMAL` of the number.
+/// use lexical_core::Number;
+///
+/// let mut buffer = [0u8; f32::FORMATTED_SIZE_DECIMAL];
+/// let float = 3.14159265359_f32;
+///
+/// lexical_core::write(float, &mut buffer);
+///
+/// assert_eq!(&buffer[0..9], b"3.1415927");
+/// ```
+///
+/// This will panic, because the buffer is not large enough:
+///
+/// ```should_panic
+/// // note: the buffer is only one byte large
+/// let mut buffer = [0u8; 1];
+/// let float = 3.14159265359_f32;
+///
+/// lexical_core::write(float, &mut buffer);
+/// ```
 #[inline]
 pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8])
     -> &'a mut [u8]
