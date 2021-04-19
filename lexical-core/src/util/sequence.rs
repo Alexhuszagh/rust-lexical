@@ -1383,7 +1383,7 @@ mod tests {
 
     #[test]
     fn test_insert_many() {
-        type V = arrayvec::ArrayVec<[u8; 8]>;
+        type V = arrayvec::ArrayVec<u8, 8>;
         let mut v: V = V::new();
         for x in 0..4 {
             v.push(x);

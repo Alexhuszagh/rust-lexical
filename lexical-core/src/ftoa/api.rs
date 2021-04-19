@@ -423,12 +423,22 @@ mod tests {
     quickcheck! {
         fn f32_quickcheck(f: f32) -> bool {
             let mut buffer = new_buffer();
-            f == f32::from_lexical(f.to_lexical(&mut buffer)).unwrap()
+            let parsed = f32::from_lexical(f.to_lexical(&mut buffer)).unwrap();
+            if f.is_nan() {
+                parsed.is_nan()
+            } else {
+                f == parsed
+            }
         }
 
         fn f64_quickcheck(f: f64) -> bool {
             let mut buffer = new_buffer();
-            f == f64::from_lexical(f.to_lexical(&mut buffer)).unwrap()
+            let parsed = f64::from_lexical(f.to_lexical(&mut buffer)).unwrap();
+            if f.is_nan() {
+                parsed.is_nan()
+            } else {
+                f == parsed
+            }
         }
     }
 
