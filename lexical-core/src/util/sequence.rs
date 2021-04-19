@@ -303,16 +303,16 @@ impl<T> SliceLikeImpl<T> for Vec<T> {
     }
 }
 
-impl<T, const N: usize> SliceLikeImpl<T> for arrayvec::ArrayVec<T, N> {
+impl<A: arrayvec::Array> SliceLikeImpl<A::Item> for arrayvec::ArrayVec<A> {
     // AS SLICE
 
     #[inline]
-    fn as_slice(&self) -> &[T] {
+    fn as_slice(&self) -> &[A::Item] {
         arrayvec::ArrayVec::as_slice(self)
     }
 
     #[inline]
-    fn as_mut_slice(&mut self) -> &mut [T] {
+    fn as_mut_slice(&mut self) -> &mut [A::Item] {
         arrayvec::ArrayVec::as_mut_slice(self)
     }
 }
@@ -1014,70 +1014,70 @@ impl<T> SliceLike<T> for Vec<T> {
     }
 }
 
-impl<T, const N: usize> SliceLike<T> for arrayvec::ArrayVec<T, N> {
+impl<A: arrayvec::Array> SliceLike<A::Item> for arrayvec::ArrayVec<A> {
     // GET
 
     /// Get an immutable reference to item at index.
     #[inline]
-    fn get<I: slice::SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output> {
+    fn get<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> Option<&I::Output> {
         return self.as_slice().get(index);
     }
 
     /// Get an mutable reference to item at index.
     #[inline]
-    fn get_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output> {
+    fn get_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> Option<&mut I::Output> {
         return self.as_mut_slice().get_mut(index);
     }
 
     /// Get an immutable reference to item at index.
     #[inline]
-    unsafe fn get_unchecked<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output {
+    unsafe fn get_unchecked<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
         return self.as_slice().get_unchecked(index);
     }
 
     /// Get an mutable reference to item at index.
     #[inline]
-    unsafe fn get_unchecked_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
+    unsafe fn get_unchecked_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
         return self.as_mut_slice().get_unchecked_mut(index);
     }
 
     // INDEX
 
     #[inline]
-    fn index<I: slice::SliceIndex<[T]>>(&self, index: I) -> &I::Output {
+    fn index<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
         return self.as_slice().index(index);
     }
 
     #[inline]
-    fn index_mut<I: slice::SliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
+    fn index_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
         return self.as_mut_slice().index_mut(index);
     }
 
     // RGET
 
     #[inline]
-    fn rget<I: RSliceIndex<[T]>>(&self, index: I)
+    fn rget<I: RSliceIndex<[A::Item]>>(&self, index: I)
         -> Option<&I::Output>
     {
         index.rget(self.as_slice())
     }
 
     #[inline]
-    fn rget_mut<I: RSliceIndex<[T]>>(&mut self, index: I)
+    fn rget_mut<I: RSliceIndex<[A::Item]>>(&mut self, index: I)
         -> Option<&mut I::Output>
     {
         index.rget_mut(self.as_mut_slice())
     }
 
     #[inline]
-    unsafe fn rget_unchecked<I: RSliceIndex<[T]>>(&self, index: I)
+    unsafe fn rget_unchecked<I: RSliceIndex<[A::Item]>>(&self, index: I)
         -> &I::Output
     {
         index.rget_unchecked(self.as_slice())
     }
 
     #[inline]
-    unsafe fn rget_unchecked_mut<I: RSliceIndex<[T]>>(&mut self, index: I)
+    unsafe fn rget_unchecked_mut<I: RSliceIndex<[A::Item]>>(&mut self, index: I)
         -> &mut I::Output
     {
         index.rget_unchecked_mut(self.as_mut_slice())
@@ -1086,12 +1086,12 @@ impl<T, const N: usize> SliceLike<T> for arrayvec::ArrayVec<T, N> {
     // RINDEX
 
     #[inline]
-    fn rindex<I: RSliceIndex<[T]>>(&self, index: I) -> &I::Output {
+    fn rindex<I: RSliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
         index.rindex(self.as_slice())
     }
 
     #[inline]
-    fn rindex_mut<I: RSliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
+    fn rindex_mut<I: RSliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
         index.rindex_mut(self.as_mut_slice())
     }
 }
@@ -1242,14 +1242,14 @@ impl<T> VecLike<T> for Vec<T> {
     }
 }
 
-impl<T, const N: usize> VecLike<T> for arrayvec::ArrayVec<T, N> {
+impl<A: arrayvec::Array> VecLike<A::Item> for arrayvec::ArrayVec<A> {
     #[inline]
-    fn new() -> arrayvec::ArrayVec<T, N> {
+    fn new() -> arrayvec::ArrayVec<A> {
         arrayvec::ArrayVec::new()
     }
 
     #[inline]
-    fn with_capacity(capacity: usize) -> arrayvec::ArrayVec<T, N> {
+    fn with_capacity(capacity: usize) -> arrayvec::ArrayVec<A> {
         let mut v = arrayvec::ArrayVec::new();
         v.reserve(capacity);
         v
@@ -1285,27 +1285,27 @@ impl<T, const N: usize> VecLike<T> for arrayvec::ArrayVec<T, N> {
     }
 
     #[inline]
-    fn swap_remove(&mut self, index: usize) -> T {
+    fn swap_remove(&mut self, index: usize) -> A::Item {
         arrayvec::ArrayVec::swap_remove(self, index)
     }
 
     #[inline]
-    fn insert(&mut self, index: usize, element: T) {
+    fn insert(&mut self, index: usize, element: A::Item) {
         arrayvec::ArrayVec::insert(self, index, element)
     }
 
     #[inline]
-    fn remove(&mut self, index: usize) -> T {
+    fn remove(&mut self, index: usize) -> A::Item {
         arrayvec::ArrayVec::remove(self, index)
     }
 
     #[inline]
-    fn push(&mut self, value: T) {
+    fn push(&mut self, value: A::Item) {
         arrayvec::ArrayVec::push(self, value);
     }
 
     #[inline]
-    fn pop(&mut self) -> Option<T> {
+    fn pop(&mut self) -> Option<A::Item> {
         arrayvec::ArrayVec::pop(self)
     }
 
@@ -1315,7 +1315,7 @@ impl<T, const N: usize> VecLike<T> for arrayvec::ArrayVec<T, N> {
     }
 
     #[inline]
-    fn insert_many<I: iter::IntoIterator<Item=T>>(&mut self, index: usize, iterable: I) {
+    fn insert_many<I: iter::IntoIterator<Item=A::Item>>(&mut self, index: usize, iterable: I) {
         insert_many(self, index, iterable)
     }
 
@@ -1354,16 +1354,18 @@ impl<T> CloneableVecLike<T> for Vec<T>
     }
 }
 
-impl<T, const N: usize> CloneableVecLike<T> for arrayvec::ArrayVec<T, N>
-    where T: Clone + Copy + Send
+impl<A: arrayvec::Array> CloneableVecLike<A::Item> for arrayvec::ArrayVec<A>
+    where A: Send,
+          A::Index: Send,
+          A::Item: Clone + Copy + Send
 {
     #[inline]
-    fn extend_from_slice(&mut self, other: &[T]) {
+    fn extend_from_slice(&mut self, other: &[A::Item]) {
         self.extend(other.iter().cloned())
     }
 
     #[inline]
-    fn resize(&mut self, len: usize, value: T) {
+    fn resize(&mut self, len: usize, value: A::Item) {
         assert!(len <= self.capacity());
         let old_len = self.len();
         if len > old_len {
@@ -1383,7 +1385,7 @@ mod tests {
 
     #[test]
     fn test_insert_many() {
-        type V = arrayvec::ArrayVec<u8, 8>;
+        type V = arrayvec::ArrayVec<[u8; 8]>;
         let mut v: V = V::new();
         for x in 0..4 {
             v.push(x);
