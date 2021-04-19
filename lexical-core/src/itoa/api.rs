@@ -179,6 +179,7 @@ mod tests {
     use crate::util::test::*;
 
     use quickcheck::quickcheck;
+    #[cfg(feature = "std")]
     use proptest::proptest;
 
     // GENERIC

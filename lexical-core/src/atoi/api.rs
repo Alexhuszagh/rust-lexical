@@ -142,6 +142,7 @@ if #[cfg(feature = "format")] {
 mod tests {
     use crate::util::*;
 
+    #[cfg(feature = "std")]
     use proptest::{proptest, prop_assert_eq, prop_assert};
 
     #[cfg(feature = "radix")]
