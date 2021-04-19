@@ -222,7 +222,10 @@ mod tests {
     use crate::util::*;
     use crate::util::test::*;
 
+    #[cfg(feature = "correct")]
     use quickcheck::quickcheck;
+
+    #[cfg(all(feature = "correct", feature = "std"))]
     use proptest::{proptest, prop_assert_eq};
     use approx::assert_relative_eq;
 
