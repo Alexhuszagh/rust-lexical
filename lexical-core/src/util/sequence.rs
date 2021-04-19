@@ -371,15 +371,17 @@ impl<T: Ord> BinarySearch<T> for dyn SliceLikeImpl<T> {
 
 /// Collection that has a `sort()` method.
 pub trait Sort<T: Ord> {
-    /// Sort sequence.
-    fn sort(&mut self);
+    // TODO(ahuszagh) Currently bugged on no_std.
+    ///// Sort sequence.
+    //fn sort(&mut self);
 }
 
 impl<T: Ord> Sort<T> for dyn SliceLikeImpl<T> {
-    #[inline]
-    fn sort(&mut self) {
-        <[T]>::sort(self.as_mut_slice())
-    }
+    //
+    //#[inline]
+    //fn sort(&mut self) {
+    //    <[T]>::sort(self.as_mut_slice())
+    //}
 }
 
 /// Collection that has a `sort_unstable()` method.
