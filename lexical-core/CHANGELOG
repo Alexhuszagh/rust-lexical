@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.5] 2021-02-21
+### Changed
+- Fixed issue with `integer::BITS` conflicting with new compilers.
+
 ## [0.7.4] 2020-01-27
 ### Changed
 - Changed NumberFormat to use 64-bit flags.
@@ -30,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added pre-defined constants for `NumberFormat` (`RUST_STRING`, `PYTHON_LITERAL`) to avoid compiling formats when not needed.
 - Added the `FromLexicalFormat` and `FromLexicalLossyFormat` traits with the `format` feature, which enable you to specify the number format during parsing.
 - Implemented algorithms in terms of generic iterators, to allow skipping digit separators.
-- Implemented data interfaces to simplify parsing and validating number format. 
+- Implemented data interfaces to simplify parsing and validating number format.
 - Added more values to `ErrorCode` to signify more parse failures.
 
 ### Changed
