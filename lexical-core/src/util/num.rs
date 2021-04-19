@@ -841,11 +841,14 @@ pub trait Float: Number + ops::Neg<Output=Self>
 
 /// Wrap float method for `std` and `no_std` context.
 macro_rules! float_method {
-    ($f:ident, $t:tt, $meth:ident, $intr:ident $(,$i:expr)*) => ({
+    ($f:ident, $t:tt, $meth:ident, $intr:ident, $libm:ident $(,$i:expr)*) => ({
         #[cfg(feature = "std")]
         return $t::$meth($f $(,$i)*);
 
-        #[cfg(not(feature = "std"))]
+        #[cfg(all(not(feature = "std"), feature = "libm"))]
+        return libm::$libm($f $(,$i)*);
+
+        #[cfg(all(not(feature = "std"), not(feature = "libm")))]
         return unsafe { core::intrinsics::$intr($f $(,$i)*) };
     })
 }
@@ -855,14 +858,17 @@ macro_rules! float_method {
 /// This is because MSVC wraps these as inline functions, with no actual
 /// ABI for the LLVM intrinsic.
 macro_rules! float_method_msvc {
-    ($f:ident, $ts:tt, $tl:tt, $meth:ident, $intr:ident $(,$i:expr)*) => ({
+    ($f:ident, $ts:tt, $tl:tt, $meth:ident, $intr:ident, $libm:ident $(,$i:expr)*) => ({
         #[cfg(feature = "std")]
         return $ts::$meth($f $(,$i)*);
 
-        #[cfg(all(not(feature = "std"), not(target_env = "msvc")))]
+        #[cfg(all(not(feature = "std"), feature = "libm"))]
+        return libm::$libm($f $(,$i)*);
+
+        #[cfg(all(not(feature = "std"), not(feature = "libm"), not(target_env = "msvc")))]
         return unsafe { core::intrinsics::$intr($f $(,$i)*) };
 
-        #[cfg(all(not(feature = "std"), target_env = "msvc"))]
+        #[cfg(all(not(feature = "std"), not(feature = "libm"), target_env = "msvc"))]
         return $tl::$meth($f as $tl $(,$i as $tl)*) as $ts;
     })
 }
@@ -872,15 +878,18 @@ macro_rules! float_method_msvc {
 /// Solaris has a standard non-conforming log implementation, we need
 /// to wrap this cheaply.
 macro_rules! float_method_log_solaris {
-    ($f:ident, $t:tt, $meth:ident, $intr:ident $(,$i:expr)*) => ({
+    ($f:ident, $t:tt, $meth:ident, $intr:ident, $libm:ident $(,$i:expr)*) => ({
         #[cfg(feature = "std")]
         return $t::$meth($f $(,$i)*);
 
-        #[cfg(all(not(feature = "std"), not(target_os = "solaris")))]
+        #[cfg(all(not(feature = "std"), feature = "libm"))]
+        return libm::$libm($f $(,$i)*);
+
+        #[cfg(all(not(feature = "std"), not(feature = "libm"), not(target_os = "solaris")))]
         return unsafe { core::intrinsics::$intr($f $(,$i)*) };
 
         // Workaround for Solaris/Illumos due to log(-value) == -Inf, not NaN.
-        #[cfg(all(not(feature = "std"), target_os = "solaris"))] {
+        #[cfg(all(not(feature = "std"), not(feature = "libm"), target_os = "solaris"))] {
             if $f.is_nan() {
                 $f
             } else if $f.is_special() {
@@ -920,42 +929,48 @@ impl Float for f32 {
 
     #[inline]
     fn abs(self) -> f32 {
-        float_method!(self, f32, abs, fabsf32)
+        float_method!(self, f32, abs, fabsf32, fabsf)
     }
 
     #[inline]
     fn ceil(self) -> f32 {
-        float_method_msvc!(self, f32, f64, ceil, ceilf32)
+        float_method_msvc!(self, f32, f64, ceil, ceilf32, ceilf)
     }
 
     #[inline]
     fn exp(self) -> f32 {
-        float_method_msvc!(self, f32, f64, exp, expf32)
+        float_method_msvc!(self, f32, f64, exp, expf32, expf)
     }
 
     #[inline]
     fn floor(self) -> f32 {
-        float_method_msvc!(self, f32, f64, floor, floorf32)
+        float_method_msvc!(self, f32, f64, floor, floorf32, floorf)
     }
 
     #[inline]
     fn ln(self) -> f32 {
-        float_method_msvc!(self, f32, f64, ln, logf32)
+        float_method_msvc!(self, f32, f64, ln, logf32, logf)
     }
 
     #[inline]
     fn powi(self, n: i32) -> f32 {
-        float_method!(self, f32, powi, powif32, n)
+        cfg_if! {
+            if #[cfg(all(not(feature = "std"), feature = "libm"))] {
+                self.powf(n as f32)
+            } else {
+                float_method!(self, f32, powi, powif32, powif, n)
+            }
+        }
     }
 
     #[inline]
     fn powf(self, n: f32) -> f32 {
-        float_method_msvc!(self, f32, f64, powf, powf32, n)
+        float_method_msvc!(self, f32, f64, powf, powf32, powf, n)
     }
 
     #[inline]
     fn round(self) -> f32 {
-        float_method!(self, f32, round, roundf32)
+        float_method!(self, f32, round, roundf32, roundf)
     }
 
     #[inline]
@@ -1003,42 +1018,48 @@ impl Float for f64 {
 
     #[inline]
     fn abs(self) -> f64 {
-        float_method!(self, f64, abs, fabsf64)
+        float_method!(self, f64, abs, fabsf64, fabs)
     }
 
     #[inline]
     fn ceil(self) -> f64 {
-        float_method!(self, f64, ceil, ceilf64)
+        float_method!(self, f64, ceil, ceilf64, ceil)
     }
 
     #[inline]
     fn exp(self) -> f64 {
-        float_method!(self, f64, exp, expf64)
+        float_method!(self, f64, exp, expf64, exp)
     }
 
     #[inline]
     fn floor(self) -> f64 {
-        float_method!(self, f64, floor, floorf64)
+        float_method!(self, f64, floor, floorf64, floor)
     }
 
     #[inline]
     fn ln(self) -> f64 {
-        float_method_log_solaris!(self, f64, ln, logf64)
+        float_method_log_solaris!(self, f64, ln, logf64, log)
     }
 
     #[inline]
     fn powi(self, n: i32) -> f64 {
-        float_method!(self, f64, powi, powif64, n)
+        cfg_if! {
+            if #[cfg(all(not(feature = "std"), feature = "libm"))] {
+                self.powf(n as f64)
+            } else {
+                float_method!(self, f64, powi, powif64, powi, n)
+            }
+        }
     }
 
     #[inline]
     fn powf(self, n: f64) -> f64 {
-        float_method!(self, f64, powf, powf64, n)
+        float_method!(self, f64, powf, powf64, pow, n)
     }
 
     #[inline]
     fn round(self) -> f64 {
-        float_method!(self, f64, round, roundf64)
+        float_method!(self, f64, round, roundf64, round)
     }
 
     #[inline]
