@@ -20,6 +20,9 @@ matrix:
     - rust: beta
       env: TARGET=x86_64-unknown-linux-gnu
 
+    - rust: stable
+      env: TARGET=x86_64-unknown-linux-gnu NO_STD=1 ENABLE_LIBM=1
+
     - rust: nightly
       env: TARGET=x86_64-unknown-linux-gnu NO_STD=1
 

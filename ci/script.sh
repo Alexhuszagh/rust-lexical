@@ -27,6 +27,21 @@ if [ ! -z $NO_STD ]; then
     DOCTESTS="--tests"
 fi
 
+# Add property tests to all tests if enabled.
+if [ -z $DISABLE_PROPERTY_TESTS ]; then
+    DEFAULT_FEATURES=("$DEFAULT_FEATURES --features=property_tests")
+fi
+
+# Add libm to all features if enabled.
+if [ ! -z $ENABLE_LIBM ]; then
+    DEFAULT_FEATURES=("$DEFAULT_FEATURES --features=libm")
+fi
+
+# Have std, need to add `std` to features.
+if [ -z $NO_STD ]; then
+    DEFAULT_FEATURES=("$DEFAULT_FEATURES --features=std")
+fi
+
 # Disable doctests on nostd or if not supported.
 if [ ! -z $DISABLE_DOCTESTS ]; then
     DOCTESTS="--tests"
@@ -59,22 +74,9 @@ else
     )
 fi
 
-# Add property tests to all tests if enabled.
-if [ -z $DISABLE_PROPERTY_TESTS ]; then
-    LEXICAL_FEATURES=("${LEXICAL_FEATURES[@]/#/property_tests,}")
-    CORE_FEATURES=("${CORE_FEATURES[@]/#/property_tests,}")
-fi
-
 # Create the full string for the tests from the features.
-if [ -z $NO_STD ]; then
-    # Have std, need to add `std` to features.
-    LEXICAL_FEATURES=("${LEXICAL_FEATURES[@]/#/--features=std,}")
-    CORE_FEATURES=("${CORE_FEATURES[@]/#/--features=std,}")
-else
-    # Nostd, just add `--features=` to the features.
-    LEXICAL_FEATURES=("${LEXICAL_FEATURES[@]/#/--features=}")
-    CORE_FEATURES=("${CORE_FEATURES[@]/#/--features=}")
-fi
+LEXICAL_FEATURES=("${LEXICAL_FEATURES[@]/#/--features=}")
+CORE_FEATURES=("${CORE_FEATURES[@]/#/--features=}")
 
 # Build target.
 build() {
