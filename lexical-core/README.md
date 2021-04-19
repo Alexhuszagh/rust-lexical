@@ -53,8 +53,8 @@ let r = lexical_core::parse::<u8>(b"256"); // Err(ErrorCode::Overflow.into())
 let r = lexical_core::parse::<u8>(b"1a5"); // Err(ErrorCode::InvalidDigit.into())
 
 // In order to extract and parse a number from a substring of the input
-// data, use `parse_partial`. These functions return the parsed value and 
-// the number of processed digits, allowing you to extract and parse the 
+// data, use `parse_partial`. These functions return the parsed value and
+// the number of processed digits, allowing you to extract and parse the
 // number in a single pass.
 let r = lexical_core::parse_partial::<i8>(b"3a5"); // Ok((3, 1))
 
@@ -83,11 +83,11 @@ assert_eq!(slc, b"15.1");
 
 # Features
 
-- **correct** Use a correct string-to-float parser. 
+- **correct** Use a correct string-to-float parser.
     <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. If neither <code>algorithm_m</code> nor <code>bhcomp</code> is enabled while <code>correct</code> is enabled, lexical uses the <code>bigcomp</code> algorithm.</blockquote>
-- **trim_floats** Export floats without a fraction as an integer. 
+- **trim_floats** Export floats without a fraction as an integer.
     <blockquote>For example, <code>0.0f64</code> will be serialized to "0" and not "0.0", and <code>-0.0</code> as "0" and not "-0.0".</blockquote>
-- **radix** Allow conversions to and from non-decimal strings. 
+- **radix** Allow conversions to and from non-decimal strings.
     <blockquote>With radix enabled, any radix from 2 to 36 (inclusive) is valid, otherwise, only 10 is valid.</blockquote>
 - **format** Customize accepted inputs for number parsing.
     <blockquote>With format enabled, the number format is dictated through the <code>NumberFormat</code> bitflags, which allow you to toggle how to parse a string into a number. Various flags including enabling digit separators, requiring integer or fraction digits, and toggling special values.</blockquote>
@@ -95,6 +95,7 @@ assert_eq!(slc, b"15.1");
     <blockquote>By default, lexical uses round-nearest, tie-even for float rounding (recommended by IEE754).</blockquote>
 - **ryu** Use dtolnay's [ryu](https://github.com/dtolnay/ryu/) library for float-to-string conversions.
     <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. Ryu is ~2x as fast as other float formatters.</blockquote>
+- **libm** Enable use of the [libm](https://github.com/rust-lang/libm) library for stable `no_std` support.
 
 
 ## Format
@@ -308,7 +309,7 @@ Lexical-core also includes configuration options that allow you to configure flo
     - `get_exponent_default_char`
     - `set_exponent_default_char`
     <blockquote>The default character designating the exponent component of a float (default <code>b'e'</code>) for strings with a radix less than 15 (including decimal strings). For float parsing, lexical-core uses case-insensitive comparisons. This value should be not be in character set <code>[0-9a-eA-E.+\-]</code>.</blockquote>
-- **Exponent Backup Character** (radix only) 
+- **Exponent Backup Character** (radix only)
     - `get_exponent_backup_char`
     - `set_exponent_backup_char`
     <blockquote>The backup character designating the exponent component of a float (default <code>b'^'</code>) for strings with a radix greater than or equal to 15. This value should be not be in character set <code>[0-9a-zA-Z.+\-]</code>.</blockquote>
@@ -319,7 +320,7 @@ Lexical-core also includes configuration options that allow you to configure flo
 
 # Constants
 
-Lexical-core also includes a few constants to simplify interfacing with number-to-string code, and are implemented for the `lexical_core::Number` trait, which is required by `ToLexical`. 
+Lexical-core also includes a few constants to simplify interfacing with number-to-string code, and are implemented for the `lexical_core::Number` trait, which is required by `ToLexical`.
 
 - **FORMATTED_SIZE** The maximum number of bytes a formatter may write.
     <blockquote>For example, <code>lexical_core::write_radix::&lt;i32&gt;</code> may write up to <code>i32::FORMATTED_SIZE</code> characters. This constant may significantly overestimate the number of characters required for decimal strings when the radix feature is enabled.</blockquote>
@@ -373,7 +374,7 @@ Lexical uses arbitrary-precision arithmetic to exactly represent strings between
 
 For close-to-halfway representations of a decimal string `s`, where `s` is close between two representations, `b` and the next float `b+u`, arbitrary-precision arithmetic is used to determine the correct representation. This means `s` is close to `b+h`, where `h` is the halfway point between `b` and `b+u`.
 
-For the following example, we will use the following values for our test case: 
+For the following example, we will use the following values for our test case:
 
 * `s = 2.4703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125001e-324`
 * `b = 0.0`
@@ -382,7 +383,7 @@ For the following example, we will use the following values for our test case:
 
 **Algorithm M**
 
-Algorithm M represents the significant digits of a float as a fraction of arbitrary-precision integers (a more in-depth description can be found [here](https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/)). For example, 1.23 would be 123/100, while 314.159 would be 314159/1000. We then scale the numerator and denominator by powers of 2 until the quotient is in the range `[2^52, 2^53)`, generating the correct significant digits of the mantissa. 
+Algorithm M represents the significant digits of a float as a fraction of arbitrary-precision integers (a more in-depth description can be found [here](https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/)). For example, 1.23 would be 123/100, while 314.159 would be 314159/1000. We then scale the numerator and denominator by powers of 2 until the quotient is in the range `[2^52, 2^53)`, generating the correct significant digits of the mantissa.
 
 A naive implementation, in Python, is as follows:
 

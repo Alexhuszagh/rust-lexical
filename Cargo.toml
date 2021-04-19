@@ -47,6 +47,8 @@ correct = ["lexical-core/correct"]
 format = ["lexical-core/format"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["lexical-core/grisu3"]
+# Use the `libm` crate for stable `no_std.
+libm = ["lexical-core/libm"]
 # Add support for [parsing non-decimal float and integer strings.
 radix = ["lexical-core/radix"]
 # Allow custom rounding schemes, at the cost of slower performance.
