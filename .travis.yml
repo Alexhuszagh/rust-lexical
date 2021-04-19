@@ -23,15 +23,15 @@ matrix:
     - rust: nightly
       env: TARGET=x86_64-unknown-linux-gnu NO_STD=1
 
-    # All tests should work.
+    # Proptest does not work, disable it.
     - rust: 1.37.0
-      env: TARGET=x86_64-unknown-linux-gnu
+      env: TARGET=x86_64-unknown-linux-gnu DISABLE_PROPERTY_TESTS=1
 
     - rust: 1.38.0
-      env: TARGET=x86_64-unknown-linux-gnu
+      env: TARGET=x86_64-unknown-linux-gnu DISABLE_PROPERTY_TESTS=1
 
     - rust: 1.39.0
-      env: TARGET=x86_64-unknown-linux-gnu
+      env: TARGET=x86_64-unknown-linux-gnu DISABLE_PROPERTY_TESTS=1
 
     # Android
     - env: TARGET=aarch64-linux-android DISABLE_TESTS=1

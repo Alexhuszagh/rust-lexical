@@ -178,8 +178,9 @@ mod tests {
     use crate::util::*;
     use crate::util::test::*;
 
+    #[cfg(feature = "property_tests")]
     use quickcheck::quickcheck;
-    #[cfg(feature = "std")]
+    #[cfg(all(feature = "std", feature = "property_tests"))]
     use proptest::proptest;
 
     // GENERIC
@@ -445,6 +446,7 @@ mod tests {
 
     // Quickcheck
 
+    #[cfg(feature = "property_tests")]
     quickcheck! {
         fn u8_quickcheck(i: u8) -> bool {
             let mut buffer = new_buffer();
@@ -509,7 +511,7 @@ mod tests {
 
     // Proptest
 
-    #[cfg(feature = "std")]
+    #[cfg(all(feature = "std", feature = "property_tests"))]
     proptest! {
         #[test]
         fn u8_proptest(i in u8::min_value()..u8::max_value()) {

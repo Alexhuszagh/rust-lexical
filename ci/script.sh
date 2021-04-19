@@ -59,6 +59,12 @@ else
     )
 fi
 
+# Add property tests to all tests if enabled.
+if [ -z $DISABLE_PROPERTY_TESTS ]; then
+    LEXICAL_FEATURES=("${LEXICAL_FEATURES[@]/#/property_tests,}")
+    CORE_FEATURES=("${CORE_FEATURES[@]/#/property_tests,}")
+fi
+
 # Create the full string for the tests from the features.
 if [ -z $NO_STD ]; then
     # Have std, need to add `std` to features.
@@ -138,12 +144,12 @@ derive_tests() {
 }
 
 main() {
-    # Build and test lexical (only on std).
-    if [ -z $NO_STD ]; then
-        build
-        test "${LEXICAL_FEATURES[@]}"
-        bench
-    fi
+#    # Build and test lexical (only on std).
+#    if [ -z $NO_STD ]; then
+#        build
+#        test "${LEXICAL_FEATURES[@]}"
+#        bench
+#    fi
 
     # Build and test lexical-core.
     cd lexical-core

@@ -222,10 +222,10 @@ mod tests {
     use crate::util::*;
     use crate::util::test::*;
 
-    #[cfg(feature = "correct")]
+    #[cfg(all(feature = "correct", feature = "property_tests"))]
     use quickcheck::quickcheck;
 
-    #[cfg(all(feature = "correct", feature = "std"))]
+    #[cfg(all(feature = "correct", feature = "std", feature = "property_tests"))]
     use proptest::{proptest, prop_assert_eq};
     use approx::assert_relative_eq;
 
@@ -422,7 +422,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "correct")]
+    #[cfg(all(feature = "correct", feature = "property_tests"))]
     quickcheck! {
         fn f32_quickcheck(f: f32) -> bool {
             let mut buffer = new_buffer();
@@ -445,7 +445,7 @@ mod tests {
         }
     }
 
-    #[cfg(all(feature = "correct", feature = "std"))]
+    #[cfg(all(feature = "correct", feature = "std", feature = "property_tests"))]
     proptest! {
         #[test]
         fn f32_proptest(i in f32::MIN..f32::MAX) {
