@@ -2,49 +2,18 @@
 
 set -ex
 
-# Detect if our target architecture differs so we can test locally.
-RUSTC_CFG="$(rustc --print cfg)"
-
-# Extract target information from our config file.
-extract_cfg() {
-    pattern='\"[A-Z-a-z0-90_-]+\"'
-    data=$(echo "$RUSTC_CFG" | grep -P "$1=$pattern")
-    echo "$data" | cut -d "=" -f2| cut -d '"' -f2
-}
-
-# Extract our target architecture.
-rustc_target() {
-    arch=$(extract_cfg target_arch)
-    env=$(extract_cfg target_env)
-    os=$(extract_cfg target_os)
-    vendor=$(extract_cfg target_vendor)
-
-    echo "$arch-$vendor-$os-$env"
-}
-
-# Get the current target that Cargo would normally build.
-# This allows us to determine if we want to use cross locally
-# to simulate our travis builds.
-RUSTC_TARGET=$(rustc_target)
-
-# Detect our build command.
-#   Use cargo if any of the following is true:
-#       1). We disable cross.
-#       2). We are not on CI and no target is set.
-#       3). We are not on CI and the set target is the same as the current one.
-#
-#   Otherwise, use cross.
-if [ ! -z "$DISABLE_CROSS" ]; then
+# Detect our build command. If we enabled cross, default to
+# that. Otherwise, only use cross if we are on CI and did
+# not explicitly disable it.
+if [ ! -z $ENABLE_CROSS ]; then
+    # Specifically enabled cross.
+    CARGO=cross
+    CARGO_TARGET="--target $TARGET"
+elif [ -z $CI ] || [ ! -z $DISABLE_CROSS ]; then
     # Explicitly disabled cross, use cargo.
     CARGO=cargo
-elif [ -z $CI ] && [ -z "$TARGET" ]; then
-    # No explicit target set and not on CI, use cargo.
-    CARGO=cargo
-elif [ -z $CI ] && [ "$RUSTC_TARGET" -eq "$TARGET" ]; then
-    # Target is same as host and not on CI, use cargo.
-    CARGO=cargo
 else
-    # On CI, use cross.
+    # On CI, did not disable cross, use cross.
     CARGO=cross
     CARGO_TARGET="--target $TARGET"
 fi
