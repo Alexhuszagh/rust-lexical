@@ -6,8 +6,15 @@ use super::math::*;
 
 // DATA TYPE
 
+// TODO(ahuszagh) Need to make a way for this to be specific to the
+// integer size.
+// Should probably change these sizes to the correct f32 and f64 size.
+
 cfg_if! {
 if #[cfg(feature = "radix")] {
+    // Enable dynamically allocated memory for the radix feature,
+    // since we have a theoretically infinite number of digits
+    // required for rounding accuracy.
     use crate::lib::Vec;
     type IntStorageType = Vec<Limb>;
 } else {
@@ -77,6 +84,23 @@ pub(super) fn integral_binary_factor(radix: u32)
 // BIGINT
 
 /// Storage for a big integer type.
+///
+/// This is used for the bhcomp::large_atof and bhcomp::small_atof
+/// algorithms. Specifically, it stores all the significant digits
+/// scaled to the proper exponent, as an integral type,
+/// and then directly compares these digits.
+///
+/// This requires us to store the number of significant bits, plus the
+/// number of exponent bits (required) since we scale everything
+/// to the same exponent.
+/// This therefore only needs the following number of digits to
+/// determine the correct representation (the algorithm can be found in
+/// `max_digits` in `bhcomp.rs`):
+///  * `bfloat16` - 138
+///  * `f16`      - 29
+///  * `f32`      - 158
+///  * `f64`      - 1092
+///  * `f128`     - 16530
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct Bigint {
@@ -116,6 +140,8 @@ impl LargeOps for Bigint {
 // BIGFLOAT
 
 // Adjust the storage capacity for the underlying array.
+// TODO(ahuszagh) This needs to differ based on
+// the size of the float type.
 cfg_if! {
 if #[cfg(limb_width_64)] {
     type FloatStorageType = arrayvec::ArrayVec<[Limb; 20]>;
@@ -124,10 +150,21 @@ if #[cfg(limb_width_64)] {
 }}   // cfg_if
 
 /// Storage for a big floating-point type.
+///
+/// This is used for the bigcomp::atof algorithm, which crates a
+/// representation of `b+h` and the float scaled into the range `[1, 10)`.
+/// This therefore only needs the following number of digits to
+/// determine the correct representation (the algorithm can be found in
+/// `max_digits` in `bhcomp.rs`):
+///  * `bfloat16` - 97
+///  * `f16`      - 22
+///  * `f32`      - 113
+///  * `f64`      - 768
+///  * `f128`     - 11564
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(Debug))]
 pub struct Bigfloat {
-    /// Internal storage for the Bigint, in little-endian order.
+    /// Internal storage for the Bigfloat, in little-endian order.
     ///
     /// Enough storage for up to 10^345, which is 2^1146, or more than
     /// the max for f64.

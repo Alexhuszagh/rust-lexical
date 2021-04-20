@@ -161,6 +161,14 @@ perftools_inline!{
 ///
 /// `−emin + p2 + ⌊(emin + 1) log(2, b) − log(1 − 2^(−p2), b)⌋`
 ///
+/// For f16, this follows as:
+///     emin = -14
+///     p2 = 11
+///
+/// For bfloat16 , this follows as:
+///     emin = -126
+///     p2 = 8
+///
 /// For f32, this follows as:
 ///     emin = -126
 ///     p2 = 24
@@ -169,10 +177,57 @@ perftools_inline!{
 ///     emin = -1022
 ///     p2 = 53
 ///
+/// For f128, this follows as:
+///     emin = -16382
+///     p2 = 113
+///
 /// In Python:
-///     `-emin + p2 + math.floor((emin+1)*math.log(2, b) - math.log(1-2**(-p2), b))`
+///     `-emin + p2 + math.floor((emin+ 1)*math.log(2, b)-math.log(1-2**(-p2), b))`
 ///
 /// This was used to calculate the maximum number of digits for [2, 36].
+///
+/// The minimum, denormal exponent can be calculated as follows: given
+/// the number of exponent bits `exp_bits`, and the number of bits
+/// in the mantissa `mantissa_bits`, we have an exponent bias
+/// `exp_bias` equal to `2^(exp_bits-1) - 1 + mantissa_bits`. We
+/// therefore have a denormal exponent `denormal_exp` equal to
+/// `1 - exp_bias` and the minimum, denormal float `min_float` is
+/// therefore `2^denormal_exp`.
+///
+/// For f16, this follows as:
+///     exp_bits = 5
+///     mantissa_bits = 10
+///     exp_bias = 25
+///     denormal_exp = -24
+///     min_float = 5.96 * 10^−8
+///
+/// For bfloat16, this follows as:
+///     exp_bits = 8
+///     mantissa_bits = 7
+///     exp_bias = 134
+///     denormal_exp = -133
+///     min_float = 9.18 * 10^−41
+///
+/// For f32, this follows as:
+///     exp_bits = 8
+///     mantissa_bits = 23
+///     exp_bias = 150
+///     denormal_exp = -149
+///     min_float = 1.40 * 10^−45
+///
+/// For f64, this follows as:
+///     exp_bits = 11
+///     mantissa_bits = 52
+///     exp_bias = 1075
+///     denormal_exp = -1074
+///     min_float = 5.00 * 10^−324
+///
+/// For f128, this follows as:
+///     exp_bits = 15
+///     mantissa_bits = 112
+///     exp_bias = 16495
+///     denormal_exp = -16494
+///     min_float = 6.48 * 10^−4966
 pub(super) fn max_digits<F>(radix: u32)
     -> Option<usize>
     where F: Float
