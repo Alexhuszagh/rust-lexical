@@ -452,7 +452,7 @@ mod tests {
         assert_eq!(Ok(5.002868148396374), atof64_lossy(b"5.002868148396374"));
     }
 
-    #[cfg(feature = "std")]
+    #[cfg(all(feature = "std", feature = "property_tests"))]
     proptest! {
         #[test]
         fn f32_invalid_proptest(i in r"[+-]?[0-9]{2}\D?\.\D?[0-9]{2}\D?e[+-]?[0-9]+\D") {

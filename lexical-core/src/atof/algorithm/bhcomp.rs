@@ -59,7 +59,7 @@ pub(super) fn parse_mantissa(state: FloatState, radix: u32, max_digits: usize)
     let small_powers = Bigint::small_powers(radix);
     let count = state.mantissa_digits();
     let bits = count / integral_binary_factor(radix).as_usize();
-    let bytes = bits / Limb::BITS;
+    let bytes = bits / <Limb as Integer>::BITS;
 
     // Main loop
     let step = small_powers.len() - 2;
@@ -102,7 +102,7 @@ pub(super) fn parse_mantissa(state: FloatState, radix: u32, max_digits: usize)
     result
 }
 
-/// Implied method to calculate the number of digits from a 32-bit float.
+// Implied method to calculate the number of digits from a 32-bit float.
 perftools_inline!{
 fn max_digits_f32(radix: u32) -> Option<usize> {
     match radix {
@@ -124,7 +124,7 @@ fn max_digits_f32(radix: u32) -> Option<usize> {
     }
 }}
 
-/// Implied method to calculate the number of digits from a 64-bit float.
+// Implied method to calculate the number of digits from a 64-bit float.
 perftools_inline!{
 fn max_digits_f64(radix: u32) -> Option<usize> {
     match radix {
@@ -146,32 +146,32 @@ fn max_digits_f64(radix: u32) -> Option<usize> {
     }
 }}
 
-/// Calculate the maximum number of digits possible in the mantissa.
-///
-/// Returns the maximum number of digits plus one.
-///
-/// We can exactly represent a float in radix `b` from radix 2 if
-/// `b` is divisible by 2. This function calculates the exact number of
-/// digits required to exactly represent that float.
-///
-/// According to the "Handbook of Floating Point Arithmetic",
-/// for IEEE754, with emin being the min exponent, p2 being the
-/// precision, and b being the radix, the number of digits follows as:
-///
-/// `−emin + p2 + ⌊(emin + 1) log(2, b) − log(1 − 2^(−p2), b)⌋`
-///
-/// For f32, this follows as:
-///     emin = -126
-///     p2 = 24
-///
-/// For f64, this follows as:
-///     emin = -1022
-///     p2 = 53
-///
-/// In Python:
-///     `-emin + p2 + math.floor((emin+1)*math.log(2, b) - math.log(1-2**(-p2), b))`
-///
-/// This was used to calculate the maximum number of digits for [2, 36].
+// Calculate the maximum number of digits possible in the mantissa.
+//
+// Returns the maximum number of digits plus one.
+//
+// We can exactly represent a float in radix `b` from radix 2 if
+// `b` is divisible by 2. This function calculates the exact number of
+// digits required to exactly represent that float.
+//
+// According to the "Handbook of Floating Point Arithmetic",
+// for IEEE754, with emin being the min exponent, p2 being the
+// precision, and b being the radix, the number of digits follows as:
+//
+// `−emin + p2 + ⌊(emin + 1) log(2, b) − log(1 − 2^(−p2), b)⌋`
+//
+// For f32, this follows as:
+//     emin = -126
+//     p2 = 24
+//
+// For f64, this follows as:
+//     emin = -1022
+//     p2 = 53
+//
+// In Python:
+//     `-emin + p2 + math.floor((emin+1)*math.log(2, b) - math.log(1-2**(-p2), b))`
+//
+// This was used to calculate the maximum number of digits for [2, 36].
 perftools_inline!{
 pub(super) fn max_digits<F>(radix: u32)
     -> Option<usize>
@@ -216,9 +216,9 @@ macro_rules! toward_cb {
     };
 }
 
-/// Custom rounding for truncated mantissa.
-///
-/// Respect rounding rules in the config file.
+// Custom rounding for truncated mantissa.
+//
+// Respect rounding rules in the config file.
 perftools_inline!{
 #[allow(unused_variables)]
 pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, kind: RoundingKind)
@@ -254,7 +254,7 @@ pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, k
 /// Maximum number of digits before reverting to bigcomp.
 const LARGE_POWER_MAX: usize = 1 << 15;
 
-/// Check if we need to use bigcomp.
+// Check if we need to use bigcomp.
 perftools_inline!{
 pub(super) fn use_bigcomp(radix: u32, count: usize)
     -> bool
@@ -282,7 +282,7 @@ pub(super) fn large_atof<F>(state: FloatState, radix: u32, max_digits: usize, ex
 
     // Get the exact representation of the float from the big integer.
     let (mant, is_truncated) = bigmant.hi64();
-    let exp = bigmant.bit_length().as_i32() - u64::BITS.as_i32();
+    let exp = bigmant.bit_length().as_i32() - <u64 as Integer>::BITS.as_i32();
     let mut fp = ExtendedFloat { mant: mant, exp: exp };
     round_to_native::<F>(&mut fp, is_truncated, kind);
     into_float(fp)

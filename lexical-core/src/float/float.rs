@@ -33,13 +33,13 @@ pub struct ExtendedFloat<M: Mantissa> {
 impl<M: Mantissa> ExtendedFloat<M> {
     // PROPERTIES
 
-    /// Get the mantissa component.
+    // Get the mantissa component.
     perftools_inline!{
     pub fn mantissa(&self) -> M {
         self.mant
     }}
 
-    /// Get the exponent component.
+    // Get the exponent component.
     perftools_inline!{
     pub fn exponent(&self) -> i32 {
         self.exp
@@ -47,16 +47,16 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     // OPERATIONS
 
-    /// Multiply two normalized extended-precision floats, as if by `a*b`.
-    ///
-    /// The precision is maximal when the numbers are normalized, however,
-    /// decent precision will occur as long as both values have high bits
-    /// set. The result is not normalized.
-    ///
-    /// Algorithm:
-    ///     1. Non-signed multiplication of mantissas (requires 2x as many bits as input).
-    ///     2. Normalization of the result (not done here).
-    ///     3. Addition of exponents.
+    // Multiply two normalized extended-precision floats, as if by `a*b`.
+    //
+    // The precision is maximal when the numbers are normalized, however,
+    // decent precision will occur as long as both values have high bits
+    // set. The result is not normalized.
+    //
+    // Algorithm:
+    //     1. Non-signed multiplication of mantissas (requires 2x as many bits as input).
+    //     2. Normalization of the result (not done here).
+    //     3. Addition of exponents.
     perftools_inline!{
     pub fn mul(&self, b: &ExtendedFloat<M>)
         -> ExtendedFloat<M>
@@ -86,9 +86,9 @@ impl<M: Mantissa> ExtendedFloat<M> {
         }
     }}
 
-    /// Multiply in-place, as if by `a*b`.
-    ///
-    /// The result is not normalized.
+    // Multiply in-place, as if by `a*b`.
+    //
+    // The result is not normalized.
     perftools_inline!{
     pub fn imul(&mut self, b: &ExtendedFloat<M>)
     {
@@ -97,7 +97,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     // NORMALIZE
 
-    /// Get if extended-float is normalized, MSB is set.
+    // Get if extended-float is normalized, MSB is set.
     perftools_inline!{
     pub fn is_normalized(&self)
         -> bool
@@ -105,12 +105,12 @@ impl<M: Mantissa> ExtendedFloat<M> {
         self.mant & M::NORMALIZED_MASK == M::NORMALIZED_MASK
     }}
 
-    /// Normalize float-point number.
-    ///
-    /// Shift the mantissa so the number of leading zeros is 0, or the value
-    /// itself is 0.
-    ///
-    /// Get the number of bytes shifted.
+    // Normalize float-point number.
+    //
+    // Shift the mantissa so the number of leading zeros is 0, or the value
+    // itself is 0.
+    //
+    // Get the number of bytes shifted.
     perftools_inline!{
     pub fn normalize(&mut self)
         -> u32
@@ -133,10 +133,10 @@ impl<M: Mantissa> ExtendedFloat<M> {
         shift
     }}
 
-    /// Normalize floating-point number to n-bits away from the MSB.
-    ///
-    /// This may lead to lossy rounding, and will not use custom rounding
-    /// rules to accommodate for this.
+    // Normalize floating-point number to n-bits away from the MSB.
+    //
+    // This may lead to lossy rounding, and will not use custom rounding
+    // rules to accommodate for this.
     perftools_inline!{
     pub fn normalize_to(&mut self, n: u32)
         -> i32
@@ -159,7 +159,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         shift
     }}
 
-    /// Get normalized boundaries for float.
+    // Get normalized boundaries for float.
     perftools_inline!{
     pub fn normalized_boundaries(&self)
         -> (ExtendedFloat<M>, ExtendedFloat<M>)
@@ -187,7 +187,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     // ROUND
 
-    /// Lossy round float-point number to native mantissa boundaries.
+    // Lossy round float-point number to native mantissa boundaries.
     perftools_inline!{
     pub(crate) fn round_to_native<F, Cb>(&mut self, cb: Cb)
         where F: FloatRounding<M>,
@@ -196,7 +196,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         round_to_native::<F, M, _>(self, cb)
     }}
 
-    /// Lossy round float-point number to f32 mantissa boundaries.
+    // Lossy round float-point number to f32 mantissa boundaries.
     perftools_inline!{
     pub(crate) fn round_to_f32<Cb>(&mut self, cb: Cb)
         where f32: FloatRounding<M>,
@@ -205,7 +205,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         self.round_to_native::<f32, Cb>(cb)
     }}
 
-    /// Lossy round float-point number to f64 mantissa boundaries.
+    // Lossy round float-point number to f64 mantissa boundaries.
     perftools_inline!{
     pub(crate) fn round_to_f64<Cb>(&mut self, cb: Cb)
         where f64: FloatRounding<M>,
@@ -216,7 +216,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     // FROM
 
-    /// Create extended float from 8-bit unsigned integer.
+    // Create extended float from 8-bit unsigned integer.
     perftools_inline!{
     pub fn from_int<T: Integer>(i: T)
         -> ExtendedFloat<M>
@@ -224,7 +224,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         from_int(i)
     }}
 
-    /// Create extended float from 8-bit unsigned integer.
+    // Create extended float from 8-bit unsigned integer.
     perftools_inline!{
     pub fn from_u8(i: u8)
         -> ExtendedFloat<M>
@@ -232,7 +232,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         Self::from_int(i)
     }}
 
-    /// Create extended float from 16-bit unsigned integer.
+    // Create extended float from 16-bit unsigned integer.
     perftools_inline!{
     pub fn from_u16(i: u16)
         -> ExtendedFloat<M>
@@ -240,7 +240,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         Self::from_int(i)
     }}
 
-    /// Create extended float from 32-bit unsigned integer.
+    // Create extended float from 32-bit unsigned integer.
     perftools_inline!{
     pub fn from_u32(i: u32)
         -> ExtendedFloat<M>
@@ -248,7 +248,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         Self::from_int(i)
     }}
 
-    /// Create extended float from 64-bit unsigned integer.
+    // Create extended float from 64-bit unsigned integer.
     perftools_inline!{
     pub fn from_u64(i: u64)
         -> ExtendedFloat<M>
@@ -256,7 +256,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         Self::from_int(i)
     }}
 
-    /// Create extended float from native float.
+    // Create extended float from native float.
     perftools_inline!{
     pub fn from_float<F: Float>(f: F)
         -> ExtendedFloat<M>
@@ -264,7 +264,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         from_float(f)
     }}
 
-    /// Create extended float from 32-bit float.
+    // Create extended float from 32-bit float.
     perftools_inline!{
     pub fn from_f32(f: f32)
         -> ExtendedFloat<M>
@@ -272,7 +272,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         Self::from_float(f)
     }}
 
-    /// Create extended float from 64-bit float.
+    // Create extended float from 64-bit float.
     perftools_inline!{
     pub fn from_f64(f: f64)
         -> ExtendedFloat<M>
@@ -282,7 +282,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     // INTO
 
-    /// Convert into lower-precision native float.
+    // Convert into lower-precision native float.
     perftools_inline!{
     pub fn into_float<F: FloatRounding<M>>(self)
         -> F
@@ -299,7 +299,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         }
     }}
 
-    /// Convert into lower-precision 32-bit float.
+    // Convert into lower-precision 32-bit float.
     perftools_inline!{
     pub fn into_f32(self)
         -> f32
@@ -308,7 +308,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         self.into_float()
     }}
 
-    /// Convert into lower-precision 64-bit float.
+    // Convert into lower-precision 64-bit float.
     perftools_inline!{
     pub fn into_f64(self)
         -> f64
@@ -319,7 +319,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     // INTO ROUNDED
 
-    /// Into rounded float where the rounding kind has been converted.
+    // Into rounded float where the rounding kind has been converted.
     perftools_inline!{
     pub(crate) fn into_rounded_float_impl<F>(mut self, kind: RoundingKind)
         -> F
@@ -338,7 +338,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         into_float(self)
     }}
 
-    /// Convert into lower-precision native float with custom rounding rules.
+    // Convert into lower-precision native float with custom rounding rules.
     perftools_inline!{
     pub fn into_rounded_float<F>(self, kind: RoundingKind, sign: Sign)
         -> F
@@ -347,7 +347,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         self.into_rounded_float_impl(internal_rounding(kind, sign))
     }}
 
-    /// Convert into lower-precision 32-bit float with custom rounding rules.
+    // Convert into lower-precision 32-bit float with custom rounding rules.
     perftools_inline!{
     pub fn into_rounded_f32(self, kind: RoundingKind, sign: Sign)
         -> f32
@@ -356,7 +356,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         self.into_rounded_float(kind, sign)
     }}
 
-    /// Convert into lower-precision 64-bit float with custom rounding rules.
+    // Convert into lower-precision 64-bit float with custom rounding rules.
     perftools_inline!{
     pub fn into_rounded_f64(self, kind: RoundingKind, sign: Sign)
         -> f64
@@ -367,7 +367,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     // AS
 
-    /// Convert to lower-precision native float.
+    // Convert to lower-precision native float.
     perftools_inline!{
     pub fn as_float<F: FloatRounding<M>>(&self)
         -> F
@@ -375,7 +375,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         self.clone().into_float::<F>()
     }}
 
-    /// Convert to lower-precision 32-bit float.
+    // Convert to lower-precision 32-bit float.
     perftools_inline!{
     pub fn as_f32(&self)
         -> f32
@@ -384,7 +384,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         self.as_float()
     }}
 
-    /// Convert to lower-precision 64-bit float.
+    // Convert to lower-precision 64-bit float.
     perftools_inline!{
     pub fn as_f64(&self)
         -> f64
@@ -395,7 +395,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     // AS ROUNDED
 
-    /// Convert to lower-precision native float with custom rounding rules.
+    // Convert to lower-precision native float with custom rounding rules.
     perftools_inline!{
     pub fn as_rounded_float<F>(&self, kind: RoundingKind, sign: Sign)
         -> F
@@ -404,7 +404,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         self.clone().into_rounded_float::<F>(kind, sign)
     }}
 
-    /// Convert to lower-precision 32-bit float with custom rounding rules.
+    // Convert to lower-precision 32-bit float with custom rounding rules.
     perftools_inline!{
     pub fn as_rounded_f32(&self, kind: RoundingKind, sign: Sign)
         -> f32
@@ -413,7 +413,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         self.as_rounded_float(kind, sign)
     }}
 
-    /// Convert to lower-precision 64-bit float with custom rounding rules.
+    // Convert to lower-precision 64-bit float with custom rounding rules.
     perftools_inline!{
     pub fn as_rounded_f64(&self, kind: RoundingKind, sign: Sign)
         -> f64
@@ -425,7 +425,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
 #[cfg(has_i128)]
 impl ExtendedFloat<u128> {
-    /// Create extended float from 64-bit unsigned integer.
+    // Create extended float from 64-bit unsigned integer.
     perftools_inline!{
     pub fn from_u128(i: u128) -> ExtendedFloat<u128> {
         Self::from_int(i)

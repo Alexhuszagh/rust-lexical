@@ -2,9 +2,9 @@
 
 use util::*;
 
-/// Calculate the scientific notation exponent without overflow.
-///
-/// For example, 0.1 would be -1, and 10 would be 1 in base 10.
+// Calculate the scientific notation exponent without overflow.
+//
+// For example, 0.1 would be -1, and 10 would be 1 in base 10.
 perftools_inline!{
 pub(super) fn scientific_exponent(exponent: i32, integer_digits: usize, fraction_start: usize)
     -> i32
@@ -18,11 +18,11 @@ pub(super) fn scientific_exponent(exponent: i32, integer_digits: usize, fraction
     }
 }}
 
-/// Calculate the mantissa exponent without overflow.
-///
-/// Remove the number of digits that contributed to the mantissa past
-/// the dot, and add the number of truncated digits from the mantissa,
-/// to calculate the scaling factor for the mantissa from a raw exponent.
+// Calculate the mantissa exponent without overflow.
+//
+// Remove the number of digits that contributed to the mantissa past
+// the dot, and add the number of truncated digits from the mantissa,
+// to calculate the scaling factor for the mantissa from a raw exponent.
 perftools_inline!{
 pub(super) fn mantissa_exponent(raw_exponent: i32, fraction_digits: usize, truncated: usize)
     -> i32
@@ -34,7 +34,7 @@ pub(super) fn mantissa_exponent(raw_exponent: i32, fraction_digits: usize, trunc
     }
 }}
 
-/// Calculate the integral ceiling of the binary factor from a basen number.
+// Calculate the integral ceiling of the binary factor from a basen number.
 perftools_inline!{
 pub(super) fn integral_binary_factor(radix: u32)
     -> u32

@@ -12,21 +12,30 @@ main() {
 
     # Builds for iOS are done on OSX, but require the specific target to be
     # installed.
+    # TODO(ahuszagh, priority=low) Remove 32-bit Apple builds when we
+    # remove support for Rustc <= 1.41.0.
     case $TARGET in
         aarch64-apple-ios)
             rustup target install aarch64-apple-ios
             ;;
         armv7-apple-ios)
-            rustup target install armv7-apple-ios
+            rustup toolchain install 1.41.0 --target=armv7-apple-ios
+            rustup default 1.41.0
             ;;
         armv7s-apple-ios)
-            rustup target install armv7s-apple-ios
+            rustup toolchain install 1.41.0 --target=armv7s-apple-ios
+            rustup default 1.41.0
             ;;
         i386-apple-ios)
-            rustup target install i386-apple-ios
+            rustup toolchain install 1.41.0 --target=i386-apple-ios
+            rustup default 1.41.0
             ;;
         x86_64-apple-ios)
             rustup target install x86_64-apple-ios
+            ;;
+        i686-apple-darwin)
+            rustup toolchain install 1.41.0 --target=i686-apple-darwin
+            rustup default 1.41.0
             ;;
     esac
 

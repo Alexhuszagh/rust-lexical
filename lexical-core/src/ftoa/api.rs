@@ -212,7 +212,7 @@ fn trim<'a>(bytes: &'a mut [u8])
 /// Expand the generic ftoa function for specified types.
 macro_rules! wrap {
     ($name:ident, $t:ty) => (
-        /// Serialize float and return bytes written to.
+        // Serialize float and return bytes written to.
         perftools_inline!{
         fn $name<'a>(value: $t, base: u8, bytes: &'a mut [u8])
             -> usize
@@ -447,7 +447,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "correct")]
+    #[cfg(all(feature = "correct", feature = "property_tests"))]
     quickcheck! {
         fn f32_quickcheck(f: f32) -> bool {
             let mut buffer = new_buffer();
@@ -460,7 +460,7 @@ mod tests {
         }
     }
 
-    #[cfg(all(feature = "correct", feature = "std"))]
+    #[cfg(all(feature = "correct", feature = "std", feature = "property_tests"))]
     proptest! {
         #[test]
         fn f32_proptest(i in f32::MIN..f32::MAX) {

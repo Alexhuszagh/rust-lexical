@@ -72,13 +72,13 @@ pub(super) fn round_to_native<F>(f: F, order: cmp::Ordering, kind: RoundingKind)
 
 // SHARED
 
-/// Calculate `b` from a a representation of `b` as a float.
+// Calculate `b` from a a representation of `b` as a float.
 perftools_inline!{
 pub(super) fn b<F: FloatType>(f: F) -> F::ExtendedFloat {
     f.into()
 }}
 
-/// Calculate `b+h` from a a representation of `b` as a float.
+// Calculate `b+h` from a a representation of `b` as a float.
 perftools_inline!{
 pub(super) fn bh<F: FloatType>(f: F) -> F::ExtendedFloat {
     // None of these can overflow.
@@ -90,7 +90,7 @@ pub(super) fn bh<F: FloatType>(f: F) -> F::ExtendedFloat {
     b
 }}
 
-/// Generate the theoretical float type for the rounding kind.
+// Generate the theoretical float type for the rounding kind.
 perftools_inline!{
 #[allow(unused_variables)]
 pub(super) fn theoretical_float<F>(f: F, kind: RoundingKind)
@@ -113,10 +113,10 @@ pub(super) fn theoretical_float<F>(f: F, kind: RoundingKind)
 
 // BIGCOMP
 
-/// Get the appropriate scaling factor from the digit count.
-///
-/// * `radix`           - Radix for the number parsing.
-/// * `sci_exponent`    - Exponent of basen string in scientific notation.
+// Get the appropriate scaling factor from the digit count.
+//
+// * `radix`           - Radix for the number parsing.
+// * `sci_exponent`    - Exponent of basen string in scientific notation.
 perftools_inline!{
 pub fn scaling_factor(radix: u32, sci_exponent: u32)
     -> Bigfloat
@@ -126,11 +126,11 @@ pub fn scaling_factor(radix: u32, sci_exponent: u32)
     factor
 }}
 
-/// Make a ratio for the numerator and denominator.
-///
-/// * `radix`           - Radix for the number parsing.
-/// * `sci_exponent`    - Exponent of basen string in scientific notation.
-/// * `f`               - Sub-halfway (`b`) float.
+// Make a ratio for the numerator and denominator.
+//
+// * `radix`           - Radix for the number parsing.
+// * `sci_exponent`    - Exponent of basen string in scientific notation.
+// * `f`               - Sub-halfway (`b`) float.
 pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: RoundingKind)
     -> (Bigfloat, Bigfloat)
     where F: FloatType
@@ -155,7 +155,7 @@ pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: Ro
     // Scale the denominator so it has the number of bits
     // in the radix as the number of leading zeros.
     let wlz = integral_binary_factor(radix).as_usize();
-    let nlz = den.leading_zeros().wrapping_sub(wlz) & (u32::BITS - 1);
+    let nlz = den.leading_zeros().wrapping_sub(wlz) & (<u32 as Integer>::BITS - 1);
     small::ishl_bits(den.data_mut(), nlz);
     den.exp -= nlz.as_i32();
 
@@ -173,7 +173,7 @@ pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: Ro
         // denominator will be normalized.
         // We need to add one to the quotient,since we're calculating the
         // ceiling of the divmod.
-        let (q, r) = shift.ceil_divmod(Limb::BITS);
+        let (q, r) = shift.ceil_divmod(<Limb as Integer>::BITS);
         // Since we're using a power from the denominator to the
         // numerator, we to invert r, not add u32::BITS.
         let r = -r;
@@ -181,19 +181,19 @@ pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: Ro
         num.exp -= r;
         if !q.is_zero() {
             den.pad_zero_digits(q);
-            den.exp -= Limb::BITS.as_i32() * q.as_i32();
+            den.exp -= <Limb as Integer>::BITS.as_i32() * q.as_i32();
         }
     }
 
     (num, den)
 }
 
-/// Compare digits between the generated values the ratio and the actual view.
-///
-/// * `digits`      - Actual digits from the mantissa.
-/// * `radix`       - Radix for the number parsing.
-/// * `num`         - Numerator for the fraction.
-/// * `denm`        - Denominator for the fraction.
+// Compare digits between the generated values the ratio and the actual view.
+//
+// * `digits`      - Actual digits from the mantissa.
+// * `radix`       - Radix for the number parsing.
+// * `num`         - Numerator for the fraction.
+// * `denm`        - Denominator for the fraction.
 pub(super) fn compare_digits<'a, Iter>(mut digits: Iter, radix: u32, mut num: Bigfloat, den: Bigfloat)
     -> cmp::Ordering
     where Iter: Iterator<Item=&'a u8>

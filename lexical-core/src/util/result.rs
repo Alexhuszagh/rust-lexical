@@ -274,6 +274,7 @@ pub static U128_RESULT_SIZE: usize = mem::size_of::<U128Result>();
 /// Check if the result was ok.
 #[cfg(has_i128)]
 #[no_mangle]
+#[allow(improper_ctypes_definitions)]
 pub extern fn u128_result_is_ok(result: U128Result) -> bool {
     result.is_ok()
 }
@@ -281,6 +282,7 @@ pub extern fn u128_result_is_ok(result: U128Result) -> bool {
 /// Check if the result was an error.
 #[cfg(has_i128)]
 #[no_mangle]
+#[allow(improper_ctypes_definitions)]
 pub extern fn u128_result_is_err(result: U128Result) -> bool {
     result.is_err()
 }
@@ -288,6 +290,7 @@ pub extern fn u128_result_is_err(result: U128Result) -> bool {
 /// Get the value from the result. Panics if the result is an error.
 #[cfg(has_i128)]
 #[no_mangle]
+#[allow(improper_ctypes_definitions)]
 pub extern fn u128_result_ok(result: U128Result) -> u128 {
     result.ok().unwrap()
 }
@@ -295,6 +298,7 @@ pub extern fn u128_result_ok(result: U128Result) -> u128 {
 /// Get the error from the result. Panics if the result is successful.
 #[cfg(has_i128)]
 #[no_mangle]
+#[allow(improper_ctypes_definitions)]
 pub extern fn u128_result_err(result: U128Result) -> Error {
     result.err().unwrap()
 }
@@ -478,6 +482,7 @@ pub static I128_RESULT_SIZE: usize = mem::size_of::<I128Result>();
 /// Check if the result was ok.
 #[cfg(has_i128)]
 #[no_mangle]
+#[allow(improper_ctypes_definitions)]
 pub extern fn i128_result_is_ok(result: I128Result) -> bool {
     result.is_ok()
 }
@@ -485,6 +490,7 @@ pub extern fn i128_result_is_ok(result: I128Result) -> bool {
 /// Check if the result was an error.
 #[cfg(has_i128)]
 #[no_mangle]
+#[allow(improper_ctypes_definitions)]
 pub extern fn i128_result_is_err(result: I128Result) -> bool {
     result.is_err()
 }
@@ -492,6 +498,7 @@ pub extern fn i128_result_is_err(result: I128Result) -> bool {
 /// Get the value from the result. Panics if the result is an error.
 #[cfg(has_i128)]
 #[no_mangle]
+#[allow(improper_ctypes_definitions)]
 pub extern fn i128_result_ok(result: I128Result) -> i128 {
     result.ok().unwrap()
 }
@@ -499,6 +506,7 @@ pub extern fn i128_result_ok(result: I128Result) -> i128 {
 /// Get the error from the result. Panics if the result is successful.
 #[cfg(has_i128)]
 #[no_mangle]
+#[allow(improper_ctypes_definitions)]
 pub extern fn i128_result_err(result: I128Result) -> Error {
     result.err().unwrap()
 }

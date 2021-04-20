@@ -61,7 +61,7 @@ pub(super) struct RawFloatState<'a> {
 }
 
 impl<'a> RawFloatState<'a> {
-    /// Create new raw float state.
+    // Create new raw float state.
     perftools_inline!{
     pub(super) fn new() -> RawFloatState<'a> {
         RawFloatState {
@@ -190,37 +190,37 @@ pub(super) struct FloatState<'a> {
 
 #[cfg(feature = "correct")]
 impl<'a> FloatState<'a> {
-    /// Get the length of the integer substring.
+    // Get the length of the integer substring.
     perftools_inline!{
     pub(super) fn integer_len(&self) -> usize {
         self.integer.len()
     }}
 
-    /// Get number of parsed integer digits.
+    // Get number of parsed integer digits.
     perftools_inline!{
     pub(super) fn integer_digits(&self) -> usize {
         self.integer_len()
     }}
 
-    /// Iterate over the integer digits.
+    // Iterate over the integer digits.
     perftools_inline!{
     pub(super) fn integer_iter(&self) -> SliceIter<u8> {
         self.integer.iter()
     }}
 
-    /// Get the length of the fraction substring.
+    // Get the length of the fraction substring.
     perftools_inline!{
     pub(super) fn fraction_len(&self) -> usize {
         self.fraction.len()
     }}
 
-    /// Iterate over the fraction digits.
+    // Iterate over the fraction digits.
     perftools_inline!{
     pub(super) fn fraction_digits(&self) -> usize {
         self.fraction_len() - self.digits_start
     }}
 
-    /// Iterate over the digits, by chaining two slices.
+    // Iterate over the digits, by chaining two slices.
     perftools_inline!{
     pub(super) fn fraction_iter(&self) -> SliceIter<u8> {
         // We need to rtrim the zeros in the slice fraction.
@@ -233,32 +233,32 @@ impl<'a> FloatState<'a> {
         self.fraction[self.digits_start..].iter()
     }}
 
-    /// Get the number of digits in the mantissa.
-    /// Cannot overflow, since this is based off a single usize input string.
+    // Get the number of digits in the mantissa.
+    // Cannot overflow, since this is based off a single usize input string.
     perftools_inline!{
     pub(super) fn mantissa_digits(&self) -> usize {
         self.integer_digits() + self.fraction_digits()
     }}
 
-    /// Iterate over the mantissa digits, by chaining two slices.
+    // Iterate over the mantissa digits, by chaining two slices.
     perftools_inline!{
     pub(super) fn mantissa_iter(&self) -> ChainedSliceIter<u8> {
         self.integer_iter().chain(self.fraction_iter())
     }}
 
-    /// Get number of truncated digits.
+    // Get number of truncated digits.
     perftools_inline!{
     pub(super) fn truncated_digits(&self) -> usize {
         self.truncated
     }}
 
-    /// Get the mantissa exponent from the raw exponent.
+    // Get the mantissa exponent from the raw exponent.
     perftools_inline!{
     pub(super) fn mantissa_exponent(&self) -> i32 {
         mantissa_exponent(self.raw_exponent, self.fraction_len(), self.truncated_digits())
     }}
 
-    /// Get the scientific exponent from the raw exponent.
+    // Get the scientific exponent from the raw exponent.
     perftools_inline!{
     pub(super) fn scientific_exponent(&self) -> i32 {
         scientific_exponent(self.raw_exponent, self.integer_digits(), self.digits_start)
