@@ -65,6 +65,8 @@ unchecked_index = ["lexical-core/unchecked_index"]
 # Don't inline when using perftools.
 # Testing only.
 noinline = ["lexical-core/noinline"]
+# Undocumented. Disable quickcheck for older Rustc versions.
+property_tests = ["lexical-core/property_tests"]
 # Build the comprehensive float parsing tests.
 # Testing only.
 comprehensive_float_test = ["rand/std", "serde/std", "serde_derive", "std", "toml"]

@@ -27,19 +27,19 @@ if [ ! -z $NO_STD ]; then
     DOCTESTS="--tests"
 fi
 
+# Have std, need to add `std` to features.
+if [ -z $NO_STD ]; then
+    REQUIRED_FEATURES="std,$REQUIRED_FEATURES"
+fi
+
 # Add property tests to all tests if enabled.
-if [ -z $DISABLE_PROPERTY_TESTS ]; then
-    REQUIRED_FEATURES=("$REQUIRED_FEATURES --features=property_tests")
+if [ -z $DISABLE_PROPERTY_TESTS ] && [ -z $DISABLE_TESTS ]; then
+    REQUIRED_FEATURES="property_tests,$REQUIRED_FEATURES"
 fi
 
 # Add libm to all features if enabled.
 if [ ! -z $ENABLE_LIBM ]; then
-    REQUIRED_FEATURES=("$REQUIRED_FEATURES --features=libm")
-fi
-
-# Have std, need to add `std` to features.
-if [ -z $NO_STD ]; then
-    REQUIRED_FEATURES=("$REQUIRED_FEATURES --features=std")
+    REQUIRED_FEATURES="libm,$REQUIRED_FEATURES"
 fi
 
 # Disable doctests on nostd or if not supported.
@@ -74,37 +74,41 @@ else
     )
 fi
 
-# Create the full string for the tests from the features.
-LEXICAL_FEATURES=("${LEXICAL_FEATURES[@]/#/--features=}")
-CORE_FEATURES=("${CORE_FEATURES[@]/#/--features=}")
+## Create the full string for the tests from the features.
+#LEXICAL_FEATURES=("${LEXICAL_FEATURES[@]/#/--features=}")
+#CORE_FEATURES=("${CORE_FEATURES[@]/#/--features=}")
 
 # Build target.
 build() {
-    $CARGO build $CARGO_TARGET $DEFAULT_FEATURES $REQUIRED_FEATURES
-    $CARGO build $CARGO_TARGET $DEFAULT_FEATURES $REQUIRED_FEATURES --release
+    features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
+    $CARGO build $CARGO_TARGET $features
+    $CARGO build $CARGO_TARGET $features --release
 }
 
 # Test target.
 test() {
     # Process arguments.
-    features=("$@")
+    special_features=("$@")
 
     if [ ! -z $DISABLE_TESTS ]; then
         return
     fi
 
     # Default tests.
-    $CARGO test $CARGO_TARGET $DEFAULT_FEATURES $REQUIRED_FEATURES $DOCTESTS
-    $CARGO test $CARGO_TARGET $DEFAULT_FEATURES $REQUIRED_FEATURES $DOCTESTS --release
+    features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
+    $CARGO test $CARGO_TARGET $features $DOCTESTS
+    $CARGO test $CARGO_TARGET $features $DOCTESTS --release
 
     # Iterate over special features.
-    for i in "${features[@]}"; do
-        $CARGO test $CARGO_TARGET --no-default-features $REQUIRED_FEATURES $i $DOCTESTS
+    for i in "${special_features[@]}"; do
+        test_features="--no-default-features --features=$REQUIRED_FEATURES,$i"
+        $CARGO test $CARGO_TARGET $test_features $DOCTESTS
     done
 
     # Use special tests if we have std.
     if [ -z $NO_STD ]; then
-        $CARGO test $CARGO_TARGET $REQUIRED_FEATURES --features=correct,rounding,radix special_rounding -- --ignored --test-threads=1
+        features="--features=$REQUIRED_FEATURES,correct,rounding,radix special_rounding"
+        $CARGO test $CARGO_TARGET $features -- --ignored --test-threads=1
     fi
 }
 
@@ -117,7 +121,8 @@ bench() {
         return
     fi
 
-    $CARGO bench $CARGO_TARGET $DEFAULT_FEATURES $REQUIRED_FEATURES --verbose --no-run
+    features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
+    $CARGO bench $CARGO_TARGET $features --verbose --no-run
 }
 
 # Run ffi tests.
@@ -146,12 +151,12 @@ derive_tests() {
 }
 
 main() {
-#    # Build and test lexical (only on std).
-#    if [ -z $NO_STD ]; then
-#        build
-#        test "${LEXICAL_FEATURES[@]}"
-#        bench
-#    fi
+    # Build and test lexical (only on std).
+    if [ -z $NO_STD ]; then
+        build
+        test "${LEXICAL_FEATURES[@]}"
+        bench
+    fi
 
     # Build and test lexical-core.
     cd lexical-core
