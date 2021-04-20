@@ -29,17 +29,17 @@ fi
 
 # Add property tests to all tests if enabled.
 if [ -z $DISABLE_PROPERTY_TESTS ]; then
-    DEFAULT_FEATURES=("$DEFAULT_FEATURES --features=property_tests")
+    REQUIRED_FEATURES=("$REQUIRED_FEATURES --features=property_tests")
 fi
 
 # Add libm to all features if enabled.
 if [ ! -z $ENABLE_LIBM ]; then
-    DEFAULT_FEATURES=("$DEFAULT_FEATURES --features=libm")
+    REQUIRED_FEATURES=("$REQUIRED_FEATURES --features=libm")
 fi
 
 # Have std, need to add `std` to features.
 if [ -z $NO_STD ]; then
-    DEFAULT_FEATURES=("$DEFAULT_FEATURES --features=std")
+    REQUIRED_FEATURES=("$REQUIRED_FEATURES --features=std")
 fi
 
 # Disable doctests on nostd or if not supported.
@@ -80,8 +80,8 @@ CORE_FEATURES=("${CORE_FEATURES[@]/#/--features=}")
 
 # Build target.
 build() {
-    $CARGO build $CARGO_TARGET $DEFAULT_FEATURES
-    $CARGO build $CARGO_TARGET $DEFAULT_FEATURES --release
+    $CARGO build $CARGO_TARGET $DEFAULT_FEATURES $REQUIRED_FEATURES
+    $CARGO build $CARGO_TARGET $DEFAULT_FEATURES $REQUIRED_FEATURES --release
 }
 
 # Test target.
@@ -94,17 +94,17 @@ test() {
     fi
 
     # Default tests.
-    $CARGO test $CARGO_TARGET $DEFAULT_FEATURES $DOCTESTS
-    $CARGO test $CARGO_TARGET $DEFAULT_FEATURES $DOCTESTS --release
+    $CARGO test $CARGO_TARGET $DEFAULT_FEATURES $REQUIRED_FEATURES $DOCTESTS
+    $CARGO test $CARGO_TARGET $DEFAULT_FEATURES $REQUIRED_FEATURES $DOCTESTS --release
 
     # Iterate over special features.
     for i in "${features[@]}"; do
-        $CARGO test $CARGO_TARGET --no-default-features $i $DOCTESTS
+        $CARGO test $CARGO_TARGET --no-default-features $REQUIRED_FEATURES $i $DOCTESTS
     done
 
     # Use special tests if we have std.
     if [ -z $NO_STD ]; then
-        $CARGO test $CARGO_TARGET --features=correct,rounding,radix special_rounding -- --ignored --test-threads=1
+        $CARGO test $CARGO_TARGET $REQUIRED_FEATURES --features=correct,rounding,radix special_rounding -- --ignored --test-threads=1
     fi
 }
 
@@ -117,7 +117,7 @@ bench() {
         return
     fi
 
-    $CARGO bench $CARGO_TARGET $DEFAULT_FEATURES --verbose --no-run
+    $CARGO bench $CARGO_TARGET $DEFAULT_FEATURES $REQUIRED_FEATURES --verbose --no-run
 }
 
 # Run ffi tests.
