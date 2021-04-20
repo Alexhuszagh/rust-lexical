@@ -8,7 +8,7 @@ use super::errors::FloatErrors;
 // TRAITS
 
 /// Trait to simplify type signatures for atof.
-pub(super) trait FloatType:
+pub trait FloatType:
     FloatRounding<u64> +
     FloatRounding<u128> +
     StablePower
@@ -40,8 +40,8 @@ impl MantissaType for u128 {
 }
 
 /// Trait for extended-float types.
-pub(super) trait ExtendedFloatType<F: FloatType>:
-    ToBigfloat<F::Mantissa> +
+pub trait ExtendedFloatType<F: FloatType>:
+    ToBigfloat<F> +
     From<F>
 {
     // I really wish I had any other choice **other** than getters and setters,

@@ -44,6 +44,8 @@ cfg_if! {
 if #[cfg(feature = "correct")] {
     #[macro_use]
     mod sequence;
+
+    mod limb;
 } else {
     mod wrapped;
 }}  // cfg_if
@@ -66,6 +68,7 @@ pub(crate) use self::skip_value::*;
 
 cfg_if! {
 if #[cfg(feature = "correct")] {
+    pub(crate) use self::limb::*;
     pub(crate) use self::sequence::*;
 } else {
     pub(crate) use self::wrapped::*;

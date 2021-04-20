@@ -77,7 +77,7 @@ pub(crate) const DIGIT_TO_BASE36_SQUARED: [u8; 2592] = [b'0', b'0', b'0', b'1', 
 // EXACT EXPONENT
 
 /// Get exact exponent limit for radix.
-pub(crate) trait ExactExponent {
+pub trait ExactExponent {
     /// Get min and max exponent limits (exact) from radix.
     fn exponent_limit<T: Integer>(radix: T) -> (i32, i32);
 
@@ -321,7 +321,7 @@ union Transmute<U: Copy, F: Copy> {
 
 /// Calculate powers using pre-calculated lookup tables.
 /// No error-checking occurs, these methods are not safe.
-pub(crate) trait TablePower {
+pub trait TablePower {
     /// Exponent
     const POW2_EXPONENT_BIAS: i32;
 

@@ -52,11 +52,12 @@ macro_rules! add_digits {
 /// Parse the full mantissa into a big integer.
 ///
 /// Max digits is the maximum number of digits plus one.
-pub(super) fn parse_mantissa<'a, Data>(data: Data, radix: u32, max_digits: usize)
-    -> Bigint
-    where Data: SlowDataInterface<'a>
+pub(super) fn parse_mantissa<'a, F, Data>(data: Data, radix: u32, max_digits: usize)
+    -> Bigint<F>
+    where F: FloatType,
+          Data: SlowDataInterface<'a>
 {
-    let small_powers = Bigint::small_powers(radix);
+    let small_powers = Bigint::<F>::small_powers(radix);
     let count = data.mantissa_digits();
     let bits = count / integral_binary_factor(radix).as_usize();
     let bytes = bits / <Limb as Integer>::BITS;
@@ -68,7 +69,7 @@ pub(super) fn parse_mantissa<'a, Data>(data: Data, radix: u32, max_digits: usize
     let mut counter = 0;
     let mut value: Limb = 0;
     let mut i: usize = 0;
-    let mut result = Bigint::default();
+    let mut result = Bigint::<F>::default();
     result.data.reserve(bytes);
 
     // Iteratively process all the data in the mantissa.
@@ -333,7 +334,7 @@ pub(super) fn large_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize,
     // Now, we can calculate the mantissa and the exponent from this.
     // The binary exponent is the binary exponent for the mantissa
     // shifted to the hidden bit.
-    let mut bigmant = parse_mantissa(data, radix, max_digits);
+    let mut bigmant = parse_mantissa::<F, Data>(data, radix, max_digits);
     bigmant.imul_power(radix, exponent.as_u32());
 
     // Get the exact representation of the float from the big integer.
@@ -355,7 +356,7 @@ pub(super) fn small_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize,
           Data: SlowDataInterface<'a>
 {
     // Get the significant digits and radix exponent for the real digits.
-    let mut real_digits = parse_mantissa(data, radix, max_digits);
+    let mut real_digits = parse_mantissa::<F, Data>(data, radix, max_digits);
     let real_exp = exponent;
     debug_assert!(real_exp < 0);
 

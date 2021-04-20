@@ -117,10 +117,11 @@ perftools_inline!{
 ///
 /// * `radix`           - Radix for the number parsing.
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
-pub fn scaling_factor(radix: u32, sci_exponent: u32)
-    -> Bigfloat
+pub fn scaling_factor<F: FloatType>(radix: u32, sci_exponent: u32)
+    -> Bigfloat<F>
 {
-    let mut factor = Bigfloat { data: arrvec![1], exp: 0 };
+    let mut factor: Bigfloat<F> = Bigfloat::default();
+    factor.data.push(1);
     factor.imul_power(radix, sci_exponent);
     factor
 }}
@@ -130,14 +131,14 @@ pub fn scaling_factor(radix: u32, sci_exponent: u32)
 /// * `radix`           - Radix for the number parsing.
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
 /// * `f`               - Sub-halfway (`b`) float.
-pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: RoundingKind)
-    -> (Bigfloat, Bigfloat)
+pub(super) fn make_ratio<F: FloatType>(radix: u32, sci_exponent: i32, f: F, kind: RoundingKind)
+    -> (Bigfloat<F>, Bigfloat<F>)
     where F: FloatType
 {
     let theor = theoretical_float(f, kind).to_bigfloat();
     let factor = scaling_factor(radix, sci_exponent.abs().as_u32());
-    let mut num: Bigfloat;
-    let mut den: Bigfloat;
+    let mut num: Bigfloat<F>;
+    let mut den: Bigfloat<F>;
 
     if sci_exponent < 0 {
         // Need to have the basen factor be the numerator, and the fp
@@ -145,7 +146,9 @@ pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: Ro
         // if it's the denominator, we need to multiply it into the numerator.
         num = factor;
         num.imul_large(&theor);
-        den = Bigfloat { data: arrvec![1], exp: -theor.exp };
+        den = Bigfloat::default();
+        den.data.push(1);
+        den.exp = -theor.exp;
     } else {
         num = theor;
         den = factor;
@@ -213,15 +216,16 @@ macro_rules! compare_digits {
 /// * `radix`       - Radix for the number parsing.
 /// * `num`         - Numerator for the fraction.
 /// * `denm`        - Denominator for the fraction.
-pub(super) fn compare_digits<'a, Iter1, Iter2>(
+pub(super) fn compare_digits<'a, F, Iter1, Iter2>(
     integer: Iter1,
     fraction: Iter2,
     radix: u32,
-    mut num: Bigfloat,
-    den: Bigfloat
+    mut num: Bigfloat<F>,
+    den: Bigfloat<F>
 )
     -> cmp::Ordering
-    where Iter1: Iterator<Item=&'a u8>,
+    where F: FloatType,
+          Iter1: Iterator<Item=&'a u8>,
           Iter2: Iterator<Item=&'a u8>
 {
     // Iterate until we get a difference in the generated digits.
@@ -303,9 +307,9 @@ mod tests {
 
     #[test]
     fn scaling_factor_test() {
-        assert_eq!(scaling_factor(10, 0), Bigfloat { data: deduce_from_u32(&[1]), exp: 0 });
-        assert_eq!(scaling_factor(10, 20), Bigfloat { data: deduce_from_u32(&[1977800241, 22204]), exp: 20 });
-        assert_eq!(scaling_factor(10, 300), Bigfloat { data: deduce_from_u32(&[2502905297, 773182544, 1122691908, 922368819, 2799959258, 2138784391, 2365897751, 2382789932, 3061508751, 1799019667, 3501640837, 269048281, 2748691596, 1866771432, 2228563347, 475471294, 278892994, 2258936920, 3352132269, 1505791508, 2147965370, 25052104]), exp: 300 });
+        assert_eq!(scaling_factor::<f64>(10, 0), Bigfloat { data: deduce_from_u32(&[1]), exp: 0 });
+        assert_eq!(scaling_factor::<f64>(10, 20), Bigfloat { data: deduce_from_u32(&[1977800241, 22204]), exp: 20 });
+        assert_eq!(scaling_factor::<f64>(10, 300), Bigfloat { data: deduce_from_u32(&[2502905297, 773182544, 1122691908, 922368819, 2799959258, 2138784391, 2365897751, 2382789932, 3061508751, 1799019667, 3501640837, 269048281, 2748691596, 1866771432, 2228563347, 475471294, 278892994, 2258936920, 3352132269, 1505791508, 2147965370, 25052104]), exp: 300 });
     }
 
     #[test]
@@ -340,7 +344,7 @@ mod tests {
     #[test]
     fn compare_digits_test() {
         // 2^-1074
-        let num = Bigfloat { data: deduce_from_u32(&[1725370368, 1252154597, 1017462556, 675087593, 2805901938, 1401824593, 1124332496, 2380663002, 1612846757, 4128923878, 1492915356, 437569744, 2975325085, 3331531962, 3367627909, 730662168, 2699172281, 1440714968, 2778340312, 690527038, 1297115354, 763425880, 1453089653, 331561842]), exp: 312 };
+        let num = Bigfloat::<f64> { data: deduce_from_u32(&[1725370368, 1252154597, 1017462556, 675087593, 2805901938, 1401824593, 1124332496, 2380663002, 1612846757, 4128923878, 1492915356, 437569744, 2975325085, 3331531962, 3367627909, 730662168, 2699172281, 1440714968, 2778340312, 690527038, 1297115354, 763425880, 1453089653, 331561842]), exp: 312 };
         let den = Bigfloat { data: deduce_from_u32(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728]), exp: 312 };
 
         // Below halfway
@@ -357,7 +361,7 @@ mod tests {
         assert_eq!(compare_digits(digits.iter(), empty.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Greater);
 
         // 2*2^-1074
-        let num = Bigfloat { data: deduce_from_u32(&[881143808, 3756463792, 3052387668, 2025262779, 4122738518, 4205473780, 3372997488, 2847021710, 543572976, 3796837043, 183778774, 1312709233, 336040663, 1404661296, 1512949137, 2191986506, 3802549547, 27177609, 4040053641, 2071581115, 3891346062, 2290277640, 64301663, 994685527]), exp: 312 };
+        let num = Bigfloat::<f64> { data: deduce_from_u32(&[881143808, 3756463792, 3052387668, 2025262779, 4122738518, 4205473780, 3372997488, 2847021710, 543572976, 3796837043, 183778774, 1312709233, 336040663, 1404661296, 1512949137, 2191986506, 3802549547, 27177609, 4040053641, 2071581115, 3891346062, 2290277640, 64301663, 994685527]), exp: 312 };
         let den = Bigfloat { data: deduce_from_u32(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 134217728]), exp: 312 };
 
         // Below halfway
@@ -373,7 +377,7 @@ mod tests {
         assert_eq!(compare_digits(digits.iter(), empty.iter(), 10, num.clone(), den.clone()), cmp::Ordering::Greater);
 
         // 4503599627370496*2^971
-        let num = Bigfloat { data: deduce_from_u32(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1024, 2147483648]), exp: 288 };
+        let num = Bigfloat::<f64> { data: deduce_from_u32(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1024, 2147483648]), exp: 288 };
         let den = Bigfloat { data: deduce_from_u32(&[1978138624, 2671552565, 2938166866, 3588566204, 1860064291, 2104472219, 2014975858, 2797301608, 462262832, 318515330, 1101517094, 1738264167, 3721375114, 414401884, 1406861075, 3053102637, 387329537, 2051556775, 1867945454, 3717689914, 1434550525, 1446648206, 238915486]), exp: 288 };
 
         // Below halfway
