@@ -443,7 +443,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "correct")]
+    #[cfg(all(feature = "correct", feature = "property_tests"))]
     quickcheck! {
         fn f32_quickcheck(f: f32) -> bool {
             let mut buffer = new_buffer();
@@ -456,7 +456,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "correct")]
+    #[cfg(all(feature = "correct", feature = "property_tests"))]
     proptest! {
         #[test]
         fn f332_proptest(i in f32::MIN..f32::MAX) {

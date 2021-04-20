@@ -124,6 +124,7 @@ pub fn write_bytes(dst: &mut [u8], byte: u8)
 /// This is mostly to clean up internal code, but should not be used lightly.
 /// Zeroes memory on debug builds to try to catch any errors.
 #[inline]
+#[allow(deprecated)]
 pub fn explicit_uninitialized<T>() -> T {
     unsafe {
         #[cfg(debug_assertions)] {

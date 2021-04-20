@@ -24,7 +24,7 @@ crate-type = ["lib", "staticlib", "cdylib"]
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
-cfg-if = "=0.1.9"
+cfg-if = "0.1"
 static_assertions = "0.3.3"
 # Use arrayvec for the correct parser.
 arrayvec = { version = "0.4", optional = true, features = ["array-sizes-33-128"] }
@@ -32,11 +32,13 @@ arrayvec = { version = "0.4", optional = true, features = ["array-sizes-33-128"]
 dtoa = { version = "0.4", optional = true }
 # Optimized Ryu implementation, the fastest correct algorithm.
 ryu = { version = "^1.0", optional = true }
+# Enable quickcheck for newer Rustc versions.
+quickcheck = { version = "0.8.5", optional = true }
+# Enable proptest for newer Rustc versions.
+proptest = { version = "0.9.4", optional = true }
 
 [dev-dependencies]
 approx = "0.3.0"
-quickcheck = "0.8.5"
-proptest = "0.9.4"
 
 [build-dependencies]
 rustc_version = "0.2"
@@ -60,6 +62,8 @@ trim_floats = []
 # Don't force bounds checking with indexing not-known to be valid at compile time.
 # This may lead to memory safety issues.
 unchecked_index = []
+# Undocumented. Disable quickcheck for older Rustc versions.
+property_tests = ["quickcheck", "proptest"]
 
 # Use heavy optimizations for release builds, and make our panics to detect
 # internal logic errors safe for FFI, via abort.

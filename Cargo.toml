@@ -29,7 +29,7 @@ exclude = [
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
-cfg-if = "=0.1.9"
+cfg-if = "0.1"
 lexical-core = { path = "lexical-core", version = "^0.4.3", default-features = false }
 # The following are only required for comprehensive float unittests.
 # IE, internal testing only:
@@ -67,6 +67,8 @@ trim_floats = ["lexical-core/trim_floats"]
 # Don't force bounds checking with indexing not-known to be valid at compile time.
 # This may lead to memory safety issues.
 unchecked_index = ["lexical-core/unchecked_index"]
+# Undocumented. Disable quickcheck for older Rustc versions.
+property_tests = ["lexical-core/property_tests"]
 # Build the comprehensive float parsing tests.
 # Testing only.
 comprehensive_float_test = ["rand/std", "serde/std", "serde_derive", "std", "toml"]

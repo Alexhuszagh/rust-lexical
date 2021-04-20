@@ -379,6 +379,7 @@ generate_to_slice_api!(isizetoa_slice, isizetoa_radix_slice, isize, isizetoa_imp
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "property_tests")]
     use atoi::*;
     use util::test::*;
     use super::*;
@@ -518,6 +519,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "property_tests")]
     quickcheck! {
         fn u8_quickcheck(i: u8) -> bool {
             let mut buffer = new_buffer();
@@ -570,6 +572,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "property_tests")]
     proptest! {
         #[test]
         fn u8_proptest(i in u8::min_value()..u8::max_value()) {

@@ -400,6 +400,7 @@ mod tests {
         assert_eq!(success(5.002868148396374), try_atof64_slice(b"5.002868148396374"));
     }
 
+    #[cfg(feature = "property_tests")]
     proptest! {
         #[test]
         fn f32_invalid_proptest(i in r"[+-]?[0-9]{2}\D?\.\D?[0-9]{2}\D?e[+-]?[0-9]+\D") {

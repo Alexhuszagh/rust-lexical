@@ -32,7 +32,7 @@ And get started using lexical:
 extern crate lexical;
 
 // Number to string
-lexical::to_string(3.0);            // "3.0", always has a fraction suffix, 
+lexical::to_string(3.0);            // "3.0", always has a fraction suffix,
 lexical::to_string(3);              // "3"
 
 // String to number.
@@ -46,8 +46,8 @@ let d = lexical::try_parse::<f64, _>("3a");  // Err(Error(_)), failed to parse.
 Lexical's parsers can be either error-checked and unchecked. The unchecked parsers continue to parse until they encounter invalid data, returning a number was successfully parsed up until that point. The unchecked parsers explicitly wrap on numeric overflow. This is somewhat analogous to C's `strtod`, which may not be desirable for many applications. Therefore, lexical also includes checked parsers, which ensure the entire buffer is used while parsing, without discarding characters, and that the resulting number did not overflow. Upon erroring, the checked parsers will return the an enum indicating overflow or the index where the first invalid digit was found.
 
 ```rust
-// This will return Err(Error(ErrorKind::InvalidDigit(3))), indicating 
-// the first invalid character occurred at the index 3 in the input 
+// This will return Err(Error(ErrorKind::InvalidDigit(3))), indicating
+// the first invalid character occurred at the index 3 in the input
 // string (the space character).
 let x: i32 = lexical::try_parse("123 456");
 
@@ -67,7 +67,7 @@ In order to use lexical in generics, the type may use the trait bounds `FromByte
 
 ```rust
 /// Multiply a value in a string by multiplier, and serialize to string.
-fn mul_2<T>(value: &str, multiplier: T) 
+fn mul_2<T>(value: &str, multiplier: T)
     -> Result<String, lexical::Error>
     where T: lexical::ToBytes + lexical::FromBytes + ops::Mul<Output=T>
 {
@@ -130,7 +130,7 @@ Ideally, Lexical's float-parsing algorithm or approach would be incorporated int
 
 # Version Support
 
-Lexical is tested to work from Rustc versions of 1.24-1.35, and should work on newer versions as well. Please report any errors compiling lexical for any Rust compiler 1.24.0 or later. Please note the test suite require a Rustc version of 1.32 or later.
+Lexical is tested to work from Rustc versions of 1.31.0-1.51.0, and should work on newer versions as well. Please report any errors compiling lexical for any Rust compiler 1.31.0 or later. Please note the test suite require a Rustc version of 1.34 or later.
 
 # Changelog
 
@@ -138,7 +138,7 @@ All changes since 2.2.0 are documented in [CHANGELOG](CHANGELOG).
 
 # License
 
-Lexical is dual licensed under the Apache 2.0 license as well as the MIT license. See the LICENCE-MIT and the LICENCE-APACHE files for the licenses. 
+Lexical is dual licensed under the Apache 2.0 license as well as the MIT license. See the LICENCE-MIT and the LICENCE-APACHE files for the licenses.
 
 # Contributing
 

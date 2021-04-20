@@ -64,12 +64,12 @@ let i = lexical_core::atoi32_radix_slice(2, b"1111");   // 15
 // The ato*_slice and ato*_range parsers are not checked, they do not
 // validate that the input data is entirely correct, and stop parsing
 // when invalid data is found, returning whatever was parsed up until
-// that point. The explicit behavior is to wrap on overflow, and 
+// that point. The explicit behavior is to wrap on overflow, and
 // to discard invalid digits.
 let i = lexical_core::atoi8_slice(b"256");    // 0, wraps from 256
 let i = lexical_core::atoi8_slice(b"1a5");    // 1, discards "a5"
 
-// You should prefer the checked parsers, whenever possible. These detect 
+// You should prefer the checked parsers, whenever possible. These detect
 // numeric overflow, and no invalid trailing digits are present.
 // The error code for success is 0, all errors are less than 0.
 
@@ -83,10 +83,10 @@ assert_eq!(res.value, 15);
 let res = lexical_core::try_atoi8_slice(b"256");
 assert_eq!(res.error.code, lexical_core::ErrorCode::Overflow);
 
-// Errors occurring prematurely terminating the parser due to invalid 
-// digits return the index in the buffer where the invalid digit was 
+// Errors occurring prematurely terminating the parser due to invalid
+// digits return the index in the buffer where the invalid digit was
 // seen. This may useful in contexts like serde, which require numerical
-// parsers from complex data without having to extract a substring 
+// parsers from complex data without having to extract a substring
 // containing only numeric data ahead of time. If the error is set
 // to a `InvalidDigit`, the value is guaranteed to be accurate up until
 // that point. For example, if the trailing data is whitespace,
@@ -108,7 +108,7 @@ assert_eq!(slc, b"15");
 // If an insufficiently long buffer is passed, the serializer will panic.
 // PANICS
 let mut buf = [b'0'; 1];
-//let slc = lexical_core::i64toa_slice(15, &mut buf); 
+//let slc = lexical_core::i64toa_slice(15, &mut buf);
 
 // In order to guarantee the buffer is long enough, always ensure there
 // are at least `MAX_*_SIZE`, where * is the type name in upperase,
@@ -270,7 +270,7 @@ Lexical uses arbitrary-precision arithmetic to exactly represent strings between
 
 For close-to-halfway representations of a decimal string `s`, where `s` is close between two representations, `b` and the next float `b+u`, arbitrary-precision arithmetic is used to determine the correct representation. This means `s` is close to `b+h`, where `h` is the halfway point between `b` and `b+u`.
 
-For the following example, we will use the following values for our test case: 
+For the following example, we will use the following values for our test case:
 
 * `s = 2.4703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125001e-324`
 * `b = 0.0`
@@ -279,7 +279,7 @@ For the following example, we will use the following values for our test case:
 
 **Algorithm M**
 
-Algorithm M represents the significant digits of a float as a fraction of arbitrary-precision integers (a more in-depth description can be found [here](https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/)). For example, 1.23 would be 123/100, while 314.159 would be 314159/1000. We then scale the numerator and denominator by powers of 2 until the quotient is in the range `[2^52, 2^53)`, generating the correct significant digits of the mantissa. 
+Algorithm M represents the significant digits of a float as a fraction of arbitrary-precision integers (a more in-depth description can be found [here](https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/)). For example, 1.23 would be 123/100, while 314.159 would be 314159/1000. We then scale the numerator and denominator by powers of 2 until the quotient is in the range `[2^52, 2^53)`, generating the correct significant digits of the mantissa.
 
 A naive implementation, in Python, is as follows:
 
@@ -342,7 +342,7 @@ Versions of lexical-core prior to 0.4.3 could round parsed floating-point number
 
 # Version Support
 
-Lexical-core is tested to work from Rustc versions of 1.24-1.35, and should work on newer versions as well. Please report any errors compiling lexical-core for any Rust compiler 1.24.0 or later. Please note the test suite require a Rustc version of 1.32 or later.
+Lexical-core is tested to work from Rustc versions of 1.31.0-1.51.0, and should work on newer versions as well. Please report any errors compiling lexical-core for any Rust compiler 1.31.0 or later. Please note the test suite require a Rustc version of 1.34 or later.
 
 # Changelog
 

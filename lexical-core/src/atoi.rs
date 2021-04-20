@@ -595,6 +595,7 @@ mod tests {
         assert_eq!(overflow_error(7125759012462002176), try_atoi64_slice(b"6260572000000000000000-3*+\x006666600099000066006660066665?666666666599990000666"));
     }
 
+    #[cfg(feature = "property_tests")]
     proptest! {
         #[test]
         fn u8_invalid_proptest(i in r"[+]?[0-9]{2}\D") {

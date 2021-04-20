@@ -9,85 +9,85 @@ sudo: required
 matrix:
   include:
     - rust: stable
-      env: TARGET=x86_64-unknown-linux-gnu ENABLE_FFI_TESTS=1 ENABLE_DERIVE_TESTS=1
-
-    - rust: beta
       env: TARGET=x86_64-unknown-linux-gnu
 
+    - rust: beta
+      env: TARGET=x86_64-unknown-linux-gnu DISABLE_BENCHES=1 NO_FEATURES=1
+
     - rust: nightly
-      env: TARGET=x86_64-unknown-linux-gnu NO_STD=1
+      env: TARGET=x86_64-unknown-linux-gnu NO_STD=1 DISABLE_BENCHES=1 NO_FEATURES=1
 
     # Need to use a custom script since `cross` requires `fuchsia-cprng`,
     # which does not work on Rustc 1.27.0 (due to `edition` in the
     # Cargo.toml. All tests fail below 1.27.0, due to a missing edition
     # keyword
-    - rust: 1.24.0
+    - rust: 1.31.0
       script: cargo build
 
-    - rust: 1.27.0
+    - rust: 1.32.0
       script: cargo build
 
-    - rust: 1.30.0
+    - rust: 1.33.0
       script: cargo build
 
     # All tests should work.
-    - rust: 1.32.0
-      env: TARGET=x86_64-unknown-linux-gnu
+    - rust: 1.34.0
+      env: TARGET=x86_64-unknown-linux-gnu DISABLE_BENCHES=1 DISABLE_PROPERTY_TESTS=1
 
     # Android
-    - env: TARGET=aarch64-linux-android DISABLE_TESTS=1
-    - env: TARGET=arm-linux-androideabi DISABLE_TESTS=1
-    - env: TARGET=armv7-linux-androideabi DISABLE_TESTS=1
-    - env: TARGET=i686-linux-android DISABLE_TESTS=1
-    - env: TARGET=x86_64-linux-android DISABLE_TESTS=1
+    - env: TARGET=aarch64-linux-android DISABLE_TESTS=1 NO_FEATURES=1
+    - env: TARGET=arm-linux-androideabi DISABLE_TESTS=1 NO_FEATURES=1
+    - env: TARGET=armv7-linux-androideabi DISABLE_TESTS=1 NO_FEATURES=1
+    - env: TARGET=i686-linux-android DISABLE_TESTS=1 NO_FEATURES=1
+    - env: TARGET=x86_64-linux-android DISABLE_TESTS=1 NO_FEATURES=1
 
     # iOS
-    - env: TARGET=aarch64-apple-ios DISABLE_TESTS=1
+    - env: TARGET=aarch64-apple-ios DISABLE_TESTS=1 NO_FEATURES=1
       os: osx
-    - env: TARGET=armv7-apple-ios DISABLE_TESTS=1
+    - env: TARGET=armv7-apple-ios DISABLE_TESTS=1 NO_FEATURES=1
       os: osx
-    - env: TARGET=armv7s-apple-ios DISABLE_TESTS=1
+    - env: TARGET=armv7s-apple-ios DISABLE_TESTS=1 NO_FEATURES=1
       os: osx
-    - env: TARGET=i386-apple-ios DISABLE_TESTS=1
+    - env: TARGET=i386-apple-ios DISABLE_TESTS=1 NO_FEATURES=1
       os: osx
-    - env: TARGET=x86_64-apple-ios DISABLE_TESTS=1
+    - env: TARGET=x86_64-apple-ios DISABLE_TESTS=1 NO_FEATURES=1
       os: osx
 
     # Linux
     # All of the following fail to compile benches due to an issue
     # with the binary format (ELF) and relocations in the bench binary.
     # Every test, except for i686-unknown-linux-musl, fails on the benches.
-    - env: TARGET=aarch64-unknown-linux-gnu DISABLE_BENCHES=1
-    - env: TARGET=arm-unknown-linux-gnueabi DISABLE_BENCHES=1
-    - env: TARGET=armv7-unknown-linux-gnueabihf DISABLE_BENCHES=1
-    - env: TARGET=i686-unknown-linux-gnu DISABLE_BENCHES=1
-    - env: TARGET=i686-unknown-linux-musl
-    - env: TARGET=mips-unknown-linux-gnu DISABLE_BENCHES=1
-    - env: TARGET=mips64-unknown-linux-gnuabi64 DISABLE_BENCHES=1
-    - env: TARGET=mips64el-unknown-linux-gnuabi64 DISABLE_BENCHES=1
-    - env: TARGET=mipsel-unknown-linux-gnu DISABLE_BENCHES=1
-    - env: TARGET=powerpc-unknown-linux-gnu DISABLE_BENCHES=1
-    - env: TARGET=powerpc64-unknown-linux-gnu DISABLE_BENCHES=1
-    - env: TARGET=powerpc64le-unknown-linux-gnu DISABLE_BENCHES=1
-    - env: TARGET=s390x-unknown-linux-gnu DISABLE_TESTS=1
-    - env: TARGET=x86_64-unknown-linux-gnu DISABLE_BENCHES=1
-    - env: TARGET=x86_64-unknown-linux-musl DISABLE_BENCHES=1
+    - env: TARGET=aarch64-unknown-linux-gnu DISABLE_BENCHES=1 NO_FEATURES=1
+    - env: TARGET=arm-unknown-linux-gnueabi DISABLE_BENCHES=1 NO_FEATURES=1
+    - env: TARGET=armv7-unknown-linux-gnueabihf DISABLE_BENCHES=1 NO_FEATURES=1
+    - env: TARGET=i686-unknown-linux-gnu DISABLE_BENCHES=1 NO_FEATURES=1
+    - env: TARGET=i686-unknown-linux-musl NO_FEATURES=1
+    - env: TARGET=mips-unknown-linux-gnu DISABLE_BENCHES=1 NO_FEATURES=1
+    - env: TARGET=mips64-unknown-linux-gnuabi64 DISABLE_BENCHES=1 NO_FEATURES=1
+    - env: TARGET=mips64el-unknown-linux-gnuabi64 DISABLE_BENCHES=1 NO_FEATURES=1
+    - env: TARGET=mipsel-unknown-linux-gnu DISABLE_BENCHES=1 NO_FEATURES=1
+    - env: TARGET=powerpc-unknown-linux-gnu DISABLE_BENCHES=1 NO_FEATURES=1
+    - env: TARGET=powerpc64-unknown-linux-gnu DISABLE_BENCHES=1 NO_FEATURES=1
+    - env: TARGET=powerpc64le-unknown-linux-gnu DISABLE_BENCHES=1 NO_FEATURES=1
+    - env: TARGET=s390x-unknown-linux-gnu DISABLE_TESTS=1 NO_FEATURES=1
+    - env: TARGET=x86_64-unknown-linux-gnu DISABLE_BENCHES=1 NO_FEATURES=1
+    - env: TARGET=x86_64-unknown-linux-musl DISABLE_BENCHES=1 NO_FEATURES=1
 
     # OSX
-    - env: TARGET=i686-apple-darwin
+    - env: TARGET=i686-apple-darwin DISABLE_PROPERTY_TESTS=1 NO_FEATURES=1
       os: osx
-    - env: TARGET=x86_64-apple-darwin
+    - env: TARGET=x86_64-apple-darwin NO_FEATURES=1
       os: osx
 
     # *BSD
-    - env: TARGET=i686-unknown-freebsd DISABLE_TESTS=1
-    - env: TARGET=x86_64-unknown-freebsd DISABLE_TESTS=1
-    - env: TARGET=x86_64-unknown-netbsd DISABLE_TESTS=1
+    - env: TARGET=i686-unknown-freebsd DISABLE_TESTS=1 NO_FEATURES=1
+    - env: TARGET=x86_64-unknown-freebsd DISABLE_TESTS=1 NO_FEATURES=1
+    - env: TARGET=x86_64-unknown-netbsd DISABLE_TESTS=1 NO_FEATURES=1
 
     # Windows
     # Benches fail since the following option is not recognized:
     #   '--enable-long-section-names'
-    - env: TARGET=x86_64-pc-windows-gnu DISABLE_BENCHES=1
+    - env: TARGET=x86_64-pc-windows-gnu DISABLE_BENCHES=1 NO_FEATURES=1
 
     - rust: nightly
       os: windows
