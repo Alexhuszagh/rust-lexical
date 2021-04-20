@@ -82,7 +82,7 @@ pub(super) fn parse_mantissa(slc: FloatSlice, radix: u32, max_digits: usize)
     let small_powers = Bigint::small_powers(radix);
     let count = slc.mantissa_digits();
     let bits = count / integral_binary_factor(radix).as_usize();
-    let bytes = bits / Limb::BITS;
+    let bytes = bits / <Limb as Integer>::BITS;
 
     // Main loop
     let step = small_powers.len() - 2;
@@ -314,7 +314,7 @@ pub(super) fn large_atof<F>(slc: FloatSlice, radix: u32, max_digits: usize, expo
 
     // Get the exact representation of the float from the big integer.
     let (mant, is_truncated) = bigmant.hi64();
-    let exp = bigmant.bit_length().as_i32() - u64::BITS.as_i32();
+    let exp = bigmant.bit_length().as_i32() - <u64 as Integer>::BITS.as_i32();
     let mut fp = ExtendedFloat { mant: mant, exp: exp };
     round_to_native::<F>(&mut fp, is_truncated, kind);
     into_float(fp)

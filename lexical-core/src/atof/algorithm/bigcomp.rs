@@ -240,7 +240,7 @@ pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: Ro
     // Scale the denominator so it has the number of bits
     // in the radix as the number of leading zeros.
     let wlz = integral_binary_factor(radix).as_usize();
-    let nlz = den.leading_zeros().wrapping_sub(wlz) & (u32::BITS - 1);
+    let nlz = den.leading_zeros().wrapping_sub(wlz) & (<u32 as Integer>::BITS - 1);
     small::ishl_bits(den.data_mut(), nlz);
     den.exp -= nlz.as_i32();
 
@@ -258,7 +258,7 @@ pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: Ro
         // denominator will be normalized.
         // We need to add one to the quotient,since we're calculating the
         // ceiling of the divmod.
-        let (q, r) = shift.ceil_divmod(Limb::BITS);
+        let (q, r) = shift.ceil_divmod(<Limb as Integer>::BITS);
         // Since we're using a power from the denominator to the
         // numerator, we to invert r, not add u32::BITS.
         let r = -r;
@@ -266,7 +266,7 @@ pub(super) fn make_ratio<F: Float>(radix: u32, sci_exponent: i32, f: F, kind: Ro
         num.exp -= r;
         if !q.is_zero() {
             den.pad_zero_digits(q);
-            den.exp -= Limb::BITS.as_i32() * q.as_i32();
+            den.exp -= <Limb as Integer>::BITS.as_i32() * q.as_i32();
         }
     }
 

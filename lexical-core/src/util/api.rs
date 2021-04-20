@@ -69,6 +69,7 @@ macro_rules! generate_from_range_api {
         ///
         /// Panics if either pointer is null.
         #[no_mangle]
+        #[allow(improper_ctypes_definitions)]
         pub unsafe extern fn $decimal_name(first: *const u8, last: *const u8)
             -> $t
         {
@@ -95,6 +96,7 @@ macro_rules! generate_from_range_api {
         /// if either pointer is null.
         #[cfg(feature = "radix")]
         #[no_mangle]
+        #[allow(improper_ctypes_definitions)]
         pub unsafe extern fn $radix_name(radix: u8, first: *const u8, last: *const u8)
             -> $t
         {
@@ -164,6 +166,7 @@ macro_rules! generate_try_from_range_api {
         ///
         /// Panics if either pointer is null.
         #[no_mangle]
+        #[allow(improper_ctypes_definitions)]
         pub unsafe extern fn $decimal_name(first: *const u8, last: *const u8)
             -> Result<$t>
         {
@@ -189,6 +192,7 @@ macro_rules! generate_try_from_range_api {
         /// if either pointer is null.
         #[cfg(feature = "radix")]
         #[no_mangle]
+        #[allow(improper_ctypes_definitions)]
         pub unsafe extern fn $radix_name(radix: u8, first: *const u8, last: *const u8)
             -> Result<$t>
         {
@@ -272,6 +276,7 @@ macro_rules! generate_to_range_api {
         /// the proper constant for the serialized type from the
         /// lexical_core crate root.
         #[no_mangle]
+        #[allow(improper_ctypes_definitions)]
         pub unsafe extern fn $decimal_name(value: $t, first: *mut u8, last: *mut u8)
             -> *mut u8
         {
@@ -308,6 +313,7 @@ macro_rules! generate_to_range_api {
         /// lexical_core crate root.
         #[cfg(feature = "radix")]
         #[no_mangle]
+        #[allow(improper_ctypes_definitions)]
         pub unsafe extern fn $radix_name(value: $t, radix: u8, first: *mut u8, last: *mut u8)
             -> *mut u8
         {
