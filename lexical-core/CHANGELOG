@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - Patched an implementation of insert_many due to a security advisory which does not affect lexical.
+- Fixed build script for cross-compiling.
+
 
 ## [0.6.7] 2020-01-27
 ### Changed
