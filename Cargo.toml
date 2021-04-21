@@ -26,7 +26,7 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
 cfg-if = "0.1"
-lexical-core = { path = "lexical-core", version = "^0.6.7", default-features = false }
+lexical-core = { path = "lexical-core", version = "^0.6.8", default-features = false }
 # The following are only required for comprehensive float unittests.
 # IE, internal testing only:
 rand = { version = "0.4", optional = true }
