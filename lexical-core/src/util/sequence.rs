@@ -2,7 +2,7 @@
 
 #![allow(dead_code)]
 
-use lib::{cmp, iter, marker, ops, ptr, slice};
+use lib::{cmp, iter, marker, mem, ops, ptr, slice};
 use arrayvec;
 use super::bound::Bound;
 use super::pointer_methods::PointerMethods;
@@ -52,46 +52,99 @@ pub fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
     where V: VecLike<T>,
           I: iter::IntoIterator<Item=T>
 {
-    let iter = iterable.into_iter();
+    let mut iter = iterable.into_iter();
     if index == vec.len() {
         return vec.extend(iter);
     }
 
     let (lower_size_bound, _) = iter.size_hint();
-    assert!(lower_size_bound <= isize::max_value() as usize);   // Ensure offset is indexable
-    assert!(index + lower_size_bound >= index);                 // Protect against overflow
-    vec.reserve(lower_size_bound);
+    assert!(lower_size_bound <= core::isize::MAX as usize); // Ensure offset is indexable
+    assert!(index + lower_size_bound >= index); // Protect against overflow
+
+    let mut num_added = 0;
+    let old_len = vec.len();
+    assert!(index <= old_len);
 
     unsafe {
-        let old_len = vec.len();
-        assert!(index <= old_len);
-        let mut ptr = vec.as_mut_ptr().padd(index);
+        // Reserve space for `lower_size_bound` elements.
+        vec.reserve(lower_size_bound);
+        let start = vec.as_mut_ptr();
+        let ptr = start.add(index);
 
         // Move the trailing elements.
-        ptr::copy(ptr, ptr.padd(lower_size_bound), old_len - index);
+        ptr::copy(ptr, ptr.add(lower_size_bound), old_len - index);
 
         // In case the iterator panics, don't double-drop the items we just copied above.
-        vec.set_len(index);
+        vec.set_len(0);
+        let mut guard = DropOnPanic {
+            start,
+            skip: index..(index + lower_size_bound),
+            len: old_len + lower_size_bound,
+        };
 
-        let mut num_added = 0;
-        for element in iter {
-            let mut cur = ptr.padd(num_added);
-            if num_added >= lower_size_bound {
-                // Iterator provided more elements than the hint.  Move trailing items again.
-                vec.reserve(1);
-                ptr = vec.as_mut_ptr().padd(index);
-                cur = ptr.padd(num_added);
-                ptr::copy(cur, cur.padd(1), old_len - index);
-            }
+        while num_added < lower_size_bound {
+            let element = match iter.next() {
+                Some(x) => x,
+                None => break,
+            };
+            let cur = ptr.add(num_added);
             ptr::write(cur, element);
+            guard.skip.start += 1;
             num_added += 1;
         }
-        if num_added < lower_size_bound {
-            // Iterator provided fewer elements than the hint
-            ptr::copy(ptr.padd(lower_size_bound), ptr.padd(num_added), old_len - index);
-        }
 
+        if num_added < lower_size_bound {
+            // Iterator provided fewer elements than the hint. Move the tail backward.
+            ptr::copy(
+                ptr.add(lower_size_bound),
+                ptr.add(num_added),
+                old_len - index,
+            );
+        }
+        // There are no more duplicate or uninitialized slots, so the guard is not needed.
         vec.set_len(old_len + num_added);
+        mem::forget(guard);
+    }
+
+    // Insert any remaining elements one-by-one.
+    for element in iter {
+        vec.insert(index + num_added, element);
+        num_added += 1;
+    }
+
+    struct DropOnPanic<T> {
+        start: *mut T,
+        skip: ops::Range<usize>, // Space we copied-out-of, but haven't written-to yet.
+        len: usize,
+    }
+
+    impl<T> DropOnPanic<T> {
+        // Contains methods for Rustc versions < 1.35.0.
+        // Remove when support is dropped for < 1.35.0.
+        #[inline]
+        fn contains(&self, item: &usize) -> bool {
+            (match self.skip.start_bound() {
+                ops::Bound::Included(ref start) => *start <= item,
+                ops::Bound::Excluded(ref start) => *start < item,
+                ops::Bound::Unbounded => true,
+            }) && (match self.skip.end_bound() {
+                ops::Bound::Included(ref end) => item <= *end,
+                ops::Bound::Excluded(ref end) => item < *end,
+                ops::Bound::Unbounded => true,
+            })
+        }
+    }
+
+    impl<T> Drop for DropOnPanic<T> {
+        fn drop(&mut self) {
+            for i in 0..self.len {
+                if !self.contains(&i) {
+                    unsafe {
+                        ptr::drop_in_place(self.start.add(i));
+                    }
+                }
+            }
+        }
     }
 }
 

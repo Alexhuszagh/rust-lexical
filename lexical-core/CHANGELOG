@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Patched an implementation of insert_many due to a security advisory which does not affect lexical.
 
 ## [0.6.7] 2020-01-27
 ### Changed
@@ -30,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added pre-defined constants for `NumberFormat` (`RUST_STRING`, `PYTHON_LITERAL`) to avoid compiling formats when not needed.
 - Added the `FromLexicalFormat` and `FromLexicalLossyFormat` traits with the `format` feature, which enable you to specify the number format during parsing.
 - Implemented algorithms in terms of generic iterators, to allow skipping digit separators.
-- Implemented data interfaces to simplify parsing and validating number format. 
+- Implemented data interfaces to simplify parsing and validating number format.
 - Added more values to `ErrorCode` to signify more parse failures.
 
 ### Changed

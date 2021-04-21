@@ -124,7 +124,7 @@ Ideally, Lexical's float-parsing algorithm or approach would be incorporated int
 
 # Version Support
 
-Lexical is tested to work from Rustc versions of 1.31.0-1.51.0, and should work on newer versions as well. Please report any errors compiling lexical for any Rust compiler 1.31.0 or later. Please note the test suite require a Rustc version of 1.34 or later.
+Lexical is tested to work from Rustc versions of 1.31.0-1.51.0, and should work on newer versions as well. Please report any errors compiling lexical for any Rust compiler 1.31.0 or later. Please note the test suite require a Rustc version of 1.36 or later.
 
 # Changelog
 

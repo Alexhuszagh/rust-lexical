@@ -445,7 +445,7 @@ Versions of lexical-core prior to 0.4.3 could round parsed floating-point number
 
 # Version Support
 
-Lexical-core is tested to work from Rustc versions of 1.31.0-1.51.0, and should work on newer versions as well. Please report any errors compiling lexical-core for any Rust compiler 1.31.0 or later. Please note the test suite require a Rustc version of 1.34 or later.
+Lexical-core is tested to work from Rustc versions of 1.31.0-1.51.0, and should work on newer versions as well. Please report any errors compiling lexical-core for any Rust compiler 1.31.0 or later. Please note the test suite require a Rustc version of 1.36 or later.
 
 # Changelog
 

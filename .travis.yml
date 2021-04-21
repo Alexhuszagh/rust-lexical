@@ -37,12 +37,8 @@ matrix:
       script: cargo build
 
     # All tests should work.
-    - rust: 1.34.0
+    - rust: 1.36.0
       env: TARGET=x86_64-unknown-linux-gnu DISABLE_BENCHES=1 DISABLE_PROPERTY_TESTS=1
-
-    # All tests should work.
-    - rust: 1.33.0
-      env: TARGET=x86_64-unknown-linux-gnu
 
     # Android
     - env: TARGET=aarch64-linux-android DISABLE_TESTS=1 NO_FEATURES=1
