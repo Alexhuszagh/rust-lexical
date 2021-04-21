@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Downgraded rand to fix proptests.
 - Fixed a bug on newer Rustc versions where `slice::sort` is not present in `no_std`.
 - Added a feature `libm` which enables stable `no_std` use.
+- Patched an implementation of insert_many due to a security advisory which does not affect lexical.
 
 ## [0.7.5] 2021-02-21
 ### Changed
