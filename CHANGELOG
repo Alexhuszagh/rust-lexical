@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.1] 2021-04-21
+### Changed
+- Updated cfg_if version.
+
 ## [4.2.0] 2020-01-27
 - Fixed bug in API with improper method order.
 

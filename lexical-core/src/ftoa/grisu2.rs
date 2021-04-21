@@ -58,7 +58,7 @@ use util::*;
 
 // CACHED POWERS
 
-/// Find cached power of 10 from the exponent.
+// Find cached power of 10 from the exponent.
 perftools_inline!{
 fn cached_grisu_power(exp: i32, k: &mut i32)
     -> &'static ExtendedFloat80
@@ -208,7 +208,7 @@ const TENS: [u64; 20] = [
 
 // FPCONV GRISU
 
-/// Round digit to sane approximation.
+// Round digit to sane approximation.
 perftools_inline!{
 fn round_digit(digits: &mut [u8], ndigits: usize, delta: u64, mut rem: u64, kappa: u64, mant: u64)
 {
@@ -410,10 +410,10 @@ fn fpconv_dtoa(d: f64, dest: &mut [u8]) -> usize
 
 // DECIMAL
 
-/// Forward to double_decimal.
-///
-/// `f` must be non-special (NaN or infinite), non-negative,
-/// and non-zero.
+// Forward to double_decimal.
+//
+// `f` must be non-special (NaN or infinite), non-negative,
+// and non-zero.
 perftools_inline!{
 pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
     -> usize
@@ -423,10 +423,10 @@ pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
 
 // F64
 
-/// Optimized algorithm for decimal numbers.
-///
-/// `d` must be non-special (NaN or infinite), non-negative,
-/// and non-zero.
+// Optimized algorithm for decimal numbers.
+//
+// `d` must be non-special (NaN or infinite), non-negative,
+// and non-zero.
 perftools_inline!{
 pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
     -> usize

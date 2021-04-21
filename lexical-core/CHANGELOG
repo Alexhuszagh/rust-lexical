@@ -6,10 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.6.8] 2021-04-21
 ### Changed
 - Patched an implementation of insert_many due to a security advisory which does not affect lexical.
 - Fixed build script for cross-compiling.
-
+- Updated cfg_if version.
 
 ## [0.6.7] 2020-01-27
 ### Changed
