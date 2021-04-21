@@ -2,12 +2,18 @@
 
 set -ex
 
-# Detect our build command if we are on travis or not (so we can test locally).
-if [ -z $CI ] || [ ! -z $DISABLE_CROSS ]; then
-    # Not on CI or explicitly disabled cross, use cargo
+# Detect our build command. If we enabled cross, default to
+# that. Otherwise, only use cross if we are on CI and did
+# not explicitly disable it.
+if [ ! -z $ENABLE_CROSS ]; then
+    # Specifically enabled cross.
+    CARGO=cross
+    CARGO_TARGET="--target $TARGET"
+elif [ -z $CI ] || [ ! -z $DISABLE_CROSS ]; then
+    # Explicitly disabled cross, use cargo.
     CARGO=cargo
 else
-    # On CI, use cross.
+    # On CI, did not disable cross, use cross.
     CARGO=cross
     CARGO_TARGET="--target $TARGET"
 fi
@@ -25,6 +31,21 @@ fi
 if [ ! -z $NO_STD ]; then
     DEFAULT_FEATURES="--no-default-features"
     DOCTESTS="--tests"
+fi
+
+# Have std, need to add `std` to features.
+if [ -z $NO_STD ]; then
+    REQUIRED_FEATURES="std,$REQUIRED_FEATURES"
+fi
+
+# Add property tests to all tests if enabled.
+if [ -z $DISABLE_PROPERTY_TESTS ] && [ -z $DISABLE_TESTS ]; then
+    REQUIRED_FEATURES="property_tests,$REQUIRED_FEATURES"
+fi
+
+# Add libm to all features if enabled.
+if [ ! -z $ENABLE_LIBM ]; then
+    REQUIRED_FEATURES="libm,$REQUIRED_FEATURES"
 fi
 
 # Disable doctests on nostd or if not supported.
@@ -59,44 +80,41 @@ else
     )
 fi
 
-# Create the full string for the tests from the features.
-if [ -z $NO_STD ]; then
-    # Have std, need to add `std` to features.
-    LEXICAL_FEATURES=("${LEXICAL_FEATURES[@]/#/--features=std,}")
-    CORE_FEATURES=("${CORE_FEATURES[@]/#/--features=std,}")
-else
-    # Nostd, just add `--features=` to the features.
-    LEXICAL_FEATURES=("${LEXICAL_FEATURES[@]/#/--features=}")
-    CORE_FEATURES=("${CORE_FEATURES[@]/#/--features=}")
-fi
+## Create the full string for the tests from the features.
+#LEXICAL_FEATURES=("${LEXICAL_FEATURES[@]/#/--features=}")
+#CORE_FEATURES=("${CORE_FEATURES[@]/#/--features=}")
 
 # Build target.
 build() {
-    $CARGO build $CARGO_TARGET $DEFAULT_FEATURES
-    $CARGO build $CARGO_TARGET $DEFAULT_FEATURES --release
+    features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
+    $CARGO build $CARGO_TARGET $features
+    $CARGO build $CARGO_TARGET $features --release
 }
 
 # Test target.
 test() {
     # Process arguments.
-    features=("$@")
+    special_features=("$@")
 
     if [ ! -z $DISABLE_TESTS ]; then
         return
     fi
 
     # Default tests.
-    $CARGO test $CARGO_TARGET $DEFAULT_FEATURES $DOCTESTS
-    $CARGO test $CARGO_TARGET $DEFAULT_FEATURES $DOCTESTS --release
+    features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
+    $CARGO test $CARGO_TARGET $features $DOCTESTS
+    $CARGO test $CARGO_TARGET $features $DOCTESTS --release
 
     # Iterate over special features.
-    for i in "${features[@]}"; do
-        $CARGO test $CARGO_TARGET --no-default-features $i $DOCTESTS
+    for i in "${special_features[@]}"; do
+        test_features="--no-default-features --features=$REQUIRED_FEATURES,$i"
+        $CARGO test $CARGO_TARGET $test_features $DOCTESTS
     done
 
     # Use special tests if we have std.
     if [ -z $NO_STD ]; then
-        $CARGO test $CARGO_TARGET --features=correct,rounding,radix special_rounding -- --ignored --test-threads=1
+        features="--features=$REQUIRED_FEATURES,correct,rounding,radix special_rounding"
+        $CARGO test $CARGO_TARGET $features -- --ignored --test-threads=1
     fi
 }
 
@@ -109,7 +127,8 @@ bench() {
         return
     fi
 
-    $CARGO bench $CARGO_TARGET $DEFAULT_FEATURES --verbose --no-run
+    features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
+    $CARGO bench $CARGO_TARGET $features --verbose --no-run
 }
 
 # Run ffi tests.

@@ -371,7 +371,7 @@ mod tests {
         assert!(i32::from_lexical_format(b"-012", format).is_err());
     }
 
-    #[cfg(feature = "std")]
+    #[cfg(all(feature = "std", feature = "property_tests"))]
     proptest! {
         #[test]
         fn u8_invalid_proptest(i in r"[+]?[0-9]{2}\D") {

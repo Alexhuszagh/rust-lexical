@@ -173,7 +173,7 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     /// Get the number format.
     fn format(&self) -> NumberFormat;
 
-    /// Get the mantissa exponent from the raw exponent.
+    // Get the mantissa exponent from the raw exponent.
     perftools_inline!{
     #[cfg(feature = "correct")]
     fn mantissa_exponent(&self, truncated_digits: usize) -> i32 {
@@ -250,7 +250,7 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
         self.set_fraction(fraction);
     }}
 
-    /// Extract float subcomponents from input bytes.
+    // Extract float subcomponents from input bytes.
     perftools_inline!{
     fn extract(&mut self, bytes: &'a [u8], radix: u32) -> ParseResult<*const u8> {
         // Parse the integer, aka, the digits preceding any control characters.
@@ -500,7 +500,7 @@ pub(crate) trait SlowDataInterface<'a>: SlowDataInterfaceImpl<'a> {
     /// Iterate over all integer digits.
     fn integer_iter(&self) -> Self::IntegerIter;
 
-    /// Get number of all integer digits.
+    // Get number of all integer digits.
     perftools_inline!{
     fn integer_digits(&self) -> usize {
         self.integer_iter().count()
@@ -509,7 +509,7 @@ pub(crate) trait SlowDataInterface<'a>: SlowDataInterfaceImpl<'a> {
     /// Iterate over all fraction digits
     fn fraction_iter(&self) -> Self::FractionIter;
 
-    /// Get number of all fraction digits.
+    // Get number of all fraction digits.
     perftools_inline!{
     fn fraction_digits(&self) -> usize {
         self.fraction_iter().count()
@@ -518,14 +518,14 @@ pub(crate) trait SlowDataInterface<'a>: SlowDataInterfaceImpl<'a> {
     /// Iterate over significant fraction digits.
     fn significant_fraction_iter(&self) -> Self::FractionIter;
 
-    /// Get number of significant fraction digits.
+    // Get number of significant fraction digits.
     perftools_inline!{
     fn significant_fraction_digits(&self) -> usize {
         self.significant_fraction_iter().count()
     }}
 
-    /// Get the number of digits in the mantissa.
-    /// Cannot overflow, since this is based off a single usize input string.
+    // Get the number of digits in the mantissa.
+    // Cannot overflow, since this is based off a single usize input string.
     perftools_inline!{
     fn mantissa_digits(&self) -> usize {
         self.integer_digits() + self.significant_fraction_digits()
@@ -540,13 +540,13 @@ pub(crate) trait SlowDataInterface<'a>: SlowDataInterfaceImpl<'a> {
     /// Get number of truncated digits.
     fn truncated_digits(&self) -> usize;
 
-    /// Get the mantissa exponent from the raw exponent.
+    // Get the mantissa exponent from the raw exponent.
     perftools_inline!{
     fn mantissa_exponent(&self) -> i32 {
         mantissa_exponent(self.raw_exponent(), self.fraction_digits(), self.truncated_digits())
     }}
 
-    /// Get the scientific exponent from the raw exponent.
+    // Get the scientific exponent from the raw exponent.
     perftools_inline!{
     fn scientific_exponent(&self) -> i32 {
         scientific_exponent(self.raw_exponent(), self.integer_digits(), self.digits_start())

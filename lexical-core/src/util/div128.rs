@@ -163,7 +163,7 @@ pub(crate) fn u128_divrem_1e19(n: u128) -> (u128, u64) {
 mod tests {
     use super::*;
 
-    #[cfg(feature = "std")]
+    #[cfg(all(feature = "std", feature = "property_tests"))]
     proptest! {
         #[test]
         fn u128_divrem_proptest(i in u128::min_value()..u128::max_value()) {

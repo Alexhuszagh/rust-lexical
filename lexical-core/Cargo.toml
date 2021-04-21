@@ -30,7 +30,7 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
 bitflags = "1.2"
-cfg-if = "=0.1.9"
+cfg-if = "0.1"
 # Use static_assertions for correct or format features.
 static_assertions = { version = "0.3.3", optional = true }
 # Use arrayvec for the correct parser.
@@ -39,11 +39,13 @@ arrayvec = { version = "0.4", optional = true, features = ["array-sizes-33-128"]
 dtoa = { version = "0.4", optional = true }
 # Optimized Ryu implementation, the fastest correct algorithm.
 ryu = { version = "1.0", optional = true }
+# Enable quickcheck for newer Rustc versions.
+quickcheck = { version = "0.9.0", optional = true }
+# Enable proptest for newer Rustc versions.
+proptest = { version = "0.9.4", optional = true }
 
 [dev-dependencies]
 approx = "0.3.0"
-quickcheck = "0.9.0"
-proptest = "0.9.4"
 
 [build-dependencies]
 rustc_version = "0.2"
@@ -69,6 +71,8 @@ trim_floats = []
 # Don't force bounds checking with indexing not-known to be valid at compile time.
 # This may lead to memory safety issues.
 unchecked_index = []
+# Undocumented. Disable quickcheck for older Rustc versions.
+property_tests = ["quickcheck", "proptest"]
 # Don't inline when using perftools
 # Testing only.
 noinline = []

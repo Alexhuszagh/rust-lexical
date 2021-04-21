@@ -903,7 +903,7 @@ mod tests {
         assert!(f64::from_lexical_format(b"-012.0", format).is_err());
     }
 
-    #[cfg(feature = "std")]
+    #[cfg(all(feature = "std", feature = "property_tests"))]
     proptest! {
         #[test]
         fn f32_invalid_proptest(i in r"[+-]?[0-9]{2}[^\deE]?\.[^\deE]?[0-9]{2}[^\deE]?e[+-]?[0-9]+[^\deE]") {

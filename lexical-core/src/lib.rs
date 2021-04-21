@@ -152,12 +152,12 @@ extern crate static_assertions;
 extern crate approx;
 
 // Test against randomly-generated data.
-#[cfg(test)]
+#[cfg(all(test, feature = "property_tests"))]
 #[macro_use]
 extern crate quickcheck;
 
 // Test against randomly-generated guided data.
-#[cfg(all(test, feature = "std"))]
+#[cfg(all(test, feature = "std", feature = "property_tests"))]
 #[macro_use]
 extern crate proptest;
 
