@@ -33,7 +33,7 @@ And get started using lexical:
 extern crate lexical;
 
 // Number to string
-lexical::to_string(3.0);            // "3.0", always has a fraction suffix, 
+lexical::to_string(3.0);            // "3.0", always has a fraction suffix,
 lexical::to_string(3);              // "3"
 
 // String to number.
@@ -46,8 +46,8 @@ let d = lexical::parse::<f64, _>("3a");      // Err(Error(_)), failed to parse.
 Lexical has both partial and complete parsers: the complete parsers ensure the entire buffer is used while parsing, without ignoring trailing characters, while the partial parsers parse as many characters as possible, returning both the parsed value and the number of parsed digits. Upon encountering an error, lexical will return an error indicating both the error type and the index at which the error occurred inside the buffer.
 
 ```rust
-// This will return Err(Error(ErrorKind::InvalidDigit(3))), indicating 
-// the first invalid character occurred at the index 3 in the input 
+// This will return Err(Error(ErrorKind::InvalidDigit(3))), indicating
+// the first invalid character occurred at the index 3 in the input
 // string (the space character).
 let x: i32 = lexical::parse("123 456").unwrap();
 ```
@@ -62,7 +62,7 @@ In order to use lexical in generics, the type may use the trait bounds `FromLexi
 
 ```rust
 /// Multiply a value in a string by multiplier, and serialize to string.
-fn mul_2<T>(value: &str, multiplier: T) 
+fn mul_2<T>(value: &str, multiplier: T)
     -> Result<String, lexical::Error>
     where T: lexical::ToLexical + lexical::FromLexical
 {
@@ -140,7 +140,7 @@ Please report any errors compiling a supported lexical version on a compatible R
 
 **Versioning**
 
-Lexical uses [semantic versioning](https://semver.org/). Removing support for older Rustc versions is considered an incompatible API change, requiring a major version change.
+Lexical uses [semantic versioning](https://semver.org/). Removing support for Rustc versions newer than the latest stable Debian or Ubuntu version is considered an incompatible API change, requiring a major version change.
 
 # Changelog
 
@@ -148,7 +148,7 @@ All changes since 2.2.0 are documented in [CHANGELOG](CHANGELOG).
 
 # License
 
-Lexical is dual licensed under the Apache 2.0 license as well as the MIT license. See the LICENCE-MIT and the LICENCE-APACHE files for the licenses. 
+Lexical is dual licensed under the Apache 2.0 license as well as the MIT license. See the LICENCE-MIT and the LICENCE-APACHE files for the licenses.
 
 # Contributing
 

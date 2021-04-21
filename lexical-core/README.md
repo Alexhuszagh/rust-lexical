@@ -461,7 +461,7 @@ Please report any errors compiling a supported lexical-core version on a compati
 
 **Versioning**
 
-Lexical-core uses [semantic versioning](https://semver.org/). Removing support for older Rustc versions is considered an incompatible API change, requiring a major version change.
+Lexical-core uses [semantic versioning](https://semver.org/). Removing support for Rustc versions newer than the latest stable Debian or Ubuntu version is considered an incompatible API change, requiring a major version change.
 
 # Changelog
 
