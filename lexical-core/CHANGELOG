@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated cfg_if dependency.
 - Dropped support for Rustc versions older than 1.31.0.
 - Patched an implementation of insert_many due to a security advisory which does not affect lexical.
+- Fixed build script for cross-compiling.
 
 ## [0.4.7] - 2019-10-08
 ### Changed
