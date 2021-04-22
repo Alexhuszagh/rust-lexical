@@ -99,7 +99,6 @@ impl Format for NumberFormat {
         self
     }
 
-    #[cfg(feature ="radix")]
     #[inline]
     fn radix(self) -> u8 {
         flags::radix_from_flags(self.bits)
@@ -120,7 +119,6 @@ impl Format for NumberFormat {
         flags::exponent_from_flags(self.bits)
     }
 
-    #[cfg(feature ="radix")]
     #[inline]
     fn exponent_backup(self) -> u8 {
         flags::exponent_backup_from_flags(self.bits)
@@ -622,7 +620,7 @@ impl Builder for NumberFormatBuilder {
     type Buildable = NumberFormat;
 
     #[inline]
-    fn build(self) -> Option<Self::Buildable> {
+    fn build(&self) -> Option<Self::Buildable> {
         let mut format = Self::Buildable::default();
 
         // Add conversion precision flags.
@@ -664,10 +662,10 @@ impl Buildable for NumberFormat {
     #[inline]
     fn rebuild(&self) -> Self::Builder {
         Self::Builder {
-            radix: flags::radix_from_flags(self.bits),
+            radix: self.radix(),
             decimal_point: self.decimal_point(),
             exponent: self.exponent(),
-            exponent_backup: flags::exponent_backup_from_flags(self.bits),
+            exponent_backup: self.exponent_backup(),
             incorrect: self.incorrect(),
             lossy: self.lossy()
         }
@@ -782,5 +780,32 @@ mod tests {
         assert_eq!(NumberFormat::from_separator(b'\x00'), NumberFormat::default());
     }
 
-    // TODO(ahuszagh) Test the builder, and rebuild.
+    #[test]
+    fn test_builder() {
+        // Test a few invalid ones.
+        let flag = NumberFormat::builder().incorrect(true).lossy(true).build();
+        assert_eq!(flag, None);
+
+        let flag = NumberFormat::builder().exponent(b'.').build();
+        assert_eq!(flag, None);
+
+        // Test a few valid ones.
+        let flag = NumberFormat::builder().incorrect(true).build();
+        assert!(flag.is_some());
+        let flag = flag.unwrap();
+        assert_eq!(flag.radix(), 10);
+        assert_eq!(flag.decimal_point(), b'.');
+        assert_eq!(flag.exponent(), b'e');
+        assert_eq!(flag.exponent_backup(), b'^');
+        assert_eq!(flag.incorrect(), true);
+        assert_eq!(flag.lossy(), false);
+    }
+
+    #[test]
+    fn test_rebuild() {
+        let flag = NumberFormat::standard().unwrap();
+        let flag = flag.rebuild().lossy(true).build().unwrap();
+        assert_eq!(flag.radix(), 10);
+        assert_eq!(flag.lossy(), true);
+    }
 }

@@ -7,7 +7,7 @@ pub trait Builder {
     type Buildable: Buildable;
 
     /// Consume builder and create type.
-    fn build(self) -> Option<Self::Buildable>;
+    fn build(&self) -> Option<Self::Buildable>;
 }
 
 /// Trait for types that can be constructed through a builder.
@@ -32,7 +32,6 @@ pub trait Format: Default + Copy + Clone + Send {
     fn interface_flags(self) -> Self;
 
     /// Get the radix for number encoding or decoding.
-    #[cfg(feature = "radix")]
     fn radix(self) -> u8;
 
     /// Get the digit separator for the number format.
@@ -45,7 +44,6 @@ pub trait Format: Default + Copy + Clone + Send {
     fn exponent(self) -> u8;
 
     /// Get the exponent backup character from the compiled float format.
-    #[cfg(feature ="radix")]
     fn exponent_backup(self) -> u8;
 
     /// Get if digits are required before the decimal point.

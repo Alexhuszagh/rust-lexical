@@ -1803,7 +1803,6 @@ impl Format for NumberFormat {
     }
 
     #[inline]
-    #[cfg(feature = "radix")]
     fn radix(self) -> u8 {
         flags::radix_from_flags(self.bits)
     }
@@ -1823,7 +1822,6 @@ impl Format for NumberFormat {
         flags::exponent_from_flags(self.bits)
     }
 
-    #[cfg(feature = "radix")]
     #[inline]
     fn exponent_backup(self) -> u8 {
         flags::exponent_backup_from_flags(self.bits)
@@ -2439,7 +2437,7 @@ impl Builder for NumberFormatBuilder {
     type Buildable = NumberFormat;
 
     #[inline]
-    fn build(self) -> Option<Self::Buildable> {
+    fn build(&self) -> Option<Self::Buildable> {
         let mut format = Self::Buildable::default();
         // Generic flags.
         add_flag!(format, self.required_integer_digits, REQUIRED_INTEGER_DIGITS);
@@ -2521,11 +2519,11 @@ impl Buildable for NumberFormat {
     #[inline]
     fn rebuild(&self) -> Self::Builder {
         Self::Builder {
-            radix: flags::radix_from_flags(self.bits),
+            radix: self.radix(),
             digit_separator: self.digit_separator(),
             decimal_point: self.decimal_point(),
             exponent: self.exponent(),
-            exponent_backup: flags::exponent_backup_from_flags(self.bits),
+            exponent_backup: self.exponent_backup(),
             required_integer_digits: self.required_integer_digits(),
             required_fraction_digits: self.required_fraction_digits(),
             required_exponent_digits: self.required_exponent_digits(),
@@ -2566,9 +2564,8 @@ mod tests {
     use super::*;
 
     #[test]
-    #[allow(deprecated)]
+    #[allow(deprecated)]        // Remove when compile is removed.
     fn test_compile() {
-        // TODO(ahuszagh) Use the builder interface
         // Test all false
         let flag = NumberFormat::compile(10, b'_', b'.', b'e', b'^', false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false).unwrap();
         assert_eq!(flag.flags(), NumberFormat::default());
@@ -2623,7 +2620,7 @@ mod tests {
         assert_eq!(flag.lossy(), false);
 
         #[cfg(feature ="radix")]
-        assert_eq!(flag.radix(), 10);   // TODO(ahuszagh) Failing...
+        assert_eq!(flag.radix(), 10);
 
         #[cfg(feature ="radix")]
         assert_eq!(flag.exponent_backup(), b'^');
@@ -2787,5 +2784,39 @@ mod tests {
         }
     }
 
-    // TODO(ahuszagh) Test the builder, and rebuild.
+    #[test]
+    fn test_builder() {
+        // Test a few invalid ones.
+        let flag = NumberFormat::builder().incorrect(true).lossy(true).build();
+        assert_eq!(flag, None);
+
+        let flag = NumberFormat::builder().exponent(b'.').build();
+        assert_eq!(flag, None);
+
+        // Test a few valid ones.
+        let flag = NumberFormat::builder().incorrect(true).build();
+        assert!(flag.is_some());
+        let flag = flag.unwrap();
+        assert_eq!(flag.radix(), 10);
+        assert_eq!(flag.digit_separator(), b'\x00');
+        assert_eq!(flag.decimal_point(), b'.');
+        assert_eq!(flag.exponent(), b'e');
+        assert_eq!(flag.exponent_backup(), b'^');
+        assert_eq!(flag.incorrect(), true);
+        assert_eq!(flag.required_integer_digits(), false);
+        assert_eq!(flag.required_fraction_digits(), false);
+        assert_eq!(flag.required_exponent_digits(), false);
+        assert_eq!(flag.lossy(), false);
+    }
+
+    #[test]
+    fn test_rebuild() {
+        let flag = NumberFormat::CSHARP7_STRING;
+        let rebuilt = flag.rebuild().lossy(true).build().unwrap();
+        assert_eq!(flag.radix(), 10);
+        assert_eq!(rebuilt.radix(), 10);
+        assert_eq!(rebuilt.flags(), flag.flags());
+        assert_eq!(flag.lossy(), false);
+        assert_eq!(rebuilt.lossy(), true);
+    }
 }
