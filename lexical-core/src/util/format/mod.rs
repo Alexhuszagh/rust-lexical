@@ -677,6 +677,15 @@
 //      db.movie.find()
 //      ```
 
+#[macro_use]
+mod flags;
+
+mod traits;
+mod options;
+
+pub use self::traits::*;
+pub use self::options::*;
+
 cfg_if! {
     if #[cfg(feature = "format")] {
         mod feature_format;

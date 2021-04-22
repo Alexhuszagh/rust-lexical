@@ -1,6 +1,6 @@
 //! Enumerations for the sign-bit of a number.
 
-use super::format::NumberFormat;
+use super::format::{Format, NumberFormat};
 use super::num::Number;
 
 // ENUMERATION
