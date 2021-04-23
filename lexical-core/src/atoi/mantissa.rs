@@ -13,9 +13,9 @@ use super::shared::*;
 // exit early on numeric overflow, returning the value parsed up until
 // that point.
 
-// Calculate the mantissa and the number of truncated digits from a digits iterator.
-// Will stop once the iterators produce a non-valid digit character.
-perftools_inline!{
+/// Calculate the mantissa and the number of truncated digits from a digits iterator.
+/// Will stop once the iterators produce a non-valid digit character.
+#[inline]
 #[cfg(feature = "correct")]
 pub(crate) fn standalone_mantissa<'a, T, Iter1, Iter2>(mut integer: Iter1, mut fraction: Iter2, radix: u32)
     -> (T, usize)
@@ -52,10 +52,10 @@ pub(crate) fn standalone_mantissa<'a, T, Iter1, Iter2>(mut integer: Iter1, mut f
         };
     }
     (value, 0)
-}}
+}
 
-// Calculate the mantissa when it cannot have sign or other invalid digits.
-perftools_inline!{
+/// Calculate the mantissa when it cannot have sign or other invalid digits.
+#[inline]
 #[cfg(not(feature = "correct"))]
 pub(crate) fn standalone_mantissa<'a, T, Iter>(mut iter: Iter, radix: u32)
     -> T
@@ -69,10 +69,10 @@ pub(crate) fn standalone_mantissa<'a, T, Iter>(mut iter: Iter, radix: u32)
         value = (value * as_cast(radix)) + as_cast(to_digit!(*c, radix).unwrap());
     }
    value
-}}
+}
 
-// Calculate mantissa and only take first N digits.
-perftools_inline!{
+/// Calculate mantissa and only take first N digits.
+#[inline]
 #[cfg(not(feature = "correct"))]
 pub(crate) fn standalone_mantissa_n<'a, T, Iter>(iter: &mut Iter, radix: u32, max: usize)
     -> (T, usize)
@@ -92,4 +92,4 @@ pub(crate) fn standalone_mantissa_n<'a, T, Iter>(iter: &mut Iter, radix: u32, ma
         }
     }
     (value, index)
-}}
+}

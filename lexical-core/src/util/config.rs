@@ -145,6 +145,10 @@ cfg_if! {
 ///
 /// Default character for scientific notation, used when the `radix < 15`.
 #[inline]
+#[deprecated(
+    since = "0.8.0",
+    note = "Will be removed with 1.0. Use parse_options instead."
+)]
 pub fn get_exponent_default_char() -> u8
 {
     unsafe {
@@ -170,6 +174,10 @@ pub fn get_exponent_default_char() -> u8
 ///
 /// Panics if the character is in the character set `[A-Da-d.+\-]`.
 #[inline]
+#[deprecated(
+    since = "0.8.0",
+    note = "Will be removed with 1.0. Use parse_options instead."
+)]
 pub unsafe fn set_exponent_default_char(ch: u8)
 {
     assert!(!is_control_character(ch, true));
@@ -182,6 +190,10 @@ pub unsafe fn set_exponent_default_char(ch: u8)
 /// and therefore may no longer be used as a marker for the exponent.
 #[inline]
 #[cfg(feature ="radix")]
+#[deprecated(
+    since = "0.8.0",
+    note = "Will be removed with 1.0. Use parse_options instead."
+)]
 pub fn get_exponent_backup_char() -> u8
 {
     unsafe {
@@ -209,6 +221,10 @@ pub fn get_exponent_backup_char() -> u8
 /// Panics if the character is in the character set `[A-Za-z.+\-]`.
 #[inline]
 #[cfg(feature ="radix")]
+#[deprecated(
+    since = "0.8.0",
+    note = "Will be removed with 1.0. Use parse_options instead."
+)]
 pub unsafe fn set_exponent_backup_char(ch: u8)
 {
     assert!(!is_control_character(ch, false));
@@ -223,6 +239,10 @@ pub unsafe fn set_exponent_backup_char(ch: u8)
 /// operations.
 #[inline]
 #[cfg(feature = "rounding")]
+#[deprecated(
+    since = "0.8.0",
+    note = "Will be removed with 1.0. Use parse_options instead."
+)]
 pub fn get_float_rounding() -> RoundingKind {
     unsafe {
         FLOAT_ROUNDING
@@ -241,12 +261,20 @@ pub fn get_float_rounding() -> RoundingKind {
 /// Do not modify this value in threaded-code, as it is not thread-safe.
 #[inline]
 #[cfg(feature = "rounding")]
+#[deprecated(
+    since = "0.8.0",
+    note = "Will be removed with 1.0. Use parse_options instead."
+)]
 pub unsafe fn set_float_rounding(rounding: RoundingKind) {
     FLOAT_ROUNDING = rounding
 }
 
 /// Get string representation of Not a Number as a byte slice.
 #[inline]
+#[deprecated(
+    since = "0.8.0",
+    note = "Will be removed with 1.0. Use parse_options instead."
+)]
 pub fn get_nan_string() -> &'static [u8]
 {
     unsafe {
@@ -269,6 +297,10 @@ pub fn get_nan_string() -> &'static [u8]
 /// - `bytes` is empty
 /// - `bytes` does not start with an `'N'` or `'n'`.
 #[inline]
+#[deprecated(
+    since = "0.8.0",
+    note = "Will be removed with 1.0. Use parse_options instead."
+)]
 pub unsafe fn set_nan_string(bytes: &[u8])
 {
     assert!(starts_with_n(bytes));
@@ -277,6 +309,10 @@ pub unsafe fn set_nan_string(bytes: &[u8])
 
 /// Get the short representation of an Infinity literal as a byte slice.
 #[inline]
+#[deprecated(
+    since = "0.8.0",
+    note = "Will be removed with 1.0. Use parse_options instead."
+)]
 pub fn get_inf_string() -> &'static [u8]
 {
     unsafe {
@@ -300,6 +336,10 @@ pub fn get_inf_string() -> &'static [u8]
 /// - `bytes` is empty
 /// - `bytes` does not start with an `'I'` or `'i'`.
 #[inline]
+#[deprecated(
+    since = "0.8.0",
+    note = "Will be removed with 1.0. Use parse_options instead."
+)]
 pub unsafe fn set_inf_string(bytes: &[u8])
 {
     assert!(starts_with_i(bytes) && bytes.len() <= INFINITY_STRING.length);
@@ -308,6 +348,10 @@ pub unsafe fn set_inf_string(bytes: &[u8])
 
 /// Get the long representation of an Infinity literal as a byte slice.
 #[inline]
+#[deprecated(
+    since = "0.8.0",
+    note = "Will be removed with 1.0. Use parse_options instead."
+)]
 pub fn get_infinity_string() -> &'static [u8]
 {
     unsafe {
@@ -331,6 +375,10 @@ pub fn get_infinity_string() -> &'static [u8]
 /// - `bytes` is empty
 /// - `bytes` does not start with an `'I'` or `'i'`.
 #[inline]
+#[deprecated(
+    since = "0.8.0",
+    note = "Will be removed with 1.0. Use parse_options instead."
+)]
 pub unsafe fn set_infinity_string(bytes: &[u8])
 {
     assert!(starts_with_i(bytes) && bytes.len() >= INF_STRING.length);
@@ -415,7 +463,11 @@ pub const BUFFER_SIZE: usize = F64_FORMATTED_SIZE;
 
 /// Get the exponent notation character.
 #[inline]
-#[allow(unused_variables)]
+#[allow(unused_variables, deprecated)]
+#[deprecated(
+    since = "0.8.0",
+    note = "Will be removed with 1.0. Use parse_options instead."
+)]
 pub(crate) fn exponent_notation_char(radix: u32) -> u8 {
     #[cfg(not(feature ="radix"))] {
         get_exponent_default_char()
@@ -439,8 +491,9 @@ mod tests {
     use crate::util::test::*;
     use super::*;
 
-    #[cfg(feature ="radix")]
     #[test]
+    #[cfg(feature ="radix")]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn exponent_notation_char_test() {
         let default = get_exponent_default_char();
         let backup = get_exponent_backup_char();
@@ -455,6 +508,7 @@ mod tests {
     // Only enable when no other threads touch NAN_STRING or INFINITY_STRING.
     #[test]
     #[ignore]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn special_bytes_test() {
         unsafe {
             let mut buffer = new_buffer();
@@ -482,9 +536,10 @@ mod tests {
     }
 
     // Only enable when no other threads touch FLOAT_ROUNDING.
-    #[cfg(all(feature = "correct", feature = "rounding"))]
     #[test]
     #[ignore]
+    #[cfg(all(feature = "correct", feature = "rounding"))]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn special_rounding_test() {
         // Each one of these pairs is halfway, and we can detect the
         // rounding schemes from this.
@@ -530,9 +585,10 @@ mod tests {
     }
 
     // Only enable when no other threads touch FLOAT_ROUNDING.
-    #[cfg(all(feature = "correct", feature = "radix", feature = "rounding"))]
     #[test]
     #[ignore]
+    #[cfg(all(feature = "correct", feature = "radix", feature = "rounding"))]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn special_rounding_binary_test() {
         // Each one of these pairs is halfway, and we can detect the
         // rounding schemes from this.
@@ -577,132 +633,148 @@ mod tests {
         }
     }
 
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_exponent_default_char_digit_test() {
         unsafe {
             set_exponent_default_char(b'0')
         }
     }
 
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_exponent_default_char_period_test() {
         unsafe {
             set_exponent_default_char(b'.')
         }
     }
 
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_exponent_default_char_add_test() {
         unsafe {
             set_exponent_default_char(b'+')
         }
     }
 
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_exponent_default_char_sub_test() {
         unsafe {
             set_exponent_default_char(b'-')
         }
     }
 
-    #[cfg(all(feature = "radix"))]
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[cfg(all(feature = "radix"))]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_exponent_backup_char_digit_test() {
         unsafe {
             set_exponent_backup_char(b'0')
         }
     }
 
-    #[cfg(all(feature = "radix"))]
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[cfg(all(feature = "radix"))]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_exponent_backup_char_period_test() {
         unsafe {
             set_exponent_backup_char(b'.')
         }
     }
 
-    #[cfg(all(feature = "radix"))]
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[cfg(all(feature = "radix"))]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_exponent_backup_char_add_test() {
         unsafe {
             set_exponent_backup_char(b'+')
         }
     }
 
-    #[cfg(all(feature = "radix"))]
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[cfg(all(feature = "radix"))]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_exponent_backup_char_sub_test() {
         unsafe {
             set_exponent_backup_char(b'-')
         }
     }
 
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_nan_string_empty_test() {
         unsafe {
             set_nan_string(b"")
         }
     }
 
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_nan_string_invalid_test() {
         unsafe {
             set_nan_string(b"i")
         }
     }
 
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_inf_string_empty_test() {
         unsafe {
             set_inf_string(b"")
         }
     }
 
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_inf_string_invalid_test() {
         unsafe {
             set_inf_string(b"n")
         }
     }
 
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_inf_string_long_test() {
         unsafe {
             set_inf_string(b"infinityinfinf")
         }
     }
 
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_infinity_string_empty_test() {
         unsafe {
             set_infinity_string(b"")
         }
     }
 
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_infinity_string_invalid_test() {
         unsafe {
             set_infinity_string(b"n")
         }
     }
 
-    #[should_panic]
     #[test]
+    #[should_panic]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn set_infinity_string_short_test() {
         unsafe {
             set_infinity_string(b"i")

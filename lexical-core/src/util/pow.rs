@@ -10,11 +10,11 @@ mod private {
     use super::*;
 
     #[cfg(not(feature = "correct"))]
-    pub(crate) trait StablePowerImpl: Float + ExactExponent {
+    pub trait StablePowerImpl: Float + ExactExponent {
     }
 
     #[cfg(feature = "correct")]
-    pub(crate) trait StablePowerImpl: Float + ExactExponent + TablePower {
+    pub trait StablePowerImpl: Float + ExactExponent + TablePower {
     }
 
     impl StablePowerImpl for f32 {
@@ -25,7 +25,7 @@ mod private {
 }
 
 /// Stable power implementations for increased numeric stability.
-pub(crate) trait StablePower: private::StablePowerImpl {
+pub trait StablePower: private::StablePowerImpl {
 //    /// Calculate pow2 with numeric exponent.
 //    #[cfg(any(test, not(feature = "imprecise")))]
 //    fn pow2(self, exponent: i32) -> Self;

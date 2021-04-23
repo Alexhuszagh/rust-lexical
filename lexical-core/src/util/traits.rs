@@ -519,24 +519,26 @@ pub trait ToLexical: Number {
 macro_rules! to_lexical {
     ($cb:expr, $t:ty) => (
         impl ToLexical for $t {
+            // TODO(ahuszagh) Need to have a type that accepts a format.
             #[inline]
             fn to_lexical<'a>(self, bytes: &'a mut [u8])
                 -> &'a mut [u8]
             {
                 assert_buffer!(10, bytes, $t);
                 let len = $cb(self, 10, bytes);
-                &mut index_mut!(bytes[..len])
+                &mut bytes[..len]
             }
 
-            #[cfg(feature = "radix")]
+            // TODO(ahuszagh) Deprecate this.
             #[inline]
+            #[cfg(feature = "radix")]
             fn to_lexical_radix<'a>(self, radix: u8, bytes: &'a mut [u8])
                 -> &'a mut [u8]
             {
                 assert_radix!(radix);
                 assert_buffer!(radix, bytes, $t);
                 let len = $cb(self, radix.as_u32(), bytes);
-                &mut index_mut!(bytes[..len])
+                &mut bytes[..len]
             }
         }
     )

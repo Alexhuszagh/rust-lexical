@@ -8,8 +8,8 @@ use super::format::*;
 
 type Wrapped<F> = WrappedFloat<F>;
 
-// Process the integer component of the raw float.
-perftools_inline!{
+/// Process the integer component of the raw float.
+#[inline]
 fn process_integer<'a, F, Data>(data: &Data, radix: u32)
     -> F
     where F: StablePower,
@@ -21,10 +21,10 @@ fn process_integer<'a, F, Data>(data: &Data, radix: u32)
         _ => atoi::standalone_mantissa::<Wrapped<F>, _>(data.integer_iter(), radix)
                 .into_inner()
     }
-}}
+}
 
-// Process the fraction component of the raw float.
-perftools_inline!{
+/// Process the fraction component of the raw float.
+#[inline]
 fn process_fraction<'a, F, Data>(data: &Data, radix: u32)
     -> F
     where F: StablePower,
@@ -46,10 +46,10 @@ fn process_fraction<'a, F, Data>(data: &Data, radix: u32)
     }
 
     fraction
-}}
+}
 
-// Convert the float string to a native floating-point number.
-perftools_inline!{
+/// Convert the float string to a native floating-point number.
+#[inline]
 fn to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32)
     -> ParseResult<(F, *const u8)>
     where F: StablePower,
@@ -63,34 +63,35 @@ fn to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32)
         value = value.iterative_pow(radix, data.raw_exponent());
     }
     Ok((value, ptr))
-}}
+}
 
-perftools_inline!{
-pub(crate) fn atof_generic<'a, F>(bytes: &'a [u8], radix: u32, _: bool, _: Sign, format: NumberFormat)
+#[inline]
+pub(crate) fn atof_generic<'a, F>(bytes: &'a [u8], format: NumberFormat)
     -> ParseResult<(F, *const u8)>
     where F: StablePower
 {
+    let radix = format.radix() as u32;
     apply_interface!(to_native, format, bytes, radix)
-}}
+}
 
 // ATOF/ATOD
 // ---------
 
-// Parse 32-bit float from string.
-perftools_inline!{
-pub(crate) fn atof<'a>(bytes: &'a [u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+/// Parse 32-bit float from string.
+#[inline]
+pub(crate) fn atof<'a>(bytes: &'a [u8], _: Sign, format: NumberFormat)
     -> ParseResult<(f32, *const u8)>
 {
-    atof_generic(bytes, radix, lossy, sign, format)
-}}
+    atof_generic(bytes, format)
+}
 
-// Parse 64-bit float from string.
-perftools_inline!{
-pub(crate) fn atod<'a>(bytes: &'a [u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+/// Parse 64-bit float from string.
+#[inline]
+pub(crate) fn atod<'a>(bytes: &'a [u8], _: Sign, format: NumberFormat)
     -> ParseResult<(f64, *const u8)>
 {
-    atof_generic(bytes, radix, lossy, sign, format)
-}}
+    atof_generic(bytes, format)
+}
 
 // TESTS
 // -----
@@ -129,7 +130,7 @@ mod tests {
 
     #[test]
     fn atof_test() {
-        let atof10 = move |x| match atof(x, 10, false, Sign::Positive, NumberFormat::standard().unwrap()) {
+        let atof10 = move |x| match atof(x, Sign::Positive, NumberFormat::STANDARD) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -142,7 +143,7 @@ mod tests {
 
     #[test]
     fn atod_test() {
-        let atod10 = move |x| match atod(x, 10, false, Sign::Positive, NumberFormat::standard().unwrap()) {
+        let atod10 = move |x| match atod(x, Sign::Positive, NumberFormat::STANDARD) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -159,7 +160,8 @@ mod tests {
 
     #[test]
     fn atof_lossy_test() {
-        let atof10 = move |x| match atof(x, 10, true, Sign::Positive, NumberFormat::standard().unwrap()) {
+        let format = NumberFormat::STANDARD | NumberFormat::LOSSY;
+        let atof10 = move |x| match atof(x, Sign::Positive, format) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -172,7 +174,8 @@ mod tests {
 
     #[test]
     fn atod_lossy_test() {
-        let atod10 = move |x| match atod(x, 10, true, Sign::Positive, NumberFormat::standard().unwrap()) {
+        let format = NumberFormat::STANDARD | NumberFormat::LOSSY;
+        let atod10 = move |x| match atod(x, Sign::Positive, format) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };

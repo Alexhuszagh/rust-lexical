@@ -19,14 +19,14 @@ use super::small_powers::get_small_powers_64;
 
 // Parse the raw float state into a mantissa, calculating the number
 // of truncated digits and the offset.
-perftools_inline!{
+#[inline]
 fn process_mantissa<'a, M, Data>(data: &Data, radix: u32)
     -> (M, usize)
     where M: Mantissa,
           Data: FastDataInterface<'a>
 {
     atoi::standalone_mantissa(data.integer_iter(), data.fraction_iter(), radix)
-}}
+}
 
 // FAST
 // ----
@@ -91,9 +91,9 @@ fn fast_path<F>(mantissa: u64, radix: u32, exponent: i32)
 
 // POW2
 
-// Detect if a float representation is exactly halfway after truncation.
+/// Detect if a float representation is exactly halfway after truncation.
+#[inline]
 #[cfg(feature = "radix")]
-perftools_inline!{
 fn is_halfway<F: FloatType>(mantissa: u64)
     -> bool
 {
@@ -105,11 +105,11 @@ fn is_halfway<F: FloatType>(mantissa: u64)
     // The hidden bit is mantissa+1 elements away, which is the last non-
     // truncated bit, while mantissa+2
     bit_length - trailing_zeros == F::MANTISSA_SIZE + 2
-}}
+}
 
-// Detect if a float representation is odd after truncation.
+/// Detect if a float representation is odd after truncation.
+#[inline]
 #[cfg(feature = "radix")]
-perftools_inline!{
 fn is_odd<F: FloatType>(mantissa: u64)
     -> bool
 {
@@ -125,7 +125,7 @@ fn is_odd<F: FloatType>(mantissa: u64)
         // Not enough bits for a full mantissa, must be even.
         false
     }
-}}
+}
 
 /// Convert power-of-two to exact value.
 ///
@@ -240,11 +240,11 @@ fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32, expon
     }
 }
 
-// Create a precise native float using an intermediate extended-precision float.
-//
-// Return the float approximation and if the value can be accurately
-// represented with mantissa bits of precision.
-perftools_inline_always!{
+/// Create a precise native float using an intermediate extended-precision float.
+///
+/// Return the float approximation and if the value can be accurately
+/// represented with mantissa bits of precision.
+#[inline(always)]
 pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, truncated: bool, kind: RoundingKind)
     -> (ExtendedFloat<M>, bool)
     where M: FloatErrors,
@@ -254,7 +254,7 @@ pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, trunca
     let mut fp = ExtendedFloat { mant: mantissa, exp: 0 };
     let valid = multiply_exponent_extended::<F, M>(&mut fp, radix, exponent, truncated, kind);
     (fp, valid)
-}}
+}
 
 // TO NATIVE
 // ---------
@@ -387,8 +387,8 @@ fn pow2_to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32, pow2
     Ok((float, ptr))
 }
 
-// Check if value is power of 2 and get the power.
-perftools_inline!{
+/// Check if value is power of 2 and get the power.
+#[inline]
 fn pow2_exponent(radix: u32) -> i32 {
     match radix {
         2  => 1,
@@ -398,22 +398,23 @@ fn pow2_exponent(radix: u32) -> i32 {
         32 => 5,
         _  => 0,
     }
-}}
+}
 
 // DISPATCHER
 
-// Parse native float from string.
-//
-// The float string must be non-special, non-zero, and positive.
-perftools_inline!{
+/// Parse native float from string.
+///
+/// The float string must be non-special, non-zero, and positive.
+#[inline]
 fn to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
     -> ParseResult<(F, *const u8)>
     where F: FloatType
 {
     #[cfg(not(feature = "radix"))] {
-        apply_interface!(pown_to_native, format, bytes, radix,  lossy, sign)
+        apply_interface!(pown_to_native, format, bytes, radix, lossy, sign)
     }
 
+    // TODO(ahuszagh)  This seems to be failing. Lols
     #[cfg(feature = "radix")] {
         let pow2_exp = pow2_exponent(radix);
         match pow2_exp {
@@ -421,26 +422,28 @@ fn to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: Numbe
             _ => apply_interface!(pow2_to_native, format, bytes, radix, pow2_exp, sign)
         }
     }
-}}
+}
 
 // ATOF/ATOD
 // ---------
 
-// Parse 32-bit float from string.
-perftools_inline!{
-pub(crate) fn atof(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+/// Parse 32-bit float from string.
+#[inline]
+pub(crate) fn atof(bytes: &[u8], sign: Sign, format: NumberFormat)
     -> ParseResult<(f32, *const u8)>
 {
-    to_native::<f32>(bytes, radix, lossy, sign, format)
-}}
+    // TODO(ahuszagh) Move inwards.
+    to_native::<f32>(bytes, format.radix() as u32, format.lossy(), sign, format)
+}
 
-// Parse 64-bit float from string.
-perftools_inline!{
-pub(crate) fn atod(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+/// Parse 64-bit float from string.
+#[inline]
+pub(crate) fn atod(bytes: &[u8], sign: Sign, format: NumberFormat)
     -> ParseResult<(f64, *const u8)>
 {
-    to_native::<f64>(bytes, radix, lossy, sign, format)
-}}
+    // TODO(ahuszagh) Move inwards.
+    to_native::<f64>(bytes, format.radix() as u32, format.lossy(), sign, format)
+}
 
 // TESTS
 // -----
@@ -726,7 +729,7 @@ mod tests {
 
     #[test]
     fn atof_test() {
-        let atof10 = move |x| match atof(x, 10, false, Sign::Positive, NumberFormat::standard().unwrap()) {
+        let atof10 = move |x| match atof(x, Sign::Positive, NumberFormat::STANDARD) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -780,9 +783,13 @@ mod tests {
 
     #[test]
     fn atod_test() {
-        let adod_impl = move | x, r | match atod(x, r, false, Sign::Positive, NumberFormat::standard().unwrap()) {
-            Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
-            Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
+        let adod_impl = move | x, r | {
+            // TODO(ahuszagh) This is failing because standard has radix 10.
+            let format = NumberFormat::STANDARD | NumberFormat::from_radix(r);
+            match atod(x, Sign::Positive, format) {
+                Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
+                Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
+            }
         };
         #[cfg(feature = "radix")]
         let atod2 = move |x| adod_impl(x, 2);
@@ -842,6 +849,7 @@ mod tests {
         // Rounding error
         // Adapted from:
         //  https://www.exploringbinary.com/glibc-strtod-incorrectly-converts-2-to-the-negative-1075/
+        // TODO(ahuszagh) This is failing... Fuck.
         #[cfg(feature = "radix")]
         assert_eq!(Ok((5e-324, 14)), atod2(b"1e-10000110010"));
 
@@ -881,7 +889,8 @@ mod tests {
 
     #[test]
     fn atof_lossy_test() {
-        let atof10 = move |x| match atof(x, 10, true, Sign::Positive, NumberFormat::standard().unwrap()) {
+        let format = NumberFormat::STANDARD | NumberFormat::LOSSY;
+        let atof10 = move |x| match atof(x, Sign::Positive, format) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -894,7 +903,8 @@ mod tests {
 
     #[test]
     fn atod_lossy_test() {
-        let atod10 = move |x| match atod(x, 10, true, Sign::Positive, NumberFormat::standard().unwrap()) {
+        let format = NumberFormat::STANDARD | NumberFormat::LOSSY;
+        let atod10 = move |x| match atod(x, Sign::Positive, format) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };

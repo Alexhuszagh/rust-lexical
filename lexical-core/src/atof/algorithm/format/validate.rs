@@ -5,54 +5,54 @@ use super::traits::*;
 
 // HELPERS
 
-// Determine if the integer component is empty.
-perftools_inline!{
+/// Determine if the integer component is empty.
+#[inline]
 fn is_integer_empty<'a, Data>(data: &Data)
     -> bool
     where Data: FastDataInterface<'a>
 {
     data.integer_iter().next().is_none()
-}}
+}
 
-// Determine if the fraction component is empty.
-perftools_inline!{
+/// Determine if the fraction component is empty.
+#[inline]
 fn is_fraction_empty<'a, Data>(data: &Data)
     -> bool
     where Data: FastDataInterface<'a>
 {
     data.fraction_iter().next().is_none()
-}}
+}
 
-// Determine if the fraction component exists.
-perftools_inline!{
+/// Determine if the fraction component exists.
+#[inline]
 #[cfg(feature = "format")]
 fn has_fraction<'a, Data>(data: &Data)
     -> bool
     where Data: FastDataInterface<'a>
 {
     data.fraction().is_some()
-}}
+}
 
-// Determine if the exponent component exists.
-perftools_inline!{
+/// Determine if the exponent component exists.
+#[inline]
 fn has_exponent<'a, Data>(data: &Data)
     -> bool
     where Data: FastDataInterface<'a>
 {
     data.exponent().is_some()
-}}
+}
 
-// Unwrap option to get the pointer.
-perftools_inline!{
+/// Unwrap option to get the pointer.
+#[inline]
 fn option_as_ptr(option: Option<&[u8]>) -> *const u8
 {
     option.unwrap().as_ptr()
-}}
+}
 
 // MANTISSA
 
-// Validate the extracted integer has no leading zeros.
-perftools_inline!{
+/// Validate the extracted integer has no leading zeros.
+#[inline]
 #[cfg(feature = "format")]
 pub(super) fn validate_no_leading_zeros<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -70,11 +70,11 @@ pub(super) fn validate_no_leading_zeros<'a, Data>(data: &Data)
         Some(_) => Err((ErrorCode::InvalidLeadingZeros, data.integer().as_ptr())),
         None    => Ok(())
     }
-}}
+}
 
-// Validate the extracted mantissa float components.
-//      1. Validate non-empty significant digits (integer or fraction).
-perftools_inline!{
+/// Validate the extracted mantissa float components.
+///      1. Validate non-empty significant digits (integer or fraction).
+#[inline]
 pub(super) fn validate_permissive_mantissa<'a, Data>(data: &Data)
     -> ParseResult<()>
     where Data: FastDataInterface<'a>
@@ -87,11 +87,11 @@ pub(super) fn validate_permissive_mantissa<'a, Data>(data: &Data)
     } else {
         Ok(())
     }
-}}
+}
 
-// Validate the extracted mantissa float components.
-//      1. Validate integer component is non-empty.
-perftools_inline!{
+/// Validate the extracted mantissa float components.
+///      1. Validate integer component is non-empty.
+#[inline]
 #[cfg(feature = "format")]
 pub(super) fn validate_required_integer<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -103,11 +103,11 @@ pub(super) fn validate_required_integer<'a, Data>(data: &Data)
     } else {
         Ok(())
     }
-}}
+}
 
-// Validate the extracted mantissa float components.
-//      1. Validate fraction component is non-empty if present.
-perftools_inline!{
+/// Validate the extracted mantissa float components.
+///      1. Validate fraction component is non-empty if present.
+#[inline]
 #[cfg(feature = "format")]
 pub(super) fn validate_required_fraction<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -119,12 +119,12 @@ pub(super) fn validate_required_fraction<'a, Data>(data: &Data)
     } else {
         Ok(())
     }
-}}
+}
 
-// Validate the extracted mantissa float components.
-//      1. Validate integer component is non-empty.
-//      2. Validate fraction component is non-empty if present.
-perftools_inline!{
+/// Validate the extracted mantissa float components.
+///      1. Validate integer component is non-empty.
+///      2. Validate fraction component is non-empty if present.
+#[inline]
 #[cfg(feature = "format")]
 pub(super) fn validate_required_digits<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -139,10 +139,10 @@ pub(super) fn validate_required_digits<'a, Data>(data: &Data)
     } else {
         Ok(())
     }
-}}
+}
 
-// Validate mantissa depending on float format.
-perftools_inline!{
+/// Validate mantissa depending on float format.
+#[inline]
 #[cfg(feature = "format")]
 pub(super) fn validate_mantissa<'a, Data>(data: &Data, format: NumberFormat)
     -> ParseResult<()>
@@ -162,13 +162,13 @@ pub(super) fn validate_mantissa<'a, Data>(data: &Data, format: NumberFormat)
         (true, false)   => validate_required_integer(data),
         (false, false)  => validate_permissive_mantissa(data)
     }
-}}
+}
 
 // EXPONENT
 
-// Validate the required exponent component.
-//      1). If the exponent has been defined, ensure at least 1 digit follows it.
-perftools_inline!{
+/// Validate the required exponent component.
+///      1). If the exponent has been defined, ensure at least 1 digit follows it.
+#[inline]
 pub(super) fn validate_required_exponent<'a, Data>(data: &Data)
     -> ParseResult<()>
     where Data: FastDataInterface<'a>
@@ -191,21 +191,21 @@ pub(super) fn validate_required_exponent<'a, Data>(data: &Data)
         Some(_) => Ok(()),
         None    => Err((ErrorCode::EmptyExponent, option_as_ptr(data.exponent())))
     }
-}}
+}
 
-// Validate optional exponent component.
-//      A no-op, since the data is optional.
-perftools_inline!{
+/// Validate optional exponent component.
+///      A no-op, since the data is optional.
+#[inline]
 #[cfg(feature = "format")]
 pub(super) fn validate_optional_exponent<'a, Data>(_: &Data)
     -> ParseResult<()>
     where Data: FastDataInterface<'a>
 {
     Ok(())
-}}
+}
 
-// Validate invalid exponent component.
-perftools_inline!{
+/// Validate invalid exponent component.
+#[inline]
 #[cfg(feature = "format")]
 pub(super) fn validate_invalid_exponent<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -215,10 +215,10 @@ pub(super) fn validate_invalid_exponent<'a, Data>(data: &Data)
         true  => return Err((ErrorCode::InvalidExponent, option_as_ptr(data.exponent()))),
         false => Ok(())
     }
-}}
+}
 
-// Validate exponent depending on float format.
-perftools_inline!{
+/// Validate exponent depending on float format.
+#[inline]
 #[cfg(feature = "format")]
 pub(super) fn validate_exponent<'a, Data>(data: &Data, format: NumberFormat)
     -> ParseResult<()>
@@ -231,22 +231,22 @@ pub(super) fn validate_exponent<'a, Data>(data: &Data, format: NumberFormat)
         (_, true)       => validate_invalid_exponent(data),
         (false, false)  => validate_optional_exponent(data)
     }
-}}
+}
 
 // EXPONENT SIGN
 
-// Validate optional exponent sign.
-//      A no-op, since the data is optional.
-perftools_inline!{
+/// Validate optional exponent sign.
+///      A no-op, since the data is optional.
+#[inline]
 pub(super) fn validate_optional_exponent_sign<'a, Data>(_: &Data)
     -> ParseResult<()>
     where Data: FastDataInterface<'a>
 {
     Ok(())
-}}
+}
 
-// Validate a required exponent sign.
-perftools_inline!{
+/// Validate a required exponent sign.
+#[inline]
 #[cfg(feature = "format")]
 pub(super) fn validate_required_exponent_sign<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -259,10 +259,10 @@ pub(super) fn validate_required_exponent_sign<'a, Data>(data: &Data)
         _ if has_exponent(data)     => Err((ErrorCode::MissingExponentSign, option_as_ptr(data.exponent()))),
         _                           => Ok(())
     }
-}}
+}
 
-// Validate a required exponent sign.
-perftools_inline!{
+/// Validate a required exponent sign.
+#[inline]
 #[cfg(feature = "format")]
 pub(super) fn validate_no_positive_exponent_sign<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -274,10 +274,10 @@ pub(super) fn validate_no_positive_exponent_sign<'a, Data>(data: &Data)
         Some(&b'+') => Err((ErrorCode::InvalidPositiveExponentSign, option_as_ptr(data.exponent()))),
         _           => Ok(())
     }
-}}
+}
 
-// Validate exponent sign depending on float format.
-perftools_inline!{
+/// Validate exponent sign depending on float format.
+#[inline]
 #[cfg(feature = "format")]
 pub(super) fn validate_exponent_sign<'a, Data>(data: &Data, format: NumberFormat)
     -> ParseResult<()>
@@ -290,21 +290,21 @@ pub(super) fn validate_exponent_sign<'a, Data>(data: &Data, format: NumberFormat
         (_, true)       => validate_no_positive_exponent_sign(data),
         (false, false)  => validate_optional_exponent_sign(data)
     }
-}}
+}
 
 // EXPONENT FRACTION
 
-// Validate an exponent may occur with or without a fraction.
-perftools_inline!{
+/// Validate an exponent may occur with or without a fraction.
+#[inline]
 pub(super) fn validate_exponent_optional_fraction<'a, Data>(_: &Data)
     -> ParseResult<()>
     where Data: FastDataInterface<'a>
 {
     Ok(())
-}}
+}
 
-// Validate an exponent requires a fraction component.
-perftools_inline!{
+/// Validate an exponent requires a fraction component.
+#[inline]
 #[cfg(feature = "format")]
 pub(super) fn validate_exponent_required_fraction<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -314,10 +314,10 @@ pub(super) fn validate_exponent_required_fraction<'a, Data>(data: &Data)
         true  => Err((ErrorCode::ExponentWithoutFraction, option_as_ptr(data.exponent()))),
         false => Ok(())
     }
-}}
+}
 
-// Validate exponent fraction depending on float format.
-perftools_inline!{
+/// Validate exponent fraction depending on float format.
+#[inline]
 #[cfg(feature = "format")]
 pub(super) fn validate_exponent_fraction<'a, Data>(data: &Data, format: NumberFormat)
     -> ParseResult<()>
@@ -327,7 +327,7 @@ pub(super) fn validate_exponent_fraction<'a, Data>(data: &Data, format: NumberFo
         true  => validate_exponent_required_fraction(data),
         false => validate_exponent_optional_fraction(data)
     }
-}}
+}
 
 // TESTS
 // -----

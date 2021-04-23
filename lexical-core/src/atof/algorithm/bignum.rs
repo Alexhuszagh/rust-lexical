@@ -2,26 +2,13 @@
 
 use crate::float::*;
 use crate::util::*;
+use super::alias::FloatType;
 use super::math::*;
 
-// DATA TYPE
+// BINARY FACTOR
 
-cfg_if! {
-if #[cfg(feature = "radix")] {
-    use crate::lib::Vec;
-    type IntStorageType = Vec<Limb>;
-} else {
-    // Maximum denominator is 767 mantissa digits + 324 exponent,
-    // or 1091 digits, or approximately 3600 bits (round up to 4k).
-    #[cfg(limb_width_32)]
-    type IntStorageType = arrayvec::ArrayVec<[Limb; 128]>;
-
-    #[cfg(limb_width_64)]
-    type IntStorageType = arrayvec::ArrayVec<[Limb; 64]>;
-}}  // cfg_if
-
-perftools_inline!{
 /// Calculate the integral ceiling of the binary factor from a basen number.
+#[inline]
 pub(super) fn integral_binary_factor(radix: u32)
     -> u32
 {
@@ -72,138 +59,181 @@ pub(super) fn integral_binary_factor(radix: u32)
             _  => unreachable!(),
         }
     }
-}}
+}
 
 // BIGINT
 
 /// Storage for a big integer type.
+///
+/// This is used for the bhcomp::large_atof and bhcomp::small_atof
+/// algorithms. Specifically, it stores all the significant digits
+/// scaled to the proper exponent, as an integral type,
+/// and then directly compares these digits.
+///
+/// This requires us to store the number of significant bits, plus the
+/// number of exponent bits (required) since we scale everything
+/// to the same exponent.
+/// This therefore only needs the following number of digits to
+/// determine the correct representation (the algorithm can be found in
+/// `max_digits` in `bhcomp.rs`):
+///  * `bfloat16` - 138
+///  * `f16`      - 29
+///  * `f32`      - 158
+///  * `f64`      - 1092
+///  * `f128`     - 16530
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(Debug))]
-pub(crate) struct Bigint {
+pub(crate) struct Bigint<F: Float> {
     /// Internal storage for the Bigint, in little-endian order.
-    pub(crate) data: IntStorageType,
+    pub(crate) data: F::BigintStorage,
 }
 
-impl Default for Bigint {
+impl<F: Float> Default for Bigint<F> {
+    #[inline]
     fn default() -> Self {
         // We want to avoid lower-order
-        let mut bigint = Bigint { data: IntStorageType::default() };
+        let mut bigint = Self { data: F::BigintStorage::default() };
         bigint.data.reserve(20);
         bigint
     }
 }
 
-impl SharedOps for Bigint {
-    type StorageType = IntStorageType;
+impl<F: Float> SharedOps for Bigint<F> {
+    type StorageType = F::BigintStorage;
 
-    perftools_inline_always!{
+    #[inline(always)]
     fn data<'a>(&'a self) -> &'a Self::StorageType {
         &self.data
-    }}
+    }
 
-    perftools_inline_always!{
+    #[inline(always)]
     fn data_mut<'a>(&'a mut self) -> &'a mut Self::StorageType {
         &mut self.data
-    }}
+    }
 }
 
-impl SmallOps for Bigint {
+impl<F: Float> SmallOps for Bigint<F> {
 }
 
-impl LargeOps for Bigint {
+impl<F: Float> LargeOps for Bigint<F> {
 }
 
 // BIGFLOAT
 
-// Adjust the storage capacity for the underlying array.
-cfg_if! {
-if #[cfg(limb_width_64)] {
-    type FloatStorageType = arrayvec::ArrayVec<[Limb; 20]>;
-} else {
-    type FloatStorageType = arrayvec::ArrayVec<[Limb; 36]>;
-}}   // cfg_if
-
 /// Storage for a big floating-point type.
+///
+/// This is used for the bigcomp::atof algorithm, which crates a
+/// representation of `b+h` and the float scaled into the range `[1, 10)`.
+/// This therefore only needs the following number of digits to
+/// determine the correct representation (the algorithm can be found in
+/// `max_digits` in `bhcomp.rs`):
+///  * `bfloat16` - 97
+///  * `f16`      - 22
+///  * `f32`      - 113
+///  * `f64`      - 768
+///  * `f128`     - 11564
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(Debug))]
-pub struct Bigfloat {
-    /// Internal storage for the Bigint, in little-endian order.
+pub struct Bigfloat<F: Float> {
+    /// Internal storage for the Bigfloat, in little-endian order.
     ///
     /// Enough storage for up to 10^345, which is 2^1146, or more than
     /// the max for f64.
-    pub(crate) data: FloatStorageType,
+    pub(crate) data: F::BigfloatStorage,
     /// It also makes sense to store an exponent, since this simplifies
     /// normalizing and powers of 2.
     pub(crate) exp: i32,
 }
 
-impl Default for Bigfloat {
-    perftools_inline!{
+impl<F: Float> Default for Bigfloat<F> {
+    #[inline]
     fn default() -> Self {
         // We want to avoid lower-order
-        let mut bigfloat = Bigfloat { data: FloatStorageType::default(), exp: 0 };
+        let mut bigfloat = Self { data: F::BigfloatStorage::default(), exp: 0 };
         bigfloat.data.reserve(10);
         bigfloat
-    }}
+    }
 }
 
-impl SharedOps for Bigfloat {
-    type StorageType = FloatStorageType;
+impl<F: Float> SharedOps for Bigfloat<F> {
+    type StorageType = F::BigfloatStorage;
 
-    perftools_inline_always!{
+    #[inline(always)]
     fn data<'a>(&'a self) -> &'a Self::StorageType {
         &self.data
-    }}
+    }
 
-    perftools_inline_always!{
+    #[inline(always)]
     fn data_mut<'a>(&'a mut self) -> &'a mut Self::StorageType {
         &mut self.data
-    }}
+    }
 }
 
-impl SmallOps for Bigfloat {
-    perftools_inline!{
+impl<F: Float> SmallOps for Bigfloat<F> {
+    #[inline]
     fn imul_pow2(&mut self, n: u32) {
         // Increment exponent to simulate actual multiplication.
         self.exp += n.as_i32();
-    }}
+    }
 }
 
-impl LargeOps for Bigfloat {
+impl<F: Float> LargeOps for Bigfloat<F> {
 }
 
 // TO BIGFLOAT
 
 /// Simple overloads to allow conversions of extended floats to big integers.
-pub trait ToBigfloat<M: Mantissa> {
-    fn to_bigfloat(&self) -> Bigfloat;
+pub trait ToBigfloat<F: FloatType> {
+    fn to_bigfloat(&self) -> Bigfloat<F>;
 }
 
-impl ToBigfloat<u32> for ExtendedFloat<u32> {
-    perftools_inline!{
-    fn to_bigfloat(&self) -> Bigfloat {
-        let mut bigfloat = Bigfloat::from_u32(self.mant);
+
+#[cfg(feature = "f16")]
+impl ToBigfloat<f16> for ExtendedFloat<<f16 as FloatType>::Mantissa> {
+    #[inline]
+    fn to_bigfloat(&self) -> Bigfloat<f16> {
+        let mut bigfloat = Bigfloat::<f16>::from_u32(self.mant);
         bigfloat.exp = self.exp;
         bigfloat
-    }}
+    }
 }
 
-impl ToBigfloat<u64> for ExtendedFloat<u64> {
-    perftools_inline!{
-    fn to_bigfloat(&self) -> Bigfloat {
-        let mut bigfloat = Bigfloat::from_u64(self.mant);
+#[cfg(feature = "f16")]
+impl ToBigfloat<bf16> for ExtendedFloat<<bf16 as FloatType>::Mantissa> {
+    #[inline]
+    fn to_bigfloat(&self) -> Bigfloat<bf16> {
+        let mut bigfloat = Bigfloat::<bf16>::from_u32(self.mant);
         bigfloat.exp = self.exp;
         bigfloat
-    }}
+    }
 }
 
+impl ToBigfloat<f32> for ExtendedFloat<<f32 as FloatType>::Mantissa> {
+    #[inline]
+    fn to_bigfloat(&self) -> Bigfloat<f32> {
+        let mut bigfloat = Bigfloat::<f32>::from_u32(self.mant);
+        bigfloat.exp = self.exp;
+        bigfloat
+    }
+}
+
+impl ToBigfloat<f64> for ExtendedFloat<<f64 as FloatType>::Mantissa> {
+    #[inline]
+    fn to_bigfloat(&self) -> Bigfloat<f64> {
+        let mut bigfloat = Bigfloat::<f64>::from_u64(self.mant);
+        bigfloat.exp = self.exp;
+        bigfloat
+    }
+}
+
+#[cfg(feature = "f128")]
 impl ToBigfloat<u128> for ExtendedFloat<u128> {
-    perftools_inline!{
-    fn to_bigfloat(&self) -> Bigfloat {
-        let mut bigfloat = Bigfloat::from_u128(self.mant);
+    #[inline]
+    fn to_bigfloat(&self) -> Bigfloat<f128> {
+        let mut bigfloat = Bigfloat::<f128>::from_u64(self.mant);
         bigfloat.exp = self.exp;
         bigfloat
-    }}
+    }
 }
 
 // TESTS

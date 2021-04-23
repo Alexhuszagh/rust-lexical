@@ -78,35 +78,35 @@ pub(crate) trait FloatToString: Float {
 }
 
 impl FloatToString for f32 {
-    perftools_inline!{
+    #[inline]
     fn decimal<'a>(self, bytes: &'a mut [u8]) -> usize {
         float_decimal(self, bytes)
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     #[cfg(feature = "radix")]
     fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> usize {
         float_radix(self, radix, bytes)
-    }}
+    }
 }
 
 impl FloatToString for f64 {
-    perftools_inline!{
+    #[inline]
     fn decimal<'a>(self, bytes: &'a mut [u8]) -> usize {
         double_decimal(self, bytes)
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     #[cfg(feature = "radix")]
     fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> usize {
         double_radix(self, radix, bytes)
-    }}
+    }
 }
 
 // FTOA
 
-// Forward the correct arguments the ideal encoder.
-perftools_inline!{
+/// Forward the correct arguments the ideal encoder.
+#[inline]
 fn forward<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     -> usize
 {
@@ -122,10 +122,11 @@ fn forward<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
             _  => value.radix(radix, bytes),
         }
     }
-}}
+}
 
-// Convert float-to-string and handle special (positive) floats.
-perftools_inline!{
+/// Convert float-to-string and handle special (positive) floats.
+#[inline]
+#[allow(deprecated)]    // TODO(ahuszagh) Refactor to remove deprecated.
 fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     -> usize
 {
@@ -155,10 +156,10 @@ fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8
     } else {
         forward(value, radix, bytes)
     }
-}}
+}
 
-// Handle +/- values.
-perftools_inline!{
+/// Handle +/- values.
+#[inline]
 fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     -> usize
 {
@@ -168,7 +169,7 @@ fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     #[cfg(feature = "trim_floats")] {
         if value.is_zero() {
             // We know this is safe, because we confirmed the buffer is >= 1.
-            index_mut!(bytes[0] = b'0');
+            bytes[0] = b'0';
             return 1;
         }
     }
@@ -178,39 +179,41 @@ fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
     if value.is_sign_negative() {
         let value = -value;
         // We know this is safe, because we confirmed the buffer is >= 1.
-        index_mut!(bytes[0] = b'-');
-        let bytes = &mut index_mut!(bytes[1..]);
+        bytes[0] = b'-';
+        let bytes = &mut bytes[1..];
         filter_special(value, radix, bytes) + 1
     } else {
         filter_special(value, radix, bytes)
     }
-}}
+}
 
-// Write float to string..
-perftools_inline!{
+/// Write float to string.
+#[inline]
 fn ftoa<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
     -> usize
 {
     let len = filter_sign(value, radix, bytes);
-    let bytes = &mut index_mut!(bytes[..len]);
+    let bytes = &mut bytes[..len];
     trim(bytes)
-}}
+}
 
-// Trim a trailing ".0" from a float.
-perftools_inline!{
+/// Trim a trailing ".0" from a float.
+#[inline]
 fn trim<'a>(bytes: &'a mut [u8])
     -> usize
 {
     // Trim a trailing ".0" from a float.
+    // TODO(ahuszagh) Remove with the trim_floats removal.
     if cfg!(feature = "trim_floats") && ends_with_slice(bytes, b".0") {
         bytes.len() - 2
     } else {
         bytes.len()
     }
-}}
+}
 
 // TO LEXICAL
 
+// TODO(ahuszagh) This needs to have a format option.
 to_lexical!(ftoa, f32);
 to_lexical!(ftoa, f64);
 

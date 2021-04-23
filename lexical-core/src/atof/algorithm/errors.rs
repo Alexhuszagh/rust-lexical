@@ -18,8 +18,8 @@ pub trait FloatErrors: Mantissa {
     fn error_is_accurate<F: Float>(count: u32, fp: &ExtendedFloat<Self>, kind: RoundingKind) -> bool;
 }
 
-perftools_inline!{
 /// Check if the error is accurate with a round-nearest rounding scheme.
+#[inline]
 fn nearest_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64)
     -> bool
 {
@@ -45,10 +45,10 @@ fn nearest_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u6
         // representation is valid.
         !(cmp1 && cmp2)
     }
-}}
+}
 
-perftools_inline!{
 /// Check if the error is accurate with a round-toward rounding scheme.
+#[inline]
 #[cfg(feature = "rounding")]
 fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64)
     -> bool
@@ -85,20 +85,20 @@ fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64
             !(cmp1 && cmp2)
         }
     }
-}}
+}
 
 impl FloatErrors for u64 {
-    perftools_inline!{
+    #[inline]
     fn error_scale() -> u32 {
         8
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     fn error_halfscale() -> u32 {
         u64::error_scale() / 2
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     #[allow(unused_variables)]
     fn error_is_accurate<F: Float>(count: u32, fp: &ExtendedFloat<u64>, kind: RoundingKind)
         -> bool
@@ -180,25 +180,25 @@ impl FloatErrors for u64 {
                 toward_error_is_accurate(errors, fp, extrabits)
             }
         }
-    }}
+    }
 }
 
 // 128-bit representation is always accurate, ignore this.
 impl FloatErrors for u128 {
-    perftools_inline!{
+    #[inline]
     fn error_scale() -> u32 {
         0
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     fn error_halfscale() -> u32 {
         0
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     fn error_is_accurate<F: Float>(_: u32, _: &ExtendedFloat<u128>, _: RoundingKind) -> bool {
         // Ignore the halfway problem, use more bits to aim for accuracy,
         // but short-circuit to avoid extremely slow operations.
         true
-    }}
+    }
 }

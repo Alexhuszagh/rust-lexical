@@ -15,7 +15,7 @@ const DIGIT_TO_CHAR: [u8; 36] = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7',
 #[allow(dead_code)]
 pub(crate) fn digit_to_char<T: Integer>(digit: T) -> u8 {
     debug_assert!(digit.as_i32() >= 0 && digit.as_i32() < 36, "digit_to_char() invalid character.");
-    index!(DIGIT_TO_CHAR[digit.as_usize()])
+    DIGIT_TO_CHAR[digit.as_usize()]
 }
 
 // Conditionally compile the precompiled radix**2 tables.
@@ -31,13 +31,10 @@ pub(crate) fn digit_to_char<T: Integer>(digit: T) -> u8 {
 // for a remainder of `3` for the radix^2 in radix 2 will give you `1` and `1`,
 // at indexes 6 and 7.
 
-cfg_if! {
-if #[cfg(feature = "table")] {
 pub(crate) const DIGIT_TO_BASE10_SQUARED: [u8; 200] = [b'0', b'0', b'0', b'1', b'0', b'2', b'0', b'3', b'0', b'4', b'0', b'5', b'0', b'6', b'0', b'7', b'0', b'8', b'0', b'9', b'1', b'0', b'1', b'1', b'1', b'2', b'1', b'3', b'1', b'4', b'1', b'5', b'1', b'6', b'1', b'7', b'1', b'8', b'1', b'9', b'2', b'0', b'2', b'1', b'2', b'2', b'2', b'3', b'2', b'4', b'2', b'5', b'2', b'6', b'2', b'7', b'2', b'8', b'2', b'9', b'3', b'0', b'3', b'1', b'3', b'2', b'3', b'3', b'3', b'4', b'3', b'5', b'3', b'6', b'3', b'7', b'3', b'8', b'3', b'9', b'4', b'0', b'4', b'1', b'4', b'2', b'4', b'3', b'4', b'4', b'4', b'5', b'4', b'6', b'4', b'7', b'4', b'8', b'4', b'9', b'5', b'0', b'5', b'1', b'5', b'2', b'5', b'3', b'5', b'4', b'5', b'5', b'5', b'6', b'5', b'7', b'5', b'8', b'5', b'9', b'6', b'0', b'6', b'1', b'6', b'2', b'6', b'3', b'6', b'4', b'6', b'5', b'6', b'6', b'6', b'7', b'6', b'8', b'6', b'9', b'7', b'0', b'7', b'1', b'7', b'2', b'7', b'3', b'7', b'4', b'7', b'5', b'7', b'6', b'7', b'7', b'7', b'8', b'7', b'9', b'8', b'0', b'8', b'1', b'8', b'2', b'8', b'3', b'8', b'4', b'8', b'5', b'8', b'6', b'8', b'7', b'8', b'8', b'8', b'9', b'9', b'0', b'9', b'1', b'9', b'2', b'9', b'3', b'9', b'4', b'9', b'5', b'9', b'6', b'9', b'7', b'9', b'8', b'9', b'9'];
-}}  // cfg_if
 
 cfg_if! {
-if #[cfg(all(feature = "radix", feature = "table"))] {
+if #[cfg(feature = "radix")] {
 pub(crate) const DIGIT_TO_BASE2_SQUARED: [u8; 8] = [b'0', b'0', b'0', b'1', b'1', b'0', b'1', b'1'];
 pub(crate) const DIGIT_TO_BASE3_SQUARED: [u8; 18] = [b'0', b'0', b'0', b'1', b'0', b'2', b'1', b'0', b'1', b'1', b'1', b'2', b'2', b'0', b'2', b'1', b'2', b'2'];
 pub(crate) const DIGIT_TO_BASE4_SQUARED: [u8; 32] = [b'0', b'0', b'0', b'1', b'0', b'2', b'0', b'3', b'1', b'0', b'1', b'1', b'1', b'2', b'1', b'3', b'2', b'0', b'2', b'1', b'2', b'2', b'2', b'3', b'3', b'0', b'3', b'1', b'3', b'2', b'3', b'3'];
@@ -77,7 +74,7 @@ pub(crate) const DIGIT_TO_BASE36_SQUARED: [u8; 2592] = [b'0', b'0', b'0', b'1', 
 // EXACT EXPONENT
 
 /// Get exact exponent limit for radix.
-pub(crate) trait ExactExponent {
+pub trait ExactExponent {
     /// Get min and max exponent limits (exact) from radix.
     fn exponent_limit<T: Integer>(radix: T) -> (i32, i32);
 
@@ -321,7 +318,7 @@ union Transmute<U: Copy, F: Copy> {
 
 /// Calculate powers using pre-calculated lookup tables.
 /// No error-checking occurs, these methods are not safe.
-pub(crate) trait TablePower {
+pub trait TablePower {
     /// Exponent
     const POW2_EXPONENT_BIAS: i32;
 

@@ -12,27 +12,27 @@ pub(crate) trait Atoi: Integer {
 
     // Parse integer from string with format.
     #[cfg(feature = "format")]
-    fn atoi_format(bytes: &[u8], radix: u32, format: NumberFormat) -> ParseResult<(Self, *const u8)>;
+    fn atoi_format(bytes: &[u8], format: NumberFormat) -> ParseResult<(Self, *const u8)>;
 }
 
 // Implement atoi for type.
 macro_rules! atoi_impl {
     ($($t:ty)*) => ($(
         impl Atoi for $t {
-            perftools_inline_always!{
+            #[inline(always)]
             fn atoi(bytes: &[u8], radix: u32)
                 -> ParseResult<($t, *const u8)>
             {
                 standalone_no_separator(bytes, radix)
-            }}
+            }
 
-            perftools_inline_always!{
+            #[inline(always)]
             #[cfg(feature = "format")]
-            fn atoi_format(bytes: &[u8], radix: u32, format: NumberFormat)
+            fn atoi_format(bytes: &[u8], format: NumberFormat)
                 -> ParseResult<($t, *const u8)>
             {
-                standalone_separator(bytes, radix, format)
-            }}
+                standalone_separator(bytes, format)
+            }
         }
     )*);
 }
@@ -40,43 +40,43 @@ macro_rules! atoi_impl {
 atoi_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
 
 impl Atoi for u128 {
-    perftools_inline_always!{
+    #[inline(always)]
     fn atoi(bytes: &[u8], radix: u32)
         -> ParseResult<(u128, *const u8)>
     {
         standalone_128_no_separator::<u128, u64>(bytes, radix)
-    }}
+    }
 
-    perftools_inline_always!{
+    #[inline(always)]
     #[cfg(feature = "format")]
-    fn atoi_format(bytes: &[u8], radix: u32, format: NumberFormat)
+    fn atoi_format(bytes: &[u8], format: NumberFormat)
         -> ParseResult<(u128, *const u8)>
     {
-        standalone_128_separator::<u128, u64>(bytes, radix, format)
-    }}
+        standalone_128_separator::<u128, u64>(bytes, format)
+    }
 }
 
 impl Atoi for i128 {
-    perftools_inline_always!{
+    #[inline(always)]
     fn atoi(bytes: &[u8], radix: u32)
         -> ParseResult<(i128, *const u8)>
     {
         standalone_128_no_separator::<i128, i64>(bytes, radix)
-    }}
+    }
 
-    perftools_inline_always!{
+    #[inline(always)]
     #[cfg(feature = "format")]
-    fn atoi_format(bytes: &[u8], radix: u32, format: NumberFormat)
+    fn atoi_format(bytes: &[u8], format: NumberFormat)
         -> ParseResult<(i128, *const u8)>
     {
-        standalone_128_separator::<i128, i64>(bytes, radix, format)
-    }}
+        standalone_128_separator::<i128, i64>(bytes, format)
+    }
 }
 
 // ATOI
 // ----
 
-perftools_inline!{
+#[inline]
 pub(crate) fn atoi<'a, T>(bytes: &'a [u8], radix: u32)
     -> Result<(T, usize)>
     where T: Atoi
@@ -86,20 +86,22 @@ pub(crate) fn atoi<'a, T>(bytes: &'a [u8], radix: u32)
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
-}}
+}
 
-perftools_inline!{
+// TODO(ahuszagh) Remove the radix.
+#[inline]
 #[cfg(feature = "format")]
 pub(crate) fn atoi_format<'a, T>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> Result<(T, usize)>
     where T: Atoi
 {
+    let format = format | NumberFormat::from_radix(radix as u8);
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match T::atoi_format(bytes, radix, format) {
+    match T::atoi_format(bytes, format) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
-}}
+}
 
 // FROM LEXICAL
 // ------------
@@ -316,6 +318,7 @@ mod tests {
     #[cfg(feature = "format")]
     fn i32_no_leading_zeros_test() {
         let format = NumberFormat::NO_INTEGER_LEADING_ZEROS;
+        let format = format | NumberFormat::from_radix(10);
         assert!(i32::from_lexical_format(b"1", format).is_ok());
         assert!(i32::from_lexical_format(b"0", format).is_ok());
         assert!(i32::from_lexical_format(b"01", format).is_err());
@@ -326,7 +329,10 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn i32_integer_internal_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_') | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = format | NumberFormat::from_radix(10);
         assert!(i32::from_lexical_format(b"3_1", format).is_ok());
         assert!(i32::from_lexical_format(b"_31", format).is_err());
         assert!(i32::from_lexical_format(b"31_", format).is_err());
@@ -335,7 +341,10 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn i32_integer_leading_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_') | NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = format | NumberFormat::from_radix(10);
         assert!(i32::from_lexical_format(b"3_1", format).is_err());
         assert!(i32::from_lexical_format(b"_31", format).is_ok());
         assert!(i32::from_lexical_format(b"31_", format).is_err());
@@ -344,7 +353,10 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn i32_integer_trailing_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_') | NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = format | NumberFormat::from_radix(10);
         assert!(i32::from_lexical_format(b"3_1", format).is_err());
         assert!(i32::from_lexical_format(b"_31", format).is_err());
         assert!(i32::from_lexical_format(b"31_", format).is_ok());
@@ -353,9 +365,11 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn i32_integer_consecutive_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_')
-            | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR
-            | NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = format | NumberFormat::from_radix(10);
         assert!(i32::from_lexical_format(b"3_1", format).is_ok());
         assert!(i32::from_lexical_format(b"3__1", format).is_ok());
         assert!(i32::from_lexical_format(b"_31", format).is_err());

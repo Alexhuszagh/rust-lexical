@@ -62,7 +62,7 @@ mod tests {
 
     #[test]
     fn extract_test() {
-        PermissiveFastDataInterface::new(NumberFormat::permissive().unwrap()).run_tests([
+        PermissiveFastDataInterface::new(NumberFormat::PERMISSIVE).run_tests([
             // Valid
             ("1.2345", Ok(permissive!(b"1", Some(b!("2345")), None, 0))),
             ("12.345", Ok(permissive!(b"12", Some(b!("345")), None, 0))),

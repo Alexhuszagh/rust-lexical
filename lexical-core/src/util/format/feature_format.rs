@@ -49,7 +49,7 @@ bitflags! {
     ///
     /// 32  33  34  35  36  37  38  39  40  41 42  43  44  45  46  47   48
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    /// |I/I|F/I|E/I|I/L|F/L|E/L|I/T|F/T|E/T|I/C|F/C|E/C|S/D|           |
+    /// |I/I|F/I|E/I|I/L|F/L|E/L|I/T|F/T|E/T|I/C|F/C|E/C|S/D|   |N/I|N/F|
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     ///
     /// 48  49  50  51  52  53  54  55  56  57  58  59  60  62  62  63  64
@@ -83,6 +83,8 @@ bitflags! {
     ///     E/C = Exponent consecutive digit separator.
     ///     S/D = Special (non-finite) digit separator.
     ///     R/D = Radix (as a 6-bit integer).
+    ///     N/I = No integer leading zeros.
+    ///     N/F = No float leading zeros.
     ///     L/I = Incorrect algorithm (everything done with native floats).
     ///     L/L = Lossy algorithm (using the fast and moderate paths).
     /// ```
@@ -316,12 +318,6 @@ bitflags! {
         #[doc(hidden)]
         const CASE_SENSITIVE_SPECIAL                = flags::CASE_SENSITIVE_SPECIAL;
 
-        #[doc(hidden)]
-        const NO_INTEGER_LEADING_ZEROS              = flags::NO_INTEGER_LEADING_ZEROS;
-
-        #[doc(hidden)]
-        const NO_FLOAT_LEADING_ZEROS                = flags::NO_FLOAT_LEADING_ZEROS;
-
         // DIGIT SEPARATOR FLAGS & MASKS
         // See `flags` for documentation.
 
@@ -375,6 +371,14 @@ bitflags! {
 
         #[doc(hidden)]
         const SPECIAL_DIGIT_SEPARATOR               = flags::SPECIAL_DIGIT_SEPARATOR;
+
+        // LEADING ZERO FLAGS & MASKS
+
+        #[doc(hidden)]
+        const NO_INTEGER_LEADING_ZEROS              = flags::NO_INTEGER_LEADING_ZEROS;
+
+        #[doc(hidden)]
+        const NO_FLOAT_LEADING_ZEROS                = flags::NO_FLOAT_LEADING_ZEROS;
 
         // CONVERSION PRECISION FLAGS & MASKS
         // See `flags` for documentation.
@@ -1791,6 +1795,30 @@ bitflags! {
     }
 }
 
+impl NumberFormat {
+    /// Create new format from bits.
+    /// This method should **NEVER** be public, use the builder API.
+    #[inline]
+    pub(crate) fn new(bits: u64) -> Self {
+        Self { bits }
+    }
+
+    /// Create new format from radix.
+    /// This method should **NEVER** be public, use the builder API.
+    #[inline]
+    pub(crate) fn from_radix(radix: u8) -> Self {
+        Self::new(flags::radix_to_flags(radix))
+    }
+
+    /// Create new format from digit separator.
+    /// This method should **NEVER** be public, use the builder API.
+    #[inline]
+    #[cfg(test)]
+    pub(crate) fn from_digit_separator(digit_separator: u8) -> Self {
+        Self::new(flags::digit_separator_to_flags(digit_separator))
+    }
+}
+
 impl Format for NumberFormat {
     #[inline]
     fn flags(self) -> Self {
@@ -1803,7 +1831,6 @@ impl Format for NumberFormat {
     }
 
     #[inline]
-    #[cfg(feature = "radix")]
     fn radix(self) -> u8 {
         flags::radix_from_flags(self.bits)
     }
@@ -1823,7 +1850,6 @@ impl Format for NumberFormat {
         flags::exponent_from_flags(self.bits)
     }
 
-    #[cfg(feature = "radix")]
     #[inline]
     fn exponent_backup(self) -> u8 {
         flags::exponent_backup_from_flags(self.bits)
@@ -2227,7 +2253,6 @@ impl NumberFormatBuilder {
         }
     }
 
-    #[cfg(feature = "radix")]
     #[inline(always)]
     pub fn radix(&mut self, radix: u8) -> &mut Self {
         self.radix = radix;
@@ -2252,7 +2277,6 @@ impl NumberFormatBuilder {
         self
     }
 
-    #[cfg(feature = "radix")]
     #[inline(always)]
     pub fn exponent_backup(&mut self, exponent_backup: u8) -> &mut Self {
         self.exponent_backup = exponent_backup;
@@ -2439,7 +2463,7 @@ impl Builder for NumberFormatBuilder {
     type Buildable = NumberFormat;
 
     #[inline]
-    fn build(self) -> Option<Self::Buildable> {
+    fn build(&self) -> Option<Self::Buildable> {
         let mut format = Self::Buildable::default();
         // Generic flags.
         add_flag!(format, self.required_integer_digits, REQUIRED_INTEGER_DIGITS);
@@ -2521,11 +2545,11 @@ impl Buildable for NumberFormat {
     #[inline]
     fn rebuild(&self) -> Self::Builder {
         Self::Builder {
-            radix: flags::radix_from_flags(self.bits),
+            radix: self.radix(),
             digit_separator: self.digit_separator(),
             decimal_point: self.decimal_point(),
             exponent: self.exponent(),
-            exponent_backup: flags::exponent_backup_from_flags(self.bits),
+            exponent_backup: self.exponent_backup(),
             required_integer_digits: self.required_integer_digits(),
             required_fraction_digits: self.required_fraction_digits(),
             required_exponent_digits: self.required_exponent_digits(),
@@ -2566,9 +2590,8 @@ mod tests {
     use super::*;
 
     #[test]
-    #[allow(deprecated)]
+    #[allow(deprecated)]        // Remove when compile is removed.
     fn test_compile() {
-        // TODO(ahuszagh) Use the builder interface
         // Test all false
         let flag = NumberFormat::compile(10, b'_', b'.', b'e', b'^', false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false).unwrap();
         assert_eq!(flag.flags(), NumberFormat::default());
@@ -2577,13 +2600,14 @@ mod tests {
 
     #[test]
     fn test_permissive() {
-        let flag = NumberFormat::ignore(b'_').unwrap();
-        assert_eq!(flag.flags(), NumberFormat::DIGIT_SEPARATOR_FLAG_MASK);
+        let flag = NumberFormat::PERMISSIVE;
+        assert_eq!(flag.interface_flags(), NumberFormat::PERMISSIVE_INTERFACE);
     }
 
     #[test]
     fn test_ignore() {
-        let flag = NumberFormat::ignore(b'_').unwrap();
+        let flag = NumberFormat::IGNORE;
+        let flag = flag | NumberFormat::from_digit_separator(b'_');
         assert_eq!(flag.flags(), NumberFormat::DIGIT_SEPARATOR_FLAG_MASK);
         assert_eq!(flag.digit_separator(), b'_');
         assert_eq!(flag.decimal_point(), b'.');
@@ -2623,7 +2647,7 @@ mod tests {
         assert_eq!(flag.lossy(), false);
 
         #[cfg(feature ="radix")]
-        assert_eq!(flag.radix(), 10);   // TODO(ahuszagh) Failing...
+        assert_eq!(flag.radix(), 10);
 
         #[cfg(feature ="radix")]
         assert_eq!(flag.exponent_backup(), b'^');
@@ -2784,8 +2808,57 @@ mod tests {
             // Just wanna check the flags are defined.
             assert!((flag.bits == 0) | true);
             assert!((flag.digit_separator() == 0) | true);
+            // Check these values are properly set.
+            assert_eq!(flag.radix(), 10);
+            assert_eq!(flag.decimal_point(), b'.');
+            assert_eq!(flag.exponent(), b'e');
+            assert_eq!(flag.exponent_backup(), b'^');
         }
     }
 
-    // TODO(ahuszagh) Test the builder, and rebuild.
+    #[test]
+    fn test_builder() {
+        // Test a few invalid ones.
+        let flag = NumberFormat::builder()
+            .incorrect(true)
+            .lossy(true)
+            .build();
+        assert_eq!(flag, None);
+
+        let flag = NumberFormat::builder()
+            .exponent(b'.')
+            .build();
+        assert_eq!(flag, None);
+
+        // Test a few valid ones.
+        let flag = NumberFormat::builder()
+            .incorrect(true)
+            .build();
+        assert!(flag.is_some());
+        let flag = flag.unwrap();
+        assert_eq!(flag.radix(), 10);
+        assert_eq!(flag.digit_separator(), b'\x00');
+        assert_eq!(flag.decimal_point(), b'.');
+        assert_eq!(flag.exponent(), b'e');
+        assert_eq!(flag.exponent_backup(), b'^');
+        assert_eq!(flag.incorrect(), true);
+        assert_eq!(flag.required_integer_digits(), false);
+        assert_eq!(flag.required_fraction_digits(), false);
+        assert_eq!(flag.required_exponent_digits(), false);
+        assert_eq!(flag.lossy(), false);
+    }
+
+    #[test]
+    fn test_rebuild() {
+        let flag = NumberFormat::CSHARP7_STRING;
+        let rebuilt = flag.rebuild()
+            .lossy(true)
+            .build()
+            .unwrap();
+        assert_eq!(flag.radix(), 10);
+        assert_eq!(rebuilt.radix(), 10);
+        assert_eq!(rebuilt.flags(), flag.flags());
+        assert_eq!(flag.lossy(), false);
+        assert_eq!(rebuilt.lossy(), true);
+    }
 }

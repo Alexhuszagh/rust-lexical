@@ -109,7 +109,7 @@ fn consume_digits<'a>(digits: &'a [u8], radix: u32, _: u8)
 {
     // Consume all digits.
     let mut index = 0;
-    while index < digits.len() && is_digit(index!(digits[index]), radix) {
+    while index < digits.len() && is_digit(digits[index], radix) {
         index += 1;
     }
     split_at_index(digits, index)
@@ -127,7 +127,7 @@ pub(crate) fn consume_digits_i<'a>(digits: &'a [u8], radix: u32, digit_separator
     let mut previous = false;
     let mut index = 0;
     while index < digits.len() {
-        let c = index!(digits[index]);
+        let c = digits[index];
         if is_digit(c, radix) {
             index += 1;
             previous = false;
@@ -159,7 +159,7 @@ pub(crate) fn consume_digits_ic<'a>(digits: &'a [u8], radix: u32, digit_separato
     // for a leading digit separator.
     let mut index = 0;
     while index < digits.len() {
-        let c = index!(digits[index]);
+        let c = digits[index];
         if is_digit(c, radix) {
             index += 1;
         } else if c == digit_separator && index != 0 {
@@ -173,7 +173,7 @@ pub(crate) fn consume_digits_ic<'a>(digits: &'a [u8], radix: u32, digit_separato
     //      1). The trailing digits are digit separators.
     // Preconditions:
     //      1). If index > 0, we know digits[0] has to a digit.
-    while index > 1 && index!(digits[index-1]) == digit_separator {
+    while index > 1 && digits[index-1] == digit_separator {
         index -= 1;
     }
 
@@ -189,7 +189,7 @@ pub(crate) fn consume_digits_l<'a>(digits: &'a [u8], radix: u32, digit_separator
 {
     // Consume leading digit separator, if applicable.
     let mut index = 0;
-    if index < digits.len() && index!(digits[index]) == digit_separator {
+    if index < digits.len() && digits[index] == digit_separator {
         index += 1;
     }
 
@@ -197,14 +197,14 @@ pub(crate) fn consume_digits_l<'a>(digits: &'a [u8], radix: u32, digit_separator
     // Store the previous index to later determine if any digits
     // were consumed.
     let prev_index = index;
-    while index < digits.len() && is_digit(index!(digits[index]), radix) {
+    while index < digits.len() && is_digit(digits[index], radix) {
         index += 1;
     }
 
     // We've gone too far if:
     //      1). We consumed no interior digits.
     //      2). The next character is a digit separator (cannot be a digit).
-    if prev_index == index && index < digits.len() && index!(digits[index]) == digit_separator {
+    if prev_index == index && index < digits.len() && digits[index] == digit_separator {
         index = 0;
     }
 
@@ -220,12 +220,12 @@ pub(crate) fn consume_digits_lc<'a>(digits: &'a [u8], radix: u32, digit_separato
 {
     // Consume all leading digit separators, if applicable.
     let mut index = 0;
-    while index < digits.len() && index!(digits[index]) == digit_separator {
+    while index < digits.len() && digits[index] == digit_separator {
         index += 1;
     }
 
     // Consume all interior digits.
-    while index < digits.len() && is_digit(index!(digits[index]), radix) {
+    while index < digits.len() && is_digit(digits[index], radix) {
         index += 1;
     }
 
@@ -246,7 +246,7 @@ pub(crate) fn consume_digits_t<'a>(digits: &'a [u8], radix: u32, digit_separator
 {
     // Consume all interior digits.
     let mut index = 0;
-    while index < digits.len() && is_digit(index!(digits[index]), radix) {
+    while index < digits.len() && is_digit(digits[index], radix) {
         index += 1;
     }
 
@@ -254,14 +254,14 @@ pub(crate) fn consume_digits_t<'a>(digits: &'a [u8], radix: u32, digit_separator
     // Store the previous index to later determine if a digit separator
     // was consumed.
     let prev_index = index;
-    if index < digits.len() && index!(digits[index]) == digit_separator {
+    if index < digits.len() && digits[index] == digit_separator {
         index += 1;
     }
 
     // We have gone too far if:
     //      1). We consumed a trailing digit separator.
     //      2). The next character is a digit or digit separator.
-    if index != prev_index && index < digits.len() && is_digit_or_separator(index!(digits[index]), radix, digit_separator) {
+    if index != prev_index && index < digits.len() && is_digit_or_separator(digits[index], radix, digit_separator) {
         index = prev_index;
     }
 
@@ -277,7 +277,7 @@ pub(crate) fn consume_digits_tc<'a>(digits: &'a [u8], radix: u32, digit_separato
 {
     // Consume all interior digits.
     let mut index = 0;
-    while index < digits.len() && is_digit(index!(digits[index]), radix) {
+    while index < digits.len() && is_digit(digits[index], radix) {
         index += 1;
     }
 
@@ -285,14 +285,14 @@ pub(crate) fn consume_digits_tc<'a>(digits: &'a [u8], radix: u32, digit_separato
     // Store the previous index to later determine if any digit
     // separators were consumed.
     let prev_index = index;
-    while index < digits.len() && index!(digits[index]) == digit_separator {
+    while index < digits.len() && digits[index] == digit_separator {
         index += 1;
     }
 
     // We have gone too far if:
     //      1). We consumed more than 1 trailing digit separators.
     //      2). The next character is a digit (cannot be a digit separator).
-    if index != prev_index && index < digits.len() && is_digit(index!(digits[index]), radix) {
+    if index != prev_index && index < digits.len() && is_digit(digits[index], radix) {
         index = prev_index;
     }
 
@@ -311,7 +311,7 @@ pub(crate) fn consume_digits_il<'a>(digits: &'a [u8], radix: u32, digit_separato
     let mut previous = false;
     let mut index = 0;
     while index < digits.len() {
-        let c = index!(digits[index]);
+        let c = digits[index];
         if is_digit(c, radix) {
             index += 1;
             previous = false;
@@ -328,7 +328,7 @@ pub(crate) fn consume_digits_il<'a>(digits: &'a [u8], radix: u32, digit_separato
     //      1). The last index was a digit separator unless:
     //          1). The current index is 1 (index 0 was a digit separator).
     //          2). The current character is not a digit separator (cannot be a digit).
-    if previous && !(index == 1 && index < digits.len() && index!(digits[index]) != digit_separator) {
+    if previous && !(index == 1 && index < digits.len() && digits[index] != digit_separator) {
         index -= 1;
     }
 
@@ -345,7 +345,7 @@ pub(crate) fn consume_digits_ilc<'a>(digits: &'a [u8], radix: u32, digit_separat
     // Consume digits and digit separators until an invalid character.
     let mut index = 0;
     while index < digits.len() {
-        let c = index!(digits[index]);
+        let c = digits[index];
         if is_digit_or_separator(c, radix, digit_separator) {
             index += 1;
         } else {
@@ -359,7 +359,7 @@ pub(crate) fn consume_digits_ilc<'a>(digits: &'a [u8], radix: u32, digit_separat
     // Remove all trailing digit separators, however, store the index in
     // case all are removed.
     let current_index = index;
-    while index >= 1 && index!(digits[index-1]) == digit_separator {
+    while index >= 1 && digits[index-1] == digit_separator {
         index -= 1;
     }
 
@@ -384,7 +384,7 @@ pub(crate) fn consume_digits_it<'a>(digits: &'a [u8], radix: u32, digit_separato
     let mut previous = false;
     let mut index = 0;
     while index < digits.len() {
-        let c = index!(digits[index]);
+        let c = digits[index];
         if is_digit(c, radix) {
             index += 1;
             previous = false;
@@ -400,7 +400,7 @@ pub(crate) fn consume_digits_it<'a>(digits: &'a [u8], radix: u32, digit_separato
     // buffers like b"_123_". However, We might not have gotten a
     // trailing separator if:
     //      1). The index was 0, something like b"_.".
-    if index == 0 && index < digits.len() && index!(digits[index]) == digit_separator {
+    if index == 0 && index < digits.len() && digits[index] == digit_separator {
         index += 1;
         previous = true;
     }
@@ -409,7 +409,7 @@ pub(crate) fn consume_digits_it<'a>(digits: &'a [u8], radix: u32, digit_separato
     // except consecutive digit separators. We've gone too far if:
     //      1). We take consecutive digit separators.
     //      2). The next character is a digit (only occurs from special index == 9 check).
-    if previous && index < digits.len() && is_digit_or_separator(index!(digits[index]), radix, digit_separator) {
+    if previous && index < digits.len() && is_digit_or_separator(digits[index], radix, digit_separator) {
         index -= 1;
     }
 
@@ -427,7 +427,7 @@ pub(crate) fn consume_digits_itc<'a>(digits: &'a [u8], radix: u32, digit_separat
     // for a leading digit separator.
     let mut index = 0;
     while index < digits.len() {
-        let c = index!(digits[index]);
+        let c = digits[index];
         if is_digit(c, radix) {
             index += 1;
         } else if c == digit_separator && index != 0 {
@@ -443,13 +443,13 @@ pub(crate) fn consume_digits_itc<'a>(digits: &'a [u8], radix: u32, digit_separat
     //      1). The index was 0, something like b"_." or b"__.".
     if index == 0 {
         // Consume all leading digit separators.
-        while index < digits.len() && index!(digits[index]) == digit_separator {
+        while index < digits.len() && digits[index] == digit_separator {
             index += 1;
         }
 
         // Now, we might have gone too far. If the next character is a digit,
         // we need to rollback to 0.
-        if index < digits.len() && is_digit(index!(digits[index]), radix) {
+        if index < digits.len() && is_digit(digits[index], radix) {
             index = 0;
         }
     }
@@ -466,7 +466,7 @@ pub(crate) fn consume_digits_lt<'a>(digits: &'a [u8], radix: u32, digit_separato
 {
     // Consume leading digit separator, if applicable.
     let mut index = 0;
-    if index < digits.len() && index!(digits[index]) == digit_separator {
+    if index < digits.len() && digits[index] == digit_separator {
         index += 1;
     }
 
@@ -474,14 +474,14 @@ pub(crate) fn consume_digits_lt<'a>(digits: &'a [u8], radix: u32, digit_separato
     // Store the previous index to later determine if any digits
     // were consumed.
     let prev_index = index;
-    while index < digits.len() && is_digit(index!(digits[index]), radix) {
+    while index < digits.len() && is_digit(digits[index], radix) {
         index += 1;
     }
 
     // Consume a trailing digit separator. If we haven't consumed any digits,
     // then we have a leading b'__', so we shouldn't consume that either.
     let mut previous = index == prev_index;
-    if !previous && index < digits.len() && index!(digits[index]) == digit_separator {
+    if !previous && index < digits.len() && digits[index] == digit_separator {
         index += 1;
         previous = true;
     }
@@ -489,7 +489,7 @@ pub(crate) fn consume_digits_lt<'a>(digits: &'a [u8], radix: u32, digit_separato
     // We have gone too far if:
     //      1). The last character was a digit separator.
     //      2). The current character is a digit or digit separator.
-    if index < digits.len() && previous && is_digit_or_separator(index!(digits[index]), radix, digit_separator) {
+    if index < digits.len() && previous && is_digit_or_separator(digits[index], radix, digit_separator) {
         index -= 1;
     }
 
@@ -505,27 +505,27 @@ pub(crate) fn consume_digits_ltc<'a>(digits: &'a [u8], radix: u32, digit_separat
 {
     // Consume all leading digit separators, if applicable.
     let mut index = 0;
-    while index < digits.len() && index!(digits[index]) == digit_separator {
+    while index < digits.len() && digits[index] == digit_separator {
         index += 1;
     }
 
     // Consume all interior digits.
     // We don't need to store the index, because if we consume no digits,
     // then the next character cannot possibly be a digit separator.
-    while index < digits.len() && is_digit(index!(digits[index]), radix) {
+    while index < digits.len() && is_digit(digits[index], radix) {
         index += 1;
     }
 
     // Consume all trailing digit separators.
     let prev_index = index;
-    while index < digits.len() && index!(digits[index]) == digit_separator {
+    while index < digits.len() && digits[index] == digit_separator {
         index += 1;
     }
 
     // We have gone too far if:
     //      1). We consumed trailing digit separators.
     //      2). The subsequent character is a digit (cannot be a digit separator).
-    if index < digits.len() && index != prev_index && is_digit(index!(digits[index]), radix) {
+    if index < digits.len() && index != prev_index && is_digit(digits[index], radix) {
         index = prev_index;
     }
 
@@ -545,7 +545,7 @@ pub(crate) fn consume_digits_ilt<'a>(digits: &'a [u8], radix: u32, digit_separat
     let mut previous = false;
     let mut index = 0;
     while index < digits.len() {
-        let c = index!(digits[index]);
+        let c = digits[index];
         if is_digit(c, radix) {
             index += 1;
             previous = false;
@@ -561,7 +561,7 @@ pub(crate) fn consume_digits_ilt<'a>(digits: &'a [u8], radix: u32, digit_separat
     // That means we've gone too far if:
     //      1). The last character was a digit separator.
     //      2). The current character is a digit separator.
-    if previous && index < digits.len() && index!(digits[index]) == digit_separator {
+    if previous && index < digits.len() && digits[index] == digit_separator {
         index -= 1;
     }
 
@@ -580,7 +580,7 @@ pub(crate) fn consume_digits_iltc<'a>(digits: &'a [u8], radix: u32, digit_separa
     // digit separator combination.
     let mut index = 0;
     while index < digits.len() {
-        let c = index!(digits[index]);
+        let c = digits[index];
         if is_digit_or_separator(c, radix, digit_separator) {
             index += 1;
         } else {

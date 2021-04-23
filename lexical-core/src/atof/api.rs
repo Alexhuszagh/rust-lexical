@@ -18,51 +18,52 @@ if #[cfg(feature = "correct")] {
 /// Trait to define parsing of a string to float.
 trait StringToFloat: Float {
     /// Serialize string to float, favoring correctness.
-    fn default(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat) -> ParseResult<(Self, *const u8)>;
+    fn default(bytes: &[u8], sign: Sign, format: NumberFormat) -> ParseResult<(Self, *const u8)>;
 }
 
 impl StringToFloat for f32 {
-    perftools_inline_always!{
-    fn default(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+    #[inline(always)]
+    fn default(bytes: &[u8], sign: Sign, format: NumberFormat)
         -> ParseResult<(f32, *const u8)>
     {
-        algorithm::atof(bytes, radix, lossy, sign, format)
-    }}
+        // TODO(ahuszagh) Need to feature-gate this based on correct.
+        algorithm::atof(bytes, sign, format)
+    }
 }
 
 impl StringToFloat for f64 {
-    perftools_inline_always!{
-    fn default(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+    #[inline(always)]
+    fn default(bytes: &[u8], sign: Sign, format: NumberFormat)
         -> ParseResult<(f64, *const u8)>
     {
-        algorithm::atod(bytes, radix, lossy, sign, format)
-    }}
+        // TODO(ahuszagh) Need to feature-gate this based on correct.
+        algorithm::atod(bytes, sign, format)
+    }
 }
 
 // SPECIAL
 // Utilities to filter special values.
 
-// Convert slice to iterator without digit separators.
-perftools_inline!{
+/// Convert slice to iterator without digit separators.
+#[inline]
 fn to_iter<'a>(bytes: &'a [u8], _: u8) -> slice::Iter<'a, u8> {
     bytes.iter()
-}}
+}
 
-// Convert slice to iterator with digit separators.
-perftools_inline!{
+/// Convert slice to iterator with digit separators.
+#[inline]
 #[cfg(feature = "format")]
 fn to_iter_s<'a>(bytes: &'a [u8], digit_separator: u8) -> SkipValueIterator<'a, u8> {
     SkipValueIterator::new(bytes, digit_separator)
-}}
+}
 
 // PARSER
 
-// Parse infinity from string.
-perftools_inline!{
+/// Parse infinity from string.
+#[inline]
+#[allow(deprecated)]    // TODO(ahuszagh) Refactor to remove deprecated.
 fn parse_infinity<'a, ToIter, StartsWith, Iter, F>(
     bytes: &'a [u8],
-    radix: u32,
-    lossy: bool,
     sign: Sign,
     format: NumberFormat,
     to_iter: ToIter,
@@ -82,20 +83,19 @@ fn parse_infinity<'a, ToIter, StartsWith, Iter, F>(
         Ok((F::INFINITY, iter.as_ptr()))
     } else {
         // Not infinity, may be valid with a different radix.
-        if cfg!(feature = "radix"){
-            F::default(bytes, radix, lossy, sign, format)
+        if cfg!(feature = "radix") {
+            F::default(bytes, sign, format)
         } else {
             Err((ErrorCode::InvalidDigit, bytes.as_ptr()))
         }
     }
-}}
+}
 
-// Parse NaN from string.
-perftools_inline!{
+/// Parse NaN from string.
+#[inline]
+#[allow(deprecated)]    // TODO(ahuszagh) Refactor to remove deprecated.
 fn parse_nan<'a, ToIter, StartsWith, Iter, F>(
     bytes: &'a [u8],
-    radix: u32,
-    lossy: bool,
     sign: Sign,
     format: NumberFormat,
     to_iter: ToIter,
@@ -112,98 +112,98 @@ fn parse_nan<'a, ToIter, StartsWith, Iter, F>(
         Ok((F::NAN, iter.as_ptr()))
     } else {
         // Not NaN, may be valid with a different radix.
-        if cfg!(feature = "radix"){
-            F::default(bytes, radix, lossy, sign, format)
+        if cfg!(feature = "radix") {
+            F::default(bytes, sign, format)
         } else {
             Err((ErrorCode::InvalidDigit, bytes.as_ptr()))
         }
     }
-}}
+}
 
 // ATOF/ATOD
 
-// Parse special or float values with the standard format.
-// Special values are allowed, the match is case-insensitive,
-// and no digit separators are allowed.
-perftools_inline!{
-fn parse_float_standard<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+/// Parse special or float values with the standard format.
+/// Special values are allowed, the match is case-insensitive,
+/// and no digit separators are allowed.
+#[inline]
+fn parse_float_standard<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat)
     -> ParseResult<(F, *const u8)>
 {
     // Use predictive parsing to filter special cases. This leads to
     // dramatic performance gains.
     let starts_with = case_insensitive_starts_with_iter;
-    match index!(bytes[0]) {
-        b'i' | b'I' => parse_infinity(bytes, radix, lossy, sign, format, to_iter, starts_with),
-        b'N' | b'n' => parse_nan(bytes, radix, lossy, sign, format, to_iter, starts_with),
-        _           => F::default(bytes, radix, lossy, sign, format),
+    match bytes[0] {
+        b'i' | b'I' => parse_infinity(bytes, sign, format, to_iter, starts_with),
+        b'N' | b'n' => parse_nan(bytes, sign, format, to_iter, starts_with),
+        _           => F::default(bytes, sign, format),
     }
-}}
+}
 
-// Parse special or float values.
-// Special values are allowed, the match is case-sensitive,
-// and digit separators are allowed.
-perftools_inline!{
+/// Parse special or float values.
+/// Special values are allowed, the match is case-sensitive,
+/// and digit separators are allowed.
+#[inline]
 #[cfg(feature = "format")]
-fn parse_float_cs<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+fn parse_float_cs<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat)
     -> ParseResult<(F, *const u8)>
 {
     let digit_separator = format.digit_separator();
     let starts_with = starts_with_iter;
     match SkipValueIterator::new(bytes, digit_separator).next()  {
-        Some(&b'i') | Some(&b'I')   => parse_infinity(bytes, radix, lossy, sign, format, to_iter_s, starts_with),
-        Some(&b'n') | Some(&b'N')   => parse_nan(bytes, radix, lossy, sign, format, to_iter_s, starts_with),
-        _                           => F::default(bytes, radix, lossy, sign, format),
+        Some(&b'i') | Some(&b'I')   => parse_infinity(bytes, sign, format, to_iter_s, starts_with),
+        Some(&b'n') | Some(&b'N')   => parse_nan(bytes, sign, format, to_iter_s, starts_with),
+        _                           => F::default(bytes, sign, format),
     }
-}}
+}
 
-// Parse special or float values.
-// Special values are allowed, the match is case-sensitive,
-// and no digit separators are allowed.
-perftools_inline!{
+/// Parse special or float values.
+/// Special values are allowed, the match is case-sensitive,
+/// and no digit separators are allowed.
+#[inline]
 #[cfg(feature = "format")]
-fn parse_float_c<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+fn parse_float_c<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat)
     -> ParseResult<(F, *const u8)>
 {
     // Use predictive parsing to filter special cases. This leads to
     // dramatic performance gains.
     let starts_with = starts_with_iter;
-    match index!(bytes[0]) {
-        b'i' | b'I' => parse_infinity(bytes, radix, lossy, sign, format, to_iter, starts_with),
-        b'N' | b'n' => parse_nan(bytes, radix, lossy, sign, format, to_iter, starts_with),
-        _           => F::default(bytes, radix, lossy, sign, format),
+    match bytes[0] {
+        b'i' | b'I' => parse_infinity(bytes, sign, format, to_iter, starts_with),
+        b'N' | b'n' => parse_nan(bytes, sign, format, to_iter, starts_with),
+        _           => F::default(bytes, sign, format),
     }
-}}
+}
 
-// Parse special or float values.
-// Special values are allowed, the match is case-insensitive,
-// and digit separators are allowed.
-perftools_inline!{
+/// Parse special or float values.
+/// Special values are allowed, the match is case-insensitive,
+/// and digit separators are allowed.
+#[inline]
 #[cfg(feature = "format")]
-fn parse_float_s<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+fn parse_float_s<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat)
     -> ParseResult<(F, *const u8)>
 {
     let digit_separator = format.digit_separator();
     let starts_with = case_insensitive_starts_with_iter;
     match SkipValueIterator::new(bytes, digit_separator).next()  {
-        Some(&b'i') | Some(&b'I')   => parse_infinity(bytes, radix, lossy, sign, format, to_iter_s, starts_with),
-        Some(&b'n') | Some(&b'N')   => parse_nan(bytes, radix, lossy, sign, format, to_iter_s, starts_with),
-        _                           => F::default(bytes, radix, lossy, sign, format),
+        Some(&b'i') | Some(&b'I')   => parse_infinity(bytes, sign, format, to_iter_s, starts_with),
+        Some(&b'n') | Some(&b'N')   => parse_nan(bytes, sign, format, to_iter_s, starts_with),
+        _                           => F::default(bytes, sign, format),
     }
-}}
+}
 
-// Parse special or float values with the default formatter.
-perftools_inline!{
+/// Parse special or float values with the default formatter.
+#[inline]
 #[cfg(not(feature = "format"))]
-fn parse_float<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+fn parse_float<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat)
     -> ParseResult<(F, *const u8)>
 {
-    parse_float_standard(bytes, radix, lossy, sign, format)
-}}
+    parse_float_standard(bytes, sign, format)
+}
 
-// Parse special or float values with the default formatter.
-perftools_inline!{
+/// Parse special or float values with the default formatter.
+#[inline]
 #[cfg(feature = "format")]
-fn parse_float<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+fn parse_float<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat)
     -> ParseResult<(F, *const u8)>
 {
     // Need to consider 3 possibilities:
@@ -214,25 +214,25 @@ fn parse_float<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, sign: Si
     let case = format.case_sensitive_special();
     let has_sep = format.special_digit_separator();
     match (no_special, case, has_sep) {
-        (true, _, _)            => F::default(bytes, radix, lossy, sign, format),
-        (false, true, true)     => parse_float_cs(bytes, radix, lossy, sign, format),
-        (false, false, true)    => parse_float_s(bytes, radix, lossy, sign, format),
-        (false, true, false)    => parse_float_c(bytes, radix, lossy, sign, format),
-        (false, false, false)   => parse_float_standard(bytes, radix, lossy, sign, format),
+        (true, _, _)            => F::default(bytes, sign, format),
+        (false, true, true)     => parse_float_cs(bytes, sign, format),
+        (false, false, true)    => parse_float_s(bytes, sign, format),
+        (false, true, false)    => parse_float_c(bytes, sign, format),
+        (false, false, false)   => parse_float_standard(bytes, sign, format),
     }
-}}
+}
 
-// Validate sign byte is valid.
-perftools_inline!{
+/// Validate sign byte is valid.
+#[inline]
 #[cfg(not(feature = "format"))]
 fn validate_sign(_: &[u8], _: &[u8], _: Sign, _: NumberFormat)
     -> ParseResult<()>
 {
     Ok(())
-}}
+}
 
-// Validate sign byte is valid.
-perftools_inline!{
+/// Validate sign byte is valid.
+#[inline]
 #[cfg(feature = "format")]
 fn validate_sign(bytes: &[u8], digits: &[u8], sign: Sign, format: NumberFormat)
     -> ParseResult<()>
@@ -245,78 +245,90 @@ fn validate_sign(bytes: &[u8], digits: &[u8], sign: Sign, format: NumberFormat)
     } else {
         Ok(())
     }
-}}
+}
 
-// Convert float to signed representation.
-perftools_inline!{
+/// Convert float to signed representation.
+#[inline]
 fn to_signed<F: StringToFloat>(float: F, sign: Sign) -> F
 {
     match sign {
         Sign::Positive => float,
         Sign::Negative => -float
     }
-}}
+}
 
-// Standalone atof processor.
-perftools_inline!{
-fn atof<F: StringToFloat>(bytes: &[u8], radix: u32, lossy: bool, format: NumberFormat)
+/// Standalone atof processor.
+#[inline]
+fn atof<F: StringToFloat>(bytes: &[u8], format: NumberFormat)
     -> ParseResult<(F, *const u8)>
 {
     let (sign, digits) = parse_sign::<F>(bytes, format);
     if digits.is_empty() {
         return Err((ErrorCode::Empty, digits.as_ptr()));
     }
-    let (float, ptr): (F, *const u8) = parse_float(digits, radix, lossy, sign, format)?;
+    let (float, ptr): (F, *const u8) = parse_float(digits, sign, format)?;
     validate_sign(bytes, digits, sign, format)?;
 
     Ok((to_signed(float, sign), ptr))
-}}
+}
 
-perftools_inline!{
+// TODO(ahuszagh) Remove the radix.
+#[inline]
 fn atof_lossy<F: StringToFloat>(bytes: &[u8], radix: u32)
     -> Result<(F, usize)>
 {
+    let format = NumberFormat::STANDARD;
+    let format = format | NumberFormat::from_radix(radix as u8);
+    let format = format | NumberFormat::LOSSY;
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, radix, true, NumberFormat::standard().unwrap()) {
+    match atof::<F>(bytes, format) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
-}}
+}
 
-perftools_inline!{
+// TODO(ahuszagh) Remove the radix.
+#[inline]
 fn atof_nonlossy<F: StringToFloat>(bytes: &[u8], radix: u32)
     -> Result<(F, usize)>
 {
+    let format = NumberFormat::STANDARD;
+    let format = format | NumberFormat::from_radix(radix as u8);
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, radix, false, NumberFormat::standard().unwrap()) {
+    match atof::<F>(bytes, format) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
-}}
+}
 
-perftools_inline!{
+// TODO(ahuszagh) Remove the radix.
+#[inline]
 #[cfg(feature = "format")]
 fn atof_format<F: StringToFloat>(bytes: &[u8], radix: u32, format: NumberFormat)
     -> Result<(F, usize)>
 {
+    let format = format | NumberFormat::from_radix(radix as u8);
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, radix, false, format) {
+    match atof::<F>(bytes, format) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
-}}
+}
 
-perftools_inline!{
+// TODO(ahuszagh) Remove the radix.
+#[inline]
 #[cfg(feature = "format")]
 fn atof_lossy_format<F: StringToFloat>(bytes: &[u8], radix: u32, format: NumberFormat)
     -> Result<(F, usize)>
 {
+    let format = format | NumberFormat::from_radix(radix as u8);
+    let format = format | NumberFormat::LOSSY;
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, radix, true, format) {
+    match atof::<F>(bytes, format) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
-}}
+}
 
 // FROM LEXICAL
 // ------------
@@ -591,11 +603,11 @@ mod tests {
     #[cfg(feature = "format")]
     fn f64_special_test() {
         //  Comments match (no_special, case_sensitive, has_sep)
-        let f1 = NumberFormat::standard().unwrap();         // false, false, false
-        let f2 = NumberFormat::ignore(b'_').unwrap();       // false, false, true
-        let f3 = f1 | NumberFormat::NO_SPECIAL;             // true, _, _
-        let f4 = f1 | NumberFormat::CASE_SENSITIVE_SPECIAL; // false, true, false
-        let f5 = f2 | NumberFormat::CASE_SENSITIVE_SPECIAL; // false, true, true
+        let f1 = NumberFormat::STANDARD;                                          // false, false, false
+        let f2 = NumberFormat::IGNORE | NumberFormat::from_digit_separator(b'_'); // false, false, true
+        let f3 = f1 | NumberFormat::NO_SPECIAL;                                   // true, _, _
+        let f4 = f1 | NumberFormat::CASE_SENSITIVE_SPECIAL;                       // false, true, false
+        let f5 = f2 | NumberFormat::CASE_SENSITIVE_SPECIAL;                       // false, true, true
 
         // Easy NaN
         assert!(f64::from_lexical_format(b"NaN", f1).unwrap().is_nan());
@@ -630,6 +642,7 @@ mod tests {
     #[cfg(feature = "format")]
     fn f64_required_integer_digits_test() {
         let format = NumberFormat::REQUIRED_INTEGER_DIGITS;
+        let format = format | NumberFormat::from_radix(10);
         assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"3.0", format).is_ok());
         assert!(f64::from_lexical_format(b".0", format).is_err());
@@ -639,6 +652,7 @@ mod tests {
     #[cfg(feature = "format")]
     fn f64_required_fraction_digits_test() {
         let format = NumberFormat::REQUIRED_FRACTION_DIGITS;
+        let format = format | NumberFormat::from_radix(10);
         assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"3.", format).is_err());
@@ -649,6 +663,7 @@ mod tests {
     #[cfg(feature = "format")]
     fn f64_required_digits_test() {
         let format = NumberFormat::REQUIRED_DIGITS;
+        let format = format | NumberFormat::from_radix(10);
         assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"3.", format).is_err());
@@ -660,6 +675,7 @@ mod tests {
     #[cfg(feature = "format")]
     fn f64_no_positive_mantissa_sign_test() {
         let format = NumberFormat::NO_POSITIVE_MANTISSA_SIGN;
+        let format = format | NumberFormat::from_radix(10);
         assert!(f64::from_lexical_format(b"+3.0", format).is_err());
         assert!(f64::from_lexical_format(b"-3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"3.0", format).is_ok());
@@ -669,6 +685,7 @@ mod tests {
     #[cfg(feature = "format")]
     fn f64_required_mantissa_sign_test() {
         let format = NumberFormat::REQUIRED_MANTISSA_SIGN;
+        let format = format | NumberFormat::from_radix(10);
         assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"-3.0", format).is_ok());
         assert!(f64::from_lexical_format(b"3.0", format).is_err());
@@ -678,6 +695,7 @@ mod tests {
     #[cfg(feature = "format")]
     fn f64_no_exponent_notation_test() {
         let format = NumberFormat::NO_EXPONENT_NOTATION;
+        let format = format | NumberFormat::from_radix(10);
         assert!(f64::from_lexical_format(b"+3.0e7", format).is_err());
         assert!(f64::from_lexical_format(b"+3.0e-7", format).is_err());
         assert!(f64::from_lexical_format(b"+3e", format).is_err());
@@ -689,7 +707,8 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_optional_exponent_test() {
-        let format = NumberFormat::permissive().unwrap();
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::from_radix(10);
         assert!(f64::from_lexical_format(b"+3.0e7", format).is_ok());
         assert!(f64::from_lexical_format(b"+3.0e-7", format).is_ok());
         assert!(f64::from_lexical_format(b"+3.0e", format).is_ok());
@@ -701,6 +720,7 @@ mod tests {
     #[cfg(feature = "format")]
     fn f64_required_exponent_test() {
         let format = NumberFormat::REQUIRED_EXPONENT_DIGITS;
+        let format = format | NumberFormat::from_radix(10);
         assert!(f64::from_lexical_format(b"+3.0e7", format).is_ok());
         assert!(f64::from_lexical_format(b"+3.0e-7", format).is_ok());
         assert!(f64::from_lexical_format(b"+3.0e", format).is_err());
@@ -712,6 +732,7 @@ mod tests {
     #[cfg(feature = "format")]
     fn f64_no_positive_exponent_sign_test() {
         let format = NumberFormat::NO_POSITIVE_EXPONENT_SIGN;
+        let format = format | NumberFormat::from_radix(10);
         assert!(f64::from_lexical_format(b"3.0e7", format).is_ok());
         assert!(f64::from_lexical_format(b"3.0e+7", format).is_err());
         assert!(f64::from_lexical_format(b"3.0e-7", format).is_ok());
@@ -721,6 +742,7 @@ mod tests {
     #[cfg(feature = "format")]
     fn f64_required_exponent_sign_test() {
         let format = NumberFormat::REQUIRED_EXPONENT_SIGN;
+        let format = format | NumberFormat::from_radix(10);
         assert!(f64::from_lexical_format(b"3.0e7", format).is_err());
         assert!(f64::from_lexical_format(b"3.0e+7", format).is_ok());
         assert!(f64::from_lexical_format(b"3.0e-7", format).is_ok());
@@ -730,6 +752,7 @@ mod tests {
     #[cfg(feature = "format")]
     fn f64_no_exponent_without_fraction_test() {
         let format = NumberFormat::NO_EXPONENT_WITHOUT_FRACTION;
+        let format = format | NumberFormat::from_radix(10);
         assert!(f64::from_lexical_format(b"3.0e7", format).is_ok());
         assert!(f64::from_lexical_format(b"3.e7", format).is_ok());
         assert!(f64::from_lexical_format(b"3e7", format).is_err());
@@ -744,6 +767,7 @@ mod tests {
     #[cfg(feature = "format")]
     fn f64_no_leading_zeros_test() {
         let format = NumberFormat::NO_FLOAT_LEADING_ZEROS;
+        let format = format | NumberFormat::from_radix(10);
         assert!(f64::from_lexical_format(b"1.0", format).is_ok());
         assert!(f64::from_lexical_format(b"0.0", format).is_ok());
         assert!(f64::from_lexical_format(b"01.0", format).is_err());
@@ -754,7 +778,9 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_integer_internal_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_') | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
         assert!(f64::from_lexical_format(b"3_1.0e7", format).is_ok());
         assert!(f64::from_lexical_format(b"_31.0e7", format).is_err());
         assert!(f64::from_lexical_format(b"31_.0e7", format).is_err());
@@ -763,7 +789,9 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_fraction_internal_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_') | NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
         assert!(f64::from_lexical_format(b"31.0_1e7", format).is_ok());
         assert!(f64::from_lexical_format(b"31._01e7", format).is_err());
         assert!(f64::from_lexical_format(b"31.01_e7", format).is_err());
@@ -772,7 +800,9 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_exponent_internal_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_') | NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
         assert!(f64::from_lexical_format(b"31.01e7_1", format).is_ok());
         assert!(f64::from_lexical_format(b"31.01e_71", format).is_err());
         assert!(f64::from_lexical_format(b"31.01e71_", format).is_err());
@@ -781,7 +811,9 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_integer_leading_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_') | NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
         assert!(f64::from_lexical_format(b"3_1.0e7", format).is_err());
         assert!(f64::from_lexical_format(b"_31.0e7", format).is_ok());
         assert!(f64::from_lexical_format(b"31_.0e7", format).is_err());
@@ -790,7 +822,9 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_fraction_leading_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_') | NumberFormat::FRACTION_LEADING_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::FRACTION_LEADING_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
         assert!(f64::from_lexical_format(b"31.0_1e7", format).is_err());
         assert!(f64::from_lexical_format(b"31._01e7", format).is_ok());
         assert!(f64::from_lexical_format(b"31.01_e7", format).is_err());
@@ -799,7 +833,9 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_exponent_leading_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_') | NumberFormat::EXPONENT_LEADING_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::EXPONENT_LEADING_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
         assert!(f64::from_lexical_format(b"31.01e7_1", format).is_err());
         assert!(f64::from_lexical_format(b"31.01e_71", format).is_ok());
         assert!(f64::from_lexical_format(b"31.01e71_", format).is_err());
@@ -808,7 +844,9 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_integer_trailing_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_') | NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
         assert!(f64::from_lexical_format(b"3_1.0e7", format).is_err());
         assert!(f64::from_lexical_format(b"_31.0e7", format).is_err());
         assert!(f64::from_lexical_format(b"31_.0e7", format).is_ok());
@@ -817,7 +855,9 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_fraction_trailing_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_') | NumberFormat::FRACTION_TRAILING_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::FRACTION_TRAILING_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
         assert!(f64::from_lexical_format(b"31.0_1e7", format).is_err());
         assert!(f64::from_lexical_format(b"31._01e7", format).is_err());
         assert!(f64::from_lexical_format(b"31.01_e7", format).is_ok());
@@ -826,7 +866,9 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_exponent_trailing_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_') | NumberFormat::EXPONENT_TRAILING_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::EXPONENT_TRAILING_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
         assert!(f64::from_lexical_format(b"31.01e7_1", format).is_err());
         assert!(f64::from_lexical_format(b"31.01e_71", format).is_err());
         assert!(f64::from_lexical_format(b"31.01e71_", format).is_ok());
@@ -835,9 +877,10 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_integer_consecutive_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_')
-            | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR
-            | NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
         assert!(f64::from_lexical_format(b"3__1.0e7", format).is_ok());
         assert!(f64::from_lexical_format(b"_31.0e7", format).is_err());
         assert!(f64::from_lexical_format(b"31_.0e7", format).is_err());
@@ -846,9 +889,10 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_fraction_consecutive_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_')
-            | NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR
-            | NumberFormat::FRACTION_CONSECUTIVE_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::FRACTION_CONSECUTIVE_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
         assert!(f64::from_lexical_format(b"31.0__1e7", format).is_ok());
         assert!(f64::from_lexical_format(b"31._01e7", format).is_err());
         assert!(f64::from_lexical_format(b"31.01_e7", format).is_err());
@@ -857,9 +901,10 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn f64_exponent_consecutive_digit_separator_test() {
-        let format = NumberFormat::from_separator(b'_')
-            | NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR
-            | NumberFormat::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
+        let format = NumberFormat::PERMISSIVE;
+        let format = format | NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
+        let format = format | NumberFormat::from_digit_separator(b'_');
         assert!(f64::from_lexical_format(b"31.01e7__1", format).is_ok());
         assert!(f64::from_lexical_format(b"31.01e_71", format).is_err());
         assert!(f64::from_lexical_format(b"31.01e71_", format).is_err());

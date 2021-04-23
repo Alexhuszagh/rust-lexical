@@ -127,8 +127,8 @@ macro_rules! generic_algorithm {
     });
 }
 
-// Get lookup table for 2 digit radix conversions.
-perftools_inline!{
+/// Get lookup table for 2 digit radix conversions.
+#[inline]
 #[cfg(feature = "radix")]
 fn get_table(radix: u32) -> &'static [u8] {
     match radix {
@@ -169,18 +169,18 @@ fn get_table(radix: u32) -> &'static [u8] {
         36  => &DIGIT_TO_BASE36_SQUARED,
         _   => unreachable!(),
     }
-}}
+}
 
-// Get lookup table for 2 digit radix conversions.
-perftools_inline!{
+/// Get lookup table for 2 digit radix conversions.
+#[inline]
 #[cfg(not(feature = "radix"))]
 fn get_table(_: u32) -> &'static [u8] {
    &DIGIT_TO_BASE10_SQUARED
-}}
+}
 
-// Optimized implementation for radix-N numbers.
-// Precondition: `value` must be non-negative and mutable.
-perftools_inline!{
+/// Optimized implementation for radix-N numbers.
+/// Precondition: `value` must be non-negative and mutable.
+#[inline]
 #[allow(unused_unsafe)]
 fn generic<T>(mut value: T, radix: u32, table: &[u8], buffer: &mut [u8])
     -> usize
@@ -202,13 +202,13 @@ fn generic<T>(mut value: T, radix: u32, table: &[u8], buffer: &mut [u8])
     let mut index = buffer.len();
     generic_algorithm!(value, radix, buffer, T, table, index, radix2, radix4);
     index
-}}
+}
 
-// Optimized implementation for radix-N numbers.
-// Precondition:
-//  `value` must be non-negative and mutable.
-//  Buffer must be 0-initialized.
-perftools_inline!{
+/// Optimized implementation for radix-N numbers.
+/// Precondition:
+///  `value` must be non-negative and mutable.
+///  Buffer must be 0-initialized.
+#[inline]
 #[allow(unused_unsafe)]
 fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [u8])
     -> usize
@@ -248,7 +248,7 @@ fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [u8])
         }
     }
     index
-}}
+}
 
 pub(crate) trait Generic {
     // Export integer to string.
@@ -259,11 +259,11 @@ pub(crate) trait Generic {
 macro_rules! generic_impl {
     ($($t:ty)*) => ($(
         impl Generic for $t {
-            perftools_inline_always!{
+            #[inline(always)]
             fn generic(self, radix: u32, buffer: &mut [u8]) -> usize {
                 let table = get_table(radix);
                 generic(self, radix, table, buffer)
-            }}
+            }
         }
     )*);
 }
@@ -271,9 +271,9 @@ macro_rules! generic_impl {
 generic_impl! { u8 u16 u32 u64 usize }
 
 impl Generic for u128 {
-    perftools_inline_always!{
+    #[inline(always)]
     fn generic(self, radix: u32, buffer: &mut [u8]) -> usize {
         let table = get_table(radix);
         generic_u128(self, radix, table, buffer)
-    }}
+    }
 }

@@ -8,7 +8,7 @@ use super::errors::FloatErrors;
 // TRAITS
 
 /// Trait to simplify type signatures for atof.
-pub(super) trait FloatType:
+pub trait FloatType:
     FloatRounding<u64> +
     FloatRounding<u128> +
     StablePower
@@ -40,8 +40,8 @@ impl MantissaType for u128 {
 }
 
 /// Trait for extended-float types.
-pub(super) trait ExtendedFloatType<F: FloatType>:
-    ToBigfloat<F::Mantissa> +
+pub trait ExtendedFloatType<F: FloatType>:
+    ToBigfloat<F> +
     From<F>
 {
     // I really wish I had any other choice **other** than getters and setters,
@@ -54,45 +54,45 @@ pub(super) trait ExtendedFloatType<F: FloatType>:
 }
 
 impl ExtendedFloatType<f32> for ExtendedFloat<u32> {
-    perftools_inline!{
+    #[inline]
     fn mant(&self) -> u32 {
         self.mant
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     fn exp(&self) -> i32 {
         self.exp
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     fn set_mant(&mut self, mant: u32) {
         self.mant = mant;
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     fn set_exp(&mut self, exp: i32) {
         self.exp = exp;
-    }}
+    }
 }
 
 impl ExtendedFloatType<f64> for ExtendedFloat<u64> {
-    perftools_inline!{
+    #[inline]
     fn mant(&self) -> u64 {
         self.mant
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     fn exp(&self) -> i32 {
         self.exp
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     fn set_mant(&mut self, mant: u64) {
         self.mant = mant;
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     fn set_exp(&mut self, exp: i32) {
         self.exp = exp;
-    }}
+    }
 }

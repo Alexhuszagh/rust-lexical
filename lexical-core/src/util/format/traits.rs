@@ -7,7 +7,7 @@ pub trait Builder {
     type Buildable: Buildable;
 
     /// Consume builder and create type.
-    fn build(self) -> Option<Self::Buildable>;
+    fn build(&self) -> Option<Self::Buildable>;
 }
 
 /// Trait for types that can be constructed through a builder.
@@ -32,7 +32,6 @@ pub trait Format: Default + Copy + Clone + Send {
     fn interface_flags(self) -> Self;
 
     /// Get the radix for number encoding or decoding.
-    #[cfg(feature = "radix")]
     fn radix(self) -> u8;
 
     /// Get the digit separator for the number format.
@@ -45,7 +44,6 @@ pub trait Format: Default + Copy + Clone + Send {
     fn exponent(self) -> u8;
 
     /// Get the exponent backup character from the compiled float format.
-    #[cfg(feature ="radix")]
     fn exponent_backup(self) -> u8;
 
     /// Get if digits are required before the decimal point.
@@ -199,7 +197,7 @@ pub trait Format: Default + Copy + Clone + Send {
     /// errors in existing code, and will not require increments
     /// in the current major/minor version.
     #[deprecated(
-        since = "0.7.7",
+        since = "0.8.0",
         note = "Will be removed with 1.0. Use the Builder API instead."
     )]
     fn compile(
@@ -245,6 +243,10 @@ pub trait Format: Default + Copy + Clone + Send {
     ///
     /// This function cannot fail, but returns an option for consistency
     /// with other grammar compilers.
+    #[deprecated(
+        since = "0.8.0",
+        note = "Will be removed with 1.0. Use the Builder API instead."
+    )]
     fn permissive() -> Option<Self>;
 
     /// Compile standard number format.
@@ -254,6 +256,10 @@ pub trait Format: Default + Copy + Clone + Send {
     ///
     /// This function cannot fail, but returns an option for consistency
     /// with other grammar compilers.
+    #[deprecated(
+        since = "0.8.0",
+        note = "Will be removed with 1.0. Use the Builder API instead."
+    )]
     fn standard() -> Option<Self>;
 
     /// Compile ignore number format.
@@ -266,9 +272,17 @@ pub trait Format: Default + Copy + Clone + Send {
     ///
     /// Returns the value if it was able to compile the format,
     /// otherwise, returns None.
+    #[deprecated(
+        since = "0.8.0",
+        note = "Will be removed with 1.0. Use the Builder API instead."
+    )]
     fn ignore(digit_separator: u8) -> Option<Self>;
 
     /// Create float format directly from digit separator for unittests.
     #[cfg(test)]
+    #[deprecated(
+        since = "0.8.0",
+        note = "Will be removed with 1.0. Use the Builder API instead."
+    )]
     fn from_separator(digit_separator: u8) -> Self;
 }

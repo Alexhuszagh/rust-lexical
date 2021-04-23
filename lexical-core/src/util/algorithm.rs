@@ -139,7 +139,7 @@ pub fn copy_to_dst<'a, Bytes: AsRef<[u8]>>(dst: &'a mut [u8], src: Bytes)
     -> usize
 {
     let src = src.as_ref();
-    let dst = &mut index_mut!(dst[..src.len()]);
+    let dst = &mut dst[..src.len()];
 
     unsafe {
         ptr::copy_nonoverlapping(src.as_ptr(), dst.as_mut_ptr(), dst.len());

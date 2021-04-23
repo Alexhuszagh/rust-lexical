@@ -46,8 +46,8 @@ pub(crate) fn parse_sign_no_separator<'a, T>(bytes: &'a [u8], _: u8)
     where T: Number
 {
     match bytes.get(0) {
-        Some(&b'+')                 => (Sign::Positive, &index!(bytes[1..])),
-        Some(&b'-') if T::IS_SIGNED => (Sign::Negative, &index!(bytes[1..])),
+        Some(&b'+')                 => (Sign::Positive, &bytes[1..]),
+        Some(&b'-') if T::IS_SIGNED => (Sign::Negative, &bytes[1..]),
         _                           => (Sign::Positive, bytes)
     }
 }
@@ -67,7 +67,7 @@ pub(crate) fn parse_sign_lc_separator<'a, T>(bytes: &'a [u8], digit_separator: u
         index += 1;
     }
     if let Some(sign) = to_sign::<T>(bytes.get(index)) {
-        (sign, &index!(bytes[index+1..]))
+        (sign, &bytes[index+1..])
     } else {
         (Sign::Positive, bytes)
     }
@@ -86,10 +86,10 @@ pub(crate) fn parse_sign_l_separator<'a, T>(bytes: &'a [u8], digit_separator: u8
 {
     let b0 = bytes.get(0);
     if let Some(sign) = to_sign::<T>(b0) {
-        (sign, &index!(bytes[1..]))
+        (sign, &bytes[1..])
     } else if is_digit_separator(b0, digit_separator) {
         if let Some(sign) = to_sign::<T>(bytes.get(1)) {
-            (sign, &index!(bytes[2..]))
+            (sign, &bytes[2..])
         } else {
             (Sign::Positive, bytes)
         }
@@ -189,7 +189,8 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn parse_sign_separator_test() {
-        let format = NumberFormat::ignore(b'_').unwrap();
+        let format = NumberFormat::IGNORE;
+        let format = format | NumberFormat::from_digit_separator(b'_');
         assert_eq!(parse_sign_separator::<i32>(b"", format), (Sign::Positive, b!("")));
         assert_eq!(parse_sign_separator::<i32>(b"+", format), (Sign::Positive, b!("")));
         assert_eq!(parse_sign_separator::<i32>(b"-", format), (Sign::Negative, b!("")));
@@ -205,7 +206,7 @@ mod tests {
 
     #[test]
     fn parse_sign_test() {
-        let format = NumberFormat::standard().unwrap();
+        let format = NumberFormat::STANDARD;
         assert_eq!(parse_sign::<i32>(b"", format), (Sign::Positive, b!("")));
         assert_eq!(parse_sign::<i32>(b"+", format), (Sign::Positive, b!("")));
         assert_eq!(parse_sign::<i32>(b"-", format), (Sign::Negative, b!("")));

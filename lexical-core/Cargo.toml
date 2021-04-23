@@ -10,7 +10,7 @@ license = "MIT/Apache-2.0"
 name = "lexical-core"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core"
-version = "0.7.6"
+version = "0.8.0"
 build = "build.rs"
 exclude = [
     "fuzz/*",
@@ -24,8 +24,8 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 [dependencies]
 bitflags = "1.2"
 cfg-if = "1.0"
-# Use static_assertions for correct or format features.
-static_assertions = { version = "1", optional = true }
+libm = "0.2.1"
+static_assertions = "1"
 # Use arrayvec for the correct parser.
 arrayvec = { version = "0.5", default-features = false, optional = true, features = ["array-sizes-33-128"] }
 # Optimized Grisu3 implementation, a well-tested, correct algorithm.
@@ -36,8 +36,6 @@ ryu = { version = "1.0", optional = true }
 quickcheck = { version = "1.0.3", optional = true }
 # Enable proptest for newer Rustc versions.
 proptest = { version = "0.10.1", optional = true }
-# Use libm in a stable, no_std environment.
-libm = { version = "0.2.1", optional = true }
 
 [dev-dependencies]
 approx = "0.4.0"
@@ -45,9 +43,9 @@ approx = "0.4.0"
 [features]
 default = ["correct", "ryu", "std"]
 # Use the correct atof parser.
-correct = ["arrayvec", "static_assertions", "table"]
+correct = ["arrayvec", "table"]
 # Add support for different float string formats.
-format = ["static_assertions"]
+format = []
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["dtoa"]
 # Add support for parsing non-decimal float and integer strings.
@@ -56,16 +54,8 @@ radix = []
 rounding = []
 # Use the `std` library.
 std = []
-# Use precompiled tables for faster performance and accuracy, at the cost of larger binaries.
-table = []
 # Trim a trailing ".0" from an exported float string, and represent -0.0 as "0".
 trim_floats = []
-# Don't force bounds checking with indexing not-known to be valid at compile time.
-# This may lead to memory safety issues.
-unchecked_index = []
-# Don't inline when using perftools
-# Testing only.
-noinline = []
 # Undocumented. Disable quickcheck for older Rustc versions.
 property_tests = ["quickcheck", "proptest"]
 

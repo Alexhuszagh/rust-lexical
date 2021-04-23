@@ -10,6 +10,14 @@ use super::cast::{AsCast, TryCast};
 use super::config::*;
 use super::primitive::Primitive;
 
+#[cfg(feature = "correct")]
+use super::limb::Limb;
+#[cfg(feature = "correct")]
+use super::sequence::CloneableVecLike;
+
+#[cfg(all(feature = "correct", any(feature = "f128", feature = "radix")))]
+use crate::lib::Vec;
+
 // NUMBER
 
 /// Numerical type trait.
@@ -639,6 +647,37 @@ pub trait Float: Number + ops::Neg<Output=Self>
     /// Unsigned type of the same size.
     type Unsigned: UnsignedInteger;
 
+    /// Number of limbs in a Bigint.
+    ///
+    /// This number is somewhat arbitrary, but needs
+    /// to be at least the number of bits required to store
+    /// a Bigint, which is log2(10) * digits, adjusted to the limb size.
+    ///
+    /// Since we reserve at least 20 digits in the default constructor,
+    /// this must be at least 20. This constant is mostly present
+    /// to ensure BigintStorage is correct.
+    #[cfg(feature = "correct")]
+    const BIGINT_LIMBS: usize;
+
+    /// Number of limbs in a Bigfloat.
+    ///
+    /// This number is somewhat arbitrary, but needs
+    /// to be at least the number of bits required to store
+    /// a Bigfloat, which is log2(10) * digits, adjusted to the limb size.
+    ///
+    /// Since we reserve at least 10 digits in the default constructor,
+    /// this must be at least 10. This constant is mostly present
+    /// to ensure BigfloatStorage is correct.
+    #[cfg(feature = "correct")]
+    const BIGFLOAT_LIMBS: usize;
+
+    /// The storage type for the Bigint.
+    #[cfg(feature = "correct")]
+    type BigintStorage: CloneableVecLike<Limb> + Clone;
+    /// The storage type for the Bigfloat.
+    #[cfg(feature = "correct")]
+    type BigfloatStorage: CloneableVecLike<Limb> + Clone;
+
     // CONSTANTS
     const ZERO: Self;
     const ONE: Self;
@@ -661,13 +700,22 @@ pub trait Float: Number + ops::Neg<Output=Self>
 
     // PROPERTIES
 
+    // The following constants can be calculated as follows:
+    //  - `INFINITY_BITS`: EXPONENT_MASK
+    //  - `NEGATIVE_INFINITY_BITS`: INFINITY_BITS | SIGN_MASK
+    //  - `EXPONENT_BIAS`: `2^(EXPONENT_SIZE-1) - 1 + MANTISSA_SIZE`
+    //  - `DENORMAL_EXPONENT`: `1 - EXPONENT_BIAS`
+    //  - `MAX_EXPONENT`: `2^EXPONENT_SIZE - 1 - EXPONENT_BIAS`
+
     /// Positive infinity as bits.
     const INFINITY_BITS: Self::Unsigned;
     /// Positive infinity as bits.
     const NEGATIVE_INFINITY_BITS: Self::Unsigned;
+    /// Size of the exponent.
+    const EXPONENT_SIZE: i32;
     /// Size of the significand (mantissa) without hidden bit.
     const MANTISSA_SIZE: i32;
-    /// Bias of the exponet
+    /// Bias of the exponent.
     const EXPONENT_BIAS: i32;
     /// Exponent portion of a denormal float.
     const DENORMAL_EXPONENT: i32;
@@ -841,68 +889,109 @@ pub trait Float: Number + ops::Neg<Output=Self>
 
 /// Wrap float method for `std` and `no_std` context.
 macro_rules! float_method {
-    ($f:ident, $t:tt, $meth:ident, $intr:ident, $libm:ident $(,$i:expr)*) => ({
+    ($f:ident, $t:tt, $meth:ident, $libm:ident $(,$i:expr)*) => ({
         #[cfg(feature = "std")]
         return $t::$meth($f $(,$i)*);
 
-        #[cfg(all(not(feature = "std"), feature = "libm"))]
+        #[cfg(not(feature = "std"))]
         return libm::$libm($f $(,$i)*);
-
-        #[cfg(all(not(feature = "std"), not(feature = "libm")))]
-        return unsafe { core::intrinsics::$intr($f $(,$i)*) };
     })
 }
 
-/// Wrap float method with special conditions for MSVC.
-///
-/// This is because MSVC wraps these as inline functions, with no actual
-/// ABI for the LLVM intrinsic.
-macro_rules! float_method_msvc {
-    ($f:ident, $ts:tt, $tl:tt, $meth:ident, $intr:ident, $libm:ident $(,$i:expr)*) => ({
-        #[cfg(feature = "std")]
-        return $ts::$meth($f $(,$i)*);
+#[cfg(feature = "f16")]
+impl Float for f16 {
+    type Unsigned = u16;
+    const ZERO: f16 = 0.0;
+    const ONE: f16 = 1.0;
+    const TWO: f16 = 2.0;
+    const MAX: f16 = f16::MAX;
+    const MIN: f16 = f16::MIN;
+    const INFINITY: f16 = f16::INFINITY;
+    const NEG_INFINITY: f16 = f16::NEG_INFINITY;
+    const NAN: f16 = f16::NAN;
+    const BITS: usize = 16;
+    const SIGN_MASK: u16            = 0x8000;
+    const EXPONENT_MASK: u16        = 0x7C00;
+    const HIDDEN_BIT_MASK: u16      = 0x0400;
+    const MANTISSA_MASK: u16        = 0x03FF;
+    const INFINITY_BITS: u16        = 0x7C00;
+    const NEGATIVE_INFINITY_BITS: u16 = Self::INFINITY_BITS | Self::SIGN_MASK;
+    const EXPONENT_SIZE: i32        = 5;
+    const MANTISSA_SIZE: i32        = 10;
+    const EXPONENT_BIAS: i32        = 15 + Self::MANTISSA_SIZE;
+    const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
+    const MAX_EXPONENT: i32         = 0x1F - Self::EXPONENT_BIAS;
 
-        #[cfg(all(not(feature = "std"), feature = "libm"))]
-        return libm::$libm($f $(,$i)*);
-
-        #[cfg(all(not(feature = "std"), not(feature = "libm"), not(target_env = "msvc")))]
-        return unsafe { core::intrinsics::$intr($f $(,$i)*) };
-
-        #[cfg(all(not(feature = "std"), not(feature = "libm"), target_env = "msvc"))]
-        return $tl::$meth($f as $tl $(,$i as $tl)*) as $ts;
-    })
-}
-
-/// Wrap float log method for `no_std` context, with special conditions for Solaris.
-///
-/// Solaris has a standard non-conforming log implementation, we need
-/// to wrap this cheaply.
-macro_rules! float_method_log_solaris {
-    ($f:ident, $t:tt, $meth:ident, $intr:ident, $libm:ident $(,$i:expr)*) => ({
-        #[cfg(feature = "std")]
-        return $t::$meth($f $(,$i)*);
-
-        #[cfg(all(not(feature = "std"), feature = "libm"))]
-        return libm::$libm($f $(,$i)*);
-
-        #[cfg(all(not(feature = "std"), not(feature = "libm"), not(target_os = "solaris")))]
-        return unsafe { core::intrinsics::$intr($f $(,$i)*) };
-
-        // Workaround for Solaris/Illumos due to log(-value) == -Inf, not NaN.
-        #[cfg(all(not(feature = "std"), not(feature = "libm"), target_os = "solaris"))] {
-            if $f.is_nan() {
-                $f
-            } else if $f.is_special() {
-                if $f > $t::ZERO { $f } else { $t::NAN }
-            } else if $f > $t::ZERO {
-                unsafe { core::intrinsics::$intr($f $(,$i)*) }
-            } else if $f.is_zero() {
-                $t::NEG_INFINITY
-            } else {
-                $t::NAN
-            }
+    cfg_if! {
+        if #[cfg(all(feature = "correct", feature = "radix"))] {
+            type BigintStorage = Vec<Limb>;
+        } else if #[cfg(feature = "correct")] {
+            type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
         }
-    })
+    }  // cfg_if
+    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
+
+    #[cfg(all(limb_width_64, feature = "correct"))]
+    const BIGINT_LIMBS: usize = 20;
+    #[cfg(all(limb_width_32, feature = "correct"))]
+    const BIGINT_LIMBS: usize = 20;
+
+    #[cfg(all(limb_width_64, feature = "correct"))]
+    const BIGFLOAT_LIMBS: usize = 10;
+    #[cfg(all(limb_width_32, feature = "correct"))]
+    const BIGFLOAT_LIMBS: usize = 10;
+
+    // TODO(ahuszagh) Need to add the float methods.
+}
+
+#[cfg(feature = "f16")]
+impl Float for bf16 {
+    type Unsigned = u16;
+    const ZERO: bf16 = 0.0;
+    const ONE: bf16 = 1.0;
+    const TWO: bf16 = 2.0;
+    const MAX: bf16 = bf16::MAX;
+    const MIN: bf16 = bf16::MIN;
+    const INFINITY: bf16 = bf16::INFINITY;
+    const NEG_INFINITY: bf16 = bf16::NEG_INFINITY;
+    const NAN: bf16 = bf16::NAN;
+    const BITS: usize = 16;
+    const SIGN_MASK: u16            = 0x8000;
+    const EXPONENT_MASK: u16        = 0x7F80;
+    const HIDDEN_BIT_MASK: u16      = 0x0080;
+    const MANTISSA_MASK: u16        = 0x007F;
+    const INFINITY_BITS: u16        = 0x7F80;
+    const NEGATIVE_INFINITY_BITS: u16 = Self::INFINITY_BITS | Self::SIGN_MASK;
+    const EXPONENT_SIZE: i32        = 8;
+    const MANTISSA_SIZE: i32        = 7;
+    const EXPONENT_BIAS: i32        = 127 + Self::MANTISSA_SIZE;
+    const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
+    const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
+
+    cfg_if! {
+        if #[cfg(all(feature = "correct", feature = "radix"))] {
+            type BigintStorage = Vec<Limb>;
+        } else if #[cfg(feature = "correct")] {
+            type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
+        }
+    }  // cfg_if
+
+    #[cfg(all(limb_width_64, feature = "correct"))]
+    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
+    #[cfg(all(limb_width_32, feature = "correct"))]
+    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
+
+    #[cfg(all(limb_width_64, feature = "correct"))]
+    const BIGINT_LIMBS: usize = 20;
+    #[cfg(all(limb_width_32, feature = "correct"))]
+    const BIGINT_LIMBS: usize = 20;
+
+    #[cfg(all(limb_width_64, feature = "correct"))]
+    const BIGFLOAT_LIMBS: usize = 10;
+    #[cfg(all(limb_width_32, feature = "correct"))]
+    const BIGFLOAT_LIMBS: usize = 20;
+
+    // TODO(ahuszagh) Need to add the float methods.
 }
 
 impl Float for f32 {
@@ -922,55 +1011,79 @@ impl Float for f32 {
     const MANTISSA_MASK: u32        = 0x007FFFFF;
     const INFINITY_BITS: u32        = 0x7F800000;
     const NEGATIVE_INFINITY_BITS: u32 = Self::INFINITY_BITS | Self::SIGN_MASK;
+    const EXPONENT_SIZE: i32        = 8;
     const MANTISSA_SIZE: i32        = 23;
     const EXPONENT_BIAS: i32        = 127 + Self::MANTISSA_SIZE;
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
 
+    cfg_if! {
+        if #[cfg(all(feature = "correct", feature = "radix"))] {
+            type BigintStorage = Vec<Limb>;
+        } else if #[cfg(feature = "correct")] {
+            type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
+        }
+    }  // cfg_if
+
+    #[cfg(all(limb_width_64, feature = "correct"))]
+    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
+    #[cfg(all(limb_width_32, feature = "correct"))]
+    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
+
+    #[cfg(all(limb_width_64, feature = "correct"))]
+    const BIGINT_LIMBS: usize = 20;
+    #[cfg(all(limb_width_32, feature = "correct"))]
+    const BIGINT_LIMBS: usize = 20;
+
+    #[cfg(all(limb_width_64, feature = "correct"))]
+    const BIGFLOAT_LIMBS: usize = 10;
+    #[cfg(all(limb_width_32, feature = "correct"))]
+    const BIGFLOAT_LIMBS: usize = 20;
+
     #[inline]
     fn abs(self) -> f32 {
-        float_method!(self, f32, abs, fabsf32, fabsf)
+        float_method!(self, f32, abs, fabsf)
     }
 
     #[inline]
     fn ceil(self) -> f32 {
-        float_method_msvc!(self, f32, f64, ceil, ceilf32, ceilf)
+        float_method!(self, f32, ceil, ceilf)
     }
 
     #[inline]
     fn exp(self) -> f32 {
-        float_method_msvc!(self, f32, f64, exp, expf32, expf)
+        float_method!(self, f32, exp, expf)
     }
 
     #[inline]
     fn floor(self) -> f32 {
-        float_method_msvc!(self, f32, f64, floor, floorf32, floorf)
+        float_method!(self, f32, floor, floorf)
     }
 
     #[inline]
     fn ln(self) -> f32 {
-        float_method_msvc!(self, f32, f64, ln, logf32, logf)
+        float_method!(self, f32, ln, logf)
     }
 
     #[inline]
     fn powi(self, n: i32) -> f32 {
         cfg_if! {
-            if #[cfg(all(not(feature = "std"), feature = "libm"))] {
+            if #[cfg(not(feature = "std"))] {
                 self.powf(n as f32)
             } else {
-                float_method!(self, f32, powi, powif32, powif, n)
+                f32::powi(self, n)
             }
         }
     }
 
     #[inline]
     fn powf(self, n: f32) -> f32 {
-        float_method_msvc!(self, f32, f64, powf, powf32, powf, n)
+        float_method!(self, f32, powf, powf, n)
     }
 
     #[inline]
     fn round(self) -> f32 {
-        float_method!(self, f32, round, roundf32, roundf)
+        float_method!(self, f32, round, roundf)
     }
 
     #[inline]
@@ -1011,55 +1124,82 @@ impl Float for f64 {
     const MANTISSA_MASK: u64        = 0x000FFFFFFFFFFFFF;
     const INFINITY_BITS: u64        = 0x7FF0000000000000;
     const NEGATIVE_INFINITY_BITS: u64 = Self::INFINITY_BITS | Self::SIGN_MASK;
+    const EXPONENT_SIZE: i32        = 11;
     const MANTISSA_SIZE: i32        = 52;
     const EXPONENT_BIAS: i32        = 1023 + Self::MANTISSA_SIZE;
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0x7FF - Self::EXPONENT_BIAS;
 
+    cfg_if! {
+        if #[cfg(all(feature = "correct", feature = "radix"))] {
+            type BigintStorage = Vec<Limb>;
+        } else if #[cfg(feature = "correct")] {
+            #[cfg(limb_width_64)]
+            type BigintStorage = arrayvec::ArrayVec<[Limb; 64]>;
+            #[cfg(limb_width_32)]
+            type BigintStorage = arrayvec::ArrayVec<[Limb; 128]>;
+        }
+    }  // cfg_if
+
+    #[cfg(all(limb_width_64, feature = "correct"))]
+    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
+    #[cfg(all(limb_width_32, feature = "correct"))]
+    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 36]>;
+
+    #[cfg(all(limb_width_64, feature = "correct"))]
+    const BIGINT_LIMBS: usize = 64;
+    #[cfg(all(limb_width_32, feature = "correct"))]
+    const BIGINT_LIMBS: usize = 128;
+
+    #[cfg(all(limb_width_64, feature = "correct"))]
+    const BIGFLOAT_LIMBS: usize = 20;
+    #[cfg(all(limb_width_32, feature = "correct"))]
+    const BIGFLOAT_LIMBS: usize = 36;
+
     #[inline]
     fn abs(self) -> f64 {
-        float_method!(self, f64, abs, fabsf64, fabs)
+        float_method!(self, f64, abs, fabs)
     }
 
     #[inline]
     fn ceil(self) -> f64 {
-        float_method!(self, f64, ceil, ceilf64, ceil)
+        float_method!(self, f64, ceil, ceil)
     }
 
     #[inline]
     fn exp(self) -> f64 {
-        float_method!(self, f64, exp, expf64, exp)
+        float_method!(self, f64, exp, exp)
     }
 
     #[inline]
     fn floor(self) -> f64 {
-        float_method!(self, f64, floor, floorf64, floor)
+        float_method!(self, f64, floor, floor)
     }
 
     #[inline]
     fn ln(self) -> f64 {
-        float_method_log_solaris!(self, f64, ln, logf64, log)
+        float_method!(self, f64, ln, log)
     }
 
     #[inline]
     fn powi(self, n: i32) -> f64 {
         cfg_if! {
-            if #[cfg(all(not(feature = "std"), feature = "libm"))] {
+            if #[cfg(not(feature = "std"))] {
                 self.powf(n as f64)
             } else {
-                float_method!(self, f64, powi, powif64, powi, n)
+                f64::powi(self, n)
             }
         }
     }
 
     #[inline]
     fn powf(self, n: f64) -> f64 {
-        float_method!(self, f64, powf, powf64, pow, n)
+        float_method!(self, f64, powf, pow, n)
     }
 
     #[inline]
     fn round(self) -> f64 {
-        float_method!(self, f64, round, roundf64, round)
+        float_method!(self, f64, round, round)
     }
 
     #[inline]
@@ -1081,6 +1221,48 @@ impl Float for f64 {
     fn is_sign_negative(self) -> bool {
         f64::is_sign_negative(self)
     }
+}
+
+#[cfg(feature = "f128")]
+impl Float for f128 {
+    type Unsigned = u16;
+    const ZERO: f128 = 0.0;
+    const ONE: f128 = 1.0;
+    const TWO: f128 = 2.0;
+    const MAX: f128 = f128::MAX;
+    const MIN: f128 = f128::MIN;
+    const INFINITY: f128 = f128::INFINITY;
+    const NEG_INFINITY: f128 = f128::NEG_INFINITY;
+    const NAN: f128 = f128::NAN;
+    const BITS: usize = 128;
+    const SIGN_MASK: u128            = 0x80000000000000000000000000000000;
+    const EXPONENT_MASK: u128        = 0x7FFF0000000000000000000000000000;
+    const HIDDEN_BIT_MASK: u128      = 0x00010000000000000000000000000000;
+    const MANTISSA_MASK: u128        = 0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFF;
+    const INFINITY_BITS: u128        = 0x7FFF0000000000000000000000000000;
+    const NEGATIVE_INFINITY_BITS: u128 = Self::INFINITY_BITS | Self::SIGN_MASK;
+    const EXPONENT_SIZE: i32        = 15;
+    const MANTISSA_SIZE: i32        = 112;
+    const EXPONENT_BIAS: i32        = 16383 + Self::MANTISSA_SIZE;
+    const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
+    const MAX_EXPONENT: i32         = 0x7FFF - Self::EXPONENT_BIAS;
+
+    #[cfg(feature = "correct")]
+    type BigintStorage = Vec<Limb>;
+    #[cfg(feature = "correct")]
+    type BigfloatStorage = Vec<Limb>;
+
+    #[cfg(all(limb_width_64, feature = "correct"))]
+    const BIGINT_LIMBS: usize = 900;
+    #[cfg(all(limb_width_32, feature = "correct"))]
+    const BIGINT_LIMBS: usize = 1800;
+
+    #[cfg(all(limb_width_64, feature = "correct"))]
+    const BIGFLOAT_LIMBS: usize = 700;
+    #[cfg(all(limb_width_32, feature = "correct"))]
+    const BIGFLOAT_LIMBS: usize = 1400;
+
+    // TODO(ahuszagh) Need to add the float methods.
 }
 
 // TEST

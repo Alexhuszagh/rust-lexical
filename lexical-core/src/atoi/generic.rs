@@ -83,15 +83,15 @@ use super::shared::*;
 // SHARED
 // ------
 
-// Validate the extracted integer has no leading zeros.
-perftools_inline!{
+/// Validate the extracted integer has no leading zeros.
+#[inline]
 #[cfg(feature = "format")]
 fn validate_no_leading_zeros<'a>(digits: &[u8], digit_separator: u8, ptr: *const u8)
     -> ParseResult<()>
 {
     // Check if the next character is a sign symbol.
     let index = distance(digits.as_ptr(), ptr);
-    let digits = &index!(digits[..index]);
+    let digits = &digits[..index];
     let mut iter = iterate_digits_ignore_separator(digits, digit_separator);
     let is_zero = match iter.next() {
         Some(&b'+') | Some(&b'-')   => false,
@@ -111,7 +111,7 @@ fn validate_no_leading_zeros<'a>(digits: &[u8], digit_separator: u8, ptr: *const
         Some(_)             => Err((ErrorCode::InvalidLeadingZeros, digits.as_ptr())),
         _                   => Ok(())
     }
-}}
+}
 
 // STANDALONE
 // ----------
@@ -137,7 +137,7 @@ macro_rules! parse_digits {
 }
 
 // Parse the digits for the atoi processor.
-perftools_inline_always!{
+#[inline(always)]
 fn parse_digits<'a, T, Iter>(digits: &[u8], mut iter: Iter, radix: u32, sign: Sign)
     -> ParseResult<(T, *const u8)>
     where T: Integer,
@@ -150,12 +150,12 @@ fn parse_digits<'a, T, Iter>(digits: &[u8], mut iter: Iter, radix: u32, sign: Si
         parse_digits!(value, iter, radix, checked_sub, Underflow);
     }
     Ok((value, last_ptr(digits)))
-}}
+}
 
 // PARSE THEN EXTRACT
 
 // Standalone atoi processor without a digit separator.
-perftools_inline_always!{
+#[inline(always)]
 fn standalone<T>(bytes: &[u8], radix: u32)
     -> ParseResult<(T, *const u8)>
     where T: Integer
@@ -163,11 +163,11 @@ fn standalone<T>(bytes: &[u8], radix: u32)
     let (sign, digits) = parse_sign!(bytes, T::IS_SIGNED, Empty);
     let iter = iterate_digits_no_separator(digits, b'\x00');
     parse_digits(digits, iter, radix, sign)
-}}
+}
 
 // Standalone atoi processor with digit separators.
 // Consumes leading, internal, trailing, and consecutive digit separators.
-perftools_inline_always!{
+#[inline(always)]
 #[cfg(feature = "format")]
 fn standalone_iltc<T>(bytes: &[u8], radix: u32, digit_separator: u8)
     -> ParseResult<(T, *const u8)>
@@ -179,7 +179,7 @@ fn standalone_iltc<T>(bytes: &[u8], radix: u32, digit_separator: u8)
     }
     let iter = iterate_digits_ignore_separator(digits, digit_separator);
     parse_digits(digits, iter, radix, sign)
-}}
+}
 
 // EXTRACT THEN PARSE
 
@@ -190,7 +190,7 @@ macro_rules! standalone_atoi_separator {
         sign => $sign:ident,
         consume => $consume:ident
     ) => (
-        perftools_inline_always!{
+        #[inline(always)]
         #[cfg(feature = "format")]
         fn $name<T>(
             bytes: &[u8],
@@ -211,7 +211,7 @@ macro_rules! standalone_atoi_separator {
             let iter = iterate_digits_ignore_separator(leading, digit_separator);
 
             parse_digits(leading, iter, radix, sign)
-        }}
+        }
     );
 }
 
@@ -296,18 +296,18 @@ standalone_atoi_separator!(
 // API
 
 // Standalone atoi processor without a digit separator.
-perftools_inline_always!{
+#[inline(always)]
 pub(crate) fn standalone_no_separator<T>(bytes: &[u8], radix: u32)
     -> ParseResult<(T, *const u8)>
     where T: Integer
 {
     standalone(bytes, radix)
-}}
+}
 
 // Extract exponent with a digit separator in the exponent component.
-perftools_inline_always!{
+#[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFormat)
+pub(crate) fn standalone_separator<V>(bytes: &[u8], format: NumberFormat)
     -> ParseResult<(V, *const u8)>
     where V: Integer
 {
@@ -327,6 +327,7 @@ pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFo
     const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
     const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
 
+    let radix = format.radix() as u32;
     let digit_separator = format.digit_separator();
     let (value, ptr) = match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {
         I       => standalone_i(bytes, radix, digit_separator),
@@ -353,7 +354,7 @@ pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFo
     }
 
     Ok((value, ptr))
-}}
+}
 
 // STANDALONE U128
 // ---------------
@@ -361,10 +362,10 @@ pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFo
 // Grab the step size and power for step_u64.
 // This is the same as the u128 divisor, so don't duplicate the values
 // there.
-perftools_inline_always!{
+#[inline(always)]
 fn step_u64(radix: u32) -> usize {
     u128_divisor(radix).1
-}}
+}
 
 // Add 64-bit temporary to the 128-bit value.
 macro_rules! add_temporary_128 {
@@ -418,8 +419,8 @@ macro_rules! parse_digits_u128 {
     });
 }
 
-// Quickly parse digits using a 64-bit intermediate for the 128-bit atoi processor.
-perftools_inline_always!{
+/// Quickly parse digits using a 64-bit intermediate for the 128-bit atoi processor.
+#[inline(always)]
 fn parse_digits_128_fast<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, sign: Sign)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
@@ -428,10 +429,10 @@ fn parse_digits_128_fast<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, 
 {
     let (value, ptr) = parse_digits::<N, _>(digits, iter, radix, sign)?;
     Ok((as_cast(value), ptr))
-}}
+}
 
-// Slowly parse digits for the 128-bit atoi processor.
-perftools_inline_always!{
+/// Slowly parse digits for the 128-bit atoi processor.
+#[inline(always)]
 fn parse_digits_128_slow<'a, T, Iter>(digits: &[u8], mut iter: Iter, radix: u32, step: usize, sign: Sign)
     -> ParseResult<(T, *const u8)>
     where T: Integer,
@@ -444,17 +445,17 @@ fn parse_digits_128_slow<'a, T, Iter>(digits: &[u8], mut iter: Iter, radix: u32,
         parse_digits_u128!(value, iter, radix, step, checked_sub, Underflow)
     }
     Ok((value, last_ptr(digits)))
-}}
+}
 
-// Parse digits for the 128-bit atoi processor.
-//
-// This algorithm may overestimate the number of digits to overflow
-// on numeric overflow or underflow, otherwise, it will be accurate.
-// This is because we break costly u128 addition/multiplications into
-// temporary steps using u64, allowing much better performance.
-// This is a similar approach to what we take in the arbitrary-precision
-// arithmetic.
-perftools_inline_always!{
+/// Parse digits for the 128-bit atoi processor.
+///
+/// This algorithm may overestimate the number of digits to overflow
+/// on numeric overflow or underflow, otherwise, it will be accurate.
+/// This is because we break costly u128 addition/multiplications into
+/// temporary steps using u64, allowing much better performance.
+/// This is a similar approach to what we take in the arbitrary-precision
+/// arithmetic.
+#[inline(always)]
 fn parse_digits_128<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, sign: Sign)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
@@ -470,12 +471,12 @@ fn parse_digits_128<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, sign:
     } else {
         parse_digits_128_slow(digits, iter, radix, step, sign)
     }
-}}
+}
 
 // PARSE THEN EXTRACT
 
-// Standalone atoi processor for 128-bit integers without a digit separator.
-perftools_inline_always!{
+/// Standalone atoi processor for 128-bit integers without a digit separator.
+#[inline(always)]
 fn standalone_128<W, N>(bytes: &[u8], radix: u32)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
@@ -484,11 +485,11 @@ fn standalone_128<W, N>(bytes: &[u8], radix: u32)
     let (sign, digits) = parse_sign!(bytes, W::IS_SIGNED, Empty);
     let iter = iterate_digits_no_separator(digits, b'\x00');
     parse_digits_128::<W, N, _>(digits, iter, radix, sign)
-}}
+}
 
-// Standalone atoi processor for 128-bit integers with digit separators.
-// Consumes leading, internal, trailing, and consecutive digit separators.
-perftools_inline_always!{
+/// Standalone atoi processor for 128-bit integers with digit separators.
+/// Consumes leading, internal, trailing, and consecutive digit separators.
+#[inline(always)]
 #[cfg(feature = "format")]
 fn standalone_128_iltc<W, N>(bytes: &[u8], radix: u32, digit_separator: u8)
     -> ParseResult<(W, *const u8)>
@@ -501,7 +502,7 @@ fn standalone_128_iltc<W, N>(bytes: &[u8], radix: u32, digit_separator: u8)
     }
     let iter = iterate_digits_ignore_separator(digits, digit_separator);
     parse_digits_128::<W, N, _>(digits, iter, radix, sign)
-}}
+}
 
 // EXTRACT THEN PARSE
 
@@ -512,7 +513,7 @@ macro_rules! standalone_atoi_128_separator {
         sign => $sign:ident,
         consume => $consume:ident
     ) => (
-        perftools_inline!{
+        #[inline]
         #[cfg(feature = "format")]
         fn $name<W, N>(
             bytes: &[u8],
@@ -533,7 +534,7 @@ macro_rules! standalone_atoi_128_separator {
             let leading = $consume(digits, radix, digit_separator).0;
             let iter = iterate_digits_ignore_separator(leading, digit_separator);
             parse_digits_128::<W, N, _>(leading, iter, radix, sign)
-        }}
+        }
     );
 }
 
@@ -618,19 +619,19 @@ standalone_atoi_128_separator!(
 // API
 
 // Standalone atoi processor for u128 without a digit separator.
-perftools_inline_always!{
+#[inline(always)]
 pub(crate) fn standalone_128_no_separator<W, N>(bytes: &[u8], radix: u32)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
           N: Integer
 {
     standalone_128::<W, N>(bytes, radix)
-}}
+}
 
 // Extract exponent with a digit separator in the exponent component.
-perftools_inline_always!{
+#[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], radix: u32, format: NumberFormat)
+pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], format: NumberFormat)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
           N: Integer
@@ -651,6 +652,7 @@ pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], radix: u32, format: N
     const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
     const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
 
+    let radix = format.radix() as u32;
     let digit_separator = format.digit_separator();
     let (value, ptr) = match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {
         I       => standalone_128_i::<W, N>(bytes, radix, digit_separator),
@@ -677,4 +679,4 @@ pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], radix: u32, format: N
     }
 
     Ok((value, ptr))
-}}
+}

@@ -52,11 +52,12 @@ macro_rules! add_digits {
 /// Parse the full mantissa into a big integer.
 ///
 /// Max digits is the maximum number of digits plus one.
-pub(super) fn parse_mantissa<'a, Data>(data: Data, radix: u32, max_digits: usize)
-    -> Bigint
-    where Data: SlowDataInterface<'a>
+pub(super) fn parse_mantissa<'a, F, Data>(data: Data, radix: u32, max_digits: usize)
+    -> Bigint<F>
+    where F: FloatType,
+          Data: SlowDataInterface<'a>
 {
-    let small_powers = Bigint::small_powers(radix);
+    let small_powers = Bigint::<F>::small_powers(radix);
     let count = data.mantissa_digits();
     let bits = count / integral_binary_factor(radix).as_usize();
     let bytes = bits / <Limb as Integer>::BITS;
@@ -68,7 +69,7 @@ pub(super) fn parse_mantissa<'a, Data>(data: Data, radix: u32, max_digits: usize
     let mut counter = 0;
     let mut value: Limb = 0;
     let mut i: usize = 0;
-    let mut result = Bigint::default();
+    let mut result = Bigint::<F>::default();
     result.data.reserve(bytes);
 
     // Iteratively process all the data in the mantissa.
@@ -102,8 +103,8 @@ pub(super) fn parse_mantissa<'a, Data>(data: Data, radix: u32, max_digits: usize
     result
 }
 
-perftools_inline!{
 /// Implied method to calculate the number of digits from a 32-bit float.
+#[inline]
 fn max_digits_f32(radix: u32) -> Option<usize> {
     match radix {
         6  => Some(103),
@@ -122,10 +123,10 @@ fn max_digits_f32(radix: u32) -> Option<usize> {
         // Powers of two and odd numbers should be unreachable
         _  => None,
     }
-}}
+}
 
-perftools_inline!{
 /// Implied method to calculate the number of digits from a 64-bit float.
+#[inline]
 fn max_digits_f64(radix: u32) -> Option<usize> {
     match radix {
         6  => Some(682),
@@ -144,9 +145,8 @@ fn max_digits_f64(radix: u32) -> Option<usize> {
         // Powers of two and odd numbers should be unreachable
         _  => None,
     }
-}}
+}
 
-perftools_inline!{
 /// Calculate the maximum number of digits possible in the mantissa.
 ///
 /// Returns the maximum number of digits plus one.
@@ -161,6 +161,14 @@ perftools_inline!{
 ///
 /// `−emin + p2 + ⌊(emin + 1) log(2, b) − log(1 − 2^(−p2), b)⌋`
 ///
+/// For f16, this follows as:
+///     emin = -14
+///     p2 = 11
+///
+/// For bfloat16 , this follows as:
+///     emin = -126
+///     p2 = 8
+///
 /// For f32, this follows as:
 ///     emin = -126
 ///     p2 = 24
@@ -169,10 +177,58 @@ perftools_inline!{
 ///     emin = -1022
 ///     p2 = 53
 ///
+/// For f128, this follows as:
+///     emin = -16382
+///     p2 = 113
+///
 /// In Python:
-///     `-emin + p2 + math.floor((emin+1)*math.log(2, b) - math.log(1-2**(-p2), b))`
+///     `-emin + p2 + math.floor((emin+ 1)*math.log(2, b)-math.log(1-2**(-p2), b))`
 ///
 /// This was used to calculate the maximum number of digits for [2, 36].
+///
+/// The minimum, denormal exponent can be calculated as follows: given
+/// the number of exponent bits `exp_bits`, and the number of bits
+/// in the mantissa `mantissa_bits`, we have an exponent bias
+/// `exp_bias` equal to `2^(exp_bits-1) - 1 + mantissa_bits`. We
+/// therefore have a denormal exponent `denormal_exp` equal to
+/// `1 - exp_bias` and the minimum, denormal float `min_float` is
+/// therefore `2^denormal_exp`.
+///
+/// For f16, this follows as:
+///     exp_bits = 5
+///     mantissa_bits = 10
+///     exp_bias = 25
+///     denormal_exp = -24
+///     min_float = 5.96 * 10^−8
+///
+/// For bfloat16, this follows as:
+///     exp_bits = 8
+///     mantissa_bits = 7
+///     exp_bias = 134
+///     denormal_exp = -133
+///     min_float = 9.18 * 10^−41
+///
+/// For f32, this follows as:
+///     exp_bits = 8
+///     mantissa_bits = 23
+///     exp_bias = 150
+///     denormal_exp = -149
+///     min_float = 1.40 * 10^−45
+///
+/// For f64, this follows as:
+///     exp_bits = 11
+///     mantissa_bits = 52
+///     exp_bias = 1075
+///     denormal_exp = -1074
+///     min_float = 5.00 * 10^−324
+///
+/// For f128, this follows as:
+///     exp_bits = 15
+///     mantissa_bits = 112
+///     exp_bias = 16495
+///     denormal_exp = -16494
+///     min_float = 6.48 * 10^−4966
+#[inline]
 pub(super) fn max_digits<F>(radix: u32)
     -> Option<usize>
     where F: Float
@@ -182,7 +238,7 @@ pub(super) fn max_digits<F>(radix: u32)
         64 => max_digits_f64(radix),
         _  => unreachable!(),
     }
-}}
+}
 
 // ROUNDING
 
@@ -216,10 +272,10 @@ macro_rules! toward_cb {
     };
 }
 
-perftools_inline!{
 /// Custom rounding for truncated mantissa.
 ///
 /// Respect rounding rules in the config file.
+#[inline]
 #[allow(unused_variables)]
 pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, kind: RoundingKind)
     where F: FloatType
@@ -247,15 +303,15 @@ pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, k
 
     #[cfg(not(feature = "rounding"))]
     round::<F, _>(fp, nearest_cb!(M, is_truncated, tie_even));
-}}
+}
 
 /// BIGCOMP PATH
 
 /// Maximum number of digits before reverting to bigcomp.
 const LARGE_POWER_MAX: usize = 1 << 15;
 
-perftools_inline!{
 /// Check if we need to use bigcomp.
+#[inline]
 pub(super) fn use_bigcomp(radix: u32, count: usize)
     -> bool
 {
@@ -266,7 +322,7 @@ pub(super) fn use_bigcomp(radix: u32, count: usize)
     // for the worst-case representation, so we can create a valid ratio
     // and ignore the remaining digits.
     radix.is_odd() && count > LARGE_POWER_MAX
-}}
+}
 
 /// Calculate the mantissa for a big integer with a positive exponent.
 pub(super) fn large_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize, exponent: i32, kind: RoundingKind)
@@ -278,7 +334,7 @@ pub(super) fn large_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize,
     // Now, we can calculate the mantissa and the exponent from this.
     // The binary exponent is the binary exponent for the mantissa
     // shifted to the hidden bit.
-    let mut bigmant = parse_mantissa(data, radix, max_digits);
+    let mut bigmant = parse_mantissa::<F, Data>(data, radix, max_digits);
     bigmant.imul_power(radix, exponent.as_u32());
 
     // Get the exact representation of the float from the big integer.
@@ -300,7 +356,7 @@ pub(super) fn small_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize,
           Data: SlowDataInterface<'a>
 {
     // Get the significant digits and radix exponent for the real digits.
-    let mut real_digits = parse_mantissa(data, radix, max_digits);
+    let mut real_digits = parse_mantissa::<F, Data>(data, radix, max_digits);
     let real_exp = exponent;
     debug_assert!(real_exp < 0);
 

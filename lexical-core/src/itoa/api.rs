@@ -6,52 +6,19 @@
 use crate::util::*;
 
 /// Select the back-end.
-#[cfg(feature = "table")]
 use super::decimal::Decimal;
 
-#[cfg(all(feature = "table", feature = "radix"))]
+#[cfg(feature = "radix")]
 use super::generic::Generic;
-
-#[cfg(not(feature = "table"))]
-use super::naive::Naive;
 
 // HELPERS
 
-// Wrapper to facilitate calling a backend that writes iteratively to
-// the end of the buffer.
-#[cfg(any(not(feature = "table"), feature = "radix"))]
-macro_rules! write_backwards {
-    ($value:ident, $radix:expr, $buffer:ident, $t:tt, $cb:ident) => ({
-        // Create a temporary buffer, and copy into it.
-        // Way faster than reversing a buffer in-place.
-        // Need to ensure the buffer size is adequate for any radix, but
-        // small for the optimized decimal formatters.
-        debug_assert_radix!($radix);
-        let mut buffer: [u8; BUFFER_SIZE] = [b'0'; BUFFER_SIZE];
-        let digits;
-        if cfg!(not(feature = "radix")) || $radix == 10 {
-            digits = &mut buffer[..$t::FORMATTED_SIZE_DECIMAL];
-        } else {
-            digits = &mut buffer[..$t::FORMATTED_SIZE];
-        }
-
-        // Write backwards to buffer and copy output to slice.
-        let offset = $value.$cb($radix, digits);
-        debug_assert!(offset <= digits.len());
-        copy_to_dst($buffer, &unchecked_index!(digits[offset..]))
-    });
-}
-
-#[cfg(all(feature = "table", not(feature = "radix")))]
+#[cfg(not(feature = "radix"))]
 pub(crate) trait Itoa: Decimal + UnsignedInteger
 {}
 
-#[cfg(all(feature = "table", feature = "radix"))]
+#[cfg(feature = "radix")]
 pub(crate) trait Itoa: Decimal + Generic + UnsignedInteger
-{}
-
-#[cfg(not(feature = "table"))]
-pub(crate) trait Itoa: Naive + UnsignedInteger
 {}
 
 macro_rules! itoa_impl {
@@ -64,21 +31,21 @@ itoa_impl! { u8 u16 u32 u64 u128 usize }
 
 // FORWARD
 
-// Forward itoa arguments to an optimized backend.
-//  Preconditions: `value` must be non-negative and unsigned.
-perftools_inline!{
-#[cfg(all(feature = "table", not(feature = "radix")))]
+/// Forward itoa arguments to an optimized backend.
+///  Preconditions: `value` must be non-negative and unsigned.
+#[inline]
+#[cfg(not(feature = "radix"))]
 pub(crate) fn itoa_positive<T>(value: T, _: u32, buffer: &mut [u8])
     -> usize
     where T: Itoa
 {
     value.decimal(buffer)
-}}
+}
 
-// Forward itoa arguments to an optimized backend.
-//  Preconditions: `value` must be non-negative and unsigned.
-perftools_inline!{
-#[cfg(all(feature = "table", feature = "radix"))]
+/// Forward itoa arguments to an optimized backend.
+///  Preconditions: `value` must be non-negative and unsigned.
+#[inline]
+#[cfg(feature = "radix")]
 pub(crate) fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8])
     -> usize
     where T: Itoa
@@ -88,23 +55,12 @@ pub(crate) fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8])
     } else {
         write_backwards!(value, radix, buffer, T, generic)
     }
-}}
-
-// Forward itoa arguments to a naive backend.
-//  Preconditions: `value` must be non-negative and unsigned.
-perftools_inline!{
-#[cfg(not(feature = "table"))]
-pub(crate) fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8])
-    -> usize
-    where T: Itoa
-{
-    write_backwards!(value, radix, buffer, T, naive)
-}}
+}
 
 // TO LEXICAL
 
-// Callback for unsigned integer formatter.
-perftools_inline!{
+/// Callback for unsigned integer formatter.
+#[inline]
 fn unsigned<Narrow, Wide>(value: Narrow, radix: u32, buffer: &mut [u8])
     -> usize
     where Narrow: UnsignedInteger,
@@ -112,7 +68,7 @@ fn unsigned<Narrow, Wide>(value: Narrow, radix: u32, buffer: &mut [u8])
 {
     let value: Wide = as_cast(value);
     itoa_positive(value, radix, buffer)
-}}
+}
 
 macro_rules! unsigned_to_lexical {
     ($narrow:ty, $wide:ty) => (
@@ -132,8 +88,8 @@ unsigned_to_lexical!(usize, u32);
 #[cfg(target_pointer_width = "64")]
 unsigned_to_lexical!(usize, u64);
 
-// Callback for signed integer formatter.
-perftools_inline!{
+/// Callback for signed integer formatter.
+#[inline]
 fn signed<Narrow, Wide, Unsigned>(value: Narrow, radix: u32, buffer: &mut [u8])
     -> usize
     where Narrow: SignedInteger,
@@ -149,7 +105,7 @@ fn signed<Narrow, Wide, Unsigned>(value: Narrow, radix: u32, buffer: &mut [u8])
         let value: Unsigned = as_cast(value);
         itoa_positive(value, radix, buffer)
     }
-}}
+}
 
 macro_rules! signed_to_lexical {
     ($narrow:ty, $wide:ty, $unsigned:ty) => (

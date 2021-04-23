@@ -48,7 +48,7 @@ macro_rules! parse_digits_exponent {
 
 // Specialized parser for the exponent, which validates digits and
 // returns a default min or max value on overflow.
-perftools_inline!{
+#[inline]
 pub(crate) fn standalone_exponent<'a, Iter>(mut iter: Iter, radix: u32, sign: Sign)
     -> (i32, *const u8)
     where Iter: AsPtrIterator<'a, u8>
@@ -61,4 +61,4 @@ pub(crate) fn standalone_exponent<'a, Iter>(mut iter: Iter, radix: u32, sign: Si
     }
 
     (value, iter.as_ptr())
-}}
+}

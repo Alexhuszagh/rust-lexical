@@ -17,19 +17,19 @@ pub(crate) struct ExtendedFloatArray<M: Mantissa> {
 
 /// Allow indexing of values without bounds checking
 impl<M: Mantissa> ExtendedFloatArray<M> {
-    perftools_inline!{
+    #[inline]
     pub fn get_extended_float(&self, index: usize)
         -> ExtendedFloat<M>
     {
         let mant = self.mant[index];
         let exp = self.exp[index];
         ExtendedFloat { mant: mant, exp: exp }
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     pub fn len(&self) -> usize {
         self.mant.len()
-    }}
+    }
 }
 
 // MODERATE PATH POWERS
@@ -51,20 +51,20 @@ pub(crate) struct ModeratePathPowers<M: Mantissa> {
 
 /// Allow indexing of values without bounds checking
 impl<M: Mantissa> ModeratePathPowers<M> {
-    perftools_inline!{
+    #[inline]
     pub fn get_small(&self, index: usize) -> ExtendedFloat<M> {
         self.small.get_extended_float(index)
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     pub fn get_large(&self, index: usize) -> ExtendedFloat<M> {
         self.large.get_extended_float(index)
-    }}
+    }
 
-    perftools_inline!{
+    #[inline]
     pub fn get_small_int(&self, index: usize) -> M {
         self.small_int[index]
-    }}
+    }
 }
 
 // CACHED EXTENDED POWERS
@@ -76,15 +76,15 @@ pub(super) trait ModeratePathCache<M: Mantissa> {
 }
 
 impl ModeratePathCache<u64> for ExtendedFloat<u64> {
-    perftools_inline!{
+    #[inline]
     fn get_powers(radix: u32) -> &'static ModeratePathPowers<u64> {
         cached_float80::get_powers(radix)
-    }}
+    }
 }
 
 impl ModeratePathCache<u128> for ExtendedFloat<u128> {
-    perftools_inline!{
+    #[inline]
     fn get_powers(radix: u32) -> &'static ModeratePathPowers<u128> {
         cached_float160::get_powers(radix)
-    }}
+    }
 }

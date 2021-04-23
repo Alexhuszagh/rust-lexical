@@ -58,8 +58,8 @@ use crate::util::*;
 
 // CACHED POWERS
 
-perftools_inline!{
 /// Find cached power of 10 from the exponent.
+#[inline]
 fn cached_grisu_power(exp: i32, k: &mut i32)
     -> &'static ExtendedFloat80
 {
@@ -97,7 +97,7 @@ fn cached_grisu_power(exp: i32, k: &mut i32)
         *k = FIRSTPOWER + idx.as_i32() * STEPPOWERS;
         return power;
     }
-}}
+}
 
 /// Cached powers of ten as specified by the Grisu algorithm.
 ///
@@ -208,8 +208,8 @@ const TENS: [u64; 20] = [
 
 // FPCONV GRISU
 
-perftools_inline!{
 /// Round digit to sane approximation.
+#[inline]
 fn round_digit(digits: &mut [u8], ndigits: usize, delta: u64, mut rem: u64, kappa: u64, mant: u64)
 {
     while rem < mant && delta - rem >= kappa && (rem + kappa < mant || mant - rem > rem + kappa - mant)
@@ -217,7 +217,7 @@ fn round_digit(digits: &mut [u8], ndigits: usize, delta: u64, mut rem: u64, kapp
         digits[ndigits - 1] -= 1;
         rem += kappa;
     }
-}}
+}
 
 /// Generate digits from upper and lower range on rounding of number.
 fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &ExtendedFloat80, digits: &mut [u8], k: &mut i32)
@@ -238,7 +238,7 @@ fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &Extend
     let mut kappa: i32 = 10;
     // 1000000000
     // Guaranteed to be safe, TENS has 20 elements.
-    let mut divp = index!(TENS[10..]).iter();
+    let mut divp = TENS[10..].iter();
     while kappa > 0 {
         // Remember not to continue! This loop has an increment condition.
         let div = divp.next().unwrap();
@@ -261,7 +261,7 @@ fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &Extend
 
     /* 10 */
     // Guaranteed to be safe, TENS has 20 elements.
-    let mut unit = index!(TENS[..=18]).iter().rev();
+    let mut unit = TENS[..=18].iter().rev();
     loop {
         part2 *= 10;
         delta *= 10;
@@ -313,6 +313,7 @@ fn grisu2(d: f64, digits: &mut [u8], k: &mut i32)
 fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
     -> usize
 {
+    // TODO(ahuszagh) Should take a format.
     let exp = k + ndigits.as_i32() - 1;
     let mut exp = exp.abs().as_usize();
 
@@ -322,9 +323,9 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
         let count = k.as_usize();
         // These are all safe, since digits.len() >= idx, and
         // dest.len() >= idx+count+2, so the range must be valid.
-        copy_to_dst(dest, &index!(digits[..idx]));
-        write_bytes(&mut index_mut!(dest[idx..idx+count]), b'0');
-        copy_to_dst(&mut index_mut!(dest[idx+count..]), b".0");
+        copy_to_dst(dest, &digits[..idx]);
+        write_bytes(&mut dest[idx..idx+count], b'0');
+        copy_to_dst(&mut dest[idx+count..], b".0");
 
         return ndigits + k.as_usize() + 2;
     }
@@ -337,10 +338,10 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
             let offset = (-offset).as_usize();
             // These are all safe, since digits.len() >= ndigits, and
             // dest.len() >= ndigits+offset+2, so the range must be valid.
-            index_mut!(dest[0] = b'0');
-            index_mut!(dest[1] = b'.');
-            write_bytes(&mut index_mut!(dest[2..offset+2]), b'0');
-            copy_to_dst(&mut index_mut!(dest[offset+2..]), &index!(digits[..ndigits]));
+            dest[0] = b'0';
+            dest[1] = b'.';
+            write_bytes(&mut dest[2..offset+2], b'0');
+            copy_to_dst(&mut dest[offset+2..], &digits[..ndigits]);
 
             return ndigits + 2 + offset;
 
@@ -349,9 +350,9 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
             let offset = offset.as_usize();
             // These are all safe, since digits.len() >= ndigits, and
             // dest.len() >= ndigits+1, so the range must be valid.
-            copy_to_dst(dest, &index!(digits[..offset]));
-            index_mut!(dest[offset] = b'.');
-            copy_to_dst(&mut index_mut!(dest[offset+1..]), &index!(digits[offset..ndigits]));
+            copy_to_dst(dest, &digits[..offset]);
+            dest[offset] = b'.';
+            copy_to_dst(&mut dest[offset+1..], &digits[offset..ndigits]);
 
             return ndigits + 1;
         }
@@ -399,37 +400,41 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
     dst_len - dst_iter.count()
 }
 
-perftools_inline!{
+#[inline]
 fn fpconv_dtoa(d: f64, dest: &mut [u8]) -> usize
 {
     let mut digits: [u8; 18] = [0; 18];
     let mut k: i32 = 0;
     let ndigits = grisu2(d, &mut digits, &mut k);
     emit_digits(&mut digits, ndigits, dest, k)
-}}
+}
 
 // DECIMAL
 
-perftools_inline!{
 /// Forward to double_decimal.
 ///
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
+#[inline]
 pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
     -> usize
 {
+    // TODO(ahuszagh) Can this take a format?
+    // This way, I can have the decimal point, and the like.
     double_decimal(f.as_f64(), bytes)
-}}
+}
 
 // F64
 
-perftools_inline!{
 /// Optimized algorithm for decimal numbers.
 ///
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
+#[inline]
 pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
     -> usize
 {
+    // TODO(ahuszagh) Can this take a format?
+    // This way, I can have the decimal point, and the like.
     fpconv_dtoa(d, bytes)
-}}
+}

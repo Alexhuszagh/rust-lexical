@@ -50,7 +50,7 @@ type DataTuple<'a> = (&'a [u8], Option<&'a [u8]>, Option<&'a [u8]>, i32);
 
 // Add `From` to remove repition in unit-testing.
 impl<'a> From<DataTuple<'a>> for StandardFastDataInterface<'a> {
-    perftools_inline!{
+    #[inline]
     fn from(data: DataTuple<'a>) -> Self {
         StandardFastDataInterface {
             integer: data.0,
@@ -58,7 +58,7 @@ impl<'a> From<DataTuple<'a>> for StandardFastDataInterface<'a> {
             exponent: data.2,
             raw_exponent: data.3
         }
-    }}
+    }
 }
 
 // TESTS
@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn extract_test() {
-        StandardFastDataInterface::new(NumberFormat::standard().unwrap()).run_tests([
+        StandardFastDataInterface::new(NumberFormat::STANDARD).run_tests([
             // Valid
             ("1.2345", Ok(standard!(b"1", Some(b!("2345")), None, 0))),
             ("12.345", Ok(standard!(b"12", Some(b!("345")), None, 0))),
@@ -141,8 +141,8 @@ mod tests {
         assert_eq!(data.digits_start(), 0);
     }
 
-    #[cfg(feature = "correct")]
     #[test]
+    #[cfg(feature = "correct")]
     fn slow_data_interface_test() {
         type Data<'a> = StandardSlowDataInterface<'a>;
         // Check "1.2345", simple.

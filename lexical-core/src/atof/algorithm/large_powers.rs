@@ -7,7 +7,7 @@
 //! The larger powers are **quite** large (~3Kb per radix), so we'd rather
 //! not include them in binaries unless necessary.
 
-use super::math::Limb;
+use crate::util::Limb;
 
 #[cfg(limb_width_32)]
 use super::large_powers_32::*;

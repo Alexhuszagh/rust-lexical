@@ -21,9 +21,9 @@ macro_rules! parse_sign {
             return Err((ErrorCode::$code, $bytes.as_ptr()));
         }
 
-        let (sign, digits) = match index!($bytes[0]) {
-            b'+'               => (Sign::Positive, &index!($bytes[1..])),
-            b'-' if $is_signed => (Sign::Negative, &index!($bytes[1..])),
+        let (sign, digits) = match $bytes[0] {
+            b'+'               => (Sign::Positive, &$bytes[1..]),
+            b'-' if $is_signed => (Sign::Negative, &$bytes[1..]),
             _                  => (Sign::Positive, $bytes),
         };
 
@@ -40,28 +40,28 @@ macro_rules! parse_sign {
 // Performance note: Use slice, as `iter.as_ptr()` turns out to
 // quite slow performance wise, likely since it needs to calculate
 // the end ptr, while for a slice this is effectively a no-op.
-perftools_inline_always!{
+#[inline(always)]
 pub(super) fn last_ptr<T>(slc: &[T]) -> *const T {
-    index!(slc[slc.len()..]).as_ptr()
-}}
+    slc[slc.len()..].as_ptr()
+}
 
 // Convert character to digit.
-perftools_inline_always!{
+#[inline(always)]
 pub(super) fn to_digit<'a>(c: &'a u8, radix: u32) -> StdResult<u32, &'a u8> {
     match to_digit!(*c, radix) {
         Some(v) => Ok(v),
         None    => Err(c),
     }
-}}
+}
 
 // Convert character to digit.
-perftools_inline_always!{
+#[inline(always)]
 pub(super) fn is_not_digit_char(c: u8, radix: u32) -> bool {
     to_digit!(c, radix).is_none()
-}}
+}
 
 // Add digit to mantissa.
-perftools_inline_always!{
+#[inline(always)]
 #[cfg(feature = "correct")]
 pub(super) fn add_digit<T>(value: T, digit: u32, radix: u32)
     -> Option<T>
@@ -70,4 +70,4 @@ pub(super) fn add_digit<T>(value: T, digit: u32, radix: u32)
     return value
         .checked_mul(as_cast(radix))?
         .checked_add(as_cast(digit))
-}}
+}

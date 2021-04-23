@@ -54,7 +54,7 @@ mod tests {
     macro_rules! ignore {
         ($integer:expr, $fraction:expr, $exponent:expr, $raw_exponent:expr) => {
             IgnoreFastDataInterface {
-                format: NumberFormat::ignore(b'_').unwrap(),
+                format: NumberFormat::IGNORE | NumberFormat::from_digit_separator(b'_'),
                 integer: $integer,
                 fraction: $fraction,
                 exponent: $exponent,
@@ -65,7 +65,8 @@ mod tests {
 
     #[test]
     fn extract_test() {
-        IgnoreFastDataInterface::new(NumberFormat::ignore(b'_').unwrap()).run_tests([
+        let format = NumberFormat::IGNORE | NumberFormat::from_digit_separator(b'_');
+        IgnoreFastDataInterface::new(format).run_tests([
             // Valid
             ("1.2345", Ok(ignore!(b"1", Some(b!("2345")), None, 0))),
             ("12.345", Ok(ignore!(b"12", Some(b!("345")), None, 0))),
