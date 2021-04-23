@@ -58,7 +58,7 @@ For floating-points, Lexical also includes `parse_lossy`, which may lead to mino
 let x: f32 = lexical::parse_lossy("3.5").unwrap();   // 3.5
 ```
 
-In order to use lexical in generics, the type may use the trait bounds `FromLexical` (for `parse``), `ToLexical` (for `to_string`), or `FromLexicalLossy` (for `parse_lossy`).
+In order to use lexical in generics, the type may use the trait bounds `FromLexical` (for `parse`), `ToLexical` (for `to_string`), or `FromLexicalLossy` (for `parse_lossy`).
 
 ```rust
 /// Multiply a value in a string by multiplier, and serialize to string.
