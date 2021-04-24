@@ -15,8 +15,16 @@ use static_assertions::const_assert;
 macro_rules! add_flag {
     ($flags:ident, $bool:expr, $flag:ident) => {
         if $bool {
-            $flags |= NumberFormat::$flag;
+            $flags.bits |= NumberFormat::$flag.bits();
         }
+    };
+}
+
+/// Check if a defined flag is invalid.
+#[cfg(feature = "format")]
+macro_rules! check_flag {
+    ($flags:ident, $mask:ident, $invalid:ident) => {
+        $flags.bits & NumberFormat::$mask.bits() == NumberFormat::$invalid.bits()
     };
 }
 
@@ -137,6 +145,8 @@ pub(crate) const SPECIAL_DIGIT_SEPARATOR: u64              = 0b00000000000000000
 // LEADING ZERO FLAGS & MASKS
 // --------------------------
 
+// TODO(ahuszagh) Move these back to the non-digit separator flags.
+
 /// Leading zeros before an integer value are not allowed.
 ///
 /// If the value is a literal, then this distinction applies
@@ -227,61 +237,56 @@ check_subsequent_flags!(INCORRECT, LOSSY);
 // VALIDATORS
 // ----------
 
-// Determine if character is valid ASCII.
-#[inline]
-fn is_ascii(ch: u8) -> bool {
-    ch.is_ascii()
-}
-
 /// Determine if the digit separator is valid.
 #[inline]
 #[cfg(not(feature = "radix"))]
-pub(crate) fn is_valid_digit_separator(ch: u8) -> bool {
+pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
     match ch {
         b'0' ..= b'9' => false,
         b'+' | b'-'   => false,
-        _             => is_ascii(ch)
+        _             => ch.is_ascii()
     }
 }
 
 /// Determine if the digit separator is valid.
 #[inline]
 #[cfg(feature = "radix")]
-pub(crate) fn is_valid_digit_separator(ch: u8) -> bool {
+pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
     match ch {
         b'A' ..= b'Z' => false,
         b'a' ..= b'z' => false,
         b'0' ..= b'9' => false,
         b'+' | b'-'   => false,
-        _             => is_ascii(ch)
+        _             => ch.is_ascii()
     }
 }
 
 /// Determine if the decimal point is valid.
 #[inline]
-pub(crate) fn is_valid_decimal_point(ch: u8) -> bool {
+pub(crate) const fn is_valid_decimal_point(ch: u8) -> bool {
     is_valid_digit_separator(ch)
 }
 
 /// Determine if exponent character is valid.
 #[inline]
-pub(crate) fn is_valid_exponent(ch: u8) -> bool {
+pub(crate) const fn is_valid_exponent(ch: u8) -> bool {
     match ch {
         b'0' ..= b'9' => false,
         b'+' | b'-'   => false,
-        _             => is_ascii(ch)
+        _             => ch.is_ascii()
     }
 }
 
 /// Determine if the exponent backup character is valid.
 #[inline]
-pub(crate) fn is_valid_exponent_backup(ch: u8) -> bool {
+pub(crate) const fn is_valid_exponent_backup(ch: u8) -> bool {
     is_valid_digit_separator(ch)
 }
 
 /// Determine if all of the "punctuation" characters are valid.
 #[inline]
-pub(crate) fn is_valid_punctuation(digit_separator: u8, decimal_point: u8, exponent: u8, exponent_backup: u8) -> bool
+pub(crate) const fn is_valid_punctuation(digit_separator: u8, decimal_point: u8, exponent: u8, exponent_backup: u8)
+    -> bool
 {
     if digit_separator == decimal_point {
         false
@@ -303,14 +308,14 @@ pub(crate) fn is_valid_punctuation(digit_separator: u8, decimal_point: u8, expon
 /// Determine if the radix is valid.
 #[cfg(not(feature = "radix"))]
 #[inline]
-pub(crate) fn is_valid_radix(radix: u8) -> bool {
+pub(crate) const fn is_valid_radix(radix: u8) -> bool {
     radix == 10
 }
 
 /// Determine if the radix is valid.
 #[cfg(feature = "radix")]
 #[inline]
-pub(crate) fn is_valid_radix(radix: u8) -> bool {
+pub(crate) const fn is_valid_radix(radix: u8) -> bool {
     radix >= 2 && radix <= 36
 }
 

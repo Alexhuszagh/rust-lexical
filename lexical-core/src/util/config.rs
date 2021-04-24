@@ -147,7 +147,7 @@ cfg_if! {
 #[inline]
 #[deprecated(
     since = "0.8.0",
-    note = "Will be removed with 1.0. Use parse_options instead."
+    note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
 pub fn get_exponent_default_char() -> u8
 {
@@ -176,7 +176,7 @@ pub fn get_exponent_default_char() -> u8
 #[inline]
 #[deprecated(
     since = "0.8.0",
-    note = "Will be removed with 1.0. Use parse_options instead."
+    note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
 pub unsafe fn set_exponent_default_char(ch: u8)
 {
@@ -192,7 +192,7 @@ pub unsafe fn set_exponent_default_char(ch: u8)
 #[cfg(feature ="radix")]
 #[deprecated(
     since = "0.8.0",
-    note = "Will be removed with 1.0. Use parse_options instead."
+    note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
 pub fn get_exponent_backup_char() -> u8
 {
@@ -223,7 +223,7 @@ pub fn get_exponent_backup_char() -> u8
 #[cfg(feature ="radix")]
 #[deprecated(
     since = "0.8.0",
-    note = "Will be removed with 1.0. Use parse_options instead."
+    note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
 pub unsafe fn set_exponent_backup_char(ch: u8)
 {
@@ -241,7 +241,7 @@ pub unsafe fn set_exponent_backup_char(ch: u8)
 #[cfg(feature = "rounding")]
 #[deprecated(
     since = "0.8.0",
-    note = "Will be removed with 1.0. Use parse_options instead."
+    note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
 pub fn get_float_rounding() -> RoundingKind {
     unsafe {
@@ -263,7 +263,7 @@ pub fn get_float_rounding() -> RoundingKind {
 #[cfg(feature = "rounding")]
 #[deprecated(
     since = "0.8.0",
-    note = "Will be removed with 1.0. Use parse_options instead."
+    note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
 pub unsafe fn set_float_rounding(rounding: RoundingKind) {
     FLOAT_ROUNDING = rounding
@@ -273,7 +273,7 @@ pub unsafe fn set_float_rounding(rounding: RoundingKind) {
 #[inline]
 #[deprecated(
     since = "0.8.0",
-    note = "Will be removed with 1.0. Use parse_options instead."
+    note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
 pub fn get_nan_string() -> &'static [u8]
 {
@@ -299,7 +299,7 @@ pub fn get_nan_string() -> &'static [u8]
 #[inline]
 #[deprecated(
     since = "0.8.0",
-    note = "Will be removed with 1.0. Use parse_options instead."
+    note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
 pub unsafe fn set_nan_string(bytes: &[u8])
 {
@@ -311,7 +311,7 @@ pub unsafe fn set_nan_string(bytes: &[u8])
 #[inline]
 #[deprecated(
     since = "0.8.0",
-    note = "Will be removed with 1.0. Use parse_options instead."
+    note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
 pub fn get_inf_string() -> &'static [u8]
 {
@@ -338,7 +338,7 @@ pub fn get_inf_string() -> &'static [u8]
 #[inline]
 #[deprecated(
     since = "0.8.0",
-    note = "Will be removed with 1.0. Use parse_options instead."
+    note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
 pub unsafe fn set_inf_string(bytes: &[u8])
 {
@@ -350,7 +350,7 @@ pub unsafe fn set_inf_string(bytes: &[u8])
 #[inline]
 #[deprecated(
     since = "0.8.0",
-    note = "Will be removed with 1.0. Use parse_options instead."
+    note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
 pub fn get_infinity_string() -> &'static [u8]
 {
@@ -377,7 +377,7 @@ pub fn get_infinity_string() -> &'static [u8]
 #[inline]
 #[deprecated(
     since = "0.8.0",
-    note = "Will be removed with 1.0. Use parse_options instead."
+    note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
 pub unsafe fn set_infinity_string(bytes: &[u8])
 {
@@ -466,7 +466,7 @@ pub const BUFFER_SIZE: usize = F64_FORMATTED_SIZE;
 #[allow(unused_variables, deprecated)]
 #[deprecated(
     since = "0.8.0",
-    note = "Will be removed with 1.0. Use parse_options instead."
+    note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
 pub(crate) fn exponent_notation_char(radix: u32) -> u8 {
     #[cfg(not(feature ="radix"))] {

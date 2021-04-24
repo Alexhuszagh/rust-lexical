@@ -306,8 +306,8 @@ if #[cfg(feature = "correct")] {
 
 /// Hacky transmute for 32-bit and 64-bit floats.
 ///
-/// Remove when `f32::from_bits` and `f64::from_bits` become const
-/// in stable.
+/// Remove when we drop support for Rustc < 1.46.0, since mem::transmute
+/// in a const conext was stabilized in 1.46.0.
 #[cfg(feature = "radix")]
 union Transmute<U: Copy, F: Copy> {
     u: U,

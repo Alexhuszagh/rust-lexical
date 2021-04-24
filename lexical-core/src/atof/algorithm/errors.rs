@@ -174,7 +174,7 @@ impl FloatErrors for u64 {
         }
 
         #[cfg(feature = "rounding")] {
-            if is_nearest(kind) {
+            if kind.is_nearest() {
                 nearest_error_is_accurate(errors, fp, extrabits)
             } else {
                 toward_error_is_accurate(errors, fp, extrabits)

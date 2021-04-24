@@ -43,7 +43,7 @@ approx = "0.4.0"
 [features]
 default = ["correct", "ryu", "std"]
 # Use the correct atof parser.
-correct = ["arrayvec", "table"]
+correct = ["arrayvec"]
 # Add support for different float string formats.
 format = []
 # Use the optimized Grisu3 implementation from dtoa (not recommended).

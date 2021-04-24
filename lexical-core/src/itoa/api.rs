@@ -13,6 +13,31 @@ use super::generic::Generic;
 
 // HELPERS
 
+// Wrapper to facilitate calling a backend that writes iteratively to
+// the end of the buffer.
+#[cfg(feature = "radix")]
+macro_rules! write_backwards {
+    ($value:ident, $radix:expr, $buffer:ident, $t:tt, $cb:ident) => ({
+        // Create a temporary buffer, and copy into it.
+        // Way faster than reversing a buffer in-place.
+        // Need to ensure the buffer size is adequate for any radix, but
+        // small for the optimized decimal formatters.
+        debug_assert_radix!($radix);
+        let mut buffer: [u8; BUFFER_SIZE] = [b'0'; BUFFER_SIZE];
+        let digits;
+        if cfg!(not(feature = "radix")) || $radix == 10 {
+            digits = &mut buffer[..$t::FORMATTED_SIZE_DECIMAL];
+        } else {
+            digits = &mut buffer[..$t::FORMATTED_SIZE];
+        }
+
+        // Write backwards to buffer and copy output to slice.
+        let offset = $value.$cb($radix, digits);
+        debug_assert!(offset <= digits.len());
+        copy_to_dst($buffer, &unchecked_index!(digits[offset..]))
+    });
+}
+
 #[cfg(not(feature = "radix"))]
 pub(crate) trait Itoa: Decimal + UnsignedInteger
 {}
@@ -53,6 +78,7 @@ pub(crate) fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8])
     if radix == 10 {
         value.decimal(buffer)
     } else {
+        // TODO(ahuszagh) This ain't right....
         write_backwards!(value, radix, buffer, T, generic)
     }
 }

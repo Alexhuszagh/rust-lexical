@@ -27,6 +27,7 @@ mod format;
 mod iterator;
 mod mask;
 mod num;
+mod options;
 mod primitive;
 mod pow;
 mod result;
@@ -76,6 +77,7 @@ pub use self::config::*;
 pub use self::error::*;
 pub use self::format::*;
 pub use self::num::*;
+pub use self::options::*;
 pub use self::result::*;
 pub use self::traits::*;
 

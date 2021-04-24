@@ -101,7 +101,7 @@ pub(super) fn theoretical_float<F>(f: F, kind: RoundingKind)
     }
 
     #[cfg(feature = "rounding")] {
-        match is_nearest(kind) {
+        match kind.is_nearest() {
             // We need to check if we're close to halfway, so use `b+h`.
             true  => bh(f),
             // Just care if there are any truncated digits, use `b`.
