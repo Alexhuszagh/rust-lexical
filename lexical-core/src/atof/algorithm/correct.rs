@@ -406,15 +406,17 @@ fn pow2_exponent(radix: u32) -> i32 {
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline]
-fn to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: NumberFormat)
+fn to_native<F>(bytes: &[u8], sign: Sign, options: &ParseFloatOptions)
     -> ParseResult<(F, *const u8)>
     where F: FloatType
 {
+    let format = options.format();
+    let radix = options.radix();
+    let lossy = options.lossy();
     #[cfg(not(feature = "radix"))] {
         apply_interface!(pown_to_native, format, bytes, radix, lossy, sign)
     }
 
-    // TODO(ahuszagh)  This seems to be failing. Lols
     #[cfg(feature = "radix")] {
         let pow2_exp = pow2_exponent(radix);
         match pow2_exp {
@@ -429,20 +431,18 @@ fn to_native<F>(bytes: &[u8], radix: u32, lossy: bool, sign: Sign, format: Numbe
 
 /// Parse 32-bit float from string.
 #[inline]
-pub(crate) fn atof(bytes: &[u8], sign: Sign, format: NumberFormat)
+pub(crate) fn atof(bytes: &[u8], sign: Sign, options: &ParseFloatOptions)
     -> ParseResult<(f32, *const u8)>
 {
-    // TODO(ahuszagh) Move inwards.
-    to_native::<f32>(bytes, format.radix() as u32, format.lossy(), sign, format)
+    to_native::<f32>(bytes, sign, options)
 }
 
 /// Parse 64-bit float from string.
 #[inline]
-pub(crate) fn atod(bytes: &[u8], sign: Sign, format: NumberFormat)
+pub(crate) fn atod(bytes: &[u8], sign: Sign, options: &ParseFloatOptions)
     -> ParseResult<(f64, *const u8)>
 {
-    // TODO(ahuszagh) Move inwards.
-    to_native::<f64>(bytes, format.radix() as u32, format.lossy(), sign, format)
+    to_native::<f64>(bytes, sign, options)
 }
 
 // TESTS
@@ -729,7 +729,8 @@ mod tests {
 
     #[test]
     fn atof_test() {
-        let atof10 = move |x| match atof(x, Sign::Positive, NumberFormat::STANDARD) {
+        let options = ParseFloatOptions::new();
+        let atof10 = move |x| match atof(x, Sign::Positive, &options) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -785,8 +786,9 @@ mod tests {
     fn atod_test() {
         let adod_impl = move | x, r | {
             // TODO(ahuszagh) This is failing because standard has radix 10.
-            let format = NumberFormat::STANDARD | NumberFormat::from_radix(r);
-            match atod(x, Sign::Positive, format) {
+            let mut options = ParseFloatOptions::new();
+            unsafe { options.set_radix(r); }
+            match atod(x, Sign::Positive, &options) {
                 Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
                 Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
             }
@@ -889,8 +891,9 @@ mod tests {
 
     #[test]
     fn atof_lossy_test() {
-        let format = NumberFormat::STANDARD | NumberFormat::LOSSY;
-        let atof10 = move |x| match atof(x, Sign::Positive, format) {
+        let mut options = ParseFloatOptions::new();
+        unsafe { options.set_lossy(true); }
+        let atof10 = move |x| match atof(x, Sign::Positive, &options) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };
@@ -903,8 +906,9 @@ mod tests {
 
     #[test]
     fn atod_lossy_test() {
-        let format = NumberFormat::STANDARD | NumberFormat::LOSSY;
-        let atod10 = move |x| match atod(x, Sign::Positive, format) {
+        let mut options = ParseFloatOptions::new();
+        unsafe { options.set_lossy(true); }
+        let atod10 = move |x| match atod(x, Sign::Positive, &options) {
             Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
             Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
         };

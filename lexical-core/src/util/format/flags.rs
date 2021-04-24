@@ -427,10 +427,6 @@ pub(crate) const fn digit_separator_from_flags(flag: u64) -> u8 {
 // MASK ASSERTIONS
 // ---------------
 
-// TODO(ahuszagh) Need to const_assert these methods
-// don't overlap with nearby elements...
-//      Cause they currently are...
-
 // Ensure all our bit masks don't overlap.
 macro_rules! check_subsequent_masks {
     ($xm:ident, $xs:ident, $ym:ident, $ys:ident) => (
