@@ -10,7 +10,7 @@ license = "MIT/Apache-2.0"
 name = "lexical"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
-version = "5.2.2"
+version = "6.0.0"
 exclude = [
     "data/*",
     "benches/*",
@@ -23,7 +23,7 @@ travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
 cfg-if = "1.0"
-lexical-core = { path = "lexical-core", version = "^0.7.6", default-features = false }
+lexical-core = { path = "lexical-core", version = "^0.8.0", default-features = false }
 # The following are only required for comprehensive float unittests.
 # IE, internal testing only:
 rand = { version = "0.4", optional = true }
@@ -47,8 +47,6 @@ correct = ["lexical-core/correct"]
 format = ["lexical-core/format"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["lexical-core/grisu3"]
-# Use the `libm` crate for stable `no_std.
-libm = ["lexical-core/libm"]
 # Add support for [parsing non-decimal float and integer strings.
 radix = ["lexical-core/radix"]
 # Allow custom rounding schemes, at the cost of slower performance.
@@ -59,12 +57,6 @@ ryu = ["lexical-core/ryu"]
 std = ["lexical-core/std"]
 # Trim a trailing ".0" from an exported float string, and represent -0.0 as "0".
 trim_floats = ["lexical-core/trim_floats"]
-# Don't force bounds checking with indexing not-known to be valid at compile time.
-# This may lead to memory safety issues.
-unchecked_index = ["lexical-core/unchecked_index"]
-# Don't inline when using perftools.
-# Testing only.
-noinline = ["lexical-core/noinline"]
 # Undocumented. Disable quickcheck for older Rustc versions.
 property_tests = ["lexical-core/property_tests"]
 # Build the comprehensive float parsing tests.

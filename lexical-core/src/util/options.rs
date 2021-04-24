@@ -543,6 +543,30 @@ impl ParseFloatOptions {
         self.infinity_string
     }
 
+    // NUMBER FORMAT
+
+    /// Get the digit separator character.
+    #[inline(always)]
+    pub const fn digit_separator(&self) -> u8 {
+        self.format.digit_separator()
+    }
+
+    /// Get the decimal point character.
+    #[inline(always)]
+    pub const fn decimal_point(&self) -> u8 {
+        self.format.decimal_point()
+    }
+
+    /// Get the exponent character.
+    #[inline(always)]
+    pub const fn exponent(&self) -> u8 {
+        if self.radix() < 15 {
+            self.format.exponent()
+        } else {
+            self.format.exponent_backup()
+        }
+    }
+
     // SETTERS
 
     /// Set the radix.
@@ -962,6 +986,41 @@ impl WriteFloatOptions {
     #[inline(always)]
     pub const fn inf_string(&self) -> &'static [u8] {
         self.inf_string
+    }
+
+    /// Get the digit separator character.
+    #[inline(always)]
+    pub const fn digit_separator(&self) -> u8 {
+        match self.format {
+            Some(format) => format.digit_separator(),
+            None => b'\x00',
+        }
+    }
+
+    /// Get the decimal point character.
+    #[inline(always)]
+    pub const fn decimal_point(&self) -> u8 {
+        match self.format {
+            Some(format) => format.decimal_point(),
+            None => b'.',
+        }
+    }
+
+    /// Get the exponent character.
+    #[inline(always)]
+    pub const fn exponent(&self) -> u8 {
+        // Const fn version of unwrap_or().
+        let format = match self.format {
+            Some(format) => format,
+            None => DEFAULT_FORMAT,
+        };
+
+        // Get our exponent character from the unwrapped format.
+        if self.radix() < 15 {
+            format.exponent()
+        } else {
+            format.exponent_backup()
+        }
     }
 
     // SETTERS

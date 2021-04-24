@@ -57,7 +57,7 @@ pub(crate) trait SlowDataInterfaceImpl<'a>: Sized {
 // Implement FastDataInterfaceImpl for a default structure.
 macro_rules! fast_data_interface_impl {
     ($name:ident) => (
-        impl<'a> FastDataInterfaceImpl<'a> for $name<'a> {
+        impl<'a, 'b> FastDataInterfaceImpl<'a> for $name<'a, 'b> {
             #[inline]
             fn integer(&self) -> &'a [u8] {
                 self.integer
@@ -105,7 +105,7 @@ macro_rules! fast_data_interface_impl {
 #[cfg(feature = "correct")]
 macro_rules! slow_data_interface_impl {
     ($name:ident) => (
-        impl<'a> SlowDataInterfaceImpl<'a> for $name<'a> {
+        impl<'a, 'b> SlowDataInterfaceImpl<'a> for $name<'a, 'b> {
             #[inline]
             fn integer(&self) -> &'a [u8] {
                 self.integer
@@ -142,7 +142,7 @@ macro_rules! slow_data_interface_impl {
 // PUBLIC
 
 /// Data interface for fast float parsers.
-pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
+pub(crate) trait FastDataInterface<'a, 'b>: FastDataInterfaceImpl<'a> {
     /// Integer digits iterator type.
     type IntegerIter: ConsumedIterator<Item=&'a u8> + AsPtrIterator<'a, u8>;
 
@@ -157,7 +157,7 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     type SlowInterface: SlowDataInterface<'a>;
 
     /// Create new float data from format specification.
-    fn new(format: NumberFormat) -> Self;
+    fn new(options: &'b ParseFloatOptions) -> Self;
 
     // DATA
 
@@ -172,6 +172,15 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
 
     /// Get the number format.
     fn format(&self) -> NumberFormat;
+
+    /// Get the radix for numeric conversions.
+    fn radix(&self) -> u32;
+
+    /// Get the character for the decimal point.
+    fn decimal_point(&self) -> u8;
+
+    /// Get the character for the exponent.
+    fn exponent_character(&self) -> u8;
 
     /// Get the mantissa exponent from the raw exponent.
     #[inline]
@@ -337,15 +346,22 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     }
 }
 
+// TODO(ahuszagh) Here...
+// Should have a struct that takes
+// ParseFloatOptions, not this...
+
 /// Shared definition for all fast data interfaces.
 macro_rules! fast_data_interface {
     (
         struct $name:ident,
-        fields => { $( $field:ident : $type:tt, )* },
+        fields => { $( $field:ident : $type:ty, )* },
         integer_iter => ( $integer_iter:tt, $integer_iter_fn:ident ),
         fraction_iter => ( $fraction_iter:tt, $fraction_iter_fn:ident ),
         exponent_iter => ( $exponent_iter:tt, $exponent_iter_fn:ident ),
         format => $format:expr,
+        radix => $radix:expr,
+        decimal_point => $decimal_point:expr,
+        exponent => $exponent:expr,
         slow_interface => $slow_interface:tt,
         consume_integer_digits => $consume_integer_digits:expr,
         consume_fraction_digits => $consume_fraction_digits:expr,
@@ -358,9 +374,9 @@ macro_rules! fast_data_interface {
         ltrim_separator => $ltrim_separator:ident,
         rtrim_zero => $rtrim_zero:ident,
         rtrim_separator => $rtrim_separator:ident,
-        new => $($new:tt)*
+        new => fn $newfn:ident($($arg:ident: $argtype:ty),*) -> $rettype:ty $newbody:block
     ) => (
-        pub(crate) struct $name<'a> {
+        pub(crate) struct $name<'a, 'b> {
             $( $field : $type, )*
             integer: &'a [u8],
             fraction: Option<&'a [u8]>,
@@ -370,17 +386,17 @@ macro_rules! fast_data_interface {
 
         fast_data_interface_impl!($name);
 
-        impl<'a> FastDataInterface<'a> for $name<'a> {
+        impl<'a, 'b> FastDataInterface<'a, 'b> for $name<'a, 'b> {
             type IntegerIter = $integer_iter<'a>;
             type FractionIter = $fraction_iter<'a>;
             type ExponentIter = $exponent_iter<'a>;
 
             #[cfg(feature = "correct")]
-            type SlowInterface = $slow_interface<'a>;
+            type SlowInterface = $slow_interface<'a, 'b>;
 
             #[inline]
             #[allow(unused_variables)]
-            $($new)*
+            fn $newfn($($arg: $argtype),*) -> $rettype $newbody
 
             // DATA
 
@@ -404,6 +420,21 @@ macro_rules! fast_data_interface {
             #[inline]
             fn format(&self) -> NumberFormat {
                 $format(self)
+            }
+
+            #[inline]
+            fn radix(&self) -> u32 {
+                $radix(self)
+            }
+
+            #[inline]
+            fn decimal_point(&self) -> u8 {
+                $decimal_point(self)
+            }
+
+            #[inline]
+            fn exponent_character(&self) -> u8 {
+                $exponent(self)
             }
 
             #[inline]
@@ -554,13 +585,14 @@ pub(crate) trait SlowDataInterface<'a>: SlowDataInterfaceImpl<'a> {
 macro_rules! slow_data_interface {
     (
         struct $name:ident,
-        fields => { $( $field:ident : $type:tt, )* },
+        fields => { $( $field:ident : $type:ty, )* },
         integer_iter => ( $integer_iter:tt, $integer_iter_fn:ident ),
         fraction_iter => ( $fraction_iter:tt, $fraction_iter_fn:ident ),
         format => $format:expr
+        // TODO(ahuszagh) Add in radix, etc. (Maybe?)
     ) => (
         #[cfg(feature = "correct")]
-        pub(crate) struct $name<'a> {
+        pub(crate) struct $name<'a, 'b> {
             $( $field : $type, )*
             integer: &'a [u8],
             fraction: &'a [u8],
@@ -573,7 +605,7 @@ macro_rules! slow_data_interface {
         slow_data_interface_impl!($name);
 
         #[cfg(feature = "correct")]
-        impl<'a> SlowDataInterface<'a> for $name<'a> {
+        impl<'a, 'b> SlowDataInterface<'a> for $name<'a, 'b> {
             type IntegerIter = $integer_iter<'a>;
             type FractionIter = $fraction_iter<'a>;
 
@@ -618,11 +650,14 @@ macro_rules! data_interface {
     (
         struct $fast:ident,
         struct $slow:ident,
-        fields => { $( $field:ident : $type:tt, )* },
+        fields => { $( $field:ident : $type:ty, )* },
         integer_iter => ( $integer_iter:tt, $integer_iter_fn:ident ),
         fraction_iter => ( $fraction_iter:tt, $fraction_iter_fn:ident ),
         exponent_iter => ( $exponent_iter:tt, $exponent_iter_fn:ident ),
         format => $format:expr,
+        radix => $radix:expr,
+        decimal_point => $decimal_point:expr,
+        exponent => $exponent:expr,
         consume_integer_digits => $consume_integer_digits:expr,
         consume_fraction_digits => $consume_fraction_digits:expr,
         extract_exponent => $extract_exponent:expr,
@@ -634,7 +669,7 @@ macro_rules! data_interface {
         ltrim_separator => $ltrim_separator:ident,
         rtrim_zero => $rtrim_zero:ident,
         rtrim_separator => $rtrim_separator:ident,
-        new => $($new:tt)*
+        new => fn $newfn:ident($($arg:ident : $argtype:ty),*) -> $rettype:ty $newbody:block
     ) => (
         fast_data_interface!(
             struct $fast,
@@ -643,6 +678,9 @@ macro_rules! data_interface {
             fraction_iter => ($fraction_iter, $fraction_iter_fn),
             exponent_iter => ($exponent_iter, $exponent_iter_fn),
             format => $format,
+            radix => $radix,
+            decimal_point => $decimal_point,
+            exponent => $exponent,
             slow_interface => $slow,
             consume_integer_digits => $consume_integer_digits,
             consume_fraction_digits => $consume_fraction_digits,
@@ -655,7 +693,7 @@ macro_rules! data_interface {
             ltrim_separator => $ltrim_separator,
             rtrim_zero => $rtrim_zero,
             rtrim_separator => $rtrim_separator,
-            new => $($new)*
+            new => fn $newfn($($arg: $argtype),*) -> $rettype $newbody
         );
 
         slow_data_interface!(

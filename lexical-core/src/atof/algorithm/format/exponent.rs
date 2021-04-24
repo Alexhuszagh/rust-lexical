@@ -56,7 +56,7 @@ pub(super) fn mantissa_exponent(raw_exponent: i32, fraction_digits: usize, trunc
 //      Iter should not implement ConsumedIterator, since it would break
 //      the assumption in `extract_exponent_iltc`.
 #[inline]
-fn extract_and_parse_exponent<'a, Data, Iter>(
+fn extract_and_parse_exponent<'a, 'b, Data, Iter>(
     data: &mut Data,
     iter: Iter,
     bytes: &'a [u8],
@@ -64,7 +64,7 @@ fn extract_and_parse_exponent<'a, Data, Iter>(
     sign: Sign
 )
     -> &'a [u8]
-    where Data: FastDataInterface<'a>,
+    where Data: FastDataInterface<'a, 'b>,
           Iter: AsPtrIterator<'a, u8>
 {
     let (raw_exponent, ptr) = atoi::standalone_exponent(iter, radix, sign);
@@ -86,7 +86,7 @@ fn extract_and_parse_exponent<'a, Data, Iter>(
 // where the invalid (trailing) data has already been determined.
 #[inline]
 #[cfg(feature = "format")]
-fn parse_exponent<'a, Data>(
+fn parse_exponent<'a, 'b, Data>(
     data: &mut Data,
     bytes: &'a [u8],
     leading: &'a [u8],
@@ -95,7 +95,7 @@ fn parse_exponent<'a, Data>(
     digit_separator: u8,
     sign: Sign
 )
-    where Data: FastDataInterface<'a>
+    where Data: FastDataInterface<'a, 'b>
 {
     // Get an iterator over our digits and sign bits, and parse the exponent.
     let iter = iterate_digits_ignore_separator(leading, digit_separator);
@@ -117,14 +117,14 @@ fn parse_exponent<'a, Data>(
 // Extract exponent substring and parse exponent.
 // Does not consume any digit separators.
 #[inline]
-fn extract_exponent<'a, Data>(
+fn extract_exponent<'a, 'b, Data>(
     data: &mut Data,
     bytes: &'a [u8],
     radix: u32,
     digit_separator: u8
 )
     -> &'a [u8]
-    where Data: FastDataInterface<'a>
+    where Data: FastDataInterface<'a, 'b>
 {
     // Remove leading exponent character and parse exponent.
     let bytes = &bytes[1..];
@@ -137,14 +137,14 @@ fn extract_exponent<'a, Data>(
 // Consumes leading, internal, trailing, and consecutive digit separators.
 #[inline]
 #[cfg(feature = "format")]
-fn extract_exponent_iltc<'a, Data>(
+fn extract_exponent_iltc<'a, 'b, Data>(
     data: &mut Data,
     bytes: &'a [u8],
     radix: u32,
     digit_separator: u8
 )
     -> &'a [u8]
-    where Data: FastDataInterface<'a>
+    where Data: FastDataInterface<'a, 'b>
 {
     // Remove leading exponent character and parse exponent.
     // We're not calling `consumed()`, so it's fine to have trailing underscores.
@@ -172,14 +172,14 @@ macro_rules! extract_exponent_separator {
     ) => (
         #[inline]
         #[cfg(feature = "format")]
-        fn $name<'a, Data>(
+        fn $name<'a, 'b, Data>(
             data: &mut Data,
             bytes: &'a [u8],
             radix: u32,
             digit_separator: u8
         )
             -> &'a [u8]
-            where Data: FastDataInterface<'a>
+            where Data: FastDataInterface<'a, 'b>
         {
             let bytes = &bytes[1..];
             let (sign, digits) = $sign::<FloatType>(bytes, digit_separator);
@@ -273,9 +273,9 @@ extract_exponent_separator!(
 
 // Extract exponent without a digit separator.
 #[inline]
-pub(crate) fn extract_exponent_no_separator<'a, Data>(data: &mut Data, bytes: &'a [u8], radix: u32, format: NumberFormat)
+pub(crate) fn extract_exponent_no_separator<'a, 'b, Data>(data: &mut Data, bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> &'a [u8]
-    where Data: FastDataInterface<'a>
+    where Data: FastDataInterface<'a, 'b>
 {
     extract_exponent(data, bytes, radix, format.digit_separator())
 }
@@ -283,9 +283,9 @@ pub(crate) fn extract_exponent_no_separator<'a, Data>(data: &mut Data, bytes: &'
 // Extract exponent while ignoring the digit separator.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn extract_exponent_ignore_separator<'a, Data>(data: &mut Data, bytes: &'a [u8], radix: u32, format: NumberFormat)
+pub(crate) fn extract_exponent_ignore_separator<'a, 'b, Data>(data: &mut Data, bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> &'a [u8]
-    where Data: FastDataInterface<'a>
+    where Data: FastDataInterface<'a, 'b>
 {
     extract_exponent_iltc(data, bytes, radix, format.digit_separator())
 }
@@ -293,9 +293,9 @@ pub(crate) fn extract_exponent_ignore_separator<'a, Data>(data: &mut Data, bytes
 // Extract exponent with a digit separator in the exponent component.
 #[inline]
 #[cfg(feature = "format")]
-pub(super) fn extract_exponent_separator<'a, Data>(data: &mut Data, bytes: &'a [u8], radix: u32, format: NumberFormat)
+pub(super) fn extract_exponent_separator<'a, 'b, Data>(data: &mut Data, bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> &'a [u8]
-    where Data: FastDataInterface<'a>
+    where Data: FastDataInterface<'a, 'b>
 {
     const I: NumberFormat = NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR;
     const L: NumberFormat = NumberFormat::EXPONENT_LEADING_DIGIT_SEPARATOR;
@@ -382,7 +382,7 @@ mod test {
     #[test]
     fn extract_exponent_test() {
         // Allows present exponents.
-        type Data<'a> = StandardFastDataInterface<'a>;
+        type Data<'a> = StandardFastDataInterface<'a, 'b>;
         let mut data = Data::new(NumberFormat::STANDARD);
         extract_exponent(&mut data, b"e+23", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("+23")));
@@ -399,7 +399,7 @@ mod test {
     #[cfg(feature = "format")]
     fn extract_exponent_iltc_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a>;
+        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
         let format = NumberFormat::IGNORE;
         let format = format | NumberFormat::from_digit_separator(b'_');
         let mut data = Data::new(format);
@@ -430,7 +430,7 @@ mod test {
     #[cfg(feature = "format")]
     fn extract_exponent_i_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a>;
+        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
         let format = NumberFormat::IGNORE;
         let format = format | NumberFormat::from_digit_separator(b'_');
         let mut data = Data::new(format);
@@ -461,7 +461,7 @@ mod test {
     #[cfg(feature = "format")]
     fn extract_exponent_ic_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a>;
+        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
         let format = NumberFormat::IGNORE;
         let format = format | NumberFormat::from_digit_separator(b'_');
         let mut data = Data::new(format);
@@ -492,7 +492,7 @@ mod test {
     #[cfg(feature = "format")]
     fn extract_exponent_l_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a>;
+        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
         let format = NumberFormat::IGNORE;
         let format = format | NumberFormat::from_digit_separator(b'_');
         let mut data = Data::new(format);
@@ -523,7 +523,7 @@ mod test {
     #[cfg(feature = "format")]
     fn extract_exponent_lc_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a>;
+        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
         let format = NumberFormat::IGNORE;
         let format = format | NumberFormat::from_digit_separator(b'_');
         let mut data = Data::new(format);
@@ -554,7 +554,7 @@ mod test {
     #[cfg(feature = "format")]
     fn extract_exponent_t_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a>;
+        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
         let format = NumberFormat::IGNORE;
         let format = format | NumberFormat::from_digit_separator(b'_');
         let mut data = Data::new(format);
@@ -585,7 +585,7 @@ mod test {
     #[cfg(feature = "format")]
     fn extract_exponent_tc_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a>;
+        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
         let format = NumberFormat::IGNORE;
         let format = format | NumberFormat::from_digit_separator(b'_');
         let mut data = Data::new(format);

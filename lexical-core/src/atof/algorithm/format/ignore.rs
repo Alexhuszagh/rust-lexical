@@ -16,12 +16,15 @@ data_interface!(
     struct IgnoreFastDataInterface,
     struct IgnoreSlowDataInterface,
     fields => {
-        format: NumberFormat,
+        options: &'b ParseFloatOptions,
     },
     integer_iter => (IteratorSeparator, iterate_digits_ignore_separator),
     fraction_iter => (IteratorSeparator, iterate_digits_ignore_separator),
     exponent_iter => (IteratorSeparator, iterate_digits_ignore_separator),
-    format => |this: &Self| this.format,
+    format => |this: &Self| this.options.format(),
+    radix => |this: &Self| this.options.radix(),
+    decimal_point => |this: &Self| this.options.decimal_point(),
+    exponent => |this: &Self| this.options.exponent(),
     consume_integer_digits => consume_digits_ignore_separator,
     consume_fraction_digits => consume_digits_ignore_separator,
     extract_exponent => extract_exponent_ignore_separator,
@@ -33,9 +36,9 @@ data_interface!(
     ltrim_separator => ltrim_separator_separator,
     rtrim_zero => rtrim_zero_separator,
     rtrim_separator => rtrim_separator_separator,
-    new => fn new(format: NumberFormat) -> Self {
+    new => fn new(options: &'b ParseFloatOptions) -> Self {
         Self {
-            format,
+            options,
             integer: &[],
             fraction: None,
             exponent: None,

@@ -16,11 +16,16 @@ use super::validate::*;
 data_interface!(
     struct PermissiveFastDataInterface,
     struct PermissiveSlowDataInterface,
-    fields => {},
+    fields => {
+        options: &'b ParseFloatOptions,
+    },
     integer_iter => (IteratorNoSeparator, iterate_digits_no_separator),
     fraction_iter => (IteratorNoSeparator, iterate_digits_no_separator),
     exponent_iter => (IteratorNoSeparator, iterate_digits_no_separator),
-    format => |_| NumberFormat::default(),
+    format => |this: &Self| this.options.format(),
+    radix => |this: &Self| this.options.radix(),
+    decimal_point => |this: &Self| this.options.decimal_point(),
+    exponent => |this: &Self| this.options.exponent(),
     consume_integer_digits => consume_digits_no_separator,
     consume_fraction_digits =>  consume_digits_no_separator,
     extract_exponent => extract_exponent_no_separator,
@@ -32,8 +37,9 @@ data_interface!(
     ltrim_separator => ltrim_separator_no_separator,
     rtrim_zero => rtrim_zero_no_separator,
     rtrim_separator => rtrim_separator_no_separator,
-    new => fn new(format: NumberFormat) -> Self {
+    new => fn new(options: &'b ParseFloatOptions) -> Self {
         Self {
+            options,
             integer: &[],
             fraction: None,
             exponent: None,

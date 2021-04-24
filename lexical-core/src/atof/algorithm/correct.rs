@@ -20,10 +20,10 @@ use super::small_powers::get_small_powers_64;
 // Parse the raw float state into a mantissa, calculating the number
 // of truncated digits and the offset.
 #[inline]
-fn process_mantissa<'a, M, Data>(data: &Data, radix: u32)
+fn process_mantissa<'a, 'b, M, Data>(data: &Data, radix: u32)
     -> (M, usize)
     where M: Mantissa,
-          Data: FastDataInterface<'a>
+          Data: FastDataInterface<'a, 'b>
 {
     atoi::standalone_mantissa(data.integer_iter(), data.fraction_iter(), radix)
 }
@@ -263,7 +263,7 @@ pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, trunca
 
 /// Fallback method. Do not inline so the stack requirements only occur
 /// if required.
-fn pown_fallback<'a, F, Data>(data: Data, mantissa: u64, radix: u32, lossy: bool, sign: Sign)
+fn pown_fallback<'a, 'b, F, Data>(data: Data, mantissa: u64, radix: u32, lossy: bool, sign: Sign)
     -> F
     where F: FloatType,
           Data: SlowDataInterface<'a>
@@ -291,10 +291,10 @@ fn pown_fallback<'a, F, Data>(data: Data, mantissa: u64, radix: u32, lossy: bool
 }
 
 /// Parse non-power-of-two radix string to native float.
-fn pown_to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32, lossy: bool, sign: Sign)
+fn pown_to_native<'a, 'b, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32, lossy: bool, sign: Sign)
     -> ParseResult<(F, *const u8)>
     where F: FloatType,
-          Data: FastDataInterface<'a>
+          Data: FastDataInterface<'a, 'b>
 {
     // Parse the mantissa and exponent.
     let ptr = data.extract(bytes, radix)?;
@@ -327,10 +327,10 @@ fn pown_to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32, loss
 
 /// Parse power-of-two radix string to native float.
 #[cfg(feature = "radix")]
-fn pow2_to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32, pow2_exp: i32, sign: Sign)
+fn pow2_to_native<'a, 'b, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32, pow2_exp: i32, sign: Sign)
     -> ParseResult<(F, *const u8)>
     where F: FloatType,
-          Data: FastDataInterface<'a>
+          Data: FastDataInterface<'a, 'b>
 {
     // Parse the mantissa and exponent.
     let ptr = data.extract(bytes, radix)?;
@@ -410,18 +410,17 @@ fn to_native<F>(bytes: &[u8], sign: Sign, options: &ParseFloatOptions)
     -> ParseResult<(F, *const u8)>
     where F: FloatType
 {
-    let format = options.format();
     let radix = options.radix();
     let lossy = options.lossy();
     #[cfg(not(feature = "radix"))] {
-        apply_interface!(pown_to_native, format, bytes, radix, lossy, sign)
+        apply_interface!(pown_to_native, options, bytes, radix, lossy, sign)
     }
 
     #[cfg(feature = "radix")] {
         let pow2_exp = pow2_exponent(radix);
         match pow2_exp {
-            0 => apply_interface!(pown_to_native, format, bytes, radix, lossy, sign),
-            _ => apply_interface!(pow2_to_native, format, bytes, radix, pow2_exp, sign)
+            0 => apply_interface!(pown_to_native, options, bytes, radix, lossy, sign),
+            _ => apply_interface!(pow2_to_native, options, bytes, radix, pow2_exp, sign)
         }
     }
 }

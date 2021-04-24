@@ -70,9 +70,9 @@ pub(crate) fn atof_generic<'a, F>(bytes: &'a [u8], options: &ParseFloatOptions)
     -> ParseResult<(F, *const u8)>
     where F: StablePower
 {
-    let format = options.format();
+    // TODO(ahuszagh) Should be able to store the radix too...
     let radix = options.radix();
-    apply_interface!(to_native, format, bytes, radix)
+    apply_interface!(to_native, options, bytes, radix)
 }
 
 // ATOF/ATOD
