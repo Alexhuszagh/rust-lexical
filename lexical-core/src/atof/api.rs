@@ -67,6 +67,8 @@ fn parse_infinity<'a, ToIter, StartsWith, Iter, F>(
     format: NumberFormat,
     radix: u32,
     lossy: bool,
+    inf_string: &'static [u8],
+    infinity_string: &'static [u8],
     to_iter: ToIter,
     starts_with: StartsWith
 )
@@ -77,11 +79,9 @@ fn parse_infinity<'a, ToIter, StartsWith, Iter, F>(
           StartsWith: Fn(Iter, slice::Iter<'a, u8>) -> (bool, Iter)
 {
     let digit_separator = format.digit_separator();
-    let inf = b"inf";
-    let infinity = b"infinity";
-    if let (true, iter) = starts_with(to_iter(bytes, digit_separator), infinity.iter()) {
+    if let (true, iter) = starts_with(to_iter(bytes, digit_separator), infinity_string.iter()) {
         Ok((F::INFINITY, iter.as_ptr()))
-    } else if let (true, iter) = starts_with(to_iter(bytes, digit_separator), inf.iter()) {
+    } else if let (true, iter) = starts_with(to_iter(bytes, digit_separator), inf_string.iter()) {
         Ok((F::INFINITY, iter.as_ptr()))
     } else {
         // Not infinity, may be valid with a different radix.
@@ -101,6 +101,7 @@ fn parse_nan<'a, ToIter, StartsWith, Iter, F>(
     format: NumberFormat,
     radix: u32,
     lossy: bool,
+    nan_string: &'static [u8],
     to_iter: ToIter,
     starts_with: StartsWith
 )
@@ -111,8 +112,7 @@ fn parse_nan<'a, ToIter, StartsWith, Iter, F>(
           StartsWith: Fn(Iter, slice::Iter<'a, u8>) -> (bool, Iter)
 {
     let digit_separator = format.digit_separator();
-    let nan = b"NaN";
-    if let (true, iter) = starts_with(to_iter(bytes, digit_separator), nan.iter()) {
+    if let (true, iter) = starts_with(to_iter(bytes, digit_separator), nan_string.iter()) {
         Ok((F::NAN, iter.as_ptr()))
     } else {
         // Not NaN, may be valid with a different radix.
@@ -130,15 +130,24 @@ fn parse_nan<'a, ToIter, StartsWith, Iter, F>(
 /// Special values are allowed, the match is case-insensitive,
 /// and no digit separators are allowed.
 #[inline(always)]
-fn parse_float_standard<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, lossy: bool)
+fn parse_float_standard<F: StringToFloat>(
+    bytes: &[u8],
+    sign: Sign,
+    format: NumberFormat,
+    radix: u32,
+    lossy: bool,
+    nan_string: &'static [u8],
+    inf_string: &'static [u8],
+    infinity_string: &'static [u8],
+)
     -> ParseResult<(F, *const u8)>
 {
     // Use predictive parsing to filter special cases. This leads to
     // dramatic performance gains.
     let starts_with = case_insensitive_starts_with_iter;
     match bytes[0] {
-        b'i' | b'I' => parse_infinity(bytes, sign, format, radix, lossy, to_iter, starts_with),
-        b'N' | b'n' => parse_nan(bytes, sign, format, radix, lossy, to_iter, starts_with),
+        b'i' | b'I' => parse_infinity(bytes, sign, format, radix, lossy, inf_string, infinity_string, to_iter, starts_with),
+        b'N' | b'n' => parse_nan(bytes, sign, format, radix, lossy, nan_string, to_iter, starts_with),
         _           => F::default(bytes, sign, format, radix, lossy),
     }
 }
@@ -148,14 +157,23 @@ fn parse_float_standard<F: StringToFloat>(bytes: &[u8], sign: Sign, format: Numb
 /// and digit separators are allowed.
 #[inline]
 #[cfg(feature = "format")]
-fn parse_float_cs<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, lossy: bool)
+fn parse_float_cs<F: StringToFloat>(
+    bytes: &[u8],
+    sign: Sign,
+    format: NumberFormat,
+    radix: u32,
+    lossy: bool,
+    nan_string: &'static [u8],
+    inf_string: &'static [u8],
+    infinity_string: &'static [u8],
+)
     -> ParseResult<(F, *const u8)>
 {
     let digit_separator = format.digit_separator();
     let starts_with = starts_with_iter;
     match SkipValueIterator::new(bytes, digit_separator).next()  {
-        Some(&b'i') | Some(&b'I')   => parse_infinity(bytes, sign, format, radix, lossy, to_iter_s, starts_with),
-        Some(&b'n') | Some(&b'N')   => parse_nan(bytes, sign, format, radix, lossy, to_iter_s, starts_with),
+        Some(&b'i') | Some(&b'I')   => parse_infinity(bytes, sign, format, radix, lossy, inf_string, infinity_string, to_iter_s, starts_with),
+        Some(&b'n') | Some(&b'N')   => parse_nan(bytes, sign, format, radix, lossy, nan_string, to_iter_s, starts_with),
         _                           => F::default(bytes, sign, format, radix, lossy),
     }
 }
@@ -165,15 +183,24 @@ fn parse_float_cs<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberForm
 /// and no digit separators are allowed.
 #[inline]
 #[cfg(feature = "format")]
-fn parse_float_c<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, lossy: bool)
+fn parse_float_c<F: StringToFloat>(
+    bytes: &[u8],
+    sign: Sign,
+    format: NumberFormat,
+    radix: u32,
+    lossy: bool,
+    nan_string: &'static [u8],
+    inf_string: &'static [u8],
+    infinity_string: &'static [u8],
+)
     -> ParseResult<(F, *const u8)>
 {
     // Use predictive parsing to filter special cases. This leads to
     // dramatic performance gains.
     let starts_with = starts_with_iter;
     match bytes[0] {
-        b'i' | b'I' => parse_infinity(bytes, sign, format, radix, lossy, to_iter, starts_with),
-        b'N' | b'n' => parse_nan(bytes, sign, format, radix, lossy, to_iter, starts_with),
+        b'i' | b'I' => parse_infinity(bytes, sign, format, radix, lossy, inf_string, infinity_string, to_iter, starts_with),
+        b'N' | b'n' => parse_nan(bytes, sign, format, radix, lossy, nan_string, to_iter, starts_with),
         _           => F::default(bytes, sign, format, radix, lossy),
     }
 }
@@ -183,14 +210,23 @@ fn parse_float_c<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberForma
 /// and digit separators are allowed.
 #[inline]
 #[cfg(feature = "format")]
-fn parse_float_s<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, lossy: bool)
+fn parse_float_s<F: StringToFloat>(
+    bytes: &[u8],
+    sign: Sign,
+    format: NumberFormat,
+    radix: u32,
+    lossy: bool,
+    nan_string: &'static [u8],
+    inf_string: &'static [u8],
+    infinity_string: &'static [u8],
+)
     -> ParseResult<(F, *const u8)>
 {
     let digit_separator = format.digit_separator();
     let starts_with = case_insensitive_starts_with_iter;
     match SkipValueIterator::new(bytes, digit_separator).next()  {
-        Some(&b'i') | Some(&b'I')   => parse_infinity(bytes, sign, format, radix, lossy, to_iter_s, starts_with),
-        Some(&b'n') | Some(&b'N')   => parse_nan(bytes, sign, format, radix, lossy, to_iter_s, starts_with),
+        Some(&b'i') | Some(&b'I')   => parse_infinity(bytes, sign, format, radix, lossy, inf_string, infinity_string, to_iter_s, starts_with),
+        Some(&b'n') | Some(&b'N')   => parse_nan(bytes, sign, format, radix, lossy, nan_string, to_iter_s, starts_with),
         _                           => F::default(bytes, sign, format, radix, lossy),
     }
 }
@@ -198,16 +234,34 @@ fn parse_float_s<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberForma
 /// Parse special or float values with the default formatter.
 #[inline(always)]
 #[cfg(not(feature = "format"))]
-fn parse_float<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, lossy: bool)
+fn parse_float<F: StringToFloat>(
+    bytes: &[u8],
+    sign: Sign,
+    format: NumberFormat,
+    radix: u32,
+    lossy: bool,
+    nan_string: &'static [u8],
+    inf_string: &'static [u8],
+    infinity_string: &'static [u8],
+)
     -> ParseResult<(F, *const u8)>
 {
-    parse_float_standard(bytes, sign, format, radix, lossy)
+    parse_float_standard(bytes, sign, format, radix, lossy, nan_string, inf_string, infinity_string)
 }
 
 /// Parse special or float values with the default formatter.
 #[inline(always)]
 #[cfg(feature = "format")]
-fn parse_float<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, lossy: bool)
+fn parse_float<F: StringToFloat>(
+    bytes: &[u8],
+    sign: Sign,
+    format: NumberFormat,
+    radix: u32,
+    lossy: bool,
+    nan_string: &'static [u8],
+    inf_string: &'static [u8],
+    infinity_string: &'static [u8],
+)
     -> ParseResult<(F, *const u8)>
 {
     // Need to consider 3 possibilities:
@@ -219,10 +273,10 @@ fn parse_float<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat,
     let has_sep = format.special_digit_separator();
     match (no_special, case, has_sep) {
         (true, _, _)            => F::default(bytes, sign, format, radix, lossy),
-        (false, true, true)     => parse_float_cs(bytes, sign, format, radix, lossy),
-        (false, false, true)    => parse_float_s(bytes, sign, format, radix, lossy),
-        (false, true, false)    => parse_float_c(bytes, sign, format, radix, lossy),
-        (false, false, false)   => parse_float_standard(bytes, sign, format, radix, lossy),
+        (false, true, true)     => parse_float_cs(bytes, sign, format, radix, lossy, nan_string, inf_string, infinity_string),
+        (false, false, true)    => parse_float_s(bytes, sign, format, radix, lossy, nan_string, inf_string, infinity_string),
+        (false, true, false)    => parse_float_c(bytes, sign, format, radix, lossy, nan_string, inf_string, infinity_string),
+        (false, false, false)   => parse_float_standard(bytes, sign, format, radix, lossy, nan_string, inf_string, infinity_string),
     }
 }
 
@@ -263,14 +317,22 @@ fn to_signed<F: StringToFloat>(float: F, sign: Sign) -> F
 
 /// Standalone atof processor.
 #[inline]
-fn atof<F: StringToFloat>(bytes: &[u8], format: NumberFormat, radix: u32, lossy: bool)
+fn atof<F: StringToFloat>(
+    bytes: &[u8],
+    format: NumberFormat,
+    radix: u32,
+    lossy: bool,
+    nan_string: &'static [u8],
+    inf_string: &'static [u8],
+    infinity_string: &'static [u8],
+)
     -> ParseResult<(F, *const u8)>
 {
     let (sign, digits) = parse_sign::<F>(bytes, format);
     if digits.is_empty() {
         return Err((ErrorCode::Empty, digits.as_ptr()));
     }
-    let (float, ptr): (F, *const u8) = parse_float(digits, sign, format, radix, lossy)?;
+    let (float, ptr): (F, *const u8) = parse_float(digits, sign, format, radix, lossy, nan_string, inf_string, infinity_string)?;
     validate_sign(bytes, digits, sign, format)?;
 
     Ok((to_signed(float, sign), ptr))
@@ -283,7 +345,7 @@ fn atof_lossy<F: StringToFloat>(bytes: &[u8], radix: u32)
 {
     let format = NumberFormat::STANDARD;
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, format, radix, true) {
+    match atof::<F>(bytes, format, radix, true, DEFAULT_NAN_STRING, DEFAULT_INF_STRING, DEFAULT_INFINITY_STRING) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
@@ -296,7 +358,7 @@ fn atof_nonlossy<F: StringToFloat>(bytes: &[u8], radix: u32)
 {
     let format = NumberFormat::STANDARD;
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, format, radix, false) {
+    match atof::<F>(bytes, format, radix, false, DEFAULT_NAN_STRING, DEFAULT_INF_STRING, DEFAULT_INFINITY_STRING) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
@@ -309,7 +371,7 @@ fn atof_format<F: StringToFloat>(bytes: &[u8], radix: u32, format: NumberFormat)
     -> Result<(F, usize)>
 {
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, format, radix, false) {
+    match atof::<F>(bytes, format, radix, false, DEFAULT_NAN_STRING, DEFAULT_INF_STRING, DEFAULT_INFINITY_STRING) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
@@ -322,7 +384,7 @@ fn atof_lossy_format<F: StringToFloat>(bytes: &[u8], radix: u32, format: NumberF
     -> Result<(F, usize)>
 {
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, format, radix, true) {
+    match atof::<F>(bytes, format, radix, true, DEFAULT_NAN_STRING, DEFAULT_INF_STRING, DEFAULT_INFINITY_STRING) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
@@ -336,8 +398,11 @@ fn atof_with_options<F: StringToFloat>(bytes: &[u8], options: &ParseFloatOptions
     let format = options.format();
     let radix = options.radix();
     let lossy = options.lossy();
+    let nan = options.nan_string();
+    let inf = options.inf_string();
+    let infinity = options.infinity_string();
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, format, radix, lossy) {
+    match atof::<F>(bytes, format, radix, lossy, nan, inf, infinity) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }

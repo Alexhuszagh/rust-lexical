@@ -7,15 +7,15 @@ use super::rounding::RoundingKind;
 // ---------
 
 // Constants to dictate default values for options.
-const DEFAULT_FORMAT: NumberFormat = NumberFormat::STANDARD;
-const DEFAULT_INCORRECT: bool = false;
-const DEFAULT_LOSSY: bool = false;
-const DEFAULT_RADIX: u8 = 10;
-const DEFAULT_INF_STRING: &'static [u8] = b"inf";
-const DEFAULT_INFINITY_STRING: &'static [u8] = b"infinity";
-const DEFAULT_NAN_STRING: &'static [u8] = b"NaN";
-const DEFAULT_ROUNDING: RoundingKind = RoundingKind::NearestTieEven;
-const DEFAULT_TRIM_FLOATS: bool = false;
+pub(crate) const DEFAULT_FORMAT: NumberFormat = NumberFormat::STANDARD;
+pub(crate) const DEFAULT_INCORRECT: bool = false;
+pub(crate) const DEFAULT_LOSSY: bool = false;
+pub(crate) const DEFAULT_RADIX: u8 = 10;
+pub(crate) const DEFAULT_INF_STRING: &'static [u8] = b"inf";
+pub(crate) const DEFAULT_INFINITY_STRING: &'static [u8] = b"infinity";
+pub(crate) const DEFAULT_NAN_STRING: &'static [u8] = b"NaN";
+pub(crate) const DEFAULT_ROUNDING: RoundingKind = RoundingKind::NearestTieEven;
+pub(crate) const DEFAULT_TRIM_FLOATS: bool = false;
 
 // VALIDATORS
 // ----------
