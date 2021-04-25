@@ -23,9 +23,6 @@ radix = ["lexical-core/radix"]
 rounding = ["lexical-core/rounding"]
 ryu = ["lexical-core/ryu"]
 std = ["lexical-core/std"]
-trim_floats = ["lexical-core/trim_floats"]
-noinline = ["lexical-core/noinline"]
-unchecked_index = ["lexical-core/unchecked_index"]
 
 [[bench]]
 name = "atof"

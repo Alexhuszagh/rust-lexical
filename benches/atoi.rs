@@ -1,38 +1,36 @@
 extern crate criterion;
 extern crate lexical_core;
 
+use std::time::Duration;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lexical_core::parse as lexical_parse;
 
 // BENCH GENERATORS
 
-// Lexical atoi generator.
+// Lexical atof generator.
 macro_rules! lexical_generator {
-    ($name:ident, $data:ident, $t:ty) => {
-        fn $name(criterion: &mut Criterion) {
-            criterion.bench_function(stringify!($name), |b| {
-                b.iter(|| {
-                    $data.iter().for_each(|x| {
-                        black_box(lexical_parse::<$t>(x.as_bytes()).unwrap());
-                    })
+    ($group:ident, $name:literal, $data:ident, $t:ty) => {
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $data.iter().for_each(|x| {
+                    black_box(lexical_parse::<$t>(x.as_bytes()).unwrap());
                 })
-            });
-        }
+            })
+        });
     };
 }
 
-// Parse atoi generator.
+// Parse atof generator.
 macro_rules! parse_generator {
-    ($name:ident, $data:ident, $t:tt) => {
-        fn $name(criterion: &mut Criterion) {
-            criterion.bench_function(stringify!($name), |b| {
-                b.iter(|| {
-                    $data.iter().for_each(|x| {
-                        black_box(x.parse::<$t>().unwrap());
-                    })
+    ($group:ident, $name:literal, $data:ident, $t:ty) => {
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $data.iter().for_each(|x| {
+                    black_box(x.parse::<$t>().unwrap());
                 })
-            });
-        }
+            })
+        });
     };
 }
 
@@ -748,9 +746,6 @@ const U8_DATA: [&'static str; 10000] = [
     "156",
 ];
 
-lexical_generator!(atoi_u8_lexical, U8_DATA, u8);
-parse_generator!(atoi_u8_parse, U8_DATA, u8);
-
 // Converted from randomly generated data in itoa.
 const U8_SIMPLE_DATA: [&'static str; 10000] = [
     "81", "93", "53", "23", "35", "53", "8", "18", "55", "24", "38", "15", "19", "21", "87", "16",
@@ -1379,9 +1374,6 @@ const U8_SIMPLE_DATA: [&'static str; 10000] = [
     "20", "2", "8", "76", "42", "39", "52", "92", "19", "26", "87", "14", "27", "38", "26", "67",
     "85", "98", "23", "47", "15", "39", "43", "50", "52", "2", "81",
 ];
-
-lexical_generator!(atoi_u8_simple_lexical, U8_SIMPLE_DATA, u8);
-parse_generator!(atoi_u8_simple_parse, U8_SIMPLE_DATA, u8);
 
 // I8
 
@@ -2103,9 +2095,6 @@ const I8_DATA: [&'static str; 10000] = [
     "-124", "105", "-108", "-70", "-50", "12", "36", "58", "94", "120", "-61", "-97", "-24", "58",
     "42", "-57", "93", "88", "-25", "122", "107", "71", "45", "30",
 ];
-
-lexical_generator!(atoi_i8_lexical, I8_DATA, i8);
-parse_generator!(atoi_i8_parse, I8_DATA, i8);
 
 // U16
 
@@ -3086,9 +3075,6 @@ const U16_DATA: [&'static str; 10000] = [
     "62313", "55488",
 ];
 
-lexical_generator!(atoi_u16_lexical, U16_DATA, u16);
-parse_generator!(atoi_u16_parse, U16_DATA, u16);
-
 // Converted from randomly generated data in itoa.
 const U16_SIMPLE_DATA: [&'static str; 10000] = [
     "325", "1", "319", "57", "472", "495", "455", "369", "248", "279", "452", "329", "139", "120",
@@ -3816,9 +3802,6 @@ const U16_SIMPLE_DATA: [&'static str; 10000] = [
     "198", "41", "469", "161", "479", "425", "137", "100", "149", "375", "269", "441", "283", "28",
     "387", "382", "386", "284", "124", "329", "273", "260",
 ];
-
-lexical_generator!(atoi_u16_simple_lexical, U16_SIMPLE_DATA, u16);
-parse_generator!(atoi_u16_simple_parse, U16_SIMPLE_DATA, u16);
 
 // I16
 
@@ -4822,9 +4805,6 @@ const I16_DATA: [&'static str; 10000] = [
     "8807", "-9308", "7151", "700", "-30896", "-11879", "12839", "26126", "-27865", "621", "11072",
     "28767", "24999", "23186", "17458", "-20775",
 ];
-
-lexical_generator!(atoi_i16_lexical, I16_DATA, i16);
-parse_generator!(atoi_i16_parse, I16_DATA, i16);
 
 // U32
 
@@ -14832,9 +14812,6 @@ const U32_DATA: [&'static str; 10000] = [
     "1493227562",
 ];
 
-lexical_generator!(atoi_u32_lexical, U32_DATA, u32);
-parse_generator!(atoi_u32_parse, U32_DATA, u32);
-
 // Converted from randomly generated data in itoa.
 const U32_SIMPLE_DATA: [&'static str; 10000] = [
     "224", "36", "362", "322", "461", "110", "369", "348", "71", "362", "486", "347", "406", "442",
@@ -15562,9 +15539,6 @@ const U32_SIMPLE_DATA: [&'static str; 10000] = [
     "207", "454", "138", "423", "341", "496", "385", "23", "44", "432", "131", "253", "384", "292",
     "212", "224", "44", "243", "160", "417", "148", "363", "121", "282",
 ];
-
-lexical_generator!(atoi_u32_simple_lexical, U32_SIMPLE_DATA, u32);
-parse_generator!(atoi_u32_simple_parse, U32_SIMPLE_DATA, u32);
 
 // I32
 
@@ -25572,9 +25546,6 @@ const I32_DATA: [&'static str; 10000] = [
     "152144811",
 ];
 
-lexical_generator!(atoi_i32_lexical, I32_DATA, i32);
-parse_generator!(atoi_i32_parse, I32_DATA, i32);
-
 // U64
 
 // Converted from randomly generated data in itoa.
@@ -35581,9 +35552,6 @@ const U64_DATA: [&'static str; 10000] = [
     "12228481697647633246",
 ];
 
-lexical_generator!(atoi_u64_lexical, U64_DATA, u64);
-parse_generator!(atoi_u64_parse, U64_DATA, u64);
-
 // Converted from randomly generated data in itoa.
 const U64_SIMPLE_DATA: [&'static str; 10000] = [
     "114", "242", "443", "305", "11", "426", "82", "33", "212", "413", "154", "411", "34", "124",
@@ -36311,9 +36279,6 @@ const U64_SIMPLE_DATA: [&'static str; 10000] = [
     "20", "284", "74", "348", "16", "388", "6", "38", "223", "365", "281", "89", "255", "238",
     "71", "327", "387", "56", "86", "445",
 ];
-
-lexical_generator!(atoi_u64_simple_lexical, U64_SIMPLE_DATA, u64);
-parse_generator!(atoi_u64_simple_parse, U64_SIMPLE_DATA, u64);
 
 // I64
 
@@ -46321,9 +46286,6 @@ const I64_DATA: [&'static str; 10000] = [
     "-8105976700374316760",
 ];
 
-lexical_generator!(atoi_i64_lexical, I64_DATA, i64);
-parse_generator!(atoi_i64_parse, I64_DATA, i64);
-
 // U128
 
 // Converted from randomly generated data in itoa.
@@ -56330,9 +56292,6 @@ const U128_DATA: [&'static str; 10000] = [
     "270202742708112950349524822071080849878",
 ];
 
-lexical_generator!(atoi_u128_lexical, U128_DATA, u128);
-parse_generator!(atoi_u128_parse, U128_DATA, u128);
-
 // Converted from randomly generated data in itoa.
 const U128_SIMPLE_DATA: [&'static str; 10000] = [
     "83", "33", "123", "216", "43", "201", "67", "428", "236", "206", "343", "444", "353", "129",
@@ -57060,9 +57019,6 @@ const U128_SIMPLE_DATA: [&'static str; 10000] = [
     "29", "287", "384", "396", "381", "244", "273", "4", "388", "383", "51", "280", "410", "472",
     "315", "63", "86", "180",
 ];
-
-lexical_generator!(atoi_u128_simple_lexical, U128_SIMPLE_DATA, u128);
-parse_generator!(atoi_u128_simple_parse, U128_SIMPLE_DATA, u128);
 
 // I128
 
@@ -67070,66 +67026,52 @@ const I128_DATA: [&'static str; 10000] = [
     "88887257302016101377004255078798489901",
 ];
 
-lexical_generator!(atoi_i128_lexical, I128_DATA, i128);
-parse_generator!(atoi_i128_parse, I128_DATA, i128);
+fn lexical(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("lexical");
+    group.measurement_time(Duration::from_secs(20));
+    lexical_generator!(group, "atoi_u8_lexical", U8_DATA, u8);
+    lexical_generator!(group, "atoi_u16_lexical", U16_DATA, u16);
+    lexical_generator!(group, "atoi_u32_lexical", U32_DATA, u32);
+    lexical_generator!(group, "atoi_u64_lexical", U64_DATA, u64);
+    lexical_generator!(group, "atoi_u128_lexical", U128_DATA, u128);
+
+    lexical_generator!(group, "atoi_u8_simple_lexical", U8_SIMPLE_DATA, u8);
+    lexical_generator!(group, "atoi_u16_simple_lexical", U16_SIMPLE_DATA, u16);
+    lexical_generator!(group, "atoi_u32_simple_lexical", U32_SIMPLE_DATA, u32);
+    lexical_generator!(group, "atoi_u64_simple_lexical", U64_SIMPLE_DATA, u64);
+    lexical_generator!(group, "atoi_u128_simple_lexical", U128_SIMPLE_DATA, u128);
+
+    lexical_generator!(group, "atoi_i8_lexical", I8_DATA, i8);
+    lexical_generator!(group, "atoi_i16_lexical", I16_DATA, i16);
+    lexical_generator!(group, "atoi_i32_lexical", I32_DATA, i32);
+    lexical_generator!(group, "atoi_i64_lexical", I64_DATA, i64);
+    lexical_generator!(group, "atoi_i128_lexical", I128_DATA, i128);
+}
+
+fn parse(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("core::parse");
+    group.measurement_time(Duration::from_secs(20));
+    parse_generator!(group, "atoi_u8_parse", U8_DATA, u8);
+    parse_generator!(group, "atoi_u16_parse", U16_DATA, u16);
+    parse_generator!(group, "atoi_u32_parse", U32_DATA, u32);
+    parse_generator!(group, "atoi_u64_parse", U64_DATA, u64);
+    parse_generator!(group, "atoi_u128_parse", U128_DATA, u128);
+
+    parse_generator!(group, "atoi_u8_simple_parse", U8_SIMPLE_DATA, u8);
+    parse_generator!(group, "atoi_u16_simple_parse", U16_SIMPLE_DATA, u16);
+    parse_generator!(group, "atoi_u32_simple_parse", U32_SIMPLE_DATA, u32);
+    parse_generator!(group, "atoi_u64_simple_parse", U64_SIMPLE_DATA, u64);
+    parse_generator!(group, "atoi_u128_simple_parse", U128_SIMPLE_DATA, u128);
+
+    parse_generator!(group, "atoi_i8_parse", I8_DATA, i8);
+    parse_generator!(group, "atoi_i16_parse", I16_DATA, i16);
+    parse_generator!(group, "atoi_i32_parse", I32_DATA, i32);
+    parse_generator!(group, "atoi_i64_parse", I64_DATA, i64);
+    parse_generator!(group, "atoi_i128_parse", I128_DATA, i128);
+}
 
 // MAIN
 
-// Random data
-criterion_group!(u8_benches, atoi_u8_lexical, atoi_u8_parse);
-criterion_group!(u16_benches, atoi_u16_lexical, atoi_u16_parse);
-criterion_group!(u32_benches, atoi_u32_lexical, atoi_u32_parse);
-criterion_group!(u64_benches, atoi_u64_lexical, atoi_u64_parse);
-criterion_group!(u128_benches, atoi_u128_lexical, atoi_u128_parse);
-criterion_group!(i8_benches, atoi_i8_lexical, atoi_i8_parse);
-criterion_group!(i16_benches, atoi_i16_lexical, atoi_i16_parse);
-criterion_group!(i32_benches, atoi_i32_lexical, atoi_i32_parse);
-criterion_group!(i64_benches, atoi_i64_lexical, atoi_i64_parse);
-criterion_group!(i128_benches, atoi_i128_lexical, atoi_i128_parse);
-
-// Simple data
-criterion_group!(
-    u8_simple_benches,
-    atoi_u8_simple_lexical,
-    atoi_u8_simple_parse
-);
-criterion_group!(
-    u16_simple_benches,
-    atoi_u16_simple_lexical,
-    atoi_u16_simple_parse
-);
-criterion_group!(
-    u32_simple_benches,
-    atoi_u32_simple_lexical,
-    atoi_u32_simple_parse
-);
-criterion_group!(
-    u64_simple_benches,
-    atoi_u64_simple_lexical,
-    atoi_u64_simple_parse
-);
-criterion_group!(
-    u128_simple_benches,
-    atoi_u128_simple_lexical,
-    atoi_u128_simple_parse
-);
-
-criterion_main!(
-    // Random data
-    u8_benches,
-    u16_benches,
-    u32_benches,
-    u64_benches,
-    u128_benches,
-    i8_benches,
-    i16_benches,
-    i32_benches,
-    i64_benches,
-    i128_benches,
-    // Simple data
-    u8_simple_benches,
-    u16_simple_benches,
-    u32_simple_benches,
-    u64_simple_benches,
-    u128_simple_benches
-);
+criterion_group!(lexical_benches, lexical);
+criterion_group!(parse_benches, parse);
+criterion_main!(lexical_benches, parse_benches);

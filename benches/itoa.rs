@@ -2,6 +2,8 @@ extern crate criterion;
 extern crate itoa;
 extern crate lexical_core;
 
+use std::time::Duration;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use itoa::write as itoa_write;
 use lexical_core::write as lexical_write;
@@ -104,58 +106,52 @@ fn chain_random<T, U>(t: T, u: U) -> ChainRandom<T, U> {
 
 // Lexical itoa generator.
 macro_rules! lexical_generator {
-    ($name:ident, $iter:expr) => {
-        fn $name(criterion: &mut Criterion) {
-            let mut buffer: [u8; 256] = [b'0'; 256];
-            criterion.bench_function(stringify!($name), |b| {
-                b.iter(|| {
-                    $iter.for_each(|x| {
-                        black_box(lexical_write(*x, &mut buffer));
-                    })
+    ($group:ident, $name:literal, $iter:expr) => {{
+        let mut buffer: [u8; 256] = [b'0'; 256];
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $iter.for_each(|x| {
+                    black_box(lexical_write(*x, &mut buffer));
                 })
-            });
-        }
-    };
+            })
+        });
+    }};
 }
 
 // dtolnay/itoa itoa generator.
 macro_rules! itoa_generator {
-    ($name:ident, $iter:expr) => {
-        fn $name(criterion: &mut Criterion) {
-            let mut buffer = vec![b'0'; 256];
-            criterion.bench_function(stringify!($name), |b| {
-                b.iter(|| {
-                    $iter.for_each(|x| {
-                        itoa_write(&mut buffer, *x).unwrap();
-                        black_box(&buffer);
-                        unsafe {
-                            buffer.set_len(0);
-                        } // Way faster than Vec::clear().
-                    })
+    ($group:ident, $name:literal, $iter:expr) => {{
+        let mut buffer = vec![b'0'; 256];
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $iter.for_each(|x| {
+                    itoa_write(&mut buffer, *x).unwrap();
+                    black_box(&buffer);
+                    unsafe {
+                        buffer.set_len(0);
+                    } // Way faster than Vec::clear().
                 })
-            });
-        }
-    };
+            })
+        });
+    }};
 }
 
 // fmt itoa generator.
 macro_rules! fmt_generator {
-    ($name:ident, $iter:expr) => {
-        fn $name(criterion: &mut Criterion) {
-            use std::io::Write;
-            let mut buffer = vec![b'0'; 256];
-            criterion.bench_function(stringify!($name), |b| {
-                b.iter(|| {
-                    $iter.for_each(|x| {
-                        black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
-                        unsafe {
-                            buffer.set_len(0);
-                        } // Way faster than Vec::clear().
-                    })
+    ($group:ident, $name:literal, $iter:expr) => {{
+        use std::io::Write;
+        let mut buffer = vec![b'0'; 256];
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $iter.for_each(|x| {
+                    black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
+                    unsafe {
+                        buffer.set_len(0);
+                    } // Way faster than Vec::clear().
                 })
-            });
-        }
-    };
+            })
+        });
+    }};
 }
 
 // U8
@@ -648,10 +644,6 @@ const U8_DATA: [u8; 10000] = [
     21, 253, 167, 59, 55, 25, 83, 213, 216, 85, 145, 239, 48, 173, 51, 211, 225, 34, 15, 68, 156,
 ];
 
-lexical_generator!(itoa_u8_lexical, U8_DATA.iter());
-itoa_generator!(itoa_u8_itoa, U8_DATA.iter());
-fmt_generator!(itoa_u8_std, U8_DATA.iter());
-
 // Randomly generated via `np.random.randint(0, 100, size=10000, dtype=np.uint64)`
 const U8_SIMPLE_DATA: [u8; 10000] = [
     81, 93, 53, 23, 35, 53, 8, 18, 55, 24, 38, 15, 19, 21, 87, 16, 37, 92, 76, 44, 85, 42, 17, 82,
@@ -1068,28 +1060,6 @@ const U8_SIMPLE_DATA: [u8; 10000] = [
     65, 60, 4, 53, 17, 85, 92, 32, 39, 70, 72, 20, 2, 8, 76, 42, 39, 52, 92, 19, 26, 87, 14, 27,
     38, 26, 67, 85, 98, 23, 47, 15, 39, 43, 50, 52, 2, 81,
 ];
-
-lexical_generator!(itoa_u8_simple_lexical, U8_SIMPLE_DATA.iter());
-itoa_generator!(itoa_u8_simple_itoa, U8_SIMPLE_DATA.iter());
-fmt_generator!(itoa_u8_simple_std, U8_SIMPLE_DATA.iter());
-
-// Mix both the simple and complex data into a single iterator.
-// We need to use a random pattern, since otherwise, we're
-// only fooling a single level branch predictor.
-// If we use `chain()`, any two-bit branch predictor will easily
-// predict the correct branch.
-lexical_generator!(
-    itoa_u8_heterogeneous_lexical,
-    chain_random(U8_SIMPLE_DATA.iter(), U8_DATA.iter())
-);
-itoa_generator!(
-    itoa_u8_heterogeneous_itoa,
-    chain_random(U8_SIMPLE_DATA.iter(), U8_DATA.iter())
-);
-fmt_generator!(
-    itoa_u8_heterogeneous_std,
-    chain_random(U8_SIMPLE_DATA.iter(), U8_DATA.iter())
-);
 
 // I8
 
@@ -1591,10 +1561,6 @@ const I8_DATA: [i8; 10000] = [
     22, -12, -17, -87, 26, 68, -33, 83, 30, 2, 78, -124, 105, -108, -70, -50, 12, 36, 58, 94, 120,
     -61, -97, -24, 58, 42, -57, 93, 88, -25, 122, 107, 71, 45, 30,
 ];
-
-lexical_generator!(itoa_i8_lexical, I8_DATA.iter());
-itoa_generator!(itoa_i8_itoa, I8_DATA.iter());
-fmt_generator!(itoa_i8_std, I8_DATA.iter());
 
 // U16
 
@@ -2333,10 +2299,6 @@ const U16_DATA: [u16; 10000] = [
     38970, 58923, 2150, 62313, 55488,
 ];
 
-lexical_generator!(itoa_u16_lexical, U16_DATA.iter());
-itoa_generator!(itoa_u16_itoa, U16_DATA.iter());
-fmt_generator!(itoa_u16_std, U16_DATA.iter());
-
 // Randomly generated via `np.random.randint(0, 500, size=10000, dtype=np.uint64)`
 const U16_SIMPLE_DATA: [u16; 10000] = [
     325, 1, 319, 57, 472, 495, 455, 369, 248, 279, 452, 329, 139, 120, 464, 300, 187, 14, 321, 69,
@@ -2849,22 +2811,6 @@ const U16_SIMPLE_DATA: [u16; 10000] = [
     40, 127, 244, 496, 458, 48, 374, 198, 41, 469, 161, 479, 425, 137, 100, 149, 375, 269, 441,
     283, 28, 387, 382, 386, 284, 124, 329, 273, 260,
 ];
-
-lexical_generator!(itoa_u16_simple_lexical, U16_SIMPLE_DATA.iter());
-itoa_generator!(itoa_u16_simple_itoa, U16_SIMPLE_DATA.iter());
-fmt_generator!(itoa_u16_simple_std, U16_SIMPLE_DATA.iter());
-lexical_generator!(
-    itoa_u16_heterogeneous_lexical,
-    chain_random(U16_SIMPLE_DATA.iter(), U16_DATA.iter())
-);
-itoa_generator!(
-    itoa_u16_heterogeneous_itoa,
-    chain_random(U16_SIMPLE_DATA.iter(), U16_DATA.iter())
-);
-fmt_generator!(
-    itoa_u16_heterogeneous_std,
-    chain_random(U16_SIMPLE_DATA.iter(), U16_DATA.iter())
-);
 
 // I16
 
@@ -3641,10 +3587,6 @@ const I16_DATA: [i16; 10000] = [
     -12882, -17077, 3642, -11723, -3067, 8807, -9308, 7151, 700, -30896, -11879, 12839, 26126,
     -27865, 621, 11072, 28767, 24999, 23186, 17458, -20775,
 ];
-
-lexical_generator!(itoa_i16_lexical, I16_DATA.iter());
-itoa_generator!(itoa_i16_itoa, I16_DATA.iter());
-fmt_generator!(itoa_i16_std, I16_DATA.iter());
 
 // U32
 
@@ -4902,10 +4844,6 @@ const U32_DATA: [u32; 10000] = [
     433575985, 1157236635, 4043375630, 2994134073, 3862081766, 4200409966, 1694994523, 1493227562,
 ];
 
-lexical_generator!(itoa_u32_lexical, U32_DATA.iter());
-itoa_generator!(itoa_u32_itoa, U32_DATA.iter());
-fmt_generator!(itoa_u32_std, U32_DATA.iter());
-
 // Randomly generated via `np.random.randint(0, 500, size=10000, dtype=np.uint64)`
 const U32_SIMPLE_DATA: [u32; 10000] = [
     224, 36, 362, 322, 461, 110, 369, 348, 71, 362, 486, 347, 406, 442, 159, 180, 25, 400, 455,
@@ -5418,22 +5356,6 @@ const U32_SIMPLE_DATA: [u32; 10000] = [
     165, 236, 91, 161, 350, 241, 288, 163, 179, 439, 159, 92, 325, 402, 207, 454, 138, 423, 341,
     496, 385, 23, 44, 432, 131, 253, 384, 292, 212, 224, 44, 243, 160, 417, 148, 363, 121, 282,
 ];
-
-lexical_generator!(itoa_u32_simple_lexical, U32_SIMPLE_DATA.iter());
-itoa_generator!(itoa_u32_simple_itoa, U32_SIMPLE_DATA.iter());
-fmt_generator!(itoa_u32_simple_std, U32_SIMPLE_DATA.iter());
-lexical_generator!(
-    itoa_u32_heterogeneous_lexical,
-    chain_random(U32_SIMPLE_DATA.iter(), U32_DATA.iter())
-);
-itoa_generator!(
-    itoa_u32_heterogeneous_itoa,
-    chain_random(U32_SIMPLE_DATA.iter(), U32_DATA.iter())
-);
-fmt_generator!(
-    itoa_u32_heterogeneous_std,
-    chain_random(U32_SIMPLE_DATA.iter(), U32_DATA.iter())
-);
 
 // I32
 
@@ -15441,10 +15363,6 @@ const I32_DATA: [i32; 10000] = [
     152144811,
 ];
 
-lexical_generator!(itoa_i32_lexical, I32_DATA.iter());
-itoa_generator!(itoa_i32_itoa, I32_DATA.iter());
-fmt_generator!(itoa_i32_std, I32_DATA.iter());
-
 // U64
 
 // Randomly generated via `np.random.randint(0, 18446744073709551615, size=10000, dtype=np.uint64)`
@@ -25451,10 +25369,6 @@ const U64_DATA: [u64; 10000] = [
     12228481697647633246,
 ];
 
-lexical_generator!(itoa_u64_lexical, U64_DATA.iter());
-itoa_generator!(itoa_u64_itoa, U64_DATA.iter());
-fmt_generator!(itoa_u64_std, U64_DATA.iter());
-
 // Randomly generated via `np.random.randint(0, 500, size=10000, dtype=np.uint64)`
 const U64_SIMPLE_DATA: [u64; 10000] = [
     114, 242, 443, 305, 11, 426, 82, 33, 212, 413, 154, 411, 34, 124, 345, 296, 191, 187, 227, 71,
@@ -25966,22 +25880,6 @@ const U64_SIMPLE_DATA: [u64; 10000] = [
     226, 360, 463, 11, 262, 448, 403, 249, 322, 142, 110, 156, 118, 84, 475, 125, 342, 20, 284, 74,
     348, 16, 388, 6, 38, 223, 365, 281, 89, 255, 238, 71, 327, 387, 56, 86, 445,
 ];
-
-lexical_generator!(itoa_u64_simple_lexical, U64_SIMPLE_DATA.iter());
-itoa_generator!(itoa_u64_simple_itoa, U64_SIMPLE_DATA.iter());
-fmt_generator!(itoa_u64_simple_std, U64_SIMPLE_DATA.iter());
-lexical_generator!(
-    itoa_u64_heterogeneous_lexical,
-    chain_random(U64_SIMPLE_DATA.iter(), U64_DATA.iter())
-);
-itoa_generator!(
-    itoa_u64_heterogeneous_itoa,
-    chain_random(U64_SIMPLE_DATA.iter(), U64_DATA.iter())
-);
-fmt_generator!(
-    itoa_u64_heterogeneous_std,
-    chain_random(U64_SIMPLE_DATA.iter(), U64_DATA.iter())
-);
 
 // I64
 
@@ -35989,10 +35887,6 @@ const I64_DATA: [i64; 10000] = [
     -8105976700374316760,
 ];
 
-lexical_generator!(itoa_i64_lexical, I64_DATA.iter());
-itoa_generator!(itoa_i64_itoa, I64_DATA.iter());
-fmt_generator!(itoa_i64_std, I64_DATA.iter());
-
 // U128
 
 // Randomly generated via `[random.randrange(0, 2**128-1) for _ in range(10000)]
@@ -45999,10 +45893,6 @@ const U128_DATA: [u128; 10000] = [
     270202742708112950349524822071080849878,
 ];
 
-lexical_generator!(itoa_u128_lexical, U128_DATA.iter());
-itoa_generator!(itoa_u128_itoa, U128_DATA.iter());
-fmt_generator!(itoa_u128_std, U128_DATA.iter());
-
 // Randomly generated via `np.random.randint(0, 500, size=10000, dtype=np.uint64)`
 const U128_SIMPLE_DATA: [u128; 10000] = [
     83, 33, 123, 216, 43, 201, 67, 428, 236, 206, 343, 444, 353, 129, 333, 113, 339, 168, 370, 206,
@@ -46515,22 +46405,6 @@ const U128_SIMPLE_DATA: [u128; 10000] = [
     328, 25, 72, 55, 285, 29, 287, 384, 396, 381, 244, 273, 4, 388, 383, 51, 280, 410, 472, 315,
     63, 86, 180,
 ];
-
-lexical_generator!(itoa_u128_simple_lexical, U128_SIMPLE_DATA.iter());
-itoa_generator!(itoa_u128_simple_itoa, U128_SIMPLE_DATA.iter());
-fmt_generator!(itoa_u128_simple_std, U128_SIMPLE_DATA.iter());
-lexical_generator!(
-    itoa_u128_heterogeneous_lexical,
-    chain_random(U128_SIMPLE_DATA.iter(), U128_DATA.iter())
-);
-itoa_generator!(
-    itoa_u128_heterogeneous_itoa,
-    chain_random(U128_SIMPLE_DATA.iter(), U128_DATA.iter())
-);
-fmt_generator!(
-    itoa_u128_heterogeneous_std,
-    chain_random(U128_SIMPLE_DATA.iter(), U128_DATA.iter())
-);
 
 // I128
 
@@ -56538,120 +56412,108 @@ const I128_DATA: [i128; 10000] = [
     88887257302016101377004255078798489901,
 ];
 
-lexical_generator!(itoa_i128_lexical, I128_DATA.iter());
-itoa_generator!(itoa_i128_itoa, I128_DATA.iter());
-fmt_generator!(itoa_i128_std, I128_DATA.iter());
+fn lexical(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("lexical");
+    group.measurement_time(Duration::from_secs(20));
+    lexical_generator!(group, "itoa_u8_lexical", U8_DATA.iter());
+    lexical_generator!(group, "itoa_u16_lexical", U16_DATA.iter());
+    lexical_generator!(group, "itoa_u32_lexical", U32_DATA.iter());
+    lexical_generator!(group, "itoa_u64_lexical", U64_DATA.iter());
+    lexical_generator!(group, "itoa_u128_lexical", U128_DATA.iter());
+
+    lexical_generator!(group, "itoa_u8_simple_lexical", U8_SIMPLE_DATA.iter());
+    lexical_generator!(group, "itoa_u16_simple_lexical", U16_SIMPLE_DATA.iter());
+    lexical_generator!(group, "itoa_u32_simple_lexical", U32_SIMPLE_DATA.iter());
+    lexical_generator!(group, "itoa_u64_simple_lexical", U64_SIMPLE_DATA.iter());
+    lexical_generator!(group, "itoa_u128_simple_lexical", U128_SIMPLE_DATA.iter());
+
+    // Mix both the simple and complex data into a single iterator.
+    // We need to use a random pattern, since otherwise, we're
+    // only fooling a single level branch predictor.
+    // If we use `chain()`, any two-bit branch predictor will easily
+    // predict the correct branch.
+    lexical_generator!(group, "itoa_u8_heterogeneous_lexical", chain_random(U8_SIMPLE_DATA.iter(), U8_DATA.iter()));
+    lexical_generator!(group, "itoa_u16_heterogeneous_lexical", chain_random(U16_SIMPLE_DATA.iter(), U16_DATA.iter()));
+    lexical_generator!(group, "itoa_u32_heterogeneous_lexical", chain_random(U32_SIMPLE_DATA.iter(), U32_DATA.iter()));
+    lexical_generator!(group, "itoa_u64_heterogeneous_lexical", chain_random(U64_SIMPLE_DATA.iter(), U64_DATA.iter()));
+    lexical_generator!(group, "itoa_u128_heterogeneous_lexical", chain_random(U128_SIMPLE_DATA.iter(), U128_DATA.iter()));
+
+    lexical_generator!(group, "itoa_i8_lexical", I8_DATA.iter());
+    lexical_generator!(group, "itoa_i16_lexical", I16_DATA.iter());
+    lexical_generator!(group, "itoa_i32_lexical", I32_DATA.iter());
+    lexical_generator!(group, "itoa_i64_lexical", I64_DATA.iter());
+    lexical_generator!(group, "itoa_i128_lexical", I128_DATA.iter());
+}
+
+fn itoa(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("itoa");
+    group.measurement_time(Duration::from_secs(20));
+    itoa_generator!(group, "itoa_u8_itoa", U8_DATA.iter());
+    itoa_generator!(group, "itoa_u16_itoa", U16_DATA.iter());
+    itoa_generator!(group, "itoa_u32_itoa", U32_DATA.iter());
+    itoa_generator!(group, "itoa_u64_itoa", U64_DATA.iter());
+    itoa_generator!(group, "itoa_u128_itoa", U128_DATA.iter());
+
+    itoa_generator!(group, "itoa_u8_simple_itoa", U8_SIMPLE_DATA.iter());
+    itoa_generator!(group, "itoa_u16_simple_itoa", U16_SIMPLE_DATA.iter());
+    itoa_generator!(group, "itoa_u32_simple_itoa", U32_SIMPLE_DATA.iter());
+    itoa_generator!(group, "itoa_u64_simple_itoa", U64_SIMPLE_DATA.iter());
+    itoa_generator!(group, "itoa_u128_simple_itoa", U128_SIMPLE_DATA.iter());
+
+    // Mix both the simple and complex data into a single iterator.
+    // We need to use a random pattern, since otherwise, we're
+    // only fooling a single level branch predictor.
+    // If we use `chain()`, any two-bit branch predictor will easily
+    // predict the correct branch.
+    itoa_generator!(group, "itoa_u8_heterogeneous_itoa", chain_random(U8_SIMPLE_DATA.iter(), U8_DATA.iter()));
+    itoa_generator!(group, "itoa_u16_heterogeneous_itoa", chain_random(U16_SIMPLE_DATA.iter(), U16_DATA.iter()));
+    itoa_generator!(group, "itoa_u32_heterogeneous_itoa", chain_random(U32_SIMPLE_DATA.iter(), U32_DATA.iter()));
+    itoa_generator!(group, "itoa_u64_heterogeneous_itoa", chain_random(U64_SIMPLE_DATA.iter(), U64_DATA.iter()));
+    itoa_generator!(group, "itoa_u128_heterogeneous_itoa", chain_random(U128_SIMPLE_DATA.iter(), U128_DATA.iter()));
+
+    itoa_generator!(group, "itoa_i8_itoa", I8_DATA.iter());
+    itoa_generator!(group, "itoa_i16_itoa", I16_DATA.iter());
+    itoa_generator!(group, "itoa_i32_itoa", I32_DATA.iter());
+    itoa_generator!(group, "itoa_i64_itoa", I64_DATA.iter());
+    itoa_generator!(group, "itoa_i128_itoa", I128_DATA.iter());
+}
+
+fn fmt(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("fmt");
+    group.measurement_time(Duration::from_secs(20));
+    fmt_generator!(group, "fmt_u8_fmt", U8_DATA.iter());
+    fmt_generator!(group, "fmt_u16_fmt", U16_DATA.iter());
+    fmt_generator!(group, "fmt_u32_fmt", U32_DATA.iter());
+    fmt_generator!(group, "fmt_u64_fmt", U64_DATA.iter());
+    fmt_generator!(group, "fmt_u128_fmt", U128_DATA.iter());
+
+    fmt_generator!(group, "fmt_u8_simple_fmt", U8_SIMPLE_DATA.iter());
+    fmt_generator!(group, "fmt_u16_simple_fmt", U16_SIMPLE_DATA.iter());
+    fmt_generator!(group, "fmt_u32_simple_fmt", U32_SIMPLE_DATA.iter());
+    fmt_generator!(group, "fmt_u64_simple_fmt", U64_SIMPLE_DATA.iter());
+    fmt_generator!(group, "fmt_u128_simple_fmt", U128_SIMPLE_DATA.iter());
+
+    // Mix both the simple and complex data into a single iterator.
+    // We need to use a random pattern, since otherwise, we're
+    // only fooling a single level branch predictor.
+    // If we use `chain()`, any two-bit branch predictor will easily
+    // predict the correct branch.
+    fmt_generator!(group, "fmt_u8_heterogeneous_fmt", chain_random(U8_SIMPLE_DATA.iter(), U8_DATA.iter()));
+    fmt_generator!(group, "fmt_u16_heterogeneous_fmt", chain_random(U16_SIMPLE_DATA.iter(), U16_DATA.iter()));
+    fmt_generator!(group, "fmt_u32_heterogeneous_fmt", chain_random(U32_SIMPLE_DATA.iter(), U32_DATA.iter()));
+    fmt_generator!(group, "fmt_u64_heterogeneous_fmt", chain_random(U64_SIMPLE_DATA.iter(), U64_DATA.iter()));
+    fmt_generator!(group, "fmt_u128_heterogeneous_fmt", chain_random(U128_SIMPLE_DATA.iter(), U128_DATA.iter()));
+
+    fmt_generator!(group, "fmt_i8_fmt", I8_DATA.iter());
+    fmt_generator!(group, "fmt_i16_fmt", I16_DATA.iter());
+    fmt_generator!(group, "fmt_i32_fmt", I32_DATA.iter());
+    fmt_generator!(group, "fmt_i64_fmt", I64_DATA.iter());
+    fmt_generator!(group, "fmt_i128_fmt", I128_DATA.iter());
+}
 
 // MAIN
 
-// Random data
-criterion_group!(u8_benches, itoa_u8_lexical, itoa_u8_itoa, itoa_u8_std);
-criterion_group!(u16_benches, itoa_u16_lexical, itoa_u16_itoa, itoa_u16_std);
-criterion_group!(u32_benches, itoa_u32_lexical, itoa_u32_itoa, itoa_u32_std);
-criterion_group!(u64_benches, itoa_u64_lexical, itoa_u64_itoa, itoa_u64_std);
-criterion_group!(
-    u128_benches,
-    itoa_u128_lexical,
-    itoa_u128_itoa,
-    itoa_u128_std
-);
-criterion_group!(i8_benches, itoa_i8_lexical, itoa_i8_itoa, itoa_i8_std);
-criterion_group!(i16_benches, itoa_i16_lexical, itoa_i16_itoa, itoa_i16_std);
-criterion_group!(i32_benches, itoa_i32_lexical, itoa_i32_itoa, itoa_i32_std);
-criterion_group!(i64_benches, itoa_i64_lexical, itoa_i64_itoa, itoa_i64_std);
-criterion_group!(
-    i128_benches,
-    itoa_i128_lexical,
-    itoa_i128_itoa,
-    itoa_i128_std
-);
-
-// Simple data
-criterion_group!(
-    u8_simple_benches,
-    itoa_u8_simple_lexical,
-    itoa_u8_simple_itoa,
-    itoa_u8_simple_std
-);
-criterion_group!(
-    u16_simple_benches,
-    itoa_u16_simple_lexical,
-    itoa_u16_simple_itoa,
-    itoa_u16_simple_std
-);
-criterion_group!(
-    u32_simple_benches,
-    itoa_u32_simple_lexical,
-    itoa_u32_simple_itoa,
-    itoa_u32_simple_std
-);
-criterion_group!(
-    u64_simple_benches,
-    itoa_u64_simple_lexical,
-    itoa_u64_simple_itoa,
-    itoa_u64_simple_std
-);
-criterion_group!(
-    u128_simple_benches,
-    itoa_u128_simple_lexical,
-    itoa_u128_simple_itoa,
-    itoa_u128_simple_std
-);
-
-// Heterogeneous data
-criterion_group!(
-    u8_heterogeneous_benches,
-    itoa_u8_heterogeneous_lexical,
-    itoa_u8_heterogeneous_itoa,
-    itoa_u8_heterogeneous_std
-);
-criterion_group!(
-    u16_heterogeneous_benches,
-    itoa_u16_heterogeneous_lexical,
-    itoa_u16_heterogeneous_itoa,
-    itoa_u16_heterogeneous_std
-);
-criterion_group!(
-    u32_heterogeneous_benches,
-    itoa_u32_heterogeneous_lexical,
-    itoa_u32_heterogeneous_itoa,
-    itoa_u32_heterogeneous_std
-);
-criterion_group!(
-    u64_heterogeneous_benches,
-    itoa_u64_heterogeneous_lexical,
-    itoa_u64_heterogeneous_itoa,
-    itoa_u64_heterogeneous_std
-);
-criterion_group!(
-    u128_heterogeneous_benches,
-    itoa_u128_heterogeneous_lexical,
-    itoa_u128_heterogeneous_itoa,
-    itoa_u128_heterogeneous_std
-);
-
-criterion_main!(
-    // Random data
-    u8_benches,
-    u16_benches,
-    u32_benches,
-    u64_benches,
-    u128_benches,
-    i8_benches,
-    i16_benches,
-    i32_benches,
-    i64_benches,
-    i128_benches,
-    // Simple data
-    u8_simple_benches,
-    u16_simple_benches,
-    u32_simple_benches,
-    u64_simple_benches,
-    u128_simple_benches,
-    // Heterogeneous data.
-    u8_heterogeneous_benches,
-    u16_heterogeneous_benches,
-    u32_heterogeneous_benches,
-    u64_heterogeneous_benches,
-    u128_heterogeneous_benches
-);
+criterion_group!(lexical_benches, lexical);
+criterion_group!(itoa_benches, itoa);
+criterion_group!(fmt_benches, fmt);
+criterion_main!(lexical_benches, itoa_benches, fmt_benches);

@@ -8,9 +8,9 @@ extern crate lexical_core;
 use std::env;
 use std::fs::read_to_string;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use lexical_core::parse as lexical_parse;
 
 // PATH
 
@@ -65,60 +65,83 @@ fn read_data() -> &'static String {
 
 // BENCHMARK GENERATORS
 
-// Lexical atoi generator.
+// Lexical atof generator.
 macro_rules! lexical_generator {
-    ($name:ident, $t:ty) => {
-        fn $name(criterion: &mut Criterion) {
-            let data = read_data();
-            criterion.bench_function(stringify!($name), |b| {
-                b.iter(|| {
-                    for line in data.lines() {
-                        for item in line.split(',') {
-                            black_box(lexical_parse::<$t>(item.as_bytes()).unwrap());
-                        }
+    ($group:ident, $name:literal, $data:ident, $t:ty) => {
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                for line in $data.lines() {
+                    for item in line.split(',') {
+                        black_box(lexical_core::parse::<$t>(item.as_bytes()).unwrap());
                     }
-                })
-            });
-        }
+                }
+            })
+        });
     };
 }
 
-// Parse atoi generator.
+// Lexical atof generator with options.
+macro_rules! lexical_options_generator {
+    ($group:ident, $name:literal, $data:ident, $t:ty, $opts:ident) => {
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                for line in $data.lines() {
+                    for item in line.split(',') {
+                        black_box(lexical_core::parse_with_options::<$t>(item.as_bytes(), &$opts).unwrap());
+                    }
+                }
+            })
+        });
+    };
+}
+
+// Parse atof generator.
 macro_rules! parse_generator {
-    ($name:ident, $t:tt) => {
-        fn $name(criterion: &mut Criterion) {
-            let data = read_data();
-            criterion.bench_function(stringify!($name), |b| {
-                b.iter(|| {
-                    for line in data.lines() {
-                        for item in line.split(',') {
-                            black_box(item.parse::<$t>().unwrap());
-                        }
+    ($group:ident, $name:literal, $data:ident, $t:ty) => {
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                for line in $data.lines() {
+                    for item in line.split(',') {
+                        black_box(item.parse::<$t>().unwrap());
                     }
-                })
-            });
-        }
+                }
+            })
+        });
     };
 }
 
-// F32
-
 // Benchmark to real data, downloaded from NASA Earth Observation.
 // http://neo.sci.gsfc.nasa.gov/servlet/RenderData?si=1582435&cs=rgb&format=CSV&width=720&height=360
 
-lexical_generator!(atof_real_f32_lexical, f32);
-parse_generator!(atof_real_f32_parse, f32);
+fn lexical(criterion: &mut Criterion) {
+    let data = read_data();
+    let mut group = criterion.benchmark_group("lexical");
+    group.measurement_time(Duration::from_secs(1));
+    lexical_generator!(group, "atof_real_f32_lexical", data, f32);
+    lexical_generator!(group, "atof_real_f64_lexical", data, f64);
+}
+//
+//fn lexical_options(criterion: &mut Criterion) {
+//    let options = lexical_core::ParseFloatOptions::new();
+//    let data = read_data();
+//    let mut group = criterion.benchmark_group("lexical_options");
+//    group.measurement_time(Duration::from_secs(1));
+//    lexical_options_generator!(group, "atof_real_f32_lexical_options", data, f32, options);
+//    lexical_options_generator!(group, "atof_real_f64_lexical_options", data, f64, options);
+//}
 
-// F64
 
-// Benchmark to real data, downloaded from NASA Earth Observation.
-// http://neo.sci.gsfc.nasa.gov/servlet/RenderData?si=1582435&cs=rgb&format=CSV&width=720&height=360
-
-lexical_generator!(atof_real_f64_lexical, f64);
-parse_generator!(atof_real_f64_parse, f64);
+fn parse(criterion: &mut Criterion) {
+    let data = read_data();
+    let mut group = criterion.benchmark_group("core::parse");
+    group.measurement_time(Duration::from_secs(1));
+    parse_generator!(group, "atof_real_f32_parse", data, f32);
+    parse_generator!(group, "atof_real_f64_parse", data, f64);
+}
 
 // MAIN
 
-criterion_group!(f32_benches, atof_real_f32_lexical, atof_real_f32_parse);
-criterion_group!(f64_benches, atof_real_f64_lexical, atof_real_f64_parse);
-criterion_main!(f32_benches, f64_benches);
+criterion_group!(lexical_benches, lexical);
+//criterion_group!(lexical_options_benches, lexical_options);
+criterion_group!(parse_benches, parse);
+criterion_main!(lexical_benches, /*lexical_options_benches,*/ parse_benches);

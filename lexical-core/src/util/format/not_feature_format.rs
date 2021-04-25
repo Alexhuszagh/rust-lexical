@@ -89,7 +89,7 @@ bitflags! {
 impl NumberFormat {
     /// Create new format from bits.
     /// This method should **NEVER** be public, use the builder API.
-    #[inline]
+    #[inline(always)]
     pub(crate) const fn new(bits: u64) -> Self {
         Self { bits }
     }
@@ -97,210 +97,210 @@ impl NumberFormat {
     /// Create new format from bits.
     /// This method should **NEVER** be public, use the builder API.
     // TODO(ahuszagh) Remove: we should not have the radix here.
-    #[inline]
+    #[inline(always)]
     pub(crate) const fn from_radix(radix: u8) -> Self {
         Self::new(flags::radix_to_flags(radix))
     }
 
     // TODO(ahuszagh) Don't document these, since we'll be removing em soon.
 
-    #[inline]
+    #[inline(always)]
     pub const fn flags(self) -> Self {
         self
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn interface_flags(self) -> Self {
         self
     }
 
     // TODO(ahuszagh) Remove: we should not have the radix here.
-    #[inline]
+    #[inline(always)]
     pub const fn radix(self) -> u8 {
         flags::radix_from_flags(self.bits)
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn digit_separator(self) -> u8 {
         b'\x00'
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn decimal_point(self) -> u8 {
         flags::decimal_point_from_flags(self.bits)
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn exponent(self) -> u8 {
         flags::exponent_from_flags(self.bits)
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn exponent_backup(self) -> u8 {
         flags::exponent_backup_from_flags(self.bits)
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn required_integer_digits(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn required_fraction_digits(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn required_exponent_digits(self) -> bool {
         true
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn required_digits(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn no_positive_mantissa_sign(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn required_mantissa_sign(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn no_exponent_notation(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn no_positive_exponent_sign(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn required_exponent_sign(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn no_exponent_without_fraction(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn no_special(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn case_sensitive_special(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn no_integer_leading_zeros(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn no_float_leading_zeros(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn integer_internal_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn fraction_internal_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn exponent_internal_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn internal_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn integer_leading_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn fraction_leading_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn exponent_leading_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn leading_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn integer_trailing_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn fraction_trailing_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn exponent_trailing_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn trailing_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn integer_consecutive_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn fraction_consecutive_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn exponent_consecutive_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn consecutive_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn special_digit_separator(self) -> bool {
         false
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn incorrect(self) -> bool {
         self.intersects(Self::INCORRECT)
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn lossy(self) -> bool {
         self.intersects(Self::LOSSY)
     }
@@ -310,7 +310,7 @@ impl NumberFormat {
         NumberFormatBuilder::new()
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn rebuild(self) -> NumberFormatBuilder {
         NumberFormatBuilder {
             radix: self.radix(),
@@ -429,7 +429,7 @@ impl NumberFormatBuilder {
 }
 
 impl Default for NumberFormatBuilder {
-    #[inline]
+    #[inline(always)]
     fn default() -> Self {
         Self::new()
     }

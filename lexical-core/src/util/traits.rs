@@ -107,15 +107,15 @@ macro_rules! from_lexical {
                 $cb(bytes, 10)
             }
 
-            #[cfg(feature = "radix")]
             #[inline]
+            #[cfg(feature = "radix")]
             fn from_lexical_radix(bytes: &[u8], radix: u8) -> Result<$t>
             {
                 to_complete!($cb, bytes, radix.as_u32())
             }
 
-            #[cfg(feature = "radix")]
             #[inline]
+            #[cfg(feature = "radix")]
             fn from_lexical_partial_radix(bytes: &[u8], radix: u8) -> Result<($t, usize)>
             {
                 $cb(bytes, radix.as_u32())
@@ -209,15 +209,15 @@ macro_rules! from_lexical_lossy {
                 $cb(bytes, 10)
             }
 
-            #[cfg(feature = "radix")]
             #[inline]
+            #[cfg(feature = "radix")]
             fn from_lexical_lossy_radix(bytes: &[u8], radix: u8) -> Result<$t>
             {
                 to_complete!($cb, bytes, radix.as_u32())
             }
 
-            #[cfg(feature = "radix")]
             #[inline]
+            #[cfg(feature = "radix")]
             fn from_lexical_partial_lossy_radix(bytes: &[u8], radix: u8) -> Result<($t, usize)>
             {
                 $cb(bytes, radix.as_u32())
@@ -321,15 +321,15 @@ macro_rules! from_lexical_format {
                 $cb(bytes, 10, format)
             }
 
-            #[cfg(feature = "radix")]
             #[inline]
+            #[cfg(feature = "radix")]
             fn from_lexical_format_radix(bytes: &[u8], radix: u8, format: NumberFormat) -> Result<$t>
             {
                 to_complete!($cb, bytes, radix.as_u32(), format)
             }
 
-            #[cfg(feature = "radix")]
             #[inline]
+            #[cfg(feature = "radix")]
             fn from_lexical_partial_format_radix(bytes: &[u8], radix: u8, format: NumberFormat) -> Result<($t, usize)>
             {
                 $cb(bytes, radix.as_u32(), format)
@@ -443,16 +443,16 @@ macro_rules! from_lexical_lossy_format {
                 $cb(bytes, 10, format)
             }
 
-            #[cfg(feature = "radix")]
             #[inline]
+            #[cfg(feature = "radix")]
             fn from_lexical_lossy_format_radix(bytes: &[u8], radix: u8, format: NumberFormat)
                 -> Result<$t>
             {
                 to_complete!($cb, bytes, radix.as_u32(), format)
             }
 
-            #[cfg(feature = "radix")]
             #[inline]
+            #[cfg(feature = "radix")]
             fn from_lexical_partial_lossy_format_radix(bytes: &[u8], radix: u8, format: NumberFormat)
                 -> Result<($t, usize)>
             {

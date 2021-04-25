@@ -3,6 +3,7 @@
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use std::time::Duration;
 
 #[macro_use]
 extern crate lazy_static;
@@ -12,7 +13,6 @@ extern crate lexical_core;
 extern crate serde_json;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use lexical_core::parse as lexical_parse;
 
 /// Return the `target/debug` directory path.
 pub fn debug_dir() -> PathBuf {
@@ -67,221 +67,271 @@ lazy_static! {
     static ref DIGITS64_DATA: Vec<String> = parse_json("digits64.json");
 }
 
-fn denormal10(criterion: &mut Criterion) {
+fn denormal(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("denormal");
+    group.measurement_time(Duration::from_secs(1));
+
     let data: &[String] = &DENORMAL_DATA;
-    criterion.bench_function("denormal10", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[0].as_bytes()).unwrap());
+    group.bench_function("denormal10", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[0].as_bytes()).unwrap());
+    }));
+    group.bench_function("denormal20", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[1].as_bytes()).unwrap());
+    }));
+    group.bench_function("denormal30", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[2].as_bytes()).unwrap());
+    }));
+    group.bench_function("denormal40", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[3].as_bytes()).unwrap());
+    }));
+    group.bench_function("denormal50", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[4].as_bytes()).unwrap());
+    }));
+    group.bench_function("denormal100", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[5].as_bytes()).unwrap());
+    }));
+    group.bench_function("denormal200", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[6].as_bytes()).unwrap());
+    }));
+    group.bench_function("denormal400", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[7].as_bytes()).unwrap());
+    }));
+    group.bench_function("denormal800", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[8].as_bytes()).unwrap());
+    }));
+    group.bench_function("denormal1600", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[9].as_bytes()).unwrap());
+    }));
+    group.bench_function("denormal3200", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[10].as_bytes()).unwrap());
+    }));
+    group.bench_function("denormal6400", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[11].as_bytes()).unwrap());
     }));
 }
 
-fn denormal20(criterion: &mut Criterion) {
+fn large(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("large");
+    group.measurement_time(Duration::from_secs(1));
+
     let data: &[String] = &DENORMAL_DATA;
-    criterion.bench_function("denormal20", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[1].as_bytes()).unwrap());
+    group.bench_function("large10", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[0].as_bytes()).unwrap());
+    }));
+    group.bench_function("large20", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[1].as_bytes()).unwrap());
+    }));
+    group.bench_function("large30", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[2].as_bytes()).unwrap());
+    }));
+    group.bench_function("large40", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[3].as_bytes()).unwrap());
+    }));
+    group.bench_function("large50", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[4].as_bytes()).unwrap());
+    }));
+    group.bench_function("large100", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[5].as_bytes()).unwrap());
+    }));
+    group.bench_function("large200", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[6].as_bytes()).unwrap());
+    }));
+    group.bench_function("large400", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[7].as_bytes()).unwrap());
+    }));
+    group.bench_function("large800", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[8].as_bytes()).unwrap());
+    }));
+    group.bench_function("large1600", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[9].as_bytes()).unwrap());
+    }));
+    group.bench_function("large3200", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[10].as_bytes()).unwrap());
+    }));
+    group.bench_function("large6400", |bench| bench.iter(|| {
+        black_box(lexical_core::parse::<f64>(data[11].as_bytes()).unwrap());
     }));
 }
 
-fn denormal30(criterion: &mut Criterion) {
-    let data: &[String] = &DENORMAL_DATA;
-    criterion.bench_function("denormal30", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[2].as_bytes()).unwrap());
-    }));
-}
+fn digits(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("digits");
+    group.measurement_time(Duration::from_secs(1));
 
-fn denormal40(criterion: &mut Criterion) {
-    let data: &[String] = &DENORMAL_DATA;
-    criterion.bench_function("denormal40", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[3].as_bytes()).unwrap());
-    }));
-}
-
-fn denormal50(criterion: &mut Criterion) {
-    let data: &[String] = &DENORMAL_DATA;
-    criterion.bench_function("denormal50", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[4].as_bytes()).unwrap());
-    }));
-}
-
-fn denormal100(criterion: &mut Criterion) {
-    let data: &[String] = &DENORMAL_DATA;
-    criterion.bench_function("denormal100", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[5].as_bytes()).unwrap());
-    }));
-}
-
-fn denormal200(criterion: &mut Criterion) {
-    let data: &[String] = &DENORMAL_DATA;
-    criterion.bench_function("denormal200", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[6].as_bytes()).unwrap());
-    }));
-}
-
-fn denormal400(criterion: &mut Criterion) {
-    let data: &[String] = &DENORMAL_DATA;
-    criterion.bench_function("denormal400", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[7].as_bytes()).unwrap());
-    }));
-}
-
-fn denormal800(criterion: &mut Criterion) {
-    let data: &[String] = &DENORMAL_DATA;
-    criterion.bench_function("denormal800", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[8].as_bytes()).unwrap());
-    }));
-}
-
-fn denormal1600(criterion: &mut Criterion) {
-    let data: &[String] = &DENORMAL_DATA;
-    criterion.bench_function("denormal1600", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[9].as_bytes()).unwrap());
-    }));
-}
-
-fn denormal3200(criterion: &mut Criterion) {
-    let data: &[String] = &DENORMAL_DATA;
-    criterion.bench_function("denormal3200", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[10].as_bytes()).unwrap());
-    }));
-}
-
-fn denormal6400(criterion: &mut Criterion) {
-    let data: &[String] = &DENORMAL_DATA;
-    criterion.bench_function("denormal6400", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[11].as_bytes()).unwrap());
-    }));
-}
-
-fn large10(criterion: &mut Criterion) {
-    let data: &[String] = &LARGE_DATA;
-    criterion.bench_function("large10", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[0].as_bytes()).unwrap());
-    }));
-}
-
-fn large20(criterion: &mut Criterion) {
-    let data: &[String] = &LARGE_DATA;
-    criterion.bench_function("large20", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[1].as_bytes()).unwrap());
-    }));
-}
-
-fn large30(criterion: &mut Criterion) {
-    let data: &[String] = &LARGE_DATA;
-    criterion.bench_function("large30", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[2].as_bytes()).unwrap());
-    }));
-}
-
-fn large40(criterion: &mut Criterion) {
-    let data: &[String] = &LARGE_DATA;
-    criterion.bench_function("large40", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[3].as_bytes()).unwrap());
-    }));
-}
-
-fn large50(criterion: &mut Criterion) {
-    let data: &[String] = &LARGE_DATA;
-    criterion.bench_function("large50", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[4].as_bytes()).unwrap());
-    }));
-}
-
-fn large100(criterion: &mut Criterion) {
-    let data: &[String] = &LARGE_DATA;
-    criterion.bench_function("large100", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[5].as_bytes()).unwrap());
-    }));
-}
-
-fn large200(criterion: &mut Criterion) {
-    let data: &[String] = &LARGE_DATA;
-    criterion.bench_function("large200", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[6].as_bytes()).unwrap());
-    }));
-}
-
-fn large400(criterion: &mut Criterion) {
-    let data: &[String] = &LARGE_DATA;
-    criterion.bench_function("large400", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[7].as_bytes()).unwrap());
-    }));
-}
-
-fn large800(criterion: &mut Criterion) {
-    let data: &[String] = &LARGE_DATA;
-    criterion.bench_function("large800", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[8].as_bytes()).unwrap());
-    }));
-}
-
-fn large1600(criterion: &mut Criterion) {
-    let data: &[String] = &LARGE_DATA;
-    criterion.bench_function("large1600", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[9].as_bytes()).unwrap());
-    }));
-}
-
-fn large3200(criterion: &mut Criterion) {
-    let data: &[String] = &LARGE_DATA;
-    criterion.bench_function("large3200", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[10].as_bytes()).unwrap());
-    }));
-}
-
-fn large6400(criterion: &mut Criterion) {
-    let data: &[String] = &LARGE_DATA;
-    criterion.bench_function("large6400", |b| b.iter(|| {
-        black_box(lexical_parse::<f64>(data[11].as_bytes()).unwrap());
-    }));
-}
-
-fn digits2(criterion: &mut Criterion) {
     let data: &[String] = &DIGITS2_DATA;
-    criterion.bench_function("digits2", |b| b.iter(|| {
+    group.bench_function("digits2", |bench| bench.iter(|| {
         for value in data.iter() {
-            black_box(lexical_parse::<f64>(value.as_bytes()).unwrap());
+            black_box(lexical_core::parse::<f64>(value.as_bytes()).unwrap());
         }
     }));
-}
 
-fn digits8(criterion: &mut Criterion) {
     let data: &[String] = &DIGITS8_DATA;
-    criterion.bench_function("digits8", |b| b.iter(|| {
+    group.bench_function("digits8", |bench| bench.iter(|| {
         for value in data.iter() {
-            black_box(lexical_parse::<f64>(value.as_bytes()).unwrap());
+            black_box(lexical_core::parse::<f64>(value.as_bytes()).unwrap());
         }
     }));
-}
 
-fn digits16(criterion: &mut Criterion) {
     let data: &[String] = &DIGITS16_DATA;
-    criterion.bench_function("digits16", |b| b.iter(|| {
+    group.bench_function("digits16", |bench| bench.iter(|| {
         for value in data.iter() {
-            black_box(lexical_parse::<f64>(value.as_bytes()).unwrap());
+            black_box(lexical_core::parse::<f64>(value.as_bytes()).unwrap());
         }
     }));
-}
 
-fn digits32(criterion: &mut Criterion) {
     let data: &[String] = &DIGITS32_DATA;
-    criterion.bench_function("digits32", |b| b.iter(|| {
+    group.bench_function("digits32", |bench| bench.iter(|| {
         for value in data.iter() {
-            black_box(lexical_parse::<f64>(value.as_bytes()).unwrap());
+            black_box(lexical_core::parse::<f64>(value.as_bytes()).unwrap());
         }
     }));
-}
 
-fn digits64(criterion: &mut Criterion) {
     let data: &[String] = &DIGITS64_DATA;
-    criterion.bench_function("digits64", |b| b.iter(|| {
+    group.bench_function("digits64", |bench| bench.iter(|| {
         for value in data.iter() {
-            black_box(lexical_parse::<f64>(value.as_bytes()).unwrap());
+            black_box(lexical_core::parse::<f64>(value.as_bytes()).unwrap());
         }
     }));
 }
 
-criterion_group!(denormal, denormal10, denormal20, denormal30, denormal40, denormal50, denormal100, denormal200, denormal400, denormal800, denormal1600, denormal3200, denormal6400);
-criterion_group!(large, large10, large20, large30, large40, large50, large100, large200, large400, large800, large1600, large3200, large6400);
-criterion_group!(digits, digits2, digits8, digits16, digits32, digits64);
-criterion_main!(denormal, large, digits);
+//fn denormal_options(criterion: &mut Criterion) {
+//    let mut group = criterion.benchmark_group("denormal_options");
+//    group.measurement_time(Duration::from_secs(1));
+//
+//    let options = lexical_core::ParseFloatOptions::new();
+//    let data: &[String] = &DENORMAL_DATA;
+//    group.bench_function("denormal10", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[0].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("denormal20", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[1].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("denormal30", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[2].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("denormal40", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[3].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("denormal50", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[4].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("denormal100", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[5].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("denormal200", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[6].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("denormal400", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[7].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("denormal800", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[8].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("denormal1600", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[9].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("denormal3200", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[10].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("denormal6400", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[11].as_bytes(), &options).unwrap());
+//    }));
+//}
+//
+//fn large_options(criterion: &mut Criterion) {
+//    let mut group = criterion.benchmark_group("large_options");
+//    group.measurement_time(Duration::from_secs(1));
+//
+//    let options = lexical_core::ParseFloatOptions::new();
+//    let data: &[String] = &DENORMAL_DATA;
+//    group.bench_function("large10", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[0].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("large20", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[1].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("large30", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[2].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("large40", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[3].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("large50", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[4].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("large100", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[5].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("large200", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[6].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("large400", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[7].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("large800", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[8].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("large1600", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[9].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("large3200", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[10].as_bytes(), &options).unwrap());
+//    }));
+//    group.bench_function("large6400", |bench| bench.iter(|| {
+//        black_box(lexical_core::parse_with_options::<f64>(data[11].as_bytes(), &options).unwrap());
+//    }));
+//}
+//
+//fn digits_options(criterion: &mut Criterion) {
+//    let mut group = criterion.benchmark_group("digits_options");
+//    group.measurement_time(Duration::from_secs(1));
+//
+//    let options = lexical_core::ParseFloatOptions::new();
+//    let data: &[String] = &DIGITS2_DATA;
+//    group.bench_function("digits2", |bench| bench.iter(|| {
+//        for value in data.iter() {
+//            black_box(lexical_core::parse_with_options::<f64>(value.as_bytes(), &options).unwrap());
+//        }
+//    }));
+//
+//    let data: &[String] = &DIGITS8_DATA;
+//    group.bench_function("digits8", |bench| bench.iter(|| {
+//        for value in data.iter() {
+//            black_box(lexical_core::parse_with_options::<f64>(value.as_bytes(), &options).unwrap());
+//        }
+//    }));
+//
+//    let data: &[String] = &DIGITS16_DATA;
+//    group.bench_function("digits16", |bench| bench.iter(|| {
+//        for value in data.iter() {
+//            black_box(lexical_core::parse_with_options::<f64>(value.as_bytes(), &options).unwrap());
+//        }
+//    }));
+//
+//    let data: &[String] = &DIGITS32_DATA;
+//    group.bench_function("digits32", |bench| bench.iter(|| {
+//        for value in data.iter() {
+//            black_box(lexical_core::parse_with_options::<f64>(value.as_bytes(), &options).unwrap());
+//        }
+//    }));
+//
+//    let data: &[String] = &DIGITS64_DATA;
+//    group.bench_function("digits64", |bench| bench.iter(|| {
+//        for value in data.iter() {
+//            black_box(lexical_core::parse_with_options::<f64>(value.as_bytes(), &options).unwrap());
+//        }
+//    }));
+//}
 
+// MAIN
+
+criterion_group!(denormal_benches, denormal);
+criterion_group!(large_benches, large);
+criterion_group!(digits_benches, digits);
+//criterion_group!(denormal_options_benches, denormal_options);
+//criterion_group!(large_options_benches, large_options);
+//criterion_group!(digits_options_benches, digits_options);
+
+criterion_main!(
+    denormal_benches, large_benches, digits_benches
+    /*,denormal_options_benches, large_options_benches, digits_options_benches*/
+);

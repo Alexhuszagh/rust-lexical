@@ -1796,7 +1796,7 @@ bitflags! {
 impl NumberFormat {
     /// Create new format from bits.
     /// This method should **NEVER** be public, use the builder API.
-    #[inline]
+    #[inline(always)]
     pub(crate) const fn new(bits: u64) -> Self {
         Self { bits }
     }
@@ -1804,258 +1804,258 @@ impl NumberFormat {
     /// Create new format from radix.
     /// This method should **NEVER** be public, use the builder API.
     // TODO(ahuszagh) Remove: we should not have the radix here.
-    #[inline]
+    #[inline(always)]
     pub(crate) const fn from_radix(radix: u8) -> Self {
         Self::new(flags::radix_to_flags(radix))
     }
 
     /// Create new format from digit separator.
     /// This method should **NEVER** be public, use the builder API.
-    #[inline]
+    #[inline(always)]
     #[cfg(test)]
     pub(crate) const fn from_digit_separator(digit_separator: u8) -> Self {
         Self::new(flags::digit_separator_to_flags(digit_separator))
     }
 
     /// Get the flag bits from the compiled float format.
-    #[inline]
+    #[inline(always)]
     pub const fn flags(self) -> Self {
         Self::new(self.bits() & Self::FLAG_MASK.bits())
     }
 
     /// Get the interface flag bits from the compiled float format.
-    #[inline]
+    #[inline(always)]
     pub const fn interface_flags(self) -> Self {
         Self::new(self.bits() & Self::INTERFACE_FLAG_MASK.bits())
     }
 
     /// Get the radix for number encoding or decoding.
     // TODO(ahuszagh) Remove
-    #[inline]
+    #[inline(always)]
     pub const fn radix(self) -> u8 {
         flags::radix_from_flags(self.bits)
     }
 
     /// Get the digit separator for the number format.
-    #[inline]
+    #[inline(always)]
     pub const fn digit_separator(self) -> u8 {
         flags::digit_separator_from_flags(self.bits)
     }
 
     /// Get the decimal point character for the number format.
-    #[inline]
+    #[inline(always)]
     pub const fn decimal_point(self) -> u8 {
         flags::decimal_point_from_flags(self.bits)
     }
 
     /// Get the exponent character for the number format.
-    #[inline]
+    #[inline(always)]
     pub const fn exponent(self) -> u8 {
         flags::exponent_from_flags(self.bits)
     }
 
     /// Get the backup exponent character for the number format.
-    #[inline]
+    #[inline(always)]
     pub const fn exponent_backup(self) -> u8 {
         flags::exponent_backup_from_flags(self.bits)
     }
 
     /// Get if digits are required before the decimal point.
-    #[inline]
+    #[inline(always)]
     pub const fn required_integer_digits(self) -> bool {
         self.intersects(Self::REQUIRED_INTEGER_DIGITS)
     }
 
     /// Get if digits are required after the decimal point.
-    #[inline]
+    #[inline(always)]
     pub const fn required_fraction_digits(self) -> bool {
         self.intersects(Self::REQUIRED_FRACTION_DIGITS)
     }
 
     /// Get if digits are required after the exponent character.
-    #[inline]
+    #[inline(always)]
     pub const fn required_exponent_digits(self) -> bool {
         self.intersects(Self::REQUIRED_EXPONENT_DIGITS)
     }
 
     /// Get if digits are required before or after the decimal point.
-    #[inline]
+    #[inline(always)]
     pub const fn required_digits(self) -> bool {
         self.intersects(Self::REQUIRED_DIGITS)
     }
 
     /// Get if a positive sign before the mantissa is not allowed.
-    #[inline]
+    #[inline(always)]
     pub const fn no_positive_mantissa_sign(self) -> bool {
         self.intersects(Self::NO_POSITIVE_MANTISSA_SIGN)
     }
 
     /// Get if a sign symbol before the mantissa is required.
-    #[inline]
+    #[inline(always)]
     pub const fn required_mantissa_sign(self) -> bool {
         self.intersects(Self::REQUIRED_MANTISSA_SIGN)
     }
 
     /// Get if exponent notation is not allowed.
-    #[inline]
+    #[inline(always)]
     pub const fn no_exponent_notation(self) -> bool {
         self.intersects(Self::NO_EXPONENT_NOTATION)
     }
 
     /// Get if a positive sign before the exponent is not allowed.
-    #[inline]
+    #[inline(always)]
     pub const fn no_positive_exponent_sign(self) -> bool {
         self.intersects(Self::NO_POSITIVE_EXPONENT_SIGN)
     }
 
     /// Get if a sign symbol before the exponent is required.
-    #[inline]
+    #[inline(always)]
     pub const fn required_exponent_sign(self) -> bool {
         self.intersects(Self::REQUIRED_EXPONENT_SIGN)
     }
 
     /// Get if an exponent without fraction is not allowed.
-    #[inline]
+    #[inline(always)]
     pub const fn no_exponent_without_fraction(self) -> bool {
         self.intersects(Self::NO_EXPONENT_WITHOUT_FRACTION)
     }
 
     /// Get if special (non-finite) values are not allowed.
-    #[inline]
+    #[inline(always)]
     pub const fn no_special(self) -> bool {
         self.intersects(Self::NO_SPECIAL)
     }
 
     /// Get if special (non-finite) values are case-sensitive.
-    #[inline]
+    #[inline(always)]
     pub const fn case_sensitive_special(self) -> bool {
         self.intersects(Self::CASE_SENSITIVE_SPECIAL)
     }
 
     /// Get if leading zeros before an integer are not allowed.
-    #[inline]
+    #[inline(always)]
     pub const fn no_integer_leading_zeros(self) -> bool {
         self.intersects(Self::NO_INTEGER_LEADING_ZEROS)
     }
 
     /// Get if leading zeros before a float are not allowed.
-    #[inline]
+    #[inline(always)]
     pub const fn no_float_leading_zeros(self) -> bool {
         self.intersects(Self::NO_FLOAT_LEADING_ZEROS)
     }
 
     /// Get if digit separators are allowed between integer digits.
-    #[inline]
+    #[inline(always)]
     pub const fn integer_internal_digit_separator(self) -> bool {
         self.intersects(Self::INTEGER_INTERNAL_DIGIT_SEPARATOR)
     }
 
     /// Get if digit separators are allowed between fraction digits.
-    #[inline]
+    #[inline(always)]
     pub const fn fraction_internal_digit_separator(self) -> bool {
         self.intersects(Self::FRACTION_INTERNAL_DIGIT_SEPARATOR)
     }
 
     /// Get if digit separators are allowed between exponent digits.
-    #[inline]
+    #[inline(always)]
     pub const fn exponent_internal_digit_separator(self) -> bool {
         self.intersects(Self::EXPONENT_INTERNAL_DIGIT_SEPARATOR)
     }
 
     /// Get if digit separators are allowed between digits.
-    #[inline]
+    #[inline(always)]
     pub const fn internal_digit_separator(self) -> bool {
         self.intersects(Self::INTERNAL_DIGIT_SEPARATOR)
     }
 
     /// Get if a digit separator is allowed before any integer digits.
-    #[inline]
+    #[inline(always)]
     pub const fn integer_leading_digit_separator(self) -> bool {
         self.intersects(Self::INTEGER_LEADING_DIGIT_SEPARATOR)
     }
 
     /// Get if a digit separator is allowed before any fraction digits.
-    #[inline]
+    #[inline(always)]
     pub const fn fraction_leading_digit_separator(self) -> bool {
         self.intersects(Self::FRACTION_LEADING_DIGIT_SEPARATOR)
     }
 
     /// Get if a digit separator is allowed before any exponent digits.
-    #[inline]
+    #[inline(always)]
     pub const fn exponent_leading_digit_separator(self) -> bool {
         self.intersects(Self::EXPONENT_LEADING_DIGIT_SEPARATOR)
     }
 
     /// Get if a digit separator is allowed before any digits.
-    #[inline]
+    #[inline(always)]
     pub const fn leading_digit_separator(self) -> bool {
         self.intersects(Self::LEADING_DIGIT_SEPARATOR)
     }
 
     /// Get if a digit separator is allowed after any integer digits.
-    #[inline]
+    #[inline(always)]
     pub const fn integer_trailing_digit_separator(self) -> bool {
         self.intersects(Self::INTEGER_TRAILING_DIGIT_SEPARATOR)
     }
 
     /// Get if a digit separator is allowed after any fraction digits.
-    #[inline]
+    #[inline(always)]
     pub const fn fraction_trailing_digit_separator(self) -> bool {
         self.intersects(Self::FRACTION_TRAILING_DIGIT_SEPARATOR)
     }
 
     /// Get if a digit separator is allowed after any exponent digits.
-    #[inline]
+    #[inline(always)]
     pub const fn exponent_trailing_digit_separator(self) -> bool {
         self.intersects(Self::EXPONENT_TRAILING_DIGIT_SEPARATOR)
     }
 
     /// Get if a digit separator is allowed after any digits.
-    #[inline]
+    #[inline(always)]
     pub const fn trailing_digit_separator(self) -> bool {
         self.intersects(Self::TRAILING_DIGIT_SEPARATOR)
     }
 
     /// Get if multiple consecutive integer digit separators are allowed.
-    #[inline]
+    #[inline(always)]
     pub const fn integer_consecutive_digit_separator(self) -> bool {
         self.intersects(Self::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR)
     }
 
     /// Get if multiple consecutive fraction digit separators are allowed.
-    #[inline]
+    #[inline(always)]
     pub const fn fraction_consecutive_digit_separator(self) -> bool {
         self.intersects(Self::FRACTION_CONSECUTIVE_DIGIT_SEPARATOR)
     }
 
     /// Get if multiple consecutive exponent digit separators are allowed.
-    #[inline]
+    #[inline(always)]
     pub const fn exponent_consecutive_digit_separator(self) -> bool {
         self.intersects(Self::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR)
     }
 
     /// Get if multiple consecutive digit separators are allowed.
-    #[inline]
+    #[inline(always)]
     pub const fn consecutive_digit_separator(self) -> bool {
         self.intersects(Self::CONSECUTIVE_DIGIT_SEPARATOR)
     }
 
     /// Get if any digit separators are allowed in special (non-finite) values.
-    #[inline]
+    #[inline(always)]
     pub const fn special_digit_separator(self) -> bool {
         self.intersects(Self::SPECIAL_DIGIT_SEPARATOR)
     }
 
     // TODO(ahuszagh) Remove: these should not be in the format.
     /// Get if using the incorrect, but fast conversion routines.
-    #[inline]
+    #[inline(always)]
     pub const fn incorrect(self) -> bool {
         self.intersects(Self::INCORRECT)
     }
 
     // TODO(ahuszagh) Remove: these should not be in the format.
     /// Get if using the lossy, but moderately fast, conversion routines.
-    #[inline]
+    #[inline(always)]
     pub const fn lossy(self) -> bool {
         self.intersects(Self::LOSSY)
     }
@@ -2069,7 +2069,7 @@ impl NumberFormat {
     }
 
     /// Recreate `NumberFormatBuilder` using current `NumberFormat` values.
-    #[inline]
+    #[inline(always)]
     pub const fn rebuild(&self) -> NumberFormatBuilder {
         NumberFormatBuilder {
             radix: self.radix(),
@@ -2542,7 +2542,7 @@ impl NumberFormatBuilder {
 }
 
 impl Default for NumberFormatBuilder {
-    #[inline]
+    #[inline(always)]
     fn default() -> Self {
         Self::new()
     }

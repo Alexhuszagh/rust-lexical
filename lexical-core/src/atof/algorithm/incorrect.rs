@@ -9,7 +9,7 @@ use super::format::*;
 type Wrapped<F> = WrappedFloat<F>;
 
 /// Process the integer component of the raw float.
-#[inline]
+#[inline(always)]
 fn process_integer<'a, F, Data>(data: &Data, radix: u32)
     -> F
     where F: StablePower,
@@ -65,33 +65,31 @@ fn to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32)
     Ok((value, ptr))
 }
 
-#[inline]
-pub(crate) fn atof_generic<'a, F>(bytes: &'a [u8], options: &ParseFloatOptions)
+#[inline(always)]
+pub(crate) fn atof_generic<'a, F>(bytes: &'a [u8], format: NumberFormat, radix: u32)
     -> ParseResult<(F, *const u8)>
     where F: StablePower
 {
-    // TODO(ahuszagh) Should be able to store the radix too...
-    let radix = options.radix();
-    apply_interface!(to_native, options, bytes, radix)
+    apply_interface!(to_native, format, bytes, radix)
 }
 
 // ATOF/ATOD
 // ---------
 
 /// Parse 32-bit float from string.
-#[inline]
-pub(crate) fn atof<'a>(bytes: &'a [u8], _: Sign, options: &ParseFloatOptions)
+#[inline(always)]
+pub(crate) fn atof<'a>(bytes: &'a [u8], _: Sign, format: NumberFormat, radix: u32, _: bool)
     -> ParseResult<(f32, *const u8)>
 {
-    atof_generic(bytes, options)
+    atof_generic(bytes, format, radix)
 }
 
 /// Parse 64-bit float from string.
-#[inline]
-pub(crate) fn atod<'a>(bytes: &'a [u8], _: Sign, options: &ParseFloatOptions)
+#[inline(always)]
+pub(crate) fn atod<'a>(bytes: &'a [u8], _: Sign, format: NumberFormat, radix: u32, _: bool)
     -> ParseResult<(f64, *const u8)>
 {
-    atof_generic(bytes, options)
+    atof_generic(bytes, format, radix)
 }
 
 // TESTS

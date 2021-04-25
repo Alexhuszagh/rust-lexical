@@ -4,38 +4,48 @@
 extern crate criterion;
 extern crate lexical_core;
 
+use std::time::Duration;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use lexical_core::parse as lexical_parse;
 
 // BENCH GENERATORS
 
-// Lexical atoi generator.
+// Lexical atof generator.
 macro_rules! lexical_generator {
-    ($name:ident, $data:ident, $t:ty) => {
-        fn $name(criterion: &mut Criterion) {
-            criterion.bench_function(stringify!($name), |b| {
-                b.iter(|| {
-                    $data.iter().for_each(|x| {
-                        black_box(lexical_parse::<$t>(x.as_bytes()).unwrap());
-                    })
+    ($group:ident, $name:literal, $data:ident, $t:ty) => {
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $data.iter().for_each(|x| {
+                    black_box(lexical_core::parse::<$t>(x.as_bytes()).unwrap());
                 })
-            });
-        }
+            })
+        });
     };
 }
 
-// Parse atoi generator.
-macro_rules! parse_generator {
-    ($name:ident, $data:ident, $t:tt) => {
-        fn $name(criterion: &mut Criterion) {
-            criterion.bench_function(stringify!($name), |b| {
-                b.iter(|| {
-                    $data.iter().for_each(|x| {
-                        black_box(x.parse::<$t>().unwrap());
-                    })
+// Lexical atof generator with options.
+macro_rules! lexical_options_generator {
+    ($group:ident, $name:literal, $data:ident, $t:ty, $opts:ident) => {
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $data.iter().for_each(|x| {
+                    black_box(lexical_core::parse_with_options::<$t>(x.as_bytes(), &$opts).unwrap());
                 })
-            });
-        }
+            })
+        });
+    };
+}
+
+// Parse atof generator.
+macro_rules! parse_generator {
+    ($group:ident, $name:literal, $data:ident, $t:ty) => {
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $data.iter().for_each(|x| {
+                    black_box(x.parse::<$t>().unwrap());
+                })
+            })
+        });
     };
 }
 
@@ -10045,9 +10055,6 @@ const F32_DATA: [&'static str; 10000] = [
     "-6.837595703395912e-33",
 ];
 
-lexical_generator!(atof_f32_lexical, F32_DATA, f32);
-parse_generator!(atof_f32_parse, F32_DATA, f32);
-
 // F64
 
 // Converted from randomly generated data in ftoa.
@@ -20054,11 +20061,31 @@ const F64_DATA: [&'static str; 10000] = [
     "-8.800077592424991e-221",
 ];
 
-lexical_generator!(atof_f64_lexical, F64_DATA, f64);
-parse_generator!(atof_f64_parse, F64_DATA, f64);
+fn lexical(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("lexical");
+    group.measurement_time(Duration::from_secs(20));
+    lexical_generator!(group, "atof_f32_lexical", F32_DATA, f32);
+    lexical_generator!(group, "atof_f64_lexical", F64_DATA, f64);
+}
+
+//fn lexical_options(criterion: &mut Criterion) {
+//    let options = lexical_core::ParseFloatOptions::new();
+//    let mut group = criterion.benchmark_group("lexical_options");
+//    group.measurement_time(Duration::from_secs(20));
+//    lexical_options_generator!(group, "atof_f32_lexical_options", F32_DATA, f32, options);
+//    lexical_options_generator!(group, "atof_f64_lexical_options", F64_DATA, f64, options);
+//}
+
+fn parse(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("core::parse");
+    group.measurement_time(Duration::from_secs(20));
+    parse_generator!(group, "atof_f32_parse", F32_DATA, f32);
+    parse_generator!(group, "atof_f64_parse", F64_DATA, f64);
+}
 
 // MAIN
 
-criterion_group!(f32_benches, atof_f32_lexical, atof_f32_parse);
-criterion_group!(f64_benches, atof_f64_lexical, atof_f64_parse);
-criterion_main!(f32_benches, f64_benches);
+criterion_group!(lexical_benches, lexical);
+//criterion_group!(lexical_options_benches, lexical_options);
+criterion_group!(parse_benches, parse);
+criterion_main!(lexical_benches, /*lexical_options_benches,*/ parse_benches);
