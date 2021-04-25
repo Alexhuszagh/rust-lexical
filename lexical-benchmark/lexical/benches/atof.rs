@@ -69,7 +69,7 @@ lazy_static! {
 
 fn denormal(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("denormal");
-    group.measurement_time(Duration::from_secs(1));
+    group.measurement_time(Duration::from_secs(5));
 
     let data: &[String] = &DENORMAL_DATA;
     group.bench_function("denormal10", |bench| bench.iter(|| {
@@ -112,7 +112,7 @@ fn denormal(criterion: &mut Criterion) {
 
 fn large(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("large");
-    group.measurement_time(Duration::from_secs(1));
+    group.measurement_time(Duration::from_secs(5));
 
     let data: &[String] = &DENORMAL_DATA;
     group.bench_function("large10", |bench| bench.iter(|| {
@@ -155,7 +155,7 @@ fn large(criterion: &mut Criterion) {
 
 fn digits(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("digits");
-    group.measurement_time(Duration::from_secs(1));
+    group.measurement_time(Duration::from_secs(5));
 
     let data: &[String] = &DIGITS2_DATA;
     group.bench_function("digits2", |bench| bench.iter(|| {
@@ -195,7 +195,7 @@ fn digits(criterion: &mut Criterion) {
 
 //fn denormal_options(criterion: &mut Criterion) {
 //    let mut group = criterion.benchmark_group("denormal_options");
-//    group.measurement_time(Duration::from_secs(1));
+//    group.measurement_time(Duration::from_secs(5));
 //
 //    let options = lexical_core::ParseFloatOptions::new();
 //    let data: &[String] = &DENORMAL_DATA;
@@ -239,7 +239,7 @@ fn digits(criterion: &mut Criterion) {
 //
 //fn large_options(criterion: &mut Criterion) {
 //    let mut group = criterion.benchmark_group("large_options");
-//    group.measurement_time(Duration::from_secs(1));
+//    group.measurement_time(Duration::from_secs(5));
 //
 //    let options = lexical_core::ParseFloatOptions::new();
 //    let data: &[String] = &DENORMAL_DATA;
@@ -283,7 +283,7 @@ fn digits(criterion: &mut Criterion) {
 //
 //fn digits_options(criterion: &mut Criterion) {
 //    let mut group = criterion.benchmark_group("digits_options");
-//    group.measurement_time(Duration::from_secs(1));
+//    group.measurement_time(Duration::from_secs(5));
 //
 //    let options = lexical_core::ParseFloatOptions::new();
 //    let data: &[String] = &DIGITS2_DATA;
