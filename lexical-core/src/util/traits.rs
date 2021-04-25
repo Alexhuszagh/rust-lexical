@@ -1,6 +1,7 @@
 //! Wrap the low-level API into idiomatic serializers.
 
 use super::format::NumberFormat;
+use super::options::ParseFloatOptions;
 use super::num::Number;
 use super::result::Result;
 
@@ -95,26 +96,22 @@ pub trait FromLexical: Number {
 macro_rules! from_lexical {
     ($cb:expr, $t:ty) => (
         impl FromLexical for $t {
-            #[inline]
             fn from_lexical(bytes: &[u8]) -> Result<$t>
             {
                 to_complete!($cb, bytes, 10)
             }
 
-            #[inline]
             fn from_lexical_partial(bytes: &[u8]) -> Result<($t, usize)>
             {
                 $cb(bytes, 10)
             }
 
-            #[inline]
             #[cfg(feature = "radix")]
             fn from_lexical_radix(bytes: &[u8], radix: u8) -> Result<$t>
             {
                 to_complete!($cb, bytes, radix.as_u32())
             }
 
-            #[inline]
             #[cfg(feature = "radix")]
             fn from_lexical_partial_radix(bytes: &[u8], radix: u8) -> Result<($t, usize)>
             {
@@ -197,26 +194,22 @@ pub trait FromLexicalLossy: FromLexical {
 macro_rules! from_lexical_lossy {
     ($cb:expr, $t:ty) => (
         impl FromLexicalLossy for $t {
-            #[inline]
             fn from_lexical_lossy(bytes: &[u8]) -> Result<$t>
             {
                 to_complete!($cb, bytes, 10)
             }
 
-            #[inline]
             fn from_lexical_partial_lossy(bytes: &[u8]) -> Result<($t, usize)>
             {
                 $cb(bytes, 10)
             }
 
-            #[inline]
             #[cfg(feature = "radix")]
             fn from_lexical_lossy_radix(bytes: &[u8], radix: u8) -> Result<$t>
             {
                 to_complete!($cb, bytes, radix.as_u32())
             }
 
-            #[inline]
             #[cfg(feature = "radix")]
             fn from_lexical_partial_lossy_radix(bytes: &[u8], radix: u8) -> Result<($t, usize)>
             {
@@ -309,26 +302,22 @@ pub trait FromLexicalFormat: FromLexical {
 macro_rules! from_lexical_format {
     ($cb:expr, $t:ty) => (
         impl FromLexicalFormat for $t {
-            #[inline]
             fn from_lexical_format(bytes: &[u8], format: NumberFormat) -> Result<$t>
             {
                 to_complete!($cb, bytes, 10, format)
             }
 
-            #[inline]
             fn from_lexical_partial_format(bytes: &[u8], format: NumberFormat) -> Result<($t, usize)>
             {
                 $cb(bytes, 10, format)
             }
 
-            #[inline]
             #[cfg(feature = "radix")]
             fn from_lexical_format_radix(bytes: &[u8], radix: u8, format: NumberFormat) -> Result<$t>
             {
                 to_complete!($cb, bytes, radix.as_u32(), format)
             }
 
-            #[inline]
             #[cfg(feature = "radix")]
             fn from_lexical_partial_format_radix(bytes: &[u8], radix: u8, format: NumberFormat) -> Result<($t, usize)>
             {
@@ -429,21 +418,18 @@ pub trait FromLexicalLossyFormat: FromLexical {
 macro_rules! from_lexical_lossy_format {
     ($cb:expr, $t:ty) => (
         impl FromLexicalLossyFormat for $t {
-            #[inline]
             fn from_lexical_lossy_format(bytes: &[u8], format: NumberFormat)
                 -> Result<$t>
             {
                 to_complete!($cb, bytes, 10, format)
             }
 
-            #[inline]
             fn from_lexical_partial_lossy_format(bytes: &[u8], format: NumberFormat)
                 -> Result<($t, usize)>
             {
                 $cb(bytes, 10, format)
             }
 
-            #[inline]
             #[cfg(feature = "radix")]
             fn from_lexical_lossy_format_radix(bytes: &[u8], radix: u8, format: NumberFormat)
                 -> Result<$t>
@@ -451,12 +437,44 @@ macro_rules! from_lexical_lossy_format {
                 to_complete!($cb, bytes, radix.as_u32(), format)
             }
 
-            #[inline]
             #[cfg(feature = "radix")]
             fn from_lexical_partial_lossy_format_radix(bytes: &[u8], radix: u8, format: NumberFormat)
                 -> Result<($t, usize)>
             {
                 $cb(bytes, radix.as_u32(), format)
+            }
+        }
+    )
+}
+
+// FROM LEXICAL WITH OPTIONS
+
+/// Trait for number that can be parsed using a custom format specification.
+pub trait FromLexicalOptions: FromLexical {
+    /// Checked parser for a string-to-number conversion.
+    ///
+    /// This method parses the entire string, returning an error if
+    /// any invalid digits are found during parsing. The parsing
+    /// is dictated by the options, which specifies special
+    /// float strings, required float components, digit separators,
+    /// exponent characters, and more.
+    ///
+    /// Returns a `Result` containing either the parsed value,
+    /// or an error containing any errors that occurred during parsing.
+    ///
+    /// * `bytes`   - Slice containing a numeric string.
+    /// * `options` - Options to dictate float parsing.
+    fn from_lexical_with_options(bytes: &[u8], options: &ParseFloatOptions) -> Result<(Self, usize)>;
+}
+
+// Implement FromLexicalOptions for numeric type.
+macro_rules! from_lexical_with_options {
+    ($cb:expr, $t:ty) => (
+        impl FromLexicalOptions for $t {
+            fn from_lexical_with_options(bytes: &[u8], options: &ParseFloatOptions)
+                -> Result<($t, usize)>
+            {
+                $cb(bytes, options)
             }
         }
     )
@@ -520,7 +538,6 @@ macro_rules! to_lexical {
     ($cb:expr, $t:ty) => (
         impl ToLexical for $t {
             // TODO(ahuszagh) Need to have a type that accepts a format.
-            #[inline]
             fn to_lexical<'a>(self, bytes: &'a mut [u8])
                 -> &'a mut [u8]
             {
@@ -530,7 +547,6 @@ macro_rules! to_lexical {
             }
 
             // TODO(ahuszagh) Deprecate this.
-            #[inline]
             #[cfg(feature = "radix")]
             fn to_lexical_radix<'a>(self, radix: u8, bytes: &'a mut [u8])
                 -> &'a mut [u8]

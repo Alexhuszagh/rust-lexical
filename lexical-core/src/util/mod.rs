@@ -21,6 +21,7 @@ mod algorithm;
 mod cast;
 mod config;
 mod consume;
+mod digit;
 mod div128;
 mod error;
 mod format;
@@ -52,6 +53,7 @@ if #[cfg(feature = "correct")] {
 pub(crate) use self::algorithm::*;
 pub(crate) use self::cast::*;
 pub(crate) use self::consume::*;
+pub(crate) use self::digit::*;
 pub(crate) use self::div128::*;
 pub(crate) use self::iterator::*;
 pub(crate) use self::mask::*;

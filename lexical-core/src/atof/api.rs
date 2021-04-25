@@ -45,13 +45,13 @@ impl StringToFloat for f64 {
 // Utilities to filter special values.
 
 /// Convert slice to iterator without digit separators.
-#[inline]
+#[inline(always)]
 fn to_iter<'a>(bytes: &'a [u8], _: u8) -> slice::Iter<'a, u8> {
     bytes.iter()
 }
 
 /// Convert slice to iterator with digit separators.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 fn to_iter_s<'a>(bytes: &'a [u8], digit_separator: u8) -> SkipValueIterator<'a, u8> {
     SkipValueIterator::new(bytes, digit_separator)
@@ -129,7 +129,7 @@ fn parse_nan<'a, ToIter, StartsWith, Iter, F>(
 /// Parse special or float values with the standard format.
 /// Special values are allowed, the match is case-insensitive,
 /// and no digit separators are allowed.
-#[inline]
+#[inline(always)]
 fn parse_float_standard<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, lossy: bool)
     -> ParseResult<(F, *const u8)>
 {
@@ -196,7 +196,7 @@ fn parse_float_s<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberForma
 }
 
 /// Parse special or float values with the default formatter.
-#[inline]
+#[inline(always)]
 #[cfg(not(feature = "format"))]
 fn parse_float<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, lossy: bool)
     -> ParseResult<(F, *const u8)>
@@ -205,7 +205,7 @@ fn parse_float<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat,
 }
 
 /// Parse special or float values with the default formatter.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 fn parse_float<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, lossy: bool)
     -> ParseResult<(F, *const u8)>
@@ -227,7 +227,7 @@ fn parse_float<F: StringToFloat>(bytes: &[u8], sign: Sign, format: NumberFormat,
 }
 
 /// Validate sign byte is valid.
-#[inline]
+#[inline(always)]
 #[cfg(not(feature = "format"))]
 fn validate_sign(_: &[u8], _: &[u8], _: Sign, _: NumberFormat)
     -> ParseResult<()>
@@ -252,7 +252,7 @@ fn validate_sign(bytes: &[u8], digits: &[u8], sign: Sign, format: NumberFormat)
 }
 
 /// Convert float to signed representation.
-#[inline]
+#[inline(always)]
 fn to_signed<F: StringToFloat>(float: F, sign: Sign) -> F
 {
     match sign {
@@ -277,7 +277,7 @@ fn atof<F: StringToFloat>(bytes: &[u8], format: NumberFormat, radix: u32, lossy:
 }
 
 // TODO(ahuszagh) Deprecate
-#[inline]
+#[inline(always)]
 fn atof_lossy<F: StringToFloat>(bytes: &[u8], radix: u32)
     -> Result<(F, usize)>
 {
@@ -290,7 +290,7 @@ fn atof_lossy<F: StringToFloat>(bytes: &[u8], radix: u32)
 }
 
 // TODO(ahuszagh) Deprecate
-#[inline]
+#[inline(always)]
 fn atof_nonlossy<F: StringToFloat>(bytes: &[u8], radix: u32)
     -> Result<(F, usize)>
 {
@@ -303,7 +303,7 @@ fn atof_nonlossy<F: StringToFloat>(bytes: &[u8], radix: u32)
 }
 
 // TODO(ahuszagh) Deprecate
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 fn atof_format<F: StringToFloat>(bytes: &[u8], radix: u32, format: NumberFormat)
     -> Result<(F, usize)>
@@ -316,7 +316,7 @@ fn atof_format<F: StringToFloat>(bytes: &[u8], radix: u32, format: NumberFormat)
 }
 
 // TODO(ahuszagh) Deprecate
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 fn atof_lossy_format<F: StringToFloat>(bytes: &[u8], radix: u32, format: NumberFormat)
     -> Result<(F, usize)>
@@ -328,7 +328,20 @@ fn atof_lossy_format<F: StringToFloat>(bytes: &[u8], radix: u32, format: NumberF
     }
 }
 
-// TODO(ahuszagh) Add "parse_with_options"
+// TODO(ahuszagh) Expose this.
+#[inline(always)]
+fn atof_with_options<F: StringToFloat>(bytes: &[u8], options: &ParseFloatOptions)
+    -> Result<(F, usize)>
+{
+    let format = options.format();
+    let radix = options.radix();
+    let lossy = options.lossy();
+    let index = | ptr | distance(bytes.as_ptr(), ptr);
+    match atof::<F>(bytes, format, radix, lossy) {
+        Ok((value, ptr)) => Ok((value, index(ptr))),
+        Err((code, ptr)) => Err((code, index(ptr)).into()),
+    }
+}
 
 // FROM LEXICAL
 // ------------
@@ -345,6 +358,10 @@ if #[cfg(feature = "format")] {
     from_lexical_lossy_format!(atof_lossy_format, f32);
     from_lexical_lossy_format!(atof_lossy_format, f64);
 }}
+
+// TODO(ahuszagh) Make this the default
+from_lexical_with_options!(atof_with_options, f32);
+from_lexical_with_options!(atof_with_options, f64);
 
 // TESTS
 // -----

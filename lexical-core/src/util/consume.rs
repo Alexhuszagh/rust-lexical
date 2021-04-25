@@ -58,20 +58,10 @@
 //! If the consumer does not require a digit separator, that value is
 //! simply ignored.
 
+use super::digit::*;
 use super::format::*;
 
 // HELPERS
-
-// Convert radix to value.
-macro_rules! to_digit {
-    ($c:expr, $radix:expr) => (($c as char).to_digit($radix));
-}
-
-// Convert character to digit.
-#[inline(always)]
-fn is_digit(c: u8, radix: u32) -> bool {
-    to_digit!(c, radix).is_some()
-}
 
 // Convert character to digit.
 #[cfg(feature = "format")]
@@ -103,7 +93,7 @@ fn split_at_index<'a>(digits: &'a [u8], index: usize)
 
 // Consume until a an invalid digit is found.
 // Does not consume any digit separators.
-#[inline]
+#[inline(always)]
 fn consume_digits<'a>(digits: &'a [u8], radix: u32, _: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -594,7 +584,7 @@ pub(crate) fn consume_digits_iltc<'a>(digits: &'a [u8], radix: u32, digit_separa
 // API
 
 // Consume digits without a digit separator.
-#[inline]
+#[inline(always)]
 pub(crate) fn consume_digits_no_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> (&'a [u8], &'a [u8])
 {
@@ -602,7 +592,7 @@ pub(crate) fn consume_digits_no_separator<'a>(bytes: &'a [u8], radix: u32, forma
 }
 
 // Consume digits while ignoring the digit separator.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(crate) fn consume_digits_ignore_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> (&'a [u8], &'a [u8])
@@ -611,7 +601,7 @@ pub(crate) fn consume_digits_ignore_separator<'a>(bytes: &'a [u8], radix: u32, f
 }
 
 // Consume digits with a digit separator in the integer component.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(crate) fn consume_integer_digits_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> (&'a [u8], &'a [u8])
@@ -653,7 +643,7 @@ pub(crate) fn consume_integer_digits_separator<'a>(bytes: &'a [u8], radix: u32, 
 }
 
 // Consume digits with a digit separator in the fraction component.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(crate) fn consume_fraction_digits_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> (&'a [u8], &'a [u8])

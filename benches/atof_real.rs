@@ -120,15 +120,15 @@ fn lexical(criterion: &mut Criterion) {
     lexical_generator!(group, "atof_real_f32_lexical", data, f32);
     lexical_generator!(group, "atof_real_f64_lexical", data, f64);
 }
-//
-//fn lexical_options(criterion: &mut Criterion) {
-//    let options = lexical_core::ParseFloatOptions::new();
-//    let data = read_data();
-//    let mut group = criterion.benchmark_group("lexical_options");
-//    group.measurement_time(Duration::from_secs(5));
-//    lexical_options_generator!(group, "atof_real_f32_lexical_options", data, f32, options);
-//    lexical_options_generator!(group, "atof_real_f64_lexical_options", data, f64, options);
-//}
+
+fn lexical_options(criterion: &mut Criterion) {
+    let options = lexical_core::ParseFloatOptions::new();
+    let data = read_data();
+    let mut group = criterion.benchmark_group("lexical_options");
+    group.measurement_time(Duration::from_secs(5));
+    lexical_options_generator!(group, "atof_real_f32_lexical_options", data, f32, options);
+    lexical_options_generator!(group, "atof_real_f64_lexical_options", data, f64, options);
+}
 
 
 fn parse(criterion: &mut Criterion) {
@@ -142,6 +142,6 @@ fn parse(criterion: &mut Criterion) {
 // MAIN
 
 criterion_group!(lexical_benches, lexical);
-//criterion_group!(lexical_options_benches, lexical_options);
+criterion_group!(lexical_options_benches, lexical_options);
 criterion_group!(parse_benches, parse);
-criterion_main!(lexical_benches, /*lexical_options_benches,*/ parse_benches);
+criterion_main!(lexical_benches, lexical_options_benches, parse_benches);

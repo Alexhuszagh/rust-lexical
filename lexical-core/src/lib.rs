@@ -569,3 +569,14 @@ pub fn parse_partial_lossy_format_radix<N: FromLexicalLossyFormat>(bytes: &[u8],
 {
     N::from_lexical_partial_lossy_format_radix(bytes, radix, format)
 }
+
+/// TODO(ahuszagh) Document...
+///
+/// * `bytes`   - Byte slice containing a numeric string.
+/// * `options` - Options to dictate float parsing.
+#[inline]
+pub fn parse_with_options<N: FromLexicalOptions>(bytes: &[u8], options: &ParseFloatOptions)
+    -> Result<(N, usize)>
+{
+    N::from_lexical_with_options(bytes, options)
+}

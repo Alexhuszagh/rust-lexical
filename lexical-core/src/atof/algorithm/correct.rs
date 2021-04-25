@@ -405,7 +405,7 @@ fn pow2_exponent(radix: u32) -> i32 {
 /// Parse native float from string.
 ///
 /// The float string must be non-special, non-zero, and positive.
-#[inline]
+#[inline(always)]
 fn to_native<F>(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, lossy: bool)
     -> ParseResult<(F, *const u8)>
     where F: FloatType

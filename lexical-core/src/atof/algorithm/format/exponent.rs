@@ -14,7 +14,7 @@ type FloatType = f64;
 // Calculate the scientific notation exponent without overflow.
 //
 // For example, 0.1 would be -1, and 10 would be 1 in base 10.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "correct")]
 pub(super) fn scientific_exponent(exponent: i32, integer_digits: usize, fraction_start: usize)
     -> i32
@@ -33,7 +33,7 @@ pub(super) fn scientific_exponent(exponent: i32, integer_digits: usize, fraction
 // Remove the number of digits that contributed to the mantissa past
 // the dot, and add the number of truncated digits from the mantissa,
 // to calculate the scaling factor for the mantissa from a raw exponent.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "correct")]
 pub(super) fn mantissa_exponent(raw_exponent: i32, fraction_digits: usize, truncated: usize)
     -> i32
@@ -55,7 +55,7 @@ pub(super) fn mantissa_exponent(raw_exponent: i32, fraction_digits: usize, trunc
 // Precondition:
 //      Iter should not implement ConsumedIterator, since it would break
 //      the assumption in `extract_exponent_iltc`.
-#[inline]
+#[inline(always)]
 fn extract_and_parse_exponent<'a, Data, Iter>(
     data: &mut Data,
     iter: Iter,
@@ -84,7 +84,7 @@ fn extract_and_parse_exponent<'a, Data, Iter>(
 // Parse exponent.
 // This only works with exponents that may contain digit separators,
 // where the invalid (trailing) data has already been determined.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 fn parse_exponent<'a, Data>(
     data: &mut Data,
@@ -116,7 +116,7 @@ fn parse_exponent<'a, Data>(
 
 // Extract exponent substring and parse exponent.
 // Does not consume any digit separators.
-#[inline]
+#[inline(always)]
 fn extract_exponent<'a, Data>(
     data: &mut Data,
     bytes: &'a [u8],
@@ -135,7 +135,7 @@ fn extract_exponent<'a, Data>(
 
 // Extract exponent substring and parse exponent.
 // Consumes leading, internal, trailing, and consecutive digit separators.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 fn extract_exponent_iltc<'a, Data>(
     data: &mut Data,
@@ -170,7 +170,7 @@ macro_rules! extract_exponent_separator {
         sign => $sign:ident,
         consume => $consume:ident
     ) => (
-        #[inline]
+        #[inline(always)]
         #[cfg(feature = "format")]
         fn $name<'a, Data>(
             data: &mut Data,
@@ -272,7 +272,7 @@ extract_exponent_separator!(
 // API
 
 // Extract exponent without a digit separator.
-#[inline]
+#[inline(always)]
 pub(crate) fn extract_exponent_no_separator<'a, Data>(data: &mut Data, bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> &'a [u8]
     where Data: FastDataInterface<'a>
@@ -281,7 +281,7 @@ pub(crate) fn extract_exponent_no_separator<'a, Data>(data: &mut Data, bytes: &'
 }
 
 // Extract exponent while ignoring the digit separator.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(crate) fn extract_exponent_ignore_separator<'a, Data>(data: &mut Data, bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> &'a [u8]
@@ -291,7 +291,7 @@ pub(crate) fn extract_exponent_ignore_separator<'a, Data>(data: &mut Data, bytes
 }
 
 // Extract exponent with a digit separator in the exponent component.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn extract_exponent_separator<'a, Data>(data: &mut Data, bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> &'a [u8]

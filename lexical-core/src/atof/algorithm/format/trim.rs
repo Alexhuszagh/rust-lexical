@@ -6,7 +6,7 @@ use crate::util::*;
 
 /// Trim leading 0s.
 /// Does not consume any digit separators.
-#[inline]
+#[inline(always)]
 pub(super) fn ltrim_zero_no_separator<'a>(bytes: &'a [u8], _: u8)
     -> (&'a [u8], usize)
 {
@@ -14,7 +14,7 @@ pub(super) fn ltrim_zero_no_separator<'a>(bytes: &'a [u8], _: u8)
 }
 
 /// Trim leading 0s and digit separators.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn ltrim_zero_separator<'a>(bytes: &'a [u8], digit_separator: u8)
     -> (&'a [u8], usize)
@@ -32,7 +32,7 @@ pub(super) fn ltrim_separator_no_separator<'a>(bytes: &'a [u8], _: u8)
 }
 
 /// Trim leading digit separators.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn ltrim_separator_separator<'a>(bytes: &'a [u8], digit_separator: u8)
     -> (&'a [u8], usize)
@@ -42,7 +42,7 @@ pub(super) fn ltrim_separator_separator<'a>(bytes: &'a [u8], digit_separator: u8
 
 /// Trim trailing 0s.
 /// Does not consume any digit separators.
-#[inline]
+#[inline(always)]
 pub(super) fn rtrim_zero_no_separator<'a>(bytes: &'a [u8], _: u8)
     -> (&'a [u8], usize)
 {
@@ -50,7 +50,7 @@ pub(super) fn rtrim_zero_no_separator<'a>(bytes: &'a [u8], _: u8)
 }
 
 /// Trim trailing 0s and digit separators.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn rtrim_zero_separator<'a>(bytes: &'a [u8], digit_separator: u8)
     -> (&'a [u8], usize)
@@ -60,7 +60,7 @@ pub(super) fn rtrim_zero_separator<'a>(bytes: &'a [u8], digit_separator: u8)
 
 /// Trim trailing digit separators (so, nothing).
 /// Does not consume any digit separators.
-#[inline]
+#[inline(always)]
 pub(super) fn rtrim_separator_no_separator<'a>(bytes: &'a [u8], _: u8)
     -> (&'a [u8], usize)
 {
@@ -68,7 +68,7 @@ pub(super) fn rtrim_separator_no_separator<'a>(bytes: &'a [u8], _: u8)
 }
 
 /// Trim trailing digit separators.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn rtrim_separator_separator<'a>(bytes: &'a [u8], digit_separator: u8)
     -> (&'a [u8], usize)

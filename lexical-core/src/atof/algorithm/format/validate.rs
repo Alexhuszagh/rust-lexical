@@ -6,7 +6,7 @@ use super::traits::*;
 // HELPERS
 
 /// Determine if the integer component is empty.
-#[inline]
+#[inline(always)]
 fn is_integer_empty<'a, Data>(data: &Data)
     -> bool
     where Data: FastDataInterface<'a>
@@ -15,7 +15,7 @@ fn is_integer_empty<'a, Data>(data: &Data)
 }
 
 /// Determine if the fraction component is empty.
-#[inline]
+#[inline(always)]
 fn is_fraction_empty<'a, Data>(data: &Data)
     -> bool
     where Data: FastDataInterface<'a>
@@ -24,7 +24,7 @@ fn is_fraction_empty<'a, Data>(data: &Data)
 }
 
 /// Determine if the fraction component exists.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 fn has_fraction<'a, Data>(data: &Data)
     -> bool
@@ -34,7 +34,7 @@ fn has_fraction<'a, Data>(data: &Data)
 }
 
 /// Determine if the exponent component exists.
-#[inline]
+#[inline(always)]
 fn has_exponent<'a, Data>(data: &Data)
     -> bool
     where Data: FastDataInterface<'a>
@@ -43,7 +43,7 @@ fn has_exponent<'a, Data>(data: &Data)
 }
 
 /// Unwrap option to get the pointer.
-#[inline]
+#[inline(always)]
 fn option_as_ptr(option: Option<&[u8]>) -> *const u8
 {
     option.unwrap().as_ptr()
@@ -74,7 +74,7 @@ pub(super) fn validate_no_leading_zeros<'a, Data>(data: &Data)
 
 /// Validate the extracted mantissa float components.
 ///      1. Validate non-empty significant digits (integer or fraction).
-#[inline]
+#[inline(always)]
 pub(super) fn validate_permissive_mantissa<'a, Data>(data: &Data)
     -> ParseResult<()>
     where Data: FastDataInterface<'a>
@@ -91,7 +91,7 @@ pub(super) fn validate_permissive_mantissa<'a, Data>(data: &Data)
 
 /// Validate the extracted mantissa float components.
 ///      1. Validate integer component is non-empty.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn validate_required_integer<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -107,7 +107,7 @@ pub(super) fn validate_required_integer<'a, Data>(data: &Data)
 
 /// Validate the extracted mantissa float components.
 ///      1. Validate fraction component is non-empty if present.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn validate_required_fraction<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -124,7 +124,7 @@ pub(super) fn validate_required_fraction<'a, Data>(data: &Data)
 /// Validate the extracted mantissa float components.
 ///      1. Validate integer component is non-empty.
 ///      2. Validate fraction component is non-empty if present.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn validate_required_digits<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -142,7 +142,7 @@ pub(super) fn validate_required_digits<'a, Data>(data: &Data)
 }
 
 /// Validate mantissa depending on float format.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn validate_mantissa<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -195,7 +195,7 @@ pub(super) fn validate_required_exponent<'a, Data>(data: &Data)
 
 /// Validate optional exponent component.
 ///      A no-op, since the data is optional.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn validate_optional_exponent<'a, Data>(_: &Data)
     -> ParseResult<()>
@@ -205,7 +205,7 @@ pub(super) fn validate_optional_exponent<'a, Data>(_: &Data)
 }
 
 /// Validate invalid exponent component.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn validate_invalid_exponent<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -218,7 +218,7 @@ pub(super) fn validate_invalid_exponent<'a, Data>(data: &Data)
 }
 
 /// Validate exponent depending on float format.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn validate_exponent<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -237,7 +237,7 @@ pub(super) fn validate_exponent<'a, Data>(data: &Data)
 
 /// Validate optional exponent sign.
 ///      A no-op, since the data is optional.
-#[inline]
+#[inline(always)]
 pub(super) fn validate_optional_exponent_sign<'a, Data>(_: &Data)
     -> ParseResult<()>
     where Data: FastDataInterface<'a>
@@ -246,7 +246,7 @@ pub(super) fn validate_optional_exponent_sign<'a, Data>(_: &Data)
 }
 
 /// Validate a required exponent sign.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn validate_required_exponent_sign<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -262,7 +262,7 @@ pub(super) fn validate_required_exponent_sign<'a, Data>(data: &Data)
 }
 
 /// Validate a required exponent sign.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn validate_no_positive_exponent_sign<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -277,7 +277,7 @@ pub(super) fn validate_no_positive_exponent_sign<'a, Data>(data: &Data)
 }
 
 /// Validate exponent sign depending on float format.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn validate_exponent_sign<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -295,7 +295,7 @@ pub(super) fn validate_exponent_sign<'a, Data>(data: &Data)
 // EXPONENT FRACTION
 
 /// Validate an exponent may occur with or without a fraction.
-#[inline]
+#[inline(always)]
 pub(super) fn validate_exponent_optional_fraction<'a, Data>(_: &Data)
     -> ParseResult<()>
     where Data: FastDataInterface<'a>
@@ -304,7 +304,7 @@ pub(super) fn validate_exponent_optional_fraction<'a, Data>(_: &Data)
 }
 
 /// Validate an exponent requires a fraction component.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn validate_exponent_required_fraction<'a, Data>(data: &Data)
     -> ParseResult<()>
@@ -317,8 +317,7 @@ pub(super) fn validate_exponent_required_fraction<'a, Data>(data: &Data)
 }
 
 /// Validate exponent fraction depending on float format.
-// TODO(ahuszagh) Have it just take a format argument
-#[inline]
+#[inline(always)]
 #[cfg(feature = "format")]
 pub(super) fn validate_exponent_fraction<'a, Data>(data: &Data)
     -> ParseResult<()>
