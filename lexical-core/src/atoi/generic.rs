@@ -120,7 +120,7 @@ fn validate_no_leading_zeros<'a>(digits: &[u8], digit_separator: u8, ptr: *const
 macro_rules! parse_digits {
     ($value:ident, $iter:ident, $radix:ident, $op:ident, $code:ident) => (
         while let Some(c) = $iter.next() {
-            let digit = match to_digit!(*c, $radix) {
+            let digit = match to_digit(*c, $radix) {
                 Some(v) => v,
                 None    => return Ok(($value, c)),
             };
@@ -394,7 +394,7 @@ macro_rules! parse_digits_u128 {
             while index < $step {
                 if let Some(c) = $iter.next() {
                     index += 1;
-                    let digit = match to_digit!(*c, $radix) {
+                    let digit = match to_digit(*c, $radix) {
                         Some(v) => v,
                         None    => {
                             // Add temporary to value and return early.

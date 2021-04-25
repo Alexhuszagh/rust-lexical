@@ -1,7 +1,6 @@
 //! String-to-integer routines specialized to parse the exponent of a float.
 
 use crate::util::*;
-use super::shared::*;
 
 // STANDALONE EXPONENT
 // -------------------
@@ -27,7 +26,7 @@ macro_rules! add_digit {
 macro_rules! parse_digits_exponent {
     ($value:ident, $iter:ident, $radix:ident, $op:ident, $default:expr) => (
         while let Some(c) = $iter.next() {
-            let digit = match to_digit(c, $radix) {
+            let digit = match to_digit_err(c, $radix) {
                 Ok(v)  => v,
                 Err(c) => return ($value, c),
             };

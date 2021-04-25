@@ -1,17 +1,10 @@
 //! Shared definitions for string-to-integer conversions.
 
-use crate::lib::result::Result as StdResult;
-
 #[cfg(feature = "correct")]
 use crate::util::*;
 
 // SHARED
 // ------
-
-// Convert u8 to digit.
-macro_rules! to_digit {
-    ($c:expr, $radix:expr) => (($c as char).to_digit($radix));
-}
 
 // Parse the sign bit and filter empty inputs from the atoi data.
 macro_rules! parse_sign {
@@ -43,21 +36,6 @@ macro_rules! parse_sign {
 #[inline(always)]
 pub(super) fn last_ptr<T>(slc: &[T]) -> *const T {
     slc[slc.len()..].as_ptr()
-}
-
-// Convert character to digit.
-#[inline(always)]
-pub(super) fn to_digit<'a>(c: &'a u8, radix: u32) -> StdResult<u32, &'a u8> {
-    match to_digit!(*c, radix) {
-        Some(v) => Ok(v),
-        None    => Err(c),
-    }
-}
-
-// Convert character to digit.
-#[inline(always)]
-pub(super) fn is_not_digit_char(c: u8, radix: u32) -> bool {
-    to_digit!(c, radix).is_none()
 }
 
 // Add digit to mantissa.

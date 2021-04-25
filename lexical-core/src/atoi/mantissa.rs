@@ -34,7 +34,7 @@ pub(crate) fn standalone_mantissa<'a, T, Iter1, Iter2>(mut integer: Iter1, mut f
     // digits, if not, return the first invalid digit. Otherwise,
     // calculate the number of truncated digits.
     while let Some(c) = integer.next() {
-        value = match add_digit(value, to_digit!(*c, radix).unwrap(), radix) {
+        value = match add_digit(value, to_digit(*c, radix).unwrap(), radix) {
             Some(v) => v,
             None    => {
                 let truncated = 1 + integer.count() + fraction.count();
@@ -43,7 +43,7 @@ pub(crate) fn standalone_mantissa<'a, T, Iter1, Iter2>(mut integer: Iter1, mut f
         };
     }
     while let Some(c) = fraction.next() {
-        value = match add_digit(value, to_digit!(*c, radix).unwrap(), radix) {
+        value = match add_digit(value, to_digit(*c, radix).unwrap(), radix) {
             Some(v) => v,
             None    => {
                 let truncated = 1 + fraction.count();
@@ -66,7 +66,7 @@ pub(crate) fn standalone_mantissa<'a, T, Iter>(mut iter: Iter, radix: u32)
     let mut value = T::ZERO;
     while let Some(c) = iter.next() {
         // Cannot overflow, since using a wrapped float.
-        value = (value * as_cast(radix)) + as_cast(to_digit!(*c, radix).unwrap());
+        value = (value * as_cast(radix)) + as_cast(to_digit(*c, radix).unwrap());
     }
    value
 }
@@ -86,7 +86,7 @@ pub(crate) fn standalone_mantissa_n<'a, T, Iter>(iter: &mut Iter, radix: u32, ma
         if let Some(c) = iter.next() {
             // Cannot overflow, since we're limiting it to non-overflowing digit counts.
             index += 1;
-            value = (value * as_cast(radix)) + as_cast(to_digit!(*c, radix).unwrap());
+            value = (value * as_cast(radix)) + as_cast(to_digit(*c, radix).unwrap());
         } else {
             break;
         }
