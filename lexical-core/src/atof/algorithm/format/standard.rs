@@ -140,13 +140,10 @@ mod tests {
         };
         assert!(data.integer_iter().eq(b"1".iter()));
         assert!(data.fraction_iter().eq(b"2345".iter()));
-
-        #[cfg(feature = "correct")]
         assert_eq!(data.digits_start(), 0);
     }
 
     #[test]
-    #[cfg(feature = "correct")]
     fn slow_data_interface_test() {
         type Data<'a> = StandardSlowDataInterface<'a>;
         // Check "1.2345", simple.

@@ -1,6 +1,5 @@
 //! Shared definitions for string-to-integer conversions.
 
-#[cfg(feature = "correct")]
 use crate::util::*;
 
 // SHARED
@@ -40,7 +39,6 @@ pub(super) fn last_ptr<T>(slc: &[T]) -> *const T {
 
 // Add digit to mantissa.
 #[inline(always)]
-#[cfg(feature = "correct")]
 pub(super) fn add_digit<T>(value: T, digit: u32, radix: u32)
     -> Option<T>
     where T: UnsignedInteger

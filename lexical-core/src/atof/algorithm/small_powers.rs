@@ -1,6 +1,5 @@
 //! Precalculated small powers.
 
-#[cfg(any(feature = "correct", feature = "format"))]
 use static_assertions::const_assert;
 
 use crate::util::Limb;

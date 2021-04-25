@@ -538,7 +538,7 @@ mod tests {
     // Only enable when no other threads touch FLOAT_ROUNDING.
     #[test]
     #[ignore]
-    #[cfg(all(feature = "correct", feature = "rounding"))]
+    #[cfg(feature = "rounding")]
     #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn special_rounding_test() {
         // Each one of these pairs is halfway, and we can detect the
@@ -587,7 +587,7 @@ mod tests {
     // Only enable when no other threads touch FLOAT_ROUNDING.
     #[test]
     #[ignore]
-    #[cfg(all(feature = "correct", feature = "radix", feature = "rounding"))]
+    #[cfg(all(feature = "radix", feature = "rounding"))]
     #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn special_rounding_binary_test() {
         // Each one of these pairs is halfway, and we can detect the

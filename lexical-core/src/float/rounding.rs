@@ -38,7 +38,7 @@ pub(crate) fn round_nearest<M>(fp: &mut ExtendedFloat<M>, shift: i32)
 }
 
 /// Tie rounded floating point to event.
-#[inline]
+#[inline(always)]
 pub(crate) fn tie_even<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_halfway: bool)
     where M: Mantissa
 {
@@ -58,7 +58,7 @@ pub(crate) fn tie_even<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_halfway:
 /// Floating-point arithmetic uses round to nearest, ties to even,
 /// which rounds to the nearest value, if the value is halfway in between,
 /// round to an even value.
-#[inline]
+#[inline(always)]
 pub(crate) fn round_nearest_tie_even<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
 {
@@ -67,7 +67,7 @@ pub(crate) fn round_nearest_tie_even<M>(fp: &mut ExtendedFloat<M>, shift: i32)
 }
 
 /// Tie rounded floating point away from zero.
-#[inline]
+#[inline(always)]
 pub(crate) fn tie_away_zero<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_halfway: bool)
     where M: Mantissa
 {
@@ -85,7 +85,7 @@ pub(crate) fn tie_away_zero<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_hal
 /// Floating-point arithmetic defines round to nearest, ties away from zero,
 /// which rounds to the nearest value, if the value is halfway in between,
 /// ties away from zero.
-#[inline]
+#[inline(always)]
 pub(crate) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
 {
@@ -98,7 +98,7 @@ pub(crate) fn round_nearest_tie_away_zero<M>(fp: &mut ExtendedFloat<M>, shift: i
 /// Shift right N-bytes and round towards a direction.
 ///
 /// Return if we have any truncated bytes.
-#[inline]
+#[inline(always)]
 pub(crate) fn round_toward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     -> bool
     where M: Mantissa
@@ -113,7 +113,7 @@ pub(crate) fn round_toward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
 }
 
 /// Round up.
-#[inline]
+#[inline(always)]
 pub(crate) fn upward<M>(fp: &mut ExtendedFloat<M>, is_truncated: bool)
     where M: Mantissa
 {
@@ -126,7 +126,7 @@ pub(crate) fn upward<M>(fp: &mut ExtendedFloat<M>, is_truncated: bool)
 ///
 /// Floating-point arithmetic defines round toward infinity, which rounds
 /// towards positive infinity.
-#[inline]
+#[inline(always)]
 pub(crate) fn round_upward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
 {
@@ -137,7 +137,7 @@ pub(crate) fn round_upward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
 }
 
 /// Round down.
-#[inline]
+#[inline(always)]
 pub(crate) fn downard<M>(_: &mut ExtendedFloat<M>, _: bool)
     where M: Mantissa
 {}
@@ -146,7 +146,7 @@ pub(crate) fn downard<M>(_: &mut ExtendedFloat<M>, _: bool)
 ///
 /// Floating-point arithmetic defines round toward zero, which rounds
 /// towards positive zero.
-#[inline]
+#[inline(always)]
 pub(crate) fn round_downward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     where M: Mantissa
 {
@@ -286,7 +286,7 @@ pub(crate) fn round_to_native<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
 }
 
 /// Get the rounding scheme to determine if we should go up or down.
-#[inline]
+#[inline(always)]
 #[allow(unused_variables)]
 pub(crate) fn internal_rounding(kind: RoundingKind, sign: Sign)
     -> RoundingKind
@@ -318,8 +318,9 @@ pub(crate) fn internal_rounding(kind: RoundingKind, sign: Sign)
 }
 
 /// Get the global, default rounding scheme.
-#[inline]
-#[cfg(feature = "correct")]
+// TODO(ahuszagh) Remove this. This relies on global state, which
+// we don't want.
+#[inline(always)]
 #[allow(unused_variables)]
 pub(crate) fn global_rounding(sign: Sign) -> RoundingKind {
     #[cfg(not(feature = "rounding"))] {

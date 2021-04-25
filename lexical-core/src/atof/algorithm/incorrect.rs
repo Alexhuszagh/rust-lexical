@@ -18,7 +18,7 @@ fn process_integer<'a, F, Data>(data: &Data, radix: u32)
     match data.integer().len() {
         0 => F::ZERO,
         // Cannot overflow and cannot have invalid digits.
-        _ => atoi::standalone_mantissa::<Wrapped<F>, _>(data.integer_iter(), radix)
+        _ => atoi::standalone_mantissa_incorrect::<Wrapped<F>, _>(data.integer_iter(), radix)
                 .into_inner()
     }
 }
@@ -38,7 +38,7 @@ fn process_fraction<'a, F, Data>(data: &Data, radix: u32)
     let mut digits: i32 = 0;
     let mut iter = data.fraction_iter();
     while !iter.consumed() {
-        let (value, length) = atoi::standalone_mantissa_n::<u64, _>(&mut iter, radix, 12);
+        let (value, length) = atoi::standalone_mantissa_incorrect_n::<u64, _>(&mut iter, radix, 12);
         digits = digits.saturating_add(length.as_i32());
         if !value.is_zero() {
             fraction += F::iterative_pow(as_cast(value), radix, -digits);
@@ -78,7 +78,7 @@ pub(crate) fn atof_generic<'a, F>(bytes: &'a [u8], format: NumberFormat, radix: 
 
 /// Parse 32-bit float from string.
 #[inline(always)]
-pub(crate) fn atof<'a>(bytes: &'a [u8], _: Sign, format: NumberFormat, radix: u32, _: bool)
+pub(crate) fn atof<'a>(bytes: &'a [u8], _: Sign, format: NumberFormat, radix: u32)
     -> ParseResult<(f32, *const u8)>
 {
     atof_generic(bytes, format, radix)
@@ -86,7 +86,7 @@ pub(crate) fn atof<'a>(bytes: &'a [u8], _: Sign, format: NumberFormat, radix: u3
 
 /// Parse 64-bit float from string.
 #[inline(always)]
-pub(crate) fn atod<'a>(bytes: &'a [u8], _: Sign, format: NumberFormat, radix: u32, _: bool)
+pub(crate) fn atod<'a>(bytes: &'a [u8], _: Sign, format: NumberFormat, radix: u32)
     -> ParseResult<(f64, *const u8)>
 {
     atof_generic(bytes, format, radix)

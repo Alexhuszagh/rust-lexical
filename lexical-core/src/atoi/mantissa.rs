@@ -2,7 +2,6 @@
 
 use crate::util::*;
 
-#[cfg(feature = "correct")]
 use super::shared::*;
 
 // STANDALONE MANTISSA
@@ -16,8 +15,11 @@ use super::shared::*;
 /// Calculate the mantissa and the number of truncated digits from a digits iterator.
 /// Will stop once the iterators produce a non-valid digit character.
 #[inline]
-#[cfg(feature = "correct")]
-pub(crate) fn standalone_mantissa<'a, T, Iter1, Iter2>(mut integer: Iter1, mut fraction: Iter2, radix: u32)
+pub(crate) fn standalone_mantissa_correct<'a, T, Iter1, Iter2>(
+    mut integer: Iter1,
+    mut fraction: Iter2,
+    radix: u32
+)
     -> (T, usize)
     where T: UnsignedInteger,
           Iter1: Iterator<Item=&'a u8>,
@@ -56,8 +58,7 @@ pub(crate) fn standalone_mantissa<'a, T, Iter1, Iter2>(mut integer: Iter1, mut f
 
 /// Calculate the mantissa when it cannot have sign or other invalid digits.
 #[inline]
-#[cfg(not(feature = "correct"))]
-pub(crate) fn standalone_mantissa<'a, T, Iter>(mut iter: Iter, radix: u32)
+pub(crate) fn standalone_mantissa_incorrect<'a, T, Iter>(mut iter: Iter, radix: u32)
     -> T
     where T: Integer,
           Iter: Iterator<Item=&'a u8>
@@ -73,8 +74,7 @@ pub(crate) fn standalone_mantissa<'a, T, Iter>(mut iter: Iter, radix: u32)
 
 /// Calculate mantissa and only take first N digits.
 #[inline]
-#[cfg(not(feature = "correct"))]
-pub(crate) fn standalone_mantissa_n<'a, T, Iter>(iter: &mut Iter, radix: u32, max: usize)
+pub(crate) fn standalone_mantissa_incorrect_n<'a, T, Iter>(iter: &mut Iter, radix: u32, max: usize)
     -> (T, usize)
     where T: Integer,
           Iter: Iterator<Item=&'a u8>

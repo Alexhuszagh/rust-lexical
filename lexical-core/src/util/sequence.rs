@@ -5,7 +5,7 @@
 use crate::lib::{cmp, iter, marker, mem, ops, ptr, slice};
 use arrayvec;
 
-#[cfg(all(feature = "correct", feature = "radix"))]
+#[cfg(feature = "radix")]
 use crate::lib::Vec;
 
 // ARRVEC
@@ -317,7 +317,7 @@ impl<T> SliceLikeImpl<T> for [T] {
     }
 }
 
-#[cfg(all(feature = "correct", feature = "radix"))]
+#[cfg(feature = "radix")]
 impl<T> SliceLikeImpl<T> for Vec<T> {
     // AS SLICE
 
@@ -962,7 +962,7 @@ impl<T> SliceLike<T> for [T] {
     }
 }
 
-#[cfg(all(feature = "correct", feature = "radix"))]
+#[cfg(feature = "radix")]
 impl<T> SliceLike<T> for Vec<T> {
     // GET
 
@@ -1190,7 +1190,7 @@ pub trait VecLike<T>:
     fn remove_many<R: ops::RangeBounds<usize>>(&mut self, range: R);
 }
 
-#[cfg(all(feature = "correct", feature = "radix"))]
+#[cfg(feature = "radix")]
 impl<T> VecLike<T> for Vec<T> {
     #[inline]
     fn new() -> Vec<T> {
@@ -1370,7 +1370,7 @@ pub trait CloneableVecLike<T: Clone + Copy + Send>: Send + VecLike<T>
     fn resize(&mut self, len: usize, value: T);
 }
 
-#[cfg(all(feature = "correct", feature = "radix"))]
+#[cfg(feature = "radix")]
 impl<T> CloneableVecLike<T> for Vec<T>
     where T: Clone + Copy + Send
 {
@@ -1426,8 +1426,8 @@ mod tests {
         assert_eq!(&v[..], &[0, 5, 6, 1, 2, 3]);
     }
 
-    #[cfg(all(feature = "correct", feature = "radix"))]
     #[test]
+    #[cfg(feature = "radix")]
     fn remove_many_test() {
         let mut x = vec![0, 1, 2, 3, 4, 5];
         x.remove_many(0..3);

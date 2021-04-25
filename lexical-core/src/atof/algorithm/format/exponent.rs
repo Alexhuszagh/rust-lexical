@@ -15,7 +15,6 @@ type FloatType = f64;
 //
 // For example, 0.1 would be -1, and 10 would be 1 in base 10.
 #[inline(always)]
-#[cfg(feature = "correct")]
 pub(super) fn scientific_exponent(exponent: i32, integer_digits: usize, fraction_start: usize)
     -> i32
 {
@@ -34,7 +33,6 @@ pub(super) fn scientific_exponent(exponent: i32, integer_digits: usize, fraction
 // the dot, and add the number of truncated digits from the mantissa,
 // to calculate the scaling factor for the mantissa from a raw exponent.
 #[inline(always)]
-#[cfg(feature = "correct")]
 pub(super) fn mantissa_exponent(raw_exponent: i32, fraction_digits: usize, truncated: usize)
     -> i32
 {
@@ -345,7 +343,6 @@ mod test {
     use super::super::ignore::*;
 
     #[test]
-    #[cfg(feature = "correct")]
     fn scientific_exponent_test() {
         // 0 digits in the integer
         assert_eq!(scientific_exponent(0, 0, 5), -6);
@@ -369,7 +366,6 @@ mod test {
     }
 
     #[test]
-    #[cfg(feature = "correct")]
     fn mantissa_exponent_test() {
         assert_eq!(mantissa_exponent(10, 5, 0), 5);
         assert_eq!(mantissa_exponent(0, 5, 0), -5);

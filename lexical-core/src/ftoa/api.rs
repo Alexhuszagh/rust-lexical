@@ -225,10 +225,10 @@ mod tests {
     use crate::util::*;
     use crate::util::test::*;
 
-    #[cfg(all(feature = "correct", feature = "property_tests"))]
+    #[cfg(feature = "property_tests")]
     use quickcheck::quickcheck;
 
-    #[cfg(all(feature = "correct", feature = "std", feature = "property_tests"))]
+    #[cfg(all(feature = "std", feature = "property_tests"))]
     use proptest::{proptest, prop_assert_eq};
     use approx::assert_relative_eq;
 
@@ -236,8 +236,8 @@ mod tests {
     const F32_DATA : [f32; 31] = [0., 0.1, 1., 1.1, 12., 12.1, 123., 123.1, 1234., 1234.1, 12345., 12345.1, 123456., 123456.1, 1234567., 1234567.1, 12345678., 12345678.1, 123456789., 123456789.1, 123456789.12, 123456789.123, 123456789.1234, 123456789.12345, 1.2345678912345e8, 1.2345e+8, 1.2345e+11, 1.2345e+38, 1.2345e-8, 1.2345e-11, 1.2345e-38];
     const F64_DATA: [f64; 33] = [0., 0.1, 1., 1.1, 12., 12.1, 123., 123.1, 1234., 1234.1, 12345., 12345.1, 123456., 123456.1, 1234567., 1234567.1, 12345678., 12345678.1, 123456789., 123456789.1, 123456789.12, 123456789.123, 123456789.1234, 123456789.12345, 1.2345678912345e8, 1.2345e+8, 1.2345e+11, 1.2345e+38, 1.2345e+308, 1.2345e-8, 1.2345e-11, 1.2345e-38, 1.2345e-299];
 
-    #[cfg(feature = "radix")]
     #[test]
+    #[cfg(feature = "radix")]
     fn f32_binary_test() {
         let mut buffer = new_buffer();
         // positive
@@ -411,8 +411,8 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "radix")]
     #[test]
+    #[cfg(feature = "radix")]
     fn f64_radix_roundtrip_test() {
         let mut buffer = new_buffer();
         for &f in F64_DATA.iter() {
@@ -425,7 +425,7 @@ mod tests {
         }
     }
 
-    #[cfg(all(feature = "correct", feature = "property_tests"))]
+    #[cfg(feature = "property_tests")]
     quickcheck! {
         fn f32_quickcheck(f: f32) -> bool {
             let mut buffer = new_buffer();
@@ -448,7 +448,7 @@ mod tests {
         }
     }
 
-    #[cfg(all(feature = "correct", feature = "std", feature = "property_tests"))]
+    #[cfg(all(feature = "std", feature = "property_tests"))]
     proptest! {
         #[test]
         fn f32_proptest(i in f32::MIN..f32::MAX) {

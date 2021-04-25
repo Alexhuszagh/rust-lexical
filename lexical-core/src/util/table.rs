@@ -1,7 +1,6 @@
 //! Cached tables for precalculated values.
 
 use crate::util::*;
-#[cfg(any(feature = "correct", feature = "format"))]
 use static_assertions::const_assert;
 
 /// Precalculated table for a digit to a character.
@@ -300,8 +299,6 @@ impl ExactExponent for f64 {
 // ~100 clock cycles (x87) for the FYL2X and F2XM1 instructions, require
 // to compute a power. This should be a significant performance win.
 
-cfg_if! {
-if #[cfg(feature = "correct")] {
 // TRANSMUTE
 
 /// Hacky transmute for 32-bit and 64-bit floats.
@@ -3218,5 +3215,3 @@ impl TablePower for f64 {
         }
     }
 }
-
-}}   // cfg_if

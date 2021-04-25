@@ -2,7 +2,6 @@
 
 use crate::util::*;
 
-#[cfg(feature = "correct")]
 use super::exponent::*;
 
 /// Private data interface for local utilities.
@@ -33,7 +32,6 @@ pub(crate) trait FastDataInterfaceImpl<'a>: Sized {
 }
 
 /// Private data interface for local utilities.
-#[cfg(feature = "correct")]
 pub(crate) trait SlowDataInterfaceImpl<'a>: Sized {
     /// Get integer component of float.
     fn integer(&self) -> &'a [u8];
@@ -102,7 +100,6 @@ macro_rules! fast_data_interface_impl {
 }
 
 // Implement SlowDataInterfaceImpl for a default structure.
-#[cfg(feature = "correct")]
 macro_rules! slow_data_interface_impl {
     ($name:ident) => (
         impl<'a> SlowDataInterfaceImpl<'a> for $name<'a> {
@@ -153,7 +150,6 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     type ExponentIter: ConsumedIterator<Item=&'a u8> + AsPtrIterator<'a, u8>;
 
     /// Associated slow data type.
-    #[cfg(feature = "correct")]
     type SlowInterface: SlowDataInterface<'a>;
 
     /// Create new float data from format specification.
@@ -175,7 +171,6 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
 
     /// Get the mantissa exponent from the raw exponent.
     #[inline(always)]
-    #[cfg(feature = "correct")]
     fn mantissa_exponent(&self, truncated_digits: usize) -> i32 {
         mantissa_exponent(self.raw_exponent(), self.fraction_iter().count(), truncated_digits)
     }
@@ -283,7 +278,6 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
 
     // Calculate the digit start from the integer and fraction slices.
     #[inline(always)]
-    #[cfg(feature = "correct")]
     fn digits_start(&self) -> usize {
         // If there are no returned values in the integer iterator
         // since we've trimmed leading 0s, then we have to trim
@@ -296,7 +290,6 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     }
 
     /// Process float data for moderate/slow float parsers.
-    #[cfg(feature = "correct")]
     fn to_slow(self, truncated_digits: usize) -> Self::SlowInterface;
 
     // TESTS
@@ -379,7 +372,6 @@ macro_rules! fast_data_interface {
             type FractionIter = $fraction_iter<'a>;
             type ExponentIter = $exponent_iter<'a>;
 
-            #[cfg(feature = "correct")]
             type SlowInterface = $slow_interface<'a>;
 
             #[inline(always)]
@@ -473,7 +465,6 @@ macro_rules! fast_data_interface {
             // TO SLOW DATA
 
             #[inline(always)]
-            #[cfg(feature = "correct")]
             fn to_slow(self, truncated_digits: usize) -> Self::SlowInterface {
                 let digits_start = self.digits_start();
                 Self::SlowInterface {
@@ -490,7 +481,6 @@ macro_rules! fast_data_interface {
 }
 
 /// Data interface for moderate/slow float parsers.
-#[cfg(feature = "correct")]
 pub(crate) trait SlowDataInterface<'a>: SlowDataInterfaceImpl<'a> {
     /// Integer digits iterator type.
     type IntegerIter: ConsumedIterator<Item=&'a u8> + AsPtrIterator<'a, u8>;
@@ -564,7 +554,6 @@ macro_rules! slow_data_interface {
         format => $format:expr
         // TODO(ahuszagh) Add in radix, etc. (Maybe?)
     ) => (
-        #[cfg(feature = "correct")]
         pub(crate) struct $name<'a> {
             $( $field : $type, )*
             integer: &'a [u8],
@@ -574,10 +563,8 @@ macro_rules! slow_data_interface {
             raw_exponent: i32
         }
 
-        #[cfg(feature = "correct")]
         slow_data_interface_impl!($name);
 
-        #[cfg(feature = "correct")]
         impl<'a> SlowDataInterface<'a> for $name<'a> {
             type IntegerIter = $integer_iter<'a>;
             type FractionIter = $fraction_iter<'a>;

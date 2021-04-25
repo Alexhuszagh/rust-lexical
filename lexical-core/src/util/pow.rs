@@ -6,26 +6,8 @@ use super::table::*;
 
 // STABLE POWER
 
-mod private {
-    use super::*;
-
-    #[cfg(not(feature = "correct"))]
-    pub trait StablePowerImpl: Float + ExactExponent {
-    }
-
-    #[cfg(feature = "correct")]
-    pub trait StablePowerImpl: Float + ExactExponent + TablePower {
-    }
-
-    impl StablePowerImpl for f32 {
-    }
-
-    impl StablePowerImpl for f64 {
-    }
-}
-
 /// Stable power implementations for increased numeric stability.
-pub trait StablePower: private::StablePowerImpl {
+pub trait StablePower: Float + ExactExponent + TablePower {
 //    /// Calculate pow2 with numeric exponent.
 //    #[cfg(any(test, not(feature = "imprecise")))]
 //    fn pow2(self, exponent: i32) -> Self;
@@ -87,48 +69,16 @@ pub trait StablePower: private::StablePowerImpl {
 
     // POW2
 
-    /// Calculate a stable powi when the value is known to be >= -2*max && <= 2*max
-    ///
-    /// powi is not stable, even with exact values, at high or low exponents.
-    /// However, doing it in 2 shots for exact values is exact.
-    #[cfg(all(feature = "radix", not(feature = "correct")))]
-    #[inline]
-    fn pow2(self, exponent: i32) -> Self {
-        let step: i32 = 75;
-        if exponent > step {
-            self * Self::TWO.powi(step) * Self::TWO.powi(exponent - step)
-        } else if exponent < -step {
-            self * Self::TWO.powi(-step) * Self::TWO.powi(exponent + step)
-        } else {
-            self * Self::TWO.powi(exponent)
-        }
-    }
-
     /// Calculate power of 2 using precalculated table.
-    #[cfg(all(feature = "radix", feature = "correct"))]
     #[inline]
+    #[cfg(feature = "radix")]
     fn pow2(self, exponent: i32) -> Self {
         self * Self::table_pow2(exponent)
     }
 
     // POW
 
-    /// Calculate power of n using powi.
-    #[cfg(not(feature = "correct"))]
-    #[inline]
-    fn pow<T: Integer>(self, base: T, exponent: i32) -> Self {
-        // Check the exponent is within bounds in debug builds.
-        debug_assert!({
-            let (min, max) = Self::exponent_limit(base);
-            exponent >= min && exponent <= max
-        });
-
-        let base: Self = as_cast(base);
-        self * base.powi(exponent)
-    }
-
     /// Calculate power of n using precalculated table.
-    #[cfg(feature = "correct")]
     #[inline]
     fn pow<T: Integer>(self, base: T, exponent: i32) -> Self {
         // Check the exponent is within bounds in debug builds.
@@ -296,8 +246,8 @@ mod tests {
         assert_eq!(f64::iterative_pow(1.0, 10, -325), 0.0);
     }
 
-    #[cfg(feature = "radix")]
     #[test]
+    #[cfg(feature = "radix")]
     fn f32_pow2_test() {
         let (min, max) = f32::exponent_limit(2);
         for i in min+1..max+1 {
@@ -327,8 +277,8 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "radix")]
     #[test]
+    #[cfg(feature = "radix")]
     fn f64_pow2_test() {
         let (min, max) = f64::exponent_limit(2);
         for i in min+1..max+1 {

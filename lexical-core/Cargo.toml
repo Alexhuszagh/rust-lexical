@@ -26,8 +26,7 @@ bitflags = "1.2"
 cfg-if = "1.0"
 libm = "0.2.1"
 static_assertions = "1"
-# Use arrayvec for the correct parser.
-arrayvec = { version = "0.5", default-features = false, optional = true, features = ["array-sizes-33-128"] }
+arrayvec = { version = "0.5", default-features = false, features = ["array-sizes-33-128"] }
 # Optimized Grisu3 implementation, a well-tested, correct algorithm.
 dtoa = { version = "0.4", optional = true }
 # Optimized Ryu implementation, the fastest correct algorithm.
@@ -43,7 +42,8 @@ approx = "0.4.0"
 [features]
 default = ["correct", "ryu", "std"]
 # Use the correct atof parser.
-correct = ["arrayvec"]
+# TODO(ahuszagh) Remove this feature.
+correct = []
 # Add support for different float string formats.
 format = []
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
@@ -55,6 +55,7 @@ rounding = []
 # Use the `std` library.
 std = []
 # Trim a trailing ".0" from an exported float string, and represent -0.0 as "0".
+# TODO(ahuszagh) Remove this feature.
 trim_floats = []
 # Undocumented. Disable quickcheck for older Rustc versions.
 property_tests = ["quickcheck", "proptest"]

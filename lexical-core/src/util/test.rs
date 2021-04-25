@@ -1,17 +1,14 @@
 //! Test utilities.
 
-use super::config::BUFFER_SIZE;
+use arrayvec;
 
-cfg_if! {
-if #[cfg(feature = "correct")] {
-    use arrayvec;
-    use super::sequence::{CloneableVecLike, VecLike};
-}}  // cfg_if
+use super::config::BUFFER_SIZE;
+use super::sequence::{CloneableVecLike, VecLike};
 
 // BASES
 
 /// Pow2 bases.
-#[cfg(all(feature = "correct", feature = "radix"))]
+#[cfg(feature = "radix")]
 pub(crate) const BASE_POW2: [u32; 5] = [2, 4, 8, 16, 32];
 
 /// Non-pow2 bases.
@@ -39,9 +36,6 @@ pub(crate) fn new_buffer() -> [u8; BUFFER_SIZE] {
 pub(crate) fn as_slice<'a, T>(x: &'a [T]) -> &'a [T] {
     x
 }
-
-cfg_if! {
-if #[cfg(feature = "correct")] {
 
 // FROM U32
 
@@ -84,8 +78,6 @@ pub(crate) fn deduce_from_u32<T: CloneableVecLike<u64>>(x: &[u32]) -> T
     from_u32(x).iter().cloned().collect()
 }
 
-}}  // cfg_if
-
 // LITERAL BYTE SLICES
 
 /// Create a literal byte slice.
@@ -95,29 +87,26 @@ macro_rules! b {
 
 // FLOATING-POINT EQUALITY
 
-cfg_if! {
-if #[cfg(feature = "correct")] {
-    /// Assert two 32-bit floats are equal.
-    macro_rules! assert_f32_eq {
-        ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_eq!($l, $r););
-        ($l:expr, $r:expr) => (assert_eq!($l, $r););
-    }
+/// Assert two 32-bit floats are equal.
+macro_rules! assert_f32_eq {
+    ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_eq!($l, $r););
+    ($l:expr, $r:expr) => (assert_eq!($l, $r););
+}
 
-    /// Assert two 64-bit floats are equal.
-    macro_rules! assert_f64_eq {
-        ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_eq!($l, $r););
-        ($l:expr, $r:expr) => (assert_eq!($l, $r););
-    }
-} else {
-    /// Assert two 32-bit floats are equal.
-    macro_rules! assert_f32_eq {
-        ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (approx::assert_relative_eq!($l, $r $(, $opt = $val)*););
-        ($l:expr, $r:expr) => (approx::assert_relative_eq!($l, $r, epsilon=1e-20););
-    }
+/// Assert two 64-bit floats are equal.
+macro_rules! assert_f64_eq {
+    ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_eq!($l, $r););
+    ($l:expr, $r:expr) => (assert_eq!($l, $r););
+}
 
-    /// Assert two 64-bit floats are equal.
-    macro_rules! assert_f64_eq {
-        ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (approx::assert_relative_eq!($l, $r $(, $opt = $val)*););
-        ($l:expr, $r:expr) => (approx::assert_relative_eq!($l, $r, epsilon=1e-20, max_relative=1e-12););
-    }
-}}  // cfg_if
+/// Assert two 32-bit floats are equal.
+macro_rules! assert_f32_near_eq {
+    ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (approx::assert_relative_eq!($l, $r $(, $opt = $val)*););
+    ($l:expr, $r:expr) => (approx::assert_relative_eq!($l, $r, epsilon=1e-20););
+}
+
+/// Assert two 64-bit floats are equal.
+macro_rules! assert_f64_near_eq {
+    ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (approx::assert_relative_eq!($l, $r $(, $opt = $val)*););
+    ($l:expr, $r:expr) => (approx::assert_relative_eq!($l, $r, epsilon=1e-20, max_relative=1e-12););
+}

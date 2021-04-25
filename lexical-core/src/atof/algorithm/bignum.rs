@@ -239,7 +239,7 @@ impl ToBigfloat<u128> for ExtendedFloat<u128> {
 // TESTS
 // -----
 
-#[cfg(all(test, feature = "correct", feature = "radix"))]
+#[cfg(all(test, feature = "radix"))]
 mod test {
     use super::*;
 

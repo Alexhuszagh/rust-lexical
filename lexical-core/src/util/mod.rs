@@ -12,6 +12,9 @@ mod index;
 #[macro_use]
 mod traits;
 
+#[macro_use]
+mod sequence;
+
 #[cfg(test)]
 #[macro_use]
 pub(crate) mod test;
@@ -26,6 +29,7 @@ mod div128;
 mod error;
 mod format;
 mod iterator;
+mod limb;
 mod mask;
 mod num;
 mod options;
@@ -35,19 +39,10 @@ mod result;
 mod rounding;
 mod sign;
 mod table;
+mod wrapped;
 
 #[cfg(feature = "format")]
 mod skip_value;
-
-cfg_if! {
-if #[cfg(feature = "correct")] {
-    #[macro_use]
-    mod sequence;
-
-    mod limb;
-} else {
-    mod wrapped;
-}}  // cfg_if
 
 // Publicly export everything with crate-visibility.
 pub(crate) use self::algorithm::*;
@@ -56,23 +51,18 @@ pub(crate) use self::consume::*;
 pub(crate) use self::digit::*;
 pub(crate) use self::div128::*;
 pub(crate) use self::iterator::*;
+pub(crate) use self::limb::*;
 pub(crate) use self::mask::*;
 pub(crate) use self::primitive::*;
 pub(crate) use self::pow::*;
 pub(crate) use self::rounding::*;
+pub(crate) use self::sequence::*;
 pub(crate) use self::sign::*;
 pub(crate) use self::table::*;
+pub(crate) use self::wrapped::*;
 
 #[cfg(feature = "format")]
 pub(crate) use self::skip_value::*;
-
-cfg_if! {
-if #[cfg(feature = "correct")] {
-    pub(crate) use self::limb::*;
-    pub(crate) use self::sequence::*;
-} else {
-    pub(crate) use self::wrapped::*;
-}}  // cfg_if
 
 // Publicly export config globally.
 pub use self::config::*;

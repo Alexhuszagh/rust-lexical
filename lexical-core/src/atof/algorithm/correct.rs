@@ -25,7 +25,7 @@ fn process_mantissa<'a, M, Data>(data: &Data, radix: u32)
     where M: Mantissa,
           Data: FastDataInterface<'a>
 {
-    atoi::standalone_mantissa(data.integer_iter(), data.fraction_iter(), radix)
+    atoi::standalone_mantissa_correct(data.integer_iter(), data.fraction_iter(), radix)
 }
 
 // FAST

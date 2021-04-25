@@ -6,16 +6,14 @@
 
 pub(crate) use crate::lib::{f32, f64, mem};
 use crate::lib::{fmt, iter, ops};
+
 use super::cast::{AsCast, TryCast};
 use super::config::*;
-use super::primitive::Primitive;
-
-#[cfg(feature = "correct")]
 use super::limb::Limb;
-#[cfg(feature = "correct")]
+use super::primitive::Primitive;
 use super::sequence::CloneableVecLike;
 
-#[cfg(all(feature = "correct", any(feature = "f128", feature = "radix")))]
+#[cfg(any(feature = "f128", feature = "radix"))]
 use crate::lib::Vec;
 
 // NUMBER
@@ -656,7 +654,6 @@ pub trait Float: Number + ops::Neg<Output=Self>
     /// Since we reserve at least 20 digits in the default constructor,
     /// this must be at least 20. This constant is mostly present
     /// to ensure BigintStorage is correct.
-    #[cfg(feature = "correct")]
     const BIGINT_LIMBS: usize;
 
     /// Number of limbs in a Bigfloat.
@@ -668,14 +665,11 @@ pub trait Float: Number + ops::Neg<Output=Self>
     /// Since we reserve at least 10 digits in the default constructor,
     /// this must be at least 10. This constant is mostly present
     /// to ensure BigfloatStorage is correct.
-    #[cfg(feature = "correct")]
     const BIGFLOAT_LIMBS: usize;
 
     /// The storage type for the Bigint.
-    #[cfg(feature = "correct")]
     type BigintStorage: CloneableVecLike<Limb> + Clone;
     /// The storage type for the Bigfloat.
-    #[cfg(feature = "correct")]
     type BigfloatStorage: CloneableVecLike<Limb> + Clone;
 
     // CONSTANTS
@@ -922,23 +916,21 @@ impl Float for f16 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0x1F - Self::EXPONENT_BIAS;
 
-    cfg_if! {
-        if #[cfg(all(feature = "correct", feature = "radix"))] {
-            type BigintStorage = Vec<Limb>;
-        } else if #[cfg(feature = "correct")] {
-            type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
-        }
-    }  // cfg_if
+    #[cfg(feature = "radix")]
+    type BigintStorage = Vec<Limb>;
+    #[cfg(not(feature = "radix"))]
+    type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
+
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
 
-    #[cfg(all(limb_width_64, feature = "correct"))]
+    #[cfg(limb_width_64)]
     const BIGINT_LIMBS: usize = 20;
-    #[cfg(all(limb_width_32, feature = "correct"))]
+    #[cfg(limb_width_32)]
     const BIGINT_LIMBS: usize = 20;
 
-    #[cfg(all(limb_width_64, feature = "correct"))]
+    #[cfg(limb_width_64)]
     const BIGFLOAT_LIMBS: usize = 10;
-    #[cfg(all(limb_width_32, feature = "correct"))]
+    #[cfg(limb_width_32)]
     const BIGFLOAT_LIMBS: usize = 10;
 
     // TODO(ahuszagh) Need to add the float methods.
@@ -968,27 +960,24 @@ impl Float for bf16 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
 
-    cfg_if! {
-        if #[cfg(all(feature = "correct", feature = "radix"))] {
-            type BigintStorage = Vec<Limb>;
-        } else if #[cfg(feature = "correct")] {
-            type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
-        }
-    }  // cfg_if
+    #[cfg(feature = "radix")]
+    type BigintStorage = Vec<Limb>;
+    #[cfg(not(feature = "radix"))]
+    type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
 
-    #[cfg(all(limb_width_64, feature = "correct"))]
+    #[cfg(limb_width_64)]
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
-    #[cfg(all(limb_width_32, feature = "correct"))]
+    #[cfg(limb_width_32)]
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
 
-    #[cfg(all(limb_width_64, feature = "correct"))]
+    #[cfg(limb_width_64)]
     const BIGINT_LIMBS: usize = 20;
-    #[cfg(all(limb_width_32, feature = "correct"))]
+    #[cfg(limb_width_32)]
     const BIGINT_LIMBS: usize = 20;
 
-    #[cfg(all(limb_width_64, feature = "correct"))]
+    #[cfg(limb_width_64)]
     const BIGFLOAT_LIMBS: usize = 10;
-    #[cfg(all(limb_width_32, feature = "correct"))]
+    #[cfg(limb_width_32)]
     const BIGFLOAT_LIMBS: usize = 20;
 
     // TODO(ahuszagh) Need to add the float methods.
@@ -1017,27 +1006,24 @@ impl Float for f32 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
 
-    cfg_if! {
-        if #[cfg(all(feature = "correct", feature = "radix"))] {
-            type BigintStorage = Vec<Limb>;
-        } else if #[cfg(feature = "correct")] {
-            type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
-        }
-    }  // cfg_if
+    #[cfg(feature = "radix")]
+    type BigintStorage = Vec<Limb>;
+    #[cfg(not(feature = "radix"))]
+    type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
 
-    #[cfg(all(limb_width_64, feature = "correct"))]
+    #[cfg(limb_width_64)]
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
-    #[cfg(all(limb_width_32, feature = "correct"))]
+    #[cfg(limb_width_32)]
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
 
-    #[cfg(all(limb_width_64, feature = "correct"))]
+    #[cfg(limb_width_64)]
     const BIGINT_LIMBS: usize = 20;
-    #[cfg(all(limb_width_32, feature = "correct"))]
+    #[cfg(limb_width_32)]
     const BIGINT_LIMBS: usize = 20;
 
-    #[cfg(all(limb_width_64, feature = "correct"))]
+    #[cfg(limb_width_64)]
     const BIGFLOAT_LIMBS: usize = 10;
-    #[cfg(all(limb_width_32, feature = "correct"))]
+    #[cfg(limb_width_32)]
     const BIGFLOAT_LIMBS: usize = 20;
 
     #[inline]
@@ -1130,30 +1116,26 @@ impl Float for f64 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0x7FF - Self::EXPONENT_BIAS;
 
-    cfg_if! {
-        if #[cfg(all(feature = "correct", feature = "radix"))] {
-            type BigintStorage = Vec<Limb>;
-        } else if #[cfg(feature = "correct")] {
-            #[cfg(limb_width_64)]
-            type BigintStorage = arrayvec::ArrayVec<[Limb; 64]>;
-            #[cfg(limb_width_32)]
-            type BigintStorage = arrayvec::ArrayVec<[Limb; 128]>;
-        }
-    }  // cfg_if
+    #[cfg(feature = "radix")]
+    type BigintStorage = Vec<Limb>;
+    #[cfg(all(limb_width_64, not(feature = "radix")))]
+    type BigintStorage = arrayvec::ArrayVec<[Limb; 64]>;
+    #[cfg(all(limb_width_32, not(feature = "radix")))]
+    type BigintStorage = arrayvec::ArrayVec<[Limb; 128]>;
 
-    #[cfg(all(limb_width_64, feature = "correct"))]
+    #[cfg(limb_width_64)]
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    #[cfg(all(limb_width_32, feature = "correct"))]
+    #[cfg(limb_width_32)]
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 36]>;
 
-    #[cfg(all(limb_width_64, feature = "correct"))]
+    #[cfg(limb_width_64)]
     const BIGINT_LIMBS: usize = 64;
-    #[cfg(all(limb_width_32, feature = "correct"))]
+    #[cfg(limb_width_32)]
     const BIGINT_LIMBS: usize = 128;
 
-    #[cfg(all(limb_width_64, feature = "correct"))]
+    #[cfg(limb_width_64)]
     const BIGFLOAT_LIMBS: usize = 20;
-    #[cfg(all(limb_width_32, feature = "correct"))]
+    #[cfg(limb_width_32)]
     const BIGFLOAT_LIMBS: usize = 36;
 
     #[inline]
@@ -1247,19 +1229,17 @@ impl Float for f128 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0x7FFF - Self::EXPONENT_BIAS;
 
-    #[cfg(feature = "correct")]
     type BigintStorage = Vec<Limb>;
-    #[cfg(feature = "correct")]
     type BigfloatStorage = Vec<Limb>;
 
-    #[cfg(all(limb_width_64, feature = "correct"))]
+    #[cfg(limb_width_64)]
     const BIGINT_LIMBS: usize = 900;
-    #[cfg(all(limb_width_32, feature = "correct"))]
+    #[cfg(limb_width_32)]
     const BIGINT_LIMBS: usize = 1800;
 
-    #[cfg(all(limb_width_64, feature = "correct"))]
+    #[cfg(limb_width_64)]
     const BIGFLOAT_LIMBS: usize = 700;
-    #[cfg(all(limb_width_32, feature = "correct"))]
+    #[cfg(limb_width_32)]
     const BIGFLOAT_LIMBS: usize = 1400;
 
     // TODO(ahuszagh) Need to add the float methods.
