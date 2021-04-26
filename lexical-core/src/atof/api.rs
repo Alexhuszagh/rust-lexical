@@ -5,7 +5,7 @@
 use crate::lib::slice;
 use crate::util::*;
 
-use super::algorithm;
+use super::algorithm::correct as algorithm;
 
 // NOTICE
 //  These internal calls are all ugly, and pass **all** the values
@@ -43,11 +43,7 @@ impl StringToFloat for f32 {
     )
         -> ParseResult<(f32, *const u8)>
     {
-        if incorrect {
-            algorithm::incorrect::atof(bytes, sign, format, radix)
-        } else {
-            algorithm::correct::atof(bytes, sign, format, radix, lossy)
-        }
+        algorithm::atof(bytes, sign, format, radix, incorrect, lossy)
     }
 }
 
@@ -63,11 +59,7 @@ impl StringToFloat for f64 {
     )
         -> ParseResult<(f64, *const u8)>
     {
-        if incorrect {
-            algorithm::incorrect::atod(bytes, sign, format, radix)
-        } else {
-            algorithm::correct::atod(bytes, sign, format, radix, lossy)
-        }
+        algorithm::atod(bytes, sign, format, radix, incorrect, lossy)
     }
 }
 

@@ -15,8 +15,7 @@ lazy_static = "1"
 serde_json = "1.0"
 
 [features]
-default = ["correct", "ryu", "std"]
-correct = ["lexical-core/correct"]
+default = ["ryu", "std"]
 format = ["lexical-core/format"]
 grisu3 = ["lexical-core/grisu3"]
 radix = ["lexical-core/radix"]

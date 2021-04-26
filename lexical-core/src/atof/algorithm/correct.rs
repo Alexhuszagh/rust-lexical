@@ -7,11 +7,13 @@
 use crate::atoi;
 use crate::float::*;
 use crate::util::*;
+
 use super::alias::*;
 use super::bhcomp;
 use super::cached::ModeratePathCache;
 use super::errors::FloatErrors;
 use super::format::*;
+use super::incorrect as incorrect_algorithm;
 use super::small_powers::get_small_powers_64;
 
 // HELPERS
@@ -291,7 +293,14 @@ fn pown_fallback<'a, F, Data>(data: Data, mantissa: u64, radix: u32, lossy: bool
 }
 
 /// Parse non-power-of-two radix string to native float.
-fn pown_to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32, lossy: bool, sign: Sign)
+fn pown_to_native<'a, F, Data>(
+    mut data: Data,
+    bytes: &'a [u8],
+    radix: u32,
+    incorrect: bool,
+    lossy: bool,
+    sign: Sign
+)
     -> ParseResult<(F, *const u8)>
     where F: FloatType,
           Data: FastDataInterface<'a>
@@ -311,10 +320,14 @@ fn pown_to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32, loss
         let mant_exp = data.mantissa_exponent(0);
         if let Some(float) = fast_path::<F>(mantissa, radix, mant_exp) {
             float
+        } else if incorrect {
+            incorrect_algorithm::to_native::<F, _>(data, radix)
         } else {
             let slow = data.to_slow(truncated);
             pown_fallback(slow, mantissa, radix, lossy, sign)
         }
+    } else if incorrect {
+        incorrect_algorithm::to_native::<F, _>(data, radix)
     } else {
         // Can only use the moderate/slow path.
         let slow = data.to_slow(truncated);
@@ -406,18 +419,25 @@ fn pow2_exponent(radix: u32) -> i32 {
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline(always)]
-fn to_native<F>(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, lossy: bool)
+fn to_native<F>(
+    bytes: &[u8],
+    sign: Sign,
+    format: NumberFormat,
+    radix: u32,
+    incorrect: bool,
+    lossy: bool
+)
     -> ParseResult<(F, *const u8)>
     where F: FloatType
 {
     #[cfg(not(feature = "radix"))] {
-        apply_interface!(pown_to_native, format, bytes, radix, lossy, sign)
+        apply_interface!(pown_to_native, format, bytes, radix, incorrect, lossy, sign)
     }
 
     #[cfg(feature = "radix")] {
         let pow2_exp = pow2_exponent(radix);
         match pow2_exp {
-            0 => apply_interface!(pown_to_native, format, bytes, radix, lossy, sign),
+            0 => apply_interface!(pown_to_native, format, bytes, radix, incorrect, lossy, sign),
             _ => apply_interface!(pow2_to_native, format, bytes, radix, pow2_exp, sign)
         }
     }
@@ -428,18 +448,32 @@ fn to_native<F>(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, loss
 
 /// Parse 32-bit float from string.
 #[inline(always)]
-pub(crate) fn atof(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, lossy: bool)
+pub(crate) fn atof(
+    bytes: &[u8],
+    sign: Sign,
+    format: NumberFormat,
+    radix: u32,
+    incorrect: bool,
+    lossy: bool
+)
     -> ParseResult<(f32, *const u8)>
 {
-    to_native::<f32>(bytes, sign, format, radix, lossy)
+    to_native::<f32>(bytes, sign, format, radix, incorrect, lossy)
 }
 
 /// Parse 64-bit float from string.
 #[inline(always)]
-pub(crate) fn atod(bytes: &[u8], sign: Sign, format: NumberFormat, radix: u32, lossy: bool)
+pub(crate) fn atod(
+    bytes: &[u8],
+    sign: Sign,
+    format: NumberFormat,
+    radix: u32,
+    incorrect: bool,
+    lossy: bool
+)
     -> ParseResult<(f64, *const u8)>
 {
-    to_native::<f64>(bytes, sign, format, radix, lossy)
+    to_native::<f64>(bytes, sign, format, radix, incorrect, lossy)
 }
 
 // TESTS

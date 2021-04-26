@@ -24,7 +24,7 @@ fn process_integer<'a, F, Data>(data: &Data, radix: u32)
 }
 
 /// Process the fraction component of the raw float.
-#[inline]
+#[inline(always)]
 fn process_fraction<'a, F, Data>(data: &Data, radix: u32)
     -> F
     where F: StablePower,
@@ -48,48 +48,17 @@ fn process_fraction<'a, F, Data>(data: &Data, radix: u32)
     fraction
 }
 
-/// Convert the float string to a native floating-point number.
-#[inline]
-fn to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32)
-    -> ParseResult<(F, *const u8)>
+pub(crate) fn to_native<'a, F, Data>(data: Data, radix: u32) -> F
     where F: StablePower,
           Data: FastDataInterface<'a>
 {
-    let ptr = data.extract(bytes, radix)?;
     let integer: F = process_integer(&data, radix);
     let fraction: F = process_fraction(&data, radix);
     let mut value = integer + fraction;
     if !data.raw_exponent().is_zero() && !value.is_zero() {
         value = value.iterative_pow(radix, data.raw_exponent());
     }
-    Ok((value, ptr))
-}
-
-#[inline(always)]
-pub(crate) fn atof_generic<'a, F>(bytes: &'a [u8], format: NumberFormat, radix: u32)
-    -> ParseResult<(F, *const u8)>
-    where F: StablePower
-{
-    apply_interface!(to_native, format, bytes, radix)
-}
-
-// ATOF/ATOD
-// ---------
-
-/// Parse 32-bit float from string.
-#[inline(always)]
-pub(crate) fn atof<'a>(bytes: &'a [u8], _: Sign, format: NumberFormat, radix: u32)
-    -> ParseResult<(f32, *const u8)>
-{
-    atof_generic(bytes, format, radix)
-}
-
-/// Parse 64-bit float from string.
-#[inline(always)]
-pub(crate) fn atod<'a>(bytes: &'a [u8], _: Sign, format: NumberFormat, radix: u32)
-    -> ParseResult<(f64, *const u8)>
-{
-    atof_generic(bytes, format, radix)
+    value
 }
 
 // TESTS
