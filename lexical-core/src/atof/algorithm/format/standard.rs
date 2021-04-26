@@ -22,7 +22,7 @@ data_interface!(
     integer_iter => (IteratorNoSeparator, iterate_digits_no_separator),
     fraction_iter => (IteratorNoSeparator, iterate_digits_no_separator),
     exponent_iter => (IteratorNoSeparator, iterate_digits_no_separator),
-    format => |_| NumberFormat::default(),
+    format => |_| NumberFormat::STANDARD,
     consume_integer_digits => consume_digits_no_separator,
     consume_fraction_digits =>  consume_digits_no_separator,
     extract_exponent => extract_exponent_no_separator,

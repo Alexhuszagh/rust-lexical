@@ -245,22 +245,27 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
 
     /// Extract float subcomponents from input bytes.
     #[inline]
-    #[allow(deprecated)]    // TODO(ahuszagh) Refactor to remove deprecated.
     fn extract(&mut self, bytes: &'a [u8], radix: u32) -> ParseResult<*const u8> {
         // Parse the integer, aka, the digits preceding any control characters.
         let mut digits = bytes;
         digits = self.extract_integer(digits, radix);
 
+        // Get the control characters. The exponent will always be
+        // in ASCII lowercase, due to how NumberFormat checks it.
+        let decimal_point = self.format().decimal_point();
+        let exponent = self.format().exponent(radix);
+
         // Parse and validate a fraction, if present.
-        let exp_char = exponent_notation_char(radix).to_ascii_lowercase();
-        if let Some(&b'.') = digits.first() {
-            digits = self.extract_fraction(digits, radix);
+        if let Some(&c) = digits.first() {
+            if c == decimal_point {
+                digits = self.extract_fraction(digits, radix);
+            }
         }
         self.validate_mantissa()?;
 
         // Parse and validate an exponent, if present.
         if let Some(&c) = digits.first() {
-            if c.to_ascii_lowercase() == exp_char {
+            if c.to_ascii_lowercase() == exponent {
                 digits = self.extract_exponent(digits, radix);
             }
         }
@@ -329,10 +334,6 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
         }
     }
 }
-
-// TODO(ahuszagh) Here...
-// Should have a struct that takes
-// ParseFloatOptions, not this...
 
 /// Shared definition for all fast data interfaces.
 macro_rules! fast_data_interface {
@@ -552,7 +553,6 @@ macro_rules! slow_data_interface {
         integer_iter => ( $integer_iter:tt, $integer_iter_fn:ident ),
         fraction_iter => ( $fraction_iter:tt, $fraction_iter_fn:ident ),
         format => $format:expr
-        // TODO(ahuszagh) Add in radix, etc. (Maybe?)
     ) => (
         pub(crate) struct $name<'a> {
             $( $field : $type, )*

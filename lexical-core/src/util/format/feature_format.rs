@@ -2084,14 +2084,14 @@ impl NumberFormatBuilder {
     /// Set the default exponent character for the number format.
     #[inline(always)]
     pub const fn exponent_default(mut self, exponent_default: u8) -> Self {
-        self.exponent_default = exponent_default;
+        self.exponent_default = flags::to_ascii_lowercase(exponent_default);
         self
     }
 
     /// Set the backup exponent character for the number format.
     #[inline(always)]
     pub const fn exponent_backup(mut self, exponent_backup: u8) -> Self {
-        self.exponent_backup = exponent_backup;
+        self.exponent_backup = flags::to_ascii_lowercase(exponent_backup);
         self
     }
 

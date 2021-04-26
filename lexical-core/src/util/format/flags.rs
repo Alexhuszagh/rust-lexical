@@ -399,6 +399,18 @@ check_subsequent_masks!(DECIMAL_POINT_MASK, DECIMAL_POINT_SHIFT, DIGIT_SEPARATOR
 // Check masks don't overlap with neighboring flags.
 check_masks_and_flags!(EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT, INTEGER_INTERNAL_DIGIT_SEPARATOR);
 
+// DIGIT FUNCTIONS
+// ---------------
+
+/// Convert a character to ASCII lowercase as a const fn.
+#[inline(always)]
+pub(crate) const fn to_ascii_lowercase(c: u8) -> u8 {
+    match c {
+        b'A'..=b'Z' => c - b'A' + b'a',
+        _ => c,
+    }
+}
+
 // TESTS
 // -----
 

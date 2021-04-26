@@ -468,6 +468,7 @@ pub const BUFFER_SIZE: usize = F64_FORMATTED_SIZE;
     since = "0.8.0",
     note = "Will be removed with 1.0. Use parse_with_options instead."
 )]
+// TODO(ahuszagh) Remove soon.
 pub(crate) fn exponent_notation_char(radix: u32) -> u8 {
     #[cfg(not(feature ="radix"))] {
         get_exponent_default_char()
