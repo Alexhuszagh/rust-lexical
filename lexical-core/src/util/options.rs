@@ -1,21 +1,33 @@
 //! Configuration options for parsing and formatting numbers.
 
+#[cfg(any(feature = "atof", feature = "ftoa"))]
 use super::config::F64_FORMATTED_SIZE_DECIMAL as FLOAT_SIZE;
+#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa"))]
 use super::format::NumberFormat;
+#[cfg(feature = "atof")]
 use super::rounding::RoundingKind;
 
 // CONSTANTS
 // ---------
 
 // Constants to dictate default values for options.
-pub(crate) const DEFAULT_FORMAT: NumberFormat = NumberFormat::STANDARD;
-pub(crate) const DEFAULT_INCORRECT: bool = false;
-pub(crate) const DEFAULT_LOSSY: bool = false;
+#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
 pub(crate) const DEFAULT_RADIX: u8 = 10;
+#[cfg(any(feature = "atof", feature = "ftoa"))]
+pub(crate) const DEFAULT_FORMAT: NumberFormat = NumberFormat::STANDARD;
+#[cfg(any(feature = "atof", feature = "ftoa"))]
 pub(crate) const DEFAULT_INF_STRING: &'static [u8] = b"inf";
+#[cfg(feature = "atof")]
 pub(crate) const DEFAULT_INFINITY_STRING: &'static [u8] = b"infinity";
+#[cfg(any(feature = "atof", feature = "ftoa"))]
 pub(crate) const DEFAULT_NAN_STRING: &'static [u8] = b"NaN";
+#[cfg(feature = "atof")]
+pub(crate) const DEFAULT_INCORRECT: bool = false;
+#[cfg(feature = "atof")]
+pub(crate) const DEFAULT_LOSSY: bool = false;
+#[cfg(feature = "atof")]
 pub(crate) const DEFAULT_ROUNDING: RoundingKind = RoundingKind::NearestTieEven;
+#[cfg(feature = "ftoa")]
 pub(crate) const DEFAULT_TRIM_FLOATS: bool = false;
 
 // VALIDATORS
@@ -23,7 +35,7 @@ pub(crate) const DEFAULT_TRIM_FLOATS: bool = false;
 
 /// Return `None` if radix is invalid.
 /// Short-circuits to allow use in a const fn.
-#[cfg(feature = "radix")]
+#[cfg(all(feature = "radix", any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa")))]
 macro_rules! to_radix {
     ($radix:expr) => {{
         if $radix < 2 || $radix > 36 {
@@ -35,7 +47,7 @@ macro_rules! to_radix {
 
 /// Return `None` if radix is invalid.
 /// Short-circuits to allow use in a const fn.
-#[cfg(not(feature = "radix"))]
+#[cfg(all(not(feature = "radix"), any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa")))]
 macro_rules! to_radix {
     ($radix:expr) => {{
         if $radix != 10 {
@@ -47,6 +59,7 @@ macro_rules! to_radix {
 
 /// Check if byte array starts with case-insensitive N.
 #[inline]
+#[cfg(any(feature = "atof", feature = "ftoa"))]
 const fn starts_with_n(bytes: &[u8]) -> bool {
     if bytes.len() == 0 {
         false
@@ -60,6 +73,7 @@ const fn starts_with_n(bytes: &[u8]) -> bool {
 }
 
 /// Get the NaN string if the NaN string is valid.
+#[cfg(any(feature = "atof", feature = "ftoa"))]
 macro_rules! to_nan_string {
     ($nan:expr) => {{
         if !starts_with_n($nan) {
@@ -73,6 +87,7 @@ macro_rules! to_nan_string {
 
 /// Check if byte array starts with case-insensitive I.
 #[inline]
+#[cfg(any(feature = "atof", feature = "ftoa"))]
 const fn starts_with_i(bytes: &[u8]) -> bool {
     if bytes.len() == 0 {
         false
@@ -86,6 +101,7 @@ const fn starts_with_i(bytes: &[u8]) -> bool {
 }
 
 /// Get the short infinity string if the infinity string is valid.
+#[cfg(any(feature = "atof", feature = "ftoa"))]
 macro_rules! to_inf_string {
     ($inf:expr) => {{
         if !starts_with_i($inf) {
@@ -98,6 +114,7 @@ macro_rules! to_inf_string {
 }
 
 /// Get the long infinity string if the infinity string is valid.
+#[cfg(feature = "atof")]
 macro_rules! to_infinity_string {
     ($infinity:expr, $inf:expr) => {{
         if $infinity.len() < $inf.len() || !starts_with_i($infinity) {
@@ -109,11 +126,25 @@ macro_rules! to_infinity_string {
     }};
 }
 
+// DUMMY OPTIONS
+// -------------
+
+// Options when no traits are available.
+#[cfg(any(
+    not(feature = "atof"),
+    not(feature = "atoi"),
+    not(feature = "ftoa"),
+    not(feature = "itoa")
+))]
+pub struct DummyOptions {
+}
+
 // PARSE INTEGER
 // -------------
 
 /// Builder for `ParseIntegerOptions`.
 #[repr(C)]
+#[cfg(feature = "atoi")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ParseIntegerOptionsBuilder {
     /// Radix for integer string.
@@ -122,6 +153,7 @@ pub struct ParseIntegerOptionsBuilder {
     format: Option<NumberFormat>
 }
 
+#[cfg(feature = "atoi")]
 impl ParseIntegerOptionsBuilder {
     /// Create new, default builder.
     #[inline(always)]
@@ -156,6 +188,7 @@ impl ParseIntegerOptionsBuilder {
     }
 }
 
+#[cfg(feature = "atoi")]
 impl Default for ParseIntegerOptionsBuilder {
     #[inline(always)]
     fn default() -> Self {
@@ -178,6 +211,7 @@ impl Default for ParseIntegerOptionsBuilder {
 /// # }
 /// ```
 #[repr(C)]
+#[cfg(feature = "atoi")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ParseIntegerOptions {
     /// Radix for integer string.
@@ -186,6 +220,7 @@ pub struct ParseIntegerOptions {
     format: Option<NumberFormat>,
 }
 
+#[cfg(feature = "atoi")]
 impl ParseIntegerOptions {
     /// Create options with default values.
     #[inline(always)]
@@ -262,6 +297,7 @@ impl ParseIntegerOptions {
     }
 }
 
+#[cfg(feature = "atoi")]
 impl Default for ParseIntegerOptions {
     #[inline(always)]
     fn default() -> Self {
@@ -274,6 +310,7 @@ impl Default for ParseIntegerOptions {
 
 /// Builder for `ParseFloatOptions`.
 #[repr(C)]
+#[cfg(feature = "atof")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ParseFloatOptionsBuilder {
     /// Radix for float string.
@@ -294,6 +331,7 @@ pub struct ParseFloatOptionsBuilder {
     infinity_string: &'static [u8]
 }
 
+#[cfg(feature = "atof")]
 impl ParseFloatOptionsBuilder {
     /// Create new, default builder.
     #[inline(always)]
@@ -403,6 +441,7 @@ impl ParseFloatOptionsBuilder {
     }
 }
 
+#[cfg(feature = "atof")]
 impl Default for ParseFloatOptionsBuilder {
     #[inline(always)]
     fn default() -> Self {
@@ -429,6 +468,7 @@ impl Default for ParseFloatOptionsBuilder {
 /// # }
 /// ```
 #[repr(C)]
+#[cfg(feature = "atof")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ParseFloatOptions {
     /// Compressed storage of the radix, rounding kind, incorrect, and lossy.
@@ -445,6 +485,7 @@ pub struct ParseFloatOptions {
     infinity_string: &'static [u8]
 }
 
+#[cfg(feature = "atof")]
 impl ParseFloatOptions {
     /// Create options with default values.
     #[inline(always)]
@@ -660,16 +701,26 @@ impl ParseFloatOptions {
     }
 }
 
+#[cfg(feature = "atof")]
+impl Default for ParseFloatOptions {
+    #[inline(always)]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // WRITE INTEGER
 // -------------
 
 /// Builder for `WriteIntegerOptions`.
 #[repr(C)]
+#[cfg(feature = "itoa")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct WriteIntegerOptionsBuilder {
     radix: u8,
 }
 
+#[cfg(feature = "itoa")]
 impl WriteIntegerOptionsBuilder {
     #[inline(always)]
     pub const fn new() -> WriteIntegerOptionsBuilder {
@@ -698,6 +749,7 @@ impl WriteIntegerOptionsBuilder {
     }
 }
 
+#[cfg(feature = "itoa")]
 impl Default for WriteIntegerOptionsBuilder {
     #[inline(always)]
     fn default() -> Self {
@@ -720,12 +772,14 @@ impl Default for WriteIntegerOptionsBuilder {
 /// # }
 /// ```
 #[repr(C)]
+#[cfg(feature = "itoa")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct WriteIntegerOptions {
     /// Radix for integer string.
     radix: u32,
 }
 
+#[cfg(feature = "itoa")]
 impl WriteIntegerOptions {
     /// Create options with default values.
     #[inline(always)]
@@ -779,6 +833,7 @@ impl WriteIntegerOptions {
     }
 }
 
+#[cfg(feature = "itoa")]
 impl Default for WriteIntegerOptions {
     #[inline(always)]
     fn default() -> Self {
@@ -791,6 +846,7 @@ impl Default for WriteIntegerOptions {
 
 /// Builder for `WriteFloatOptions`.
 #[repr(C)]
+#[cfg(feature = "ftoa")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct WriteFloatOptionsBuilder {
     /// Radix for float string.
@@ -805,6 +861,7 @@ pub struct WriteFloatOptionsBuilder {
     inf_string: &'static [u8],
 }
 
+#[cfg(feature = "ftoa")]
 impl WriteFloatOptionsBuilder {
     /// Create new, default builder.
     #[inline(always)]
@@ -872,6 +929,7 @@ impl WriteFloatOptionsBuilder {
     }
 }
 
+#[cfg(feature = "ftoa")]
 impl Default for WriteFloatOptionsBuilder {
     #[inline(always)]
     fn default() -> Self {
@@ -897,6 +955,7 @@ impl Default for WriteFloatOptionsBuilder {
 /// # }
 /// ```
 #[repr(C)]
+#[cfg(feature = "ftoa")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct WriteFloatOptions {
     /// Compressed storage of radix and trim floats.
@@ -910,6 +969,7 @@ pub struct WriteFloatOptions {
     inf_string: &'static [u8],
 }
 
+#[cfg(feature = "ftoa")]
 impl WriteFloatOptions {
     /// Create options with default values.
     #[inline(always)]
@@ -1082,6 +1142,7 @@ impl WriteFloatOptions {
     }
 }
 
+#[cfg(feature = "ftoa")]
 impl Default for WriteFloatOptions {
     #[inline(always)]
     fn default() -> Self {

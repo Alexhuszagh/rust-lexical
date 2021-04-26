@@ -61,7 +61,7 @@ extern crate lexical_core;
 // CONFIG
 
 // Need an allocator for String/Vec.
-#[cfg(not(feature = "std"))]
+#[cfg(all(not(feature = "std"), any(feature = "ftoa", feature = "itoa")))]
 extern crate alloc;
 
 /// Facade around the core features for name mangling.
@@ -75,10 +75,14 @@ pub(crate) mod lib {
 
     cfg_if! {
     if #[cfg(feature = "std")] {
+        #[cfg(any(feature = "ftoa", feature = "itoa"))]
         pub(crate) use std::string::String;
+        #[cfg(any(feature = "ftoa", feature = "itoa"))]
         pub(crate) use std::vec::Vec;
     } else {
+        #[cfg(any(feature = "ftoa", feature = "itoa"))]
         pub(crate) use ::alloc::string::String;
+        #[cfg(any(feature = "ftoa", feature = "itoa"))]
         pub(crate) use ::alloc::vec::Vec;
     }
     }
@@ -87,25 +91,41 @@ pub(crate) mod lib {
 // API
 
 // Re-export the float rounding scheme used.
-#[cfg(feature = "rounding")]
+#[cfg(all(any(feature = "atof", feature = "ftoa"), feature = "rounding"))]
 pub use lexical_core::RoundingKind;
 
 // Re-export the numerical format.
 pub use lexical_core::NumberFormat;
 
-// Re-export the parsing options.
-pub use lexical_core::{ParseFloatOptions, ParseIntegerOptions, WriteFloatOptions, WriteIntegerOptions};
-
 // Re-export the Result, Error and ErrorCode globally.
+#[cfg(any(feature = "atof", feature = "atoi"))]
 pub use lexical_core::{Error, ErrorCode, Result};
 
+// Re-export the parsing options.
+#[cfg(feature = "atof")]
+pub use lexical_core::ParseFloatOptions;
+
+#[cfg(feature = "atoi")]
+pub use lexical_core::ParseIntegerOptions;
+
+#[cfg(feature = "ftoa")]
+pub use lexical_core::WriteFloatOptions;
+
+#[cfg(feature = "itoa")]
+pub use lexical_core::WriteIntegerOptions;
+
 // Publicly expose traits so they may be used for generic programming.
-pub use lexical_core::{FromLexical, FromLexicalOptions, ToLexical, ToLexicalOptions};
+#[cfg(any(feature = "atof", feature = "atoi"))]
+pub use lexical_core::{FromLexical, FromLexicalOptions};
+
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
+pub use lexical_core::{ToLexical, ToLexicalOptions};
 
 // HELPERS
 
 /// Get a vector as a slice, including the capacity.
 #[inline]
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
 unsafe fn vector_as_slice<T>(buf: &mut lib::Vec<T>) -> &mut [T] {
     let first = buf.as_mut_ptr();
     lib::slice::from_raw_parts_mut(first, buf.capacity())
@@ -113,6 +133,7 @@ unsafe fn vector_as_slice<T>(buf: &mut lib::Vec<T>) -> &mut [T] {
 
 // HIGH LEVEL
 
+#[cfg(any(feature = "atof", feature = "atoi"))]
 use lib::convert::AsRef;
 
 /// High-level conversion of a number to a decimal-encoded string.
@@ -130,6 +151,7 @@ use lib::convert::AsRef;
 /// # }
 /// ```
 #[inline]
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub fn to_string<N: ToLexical>(n: N) -> lib::String {
     unsafe {
         let mut buf = lib::Vec::<u8>::with_capacity(N::FORMATTED_SIZE_DECIMAL);
@@ -145,6 +167,7 @@ pub fn to_string<N: ToLexical>(n: N) -> lib::String {
 /// * `options` - Options to specify number writing.
 // TODO(ahuszagh) Add examples and doctests
 #[inline]
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub fn to_string_with_options<N: ToLexicalOptions>(n: N, options: &N::WriteOptions)
     -> lib::String
 {
@@ -197,6 +220,7 @@ pub fn to_string_with_options<N: ToLexicalOptions>(n: N, options: &N::WriteOptio
 /// # }
 /// ```
 #[inline]
+#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
     N::from_lexical(bytes.as_ref())
 }
@@ -210,6 +234,7 @@ pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
 /// * `options` - Options to specify number parsing.
 // TODO(ahuszagh) Add examples and doctests
 #[inline]
+#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Bytes, options: &N::ParseOptions)
     -> Result<N>
 {
@@ -251,6 +276,7 @@ pub fn parse_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Byte
 /// # }
 /// ```
 #[inline]
+#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<(N, usize)> {
     N::from_lexical_partial(bytes.as_ref())
 }
@@ -267,6 +293,7 @@ pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result
 /// * `options` - Options to specify number parsing.
 // TODO(ahuszagh) Add examples and doctests
 #[inline]
+#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_partial_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Bytes, options: &N::ParseOptions)
     -> Result<(N, usize)>
 {

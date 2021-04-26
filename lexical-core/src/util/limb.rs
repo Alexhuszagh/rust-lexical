@@ -23,10 +23,14 @@
 cfg_if! {
 if #[cfg(limb_width_64)] {
     pub type Limb = u64;
+    #[cfg(feature = "atof")]
     pub type Wide = u128;
+    #[cfg(feature = "atof")]
     pub type SignedWide = i128;
 } else {
     pub type Limb = u32;
+    #[cfg(feature = "atof")]
     pub type Wide = u64;
+    #[cfg(feature = "atof")]
     pub type SignedWide = i64;
 }}   // cfg_if

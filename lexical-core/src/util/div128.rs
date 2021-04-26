@@ -52,7 +52,7 @@
 //      print(radix, radix**power, power)
 //  ```
 #[inline]
-#[cfg(feature = "radix")]
+#[cfg(all(any(feature = "atoi", feature = "ftoa", feature = "itoa"), feature = "radix"))]
 pub(crate) fn u128_divisor(radix: u32) -> (u64, usize, u32) {
     match radix {
         2  => (9223372036854775808, 63, 0),    // 2^63
@@ -98,8 +98,7 @@ pub(crate) fn u128_divisor(radix: u32) -> (u64, usize, u32) {
 // Returns the divisor, the number of digits processed, and the
 // number of leading zeros in the divisor.
 #[inline]
-#[allow(dead_code)]
-#[cfg(not(feature = "radix"))]
+#[cfg(all(feature = "atoi", not(feature = "radix")))]
 pub(crate) fn u128_divisor(_: u32) -> (u64, usize, u32) {
     (10000000000000000000, 19, 0)              // 10^19
 }
@@ -108,6 +107,7 @@ pub(crate) fn u128_divisor(_: u32) -> (u64, usize, u32) {
 // This is because the codegen for u128 divrem is very inefficient in Rust,
 // calling both `__udivmodti4` twice internally, rather than a single time.
 #[inline]
+#[cfg(any(feature = "itoa", all(feature = "ftoa", feature = "radix")))]
 pub(crate) fn u128_divrem(n: u128, d: u64, d_cltz: u32) -> (u128, u64) {
     // Ensure we have the correct number of leading zeros passed.
     debug_assert_eq!(d_cltz, d.leading_zeros());
@@ -151,6 +151,7 @@ pub(crate) fn u128_divrem(n: u128, d: u64, d_cltz: u32) -> (u128, u64) {
 }
 
 // Divide by 1e19 for base10 algorithms.
+#[cfg(any(feature = "itoa", all(feature = "ftoa", feature = "radix")))]
 pub(crate) fn u128_divrem_1e19(n: u128) -> (u128, u64) {
     u128_divrem(n, 10000000000000000000, 0)
 }
@@ -162,10 +163,10 @@ pub(crate) fn u128_divrem_1e19(n: u128) -> (u128, u64) {
 mod tests {
     use super::*;
 
-    #[cfg(all(feature = "std", feature = "property_tests"))]
+    #[cfg(all(feature = "itoa", feature = "std", feature = "property_tests"))]
     use proptest::{proptest, prop_assert_eq, prop_assert};
 
-    #[cfg(all(feature = "std", feature = "property_tests"))]
+    #[cfg(all(feature = "itoa", feature = "std", feature = "property_tests"))]
     proptest! {
         #[test]
         fn u128_divrem_proptest(i in u128::min_value()..u128::max_value()) {

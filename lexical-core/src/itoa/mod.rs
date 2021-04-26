@@ -2,11 +2,10 @@
 
 // Hide internal implementation details.
 mod decimal;
+mod api;
 
 #[cfg(feature = "radix")]
 mod generic;
 
-mod api;
-
-#[cfg(feature = "radix")]
+#[cfg(all(feature = "ftoa", feature = "radix"))]
 pub(crate) use self::api::itoa_positive;

@@ -1,12 +1,15 @@
 //! Simple, shared algorithm utilities.
 
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
 use crate::lib::convert::AsRef;
-use crate::lib::{mem, ptr, slice};
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
+use crate::lib::ptr;
 
 // ALGORITHMS
 
 /// Calculate the difference between two pointers.
 #[inline]
+#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn distance<T>(first: *const T, last: *const T)
     -> usize
 {
@@ -18,6 +21,7 @@ pub fn distance<T>(first: *const T, last: *const T)
 
 /// Check if two slices are equal to each other.
 #[inline]
+#[cfg(feature = "ftoa")]
 pub fn equal_to_slice(l: &[u8], r: &[u8])
     -> bool
 {
@@ -26,7 +30,7 @@ pub fn equal_to_slice(l: &[u8], r: &[u8])
 
 /// Check if left iter starts with right iter.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(feature = "atof", feature = "format"))]
 pub fn starts_with_iter<'a, Iter1, Iter2>(mut l: Iter1, mut r: Iter2)
     -> (bool, Iter1)
     where Iter1: Iterator<Item=&'a u8>,
@@ -46,6 +50,7 @@ pub fn starts_with_iter<'a, Iter1, Iter2>(mut l: Iter1, mut r: Iter2)
 
 /// Check if left iter starts with right iter without case-sensitivity.
 #[inline]
+#[cfg(feature = "atof")]
 pub fn case_insensitive_starts_with_iter<'a, Iter1, Iter2>(mut l: Iter1, mut r: Iter2)
     -> (bool, Iter1)
     where Iter1: Iterator<Item=&'a u8>,
@@ -63,6 +68,7 @@ pub fn case_insensitive_starts_with_iter<'a, Iter1, Iter2>(mut l: Iter1, mut r: 
 
 /// Check if left slice ends with right slice.
 #[inline]
+#[cfg(feature = "ftoa")]
 pub fn ends_with_slice(l: &[u8], r: &[u8])
     -> bool
 {
@@ -75,6 +81,7 @@ pub fn ends_with_slice(l: &[u8], r: &[u8])
 
 /// Trim character from the left-side of a slice.
 #[inline]
+#[cfg(feature = "atof")]
 pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
     -> (&'a [u8], usize)
 {
@@ -88,7 +95,7 @@ pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
 
 /// Trim characters from the left-side of a slice.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(feature = "atof", feature = "format"))]
 pub fn ltrim_char2_slice<'a>(slc: &'a [u8], c1: u8, c2: u8)
     -> (&'a [u8], usize)
 {
@@ -102,6 +109,7 @@ pub fn ltrim_char2_slice<'a>(slc: &'a [u8], c1: u8, c2: u8)
 
 /// Trim character from the right-side of a slice.
 #[inline]
+#[cfg(any(feature = "atof", all(feature = "ftoa", feature = "radix")))]
 pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
     -> (&'a [u8], usize)
 {
@@ -118,7 +126,7 @@ pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
 
 /// Trim character from the right-side of a slice.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(feature = "atof", feature = "format"))]
 pub fn rtrim_char2_slice<'a>(slc: &'a [u8], c1: u8, c2: u8)
     -> (&'a [u8], usize)
 {
@@ -135,6 +143,7 @@ pub fn rtrim_char2_slice<'a>(slc: &'a [u8], c1: u8, c2: u8)
 
 /// Copy from source-to-dst.
 #[inline]
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub fn copy_to_dst<'a, Bytes: AsRef<[u8]>>(dst: &'a mut [u8], src: Bytes)
     -> usize
 {
@@ -149,7 +158,7 @@ pub fn copy_to_dst<'a, Bytes: AsRef<[u8]>>(dst: &'a mut [u8], src: Bytes)
 }
 
 /// Length-check variant of ptr::write_bytes for a slice.
-#[cfg(not(any(feature = "grisu3", feature = "ryu")))]
+#[cfg(all(feature = "ftoa", not(any(feature = "grisu3", feature = "ryu"))))]
 #[inline]
 pub fn write_bytes(dst: &mut [u8], byte: u8)
 {
@@ -166,6 +175,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg(any(feature = "atof", feature = "atoi"))]
     fn distance_test() {
         unsafe {
             let x: [u8; 10] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -176,6 +186,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "ftoa")]
     fn equal_to_test() {
         let x = "Hello";
         let y = "Hello";
@@ -187,7 +198,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "format")]
+    #[cfg(all(feature = "atof", feature = "format"))]
     fn starts_with_test() {
         let w = b"Hello";
         let x = b"H";
@@ -209,6 +220,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "atof")]
     fn case_insensitive_starts_with_test() {
         let w = b"Hello";
         let x = b"H";
@@ -230,6 +242,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "ftoa")]
     fn ends_with_test() {
         let w = "Hello";
         let x = "lO";
@@ -254,6 +267,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "atof")]
     fn ltrim_char_test() {
         let w = "0001";
         let x = "1010";
@@ -270,7 +284,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "format")]
+    #[cfg(all(feature = "atof", feature = "format"))]
     fn ltrim_char2_test() {
         let w = "0001";
         let x = "1010";
@@ -290,6 +304,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(feature = "atof", all(feature = "ftoa", feature = "radix")))]
     fn rtrim_char_test() {
         let w = "0001";
         let x = "1010";
@@ -306,7 +321,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "format")]
+    #[cfg(all(feature = "atof", feature = "format"))]
     fn rtrim_char2_test() {
         let w = "0001";
         let x = "1010";

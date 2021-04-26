@@ -8,6 +8,7 @@ pub(crate) mod rounding;
 pub(crate) mod shift;
 
 // Re-export rounding types.
+#[cfg(feature = "atof")]
 pub(crate) use self::rounding::internal_rounding;
 
 // Re-export the extended-precision floating-point type.

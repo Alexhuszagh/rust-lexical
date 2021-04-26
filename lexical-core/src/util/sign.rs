@@ -7,6 +7,7 @@ use super::num::Number;
 
 /// Enumeration for the sign of a a number.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa"))]
 pub enum Sign {
     /// Negative value.
     Negative,
@@ -18,14 +19,14 @@ pub enum Sign {
 
 // Get if an option contains a digit separator.
 #[inline(always)]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 fn is_digit_separator(option: Option<&u8>, digit_separator: u8) -> bool {
     option == Some(&digit_separator)
 }
 
 // Convert option of byte to option of sign.
 #[inline(always)]
-#[cfg(feature = "format")]
+#[cfg(any(feature = "atof", all(feature = "atoi", feature = "format")))]
 fn to_sign<T>(option: Option<&u8>)
     -> Option<Sign>
     where T: Number
@@ -41,6 +42,7 @@ fn to_sign<T>(option: Option<&u8>)
 
 /// Find and parse sign without any possible digit separators.
 #[inline(always)]
+#[cfg(any(feature = "atof", all(feature = "atoi", feature = "format")))]
 pub(crate) fn parse_sign_no_separator<'a, T>(bytes: &'a [u8], _: u8)
     -> (Sign, &'a [u8])
     where T: Number
@@ -57,7 +59,7 @@ pub(crate) fn parse_sign_no_separator<'a, T>(bytes: &'a [u8], _: u8)
 /// We need to consider the following possibilities:
 ///     1). _*[+-]\d+
 #[inline(always)]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn parse_sign_lc_separator<'a, T>(bytes: &'a [u8], digit_separator: u8)
     -> (Sign, &'a [u8])
     where T: Number
@@ -79,7 +81,7 @@ pub(crate) fn parse_sign_lc_separator<'a, T>(bytes: &'a [u8], digit_separator: u
 ///     1). [+-]\d+
 ///     2). _[+-]\d+
 #[inline(always)]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn parse_sign_l_separator<'a, T>(bytes: &'a [u8], digit_separator: u8)
     -> (Sign, &'a [u8])
     where T: Number
@@ -100,7 +102,7 @@ pub(crate) fn parse_sign_l_separator<'a, T>(bytes: &'a [u8], digit_separator: u8
 
 /// Find and parse sign with digit separators.
 #[inline(always)]
-#[cfg(feature = "format")]
+#[cfg(all(feature = "atof", feature = "format"))]
 pub(crate) fn parse_sign_separator<'a, T>(bytes: &'a [u8], format: NumberFormat)
     -> (Sign, &'a [u8])
     where T: Number
@@ -119,6 +121,7 @@ pub(crate) fn parse_sign_separator<'a, T>(bytes: &'a [u8], format: NumberFormat)
 
 /// Find and parse sign.
 #[inline]
+#[cfg(feature = "atof")]
 pub(crate) fn parse_sign<'a, T>(bytes: &'a [u8], format: NumberFormat)
     -> (Sign, &'a [u8])
     where T: Number
@@ -139,6 +142,7 @@ mod tests {
     use crate::util::test::*;
 
     #[test]
+    #[cfg(any(feature = "atof", all(feature = "atoi", feature = "format")))]
     fn parse_sign_no_separator_test() {
         // Signed
         assert_eq!(parse_sign_no_separator::<i32>(b"", b'_'), (Sign::Positive, b!("")));
@@ -155,7 +159,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "format")]
+    #[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
     fn parse_sign_lc_separator_test() {
         assert_eq!(parse_sign_lc_separator::<i32>(b"", b'_'), (Sign::Positive, b!("")));
         assert_eq!(parse_sign_lc_separator::<i32>(b"+", b'_'), (Sign::Positive, b!("")));
@@ -171,7 +175,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "format")]
+    #[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
     fn parse_sign_l_separator_test() {
         assert_eq!(parse_sign_l_separator::<i32>(b"", b'_'), (Sign::Positive, b!("")));
         assert_eq!(parse_sign_l_separator::<i32>(b"+", b'_'), (Sign::Positive, b!("")));
@@ -187,7 +191,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "format")]
+    #[cfg(all(feature = "atof", feature = "format"))]
     fn parse_sign_separator_test() {
         let format = NumberFormat::IGNORE;
         let format = format | NumberFormat::from_digit_separator(b'_');
@@ -205,6 +209,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "atof")]
     fn parse_sign_test() {
         let format = NumberFormat::STANDARD;
         assert_eq!(parse_sign::<i32>(b"", format), (Sign::Positive, b!("")));

@@ -1,6 +1,5 @@
 //! Bit masks for extracting bits.
 
-use crate::lib::mem;
 use super::cast::as_cast;
 use super::num::UnsignedInteger;
 
@@ -19,7 +18,7 @@ pub(crate) fn lower_n_mask<N>(n: N)
     -> N
     where N:UnsignedInteger
 {
-    let bits: N = as_cast(mem::size_of::<N>() * 8);
+    let bits: N = as_cast(N::BITS);
     debug_assert!(n <= bits, "lower_n_mask() overflow in shl.");
 
     match n == bits {
@@ -43,7 +42,7 @@ pub(crate) fn lower_n_halfway<N>(n: N)
     -> N
     where N:UnsignedInteger
 {
-    let bits: N = as_cast(mem::size_of::<N>() * 8);
+    let bits: N = as_cast(N::BITS);
     debug_assert!(n <= bits, "lower_n_halfway() overflow in shl.");
 
     match n.is_zero() {
@@ -89,7 +88,7 @@ pub(crate) fn internal_n_mask<N>(bit: N, n: N)
     -> N
     where N:UnsignedInteger
 {
-    let bits: N = as_cast(mem::size_of::<N>() * 8);
+    let bits: N = as_cast(N::BITS);
     debug_assert!(bit <= bits, "internal_n_halfway() overflow in shl.");
     debug_assert!(n <= bits, "internal_n_halfway() overflow in shl.");
     debug_assert!(bit >= n, "internal_n_halfway() overflow in sub.");

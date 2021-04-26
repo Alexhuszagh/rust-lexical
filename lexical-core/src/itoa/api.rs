@@ -82,8 +82,10 @@ pub(crate) fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8])
     }
 }
 
-// TO LEXICAL
+// UNSIGNED
 
+cfg_if! {
+if #[cfg(feature = "itoa")] {
 /// Callback for unsigned integer formatter.
 #[inline]
 fn unsigned<Narrow, Wide>(value: Narrow, radix: u32, buffer: &mut [u8])
@@ -123,7 +125,12 @@ unsigned_to_lexical!(usize, u32);
 
 #[cfg(target_pointer_width = "64")]
 unsigned_to_lexical!(usize, u64);
+}}  // cfg_if
 
+// SIGNED
+
+cfg_if! {
+if #[cfg(feature = "itoa")] {
 /// Callback for signed integer formatter.
 #[inline]
 fn signed<Narrow, Wide, Unsigned>(value: Narrow, radix: u32, buffer: &mut [u8])
@@ -172,6 +179,7 @@ signed_to_lexical!(isize, i32, u32);
 
 #[cfg(target_pointer_width = "64")]
 signed_to_lexical!(isize, i64, u64);
+}}  // cfg_if
 
 // TESTS
 // -----

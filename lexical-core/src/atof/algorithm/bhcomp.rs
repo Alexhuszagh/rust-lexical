@@ -13,11 +13,6 @@ use super::bignum::*;
 use super::format::*;
 use super::math::*;
 
-// Export a character to digit.
-macro_rules! to_digit {
-    ($c:expr, $radix:ident) => (($c as char).to_digit($radix));
-}
-
 // PARSE MANTISSA
 
 /// Iteratively add small digits to the mantissa and increment the counter.
@@ -37,7 +32,7 @@ macro_rules! add_digits {
             }
 
             $value *= $base;
-            $value += as_limb(to_digit!(digit, $radix).unwrap());
+            $value += as_limb(to_digit(digit, $radix).unwrap());
 
             // Check if we've parsed all our possible digits.
             $i += 1;

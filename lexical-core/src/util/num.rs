@@ -14,7 +14,7 @@ use super::primitive::Primitive;
 use super::options::*;
 use super::sequence::CloneableVecLike;
 
-#[cfg(any(feature = "f128", feature = "radix"))]
+#[cfg(all(feature = "atof", any(feature = "f128", feature = "radix")))]
 use crate::lib::Vec;
 
 // NUMBER
@@ -50,34 +50,44 @@ pub trait Number:
 }
 
 macro_rules! number_impl {
-    ($($t:tt $radix_size:ident $decimal_size:ident $is_signed:literal $write_options:ident $parse_options:ident ; )*) => ($(
+    ($($t:tt $radix_size:ident $decimal_size:ident $is_signed:literal $write_options:ident $parse_options:ident $write_feature:literal $parse_feature:literal; )*) => ($(
         impl Number for $t {
             const FORMATTED_SIZE: usize = $radix_size;
             const FORMATTED_SIZE_DECIMAL: usize = $decimal_size;
             const IS_SIGNED: bool = $is_signed;
+
+            #[cfg(feature = $write_feature)]
             type WriteOptions = $write_options;
+
+            #[cfg(not(feature = $write_feature))]
+            type WriteOptions = DummyOptions;
+
+            #[cfg(feature = $parse_feature)]
             type ParseOptions = $parse_options;
+
+            #[cfg(not(feature = $parse_feature))]
+            type ParseOptions = DummyOptions;
         }
     )*)
 }
 
 number_impl! {
-    u8 U8_FORMATTED_SIZE U8_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions ;
-    u16 U16_FORMATTED_SIZE U16_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions ;
-    u32 U32_FORMATTED_SIZE U32_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions ;
-    u64 U64_FORMATTED_SIZE U64_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions ;
-    u128 U128_FORMATTED_SIZE U128_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions ;
-    usize USIZE_FORMATTED_SIZE USIZE_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions ;
-    i8 I8_FORMATTED_SIZE I8_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions ;
-    i16 I16_FORMATTED_SIZE I16_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions ;
-    i32 I32_FORMATTED_SIZE I32_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions ;
-    i64 I64_FORMATTED_SIZE I64_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions ;
-    i128 I128_FORMATTED_SIZE I128_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions ;
-    isize ISIZE_FORMATTED_SIZE ISIZE_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions ;
+    u8 U8_FORMATTED_SIZE U8_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions "itoa" "atoi" ;
+    u16 U16_FORMATTED_SIZE U16_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions "itoa" "atoi" ;
+    u32 U32_FORMATTED_SIZE U32_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions "itoa" "atoi" ;
+    u64 U64_FORMATTED_SIZE U64_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions "itoa" "atoi" ;
+    u128 U128_FORMATTED_SIZE U128_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions "itoa" "atoi" ;
+    usize USIZE_FORMATTED_SIZE USIZE_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions "itoa" "atoi" ;
+    i8 I8_FORMATTED_SIZE I8_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions "itoa" "atoi" ;
+    i16 I16_FORMATTED_SIZE I16_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions "itoa" "atoi" ;
+    i32 I32_FORMATTED_SIZE I32_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions "itoa" "atoi" ;
+    i64 I64_FORMATTED_SIZE I64_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions "itoa" "atoi" ;
+    i128 I128_FORMATTED_SIZE I128_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions "itoa" "atoi" ;
+    isize ISIZE_FORMATTED_SIZE ISIZE_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions "itoa" "atoi" ;
     // f16
     // bf16
-    f32 F32_FORMATTED_SIZE F32_FORMATTED_SIZE_DECIMAL true WriteFloatOptions ParseFloatOptions ;
-    f64 F64_FORMATTED_SIZE F64_FORMATTED_SIZE_DECIMAL true WriteFloatOptions ParseFloatOptions ;
+    f32 F32_FORMATTED_SIZE F32_FORMATTED_SIZE_DECIMAL true WriteFloatOptions ParseFloatOptions "ftoa" "atof" ;
+    f64 F64_FORMATTED_SIZE F64_FORMATTED_SIZE_DECIMAL true WriteFloatOptions ParseFloatOptions "ftoa" "atof" ;
     // f128
 }
 
@@ -664,6 +674,7 @@ pub trait Float: Number + ops::Neg<Output=Self>
     /// Since we reserve at least 20 digits in the default constructor,
     /// this must be at least 20. This constant is mostly present
     /// to ensure BigintStorage is correct.
+    #[cfg(feature = "atof")]
     const BIGINT_LIMBS: usize;
 
     /// Number of limbs in a Bigfloat.
@@ -675,11 +686,14 @@ pub trait Float: Number + ops::Neg<Output=Self>
     /// Since we reserve at least 10 digits in the default constructor,
     /// this must be at least 10. This constant is mostly present
     /// to ensure BigfloatStorage is correct.
+    #[cfg(feature = "atof")]
     const BIGFLOAT_LIMBS: usize;
 
     /// The storage type for the Bigint.
+    #[cfg(feature = "atof")]
     type BigintStorage: CloneableVecLike<Limb> + Clone;
     /// The storage type for the Bigfloat.
+    #[cfg(feature = "atof")]
     type BigfloatStorage: CloneableVecLike<Limb> + Clone;
 
     // CONSTANTS
@@ -926,21 +940,21 @@ impl Float for f16 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0x1F - Self::EXPONENT_BIAS;
 
-    #[cfg(feature = "radix")]
+    #[cfg(all(feature = "atof", feature = "radix"))]
     type BigintStorage = Vec<Limb>;
-    #[cfg(not(feature = "radix"))]
+    #[cfg(all(feature = "atof", not(feature = "radix")))]
     type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
 
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
 
-    #[cfg(limb_width_64)]
+    #[cfg(all(limb_width_64, feature = "atof"))]
     const BIGINT_LIMBS: usize = 20;
-    #[cfg(limb_width_32)]
+    #[cfg(all(limb_width_32, feature = "atof"))]
     const BIGINT_LIMBS: usize = 20;
 
-    #[cfg(limb_width_64)]
+    #[cfg(all(limb_width_64, feature = "atof"))]
     const BIGFLOAT_LIMBS: usize = 10;
-    #[cfg(limb_width_32)]
+    #[cfg(all(limb_width_32, feature = "atof"))]
     const BIGFLOAT_LIMBS: usize = 10;
 
     // TODO(ahuszagh) Need to add the float methods.
@@ -970,24 +984,24 @@ impl Float for bf16 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
 
-    #[cfg(feature = "radix")]
+    #[cfg(all(feature = "atof", feature = "radix"))]
     type BigintStorage = Vec<Limb>;
-    #[cfg(not(feature = "radix"))]
+    #[cfg(all(feature = "atof", not(feature = "radix")))]
     type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
 
-    #[cfg(limb_width_64)]
+    #[cfg(all(limb_width_64, feature = "atof"))]
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
-    #[cfg(limb_width_32)]
+    #[cfg(all(limb_width_32, feature = "atof"))]
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
 
-    #[cfg(limb_width_64)]
+    #[cfg(all(limb_width_64, feature = "atof"))]
     const BIGINT_LIMBS: usize = 20;
-    #[cfg(limb_width_32)]
+    #[cfg(all(limb_width_32, feature = "atof"))]
     const BIGINT_LIMBS: usize = 20;
 
-    #[cfg(limb_width_64)]
+    #[cfg(all(limb_width_64, feature = "atof"))]
     const BIGFLOAT_LIMBS: usize = 10;
-    #[cfg(limb_width_32)]
+    #[cfg(all(limb_width_32, feature = "atof"))]
     const BIGFLOAT_LIMBS: usize = 20;
 
     // TODO(ahuszagh) Need to add the float methods.
@@ -1016,24 +1030,24 @@ impl Float for f32 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
 
-    #[cfg(feature = "radix")]
+    #[cfg(all(feature = "atof", feature = "radix"))]
     type BigintStorage = Vec<Limb>;
-    #[cfg(not(feature = "radix"))]
+    #[cfg(all(feature = "atof", not(feature = "radix")))]
     type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
 
-    #[cfg(limb_width_64)]
+    #[cfg(all(limb_width_64, feature = "atof"))]
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
-    #[cfg(limb_width_32)]
+    #[cfg(all(limb_width_32, feature = "atof"))]
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
 
-    #[cfg(limb_width_64)]
+    #[cfg(all(limb_width_64, feature = "atof"))]
     const BIGINT_LIMBS: usize = 20;
-    #[cfg(limb_width_32)]
+    #[cfg(all(limb_width_32, feature = "atof"))]
     const BIGINT_LIMBS: usize = 20;
 
-    #[cfg(limb_width_64)]
+    #[cfg(all(limb_width_64, feature = "atof"))]
     const BIGFLOAT_LIMBS: usize = 10;
-    #[cfg(limb_width_32)]
+    #[cfg(all(limb_width_32, feature = "atof"))]
     const BIGFLOAT_LIMBS: usize = 20;
 
     #[inline]
@@ -1126,26 +1140,26 @@ impl Float for f64 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0x7FF - Self::EXPONENT_BIAS;
 
-    #[cfg(feature = "radix")]
+    #[cfg(all(feature = "atof", feature = "radix"))]
     type BigintStorage = Vec<Limb>;
-    #[cfg(all(limb_width_64, not(feature = "radix")))]
+    #[cfg(all(limb_width_64, feature = "atof", not(feature = "radix")))]
     type BigintStorage = arrayvec::ArrayVec<[Limb; 64]>;
-    #[cfg(all(limb_width_32, not(feature = "radix")))]
+    #[cfg(all(limb_width_32, feature = "atof", not(feature = "radix")))]
     type BigintStorage = arrayvec::ArrayVec<[Limb; 128]>;
 
-    #[cfg(limb_width_64)]
+    #[cfg(all(limb_width_64, feature = "atof"))]
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    #[cfg(limb_width_32)]
+    #[cfg(all(limb_width_32, feature = "atof"))]
     type BigfloatStorage = arrayvec::ArrayVec<[Limb; 36]>;
 
-    #[cfg(limb_width_64)]
+    #[cfg(all(limb_width_64, feature = "atof"))]
     const BIGINT_LIMBS: usize = 64;
-    #[cfg(limb_width_32)]
+    #[cfg(all(limb_width_32, feature = "atof"))]
     const BIGINT_LIMBS: usize = 128;
 
-    #[cfg(limb_width_64)]
+    #[cfg(all(limb_width_64, feature = "atof"))]
     const BIGFLOAT_LIMBS: usize = 20;
-    #[cfg(limb_width_32)]
+    #[cfg(all(limb_width_32, feature = "atof"))]
     const BIGFLOAT_LIMBS: usize = 36;
 
     #[inline]
@@ -1239,17 +1253,19 @@ impl Float for f128 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0x7FFF - Self::EXPONENT_BIAS;
 
+    #[cfg(feature = "atof")]
     type BigintStorage = Vec<Limb>;
+    #[cfg(feature = "atof")]
     type BigfloatStorage = Vec<Limb>;
 
-    #[cfg(limb_width_64)]
+    #[cfg(all(limb_width_64, feature = "atof"))]
     const BIGINT_LIMBS: usize = 900;
-    #[cfg(limb_width_32)]
+    #[cfg(all(limb_width_32, feature = "atof"))]
     const BIGINT_LIMBS: usize = 1800;
 
-    #[cfg(limb_width_64)]
+    #[cfg(all(limb_width_64, feature = "atof"))]
     const BIGFLOAT_LIMBS: usize = 700;
-    #[cfg(limb_width_32)]
+    #[cfg(all(limb_width_32, feature = "atof"))]
     const BIGFLOAT_LIMBS: usize = 1400;
 
     // TODO(ahuszagh) Need to add the float methods.

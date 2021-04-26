@@ -89,6 +89,7 @@ extern crate cfg_if;
 
 // Use vec if there is a system allocator, which we require only if
 // we're using the correct and radix features.
+// TODO(ahuszagh) This is only needed for atof
 #[cfg(all(not(feature = "std"), feature = "radix"))]
 #[cfg_attr(test, macro_use)]
 extern crate alloc;
@@ -103,8 +104,10 @@ compile_error!("Lexical only accepts one of the following backends: `grisu3` or 
 // Import the back-end, if applicable.
 cfg_if! {
     if #[cfg(feature = "grisu3")] {
+        #[cfg(feature = "ftoa")]
         extern crate dtoa;
     } else if #[cfg(feature = "ryu")] {
+        #[cfg(feature = "ftoa")]
         extern crate ryu;
     }
 }  // cfg_if
@@ -119,6 +122,7 @@ pub(crate) mod lib {
 
     cfg_if! {
         if #[cfg(feature = "radix")] {
+            // TODO(ahuszagh) This is only needed for atof
             #[cfg(feature = "std")]
             pub(crate) use std::vec::Vec;
 
@@ -190,6 +194,7 @@ pub use util::*;
 /// lexical_core::write(float, &mut buffer);
 /// ```
 #[inline]
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8])
     -> &'a mut [u8]
 {
@@ -236,6 +241,7 @@ pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8])
 /// lexical_core::write_with_options(float, &mut buffer, &options);
 /// ```
 #[inline]
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub fn write_with_options<'a, N: ToLexicalOptions>(n: N, bytes: &'a mut [u8], options: &N::WriteOptions)
     -> &'a mut [u8]
 {
@@ -249,6 +255,7 @@ pub fn write_with_options<'a, N: ToLexicalOptions>(n: N, bytes: &'a mut [u8], op
 ///
 /// * `bytes`   - Byte slice containing a numeric string.
 #[inline]
+#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse<N: FromLexical>(bytes: &[u8])
     -> Result<N>
 {
@@ -263,6 +270,7 @@ pub fn parse<N: FromLexical>(bytes: &[u8])
 /// * `bytes`   - Byte slice containing a numeric string.
 /// * `options` - Options to customize number parsing.
 #[inline]
+#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_with_options<N: FromLexicalOptions>(bytes: &[u8], options: &N::ParseOptions)
     -> Result<N>
 {
@@ -277,6 +285,7 @@ pub fn parse_with_options<N: FromLexicalOptions>(bytes: &[u8], options: &N::Pars
 ///
 /// * `bytes`   - Byte slice containing a numeric string.
 #[inline]
+#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_partial<N: FromLexical>(bytes: &[u8])
     -> Result<(N, usize)>
 {
@@ -292,6 +301,7 @@ pub fn parse_partial<N: FromLexical>(bytes: &[u8])
 /// * `bytes`   - Byte slice containing a numeric string.
 /// * `options` - Options to customize number parsing.
 #[inline]
+#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_partial_with_options<N: FromLexicalOptions>(bytes: &[u8], options: &N::ParseOptions)
     -> Result<(N, usize)>
 {

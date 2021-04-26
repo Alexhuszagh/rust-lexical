@@ -1,13 +1,16 @@
 //! Wrap the low-level API into idiomatic serializers.
 
-use super::format::NumberFormat;
-use super::options::ParseFloatOptions;
+#[cfg(any(feature = "atof", feature = "atoi"))]
+use super::error::ErrorCode;
+#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
 use super::num::Number;
+#[cfg(any(feature = "atof", feature = "atoi"))]
 use super::result::Result;
 
 // HELPERS
 
 /// Map partial result to complete result.
+#[cfg(any(feature = "atof", feature = "atoi"))]
 macro_rules! to_complete {
     ($cb:expr, $bytes:expr $(,$args:expr)*) => {
         match $cb($bytes $(,$args)*) {
@@ -24,6 +27,7 @@ macro_rules! to_complete {
 // FROM LEXICAL
 
 /// Trait for numerical types that can be parsed from bytes.
+#[cfg(any(feature = "atof", feature = "atoi"))]
 pub trait FromLexical: Number {
     /// Checked parser for a string-to-number conversion.
     ///
@@ -54,6 +58,7 @@ pub trait FromLexical: Number {
 }
 
 // Implement FromLexical for numeric type.
+#[cfg(any(feature = "atof", feature = "atoi"))]
 macro_rules! from_lexical {
     ($cb:expr, $t:ty $(, #[$meta:meta])?) => (
         impl FromLexical for $t {
@@ -75,6 +80,7 @@ macro_rules! from_lexical {
 // FROM LEXICAL WITH OPTIONS
 
 /// Trait for number that can be parsed using a custom options specification.
+#[cfg(any(feature = "atof", feature = "atoi"))]
 pub trait FromLexicalOptions: FromLexical {
     /// Checked parser for a string-to-number conversion.
     ///
@@ -107,6 +113,7 @@ pub trait FromLexicalOptions: FromLexical {
 }
 
 // Implement FromLexicalOptions for numeric type.
+#[cfg(any(feature = "atof", feature = "atoi"))]
 macro_rules! from_lexical_with_options {
     ($cb:expr, $t:ty $(, #[$meta:meta])?) => (
         impl FromLexicalOptions for $t {
@@ -138,6 +145,7 @@ macro_rules! from_lexical_with_options {
 ///
 /// [`FORMATTED_SIZE`]: trait.Number.html#associatedconstant.FORMATTED_SIZE
 /// [`FORMATTED_SIZE_DECIMAL`]: trait.Number.html#associatedconstant.FORMATTED_SIZE_DECIMAL
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub trait ToLexical: Number {
     /// Serializer for a number-to-string conversion.
     ///
@@ -159,6 +167,7 @@ pub trait ToLexical: Number {
 }
 
 // Implement ToLexical for numeric type.
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
 macro_rules! to_lexical {
     ($cb:expr, $t:ty $(, #[$meta:meta])?) => (
         impl ToLexical for $t {
@@ -177,6 +186,7 @@ macro_rules! to_lexical {
 // TO LEXICAL WITH OPTIONS
 
 /// Trait for numerical types that can be serialized to bytes with custom options.
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub trait ToLexicalOptions: ToLexical {
     /// Serializer for a number-to-string conversion.
     ///
@@ -199,6 +209,7 @@ pub trait ToLexicalOptions: ToLexical {
 }
 
 // Implement ToLexicalOptions for numeric type.
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
 macro_rules! to_lexical_with_options {
     ($cb:expr, $t:ty $(, #[$meta:meta])?) => (
         impl ToLexicalOptions for $t {

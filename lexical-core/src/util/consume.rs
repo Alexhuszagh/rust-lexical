@@ -58,20 +58,23 @@
 //! If the consumer does not require a digit separator, that value is
 //! simply ignored.
 
+// TODO(ahuszagh) Need to feature gate some of this
+// Can then feature gate digit.rs as a result.
 use super::digit::*;
 use super::format::*;
 
 // HELPERS
 
 // Convert character to digit.
-#[cfg(feature = "format")]
 #[inline(always)]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 fn is_digit_or_separator(c: u8, radix: u32, digit_separator: u8) -> bool {
     return is_digit(c, radix) || c == digit_separator
 }
 
 // Split buffer at index.
 #[inline(always)]
+#[cfg(any(feature = "atof", all(feature = "atoi", feature = "format")))]
 fn split_at_index<'a>(digits: &'a [u8], index: usize)
     -> (&'a [u8], &'a [u8])
 {
@@ -94,6 +97,7 @@ fn split_at_index<'a>(digits: &'a [u8], index: usize)
 // Consume until a an invalid digit is found.
 // Does not consume any digit separators.
 #[inline(always)]
+#[cfg(feature = "atof")]
 fn consume_digits<'a>(digits: &'a [u8], radix: u32, _: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -108,7 +112,7 @@ fn consume_digits<'a>(digits: &'a [u8], radix: u32, _: u8)
 // Consume until a an invalid digit is found.
 // Consumes internal digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn consume_digits_i<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -141,7 +145,7 @@ pub(crate) fn consume_digits_i<'a>(digits: &'a [u8], radix: u32, digit_separator
 // Consume until a an invalid digit is found.
 // Consumes internal and consecutive digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn consume_digits_ic<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -173,7 +177,7 @@ pub(crate) fn consume_digits_ic<'a>(digits: &'a [u8], radix: u32, digit_separato
 // Consume until a an invalid digit is found.
 // Consumes leading digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn consume_digits_l<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -204,7 +208,7 @@ pub(crate) fn consume_digits_l<'a>(digits: &'a [u8], radix: u32, digit_separator
 // Consume until a an invalid digit is found.
 // Consumes leading and consecutive digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn consume_digits_lc<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -230,7 +234,7 @@ pub(crate) fn consume_digits_lc<'a>(digits: &'a [u8], radix: u32, digit_separato
 // Consume until a an invalid digit is found.
 // Consumes trailing digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn consume_digits_t<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -261,7 +265,7 @@ pub(crate) fn consume_digits_t<'a>(digits: &'a [u8], radix: u32, digit_separator
 // Consume until a an invalid digit is found.
 // Consumes trailing and consecutive digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn consume_digits_tc<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -292,7 +296,7 @@ pub(crate) fn consume_digits_tc<'a>(digits: &'a [u8], radix: u32, digit_separato
 // Consume until a an invalid digit is found.
 // Consumes leading and internal digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn consume_digits_il<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -328,7 +332,7 @@ pub(crate) fn consume_digits_il<'a>(digits: &'a [u8], radix: u32, digit_separato
 // Consume until a an invalid digit is found.
 // Consumes leading and internal digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn consume_digits_ilc<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -365,7 +369,7 @@ pub(crate) fn consume_digits_ilc<'a>(digits: &'a [u8], radix: u32, digit_separat
 // Consume until a an invalid digit is found.
 // Consumes internal and trailing digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn consume_digits_it<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -409,7 +413,7 @@ pub(crate) fn consume_digits_it<'a>(digits: &'a [u8], radix: u32, digit_separato
 // Consume until a an invalid digit is found.
 // Consumes internal, trailing, and consecutive digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn consume_digits_itc<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -450,7 +454,7 @@ pub(crate) fn consume_digits_itc<'a>(digits: &'a [u8], radix: u32, digit_separat
 // Consume until a an invalid digit is found.
 // Consumes leading and trailing digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn consume_digits_lt<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -489,7 +493,7 @@ pub(crate) fn consume_digits_lt<'a>(digits: &'a [u8], radix: u32, digit_separato
 // Consume until a an invalid digit is found.
 // Consumes leading, trailing, and consecutive digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn consume_digits_ltc<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -526,7 +530,7 @@ pub(crate) fn consume_digits_ltc<'a>(digits: &'a [u8], radix: u32, digit_separat
 // Consume until a an invalid digit is found.
 // Consumes leading, internal, and trailing digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) fn consume_digits_ilt<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -561,7 +565,7 @@ pub(crate) fn consume_digits_ilt<'a>(digits: &'a [u8], radix: u32, digit_separat
 // Consume until a an invalid digit is found.
 // Consumes leading, internal, trailing, and consecutive digit separators.
 #[inline]
-#[cfg(feature = "format")]
+#[cfg(all(feature = "atof", feature = "format"))]
 pub(crate) fn consume_digits_iltc<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
     -> (&'a [u8], &'a [u8])
 {
@@ -585,6 +589,7 @@ pub(crate) fn consume_digits_iltc<'a>(digits: &'a [u8], radix: u32, digit_separa
 
 // Consume digits without a digit separator.
 #[inline(always)]
+#[cfg(feature = "atof")]
 pub(crate) fn consume_digits_no_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> (&'a [u8], &'a [u8])
 {
@@ -593,7 +598,7 @@ pub(crate) fn consume_digits_no_separator<'a>(bytes: &'a [u8], radix: u32, forma
 
 // Consume digits while ignoring the digit separator.
 #[inline(always)]
-#[cfg(feature = "format")]
+#[cfg(all(feature = "atof", feature = "format"))]
 pub(crate) fn consume_digits_ignore_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> (&'a [u8], &'a [u8])
 {
@@ -602,7 +607,7 @@ pub(crate) fn consume_digits_ignore_separator<'a>(bytes: &'a [u8], radix: u32, f
 
 // Consume digits with a digit separator in the integer component.
 #[inline(always)]
-#[cfg(feature = "format")]
+#[cfg(all(feature = "atof", feature = "format"))]
 pub(crate) fn consume_integer_digits_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> (&'a [u8], &'a [u8])
 {
@@ -644,7 +649,7 @@ pub(crate) fn consume_integer_digits_separator<'a>(bytes: &'a [u8], radix: u32, 
 
 // Consume digits with a digit separator in the fraction component.
 #[inline(always)]
-#[cfg(feature = "format")]
+#[cfg(all(feature = "atof", feature = "format"))]
 pub(crate) fn consume_fraction_digits_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> (&'a [u8], &'a [u8])
 {
@@ -692,6 +697,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg(feature = "atof")]
     fn consume_digits_test() {
         assert_eq!(consume_digits(b!("123.45"), 10, b'_'), (b!("123"), b!(".45")));
         assert_eq!(consume_digits(b!("1e45"), 10, b'_'), (b!("1"), b!("e45")));
@@ -725,8 +731,8 @@ mod tests {
         assert_eq!(consume_digits(b!("__4__5__.56"), 10, b'_'), (b!(""), b!("__4__5__.56")));
     }
 
-    #[cfg(feature = "format")]
     #[test]
+    #[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
     fn consume_digits_l_test() {
         assert_eq!(consume_digits_l(b!("123.45"), 10, b'_'), (b!("123"), b!(".45")));
         assert_eq!(consume_digits_l(b!("1e45"), 10, b'_'), (b!("1"), b!("e45")));
@@ -792,8 +798,8 @@ mod tests {
 
     }
 
-    #[cfg(feature = "format")]
     #[test]
+    #[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
     fn consume_digits_i_test() {
         assert_eq!(consume_digits_i(b!("123.45"), 10, b'_'), (b!("123"), b!(".45")));
         assert_eq!(consume_digits_i(b!("1e45"), 10, b'_'), (b!("1"), b!("e45")));
@@ -859,8 +865,8 @@ mod tests {
 
     }
 
-    #[cfg(feature = "format")]
     #[test]
+    #[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
     fn consume_digits_t_test() {
         assert_eq!(consume_digits_t(b!("123.45"), 10, b'_'), (b!("123"), b!(".45")));
         assert_eq!(consume_digits_t(b!("1e45"), 10, b'_'), (b!("1"), b!("e45")));
@@ -925,8 +931,8 @@ mod tests {
         assert_eq!(consume_digits_tc(b!("__4__5__.56"), 10, b'_'), (b!(""), b!("__4__5__.56")));
     }
 
-    #[cfg(feature = "format")]
     #[test]
+    #[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
     fn consume_digits_il_test() {
         assert_eq!(consume_digits_il(b!("123.45"), 10, b'_'), (b!("123"), b!(".45")));
         assert_eq!(consume_digits_il(b!("1e45"), 10, b'_'), (b!("1"), b!("e45")));
@@ -991,8 +997,8 @@ mod tests {
         assert_eq!(consume_digits_ilc(b!("__4__5__.56"), 10, b'_'), (b!("__4__5"), b!("__.56")));
     }
 
-    #[cfg(feature = "format")]
     #[test]
+    #[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
     fn consume_digits_it_test() {
         assert_eq!(consume_digits_it(b!("123.45"), 10, b'_'), (b!("123"), b!(".45")));
         assert_eq!(consume_digits_it(b!("1e45"), 10, b'_'), (b!("1"), b!("e45")));
@@ -1057,8 +1063,8 @@ mod tests {
         assert_eq!(consume_digits_itc(b!("__4__5__.56"), 10, b'_'), (b!(""), b!("__4__5__.56")));
     }
 
-    #[cfg(feature = "format")]
     #[test]
+    #[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
     fn consume_digits_lt_test() {
         assert_eq!(consume_digits_lt(b!("123.45"), 10, b'_'), (b!("123"), b!(".45")));
         assert_eq!(consume_digits_lt(b!("1e45"), 10, b'_'), (b!("1"), b!("e45")));
@@ -1123,8 +1129,8 @@ mod tests {
         assert_eq!(consume_digits_ltc(b!("__4__5__.56"), 10, b'_'), (b!("__4"), b!("__5__.56")));
     }
 
-    #[cfg(feature = "format")]
     #[test]
+    #[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
     fn consume_digits_ilt_test() {
         assert_eq!(consume_digits_ilt(b!("123.45"), 10, b'_'), (b!("123"), b!(".45")));
         assert_eq!(consume_digits_ilt(b!("1e45"), 10, b'_'), (b!("1"), b!("e45")));

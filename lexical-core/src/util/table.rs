@@ -30,10 +30,11 @@ pub(crate) fn digit_to_char<T: Integer>(digit: T) -> u8 {
 // for a remainder of `3` for the radix^2 in radix 2 will give you `1` and `1`,
 // at indexes 6 and 7.
 
+#[cfg(any(feature = "itoa", all(feature = "ftoa", feature = "radix")))]
 pub(crate) const DIGIT_TO_BASE10_SQUARED: [u8; 200] = [b'0', b'0', b'0', b'1', b'0', b'2', b'0', b'3', b'0', b'4', b'0', b'5', b'0', b'6', b'0', b'7', b'0', b'8', b'0', b'9', b'1', b'0', b'1', b'1', b'1', b'2', b'1', b'3', b'1', b'4', b'1', b'5', b'1', b'6', b'1', b'7', b'1', b'8', b'1', b'9', b'2', b'0', b'2', b'1', b'2', b'2', b'2', b'3', b'2', b'4', b'2', b'5', b'2', b'6', b'2', b'7', b'2', b'8', b'2', b'9', b'3', b'0', b'3', b'1', b'3', b'2', b'3', b'3', b'3', b'4', b'3', b'5', b'3', b'6', b'3', b'7', b'3', b'8', b'3', b'9', b'4', b'0', b'4', b'1', b'4', b'2', b'4', b'3', b'4', b'4', b'4', b'5', b'4', b'6', b'4', b'7', b'4', b'8', b'4', b'9', b'5', b'0', b'5', b'1', b'5', b'2', b'5', b'3', b'5', b'4', b'5', b'5', b'5', b'6', b'5', b'7', b'5', b'8', b'5', b'9', b'6', b'0', b'6', b'1', b'6', b'2', b'6', b'3', b'6', b'4', b'6', b'5', b'6', b'6', b'6', b'7', b'6', b'8', b'6', b'9', b'7', b'0', b'7', b'1', b'7', b'2', b'7', b'3', b'7', b'4', b'7', b'5', b'7', b'6', b'7', b'7', b'7', b'8', b'7', b'9', b'8', b'0', b'8', b'1', b'8', b'2', b'8', b'3', b'8', b'4', b'8', b'5', b'8', b'6', b'8', b'7', b'8', b'8', b'8', b'9', b'9', b'0', b'9', b'1', b'9', b'2', b'9', b'3', b'9', b'4', b'9', b'5', b'9', b'6', b'9', b'7', b'9', b'8', b'9', b'9'];
 
 cfg_if! {
-if #[cfg(feature = "radix")] {
+if #[cfg(all(any(feature = "ftoa", feature = "itoa"), feature = "radix"))] {
 pub(crate) const DIGIT_TO_BASE2_SQUARED: [u8; 8] = [b'0', b'0', b'0', b'1', b'1', b'0', b'1', b'1'];
 pub(crate) const DIGIT_TO_BASE3_SQUARED: [u8; 18] = [b'0', b'0', b'0', b'1', b'0', b'2', b'1', b'0', b'1', b'1', b'1', b'2', b'2', b'0', b'2', b'1', b'2', b'2'];
 pub(crate) const DIGIT_TO_BASE4_SQUARED: [u8; 32] = [b'0', b'0', b'0', b'1', b'0', b'2', b'0', b'3', b'1', b'0', b'1', b'1', b'1', b'2', b'1', b'3', b'2', b'0', b'2', b'1', b'2', b'2', b'2', b'3', b'3', b'0', b'3', b'1', b'3', b'2', b'3', b'3'];

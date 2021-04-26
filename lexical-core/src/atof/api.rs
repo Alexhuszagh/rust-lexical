@@ -357,7 +357,7 @@ fn atof_default<F: FloatType>(bytes: &[u8])
     -> Result<(F, usize)>
 {
     let format = NumberFormat::STANDARD;
-    let result = apply_standard_interface!(atof::<F, _>, format, bytes, 10, DEFAULT_INCORRECT, false, DEFAULT_ROUNDING, DEFAULT_NAN_STRING, DEFAULT_INF_STRING, DEFAULT_INFINITY_STRING);
+    let result = apply_standard_interface!(atof::<F, _>, format, bytes, 10, DEFAULT_INCORRECT, DEFAULT_LOSSY, DEFAULT_ROUNDING, DEFAULT_NAN_STRING, DEFAULT_INF_STRING, DEFAULT_INFINITY_STRING);
     let index = | ptr | distance(bytes.as_ptr(), ptr);
     match result {
         Ok((value, ptr)) => Ok((value, index(ptr))),

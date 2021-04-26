@@ -25,53 +25,81 @@ mod cast;
 mod config;
 mod consume;
 mod digit;
-mod div128;
-mod error;
 mod format;
-mod iterator;
 mod limb;
-mod mask;
 mod num;
 mod options;
 mod primitive;
 mod pow;
-mod result;
-mod rounding;
 mod sign;
 mod table;
-mod wrapped;
 
-#[cfg(feature = "format")]
+#[cfg(any(feature = "atoi", feature = "itoa", all(feature = "ftoa", feature = "radix")))]
+mod div128;
+
+#[cfg(any(feature = "atof", feature = "atoi"))]
+mod error;
+
+#[cfg(any(feature = "atof", feature = "atoi"))]
+mod iterator;
+
+#[cfg(any(feature = "atof", feature = "ftoa"))]
+mod mask;
+
+#[cfg(any(feature = "atof", feature = "atoi"))]
+mod result;
+
+#[cfg(any(feature = "atof", feature = "ftoa"))]
+mod rounding;
+
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 mod skip_value;
+
+#[cfg(feature = "atof")]
+mod wrapped;
 
 // Publicly export everything with crate-visibility.
 pub(crate) use self::algorithm::*;
 pub(crate) use self::cast::*;
 pub(crate) use self::consume::*;
 pub(crate) use self::digit::*;
-pub(crate) use self::div128::*;
-pub(crate) use self::iterator::*;
 pub(crate) use self::limb::*;
-pub(crate) use self::mask::*;
 pub(crate) use self::primitive::*;
 pub(crate) use self::pow::*;
-pub(crate) use self::rounding::*;
 pub(crate) use self::sequence::*;
-pub(crate) use self::sign::*;
 pub(crate) use self::table::*;
-pub(crate) use self::wrapped::*;
 
-#[cfg(feature = "format")]
+#[cfg(any(feature = "atoi", feature = "itoa", all(feature = "ftoa", feature = "radix")))]
+pub(crate) use self::div128::*;
+
+#[cfg(any(feature = "atof", feature = "atoi"))]
+pub(crate) use self::iterator::*;
+
+#[cfg(any(feature = "atof", feature = "ftoa"))]
+pub(crate) use self::mask::*;
+
+#[cfg(any(feature = "atof", feature = "ftoa"))]
+pub(crate) use self::rounding::*;
+
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) use self::skip_value::*;
 
+#[cfg(feature = "atof")]
+pub(crate) use self::wrapped::*;
+
 // Publicly export config globally.
-pub use self::config::*;    // TODO(ahuszagh) Remove the config options.
-pub use self::error::*;
+pub use self::config::*;
 pub use self::format::*;
 pub use self::num::*;
 pub use self::options::*;
-pub use self::result::*;
+pub use self::sign::*;
 pub use self::traits::*;
 
-#[cfg(feature = "rounding")]
+#[cfg(any(feature = "atof", feature = "atoi"))]
+pub use self::error::*;
+
+#[cfg(any(feature = "atof", feature = "atoi"))]
+pub use self::result::*;
+
+#[cfg(all(any(feature = "atof", feature = "ftoa"), feature = "rounding"))]
 pub use self::rounding::RoundingKind;
