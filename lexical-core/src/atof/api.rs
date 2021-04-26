@@ -337,9 +337,12 @@ fn atof<F: FloatType>(
 fn atof_default<F: FloatType>(bytes: &[u8])
     -> Result<(F, usize)>
 {
+    // TODO(ahuszagh) What happens... performance wise....
+    // if I create the data interface here...?
+    // Looking for better performance on options...
     let format = NumberFormat::STANDARD;
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, format, 19, DEFAULT_INCORRECT, false, DEFAULT_ROUNDING, DEFAULT_NAN_STRING, DEFAULT_INF_STRING, DEFAULT_INFINITY_STRING) {
+    match atof::<F>(bytes, format, 10, DEFAULT_INCORRECT, false, DEFAULT_ROUNDING, DEFAULT_NAN_STRING, DEFAULT_INF_STRING, DEFAULT_INFINITY_STRING) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }

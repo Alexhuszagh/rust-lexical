@@ -15,7 +15,17 @@ lazy_static = "1"
 serde_json = "1.0"
 
 [features]
-default = ["ryu", "std"]
+default = ["atof", "atoi", "ftoa", "itoa", "ryu", "std"]
+
+# SUBMODULES
+# ----------
+atof = ["lexical-core/atof"]
+atoi = ["lexical-core/atoi"]
+ftoa = ["lexical-core/ftoa"]
+itoa = ["lexical-core/itoa"]
+
+# FEATURES
+# --------
 format = ["lexical-core/format"]
 grisu3 = ["lexical-core/grisu3"]
 radix = ["lexical-core/radix"]

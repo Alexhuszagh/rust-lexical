@@ -113,10 +113,10 @@ impl NumberFormat {
     /// Get the exponent character based on the radix.
     #[inline(always)]
     pub const fn exponent(self, radix: u32) -> u8 {
-        if cfg!(feature = "radix") && radix < 15 {
-            self.exponent_default()
-        } else {
+        if cfg!(feature = "radix") && radix >= 14 {
             self.exponent_backup()
+        } else {
+            self.exponent_default()
         }
     }
 

@@ -1,10 +1,18 @@
 //! High-level data interface utilities.
 
+/// Convert format to standard interface, where we know we're using
+/// the standard and only the standard interface.
+macro_rules! apply_standard_interface {
+    ($fn:ident, $format:expr $(,$args:ident)*) => {
+        $fn(StandardFastDataInterface::new($format) $(,$args)*)
+    };
+}
+
 /// Convert format to interface, and call function with new item as first argument.
 #[cfg(not(feature = "format"))]
 macro_rules! apply_interface {
     ($fn:ident, $format:expr $(,$args:ident)*) => {
-        $fn(StandardFastDataInterface::new($format) $(,$args)*)
+        apply_standard_interface!($fn, $format $(, $args)*)
     };
 }
 
