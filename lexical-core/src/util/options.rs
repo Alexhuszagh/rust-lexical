@@ -560,11 +560,7 @@ impl ParseFloatOptions {
     /// Get the exponent character.
     #[inline(always)]
     pub const fn exponent(&self) -> u8 {
-        if self.radix() < 15 {
-            self.format.exponent()
-        } else {
-            self.format.exponent_backup()
-        }
+        self.format.exponent(self.radix())
     }
 
     // SETTERS
@@ -1015,12 +1011,7 @@ impl WriteFloatOptions {
             None => DEFAULT_FORMAT,
         };
 
-        // Get our exponent character from the unwrapped format.
-        if self.radix() < 15 {
-            format.exponent()
-        } else {
-            format.exponent_backup()
-        }
+        format.exponent(self.radix())
     }
 
     // SETTERS

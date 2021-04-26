@@ -31,3 +31,6 @@ mod small_powers_64;
 // Export algorithms.
 pub(crate) mod correct;
 pub(crate) mod incorrect;
+
+// Re-export the float type.
+pub(crate) use self::alias::FloatType;

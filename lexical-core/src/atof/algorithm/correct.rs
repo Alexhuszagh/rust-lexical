@@ -265,12 +265,19 @@ pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, trunca
 
 /// Fallback method. Do not inline so the stack requirements only occur
 /// if required.
-fn pown_fallback<'a, F, Data>(data: Data, mantissa: u64, radix: u32, lossy: bool, sign: Sign)
+fn pown_fallback<'a, F, Data>(
+    data: Data,
+    mantissa: u64,
+    radix: u32,
+    lossy: bool,
+    sign: Sign,
+    rounding: RoundingKind
+)
     -> F
     where F: FloatType,
           Data: SlowDataInterface<'a>
 {
-    let kind = global_rounding(sign);
+    let kind = internal_rounding(rounding, sign);
 
     // Moderate path (use an extended 80-bit representation).
     let exponent = data.mantissa_exponent();
@@ -299,7 +306,8 @@ fn pown_to_native<'a, F, Data>(
     radix: u32,
     incorrect: bool,
     lossy: bool,
-    sign: Sign
+    sign: Sign,
+    rounding: RoundingKind
 )
     -> ParseResult<(F, *const u8)>
     where F: FloatType,
@@ -324,14 +332,14 @@ fn pown_to_native<'a, F, Data>(
             incorrect_algorithm::to_native::<F, _>(data, radix)
         } else {
             let slow = data.to_slow(truncated);
-            pown_fallback(slow, mantissa, radix, lossy, sign)
+            pown_fallback(slow, mantissa, radix, lossy, sign, rounding)
         }
     } else if incorrect {
         incorrect_algorithm::to_native::<F, _>(data, radix)
     } else {
         // Can only use the moderate/slow path.
         let slow = data.to_slow(truncated);
-        pown_fallback(slow, mantissa, radix, lossy, sign)
+        pown_fallback(slow, mantissa, radix, lossy, sign, rounding)
     };
     Ok((float, ptr))
 }
@@ -340,7 +348,14 @@ fn pown_to_native<'a, F, Data>(
 
 /// Parse power-of-two radix string to native float.
 #[cfg(feature = "radix")]
-fn pow2_to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32, pow2_exp: i32, sign: Sign)
+fn pow2_to_native<'a, F, Data>(
+    mut data: Data,
+    bytes: &'a [u8],
+    radix: u32,
+    pow2_exp: i32,
+    sign: Sign,
+    rounding: RoundingKind
+)
     -> ParseResult<(F, *const u8)>
     where F: FloatType,
           Data: FastDataInterface<'a>
@@ -355,7 +370,7 @@ fn pow2_to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32, pow2
     let mantissa_size = F::MANTISSA_SIZE + 1;
     let float = if !truncated.is_zero() {
         // Truncated mantissa.
-        let kind = global_rounding(sign);
+        let kind = internal_rounding(rounding, sign);
         let slow = data.to_slow(truncated);
         if kind != RoundingKind::Downward {
             if cfg!(feature = "rounding") || kind == RoundingKind::NearestTieEven {
@@ -387,7 +402,7 @@ fn pow2_to_native<'a, F, Data>(mut data: Data, bytes: &'a [u8], radix: u32, pow2
         fp.into_rounded_float_impl::<F>(kind)
     } else if mantissa >> mantissa_size != 0 {
         // Would be truncated, use the extended float.
-        let kind = global_rounding(sign);
+        let kind = internal_rounding(rounding, sign);
         let slow = data.to_slow(truncated);
         let exponent = slow.mantissa_exponent().saturating_mul(pow2_exp);
         let fp = ExtendedFloat { mant: mantissa, exp: exponent };
@@ -419,61 +434,29 @@ fn pow2_exponent(radix: u32) -> i32 {
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline(always)]
-fn to_native<F>(
+pub(crate) fn to_native<F>(
     bytes: &[u8],
     sign: Sign,
     format: NumberFormat,
     radix: u32,
     incorrect: bool,
-    lossy: bool
+    lossy: bool,
+    rounding: RoundingKind
 )
     -> ParseResult<(F, *const u8)>
     where F: FloatType
 {
     #[cfg(not(feature = "radix"))] {
-        apply_interface!(pown_to_native, format, bytes, radix, incorrect, lossy, sign)
+        apply_interface!(pown_to_native, format, bytes, radix, incorrect, lossy, sign, rounding)
     }
 
     #[cfg(feature = "radix")] {
         let pow2_exp = pow2_exponent(radix);
         match pow2_exp {
-            0 => apply_interface!(pown_to_native, format, bytes, radix, incorrect, lossy, sign),
-            _ => apply_interface!(pow2_to_native, format, bytes, radix, pow2_exp, sign)
+            0 => apply_interface!(pown_to_native, format, bytes, radix, incorrect, lossy, sign, rounding),
+            _ => apply_interface!(pow2_to_native, format, bytes, radix, pow2_exp, sign, rounding)
         }
     }
-}
-
-// ATOF/ATOD
-// ---------
-
-/// Parse 32-bit float from string.
-#[inline(always)]
-pub(crate) fn atof(
-    bytes: &[u8],
-    sign: Sign,
-    format: NumberFormat,
-    radix: u32,
-    incorrect: bool,
-    lossy: bool
-)
-    -> ParseResult<(f32, *const u8)>
-{
-    to_native::<f32>(bytes, sign, format, radix, incorrect, lossy)
-}
-
-/// Parse 64-bit float from string.
-#[inline(always)]
-pub(crate) fn atod(
-    bytes: &[u8],
-    sign: Sign,
-    format: NumberFormat,
-    radix: u32,
-    incorrect: bool,
-    lossy: bool
-)
-    -> ParseResult<(f64, *const u8)>
-{
-    to_native::<f64>(bytes, sign, format, radix, incorrect, lossy)
 }
 
 // TESTS

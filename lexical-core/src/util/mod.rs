@@ -65,7 +65,7 @@ pub(crate) use self::wrapped::*;
 pub(crate) use self::skip_value::*;
 
 // Publicly export config globally.
-pub use self::config::*;
+pub use self::config::*;    // TODO(ahuszagh) Remove the config options.
 pub use self::error::*;
 pub use self::format::*;
 pub use self::num::*;

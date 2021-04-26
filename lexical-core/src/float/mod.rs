@@ -7,8 +7,8 @@ pub(crate) mod mantissa;
 pub(crate) mod rounding;
 pub(crate) mod shift;
 
-// Re-export rounding types. TODO(ahuszagh) Remove this helper.
-pub(crate) use self::rounding::global_rounding;
+// Re-export rounding types.
+pub(crate) use self::rounding::internal_rounding;
 
 // Re-export the extended-precision floating-point type.
 pub use self::float::{ExtendedFloat, ExtendedFloat80, ExtendedFloat160};

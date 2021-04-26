@@ -76,29 +76,40 @@ impl Atoi for i128 {
 // ATOI
 // ----
 
-#[inline]
-pub(crate) fn atoi<'a, T>(bytes: &'a [u8], radix: u32)
-    -> Result<(T, usize)>
-    where T: Atoi
-{
-    let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match T::atoi(bytes, radix) {
-        Ok((value, ptr)) => Ok((value, index(ptr))),
-        Err((code, ptr)) => Err((code, index(ptr)).into()),
-    }
+/// Generate a wrapper for our atoi functions.
+macro_rules! atoi {
+    ($type:ty, $func:ident, $bytes:ident $(, $args:expr)*) => {{
+        let index = | ptr | distance($bytes.as_ptr(), ptr);
+        match <$type>::$func($bytes $(, $args)*) {
+            Ok((value, ptr)) => Ok((value, index(ptr))),
+            Err((code, ptr)) => Err((code, index(ptr)).into()),
+        }
+    }};
 }
 
+// Optimized atoi with default options.
 #[inline]
-#[cfg(feature = "format")]
-pub(crate) fn atoi_format<'a, T>(bytes: &'a [u8], radix: u32, format: NumberFormat)
+pub(crate) fn atoi<'a, T>(bytes: &'a [u8])
     -> Result<(T, usize)>
     where T: Atoi
 {
-    let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match T::atoi_format(bytes, radix, format) {
-        Ok((value, ptr)) => Ok((value, index(ptr))),
-        Err((code, ptr)) => Err((code, index(ptr)).into()),
-    }
+    atoi!(T, atoi, bytes, 10)
+}
+
+// Atoi with custom options.
+#[inline]
+pub(crate) fn atoi_with_options<'a, T>(bytes: &'a [u8], options: &ParseIntegerOptions)
+    -> Result<(T, usize)>
+    where T: Atoi
+{
+    #[cfg(not(feature = "format"))]
+    return atoi!(T, atoi, bytes, options.radix());
+
+    #[cfg(feature = "format")]
+    return match options.format() {
+        None => atoi!(T, atoi, bytes, options.radix()),
+        Some(format) => atoi!(T, atoi_format, bytes, options.radix(), format),
+    };
 }
 
 // FROM LEXICAL
@@ -118,22 +129,19 @@ from_lexical!(atoi, i64);
 from_lexical!(atoi, isize);
 from_lexical!(atoi, i128);
 
-cfg_if!{
-if #[cfg(feature = "format")] {
-    from_lexical_format!(atoi_format, u8);
-    from_lexical_format!(atoi_format, u16);
-    from_lexical_format!(atoi_format, u32);
-    from_lexical_format!(atoi_format, u64);
-    from_lexical_format!(atoi_format, usize);
-    from_lexical_format!(atoi_format, u128);
+from_lexical_with_options!(atoi_with_options, u8);
+from_lexical_with_options!(atoi_with_options, u16);
+from_lexical_with_options!(atoi_with_options, u32);
+from_lexical_with_options!(atoi_with_options, u64);
+from_lexical_with_options!(atoi_with_options, usize);
+from_lexical_with_options!(atoi_with_options, u128);
 
-    from_lexical_format!(atoi_format, i8);
-    from_lexical_format!(atoi_format, i16);
-    from_lexical_format!(atoi_format, i32);
-    from_lexical_format!(atoi_format, i64);
-    from_lexical_format!(atoi_format, isize);
-    from_lexical_format!(atoi_format, i128);
-}}
+from_lexical_with_options!(atoi_with_options, i8);
+from_lexical_with_options!(atoi_with_options, i16);
+from_lexical_with_options!(atoi_with_options, i32);
+from_lexical_with_options!(atoi_with_options, i64);
+from_lexical_with_options!(atoi_with_options, isize);
+from_lexical_with_options!(atoi_with_options, i128);
 
 // TESTS
 // -----

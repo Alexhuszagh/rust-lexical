@@ -11,6 +11,7 @@ use super::cast::{AsCast, TryCast};
 use super::config::*;
 use super::limb::Limb;
 use super::primitive::Primitive;
+use super::options::*;
 use super::sequence::CloneableVecLike;
 
 #[cfg(any(feature = "f128", feature = "radix"))]
@@ -42,33 +43,42 @@ pub trait Number:
     const FORMATTED_SIZE_DECIMAL: usize;
     /// If the type can hold a signed (negative) value.
     const IS_SIGNED: bool;
+
+    // OPTIONS
+    type WriteOptions;
+    type ParseOptions;
 }
 
 macro_rules! number_impl {
-    ($($t:tt $radix_size:ident $decimal_size:ident $is_signed:expr ; )*) => ($(
+    ($($t:tt $radix_size:ident $decimal_size:ident $is_signed:literal $write_options:ident $parse_options:ident ; )*) => ($(
         impl Number for $t {
             const FORMATTED_SIZE: usize = $radix_size;
             const FORMATTED_SIZE_DECIMAL: usize = $decimal_size;
             const IS_SIGNED: bool = $is_signed;
+            type WriteOptions = $write_options;
+            type ParseOptions = $parse_options;
         }
     )*)
 }
 
 number_impl! {
-    u8 U8_FORMATTED_SIZE U8_FORMATTED_SIZE_DECIMAL false ;
-    u16 U16_FORMATTED_SIZE U16_FORMATTED_SIZE_DECIMAL false ;
-    u32 U32_FORMATTED_SIZE U32_FORMATTED_SIZE_DECIMAL false ;
-    u64 U64_FORMATTED_SIZE U64_FORMATTED_SIZE_DECIMAL false ;
-    u128 U128_FORMATTED_SIZE U128_FORMATTED_SIZE_DECIMAL false ;
-    usize USIZE_FORMATTED_SIZE USIZE_FORMATTED_SIZE_DECIMAL false ;
-    i8 I8_FORMATTED_SIZE I8_FORMATTED_SIZE_DECIMAL true ;
-    i16 I16_FORMATTED_SIZE I16_FORMATTED_SIZE_DECIMAL true ;
-    i32 I32_FORMATTED_SIZE I32_FORMATTED_SIZE_DECIMAL true ;
-    i64 I64_FORMATTED_SIZE I64_FORMATTED_SIZE_DECIMAL true ;
-    i128 I128_FORMATTED_SIZE I128_FORMATTED_SIZE_DECIMAL true ;
-    isize ISIZE_FORMATTED_SIZE ISIZE_FORMATTED_SIZE_DECIMAL true ;
-    f32 F32_FORMATTED_SIZE F32_FORMATTED_SIZE_DECIMAL true ;
-    f64 F64_FORMATTED_SIZE F64_FORMATTED_SIZE_DECIMAL true ;
+    u8 U8_FORMATTED_SIZE U8_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions ;
+    u16 U16_FORMATTED_SIZE U16_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions ;
+    u32 U32_FORMATTED_SIZE U32_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions ;
+    u64 U64_FORMATTED_SIZE U64_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions ;
+    u128 U128_FORMATTED_SIZE U128_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions ;
+    usize USIZE_FORMATTED_SIZE USIZE_FORMATTED_SIZE_DECIMAL false WriteIntegerOptions ParseIntegerOptions ;
+    i8 I8_FORMATTED_SIZE I8_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions ;
+    i16 I16_FORMATTED_SIZE I16_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions ;
+    i32 I32_FORMATTED_SIZE I32_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions ;
+    i64 I64_FORMATTED_SIZE I64_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions ;
+    i128 I128_FORMATTED_SIZE I128_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions ;
+    isize ISIZE_FORMATTED_SIZE ISIZE_FORMATTED_SIZE_DECIMAL true WriteIntegerOptions ParseIntegerOptions ;
+    // f16
+    // bf16
+    f32 F32_FORMATTED_SIZE F32_FORMATTED_SIZE_DECIMAL true WriteFloatOptions ParseFloatOptions ;
+    f64 F64_FORMATTED_SIZE F64_FORMATTED_SIZE_DECIMAL true WriteFloatOptions ParseFloatOptions ;
+    // f128
 }
 
 // INTEGER

@@ -250,9 +250,9 @@ pub(crate) const fn is_valid_decimal_point(ch: u8) -> bool {
     is_valid_digit_separator(ch)
 }
 
-/// Determine if exponent character is valid.
+/// Determine if the exponent default character is valid.
 #[inline]
-pub(crate) const fn is_valid_exponent(ch: u8) -> bool {
+pub(crate) const fn is_valid_exponent_default(ch: u8) -> bool {
     match ch {
         b'0' ..= b'9' => false,
         b'+' | b'-'   => false,
@@ -302,21 +302,21 @@ macro_rules! from_flags {
 }
 
 /// Bit shift for the exponent from the start of the format flags.
-const EXPONENT_SHIFT: u32 = 18;
+const EXPONENT_DEFAULT_SHIFT: u32 = 18;
 
 /// Mask to extract the exponent after shifting.
-const EXPONENT_MASK: u8 = 0x7F;
+const EXPONENT_DEFAULT_MASK: u8 = 0x7F;
 
 /// Convert exponent to flags.
 #[inline]
-pub(crate) const fn exponent_to_flags(ch: u8) -> u64 {
-    to_flags!(ch, EXPONENT_SHIFT, EXPONENT_MASK)
+pub(crate) const fn exponent_default_to_flags(ch: u8) -> u64 {
+    to_flags!(ch, EXPONENT_DEFAULT_SHIFT, EXPONENT_DEFAULT_MASK)
 }
 
 /// Extract exponent from flags.
 #[inline]
-pub(crate) const fn exponent_from_flags(flag: u64) -> u8 {
-    from_flags!(flag, EXPONENT_SHIFT, EXPONENT_MASK)
+pub(crate) const fn exponent_default_from_flags(flag: u64) -> u8 {
+    from_flags!(flag, EXPONENT_DEFAULT_SHIFT, EXPONENT_DEFAULT_MASK)
 }
 
 /// Bit shift for the exponent backup from the start of the format flags.
@@ -392,7 +392,7 @@ macro_rules! check_masks_and_flags {
 }
 
 // Masks do not overlap.
-check_subsequent_masks!(EXPONENT_MASK, EXPONENT_SHIFT, EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT);
+check_subsequent_masks!(EXPONENT_DEFAULT_MASK, EXPONENT_DEFAULT_SHIFT, EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT);
 check_subsequent_masks!(EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT, DECIMAL_POINT_MASK, DECIMAL_POINT_SHIFT);
 check_subsequent_masks!(DECIMAL_POINT_MASK, DECIMAL_POINT_SHIFT, DIGIT_SEPARATOR_MASK, DIGIT_SEPARATOR_SHIFT);
 
@@ -436,11 +436,11 @@ mod tests {
 
     #[test]
     fn test_is_valid_exponent() {
-        assert_eq!(is_valid_exponent(b'_'), true);
-        assert_eq!(is_valid_exponent(b'\''), true);
-        assert_eq!(is_valid_exponent(b'.'), true);
-        assert_eq!(is_valid_exponent(b'e'), true);
-        assert_eq!(is_valid_exponent(b'0'), false);
-        assert_eq!(is_valid_exponent(128), false);
+        assert_eq!(is_valid_exponent_default(b'_'), true);
+        assert_eq!(is_valid_exponent_default(b'\''), true);
+        assert_eq!(is_valid_exponent_default(b'.'), true);
+        assert_eq!(is_valid_exponent_default(b'e'), true);
+        assert_eq!(is_valid_exponent_default(b'0'), false);
+        assert_eq!(is_valid_exponent_default(128), false);
     }
 }

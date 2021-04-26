@@ -13,8 +13,8 @@ bitflags! {
     ///
     /// This is used to derive the high-level bitflags. The default
     /// representation has a b'.' character for the decimal point,
-    /// a b'e' character for the exponent, and a b'^' character for
-    /// the exponent backup.
+    /// a b'e' character for the exponent default, and a b'^' character
+    /// for the exponent backup.
     ///
     /// Bit Flags Layout
     /// ----------------
@@ -24,11 +24,11 @@ bitflags! {
     ///
     /// The bitflags has the lower bits designated for flags that modify
     /// the parsing behavior of lexical, with 7 bits each set for the
-    /// decimal point, exponent, and backup exponent, allowing any valid
-    /// ASCII character as punctuation. Bits 18-25 for the exponent
-    /// character, bits 25-32 for the exponent backup character, bits
-    /// 50-57 for the decimal point character, and the last 7 bits for
-    /// the digit separator character.
+    /// decimal point, default exponent, and backup exponent, allowing
+    /// any valid ASCII character as punctuation. Bits 18-25 for the
+    /// exponent default character, bits 25-32 for the exponent backup
+    /// character, bits 50-57 for the decimal point character, and the
+    /// last 7 bits for the digit separator character.
     ///
     /// ```text
     /// 0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16
@@ -38,7 +38,7 @@ bitflags! {
     ///
     /// 16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    /// |       |         Exponent          |     Exponent Backup       |
+    /// |       |     Exponent Default      |     Exponent Backup       |
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     ///
     /// 32  33  34  35  36  37  38  39  40  41 42  43  44  45  46  47   48
@@ -59,7 +59,7 @@ bitflags! {
         /// Standard float format.
         #[doc(hidden)]
         const STANDARD = (
-            flags::exponent_to_flags(b'e')
+            flags::exponent_default_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
         );
@@ -98,16 +98,26 @@ impl NumberFormat {
         flags::decimal_point_from_flags(self.bits)
     }
 
-    /// Get the exponent character for the number format.
+    /// Get the default exponent character for the number format.
     #[inline(always)]
-    pub const fn exponent(self) -> u8 {
-        flags::exponent_from_flags(self.bits)
+    pub const fn exponent_default(self) -> u8 {
+        flags::exponent_default_from_flags(self.bits)
     }
 
     /// Get the backup exponent character for the number format.
     #[inline(always)]
     pub const fn exponent_backup(self) -> u8 {
         flags::exponent_backup_from_flags(self.bits)
+    }
+
+    /// Get the exponent character based on the radix.
+    #[inline(always)]
+    pub const fn exponent(self, radix: u32) -> u8 {
+        if cfg!(feature = "radix") && radix < 15 {
+            self.exponent_default()
+        } else {
+            self.exponent_backup()
+        }
     }
 
     /// Get if digits are required before the decimal point.
@@ -309,7 +319,7 @@ impl NumberFormat {
     pub const fn rebuild(self) -> NumberFormatBuilder {
         NumberFormatBuilder {
             decimal_point: self.decimal_point(),
-            exponent: self.exponent(),
+            exponent_default: self.exponent_default(),
             exponent_backup: self.exponent_backup()
         }
     }
@@ -320,7 +330,7 @@ impl NumberFormat {
 /// Build float format value from specifications.
 ///
 /// * `decimal_point`                           - Character to designate the decimal point.
-/// * `exponent`                                - Character to designate the exponent.
+/// * `exponent_default`                        - Default character to designate the exponent.
 /// * `exponent_backup`                         - Backup character to designate the exponent for radix >= 0xE.
 ///
 /// Returns the format on calling build if it was able to compile the format,
@@ -328,7 +338,7 @@ impl NumberFormat {
 #[derive(Debug, Clone)]
 pub struct NumberFormatBuilder {
     decimal_point: u8,
-    exponent: u8,
+    exponent_default: u8,
     exponent_backup: u8,
 }
 
@@ -338,7 +348,7 @@ impl NumberFormatBuilder {
     pub const fn new() -> Self {
         Self {
             decimal_point: b'.',
-            exponent: b'e',
+            exponent_default: b'e',
             exponent_backup: b'^',
         }
     }
@@ -352,10 +362,10 @@ impl NumberFormatBuilder {
         self
     }
 
-    /// Set the exponent character for the number format.
+    /// Set the default exponent character for the number format.
     #[inline(always)]
-    pub const fn exponent(mut self, exponent: u8) -> Self {
-        self.exponent = exponent;
+    pub const fn exponent_default(mut self, exponent_default: u8) -> Self {
+        self.exponent_default = exponent_default;
         self
     }
 
@@ -377,15 +387,15 @@ impl NumberFormatBuilder {
 
         // Add punctuation characters.
         format.bits |= flags::decimal_point_to_flags(self.decimal_point);
-        format.bits |= flags::exponent_to_flags(self.exponent);
+        format.bits |= flags::exponent_default_to_flags(self.exponent_default);
         format.bits |= flags::exponent_backup_to_flags(self.exponent_backup);
 
         // Validation.
         let is_invalid =
             !flags::is_valid_decimal_point(self.decimal_point)
-            || !flags::is_valid_exponent(self.exponent)
+            || !flags::is_valid_exponent_default(self.exponent_default)
             || !flags::is_valid_exponent_backup(self.exponent_backup)
-            || !flags::is_valid_punctuation(b'\x00', self.decimal_point, self.exponent, self.exponent_backup);
+            || !flags::is_valid_punctuation(b'\x00', self.decimal_point, self.exponent_default, self.exponent_backup);
 
         match is_invalid {
             true  => None,
@@ -415,7 +425,7 @@ mod tests {
         assert_eq!(flag.interface_flags(), flag);
         assert_eq!(flag.digit_separator(), b'\x00');
         assert_eq!(flag.decimal_point(), b'.');
-        assert_eq!(flag.exponent(), b'e');
+        assert_eq!(flag.exponent_default(), b'e');
         assert_eq!(flag.required_integer_digits(), false);
         assert_eq!(flag.required_fraction_digits(), false);
         assert_eq!(flag.required_exponent_digits(), true);
@@ -455,7 +465,7 @@ mod tests {
     #[test]
     fn test_builder() {
         // Test a few invalid ones.
-        let flag = NumberFormat::builder().exponent(b'.').build();
+        let flag = NumberFormat::builder().exponent_default(b'.').build();
         assert_eq!(flag, None);
 
         // Test a few valid ones.
@@ -463,7 +473,7 @@ mod tests {
         assert!(flag.is_some());
         let flag = flag.unwrap();
         assert_eq!(flag.decimal_point(), b'.');
-        assert_eq!(flag.exponent(), b'e');
+        assert_eq!(flag.exponent_default(), b'e');
         assert_eq!(flag.exponent_backup(), b'^');
     }
 
@@ -472,6 +482,6 @@ mod tests {
         let flag = NumberFormat::STANDARD;
         let flag = flag.rebuild().decimal_point(b',').build().unwrap();
         assert_eq!(flag.decimal_point(), b',');
-        assert_eq!(flag.exponent(), b'e');
+        assert_eq!(flag.exponent_default(), b'e');
     }
 }

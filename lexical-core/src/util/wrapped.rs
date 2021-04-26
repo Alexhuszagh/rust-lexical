@@ -7,9 +7,11 @@
 //! are implemented, and others (like bitshift assigns) are unimplemented.
 
 use crate::lib::{cmp, fmt, iter, ops};
+
 use super::cast::*;
 use super::config::*;
 use super::num::*;
+use super::options::*;
 use super::primitive::*;
 
 // WRAPPED FLOAT
@@ -291,6 +293,8 @@ impl<T: Float> Number for WrappedFloat<T> {
     const FORMATTED_SIZE: usize = T::FORMATTED_SIZE;
     const FORMATTED_SIZE_DECIMAL: usize = T::FORMATTED_SIZE_DECIMAL;
     const IS_SIGNED: bool = T::IS_SIGNED;
+    type WriteOptions = WriteFloatOptions;
+    type ParseOptions = ParseFloatOptions;
 }
 
 // IMPL INTEGER
