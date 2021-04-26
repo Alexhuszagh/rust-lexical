@@ -307,7 +307,7 @@ pub(crate) fn standalone_no_separator<T>(bytes: &[u8], radix: u32)
 // Extract exponent with a digit separator in the exponent component.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn standalone_separator<V>(bytes: &[u8], format: NumberFormat)
+pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFormat)
     -> ParseResult<(V, *const u8)>
     where V: Integer
 {
@@ -327,7 +327,6 @@ pub(crate) fn standalone_separator<V>(bytes: &[u8], format: NumberFormat)
     const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
     const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
 
-    let radix = format.radix() as u32;
     let digit_separator = format.digit_separator();
     let (value, ptr) = match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {
         I       => standalone_i(bytes, radix, digit_separator),
@@ -631,7 +630,7 @@ pub(crate) fn standalone_128_no_separator<W, N>(bytes: &[u8], radix: u32)
 // Extract exponent with a digit separator in the exponent component.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], format: NumberFormat)
+pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], radix: u32, format: NumberFormat)
     -> ParseResult<(W, *const u8)>
     where W: Integer,
           N: Integer
@@ -652,7 +651,6 @@ pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], format: NumberFormat)
     const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
     const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
 
-    let radix = format.radix() as u32;
     let digit_separator = format.digit_separator();
     let (value, ptr) = match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {
         I       => standalone_128_i::<W, N>(bytes, radix, digit_separator),

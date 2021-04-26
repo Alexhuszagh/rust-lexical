@@ -12,6 +12,7 @@ use static_assertions::const_assert;
 // ------
 
 /// Add flag to flags
+#[cfg(feature = "format")]
 macro_rules! add_flag {
     ($flags:ident, $bool:expr, $flag:ident) => {
         if $bool {
@@ -75,6 +76,39 @@ pub(crate) const NO_SPECIAL: u64                           = 0b00000000000000000
 
 /// Special (non-finite) values are case-sensitive.
 pub(crate) const CASE_SENSITIVE_SPECIAL: u64               = 0b0000000000000000000000000000000000000000000000000000010000000000;
+
+/// Leading zeros before an integer value are not allowed.
+///
+/// If the value is a literal, then this distinction applies
+/// when the value is treated like an integer literal, typically
+/// when there is no decimal point. If the value is parsed,
+/// then this distinction applies when the value as parsed
+/// as an integer.
+///
+/// # Warning
+///
+/// This also does not mean that the value parsed will be correct,
+/// for example, in languages like C, this will not auto-
+/// deduce that the radix is 8 with leading zeros, for an octal
+/// literal.
+pub(crate) const NO_INTEGER_LEADING_ZEROS: u64             = 0b0000000000000000000000000000000000000000000000000000100000000000;
+
+/// Leading zeros before a float value are not allowed.
+///
+/// If the value is a literal, then this distinction applies
+/// when the value is treated like an integer float, typically
+/// when there is a decimal point. If the value is parsed,
+/// then this distinction applies when the value as parsed
+/// as a float.
+///
+/// # Warning
+///
+/// This also does not mean that the value parsed will be correct,
+/// for example, in languages like C, this will not auto-
+/// deduce that the radix is 8 with leading zeros, for an octal
+/// literal.
+pub(crate) const NO_FLOAT_LEADING_ZEROS: u64               = 0b0000000000000000000000000000000000000000000000000001000000000000;
+
 
 // DIGIT SEPARATOR FLAGS & MASKS
 // -----------------------------
@@ -142,54 +176,6 @@ pub(crate) const CONSECUTIVE_DIGIT_SEPARATOR: u64          =
 /// Any digit separators are allowed in special (non-finite) values.
 pub(crate) const SPECIAL_DIGIT_SEPARATOR: u64              = 0b0000000000000000000100000000000000000000000000000000000000000000;
 
-// LEADING ZERO FLAGS & MASKS
-// --------------------------
-
-// TODO(ahuszagh) Move these back to the non-digit separator flags.
-
-/// Leading zeros before an integer value are not allowed.
-///
-/// If the value is a literal, then this distinction applies
-/// when the value is treated like an integer literal, typically
-/// when there is no decimal point. If the value is parsed,
-/// then this distinction applies when the value as parsed
-/// as an integer.
-///
-/// # Warning
-///
-/// This also does not mean that the value parsed will be correct,
-/// for example, in languages like C, this will not auto-
-/// deduce that the radix is 8 with leading zeros, for an octal
-/// literal.
-pub(crate) const NO_INTEGER_LEADING_ZEROS: u64             = 0b0000000000000000010000000000000000000000000000000000000000000000;
-
-/// Leading zeros before a float value are not allowed.
-///
-/// If the value is a literal, then this distinction applies
-/// when the value is treated like an integer float, typically
-/// when there is a decimal point. If the value is parsed,
-/// then this distinction applies when the value as parsed
-/// as a float.
-///
-/// # Warning
-///
-/// This also does not mean that the value parsed will be correct,
-/// for example, in languages like C, this will not auto-
-/// deduce that the radix is 8 with leading zeros, for an octal
-/// literal.
-pub(crate) const NO_FLOAT_LEADING_ZEROS: u64               = 0b0000000000000000100000000000000000000000000000000000000000000000;
-
-// CONVERSION PRECISION FLAGS & MASKS
-// ----------------------------------
-// These control the precision and speed of the conversion
-// routines used to parse or serialize the number.
-
-/// Use the fastest, incorrect parsing algorithm.
-pub(crate) const INCORRECT: u64                            = 0b0000000000000001000000000000000000000000000000000000000000000000;
-
-/// Use the intermediate, lossy parsing algorithm.
-pub(crate) const LOSSY: u64                                = 0b0000000000000010000000000000000000000000000000000000000000000000;
-
 // FLAG ASSERTIONS
 // ---------------
 
@@ -212,6 +198,9 @@ check_subsequent_flags!(NO_POSITIVE_EXPONENT_SIGN, REQUIRED_EXPONENT_SIGN);
 check_subsequent_flags!(REQUIRED_EXPONENT_SIGN, NO_EXPONENT_WITHOUT_FRACTION);
 check_subsequent_flags!(NO_EXPONENT_WITHOUT_FRACTION, NO_SPECIAL);
 check_subsequent_flags!(NO_SPECIAL, CASE_SENSITIVE_SPECIAL);
+check_subsequent_flags!(NO_SPECIAL, CASE_SENSITIVE_SPECIAL);
+check_subsequent_flags!(CASE_SENSITIVE_SPECIAL, NO_INTEGER_LEADING_ZEROS);
+check_subsequent_flags!(NO_INTEGER_LEADING_ZEROS, NO_FLOAT_LEADING_ZEROS);
 
 // Digit separator flags.
 const_assert!(INTEGER_INTERNAL_DIGIT_SEPARATOR == 1 << 32);
@@ -227,12 +216,6 @@ check_subsequent_flags!(EXPONENT_INTERNAL_DIGIT_SEPARATOR, EXPONENT_LEADING_DIGI
 check_subsequent_flags!(EXPONENT_LEADING_DIGIT_SEPARATOR, EXPONENT_TRAILING_DIGIT_SEPARATOR);
 check_subsequent_flags!(EXPONENT_TRAILING_DIGIT_SEPARATOR, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
 check_subsequent_flags!(EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPARATOR);
-
-// Conversion precision flags
-const_assert!(NO_INTEGER_LEADING_ZEROS == 1 << 46);
-check_subsequent_flags!(NO_INTEGER_LEADING_ZEROS, NO_FLOAT_LEADING_ZEROS);
-check_subsequent_flags!(NO_FLOAT_LEADING_ZEROS, INCORRECT);
-check_subsequent_flags!(INCORRECT, LOSSY);
 
 // VALIDATORS
 // ----------
@@ -305,20 +288,6 @@ pub(crate) const fn is_valid_punctuation(digit_separator: u8, decimal_point: u8,
     }
 }
 
-/// Determine if the radix is valid.
-#[cfg(not(feature = "radix"))]
-#[inline]
-pub(crate) const fn is_valid_radix(radix: u8) -> bool {
-    radix == 10
-}
-
-/// Determine if the radix is valid.
-#[cfg(feature = "radix")]
-#[inline]
-pub(crate) const fn is_valid_radix(radix: u8) -> bool {
-    radix >= 2 && radix <= 36
-}
-
 // FLAG FUNCTIONS
 // --------------
 
@@ -330,25 +299,6 @@ macro_rules! to_flags {
 /// Convert a flag, shift and mask to a character.
 macro_rules! from_flags {
     ($flag:ident, $shift:ident, $mask:ident) => ((($flag >> $shift) as u8) & $mask);
-}
-
-/// Bit shift for the radix from the start of the format flags.
-// TODO(ahuszagh) Overlaps with NO_FLOAT_LEADING_ZEROS
-const RADIX_SHIFT: u32 = 12;
-
-/// Mask to extract the radix after shifting.
-const RADIX_MASK: u8 = 0x3F;
-
-/// Convert radix to flags.
-#[inline]
-pub(crate) const fn radix_to_flags(ch: u8) -> u64 {
-    to_flags!(ch, RADIX_SHIFT, RADIX_MASK)
-}
-
-/// Extract radix from flags.
-#[inline]
-pub(crate) const fn radix_from_flags(flag: u64) -> u8 {
-    from_flags!(flag, RADIX_SHIFT, RADIX_MASK)
 }
 
 /// Bit shift for the exponent from the start of the format flags.
@@ -442,15 +392,12 @@ macro_rules! check_masks_and_flags {
 }
 
 // Masks do not overlap.
-check_subsequent_masks!(RADIX_MASK, RADIX_SHIFT, EXPONENT_MASK, EXPONENT_SHIFT);
 check_subsequent_masks!(EXPONENT_MASK, EXPONENT_SHIFT, EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT);
 check_subsequent_masks!(EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT, DECIMAL_POINT_MASK, DECIMAL_POINT_SHIFT);
 check_subsequent_masks!(DECIMAL_POINT_MASK, DECIMAL_POINT_SHIFT, DIGIT_SEPARATOR_MASK, DIGIT_SEPARATOR_SHIFT);
 
 // Check masks don't overlap with neighboring flags.
-check_masks_and_flags!(RADIX_MASK, RADIX_SHIFT, CASE_SENSITIVE_SPECIAL);
 check_masks_and_flags!(EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT, INTEGER_INTERNAL_DIGIT_SEPARATOR);
-check_masks_and_flags!(DECIMAL_POINT_MASK, DECIMAL_POINT_SHIFT, LOSSY);
 
 // TESTS
 // -----

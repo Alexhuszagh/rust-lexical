@@ -12,7 +12,7 @@ pub(crate) trait Atoi: Integer {
 
     // Parse integer from string with format.
     #[cfg(feature = "format")]
-    fn atoi_format(bytes: &[u8], format: NumberFormat) -> ParseResult<(Self, *const u8)>;
+    fn atoi_format(bytes: &[u8], radix: u32, format: NumberFormat) -> ParseResult<(Self, *const u8)>;
 }
 
 // Implement atoi for type.
@@ -28,10 +28,10 @@ macro_rules! atoi_impl {
 
             #[inline(always)]
             #[cfg(feature = "format")]
-            fn atoi_format(bytes: &[u8], format: NumberFormat)
+            fn atoi_format(bytes: &[u8], radix: u32, format: NumberFormat)
                 -> ParseResult<($t, *const u8)>
             {
-                standalone_separator(bytes, format)
+                standalone_separator(bytes, radix, format)
             }
         }
     )*);
@@ -49,10 +49,10 @@ impl Atoi for u128 {
 
     #[inline(always)]
     #[cfg(feature = "format")]
-    fn atoi_format(bytes: &[u8], format: NumberFormat)
+    fn atoi_format(bytes: &[u8], radix: u32, format: NumberFormat)
         -> ParseResult<(u128, *const u8)>
     {
-        standalone_128_separator::<u128, u64>(bytes, format)
+        standalone_128_separator::<u128, u64>(bytes, radix, format)
     }
 }
 
@@ -66,10 +66,10 @@ impl Atoi for i128 {
 
     #[inline(always)]
     #[cfg(feature = "format")]
-    fn atoi_format(bytes: &[u8], format: NumberFormat)
+    fn atoi_format(bytes: &[u8], radix: u32, format: NumberFormat)
         -> ParseResult<(i128, *const u8)>
     {
-        standalone_128_separator::<i128, i64>(bytes, format)
+        standalone_128_separator::<i128, i64>(bytes, radix, format)
     }
 }
 
@@ -88,16 +88,14 @@ pub(crate) fn atoi<'a, T>(bytes: &'a [u8], radix: u32)
     }
 }
 
-// TODO(ahuszagh) Remove the radix.
 #[inline]
 #[cfg(feature = "format")]
 pub(crate) fn atoi_format<'a, T>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> Result<(T, usize)>
     where T: Atoi
 {
-    let format = format | NumberFormat::from_radix(radix as u8);
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match T::atoi_format(bytes, format) {
+    match T::atoi_format(bytes, radix, format) {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }

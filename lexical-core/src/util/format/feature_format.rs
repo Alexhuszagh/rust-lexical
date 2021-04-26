@@ -15,8 +15,7 @@ bitflags! {
     /// representation has no digit separators, no required integer or
     /// fraction digits, required exponent digits, a b'.' character
     /// for the decimal point, a b'e' character for the exponent,
-    /// a b'^' character for the exponent backup, and does not
-    /// use the incorrect or lossy parser.
+    /// and a b'^' character for the exponent backup.
     ///
     /// Bit Flags Layout
     /// ----------------
@@ -25,34 +24,31 @@ bitflags! {
     /// the parsing behavior of lexical, with 7 bits each set for the
     /// decimal point, exponent, backup exponent, and digit separator,
     /// allowing any valid ASCII character as punctuation. The first
-    /// 12-bits are reserved for non-digit separator flags, bits 12-18
-    /// for the radix (if the radix feature is enabled), bits 18-25 for
-    /// the exponent character, bits 25-32 for the exponent backup
+    /// 12-bits are reserved for non-digit separator flags, bits 18-25
+    /// for the exponent character, bits 25-32 for the exponent backup
     /// character, bits 32-48 are reserved for digit separator flags,
-    /// bit 48 for the incorrect (fastest) float parser, bit 49 for the
-    /// lossy (intermediate) float parser, bits 50-57 for the decimal
-    /// point character, and the last 7 bits for the digit separator
-    /// character.
+    /// bits 50-57 for the decimal point character, and the last 7 bits
+    /// for the digit separator character.
     ///
     /// ```text
     /// 0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    /// |I/R|F/R|E/R|+/M|R/M|e/e|+/E|R/E|e/F|S/S|S/C|   |      R/D      |
+    /// |I/R|F/R|E/R|+/M|R/M|e/e|+/E|R/E|e/F|S/S|S/C|N/I|N/F|           |
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     ///
     /// 16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    /// |  R/D  |         Exponent          |     Exponent Backup       |
+    /// |       |         Exponent          |     Exponent Backup       |
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     ///
     /// 32  33  34  35  36  37  38  39  40  41 42  43  44  45  46  47   48
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    /// |I/I|F/I|E/I|I/L|F/L|E/L|I/T|F/T|E/T|I/C|F/C|E/C|S/D|   |N/I|N/F|
+    /// |I/I|F/I|E/I|I/L|F/L|E/L|I/T|F/T|E/T|I/C|F/C|E/C|S/D|   |       |
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     ///
     /// 48  49  50  51  52  53  54  55  56  57  58  59  60  62  62  63  64
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    /// |L/I|L/L|      Decimal Point        |     Digit Separator       |
+    /// |       |      Decimal Point        |     Digit Separator       |
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     ///
     /// Where:
@@ -67,6 +63,8 @@ bitflags! {
     ///     e/F = No exponent without fraction.
     ///     S/S = No special (non-finite) values.
     ///     S/C = Case-sensitive special (non-finite) values.
+    ///     N/I = No integer leading zeros.
+    ///     N/F = No float leading zeros.
     ///     I/I = Integer internal digit separator.
     ///     F/I = Fraction internal digit separator.
     ///     E/I = Exponent internal digit separator.
@@ -80,11 +78,6 @@ bitflags! {
     ///     F/C = Fraction consecutive digit separator.
     ///     E/C = Exponent consecutive digit separator.
     ///     S/D = Special (non-finite) digit separator.
-    ///     R/D = Radix (as a 6-bit integer).
-    ///     N/I = No integer leading zeros.
-    ///     N/F = No float leading zeros.
-    ///     L/I = Incorrect algorithm (everything done with native floats).
-    ///     L/L = Lossy algorithm (using the fast and moderate paths).
     /// ```
     ///
     /// Note:
@@ -316,6 +309,12 @@ bitflags! {
         #[doc(hidden)]
         const CASE_SENSITIVE_SPECIAL                = flags::CASE_SENSITIVE_SPECIAL;
 
+        #[doc(hidden)]
+        const NO_INTEGER_LEADING_ZEROS              = flags::NO_INTEGER_LEADING_ZEROS;
+
+        #[doc(hidden)]
+        const NO_FLOAT_LEADING_ZEROS                = flags::NO_FLOAT_LEADING_ZEROS;
+
         // DIGIT SEPARATOR FLAGS & MASKS
         // See `flags` for documentation.
 
@@ -370,23 +369,6 @@ bitflags! {
         #[doc(hidden)]
         const SPECIAL_DIGIT_SEPARATOR               = flags::SPECIAL_DIGIT_SEPARATOR;
 
-        // LEADING ZERO FLAGS & MASKS
-
-        #[doc(hidden)]
-        const NO_INTEGER_LEADING_ZEROS              = flags::NO_INTEGER_LEADING_ZEROS;
-
-        #[doc(hidden)]
-        const NO_FLOAT_LEADING_ZEROS                = flags::NO_FLOAT_LEADING_ZEROS;
-
-        // CONVERSION PRECISION FLAGS & MASKS
-        // See `flags` for documentation.
-
-        #[doc(hidden)]
-        const INCORRECT                             = flags::INCORRECT;
-
-        #[doc(hidden)]
-        const LOSSY                                 = flags::LOSSY;
-
         // PRE-DEFINED
         //
         // Sample Format Shorthand:
@@ -401,8 +383,7 @@ bitflags! {
         // RUST LITERAL [4569ABFGHIJKMN-_]
         /// Float format for a Rust literal floating-point number.
         const RUST_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -417,8 +398,7 @@ bitflags! {
         // RUST STRING [0134567MN]
         /// Float format to parse a Rust float from string.
         const RUST_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -427,8 +407,7 @@ bitflags! {
         // RUST STRING STRICT [01345678MN]
         /// `RUST_STRING`, but enforces strict equality for special values.
         const RUST_STRING_STRICT = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -444,8 +423,7 @@ bitflags! {
         // PYTHON3 LITERAL [013456N]
         /// Float format for a Python3 literal floating-point number.
         const PYTHON3_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -456,8 +434,7 @@ bitflags! {
         // PYTHON3 STRING [0134567MN]
         /// Float format to parse a Python3 float from string.
         const PYTHON3_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -466,8 +443,7 @@ bitflags! {
         // PYTHON2 LITERAL [013456MN]
         /// Float format for a Python2 literal floating-point number.
         const PYTHON2_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -477,8 +453,7 @@ bitflags! {
         // PYTHON2 STRING [0134567MN]
         /// Float format to parse a Python2 float from string.
         const PYTHON2_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -493,8 +468,7 @@ bitflags! {
         // C++17 LITERAL [01345689ABMN-']
         /// Float format for a C++17 literal floating-point number.
         const CXX17_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'\'')
+            flags::digit_separator_to_flags(b'\'')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -505,8 +479,7 @@ bitflags! {
 
         // C++17 STRING [013456MN]
         const CXX17_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -515,8 +488,7 @@ bitflags! {
         // C++14 LITERAL [01345689ABMN-']
         /// Float format for a C++14 literal floating-point number.
         const CXX14_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'\'')
+            flags::digit_separator_to_flags(b'\'')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -528,8 +500,7 @@ bitflags! {
         // C++14 STRING [013456MN]
         /// Float format to parse a C++14 float from string.
         const CXX14_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -538,8 +509,7 @@ bitflags! {
         // C++11 LITERAL [0134568MN]
         /// Float format for a C++11 literal floating-point number.
         const CXX11_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -549,8 +519,7 @@ bitflags! {
         // C++11 STRING [013456MN]
         /// Float format to parse a C++11 float from string.
         const CXX11_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -559,8 +528,7 @@ bitflags! {
         // C++03 LITERAL [0134567MN]
         /// Float format for a C++03 literal floating-point number.
         const CXX03_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -570,8 +538,7 @@ bitflags! {
         // C++03 STRING [013456MN]
         /// Float format to parse a C++03 float from string.
         const CXX03_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -580,8 +547,7 @@ bitflags! {
         // C++98 LITERAL [0134567MN]
         /// Float format for a C++98 literal floating-point number.
         const CXX98_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -591,8 +557,7 @@ bitflags! {
         // C++98 STRING [013456MN]
         /// Float format to parse a C++98 float from string.
         const CXX98_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -607,8 +572,7 @@ bitflags! {
         // C18 LITERAL [0134568MN]
         /// Float format for a C18 literal floating-point number.
         const C18_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -618,8 +582,7 @@ bitflags! {
         // C18 STRING [013456MN]
         /// Float format to parse a C18 float from string.
         const C18_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -628,8 +591,7 @@ bitflags! {
         // C11 LITERAL [0134568MN]
         /// Float format for a C11 literal floating-point number.
         const C11_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -639,8 +601,7 @@ bitflags! {
         // C11 STRING [013456MN]
         /// Float format to parse a C11 float from string.
         const C11_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -649,8 +610,7 @@ bitflags! {
         // C99 LITERAL [0134568MN]
         /// Float format for a C99 literal floating-point number.
         const C99_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -660,8 +620,7 @@ bitflags! {
         // C99 STRING [013456MN]
         /// Float format to parse a C99 float from string.
         const C99_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -670,8 +629,7 @@ bitflags! {
         // C90 LITERAL [0134567MN]
         /// Float format for a C90 literal floating-point number.
         const C90_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -681,8 +639,7 @@ bitflags! {
         // C90 STRING [013456MN]
         /// Float format to parse a C90 float from string.
         const C90_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -691,8 +648,7 @@ bitflags! {
         // C89 LITERAL [0134567MN]
         /// Float format for a C89 literal floating-point number.
         const C89_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -702,8 +658,7 @@ bitflags! {
         // C89 STRING [013456MN]
         /// Float format to parse a C89 float from string.
         const C89_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -712,8 +667,7 @@ bitflags! {
         // RUBY LITERAL [345689AM-_]
         /// Float format for a Ruby literal floating-point number.
         const RUBY_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -727,8 +681,7 @@ bitflags! {
         /// Float format to parse a Ruby float from string.
         // Note: Amazingly, Ruby 1.8+ do not allow parsing special values.
         const RUBY_STRING = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -739,8 +692,7 @@ bitflags! {
         // SWIFT LITERAL [34569ABFGHIJKMN-_]
         /// Float format for a Swift literal floating-point number.
         const SWIFT_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -754,8 +706,7 @@ bitflags! {
         // SWIFT STRING [13456MN]
         /// Float format to parse a Swift float from string.
         const SWIFT_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_FRACTION_DIGITS.bits
@@ -764,8 +715,7 @@ bitflags! {
         // GO LITERAL [0134567MN]
         /// Float format for a Golang literal floating-point number.
         const GO_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_FRACTION_DIGITS.bits
@@ -775,8 +725,7 @@ bitflags! {
         // GO STRING [013456MN]
         /// Float format to parse a Golang float from string.
         const GO_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_FRACTION_DIGITS.bits
@@ -785,8 +734,7 @@ bitflags! {
         // HASKELL LITERAL [456MN]
         /// Float format for a Haskell literal floating-point number.
         const HASKELL_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_DIGITS.bits
@@ -797,8 +745,7 @@ bitflags! {
         // HASKELL STRING [45678MN]
         /// Float format to parse a Haskell float from string.
         const HASKELL_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_DIGITS.bits
@@ -809,8 +756,7 @@ bitflags! {
         // JAVASCRIPT LITERAL [01345678M]
         /// Float format for a Javascript literal floating-point number.
         const JAVASCRIPT_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -821,8 +767,7 @@ bitflags! {
         // JAVASCRIPT STRING [012345678MN]
         /// Float format to parse a Javascript float from string.
         const JAVASCRIPT_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::CASE_SENSITIVE_SPECIAL.bits
@@ -831,8 +776,7 @@ bitflags! {
         // PERL LITERAL [0134569ABDEFGHIJKMN-_]
         /// Float format for a Perl literal floating-point number.
         const PERL_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -852,8 +796,7 @@ bitflags! {
         // PHP LITERAL [01345678MN]
         /// Float format for a PHP literal floating-point number.
         const PHP_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -863,8 +806,7 @@ bitflags! {
         // PHP STRING [0123456MN]
         /// Float format to parse a PHP float from string.
         const PHP_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::NO_SPECIAL.bits
@@ -873,8 +815,7 @@ bitflags! {
         // JAVA LITERAL [0134569ABIJKMN-_]
         /// Float format for a Java literal floating-point number.
         const JAVA_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -887,8 +828,7 @@ bitflags! {
         // JAVA STRING [01345678MN]
         /// Float format to parse a Java float from string.
         const JAVA_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -898,8 +838,7 @@ bitflags! {
         // R LITERAL [01345678MN]
         /// Float format for a R literal floating-point number.
         const R_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -913,8 +852,7 @@ bitflags! {
         // KOTLIN LITERAL [0134569ABIJKN-_]
         /// Float format for a Kotlin literal floating-point number.
         const KOTLIN_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -928,8 +866,7 @@ bitflags! {
         // KOTLIN STRING [0134568MN]
         /// Float format to parse a Kotlin float from string.
         const KOTLIN_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -939,8 +876,7 @@ bitflags! {
         // JULIA LITERAL [01345689AMN-_]
         /// Float format for a Julia literal floating-point number.
         const JULIA_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -953,8 +889,7 @@ bitflags! {
         // JULIA STRING [01345678MN]
         /// Float format to parse a Julia float from string.
         const JULIA_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -969,8 +904,7 @@ bitflags! {
         // CSHARP7 LITERAL [034569ABIJKMN-_]
         /// Float format for a C#7 literal floating-point number.
         const CSHARP7_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -984,9 +918,7 @@ bitflags! {
         // CSHARP7 STRING [0134568MN]
         /// Float format to parse a C#7 float from string.
         const CSHARP7_STRING = (
-            flags::radix_to_flags(10)
-            | flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -996,8 +928,7 @@ bitflags! {
         // CSHARP6 LITERAL [03456MN]
         /// Float format for a C#6 literal floating-point number.
         const CSHARP6_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1008,8 +939,7 @@ bitflags! {
         // CSHARP6 STRING [0134568MN]
         /// Float format to parse a C#6 float from string.
         const CSHARP6_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1019,8 +949,7 @@ bitflags! {
         // CSHARP5 LITERAL [03456MN]
         /// Float format for a C#5 literal floating-point number.
         const CSHARP5_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1031,8 +960,7 @@ bitflags! {
         // CSHARP5 STRING [0134568MN]
         /// Float format to parse a C#5 float from string.
         const CSHARP5_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1042,8 +970,7 @@ bitflags! {
         // CSHARP4 LITERAL [03456MN]
         /// Float format for a C#4 literal floating-point number.
         const CSHARP4_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1054,8 +981,7 @@ bitflags! {
         // CSHARP4 STRING [0134568MN]
         /// Float format to parse a C#4 float from string.
         const CSHARP4_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1065,8 +991,7 @@ bitflags! {
         // CSHARP3 LITERAL [03456MN]
         /// Float format for a C#3 literal floating-point number.
         const CSHARP3_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1077,8 +1002,7 @@ bitflags! {
         // CSHARP3 STRING [0134568MN]
         /// Float format to parse a C#3 float from string.
         const CSHARP3_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1088,8 +1012,7 @@ bitflags! {
         // CSHARP2 LITERAL [03456MN]
         /// Float format for a C#2 literal floating-point number.
         const CSHARP2_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1100,8 +1023,7 @@ bitflags! {
         // CSHARP2 STRING [0134568MN]
         /// Float format to parse a C#2 float from string.
         const CSHARP2_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1111,8 +1033,7 @@ bitflags! {
         // CSHARP1 LITERAL [03456MN]
         /// Float format for a C#1 literal floating-point number.
         const CSHARP1_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1123,8 +1044,7 @@ bitflags! {
         // CSHARP1 STRING [0134568MN]
         /// Float format to parse a C#1 float from string.
         const CSHARP1_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1134,8 +1054,7 @@ bitflags! {
         // KAWA LITERAL [013456MN]
         /// Float format for a Kawa literal floating-point number.
         const KAWA_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1145,8 +1064,7 @@ bitflags! {
         // KAWA STRING [013456MN]
         /// Float format to parse a Kawa float from string.
         const KAWA_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1156,8 +1074,7 @@ bitflags! {
         // GAMBITC LITERAL [013456MN]
         /// Float format for a Gambit-C literal floating-point number.
         const GAMBITC_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1167,8 +1084,7 @@ bitflags! {
         // GAMBITC STRING [013456MN]
         /// Float format to parse a Gambit-C float from string.
         const GAMBITC_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1178,8 +1094,7 @@ bitflags! {
         // GUILE LITERAL [013456MN]
         /// Float format for a Guile literal floating-point number.
         const GUILE_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1189,8 +1104,7 @@ bitflags! {
         // GUILE STRING [013456MN]
         /// Float format to parse a Guile float from string.
         const GUILE_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1200,8 +1114,7 @@ bitflags! {
         // CLOJURE LITERAL [13456MN]
         /// Float format for a Clojure literal floating-point number.
         const CLOJURE_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_INTEGER_DIGITS.bits
@@ -1212,8 +1125,7 @@ bitflags! {
         // CLOJURE STRING [01345678MN]
         /// Float format to parse a Clojure float from string.
         const CLOJURE_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1223,8 +1135,7 @@ bitflags! {
         // ERLANG LITERAL [34578MN]
         /// Float format for an Erlang literal floating-point number.
         const ERLANG_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_DIGITS.bits
@@ -1235,8 +1146,7 @@ bitflags! {
         // ERLANG STRING [345MN]
         /// Float format to parse an Erlang float from string.
         const ERLANG_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_DIGITS.bits
@@ -1247,8 +1157,7 @@ bitflags! {
         // ELM LITERAL [456]
         /// Float format for an Elm literal floating-point number.
         const ELM_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_DIGITS.bits
@@ -1261,8 +1170,7 @@ bitflags! {
         /// Float format to parse an Elm float from string.
         // Note: There is no valid representation of NaN, just Infinity.
         const ELM_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1272,8 +1180,7 @@ bitflags! {
         // SCALA LITERAL [3456]
         /// Float format for a Scala literal floating-point number.
         const SCALA_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_DIGITS.bits
@@ -1285,8 +1192,7 @@ bitflags! {
         // SCALA STRING [01345678MN]
         /// Float format to parse a Scala float from string.
         const SCALA_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1296,8 +1202,7 @@ bitflags! {
         // ELIXIR LITERAL [3459ABMN-_]
         /// Float format for an Elixir literal floating-point number.
         const ELIXIR_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1310,8 +1215,7 @@ bitflags! {
         // ELIXIR STRING [345MN]
         /// Float format to parse an Elixir float from string.
         const ELIXIR_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_DIGITS.bits
@@ -1322,8 +1226,7 @@ bitflags! {
         // FORTRAN LITERAL [013456MN]
         /// Float format for a FORTRAN literal floating-point number.
         const FORTRAN_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1333,8 +1236,7 @@ bitflags! {
         // FORTRAN STRING [0134567MN]
         /// Float format to parse a FORTRAN float from string.
         const FORTRAN_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1343,8 +1245,7 @@ bitflags! {
         // D LITERAL [0134569ABFGHIJKN-_]
         /// Float format for a D literal floating-point number.
         const D_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1359,8 +1260,7 @@ bitflags! {
         // D STRING [01345679AFGMN-_]
         /// Float format to parse a D float from string.
         const D_STRING = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1374,8 +1274,7 @@ bitflags! {
         // COFFEESCRIPT LITERAL [01345678]
         /// Float format for a Coffeescript literal floating-point number.
         const COFFEESCRIPT_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1387,8 +1286,7 @@ bitflags! {
         // COFFEESCRIPT STRING [012345678MN]
         /// Float format to parse a Coffeescript float from string.
         const COFFEESCRIPT_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::CASE_SENSITIVE_SPECIAL.bits
@@ -1397,8 +1295,7 @@ bitflags! {
         // COBOL LITERAL [0345MN]
         /// Float format for a Cobol literal floating-point number.
         const COBOL_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1410,8 +1307,7 @@ bitflags! {
         // COBOL STRING [012356MN]
         /// Float format to parse a Cobol float from string.
         const COBOL_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_SIGN.bits
@@ -1421,8 +1317,7 @@ bitflags! {
         // FSHARP LITERAL [13456789ABIJKMN-_]
         /// Float format for a F# literal floating-point number.
         const FSHARP_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1436,8 +1331,7 @@ bitflags! {
         // FSHARP STRING [013456789ABCDEFGHIJKLMN-_]
         /// Float format to parse a F# float from string.
         const FSHARP_STRING = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1453,8 +1347,7 @@ bitflags! {
         // VB LITERAL [03456MN]
         /// Float format for a Visual Basic literal floating-point number.
         const VB_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_FRACTION_DIGITS.bits
@@ -1466,8 +1359,7 @@ bitflags! {
         /// Float format to parse a Visual Basic float from string.
         // Note: To my knowledge, Visual Basic cannot parse infinity.
         const VB_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1477,8 +1369,7 @@ bitflags! {
         // OCAML LITERAL [1456789ABDFGHIJKMN-_]
         /// Float format for an OCaml literal floating-point number.
         const OCAML_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1495,8 +1386,7 @@ bitflags! {
         // OCAML STRING [01345679ABCDEFGHIJKLMN-_]
         /// Float format to parse an OCaml float from string.
         const OCAML_STRING = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1511,8 +1401,7 @@ bitflags! {
         // OBJECTIVEC LITERAL [013456MN]
         /// Float format for an Objective-C literal floating-point number.
         const OBJECTIVEC_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1522,8 +1411,7 @@ bitflags! {
         // OBJECTIVEC STRING [013456MN]
         /// Float format to parse an Objective-C float from string.
         const OBJECTIVEC_STRING = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1533,8 +1421,7 @@ bitflags! {
         // REASONML LITERAL [13456789ABDFGHIJKMN-_]
         /// Float format for a ReasonML literal floating-point number.
         const REASONML_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1550,8 +1437,7 @@ bitflags! {
         // REASONML STRING [01345679ABCDEFGHIJKLMN-_]
         /// Float format to parse a ReasonML float from string.
         const REASONML_STRING = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1567,8 +1453,7 @@ bitflags! {
         /// Float format for an Octave literal floating-point number.
         // Note: Octave accepts both NaN and nan, Inf and inf.
         const OCTAVE_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1583,8 +1468,7 @@ bitflags! {
         // OCTAVE STRING [01345679ABCDEFGHIJKMN-,]
         /// Float format to parse an Octave float from string.
         const OCTAVE_STRING = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b',')
+            flags::digit_separator_to_flags(b',')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1599,8 +1483,7 @@ bitflags! {
         /// Float format for an Matlab literal floating-point number.
         // Note: Matlab accepts both NaN and nan, Inf and inf.
         const MATLAB_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1615,8 +1498,7 @@ bitflags! {
         // MATLAB STRING [01345679ABCDEFGHIJKMN-,]
         /// Float format to parse an Matlab float from string.
         const MATLAB_STRING = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b',')
+            flags::digit_separator_to_flags(b',')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1630,8 +1512,7 @@ bitflags! {
         // ZIG LITERAL [1456MN]
         /// Float format for a Zig literal floating-point number.
         const ZIG_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_INTEGER_DIGITS.bits
@@ -1647,8 +1528,7 @@ bitflags! {
         /// Float format for a Sage literal floating-point number.
         // Note: Both Infinity and infinity are accepted.
         const SAGE_LITERAL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1658,8 +1538,7 @@ bitflags! {
         // SAGE STRING [01345679ABMN-_]
         /// Float format to parse a Sage float from string.
         const SAGE_STRING = (
-            flags::radix_to_flags(10)
-            | flags::digit_separator_to_flags(b'_')
+            flags::digit_separator_to_flags(b'_')
             | flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
@@ -1670,8 +1549,7 @@ bitflags! {
         // JSON [456]
         /// Float format for a JSON literal floating-point number.
         const JSON = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_DIGITS.bits
@@ -1684,8 +1562,7 @@ bitflags! {
         // TOML [34569AB]
         /// Float format for a TOML literal floating-point number.
         const TOML = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_DIGITS.bits
@@ -1702,8 +1579,7 @@ bitflags! {
         // XML [01234578MN]
         /// Float format for a XML literal floating-point number.
         const XML = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::CASE_SENSITIVE_SPECIAL.bits
@@ -1712,8 +1588,7 @@ bitflags! {
         // SQLITE [013456MN]
         /// Float format for a SQLite literal floating-point number.
         const SQLITE = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1723,8 +1598,7 @@ bitflags! {
         // POSTGRESQL [013456MN]
         /// Float format for a PostgreSQL literal floating-point number.
         const POSTGRESQL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1734,8 +1608,7 @@ bitflags! {
         // MYSQL [013456MN]
         /// Float format for a MySQL literal floating-point number.
         const MYSQL = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1745,8 +1618,7 @@ bitflags! {
         // MONGODB [01345678M]
         /// Float format for a MongoDB literal floating-point number.
         const MONGODB = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::REQUIRED_EXPONENT_DIGITS.bits
@@ -1759,8 +1631,7 @@ bitflags! {
         /// Float format when no flags are set.
         #[doc(hidden)]
         const PERMISSIVE = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
         );
@@ -1780,8 +1651,7 @@ bitflags! {
         /// Float format when all digit separator flags are set.
         #[doc(hidden)]
         const IGNORE = (
-            flags::radix_to_flags(10)
-            | flags::exponent_to_flags(b'e')
+            flags::exponent_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')
             | flags::decimal_point_to_flags(b'.')
             | Self::DIGIT_SEPARATOR_FLAG_MASK.bits
@@ -1799,14 +1669,6 @@ impl NumberFormat {
     #[inline(always)]
     pub(crate) const fn new(bits: u64) -> Self {
         Self { bits }
-    }
-
-    /// Create new format from radix.
-    /// This method should **NEVER** be public, use the builder API.
-    // TODO(ahuszagh) Remove: we should not have the radix here.
-    #[inline(always)]
-    pub(crate) const fn from_radix(radix: u8) -> Self {
-        Self::new(flags::radix_to_flags(radix))
     }
 
     /// Create new format from digit separator.
@@ -1827,13 +1689,6 @@ impl NumberFormat {
     #[inline(always)]
     pub const fn interface_flags(self) -> Self {
         Self::new(self.bits() & Self::INTERFACE_FLAG_MASK.bits())
-    }
-
-    /// Get the radix for number encoding or decoding.
-    // TODO(ahuszagh) Remove
-    #[inline(always)]
-    pub const fn radix(self) -> u8 {
-        flags::radix_from_flags(self.bits)
     }
 
     /// Get the digit separator for the number format.
@@ -2046,20 +1901,6 @@ impl NumberFormat {
         self.intersects(Self::SPECIAL_DIGIT_SEPARATOR)
     }
 
-    // TODO(ahuszagh) Remove: these should not be in the format.
-    /// Get if using the incorrect, but fast conversion routines.
-    #[inline(always)]
-    pub const fn incorrect(self) -> bool {
-        self.intersects(Self::INCORRECT)
-    }
-
-    // TODO(ahuszagh) Remove: these should not be in the format.
-    /// Get if using the lossy, but moderately fast, conversion routines.
-    #[inline(always)]
-    pub const fn lossy(self) -> bool {
-        self.intersects(Self::LOSSY)
-    }
-
     // BUILDERS
 
     /// Create new builder to instantiate `NumberFormat`.
@@ -2072,7 +1913,6 @@ impl NumberFormat {
     #[inline(always)]
     pub const fn rebuild(&self) -> NumberFormatBuilder {
         NumberFormatBuilder {
-            radix: self.radix(),
             digit_separator: self.digit_separator(),
             decimal_point: self.decimal_point(),
             exponent: self.exponent(),
@@ -2103,8 +1943,6 @@ impl NumberFormat {
             fraction_consecutive_digit_separator: self.fraction_consecutive_digit_separator(),
             exponent_consecutive_digit_separator: self.exponent_consecutive_digit_separator(),
             special_digit_separator: self.special_digit_separator(),
-            incorrect: self.incorrect(),
-            lossy: self.lossy()
         }
     }
 }
@@ -2113,7 +1951,6 @@ impl NumberFormat {
 
 /// Build float format value from specifications.
 ///
-/// * `radix`                                   - Radix for number encoding or decoding.
 /// * `digit_separator`                         - Character to separate digits.
 /// * `decimal_point`                           - Character to designate the decimal point.
 /// * `exponent`                                - Character to designate the exponent.
@@ -2143,14 +1980,11 @@ impl NumberFormat {
 /// * `integer_consecutive_digit_separator`     - If multiple consecutive integer digit separators are allowed.
 /// * `fraction_consecutive_digit_separator`    - If multiple consecutive fraction digit separators are allowed.
 /// * `special_digit_separator`                 - If any digit separators are allowed in special (non-finite) values.
-/// * `incorrect`                               - Use incorrect, but fast conversion routines.
-/// * `lossy`                                   - Use lossy, but moderately fast, conversion routines.
 ///
 /// Returns the format on calling build if it was able to compile the format,
 /// otherwise, returns None.
 #[derive(Debug, Clone)]
 pub struct NumberFormatBuilder {
-    radix: u8,
     digit_separator: u8,
     decimal_point: u8,
     exponent: u8,
@@ -2181,8 +2015,6 @@ pub struct NumberFormatBuilder {
     fraction_consecutive_digit_separator: bool,
     exponent_consecutive_digit_separator: bool,
     special_digit_separator: bool,
-    incorrect: bool,
-    lossy: bool
 }
 
 impl NumberFormatBuilder {
@@ -2190,7 +2022,6 @@ impl NumberFormatBuilder {
     #[inline(always)]
     pub const fn new() -> Self {
         Self {
-            radix: 10,
             digit_separator: b'\x00',
             decimal_point: b'.',
             exponent: b'e',
@@ -2221,22 +2052,10 @@ impl NumberFormatBuilder {
             fraction_consecutive_digit_separator: false,
             exponent_consecutive_digit_separator: false,
             special_digit_separator: false,
-            incorrect: false,
-            lossy: false
         }
     }
 
     // SETTERS
-
-    // TODO(ahuszagh) Need to document these...
-
-    /// Set the radix for number encoding or decoding.
-    // TODO(ahuszagh) Remove
-    #[inline(always)]
-    pub const fn radix(mut self, radix: u8) -> Self {
-        self.radix = radix;
-        self
-    }
 
     /// Set the digit separator for the number format.
     #[inline(always)]
@@ -2448,22 +2267,6 @@ impl NumberFormatBuilder {
         self
     }
 
-    // TODO(ahuszagh) Remove: these should not be in the format.
-    /// Set if using the incorrect, but fast conversion routines.
-    #[inline(always)]
-    pub const fn incorrect(mut self, incorrect: bool) -> Self {
-        self.incorrect = incorrect;
-        self
-    }
-
-    // TODO(ahuszagh) Remove: these should not be in the format.
-    /// Set if using the lossy, but moderately fast, conversion routines.
-    #[inline(always)]
-    pub const fn lossy(mut self, lossy: bool) -> Self {
-        self.lossy = lossy;
-        self
-    }
-
     // BUILDER
 
     /// Create `NumberFormat` from builder options.
@@ -2502,10 +2305,6 @@ impl NumberFormatBuilder {
         add_flag!(format, self.exponent_consecutive_digit_separator, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
         add_flag!(format, self.special_digit_separator, SPECIAL_DIGIT_SEPARATOR);
 
-        // Add conversion precision flags.
-        add_flag!(format, self.incorrect, INCORRECT);
-        add_flag!(format, self.lossy, LOSSY);
-
         // Add punctuation characters.
         if format.intersects(NumberFormat::DIGIT_SEPARATOR_FLAG_MASK) {
             format.bits |= flags::digit_separator_to_flags(self.digit_separator);
@@ -2514,9 +2313,6 @@ impl NumberFormatBuilder {
         format.bits |= flags::exponent_to_flags(self.exponent);
         format.bits |= flags::exponent_backup_to_flags(self.exponent_backup);
 
-        // Add radix (TODO(ahuszagh) Remove)
-        format.bits |= flags::radix_to_flags(self.radix);
-
         // Validation.
         let is_invalid =
             !flags::is_valid_digit_separator(self.digit_separator)
@@ -2524,15 +2320,13 @@ impl NumberFormatBuilder {
             || !flags::is_valid_exponent(self.exponent)
             || !flags::is_valid_exponent_backup(self.exponent_backup)
             || !flags::is_valid_punctuation(self.digit_separator, self.decimal_point, self.exponent, self.exponent_backup)
-            || !flags::is_valid_radix(self.radix)
             || format.intersects(NumberFormat::NO_EXPONENT_NOTATION) && format.intersects(NumberFormat::EXPONENT_FLAG_MASK)
             || self.no_positive_mantissa_sign && self.required_mantissa_sign
             || self.no_positive_exponent_sign && self.required_exponent_sign
             || self.no_special && (self.case_sensitive_special || self.special_digit_separator)
             || check_flag!(format, INTEGER_DIGIT_SEPARATOR_FLAG_MASK, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR)
             || check_flag!(format, FRACTION_DIGIT_SEPARATOR_FLAG_MASK, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR)
-            || check_flag!(format, EXPONENT_DIGIT_SEPARATOR_FLAG_MASK, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR)
-            || self.incorrect && self.lossy;
+            || check_flag!(format, EXPONENT_DIGIT_SEPARATOR_FLAG_MASK, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
 
         match is_invalid {
             true  => None,
@@ -2594,11 +2388,6 @@ mod tests {
         assert_eq!(flag.exponent_consecutive_digit_separator(), true);
         assert_eq!(flag.consecutive_digit_separator(), true);
         assert_eq!(flag.special_digit_separator(), true);
-        assert_eq!(flag.incorrect(), false);
-        assert_eq!(flag.lossy(), false);
-
-        #[cfg(feature ="radix")]
-        assert_eq!(flag.radix(), 10);
 
         #[cfg(feature ="radix")]
         assert_eq!(flag.exponent_backup(), b'^');
@@ -2760,7 +2549,6 @@ mod tests {
             assert!((flag.bits == 0) | true);
             assert!((flag.digit_separator() == 0) | true);
             // Check these values are properly set.
-            assert_eq!(flag.radix(), 10);
             assert_eq!(flag.decimal_point(), b'.');
             assert_eq!(flag.exponent(), b'e');
             assert_eq!(flag.exponent_backup(), b'^');
@@ -2770,46 +2558,30 @@ mod tests {
     #[test]
     fn test_builder() {
         // Test a few invalid ones.
-        let flag = NumberFormat::builder()
-            .incorrect(true)
-            .lossy(true)
-            .build();
-        assert_eq!(flag, None);
-
-        let flag = NumberFormat::builder()
-            .exponent(b'.')
-            .build();
+        let flag = NumberFormat::builder().exponent(b'.').build();
         assert_eq!(flag, None);
 
         // Test a few valid ones.
-        let flag = NumberFormat::builder()
-            .incorrect(true)
-            .build();
+        let flag = NumberFormat::builder().decimal_point(b'.').build();
         assert!(flag.is_some());
         let flag = flag.unwrap();
-        assert_eq!(flag.radix(), 10);
         assert_eq!(flag.digit_separator(), b'\x00');
         assert_eq!(flag.decimal_point(), b'.');
         assert_eq!(flag.exponent(), b'e');
         assert_eq!(flag.exponent_backup(), b'^');
-        assert_eq!(flag.incorrect(), true);
         assert_eq!(flag.required_integer_digits(), false);
         assert_eq!(flag.required_fraction_digits(), false);
         assert_eq!(flag.required_exponent_digits(), false);
-        assert_eq!(flag.lossy(), false);
     }
 
     #[test]
     fn test_rebuild() {
         let flag = NumberFormat::CSHARP7_STRING;
-        let rebuilt = flag.rebuild()
-            .lossy(true)
-            .build()
-            .unwrap();
-        assert_eq!(flag.radix(), 10);
-        assert_eq!(rebuilt.radix(), 10);
+        let flag = flag.rebuild().decimal_point(b',').build().unwrap();
+        assert_eq!(flag.digit_separator(), b'_');
+        assert_eq!(rebuilt.digit_separator(), b'_');
         assert_eq!(rebuilt.flags(), flag.flags());
-        assert_eq!(flag.lossy(), false);
-        assert_eq!(rebuilt.lossy(), true);
+        assert_eq!(flag.decimal_point(), b'.');
+        assert_eq!(rebuilt.decimal_point(), b',');
     }
 }
