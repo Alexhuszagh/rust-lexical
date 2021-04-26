@@ -54,6 +54,7 @@
 // EXTERNAL
 
 #[macro_use]
+#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
 extern crate cfg_if;
 
 extern crate lexical_core;
@@ -65,6 +66,7 @@ extern crate lexical_core;
 extern crate alloc;
 
 /// Facade around the core features for name mangling.
+#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
 pub(crate) mod lib {
     cfg_if! {
     if #[cfg(feature = "std")] {
