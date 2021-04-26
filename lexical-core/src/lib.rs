@@ -134,10 +134,19 @@ pub(crate) mod lib {
 #[macro_use]
 mod util;
 
-mod atof;
-mod atoi;
+#[cfg(any(feature = "atof", feature = "ftoa"))]
 mod float;
+
+#[cfg(feature = "atof")]
+mod atof;
+
+#[cfg(any(feature = "atof", feature = "atoi"))]
+mod atoi;
+
+#[cfg(feature = "ftoa")]
 mod ftoa;
+
+#[cfg(any(all(feature = "ftoa", feature = "radix"), feature = "itoa"))]
 mod itoa;
 
 // Re-export configuration and utilities globally.
