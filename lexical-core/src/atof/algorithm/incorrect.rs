@@ -2,6 +2,7 @@
 
 use crate::atoi;
 use crate::util::*;
+use super::alias::*;
 use super::format::*;
 
 // FRACTION
@@ -12,7 +13,7 @@ type Wrapped<F> = WrappedFloat<F>;
 #[inline(always)]
 fn process_integer<'a, F, Data>(data: &Data, radix: u32)
     -> F
-    where F: StablePower,
+    where F: FloatType,
           Data: FastDataInterface<'a>
 {
     match data.integer().len() {
@@ -27,7 +28,7 @@ fn process_integer<'a, F, Data>(data: &Data, radix: u32)
 #[inline(always)]
 fn process_fraction<'a, F, Data>(data: &Data, radix: u32)
     -> F
-    where F: StablePower,
+    where F: FloatType,
           Data: FastDataInterface<'a>
 {
     // We don't really care about numerical precision, so just break
@@ -36,8 +37,9 @@ fn process_fraction<'a, F, Data>(data: &Data, radix: u32)
     // potentially overflowing  a 36-radix float string.
     let mut fraction = F::ZERO;
     let mut digits: i32 = 0;
+    let max_digits: i32 = F::max_incorrect_digits(radix);
     let mut iter = data.fraction_iter();
-    while !iter.consumed() {
+    while !iter.consumed() && digits <= max_digits {
         let (value, length) = atoi::standalone_mantissa_incorrect_n::<u64, _>(&mut iter, radix, 12);
         digits = digits.saturating_add(length.as_i32());
         if !value.is_zero() {
@@ -49,7 +51,7 @@ fn process_fraction<'a, F, Data>(data: &Data, radix: u32)
 }
 
 pub(crate) fn to_native<'a, F, Data>(data: Data, radix: u32) -> F
-    where F: StablePower,
+    where F: FloatType,
           Data: FastDataInterface<'a>
 {
     let integer: F = process_integer(&data, radix);
