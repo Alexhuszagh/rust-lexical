@@ -56414,7 +56414,7 @@ const I128_DATA: [i128; 10000] = [
 
 fn lexical(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("lexical");
-    group.measurement_time(Duration::from_secs(20));
+    group.measurement_time(Duration::from_secs(5));
     lexical_generator!(group, "itoa_u8_lexical", U8_DATA.iter());
     lexical_generator!(group, "itoa_u16_lexical", U16_DATA.iter());
     lexical_generator!(group, "itoa_u32_lexical", U32_DATA.iter());
@@ -56447,7 +56447,7 @@ fn lexical(criterion: &mut Criterion) {
 
 fn itoa(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("itoa");
-    group.measurement_time(Duration::from_secs(20));
+    group.measurement_time(Duration::from_secs(5));
     itoa_generator!(group, "itoa_u8_itoa", U8_DATA.iter());
     itoa_generator!(group, "itoa_u16_itoa", U16_DATA.iter());
     itoa_generator!(group, "itoa_u32_itoa", U32_DATA.iter());
@@ -56480,7 +56480,7 @@ fn itoa(criterion: &mut Criterion) {
 
 fn fmt(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("fmt");
-    group.measurement_time(Duration::from_secs(20));
+    group.measurement_time(Duration::from_secs(5));
     fmt_generator!(group, "fmt_u8_fmt", U8_DATA.iter());
     fmt_generator!(group, "fmt_u16_fmt", U16_DATA.iter());
     fmt_generator!(group, "fmt_u32_fmt", U32_DATA.iter());

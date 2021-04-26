@@ -78,7 +78,6 @@ pub(crate) fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8])
     if radix == 10 {
         value.decimal(buffer)
     } else {
-        // TODO(ahuszagh) This ain't right....
         write_backwards!(value, radix, buffer, T, generic)
     }
 }
@@ -96,9 +95,20 @@ fn unsigned<Narrow, Wide>(value: Narrow, radix: u32, buffer: &mut [u8])
     itoa_positive(value, radix, buffer)
 }
 
+/// Callback for unsigned integer formatter with options.
+#[inline]
+fn unsigned_with_options<Narrow, Wide>(value: Narrow, buffer: &mut [u8], options: &WriteIntegerOptions)
+    -> usize
+    where Narrow: UnsignedInteger,
+          Wide: Itoa
+{
+    unsigned::<Narrow, Wide>(value, options.radix() as u32, buffer)
+}
+
 macro_rules! unsigned_to_lexical {
     ($narrow:ty, $wide:ty) => (
         to_lexical!(unsigned::<$narrow, $wide>, $narrow);
+        to_lexical_with_options!(unsigned_with_options::<$narrow, $wide>, $narrow);
     );
 }
 
@@ -133,9 +143,21 @@ fn signed<Narrow, Wide, Unsigned>(value: Narrow, radix: u32, buffer: &mut [u8])
     }
 }
 
+/// Callback for signed integer formatter with options.
+#[inline]
+fn signed_with_options<Narrow, Wide, Unsigned>(value: Narrow, buffer: &mut [u8], options: &WriteIntegerOptions)
+    -> usize
+    where Narrow: SignedInteger,
+          Wide: SignedInteger,
+          Unsigned: Itoa
+{
+    signed::<Narrow, Wide, Unsigned>(value, options.radix() as u32, buffer)
+}
+
 macro_rules! signed_to_lexical {
     ($narrow:ty, $wide:ty, $unsigned:ty) => (
         to_lexical!(signed::<$narrow, $wide, $unsigned>, $narrow);
+        to_lexical_with_options!(signed_with_options::<$narrow, $wide, $unsigned>, $narrow);
     );
 }
 

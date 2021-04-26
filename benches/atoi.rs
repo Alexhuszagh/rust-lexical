@@ -67028,7 +67028,7 @@ const I128_DATA: [&'static str; 10000] = [
 
 fn lexical(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("lexical");
-    group.measurement_time(Duration::from_secs(20));
+    group.measurement_time(Duration::from_secs(5));
     lexical_generator!(group, "atoi_u8_lexical", U8_DATA, u8);
     lexical_generator!(group, "atoi_u16_lexical", U16_DATA, u16);
     lexical_generator!(group, "atoi_u32_lexical", U32_DATA, u32);
@@ -67050,7 +67050,7 @@ fn lexical(criterion: &mut Criterion) {
 
 fn parse(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("core::parse");
-    group.measurement_time(Duration::from_secs(20));
+    group.measurement_time(Duration::from_secs(5));
     parse_generator!(group, "atoi_u8_parse", U8_DATA, u8);
     parse_generator!(group, "atoi_u16_parse", U16_DATA, u16);
     parse_generator!(group, "atoi_u32_parse", U32_DATA, u32);

@@ -55,13 +55,15 @@ pub trait FromLexical: Number {
 
 // Implement FromLexical for numeric type.
 macro_rules! from_lexical {
-    ($cb:expr, $t:ty) => (
+    ($cb:expr, $t:ty $(, #[$meta:meta])?) => (
         impl FromLexical for $t {
+            $(#[$meta:meta])?
             fn from_lexical(bytes: &[u8]) -> Result<$t>
             {
                 to_complete!($cb, bytes)
             }
 
+            $(#[$meta:meta])?
             fn from_lexical_partial(bytes: &[u8]) -> Result<($t, usize)>
             {
                 $cb(bytes)
@@ -106,14 +108,16 @@ pub trait FromLexicalOptions: FromLexical {
 
 // Implement FromLexicalOptions for numeric type.
 macro_rules! from_lexical_with_options {
-    ($cb:expr, $t:ty) => (
+    ($cb:expr, $t:ty $(, #[$meta:meta])?) => (
         impl FromLexicalOptions for $t {
+            $(#[$meta:meta])?
             fn from_lexical_with_options(bytes: &[u8], options: &Self::ParseOptions)
                 -> Result<Self>
             {
                 to_complete!($cb, bytes, options)
             }
 
+            $(#[$meta:meta])?
             fn from_lexical_partial_with_options(bytes: &[u8], options: &Self::ParseOptions)
                 -> Result<($t, usize)>
             {
@@ -141,7 +145,7 @@ pub trait ToLexical: Number {
     /// starting from the same address in memory as the input slice.
     ///
     /// * `value`   - Number to serialize.
-    /// * `bytes`   - Slice containing a numeric string.
+    /// * `bytes`   - Buffer to write number to.
     ///
     /// # Panics
     ///
@@ -152,51 +156,18 @@ pub trait ToLexical: Number {
     ///
     /// [`FORMATTED_SIZE_DECIMAL`]: trait.Number.html#associatedconstant.FORMATTED_SIZE_DECIMAL
     fn to_lexical<'a>(self, bytes: &'a mut [u8]) -> &'a mut [u8];
-
-    /// Serializer for a number-to-string conversion.
-    ///
-    /// Returns a subslice of the input buffer containing the written bytes,
-    /// starting from the same address in memory as the input slice.
-    ///
-    /// * `value`   - Number to serialize.
-    /// * `radix`   - Radix for number encoding.
-    /// * `bytes`   - Slice containing a numeric string.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the radix is not in the range `[2, 36]`.
-    ///
-    /// Also panics if the buffer is not of sufficient size. The caller
-    /// must provide a slice of sufficient size. In order to ensure
-    /// the function will not panic, ensure the buffer has at least
-    /// [`FORMATTED_SIZE`] elements.
-    ///
-    /// [`FORMATTED_SIZE`]: trait.Number.html#associatedconstant.FORMATTED_SIZE
-    #[cfg(feature = "radix")]
-    fn to_lexical_radix<'a>(self, radix: u8, bytes: &'a mut [u8]) -> &'a mut [u8];
 }
 
 // Implement ToLexical for numeric type.
 macro_rules! to_lexical {
-    ($cb:expr, $t:ty) => (
+    ($cb:expr, $t:ty $(, #[$meta:meta])?) => (
         impl ToLexical for $t {
-            // TODO(ahuszagh) Need to have a type that accepts a format.
+            $(#[$meta:meta])?
             fn to_lexical<'a>(self, bytes: &'a mut [u8])
                 -> &'a mut [u8]
             {
                 assert_buffer!(10, bytes, $t);
                 let len = $cb(self, 10, bytes);
-                &mut bytes[..len]
-            }
-
-            // TODO(ahuszagh) Deprecate this.
-            #[cfg(feature = "radix")]
-            fn to_lexical_radix<'a>(self, radix: u8, bytes: &'a mut [u8])
-                -> &'a mut [u8]
-            {
-                assert_radix!(radix);
-                assert_buffer!(radix, bytes, $t);
-                let len = $cb(self, radix.as_u32(), bytes);
                 &mut bytes[..len]
             }
         }
@@ -207,7 +178,38 @@ macro_rules! to_lexical {
 
 /// Trait for numerical types that can be serialized to bytes with custom options.
 pub trait ToLexicalOptions: ToLexical {
-    // TODO(ahuszagh) Implement...
+    /// Serializer for a number-to-string conversion.
+    ///
+    /// Returns a subslice of the input buffer containing the written bytes,
+    /// starting from the same address in memory as the input slice.
+    ///
+    /// * `value`   - Number to serialize.
+    /// * `options` - Options for number formatting.
+    /// * `bytes`   - Buffer to write number to.
+    ///
+    /// # Panics
+    ///
+    /// Also panics if the buffer is not of sufficient size. The caller
+    /// must provide a slice of sufficient size. In order to ensure
+    /// the function will not panic, ensure the buffer has at least
+    /// [`FORMATTED_SIZE`] elements.
+    ///
+    /// [`FORMATTED_SIZE`]: trait.Number.html#associatedconstant.FORMATTED_SIZE
+    fn to_lexical_with_options<'a>(self, bytes: &'a mut [u8], options: &Self::WriteOptions) -> &'a mut [u8];
 }
 
-// TODO(ahuszagh) Add impl trait
+// Implement ToLexicalOptions for numeric type.
+macro_rules! to_lexical_with_options {
+    ($cb:expr, $t:ty $(, #[$meta:meta])?) => (
+        impl ToLexicalOptions for $t {
+            $(#[$meta:meta])?
+            fn to_lexical_with_options<'a>(self, bytes: &'a mut [u8], options: &Self::WriteOptions)
+                -> &'a mut [u8]
+            {
+                assert_buffer!(options.radix(), bytes, $t);
+                let len = $cb(self, bytes, options);
+                &mut bytes[..len]
+            }
+        }
+    )
+}

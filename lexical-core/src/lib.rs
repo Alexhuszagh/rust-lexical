@@ -63,6 +63,10 @@
 //! - [`parse_partial`]
 //! - [`parse_partial_with_options`]
 //!
+//! # Configuration API
+//!
+//! // TODO(ahuszagh) Add documentation here on NumberFormat and Parse/Write Options.
+//!
 //! [`write`]: fn.write.html
 //! [`write_with_options`]: fn.write_with_options.html
 //! [`parse`]: fn.parse.html
@@ -145,7 +149,7 @@ pub use util::*;
 /// starting from the same address in memory as the input slice.
 ///
 /// * `value`   - Number to serialize.
-/// * `bytes`   - Slice containing a numeric string.
+/// * `bytes`   - Buffer to write number to.
 ///
 /// # Panics
 ///
@@ -183,8 +187,51 @@ pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8])
     n.to_lexical(bytes)
 }
 
-// TODO(ahuszagh) Need to implement this
-//  // [`write_with_options`]: fn.write_with_options.html
+/// Write number to string with custom options.
+///
+/// Returns a subslice of the input buffer containing the written bytes,
+/// starting from the same address in memory as the input slice.
+///
+/// * `value`   - Number to serialize.
+/// * `bytes`   - Buffer to write number to.
+/// * `options` - Options to customize number parsing.
+///
+/// # Panics
+///
+/// Panics if the buffer may not be large enough to hold the serialized
+/// number. In order to ensure the function will not panic, provide a
+/// buffer with at least `{integer}::FORMATTED_SIZE` elements.
+///
+/// # Example
+///
+/// ```
+/// // import `Number` trait to get the `FORMATTED_SIZE` of the number.
+/// use lexical_core::Number;
+///
+/// let mut buffer = [0u8; f32::FORMATTED_SIZE];
+/// let float = 3.14159265359_f32;
+///
+/// let options = lexical_core::WriteFloatOptions::decimal();
+/// lexical_core::write_with_options(float, &mut buffer, &options);
+///
+/// assert_eq!(&buffer[0..9], b"3.1415927");
+/// ```
+///
+/// This will panic, because the buffer is not large enough:
+///
+/// ```should_panic
+/// // note: the buffer is only one byte large
+/// let mut buffer = [0u8; 1];
+/// let float = 3.14159265359_f32;
+///
+/// lexical_core::write_with_options(float, &mut buffer, &options);
+/// ```
+#[inline]
+pub fn write_with_options<'a, N: ToLexicalOptions>(n: N, bytes: &'a mut [u8], options: &N::WriteOptions)
+    -> &'a mut [u8]
+{
+    n.to_lexical_with_options(bytes, options)
+}
 
 /// Parse number from string.
 ///
@@ -205,7 +252,7 @@ pub fn parse<N: FromLexical>(bytes: &[u8])
 /// any invalid digits are found during parsing.
 ///
 /// * `bytes`   - Byte slice containing a numeric string.
-/// * `options` - Options to dictate float parsing.
+/// * `options` - Options to customize number parsing.
 #[inline]
 pub fn parse_with_options<N: FromLexicalOptions>(bytes: &[u8], options: &N::ParseOptions)
     -> Result<N>
@@ -234,7 +281,7 @@ pub fn parse_partial<N: FromLexical>(bytes: &[u8])
 /// and the parsed value until that point.
 ///
 /// * `bytes`   - Byte slice containing a numeric string.
-/// * `options` - Options to dictate float parsing.
+/// * `options` - Options to customize number parsing.
 #[inline]
 pub fn parse_partial_with_options<N: FromLexicalOptions>(bytes: &[u8], options: &N::ParseOptions)
     -> Result<(N, usize)>

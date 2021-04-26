@@ -20102,28 +20102,28 @@ const F64_DATA: [f64; 10000] = [
 
 fn lexical(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("lexical");
-    group.measurement_time(Duration::from_secs(20));
+    group.measurement_time(Duration::from_secs(5));
     lexical_generator!(group, "ftoa_f32_lexical", F32_DATA);
     lexical_generator!(group, "ftoa_f64_lexical", F64_DATA);
 }
 
 fn dtoa(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("dtoa");
-    group.measurement_time(Duration::from_secs(20));
+    group.measurement_time(Duration::from_secs(5));
     dtoa_generator!(group, "ftoa_f32_dtoa", F32_DATA);
     dtoa_generator!(group, "ftoa_f64_dtoa", F64_DATA);
 }
 
 fn ryu(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("ryu");
-    group.measurement_time(Duration::from_secs(20));
+    group.measurement_time(Duration::from_secs(5));
     ryu_generator!(group, "ftoa_f32_ryu", F32_DATA, format32);
     ryu_generator!(group, "ftoa_f64_ryu", F64_DATA, format64);
 }
 
 fn fmt(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("fmt");
-    group.measurement_time(Duration::from_secs(20));
+    group.measurement_time(Duration::from_secs(5));
     fmt_generator!(group, "ftoa_f32_fmt", F32_DATA);
     fmt_generator!(group, "ftoa_f64_fmt", F64_DATA);
 }

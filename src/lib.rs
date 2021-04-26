@@ -34,6 +34,10 @@
 //! - [`parse_partial`]
 //! - [`parse_partial_with_options`]
 //!
+//! # Configuration API
+//!
+//! // TODO(ahuszagh) Add documentation here on NumberFormat and Parse/Write Options.
+//!
 //! [`to_string`]: fn.to_string.html
 //! [`to_string_with_options`]: fn.to_string_with_options.html
 //!
@@ -135,8 +139,27 @@ pub fn to_string<N: ToLexical>(n: N) -> lib::String {
     }
 }
 
-// TODO(ahuszagh) Need to implement this
-//  // [`to_string_with_options`]: fn.to_string_with_options.html
+/// High-level conversion of a number to a string with custom writing options.
+///
+/// * `n`       - Number to convert to string.
+/// * `options` - Options to specify number writing.
+// TODO(ahuszagh) Add examples and doctests
+#[inline]
+pub fn to_string_with_options<N: ToLexicalOptions>(n: N, options: &N::WriteOptions)
+    -> lib::String
+{
+    #[cfg(feature = "radix")]
+    let size = N::FORMATTED_SIZE;
+    #[cfg(not(feature = "radix"))]
+    let size = N::FORMATTED_SIZE_DECIMAL;
+
+    unsafe {
+        let mut buf = lib::Vec::<u8>::with_capacity(size);
+        let len = lexical_core::write_with_options(n, vector_as_slice(&mut buf), &options).len();
+        buf.set_len(len);
+        lib::String::from_utf8_unchecked(buf)
+    }
+}
 
 /// High-level conversion of decimal-encoded bytes to a number.
 ///
@@ -184,7 +207,7 @@ pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
 /// successfully parsed.
 ///
 /// * `bytes`   - Byte slice to convert to number.
-/// * `options` - Options to dictate float parsing.
+/// * `options` - Options to specify number parsing.
 // TODO(ahuszagh) Add examples and doctests
 #[inline]
 pub fn parse_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Bytes, options: &N::ParseOptions)
@@ -241,7 +264,7 @@ pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result
 /// the error occurred.
 ///
 /// * `bytes`   - Byte slice to convert to number.
-/// * `options` - Options to dictate float parsing.
+/// * `options` - Options to specify number parsing.
 // TODO(ahuszagh) Add examples and doctests
 #[inline]
 pub fn parse_partial_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Bytes, options: &N::ParseOptions)

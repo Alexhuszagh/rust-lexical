@@ -20050,14 +20050,14 @@ const F64_DATA: [&'static str; 10000] = [
 
 fn lexical(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("lexical");
-    group.measurement_time(Duration::from_secs(20));
+    group.measurement_time(Duration::from_secs(5));
     lexical_generator!(group, "atof_f32_lexical", F32_DATA, f32);
     lexical_generator!(group, "atof_f64_lexical", F64_DATA, f64);
 }
 
 fn parse(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("core::parse");
-    group.measurement_time(Duration::from_secs(20));
+    group.measurement_time(Duration::from_secs(5));
     parse_generator!(group, "atof_f32_parse", F32_DATA, f32);
     parse_generator!(group, "atof_f64_parse", F64_DATA, f64);
 }
