@@ -5,7 +5,7 @@
 use crate::lib::slice;
 use crate::util::*;
 
-use super::algorithm::FloatType;
+use super::algorithm::*;
 use super::algorithm::correct as algorithm;
 
 // NOTICE
@@ -37,10 +37,10 @@ fn to_iter_s<'a>(bytes: &'a [u8], digit_separator: u8) -> SkipValueIterator<'a, 
 
 /// Parse infinity from string.
 #[inline]
-fn parse_infinity<'a, ToIter, StartsWith, Iter, F>(
+fn parse_infinity<'a, ToIter, StartsWith, Iter, F, Data>(
+    data: Data,
     bytes: &'a [u8],
     sign: Sign,
-    format: NumberFormat,
     radix: u32,
     incorrect: bool,
     lossy: bool,
@@ -54,9 +54,10 @@ fn parse_infinity<'a, ToIter, StartsWith, Iter, F>(
     where F: FloatType,
           ToIter: Fn(&'a [u8], u8) -> Iter,
           Iter: AsPtrIterator<'a, u8>,
-          StartsWith: Fn(Iter, slice::Iter<'a, u8>) -> (bool, Iter)
+          StartsWith: Fn(Iter, slice::Iter<'a, u8>) -> (bool, Iter),
+          Data: FastDataInterface<'a>
 {
-    let digit_separator = format.digit_separator();
+    let digit_separator = data.format().digit_separator();
     if let (true, iter) = starts_with(to_iter(bytes, digit_separator), infinity_string.iter()) {
         Ok((F::INFINITY, iter.as_ptr()))
     } else if let (true, iter) = starts_with(to_iter(bytes, digit_separator), inf_string.iter()) {
@@ -64,7 +65,7 @@ fn parse_infinity<'a, ToIter, StartsWith, Iter, F>(
     } else {
         // Not infinity, may be valid with a different radix.
         if cfg!(feature = "radix") {
-            algorithm::to_native::<F>(bytes, sign, format, radix, incorrect, lossy, rounding)
+            algorithm::to_native::<F, Data>(data, bytes, sign, radix, incorrect, lossy, rounding)
         } else {
             Err((ErrorCode::InvalidDigit, bytes.as_ptr()))
         }
@@ -73,10 +74,10 @@ fn parse_infinity<'a, ToIter, StartsWith, Iter, F>(
 
 /// Parse NaN from string.
 #[inline]
-fn parse_nan<'a, ToIter, StartsWith, Iter, F>(
+fn parse_nan<'a, ToIter, StartsWith, Iter, F, Data>(
+    data: Data,
     bytes: &'a [u8],
     sign: Sign,
-    format: NumberFormat,
     radix: u32,
     incorrect: bool,
     lossy: bool,
@@ -89,15 +90,16 @@ fn parse_nan<'a, ToIter, StartsWith, Iter, F>(
     where F: FloatType,
           ToIter: Fn(&'a [u8], u8) -> Iter,
           Iter: AsPtrIterator<'a, u8>,
-          StartsWith: Fn(Iter, slice::Iter<'a, u8>) -> (bool, Iter)
+          StartsWith: Fn(Iter, slice::Iter<'a, u8>) -> (bool, Iter),
+          Data: FastDataInterface<'a>
 {
-    let digit_separator = format.digit_separator();
+    let digit_separator = data.format().digit_separator();
     if let (true, iter) = starts_with(to_iter(bytes, digit_separator), nan_string.iter()) {
         Ok((F::NAN, iter.as_ptr()))
     } else {
         // Not NaN, may be valid with a different radix.
         if cfg!(feature = "radix") {
-            algorithm::to_native::<F>(bytes, sign, format, radix, incorrect, lossy, rounding)
+            algorithm::to_native::<F, Data>(data, bytes, sign, radix, incorrect, lossy, rounding)
         } else {
             Err((ErrorCode::InvalidDigit, bytes.as_ptr()))
         }
@@ -110,27 +112,29 @@ fn parse_nan<'a, ToIter, StartsWith, Iter, F>(
 /// Special values are allowed, the match is case-insensitive,
 /// and no digit separators are allowed.
 #[inline(always)]
-fn parse_float_standard<F: FloatType>(
-    bytes: &[u8],
+fn parse_float_standard<'a, F, Data>(
+    data: Data,
+    bytes: &'a [u8],
     sign: Sign,
-    format: NumberFormat,
     radix: u32,
     incorrect: bool,
     lossy: bool,
     rounding: RoundingKind,
     nan_string: &'static [u8],
     inf_string: &'static [u8],
-    infinity_string: &'static [u8],
+    infinity_string: &'static [u8]
 )
     -> ParseResult<(F, *const u8)>
+    where F: FloatType,
+          Data: FastDataInterface<'a>
 {
     // Use predictive parsing to filter special cases. This leads to
     // dramatic performance gains.
     let starts_with = case_insensitive_starts_with_iter;
     match bytes[0] {
-        b'i' | b'I' => parse_infinity(bytes, sign, format, radix, incorrect, lossy, rounding, inf_string, infinity_string, to_iter, starts_with),
-        b'N' | b'n' => parse_nan(bytes, sign, format, radix, incorrect, lossy, rounding, nan_string, to_iter, starts_with),
-        _           => algorithm::to_native::<F>(bytes, sign, format, radix, incorrect, lossy, rounding),
+        b'i' | b'I' => parse_infinity(data, bytes, sign, radix, incorrect, lossy, rounding, inf_string, infinity_string, to_iter, starts_with),
+        b'N' | b'n' => parse_nan(data, bytes, sign, radix, incorrect, lossy, rounding, nan_string, to_iter, starts_with),
+        _           => algorithm::to_native::<F, Data>(data, bytes, sign, radix, incorrect, lossy, rounding),
     }
 }
 
@@ -139,26 +143,28 @@ fn parse_float_standard<F: FloatType>(
 /// and digit separators are allowed.
 #[inline]
 #[cfg(feature = "format")]
-fn parse_float_cs<F: FloatType>(
-    bytes: &[u8],
+fn parse_float_cs<'a, F, Data>(
+    data: Data,
+    bytes: &'a [u8],
     sign: Sign,
-    format: NumberFormat,
     radix: u32,
     incorrect: bool,
     lossy: bool,
     rounding: RoundingKind,
     nan_string: &'static [u8],
     inf_string: &'static [u8],
-    infinity_string: &'static [u8],
+    infinity_string: &'static [u8]
 )
     -> ParseResult<(F, *const u8)>
+    where F: FloatType,
+          Data: FastDataInterface<'a>
 {
-    let digit_separator = format.digit_separator();
+    let digit_separator = data.format().digit_separator();
     let starts_with = starts_with_iter;
     match SkipValueIterator::new(bytes, digit_separator).next()  {
-        Some(&b'i') | Some(&b'I')   => parse_infinity(bytes, sign, format, radix, incorrect, lossy, rounding, inf_string, infinity_string, to_iter_s, starts_with),
-        Some(&b'n') | Some(&b'N')   => parse_nan(bytes, sign, format, radix, incorrect, lossy, rounding, nan_string, to_iter_s, starts_with),
-        _                           => algorithm::to_native::<F>(bytes, sign, format, radix, incorrect, lossy, rounding),
+        Some(&b'i') | Some(&b'I')   => parse_infinity(data, bytes, sign, radix, incorrect, lossy, rounding, inf_string, infinity_string, to_iter_s, starts_with),
+        Some(&b'n') | Some(&b'N')   => parse_nan(data, bytes, sign, radix, incorrect, lossy, rounding, nan_string, to_iter_s, starts_with),
+        _                           => algorithm::to_native::<F, Data>(data, bytes, sign, radix, incorrect, lossy, rounding),
     }
 }
 
@@ -167,27 +173,29 @@ fn parse_float_cs<F: FloatType>(
 /// and no digit separators are allowed.
 #[inline]
 #[cfg(feature = "format")]
-fn parse_float_c<F: FloatType>(
-    bytes: &[u8],
+fn parse_float_c<'a, F, Data>(
+    data: Data,
+    bytes: &'a [u8],
     sign: Sign,
-    format: NumberFormat,
     radix: u32,
     incorrect: bool,
     lossy: bool,
     rounding: RoundingKind,
     nan_string: &'static [u8],
     inf_string: &'static [u8],
-    infinity_string: &'static [u8],
+    infinity_string: &'static [u8]
 )
     -> ParseResult<(F, *const u8)>
+    where F: FloatType,
+          Data: FastDataInterface<'a>
 {
     // Use predictive parsing to filter special cases. This leads to
     // dramatic performance gains.
     let starts_with = starts_with_iter;
     match bytes[0] {
-        b'i' | b'I' => parse_infinity(bytes, sign, format, radix, incorrect, lossy, rounding, inf_string, infinity_string, to_iter, starts_with),
-        b'N' | b'n' => parse_nan(bytes, sign, format, radix, incorrect, lossy, rounding, nan_string, to_iter, starts_with),
-        _           => algorithm::to_native::<F>(bytes, sign, format, radix, incorrect, lossy, rounding),
+        b'i' | b'I' => parse_infinity(data, bytes, sign, radix, incorrect, lossy, rounding, inf_string, infinity_string, to_iter, starts_with),
+        b'N' | b'n' => parse_nan(data, bytes, sign, radix, incorrect, lossy, rounding, nan_string, to_iter, starts_with),
+        _           => algorithm::to_native::<F, Data>(data, bytes, sign, radix, incorrect, lossy, rounding),
     }
 }
 
@@ -196,79 +204,87 @@ fn parse_float_c<F: FloatType>(
 /// and digit separators are allowed.
 #[inline]
 #[cfg(feature = "format")]
-fn parse_float_s<F: FloatType>(
-    bytes: &[u8],
+fn parse_float_s<'a, F, Data>(
+    data: Data,
+    bytes: &'a [u8],
     sign: Sign,
-    format: NumberFormat,
     radix: u32,
     incorrect: bool,
     lossy: bool,
     rounding: RoundingKind,
     nan_string: &'static [u8],
     inf_string: &'static [u8],
-    infinity_string: &'static [u8],
+    infinity_string: &'static [u8]
 )
     -> ParseResult<(F, *const u8)>
+    where F: FloatType,
+          Data: FastDataInterface<'a>
 {
-    let digit_separator = format.digit_separator();
+    let digit_separator = data.format().digit_separator();
     let starts_with = case_insensitive_starts_with_iter;
     match SkipValueIterator::new(bytes, digit_separator).next()  {
-        Some(&b'i') | Some(&b'I')   => parse_infinity(bytes, sign, format, radix, incorrect, lossy, rounding, inf_string, infinity_string, to_iter_s, starts_with),
-        Some(&b'n') | Some(&b'N')   => parse_nan(bytes, sign, format, radix, incorrect, lossy, rounding, nan_string, to_iter_s, starts_with),
-        _                           => algorithm::to_native::<F>(bytes, sign, format, radix, incorrect, lossy, rounding),
+        Some(&b'i') | Some(&b'I')   => parse_infinity(data, bytes, sign, radix, incorrect, lossy, rounding, inf_string, infinity_string, to_iter_s, starts_with),
+        Some(&b'n') | Some(&b'N')   => parse_nan(data, bytes, sign, radix, incorrect, lossy, rounding, nan_string, to_iter_s, starts_with),
+        _                           => algorithm::to_native::<F, Data>(data, bytes, sign, radix, incorrect, lossy, rounding),
     }
 }
 
 /// Parse special or float values with the default formatter.
 #[inline(always)]
 #[cfg(not(feature = "format"))]
-fn parse_float<F: FloatType>(
-    bytes: &[u8],
+fn parse_float<'a, F, Data>(
+    data: Data,
+    bytes: &'a [u8],
     sign: Sign,
-    format: NumberFormat,
     radix: u32,
     incorrect: bool,
     lossy: bool,
     rounding: RoundingKind,
     nan_string: &'static [u8],
     inf_string: &'static [u8],
-    infinity_string: &'static [u8],
+    infinity_string: &'static [u8]
 )
     -> ParseResult<(F, *const u8)>
+    where F: FloatType,
+          Data: FastDataInterface<'a>
 {
-    parse_float_standard(bytes, sign, format, radix, incorrect, lossy, rounding, nan_string, inf_string, infinity_string)
+    parse_float_standard(data, bytes, sign, radix, incorrect, lossy, rounding, nan_string, inf_string, infinity_string)
 }
 
 /// Parse special or float values with the default formatter.
 #[inline(always)]
 #[cfg(feature = "format")]
-fn parse_float<F: FloatType>(
-    bytes: &[u8],
+fn parse_float<'a, F, Data>(
+    data: Data,
+    bytes: &'a [u8],
     sign: Sign,
-    format: NumberFormat,
     radix: u32,
     incorrect: bool,
     lossy: bool,
     rounding: RoundingKind,
     nan_string: &'static [u8],
     inf_string: &'static [u8],
-    infinity_string: &'static [u8],
+    infinity_string: &'static [u8]
+
 )
     -> ParseResult<(F, *const u8)>
+    where F: FloatType,
+          Data: FastDataInterface<'a>
 {
     // Need to consider 3 possibilities:
     //  1). No special values are allowed.
     //  2). Special values are case-sensitive.
     //  3). Digit separators are allowed in the special.
+    let format = data.format();
     let no_special = format.no_special();
     let case = format.case_sensitive_special();
     let has_sep = format.special_digit_separator();
     match (no_special, case, has_sep) {
-        (true, _, _)            => algorithm::to_native::<F>(bytes, sign, format, radix, incorrect, lossy, rounding),
-        (false, true, true)     => parse_float_cs(bytes, sign, format, radix, incorrect, lossy, rounding, nan_string, inf_string, infinity_string),
-        (false, false, true)    => parse_float_s(bytes, sign, format, radix, incorrect, lossy, rounding, nan_string, inf_string, infinity_string),
-        (false, true, false)    => parse_float_c(bytes, sign, format, radix, incorrect, lossy, rounding, nan_string, inf_string, infinity_string),
-        (false, false, false)   => parse_float_standard(bytes, sign, format, radix, incorrect, lossy, rounding, nan_string, inf_string, infinity_string),
+        (true, _, _)            => algorithm::to_native::<F, Data>(data, bytes, sign, radix, incorrect, lossy, rounding),
+        (false, true, true)     => parse_float_cs(data, bytes, sign, radix, incorrect, lossy, rounding, nan_string, inf_string, infinity_string),
+        (false, false, true)    => parse_float_s(data, bytes, sign, radix, incorrect, lossy, rounding, nan_string, inf_string, infinity_string),
+        (false, true, false)    => parse_float_c(data, bytes, sign, radix, incorrect, lossy, rounding, nan_string, inf_string, infinity_string),
+        (false, false, false)   => parse_float_standard(data, bytes, sign, radix, incorrect, lossy, rounding, nan_string, inf_string, infinity_string),
     }
 }
 
@@ -309,24 +325,27 @@ fn to_signed<F: FloatType>(float: F, sign: Sign) -> F
 
 /// Standalone atof processor.
 #[inline]
-fn atof<F: FloatType>(
-    bytes: &[u8],
-    format: NumberFormat,
+fn atof<'a, F, Data>(
+    data: Data,
+    bytes: &'a [u8],
     radix: u32,
     incorrect: bool,
     lossy: bool,
     rounding: RoundingKind,
     nan_string: &'static [u8],
     inf_string: &'static [u8],
-    infinity_string: &'static [u8],
+    infinity_string: &'static [u8]
 )
     -> ParseResult<(F, *const u8)>
+    where F: FloatType,
+          Data: FastDataInterface<'a>
 {
+    let format = data.format();
     let (sign, digits) = parse_sign::<F>(bytes, format);
     if digits.is_empty() {
         return Err((ErrorCode::Empty, digits.as_ptr()));
     }
-    let (float, ptr): (F, *const u8) = parse_float(digits, sign, format, radix, incorrect, lossy, rounding, nan_string, inf_string, infinity_string)?;
+    let (float, ptr): (F, *const u8) = parse_float(data, digits, sign, radix, incorrect, lossy, rounding, nan_string, inf_string, infinity_string)?;
     validate_sign(bytes, digits, sign, format)?;
 
     Ok((to_signed(float, sign), ptr))
@@ -337,12 +356,10 @@ fn atof<F: FloatType>(
 fn atof_default<F: FloatType>(bytes: &[u8])
     -> Result<(F, usize)>
 {
-    // TODO(ahuszagh) What happens... performance wise....
-    // if I create the data interface here...?
-    // Looking for better performance on options...
     let format = NumberFormat::STANDARD;
+    let result = apply_standard_interface!(atof::<F, _>, format, bytes, 10, DEFAULT_INCORRECT, false, DEFAULT_ROUNDING, DEFAULT_NAN_STRING, DEFAULT_INF_STRING, DEFAULT_INFINITY_STRING);
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, format, 10, DEFAULT_INCORRECT, false, DEFAULT_ROUNDING, DEFAULT_NAN_STRING, DEFAULT_INF_STRING, DEFAULT_INFINITY_STRING) {
+    match result {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }
@@ -361,8 +378,9 @@ fn atof_with_options<F: FloatType>(bytes: &[u8], options: &ParseFloatOptions)
     let nan = options.nan_string();
     let inf = options.inf_string();
     let infinity = options.infinity_string();
+    let result = apply_interface!(atof::<F, _>, format, bytes, radix, incorrect, lossy, rounding, nan, inf, infinity);
     let index = | ptr | distance(bytes.as_ptr(), ptr);
-    match atof::<F>(bytes, format, radix, incorrect, lossy, rounding, nan, inf, infinity) {
+    match result {
         Ok((value, ptr)) => Ok((value, index(ptr))),
         Err((code, ptr)) => Err((code, index(ptr)).into()),
     }

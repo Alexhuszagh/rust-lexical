@@ -3,7 +3,7 @@
 /// Convert format to standard interface, where we know we're using
 /// the standard and only the standard interface.
 macro_rules! apply_standard_interface {
-    ($fn:ident, $format:expr $(,$args:ident)*) => {
+    ($fn:expr, $format:expr $(,$args:expr)*) => {
         $fn(StandardFastDataInterface::new($format) $(,$args)*)
     };
 }
@@ -11,7 +11,7 @@ macro_rules! apply_standard_interface {
 /// Convert format to interface, and call function with new item as first argument.
 #[cfg(not(feature = "format"))]
 macro_rules! apply_interface {
-    ($fn:ident, $format:expr $(,$args:ident)*) => {
+    ($fn:expr, $format:expr $(,$args:expr)*) => {
         apply_standard_interface!($fn, $format $(, $args)*)
     };
 }
@@ -19,7 +19,7 @@ macro_rules! apply_interface {
 /// Convert format to interface, and call function with new item as first argument.
 #[cfg(feature = "format")]
 macro_rules! apply_interface {
-    ($fn:ident, $format:expr $(,$args:ident)*) => {
+    ($fn:expr, $format:expr $(,$args:expr)*) => {
         // Parse Options.
         match $format.interface_flags() {
             NumberFormat::PERMISSIVE_INTERFACE  => $fn(PermissiveFastDataInterface::new($format) $(,$args)*),

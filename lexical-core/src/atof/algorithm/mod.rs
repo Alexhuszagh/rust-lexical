@@ -34,3 +34,4 @@ pub(crate) mod incorrect;
 
 // Re-export the float type.
 pub(crate) use self::alias::FloatType;
+pub(crate) use self::format::*;

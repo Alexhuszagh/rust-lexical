@@ -22,12 +22,12 @@ if #[cfg(feature = "format")] {
 }}
 
 // Re-export interface and traits.
-pub(super) use standard::*;
-pub(super) use traits::*;
+pub(crate) use standard::*;
+pub(crate) use traits::*;
 
 cfg_if! {
 if #[cfg(feature = "format")] {
-    pub(super) use generic::*;
-    pub(super) use permissive::*;
-    pub(super) use ignore::*;
+    pub(crate) use generic::*;
+    pub(crate) use permissive::*;
+    pub(crate) use ignore::*;
 }}

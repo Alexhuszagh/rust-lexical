@@ -434,27 +434,28 @@ fn pow2_exponent(radix: u32) -> i32 {
 ///
 /// The float string must be non-special, non-zero, and positive.
 #[inline(always)]
-pub(crate) fn to_native<F>(
-    bytes: &[u8],
+pub(crate) fn to_native<'a, F, Data>(
+    data: Data,
+    bytes: &'a [u8],
     sign: Sign,
-    format: NumberFormat,
     radix: u32,
     incorrect: bool,
     lossy: bool,
     rounding: RoundingKind
 )
     -> ParseResult<(F, *const u8)>
-    where F: FloatType
+    where F: FloatType,
+          Data: FastDataInterface<'a>
 {
     #[cfg(not(feature = "radix"))] {
-        apply_interface!(pown_to_native, format, bytes, radix, incorrect, lossy, sign, rounding)
+        pown_to_native(data, bytes, radix, incorrect, lossy, sign, rounding)
     }
 
     #[cfg(feature = "radix")] {
         let pow2_exp = pow2_exponent(radix);
         match pow2_exp {
-            0 => apply_interface!(pown_to_native, format, bytes, radix, incorrect, lossy, sign, rounding),
-            _ => apply_interface!(pow2_to_native, format, bytes, radix, pow2_exp, sign, rounding)
+            0 => pown_to_native(data, bytes, radix, incorrect, lossy, sign, rounding),
+            _ => pow2_to_native(data, bytes, radix, pow2_exp, sign, rounding)
         }
     }
 }
