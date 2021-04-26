@@ -50,6 +50,15 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
+// NOTICE
+//  These internal calls are all ugly, and pass **all** the values
+//  as parameters to the function calls because the overhead of
+//  adding them to a struct, and passing the struct by reference,
+//  was adding a ~15% performance penalty to all calls, likely because
+//  the compiler wasn't able to properly inline calls.
+//
+//  These functions are ugly as a result.
+
 use crate::util::*;
 
 #[cfg(feature = "radix")]
@@ -70,36 +79,36 @@ if #[cfg(feature = "grisu3")] {
 /// Trait to define serialization of a float to string.
 pub(crate) trait FloatToString: Float {
     /// Export float to decimal string with optimized algorithm.
-    fn decimal<'a>(self, bytes: &'a mut [u8]) -> usize;
+    fn decimal<'a>(self, bytes: &'a mut [u8], format: NumberFormat) -> usize;
 
     /// Export float to radix string with slow algorithm.
     #[cfg(feature = "radix")]
-    fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> usize;
+    fn radix<'a>(self, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize;
 }
 
 impl FloatToString for f32 {
     #[inline]
-    fn decimal<'a>(self, bytes: &'a mut [u8]) -> usize {
-        float_decimal(self, bytes)
+    fn decimal<'a>(self, bytes: &'a mut [u8], format: NumberFormat) -> usize {
+        float_decimal(self, bytes, format)
     }
 
     #[inline]
     #[cfg(feature = "radix")]
-    fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> usize {
-        float_radix(self, radix, bytes)
+    fn radix<'a>(self, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize {
+        float_radix(self, radix, bytes, format)
     }
 }
 
 impl FloatToString for f64 {
     #[inline]
-    fn decimal<'a>(self, bytes: &'a mut [u8]) -> usize {
-        double_decimal(self, bytes)
+    fn decimal<'a>(self, bytes: &'a mut [u8], format: NumberFormat) -> usize {
+        double_decimal(self, bytes, format)
     }
 
     #[inline]
     #[cfg(feature = "radix")]
-    fn radix<'a>(self, radix: u32, bytes: &'a mut [u8]) -> usize {
-        double_radix(self, radix, bytes)
+    fn radix<'a>(self, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize {
+        double_radix(self, radix, bytes, format)
     }
 }
 
@@ -107,27 +116,38 @@ impl FloatToString for f64 {
 
 /// Forward the correct arguments the ideal encoder.
 #[inline]
-fn forward<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
+fn forward<'a, F: FloatToString>(
+    value: F,
+    radix: u32,
+    bytes: &'a mut [u8],
+    format: NumberFormat
+)
     -> usize
 {
     debug_assert_radix!(radix);
 
     #[cfg(not(feature = "radix"))] {
-        value.decimal(bytes)
+        value.decimal(bytes, format)
     }
 
     #[cfg(feature = "radix")] {
         match radix {
-            10 => value.decimal(bytes),
-            _  => value.radix(radix, bytes),
+            10 => value.decimal(bytes, format),
+            _  => value.radix(radix, bytes, format),
         }
     }
 }
 
 /// Convert float-to-string and handle special (positive) floats.
 #[inline]
-#[allow(deprecated)]    // TODO(ahuszagh) Refactor to remove deprecated.
-fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
+fn filter_special<'a, F: FloatToString>(
+    value: F,
+    radix: u32,
+    bytes: &'a mut [u8],
+    format: NumberFormat,
+    nan_string: &'static [u8],
+    inf_string: &'static [u8],
+)
     -> usize
 {
     // Logic errors, disable in release builds.
@@ -145,22 +165,29 @@ fn filter_special<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8
 
     if value.is_nan() {
         // This is safe, because we confirmed the buffer is >= F::FORMATTED_SIZE.
-        // We have up to `F::FORMATTED_SIZE - 1` bytes from `get_nan_string()`,
+        // We have up to `F::FORMATTED_SIZE - 1` bytes from `nan_string`,
         // and up to 1 byte from the sign.
-        copy_to_dst(bytes, get_nan_string())
+        copy_to_dst(bytes, nan_string)
     } else if value.is_special() {
         // This is safe, because we confirmed the buffer is >= F::FORMATTED_SIZE.
-        // We have up to `F::FORMATTED_SIZE - 1` bytes from `get_inf_string()`,
+        // We have up to `F::FORMATTED_SIZE - 1` bytes from `inf_string`,
         // and up to 1 byte from the sign.
-        copy_to_dst(bytes, get_inf_string())
+        copy_to_dst(bytes, inf_string)
     } else {
-        forward(value, radix, bytes)
+        forward(value, radix, bytes, format)
     }
 }
 
 /// Handle +/- values.
 #[inline]
-fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
+fn filter_sign<'a, F: FloatToString>(
+    value: F,
+    radix: u32,
+    bytes: &'a mut [u8],
+    format: NumberFormat,
+    nan_string: &'static [u8],
+    inf_string: &'static [u8],
+)
     -> usize
 {
     debug_assert_radix!(radix);
@@ -181,10 +208,41 @@ fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
         // We know this is safe, because we confirmed the buffer is >= 1.
         bytes[0] = b'-';
         let bytes = &mut bytes[1..];
-        filter_special(value, radix, bytes) + 1
+        filter_special(value, radix, bytes, format, nan_string, inf_string) + 1
     } else {
-        filter_special(value, radix, bytes)
+        filter_special(value, radix, bytes, format, nan_string, inf_string)
     }
+}
+
+/// Trim a trailing ".0" from a float.
+#[inline]
+fn trim<'a>(bytes: &'a mut [u8], trim_floats: bool)
+    -> usize
+{
+    // Trim a trailing ".0" from a float.
+    if trim_floats && ends_with_slice(bytes, b".0") {
+        bytes.len() - 2
+    } else {
+        bytes.len()
+    }
+}
+
+/// Write float to string.
+#[inline]
+fn from_native<F: FloatToString>(
+    value: F,
+    radix: u32,
+    bytes: &mut [u8],
+    format: NumberFormat,
+    nan_string: &'static [u8],
+    inf_string: &'static [u8],
+    trim_floats: bool
+)
+    -> usize
+{
+    let len = filter_sign(value, radix, bytes, format, nan_string, inf_string);
+    let bytes = &mut bytes[..len];
+    trim(bytes, trim_floats)
 }
 
 /// Write float to string.
@@ -192,30 +250,25 @@ fn filter_sign<'a, F: FloatToString>(value: F, radix: u32, bytes: &'a mut [u8])
 fn ftoa<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
     -> usize
 {
-    let len = filter_sign(value, radix, bytes);
-    let bytes = &mut bytes[..len];
-    trim(bytes)
+    from_native(value, radix, bytes, DEFAULT_FORMAT, DEFAULT_NAN_STRING, DEFAULT_INF_STRING, DEFAULT_TRIM_FLOATS)
 }
 
-/// Trim a trailing ".0" from a float.
+/// Write float to string.
 #[inline]
-fn trim<'a>(bytes: &'a mut [u8])
+fn ftoa_with_options<F: FloatToString>(value: F, bytes: &mut [u8], options: &WriteFloatOptions)
     -> usize
 {
-    // Trim a trailing ".0" from a float.
-    // TODO(ahuszagh) Remove with the trim_floats removal.
-    if cfg!(feature = "trim_floats") && ends_with_slice(bytes, b".0") {
-        bytes.len() - 2
-    } else {
-        bytes.len()
-    }
+    let format = options.format().unwrap_or(DEFAULT_FORMAT);
+    from_native(value, options.radix(), bytes, format, options.nan_string(), options.inf_string(), options.trim_floats())
 }
 
 // TO LEXICAL
 
-// TODO(ahuszagh) This needs to have a format option.
 to_lexical!(ftoa, f32);
 to_lexical!(ftoa, f64);
+
+to_lexical_with_options!(ftoa_with_options, f32);
+to_lexical_with_options!(ftoa_with_options, f64);
 
 // TESTS
 // -----

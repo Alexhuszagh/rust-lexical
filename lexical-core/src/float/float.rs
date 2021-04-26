@@ -283,17 +283,14 @@ impl<M: Mantissa> ExtendedFloat<M> {
     // INTO
 
     /// Convert into lower-precision native float.
+    ///
+    /// This will always use round-nearest, tie-even.
+    /// Use `into_rounded_float` if you need custom rounding schemes.
     #[inline]
     pub fn into_float<F: FloatRounding<M>>(self)
         -> F
     {
-        #[cfg(not(feature = "rounding"))] {
-            self.into_rounded_float::<F>(RoundingKind::NearestTieEven, Sign::Positive)
-        }
-
-        #[cfg(feature = "rounding")] {
-            self.into_rounded_float::<F>(get_float_rounding(), Sign::Positive)
-        }
+        self.into_rounded_float::<F>(RoundingKind::NearestTieEven, Sign::Positive)
     }
 
     /// Convert into lower-precision 32-bit float.

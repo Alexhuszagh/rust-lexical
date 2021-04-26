@@ -40,7 +40,21 @@ proptest = { version = "0.10.1", optional = true }
 approx = "0.4.0"
 
 [features]
-default = ["ryu", "std"]
+default = ["atof", "atoi", "ftoa", "itoa", "ryu", "std"]
+
+# SUBMODULES
+# ----------
+# Only build the atof submoudle.
+atof = []
+# Only build the atoi submoudle.
+atoi = []
+# Only build the ftoa submoudle.
+ftoa = []
+# Only build the itoa submoudle.
+itoa = []
+
+# FEATURES
+# --------
 # Add support for different float string formats.
 format = []
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
@@ -51,9 +65,9 @@ radix = []
 rounding = []
 # Use the `std` library.
 std = []
-# Trim a trailing ".0" from an exported float string, and represent -0.0 as "0".
-# TODO(ahuszagh) Remove this feature.
-trim_floats = []
+
+# INTERNAL
+# --------
 # Undocumented. Disable quickcheck for older Rustc versions.
 property_tests = ["quickcheck", "proptest"]
 

@@ -1,5 +1,6 @@
 //! Configuration options for parsing and formatting numbers.
 
+use super::config::F64_FORMATTED_SIZE_DECIMAL as FLOAT_SIZE;
 use super::format::NumberFormat;
 use super::rounding::RoundingKind;
 
@@ -63,6 +64,8 @@ macro_rules! to_nan_string {
     ($nan:expr) => {{
         if !starts_with_n($nan) {
             return None;
+        } else if $nan.len() > FLOAT_SIZE {
+            return None;
         }
         $nan
     }};
@@ -87,6 +90,8 @@ macro_rules! to_inf_string {
     ($inf:expr) => {{
         if !starts_with_i($inf) {
             return None;
+        } else if $inf.len() > FLOAT_SIZE {
+            return None;
         }
         $inf
     }};
@@ -96,6 +101,8 @@ macro_rules! to_inf_string {
 macro_rules! to_infinity_string {
     ($infinity:expr, $inf:expr) => {{
         if $infinity.len() < $inf.len() || !starts_with_i($infinity) {
+            return None;
+        } else if $infinity.len() > FLOAT_SIZE {
             return None;
         }
         $infinity

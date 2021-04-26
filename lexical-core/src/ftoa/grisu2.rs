@@ -310,10 +310,13 @@ fn grisu2(d: f64, digits: &mut [u8], k: &mut i32)
 /// Write the produced digits to string.
 ///
 /// Adds formatting for exponents, and other types of information.
-fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
+fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32, format: NumberFormat)
     -> usize
 {
-    // TODO(ahuszagh) Should take a format.
+    // Config
+    let decimal_point = format.decimal_point();
+    let exponent_character = format.exponent(10);
+
     let exp = k + ndigits.as_i32() - 1;
     let mut exp = exp.abs().as_usize();
 
@@ -325,7 +328,8 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
         // dest.len() >= idx+count+2, so the range must be valid.
         copy_to_dst(dest, &digits[..idx]);
         write_bytes(&mut dest[idx..idx+count], b'0');
-        copy_to_dst(&mut dest[idx+count..], b".0");
+        dest[idx+count] = decimal_point;
+        dest[idx+count+1] = b'0';
 
         return ndigits + k.as_usize() + 2;
     }
@@ -339,7 +343,7 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
             // These are all safe, since digits.len() >= ndigits, and
             // dest.len() >= ndigits+offset+2, so the range must be valid.
             dest[0] = b'0';
-            dest[1] = b'.';
+            dest[1] = decimal_point;
             write_bytes(&mut dest[2..offset+2], b'0');
             copy_to_dst(&mut dest[offset+2..], &digits[..ndigits]);
 
@@ -351,7 +355,7 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
             // These are all safe, since digits.len() >= ndigits, and
             // dest.len() >= ndigits+1, so the range must be valid.
             copy_to_dst(dest, &digits[..offset]);
-            dest[offset] = b'.';
+            dest[offset] = decimal_point;
             copy_to_dst(&mut dest[offset+1..], &digits[offset..ndigits]);
 
             return ndigits + 1;
@@ -367,13 +371,13 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
     *dst_iter.next().unwrap() = *src_iter.next().unwrap();
 
     if ndigits > 1 {
-        *dst_iter.next().unwrap() = b'.';
+        *dst_iter.next().unwrap() = decimal_point;
         for &src in src_iter {
             *dst_iter.next().unwrap() = src;
         }
     }
 
-    *dst_iter.next().unwrap() = exponent_notation_char(10);
+    *dst_iter.next().unwrap() = exponent_character;
 
     *dst_iter.next().unwrap() = match k + ndigits.as_i32() - 1 < 0 {
         true    => b'-',
@@ -401,12 +405,12 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32)
 }
 
 #[inline]
-fn fpconv_dtoa(d: f64, dest: &mut [u8]) -> usize
+fn fpconv_dtoa(d: f64, dest: &mut [u8], format: NumberFormat) -> usize
 {
     let mut digits: [u8; 18] = [0; 18];
     let mut k: i32 = 0;
     let ndigits = grisu2(d, &mut digits, &mut k);
-    emit_digits(&mut digits, ndigits, dest, k)
+    emit_digits(&mut digits, ndigits, dest, k, format)
 }
 
 // DECIMAL
@@ -416,12 +420,10 @@ fn fpconv_dtoa(d: f64, dest: &mut [u8]) -> usize
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline]
-pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
+pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8], format: NumberFormat)
     -> usize
 {
-    // TODO(ahuszagh) Can this take a format?
-    // This way, I can have the decimal point, and the like.
-    double_decimal(f.as_f64(), bytes)
+    double_decimal(f.as_f64(), bytes, format)
 }
 
 // F64
@@ -431,10 +433,8 @@ pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8])
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline]
-pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8])
+pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8], format: NumberFormat)
     -> usize
 {
-    // TODO(ahuszagh) Can this take a format?
-    // This way, I can have the decimal point, and the like.
-    fpconv_dtoa(d, bytes)
+    fpconv_dtoa(d, bytes, format)
 }
