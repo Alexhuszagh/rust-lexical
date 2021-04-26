@@ -80,21 +80,6 @@ macro_rules! lexical_generator {
     };
 }
 
-// Lexical atof generator with options.
-macro_rules! lexical_options_generator {
-    ($group:ident, $name:literal, $data:ident, $t:ty, $opts:ident) => {
-        $group.bench_function($name, |bench| {
-            bench.iter(|| {
-                for line in $data.lines() {
-                    for item in line.split(',') {
-                        black_box(lexical_core::parse_with_options::<$t>(item.as_bytes(), &$opts).unwrap());
-                    }
-                }
-            })
-        });
-    };
-}
-
 // Parse atof generator.
 macro_rules! parse_generator {
     ($group:ident, $name:literal, $data:ident, $t:ty) => {
@@ -121,15 +106,6 @@ fn lexical(criterion: &mut Criterion) {
     lexical_generator!(group, "atof_real_f64_lexical", data, f64);
 }
 
-fn lexical_options(criterion: &mut Criterion) {
-    let options = lexical_core::ParseFloatOptions::new();
-    let data = read_data();
-    let mut group = criterion.benchmark_group("lexical_options");
-    group.measurement_time(Duration::from_secs(5));
-    lexical_options_generator!(group, "atof_real_f32_lexical_options", data, f32, options);
-    lexical_options_generator!(group, "atof_real_f64_lexical_options", data, f64, options);
-}
-
 
 fn parse(criterion: &mut Criterion) {
     let data = read_data();
@@ -142,6 +118,5 @@ fn parse(criterion: &mut Criterion) {
 // MAIN
 
 criterion_group!(lexical_benches, lexical);
-criterion_group!(lexical_options_benches, lexical_options);
 criterion_group!(parse_benches, parse);
-criterion_main!(lexical_benches, lexical_options_benches, parse_benches);
+criterion_main!(lexical_benches, parse_benches);

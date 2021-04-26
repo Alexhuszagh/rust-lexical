@@ -166,31 +166,10 @@ fn digits(criterion: &mut Criterion) {
     bench_digits!(criterion, "digits", parse);
 }
 
-fn denormal_options(criterion: &mut Criterion) {
-    let options = lexical_core::ParseFloatOptions::new();
-    bench_data!(criterion, "denormal_options", "denormal", parse_with_options, DENORMAL_DATA, &options);
-}
-
-fn large_options(criterion: &mut Criterion) {
-    let options = lexical_core::ParseFloatOptions::new();
-    bench_data!(criterion, "large_options", "large", parse_with_options, LARGE_DATA, &options);
-}
-
-fn digits_options(criterion: &mut Criterion) {
-    let options = lexical_core::ParseFloatOptions::new();
-    bench_digits!(criterion, "digits_options", parse_with_options, &options);
-}
-
 // MAIN
 
 criterion_group!(denormal_benches, denormal);
 criterion_group!(large_benches, large);
 criterion_group!(digits_benches, digits);
-criterion_group!(denormal_options_benches, denormal_options);
-criterion_group!(large_options_benches, large_options);
-criterion_group!(digits_options_benches, digits_options);
 
-criterion_main!(
-    denormal_benches, large_benches, digits_benches,
-    denormal_options_benches, large_options_benches, digits_options_benches
-);
+criterion_main!(denormal_benches, large_benches, digits_benches);

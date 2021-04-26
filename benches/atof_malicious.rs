@@ -22,32 +22,6 @@ macro_rules! lexical_generator {
     };
 }
 
-// Lexical atof generator.
-macro_rules! lexical_lossy_generator {
-    ($group:ident, $name:literal, $data:ident, $t:ty) => {
-         $group.bench_function($name, |bench| {
-             bench.iter(|| {
-                 $data.iter().for_each(|x| {
-                    black_box(lexical_core::parse_lossy::<$t>(x.as_bytes()).unwrap());
-                 })
-             })
-         });
-    };
-}
-
-// Lexical atof generator with options.
-macro_rules! lexical_options_generator {
-    ($group:ident, $name:literal, $data:ident, $t:ty, $opts:ident) => {
-        $group.bench_function($name, |bench| {
-            bench.iter(|| {
-                $data.iter().for_each(|x| {
-                    black_box(lexical_core::parse_with_options::<$t>(x.as_bytes(), &$opts).unwrap());
-                })
-            })
-        });
-    };
-}
-
 // Parse atof generator.
 macro_rules! parse_generator {
     ($group:ident, $name:literal, $data:ident, $t:ty) => {
@@ -80,21 +54,6 @@ fn lexical(criterion: &mut Criterion) {
     lexical_generator!(group, "atof_malicious_f64_lexical", F64_DATA, f64);
 }
 
-fn lexical_lossy(criterion: &mut Criterion) {
-    let mut group = criterion.benchmark_group("lexical");
-    group.measurement_time(Duration::from_secs(20));
-    lexical_lossy_generator!(group, "atof_malicious_f32_lexical_lossy", F32_DATA, f32);
-    lexical_lossy_generator!(group, "atof_malicious_f64_lexical_lossy", F64_DATA, f64);
-}
-
-//fn lexical_options(criterion: &mut Criterion) {
-//    let options = lexical_core::ParseFloatOptions::new();
-//    let mut group = criterion.benchmark_group("lexical_options");
-//    group.measurement_time(Duration::from_secs(20));
-//    lexical_options_generator!(group, "atof_malicious_f32_lexical_options", F32_DATA, f32, options);
-//    lexical_options_generator!(group, "atof_malicious_f64_lexical_options", F64_DATA, f64, options);
-//}
-
 fn parse(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("core::parse");
     group.measurement_time(Duration::from_secs(20));
@@ -105,7 +64,5 @@ fn parse(criterion: &mut Criterion) {
 // MAIN
 
 criterion_group!(lexical_benches, lexical);
-criterion_group!(lexical_lossy_benches, lexical_lossy);
-//criterion_group!(lexical_options_benches, lexical_options);
 criterion_group!(parse_benches, parse);
-criterion_main!(lexical_benches, /*lexical_lossy_benches,*/ lexical_options_benches, parse_benches);
+criterion_main!(lexical_benches, parse_benches);
