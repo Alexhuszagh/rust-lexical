@@ -91,12 +91,12 @@ extern crate cfg_if;
 
 // Use vec if there is a system allocator, which we require only if
 // we're using the correct and radix features.
-// TODO(ahuszagh) This is only needed for atof
 #[cfg(all(not(feature = "std"), feature = "radix"))]
 #[cfg_attr(test, macro_use)]
 extern crate alloc;
 
 // Use arrayvec for atof.
+#[cfg(feature = "atof")]
 extern crate arrayvec;
 
 // Ensure only one back-end is enabled.
@@ -123,8 +123,7 @@ pub(crate) mod lib {
     pub(crate) use core::*;
 
     cfg_if! {
-        if #[cfg(feature = "radix")] {
-            // TODO(ahuszagh) This is only needed for atof
+        if #[cfg(all(feature = "atof", any(feature = "f128", feature = "radix")))] {
             #[cfg(feature = "std")]
             pub(crate) use std::vec::Vec;
 

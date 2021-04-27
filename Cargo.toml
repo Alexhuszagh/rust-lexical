@@ -44,13 +44,13 @@ default = ["atof", "atoi", "ftoa", "itoa", "ryu", "std"]
 
 # SUBMODULES
 # ----------
-# Only build the atof submoudle.
+# Only build the atof submodule.
 atof = ["lexical-core/atof"]
-# Only build the atoi submoudle.
+# Only build the atoi submodule.
 atoi = ["lexical-core/atoi"]
-# Only build the ftoa submoudle.
+# Only build the ftoa submodule.
 ftoa = ["lexical-core/ftoa"]
-# Only build the itoa submoudle.
+# Only build the itoa submodule.
 itoa = ["lexical-core/itoa"]
 
 # FEATURES

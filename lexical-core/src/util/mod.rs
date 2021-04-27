@@ -13,6 +13,7 @@ mod index;
 mod traits;
 
 #[macro_use]
+#[cfg(feature = "atof")]
 mod sequence;
 
 #[cfg(test)]
@@ -66,7 +67,6 @@ pub(crate) use self::digit::*;
 pub(crate) use self::limb::*;
 pub(crate) use self::primitive::*;
 pub(crate) use self::pow::*;
-pub(crate) use self::sequence::*;
 pub(crate) use self::table::*;
 
 #[cfg(any(feature = "atoi", feature = "itoa", all(feature = "ftoa", feature = "radix")))]
@@ -80,6 +80,9 @@ pub(crate) use self::mask::*;
 
 #[cfg(any(feature = "atof", feature = "ftoa"))]
 pub(crate) use self::rounding::*;
+
+#[cfg(feature = "atof")]
+pub(crate) use self::sequence::*;
 
 #[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 pub(crate) use self::skip_value::*;

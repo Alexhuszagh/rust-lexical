@@ -391,7 +391,6 @@ mod test {
         assert_eq!(data.raw_exponent(), 0);
     }
 
-    // TODO(ahuszagh) Restore.
     #[test]
     #[cfg(feature = "format")]
     fn extract_exponent_iltc_test() {

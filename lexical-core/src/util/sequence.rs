@@ -317,7 +317,7 @@ impl<T> SliceLikeImpl<T> for [T] {
     }
 }
 
-#[cfg(feature = "radix")]
+#[cfg(any(feature = "f128", feature = "radix"))]
 impl<T> SliceLikeImpl<T> for Vec<T> {
     // AS SLICE
 
@@ -406,7 +406,7 @@ pub trait Sort<T: Ord> {
 }
 
 impl<T: Ord> Sort<T> for dyn SliceLikeImpl<T> {
-    //
+    // TODO(ahuszagh) Currently bugged on no_std.
     //#[inline]
     //fn sort(&mut self) {
     //    <[T]>::sort(self.as_mut_slice())
@@ -962,7 +962,7 @@ impl<T> SliceLike<T> for [T] {
     }
 }
 
-#[cfg(feature = "radix")]
+#[cfg(any(feature = "f128", feature = "radix"))]
 impl<T> SliceLike<T> for Vec<T> {
     // GET
 
@@ -1190,7 +1190,7 @@ pub trait VecLike<T>:
     fn remove_many<R: ops::RangeBounds<usize>>(&mut self, range: R);
 }
 
-#[cfg(feature = "radix")]
+#[cfg(any(feature = "f128", feature = "radix"))]
 impl<T> VecLike<T> for Vec<T> {
     #[inline]
     fn new() -> Vec<T> {
@@ -1370,7 +1370,7 @@ pub trait CloneableVecLike<T: Clone + Copy + Send>: Send + VecLike<T>
     fn resize(&mut self, len: usize, value: T);
 }
 
-#[cfg(feature = "radix")]
+#[cfg(any(feature = "f128", feature = "radix"))]
 impl<T> CloneableVecLike<T> for Vec<T>
     where T: Clone + Copy + Send
 {
@@ -1427,7 +1427,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "radix")]
+    #[cfg(any(feature = "f128", feature = "radix"))]
     fn remove_many_test() {
         let mut x = vec![0, 1, 2, 3, 4, 5];
         x.remove_many(0..3);

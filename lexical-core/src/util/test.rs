@@ -4,6 +4,7 @@
 use arrayvec;
 
 use super::config::BUFFER_SIZE;
+#[cfg(feature = "atof")]
 use super::sequence::{CloneableVecLike, VecLike};
 
 // BASES

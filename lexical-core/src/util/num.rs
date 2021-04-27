@@ -12,6 +12,7 @@ use super::config::*;
 use super::limb::Limb;
 use super::primitive::Primitive;
 use super::options::*;
+#[cfg(feature = "atof")]
 use super::sequence::CloneableVecLike;
 
 #[cfg(all(feature = "atof", any(feature = "f128", feature = "radix")))]
