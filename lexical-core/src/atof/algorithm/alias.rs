@@ -677,7 +677,7 @@ impl ExtendedFloatType<f64> for ExtendedFloat<u64> {
 // TESTS
 // ------
 
-#[cfg(test)]
+#[cfg(all(test, feature = "radix"))]
 mod tests {
     use super::*;
 
@@ -693,7 +693,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "radix")]
     fn test_max_correct_digits() {
         for &radix in CORRECT_RADIX.iter() {
             // Test f32
@@ -715,7 +714,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "radix")]
     fn test_max_incorrect_digits() {
         for &radix in INCORRECT_RADIX.iter() {
             // Test f32
@@ -733,7 +731,6 @@ mod tests {
 
     #[test]
     #[should_panic]
-    #[cfg(feature = "radix")]
     fn test_max_incorrect_digits_panic() {
         // Test an impossible value.
         f32::max_incorrect_digits(2);

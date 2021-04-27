@@ -49,7 +49,6 @@ data_interface!(
 
 #[cfg(test)]
 mod tests {
-    // TODO(ahuszagh) Restore.
     use super::*;
 
     macro_rules! ignore {

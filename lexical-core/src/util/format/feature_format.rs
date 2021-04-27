@@ -2116,6 +2116,15 @@ impl NumberFormatBuilder {
         self
     }
 
+    /// Set if digits are required for all float components.
+    #[inline(always)]
+    pub const fn required_digits(mut self, flag: bool) -> Self {
+        self = self.required_integer_digits(flag);
+        self = self.required_fraction_digits(flag);
+        self = self.required_exponent_digits(flag);
+        self
+    }
+
     /// Set if a positive sign before the mantissa is not allowed.
     #[inline(always)]
     pub const fn no_positive_mantissa_sign(mut self, no_positive_mantissa_sign: bool) -> Self {
