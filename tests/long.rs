@@ -4,14 +4,12 @@
 
 extern crate lexical;
 
-#[cfg(feature = "correct")]
 fn check_atod_long(s: &str) {
     let f = lexical::parse::<f64, _>(s.as_bytes());
     assert!(f.is_ok());
     assert_eq!(f.unwrap(), 5e-324);
 }
 
-#[cfg(feature = "correct")]
 #[test]
 fn atof64_long_test() {
     // Test extremely long strings with atod.

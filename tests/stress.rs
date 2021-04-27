@@ -114,7 +114,6 @@ fn stress_test<T: 'static + Debug + PartialEq + lexical::FromLexical>(test: &Str
 // Disable the stress tests when using the imprecise algorithm, or
 // when not using precalculated tables, since the imprecise algorithms
 // are expected to fail.
-#[cfg(feature = "correct")]
 #[test]
 fn stress_tests() {
     stress_test(&STRESS_TESTS.bit24);
