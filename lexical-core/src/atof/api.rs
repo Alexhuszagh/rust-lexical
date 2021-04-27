@@ -400,134 +400,150 @@ from_lexical_with_options!(atof_with_options, f64);
 
 #[cfg(test)]
 mod tests {
+    // TODO(ahuszagh) Restore... incrementally.
     use crate::util::*;
 
     use approx::assert_relative_eq;
     #[cfg(all(feature = "std", feature = "property_tests"))]
     use proptest::{proptest, prop_assert_eq, prop_assert};
 
-    // Only enable when no other threads touch NAN_STRING or INFINITY_STRING.
     #[test]
-    #[ignore]
-    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn special_bytes_test() {
-        unsafe {
-            // Test serializing and deserializing special strings.
-            assert!(f32::from_lexical(b"NaN").unwrap().is_nan());
-            assert!(f32::from_lexical(b"nan").unwrap().is_nan());
-            assert!(f32::from_lexical(b"NAN").unwrap().is_nan());
-            assert!(f32::from_lexical(b"inf").unwrap().is_infinite());
-            assert!(f32::from_lexical(b"INF").unwrap().is_infinite());
-            assert!(f32::from_lexical(b"Infinity").unwrap().is_infinite());
+        // Test serializing and deserializing special strings.
+        assert!(f32::from_lexical(b"NaN").unwrap().is_nan());
+        assert!(f32::from_lexical(b"nan").unwrap().is_nan());
+        assert!(f32::from_lexical(b"NAN").unwrap().is_nan());
+        assert!(f32::from_lexical(b"inf").unwrap().is_infinite());
+        assert!(f32::from_lexical(b"INF").unwrap().is_infinite());
+        assert!(f32::from_lexical(b"Infinity").unwrap().is_infinite());
 
-            set_nan_string(b"nan");
-            set_inf_string(b"Infinity");
+        let options = ParseFloatOptions::builder()
+            .nan_string(b"nan")
+            .inf_string(b"Infinity")
+            .build()
+            .unwrap();
 
-            assert!(f32::from_lexical(b"inf").err().unwrap().code == ErrorCode::InvalidDigit);
-            assert!(f32::from_lexical(b"Infinity").unwrap().is_infinite());
-
-            set_nan_string(b"NaN");
-            set_inf_string(b"inf");
-        }
+        assert!(f32::from_lexical_with_options(b"inf", &options).err().unwrap().code == ErrorCode::EmptyMantissa);
+        assert!(f32::from_lexical_with_options(b"Infinity", &options).unwrap().is_infinite());
     }
 
-    // Only enable when no other threads touch FLOAT_ROUNDING.
     #[test]
-    #[ignore]
     #[cfg(feature = "rounding")]
-    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn special_rounding_test() {
-        // TODO(ahuszagh) This needs to do...
         // Each one of these pairs is halfway, and we can detect the
         // rounding schemes from this.
-        unsafe {
-            // Nearest, tie-even
-            set_float_rounding(RoundingKind::NearestTieEven);
-            assert_eq!(f64::from_lexical(b"-9007199254740993").unwrap(), -9007199254740992.0);
-            assert_eq!(f64::from_lexical(b"-9007199254740995").unwrap(), -9007199254740996.0);
-            assert_eq!(f64::from_lexical(b"9007199254740993").unwrap(), 9007199254740992.0);
-            assert_eq!(f64::from_lexical(b"9007199254740995").unwrap(), 9007199254740996.0);
 
-            // Nearest, tie-away-zero
-            set_float_rounding(RoundingKind::NearestTieAwayZero);
-            assert_eq!(f64::from_lexical(b"-9007199254740993").unwrap(), -9007199254740994.0);
-            assert_eq!(f64::from_lexical(b"-9007199254740995").unwrap(), -9007199254740996.0);
-            assert_eq!(f64::from_lexical(b"9007199254740993").unwrap(), 9007199254740994.0);
-            assert_eq!(f64::from_lexical(b"9007199254740995").unwrap(), 9007199254740996.0);
+        // Nearest, tie-even
+        let options = ParseFloatOptions::builder()
+            .rounding(RoundingKind::NearestTieEven)
+            .build()
+            .unwrap();
+        assert_eq!(f64::from_lexical_with_options(b"-9007199254740993", &options).unwrap(), -9007199254740992.0);
+        assert_eq!(f64::from_lexical_with_options(b"-9007199254740995", &options).unwrap(), -9007199254740996.0);
+        assert_eq!(f64::from_lexical_with_options(b"9007199254740993", &options).unwrap(), 9007199254740992.0);
+        assert_eq!(f64::from_lexical_with_options(b"9007199254740995", &options).unwrap(), 9007199254740996.0);
 
-            // Toward positive infinity
-            set_float_rounding(RoundingKind::TowardPositiveInfinity);
-            assert_eq!(f64::from_lexical(b"-9007199254740993").unwrap(), -9007199254740992.0);
-            assert_eq!(f64::from_lexical(b"-9007199254740995").unwrap(), -9007199254740994.0);
-            assert_eq!(f64::from_lexical(b"9007199254740993").unwrap(), 9007199254740994.0);
-            assert_eq!(f64::from_lexical(b"9007199254740995").unwrap(), 9007199254740996.0);
+        // Nearest, tie-away-zero
+        let options = ParseFloatOptions::builder()
+            .rounding(RoundingKind::NearestTieAwayZero)
+            .build()
+            .unwrap();
+        assert_eq!(f64::from_lexical_with_options(b"-9007199254740993", &options).unwrap(), -9007199254740994.0);
+        assert_eq!(f64::from_lexical_with_options(b"-9007199254740995", &options).unwrap(), -9007199254740996.0);
+        assert_eq!(f64::from_lexical_with_options(b"9007199254740993", &options).unwrap(), 9007199254740994.0);
+        assert_eq!(f64::from_lexical_with_options(b"9007199254740995", &options).unwrap(), 9007199254740996.0);
 
-            // Toward negative infinity
-            set_float_rounding(RoundingKind::TowardNegativeInfinity);
-            assert_eq!(f64::from_lexical(b"-9007199254740993").unwrap(), -9007199254740994.0);
-            assert_eq!(f64::from_lexical(b"-9007199254740995").unwrap(), -9007199254740996.0);
-            assert_eq!(f64::from_lexical(b"9007199254740993").unwrap(), 9007199254740992.0);
-            assert_eq!(f64::from_lexical(b"9007199254740995").unwrap(), 9007199254740994.0);
+        // Toward positive infinity
+        let options = ParseFloatOptions::builder()
+            .rounding(RoundingKind::TowardPositiveInfinity)
+            .build()
+            .unwrap();
+        assert_eq!(f64::from_lexical_with_options(b"-9007199254740993", &options).unwrap(), -9007199254740992.0);
+        assert_eq!(f64::from_lexical_with_options(b"-9007199254740995", &options).unwrap(), -9007199254740994.0);
+        assert_eq!(f64::from_lexical_with_options(b"9007199254740993", &options).unwrap(), 9007199254740994.0);
+        assert_eq!(f64::from_lexical_with_options(b"9007199254740995", &options).unwrap(), 9007199254740996.0);
 
-            // Toward zero
-            set_float_rounding(RoundingKind::TowardZero);
-            assert_eq!(f64::from_lexical(b"-9007199254740993").unwrap(), -9007199254740992.0);
-            assert_eq!(f64::from_lexical(b"-9007199254740995").unwrap(), -9007199254740994.0);
-            assert_eq!(f64::from_lexical(b"9007199254740993").unwrap(), 9007199254740992.0);
-            assert_eq!(f64::from_lexical(b"9007199254740995").unwrap(), 9007199254740994.0);
+        // Toward negative infinity
+        let options = ParseFloatOptions::builder()
+            .rounding(RoundingKind::TowardNegativeInfinity)
+            .build()
+            .unwrap();
+        assert_eq!(f64::from_lexical_with_options(b"-9007199254740993", &options).unwrap(), -9007199254740994.0);
+        assert_eq!(f64::from_lexical_with_options(b"-9007199254740995", &options).unwrap(), -9007199254740996.0);
+        assert_eq!(f64::from_lexical_with_options(b"9007199254740993", &options).unwrap(), 9007199254740992.0);
+        assert_eq!(f64::from_lexical_with_options(b"9007199254740995", &options).unwrap(), 9007199254740994.0);
 
-            // Reset to default
-            set_float_rounding(RoundingKind::NearestTieEven);
-        }
+        // Toward zero
+        let options = ParseFloatOptions::builder()
+            .rounding(RoundingKind::TowardZero)
+            .build()
+            .unwrap();
+        assert_eq!(f64::from_lexical_with_options(b"-9007199254740993", &options).unwrap(), -9007199254740992.0);
+        assert_eq!(f64::from_lexical_with_options(b"-9007199254740995", &options).unwrap(), -9007199254740994.0);
+        assert_eq!(f64::from_lexical_with_options(b"9007199254740993", &options).unwrap(), 9007199254740992.0);
+        assert_eq!(f64::from_lexical_with_options(b"9007199254740995", &options).unwrap(), 9007199254740994.0);
     }
 
-    // Only enable when no other threads touch FLOAT_ROUNDING.
     #[test]
-    #[ignore]
     #[cfg(all(feature = "radix", feature = "rounding"))]
-    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
     fn special_rounding_binary_test() {
         // Each one of these pairs is halfway, and we can detect the
         // rounding schemes from this.
-        unsafe {
-            // Nearest, tie-even
-            set_float_rounding(RoundingKind::NearestTieEven);
-            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000001", 2).unwrap(), -9007199254740992.0);
-            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000011", 2).unwrap(), -9007199254740996.0);
-            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000001", 2).unwrap(), 9007199254740992.0);
-            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000011", 2).unwrap(), 9007199254740996.0);
 
-            // Nearest, tie-away-zero
-            set_float_rounding(RoundingKind::NearestTieAwayZero);
-            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000001", 2).unwrap(), -9007199254740994.0);
-            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000011", 2).unwrap(), -9007199254740996.0);
-            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000001", 2).unwrap(), 9007199254740994.0);
-            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000011", 2).unwrap(), 9007199254740996.0);
+        // Nearest, tie-even
+        let options = ParseFloatOptions::builder()
+            .radix(2)
+            .rounding(RoundingKind::NearestTieEven)
+            .build()
+            .unwrap();
+        assert_eq!(f64::from_lexical_with_options(b"-100000000000000000000000000000000000000000000000000001", &options).unwrap(), -9007199254740992.0);
+        assert_eq!(f64::from_lexical_with_options(b"-100000000000000000000000000000000000000000000000000011", &options).unwrap(), -9007199254740996.0);
+        assert_eq!(f64::from_lexical_with_options(b"100000000000000000000000000000000000000000000000000001", &options).unwrap(), 9007199254740992.0);
+        assert_eq!(f64::from_lexical_with_options(b"100000000000000000000000000000000000000000000000000011", &options).unwrap(), 9007199254740996.0);
 
-            // Toward positive infinity
-            set_float_rounding(RoundingKind::TowardPositiveInfinity);
-            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000001", 2).unwrap(), -9007199254740992.0);
-            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000011", 2).unwrap(), -9007199254740994.0);
-            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000001", 2).unwrap(), 9007199254740994.0);
-            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000011", 2).unwrap(), 9007199254740996.0);
+        // Nearest, tie-away-zero
+        let options = ParseFloatOptions::builder()
+            .radix(2)
+            .rounding(RoundingKind::NearestTieAwayZero)
+            .build()
+            .unwrap();
+        assert_eq!(f64::from_lexical_with_options(b"-100000000000000000000000000000000000000000000000000001", &options).unwrap(), -9007199254740994.0);
+        assert_eq!(f64::from_lexical_with_options(b"-100000000000000000000000000000000000000000000000000011", &options).unwrap(), -9007199254740996.0);
+        assert_eq!(f64::from_lexical_with_options(b"100000000000000000000000000000000000000000000000000001", &options).unwrap(), 9007199254740994.0);
+        assert_eq!(f64::from_lexical_with_options(b"100000000000000000000000000000000000000000000000000011", &options).unwrap(), 9007199254740996.0);
 
-            // Toward negative infinity
-            set_float_rounding(RoundingKind::TowardNegativeInfinity);
-            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000001", 2).unwrap(), -9007199254740994.0);
-            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000011", 2).unwrap(), -9007199254740996.0);
-            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000001", 2).unwrap(), 9007199254740992.0);
-            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000011", 2).unwrap(), 9007199254740994.0);
+        // Toward positive infinity
+        let options = ParseFloatOptions::builder()
+            .radix(2)
+            .rounding(RoundingKind::TowardPositiveInfinity)
+            .build()
+            .unwrap();
+        assert_eq!(f64::from_lexical_with_options(b"-100000000000000000000000000000000000000000000000000001", &options).unwrap(), -9007199254740992.0);
+        assert_eq!(f64::from_lexical_with_options(b"-100000000000000000000000000000000000000000000000000011", &options).unwrap(), -9007199254740994.0);
+        assert_eq!(f64::from_lexical_with_options(b"100000000000000000000000000000000000000000000000000001", &options).unwrap(), 9007199254740994.0);
+        assert_eq!(f64::from_lexical_with_options(b"100000000000000000000000000000000000000000000000000011", &options).unwrap(), 9007199254740996.0);
 
-            // Toward zero
-            set_float_rounding(RoundingKind::TowardZero);
-            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000001", 2).unwrap(), -9007199254740992.0);
-            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000011", 2).unwrap(), -9007199254740994.0);
-            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000001", 2).unwrap(), 9007199254740992.0);
-            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000011", 2).unwrap(), 9007199254740994.0);
+        // Toward negative infinity
+        let options = ParseFloatOptions::builder()
+            .radix(2)
+            .rounding(RoundingKind::TowardNegativeInfinity)
+            .build()
+            .unwrap();
+        assert_eq!(f64::from_lexical_with_options(b"-100000000000000000000000000000000000000000000000000001", &options).unwrap(), -9007199254740994.0);
+        assert_eq!(f64::from_lexical_with_options(b"-100000000000000000000000000000000000000000000000000011", &options).unwrap(), -9007199254740996.0);
+        assert_eq!(f64::from_lexical_with_options(b"100000000000000000000000000000000000000000000000000001", &options).unwrap(), 9007199254740992.0);
+        assert_eq!(f64::from_lexical_with_options(b"100000000000000000000000000000000000000000000000000011", &options).unwrap(), 9007199254740994.0);
 
-            // Reset to default
-            set_float_rounding(RoundingKind::NearestTieEven);
-        }
+        // Toward zero
+        let options = ParseFloatOptions::builder()
+            .radix(2)
+            .rounding(RoundingKind::TowardZero)
+            .build()
+            .unwrap();
+        assert_eq!(f64::from_lexical_with_options(b"-100000000000000000000000000000000000000000000000000001", &options).unwrap(), -9007199254740992.0);
+        assert_eq!(f64::from_lexical_with_options(b"-100000000000000000000000000000000000000000000000000011", &options).unwrap(), -9007199254740994.0);
+        assert_eq!(f64::from_lexical_with_options(b"100000000000000000000000000000000000000000000000000001", &options).unwrap(), 9007199254740992.0);
+        assert_eq!(f64::from_lexical_with_options(b"100000000000000000000000000000000000000000000000000011", &options).unwrap(), 9007199254740994.0);
     }
 
     #[test]
@@ -606,8 +622,16 @@ mod tests {
     #[test]
     #[cfg(feature = "radix")]
     fn f32_radix_test() {
-        assert_f32_eq!(1234.0, f32::from_lexical_radix(b"YA", 36).unwrap());
-        assert_f32_eq!(1234.0, f32::from_lexical_lossy_radix(b"YA", 36).unwrap());
+        let options = ParseFloatOptions::builder()
+            .radix(36)
+            .build()
+            .unwrap();
+        assert_f32_eq!(1234.0, f32::from_lexical_with_options(b"YA", &options).unwrap());
+        let options = options.rebuild()
+            .lossy(true)
+            .build()
+            .unwrap();
+        assert_f32_eq!(1234.0, f32::from_lexical_with_options(b"YA", &options).unwrap());
     }
 
     #[test]
@@ -665,20 +689,16 @@ mod tests {
         assert_f64_eq!(1.2345e-38, f64::from_lexical(b"1.2345e-38").unwrap());
         assert_f64_eq!(1.2345e-38, f64::from_lexical(b"0.000000000000000000000000000000000000012345").unwrap());
 
-        // TODO(ahuszagh) These are going to need to be
-        // tested on an incorrect parse, so we need a different
-        // from_lexical.
-
         // denormalized (try extremely low values)
         assert_f64_eq!(1.2345e-308, f64::from_lexical(b"1.2345e-308").unwrap());
         // These next 3 tests fail on arm-unknown-linux-gnueabi with the
         // incorrect parser.
-        #[cfg(all(not(feature = "correct"), not(target_arch = "arm")))]
-        assert_eq!(Ok(5e-322), f64::from_lexical(b"5e-322"));
-        #[cfg(all(not(feature = "correct"), not(target_arch = "arm")))]
-        assert_eq!(Ok(5e-323), f64::from_lexical(b"5e-323"));
-        #[cfg(all(not(feature = "correct"), not(target_arch = "arm")))]
-        assert_eq!(Ok(5e-324), f64::from_lexical(b"5e-324"));
+        #[cfg(not(target_arch = "arm"))] {
+            let options = ParseFloatOptions::builder().incorrect(true).build().unwrap();
+            assert_eq!(Ok(5e-322), f64::from_lexical_with_options(b"5e-322", &options));
+            assert_eq!(Ok(5e-323), f64::from_lexical_with_options(b"5e-323", &options));
+            assert_eq!(Ok(5e-324), f64::from_lexical_with_options(b"5e-324", &options));
+        }
         // due to issues in how the data is parsed, manually extracting
         // non-exponents of 1.<e-299 is prone to error
         // test the limit of our ability
@@ -690,18 +710,15 @@ mod tests {
 
         // These next 3 tests fail on arm-unknown-linux-gnueabi with the
         // incorrect parser.
-        #[cfg(all(not(feature = "correct"), not(target_arch = "arm")))]
-        assert_f64_eq!(1.2345e-310, f64::from_lexical(b"0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345").unwrap(), epsilon=5e-324);
-        #[cfg(all(not(feature = "correct"), not(target_arch = "arm")))]
-        assert_f64_eq!(1.2345e-320, f64::from_lexical(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345").unwrap(), epsilon=5e-324);
-        #[cfg(all(not(feature = "correct"), not(target_arch = "arm")))]
-        assert_f64_eq!(1.2345e-321, f64::from_lexical(b"0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345").unwrap(), epsilon=5e-324);
-        #[cfg(all(not(feature = "correct"), not(target_arch = "arm")))]
-        assert_f64_eq!(1.24e-322, f64::from_lexical(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000124").unwrap(), epsilon=5e-324);
-        #[cfg(all(not(feature = "correct"), not(target_arch = "arm")))]
-        assert_eq!(Ok(1e-323), f64::from_lexical(b"0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001"));
-        #[cfg(all(not(feature = "correct"), not(target_arch = "arm")))]
-        assert_eq!(Ok(5e-324), f64::from_lexical(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005"));
+        #[cfg(not(target_arch = "arm"))] {
+            let options = ParseFloatOptions::builder().incorrect(true).build().unwrap();
+            assert_f64_near_eq!(1.2345e-310, f64::from_lexical_with_options(b"0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345", &options).unwrap(), epsilon=5e-324);
+            assert_f64_near_eq!(1.2345e-320, f64::from_lexical_with_options(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345", &options).unwrap(), epsilon=5e-324);
+            assert_f64_near_eq!(1.2345e-321, f64::from_lexical_with_options(b"0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345", &options).unwrap(), epsilon=5e-324);
+            assert_f64_near_eq!(1.24e-322, f64::from_lexical_with_options(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000124", &options).unwrap(), epsilon=5e-324);
+            assert_eq!(Ok(1e-323), f64::from_lexical_with_options(b"0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001", &options));
+            assert_eq!(Ok(5e-324), f64::from_lexical_with_options(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005", &options));
+        }
 
         assert!(f64::from_lexical(b"NaN").unwrap().is_nan());
         assert!(f64::from_lexical(b"nan").unwrap().is_nan());
@@ -747,508 +764,530 @@ mod tests {
         assert_relative_eq!(1.2345e-320, 0.0, epsilon=5e-324);
     }
 
-    #[cfg(feature = "radix")]
     #[test]
+    #[cfg(feature = "radix")]
     fn f64_radix_test() {
-        assert_f64_eq!(1234.0, f64::from_lexical_radix(b"YA", 36).unwrap());
-        assert_f64_eq!(1234.0, f64::from_lexical_lossy_radix(b"YA", 36).unwrap());
+        let options = ParseFloatOptions::builder()
+            .radix(36)
+            .build()
+            .unwrap();
+        assert_f64_eq!(1234.0, f64::from_lexical_with_options(b"YA", &options).unwrap());
+        let options = options.rebuild()
+            .lossy(true)
+            .build()
+            .unwrap();
+        assert_f64_eq!(1234.0, f64::from_lexical_with_options(b"YA", &options).unwrap());
     }
 
     #[test]
     fn f32_lossy_decimal_test() {
-        assert_eq!(Err(ErrorCode::EmptyMantissa.into()), f32::from_lexical_lossy(b"."));
-        assert_eq!(Err(ErrorCode::Empty.into()), f32::from_lexical_lossy(b""));
-        assert_eq!(Ok(0.0), f32::from_lexical_lossy(b"0.0"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), f32::from_lexical_lossy(b"1a"));
+        let options = ParseFloatOptions::builder()
+            .lossy(true)
+            .build()
+            .unwrap();
+        assert_eq!(Err(ErrorCode::EmptyMantissa.into()), f32::from_lexical_with_options(b".", &options));
+        assert_eq!(Err(ErrorCode::Empty.into()), f32::from_lexical_with_options(b"", &options));
+        assert_eq!(Ok(0.0), f32::from_lexical_with_options(b"0.0", &options));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), f32::from_lexical_with_options(b"1a", &options));
 
         // Bug fix for Issue #8
-        assert_eq!(Ok(5.002868148396374), f32::from_lexical_lossy(b"5.002868148396374"));
+        assert_eq!(Ok(5.002868148396374), f32::from_lexical_with_options(b"5.002868148396374", &options));
     }
 
     #[test]
     fn f64_lossy_decimal_test() {
-        assert_eq!(Err(ErrorCode::EmptyMantissa.into()), f64::from_lexical_lossy(b"."));
-        assert_eq!(Err(ErrorCode::Empty.into()), f64::from_lexical_lossy(b""));
-        assert_eq!(Ok(0.0), f64::from_lexical_lossy(b"0.0"));
-        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), f64::from_lexical_lossy(b"1a"));
+        let options = ParseFloatOptions::builder()
+            .lossy(true)
+            .build()
+            .unwrap();
+        assert_eq!(Err(ErrorCode::EmptyMantissa.into()), f64::from_lexical_with_options(b".", &options));
+        assert_eq!(Err(ErrorCode::Empty.into()), f64::from_lexical_with_options(b"", &options));
+        assert_eq!(Ok(0.0), f64::from_lexical_with_options(b"0.0", &options));
+        assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), f64::from_lexical_with_options(b"1a", &options));
 
         // Bug fix for Issue #8
-        assert_eq!(Ok(5.002868148396374), f64::from_lexical_lossy(b"5.002868148396374"));
+        assert_eq!(Ok(5.002868148396374), f64::from_lexical_with_options(b"5.002868148396374", &options));
     }
 
     #[test]
     #[cfg(feature = "format")]
     fn f64_special_test() {
         //  Comments match (no_special, case_sensitive, has_sep)
-        let f1 = NumberFormat::STANDARD;                                          // false, false, false
-        let f2 = NumberFormat::IGNORE | NumberFormat::from_digit_separator(b'_'); // false, false, true
-        let f3 = f1 | NumberFormat::NO_SPECIAL;                                   // true, _, _
-        let f4 = f1 | NumberFormat::CASE_SENSITIVE_SPECIAL;                       // false, true, false
-        let f5 = f2 | NumberFormat::CASE_SENSITIVE_SPECIAL;                       // false, true, true
+        let f1 = NumberFormat::STANDARD;
+        let f2 = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
+        let f3 = f1.rebuild().no_special(true).build().unwrap();
+        let f4 = f1.rebuild().case_sensitive_special(true).build().unwrap();
+        let f5 = f2.rebuild().case_sensitive_special(true).build().unwrap();                    // false, true, true
+
+        let o1 = ParseFloatOptions::builder().format(Some(f1)).build().unwrap();
+        let o2 = ParseFloatOptions::builder().format(Some(f2)).build().unwrap();
+        let o3 = ParseFloatOptions::builder().format(Some(f3)).build().unwrap();
+        let o4 = ParseFloatOptions::builder().format(Some(f4)).build().unwrap();
+        let o5 = ParseFloatOptions::builder().format(Some(f5)).build().unwrap();
 
         // Easy NaN
-        assert!(f64::from_lexical_format(b"NaN", f1).unwrap().is_nan());
-        assert!(f64::from_lexical_format(b"NaN", f2).unwrap().is_nan());
-        assert!(f64::from_lexical_format(b"NaN", f3).is_err());
-        assert!(f64::from_lexical_format(b"NaN", f4).unwrap().is_nan());
-        assert!(f64::from_lexical_format(b"NaN", f5).unwrap().is_nan());
+        assert!(f64::from_lexical_with_options(b"NaN", &o1).unwrap().is_nan());
+        assert!(f64::from_lexical_with_options(b"NaN", &o2).unwrap().is_nan());
+        assert!(f64::from_lexical_with_options(b"NaN", &o3).is_err());
+        assert!(f64::from_lexical_with_options(b"NaN", &o4).unwrap().is_nan());
+        assert!(f64::from_lexical_with_options(b"NaN", &o5).unwrap().is_nan());
 
         // Case-sensitive NaN.
-        assert!(f64::from_lexical_format(b"nan", f1).unwrap().is_nan());
-        assert!(f64::from_lexical_format(b"nan", f2).unwrap().is_nan());
-        assert!(f64::from_lexical_format(b"nan", f3).is_err());
-        assert!(f64::from_lexical_format(b"nan", f4).is_err());
-        assert!(f64::from_lexical_format(b"nan", f5).is_err());
+        assert!(f64::from_lexical_with_options(b"nan", &o1).unwrap().is_nan());
+        assert!(f64::from_lexical_with_options(b"nan", &o2).unwrap().is_nan());
+        assert!(f64::from_lexical_with_options(b"nan", &o3).is_err());
+        assert!(f64::from_lexical_with_options(b"nan", &o4).is_err());
+        assert!(f64::from_lexical_with_options(b"nan", &o5).is_err());
 
         // Digit-separator NaN.
-        assert!(f64::from_lexical_format(b"N_aN", f1).is_err());
-        assert!(f64::from_lexical_format(b"N_aN", f2).unwrap().is_nan());
-        assert!(f64::from_lexical_format(b"N_aN", f3).is_err());
-        assert!(f64::from_lexical_format(b"N_aN", f4).is_err());
-        assert!(f64::from_lexical_format(b"N_aN", f5).unwrap().is_nan());
+        assert!(f64::from_lexical_with_options(b"N_aN", &o1).is_err());
+        assert!(f64::from_lexical_with_options(b"N_aN", &o2).unwrap().is_nan());
+        assert!(f64::from_lexical_with_options(b"N_aN", &o3).is_err());
+        assert!(f64::from_lexical_with_options(b"N_aN", &o4).is_err());
+        assert!(f64::from_lexical_with_options(b"N_aN", &o5).unwrap().is_nan());
 
         // Digit-separator + case-sensitive NaN.
-        assert!(f64::from_lexical_format(b"n_an", f1).is_err());
-        assert!(f64::from_lexical_format(b"n_an", f2).unwrap().is_nan());
-        assert!(f64::from_lexical_format(b"n_an", f3).is_err());
-        assert!(f64::from_lexical_format(b"n_an", f4).is_err());
-        assert!(f64::from_lexical_format(b"n_an", f5).is_err());
+        assert!(f64::from_lexical_with_options(b"n_an", &o1).is_err());
+        assert!(f64::from_lexical_with_options(b"n_an", &o2).unwrap().is_nan());
+        assert!(f64::from_lexical_with_options(b"n_an", &o3).is_err());
+        assert!(f64::from_lexical_with_options(b"n_an", &o4).is_err());
+        assert!(f64::from_lexical_with_options(b"n_an", &o5).is_err());
     }
 
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_required_integer_digits_test() {
-        let format = NumberFormat::REQUIRED_INTEGER_DIGITS;
-        let format = format | NumberFormat::from_radix(10);
-        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"3.0", format).is_ok());
-        assert!(f64::from_lexical_format(b".0", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_required_fraction_digits_test() {
-        let format = NumberFormat::REQUIRED_FRACTION_DIGITS;
-        let format = format | NumberFormat::from_radix(10);
-        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"3.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"3.", format).is_err());
-        assert!(f64::from_lexical_format(b"3", format).is_ok());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_required_digits_test() {
-        let format = NumberFormat::REQUIRED_DIGITS;
-        let format = format | NumberFormat::from_radix(10);
-        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"3.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"3.", format).is_err());
-        assert!(f64::from_lexical_format(b"3", format).is_ok());
-        assert!(f64::from_lexical_format(b".0", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_no_positive_mantissa_sign_test() {
-        let format = NumberFormat::NO_POSITIVE_MANTISSA_SIGN;
-        let format = format | NumberFormat::from_radix(10);
-        assert!(f64::from_lexical_format(b"+3.0", format).is_err());
-        assert!(f64::from_lexical_format(b"-3.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"3.0", format).is_ok());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_required_mantissa_sign_test() {
-        let format = NumberFormat::REQUIRED_MANTISSA_SIGN;
-        let format = format | NumberFormat::from_radix(10);
-        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"-3.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"3.0", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_no_exponent_notation_test() {
-        let format = NumberFormat::NO_EXPONENT_NOTATION;
-        let format = format | NumberFormat::from_radix(10);
-        assert!(f64::from_lexical_format(b"+3.0e7", format).is_err());
-        assert!(f64::from_lexical_format(b"+3.0e-7", format).is_err());
-        assert!(f64::from_lexical_format(b"+3e", format).is_err());
-        assert!(f64::from_lexical_format(b"+3e-", format).is_err());
-        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"+3", format).is_ok());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_optional_exponent_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::from_radix(10);
-        assert!(f64::from_lexical_format(b"+3.0e7", format).is_ok());
-        assert!(f64::from_lexical_format(b"+3.0e-7", format).is_ok());
-        assert!(f64::from_lexical_format(b"+3.0e", format).is_ok());
-        assert!(f64::from_lexical_format(b"+3.0e-", format).is_ok());
-        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_required_exponent_test() {
-        let format = NumberFormat::REQUIRED_EXPONENT_DIGITS;
-        let format = format | NumberFormat::from_radix(10);
-        assert!(f64::from_lexical_format(b"+3.0e7", format).is_ok());
-        assert!(f64::from_lexical_format(b"+3.0e-7", format).is_ok());
-        assert!(f64::from_lexical_format(b"+3.0e", format).is_err());
-        assert!(f64::from_lexical_format(b"+3.0e-", format).is_err());
-        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_no_positive_exponent_sign_test() {
-        let format = NumberFormat::NO_POSITIVE_EXPONENT_SIGN;
-        let format = format | NumberFormat::from_radix(10);
-        assert!(f64::from_lexical_format(b"3.0e7", format).is_ok());
-        assert!(f64::from_lexical_format(b"3.0e+7", format).is_err());
-        assert!(f64::from_lexical_format(b"3.0e-7", format).is_ok());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_required_exponent_sign_test() {
-        let format = NumberFormat::REQUIRED_EXPONENT_SIGN;
-        let format = format | NumberFormat::from_radix(10);
-        assert!(f64::from_lexical_format(b"3.0e7", format).is_err());
-        assert!(f64::from_lexical_format(b"3.0e+7", format).is_ok());
-        assert!(f64::from_lexical_format(b"3.0e-7", format).is_ok());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_no_exponent_without_fraction_test() {
-        let format = NumberFormat::NO_EXPONENT_WITHOUT_FRACTION;
-        let format = format | NumberFormat::from_radix(10);
-        assert!(f64::from_lexical_format(b"3.0e7", format).is_ok());
-        assert!(f64::from_lexical_format(b"3.e7", format).is_ok());
-        assert!(f64::from_lexical_format(b"3e7", format).is_err());
-
-        let format = format | NumberFormat::REQUIRED_FRACTION_DIGITS;
-        assert!(f64::from_lexical_format(b"3.0e7", format).is_ok());
-        assert!(f64::from_lexical_format(b"3.e7", format).is_err());
-        assert!(f64::from_lexical_format(b"3e7", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_no_leading_zeros_test() {
-        let format = NumberFormat::NO_FLOAT_LEADING_ZEROS;
-        let format = format | NumberFormat::from_radix(10);
-        assert!(f64::from_lexical_format(b"1.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"0.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"01.0", format).is_err());
-        assert!(f64::from_lexical_format(b"10.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"010.0", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_integer_internal_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        assert!(f64::from_lexical_format(b"3_1.0e7", format).is_ok());
-        assert!(f64::from_lexical_format(b"_31.0e7", format).is_err());
-        assert!(f64::from_lexical_format(b"31_.0e7", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_fraction_internal_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        assert!(f64::from_lexical_format(b"31.0_1e7", format).is_ok());
-        assert!(f64::from_lexical_format(b"31._01e7", format).is_err());
-        assert!(f64::from_lexical_format(b"31.01_e7", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_exponent_internal_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        assert!(f64::from_lexical_format(b"31.01e7_1", format).is_ok());
-        assert!(f64::from_lexical_format(b"31.01e_71", format).is_err());
-        assert!(f64::from_lexical_format(b"31.01e71_", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_integer_leading_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        assert!(f64::from_lexical_format(b"3_1.0e7", format).is_err());
-        assert!(f64::from_lexical_format(b"_31.0e7", format).is_ok());
-        assert!(f64::from_lexical_format(b"31_.0e7", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_fraction_leading_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::FRACTION_LEADING_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        assert!(f64::from_lexical_format(b"31.0_1e7", format).is_err());
-        assert!(f64::from_lexical_format(b"31._01e7", format).is_ok());
-        assert!(f64::from_lexical_format(b"31.01_e7", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_exponent_leading_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::EXPONENT_LEADING_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        assert!(f64::from_lexical_format(b"31.01e7_1", format).is_err());
-        assert!(f64::from_lexical_format(b"31.01e_71", format).is_ok());
-        assert!(f64::from_lexical_format(b"31.01e71_", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_integer_trailing_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        assert!(f64::from_lexical_format(b"3_1.0e7", format).is_err());
-        assert!(f64::from_lexical_format(b"_31.0e7", format).is_err());
-        assert!(f64::from_lexical_format(b"31_.0e7", format).is_ok());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_fraction_trailing_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::FRACTION_TRAILING_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        assert!(f64::from_lexical_format(b"31.0_1e7", format).is_err());
-        assert!(f64::from_lexical_format(b"31._01e7", format).is_err());
-        assert!(f64::from_lexical_format(b"31.01_e7", format).is_ok());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_exponent_trailing_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::EXPONENT_TRAILING_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        assert!(f64::from_lexical_format(b"31.01e7_1", format).is_err());
-        assert!(f64::from_lexical_format(b"31.01e_71", format).is_err());
-        assert!(f64::from_lexical_format(b"31.01e71_", format).is_ok());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_integer_consecutive_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        assert!(f64::from_lexical_format(b"3__1.0e7", format).is_ok());
-        assert!(f64::from_lexical_format(b"_31.0e7", format).is_err());
-        assert!(f64::from_lexical_format(b"31_.0e7", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_fraction_consecutive_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::FRACTION_CONSECUTIVE_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        assert!(f64::from_lexical_format(b"31.0__1e7", format).is_ok());
-        assert!(f64::from_lexical_format(b"31._01e7", format).is_err());
-        assert!(f64::from_lexical_format(b"31.01_e7", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_exponent_consecutive_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        assert!(f64::from_lexical_format(b"31.01e7__1", format).is_ok());
-        assert!(f64::from_lexical_format(b"31.01e_71", format).is_err());
-        assert!(f64::from_lexical_format(b"31.01e71_", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_json_exponent_without_dot() {
-        // Tests courtesy of @ijl:
-        //  https://github.com/Alexhuszagh/rust-lexical/issues/24#issuecomment-578153783
-        let format = NumberFormat::JSON;
-        // JSONTestSuite/test_parsing/y_number_0e1.json
-        assert!(f64::from_lexical_format(b"0e1", format).is_ok());
-        // JSONTestSuite/test_parsing/y_number_int_with_exp.json
-        assert!(f64::from_lexical_format(b"20e1", format).is_ok());
-        // JSONTestSuite/test_parsing/y_number_real_capital_e_pos_exp.json
-        assert!(f64::from_lexical_format(b"1E+2", format).is_ok());
-        // JSONTestSuite/test_transform/number_1e-999.json
-        assert!(f64::from_lexical_format(b"1E-999", format).is_ok());
-        // nativejson-benchmark/data/jsonchecker/pass01.json
-        assert!(f64::from_lexical_format(b"23456789012E66", format).is_ok());
-    }
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_json_exponent_requires_digit() {
-        // Tests courtesy of @ijl:
-        //  https://github.com/Alexhuszagh/rust-lexical/issues/24#issuecomment-578153783
-        let format = NumberFormat::JSON;
-        assert!(f64::from_lexical_format(b"1e", format).is_err());
-        // JSONTestSuite/test_parsing/n_number_9.e+.json
-        assert!(f64::from_lexical_format(b"9.e+", format).is_err());
-        // JSONTestSuite/test_parsing/n_number_2.e-3.json
-        assert!(f64::from_lexical_format(b"2.e-3", format).is_err());
-        // JSONTestSuite/test_parsing/n_number_real_without_fractional_part.json
-        assert!(f64::from_lexical_format(b"1.", format).is_err());
-    }
-
-    #[test]
-    #[cfg(feature = "format")]
-    fn f64_json_no_leading_zero() {
-        let format = NumberFormat::JSON;
-        assert!(f64::from_lexical_format(b"12.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"-12.0", format).is_ok());
-        assert!(f64::from_lexical_format(b"012.0", format).is_err());
-        assert!(f64::from_lexical_format(b"-012.0", format).is_err());
-    }
-
-    #[cfg(all(feature = "std", feature = "property_tests"))]
-    proptest! {
-        #[test]
-        fn f32_invalid_proptest(i in r"[+-]?[0-9]{2}[^\deE]?\.[^\deE]?[0-9]{2}[^\deE]?e[+-]?[0-9]+[^\deE]") {
-            let res = f32::from_lexical(i.as_bytes());
-            prop_assert!(res.is_err());
-            let err = res.err().unwrap();
-            prop_assert_eq!(err.code, ErrorCode::InvalidDigit);
-        }
-
-        #[test]
-        fn f32_double_sign_proptest(i in r"[+-]{2}[0-9]{2}\.[0-9]{2}e[+-]?[0-9]+") {
-            let res = f32::from_lexical(i.as_bytes());
-            prop_assert!(res.is_err());
-            let err = res.err().unwrap();
-            prop_assert!(err.code == ErrorCode::InvalidDigit || err.code == ErrorCode::EmptyMantissa);
-            prop_assert!(err.index == 0 || err.index == 1);
-        }
-
-        #[test]
-        fn f32_sign_or_dot_only_proptest(i in r"[+-]?\.?") {
-            let res = f32::from_lexical(i.as_bytes());
-            prop_assert!(res.is_err());
-            let err = res.err().unwrap();
-            prop_assert!(err.code == ErrorCode::Empty || err.code == ErrorCode::EmptyMantissa);
-            prop_assert!(err.index == 0 || err.index == 1);
-        }
-
-        #[test]
-        fn f32_double_exponent_sign_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]{2}[0-9]+") {
-            let res = f32::from_lexical(i.as_bytes());
-            prop_assert!(res.is_err());
-            let err = res.err().unwrap();
-            prop_assert_eq!(err.code, ErrorCode::EmptyExponent);
-        }
-
-        #[test]
-        fn f32_missing_exponent_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]?") {
-            let res = f32::from_lexical(i.as_bytes());
-            prop_assert!(res.is_err());
-            let err = res.err().unwrap();
-            prop_assert_eq!(err.code, ErrorCode::EmptyExponent);
-        }
-
-        #[test]
-        fn f32_roundtrip_display_proptest(i in f32::MIN..f32::MAX) {
-            let input: String = format!("{}", i);
-            prop_assert_eq!(i, f32::from_lexical(input.as_bytes()).unwrap());
-        }
-
-        #[test]
-        fn f32_roundtrip_debug_proptest(i in f32::MIN..f32::MAX) {
-            let input: String = format!("{:?}", i);
-            prop_assert_eq!(i, f32::from_lexical(input.as_bytes()).unwrap());
-        }
-
-        #[test]
-        fn f32_roundtrip_scientific_proptest(i in f32::MIN..f32::MAX) {
-            let input: String = format!("{:e}", i);
-            prop_assert_eq!(i, f32::from_lexical(input.as_bytes()).unwrap());
-        }
-
-        #[test]
-        fn f64_invalid_proptest(i in r"[+-]?[0-9]{2}[^\deE]?\.[^\deE]?[0-9]{2}[^\deE]?e[+-]?[0-9]+[^\deE]") {
-            let res = f64::from_lexical(i.as_bytes());
-            prop_assert!(res.is_err());
-            let err = res.err().unwrap();
-            prop_assert_eq!(err.code, ErrorCode::InvalidDigit);
-        }
-
-        #[test]
-        fn f64_double_sign_proptest(i in r"[+-]{2}[0-9]{2}\.[0-9]{2}e[+-]?[0-9]+") {
-            let res = f64::from_lexical(i.as_bytes());
-            prop_assert!(res.is_err());
-            let err = res.err().unwrap();
-            prop_assert!(err.code == ErrorCode::InvalidDigit || err.code == ErrorCode::EmptyMantissa);
-            prop_assert!(err.index == 0 || err.index == 1);
-        }
-
-        #[test]
-        fn f64_sign_or_dot_only_proptest(i in r"[+-]?\.?") {
-            let res = f64::from_lexical(i.as_bytes());
-            prop_assert!(res.is_err());
-            let err = res.err().unwrap();
-            prop_assert!(err.code == ErrorCode::Empty || err.code == ErrorCode::EmptyMantissa);
-            prop_assert!(err.index == 0 || err.index == 1);
-        }
-
-        #[test]
-        fn f64_double_exponent_sign_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]{2}[0-9]+") {
-            let res = f64::from_lexical(i.as_bytes());
-            prop_assert!(res.is_err());
-            let err = res.err().unwrap();
-            prop_assert_eq!(err.code, ErrorCode::EmptyExponent);
-        }
-
-        #[test]
-        fn f64_missing_exponent_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]?") {
-            let res = f64::from_lexical(i.as_bytes());
-            prop_assert!(res.is_err());
-            let err = res.err().unwrap();
-            prop_assert_eq!(err.code, ErrorCode::EmptyExponent);
-        }
-
-        #[test]
-        fn f64_roundtrip_display_proptest(i in f64::MIN..f64::MAX) {
-            let input: String = format!("{}", i);
-            prop_assert_eq!(i, f64::from_lexical(input.as_bytes()).unwrap());
-        }
-
-        #[test]
-        fn f64_roundtrip_debug_proptest(i in f64::MIN..f64::MAX) {
-            let input: String = format!("{:?}", i);
-            prop_assert_eq!(i, f64::from_lexical(input.as_bytes()).unwrap());
-        }
-
-        #[test]
-        fn f64_roundtrip_scientific_proptest(i in f64::MIN..f64::MAX) {
-            let input: String = format!("{:e}", i);
-            prop_assert_eq!(i, f64::from_lexical(input.as_bytes()).unwrap());
-        }
-    }
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_required_integer_digits_test() {
+//        let format = NumberFormat::REQUIRED_INTEGER_DIGITS;
+//        let format = format | NumberFormat::from_radix(10);
+//        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"3.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b".0", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_required_fraction_digits_test() {
+//        let format = NumberFormat::REQUIRED_FRACTION_DIGITS;
+//        let format = format | NumberFormat::from_radix(10);
+//        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"3.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"3.", format).is_err());
+//        assert!(f64::from_lexical_format(b"3", format).is_ok());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_required_digits_test() {
+//        let format = NumberFormat::REQUIRED_DIGITS;
+//        let format = format | NumberFormat::from_radix(10);
+//        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"3.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"3.", format).is_err());
+//        assert!(f64::from_lexical_format(b"3", format).is_ok());
+//        assert!(f64::from_lexical_format(b".0", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_no_positive_mantissa_sign_test() {
+//        let format = NumberFormat::NO_POSITIVE_MANTISSA_SIGN;
+//        let format = format | NumberFormat::from_radix(10);
+//        assert!(f64::from_lexical_format(b"+3.0", format).is_err());
+//        assert!(f64::from_lexical_format(b"-3.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"3.0", format).is_ok());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_required_mantissa_sign_test() {
+//        let format = NumberFormat::REQUIRED_MANTISSA_SIGN;
+//        let format = format | NumberFormat::from_radix(10);
+//        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"-3.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"3.0", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_no_exponent_notation_test() {
+//        let format = NumberFormat::NO_EXPONENT_NOTATION;
+//        let format = format | NumberFormat::from_radix(10);
+//        assert!(f64::from_lexical_format(b"+3.0e7", format).is_err());
+//        assert!(f64::from_lexical_format(b"+3.0e-7", format).is_err());
+//        assert!(f64::from_lexical_format(b"+3e", format).is_err());
+//        assert!(f64::from_lexical_format(b"+3e-", format).is_err());
+//        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"+3", format).is_ok());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_optional_exponent_test() {
+//        let format = NumberFormat::PERMISSIVE;
+//        let format = format | NumberFormat::from_radix(10);
+//        assert!(f64::from_lexical_format(b"+3.0e7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"+3.0e-7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"+3.0e", format).is_ok());
+//        assert!(f64::from_lexical_format(b"+3.0e-", format).is_ok());
+//        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_required_exponent_test() {
+//        let format = NumberFormat::REQUIRED_EXPONENT_DIGITS;
+//        let format = format | NumberFormat::from_radix(10);
+//        assert!(f64::from_lexical_format(b"+3.0e7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"+3.0e-7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"+3.0e", format).is_err());
+//        assert!(f64::from_lexical_format(b"+3.0e-", format).is_err());
+//        assert!(f64::from_lexical_format(b"+3.0", format).is_ok());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_no_positive_exponent_sign_test() {
+//        let format = NumberFormat::NO_POSITIVE_EXPONENT_SIGN;
+//        let format = format | NumberFormat::from_radix(10);
+//        assert!(f64::from_lexical_format(b"3.0e7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"3.0e+7", format).is_err());
+//        assert!(f64::from_lexical_format(b"3.0e-7", format).is_ok());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_required_exponent_sign_test() {
+//        let format = NumberFormat::REQUIRED_EXPONENT_SIGN;
+//        let format = format | NumberFormat::from_radix(10);
+//        assert!(f64::from_lexical_format(b"3.0e7", format).is_err());
+//        assert!(f64::from_lexical_format(b"3.0e+7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"3.0e-7", format).is_ok());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_no_exponent_without_fraction_test() {
+//        let format = NumberFormat::NO_EXPONENT_WITHOUT_FRACTION;
+//        let format = format | NumberFormat::from_radix(10);
+//        assert!(f64::from_lexical_format(b"3.0e7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"3.e7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"3e7", format).is_err());
+//
+//        let format = format | NumberFormat::REQUIRED_FRACTION_DIGITS;
+//        assert!(f64::from_lexical_format(b"3.0e7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"3.e7", format).is_err());
+//        assert!(f64::from_lexical_format(b"3e7", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_no_leading_zeros_test() {
+//        let format = NumberFormat::NO_FLOAT_LEADING_ZEROS;
+//        let format = format | NumberFormat::from_radix(10);
+//        assert!(f64::from_lexical_format(b"1.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"0.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"01.0", format).is_err());
+//        assert!(f64::from_lexical_format(b"10.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"010.0", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_integer_internal_digit_separator_test() {
+//        let format = NumberFormat::PERMISSIVE;
+//        let format = format | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::from_digit_separator(b'_');
+//        assert!(f64::from_lexical_format(b"3_1.0e7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"_31.0e7", format).is_err());
+//        assert!(f64::from_lexical_format(b"31_.0e7", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_fraction_internal_digit_separator_test() {
+//        let format = NumberFormat::PERMISSIVE;
+//        let format = format | NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::from_digit_separator(b'_');
+//        assert!(f64::from_lexical_format(b"31.0_1e7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"31._01e7", format).is_err());
+//        assert!(f64::from_lexical_format(b"31.01_e7", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_exponent_internal_digit_separator_test() {
+//        let format = NumberFormat::PERMISSIVE;
+//        let format = format | NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::from_digit_separator(b'_');
+//        assert!(f64::from_lexical_format(b"31.01e7_1", format).is_ok());
+//        assert!(f64::from_lexical_format(b"31.01e_71", format).is_err());
+//        assert!(f64::from_lexical_format(b"31.01e71_", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_integer_leading_digit_separator_test() {
+//        let format = NumberFormat::PERMISSIVE;
+//        let format = format | NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::from_digit_separator(b'_');
+//        assert!(f64::from_lexical_format(b"3_1.0e7", format).is_err());
+//        assert!(f64::from_lexical_format(b"_31.0e7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"31_.0e7", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_fraction_leading_digit_separator_test() {
+//        let format = NumberFormat::PERMISSIVE;
+//        let format = format | NumberFormat::FRACTION_LEADING_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::from_digit_separator(b'_');
+//        assert!(f64::from_lexical_format(b"31.0_1e7", format).is_err());
+//        assert!(f64::from_lexical_format(b"31._01e7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"31.01_e7", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_exponent_leading_digit_separator_test() {
+//        let format = NumberFormat::PERMISSIVE;
+//        let format = format | NumberFormat::EXPONENT_LEADING_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::from_digit_separator(b'_');
+//        assert!(f64::from_lexical_format(b"31.01e7_1", format).is_err());
+//        assert!(f64::from_lexical_format(b"31.01e_71", format).is_ok());
+//        assert!(f64::from_lexical_format(b"31.01e71_", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_integer_trailing_digit_separator_test() {
+//        let format = NumberFormat::PERMISSIVE;
+//        let format = format | NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::from_digit_separator(b'_');
+//        assert!(f64::from_lexical_format(b"3_1.0e7", format).is_err());
+//        assert!(f64::from_lexical_format(b"_31.0e7", format).is_err());
+//        assert!(f64::from_lexical_format(b"31_.0e7", format).is_ok());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_fraction_trailing_digit_separator_test() {
+//        let format = NumberFormat::PERMISSIVE;
+//        let format = format | NumberFormat::FRACTION_TRAILING_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::from_digit_separator(b'_');
+//        assert!(f64::from_lexical_format(b"31.0_1e7", format).is_err());
+//        assert!(f64::from_lexical_format(b"31._01e7", format).is_err());
+//        assert!(f64::from_lexical_format(b"31.01_e7", format).is_ok());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_exponent_trailing_digit_separator_test() {
+//        let format = NumberFormat::PERMISSIVE;
+//        let format = format | NumberFormat::EXPONENT_TRAILING_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::from_digit_separator(b'_');
+//        assert!(f64::from_lexical_format(b"31.01e7_1", format).is_err());
+//        assert!(f64::from_lexical_format(b"31.01e_71", format).is_err());
+//        assert!(f64::from_lexical_format(b"31.01e71_", format).is_ok());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_integer_consecutive_digit_separator_test() {
+//        let format = NumberFormat::PERMISSIVE;
+//        let format = format | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::from_digit_separator(b'_');
+//        assert!(f64::from_lexical_format(b"3__1.0e7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"_31.0e7", format).is_err());
+//        assert!(f64::from_lexical_format(b"31_.0e7", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_fraction_consecutive_digit_separator_test() {
+//        let format = NumberFormat::PERMISSIVE;
+//        let format = format | NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::FRACTION_CONSECUTIVE_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::from_digit_separator(b'_');
+//        assert!(f64::from_lexical_format(b"31.0__1e7", format).is_ok());
+//        assert!(f64::from_lexical_format(b"31._01e7", format).is_err());
+//        assert!(f64::from_lexical_format(b"31.01_e7", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_exponent_consecutive_digit_separator_test() {
+//        let format = NumberFormat::PERMISSIVE;
+//        let format = format | NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
+//        let format = format | NumberFormat::from_digit_separator(b'_');
+//        assert!(f64::from_lexical_format(b"31.01e7__1", format).is_ok());
+//        assert!(f64::from_lexical_format(b"31.01e_71", format).is_err());
+//        assert!(f64::from_lexical_format(b"31.01e71_", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_json_exponent_without_dot() {
+//        // Tests courtesy of @ijl:
+//        //  https://github.com/Alexhuszagh/rust-lexical/issues/24#issuecomment-578153783
+//        let format = NumberFormat::JSON;
+//        // JSONTestSuite/test_parsing/y_number_0e1.json
+//        assert!(f64::from_lexical_format(b"0e1", format).is_ok());
+//        // JSONTestSuite/test_parsing/y_number_int_with_exp.json
+//        assert!(f64::from_lexical_format(b"20e1", format).is_ok());
+//        // JSONTestSuite/test_parsing/y_number_real_capital_e_pos_exp.json
+//        assert!(f64::from_lexical_format(b"1E+2", format).is_ok());
+//        // JSONTestSuite/test_transform/number_1e-999.json
+//        assert!(f64::from_lexical_format(b"1E-999", format).is_ok());
+//        // nativejson-benchmark/data/jsonchecker/pass01.json
+//        assert!(f64::from_lexical_format(b"23456789012E66", format).is_ok());
+//    }
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_json_exponent_requires_digit() {
+//        // Tests courtesy of @ijl:
+//        //  https://github.com/Alexhuszagh/rust-lexical/issues/24#issuecomment-578153783
+//        let format = NumberFormat::JSON;
+//        assert!(f64::from_lexical_format(b"1e", format).is_err());
+//        // JSONTestSuite/test_parsing/n_number_9.e+.json
+//        assert!(f64::from_lexical_format(b"9.e+", format).is_err());
+//        // JSONTestSuite/test_parsing/n_number_2.e-3.json
+//        assert!(f64::from_lexical_format(b"2.e-3", format).is_err());
+//        // JSONTestSuite/test_parsing/n_number_real_without_fractional_part.json
+//        assert!(f64::from_lexical_format(b"1.", format).is_err());
+//    }
+//
+//    #[test]
+//    #[cfg(feature = "format")]
+//    fn f64_json_no_leading_zero() {
+//        let format = NumberFormat::JSON;
+//        assert!(f64::from_lexical_format(b"12.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"-12.0", format).is_ok());
+//        assert!(f64::from_lexical_format(b"012.0", format).is_err());
+//        assert!(f64::from_lexical_format(b"-012.0", format).is_err());
+//    }
+//
+//    #[cfg(all(feature = "std", feature = "property_tests"))]
+//    proptest! {
+//        #[test]
+//        fn f32_invalid_proptest(i in r"[+-]?[0-9]{2}[^\deE]?\.[^\deE]?[0-9]{2}[^\deE]?e[+-]?[0-9]+[^\deE]") {
+//            let res = f32::from_lexical(i.as_bytes());
+//            prop_assert!(res.is_err());
+//            let err = res.err().unwrap();
+//            prop_assert_eq!(err.code, ErrorCode::InvalidDigit);
+//        }
+//
+//        #[test]
+//        fn f32_double_sign_proptest(i in r"[+-]{2}[0-9]{2}\.[0-9]{2}e[+-]?[0-9]+") {
+//            let res = f32::from_lexical(i.as_bytes());
+//            prop_assert!(res.is_err());
+//            let err = res.err().unwrap();
+//            prop_assert!(err.code == ErrorCode::InvalidDigit || err.code == ErrorCode::EmptyMantissa);
+//            prop_assert!(err.index == 0 || err.index == 1);
+//        }
+//
+//        #[test]
+//        fn f32_sign_or_dot_only_proptest(i in r"[+-]?\.?") {
+//            let res = f32::from_lexical(i.as_bytes());
+//            prop_assert!(res.is_err());
+//            let err = res.err().unwrap();
+//            prop_assert!(err.code == ErrorCode::Empty || err.code == ErrorCode::EmptyMantissa);
+//            prop_assert!(err.index == 0 || err.index == 1);
+//        }
+//
+//        #[test]
+//        fn f32_double_exponent_sign_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]{2}[0-9]+") {
+//            let res = f32::from_lexical(i.as_bytes());
+//            prop_assert!(res.is_err());
+//            let err = res.err().unwrap();
+//            prop_assert_eq!(err.code, ErrorCode::EmptyExponent);
+//        }
+//
+//        #[test]
+//        fn f32_missing_exponent_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]?") {
+//            let res = f32::from_lexical(i.as_bytes());
+//            prop_assert!(res.is_err());
+//            let err = res.err().unwrap();
+//            prop_assert_eq!(err.code, ErrorCode::EmptyExponent);
+//        }
+//
+//        #[test]
+//        fn f32_roundtrip_display_proptest(i in f32::MIN..f32::MAX) {
+//            let input: String = format!("{}", i);
+//            prop_assert_eq!(i, f32::from_lexical(input.as_bytes()).unwrap());
+//        }
+//
+//        #[test]
+//        fn f32_roundtrip_debug_proptest(i in f32::MIN..f32::MAX) {
+//            let input: String = format!("{:?}", i);
+//            prop_assert_eq!(i, f32::from_lexical(input.as_bytes()).unwrap());
+//        }
+//
+//        #[test]
+//        fn f32_roundtrip_scientific_proptest(i in f32::MIN..f32::MAX) {
+//            let input: String = format!("{:e}", i);
+//            prop_assert_eq!(i, f32::from_lexical(input.as_bytes()).unwrap());
+//        }
+//
+//        #[test]
+//        fn f64_invalid_proptest(i in r"[+-]?[0-9]{2}[^\deE]?\.[^\deE]?[0-9]{2}[^\deE]?e[+-]?[0-9]+[^\deE]") {
+//            let res = f64::from_lexical(i.as_bytes());
+//            prop_assert!(res.is_err());
+//            let err = res.err().unwrap();
+//            prop_assert_eq!(err.code, ErrorCode::InvalidDigit);
+//        }
+//
+//        #[test]
+//        fn f64_double_sign_proptest(i in r"[+-]{2}[0-9]{2}\.[0-9]{2}e[+-]?[0-9]+") {
+//            let res = f64::from_lexical(i.as_bytes());
+//            prop_assert!(res.is_err());
+//            let err = res.err().unwrap();
+//            prop_assert!(err.code == ErrorCode::InvalidDigit || err.code == ErrorCode::EmptyMantissa);
+//            prop_assert!(err.index == 0 || err.index == 1);
+//        }
+//
+//        #[test]
+//        fn f64_sign_or_dot_only_proptest(i in r"[+-]?\.?") {
+//            let res = f64::from_lexical(i.as_bytes());
+//            prop_assert!(res.is_err());
+//            let err = res.err().unwrap();
+//            prop_assert!(err.code == ErrorCode::Empty || err.code == ErrorCode::EmptyMantissa);
+//            prop_assert!(err.index == 0 || err.index == 1);
+//        }
+//
+//        #[test]
+//        fn f64_double_exponent_sign_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]{2}[0-9]+") {
+//            let res = f64::from_lexical(i.as_bytes());
+//            prop_assert!(res.is_err());
+//            let err = res.err().unwrap();
+//            prop_assert_eq!(err.code, ErrorCode::EmptyExponent);
+//        }
+//
+//        #[test]
+//        fn f64_missing_exponent_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]?") {
+//            let res = f64::from_lexical(i.as_bytes());
+//            prop_assert!(res.is_err());
+//            let err = res.err().unwrap();
+//            prop_assert_eq!(err.code, ErrorCode::EmptyExponent);
+//        }
+//
+//        #[test]
+//        fn f64_roundtrip_display_proptest(i in f64::MIN..f64::MAX) {
+//            let input: String = format!("{}", i);
+//            prop_assert_eq!(i, f64::from_lexical(input.as_bytes()).unwrap());
+//        }
+//
+//        #[test]
+//        fn f64_roundtrip_debug_proptest(i in f64::MIN..f64::MAX) {
+//            let input: String = format!("{:?}", i);
+//            prop_assert_eq!(i, f64::from_lexical(input.as_bytes()).unwrap());
+//        }
+//
+//        #[test]
+//        fn f64_roundtrip_scientific_proptest(i in f64::MIN..f64::MAX) {
+//            let input: String = format!("{:e}", i);
+//            prop_assert_eq!(i, f64::from_lexical(input.as_bytes()).unwrap());
+//        }
+//    }
 }

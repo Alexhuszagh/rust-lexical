@@ -26,7 +26,7 @@ fn is_digit_separator(option: Option<&u8>, digit_separator: u8) -> bool {
 
 // Convert option of byte to option of sign.
 #[inline(always)]
-#[cfg(any(feature = "atof", all(feature = "atoi", feature = "format")))]
+#[cfg(all(any(feature = "atof", feature = "atoi"), feature = "format"))]
 fn to_sign<T>(option: Option<&u8>)
     -> Option<Sign>
     where T: Number

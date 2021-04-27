@@ -35,14 +35,22 @@ fn process_fraction<'a, F, Data>(data: &Data, radix: u32)
     // the fraction into 12-digit pieces.
     // 12 is the maximum number of digits we can use without
     // potentially overflowing  a 36-radix float string.
+    // We also have a fast, short-circuiting algorithm here:
+    // After we've seen the number of digits required to guaranteed
+    // we've done a full significand (excluding rounding), we can
+    // then short-circuit. We need to do `2*max_digits - 1`,
+    // since we might have lead with `max_digits - 1` 0 digits,
+    // and only the last one was non-zero.
     let mut fraction = F::ZERO;
     let mut digits: i32 = 0;
-    let max_digits: i32 = F::max_incorrect_digits(radix);
+    let mut nonzero_digits: i32 = 0;
+    let max_digits: i32 = 2 * F::max_incorrect_digits(radix) - 1;
     let mut iter = data.fraction_iter();
-    while !iter.consumed() && digits <= max_digits {
+    while !iter.consumed() && nonzero_digits <= max_digits {
         let (value, length) = atoi::standalone_mantissa_incorrect_n::<u64, _>(&mut iter, radix, 12);
         digits = digits.saturating_add(length.as_i32());
         if !value.is_zero() {
+            nonzero_digits = nonzero_digits.saturating_add(length.as_i32());
             fraction += F::iterative_pow(as_cast(value), radix, -digits);
         }
     }
@@ -68,6 +76,7 @@ pub(crate) fn to_native<'a, F, Data>(data: Data, radix: u32) -> F
 
 #[cfg(test)]
 mod tests {
+    use crate::util::*;
     use super::*;
 
     #[test]
@@ -100,69 +109,29 @@ mod tests {
 
     #[test]
     fn atof_test() {
-        let options = ParseFloatOptions::new();
-        let atof10 = move |x| match atof(x, Sign::Positive, &options) {
-            Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
-            Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
-        };
+        let options = ParseFloatOptions::builder()
+            .incorrect(true)
+            .build()
+            .unwrap();
+        let atof10 = move |x| f32::from_lexical_partial_with_options(x, &options);
 
         assert_eq!(Ok((1.2345, 6)), atof10(b"1.2345"));
         assert_eq!(Ok((12.345, 6)), atof10(b"12.345"));
         assert_eq!(Ok((12345.6789, 10)), atof10(b"12345.6789"));
-        assert_f32_eq!(1.2345e10, atof10(b"1.2345e10").unwrap().0);
+        assert_f32_near_eq!(1.2345e10, atof10(b"1.2345e10").unwrap().0);
     }
 
     #[test]
     fn atod_test() {
-        let options = ParseFloatOptions::new();
-        let atod10 = move |x| match atod(x, Sign::Positive, &options) {
-            Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
-            Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
-        };
+        let options = ParseFloatOptions::builder()
+            .incorrect(true)
+            .build()
+            .unwrap();
+        let atod10 = move |x| f64::from_lexical_partial_with_options(x, &options);
 
         assert_eq!(Ok((1.2345, 6)), atod10(b"1.2345"));
         assert_eq!(Ok((12.345, 6)), atod10(b"12.345"));
         assert_eq!(Ok((12345.6789, 10)), atod10(b"12345.6789"));
-        assert_f64_eq!(1.2345e10, atod10(b"1.2345e10").unwrap().0);
-    }
-
-    // Lossy
-    // Just a synonym for the regular overloads, since we're not using the
-    // correct feature. Use the same tests.
-
-    #[test]
-    fn atof_lossy_test() {
-        let mut options = ParseFloatOptions::new();
-        unsafe {
-            options.set_lossy(true);
-        }
-
-        let atof10 = move |x| match atof(x, Sign::Positive, &options) {
-            Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
-            Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
-        };
-
-        assert_eq!(Ok((1.2345, 6)), atof10(b"1.2345"));
-        assert_eq!(Ok((12.345, 6)), atof10(b"12.345"));
-        assert_eq!(Ok((12345.6789, 10)), atof10(b"12345.6789"));
-        assert_f32_eq!(1.2345e10, atof10(b"1.2345e10").unwrap().0);
-    }
-
-    #[test]
-    fn atod_lossy_test() {
-        let mut options = ParseFloatOptions::new();
-        unsafe {
-            options.set_lossy(true);
-        }
-
-        let atod10 = move |x| match atod(x, Sign::Positive, &options) {
-            Ok((v, p))  => Ok((v, distance(x.as_ptr(), p))),
-            Err((v, p)) => Err((v, distance(x.as_ptr(), p))),
-        };
-
-        assert_eq!(Ok((1.2345, 6)), atod10(b"1.2345"));
-        assert_eq!(Ok((12.345, 6)), atod10(b"12.345"));
-        assert_eq!(Ok((12345.6789, 10)), atod10(b"12345.6789"));
-        assert_f64_eq!(1.2345e10, atod10(b"1.2345e10").unwrap().0);
+        assert_f64_near_eq!(1.2345e10, atod10(b"1.2345e10").unwrap().0);
     }
 }

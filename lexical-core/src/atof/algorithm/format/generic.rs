@@ -212,8 +212,7 @@ mod tests {
     #[test]
     fn extract_test() {
         type Generic<'a> = GenericFastDataInterface<'a>;
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::PERMISSIVE.rebuild().digit_separator(b'_').build().unwrap();
         Generic::new(format).run_tests([
             // Valid
             ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
@@ -229,9 +228,11 @@ mod tests {
     #[test]
     fn extract_i_test() {
         type Generic<'a> = GenericIFastDataInterface<'a>;
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::PERMISSIVE.rebuild()
+            .digit_separator(b'_')
+            .integer_digit_separator_flag_mask(true)
+            .build()
+            .unwrap();
         Generic::new(format).run_tests([
             // Valid
             ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
@@ -247,9 +248,11 @@ mod tests {
     #[test]
     fn extract_f_test() {
         type Generic<'a> = GenericFFastDataInterface<'a>;
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::PERMISSIVE.rebuild()
+            .digit_separator(b'_')
+            .fraction_digit_separator_flag_mask(true)
+            .build()
+            .unwrap();
         Generic::new(format).run_tests([
             // Valid
             ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
@@ -265,9 +268,11 @@ mod tests {
     #[test]
     fn extract_e_test() {
         type Generic<'a> = GenericEFastDataInterface<'a>;
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::PERMISSIVE.rebuild()
+            .digit_separator(b'_')
+            .exponent_digit_separator_flag_mask(true)
+            .build()
+            .unwrap();
         Generic::new(format).run_tests([
             // Valid
             ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
@@ -283,10 +288,12 @@ mod tests {
     #[test]
     fn extract_if_test() {
         type Generic<'a> = GenericIFFastDataInterface<'a>;
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK;
-        let format = format | NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::PERMISSIVE.rebuild()
+            .digit_separator(b'_')
+            .integer_digit_separator_flag_mask(true)
+            .fraction_digit_separator_flag_mask(true)
+            .build()
+            .unwrap();
         Generic::new(format).run_tests([
             // Valid
             ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
@@ -302,10 +309,12 @@ mod tests {
     #[test]
     fn extract_ie_test() {
         type Generic<'a> = GenericIEFastDataInterface<'a>;
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK;
-        let format = format | NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::PERMISSIVE.rebuild()
+            .digit_separator(b'_')
+            .integer_digit_separator_flag_mask(true)
+            .exponent_digit_separator_flag_mask(true)
+            .build()
+            .unwrap();
         Generic::new(format).run_tests([
             // Valid
             ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
@@ -321,10 +330,12 @@ mod tests {
     #[test]
     fn extract_fe_test() {
         type Generic<'a> = GenericFEFastDataInterface<'a>;
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK;
-        let format = format | NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::PERMISSIVE.rebuild()
+            .digit_separator(b'_')
+            .fraction_digit_separator_flag_mask(true)
+            .exponent_digit_separator_flag_mask(true)
+            .build()
+            .unwrap();
         Generic::new(format).run_tests([
             // Valid
             ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),
@@ -340,11 +351,13 @@ mod tests {
     #[test]
     fn extract_ife_test() {
         type Generic<'a> = GenericIFEFastDataInterface<'a>;
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK;
-        let format = format | NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK;
-        let format = format | NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::PERMISSIVE.rebuild()
+            .digit_separator(b'_')
+            .integer_digit_separator_flag_mask(true)
+            .fraction_digit_separator_flag_mask(true)
+            .exponent_digit_separator_flag_mask(true)
+            .build()
+            .unwrap();
         Generic::new(format).run_tests([
             // Valid
             ("1.2345", Ok(generic!(Generic, b"1", Some(b!("2345")), None, 0))),

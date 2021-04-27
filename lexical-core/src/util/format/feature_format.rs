@@ -2277,6 +2277,46 @@ impl NumberFormatBuilder {
         self
     }
 
+    /// Set all integer digit separator flag masks.
+    #[inline(always)]
+    pub const fn digit_separator_flag_mask(mut self, flag: bool) -> Self {
+        self = self.integer_digit_separator_flag_mask(flag);
+        self = self.fraction_digit_separator_flag_mask(flag);
+        self = self.exponent_digit_separator_flag_mask(flag);
+        self = self.special_digit_separator(flag);
+        self
+    }
+
+    /// Set all integer digit separator flag masks.
+    #[inline(always)]
+    pub const fn integer_digit_separator_flag_mask(mut self, flag: bool) -> Self {
+        self = self.integer_internal_digit_separator(flag);
+        self = self.integer_leading_digit_separator(flag);
+        self = self.integer_trailing_digit_separator(flag);
+        self = self.integer_consecutive_digit_separator(flag);
+        self
+    }
+
+    /// Set all fraction digit separator flag masks.
+    #[inline(always)]
+    pub const fn fraction_digit_separator_flag_mask(mut self, flag: bool) -> Self {
+        self = self.fraction_internal_digit_separator(flag);
+        self = self.fraction_leading_digit_separator(flag);
+        self = self.fraction_trailing_digit_separator(flag);
+        self = self.fraction_consecutive_digit_separator(flag);
+        self
+    }
+
+    /// Set all exponent digit separator flag masks.
+    #[inline(always)]
+    pub const fn exponent_digit_separator_flag_mask(mut self, flag: bool) -> Self {
+        self = self.exponent_internal_digit_separator(flag);
+        self = self.exponent_leading_digit_separator(flag);
+        self = self.exponent_trailing_digit_separator(flag);
+        self = self.exponent_consecutive_digit_separator(flag);
+        self
+    }
+
     // BUILDER
 
     /// Create `NumberFormat` from builder options.

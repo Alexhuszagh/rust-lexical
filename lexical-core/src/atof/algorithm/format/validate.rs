@@ -340,7 +340,7 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn validate_no_leading_zeros_test() {
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("01"), Some(b!("23450")), None, 0).into();
         assert!(validate_no_leading_zeros(&data).is_err());
 
@@ -356,7 +356,7 @@ mod tests {
 
     #[test]
     fn validate_permissive_mantissa_test() {
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("01"), Some(b!("23450")), None, 0).into();
         assert!(validate_permissive_mantissa(&data).is_ok());
 
@@ -373,7 +373,7 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn validate_required_integer_test() {
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("01"), Some(b!("23450")), None, 0).into();
         assert!(validate_required_integer(&data).is_ok());
 
@@ -390,7 +390,7 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn validate_required_fraction_test() {
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("01"), Some(b!("23450")), None, 0).into();
         assert!(validate_required_fraction(&data).is_ok());
 
@@ -407,7 +407,7 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn validate_required_digits_test() {
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("01"), Some(b!("23450")), None, 0).into();
         assert!(validate_required_digits(&data).is_ok());
 
@@ -423,7 +423,7 @@ mod tests {
 
     #[test]
     fn validate_required_exponent_test() {
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("01"), Some(b!("23450")), None, 0).into();
         assert!(validate_required_exponent(&data).is_ok());
 
@@ -443,7 +443,7 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn validate_optional_exponent_test() {
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("0"), Some(b!("")), None, 0).into();
         assert!(validate_optional_exponent(&data).is_ok());
 
@@ -463,7 +463,7 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn validate_invalid_exponent_test() {
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("0"), Some(b!("")), None, 0).into();
         assert!(validate_invalid_exponent(&data).is_ok());
 
@@ -482,7 +482,7 @@ mod tests {
 
     #[test]
     fn validate_optional_exponent_sign_test() {
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("0"), Some(b!("")), None, 0).into();
         assert!(validate_optional_exponent_sign(&data).is_ok());
 
@@ -502,7 +502,7 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn validate_required_exponent_sign_test() {
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("0"), Some(b!("")), None, 0).into();
         assert!(validate_required_exponent_sign(&data).is_ok());
 
@@ -522,7 +522,7 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn validate_no_positive_exponent_sign_test() {
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("0"), Some(b!("")), None, 0).into();
         assert!(validate_no_positive_exponent_sign(&data).is_ok());
 
@@ -544,7 +544,7 @@ mod tests {
 
     #[test]
     fn validate_exponent_optional_fraction_test() {
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("0"), Some(b!("")), None, 0).into();
         assert!(validate_exponent_optional_fraction(&data).is_ok());
 
@@ -561,7 +561,7 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn validate_exponent_required_fraction_test() {
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("0"), Some(b!("")), None, 0).into();
         assert!(validate_exponent_required_fraction(&data).is_ok());
 

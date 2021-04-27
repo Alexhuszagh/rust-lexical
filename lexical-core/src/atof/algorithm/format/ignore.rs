@@ -49,6 +49,7 @@ data_interface!(
 
 #[cfg(test)]
 mod tests {
+    // TODO(ahuszagh) Restore.
     use super::*;
 
     macro_rules! ignore {
@@ -65,7 +66,10 @@ mod tests {
 
     #[test]
     fn extract_test() {
-        let format = NumberFormat::IGNORE | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::IGNORE.rebuild()
+            .digit_separator(b'_')
+            .build()
+            .unwrap();
         IgnoreFastDataInterface::new(format).run_tests([
             // Valid
             ("1.2345", Ok(ignore!(b"1", Some(b!("2345")), None, 0))),

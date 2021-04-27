@@ -631,45 +631,111 @@ pub trait ExtendedFloatType<F: FloatType>:
 }
 
 impl ExtendedFloatType<f32> for ExtendedFloat<u32> {
-    #[inline]
+    #[inline(always)]
     fn mant(&self) -> u32 {
         self.mant
     }
 
-    #[inline]
+    #[inline(always)]
     fn exp(&self) -> i32 {
         self.exp
     }
 
-    #[inline]
+    #[inline(always)]
     fn set_mant(&mut self, mant: u32) {
         self.mant = mant;
     }
 
-    #[inline]
+    #[inline(always)]
     fn set_exp(&mut self, exp: i32) {
         self.exp = exp;
     }
 }
 
 impl ExtendedFloatType<f64> for ExtendedFloat<u64> {
-    #[inline]
+    #[inline(always)]
     fn mant(&self) -> u64 {
         self.mant
     }
 
-    #[inline]
+    #[inline(always)]
     fn exp(&self) -> i32 {
         self.exp
     }
 
-    #[inline]
+    #[inline(always)]
     fn set_mant(&mut self, mant: u64) {
         self.mant = mant;
     }
 
-    #[inline]
+    #[inline(always)]
     fn set_exp(&mut self, exp: i32) {
         self.exp = exp;
+    }
+}
+
+// TESTS
+// ------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const CORRECT_RADIX: [u32; 13] = [6, 10, 12, 14, 18, 20, 22, 24, 26, 28, 30, 34, 36];
+    const INCORRECT_RADIX: [u32; 30] = [3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36];
+
+    fn max_digits(emin: f64, p2: f64, radix: f64) -> usize {
+        let log2 = 2.0f64.log(radix);
+        let logp2 = (1.0 - 2.0f64.powf(-p2)).log(radix);
+        let floor = ((emin + 1.0) * log2 - logp2).floor();
+
+        (-emin + p2 + floor) as usize
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn test_max_correct_digits() {
+        for &radix in CORRECT_RADIX.iter() {
+            // Test f32
+            let emin: f64 = -126.0;
+            let p2: f64 = 24.0;
+            let value = max_digits(emin, p2, radix as f64);
+            assert_eq!(f32::max_correct_digits(radix), Some(value + 2));
+
+            // Test f64
+            let emin: f64 = -1022.0;
+            let p2: f64 = 53.0;
+            let value = max_digits(emin, p2, radix as f64);
+            assert_eq!(f64::max_correct_digits(radix), Some(value + 2));
+        }
+
+        // Test an impossible radix.
+        assert_eq!(f32::max_correct_digits(2), None);
+        assert_eq!(f64::max_correct_digits(2), None);
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn test_max_incorrect_digits() {
+        for &radix in INCORRECT_RADIX.iter() {
+            // Test f32
+            let num = (f32::MANTISSA_SIZE + 1) as f64;
+            let den = (radix as f64).log2();
+            let value = (num / den).ceil() as i32;
+            assert_eq!(f32::max_incorrect_digits(radix), value);
+
+            // Test f64
+            let num = (f64::MANTISSA_SIZE + 1) as f64;
+            let value = (num / den).ceil() as i32;
+            assert_eq!(f64::max_incorrect_digits(radix), value);
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    #[cfg(feature = "radix")]
+    fn test_max_incorrect_digits_panic() {
+        // Test an impossible value.
+        f32::max_incorrect_digits(2);
     }
 }

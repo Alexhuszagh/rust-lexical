@@ -378,7 +378,7 @@ mod test {
     #[test]
     fn extract_exponent_test() {
         // Allows present exponents.
-        type Data<'a> = StandardFastDataInterface<'a, 'b>;
+        type Data<'a> = StandardFastDataInterface<'a>;
         let mut data = Data::new(NumberFormat::STANDARD);
         extract_exponent(&mut data, b"e+23", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("+23")));
@@ -391,13 +391,13 @@ mod test {
         assert_eq!(data.raw_exponent(), 0);
     }
 
+    // TODO(ahuszagh) Restore.
     #[test]
     #[cfg(feature = "format")]
     fn extract_exponent_iltc_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        type Data<'a> = IgnoreFastDataInterface<'a>;
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_iltc(&mut data, b"e__+__2__3____", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("__+__2__3____")));
@@ -426,9 +426,8 @@ mod test {
     #[cfg(feature = "format")]
     fn extract_exponent_i_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        type Data<'a> = IgnoreFastDataInterface<'a>;
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_i(&mut data, b"e+2_3", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("+2_3")));
@@ -457,9 +456,8 @@ mod test {
     #[cfg(feature = "format")]
     fn extract_exponent_ic_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        type Data<'a> = IgnoreFastDataInterface<'a>;
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_ic(&mut data, b"e+2__3", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("+2__3")));
@@ -488,9 +486,8 @@ mod test {
     #[cfg(feature = "format")]
     fn extract_exponent_l_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        type Data<'a> = IgnoreFastDataInterface<'a>;
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_l(&mut data, b"e+_23", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("+_23")));
@@ -519,9 +516,8 @@ mod test {
     #[cfg(feature = "format")]
     fn extract_exponent_lc_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        type Data<'a> = IgnoreFastDataInterface<'a>;
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_lc(&mut data, b"e+__23", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("+__23")));
@@ -550,9 +546,8 @@ mod test {
     #[cfg(feature = "format")]
     fn extract_exponent_t_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        type Data<'a> = IgnoreFastDataInterface<'a>;
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_t(&mut data, b"e+23_", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("+23_")));
@@ -581,9 +576,8 @@ mod test {
     #[cfg(feature = "format")]
     fn extract_exponent_tc_test() {
         // Allows present exponents.
-        type Data<'a> = IgnoreFastDataInterface<'a, 'b>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        type Data<'a> = IgnoreFastDataInterface<'a>;
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_tc(&mut data, b"e+23__", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("+23__")));
@@ -613,8 +607,7 @@ mod test {
     fn extract_exponent_il_test() {
         // Allows present exponents.
         type Data<'a> = IgnoreFastDataInterface<'a>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_il(&mut data, b"e+_2_3", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("+_2_3")));
@@ -644,8 +637,7 @@ mod test {
     fn extract_exponent_ilc_test() {
         // Allows present exponents.
         type Data<'a> = IgnoreFastDataInterface<'a>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_ilc(&mut data, b"e+__2__3", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("+__2__3")));
@@ -675,8 +667,7 @@ mod test {
     fn extract_exponent_it_test() {
         // Allows present exponents.
         type Data<'a> = IgnoreFastDataInterface<'a>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_it(&mut data, b"e+2_3_", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("+2_3_")));
@@ -706,8 +697,7 @@ mod test {
     fn extract_exponent_itc_test() {
         // Allows present exponents.
         type Data<'a> = IgnoreFastDataInterface<'a>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_itc(&mut data, b"e+2__3__", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("+2__3__")));
@@ -737,8 +727,7 @@ mod test {
     fn extract_exponent_lt_test() {
         // Allows present exponents.
         type Data<'a> = IgnoreFastDataInterface<'a>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_lt(&mut data, b"e_+_23_", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("_+_23_")));
@@ -767,8 +756,7 @@ mod test {
     fn extract_exponent_ltc_test() {
         // Allows present exponents.
         type Data<'a> = IgnoreFastDataInterface<'a>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_ltc(&mut data, b"e__+__23__", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("__+__23__")));
@@ -798,8 +786,7 @@ mod test {
     fn extract_exponent_ilt_test() {
         // Allows present exponents.
         type Data<'a> = IgnoreFastDataInterface<'a>;
-        let format = NumberFormat::IGNORE;
-        let format = format | NumberFormat::from_digit_separator(b'_');
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         let mut data = Data::new(format);
         extract_exponent_ilt(&mut data, b"e_+_2_3_", 10, b'_');
         assert_eq!(data.exponent(), Some(b!("_+_2_3_")));
