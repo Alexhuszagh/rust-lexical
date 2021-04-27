@@ -26,6 +26,13 @@ atoi = ["lexical-core/atoi"]
 ftoa = ["lexical-core/ftoa"]
 itoa = ["lexical-core/itoa"]
 
+# ALIASES
+# -------
+parse_floats = ["atof"]
+parse_integers = ["atoi"]
+write_floats = ["ftoa"]
+write_integers = ["itoa"]
+
 # FEATURES
 # --------
 format = ["lexical-core/format"]

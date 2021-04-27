@@ -53,6 +53,14 @@ ftoa = []
 # Only build the itoa submodule.
 itoa = []
 
+# ALIASES
+# -------
+# Aliases for the above features, using less C-like names.
+parse_floats = ["atof"]
+parse_integers = ["atoi"]
+write_floats = ["ftoa"]
+write_integers = ["itoa"]
+
 # FEATURES
 # --------
 # Add support for different float string formats.
