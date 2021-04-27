@@ -65,6 +65,7 @@ bitflags! {
 }
 
 impl RoundingKind {
+    const_fn!(
     /// Determine if we are rounding to the nearest value, then tying away.
     #[inline]
     pub const fn is_nearest(self) -> bool {
@@ -73,13 +74,14 @@ impl RoundingKind {
             RoundingKind::NearestTieAwayZero => true,
             _ => false,
         }
-    }
+    });
 
+    const_fn!(
     /// Determine if we are rounding to the nearest value, then tying away.
     #[inline]
     pub const fn is_toward(self) -> bool {
         !self.is_nearest()
-    }
+    });
 
     /// Convert rounding kind to u32.
     #[inline(always)]

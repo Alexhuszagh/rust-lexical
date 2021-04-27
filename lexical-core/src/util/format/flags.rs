@@ -220,6 +220,7 @@ check_subsequent_flags!(EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPA
 // VALIDATORS
 // ----------
 
+const_fn!(
 /// Determine if the digit separator is valid.
 #[inline]
 #[cfg(not(feature = "radix"))]
@@ -229,8 +230,9 @@ pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
         b'+' | b'-'   => false,
         _             => ch.is_ascii()
     }
-}
+});
 
+const_fn!(
 /// Determine if the digit separator is valid.
 #[inline]
 #[cfg(feature = "radix")]
@@ -242,14 +244,16 @@ pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
         b'+' | b'-'   => false,
         _             => ch.is_ascii()
     }
-}
+});
 
+const_fn!(
 /// Determine if the decimal point is valid.
 #[inline]
 pub(crate) const fn is_valid_decimal_point(ch: u8) -> bool {
     is_valid_digit_separator(ch)
-}
+});
 
+const_fn!(
 /// Determine if the exponent default character is valid.
 #[inline]
 pub(crate) const fn is_valid_exponent_default(ch: u8) -> bool {
@@ -258,14 +262,16 @@ pub(crate) const fn is_valid_exponent_default(ch: u8) -> bool {
         b'+' | b'-'   => false,
         _             => ch.is_ascii()
     }
-}
+});
 
+const_fn!(
 /// Determine if the exponent backup character is valid.
 #[inline]
 pub(crate) const fn is_valid_exponent_backup(ch: u8) -> bool {
     is_valid_digit_separator(ch)
-}
+});
 
+const_fn!(
 /// Determine if all of the "punctuation" characters are valid.
 #[inline]
 pub(crate) const fn is_valid_punctuation(digit_separator: u8, decimal_point: u8, exponent_default: u8, exponent_backup: u8)
@@ -287,7 +293,7 @@ pub(crate) const fn is_valid_punctuation(digit_separator: u8, decimal_point: u8,
         // the exponent character.
         true
     }
-}
+});
 
 // FLAG FUNCTIONS
 // --------------
@@ -404,13 +410,14 @@ check_masks_and_flags!(EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT, INTEGER_INTE
 // ---------------
 
 /// Convert a character to ASCII lowercase as a const fn.
+const_fn!(
 #[inline(always)]
 pub(crate) const fn to_ascii_lowercase(c: u8) -> u8 {
     match c {
         b'A'..=b'Z' => c - b'A' + b'a',
         _ => c,
     }
-}
+});
 
 // TESTS
 // -----

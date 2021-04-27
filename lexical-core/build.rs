@@ -1,3 +1,5 @@
+use rustc_version::version;
+
 fn main() {
     // TARGET
     // ------
@@ -18,5 +20,14 @@ fn main() {
         println!("cargo:rustc-cfg=limb_width_64");
     } else {
         println!("cargo:rustc-cfg=limb_width_32");
+    }
+
+    // We also need to know whether we can use const fn
+    // in match or loop statements. Drop this when we
+    // drop support for Rustc versions < 1.46.0.
+    let rustc = version().unwrap();
+    if (rustc.major, rustc.minor) >= (1, 46) {
+        println!("cargo:rustc-cfg=has_const_if");
+        println!("cargo:rustc-cfg=has_const_match");
     }
 }

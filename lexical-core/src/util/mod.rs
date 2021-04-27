@@ -7,6 +7,9 @@
 mod assert;
 
 #[macro_use]
+mod const_fn;
+
+#[macro_use]
 mod index;
 
 #[macro_use]

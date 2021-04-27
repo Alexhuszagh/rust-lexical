@@ -108,6 +108,7 @@ impl NumberFormat {
         flags::exponent_backup_from_flags(self.bits)
     }
 
+    const_fn!(
     /// Get the exponent character based on the radix.
     #[inline(always)]
     pub const fn exponent(self, radix: u32) -> u8 {
@@ -116,7 +117,7 @@ impl NumberFormat {
         } else {
             self.exponent_default()
         }
-    }
+    });
 
     /// Get if digits are required before the decimal point.
     #[inline(always)]
@@ -360,22 +361,25 @@ impl NumberFormatBuilder {
         self
     }
 
+    const_fn!(
     /// Set the default exponent character for the number format.
     #[inline(always)]
     pub const fn exponent_default(mut self, exponent_default: u8) -> Self {
         self.exponent_default = flags::to_ascii_lowercase(exponent_default);
         self
-    }
+    });
 
+    const_fn!(
     /// Set the backup exponent character for the number format.
     #[inline(always)]
     pub const fn exponent_backup(mut self, exponent_backup: u8) -> Self {
         self.exponent_backup = flags::to_ascii_lowercase(exponent_backup);
         self
-    }
+    });
 
     // BUILDER
 
+    const_fn!(
     /// Create `NumberFormat` from builder options.
     ///
     /// If the format is invalid, this function will return `None`.
@@ -399,7 +403,7 @@ impl NumberFormatBuilder {
             true  => None,
             false => Some(format)
         }
-    }
+    });
 }
 
 impl Default for NumberFormatBuilder {

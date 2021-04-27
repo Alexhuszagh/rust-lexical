@@ -58,6 +58,7 @@ macro_rules! to_radix {
 }
 
 /// Check if byte array starts with case-insensitive N.
+const_fn!(
 #[inline]
 #[cfg(any(feature = "atof", feature = "ftoa"))]
 const fn starts_with_n(bytes: &[u8]) -> bool {
@@ -70,7 +71,7 @@ const fn starts_with_n(bytes: &[u8]) -> bool {
             _    => false,
         }
     }
-}
+});
 
 /// Get the NaN string if the NaN string is valid.
 #[cfg(any(feature = "atof", feature = "ftoa"))]
@@ -85,6 +86,7 @@ macro_rules! to_nan_string {
     }};
 }
 
+const_fn!(
 /// Check if byte array starts with case-insensitive I.
 #[inline]
 #[cfg(any(feature = "atof", feature = "ftoa"))]
@@ -98,7 +100,7 @@ const fn starts_with_i(bytes: &[u8]) -> bool {
             _    => false,
         }
     }
-}
+});
 
 /// Get the short infinity string if the infinity string is valid.
 #[cfg(any(feature = "atof", feature = "ftoa"))]
@@ -179,13 +181,14 @@ impl ParseIntegerOptionsBuilder {
         self
     }
 
+    const_fn!(
     /// Build the ParseIntegerOptions struct.
     #[inline(always)]
     pub const fn build(self) -> Option<ParseIntegerOptions> {
         let radix = to_radix!(self.radix) as u32;
         let format = self.format;
         Some(ParseIntegerOptions { radix, format })
-    }
+    });
 }
 
 #[cfg(feature = "atoi")]
@@ -358,6 +361,7 @@ impl ParseFloatOptionsBuilder {
         self
     }
 
+    const_fn!(
     /// Set the format specifier for ParseFloatOptionsBuilder.
     #[inline(always)]
     pub const fn format(mut self, format: Option<NumberFormat>) -> Self {
@@ -366,7 +370,7 @@ impl ParseFloatOptionsBuilder {
             None => DEFAULT_FORMAT,
         };
         self
-    }
+    });
 
     /// Set the rounding kind for ParseFloatOptionsBuilder.
     #[inline(always)]
@@ -413,6 +417,7 @@ impl ParseFloatOptionsBuilder {
 
     // BUILDERS
 
+    const_fn!(
     /// Build the ParseFloatOptions struct.
     #[inline(always)]
     pub const fn build(self) -> Option<ParseFloatOptions> {
@@ -438,7 +443,7 @@ impl ParseFloatOptionsBuilder {
             inf_string,
             infinity_string,
         })
-    }
+    });
 }
 
 #[cfg(feature = "atof")]
@@ -605,11 +610,12 @@ impl ParseFloatOptions {
         self.format.decimal_point()
     }
 
+    const_fn!(
     /// Get the exponent character.
     #[inline(always)]
     pub const fn exponent(&self) -> u8 {
         self.format.exponent(self.radix())
-    }
+    });
 
     // SETTERS
 
@@ -741,12 +747,13 @@ impl WriteIntegerOptionsBuilder {
 
     // BUILDERS
 
+    const_fn!(
     /// Build the WriteIntegerOptions struct.
     #[inline(always)]
     pub const fn build(self) -> Option<WriteIntegerOptions> {
         let radix = to_radix!(self.radix) as u32;
         Some(WriteIntegerOptions { radix })
-    }
+    });
 }
 
 #[cfg(feature = "itoa")]
@@ -915,6 +922,7 @@ impl WriteFloatOptionsBuilder {
 
     // BUILDERS
 
+    const_fn!(
     /// Build the ParseFloatOptions struct.
     #[inline(always)]
     pub const fn build(self) -> Option<WriteFloatOptions> {
@@ -926,7 +934,7 @@ impl WriteFloatOptionsBuilder {
         let inf_string = to_inf_string!(self.inf_string);
 
         Some(WriteFloatOptions {compressed, format, nan_string, inf_string })
-    }
+    });
 }
 
 #[cfg(feature = "ftoa")]
@@ -1051,6 +1059,7 @@ impl WriteFloatOptions {
         self.inf_string
     }
 
+    const_fn!(
     /// Get the digit separator character.
     #[inline(always)]
     pub const fn digit_separator(&self) -> u8 {
@@ -1058,8 +1067,9 @@ impl WriteFloatOptions {
             Some(format) => format.digit_separator(),
             None => b'\x00',
         }
-    }
+    });
 
+    const_fn!(
     /// Get the decimal point character.
     #[inline(always)]
     pub const fn decimal_point(&self) -> u8 {
@@ -1067,8 +1077,9 @@ impl WriteFloatOptions {
             Some(format) => format.decimal_point(),
             None => b'.',
         }
-    }
+    });
 
+    const_fn!(
     /// Get the exponent character.
     #[inline(always)]
     pub const fn exponent(&self) -> u8 {
@@ -1079,7 +1090,7 @@ impl WriteFloatOptions {
         };
 
         format.exponent(self.radix())
-    }
+    });
 
     // SETTERS
 
@@ -1162,28 +1173,28 @@ mod tests {
     // Wrapper for the macro for a const fn.
     #[inline]
     #[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
-    const fn to_radix(radix: u32) -> Option<u32> {
+    fn to_radix(radix: u32) -> Option<u32> {
         Some(to_radix!(radix))
     }
 
     // Wrapper for the macro for a const fn.
     #[inline]
     #[cfg(any(feature = "atof", feature = "ftoa"))]
-    const fn to_nan_string(nan: &'static [u8]) -> Option<&'static [u8]> {
+    fn to_nan_string(nan: &'static [u8]) -> Option<&'static [u8]> {
         Some(to_nan_string!(nan))
     }
 
     // Wrapper for the macro for a const fn.
     #[inline]
     #[cfg(any(feature = "atof", feature = "ftoa"))]
-    const fn to_inf_string(inf: &'static [u8]) -> Option<&'static [u8]> {
+    fn to_inf_string(inf: &'static [u8]) -> Option<&'static [u8]> {
         Some(to_inf_string!(inf))
     }
 
     // Wrapper for the macro for a const fn.
     #[inline]
     #[cfg(feature = "atof")]
-    const fn to_infinity_string(infinity: &'static [u8], inf: &'static [u8]) -> Option<&'static [u8]> {
+    fn to_infinity_string(infinity: &'static [u8], inf: &'static [u8]) -> Option<&'static [u8]> {
         Some(to_infinity_string!(infinity, inf))
     }
 
