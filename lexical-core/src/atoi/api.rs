@@ -202,11 +202,12 @@ mod tests {
         assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), u8::from_lexical(b"1a"));
     }
 
-    #[cfg(feature = "radix")]
     #[test]
+    #[cfg(feature = "radix")]
     fn u8_radix_test() {
         for (b, s) in DATA.iter() {
-            assert_eq!(u8::from_lexical_radix(s.as_bytes(), *b), Ok(37));
+            let options = ParseIntegerOptions::builder().radix(*b).build().unwrap();
+            assert_eq!(u8::from_lexical_with_options(s.as_bytes(), &options), Ok(37));
         }
     }
 
@@ -220,11 +221,12 @@ mod tests {
         assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i8::from_lexical(b"1a"));
     }
 
-    #[cfg(feature = "radix")]
     #[test]
+    #[cfg(feature = "radix")]
     fn i8_radix_test() {
         for (b, s) in DATA.iter() {
-            assert_eq!(i8::from_lexical_radix(s.as_bytes(), *b), Ok(37));
+            let options = ParseIntegerOptions::builder().radix(*b).build().unwrap();
+            assert_eq!(i8::from_lexical_with_options(s.as_bytes(), &options), Ok(37));
         }
     }
 
@@ -252,9 +254,11 @@ mod tests {
     #[test]
     fn i16_radix_test() {
         for (b, s) in DATA.iter() {
-            assert_eq!(i16::from_lexical_radix(s.as_bytes(), *b), Ok(37));
+            let options = ParseIntegerOptions::builder().radix(*b).build().unwrap();
+            assert_eq!(i16::from_lexical_with_options(s.as_bytes(), &options), Ok(37));
         }
-        assert_eq!(i16::from_lexical_radix(b"YA", 36), Ok(1234));
+        let options = ParseIntegerOptions::builder().radix(36).build().unwrap();
+        assert_eq!(i16::from_lexical_with_options(b"YA", &options), Ok(1234));
     }
 
     #[test]
@@ -323,73 +327,82 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn i32_no_leading_zeros_test() {
-        let format = NumberFormat::NO_INTEGER_LEADING_ZEROS;
-        let format = format | NumberFormat::from_radix(10);
-        assert!(i32::from_lexical_format(b"1", format).is_ok());
-        assert!(i32::from_lexical_format(b"0", format).is_ok());
-        assert!(i32::from_lexical_format(b"01", format).is_err());
-        assert!(i32::from_lexical_format(b"10", format).is_ok());
-        assert!(i32::from_lexical_format(b"010", format).is_err());
+        let format = NumberFormat::builder().no_integer_leading_zeros(true).build().unwrap();
+        let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
+        assert!(i32::from_lexical_with_options(b"1", &options).is_ok());
+        assert!(i32::from_lexical_with_options(b"0", &options).is_ok());
+        assert!(i32::from_lexical_with_options(b"01", &options).is_err());
+        assert!(i32::from_lexical_with_options(b"10", &options).is_ok());
+        assert!(i32::from_lexical_with_options(b"010", &options).is_err());
     }
 
     #[test]
     #[cfg(feature = "format")]
     fn i32_integer_internal_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        let format = format | NumberFormat::from_radix(10);
-        assert!(i32::from_lexical_format(b"3_1", format).is_ok());
-        assert!(i32::from_lexical_format(b"_31", format).is_err());
-        assert!(i32::from_lexical_format(b"31_", format).is_err());
+        let format = NumberFormat::PERMISSIVE.rebuild()
+            .integer_internal_digit_separator(true)
+            .digit_separator(b'_')
+            .build()
+            .unwrap();
+        let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
+        assert!(i32::from_lexical_with_options(b"3_1", &options).is_ok());
+        assert!(i32::from_lexical_with_options(b"_31", &options).is_err());
+        assert!(i32::from_lexical_with_options(b"31_", &options).is_err());
     }
 
     #[test]
     #[cfg(feature = "format")]
     fn i32_integer_leading_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        let format = format | NumberFormat::from_radix(10);
-        assert!(i32::from_lexical_format(b"3_1", format).is_err());
-        assert!(i32::from_lexical_format(b"_31", format).is_ok());
-        assert!(i32::from_lexical_format(b"31_", format).is_err());
+        let format = NumberFormat::PERMISSIVE.rebuild()
+            .integer_leading_digit_separator(true)
+            .digit_separator(b'_')
+            .build()
+            .unwrap();
+        let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
+        assert!(i32::from_lexical_with_options(b"3_1", &options).is_err());
+        assert!(i32::from_lexical_with_options(b"_31", &options).is_ok());
+        assert!(i32::from_lexical_with_options(b"31_", &options).is_err());
     }
 
     #[test]
     #[cfg(feature = "format")]
     fn i32_integer_trailing_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        let format = format | NumberFormat::from_radix(10);
-        assert!(i32::from_lexical_format(b"3_1", format).is_err());
-        assert!(i32::from_lexical_format(b"_31", format).is_err());
-        assert!(i32::from_lexical_format(b"31_", format).is_ok());
+        let format = NumberFormat::PERMISSIVE.rebuild()
+            .integer_trailing_digit_separator(true)
+            .digit_separator(b'_')
+            .build()
+            .unwrap();
+        let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
+        assert!(i32::from_lexical_with_options(b"3_1", &options).is_err());
+        assert!(i32::from_lexical_with_options(b"_31", &options).is_err());
+        assert!(i32::from_lexical_with_options(b"31_", &options).is_ok());
     }
 
     #[test]
     #[cfg(feature = "format")]
     fn i32_integer_consecutive_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE;
-        let format = format | NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
-        let format = format | NumberFormat::from_digit_separator(b'_');
-        let format = format | NumberFormat::from_radix(10);
-        assert!(i32::from_lexical_format(b"3_1", format).is_ok());
-        assert!(i32::from_lexical_format(b"3__1", format).is_ok());
-        assert!(i32::from_lexical_format(b"_31", format).is_err());
-        assert!(i32::from_lexical_format(b"31_", format).is_err());
+        let format = NumberFormat::PERMISSIVE.rebuild()
+            .integer_internal_digit_separator(true)
+            .integer_consecutive_digit_separator(true)
+            .digit_separator(b'_')
+            .build()
+            .unwrap();
+        let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
+        assert!(i32::from_lexical_with_options(b"3_1", &options).is_ok());
+        assert!(i32::from_lexical_with_options(b"3__1", &options).is_ok());
+        assert!(i32::from_lexical_with_options(b"_31", &options).is_err());
+        assert!(i32::from_lexical_with_options(b"31_", &options).is_err());
     }
 
     #[test]
     #[cfg(feature = "format")]
     fn i32_json_no_leading_zero() {
         let format = NumberFormat::JSON;
-        assert!(i32::from_lexical_format(b"12", format).is_ok());
-        assert!(i32::from_lexical_format(b"-12", format).is_ok());
-        assert!(i32::from_lexical_format(b"012", format).is_err());
-        assert!(i32::from_lexical_format(b"-012", format).is_err());
+        let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
+        assert!(i32::from_lexical_with_options(b"12", &options).is_ok());
+        assert!(i32::from_lexical_with_options(b"-12", &options).is_ok());
+        assert!(i32::from_lexical_with_options(b"012", &options).is_err());
+        assert!(i32::from_lexical_with_options(b"-012", &options).is_err());
     }
 
     #[cfg(all(feature = "std", feature = "property_tests"))]

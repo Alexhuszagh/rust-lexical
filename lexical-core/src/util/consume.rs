@@ -58,8 +58,6 @@
 //! If the consumer does not require a digit separator, that value is
 //! simply ignored.
 
-// TODO(ahuszagh) Need to feature gate some of this
-// Can then feature gate digit.rs as a result.
 use super::digit::*;
 use super::format::*;
 
@@ -1163,35 +1161,37 @@ mod tests {
         assert_eq!(consume_digits_ilt(b!("_4_5_.56"), 10, b'_'), (b!("_4_5_"), b!(".56")));
         assert_eq!(consume_digits_ilt(b!("__4__5__.56"), 10, b'_'), (b!(""), b!("__4__5__.56")));
 
-        assert_eq!(consume_digits_iltc(b!("123.45"), 10, b'_'), (b!("123"), b!(".45")));
-        assert_eq!(consume_digits_iltc(b!("1e45"), 10, b'_'), (b!("1"), b!("e45")));
-        assert_eq!(consume_digits_iltc(b!("1e"), 10, b'_'), (b!("1"), b!("e")));
-        assert_eq!(consume_digits_iltc(b!("1"), 10, b'_'), (b!("1"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("_45"), 10, b'_'), (b!("_45"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("__45"), 10, b'_'), (b!("__45"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("_.45"), 10, b'_'), (b!("_"), b!(".45")));
-        assert_eq!(consume_digits_iltc(b!("__.45"), 10, b'_'), (b!("__"), b!(".45")));
-        assert_eq!(consume_digits_iltc(b!("4_5"), 10, b'_'), (b!("4_5"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("4__5"), 10, b'_'), (b!("4__5"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("4_"), 10, b'_'), (b!("4_"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("4__"), 10, b'_'), (b!("4__"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("4_."), 10, b'_'), (b!("4_"), b!(".")));
-        assert_eq!(consume_digits_iltc(b!("4__."), 10, b'_'), (b!("4__"), b!(".")));
-        assert_eq!(consume_digits_iltc(b!("_45_5"), 10, b'_'), (b!("_45_5"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("__45__5"), 10, b'_'), (b!("__45__5"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("_.45_5"), 10, b'_'), (b!("_"), b!(".45_5")));
-        assert_eq!(consume_digits_iltc(b!("__.45__5"), 10, b'_'), (b!("__"), b!(".45__5")));
-        assert_eq!(consume_digits_iltc(b!("4_5_"), 10, b'_'), (b!("4_5_"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("4__5__"), 10, b'_'), (b!("4__5__"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("4_5_.5"), 10, b'_'), (b!("4_5_"), b!(".5")));
-        assert_eq!(consume_digits_iltc(b!("4__5__.5"), 10, b'_'), (b!("4__5__"), b!(".5")));
-        assert_eq!(consume_digits_iltc(b!("_45_"), 10, b'_'), (b!("_45_"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("__45__"), 10, b'_'), (b!("__45__"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("_45_.56"), 10, b'_'), (b!("_45_"), b!(".56")));
-        assert_eq!(consume_digits_iltc(b!("__45__.56"), 10, b'_'), (b!("__45__"), b!(".56")));
-        assert_eq!(consume_digits_iltc(b!("_4_5_"), 10, b'_'), (b!("_4_5_"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("__4__5__"), 10, b'_'), (b!("__4__5__"), b!("")));
-        assert_eq!(consume_digits_iltc(b!("_4_5_.56"), 10, b'_'), (b!("_4_5_"), b!(".56")));
-        assert_eq!(consume_digits_iltc(b!("__4__5__.56"), 10, b'_'), (b!("__4__5__"), b!(".56")));
+        #[cfg(feature = "atof")] {
+            assert_eq!(consume_digits_iltc(b!("123.45"), 10, b'_'), (b!("123"), b!(".45")));
+            assert_eq!(consume_digits_iltc(b!("1e45"), 10, b'_'), (b!("1"), b!("e45")));
+            assert_eq!(consume_digits_iltc(b!("1e"), 10, b'_'), (b!("1"), b!("e")));
+            assert_eq!(consume_digits_iltc(b!("1"), 10, b'_'), (b!("1"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("_45"), 10, b'_'), (b!("_45"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("__45"), 10, b'_'), (b!("__45"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("_.45"), 10, b'_'), (b!("_"), b!(".45")));
+            assert_eq!(consume_digits_iltc(b!("__.45"), 10, b'_'), (b!("__"), b!(".45")));
+            assert_eq!(consume_digits_iltc(b!("4_5"), 10, b'_'), (b!("4_5"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("4__5"), 10, b'_'), (b!("4__5"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("4_"), 10, b'_'), (b!("4_"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("4__"), 10, b'_'), (b!("4__"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("4_."), 10, b'_'), (b!("4_"), b!(".")));
+            assert_eq!(consume_digits_iltc(b!("4__."), 10, b'_'), (b!("4__"), b!(".")));
+            assert_eq!(consume_digits_iltc(b!("_45_5"), 10, b'_'), (b!("_45_5"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("__45__5"), 10, b'_'), (b!("__45__5"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("_.45_5"), 10, b'_'), (b!("_"), b!(".45_5")));
+            assert_eq!(consume_digits_iltc(b!("__.45__5"), 10, b'_'), (b!("__"), b!(".45__5")));
+            assert_eq!(consume_digits_iltc(b!("4_5_"), 10, b'_'), (b!("4_5_"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("4__5__"), 10, b'_'), (b!("4__5__"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("4_5_.5"), 10, b'_'), (b!("4_5_"), b!(".5")));
+            assert_eq!(consume_digits_iltc(b!("4__5__.5"), 10, b'_'), (b!("4__5__"), b!(".5")));
+            assert_eq!(consume_digits_iltc(b!("_45_"), 10, b'_'), (b!("_45_"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("__45__"), 10, b'_'), (b!("__45__"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("_45_.56"), 10, b'_'), (b!("_45_"), b!(".56")));
+            assert_eq!(consume_digits_iltc(b!("__45__.56"), 10, b'_'), (b!("__45__"), b!(".56")));
+            assert_eq!(consume_digits_iltc(b!("_4_5_"), 10, b'_'), (b!("_4_5_"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("__4__5__"), 10, b'_'), (b!("__4__5__"), b!("")));
+            assert_eq!(consume_digits_iltc(b!("_4_5_.56"), 10, b'_'), (b!("_4_5_"), b!(".56")));
+            assert_eq!(consume_digits_iltc(b!("__4__5__.56"), 10, b'_'), (b!("__4__5__"), b!(".56")));
+        }
     }
 }

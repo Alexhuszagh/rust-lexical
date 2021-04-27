@@ -10,7 +10,10 @@ if #[cfg(any(feature = "atof", all(feature = "atoi", feature = "format")))] {
     #[cfg(feature = "radix")]
     pub(crate) fn is_digit(c: u8, radix: u32) -> bool {
         let digit = if radix <= 10 {
-            c - b'0'
+            match c {
+                b'0'..=b'9' => c - b'0',
+                _ => return false,
+            }
         } else {
             match c {
                 b'0'..=b'9' => c - b'0',
@@ -27,7 +30,10 @@ if #[cfg(any(feature = "atof", all(feature = "atoi", feature = "format")))] {
     #[inline(always)]
     #[cfg(not(feature = "radix"))]
     pub(crate) fn is_digit(c: u8, _: u32) -> bool {
-        let digit = c - b'0';
+        let digit = match c {
+            b'0'..=b'9' => c - b'0',
+            _ => return false,
+        };
         (digit as u32) < 10
     }
 }}   // cfg_if
