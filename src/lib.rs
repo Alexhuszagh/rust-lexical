@@ -9,6 +9,7 @@
 //! # Getting Started
 //!
 //! ```rust
+//! # #[cfg(all(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))] {
 //! extern crate lexical;
 //!
 //! // Number to string
@@ -20,6 +21,7 @@
 //! let f: f32 = lexical::parse("3.5").unwrap();    // 3.5
 //! let d = lexical::parse::<f64, _>("3.5");        // Ok(3.5), successful parse.
 //! let d = lexical::parse::<f64, _>("3a");         // Err(Error(_)), failed to parse.
+//! # }
 //! ```
 //!
 //! # Conversion API
@@ -145,11 +147,13 @@ use lib::convert::AsRef;
 /// # Examples
 ///
 /// ```rust
+/// # #[cfg(feature = "ftoa")] {
 /// # extern crate lexical;
 /// # pub fn main() {
 /// assert_eq!(lexical::to_string(5), "5");
 /// ##[cfg(not(feature = "trim_floats"))]
 /// assert_eq!(lexical::to_string(0.0), "0.0");
+/// # }
 /// # }
 /// ```
 #[inline]
@@ -196,6 +200,7 @@ pub fn to_string_with_options<N: ToLexicalOptions>(n: N, options: &N::WriteOptio
 /// # Examples
 ///
 /// ```rust
+/// # #[cfg(all(feature = "atof", feature = "atoi"))] {
 /// # extern crate lexical;
 /// # use lexical::ErrorCode;
 /// # pub fn main() {
@@ -219,6 +224,7 @@ pub fn to_string_with_options<N: ToLexicalOptions>(n: N, options: &N::WriteOptio
 /// assert_eq!(lexical::parse::<f32, _>(b"1."), Ok(1.0));
 /// # assert_eq!(lexical::parse::<f32, _>(b"5.002868148396374"), Ok(5.002868148396374));
 /// # assert_eq!(lexical::parse::<f64, _>(b"5.002868148396374"), Ok(5.002868148396374));
+/// # }
 /// # }
 /// ```
 #[inline]
@@ -256,6 +262,7 @@ pub fn parse_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Byte
 /// # Examples
 ///
 /// ```rust
+/// # #[cfg(all(feature = "atof", feature = "atoi"))] {
 /// # extern crate lexical;
 /// # use lexical::ErrorCode;
 /// # pub fn main() {
@@ -275,6 +282,7 @@ pub fn parse_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Byte
 /// assert_eq!(lexical::parse_partial::<f32, _>(b"1."), Ok((1.0, 2)));
 /// # assert_eq!(lexical::parse_partial::<f32, _>(b"5.002868148396374"), Ok((5.002868148396374, 17)));
 /// # assert_eq!(lexical::parse_partial::<f64, _>(b"5.002868148396374"), Ok((5.002868148396374, 17)));
+/// # }
 /// # }
 /// ```
 #[inline]

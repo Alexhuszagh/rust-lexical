@@ -147,6 +147,7 @@ fn filter_special<'a, F: FloatToString>(
     format: NumberFormat,
     nan_string: &'static [u8],
     inf_string: &'static [u8],
+    trim_floats: bool
 )
     -> usize
 {
@@ -155,12 +156,10 @@ fn filter_special<'a, F: FloatToString>(
     debug_assert_radix!(radix);
 
     // We already check for 0 in `filter_sign` if value.is_zero().
-    #[cfg(not(feature = "trim_floats"))] {
-        if value.is_zero() {
-            // This is safe, because we confirmed the buffer is >= 4
-            // in total (since we also handled the sign by here).
-            return copy_to_dst(bytes, b"0.0");
-        }
+    if !trim_floats && value.is_zero() {
+        // This is safe, because we confirmed the buffer is >= 4
+        // in total (since we also handled the sign by here).
+        return copy_to_dst(bytes, b"0.0");
     }
 
     if value.is_nan() {
@@ -187,18 +186,17 @@ fn filter_sign<'a, F: FloatToString>(
     format: NumberFormat,
     nan_string: &'static [u8],
     inf_string: &'static [u8],
+    trim_floats: bool
 )
     -> usize
 {
     debug_assert_radix!(radix);
 
     // Export "-0.0" and "0.0" as "0" with trimmed floats.
-    #[cfg(feature = "trim_floats")] {
-        if value.is_zero() {
-            // We know this is safe, because we confirmed the buffer is >= 1.
-            bytes[0] = b'0';
-            return 1;
-        }
+    if trim_floats && value.is_zero() {
+        // We know this is safe, because we confirmed the buffer is >= 1.
+        bytes[0] = b'0';
+        return 1;
     }
 
     // If the sign bit is set, invert it and just set the first
@@ -208,9 +206,9 @@ fn filter_sign<'a, F: FloatToString>(
         // We know this is safe, because we confirmed the buffer is >= 1.
         bytes[0] = b'-';
         let bytes = &mut bytes[1..];
-        filter_special(value, radix, bytes, format, nan_string, inf_string) + 1
+        filter_special(value, radix, bytes, format, nan_string, inf_string, trim_floats) + 1
     } else {
-        filter_special(value, radix, bytes, format, nan_string, inf_string)
+        filter_special(value, radix, bytes, format, nan_string, inf_string, trim_floats)
     }
 }
 
@@ -240,7 +238,7 @@ fn from_native<F: FloatToString>(
 )
     -> usize
 {
-    let len = filter_sign(value, radix, bytes, format, nan_string, inf_string);
+    let len = filter_sign(value, radix, bytes, format, nan_string, inf_string, trim_floats);
     let bytes = &mut bytes[..len];
     trim(bytes, trim_floats)
 }
@@ -283,69 +281,92 @@ mod tests {
 
     #[cfg(all(feature = "std", feature = "property_tests"))]
     use proptest::{proptest, prop_assert_eq};
+    #[cfg(feature = "atof")]
     use approx::assert_relative_eq;
 
     // Test data for roundtrips.
+    #[cfg(feature = "atof")]
     const F32_DATA : [f32; 31] = [0., 0.1, 1., 1.1, 12., 12.1, 123., 123.1, 1234., 1234.1, 12345., 12345.1, 123456., 123456.1, 1234567., 1234567.1, 12345678., 12345678.1, 123456789., 123456789.1, 123456789.12, 123456789.123, 123456789.1234, 123456789.12345, 1.2345678912345e8, 1.2345e+8, 1.2345e+11, 1.2345e+38, 1.2345e-8, 1.2345e-11, 1.2345e-38];
+    #[cfg(feature = "atof")]
     const F64_DATA: [f64; 33] = [0., 0.1, 1., 1.1, 12., 12.1, 123., 123.1, 1234., 1234.1, 12345., 12345.1, 123456., 123456.1, 1234567., 1234567.1, 12345678., 12345678.1, 123456789., 123456789.1, 123456789.12, 123456789.123, 123456789.1234, 123456789.12345, 1.2345678912345e8, 1.2345e+8, 1.2345e+11, 1.2345e+38, 1.2345e+308, 1.2345e-8, 1.2345e-11, 1.2345e-38, 1.2345e-299];
+
+    // Only enable when no other threads touch NAN_STRING or INFINITY_STRING.
+    #[test]
+    fn special_bytes_test() {
+        let options = WriteFloatOptions::decimal();
+        let mut buffer = new_buffer();
+        assert_eq!(f64::NAN.to_lexical_with_options(&mut buffer, &options), b"NaN");
+        assert_eq!(f64::INFINITY.to_lexical_with_options(&mut buffer, &options), b"inf");
+
+        let options = WriteFloatOptions::builder()
+            .nan_string(b"nan")
+            .inf_string(b"Infinity")
+            .build()
+            .unwrap();
+
+        assert_eq!(f64::NAN.to_lexical_with_options(&mut buffer, &options), b"nan");
+        assert_eq!(f64::INFINITY.to_lexical_with_options(&mut buffer, &options), b"Infinity");
+    }
 
     #[test]
     #[cfg(feature = "radix")]
     fn f32_binary_test() {
         let mut buffer = new_buffer();
         // positive
-        #[cfg(feature = "trim_floats")] {
-            assert_eq!(as_slice(b"0"), 0.0f32.to_lexical_radix(2, &mut buffer));
-            assert_eq!(as_slice(b"0"), (-0.0f32).to_lexical_radix(2, &mut buffer));
-            assert_eq!(as_slice(b"1"), 1.0f32.to_lexical_radix(2, &mut buffer));
-            assert_eq!(as_slice(b"10"), 2.0f32.to_lexical_radix(2, &mut buffer));
-        }
+        let options = WriteFloatOptions::builder()
+            .radix(2)
+            .trim_floats(true)
+            .build()
+            .unwrap();
+        assert_eq!(as_slice(b"0"), 0.0f32.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"0"), (-0.0f32).to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"1"), 1.0f32.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"10"), 2.0f32.to_lexical_with_options(&mut buffer, &options));
 
-        #[cfg(not(feature = "trim_floats"))] {
-            assert_eq!(as_slice(b"0.0"), 0.0f32.to_lexical_radix(2, &mut buffer));
-            assert_eq!(as_slice(b"-0.0"), (-0.0f32).to_lexical_radix(2, &mut buffer));
-            assert_eq!(as_slice(b"1.0"), 1.0f32.to_lexical_radix(2, &mut buffer));
-            assert_eq!(as_slice(b"10.0"), 2.0f32.to_lexical_radix(2, &mut buffer));
-        }
+        let options = WriteFloatOptions::binary();
+        assert_eq!(as_slice(b"0.0"), 0.0f32.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"-0.0"), (-0.0f32).to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"1.0"), 1.0f32.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"10.0"), 2.0f32.to_lexical_with_options(&mut buffer, &options));
 
-        assert_eq!(as_slice(b"1.1"), 1.5f32.to_lexical_radix(2, &mut buffer));
-        assert_eq!(as_slice(b"1.01"), 1.25f32.to_lexical_radix(2, &mut buffer));
-        assert_eq!(b"1.001111000000110010", &1.2345678901234567890e0f32.to_lexical_radix(2, &mut buffer)[..20]);
-        assert_eq!(b"1100.010110000111111", &1.2345678901234567890e1f32.to_lexical_radix(2, &mut buffer)[..20]);
-        assert_eq!(b"1111011.011101001111", &1.2345678901234567890e2f32.to_lexical_radix(2, &mut buffer)[..20]);
-        assert_eq!(b"10011010010.10010001", &1.2345678901234567890e3f32.to_lexical_radix(2, &mut buffer)[..20]);
+        assert_eq!(as_slice(b"1.1"), 1.5f32.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"1.01"), 1.25f32.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(b"1.001111000000110010", &1.2345678901234567890e0f32.to_lexical_with_options(&mut buffer, &options)[..20]);
+        assert_eq!(b"1100.010110000111111", &1.2345678901234567890e1f32.to_lexical_with_options(&mut buffer, &options)[..20]);
+        assert_eq!(b"1111011.011101001111", &1.2345678901234567890e2f32.to_lexical_with_options(&mut buffer, &options)[..20]);
+        assert_eq!(b"10011010010.10010001", &1.2345678901234567890e3f32.to_lexical_with_options(&mut buffer, &options)[..20]);
 
         // negative
-        assert_eq!(b"-1.001111000000110010", &(-1.2345678901234567890e0f32).to_lexical_radix(2, &mut buffer)[..21]);
-        assert_eq!(b"-1100.010110000111111", &(-1.2345678901234567890e1f32).to_lexical_radix(2, &mut buffer)[..21]);
-        assert_eq!(b"-1111011.011101001111", &(-1.2345678901234567890e2f32).to_lexical_radix(2, &mut buffer)[..21]);
-        assert_eq!(b"-10011010010.10010001", &(-1.2345678901234567890e3f32).to_lexical_radix(2, &mut buffer)[..21]);
+        assert_eq!(b"-1.001111000000110010", &(-1.2345678901234567890e0f32).to_lexical_with_options(&mut buffer, &options)[..21]);
+        assert_eq!(b"-1100.010110000111111", &(-1.2345678901234567890e1f32).to_lexical_with_options(&mut buffer, &options)[..21]);
+        assert_eq!(b"-1111011.011101001111", &(-1.2345678901234567890e2f32).to_lexical_with_options(&mut buffer, &options)[..21]);
+        assert_eq!(b"-10011010010.10010001", &(-1.2345678901234567890e3f32).to_lexical_with_options(&mut buffer, &options)[..21]);
 
         // special
-        assert_eq!(as_slice(b"NaN"), f32::NAN.to_lexical_radix(2, &mut buffer));
-        assert_eq!(as_slice(b"inf"), f32::INFINITY.to_lexical_radix(2, &mut buffer));
+        assert_eq!(as_slice(b"NaN"), f32::NAN.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"inf"), f32::INFINITY.to_lexical_with_options(&mut buffer, &options));
 
         // bugfixes
-        assert_eq!(as_slice(b"1.1010100000101011110001e-11011"), 0.000000012345f32.to_lexical_radix(2, &mut buffer));
+        assert_eq!(as_slice(b"1.1010100000101011110001e-11011"), 0.000000012345f32.to_lexical_with_options(&mut buffer, &options));
     }
 
     #[test]
     fn f32_decimal_test() {
         let mut buffer = new_buffer();
         // positive
-        #[cfg(feature = "trim_floats")] {
-            assert_eq!(as_slice(b"0"), 0.0f32.to_lexical(&mut buffer));
-            assert_eq!(as_slice(b"0"), (-0.0f32).to_lexical(&mut buffer));
-            assert_eq!(as_slice(b"1"), 1.0f32.to_lexical(&mut buffer));
-            assert_eq!(as_slice(b"10"), 10.0f32.to_lexical(&mut buffer));
-        }
+        let options = WriteFloatOptions::builder()
+            .trim_floats(true)
+            .build()
+            .unwrap();
+        assert_eq!(as_slice(b"0"), 0.0f32.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"0"), (-0.0f32).to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"1"), 1.0f32.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"10"), 10.0f32.to_lexical_with_options(&mut buffer, &options));
 
-        #[cfg(not(feature = "trim_floats"))] {
-            assert_eq!(as_slice(b"0.0"), 0.0f32.to_lexical(&mut buffer));
-            assert_eq!(as_slice(b"-0.0"), (-0.0f32).to_lexical(&mut buffer));
-            assert_eq!(as_slice(b"1.0"), 1.0f32.to_lexical(&mut buffer));
-            assert_eq!(as_slice(b"10.0"), 10.0f32.to_lexical(&mut buffer));
-        }
+        assert_eq!(as_slice(b"0.0"), 0.0f32.to_lexical(&mut buffer));
+        assert_eq!(as_slice(b"-0.0"), (-0.0f32).to_lexical(&mut buffer));
+        assert_eq!(as_slice(b"1.0"), 1.0f32.to_lexical(&mut buffer));
+        assert_eq!(as_slice(b"10.0"), 10.0f32.to_lexical(&mut buffer));
 
         assert_eq!(as_slice(b"1.234567"), &1.2345678901234567890e0f32.to_lexical(&mut buffer)[..8]);
         assert_eq!(as_slice(b"12.34567"), &1.2345678901234567890e1f32.to_lexical(&mut buffer)[..8]);
@@ -364,6 +385,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "atof")]
     fn f32_decimal_roundtrip_test() {
         let mut buffer = new_buffer();
         for &f in F32_DATA.iter() {
@@ -372,72 +394,76 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "radix")]
     #[test]
+    #[cfg(all(feature = "atof", feature = "radix"))]
     fn f32_radix_roundtrip_test() {
         let mut buffer = new_buffer();
         for &f in F32_DATA.iter() {
-            for radix in 2..37 {
+            for radix in 2..=36 {
                 // The lower accuracy is due to slight rounding errors of
                 // ftoa for the Grisu method with non-10 bases.
-                let s = f.to_lexical_radix(radix, &mut buffer);
-                assert_relative_eq!(f32::from_lexical_radix(s, radix).unwrap(), f, max_relative=2e-5);
+                let writeopts = WriteFloatOptions::builder().radix(radix).build().unwrap();
+                let parseopts = ParseFloatOptions::builder().radix(radix).build().unwrap();
+                let s = f.to_lexical_with_options(&mut buffer, &writeopts);
+                assert_relative_eq!(f32::from_lexical_with_options(s, &parseopts).unwrap(), f, max_relative=2e-5);
             }
         }
     }
 
-    #[cfg(feature = "radix")]
     #[test]
+    #[cfg(feature = "radix")]
     fn f64_binary_test() {
         let mut buffer = new_buffer();
         // positive
-        #[cfg(feature = "trim_floats")] {
-            assert_eq!(as_slice(b"0"), 0.0f64.to_lexical_radix(2, &mut buffer));
-            assert_eq!(as_slice(b"0"), (-0.0f64).to_lexical_radix(2, &mut buffer));
-            assert_eq!(as_slice(b"1"), 1.0f64.to_lexical_radix(2, &mut buffer));
-            assert_eq!(as_slice(b"10"), 2.0f64.to_lexical_radix(2, &mut buffer));
-        }
+        let options = WriteFloatOptions::builder()
+            .radix(2)
+            .trim_floats(true)
+            .build()
+            .unwrap();
+        assert_eq!(as_slice(b"0"), 0.0f64.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"0"), (-0.0f64).to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"1"), 1.0f64.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"10"), 2.0f64.to_lexical_with_options(&mut buffer, &options));
 
-        #[cfg(not(feature = "trim_floats"))] {
-            assert_eq!(as_slice(b"0.0"), 0.0f64.to_lexical_radix(2, &mut buffer));
-            assert_eq!(as_slice(b"-0.0"), (-0.0f64).to_lexical_radix(2, &mut buffer));
-            assert_eq!(as_slice(b"1.0"), 1.0f64.to_lexical_radix(2, &mut buffer));
-            assert_eq!(as_slice(b"10.0"), 2.0f64.to_lexical_radix(2, &mut buffer));
-        }
+        let options = WriteFloatOptions::binary();
+        assert_eq!(as_slice(b"0.0"), 0.0f64.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"-0.0"), (-0.0f64).to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"1.0"), 1.0f64.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"10.0"), 2.0f64.to_lexical_with_options(&mut buffer, &options));
 
-        assert_eq!(as_slice(b"1.00111100000011001010010000101000110001"), &1.2345678901234567890e0f64.to_lexical_radix(2, &mut buffer)[..40]);
-        assert_eq!(as_slice(b"1100.01011000011111100110100110010111101"), &1.2345678901234567890e1f64.to_lexical_radix(2, &mut buffer)[..40]);
-        assert_eq!(as_slice(b"1111011.01110100111100000001111111101101"), &1.2345678901234567890e2f64.to_lexical_radix(2, &mut buffer)[..40]);
-        assert_eq!(as_slice(b"10011010010.1001000101100001001111110100"), &1.2345678901234567890e3f64.to_lexical_radix(2, &mut buffer)[..40]);
+        assert_eq!(as_slice(b"1.00111100000011001010010000101000110001"), &1.2345678901234567890e0f64.to_lexical_with_options(&mut buffer, &options)[..40]);
+        assert_eq!(as_slice(b"1100.01011000011111100110100110010111101"), &1.2345678901234567890e1f64.to_lexical_with_options(&mut buffer, &options)[..40]);
+        assert_eq!(as_slice(b"1111011.01110100111100000001111111101101"), &1.2345678901234567890e2f64.to_lexical_with_options(&mut buffer, &options)[..40]);
+        assert_eq!(as_slice(b"10011010010.1001000101100001001111110100"), &1.2345678901234567890e3f64.to_lexical_with_options(&mut buffer, &options)[..40]);
 
         // negative
-        assert_eq!(as_slice(b"-1.00111100000011001010010000101000110001"), &(-1.2345678901234567890e0f64).to_lexical_radix(2, &mut buffer)[..41]);
-        assert_eq!(as_slice(b"-1100.01011000011111100110100110010111101"), &(-1.2345678901234567890e1f64).to_lexical_radix(2, &mut buffer)[..41]);
-        assert_eq!(as_slice(b"-1111011.01110100111100000001111111101101"), &(-1.2345678901234567890e2f64).to_lexical_radix(2, &mut buffer)[..41]);
-        assert_eq!(as_slice(b"-10011010010.1001000101100001001111110100"), &(-1.2345678901234567890e3f64).to_lexical_radix(2, &mut buffer)[..41]);
+        assert_eq!(as_slice(b"-1.00111100000011001010010000101000110001"), &(-1.2345678901234567890e0f64).to_lexical_with_options(&mut buffer, &options)[..41]);
+        assert_eq!(as_slice(b"-1100.01011000011111100110100110010111101"), &(-1.2345678901234567890e1f64).to_lexical_with_options(&mut buffer, &options)[..41]);
+        assert_eq!(as_slice(b"-1111011.01110100111100000001111111101101"), &(-1.2345678901234567890e2f64).to_lexical_with_options(&mut buffer, &options)[..41]);
+        assert_eq!(as_slice(b"-10011010010.1001000101100001001111110100"), &(-1.2345678901234567890e3f64).to_lexical_with_options(&mut buffer, &options)[..41]);
 
         // special
-        assert_eq!(as_slice(b"NaN"), f64::NAN.to_lexical_radix(2, &mut buffer));
-        assert_eq!(as_slice(b"inf"), f64::INFINITY.to_lexical_radix(2, &mut buffer));
+        assert_eq!(as_slice(b"NaN"), f64::NAN.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"inf"), f64::INFINITY.to_lexical_with_options(&mut buffer, &options));
     }
 
     #[test]
     fn f64_decimal_test() {
         let mut buffer = new_buffer();
         // positive
-        #[cfg(feature = "trim_floats")] {
-            assert_eq!(as_slice(b"0"), 0.0.to_lexical(&mut buffer));
-            assert_eq!(as_slice(b"0"), (-0.0).to_lexical(&mut buffer));
-            assert_eq!(as_slice(b"1"), 1.0.to_lexical(&mut buffer));
-            assert_eq!(as_slice(b"10"), 10.0.to_lexical(&mut buffer));
-        }
+        let options = WriteFloatOptions::builder()
+            .trim_floats(true)
+            .build()
+            .unwrap();
+        assert_eq!(as_slice(b"0"), 0.0.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"0"), (-0.0).to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"1"), 1.0.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"10"), 10.0.to_lexical_with_options(&mut buffer, &options));
 
-        #[cfg(not(feature = "trim_floats"))] {
-            assert_eq!(as_slice(b"0.0"), 0.0.to_lexical(&mut buffer));
-            assert_eq!(as_slice(b"-0.0"), (-0.0).to_lexical(&mut buffer));
-            assert_eq!(as_slice(b"1.0"), 1.0.to_lexical(&mut buffer));
-            assert_eq!(as_slice(b"10.0"), 10.0.to_lexical(&mut buffer));
-        }
+        assert_eq!(as_slice(b"0.0"), 0.0.to_lexical(&mut buffer));
+        assert_eq!(as_slice(b"-0.0"), (-0.0).to_lexical(&mut buffer));
+        assert_eq!(as_slice(b"1.0"), 1.0.to_lexical(&mut buffer));
+        assert_eq!(as_slice(b"10.0"), 10.0.to_lexical(&mut buffer));
 
         assert_eq!(as_slice(b"1.234567"), &1.2345678901234567890e0.to_lexical(&mut buffer)[..8]);
         assert_eq!(as_slice(b"12.34567"), &1.2345678901234567890e1.to_lexical(&mut buffer)[..8]);
@@ -456,6 +482,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "atof")]
     fn f64_decimal_roundtrip_test() {
         let mut buffer = new_buffer();
         for &f in F64_DATA.iter() {
@@ -465,20 +492,22 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "radix")]
+    #[cfg(all(feature = "atof", feature = "radix"))]
     fn f64_radix_roundtrip_test() {
         let mut buffer = new_buffer();
         for &f in F64_DATA.iter() {
-            for radix in 2..37 {
+            for radix in 2..=36 {
                 // The lower accuracy is due to slight rounding errors of
                 // ftoa for the Grisu method with non-10 bases.
-                let s = f.to_lexical_radix(radix, &mut buffer);
-                assert_relative_eq!(f64::from_lexical_radix(s, radix).unwrap(), f, max_relative=3e-5);
+                let writeopts = WriteFloatOptions::builder().radix(radix).build().unwrap();
+                let parseopts = ParseFloatOptions::builder().radix(radix).build().unwrap();
+                let s = f.to_lexical_with_options(&mut buffer, &writeopts);
+                assert_relative_eq!(f64::from_lexical_with_options(s, &parseopts).unwrap(), f, max_relative=3e-5);
             }
         }
     }
 
-    #[cfg(feature = "property_tests")]
+    #[cfg(all(feature = "atof", feature = "property_tests"))]
     quickcheck! {
         fn f32_quickcheck(f: f32) -> bool {
             let mut buffer = new_buffer();
@@ -501,7 +530,7 @@ mod tests {
         }
     }
 
-    #[cfg(all(feature = "std", feature = "property_tests"))]
+    #[cfg(all(feature = "atof", feature = "std", feature = "property_tests"))]
     proptest! {
         #[test]
         fn f32_proptest(i in f32::MIN..f32::MAX) {

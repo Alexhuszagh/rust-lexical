@@ -406,6 +406,130 @@ mod tests {
     #[cfg(all(feature = "std", feature = "property_tests"))]
     use proptest::{proptest, prop_assert_eq, prop_assert};
 
+    // Only enable when no other threads touch NAN_STRING or INFINITY_STRING.
+    #[test]
+    #[ignore]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
+    fn special_bytes_test() {
+        unsafe {
+            // Test serializing and deserializing special strings.
+            assert!(f32::from_lexical(b"NaN").unwrap().is_nan());
+            assert!(f32::from_lexical(b"nan").unwrap().is_nan());
+            assert!(f32::from_lexical(b"NAN").unwrap().is_nan());
+            assert!(f32::from_lexical(b"inf").unwrap().is_infinite());
+            assert!(f32::from_lexical(b"INF").unwrap().is_infinite());
+            assert!(f32::from_lexical(b"Infinity").unwrap().is_infinite());
+
+            set_nan_string(b"nan");
+            set_inf_string(b"Infinity");
+
+            assert!(f32::from_lexical(b"inf").err().unwrap().code == ErrorCode::InvalidDigit);
+            assert!(f32::from_lexical(b"Infinity").unwrap().is_infinite());
+
+            set_nan_string(b"NaN");
+            set_inf_string(b"inf");
+        }
+    }
+
+    // Only enable when no other threads touch FLOAT_ROUNDING.
+    #[test]
+    #[ignore]
+    #[cfg(feature = "rounding")]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
+    fn special_rounding_test() {
+        // TODO(ahuszagh) This needs to do...
+        // Each one of these pairs is halfway, and we can detect the
+        // rounding schemes from this.
+        unsafe {
+            // Nearest, tie-even
+            set_float_rounding(RoundingKind::NearestTieEven);
+            assert_eq!(f64::from_lexical(b"-9007199254740993").unwrap(), -9007199254740992.0);
+            assert_eq!(f64::from_lexical(b"-9007199254740995").unwrap(), -9007199254740996.0);
+            assert_eq!(f64::from_lexical(b"9007199254740993").unwrap(), 9007199254740992.0);
+            assert_eq!(f64::from_lexical(b"9007199254740995").unwrap(), 9007199254740996.0);
+
+            // Nearest, tie-away-zero
+            set_float_rounding(RoundingKind::NearestTieAwayZero);
+            assert_eq!(f64::from_lexical(b"-9007199254740993").unwrap(), -9007199254740994.0);
+            assert_eq!(f64::from_lexical(b"-9007199254740995").unwrap(), -9007199254740996.0);
+            assert_eq!(f64::from_lexical(b"9007199254740993").unwrap(), 9007199254740994.0);
+            assert_eq!(f64::from_lexical(b"9007199254740995").unwrap(), 9007199254740996.0);
+
+            // Toward positive infinity
+            set_float_rounding(RoundingKind::TowardPositiveInfinity);
+            assert_eq!(f64::from_lexical(b"-9007199254740993").unwrap(), -9007199254740992.0);
+            assert_eq!(f64::from_lexical(b"-9007199254740995").unwrap(), -9007199254740994.0);
+            assert_eq!(f64::from_lexical(b"9007199254740993").unwrap(), 9007199254740994.0);
+            assert_eq!(f64::from_lexical(b"9007199254740995").unwrap(), 9007199254740996.0);
+
+            // Toward negative infinity
+            set_float_rounding(RoundingKind::TowardNegativeInfinity);
+            assert_eq!(f64::from_lexical(b"-9007199254740993").unwrap(), -9007199254740994.0);
+            assert_eq!(f64::from_lexical(b"-9007199254740995").unwrap(), -9007199254740996.0);
+            assert_eq!(f64::from_lexical(b"9007199254740993").unwrap(), 9007199254740992.0);
+            assert_eq!(f64::from_lexical(b"9007199254740995").unwrap(), 9007199254740994.0);
+
+            // Toward zero
+            set_float_rounding(RoundingKind::TowardZero);
+            assert_eq!(f64::from_lexical(b"-9007199254740993").unwrap(), -9007199254740992.0);
+            assert_eq!(f64::from_lexical(b"-9007199254740995").unwrap(), -9007199254740994.0);
+            assert_eq!(f64::from_lexical(b"9007199254740993").unwrap(), 9007199254740992.0);
+            assert_eq!(f64::from_lexical(b"9007199254740995").unwrap(), 9007199254740994.0);
+
+            // Reset to default
+            set_float_rounding(RoundingKind::NearestTieEven);
+        }
+    }
+
+    // Only enable when no other threads touch FLOAT_ROUNDING.
+    #[test]
+    #[ignore]
+    #[cfg(all(feature = "radix", feature = "rounding"))]
+    #[allow(deprecated)]    // TODO(ahuszagh) Remove in 1.0.
+    fn special_rounding_binary_test() {
+        // Each one of these pairs is halfway, and we can detect the
+        // rounding schemes from this.
+        unsafe {
+            // Nearest, tie-even
+            set_float_rounding(RoundingKind::NearestTieEven);
+            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000001", 2).unwrap(), -9007199254740992.0);
+            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000011", 2).unwrap(), -9007199254740996.0);
+            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000001", 2).unwrap(), 9007199254740992.0);
+            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000011", 2).unwrap(), 9007199254740996.0);
+
+            // Nearest, tie-away-zero
+            set_float_rounding(RoundingKind::NearestTieAwayZero);
+            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000001", 2).unwrap(), -9007199254740994.0);
+            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000011", 2).unwrap(), -9007199254740996.0);
+            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000001", 2).unwrap(), 9007199254740994.0);
+            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000011", 2).unwrap(), 9007199254740996.0);
+
+            // Toward positive infinity
+            set_float_rounding(RoundingKind::TowardPositiveInfinity);
+            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000001", 2).unwrap(), -9007199254740992.0);
+            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000011", 2).unwrap(), -9007199254740994.0);
+            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000001", 2).unwrap(), 9007199254740994.0);
+            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000011", 2).unwrap(), 9007199254740996.0);
+
+            // Toward negative infinity
+            set_float_rounding(RoundingKind::TowardNegativeInfinity);
+            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000001", 2).unwrap(), -9007199254740994.0);
+            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000011", 2).unwrap(), -9007199254740996.0);
+            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000001", 2).unwrap(), 9007199254740992.0);
+            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000011", 2).unwrap(), 9007199254740994.0);
+
+            // Toward zero
+            set_float_rounding(RoundingKind::TowardZero);
+            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000001", 2).unwrap(), -9007199254740992.0);
+            assert_eq!(f64::from_lexical_radix(b"-100000000000000000000000000000000000000000000000000011", 2).unwrap(), -9007199254740994.0);
+            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000001", 2).unwrap(), 9007199254740992.0);
+            assert_eq!(f64::from_lexical_radix(b"100000000000000000000000000000000000000000000000000011", 2).unwrap(), 9007199254740994.0);
+
+            // Reset to default
+            set_float_rounding(RoundingKind::NearestTieEven);
+        }
+    }
+
     #[test]
     fn f32_decimal_test() {
         // integer test

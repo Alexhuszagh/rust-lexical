@@ -9,6 +9,7 @@
 //! # Getting Started
 //!
 //! ```rust
+//! # #[cfg(all(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))] {
 //! extern crate lexical_core;
 //!
 //! // String to number using Rust slices.
@@ -49,6 +50,7 @@
 //! let mut buf = [b'0'; f64::FORMATTED_SIZE_DECIMAL];
 //! let slc = lexical_core::write::<f64>(15.1, &mut buf);
 //! assert_eq!(slc, b"15.1");
+//! # }
 //! ```
 //!
 //! # Conversion API
@@ -173,6 +175,7 @@ pub use util::*;
 /// # Example
 ///
 /// ```
+/// # #[cfg(feature = "ftoa")] {
 /// // import `Number` trait to get the `FORMATTED_SIZE_DECIMAL` of the number.
 /// use lexical_core::Number;
 ///
@@ -182,16 +185,23 @@ pub use util::*;
 /// lexical_core::write(float, &mut buffer);
 ///
 /// assert_eq!(&buffer[0..9], b"3.1415927");
+/// # }
 /// ```
 ///
 /// This will panic, because the buffer is not large enough:
 ///
 /// ```should_panic
+/// # #[cfg(feature = "ftoa")] {
 /// // note: the buffer is only one byte large
 /// let mut buffer = [0u8; 1];
 /// let float = 3.14159265359_f32;
 ///
 /// lexical_core::write(float, &mut buffer);
+/// # }
+///
+/// # #[cfg(not(feature = "ftoa"))] {
+/// panic!("To avoid failures with should_panic.");
+/// # }
 /// ```
 #[inline]
 #[cfg(any(feature = "ftoa", feature = "itoa"))]
@@ -219,6 +229,7 @@ pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8])
 /// # Example
 ///
 /// ```
+/// # #[cfg(feature = "ftoa")] {
 /// // import `Number` trait to get the `FORMATTED_SIZE` of the number.
 /// use lexical_core::Number;
 ///
@@ -229,16 +240,24 @@ pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8])
 /// lexical_core::write_with_options(float, &mut buffer, &options);
 ///
 /// assert_eq!(&buffer[0..9], b"3.1415927");
+/// # }
 /// ```
 ///
 /// This will panic, because the buffer is not large enough:
 ///
 /// ```should_panic
+/// # #[cfg(feature = "ftoa")] {
 /// // note: the buffer is only one byte large
 /// let mut buffer = [0u8; 1];
 /// let float = 3.14159265359_f32;
 ///
+/// let options = lexical_core::WriteFloatOptions::decimal();
 /// lexical_core::write_with_options(float, &mut buffer, &options);
+/// # }
+///
+/// # #[cfg(not(feature = "ftoa"))] {
+/// panic!("To avoid failures with should_panic.");
+/// # }
 /// ```
 #[inline]
 #[cfg(any(feature = "ftoa", feature = "itoa"))]

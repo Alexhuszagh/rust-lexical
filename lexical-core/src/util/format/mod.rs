@@ -689,3 +689,77 @@ cfg_if! {
         pub use self::not_feature_format::*;
     }
 }
+
+// TESTS
+// -----
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn set_exponent_default() {
+        let format = NumberFormat::builder().exponent_default(b'0').build();
+        assert_eq!(format, None);
+
+        let format = NumberFormat::builder().exponent_default(b'.').build();
+        assert_eq!(format, None);
+
+        let format = NumberFormat::builder().exponent_default(b'+').build();
+        assert_eq!(format, None);
+
+        let format = NumberFormat::builder().exponent_default(b'-').build();
+        assert_eq!(format, None);
+
+        let format = NumberFormat::builder().exponent_default(b'e').build();
+        assert!(format.is_some());
+
+        let format = NumberFormat::builder().exponent_default(b'^').build();
+        assert!(format.is_some());
+
+        let format = NumberFormat::builder().exponent_default(b'&').build();
+        assert!(format.is_some());
+    }
+
+    #[test]
+    fn set_exponent_backup() {
+        let format = NumberFormat::builder().exponent_backup(b'0').build();
+        assert_eq!(format, None);
+
+        let format = NumberFormat::builder().exponent_backup(b'.').build();
+        assert_eq!(format, None);
+
+        let format = NumberFormat::builder().exponent_backup(b'+').build();
+        assert_eq!(format, None);
+
+        let format = NumberFormat::builder().exponent_backup(b'-').build();
+        assert_eq!(format, None);
+
+        #[cfg(feature = "radix")] {
+            let format = NumberFormat::builder().exponent_backup(b'e').build();
+            assert!(format.is_none());
+        }
+
+        let format = NumberFormat::builder().exponent_backup(b'^').build();
+        assert!(format.is_some());
+
+        let format = NumberFormat::builder().exponent_backup(b'&').build();
+        assert!(format.is_some());
+    }
+
+    #[test]
+    fn get_exponent() {
+        let format = NumberFormat::STANDARD;
+        assert_eq!(format.exponent(10), b'e');
+
+        #[cfg(feature = "radix")] {
+            assert_eq!(format.exponent(2), b'e');
+            assert_eq!(format.exponent(8), b'e');
+            assert_eq!(format.exponent(13), b'e');
+            assert_eq!(format.exponent(14), b'^');
+            assert_eq!(format.exponent(15), b'^');
+            assert_eq!(format.exponent(16), b'^');
+            assert_eq!(format.exponent(32), b'^');
+        }
+    }
+}

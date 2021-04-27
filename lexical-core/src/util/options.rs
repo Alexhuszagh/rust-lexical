@@ -1157,32 +1157,40 @@ impl Default for WriteFloatOptions {
 mod tests {
     use super::*;
 
+    // HELPERS
+
     // Wrapper for the macro for a const fn.
     #[inline]
+    #[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
     const fn to_radix(radix: u32) -> Option<u32> {
         Some(to_radix!(radix))
     }
 
     // Wrapper for the macro for a const fn.
     #[inline]
+    #[cfg(any(feature = "atof", feature = "ftoa"))]
     const fn to_nan_string(nan: &'static [u8]) -> Option<&'static [u8]> {
         Some(to_nan_string!(nan))
     }
 
     // Wrapper for the macro for a const fn.
     #[inline]
+    #[cfg(any(feature = "atof", feature = "ftoa"))]
     const fn to_inf_string(inf: &'static [u8]) -> Option<&'static [u8]> {
         Some(to_inf_string!(inf))
     }
 
     // Wrapper for the macro for a const fn.
     #[inline]
+    #[cfg(feature = "atof")]
     const fn to_infinity_string(infinity: &'static [u8], inf: &'static [u8]) -> Option<&'static [u8]> {
         Some(to_infinity_string!(infinity, inf))
     }
 
+    // TESTS
+
     #[test]
-    #[cfg(feature = "radix")]
+    #[cfg(all(feature = "radix", any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa")))]
     fn test_to_radix() {
         assert_eq!(to_radix(1), None);
         assert_eq!(to_radix(2), Some(2));
@@ -1192,7 +1200,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(not(feature = "radix"))]
+    #[cfg(all(not(feature = "radix"), any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa")))]
     fn test_to_radix() {
         assert_eq!(to_radix(1), None);
         assert_eq!(to_radix(2), None);
@@ -1202,31 +1210,47 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(feature = "atof", feature = "ftoa"))]
     fn to_nan_string_test() {
+        assert_eq!(to_nan_string(b""), None);
+        assert_eq!(to_nan_string(b"i"), None);
         assert_eq!(to_nan_string(b"inf"), None);
         assert_eq!(to_nan_string(b"nan").unwrap(), b"nan");
         assert_eq!(to_nan_string(b"NAN").unwrap(), b"NAN");
+        // Test long strings (>= 64 or >= 256) fail, so we can't get buffer overflows.
+        assert_eq!(to_nan_string(b"NANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNANNAN"), None);
     }
 
     #[test]
+    #[cfg(any(feature = "atof", feature = "ftoa"))]
     fn to_inf_string_test() {
+        assert_eq!(to_inf_string(b""), None);
+        assert_eq!(to_inf_string(b"n"), None);
         assert_eq!(to_inf_string(b"nan"), None);
         assert_eq!(to_inf_string(b"inf").unwrap(), b"inf");
         assert_eq!(to_inf_string(b"INF").unwrap(), b"INF");
+        // Test long strings (>= 64 or >= 256) fail, so we can't get buffer overflows.
+        assert_eq!(to_inf_string(b"INFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINF"), None);
     }
 
     #[test]
+    #[cfg(feature = "atof")]
     fn to_infinity_string_test() {
+        assert_eq!(to_infinity_string(b"", b"inf"), None);
+        assert_eq!(to_infinity_string(b"n", b"inf"), None);
+        assert_eq!(to_infinity_string(b"i", b"inf"), None);
         assert_eq!(to_infinity_string(b"nan", b"inf"), None);
         assert_eq!(to_infinity_string(b"in", b"inf"), None);
         assert_eq!(to_infinity_string(b"IN", b"inf"), None);
         assert_eq!(to_infinity_string(b"na", b"inf"), None);
         assert_eq!(to_infinity_string(b"infinity", b"inf").unwrap(), b"infinity");
         assert_eq!(to_infinity_string(b"INFINITY", b"inf").unwrap(), b"INFINITY");
+        // Test long strings (>= 64 or >= 256) fail, so we can't get buffer overflows.
+        assert_eq!(to_infinity_string(b"INFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINFINF", b"inf"), None);
     }
 
     #[test]
-    #[cfg(feature = "radix")]
+    #[cfg(all(feature = "atoi", feature = "radix"))]
     fn test_parse_integer_options() {
         let options = ParseIntegerOptions::builder()
             .radix(1)
@@ -1250,7 +1274,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "radix")]
+    #[cfg(all(feature = "itoa", feature = "radix"))]
     fn test_write_integer_options() {
         let options = WriteIntegerOptions::builder()
             .radix(1)
@@ -1272,17 +1296,25 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "radix")]
+    #[cfg(all(feature = "atof", feature = "radix"))]
     fn test_parse_float_options() {
+        // Invalid radix
         let options = ParseFloatOptions::builder()
             .radix(1)
             .incorrect(true)
             .build();
         assert_eq!(options, None);
 
+        // Lossy and incorrect
         let options = ParseFloatOptions::builder()
             .incorrect(true)
             .lossy(true)
+            .build();
+        assert_eq!(options, None);
+
+        // Inf string is too long
+        let options = ParseFloatOptions::builder()
+            .inf_string(b"infinityinfinf")
             .build();
         assert_eq!(options, None);
 
@@ -1318,7 +1350,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "radix")]
+    #[cfg(all(feature = "ftoa", feature = "radix"))]
     fn test_write_float_options() {
         let options = WriteFloatOptions::builder()
             .radix(1)

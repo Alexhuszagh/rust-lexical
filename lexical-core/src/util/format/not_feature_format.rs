@@ -483,5 +483,16 @@ mod tests {
         let flag = flag.rebuild().decimal_point(b',').build().unwrap();
         assert_eq!(flag.decimal_point(), b',');
         assert_eq!(flag.exponent_default(), b'e');
+        assert_eq!(flag.exponent_backup(), b'^');
+
+        let flag = flag.rebuild().exponent_default(b'f').build().unwrap();
+        assert_eq!(flag.decimal_point(), b',');
+        assert_eq!(flag.exponent_default(), b'f');
+        assert_eq!(flag.exponent_backup(), b'^');
+
+        let flag = flag.rebuild().exponent_backup(b'$').build().unwrap();
+        assert_eq!(flag.decimal_point(), b',');
+        assert_eq!(flag.exponent_default(), b'f');
+        assert_eq!(flag.exponent_backup(), b'$');
     }
 }

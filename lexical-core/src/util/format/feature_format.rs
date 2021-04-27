@@ -2586,8 +2586,8 @@ mod tests {
 
     #[test]
     fn test_rebuild() {
-        let flag = NumberFormat::CSHARP7_STRING;
-        let flag = flag.rebuild().decimal_point(b',').build().unwrap();
+        let flag = NumberFormat::CSHARP7_LITERAL;
+        let rebuilt = flag.rebuild().decimal_point(b',').build().unwrap();
         assert_eq!(flag.digit_separator(), b'_');
         assert_eq!(rebuilt.digit_separator(), b'_');
         assert_eq!(rebuilt.flags(), flag.flags());

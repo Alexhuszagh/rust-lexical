@@ -268,22 +268,23 @@ pub(crate) const fn is_valid_exponent_backup(ch: u8) -> bool {
 
 /// Determine if all of the "punctuation" characters are valid.
 #[inline]
-pub(crate) const fn is_valid_punctuation(digit_separator: u8, decimal_point: u8, exponent: u8, exponent_backup: u8)
+pub(crate) const fn is_valid_punctuation(digit_separator: u8, decimal_point: u8, exponent_default: u8, exponent_backup: u8)
     -> bool
 {
     if digit_separator == decimal_point {
         false
-    } else if digit_separator == exponent {
+    } else if digit_separator == exponent_default {
         false
     } else if digit_separator == exponent_backup {
         false
-    } else if decimal_point == exponent {
+    } else if decimal_point == exponent_default {
         false
     } else if decimal_point == exponent_backup {
         false
-    } else if exponent == exponent_backup {
-        false
     } else {
+        // exponent_default and exponent_backup can be the same as long as
+        // both are valid: in case someone always wants b'^' to be
+        // the exponent character.
         true
     }
 }
@@ -368,8 +369,8 @@ pub(crate) const fn digit_separator_to_flags(ch: u8) -> u64 {
 }
 
 /// Extract digit separator from flags.
-#[cfg(feature = "format")]
 #[inline]
+#[cfg(any(test, feature = "format"))]
 pub(crate) const fn digit_separator_from_flags(flag: u64) -> u8 {
     from_flags!(flag, DIGIT_SEPARATOR_SHIFT, DIGIT_SEPARATOR_MASK)
 }
@@ -447,12 +448,127 @@ mod tests {
     }
 
     #[test]
-    fn test_is_valid_exponent() {
+    fn test_is_valid_exponent_default() {
         assert_eq!(is_valid_exponent_default(b'_'), true);
         assert_eq!(is_valid_exponent_default(b'\''), true);
         assert_eq!(is_valid_exponent_default(b'.'), true);
+        assert_eq!(is_valid_exponent_default(b'^'), true);
         assert_eq!(is_valid_exponent_default(b'e'), true);
         assert_eq!(is_valid_exponent_default(b'0'), false);
         assert_eq!(is_valid_exponent_default(128), false);
+    }
+
+    #[test]
+    fn test_is_valid_exponent_backup() {
+        assert_eq!(is_valid_exponent_backup(b'_'), true);
+        assert_eq!(is_valid_exponent_backup(b'\''), true);
+        assert_eq!(is_valid_exponent_backup(b'.'), true);
+        assert_eq!(is_valid_exponent_backup(b'^'), true);
+        assert_eq!(is_valid_exponent_backup(b'0'), false);
+        assert_eq!(is_valid_exponent_backup(128), false);
+
+        #[cfg(feature = "radix")]
+        assert_eq!(is_valid_exponent_backup(b'e'), false);
+    }
+
+    #[test]
+    fn test_is_valid_punctuation() {
+        assert_eq!(is_valid_punctuation(b'_', b'.', b'e', b'^'), true);
+        assert_eq!(is_valid_punctuation(b'_', b'.', b'^', b'^'), true);
+        assert_eq!(is_valid_punctuation(b'_', b'e', b'^', b'^'), true);
+        assert_eq!(is_valid_punctuation(b'e', b'.', b'^', b'^'), true);
+        assert_eq!(is_valid_punctuation(b'e', b'.', b'e', b'^'), false);
+        assert_eq!(is_valid_punctuation(b'^', b'.', b'e', b'^'), false);
+        assert_eq!(is_valid_punctuation(b'\'', b'^', b'e', b'^'), false);
+        assert_eq!(is_valid_punctuation(b'\'', b'e', b'e', b'^'), false);
+    }
+
+    #[test]
+    fn test_exponent_default_to_flags() {
+        assert_eq!(exponent_default_to_flags(b'e'), 0x1940000);
+        assert_eq!(exponent_default_to_flags(b'^'), 0x1780000);
+        assert_eq!(exponent_default_to_flags(b'.'), 0xB80000);
+        assert_eq!(exponent_default_to_flags(b'\x00'), 0x0);
+    }
+
+    #[test]
+    fn test_exponent_default_from_flags() {
+        assert_eq!(exponent_default_from_flags(0x1940000), b'e');
+        assert_eq!(exponent_default_from_flags(0x1780000), b'^');
+        assert_eq!(exponent_default_from_flags(0xB80000), b'.');
+        assert_eq!(exponent_default_from_flags(0x0), b'\x00');
+
+        // Test hybrid, to test mask
+        let flags = 0x1940000 | 0xBC000000 | 0xB8000000000000 | 0xBE00000000000000;
+        assert_eq!(exponent_default_from_flags(flags), b'e');
+    }
+
+    #[test]
+    fn test_exponent_backup_to_flags() {
+        assert_eq!(exponent_backup_to_flags(b'e'), 0xCA000000);
+        assert_eq!(exponent_backup_to_flags(b'^'), 0xBC000000);
+        assert_eq!(exponent_backup_to_flags(b'.'), 0x5C000000);
+        assert_eq!(exponent_backup_to_flags(b'\x00'), 0x0);
+    }
+
+    #[test]
+    fn test_exponent_backup_from_flags() {
+        assert_eq!(exponent_backup_from_flags(0xCA000000), b'e');
+        assert_eq!(exponent_backup_from_flags(0xBC000000), b'^');
+        assert_eq!(exponent_backup_from_flags(0x5C000000), b'.');
+        assert_eq!(exponent_backup_from_flags(0x0), b'\x00');
+
+        // Test hybrid, to test mask
+        let flags = 0x1940000 | 0xBC000000 | 0xB8000000000000 | 0xBE00000000000000;
+        assert_eq!(exponent_backup_from_flags(flags), b'^');
+    }
+
+    #[test]
+    fn test_decimal_point_to_flags() {
+        assert_eq!(decimal_point_to_flags(b'e'), 0x194000000000000);
+        assert_eq!(decimal_point_to_flags(b'^'), 0x178000000000000);
+        assert_eq!(decimal_point_to_flags(b'.'), 0xB8000000000000);
+        assert_eq!(decimal_point_to_flags(b'\x00'), 0x0);
+    }
+
+    #[test]
+    fn test_decimal_point_from_flags() {
+        assert_eq!(decimal_point_from_flags(0x194000000000000), b'e');
+        assert_eq!(decimal_point_from_flags(0x178000000000000), b'^');
+        assert_eq!(decimal_point_from_flags(0xB8000000000000), b'.');
+        assert_eq!(decimal_point_from_flags(0x0), b'\x00');
+
+        // Test hybrid, to test mask
+        let flags = 0x1940000 | 0xBC000000 | 0xB8000000000000 | 0xBE00000000000000;
+        assert_eq!(decimal_point_from_flags(flags), b'.');
+    }
+
+    #[test]
+    fn test_digit_separator_to_flags() {
+        assert_eq!(digit_separator_to_flags(b'e'), 0xCA00000000000000);
+        assert_eq!(digit_separator_to_flags(b'^'), 0xBC00000000000000);
+        assert_eq!(digit_separator_to_flags(b'.'), 0x5C00000000000000);
+        assert_eq!(digit_separator_to_flags(b'\x00'), 0x0);
+    }
+
+    #[test]
+    fn test_digit_separator_from_flags() {
+        assert_eq!(digit_separator_from_flags(0xCA00000000000000), b'e');
+        assert_eq!(digit_separator_from_flags(0xBC00000000000000), b'^');
+        assert_eq!(digit_separator_from_flags(0x5C00000000000000), b'.');
+        assert_eq!(digit_separator_from_flags(0x0), b'\x00');
+
+        // Test hybrid, to test mask
+        let flags = 0x1940000 | 0xBC000000 | 0xB8000000000000 | 0xBE00000000000000;
+        assert_eq!(digit_separator_from_flags(flags), b'_');
+    }
+
+    #[test]
+    fn test_to_ascii_lowercase() {
+        assert_eq!(to_ascii_lowercase(b'E'), b'e');
+        assert_eq!(to_ascii_lowercase(b'e'), b'e');
+        assert_eq!(to_ascii_lowercase(b'Z'), b'z');
+        assert_eq!(to_ascii_lowercase(b'+'), b'+');
+        assert_eq!(to_ascii_lowercase(b'\t'), b'\t');
     }
 }
