@@ -31,7 +31,7 @@ matrix:
       env: TARGET=x86_64-unknown-linux-gnu DISABLE_BENCHES=1 NO_FEATURES=1
 
     - rust: stable
-      env: TARGET=x86_64-unknown-linux-gnu NO_STD=1 ENABLE_LIBM=1 DISABLE_BENCHES=1 NO_FEATURES=1
+      env: TARGET=x86_64-unknown-linux-gnu NO_STD=1 DISABLE_BENCHES=1 NO_FEATURES=1
 
     - rust: nightly
       env: TARGET=x86_64-unknown-linux-gnu NO_STD=1 DISABLE_BENCHES=1 NO_FEATURES=1

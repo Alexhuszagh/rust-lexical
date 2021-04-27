@@ -19,8 +19,8 @@ bitflags! {
     /// Bit Flags Layout
     /// ----------------
     ///
-    /// See `feature_format` for more in-depth information. This
-    /// is a subset of those flags.
+    /// See `NumberFormat` when the `format` feature is enabled for
+    /// more in-depth information. This is a subset of those flags.
     ///
     /// The bitflags has the lower bits designated for flags that modify
     /// the parsing behavior of lexical, with 7 bits each set for the
@@ -51,13 +51,11 @@ bitflags! {
     /// |       |      Decimal Point        |                           |
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     /// ```
-    #[doc(hidden)]
     #[derive(Default)]
     pub struct NumberFormat: u64 {
         // HIDDEN DEFAULTS
 
         /// Standard float format.
-        #[doc(hidden)]
         const STANDARD = (
             flags::exponent_default_to_flags(b'e')
             | flags::exponent_backup_to_flags(b'^')

@@ -1,10 +1,17 @@
 //! Fast lexical conversion routines.
 //!
 //! Fast lexical conversion routines for both std and no_std environments.
-//! Lexical provides routines to convert numbers to and from decimal
-//! strings. Lexical also supports non-base 10 numbers, with the `radix`
-//! feature, for both integers and floats. Lexical is simple to use,
-//! and exports up to 10 functions in the high-level API.
+//! lexical provides routines to convert numbers to and from decimal
+//! strings. lexical also supports non-base 10 numbers, with the `radix`
+//! feature, for both integers and floats. lexical is customizable
+//! and yet simple to use: despite supporting nearly every float and
+//! integer format available, it only exports 2 write functions
+//! and 4 parse functions.
+//!
+//! lexical is well-tested, and has been downloaded more than 5 million
+//! times and currently has no known errors in correctness. lexical
+//! prioritizes performance above all else, and aims to be competitive
+//! or faster than any other float or integer parser and writer.
 //!
 //! # Getting Started
 //!
@@ -38,7 +45,90 @@
 //!
 //! # Configuration API
 //!
-//! // TODO(ahuszagh) Add documentation here on NumberFormat and Parse/Write Options.
+//! Lexical provides two main levels of configuration:
+//! - The [`NumberFormat`] specifier.
+//! - The Options API.
+//!
+//! ## NumberFormat
+//!
+//! The number format class provides numerous flags to specify
+//! number parsing or writing, including:
+//! - The default exponent character (default `b'e'`).
+//! - The backup exponent character (for large radixes, default `b'^'`).
+//! - The decimal point character (default `b'.'`).
+//!
+//! Other features, when the `format` feature is enabled, include:
+//! - A digit separator character, to group digits for increased legibility.
+//! - Toggling required float components, such as digits before the decimal point.
+//! - Toggling whether special floats are allowed or are case-sensitive.
+//! - Toggling the valid locations for digit separators, such as if consecutive digit separators are valid.
+//!
+//! The number format flags therefore provide extensive customizability,
+//! and pre-defined constants exist when the `format` feature is enabled,
+//! including:
+//! - JSON, XML, TOML, YAML, SQLite, and many more.
+//! - Rust, Python, C#, FORTRAN, COBOL literals and strings, and many more.
+//!
+//! ## Options API
+//!
+//! The Options API provides high-level options to specify number parsing
+//! or writing, options not intrinsically tied to a number format.
+//! For example, the Options API provides:
+//! - Custom `NaN`, `Infinity` string representations.
+//! - Different numerical bases (radixes) if the `radix` feature is enabled.
+//! - Algorithm selection for parsing.
+//! - Whether to trim the fraction component from integral floats.
+//! - The `NumberFormat` to use.
+//!
+//! The available options are:
+//! - [`ParseFloatOptions`]
+//! - [`ParseIntegerOptions`]
+//! - [`WriteFloatOptions`]
+//! - [`WriteIntegerOptions`]
+//!
+//! ## Example
+//!
+//! An example of creating your own options to parse European-style
+//! numbers (which use commas as decimal points, and periods as digit
+//! separators) is as follows:
+//!
+//! ```
+//! # pub fn main() {
+//! #[cfg(feature = "format")] {
+//!     // This creates a format to parse a European-style float number.
+//!     // The decimal point is a comma, and the digit separators (optional)
+//!     // are periods.
+//!     let format = lexical::NumberFormat::builder()
+//!         .digit_separator(b'.')
+//!         .decimal_point(b',')
+//!         .build()
+//!         .unwrap();
+//!     let options = lexical::ParseFloatOptions::builder()
+//!         .format(Some(format))
+//!         .build()
+//!         .unwrap();
+//!     assert_eq!(
+//!         lexical::parse_with_options::<f32, _>("300,10", &options),
+//!         Ok(300.10)
+//!     );
+//!
+//!     // Another example, using a pre-defined constant for JSON.
+//!     let format = lexical::NumberFormat::JSON;
+//!     let options = lexical::ParseFloatOptions::builder()
+//!         .format(Some(format))
+//!         .build()
+//!         .unwrap();
+//!     assert_eq!(
+//!         lexical::parse_with_options::<f32, _>("0e1", &options),
+//!         Ok(0.0)
+//!     );
+//!     assert_eq!(
+//!         lexical::parse_with_options::<f32, _>("1E+2", &options),
+//!         Ok(100.0)
+//!     );
+//! }
+//! # }
+//! ```
 //!
 //! [`to_string`]: fn.to_string.html
 //! [`to_string_with_options`]: fn.to_string_with_options.html
@@ -47,6 +137,12 @@
 //! [`parse_with_options`]: fn.parse_with_options.html
 //! [`parse_partial`]: fn.parse_partial.html
 //! [`parse_partial_with_options`]: fn.parse_partial_with_options.html
+//!
+//! [`NumberFormat`]: struct.NumberFormat.html
+//! [`ParseFloatOptions`]: struct.ParseFloatOptions.html
+//! [`ParseIntegerOptions`]: struct.ParseIntegerOptions.html
+//! [`WriteFloatOptions`]: struct.WriteFloatOptions.html
+//! [`WriteIntegerOptions`]: struct.WriteIntegerOptions.html
 
 // FEATURES
 
@@ -99,7 +195,7 @@ pub(crate) mod lib {
 pub use lexical_core::RoundingKind;
 
 // Re-export the numerical format.
-pub use lexical_core::NumberFormat;
+pub use lexical_core::{NumberFormat, NumberFormatBuilder};
 
 // Re-export the Result, Error and ErrorCode globally.
 #[cfg(any(feature = "atof", feature = "atoi"))]
@@ -107,16 +203,16 @@ pub use lexical_core::{Error, ErrorCode, Result};
 
 // Re-export the parsing options.
 #[cfg(feature = "atof")]
-pub use lexical_core::ParseFloatOptions;
+pub use lexical_core::{ParseFloatOptions, ParseFloatOptionsBuilder};
 
 #[cfg(feature = "atoi")]
-pub use lexical_core::ParseIntegerOptions;
+pub use lexical_core::{ParseIntegerOptions, ParseIntegerOptionsBuilder};
 
 #[cfg(feature = "ftoa")]
-pub use lexical_core::WriteFloatOptions;
+pub use lexical_core::{WriteFloatOptions, WriteFloatOptionsBuilder};
 
 #[cfg(feature = "itoa")]
-pub use lexical_core::WriteIntegerOptions;
+pub use lexical_core::{WriteIntegerOptions, WriteIntegerOptionsBuilder};
 
 // Publicly expose traits so they may be used for generic programming.
 #[cfg(any(feature = "atof", feature = "atoi"))]
@@ -151,7 +247,6 @@ use lib::convert::AsRef;
 /// # extern crate lexical;
 /// # pub fn main() {
 /// assert_eq!(lexical::to_string(5), "5");
-/// ##[cfg(not(feature = "trim_floats"))]
 /// assert_eq!(lexical::to_string(0.0), "0.0");
 /// # }
 /// # }
@@ -171,7 +266,22 @@ pub fn to_string<N: ToLexical>(n: N) -> lib::String {
 ///
 /// * `n`       - Number to convert to string.
 /// * `options` - Options to specify number writing.
-// TODO(ahuszagh) Add examples and doctests
+///
+/// # Examples
+///
+/// ```rust
+/// # #[cfg(feature = "ftoa")] {
+/// # extern crate lexical;
+/// # pub fn main() {
+/// let options = lexical::WriteFloatOptions::builder()
+///     .trim_floats(true)
+///     .build()
+///     .unwrap();
+/// assert_eq!(lexical::to_string_with_options(0.0, &options), "0");
+/// assert_eq!(lexical::to_string_with_options(123.456, &options), "123.456");
+/// # }
+/// # }
+/// ```
 #[inline]
 #[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub fn to_string_with_options<N: ToLexicalOptions>(n: N, options: &N::WriteOptions)
@@ -240,7 +350,30 @@ pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
 ///
 /// * `bytes`   - Byte slice to convert to number.
 /// * `options` - Options to specify number parsing.
-// TODO(ahuszagh) Add examples and doctests
+///
+/// # Examples
+///
+/// ```rust
+/// # #[cfg(all(feature = "atof", feature = "atoi"))] {
+/// # extern crate lexical;
+/// # pub fn main() {
+/// let format = lexical::NumberFormat::builder()
+///     .exponent_default(b'^')
+///     .decimal_point(b',')
+///     .build()
+///     .unwrap();
+///
+/// let options = lexical::ParseFloatOptions::builder()
+///     .format(Some(format))
+///     .build()
+///     .unwrap();
+///
+/// assert_eq!(lexical::parse_with_options::<f32, _>("0", &options), Ok(0.0));
+/// assert_eq!(lexical::parse_with_options::<f32, _>("1,2345", &options), Ok(1.2345));
+/// assert_eq!(lexical::parse_with_options::<f32, _>("1,2345^4", &options), Ok(12345.0));
+/// # }
+/// # }
+/// ```
 #[inline]
 #[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Bytes, options: &N::ParseOptions)
@@ -301,7 +434,30 @@ pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result
 ///
 /// * `bytes`   - Byte slice to convert to number.
 /// * `options` - Options to specify number parsing.
-// TODO(ahuszagh) Add examples and doctests
+///
+/// # Examples
+///
+/// ```rust
+/// # #[cfg(all(feature = "atof", feature = "atoi"))] {
+/// # extern crate lexical;
+/// # pub fn main() {
+/// let format = lexical::NumberFormat::builder()
+///     .exponent_default(b'^')
+///     .decimal_point(b',')
+///     .build()
+///     .unwrap();
+///
+/// let options = lexical::ParseFloatOptions::builder()
+///     .format(Some(format))
+///     .build()
+///     .unwrap();
+///
+/// assert_eq!(lexical::parse_partial_with_options::<f32, _>("0", &options), Ok((0.0, 1)));
+/// assert_eq!(lexical::parse_partial_with_options::<f32, _>("1,2345", &options), Ok((1.2345, 6)));
+/// assert_eq!(lexical::parse_partial_with_options::<f32, _>("1,2345^4", &options), Ok((12345.0, 8)));
+/// # }
+/// # }
+/// ```
 #[inline]
 #[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_partial_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Bytes, options: &N::ParseOptions)

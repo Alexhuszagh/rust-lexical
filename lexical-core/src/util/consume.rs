@@ -6,13 +6,13 @@
 //! introduced by digit separators can be quite complex, due
 //! the number of permutations during parsing.
 //!
-//! We can consume any combinations of of [0,3] items from the following set:
-//!     - [l]eading digit separators, where digit separators occur before digits.
-//!     - [i]nternal digit separators, where digit separators occur between digits.
-//!     - [t]railing digit separators, where digit separators occur after digits.
+//! We can consume any combinations of of \[0,3\] items from the following set:
+//!     - \[l\]eading digit separators, where digit separators occur before digits.
+//!     - \[i\]nternal digit separators, where digit separators occur between digits.
+//!     - \[t\]railing digit separators, where digit separators occur after digits.
 //!
 //! In addition to those combinations, we can also have:
-//!     - [c]onsecutive digit separators, which allows two digit separators to be adjacent.
+//!     - \[c\]onsecutive digit separators, which allows two digit separators to be adjacent.
 //!
 //! # Shorthand
 //!

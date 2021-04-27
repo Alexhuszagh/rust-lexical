@@ -5,12 +5,16 @@ lexical
 [![Latest Version](https://img.shields.io/crates/v/lexical.svg)](https://crates.io/crates/lexical)
 [![Rustc Version 1.37+](https://img.shields.io/badge/rustc-1.37+-lightgray.svg)](https://blog.rust-lang.org/2019/08/15/Rust-1.37.0.html)
 
-Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical is simple to use and focuses on performance and correctness. Finally, [lexical-core](lexical-core) is suitable for environments without a memory allocator, not requiring any internal allocations by default. And, as of version 2.0, lexical uses minimal unsafe features, limiting the chance of memory-unsafe code.
+Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical is simple to use and focuses on performance and correctness. Finally, [lexical-core](lexical-core) is suitable for environments without a memory allocator, not requiring any internal allocations by default.
 
 **Table of Contents**
 
 - [Getting Started](#getting-started)
 - [Benchmarks](#benchmarks)
+- [Features](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#features)
+- [Options](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#options)
+- [Constants](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#constants)
+- [Submodules](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#submodules)
 - [Documentation](#documentation)
 - [Roadmap](#roadmap)
 - [Versioning and Version Support](#versioning-and-version-support)
@@ -24,7 +28,7 @@ Add lexical to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lexical = "^5.1"
+lexical = "^6.0"
 ```
 
 And get started using lexical:
@@ -52,7 +56,7 @@ Lexical has both partial and complete parsers: the complete parsers ensure the e
 let x: i32 = lexical::parse("123 456").unwrap();
 ```
 
-For floating-points, Lexical also includes `parse_lossy`, which may lead to minor rounding error (relative error of ~1e-16) in rare cases (see [implementation details](lexical-core/README.md#implementation-details) for more information), without using slow algorithms that may lead to serious performance degradation.
+For floating-points, Lexical also includes `parse_lossy`, which may lead to minor rounding error (relative error of ~1e-16) in rare cases (see [implementation details](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#implementation-details) for more information), without using slow algorithms that may lead to serious performance degradation.
 
 ```rust
 let x: f32 = lexical::parse_lossy("3.5").unwrap();   // 3.5
@@ -128,12 +132,16 @@ Ideally, Lexical's float-parsing algorithm or approach would be incorporated int
 **Version Support**
 
 The currently supported versions are:
-- v5.x
-- v4.x (Maintenace)
+- v6.x
+- v5.x (Maintenance)
+- v4.x (Maintenance)
 
 **Rustc Compatibility**
 
+v6.x is tested to work on 1.37+, including stable, beta, and nightly.
+
 v5.x is tested to work on 1.37+, including stable, beta, and nightly.
+
 v4.x is the last version to support Rustc 1.24+, including stable, beta, and nightly.
 
 Please report any errors compiling a supported lexical version on a compatible Rustc version.

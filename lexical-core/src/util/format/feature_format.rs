@@ -207,6 +207,7 @@ bitflags! {
         /// omitting those that are handled prior. This limits the
         /// number of match paths required to determine the correct
         /// interface.
+        #[doc(hidden)]
         const INTERFACE_FLAG_MASK                   = (
             Self::REQUIRED_DIGITS.bits
             | Self::NO_EXPONENT_NOTATION.bits

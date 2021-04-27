@@ -19,13 +19,22 @@ use std::error::Error as StdError;
 /// const int32_t UNDERFLOW = -2;
 /// const int32_t INVALID_DIGIT = -3;
 /// const int32_t EMPTY = -4;
-/// const int32_t EMPTY_FRACTION = -5;
+/// const int32_t EMPTY_MANTISSA = -5;
 /// const int32_t EMPTY_EXPONENT = -6;
+/// const int32_t EMPTY_INTEGER = -7;
+/// const int32_t EMPTY_FRACTION = -8;
+/// const int32_t INVALID_POSITIVE_MANTISSA_SIGN = -9;
+/// const int32_t MISSING_MANTISSA_SIGN = -10;
+/// const int32_t INVALID_EXPONENT = -11;
+/// const int32_t INVALID_POSITIVE_EXPONENT_SIGN = -12;
+/// const int32_t MISSING_EXPONENT_SIGN = -13;
+/// const int32_t EXPONENT_WITHOUT_FRACTION = -14;
+/// const int32_t INVALID_LEADING_ZEROS = -15;
 /// ```
 ///
 /// # Safety
 ///
-/// Assigning any value outside the range `[-6, -1]` to value of type
+/// Assigning any value outside the range `[-15, -1]` to value of type
 /// ErrorCode may invoke undefined-behavior.
 #[repr(i32)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]

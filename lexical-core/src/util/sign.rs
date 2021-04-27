@@ -6,6 +6,7 @@ use super::num::Number;
 // ENUMERATION
 
 /// Enumeration for the sign of a a number.
+#[doc(hidden)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa"))]
 pub enum Sign {

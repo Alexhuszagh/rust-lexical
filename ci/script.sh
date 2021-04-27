@@ -34,6 +34,7 @@ if [ ! -z $NO_STD ]; then
 fi
 
 # Have std, need to add `std` to features.
+REQUIRED_FEATURES="atof,atoi,ftoa,itoa"
 if [ -z $NO_STD ]; then
     REQUIRED_FEATURES="std,$REQUIRED_FEATURES"
 fi
@@ -41,11 +42,6 @@ fi
 # Add property tests to all tests if enabled.
 if [ -z $DISABLE_PROPERTY_TESTS ] && [ -z $DISABLE_TESTS ]; then
     REQUIRED_FEATURES="property_tests,$REQUIRED_FEATURES"
-fi
-
-# Add libm to all features if enabled.
-if [ ! -z $ENABLE_LIBM ]; then
-    REQUIRED_FEATURES="libm,$REQUIRED_FEATURES"
 fi
 
 # Disable doctests on nostd or if not supported.
@@ -61,34 +57,25 @@ else
     LEXICAL_FEATURES=(
         "rounding"
         "rounding,radix"
-        "rounding,unchecked_index"
-        "trim_floats"
-        "trim_floats,radix"
-        "trim_floats,unchecked_index"
         "grisu3"
         "ryu"
         "format"
-        "correct"
-        "correct,radix"
-        "correct,unchecked_index"
+        "format,radix"
     )
-    CORE_FEATURES=(
-        "${LEXICAL_FEATURES[@]}"
-        "table"
-        "table,radix"
-        "table,unchecked_index"
-    )
+    CORE_FEATURES=("${LEXICAL_FEATURES[@]}")
 fi
-
-## Create the full string for the tests from the features.
-#LEXICAL_FEATURES=("${LEXICAL_FEATURES[@]/#/--features=}")
-#CORE_FEATURES=("${CORE_FEATURES[@]/#/--features=}")
 
 # Build target.
 build() {
     features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
     $CARGO build $CARGO_TARGET $features
     $CARGO build $CARGO_TARGET $features --release
+
+    # Need to test a few permutations just to ensure everything compiles.
+    $CARGO build $CARGO_TARGET --no-default-features --features=std,atof
+    $CARGO build $CARGO_TARGET --no-default-features --features=std,atoi
+    $CARGO build $CARGO_TARGET --no-default-features --features=std,ftoa
+    $CARGO build $CARGO_TARGET --no-default-features --features=std,itoa
 }
 
 # Test target.
@@ -110,12 +97,6 @@ test() {
         test_features="--no-default-features --features=$REQUIRED_FEATURES,$i"
         $CARGO test $CARGO_TARGET $test_features $DOCTESTS
     done
-
-    # Use special tests if we have std.
-    if [ -z $NO_STD ]; then
-        features="--features=$REQUIRED_FEATURES,correct,rounding,radix special_rounding"
-        $CARGO test $CARGO_TARGET $features -- --ignored --test-threads=1
-    fi
 }
 
 # Dry-run bench target

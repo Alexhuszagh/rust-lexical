@@ -10,8 +10,9 @@ Low-level, lexical conversion routines for use in a `no_std` context. This crate
 - [Getting Started](#getting-started)
 - [Features](#features)
   - [Format](#format)
-- [Configuration](#configuration)
+- [Options](#options)
 - [Constants](#constants)
+- [Submodules](#submodules)
 - [Documentation](#documentation)
 - [Validation](#validation)
 - [Implementation Details](#implementation-details)
@@ -33,7 +34,7 @@ Add lexical-core to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lexical-core = "^0.7.1"
+lexical-core = "^0.8.0"
 ```
 
 And an introduction through use:
@@ -83,10 +84,6 @@ assert_eq!(slc, b"15.1");
 
 # Features
 
-- **correct** Use a correct string-to-float parser.
-    <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. If neither <code>algorithm_m</code> nor <code>bhcomp</code> is enabled while <code>correct</code> is enabled, lexical uses the <code>bigcomp</code> algorithm.</blockquote>
-- **trim_floats** Export floats without a fraction as an integer.
-    <blockquote>For example, <code>0.0f64</code> will be serialized to "0" and not "0.0", and <code>-0.0</code> as "0" and not "-0.0".</blockquote>
 - **radix** Allow conversions to and from non-decimal strings.
     <blockquote>With radix enabled, any radix from 2 to 36 (inclusive) is valid, otherwise, only 10 is valid.</blockquote>
 - **format** Customize accepted inputs for number parsing.
@@ -95,7 +92,6 @@ assert_eq!(slc, b"15.1");
     <blockquote>By default, lexical uses round-nearest, tie-even for float rounding (recommended by IEE754).</blockquote>
 - **ryu** Use dtolnay's [ryu](https://github.com/dtolnay/ryu/) library for float-to-string conversions.
     <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. Ryu is ~2x as fast as other float formatters.</blockquote>
-- **libm** Enable use of the [libm](https://github.com/rust-lang/libm) library for stable `no_std` support.
 
 
 ## Format
@@ -113,15 +109,23 @@ let f: f64 = parse(b"3.e7").unwrap();                       // 3e7
 
 // Let's only accept JSON floats.
 let format = NumberFormat::JSON;
-let f: f64 = parse_format(b"3.0e7", format).unwrap();       // 3e7
-let f: f64 = parse_format(b"3.e7", format).unwrap();        // Panics!
+let options = ParseFloatOptions::builder()
+    .format(Some(format))
+    .build()
+    .unwrap();
+let f: f64 = parse_with_options(b"3.0e7", &options).unwrap();       // 3e7
+let f: f64 = parse_with_options(b"3.e7", &options).unwrap();        // Panics!
 
 // We can also allow digit separators, for example.
 // OCaml, a programming language that inspired Rust,
 // accepts digit separators pretty much anywhere.
 let format = NumberFormat::OCAML_STRING;
-let f: f64 = parse(b"3_4.__0_1").unwrap();                  // Panics!
-let f: f64 = parse_format(b"3_4.__0_1", format).unwrap();   // 34.01
+let options = ParseFloatOptions::builder()
+    .format(Some(format))
+    .build()
+    .unwrap();
+let f: f64 = parse(b"3_4.__0_1").unwrap();                          // Panics!
+let f: f64 = parse_with_options(b"3_4.__0_1", &options).unwrap();   // 34.01
 ```
 
 The parsing specification is defined by `NumberFormat`, which provides pre-defined constants for over 40 programming and data languages. However, it also allows you to create your own specification, to dictate parsing.
@@ -132,14 +136,17 @@ extern crate lexical_core;
 use lexical_core::*;
 
 // Let's use the standard, Rust grammar.
-let format = NumberFormat::standard().unwrap();
+let format = NumberFormat::STANDARD;
 
 // Let's use a permissive grammar, one that allows anything besides
 // digit separators.
-let format = NumberFormat::permissive().unwrap();
+let format = NumberFormat::PERMISSIVE;
 
 // Let's ignore digit separators and have an otherwise permissive grammar.
-let format = NumberFormat::ignore(b'_').unwrap();
+let format = NumberFormat::IGNORE.rebuild()
+    .digit_separator(b'_')
+    .build()
+    .unwrap();
 
 // Create our own grammar.
 // A NumberFormat is compiled from options into binary flags, each
@@ -260,62 +267,62 @@ let exponent_consecutive_digit_separator = false;
 let special_digit_separator = false;
 
 // Compile the grammar.
-let format = NumberFormat::compile(
-    digit_separator,
-    required_integer_digits,
-    required_fraction_digits,
-    required_exponent_digits,
-    no_positive_mantissa_sign,
-    required_mantissa_sign,
-    no_exponent_notation,
-    no_positive_exponent_sign,
-    required_exponent_sign,
-    no_exponent_without_fraction,
-    no_special,
-    case_sensitive_special,
-    integer_internal_digit_separator,
-    fraction_internal_digit_separator,
-    exponent_internal_digit_separator,
-    integer_leading_digit_separator,
-    fraction_leading_digit_separator,
-    exponent_leading_digit_separator,
-    integer_trailing_digit_separator,
-    fraction_trailing_digit_separator,
-    exponent_trailing_digit_separator,
-    integer_consecutive_digit_separator,
-    fraction_consecutive_digit_separator,
-    exponent_consecutive_digit_separator,
-    special_digit_separator
-).unwrap();
+// We can add as many or as few specifiers as we want.
+let format = NumberFormat::builder()
+    .digit_separator(digit_separator)
+    .required_integer_digits(required_integer_digits)
+    .required_fraction_digits(required_fraction_digits)
+    .required_exponent_digits(required_exponent_digits)
+    .no_positive_mantissa_sign(no_positive_mantissa_sign)
+    .required_mantissa_sign(required_mantissa_sign)
+    .no_exponent_notation(no_exponent_notation)
+    .no_positive_exponent_sign(no_positive_exponent_sign)
+    .required_exponent_sign(required_exponent_sign)
+    .no_exponent_without_fraction(no_exponent_without_fraction)
+    .no_special(no_special)
+    .case_sensitive_special(case_sensitive_special)
+    .integer_internal_digit_separator(integer_internal_digit_separator)
+    .fraction_internal_digit_separator(fraction_internal_digit_separator)
+    .exponent_internal_digit_separator(exponent_internal_digit_separator)
+    .integer_leading_digit_separator(integer_leading_digit_separator)
+    .fraction_leading_digit_separator(fraction_leading_digit_separator)
+    .exponent_leading_digit_separator(exponent_leading_digit_separator)
+    .integer_trailing_digit_separator(integer_trailing_digit_separator)
+    .fraction_trailing_digit_separator(fraction_trailing_digit_separator)
+    .exponent_trailing_digit_separator(exponent_trailing_digit_separator)
+    .integer_consecutive_digit_separator(integer_consecutive_digit_separator)
+    .fraction_consecutive_digit_separator(fraction_consecutive_digit_separator)
+    .exponent_consecutive_digit_separator(exponent_consecutive_digit_separator)
+    .special_digit_separator(special_digit_separator)
+    .build()
+    .unwrap();
 ```
 
-# Configuration
+# Options
 
-Lexical-core also includes configuration options that allow you to configure float processing and formatting. These are provided as getters and setters, so lexical-core can validate the input.
+Lexical-core also includes number parse and write options for additional customizability.
 
 - **NaN**
-    - `get_nan_string`
-    - `set_nan_string`
-    <blockquote>The representation of Not a Number (NaN) as a string (default <code>b"NaN"</code>). For float parsing, lexical-core uses case-insensitive comparisons. This string <b>must</b> start with an <code>'N'</code> or <code>'n'</code>.</blockquote>
+    - `ParseFloatOptions::nan_string`
+    - `WriteFloatOptions::nan_string`
+    <blockquote>The representation of Not a Number (NaN) as a string (default <code>b"NaN"</code>). By default, lexical-core uses case-insensitive comparisons, although this may be turned off in <code>NumberFormat</code>. This string <b>must</b> start with an <code>'N'</code> or <code>'n'</code>.</blockquote>
 - **Short Infinity**
-    - `get_inf_string`
-    - `set_inf_string`
-    <blockquote>The short, default representation of infinity as a string (default <code>b"inf"</code>). For float parsing, lexical-core uses case-insensitive comparisons. This string **must** start with an <code>'I'</code> or <code>'i'</code>.</blockquote>
+    - `ParseFloatOptions::inf_string`
+    - `WriteFloatOptions::inf_string`
+    <blockquote>The short, default representation of infinity as a string (default <code>b"inf"</code>). By default, lexical-core uses case-insensitive comparisons, although this may be turned off in <code>NumberFormat</code>. This string **must** start with an <code>'I'</code> or <code>'i'</code>.</blockquote>
 - **Long Infinity**
-    - `get_infinity_string`
-    - `set_infinity_string`
-    <blockquote>The long, backup representation of infinity as a string (default <code>b"infinity"</code>). The long infinity must be at least as long as the short infinity, and will only be used during float parsing (and is case-insensitive). This string **must** start with an <code>'I'</code> or <code>'i'</code>.</blockquote>
+    - `ParseFloatOptions::infinity_string`
+    <blockquote>The long, backup representation of infinity as a string (default <code>b"infinity"</code>). The long infinity must be at least as long as the short infinity, and will only be used during float parsing (and is by default case-insensitive). This string **must** start with an <code>'I'</code> or <code>'i'</code>.</blockquote>
 - **Exponent Default Character**
-    - `get_exponent_default_char`
-    - `set_exponent_default_char`
-    <blockquote>The default character designating the exponent component of a float (default <code>b'e'</code>) for strings with a radix less than 15 (including decimal strings). For float parsing, lexical-core uses case-insensitive comparisons. This value should be not be in character set <code>[0-9a-eA-E.+\-]</code>.</blockquote>
+    - `ParseFloatOptions::exponent_default`
+    - `WriteFloatOptions::exponent_default`
+    <blockquote>The default character designating the exponent component of a float (default <code>b'e'</code>) for strings with a radix less than 14 (including decimal strings). For float parsing, lexical-core uses case-insensitive comparisons. This value should be not be in character set <code>[0-9a-e+\-]</code>, and should not be equal to any digit separators or decimal point characters.</blockquote>
 - **Exponent Backup Character** (radix only)
-    - `get_exponent_backup_char`
-    - `set_exponent_backup_char`
-    <blockquote>The backup character designating the exponent component of a float (default <code>b'^'</code>) for strings with a radix greater than or equal to 15. This value should be not be in character set <code>[0-9a-zA-Z.+\-]</code>.</blockquote>
+    - `ParseFloatOptions::exponent_backup`
+    - `WriteFloatOptions::exponent_backup`
+    <blockquote>The backup character designating the exponent component of a float (default <code>b'^'</code>) for strings with a radix greater than or equal to 14. This value should be not be in character set <code>[0-9a-zA-Z+\-]</code>, and should not be equal to any digit separators or decimal point characters.</blockquote>
 - **Float Rounding** (rounding only)
-    - `get_float_rounding`
-    - `set_float_rounding`
+    - `ParseFloatOptions::rounding`
     <blockquote>The IEEE754 float-rounding scheme to be used during float parsing. In almost every case, this should be set to <code>RoundingKind::NearestTieEven</code>.</blockquote>
 
 # Constants
@@ -328,6 +335,21 @@ Lexical-core also includes a few constants to simplify interfacing with number-t
     <blockquote>For example, <code>lexical_core::write::&lt;i32&gt;</code> may write up to <code>i32::FORMATTED_SIZE_DECIMAL</code> characters.</blockquote>
 
 These are provided as Rust constants so they may be used as the size element in arrays.
+
+# Submodules
+
+We designed lexical-core so that you do not pay for what you do not use. We therefore split up lexical into 4 submodules, so you can select a subset of functionality you wish to use for faster compile times. These submodules are:
+
+- **parse_floats**
+    <blockquote>Enable string-to-float conversions.</blockquote>
+- **parse_integers**
+    <blockquote>Enable string-to-integer conversions.</blockquote>
+- **write_floats**
+    <blockquote>Enable float-to-string conversions.</blockquote>
+- **write_integers**
+    <blockquote>Enable integer-to-string conversions.</blockquote>
+
+All submodules are enabled by default.
 
 # Documentation
 
@@ -449,12 +471,16 @@ Versions of lexical-core prior to 0.4.3 could round parsed floating-point number
 **Version Support**
 
 The currently supported versions are:
-- v0.7.x
-- v0.6.x (Maintenace)
+- v0.8.x 
+- v0.7.x (Maintenance)
+- v0.6.x (Maintenance)
 
 **Rustc Compatibility**
 
+v0.8.x supports 1.37+, including stable, beta, and nightly.
+
 v0.7.x supports 1.37+, including stable, beta, and nightly.
+
 v0.6.x supports Rustc 1.24+, including stable, beta, and nightly.
 
 Please report any errors compiling a supported lexical-core version on a compatible Rustc version.

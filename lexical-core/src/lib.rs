@@ -2,9 +2,20 @@
 //!
 //! lexical-core is a low-level API for number-to-string and
 //! string-to-number conversions, without requiring a system
-//! allocator. If you would like to use a convenient, high-level
-//! API, please look at [lexical](https://crates.io/crates/lexical)
+//! allocator. If you would like to use a high-level API that
+//! writes to and parses from `String` and `&str`, respectively,
+//! please look at [lexical](https://crates.io/crates/lexical)
 //! instead.
+//!
+//! Despite the low-level API and focus on performance, lexical-core
+//! strives to be simple and yet configurable: despite supporting nearly
+//! every float and integer format available, it only exports 2 write
+//! functions and 4 parse functions.
+//!
+//! lexical-core is well-tested, and has been downloaded more than 5 million
+//! times and currently has no known errors in correctness. lexical-core
+//! prioritizes performance above all else, and aims to be competitive
+//! or faster than any other float or integer parser and writer.
 //!
 //! # Getting Started
 //!
@@ -67,7 +78,90 @@
 //!
 //! # Configuration API
 //!
-//! // TODO(ahuszagh) Add documentation here on NumberFormat and Parse/Write Options.
+//! Lexical provides two main levels of configuration:
+//! - The [`NumberFormat`] specifier.
+//! - The Options API.
+//!
+//! ## NumberFormat
+//!
+//! The number format class provides numerous flags to specify
+//! number parsing or writing, including:
+//! - The default exponent character (default `b'e'`).
+//! - The backup exponent character (for large radixes, default `b'^'`).
+//! - The decimal point character (default `b'.'`).
+//!
+//! Other features, when the `format` feature is enabled, include:
+//! - A digit separator character, to group digits for increased legibility.
+//! - Toggling required float components, such as digits before the decimal point.
+//! - Toggling whether special floats are allowed or are case-sensitive.
+//! - Toggling the valid locations for digit separators, such as if consecutive digit separators are valid.
+//!
+//! The number format flags therefore provide extensive customizability,
+//! and pre-defined constants exist when the `format` feature is enabled,
+//! including:
+//! - JSON, XML, TOML, YAML, SQLite, and many more.
+//! - Rust, Python, C#, FORTRAN, COBOL literals and strings, and many more.
+//!
+//! ## Options API
+//!
+//! The Options API provides high-level options to specify number parsing
+//! or writing, options not intrinsically tied to a number format.
+//! For example, the Options API provides:
+//! - Custom `NaN`, `Infinity` string representations.
+//! - Different numerical bases (radixes) if the `radix` feature is enabled.
+//! - Algorithm selection for parsing.
+//! - Whether to trim the fraction component from integral floats.
+//! - The `NumberFormat` to use.
+//!
+//! The available options are:
+//! - [`ParseFloatOptions`]
+//! - [`ParseIntegerOptions`]
+//! - [`WriteFloatOptions`]
+//! - [`WriteIntegerOptions`]
+//!
+//! ## Example
+//!
+//! An example of creating your own options to parse European-style
+//! numbers (which use commas as decimal points, and periods as digit
+//! separators) is as follows:
+//!
+//! ```
+//! # pub fn main() {
+//! #[cfg(feature = "format")] {
+//!     // This creates a format to parse a European-style float number.
+//!     // The decimal point is a comma, and the digit separators (optional)
+//!     // are periods.
+//!     let format = lexical_core::NumberFormat::builder()
+//!         .digit_separator(b'.')
+//!         .decimal_point(b',')
+//!         .build()
+//!         .unwrap();
+//!     let options = lexical_core::ParseFloatOptions::builder()
+//!         .format(Some(format))
+//!         .build()
+//!         .unwrap();
+//!     assert_eq!(
+//!         lexical_core::parse_with_options::<f32>(b"300,10", &options),
+//!         Ok(300.10)
+//!     );
+//!
+//!     // Another example, using a pre-defined constant for JSON.
+//!     let format = lexical_core::NumberFormat::JSON;
+//!     let options = lexical_core::ParseFloatOptions::builder()
+//!         .format(Some(format))
+//!         .build()
+//!         .unwrap();
+//!     assert_eq!(
+//!         lexical_core::parse_with_options::<f32>(b"0e1", &options),
+//!         Ok(0.0)
+//!     );
+//!     assert_eq!(
+//!         lexical_core::parse_with_options::<f32>(b"1E+2", &options),
+//!         Ok(100.0)
+//!     );
+//! }
+//! # }
+//! ```
 //!
 //! [`write`]: fn.write.html
 //! [`write_with_options`]: fn.write_with_options.html
@@ -75,6 +169,12 @@
 //! [`parse_with_options`]: fn.parse_with_options.html
 //! [`parse_partial`]: fn.parse_partial.html
 //! [`parse_partial_with_options`]: fn.parse_partial_with_options.html
+//!
+//! [`NumberFormat`]: struct.NumberFormat.html
+//! [`ParseFloatOptions`]: struct.ParseFloatOptions.html
+//! [`ParseIntegerOptions`]: struct.ParseIntegerOptions.html
+//! [`WriteFloatOptions`]: struct.WriteFloatOptions.html
+//! [`WriteIntegerOptions`]: struct.WriteIntegerOptions.html
 
 // silence warnings for unused doc comments
 #![allow(unused_doc_comments)]
