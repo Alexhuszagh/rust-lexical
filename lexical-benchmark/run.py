@@ -156,6 +156,25 @@ def run_lexical(feature=""):
     return data
 
 
+def run_minimal_lexical(feature=""):
+    """Build and run the benchmarks for minimal-lexical."""
+
+    data = {}
+    with change_directory(os.path.join(HOME, "minimal_lexical")):
+        args = ["cargo", "bench"]
+        if feature:
+            args.append("--features={}".format(feature))
+        proc = Popen(args, bufsize=1<<20 , stdout=PIPE, stderr=PIPE)
+        for line in iter(proc.stdout.readline, b''):
+            if b'time:' in line:
+                name, *d = process_rust_benchmark(line.decode('utf-8'))
+                data[name] = d
+        proc.stdout.close()
+        proc.wait()
+
+    return data
+
+
 def run_libcore():
     """Build and run the benchmarks for libcore."""
 
@@ -324,6 +343,7 @@ def main():
     python_data = run_python()
     strtod_data = run_strtod()
     lexical_data = run_lexical()
+    minimal_lexical_data = run_minimal_lexical()
     libcore_data = run_libcore()
     rapidjson_data = run_rapidjson()
     double_conversion_data = run_double_conversion()
@@ -335,19 +355,21 @@ def main():
         os.makedirs("results")
 
     # Dump to disk
-    with open(os.path.join(HOME, "results","golang.json"), 'w') as f:
+    with open(os.path.join(HOME, "results", "golang.json"), 'w') as f:
         json.dump(golang_data, f)
-    with open(os.path.join(HOME, "results","python.json"), 'w') as f:
+    with open(os.path.join(HOME, "results", "python.json"), 'w') as f:
         json.dump(python_data, f)
-    with open(os.path.join(HOME, "results","strtod.json"), 'w') as f:
+    with open(os.path.join(HOME, "results", "strtod.json"), 'w') as f:
         json.dump(strtod_data, f)
-    with open(os.path.join(HOME, "results","lexical.json"), 'w') as f:
+    with open(os.path.join(HOME, "results", "lexical.json"), 'w') as f:
         json.dump(lexical_data, f)
-    with open(os.path.join(HOME, "results","libcore.json"), 'w') as f:
+    with open(os.path.join(HOME, "results", "minimal_lexical.json"), 'w') as f:
+        json.dump(minimal_lexical_data, f)
+    with open(os.path.join(HOME, "results", "libcore.json"), 'w') as f:
         json.dump(libcore_data, f)
-    with open(os.path.join(HOME, "results","rapidjson.json"), 'w') as f:
+    with open(os.path.join(HOME, "results", "rapidjson.json"), 'w') as f:
         json.dump(rapidjson_data, f)
-    with open(os.path.join(HOME, "results","double_conversion.json"), 'w') as f:
+    with open(os.path.join(HOME, "results", "double_conversion.json"), 'w') as f:
         json.dump(double_conversion_data, f)
     #with open(os.path.join(HOME, "results","from_chars.json"), 'w') as f:
     #    json.dump(from_chars_data, f)

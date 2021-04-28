@@ -1,5 +1,6 @@
 /target
 lexical-benchmark/lexical/target
+lexical-benchmark/minimal_lexical/target
 lexical-benchmark/libcore/target
 lexical-benchmark/double_conversion/build
 lexical-benchmark/from_chars/build
