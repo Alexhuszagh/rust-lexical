@@ -17,6 +17,7 @@ Fast lexical conversion routines for both std and no_std environments. Lexical p
 - [Submodules](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#submodules)
 - [Documentation](#documentation)
 - [Roadmap](#roadmap)
+- [Platform Support](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#platform-support)
 - [Versioning and Version Support](#versioning-and-version-support)
 - [Changelog](#changelog)
 - [License](#license)

@@ -21,6 +21,7 @@ Low-level, lexical conversion routines for use in a `no_std` context. This crate
   - [Arbitrary-Precision Arithmetic](#arbitrary-precision-arithmetic)
   - [Algorithm Background and Comparison](#algorithm-background-and-comparison)
 - [Known Issues](#known-issues)
+- [Platform Support](#platform-support)
 - [Versioning and Version Support](#versioning-and-version-support)
 - [Changelog](#changelog)
 - [License](#license)
@@ -465,6 +466,25 @@ Since our real digits are below the theoretical halfway point, we know we need t
 On the ARMVv6 architecture, the stable exponentiation for the fast, incorrect float parser is not fully stable. For example, `1e-300` is correct, while `5e-324` rounds to `0`, leading to "5e-324" being incorrectly parsed as `0`. This does not affect the default, correct float parser, nor ARMVv7 or ARMVv8 (aarch64) architectures. This bug can compound errors in the incorrect parser (feature-gated by disabling the `correct` feature`). It is not known if this bug is an artifact of Qemu emulation of ARMv6, or is actually representative the hardware.
 
 Versions of lexical-core prior to 0.4.3 could round parsed floating-point numbers with an error of up to 1 ULP. This occurred for strings with 16 or more digits and a trailing 0 in the fraction, the `b+h` comparison in the slow-path algorithm incorrectly scales the the theoretical digits due to an over-calculated real exponent. This affects a very small percentage of inputs, however, it is recommended to update immediately.
+
+# Platform Support
+
+minimal-lexical is tested on a wide variety of platforms, including big and small-endian systems, to ensure portable code. Supported architectures include:
+- x86_64 Linux, Windows, macOS, Android, iOS, FreeBSD, and NetBSD.
+- x86 Linux, macOS, Android, iOS, and FreeBSD.
+- aarch64 (ARM8v8-A) Linux, Android, and iOS.
+- armv7 (ARMv7-A) Linux, Android, and iOS.
+- arm (ARMv6) Linux, and Android.
+- mips (MIPS) Linux.
+- mipsel (MIPS LE) Linux.
+- mips64 (MIPS64 BE) Linux.
+- mips64el (MIPS64 LE) Linux.
+- powerpc (PowerPC) Linux.
+- powerpc64 (PPC64) Linux.
+- powerpc64le (PPC64LE) Linux.
+- s390x (IBM Z) Linux.
+
+minimal-lexical should also work on a wide variety of other architectures and ISAs. If you have any issue compiling minimal-lexical on any architecture, please file a bug report.
 
 # Versioning and Version Support
 
