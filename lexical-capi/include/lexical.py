@@ -80,61 +80,37 @@ HAVE_RADIX = hasattr(LIB, 'LEXICAL_HAS_RADIX')
 HAVE_ROUNDING = hasattr(LIB, 'LEXICAL_HAS_ROUNDING')
 HAVE_I128 = hasattr(LIB, 'LEXICAL_HAS_I128')
 
-# CONFIG
+# STRING
 # ------
 
-# TODO(ahuszagh) Going to have to restore this stuff...
-#
-#def _get_string(name):
-#    cb = getattr(LIB, name)
-#    ptr = POINTER(c_ubyte)()
-#    size = c_size_t()
-#    if cb(byref(ptr), byref(size)) != 0:
-#        raise OSError('Unexpected error in lexical_capi.{}'.format(name))
-#    return string_at(ptr, size.value).decode('ascii')
-#
-#def _set_string(name, data):
-#    if isinstance(data, str):
-#        data = data.encode('ascii')
-#    if not isinstance(data, (bytes, bytearray)):
-#        raise TypeError("Must set string from bytes.")
-#    cb = getattr(LIB, name)
-#    ptr = cast(data, POINTER(c_ubyte))
-#    size = c_size_t(len(data))
-#    if cb(ptr, size) != 0:
-#        raise OSError('Unexpected error in lexical_capi.{}'.format(name))
-#
-#if HAVE_RADIX:
-#    def get_exponent_backup_char():
-#        '''Get the backup exponent character.'''
-#        return chr(LIB.lexical_get_exponent_backup_char())
-#
-#    def set_exponent_backup_char(character):
-#        '''Set the backup exponent character.'''
-#        LIB.lexical_set_exponent_backup_char(c_ubyte(ord(character)))
+def _to_c_string(string):
+    '''Get a pointer and size from a string.'''
+
+    if isinstance(string, str):
+        string = string.encode('ascii')
+    if not isinstance(string, (bytes, bytearray)):
+        raise TypeError("Must set string from bytes.")
+    ptr = cast(string, POINTER(c_ubyte))
+    size = len(string)
+
+    return (ptr, size)
+
+
+def _from_c_string(ptr, size):
+    '''Get a string from a pointer and size.'''
+    return string_at(ptr, size).decode('ascii')
 
 # ROUNDING
 # --------
 
-if HAVE_ROUNDING:
-    class RoundingKind(enum.Enum):
-        '''Rounding type for float-parsing.'''
+class RoundingKind(enum.Enum):
+    '''Rounding type for float-parsing.'''
 
-        NearestTieEven = 0
-        NearestTieAwayZero = 1
-        TowardPositiveInfinity = 2
-        TowardNegativeInfinity = 3
-        TowardZero = 4
-
-#    def get_float_rounding():
-#        '''Get the default rounding scheme.'''
-#        return RoundingKind(LIB.lexical_get_float_rounding())
-#
-#    def set_float_rounding(rounding):
-#        '''Set the default rounding scheme.'''
-#        LIB.lexical_set_float_rounding(c_int(rounding.value))
-
-# TODO(ahuszagh) Need the options API and options
+    NearestTieEven = 0
+    NearestTieAwayZero = 1
+    TowardPositiveInfinity = 2
+    TowardNegativeInfinity = 3
+    TowardZero = 4
 
 # OPTION
 # ------
@@ -154,6 +130,11 @@ def _option(cls, name):
             ("_tag", c_uint32),
             ("_data", cls)
         ]
+
+        def __repr__(self):
+            if self._tag == OptionTag.Nil:
+                return 'Option(Nil)'
+            return f'Option(Some({repr(self._data)}))'
 
         @property
         def tag(self):
@@ -368,6 +349,10 @@ class NumberFormat(Structure):
     ]
 
     @property
+    def _digit_separator(self):
+        return _digit_separator_from_flags(self._value)
+
+    @property
     def _exponent_default(self):
         return _exponent_default_from_flags(self._value)
 
@@ -379,14 +364,14 @@ class NumberFormat(Structure):
     def _decimal_point(self):
         return _decimal_point_from_flags(self._value)
 
-    if HAVE_FORMAT:
-        @property
-        def _digit_separator(self):
-            return _digit_separator_from_flags(self._value)
-
     @property
     def _flags(self):
         return NumberFormatFlags(self._value & NumberFormatFlags.FlagMask.value)
+
+    # MAGIC
+
+    def __repr__(self):
+        return f'NumberFormat(flags={self.flags}, digit_separator={self.digit_separator}, exponent_default={self.exponent_default}, exponent_backup={self.exponent_backup}, decimal_point={self.decimal_point})'
 
     # FUNCTIONS
 
@@ -409,6 +394,11 @@ class NumberFormat(Structure):
         return self._flags
 
     @property
+    def digit_separator(self):
+        '''Get the digit separator from the compiled float format.'''
+        return self._digit_separator
+
+    @property
     def exponent_default(self):
         '''Get the default exponent from the compiled float format.'''
         return self._exponent_default
@@ -422,12 +412,6 @@ class NumberFormat(Structure):
     def decimal_point(self):
         '''Get the decimal point from the compiled float format.'''
         return self._decimal_point
-
-    if HAVE_FORMAT:
-        @property
-        def digit_separator(self):
-            '''Get the digit separator from the compiled float format.'''
-            return self._digit_separator
 
     @property
     def required_integer_digits(self):
@@ -586,7 +570,15 @@ class NumberFormat(Structure):
 
     # BUILDERS
 
-    # TODO(ahuszagh) Need build and rebuild
+    @staticmethod
+    def builder():
+        '''Create new builder with default arguments from the Rust API.'''
+        return NumberFormatBuilder.new()
+
+    def rebuild(self):
+        '''Create NumberFormatBuilder using existing values.'''
+        return LIB.lexical_number_format_rebuild(self)
+
 
 if HAVE_FORMAT:
     # HIDDEN DEFAULTS
@@ -1733,44 +1725,47 @@ OptionNumberFormat = _option(NumberFormat, 'OptionNumberFormat')
 # NUMBER FORMAT BUILDER
 # ---------------------
 
-# TODO(ahuszagh) I'm gonna need functions for new here from the capi.
-
 if HAVE_FORMAT:
     class NumberFormatBuilder(Structure):
         '''Build number format value from specifications.'''
 
         _fields_ = [
-            ("_digit_separator", c_char),
-            ("_decimal_point", c_char),
-            ("_exponent_default", c_char),
-            ("_exponent_backup", c_char),
-            ("_required_integer_digits", c_bool),
-            ("_required_fraction_digits", c_bool),
-            ("_required_exponent_digits", c_bool),
-            ("_no_positive_mantissa_sign", c_bool),
-            ("_required_mantissa_sign", c_bool),
-            ("_no_exponent_notation", c_bool),
-            ("_no_positive_exponent_sign", c_bool),
-            ("_required_exponent_sign", c_bool),
-            ("_no_exponent_without_fraction", c_bool),
-            ("_no_special", c_bool),
-            ("_case_sensitive_special", c_bool),
-            ("_no_integer_leading_zeros", c_bool),
-            ("_no_float_leading_zeros", c_bool),
-            ("_integer_internal_digit_separator", c_bool),
-            ("_fraction_internal_digit_separator", c_bool),
-            ("_exponent_internal_digit_separator", c_bool),
-            ("_integer_leading_digit_separator", c_bool),
-            ("_fraction_leading_digit_separator", c_bool),
-            ("_exponent_leading_digit_separator", c_bool),
-            ("_integer_trailing_digit_separator", c_bool),
-            ("_fraction_trailing_digit_separator", c_bool),
-            ("_exponent_trailing_digit_separator", c_bool),
-            ("_integer_consecutive_digit_separator", c_bool),
-            ("_fraction_consecutive_digit_separator", c_bool),
-            ("_exponent_consecutive_digit_separator", c_bool),
-            ("_special_digit_separator", c_bool),
+            ("digit_separator", c_char),
+            ("decimal_point", c_char),
+            ("exponent_default", c_char),
+            ("exponent_backup", c_char),
+            ("required_integer_digits", c_bool),
+            ("required_fraction_digits", c_bool),
+            ("required_exponent_digits", c_bool),
+            ("no_positive_mantissa_sign", c_bool),
+            ("required_mantissa_sign", c_bool),
+            ("no_exponent_notation", c_bool),
+            ("no_positive_exponent_sign", c_bool),
+            ("required_exponent_sign", c_bool),
+            ("no_exponent_without_fraction", c_bool),
+            ("no_special", c_bool),
+            ("case_sensitive_special", c_bool),
+            ("no_integer_leading_zeros", c_bool),
+            ("no_float_leading_zeros", c_bool),
+            ("integer_internal_digit_separator", c_bool),
+            ("fraction_internal_digit_separator", c_bool),
+            ("exponent_internal_digit_separator", c_bool),
+            ("integer_leading_digit_separator", c_bool),
+            ("fraction_leading_digit_separator", c_bool),
+            ("exponent_leading_digit_separator", c_bool),
+            ("integer_trailing_digit_separator", c_bool),
+            ("fraction_trailing_digit_separator", c_bool),
+            ("exponent_trailing_digit_separator", c_bool),
+            ("integer_consecutive_digit_separator", c_bool),
+            ("fraction_consecutive_digit_separator", c_bool),
+            ("exponent_consecutive_digit_separator", c_bool),
+            ("special_digit_separator", c_bool),
         ]
+
+        def __repr__(self):
+            fields = [i[0] for i in self._fields_]
+            data = ', '.join([f'{i}={getattr(self, i)}' for i in fields])
+            return f'NumberFormatBuilder({data})'
 
         @staticmethod
         def new():
@@ -1786,10 +1781,15 @@ else:
         '''Build number format value from specifications.'''
 
         _fields_ = [
-            ("_decimal_point", c_char),
-            ("_exponent_default", c_char),
-            ("_exponent_backup", c_char),
+            ("decimal_point", c_char),
+            ("exponent_default", c_char),
+            ("exponent_backup", c_char),
         ]
+
+        def __repr__(self):
+            fields = [i[0] for i in self._fields_]
+            data = ', '.join([f'{i}={getattr(self, i)}' for i in fields])
+            return f'NumberFormatBuilder({data})'
 
         @staticmethod
         def new():
@@ -1800,244 +1800,627 @@ else:
             '''Build the NumberFormat from the current values.'''
             return LIB.lexical_number_format_builder_build(self)
 
+LIB.lexical_number_format_rebuild.restype = NumberFormatBuilder
 LIB.lexical_number_format_builder_new.restype = NumberFormatBuilder
 LIB.lexical_number_format_builder_build.restype = OptionNumberFormat
-
-# TODO(ahuszagh) Need to add the number format builder.
-
-
-# TODO(ahuszagh) Restore...
-#if HAVE_FORMAT:
-#    if HAVE_RADIX:
-#        def is_valid_separator(ch):
-#            '''Determine if the digit separator is valid.'''
-#
-#            code = ord(ch)
-#            if code >= ord(b'A') and code <= ord(b'Z'):
-#                return False
-#            elif code >= ord(b'a') and code <= ord(b'z'):
-#                return False
-#            elif code >= ord(b'0') and code <= ord(b'9'):
-#                return False
-#            elif ch == b'+' or ch == b'.' or ch == b'-':
-#                return False
-#            return (
-#                is_ascii(ch)
-#                and code != ord(get_exponent_default_char())
-#                and code != ord(get_exponent_backup_char())
-#            )
-#
-#    else:
-#        def is_valid_separator(ch):
-#            '''Determine if the digit separator is valid.'''
-#
-#            code = ord(ch)
-#            if code >= ord(b'0') and code <= ord(b'9'):
-#                return False
-#            elif ch == b'+' or ch == b'.' or ch == b'-':
-#                return False
-#            return is_ascii(ch) and code != ord(get_exponent_default_char())
-#
-#
-#    class NumberFormatFlags(enum.Flag):
-#        '''Bitflags for a serialized number format.'''
-#        # HIDDEN DEFAULTS
-#
-#        Permissive = 0
-#        Standard = RequiredExponentDigits
-#        Ignore = DigitSeparatorFlagMask
-#
-#    class NumberFormat(Structure):
-#        '''Immutable wrapper around bitflags for a serialized number format.'''
-#
-#        # FUNCTIONS
-#
-#        def compile(
-#            digit_separator=b'_',
-#            required_integer_digits=False,
-#            required_fraction_digits=False,
-#            required_exponent_digits=False,
-#            no_positive_mantissa_sign=False,
-#            required_mantissa_sign=False,
-#            no_exponent_notation=False,
-#            no_positive_exponent_sign=False,
-#            required_exponent_sign=False,
-#            no_exponent_without_fraction=False,
-#            no_special=False,
-#            case_sensitive_special=False,
-#            no_integer_leading_zeros=False,
-#            no_float_leading_zeros=False,
-#            integer_internal_digit_separator=False,
-#            fraction_internal_digit_separator=False,
-#            exponent_internal_digit_separator=False,
-#            integer_leading_digit_separator=False,
-#            fraction_leading_digit_separator=False,
-#            exponent_leading_digit_separator=False,
-#            integer_trailing_digit_separator=False,
-#            fraction_trailing_digit_separator=False,
-#            exponent_trailing_digit_separator=False,
-#            integer_consecutive_digit_separator=False,
-#            fraction_consecutive_digit_separator=False,
-#            exponent_consecutive_digit_separator=False,
-#            special_digit_separator=False
-#        ):
-#            '''
-#            Compile float format value from specifications.
-#
-#            * `digit_separator`                         - Character to separate digits.
-#            * `required_integer_digits`                 - If digits are required before the decimal point.
-#            * `required_fraction_digits`                - If digits are required after the decimal point.
-#            * `required_exponent_digits`                - If digits are required after the exponent character.
-#            * `no_positive_mantissa_sign`               - If positive sign before the mantissa is not allowed.
-#            * `required_mantissa_sign`                  - If positive sign before the mantissa is required.
-#            * `no_exponent_notation`                    - If exponent notation is not allowed.
-#            * `no_positive_exponent_sign`               - If positive sign before the exponent is not allowed.
-#            * `required_exponent_sign`                  - If sign before the exponent is required.
-#            * `no_exponent_without_fraction`            - If exponent without fraction is not allowed.
-#            * `no_special`                              - If special (non-finite) values are not allowed.
-#            * `case_sensitive_special`                  - If special (non-finite) values are case-sensitive.
-#            * `integer_internal_digit_separator`        - If digit separators are allowed between integer digits.
-#            * `fraction_internal_digit_separator`       - If digit separators are allowed between fraction digits.
-#            * `exponent_internal_digit_separator`       - If digit separators are allowed between exponent digits.
-#            * `integer_leading_digit_separator`         - If a digit separator is allowed before any integer digits.
-#            * `fraction_leading_digit_separator`        - If a digit separator is allowed before any fraction digits.
-#            * `exponent_leading_digit_separator`        - If a digit separator is allowed before any exponent digits.
-#            * `integer_trailing_digit_separator`        - If a digit separator is allowed after any integer digits.
-#            * `fraction_trailing_digit_separator`       - If a digit separator is allowed after any fraction digits.
-#            * `exponent_trailing_digit_separator`       - If a digit separator is allowed after any exponent digits.
-#            * `integer_consecutive_digit_separator`     - If multiple consecutive integer digit separators are allowed.
-#            * `fraction_consecutive_digit_separator`    - If multiple consecutive fraction digit separators are allowed.
-#            * `special_digit_separator`                 - If any digit separators are allowed in special (non-finite) values.
-#
-#            Returns the value if it was able to compile the format,
-#            otherwise, returns None. Digit separators must not be
-#            in the character group `[A-Za-z0-9+.-]`, nor be equal to
-#            `get_exponent_default_char` or `get_exponent_backup_char`.
-#            '''
-#
-#            flags = 0
-#            # Generic flags.
-#            if required_integer_digits:
-#                flags |= NumberFormatFlags.RequiredIntegerDigits.value
-#            if required_fraction_digits:
-#                flags |= NumberFormatFlags.RequiredFractionDigits.value
-#            if required_exponent_digits:
-#                flags |= NumberFormatFlags.RequiredExponentDigits.value
-#            if no_positive_mantissa_sign:
-#                flags |= NumberFormatFlags.NoPositiveMantissaSign.value
-#            if required_mantissa_sign:
-#                flags |= NumberFormatFlags.RequiredMantissaSign.value
-#            if no_exponent_notation:
-#                flags |= NumberFormatFlags.NoExponentNotation.value
-#            if no_positive_exponent_sign:
-#                flags |= NumberFormatFlags.NoPositiveExponentSign.value
-#            if required_exponent_sign:
-#                flags |= NumberFormatFlags.RequiredExponentSign.value
-#            if no_exponent_without_fraction:
-#                flags |= NumberFormatFlags.NoExponentWithoutFraction.value
-#            if no_special:
-#                flags |= NumberFormatFlags.NoSpecial.value
-#            if case_sensitive_special:
-#                flags |= NumberFormatFlags.CaseSensitiveSpecial.value
-#            if no_integer_leading_zeros:
-#                flags |= NumberFormatFlags.NoIntegerLeadingZeros.value
-#            if no_float_leading_zeros:
-#                flags |= NumberFormatFlags.NoFloatLeadingZeros.value
-#
-#            # Digit separator flags.
-#            if integer_internal_digit_separator:
-#                flags |= NumberFormatFlags.IntegerInternalDigitSeparator.value
-#            if fraction_internal_digit_separator:
-#                flags |= NumberFormatFlags.FractionInternalDigitSeparator.value
-#            if exponent_internal_digit_separator:
-#                flags |= NumberFormatFlags.ExponentInternalDigitSeparator.value
-#            if integer_leading_digit_separator:
-#                flags |= NumberFormatFlags.IntegerLeadingDigitSeparator.value
-#            if fraction_leading_digit_separator:
-#                flags |= NumberFormatFlags.FractionLeadingDigitSeparator.value
-#            if exponent_leading_digit_separator:
-#                flags |= NumberFormatFlags.ExponentLeadingDigitSeparator.value
-#            if integer_trailing_digit_separator:
-#                flags |= NumberFormatFlags.IntegerTrailingDigitSeparator.value
-#            if fraction_trailing_digit_separator:
-#                flags |= NumberFormatFlags.FractionTrailingDigitSeparator.value
-#            if exponent_trailing_digit_separator:
-#                flags |= NumberFormatFlags.ExponentTrailingDigitSeparator.value
-#            if integer_consecutive_digit_separator:
-#                flags |= NumberFormatFlags.IntegerConsecutiveDigitSeparator.value
-#            if fraction_consecutive_digit_separator:
-#                flags |= NumberFormatFlags.FractionConsecutiveDigitSeparator.value
-#            if exponent_consecutive_digit_separator:
-#                flags |= NumberFormatFlags.ExponentConsecutiveDigitSeparator.value
-#            if special_digit_separator:
-#                flags |= NumberFormatFlags.SpecialDigitSeparator.value
-#
-#            # Digit separator.
-#            format = NumberFormat(flags)
-#            if format.intersects(NumberFormatFlags.DigitSeparatorFlagMask):
-#                format._value |= _digit_separator_to_flags(digit_separator)
-#
-#            # Validation.
-#            is_invalid = (
-#                not is_valid_separator(digit_separator)
-#                or (format.intersects(NumberFormatFlags.NoExponentNotation) and format.intersects(NumberFormatFlags.ExponentFlagMask))
-#                or (no_positive_mantissa_sign and required_mantissa_sign)
-#                or (no_positive_exponent_sign and required_exponent_sign)
-#                or (no_special and (case_sensitive_special or special_digit_separator))
-#                or (format.flags & NumberFormatFlags.IntegerDigitSeparatorFlagMask == NumberFormatFlags.IntegerConsecutiveDigitSeparator)
-#                or (format.flags & NumberFormatFlags.FractionDigitSeparatorFlagMask == NumberFormatFlags.FractionConsecutiveDigitSeparator)
-#                or (format.flags & NumberFormatFlags.ExponentDigitSeparatorFlagMask == NumberFormatFlags.ExponentConsecutiveDigitSeparator)
-#            )
-#            if is_invalid:
-#                raise ValueError('invalid number format with value {}'.format(format))
-#
-#            return format
-#
-#        @staticmethod
-#        def permissive():
-#            '''
-#            Compile permissive number format.
-#
-#            The permissive number format does not require any control
-#            grammar, besides the presence of mantissa digits.
-#            '''
-#            return NumberFormat(NumberFormatFlags.Permissive.value)
-#
-#        @staticmethod
-#        def standard():
-#            '''
-#            Compile standard number format.
-#
-#            The standard number format is guaranteed to be identical
-#            to the format expected by Rust's string to number parsers.
-#            '''
-#            return NumberFormat(NumberFormatFlags.Standard.value)
-#
-#        @staticmethod
-#        def ignore(digit_separator):
-#            '''
-#            Compile ignore number format.
-#
-#            The ignore number format ignores all digit separators,
-#            and is permissive for all other control grammar, so
-#            implements a fast parser.
-#
-#            * `digit_separator`                         - Character to separate digits.
-#            '''
-#
-#            if not is_valid_separator(digit_separator):
-#                raise ValueError('invalid digit separator {}'.format(digit_separator))
-#
-#            flags = NumberFormatFlags.Ignore.value | _digit_separator_to_flags(digit_separator)
-#            return NumberFormat(flags)
-#
-#    # PRE-DEFINED CONSTANTS
-#
 
 # OPTIONS API
 # -----------
 
-# TODO(ahuszagh) Here
+# PARSE INTEGER OPTIONS
+
+class ParseIntegerOptionsBuilder(Structure):
+    '''Builder for `ParseIntegerOptions`.'''
+
+    _fields_ = [
+        ('_radix', c_uint8),
+        ('_format', OptionNumberFormat),
+    ]
+
+    def __repr__(self):
+        return f'ParseIntegerOptions(radix={self.radix}, format={repr(self.format)})'
+
+    @property
+    def format(self):
+        '''Get the number format.'''
+        return self._format
+
+    @format.setter
+    def format(self, value):
+        '''Set the number format.'''
+        self._format = value
+
+    @property
+    def radix(self):
+        '''Get the radix.'''
+        return self._radix
+
+    if HAVE_RADIX:
+        @radix.setter
+        def radix(self, value):
+            '''Set the radix.'''
+            self._radix = value
+
+    @staticmethod
+    def new():
+        '''Create new builder with default arguments from the Rust API.'''
+        return LIB.lexical_parse_integer_options_builder_new()
+
+    def build(self):
+        '''Build the NumberFormat from the current values.'''
+        return LIB.lexical_parse_integer_options_builder_build(self)
+
+
+class ParseIntegerOptions(Structure):
+    '''Options to customize parsing integers.'''
+
+    _fields_ = [
+        ('_radix', c_uint32),
+        ('_format', OptionNumberFormat),
+    ]
+
+    def __repr__(self):
+        return f'ParseIntegerOptions(radix={self.radix}, format={repr(self.format)})'
+
+    @property
+    def radix(self):
+        '''Get the radix.'''
+        return self._radix
+
+    @property
+    def format(self):
+        '''Get the number format.'''
+        return self._format
+
+    @staticmethod
+    def new():
+        '''Create options with default values.'''
+        return LIB.lexical_parse_integer_options_new()
+
+    @staticmethod
+    def decimal():
+        '''Create new options to parse the default decimal format.'''
+
+        options = ParseIntegerOptions.new()
+        options._radix = 10
+        return options
+
+    if HAVE_RADIX:
+        @staticmethod
+        def binary():
+            '''Create new options to parse the default binary format.'''
+
+            options = ParseIntegerOptions.new()
+            options._radix = 2
+            return options
+
+        @staticmethod
+        def hexadecimal():
+            '''Create new options to parse the default hexadecimal format.'''
+
+            options = ParseIntegerOptions.new()
+            options._radix = 16
+            return options
+
+    @staticmethod
+    def builder():
+        '''Get ParseIntegerOptionsBuilder as a static function.'''
+        return LIB.lexical_parse_integer_options_builder()
+
+    def rebuild(self):
+        '''Create ParseIntegerOptionsBuilder using existing values.'''
+        return LIB.lexical_parse_integer_options_rebuild(self)
+
+OptionParseIntegerOptions = _option(ParseIntegerOptions, 'OptionParseIntegerOptions')
+LIB.lexical_parse_integer_options_builder_new.restype = ParseIntegerOptionsBuilder
+LIB.lexical_parse_integer_options_builder_build.restype = OptionParseIntegerOptions
+LIB.lexical_parse_integer_options_new.restype = ParseIntegerOptions
+LIB.lexical_parse_integer_options_builder.restype = ParseIntegerOptionsBuilder
+LIB.lexical_parse_integer_options_rebuild.restype = ParseIntegerOptionsBuilder
+
+# PARSE FLOAT OPTIONS
+
+class ParseFloatOptionsBuilder(Structure):
+    '''Builder for `ParseFloatOptions`.'''
+
+    _fields_ = [
+        ('_radix', c_uint8),
+        ('_format', NumberFormat),
+        ('_rounding', c_uint32),
+        ('_incorrect', c_bool),
+        ('_lossy', c_bool),
+        ('_nan_string_ptr', POINTER(c_ubyte)),
+        ('_nan_string_size', c_size_t),
+        ('_inf_string_ptr', POINTER(c_ubyte)),
+        ('_inf_string_size', c_size_t),
+        ('_infinity_string_ptr', POINTER(c_ubyte)),
+        ('_infinity_string_size', c_size_t),
+    ]
+
+    def __repr__(self):
+        return f'ParseFloatOptionsBuilder(radix={self.radix}, format={repr(self.format)}, rounding=repr({self.rounding}), incorrect={self.incorrect}, lossy={self.lossy}, nan_string={self.nan_string}, inf_string={self.inf_string}, infinity_string={self.infinity_string})'
+
+    @property
+    def format(self):
+        '''Get the number format.'''
+        return self._format
+
+    @format.setter
+    def format(self, value):
+        '''Set the number format.'''
+        self._format = value
+
+    @property
+    def incorrect(self):
+        '''Get if we use the incorrect, fast parser.'''
+        return self._incorrect
+
+    @incorrect.setter
+    def incorrect(self, value):
+        '''Set if we use the incorrect, fast parser.'''
+        self._incorrect = value
+
+    @property
+    def lossy(self):
+        '''Get if we use the lossy, fast parser.'''
+        return self._lossy
+
+    @lossy.setter
+    def lossy(self, value):
+        '''Set if we use the lossy, fast parser.'''
+        self._lossy = value
+
+    @property
+    def nan_string(self):
+        '''Get the string representation for `NaN`.'''
+        return _from_c_string(self._nan_string_ptr, self._nan_string_size)
+
+    @nan_string.setter
+    def nan_string(self, value):
+        '''Set the string representation for `NaN`.'''
+
+        ptr, size = _to_c_string(value)
+        self._nan_string_ptr = ptr
+        self._nan_string_size = size
+
+    @property
+    def inf_string(self):
+        '''Get the short string representation for `Infinity`.'''
+        return _from_c_string(self._inf_string_ptr, self._inf_string_size)
+
+    @inf_string.setter
+    def inf_string(self, value):
+        '''Set the short string representation for `Infinity`.'''
+
+        ptr, size = _to_c_string(value)
+        self._inf_string_ptr = ptr
+        self._inf_string_size = size
+
+    @property
+    def infinity_string(self):
+        '''Get the long string representation for `Infinity`.'''
+        return _from_c_string(self._infinity_string_ptr, self._infinity_string_size)
+
+    @infinity_string.setter
+    def infinity_string(self, value):
+        '''Set the long string representation for `Infinity`.'''
+
+        ptr, size = _to_c_string(value)
+        self._infinity_string_ptr = ptr
+        self._infinity_string_size = size
+
+    @property
+    def radix(self):
+        '''Get the radix.'''
+        return self._radix
+
+    @property
+    def rounding(self):
+        '''Get the rounding kind.'''
+        return RoundingKind(self._rounding)
+
+    if HAVE_RADIX:
+        @radix.setter
+        def radix(self, value):
+            '''Set the radix.'''
+            self._radix = value
+
+    if HAVE_ROUNDING:
+        @rounding.setter
+        def rounding(self, value):
+            '''Set the rounding kind.'''
+            if not isinstance(value, RoundingKind):
+                raise TypeError('Expected RoundingKind')
+            self._rounding = value.value
+
+    @staticmethod
+    def new():
+        '''Create new builder with default arguments from the Rust API.'''
+        return LIB.lexical_parse_float_options_builder_new()
+
+    def build(self):
+        '''Build the NumberFormat from the current values.'''
+        return LIB.lexical_parse_float_options_builder_build(self)
+
+
+class ParseFloatOptions(Structure):
+    '''Options to customize parsing floats.'''
+
+    _fields_ = [
+        ('_compressed', c_uint32),
+        ('_format', NumberFormat),
+        ('_nan_string_ptr', POINTER(c_ubyte)),
+        ('_nan_string_size', c_size_t),
+        ('_inf_string_ptr', POINTER(c_ubyte)),
+        ('_inf_string_size', c_size_t),
+        ('_infinity_string_ptr', POINTER(c_ubyte)),
+        ('_infinity_string_size', c_size_t),
+    ]
+
+    def __repr__(self):
+        return f'ParseFloatOptions(radix={self.radix}, format={repr(self.format)}, rounding=repr({self.rounding}), incorrect={self.incorrect}, lossy={self.lossy}, nan_string={self.nan_string}, inf_string={self.inf_string}, infinity_string={self.infinity_string})'
+
+    @property
+    def radix(self):
+        '''Get the radix.'''
+        return self._compressed & 0xFF
+
+    @property
+    def rounding(self):
+        '''Get the rounding kind.'''
+        return RoundingKind((self._compressed & 0xFF00) >> 8)
+
+    @property
+    def incorrect(self):
+        '''Get if we use the incorrect, fast parser.'''
+        return self._compressed & 0x10000 != 0
+
+    @property
+    def lossy(self):
+        '''Get if we use the lossy, fast parser.'''
+        return self._compressed & 0x20000 != 0
+
+    @property
+    def format(self):
+        '''Get the number format.'''
+        return self._format
+
+    @property
+    def nan_string(self):
+        '''Get the string representation for `NaN`.'''
+        return _from_c_string(self._nan_string_ptr, self._nan_string_size)
+
+    @property
+    def inf_string(self):
+        '''Get the short string representation for `Infinity`.'''
+        return _from_c_string(self._inf_string_ptr, self._inf_string_size)
+
+    @property
+    def infinity_string(self):
+        '''Get the long string representation for `Infinity`.'''
+        return _from_c_string(self._infinity_string_ptr, self._infinity_string_size)
+
+    @staticmethod
+    def new():
+        '''Create options with default values.'''
+        return LIB.lexical_parse_float_options_new()
+
+    @staticmethod
+    def decimal():
+        '''Create new options to parse the default decimal format.'''
+
+        options = ParseFloatOptions.new()
+        options._compressed &= 0xFFFFFF00
+        options._compressed |= 10
+        return options
+
+    if HAVE_RADIX:
+        @staticmethod
+        def binary():
+            '''Create new options to parse the default binary format.'''
+
+            options = ParseFloatOptions.new()
+            options._compressed &= 0xFFFFFF00
+            options._compressed |= 2
+            return options
+
+        @staticmethod
+        def hexadecimal():
+            '''Create new options to parse the default hexadecimal format.'''
+
+            options = ParseFloatOptions.new()
+            options._compressed &= 0xFFFFFF00
+            options._compressed |= 16
+            return options
+
+    @staticmethod
+    def builder():
+        '''Get ParseFloatOptionsBuilder as a static function.'''
+        return LIB.lexical_parse_float_options_builder()
+
+    def rebuild(self):
+        '''Create ParseFloatOptionsBuilder using existing values.'''
+        return LIB.lexical_parse_float_options_rebuild(self)
+
+OptionParseFloatOptions = _option(ParseFloatOptions, 'OptionParseFloatOptions')
+LIB.lexical_parse_float_options_builder_new.restype = ParseFloatOptionsBuilder
+LIB.lexical_parse_float_options_builder_build.restype = OptionParseFloatOptions
+LIB.lexical_parse_float_options_new.restype = ParseFloatOptions
+LIB.lexical_parse_float_options_builder.restype = ParseFloatOptionsBuilder
+LIB.lexical_parse_float_options_rebuild.restype = ParseFloatOptionsBuilder
+
+# WRITE INTEGER OPTIONS
+
+class WriteIntegerOptionsBuilder(Structure):
+    '''Builder for `WriteIntegerOptions`.'''
+
+    _fields_ = [
+        ('_radix', c_uint8),
+    ]
+
+    def __repr__(self):
+        return f'WriteIntegerOptions(radix={self.radix})'
+
+    @property
+    def radix(self):
+        '''Get the radix.'''
+        return self._radix
+
+    if HAVE_RADIX:
+        @radix.setter
+        def radix(self, value):
+            '''Set the radix.'''
+            self._radix = value
+
+    @staticmethod
+    def new():
+        '''Create new builder with default arguments from the Rust API.'''
+        return LIB.lexical_write_integer_options_builder_new()
+
+    def build(self):
+        '''Build the NumberFormat from the current values.'''
+        return LIB.lexical_write_integer_options_builder_build(self)
+
+
+class WriteIntegerOptions(Structure):
+    '''Options to customize parsing integers.'''
+
+    _fields_ = [
+        ('_radix', c_uint32),
+    ]
+
+    def __repr__(self):
+        return f'WriteIntegerOptions(radix={self.radix})'
+
+    @property
+    def radix(self):
+        '''Get the radix.'''
+        return self._radix
+
+    @staticmethod
+    def new():
+        '''Create options with default values.'''
+        return LIB.lexical_write_integer_options_new()
+
+    @staticmethod
+    def decimal():
+        '''Create new options to write the default decimal format.'''
+
+        options = WriteIntegerOptions.new()
+        options._radix = 10
+        return options
+
+    if HAVE_RADIX:
+        @staticmethod
+        def binary():
+            '''Create new options to write the default binary format.'''
+
+            options = WriteIntegerOptions.new()
+            options._radix = 2
+            return options
+
+        @staticmethod
+        def hexadecimal():
+            '''Create new options to write the default hexadecimal format.'''
+
+            options = WriteIntegerOptions.new()
+            options._radix = 16
+            return options
+
+    @staticmethod
+    def builder():
+        '''Get WriteIntegerOptionsBuilder as a static function.'''
+        return LIB.lexical_write_integer_options_builder()
+
+    def rebuild(self):
+        '''Create WriteIntegerOptionsBuilder using existing values.'''
+        return LIB.lexical_write_integer_options_rebuild(self)
+
+OptionWriteIntegerOptions = _option(WriteIntegerOptions, 'OptionWriteIntegerOptions')
+LIB.lexical_write_integer_options_builder_new.restype = WriteIntegerOptionsBuilder
+LIB.lexical_write_integer_options_builder_build.restype = OptionWriteIntegerOptions
+LIB.lexical_write_integer_options_new.restype = WriteIntegerOptions
+LIB.lexical_write_integer_options_builder.restype = WriteIntegerOptionsBuilder
+LIB.lexical_write_integer_options_rebuild.restype = WriteIntegerOptionsBuilder
+
+# WRITE FLOAT OPTIONS
+
+class WriteFloatOptionsBuilder(Structure):
+    '''Builder for `WriteFloatOptions`.'''
+
+    _fields_ = [
+        ('_radix', c_uint8),
+        ('_format', NumberFormat),
+        ('_trim_floats', c_bool),
+        ('_nan_string_ptr', POINTER(c_ubyte)),
+        ('_nan_string_size', c_size_t),
+        ('_inf_string_ptr', POINTER(c_ubyte)),
+        ('_inf_string_size', c_size_t),
+    ]
+
+    def __repr__(self):
+        return f'WriteFloatOptionsBuilder(radix={self.radix}, format={repr(self.format)}, trim_floats={self.trim_floats}, nan_string={self.nan_string}, inf_string={self.inf_string})'
+
+    @property
+    def format(self):
+        '''Get the number format.'''
+        return self._format
+
+    @format.setter
+    def format(self, value):
+        '''Set the number format.'''
+        self._format = value
+
+    @property
+    def trim_floats(self):
+        '''Get if we should trim a trailing `".0"` from floats.'''
+        return self._trim_floats
+
+    @trim_floats.setter
+    def trim_floats(self, value):
+        '''Set if we should trim a trailing `".0"` from floats.'''
+        self._lossy = value
+
+    @property
+    def nan_string(self):
+        '''Get the string representation for `NaN`.'''
+        return _from_c_string(self._nan_string_ptr, self._nan_string_size)
+
+    @nan_string.setter
+    def nan_string(self, value):
+        '''Set the string representation for `NaN`.'''
+
+        ptr, size = _to_c_string(value)
+        self._nan_string_ptr = ptr
+        self._nan_string_size = size
+
+    @property
+    def inf_string(self):
+        '''Get the short string representation for `Infinity`.'''
+        return _from_c_string(self._inf_string_ptr, self._inf_string_size)
+
+    @inf_string.setter
+    def inf_string(self, value):
+        '''Set the short string representation for `Infinity`.'''
+
+        ptr, size = _to_c_string(value)
+        self._inf_string_ptr = ptr
+        self._inf_string_size = size
+
+    @property
+    def radix(self):
+        '''Get the radix.'''
+        return self._radix
+
+    @property
+    def rounding(self):
+        '''Get the rounding kind.'''
+        return RoundingKind(self._rounding)
+
+    if HAVE_RADIX:
+        @radix.setter
+        def radix(self, value):
+            '''Set the radix.'''
+            self._radix = value
+
+    @staticmethod
+    def new():
+        '''Create new builder with default arguments from the Rust API.'''
+        return LIB.lexical_write_float_options_builder_new()
+
+    def build(self):
+        '''Build the NumberFormat from the current values.'''
+        return LIB.lexical_write_float_options_builder_build(self)
+
+
+class WriteFloatOptions(Structure):
+    '''Options to customize parsing floats.'''
+
+    _fields_ = [
+        ('_compressed', c_uint32),
+        ('_format', NumberFormat),
+        ('_nan_string_ptr', POINTER(c_ubyte)),
+        ('_nan_string_size', c_size_t),
+        ('_inf_string_ptr', POINTER(c_ubyte)),
+        ('_inf_string_size', c_size_t),
+    ]
+
+    def __repr__(self):
+        return f'WriteFloatOptions(radix={self.radix}, format={repr(self.format)}, trim_floats={self.trim_floats}, nan_string={self.nan_string}, inf_string={self.inf_string})'
+
+    @property
+    def radix(self):
+        '''Get the radix.'''
+        return self._compressed & 0xFF
+
+    @property
+    def trim_floats(self):
+        '''Get the radix.'''
+        return self._compressed & 0x100 != 0
+
+    @property
+    def format(self):
+        '''Get the number format.'''
+        return self._format
+
+    @property
+    def nan_string(self):
+        '''Get the string representation for `NaN`.'''
+        return _from_c_string(self._nan_string_ptr, self._nan_string_size)
+
+    @property
+    def inf_string(self):
+        '''Get the short string representation for `Infinity`.'''
+        return _from_c_string(self._inf_string_ptr, self._inf_string_size)
+
+    @staticmethod
+    def new():
+        '''Create options with default values.'''
+        return LIB.lexical_write_float_options_new()
+
+    @staticmethod
+    def decimal():
+        '''Create new options to write the default decimal format.'''
+
+        options = WriteFloatOptions.new()
+        options._compressed &= 0xFFFFFF00
+        options._compressed |= 10
+        return options
+
+    if HAVE_RADIX:
+        @staticmethod
+        def binary():
+            '''Create new options to write the default binary format.'''
+
+            options = WriteFloatOptions.new()
+            options._compressed &= 0xFFFFFF00
+            options._compressed |= 2
+            return options
+
+        @staticmethod
+        def hexadecimal():
+            '''Create new options to write the default hexadecimal format.'''
+
+            options = WriteFloatOptions.new()
+            options._compressed &= 0xFFFFFF00
+            options._compressed |= 16
+            return options
+
+    @staticmethod
+    def builder():
+        '''Get WriteFloatOptionsBuilder as a static function.'''
+        return LIB.lexical_write_float_options_builder()
+
+    def rebuild(self):
+        '''Create WriteFloatOptionsBuilder using existing values.'''
+        return LIB.lexical_write_float_options_rebuild(self)
+
+OptionWriteFloatOptions = _option(WriteFloatOptions, 'OptionWriteFloatOptions')
+LIB.lexical_write_float_options_builder_new.restype = WriteFloatOptionsBuilder
+LIB.lexical_write_float_options_builder_build.restype = OptionWriteFloatOptions
+LIB.lexical_write_float_options_new.restype = WriteFloatOptions
+LIB.lexical_write_float_options_builder.restype = WriteFloatOptionsBuilder
+LIB.lexical_write_float_options_rebuild.restype = WriteFloatOptionsBuilder
 
 # GLOBALS
 # -------
@@ -2095,6 +2478,9 @@ if HAVE_I128:
             value = value % (2**128)
             self._value = value.to_bytes(16, sys.byteorder)
 
+        def __repr__(self):
+            return f'c_uint128({self.value})'
+
         @property
         def value(self):
             return int.from_bytes(bytes(self._value), sys.byteorder, signed=False)
@@ -2114,6 +2500,9 @@ if HAVE_I128:
             # and just export the bytes as-is.
             value = value % (2**128)
             self._value = value.to_bytes(16, sys.byteorder)
+
+        def __repr__(self):
+            return f'c_int128({self.value})'
 
         @property
         def value(self):
@@ -2150,6 +2539,9 @@ class Error(Structure):
         ("_code", c_uint32),
         ("index", c_size_t)
     ]
+
+    def __repr__(self):
+        return f'Error(code={self.code}, index={self.index})'
 
     @property
     def code(self):
@@ -2268,6 +2660,9 @@ def _union(cls, name):
             ("_error", Error)
         ]
 
+        def __repr__(self):
+            return f'{name}(value={repr(self._value)}, index={repr(self._error)})'
+
     ResultUnion.__name__ = name
     return ResultUnion
 
@@ -2297,6 +2692,11 @@ def _result(cls, name):
             ("_tag", c_uint32),
             ("_data", cls)
         ]
+
+        def __repr__(self):
+            if self._tag == Result.Err:
+                return 'Result(Err)'
+            return f'Result(Ok({repr(self._data._value)}))'
 
         @property
         def tag(self):
@@ -2343,6 +2743,9 @@ def _partial_tuple(cls, name):
             ("_x", cls),
             ("_y", c_size_t)
         ]
+
+        def __repr__(self):
+            return f'Tuple(({repr(self._x)}, {self._y}))'
 
         def into(self):
             '''Extract Python tuple from structure.'''
@@ -2400,6 +2803,11 @@ def _partial_result(cls, name):
             ("_tag", c_uint32),
             ("_data", cls)
         ]
+
+        def __repr__(self):
+            if self._tag == Result.Err:
+                return 'Result(Err)'
+            return f'Result(Ok({repr(self._data._value.into())}))'
 
         @property
         def tag(self):
