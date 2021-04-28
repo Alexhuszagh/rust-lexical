@@ -2068,6 +2068,188 @@ impl NumberFormatBuilder {
         }
     }
 
+    // GETTERS
+
+    /// Get the digit separator for the number format.
+    #[inline(always)]
+    pub const fn get_digit_separator(&self) -> u8 {
+        self.digit_separator
+    }
+
+    /// Get the decimal point character for the number format.
+    #[inline(always)]
+    pub const fn get_decimal_point(&self) -> u8 {
+        self.decimal_point
+    }
+
+    /// Get the default exponent character for the number format.
+    #[inline(always)]
+    pub const fn get_exponent_default(&self) -> u8 {
+        self.exponent_default
+    }
+
+    /// Get the backup exponent character for the number format.
+    #[inline(always)]
+    pub const fn get_exponent_backup(&self) -> u8 {
+        self.exponent_backup
+    }
+
+    /// Get if digits are required before the decimal point.
+    #[inline(always)]
+    pub const fn get_required_integer_digits(&self) -> bool {
+        self.required_integer_digits
+    }
+
+    /// Get if digits are required after the decimal point.
+    #[inline(always)]
+    pub const fn get_required_fraction_digits(&self) -> bool {
+        self.required_fraction_digits
+    }
+
+    /// Get if digits are required after the exponent character.
+    #[inline(always)]
+    pub const fn get_required_exponent_digits(&self) -> bool {
+        self.required_exponent_digits
+    }
+
+    /// Get if a positive sign before the mantissa is not allowed.
+    #[inline(always)]
+    pub const fn get_no_positive_mantissa_sign(&self) -> bool {
+        self.no_positive_mantissa_sign
+    }
+
+    /// Get if a sign symbol before the mantissa is required.
+    #[inline(always)]
+    pub const fn get_required_mantissa_sign(&self) -> bool {
+        self.required_mantissa_sign
+    }
+
+    /// Get if exponent notation is not allowed.
+    #[inline(always)]
+    pub const fn get_no_exponent_notation(&self) -> bool {
+        self.no_exponent_notation
+    }
+
+    /// Get if a positive sign before the exponent is not allowed.
+    #[inline(always)]
+    pub const fn get_no_positive_exponent_sign(&self) -> bool {
+        self.no_positive_exponent_sign
+    }
+
+    /// Get if a sign symbol before the exponent is required.
+    #[inline(always)]
+    pub const fn get_required_exponent_sign(&self) -> bool {
+        self.required_exponent_sign
+    }
+
+    /// Get if an exponent without fraction is not allowed.
+    #[inline(always)]
+    pub const fn get_no_exponent_without_fraction(&self) -> bool {
+        self.no_exponent_without_fraction
+    }
+
+    /// Get if special (non-finite) values are not allowed.
+    #[inline(always)]
+    pub const fn get_no_special(&self) -> bool {
+        self.no_special
+    }
+
+    /// Get if special (non-finite) values are case-sensitive.
+    #[inline(always)]
+    pub const fn get_case_sensitive_special(&self) -> bool {
+        self.case_sensitive_special
+    }
+
+    /// Get if leading zeros before an integer are not allowed.
+    #[inline(always)]
+    pub const fn get_no_integer_leading_zeros(&self) -> bool {
+        self.no_integer_leading_zeros
+    }
+
+    /// Get if leading zeros before a float are not allowed.
+    #[inline(always)]
+    pub const fn get_no_float_leading_zeros(&self) -> bool {
+        self.no_float_leading_zeros
+    }
+
+    /// Get if digit separators are allowed between integer digits.
+    #[inline(always)]
+    pub const fn get_integer_internal_digit_separator(&self) -> bool {
+        self.integer_internal_digit_separator
+    }
+
+    /// Get if digit separators are allowed between fraction digits.
+    #[inline(always)]
+    pub const fn get_fraction_internal_digit_separator(&self) -> bool {
+        self.fraction_internal_digit_separator
+    }
+
+    /// Get if digit separators are allowed between exponent digits.
+    #[inline(always)]
+    pub const fn get_exponent_internal_digit_separator(&self) -> bool {
+        self.exponent_internal_digit_separator
+    }
+
+    /// Get if a digit separator is allowed before any integer digits.
+    #[inline(always)]
+    pub const fn get_integer_leading_digit_separator(&self) -> bool {
+        self.integer_leading_digit_separator
+    }
+
+    /// Get if a digit separator is allowed before any fraction digits.
+    #[inline(always)]
+    pub const fn get_fraction_leading_digit_separator(&self) -> bool {
+        self.fraction_leading_digit_separator
+    }
+
+    /// Get if a digit separator is allowed before any exponent digits.
+    #[inline(always)]
+    pub const fn get_exponent_leading_digit_separator(&self) -> bool {
+        self.exponent_leading_digit_separator
+    }
+
+    /// Get if a digit separator is allowed after any integer digits.
+    #[inline(always)]
+    pub const fn get_integer_trailing_digit_separator(&self) -> bool {
+        self.integer_trailing_digit_separator
+    }
+
+    /// Get if a digit separator is allowed after any fraction digits.
+    #[inline(always)]
+    pub const fn get_fraction_trailing_digit_separator(&self) -> bool {
+        self.fraction_trailing_digit_separator
+    }
+
+    /// Get if a digit separator is allowed after any exponent digits.
+    #[inline(always)]
+    pub const fn get_exponent_trailing_digit_separator(&self) -> bool {
+        self.exponent_trailing_digit_separator
+    }
+
+    /// Get if multiple consecutive integer digit separators are allowed.
+    #[inline(always)]
+    pub const fn get_integer_consecutive_digit_separator(&self) -> bool {
+        self.integer_consecutive_digit_separator
+    }
+
+    /// Get if multiple consecutive fraction digit separators are allowed.
+    #[inline(always)]
+    pub const fn get_fraction_consecutive_digit_separator(&self) -> bool {
+        self.fraction_consecutive_digit_separator
+    }
+
+    /// Get if multiple consecutive exponent digit separators are allowed.
+    #[inline(always)]
+    pub const fn get_exponent_consecutive_digit_separator(&self) -> bool {
+        self.exponent_consecutive_digit_separator
+    }
+
+    /// Get if any digit separators are allowed in special (non-finite) values.
+    #[inline(always)]
+    pub const fn get_special_digit_separator(&self) -> bool {
+        self.special_digit_separator
+    }
+
     // SETTERS
 
     /// Set the digit separator for the number format.

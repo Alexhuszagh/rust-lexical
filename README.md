@@ -7,6 +7,10 @@ lexical
 
 Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical is simple to use and focuses on performance and correctness. Finally, [lexical-core](lexical-core) is suitable for environments without a memory allocator, not requiring any internal allocations by default.
 
+**Similar Projects**
+
+If you want a minimal, stable, and compile-time friendly version of lexical-core's float-parsing algorithm, see [minimal-lexical](https://github.com/Alexhuszagh/minimal-lexical). For language bindings to lexical, see [lexical-capi](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-capi).
+
 **Table of Contents**
 
 - [Getting Started](#getting-started)

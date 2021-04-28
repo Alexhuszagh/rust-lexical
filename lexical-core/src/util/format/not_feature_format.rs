@@ -327,7 +327,7 @@ impl NumberFormat {
 
 // NUMBER FORMAT BUILDER
 
-/// Build float format value from specifications.
+/// Build number format value from specifications.
 ///
 /// * `decimal_point`                           - Character to designate the decimal point.
 /// * `exponent_default`                        - Default character to designate the exponent.
@@ -351,6 +351,26 @@ impl NumberFormatBuilder {
             exponent_default: b'e',
             exponent_backup: b'^',
         }
+    }
+
+    // GETTERS
+
+    /// Get the decimal point character for the number format.
+    #[inline(always)]
+    pub const fn get_decimal_point(&self) -> u8 {
+        self.decimal_point
+    }
+
+    /// Get the default exponent character for the number format.
+    #[inline(always)]
+    pub const fn get_exponent_default(&self) -> u8 {
+        self.exponent_default
+    }
+
+    /// Get the backup exponent character for the number format.
+    #[inline(always)]
+    pub const fn get_exponent_backup(&self) -> u8 {
+        self.exponent_backup
     }
 
     // SETTERS

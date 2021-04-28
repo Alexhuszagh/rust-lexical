@@ -62,7 +62,15 @@ impl Default for ParseIntegerOptionsBuilder {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn parse_integer_options_builder_build(builder: ParseIntegerOptionsBuilder)
+pub extern fn lexical_parse_integer_options_builder_new()
+    -> ParseIntegerOptionsBuilder
+{
+    lexical_core::ParseIntegerOptionsBuilder::new().into()
+}
+
+#[no_mangle]
+#[doc(hidden)]
+pub extern fn lexical_parse_integer_options_builder_build(builder: ParseIntegerOptionsBuilder)
     -> Option<ParseIntegerOptions>
 {
     let builder: lexical_core::ParseIntegerOptionsBuilder = builder.into();
@@ -111,14 +119,22 @@ impl Default for ParseIntegerOptions {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn parse_integer_options_builder() -> ParseIntegerOptionsBuilder
+pub extern fn lexical_parse_integer_options_new()
+    -> ParseIntegerOptions
+{
+    lexical_core::ParseIntegerOptions::new().into()
+}
+
+#[no_mangle]
+#[doc(hidden)]
+pub extern fn lexical_parse_integer_options_builder() -> ParseIntegerOptionsBuilder
 {
     ParseIntegerOptionsBuilder::default()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn parse_integer_options_rebuild(options: ParseIntegerOptions) -> ParseIntegerOptionsBuilder
+pub extern fn lexical_parse_integer_options_rebuild(options: ParseIntegerOptions) -> ParseIntegerOptionsBuilder
 {
     let options: lexical_core::ParseIntegerOptions = options.into();
     options.rebuild().into()
@@ -208,7 +224,15 @@ impl Default for ParseFloatOptionsBuilder {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn parse_float_options_builder_build(builder: ParseFloatOptionsBuilder)
+pub extern fn lexical_parse_float_options_builder_new()
+    -> ParseFloatOptionsBuilder
+{
+    lexical_core::ParseFloatOptionsBuilder::new().into()
+}
+
+#[no_mangle]
+#[doc(hidden)]
+pub extern fn lexical_parse_float_options_builder_build(builder: ParseFloatOptionsBuilder)
     -> Option<ParseFloatOptions>
 {
     let builder: lexical_core::ParseFloatOptionsBuilder = builder.into();
@@ -283,14 +307,21 @@ impl Default for ParseFloatOptions {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn parse_float_options_builder() -> ParseFloatOptionsBuilder
+pub extern fn lexical_parse_float_options_new() -> ParseFloatOptions
+{
+    lexical_core::ParseFloatOptions::new().into()
+}
+
+#[no_mangle]
+#[doc(hidden)]
+pub extern fn lexical_parse_float_options_builder() -> ParseFloatOptionsBuilder
 {
     ParseFloatOptionsBuilder::default()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn parse_float_options_rebuild(options: ParseFloatOptions) -> ParseFloatOptionsBuilder
+pub extern fn lexical_parse_float_options_rebuild(options: ParseFloatOptions) -> ParseFloatOptionsBuilder
 {
     let options: lexical_core::ParseFloatOptions = options.into();
     options.rebuild().into()
@@ -339,7 +370,14 @@ impl Default for WriteIntegerOptionsBuilder {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn write_integer_options_builder_build(builder: WriteIntegerOptionsBuilder)
+pub extern fn lexical_write_integer_options_builder_new() -> WriteIntegerOptionsBuilder
+{
+    lexical_core::WriteIntegerOptionsBuilder::new().into()
+}
+
+#[no_mangle]
+#[doc(hidden)]
+pub extern fn lexical_write_integer_options_builder_build(builder: WriteIntegerOptionsBuilder)
     -> Option<WriteIntegerOptions>
 {
     let builder: lexical_core::WriteIntegerOptionsBuilder = builder.into();
@@ -384,14 +422,21 @@ impl Default for WriteIntegerOptions {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn write_integer_options_builder() -> WriteIntegerOptionsBuilder
+pub extern fn lexical_write_integer_options_new() -> WriteIntegerOptions
+{
+    lexical_core::WriteIntegerOptions::new().into()
+}
+
+#[no_mangle]
+#[doc(hidden)]
+pub extern fn lexical_write_integer_options_builder() -> WriteIntegerOptionsBuilder
 {
     WriteIntegerOptionsBuilder::default()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn write_integer_options_rebuild(options: WriteIntegerOptions) -> WriteIntegerOptionsBuilder
+pub extern fn lexical_write_integer_options_rebuild(options: WriteIntegerOptions) -> WriteIntegerOptionsBuilder
 {
     let options: lexical_core::WriteIntegerOptions = options.into();
     options.rebuild().into()
@@ -465,7 +510,14 @@ impl Default for WriteFloatOptionsBuilder {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn write_float_options_builder_build(builder: WriteFloatOptionsBuilder)
+pub extern fn lexical_write_float_options_builder_new() -> WriteFloatOptionsBuilder
+{
+    lexical_core::WriteFloatOptionsBuilder::new().into()
+}
+
+#[no_mangle]
+#[doc(hidden)]
+pub extern fn lexical_write_float_options_builder_build(builder: WriteFloatOptionsBuilder)
     -> Option<WriteFloatOptions>
 {
     let builder: lexical_core::WriteFloatOptionsBuilder = builder.into();
@@ -530,14 +582,21 @@ impl Default for WriteFloatOptions {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn write_float_options_builder() -> WriteFloatOptionsBuilder
+pub extern fn lexical_write_float_options_new() -> WriteFloatOptions
+{
+    lexical_core::WriteFloatOptions::new().into()
+}
+
+#[no_mangle]
+#[doc(hidden)]
+pub extern fn lexical_write_float_options_builder() -> WriteFloatOptionsBuilder
 {
     WriteFloatOptionsBuilder::default()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn write_float_options_rebuild(options: WriteFloatOptions) -> WriteFloatOptionsBuilder
+pub extern fn lexical_write_float_options_rebuild(options: WriteFloatOptions) -> WriteFloatOptionsBuilder
 {
     let options: lexical_core::WriteFloatOptions = options.into();
     options.rebuild().into()

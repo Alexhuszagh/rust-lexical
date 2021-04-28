@@ -5,7 +5,13 @@ lexical-core
 [![Latest Version](https://img.shields.io/crates/v/lexical-core.svg)](https://crates.io/crates/lexical-core)
 [![Rustc Version 1.37+](https://img.shields.io/badge/rustc-1.37+-lightgray.svg)](https://blog.rust-lang.org/2019/08/15/Rust-1.37.0.html)
 
-Low-level, lexical conversion routines for use in a `no_std` context. This crate by default does not use the Rust standard library.
+Low-level, lexical conversion routines for use in a `no_std` context. This crate by default does not use the Rust standard library, and does not require a system allocator.
+
+**Similar Projects**
+
+If you want a minimal, stable, and compile-time friendly version of lexical-core's float-parsing algorithm, see [minimal-lexical](https://github.com/Alexhuszagh/minimal-lexical). For language bindings to lexical, see [lexical-capi](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-capi).
+
+**Table of Contents**
 
 - [Getting Started](#getting-started)
 - [Features](#features)
@@ -93,6 +99,8 @@ assert_eq!(slc, b"15.1");
     <blockquote>By default, lexical uses round-nearest, tie-even for float rounding (recommended by IEE754).</blockquote>
 - **ryu** Use dtolnay's [ryu](https://github.com/dtolnay/ryu/) library for float-to-string conversions.
     <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. Ryu is ~2x as fast as other float formatters.</blockquote>
+- **no_alloc** Do not use a system allocator.
+    <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. If the feature is turned off, storage for arbitrary-precision arithmetic will use dynamically-allocated memory rather than the stack.</blockquote>
 
 
 ## Format

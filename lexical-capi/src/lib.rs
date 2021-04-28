@@ -4,6 +4,8 @@
 //! variables, and exists solely to export unmangled symbols to
 //! static/shared library.
 
+// TODO(ahuszagh) Add examples/more documentation.
+
 // FEATURES
 
 // Require intrinsics in a no_std context.
@@ -44,3 +46,12 @@ pub use self::api::*;
 pub use self::config::*;
 pub use self::option::*;
 pub use self::options::*;
+
+cfg_if! {
+if #[cfg(feature = "format")] {
+    mod feature_format;
+    pub use self::feature_format::*;
+} else {
+    mod not_feature_format;
+    pub use self::not_feature_format::*;
+}}  // cfg_if
