@@ -12,10 +12,15 @@ readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
 version = "6.0.0"
 exclude = [
+    "assets/*",
+    "ci/*",
     "data/*",
     "benches/*",
-    "lexical-codegen/*",
     "lexical-benchmark/*",
+    "lexical-capi/*",
+    "lexical-codegen/*",
+    "lexical-derive/*",
+    "lexical-test/*",
 ]
 
 [badges]
@@ -40,7 +45,7 @@ itoa_impl = { version = "0.4", features = ["i128"], package = "itoa" }
 lazy_static = "1"
 
 [features]
-default = ["atof", "atoi", "ftoa", "itoa", "ryu", "std"]
+default = ["atof", "atoi", "ftoa", "itoa", "no_alloc", "ryu", "std"]
 
 # SUBMODULES
 # ----------
@@ -63,6 +68,9 @@ write_integers = ["itoa"]
 
 # FEATURES
 # --------
+# Do not use the system allocator, if possible.
+# Note that setting will be overriden for f128 and radix with atof.
+no_alloc = ["lexical-core/no_alloc"]
 # Add support for different float string formats.
 format = ["lexical-core/format"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).

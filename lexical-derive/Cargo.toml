@@ -17,7 +17,7 @@ features = []
 proc-macro = true
 
 [features]
-default = ["atof", "atoi", "ftoa", "itoa", "ryu", "std"]
+default = ["atof", "atoi", "ftoa", "itoa", "no_alloc", "ryu", "std"]
 
 # SUBMODULES
 # ----------
@@ -35,6 +35,7 @@ write_integers = ["itoa"]
 
 # FEATURES
 # --------
+no_alloc = ["lexical-core/no_alloc"]
 format = ["lexical-core/format"]
 grisu3 = ["lexical-core/grisu3"]
 radix = ["lexical-core/radix"]

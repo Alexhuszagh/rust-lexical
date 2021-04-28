@@ -21,17 +21,43 @@ crate-type = ["cdylib", "staticlib"]
 travis-ci = { repository = "Alexhuszagh/rust-lexical" }
 
 [dependencies]
-lexical-core = { path = "../lexical-core", version = "^0.7.4", default-features = false }
+cfg-if = "1.0"
+
+[dependencies.lexical-core]
+path = "../lexical-core"
+default-features = false
+features = []
+version = "^0.8.0"
 
 [features]
-default = ["correct", "ryu", "std"]
-# Use the correct atof parser.
-correct = ["lexical-core/correct"]
+default = ["atof", "atoi", "ftoa", "itoa", "no_alloc", "ryu", "std"]
+
+# SUBMODULES
+# ----------
+atof = ["lexical-core/atof"]
+atoi = ["lexical-core/atoi"]
+ftoa = ["lexical-core/ftoa"]
+itoa = ["lexical-core/itoa"]
+
+# ALIASES
+# -------
+parse_floats = ["atof"]
+parse_integers = ["atoi"]
+write_floats = ["ftoa"]
+write_integers = ["itoa"]
+
+# FEATURES
+# --------
+# Add support for i128 and u128, which are not FFI-stable.
+i128 = []
+# Do not use the system allocator, if possible.
+# Note that setting will be overriden for f128 and radix with atof.
+no_alloc = ["lexical-core/no_alloc"]
 # Add support for different float string formats.
 format = ["lexical-core/format"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["lexical-core/grisu3"]
-# Add support for [parsing non-decimal float and integer strings.
+# Add support for parsing non-decimal float and integer strings.
 radix = ["lexical-core/radix"]
 # Allow custom rounding schemes, at the cost of slower performance.
 rounding = ["lexical-core/rounding"]
@@ -39,14 +65,6 @@ rounding = ["lexical-core/rounding"]
 ryu = ["lexical-core/ryu"]
 # Use the `std` library.
 std = ["lexical-core/std"]
-# Trim a trailing ".0" from an exported float string, and represent -0.0 as "0".
-trim_floats = ["lexical-core/trim_floats"]
-# Don't force bounds checking with indexing not-known to be valid at compile time.
-# This may lead to memory safety issues.
-unchecked_index = ["lexical-core/unchecked_index"]
-# Don't inline when using perftools.
-# Testing only.
-noinline = ["lexical-core/noinline"]
 
 # Use heavy optimizations for release builds, and make our panics to detect
 # internal logic errors safe for FFI, via abort.
