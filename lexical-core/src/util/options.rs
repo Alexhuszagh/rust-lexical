@@ -159,12 +159,28 @@ pub struct ParseIntegerOptionsBuilder {
 impl ParseIntegerOptionsBuilder {
     /// Create new, default builder.
     #[inline(always)]
-    const fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             radix: DEFAULT_RADIX,
             format: None
         }
     }
+
+    // GETTERS
+
+    /// Get the radix.
+    #[inline(always)]
+    pub const fn get_radix(&self) -> u8 {
+        self.radix
+    }
+
+    /// Get the number format.
+    #[inline(always)]
+    pub const fn get_format(&self) -> Option<NumberFormat> {
+        self.format
+    }
+
+    // SETTERS
 
     /// Set the radix for ParseIntegerOptionsBuilder.
     #[inline(always)]
@@ -180,6 +196,8 @@ impl ParseIntegerOptionsBuilder {
         self.format = format;
         self
     }
+
+    // BUILDERS
 
     const_fn!(
     /// Build the ParseIntegerOptions struct.
@@ -349,6 +367,56 @@ impl ParseFloatOptionsBuilder {
             inf_string: DEFAULT_INF_STRING,
             infinity_string: DEFAULT_INFINITY_STRING,
         }
+    }
+
+    // GETTERS
+
+    /// Get the radix.
+    #[inline(always)]
+    pub const fn get_radix(&self) -> u8 {
+        self.radix
+    }
+
+    /// Get the number format.
+    #[inline(always)]
+    pub const fn get_format(&self) -> NumberFormat {
+        self.format
+    }
+
+    /// Get the rounding kind for float.
+    #[inline(always)]
+    pub const fn get_rounding(&self) -> RoundingKind {
+        self.rounding
+    }
+
+    /// Get if we use the incorrect, fast parser.
+    #[inline(always)]
+    pub const fn get_incorrect(&self) -> bool {
+        self.incorrect
+    }
+
+    /// Get if we use the lossy, fast parser.
+    #[inline(always)]
+    pub const fn get_lossy(&self) -> bool {
+        self.lossy
+    }
+
+    /// Get the string representation for `NaN`.
+    #[inline(always)]
+    pub const fn get_nan_string(&self) -> &'static [u8] {
+        self.nan_string
+    }
+
+    /// Get the short string representation for `Infinity`.
+    #[inline(always)]
+    pub const fn get_inf_string(&self) -> &'static [u8] {
+        self.inf_string
+    }
+
+    /// Get the long string representation for `Infinity`.
+    #[inline(always)]
+    pub const fn get_infinity_string(&self) -> &'static [u8] {
+        self.infinity_string
     }
 
     // SETTERS
@@ -578,7 +646,7 @@ impl ParseFloatOptions {
         self.format
     }
 
-     /// Get the string representation for `NaN`.
+    /// Get the string representation for `NaN`.
     #[inline(always)]
     pub const fn nan_string(&self) -> &'static [u8] {
         self.nan_string
@@ -735,6 +803,14 @@ impl WriteIntegerOptionsBuilder {
         }
     }
 
+    // GETTERS
+
+    /// Get the radix.
+    #[inline(always)]
+    pub const fn get_radix(&self) -> u8 {
+        self.radix
+    }
+
     // SETTERS
 
     /// Set the radix for WriteIntegerOptionsBuilder.
@@ -824,6 +900,15 @@ impl WriteIntegerOptions {
         self.radix
     }
 
+    // SETTERS
+
+    /// Set the radix.
+    /// Unsafe, use the builder API for option validation.
+    #[inline(always)]
+    pub unsafe fn set_radix(&mut self, radix: u32) {
+        self.radix = radix;
+    }
+
     // BUILDERS
 
     /// Get WriteIntegerOptionsBuilder as a static function.
@@ -880,6 +965,38 @@ impl WriteFloatOptionsBuilder {
             nan_string: DEFAULT_NAN_STRING,
             inf_string: DEFAULT_INF_STRING,
         }
+    }
+
+    // GETTERS
+
+    /// Get the radix.
+    #[inline(always)]
+    pub const fn get_radix(&self) -> u8 {
+        self.radix
+    }
+
+    /// Get the number format.
+    #[inline(always)]
+    pub const fn get_format(&self) -> Option<NumberFormat> {
+        self.format
+    }
+
+    /// Get if we should trim a trailing `".0"` from floats.
+    #[inline(always)]
+    pub const fn get_trim_floats(&self) -> bool {
+        self.trim_floats
+    }
+
+    /// Get the string representation for `NaN`.
+    #[inline(always)]
+    pub const fn get_nan_string(&self) -> &'static [u8] {
+        self.nan_string
+    }
+
+    /// Get the short string representation for `Infinity`.
+    #[inline(always)]
+    pub const fn get_inf_string(&self) -> &'static [u8] {
+        self.inf_string
     }
 
     //  SETTERS

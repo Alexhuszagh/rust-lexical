@@ -176,6 +176,7 @@ bitflags! {
     /// 42. PostgreSQL
     /// 43. MySQL
     /// 44. MongoDB
+    #[repr(C)]
     #[derive(Default)]
     pub struct NumberFormat: u64 {
         // MASKS & FLAGS

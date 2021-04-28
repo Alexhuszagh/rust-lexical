@@ -13,6 +13,9 @@
 
 // EXTERNAL
 
+#[macro_use]
+extern crate cfg_if;
+
 extern crate lexical_core;
 
 /// Facade around the core features for name mangling.
@@ -30,9 +33,14 @@ pub(crate) use core::*;
 // but should not be used from Rust.
 mod api;
 mod config;
+mod ctypes;
+mod option;
+mod options;
 mod result;
 
 // We need to export them to the root crate for them to generate symbols.
 // Hide all documentation.
 pub use self::api::*;
 pub use self::config::*;
+pub use self::option::*;
+pub use self::options::*;

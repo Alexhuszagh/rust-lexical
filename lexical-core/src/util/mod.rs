@@ -81,9 +81,6 @@ pub(crate) use self::iterator::*;
 #[cfg(any(feature = "atof", feature = "ftoa"))]
 pub(crate) use self::mask::*;
 
-#[cfg(any(feature = "atof", feature = "ftoa"))]
-pub(crate) use self::rounding::*;
-
 #[cfg(feature = "atof")]
 pub(crate) use self::sequence::*;
 
@@ -107,5 +104,6 @@ pub use self::error::*;
 #[cfg(any(feature = "atof", feature = "atoi"))]
 pub use self::result::*;
 
-#[cfg(all(any(feature = "atof", feature = "ftoa"), feature = "rounding"))]
+// Always export RoundingKind since it's needed for the Options API.
+#[cfg(any(feature = "atof", feature = "ftoa"))]
 pub use self::rounding::RoundingKind;

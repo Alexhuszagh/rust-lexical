@@ -51,6 +51,7 @@ bitflags! {
     /// |       |      Decimal Point        |                           |
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     /// ```
+    #[repr(C)]
     #[derive(Default)]
     pub struct NumberFormat: u64 {
         // HIDDEN DEFAULTS
