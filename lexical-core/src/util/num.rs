@@ -15,7 +15,7 @@ use super::options::*;
 #[cfg(feature = "atof")]
 use super::sequence::CloneableVecLike;
 
-#[cfg(all(feature = "atof", any(feature = "f128", feature = "radix")))]
+#[cfg(all(feature = "atof", any(not(feature = "no_alloc"), feature = "f128", feature = "radix")))]
 use crate::lib::Vec;
 
 // NUMBER
@@ -941,22 +941,31 @@ impl Float for f16 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0x1F - Self::EXPONENT_BIAS;
 
-    #[cfg(all(feature = "atof", feature = "radix"))]
-    type BigintStorage = Vec<Limb>;
-    #[cfg(all(feature = "atof", not(feature = "radix")))]
-    type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
+    #[cfg(feature = "atof")]
+    cfg_if! {
+    if #[cfg(any(not(feature = "no_alloc"), feature = "radix"))] {
+        type BigintStorage = Vec<Limb>;
+    } else {
+        type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
+    }}  // cfg_if
 
-    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
+    #[cfg(feature = "atof")]
+    cfg_if! {
+    if #[cfg(not(feature = "no_alloc"))] {
+        type BigfloatStorage = Vec<Limb>;
+    } else {
+        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
+    }}  // cfg_if
 
-    #[cfg(all(limb_width_64, feature = "atof"))]
-    const BIGINT_LIMBS: usize = 20;
-    #[cfg(all(limb_width_32, feature = "atof"))]
-    const BIGINT_LIMBS: usize = 20;
-
-    #[cfg(all(limb_width_64, feature = "atof"))]
-    const BIGFLOAT_LIMBS: usize = 10;
-    #[cfg(all(limb_width_32, feature = "atof"))]
-    const BIGFLOAT_LIMBS: usize = 10;
+    #[cfg(feature = "atof")]
+    cfg_if! {
+    if #[cfg(limb_width_64)] {
+        const BIGINT_LIMBS: usize = 20;
+        const BIGFLOAT_LIMBS: usize = 10;
+    } else {
+        const BIGINT_LIMBS: usize = 20;
+        const BIGFLOAT_LIMBS: usize = 10;
+    }}  // cfg_if
 
     // TODO(ahuszagh) Need to add the float methods.
 }
@@ -985,25 +994,33 @@ impl Float for bf16 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
 
-    #[cfg(all(feature = "atof", feature = "radix"))]
-    type BigintStorage = Vec<Limb>;
-    #[cfg(all(feature = "atof", not(feature = "radix")))]
-    type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
+    #[cfg(feature = "atof")]
+    cfg_if! {
+    if #[cfg(any(not(feature = "no_alloc"), feature = "radix"))] {
+        type BigintStorage = Vec<Limb>;
+    } else {
+        type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
+    }}  // cfg_if
 
-    #[cfg(all(limb_width_64, feature = "atof"))]
-    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
-    #[cfg(all(limb_width_32, feature = "atof"))]
-    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
+    #[cfg(feature = "atof")]
+    cfg_if! {
+    if #[cfg(not(feature = "no_alloc"))] {
+        type BigfloatStorage = Vec<Limb>;
+    } else if #[cfg(limb_width_64)] {
+        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
+    } else {
+        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
+    }}  // cfg_if
 
-    #[cfg(all(limb_width_64, feature = "atof"))]
-    const BIGINT_LIMBS: usize = 20;
-    #[cfg(all(limb_width_32, feature = "atof"))]
-    const BIGINT_LIMBS: usize = 20;
-
-    #[cfg(all(limb_width_64, feature = "atof"))]
-    const BIGFLOAT_LIMBS: usize = 10;
-    #[cfg(all(limb_width_32, feature = "atof"))]
-    const BIGFLOAT_LIMBS: usize = 20;
+    #[cfg(feature = "atof")]
+    cfg_if! {
+    if #[cfg(limb_width_64)] {
+        const BIGINT_LIMBS: usize = 20;
+        const BIGFLOAT_LIMBS: usize = 10;
+    } else {
+        const BIGINT_LIMBS: usize = 20;
+        const BIGFLOAT_LIMBS: usize = 20;
+    }}  // cfg_if
 
     // TODO(ahuszagh) Need to add the float methods.
 }
@@ -1031,25 +1048,33 @@ impl Float for f32 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
 
-    #[cfg(all(feature = "atof", feature = "radix"))]
-    type BigintStorage = Vec<Limb>;
-    #[cfg(all(feature = "atof", not(feature = "radix")))]
-    type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
+    #[cfg(feature = "atof")]
+    cfg_if! {
+    if #[cfg(any(not(feature = "no_alloc"), feature = "radix"))] {
+        type BigintStorage = Vec<Limb>;
+    } else {
+        type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
+    }}  // cfg_if
 
-    #[cfg(all(limb_width_64, feature = "atof"))]
-    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
-    #[cfg(all(limb_width_32, feature = "atof"))]
-    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
+    #[cfg(feature = "atof")]
+    cfg_if! {
+    if #[cfg(not(feature = "no_alloc"))] {
+        type BigfloatStorage = Vec<Limb>;
+    } else if #[cfg(limb_width_64)] {
+        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
+    } else {
+        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
+    }}  // cfg_if
 
-    #[cfg(all(limb_width_64, feature = "atof"))]
-    const BIGINT_LIMBS: usize = 20;
-    #[cfg(all(limb_width_32, feature = "atof"))]
-    const BIGINT_LIMBS: usize = 20;
-
-    #[cfg(all(limb_width_64, feature = "atof"))]
-    const BIGFLOAT_LIMBS: usize = 10;
-    #[cfg(all(limb_width_32, feature = "atof"))]
-    const BIGFLOAT_LIMBS: usize = 20;
+    #[cfg(feature = "atof")]
+    cfg_if! {
+    if #[cfg(limb_width_64)] {
+        const BIGINT_LIMBS: usize = 20;
+        const BIGFLOAT_LIMBS: usize = 10;
+    } else {
+        const BIGINT_LIMBS: usize = 20;
+        const BIGFLOAT_LIMBS: usize = 20;
+    }}  // cfg_if
 
     #[inline]
     fn abs(self) -> f32 {
@@ -1141,27 +1166,35 @@ impl Float for f64 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0x7FF - Self::EXPONENT_BIAS;
 
-    #[cfg(all(feature = "atof", feature = "radix"))]
-    type BigintStorage = Vec<Limb>;
-    #[cfg(all(limb_width_64, feature = "atof", not(feature = "radix")))]
-    type BigintStorage = arrayvec::ArrayVec<[Limb; 64]>;
-    #[cfg(all(limb_width_32, feature = "atof", not(feature = "radix")))]
-    type BigintStorage = arrayvec::ArrayVec<[Limb; 128]>;
+    #[cfg(feature = "atof")]
+    cfg_if! {
+    if #[cfg(any(not(feature = "no_alloc"), feature = "radix"))] {
+        type BigintStorage = Vec<Limb>;
+    } else if #[cfg(limb_width_64)] {
+        type BigintStorage = arrayvec::ArrayVec<[Limb; 64]>;
+    } else {
+        type BigintStorage = arrayvec::ArrayVec<[Limb; 128]>;
+    }}  // cfg_if
 
-    #[cfg(all(limb_width_64, feature = "atof"))]
-    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    #[cfg(all(limb_width_32, feature = "atof"))]
-    type BigfloatStorage = arrayvec::ArrayVec<[Limb; 36]>;
+    #[cfg(feature = "atof")]
+    cfg_if! {
+    if #[cfg(not(feature = "no_alloc"))] {
+        type BigfloatStorage = Vec<Limb>;
+    } else if #[cfg(limb_width_64)] {
+        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
+    } else {
+        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 36]>;
+    }}  // cfg_if
 
-    #[cfg(all(limb_width_64, feature = "atof"))]
-    const BIGINT_LIMBS: usize = 64;
-    #[cfg(all(limb_width_32, feature = "atof"))]
-    const BIGINT_LIMBS: usize = 128;
-
-    #[cfg(all(limb_width_64, feature = "atof"))]
-    const BIGFLOAT_LIMBS: usize = 20;
-    #[cfg(all(limb_width_32, feature = "atof"))]
-    const BIGFLOAT_LIMBS: usize = 36;
+    #[cfg(feature = "atof")]
+    cfg_if! {
+    if #[cfg(limb_width_64)] {
+        const BIGINT_LIMBS: usize = 64;
+        const BIGFLOAT_LIMBS: usize = 20;
+    } else {
+        const BIGINT_LIMBS: usize = 128;
+        const BIGFLOAT_LIMBS: usize = 36;
+    }}  // cfg_if
 
     #[inline]
     fn abs(self) -> f64 {
@@ -1254,20 +1287,21 @@ impl Float for f128 {
     const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32         = 0x7FFF - Self::EXPONENT_BIAS;
 
-    #[cfg(feature = "atof")]
-    type BigintStorage = Vec<Limb>;
-    #[cfg(feature = "atof")]
-    type BigfloatStorage = Vec<Limb>;
+    cfg_if! {
+    if #[cfg(feature = "atof")] {
+        type BigintStorage = Vec<Limb>;
+        type BigfloatStorage = Vec<Limb>;
+    }}  // cfg_if
 
-    #[cfg(all(limb_width_64, feature = "atof"))]
-    const BIGINT_LIMBS: usize = 900;
-    #[cfg(all(limb_width_32, feature = "atof"))]
-    const BIGINT_LIMBS: usize = 1800;
-
-    #[cfg(all(limb_width_64, feature = "atof"))]
-    const BIGFLOAT_LIMBS: usize = 700;
-    #[cfg(all(limb_width_32, feature = "atof"))]
-    const BIGFLOAT_LIMBS: usize = 1400;
+    #[cfg(feature = "atof")]
+    cfg_if! {
+    if #[cfg(limb_width_64)] {
+        const BIGINT_LIMBS: usize = 900;
+        const BIGFLOAT_LIMBS: usize = 700;
+    } else {
+        const BIGINT_LIMBS: usize = 1800;
+        const BIGFLOAT_LIMBS: usize = 1400;
+    }}  // cfg_if
 
     // TODO(ahuszagh) Need to add the float methods.
 }

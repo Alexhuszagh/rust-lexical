@@ -3,22 +3,25 @@
 #![allow(dead_code)]
 
 use crate::lib::{cmp, iter, marker, mem, ops, ptr, slice};
-use arrayvec;
-
-#[cfg(feature = "radix")]
+#[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
 use crate::lib::Vec;
+
+#[cfg(feature = "no_alloc")]
+use arrayvec;
 
 // ARRVEC
 
 /// Macro to automate simplify the creation of an ArrayVec.
 #[doc(hidden)]
 #[macro_export]
+#[cfg(feature = "no_alloc")]
 macro_rules! arrvec {
     // This only works if the ArrayVec is the same size as the input array.
     ($elem:expr; $n:expr) => ({
         $crate::arrayvec::ArrayVec::from([$elem; $n])
     });
-    // This just repeatedly calls `push`. I don't believe there's a concise way to count the number of expressions.
+    // This just repeatedly calls `push`. I don't believe there's a concise
+    // way to count the number of expressions.
     ($($x:expr),*$(,)*) => ({
         // Allow an unused mut variable, since if the sequence is empty,
         // the vec will never be mutated.
@@ -27,6 +30,32 @@ macro_rules! arrvec {
             $(vec.push($x);)*
             vec
         }
+    });
+}
+
+/// Macro to automate simplify the creation of our default vector type.
+#[doc(hidden)]
+#[macro_export]
+#[cfg(not(feature = "no_alloc"))]
+macro_rules! vector {
+    ($elem:expr; $n:expr) => ({
+        vec![$elem; $n]
+    });
+    ($($x:expr),*$(,)*) => ({
+        vec![$($x),*]
+    });
+}
+
+/// Macro to automate simplify the creation of our default vector type.
+#[doc(hidden)]
+#[macro_export]
+#[cfg(feature = "no_alloc")]
+macro_rules! vector {
+    ($elem:expr; $n:expr) => ({
+        arrvec![$elem; $n]
+    });
+    ($($x:expr),*$(,)*) => ({
+        arrvec![$($x),*]
     });
 }
 
@@ -318,7 +347,7 @@ impl<T> SliceLikeImpl<T> for [T] {
     }
 }
 
-#[cfg(any(feature = "f128", feature = "radix"))]
+#[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
 impl<T> SliceLikeImpl<T> for Vec<T> {
     // AS SLICE
 
@@ -333,6 +362,7 @@ impl<T> SliceLikeImpl<T> for Vec<T> {
     }
 }
 
+#[cfg(feature = "no_alloc")]
 impl<A: arrayvec::Array> SliceLikeImpl<A::Item> for arrayvec::ArrayVec<A> {
     // AS SLICE
 
@@ -963,7 +993,7 @@ impl<T> SliceLike<T> for [T] {
     }
 }
 
-#[cfg(any(feature = "f128", feature = "radix"))]
+#[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
 impl<T> SliceLike<T> for Vec<T> {
     // GET
 
@@ -1046,6 +1076,7 @@ impl<T> SliceLike<T> for Vec<T> {
     }
 }
 
+#[cfg(feature = "no_alloc")]
 impl<A: arrayvec::Array> SliceLike<A::Item> for arrayvec::ArrayVec<A> {
     // GET
 
@@ -1191,7 +1222,7 @@ pub trait VecLike<T>:
     fn remove_many<R: ops::RangeBounds<usize>>(&mut self, range: R);
 }
 
-#[cfg(any(feature = "f128", feature = "radix"))]
+#[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
 impl<T> VecLike<T> for Vec<T> {
     #[inline]
     fn new() -> Vec<T> {
@@ -1274,6 +1305,7 @@ impl<T> VecLike<T> for Vec<T> {
     }
 }
 
+#[cfg(feature = "no_alloc")]
 impl<A: arrayvec::Array> VecLike<A::Item> for arrayvec::ArrayVec<A> {
     #[inline]
     fn new() -> arrayvec::ArrayVec<A> {
@@ -1371,7 +1403,7 @@ pub trait CloneableVecLike<T: Clone + Copy + Send>: Send + VecLike<T>
     fn resize(&mut self, len: usize, value: T);
 }
 
-#[cfg(any(feature = "f128", feature = "radix"))]
+#[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
 impl<T> CloneableVecLike<T> for Vec<T>
     where T: Clone + Copy + Send
 {
@@ -1386,6 +1418,7 @@ impl<T> CloneableVecLike<T> for Vec<T>
     }
 }
 
+#[cfg(feature = "no_alloc")]
 impl<A: arrayvec::Array> CloneableVecLike<A::Item> for arrayvec::ArrayVec<A>
     where A: Send,
           A::Index: Send,
@@ -1417,34 +1450,40 @@ mod tests {
 
     #[test]
     fn test_insert_many() {
-        type V = arrayvec::ArrayVec<[u8; 8]>;
-        let mut v: V = V::new();
-        for x in 0..4 {
-            v.push(x);
-        }
-        assert_eq!(v.len(), 4);
-        v.insert_many(1, [5, 6].iter().cloned());
-        assert_eq!(&v[..], &[0, 5, 6, 1, 2, 3]);
+        #[cfg(feature = "no_alloc")]
+        type VecType = arrayvec::ArrayVec<[u8; 8]>;
+        #[cfg(not(feature = "no_alloc"))]
+        type VecType = Vec<u8>;
+
+        let mut vec: VecType = vector![0, 1, 2, 3];
+        vec.resize(4, 0);
+        assert_eq!(vec.len(), 4);
+        vec.insert_many(1, [5, 6].iter().cloned());
+        assert_eq!(&vec[..], &[0, 5, 6, 1, 2, 3]);
     }
 
     #[test]
-    #[cfg(any(feature = "f128", feature = "radix"))]
     fn remove_many_test() {
-        let mut x = vec![0, 1, 2, 3, 4, 5];
-        x.remove_many(0..3);
-        assert_eq!(x, vec![3, 4, 5]);
-        assert_eq!(x.len(), 3);
+        #[cfg(feature = "no_alloc")]
+        type VecType = arrayvec::ArrayVec<[u8; 8]>;
+        #[cfg(not(feature = "no_alloc"))]
+        type VecType = Vec<u8>;
 
-        let mut x = vec![0, 1, 2, 3, 4, 5];
-        x.remove_many(..);
-        assert_eq!(x, vec![]);
+        let mut vec: VecType = vector![0u8, 1, 2, 3, 4, 5];
+        vec.remove_many(0..3);
+        assert_eq!(vec, vector![3, 4, 5]);
+        assert_eq!(vec.len(), 3);
 
-        let mut x = vec![0, 1, 2, 3, 4, 5];
-        x.remove_many(3..);
-        assert_eq!(x, vec![0, 1, 2]);
+        let mut vec: VecType = vector![0u8, 1, 2, 3, 4, 5];
+        vec.remove_many(..);
+        assert_eq!(vec, vector![]);
 
-        let mut x = vec![0, 1, 2, 3, 4, 5];
-        x.remove_many(..3);
-        assert_eq!(x, vec![3, 4, 5]);
+        let mut vec: VecType = vector![0u8, 1, 2, 3, 4, 5];
+        vec.remove_many(3..);
+        assert_eq!(vec, vector![0, 1, 2]);
+
+        let mut vec: VecType = vector![0u8, 1, 2, 3, 4, 5];
+        vec.remove_many(..3);
+        assert_eq!(vec, vector![3, 4, 5]);
     }
 }

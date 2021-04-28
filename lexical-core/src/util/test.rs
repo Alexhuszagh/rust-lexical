@@ -1,11 +1,19 @@
-
 //! Test utilities.
 
-use arrayvec;
-
+#[cfg(any(feature = "ftoa", feature = "itoa"))]
 use super::config::BUFFER_SIZE;
 #[cfg(feature = "atof")]
+use super::limb::Limb;
+#[cfg(feature = "atof")]
 use super::sequence::{CloneableVecLike, VecLike};
+
+#[cfg(feature = "atof")]
+cfg_if! {
+if #[cfg(feature = "no_alloc")] {
+    use arrayvec;
+} else {
+    use crate::lib::Vec;
+}}  // cfg_if
 
 // BASES
 
@@ -43,11 +51,15 @@ pub(crate) fn as_slice<'a, T>(x: &'a [T]) -> &'a [T] {
 
 // FROM U32
 
-#[cfg(all(limb_width_32, feature = "atof"))]
-pub(crate) type DataType = arrayvec::ArrayVec<[u32; 128]>;
-
-#[cfg(all(limb_width_64, feature = "atof"))]
-pub(crate) type DataType = arrayvec::ArrayVec<[u64; 64]>;
+#[cfg(feature = "atof")]
+cfg_if! {
+if #[cfg(not(feature = "no_alloc"))] {
+    pub(crate) type DataType = Vec<Limb>;
+} else if #[cfg(limb_width_64)] {
+    pub(crate) type DataType = arrayvec::ArrayVec<[Limb; 64]>;
+} else {
+    pub(crate) type DataType = arrayvec::ArrayVec<[Limb; 128]>;
+}}  // cfg_if
 
 
 #[cfg(all(limb_width_32, feature = "atof"))]
@@ -61,8 +73,8 @@ pub(crate) fn from_u32(x: &[u32]) -> DataType {
     v.reserve(x.len() / 2);
     for xi in x.chunks(2) {
         match xi.len() {
-            1 => v.push(xi[0] as u64),
-            2 => v.push(((xi[1] as u64) << 32) | (xi[0] as u64)),
+            1 => v.push(xi[0] as Limb),
+            2 => v.push(((xi[1] as Limb) << 32) | (xi[0] as Limb)),
             _ => unreachable!(),
         }
     }

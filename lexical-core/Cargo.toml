@@ -43,12 +43,12 @@ rustc_version = "0.3"
 approx = "0.4.0"
 
 [features]
-default = ["atof", "atoi", "ftoa", "itoa", "ryu", "std"]
+default = ["atof", "atoi", "ftoa", "itoa", "no_alloc", "ryu", "std"]
 
 # SUBMODULES
 # ----------
 # Only build the atof submodule.
-atof = ["arrayvec"]
+atof = []
 # Only build the atoi submodule.
 atoi = []
 # Only build the ftoa submodule.
@@ -66,6 +66,9 @@ write_integers = ["itoa"]
 
 # FEATURES
 # --------
+# Do not use the system allocator, if possible.
+# Note that setting will be overriden for f128 and radix with atof.
+no_alloc = ["arrayvec"]
 # Add support for different float string formats.
 format = []
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
