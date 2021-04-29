@@ -53,7 +53,7 @@
 //!
 //! The number format class provides numerous flags to specify
 //! number parsing or writing, including:
-//! - The default exponent character (default `b'e'`).
+//! - The decimal exponent character (default `b'e'`).
 //! - The backup exponent character (for large radixes, default `b'^'`).
 //! - The decimal point character (default `b'.'`).
 //!
@@ -358,7 +358,7 @@ pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
 /// # extern crate lexical;
 /// # pub fn main() {
 /// let format = lexical::NumberFormat::builder()
-///     .exponent_default(b'^')
+///     .exponent_decimal(b'^')
 ///     .decimal_point(b',')
 ///     .build()
 ///     .unwrap();
@@ -442,7 +442,7 @@ pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result
 /// # extern crate lexical;
 /// # pub fn main() {
 /// let format = lexical::NumberFormat::builder()
-///     .exponent_default(b'^')
+///     .exponent_decimal(b'^')
 ///     .decimal_point(b',')
 ///     .build()
 ///     .unwrap();

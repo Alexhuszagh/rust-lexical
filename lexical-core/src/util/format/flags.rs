@@ -254,9 +254,9 @@ pub(crate) const fn is_valid_decimal_point(ch: u8) -> bool {
 });
 
 const_fn!(
-/// Determine if the exponent default character is valid.
+/// Determine if the exponent decimal character is valid.
 #[inline]
-pub(crate) const fn is_valid_exponent_default(ch: u8) -> bool {
+pub(crate) const fn is_valid_exponent_decimal(ch: u8) -> bool {
     match ch {
         b'0' ..= b'9' => false,
         b'+' | b'-'   => false,
@@ -274,21 +274,21 @@ pub(crate) const fn is_valid_exponent_backup(ch: u8) -> bool {
 const_fn!(
 /// Determine if all of the "punctuation" characters are valid.
 #[inline]
-pub(crate) const fn is_valid_punctuation(digit_separator: u8, decimal_point: u8, exponent_default: u8, exponent_backup: u8)
+pub(crate) const fn is_valid_punctuation(digit_separator: u8, decimal_point: u8, exponent_decimal: u8, exponent_backup: u8)
     -> bool
 {
     if digit_separator == decimal_point {
         false
-    } else if digit_separator == exponent_default {
+    } else if digit_separator == exponent_decimal {
         false
     } else if digit_separator == exponent_backup {
         false
-    } else if decimal_point == exponent_default {
+    } else if decimal_point == exponent_decimal {
         false
     } else if decimal_point == exponent_backup {
         false
     } else {
-        // exponent_default and exponent_backup can be the same as long as
+        // exponent_decimal and exponent_backup can be the same as long as
         // both are valid: in case someone always wants b'^' to be
         // the exponent character.
         true
@@ -308,22 +308,22 @@ macro_rules! from_flags {
     ($flag:ident, $shift:ident, $mask:ident) => ((($flag >> $shift) as u8) & $mask);
 }
 
-/// Bit shift for the exponent from the start of the format flags.
-const EXPONENT_DEFAULT_SHIFT: u32 = 18;
+/// Bit shift for the decimal exponent from the start of the format flags.
+const EXPONENT_DECIMAL_SHIFT: u32 = 18;
 
-/// Mask to extract the exponent after shifting.
-const EXPONENT_DEFAULT_MASK: u8 = 0x7F;
+/// Mask to extract the decimal exponent after shifting.
+const EXPONENT_DECIMAL_MASK: u8 = 0x7F;
 
-/// Convert exponent to flags.
+/// Convert decimal exponent to flags.
 #[inline]
-pub(crate) const fn exponent_default_to_flags(ch: u8) -> u64 {
-    to_flags!(ch, EXPONENT_DEFAULT_SHIFT, EXPONENT_DEFAULT_MASK)
+pub(crate) const fn exponent_decimal_to_flags(ch: u8) -> u64 {
+    to_flags!(ch, EXPONENT_DECIMAL_SHIFT, EXPONENT_DECIMAL_MASK)
 }
 
-/// Extract exponent from flags.
+/// Extract decimal exponent from flags.
 #[inline]
-pub(crate) const fn exponent_default_from_flags(flag: u64) -> u8 {
-    from_flags!(flag, EXPONENT_DEFAULT_SHIFT, EXPONENT_DEFAULT_MASK)
+pub(crate) const fn exponent_decimal_from_flags(flag: u64) -> u8 {
+    from_flags!(flag, EXPONENT_DECIMAL_SHIFT, EXPONENT_DECIMAL_MASK)
 }
 
 /// Bit shift for the exponent backup from the start of the format flags.
@@ -399,7 +399,7 @@ macro_rules! check_masks_and_flags {
 }
 
 // Masks do not overlap.
-check_subsequent_masks!(EXPONENT_DEFAULT_MASK, EXPONENT_DEFAULT_SHIFT, EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT);
+check_subsequent_masks!(EXPONENT_DECIMAL_MASK, EXPONENT_DECIMAL_SHIFT, EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT);
 check_subsequent_masks!(EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT, DECIMAL_POINT_MASK, DECIMAL_POINT_SHIFT);
 check_subsequent_masks!(DECIMAL_POINT_MASK, DECIMAL_POINT_SHIFT, DIGIT_SEPARATOR_MASK, DIGIT_SEPARATOR_SHIFT);
 
@@ -455,14 +455,14 @@ mod tests {
     }
 
     #[test]
-    fn test_is_valid_exponent_default() {
-        assert_eq!(is_valid_exponent_default(b'_'), true);
-        assert_eq!(is_valid_exponent_default(b'\''), true);
-        assert_eq!(is_valid_exponent_default(b'.'), true);
-        assert_eq!(is_valid_exponent_default(b'^'), true);
-        assert_eq!(is_valid_exponent_default(b'e'), true);
-        assert_eq!(is_valid_exponent_default(b'0'), false);
-        assert_eq!(is_valid_exponent_default(128), false);
+    fn test_is_valid_exponent_decimal() {
+        assert_eq!(is_valid_exponent_decimal(b'_'), true);
+        assert_eq!(is_valid_exponent_decimal(b'\''), true);
+        assert_eq!(is_valid_exponent_decimal(b'.'), true);
+        assert_eq!(is_valid_exponent_decimal(b'^'), true);
+        assert_eq!(is_valid_exponent_decimal(b'e'), true);
+        assert_eq!(is_valid_exponent_decimal(b'0'), false);
+        assert_eq!(is_valid_exponent_decimal(128), false);
     }
 
     #[test]
@@ -491,23 +491,23 @@ mod tests {
     }
 
     #[test]
-    fn test_exponent_default_to_flags() {
-        assert_eq!(exponent_default_to_flags(b'e'), 0x1940000);
-        assert_eq!(exponent_default_to_flags(b'^'), 0x1780000);
-        assert_eq!(exponent_default_to_flags(b'.'), 0xB80000);
-        assert_eq!(exponent_default_to_flags(b'\x00'), 0x0);
+    fn test_exponent_decimal_to_flags() {
+        assert_eq!(exponent_decimal_to_flags(b'e'), 0x1940000);
+        assert_eq!(exponent_decimal_to_flags(b'^'), 0x1780000);
+        assert_eq!(exponent_decimal_to_flags(b'.'), 0xB80000);
+        assert_eq!(exponent_decimal_to_flags(b'\x00'), 0x0);
     }
 
     #[test]
-    fn test_exponent_default_from_flags() {
-        assert_eq!(exponent_default_from_flags(0x1940000), b'e');
-        assert_eq!(exponent_default_from_flags(0x1780000), b'^');
-        assert_eq!(exponent_default_from_flags(0xB80000), b'.');
-        assert_eq!(exponent_default_from_flags(0x0), b'\x00');
+    fn test_exponent_decimal_from_flags() {
+        assert_eq!(exponent_decimal_from_flags(0x1940000), b'e');
+        assert_eq!(exponent_decimal_from_flags(0x1780000), b'^');
+        assert_eq!(exponent_decimal_from_flags(0xB80000), b'.');
+        assert_eq!(exponent_decimal_from_flags(0x0), b'\x00');
 
         // Test hybrid, to test mask
         let flags = 0x1940000 | 0xBC000000 | 0xB8000000000000 | 0xBE00000000000000;
-        assert_eq!(exponent_default_from_flags(flags), b'e');
+        assert_eq!(exponent_decimal_from_flags(flags), b'e');
     }
 
     #[test]

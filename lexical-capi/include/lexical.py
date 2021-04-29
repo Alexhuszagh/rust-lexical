@@ -225,12 +225,12 @@ def _digit_separator_from_flags(flags):
     '''Extract digit separator byte from 32-bit flags.'''
     return _from_flags(flags, 57, 0x7F)
 
-def _exponent_default_to_flags(exponent_default):
-    '''Convert exponent default byte to 64-bit flags.'''
-    return _to_flags(exponent_default, 18, 0x7F)
+def _exponent_decimal_to_flags(exponent_decimal):
+    '''Convert exponent decimal byte to 64-bit flags.'''
+    return _to_flags(exponent_decimal, 18, 0x7F)
 
-def _exponent_default_from_flags(flags):
-    '''Extract exponent default byte from 64-bit flags.'''
+def _exponent_decimal_from_flags(flags):
+    '''Extract exponent decimal byte from 64-bit flags.'''
     return _from_flags(flags, 18, 0x7F)
 
 def _exponent_backup_to_flags(exponent_backup):
@@ -400,8 +400,8 @@ class NumberFormat(Structure):
         return _digit_separator_from_flags(self._value)
 
     @property
-    def _exponent_default(self):
-        return _exponent_default_from_flags(self._value)
+    def _exponent_decimal(self):
+        return _exponent_decimal_from_flags(self._value)
 
     @property
     def _exponent_backup(self):
@@ -418,7 +418,7 @@ class NumberFormat(Structure):
     # MAGIC
 
     def __repr__(self):
-        return f'NumberFormat(flags={self.flags}, digit_separator={self.digit_separator}, exponent_default={self.exponent_default}, exponent_backup={self.exponent_backup}, decimal_point={self.decimal_point})'
+        return f'NumberFormat(flags={self.flags}, digit_separator={self.digit_separator}, exponent_decimal={self.exponent_decimal}, exponent_backup={self.exponent_backup}, decimal_point={self.decimal_point})'
 
     def __eq__(self, other):
         return _struct_eq(self, other)
@@ -431,10 +431,10 @@ class NumberFormat(Structure):
 
     def exponent(self, radix):
         '''Get the exponent character based on the radix.'''
-        if HAVE_RADIX and radix >= 14:
+        if HAVE_RADIX and radix != 10:
             return self.exponent_backup
         else:
-            return self.exponent_default
+            return self.exponent_decimal
 
     # GETTERS
 
@@ -449,9 +449,9 @@ class NumberFormat(Structure):
         return self._digit_separator
 
     @property
-    def exponent_default(self):
-        '''Get the default exponent from the compiled float format.'''
-        return self._exponent_default
+    def exponent_decimal(self):
+        '''Get the decimal exponent from the compiled float format.'''
+        return self._exponent_decimal
 
     @property
     def exponent_backup(self):
@@ -633,13 +633,13 @@ class NumberFormat(Structure):
 if HAVE_FORMAT:
     # HIDDEN DEFAULTS
     NumberFormat.Permissive = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
     )
 
     NumberFormat.Ignore = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.DigitSeparatorFlagMask.value
@@ -650,7 +650,7 @@ if HAVE_FORMAT:
     # Float format for a Rust literal floating-point number.
     NumberFormat.RustLiteral = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredDigits.value
@@ -663,7 +663,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Rust float from string.
     NumberFormat.RustString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -671,7 +671,7 @@ if HAVE_FORMAT:
 
     # `RustString`, but enforces strict equality for special values.
     NumberFormat.RustStringStrict = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -680,7 +680,7 @@ if HAVE_FORMAT:
 
     # Float format for a Python3 literal floating-point number.
     NumberFormat.Python3Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -690,7 +690,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Python3 float from string.
     NumberFormat.Python3String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -698,7 +698,7 @@ if HAVE_FORMAT:
 
     # Float format for a Python2 literal floating-point number.
     NumberFormat.Python2Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -707,7 +707,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Python2 float from string.
     NumberFormat.Python2String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -722,7 +722,7 @@ if HAVE_FORMAT:
     # Float format for a C++17 literal floating-point number.
     NumberFormat.Cxx17Literal = NumberFormat(
         _digit_separator_to_flags(b'\'')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -732,7 +732,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C++17 float from string.
     NumberFormat.Cxx17String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -741,7 +741,7 @@ if HAVE_FORMAT:
     # Float format for a C++14 literal floating-point number.
     NumberFormat.Cxx14Literal = NumberFormat(
         _digit_separator_to_flags(b'\'')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -751,7 +751,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C++14 float from string.
     NumberFormat.Cxx14String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -759,7 +759,7 @@ if HAVE_FORMAT:
 
     # Float format for a C++11 literal floating-point number.
     NumberFormat.Cxx11Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -768,7 +768,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C++11 float from string.
     NumberFormat.Cxx11String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -776,7 +776,7 @@ if HAVE_FORMAT:
 
     # Float format for a C++03 literal floating-point number.
     NumberFormat.Cxx03Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -785,7 +785,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C++03 float from string.
     NumberFormat.Cxx03String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -793,7 +793,7 @@ if HAVE_FORMAT:
 
     # Float format for a C++98 literal floating-point number.
     NumberFormat.Cxx98Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -802,7 +802,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C++98 float from string.
     NumberFormat.Cxx98String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -816,7 +816,7 @@ if HAVE_FORMAT:
 
     # Float format for a C18 literal floating-point number.
     NumberFormat.C18Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -825,7 +825,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C18 float from string.
     NumberFormat.C18String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -833,7 +833,7 @@ if HAVE_FORMAT:
 
     # Float format for a C11 literal floating-point number.
     NumberFormat.C11Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -842,7 +842,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C11 float from string.
     NumberFormat.C11String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -850,7 +850,7 @@ if HAVE_FORMAT:
 
     # Float format for a C99 literal floating-point number.
     NumberFormat.C99Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -859,7 +859,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C99 float from string.
     NumberFormat.C99String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -867,7 +867,7 @@ if HAVE_FORMAT:
 
     # Float format for a C90 literal floating-point number.
     NumberFormat.C90Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -876,7 +876,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C90 float from string.
     NumberFormat.C90String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -884,7 +884,7 @@ if HAVE_FORMAT:
 
     # Float format for a C89 literal floating-point number.
     NumberFormat.C89Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -893,7 +893,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C89 float from string.
     NumberFormat.C89String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -908,7 +908,7 @@ if HAVE_FORMAT:
     # Float format for a Ruby literal floating-point number.
     NumberFormat.RubyLiteral = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredDigits.value
@@ -920,7 +920,7 @@ if HAVE_FORMAT:
     # Float format to parse a Ruby float from string.
     NumberFormat.RubyString = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.NoSpecial.value
@@ -930,7 +930,7 @@ if HAVE_FORMAT:
     # Float format for a Swift literal floating-point number.
     NumberFormat.SwiftLiteral = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredDigits.value
@@ -942,7 +942,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Swift float from string.
     NumberFormat.SwiftString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredFractionDigits.value
@@ -950,7 +950,7 @@ if HAVE_FORMAT:
 
     # Float format for a Golang literal floating-point number.
     NumberFormat.GoLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredFractionDigits.value
@@ -959,7 +959,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Golang float from string.
     NumberFormat.GoString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredFractionDigits.value
@@ -967,7 +967,7 @@ if HAVE_FORMAT:
 
     # Float format for a Haskell literal floating-point number.
     NumberFormat.HaskellLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredDigits.value
@@ -977,7 +977,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Haskell float from string.
     NumberFormat.HaskellString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredDigits.value
@@ -987,7 +987,7 @@ if HAVE_FORMAT:
 
     # Float format for a Javascript literal floating-point number.
     NumberFormat.JavascriptLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -997,7 +997,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Javascript float from string.
     NumberFormat.JavascriptString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.CaseSensitiveSpecial.value
@@ -1005,7 +1005,7 @@ if HAVE_FORMAT:
 
     # Float format for a Perl literal floating-point number.
     NumberFormat.PerlLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | _digit_separator_to_flags(b'_')
@@ -1023,7 +1023,7 @@ if HAVE_FORMAT:
 
     # Float format for a PHP literal floating-point number.
     NumberFormat.PhpLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1032,7 +1032,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a PHP float from string.
     NumberFormat.PhpString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.NoSpecial.value
@@ -1041,7 +1041,7 @@ if HAVE_FORMAT:
     # Float format for a Java literal floating-point number.
     NumberFormat.JavaLiteral = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1052,7 +1052,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Java float from string.
     NumberFormat.JavaString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1061,7 +1061,7 @@ if HAVE_FORMAT:
 
     # Float format for a R literal floating-point number.
     NumberFormat.RLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1074,7 +1074,7 @@ if HAVE_FORMAT:
     # Float format for a Kotlin literal floating-point number.
     NumberFormat.KotlinLiteral = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1086,7 +1086,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Kotlin float from string.
     NumberFormat.KotlinString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1096,7 +1096,7 @@ if HAVE_FORMAT:
     # Float format for a Julia literal floating-point number.
     NumberFormat.JuliaLiteral = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1107,7 +1107,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Julia float from string.
     NumberFormat.JuliaString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1116,7 +1116,7 @@ if HAVE_FORMAT:
     # Float format for a C#7 literal floating-point number.
     NumberFormat.Csharp7Literal = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredFractionDigits.value
@@ -1128,7 +1128,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C#7 float from string.
     NumberFormat.Csharp7String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1137,7 +1137,7 @@ if HAVE_FORMAT:
 
     # Float format for a C#6 literal floating-point number.
     NumberFormat.Csharp6Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredFractionDigits.value
@@ -1147,7 +1147,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C#6 float from string.
     NumberFormat.Csharp6String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1156,7 +1156,7 @@ if HAVE_FORMAT:
 
     # Float format for a C#5 literal floating-point number.
     NumberFormat.Csharp5Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredFractionDigits.value
@@ -1166,7 +1166,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C#5 float from string.
     NumberFormat.Csharp5String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1175,7 +1175,7 @@ if HAVE_FORMAT:
 
     # Float format for a C#4 literal floating-point number.
     NumberFormat.Csharp4Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredFractionDigits.value
@@ -1185,7 +1185,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C#4 float from string.
     NumberFormat.Csharp4String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1194,7 +1194,7 @@ if HAVE_FORMAT:
 
     # Float format for a C#3 literal floating-point number.
     NumberFormat.Csharp3Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredFractionDigits.value
@@ -1204,7 +1204,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C#3 float from string.
     NumberFormat.Csharp3String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1213,7 +1213,7 @@ if HAVE_FORMAT:
 
     # Float format for a C#2 literal floating-point number.
     NumberFormat.Csharp2Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredFractionDigits.value
@@ -1223,7 +1223,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C#2 float from string.
     NumberFormat.Csharp2String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1232,7 +1232,7 @@ if HAVE_FORMAT:
 
     # Float format for a C#1 literal floating-point number.
     NumberFormat.Csharp1Literal = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredFractionDigits.value
@@ -1242,7 +1242,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a C#1 float from string.
     NumberFormat.Csharp1String = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1257,7 +1257,7 @@ if HAVE_FORMAT:
 
     # Float format for a Kawa literal floating-point number.
     NumberFormat.KawaLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1266,7 +1266,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Kawa float from string.
     NumberFormat.KawaString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1275,7 +1275,7 @@ if HAVE_FORMAT:
 
     # Float format for a Gambit-C literal floating-point number.
     NumberFormat.GambitcLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1284,7 +1284,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Gambit-C float from string.
     NumberFormat.GambitcString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1293,7 +1293,7 @@ if HAVE_FORMAT:
 
     # Float format for a Guile literal floating-point number.
     NumberFormat.GuileLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1302,7 +1302,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Guile float from string.
     NumberFormat.GuileString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1311,7 +1311,7 @@ if HAVE_FORMAT:
 
     # Float format for a Clojure literal floating-point number.
     NumberFormat.ClojureLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredIntegerDigits.value
@@ -1321,7 +1321,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Clojure float from string.
     NumberFormat.ClojureString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1330,7 +1330,7 @@ if HAVE_FORMAT:
 
     # Float format for an Erlang literal floating-point number.
     NumberFormat.ErlangLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredDigits.value
@@ -1340,7 +1340,7 @@ if HAVE_FORMAT:
 
     # Float format to parse an Erlang float from string.
     NumberFormat.ErlangString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredDigits.value
@@ -1350,7 +1350,7 @@ if HAVE_FORMAT:
 
     # Float format for an Elm literal floating-point number.
     NumberFormat.ElmLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredDigits.value
@@ -1361,7 +1361,7 @@ if HAVE_FORMAT:
 
     # Float format to parse an Elm float from string.
     NumberFormat.ElmString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1370,7 +1370,7 @@ if HAVE_FORMAT:
 
     # Float format for a Scala literal floating-point number.
     NumberFormat.ScalaLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredDigits.value
@@ -1380,7 +1380,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Scala float from string.
     NumberFormat.ScalaString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1390,7 +1390,7 @@ if HAVE_FORMAT:
     # Float format for an Elixir literal floating-point number.
     NumberFormat.ElixirLiteral = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredDigits.value
@@ -1401,7 +1401,7 @@ if HAVE_FORMAT:
 
     # Float format to parse an Elixir float from string.
     NumberFormat.ElixirString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredDigits.value
@@ -1411,7 +1411,7 @@ if HAVE_FORMAT:
 
     # Float format for a FORTRAN literal floating-point number.
     NumberFormat.FortranLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1420,7 +1420,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a FORTRAN float from string.
     NumberFormat.FortranString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1429,7 +1429,7 @@ if HAVE_FORMAT:
     # Float format for a D literal floating-point number.
     NumberFormat.DLiteral = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1443,7 +1443,7 @@ if HAVE_FORMAT:
     # Float format to parse a D float from string.
     NumberFormat.DString = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1455,7 +1455,7 @@ if HAVE_FORMAT:
 
     # Float format for a Coffeescript literal floating-point number.
     NumberFormat.CoffeescriptLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1466,7 +1466,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Coffeescript float from string.
     NumberFormat.CoffeescriptString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.CaseSensitiveSpecial.value
@@ -1474,7 +1474,7 @@ if HAVE_FORMAT:
 
     # Float format for a Cobol literal floating-point number.
     NumberFormat.CobolLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredFractionDigits.value
@@ -1485,7 +1485,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Cobol float from string.
     NumberFormat.CobolString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentSign.value
@@ -1495,7 +1495,7 @@ if HAVE_FORMAT:
     # Float format for a F# literal floating-point number.
     NumberFormat.FsharpLiteral = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredIntegerDigits.value
@@ -1508,7 +1508,7 @@ if HAVE_FORMAT:
     # Float format to parse a F# float from string.
     NumberFormat.FsharpString = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1522,7 +1522,7 @@ if HAVE_FORMAT:
 
     # Float format for a Visual Basic literal floating-point number.
     NumberFormat.VbLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredFractionDigits.value
@@ -1532,7 +1532,7 @@ if HAVE_FORMAT:
 
     # Float format to parse a Visual Basic float from string.
     NumberFormat.VbString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1542,7 +1542,7 @@ if HAVE_FORMAT:
     # Float format for an OCaml literal floating-point number.
     NumberFormat.OcamlLiteral = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredIntegerDigits.value
@@ -1558,7 +1558,7 @@ if HAVE_FORMAT:
     # Float format to parse an OCaml float from string.
     NumberFormat.OcamlString = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1571,7 +1571,7 @@ if HAVE_FORMAT:
 
     # Float format for an Objective-C literal floating-point number.
     NumberFormat.ObjectivecLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1580,7 +1580,7 @@ if HAVE_FORMAT:
 
     # Float format to parse an Objective-C float from string.
     NumberFormat.ObjectivecString = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1590,7 +1590,7 @@ if HAVE_FORMAT:
     # Float format for a ReasonML literal floating-point number.
     NumberFormat.ReasonmlLiteral = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredIntegerDigits.value
@@ -1605,7 +1605,7 @@ if HAVE_FORMAT:
     # Float format to parse a ReasonML float from string.
     NumberFormat.ReasonmlString = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1619,7 +1619,7 @@ if HAVE_FORMAT:
     # Float format for an Octave literal floating-point number.
     NumberFormat.OctaveLiteral = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1633,7 +1633,7 @@ if HAVE_FORMAT:
     # Float format to parse an Octave float from string.
     NumberFormat.OctaveString = NumberFormat(
         _digit_separator_to_flags(b',')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1646,7 +1646,7 @@ if HAVE_FORMAT:
     # Float format for an Matlab literal floating-point number.
     NumberFormat.MatlabLiteral = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1660,7 +1660,7 @@ if HAVE_FORMAT:
     # Float format to parse an Matlab float from string.
     NumberFormat.MatlabString = NumberFormat(
         _digit_separator_to_flags(b',')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1672,7 +1672,7 @@ if HAVE_FORMAT:
 
     # Float format for a Zig literal floating-point number.
     NumberFormat.ZigLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredIntegerDigits.value
@@ -1685,7 +1685,7 @@ if HAVE_FORMAT:
 
     # Float format for a Sage literal floating-point number.
     NumberFormat.SageLiteral = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1695,7 +1695,7 @@ if HAVE_FORMAT:
     # Float format to parse a Sage float from string.
     NumberFormat.SageString = NumberFormat(
         _digit_separator_to_flags(b'_')
-        | _exponent_default_to_flags(b'e')
+        | _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1704,7 +1704,7 @@ if HAVE_FORMAT:
 
     # Float format for a JSON literal floating-point number.
     NumberFormat.Json = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredDigits.value
@@ -1716,7 +1716,7 @@ if HAVE_FORMAT:
 
     # Float format for a TOML literal floating-point number.
     NumberFormat.Toml = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredDigits.value
@@ -1730,7 +1730,7 @@ if HAVE_FORMAT:
 
     # Float format for a XML literal floating-point number.
     NumberFormat.Xml = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.CaseSensitiveSpecial.value
@@ -1738,7 +1738,7 @@ if HAVE_FORMAT:
 
     # Float format for a SQLite literal floating-point number.
     NumberFormat.Sqlite = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1747,7 +1747,7 @@ if HAVE_FORMAT:
 
     # Float format for a PostgreSQL literal floating-point number.
     NumberFormat.Postgresql = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1756,7 +1756,7 @@ if HAVE_FORMAT:
 
     # Float format for a MySQL literal floating-point number.
     NumberFormat.Mysql = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1765,7 +1765,7 @@ if HAVE_FORMAT:
 
     # Float format for a MongoDB literal floating-point number.
     NumberFormat.Mongodb = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
         | NumberFormatFlags.RequiredExponentDigits.value
@@ -1777,7 +1777,7 @@ if HAVE_FORMAT:
 else:
     # HIDDEN DEFAULTS
     NumberFormat.Standard = NumberFormat(
-        _exponent_default_to_flags(b'e')
+        _exponent_decimal_to_flags(b'e')
         | _exponent_backup_to_flags(b'^')
         | _decimal_point_to_flags(b'.')
     )
@@ -1794,7 +1794,7 @@ if HAVE_FORMAT:
         _fields_ = [
             ("digit_separator", c_char),
             ("decimal_point", c_char),
-            ("exponent_default", c_char),
+            ("exponent_decimal", c_char),
             ("exponent_backup", c_char),
             ("required_integer_digits", c_bool),
             ("required_fraction_digits", c_bool),
@@ -1850,7 +1850,7 @@ else:
 
         _fields_ = [
             ("decimal_point", c_char),
-            ("exponent_default", c_char),
+            ("exponent_decimal", c_char),
             ("exponent_backup", c_char),
         ]
 

@@ -155,7 +155,7 @@ class NumberFormatTests(unittest.TestCase):
     def test_error(self):
         builder = lexical.NumberFormatBuilder()
         builder.decimal_point = b'e'
-        builder.exponent_default = b'e'
+        builder.exponent_decimal = b'e'
         with self.assertRaises(ValueError):
             builder.build()
 
@@ -166,7 +166,7 @@ class NumberFormatTests(unittest.TestCase):
         format = builder.build()
         self.assertEqual(format.flags, standard.flags)
         self.assertEqual(format.decimal_point, b',')
-        self.assertEqual(format.exponent_default, b'e')
+        self.assertEqual(format.exponent_decimal, b'e')
         self.assertEqual(format.exponent_backup, b'^')
 
     if lexical.HAVE_FORMAT:
@@ -174,7 +174,7 @@ class NumberFormatTests(unittest.TestCase):
             json = lexical.NumberFormat.Json
             self.assertEqual(json.digit_separator, b'\x00')
             self.assertEqual(json.decimal_point, b'.')
-            self.assertEqual(json.exponent_default, b'e')
+            self.assertEqual(json.exponent_decimal, b'e')
             self.assertEqual(json.exponent_backup, b'^')
             self.assertTrue(json.required_integer_digits)
             self.assertTrue(json.required_fraction_digits)

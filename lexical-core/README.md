@@ -322,14 +322,14 @@ Lexical-core also includes number parse and write options for additional customi
 - **Long Infinity**
     - `ParseFloatOptions::infinity_string`
     <blockquote>The long, backup representation of infinity as a string (default <code>b"infinity"</code>). The long infinity must be at least as long as the short infinity, and will only be used during float parsing (and is by default case-insensitive). This string **must** start with an <code>'I'</code> or <code>'i'</code>.</blockquote>
-- **Exponent Default Character**
-    - `ParseFloatOptions::exponent_default`
-    - `WriteFloatOptions::exponent_default`
-    <blockquote>The default character designating the exponent component of a float (default <code>b'e'</code>) for strings with a radix less than 14 (including decimal strings). For float parsing, lexical-core uses case-insensitive comparisons. This value should be not be in character set <code>[0-9a-e+\-]</code>, and should not be equal to any digit separators or decimal point characters.</blockquote>
+- **Exponent Decimal Character**
+    - `ParseFloatOptions::exponent_decimal`
+    - `WriteFloatOptions::exponent_decimal`
+    <blockquote>The default character designating the exponent component of a float (default <code>b'e'</code>) for strings with radix 10 (decimal). For float parsing, lexical-core uses case-insensitive comparisons. This value should be not be in character set <code>[0-9+\-]</code>, and should not be equal to any digit separators or decimal point characters.</blockquote>
 - **Exponent Backup Character** (radix only)
     - `ParseFloatOptions::exponent_backup`
     - `WriteFloatOptions::exponent_backup`
-    <blockquote>The backup character designating the exponent component of a float (default <code>b'^'</code>) for strings with a radix greater than or equal to 14. This value should be not be in character set <code>[0-9a-zA-Z+\-]</code>, and should not be equal to any digit separators or decimal point characters.</blockquote>
+    <blockquote>The backup character designating the exponent component of a float (default <code>b'^'</code>) for non-decimal strings (<code>radix != 10</code>). This value should be not be in character set <code>[0-9a-zA-Z+\-]</code>, and should not be equal to any digit separators or decimal point characters.</blockquote>
 - **Float Rounding** (rounding only)
     - `ParseFloatOptions::rounding`
     <blockquote>The IEEE754 float-rounding scheme to be used during float parsing. In almost every case, this should be set to <code>RoundingKind::NearestTieEven</code>.</blockquote>
