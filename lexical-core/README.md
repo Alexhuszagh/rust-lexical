@@ -477,7 +477,7 @@ Versions of lexical-core prior to 0.4.3 could round parsed floating-point number
 
 # Platform Support
 
-minimal-lexical is tested on a wide variety of platforms, including big and small-endian systems, to ensure portable code. Supported architectures include:
+lexical-core is tested on a wide variety of platforms, including big and small-endian systems, to ensure portable code. Supported architectures include:
 - x86_64 Linux, Windows, macOS, Android, iOS, FreeBSD, and NetBSD.
 - x86 Linux, macOS, Android, iOS, and FreeBSD.
 - aarch64 (ARM8v8-A) Linux, Android, and iOS.
@@ -492,7 +492,7 @@ minimal-lexical is tested on a wide variety of platforms, including big and smal
 - powerpc64le (PPC64LE) Linux.
 - s390x (IBM Z) Linux.
 
-minimal-lexical should also work on a wide variety of other architectures and ISAs. If you have any issue compiling minimal-lexical on any architecture, please file a bug report.
+lexical-core should also work on a wide variety of other architectures and ISAs. If you have any issue compiling lexical-core on any architecture, please file a bug report.
 
 # Versioning and Version Support
 
