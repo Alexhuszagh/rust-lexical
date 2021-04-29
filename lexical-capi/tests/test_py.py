@@ -103,6 +103,31 @@ class GlobalTests(unittest.TestCase):
             self.assertIsInstance(lexical.U128_FORMATTED_SIZE_DECIMAL, int)
 
 
+if lexical.HAVE_I128:
+    class Int128Tests(unittest.TestCase):
+        '''Test our wrappers for 128-bit integers.'''
+
+        def test_c_uint128(self):
+            i128 = lexical.c_uint128(128)
+            self.assertEqual(i128.value, 128)
+
+            i128 = lexical.c_uint128(2**128)
+            self.assertEqual(i128.value, 0)
+
+            i128 = lexical.c_uint128(2**127)
+            self.assertEqual(i128.value, 2**127)
+
+        def test_c_int128(self):
+            i128 = lexical.c_int128(128)
+            self.assertEqual(i128.value, 128)
+
+            i128 = lexical.c_int128(2**128)
+            self.assertEqual(i128.value, 0)
+
+            i128 = lexical.c_int128(2**127)
+            self.assertEqual(i128.value, -2**127)
+
+
 class OptionTests(unittest.TestCase):
     '''Test the Option structure.'''
 
@@ -115,6 +140,11 @@ class OptionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             nil.into()
 
+        self.assertEqual(cls.of(value), some)
+        self.assertEqual(cls.of(None), nil)
+        self.assertNotEqual(some, nil)
+        self.assertNotEqual(nil, some)
+
     def test_option_number_format(self):
         self._complete_test(lexical.OptionNumberFormat, lexical.NumberFormat.Permissive)
 
@@ -126,14 +156,14 @@ class NumberFormatTests(unittest.TestCase):
         builder = lexical.NumberFormatBuilder()
         builder.decimal_point = b'e'
         builder.exponent_default = b'e'
-        option = builder.build()
-        self.assertFalse(option.is_some)
+        with self.assertRaises(ValueError):
+            builder.build()
 
     def test_rebuild(self):
         standard = lexical.NumberFormat.Standard
         builder = standard.rebuild()
         builder.decimal_point = b','
-        format = builder.build().into()
+        format = builder.build()
         self.assertEqual(format.flags, standard.flags)
         self.assertEqual(format.decimal_point, b',')
         self.assertEqual(format.exponent_default, b'e')
@@ -176,6 +206,169 @@ class NumberFormatTests(unittest.TestCase):
             self.assertFalse(json.exponent_consecutive_digit_separator)
             self.assertFalse(json.consecutive_digit_separator)
             self.assertFalse(json.special_digit_separator)
+
+
+class ParseIntegerOptionsTests(unittest.TestCase):
+    '''Test ParseIntegerOptions and ParseIntegerOptionsBuilder.'''
+
+    def test_builder(self):
+        builder = lexical.ParseIntegerOptionsBuilder()
+        self.assertEqual(builder.radix, 10)
+        self.assertEqual(builder.format, None)
+        options = builder.build()
+        self.assertEqual(options.radix, 10)
+        self.assertEqual(options.format, None)
+
+        standard = lexical.NumberFormat.Standard
+        builder.format = standard
+        self.assertEqual(builder.format, standard)
+        options = builder.build()
+        self.assertEqual(options.radix, 10)
+        self.assertEqual(options.format, standard)
+
+        if lexical.HAVE_RADIX:
+            builder.radix = 2
+            self.assertEqual(builder.radix, 2)
+            self.assertEqual(builder.build().radix, 2)
+
+            builder.radix = 37
+            self.assertEqual(builder.radix, 37)
+            with self.assertRaises(ValueError):
+                builder.build()
+
+        builder = options.rebuild()
+        self.assertEqual(builder.build(), options)
+
+
+class ParseFloatOptionsTests(unittest.TestCase):
+    '''Test ParseFloatOptions and ParseFloatOptionsBuilder.'''
+
+    def test_builder(self):
+        standard = lexical.NumberFormat.Standard
+        builder = lexical.ParseFloatOptionsBuilder()
+        self.assertEqual(builder.radix, 10)
+        options = builder.build()
+        self.assertEqual(options.radix, 10)
+        self.assertEqual(builder.format, standard)
+        self.assertEqual(options.nan_string, 'NaN')
+
+        builder.nan_string = 'nan'
+        options = builder.build()
+        self.assertEqual(options.nan_string, 'nan')
+
+        with self.assertRaises(TypeError):
+            builder.format = None
+
+        builder.inf_string = 'INF'
+        options = builder.build()
+        self.assertEqual(options.inf_string, 'INF')
+
+        builder.infinity_string = 'INF'
+        options = builder.build()
+        self.assertEqual(options.infinity_string, 'INF')
+
+        builder.nan_string = 'i'
+        with self.assertRaises(ValueError):
+            builder.build()
+
+        builder = options.rebuild()
+        self.assertEqual(builder.build(), options)
+        builder.infinity_string = 'i'
+        with self.assertRaises(ValueError):
+            builder.build()
+
+        builder = options.rebuild()
+        self.assertEqual(builder.build(), options)
+        builder.inf_string = 'i'
+        self.assertEqual(builder.build().inf_string, 'i')
+
+        if lexical.HAVE_RADIX:
+            builder.radix = 2
+            self.assertEqual(builder.radix, 2)
+            self.assertEqual(builder.build().radix, 2)
+
+            builder.radix = 37
+            self.assertEqual(builder.radix, 37)
+            with self.assertRaises(ValueError):
+                builder.build()
+
+
+class WriteIntegerOptionsTests(unittest.TestCase):
+    '''Test WriteIntegerOptions and WriteIntegerOptionsBuilder.'''
+
+    def test_builder(self):
+        builder = lexical.WriteIntegerOptionsBuilder()
+        self.assertEqual(builder.radix, 10)
+        options = builder.build()
+        self.assertEqual(options.radix, 10)
+
+        if lexical.HAVE_RADIX:
+            builder.radix = 2
+            self.assertEqual(builder.radix, 2)
+            self.assertEqual(builder.build().radix, 2)
+
+            builder.radix = 37
+            self.assertEqual(builder.radix, 37)
+            with self.assertRaises(ValueError):
+                builder.build()
+
+        builder = options.rebuild()
+        self.assertEqual(builder.build(), options)
+
+
+class WriteFloatOptionsTests(unittest.TestCase):
+    '''Test WriteFloatOptions and WriteFloatOptionsBuilder.'''
+
+    def test_builder(self):
+        standard = lexical.NumberFormat.Standard
+        builder = lexical.WriteFloatOptionsBuilder()
+        self.assertEqual(builder.radix, 10)
+        self.assertEqual(builder.format, None)
+        options = builder.build()
+        self.assertEqual(options.radix, 10)
+        self.assertEqual(options.nan_string, 'NaN')
+
+        builder.nan_string = 'nan'
+        options = builder.build()
+        self.assertEqual(options.nan_string, 'nan')
+
+        builder.format = standard
+        options = builder.build()
+        self.assertEqual(builder.format, standard)
+
+        builder.format = None
+        options = builder.build()
+        self.assertEqual(builder.format, None)
+
+        builder.inf_string = 'INF'
+        options = builder.build()
+        self.assertEqual(options.inf_string, 'INF')
+
+        builder.nan_string = 'i'
+        with self.assertRaises(ValueError):
+            builder.build()
+
+        builder = options.rebuild()
+        self.assertEqual(builder.build(), options)
+
+        if lexical.HAVE_RADIX:
+            builder.radix = 2
+            self.assertEqual(builder.radix, 2)
+            self.assertEqual(builder.build().radix, 2)
+
+            builder.radix = 37
+            self.assertEqual(builder.radix, 37)
+            with self.assertRaises(ValueError):
+                builder.build()
+
+
+class TupleTests(unittest.TestCase):
+    '''Test the pair-wise Tuple structure.'''
+
+    def test_tuple(self):
+        value = lexical.PartialTupleI8(8, 255)
+        self.assertEqual(value.into(), (8, 255))
+        self.assertEqual(lexical.PartialTupleI8.of((8, 255)), value)
 
 
 class ErrorTests(unittest.TestCase):
@@ -276,6 +469,11 @@ class ResultTests(unittest.TestCase):
         with self.assertRaises(lexical.LexicalError):
             error.into()
 
+        self.assertEqual(cls.of(1), success)
+        self.assertEqual(cls.of(self.error), error)
+        self.assertNotEqual(success, error)
+        self.assertNotEqual(error, success)
+
     def _partial_test(self, cls):
         tuple_type = cls.union_type.value_type
         success_union = cls.union_type(_value=tuple_type(1, 0))
@@ -287,6 +485,11 @@ class ResultTests(unittest.TestCase):
         self.assertFalse(error.is_ok)
         with self.assertRaises(lexical.LexicalError):
             error.into()
+
+        self.assertEqual(cls.of((1, 0)), success)
+        self.assertEqual(cls.of(self.error), error)
+        self.assertNotEqual(success, error)
+        self.assertNotEqual(error, success)
 
     def test_result_i8(self):
         self._complete_test(lexical.ResultI8)
@@ -388,7 +591,7 @@ class ToStringTests(unittest.TestCase):
 
         builder = opt10.rebuild()
         builder.trim_floats = True
-        opt_trim = builder.build().into()
+        opt_trim = builder.build()
         self.assertEqual(cb(10.0, opt_trim), '10')
         self.assertEqual(cb(10.5, opt_trim), '10.5')
 

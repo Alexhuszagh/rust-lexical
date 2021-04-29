@@ -41,10 +41,12 @@ if lexical.HAVE_RADIX:
     # Have radix support in the library, can use non-decimal radixes.
 
     # Serialize 64-bit integer to string in binary, `'1010'`.
-    print(lexical.i64toa_radix(10, 2))
+    options = lexical.WriteIntegerOptions.binary()
+    print(lexical.i64toa_with_options(10, options))
 
     # Serialize 64-bit integer to string in hexadecimal, `'A'`.
-    print(lexical.i64toa_radix(10, 16))
+    options = lexical.WriteIntegerOptions.hexadecimal()
+    print(lexical.i64toa_with_options(10, options))
 
 # PARSERS
 
@@ -56,14 +58,18 @@ print(lexical.atof64('10.5'))
 
 if lexical.HAVE_RADIX:
     # Parse 64-bit integer from string in binary, `10`.
-    print(lexical.atoi64_radix('1010', 2))
+    options = lexical.ParseIntegerOptions.binary()
+    print(lexical.atoi64_with_options('1010', options))
 
     # Parse 64-bit integer from string in hexadecimal, `10`.
-    print(lexical.atoi64_radix('A', 16))
+    options = lexical.ParseIntegerOptions.hexadecimal()
+    print(lexical.atoi64_with_options('A', options))
 
 if lexical.HAVE_FORMAT:
     # Parse 64-bit integer from string in binary with digit separators, `10`.
-    format = lexical.NumberFormat.ignore(b'_')
+    format = lexical.NumberFormat._digit_separator_to_flags
+    builder = lexical.ParseIntegerOptions.builder()
+    #builder.format = 
     print(lexical.atoi64_format('1_0', format))
 
     # Parse 64-bit float from string in binary with digit separators, `10.51`.

@@ -93,7 +93,7 @@ def _to_c_string(string):
     ptr = cast(string, POINTER(c_ubyte))
     size = len(string)
 
-    return (ptr, size)
+    return (ptr, size, string)
 
 
 def _from_c_string(ptr, size):
@@ -163,7 +163,11 @@ def _option(cls, name):
             return f'Option(Some({repr(self._value)}))'
 
         def __eq__(self, other):
-            return _struct_eq(self, other)
+            if self.is_nil:
+                return other.is_nil
+            elif other.is_nil:
+                return False
+            return self._value == other._value
 
         @property
         def tag(self):
@@ -176,6 +180,21 @@ def _option(cls, name):
         @property
         def is_nil(self):
             return self.tag == OptionTag.Nil
+
+        @staticmethod
+        def of(value):
+            '''Create option from value.'''
+
+            if value is None:
+                return Option(OptionTag.Nil.value, cls())
+            return Option(OptionTag.Some.value, value)
+
+        def into_or_none(self):
+            '''Extract value, returning None if the tag is Nil.'''
+
+            if self.tag == OptionTag.Nil:
+                return None
+            return self._value
 
         def into(self):
             '''Extract value from structure.'''
@@ -1823,7 +1842,7 @@ if HAVE_FORMAT:
 
         def build(self):
             '''Build the NumberFormat from the current values.'''
-            return LIB.lexical_number_format_builder_build(self)
+            return LIB.lexical_number_format_builder_build(self).into()
 
 else:
     class NumberFormatBuilder(Structure):
@@ -1853,7 +1872,7 @@ else:
 
         def build(self):
             '''Build the NumberFormat from the current values.'''
-            return LIB.lexical_number_format_builder_build(self)
+            return LIB.lexical_number_format_builder_build(self).into()
 
 LIB.lexical_number_format_rebuild.restype = NumberFormatBuilder
 LIB.lexical_number_format_builder_new.restype = NumberFormatBuilder
@@ -1884,11 +1903,14 @@ class ParseIntegerOptionsBuilder(Structure):
     @property
     def format(self):
         '''Get the number format.'''
-        return self._format
+        return self._format.into_or_none()
 
     @format.setter
     def format(self, value):
         '''Set the number format.'''
+
+        if not isinstance(value, OptionNumberFormat):
+            value = OptionNumberFormat.of(value)
         self._format = value
 
     @property
@@ -1909,7 +1931,7 @@ class ParseIntegerOptionsBuilder(Structure):
 
     def build(self):
         '''Build the NumberFormat from the current values.'''
-        return LIB.lexical_parse_integer_options_builder_build(self)
+        return LIB.lexical_parse_integer_options_builder_build(self).into()
 
 
 class ParseIntegerOptions(Structure):
@@ -1937,7 +1959,7 @@ class ParseIntegerOptions(Structure):
     @property
     def format(self):
         '''Get the number format.'''
-        return self._format
+        return self._format.into_or_none()
 
     @staticmethod
     def new():
@@ -2011,7 +2033,10 @@ class ParseFloatOptionsBuilder(Structure):
         return f'ParseFloatOptionsBuilder(radix={self.radix}, format={repr(self.format)}, rounding=repr({self.rounding}), incorrect={self.incorrect}, lossy={self.lossy}, nan_string={self.nan_string}, inf_string={self.inf_string}, infinity_string={self.infinity_string})'
 
     def __eq__(self, other):
-        return _struct_eq(self, other)
+        # Cannot do _struct_eq, since it will fail with the ptrs.
+        x = (self.radix, self.format, self.rounding, self.incorrect, self.lossy, self.nan_string, self.inf_string, self.infinity_string)
+        y = (other.radix, other.format, other.rounding, other.incorrect, other.lossy, other.nan_string, other.inf_string, other.infinity_string)
+        return x == y
 
     @property
     def format(self):
@@ -2052,9 +2077,12 @@ class ParseFloatOptionsBuilder(Structure):
     def nan_string(self, value):
         '''Set the string representation for `NaN`.'''
 
-        ptr, size = _to_c_string(value)
+        ptr, size, string = _to_c_string(value)
         self._nan_string_ptr = ptr
         self._nan_string_size = size
+        # We need to store a reference to the encoded bytes
+        # so it does not get garbage collected.
+        self._nan_bytes = string
 
     @property
     def inf_string(self):
@@ -2065,9 +2093,12 @@ class ParseFloatOptionsBuilder(Structure):
     def inf_string(self, value):
         '''Set the short string representation for `Infinity`.'''
 
-        ptr, size = _to_c_string(value)
+        ptr, size, string = _to_c_string(value)
         self._inf_string_ptr = ptr
         self._inf_string_size = size
+        # We need to store a reference to the encoded bytes
+        # so it does not get garbage collected.
+        self._inf_bytes = string
 
     @property
     def infinity_string(self):
@@ -2078,9 +2109,12 @@ class ParseFloatOptionsBuilder(Structure):
     def infinity_string(self, value):
         '''Set the long string representation for `Infinity`.'''
 
-        ptr, size = _to_c_string(value)
+        ptr, size, string = _to_c_string(value)
         self._infinity_string_ptr = ptr
         self._infinity_string_size = size
+        # We need to store a reference to the encoded bytes
+        # so it does not get garbage collected.
+        self._infinity_bytes = string
 
     @property
     def radix(self):
@@ -2113,7 +2147,13 @@ class ParseFloatOptionsBuilder(Structure):
 
     def build(self):
         '''Build the NumberFormat from the current values.'''
-        return LIB.lexical_parse_float_options_builder_build(self)
+
+        options = LIB.lexical_parse_float_options_builder_build(self).into()
+        options._nan_bytes = getattr(self, '_nan_bytes', None)
+        options._inf_bytes = getattr(self, '_inf_bytes', None)
+        options._infinity_bytes = getattr(self, '_infinity_bytes', None)
+
+        return options
 
 
 class ParseFloatOptions(Structure):
@@ -2137,7 +2177,10 @@ class ParseFloatOptions(Structure):
         return f'ParseFloatOptions(radix={self.radix}, format={repr(self.format)}, rounding=repr({self.rounding}), incorrect={self.incorrect}, lossy={self.lossy}, nan_string={self.nan_string}, inf_string={self.inf_string}, infinity_string={self.infinity_string})'
 
     def __eq__(self, other):
-        return _struct_eq(self, other)
+        # Cannot do _struct_eq, since it will fail with the ptrs.
+        x = (self._compressed, self.format, self.nan_string, self.inf_string, self.infinity_string)
+        y = (other._compressed, other.format, other.nan_string, other.inf_string, other.infinity_string)
+        return x == y
 
     @property
     def radix(self):
@@ -2219,7 +2262,14 @@ class ParseFloatOptions(Structure):
 
     def rebuild(self):
         '''Create ParseFloatOptionsBuilder using existing values.'''
-        return LIB.lexical_parse_float_options_rebuild(self)
+
+        builder = LIB.lexical_parse_float_options_rebuild(self)
+        builder._nan_bytes = getattr(self, '_nan_bytes', None)
+        builder._inf_bytes = getattr(self, '_inf_bytes', None)
+        builder._infinity_bytes = getattr(self, '_infinity_bytes', None)
+
+        return builder
+
 
 OptionParseFloatOptions = _option(ParseFloatOptions, 'OptionParseFloatOptions')
 LIB.lexical_parse_float_options_builder_new.restype = ParseFloatOptionsBuilder
@@ -2264,7 +2314,7 @@ class WriteIntegerOptionsBuilder(Structure):
 
     def build(self):
         '''Build the NumberFormat from the current values.'''
-        return LIB.lexical_write_integer_options_builder_build(self)
+        return LIB.lexical_write_integer_options_builder_build(self).into()
 
 
 class WriteIntegerOptions(Structure):
@@ -2356,16 +2406,22 @@ class WriteFloatOptionsBuilder(Structure):
         return f'WriteFloatOptionsBuilder(radix={self.radix}, format={repr(self.format)}, trim_floats={self.trim_floats}, nan_string={self.nan_string}, inf_string={self.inf_string})'
 
     def __eq__(self, other):
-        return _struct_eq(self, other)
+        # Cannot do _struct_eq, since it will fail with the ptrs.
+        x = (self.radix, self.format, self.trim_floats, self.nan_string, self.inf_string)
+        y = (other.radix, other.format, other.trim_floats, other.nan_string, other.inf_string)
+        return x == y
 
     @property
     def format(self):
         '''Get the number format.'''
-        return self._format
+        return self._format.into_or_none()
 
     @format.setter
     def format(self, value):
         '''Set the number format.'''
+
+        if not isinstance(value, OptionNumberFormat):
+            value = OptionNumberFormat.of(value)
         self._format = value
 
     @property
@@ -2387,9 +2443,12 @@ class WriteFloatOptionsBuilder(Structure):
     def nan_string(self, value):
         '''Set the string representation for `NaN`.'''
 
-        ptr, size = _to_c_string(value)
+        ptr, size, string = _to_c_string(value)
         self._nan_string_ptr = ptr
         self._nan_string_size = size
+        # We need to store a reference to the encoded bytes
+        # so it does not get garbage collected.
+        self._nan_bytes = string
 
     @property
     def inf_string(self):
@@ -2400,9 +2459,12 @@ class WriteFloatOptionsBuilder(Structure):
     def inf_string(self, value):
         '''Set the short string representation for `Infinity`.'''
 
-        ptr, size = _to_c_string(value)
+        ptr, size, string = _to_c_string(value)
         self._inf_string_ptr = ptr
         self._inf_string_size = size
+        # We need to store a reference to the encoded bytes
+        # so it does not get garbage collected.
+        self._inf_bytes = string
 
     @property
     def radix(self):
@@ -2427,7 +2489,12 @@ class WriteFloatOptionsBuilder(Structure):
 
     def build(self):
         '''Build the NumberFormat from the current values.'''
-        return LIB.lexical_write_float_options_builder_build(self)
+
+        options = LIB.lexical_write_float_options_builder_build(self).into()
+        options._nan_bytes = getattr(self, '_nan_bytes', None)
+        options._inf_bytes = getattr(self, '_inf_bytes', None)
+
+        return options
 
 
 class WriteFloatOptions(Structure):
@@ -2449,7 +2516,10 @@ class WriteFloatOptions(Structure):
         return f'WriteFloatOptions(radix={self.radix}, format={repr(self.format)}, trim_floats={self.trim_floats}, nan_string={self.nan_string}, inf_string={self.inf_string})'
 
     def __eq__(self, other):
-        return _struct_eq(self, other)
+        # Cannot do _struct_eq, since it will fail with the ptrs.
+        x = (self._compressed, self.format, self.nan_string, self.inf_string)
+        y = (other._compressed, other.format, other.nan_string, other.inf_string)
+        return x == y
 
     @property
     def radix(self):
@@ -2464,7 +2534,7 @@ class WriteFloatOptions(Structure):
     @property
     def format(self):
         '''Get the number format.'''
-        return self._format
+        return self._format.into_or_none()
 
     @property
     def nan_string(self):
@@ -2516,7 +2586,12 @@ class WriteFloatOptions(Structure):
 
     def rebuild(self):
         '''Create WriteFloatOptionsBuilder using existing values.'''
-        return LIB.lexical_write_float_options_rebuild(self)
+
+        builder = LIB.lexical_write_float_options_rebuild(self)
+        builder._nan_bytes = getattr(self, '_nan_bytes', None)
+        builder._inf_bytes = getattr(self, '_inf_bytes', None)
+
+        return builder
 
 OptionWriteFloatOptions = _option(WriteFloatOptions, 'OptionWriteFloatOptions')
 LIB.lexical_write_float_options_builder_new.restype = WriteFloatOptionsBuilder
@@ -2570,8 +2645,9 @@ if HAVE_I128:
     class c_uint128(Structure):
         '''Wrapper for a 128-bit, unsigned integer.'''
 
+        value_type = c_ubyte * 16
         _fields_ = [
-            ('_value', c_char * 16)
+            ('_value', value_type)
         ]
 
         def __init__(self, value=0):
@@ -2579,7 +2655,7 @@ if HAVE_I128:
                 raise TypeError(f'an integer is required (got type {type(value)})')
             # Need to ensure the value is from the range [0, 2**128).
             value = value % (2**128)
-            self._value = value.to_bytes(16, sys.byteorder)
+            self._value = self.value_type(*list(value.to_bytes(16, sys.byteorder)))
 
         def __repr__(self):
             return f'c_uint128({self.value})'
@@ -2594,8 +2670,9 @@ if HAVE_I128:
     class c_int128(Structure):
         '''Wrapper for a 128-bit, signed integer.'''
 
+        value_type = c_ubyte * 16
         _fields_ = [
-            ('_value', c_char * 16)
+            ('_value', value_type)
         ]
 
         def __init__(self, value=0):
@@ -2605,7 +2682,7 @@ if HAVE_I128:
             # We assume 2's complement, so we use a wrapping behavior
             # and just export the bytes as-is.
             value = value % (2**128)
-            self._value = value.to_bytes(16, sys.byteorder)
+            self._value = self.value_type(*list(value.to_bytes(16, sys.byteorder)))
 
         def __repr__(self):
             return f'c_int128({self.value})'
@@ -2780,9 +2857,6 @@ def _union(cls, name):
         def __repr__(self):
             return f'{name}(value={repr(self._value)}, index={repr(self._error)})'
 
-        def __eq__(self, other):
-            return _struct_eq(self, other)
-
     ResultUnion.__name__ = name
     return ResultUnion
 
@@ -2819,7 +2893,11 @@ def _result(cls, name):
             return f'Result(Ok({repr(self._data._value)}))'
 
         def __eq__(self, other):
-            return _struct_eq(self, other)
+            if self.is_err:
+                return other.is_err and self._data._error == other._data._error
+            elif other.is_err:
+                return False
+            return self.into() == other.into()
 
         @property
         def tag(self):
@@ -2832,6 +2910,14 @@ def _result(cls, name):
         @property
         def is_err(self):
             return self.tag == ResultTag.Err
+
+        @staticmethod
+        def of(value):
+            '''Create Result from value.'''
+
+            if isinstance(value, Error):
+                return Result(ResultTag.Err.value, Result.union_type(_error=value))
+            return Result(ResultTag.Ok.value, Result.union_type(_value=value))
 
         def into(self):
             '''Extract value from structure.'''
@@ -2877,6 +2963,19 @@ def _partial_tuple(cls, name):
 
         def __eq__(self, other):
             return _struct_eq(self, other)
+
+        @staticmethod
+        def of(value):
+            '''Create Tuple from value.'''
+
+            if len(value) != 2:
+                raise ValueError(f'Tuple expected length of 2, got {len(value)}.')
+            x = value[0]
+            y = value[1]
+            # Wrapper for c_int128 and c_uint128
+            if not isinstance(x, cls):
+                x = cls(x)
+            return Tuple(x, y)
 
         def into(self):
             '''Extract Python tuple from structure.'''
@@ -2937,12 +3036,16 @@ def _partial_result(cls, name):
         ]
 
         def __repr__(self):
-            if self._tag == Result.Err:
-                return 'Result(Err)'
-            return f'Result(Ok({repr(self._data._value.into())}))'
+            if self.tag == Result.Err:
+                return f'PartialResult(Err({self._data._error}))'
+            return f'PartialResult(Ok({repr(self._data._value.into())}))'
 
         def __eq__(self, other):
-            return _struct_eq(self, other)
+            if self.is_err:
+                return other.is_err and self._data._error == other._data._error
+            elif other.is_err:
+                return False
+            return self.into() == other.into()
 
         @property
         def tag(self):
@@ -2955,6 +3058,16 @@ def _partial_result(cls, name):
         @property
         def is_err(self):
             return self.tag == ResultTag.Err
+
+        @staticmethod
+        def of(value):
+            '''Create PartialResult from value.'''
+
+            union_type = PartialResult.union_type
+            if isinstance(value, Error):
+                return PartialResult(ResultTag.Err.value, union_type(_error=value))
+            value = union_type.value_type.of(value)
+            return PartialResult(ResultTag.Ok.value, union_type(_value=value))
 
         def into(self):
             '''Extract value from structure.'''
