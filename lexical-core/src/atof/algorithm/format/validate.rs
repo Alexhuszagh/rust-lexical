@@ -487,6 +487,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "format")]
     fn validate_required_exponent_and_digits_test() {
         type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("01"), Some(b!("23450")), None, 0).into();
@@ -506,6 +507,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "format")]
     fn validate_required_exponent_without_digits_test() {
         type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("01"), Some(b!("23450")), None, 0).into();

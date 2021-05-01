@@ -65,17 +65,59 @@ else
     CORE_FEATURES=("${LEXICAL_FEATURES[@]}")
 fi
 
+# Don't build the target, but ensure the syntax is correct.
+check() {
+    if [ ! -z $NO_FEATURES ]; then
+        return
+    fi
+
+    # Need to test a few permutations just to ensure everything compiles.
+    features=(
+        "atof"
+        "atof,no_alloc"
+        "atof,format"
+        "atof,radix"
+        "atof,rounding"
+        "atof,format,radix"
+        "atof,format,rounding"
+        "atof,radix,rounding"
+        "atof,format,radix,rounding"
+        "atoi"
+        "atoi,format"
+        "atoi,radix"
+        "atoi,format,radix"
+        "ftoa"
+        "ftoa,format"
+        "ftoa,radix"
+        "ftoa,format,radix"
+        "itoa"
+        "itoa,format"
+        "itoa,radix"
+        "itoa,format,radix"
+        "atof,atoi"
+        "atof,ftoa"
+        "atof,itoa"
+        "atof,atoi,ftoa"
+        "atof,atoi,itoa"
+        "atof,ftoa,itoa"
+        "atoi,ftoa"
+        "atoi,itoa"
+        "atoi,ftoa,itoa"
+        "ftoa,itoa"
+    )
+
+    # Iterate over all features.
+    for i in "${features[@]}"; do
+        test_features="--no-default-features --features=$REQUIRED_FEATURES,$i"
+        $CARGO check $CARGO_TARGET --tests $test_features
+    done
+}
+
 # Build target.
 build() {
     features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
     $CARGO build $CARGO_TARGET $features
     $CARGO build $CARGO_TARGET $features --release
-
-    # Need to test a few permutations just to ensure everything compiles.
-    $CARGO build $CARGO_TARGET --no-default-features --features=std,atof
-    $CARGO build $CARGO_TARGET --no-default-features --features=std,atoi
-    $CARGO build $CARGO_TARGET --no-default-features --features=std,ftoa
-    $CARGO build $CARGO_TARGET --no-default-features --features=std,itoa
 }
 
 # Test target.
@@ -105,6 +147,10 @@ bench() {
         return
     fi
     if [ ! -z $DISABLE_BENCHES ]; then
+        return
+    fi
+    if [ ! -z $NO_FEATURES ]; then
+        # Benches are extremely slow, so disable them unless features are enabled.
         return
     fi
 
@@ -147,6 +193,7 @@ main() {
 
     # Build and test lexical-core.
     cd lexical-core
+    check
     build
     test "${CORE_FEATURES[@]}"
 
