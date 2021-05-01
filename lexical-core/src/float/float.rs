@@ -116,7 +116,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         -> u32
     {
         // Note:
-        // Using the cltz intrinsic via leading_zeros is way faster (~10x)
+        // Using the ctlz intrinsic via leading_zeros is way faster (~10x)
         // than shifting 1-bit at a time, via while loop, and also way
         // faster (~2x) than an unrolled loop that checks at 32, 16, 4,
         // 2, and 1 bit.
@@ -483,6 +483,9 @@ mod tests {
 
         // max value
         check_normalize(16777213, 104, 40, 18446740775174668288, 64);
+
+        // Test a few cases from radix float writer errors.
+        check_normalize(5178144, -22, 41, 11386859076597055488, -63);
 
         // F64
 

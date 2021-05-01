@@ -22,8 +22,6 @@ macro_rules! apply_interface {
     ($fn:expr, $format:expr $(,$args:expr)*) => {
         // Parse Options.
         match $format.interface_flags() {
-            // Oh fuck... It's using the standard interface right?
-            // Which I don't store the special for...
             NumberFormat::PERMISSIVE_INTERFACE  => $fn(PermissiveFastDataInterface::new($format) $(,$args)*),
             NumberFormat::STANDARD_INTERFACE    => $fn(StandardFastDataInterface::new($format) $(,$args)*),
             NumberFormat::IGNORE_INTERFACE      => $fn(IgnoreFastDataInterface::new($format) $(,$args)*),

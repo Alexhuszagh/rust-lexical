@@ -33,7 +33,7 @@ bitflags! {
     /// ```text
     /// 0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    /// |I/R|F/R|E/R|+/M|R/M|e/e|+/E|R/E|e/F|S/S|S/C|N/I|N/F|           |
+    /// |I/R|F/R|E/R|+/M|R/M|e/e|+/E|R/E|e/F|S/S|S/C|N/I|N/F|R/e|       |
     /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
     ///
     /// 16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32
@@ -65,6 +65,7 @@ bitflags! {
     ///     S/C = Case-sensitive special (non-finite) values.
     ///     N/I = No integer leading zeros.
     ///     N/F = No float leading zeros.
+    ///     R/e = Required exponent characters.
     ///     I/I = Integer internal digit separator.
     ///     F/I = Fraction internal digit separator.
     ///     E/I = Exponent internal digit separator.
@@ -127,6 +128,7 @@ bitflags! {
     /// L: 'In_f'       // Special (non-finite) digit separator.
     /// M: '010'        // No integer leading zeros.
     /// N: '010.0'      // No float leading zeros.
+    /// N: '1.0'        // No required exponent notation.
     /// ```
     ///
     /// Currently Supported Programming and Data Languages:
@@ -195,6 +197,7 @@ bitflags! {
             | Self::CASE_SENSITIVE_SPECIAL.bits
             | Self::NO_INTEGER_LEADING_ZEROS.bits
             | Self::NO_FLOAT_LEADING_ZEROS.bits
+            | Self::REQUIRED_EXPONENT_NOTATION.bits
             | Self::INTERNAL_DIGIT_SEPARATOR.bits
             | Self::LEADING_DIGIT_SEPARATOR.bits
             | Self::TRAILING_DIGIT_SEPARATOR.bits
@@ -216,6 +219,7 @@ bitflags! {
             | Self::REQUIRED_EXPONENT_SIGN.bits
             | Self::NO_EXPONENT_WITHOUT_FRACTION.bits
             | Self::NO_FLOAT_LEADING_ZEROS.bits
+            | Self::REQUIRED_EXPONENT_NOTATION.bits
             | Self::INTERNAL_DIGIT_SEPARATOR.bits
             | Self::LEADING_DIGIT_SEPARATOR.bits
             | Self::TRAILING_DIGIT_SEPARATOR.bits
@@ -266,6 +270,7 @@ bitflags! {
             | Self::NO_POSITIVE_EXPONENT_SIGN.bits
             | Self::REQUIRED_EXPONENT_SIGN.bits
             | Self::NO_EXPONENT_WITHOUT_FRACTION.bits
+            | Self::REQUIRED_EXPONENT_NOTATION.bits
             | Self::EXPONENT_INTERNAL_DIGIT_SEPARATOR.bits
             | Self::EXPONENT_LEADING_DIGIT_SEPARATOR.bits
             | Self::EXPONENT_TRAILING_DIGIT_SEPARATOR.bits
@@ -316,6 +321,9 @@ bitflags! {
 
         #[doc(hidden)]
         const NO_FLOAT_LEADING_ZEROS                = flags::NO_FLOAT_LEADING_ZEROS;
+
+        #[doc(hidden)]
+        const REQUIRED_EXPONENT_NOTATION            = flags::REQUIRED_EXPONENT_NOTATION;
 
         // DIGIT SEPARATOR FLAGS & MASKS
         // See `flags` for documentation.
@@ -1812,6 +1820,12 @@ impl NumberFormat {
         self.intersects(Self::NO_FLOAT_LEADING_ZEROS)
     }
 
+    /// Get if exponent notation is required.
+    #[inline(always)]
+    pub const fn required_exponent_notation(self) -> bool {
+        self.intersects(Self::REQUIRED_EXPONENT_NOTATION)
+    }
+
     /// Get if digit separators are allowed between integer digits.
     #[inline(always)]
     pub const fn integer_internal_digit_separator(self) -> bool {
@@ -1943,6 +1957,7 @@ impl NumberFormat {
             case_sensitive_special: self.case_sensitive_special(),
             no_integer_leading_zeros: self.no_integer_leading_zeros(),
             no_float_leading_zeros: self.no_float_leading_zeros(),
+            required_exponent_notation: self.required_exponent_notation(),
             integer_internal_digit_separator: self.integer_internal_digit_separator(),
             fraction_internal_digit_separator: self.fraction_internal_digit_separator(),
             exponent_internal_digit_separator: self.exponent_internal_digit_separator(),
@@ -1981,6 +1996,7 @@ impl NumberFormat {
 /// * `case_sensitive_special`                  - If special (non-finite) values are case-sensitive.
 /// * `no_integer_leading_zeros`                - If leading zeros before an integer are not allowed.
 /// * `no_float_leading_zeros`                  - If leading zeros before a float are not allowed.
+/// * `required_exponent_notation`              - If exponent notation is required.
 /// * `integer_internal_digit_separator`        - If digit separators are allowed between integer digits.
 /// * `fraction_internal_digit_separator`       - If digit separators are allowed between fraction digits.
 /// * `exponent_internal_digit_separator`       - If digit separators are allowed between exponent digits.
@@ -2015,6 +2031,7 @@ pub struct NumberFormatBuilder {
     case_sensitive_special: bool,
     no_integer_leading_zeros: bool,
     no_float_leading_zeros: bool,
+    required_exponent_notation: bool,
     integer_internal_digit_separator: bool,
     fraction_internal_digit_separator: bool,
     exponent_internal_digit_separator: bool,
@@ -2052,6 +2069,7 @@ impl NumberFormatBuilder {
             case_sensitive_special: false,
             no_integer_leading_zeros: false,
             no_float_leading_zeros: false,
+            required_exponent_notation: false,
             integer_internal_digit_separator: false,
             fraction_internal_digit_separator: false,
             exponent_internal_digit_separator: false,
@@ -2170,6 +2188,12 @@ impl NumberFormatBuilder {
     #[inline(always)]
     pub const fn get_no_float_leading_zeros(&self) -> bool {
         self.no_float_leading_zeros
+    }
+
+    /// Get if exponent notation is required.
+    #[inline(always)]
+    pub const fn get_required_exponent_notation(&self) -> bool {
+        self.required_exponent_notation
     }
 
     /// Get if digit separators are allowed between integer digits.
@@ -2382,6 +2406,13 @@ impl NumberFormatBuilder {
         self
     }
 
+    /// Set if exponent notation is required.
+    #[inline(always)]
+    pub const fn required_exponent_notation(mut self, required_exponent_notation: bool) -> Self {
+        self.required_exponent_notation = required_exponent_notation;
+        self
+    }
+
     /// Set if digit separators are allowed between integer digits.
     #[inline(always)]
     pub const fn integer_internal_digit_separator(mut self, integer_internal_digit_separator: bool) -> Self {
@@ -2536,6 +2567,7 @@ impl NumberFormatBuilder {
         add_flag!(format, self.case_sensitive_special, CASE_SENSITIVE_SPECIAL);
         add_flag!(format, self.no_integer_leading_zeros, NO_INTEGER_LEADING_ZEROS);
         add_flag!(format, self.no_float_leading_zeros, NO_FLOAT_LEADING_ZEROS);
+        add_flag!(format, self.required_exponent_notation, REQUIRED_EXPONENT_NOTATION);
 
         // Digit separator flags.
         add_flag!(format, self.integer_internal_digit_separator, INTEGER_INTERNAL_DIGIT_SEPARATOR);
@@ -2571,6 +2603,7 @@ impl NumberFormatBuilder {
             || self.no_positive_mantissa_sign && self.required_mantissa_sign
             || self.no_positive_exponent_sign && self.required_exponent_sign
             || self.no_special && (self.case_sensitive_special || self.special_digit_separator)
+            || self.no_exponent_notation && self.required_exponent_notation
             || check_flag!(format, INTEGER_DIGIT_SEPARATOR_FLAG_MASK, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR)
             || check_flag!(format, FRACTION_DIGIT_SEPARATOR_FLAG_MASK, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR)
             || check_flag!(format, EXPONENT_DIGIT_SEPARATOR_FLAG_MASK, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
@@ -2618,6 +2651,7 @@ mod tests {
         assert_eq!(flag.case_sensitive_special(), false);
         assert_eq!(flag.no_integer_leading_zeros(), false);
         assert_eq!(flag.no_float_leading_zeros(), false);
+        assert_eq!(flag.required_exponent_notation(), false);
         assert_eq!(flag.integer_internal_digit_separator(), true);
         assert_eq!(flag.fraction_internal_digit_separator(), true);
         assert_eq!(flag.exponent_internal_digit_separator(), true);
@@ -2656,6 +2690,7 @@ mod tests {
             NumberFormat::CASE_SENSITIVE_SPECIAL,
             NumberFormat::NO_INTEGER_LEADING_ZEROS,
             NumberFormat::NO_FLOAT_LEADING_ZEROS,
+            NumberFormat::REQUIRED_EXPONENT_NOTATION,
             NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR,
             NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR,
             NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR,

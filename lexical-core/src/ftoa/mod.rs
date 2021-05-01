@@ -2,6 +2,8 @@
 
 // Hide implementation details.
 #[cfg(feature = "radix")]
+mod binary;
+#[cfg(feature = "radix")]
 mod radix;
 
 cfg_if! {

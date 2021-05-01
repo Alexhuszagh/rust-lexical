@@ -114,7 +114,6 @@ macro_rules! generic_algorithm {
             // Digit must be <= 36.
             $index -= 1;
             unchecked_index_mut!($buffer[$index] = digit_to_char($value));
-            //*iter.next().unwrap() = digit_to_char(value);
         } else {
             let r = ($t::TWO * $value).as_usize();
             // This is always safe, since the table is 2*radix^2, and the value
@@ -221,7 +220,7 @@ fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [u8])
 
     // Use power-reduction to minimize the number of operations.
     // Idea taken from "3 Optimization Tips for C++".
-    let (divisor, digits_per_iter, d_cltz) = u128_divisor(radix);
+    let (divisor, digits_per_iter, d_ctlz) = u128_divisor(radix);
     let radix: u64 = as_cast(radix);
     let radix2 = radix * radix;
     let radix4 = radix2 * radix2;
@@ -232,12 +231,12 @@ fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [u8])
     // we just skip down `digits` digits for the next value.
     let mut index = buffer.len();
     let mut start_index = index;
-    let (value, mut low) = u128_divrem(value, divisor, d_cltz);
+    let (value, mut low) = u128_divrem(value, divisor, d_ctlz);
     generic_algorithm!(low, radix, buffer, u64, table, index, radix2, radix4);
     if value != 0 {
         start_index -= digits_per_iter;
         index = index.min(start_index);
-        let (value, mut mid) = u128_divrem(value, divisor, d_cltz);
+        let (value, mut mid) = u128_divrem(value, divisor, d_ctlz);
         generic_algorithm!(mid, radix, buffer, u64, table, index, radix2, radix4);
 
         if value != 0 {

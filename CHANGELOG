@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added the Options API
+    - ParseFloatOptions
+    - ParseIntegerOptions
+    - WriteFloatOptions
+    - WriteIntegerOptions
+- Added `parse_with_options`, `parse_partial_with_options`
+- Added `to_string_with_options`.
+
+### Removed
+- Remove the write_format, write_radix, and similar functions
+- Remove the parse_format, parse_radix, and similar functions
 
 ## [5.2.2] 2021-04-21
 

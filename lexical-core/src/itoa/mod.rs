@@ -8,4 +8,4 @@ mod api;
 mod generic;
 
 #[cfg(all(feature = "ftoa", feature = "radix"))]
-pub(crate) use self::api::itoa_positive;
+pub(crate) use self::api::{Itoa, itoa_positive};

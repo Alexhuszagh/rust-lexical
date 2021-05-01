@@ -30,6 +30,7 @@ use std::error::Error as StdError;
 /// const int32_t MISSING_EXPONENT_SIGN = -13;
 /// const int32_t EXPONENT_WITHOUT_FRACTION = -14;
 /// const int32_t INVALID_LEADING_ZEROS = -15;
+/// const int32_t MISSING_EXPONENT = -16;
 /// ```
 ///
 /// # Safety
@@ -75,6 +76,8 @@ pub enum ErrorCode {
     ExponentWithoutFraction = -14,
     /// Integer had invalid leading zeros.
     InvalidLeadingZeros = -15,
+    /// No exponent with required exponent notation.
+    MissingExponent = -16,
 
     // We may add additional variants later, so ensure that client matching
     // does not depend on exhaustive matching.

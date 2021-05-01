@@ -108,9 +108,9 @@ pub(crate) fn u128_divisor(_: u32) -> (u64, usize, u32) {
 // calling both `__udivmodti4` twice internally, rather than a single time.
 #[inline]
 #[cfg(any(feature = "itoa", all(feature = "ftoa", feature = "radix")))]
-pub(crate) fn u128_divrem(n: u128, d: u64, d_cltz: u32) -> (u128, u64) {
+pub(crate) fn u128_divrem(n: u128, d: u64, d_ctlz: u32) -> (u128, u64) {
     // Ensure we have the correct number of leading zeros passed.
-    debug_assert_eq!(d_cltz, d.leading_zeros());
+    debug_assert_eq!(d_ctlz, d.leading_zeros());
 
     // Optimize if we can divide using u64 first.
     let high = (n >> 64) as u64;
@@ -120,7 +120,7 @@ pub(crate) fn u128_divrem(n: u128, d: u64, d_cltz: u32) -> (u128, u64) {
     }
 
     // sr = 1 + u64::BITS + d.leading_zeros() - high.leading_zeros();
-    let sr = 65 + d_cltz - high.leading_zeros();
+    let sr = 65 + d_ctlz - high.leading_zeros();
 
     // 1 <= sr <= u64::BITS - 1
     let mut q: u128 = n << (128 - sr);
@@ -170,9 +170,9 @@ mod tests {
     proptest! {
         #[test]
         fn u128_divrem_proptest(i in u128::min_value()..u128::max_value()) {
-            let (d, _, d_cltz) = u128_divisor(10);
+            let (d, _, d_ctlz) = u128_divisor(10);
             let expected = (i / d as u128, (i % d as u128) as u64);
-            let actual = u128_divrem(i, d, d_cltz);
+            let actual = u128_divrem(i, d, d_ctlz);
             prop_assert_eq!(actual, expected);
         }
     }

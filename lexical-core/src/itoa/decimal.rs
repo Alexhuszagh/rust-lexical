@@ -136,7 +136,7 @@ const TABLE: &[u8] = &DIGIT_TO_BASE10_SQUARED;
 // tricks so they may not be very legible.
 
 // Calculate the number of leading 0s.
-macro_rules! cltz {
+macro_rules! ctlz {
     ($value:ident) => {
         $value.leading_zeros().as_usize()
     };
@@ -148,7 +148,7 @@ macro_rules! calculate_offset {
         // Get the log2 of the value to estimate the log10 quickly.
         // log2(0) is undefined, always ensure 1 bit is set.
         let value = $value | 1;
-        let log2 = $size - cltz!(value);
+        let log2 = $size - ctlz!(value);
 
         // Estimate log10(value) to calculate number of digits.
         // Put in safe guards so we always have at least 1 digit.

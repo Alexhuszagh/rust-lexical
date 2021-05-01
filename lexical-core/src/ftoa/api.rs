@@ -62,6 +62,9 @@
 use crate::util::*;
 
 #[cfg(feature = "radix")]
+use super::binary::{double_binary, float_binary};
+
+#[cfg(feature = "radix")]
 use super::radix::{double_radix, float_radix};
 
 // Select the back-end
@@ -95,7 +98,11 @@ impl FloatToString for f32 {
     #[inline]
     #[cfg(feature = "radix")]
     fn radix<'a>(self, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize {
-        float_radix(self, radix, bytes, format)
+        if log2(radix) == 0 {
+            float_radix(self, radix, bytes, format)
+        } else {
+            float_binary(self, radix, bytes, format)
+        }
     }
 }
 
@@ -108,7 +115,11 @@ impl FloatToString for f64 {
     #[inline]
     #[cfg(feature = "radix")]
     fn radix<'a>(self, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize {
-        double_radix(self, radix, bytes, format)
+        if log2(radix) == 0 {
+            double_radix(self, radix, bytes, format)
+        } else {
+            double_binary(self, radix, bytes, format)
+        }
     }
 }
 
@@ -346,7 +357,7 @@ mod tests {
         assert_eq!(as_slice(b"inf"), f32::INFINITY.to_lexical_with_options(&mut buffer, &options));
 
         // bugfixes
-        assert_eq!(as_slice(b"1.1010100000101011110001e-11011"), 0.000000012345f32.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(as_slice(b"1.1010100000101011110001^-11011"), 0.000000012345f32.to_lexical_with_options(&mut buffer, &options));
     }
 
     #[test]

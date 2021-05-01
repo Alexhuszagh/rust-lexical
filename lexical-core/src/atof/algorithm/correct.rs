@@ -43,7 +43,7 @@ fn fast_path<F>(mantissa: u64, radix: u32, exponent: i32)
     where F: FloatType
 {
     debug_assert_radix!(radix);
-    debug_assert!(pow2_exponent(radix) == 0, "Cannot use `fast_path` with a power of 2.");
+    debug_assert!(log2(radix) == 0, "Cannot use `fast_path` with a power of 2.");
 
     // `mantissa >> (F::MANTISSA_SIZE+1) != 0` effectively checks if the
     // value has a no bits above the hidden bit, which is what we want.
@@ -137,11 +137,11 @@ fn is_odd<F: FloatType>(mantissa: u64)
 /// mantissa unless the exponent is denormal, which will cause truncation
 /// regardless.
 #[cfg(feature = "radix")]
-fn pow2_fast_path<F>(mantissa: u64, radix: u32, pow2_exp: i32, exponent: i32)
+fn pow2_fast_path<F>(mantissa: u64, radix: u32, radix_log2: i32, exponent: i32)
     -> F
     where F: FloatType
 {
-    debug_assert!(pow2_exp != 0, "Not a power of 2.");
+    debug_assert!(radix_log2 != 0, "Not a power of 2.");
 
     // As long as the value is within the bounds, we can get an exact value.
     // Since any power of 2 only affects the exponent, we should be able to get
@@ -150,9 +150,9 @@ fn pow2_fast_path<F>(mantissa: u64, radix: u32, pow2_exp: i32, exponent: i32)
     // We know that if any value is > than max_exp, we get infinity, since
     // the mantissa must be positive. We know that the actual value that
     // causes underflow is 64, use 65 since that prevents inaccurate
-    // rounding for any pow2_exp.
+    // rounding for any log2(radix).
     let (min_exp, max_exp) = F::exponent_limit(radix);
-    let underflow_exp = min_exp - (65 / pow2_exp);
+    let underflow_exp = min_exp - (65 / radix_log2);
     if exponent > max_exp {
         F::INFINITY
     } else if exponent < underflow_exp{
@@ -164,11 +164,11 @@ fn pow2_fast_path<F>(mantissa: u64, radix: u32, pow2_exp: i32, exponent: i32)
         // which will round to the accurate representation.
         let remainder = exponent - min_exp;
         let float: F = as_cast(mantissa);
-        let float = float.pow2(pow2_exp * remainder).pow2(pow2_exp * min_exp);
+        let float = float.pow2(radix_log2 * remainder).pow2(radix_log2 * min_exp);
         float
     } else {
         let float: F = as_cast(mantissa);
-        let float = float.pow2(pow2_exp * exponent);
+        let float = float.pow2(radix_log2 * exponent);
         float
     }
 }
@@ -352,7 +352,7 @@ fn pow2_to_native<'a, F, Data>(
     mut data: Data,
     bytes: &'a [u8],
     radix: u32,
-    pow2_exp: i32,
+    radix_log2: i32,
     sign: Sign,
     rounding: RoundingKind
 )
@@ -397,35 +397,22 @@ fn pow2_to_native<'a, F, Data>(
         }
 
         // Create exact representation and return.
-        let exponent = slow.mantissa_exponent().saturating_mul(pow2_exp);
+        let exponent = slow.mantissa_exponent().saturating_mul(radix_log2);
         let fp = ExtendedFloat { mant: mantissa, exp: exponent };
         fp.into_rounded_float_impl::<F>(kind)
     } else if mantissa >> mantissa_size != 0 {
         // Would be truncated, use the extended float.
         let kind = internal_rounding(rounding, sign);
         let slow = data.to_slow(truncated);
-        let exponent = slow.mantissa_exponent().saturating_mul(pow2_exp);
+        let exponent = slow.mantissa_exponent().saturating_mul(radix_log2);
         let fp = ExtendedFloat { mant: mantissa, exp: exponent };
         fp.into_rounded_float_impl::<F>(kind)
     } else {
         // Nothing above the hidden bit, so no rounding-error, can use the fast path.
         let mant_exp = data.mantissa_exponent(0);
-        pow2_fast_path(mantissa, radix, pow2_exp, mant_exp)
+        pow2_fast_path(mantissa, radix, radix_log2, mant_exp)
     };
     Ok((float, ptr))
-}
-
-/// Check if value is power of 2 and get the power.
-#[inline(always)]
-fn pow2_exponent(radix: u32) -> i32 {
-    match radix {
-        2  => 1,
-        4  => 2,
-        8  => 3,
-        16 => 4,
-        32 => 5,
-        _  => 0,
-    }
 }
 
 // DISPATCHER
@@ -452,7 +439,7 @@ pub(crate) fn to_native<'a, F, Data>(
     }
 
     #[cfg(feature = "radix")] {
-        let pow2_exp = pow2_exponent(radix);
+        let pow2_exp = log2(radix);
         match pow2_exp {
             0 => pown_to_native(data, bytes, radix, incorrect, lossy, sign, rounding),
             _ => pow2_to_native(data, bytes, radix, pow2_exp, sign, rounding)
@@ -599,7 +586,7 @@ mod tests {
         let mantissa = 1 << 63;
         for base in BASE_POW2.iter().cloned() {
             let (min_exp, max_exp) = f32::exponent_limit(base);
-            let pow2_exp = pow2_exponent(base);
+            let pow2_exp = log2(base);
             for exp in min_exp-20..max_exp+30 {
                 // Always valid, ignore result
                 pow2_fast_path::<f32>(mantissa, base, pow2_exp, exp);
@@ -614,7 +601,7 @@ mod tests {
         let mantissa = 1 << 63;
         for base in BASE_POW2.iter().cloned() {
             let (min_exp, max_exp) = f64::exponent_limit(base);
-            let pow2_exp = pow2_exponent(base);
+            let pow2_exp = log2(base);
             for exp in min_exp-20..max_exp+30 {
                 // Ignore result, always valid
                 pow2_fast_path::<f64>(mantissa, base, pow2_exp, exp);
@@ -794,6 +781,36 @@ mod tests {
     }
 
     #[test]
+    #[cfg(all(feature = "ftoa", feature = "radix"))]
+    fn atof_test_roundtrip() {
+        let mut buffer = new_buffer();
+        let values: [f32; 8] = [
+            1.2345678901234567890e0,
+            1.2345678901234567890e1,
+            1.2345678901234567890e2,
+            1.2345678901234567890e3,
+            -1.2345678901234567890e0,
+            -1.2345678901234567890e1,
+            -1.2345678901234567890e2,
+            -1.2345678901234567890e3,
+        ];
+        let radixes = [2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16];
+        for &radix in radixes.iter() {
+            // Round-trip for base2.
+            let parse_opts = ParseFloatOptions::builder().radix(radix).build().unwrap();
+            let write_opts = WriteFloatOptions::builder().radix(radix).build().unwrap();
+            let mut roundtrip = |x| {
+                let written = f32::to_lexical_with_options(x, &mut buffer, &write_opts);
+                let parsed = f32::from_lexical_with_options(written, &parse_opts);
+                parsed == Ok(x)
+            };
+            for &value in values.iter() {
+                assert!(roundtrip(value));
+            }
+        }
+    }
+
+    #[test]
     fn atod_test() {
         let atod10 = move |x| f64::from_lexical_partial(x);
 
@@ -858,10 +875,10 @@ mod tests {
         // Adapted from:
         //  https://www.exploringbinary.com/glibc-strtod-incorrectly-converts-2-to-the-negative-1075/
         #[cfg(feature = "radix")]
-        assert_eq!(Ok((5e-324, 14)), atod2(b"1e-10000110010"));
+        assert_eq!(Ok((5e-324, 14)), atod2(b"1^-10000110010"));
 
         #[cfg(feature = "radix")]
-        assert_eq!(Ok((0.0, 14)), atod2(b"1e-10000110011"));
+        assert_eq!(Ok((0.0, 14)), atod2(b"1^-10000110011"));
         assert_eq!(Ok((0.0, 1077)), atod10(b"0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000024703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125"));
 
         // Rounding error
@@ -892,6 +909,41 @@ mod tests {
         assert_eq!(Ok((71610528364411830000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0, 310)), atod10(b"71610528364411830000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"));
         assert_eq!(Ok((126769393745745060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0, 311)), atod10(b"126769393745745060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"));
         assert_eq!(Ok((38652960461239320000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0, 310)), atod10(b"38652960461239320000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"));
+
+        // Round-trip for base2.
+        #[cfg(feature = "radix")] {
+            assert_eq!(Ok((f64::from_bits(0x3bcd261840000000), 33)), atod2(b"1.1101001001100001100001^-1000011"));
+        }
+    }
+
+    #[test]
+    #[cfg(all(feature = "ftoa", feature = "radix"))]
+    fn atod_test_roundtrip() {
+        let mut buffer = new_buffer();
+        let values: [f64; 8] = [
+            1.2345678901234567890e0,
+            1.2345678901234567890e1,
+            1.2345678901234567890e2,
+            1.2345678901234567890e3,
+            -1.2345678901234567890e0,
+            -1.2345678901234567890e1,
+            -1.2345678901234567890e2,
+            -1.2345678901234567890e3,
+        ];
+        let radixes = [2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16];
+        for &radix in radixes.iter() {
+            // Round-trip for base2.
+            let parse_opts = ParseFloatOptions::builder().radix(radix).build().unwrap();
+            let write_opts = WriteFloatOptions::builder().radix(radix).build().unwrap();
+            let mut roundtrip = |x| {
+                let written = f64::to_lexical_with_options(x, &mut buffer, &write_opts);
+                let parsed = f64::from_lexical_with_options(written, &parse_opts);
+                parsed == Ok(x)
+            };
+            for &value in values.iter() {
+                assert!(roundtrip(value));
+            }
+        }
     }
 
     #[test]

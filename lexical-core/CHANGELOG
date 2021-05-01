@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added the Options API
+    - ParseFloatOptions
+    - ParseIntegerOptions
+    - WriteFloatOptions
+    - WriteIntegerOptions
+- Added `parse_with_options`, `parse_partial_with_options`
+- Added `write_with_options`.
+- Added a faster float writer for power of 2 radixes.
+- Added the `required_exponent_notation` flag to `NumberFormat`.
+
+### Removed
+- Remove the write_format, write_radix, and similar functions
+- Remove the parse_format, parse_radix, and similar functions
 
 ## [0.7.6] 2021-04-21
 ### Changed

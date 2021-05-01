@@ -47,6 +47,9 @@ mod error;
 #[cfg(any(feature = "atof", feature = "atoi"))]
 mod iterator;
 
+#[cfg(any(feature = "atof", all(feature = "ftoa", feature = "radix")))]
+mod log2;
+
 #[cfg(any(feature = "atof", feature = "ftoa"))]
 mod mask;
 
@@ -77,6 +80,9 @@ pub(crate) use self::div128::*;
 
 #[cfg(any(feature = "atof", feature = "atoi"))]
 pub(crate) use self::iterator::*;
+
+#[cfg(any(feature = "atof", all(feature = "ftoa", feature = "radix")))]
+pub(crate) use self::log2::*;
 
 #[cfg(any(feature = "atof", feature = "ftoa"))]
 pub(crate) use self::mask::*;

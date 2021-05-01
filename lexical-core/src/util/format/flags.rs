@@ -109,6 +109,11 @@ pub(crate) const NO_INTEGER_LEADING_ZEROS: u64             = 0b00000000000000000
 /// literal.
 pub(crate) const NO_FLOAT_LEADING_ZEROS: u64               = 0b0000000000000000000000000000000000000000000000000001000000000000;
 
+/// Exponent notation is required.
+///
+/// Valid floats must contain an exponent notation character, and if
+/// applicable, a sign character and digits afterwards.
+pub(crate) const REQUIRED_EXPONENT_NOTATION: u64           = 0b0000000000000000000000000000000000000000000000000010000000000000;
 
 // DIGIT SEPARATOR FLAGS & MASKS
 // -----------------------------
@@ -201,6 +206,7 @@ check_subsequent_flags!(NO_SPECIAL, CASE_SENSITIVE_SPECIAL);
 check_subsequent_flags!(NO_SPECIAL, CASE_SENSITIVE_SPECIAL);
 check_subsequent_flags!(CASE_SENSITIVE_SPECIAL, NO_INTEGER_LEADING_ZEROS);
 check_subsequent_flags!(NO_INTEGER_LEADING_ZEROS, NO_FLOAT_LEADING_ZEROS);
+check_subsequent_flags!(NO_FLOAT_LEADING_ZEROS, REQUIRED_EXPONENT_NOTATION);
 
 // Digit separator flags.
 const_assert!(INTEGER_INTERNAL_DIGIT_SEPARATOR == 1 << 32);

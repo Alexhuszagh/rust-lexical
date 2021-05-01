@@ -37,7 +37,7 @@ pub(crate) fn round_nearest<M>(fp: &mut ExtendedFloat<M>, shift: i32)
     (is_above, is_halfway)
 }
 
-/// Tie rounded floating point to event.
+/// Tie rounded floating point to even.
 #[inline(always)]
 pub(crate) fn tie_even<M>(fp: &mut ExtendedFloat<M>, is_above: bool, is_halfway: bool)
     where M: Mantissa
@@ -349,6 +349,14 @@ mod tests {
         assert!(!above);
         assert!(!halfway);
         assert_eq!(fp.mant, 1);
+
+        // Examples from radix write float error tests.
+        let mut fp = ExtendedFloat80 { mant: 11386859076597055488, exp: -63 };
+        let (above, halfway) = round_nearest(&mut fp, 40);
+        assert!(!above);
+        assert!(!halfway);
+        assert_eq!(fp.mant, 10356288);
+        assert_eq!(fp.exp, -23);
     }
 
     #[test]
@@ -380,6 +388,12 @@ mod tests {
         let mut fp = ExtendedFloat80 { mant: 0x1F, exp: 0 };
         round_nearest_tie_even(&mut fp, 6);
         assert_eq!(fp.mant, 0);
+
+        // Examples from radix write float error tests.
+        let mut fp = ExtendedFloat80 { mant: 11386859076597055488, exp: -63 };
+        round_nearest_tie_even(&mut fp, 40);
+        assert_eq!(fp.mant, 10356288);
+        assert_eq!(fp.exp, -23);
     }
 
     #[test]
@@ -503,6 +517,12 @@ mod tests {
         round_to_float::<f64, _, _>(&mut fp, round_nearest_tie_even);
         assert_eq!(fp.mant, (1<<52) + 1);
         assert_eq!(fp.exp, -52);
+
+        // Examples from radix write float error tests.
+        let mut fp = ExtendedFloat80 { mant: 11386859076597055488, exp: -63 };
+        round_to_float::<f32, _, _>(&mut fp, round_nearest_tie_even);
+        assert_eq!(fp.mant, 10356288);
+        assert_eq!(fp.exp, -23);
     }
 
     #[test]

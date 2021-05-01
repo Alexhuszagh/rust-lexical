@@ -35,7 +35,8 @@ bitflags! {
     /// # Safety
     ///
     /// Assigning any value outside the range `[1-4]` to value of type
-    /// RoundingKind may invoke undefined-behavior.
+    /// RoundingKind may invoke undefined-behavior. Internally,
+    /// we never store a value > 0xF, so it may be represented in 4 bits.
     #[repr(C)]
     pub struct RoundingKind: u32 {
         /// Round to the nearest, tie to even.
@@ -56,12 +57,12 @@ bitflags! {
         /// For example, for a negative number, this rounds to negative infinity,
         /// for a positive number, to positive infinity.
         #[doc(hidden)]
-        const Upward = 0xFE;
+        const Upward = 0xE;
 
         /// Round to decrease the magnitude of the float.
         /// This always rounds toward zero.
         #[doc(hidden)]
-        const Downward = 0xFF;
+        const Downward = 0xF;
     }
 }
 

@@ -107,6 +107,21 @@ mod tests {
     }
 
     #[test]
+    fn test_into_float() {
+        // Rounded correctly.
+        let fp = ExtendedFloat { mant: 1967680u32, exp: -23 };
+        assert_eq!(into_float::<f32, _>(fp), 1.2345657);
+
+        // Check single shifts are properly taken care of.
+        let fp = ExtendedFloat { mant: 5178144u64, exp: -22 };
+        assert_eq!(fp.into_f32(), 1.2345657);
+
+        // Check so are normalize floats.
+        let fp = ExtendedFloat { mant: 11386859076597055488u64, exp: -63 };
+        assert_eq!(fp.into_f32(), 1.2345657);
+    }
+
+    #[test]
     fn convert_tuple_test() {
         let t = (1u64, 0i32);
         let fp: ExtendedFloat<u64> = t.into();

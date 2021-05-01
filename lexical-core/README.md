@@ -379,9 +379,19 @@ Although lexical may contain bugs leading to rounding error, it is tested agains
 
 ## Float to String
 
+For float-to-decimal conversions, we use either the Grisu algorithms or the Ryu algorithm. Both are optimized, high-performance algorithms that print the shortest, correct version of a float in the vast majority of cases.
+
 For more information on the Grisu2 and Grisu3 algorithms, see [Printing Floating-Point Numbers Quickly and Accurately with Integers](https://www.cs.tufts.edu/~nr/cs257/archive/florian-loitsch/printf.pdf).
 
 For more information on the Ryu algorithm, see [Ryū: fast float-to-string conversion](https://dl.acm.org/citation.cfm?id=3192369).
+
+For non-decimal numbers, we use 2 different algorithms: 
+- An [optimized](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-core/src/ftoa/binary.rs) algorithm for radixes that are powers of two.
+- A [generic](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-core/src/ftoa/radix.rs) radix algorithm all other radixes.
+
+Both algorithms are correct, although their performance differs dramatically. The optimized algorithm knows that the significant digits of a float can always be exactly represented in a fixed size output, and can use optimized integer-to-string algorithms to generate significant digits.
+
+The generic algorithm, adapted from the V8 codebase, attempts to write a single character from significant digits of the fraction. However, due to digit carry-over, it needs to frequently back-trace, re-writing digits and preventing loop unrolling. However, as non-decimal, non-power-of-two float-to-string conversions are very uncommon, this performance penalty is unlikely to be an issue.
 
 ## String to Float
 

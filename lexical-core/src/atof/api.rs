@@ -994,6 +994,16 @@ mod tests {
 
     #[test]
     #[cfg(feature = "format")]
+    fn f64_required_exponent_notation_test() {
+        let format = NumberFormat::PERMISSIVE.rebuild().required_exponent_notation(true).build().unwrap();
+        let options = ParseFloatOptions::builder().format(Some(format)).build().unwrap();
+        assert!(f64::from_lexical_with_options(b"+3.0", &options).is_err());
+        assert!(f64::from_lexical_with_options(b"3.0e", &options).is_ok());
+        assert!(f64::from_lexical_with_options(b"0.e", &options).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
     fn f64_integer_internal_digit_separator_test() {
         let format = NumberFormat::PERMISSIVE
             .rebuild()

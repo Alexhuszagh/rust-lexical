@@ -29,7 +29,7 @@ data_interface!(
     consume_fraction_digits =>  consume_digits_no_separator,
     extract_exponent => extract_exponent_no_separator,
     validate_mantissa => validate_permissive_mantissa,
-    validate_exponent => validate_required_exponent,
+    validate_exponent => validate_required_exponent_digits,
     validate_exponent_fraction => validate_exponent_optional_fraction,
     validate_exponent_sign => validate_optional_exponent_sign,
     ltrim_zero => ltrim_zero_no_separator,

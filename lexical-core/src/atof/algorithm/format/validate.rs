@@ -49,6 +49,24 @@ fn option_as_ptr(option: Option<&[u8]>) -> *const u8
     option.unwrap().as_ptr()
 }
 
+/// Get the last significant digit character as a ptr.
+/// Useful for indexing when we have invalid, missing exponent
+/// characters.
+#[inline(always)]
+#[cfg(feature = "format")]
+fn last_mantissa_as_ptr<'a, Data>(data: &Data)
+    -> *const u8
+    where Data: FastDataInterface<'a>
+{
+    if has_fraction(data) {
+        let fraction = data.fraction().unwrap();
+        fraction[fraction.len()..].as_ptr()
+    } else {
+        let integer = data.integer();
+        integer[integer.len()..].as_ptr()
+    }
+}
+
 // MANTISSA
 
 /// Validate the extracted integer has no leading zeros.
@@ -169,7 +187,7 @@ pub(super) fn validate_mantissa<'a, Data>(data: &Data)
 /// Validate the required exponent component.
 ///      1). If the exponent has been defined, ensure at least 1 digit follows it.
 #[inline]
-pub(super) fn validate_required_exponent<'a, Data>(data: &Data)
+pub(super) fn validate_required_exponent_digits<'a, Data>(data: &Data)
     -> ParseResult<()>
     where Data: FastDataInterface<'a>
 {
@@ -204,6 +222,32 @@ pub(super) fn validate_optional_exponent<'a, Data>(_: &Data)
     Ok(())
 }
 
+/// Validate required exponent component with required digits.
+#[inline(always)]
+#[cfg(feature = "format")]
+pub(super) fn validate_required_exponent_and_digits<'a, Data>(data: &Data)
+    -> ParseResult<()>
+    where Data: FastDataInterface<'a>
+{
+    match has_exponent(data) {
+        true  => validate_required_exponent_digits(data),
+        false => return Err((ErrorCode::MissingExponent, last_mantissa_as_ptr(data)))
+    }
+}
+
+/// Validate required exponent component without requiring any digits.
+#[inline(always)]
+#[cfg(feature = "format")]
+pub(super) fn validate_required_exponent_without_digits<'a, Data>(data: &Data)
+    -> ParseResult<()>
+    where Data: FastDataInterface<'a>
+{
+    match has_exponent(data) {
+        true  => Ok(()),
+        false => return Err((ErrorCode::MissingExponent, last_mantissa_as_ptr(data)))
+    }
+}
+
 /// Validate invalid exponent component.
 #[inline(always)]
 #[cfg(feature = "format")]
@@ -224,12 +268,15 @@ pub(super) fn validate_exponent<'a, Data>(data: &Data)
     -> ParseResult<()>
     where Data: FastDataInterface<'a>
 {
-    let required = data.format().required_exponent_digits();
+    let required_exponent = data.format().required_exponent_notation();
+    let required_digits = data.format().required_exponent_digits();
     let invalid = data.format().no_exponent_notation();
-    match (required, invalid) {
-        (true, _)       => validate_required_exponent(data),
-        (_, true)       => validate_invalid_exponent(data),
-        (false, false)  => validate_optional_exponent(data)
+    match (required_exponent, required_digits, invalid) {
+        (true, true, _)         => validate_required_exponent_and_digits(data),
+        (true, false, _)        => validate_required_exponent_without_digits(data),
+        (false, true, _)        => validate_required_exponent_digits(data),
+        (false, _, true)        => validate_invalid_exponent(data),
+        (false, false, false)   => validate_optional_exponent(data)
     }
 }
 
@@ -339,6 +386,24 @@ mod tests {
 
     #[test]
     #[cfg(feature = "format")]
+    fn last_mantissa_as_ptr_test() {
+        type Data<'a> = StandardFastDataInterface<'a>;
+        // Create a very simple, empty buffer.
+        let buffer = b!(".");
+        let integer = &buffer[0..0];
+        let fraction = &buffer[1..1];
+
+        // Test with a fraction (and empty).
+        let data: Data = (integer, Some(fraction), None, 0).into();
+        assert_eq!(last_mantissa_as_ptr(&data), fraction.as_ptr());
+
+        // Test without a fraction (and empty).
+        let data: Data = (integer, None, None, 0).into();
+        assert_eq!(last_mantissa_as_ptr(&data), integer.as_ptr());
+    }
+
+    #[test]
+    #[cfg(feature = "format")]
     fn validate_no_leading_zeros_test() {
         type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("01"), Some(b!("23450")), None, 0).into();
@@ -422,22 +487,60 @@ mod tests {
     }
 
     #[test]
-    fn validate_required_exponent_test() {
+    fn validate_required_exponent_and_digits_test() {
         type Data<'a> = StandardFastDataInterface<'a>;
         let data: Data = (b!("01"), Some(b!("23450")), None, 0).into();
-        assert!(validate_required_exponent(&data).is_ok());
+        assert!(validate_required_exponent_and_digits(&data).is_err());
 
         let data: Data = (b!("0"), Some(b!("")), Some(b!("")), 0).into();
-        assert!(validate_required_exponent(&data).is_err());
+        assert!(validate_required_exponent_and_digits(&data).is_err());
 
         let data: Data = (b!(""), Some(b!("")), Some(b!("+")), 0).into();
-        assert!(validate_required_exponent(&data).is_err());
+        assert!(validate_required_exponent_and_digits(&data).is_err());
 
         let data: Data = (b!(""), Some(b!("")), Some(b!("2")), 0).into();
-        assert!(validate_required_exponent(&data).is_ok());
+        assert!(validate_required_exponent_and_digits(&data).is_ok());
 
         let data: Data = (b!(""), Some(b!("")), Some(b!("+2")), 0).into();
-        assert!(validate_required_exponent(&data).is_ok());
+        assert!(validate_required_exponent_and_digits(&data).is_ok());
+    }
+
+    #[test]
+    fn validate_required_exponent_without_digits_test() {
+        type Data<'a> = StandardFastDataInterface<'a>;
+        let data: Data = (b!("01"), Some(b!("23450")), None, 0).into();
+        assert!(validate_required_exponent_without_digits(&data).is_err());
+
+        let data: Data = (b!("0"), Some(b!("")), Some(b!("")), 0).into();
+        assert!(validate_required_exponent_without_digits(&data).is_ok());
+
+        let data: Data = (b!(""), Some(b!("")), Some(b!("+")), 0).into();
+        assert!(validate_required_exponent_without_digits(&data).is_ok());
+
+        let data: Data = (b!(""), Some(b!("")), Some(b!("2")), 0).into();
+        assert!(validate_required_exponent_without_digits(&data).is_ok());
+
+        let data: Data = (b!(""), Some(b!("")), Some(b!("+2")), 0).into();
+        assert!(validate_required_exponent_without_digits(&data).is_ok());
+    }
+
+    #[test]
+    fn validate_required_exponent_digits_test() {
+        type Data<'a> = StandardFastDataInterface<'a>;
+        let data: Data = (b!("01"), Some(b!("23450")), None, 0).into();
+        assert!(validate_required_exponent_digits(&data).is_ok());
+
+        let data: Data = (b!("0"), Some(b!("")), Some(b!("")), 0).into();
+        assert!(validate_required_exponent_digits(&data).is_err());
+
+        let data: Data = (b!(""), Some(b!("")), Some(b!("+")), 0).into();
+        assert!(validate_required_exponent_digits(&data).is_err());
+
+        let data: Data = (b!(""), Some(b!("")), Some(b!("2")), 0).into();
+        assert!(validate_required_exponent_digits(&data).is_ok());
+
+        let data: Data = (b!(""), Some(b!("")), Some(b!("+2")), 0).into();
+        assert!(validate_required_exponent_digits(&data).is_ok());
     }
 
     #[test]

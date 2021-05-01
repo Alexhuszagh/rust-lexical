@@ -336,6 +336,10 @@ impl Default for ParseIntegerOptions {
 pub struct ParseFloatOptionsBuilder {
     /// Radix for float string.
     radix: u8,
+    /// Numerical base for the exponent in the float string.
+    exponent_base: u8,
+    /// Radix for the exponent digits in the float string.
+    exponent_radix: u8,
     /// Number format.
     format: NumberFormat,
     /// Rounding kind for float.
@@ -359,6 +363,8 @@ impl ParseFloatOptionsBuilder {
     pub const fn new() -> Self {
         Self {
             radix: DEFAULT_RADIX,
+            exponent_base: DEFAULT_RADIX,
+            exponent_radix: DEFAULT_RADIX,
             format: DEFAULT_FORMAT,
             rounding: DEFAULT_ROUNDING,
             incorrect: DEFAULT_INCORRECT,
@@ -375,6 +381,18 @@ impl ParseFloatOptionsBuilder {
     #[inline(always)]
     pub const fn get_radix(&self) -> u8 {
         self.radix
+    }
+
+    /// Get the exponent base.
+    #[inline(always)]
+    pub const fn get_exponent_base(&self) -> u8 {
+        self.exponent_base
+    }
+
+    /// Get the exponent radix.
+    #[inline(always)]
+    pub const fn get_exponent_radix(&self) -> u8 {
+        self.exponent_radix
     }
 
     /// Get the number format.
@@ -426,6 +444,22 @@ impl ParseFloatOptionsBuilder {
     #[cfg(feature = "radix")]
     pub const fn radix(mut self, radix: u8) -> Self {
         self.radix = radix;
+        self
+    }
+
+    /// Set the exponent base for ParseFloatOptionsBuilder.
+    #[inline(always)]
+    #[cfg(feature = "radix")]
+    pub const fn exponent_base(mut self, exponent_base: u8) -> Self {
+        self.exponent_base = exponent_base;
+        self
+    }
+
+    /// Set the exponent radix for ParseFloatOptionsBuilder.
+    #[inline(always)]
+    #[cfg(feature = "radix")]
+    pub const fn exponent_radix(mut self, exponent_radix: u8) -> Self {
+        self.exponent_radix = exponent_radix;
         self
     }
 
@@ -490,10 +524,12 @@ impl ParseFloatOptionsBuilder {
     #[inline(always)]
     pub const fn build(self) -> Option<ParseFloatOptions> {
         let radix = to_radix!(self.radix) as u32;
-        let kind = self.rounding.as_u32() << 8;
-        let incorrect = (self.incorrect as u32) << 16;
-        let lossy = (self.lossy as u32) << 17;
-        let compressed = radix | kind | incorrect | lossy;
+        let exponent_base = (to_radix!(self.exponent_base) as u32) << 8;
+        let exponent_radix = (to_radix!(self.exponent_radix) as u32) << 16;
+        let kind = self.rounding.as_u32() << 24;
+        let incorrect = (self.incorrect as u32) << 28;
+        let lossy = (self.lossy as u32) << 29;
+        let compressed = radix | exponent_base | exponent_radix | kind | incorrect | lossy;
         let format = self.format;
         let nan_string = to_nan_string!(self.nan_string);
         let inf_string = to_inf_string!(self.inf_string);
@@ -544,9 +580,11 @@ impl Default for ParseFloatOptionsBuilder {
 #[cfg(feature = "atof")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ParseFloatOptions {
-    /// Compressed storage of the radix, rounding kind, incorrect, and lossy.
-    /// Radix is the lower 8 bits, bits 8-16 are the rounding kind,
-    /// bit 17 is incorrect, and bit 18 is lossy.
+    /// Compressed storage of the radix, exponent base, exponent radix,
+    /// rounding kind, incorrect, and lossy.
+    /// Radix is the lower 8 bits, bits 8-16 are the exponent base,
+    /// bits 16-24 are the exponent radix, bits 24-28 are the rounding
+    /// kind, bit 28 is incorrect, and bit 29 is lossy.
     compressed: u32,
     /// Number format.
     format: NumberFormat,
@@ -563,8 +601,10 @@ impl ParseFloatOptions {
     /// Create options with default values.
     #[inline(always)]
     pub const fn new() -> Self {
+        let radix = DEFAULT_RADIX as u32;
+        let compressed = radix | (radix << 8) | (radix << 16) | DEFAULT_ROUNDING.as_u32() << 24;
         Self {
-            compressed: DEFAULT_RADIX as u32 | DEFAULT_ROUNDING.as_u32() << 8,
+            compressed,
             format: DEFAULT_FORMAT,
             nan_string: DEFAULT_NAN_STRING,
             inf_string: DEFAULT_INF_STRING,
@@ -578,8 +618,9 @@ impl ParseFloatOptions {
     #[inline(always)]
     #[cfg(feature = "radix")]
     pub const fn binary() -> Self {
+        let compressed = 2 | (2 << 8) | (2 << 16) | DEFAULT_ROUNDING.as_u32() << 24;
         Self {
-            compressed: 2 | DEFAULT_ROUNDING.as_u32() << 8,
+            compressed,
             format: DEFAULT_FORMAT,
             nan_string: DEFAULT_NAN_STRING,
             inf_string: DEFAULT_INF_STRING,
@@ -590,8 +631,9 @@ impl ParseFloatOptions {
     /// Create new options to write the default decimal format.
     #[inline(always)]
     pub const fn decimal() -> Self {
+        let compressed = 10 | (10 << 8) | (10 << 16) | DEFAULT_ROUNDING.as_u32() << 24;
         Self {
-            compressed: 10 | DEFAULT_ROUNDING.as_u32() << 8,
+            compressed,
             format: DEFAULT_FORMAT,
             nan_string: DEFAULT_NAN_STRING,
             inf_string: DEFAULT_INF_STRING,
@@ -603,8 +645,9 @@ impl ParseFloatOptions {
     #[inline(always)]
     #[cfg(feature = "radix")]
     pub const fn hexadecimal() -> Self {
+        let compressed = 16 | (16 << 8) | (16 << 16) | DEFAULT_ROUNDING.as_u32() << 24;
         Self {
-            compressed: 16 | DEFAULT_ROUNDING.as_u32() << 8,
+            compressed,
             format: DEFAULT_FORMAT,
             nan_string: DEFAULT_NAN_STRING,
             inf_string: DEFAULT_INF_STRING,
@@ -620,24 +663,36 @@ impl ParseFloatOptions {
         self.compressed & 0xFF
     }
 
+    /// Get the exponent base.
+    #[inline(always)]
+    pub const fn exponent_base(&self) -> u32 {
+        (self.compressed & 0xFF00) >> 8
+    }
+
+    /// Get the exponent radix.
+    #[inline(always)]
+    pub const fn exponent_radix(&self) -> u32 {
+        (self.compressed & 0xFF0000) >> 16
+    }
+
     /// Get the rounding kind for float.
     #[inline(always)]
     pub const fn rounding(&self) -> RoundingKind {
         unsafe {
-            RoundingKind::from_u32((self.compressed & 0xFF00) >> 8)
+            RoundingKind::from_u32((self.compressed & 0xF000000) >> 24)
         }
     }
 
     /// Get if we use the incorrect, fast parser.
     #[inline(always)]
     pub const fn incorrect(&self) -> bool {
-        self.compressed & 0x10000 != 0
+        self.compressed & 0x10000000 != 0
     }
 
     /// Get if we use the lossy, fast parser.
     #[inline(always)]
     pub const fn lossy(&self) -> bool {
-        self.compressed & 0x20000 != 0
+        self.compressed & 0x20000000 != 0
     }
 
     /// Get the number format.
@@ -696,14 +751,32 @@ impl ParseFloatOptions {
         self.compressed |= radix & 0xFF;
     }
 
+    /// Set the exponent base.
+    /// Unsafe, use the builder API for option validation.
+    #[inline(always)]
+    pub unsafe fn set_exponent_base(&mut self, exponent_base: u32) {
+        // Unset the lower 8 bits, then set the exponent_base (as an 8-bit integer).
+        self.compressed &= !0xFF00;
+        self.compressed |= (exponent_base & 0xFF) << 8;
+    }
+
+    /// Set the exponent radix.
+    /// Unsafe, use the builder API for option validation.
+    #[inline(always)]
+    pub unsafe fn set_exponent_radix(&mut self, exponent_radix: u32) {
+        // Unset the lower 8 bits, then set the exponent_radix (as an 8-bit integer).
+        self.compressed &= !0xFF0000;
+        self.compressed |= (exponent_radix & 0xFF) << 16;
+    }
+
     /// Set the rounding kind.
     /// Unsafe, use the builder API for option validation.
     #[inline(always)]
     pub unsafe fn set_rounding(&mut self, rounding: RoundingKind) {
         // Unset the lower 8 bits, then set the rounding kind (as an
         // 8-bit integer shifted 8 bits left).
-        self.compressed &= !0xFF00;
-        self.compressed |= (rounding.as_u32() << 8) & 0xFF00;
+        self.compressed &= !0xF000000;
+        self.compressed |= (rounding.as_u32() & 0xF) << 24;
     }
 
     /// Set if we use the incorrect, fast parser.
@@ -711,8 +784,8 @@ impl ParseFloatOptions {
     #[inline(always)]
     pub unsafe fn set_incorrect(&mut self, incorrect: bool) {
         // Unset the 16th bit, then set it based on the incorrect value.
-        self.compressed &= !0x10000;
-        self.compressed |= (incorrect as u32) << 16;
+        self.compressed &= !0x10000000;
+        self.compressed |= (incorrect as u32) << 28;
     }
 
     /// Set if we use the lossy, intermediate parser.
@@ -720,8 +793,8 @@ impl ParseFloatOptions {
     #[inline(always)]
     pub unsafe fn set_lossy(&mut self, lossy: bool) {
         // Unset the 17th bit, then set it based on the lossy value.
-        self.compressed &= !0x20000;
-        self.compressed |= (lossy as u32) << 17;
+        self.compressed &= !0x20000000;
+        self.compressed |= (lossy as u32) << 29;
     }
 
     /// Set the number format.
@@ -764,6 +837,8 @@ impl ParseFloatOptions {
     pub const fn rebuild(self) -> ParseFloatOptionsBuilder {
         ParseFloatOptionsBuilder {
             radix: self.radix() as u8,
+            exponent_base: self.exponent_base() as u8,
+            exponent_radix: self.exponent_radix() as u8,
             format: self.format,
             rounding: self.rounding(),
             incorrect: self.incorrect(),
@@ -1475,6 +1550,16 @@ mod tests {
         assert_eq!(options.nan_string(), b"nyancat");
         assert_eq!(options.inf_string(), b"INF");
         assert_eq!(options.infinity_string(), b"infinity");
+
+        let options = ParseFloatOptions::builder()
+            .radix(16)
+            .exponent_base(2)
+            .exponent_radix(10)
+            .build()
+            .unwrap();
+        assert_eq!(options.radix(), 16);
+        assert_eq!(options.exponent_base(), 2);
+        assert_eq!(options.exponent_radix(), 10);
     }
 
     #[test]

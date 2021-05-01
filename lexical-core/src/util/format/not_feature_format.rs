@@ -204,6 +204,12 @@ impl NumberFormat {
         false
     }
 
+    /// Get if exponent notation is required.
+    #[inline(always)]
+    pub const fn required_exponent_notation(self) -> bool {
+        false
+    }
+
     /// Get if digit separators are allowed between integer digits.
     #[inline(always)]
     pub const fn integer_internal_digit_separator(self) -> bool {
@@ -463,6 +469,7 @@ mod tests {
         assert_eq!(flag.case_sensitive_special(), false);
         assert_eq!(flag.no_integer_leading_zeros(), false);
         assert_eq!(flag.no_float_leading_zeros(), false);
+        assert_eq!(flag.no_exponent_notation(), false);
         assert_eq!(flag.integer_internal_digit_separator(), false);
         assert_eq!(flag.fraction_internal_digit_separator(), false);
         assert_eq!(flag.exponent_internal_digit_separator(), false);
