@@ -151,6 +151,10 @@ if #[cfg(feature = "atof")] {
 pub struct ParseFloatOptionsBuilder {
     /// Radix for float string.
     radix: ctypes::uint8_t,
+    /// Numerical base for the exponent in the float string.
+    exponent_base: ctypes::uint8_t,
+    /// Radix for the exponent digits in the float string.
+    exponent_radix: ctypes::uint8_t,
     /// Number format.
     format: lexical_core::NumberFormat,
     /// Rounding kind for float.
@@ -178,6 +182,8 @@ impl From<lexical_core::ParseFloatOptionsBuilder> for ParseFloatOptionsBuilder {
         // are static.
         ParseFloatOptionsBuilder {
             radix: builder.get_radix(),
+            exponent_base: builder.get_exponent_base(),
+            exponent_radix: builder.get_exponent_radix(),
             format: builder.get_format(),
             rounding: builder.get_rounding(),
             incorrect: builder.get_incorrect(),
@@ -206,6 +212,12 @@ impl Into<lexical_core::ParseFloatOptionsBuilder> for ParseFloatOptionsBuilder {
 
             #[cfg(feature = "radix")]
             let builder = builder.radix(self.radix);
+
+            #[cfg(feature = "radix")]
+            let builder = builder.exponent_base(self.exponent_base);
+
+            #[cfg(feature = "radix")]
+            let builder = builder.exponent_radix(self.exponent_radix);
 
             #[cfg(feature = "rounding")]
             let builder = builder.rounding(self.rounding);
@@ -263,9 +275,11 @@ impl From<lexical_core::ParseFloatOptions> for ParseFloatOptions {
     #[inline(always)]
     fn from(options: lexical_core::ParseFloatOptions) -> ParseFloatOptions {
         let compressed: u32 = options.radix()
-            | options.rounding().as_u32() << 8
-            | (options.incorrect() as u32) << 16
-            | (options.lossy() as u32) << 17;
+            | options.exponent_base() << 8
+            | options.exponent_radix() << 16
+            | options.rounding().as_u32() << 24
+            | (options.incorrect() as u32) << 28
+            | (options.lossy() as u32) << 29;
 
         ParseFloatOptions {
             compressed,
@@ -286,9 +300,11 @@ impl Into<lexical_core::ParseFloatOptions> for ParseFloatOptions {
         unsafe {
             let mut options = lexical_core::ParseFloatOptions::new();
             options.set_radix(self.compressed & 0xFF);
-            options.set_rounding(lexical_core::RoundingKind::from_u32((self.compressed & 0xFF00) >> 8));
-            options.set_incorrect(self.compressed & 0x10000 != 0);
-            options.set_lossy(self.compressed & 0x20000 != 0);
+            options.set_exponent_base((self.compressed & 0xFF00) >> 8);
+            options.set_exponent_radix((self.compressed & 0xFF0000) >> 16);
+            options.set_rounding(lexical_core::RoundingKind::from_u32((self.compressed & 0xF000000) >> 24));
+            options.set_incorrect(self.compressed & 0x10000000 != 0);
+            options.set_lossy(self.compressed & 0x20000000 != 0);
             options.set_format(self.format);
             options.set_nan_string(slice::from_raw_parts(self.nan_string_ptr, self.nan_string_size));
             options.set_inf_string(slice::from_raw_parts(self.inf_string_ptr, self.inf_string_size));

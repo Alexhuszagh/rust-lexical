@@ -10,7 +10,7 @@ use super::option::Option;
 pub struct NumberFormatBuilder {
     digit_separator: u8,
     decimal_point: u8,
-    exponent_default: u8,
+    exponent_decimal: u8,
     exponent_backup: u8,
     required_integer_digits: bool,
     required_fraction_digits: bool,
@@ -47,7 +47,7 @@ impl From<lexical_core::NumberFormatBuilder> for NumberFormatBuilder {
         NumberFormatBuilder {
             digit_separator: builder.get_digit_separator(),
             decimal_point: builder.get_decimal_point(),
-            exponent_default: builder.get_exponent_default(),
+            exponent_decimal: builder.get_exponent_decimal(),
             exponent_backup: builder.get_exponent_backup(),
             required_integer_digits: builder.get_required_integer_digits(),
             required_fraction_digits: builder.get_required_fraction_digits(),
@@ -85,7 +85,7 @@ impl Into<lexical_core::NumberFormatBuilder> for NumberFormatBuilder {
         lexical_core::NumberFormatBuilder::new()
             .digit_separator(self.digit_separator)
             .decimal_point(self.decimal_point)
-            .exponent_default(self.exponent_default)
+            .exponent_decimal(self.exponent_decimal)
             .exponent_backup(self.exponent_backup)
             .required_integer_digits(self.required_integer_digits)
             .required_fraction_digits(self.required_fraction_digits)

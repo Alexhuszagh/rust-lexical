@@ -189,6 +189,7 @@ class NumberFormatTests(unittest.TestCase):
             self.assertFalse(json.case_sensitive_special)
             self.assertTrue(json.no_integer_leading_zeros)
             self.assertTrue(json.no_float_leading_zeros)
+            self.assertFalse(json.required_exponent_notation)
             self.assertFalse(json.integer_internal_digit_separator)
             self.assertFalse(json.fraction_internal_digit_separator)
             self.assertFalse(json.exponent_internal_digit_separator)
@@ -247,8 +248,12 @@ class ParseFloatOptionsTests(unittest.TestCase):
         standard = lexical.NumberFormat.Standard
         builder = lexical.ParseFloatOptionsBuilder()
         self.assertEqual(builder.radix, 10)
+        self.assertEqual(builder.exponent_base, 10)
+        self.assertEqual(builder.exponent_radix, 10)
         options = builder.build()
         self.assertEqual(options.radix, 10)
+        self.assertEqual(options.exponent_base, 10)
+        self.assertEqual(options.exponent_radix, 10)
         self.assertEqual(builder.format, standard)
         self.assertEqual(options.nan_string, 'NaN')
 

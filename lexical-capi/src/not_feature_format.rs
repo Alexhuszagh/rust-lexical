@@ -9,7 +9,7 @@ use super::option::Option;
 #[derive(Debug, Clone)]
 pub struct NumberFormatBuilder {
     decimal_point: u8,
-    exponent_default: u8,
+    exponent_decimal: u8,
     exponent_backup: u8,
 }
 
@@ -19,7 +19,7 @@ impl From<lexical_core::NumberFormatBuilder> for NumberFormatBuilder {
     fn from(builder: lexical_core::NumberFormatBuilder) -> NumberFormatBuilder {
         NumberFormatBuilder {
             decimal_point: builder.get_decimal_point(),
-            exponent_default: builder.get_exponent_default(),
+            exponent_decimal: builder.get_exponent_decimal(),
             exponent_backup: builder.get_exponent_backup(),
         }
     }
@@ -30,7 +30,7 @@ impl Into<lexical_core::NumberFormatBuilder> for NumberFormatBuilder {
     fn into(self) -> lexical_core::NumberFormatBuilder {
         lexical_core::NumberFormatBuilder::new()
             .decimal_point(self.decimal_point)
-            .exponent_default(self.exponent_default)
+            .exponent_decimal(self.exponent_decimal)
             .exponent_backup(self.exponent_backup)
     }
 }

@@ -273,6 +273,7 @@ if HAVE_FORMAT:
         CaseSensitiveSpecial                = 0b0000000000000000000000000000000000000000000000000000010000000000
         NoIntegerLeadingZeros               = 0b0000000000000000000000000000000000000000000000000000100000000000
         NoFloatLeadingZeros                 = 0b0000000000000000000000000000000000000000000000000001000000000000
+        RequiredExponentNotation            = 0b0000000000000000000000000000000000000000000000000010000000000000
 
         # DIGIT SEPARATOR FLAGS
         IntegerInternalDigitSeparator       = 0b0000000000000000000000000000000100000000000000000000000000000000
@@ -355,6 +356,7 @@ if HAVE_FORMAT:
             | NoPositiveExponentSign
             | RequiredExponentSign
             | NoExponentWithoutFraction
+            | RequiredExponentNotation
             | ExponentInternalDigitSeparator
             | ExponentLeadingDigitSeparator
             | ExponentTrailingDigitSeparator
@@ -532,6 +534,11 @@ class NumberFormat(Structure):
     def no_float_leading_zeros(self):
         '''Get if leading zeros before a float are not allowed.'''
         return self.intersects(NumberFormatFlags.NoFloatLeadingZeros)
+
+    @property
+    def required_exponent_notation(self):
+        '''Get if exponent notation is required.'''
+        return self.intersects(NumberFormatFlags.RequiredExponentNotation)
 
     @property
     def integer_internal_digit_separator(self):
@@ -2014,6 +2021,8 @@ class ParseFloatOptionsBuilder(Structure):
 
     _fields_ = [
         ('_radix', c_uint8),
+        ('_exponent_base', c_uint8),
+        ('_exponent_radix', c_uint8),
         ('_format', NumberFormat),
         ('_rounding', c_uint32),
         ('_incorrect', c_bool),
@@ -2030,12 +2039,12 @@ class ParseFloatOptionsBuilder(Structure):
         _new_init(self)
 
     def __repr__(self):
-        return f'ParseFloatOptionsBuilder(radix={self.radix}, format={repr(self.format)}, rounding=repr({self.rounding}), incorrect={self.incorrect}, lossy={self.lossy}, nan_string={self.nan_string}, inf_string={self.inf_string}, infinity_string={self.infinity_string})'
+        return f'ParseFloatOptionsBuilder(radix={self.radix}, exponent_base={self.exponent_base}, exponent_radix={self.exponent_radix}, format={repr(self.format)}, rounding=repr({self.rounding}), incorrect={self.incorrect}, lossy={self.lossy}, nan_string={self.nan_string}, inf_string={self.inf_string}, infinity_string={self.infinity_string})'
 
     def __eq__(self, other):
         # Cannot do _struct_eq, since it will fail with the ptrs.
-        x = (self.radix, self.format, self.rounding, self.incorrect, self.lossy, self.nan_string, self.inf_string, self.infinity_string)
-        y = (other.radix, other.format, other.rounding, other.incorrect, other.lossy, other.nan_string, other.inf_string, other.infinity_string)
+        x = (self.radix, self.exponent_base, self.exponent_radix, self.format, self.rounding, self.incorrect, self.lossy, self.nan_string, self.inf_string, self.infinity_string)
+        y = (other.radix, other.exponent_base, other.exponent_radix, other.format, other.rounding, other.incorrect, other.lossy, other.nan_string, other.inf_string, other.infinity_string)
         return x == y
 
     @property
@@ -2122,6 +2131,16 @@ class ParseFloatOptionsBuilder(Structure):
         return self._radix
 
     @property
+    def exponent_base(self):
+        '''Get the exponent base.'''
+        return self._exponent_base
+
+    @property
+    def exponent_radix(self):
+        '''Get the exponent radix.'''
+        return self._exponent_radix
+
+    @property
     def rounding(self):
         '''Get the rounding kind.'''
         return RoundingKind(self._rounding)
@@ -2131,6 +2150,16 @@ class ParseFloatOptionsBuilder(Structure):
         def radix(self, value):
             '''Set the radix.'''
             self._radix = value
+
+        @exponent_base.setter
+        def exponent_base(self, value):
+            '''Set the exponent base.'''
+            self._exponent_base = value
+
+        @exponent_radix.setter
+        def exponent_radix(self, value):
+            '''Set the exponent radix.'''
+            self._exponent_radix = value
 
     if HAVE_ROUNDING:
         @rounding.setter
@@ -2174,7 +2203,7 @@ class ParseFloatOptions(Structure):
         _new_init(self)
 
     def __repr__(self):
-        return f'ParseFloatOptions(radix={self.radix}, format={repr(self.format)}, rounding=repr({self.rounding}), incorrect={self.incorrect}, lossy={self.lossy}, nan_string={self.nan_string}, inf_string={self.inf_string}, infinity_string={self.infinity_string})'
+        return f'ParseFloatOptions(radix={self.radix}, exponent_base={self.exponent_base}, exponent_radix={self.exponent_radix}, format={repr(self.format)}, rounding=repr({self.rounding}), incorrect={self.incorrect}, lossy={self.lossy}, nan_string={self.nan_string}, inf_string={self.inf_string}, infinity_string={self.infinity_string})'
 
     def __eq__(self, other):
         # Cannot do _struct_eq, since it will fail with the ptrs.
@@ -2188,19 +2217,29 @@ class ParseFloatOptions(Structure):
         return self._compressed & 0xFF
 
     @property
+    def exponent_base(self):
+        '''Get the exponent base.'''
+        return (self._compressed & 0xFF00) >> 8
+
+    @property
+    def exponent_radix(self):
+        '''Get the exponent radix.'''
+        return (self._compressed & 0xFF0000) >> 16
+
+    @property
     def rounding(self):
         '''Get the rounding kind.'''
-        return RoundingKind((self._compressed & 0xFF00) >> 8)
+        return RoundingKind((self._compressed & 0xF000000) >> 24)
 
     @property
     def incorrect(self):
         '''Get if we use the incorrect, fast parser.'''
-        return self._compressed & 0x10000 != 0
+        return self._compressed & 0x10000000 != 0
 
     @property
     def lossy(self):
         '''Get if we use the lossy, fast parser.'''
-        return self._compressed & 0x20000 != 0
+        return self._compressed & 0x20000000 != 0
 
     @property
     def format(self):
