@@ -2,7 +2,6 @@
 
 cfg_if! {
 if #[cfg(any(feature = "ftoa", feature = "itoa"))] {
-    use crate::lib::convert::AsRef;
     use crate::lib::ptr;
 }}  // cfg_if
 

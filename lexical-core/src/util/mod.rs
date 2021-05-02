@@ -1,6 +1,4 @@
 //! Helper utilities for low-level features.
-// Fix a compiler bug that thinks `pow` isn't used.
-#![allow(unused_imports)]
 
 // Hide implementation details.
 #[macro_use]
@@ -15,7 +13,7 @@ mod interface;
 cfg_if! {
 if #[cfg(test)] {
     #[macro_use]
-    pub(crate) mod test;    // TODO(ahuszagh) Remove pub visibility.
+    mod test;
     pub(crate) use self::test::*;
 }}  // cfg_if
 

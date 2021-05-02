@@ -232,9 +232,6 @@ unsafe fn vector_as_slice<T>(buf: &mut lib::Vec<T>) -> &mut [T] {
 
 // HIGH LEVEL
 
-#[cfg(any(feature = "atof", feature = "atoi"))]
-use lib::convert::AsRef;
-
 /// High-level conversion of a number to a decimal-encoded string.
 ///
 /// * `n`       - Number to convert to string.

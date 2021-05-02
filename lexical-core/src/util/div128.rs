@@ -162,14 +162,12 @@ pub(crate) fn u128_divrem_1e19(n: u128) -> (u128, u64) {
 // TESTS
 // -----
 
-#[cfg(test)]
+#[cfg(all(test, feature = "itoa", feature = "std", feature = "property_tests"))]
 mod tests {
     use super::*;
 
-    #[cfg(all(feature = "itoa", feature = "std", feature = "property_tests"))]
     use proptest::{proptest, prop_assert_eq, prop_assert};
 
-    #[cfg(all(feature = "itoa", feature = "std", feature = "property_tests"))]
     proptest! {
         #[test]
         fn u128_divrem_proptest(i in u128::min_value()..u128::max_value()) {

@@ -4,10 +4,6 @@
 //! types, and trait bounds, and conversions for working with
 //! numbers in generic code.
 
-// We have a lot of high-level casts that make the type-system work.
-// Don't delete them, fake they're being used.
-#![allow(dead_code)]    // TODO(ahuszagh) Remove?
-
 use crate::lib::{f32, f64, fmt, iter, mem, ops};
 use crate::config::*;
 use crate::options::*;
