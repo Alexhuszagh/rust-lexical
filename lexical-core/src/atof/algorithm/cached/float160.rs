@@ -8,7 +8,15 @@
 //! integer to calculate exact extended-representation of each value.
 //! These values are all normalized.
 //!
-//! This files takes ~ 44KB of storage.
+//! These files takes ~51 KB of storage.
+//!
+//! Total array storage:
+//!  Without radix: ~1.6 KB:
+//!     86 u128
+//!     78 i32
+//!  With radix: ~50 KB:
+//!     2534 u128
+//!     2300 i32
 //!
 //! This file is mostly automatically generated, do not change values
 //! manually, unless you know what you are doing. The script to generate

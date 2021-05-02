@@ -31,7 +31,15 @@ pub(crate) fn digit_to_char<T: Integer>(digit: T) -> u8 {
 // These tables take `2 * (value % (radix^2))`, and return
 // two consecutive values corresponding to both digits.
 //
-// Total array storage: 32 KB (with radix).
+// Total array storage:
+//  Without radix: ~430 B:
+//      200 u8
+//      11 f32
+//      23 f64
+//  With radix: ~55 KB.
+//      32210 u8
+//      518 f32
+//      2610 f64
 // Provides ~5x performance enhancement.
 //
 // These arrays are cache-friendly, for each BASE[2-36] table,
