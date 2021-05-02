@@ -1,8 +1,8 @@
 //! Configuration options for parsing and formatting numbers.
 
-use crate::config::F64_FORMATTED_SIZE_DECIMAL as FLOAT_SIZE;
 use super::format::NumberFormat;
 use super::rounding::RoundingKind;
+use crate::config::F64_FORMATTED_SIZE_DECIMAL as FLOAT_SIZE;
 
 // CONSTANTS
 // ---------
@@ -21,14 +21,13 @@ pub(crate) const DEFAULT_TRIM_FLOATS: bool = false;
 // VALIDATORS
 // ----------
 
-
 /// Return `None` if radix is invalid.
 /// Short-circuits to allow use in a const fn.
 #[cfg(feature = "radix")]
 macro_rules! to_radix {
     ($radix:expr) => {{
         if $radix < 2 || $radix > 36 {
-            return None
+            return None;
         }
         $radix
     }};
@@ -40,7 +39,7 @@ macro_rules! to_radix {
 macro_rules! to_radix {
     ($radix:expr) => {{
         if $radix != 10 {
-            return None
+            return None;
         }
         $radix
     }};
@@ -48,18 +47,19 @@ macro_rules! to_radix {
 
 /// Check if byte array starts with case-insensitive N.
 const_fn!(
-#[inline]
-const fn starts_with_n(bytes: &[u8]) -> bool {
-    if bytes.len() == 0 {
-        false
-    } else {
-        match bytes[0] {
-            b'N' => true,
-            b'n' => true,
-            _    => false,
+    #[inline]
+    const fn starts_with_n(bytes: &[u8]) -> bool {
+        if bytes.len() == 0 {
+            false
+        } else {
+            match bytes[0] {
+                b'N' => true,
+                b'n' => true,
+                _ => false,
+            }
         }
     }
-});
+);
 
 /// Get the NaN string if the NaN string is valid.
 macro_rules! to_nan_string {
@@ -74,19 +74,20 @@ macro_rules! to_nan_string {
 }
 
 const_fn!(
-/// Check if byte array starts with case-insensitive I.
-#[inline]
-const fn starts_with_i(bytes: &[u8]) -> bool {
-    if bytes.len() == 0 {
-        false
-    } else {
-        match bytes[0] {
-            b'I' => true,
-            b'i' => true,
-            _    => false,
+    /// Check if byte array starts with case-insensitive I.
+    #[inline]
+    const fn starts_with_i(bytes: &[u8]) -> bool {
+        if bytes.len() == 0 {
+            false
+        } else {
+            match bytes[0] {
+                b'I' => true,
+                b'i' => true,
+                _ => false,
+            }
         }
     }
-});
+);
 
 /// Get the short infinity string if the infinity string is valid.
 macro_rules! to_inf_string {
@@ -122,7 +123,7 @@ pub struct ParseIntegerOptionsBuilder {
     /// Radix for integer string.
     radix: u8,
     /// Number format.
-    format: Option<NumberFormat>
+    format: Option<NumberFormat>,
 }
 
 impl ParseIntegerOptionsBuilder {
@@ -131,7 +132,7 @@ impl ParseIntegerOptionsBuilder {
     pub const fn new() -> Self {
         Self {
             radix: DEFAULT_RADIX,
-            format: None
+            format: None,
         }
     }
 
@@ -169,13 +170,17 @@ impl ParseIntegerOptionsBuilder {
     // BUILDERS
 
     const_fn!(
-    /// Build the ParseIntegerOptions struct.
-    #[inline(always)]
-    pub const fn build(self) -> Option<ParseIntegerOptions> {
-        let radix = to_radix!(self.radix) as u32;
-        let format = self.format;
-        Some(ParseIntegerOptions { radix, format })
-    });
+        /// Build the ParseIntegerOptions struct.
+        #[inline(always)]
+        pub const fn build(self) -> Option<ParseIntegerOptions> {
+            let radix = to_radix!(self.radix) as u32;
+            let format = self.format;
+            Some(ParseIntegerOptions {
+                radix,
+                format,
+            })
+        }
+    );
 }
 
 impl Default for ParseIntegerOptionsBuilder {
@@ -212,7 +217,10 @@ impl ParseIntegerOptions {
     /// Create options with default values.
     #[inline(always)]
     pub const fn new() -> Self {
-        Self { radix: DEFAULT_RADIX as u32, format: None }
+        Self {
+            radix: DEFAULT_RADIX as u32,
+            format: None,
+        }
     }
 
     // PRE-DEFINED CONSTANTS
@@ -221,20 +229,29 @@ impl ParseIntegerOptions {
     #[inline(always)]
     #[cfg(feature = "radix")]
     pub const fn binary() -> Self {
-        Self { radix: 2, format: None }
+        Self {
+            radix: 2,
+            format: None,
+        }
     }
 
     /// Create new options to parse the default decimal format.
     #[inline(always)]
     pub const fn decimal() -> Self {
-        Self { radix: 10, format: None }
+        Self {
+            radix: 10,
+            format: None,
+        }
     }
 
     /// Create new options to parse the default hexadecimal format.
     #[inline(always)]
     #[cfg(feature = "radix")]
     pub const fn hexadecimal() -> Self {
-        Self { radix: 16, format: None }
+        Self {
+            radix: 16,
+            format: None,
+        }
     }
 
     // GETTERS
@@ -279,7 +296,7 @@ impl ParseIntegerOptions {
     pub const fn rebuild(self) -> ParseIntegerOptionsBuilder {
         ParseIntegerOptionsBuilder {
             radix: self.radix as u8,
-            format: self.format
+            format: self.format,
         }
     }
 }
@@ -317,7 +334,7 @@ pub struct ParseFloatOptionsBuilder {
     /// Short string representation of `Infinity`.
     inf_string: &'static [u8],
     /// Long string representation of `Infinity`.
-    infinity_string: &'static [u8]
+    infinity_string: &'static [u8],
 }
 
 impl ParseFloatOptionsBuilder {
@@ -427,15 +444,16 @@ impl ParseFloatOptionsBuilder {
     }
 
     const_fn!(
-    /// Set the format specifier for ParseFloatOptionsBuilder.
-    #[inline(always)]
-    pub const fn format(mut self, format: Option<NumberFormat>) -> Self {
-        self.format = match format {
-            Some(format) => format,
-            None => DEFAULT_FORMAT,
-        };
-        self
-    });
+        /// Set the format specifier for ParseFloatOptionsBuilder.
+        #[inline(always)]
+        pub const fn format(mut self, format: Option<NumberFormat>) -> Self {
+            self.format = match format {
+                Some(format) => format,
+                None => DEFAULT_FORMAT,
+            };
+            self
+        }
+    );
 
     /// Set the rounding kind for ParseFloatOptionsBuilder.
     #[inline(always)]
@@ -483,34 +501,35 @@ impl ParseFloatOptionsBuilder {
     // BUILDERS
 
     const_fn!(
-    /// Build the ParseFloatOptions struct.
-    #[inline(always)]
-    pub const fn build(self) -> Option<ParseFloatOptions> {
-        let radix = to_radix!(self.radix) as u32;
-        let exponent_base = (to_radix!(self.exponent_base) as u32) << 8;
-        let exponent_radix = (to_radix!(self.exponent_radix) as u32) << 16;
-        let kind = self.rounding.as_u32() << 24;
-        let incorrect = (self.incorrect as u32) << 28;
-        let lossy = (self.lossy as u32) << 29;
-        let compressed = radix | exponent_base | exponent_radix | kind | incorrect | lossy;
-        let format = self.format;
-        let nan_string = to_nan_string!(self.nan_string);
-        let inf_string = to_inf_string!(self.inf_string);
-        let infinity_string = to_infinity_string!(self.infinity_string, self.inf_string);
+        /// Build the ParseFloatOptions struct.
+        #[inline(always)]
+        pub const fn build(self) -> Option<ParseFloatOptions> {
+            let radix = to_radix!(self.radix) as u32;
+            let exponent_base = (to_radix!(self.exponent_base) as u32) << 8;
+            let exponent_radix = (to_radix!(self.exponent_radix) as u32) << 16;
+            let kind = self.rounding.as_u32() << 24;
+            let incorrect = (self.incorrect as u32) << 28;
+            let lossy = (self.lossy as u32) << 29;
+            let compressed = radix | exponent_base | exponent_radix | kind | incorrect | lossy;
+            let format = self.format;
+            let nan_string = to_nan_string!(self.nan_string);
+            let inf_string = to_inf_string!(self.inf_string);
+            let infinity_string = to_infinity_string!(self.infinity_string, self.inf_string);
 
-        // Validate we can't use incorrect **and** lossy together.
-        if self.incorrect && self.lossy {
-            return None;
+            // Validate we can't use incorrect **and** lossy together.
+            if self.incorrect && self.lossy {
+                return None;
+            }
+
+            Some(ParseFloatOptions {
+                compressed,
+                format,
+                nan_string,
+                inf_string,
+                infinity_string,
+            })
         }
-
-        Some(ParseFloatOptions {
-            compressed,
-            format,
-            nan_string,
-            inf_string,
-            infinity_string,
-        })
-    });
+    );
 }
 
 impl Default for ParseFloatOptionsBuilder {
@@ -554,7 +573,7 @@ pub struct ParseFloatOptions {
     /// Short string representation of `Infinity`.
     inf_string: &'static [u8],
     /// Long string representation of `Infinity`.
-    infinity_string: &'static [u8]
+    infinity_string: &'static [u8],
 }
 
 impl ParseFloatOptions {
@@ -638,9 +657,7 @@ impl ParseFloatOptions {
     /// Get the rounding kind for float.
     #[inline(always)]
     pub const fn rounding(&self) -> RoundingKind {
-        unsafe {
-            RoundingKind::from_u32((self.compressed & 0xF000000) >> 24)
-        }
+        unsafe { RoundingKind::from_u32((self.compressed & 0xF000000) >> 24) }
     }
 
     /// Get if we use the incorrect, fast parser.
@@ -694,11 +711,12 @@ impl ParseFloatOptions {
     }
 
     const_fn!(
-    /// Get the exponent character.
-    #[inline(always)]
-    pub const fn exponent(&self) -> u8 {
-        self.format.exponent(self.radix())
-    });
+        /// Get the exponent character.
+        #[inline(always)]
+        pub const fn exponent(&self) -> u8 {
+            self.format.exponent(self.radix())
+        }
+    );
 
     // SETTERS
 
@@ -856,12 +874,15 @@ impl WriteIntegerOptionsBuilder {
     // BUILDERS
 
     const_fn!(
-    /// Build the WriteIntegerOptions struct.
-    #[inline(always)]
-    pub const fn build(self) -> Option<WriteIntegerOptions> {
-        let radix = to_radix!(self.radix) as u32;
-        Some(WriteIntegerOptions { radix })
-    });
+        /// Build the WriteIntegerOptions struct.
+        #[inline(always)]
+        pub const fn build(self) -> Option<WriteIntegerOptions> {
+            let radix = to_radix!(self.radix) as u32;
+            Some(WriteIntegerOptions {
+                radix,
+            })
+        }
+    );
 }
 
 impl Default for WriteIntegerOptionsBuilder {
@@ -896,7 +917,9 @@ impl WriteIntegerOptions {
     /// Create options with default values.
     #[inline(always)]
     pub const fn new() -> Self {
-        Self { radix: DEFAULT_RADIX as u32 }
+        Self {
+            radix: DEFAULT_RADIX as u32,
+        }
     }
 
     // PRE-DEFINED CONSTANTS
@@ -905,20 +928,26 @@ impl WriteIntegerOptions {
     #[inline(always)]
     #[cfg(feature = "radix")]
     pub const fn binary() -> Self {
-        Self { radix: 2 }
+        Self {
+            radix: 2,
+        }
     }
 
     /// Create new options to write the default decimal format.
     #[inline(always)]
     pub const fn decimal() -> Self {
-        Self { radix: 10 }
+        Self {
+            radix: 10,
+        }
     }
 
     /// Create new options to write the default hexadecimal format.
     #[inline(always)]
     #[cfg(feature = "radix")]
     pub const fn hexadecimal() -> Self {
-        Self { radix: 16 }
+        Self {
+            radix: 16,
+        }
     }
 
     // GETTERS
@@ -1066,18 +1095,24 @@ impl WriteFloatOptionsBuilder {
     // BUILDERS
 
     const_fn!(
-    /// Build the ParseFloatOptions struct.
-    #[inline(always)]
-    pub const fn build(self) -> Option<WriteFloatOptions> {
-        let radix = to_radix!(self.radix) as u32;
-        let trim_floats = (self.trim_floats as u32) << 8;
-        let compressed = radix | trim_floats;
-        let format = self.format;
-        let nan_string = to_nan_string!(self.nan_string);
-        let inf_string = to_inf_string!(self.inf_string);
+        /// Build the ParseFloatOptions struct.
+        #[inline(always)]
+        pub const fn build(self) -> Option<WriteFloatOptions> {
+            let radix = to_radix!(self.radix) as u32;
+            let trim_floats = (self.trim_floats as u32) << 8;
+            let compressed = radix | trim_floats;
+            let format = self.format;
+            let nan_string = to_nan_string!(self.nan_string);
+            let inf_string = to_inf_string!(self.inf_string);
 
-        Some(WriteFloatOptions {compressed, format, nan_string, inf_string })
-    });
+            Some(WriteFloatOptions {
+                compressed,
+                format,
+                nan_string,
+                inf_string,
+            })
+        }
+    );
 }
 
 impl Default for WriteFloatOptionsBuilder {
@@ -1200,37 +1235,40 @@ impl WriteFloatOptions {
     }
 
     const_fn!(
-    /// Get the digit separator character.
-    #[inline(always)]
-    pub const fn digit_separator(&self) -> u8 {
-        match self.format {
-            Some(format) => format.digit_separator(),
-            None => b'\x00',
+        /// Get the digit separator character.
+        #[inline(always)]
+        pub const fn digit_separator(&self) -> u8 {
+            match self.format {
+                Some(format) => format.digit_separator(),
+                None => b'\x00',
+            }
         }
-    });
+    );
 
     const_fn!(
-    /// Get the decimal point character.
-    #[inline(always)]
-    pub const fn decimal_point(&self) -> u8 {
-        match self.format {
-            Some(format) => format.decimal_point(),
-            None => b'.',
+        /// Get the decimal point character.
+        #[inline(always)]
+        pub const fn decimal_point(&self) -> u8 {
+            match self.format {
+                Some(format) => format.decimal_point(),
+                None => b'.',
+            }
         }
-    });
+    );
 
     const_fn!(
-    /// Get the exponent character.
-    #[inline(always)]
-    pub const fn exponent(&self) -> u8 {
-        // Const fn version of unwrap_or().
-        let format = match self.format {
-            Some(format) => format,
-            None => DEFAULT_FORMAT,
-        };
+        /// Get the exponent character.
+        #[inline(always)]
+        pub const fn exponent(&self) -> u8 {
+            // Const fn version of unwrap_or().
+            let format = match self.format {
+                Some(format) => format,
+                None => DEFAULT_FORMAT,
+            };
 
-        format.exponent(self.radix())
-    });
+            format.exponent(self.radix())
+        }
+    );
 
     // SETTERS
 
@@ -1395,23 +1433,16 @@ mod tests {
     #[test]
     #[cfg(feature = "radix")]
     fn test_parse_integer_options() {
-        let options = ParseIntegerOptions::builder()
-            .radix(1)
-            .build();
+        let options = ParseIntegerOptions::builder().radix(1).build();
         assert_eq!(options, None);
 
-        let options = ParseIntegerOptions::builder()
-            .radix(32)
-            .build();
+        let options = ParseIntegerOptions::builder().radix(32).build();
         assert!(options.is_some());
         let options = options.unwrap();
         assert_eq!(options.radix(), 32);
         assert_eq!(options.format(), None);
 
-        let options = options.rebuild()
-            .radix(10)
-            .build()
-            .unwrap();
+        let options = options.rebuild().radix(10).build().unwrap();
         assert_eq!(options.radix(), 10);
         assert_eq!(options.format(), None);
     }
@@ -1419,22 +1450,15 @@ mod tests {
     #[test]
     #[cfg(feature = "radix")]
     fn test_write_integer_options() {
-        let options = WriteIntegerOptions::builder()
-            .radix(1)
-            .build();
+        let options = WriteIntegerOptions::builder().radix(1).build();
         assert_eq!(options, None);
 
-        let options = WriteIntegerOptions::builder()
-            .radix(32)
-            .build();
+        let options = WriteIntegerOptions::builder().radix(32).build();
         assert!(options.is_some());
         let options = options.unwrap();
         assert_eq!(options.radix(), 32);
 
-        let options = options.rebuild()
-            .radix(10)
-            .build()
-            .unwrap();
+        let options = options.rebuild().radix(10).build().unwrap();
         assert_eq!(options.radix(), 10);
     }
 
@@ -1442,29 +1466,18 @@ mod tests {
     #[cfg(feature = "radix")]
     fn test_parse_float_options() {
         // Invalid radix
-        let options = ParseFloatOptions::builder()
-            .radix(1)
-            .incorrect(true)
-            .build();
+        let options = ParseFloatOptions::builder().radix(1).incorrect(true).build();
         assert_eq!(options, None);
 
         // Lossy and incorrect
-        let options = ParseFloatOptions::builder()
-            .incorrect(true)
-            .lossy(true)
-            .build();
+        let options = ParseFloatOptions::builder().incorrect(true).lossy(true).build();
         assert_eq!(options, None);
 
         // Inf string is too long
-        let options = ParseFloatOptions::builder()
-            .inf_string(b"infinityinfinf")
-            .build();
+        let options = ParseFloatOptions::builder().inf_string(b"infinityinfinf").build();
         assert_eq!(options, None);
 
-        let options = ParseFloatOptions::builder()
-            .radix(32)
-            .incorrect(true)
-            .build();
+        let options = ParseFloatOptions::builder().radix(32).incorrect(true).build();
         assert!(options.is_some());
         let options = options.unwrap();
         assert_eq!(options.radix(), 32);
@@ -1475,7 +1488,8 @@ mod tests {
         assert_eq!(options.inf_string(), b"inf");
         assert_eq!(options.infinity_string(), b"infinity");
 
-        let options = options.rebuild()
+        let options = options
+            .rebuild()
             .radix(10)
             .incorrect(false)
             .lossy(true)
@@ -1505,16 +1519,10 @@ mod tests {
     #[test]
     #[cfg(feature = "radix")]
     fn test_write_float_options() {
-        let options = WriteFloatOptions::builder()
-            .radix(1)
-            .trim_floats(true)
-            .build();
+        let options = WriteFloatOptions::builder().radix(1).trim_floats(true).build();
         assert_eq!(options, None);
 
-        let options = WriteFloatOptions::builder()
-            .radix(32)
-            .trim_floats(true)
-            .build();
+        let options = WriteFloatOptions::builder().radix(32).trim_floats(true).build();
         assert!(options.is_some());
         let options = options.unwrap();
         assert_eq!(options.radix(), 32);
@@ -1523,12 +1531,8 @@ mod tests {
         assert_eq!(options.nan_string(), b"NaN");
         assert_eq!(options.inf_string(), b"inf");
 
-        let options = options.rebuild()
-            .radix(10)
-            .trim_floats(false)
-            .inf_string(b"infinity")
-            .build()
-            .unwrap();
+        let options =
+            options.rebuild().radix(10).trim_floats(false).inf_string(b"infinity").build().unwrap();
         assert_eq!(options.radix(), 10);
         assert_eq!(options.trim_floats(), false);
         assert_eq!(options.format(), None);

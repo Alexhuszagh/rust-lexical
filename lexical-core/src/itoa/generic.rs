@@ -76,7 +76,16 @@ use crate::util::*;
 
 // Generic itoa algorithm.
 macro_rules! generic_algorithm {
-    ($value:ident, $radix:ident, $buffer:ident, $t:tt, $table:ident, $index:ident, $radix2:ident, $radix4:ident) => ({
+    (
+        $value:ident,
+        $radix:ident,
+        $buffer:ident,
+        $t:tt,
+        $table:ident,
+        $index:ident,
+        $radix2:ident,
+        $radix4:ident
+    ) => {{
         while $value >= $radix4 {
             let r = $value % $radix4;
             $value /= $radix4;
@@ -88,11 +97,11 @@ macro_rules! generic_algorithm {
             // value of r is `radix4-1`, which must have a div and r
             // in the range [0, radix^2-1).
             $index -= 1;
-            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r2+1]));
+            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r2 + 1]));
             $index -= 1;
             unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r2]));
             $index -= 1;
-            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r1+1]));
+            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r1 + 1]));
             $index -= 1;
             unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r1]));
         }
@@ -105,7 +114,7 @@ macro_rules! generic_algorithm {
             // This is always safe, since the table is 2*radix^2, and
             // r must be in the range [0, 2*radix^2-1).
             $index -= 1;
-            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r+1]));
+            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r + 1]));
             $index -= 1;
             unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r]));
         }
@@ -121,11 +130,11 @@ macro_rules! generic_algorithm {
             // This is always safe, since the table is 2*radix^2, and the value
             // must <= radix^2, so rem must be in the range [0, 2*radix^2-1).
             $index -= 1;
-            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r+1]));
+            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r + 1]));
             $index -= 1;
             unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r]));
         }
-    });
+    }};
 }
 
 /// Get lookup table for 2 digit radix conversions.
@@ -133,42 +142,42 @@ macro_rules! generic_algorithm {
 #[cfg(feature = "radix")]
 fn get_table(radix: u32) -> &'static [u8] {
     match radix {
-        2   => &DIGIT_TO_BASE2_SQUARED,
-        3   => &DIGIT_TO_BASE3_SQUARED,
-        4   => &DIGIT_TO_BASE4_SQUARED,
-        5   => &DIGIT_TO_BASE5_SQUARED,
-        6   => &DIGIT_TO_BASE6_SQUARED,
-        7   => &DIGIT_TO_BASE7_SQUARED,
-        8   => &DIGIT_TO_BASE8_SQUARED,
-        9   => &DIGIT_TO_BASE9_SQUARED,
-        10  => &DIGIT_TO_BASE10_SQUARED,
-        11  => &DIGIT_TO_BASE11_SQUARED,
-        12  => &DIGIT_TO_BASE12_SQUARED,
-        13  => &DIGIT_TO_BASE13_SQUARED,
-        14  => &DIGIT_TO_BASE14_SQUARED,
-        15  => &DIGIT_TO_BASE15_SQUARED,
-        16  => &DIGIT_TO_BASE16_SQUARED,
-        17  => &DIGIT_TO_BASE17_SQUARED,
-        18  => &DIGIT_TO_BASE18_SQUARED,
-        19  => &DIGIT_TO_BASE19_SQUARED,
-        20  => &DIGIT_TO_BASE20_SQUARED,
-        21  => &DIGIT_TO_BASE21_SQUARED,
-        22  => &DIGIT_TO_BASE22_SQUARED,
-        23  => &DIGIT_TO_BASE23_SQUARED,
-        24  => &DIGIT_TO_BASE24_SQUARED,
-        25  => &DIGIT_TO_BASE25_SQUARED,
-        26  => &DIGIT_TO_BASE26_SQUARED,
-        27  => &DIGIT_TO_BASE27_SQUARED,
-        28  => &DIGIT_TO_BASE28_SQUARED,
-        29  => &DIGIT_TO_BASE29_SQUARED,
-        30  => &DIGIT_TO_BASE30_SQUARED,
-        31  => &DIGIT_TO_BASE31_SQUARED,
-        32  => &DIGIT_TO_BASE32_SQUARED,
-        33  => &DIGIT_TO_BASE33_SQUARED,
-        34  => &DIGIT_TO_BASE34_SQUARED,
-        35  => &DIGIT_TO_BASE35_SQUARED,
-        36  => &DIGIT_TO_BASE36_SQUARED,
-        _   => unreachable!(),
+        2 => &DIGIT_TO_BASE2_SQUARED,
+        3 => &DIGIT_TO_BASE3_SQUARED,
+        4 => &DIGIT_TO_BASE4_SQUARED,
+        5 => &DIGIT_TO_BASE5_SQUARED,
+        6 => &DIGIT_TO_BASE6_SQUARED,
+        7 => &DIGIT_TO_BASE7_SQUARED,
+        8 => &DIGIT_TO_BASE8_SQUARED,
+        9 => &DIGIT_TO_BASE9_SQUARED,
+        10 => &DIGIT_TO_BASE10_SQUARED,
+        11 => &DIGIT_TO_BASE11_SQUARED,
+        12 => &DIGIT_TO_BASE12_SQUARED,
+        13 => &DIGIT_TO_BASE13_SQUARED,
+        14 => &DIGIT_TO_BASE14_SQUARED,
+        15 => &DIGIT_TO_BASE15_SQUARED,
+        16 => &DIGIT_TO_BASE16_SQUARED,
+        17 => &DIGIT_TO_BASE17_SQUARED,
+        18 => &DIGIT_TO_BASE18_SQUARED,
+        19 => &DIGIT_TO_BASE19_SQUARED,
+        20 => &DIGIT_TO_BASE20_SQUARED,
+        21 => &DIGIT_TO_BASE21_SQUARED,
+        22 => &DIGIT_TO_BASE22_SQUARED,
+        23 => &DIGIT_TO_BASE23_SQUARED,
+        24 => &DIGIT_TO_BASE24_SQUARED,
+        25 => &DIGIT_TO_BASE25_SQUARED,
+        26 => &DIGIT_TO_BASE26_SQUARED,
+        27 => &DIGIT_TO_BASE27_SQUARED,
+        28 => &DIGIT_TO_BASE28_SQUARED,
+        29 => &DIGIT_TO_BASE29_SQUARED,
+        30 => &DIGIT_TO_BASE30_SQUARED,
+        31 => &DIGIT_TO_BASE31_SQUARED,
+        32 => &DIGIT_TO_BASE32_SQUARED,
+        33 => &DIGIT_TO_BASE33_SQUARED,
+        34 => &DIGIT_TO_BASE34_SQUARED,
+        35 => &DIGIT_TO_BASE35_SQUARED,
+        36 => &DIGIT_TO_BASE36_SQUARED,
+        _ => unreachable!(),
     }
 }
 
@@ -176,16 +185,16 @@ fn get_table(radix: u32) -> &'static [u8] {
 #[inline]
 #[cfg(not(feature = "radix"))]
 fn get_table(_: u32) -> &'static [u8] {
-   &DIGIT_TO_BASE10_SQUARED
+    &DIGIT_TO_BASE10_SQUARED
 }
 
 /// Optimized implementation for radix-N numbers.
 /// Precondition: `value` must be non-negative and mutable.
 #[inline]
 #[allow(unused_unsafe)]
-fn generic<T>(mut value: T, radix: u32, table: &[u8], buffer: &mut [u8])
-    -> usize
-    where T: UnsignedInteger
+fn generic<T>(mut value: T, radix: u32, table: &[u8], buffer: &mut [u8]) -> usize
+where
+    T: UnsignedInteger,
 {
     // Both forms of unchecked indexing cannot overflow.
     // The table always has 2*radix^2 elements, so it must be a legal index.
@@ -211,9 +220,7 @@ fn generic<T>(mut value: T, radix: u32, table: &[u8], buffer: &mut [u8])
 ///  Buffer must be 0-initialized.
 #[inline]
 #[allow(unused_unsafe)]
-fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [u8])
-    -> usize
-{
+fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [u8]) -> usize {
     // Both forms of unchecked indexing cannot overflow.
     // The table always has 2*radix^2 elements, so it must be a legal index.
     // The buffer is ensured to have at least MAX_DIGITS or MAX_DIGITS_BASE10

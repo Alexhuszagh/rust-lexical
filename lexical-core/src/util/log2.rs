@@ -5,11 +5,11 @@
 #[inline(always)]
 pub(crate) fn log2(value: u32) -> i32 {
     match value {
-        2  => 1,
-        4  => 2,
-        8  => 3,
+        2 => 1,
+        4 => 2,
+        8 => 3,
         16 => 4,
         32 => 5,
-        _  => 0,
+        _ => 0,
     }
 }

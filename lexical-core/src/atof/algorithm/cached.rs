@@ -2,8 +2,8 @@
 
 use crate::float::*;
 
-use super::cached_float80;
 use super::cached_float160;
+use super::cached_float80;
 
 // POWERS
 // ------
@@ -20,12 +20,13 @@ pub(crate) struct ExtendedFloatArray<M: Mantissa> {
 /// Allow indexing of values without bounds checking
 impl<M: Mantissa> ExtendedFloatArray<M> {
     #[inline]
-    pub fn get_extended_float(&self, index: usize)
-        -> ExtendedFloat<M>
-    {
+    pub fn get_extended_float(&self, index: usize) -> ExtendedFloat<M> {
         let mant = self.mant[index];
         let exp = self.exp[index];
-        ExtendedFloat { mant: mant, exp: exp }
+        ExtendedFloat {
+            mant,
+            exp,
+        }
     }
 
     #[inline]

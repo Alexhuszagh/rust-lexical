@@ -6,9 +6,7 @@ use crate::lib::ptr;
 
 /// Calculate the difference between two pointers.
 #[inline]
-pub fn distance<T>(first: *const T, last: *const T)
-    -> usize
-{
+pub fn distance<T>(first: *const T, last: *const T) -> usize {
     debug_assert!(last >= first, "range must be positive.");
     let f = first as usize;
     let l = last as usize;
@@ -17,19 +15,17 @@ pub fn distance<T>(first: *const T, last: *const T)
 
 /// Check if two slices are equal to each other.
 #[inline]
-pub fn equal_to_slice(l: &[u8], r: &[u8])
-    -> bool
-{
+pub fn equal_to_slice(l: &[u8], r: &[u8]) -> bool {
     l == r
 }
 
 /// Check if left iter starts with right iter.
 #[inline]
 #[cfg(feature = "format")]
-pub fn starts_with_iter<'a, Iter1, Iter2>(mut l: Iter1, mut r: Iter2)
-    -> (bool, Iter1)
-    where Iter1: Iterator<Item=&'a u8>,
-          Iter2: Iterator<Item=&'a u8>
+pub fn starts_with_iter<'a, Iter1, Iter2>(mut l: Iter1, mut r: Iter2) -> (bool, Iter1)
+where
+    Iter1: Iterator<Item = &'a u8>,
+    Iter2: Iterator<Item = &'a u8>,
 {
     loop {
         // Only call `next()` on l if r is not None, otherwise,
@@ -45,10 +41,13 @@ pub fn starts_with_iter<'a, Iter1, Iter2>(mut l: Iter1, mut r: Iter2)
 
 /// Check if left iter starts with right iter without case-sensitivity.
 #[inline]
-pub fn case_insensitive_starts_with_iter<'a, Iter1, Iter2>(mut l: Iter1, mut r: Iter2)
-    -> (bool, Iter1)
-    where Iter1: Iterator<Item=&'a u8>,
-          Iter2: Iterator<Item=&'a u8>
+pub fn case_insensitive_starts_with_iter<'a, Iter1, Iter2>(
+    mut l: Iter1,
+    mut r: Iter2,
+) -> (bool, Iter1)
+where
+    Iter1: Iterator<Item = &'a u8>,
+    Iter2: Iterator<Item = &'a u8>,
 {
     loop {
         let ri = r.next().map(|x| x.to_ascii_lowercase());
@@ -62,48 +61,40 @@ pub fn case_insensitive_starts_with_iter<'a, Iter1, Iter2>(mut l: Iter1, mut r: 
 
 /// Check if left slice ends with right slice.
 #[inline]
-pub fn ends_with_slice(l: &[u8], r: &[u8])
-    -> bool
-{
+pub fn ends_with_slice(l: &[u8], r: &[u8]) -> bool {
     // This cannot be out-of-bounds, since we check `l.len() >= r.len()`
     // previous to extracting the subslice, so `l.len() - r.len()` must
     // also be <= l.len() and >= 0.
-    let rget = move || unsafe {l.get_unchecked(l.len()-r.len()..)};
+    let rget = move || unsafe { l.get_unchecked(l.len() - r.len()..) };
     l.len() >= r.len() && equal_to_slice(rget(), r)
 }
 
 /// Trim character from the left-side of a slice.
 #[inline]
-pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8)
-    -> (&'a [u8], usize)
-{
+pub fn ltrim_char_slice<'a>(slc: &'a [u8], c: u8) -> (&'a [u8], usize) {
     let count = slc.iter().take_while(|&&si| si == c).count();
     //  This count cannot exceed the bounds of the slice, since it is
     // derived from an iterator using the standard library to generate it.
     debug_assert!(count <= slc.len());
-    let slc = unsafe {slc.get_unchecked(count..)};
+    let slc = unsafe { slc.get_unchecked(count..) };
     (slc, count)
 }
 
 /// Trim characters from the left-side of a slice.
 #[inline]
 #[cfg(feature = "format")]
-pub fn ltrim_char2_slice<'a>(slc: &'a [u8], c1: u8, c2: u8)
-    -> (&'a [u8], usize)
-{
+pub fn ltrim_char2_slice<'a>(slc: &'a [u8], c1: u8, c2: u8) -> (&'a [u8], usize) {
     let count = slc.iter().take_while(|&&si| si == c1 || si == c2).count();
     //  This count cannot exceed the bounds of the slice, since it is
     // derived from an iterator using the standard library to generate it.
     debug_assert!(count <= slc.len());
-    let slc = unsafe {slc.get_unchecked(count..)};
+    let slc = unsafe { slc.get_unchecked(count..) };
     (slc, count)
 }
 
 /// Trim character from the right-side of a slice.
 #[inline]
-pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
-    -> (&'a [u8], usize)
-{
+pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8) -> (&'a [u8], usize) {
     let count = slc.iter().rev().take_while(|&&si| si == c).count();
     let index = slc.len() - count;
     // Count must be <= slc.len(), and therefore, slc.len() - count must
@@ -111,16 +102,14 @@ pub fn rtrim_char_slice<'a>(slc: &'a [u8], c: u8)
     // in the standard library.
     debug_assert!(count <= slc.len());
     debug_assert!(index <= slc.len());
-    let slc = unsafe {slc.get_unchecked(..index)};
+    let slc = unsafe { slc.get_unchecked(..index) };
     (slc, count)
 }
 
 /// Trim character from the right-side of a slice.
 #[inline]
 #[cfg(feature = "format")]
-pub fn rtrim_char2_slice<'a>(slc: &'a [u8], c1: u8, c2: u8)
-    -> (&'a [u8], usize)
-{
+pub fn rtrim_char2_slice<'a>(slc: &'a [u8], c1: u8, c2: u8) -> (&'a [u8], usize) {
     let count = slc.iter().rev().take_while(|&&si| si == c1 || si == c2).count();
     let index = slc.len() - count;
     // Count must be <= slc.len(), and therefore, slc.len() - count must
@@ -128,15 +117,13 @@ pub fn rtrim_char2_slice<'a>(slc: &'a [u8], c1: u8, c2: u8)
     // in the standard library.
     debug_assert!(count <= slc.len());
     debug_assert!(index <= slc.len());
-    let slc = unsafe {slc.get_unchecked(..index)};
+    let slc = unsafe { slc.get_unchecked(..index) };
     (slc, count)
 }
 
 /// Copy from source-to-dst.
 #[inline]
-pub fn copy_to_dst<'a, Bytes: AsRef<[u8]>>(dst: &'a mut [u8], src: Bytes)
-    -> usize
-{
+pub fn copy_to_dst<'a, Bytes: AsRef<[u8]>>(dst: &'a mut [u8], src: Bytes) -> usize {
     let src = src.as_ref();
     let dst = &mut dst[..src.len()];
 
@@ -150,8 +137,7 @@ pub fn copy_to_dst<'a, Bytes: AsRef<[u8]>>(dst: &'a mut [u8], src: Bytes)
 /// Length-check variant of ptr::write_bytes for a slice.
 #[inline]
 #[cfg(not(any(feature = "grisu3", feature = "ryu")))]
-pub fn write_bytes(dst: &mut [u8], byte: u8)
-{
+pub fn write_bytes(dst: &mut [u8], byte: u8) {
     unsafe {
         ptr::write_bytes(dst.as_mut_ptr(), byte, dst.len());
     }

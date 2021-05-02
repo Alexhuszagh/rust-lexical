@@ -3,8 +3,8 @@
 //! This algorithm is adapted from the V8 codebase,
 //! and may be found [here](https://github.com/v8/v8).
 
-use crate::itoa;
 use crate::config::*;
+use crate::itoa;
 use crate::table::*;
 use crate::traits::*;
 use crate::util::*;
@@ -16,8 +16,7 @@ use crate::util::*;
 ///
 /// Don't export this for float, since it's specialized for radix.
 #[inline]
-pub(crate) fn naive_exponent(d: f64, radix: u32) -> i32
-{
+pub(crate) fn naive_exponent(d: f64, radix: u32) -> i32 {
     // floor returns the minimal value, which is our
     // desired exponent
     // ln(1.1e-5) -> -4.95 -> -5
@@ -31,9 +30,7 @@ pub(crate) fn naive_exponent(d: f64, radix: u32) -> i32
 /// and non-zero.
 ///
 /// Adapted from the V8 implementation.
-fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8], format: NumberFormat)
-    -> usize
-{
+fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize {
     debug_assert_radix!(radix);
 
     // Config options
@@ -106,7 +103,7 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8], format: NumberFor
                     // We need to back trace already written digits in case of carry-over.
                     loop {
                         fraction_cursor -= 1;
-                        if fraction_cursor == initial_position-1 {
+                        if fraction_cursor == initial_position - 1 {
                             // Carry over to the integer part.
                             integer += 1.0;
                             break;
@@ -147,7 +144,7 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8], format: NumberFor
         if integer <= 0.0 {
             break;
         }
-    };
+    }
 
     if value <= 1e-5 || value >= 1e9 {
         // write scientific notation with negative exponent
@@ -175,7 +172,7 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8], format: NumberFor
         bytes[0] = buffer[0];
         bytes[1] = decimal_point;
         let count = copy_to_dst(&mut bytes[2..], &buffer[1..]);
-        let bytes = &mut bytes[count+2..];
+        let bytes = &mut bytes[count + 2..];
 
         // write the exponent component
         bytes[0] = exponent_character;
@@ -192,7 +189,8 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8], format: NumberFor
     } else {
         // get component lengths
         let integer_length = initial_position - integer_cursor;
-        let fraction_length = (fraction_cursor - initial_position).min(MAX_DIGIT_LENGTH - integer_length);
+        let fraction_length =
+            (fraction_cursor - initial_position).min(MAX_DIGIT_LENGTH - integer_length);
 
         // write integer component
         let start = integer_cursor;
@@ -224,9 +222,12 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8], format: NumberFor
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline]
-pub(crate) fn float_radix<'a>(f: f32, radix: u32, bytes: &'a mut [u8], format: NumberFormat)
-    -> usize
-{
+pub(crate) fn float_radix<'a>(
+    f: f32,
+    radix: u32,
+    bytes: &'a mut [u8],
+    format: NumberFormat,
+) -> usize {
     double_radix(f as f64, radix, bytes, format)
 }
 
@@ -237,8 +238,11 @@ pub(crate) fn float_radix<'a>(f: f32, radix: u32, bytes: &'a mut [u8], format: N
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline]
-pub(crate) fn double_radix<'a>(value: f64, radix: u32, bytes: &'a mut [u8], format: NumberFormat)
-    -> usize
-{
+pub(crate) fn double_radix<'a>(
+    value: f64,
+    radix: u32,
+    bytes: &'a mut [u8],
+    format: NumberFormat,
+) -> usize {
     ftoa_naive(value, radix, bytes, format)
 }

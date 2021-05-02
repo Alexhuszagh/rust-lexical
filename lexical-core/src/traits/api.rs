@@ -108,7 +108,10 @@ pub trait FromLexicalOptions: FromLexical {
     ///
     /// * `bytes`   - Slice containing a numeric string.
     /// * `options` - Options to dictate number parsing.
-    fn from_lexical_partial_with_options(bytes: &[u8], options: &Self::ParseOptions) -> Result<(Self, usize)>;
+    fn from_lexical_partial_with_options(
+        bytes: &[u8],
+        options: &Self::ParseOptions,
+    ) -> Result<(Self, usize)>;
 }
 
 // Implement FromLexicalOptions for numeric type.
@@ -204,7 +207,11 @@ pub trait ToLexicalOptions: ToLexical {
     /// [`FORMATTED_SIZE`] elements.
     ///
     /// [`FORMATTED_SIZE`]: trait.Number.html#associatedconstant.FORMATTED_SIZE
-    fn to_lexical_with_options<'a>(self, bytes: &'a mut [u8], options: &Self::WriteOptions) -> &'a mut [u8];
+    fn to_lexical_with_options<'a>(
+        self,
+        bytes: &'a mut [u8],
+        options: &Self::WriteOptions,
+    ) -> &'a mut [u8];
 }
 
 // Implement ToLexicalOptions for numeric type.

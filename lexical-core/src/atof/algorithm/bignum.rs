@@ -11,25 +11,25 @@ use super::math::*;
 
 /// Calculate the integral ceiling of the binary factor from a basen number.
 #[inline]
-pub(super) fn integral_binary_factor(radix: u32)
-    -> u32
-{
+pub(super) fn integral_binary_factor(radix: u32) -> u32 {
     debug_assert_radix!(radix);
 
-    #[cfg(not(feature = "radix"))] {
+    #[cfg(not(feature = "radix"))]
+    {
         4
     }
 
-    #[cfg(feature = "radix")] {
+    #[cfg(feature = "radix")]
+    {
         match radix.as_i32() {
-            2  => 1,
-            3  => 2,
-            4  => 2,
-            5  => 3,
-            6  => 3,
-            7  => 3,
-            8  => 3,
-            9  => 4,
+            2 => 1,
+            3 => 2,
+            4 => 2,
+            5 => 3,
+            6 => 3,
+            7 => 3,
+            8 => 3,
+            9 => 4,
             10 => 4,
             11 => 4,
             12 => 4,
@@ -58,7 +58,7 @@ pub(super) fn integral_binary_factor(radix: u32)
             35 => 6,
             36 => 6,
             // Invalid radix
-            _  => unreachable!(),
+            _ => unreachable!(),
         }
     }
 }
@@ -95,7 +95,9 @@ impl<F: Float> Default for Bigint<F> {
     #[inline]
     fn default() -> Self {
         // We want to avoid lower-order
-        let mut bigint = Self { data: F::BigintStorage::default() };
+        let mut bigint = Self {
+            data: F::BigintStorage::default(),
+        };
         bigint.data.reserve(20);
         bigint
     }
@@ -153,7 +155,10 @@ impl<F: Float> Default for Bigfloat<F> {
     #[inline]
     fn default() -> Self {
         // We want to avoid lower-order
-        let mut bigfloat = Self { data: F::BigfloatStorage::default(), exp: 0 };
+        let mut bigfloat = Self {
+            data: F::BigfloatStorage::default(),
+            exp: 0,
+        };
         bigfloat.data.reserve(10);
         bigfloat
     }
@@ -249,7 +254,10 @@ mod test {
 
     #[test]
     fn integral_binary_factor_test() {
-        const TABLE: [u32; 35] = [1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6];
+        const TABLE: [u32; 35] = [
+            1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+            5, 5, 6, 6, 6, 6,
+        ];
         for (idx, base) in (2..37).enumerate() {
             assert_eq!(integral_binary_factor(base), TABLE[idx]);
         }

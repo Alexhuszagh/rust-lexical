@@ -72,8 +72,10 @@ impl From<lexical_core::NumberFormatBuilder> for NumberFormatBuilder {
             fraction_trailing_digit_separator: builder.get_fraction_trailing_digit_separator(),
             exponent_trailing_digit_separator: builder.get_exponent_trailing_digit_separator(),
             integer_consecutive_digit_separator: builder.get_integer_consecutive_digit_separator(),
-            fraction_consecutive_digit_separator: builder.get_fraction_consecutive_digit_separator(),
-            exponent_consecutive_digit_separator: builder.get_exponent_consecutive_digit_separator(),
+            fraction_consecutive_digit_separator: builder
+                .get_fraction_consecutive_digit_separator(),
+            exponent_consecutive_digit_separator: builder
+                .get_exponent_consecutive_digit_separator(),
             special_digit_separator: builder.get_special_digit_separator(),
         }
     }
@@ -125,25 +127,23 @@ impl Default for NumberFormatBuilder {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_number_format_rebuild(format: lexical_core::NumberFormat)
-    -> NumberFormatBuilder
-{
+pub extern "C" fn lexical_number_format_rebuild(
+    format: lexical_core::NumberFormat,
+) -> NumberFormatBuilder {
     format.rebuild().into()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_number_format_builder_new()
-    -> NumberFormatBuilder
-{
+pub extern "C" fn lexical_number_format_builder_new() -> NumberFormatBuilder {
     lexical_core::NumberFormatBuilder::new().into()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_number_format_builder_build(builder: NumberFormatBuilder)
-    -> Option<lexical_core::NumberFormat>
-{
+pub extern "C" fn lexical_number_format_builder_build(
+    builder: NumberFormatBuilder,
+) -> Option<lexical_core::NumberFormat> {
     let builder: lexical_core::NumberFormatBuilder = builder.into();
     builder.build().map(|opts| opts.into()).into()
 }

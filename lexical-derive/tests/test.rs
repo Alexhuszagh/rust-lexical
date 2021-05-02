@@ -17,7 +17,9 @@ struct Wrapper {
 
 #[test]
 fn to_lexical_test() {
-    let wrapper = Wrapper { value: 15 };
+    let wrapper = Wrapper {
+        value: 15,
+    };
     let mut bytes = [b'0'; 256];
     assert_eq!(wrapper.to_lexical(&mut bytes), b"15");
 }

@@ -25,7 +25,7 @@ fn parse_sign<'a>(bytes: &'a [u8]) -> (bool, &'a [u8]) {
     match bytes.get(0) {
         Some(&b'+') => (true, &bytes[1..]),
         Some(&b'-') => (false, &bytes[1..]),
-        _           => (true, bytes)
+        _ => (true, bytes),
     }
 }
 
@@ -38,17 +38,13 @@ fn to_digit(c: u8) -> Option<u32> {
 // Add digit from exponent.
 #[inline]
 fn add_digit_i32(value: i32, digit: u32) -> Option<i32> {
-    return value
-        .checked_mul(10)?
-        .checked_add(digit as i32)
+    return value.checked_mul(10)?.checked_add(digit as i32);
 }
 
 // Subtract digit from exponent.
 #[inline]
 fn sub_digit_i32(value: i32, digit: u32) -> Option<i32> {
-    return value
-        .checked_mul(10)?
-        .checked_sub(digit as i32)
+    return value.checked_mul(10)?.checked_sub(digit as i32);
 }
 
 // Convert character to digit.
@@ -59,9 +55,7 @@ fn is_digit(c: u8) -> bool {
 
 // Split buffer at index.
 #[inline]
-fn split_at_index<'a>(digits: &'a [u8], index: usize)
-    -> (&'a [u8], &'a [u8])
-{
+fn split_at_index<'a>(digits: &'a [u8], index: usize) -> (&'a [u8], &'a [u8]) {
     (&digits[..index], &digits[index..])
 }
 
@@ -69,9 +63,7 @@ fn split_at_index<'a>(digits: &'a [u8], index: usize)
 ///
 /// - `digits`      - Slice containing 0 or more digits.
 #[inline]
-fn consume_digits<'a>(digits: &'a [u8])
-    -> (&'a [u8], &'a [u8])
-{
+fn consume_digits<'a>(digits: &'a [u8]) -> (&'a [u8], &'a [u8]) {
     // Consume all digits.
     let mut index = 0;
     while index < digits.len() && is_digit(digits[index]) {
@@ -106,11 +98,11 @@ fn parse_exponent(exponent: &[u8], is_positive: bool) -> i32 {
     // Parse the sign bit or current data.
     let mut value: i32 = 0;
     match is_positive {
-        true  => {
+        true => {
             for c in exponent {
                 value = match add_digit_i32(value, to_digit(*c).unwrap()) {
                     Some(v) => v,
-                    None    => return i32::max_value(),
+                    None => return i32::max_value(),
                 };
             }
         },
@@ -118,10 +110,10 @@ fn parse_exponent(exponent: &[u8], is_positive: bool) -> i32 {
             for c in exponent {
                 value = match sub_digit_i32(value, to_digit(*c).unwrap()) {
                     Some(v) => v,
-                    None    => return i32::min_value(),
+                    None => return i32::min_value(),
                 };
             }
-        }
+        },
     }
 
     value
@@ -130,9 +122,9 @@ fn parse_exponent(exponent: &[u8], is_positive: bool) -> i32 {
 /// Parse float from input bytes, returning the float and the remaining bytes.
 ///
 /// * `bytes`    - Array of bytes leading with float-data.
-fn parse_float<'a, F>(bytes: &'a [u8])
-    -> (F, &'a [u8])
-    where F: minimal_lexical::Float
+fn parse_float<'a, F>(bytes: &'a [u8]) -> (F, &'a [u8])
+where
+    F: minimal_lexical::Float,
 {
     // Parse the sign.
     let (is_positive, bytes) = parse_sign(bytes);
@@ -148,7 +140,7 @@ fn parse_float<'a, F>(bytes: &'a [u8])
     let (integer_slc, bytes) = consume_digits(bytes);
     let (fraction_slc, bytes) = match bytes.first() {
         Some(&b'.') => consume_digits(&bytes[1..]),
-        _           => (&bytes[..0], bytes),
+        _ => (&bytes[..0], bytes),
     };
     let (exponent, bytes) = match bytes.first() {
         Some(&b'e') | Some(&b'E') => {
@@ -157,7 +149,7 @@ fn parse_float<'a, F>(bytes: &'a [u8])
             let (exponent, bytes) = consume_digits(bytes);
             (parse_exponent(exponent, is_positive), bytes)
         },
-        _                         =>  (0, bytes),
+        _ => (0, bytes),
     };
 
     // Note: You may want to check and validate the float data here:
@@ -176,7 +168,8 @@ fn parse_float<'a, F>(bytes: &'a [u8])
     let fraction_slc = rtrim_zero(fraction_slc);
 
     // Create the float and return our data.
-    let mut float: F = minimal_lexical::parse_float(integer_slc.iter(), fraction_slc.iter(), exponent);
+    let mut float: F =
+        minimal_lexical::parse_float(integer_slc.iter(), fraction_slc.iter(), exponent);
     if !is_positive {
         float = -float;
     }
@@ -197,10 +190,7 @@ pub fn debug_dir() -> PathBuf {
 
 /// Return the `target` directory path.
 pub fn target_dir() -> PathBuf {
-    debug_dir()
-        .parent()
-        .expect("target directory")
-        .to_path_buf()
+    debug_dir().parent().expect("target directory").to_path_buf()
 }
 
 /// Return the project directory path.
@@ -243,42 +233,66 @@ macro_rules! bench_data {
         group.measurement_time(Duration::from_secs(5));
 
         let data: &[String] = &$data;
-        group.bench_function(concat!($name, "10"), |bench| bench.iter(|| {
-            black_box(parse_float::<f64>(data[0].as_bytes()));
-        }));
-        group.bench_function(concat!($name, "20"), |bench| bench.iter(|| {
-            black_box(parse_float::<f64>(data[1].as_bytes()));
-        }));
-        group.bench_function(concat!($name, "30"), |bench| bench.iter(|| {
-            black_box(parse_float::<f64>(data[2].as_bytes()));
-        }));
-        group.bench_function(concat!($name, "40"), |bench| bench.iter(|| {
-            black_box(parse_float::<f64>(data[3].as_bytes()));
-        }));
-        group.bench_function(concat!($name, "50"), |bench| bench.iter(|| {
-            black_box(parse_float::<f64>(data[4].as_bytes()));
-        }));
-        group.bench_function(concat!($name, "100"), |bench| bench.iter(|| {
-            black_box(parse_float::<f64>(data[5].as_bytes()));
-        }));
-        group.bench_function(concat!($name, "200"), |bench| bench.iter(|| {
-            black_box(parse_float::<f64>(data[6].as_bytes()));
-        }));
-        group.bench_function(concat!($name, "400"), |bench| bench.iter(|| {
-            black_box(parse_float::<f64>(data[7].as_bytes()));
-        }));
-        group.bench_function(concat!($name, "800"), |bench| bench.iter(|| {
-            black_box(parse_float::<f64>(data[8].as_bytes()));
-        }));
-        group.bench_function(concat!($name, "1600"), |bench| bench.iter(|| {
-            black_box(parse_float::<f64>(data[9].as_bytes()));
-        }));
-        group.bench_function(concat!($name, "3200"), |bench| bench.iter(|| {
-            black_box(parse_float::<f64>(data[10].as_bytes()));
-        }));
-        group.bench_function(concat!($name, "6400"), |bench| bench.iter(|| {
-            black_box(parse_float::<f64>(data[11].as_bytes()));
-        }));
+        group.bench_function(concat!($name, "10"), |bench| {
+            bench.iter(|| {
+                black_box(parse_float::<f64>(data[0].as_bytes()));
+            })
+        });
+        group.bench_function(concat!($name, "20"), |bench| {
+            bench.iter(|| {
+                black_box(parse_float::<f64>(data[1].as_bytes()));
+            })
+        });
+        group.bench_function(concat!($name, "30"), |bench| {
+            bench.iter(|| {
+                black_box(parse_float::<f64>(data[2].as_bytes()));
+            })
+        });
+        group.bench_function(concat!($name, "40"), |bench| {
+            bench.iter(|| {
+                black_box(parse_float::<f64>(data[3].as_bytes()));
+            })
+        });
+        group.bench_function(concat!($name, "50"), |bench| {
+            bench.iter(|| {
+                black_box(parse_float::<f64>(data[4].as_bytes()));
+            })
+        });
+        group.bench_function(concat!($name, "100"), |bench| {
+            bench.iter(|| {
+                black_box(parse_float::<f64>(data[5].as_bytes()));
+            })
+        });
+        group.bench_function(concat!($name, "200"), |bench| {
+            bench.iter(|| {
+                black_box(parse_float::<f64>(data[6].as_bytes()));
+            })
+        });
+        group.bench_function(concat!($name, "400"), |bench| {
+            bench.iter(|| {
+                black_box(parse_float::<f64>(data[7].as_bytes()));
+            })
+        });
+        group.bench_function(concat!($name, "800"), |bench| {
+            bench.iter(|| {
+                black_box(parse_float::<f64>(data[8].as_bytes()));
+            })
+        });
+        group.bench_function(concat!($name, "1600"), |bench| {
+            bench.iter(|| {
+                black_box(parse_float::<f64>(data[9].as_bytes()));
+            })
+        });
+        group.bench_function(concat!($name, "3200"), |bench| {
+            bench.iter(|| {
+                black_box(parse_float::<f64>(data[10].as_bytes()));
+            })
+        });
+        group.bench_function(concat!($name, "6400"), |bench| {
+            bench.iter(|| {
+                black_box(parse_float::<f64>(data[11].as_bytes()));
+            })
+        });
     };
 }
 
@@ -288,39 +302,49 @@ macro_rules! bench_digits {
         group.measurement_time(Duration::from_secs(5));
 
         let data: &[String] = &DIGITS2_DATA;
-        group.bench_function("digits2", |bench| bench.iter(|| {
-            for value in data.iter() {
-                black_box(parse_float::<f64>(value.as_bytes()));
-            }
-        }));
+        group.bench_function("digits2", |bench| {
+            bench.iter(|| {
+                for value in data.iter() {
+                    black_box(parse_float::<f64>(value.as_bytes()));
+                }
+            })
+        });
 
         let data: &[String] = &DIGITS8_DATA;
-        group.bench_function("digits8", |bench| bench.iter(|| {
-            for value in data.iter() {
-                black_box(parse_float::<f64>(value.as_bytes()));
-            }
-        }));
+        group.bench_function("digits8", |bench| {
+            bench.iter(|| {
+                for value in data.iter() {
+                    black_box(parse_float::<f64>(value.as_bytes()));
+                }
+            })
+        });
 
         let data: &[String] = &DIGITS16_DATA;
-        group.bench_function("digits16", |bench| bench.iter(|| {
-            for value in data.iter() {
-                black_box(parse_float::<f64>(value.as_bytes()));
-            }
-        }));
+        group.bench_function("digits16", |bench| {
+            bench.iter(|| {
+                for value in data.iter() {
+                    black_box(parse_float::<f64>(value.as_bytes()));
+                }
+            })
+        });
 
         let data: &[String] = &DIGITS32_DATA;
-        group.bench_function("digits32", |bench| bench.iter(|| {
-            for value in data.iter() {
-                black_box(parse_float::<f64>(value.as_bytes()));
-            }
-        }));
+        group.bench_function("digits32", |bench| {
+            bench.iter(|| {
+                for value in data.iter() {
+                    black_box(parse_float::<f64>(value.as_bytes()));
+                }
+            })
+        });
 
         let data: &[String] = &DIGITS64_DATA;
-        group.bench_function("digits64", |bench| bench.iter(|| {
-            for value in data.iter() {
-                black_box(parse_float::<f64>(value.as_bytes()));
-            }
-        }));
+        group.bench_function("digits64", |bench| {
+            bench.iter(|| {
+                for value in data.iter() {
+                    black_box(parse_float::<f64>(value.as_bytes()));
+                }
+            })
+        });
     };
 }
 

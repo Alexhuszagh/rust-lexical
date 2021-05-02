@@ -313,7 +313,7 @@ fn significant_bits<T: UnsignedInteger>(value: T) -> u32 {
 #[inline(always)]
 fn round_up(value: i32, base: i32) -> i32 {
     match value % base {
-        0   => value,
+        0 => value,
         rem => value + base - rem,
     }
 }
@@ -337,8 +337,8 @@ fn fast_ceildiv(value: i32, base: i32) -> i32 {
 #[inline(always)]
 fn inverse_remainder(remainder: i32, base: i32) -> i32 {
     match remainder {
-        0   => 0,
-        rem => base - rem
+        0 => 0,
+        rem => base - rem,
     }
 }
 
@@ -403,10 +403,10 @@ fn ftoa_exponent<'a, Mant: UnsignedInteger>(
     format: NumberFormat,
     mantissa: Mant,
     exp: i32,
-    sci_exp: i32
-)
-    -> usize
-    where Mant: itoa::Itoa
+    sci_exp: i32,
+) -> usize
+where
+    Mant: itoa::Itoa,
 {
     // Config options
     let decimal_point = format.decimal_point();
@@ -466,10 +466,10 @@ fn ftoa_negative_no_exponent<'a, Mant: UnsignedInteger>(
     format: NumberFormat,
     mantissa: Mant,
     exp: i32,
-    sci_exp: i32
-)
-    -> usize
-    where Mant: itoa::Itoa
+    sci_exp: i32,
+) -> usize
+where
+    Mant: itoa::Itoa,
 {
     // Config options
     let decimal_point = format.decimal_point();
@@ -487,7 +487,7 @@ fn ftoa_negative_no_exponent<'a, Mant: UnsignedInteger>(
     // Write our 0 digits.
     bytes[0] = b'0';
     bytes[1] = decimal_point;
-    bytes[2..zero_digits+1].fill(b'0');
+    bytes[2..zero_digits + 1].fill(b'0');
     let mut cursor = zero_digits + 1;
 
     // Generate our digits after the shift.
@@ -498,7 +498,7 @@ fn ftoa_negative_no_exponent<'a, Mant: UnsignedInteger>(
     // Write a decimal point if required for the notation.
     if cfg!(feature = "format") && format.required_exponent_notation() {
         bytes[cursor] = exponent_character;
-        bytes[cursor+1] = b'0';
+        bytes[cursor + 1] = b'0';
         cursor += 2;
     }
 
@@ -516,10 +516,10 @@ fn ftoa_positive_no_exponent<'a, Mant: UnsignedInteger>(
     format: NumberFormat,
     mantissa: Mant,
     exp: i32,
-    sci_exp: i32
-)
-    -> usize
-    where Mant: itoa::Itoa
+    sci_exp: i32,
+) -> usize
+where
+    Mant: itoa::Itoa,
 {
     // Config options
     let decimal_point = format.decimal_point();
@@ -570,7 +570,7 @@ fn ftoa_positive_no_exponent<'a, Mant: UnsignedInteger>(
     // Write a decimal point if required for the notation.
     if cfg!(feature = "format") && format.required_exponent_notation() {
         bytes[cursor] = exponent_character;
-        bytes[cursor+1] = b'0';
+        bytes[cursor + 1] = b'0';
         cursor += 2;
     }
 
@@ -589,10 +589,10 @@ fn ftoa<'a, F: Float>(
     exponent_base: u32,
     exponent_radix: u32,
     bytes: &'a mut [u8],
-    format: NumberFormat
-)
-    -> usize
-    where <F as Float>::Unsigned: itoa::Itoa
+    format: NumberFormat,
+) -> usize
+where
+    <F as Float>::Unsigned: itoa::Itoa,
 {
     // PRECONDITIONS
 
@@ -632,7 +632,17 @@ fn ftoa<'a, F: Float>(
     let exp = float.exponent();
     let sci_exp = exp + mantissa_bits - 1;
     if float <= as_cast(1e-5) || float >= as_cast(1e9) {
-        ftoa_exponent(radix, exponent_base, exponent_radix, bits_per_digit, bytes, format, mantissa, exp, sci_exp)
+        ftoa_exponent(
+            radix,
+            exponent_base,
+            exponent_radix,
+            bits_per_digit,
+            bytes,
+            format,
+            mantissa,
+            exp,
+            sci_exp,
+        )
     } else {
         // Don't use an exponent. Write the digits, scaled to the exponent.
         if sci_exp < 0 {
@@ -645,15 +655,23 @@ fn ftoa<'a, F: Float>(
 
 /// Fast implementation for f32. Names exist so we don't need trait dependencies.
 #[inline(always)]
-pub(crate) fn float_binary<'a>(float: f32, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize
-{
+pub(crate) fn float_binary<'a>(
+    float: f32,
+    radix: u32,
+    bytes: &'a mut [u8],
+    format: NumberFormat,
+) -> usize {
     ftoa(float, radix, radix, radix, bytes, format)
 }
 
 /// Fast implementation for f64. Names exist so we don't need trait dependencies.
 #[inline(always)]
-pub(crate) fn double_binary<'a>(float: f64, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize
-{
+pub(crate) fn double_binary<'a>(
+    float: f64,
+    radix: u32,
+    bytes: &'a mut [u8],
+    format: NumberFormat,
+) -> usize {
     ftoa(float, radix, radix, radix, bytes, format)
 }
 
@@ -662,7 +680,6 @@ pub(crate) fn double_binary<'a>(float: f64, radix: u32, bytes: &'a mut [u8], for
 
 #[cfg(test)]
 mod tests {
-    use crate::util::*;
     use super::*;
 
     #[test]
@@ -825,10 +842,16 @@ mod tests {
         assert_eq!(&buffer[..count], b!("0.00111100000011001010010000101000110001011001111110111"));
 
         let count = ftoa(0.1172839450617284f64, 2, 2, 2, &mut buffer, format);
-        assert_eq!(&buffer[..count], b!("0.000111100000011001010010000101000110001011001111110111"));
+        assert_eq!(
+            &buffer[..count],
+            b!("0.000111100000011001010010000101000110001011001111110111")
+        );
 
         let count = ftoa(0.0586419725308642f64, 2, 2, 2, &mut buffer, format);
-        assert_eq!(&buffer[..count], b!("0.0000111100000011001010010000101000110001011001111110111"));
+        assert_eq!(
+            &buffer[..count],
+            b!("0.0000111100000011001010010000101000110001011001111110111")
+        );
 
         // Base4
         let count = ftoa(0.2345678901234567890f64, 4, 4, 4, &mut buffer, format);

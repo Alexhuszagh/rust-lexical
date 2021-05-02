@@ -52,8 +52,8 @@ data_interface!(
 
 #[cfg(test)]
 mod tests {
-    use crate::error::*;
     use super::*;
+    use crate::error::*;
 
     macro_rules! permissive {
         ($integer:expr, $fraction:expr, $exponent:expr, $raw_exponent:expr) => {
@@ -62,7 +62,7 @@ mod tests {
                 integer: $integer,
                 fraction: $fraction,
                 exponent: $exponent,
-                raw_exponent: $raw_exponent
+                raw_exponent: $raw_exponent,
             }
         };
     }

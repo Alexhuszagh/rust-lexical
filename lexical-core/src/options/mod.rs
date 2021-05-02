@@ -698,7 +698,7 @@
 //      db.movie.find()
 //      ```
 
-#![allow(dead_code)]    // TODO(ahuszagh) Remove
+#![allow(dead_code)] // TODO(ahuszagh) Remove
 
 // TODO(ahuszagh) Restore later...
 //mod lexer;

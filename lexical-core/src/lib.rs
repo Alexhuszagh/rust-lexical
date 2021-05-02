@@ -176,7 +176,6 @@
 
 // Silence warnings for unused doc comments
 #![allow(unused_doc_comments)]
-
 // FEATURES
 // --------
 
@@ -212,7 +211,7 @@ if #[cfg(feature = "grisu3")] {
     extern crate dtoa;
 } else if #[cfg(feature = "ryu")] {
     extern crate ryu;
-}}  // cfg_if
+}} // cfg_if
 
 /// Facade around the core features for name mangling.
 pub(crate) mod lib {
@@ -229,8 +228,8 @@ pub(crate) mod lib {
 
         #[cfg(not(feature = "std"))]
         pub(crate) use ::alloc::vec::Vec;
-    }}  // cfg_if
-}   // lib
+    }} // cfg_if
+} // lib
 
 // MODULES
 // -------
@@ -319,9 +318,7 @@ mod itoa;
 /// lexical_core::write(float, &mut buffer);
 /// ```
 #[inline]
-pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8])
-    -> &'a mut [u8]
-{
+pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8]) -> &'a mut [u8] {
     n.to_lexical(bytes)
 }
 
@@ -366,9 +363,11 @@ pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8])
 /// lexical_core::write_with_options(float, &mut buffer, &options);
 /// ```
 #[inline]
-pub fn write_with_options<'a, N: ToLexicalOptions>(n: N, bytes: &'a mut [u8], options: &N::WriteOptions)
-    -> &'a mut [u8]
-{
+pub fn write_with_options<'a, N: ToLexicalOptions>(
+    n: N,
+    bytes: &'a mut [u8],
+    options: &N::WriteOptions,
+) -> &'a mut [u8] {
     n.to_lexical_with_options(bytes, options)
 }
 
@@ -379,9 +378,7 @@ pub fn write_with_options<'a, N: ToLexicalOptions>(n: N, bytes: &'a mut [u8], op
 ///
 /// * `bytes`   - Byte slice containing a numeric string.
 #[inline]
-pub fn parse<N: FromLexical>(bytes: &[u8])
-    -> Result<N>
-{
+pub fn parse<N: FromLexical>(bytes: &[u8]) -> Result<N> {
     N::from_lexical(bytes)
 }
 
@@ -393,9 +390,10 @@ pub fn parse<N: FromLexical>(bytes: &[u8])
 /// * `bytes`   - Byte slice containing a numeric string.
 /// * `options` - Options to customize number parsing.
 #[inline]
-pub fn parse_with_options<N: FromLexicalOptions>(bytes: &[u8], options: &N::ParseOptions)
-    -> Result<N>
-{
+pub fn parse_with_options<N: FromLexicalOptions>(
+    bytes: &[u8],
+    options: &N::ParseOptions,
+) -> Result<N> {
     N::from_lexical_with_options(bytes, options)
 }
 
@@ -407,9 +405,7 @@ pub fn parse_with_options<N: FromLexicalOptions>(bytes: &[u8], options: &N::Pars
 ///
 /// * `bytes`   - Byte slice containing a numeric string.
 #[inline]
-pub fn parse_partial<N: FromLexical>(bytes: &[u8])
-    -> Result<(N, usize)>
-{
+pub fn parse_partial<N: FromLexical>(bytes: &[u8]) -> Result<(N, usize)> {
     N::from_lexical_partial(bytes)
 }
 
@@ -422,8 +418,9 @@ pub fn parse_partial<N: FromLexical>(bytes: &[u8])
 /// * `bytes`   - Byte slice containing a numeric string.
 /// * `options` - Options to customize number parsing.
 #[inline]
-pub fn parse_partial_with_options<N: FromLexicalOptions>(bytes: &[u8], options: &N::ParseOptions)
-    -> Result<(N, usize)>
-{
+pub fn parse_partial_with_options<N: FromLexicalOptions>(
+    bytes: &[u8],
+    options: &N::ParseOptions,
+) -> Result<(N, usize)> {
     N::from_lexical_partial_with_options(bytes, options)
 }

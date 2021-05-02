@@ -25,10 +25,10 @@ use super::small_powers::get_small_powers_64;
 // Parse the raw float state into a mantissa, calculating the number
 // of truncated digits and the offset.
 #[inline(always)]
-fn process_mantissa<'a, M, Data>(data: &Data, radix: u32)
-    -> (M, usize)
-    where M: Mantissa,
-          Data: FastDataInterface<'a>
+fn process_mantissa<'a, M, Data>(data: &Data, radix: u32) -> (M, usize)
+where
+    M: Mantissa,
+    Data: FastDataInterface<'a>,
 {
     atoi::standalone_mantissa_correct(data.integer_iter(), data.fraction_iter(), radix)
 }
@@ -41,9 +41,9 @@ fn process_mantissa<'a, M, Data>(data: &Data, radix: u32)
 /// Convert mantissa to exact value for a non-base2 power.
 ///
 /// Returns the resulting float and if the value can be represented exactly.
-fn fast_path<F>(mantissa: u64, radix: u32, exponent: i32)
-    -> Option<F>
-    where F: FloatType
+fn fast_path<F>(mantissa: u64, radix: u32, exponent: i32) -> Option<F>
+where
+    F: FloatType,
 {
     debug_assert_radix!(radix);
     debug_assert!(log2(radix) == 0, "Cannot use `fast_path` with a power of 2.");
@@ -99,9 +99,7 @@ fn fast_path<F>(mantissa: u64, radix: u32, exponent: i32)
 /// Detect if a float representation is exactly halfway after truncation.
 #[inline(always)]
 #[cfg(feature = "radix")]
-fn is_halfway<F: FloatType>(mantissa: u64)
-    -> bool
-{
+fn is_halfway<F: FloatType>(mantissa: u64) -> bool {
     // Get the leading and trailing zeros from the least-significant bit.
     let bit_length: i32 = 64 - mantissa.leading_zeros().as_i32();
     let trailing_zeros: i32 = mantissa.trailing_zeros().as_i32();
@@ -115,9 +113,7 @@ fn is_halfway<F: FloatType>(mantissa: u64)
 /// Detect if a float representation is odd after truncation.
 #[inline(always)]
 #[cfg(feature = "radix")]
-fn is_odd<F: FloatType>(mantissa: u64)
-    -> bool
-{
+fn is_odd<F: FloatType>(mantissa: u64) -> bool {
     // Get the leading and trailing zeros from the least-significant bit.
     let bit_length: i32 = 64 - mantissa.leading_zeros().as_i32();
     let shift = bit_length - (F::MANTISSA_SIZE + 1);
@@ -140,9 +136,9 @@ fn is_odd<F: FloatType>(mantissa: u64)
 /// mantissa unless the exponent is denormal, which will cause truncation
 /// regardless.
 #[cfg(feature = "radix")]
-fn pow2_fast_path<F>(mantissa: u64, radix: u32, radix_log2: i32, exponent: i32)
-    -> F
-    where F: FloatType
+fn pow2_fast_path<F>(mantissa: u64, radix: u32, radix_log2: i32, exponent: i32) -> F
+where
+    F: FloatType,
 {
     debug_assert!(radix_log2 != 0, "Not a power of 2.");
 
@@ -158,7 +154,7 @@ fn pow2_fast_path<F>(mantissa: u64, radix: u32, radix_log2: i32, exponent: i32)
     let underflow_exp = min_exp - (65 / radix_log2);
     if exponent > max_exp {
         F::INFINITY
-    } else if exponent < underflow_exp{
+    } else if exponent < underflow_exp {
         F::ZERO
     } else if exponent < min_exp {
         // We know the mantissa is somewhere <= 65 below min_exp.
@@ -184,11 +180,17 @@ fn pow2_fast_path<F>(mantissa: u64, radix: u32, radix_log2: i32, exponent: i32)
 /// Multiply by pre-calculated powers of the base, modify the extended-
 /// float, and return if new value and if the value can be represented
 /// accurately.
-fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32, exponent: i32, truncated: bool, kind: RoundingKind)
-    -> bool
-    where M: FloatErrors,
-          F: FloatRounding<M>,
-          ExtendedFloat<M>: ModeratePathCache<M>
+fn multiply_exponent_extended<F, M>(
+    fp: &mut ExtendedFloat<M>,
+    radix: u32,
+    exponent: i32,
+    truncated: bool,
+    kind: RoundingKind,
+) -> bool
+where
+    M: FloatErrors,
+    F: FloatRounding<M>,
+    ExtendedFloat<M>: ModeratePathCache<M>,
 {
     let powers = ExtendedFloat::<M>::get_powers(radix);
     let exponent = exponent.saturating_add(powers.bias);
@@ -218,7 +220,7 @@ fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32, expon
         // use extended-precision multiplication.
         match fp.mant.overflowing_mul(powers.get_small_int(small_index.as_usize())) {
             // Overflow, multiplication unsuccessful, go slow path.
-            (_, true)     => {
+            (_, true) => {
                 fp.normalize();
                 fp.imul(&powers.get_small(small_index.as_usize()));
                 errors += M::error_halfscale();
@@ -250,13 +252,22 @@ fn multiply_exponent_extended<F, M>(fp: &mut ExtendedFloat<M>, radix: u32, expon
 /// Return the float approximation and if the value can be accurately
 /// represented with mantissa bits of precision.
 #[inline(always)]
-pub(super) fn moderate_path<F, M>(mantissa: M, radix: u32, exponent: i32, truncated: bool, kind: RoundingKind)
-    -> (ExtendedFloat<M>, bool)
-    where M: FloatErrors,
-          F: FloatRounding<M> + StablePower,
-          ExtendedFloat<M>: ModeratePathCache<M>
+pub(super) fn moderate_path<F, M>(
+    mantissa: M,
+    radix: u32,
+    exponent: i32,
+    truncated: bool,
+    kind: RoundingKind,
+) -> (ExtendedFloat<M>, bool)
+where
+    M: FloatErrors,
+    F: FloatRounding<M> + StablePower,
+    ExtendedFloat<M>: ModeratePathCache<M>,
 {
-    let mut fp = ExtendedFloat { mant: mantissa, exp: 0 };
+    let mut fp = ExtendedFloat {
+        mant: mantissa,
+        exp: 0,
+    };
     let valid = multiply_exponent_extended::<F, M>(&mut fp, radix, exponent, truncated, kind);
     (fp, valid)
 }
@@ -274,11 +285,11 @@ fn pown_fallback<'a, F, Data>(
     radix: u32,
     lossy: bool,
     sign: Sign,
-    rounding: RoundingKind
-)
-    -> F
-    where F: FloatType,
-          Data: SlowDataInterface<'a>
+    rounding: RoundingKind,
+) -> F
+where
+    F: FloatType,
+    Data: SlowDataInterface<'a>,
 {
     let kind = internal_rounding(rounding, sign);
 
@@ -310,11 +321,11 @@ fn pown_to_native<'a, F, Data>(
     incorrect: bool,
     lossy: bool,
     sign: Sign,
-    rounding: RoundingKind
-)
-    -> ParseResult<(F, *const u8)>
-    where F: FloatType,
-          Data: FastDataInterface<'a>
+    rounding: RoundingKind,
+) -> ParseResult<(F, *const u8)>
+where
+    F: FloatType,
+    Data: FastDataInterface<'a>,
 {
     // Parse the mantissa and exponent.
     let ptr = data.extract(bytes, radix)?;
@@ -357,11 +368,11 @@ fn pow2_to_native<'a, F, Data>(
     radix: u32,
     radix_log2: i32,
     sign: Sign,
-    rounding: RoundingKind
-)
-    -> ParseResult<(F, *const u8)>
-    where F: FloatType,
-          Data: FastDataInterface<'a>
+    rounding: RoundingKind,
+) -> ParseResult<(F, *const u8)>
+where
+    F: FloatType,
+    Data: FastDataInterface<'a>,
 {
     // Parse the mantissa and exponent.
     let ptr = data.extract(bytes, radix)?;
@@ -401,14 +412,20 @@ fn pow2_to_native<'a, F, Data>(
 
         // Create exact representation and return.
         let exponent = slow.mantissa_exponent().saturating_mul(radix_log2);
-        let fp = ExtendedFloat { mant: mantissa, exp: exponent };
+        let fp = ExtendedFloat {
+            mant: mantissa,
+            exp: exponent,
+        };
         fp.into_rounded_float_impl::<F>(kind)
     } else if mantissa >> mantissa_size != 0 {
         // Would be truncated, use the extended float.
         let kind = internal_rounding(rounding, sign);
         let slow = data.to_slow(truncated);
         let exponent = slow.mantissa_exponent().saturating_mul(radix_log2);
-        let fp = ExtendedFloat { mant: mantissa, exp: exponent };
+        let fp = ExtendedFloat {
+            mant: mantissa,
+            exp: exponent,
+        };
         fp.into_rounded_float_impl::<F>(kind)
     } else {
         // Nothing above the hidden bit, so no rounding-error, can use the fast path.
@@ -431,21 +448,23 @@ pub(crate) fn to_native<'a, F, Data>(
     radix: u32,
     incorrect: bool,
     lossy: bool,
-    rounding: RoundingKind
-)
-    -> ParseResult<(F, *const u8)>
-    where F: FloatType,
-          Data: FastDataInterface<'a>
+    rounding: RoundingKind,
+) -> ParseResult<(F, *const u8)>
+where
+    F: FloatType,
+    Data: FastDataInterface<'a>,
 {
-    #[cfg(not(feature = "radix"))] {
+    #[cfg(not(feature = "radix"))]
+    {
         pown_to_native(data, bytes, radix, incorrect, lossy, sign, rounding)
     }
 
-    #[cfg(feature = "radix")] {
+    #[cfg(feature = "radix")]
+    {
         let pow2_exp = log2(radix);
         match pow2_exp {
             0 => pown_to_native(data, bytes, radix, incorrect, lossy, sign, rounding),
-            _ => pow2_to_native(data, bytes, radix, pow2_exp, sign, rounding)
+            _ => pow2_to_native(data, bytes, radix, pow2_exp, sign, rounding),
         }
     }
 }
@@ -455,8 +474,8 @@ pub(crate) fn to_native<'a, F, Data>(
 
 #[cfg(test)]
 mod tests {
-    use crate::error::*;
     use super::*;
+    use crate::error::*;
 
     #[test]
     fn process_mantissa_test() {
@@ -590,7 +609,7 @@ mod tests {
         for base in BASE_POW2.iter().cloned() {
             let (min_exp, max_exp) = f32::exponent_limit(base);
             let pow2_exp = log2(base);
-            for exp in min_exp-20..max_exp+30 {
+            for exp in min_exp - 20..max_exp + 30 {
                 // Always valid, ignore result
                 pow2_fast_path::<f32>(mantissa, base, pow2_exp, exp);
             }
@@ -605,7 +624,7 @@ mod tests {
         for base in BASE_POW2.iter().cloned() {
             let (min_exp, max_exp) = f64::exponent_limit(base);
             let pow2_exp = log2(base);
-            for exp in min_exp-20..max_exp+30 {
+            for exp in min_exp - 20..max_exp + 30 {
                 // Ignore result, always valid
                 pow2_fast_path::<f64>(mantissa, base, pow2_exp, exp);
             }
@@ -618,7 +637,7 @@ mod tests {
         let mantissa = (1 << f32::MANTISSA_SIZE) - 1;
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f32::exponent_limit(base);
-            for exp in min_exp..max_exp+1 {
+            for exp in min_exp..max_exp + 1 {
                 let valid = fast_path::<f32>(mantissa, base, exp).is_some();
                 assert!(valid, "should be valid {:?}.", (mantissa, base, exp));
             }
@@ -637,19 +656,20 @@ mod tests {
         assert!(f.is_none());
 
         // invalid mantissa
-        #[cfg(feature = "radix")] {
+        #[cfg(feature = "radix")]
+        {
             let (_, max_exp) = f64::exponent_limit(3);
-            let f = fast_path::<f32>(1<<f32::MANTISSA_SIZE, 3, max_exp+1);
+            let f = fast_path::<f32>(1 << f32::MANTISSA_SIZE, 3, max_exp + 1);
             assert!(f.is_none(), "invalid mantissa");
         }
 
         // invalid exponents
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f32::exponent_limit(base);
-            let f = fast_path::<f32>(mantissa, base, min_exp-1);
+            let f = fast_path::<f32>(mantissa, base, min_exp - 1);
             assert!(f.is_none(), "exponent under min_exp");
 
-            let f = fast_path::<f32>(mantissa, base, max_exp+1);
+            let f = fast_path::<f32>(mantissa, base, max_exp + 1);
             assert!(f.is_none(), "exponent above max_exp");
         }
     }
@@ -660,26 +680,27 @@ mod tests {
         let mantissa = (1 << f64::MANTISSA_SIZE) - 1;
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f64::exponent_limit(base);
-            for exp in min_exp..max_exp+1 {
+            for exp in min_exp..max_exp + 1 {
                 let f = fast_path::<f64>(mantissa, base, exp);
                 assert!(f.is_some(), "should be valid {:?}.", (mantissa, base, exp));
             }
         }
 
         // invalid mantissa
-        #[cfg(feature = "radix")] {
+        #[cfg(feature = "radix")]
+        {
             let (_, max_exp) = f64::exponent_limit(3);
-            let f = fast_path::<f64>(1<<f64::MANTISSA_SIZE, 3, max_exp+1);
+            let f = fast_path::<f64>(1 << f64::MANTISSA_SIZE, 3, max_exp + 1);
             assert!(f.is_none(), "invalid mantissa");
         }
 
         // invalid exponents
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f64::exponent_limit(base);
-            let f = fast_path::<f64>(mantissa, base, min_exp-1);
+            let f = fast_path::<f64>(mantissa, base, min_exp - 1);
             assert!(f.is_none(), "exponent under min_exp");
 
-            let f = fast_path::<f64>(mantissa, base, max_exp+1);
+            let f = fast_path::<f64>(mantissa, base, max_exp + 1);
             assert!(f.is_none(), "exponent above max_exp");
         }
     }
@@ -689,12 +710,14 @@ mod tests {
     fn float_moderate_path_test() {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
-        let (f, valid) = moderate_path::<f32, _>(mantissa, 3, 1, false, RoundingKind::NearestTieEven);
+        let (f, valid) =
+            moderate_path::<f32, _>(mantissa, 3, 1, false, RoundingKind::NearestTieEven);
         assert_eq!(f.into_f32(), 2.7670116e+19);
         assert!(valid, "exponent should be valid");
 
         let mantissa: u64 = 4746067219335938;
-        let (f, valid) = moderate_path::<f32, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
+        let (f, valid) =
+            moderate_path::<f32, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
         assert_eq!(f.into_f32(), 123456.1);
         assert!(valid, "exponent should be valid");
     }
@@ -704,31 +727,36 @@ mod tests {
     fn double_moderate_path_test() {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
-        let (f, valid) = moderate_path::<f64, _>(mantissa, 3, 1, false, RoundingKind::NearestTieEven);
+        let (f, valid) =
+            moderate_path::<f64, _>(mantissa, 3, 1, false, RoundingKind::NearestTieEven);
         assert_eq!(f.into_f64(), 2.7670116110564327e+19);
         assert!(valid, "exponent should be valid");
 
         // valid (ends of the earth, salting the earth)
-        let (f, valid) = moderate_path::<f64, _>(mantissa, 3, -695, true, RoundingKind::NearestTieEven);
+        let (f, valid) =
+            moderate_path::<f64, _>(mantissa, 3, -695, true, RoundingKind::NearestTieEven);
         assert_eq!(f.into_f64(), 2.32069302345e-313);
         assert!(valid, "exponent should be valid");
 
         // invalid ("268A6.177777778", base 15)
         let mantissa: u64 = 4746067219335938;
-        let (_, valid) = moderate_path::<f64, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
+        let (_, valid) =
+            moderate_path::<f64, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
         assert!(!valid, "exponent should be invalid");
 
         // valid ("268A6.177777778", base 15)
         // 123456.10000000001300614743687445, exactly, should not round up.
         let mantissa: u128 = 4746067219335938;
-        let (f, valid) = moderate_path::<f64, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
+        let (f, valid) =
+            moderate_path::<f64, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
         assert_eq!(f.into_f64(), 123456.1);
         assert!(valid, "exponent should be valid");
 
         // Rounding error
         // Adapted from test-parse-random failures.
         let mantissa: u64 = 1009;
-        let (_, valid) = moderate_path::<f64, _>(mantissa, 10, -31, false, RoundingKind::NearestTieEven);
+        let (_, valid) =
+            moderate_path::<f64, _>(mantissa, 10, -31, false, RoundingKind::NearestTieEven);
         assert!(!valid, "exponent should be valid");
     }
 
@@ -841,9 +869,18 @@ mod tests {
         assert_eq!(Ok((9223372036854775808.0, 19)), atod10(b"9223372036854775808"));
         assert_eq!(Ok((9223372036854775808.0, 19)), atod10(b"9223372036854776832"));
         assert_eq!(Ok((9223372036854777856.0, 19)), atod10(b"9223372036854777856"));
-        assert_eq!(Ok((11417981541647679048466287755595961091061972992.0, 47)), atod10(b"11417981541647679048466287755595961091061972992"));
-        assert_eq!(Ok((11417981541647679048466287755595961091061972992.0, 47)), atod10(b"11417981541647680316116887983825362587765178368"));
-        assert_eq!(Ok((11417981541647681583767488212054764084468383744.0, 47)), atod10(b"11417981541647681583767488212054764084468383744"));
+        assert_eq!(
+            Ok((11417981541647679048466287755595961091061972992.0, 47)),
+            atod10(b"11417981541647679048466287755595961091061972992")
+        );
+        assert_eq!(
+            Ok((11417981541647679048466287755595961091061972992.0, 47)),
+            atod10(b"11417981541647680316116887983825362587765178368")
+        );
+        assert_eq!(
+            Ok((11417981541647681583767488212054764084468383744.0, 47)),
+            atod10(b"11417981541647681583767488212054764084468383744")
+        );
 
         // Round-up, halfway
         assert_eq!(Ok((9007199254740994.0, 16)), atod10(b"9007199254740994"));
@@ -855,13 +892,25 @@ mod tests {
         assert_eq!(Ok((9223372036854777856.0, 19)), atod10(b"9223372036854777856"));
         assert_eq!(Ok((9223372036854779904.0, 19)), atod10(b"9223372036854778880"));
         assert_eq!(Ok((9223372036854779904.0, 19)), atod10(b"9223372036854779904"));
-        assert_eq!(Ok((11417981541647681583767488212054764084468383744.0, 47)), atod10(b"11417981541647681583767488212054764084468383744"));
-        assert_eq!(Ok((11417981541647684119068688668513567077874794496.0, 47)), atod10(b"11417981541647682851418088440284165581171589120"));
-        assert_eq!(Ok((11417981541647684119068688668513567077874794496.0, 47)), atod10(b"11417981541647684119068688668513567077874794496"));
+        assert_eq!(
+            Ok((11417981541647681583767488212054764084468383744.0, 47)),
+            atod10(b"11417981541647681583767488212054764084468383744")
+        );
+        assert_eq!(
+            Ok((11417981541647684119068688668513567077874794496.0, 47)),
+            atod10(b"11417981541647682851418088440284165581171589120")
+        );
+        assert_eq!(
+            Ok((11417981541647684119068688668513567077874794496.0, 47)),
+            atod10(b"11417981541647684119068688668513567077874794496")
+        );
 
         // Round-up, above halfway
         assert_eq!(Ok((9223372036854777856.0, 19)), atod10(b"9223372036854776833"));
-        assert_eq!(Ok((11417981541647681583767488212054764084468383744.0, 47)), atod10(b"11417981541647680316116887983825362587765178369"));
+        assert_eq!(
+            Ok((11417981541647681583767488212054764084468383744.0, 47)),
+            atod10(b"11417981541647680316116887983825362587765178369")
+        );
 
         // Rounding error
         // Adapted from failures in strtod.
@@ -902,11 +951,17 @@ mod tests {
 
         // Check other cases similar to @dangrabcad's issue #20.
         assert_eq!(Ok((9223372036854777856.0, 21)), atod10(b"9223372036854776833.0"));
-        assert_eq!(Ok((11417981541647681583767488212054764084468383744.0, 49)), atod10(b"11417981541647680316116887983825362587765178369.0"));
+        assert_eq!(
+            Ok((11417981541647681583767488212054764084468383744.0, 49)),
+            atod10(b"11417981541647680316116887983825362587765178369.0")
+        );
         assert_eq!(Ok((9007199254740996.0, 18)), atod10(b"9007199254740995.0"));
         assert_eq!(Ok((18014398509481992.0, 19)), atod10(b"18014398509481990.0"));
         assert_eq!(Ok((9223372036854779904.0, 21)), atod10(b"9223372036854778880.0"));
-        assert_eq!(Ok((11417981541647684119068688668513567077874794496.0, 49)), atod10(b"11417981541647682851418088440284165581171589120.0"));
+        assert_eq!(
+            Ok((11417981541647684119068688668513567077874794496.0, 49)),
+            atod10(b"11417981541647682851418088440284165581171589120.0")
+        );
 
         // Check other cases ostensibly identified via proptest.
         assert_eq!(Ok((71610528364411830000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0, 310)), atod10(b"71610528364411830000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"));
@@ -914,8 +969,12 @@ mod tests {
         assert_eq!(Ok((38652960461239320000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0, 310)), atod10(b"38652960461239320000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"));
 
         // Round-trip for base2.
-        #[cfg(feature = "radix")] {
-            assert_eq!(Ok((f64::from_bits(0x3bcd261840000000), 33)), atod2(b"1.1101001001100001100001^-1000011"));
+        #[cfg(feature = "radix")]
+        {
+            assert_eq!(
+                Ok((f64::from_bits(0x3bcd261840000000), 33)),
+                atod2(b"1.1101001001100001100001^-1000011")
+            );
         }
     }
 

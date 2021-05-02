@@ -7,7 +7,7 @@ use crate::lib::option::Option as StdOption;
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 enum OptionTag {
     Some = 0,
-    None = 1
+    None = 1,
 }
 
 /// C-compatible Option type for the builder API.
@@ -26,12 +26,16 @@ impl<T: Copy + Default> From<StdOption<T>> for Option<T> {
     #[inline(always)]
     fn from(opt: StdOption<T>) -> Option<T> {
         match opt {
-            Some(value)  => {
-                Option { tag: OptionTag::Some, value }
+            Some(value) => Option {
+                tag: OptionTag::Some,
+                value,
             },
             None => {
                 let value = T::default();
-                Option { tag: OptionTag::None, value }
+                Option {
+                    tag: OptionTag::None,
+                    value,
+                }
             },
         }
     }
@@ -41,7 +45,7 @@ impl<T: Copy + Default> Into<StdOption<T>> for Option<T> {
     #[inline(always)]
     fn into(self) -> StdOption<T> {
         match self.tag {
-            OptionTag::Some  => Some(self.value),
+            OptionTag::Some => Some(self.value),
             OptionTag::None => None,
         }
     }
@@ -50,6 +54,9 @@ impl<T: Copy + Default> Into<StdOption<T>> for Option<T> {
 impl<T: Copy + Default> Default for Option<T> {
     #[inline(always)]
     fn default() -> Self {
-        Self { tag: OptionTag::None, value: T::default() }
+        Self {
+            tag: OptionTag::None,
+            value: T::default(),
+        }
     }
 }

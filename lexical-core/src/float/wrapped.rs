@@ -7,7 +7,7 @@
 //! are implemented, and others (like bitshift assigns) are unimplemented.
 
 use crate::lib::{cmp, fmt, iter, ops};
-use crate::options::*;      // TODO(ahuszagh) Keep for options later.
+use crate::options::*; // TODO(ahuszagh) Keep for options later.
 use crate::traits::*;
 use crate::util::*;
 
@@ -18,8 +18,7 @@ use crate::util::*;
 ///
 /// Required for the lossy atof algorithm.
 #[derive(Clone, Copy, Debug, PartialOrd)]
-pub(crate) struct WrappedFloat<T: Float>
-{
+pub(crate) struct WrappedFloat<T: Float> {
     /// Internal data.
     data: T,
 }
@@ -28,7 +27,9 @@ impl<T: Float> WrappedFloat<T> {
     /// Wrap existing float.
     #[inline]
     pub fn from_float(t: T) -> Self {
-        WrappedFloat { data: t }
+        WrappedFloat {
+            data: t,
+        }
     }
 
     /// Consume wrapper and return float.
@@ -205,7 +206,9 @@ impl<T: Float> AsCast for WrappedFloat<T> {
     #[inline]
     fn as_cast<N: AsPrimitive>(n: N) -> Self {
         // Wrap to wide float and back down. Should be a no-op. Just indirection.
-        WrappedFloat { data: as_cast(n.as_f64()) }
+        WrappedFloat {
+            data: as_cast(n.as_f64()),
+        }
     }
 }
 
@@ -233,14 +236,14 @@ impl<T: Float> Primitive for WrappedFloat<T> {
 
 impl<T: Float> iter::Product for WrappedFloat<T> {
     #[inline]
-    fn product<Iter: Iterator<Item=WrappedFloat<T>>>(iter: Iter) -> Self {
+    fn product<Iter: Iterator<Item = WrappedFloat<T>>>(iter: Iter) -> Self {
         iter.fold(Self::from_float(T::ONE), ops::Mul::mul)
     }
 }
 
 impl<T: Float> iter::Sum for WrappedFloat<T> {
     #[inline]
-    fn sum<Iter: Iterator<Item=WrappedFloat<T>>>(iter: Iter) -> Self {
+    fn sum<Iter: Iterator<Item = WrappedFloat<T>>>(iter: Iter) -> Self {
         iter.fold(Self::from_float(T::ZERO), ops::Add::add)
     }
 }
@@ -456,11 +459,21 @@ bitshift_assign_impl! {
 }
 
 impl<T: Float> Integer for WrappedFloat<T> {
-    const ZERO: Self = WrappedFloat { data: T::ZERO };
-    const ONE: Self = WrappedFloat { data: T::ONE };
-    const TWO: Self = WrappedFloat { data: T::TWO };
-    const MAX: Self = WrappedFloat { data: T::MAX };
-    const MIN: Self = WrappedFloat { data: T::MIN };
+    const ZERO: Self = WrappedFloat {
+        data: T::ZERO,
+    };
+    const ONE: Self = WrappedFloat {
+        data: T::ONE,
+    };
+    const TWO: Self = WrappedFloat {
+        data: T::TWO,
+    };
+    const MAX: Self = WrappedFloat {
+        data: T::MAX,
+    };
+    const MIN: Self = WrappedFloat {
+        data: T::MIN,
+    };
     const BITS: usize = T::BITS;
 
     #[inline]
@@ -641,7 +654,9 @@ impl<T: Float> ops::Neg for WrappedFloat<T> {
 
     #[inline]
     fn neg(self) -> Self {
-        WrappedFloat { data: -self.data }
+        WrappedFloat {
+            data: -self.data,
+        }
     }
 }
 
@@ -651,7 +666,9 @@ impl<T: Float> SignedInteger for WrappedFloat<T> {
     }
 
     fn wrapping_abs(self) -> Self {
-        WrappedFloat { data: self.data.abs() }
+        WrappedFloat {
+            data: self.data.abs(),
+        }
     }
 
     fn overflowing_abs(self) -> (Self, bool) {
@@ -727,7 +744,7 @@ mod tests {
         let _: Option<f64> = try_cast(x);
     }
 
-    #[allow(dead_code)]     // Compile-only
+    #[allow(dead_code)] // Compile-only
     fn try_cast_test() {
         check_try_cast_compile(WrappedFloat::from_float(65f32));
         check_try_cast_compile(WrappedFloat::from_float(65f64));

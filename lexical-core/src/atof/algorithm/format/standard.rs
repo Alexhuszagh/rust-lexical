@@ -64,7 +64,7 @@ impl<'a> From<DataTuple<'a>> for StandardFastDataInterface<'a> {
             integer: data.0,
             fraction: data.1,
             exponent: data.2,
-            raw_exponent: data.3
+            raw_exponent: data.3,
         }
     }
 }
@@ -74,8 +74,8 @@ impl<'a> From<DataTuple<'a>> for StandardFastDataInterface<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::*;
     use super::*;
+    use crate::error::*;
 
     macro_rules! standard {
         ($integer:expr, $fraction:expr, $exponent:expr, $raw_exponent:expr) => {
@@ -84,7 +84,7 @@ mod tests {
                 integer: $integer,
                 fraction: $fraction,
                 exponent: $exponent,
-                raw_exponent: $raw_exponent
+                raw_exponent: $raw_exponent,
             }
         };
     }
@@ -143,7 +143,7 @@ mod tests {
             integer: b"1",
             fraction: Some(b!("2345")),
             exponent: None,
-            raw_exponent: 0
+            raw_exponent: 0,
         };
         assert!(data.integer_iter().eq(b"1".iter()));
         assert!(data.fraction_iter().eq(b"2345".iter()));
@@ -160,7 +160,7 @@ mod tests {
             fraction: b"2345",
             digits_start: 0,
             truncated_digits: 0,
-            raw_exponent: 0
+            raw_exponent: 0,
         };
         assert_eq!(data.integer_digits(), 1);
         assert!(data.integer_iter().eq(b"1".iter()));
@@ -182,7 +182,7 @@ mod tests {
             fraction: b"12345",
             digits_start: 0,
             truncated_digits: 0,
-            raw_exponent: 0
+            raw_exponent: 0,
         };
         assert_eq!(data.integer_digits(), 0);
         assert!(data.integer_iter().eq(b"".iter()));

@@ -14,7 +14,10 @@ pub struct Tuple<T: Copy, U: Copy> {
 // Simplify conversion to and from std's Tuple.
 impl<T: Copy, U: Copy> From<(T, U)> for Tuple<T, U> {
     fn from(tup: (T, U)) -> Tuple<T, U> {
-        Tuple { x: tup.0, y: tup.1 }
+        Tuple {
+            x: tup.0,
+            y: tup.1,
+        }
     }
 }
 
@@ -28,8 +31,8 @@ impl<T: Copy, U: Copy> Into<(T, U)> for Tuple<T, U> {
 #[repr(u32)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 enum ResultTag {
-    Ok = 0,
-    Err = 1
+    Ok  = 0,
+    Err = 1,
 }
 
 /// Union for the FFI-compatible result.
@@ -55,13 +58,23 @@ pub struct Result<T: Copy> {
 impl<T: Copy> From<StdResult<T, Error>> for Result<T> {
     fn from(res: StdResult<T, Error>) -> Result<T> {
         match res {
-            Ok(v)  => {
-                let data = ResultUnion { value: v };
-                Result { tag: ResultTag::Ok, data }
+            Ok(v) => {
+                let data = ResultUnion {
+                    value: v,
+                };
+                Result {
+                    tag: ResultTag::Ok,
+                    data,
+                }
             },
             Err(e) => {
-                let data = ResultUnion { error: e };
-                Result { tag: ResultTag::Err, data }
+                let data = ResultUnion {
+                    error: e,
+                };
+                Result {
+                    tag: ResultTag::Err,
+                    data,
+                }
             },
         }
     }
@@ -71,7 +84,7 @@ impl<T: Copy> Into<StdResult<T, Error>> for Result<T> {
     fn into(self) -> StdResult<T, Error> {
         unsafe {
             match self.tag {
-                ResultTag::Ok  => Ok(self.data.value),
+                ResultTag::Ok => Ok(self.data.value),
                 ResultTag::Err => Err(self.data.error),
             }
         }

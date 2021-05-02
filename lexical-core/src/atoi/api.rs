@@ -15,7 +15,11 @@ pub(crate) trait Atoi: Integer {
 
     // Parse integer from string with format.
     #[cfg(feature = "format")]
-    fn atoi_format(bytes: &[u8], radix: u32, format: NumberFormat) -> ParseResult<(Self, *const u8)>;
+    fn atoi_format(
+        bytes: &[u8],
+        radix: u32,
+        format: NumberFormat,
+    ) -> ParseResult<(Self, *const u8)>;
 }
 
 // Implement atoi for type.
@@ -44,34 +48,34 @@ atoi_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
 
 impl Atoi for u128 {
     #[inline(always)]
-    fn atoi(bytes: &[u8], radix: u32)
-        -> ParseResult<(u128, *const u8)>
-    {
+    fn atoi(bytes: &[u8], radix: u32) -> ParseResult<(u128, *const u8)> {
         standalone_128_no_separator::<u128, u64>(bytes, radix)
     }
 
     #[inline(always)]
     #[cfg(feature = "format")]
-    fn atoi_format(bytes: &[u8], radix: u32, format: NumberFormat)
-        -> ParseResult<(u128, *const u8)>
-    {
+    fn atoi_format(
+        bytes: &[u8],
+        radix: u32,
+        format: NumberFormat,
+    ) -> ParseResult<(u128, *const u8)> {
         standalone_128_separator::<u128, u64>(bytes, radix, format)
     }
 }
 
 impl Atoi for i128 {
     #[inline(always)]
-    fn atoi(bytes: &[u8], radix: u32)
-        -> ParseResult<(i128, *const u8)>
-    {
+    fn atoi(bytes: &[u8], radix: u32) -> ParseResult<(i128, *const u8)> {
         standalone_128_no_separator::<i128, i64>(bytes, radix)
     }
 
     #[inline(always)]
     #[cfg(feature = "format")]
-    fn atoi_format(bytes: &[u8], radix: u32, format: NumberFormat)
-        -> ParseResult<(i128, *const u8)>
-    {
+    fn atoi_format(
+        bytes: &[u8],
+        radix: u32,
+        format: NumberFormat,
+    ) -> ParseResult<(i128, *const u8)> {
         standalone_128_separator::<i128, i64>(bytes, radix, format)
     }
 }
@@ -92,18 +96,21 @@ macro_rules! atoi {
 
 // Optimized atoi with default options.
 #[inline]
-pub(crate) fn atoi<'a, T>(bytes: &'a [u8])
-    -> Result<(T, usize)>
-    where T: Atoi
+pub(crate) fn atoi<'a, T>(bytes: &'a [u8]) -> Result<(T, usize)>
+where
+    T: Atoi,
 {
     atoi!(T, atoi, bytes, 10)
 }
 
 // Atoi with custom options.
 #[inline]
-pub(crate) fn atoi_with_options<'a, T>(bytes: &'a [u8], options: &ParseIntegerOptions)
-    -> Result<(T, usize)>
-    where T: Atoi
+pub(crate) fn atoi_with_options<'a, T>(
+    bytes: &'a [u8],
+    options: &ParseIntegerOptions,
+) -> Result<(T, usize)>
+where
+    T: Atoi,
 {
     #[cfg(not(feature = "format"))]
     return atoi!(T, atoi, bytes, options.radix());
@@ -157,7 +164,7 @@ mod tests {
     use crate::util::*;
 
     #[cfg(feature = "property_tests")]
-    use proptest::{proptest, prop_assert_eq, prop_assert};
+    use proptest::{prop_assert, prop_assert_eq, proptest};
 
     #[cfg(feature = "radix")]
     const DATA: [(u8, &'static str); 35] = [
@@ -301,8 +308,14 @@ mod tests {
     fn i64_decimal_test() {
         assert_eq!(Ok(0), i64::from_lexical(b"0"));
         assert_eq!(Ok(9223372036854775807), i64::from_lexical(b"9223372036854775807"));
-        assert_eq!(Err((ErrorCode::Overflow, 18).into()), i64::from_lexical(b"9223372036854775808"));
-        assert_eq!(Err((ErrorCode::Overflow, 19).into()), i64::from_lexical(b"18446744073709551615"));
+        assert_eq!(
+            Err((ErrorCode::Overflow, 18).into()),
+            i64::from_lexical(b"9223372036854775808")
+        );
+        assert_eq!(
+            Err((ErrorCode::Overflow, 19).into()),
+            i64::from_lexical(b"18446744073709551615")
+        );
         assert_eq!(Ok(-1), i64::from_lexical(b"-1"));
         assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i64::from_lexical(b"1a"));
 
@@ -313,9 +326,18 @@ mod tests {
     #[test]
     fn u128_decimal_test() {
         assert_eq!(Ok(0), u128::from_lexical(b"0"));
-        assert_eq!(Ok(170141183460469231731687303715884105727), u128::from_lexical(b"170141183460469231731687303715884105727"));
-        assert_eq!(Ok(170141183460469231731687303715884105728), u128::from_lexical(b"170141183460469231731687303715884105728"));
-        assert_eq!(Ok(340282366920938463463374607431768211455), u128::from_lexical(b"340282366920938463463374607431768211455"));
+        assert_eq!(
+            Ok(170141183460469231731687303715884105727),
+            u128::from_lexical(b"170141183460469231731687303715884105727")
+        );
+        assert_eq!(
+            Ok(170141183460469231731687303715884105728),
+            u128::from_lexical(b"170141183460469231731687303715884105728")
+        );
+        assert_eq!(
+            Ok(340282366920938463463374607431768211455),
+            u128::from_lexical(b"340282366920938463463374607431768211455")
+        );
         assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), u128::from_lexical(b"-1"));
         assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), u128::from_lexical(b"1a"));
     }
@@ -323,9 +345,18 @@ mod tests {
     #[test]
     fn i128_decimal_test() {
         assert_eq!(Ok(0), i128::from_lexical(b"0"));
-        assert_eq!(Ok(170141183460469231731687303715884105727), i128::from_lexical(b"170141183460469231731687303715884105727"));
-        assert_eq!(Err((ErrorCode::Overflow, 39).into()), i128::from_lexical(b"170141183460469231731687303715884105728"));
-        assert_eq!(Err((ErrorCode::Overflow, 39).into()), i128::from_lexical(b"340282366920938463463374607431768211455"));
+        assert_eq!(
+            Ok(170141183460469231731687303715884105727),
+            i128::from_lexical(b"170141183460469231731687303715884105727")
+        );
+        assert_eq!(
+            Err((ErrorCode::Overflow, 39).into()),
+            i128::from_lexical(b"170141183460469231731687303715884105728")
+        );
+        assert_eq!(
+            Err((ErrorCode::Overflow, 39).into()),
+            i128::from_lexical(b"340282366920938463463374607431768211455")
+        );
         assert_eq!(Ok(-1), i128::from_lexical(b"-1"));
         assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i128::from_lexical(b"1a"));
     }
@@ -345,7 +376,8 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn i32_integer_internal_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE.rebuild()
+        let format = NumberFormat::PERMISSIVE
+            .rebuild()
             .integer_internal_digit_separator(true)
             .digit_separator(b'_')
             .build()
@@ -359,7 +391,8 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn i32_integer_leading_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE.rebuild()
+        let format = NumberFormat::PERMISSIVE
+            .rebuild()
             .integer_leading_digit_separator(true)
             .digit_separator(b'_')
             .build()
@@ -373,7 +406,8 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn i32_integer_trailing_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE.rebuild()
+        let format = NumberFormat::PERMISSIVE
+            .rebuild()
             .integer_trailing_digit_separator(true)
             .digit_separator(b'_')
             .build()
@@ -387,7 +421,8 @@ mod tests {
     #[test]
     #[cfg(feature = "format")]
     fn i32_integer_consecutive_digit_separator_test() {
-        let format = NumberFormat::PERMISSIVE.rebuild()
+        let format = NumberFormat::PERMISSIVE
+            .rebuild()
             .integer_internal_digit_separator(true)
             .integer_consecutive_digit_separator(true)
             .digit_separator(b'_')

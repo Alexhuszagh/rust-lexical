@@ -19,9 +19,16 @@ use super::math::*;
 /// Iteratively add small digits to the mantissa and increment the counter.
 macro_rules! add_digits {
     (
-        $iter:expr, $result:ident, $value:ident, $i:ident,
-        $counter:ident, $step:ident, $small_powers:ident,
-        $base:ident, $radix:ident, $max_digits:ident
+        $iter:expr,
+        $result:ident,
+        $value:ident,
+        $i:ident,
+        $counter:ident,
+        $step:ident,
+        $small_powers:ident,
+        $base:ident,
+        $radix:ident,
+        $max_digits:ident
     ) => {
         while let Some(&digit) = $iter.next() {
             // We've parsed the max digits using small values, add to bignum
@@ -48,10 +55,10 @@ macro_rules! add_digits {
 /// Parse the full mantissa into a big integer.
 ///
 /// Max digits is the maximum number of digits plus one.
-pub(super) fn parse_mantissa<'a, F, Data>(data: Data, radix: u32, max_digits: usize)
-    -> Bigint<F>
-    where F: FloatType,
-          Data: SlowDataInterface<'a>
+pub(super) fn parse_mantissa<'a, F, Data>(data: Data, radix: u32, max_digits: usize) -> Bigint<F>
+where
+    F: FloatType,
+    Data: SlowDataInterface<'a>,
 {
     let small_powers = Bigint::<F>::small_powers(radix);
     let count = data.mantissa_digits();
@@ -71,10 +78,32 @@ pub(super) fn parse_mantissa<'a, F, Data>(data: Data, radix: u32, max_digits: us
     // Iteratively process all the data in the mantissa.
     let mut integer_iter = data.integer_iter();
     let mut fraction_iter = data.significant_fraction_iter();
-    add_digits!(integer_iter, result, value, i, counter, step, small_powers, base, radix, max_digits);
+    add_digits!(
+        integer_iter,
+        result,
+        value,
+        i,
+        counter,
+        step,
+        small_powers,
+        base,
+        radix,
+        max_digits
+    );
     if integer_iter.consumed() {
         // Continue if we haven't already processed the max digits.
-        add_digits!(fraction_iter, result, value, i, counter, step, small_powers, base, radix, max_digits);
+        add_digits!(
+            fraction_iter,
+            result,
+            value,
+            i,
+            counter,
+            step,
+            small_powers,
+            base,
+            radix,
+            max_digits
+        );
     }
 
     // We will always have a remainder, as long as we entered the loop
@@ -108,7 +137,7 @@ macro_rules! nearest_cb {
         // Create our wrapper for round_nearest_tie_*.
         // If there are truncated bits, and we are exactly halfway,
         // then we need to set above to true and halfway to false.
-        move | f: &mut ExtendedFloat<$m>, shift: i32 | {
+        move |f: &mut ExtendedFloat<$m>, shift: i32| {
             let (mut is_above, mut is_halfway) = round_nearest(f, shift);
             if is_halfway && $is_truncated {
                 is_above = true;
@@ -125,7 +154,7 @@ macro_rules! toward_cb {
     ($m:tt, $is_truncated:ident, $cb:ident) => {
         // Create our wrapper for round_towards_tie_*.
         // If there are truncated bits, and truncated is not set, set it.
-        move | f: &mut ExtendedFloat<$m>, shift: i32 | {
+        move |f: &mut ExtendedFloat<$m>, shift: i32| {
             let truncated = round_toward(f, shift);
             $cb::<$m>(f, $is_truncated | truncated);
         }
@@ -138,7 +167,8 @@ macro_rules! toward_cb {
 #[inline]
 #[allow(unused_variables)]
 pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, kind: RoundingKind)
-    where F: FloatType
+where
+    F: FloatType,
 {
     type M = u64;
 
@@ -146,19 +176,22 @@ pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, k
     // a variable without `impl Trait`, which requires 1.26.0.
     #[inline(always)]
     fn round<F, Cb>(fp: &mut ExtendedFloat80, cb: Cb)
-        where F: FloatRounding<M>,
-              Cb: FnOnce(&mut ExtendedFloat<M>, i32)
+    where
+        F: FloatRounding<M>,
+        Cb: FnOnce(&mut ExtendedFloat<M>, i32),
     {
         fp.round_to_native::<F, _>(cb);
     }
 
     #[cfg(feature = "rounding")]
     match kind {
-        RoundingKind::NearestTieEven     => round::<F, _>(fp, nearest_cb!(M, is_truncated, tie_even)),
-        RoundingKind::NearestTieAwayZero => round::<F, _>(fp, nearest_cb!(M, is_truncated, tie_away_zero)),
-        RoundingKind::Upward             => round::<F, _>(fp, toward_cb!(M, is_truncated, upward)),
-        RoundingKind::Downward           => round::<F, _>(fp, toward_cb!(M, is_truncated, downard)),
-        _                                => unreachable!(),
+        RoundingKind::NearestTieEven => round::<F, _>(fp, nearest_cb!(M, is_truncated, tie_even)),
+        RoundingKind::NearestTieAwayZero => {
+            round::<F, _>(fp, nearest_cb!(M, is_truncated, tie_away_zero))
+        },
+        RoundingKind::Upward => round::<F, _>(fp, toward_cb!(M, is_truncated, upward)),
+        RoundingKind::Downward => round::<F, _>(fp, toward_cb!(M, is_truncated, downard)),
+        _ => unreachable!(),
     };
 
     #[cfg(not(feature = "rounding"))]
@@ -173,9 +206,7 @@ const LARGE_POWER_MAX: usize = 1 << 15;
 
 /// Check if we need to use bigcomp.
 #[inline]
-pub(super) fn use_bigcomp(radix: u32, count: usize)
-    -> bool
-{
+pub(super) fn use_bigcomp(radix: u32, count: usize) -> bool {
     // When we have extremely large values, it makes a lot more sense to
     // use am algorithm that scales linearly with input size. We
     // only precompute exponent up to 2^15 anyway for a given radix, so
@@ -186,10 +217,16 @@ pub(super) fn use_bigcomp(radix: u32, count: usize)
 }
 
 /// Calculate the mantissa for a big integer with a positive exponent.
-pub(super) fn large_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize, exponent: i32, kind: RoundingKind)
-    -> F
-    where F: FloatType,
-          Data: SlowDataInterface<'a>
+pub(super) fn large_atof<'a, F, Data>(
+    data: Data,
+    radix: u32,
+    max_digits: usize,
+    exponent: i32,
+    kind: RoundingKind,
+) -> F
+where
+    F: FloatType,
+    Data: SlowDataInterface<'a>,
 {
     // Simple, we just need to multiply by the power of the radix.
     // Now, we can calculate the mantissa and the exponent from this.
@@ -201,7 +238,10 @@ pub(super) fn large_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize,
     // Get the exact representation of the float from the big integer.
     let (mant, is_truncated) = bigmant.hi64();
     let exp = bigmant.bit_length().as_i32() - <u64 as Integer>::BITS.as_i32();
-    let mut fp = ExtendedFloat { mant: mant, exp: exp };
+    let mut fp = ExtendedFloat {
+        mant,
+        exp,
+    };
     round_to_native::<F>(&mut fp, is_truncated, kind);
     into_float(fp)
 }
@@ -212,10 +252,17 @@ pub(super) fn large_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize,
 /// Calculate the mantissa for a big integer with a negative exponent.
 ///
 /// This invokes the comparison with `b+h`.
-pub(super) fn small_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize, exponent: i32, f: F, kind: RoundingKind)
-    -> F
-    where F: FloatType,
-          Data: SlowDataInterface<'a>
+pub(super) fn small_atof<'a, F, Data>(
+    data: Data,
+    radix: u32,
+    max_digits: usize,
+    exponent: i32,
+    f: F,
+    kind: RoundingKind,
+) -> F
+where
+    F: FloatType,
+    Data: SlowDataInterface<'a>,
 {
     // Get the significant digits and radix exponent for the real digits.
     let mut real_digits = parse_mantissa::<F, Data>(data, radix, max_digits);
@@ -243,7 +290,7 @@ pub(super) fn small_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize,
         // Example: 10^-10, 2^-15   -> (-5, 10, 0)
         // Example: 10^-10, 2^-5    -> ( 5, 10, 0)
         // Example: 10^-10, 2^5 -> (15, 10, 0)
-        true  => (theor_exp - real_exp, -real_exp, 0),
+        true => (theor_exp - real_exp, -real_exp, 0),
         // Cannot remove a power-of-two.
         false => (theor_exp, 0, -real_exp),
     };
@@ -270,10 +317,10 @@ pub(super) fn small_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize,
 ///     The digits iterator must not have any trailing zeros (true for
 ///     `FloatState2`).
 ///     sci_exponent and digits.size_hint() must not overflow i32.
-pub(super) fn atof<'a, F, Data>(data: Data, radix: u32, f: F, kind: RoundingKind)
-    -> F
-    where F: FloatType,
-          Data: SlowDataInterface<'a>
+pub(super) fn atof<'a, F, Data>(data: Data, radix: u32, f: F, kind: RoundingKind) -> F
+where
+    F: FloatType,
+    Data: SlowDataInterface<'a>,
 {
     // We have a finite conversions number of digits for base10.
     // In order for a float in radix `b` with a finite number of digits

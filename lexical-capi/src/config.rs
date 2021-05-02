@@ -4,7 +4,6 @@ use lexical_core::{self, Number};
 
 // FEATURES
 
-
 /// Exported symbol to denote the presence of the format feature.
 #[no_mangle]
 #[doc(hidden)]

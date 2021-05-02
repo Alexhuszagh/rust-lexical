@@ -35,14 +35,14 @@ fn is_digit_separator(option: Option<&u8>, digit_separator: u8) -> bool {
 // Convert option of byte to option of sign.
 #[inline(always)]
 #[cfg(feature = "format")]
-fn to_sign<T>(option: Option<&u8>)
-    -> Option<Sign>
-    where T: IsSigned
+fn to_sign<T>(option: Option<&u8>) -> Option<Sign>
+where
+    T: IsSigned,
 {
     match option {
-        Some(&b'+')                 => Some(Sign::Positive),
+        Some(&b'+') => Some(Sign::Positive),
         Some(&b'-') if T::IS_SIGNED => Some(Sign::Negative),
-        _                           => None
+        _ => None,
     }
 }
 
@@ -52,16 +52,19 @@ fn to_sign<T>(option: Option<&u8>)
 ///     1). _*[+-]\d+
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn parse_sign_lc_separator<'a, T>(bytes: &'a [u8], digit_separator: u8)
-    -> (Sign, &'a [u8])
-    where T: IsSigned
+pub(crate) fn parse_sign_lc_separator<'a, T>(
+    bytes: &'a [u8],
+    digit_separator: u8,
+) -> (Sign, &'a [u8])
+where
+    T: IsSigned,
 {
     let mut index = 0;
     while is_digit_separator(bytes.get(index), digit_separator) {
         index += 1;
     }
     if let Some(sign) = to_sign::<T>(bytes.get(index)) {
-        (sign, &bytes[index+1..])
+        (sign, &bytes[index + 1..])
     } else {
         (Sign::Positive, bytes)
     }
@@ -74,9 +77,12 @@ pub(crate) fn parse_sign_lc_separator<'a, T>(bytes: &'a [u8], digit_separator: u
 ///     2). _[+-]\d+
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn parse_sign_l_separator<'a, T>(bytes: &'a [u8], digit_separator: u8)
-    -> (Sign, &'a [u8])
-    where T: IsSigned
+pub(crate) fn parse_sign_l_separator<'a, T>(
+    bytes: &'a [u8],
+    digit_separator: u8,
+) -> (Sign, &'a [u8])
+where
+    T: IsSigned,
 {
     let b0 = bytes.get(0);
     if let Some(sign) = to_sign::<T>(b0) {
@@ -96,23 +102,23 @@ pub(crate) fn parse_sign_l_separator<'a, T>(bytes: &'a [u8], digit_separator: u8
 
 /// Find and parse sign without any possible digit separators.
 #[inline(always)]
-pub(crate) fn parse_sign_no_separator<'a, T>(bytes: &'a [u8], _: u8)
-    -> (Sign, &'a [u8])
-    where T: IsSigned
+pub(crate) fn parse_sign_no_separator<'a, T>(bytes: &'a [u8], _: u8) -> (Sign, &'a [u8])
+where
+    T: IsSigned,
 {
     match bytes.get(0) {
-        Some(&b'+')                 => (Sign::Positive, &bytes[1..]),
+        Some(&b'+') => (Sign::Positive, &bytes[1..]),
         Some(&b'-') if T::IS_SIGNED => (Sign::Negative, &bytes[1..]),
-        _                           => (Sign::Positive, bytes)
+        _ => (Sign::Positive, bytes),
     }
 }
 
 /// Find and parse sign with digit separators.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn parse_sign_separator<'a, T>(bytes: &'a [u8], format: NumberFormat)
-    -> (Sign, &'a [u8])
-    where T: IsSigned
+pub(crate) fn parse_sign_separator<'a, T>(bytes: &'a [u8], format: NumberFormat) -> (Sign, &'a [u8])
+where
+    T: IsSigned,
 {
     // If the integer cannot have leading digit separators, we know the sign
     // byte must by the first byte. Otherwise, we must consider digit separators
@@ -120,17 +126,17 @@ pub(crate) fn parse_sign_separator<'a, T>(bytes: &'a [u8], format: NumberFormat)
     let leading = format.integer_leading_digit_separator();
     let consecutive = format.integer_consecutive_digit_separator();
     match (leading, consecutive) {
-        (true, true)    => parse_sign_lc_separator::<T>(bytes, format.digit_separator()),
-        (true, false)   => parse_sign_l_separator::<T>(bytes, format.digit_separator()),
-        (false, _)      => parse_sign_no_separator::<T>(bytes, format.digit_separator())
+        (true, true) => parse_sign_lc_separator::<T>(bytes, format.digit_separator()),
+        (true, false) => parse_sign_l_separator::<T>(bytes, format.digit_separator()),
+        (false, _) => parse_sign_no_separator::<T>(bytes, format.digit_separator()),
     }
 }
 
 /// Find and parse sign.
 #[inline]
-pub(crate) fn parse_sign<'a, T>(bytes: &'a [u8], format: NumberFormat)
-    -> (Sign, &'a [u8])
-    where T: IsSigned
+pub(crate) fn parse_sign<'a, T>(bytes: &'a [u8], format: NumberFormat) -> (Sign, &'a [u8])
+where
+    T: IsSigned,
 {
     #[cfg(not(feature = "format"))]
     return parse_sign_no_separator::<T>(bytes, format.digit_separator());
@@ -144,8 +150,8 @@ pub(crate) fn parse_sign<'a, T>(bytes: &'a [u8], format: NumberFormat)
 
 #[cfg(test)]
 mod tests {
-    use crate::util::*;
     use super::*;
+    use crate::util::*;
 
     #[test]
     fn parse_sign_no_separator_test() {

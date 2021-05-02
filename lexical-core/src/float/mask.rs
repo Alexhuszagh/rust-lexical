@@ -13,15 +13,15 @@ use crate::traits::*;
 /// # }
 /// ```
 #[inline]
-pub(crate) fn lower_n_mask<N>(n: N)
-    -> N
-    where N: UnsignedInteger
+pub(crate) fn lower_n_mask<N>(n: N) -> N
+where
+    N: UnsignedInteger,
 {
     let bits: N = as_cast(N::BITS);
     debug_assert!(n <= bits, "lower_n_mask() overflow in shl.");
 
     match n == bits {
-        true  => N::max_value(),
+        true => N::max_value(),
         false => (N::ONE << n) - N::ONE,
     }
 }
@@ -37,15 +37,15 @@ pub(crate) fn lower_n_mask<N>(n: N)
 /// # }
 /// ```
 #[inline]
-pub(crate) fn lower_n_halfway<N>(n: N)
-    -> N
-    where N: UnsignedInteger
+pub(crate) fn lower_n_halfway<N>(n: N) -> N
+where
+    N: UnsignedInteger,
 {
     let bits: N = as_cast(N::BITS);
     debug_assert!(n <= bits, "lower_n_halfway() overflow in shl.");
 
     match n.is_zero() {
-        true  => N::ZERO,
+        true => N::ZERO,
         false => nth_bit(n - N::ONE),
     }
 }
@@ -61,9 +61,9 @@ pub(crate) fn lower_n_halfway<N>(n: N)
 /// # }
 /// ```
 #[inline]
-pub(crate) fn nth_bit<N>(n: N)
-    -> N
-    where N: UnsignedInteger
+pub(crate) fn nth_bit<N>(n: N) -> N
+where
+    N: UnsignedInteger,
 {
     let bits: N = as_cast(N::BITS);
     debug_assert!(n < bits, "nth_bit() overflow in shl.");
@@ -83,9 +83,9 @@ pub(crate) fn nth_bit<N>(n: N)
 /// # }
 /// ```
 #[inline]
-pub(crate) fn internal_n_mask<N>(bit: N, n: N)
-    -> N
-    where N: UnsignedInteger
+pub(crate) fn internal_n_mask<N>(bit: N, n: N) -> N
+where
+    N: UnsignedInteger,
 {
     let bits: N = as_cast(N::BITS);
     debug_assert!(bit <= bits, "internal_n_halfway() overflow in shl.");

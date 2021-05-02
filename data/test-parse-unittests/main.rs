@@ -51,18 +51,12 @@ pub fn build_dir() -> PathBuf {
 
 /// Return the `target` directory path.
 pub fn target_dir() -> PathBuf {
-    build_dir()
-        .parent()
-        .expect("target directory")
-        .to_path_buf()
+    build_dir().parent().expect("target directory").to_path_buf()
 }
 
 /// Return the project directory path.
 pub fn project_dir() -> PathBuf {
-    target_dir()
-        .parent()
-        .expect("project directory")
-        .to_path_buf()
+    target_dir().parent().expect("project directory").to_path_buf()
 }
 
 /// Return the `data` directory path.

@@ -20135,4 +20135,3 @@ criterion_group!(dtoa_benches, dtoa);
 criterion_group!(ryu_benches, ryu);
 criterion_group!(fmt_benches, fmt);
 criterion_main!(lexical_benches, dtoa_benches, ryu_benches, fmt_benches);
-

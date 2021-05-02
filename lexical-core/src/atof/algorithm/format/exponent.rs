@@ -17,9 +17,11 @@ type FloatType = f64;
 //
 // For example, 0.1 would be -1, and 10 would be 1 in base 10.
 #[inline(always)]
-pub(super) fn scientific_exponent(exponent: i32, integer_digits: usize, fraction_start: usize)
-    -> i32
-{
+pub(super) fn scientific_exponent(
+    exponent: i32,
+    integer_digits: usize,
+    fraction_start: usize,
+) -> i32 {
     if integer_digits == 0 {
         let fraction_start = fraction_start.try_i32_or_max();
         exponent.saturating_sub(fraction_start).saturating_sub(1)
@@ -35,9 +37,11 @@ pub(super) fn scientific_exponent(exponent: i32, integer_digits: usize, fraction
 // the dot, and add the number of truncated digits from the mantissa,
 // to calculate the scaling factor for the mantissa from a raw exponent.
 #[inline(always)]
-pub(super) fn mantissa_exponent(raw_exponent: i32, fraction_digits: usize, truncated: usize)
-    -> i32
-{
+pub(super) fn mantissa_exponent(
+    raw_exponent: i32,
+    fraction_digits: usize,
+    truncated: usize,
+) -> i32 {
     if fraction_digits > truncated {
         raw_exponent.saturating_sub((fraction_digits - truncated).try_i32_or_max())
     } else {
@@ -61,11 +65,11 @@ fn extract_and_parse_exponent<'a, Data, Iter>(
     iter: Iter,
     bytes: &'a [u8],
     radix: u32,
-    sign: Sign
-)
-    -> &'a [u8]
-    where Data: FastDataInterface<'a>,
-          Iter: AsPtrIterator<'a, u8>
+    sign: Sign,
+) -> &'a [u8]
+where
+    Data: FastDataInterface<'a>,
+    Iter: AsPtrIterator<'a, u8>,
 {
     let (raw_exponent, ptr) = atoi::standalone_exponent(iter, radix, sign);
     data.set_raw_exponent(raw_exponent);
@@ -93,9 +97,9 @@ fn parse_exponent<'a, Data>(
     trailing: &'a [u8],
     radix: u32,
     digit_separator: u8,
-    sign: Sign
-)
-    where Data: FastDataInterface<'a>
+    sign: Sign,
+) where
+    Data: FastDataInterface<'a>,
 {
     // Get an iterator over our digits and sign bits, and parse the exponent.
     let iter = iterate_digits_ignore_separator(leading, digit_separator);
@@ -121,10 +125,10 @@ fn extract_exponent<'a, Data>(
     data: &mut Data,
     bytes: &'a [u8],
     radix: u32,
-    digit_separator: u8
-)
-    -> &'a [u8]
-    where Data: FastDataInterface<'a>
+    digit_separator: u8,
+) -> &'a [u8]
+where
+    Data: FastDataInterface<'a>,
 {
     // Remove leading exponent character and parse exponent.
     let bytes = &bytes[1..];
@@ -141,10 +145,10 @@ fn extract_exponent_iltc<'a, Data>(
     data: &mut Data,
     bytes: &'a [u8],
     radix: u32,
-    digit_separator: u8
-)
-    -> &'a [u8]
-    where Data: FastDataInterface<'a>
+    digit_separator: u8,
+) -> &'a [u8]
+where
+    Data: FastDataInterface<'a>,
 {
     // Remove leading exponent character and parse exponent.
     // We're not calling `consumed()`, so it's fine to have trailing underscores.
@@ -165,21 +169,17 @@ fn extract_exponent_iltc<'a, Data>(
 
 // Generate function definition to extraction exponent with digit separators.
 macro_rules! extract_exponent_separator {
-    (
-        fn $name:ident,
-        sign => $sign:ident,
-        consume => $consume:ident
-    ) => (
+    (fn $name:ident,sign => $sign:ident,consume => $consume:ident) => {
         #[inline(always)]
         #[cfg(feature = "format")]
         fn $name<'a, Data>(
             data: &mut Data,
             bytes: &'a [u8],
             radix: u32,
-            digit_separator: u8
-        )
-            -> &'a [u8]
-            where Data: FastDataInterface<'a>
+            digit_separator: u8,
+        ) -> &'a [u8]
+        where
+            Data: FastDataInterface<'a>,
         {
             let bytes = &bytes[1..];
             let (sign, digits) = $sign::<FloatType>(bytes, digit_separator);
@@ -188,7 +188,7 @@ macro_rules! extract_exponent_separator {
 
             trailing
         }
-    );
+    };
 }
 
 extract_exponent_separator!(
@@ -273,9 +273,14 @@ extract_exponent_separator!(
 
 // Extract exponent without a digit separator.
 #[inline(always)]
-pub(crate) fn extract_exponent_no_separator<'a, Data>(data: &mut Data, bytes: &'a [u8], radix: u32, format: NumberFormat)
-    -> &'a [u8]
-    where Data: FastDataInterface<'a>
+pub(crate) fn extract_exponent_no_separator<'a, Data>(
+    data: &mut Data,
+    bytes: &'a [u8],
+    radix: u32,
+    format: NumberFormat,
+) -> &'a [u8]
+where
+    Data: FastDataInterface<'a>,
 {
     extract_exponent(data, bytes, radix, format.digit_separator())
 }
@@ -283,9 +288,14 @@ pub(crate) fn extract_exponent_no_separator<'a, Data>(data: &mut Data, bytes: &'
 // Extract exponent while ignoring the digit separator.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn extract_exponent_ignore_separator<'a, Data>(data: &mut Data, bytes: &'a [u8], radix: u32, format: NumberFormat)
-    -> &'a [u8]
-    where Data: FastDataInterface<'a>
+pub(crate) fn extract_exponent_ignore_separator<'a, Data>(
+    data: &mut Data,
+    bytes: &'a [u8],
+    radix: u32,
+    format: NumberFormat,
+) -> &'a [u8]
+where
+    Data: FastDataInterface<'a>,
 {
     extract_exponent_iltc(data, bytes, radix, format.digit_separator())
 }
@@ -293,9 +303,14 @@ pub(crate) fn extract_exponent_ignore_separator<'a, Data>(data: &mut Data, bytes
 // Extract exponent with a digit separator in the exponent component.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn extract_exponent_separator<'a, Data>(data: &mut Data, bytes: &'a [u8], radix: u32, format: NumberFormat)
-    -> &'a [u8]
-    where Data: FastDataInterface<'a>
+pub(super) fn extract_exponent_separator<'a, Data>(
+    data: &mut Data,
+    bytes: &'a [u8],
+    radix: u32,
+    format: NumberFormat,
+) -> &'a [u8]
+where
+    Data: FastDataInterface<'a>,
 {
     let digit_separator = format.digit_separator();
     generate_interface!(
@@ -329,8 +344,8 @@ pub(super) fn extract_exponent_separator<'a, Data>(data: &mut Data, bytes: &'a [
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use super::super::standard::*;
+    use super::*;
 
     #[cfg(feature = "format")]
     use super::super::ignore::*;
@@ -354,7 +369,7 @@ mod test {
         assert_eq!(scientific_exponent(i32::min_value(), 0, 5), i32::min_value());
 
         // Overflow
-        assert_eq!(scientific_exponent(i32::max_value(), 0, 0), i32::max_value()-1);
+        assert_eq!(scientific_exponent(i32::max_value(), 0, 0), i32::max_value() - 1);
         assert_eq!(scientific_exponent(i32::max_value(), 5, 0), i32::max_value());
     }
 
@@ -362,10 +377,10 @@ mod test {
     fn mantissa_exponent_test() {
         assert_eq!(mantissa_exponent(10, 5, 0), 5);
         assert_eq!(mantissa_exponent(0, 5, 0), -5);
-        assert_eq!(mantissa_exponent(i32::max_value(), 5, 0), i32::max_value()-5);
+        assert_eq!(mantissa_exponent(i32::max_value(), 5, 0), i32::max_value() - 5);
         assert_eq!(mantissa_exponent(i32::max_value(), 0, 5), i32::max_value());
         assert_eq!(mantissa_exponent(i32::min_value(), 5, 0), i32::min_value());
-        assert_eq!(mantissa_exponent(i32::min_value(), 0, 5), i32::min_value()+5);
+        assert_eq!(mantissa_exponent(i32::min_value(), 0, 5), i32::min_value() + 5);
     }
 
     #[test]

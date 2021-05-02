@@ -62,13 +62,11 @@ use crate::util::*;
 
 /// Find cached power of 10 from the exponent.
 #[inline]
-fn cached_grisu_power(exp: i32, k: &mut i32)
-    -> &'static ExtendedFloat80
-{
+fn cached_grisu_power(exp: i32, k: &mut i32) -> &'static ExtendedFloat80 {
     // FLOATING POINT CONSTANTS
     const ONE_LOG_TEN: f64 = 0.30102999566398114;
     const NPOWERS: i32 = 87;
-    const FIRSTPOWER: i32 = -348;       // 10 ^ -348
+    const FIRSTPOWER: i32 = -348; // 10 ^ -348
     const STEPPOWERS: i32 = 8;
     const EXPMAX: i32 = -32;
     const EXPMIN: i32 = -60;
@@ -106,106 +104,380 @@ fn cached_grisu_power(exp: i32, k: &mut i32)
 /// Cached powers of 10^k, calculated as if by:
 /// `ceil((alpha-e+63) * ONE_LOG_TEN);`
 const GRISU_POWERS_OF_TEN: [ExtendedFloat80; 87] = [
-    ExtendedFloat80 { mant: 18054884314459144840, exp: -1220 },
-    ExtendedFloat80 { mant: 13451937075301367670, exp: -1193 },
-    ExtendedFloat80 { mant: 10022474136428063862, exp: -1166 },
-    ExtendedFloat80 { mant: 14934650266808366570, exp: -1140 },
-    ExtendedFloat80 { mant: 11127181549972568877, exp: -1113 },
-    ExtendedFloat80 { mant: 16580792590934885855, exp: -1087 },
-    ExtendedFloat80 { mant: 12353653155963782858, exp: -1060 },
-    ExtendedFloat80 { mant: 18408377700990114895, exp: -1034 },
-    ExtendedFloat80 { mant: 13715310171984221708, exp: -1007 },
-    ExtendedFloat80 { mant: 10218702384817765436, exp: -980 },
-    ExtendedFloat80 { mant: 15227053142812498563, exp: -954 },
-    ExtendedFloat80 { mant: 11345038669416679861, exp: -927 },
-    ExtendedFloat80 { mant: 16905424996341287883, exp: -901 },
-    ExtendedFloat80 { mant: 12595523146049147757, exp: -874 },
-    ExtendedFloat80 { mant: 9384396036005875287, exp: -847 },
-    ExtendedFloat80 { mant: 13983839803942852151, exp: -821 },
-    ExtendedFloat80 { mant: 10418772551374772303, exp: -794 },
-    ExtendedFloat80 { mant: 15525180923007089351, exp: -768 },
-    ExtendedFloat80 { mant: 11567161174868858868, exp: -741 },
-    ExtendedFloat80 { mant: 17236413322193710309, exp: -715 },
-    ExtendedFloat80 { mant: 12842128665889583758, exp: -688 },
-    ExtendedFloat80 { mant: 9568131466127621947, exp: -661 },
-    ExtendedFloat80 { mant: 14257626930069360058, exp: -635 },
-    ExtendedFloat80 { mant: 10622759856335341974, exp: -608 },
-    ExtendedFloat80 { mant: 15829145694278690180, exp: -582 },
-    ExtendedFloat80 { mant: 11793632577567316726, exp: -555 },
-    ExtendedFloat80 { mant: 17573882009934360870, exp: -529 },
-    ExtendedFloat80 { mant: 13093562431584567480, exp: -502 },
-    ExtendedFloat80 { mant: 9755464219737475723, exp: -475 },
-    ExtendedFloat80 { mant: 14536774485912137811, exp: -449 },
-    ExtendedFloat80 { mant: 10830740992659433045, exp: -422 },
-    ExtendedFloat80 { mant: 16139061738043178685, exp: -396 },
-    ExtendedFloat80 { mant: 12024538023802026127, exp: -369 },
-    ExtendedFloat80 { mant: 17917957937422433684, exp: -343 },
-    ExtendedFloat80 { mant: 13349918974505688015, exp: -316 },
-    ExtendedFloat80 { mant: 9946464728195732843, exp: -289 },
-    ExtendedFloat80 { mant: 14821387422376473014, exp: -263 },
-    ExtendedFloat80 { mant: 11042794154864902060, exp: -236 },
-    ExtendedFloat80 { mant: 16455045573212060422, exp: -210 },
-    ExtendedFloat80 { mant: 12259964326927110867, exp: -183 },
-    ExtendedFloat80 { mant: 18268770466636286478, exp: -157 },
-    ExtendedFloat80 { mant: 13611294676837538539, exp: -130 },
-    ExtendedFloat80 { mant: 10141204801825835212, exp: -103 },
-    ExtendedFloat80 { mant: 15111572745182864684, exp: -77 },
-    ExtendedFloat80 { mant: 11258999068426240000, exp: -50 },
-    ExtendedFloat80 { mant: 16777216000000000000, exp: -24 },
-    ExtendedFloat80 { mant: 12500000000000000000, exp:  3 },
-    ExtendedFloat80 { mant: 9313225746154785156, exp:  30 },
-    ExtendedFloat80 { mant: 13877787807814456755, exp: 56 },
-    ExtendedFloat80 { mant: 10339757656912845936, exp: 83 },
-    ExtendedFloat80 { mant: 15407439555097886824, exp: 109 },
-    ExtendedFloat80 { mant: 11479437019748901445, exp: 136 },
-    ExtendedFloat80 { mant: 17105694144590052135, exp: 162 },
-    ExtendedFloat80 { mant: 12744735289059618216, exp: 189 },
-    ExtendedFloat80 { mant: 9495567745759798747, exp: 216 },
-    ExtendedFloat80 { mant: 14149498560666738074, exp: 242 },
-    ExtendedFloat80 { mant: 10542197943230523224, exp: 269 },
-    ExtendedFloat80 { mant: 15709099088952724970, exp: 295 },
-    ExtendedFloat80 { mant: 11704190886730495818, exp: 322 },
-    ExtendedFloat80 { mant: 17440603504673385349, exp: 348 },
-    ExtendedFloat80 { mant: 12994262207056124023, exp: 375 },
-    ExtendedFloat80 { mant: 9681479787123295682, exp: 402 },
-    ExtendedFloat80 { mant: 14426529090290212157, exp: 428 },
-    ExtendedFloat80 { mant: 10748601772107342003, exp: 455 },
-    ExtendedFloat80 { mant: 16016664761464807395, exp: 481 },
-    ExtendedFloat80 { mant: 11933345169920330789, exp: 508 },
-    ExtendedFloat80 { mant: 17782069995880619868, exp: 534 },
-    ExtendedFloat80 { mant: 13248674568444952270, exp: 561 },
-    ExtendedFloat80 { mant: 9871031767461413346, exp: 588 },
-    ExtendedFloat80 { mant: 14708983551653345445, exp: 614 },
-    ExtendedFloat80 { mant: 10959046745042015199, exp: 641 },
-    ExtendedFloat80 { mant: 16330252207878254650, exp: 667 },
-    ExtendedFloat80 { mant: 12166986024289022870, exp: 694 },
-    ExtendedFloat80 { mant: 18130221999122236476, exp: 720 },
-    ExtendedFloat80 { mant: 13508068024458167312, exp: 747 },
-    ExtendedFloat80 { mant: 10064294952495520794, exp: 774 },
-    ExtendedFloat80 { mant: 14996968138956309548, exp: 800 },
-    ExtendedFloat80 { mant: 11173611982879273257, exp: 827 },
-    ExtendedFloat80 { mant: 16649979327439178909, exp: 853 },
-    ExtendedFloat80 { mant: 12405201291620119593, exp: 880 },
-    ExtendedFloat80 { mant: 9242595204427927429, exp: 907 },
-    ExtendedFloat80 { mant: 13772540099066387757, exp: 933 },
-    ExtendedFloat80 { mant: 10261342003245940623, exp: 960 },
-    ExtendedFloat80 { mant: 15290591125556738113, exp: 986 },
-    ExtendedFloat80 { mant: 11392378155556871081, exp: 1013 },
-    ExtendedFloat80 { mant: 16975966327722178521, exp: 1039 },
-    ExtendedFloat80 { mant: 12648080533535911531, exp: 1066 }
+    ExtendedFloat80 {
+        mant: 18054884314459144840,
+        exp: -1220,
+    },
+    ExtendedFloat80 {
+        mant: 13451937075301367670,
+        exp: -1193,
+    },
+    ExtendedFloat80 {
+        mant: 10022474136428063862,
+        exp: -1166,
+    },
+    ExtendedFloat80 {
+        mant: 14934650266808366570,
+        exp: -1140,
+    },
+    ExtendedFloat80 {
+        mant: 11127181549972568877,
+        exp: -1113,
+    },
+    ExtendedFloat80 {
+        mant: 16580792590934885855,
+        exp: -1087,
+    },
+    ExtendedFloat80 {
+        mant: 12353653155963782858,
+        exp: -1060,
+    },
+    ExtendedFloat80 {
+        mant: 18408377700990114895,
+        exp: -1034,
+    },
+    ExtendedFloat80 {
+        mant: 13715310171984221708,
+        exp: -1007,
+    },
+    ExtendedFloat80 {
+        mant: 10218702384817765436,
+        exp: -980,
+    },
+    ExtendedFloat80 {
+        mant: 15227053142812498563,
+        exp: -954,
+    },
+    ExtendedFloat80 {
+        mant: 11345038669416679861,
+        exp: -927,
+    },
+    ExtendedFloat80 {
+        mant: 16905424996341287883,
+        exp: -901,
+    },
+    ExtendedFloat80 {
+        mant: 12595523146049147757,
+        exp: -874,
+    },
+    ExtendedFloat80 {
+        mant: 9384396036005875287,
+        exp: -847,
+    },
+    ExtendedFloat80 {
+        mant: 13983839803942852151,
+        exp: -821,
+    },
+    ExtendedFloat80 {
+        mant: 10418772551374772303,
+        exp: -794,
+    },
+    ExtendedFloat80 {
+        mant: 15525180923007089351,
+        exp: -768,
+    },
+    ExtendedFloat80 {
+        mant: 11567161174868858868,
+        exp: -741,
+    },
+    ExtendedFloat80 {
+        mant: 17236413322193710309,
+        exp: -715,
+    },
+    ExtendedFloat80 {
+        mant: 12842128665889583758,
+        exp: -688,
+    },
+    ExtendedFloat80 {
+        mant: 9568131466127621947,
+        exp: -661,
+    },
+    ExtendedFloat80 {
+        mant: 14257626930069360058,
+        exp: -635,
+    },
+    ExtendedFloat80 {
+        mant: 10622759856335341974,
+        exp: -608,
+    },
+    ExtendedFloat80 {
+        mant: 15829145694278690180,
+        exp: -582,
+    },
+    ExtendedFloat80 {
+        mant: 11793632577567316726,
+        exp: -555,
+    },
+    ExtendedFloat80 {
+        mant: 17573882009934360870,
+        exp: -529,
+    },
+    ExtendedFloat80 {
+        mant: 13093562431584567480,
+        exp: -502,
+    },
+    ExtendedFloat80 {
+        mant: 9755464219737475723,
+        exp: -475,
+    },
+    ExtendedFloat80 {
+        mant: 14536774485912137811,
+        exp: -449,
+    },
+    ExtendedFloat80 {
+        mant: 10830740992659433045,
+        exp: -422,
+    },
+    ExtendedFloat80 {
+        mant: 16139061738043178685,
+        exp: -396,
+    },
+    ExtendedFloat80 {
+        mant: 12024538023802026127,
+        exp: -369,
+    },
+    ExtendedFloat80 {
+        mant: 17917957937422433684,
+        exp: -343,
+    },
+    ExtendedFloat80 {
+        mant: 13349918974505688015,
+        exp: -316,
+    },
+    ExtendedFloat80 {
+        mant: 9946464728195732843,
+        exp: -289,
+    },
+    ExtendedFloat80 {
+        mant: 14821387422376473014,
+        exp: -263,
+    },
+    ExtendedFloat80 {
+        mant: 11042794154864902060,
+        exp: -236,
+    },
+    ExtendedFloat80 {
+        mant: 16455045573212060422,
+        exp: -210,
+    },
+    ExtendedFloat80 {
+        mant: 12259964326927110867,
+        exp: -183,
+    },
+    ExtendedFloat80 {
+        mant: 18268770466636286478,
+        exp: -157,
+    },
+    ExtendedFloat80 {
+        mant: 13611294676837538539,
+        exp: -130,
+    },
+    ExtendedFloat80 {
+        mant: 10141204801825835212,
+        exp: -103,
+    },
+    ExtendedFloat80 {
+        mant: 15111572745182864684,
+        exp: -77,
+    },
+    ExtendedFloat80 {
+        mant: 11258999068426240000,
+        exp: -50,
+    },
+    ExtendedFloat80 {
+        mant: 16777216000000000000,
+        exp: -24,
+    },
+    ExtendedFloat80 {
+        mant: 12500000000000000000,
+        exp: 3,
+    },
+    ExtendedFloat80 {
+        mant: 9313225746154785156,
+        exp: 30,
+    },
+    ExtendedFloat80 {
+        mant: 13877787807814456755,
+        exp: 56,
+    },
+    ExtendedFloat80 {
+        mant: 10339757656912845936,
+        exp: 83,
+    },
+    ExtendedFloat80 {
+        mant: 15407439555097886824,
+        exp: 109,
+    },
+    ExtendedFloat80 {
+        mant: 11479437019748901445,
+        exp: 136,
+    },
+    ExtendedFloat80 {
+        mant: 17105694144590052135,
+        exp: 162,
+    },
+    ExtendedFloat80 {
+        mant: 12744735289059618216,
+        exp: 189,
+    },
+    ExtendedFloat80 {
+        mant: 9495567745759798747,
+        exp: 216,
+    },
+    ExtendedFloat80 {
+        mant: 14149498560666738074,
+        exp: 242,
+    },
+    ExtendedFloat80 {
+        mant: 10542197943230523224,
+        exp: 269,
+    },
+    ExtendedFloat80 {
+        mant: 15709099088952724970,
+        exp: 295,
+    },
+    ExtendedFloat80 {
+        mant: 11704190886730495818,
+        exp: 322,
+    },
+    ExtendedFloat80 {
+        mant: 17440603504673385349,
+        exp: 348,
+    },
+    ExtendedFloat80 {
+        mant: 12994262207056124023,
+        exp: 375,
+    },
+    ExtendedFloat80 {
+        mant: 9681479787123295682,
+        exp: 402,
+    },
+    ExtendedFloat80 {
+        mant: 14426529090290212157,
+        exp: 428,
+    },
+    ExtendedFloat80 {
+        mant: 10748601772107342003,
+        exp: 455,
+    },
+    ExtendedFloat80 {
+        mant: 16016664761464807395,
+        exp: 481,
+    },
+    ExtendedFloat80 {
+        mant: 11933345169920330789,
+        exp: 508,
+    },
+    ExtendedFloat80 {
+        mant: 17782069995880619868,
+        exp: 534,
+    },
+    ExtendedFloat80 {
+        mant: 13248674568444952270,
+        exp: 561,
+    },
+    ExtendedFloat80 {
+        mant: 9871031767461413346,
+        exp: 588,
+    },
+    ExtendedFloat80 {
+        mant: 14708983551653345445,
+        exp: 614,
+    },
+    ExtendedFloat80 {
+        mant: 10959046745042015199,
+        exp: 641,
+    },
+    ExtendedFloat80 {
+        mant: 16330252207878254650,
+        exp: 667,
+    },
+    ExtendedFloat80 {
+        mant: 12166986024289022870,
+        exp: 694,
+    },
+    ExtendedFloat80 {
+        mant: 18130221999122236476,
+        exp: 720,
+    },
+    ExtendedFloat80 {
+        mant: 13508068024458167312,
+        exp: 747,
+    },
+    ExtendedFloat80 {
+        mant: 10064294952495520794,
+        exp: 774,
+    },
+    ExtendedFloat80 {
+        mant: 14996968138956309548,
+        exp: 800,
+    },
+    ExtendedFloat80 {
+        mant: 11173611982879273257,
+        exp: 827,
+    },
+    ExtendedFloat80 {
+        mant: 16649979327439178909,
+        exp: 853,
+    },
+    ExtendedFloat80 {
+        mant: 12405201291620119593,
+        exp: 880,
+    },
+    ExtendedFloat80 {
+        mant: 9242595204427927429,
+        exp: 907,
+    },
+    ExtendedFloat80 {
+        mant: 13772540099066387757,
+        exp: 933,
+    },
+    ExtendedFloat80 {
+        mant: 10261342003245940623,
+        exp: 960,
+    },
+    ExtendedFloat80 {
+        mant: 15290591125556738113,
+        exp: 986,
+    },
+    ExtendedFloat80 {
+        mant: 11392378155556871081,
+        exp: 1013,
+    },
+    ExtendedFloat80 {
+        mant: 16975966327722178521,
+        exp: 1039,
+    },
+    ExtendedFloat80 {
+        mant: 12648080533535911531,
+        exp: 1066,
+    },
 ];
 
 // FTOA DECIMAL
 
 // LOOKUPS
 const TENS: [u64; 20] = [
-    10000000000000000000, 1000000000000000000, 100000000000000000,
-    10000000000000000, 1000000000000000, 100000000000000,
-    10000000000000, 1000000000000, 100000000000,
-    10000000000, 1000000000, 100000000,
-    10000000, 1000000, 100000,
-    10000, 1000, 100,
-    10, 1
+    10000000000000000000,
+    1000000000000000000,
+    100000000000000000,
+    10000000000000000,
+    1000000000000000,
+    100000000000000,
+    10000000000000,
+    1000000000000,
+    100000000000,
+    10000000000,
+    1000000000,
+    100000000,
+    10000000,
+    1000000,
+    100000,
+    10000,
+    1000,
+    100,
+    10,
+    1,
 ];
 
 // FPCONV GRISU
@@ -213,9 +485,10 @@ const TENS: [u64; 20] = [
 
 /// Round digit to sane approximation.
 #[inline]
-fn round_digit(digits: &mut [u8], ndigits: usize, delta: u64, mut rem: u64, kappa: u64, mant: u64)
-{
-    while rem < mant && delta - rem >= kappa && (rem + kappa < mant || mant - rem > rem + kappa - mant)
+fn round_digit(digits: &mut [u8], ndigits: usize, delta: u64, mut rem: u64, kappa: u64, mant: u64) {
+    while rem < mant
+        && delta - rem >= kappa
+        && (rem + kappa < mant || mant - rem > rem + kappa - mant)
     {
         digits[ndigits - 1] -= 1;
         rem += kappa;
@@ -223,9 +496,13 @@ fn round_digit(digits: &mut [u8], ndigits: usize, delta: u64, mut rem: u64, kapp
 }
 
 /// Generate digits from upper and lower range on rounding of number.
-fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &ExtendedFloat80, digits: &mut [u8], k: &mut i32)
-    -> usize
-{
+fn generate_digits(
+    fp: &ExtendedFloat80,
+    upper: &ExtendedFloat80,
+    lower: &ExtendedFloat80,
+    digits: &mut [u8],
+    k: &mut i32,
+) -> usize {
     let wmant = upper.mant - fp.mant;
     let mut delta = upper.mant - lower.mant;
 
@@ -254,7 +531,7 @@ fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &Extend
         part1 -= digit.as_u64() * div;
         kappa -= 1;
 
-        let tmp = (part1 <<-one.exp) + part2;
+        let tmp = (part1 << -one.exp) + part2;
         if tmp <= delta {
             *k += kappa;
             round_digit(digits, idx, delta, tmp, div << -one.exp, wmant);
@@ -287,18 +564,16 @@ fn generate_digits(fp: &ExtendedFloat80, upper: &ExtendedFloat80, lower: &Extend
 }
 
 /// Core Grisu2 algorithm for the float formatter.
-fn grisu2(d: f64, digits: &mut [u8], k: &mut i32)
-    -> usize
-{
+fn grisu2(d: f64, digits: &mut [u8], k: &mut i32) -> usize {
     let mut w = ExtendedFloat80::from_f64(d);
 
     let (mut lower, mut upper) = w.normalized_boundaries();
     w.normalize();
 
-    let mut ki: i32 =  0;
+    let mut ki: i32 = 0;
     let cp = cached_grisu_power(upper.exp, &mut ki);
 
-    w     = w.mul(cp);
+    w = w.mul(cp);
     upper = upper.mul(cp);
     lower = lower.mul(cp);
 
@@ -313,9 +588,13 @@ fn grisu2(d: f64, digits: &mut [u8], k: &mut i32)
 /// Write the produced digits to string.
 ///
 /// Adds formatting for exponents, and other types of information.
-fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32, format: NumberFormat)
-    -> usize
-{
+fn emit_digits(
+    digits: &mut [u8],
+    mut ndigits: usize,
+    dest: &mut [u8],
+    k: i32,
+    format: NumberFormat,
+) -> usize {
     // Config
     let decimal_point = format.decimal_point();
     let exponent_character = format.exponent(10);
@@ -330,9 +609,9 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32, f
         // These are all safe, since digits.len() >= idx, and
         // dest.len() >= idx+count+2, so the range must be valid.
         copy_to_dst(dest, &digits[..idx]);
-        write_bytes(&mut dest[idx..idx+count], b'0');
-        dest[idx+count] = decimal_point;
-        dest[idx+count+1] = b'0';
+        write_bytes(&mut dest[idx..idx + count], b'0');
+        dest[idx + count] = decimal_point;
+        dest[idx + count + 1] = b'0';
 
         return ndigits + k.as_usize() + 2;
     }
@@ -347,11 +626,10 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32, f
             // dest.len() >= ndigits+offset+2, so the range must be valid.
             dest[0] = b'0';
             dest[1] = decimal_point;
-            write_bytes(&mut dest[2..offset+2], b'0');
-            copy_to_dst(&mut dest[offset+2..], &digits[..ndigits]);
+            write_bytes(&mut dest[2..offset + 2], b'0');
+            copy_to_dst(&mut dest[offset + 2..], &digits[..ndigits]);
 
             return ndigits + 2 + offset;
-
         } else {
             // fp > 1.0
             let offset = offset.as_usize();
@@ -359,7 +637,7 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32, f
             // dest.len() >= ndigits+1, so the range must be valid.
             copy_to_dst(dest, &digits[..offset]);
             dest[offset] = decimal_point;
-            copy_to_dst(&mut dest[offset+1..], &digits[offset..ndigits]);
+            copy_to_dst(&mut dest[offset + 1..], &digits[offset..ndigits]);
 
             return ndigits + 1;
         }
@@ -383,8 +661,8 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32, f
     *dst_iter.next().unwrap() = exponent_character;
 
     *dst_iter.next().unwrap() = match k + ndigits.as_i32() - 1 < 0 {
-        true    => b'-',
-        false   => b'+',
+        true => b'-',
+        false => b'+',
     };
 
     let mut cent: usize = 0;
@@ -408,8 +686,7 @@ fn emit_digits(digits: &mut [u8], mut ndigits: usize, dest: &mut [u8], k: i32, f
 }
 
 #[inline]
-fn fpconv_dtoa(d: f64, dest: &mut [u8], format: NumberFormat) -> usize
-{
+fn fpconv_dtoa(d: f64, dest: &mut [u8], format: NumberFormat) -> usize {
     let mut digits: [u8; 18] = [0; 18];
     let mut k: i32 = 0;
     let ndigits = grisu2(d, &mut digits, &mut k);
@@ -424,9 +701,7 @@ fn fpconv_dtoa(d: f64, dest: &mut [u8], format: NumberFormat) -> usize
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline]
-pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8], format: NumberFormat)
-    -> usize
-{
+pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8], format: NumberFormat) -> usize {
     double_decimal(f.as_f64(), bytes, format)
 }
 
@@ -437,8 +712,6 @@ pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8], format: NumberForma
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline]
-pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8], format: NumberFormat)
-    -> usize
-{
+pub(crate) fn double_decimal<'a>(d: f64, bytes: &'a mut [u8], format: NumberFormat) -> usize {
     fpconv_dtoa(d, bytes, format)
 }

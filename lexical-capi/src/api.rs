@@ -9,9 +9,7 @@ use super::options::*;
 
 /// Calculate the difference between two pointers.
 #[inline]
-pub fn distance<T>(first: *const T, last: *const T)
-    -> usize
-{
+pub fn distance<T>(first: *const T, last: *const T) -> usize {
     debug_assert!(last >= first, "range must be positive.");
     let f = first as usize;
     let l = last as usize;
@@ -20,9 +18,7 @@ pub fn distance<T>(first: *const T, last: *const T)
 
 /// Convert a mutable pointer range to a mutable slice safely.
 #[inline]
-pub(crate) unsafe fn slice_from_range_mut<'a, T>(first: *mut T, last: *mut T)
-    -> &'a mut [T]
-{
+pub(crate) unsafe fn slice_from_range_mut<'a, T>(first: *mut T, last: *mut T) -> &'a mut [T] {
     assert!(first <= last && !first.is_null() && !last.is_null());
     slice::from_raw_parts_mut(first, distance(first, last))
 }

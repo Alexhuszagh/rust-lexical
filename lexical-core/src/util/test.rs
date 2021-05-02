@@ -1,9 +1,9 @@
 //! Test utilities.
 
 use crate::config::BUFFER_SIZE;
+use crate::traits::CloneableVecLike;
 #[cfg(limb_width_64)]
 use crate::traits::VecLike;
-use crate::traits::CloneableVecLike;
 
 use super::limb::Limb;
 
@@ -12,7 +12,7 @@ if #[cfg(feature = "no_alloc")] {
     use arrayvec;
 } else {
     use crate::lib::Vec;
-}}  // cfg_if
+}} // cfg_if
 
 // BASES
 
@@ -23,8 +23,8 @@ pub(crate) const BASE_POW2: [u32; 5] = [2, 4, 8, 16, 32];
 /// Non-pow2 bases.
 #[cfg(feature = "radix")]
 pub(crate) const BASE_POWN: [u32; 30] = [
-    3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21,
-    22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36
+    3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+    31, 33, 34, 35, 36,
 ];
 
 #[cfg(not(feature = "radix"))]
@@ -55,8 +55,7 @@ if #[cfg(not(feature = "no_alloc"))] {
     pub(crate) type DataType = arrayvec::ArrayVec<[Limb; 64]>;
 } else {
     pub(crate) type DataType = arrayvec::ArrayVec<[Limb; 128]>;
-}}  // cfg_if
-
+}} // cfg_if
 
 #[cfg(limb_width_32)]
 pub(crate) fn from_u32(x: &[u32]) -> DataType {
@@ -79,14 +78,12 @@ pub(crate) fn from_u32(x: &[u32]) -> DataType {
 }
 
 #[cfg(limb_width_32)]
-pub(crate) fn deduce_from_u32<T: CloneableVecLike<u32>>(x: &[u32]) -> T
-{
+pub(crate) fn deduce_from_u32<T: CloneableVecLike<u32>>(x: &[u32]) -> T {
     from_u32(x).iter().cloned().collect()
 }
 
 #[cfg(limb_width_64)]
-pub(crate) fn deduce_from_u32<T: CloneableVecLike<u64>>(x: &[u32]) -> T
-{
+pub(crate) fn deduce_from_u32<T: CloneableVecLike<u64>>(x: &[u32]) -> T {
     from_u32(x).iter().cloned().collect()
 }
 
@@ -94,21 +91,31 @@ pub(crate) fn deduce_from_u32<T: CloneableVecLike<u64>>(x: &[u32]) -> T
 
 /// Create a literal byte slice.
 macro_rules! b {
-    ($l:expr) => ($l.as_bytes());
+    ($l:expr) => {
+        $l.as_bytes()
+    };
 }
 
 // FLOATING-POINT EQUALITY
 
 /// Assert two 32-bit floats are equal.
 macro_rules! assert_f32_eq {
-    ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_eq!($l, $r););
-    ($l:expr, $r:expr) => (assert_eq!($l, $r););
+    ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => {
+        assert_eq!($l, $r);
+    };
+    ($l:expr, $r:expr) => {
+        assert_eq!($l, $r);
+    };
 }
 
 /// Assert two 64-bit floats are equal.
 macro_rules! assert_f64_eq {
-    ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_eq!($l, $r););
-    ($l:expr, $r:expr) => (assert_eq!($l, $r););
+    ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => {
+        assert_eq!($l, $r);
+    };
+    ($l:expr, $r:expr) => {
+        assert_eq!($l, $r);
+    };
 }
 
 /// Assert two 32-bit floats are equal.

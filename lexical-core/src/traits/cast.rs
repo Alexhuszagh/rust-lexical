@@ -325,7 +325,7 @@ if #[cfg(target_pointer_width = "16")] {
     try_cast! { @widen i32, isize }
     try_cast! { @widen i64, isize }
     try_cast! { @within i128, isize }
-}}  // cfg_if
+}} // cfg_if
 
 // TEST
 // ----
@@ -820,7 +820,7 @@ mod tests {
         try_cast_i32(isize::max_value());
     }
 
-    #[allow(dead_code)]     // Compile-only
+    #[allow(dead_code)] // Compile-only
     fn try_float_cast_test() {
         // from f32
         try_cast_u8(f32::MIN);

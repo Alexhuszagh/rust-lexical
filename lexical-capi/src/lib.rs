@@ -22,14 +22,13 @@ extern crate lexical_core;
 
 /// Facade around the core features for name mangling.
 pub(crate) mod lib {
-#[cfg(feature = "std")]
-pub(crate) use std::*;
+    #[cfg(feature = "std")]
+    pub(crate) use std::*;
 
-#[cfg(not(feature = "std"))]
-pub(crate) use core::*;
-
-}   // lib
-// API
+    #[cfg(not(feature = "std"))]
+    pub(crate) use core::*;
+} // lib
+  // API
 
 // Hide implementation details, since they will generate symbols
 // but should not be used from Rust.
@@ -54,4 +53,4 @@ if #[cfg(feature = "format")] {
 } else {
     mod not_feature_format;
     pub use self::not_feature_format::*;
-}}  // cfg_if
+}} // cfg_if

@@ -44,45 +44,45 @@ pub enum ErrorCode {
     ///
     /// Numeric overflow takes precedence over the presence of an invalid
     /// digit.
-    Overflow = -1,
+    Overflow                    = -1,
     /// Integral underflow occurred during numeric parsing.
     ///
     /// Numeric overflow takes precedence over the presence of an invalid
     /// digit.
-    Underflow = -2,
+    Underflow                   = -2,
     /// Invalid digit found before string termination.
-    InvalidDigit = -3,
+    InvalidDigit                = -3,
     /// Empty byte array found.
-    Empty = -4,
+    Empty                       = -4,
     /// Empty mantissa found.
-    EmptyMantissa = -5,
+    EmptyMantissa               = -5,
     /// Empty exponent found.
-    EmptyExponent = -6,
+    EmptyExponent               = -6,
     /// Empty integer found.
-    EmptyInteger = -7,
+    EmptyInteger                = -7,
     /// Empty fraction found.
-    EmptyFraction = -8,
+    EmptyFraction               = -8,
     /// Invalid positive mantissa sign was found.
     InvalidPositiveMantissaSign = -9,
     /// Mantissa sign was required, but not found.
-    MissingMantissaSign = -10,
+    MissingMantissaSign         = -10,
     /// Exponent was present but not allowed.
-    InvalidExponent = -11,
+    InvalidExponent             = -11,
     /// Invalid positive exponent sign was found.
     InvalidPositiveExponentSign = -12,
     /// Exponent sign was required, but not found.
-    MissingExponentSign = -13,
+    MissingExponentSign         = -13,
     /// Exponent was present without fraction component.
-    ExponentWithoutFraction = -14,
+    ExponentWithoutFraction     = -14,
     /// Integer had invalid leading zeros.
-    InvalidLeadingZeros = -15,
+    InvalidLeadingZeros         = -15,
     /// No exponent with required exponent notation.
-    MissingExponent = -16,
+    MissingExponent             = -16,
 
     // We may add additional variants later, so ensure that client matching
     // does not depend on exhaustive matching.
     #[doc(hidden)]
-    __Nonexhaustive = -200,
+    __Nonexhaustive             = -200,
 }
 
 /// Error type for lexical parsing.
@@ -100,14 +100,20 @@ pub struct Error {
 impl From<ErrorCode> for Error {
     #[inline]
     fn from(code: ErrorCode) -> Self {
-        Error { code: code, index: 0 }
+        Error {
+            code,
+            index: 0,
+        }
     }
 }
 
 impl From<(ErrorCode, usize)> for Error {
     #[inline]
     fn from(error: (ErrorCode, usize)) -> Self {
-        Error { code: error.0, index: error.1 }
+        Error {
+            code: error.0,
+            index: error.1,
+        }
     }
 }
 
@@ -118,4 +124,5 @@ impl Display for Error {
 }
 
 #[cfg(feature = "std")]
-impl StdError for Error {}
+impl StdError for Error {
+}

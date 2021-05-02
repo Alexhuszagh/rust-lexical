@@ -28,7 +28,7 @@ impl<T: ExactSizeIterator> ConsumedIterator for T {
 /// A default implementation is provided for slice iterators.
 /// This trait **should never** return null, or be implemented
 /// for non-contiguous data.
-pub(crate) trait AsPtrIterator<'a, T: 'a>: Iterator<Item=&'a T> {
+pub(crate) trait AsPtrIterator<'a, T: 'a>: Iterator<Item = &'a T> {
     /// Get raw pointer from iterator state.
     fn as_ptr(&self) -> *const T;
 }
@@ -45,9 +45,7 @@ pub(crate) type IteratorNoSeparator<'a> = slice::Iter<'a, u8>;
 
 // Iterate without any skipping any digit separators.
 #[inline(always)]
-pub(crate) fn iterate_digits_no_separator<'a>(bytes: &'a [u8], _: u8)
-    -> IteratorNoSeparator<'a>
-{
+pub(crate) fn iterate_digits_no_separator<'a>(bytes: &'a [u8], _: u8) -> IteratorNoSeparator<'a> {
     bytes.iter()
 }
 
@@ -58,9 +56,10 @@ pub(crate) type IteratorSeparator<'a> = SkipValueIterator<'a, u8>;
 // Iterate while skipping digit separators.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn iterate_digits_ignore_separator<'a>(bytes: &'a [u8], digit_separator: u8)
-    -> IteratorSeparator<'a>
-{
+pub(crate) fn iterate_digits_ignore_separator<'a>(
+    bytes: &'a [u8],
+    digit_separator: u8,
+) -> IteratorSeparator<'a> {
     IteratorSeparator::new(bytes, digit_separator)
 }
 

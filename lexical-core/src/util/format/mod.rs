@@ -689,7 +689,7 @@ if #[cfg(feature = "format")] {
 } else {
     mod not_feature_format;
     pub use self::not_feature_format::*;
-}}  // cfg_if
+}} // cfg_if
 
 // TESTS
 // -----
@@ -736,7 +736,8 @@ mod tests {
         let format = NumberFormat::builder().exponent_backup(b'-').build();
         assert_eq!(format, None);
 
-        #[cfg(feature = "radix")] {
+        #[cfg(feature = "radix")]
+        {
             let format = NumberFormat::builder().exponent_backup(b'e').build();
             assert!(format.is_none());
         }
@@ -753,7 +754,8 @@ mod tests {
         let format = NumberFormat::STANDARD;
         assert_eq!(format.exponent(10), b'e');
 
-        #[cfg(feature = "radix")] {
+        #[cfg(feature = "radix")]
+        {
             assert_eq!(format.exponent(2), b'^');
             assert_eq!(format.exponent(8), b'^');
             assert_eq!(format.exponent(13), b'^');

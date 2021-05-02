@@ -67,14 +67,12 @@ use super::format::*;
 #[inline(always)]
 #[cfg(feature = "format")]
 fn is_digit_or_separator(c: u8, radix: u32, digit_separator: u8) -> bool {
-    return is_digit(c, radix) || c == digit_separator
+    return is_digit(c, radix) || c == digit_separator;
 }
 
 // Split buffer at index.
 #[inline(always)]
-fn split_at_index<'a>(digits: &'a [u8], index: usize)
-    -> (&'a [u8], &'a [u8])
-{
+fn split_at_index<'a>(digits: &'a [u8], index: usize) -> (&'a [u8], &'a [u8]) {
     (&digits[..index], &digits[index..])
 }
 
@@ -94,9 +92,7 @@ fn split_at_index<'a>(digits: &'a [u8], index: usize)
 // Consume until a an invalid digit is found.
 // Does not consume any digit separators.
 #[inline(always)]
-fn consume_digits<'a>(digits: &'a [u8], radix: u32, _: u8)
-    -> (&'a [u8], &'a [u8])
-{
+fn consume_digits<'a>(digits: &'a [u8], radix: u32, _: u8) -> (&'a [u8], &'a [u8]) {
     // Consume all digits.
     let mut index = 0;
     while index < digits.len() && is_digit(digits[index], radix) {
@@ -109,9 +105,11 @@ fn consume_digits<'a>(digits: &'a [u8], radix: u32, _: u8)
 // Consumes internal digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_i<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_i<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume all digits and internal digit separators, except for
     // consecutive digit separators.
     let mut previous = false;
@@ -142,9 +140,11 @@ pub(crate) fn consume_digits_i<'a>(digits: &'a [u8], radix: u32, digit_separator
 // Consumes internal and consecutive digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_ic<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_ic<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume all characters that are digits or digit separators, except
     // for a leading digit separator.
     let mut index = 0;
@@ -163,7 +163,7 @@ pub(crate) fn consume_digits_ic<'a>(digits: &'a [u8], radix: u32, digit_separato
     //      1). The trailing digits are digit separators.
     // Preconditions:
     //      1). If index > 0, we know digits[0] has to a digit.
-    while index > 1 && digits[index-1] == digit_separator {
+    while index > 1 && digits[index - 1] == digit_separator {
         index -= 1;
     }
 
@@ -174,9 +174,11 @@ pub(crate) fn consume_digits_ic<'a>(digits: &'a [u8], radix: u32, digit_separato
 // Consumes leading digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_l<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_l<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume leading digit separator, if applicable.
     let mut index = 0;
     if index < digits.len() && digits[index] == digit_separator {
@@ -205,9 +207,11 @@ pub(crate) fn consume_digits_l<'a>(digits: &'a [u8], radix: u32, digit_separator
 // Consumes leading and consecutive digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_lc<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_lc<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume all leading digit separators, if applicable.
     let mut index = 0;
     while index < digits.len() && digits[index] == digit_separator {
@@ -231,9 +235,11 @@ pub(crate) fn consume_digits_lc<'a>(digits: &'a [u8], radix: u32, digit_separato
 // Consumes trailing digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_t<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_t<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume all interior digits.
     let mut index = 0;
     while index < digits.len() && is_digit(digits[index], radix) {
@@ -251,7 +257,10 @@ pub(crate) fn consume_digits_t<'a>(digits: &'a [u8], radix: u32, digit_separator
     // We have gone too far if:
     //      1). We consumed a trailing digit separator.
     //      2). The next character is a digit or digit separator.
-    if index != prev_index && index < digits.len() && is_digit_or_separator(digits[index], radix, digit_separator) {
+    if index != prev_index
+        && index < digits.len()
+        && is_digit_or_separator(digits[index], radix, digit_separator)
+    {
         index = prev_index;
     }
 
@@ -262,9 +271,11 @@ pub(crate) fn consume_digits_t<'a>(digits: &'a [u8], radix: u32, digit_separator
 // Consumes trailing and consecutive digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_tc<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_tc<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume all interior digits.
     let mut index = 0;
     while index < digits.len() && is_digit(digits[index], radix) {
@@ -293,9 +304,11 @@ pub(crate) fn consume_digits_tc<'a>(digits: &'a [u8], radix: u32, digit_separato
 // Consumes leading and internal digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_il<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_il<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume digits and digit separators, until consecutive digit
     // separators or invalid characters.
     let mut previous = false;
@@ -329,9 +342,11 @@ pub(crate) fn consume_digits_il<'a>(digits: &'a [u8], radix: u32, digit_separato
 // Consumes leading and internal digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_ilc<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_ilc<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume digits and digit separators until an invalid character.
     let mut index = 0;
     while index < digits.len() {
@@ -349,7 +364,7 @@ pub(crate) fn consume_digits_ilc<'a>(digits: &'a [u8], radix: u32, digit_separat
     // Remove all trailing digit separators, however, store the index in
     // case all are removed.
     let current_index = index;
-    while index >= 1 && digits[index-1] == digit_separator {
+    while index >= 1 && digits[index - 1] == digit_separator {
         index -= 1;
     }
 
@@ -366,9 +381,11 @@ pub(crate) fn consume_digits_ilc<'a>(digits: &'a [u8], radix: u32, digit_separat
 // Consumes internal and trailing digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_it<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_it<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume all characters that are digits or digit separators, except
     // leading and consecutive digit separators.
     let mut previous = false;
@@ -399,7 +416,10 @@ pub(crate) fn consume_digits_it<'a>(digits: &'a [u8], radix: u32, digit_separato
     // except consecutive digit separators. We've gone too far if:
     //      1). We take consecutive digit separators.
     //      2). The next character is a digit (only occurs from special index == 9 check).
-    if previous && index < digits.len() && is_digit_or_separator(digits[index], radix, digit_separator) {
+    if previous
+        && index < digits.len()
+        && is_digit_or_separator(digits[index], radix, digit_separator)
+    {
         index -= 1;
     }
 
@@ -410,9 +430,11 @@ pub(crate) fn consume_digits_it<'a>(digits: &'a [u8], radix: u32, digit_separato
 // Consumes internal, trailing, and consecutive digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_itc<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_itc<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume all characters that are digits or digit separators, except
     // for a leading digit separator.
     let mut index = 0;
@@ -451,9 +473,11 @@ pub(crate) fn consume_digits_itc<'a>(digits: &'a [u8], radix: u32, digit_separat
 // Consumes leading and trailing digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_lt<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_lt<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume leading digit separator, if applicable.
     let mut index = 0;
     if index < digits.len() && digits[index] == digit_separator {
@@ -479,7 +503,10 @@ pub(crate) fn consume_digits_lt<'a>(digits: &'a [u8], radix: u32, digit_separato
     // We have gone too far if:
     //      1). The last character was a digit separator.
     //      2). The current character is a digit or digit separator.
-    if index < digits.len() && previous && is_digit_or_separator(digits[index], radix, digit_separator) {
+    if index < digits.len()
+        && previous
+        && is_digit_or_separator(digits[index], radix, digit_separator)
+    {
         index -= 1;
     }
 
@@ -490,9 +517,11 @@ pub(crate) fn consume_digits_lt<'a>(digits: &'a [u8], radix: u32, digit_separato
 // Consumes leading, trailing, and consecutive digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_ltc<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_ltc<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume all leading digit separators, if applicable.
     let mut index = 0;
     while index < digits.len() && digits[index] == digit_separator {
@@ -522,14 +551,15 @@ pub(crate) fn consume_digits_ltc<'a>(digits: &'a [u8], radix: u32, digit_separat
     split_at_index(digits, index)
 }
 
-
 // Consume until a an invalid digit is found.
 // Consumes leading, internal, and trailing digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_ilt<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_ilt<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume digits and digit separators, until consecutive digit
     // separators or invalid characters.
     let mut previous = false;
@@ -562,9 +592,11 @@ pub(crate) fn consume_digits_ilt<'a>(digits: &'a [u8], radix: u32, digit_separat
 // Consumes leading, internal, trailing, and consecutive digit separators.
 #[inline]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_iltc<'a>(digits: &'a [u8], radix: u32, digit_separator: u8)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_iltc<'a>(
+    digits: &'a [u8],
+    radix: u32,
+    digit_separator: u8,
+) -> (&'a [u8], &'a [u8]) {
     // Consume digits and digit separators, until an invalid character.
     // There is no post-condition since we accept any digit or
     // digit separator combination.
@@ -585,27 +617,33 @@ pub(crate) fn consume_digits_iltc<'a>(digits: &'a [u8], radix: u32, digit_separa
 
 // Consume digits without a digit separator.
 #[inline(always)]
-pub(crate) fn consume_digits_no_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_no_separator<'a>(
+    bytes: &'a [u8],
+    radix: u32,
+    format: NumberFormat,
+) -> (&'a [u8], &'a [u8]) {
     consume_digits(bytes, radix, format.digit_separator())
 }
 
 // Consume digits while ignoring the digit separator.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn consume_digits_ignore_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_digits_ignore_separator<'a>(
+    bytes: &'a [u8],
+    radix: u32,
+    format: NumberFormat,
+) -> (&'a [u8], &'a [u8]) {
     consume_digits_iltc(bytes, radix, format.digit_separator())
 }
 
 // Consume digits with a digit separator in the integer component.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn consume_integer_digits_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_integer_digits_separator<'a>(
+    bytes: &'a [u8],
+    radix: u32,
+    format: NumberFormat,
+) -> (&'a [u8], &'a [u8]) {
     let digit_separator = format.digit_separator();
     generate_interface!(
         format => format,
@@ -636,9 +674,11 @@ pub(crate) fn consume_integer_digits_separator<'a>(bytes: &'a [u8], radix: u32, 
 // Consume digits with a digit separator in the fraction component.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn consume_fraction_digits_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
-    -> (&'a [u8], &'a [u8])
-{
+pub(crate) fn consume_fraction_digits_separator<'a>(
+    bytes: &'a [u8],
+    radix: u32,
+    format: NumberFormat,
+) -> (&'a [u8], &'a [u8]) {
     let digit_separator = format.digit_separator();
     generate_interface!(
         format => format,
@@ -771,7 +811,6 @@ mod tests {
         assert_eq!(consume_digits_lc(b!("__4__5__"), 10, b'_'), (b!("__4"), b!("__5__")));
         assert_eq!(consume_digits_lc(b!("_4_5_.56"), 10, b'_'), (b!("_4"), b!("_5_.56")));
         assert_eq!(consume_digits_lc(b!("__4__5__.56"), 10, b'_'), (b!("__4"), b!("__5__.56")));
-
     }
 
     #[test]
@@ -838,7 +877,6 @@ mod tests {
         assert_eq!(consume_digits_ic(b!("__4__5__"), 10, b'_'), (b!(""), b!("__4__5__")));
         assert_eq!(consume_digits_ic(b!("_4_5_.56"), 10, b'_'), (b!(""), b!("_4_5_.56")));
         assert_eq!(consume_digits_ic(b!("__4__5__.56"), 10, b'_'), (b!(""), b!("__4__5__.56")));
-
     }
 
     #[test]

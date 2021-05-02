@@ -66,7 +66,7 @@ where
                         None => {
                             self.state = ChainState::Back;
                             self.u.next()
-                        }
+                        },
                     },
                     // Take the second branch.
                     false => match self.u.next() {
@@ -74,10 +74,10 @@ where
                         None => {
                             self.state = ChainState::Front;
                             self.t.next()
-                        }
+                        },
                     },
                 }
-            }
+            },
             ChainState::Front => self.t.next(),
             ChainState::Back => self.u.next(),
         }
@@ -56432,11 +56432,31 @@ fn lexical(criterion: &mut Criterion) {
     // only fooling a single level branch predictor.
     // If we use `chain()`, any two-bit branch predictor will easily
     // predict the correct branch.
-    lexical_generator!(group, "itoa_u8_heterogeneous_lexical", chain_random(U8_SIMPLE_DATA.iter(), U8_DATA.iter()));
-    lexical_generator!(group, "itoa_u16_heterogeneous_lexical", chain_random(U16_SIMPLE_DATA.iter(), U16_DATA.iter()));
-    lexical_generator!(group, "itoa_u32_heterogeneous_lexical", chain_random(U32_SIMPLE_DATA.iter(), U32_DATA.iter()));
-    lexical_generator!(group, "itoa_u64_heterogeneous_lexical", chain_random(U64_SIMPLE_DATA.iter(), U64_DATA.iter()));
-    lexical_generator!(group, "itoa_u128_heterogeneous_lexical", chain_random(U128_SIMPLE_DATA.iter(), U128_DATA.iter()));
+    lexical_generator!(
+        group,
+        "itoa_u8_heterogeneous_lexical",
+        chain_random(U8_SIMPLE_DATA.iter(), U8_DATA.iter())
+    );
+    lexical_generator!(
+        group,
+        "itoa_u16_heterogeneous_lexical",
+        chain_random(U16_SIMPLE_DATA.iter(), U16_DATA.iter())
+    );
+    lexical_generator!(
+        group,
+        "itoa_u32_heterogeneous_lexical",
+        chain_random(U32_SIMPLE_DATA.iter(), U32_DATA.iter())
+    );
+    lexical_generator!(
+        group,
+        "itoa_u64_heterogeneous_lexical",
+        chain_random(U64_SIMPLE_DATA.iter(), U64_DATA.iter())
+    );
+    lexical_generator!(
+        group,
+        "itoa_u128_heterogeneous_lexical",
+        chain_random(U128_SIMPLE_DATA.iter(), U128_DATA.iter())
+    );
 
     lexical_generator!(group, "itoa_i8_lexical", I8_DATA.iter());
     lexical_generator!(group, "itoa_i16_lexical", I16_DATA.iter());
@@ -56465,11 +56485,31 @@ fn itoa(criterion: &mut Criterion) {
     // only fooling a single level branch predictor.
     // If we use `chain()`, any two-bit branch predictor will easily
     // predict the correct branch.
-    itoa_generator!(group, "itoa_u8_heterogeneous_itoa", chain_random(U8_SIMPLE_DATA.iter(), U8_DATA.iter()));
-    itoa_generator!(group, "itoa_u16_heterogeneous_itoa", chain_random(U16_SIMPLE_DATA.iter(), U16_DATA.iter()));
-    itoa_generator!(group, "itoa_u32_heterogeneous_itoa", chain_random(U32_SIMPLE_DATA.iter(), U32_DATA.iter()));
-    itoa_generator!(group, "itoa_u64_heterogeneous_itoa", chain_random(U64_SIMPLE_DATA.iter(), U64_DATA.iter()));
-    itoa_generator!(group, "itoa_u128_heterogeneous_itoa", chain_random(U128_SIMPLE_DATA.iter(), U128_DATA.iter()));
+    itoa_generator!(
+        group,
+        "itoa_u8_heterogeneous_itoa",
+        chain_random(U8_SIMPLE_DATA.iter(), U8_DATA.iter())
+    );
+    itoa_generator!(
+        group,
+        "itoa_u16_heterogeneous_itoa",
+        chain_random(U16_SIMPLE_DATA.iter(), U16_DATA.iter())
+    );
+    itoa_generator!(
+        group,
+        "itoa_u32_heterogeneous_itoa",
+        chain_random(U32_SIMPLE_DATA.iter(), U32_DATA.iter())
+    );
+    itoa_generator!(
+        group,
+        "itoa_u64_heterogeneous_itoa",
+        chain_random(U64_SIMPLE_DATA.iter(), U64_DATA.iter())
+    );
+    itoa_generator!(
+        group,
+        "itoa_u128_heterogeneous_itoa",
+        chain_random(U128_SIMPLE_DATA.iter(), U128_DATA.iter())
+    );
 
     itoa_generator!(group, "itoa_i8_itoa", I8_DATA.iter());
     itoa_generator!(group, "itoa_i16_itoa", I16_DATA.iter());
@@ -56498,11 +56538,31 @@ fn fmt(criterion: &mut Criterion) {
     // only fooling a single level branch predictor.
     // If we use `chain()`, any two-bit branch predictor will easily
     // predict the correct branch.
-    fmt_generator!(group, "fmt_u8_heterogeneous_fmt", chain_random(U8_SIMPLE_DATA.iter(), U8_DATA.iter()));
-    fmt_generator!(group, "fmt_u16_heterogeneous_fmt", chain_random(U16_SIMPLE_DATA.iter(), U16_DATA.iter()));
-    fmt_generator!(group, "fmt_u32_heterogeneous_fmt", chain_random(U32_SIMPLE_DATA.iter(), U32_DATA.iter()));
-    fmt_generator!(group, "fmt_u64_heterogeneous_fmt", chain_random(U64_SIMPLE_DATA.iter(), U64_DATA.iter()));
-    fmt_generator!(group, "fmt_u128_heterogeneous_fmt", chain_random(U128_SIMPLE_DATA.iter(), U128_DATA.iter()));
+    fmt_generator!(
+        group,
+        "fmt_u8_heterogeneous_fmt",
+        chain_random(U8_SIMPLE_DATA.iter(), U8_DATA.iter())
+    );
+    fmt_generator!(
+        group,
+        "fmt_u16_heterogeneous_fmt",
+        chain_random(U16_SIMPLE_DATA.iter(), U16_DATA.iter())
+    );
+    fmt_generator!(
+        group,
+        "fmt_u32_heterogeneous_fmt",
+        chain_random(U32_SIMPLE_DATA.iter(), U32_DATA.iter())
+    );
+    fmt_generator!(
+        group,
+        "fmt_u64_heterogeneous_fmt",
+        chain_random(U64_SIMPLE_DATA.iter(), U64_DATA.iter())
+    );
+    fmt_generator!(
+        group,
+        "fmt_u128_heterogeneous_fmt",
+        chain_random(U128_SIMPLE_DATA.iter(), U128_DATA.iter())
+    );
 
     fmt_generator!(group, "fmt_i8_fmt", I8_DATA.iter());
     fmt_generator!(group, "fmt_i16_fmt", I16_DATA.iter());

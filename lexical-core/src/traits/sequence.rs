@@ -23,8 +23,9 @@ use crate::lib::{cmp, iter, mem, ops, ptr, slice};
 ///
 /// [`smallvec`]: https://github.com/servo/rust-smallvec
 pub fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
-    where V: VecLike<T>,
-          I: iter::IntoIterator<Item=T>
+where
+    V: VecLike<T>,
+    I: iter::IntoIterator<Item = T>,
 {
     let mut iter = iterable.into_iter();
     if index == vec.len() {
@@ -69,11 +70,7 @@ pub fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
 
         if num_added < lower_size_bound {
             // Iterator provided fewer elements than the hint. Move the tail backward.
-            ptr::copy(
-                ptr.add(lower_size_bound),
-                ptr.add(num_added),
-                old_len - index,
-            );
+            ptr::copy(ptr.add(lower_size_bound), ptr.add(num_added), old_len - index);
         }
         // There are no more duplicate or uninitialized slots, so the guard is not needed.
         vec.set_len(old_len + num_added);
@@ -113,20 +110,21 @@ pub fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
 /// if the destructor panics. **Must** call `set_len` after,
 /// and ideally before (to 0).
 fn remove_many<V, T, R>(vec: &mut V, range: R)
-    where V: VecLike<T>,
-          R: ops::RangeBounds<usize>
+where
+    V: VecLike<T>,
+    R: ops::RangeBounds<usize>,
 {
     // Get the bounds on the items we're removing.
     let len = vec.len();
     let start = match range.start_bound() {
         ops::Bound::Included(&n) => n,
         ops::Bound::Excluded(&n) => n + 1,
-        ops::Bound::Unbounded    => 0,
+        ops::Bound::Unbounded => 0,
     };
     let end = match range.end_bound() {
         ops::Bound::Included(&n) => n + 1,
         ops::Bound::Excluded(&n) => n,
-        ops::Bound::Unbounded    => len,
+        ops::Bound::Unbounded => len,
     };
     assert!(start <= end);
     assert!(end <= len);
@@ -471,19 +469,19 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
 
     /// Perform binary search with a predicate.
     #[inline]
-    fn binary_search_by<F>(&self, func: F)
-        -> Result<usize, usize>
-        where F: FnMut(&T) -> cmp::Ordering
+    fn binary_search_by<F>(&self, func: F) -> Result<usize, usize>
+    where
+        F: FnMut(&T) -> cmp::Ordering,
     {
         <[T]>::binary_search_by(self.as_slice(), func)
     }
 
     /// Perform binary search by key with key extractor.
     #[inline]
-    fn binary_search_by_key<K, F>(&self, key: &K, func: F)
-        -> Result<usize, usize>
-        where K: Ord,
-              F: FnMut(&T) -> K
+    fn binary_search_by_key<K, F>(&self, key: &K, func: F) -> Result<usize, usize>
+    where
+        K: Ord,
+        F: FnMut(&T) -> K,
     {
         <[T]>::binary_search_by_key(self.as_slice(), key, func)
     }
@@ -505,18 +503,18 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
     // CHUNKS EXACT
     // Currently unused, restore and add default implementation if required
     // later. Requires rustc >= 1.31.0.
-//
-//    /// Get iterator over exactly `size`-length immutable elements in sequence.
-//    #[inline]
-//    fn chunks_exact(&self, size: usize) -> slice::ChunksExact<T> {
-//        <[T]>::chunks_exact(self.as_slice(), size)
-//    }
-//
-//    /// Get iterator over exactly `size`-length mutable elements in sequence.
-//    #[inline]
-//    fn chunks_exact_mut(&mut self, size: usize) -> slice::ChunksExactMut<T> {
-//        <[T]>::chunks_exact_mut(self.as_mut_slice(), size)
-//    }
+    //
+    //    /// Get iterator over exactly `size`-length immutable elements in sequence.
+    //    #[inline]
+    //    fn chunks_exact(&self, size: usize) -> slice::ChunksExact<T> {
+    //        <[T]>::chunks_exact(self.as_slice(), size)
+    //    }
+    //
+    //    /// Get iterator over exactly `size`-length mutable elements in sequence.
+    //    #[inline]
+    //    fn chunks_exact_mut(&mut self, size: usize) -> slice::ChunksExactMut<T> {
+    //        <[T]>::chunks_exact_mut(self.as_mut_slice(), size)
+    //    }
 
     // FIRST
 
@@ -540,7 +538,7 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
 
     /// Get a mutable reference to the first item without bounds checking.
     #[inline]
-    unsafe fn first_unchecked_mut(&mut self) -> &mut T  {
+    unsafe fn first_unchecked_mut(&mut self) -> &mut T {
         self.as_mut_slice().get_unchecked_mut(0)
     }
 
@@ -581,7 +579,7 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
 
     /// Get a mutable reference to the last item without bounds checking.
     #[inline]
-    unsafe fn last_unchecked_mut(&mut self) -> &mut T  {
+    unsafe fn last_unchecked_mut(&mut self) -> &mut T {
         debug_assert!(self.len() > 0);
         self.rget_unchecked_mut(0)
     }
@@ -602,33 +600,33 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
 
     // Currently unused, restore and add default implementation if required
     // later. Requires rustc >= 1.31.0.
-//    // RCHUNKS
-//
-//    /// Get iterator over `size`-length immutable elements in sequence.
-//    #[inline]
-//    fn rchunks(&self, size: usize) -> slice::RChunks<T> {
-//        <[T]>::rchunks(self.as_slice(), size)
-//    }
-//
-//    /// Get iterator over `size`-length mutable elements in sequence.
-//    #[inline]
-//    fn rchunks_mut(&mut self, size: usize) -> slice::RChunksMut<T> {
-//        <[T]>::rchunks_mut(self.as_mut_slice(), size)
-//    }
-//
-//    // RCHUNKS EXACT
-//
-//    /// Get iterator over exactly `size`-length immutable elements in sequence.
-//    #[inline]
-//    fn rchunks_exact(&self, size: usize) -> slice::RChunksExact<T> {
-//        <[T]>::rchunks_exact(self.as_slice(), size)
-//    }
-//
-//    /// Get iterator over exactly `size`-length mutable elements in sequence.
-//    #[inline]
-//    fn rchunks_exact_mut(&mut self, size: usize) -> slice::RChunksExactMut<T> {
-//        <[T]>::rchunks_exact_mut(self.as_mut_slice(), size)
-//    }
+    //    // RCHUNKS
+    //
+    //    /// Get iterator over `size`-length immutable elements in sequence.
+    //    #[inline]
+    //    fn rchunks(&self, size: usize) -> slice::RChunks<T> {
+    //        <[T]>::rchunks(self.as_slice(), size)
+    //    }
+    //
+    //    /// Get iterator over `size`-length mutable elements in sequence.
+    //    #[inline]
+    //    fn rchunks_mut(&mut self, size: usize) -> slice::RChunksMut<T> {
+    //        <[T]>::rchunks_mut(self.as_mut_slice(), size)
+    //    }
+    //
+    //    // RCHUNKS EXACT
+    //
+    //    /// Get iterator over exactly `size`-length immutable elements in sequence.
+    //    #[inline]
+    //    fn rchunks_exact(&self, size: usize) -> slice::RChunksExact<T> {
+    //        <[T]>::rchunks_exact(self.as_slice(), size)
+    //    }
+    //
+    //    /// Get iterator over exactly `size`-length mutable elements in sequence.
+    //    #[inline]
+    //    fn rchunks_exact_mut(&mut self, size: usize) -> slice::RChunksExactMut<T> {
+    //        <[T]>::rchunks_exact_mut(self.as_mut_slice(), size)
+    //    }
 
     // REVERSE
 
@@ -642,33 +640,33 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
 
     // Currently unused, restore and add default implementation if required
     // later. Requires rustc >= 1.26.0.
-//    /// Rotate elements of slice left.
-//    #[inline]
-//    fn rotate_left(&mut self, mid: usize) {
-//        <[T]>::rotate_left(self.as_mut_slice(), mid)
-//    }
-//
-//    /// Rotate elements of slice right.
-//    #[inline]
-//    fn rotate_right(&mut self, mid: usize) {
-//        <[T]>::rotate_right(self.as_mut_slice(), mid)
-//    }
+    //    /// Rotate elements of slice left.
+    //    #[inline]
+    //    fn rotate_left(&mut self, mid: usize) {
+    //        <[T]>::rotate_left(self.as_mut_slice(), mid)
+    //    }
+    //
+    //    /// Rotate elements of slice right.
+    //    #[inline]
+    //    fn rotate_right(&mut self, mid: usize) {
+    //        <[T]>::rotate_right(self.as_mut_slice(), mid)
+    //    }
 
     // RSPLIT
 
     // Currently unused, restore and add default implementation if required
     // later. Requires rustc >= 1.27.0.
-//    /// Split on condition into immutable subslices, start from the back of the slice.
-//    #[inline]
-//    fn rsplit<F: FnMut(&T) -> bool>(&self, func: F) -> slice::RSplit<T, F> {
-//        <[T]>::rsplit(self.as_slice(), func)
-//    }
-//
-//    /// Split on condition into mutable subslices, start from the back of the slice.
-//    #[inline]
-//    fn rsplit_mut<F: FnMut(&T) -> bool>(&mut self, func: F) -> slice::RSplitMut<T, F> {
-//        <[T]>::rsplit_mut(self.as_mut_slice(), func)
-//    }
+    //    /// Split on condition into immutable subslices, start from the back of the slice.
+    //    #[inline]
+    //    fn rsplit<F: FnMut(&T) -> bool>(&self, func: F) -> slice::RSplit<T, F> {
+    //        <[T]>::rsplit(self.as_slice(), func)
+    //    }
+    //
+    //    /// Split on condition into mutable subslices, start from the back of the slice.
+    //    #[inline]
+    //    fn rsplit_mut<F: FnMut(&T) -> bool>(&mut self, func: F) -> slice::RSplitMut<T, F> {
+    //        <[T]>::rsplit_mut(self.as_mut_slice(), func)
+    //    }
 
     // RSPLITN
 
@@ -689,7 +687,8 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
     /// Perform sort with a predicate.
     #[inline]
     fn sort_by<F>(&mut self, func: F)
-        where F: FnMut(&T, &T) -> cmp::Ordering
+    where
+        F: FnMut(&T, &T) -> cmp::Ordering,
     {
         <[T]>::sort_by(self.as_mut_slice(), func)
     }
@@ -697,8 +696,9 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
     /// Perform sort by key with key extractor.
     #[inline]
     fn sort_by_key<K, F>(&mut self, func: F)
-        where K: Ord,
-              F: FnMut(&T) -> K
+    where
+        K: Ord,
+        F: FnMut(&T) -> K,
     {
         <[T]>::sort_by_key(self.as_mut_slice(), func)
     }
@@ -708,7 +708,8 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
     /// Perform untable sort with a predicate.
     #[inline]
     fn sort_unstable_by<F>(&mut self, func: F)
-        where F: FnMut(&T, &T) -> cmp::Ordering
+    where
+        F: FnMut(&T, &T) -> cmp::Ordering,
     {
         <[T]>::sort_unstable_by(self.as_mut_slice(), func)
     }
@@ -716,8 +717,9 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
     /// Perform untable sort by key with key extractor.
     #[inline]
     fn sort_unstable_by_key<K, F>(&mut self, func: F)
-        where K: Ord,
-              F: FnMut(&T) -> K
+    where
+        K: Ord,
+        F: FnMut(&T) -> K,
     {
         <[T]>::sort_unstable_by_key(self.as_mut_slice(), func)
     }
@@ -819,13 +821,17 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
     /// Create a reverse view of the vector for indexing.
     #[inline]
     fn rview<'a>(&'a self) -> ReverseView<'a, T> {
-        ReverseView { inner: self.as_slice() }
+        ReverseView {
+            inner: self.as_slice(),
+        }
     }
 
     /// Create a reverse, mutable view of the vector for indexing.
     #[inline]
     fn rview_mut<'a>(&'a mut self) -> ReverseViewMut<'a, T> {
-        ReverseViewMut { inner: self.as_mut_slice() }
+        ReverseViewMut {
+            inner: self.as_mut_slice(),
+        }
     }
 }
 
@@ -871,30 +877,22 @@ impl<T> SliceLike<T> for [T] {
     // RGET
 
     #[inline]
-    fn rget<I: RSliceIndex<[T]>>(&self, index: I)
-        -> Option<&I::Output>
-    {
+    fn rget<I: RSliceIndex<[T]>>(&self, index: I) -> Option<&I::Output> {
         index.rget(self)
     }
 
     #[inline]
-    fn rget_mut<I: RSliceIndex<[T]>>(&mut self, index: I)
-        -> Option<&mut I::Output>
-    {
+    fn rget_mut<I: RSliceIndex<[T]>>(&mut self, index: I) -> Option<&mut I::Output> {
         index.rget_mut(self)
     }
 
     #[inline]
-    unsafe fn rget_unchecked<I: RSliceIndex<[T]>>(&self, index: I)
-        -> &I::Output
-    {
+    unsafe fn rget_unchecked<I: RSliceIndex<[T]>>(&self, index: I) -> &I::Output {
         index.rget_unchecked(self)
     }
 
     #[inline]
-    unsafe fn rget_unchecked_mut<I: RSliceIndex<[T]>>(&mut self, index: I)
-        -> &mut I::Output
-    {
+    unsafe fn rget_unchecked_mut<I: RSliceIndex<[T]>>(&mut self, index: I) -> &mut I::Output {
         index.rget_unchecked_mut(self)
     }
 
@@ -918,12 +916,12 @@ impl<T> SliceLike<T> for [T] {
 
 /// Vector-like container.
 pub trait VecLike<T>:
-    Default +
-    iter::FromIterator<T> +
-    iter::IntoIterator +
-    ops::DerefMut<Target = [T]> +
-    Extend<T> +
-    SliceLike<T>
+    Default
+    + iter::FromIterator<T>
+    + iter::IntoIterator
+    + ops::DerefMut<Target = [T]>
+    + Extend<T>
+    + SliceLike<T>
 {
     /// Create new, empty vector.
     fn new() -> Self;
@@ -968,7 +966,7 @@ pub trait VecLike<T>:
     fn clear(&mut self);
 
     /// Insert many elements at index, pushing everything else to the back.
-    fn insert_many<I: iter::IntoIterator<Item=T>>(&mut self, index: usize, iterable: I);
+    fn insert_many<I: iter::IntoIterator<Item = T>>(&mut self, index: usize, iterable: I);
 
     /// Remove many elements from range.
     fn remove_many<R: ops::RangeBounds<usize>>(&mut self, range: R);
@@ -979,8 +977,7 @@ pub trait VecLike<T>:
 /// Vector-like container with cloneable values.
 ///
 /// Implemented for Vec, SmallVec, and StackVec.
-pub trait CloneableVecLike<T: Clone + Copy + Send>: Send + VecLike<T>
-{
+pub trait CloneableVecLike<T: Clone + Copy + Send>: Send + VecLike<T> {
     /// Extend collection from slice.
     fn extend_from_slice(&mut self, other: &[T]);
 
@@ -1186,7 +1183,7 @@ impl<T> CloneableVecLike<T> for Vec<T>
         Vec::resize(self, len, value)
     }
 }
-}}   // cfg_if
+}} // cfg_if
 
 // IMPL ARRAYVEC
 // --------------
@@ -1416,7 +1413,7 @@ impl<A: arrayvec::Array> CloneableVecLike<A::Item> for arrayvec::ArrayVec<A>
         }
     }
 }
-}}  //cfg_if
+}} //cfg_if
 
 // VECTOR MACRO
 // ------------
@@ -1446,7 +1443,7 @@ if #[cfg(feature = "no_alloc")] {
             vec![$($x),*]
         });
     }
-}}  // cfg_if
+}} // cfg_if
 
 // TESTS
 // -----

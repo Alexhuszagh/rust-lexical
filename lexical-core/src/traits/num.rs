@@ -4,8 +4,8 @@
 //! types, and trait bounds, and conversions for working with
 //! numbers in generic code.
 
-use crate::lib::{f32, f64, fmt, iter, mem, ops};
 use crate::config::*;
+use crate::lib::{f32, f64, fmt, iter, mem, ops};
 use crate::options::*;
 use crate::util::*;
 
@@ -13,11 +13,7 @@ use super::cast::{AsCast, TryCast};
 use super::primitive::Primitive;
 use super::sequence::CloneableVecLike;
 
-#[cfg(any(
-    not(feature = "no_alloc"),
-    feature = "f128",
-    feature = "radix"
-))]
+#[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
 use crate::lib::Vec;
 
 // NUMBER
@@ -600,8 +596,7 @@ pub(crate) fn try_cast_or_min<U: Integer, T: TryCast<U>>(t: T) -> U {
 
 /// Defines a trait that supports signed integral operations.
 #[doc(hidden)]
-pub trait SignedInteger: Integer + ops::Neg<Output=Self>
-{
+pub trait SignedInteger: Integer + ops::Neg<Output = Self> {
     // FUNCTIONS (INHERITED)
     fn checked_abs(self) -> Option<Self>;
     fn wrapping_abs(self) -> Self;
@@ -633,8 +628,7 @@ signed_integer_impl! { i8 i16 i32 i64 i128 isize }
 
 /// Defines a trait that supports unsigned integral operations.
 #[doc(hidden)]
-pub trait UnsignedInteger: Integer
-{
+pub trait UnsignedInteger: Integer {
     /// Returns true if the least-significant bit is odd.
     #[inline]
     fn is_odd(self) -> bool {
@@ -661,8 +655,7 @@ unsigned_integer_impl! { u8 u16 u32 u64 u128 usize }
 
 /// Float information for native float types.
 #[doc(hidden)]
-pub trait Float: Number + ops::Neg<Output=Self>
-{
+pub trait Float: Number + ops::Neg<Output = Self> {
     /// Unsigned type of the same size.
     type Unsigned: UnsignedInteger;
 
@@ -890,15 +883,23 @@ pub trait Float: Number + ops::Neg<Output=Self>
     /// Get the max of two finite numbers.
     #[inline]
     fn max_finite(self, f: Self) -> Self {
-        debug_assert!(!self.is_special() && !f.is_special(), "max_finite self={} f={}",  self, f);
-        if self < f { f } else { self }
+        debug_assert!(!self.is_special() && !f.is_special(), "max_finite self={} f={}", self, f);
+        if self < f {
+            f
+        } else {
+            self
+        }
     }
 
     /// Get the min of two finite numbers.
     #[inline]
     fn min_finite(self, f: Self) -> Self {
-        debug_assert!(!self.is_special() && !f.is_special(), "min_finite self={} f={}",  self, f);
-        if self < f { self } else { f }
+        debug_assert!(!self.is_special() && !f.is_special(), "min_finite self={} f={}", self, f);
+        if self < f {
+            self
+        } else {
+            f
+        }
     }
 }
 
@@ -932,31 +933,31 @@ impl Float for f16 {
     const NEG_INFINITY: f16 = f16::NEG_INFINITY;
     const NAN: f16 = f16::NAN;
     const BITS: usize = 16;
-    const SIGN_MASK: u16            = 0x8000;
-    const EXPONENT_MASK: u16        = 0x7C00;
-    const HIDDEN_BIT_MASK: u16      = 0x0400;
-    const MANTISSA_MASK: u16        = 0x03FF;
-    const INFINITY_BITS: u16        = 0x7C00;
+    const SIGN_MASK: u16 = 0x8000;
+    const EXPONENT_MASK: u16 = 0x7C00;
+    const HIDDEN_BIT_MASK: u16 = 0x0400;
+    const MANTISSA_MASK: u16 = 0x03FF;
+    const INFINITY_BITS: u16 = 0x7C00;
     const NEGATIVE_INFINITY_BITS: u16 = Self::INFINITY_BITS | Self::SIGN_MASK;
-    const EXPONENT_SIZE: i32        = 5;
-    const MANTISSA_SIZE: i32        = 10;
-    const EXPONENT_BIAS: i32        = 15 + Self::MANTISSA_SIZE;
-    const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
-    const MAX_EXPONENT: i32         = 0x1F - Self::EXPONENT_BIAS;
+    const EXPONENT_SIZE: i32 = 5;
+    const MANTISSA_SIZE: i32 = 10;
+    const EXPONENT_BIAS: i32 = 15 + Self::MANTISSA_SIZE;
+    const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
+    const MAX_EXPONENT: i32 = 0x1F - Self::EXPONENT_BIAS;
 
     cfg_if! {
     if #[cfg(any(not(feature = "no_alloc"), feature = "radix"))] {
         type BigintStorage = Vec<Limb>;
     } else {
         type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    }}  // cfg_if
+    }} // cfg_if
 
     cfg_if! {
     if #[cfg(not(feature = "no_alloc"))] {
         type BigfloatStorage = Vec<Limb>;
     } else {
         type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
-    }}  // cfg_if
+    }} // cfg_if
 
     cfg_if! {
     if #[cfg(limb_width_64)] {
@@ -965,7 +966,7 @@ impl Float for f16 {
     } else {
         const BIGINT_LIMBS: usize = 20;
         const BIGFLOAT_LIMBS: usize = 10;
-    }}  // cfg_if
+    }} // cfg_if
 }
 
 #[cfg(feature = "f16")]
@@ -980,24 +981,24 @@ impl Float for bf16 {
     const NEG_INFINITY: bf16 = bf16::NEG_INFINITY;
     const NAN: bf16 = bf16::NAN;
     const BITS: usize = 16;
-    const SIGN_MASK: u16            = 0x8000;
-    const EXPONENT_MASK: u16        = 0x7F80;
-    const HIDDEN_BIT_MASK: u16      = 0x0080;
-    const MANTISSA_MASK: u16        = 0x007F;
-    const INFINITY_BITS: u16        = 0x7F80;
+    const SIGN_MASK: u16 = 0x8000;
+    const EXPONENT_MASK: u16 = 0x7F80;
+    const HIDDEN_BIT_MASK: u16 = 0x0080;
+    const MANTISSA_MASK: u16 = 0x007F;
+    const INFINITY_BITS: u16 = 0x7F80;
     const NEGATIVE_INFINITY_BITS: u16 = Self::INFINITY_BITS | Self::SIGN_MASK;
-    const EXPONENT_SIZE: i32        = 8;
-    const MANTISSA_SIZE: i32        = 7;
-    const EXPONENT_BIAS: i32        = 127 + Self::MANTISSA_SIZE;
-    const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
-    const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
+    const EXPONENT_SIZE: i32 = 8;
+    const MANTISSA_SIZE: i32 = 7;
+    const EXPONENT_BIAS: i32 = 127 + Self::MANTISSA_SIZE;
+    const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
+    const MAX_EXPONENT: i32 = 0xFF - Self::EXPONENT_BIAS;
 
     cfg_if! {
     if #[cfg(any(not(feature = "no_alloc"), feature = "radix"))] {
         type BigintStorage = Vec<Limb>;
     } else {
         type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    }}  // cfg_if
+    }} // cfg_if
 
     cfg_if! {
     if #[cfg(not(feature = "no_alloc"))] {
@@ -1006,7 +1007,7 @@ impl Float for bf16 {
         type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
     } else {
         type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    }}  // cfg_if
+    }} // cfg_if
 
     cfg_if! {
     if #[cfg(limb_width_64)] {
@@ -1015,7 +1016,7 @@ impl Float for bf16 {
     } else {
         const BIGINT_LIMBS: usize = 20;
         const BIGFLOAT_LIMBS: usize = 20;
-    }}  // cfg_if
+    }} // cfg_if
 }
 
 impl Float for f32 {
@@ -1029,24 +1030,24 @@ impl Float for f32 {
     const NEG_INFINITY: f32 = f32::NEG_INFINITY;
     const NAN: f32 = f32::NAN;
     const BITS: usize = 32;
-    const SIGN_MASK: u32            = 0x80000000;
-    const EXPONENT_MASK: u32        = 0x7F800000;
-    const HIDDEN_BIT_MASK: u32      = 0x00800000;
-    const MANTISSA_MASK: u32        = 0x007FFFFF;
-    const INFINITY_BITS: u32        = 0x7F800000;
+    const SIGN_MASK: u32 = 0x80000000;
+    const EXPONENT_MASK: u32 = 0x7F800000;
+    const HIDDEN_BIT_MASK: u32 = 0x00800000;
+    const MANTISSA_MASK: u32 = 0x007FFFFF;
+    const INFINITY_BITS: u32 = 0x7F800000;
     const NEGATIVE_INFINITY_BITS: u32 = Self::INFINITY_BITS | Self::SIGN_MASK;
-    const EXPONENT_SIZE: i32        = 8;
-    const MANTISSA_SIZE: i32        = 23;
-    const EXPONENT_BIAS: i32        = 127 + Self::MANTISSA_SIZE;
-    const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
-    const MAX_EXPONENT: i32         = 0xFF - Self::EXPONENT_BIAS;
+    const EXPONENT_SIZE: i32 = 8;
+    const MANTISSA_SIZE: i32 = 23;
+    const EXPONENT_BIAS: i32 = 127 + Self::MANTISSA_SIZE;
+    const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
+    const MAX_EXPONENT: i32 = 0xFF - Self::EXPONENT_BIAS;
 
     cfg_if! {
     if #[cfg(any(not(feature = "no_alloc"), feature = "radix"))] {
         type BigintStorage = Vec<Limb>;
     } else {
         type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    }}  // cfg_if
+    }} // cfg_if
 
     cfg_if! {
     if #[cfg(not(feature = "no_alloc"))] {
@@ -1055,7 +1056,7 @@ impl Float for f32 {
         type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
     } else {
         type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    }}  // cfg_if
+    }} // cfg_if
 
     cfg_if! {
     if #[cfg(limb_width_64)] {
@@ -1064,7 +1065,7 @@ impl Float for f32 {
     } else {
         const BIGINT_LIMBS: usize = 20;
         const BIGFLOAT_LIMBS: usize = 20;
-    }}  // cfg_if
+    }} // cfg_if
 
     #[inline]
     fn abs(self) -> f32 {
@@ -1098,7 +1099,7 @@ impl Float for f32 {
             self.powf(n as f32)
         } else {
             f32::powi(self, n)
-        }}  // cfg_if
+        }} // cfg_if
     }
 
     #[inline]
@@ -1143,17 +1144,17 @@ impl Float for f64 {
     const NEG_INFINITY: f64 = f64::NEG_INFINITY;
     const NAN: f64 = f64::NAN;
     const BITS: usize = 64;
-    const SIGN_MASK: u64            = 0x8000000000000000;
-    const EXPONENT_MASK: u64        = 0x7FF0000000000000;
-    const HIDDEN_BIT_MASK: u64      = 0x0010000000000000;
-    const MANTISSA_MASK: u64        = 0x000FFFFFFFFFFFFF;
-    const INFINITY_BITS: u64        = 0x7FF0000000000000;
+    const SIGN_MASK: u64 = 0x8000000000000000;
+    const EXPONENT_MASK: u64 = 0x7FF0000000000000;
+    const HIDDEN_BIT_MASK: u64 = 0x0010000000000000;
+    const MANTISSA_MASK: u64 = 0x000FFFFFFFFFFFFF;
+    const INFINITY_BITS: u64 = 0x7FF0000000000000;
     const NEGATIVE_INFINITY_BITS: u64 = Self::INFINITY_BITS | Self::SIGN_MASK;
-    const EXPONENT_SIZE: i32        = 11;
-    const MANTISSA_SIZE: i32        = 52;
-    const EXPONENT_BIAS: i32        = 1023 + Self::MANTISSA_SIZE;
-    const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
-    const MAX_EXPONENT: i32         = 0x7FF - Self::EXPONENT_BIAS;
+    const EXPONENT_SIZE: i32 = 11;
+    const MANTISSA_SIZE: i32 = 52;
+    const EXPONENT_BIAS: i32 = 1023 + Self::MANTISSA_SIZE;
+    const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
+    const MAX_EXPONENT: i32 = 0x7FF - Self::EXPONENT_BIAS;
 
     cfg_if! {
     if #[cfg(any(not(feature = "no_alloc"), feature = "radix"))] {
@@ -1162,7 +1163,7 @@ impl Float for f64 {
         type BigintStorage = arrayvec::ArrayVec<[Limb; 64]>;
     } else {
         type BigintStorage = arrayvec::ArrayVec<[Limb; 128]>;
-    }}  // cfg_if
+    }} // cfg_if
 
     cfg_if! {
     if #[cfg(not(feature = "no_alloc"))] {
@@ -1171,7 +1172,7 @@ impl Float for f64 {
         type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
     } else {
         type BigfloatStorage = arrayvec::ArrayVec<[Limb; 36]>;
-    }}  // cfg_if
+    }} // cfg_if
 
     cfg_if! {
     if #[cfg(limb_width_64)] {
@@ -1180,7 +1181,7 @@ impl Float for f64 {
     } else {
         const BIGINT_LIMBS: usize = 128;
         const BIGFLOAT_LIMBS: usize = 36;
-    }}  // cfg_if
+    }} // cfg_if
 
     #[inline]
     fn abs(self) -> f64 {
@@ -1214,7 +1215,7 @@ impl Float for f64 {
             self.powf(n as f64)
         } else {
             f64::powi(self, n)
-        }}  // cfg_if
+        }} // cfg_if
     }
 
     #[inline]
@@ -1260,17 +1261,17 @@ impl Float for f128 {
     const NEG_INFINITY: f128 = f128::NEG_INFINITY;
     const NAN: f128 = f128::NAN;
     const BITS: usize = 128;
-    const SIGN_MASK: u128            = 0x80000000000000000000000000000000;
-    const EXPONENT_MASK: u128        = 0x7FFF0000000000000000000000000000;
-    const HIDDEN_BIT_MASK: u128      = 0x00010000000000000000000000000000;
-    const MANTISSA_MASK: u128        = 0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFF;
-    const INFINITY_BITS: u128        = 0x7FFF0000000000000000000000000000;
+    const SIGN_MASK: u128 = 0x80000000000000000000000000000000;
+    const EXPONENT_MASK: u128 = 0x7FFF0000000000000000000000000000;
+    const HIDDEN_BIT_MASK: u128 = 0x00010000000000000000000000000000;
+    const MANTISSA_MASK: u128 = 0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFF;
+    const INFINITY_BITS: u128 = 0x7FFF0000000000000000000000000000;
     const NEGATIVE_INFINITY_BITS: u128 = Self::INFINITY_BITS | Self::SIGN_MASK;
-    const EXPONENT_SIZE: i32        = 15;
-    const MANTISSA_SIZE: i32        = 112;
-    const EXPONENT_BIAS: i32        = 16383 + Self::MANTISSA_SIZE;
-    const DENORMAL_EXPONENT: i32    = 1 - Self::EXPONENT_BIAS;
-    const MAX_EXPONENT: i32         = 0x7FFF - Self::EXPONENT_BIAS;
+    const EXPONENT_SIZE: i32 = 15;
+    const MANTISSA_SIZE: i32 = 112;
+    const EXPONENT_BIAS: i32 = 16383 + Self::MANTISSA_SIZE;
+    const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
+    const MAX_EXPONENT: i32 = 0x7FFF - Self::EXPONENT_BIAS;
 
     type BigintStorage = Vec<Limb>;
     type BigfloatStorage = Vec<Limb>;
@@ -1282,7 +1283,7 @@ impl Float for f128 {
     } else {
         const BIGINT_LIMBS: usize = 1800;
         const BIGFLOAT_LIMBS: usize = 1400;
-    }}  // cfg_if
+    }} // cfg_if
 }
 
 // TEST

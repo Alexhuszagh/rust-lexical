@@ -7,8 +7,7 @@ use crate::util::*;
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline]
-pub(crate) fn replace(bytes: &mut [u8], count: usize, format: NumberFormat)
-{
+pub(crate) fn replace(bytes: &mut [u8], count: usize, format: NumberFormat) {
     // Replace any values that differ from defaults. Track the index
     let decimal_point = format.decimal_point();
     let exponent = format.exponent(10);

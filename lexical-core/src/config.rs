@@ -81,7 +81,7 @@ if #[cfg(target_pointer_width = "16")] {
     pub(crate) const ISIZE_FORMATTED_SIZE_DECIMAL: usize = I64_FORMATTED_SIZE_DECIMAL;
     pub(crate) const USIZE_FORMATTED_SIZE: usize = U64_FORMATTED_SIZE;
     pub(crate) const USIZE_FORMATTED_SIZE_DECIMAL: usize = U64_FORMATTED_SIZE_DECIMAL;
-}}  // cfg_if
+}} // cfg_if
 
 /// Maximum number of bytes required to serialize any number to string.
 pub const BUFFER_SIZE: usize = F64_FORMATTED_SIZE;

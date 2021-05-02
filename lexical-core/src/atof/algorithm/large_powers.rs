@@ -14,7 +14,7 @@ if #[cfg(limb_width_32)] {
     use super::large_powers_32::*;
 } else {
     use super::large_powers_64::*;
-}}  // cfg_if
+}} // cfg_if
 
 // HELPER
 // ------
@@ -22,26 +22,26 @@ if #[cfg(limb_width_32)] {
 /// Get the correct large power from the radix.
 #[inline]
 #[allow(unused_variables)]
-pub(crate) fn get_large_powers(radix: u32)
-    -> &'static [&'static [Limb]]
-{
-    #[cfg(not(feature = "radix"))] {
+pub(crate) fn get_large_powers(radix: u32) -> &'static [&'static [Limb]] {
+    #[cfg(not(feature = "radix"))]
+    {
         &POW5
     }
 
-    #[cfg(feature = "radix")] {
+    #[cfg(feature = "radix")]
+    {
         match radix {
-            3  => &POW3,
-            5  => &POW5,
-            7  => &POW7,
-            11  => &POW11,
-            13  => &POW13,
-            17  => &POW17,
-            19  => &POW19,
-            23  => &POW23,
-            29  => &POW29,
-            31  => &POW31,
-            _  => unreachable!(),
+            3 => &POW3,
+            5 => &POW5,
+            7 => &POW7,
+            11 => &POW11,
+            13 => &POW13,
+            17 => &POW17,
+            19 => &POW19,
+            23 => &POW23,
+            29 => &POW29,
+            31 => &POW31,
+            _ => unreachable!(),
         }
     }
 }

@@ -7,16 +7,16 @@ use crate::traits::*;
 
 // Parse the sign bit and filter empty inputs from the atoi data.
 macro_rules! parse_sign {
-    ($bytes:ident, $is_signed:expr, $code:ident) => ({
+    ($bytes:ident, $is_signed:expr, $code:ident) => {{
         // Filter out empty inputs.
         if $bytes.is_empty() {
             return Err((ErrorCode::$code, $bytes.as_ptr()));
         }
 
         let (sign, digits) = match $bytes[0] {
-            b'+'               => (Sign::Positive, &$bytes[1..]),
+            b'+' => (Sign::Positive, &$bytes[1..]),
             b'-' if $is_signed => (Sign::Negative, &$bytes[1..]),
-            _                  => (Sign::Positive, $bytes),
+            _ => (Sign::Positive, $bytes),
         };
 
         // Filter out empty inputs.
@@ -25,7 +25,7 @@ macro_rules! parse_sign {
         }
 
         (sign, digits)
-    });
+    }};
 }
 
 // Get pointer to 1-past-end of slice.
@@ -39,11 +39,9 @@ pub(super) fn last_ptr<T>(slc: &[T]) -> *const T {
 
 // Add digit to mantissa.
 #[inline(always)]
-pub(super) fn add_digit<T>(value: T, digit: u32, radix: u32)
-    -> Option<T>
-    where T: UnsignedInteger
+pub(super) fn add_digit<T>(value: T, digit: u32, radix: u32) -> Option<T>
+where
+    T: UnsignedInteger,
 {
-    return value
-        .checked_mul(as_cast(radix))?
-        .checked_add(as_cast(digit))
+    return value.checked_mul(as_cast(radix))?.checked_add(as_cast(digit));
 }

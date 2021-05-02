@@ -30,7 +30,7 @@ impl From<lexical_core::ParseIntegerOptionsBuilder> for ParseIntegerOptionsBuild
     fn from(builder: lexical_core::ParseIntegerOptionsBuilder) -> ParseIntegerOptionsBuilder {
         ParseIntegerOptionsBuilder {
             radix: builder.get_radix(),
-            format: builder.get_format().into()
+            format: builder.get_format().into(),
         }
     }
 }
@@ -38,8 +38,7 @@ impl From<lexical_core::ParseIntegerOptionsBuilder> for ParseIntegerOptionsBuild
 impl Into<lexical_core::ParseIntegerOptionsBuilder> for ParseIntegerOptionsBuilder {
     #[inline(always)]
     fn into(self) -> lexical_core::ParseIntegerOptionsBuilder {
-        let builder = lexical_core::ParseIntegerOptionsBuilder::new()
-            .format(self.format.into());
+        let builder = lexical_core::ParseIntegerOptionsBuilder::new().format(self.format.into());
         #[cfg(feature = "radix")]
         let builder = builder.radix(self.radix);
 
@@ -56,17 +55,15 @@ impl Default for ParseIntegerOptionsBuilder {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_parse_integer_options_builder_new()
-    -> ParseIntegerOptionsBuilder
-{
+pub extern "C" fn lexical_parse_integer_options_builder_new() -> ParseIntegerOptionsBuilder {
     lexical_core::ParseIntegerOptionsBuilder::new().into()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_parse_integer_options_builder_build(builder: ParseIntegerOptionsBuilder)
-    -> Option<ParseIntegerOptions>
-{
+pub extern "C" fn lexical_parse_integer_options_builder_build(
+    builder: ParseIntegerOptionsBuilder,
+) -> Option<ParseIntegerOptions> {
     let builder: lexical_core::ParseIntegerOptionsBuilder = builder.into();
     builder.build().map(|opts| opts.into()).into()
 }
@@ -87,7 +84,7 @@ impl From<lexical_core::ParseIntegerOptions> for ParseIntegerOptions {
     fn from(options: lexical_core::ParseIntegerOptions) -> ParseIntegerOptions {
         ParseIntegerOptions {
             radix: options.radix(),
-            format: options.format().into()
+            format: options.format().into(),
         }
     }
 }
@@ -113,23 +110,21 @@ impl Default for ParseIntegerOptions {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_parse_integer_options_new()
-    -> ParseIntegerOptions
-{
+pub extern "C" fn lexical_parse_integer_options_new() -> ParseIntegerOptions {
     lexical_core::ParseIntegerOptions::new().into()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_parse_integer_options_builder() -> ParseIntegerOptionsBuilder
-{
+pub extern "C" fn lexical_parse_integer_options_builder() -> ParseIntegerOptionsBuilder {
     ParseIntegerOptionsBuilder::default()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_parse_integer_options_rebuild(options: ParseIntegerOptions) -> ParseIntegerOptionsBuilder
-{
+pub extern "C" fn lexical_parse_integer_options_rebuild(
+    options: ParseIntegerOptions,
+) -> ParseIntegerOptionsBuilder {
     let options: lexical_core::ParseIntegerOptions = options.into();
     options.rebuild().into()
 }
@@ -199,7 +194,10 @@ impl Into<lexical_core::ParseFloatOptionsBuilder> for ParseFloatOptionsBuilder {
                 .lossy(self.lossy)
                 .nan_string(slice::from_raw_parts(self.nan_string_ptr, self.nan_string_size))
                 .inf_string(slice::from_raw_parts(self.inf_string_ptr, self.inf_string_size))
-                .infinity_string(slice::from_raw_parts(self.infinity_string_ptr, self.infinity_string_size));
+                .infinity_string(slice::from_raw_parts(
+                    self.infinity_string_ptr,
+                    self.infinity_string_size,
+                ));
 
             #[cfg(feature = "radix")]
             let builder = builder.radix(self.radix);
@@ -227,17 +225,15 @@ impl Default for ParseFloatOptionsBuilder {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_parse_float_options_builder_new()
-    -> ParseFloatOptionsBuilder
-{
+pub extern "C" fn lexical_parse_float_options_builder_new() -> ParseFloatOptionsBuilder {
     lexical_core::ParseFloatOptionsBuilder::new().into()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_parse_float_options_builder_build(builder: ParseFloatOptionsBuilder)
-    -> Option<ParseFloatOptions>
-{
+pub extern "C" fn lexical_parse_float_options_builder_build(
+    builder: ParseFloatOptionsBuilder,
+) -> Option<ParseFloatOptions> {
     let builder: lexical_core::ParseFloatOptionsBuilder = builder.into();
     builder.build().map(|opts| opts.into()).into()
 }
@@ -293,13 +289,20 @@ impl Into<lexical_core::ParseFloatOptions> for ParseFloatOptions {
             options.set_radix(self.compressed & 0xFF);
             options.set_exponent_base((self.compressed & 0xFF00) >> 8);
             options.set_exponent_radix((self.compressed & 0xFF0000) >> 16);
-            options.set_rounding(lexical_core::RoundingKind::from_u32((self.compressed & 0xF000000) >> 24));
+            options.set_rounding(lexical_core::RoundingKind::from_u32(
+                (self.compressed & 0xF000000) >> 24,
+            ));
             options.set_incorrect(self.compressed & 0x10000000 != 0);
             options.set_lossy(self.compressed & 0x20000000 != 0);
             options.set_format(self.format);
-            options.set_nan_string(slice::from_raw_parts(self.nan_string_ptr, self.nan_string_size));
-            options.set_inf_string(slice::from_raw_parts(self.inf_string_ptr, self.inf_string_size));
-            options.set_infinity_string(slice::from_raw_parts(self.infinity_string_ptr, self.infinity_string_size));
+            options
+                .set_nan_string(slice::from_raw_parts(self.nan_string_ptr, self.nan_string_size));
+            options
+                .set_inf_string(slice::from_raw_parts(self.inf_string_ptr, self.inf_string_size));
+            options.set_infinity_string(slice::from_raw_parts(
+                self.infinity_string_ptr,
+                self.infinity_string_size,
+            ));
             options
         }
     }
@@ -314,22 +317,21 @@ impl Default for ParseFloatOptions {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_parse_float_options_new() -> ParseFloatOptions
-{
+pub extern "C" fn lexical_parse_float_options_new() -> ParseFloatOptions {
     lexical_core::ParseFloatOptions::new().into()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_parse_float_options_builder() -> ParseFloatOptionsBuilder
-{
+pub extern "C" fn lexical_parse_float_options_builder() -> ParseFloatOptionsBuilder {
     ParseFloatOptionsBuilder::default()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_parse_float_options_rebuild(options: ParseFloatOptions) -> ParseFloatOptionsBuilder
-{
+pub extern "C" fn lexical_parse_float_options_rebuild(
+    options: ParseFloatOptions,
+) -> ParseFloatOptionsBuilder {
     let options: lexical_core::ParseFloatOptions = options.into();
     options.rebuild().into()
 }
@@ -374,16 +376,15 @@ impl Default for WriteIntegerOptionsBuilder {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_write_integer_options_builder_new() -> WriteIntegerOptionsBuilder
-{
+pub extern "C" fn lexical_write_integer_options_builder_new() -> WriteIntegerOptionsBuilder {
     lexical_core::WriteIntegerOptionsBuilder::new().into()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_write_integer_options_builder_build(builder: WriteIntegerOptionsBuilder)
-    -> Option<WriteIntegerOptions>
-{
+pub extern "C" fn lexical_write_integer_options_builder_build(
+    builder: WriteIntegerOptionsBuilder,
+) -> Option<WriteIntegerOptions> {
     let builder: lexical_core::WriteIntegerOptionsBuilder = builder.into();
     builder.build().map(|opts| opts.into()).into()
 }
@@ -426,22 +427,21 @@ impl Default for WriteIntegerOptions {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_write_integer_options_new() -> WriteIntegerOptions
-{
+pub extern "C" fn lexical_write_integer_options_new() -> WriteIntegerOptions {
     lexical_core::WriteIntegerOptions::new().into()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_write_integer_options_builder() -> WriteIntegerOptionsBuilder
-{
+pub extern "C" fn lexical_write_integer_options_builder() -> WriteIntegerOptionsBuilder {
     WriteIntegerOptionsBuilder::default()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_write_integer_options_rebuild(options: WriteIntegerOptions) -> WriteIntegerOptionsBuilder
-{
+pub extern "C" fn lexical_write_integer_options_rebuild(
+    options: WriteIntegerOptions,
+) -> WriteIntegerOptionsBuilder {
     let options: lexical_core::WriteIntegerOptions = options.into();
     options.rebuild().into()
 }
@@ -511,16 +511,15 @@ impl Default for WriteFloatOptionsBuilder {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_write_float_options_builder_new() -> WriteFloatOptionsBuilder
-{
+pub extern "C" fn lexical_write_float_options_builder_new() -> WriteFloatOptionsBuilder {
     lexical_core::WriteFloatOptionsBuilder::new().into()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_write_float_options_builder_build(builder: WriteFloatOptionsBuilder)
-    -> Option<WriteFloatOptions>
-{
+pub extern "C" fn lexical_write_float_options_builder_build(
+    builder: WriteFloatOptionsBuilder,
+) -> Option<WriteFloatOptions> {
     let builder: lexical_core::WriteFloatOptionsBuilder = builder.into();
     builder.build().map(|opts| opts.into()).into()
 }
@@ -545,8 +544,7 @@ pub struct WriteFloatOptions {
 impl From<lexical_core::WriteFloatOptions> for WriteFloatOptions {
     #[inline(always)]
     fn from(options: lexical_core::WriteFloatOptions) -> WriteFloatOptions {
-        let compressed: u32 = options.radix()
-            | (options.trim_floats() as u32) << 8;
+        let compressed: u32 = options.radix() | (options.trim_floats() as u32) << 8;
 
         WriteFloatOptions {
             compressed,
@@ -567,8 +565,10 @@ impl Into<lexical_core::WriteFloatOptions> for WriteFloatOptions {
             options.set_radix(self.compressed & 0xFF);
             options.set_trim_floats(self.compressed & 0x100 != 0);
             options.set_format(self.format.into());
-            options.set_nan_string(slice::from_raw_parts(self.nan_string_ptr, self.nan_string_size));
-            options.set_inf_string(slice::from_raw_parts(self.inf_string_ptr, self.inf_string_size));
+            options
+                .set_nan_string(slice::from_raw_parts(self.nan_string_ptr, self.nan_string_size));
+            options
+                .set_inf_string(slice::from_raw_parts(self.inf_string_ptr, self.inf_string_size));
             options
         }
     }
@@ -583,22 +583,21 @@ impl Default for WriteFloatOptions {
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_write_float_options_new() -> WriteFloatOptions
-{
+pub extern "C" fn lexical_write_float_options_new() -> WriteFloatOptions {
     lexical_core::WriteFloatOptions::new().into()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_write_float_options_builder() -> WriteFloatOptionsBuilder
-{
+pub extern "C" fn lexical_write_float_options_builder() -> WriteFloatOptionsBuilder {
     WriteFloatOptionsBuilder::default()
 }
 
 #[no_mangle]
 #[doc(hidden)]
-pub extern fn lexical_write_float_options_rebuild(options: WriteFloatOptions) -> WriteFloatOptionsBuilder
-{
+pub extern "C" fn lexical_write_float_options_rebuild(
+    options: WriteFloatOptions,
+) -> WriteFloatOptionsBuilder {
     let options: lexical_core::WriteFloatOptions = options.into();
     options.rebuild().into()
 }

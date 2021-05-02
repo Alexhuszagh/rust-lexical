@@ -66,7 +66,7 @@ cfg_if! {
 if #[cfg(feature = "radix")] {
     use super::binary::{double_binary, float_binary};
     use super::radix::{double_radix, float_radix};
-}}  // cfg_if
+}} // cfg_if
 
 // Select the back-end
 cfg_if! {
@@ -76,7 +76,7 @@ if #[cfg(feature = "grisu3")] {
     use super::ryu::{double_decimal, float_decimal};
 } else {
     use super::grisu2::{double_decimal, float_decimal};
-}}  //cfg_if
+}} //cfg_if
 
 // TRAITS
 
@@ -132,20 +132,20 @@ fn forward<'a, F: FloatToString>(
     value: F,
     radix: u32,
     bytes: &'a mut [u8],
-    format: NumberFormat
-)
-    -> usize
-{
+    format: NumberFormat,
+) -> usize {
     debug_assert_radix!(radix);
 
-    #[cfg(not(feature = "radix"))] {
+    #[cfg(not(feature = "radix"))]
+    {
         value.decimal(bytes, format)
     }
 
-    #[cfg(feature = "radix")] {
+    #[cfg(feature = "radix")]
+    {
         match radix {
             10 => value.decimal(bytes, format),
-            _  => value.radix(radix, bytes, format),
+            _ => value.radix(radix, bytes, format),
         }
     }
 }
@@ -159,10 +159,8 @@ fn filter_special<'a, F: FloatToString>(
     format: NumberFormat,
     nan_string: &'static [u8],
     inf_string: &'static [u8],
-    trim_floats: bool
-)
-    -> usize
-{
+    trim_floats: bool,
+) -> usize {
     // Logic errors, disable in release builds.
     debug_assert!(value.is_sign_positive(), "Value cannot be negative.");
     debug_assert_radix!(radix);
@@ -198,10 +196,8 @@ fn filter_sign<'a, F: FloatToString>(
     format: NumberFormat,
     nan_string: &'static [u8],
     inf_string: &'static [u8],
-    trim_floats: bool
-)
-    -> usize
-{
+    trim_floats: bool,
+) -> usize {
     debug_assert_radix!(radix);
 
     // Export "-0.0" and "0.0" as "0" with trimmed floats.
@@ -226,9 +222,7 @@ fn filter_sign<'a, F: FloatToString>(
 
 /// Trim a trailing ".0" from a float.
 #[inline]
-fn trim<'a>(bytes: &'a mut [u8], trim_floats: bool)
-    -> usize
-{
+fn trim<'a>(bytes: &'a mut [u8], trim_floats: bool) -> usize {
     // Trim a trailing ".0" from a float.
     if trim_floats && ends_with_slice(bytes, b".0") {
         bytes.len() - 2
@@ -246,10 +240,8 @@ fn from_native<F: FloatToString>(
     format: NumberFormat,
     nan_string: &'static [u8],
     inf_string: &'static [u8],
-    trim_floats: bool
-)
-    -> usize
-{
+    trim_floats: bool,
+) -> usize {
     let len = filter_sign(value, radix, bytes, format, nan_string, inf_string, trim_floats);
     let bytes = &mut bytes[..len];
     trim(bytes, trim_floats)
@@ -257,19 +249,35 @@ fn from_native<F: FloatToString>(
 
 /// Write float to string.
 #[inline]
-fn ftoa<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8])
-    -> usize
-{
-    from_native(value, radix, bytes, DEFAULT_FORMAT, DEFAULT_NAN_STRING, DEFAULT_INF_STRING, DEFAULT_TRIM_FLOATS)
+fn ftoa<F: FloatToString>(value: F, radix: u32, bytes: &mut [u8]) -> usize {
+    from_native(
+        value,
+        radix,
+        bytes,
+        DEFAULT_FORMAT,
+        DEFAULT_NAN_STRING,
+        DEFAULT_INF_STRING,
+        DEFAULT_TRIM_FLOATS,
+    )
 }
 
 /// Write float to string.
 #[inline]
-fn ftoa_with_options<F: FloatToString>(value: F, bytes: &mut [u8], options: &WriteFloatOptions)
-    -> usize
-{
+fn ftoa_with_options<F: FloatToString>(
+    value: F,
+    bytes: &mut [u8],
+    options: &WriteFloatOptions,
+) -> usize {
     let format = options.format().unwrap_or(DEFAULT_FORMAT);
-    from_native(value, options.radix(), bytes, format, options.nan_string(), options.inf_string(), options.trim_floats())
+    from_native(
+        value,
+        options.radix(),
+        bytes,
+        format,
+        options.nan_string(),
+        options.inf_string(),
+        options.trim_floats(),
+    )
 }
 
 // TO LEXICAL
@@ -286,20 +294,85 @@ to_lexical_with_options!(ftoa_with_options, f64);
 #[cfg(test)]
 mod tests {
     // Shouldn't need to include atof, should be fine with ToLexical in scope.
-    use approx::assert_relative_eq;
     use crate::traits::*;
     use crate::util::*;
+    use approx::assert_relative_eq;
 
     cfg_if! {
     if #[cfg(feature = "property_tests")] {
         use quickcheck::quickcheck;
         use proptest::{proptest, prop_assert_eq};
-    }}  // cfg_if
-
+    }} // cfg_if
 
     // Test data for roundtrips.
-    const F32_DATA : [f32; 31] = [0., 0.1, 1., 1.1, 12., 12.1, 123., 123.1, 1234., 1234.1, 12345., 12345.1, 123456., 123456.1, 1234567., 1234567.1, 12345678., 12345678.1, 123456789., 123456789.1, 123456789.12, 123456789.123, 123456789.1234, 123456789.12345, 1.2345678912345e8, 1.2345e+8, 1.2345e+11, 1.2345e+38, 1.2345e-8, 1.2345e-11, 1.2345e-38];
-    const F64_DATA: [f64; 33] = [0., 0.1, 1., 1.1, 12., 12.1, 123., 123.1, 1234., 1234.1, 12345., 12345.1, 123456., 123456.1, 1234567., 1234567.1, 12345678., 12345678.1, 123456789., 123456789.1, 123456789.12, 123456789.123, 123456789.1234, 123456789.12345, 1.2345678912345e8, 1.2345e+8, 1.2345e+11, 1.2345e+38, 1.2345e+308, 1.2345e-8, 1.2345e-11, 1.2345e-38, 1.2345e-299];
+    const F32_DATA: [f32; 31] = [
+        0.,
+        0.1,
+        1.,
+        1.1,
+        12.,
+        12.1,
+        123.,
+        123.1,
+        1234.,
+        1234.1,
+        12345.,
+        12345.1,
+        123456.,
+        123456.1,
+        1234567.,
+        1234567.1,
+        12345678.,
+        12345678.1,
+        123456789.,
+        123456789.1,
+        123456789.12,
+        123456789.123,
+        123456789.1234,
+        123456789.12345,
+        1.2345678912345e8,
+        1.2345e+8,
+        1.2345e+11,
+        1.2345e+38,
+        1.2345e-8,
+        1.2345e-11,
+        1.2345e-38,
+    ];
+    const F64_DATA: [f64; 33] = [
+        0.,
+        0.1,
+        1.,
+        1.1,
+        12.,
+        12.1,
+        123.,
+        123.1,
+        1234.,
+        1234.1,
+        12345.,
+        12345.1,
+        123456.,
+        123456.1,
+        1234567.,
+        1234567.1,
+        12345678.,
+        12345678.1,
+        123456789.,
+        123456789.1,
+        123456789.12,
+        123456789.123,
+        123456789.1234,
+        123456789.12345,
+        1.2345678912345e8,
+        1.2345e+8,
+        1.2345e+11,
+        1.2345e+38,
+        1.2345e+308,
+        1.2345e-8,
+        1.2345e-11,
+        1.2345e-38,
+        1.2345e-299,
+    ];
 
     #[test]
     fn special_bytes_test() {
@@ -323,11 +396,7 @@ mod tests {
     fn f32_binary_test() {
         let mut buffer = new_buffer();
         // positive
-        let options = WriteFloatOptions::builder()
-            .radix(2)
-            .trim_floats(true)
-            .build()
-            .unwrap();
+        let options = WriteFloatOptions::builder().radix(2).trim_floats(true).build().unwrap();
         assert_eq!(as_slice(b"0"), 0.0f32.to_lexical_with_options(&mut buffer, &options));
         assert_eq!(as_slice(b"0"), (-0.0f32).to_lexical_with_options(&mut buffer, &options));
         assert_eq!(as_slice(b"1"), 1.0f32.to_lexical_with_options(&mut buffer, &options));
@@ -341,33 +410,57 @@ mod tests {
 
         assert_eq!(as_slice(b"1.1"), 1.5f32.to_lexical_with_options(&mut buffer, &options));
         assert_eq!(as_slice(b"1.01"), 1.25f32.to_lexical_with_options(&mut buffer, &options));
-        assert_eq!(b"1.001111000000110010", &1.2345678901234567890e0f32.to_lexical_with_options(&mut buffer, &options)[..20]);
-        assert_eq!(b"1100.010110000111111", &1.2345678901234567890e1f32.to_lexical_with_options(&mut buffer, &options)[..20]);
-        assert_eq!(b"1111011.011101001111", &1.2345678901234567890e2f32.to_lexical_with_options(&mut buffer, &options)[..20]);
-        assert_eq!(b"10011010010.10010001", &1.2345678901234567890e3f32.to_lexical_with_options(&mut buffer, &options)[..20]);
+        assert_eq!(
+            b"1.001111000000110010",
+            &1.2345678901234567890e0f32.to_lexical_with_options(&mut buffer, &options)[..20]
+        );
+        assert_eq!(
+            b"1100.010110000111111",
+            &1.2345678901234567890e1f32.to_lexical_with_options(&mut buffer, &options)[..20]
+        );
+        assert_eq!(
+            b"1111011.011101001111",
+            &1.2345678901234567890e2f32.to_lexical_with_options(&mut buffer, &options)[..20]
+        );
+        assert_eq!(
+            b"10011010010.10010001",
+            &1.2345678901234567890e3f32.to_lexical_with_options(&mut buffer, &options)[..20]
+        );
 
         // negative
-        assert_eq!(b"-1.001111000000110010", &(-1.2345678901234567890e0f32).to_lexical_with_options(&mut buffer, &options)[..21]);
-        assert_eq!(b"-1100.010110000111111", &(-1.2345678901234567890e1f32).to_lexical_with_options(&mut buffer, &options)[..21]);
-        assert_eq!(b"-1111011.011101001111", &(-1.2345678901234567890e2f32).to_lexical_with_options(&mut buffer, &options)[..21]);
-        assert_eq!(b"-10011010010.10010001", &(-1.2345678901234567890e3f32).to_lexical_with_options(&mut buffer, &options)[..21]);
+        assert_eq!(
+            b"-1.001111000000110010",
+            &(-1.2345678901234567890e0f32).to_lexical_with_options(&mut buffer, &options)[..21]
+        );
+        assert_eq!(
+            b"-1100.010110000111111",
+            &(-1.2345678901234567890e1f32).to_lexical_with_options(&mut buffer, &options)[..21]
+        );
+        assert_eq!(
+            b"-1111011.011101001111",
+            &(-1.2345678901234567890e2f32).to_lexical_with_options(&mut buffer, &options)[..21]
+        );
+        assert_eq!(
+            b"-10011010010.10010001",
+            &(-1.2345678901234567890e3f32).to_lexical_with_options(&mut buffer, &options)[..21]
+        );
 
         // special
         assert_eq!(as_slice(b"NaN"), f32::NAN.to_lexical_with_options(&mut buffer, &options));
         assert_eq!(as_slice(b"inf"), f32::INFINITY.to_lexical_with_options(&mut buffer, &options));
 
         // bugfixes
-        assert_eq!(as_slice(b"1.1010100000101011110001^-11011"), 0.000000012345f32.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(
+            as_slice(b"1.1010100000101011110001^-11011"),
+            0.000000012345f32.to_lexical_with_options(&mut buffer, &options)
+        );
     }
 
     #[test]
     fn f32_decimal_test() {
         let mut buffer = new_buffer();
         // positive
-        let options = WriteFloatOptions::builder()
-            .trim_floats(true)
-            .build()
-            .unwrap();
+        let options = WriteFloatOptions::builder().trim_floats(true).build().unwrap();
         assert_eq!(as_slice(b"0"), 0.0f32.to_lexical_with_options(&mut buffer, &options));
         assert_eq!(as_slice(b"0"), (-0.0f32).to_lexical_with_options(&mut buffer, &options));
         assert_eq!(as_slice(b"1"), 1.0f32.to_lexical_with_options(&mut buffer, &options));
@@ -384,10 +477,22 @@ mod tests {
         assert_eq!(as_slice(b"1234.567"), &1.2345678901234567890e3f32.to_lexical(&mut buffer)[..8]);
 
         // negative
-        assert_eq!(as_slice(b"-1.234567"), &(-1.2345678901234567890e0f32).to_lexical(&mut buffer)[..9]);
-        assert_eq!(as_slice(b"-12.34567"), &(-1.2345678901234567890e1f32).to_lexical(&mut buffer)[..9]);
-        assert_eq!(as_slice(b"-123.4567"), &(-1.2345678901234567890e2f32).to_lexical(&mut buffer)[..9]);
-        assert_eq!(as_slice(b"-1234.567"), &(-1.2345678901234567890e3f32).to_lexical(&mut buffer)[..9]);
+        assert_eq!(
+            as_slice(b"-1.234567"),
+            &(-1.2345678901234567890e0f32).to_lexical(&mut buffer)[..9]
+        );
+        assert_eq!(
+            as_slice(b"-12.34567"),
+            &(-1.2345678901234567890e1f32).to_lexical(&mut buffer)[..9]
+        );
+        assert_eq!(
+            as_slice(b"-123.4567"),
+            &(-1.2345678901234567890e2f32).to_lexical(&mut buffer)[..9]
+        );
+        assert_eq!(
+            as_slice(b"-1234.567"),
+            &(-1.2345678901234567890e3f32).to_lexical(&mut buffer)[..9]
+        );
 
         // special
         assert_eq!(as_slice(b"NaN"), f32::NAN.to_lexical(&mut buffer));
@@ -399,7 +504,12 @@ mod tests {
         let mut buffer = new_buffer();
         for &f in F32_DATA.iter() {
             let s = f.to_lexical(&mut buffer);
-            assert_relative_eq!(f32::from_lexical(s).unwrap(), f, epsilon=1e-6, max_relative=1e-6);
+            assert_relative_eq!(
+                f32::from_lexical(s).unwrap(),
+                f,
+                epsilon = 1e-6,
+                max_relative = 1e-6
+            );
         }
     }
 
@@ -414,7 +524,11 @@ mod tests {
                 let writeopts = WriteFloatOptions::builder().radix(radix).build().unwrap();
                 let parseopts = ParseFloatOptions::builder().radix(radix).build().unwrap();
                 let s = f.to_lexical_with_options(&mut buffer, &writeopts);
-                assert_relative_eq!(f32::from_lexical_with_options(s, &parseopts).unwrap(), f, max_relative=2e-5);
+                assert_relative_eq!(
+                    f32::from_lexical_with_options(s, &parseopts).unwrap(),
+                    f,
+                    max_relative = 2e-5
+                );
             }
         }
     }
@@ -424,11 +538,7 @@ mod tests {
     fn f64_binary_test() {
         let mut buffer = new_buffer();
         // positive
-        let options = WriteFloatOptions::builder()
-            .radix(2)
-            .trim_floats(true)
-            .build()
-            .unwrap();
+        let options = WriteFloatOptions::builder().radix(2).trim_floats(true).build().unwrap();
         assert_eq!(as_slice(b"0"), 0.0f64.to_lexical_with_options(&mut buffer, &options));
         assert_eq!(as_slice(b"0"), (-0.0f64).to_lexical_with_options(&mut buffer, &options));
         assert_eq!(as_slice(b"1"), 1.0f64.to_lexical_with_options(&mut buffer, &options));
@@ -440,16 +550,40 @@ mod tests {
         assert_eq!(as_slice(b"1.0"), 1.0f64.to_lexical_with_options(&mut buffer, &options));
         assert_eq!(as_slice(b"10.0"), 2.0f64.to_lexical_with_options(&mut buffer, &options));
 
-        assert_eq!(as_slice(b"1.00111100000011001010010000101000110001"), &1.2345678901234567890e0f64.to_lexical_with_options(&mut buffer, &options)[..40]);
-        assert_eq!(as_slice(b"1100.01011000011111100110100110010111101"), &1.2345678901234567890e1f64.to_lexical_with_options(&mut buffer, &options)[..40]);
-        assert_eq!(as_slice(b"1111011.01110100111100000001111111101101"), &1.2345678901234567890e2f64.to_lexical_with_options(&mut buffer, &options)[..40]);
-        assert_eq!(as_slice(b"10011010010.1001000101100001001111110100"), &1.2345678901234567890e3f64.to_lexical_with_options(&mut buffer, &options)[..40]);
+        assert_eq!(
+            as_slice(b"1.00111100000011001010010000101000110001"),
+            &1.2345678901234567890e0f64.to_lexical_with_options(&mut buffer, &options)[..40]
+        );
+        assert_eq!(
+            as_slice(b"1100.01011000011111100110100110010111101"),
+            &1.2345678901234567890e1f64.to_lexical_with_options(&mut buffer, &options)[..40]
+        );
+        assert_eq!(
+            as_slice(b"1111011.01110100111100000001111111101101"),
+            &1.2345678901234567890e2f64.to_lexical_with_options(&mut buffer, &options)[..40]
+        );
+        assert_eq!(
+            as_slice(b"10011010010.1001000101100001001111110100"),
+            &1.2345678901234567890e3f64.to_lexical_with_options(&mut buffer, &options)[..40]
+        );
 
         // negative
-        assert_eq!(as_slice(b"-1.00111100000011001010010000101000110001"), &(-1.2345678901234567890e0f64).to_lexical_with_options(&mut buffer, &options)[..41]);
-        assert_eq!(as_slice(b"-1100.01011000011111100110100110010111101"), &(-1.2345678901234567890e1f64).to_lexical_with_options(&mut buffer, &options)[..41]);
-        assert_eq!(as_slice(b"-1111011.01110100111100000001111111101101"), &(-1.2345678901234567890e2f64).to_lexical_with_options(&mut buffer, &options)[..41]);
-        assert_eq!(as_slice(b"-10011010010.1001000101100001001111110100"), &(-1.2345678901234567890e3f64).to_lexical_with_options(&mut buffer, &options)[..41]);
+        assert_eq!(
+            as_slice(b"-1.00111100000011001010010000101000110001"),
+            &(-1.2345678901234567890e0f64).to_lexical_with_options(&mut buffer, &options)[..41]
+        );
+        assert_eq!(
+            as_slice(b"-1100.01011000011111100110100110010111101"),
+            &(-1.2345678901234567890e1f64).to_lexical_with_options(&mut buffer, &options)[..41]
+        );
+        assert_eq!(
+            as_slice(b"-1111011.01110100111100000001111111101101"),
+            &(-1.2345678901234567890e2f64).to_lexical_with_options(&mut buffer, &options)[..41]
+        );
+        assert_eq!(
+            as_slice(b"-10011010010.1001000101100001001111110100"),
+            &(-1.2345678901234567890e3f64).to_lexical_with_options(&mut buffer, &options)[..41]
+        );
 
         // special
         assert_eq!(as_slice(b"NaN"), f64::NAN.to_lexical_with_options(&mut buffer, &options));
@@ -460,10 +594,7 @@ mod tests {
     fn f64_decimal_test() {
         let mut buffer = new_buffer();
         // positive
-        let options = WriteFloatOptions::builder()
-            .trim_floats(true)
-            .build()
-            .unwrap();
+        let options = WriteFloatOptions::builder().trim_floats(true).build().unwrap();
         assert_eq!(as_slice(b"0"), 0.0.to_lexical_with_options(&mut buffer, &options));
         assert_eq!(as_slice(b"0"), (-0.0).to_lexical_with_options(&mut buffer, &options));
         assert_eq!(as_slice(b"1"), 1.0.to_lexical_with_options(&mut buffer, &options));
@@ -480,10 +611,22 @@ mod tests {
         assert_eq!(as_slice(b"1234.567"), &1.2345678901234567890e3.to_lexical(&mut buffer)[..8]);
 
         // negative
-        assert_eq!(as_slice(b"-1.234567"), &(-1.2345678901234567890e0).to_lexical(&mut buffer)[..9]);
-        assert_eq!(as_slice(b"-12.34567"), &(-1.2345678901234567890e1).to_lexical(&mut buffer)[..9]);
-        assert_eq!(as_slice(b"-123.4567"), &(-1.2345678901234567890e2).to_lexical(&mut buffer)[..9]);
-        assert_eq!(as_slice(b"-1234.567"), &(-1.2345678901234567890e3).to_lexical(&mut buffer)[..9]);
+        assert_eq!(
+            as_slice(b"-1.234567"),
+            &(-1.2345678901234567890e0).to_lexical(&mut buffer)[..9]
+        );
+        assert_eq!(
+            as_slice(b"-12.34567"),
+            &(-1.2345678901234567890e1).to_lexical(&mut buffer)[..9]
+        );
+        assert_eq!(
+            as_slice(b"-123.4567"),
+            &(-1.2345678901234567890e2).to_lexical(&mut buffer)[..9]
+        );
+        assert_eq!(
+            as_slice(b"-1234.567"),
+            &(-1.2345678901234567890e3).to_lexical(&mut buffer)[..9]
+        );
 
         // special
         assert_eq!(b"NaN".to_vec(), f64::NAN.to_lexical(&mut buffer));
@@ -495,7 +638,12 @@ mod tests {
         let mut buffer = new_buffer();
         for &f in F64_DATA.iter() {
             let s = f.to_lexical(&mut buffer);
-            assert_relative_eq!(f64::from_lexical(s).unwrap(), f, epsilon=1e-12, max_relative=1e-12);
+            assert_relative_eq!(
+                f64::from_lexical(s).unwrap(),
+                f,
+                epsilon = 1e-12,
+                max_relative = 1e-12
+            );
         }
     }
 
@@ -510,7 +658,11 @@ mod tests {
                 let writeopts = WriteFloatOptions::builder().radix(radix).build().unwrap();
                 let parseopts = ParseFloatOptions::builder().radix(radix).build().unwrap();
                 let s = f.to_lexical_with_options(&mut buffer, &writeopts);
-                assert_relative_eq!(f64::from_lexical_with_options(s, &parseopts).unwrap(), f, max_relative=3e-5);
+                assert_relative_eq!(
+                    f64::from_lexical_with_options(s, &parseopts).unwrap(),
+                    f,
+                    max_relative = 3e-5
+                );
             }
         }
     }
@@ -556,14 +708,14 @@ mod tests {
     #[test]
     #[should_panic]
     fn f32_buffer_test() {
-        let mut buffer = [b'0'; f32::FORMATTED_SIZE_DECIMAL-1];
+        let mut buffer = [b'0'; f32::FORMATTED_SIZE_DECIMAL - 1];
         1.2345f32.to_lexical(&mut buffer);
     }
 
     #[test]
     #[should_panic]
     fn f64_buffer_test() {
-        let mut buffer = [b'0'; f64::FORMATTED_SIZE_DECIMAL-1];
+        let mut buffer = [b'0'; f64::FORMATTED_SIZE_DECIMAL - 1];
         1.2345f64.to_lexical(&mut buffer);
     }
 }

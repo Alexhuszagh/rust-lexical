@@ -1,7 +1,7 @@
 //! Wrapper around David Tolnay's dtoa.
 
-use dtoa;
 use crate::util::*;
+use dtoa;
 
 use super::replace::replace;
 
@@ -12,9 +12,7 @@ use super::replace::replace;
 /// `f` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline]
-pub(crate) fn float_decimal<'a>(f: f32, mut bytes: &'a mut [u8], format: NumberFormat)
-    -> usize
-{
+pub(crate) fn float_decimal<'a>(f: f32, mut bytes: &'a mut [u8], format: NumberFormat) -> usize {
     let count = dtoa::write(&mut bytes, f).expect("Write to in-memory buffer.");
     replace(bytes, count, format);
     count
@@ -27,9 +25,7 @@ pub(crate) fn float_decimal<'a>(f: f32, mut bytes: &'a mut [u8], format: NumberF
 /// `d` must be non-special (NaN or infinite), non-negative,
 /// and non-zero.
 #[inline]
-pub(crate) fn double_decimal<'a>(d: f64, mut bytes: &'a mut [u8], format: NumberFormat)
-    -> usize
-{
+pub(crate) fn double_decimal<'a>(d: f64, mut bytes: &'a mut [u8], format: NumberFormat) -> usize {
     let count = dtoa::write(&mut bytes, d).expect("Write to in-memory buffer.");
     replace(bytes, count, format);
     count

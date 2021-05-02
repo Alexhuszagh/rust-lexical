@@ -175,7 +175,7 @@ pub(crate) mod lib {
     } else {
         pub(crate) use ::alloc::string::String;
         pub(crate) use ::alloc::vec::Vec;
-    }}  // cfg_if
+    }} // cfg_if
 } // cfg_if
 
 // API
@@ -252,9 +252,7 @@ pub fn to_string<N: ToLexical>(n: N) -> lib::String {
 /// # }
 /// ```
 #[inline]
-pub fn to_string_with_options<N: ToLexicalOptions>(n: N, options: &N::WriteOptions)
-    -> lib::String
-{
+pub fn to_string_with_options<N: ToLexicalOptions>(n: N, options: &N::WriteOptions) -> lib::String {
     #[cfg(feature = "radix")]
     let size = N::FORMATTED_SIZE;
     #[cfg(not(feature = "radix"))]
@@ -338,9 +336,10 @@ pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
 /// # }
 /// ```
 #[inline]
-pub fn parse_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Bytes, options: &N::ParseOptions)
-    -> Result<N>
-{
+pub fn parse_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+    options: &N::ParseOptions,
+) -> Result<N> {
     N::from_lexical_with_options(bytes.as_ref(), options)
 }
 
@@ -416,8 +415,9 @@ pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result
 /// # }
 /// ```
 #[inline]
-pub fn parse_partial_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Bytes, options: &N::ParseOptions)
-    -> Result<(N, usize)>
-{
+pub fn parse_partial_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(
+    bytes: Bytes,
+    options: &N::ParseOptions,
+) -> Result<(N, usize)> {
     N::from_lexical_partial_with_options(bytes.as_ref(), options)
 }

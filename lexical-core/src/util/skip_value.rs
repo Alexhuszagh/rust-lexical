@@ -11,15 +11,15 @@
 //! assert!(iter.eq([1, 5, 6, 7].iter()));
 //! ```
 
-use crate::lib::slice;
 use super::iterator::*;
+use crate::lib::slice;
 
 /// Slice iterator that skips characters matching a given value.
 pub(crate) struct SkipValueIterator<'a, T: 'a + PartialEq> {
     /// Slice iterator to wrap.
     iter: slice::Iter<'a, T>,
     /// Value to skip.
-    skip: T
+    skip: T,
 }
 
 impl<'a, T: 'a + PartialEq> SkipValueIterator<'a, T> {
@@ -27,7 +27,7 @@ impl<'a, T: 'a + PartialEq> SkipValueIterator<'a, T> {
     pub(crate) fn new(slc: &'a [T], skip: T) -> Self {
         SkipValueIterator {
             iter: slc.iter(),
-            skip: skip
+            skip,
         }
     }
 }
@@ -37,7 +37,7 @@ impl<'a, T: 'a + PartialEq + Clone> Clone for SkipValueIterator<'a, T> {
     fn clone(&self) -> Self {
         SkipValueIterator {
             iter: self.iter.clone(),
-            skip: self.skip.clone()
+            skip: self.skip.clone(),
         }
     }
 }

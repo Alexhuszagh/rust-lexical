@@ -1,7 +1,7 @@
 //! Parser result type.
 
-use crate::lib::result::Result as StdResult;
 use super::error::{Error, ErrorCode};
+use crate::lib::result::Result as StdResult;
 
 /// A specialized Result type for lexical operations.
 pub type Result<T> = StdResult<T, Error>;

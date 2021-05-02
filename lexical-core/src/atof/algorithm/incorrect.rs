@@ -15,25 +15,25 @@ type Wrapped<F> = WrappedFloat<F>;
 
 /// Process the integer component of the raw float.
 #[inline(always)]
-fn process_integer<'a, F, Data>(data: &Data, radix: u32)
-    -> F
-    where F: FloatType,
-          Data: FastDataInterface<'a>
+fn process_integer<'a, F, Data>(data: &Data, radix: u32) -> F
+where
+    F: FloatType,
+    Data: FastDataInterface<'a>,
 {
     match data.integer().len() {
         0 => F::ZERO,
         // Cannot overflow and cannot have invalid digits.
         _ => atoi::standalone_mantissa_incorrect::<Wrapped<F>, _>(data.integer_iter(), radix)
-                .into_inner()
+            .into_inner(),
     }
 }
 
 /// Process the fraction component of the raw float.
 #[inline(always)]
-fn process_fraction<'a, F, Data>(data: &Data, radix: u32)
-    -> F
-    where F: FloatType,
-          Data: FastDataInterface<'a>
+fn process_fraction<'a, F, Data>(data: &Data, radix: u32) -> F
+where
+    F: FloatType,
+    Data: FastDataInterface<'a>,
 {
     // We don't really care about numerical precision, so just break
     // the fraction into 12-digit pieces.
@@ -63,8 +63,9 @@ fn process_fraction<'a, F, Data>(data: &Data, radix: u32)
 }
 
 pub(crate) fn to_native<'a, F, Data>(data: Data, radix: u32) -> F
-    where F: FloatType,
-          Data: FastDataInterface<'a>
+where
+    F: FloatType,
+    Data: FastDataInterface<'a>,
 {
     let integer: F = process_integer(&data, radix);
     let fraction: F = process_fraction(&data, radix);
@@ -112,10 +113,7 @@ mod tests {
 
     #[test]
     fn atof_test() {
-        let options = ParseFloatOptions::builder()
-            .incorrect(true)
-            .build()
-            .unwrap();
+        let options = ParseFloatOptions::builder().incorrect(true).build().unwrap();
         let atof10 = move |x| f32::from_lexical_partial_with_options(x, &options);
 
         assert_eq!(Ok((1.2345, 6)), atof10(b"1.2345"));
@@ -126,10 +124,7 @@ mod tests {
 
     #[test]
     fn atod_test() {
-        let options = ParseFloatOptions::builder()
-            .incorrect(true)
-            .build()
-            .unwrap();
+        let options = ParseFloatOptions::builder().incorrect(true).build().unwrap();
         let atod10 = move |x| f64::from_lexical_partial_with_options(x, &options);
 
         assert_eq!(Ok((1.2345, 6)), atod10(b"1.2345"));

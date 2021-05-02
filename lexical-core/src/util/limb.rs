@@ -30,4 +30,4 @@ if #[cfg(limb_width_64)] {
     pub type Limb = u32;
     pub type Wide = u64;
     pub type SignedWide = i64;
-}}   // cfg_if
+}} // cfg_if

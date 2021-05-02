@@ -27,10 +27,7 @@ pub fn debug_dir() -> PathBuf {
 
 /// Return the `target` directory path.
 pub fn target_dir() -> PathBuf {
-    debug_dir()
-        .parent()
-        .expect("target directory")
-        .to_path_buf()
+    debug_dir().parent().expect("target directory").to_path_buf()
 }
 
 /// Return the project directory path.

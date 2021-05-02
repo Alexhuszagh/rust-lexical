@@ -19,11 +19,11 @@ macro_rules! unchecked_index {
 macro_rules! unchecked_index_mut {
     // Get
     ($container:ident[$index:expr]) => {
-        * unsafe { $container.get_unchecked_mut($index) }
+        *unsafe { $container.get_unchecked_mut($index) }
     };
 
     // Set
-    ($container:ident[$index:expr] = $rhs:expr) => (
+    ($container:ident[$index:expr] = $rhs:expr) => {
         unsafe { *$container.get_unchecked_mut($index) = $rhs }
-    );
+    };
 }

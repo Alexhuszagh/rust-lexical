@@ -10,8 +10,7 @@ use super::mantissa::*;
 
 /// Shift extended-precision float right `shift` bytes.
 #[inline]
-pub(super) fn shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
-{
+pub(super) fn shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T) {
     let bits: T = as_cast(mem::size_of::<M>() * 8);
     debug_assert!(shift < bits, "shr() overflow in shift right.");
 
@@ -24,13 +23,12 @@ pub(super) fn shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
 /// Accepts when the shift is the same as the type size, and
 /// sets the value to 0.
 #[inline]
-pub(super) fn overflowing_shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
-{
+pub(super) fn overflowing_shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T) {
     let bits: T = as_cast(mem::size_of::<M>() * 8);
     debug_assert!(shift <= bits, "overflowing_shr() overflow in shift right.");
 
     fp.mant = match shift == bits {
-        true  => M::ZERO,
+        true => M::ZERO,
         false => fp.mant >> as_cast::<M, _>(shift),
     };
     fp.exp += shift.as_i32();
@@ -38,8 +36,7 @@ pub(super) fn overflowing_shr<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>
 
 /// Shift extended-precision float left `shift` bytes.
 #[inline]
-pub(super) fn shl<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T)
-{
+pub(super) fn shl<M: Mantissa, T: Integer>(fp: &mut ExtendedFloat<M>, shift: T) {
     let bits: T = as_cast(mem::size_of::<M>() * 8);
     debug_assert!(shift < bits, "shl() overflow in shift left.");
 

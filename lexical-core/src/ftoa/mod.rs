@@ -7,7 +7,7 @@ cfg_if! {
 if #[cfg(feature = "radix")] {
     mod binary;
     mod radix;
-}}  // cfg_if
+}} // cfg_if
 
 cfg_if! {
 if #[cfg(feature = "grisu3")] {
@@ -18,4 +18,4 @@ if #[cfg(feature = "grisu3")] {
     mod replace;
 } else {
     mod grisu2;
-}}  // cfg_if
+}} // cfg_if

@@ -51,8 +51,8 @@ data_interface!(
 
 #[cfg(test)]
 mod tests {
-    use crate::error::*;
     use super::*;
+    use crate::error::*;
 
     macro_rules! ignore {
         ($integer:expr, $fraction:expr, $exponent:expr, $raw_exponent:expr) => {
@@ -61,17 +61,14 @@ mod tests {
                 integer: $integer,
                 fraction: $fraction,
                 exponent: $exponent,
-                raw_exponent: $raw_exponent
+                raw_exponent: $raw_exponent,
             }
         };
     }
 
     #[test]
     fn extract_test() {
-        let format = NumberFormat::IGNORE.rebuild()
-            .digit_separator(b'_')
-            .build()
-            .unwrap();
+        let format = NumberFormat::IGNORE.rebuild().digit_separator(b'_').build().unwrap();
         IgnoreFastDataInterface::new(format).run_tests([
             // Valid
             ("1.2345", Ok(ignore!(b"1", Some(b!("2345")), None, 0))),

@@ -18,22 +18,22 @@ macro_rules! add_digit {
     ($value:ident, $radix:ident, $op:ident, $digit:ident) => {
         match $value.checked_mul(as_cast($radix)) {
             Some(v) => v.$op(as_cast($digit)),
-            None    => None,
+            None => None,
         }
     };
 }
 
 // Iterate over the digits and iteratively process them.
 macro_rules! parse_digits_exponent {
-    ($value:ident, $iter:ident, $radix:ident, $op:ident, $default:expr) => (
+    ($value:ident, $iter:ident, $radix:ident, $op:ident, $default:expr) => {
         while let Some(c) = $iter.next() {
             let digit = match to_digit_err(c, $radix) {
-                Ok(v)  => v,
+                Ok(v) => v,
                 Err(c) => return ($value, c),
             };
             $value = match add_digit!($value, $radix, $op, digit) {
                 Some(v) => v,
-                None    => {
+                None => {
                     // Consume the rest of the iterator to validate
                     // the remaining data.
                     if let Some(c) = $iter.find(|&c| is_not_digit_char(*c, $radix)) {
@@ -43,21 +43,25 @@ macro_rules! parse_digits_exponent {
                 },
             };
         }
-    );
+    };
 }
 
 // Specialized parser for the exponent, which validates digits and
 // returns a default min or max value on overflow.
 #[inline]
-pub(crate) fn standalone_exponent<'a, Iter>(mut iter: Iter, radix: u32, sign: Sign)
-    -> (i32, *const u8)
-    where Iter: AsPtrIterator<'a, u8>
+pub(crate) fn standalone_exponent<'a, Iter>(
+    mut iter: Iter,
+    radix: u32,
+    sign: Sign,
+) -> (i32, *const u8)
+where
+    Iter: AsPtrIterator<'a, u8>,
 {
     // Parse the sign bit or current data.
     let mut value = 0;
     match sign {
         Sign::Positive => parse_digits_exponent!(value, iter, radix, checked_add, i32::max_value()),
-        Sign::Negative => parse_digits_exponent!(value, iter, radix, checked_sub, i32::min_value())
+        Sign::Negative => parse_digits_exponent!(value, iter, radix, checked_sub, i32::min_value()),
     }
 
     (value, iter.as_ptr())

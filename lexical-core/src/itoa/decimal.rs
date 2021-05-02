@@ -146,7 +146,7 @@ macro_rules! ctlz {
 
 // Calculate the offset where the digits were first written.
 macro_rules! calculate_offset {
-    ($value:ident, $digits:ident, $max_digits:expr, $size:expr) => ({
+    ($value:ident, $digits:ident, $max_digits:expr, $size:expr) => {{
         // Get the log2 of the value to estimate the log10 quickly.
         // log2(0) is undefined, always ensure 1 bit is set.
         let value = $value | 1;
@@ -166,7 +166,7 @@ macro_rules! calculate_offset {
         }
 
         offset
-    });
+    }};
 }
 
 // INDEXING
@@ -174,12 +174,16 @@ macro_rules! calculate_offset {
 
 // Convert sequential values to index.
 macro_rules! sequential_index {
-    ($v0:ident, $v1:ident) => (($v0 * 2 - $v1 * 200).as_usize());
+    ($v0:ident, $v1:ident) => {
+        ($v0 * 2 - $v1 * 200).as_usize()
+    };
 }
 
 // Convert singular value to index.
 macro_rules! last_index {
-    ($value:ident) => ((2 * $value).as_usize());
+    ($value:ident) => {
+        (2 * $value).as_usize()
+    };
 }
 
 // WRITE
@@ -199,8 +203,8 @@ fn write_1(value: u32, buffer: &mut [u8]) {
 #[allow(unused_unsafe)]
 fn write_2(value: u32, buffer: &mut [u8]) {
     let i_0 = last_index!(value);
-    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_0+1]));
-    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_0+0]));
+    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_0 + 1]));
+    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_0 + 0]));
 }
 
 /// Write 3 digits to buffer.
@@ -211,9 +215,9 @@ fn write_3(value: u32, buffer: &mut [u8]) {
     let v_1 = v_0 / 100;
     let i_0 = sequential_index!(v_0, v_1);
     let i_1 = last_index!(v_1);
-    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_0+1]));
-    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_0+0]));
-    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_1+1]));
+    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_0 + 1]));
+    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_0 + 0]));
+    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_1 + 1]));
 }
 
 /// Write 4 digits to buffer.
@@ -224,10 +228,10 @@ fn write_4(value: u32, buffer: &mut [u8]) {
     let v_1 = v_0 / 100;
     let i_0 = sequential_index!(v_0, v_1);
     let i_1 = last_index!(v_1);
-    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_0+1]));
-    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_0+0]));
-    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_1+1]));
-    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_1+0]));
+    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_0 + 1]));
+    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_0 + 0]));
+    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_1 + 1]));
+    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_1 + 0]));
 }
 
 /// Write 5 digits to buffer.
@@ -240,11 +244,11 @@ fn write_5(value: u32, buffer: &mut [u8]) {
     let i_0 = sequential_index!(v_0, v_1);
     let i_1 = sequential_index!(v_1, v_2);
     let i_2 = last_index!(v_2);
-    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_0+1]));
-    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_0+0]));
-    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_1+1]));
-    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_1+0]));
-    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_2+1]));
+    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_0 + 1]));
+    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_0 + 0]));
+    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_1 + 1]));
+    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_1 + 0]));
+    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_2 + 1]));
 }
 
 /// Write 10 digits to buffer.
@@ -262,16 +266,16 @@ fn write_10(value: u32, buffer: &mut [u8]) {
     let i_2 = sequential_index!(v_2, v_3);
     let i_3 = last_index!(v_3);
     let i_4 = last_index!(v_4);
-    unchecked_index_mut!(buffer[9] = unchecked_index!(TABLE[i_0+1]));
-    unchecked_index_mut!(buffer[8] = unchecked_index!(TABLE[i_0+0]));
-    unchecked_index_mut!(buffer[7] = unchecked_index!(TABLE[i_1+1]));
-    unchecked_index_mut!(buffer[6] = unchecked_index!(TABLE[i_1+0]));
-    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_2+1]));
-    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_2+0]));
-    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_3+1]));
-    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_3+0]));
-    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_4+1]));
-    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_4+0]));
+    unchecked_index_mut!(buffer[9] = unchecked_index!(TABLE[i_0 + 1]));
+    unchecked_index_mut!(buffer[8] = unchecked_index!(TABLE[i_0 + 0]));
+    unchecked_index_mut!(buffer[7] = unchecked_index!(TABLE[i_1 + 1]));
+    unchecked_index_mut!(buffer[6] = unchecked_index!(TABLE[i_1 + 0]));
+    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_2 + 1]));
+    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_2 + 0]));
+    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_3 + 1]));
+    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_3 + 0]));
+    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_4 + 1]));
+    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_4 + 0]));
 }
 
 /// Write 15 digits to buffer.
@@ -295,21 +299,21 @@ fn write_15(value: u64, buffer: &mut [u8]) {
     let i_5 = sequential_index!(v_5, v_6);
     let i_6 = sequential_index!(v_6, v_7);
     let i_7 = last_index!(v_7);
-    unchecked_index_mut!(buffer[14] = unchecked_index!(TABLE[i_0+1]));
-    unchecked_index_mut!(buffer[13] = unchecked_index!(TABLE[i_0+0]));
-    unchecked_index_mut!(buffer[12] = unchecked_index!(TABLE[i_1+1]));
-    unchecked_index_mut!(buffer[11] = unchecked_index!(TABLE[i_1+0]));
-    unchecked_index_mut!(buffer[10] = unchecked_index!(TABLE[i_2+1]));
-    unchecked_index_mut!(buffer[9] = unchecked_index!(TABLE[i_2+0]));
-    unchecked_index_mut!(buffer[8] = unchecked_index!(TABLE[i_3+1]));
-    unchecked_index_mut!(buffer[7] = unchecked_index!(TABLE[i_3+0]));
-    unchecked_index_mut!(buffer[6] = unchecked_index!(TABLE[i_4+1]));
-    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_4+0]));
-    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_5+1]));
-    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_5+0]));
-    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_6+1]));
-    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_6+0]));
-    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_7+1]));
+    unchecked_index_mut!(buffer[14] = unchecked_index!(TABLE[i_0 + 1]));
+    unchecked_index_mut!(buffer[13] = unchecked_index!(TABLE[i_0 + 0]));
+    unchecked_index_mut!(buffer[12] = unchecked_index!(TABLE[i_1 + 1]));
+    unchecked_index_mut!(buffer[11] = unchecked_index!(TABLE[i_1 + 0]));
+    unchecked_index_mut!(buffer[10] = unchecked_index!(TABLE[i_2 + 1]));
+    unchecked_index_mut!(buffer[9] = unchecked_index!(TABLE[i_2 + 0]));
+    unchecked_index_mut!(buffer[8] = unchecked_index!(TABLE[i_3 + 1]));
+    unchecked_index_mut!(buffer[7] = unchecked_index!(TABLE[i_3 + 0]));
+    unchecked_index_mut!(buffer[6] = unchecked_index!(TABLE[i_4 + 1]));
+    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_4 + 0]));
+    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_5 + 1]));
+    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_5 + 0]));
+    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_6 + 1]));
+    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_6 + 0]));
+    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_7 + 1]));
 }
 
 /// Write 19 digits to buffer (used internally for the u128 writers).
@@ -338,25 +342,25 @@ fn write_19(value: u64, buffer: &mut [u8]) {
     let i_7 = last_index!(v_7);
     let i_8 = sequential_index!(v_8, v_9);
     let i_9 = last_index!(v_9);
-    unchecked_index_mut!(buffer[18] = unchecked_index!(TABLE[i_0+1]));
-    unchecked_index_mut!(buffer[17] = unchecked_index!(TABLE[i_0+0]));
-    unchecked_index_mut!(buffer[16] = unchecked_index!(TABLE[i_1+1]));
-    unchecked_index_mut!(buffer[15] = unchecked_index!(TABLE[i_1+0]));
-    unchecked_index_mut!(buffer[14] = unchecked_index!(TABLE[i_2+1]));
-    unchecked_index_mut!(buffer[13] = unchecked_index!(TABLE[i_2+0]));
-    unchecked_index_mut!(buffer[12] = unchecked_index!(TABLE[i_3+1]));
-    unchecked_index_mut!(buffer[11] = unchecked_index!(TABLE[i_3+0]));
-    unchecked_index_mut!(buffer[10] = unchecked_index!(TABLE[i_4+1]));
-    unchecked_index_mut!(buffer[9] = unchecked_index!(TABLE[i_4+0]));
-    unchecked_index_mut!(buffer[8] = unchecked_index!(TABLE[i_5+1]));
-    unchecked_index_mut!(buffer[7] = unchecked_index!(TABLE[i_5+0]));
-    unchecked_index_mut!(buffer[6] = unchecked_index!(TABLE[i_6+1]));
-    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_6+0]));
-    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_7+1]));
-    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_7+0]));
-    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_8+1]));
-    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_8+0]));
-    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_9+1]));
+    unchecked_index_mut!(buffer[18] = unchecked_index!(TABLE[i_0 + 1]));
+    unchecked_index_mut!(buffer[17] = unchecked_index!(TABLE[i_0 + 0]));
+    unchecked_index_mut!(buffer[16] = unchecked_index!(TABLE[i_1 + 1]));
+    unchecked_index_mut!(buffer[15] = unchecked_index!(TABLE[i_1 + 0]));
+    unchecked_index_mut!(buffer[14] = unchecked_index!(TABLE[i_2 + 1]));
+    unchecked_index_mut!(buffer[13] = unchecked_index!(TABLE[i_2 + 0]));
+    unchecked_index_mut!(buffer[12] = unchecked_index!(TABLE[i_3 + 1]));
+    unchecked_index_mut!(buffer[11] = unchecked_index!(TABLE[i_3 + 0]));
+    unchecked_index_mut!(buffer[10] = unchecked_index!(TABLE[i_4 + 1]));
+    unchecked_index_mut!(buffer[9] = unchecked_index!(TABLE[i_4 + 0]));
+    unchecked_index_mut!(buffer[8] = unchecked_index!(TABLE[i_5 + 1]));
+    unchecked_index_mut!(buffer[7] = unchecked_index!(TABLE[i_5 + 0]));
+    unchecked_index_mut!(buffer[6] = unchecked_index!(TABLE[i_6 + 1]));
+    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_6 + 0]));
+    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_7 + 1]));
+    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_7 + 0]));
+    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_8 + 1]));
+    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_8 + 0]));
+    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_9 + 1]));
 }
 
 /// Write 20 digits to buffer.
@@ -385,26 +389,26 @@ fn write_20(value: u64, buffer: &mut [u8]) {
     let i_7 = last_index!(v_7);
     let i_8 = sequential_index!(v_8, v_9);
     let i_9 = last_index!(v_9);
-    unchecked_index_mut!(buffer[19] = unchecked_index!(TABLE[i_0+1]));
-    unchecked_index_mut!(buffer[18] = unchecked_index!(TABLE[i_0+0]));
-    unchecked_index_mut!(buffer[17] = unchecked_index!(TABLE[i_1+1]));
-    unchecked_index_mut!(buffer[16] = unchecked_index!(TABLE[i_1+0]));
-    unchecked_index_mut!(buffer[15] = unchecked_index!(TABLE[i_2+1]));
-    unchecked_index_mut!(buffer[14] = unchecked_index!(TABLE[i_2+0]));
-    unchecked_index_mut!(buffer[13] = unchecked_index!(TABLE[i_3+1]));
-    unchecked_index_mut!(buffer[12] = unchecked_index!(TABLE[i_3+0]));
-    unchecked_index_mut!(buffer[11] = unchecked_index!(TABLE[i_4+1]));
-    unchecked_index_mut!(buffer[10] = unchecked_index!(TABLE[i_4+0]));
-    unchecked_index_mut!(buffer[9] = unchecked_index!(TABLE[i_5+1]));
-    unchecked_index_mut!(buffer[8] = unchecked_index!(TABLE[i_5+0]));
-    unchecked_index_mut!(buffer[7] = unchecked_index!(TABLE[i_6+1]));
-    unchecked_index_mut!(buffer[6] = unchecked_index!(TABLE[i_6+0]));
-    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_7+1]));
-    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_7+0]));
-    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_8+1]));
-    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_8+0]));
-    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_9+1]));
-    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_9+0]));
+    unchecked_index_mut!(buffer[19] = unchecked_index!(TABLE[i_0 + 1]));
+    unchecked_index_mut!(buffer[18] = unchecked_index!(TABLE[i_0 + 0]));
+    unchecked_index_mut!(buffer[17] = unchecked_index!(TABLE[i_1 + 1]));
+    unchecked_index_mut!(buffer[16] = unchecked_index!(TABLE[i_1 + 0]));
+    unchecked_index_mut!(buffer[15] = unchecked_index!(TABLE[i_2 + 1]));
+    unchecked_index_mut!(buffer[14] = unchecked_index!(TABLE[i_2 + 0]));
+    unchecked_index_mut!(buffer[13] = unchecked_index!(TABLE[i_3 + 1]));
+    unchecked_index_mut!(buffer[12] = unchecked_index!(TABLE[i_3 + 0]));
+    unchecked_index_mut!(buffer[11] = unchecked_index!(TABLE[i_4 + 1]));
+    unchecked_index_mut!(buffer[10] = unchecked_index!(TABLE[i_4 + 0]));
+    unchecked_index_mut!(buffer[9] = unchecked_index!(TABLE[i_5 + 1]));
+    unchecked_index_mut!(buffer[8] = unchecked_index!(TABLE[i_5 + 0]));
+    unchecked_index_mut!(buffer[7] = unchecked_index!(TABLE[i_6 + 1]));
+    unchecked_index_mut!(buffer[6] = unchecked_index!(TABLE[i_6 + 0]));
+    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_7 + 1]));
+    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_7 + 0]));
+    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_8 + 1]));
+    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_8 + 0]));
+    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_9 + 1]));
+    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_9 + 0]));
 }
 
 /// Write 25 digits to buffer.
@@ -425,12 +429,12 @@ fn write_25(value: u128, buffer: &mut [u8]) {
     let i_0 = sequential_index!(v_0, v_1);
     let i_1 = sequential_index!(v_1, v_2);
     let i_2 = last_index!(v_2);
-    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_0+1]));
-    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_0+0]));
-    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_1+1]));
-    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_1+0]));
-    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_2+1]));
-    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_2+0]));
+    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_0 + 1]));
+    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_0 + 0]));
+    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_1 + 1]));
+    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_1 + 0]));
+    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_2 + 1]));
+    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_2 + 0]));
 }
 
 /// Write 29 digits to buffer.
@@ -456,16 +460,16 @@ fn write_29(value: u128, buffer: &mut [u8]) {
     let i_2 = sequential_index!(v_2, v_3);
     let i_3 = last_index!(v_3);
     let i_4 = last_index!(v_4);
-    unchecked_index_mut!(buffer[9] = unchecked_index!(TABLE[i_0+1]));
-    unchecked_index_mut!(buffer[8] = unchecked_index!(TABLE[i_0+0]));
-    unchecked_index_mut!(buffer[7] = unchecked_index!(TABLE[i_1+1]));
-    unchecked_index_mut!(buffer[6] = unchecked_index!(TABLE[i_1+0]));
-    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_2+1]));
-    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_2+0]));
-    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_3+1]));
-    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_3+0]));
-    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_4+1]));
-    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_4+0]));
+    unchecked_index_mut!(buffer[9] = unchecked_index!(TABLE[i_0 + 1]));
+    unchecked_index_mut!(buffer[8] = unchecked_index!(TABLE[i_0 + 0]));
+    unchecked_index_mut!(buffer[7] = unchecked_index!(TABLE[i_1 + 1]));
+    unchecked_index_mut!(buffer[6] = unchecked_index!(TABLE[i_1 + 0]));
+    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_2 + 1]));
+    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_2 + 0]));
+    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_3 + 1]));
+    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_3 + 0]));
+    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_4 + 1]));
+    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_4 + 0]));
 }
 
 /// Write 34 digits to buffer.
@@ -497,21 +501,21 @@ fn write_34(value: u128, buffer: &mut [u8]) {
     let i_5 = sequential_index!(v_5, v_6);
     let i_6 = sequential_index!(v_6, v_7);
     let i_7 = last_index!(v_7);
-    unchecked_index_mut!(buffer[14] = unchecked_index!(TABLE[i_0+1]));
-    unchecked_index_mut!(buffer[13] = unchecked_index!(TABLE[i_0+0]));
-    unchecked_index_mut!(buffer[12] = unchecked_index!(TABLE[i_1+1]));
-    unchecked_index_mut!(buffer[11] = unchecked_index!(TABLE[i_1+0]));
-    unchecked_index_mut!(buffer[10] = unchecked_index!(TABLE[i_2+1]));
-    unchecked_index_mut!(buffer[9] = unchecked_index!(TABLE[i_2+0]));
-    unchecked_index_mut!(buffer[8] = unchecked_index!(TABLE[i_3+1]));
-    unchecked_index_mut!(buffer[7] = unchecked_index!(TABLE[i_3+0]));
-    unchecked_index_mut!(buffer[6] = unchecked_index!(TABLE[i_4+1]));
-    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_4+0]));
-    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_5+1]));
-    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_5+0]));
-    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_6+1]));
-    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_6+0]));
-    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_7+1]));
+    unchecked_index_mut!(buffer[14] = unchecked_index!(TABLE[i_0 + 1]));
+    unchecked_index_mut!(buffer[13] = unchecked_index!(TABLE[i_0 + 0]));
+    unchecked_index_mut!(buffer[12] = unchecked_index!(TABLE[i_1 + 1]));
+    unchecked_index_mut!(buffer[11] = unchecked_index!(TABLE[i_1 + 0]));
+    unchecked_index_mut!(buffer[10] = unchecked_index!(TABLE[i_2 + 1]));
+    unchecked_index_mut!(buffer[9] = unchecked_index!(TABLE[i_2 + 0]));
+    unchecked_index_mut!(buffer[8] = unchecked_index!(TABLE[i_3 + 1]));
+    unchecked_index_mut!(buffer[7] = unchecked_index!(TABLE[i_3 + 0]));
+    unchecked_index_mut!(buffer[6] = unchecked_index!(TABLE[i_4 + 1]));
+    unchecked_index_mut!(buffer[5] = unchecked_index!(TABLE[i_4 + 0]));
+    unchecked_index_mut!(buffer[4] = unchecked_index!(TABLE[i_5 + 1]));
+    unchecked_index_mut!(buffer[3] = unchecked_index!(TABLE[i_5 + 0]));
+    unchecked_index_mut!(buffer[2] = unchecked_index!(TABLE[i_6 + 1]));
+    unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_6 + 0]));
+    unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_7 + 1]));
 }
 
 /// Write 39 digits to buffer.
@@ -761,14 +765,14 @@ pub(crate) trait Decimal {
 
 // Implement decimal for type.
 macro_rules! decimal_impl {
-    ($t:ty, $cb:ident) => (
+    ($t:ty, $cb:ident) => {
         impl Decimal for $t {
             #[inline(always)]
             fn decimal(self, buffer: &mut [u8]) -> usize {
                 $cb(self, buffer)
             }
         }
-    );
+    };
 }
 
 decimal_impl!(u8, u8toa);

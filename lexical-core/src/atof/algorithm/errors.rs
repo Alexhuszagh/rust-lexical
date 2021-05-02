@@ -15,9 +15,7 @@ use crate::util::*;
 
 /// Check if the error is accurate with a round-nearest rounding scheme.
 #[inline]
-fn nearest_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64)
-    -> bool
-{
+fn nearest_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64) -> bool {
     // Round-to-nearest, need to use the halfway point.
     if extrabits == 65 {
         // Underflow, we have a shift larger than the mantissa.
@@ -45,9 +43,7 @@ fn nearest_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u6
 /// Check if the error is accurate with a round-toward rounding scheme.
 #[inline]
 #[cfg(feature = "rounding")]
-fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64)
-    -> bool
-{
+fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64) -> bool {
     if extrabits == 65 {
         // Underflow, we have a literal 0.
         true
@@ -91,7 +87,11 @@ pub trait FloatErrors: Mantissa {
     /// Get the half error scale.
     fn error_halfscale() -> u32;
     /// Determine if the number of errors is tolerable for float precision.
-    fn error_is_accurate<F: Float>(count: u32, fp: &ExtendedFloat<Self>, kind: RoundingKind) -> bool;
+    fn error_is_accurate<F: Float>(
+        count: u32,
+        fp: &ExtendedFloat<Self>,
+        kind: RoundingKind,
+    ) -> bool;
 }
 
 impl FloatErrors for u64 {
@@ -107,9 +107,11 @@ impl FloatErrors for u64 {
 
     #[inline]
     #[allow(unused_variables)]
-    fn error_is_accurate<F: Float>(count: u32, fp: &ExtendedFloat<u64>, kind: RoundingKind)
-        -> bool
-    {
+    fn error_is_accurate<F: Float>(
+        count: u32,
+        fp: &ExtendedFloat<u64>,
+        kind: RoundingKind,
+    ) -> bool {
         // Determine if extended-precision float is a good approximation.
         // If the error has affected too many units, the float will be
         // inaccurate, or if the representation is too close to halfway
@@ -120,7 +122,7 @@ impl FloatErrors for u64 {
         // This is always a valid u32, since (denormal_exp - fp.exp)
         // will always be positive and the significand size is {23, 52}.
         let extrabits = match fp.exp <= denormal_exp {
-            true  => 64 - F::MANTISSA_SIZE + denormal_exp - fp.exp,
+            true => 64 - F::MANTISSA_SIZE + denormal_exp - fp.exp,
             false => 63 - F::MANTISSA_SIZE,
         };
 
@@ -176,11 +178,13 @@ impl FloatErrors for u64 {
             return true;
         }
 
-        #[cfg(not(feature = "rounding"))] {
+        #[cfg(not(feature = "rounding"))]
+        {
             nearest_error_is_accurate(errors, fp, extrabits)
         }
 
-        #[cfg(feature = "rounding")] {
+        #[cfg(feature = "rounding")]
+        {
             if kind.is_nearest() {
                 nearest_error_is_accurate(errors, fp, extrabits)
             } else {

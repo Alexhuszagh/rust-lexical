@@ -55,7 +55,7 @@ pub(crate) trait SlowDataInterfaceImpl<'a>: Sized {
 
 // Implement FastDataInterfaceImpl for a default structure.
 macro_rules! fast_data_interface_impl {
-    ($name:ident) => (
+    ($name:ident) => {
         impl<'a> FastDataInterfaceImpl<'a> for $name<'a> {
             #[inline(always)]
             fn integer(&self) -> &'a [u8] {
@@ -97,12 +97,12 @@ macro_rules! fast_data_interface_impl {
                 self.raw_exponent = raw_exponent
             }
         }
-    );
+    };
 }
 
 // Implement SlowDataInterfaceImpl for a default structure.
 macro_rules! slow_data_interface_impl {
-    ($name:ident) => (
+    ($name:ident) => {
         impl<'a> SlowDataInterfaceImpl<'a> for $name<'a> {
             #[inline(always)]
             fn integer(&self) -> &'a [u8] {
@@ -134,7 +134,7 @@ macro_rules! slow_data_interface_impl {
                 self.raw_exponent = raw_exponent
             }
         }
-    );
+    };
 }
 
 // PUBLIC
@@ -142,13 +142,13 @@ macro_rules! slow_data_interface_impl {
 /// Data interface for fast float parsers.
 pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     /// Integer digits iterator type.
-    type IntegerIter: ConsumedIterator<Item=&'a u8> + AsPtrIterator<'a, u8>;
+    type IntegerIter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>;
 
     /// Float digits iterator type.
-    type FractionIter: ConsumedIterator<Item=&'a u8> + AsPtrIterator<'a, u8>;
+    type FractionIter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>;
 
     /// Exponent digits iterator type.
-    type ExponentIter: ConsumedIterator<Item=&'a u8> + AsPtrIterator<'a, u8>;
+    type ExponentIter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>;
 
     /// Associated slow data type.
     type SlowInterface: SlowDataInterface<'a>;
@@ -186,9 +186,7 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
 
     // Extract the integer substring from the float.
     #[inline(always)]
-    fn extract_integer(&mut self, bytes: &'a [u8], radix: u32)
-        -> &'a [u8]
-    {
+    fn extract_integer(&mut self, bytes: &'a [u8], radix: u32) -> &'a [u8] {
         let result = self.consume_integer_digits(bytes, radix);
         self.set_integer(result.0);
         result.1
@@ -199,9 +197,7 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     //  Preconditions:
     //      `bytes.len()` >= 1 and `bytes[0] == b'.'`.
     #[inline(always)]
-    fn extract_fraction(&mut self, bytes: &'a [u8], radix: u32)
-        -> &'a [u8]
-    {
+    fn extract_fraction(&mut self, bytes: &'a [u8], radix: u32) -> &'a [u8] {
         let digits = &bytes[1..];
         let result = self.consume_fraction_digits(digits, radix);
         self.set_fraction(Some(result.0));
@@ -290,7 +286,7 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
         // leading zeros to get to the start of the significant
         // digits in the fraction.
         match self.integer().is_empty() {
-            true  => self.ltrim_zero(self.fraction().unwrap_or(&[])).1,
+            true => self.ltrim_zero(self.fraction().unwrap_or(&[])).1,
             false => 0,
         }
     }
@@ -313,21 +309,22 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     fn check_extract(&mut self, digits: &'a [u8], expected: &ParseTestResult<Self>) {
         let expected = expected.as_ref();
         match self.extract(digits, 10) {
-            Ok(_)       => {
+            Ok(_) => {
                 let expected = expected.unwrap();
                 assert_eq!(self.integer(), expected.integer());
                 assert_eq!(self.fraction(), expected.fraction());
                 assert_eq!(self.exponent(), expected.exponent());
             },
-            Err((c, _))  => assert_eq!(c, *expected.err().unwrap()),
+            Err((c, _)) => assert_eq!(c, *expected.err().unwrap()),
         }
     }
 
     // Run series of tests.
     #[cfg(test)]
     fn run_tests<Iter>(&mut self, tests: Iter)
-        where Iter: Iterator<Item=&'a (&'a str, ParseTestResult<Self>)>,
-              Self: 'a
+    where
+        Iter: Iterator<Item = &'a (&'a str, ParseTestResult<Self>)>,
+        Self: 'a,
     {
         for value in tests {
             self.check_extract(value.0.as_bytes(), &value.1);
@@ -485,10 +482,10 @@ macro_rules! fast_data_interface {
 /// Data interface for moderate/slow float parsers.
 pub(crate) trait SlowDataInterface<'a>: SlowDataInterfaceImpl<'a> {
     /// Integer digits iterator type.
-    type IntegerIter: ConsumedIterator<Item=&'a u8> + AsPtrIterator<'a, u8>;
+    type IntegerIter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>;
 
     /// Float digits iterator type.
-    type FractionIter: ConsumedIterator<Item=&'a u8> + AsPtrIterator<'a, u8>;
+    type FractionIter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>;
 
     /// Iterate over all integer digits.
     fn integer_iter(&self) -> Self::IntegerIter;

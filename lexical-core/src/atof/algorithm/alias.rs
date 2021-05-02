@@ -146,7 +146,6 @@ impl MaxCorrectDigits for f16 {
             // Odd numbers will have infinite digits.
             _ => None,
         }
-
     }
 }
 
@@ -197,7 +196,7 @@ impl MaxCorrectDigits for f32 {
     #[cfg(feature = "radix")]
     fn max_correct_digits(radix: u32) -> Option<usize> {
         match radix {
-            6  => Some(103),
+            6 => Some(103),
             10 => Some(114),
             12 => Some(117),
             14 => Some(119),
@@ -212,7 +211,7 @@ impl MaxCorrectDigits for f32 {
             36 => Some(127),
             // Powers of two should be unreachable.
             // Odd numbers will have infinite digits.
-            _  => None,
+            _ => None,
         }
     }
 }
@@ -230,7 +229,7 @@ impl MaxCorrectDigits for f64 {
     #[cfg(feature = "radix")]
     fn max_correct_digits(radix: u32) -> Option<usize> {
         match radix {
-            6  => Some(682),
+            6 => Some(682),
             10 => Some(769),
             12 => Some(792),
             14 => Some(808),
@@ -245,7 +244,7 @@ impl MaxCorrectDigits for f64 {
             36 => Some(879),
             // Powers of two should be unreachable.
             // Odd numbers will have infinite digits.
-            _  => None,
+            _ => None,
         }
     }
 }
@@ -364,7 +363,6 @@ impl MaxIncorrectDigits for f16 {
             // Powers of two should be unreachable here.
             _ => unreachable!(),
         }
-
     }
 }
 
@@ -567,11 +565,7 @@ impl MaxIncorrectDigits for f128 {
 
 /// Trait to simplify type signatures for atof.
 pub trait FloatType:
-    FloatRounding<u64> +
-    FloatRounding<u128> +
-    StablePower +
-    MaxCorrectDigits +
-    MaxIncorrectDigits
+    FloatRounding<u64> + FloatRounding<u128> + StablePower + MaxCorrectDigits + MaxIncorrectDigits
 {
     type Mantissa: Mantissa;
     type ExtendedFloat: ExtendedFloatType<Self>;
@@ -609,10 +603,7 @@ impl FloatType for f128 {
 // --------
 
 /// Trait for a useable mantissa.
-pub(super) trait MantissaType:
-    Mantissa +
-    FloatErrors
-{}
+pub(super) trait MantissaType: Mantissa + FloatErrors {}
 
 impl MantissaType for u64 {
 }
@@ -624,10 +615,7 @@ impl MantissaType for u128 {
 // --------------
 
 /// Trait for extended-float types.
-pub trait ExtendedFloatType<F: FloatType>:
-    ToBigfloat<F> +
-    From<F>
-{
+pub trait ExtendedFloatType<F: FloatType>: ToBigfloat<F> + From<F> {
     // I really wish I had any other choice **other** than getters and setters,
     // but since we can't specify fields in traits, and we can't use properties...
     // C'est la vie.
@@ -689,7 +677,10 @@ mod tests {
     use super::*;
 
     const CORRECT_RADIX: [u32; 13] = [6, 10, 12, 14, 18, 20, 22, 24, 26, 28, 30, 34, 36];
-    const INCORRECT_RADIX: [u32; 30] = [3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36];
+    const INCORRECT_RADIX: [u32; 30] = [
+        3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+        30, 31, 33, 34, 35, 36,
+    ];
 
     fn max_digits(emin: f64, p2: f64, radix: f64) -> usize {
         let log2 = 2.0f64.log(radix);

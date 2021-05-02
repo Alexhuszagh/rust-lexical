@@ -33,49 +33,58 @@ macro_rules! check_flag {
 // ---------------------------------
 
 /// Digits are required before the decimal point.
-pub(crate) const REQUIRED_INTEGER_DIGITS: u64              = 0b0000000000000000000000000000000000000000000000000000000000000001;
+pub(crate) const REQUIRED_INTEGER_DIGITS: u64 =
+    0b0000000000000000000000000000000000000000000000000000000000000001;
 
 /// Digits are required after the decimal point.
 /// This check will only occur if the decimal point is present.
-pub(crate) const REQUIRED_FRACTION_DIGITS: u64             = 0b0000000000000000000000000000000000000000000000000000000000000010;
+pub(crate) const REQUIRED_FRACTION_DIGITS: u64 =
+    0b0000000000000000000000000000000000000000000000000000000000000010;
 
 /// Digits are required after the exponent character.
 /// This check will only occur if the exponent character is present.
-pub(crate) const REQUIRED_EXPONENT_DIGITS: u64             = 0b0000000000000000000000000000000000000000000000000000000000000100;
+pub(crate) const REQUIRED_EXPONENT_DIGITS: u64 =
+    0b0000000000000000000000000000000000000000000000000000000000000100;
 
 /// Digits are required before or after the control characters.
-pub(crate) const REQUIRED_DIGITS: u64                      =
-    REQUIRED_INTEGER_DIGITS
-    | REQUIRED_FRACTION_DIGITS
-    | REQUIRED_EXPONENT_DIGITS;
+pub(crate) const REQUIRED_DIGITS: u64 =
+    REQUIRED_INTEGER_DIGITS | REQUIRED_FRACTION_DIGITS | REQUIRED_EXPONENT_DIGITS;
 
 /// Positive sign before the mantissa is not allowed.
-pub(crate) const NO_POSITIVE_MANTISSA_SIGN: u64            = 0b0000000000000000000000000000000000000000000000000000000000001000;
+pub(crate) const NO_POSITIVE_MANTISSA_SIGN: u64 =
+    0b0000000000000000000000000000000000000000000000000000000000001000;
 
 /// Positive sign before the mantissa is required.
-pub(crate) const REQUIRED_MANTISSA_SIGN: u64               = 0b0000000000000000000000000000000000000000000000000000000000010000;
+pub(crate) const REQUIRED_MANTISSA_SIGN: u64 =
+    0b0000000000000000000000000000000000000000000000000000000000010000;
 
 /// Exponent notation is not allowed.
-pub(crate) const NO_EXPONENT_NOTATION: u64                 = 0b0000000000000000000000000000000000000000000000000000000000100000;
+pub(crate) const NO_EXPONENT_NOTATION: u64 =
+    0b0000000000000000000000000000000000000000000000000000000000100000;
 
 /// Positive sign before the exponent is not allowed.
-pub(crate) const NO_POSITIVE_EXPONENT_SIGN: u64            = 0b0000000000000000000000000000000000000000000000000000000001000000;
+pub(crate) const NO_POSITIVE_EXPONENT_SIGN: u64 =
+    0b0000000000000000000000000000000000000000000000000000000001000000;
 
 /// Positive sign before the exponent is required.
-pub(crate) const REQUIRED_EXPONENT_SIGN: u64               = 0b0000000000000000000000000000000000000000000000000000000010000000;
+pub(crate) const REQUIRED_EXPONENT_SIGN: u64 =
+    0b0000000000000000000000000000000000000000000000000000000010000000;
 
 /// Exponent without a fraction component is not allowed.
 ///
 /// This only checks if a decimal point precedes the exponent character.
 /// To require fraction digits or exponent digits with this check,
 /// please use the appropriate flags.
-pub(crate) const NO_EXPONENT_WITHOUT_FRACTION: u64         = 0b0000000000000000000000000000000000000000000000000000000100000000;
+pub(crate) const NO_EXPONENT_WITHOUT_FRACTION: u64 =
+    0b0000000000000000000000000000000000000000000000000000000100000000;
 
 /// Special (non-finite) values are not allowed.
-pub(crate) const NO_SPECIAL: u64                           = 0b0000000000000000000000000000000000000000000000000000001000000000;
+pub(crate) const NO_SPECIAL: u64 =
+    0b0000000000000000000000000000000000000000000000000000001000000000;
 
 /// Special (non-finite) values are case-sensitive.
-pub(crate) const CASE_SENSITIVE_SPECIAL: u64               = 0b0000000000000000000000000000000000000000000000000000010000000000;
+pub(crate) const CASE_SENSITIVE_SPECIAL: u64 =
+    0b0000000000000000000000000000000000000000000000000000010000000000;
 
 /// Leading zeros before an integer value are not allowed.
 ///
@@ -91,7 +100,8 @@ pub(crate) const CASE_SENSITIVE_SPECIAL: u64               = 0b00000000000000000
 /// for example, in languages like C, this will not auto-
 /// deduce that the radix is 8 with leading zeros, for an octal
 /// literal.
-pub(crate) const NO_INTEGER_LEADING_ZEROS: u64             = 0b0000000000000000000000000000000000000000000000000000100000000000;
+pub(crate) const NO_INTEGER_LEADING_ZEROS: u64 =
+    0b0000000000000000000000000000000000000000000000000000100000000000;
 
 /// Leading zeros before a float value are not allowed.
 ///
@@ -107,88 +117,99 @@ pub(crate) const NO_INTEGER_LEADING_ZEROS: u64             = 0b00000000000000000
 /// for example, in languages like C, this will not auto-
 /// deduce that the radix is 8 with leading zeros, for an octal
 /// literal.
-pub(crate) const NO_FLOAT_LEADING_ZEROS: u64               = 0b0000000000000000000000000000000000000000000000000001000000000000;
+pub(crate) const NO_FLOAT_LEADING_ZEROS: u64 =
+    0b0000000000000000000000000000000000000000000000000001000000000000;
 
 /// Exponent notation is required.
 ///
 /// Valid floats must contain an exponent notation character, and if
 /// applicable, a sign character and digits afterwards.
-pub(crate) const REQUIRED_EXPONENT_NOTATION: u64           = 0b0000000000000000000000000000000000000000000000000010000000000000;
+pub(crate) const REQUIRED_EXPONENT_NOTATION: u64 =
+    0b0000000000000000000000000000000000000000000000000010000000000000;
 
 // DIGIT SEPARATOR FLAGS & MASKS
 // -----------------------------
 
 /// Digit separators are allowed between integer digits.
-pub(crate) const INTEGER_INTERNAL_DIGIT_SEPARATOR: u64     = 0b0000000000000000000000000000000100000000000000000000000000000000;
+pub(crate) const INTEGER_INTERNAL_DIGIT_SEPARATOR: u64 =
+    0b0000000000000000000000000000000100000000000000000000000000000000;
 
 /// A digit separator is allowed before any integer digits.
-pub(crate) const INTEGER_LEADING_DIGIT_SEPARATOR: u64      = 0b0000000000000000000000000000001000000000000000000000000000000000;
+pub(crate) const INTEGER_LEADING_DIGIT_SEPARATOR: u64 =
+    0b0000000000000000000000000000001000000000000000000000000000000000;
 
 /// A digit separator is allowed after any integer digits.
-pub(crate) const INTEGER_TRAILING_DIGIT_SEPARATOR: u64     = 0b0000000000000000000000000000010000000000000000000000000000000000;
+pub(crate) const INTEGER_TRAILING_DIGIT_SEPARATOR: u64 =
+    0b0000000000000000000000000000010000000000000000000000000000000000;
 
 /// Multiple consecutive integer digit separators are allowed.
-pub(crate) const INTEGER_CONSECUTIVE_DIGIT_SEPARATOR: u64  = 0b0000000000000000000000000000100000000000000000000000000000000000;
+pub(crate) const INTEGER_CONSECUTIVE_DIGIT_SEPARATOR: u64 =
+    0b0000000000000000000000000000100000000000000000000000000000000000;
 
 /// Digit separators are allowed between fraction digits.
-pub(crate) const FRACTION_INTERNAL_DIGIT_SEPARATOR: u64    = 0b0000000000000000000000000001000000000000000000000000000000000000;
+pub(crate) const FRACTION_INTERNAL_DIGIT_SEPARATOR: u64 =
+    0b0000000000000000000000000001000000000000000000000000000000000000;
 
 /// A digit separator is allowed before any fraction digits.
-pub(crate) const FRACTION_LEADING_DIGIT_SEPARATOR: u64     = 0b0000000000000000000000000010000000000000000000000000000000000000;
+pub(crate) const FRACTION_LEADING_DIGIT_SEPARATOR: u64 =
+    0b0000000000000000000000000010000000000000000000000000000000000000;
 
 /// A digit separator is allowed after any fraction digits.
-pub(crate) const FRACTION_TRAILING_DIGIT_SEPARATOR: u64    = 0b0000000000000000000000000100000000000000000000000000000000000000;
+pub(crate) const FRACTION_TRAILING_DIGIT_SEPARATOR: u64 =
+    0b0000000000000000000000000100000000000000000000000000000000000000;
 
 /// Multiple consecutive fraction digit separators are allowed.
-pub(crate) const FRACTION_CONSECUTIVE_DIGIT_SEPARATOR: u64 = 0b0000000000000000000000001000000000000000000000000000000000000000;
+pub(crate) const FRACTION_CONSECUTIVE_DIGIT_SEPARATOR: u64 =
+    0b0000000000000000000000001000000000000000000000000000000000000000;
 
 /// Digit separators are allowed between exponent digits.
-pub(crate) const EXPONENT_INTERNAL_DIGIT_SEPARATOR: u64    = 0b0000000000000000000000010000000000000000000000000000000000000000;
+pub(crate) const EXPONENT_INTERNAL_DIGIT_SEPARATOR: u64 =
+    0b0000000000000000000000010000000000000000000000000000000000000000;
 
 /// A digit separator is allowed before any exponent digits.
-pub(crate) const EXPONENT_LEADING_DIGIT_SEPARATOR: u64     = 0b0000000000000000000000100000000000000000000000000000000000000000;
+pub(crate) const EXPONENT_LEADING_DIGIT_SEPARATOR: u64 =
+    0b0000000000000000000000100000000000000000000000000000000000000000;
 
 /// A digit separator is allowed after any exponent digits.
-pub(crate) const EXPONENT_TRAILING_DIGIT_SEPARATOR: u64    = 0b0000000000000000000001000000000000000000000000000000000000000000;
+pub(crate) const EXPONENT_TRAILING_DIGIT_SEPARATOR: u64 =
+    0b0000000000000000000001000000000000000000000000000000000000000000;
 
 /// Multiple consecutive exponent digit separators are allowed.
-pub(crate) const EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR: u64 = 0b0000000000000000000010000000000000000000000000000000000000000000;
+pub(crate) const EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR: u64 =
+    0b0000000000000000000010000000000000000000000000000000000000000000;
 
 /// Digit separators are allowed between digits.
-pub(crate) const INTERNAL_DIGIT_SEPARATOR: u64             =
-    INTEGER_INTERNAL_DIGIT_SEPARATOR
+pub(crate) const INTERNAL_DIGIT_SEPARATOR: u64 = INTEGER_INTERNAL_DIGIT_SEPARATOR
     | FRACTION_INTERNAL_DIGIT_SEPARATOR
     | EXPONENT_INTERNAL_DIGIT_SEPARATOR;
 
 /// A digit separator is allowed before any digits.
-pub(crate) const LEADING_DIGIT_SEPARATOR: u64              =
-    INTEGER_LEADING_DIGIT_SEPARATOR
+pub(crate) const LEADING_DIGIT_SEPARATOR: u64 = INTEGER_LEADING_DIGIT_SEPARATOR
     | FRACTION_LEADING_DIGIT_SEPARATOR
     | EXPONENT_LEADING_DIGIT_SEPARATOR;
 
 /// A digit separator is allowed after any digits.
-pub(crate) const TRAILING_DIGIT_SEPARATOR: u64             =
-    INTEGER_TRAILING_DIGIT_SEPARATOR
+pub(crate) const TRAILING_DIGIT_SEPARATOR: u64 = INTEGER_TRAILING_DIGIT_SEPARATOR
     | FRACTION_TRAILING_DIGIT_SEPARATOR
     | EXPONENT_TRAILING_DIGIT_SEPARATOR;
 
 /// Multiple consecutive digit separators are allowed.
-pub(crate) const CONSECUTIVE_DIGIT_SEPARATOR: u64          =
-    INTEGER_CONSECUTIVE_DIGIT_SEPARATOR
+pub(crate) const CONSECUTIVE_DIGIT_SEPARATOR: u64 = INTEGER_CONSECUTIVE_DIGIT_SEPARATOR
     | FRACTION_CONSECUTIVE_DIGIT_SEPARATOR
     | EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
 
 /// Any digit separators are allowed in special (non-finite) values.
-pub(crate) const SPECIAL_DIGIT_SEPARATOR: u64              = 0b0000000000000000000100000000000000000000000000000000000000000000;
+pub(crate) const SPECIAL_DIGIT_SEPARATOR: u64 =
+    0b0000000000000000000100000000000000000000000000000000000000000000;
 
 // FLAG ASSERTIONS
 // ---------------
 
 // Ensure all our bit flags are valid.
 macro_rules! check_subsequent_flags {
-    ($x:ident, $y:ident) => (
+    ($x:ident, $y:ident) => {
         const_assert!($x << 1 == $y);
-    );
+    };
 }
 
 // Non-digit separator flags.
@@ -227,91 +248,104 @@ check_subsequent_flags!(EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPA
 // ----------
 
 const_fn!(
-/// Determine if the digit separator is valid.
-#[inline]
-#[cfg(not(feature = "radix"))]
-pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
-    match ch {
-        b'0' ..= b'9' => false,
-        b'+' | b'-'   => false,
-        _             => ch.is_ascii()
+    /// Determine if the digit separator is valid.
+    #[inline]
+    #[cfg(not(feature = "radix"))]
+    pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
+        match ch {
+            b'0'..=b'9' => false,
+            b'+' | b'-' => false,
+            _ => ch.is_ascii(),
+        }
     }
-});
+);
 
 const_fn!(
-/// Determine if the digit separator is valid.
-#[inline]
-#[cfg(feature = "radix")]
-pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
-    match ch {
-        b'A' ..= b'Z' => false,
-        b'a' ..= b'z' => false,
-        b'0' ..= b'9' => false,
-        b'+' | b'-'   => false,
-        _             => ch.is_ascii()
+    /// Determine if the digit separator is valid.
+    #[inline]
+    #[cfg(feature = "radix")]
+    pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
+        match ch {
+            b'A'..=b'Z' => false,
+            b'a'..=b'z' => false,
+            b'0'..=b'9' => false,
+            b'+' | b'-' => false,
+            _ => ch.is_ascii(),
+        }
     }
-});
+);
 
 const_fn!(
-/// Determine if the decimal point is valid.
-#[inline]
-pub(crate) const fn is_valid_decimal_point(ch: u8) -> bool {
-    is_valid_digit_separator(ch)
-});
-
-const_fn!(
-/// Determine if the exponent decimal character is valid.
-#[inline]
-pub(crate) const fn is_valid_exponent_decimal(ch: u8) -> bool {
-    match ch {
-        b'0' ..= b'9' => false,
-        b'+' | b'-'   => false,
-        _             => ch.is_ascii()
+    /// Determine if the decimal point is valid.
+    #[inline]
+    pub(crate) const fn is_valid_decimal_point(ch: u8) -> bool {
+        is_valid_digit_separator(ch)
     }
-});
+);
 
 const_fn!(
-/// Determine if the exponent backup character is valid.
-#[inline]
-pub(crate) const fn is_valid_exponent_backup(ch: u8) -> bool {
-    is_valid_digit_separator(ch)
-});
-
-const_fn!(
-/// Determine if all of the "punctuation" characters are valid.
-#[inline]
-pub(crate) const fn is_valid_punctuation(digit_separator: u8, decimal_point: u8, exponent_decimal: u8, exponent_backup: u8)
-    -> bool
-{
-    if digit_separator == decimal_point {
-        false
-    } else if digit_separator == exponent_decimal {
-        false
-    } else if digit_separator == exponent_backup {
-        false
-    } else if decimal_point == exponent_decimal {
-        false
-    } else if decimal_point == exponent_backup {
-        false
-    } else {
-        // exponent_decimal and exponent_backup can be the same as long as
-        // both are valid: in case someone always wants b'^' to be
-        // the exponent character.
-        true
+    /// Determine if the exponent decimal character is valid.
+    #[inline]
+    pub(crate) const fn is_valid_exponent_decimal(ch: u8) -> bool {
+        match ch {
+            b'0'..=b'9' => false,
+            b'+' | b'-' => false,
+            _ => ch.is_ascii(),
+        }
     }
-});
+);
+
+const_fn!(
+    /// Determine if the exponent backup character is valid.
+    #[inline]
+    pub(crate) const fn is_valid_exponent_backup(ch: u8) -> bool {
+        is_valid_digit_separator(ch)
+    }
+);
+
+const_fn!(
+    /// Determine if all of the "punctuation" characters are valid.
+    #[inline]
+    pub(crate) const fn is_valid_punctuation(
+        digit_separator: u8,
+        decimal_point: u8,
+        exponent_decimal: u8,
+        exponent_backup: u8,
+    ) -> bool {
+        if digit_separator == decimal_point {
+            false
+        } else if digit_separator == exponent_decimal {
+            false
+        } else if digit_separator == exponent_backup {
+            false
+        } else if decimal_point == exponent_decimal {
+            false
+        } else if decimal_point == exponent_backup {
+            false
+        } else {
+            // exponent_decimal and exponent_backup can be the same as long as
+            // both are valid: in case someone always wants b'^' to be
+            // the exponent character.
+            true
+        }
+    }
+);
 
 // FLAG FUNCTIONS
 // --------------
 
 /// Convert a character, shift and mask to flags.
 macro_rules! to_flags {
-    ($ch:ident, $shift:ident, $mask:ident) => ((($ch & $mask) as u64) << $shift);
+    ($ch:ident, $shift:ident, $mask:ident) => {
+        (($ch & $mask) as u64) << $shift
+    };
 }
 
 /// Convert a flag, shift and mask to a character.
 macro_rules! from_flags {
-    ($flag:ident, $shift:ident, $mask:ident) => ((($flag >> $shift) as u8) & $mask);
+    ($flag:ident, $shift:ident, $mask:ident) => {
+        (($flag >> $shift) as u8) & $mask
+    };
 }
 
 /// Bit shift for the decimal exponent from the start of the format flags.
@@ -392,38 +426,58 @@ pub(crate) const fn digit_separator_from_flags(flag: u64) -> u8 {
 
 // Ensure all our bit masks don't overlap.
 macro_rules! check_subsequent_masks {
-    ($xm:ident, $xs:ident, $ym:ident, $ys:ident) => (
+    ($xm:ident, $xs:ident, $ym:ident, $ys:ident) => {
         const_assert!((($xm as u64) << $xs) & (($ym as u64) << $ys) == 0);
-    );
+    };
 }
 
 // Ensure all our bit masks don't overlap with existing flags.
 macro_rules! check_masks_and_flags {
-    ($xm:ident, $xs:ident, $f:ident) => (
+    ($xm:ident, $xs:ident, $f:ident) => {
         const_assert!((($xm as u64) << $xs) & $f == 0);
-    );
+    };
 }
 
 // Masks do not overlap.
-check_subsequent_masks!(EXPONENT_DECIMAL_MASK, EXPONENT_DECIMAL_SHIFT, EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT);
-check_subsequent_masks!(EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT, DECIMAL_POINT_MASK, DECIMAL_POINT_SHIFT);
-check_subsequent_masks!(DECIMAL_POINT_MASK, DECIMAL_POINT_SHIFT, DIGIT_SEPARATOR_MASK, DIGIT_SEPARATOR_SHIFT);
+check_subsequent_masks!(
+    EXPONENT_DECIMAL_MASK,
+    EXPONENT_DECIMAL_SHIFT,
+    EXPONENT_BACKUP_MASK,
+    EXPONENT_BACKUP_SHIFT
+);
+check_subsequent_masks!(
+    EXPONENT_BACKUP_MASK,
+    EXPONENT_BACKUP_SHIFT,
+    DECIMAL_POINT_MASK,
+    DECIMAL_POINT_SHIFT
+);
+check_subsequent_masks!(
+    DECIMAL_POINT_MASK,
+    DECIMAL_POINT_SHIFT,
+    DIGIT_SEPARATOR_MASK,
+    DIGIT_SEPARATOR_SHIFT
+);
 
 // Check masks don't overlap with neighboring flags.
-check_masks_and_flags!(EXPONENT_BACKUP_MASK, EXPONENT_BACKUP_SHIFT, INTEGER_INTERNAL_DIGIT_SEPARATOR);
+check_masks_and_flags!(
+    EXPONENT_BACKUP_MASK,
+    EXPONENT_BACKUP_SHIFT,
+    INTEGER_INTERNAL_DIGIT_SEPARATOR
+);
 
 // DIGIT FUNCTIONS
 // ---------------
 
 /// Convert a character to ASCII lowercase as a const fn.
 const_fn!(
-#[inline(always)]
-pub(crate) const fn to_ascii_lowercase(c: u8) -> u8 {
-    match c {
-        b'A'..=b'Z' => c - b'A' + b'a',
-        _ => c,
+    #[inline(always)]
+    pub(crate) const fn to_ascii_lowercase(c: u8) -> u8 {
+        match c {
+            b'A'..=b'Z' => c - b'A' + b'a',
+            _ => c,
+        }
     }
-});
+);
 
 // TESTS
 // -----

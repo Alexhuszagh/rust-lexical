@@ -90,30 +90,32 @@ use super::shared::*;
 /// Validate the extracted integer has no leading zeros.
 #[inline]
 #[cfg(feature = "format")]
-fn validate_no_leading_zeros<'a>(digits: &[u8], digit_separator: u8, ptr: *const u8)
-    -> ParseResult<()>
-{
+fn validate_no_leading_zeros<'a>(
+    digits: &[u8],
+    digit_separator: u8,
+    ptr: *const u8,
+) -> ParseResult<()> {
     // Check if the next character is a sign symbol.
     let index = distance(digits.as_ptr(), ptr);
     let digits = &digits[..index];
     let mut iter = iterate_digits_ignore_separator(digits, digit_separator);
     let is_zero = match iter.next() {
-        Some(&b'+') | Some(&b'-')   => false,
-        Some(&b'0')                 => true,
-        _                           => return Ok(())
+        Some(&b'+') | Some(&b'-') => false,
+        Some(&b'0') => true,
+        _ => return Ok(()),
     };
 
     // Only here if we have a leading 0 or sign symbol.
     match iter.next() {
-        Some(_) if is_zero  => return Err((ErrorCode::InvalidLeadingZeros, digits.as_ptr())),
-        Some(&b'0')         => (),
-        _                   => return Ok(())
+        Some(_) if is_zero => return Err((ErrorCode::InvalidLeadingZeros, digits.as_ptr())),
+        Some(&b'0') => (),
+        _ => return Ok(()),
     }
 
     // Only here if we have a leading 0 symbol.
     match iter.next() {
-        Some(_)             => Err((ErrorCode::InvalidLeadingZeros, digits.as_ptr())),
-        _                   => Ok(())
+        Some(_) => Err((ErrorCode::InvalidLeadingZeros, digits.as_ptr())),
+        _ => Ok(()),
     }
 }
 
@@ -122,30 +124,35 @@ fn validate_no_leading_zeros<'a>(digits: &[u8], digit_separator: u8, ptr: *const
 
 /// Iterate over the digits and iteratively process them.
 macro_rules! parse_digits {
-    ($value:ident, $iter:ident, $radix:ident, $op:ident, $code:ident) => (
+    ($value:ident, $iter:ident, $radix:ident, $op:ident, $code:ident) => {
         while let Some(c) = $iter.next() {
             let digit = match to_digit(*c, $radix) {
                 Some(v) => v,
-                None    => return Ok(($value, c)),
+                None => return Ok(($value, c)),
             };
             $value = match $value.checked_mul(as_cast($radix)) {
                 Some(v) => v,
-                None    => return Err((ErrorCode::$code, c)),
+                None => return Err((ErrorCode::$code, c)),
             };
             $value = match $value.$op(as_cast(digit)) {
                 Some(v) => v,
-                None    => return Err((ErrorCode::$code, c)),
+                None => return Err((ErrorCode::$code, c)),
             };
         }
-    );
+    };
 }
 
 // Parse the digits for the atoi processor.
 #[inline(always)]
-fn parse_digits<'a, T, Iter>(digits: &[u8], mut iter: Iter, radix: u32, sign: Sign)
-    -> ParseResult<(T, *const u8)>
-    where T: Integer,
-          Iter: AsPtrIterator<'a, u8>
+fn parse_digits<'a, T, Iter>(
+    digits: &[u8],
+    mut iter: Iter,
+    radix: u32,
+    sign: Sign,
+) -> ParseResult<(T, *const u8)>
+where
+    T: Integer,
+    Iter: AsPtrIterator<'a, u8>,
 {
     let mut value = T::ZERO;
     if sign == Sign::Positive {
@@ -161,9 +168,9 @@ fn parse_digits<'a, T, Iter>(digits: &[u8], mut iter: Iter, radix: u32, sign: Si
 
 // Standalone atoi processor without a digit separator.
 #[inline(always)]
-fn standalone<T>(bytes: &[u8], radix: u32)
-    -> ParseResult<(T, *const u8)>
-    where T: Integer
+fn standalone<T>(bytes: &[u8], radix: u32) -> ParseResult<(T, *const u8)>
+where
+    T: Integer,
 {
     let (sign, digits) = parse_sign!(bytes, T::IS_SIGNED, Empty);
     let iter = iterate_digits_no_separator(digits, b'\x00');
@@ -174,9 +181,9 @@ fn standalone<T>(bytes: &[u8], radix: u32)
 // Consumes leading, internal, trailing, and consecutive digit separators.
 #[inline(always)]
 #[cfg(feature = "format")]
-fn standalone_iltc<T>(bytes: &[u8], radix: u32, digit_separator: u8)
-    -> ParseResult<(T, *const u8)>
-    where T: Integer
+fn standalone_iltc<T>(bytes: &[u8], radix: u32, digit_separator: u8) -> ParseResult<(T, *const u8)>
+where
+    T: Integer,
 {
     let (sign, digits) = parse_sign_lc_separator::<T>(bytes, digit_separator);
     if digits.is_empty() {
@@ -191,20 +198,12 @@ fn standalone_iltc<T>(bytes: &[u8], radix: u32, digit_separator: u8)
 
 // Generate function definition to extract then parse an integer with digit separators.
 macro_rules! standalone_atoi_separator {
-    (
-        fn $name:ident,
-        sign => $sign:ident,
-        consume => $consume:ident
-    ) => (
+    (fn $name:ident,sign => $sign:ident,consume => $consume:ident) => {
         #[inline(always)]
         #[cfg(feature = "format")]
-        fn $name<T>(
-            bytes: &[u8],
-            radix: u32,
-            digit_separator: u8
-        )
-            -> ParseResult<(T, *const u8)>
-            where T: Integer
+        fn $name<T>(bytes: &[u8], radix: u32, digit_separator: u8) -> ParseResult<(T, *const u8)>
+        where
+            T: Integer,
         {
             // Parse the sign, and error if we have no more digits.
             let (sign, digits) = $sign::<T>(bytes, digit_separator);
@@ -218,7 +217,7 @@ macro_rules! standalone_atoi_separator {
 
             parse_digits(leading, iter, radix, sign)
         }
-    );
+    };
 }
 
 standalone_atoi_separator!(
@@ -304,9 +303,9 @@ standalone_atoi_separator!(
 
 // Standalone atoi processor without a digit separator.
 #[inline(always)]
-pub(crate) fn standalone_no_separator<T>(bytes: &[u8], radix: u32)
-    -> ParseResult<(T, *const u8)>
-    where T: Integer
+pub(crate) fn standalone_no_separator<T>(bytes: &[u8], radix: u32) -> ParseResult<(T, *const u8)>
+where
+    T: Integer,
 {
     standalone(bytes, radix)
 }
@@ -314,9 +313,13 @@ pub(crate) fn standalone_no_separator<T>(bytes: &[u8], radix: u32)
 // Extract exponent with a digit separator in the exponent component.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFormat)
-    -> ParseResult<(V, *const u8)>
-    where V: Integer
+pub(crate) fn standalone_separator<V>(
+    bytes: &[u8],
+    radix: u32,
+    format: NumberFormat,
+) -> ParseResult<(V, *const u8)>
+where
+    V: Integer,
 {
     let digit_separator = format.digit_separator();
     let (value, ptr) = generate_interface!(
@@ -366,23 +369,23 @@ fn step_u64(radix: u32) -> usize {
 
 // Add 64-bit temporary to the 128-bit value.
 macro_rules! add_temporary_128 {
-    ($value:ident, $tmp:ident, $step_power:ident, $ptr:expr, $op:ident, $code:ident) => (
+    ($value:ident, $tmp:ident, $step_power:ident, $ptr:expr, $op:ident, $code:ident) => {
         if !$value.is_zero() {
             $value = match $value.checked_mul(as_cast($step_power)) {
                 Some(v) => v,
-                None    => return Err((ErrorCode::$code, $ptr)),
+                None => return Err((ErrorCode::$code, $ptr)),
             };
         }
         $value = match $value.$op(as_cast($tmp)) {
             Some(v) => v,
-            None    => return Err((ErrorCode::$code, $ptr)),
+            None => return Err((ErrorCode::$code, $ptr)),
         };
-    );
+    };
 }
 
 /// Iterate over the digits and iteratively process them.
 macro_rules! parse_digits_u128 {
-    ($value:ident, $iter:ident, $radix:ident, $step:ident, $op:ident, $code:ident) => ({
+    ($value:ident, $iter:ident, $radix:ident, $step:ident, $op:ident, $code:ident) => {{
         // Break the input into chunks of len `step`, which can be parsed
         // as a 64-bit integer.
         while !$iter.consumed() {
@@ -393,7 +396,7 @@ macro_rules! parse_digits_u128 {
                     index += 1;
                     let digit = match to_digit(*c, $radix) {
                         Some(v) => v,
-                        None    => {
+                        None => {
                             // Add temporary to value and return early.
                             let radix_pow = $radix.as_u64().pow(index.as_u32());
                             add_temporary_128!($value, value, radix_pow, c, $op, $code);
@@ -413,16 +416,21 @@ macro_rules! parse_digits_u128 {
             let radix_pow = $radix.as_u64().pow(index.as_u32());
             add_temporary_128!($value, value, radix_pow, $iter.as_ptr(), $op, $code);
         }
-    });
+    }};
 }
 
 /// Quickly parse digits using a 64-bit intermediate for the 128-bit atoi processor.
 #[inline(always)]
-fn parse_digits_128_fast<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, sign: Sign)
-    -> ParseResult<(W, *const u8)>
-    where W: Integer,
-          N: Integer,
-          Iter: ConsumedIterator<Item=&'a u8> + AsPtrIterator<'a, u8>
+fn parse_digits_128_fast<'a, W, N, Iter>(
+    digits: &[u8],
+    iter: Iter,
+    radix: u32,
+    sign: Sign,
+) -> ParseResult<(W, *const u8)>
+where
+    W: Integer,
+    N: Integer,
+    Iter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>,
 {
     let (value, ptr) = parse_digits::<N, _>(digits, iter, radix, sign)?;
     Ok((as_cast(value), ptr))
@@ -430,10 +438,16 @@ fn parse_digits_128_fast<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, 
 
 /// Slowly parse digits for the 128-bit atoi processor.
 #[inline(always)]
-fn parse_digits_128_slow<'a, T, Iter>(digits: &[u8], mut iter: Iter, radix: u32, step: usize, sign: Sign)
-    -> ParseResult<(T, *const u8)>
-    where T: Integer,
-          Iter: ConsumedIterator<Item=&'a u8> + AsPtrIterator<'a, u8>
+fn parse_digits_128_slow<'a, T, Iter>(
+    digits: &[u8],
+    mut iter: Iter,
+    radix: u32,
+    step: usize,
+    sign: Sign,
+) -> ParseResult<(T, *const u8)>
+where
+    T: Integer,
+    Iter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>,
 {
     let mut value = T::ZERO;
     if sign == Sign::Positive {
@@ -453,11 +467,16 @@ fn parse_digits_128_slow<'a, T, Iter>(digits: &[u8], mut iter: Iter, radix: u32,
 /// This is a similar approach to what we take in the arbitrary-precision
 /// arithmetic.
 #[inline(always)]
-fn parse_digits_128<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, sign: Sign)
-    -> ParseResult<(W, *const u8)>
-    where W: Integer,
-          N: Integer,
-          Iter: ConsumedIterator<Item=&'a u8> + AsPtrIterator<'a, u8>
+fn parse_digits_128<'a, W, N, Iter>(
+    digits: &[u8],
+    iter: Iter,
+    radix: u32,
+    sign: Sign,
+) -> ParseResult<(W, *const u8)>
+where
+    W: Integer,
+    N: Integer,
+    Iter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>,
 {
     // This is guaranteed to be safe, since if the length is
     // 1 less than step, and the min radix is 2, the value must be
@@ -475,10 +494,10 @@ fn parse_digits_128<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, sign:
 
 /// Standalone atoi processor for 128-bit integers without a digit separator.
 #[inline(always)]
-fn standalone_128<W, N>(bytes: &[u8], radix: u32)
-    -> ParseResult<(W, *const u8)>
-    where W: Integer,
-          N: Integer
+fn standalone_128<W, N>(bytes: &[u8], radix: u32) -> ParseResult<(W, *const u8)>
+where
+    W: Integer,
+    N: Integer,
 {
     let (sign, digits) = parse_sign!(bytes, W::IS_SIGNED, Empty);
     let iter = iterate_digits_no_separator(digits, b'\x00');
@@ -489,10 +508,14 @@ fn standalone_128<W, N>(bytes: &[u8], radix: u32)
 /// Consumes leading, internal, trailing, and consecutive digit separators.
 #[inline(always)]
 #[cfg(feature = "format")]
-fn standalone_128_iltc<W, N>(bytes: &[u8], radix: u32, digit_separator: u8)
-    -> ParseResult<(W, *const u8)>
-    where W: Integer,
-          N: Integer
+fn standalone_128_iltc<W, N>(
+    bytes: &[u8],
+    radix: u32,
+    digit_separator: u8,
+) -> ParseResult<(W, *const u8)>
+where
+    W: Integer,
+    N: Integer,
 {
     let (sign, digits) = parse_sign_lc_separator::<W>(bytes, digit_separator);
     if digits.is_empty() {
@@ -507,21 +530,13 @@ fn standalone_128_iltc<W, N>(bytes: &[u8], radix: u32, digit_separator: u8)
 
 // Generate function definition to extract then parse an 128-bit integer with digit separators.
 macro_rules! standalone_atoi_128_separator {
-    (
-        fn $name:ident,
-        sign => $sign:ident,
-        consume => $consume:ident
-    ) => (
+    (fn $name:ident,sign => $sign:ident,consume => $consume:ident) => {
         #[inline]
         #[cfg(feature = "format")]
-        fn $name<W, N>(
-            bytes: &[u8],
-            radix: u32,
-            digit_separator: u8
-        )
-            -> ParseResult<(W, *const u8)>
-            where W: Integer,
-                  N: Integer
+        fn $name<W, N>(bytes: &[u8], radix: u32, digit_separator: u8) -> ParseResult<(W, *const u8)>
+        where
+            W: Integer,
+            N: Integer,
         {
             // Parse the sign, and error if we have no more digits.
             let (sign, digits) = $sign::<W>(bytes, digit_separator);
@@ -534,7 +549,7 @@ macro_rules! standalone_atoi_128_separator {
             let iter = iterate_digits_ignore_separator(leading, digit_separator);
             parse_digits_128::<W, N, _>(leading, iter, radix, sign)
         }
-    );
+    };
 }
 
 standalone_atoi_128_separator!(
@@ -619,10 +634,13 @@ standalone_atoi_128_separator!(
 
 // Standalone atoi processor for u128 without a digit separator.
 #[inline(always)]
-pub(crate) fn standalone_128_no_separator<W, N>(bytes: &[u8], radix: u32)
-    -> ParseResult<(W, *const u8)>
-    where W: Integer,
-          N: Integer
+pub(crate) fn standalone_128_no_separator<W, N>(
+    bytes: &[u8],
+    radix: u32,
+) -> ParseResult<(W, *const u8)>
+where
+    W: Integer,
+    N: Integer,
 {
     standalone_128::<W, N>(bytes, radix)
 }
@@ -630,10 +648,14 @@ pub(crate) fn standalone_128_no_separator<W, N>(bytes: &[u8], radix: u32)
 // Extract exponent with a digit separator in the exponent component.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], radix: u32, format: NumberFormat)
-    -> ParseResult<(W, *const u8)>
-    where W: Integer,
-          N: Integer
+pub(crate) fn standalone_128_separator<W, N>(
+    bytes: &[u8],
+    radix: u32,
+    format: NumberFormat,
+) -> ParseResult<(W, *const u8)>
+where
+    W: Integer,
+    N: Integer,
 {
     let digit_separator = format.digit_separator();
     let (value, ptr) = generate_interface!(

@@ -19,12 +19,12 @@ use super::shared::*;
 pub(crate) fn standalone_mantissa_correct<'a, T, Iter1, Iter2>(
     mut integer: Iter1,
     mut fraction: Iter2,
-    radix: u32
-)
-    -> (T, usize)
-    where T: UnsignedInteger,
-          Iter1: Iterator<Item=&'a u8>,
-          Iter2: Iterator<Item=&'a u8>
+    radix: u32,
+) -> (T, usize)
+where
+    T: UnsignedInteger,
+    Iter1: Iterator<Item = &'a u8>,
+    Iter2: Iterator<Item = &'a u8>,
 {
     // Mote:
     //  Do not use iter.chain(), since it is enormously slow.
@@ -39,7 +39,7 @@ pub(crate) fn standalone_mantissa_correct<'a, T, Iter1, Iter2>(
     while let Some(c) = integer.next() {
         value = match add_digit(value, to_digit(*c, radix).unwrap(), radix) {
             Some(v) => v,
-            None    => {
+            None => {
                 let truncated = 1 + integer.count() + fraction.count();
                 return (value, truncated);
             },
@@ -48,7 +48,7 @@ pub(crate) fn standalone_mantissa_correct<'a, T, Iter1, Iter2>(
     while let Some(c) = fraction.next() {
         value = match add_digit(value, to_digit(*c, radix).unwrap(), radix) {
             Some(v) => v,
-            None    => {
+            None => {
                 let truncated = 1 + fraction.count();
                 return (value, truncated);
             },
@@ -59,10 +59,10 @@ pub(crate) fn standalone_mantissa_correct<'a, T, Iter1, Iter2>(
 
 /// Calculate the mantissa when it cannot have sign or other invalid digits.
 #[inline]
-pub(crate) fn standalone_mantissa_incorrect<'a, T, Iter>(mut iter: Iter, radix: u32)
-    -> T
-    where T: Integer,
-          Iter: Iterator<Item=&'a u8>
+pub(crate) fn standalone_mantissa_incorrect<'a, T, Iter>(mut iter: Iter, radix: u32) -> T
+where
+    T: Integer,
+    Iter: Iterator<Item = &'a u8>,
 {
     // Parse the integer.
     let mut value = T::ZERO;
@@ -70,15 +70,19 @@ pub(crate) fn standalone_mantissa_incorrect<'a, T, Iter>(mut iter: Iter, radix: 
         // Cannot overflow, since using a wrapped float.
         value = (value * as_cast(radix)) + as_cast(to_digit(*c, radix).unwrap());
     }
-   value
+    value
 }
 
 /// Calculate mantissa and only take first N digits.
 #[inline]
-pub(crate) fn standalone_mantissa_incorrect_n<'a, T, Iter>(iter: &mut Iter, radix: u32, max: usize)
-    -> (T, usize)
-    where T: Integer,
-          Iter: Iterator<Item=&'a u8>
+pub(crate) fn standalone_mantissa_incorrect_n<'a, T, Iter>(
+    iter: &mut Iter,
+    radix: u32,
+    max: usize,
+) -> (T, usize)
+where
+    T: Integer,
+    Iter: Iterator<Item = &'a u8>,
 {
     // Parse the integer.
     let mut value = T::ZERO;

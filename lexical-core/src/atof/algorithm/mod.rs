@@ -4,13 +4,13 @@
 #[macro_use]
 mod format;
 
+mod alias;
 mod bhcomp;
 mod bigcomp;
-mod alias;
 mod bignum;
 mod cached;
-mod cached_float80;
 mod cached_float160;
+mod cached_float80;
 mod errors;
 mod large_powers;
 mod math;
@@ -24,7 +24,7 @@ if #[cfg(limb_width_32)] {
     mod large_powers_32;
 } else {
     mod large_powers_64;
-}}  // cfg_if
+}} // cfg_if
 
 // Export algorithms.
 pub(crate) mod correct;
