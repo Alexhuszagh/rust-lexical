@@ -1,5 +1,6 @@
 //! String-to-integer routines specialized to parse the mantissa of a float.
 
+use crate::traits::*;
 use crate::util::*;
 
 use super::shared::*;
@@ -28,7 +29,7 @@ pub(crate) fn standalone_mantissa_correct<'a, T, Iter1, Iter2>(
     // Mote:
     //  Do not use iter.chain(), since it is enormously slow.
     //  Since we need to maintain backwards compatibility, even if
-    //  iter.chain() is patched, for older Rustc versions, it's nor
+    //  iter.chain() is patched, for older Rustc versions, it's not
     //  worth the performance penalty.
 
     let mut value: T = T::ZERO;

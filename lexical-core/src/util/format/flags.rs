@@ -1,6 +1,6 @@
 //! Shared flags for number formats.
 
-#![allow(dead_code)]
+#![cfg_attr(not(feature = "format"), allow(dead_code))]
 
 // We have a lot of flags that may not be enabled when the format
 // feature is off, but we don't want to add cfg_if feature gates

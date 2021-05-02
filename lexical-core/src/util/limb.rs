@@ -20,17 +20,20 @@
 //  Platforms where native 128-bit multiplication is not supported,
 //  requiring software emulation.
 //      sparc64 (`UMUL` only supported double-word arguments).
+
 cfg_if! {
 if #[cfg(limb_width_64)] {
     pub type Limb = u64;
-    #[cfg(feature = "atof")]
-    pub type Wide = u128;
-    #[cfg(feature = "atof")]
-    pub type SignedWide = i128;
 } else {
     pub type Limb = u32;
-    #[cfg(feature = "atof")]
+}}   // cfg_if
+
+#[cfg(feature = "atof")]
+cfg_if! {
+if #[cfg(limb_width_64)] {
+    pub type Wide = u128;
+    pub type SignedWide = i128;
+} else {
     pub type Wide = u64;
-    #[cfg(feature = "atof")]
     pub type SignedWide = i64;
 }}   // cfg_if

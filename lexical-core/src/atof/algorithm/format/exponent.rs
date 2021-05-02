@@ -2,7 +2,9 @@
 
 use crate::atoi;
 use crate::lib::slice;
+use crate::traits::*;
 use crate::util::*;
+
 use super::traits::*;
 
 /// The actual float-type doesn't matter, it just needs to be used for
@@ -295,40 +297,31 @@ pub(super) fn extract_exponent_separator<'a, Data>(data: &mut Data, bytes: &'a [
     -> &'a [u8]
     where Data: FastDataInterface<'a>
 {
-    const I: NumberFormat = NumberFormat::EXPONENT_INTERNAL_DIGIT_SEPARATOR;
-    const L: NumberFormat = NumberFormat::EXPONENT_LEADING_DIGIT_SEPARATOR;
-    const T: NumberFormat = NumberFormat::EXPONENT_TRAILING_DIGIT_SEPARATOR;
-    const C: NumberFormat = NumberFormat::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
-    const IL: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | L.bits());
-    const IT: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | T.bits());
-    const LT: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | T.bits());
-    const ILT: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | T.bits());
-    const IC: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | C.bits());
-    const LC: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | C.bits());
-    const TC: NumberFormat = NumberFormat::from_bits_truncate(T.bits() | C.bits());
-    const ILC: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | C.bits());
-    const ITC: NumberFormat = NumberFormat::from_bits_truncate(IT.bits() | C.bits());
-    const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
-    const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
-
     let digit_separator = format.digit_separator();
-    match format & NumberFormat::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK {
-        I       => extract_exponent_i(data, bytes, radix, digit_separator),
-        IC      => extract_exponent_ic(data, bytes, radix, digit_separator),
-        L       => extract_exponent_l(data, bytes, radix, digit_separator),
-        LC      => extract_exponent_lc(data, bytes, radix, digit_separator),
-        T       => extract_exponent_t(data, bytes, radix, digit_separator),
-        TC      => extract_exponent_tc(data, bytes, radix, digit_separator),
-        IL      => extract_exponent_il(data, bytes, radix, digit_separator),
-        ILC     => extract_exponent_ilc(data, bytes, radix, digit_separator),
-        IT      => extract_exponent_it(data, bytes, radix, digit_separator),
-        ITC     => extract_exponent_itc(data, bytes, radix, digit_separator),
-        LT      => extract_exponent_lt(data, bytes, radix, digit_separator),
-        LTC     => extract_exponent_ltc(data, bytes, radix, digit_separator),
-        ILT     => extract_exponent_ilt(data, bytes, radix, digit_separator),
-        ILTC    => extract_exponent_iltc(data, bytes, radix, digit_separator),
-        _       => unreachable!()
-    }
+    generate_interface!(
+        format => format,
+        mask => EXPONENT_DIGIT_SEPARATOR_FLAG_MASK,
+        iflag => EXPONENT_INTERNAL_DIGIT_SEPARATOR,
+        lflag => EXPONENT_LEADING_DIGIT_SEPARATOR,
+        tflag => EXPONENT_TRAILING_DIGIT_SEPARATOR,
+        cflag => EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR,
+        ifunc => extract_exponent_i,
+        icfunc => extract_exponent_ic,
+        lfunc => extract_exponent_l,
+        lcfunc => extract_exponent_lc,
+        tfunc => extract_exponent_t,
+        tcfunc => extract_exponent_tc,
+        ilfunc => extract_exponent_il,
+        ilcfunc => extract_exponent_ilc,
+        itfunc => extract_exponent_it,
+        itcfunc => extract_exponent_itc,
+        ltfunc => extract_exponent_lt,
+        ltcfunc => extract_exponent_ltc,
+        iltfunc => extract_exponent_ilt,
+        iltcfunc => extract_exponent_iltc,
+        fallthrough => unreachable!(),
+        args => data, bytes, radix, digit_separator
+    )
 }
 
 // TESTS

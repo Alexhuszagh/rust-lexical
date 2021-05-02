@@ -4,6 +4,9 @@
 //! and may be found [here](https://github.com/v8/v8).
 
 use crate::itoa;
+use crate::config::*;
+use crate::table::*;
+use crate::traits::*;
 use crate::util::*;
 
 // FTOA BASEN

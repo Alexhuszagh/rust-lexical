@@ -184,8 +184,7 @@ pub(crate) mod lib {
         pub(crate) use ::alloc::string::String;
         #[cfg(any(feature = "ftoa", feature = "itoa"))]
         pub(crate) use ::alloc::vec::Vec;
-    }
-    }
+    }}  // cfg_if
 } // cfg_if
 
 // API

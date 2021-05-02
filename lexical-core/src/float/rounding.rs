@@ -1,8 +1,11 @@
 //! Defines rounding schemes for floating-point numbers.
 
+use crate::traits::*;
 use crate::util::*;
-use super::float::ExtendedFloat;
-use super::mantissa::Mantissa;
+
+use super::float::*;
+use super::mantissa::*;
+use super::mask::*;
 use super::shift::*;
 
 // GENERIC
@@ -162,6 +165,7 @@ pub(crate) fn round_downward<M>(fp: &mut ExtendedFloat<M>, shift: i32)
 // FLOAT ROUNDING
 
 /// Trait to round extended-precision floats to native representations.
+#[doc(hidden)]
 pub trait FloatRounding<M: Mantissa>: Float {
     /// Default number of bits to shift (or 64 - mantissa size - 1).
     const DEFAULT_SHIFT: i32;

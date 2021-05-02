@@ -1,10 +1,13 @@
 //! Fast lexical float-to-string conversion routines.
 
 // Hide implementation details.
-#[cfg(feature = "radix")]
-mod binary;
-#[cfg(feature = "radix")]
-mod radix;
+mod api;
+
+cfg_if! {
+if #[cfg(feature = "radix")] {
+    mod binary;
+    mod radix;
+}}  // cfg_if
 
 cfg_if! {
 if #[cfg(feature = "grisu3")] {
@@ -16,5 +19,3 @@ if #[cfg(feature = "grisu3")] {
 } else {
     mod grisu2;
 }}  // cfg_if
-
-mod api;

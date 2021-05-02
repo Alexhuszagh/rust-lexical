@@ -1,6 +1,8 @@
 //! Ignore float-parsing data interface.
 
+use crate::result::*;
 use crate::util::*;
+
 use super::exponent::*;
 use super::traits::*;
 use super::trim::*;
@@ -49,6 +51,7 @@ data_interface!(
 
 #[cfg(test)]
 mod tests {
+    use crate::error::*;
     use super::*;
 
     macro_rules! ignore {

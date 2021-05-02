@@ -59,13 +59,14 @@
 //
 //  These functions are ugly as a result.
 
+use crate::traits::*;
 use crate::util::*;
 
-#[cfg(feature = "radix")]
-use super::binary::{double_binary, float_binary};
-
-#[cfg(feature = "radix")]
-use super::radix::{double_radix, float_radix};
+cfg_if! {
+if #[cfg(feature = "radix")] {
+    use super::binary::{double_binary, float_binary};
+    use super::radix::{double_radix, float_radix};
+}}  // cfg_if
 
 // Select the back-end
 cfg_if! {
@@ -284,8 +285,9 @@ to_lexical_with_options!(ftoa_with_options, f64);
 
 #[cfg(test)]
 mod tests {
+    // Shouldn't need to include atof, should be fine with ToLexical in scope.
+    use crate::traits::*;
     use crate::util::*;
-    use crate::util::test::*;
 
     #[cfg(feature = "property_tests")]
     use quickcheck::quickcheck;

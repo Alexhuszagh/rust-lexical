@@ -123,6 +123,8 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
+use crate::table::*;
+use crate::traits::*;
 use crate::util::*;
 
 // Lookup table for optimized base10 itoa.

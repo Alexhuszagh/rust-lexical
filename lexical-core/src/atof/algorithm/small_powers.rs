@@ -5,11 +5,12 @@ use static_assertions::const_assert;
 use crate::util::Limb;
 use super::small_powers_64;
 
-#[cfg(limb_width_32)]
-use super::small_powers_32::*;
-
-#[cfg(limb_width_64)]
-use super::small_powers_64::*;
+cfg_if! {
+if #[cfg(limb_width_32)] {
+    use super::small_powers_32::*;
+} else {
+    use super::small_powers_64::*;
+}}  // cfg_if
 
 // ASSERTIONS
 const_assert!(POW5[1] / POW5[0] == 5);
@@ -57,7 +58,8 @@ const_assert!(POW36[1] / POW36[0] == 36);
 // HELPER
 
 /// Get the correct small power from the radix.
-pub(in crate::atof::algorithm) fn get_small_powers(radix: u32)
+#[inline]
+pub(crate) fn get_small_powers(radix: u32)
     -> &'static [Limb]
 {
     #[cfg(not(feature = "radix"))] {
@@ -111,7 +113,8 @@ pub(in crate::atof::algorithm) fn get_small_powers(radix: u32)
 }
 
 /// Get the correct 64-bit small power from the radix.
-pub(in crate::atof::algorithm) fn get_small_powers_64(radix: u32)
+#[inline]
+pub(crate) fn get_small_powers_64(radix: u32)
     -> &'static [u64]
 {
     #[cfg(not(feature = "radix"))] {

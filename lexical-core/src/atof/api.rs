@@ -3,6 +3,9 @@
 //! Uses either the imprecise or the precise algorithm.
 
 use crate::lib::slice;
+use crate::error::*;
+use crate::result::*;
+use crate::traits::*;
 use crate::util::*;
 
 use super::algorithm::*;
@@ -400,6 +403,8 @@ from_lexical_with_options!(atof_with_options, f64);
 
 #[cfg(test)]
 mod tests {
+    use crate::error::*;
+    use crate::traits::*;
     use crate::util::*;
 
     use approx::assert_relative_eq;

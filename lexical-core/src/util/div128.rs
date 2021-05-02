@@ -52,7 +52,10 @@
 //      print(radix, radix**power, power)
 //  ```
 #[inline]
-#[cfg(all(any(feature = "atoi", feature = "ftoa", feature = "itoa"), feature = "radix"))]
+#[cfg(all(
+    any(feature = "atoi", feature = "ftoa", feature = "itoa"),
+    feature = "radix"
+))]
 pub(crate) fn u128_divisor(radix: u32) -> (u64, usize, u32) {
     match radix {
         2  => (9223372036854775808, 63, 0),    // 2^63

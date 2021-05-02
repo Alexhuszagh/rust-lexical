@@ -1,12 +1,13 @@
 //! Convert between extended-precision and native floats/integers.
 
-use crate::lib::convert::From;
 use crate::lib::mem;
-use crate::util::*;
+use crate::traits::*;
+
 use super::float::ExtendedFloat;
 use super::mantissa::Mantissa;
 
 // FROM INT
+// --------
 
 // Import ExtendedFloat from integer.
 //
@@ -27,6 +28,7 @@ pub(crate) fn from_int<T, M>(t: T)
 }
 
 // FROM FLOAT
+// ----------
 
 // Import ExtendedFloat from native float.
 #[inline]

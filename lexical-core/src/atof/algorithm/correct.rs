@@ -6,6 +6,9 @@
 
 use crate::atoi;
 use crate::float::*;
+use crate::result::*;
+use crate::table::*;
+use crate::traits::*;
 use crate::util::*;
 
 use super::alias::*;
@@ -452,7 +455,7 @@ pub(crate) fn to_native<'a, F, Data>(
 
 #[cfg(test)]
 mod tests {
-    use crate::util::test::*;
+    use crate::error::*;
     use super::*;
 
     #[test]

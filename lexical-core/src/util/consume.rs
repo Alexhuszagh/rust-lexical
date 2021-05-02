@@ -609,40 +609,31 @@ pub(crate) fn consume_digits_ignore_separator<'a>(bytes: &'a [u8], radix: u32, f
 pub(crate) fn consume_integer_digits_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> (&'a [u8], &'a [u8])
 {
-    const I: NumberFormat = NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
-    const L: NumberFormat = NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
-    const T: NumberFormat = NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
-    const C: NumberFormat = NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
-    const IL: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | L.bits());
-    const IT: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | T.bits());
-    const LT: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | T.bits());
-    const ILT: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | T.bits());
-    const IC: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | C.bits());
-    const LC: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | C.bits());
-    const TC: NumberFormat = NumberFormat::from_bits_truncate(T.bits() | C.bits());
-    const ILC: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | C.bits());
-    const ITC: NumberFormat = NumberFormat::from_bits_truncate(IT.bits() | C.bits());
-    const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
-    const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
-
     let digit_separator = format.digit_separator();
-    match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {
-        I       => consume_digits_i(bytes, radix, digit_separator),
-        IC      => consume_digits_ic(bytes, radix, digit_separator),
-        L       => consume_digits_l(bytes, radix, digit_separator),
-        LC      => consume_digits_lc(bytes, radix, digit_separator),
-        T       => consume_digits_t(bytes, radix, digit_separator),
-        TC      => consume_digits_tc(bytes, radix, digit_separator),
-        IL      => consume_digits_il(bytes, radix, digit_separator),
-        ILC     => consume_digits_ilc(bytes, radix, digit_separator),
-        IT      => consume_digits_it(bytes, radix, digit_separator),
-        ITC     => consume_digits_itc(bytes, radix, digit_separator),
-        LT      => consume_digits_lt(bytes, radix, digit_separator),
-        LTC     => consume_digits_ltc(bytes, radix, digit_separator),
-        ILT     => consume_digits_ilt(bytes, radix, digit_separator),
-        ILTC    => consume_digits_iltc(bytes, radix, digit_separator),
-        _       => unreachable!()
-    }
+    generate_interface!(
+        format => format,
+        mask => INTEGER_DIGIT_SEPARATOR_FLAG_MASK,
+        iflag => INTEGER_INTERNAL_DIGIT_SEPARATOR,
+        lflag => INTEGER_LEADING_DIGIT_SEPARATOR,
+        tflag => INTEGER_TRAILING_DIGIT_SEPARATOR,
+        cflag => INTEGER_CONSECUTIVE_DIGIT_SEPARATOR,
+        ifunc => consume_digits_i,
+        icfunc => consume_digits_ic,
+        lfunc => consume_digits_l,
+        lcfunc => consume_digits_lc,
+        tfunc => consume_digits_t,
+        tcfunc => consume_digits_tc,
+        ilfunc => consume_digits_il,
+        ilcfunc => consume_digits_ilc,
+        itfunc => consume_digits_it,
+        itcfunc => consume_digits_itc,
+        ltfunc => consume_digits_lt,
+        ltcfunc => consume_digits_ltc,
+        iltfunc => consume_digits_ilt,
+        iltcfunc => consume_digits_iltc,
+        fallthrough => unreachable!(),
+        args => bytes, radix, digit_separator
+    )
 }
 
 // Consume digits with a digit separator in the fraction component.
@@ -651,40 +642,31 @@ pub(crate) fn consume_integer_digits_separator<'a>(bytes: &'a [u8], radix: u32, 
 pub(crate) fn consume_fraction_digits_separator<'a>(bytes: &'a [u8], radix: u32, format: NumberFormat)
     -> (&'a [u8], &'a [u8])
 {
-    const I: NumberFormat = NumberFormat::FRACTION_INTERNAL_DIGIT_SEPARATOR;
-    const L: NumberFormat = NumberFormat::FRACTION_LEADING_DIGIT_SEPARATOR;
-    const T: NumberFormat = NumberFormat::FRACTION_TRAILING_DIGIT_SEPARATOR;
-    const C: NumberFormat = NumberFormat::FRACTION_CONSECUTIVE_DIGIT_SEPARATOR;
-    const IL: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | L.bits());
-    const IT: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | T.bits());
-    const LT: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | T.bits());
-    const ILT: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | T.bits());
-    const IC: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | C.bits());
-    const LC: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | C.bits());
-    const TC: NumberFormat = NumberFormat::from_bits_truncate(T.bits() | C.bits());
-    const ILC: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | C.bits());
-    const ITC: NumberFormat = NumberFormat::from_bits_truncate(IT.bits() | C.bits());
-    const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
-    const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
-
     let digit_separator = format.digit_separator();
-    match format & NumberFormat::FRACTION_DIGIT_SEPARATOR_FLAG_MASK {
-        I       => consume_digits_i(bytes, radix, digit_separator),
-        IC      => consume_digits_ic(bytes, radix, digit_separator),
-        L       => consume_digits_l(bytes, radix, digit_separator),
-        LC      => consume_digits_lc(bytes, radix, digit_separator),
-        T       => consume_digits_t(bytes, radix, digit_separator),
-        TC      => consume_digits_tc(bytes, radix, digit_separator),
-        IL      => consume_digits_il(bytes, radix, digit_separator),
-        ILC     => consume_digits_ilc(bytes, radix, digit_separator),
-        IT      => consume_digits_it(bytes, radix, digit_separator),
-        ITC     => consume_digits_itc(bytes, radix, digit_separator),
-        LT      => consume_digits_lt(bytes, radix, digit_separator),
-        LTC     => consume_digits_ltc(bytes, radix, digit_separator),
-        ILT     => consume_digits_ilt(bytes, radix, digit_separator),
-        ILTC    => consume_digits_iltc(bytes, radix, digit_separator),
-        _       => unreachable!()
-    }
+    generate_interface!(
+        format => format,
+        mask => FRACTION_DIGIT_SEPARATOR_FLAG_MASK,
+        iflag => FRACTION_INTERNAL_DIGIT_SEPARATOR,
+        lflag => FRACTION_LEADING_DIGIT_SEPARATOR,
+        tflag => FRACTION_TRAILING_DIGIT_SEPARATOR,
+        cflag => FRACTION_CONSECUTIVE_DIGIT_SEPARATOR,
+        ifunc => consume_digits_i,
+        icfunc => consume_digits_ic,
+        lfunc => consume_digits_l,
+        lcfunc => consume_digits_lc,
+        tfunc => consume_digits_t,
+        tcfunc => consume_digits_tc,
+        ilfunc => consume_digits_il,
+        ilcfunc => consume_digits_ilc,
+        itfunc => consume_digits_it,
+        itcfunc => consume_digits_itc,
+        ltfunc => consume_digits_lt,
+        ltcfunc => consume_digits_ltc,
+        iltfunc => consume_digits_ilt,
+        iltcfunc => consume_digits_iltc,
+        fallthrough => unreachable!(),
+        args => bytes, radix, digit_separator
+    )
 }
 
 // TESTS

@@ -9,17 +9,20 @@
 
 use crate::util::Limb;
 
-#[cfg(limb_width_32)]
-use super::large_powers_32::*;
-
-#[cfg(limb_width_64)]
-use super::large_powers_64::*;
+cfg_if! {
+if #[cfg(limb_width_32)] {
+    use super::large_powers_32::*;
+} else {
+    use super::large_powers_64::*;
+}}  // cfg_if
 
 // HELPER
+// ------
 
 /// Get the correct large power from the radix.
+#[inline]
 #[allow(unused_variables)]
-pub(in crate::atof::algorithm) fn get_large_powers(radix: u32)
+pub(crate) fn get_large_powers(radix: u32)
     -> &'static [&'static [Limb]]
 {
     #[cfg(not(feature = "radix"))] {

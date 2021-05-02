@@ -1,9 +1,19 @@
 //! Utilities for Rust primitives.
+//!
+//! This allows conversion between numeric types in generics,
+//! similar to `as` casts. This is crucial to the underlying type
+//! system, otherwise, we wouldn't be able to convert to and from
+//! types in generic code.
 
 use crate::lib::fmt;
+
 use super::cast::{AsCast, TryCast};
 
+// AS PRIMITIVE
+// ------------
+
 /// Type that can be converted to primitive with `as`.
+#[doc(hidden)]
 pub trait AsPrimitive: Copy + PartialEq + PartialOrd + Send + Sync {
     fn as_u8(self) -> u8;
     fn as_u16(self) -> u16;
@@ -99,9 +109,13 @@ macro_rules! as_primitive {
 
 as_primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
 
+// TRY PRIMITIVE
+// -------------
+
 macro_rules! def_try_primitive {
     ($($t:ty)*) => (
         /// Type that can be converted to primitive with `as`.
+        #[doc(hidden)]
         pub trait TryPrimitive:
             AsCast +
             $(TryCast<$t> +)*
@@ -190,8 +204,10 @@ macro_rules! try_primitive {
 try_primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
 
 // PRIMITIVE
+// ---------
 
 /// Primitive type trait (which all have static lifetimes).
+#[doc(hidden)]
 pub trait Primitive: 'static + fmt::Debug + fmt::Display + TryPrimitive
 {}
 

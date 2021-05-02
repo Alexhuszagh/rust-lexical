@@ -53,10 +53,12 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use crate::float::ExtendedFloat80;
+use crate::float::*;
+use crate::traits::*;
 use crate::util::*;
 
 // CACHED POWERS
+// -------------
 
 /// Find cached power of 10 from the exponent.
 #[inline]
@@ -207,6 +209,7 @@ const TENS: [u64; 20] = [
 ];
 
 // FPCONV GRISU
+// ------------
 
 /// Round digit to sane approximation.
 #[inline]
@@ -414,6 +417,7 @@ fn fpconv_dtoa(d: f64, dest: &mut [u8], format: NumberFormat) -> usize
 }
 
 // DECIMAL
+// -------
 
 /// Forward to double_decimal.
 ///

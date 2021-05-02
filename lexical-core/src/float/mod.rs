@@ -1,17 +1,24 @@
 //! Extended-precision floating-point type.
 
 // Hide implementation details.
-pub(crate) mod convert;
-pub(crate) mod float;
-pub(crate) mod mantissa;
-pub(crate) mod rounding;
-pub(crate) mod shift;
-
-// Re-export rounding types.
-#[cfg(feature = "atof")]
-pub(crate) use self::rounding::internal_rounding;
+mod convert;
+mod float;
+mod mantissa;
+mod mask;
+mod rounding;
+mod shift;
 
 // Re-export the extended-precision floating-point type.
-pub use self::float::{ExtendedFloat, ExtendedFloat80, ExtendedFloat160};
-pub use self::mantissa::Mantissa;
-pub use self::rounding::{FloatRounding};
+pub use self::float::*;
+pub use self::mantissa::*;
+pub use self::rounding::*;
+
+// Re-export internal tools.
+pub(crate) use self::convert::*;
+pub(crate) use self::mask::*;
+
+cfg_if! {
+if #[cfg(feature = "atof")] {
+    mod wrapped;
+    pub(crate) use self::wrapped::*;
+}}  // cfg_if

@@ -15,18 +15,16 @@ mod errors;
 mod large_powers;
 mod math;
 mod small_powers;
-
-#[cfg(limb_width_32)]
-mod large_powers_32;
-
-#[cfg(limb_width_32)]
-mod small_powers_32;
-
-#[cfg(limb_width_64)]
-mod large_powers_64;
-
 // Required for fast-path, keep on all platforms.
 mod small_powers_64;
+
+cfg_if! {
+if #[cfg(limb_width_32)] {
+    mod small_powers_32;
+    mod large_powers_32;
+} else {
+    mod large_powers_64;
+}}  // cfg_if
 
 // Export algorithms.
 pub(crate) mod correct;

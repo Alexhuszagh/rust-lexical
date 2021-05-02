@@ -4,9 +4,9 @@
 //! theoretical digits from `b+h`, scaled into the proper range.
 
 use crate::float::*;
-use crate::float::convert::*;
-use crate::float::rounding::*;
+use crate::traits::*;
 use crate::util::*;
+
 use super::alias::*;
 use super::bigcomp;
 use super::bignum::*;
@@ -14,6 +14,7 @@ use super::format::*;
 use super::math::*;
 
 // PARSE MANTISSA
+// --------------
 
 /// Iteratively add small digits to the mantissa and increment the counter.
 macro_rules! add_digits {
@@ -99,6 +100,7 @@ pub(super) fn parse_mantissa<'a, F, Data>(data: Data, radix: u32, max_digits: us
 }
 
 // ROUNDING
+// --------
 
 /// Custom rounding for round-nearest algorithms.
 macro_rules! nearest_cb {
@@ -164,6 +166,7 @@ pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, k
 }
 
 /// BIGCOMP PATH
+// -------------
 
 /// Maximum number of digits before reverting to bigcomp.
 const LARGE_POWER_MAX: usize = 1 << 15;
@@ -204,6 +207,7 @@ pub(super) fn large_atof<'a, F, Data>(data: Data, radix: u32, max_digits: usize,
 }
 
 // BHCOMP
+// ------
 
 /// Calculate the mantissa for a big integer with a negative exponent.
 ///

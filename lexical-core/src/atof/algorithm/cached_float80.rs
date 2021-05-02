@@ -157,7 +157,8 @@
 //!     generate()
 //! ```
 
-use crate::util::*;
+use crate::traits::*;
+
 use super::cached::{ExtendedFloatArray, ModeratePathPowers};
 
 // LOW-LEVEL
@@ -5639,7 +5640,7 @@ pub(crate) fn get_powers(radix: u32)
 
 #[cfg(test)]
 mod tests {
-    use crate::util::test::*;
+    use crate::util::*;
     use super::*;
 
     #[test]

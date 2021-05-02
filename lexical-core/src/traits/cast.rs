@@ -1,13 +1,12 @@
 //! Rust cast utilities.
-
-// We have a lot of high-level casts that make the type-system work.
-// Don't delete them, fake they're being used.
-#![allow(dead_code)]
+//!
+//! High-level casts to use `as`-like casts in generic code.
+//! This basically makes the entire type system work.
 
 use super::primitive::AsPrimitive;
-use super::num::{Integer};
 
 // AS CAST
+// -------
 
 /// Allows the high-level conversion of generic types as if `as` was used.
 #[inline]
@@ -16,6 +15,7 @@ pub(crate) fn as_cast<U: AsCast, T: AsCast>(t: T) -> U {
 }
 
 /// An interface for casting between machine scalars.
+#[doc(hidden)]
 pub trait AsCast: AsPrimitive {
     /// Creates a number from another value that can be converted into
     /// a primitive via the `AsPrimitive` trait.
@@ -49,6 +49,8 @@ as_cast!(f32, as_f32);
 as_cast!(f64, as_f64);
 
 // TRY CAST
+// --------
+
 // Analogous to TryInto.
 
 /// High-level conversion of types using TryCast.
@@ -58,6 +60,7 @@ pub(crate) fn try_cast<U, T: TryCast<U>>(t: T) -> Option<U> {
 }
 
 /// Non-lossy cast between types. Returns None if new type cannot represent value.
+#[doc(hidden)]
 pub trait TryCast<T>: Sized {
     /// Consume self and return the cast value (or None).
     fn try_cast(self) -> Option<T>;
@@ -328,8 +331,7 @@ if #[cfg(target_pointer_width = "16")] {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use super::super::num::{Integer, Float};
+    use crate::traits::*;
 
     fn check_as_cast<T: AsCast>(t: T) {
         let _: i8 = as_cast(t);

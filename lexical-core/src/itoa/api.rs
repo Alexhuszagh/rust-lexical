@@ -3,11 +3,12 @@
 //! Uses either the optimized decimal algorithm, the optimized generic
 //! algorithm, or the naive algorithm.
 
+use crate::config::*;
+use crate::traits::*;
 use crate::util::*;
 
 /// Select the back-end.
 use super::decimal::Decimal;
-
 #[cfg(feature = "radix")]
 use super::generic::Generic;
 
@@ -187,8 +188,8 @@ signed_to_lexical!(isize, i64, u64);
 #[cfg(test)]
 mod tests {
     // Shouldn't need to include atoi, should be fine with ToLexical in scope.
+    use crate::traits::*;
     use crate::util::*;
-    use crate::util::test::*;
 
     #[cfg(feature = "property_tests")]
     use quickcheck::quickcheck;

@@ -1,10 +1,12 @@
 //! Cached powers trait for extended-precision floats.
 
-use crate::float::{ExtendedFloat, Mantissa};
+use crate::float::*;
+
 use super::cached_float80;
 use super::cached_float160;
 
 // POWERS
+// ------
 
 /// Precalculated powers that uses two-separate arrays for memory-efficiency.
 #[doc(hidden)]
@@ -33,6 +35,7 @@ impl<M: Mantissa> ExtendedFloatArray<M> {
 }
 
 // MODERATE PATH POWERS
+// --------------------
 
 /// Precalculated powers of base N for the moderate path.
 #[doc(hidden)]
@@ -68,6 +71,7 @@ impl<M: Mantissa> ModeratePathPowers<M> {
 }
 
 // CACHED EXTENDED POWERS
+// ----------------------
 
 /// Cached powers as a trait for a floating-point type.
 pub(super) trait ModeratePathCache<M: Mantissa> {

@@ -77,7 +77,11 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
+use crate::error::*;
+use crate::result::*;
+use crate::traits::*;
 use crate::util::*;
+
 use super::shared::*;
 
 // SHARED
@@ -153,6 +157,7 @@ fn parse_digits<'a, T, Iter>(digits: &[u8], mut iter: Iter, radix: u32, sign: Si
 }
 
 // PARSE THEN EXTRACT
+// ------------------
 
 // Standalone atoi processor without a digit separator.
 #[inline(always)]
@@ -182,6 +187,7 @@ fn standalone_iltc<T>(bytes: &[u8], radix: u32, digit_separator: u8)
 }
 
 // EXTRACT THEN PARSE
+// ------------------
 
 // Generate function definition to extract then parse an integer with digit separators.
 macro_rules! standalone_atoi_separator {
@@ -294,6 +300,7 @@ standalone_atoi_separator!(
 );
 
 // API
+// ---
 
 // Standalone atoi processor without a digit separator.
 #[inline(always)]
@@ -311,41 +318,32 @@ pub(crate) fn standalone_separator<V>(bytes: &[u8], radix: u32, format: NumberFo
     -> ParseResult<(V, *const u8)>
     where V: Integer
 {
-    const I: NumberFormat = NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
-    const L: NumberFormat = NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
-    const T: NumberFormat = NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
-    const C: NumberFormat = NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
-    const IL: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | L.bits());
-    const IT: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | T.bits());
-    const LT: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | T.bits());
-    const ILT: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | T.bits());
-    const IC: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | C.bits());
-    const LC: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | C.bits());
-    const TC: NumberFormat = NumberFormat::from_bits_truncate(T.bits() | C.bits());
-    const ILC: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | C.bits());
-    const ITC: NumberFormat = NumberFormat::from_bits_truncate(IT.bits() | C.bits());
-    const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
-    const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
-
     let digit_separator = format.digit_separator();
-    let (value, ptr) = match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {
-        I       => standalone_i(bytes, radix, digit_separator),
-        IC      => standalone_ic(bytes, radix, digit_separator),
-        L       => standalone_l(bytes, radix, digit_separator),
-        LC      => standalone_lc(bytes, radix, digit_separator),
-        T       => standalone_t(bytes, radix, digit_separator),
-        TC      => standalone_tc(bytes, radix, digit_separator),
-        IL      => standalone_il(bytes, radix, digit_separator),
-        ILC     => standalone_ilc(bytes, radix, digit_separator),
-        IT      => standalone_it(bytes, radix, digit_separator),
-        ITC     => standalone_itc(bytes, radix, digit_separator),
-        LT      => standalone_lt(bytes, radix, digit_separator),
-        LTC     => standalone_ltc(bytes, radix, digit_separator),
-        ILT     => standalone_ilt(bytes, radix, digit_separator),
-        ILTC    => standalone_iltc(bytes, radix, digit_separator),
-        // No digit separator match.
-        _       => standalone(bytes, radix)
-    }?;
+    let (value, ptr) = generate_interface!(
+        format => format,
+        mask => INTEGER_DIGIT_SEPARATOR_FLAG_MASK,
+        iflag => INTEGER_INTERNAL_DIGIT_SEPARATOR,
+        lflag => INTEGER_LEADING_DIGIT_SEPARATOR,
+        tflag => INTEGER_TRAILING_DIGIT_SEPARATOR,
+        cflag => INTEGER_CONSECUTIVE_DIGIT_SEPARATOR,
+        ifunc => standalone_i,
+        icfunc => standalone_ic,
+        lfunc => standalone_l,
+        lcfunc => standalone_lc,
+        tfunc => standalone_t,
+        tcfunc => standalone_tc,
+        ilfunc => standalone_il,
+        ilcfunc => standalone_ilc,
+        itfunc => standalone_it,
+        itcfunc => standalone_itc,
+        ltfunc => standalone_lt,
+        ltcfunc => standalone_ltc,
+        iltfunc => standalone_ilt,
+        iltcfunc => standalone_iltc,
+        // No digit separator match, use our no digit separator parser.
+        fallthrough => standalone(bytes, radix),
+        args => bytes, radix, digit_separator
+    )?;
 
     // Check if we have any leading zeros.
     if format.no_integer_leading_zeros() {
@@ -473,6 +471,7 @@ fn parse_digits_128<'a, W, N, Iter>(digits: &[u8], iter: Iter, radix: u32, sign:
 }
 
 // PARSE THEN EXTRACT
+// ------------------
 
 /// Standalone atoi processor for 128-bit integers without a digit separator.
 #[inline(always)]
@@ -504,6 +503,7 @@ fn standalone_128_iltc<W, N>(bytes: &[u8], radix: u32, digit_separator: u8)
 }
 
 // EXTRACT THEN PARSE
+// ------------------
 
 // Generate function definition to extract then parse an 128-bit integer with digit separators.
 macro_rules! standalone_atoi_128_separator {
@@ -635,41 +635,32 @@ pub(crate) fn standalone_128_separator<W, N>(bytes: &[u8], radix: u32, format: N
     where W: Integer,
           N: Integer
 {
-    const I: NumberFormat = NumberFormat::INTEGER_INTERNAL_DIGIT_SEPARATOR;
-    const L: NumberFormat = NumberFormat::INTEGER_LEADING_DIGIT_SEPARATOR;
-    const T: NumberFormat = NumberFormat::INTEGER_TRAILING_DIGIT_SEPARATOR;
-    const C: NumberFormat = NumberFormat::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
-    const IL: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | L.bits());
-    const IT: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | T.bits());
-    const LT: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | T.bits());
-    const ILT: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | T.bits());
-    const IC: NumberFormat = NumberFormat::from_bits_truncate(I.bits() | C.bits());
-    const LC: NumberFormat = NumberFormat::from_bits_truncate(L.bits() | C.bits());
-    const TC: NumberFormat = NumberFormat::from_bits_truncate(T.bits() | C.bits());
-    const ILC: NumberFormat = NumberFormat::from_bits_truncate(IL.bits() | C.bits());
-    const ITC: NumberFormat = NumberFormat::from_bits_truncate(IT.bits() | C.bits());
-    const LTC: NumberFormat = NumberFormat::from_bits_truncate(LT.bits() | C.bits());
-    const ILTC: NumberFormat = NumberFormat::from_bits_truncate(ILT.bits() | C.bits());
-
     let digit_separator = format.digit_separator();
-    let (value, ptr) = match format & NumberFormat::INTEGER_DIGIT_SEPARATOR_FLAG_MASK {
-        I       => standalone_128_i::<W, N>(bytes, radix, digit_separator),
-        IC      => standalone_128_ic::<W, N>(bytes, radix, digit_separator),
-        L       => standalone_128_l::<W, N>(bytes, radix, digit_separator),
-        LC      => standalone_128_lc::<W, N>(bytes, radix, digit_separator),
-        T       => standalone_128_t::<W, N>(bytes, radix, digit_separator),
-        TC      => standalone_128_tc::<W, N>(bytes, radix, digit_separator),
-        IL      => standalone_128_il::<W, N>(bytes, radix, digit_separator),
-        ILC     => standalone_128_ilc::<W, N>(bytes, radix, digit_separator),
-        IT      => standalone_128_it::<W, N>(bytes, radix, digit_separator),
-        ITC     => standalone_128_itc::<W, N>(bytes, radix, digit_separator),
-        LT      => standalone_128_lt::<W, N>(bytes, radix, digit_separator),
-        LTC     => standalone_128_ltc::<W, N>(bytes, radix, digit_separator),
-        ILT     => standalone_128_ilt::<W, N>(bytes, radix, digit_separator),
-        ILTC    => standalone_128_iltc::<W, N>(bytes, radix, digit_separator),
-        // No digit separator match.
-        _       => standalone_128::<W, N>(bytes, radix)
-    }?;
+    let (value, ptr) = generate_interface!(
+        format => format,
+        mask => INTEGER_DIGIT_SEPARATOR_FLAG_MASK,
+        iflag => INTEGER_INTERNAL_DIGIT_SEPARATOR,
+        lflag => INTEGER_LEADING_DIGIT_SEPARATOR,
+        tflag => INTEGER_TRAILING_DIGIT_SEPARATOR,
+        cflag => INTEGER_CONSECUTIVE_DIGIT_SEPARATOR,
+        ifunc => standalone_128_i::<W, N>,
+        icfunc => standalone_128_ic::<W, N>,
+        lfunc => standalone_128_l::<W, N>,
+        lcfunc => standalone_128_lc::<W, N>,
+        tfunc => standalone_128_t::<W, N>,
+        tcfunc => standalone_128_tc::<W, N>,
+        ilfunc => standalone_128_il::<W, N>,
+        ilcfunc => standalone_128_ilc::<W, N>,
+        itfunc => standalone_128_it::<W, N>,
+        itcfunc => standalone_128_itc::<W, N>,
+        ltfunc => standalone_128_lt::<W, N>,
+        ltcfunc => standalone_128_ltc::<W, N>,
+        iltfunc => standalone_128_ilt::<W, N>,
+        iltcfunc => standalone_128_iltc::<W, N>,
+        // No digit separator match, use our no digit separator parser.
+        fallthrough => standalone_128::<W, N>(bytes, radix),
+        args => bytes, radix, digit_separator
+    )?;
 
     // Check if we have any leading zeros.
     if format.no_integer_leading_zeros() {

@@ -1,11 +1,13 @@
 //! Big integer type definition.
 
 use crate::float::*;
-use crate::util::*;
+use crate::traits::*;
+
 use super::alias::FloatType;
 use super::math::*;
 
 // BINARY FACTOR
+// -------------
 
 /// Calculate the integral ceiling of the binary factor from a basen number.
 #[inline]
@@ -62,6 +64,7 @@ pub(super) fn integral_binary_factor(radix: u32)
 }
 
 // BIGINT
+// ------
 
 /// Storage for a big integer type.
 ///
@@ -119,6 +122,7 @@ impl<F: Float> LargeOps for Bigint<F> {
 }
 
 // BIGFLOAT
+// --------
 
 /// Storage for a big floating-point type.
 ///
@@ -181,12 +185,12 @@ impl<F: Float> LargeOps for Bigfloat<F> {
 }
 
 // TO BIGFLOAT
+// -----------
 
 /// Simple overloads to allow conversions of extended floats to big integers.
 pub trait ToBigfloat<F: FloatType> {
     fn to_bigfloat(&self) -> Bigfloat<F>;
 }
-
 
 #[cfg(feature = "f16")]
 impl ToBigfloat<f16> for ExtendedFloat<<f16 as FloatType>::Mantissa> {

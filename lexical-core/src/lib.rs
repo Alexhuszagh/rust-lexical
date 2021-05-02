@@ -180,18 +180,24 @@
 #![allow(unused_doc_comments)]
 
 // FEATURES
+// --------
 
 // Require intrinsics in a no_std context.
 #![cfg_attr(not(feature = "std"), no_std)]
 
 // DEPENDENCIES
+// ------------
 
 #[macro_use]
 extern crate cfg_if;
 
 // Use vec if there is a system allocator, which we require only if
 // we're using the correct and radix features.
-#[cfg(all(not(feature = "std"), feature = "atof", any(not(feature = "no_alloc"), feature = "f128", feature = "radix")))]
+#[cfg(all(
+    not(feature = "std"),
+    feature = "atof",
+    any(not(feature = "no_alloc"), feature = "f128", feature = "radix")
+))]
 #[cfg_attr(test, macro_use)]
 extern crate alloc;
 
@@ -205,14 +211,13 @@ compile_error!("Lexical only accepts one of the following backends: `grisu3` or 
 
 // Import the back-end, if applicable.
 cfg_if! {
-    if #[cfg(feature = "grisu3")] {
-        #[cfg(feature = "ftoa")]
-        extern crate dtoa;
-    } else if #[cfg(feature = "ryu")] {
-        #[cfg(feature = "ftoa")]
-        extern crate ryu;
-    }
-}  // cfg_if
+if #[cfg(feature = "grisu3")] {
+    #[cfg(feature = "ftoa")]
+    extern crate dtoa;
+} else if #[cfg(feature = "ryu")] {
+    #[cfg(feature = "ftoa")]
+    extern crate ryu;
+}}  // cfg_if
 
 /// Facade around the core features for name mangling.
 pub(crate) mod lib {
@@ -223,39 +228,77 @@ pub(crate) mod lib {
     pub(crate) use core::*;
 
     cfg_if! {
-        if #[cfg(all(feature = "atof", any(not(feature = "no_alloc"), feature = "f128", feature = "radix")))] {
-            #[cfg(feature = "std")]
-            pub(crate) use std::vec::Vec;
+    if #[cfg(all(
+        feature = "atof",
+        any(not(feature = "no_alloc"), feature = "f128", feature = "radix")
+    ))]
+    {
+        #[cfg(feature = "std")]
+        pub(crate) use std::vec::Vec;
 
-            #[cfg(not(feature = "std"))]
-            pub(crate) use ::alloc::vec::Vec;
-        }
-    }  // cfg_if
+        #[cfg(not(feature = "std"))]
+        pub(crate) use ::alloc::vec::Vec;
+    }}  // cfg_if
 }   // lib
 
-// API
+// MODULES
+// -------
 
-// Hide implementation details
+// Hide implementation details.
+//
+// To speed up compile times and simplify the internal logic,
+// the following modules, in order, is as follows:
+//      - config
+//      - error
+//      - util
+//      - options
+//      - traits
+//      - table
+//      - float
+//      - atoi/itoa
+//      - atof/ftoa
+//
+// Modules should only import from other modules above them.
 #[macro_use]
 mod util;
+#[macro_use]
+mod options;
+#[macro_use]
+mod traits;
+
+mod config;
+mod table;
+
+// Re-export configuration, options, and utilities globally.
+pub use config::*;
+pub use options::*;
+pub use table::*;
+pub use traits::*;
+pub use util::*;
+
+cfg_if! {
+if #[cfg(any(feature = "atof", feature = "atoi"))] {
+    mod error;
+    mod result;
+    pub use error::*;
+    pub use result::*;
+}}  // cfg_if
 
 #[cfg(any(feature = "atof", feature = "ftoa"))]
 mod float;
 
+// Submodules
 #[cfg(feature = "atof")]
 mod atof;
-
 #[cfg(any(feature = "atof", feature = "atoi"))]
 mod atoi;
-
 #[cfg(feature = "ftoa")]
 mod ftoa;
-
 #[cfg(any(all(feature = "ftoa", feature = "radix"), feature = "itoa"))]
 mod itoa;
 
-// Re-export configuration and utilities globally.
-pub use util::*;
+// API
+// ---
 
 /// Write number to string.
 ///

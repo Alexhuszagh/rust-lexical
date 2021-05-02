@@ -1,17 +1,20 @@
 //! Utilities for Rust numbers.
+//!
+//! These traits define useful properties, methods, associated
+//! types, and trait bounds, and conversions for working with
+//! numbers in generic code.
 
 // We have a lot of high-level casts that make the type-system work.
 // Don't delete them, fake they're being used.
-#![allow(dead_code)]
+#![allow(dead_code)]    // TODO(ahuszagh) Remove?
 
-pub(crate) use crate::lib::{f32, f64, mem};
-use crate::lib::{fmt, iter, ops};
+use crate::lib::{f32, f64, fmt, iter, mem, ops};
+use crate::config::*;
+use crate::options::*;
+use crate::util::*;
 
 use super::cast::{AsCast, TryCast};
-use super::config::*;
-use super::limb::Limb;
 use super::primitive::Primitive;
-use super::options::*;
 #[cfg(feature = "atof")]
 use super::sequence::CloneableVecLike;
 
@@ -19,11 +22,13 @@ use super::sequence::CloneableVecLike;
 use crate::lib::Vec;
 
 // NUMBER
+// ------
 
 /// Numerical type trait.
 #[doc(hidden)]
 pub trait Number:
     Primitive +
+    IsSigned +
     // Iteration
     iter::Product + iter::Sum +
     // Operations
@@ -42,8 +47,6 @@ pub trait Number:
     const FORMATTED_SIZE: usize;
     /// Maximum number of bytes required to serialize a number to a decimal string.
     const FORMATTED_SIZE_DECIMAL: usize;
-    /// If the type can hold a signed (negative) value.
-    const IS_SIGNED: bool;
 
     // OPTIONS
     type WriteOptions;
@@ -52,10 +55,13 @@ pub trait Number:
 
 macro_rules! number_impl {
     ($($t:tt $radix_size:ident $decimal_size:ident $is_signed:literal $write_options:ident $parse_options:ident $write_feature:literal $parse_feature:literal; )*) => ($(
+        impl IsSigned for $t {
+            const IS_SIGNED: bool = $is_signed;
+        }
+
         impl Number for $t {
             const FORMATTED_SIZE: usize = $radix_size;
             const FORMATTED_SIZE_DECIMAL: usize = $decimal_size;
-            const IS_SIGNED: bool = $is_signed;
 
             #[cfg(feature = $write_feature)]
             type WriteOptions = $write_options;
@@ -93,6 +99,7 @@ number_impl! {
 }
 
 // INTEGER
+// -------
 
 /// Defines a trait that supports integral operations.
 #[doc(hidden)]
@@ -599,6 +606,7 @@ pub(crate) fn try_cast_or_min<U: Integer, T: TryCast<U>>(t: T) -> U {
 }
 
 // SIGNED INTEGER
+// --------------
 
 /// Defines a trait that supports signed integral operations.
 #[doc(hidden)]
@@ -631,6 +639,7 @@ macro_rules! signed_integer_impl {
 signed_integer_impl! { i8 i16 i32 i64 i128 isize }
 
 // UNSIGNED INTEGER
+// ----------------
 
 /// Defines a trait that supports unsigned integral operations.
 #[doc(hidden)]
@@ -658,6 +667,7 @@ macro_rules! unsigned_integer_impl {
 unsigned_integer_impl! { u8 u16 u32 u64 u128 usize }
 
 // FLOAT
+// -----
 
 /// Float information for native float types.
 #[doc(hidden)]
@@ -917,6 +927,13 @@ macro_rules! float_method {
     })
 }
 
+// TODO(ahuszagh)
+//  Due to missing specifics or types for the following float types,
+//  `Float` is not yet fully implemented for:
+//      - f16
+//      - bf16
+//      - f128
+
 #[cfg(feature = "f16")]
 impl Float for f16 {
     type Unsigned = u16;
@@ -966,8 +983,6 @@ impl Float for f16 {
         const BIGINT_LIMBS: usize = 20;
         const BIGFLOAT_LIMBS: usize = 10;
     }}  // cfg_if
-
-    // TODO(ahuszagh) Need to add the float methods.
 }
 
 #[cfg(feature = "f16")]
@@ -1021,8 +1036,6 @@ impl Float for bf16 {
         const BIGINT_LIMBS: usize = 20;
         const BIGFLOAT_LIMBS: usize = 20;
     }}  // cfg_if
-
-    // TODO(ahuszagh) Need to add the float methods.
 }
 
 impl Float for f32 {
@@ -1104,12 +1117,11 @@ impl Float for f32 {
     #[inline]
     fn powi(self, n: i32) -> f32 {
         cfg_if! {
-            if #[cfg(not(feature = "std"))] {
-                self.powf(n as f32)
-            } else {
-                f32::powi(self, n)
-            }
-        }
+        if #[cfg(not(feature = "std"))] {
+            self.powf(n as f32)
+        } else {
+            f32::powi(self, n)
+        }}  // cfg_if
     }
 
     #[inline]
@@ -1224,12 +1236,11 @@ impl Float for f64 {
     #[inline]
     fn powi(self, n: i32) -> f64 {
         cfg_if! {
-            if #[cfg(not(feature = "std"))] {
-                self.powf(n as f64)
-            } else {
-                f64::powi(self, n)
-            }
-        }
+        if #[cfg(not(feature = "std"))] {
+            self.powf(n as f64)
+        } else {
+            f64::powi(self, n)
+        }}  // cfg_if
     }
 
     #[inline]
@@ -1302,8 +1313,6 @@ impl Float for f128 {
         const BIGINT_LIMBS: usize = 1800;
         const BIGFLOAT_LIMBS: usize = 1400;
     }}  // cfg_if
-
-    // TODO(ahuszagh) Need to add the float methods.
 }
 
 // TEST

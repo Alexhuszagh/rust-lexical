@@ -1,65 +1,13 @@
 //! Helper traits for sequences.
+//!
+//! Allows code to be used with generic traits supporting
+//! slice-like, vector-like, and cloneable vector-like code
+//! to abstract away implementation details.
 
-#![allow(dead_code)]
-
-use crate::lib::{cmp, iter, marker, mem, ops, ptr, slice};
-#[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
-use crate::lib::Vec;
-
-#[cfg(feature = "no_alloc")]
-use arrayvec;
-
-// ARRVEC
-
-/// Macro to automate simplify the creation of an ArrayVec.
-#[doc(hidden)]
-#[macro_export]
-#[cfg(feature = "no_alloc")]
-macro_rules! arrvec {
-    // This only works if the ArrayVec is the same size as the input array.
-    ($elem:expr; $n:expr) => ({
-        $crate::arrayvec::ArrayVec::from([$elem; $n])
-    });
-    // This just repeatedly calls `push`. I don't believe there's a concise
-    // way to count the number of expressions.
-    ($($x:expr),*$(,)*) => ({
-        // Allow an unused mut variable, since if the sequence is empty,
-        // the vec will never be mutated.
-        #[allow(unused_mut)] {
-            let mut vec = $crate::arrayvec::ArrayVec::new();
-            $(vec.push($x);)*
-            vec
-        }
-    });
-}
-
-/// Macro to automate simplify the creation of our default vector type.
-#[doc(hidden)]
-#[macro_export]
-#[cfg(not(feature = "no_alloc"))]
-macro_rules! vector {
-    ($elem:expr; $n:expr) => ({
-        vec![$elem; $n]
-    });
-    ($($x:expr),*$(,)*) => ({
-        vec![$($x),*]
-    });
-}
-
-/// Macro to automate simplify the creation of our default vector type.
-#[doc(hidden)]
-#[macro_export]
-#[cfg(feature = "no_alloc")]
-macro_rules! vector {
-    ($elem:expr; $n:expr) => ({
-        arrvec![$elem; $n]
-    });
-    ($($x:expr),*$(,)*) => ({
-        arrvec![$($x),*]
-    });
-}
+use crate::lib::{cmp, iter, mem, ops, ptr, slice};
 
 // INSERT MANY
+// -----------
 
 /// Insert multiple elements at position `index`.
 ///
@@ -344,36 +292,6 @@ impl<T> SliceLikeImpl<T> for [T] {
     #[inline]
     fn as_mut_slice(&mut self) -> &mut [T] {
         self
-    }
-}
-
-#[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
-impl<T> SliceLikeImpl<T> for Vec<T> {
-    // AS SLICE
-
-    #[inline]
-    fn as_slice(&self) -> &[T] {
-        Vec::as_slice(self)
-    }
-
-    #[inline]
-    fn as_mut_slice(&mut self) -> &mut [T] {
-        Vec::as_mut_slice(self)
-    }
-}
-
-#[cfg(feature = "no_alloc")]
-impl<A: arrayvec::Array> SliceLikeImpl<A::Item> for arrayvec::ArrayVec<A> {
-    // AS SLICE
-
-    #[inline]
-    fn as_slice(&self) -> &[A::Item] {
-        arrayvec::ArrayVec::as_slice(self)
-    }
-
-    #[inline]
-    fn as_mut_slice(&mut self) -> &mut [A::Item] {
-        arrayvec::ArrayVec::as_mut_slice(self)
     }
 }
 
@@ -993,7 +911,104 @@ impl<T> SliceLike<T> for [T] {
     }
 }
 
-#[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
+// VECTOR
+// ------
+
+// VECLIKE
+
+/// Vector-like container.
+pub trait VecLike<T>:
+    Default +
+    iter::FromIterator<T> +
+    iter::IntoIterator +
+    ops::DerefMut<Target = [T]> +
+    Extend<T> +
+    SliceLike<T>
+{
+    /// Create new, empty vector.
+    fn new() -> Self;
+
+    /// Create new, empty vector with preallocated, uninitialized storage.
+    fn with_capacity(capacity: usize) -> Self;
+
+    /// Get the capacity of the underlying storage.
+    fn capacity(&self) -> usize;
+
+    /// Reserve additional capacity for the collection.
+    fn reserve(&mut self, capacity: usize);
+
+    /// Reserve minimal additional capacity for the collection.
+    fn reserve_exact(&mut self, additional: usize);
+
+    /// Shrink capacity to fit data size.
+    fn shrink_to_fit(&mut self);
+
+    /// Truncate vector to new length, dropping any items after `len`.
+    fn truncate(&mut self, len: usize);
+
+    /// Set the buffer length (unsafe).
+    unsafe fn set_len(&mut self, new_len: usize);
+
+    /// Remove element from vector and return it, replacing it with the last item in the vector.
+    fn swap_remove(&mut self, index: usize) -> T;
+
+    /// Insert element at index, shifting all elements after.
+    fn insert(&mut self, index: usize, element: T);
+
+    /// Remove element from vector at index, shifting all elements after.
+    fn remove(&mut self, index: usize) -> T;
+
+    /// Append an element to the vector.
+    fn push(&mut self, value: T);
+
+    /// Pop an element from the end of the vector.
+    fn pop(&mut self) -> Option<T>;
+
+    /// Clear the buffer
+    fn clear(&mut self);
+
+    /// Insert many elements at index, pushing everything else to the back.
+    fn insert_many<I: iter::IntoIterator<Item=T>>(&mut self, index: usize, iterable: I);
+
+    /// Remove many elements from range.
+    fn remove_many<R: ops::RangeBounds<usize>>(&mut self, range: R);
+}
+
+// CLONEABLE VECLIKE
+
+/// Vector-like container with cloneable values.
+///
+/// Implemented for Vec, SmallVec, and StackVec.
+pub trait CloneableVecLike<T: Clone + Copy + Send>: Send + VecLike<T>
+{
+    /// Extend collection from slice.
+    fn extend_from_slice(&mut self, other: &[T]);
+
+    /// Resize container to new length, with a default value if adding elements.
+    fn resize(&mut self, len: usize, value: T);
+}
+
+// IMPL VEC
+// --------
+
+cfg_if! {
+if #[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))] {
+use crate::lib::Vec;
+
+impl<T> SliceLikeImpl<T> for Vec<T> {
+    // AS SLICE
+
+    #[inline(always)]
+    fn as_slice(&self) -> &[T] {
+        Vec::as_slice(self)
+    }
+
+    #[inline(always)]
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        Vec::as_mut_slice(self)
+    }
+}
+
 impl<T> SliceLike<T> for Vec<T> {
     // GET
 
@@ -1076,153 +1091,6 @@ impl<T> SliceLike<T> for Vec<T> {
     }
 }
 
-#[cfg(feature = "no_alloc")]
-impl<A: arrayvec::Array> SliceLike<A::Item> for arrayvec::ArrayVec<A> {
-    // GET
-
-    /// Get an immutable reference to item at index.
-    #[inline]
-    fn get<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> Option<&I::Output> {
-        return self.as_slice().get(index);
-    }
-
-    /// Get an mutable reference to item at index.
-    #[inline]
-    fn get_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> Option<&mut I::Output> {
-        return self.as_mut_slice().get_mut(index);
-    }
-
-    /// Get an immutable reference to item at index.
-    #[inline]
-    unsafe fn get_unchecked<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
-        return self.as_slice().get_unchecked(index);
-    }
-
-    /// Get an mutable reference to item at index.
-    #[inline]
-    unsafe fn get_unchecked_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
-        return self.as_mut_slice().get_unchecked_mut(index);
-    }
-
-    // INDEX
-
-    #[inline]
-    fn index<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
-        return self.as_slice().index(index);
-    }
-
-    #[inline]
-    fn index_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
-        return self.as_mut_slice().index_mut(index);
-    }
-
-    // RGET
-
-    #[inline]
-    fn rget<I: RSliceIndex<[A::Item]>>(&self, index: I)
-        -> Option<&I::Output>
-    {
-        index.rget(self.as_slice())
-    }
-
-    #[inline]
-    fn rget_mut<I: RSliceIndex<[A::Item]>>(&mut self, index: I)
-        -> Option<&mut I::Output>
-    {
-        index.rget_mut(self.as_mut_slice())
-    }
-
-    #[inline]
-    unsafe fn rget_unchecked<I: RSliceIndex<[A::Item]>>(&self, index: I)
-        -> &I::Output
-    {
-        index.rget_unchecked(self.as_slice())
-    }
-
-    #[inline]
-    unsafe fn rget_unchecked_mut<I: RSliceIndex<[A::Item]>>(&mut self, index: I)
-        -> &mut I::Output
-    {
-        index.rget_unchecked_mut(self.as_mut_slice())
-    }
-
-    // RINDEX
-
-    #[inline]
-    fn rindex<I: RSliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
-        index.rindex(self.as_slice())
-    }
-
-    #[inline]
-    fn rindex_mut<I: RSliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
-        index.rindex_mut(self.as_mut_slice())
-    }
-}
-
-// VECTOR
-// ------
-
-// VECLIKE
-
-/// Vector-like container.
-pub trait VecLike<T>:
-    Default +
-    iter::FromIterator<T> +
-    iter::IntoIterator +
-    ops::DerefMut<Target = [T]> +
-    Extend<T> +
-    SliceLike<T>
-{
-    /// Create new, empty vector.
-    fn new() -> Self;
-
-    /// Create new, empty vector with preallocated, uninitialized storage.
-    fn with_capacity(capacity: usize) -> Self;
-
-    /// Get the capacity of the underlying storage.
-    fn capacity(&self) -> usize;
-
-    /// Reserve additional capacity for the collection.
-    fn reserve(&mut self, capacity: usize);
-
-    /// Reserve minimal additional capacity for the collection.
-    fn reserve_exact(&mut self, additional: usize);
-
-    /// Shrink capacity to fit data size.
-    fn shrink_to_fit(&mut self);
-
-    /// Truncate vector to new length, dropping any items after `len`.
-    fn truncate(&mut self, len: usize);
-
-    /// Set the buffer length (unsafe).
-    unsafe fn set_len(&mut self, new_len: usize);
-
-    /// Remove element from vector and return it, replacing it with the last item in the vector.
-    fn swap_remove(&mut self, index: usize) -> T;
-
-    /// Insert element at index, shifting all elements after.
-    fn insert(&mut self, index: usize, element: T);
-
-    /// Remove element from vector at index, shifting all elements after.
-    fn remove(&mut self, index: usize) -> T;
-
-    /// Append an element to the vector.
-    fn push(&mut self, value: T);
-
-    /// Pop an element from the end of the vector.
-    fn pop(&mut self) -> Option<T>;
-
-    /// Clear the buffer
-    fn clear(&mut self);
-
-    /// Insert many elements at index, pushing everything else to the back.
-    fn insert_many<I: iter::IntoIterator<Item=T>>(&mut self, index: usize, iterable: I);
-
-    /// Remove many elements from range.
-    fn remove_many<R: ops::RangeBounds<usize>>(&mut self, range: R);
-}
-
-#[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
 impl<T> VecLike<T> for Vec<T> {
     #[inline]
     fn new() -> Vec<T> {
@@ -1305,7 +1173,157 @@ impl<T> VecLike<T> for Vec<T> {
     }
 }
 
-#[cfg(feature = "no_alloc")]
+impl<T> CloneableVecLike<T> for Vec<T>
+    where T: Clone + Copy + Send
+{
+    #[inline]
+    fn extend_from_slice(&mut self, other: &[T]) {
+        Vec::extend_from_slice(self, other)
+    }
+
+    #[inline]
+    fn resize(&mut self, len: usize, value: T) {
+        Vec::resize(self, len, value)
+    }
+}
+}}   // cfg_if
+
+// IMPL ARRAYVEC
+// --------------
+
+cfg_if! {
+if #[cfg(feature = "no_alloc")] {
+use arrayvec;
+
+/// Macro to automate simplify the creation of an ArrayVec.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! arrvec {
+    // This only works if the ArrayVec is the same size as the input array.
+    ($elem:expr; $n:expr) => ({
+        $crate::arrayvec::ArrayVec::from([$elem; $n])
+    });
+    // This just repeatedly calls `push`. I don't believe there's a concise
+    // way to count the number of expressions.
+    ($($x:expr),*$(,)*) => ({
+        // Allow an unused mut variable, since if the sequence is empty,
+        // the vec will never be mutated.
+        #[allow(unused_mut)] {
+            let mut vec = $crate::arrayvec::ArrayVec::new();
+            $(vec.push($x);)*
+            vec
+        }
+    });
+}
+
+/// Macro to automate simplify the creation of our default vector type.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! vector {
+    ($elem:expr; $n:expr) => ({
+        arrvec![$elem; $n]
+    });
+    ($($x:expr),*$(,)*) => ({
+        arrvec![$($x),*]
+    });
+}
+
+impl<A: arrayvec::Array> SliceLikeImpl<A::Item> for arrayvec::ArrayVec<A> {
+    // AS SLICE
+
+    #[inline(always)]
+    fn as_slice(&self) -> &[A::Item] {
+        arrayvec::ArrayVec::as_slice(self)
+    }
+
+    #[inline(always)]
+    fn as_mut_slice(&mut self) -> &mut [A::Item] {
+        arrayvec::ArrayVec::as_mut_slice(self)
+    }
+}
+
+impl<A: arrayvec::Array> SliceLike<A::Item> for arrayvec::ArrayVec<A> {
+    // GET
+
+    /// Get an immutable reference to item at index.
+    #[inline]
+    fn get<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> Option<&I::Output> {
+        return self.as_slice().get(index);
+    }
+
+    /// Get an mutable reference to item at index.
+    #[inline]
+    fn get_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> Option<&mut I::Output> {
+        return self.as_mut_slice().get_mut(index);
+    }
+
+    /// Get an immutable reference to item at index.
+    #[inline]
+    unsafe fn get_unchecked<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
+        return self.as_slice().get_unchecked(index);
+    }
+
+    /// Get an mutable reference to item at index.
+    #[inline]
+    unsafe fn get_unchecked_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
+        return self.as_mut_slice().get_unchecked_mut(index);
+    }
+
+    // INDEX
+
+    #[inline]
+    fn index<I: slice::SliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
+        return self.as_slice().index(index);
+    }
+
+    #[inline]
+    fn index_mut<I: slice::SliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
+        return self.as_mut_slice().index_mut(index);
+    }
+
+    // RGET
+
+    #[inline]
+    fn rget<I: RSliceIndex<[A::Item]>>(&self, index: I)
+        -> Option<&I::Output>
+    {
+        index.rget(self.as_slice())
+    }
+
+    #[inline]
+    fn rget_mut<I: RSliceIndex<[A::Item]>>(&mut self, index: I)
+        -> Option<&mut I::Output>
+    {
+        index.rget_mut(self.as_mut_slice())
+    }
+
+    #[inline]
+    unsafe fn rget_unchecked<I: RSliceIndex<[A::Item]>>(&self, index: I)
+        -> &I::Output
+    {
+        index.rget_unchecked(self.as_slice())
+    }
+
+    #[inline]
+    unsafe fn rget_unchecked_mut<I: RSliceIndex<[A::Item]>>(&mut self, index: I)
+        -> &mut I::Output
+    {
+        index.rget_unchecked_mut(self.as_mut_slice())
+    }
+
+    // RINDEX
+
+    #[inline]
+    fn rindex<I: RSliceIndex<[A::Item]>>(&self, index: I) -> &I::Output {
+        index.rindex(self.as_slice())
+    }
+
+    #[inline]
+    fn rindex_mut<I: RSliceIndex<[A::Item]>>(&mut self, index: I) -> &mut I::Output {
+        index.rindex_mut(self.as_mut_slice())
+    }
+}
+
 impl<A: arrayvec::Array> VecLike<A::Item> for arrayvec::ArrayVec<A> {
     #[inline]
     fn new() -> arrayvec::ArrayVec<A> {
@@ -1389,36 +1407,6 @@ impl<A: arrayvec::Array> VecLike<A::Item> for arrayvec::ArrayVec<A> {
     }
 }
 
-// CLONEABLE VECLIKE
-
-/// Vector-like container with cloneable values.
-///
-/// Implemented for Vec, SmallVec, and StackVec.
-pub trait CloneableVecLike<T: Clone + Copy + Send>: Send + VecLike<T>
-{
-    /// Extend collection from slice.
-    fn extend_from_slice(&mut self, other: &[T]);
-
-    /// Resize container to new length, with a default value if adding elements.
-    fn resize(&mut self, len: usize, value: T);
-}
-
-#[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
-impl<T> CloneableVecLike<T> for Vec<T>
-    where T: Clone + Copy + Send
-{
-    #[inline]
-    fn extend_from_slice(&mut self, other: &[T]) {
-        Vec::extend_from_slice(self, other)
-    }
-
-    #[inline]
-    fn resize(&mut self, len: usize, value: T) {
-        Vec::resize(self, len, value)
-    }
-}
-
-#[cfg(feature = "no_alloc")]
 impl<A: arrayvec::Array> CloneableVecLike<A::Item> for arrayvec::ArrayVec<A>
     where A: Send,
           A::Index: Send,
@@ -1440,6 +1428,46 @@ impl<A: arrayvec::Array> CloneableVecLike<A::Item> for arrayvec::ArrayVec<A>
         }
     }
 }
+}}  //cfg_if
+
+// VECTOR MACRO
+// ------------
+
+cfg_if! {
+if #[cfg(feature = "no_alloc")] {
+    /// Macro to automate simplify the creation of an ArrayVec.
+    #[doc(hidden)]
+    #[macro_export]
+    macro_rules! arrvec {
+        // This only works if the ArrayVec is the same size as the input array.
+        ($elem:expr; $n:expr) => ({
+            $crate::arrayvec::ArrayVec::from([$elem; $n])
+        });
+        // This just repeatedly calls `push`. I don't believe there's a concise
+        // way to count the number of expressions.
+        ($($x:expr),*$(,)*) => ({
+            // Allow an unused mut variable, since if the sequence is empty,
+            // the vec will never be mutated.
+            #[allow(unused_mut)] {
+                let mut vec = $crate::arrayvec::ArrayVec::new();
+                $(vec.push($x);)*
+                vec
+            }
+        });
+    }
+} else {
+    /// Macro to automate simplify the creation of our default vector type.
+    #[doc(hidden)]
+    #[macro_export]
+    macro_rules! vector {
+        ($elem:expr; $n:expr) => ({
+            vec![$elem; $n]
+        });
+        ($($x:expr),*$(,)*) => ({
+            vec![$($x),*]
+        });
+    }
+}}  // cfg_if
 
 // TESTS
 // -----

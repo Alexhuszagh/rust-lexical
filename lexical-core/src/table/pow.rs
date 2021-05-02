@@ -1,7 +1,6 @@
 //! FLoating point power utilities.
 
-use super::cast::*;
-use super::num::*;
+use crate::traits::*;
 use super::table::*;
 
 // STABLE POWER
@@ -164,7 +163,7 @@ impl StablePower for f64 {
 
 #[cfg(test)]
 mod tests {
-    use crate::util::test::*;
+    use crate::util::*;
     use super::*;
 
     use approx::assert_relative_eq;

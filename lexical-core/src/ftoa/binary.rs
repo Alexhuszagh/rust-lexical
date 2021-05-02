@@ -1,6 +1,7 @@
 //! Optimized float serializer for radixes powers of 2.
 
 use crate::itoa;
+use crate::traits::*;
 use crate::util::*;
 
 // ALGORITHM
@@ -661,7 +662,7 @@ pub(crate) fn double_binary<'a>(float: f64, radix: u32, bytes: &'a mut [u8], for
 
 #[cfg(test)]
 mod tests {
-    use crate::util::test::*;
+    use crate::util::*;
     use super::*;
 
     #[test]

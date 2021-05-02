@@ -1,6 +1,6 @@
 //! Type trait for the mantissa of an extended float.
 
-use crate::util::*;
+use crate::traits::*;
 
 /// Type trait for the mantissa type.
 pub trait Mantissa: UnsignedInteger {

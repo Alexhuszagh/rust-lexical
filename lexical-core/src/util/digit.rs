@@ -1,14 +1,18 @@
+//! Utilities to convert and identify digits.
+
 use crate::lib::result::Result;
 
 // DIGITS
+// ------
 
 cfg_if! {
 if #[cfg(any(feature = "atof", all(feature = "atoi", feature = "format")))] {
+    const_fn!(
     /// Get if the character is a digit.
     /// Optimize for case when we have a radix <= 10.
     #[inline(always)]
     #[cfg(feature = "radix")]
-    pub(crate) fn is_digit(c: u8, radix: u32) -> bool {
+    pub(crate) const fn is_digit(c: u8, radix: u32) -> bool {
         let digit = if radix <= 10 {
             match c {
                 b'0'..=b'9' => c - b'0',
@@ -23,19 +27,20 @@ if #[cfg(any(feature = "atof", all(feature = "atoi", feature = "format")))] {
             }
         };
         (digit as u32) < radix
-    }
+    });
 
+    const_fn!(
     /// Get if the character is a digit.
     /// Optimize for case when we have a radix == 10.
     #[inline(always)]
     #[cfg(not(feature = "radix"))]
-    pub(crate) fn is_digit(c: u8, _: u32) -> bool {
+    pub(crate) const fn is_digit(c: u8, _: u32) -> bool {
         let digit = match c {
             b'0'..=b'9' => c - b'0',
             _ => return false,
         };
         (digit as u32) < 10
-    }
+    });
 }}   // cfg_if
 
 /// Get if the character is not a digit.

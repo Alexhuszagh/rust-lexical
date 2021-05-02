@@ -7,14 +7,12 @@
 //! are implemented, and others (like bitshift assigns) are unimplemented.
 
 use crate::lib::{cmp, fmt, iter, ops};
-
-use super::cast::*;
-use super::config::*;
-use super::num::*;
-use super::options::*;
-use super::primitive::*;
+use crate::options::*;      // TODO(ahuszagh) Keep for options later.
+use crate::traits::*;
+use crate::util::*;
 
 // WRAPPED FLOAT
+// -------------
 
 /// Wrap a float to act like an integer.
 ///
@@ -289,10 +287,13 @@ ops_assign_impl! {
     SubAssign, sub_assign ;
 }
 
+impl<T: Float> IsSigned for WrappedFloat<T> {
+    const IS_SIGNED: bool = T::IS_SIGNED;
+}
+
 impl<T: Float> Number for WrappedFloat<T> {
     const FORMATTED_SIZE: usize = T::FORMATTED_SIZE;
     const FORMATTED_SIZE_DECIMAL: usize = T::FORMATTED_SIZE_DECIMAL;
-    const IS_SIGNED: bool = T::IS_SIGNED;
 
     #[cfg(feature = "ftoa")]
     type WriteOptions = WriteFloatOptions;

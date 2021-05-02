@@ -7,16 +7,11 @@
 //!     https://golang.org/src/strconv/atof.go
 
 use crate::float::*;
+use crate::traits::*;
 use crate::util::*;
 
-pub trait FloatErrors: Mantissa {
-    /// Get the full error scale.
-    fn error_scale() -> u32;
-    /// Get the half error scale.
-    fn error_halfscale() -> u32;
-    /// Determine if the number of errors is tolerable for float precision.
-    fn error_is_accurate<F: Float>(count: u32, fp: &ExtendedFloat<Self>, kind: RoundingKind) -> bool;
-}
+// HELPERS
+// -------
 
 /// Check if the error is accurate with a round-nearest rounding scheme.
 #[inline]
@@ -85,6 +80,18 @@ fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64
             !(cmp1 && cmp2)
         }
     }
+}
+
+// FLOAT ERRORS
+// ------------
+
+pub trait FloatErrors: Mantissa {
+    /// Get the full error scale.
+    fn error_scale() -> u32;
+    /// Get the half error scale.
+    fn error_halfscale() -> u32;
+    /// Determine if the number of errors is tolerable for float precision.
+    fn error_is_accurate<F: Float>(count: u32, fp: &ExtendedFloat<Self>, kind: RoundingKind) -> bool;
 }
 
 impl FloatErrors for u64 {

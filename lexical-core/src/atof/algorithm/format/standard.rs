@@ -1,6 +1,8 @@
 //! Standard float-parsing data interface.
 
+use crate::result::*;
 use crate::util::*;
+
 use super::exponent::*;
 use super::traits::*;
 use super::trim::*;
@@ -72,6 +74,7 @@ impl<'a> From<DataTuple<'a>> for StandardFastDataInterface<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::error::*;
     use super::*;
 
     macro_rules! standard {

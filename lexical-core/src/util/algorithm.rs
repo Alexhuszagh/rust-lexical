@@ -1,9 +1,10 @@
 //! Simple, shared algorithm utilities.
 
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
-use crate::lib::convert::AsRef;
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
-use crate::lib::ptr;
+cfg_if! {
+if #[cfg(any(feature = "ftoa", feature = "itoa"))] {
+    use crate::lib::convert::AsRef;
+    use crate::lib::ptr;
+}}  // cfg_if
 
 // ALGORITHMS
 

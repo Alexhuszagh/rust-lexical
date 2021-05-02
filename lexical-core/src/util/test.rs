@@ -1,11 +1,12 @@
 //! Test utilities.
 
 #[cfg(any(feature = "ftoa", feature = "itoa"))]
-use super::config::BUFFER_SIZE;
+use crate::config::BUFFER_SIZE;
+#[cfg(feature = "atof")]
+use crate::traits::{CloneableVecLike, VecLike};
+
 #[cfg(feature = "atof")]
 use super::limb::Limb;
-#[cfg(feature = "atof")]
-use super::sequence::{CloneableVecLike, VecLike};
 
 #[cfg(feature = "atof")]
 cfg_if! {

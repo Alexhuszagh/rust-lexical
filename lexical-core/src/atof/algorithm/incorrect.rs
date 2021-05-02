@@ -1,11 +1,15 @@
 //! Incorrect, fast algorithms for string-to-float conversions.
 
 use crate::atoi;
+use crate::float::*;
+use crate::traits::*;
 use crate::util::*;
+
 use super::alias::*;
 use super::format::*;
 
-// FRACTION
+// INCORRECT
+// ---------
 
 type Wrapped<F> = WrappedFloat<F>;
 
@@ -76,7 +80,6 @@ pub(crate) fn to_native<'a, F, Data>(data: Data, radix: u32) -> F
 
 #[cfg(test)]
 mod tests {
-    use crate::util::*;
     use super::*;
 
     #[test]

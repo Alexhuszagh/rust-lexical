@@ -1,9 +1,10 @@
 //! Macros for bit-wise shifts.
 
 use crate::lib::mem;
-use crate::util::*;
-use super::float::ExtendedFloat;
-use super::mantissa::Mantissa;
+use crate::traits::*;
+
+use super::float::*;
+use super::mantissa::*;
 
 // SHIFT RIGHT
 

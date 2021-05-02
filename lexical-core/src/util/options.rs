@@ -1,7 +1,8 @@
 //! Configuration options for parsing and formatting numbers.
 
 #[cfg(any(feature = "atof", feature = "ftoa"))]
-use super::config::F64_FORMATTED_SIZE_DECIMAL as FLOAT_SIZE;
+use crate::config::F64_FORMATTED_SIZE_DECIMAL as FLOAT_SIZE;
+
 #[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa"))]
 use super::format::NumberFormat;
 #[cfg(feature = "atof")]
@@ -13,107 +14,115 @@ use super::rounding::RoundingKind;
 // Constants to dictate default values for options.
 #[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
 pub(crate) const DEFAULT_RADIX: u8 = 10;
-#[cfg(any(feature = "atof", feature = "ftoa"))]
-pub(crate) const DEFAULT_FORMAT: NumberFormat = NumberFormat::STANDARD;
-#[cfg(any(feature = "atof", feature = "ftoa"))]
-pub(crate) const DEFAULT_INF_STRING: &'static [u8] = b"inf";
-#[cfg(feature = "atof")]
-pub(crate) const DEFAULT_INFINITY_STRING: &'static [u8] = b"infinity";
-#[cfg(any(feature = "atof", feature = "ftoa"))]
-pub(crate) const DEFAULT_NAN_STRING: &'static [u8] = b"NaN";
-#[cfg(feature = "atof")]
-pub(crate) const DEFAULT_INCORRECT: bool = false;
-#[cfg(feature = "atof")]
-pub(crate) const DEFAULT_LOSSY: bool = false;
-#[cfg(feature = "atof")]
-pub(crate) const DEFAULT_ROUNDING: RoundingKind = RoundingKind::NearestTieEven;
+
+cfg_if! {
+if #[cfg(any(feature = "atof", feature = "ftoa"))] {
+    pub(crate) const DEFAULT_FORMAT: NumberFormat = NumberFormat::STANDARD;
+    pub(crate) const DEFAULT_INF_STRING: &'static [u8] = b"inf";
+    pub(crate) const DEFAULT_NAN_STRING: &'static [u8] = b"NaN";
+}}  // cfg_if
+
+cfg_if! {
+if #[cfg(feature = "atof")] {
+    pub(crate) const DEFAULT_INFINITY_STRING: &'static [u8] = b"infinity";
+    pub(crate) const DEFAULT_INCORRECT: bool = false;
+    pub(crate) const DEFAULT_LOSSY: bool = false;
+    pub(crate) const DEFAULT_ROUNDING: RoundingKind = RoundingKind::NearestTieEven;
+}}  // cfg_if
+
 #[cfg(feature = "ftoa")]
 pub(crate) const DEFAULT_TRIM_FLOATS: bool = false;
 
 // VALIDATORS
 // ----------
 
-/// Return `None` if radix is invalid.
-/// Short-circuits to allow use in a const fn.
-#[cfg(all(feature = "radix", any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa")))]
-macro_rules! to_radix {
-    ($radix:expr) => {{
-        if $radix < 2 || $radix > 36 {
-            return None
-        }
-        $radix
-    }};
-}
-
-/// Return `None` if radix is invalid.
-/// Short-circuits to allow use in a const fn.
-#[cfg(all(not(feature = "radix"), any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa")))]
-macro_rules! to_radix {
-    ($radix:expr) => {{
-        if $radix != 10 {
-            return None
-        }
-        $radix
-    }};
-}
-
-/// Check if byte array starts with case-insensitive N.
-const_fn!(
-#[inline]
-#[cfg(any(feature = "atof", feature = "ftoa"))]
-const fn starts_with_n(bytes: &[u8]) -> bool {
-    if bytes.len() == 0 {
-        false
-    } else {
-        match bytes[0] {
-            b'N' => true,
-            b'n' => true,
-            _    => false,
-        }
+#[cfg(any(
+    feature = "atof",
+    feature = "atoi",
+    feature = "ftoa",
+    feature = "itoa"
+))]
+cfg_if! {
+if #[cfg(feature = "radix")] {
+    /// Return `None` if radix is invalid.
+    /// Short-circuits to allow use in a const fn.
+    macro_rules! to_radix {
+        ($radix:expr) => {{
+            if $radix < 2 || $radix > 36 {
+                return None
+            }
+            $radix
+        }};
     }
-});
-
-/// Get the NaN string if the NaN string is valid.
-#[cfg(any(feature = "atof", feature = "ftoa"))]
-macro_rules! to_nan_string {
-    ($nan:expr) => {{
-        if !starts_with_n($nan) {
-            return None;
-        } else if $nan.len() > FLOAT_SIZE {
-            return None;
-        }
-        $nan
-    }};
-}
-
-const_fn!(
-/// Check if byte array starts with case-insensitive I.
-#[inline]
-#[cfg(any(feature = "atof", feature = "ftoa"))]
-const fn starts_with_i(bytes: &[u8]) -> bool {
-    if bytes.len() == 0 {
-        false
-    } else {
-        match bytes[0] {
-            b'I' => true,
-            b'i' => true,
-            _    => false,
-        }
+} else {
+    /// Return `None` if radix is invalid.
+    /// Short-circuits to allow use in a const fn.
+    macro_rules! to_radix {
+        ($radix:expr) => {{
+            if $radix != 10 {
+                return None
+            }
+            $radix
+        }};
     }
-});
+}}  // cfg_if
 
-/// Get the short infinity string if the infinity string is valid.
-#[cfg(any(feature = "atof", feature = "ftoa"))]
-macro_rules! to_inf_string {
-    ($inf:expr) => {{
-        if !starts_with_i($inf) {
-            return None;
-        } else if $inf.len() > FLOAT_SIZE {
-            return None;
+cfg_if! {
+if #[cfg(any(feature = "atof", feature = "ftoa"))] {
+    /// Check if byte array starts with case-insensitive N.
+    const_fn!(
+    #[inline]
+    const fn starts_with_n(bytes: &[u8]) -> bool {
+        if bytes.len() == 0 {
+            false
+        } else {
+            match bytes[0] {
+                b'N' => true,
+                b'n' => true,
+                _    => false,
+            }
         }
-        $inf
-    }};
-}
+    });
+
+    /// Get the NaN string if the NaN string is valid.
+    macro_rules! to_nan_string {
+        ($nan:expr) => {{
+            if !starts_with_n($nan) {
+                return None;
+            } else if $nan.len() > FLOAT_SIZE {
+                return None;
+            }
+            $nan
+        }};
+    }
+
+    const_fn!(
+    /// Check if byte array starts with case-insensitive I.
+    #[inline]
+    const fn starts_with_i(bytes: &[u8]) -> bool {
+        if bytes.len() == 0 {
+            false
+        } else {
+            match bytes[0] {
+                b'I' => true,
+                b'i' => true,
+                _    => false,
+            }
+        }
+    });
+
+    /// Get the short infinity string if the infinity string is valid.
+    macro_rules! to_inf_string {
+        ($inf:expr) => {{
+            if !starts_with_i($inf) {
+                return None;
+            } else if $inf.len() > FLOAT_SIZE {
+                return None;
+            }
+            $inf
+        }};
+    }
+}}  // cfg_if
 
 /// Get the long infinity string if the infinity string is valid.
 #[cfg(feature = "atof")]
@@ -144,9 +153,10 @@ pub struct DummyOptions {
 // PARSE INTEGER
 // -------------
 
+cfg_if! {
+if #[cfg(feature = "atoi")] {
 /// Builder for `ParseIntegerOptions`.
 #[repr(C)]
-#[cfg(feature = "atoi")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ParseIntegerOptionsBuilder {
     /// Radix for integer string.
@@ -209,7 +219,6 @@ impl ParseIntegerOptionsBuilder {
     });
 }
 
-#[cfg(feature = "atoi")]
 impl Default for ParseIntegerOptionsBuilder {
     #[inline(always)]
     fn default() -> Self {
@@ -232,7 +241,6 @@ impl Default for ParseIntegerOptionsBuilder {
 /// # }
 /// ```
 #[repr(C)]
-#[cfg(feature = "atoi")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ParseIntegerOptions {
     /// Radix for integer string.
@@ -241,7 +249,6 @@ pub struct ParseIntegerOptions {
     format: Option<NumberFormat>,
 }
 
-#[cfg(feature = "atoi")]
 impl ParseIntegerOptions {
     /// Create options with default values.
     #[inline(always)]
@@ -318,13 +325,13 @@ impl ParseIntegerOptions {
     }
 }
 
-#[cfg(feature = "atoi")]
 impl Default for ParseIntegerOptions {
     #[inline(always)]
     fn default() -> Self {
         Self::new()
     }
 }
+}}  // cfg_if
 
 // PARSE FLOAT
 // -----------

@@ -1,7 +1,7 @@
 //! Shared definitions for string-to-integer conversions.
 
 #[cfg(feature = "atof")]
-use crate::util::*;
+use crate::traits::*;
 
 // SHARED
 // ------

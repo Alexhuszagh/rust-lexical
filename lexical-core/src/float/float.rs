@@ -6,11 +6,13 @@
 //! precision (only 16 bits of the 32-bit integer are used, u32 is used
 //! for performance). Since there is no storage for the sign bit,
 //! this only works for positive floats.
+
 // Lot of useful algorithms in here, and helper utilities.
 // We want to make sure this code is not accidentally deleted.
-#![allow(dead_code)]
 
+use crate::traits::*;
 use crate::util::*;
+
 use super::convert::*;
 use super::mantissa::Mantissa;
 use super::rounding::*;
@@ -30,6 +32,7 @@ pub struct ExtendedFloat<M: Mantissa> {
     pub exp: i32,
 }
 
+#[allow(dead_code)]
 impl<M: Mantissa> ExtendedFloat<M> {
     // PROPERTIES
 
@@ -417,6 +420,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
     }
 }
 
+#[allow(dead_code)]
 impl ExtendedFloat<u128> {
     /// Create extended float from 64-bit unsigned integer.
     #[inline]
@@ -431,6 +435,7 @@ impl ExtendedFloat<u128> {
 pub type ExtendedFloat80 = ExtendedFloat<u64>;
 
 /// Alias with ~160 bits of precision, 128 for the mantissa and 32 for exponent.
+#[allow(dead_code)]
 pub type ExtendedFloat160 = ExtendedFloat<u128>;
 
 // TESTS

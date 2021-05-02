@@ -1,11 +1,14 @@
 //! Aliases and traits to simplify float-parsing.
 
 use crate::float::*;
-use crate::util::*;
+use crate::table::*;
+use crate::traits::*;
+
 use super::bignum::ToBigfloat;
 use super::errors::FloatErrors;
 
 // MAX CORRECT DIGITS
+// ------------------
 
 /// Calculate the maximum number of digits possible in the mantissa.
 ///
@@ -282,6 +285,7 @@ impl MaxCorrectDigits for f128 {
 }
 
 // MAX INCORRECT DIGITS
+// --------------------
 
 /// Calculate the maximum number of digits that should affect
 /// the mantissa, or significand (with an incorrect parser).
@@ -559,6 +563,7 @@ impl MaxIncorrectDigits for f128 {
 }
 
 // FLOAT TYPE
+// ----------
 
 /// Trait to simplify type signatures for atof.
 pub trait FloatType:
@@ -601,6 +606,7 @@ impl FloatType for f128 {
 }
 
 // MANTISSA
+// --------
 
 /// Trait for a useable mantissa.
 pub(super) trait MantissaType:
@@ -615,6 +621,7 @@ impl MantissaType for u128 {
 }
 
 // EXTENDED FLOAT
+// --------------
 
 /// Trait for extended-float types.
 pub trait ExtendedFloatType<F: FloatType>:

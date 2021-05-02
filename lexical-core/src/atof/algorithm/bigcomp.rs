@@ -9,13 +9,17 @@
 //!     https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/
 
 use crate::lib::cmp;
+use crate::table::*;
+use crate::traits::*;
 use crate::util::*;
+
 use super::alias::*;
 use super::bignum::*;
 use super::format::*;
 use super::math::*;
 
 // ROUNDING
+// --------
 
 /// Custom rounding for the ratio.
 #[allow(unused_variables)]
@@ -70,6 +74,7 @@ pub(super) fn round_to_native<F>(f: F, order: cmp::Ordering, kind: RoundingKind)
 }
 
 // SHARED
+// ------
 
 /// Calculate `b` from a a representation of `b` as a float.
 #[inline]
@@ -111,6 +116,7 @@ pub(super) fn theoretical_float<F>(f: F, kind: RoundingKind)
 }
 
 // BIGCOMP
+// -------
 
 /// Get the appropriate scaling factor from the digit count.
 ///
@@ -271,7 +277,6 @@ pub(super) fn atof<'a, F, Data>(data: Data, radix: u32, f: F, kind: RoundingKind
 
 #[cfg(test)]
 mod tests {
-    use crate::util::test::*;
     use super::*;
 
     #[test]

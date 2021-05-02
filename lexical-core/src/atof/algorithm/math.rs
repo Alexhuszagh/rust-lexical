@@ -6,8 +6,13 @@
 
 // We have a lot of higher-order, efficient math routines that may
 // come in handy later. These aren't trivial to implement, so keep them.
-#![allow(dead_code)]
+// We don't allow dead-code at the module level, so we can
+// re-factor and remove imports if needed.
 
+use crate::lib::mem;
+
+use crate::float::*;
+use crate::traits::*;
 use crate::util::*;
 
 // ALIASES
@@ -862,7 +867,7 @@ impl Hi128<u64> for [u64] {
 // Scalar-to-scalar operations, for building-blocks for arbitrary-precision
 // operations.
 
-pub(in crate::atof::algorithm) mod scalar {
+pub(crate) mod scalar {
 
 use super::*;
 
@@ -964,7 +969,7 @@ pub fn idiv(x: &mut Limb, y: Limb, rem: Limb)
 
 // Large-to-small operations, to modify a big integer from a native scalar.
 
-pub(in crate::atof::algorithm) mod small {
+pub(crate) mod small {
 
 use crate::lib::iter;
 use super::*;
@@ -1134,8 +1139,9 @@ pub fn ishr<T>(x: &mut T, n: usize)
     roundup
 }
 
-#[inline]
 /// Shift-left buffer by n bits.
+#[inline]
+#[allow(dead_code)]
 pub fn shr<T>(x: &[Limb], n: usize)
     -> (T, bool)
     where T: CloneableVecLike<Limb>
@@ -1229,6 +1235,7 @@ pub fn ishl<T>(x: &mut T, n: usize)
 
 /// Shift-left buffer by n bits.
 #[inline]
+#[allow(dead_code)]
 pub fn shl<T>(x: &[Limb], n: usize)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1294,6 +1301,7 @@ pub fn iadd<T>(x: &mut T, y: Limb)
 
 /// Add small integer to bigint.
 #[inline]
+#[allow(dead_code)]
 pub fn add<T>(x: &[Limb], y: Limb)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1337,6 +1345,7 @@ pub fn isub<T>(x: &mut T, y: Limb)
 
 /// Sub small integer to bigint.
 #[inline]
+#[allow(dead_code)]
 pub fn sub<T>(x: &[Limb], y: Limb)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1468,6 +1477,7 @@ pub fn imul_power<T>(x: &mut T, radix: u32, n: u32)
 
 /// Mul by a power.
 #[inline]
+#[allow(dead_code)]
 pub fn mul_power<T>(x: &[Limb], radix: u32, n: u32)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1498,6 +1508,7 @@ pub fn idiv<T>(x: &mut T, y: Limb)
 
 /// Div small integer to bigint and get the remainder.
 #[inline]
+#[allow(dead_code)]
 pub fn div<T>(x: &[Limb], y: Limb)
     -> (T, Limb)
     where T: CloneableVecLike<Limb>
@@ -1543,6 +1554,7 @@ pub fn ipow<T>(x: &mut T, mut n: Limb)
 
 /// Calculate x^n, using exponentiation by squaring.
 #[inline]
+#[allow(dead_code)]
 pub fn pow<T>(x: &[Limb], n: Limb)
     -> T
     where T: CloneableVecLike<Limb>
@@ -1560,7 +1572,7 @@ pub fn pow<T>(x: &[Limb], n: Limb)
 
 // Large-to-large operations, to modify a big integer from a native scalar.
 
-pub(in crate::atof::algorithm) mod large {
+pub(crate) mod large {
 
 use crate::lib::cmp;
 use super::*;
@@ -1707,6 +1719,7 @@ pub fn isub<T>(x: &mut T, y: &[Limb])
 
 /// Sub bigint to bigint.
 #[inline]
+#[allow(dead_code)]
 pub fn sub<T>(x: &[Limb], y: &[Limb])
     -> T
     where T: CloneableVecLike<Limb>
@@ -2121,6 +2134,7 @@ pub fn idiv<T>(x: &mut T, y: &[Limb])
 
 /// Div bigint to bigint.
 #[inline]
+#[allow(dead_code)]
 pub fn div<T>(x: &[Limb], y: &[Limb])
     -> (T, T)
     where T: CloneableVecLike<Limb>
@@ -2219,7 +2233,8 @@ macro_rules! imul_power {
 /// None of these are implemented using normal traits, since these
 /// are very expensive operations, and we want to deliberately
 /// and explicitly use these functions.
-pub(in crate::atof::algorithm) trait SharedOps: Clone + Sized + Default {
+#[allow(dead_code)]
+pub(crate) trait SharedOps: Clone + Sized + Default {
     /// Underlying storage type for a SmallOps.
     type StorageType: CloneableVecLike<Limb>;
 
@@ -2451,7 +2466,8 @@ pub(in crate::atof::algorithm) trait SharedOps: Clone + Sized + Default {
 }
 
 /// Trait for small operations for arbitrary-precision numbers.
-pub(in crate::atof::algorithm) trait SmallOps: SharedOps {
+#[allow(dead_code)]
+pub(crate) trait SmallOps: SharedOps {
     // SMALL POWERS
 
     /// Get the small powers from the radix.
@@ -2788,7 +2804,8 @@ pub(in crate::atof::algorithm) trait SmallOps: SharedOps {
 }
 
 /// Trait for large operations for arbitrary-precision numbers.
-pub(in crate::atof::algorithm) trait LargeOps: SmallOps {
+#[allow(dead_code)]
+pub(crate) trait LargeOps: SmallOps {
     // ADDITION
 
     /// AddAssign large integer.
@@ -2873,7 +2890,6 @@ pub(in crate::atof::algorithm) trait LargeOps: SmallOps {
 
 #[cfg(test)]
 mod tests {
-    use crate::util::test::*;
     use super::*;
 
     #[derive(Clone, Default)]

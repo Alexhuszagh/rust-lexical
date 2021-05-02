@@ -1,5 +1,6 @@
 //! String-to-integer routines specialized to parse the exponent of a float.
 
+use crate::traits::*;
 use crate::util::*;
 
 // STANDALONE EXPONENT
