@@ -947,11 +947,10 @@ pub(crate) mod scalar {
 // Large-to-small operations, to modify a big integer from a native scalar.
 
 pub(crate) mod small {
-
-    use super::super::large_powers::*;
-    use super::super::small_powers::*;
-    use super::*;
     use crate::lib::iter;
+
+    use super::super::powers::*;
+    use super::*;
 
     // PROPERTIES
 
@@ -1556,9 +1555,9 @@ pub(crate) mod small {
 // Large-to-large operations, to modify a big integer from a native scalar.
 
 pub(crate) mod large {
+    use crate::lib::cmp;
 
     use super::*;
-    use crate::lib::cmp;
 
     // RELATIVE OPERATORS
 
@@ -2191,9 +2190,9 @@ pub(crate) mod large {
     }
 } // large
 
-use super::large_powers::*;
-use super::small_powers::*;
 use crate::lib::cmp;
+
+use super::powers::*;
 
 /// Generate the imul_pown wrappers.
 macro_rules! imul_power {

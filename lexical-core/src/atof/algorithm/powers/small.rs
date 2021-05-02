@@ -1,15 +1,21 @@
 //! Precalculated small powers.
 
+use crate::util::Limb;
 use static_assertions::const_assert;
 
-use super::small_powers_64;
-use crate::util::Limb;
+use super::small64_decimal;
+#[cfg(feature = "radix")]
+use super::small64_radix;
 
 cfg_if! {
 if #[cfg(limb_width_32)] {
-    use super::small_powers_32::*;
+    use super::small32_decimal::*;
+    #[cfg(feature = "radix")]
+    use super::small32_radix::*;
 } else {
-    use super::small_powers_64::*;
+    use super::small64_decimal::*;
+    #[cfg(feature = "radix")]
+    use super::small64_radix::*;
 }} // cfg_if
 
 // ASSERTIONS
@@ -52,10 +58,9 @@ const_assert!(POW33[1] / POW33[0] == 33);
 const_assert!(POW34[1] / POW34[0] == 34);
 const_assert!(POW35[1] / POW35[0] == 35);
 const_assert!(POW36[1] / POW36[0] == 36);
-
 }} //cfg_if
 
-// HELPER
+// HELPERS
 
 /// Get the correct small power from the radix.
 #[inline]
@@ -118,8 +123,8 @@ pub(crate) fn get_small_powers_64(radix: u32) -> &'static [u64] {
     #[cfg(not(feature = "radix"))]
     {
         match radix {
-            5 => &small_powers_64::POW5,
-            10 => &small_powers_64::POW10,
+            5 => &small64_decimal::POW5,
+            10 => &small64_decimal::POW10,
             _ => unreachable!(),
         }
     }
@@ -127,41 +132,41 @@ pub(crate) fn get_small_powers_64(radix: u32) -> &'static [u64] {
     #[cfg(feature = "radix")]
     {
         match radix {
-            2 => &small_powers_64::POW2,
-            3 => &small_powers_64::POW3,
-            4 => &small_powers_64::POW4,
-            5 => &small_powers_64::POW5,
-            6 => &small_powers_64::POW6,
-            7 => &small_powers_64::POW7,
-            8 => &small_powers_64::POW8,
-            9 => &small_powers_64::POW9,
-            10 => &small_powers_64::POW10,
-            11 => &small_powers_64::POW11,
-            12 => &small_powers_64::POW12,
-            13 => &small_powers_64::POW13,
-            14 => &small_powers_64::POW14,
-            15 => &small_powers_64::POW15,
-            16 => &small_powers_64::POW16,
-            17 => &small_powers_64::POW17,
-            18 => &small_powers_64::POW18,
-            19 => &small_powers_64::POW19,
-            20 => &small_powers_64::POW20,
-            21 => &small_powers_64::POW21,
-            22 => &small_powers_64::POW22,
-            23 => &small_powers_64::POW23,
-            24 => &small_powers_64::POW24,
-            25 => &small_powers_64::POW25,
-            26 => &small_powers_64::POW26,
-            27 => &small_powers_64::POW27,
-            28 => &small_powers_64::POW28,
-            29 => &small_powers_64::POW29,
-            30 => &small_powers_64::POW30,
-            31 => &small_powers_64::POW31,
-            32 => &small_powers_64::POW32,
-            33 => &small_powers_64::POW33,
-            34 => &small_powers_64::POW34,
-            35 => &small_powers_64::POW35,
-            36 => &small_powers_64::POW36,
+            2 => &small64_radix::POW2,
+            3 => &small64_radix::POW3,
+            4 => &small64_radix::POW4,
+            5 => &small64_decimal::POW5,
+            6 => &small64_radix::POW6,
+            7 => &small64_radix::POW7,
+            8 => &small64_radix::POW8,
+            9 => &small64_radix::POW9,
+            10 => &small64_decimal::POW10,
+            11 => &small64_radix::POW11,
+            12 => &small64_radix::POW12,
+            13 => &small64_radix::POW13,
+            14 => &small64_radix::POW14,
+            15 => &small64_radix::POW15,
+            16 => &small64_radix::POW16,
+            17 => &small64_radix::POW17,
+            18 => &small64_radix::POW18,
+            19 => &small64_radix::POW19,
+            20 => &small64_radix::POW20,
+            21 => &small64_radix::POW21,
+            22 => &small64_radix::POW22,
+            23 => &small64_radix::POW23,
+            24 => &small64_radix::POW24,
+            25 => &small64_radix::POW25,
+            26 => &small64_radix::POW26,
+            27 => &small64_radix::POW27,
+            28 => &small64_radix::POW28,
+            29 => &small64_radix::POW29,
+            30 => &small64_radix::POW30,
+            31 => &small64_radix::POW31,
+            32 => &small64_radix::POW32,
+            33 => &small64_radix::POW33,
+            34 => &small64_radix::POW34,
+            35 => &small64_radix::POW35,
+            36 => &small64_radix::POW36,
             _ => unreachable!(),
         }
     }

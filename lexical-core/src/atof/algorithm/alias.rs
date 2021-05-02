@@ -608,6 +608,7 @@ pub(super) trait MantissaType: Mantissa + FloatErrors {}
 impl MantissaType for u64 {
 }
 
+#[cfg(feature = "f128")]
 impl MantissaType for u128 {
 }
 

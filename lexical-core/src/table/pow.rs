@@ -1,7 +1,8 @@
 //! FLoating point power utilities.
 
-use super::table::*;
 use crate::traits::*;
+
+use super::decimal::*;
 
 // STABLE POWER
 

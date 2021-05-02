@@ -17,7 +17,7 @@ use super::cached::ModeratePathCache;
 use super::errors::FloatErrors;
 use super::format::*;
 use super::incorrect as incorrect_algorithm;
-use super::small_powers::get_small_powers_64;
+use super::powers::get_small_powers_64;
 
 // HELPERS
 // -------
@@ -746,11 +746,14 @@ mod tests {
 
         // valid ("268A6.177777778", base 15)
         // 123456.10000000001300614743687445, exactly, should not round up.
-        let mantissa: u128 = 4746067219335938;
-        let (f, valid) =
-            moderate_path::<f64, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
-        assert_eq!(f.into_f64(), 123456.1);
-        assert!(valid, "exponent should be valid");
+        #[cfg(feature = "f128")]
+        {
+            let mantissa: u128 = 4746067219335938;
+            let (f, valid) =
+                moderate_path::<f64, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
+            assert_eq!(f.into_f64(), 123456.1);
+            assert!(valid, "exponent should be valid");
+        }
 
         // Rounding error
         // Adapted from test-parse-random failures.

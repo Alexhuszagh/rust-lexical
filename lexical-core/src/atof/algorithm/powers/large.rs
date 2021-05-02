@@ -11,9 +11,13 @@ use crate::util::Limb;
 
 cfg_if! {
 if #[cfg(limb_width_32)] {
-    use super::large_powers_32::*;
+    use super::large32_decimal::*;
+    #[cfg(feature = "radix")]
+    use super::large32_radix::*;
 } else {
-    use super::large_powers_64::*;
+    use super::large64_decimal::*;
+    #[cfg(feature = "radix")]
+    use super::large64_radix::*;
 }} // cfg_if
 
 // HELPER

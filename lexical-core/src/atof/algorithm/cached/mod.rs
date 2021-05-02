@@ -2,8 +2,19 @@
 
 use crate::float::*;
 
-use super::cached_float160;
-use super::cached_float80;
+// Cached powers
+mod float80;
+mod float80_decimal;
+#[cfg(feature = "radix")]
+mod float80_radix;
+
+cfg_if! {
+if #[cfg(feature = "f128")] {
+    mod float160;
+    mod float160_decimal;
+    #[cfg(feature = "radix")]
+    mod float160_radix;
+}} // cfg_if
 
 // POWERS
 // ------
@@ -83,13 +94,14 @@ pub(super) trait ModeratePathCache<M: Mantissa> {
 impl ModeratePathCache<u64> for ExtendedFloat<u64> {
     #[inline]
     fn get_powers(radix: u32) -> &'static ModeratePathPowers<u64> {
-        cached_float80::get_powers(radix)
+        float80::get_powers(radix)
     }
 }
 
+#[cfg(feature = "f128")]
 impl ModeratePathCache<u128> for ExtendedFloat<u128> {
     #[inline]
     fn get_powers(radix: u32) -> &'static ModeratePathPowers<u128> {
-        cached_float160::get_powers(radix)
+        float160::get_powers(radix)
     }
 }
