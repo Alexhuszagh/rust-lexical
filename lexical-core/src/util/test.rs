@@ -2,6 +2,8 @@
 
 #[cfg(any(feature = "ftoa", feature = "itoa"))]
 use crate::config::BUFFER_SIZE;
+#[cfg(all(limb_width_64, feature = "atof"))]
+use crate::traits::VecLike;
 #[cfg(feature = "atof")]
 use crate::traits::CloneableVecLike;
 

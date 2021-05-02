@@ -3,6 +3,7 @@
 //! Uses either the optimized decimal algorithm, the optimized generic
 //! algorithm, or the naive algorithm.
 
+#[cfg(feature = "radix")]
 use crate::config::*;
 use crate::traits::*;
 use crate::util::*;

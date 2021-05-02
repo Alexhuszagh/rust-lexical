@@ -1216,18 +1216,6 @@ macro_rules! arrvec {
     });
 }
 
-/// Macro to automate simplify the creation of our default vector type.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! vector {
-    ($elem:expr; $n:expr) => ({
-        arrvec![$elem; $n]
-    });
-    ($($x:expr),*$(,)*) => ({
-        arrvec![$($x),*]
-    });
-}
-
 impl<A: arrayvec::Array> SliceLikeImpl<A::Item> for arrayvec::ArrayVec<A> {
     // AS SLICE
 
@@ -1435,24 +1423,15 @@ impl<A: arrayvec::Array> CloneableVecLike<A::Item> for arrayvec::ArrayVec<A>
 
 cfg_if! {
 if #[cfg(feature = "no_alloc")] {
-    /// Macro to automate simplify the creation of an ArrayVec.
+    /// Macro to automate simplify the creation of our default vector type.
     #[doc(hidden)]
     #[macro_export]
-    macro_rules! arrvec {
-        // This only works if the ArrayVec is the same size as the input array.
+    macro_rules! vector {
         ($elem:expr; $n:expr) => ({
-            $crate::arrayvec::ArrayVec::from([$elem; $n])
+            arrvec![$elem; $n]
         });
-        // This just repeatedly calls `push`. I don't believe there's a concise
-        // way to count the number of expressions.
         ($($x:expr),*$(,)*) => ({
-            // Allow an unused mut variable, since if the sequence is empty,
-            // the vec will never be mutated.
-            #[allow(unused_mut)] {
-                let mut vec = $crate::arrayvec::ArrayVec::new();
-                $(vec.push($x);)*
-                vec
-            }
+            arrvec![$($x),*]
         });
     }
 } else {
