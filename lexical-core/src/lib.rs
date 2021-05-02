@@ -20,7 +20,6 @@
 //! # Getting Started
 //!
 //! ```rust
-//! # #[cfg(all(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))] {
 //! extern crate lexical_core;
 //!
 //! // String to number using Rust slices.
@@ -61,7 +60,6 @@
 //! let mut buf = [b'0'; f64::FORMATTED_SIZE_DECIMAL];
 //! let slc = lexical_core::write::<f64>(15.1, &mut buf);
 //! assert_eq!(slc, b"15.1");
-//! # }
 //! ```
 //!
 //! # Conversion API
@@ -176,7 +174,7 @@
 //! [`WriteFloatOptions`]: struct.WriteFloatOptions.html
 //! [`WriteIntegerOptions`]: struct.WriteIntegerOptions.html
 
-// silence warnings for unused doc comments
+// Silence warnings for unused doc comments
 #![allow(unused_doc_comments)]
 
 // FEATURES
@@ -195,14 +193,13 @@ extern crate cfg_if;
 // we're using the correct and radix features.
 #[cfg(all(
     not(feature = "std"),
-    feature = "atof",
     any(not(feature = "no_alloc"), feature = "f128", feature = "radix")
 ))]
 #[cfg_attr(test, macro_use)]
 extern crate alloc;
 
 // Use arrayvec for atof.
-#[cfg(all(feature = "atof", feature = "no_alloc"))]
+#[cfg(feature = "no_alloc")]
 extern crate arrayvec;
 
 // Ensure only one back-end is enabled.
@@ -212,10 +209,8 @@ compile_error!("Lexical only accepts one of the following backends: `grisu3` or 
 // Import the back-end, if applicable.
 cfg_if! {
 if #[cfg(feature = "grisu3")] {
-    #[cfg(feature = "ftoa")]
     extern crate dtoa;
 } else if #[cfg(feature = "ryu")] {
-    #[cfg(feature = "ftoa")]
     extern crate ryu;
 }}  // cfg_if
 
@@ -228,11 +223,7 @@ pub(crate) mod lib {
     pub(crate) use core::*;
 
     cfg_if! {
-    if #[cfg(all(
-        feature = "atof",
-        any(not(feature = "no_alloc"), feature = "f128", feature = "radix")
-    ))]
-    {
+    if #[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))] {
         #[cfg(feature = "std")]
         pub(crate) use std::vec::Vec;
 
@@ -267,34 +258,24 @@ mod options;
 mod traits;
 
 mod config;
+mod error;
+mod float;
+mod result;
 mod table;
 
 // Re-export configuration, options, and utilities globally.
 pub use config::*;
+pub use error::*;
 pub use options::*;
+pub use result::*;
 pub use table::*;
 pub use traits::*;
 pub use util::*;
 
-cfg_if! {
-if #[cfg(any(feature = "atof", feature = "atoi"))] {
-    mod error;
-    mod result;
-    pub use error::*;
-    pub use result::*;
-}}  // cfg_if
-
-#[cfg(any(feature = "atof", feature = "ftoa"))]
-mod float;
-
 // Submodules
-#[cfg(feature = "atof")]
 mod atof;
-#[cfg(any(feature = "atof", feature = "atoi"))]
 mod atoi;
-#[cfg(feature = "ftoa")]
 mod ftoa;
-#[cfg(any(all(feature = "ftoa", feature = "radix"), feature = "itoa"))]
 mod itoa;
 
 // API
@@ -317,7 +298,6 @@ mod itoa;
 /// # Example
 ///
 /// ```
-/// # #[cfg(feature = "ftoa")] {
 /// // import `Number` trait to get the `FORMATTED_SIZE_DECIMAL` of the number.
 /// use lexical_core::Number;
 ///
@@ -327,26 +307,18 @@ mod itoa;
 /// lexical_core::write(float, &mut buffer);
 ///
 /// assert_eq!(&buffer[0..9], b"3.1415927");
-/// # }
 /// ```
 ///
 /// This will panic, because the buffer is not large enough:
 ///
 /// ```should_panic
-/// # #[cfg(feature = "ftoa")] {
 /// // note: the buffer is only one byte large
 /// let mut buffer = [0u8; 1];
 /// let float = 3.14159265359_f32;
 ///
 /// lexical_core::write(float, &mut buffer);
-/// # }
-///
-/// # #[cfg(not(feature = "ftoa"))] {
-/// panic!("To avoid failures with should_panic.");
-/// # }
 /// ```
 #[inline]
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8])
     -> &'a mut [u8]
 {
@@ -371,7 +343,6 @@ pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8])
 /// # Example
 ///
 /// ```
-/// # #[cfg(feature = "ftoa")] {
 /// // import `Number` trait to get the `FORMATTED_SIZE` of the number.
 /// use lexical_core::Number;
 ///
@@ -382,27 +353,19 @@ pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8])
 /// lexical_core::write_with_options(float, &mut buffer, &options);
 ///
 /// assert_eq!(&buffer[0..9], b"3.1415927");
-/// # }
 /// ```
 ///
 /// This will panic, because the buffer is not large enough:
 ///
 /// ```should_panic
-/// # #[cfg(feature = "ftoa")] {
 /// // note: the buffer is only one byte large
 /// let mut buffer = [0u8; 1];
 /// let float = 3.14159265359_f32;
 ///
 /// let options = lexical_core::WriteFloatOptions::decimal();
 /// lexical_core::write_with_options(float, &mut buffer, &options);
-/// # }
-///
-/// # #[cfg(not(feature = "ftoa"))] {
-/// panic!("To avoid failures with should_panic.");
-/// # }
 /// ```
 #[inline]
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub fn write_with_options<'a, N: ToLexicalOptions>(n: N, bytes: &'a mut [u8], options: &N::WriteOptions)
     -> &'a mut [u8]
 {
@@ -416,7 +379,6 @@ pub fn write_with_options<'a, N: ToLexicalOptions>(n: N, bytes: &'a mut [u8], op
 ///
 /// * `bytes`   - Byte slice containing a numeric string.
 #[inline]
-#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse<N: FromLexical>(bytes: &[u8])
     -> Result<N>
 {
@@ -431,7 +393,6 @@ pub fn parse<N: FromLexical>(bytes: &[u8])
 /// * `bytes`   - Byte slice containing a numeric string.
 /// * `options` - Options to customize number parsing.
 #[inline]
-#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_with_options<N: FromLexicalOptions>(bytes: &[u8], options: &N::ParseOptions)
     -> Result<N>
 {
@@ -446,7 +407,6 @@ pub fn parse_with_options<N: FromLexicalOptions>(bytes: &[u8], options: &N::Pars
 ///
 /// * `bytes`   - Byte slice containing a numeric string.
 #[inline]
-#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_partial<N: FromLexical>(bytes: &[u8])
     -> Result<(N, usize)>
 {
@@ -462,7 +422,6 @@ pub fn parse_partial<N: FromLexical>(bytes: &[u8])
 /// * `bytes`   - Byte slice containing a numeric string.
 /// * `options` - Options to customize number parsing.
 #[inline]
-#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_partial_with_options<N: FromLexicalOptions>(bytes: &[u8], options: &N::ParseOptions)
     -> Result<(N, usize)>
 {

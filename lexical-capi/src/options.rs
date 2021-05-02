@@ -1,14 +1,10 @@
 //! C-compatible parse and write options types.
 
-#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
 use lexical_core;
 
-#[cfg(feature = "atof")]
 use crate::lib::slice;
 
-#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
 use super::ctypes;
-#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
 use super::option::Option;
 
 // NOTE:
@@ -18,8 +14,6 @@ use super::option::Option;
 
 // PARSE INTEGER OPTIONS
 
-cfg_if!{
-if #[cfg(feature = "atoi")] {
 /// Builder for `ParseIntegerOptions`.
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -139,12 +133,9 @@ pub extern fn lexical_parse_integer_options_rebuild(options: ParseIntegerOptions
     let options: lexical_core::ParseIntegerOptions = options.into();
     options.rebuild().into()
 }
-}}  // cfg_if
 
 // PARSE FLOAT OPTIONS
 
-cfg_if!{
-if #[cfg(feature = "atof")] {
 /// Builder for `ParseFloatOptions`.
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -342,12 +333,9 @@ pub extern fn lexical_parse_float_options_rebuild(options: ParseFloatOptions) ->
     let options: lexical_core::ParseFloatOptions = options.into();
     options.rebuild().into()
 }
-}}  // cfg_if
 
 // WRITE INTEGER OPTIONS
 
-cfg_if! {
-if #[cfg(feature = "itoa")] {
 /// Builder for `WriteIntegerOptions`.
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -457,12 +445,9 @@ pub extern fn lexical_write_integer_options_rebuild(options: WriteIntegerOptions
     let options: lexical_core::WriteIntegerOptions = options.into();
     options.rebuild().into()
 }
-}}
 
 // WRITE FLOAT OPTIONS
 
-cfg_if! {
-if #[cfg(feature = "ftoa")] {
 /// Builder for `WriteFloatOptions`.
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -617,4 +602,3 @@ pub extern fn lexical_write_float_options_rebuild(options: WriteFloatOptions) ->
     let options: lexical_core::WriteFloatOptions = options.into();
     options.rebuild().into()
 }
-}}  // cfg_if

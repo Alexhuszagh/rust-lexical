@@ -43,26 +43,7 @@ rustc_version = "0.3"
 approx = "0.4.0"
 
 [features]
-default = ["atof", "atoi", "ftoa", "itoa", "no_alloc", "ryu", "std"]
-
-# SUBMODULES
-# ----------
-# Only build the atof submodule.
-atof = []
-# Only build the atoi submodule.
-atoi = []
-# Only build the ftoa submodule.
-ftoa = []
-# Only build the itoa submodule.
-itoa = []
-
-# ALIASES
-# -------
-# Aliases for the above features, using less C-like names.
-parse_floats = ["atof"]
-parse_integers = ["atoi"]
-write_floats = ["ftoa"]
-write_integers = ["itoa"]
+default = ["no_alloc", "ryu", "std"]
 
 # FEATURES
 # --------
@@ -83,7 +64,7 @@ std = []
 # INTERNAL
 # --------
 # Undocumented. Disable quickcheck for older Rustc versions.
-property_tests = ["quickcheck", "proptest"]
+property_tests = ["std", "quickcheck", "proptest"]
 
 # Use heavy optimizations for release builds, and make our panics to detect
 # internal logic errors safe for FFI, via abort.

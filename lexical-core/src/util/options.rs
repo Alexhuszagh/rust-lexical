@@ -1,131 +1,106 @@
 //! Configuration options for parsing and formatting numbers.
 
-#[cfg(any(feature = "atof", feature = "ftoa"))]
 use crate::config::F64_FORMATTED_SIZE_DECIMAL as FLOAT_SIZE;
-
-#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa"))]
 use super::format::NumberFormat;
-#[cfg(feature = "atof")]
 use super::rounding::RoundingKind;
 
 // CONSTANTS
 // ---------
 
 // Constants to dictate default values for options.
-#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
 pub(crate) const DEFAULT_RADIX: u8 = 10;
-
-cfg_if! {
-if #[cfg(any(feature = "atof", feature = "ftoa"))] {
-    pub(crate) const DEFAULT_FORMAT: NumberFormat = NumberFormat::STANDARD;
-    pub(crate) const DEFAULT_INF_STRING: &'static [u8] = b"inf";
-    pub(crate) const DEFAULT_NAN_STRING: &'static [u8] = b"NaN";
-}}  // cfg_if
-
-cfg_if! {
-if #[cfg(feature = "atof")] {
-    pub(crate) const DEFAULT_INFINITY_STRING: &'static [u8] = b"infinity";
-    pub(crate) const DEFAULT_INCORRECT: bool = false;
-    pub(crate) const DEFAULT_LOSSY: bool = false;
-    pub(crate) const DEFAULT_ROUNDING: RoundingKind = RoundingKind::NearestTieEven;
-}}  // cfg_if
-
-#[cfg(feature = "ftoa")]
+pub(crate) const DEFAULT_FORMAT: NumberFormat = NumberFormat::STANDARD;
+pub(crate) const DEFAULT_INF_STRING: &'static [u8] = b"inf";
+pub(crate) const DEFAULT_NAN_STRING: &'static [u8] = b"NaN";
+pub(crate) const DEFAULT_INFINITY_STRING: &'static [u8] = b"infinity";
+pub(crate) const DEFAULT_INCORRECT: bool = false;
+pub(crate) const DEFAULT_LOSSY: bool = false;
+pub(crate) const DEFAULT_ROUNDING: RoundingKind = RoundingKind::NearestTieEven;
 pub(crate) const DEFAULT_TRIM_FLOATS: bool = false;
 
 // VALIDATORS
 // ----------
 
-#[cfg(any(
-    feature = "atof",
-    feature = "atoi",
-    feature = "ftoa",
-    feature = "itoa"
-))]
-cfg_if! {
-if #[cfg(feature = "radix")] {
-    /// Return `None` if radix is invalid.
-    /// Short-circuits to allow use in a const fn.
-    macro_rules! to_radix {
-        ($radix:expr) => {{
-            if $radix < 2 || $radix > 36 {
-                return None
-            }
-            $radix
-        }};
-    }
-} else {
-    /// Return `None` if radix is invalid.
-    /// Short-circuits to allow use in a const fn.
-    macro_rules! to_radix {
-        ($radix:expr) => {{
-            if $radix != 10 {
-                return None
-            }
-            $radix
-        }};
-    }
-}}  // cfg_if
 
-cfg_if! {
-if #[cfg(any(feature = "atof", feature = "ftoa"))] {
-    /// Check if byte array starts with case-insensitive N.
-    const_fn!(
-    #[inline]
-    const fn starts_with_n(bytes: &[u8]) -> bool {
-        if bytes.len() == 0 {
-            false
-        } else {
-            match bytes[0] {
-                b'N' => true,
-                b'n' => true,
-                _    => false,
-            }
+/// Return `None` if radix is invalid.
+/// Short-circuits to allow use in a const fn.
+#[cfg(feature = "radix")]
+macro_rules! to_radix {
+    ($radix:expr) => {{
+        if $radix < 2 || $radix > 36 {
+            return None
         }
-    });
+        $radix
+    }};
+}
 
-    /// Get the NaN string if the NaN string is valid.
-    macro_rules! to_nan_string {
-        ($nan:expr) => {{
-            if !starts_with_n($nan) {
-                return None;
-            } else if $nan.len() > FLOAT_SIZE {
-                return None;
-            }
-            $nan
-        }};
-    }
-
-    const_fn!(
-    /// Check if byte array starts with case-insensitive I.
-    #[inline]
-    const fn starts_with_i(bytes: &[u8]) -> bool {
-        if bytes.len() == 0 {
-            false
-        } else {
-            match bytes[0] {
-                b'I' => true,
-                b'i' => true,
-                _    => false,
-            }
+/// Return `None` if radix is invalid.
+/// Short-circuits to allow use in a const fn.
+#[cfg(not(feature = "radix"))]
+macro_rules! to_radix {
+    ($radix:expr) => {{
+        if $radix != 10 {
+            return None
         }
-    });
+        $radix
+    }};
+}
 
-    /// Get the short infinity string if the infinity string is valid.
-    macro_rules! to_inf_string {
-        ($inf:expr) => {{
-            if !starts_with_i($inf) {
-                return None;
-            } else if $inf.len() > FLOAT_SIZE {
-                return None;
-            }
-            $inf
-        }};
+/// Check if byte array starts with case-insensitive N.
+const_fn!(
+#[inline]
+const fn starts_with_n(bytes: &[u8]) -> bool {
+    if bytes.len() == 0 {
+        false
+    } else {
+        match bytes[0] {
+            b'N' => true,
+            b'n' => true,
+            _    => false,
+        }
     }
-}}  // cfg_if
+});
+
+/// Get the NaN string if the NaN string is valid.
+macro_rules! to_nan_string {
+    ($nan:expr) => {{
+        if !starts_with_n($nan) {
+            return None;
+        } else if $nan.len() > FLOAT_SIZE {
+            return None;
+        }
+        $nan
+    }};
+}
+
+const_fn!(
+/// Check if byte array starts with case-insensitive I.
+#[inline]
+const fn starts_with_i(bytes: &[u8]) -> bool {
+    if bytes.len() == 0 {
+        false
+    } else {
+        match bytes[0] {
+            b'I' => true,
+            b'i' => true,
+            _    => false,
+        }
+    }
+});
+
+/// Get the short infinity string if the infinity string is valid.
+macro_rules! to_inf_string {
+    ($inf:expr) => {{
+        if !starts_with_i($inf) {
+            return None;
+        } else if $inf.len() > FLOAT_SIZE {
+            return None;
+        }
+        $inf
+    }};
+}
 
 /// Get the long infinity string if the infinity string is valid.
-#[cfg(feature = "atof")]
 macro_rules! to_infinity_string {
     ($infinity:expr, $inf:expr) => {{
         if $infinity.len() < $inf.len() || !starts_with_i($infinity) {
@@ -137,24 +112,9 @@ macro_rules! to_infinity_string {
     }};
 }
 
-// DUMMY OPTIONS
-// -------------
-
-// Options when no traits are available.
-#[cfg(any(
-    not(feature = "atof"),
-    not(feature = "atoi"),
-    not(feature = "ftoa"),
-    not(feature = "itoa")
-))]
-pub struct DummyOptions {
-}
-
 // PARSE INTEGER
 // -------------
 
-cfg_if! {
-if #[cfg(feature = "atoi")] {
 /// Builder for `ParseIntegerOptions`.
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -165,7 +125,6 @@ pub struct ParseIntegerOptionsBuilder {
     format: Option<NumberFormat>
 }
 
-#[cfg(feature = "atoi")]
 impl ParseIntegerOptionsBuilder {
     /// Create new, default builder.
     #[inline(always)]
@@ -331,14 +290,12 @@ impl Default for ParseIntegerOptions {
         Self::new()
     }
 }
-}}  // cfg_if
 
 // PARSE FLOAT
 // -----------
 
 /// Builder for `ParseFloatOptions`.
 #[repr(C)]
-#[cfg(feature = "atof")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ParseFloatOptionsBuilder {
     /// Radix for float string.
@@ -363,7 +320,6 @@ pub struct ParseFloatOptionsBuilder {
     infinity_string: &'static [u8]
 }
 
-#[cfg(feature = "atof")]
 impl ParseFloatOptionsBuilder {
     /// Create new, default builder.
     #[inline(always)]
@@ -557,7 +513,6 @@ impl ParseFloatOptionsBuilder {
     });
 }
 
-#[cfg(feature = "atof")]
 impl Default for ParseFloatOptionsBuilder {
     #[inline(always)]
     fn default() -> Self {
@@ -584,7 +539,6 @@ impl Default for ParseFloatOptionsBuilder {
 /// # }
 /// ```
 #[repr(C)]
-#[cfg(feature = "atof")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ParseFloatOptions {
     /// Compressed storage of the radix, exponent base, exponent radix,
@@ -603,7 +557,6 @@ pub struct ParseFloatOptions {
     infinity_string: &'static [u8]
 }
 
-#[cfg(feature = "atof")]
 impl ParseFloatOptions {
     /// Create options with default values.
     #[inline(always)]
@@ -857,7 +810,6 @@ impl ParseFloatOptions {
     }
 }
 
-#[cfg(feature = "atof")]
 impl Default for ParseFloatOptions {
     #[inline(always)]
     fn default() -> Self {
@@ -870,13 +822,11 @@ impl Default for ParseFloatOptions {
 
 /// Builder for `WriteIntegerOptions`.
 #[repr(C)]
-#[cfg(feature = "itoa")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct WriteIntegerOptionsBuilder {
     radix: u8,
 }
 
-#[cfg(feature = "itoa")]
 impl WriteIntegerOptionsBuilder {
     #[inline(always)]
     pub const fn new() -> WriteIntegerOptionsBuilder {
@@ -914,7 +864,6 @@ impl WriteIntegerOptionsBuilder {
     });
 }
 
-#[cfg(feature = "itoa")]
 impl Default for WriteIntegerOptionsBuilder {
     #[inline(always)]
     fn default() -> Self {
@@ -937,14 +886,12 @@ impl Default for WriteIntegerOptionsBuilder {
 /// # }
 /// ```
 #[repr(C)]
-#[cfg(feature = "itoa")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct WriteIntegerOptions {
     /// Radix for integer string.
     radix: u32,
 }
 
-#[cfg(feature = "itoa")]
 impl WriteIntegerOptions {
     /// Create options with default values.
     #[inline(always)]
@@ -1007,7 +954,6 @@ impl WriteIntegerOptions {
     }
 }
 
-#[cfg(feature = "itoa")]
 impl Default for WriteIntegerOptions {
     #[inline(always)]
     fn default() -> Self {
@@ -1020,7 +966,6 @@ impl Default for WriteIntegerOptions {
 
 /// Builder for `WriteFloatOptions`.
 #[repr(C)]
-#[cfg(feature = "ftoa")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct WriteFloatOptionsBuilder {
     /// Radix for float string.
@@ -1035,7 +980,6 @@ pub struct WriteFloatOptionsBuilder {
     inf_string: &'static [u8],
 }
 
-#[cfg(feature = "ftoa")]
 impl WriteFloatOptionsBuilder {
     /// Create new, default builder.
     #[inline(always)]
@@ -1136,7 +1080,6 @@ impl WriteFloatOptionsBuilder {
     });
 }
 
-#[cfg(feature = "ftoa")]
 impl Default for WriteFloatOptionsBuilder {
     #[inline(always)]
     fn default() -> Self {
@@ -1162,7 +1105,6 @@ impl Default for WriteFloatOptionsBuilder {
 /// # }
 /// ```
 #[repr(C)]
-#[cfg(feature = "ftoa")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct WriteFloatOptions {
     /// Compressed storage of radix and trim floats.
@@ -1176,7 +1118,6 @@ pub struct WriteFloatOptions {
     inf_string: &'static [u8],
 }
 
-#[cfg(feature = "ftoa")]
 impl WriteFloatOptions {
     /// Create options with default values.
     #[inline(always)]
@@ -1352,7 +1293,6 @@ impl WriteFloatOptions {
     }
 }
 
-#[cfg(feature = "ftoa")]
 impl Default for WriteFloatOptions {
     #[inline(always)]
     fn default() -> Self {
@@ -1371,28 +1311,24 @@ mod tests {
 
     // Wrapper for the macro for a const fn.
     #[inline]
-    #[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
     fn to_radix(radix: u32) -> Option<u32> {
         Some(to_radix!(radix))
     }
 
     // Wrapper for the macro for a const fn.
     #[inline]
-    #[cfg(any(feature = "atof", feature = "ftoa"))]
     fn to_nan_string(nan: &'static [u8]) -> Option<&'static [u8]> {
         Some(to_nan_string!(nan))
     }
 
     // Wrapper for the macro for a const fn.
     #[inline]
-    #[cfg(any(feature = "atof", feature = "ftoa"))]
     fn to_inf_string(inf: &'static [u8]) -> Option<&'static [u8]> {
         Some(to_inf_string!(inf))
     }
 
     // Wrapper for the macro for a const fn.
     #[inline]
-    #[cfg(feature = "atof")]
     fn to_infinity_string(infinity: &'static [u8], inf: &'static [u8]) -> Option<&'static [u8]> {
         Some(to_infinity_string!(infinity, inf))
     }
@@ -1400,7 +1336,7 @@ mod tests {
     // TESTS
 
     #[test]
-    #[cfg(all(feature = "radix", any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa")))]
+    #[cfg(feature = "radix")]
     fn test_to_radix() {
         assert_eq!(to_radix(1), None);
         assert_eq!(to_radix(2), Some(2));
@@ -1410,7 +1346,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(all(not(feature = "radix"), any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa")))]
+    #[cfg(not(feature = "radix"))]
     fn test_to_radix() {
         assert_eq!(to_radix(1), None);
         assert_eq!(to_radix(2), None);
@@ -1420,7 +1356,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "atof", feature = "ftoa"))]
     fn to_nan_string_test() {
         assert_eq!(to_nan_string(b""), None);
         assert_eq!(to_nan_string(b"i"), None);
@@ -1432,7 +1367,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(feature = "atof", feature = "ftoa"))]
     fn to_inf_string_test() {
         assert_eq!(to_inf_string(b""), None);
         assert_eq!(to_inf_string(b"n"), None);
@@ -1444,7 +1378,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "atof")]
     fn to_infinity_string_test() {
         assert_eq!(to_infinity_string(b"", b"inf"), None);
         assert_eq!(to_infinity_string(b"n", b"inf"), None);
@@ -1460,7 +1393,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(all(feature = "atoi", feature = "radix"))]
+    #[cfg(feature = "radix")]
     fn test_parse_integer_options() {
         let options = ParseIntegerOptions::builder()
             .radix(1)
@@ -1484,7 +1417,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(all(feature = "itoa", feature = "radix"))]
+    #[cfg(feature = "radix")]
     fn test_write_integer_options() {
         let options = WriteIntegerOptions::builder()
             .radix(1)
@@ -1506,7 +1439,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(all(feature = "atof", feature = "radix"))]
+    #[cfg(feature = "radix")]
     fn test_parse_float_options() {
         // Invalid radix
         let options = ParseFloatOptions::builder()
@@ -1570,7 +1503,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(all(feature = "ftoa", feature = "radix"))]
+    #[cfg(feature = "radix")]
     fn test_write_float_options() {
         let options = WriteFloatOptions::builder()
             .radix(1)

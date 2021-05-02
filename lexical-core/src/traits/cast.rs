@@ -55,7 +55,8 @@ as_cast!(f64, as_f64);
 
 /// High-level conversion of types using TryCast.
 #[inline]
-pub(crate) fn try_cast<U, T: TryCast<U>>(t: T) -> Option<U> {
+#[doc(hidden)]
+pub fn try_cast<U, T: TryCast<U>>(t: T) -> Option<U> {
     TryCast::try_cast(t)
 }
 

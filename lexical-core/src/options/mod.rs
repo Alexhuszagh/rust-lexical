@@ -700,11 +700,12 @@
 
 #![allow(dead_code)]    // TODO(ahuszagh) Remove
 
-mod lexer;
-mod number;
-mod syntax;
-
-pub use self::number::*;
+// TODO(ahuszagh) Restore later...
+//mod lexer;
+//mod number;
+//mod syntax;
+//
+//pub use self::number::*;
 
 // TESTS
 // -----

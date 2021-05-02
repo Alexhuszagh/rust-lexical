@@ -18,7 +18,6 @@ If you want a minimal, stable, and compile-time friendly version of lexical-core
   - [Format](#format)
 - [Options](#options)
 - [Constants](#constants)
-- [Submodules](#submodules)
 - [Documentation](#documentation)
 - [Validation](#validation)
 - [Implementation Details](#implementation-details)
@@ -344,21 +343,6 @@ Lexical-core also includes a few constants to simplify interfacing with number-t
     <blockquote>For example, <code>lexical_core::write::&lt;i32&gt;</code> may write up to <code>i32::FORMATTED_SIZE_DECIMAL</code> characters.</blockquote>
 
 These are provided as Rust constants so they may be used as the size element in arrays.
-
-# Submodules
-
-We designed lexical-core so that you do not pay for what you do not use. We therefore split up lexical into 4 submodules, so you can select a subset of functionality you wish to use for faster compile times. These submodules are:
-
-- **parse_floats**
-    <blockquote>Enable string-to-float conversions.</blockquote>
-- **parse_integers**
-    <blockquote>Enable string-to-integer conversions.</blockquote>
-- **write_floats**
-    <blockquote>Enable float-to-string conversions.</blockquote>
-- **write_integers**
-    <blockquote>Enable integer-to-string conversions.</blockquote>
-
-All submodules are enabled by default.
 
 # Documentation
 

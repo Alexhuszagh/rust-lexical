@@ -1,18 +1,14 @@
 // C-compatible API for lexical conversion routines.
 
-cfg_if! {
-if #[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))] {
-    use crate::lib::slice;
-    use lexical_core;
+use crate::lib::slice;
+use lexical_core;
 
-    use super::options::*;
-}}  // cfg_if
+use super::options::*;
 
 // HELPERS
 
 /// Calculate the difference between two pointers.
 #[inline]
-#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
 pub fn distance<T>(first: *const T, last: *const T)
     -> usize
 {
@@ -24,7 +20,6 @@ pub fn distance<T>(first: *const T, last: *const T)
 
 /// Convert a mutable pointer range to a mutable slice safely.
 #[inline]
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub(crate) unsafe fn slice_from_range_mut<'a, T>(first: *mut T, last: *mut T)
     -> &'a mut [T]
 {
@@ -35,7 +30,6 @@ pub(crate) unsafe fn slice_from_range_mut<'a, T>(first: *mut T, last: *mut T)
 // FROM LEXICAL
 
 /// Macro to generate complete parser from a pointer range.
-#[cfg(any(feature = "atof", feature = "atoi"))]
 macro_rules! lexical_from_range {
     (
         fn $name:ident,
@@ -57,7 +51,6 @@ macro_rules! lexical_from_range {
 }
 
 // Macro to generate the partial parser from a pointer range.
-#[cfg(any(feature = "atof", feature = "atoi"))]
 macro_rules! lexical_partial_from_range {
     (
         fn $name:ident,
@@ -82,7 +75,6 @@ macro_rules! lexical_partial_from_range {
 }
 
 /// Macro to generate complete options parser from a pointer range.
-#[cfg(any(feature = "atof", feature = "atoi"))]
 macro_rules! lexical_options_from_range {
     (
         fn $name:ident,
@@ -106,7 +98,6 @@ macro_rules! lexical_options_from_range {
 }
 
 // Macro to generate the partial parser with options from a pointer range.
-#[cfg(any(feature = "atof", feature = "atoi"))]
 macro_rules! lexical_partial_options_from_range {
     (
         fn $name:ident,
@@ -133,7 +124,6 @@ macro_rules! lexical_partial_options_from_range {
 }
 
 // Macro to generate parsers implementing the FromLexical trait.
-#[cfg(any(feature = "atof", feature = "atoi"))]
 macro_rules! from_lexical {
     (
         type => $type:ty,
@@ -183,7 +173,6 @@ macro_rules! from_lexical {
 // TO LEXICAL
 
 /// Macro to generate the lexical to_string API using a range.
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
 macro_rules! lexical_to_range {
     (
         fn $name:ident,
@@ -206,7 +195,6 @@ macro_rules! lexical_to_range {
 }
 
 /// Macro to generate the lexical to_string_with_options API using a range.
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
 macro_rules! lexical_options_to_range {
     (
         fn $name:ident,
@@ -231,7 +219,6 @@ macro_rules! lexical_options_to_range {
 }
 
 // Macro to generate serializers implementing the ToLexical trait.
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
 macro_rules! to_lexical {
     (
         type => $type:ty,
@@ -262,227 +249,215 @@ macro_rules! to_lexical {
 // API
 
 // ATOF
-cfg_if! {
-if #[cfg(feature = "atof")] {
-    from_lexical!(
-        type => f32,
-        options => ParseFloatOptions,
-        parse => lexical_atof32,
-        partial_parse => lexical_atof32_partial,
-        parse_with_options => lexical_atof32_with_options,
-        partial_parse_with_options => lexical_atof32_partial_with_options,
-    );
-    from_lexical!(
-        type => f64,
-        options => ParseFloatOptions,
-        parse => lexical_atof64,
-        partial_parse => lexical_atof64_partial,
-        parse_with_options => lexical_atof64_with_options,
-        partial_parse_with_options => lexical_atof64_partial_with_options,
-    );
-}}  // cfg_if
+from_lexical!(
+    type => f32,
+    options => ParseFloatOptions,
+    parse => lexical_atof32,
+    partial_parse => lexical_atof32_partial,
+    parse_with_options => lexical_atof32_with_options,
+    partial_parse_with_options => lexical_atof32_partial_with_options,
+);
+from_lexical!(
+    type => f64,
+    options => ParseFloatOptions,
+    parse => lexical_atof64,
+    partial_parse => lexical_atof64_partial,
+    parse_with_options => lexical_atof64_with_options,
+    partial_parse_with_options => lexical_atof64_partial_with_options,
+);
 
 // ATOI
-cfg_if! {
-if #[cfg(feature = "atoi")] {
-    from_lexical!(
-        type => u8,
-        options => ParseIntegerOptions,
-        parse => lexical_atou8,
-        partial_parse => lexical_atou8_partial,
-        parse_with_options => lexical_atou8_with_options,
-        partial_parse_with_options => lexical_atou8_partial_with_options,
-    );
-    from_lexical!(
-        type => u16,
-        options => ParseIntegerOptions,
-        parse => lexical_atou16,
-        partial_parse => lexical_atou16_partial,
-        parse_with_options => lexical_atou16_with_options,
-        partial_parse_with_options => lexical_atou16_partial_with_options,
-    );
-    from_lexical!(
-        type => u32,
-        options => ParseIntegerOptions,
-        parse => lexical_atou32,
-        partial_parse => lexical_atou32_partial,
-        parse_with_options => lexical_atou32_with_options,
-        partial_parse_with_options => lexical_atou32_partial_with_options,
-    );
-    from_lexical!(
-        type => u64,
-        options => ParseIntegerOptions,
-        parse => lexical_atou64,
-        partial_parse => lexical_atou64_partial,
-        parse_with_options => lexical_atou64_with_options,
-        partial_parse_with_options => lexical_atou64_partial_with_options,
-    );
-    from_lexical!(
-        type => usize,
-        options => ParseIntegerOptions,
-        parse => lexical_atousize,
-        partial_parse => lexical_atousize_partial,
-        parse_with_options => lexical_atousize_with_options,
-        partial_parse_with_options => lexical_atousize_partial_with_options,
-    );
-    #[cfg(feature = "i128")]
-    from_lexical!(
-        type => u128,
-        options => ParseIntegerOptions,
-        parse => lexical_atou128,
-        partial_parse => lexical_atou128_partial,
-        parse_with_options => lexical_atou128_with_options,
-        partial_parse_with_options => lexical_atou128_partial_with_options,
-        meta => #[allow(improper_ctypes_definitions)]
-    );
+from_lexical!(
+    type => u8,
+    options => ParseIntegerOptions,
+    parse => lexical_atou8,
+    partial_parse => lexical_atou8_partial,
+    parse_with_options => lexical_atou8_with_options,
+    partial_parse_with_options => lexical_atou8_partial_with_options,
+);
+from_lexical!(
+    type => u16,
+    options => ParseIntegerOptions,
+    parse => lexical_atou16,
+    partial_parse => lexical_atou16_partial,
+    parse_with_options => lexical_atou16_with_options,
+    partial_parse_with_options => lexical_atou16_partial_with_options,
+);
+from_lexical!(
+    type => u32,
+    options => ParseIntegerOptions,
+    parse => lexical_atou32,
+    partial_parse => lexical_atou32_partial,
+    parse_with_options => lexical_atou32_with_options,
+    partial_parse_with_options => lexical_atou32_partial_with_options,
+);
+from_lexical!(
+    type => u64,
+    options => ParseIntegerOptions,
+    parse => lexical_atou64,
+    partial_parse => lexical_atou64_partial,
+    parse_with_options => lexical_atou64_with_options,
+    partial_parse_with_options => lexical_atou64_partial_with_options,
+);
+from_lexical!(
+    type => usize,
+    options => ParseIntegerOptions,
+    parse => lexical_atousize,
+    partial_parse => lexical_atousize_partial,
+    parse_with_options => lexical_atousize_with_options,
+    partial_parse_with_options => lexical_atousize_partial_with_options,
+);
+#[cfg(feature = "i128")]
+from_lexical!(
+    type => u128,
+    options => ParseIntegerOptions,
+    parse => lexical_atou128,
+    partial_parse => lexical_atou128_partial,
+    parse_with_options => lexical_atou128_with_options,
+    partial_parse_with_options => lexical_atou128_partial_with_options,
+    meta => #[allow(improper_ctypes_definitions)]
+);
 
-    from_lexical!(
-        type => i8,
-        options => ParseIntegerOptions,
-        parse => lexical_atoi8,
-        partial_parse => lexical_atoi8_partial,
-        parse_with_options => lexical_atoi8_with_options,
-        partial_parse_with_options => lexical_atoi8_partial_with_options,
-    );
-    from_lexical!(
-        type => i16,
-        options => ParseIntegerOptions,
-        parse => lexical_atoi16,
-        partial_parse => lexical_atoi16_partial,
-        parse_with_options => lexical_atoi16_with_options,
-        partial_parse_with_options => lexical_atoi16_partial_with_options,
-    );
-    from_lexical!(
-        type => i32,
-        options => ParseIntegerOptions,
-        parse => lexical_atoi32,
-        partial_parse => lexical_atoi32_partial,
-        parse_with_options => lexical_atoi32_with_options,
-        partial_parse_with_options => lexical_atoi32_partial_with_options,
-    );
-    from_lexical!(
-        type => i64,
-        options => ParseIntegerOptions,
-        parse => lexical_atoi64,
-        partial_parse => lexical_atoi64_partial,
-        parse_with_options => lexical_atoi64_with_options,
-        partial_parse_with_options => lexical_atoi64_partial_with_options,
-    );
-    from_lexical!(
-        type => isize,
-        options => ParseIntegerOptions,
-        parse => lexical_atoisize,
-        partial_parse => lexical_atoisize_partial,
-        parse_with_options => lexical_atoisize_with_options,
-        partial_parse_with_options => lexical_atoisize_partial_with_options,
-    );
-    #[cfg(feature = "i128")]
-    from_lexical!(
-        type => i128,
-        options => ParseIntegerOptions,
-        parse => lexical_atoi128,
-        partial_parse => lexical_atoi128_partial,
-        parse_with_options => lexical_atoi128_with_options,
-        partial_parse_with_options => lexical_atoi128_partial_with_options,
-        meta => #[allow(improper_ctypes_definitions)]
-    );
-}}  // cfg_if
+from_lexical!(
+    type => i8,
+    options => ParseIntegerOptions,
+    parse => lexical_atoi8,
+    partial_parse => lexical_atoi8_partial,
+    parse_with_options => lexical_atoi8_with_options,
+    partial_parse_with_options => lexical_atoi8_partial_with_options,
+);
+from_lexical!(
+    type => i16,
+    options => ParseIntegerOptions,
+    parse => lexical_atoi16,
+    partial_parse => lexical_atoi16_partial,
+    parse_with_options => lexical_atoi16_with_options,
+    partial_parse_with_options => lexical_atoi16_partial_with_options,
+);
+from_lexical!(
+    type => i32,
+    options => ParseIntegerOptions,
+    parse => lexical_atoi32,
+    partial_parse => lexical_atoi32_partial,
+    parse_with_options => lexical_atoi32_with_options,
+    partial_parse_with_options => lexical_atoi32_partial_with_options,
+);
+from_lexical!(
+    type => i64,
+    options => ParseIntegerOptions,
+    parse => lexical_atoi64,
+    partial_parse => lexical_atoi64_partial,
+    parse_with_options => lexical_atoi64_with_options,
+    partial_parse_with_options => lexical_atoi64_partial_with_options,
+);
+from_lexical!(
+    type => isize,
+    options => ParseIntegerOptions,
+    parse => lexical_atoisize,
+    partial_parse => lexical_atoisize_partial,
+    parse_with_options => lexical_atoisize_with_options,
+    partial_parse_with_options => lexical_atoisize_partial_with_options,
+);
+#[cfg(feature = "i128")]
+from_lexical!(
+    type => i128,
+    options => ParseIntegerOptions,
+    parse => lexical_atoi128,
+    partial_parse => lexical_atoi128_partial,
+    parse_with_options => lexical_atoi128_with_options,
+    partial_parse_with_options => lexical_atoi128_partial_with_options,
+    meta => #[allow(improper_ctypes_definitions)]
+);
 
 // FTOA
-cfg_if! {
-if #[cfg(feature = "ftoa")] {
-    to_lexical!(
-        type => f32,
-        options => WriteFloatOptions,
-        write => lexical_f32toa,
-        write_with_options => lexical_f32toa_with_options,
-    );
-    to_lexical!(
-        type => f64,
-        options => WriteFloatOptions,
-        write => lexical_f64toa,
-        write_with_options => lexical_f64toa_with_options,
-    );
-}}  // cfg_if
+to_lexical!(
+    type => f32,
+    options => WriteFloatOptions,
+    write => lexical_f32toa,
+    write_with_options => lexical_f32toa_with_options,
+);
+to_lexical!(
+    type => f64,
+    options => WriteFloatOptions,
+    write => lexical_f64toa,
+    write_with_options => lexical_f64toa_with_options,
+);
 
 // ITOA
-cfg_if! {
-if #[cfg(feature = "itoa")] {
-    to_lexical!(
-        type => u8,
-        options => WriteIntegerOptions,
-        write => lexical_u8toa,
-        write_with_options => lexical_u8toa_with_options,
-    );
-    to_lexical!(
-        type => u16,
-        options => WriteIntegerOptions,
-        write => lexical_u16toa,
-        write_with_options => lexical_u16toa_with_options,
-    );
-    to_lexical!(
-        type => u32,
-        options => WriteIntegerOptions,
-        write => lexical_u32toa,
-        write_with_options => lexical_u32toa_with_options,
-    );
-    to_lexical!(
-        type => u64,
-        options => WriteIntegerOptions,
-        write => lexical_u64toa,
-        write_with_options => lexical_u64toa_with_options,
-    );
-    to_lexical!(
-        type => usize,
-        options => WriteIntegerOptions,
-        write => lexical_usizetoa,
-        write_with_options => lexical_usizetoa_with_options,
-    );
-    #[cfg(feature = "i128")]
-    to_lexical!(
-        type => u128,
-        options => WriteIntegerOptions,
-        write => lexical_u128toa,
-        write_with_options => lexical_u128toa_with_options,
-        meta => #[allow(improper_ctypes_definitions)]
-    );
+to_lexical!(
+    type => u8,
+    options => WriteIntegerOptions,
+    write => lexical_u8toa,
+    write_with_options => lexical_u8toa_with_options,
+);
+to_lexical!(
+    type => u16,
+    options => WriteIntegerOptions,
+    write => lexical_u16toa,
+    write_with_options => lexical_u16toa_with_options,
+);
+to_lexical!(
+    type => u32,
+    options => WriteIntegerOptions,
+    write => lexical_u32toa,
+    write_with_options => lexical_u32toa_with_options,
+);
+to_lexical!(
+    type => u64,
+    options => WriteIntegerOptions,
+    write => lexical_u64toa,
+    write_with_options => lexical_u64toa_with_options,
+);
+to_lexical!(
+    type => usize,
+    options => WriteIntegerOptions,
+    write => lexical_usizetoa,
+    write_with_options => lexical_usizetoa_with_options,
+);
+#[cfg(feature = "i128")]
+to_lexical!(
+    type => u128,
+    options => WriteIntegerOptions,
+    write => lexical_u128toa,
+    write_with_options => lexical_u128toa_with_options,
+    meta => #[allow(improper_ctypes_definitions)]
+);
 
-    to_lexical!(
-        type => i8,
-        options => WriteIntegerOptions,
-        write => lexical_i8toa,
-        write_with_options => lexical_i8toa_with_options,
-    );
-    to_lexical!(
-        type => i16,
-        options => WriteIntegerOptions,
-        write => lexical_i16toa,
-        write_with_options => lexical_i16toa_with_options,
-    );
-    to_lexical!(
-        type => i32,
-        options => WriteIntegerOptions,
-        write => lexical_i32toa,
-        write_with_options => lexical_i32toa_with_options,
-    );
-    to_lexical!(
-        type => i64,
-        options => WriteIntegerOptions,
-        write => lexical_i64toa,
-        write_with_options => lexical_i64toa_with_options,
-    );
-    to_lexical!(
-        type => isize,
-        options => WriteIntegerOptions,
-        write => lexical_isizetoa,
-        write_with_options => lexical_isizetoa_with_options,
-    );
-    #[cfg(feature = "i128")]
-    to_lexical!(
-        type => i128,
-        options => WriteIntegerOptions,
-        write => lexical_i128toa,
-        write_with_options => lexical_i128toa_with_options,
-        meta => #[allow(improper_ctypes_definitions)]
-    );
-}}  // cfg_if
+to_lexical!(
+    type => i8,
+    options => WriteIntegerOptions,
+    write => lexical_i8toa,
+    write_with_options => lexical_i8toa_with_options,
+);
+to_lexical!(
+    type => i16,
+    options => WriteIntegerOptions,
+    write => lexical_i16toa,
+    write_with_options => lexical_i16toa_with_options,
+);
+to_lexical!(
+    type => i32,
+    options => WriteIntegerOptions,
+    write => lexical_i32toa,
+    write_with_options => lexical_i32toa_with_options,
+);
+to_lexical!(
+    type => i64,
+    options => WriteIntegerOptions,
+    write => lexical_i64toa,
+    write_with_options => lexical_i64toa_with_options,
+);
+to_lexical!(
+    type => isize,
+    options => WriteIntegerOptions,
+    write => lexical_isizetoa,
+    write_with_options => lexical_isizetoa_with_options,
+);
+#[cfg(feature = "i128")]
+to_lexical!(
+    type => i128,
+    options => WriteIntegerOptions,
+    write => lexical_i128toa,
+    write_with_options => lexical_i128toa_with_options,
+    meta => #[allow(improper_ctypes_definitions)]
+);

@@ -7,6 +7,7 @@ mod mantissa;
 mod mask;
 mod rounding;
 mod shift;
+mod wrapped;
 
 // Re-export the extended-precision floating-point type.
 pub use self::float::*;
@@ -16,9 +17,4 @@ pub use self::rounding::*;
 // Re-export internal tools.
 pub(crate) use self::convert::*;
 pub(crate) use self::mask::*;
-
-cfg_if! {
-if #[cfg(feature = "atof")] {
-    mod wrapped;
-    pub(crate) use self::wrapped::*;
-}}  // cfg_if
+pub(crate) use self::wrapped::*;

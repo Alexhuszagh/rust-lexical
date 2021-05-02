@@ -17,7 +17,6 @@ macro_rules! debug_assert_radix {
 // BUFFER
 
 /// Check the buffer has sufficient room for the output.
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
 macro_rules! assert_buffer {
     ($radix:expr, $slc:ident, $t:ty) => ({
         #[cfg(feature = "radix")]

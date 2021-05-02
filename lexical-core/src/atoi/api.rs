@@ -153,9 +153,10 @@ from_lexical_with_options!(atoi_with_options, i128);
 mod tests {
     use crate::error::*;
     use crate::traits::*;
+    #[cfg(any(feature = "format", feature = "radix"))]
     use crate::util::*;
 
-    #[cfg(all(feature = "std", feature = "property_tests"))]
+    #[cfg(feature = "property_tests")]
     use proptest::{proptest, prop_assert_eq, prop_assert};
 
     #[cfg(feature = "radix")]
@@ -255,8 +256,8 @@ mod tests {
         assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i16::from_lexical(b"1a"));
     }
 
-    #[cfg(feature = "radix")]
     #[test]
+    #[cfg(feature = "radix")]
     fn i16_radix_test() {
         for (b, s) in DATA.iter() {
             let options = ParseIntegerOptions::builder().radix(*b).build().unwrap();
@@ -410,7 +411,7 @@ mod tests {
         assert!(i32::from_lexical_with_options(b"-012", &options).is_err());
     }
 
-    #[cfg(all(feature = "std", feature = "property_tests"))]
+    #[cfg(feature = "property_tests")]
     proptest! {
         #[test]
         fn u8_invalid_proptest(i in r"[+]?[0-9]{2}\D") {

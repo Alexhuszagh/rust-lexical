@@ -295,10 +295,7 @@ impl<T: Float> Number for WrappedFloat<T> {
     const FORMATTED_SIZE: usize = T::FORMATTED_SIZE;
     const FORMATTED_SIZE_DECIMAL: usize = T::FORMATTED_SIZE_DECIMAL;
 
-    #[cfg(feature = "ftoa")]
     type WriteOptions = WriteFloatOptions;
-    #[cfg(not(feature = "ftoa"))]
-    type WriteOptions = DummyOptions;
     type ParseOptions = ParseFloatOptions;
 }
 

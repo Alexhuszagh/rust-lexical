@@ -1,13 +1,11 @@
 //! Shared definitions for string-to-integer conversions.
 
-#[cfg(feature = "atof")]
 use crate::traits::*;
 
 // SHARED
 // ------
 
 // Parse the sign bit and filter empty inputs from the atoi data.
-#[cfg(feature = "atoi")]
 macro_rules! parse_sign {
     ($bytes:ident, $is_signed:expr, $code:ident) => ({
         // Filter out empty inputs.
@@ -35,14 +33,12 @@ macro_rules! parse_sign {
 // quite slow performance wise, likely since it needs to calculate
 // the end ptr, while for a slice this is effectively a no-op.
 #[inline(always)]
-#[cfg(feature = "atoi")]
 pub(super) fn last_ptr<T>(slc: &[T]) -> *const T {
     slc[slc.len()..].as_ptr()
 }
 
 // Add digit to mantissa.
 #[inline(always)]
-#[cfg(feature = "atof")]
 pub(super) fn add_digit<T>(value: T, digit: u32, radix: u32)
     -> Option<T>
     where T: UnsignedInteger

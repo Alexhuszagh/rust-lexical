@@ -16,7 +16,6 @@
 //! # Getting Started
 //!
 //! ```rust
-//! # #[cfg(all(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))] {
 //! extern crate lexical;
 //!
 //! // Number to string
@@ -28,7 +27,6 @@
 //! let f: f32 = lexical::parse("3.5").unwrap();    // 3.5
 //! let d = lexical::parse::<f64, _>("3.5");        // Ok(3.5), successful parse.
 //! let d = lexical::parse::<f64, _>("3a");         // Err(Error(_)), failed to parse.
-//! # }
 //! ```
 //!
 //! # Conversion API
@@ -152,19 +150,16 @@
 // EXTERNAL
 
 #[macro_use]
-#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
 extern crate cfg_if;
-
 extern crate lexical_core;
 
 // CONFIG
 
 // Need an allocator for String/Vec.
-#[cfg(all(not(feature = "std"), any(feature = "ftoa", feature = "itoa")))]
+#[cfg(not(feature = "std"))]
 extern crate alloc;
 
 /// Facade around the core features for name mangling.
-#[cfg(any(feature = "atof", feature = "atoi", feature = "ftoa", feature = "itoa"))]
 pub(crate) mod lib {
     cfg_if! {
     if #[cfg(feature = "std")] {
@@ -175,14 +170,10 @@ pub(crate) mod lib {
 
     cfg_if! {
     if #[cfg(feature = "std")] {
-        #[cfg(any(feature = "ftoa", feature = "itoa"))]
         pub(crate) use std::string::String;
-        #[cfg(any(feature = "ftoa", feature = "itoa"))]
         pub(crate) use std::vec::Vec;
     } else {
-        #[cfg(any(feature = "ftoa", feature = "itoa"))]
         pub(crate) use ::alloc::string::String;
-        #[cfg(any(feature = "ftoa", feature = "itoa"))]
         pub(crate) use ::alloc::vec::Vec;
     }}  // cfg_if
 } // cfg_if
@@ -190,41 +181,28 @@ pub(crate) mod lib {
 // API
 
 // Re-export the float rounding scheme used.
-#[cfg(all(any(feature = "atof", feature = "ftoa"), feature = "rounding"))]
 pub use lexical_core::RoundingKind;
 
 // Re-export the numerical format.
 pub use lexical_core::{NumberFormat, NumberFormatBuilder};
 
 // Re-export the Result, Error and ErrorCode globally.
-#[cfg(any(feature = "atof", feature = "atoi"))]
 pub use lexical_core::{Error, ErrorCode, Result};
 
 // Re-export the parsing options.
-#[cfg(feature = "atof")]
 pub use lexical_core::{ParseFloatOptions, ParseFloatOptionsBuilder};
-
-#[cfg(feature = "atoi")]
 pub use lexical_core::{ParseIntegerOptions, ParseIntegerOptionsBuilder};
-
-#[cfg(feature = "ftoa")]
 pub use lexical_core::{WriteFloatOptions, WriteFloatOptionsBuilder};
-
-#[cfg(feature = "itoa")]
 pub use lexical_core::{WriteIntegerOptions, WriteIntegerOptionsBuilder};
 
 // Publicly expose traits so they may be used for generic programming.
-#[cfg(any(feature = "atof", feature = "atoi"))]
 pub use lexical_core::{FromLexical, FromLexicalOptions};
-
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub use lexical_core::{ToLexical, ToLexicalOptions};
 
 // HELPERS
 
 /// Get a vector as a slice, including the capacity.
 #[inline]
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
 unsafe fn vector_as_slice<T>(buf: &mut lib::Vec<T>) -> &mut [T] {
     let first = buf.as_mut_ptr();
     lib::slice::from_raw_parts_mut(first, buf.capacity())
@@ -239,16 +217,13 @@ unsafe fn vector_as_slice<T>(buf: &mut lib::Vec<T>) -> &mut [T] {
 /// # Examples
 ///
 /// ```rust
-/// # #[cfg(feature = "ftoa")] {
 /// # extern crate lexical;
 /// # pub fn main() {
 /// assert_eq!(lexical::to_string(5), "5");
 /// assert_eq!(lexical::to_string(0.0), "0.0");
 /// # }
-/// # }
 /// ```
 #[inline]
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub fn to_string<N: ToLexical>(n: N) -> lib::String {
     unsafe {
         let mut buf = lib::Vec::<u8>::with_capacity(N::FORMATTED_SIZE_DECIMAL);
@@ -266,7 +241,6 @@ pub fn to_string<N: ToLexical>(n: N) -> lib::String {
 /// # Examples
 ///
 /// ```rust
-/// # #[cfg(feature = "ftoa")] {
 /// # extern crate lexical;
 /// # pub fn main() {
 /// let options = lexical::WriteFloatOptions::builder()
@@ -276,10 +250,8 @@ pub fn to_string<N: ToLexical>(n: N) -> lib::String {
 /// assert_eq!(lexical::to_string_with_options(0.0, &options), "0");
 /// assert_eq!(lexical::to_string_with_options(123.456, &options), "123.456");
 /// # }
-/// # }
 /// ```
 #[inline]
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub fn to_string_with_options<N: ToLexicalOptions>(n: N, options: &N::WriteOptions)
     -> lib::String
 {
@@ -306,7 +278,6 @@ pub fn to_string_with_options<N: ToLexicalOptions>(n: N, options: &N::WriteOptio
 /// # Examples
 ///
 /// ```rust
-/// # #[cfg(all(feature = "atof", feature = "atoi"))] {
 /// # extern crate lexical;
 /// # use lexical::ErrorCode;
 /// # pub fn main() {
@@ -331,10 +302,8 @@ pub fn to_string_with_options<N: ToLexicalOptions>(n: N, options: &N::WriteOptio
 /// # assert_eq!(lexical::parse::<f32, _>(b"5.002868148396374"), Ok(5.002868148396374));
 /// # assert_eq!(lexical::parse::<f64, _>(b"5.002868148396374"), Ok(5.002868148396374));
 /// # }
-/// # }
 /// ```
 #[inline]
-#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
     N::from_lexical(bytes.as_ref())
 }
@@ -350,7 +319,6 @@ pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
 /// # Examples
 ///
 /// ```rust
-/// # #[cfg(all(feature = "atof", feature = "atoi"))] {
 /// # extern crate lexical;
 /// # pub fn main() {
 /// let format = lexical::NumberFormat::builder()
@@ -368,10 +336,8 @@ pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
 /// assert_eq!(lexical::parse_with_options::<f32, _>("1,2345", &options), Ok(1.2345));
 /// assert_eq!(lexical::parse_with_options::<f32, _>("1,2345^4", &options), Ok(12345.0));
 /// # }
-/// # }
 /// ```
 #[inline]
-#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Bytes, options: &N::ParseOptions)
     -> Result<N>
 {
@@ -391,7 +357,6 @@ pub fn parse_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Byte
 /// # Examples
 ///
 /// ```rust
-/// # #[cfg(all(feature = "atof", feature = "atoi"))] {
 /// # extern crate lexical;
 /// # use lexical::ErrorCode;
 /// # pub fn main() {
@@ -412,10 +377,8 @@ pub fn parse_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Byte
 /// # assert_eq!(lexical::parse_partial::<f32, _>(b"5.002868148396374"), Ok((5.002868148396374, 17)));
 /// # assert_eq!(lexical::parse_partial::<f64, _>(b"5.002868148396374"), Ok((5.002868148396374, 17)));
 /// # }
-/// # }
 /// ```
 #[inline]
-#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<(N, usize)> {
     N::from_lexical_partial(bytes.as_ref())
 }
@@ -434,7 +397,6 @@ pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result
 /// # Examples
 ///
 /// ```rust
-/// # #[cfg(all(feature = "atof", feature = "atoi"))] {
 /// # extern crate lexical;
 /// # pub fn main() {
 /// let format = lexical::NumberFormat::builder()
@@ -452,10 +414,8 @@ pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result
 /// assert_eq!(lexical::parse_partial_with_options::<f32, _>("1,2345", &options), Ok((1.2345, 6)));
 /// assert_eq!(lexical::parse_partial_with_options::<f32, _>("1,2345^4", &options), Ok((12345.0, 8)));
 /// # }
-/// # }
 /// ```
 #[inline]
-#[cfg(any(feature = "atof", feature = "atoi"))]
 pub fn parse_partial_with_options<N: FromLexicalOptions, Bytes: AsRef<[u8]>>(bytes: Bytes, options: &N::ParseOptions)
     -> Result<(N, usize)>
 {

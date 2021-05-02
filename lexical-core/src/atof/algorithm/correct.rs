@@ -784,7 +784,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(all(feature = "ftoa", feature = "radix"))]
+    #[cfg(feature = "radix")]
     fn atof_test_roundtrip() {
         let mut buffer = new_buffer();
         let values: [f32; 8] = [
@@ -920,7 +920,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(all(feature = "ftoa", feature = "radix"))]
+    #[cfg(feature = "radix")]
     fn atod_test_roundtrip() {
         let mut buffer = new_buffer();
         let values: [f64; 8] = [

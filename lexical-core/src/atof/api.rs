@@ -408,7 +408,7 @@ mod tests {
     use crate::util::*;
 
     use approx::assert_relative_eq;
-    #[cfg(all(feature = "std", feature = "property_tests"))]
+    #[cfg(feature = "property_tests")]
     use proptest::{proptest, prop_assert_eq, prop_assert};
 
     #[test]

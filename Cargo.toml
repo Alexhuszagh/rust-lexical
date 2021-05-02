@@ -45,26 +45,7 @@ itoa_impl = { version = "0.4", features = ["i128"], package = "itoa" }
 lazy_static = "1"
 
 [features]
-default = ["atof", "atoi", "ftoa", "itoa", "no_alloc", "ryu", "std"]
-
-# SUBMODULES
-# ----------
-# Only build the atof submodule.
-atof = ["lexical-core/atof"]
-# Only build the atoi submodule.
-atoi = ["lexical-core/atoi"]
-# Only build the ftoa submodule.
-ftoa = ["lexical-core/ftoa"]
-# Only build the itoa submodule.
-itoa = ["lexical-core/itoa"]
-
-# ALIASES
-# -------
-# Aliases for the above features, using less C-like names.
-parse_floats = ["atof"]
-parse_integers = ["atoi"]
-write_floats = ["ftoa"]
-write_integers = ["itoa"]
+default = ["no_alloc", "ryu", "std"]
 
 # FEATURES
 # --------

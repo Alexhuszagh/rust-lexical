@@ -1,16 +1,12 @@
 //! Test utilities.
 
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
 use crate::config::BUFFER_SIZE;
-#[cfg(all(limb_width_64, feature = "atof"))]
+#[cfg(limb_width_64)]
 use crate::traits::VecLike;
-#[cfg(feature = "atof")]
 use crate::traits::CloneableVecLike;
 
-#[cfg(feature = "atof")]
 use super::limb::Limb;
 
-#[cfg(feature = "atof")]
 cfg_if! {
 if #[cfg(feature = "no_alloc")] {
     use arrayvec;
@@ -21,7 +17,7 @@ if #[cfg(feature = "no_alloc")] {
 // BASES
 
 /// Pow2 bases.
-#[cfg(all(feature = "atof", feature = "radix"))]
+#[cfg(feature = "radix")]
 pub(crate) const BASE_POW2: [u32; 5] = [2, 4, 8, 16, 32];
 
 /// Non-pow2 bases.
@@ -38,7 +34,6 @@ pub(crate) const BASE_POWN: [u32; 1] = [10];
 
 /// Create new buffer for itoa or ftoa functionality.
 #[inline]
-#[cfg(any(feature = "ftoa", feature = "itoa"))]
 pub(crate) fn new_buffer() -> [u8; BUFFER_SIZE] {
     [b'\0'; BUFFER_SIZE]
 }
@@ -47,14 +42,12 @@ pub(crate) fn new_buffer() -> [u8; BUFFER_SIZE] {
 
 /// Use to help type deduction.
 #[inline]
-#[cfg(feature = "ftoa")]
 pub(crate) fn as_slice<'a, T>(x: &'a [T]) -> &'a [T] {
     x
 }
 
 // FROM U32
 
-#[cfg(feature = "atof")]
 cfg_if! {
 if #[cfg(not(feature = "no_alloc"))] {
     pub(crate) type DataType = Vec<Limb>;
@@ -65,12 +58,12 @@ if #[cfg(not(feature = "no_alloc"))] {
 }}  // cfg_if
 
 
-#[cfg(all(limb_width_32, feature = "atof"))]
+#[cfg(limb_width_32)]
 pub(crate) fn from_u32(x: &[u32]) -> DataType {
     x.iter().cloned().collect()
 }
 
-#[cfg(all(limb_width_64, feature = "atof"))]
+#[cfg(limb_width_64)]
 pub(crate) fn from_u32(x: &[u32]) -> DataType {
     let mut v = DataType::default();
     v.reserve(x.len() / 2);
@@ -85,13 +78,13 @@ pub(crate) fn from_u32(x: &[u32]) -> DataType {
     v
 }
 
-#[cfg(all(limb_width_32, feature = "atof"))]
+#[cfg(limb_width_32)]
 pub(crate) fn deduce_from_u32<T: CloneableVecLike<u32>>(x: &[u32]) -> T
 {
     from_u32(x).iter().cloned().collect()
 }
 
-#[cfg(all(limb_width_64, feature = "atof"))]
+#[cfg(limb_width_64)]
 pub(crate) fn deduce_from_u32<T: CloneableVecLike<u64>>(x: &[u32]) -> T
 {
     from_u32(x).iter().cloned().collect()
@@ -100,7 +93,6 @@ pub(crate) fn deduce_from_u32<T: CloneableVecLike<u64>>(x: &[u32]) -> T
 // LITERAL BYTE SLICES
 
 /// Create a literal byte slice.
-#[cfg(any(feature = "atof", all(feature = "atoi", feature = "format")))]
 macro_rules! b {
     ($l:expr) => ($l.as_bytes());
 }
@@ -108,28 +100,24 @@ macro_rules! b {
 // FLOATING-POINT EQUALITY
 
 /// Assert two 32-bit floats are equal.
-#[cfg(feature = "atof")]
 macro_rules! assert_f32_eq {
     ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_eq!($l, $r););
     ($l:expr, $r:expr) => (assert_eq!($l, $r););
 }
 
 /// Assert two 64-bit floats are equal.
-#[cfg(feature = "atof")]
 macro_rules! assert_f64_eq {
     ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (assert_eq!($l, $r););
     ($l:expr, $r:expr) => (assert_eq!($l, $r););
 }
 
 /// Assert two 32-bit floats are equal.
-#[cfg(feature = "atof")]
 macro_rules! assert_f32_near_eq {
     ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (approx::assert_relative_eq!($l, $r $(, $opt = $val)*););
     ($l:expr, $r:expr) => (approx::assert_relative_eq!($l, $r, epsilon=1e-20););
 }
 
 /// Assert two 64-bit floats are equal.
-#[cfg(feature = "atof")]
 macro_rules! assert_f64_near_eq {
     ($l:expr, $r:expr $(, $opt:ident = $val:expr)+) => (approx::assert_relative_eq!($l, $r $(, $opt = $val)*););
     ($l:expr, $r:expr) => (approx::assert_relative_eq!($l, $r, epsilon=1e-20, max_relative=1e-12););

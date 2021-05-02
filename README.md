@@ -18,7 +18,6 @@ If you want a minimal, stable, and compile-time friendly version of lexical-core
 - [Features](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#features)
 - [Options](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#options)
 - [Constants](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#constants)
-- [Submodules](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#submodules)
 - [Documentation](#documentation)
 - [Roadmap](#roadmap)
 - [Platform Support](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#platform-support)

@@ -4,16 +4,8 @@
 //! in order to use lexical in generic code, you must use the
 //! type-bounds defined in this module.
 
-#[cfg(any(
-    feature = "atof",
-    feature = "atoi",
-    feature = "ftoa",
-    feature = "itoa"
-))]
 use super::num::Number;
 
-cfg_if! {
-if #[cfg(any(feature = "atof", feature = "atoi"))] {
 use crate::result::Result;
 
 // HELPERS
@@ -141,10 +133,7 @@ macro_rules! from_lexical_with_options {
         }
     )
 }
-}}   // cfg_if
 
-cfg_if! {
-if #[cfg(any(feature = "ftoa", feature = "itoa"))] {
 // TO LEXICAL
 
 /// Trait for numerical types that can be serialized to bytes.
@@ -235,4 +224,3 @@ macro_rules! to_lexical_with_options {
         }
     )
 }
-}}  // cfg_if
