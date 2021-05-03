@@ -581,7 +581,7 @@ impl TablePower for f64 {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "binary"))]
 mod tests {
     use super::*;
 
@@ -592,7 +592,6 @@ mod tests {
 
     #[test]
     #[ignore]
-    #[cfg(feature = "binary")]
     fn test_f32_roundtrip() {
         // Check our logic is correct: by using a large type, we should
         // ensure our table_pow2 function is valid.
@@ -604,7 +603,6 @@ mod tests {
 
     #[test]
     #[ignore]
-    #[cfg(feature = "binary")]
     fn test_f64_roundtrip() {
         for exp in -1074i32..1023 {
             let float = f64::table_pow2(exp);

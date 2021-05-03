@@ -34,7 +34,7 @@ if [ ! -z $NO_STD ]; then
 fi
 
 # Have std, need to add `std` to features.
-REQUIRED_FEATURES="atof,atoi,ftoa,itoa"
+REQUIRED_FEATURES=""
 if [ -z $NO_STD ]; then
     REQUIRED_FEATURES="std,$REQUIRED_FEATURES"
 fi
@@ -56,10 +56,12 @@ if [ ! -z $NO_FEATURES ]; then
 else
     LEXICAL_FEATURES=(
         "rounding"
+        "rounding,binary"
         "rounding,radix"
         "grisu3"
         "ryu"
         "format"
+        "format,binary"
         "format,radix"
     )
     CORE_FEATURES=("${LEXICAL_FEATURES[@]}")
@@ -73,37 +75,16 @@ check() {
 
     # Need to test a few permutations just to ensure everything compiles.
     features=(
-        "atof"
-        "atof,no_alloc"
-        "atof,format"
-        "atof,radix"
-        "atof,rounding"
-        "atof,format,radix"
-        "atof,format,rounding"
-        "atof,radix,rounding"
-        "atof,format,radix,rounding"
-        "atoi"
-        "atoi,format"
-        "atoi,radix"
-        "atoi,format,radix"
-        "ftoa"
-        "ftoa,format"
-        "ftoa,radix"
-        "ftoa,format,radix"
-        "itoa"
-        "itoa,format"
-        "itoa,radix"
-        "itoa,format,radix"
-        "atof,atoi"
-        "atof,ftoa"
-        "atof,itoa"
-        "atof,atoi,ftoa"
-        "atof,atoi,itoa"
-        "atof,ftoa,itoa"
-        "atoi,ftoa"
-        "atoi,itoa"
-        "atoi,ftoa,itoa"
-        "ftoa,itoa"
+        "binary"
+        "format"
+        "radix"
+        "rounding"
+        "format,binary"
+        "format,radix"
+        "format,rounding"
+        "radix,rounding"
+        "format,binary,rounding"
+        "format,radix,rounding"
     )
 
     # Iterate over all features.

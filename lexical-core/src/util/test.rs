@@ -65,7 +65,7 @@ pub(crate) fn from_u32(x: &[u32]) -> DataType {
 #[cfg(limb_width_64)]
 pub(crate) fn from_u32(x: &[u32]) -> DataType {
     let mut v = DataType::default();
-    v.reserve(x.len() / 2);
+    <DataType as VecLike<Limb>>::reserve(&mut v, x.len() / 2);
     for xi in x.chunks(2) {
         match xi.len() {
             1 => v.push(xi[0] as Limb),
