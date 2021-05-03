@@ -1,6 +1,7 @@
 //! Shared flags for number formats.
 
 #![cfg_attr(not(feature = "format"), allow(dead_code))]
+#![cfg_attr(rustfmt, rustfmt::skip::macros(const_fn))]
 
 // We have a lot of flags that may not be enabled when the format
 // feature is off, but we don't want to add cfg_if feature gates
@@ -248,52 +249,48 @@ check_subsequent_flags!(EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPA
 // ----------
 
 const_fn!(
-    /// Determine if the digit separator is valid.
-    #[inline]
-    #[cfg(not(feature = "binary"))]
-    pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
-        match ch {
-            b'0'..=b'9' => false,
-            b'+' | b'-' => false,
-            _ => ch.is_ascii(),
-        }
+/// Determine if the digit separator is valid.
+#[inline]
+#[cfg(not(feature = "binary"))]
+pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
+    match ch {
+        b'0'..=b'9' => false,
+        b'+' | b'-' => false,
+        _ => ch.is_ascii(),
     }
-);
+});
 
 const_fn!(
-    /// Determine if the digit separator is valid.
-    #[inline]
-    #[cfg(feature = "binary")]
-    pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
-        match ch {
-            b'A'..=b'Z' => false,
-            b'a'..=b'z' => false,
-            b'0'..=b'9' => false,
-            b'+' | b'-' => false,
-            _ => ch.is_ascii(),
-        }
+/// Determine if the digit separator is valid.
+#[inline]
+#[cfg(feature = "binary")]
+pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
+    match ch {
+        b'A'..=b'Z' => false,
+        b'a'..=b'z' => false,
+        b'0'..=b'9' => false,
+        b'+' | b'-' => false,
+        _ => ch.is_ascii(),
     }
-);
+});
 
 const_fn!(
-    /// Determine if the decimal point is valid.
-    #[inline]
-    pub(crate) const fn is_valid_decimal_point(ch: u8) -> bool {
-        is_valid_digit_separator(ch)
-    }
-);
+/// Determine if the decimal point is valid.
+#[inline]
+pub(crate) const fn is_valid_decimal_point(ch: u8) -> bool {
+    is_valid_digit_separator(ch)
+});
 
 const_fn!(
-    /// Determine if the exponent decimal character is valid.
-    #[inline]
-    pub(crate) const fn is_valid_exponent_decimal(ch: u8) -> bool {
-        match ch {
-            b'0'..=b'9' => false,
-            b'+' | b'-' => false,
-            _ => ch.is_ascii(),
-        }
+/// Determine if the exponent decimal character is valid.
+#[inline]
+pub(crate) const fn is_valid_exponent_decimal(ch: u8) -> bool {
+    match ch {
+        b'0'..=b'9' => false,
+        b'+' | b'-' => false,
+        _ => ch.is_ascii(),
     }
-);
+});
 
 const_fn!(
     /// Determine if the exponent backup character is valid.
@@ -304,32 +301,31 @@ const_fn!(
 );
 
 const_fn!(
-    /// Determine if all of the "punctuation" characters are valid.
-    #[inline]
-    pub(crate) const fn is_valid_punctuation(
-        digit_separator: u8,
-        decimal_point: u8,
-        exponent_decimal: u8,
-        exponent_backup: u8,
-    ) -> bool {
-        if digit_separator == decimal_point {
-            false
-        } else if digit_separator == exponent_decimal {
-            false
-        } else if digit_separator == exponent_backup {
-            false
-        } else if decimal_point == exponent_decimal {
-            false
-        } else if decimal_point == exponent_backup {
-            false
-        } else {
-            // exponent_decimal and exponent_backup can be the same as long as
-            // both are valid: in case someone always wants b'^' to be
-            // the exponent character.
-            true
-        }
+/// Determine if all of the "punctuation" characters are valid.
+#[inline]
+pub(crate) const fn is_valid_punctuation(
+    digit_separator: u8,
+    decimal_point: u8,
+    exponent_decimal: u8,
+    exponent_backup: u8,
+) -> bool {
+    if digit_separator == decimal_point {
+        false
+    } else if digit_separator == exponent_decimal {
+        false
+    } else if digit_separator == exponent_backup {
+        false
+    } else if decimal_point == exponent_decimal {
+        false
+    } else if decimal_point == exponent_backup {
+        false
+    } else {
+        // exponent_decimal and exponent_backup can be the same as long as
+        // both are valid: in case someone always wants b'^' to be
+        // the exponent character.
+        true
     }
-);
+});
 
 // FLAG FUNCTIONS
 // --------------
@@ -470,14 +466,13 @@ check_masks_and_flags!(
 
 /// Convert a character to ASCII lowercase as a const fn.
 const_fn!(
-    #[inline(always)]
-    pub(crate) const fn to_ascii_lowercase(c: u8) -> u8 {
-        match c {
-            b'A'..=b'Z' => c - b'A' + b'a',
-            _ => c,
-        }
+#[inline(always)]
+pub(crate) const fn to_ascii_lowercase(c: u8) -> u8 {
+    match c {
+        b'A'..=b'Z' => c - b'A' + b'a',
+        _ => c,
     }
-);
+});
 
 // TESTS
 // -----

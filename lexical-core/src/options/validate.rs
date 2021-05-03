@@ -1,5 +1,7 @@
 //! Utilities to validate numerical formats.
 
+#![cfg_attr(rustfmt, rustfmt::skip::macros(const_fn))]
+
 use crate::util::*;
 
 const_fn!(
@@ -8,7 +10,6 @@ const_fn!(
 pub(crate) const fn is_ascii(ch: u8) -> bool {
     ch < 0x80
 });
-
 
 const_fn!(
 /// Determine if the control character is valid.
@@ -38,7 +39,7 @@ mod tests {
         assert_eq!(is_valid_control(b'.', 10), true);
         assert_eq!(is_valid_control(b'e', 10), true);
         assert_eq!(is_valid_control(b'p', 10), true);
-        if cfg!(feature = "radix") {
+        if cfg!(feature = "binary") {
             assert_eq!(is_valid_control(b'b', 2), true);
             assert_eq!(is_valid_control(b'o', 8), true);
             assert_eq!(is_valid_control(b'd', 10), true);

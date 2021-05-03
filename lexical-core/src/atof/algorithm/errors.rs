@@ -81,6 +81,21 @@ fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64
 // FLOAT ERRORS
 // ------------
 
+/// Calculate if the errors in calculating the extended-precision float.
+///
+/// Specifically, we want to know if we are close to a halfway representation,
+/// or halfway between `b` and `b+1`, or `b+h`. The halfway representation
+/// has the form:
+///     SEEEEEEEHMMMMMMMMMMMMMMMMMMMMMMM100...
+/// where:
+///     S = Sign Bit
+///     E = Exponent Bits
+///     H = Hidden Bit
+///     M = Mantissa Bits
+///
+/// The halfway representation has a bit set 1-after the mantissa digits,
+/// and no bits set immediately afterward, making it impossible to
+/// round between `b` and `b+1` with this representation.
 pub trait FloatErrors: Mantissa {
     /// Get the full error scale.
     fn error_scale() -> u32;

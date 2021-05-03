@@ -701,10 +701,14 @@
 #![allow(dead_code)] // TODO(ahuszagh) Remove
 
 // TODO(ahuszagh) Restore later...
-//mod lexer;
-//mod number;
-//mod syntax;
-//
+mod lexer;
+mod number;
+#[cfg(feature = "format")]
+mod number_format;
+mod rounding;
+mod syntax;
+mod validate;
+
 //pub use self::number::*;
 
 // TESTS

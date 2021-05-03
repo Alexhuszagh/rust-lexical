@@ -6,7 +6,7 @@ use crate::lib::{mem, num};
 // LEXER FORMAT
 
 /// Type with the exact same size as a `u8`.
-type OptionU8 = Option<num::NonZeroU8>;
+pub type OptionU8 = Option<num::NonZeroU8>;
 
 // Ensure the sizes are identical.
 const_assert!(mem::size_of::<OptionU8>() == mem::size_of::<u8>());
@@ -17,34 +17,109 @@ const_assert!(mem::size_of::<OptionU8>() == mem::size_of::<u8>());
 /// boundary.
 #[repr(C)]
 #[repr(align(8))]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct LexerFormat {
     /// Character to designate the exponent component of a float.
-    exponent: u8,
+    pub(super) exponent: u8,
     /// Character to separate the integer from the fraction components.
-    decimal_point: u8,
+    pub(super) decimal_point: u8,
     /// Radix for the mantissa digits.
-    mantissa_radix: u8,
+    pub(super) mantissa_radix: u8,
     /// Radix for the exponent. If not provided, defaults to `mantissa_radix`.
     /// IE, a base of 2 means we have `mantissa * 2^exponent`.
-    exponent_base: OptionU8,
+    pub(super) exponent_base: OptionU8,
     /// Radix for the exponent digits. If not provided, defaults to `mantissa_radix`.
-    exponent_radix: OptionU8,
+    pub(super) exponent_radix: OptionU8,
     /// Character for the base prefix. If not provided, base prefixes are not allowed.
     ///
     /// The number will have then have the format `0$base_prefix...`.
     /// For example, a hex base prefix would be `0x`. Base prefixes are
     /// always optional.
-    base_prefix: OptionU8,
+    pub(super) base_prefix: OptionU8,
     /// Character for the base suffix. If not provided, base suffixes are not allowed.
     ///
     /// The number will have then have the format `...$base_suffix`.
     /// For example, a hex base prefix would be `0x`. Base prefixes are
     /// always optional.
-    base_suffix: OptionU8,
+    pub(super) base_suffix: OptionU8,
     /// Hidden for padding to ensure we are on an 8-byte boundary.
-    __padding: u8,
+    pub(super) __padding: u8,
 }
 
 impl LexerFormat {
-    // TODO(ahuszagh) Add getters and setters here.
+    // GETTERS
+
+    /// Get the exponent character for the lexer format.
+    #[inline(always)]
+    pub const fn exponent(self) -> u8 {
+        self.exponent
+    }
+
+    /// Get the decimal point character for the lexer format.
+    #[inline(always)]
+    pub const fn decimal_point(self) -> u8 {
+        self.decimal_point
+    }
+
+    /// Get the radix for the mantissa digits for the lexer format.
+    #[inline(always)]
+    pub const fn mantissa_radix(self) -> u8 {
+        self.mantissa_radix
+    }
+
+    /// Get the base for the exponent for the lexer format.
+    ///
+    /// IE, a base of 2 means we have `mantissa * 2^exponent`.
+    /// If not provided, it defaults to `mantissa_radix`.
+    #[inline(always)]
+    pub const fn exponent_base(self) -> OptionU8 {
+        self.exponent_base
+    }
+
+    /// Get the radix for the exponent digits.
+    ///
+    /// If not provided, defaults to `mantissa_radix`.
+    #[inline(always)]
+    pub const fn exponent_radix(self) -> OptionU8 {
+        self.exponent_radix
+    }
+
+    /// Get the character for the base prefix.
+    ///
+    /// If not provided, base prefixes are not allowed.
+    /// The number will have then have the format `0$base_prefix...`.
+    /// For example, a hex base prefix would be `0x`. Base prefixes are
+    /// always optional.
+    #[inline(always)]
+    pub const fn base_prefix(self) -> OptionU8 {
+        self.base_prefix
+    }
+
+    /// Character for the base suffix.
+    ///
+    /// If not provided, base suffixes are not allowed.
+    /// The number will have then have the format `...$base_suffix`.
+    /// For example, a hex base prefix would be `0x`. Base prefixes are
+    /// always optional.
+    #[inline(always)]
+    pub const fn base_suffix(self) -> OptionU8 {
+        self.base_suffix
+    }
+
+    // CONSTANTS
+
+    /// Standard lexer format.
+    #[doc(hidden)]
+    pub const STANDARD: Self = Self {
+        exponent: b'e',
+        decimal_point: b'.',
+        mantissa_radix: 10,
+        exponent_base: None,
+        exponent_radix: None,
+        base_prefix: None,
+        base_suffix: None,
+        __padding: b'\x00'
+    };
 }
+
+// TODO(ahuszagh) Should have aliases for common types...
