@@ -977,7 +977,7 @@ pub trait VecLike<T>:
 /// Vector-like container with cloneable values.
 ///
 /// Implemented for Vec, SmallVec, and StackVec.
-pub trait CloneableVecLike<T: Clone + Copy + Send>: Send + VecLike<T> {
+pub trait CloneableVecLike<T: Clone + Copy + Send>: Send + Clone + VecLike<T> {
     /// Extend collection from slice.
     fn extend_from_slice(&mut self, other: &[T]);
 

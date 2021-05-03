@@ -7,7 +7,6 @@
 use crate::atoi;
 use crate::float::*;
 use crate::result::*;
-use crate::table::*;
 use crate::traits::*;
 use crate::util::*;
 
@@ -189,7 +188,7 @@ fn multiply_exponent_extended<F, M>(
 ) -> bool
 where
     M: FloatErrors,
-    F: FloatRounding<M>,
+    F: Float,
     ExtendedFloat<M>: ModeratePathCache<M>,
 {
     let powers = ExtendedFloat::<M>::get_powers(radix);
@@ -261,7 +260,7 @@ pub(super) fn moderate_path<F, M>(
 ) -> (ExtendedFloat<M>, bool)
 where
     M: FloatErrors,
-    F: FloatRounding<M> + StablePower,
+    F: Float,
     ExtendedFloat<M>: ModeratePathCache<M>,
 {
     let mut fp = ExtendedFloat {
@@ -476,6 +475,7 @@ where
 mod tests {
     use super::*;
     use crate::error::*;
+    use crate::table::*;
 
     #[test]
     fn process_mantissa_test() {

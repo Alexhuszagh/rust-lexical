@@ -564,39 +564,32 @@ impl MaxIncorrectDigits for f128 {
 // ----------
 
 /// Trait to simplify type signatures for atof.
-pub trait FloatType:
-    FloatRounding<u64> + FloatRounding<u128> + StablePower + MaxCorrectDigits + MaxIncorrectDigits
+pub trait FloatType: StablePower + MaxCorrectDigits + MaxIncorrectDigits
 {
-    type Mantissa: Mantissa;
     type ExtendedFloat: ExtendedFloatType<Self>;
 }
 
-#[cfg(feature = "f116")]
-impl FloatType for f116 {
-    type Mantissa = Self::Unsigned;
-    type ExtendedFloat = ExtendedFloat<Self::Mantissa>;
+#[cfg(feature = "f16")]
+impl FloatType for f16 {
+    type ExtendedFloat = ExtendedFloat<Self::Unsigned>;
 }
 
-#[cfg(feature = "f116")]
-impl FloatType for bf116 {
-    type Mantissa = Self::Unsigned;
-    type ExtendedFloat = ExtendedFloat<Self::Mantissa>;
+#[cfg(feature = "f16")]
+impl FloatType for bf16 {
+    type ExtendedFloat = ExtendedFloat<Self::Unsigned>;
 }
 
 impl FloatType for f32 {
-    type Mantissa = Self::Unsigned;
-    type ExtendedFloat = ExtendedFloat<Self::Mantissa>;
+    type ExtendedFloat = ExtendedFloat<Self::Unsigned>;
 }
 
 impl FloatType for f64 {
-    type Mantissa = Self::Unsigned;
-    type ExtendedFloat = ExtendedFloat<Self::Mantissa>;
+    type ExtendedFloat = ExtendedFloat<Self::Unsigned>;
 }
 
 #[cfg(feature = "f128")]
 impl FloatType for f128 {
-    type Mantissa = Self::Unsigned;
-    type ExtendedFloat = ExtendedFloat<Self::Mantissa>;
+    type ExtendedFloat = ExtendedFloat<Self::Unsigned>;
 }
 
 // MANTISSA
@@ -604,6 +597,8 @@ impl FloatType for f128 {
 
 /// Trait for a useable mantissa.
 pub(super) trait MantissaType: Mantissa + FloatErrors {}
+
+// TODO(ahuszagh) This should also have smaller types, maybe?
 
 impl MantissaType for u64 {
 }
@@ -620,9 +615,9 @@ pub trait ExtendedFloatType<F: FloatType>: ToBigfloat<F> + From<F> {
     // I really wish I had any other choice **other** than getters and setters,
     // but since we can't specify fields in traits, and we can't use properties...
     // C'est la vie.
-    fn mant(&self) -> F::Mantissa;
+    fn mant(&self) -> F::Unsigned;
     fn exp(&self) -> i32;
-    fn set_mant(&mut self, mant: F::Mantissa);
+    fn set_mant(&mut self, mant: F::Unsigned);
     fn set_exp(&mut self, exp: i32);
 }
 

@@ -198,7 +198,7 @@ pub trait ToBigfloat<F: FloatType> {
 }
 
 #[cfg(feature = "f16")]
-impl ToBigfloat<f16> for ExtendedFloat<<f16 as FloatType>::Mantissa> {
+impl ToBigfloat<f16> for ExtendedFloat<<f16 as Float>::Unsigned> {
     #[inline]
     fn to_bigfloat(&self) -> Bigfloat<f16> {
         let mut bigfloat = Bigfloat::<f16>::from_u32(self.mant);
@@ -208,7 +208,7 @@ impl ToBigfloat<f16> for ExtendedFloat<<f16 as FloatType>::Mantissa> {
 }
 
 #[cfg(feature = "f16")]
-impl ToBigfloat<bf16> for ExtendedFloat<<bf16 as FloatType>::Mantissa> {
+impl ToBigfloat<bf16> for ExtendedFloat<<bf16 as Float>::Unsigned> {
     #[inline]
     fn to_bigfloat(&self) -> Bigfloat<bf16> {
         let mut bigfloat = Bigfloat::<bf16>::from_u32(self.mant);
@@ -217,7 +217,7 @@ impl ToBigfloat<bf16> for ExtendedFloat<<bf16 as FloatType>::Mantissa> {
     }
 }
 
-impl ToBigfloat<f32> for ExtendedFloat<<f32 as FloatType>::Mantissa> {
+impl ToBigfloat<f32> for ExtendedFloat<<f32 as Float>::Unsigned> {
     #[inline]
     fn to_bigfloat(&self) -> Bigfloat<f32> {
         let mut bigfloat = Bigfloat::<f32>::from_u32(self.mant);
@@ -226,7 +226,7 @@ impl ToBigfloat<f32> for ExtendedFloat<<f32 as FloatType>::Mantissa> {
     }
 }
 
-impl ToBigfloat<f64> for ExtendedFloat<<f64 as FloatType>::Mantissa> {
+impl ToBigfloat<f64> for ExtendedFloat<<f64 as Float>::Unsigned> {
     #[inline]
     fn to_bigfloat(&self) -> Bigfloat<f64> {
         let mut bigfloat = Bigfloat::<f64>::from_u64(self.mant);
@@ -236,10 +236,10 @@ impl ToBigfloat<f64> for ExtendedFloat<<f64 as FloatType>::Mantissa> {
 }
 
 #[cfg(feature = "f128")]
-impl ToBigfloat<u128> for ExtendedFloat<u128> {
+impl ToBigfloat<u128> for ExtendedFloat<<f128 as Float>::Unsigned> {
     #[inline]
     fn to_bigfloat(&self) -> Bigfloat<f128> {
-        let mut bigfloat = Bigfloat::<f128>::from_u64(self.mant);
+        let mut bigfloat = Bigfloat::<f128>::from_u128(self.mant);
         bigfloat.exp = self.exp;
         bigfloat
     }

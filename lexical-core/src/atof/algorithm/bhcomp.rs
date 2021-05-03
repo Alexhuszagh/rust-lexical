@@ -166,36 +166,24 @@ macro_rules! toward_cb {
 /// Respect rounding rules in the config file.
 #[inline]
 #[allow(unused_variables)]
-pub(super) fn round_to_native<F>(fp: &mut ExtendedFloat80, is_truncated: bool, kind: RoundingKind)
+pub(super) fn round_to_native<F, M>(fp: &mut ExtendedFloat<M>, is_truncated: bool, kind: RoundingKind)
 where
     F: FloatType,
+    M: Mantissa,
 {
-    type M = u64;
-
-    // Define a simplified function, since we can't store the callback to
-    // a variable without `impl Trait`, which requires 1.26.0.
-    #[inline(always)]
-    fn round<F, Cb>(fp: &mut ExtendedFloat80, cb: Cb)
-    where
-        F: FloatRounding<M>,
-        Cb: FnOnce(&mut ExtendedFloat<M>, i32),
-    {
-        fp.round_to_native::<F, _>(cb);
-    }
-
     #[cfg(feature = "rounding")]
     match kind {
-        RoundingKind::NearestTieEven => round::<F, _>(fp, nearest_cb!(M, is_truncated, tie_even)),
+        RoundingKind::NearestTieEven => fp.round_to_native::<F, _>(nearest_cb!(M, is_truncated, tie_even)),
         RoundingKind::NearestTieAwayZero => {
-            round::<F, _>(fp, nearest_cb!(M, is_truncated, tie_away_zero))
+            fp.round_to_native::<F, _>(nearest_cb!(M, is_truncated, tie_away_zero))
         },
-        RoundingKind::Upward => round::<F, _>(fp, toward_cb!(M, is_truncated, upward)),
-        RoundingKind::Downward => round::<F, _>(fp, toward_cb!(M, is_truncated, downard)),
+        RoundingKind::Upward => fp.round_to_native::<F, _>(toward_cb!(M, is_truncated, upward)),
+        RoundingKind::Downward => fp.round_to_native::<F, _>(toward_cb!(M, is_truncated, downard)),
         _ => unreachable!(),
     };
 
     #[cfg(not(feature = "rounding"))]
-    round::<F, _>(fp, nearest_cb!(M, is_truncated, tie_even));
+    fp.round_to_native::<F, _>(nearest_cb!(M, is_truncated, tie_even));
 }
 
 /// BIGCOMP PATH
@@ -242,7 +230,7 @@ where
         mant,
         exp,
     };
-    round_to_native::<F>(&mut fp, is_truncated, kind);
+    round_to_native::<F, _>(&mut fp, is_truncated, kind);
     into_float(fp)
 }
 

@@ -194,7 +194,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
     #[inline]
     pub(crate) fn round_to_native<F, Cb>(&mut self, cb: Cb)
     where
-        F: FloatRounding<M>,
+        F: Float,
         Cb: FnOnce(&mut ExtendedFloat<M>, i32),
     {
         round_to_native::<F, M, _>(self, cb)
@@ -204,7 +204,6 @@ impl<M: Mantissa> ExtendedFloat<M> {
     #[inline]
     pub(crate) fn round_to_f32<Cb>(&mut self, cb: Cb)
     where
-        f32: FloatRounding<M>,
         Cb: FnOnce(&mut ExtendedFloat<M>, i32),
     {
         self.round_to_native::<f32, Cb>(cb)
@@ -214,7 +213,6 @@ impl<M: Mantissa> ExtendedFloat<M> {
     #[inline]
     pub(crate) fn round_to_f64<Cb>(&mut self, cb: Cb)
     where
-        f64: FloatRounding<M>,
         Cb: FnOnce(&mut ExtendedFloat<M>, i32),
     {
         self.round_to_native::<f64, Cb>(cb)
@@ -277,25 +275,19 @@ impl<M: Mantissa> ExtendedFloat<M> {
     /// This will always use round-nearest, tie-even.
     /// Use `into_rounded_float` if you need custom rounding schemes.
     #[inline]
-    pub fn into_float<F: FloatRounding<M>>(self) -> F {
+    pub fn into_float<F: Float>(self) -> F {
         self.into_rounded_float::<F>(RoundingKind::NearestTieEven, Sign::Positive)
     }
 
     /// Convert into lower-precision 32-bit float.
     #[inline]
-    pub fn into_f32(self) -> f32
-    where
-        f32: FloatRounding<M>,
-    {
+    pub fn into_f32(self) -> f32 {
         self.into_float()
     }
 
     /// Convert into lower-precision 64-bit float.
     #[inline]
-    pub fn into_f64(self) -> f64
-    where
-        f64: FloatRounding<M>,
-    {
+    pub fn into_f64(self) -> f64 {
         self.into_float()
     }
 
@@ -303,10 +295,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Into rounded float where the rounding kind has been converted.
     #[inline]
-    pub(crate) fn into_rounded_float_impl<F>(mut self, kind: RoundingKind) -> F
-    where
-        F: FloatRounding<M>,
-    {
+    pub(crate) fn into_rounded_float_impl<F: Float>(mut self, kind: RoundingKind) -> F {
         // Normalize the actual float rounding here.
         let cb = match kind {
             RoundingKind::NearestTieEven => round_nearest_tie_even,
@@ -322,28 +311,19 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Convert into lower-precision native float with custom rounding rules.
     #[inline]
-    pub fn into_rounded_float<F>(self, kind: RoundingKind, sign: Sign) -> F
-    where
-        F: FloatRounding<M>,
-    {
+    pub fn into_rounded_float<F: Float>(self, kind: RoundingKind, sign: Sign) -> F {
         self.into_rounded_float_impl(internal_rounding(kind, sign))
     }
 
     /// Convert into lower-precision 32-bit float with custom rounding rules.
     #[inline]
-    pub fn into_rounded_f32(self, kind: RoundingKind, sign: Sign) -> f32
-    where
-        f32: FloatRounding<M>,
-    {
+    pub fn into_rounded_f32(self, kind: RoundingKind, sign: Sign) -> f32 {
         self.into_rounded_float(kind, sign)
     }
 
     /// Convert into lower-precision 64-bit float with custom rounding rules.
     #[inline]
-    pub fn into_rounded_f64(self, kind: RoundingKind, sign: Sign) -> f64
-    where
-        f64: FloatRounding<M>,
-    {
+    pub fn into_rounded_f64(self, kind: RoundingKind, sign: Sign) -> f64 {
         self.into_rounded_float(kind, sign)
     }
 
@@ -351,25 +331,19 @@ impl<M: Mantissa> ExtendedFloat<M> {
 
     /// Convert to lower-precision native float.
     #[inline]
-    pub fn as_float<F: FloatRounding<M>>(&self) -> F {
+    pub fn as_float<F: Float>(&self) -> F {
         self.clone().into_float::<F>()
     }
 
     /// Convert to lower-precision 32-bit float.
     #[inline]
-    pub fn as_f32(&self) -> f32
-    where
-        f32: FloatRounding<M>,
-    {
+    pub fn as_f32(&self) -> f32 {
         self.as_float()
     }
 
     /// Convert to lower-precision 64-bit float.
     #[inline]
-    pub fn as_f64(&self) -> f64
-    where
-        f64: FloatRounding<M>,
-    {
+    pub fn as_f64(&self) -> f64 {
         self.as_float()
     }
 
@@ -379,26 +353,20 @@ impl<M: Mantissa> ExtendedFloat<M> {
     #[inline]
     pub fn as_rounded_float<F>(&self, kind: RoundingKind, sign: Sign) -> F
     where
-        F: FloatRounding<M>,
+        F: Float,
     {
         self.clone().into_rounded_float::<F>(kind, sign)
     }
 
     /// Convert to lower-precision 32-bit float with custom rounding rules.
     #[inline]
-    pub fn as_rounded_f32(&self, kind: RoundingKind, sign: Sign) -> f32
-    where
-        f32: FloatRounding<M>,
-    {
+    pub fn as_rounded_f32(&self, kind: RoundingKind, sign: Sign) -> f32 {
         self.as_rounded_float(kind, sign)
     }
 
     /// Convert to lower-precision 64-bit float with custom rounding rules.
     #[inline]
-    pub fn as_rounded_f64(&self, kind: RoundingKind, sign: Sign) -> f64
-    where
-        f64: FloatRounding<M>,
-    {
+    pub fn as_rounded_f64(&self, kind: RoundingKind, sign: Sign) -> f64 {
         self.as_rounded_float(kind, sign)
     }
 }

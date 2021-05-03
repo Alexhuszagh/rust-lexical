@@ -171,41 +171,6 @@ where
 // NATIVE FLOAT
 // ------------
 
-// FLOAT ROUNDING
-
-/// Trait to round extended-precision floats to native representations.
-#[doc(hidden)]
-pub trait FloatRounding<M: Mantissa>: Float {
-    /// Default number of bits to shift (or 64 - mantissa size - 1).
-    const DEFAULT_SHIFT: i32;
-    /// Mask to determine if a full-carry occurred (1 in bit above hidden bit).
-    const CARRY_MASK: M;
-}
-
-// Literals don't work for generic types, we need to use this as a hack.
-macro_rules! float_rounding_f32 {
-    ($($t:tt)*) => ($(
-        impl FloatRounding<$t> for f32 {
-            const DEFAULT_SHIFT: i32    = $t::FULL - f32::MANTISSA_SIZE - 1;
-            const CARRY_MASK: $t        = 0x1000000;
-        }
-    )*)
-}
-
-float_rounding_f32! { u64 u128 }
-
-// Literals don't work for generic types, we need to use this as a hack.
-macro_rules! float_rounding_f64 {
-    ($($t:tt)*) => ($(
-        impl FloatRounding<$t> for f64 {
-            const DEFAULT_SHIFT: i32    = $t::FULL - f64::MANTISSA_SIZE - 1;
-            const CARRY_MASK: $t        = 0x20000000000000;
-        }
-    )*)
-}
-
-float_rounding_f64! { u64 u128 }
-
 // ROUND TO FLOAT
 
 /// Shift the ExtendedFloat fraction to the fraction bits in a native float.
@@ -216,14 +181,17 @@ float_rounding_f64! { u64 u128 }
 #[inline]
 pub(crate) fn round_to_float<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
 where
-    T: FloatRounding<M>,
+    T: Float,
     M: Mantissa,
     Cb: FnOnce(&mut ExtendedFloat<M>, i32),
 {
+    /// Default number of bits to shift (or M::BITS - mantissa size - 1).
+    let default_shift: i32 = M::FULL - T::MANTISSA_SIZE - 1;
+
     // Calculate the difference to allow a single calculation
     // rather than a loop, to minimize the number of ops required.
     // This does underflow detection.
-    let final_exp = fp.exp + T::DEFAULT_SHIFT;
+    let final_exp = fp.exp + default_shift;
     if final_exp < T::DENORMAL_EXPONENT {
         // We would end up with a denormal exponent, try to round to more
         // digits. Only shift right if we can avoid zeroing out the value,
@@ -240,10 +208,11 @@ where
             fp.exp = 0;
         }
     } else {
-        cb(fp, T::DEFAULT_SHIFT);
+        cb(fp, default_shift);
     }
 
-    if fp.mant & T::CARRY_MASK == T::CARRY_MASK {
+    let carry_mask = as_cast(T::CARRY_MASK);
+    if fp.mant & carry_mask == carry_mask {
         // Roundup carried over to 1 past the hidden bit.
         shr(fp, 1);
     }
@@ -257,7 +226,7 @@ where
 #[inline]
 pub(crate) fn avoid_overflow<T, M>(fp: &mut ExtendedFloat<M>)
 where
-    T: FloatRounding<M>,
+    T: Float,
     M: Mantissa,
 {
     // Calculate the difference to allow a single calculation
@@ -287,7 +256,7 @@ where
 #[inline]
 pub(crate) fn round_to_native<T, M, Cb>(fp: &mut ExtendedFloat<M>, cb: Cb)
 where
-    T: FloatRounding<M>,
+    T: Float,
     M: Mantissa,
     Cb: FnOnce(&mut ExtendedFloat<M>, i32),
 {

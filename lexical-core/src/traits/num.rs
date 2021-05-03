@@ -659,6 +659,12 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     /// Unsigned type of the same size.
     type Unsigned: UnsignedInteger;
 
+    /// The mantissa type for fast and moderate path parsing algorithms.
+    ///
+    /// This type is guaranteed to be at least as large as Unsigned,
+    /// although for implementation reasons, it may be larger.
+    type Mantissa: UnsignedInteger;
+
     /// Number of limbs in a Bigint.
     ///
     /// This number is somewhat arbitrary, but needs
@@ -682,9 +688,9 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     const BIGFLOAT_LIMBS: usize;
 
     /// The storage type for the Bigint.
-    type BigintStorage: CloneableVecLike<Limb> + Clone;
+    type BigintStorage: CloneableVecLike<Limb>;
     /// The storage type for the Bigfloat.
-    type BigfloatStorage: CloneableVecLike<Limb> + Clone;
+    type BigfloatStorage: CloneableVecLike<Limb>;
 
     // CONSTANTS
     const ZERO: Self;
@@ -705,6 +711,8 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     const HIDDEN_BIT_MASK: Self::Unsigned;
     /// Bitmask for the mantissa (fraction), excluding the hidden bit.
     const MANTISSA_MASK: Self::Unsigned;
+    /// Mask to determine if a full-carry occurred (1 in bit above hidden bit).
+    const CARRY_MASK: Self::Mantissa;
 
     // PROPERTIES
 
@@ -914,6 +922,97 @@ macro_rules! float_method {
     })
 }
 
+/// Define the float literals.
+macro_rules! float_literals {
+    ($float:ty) => (
+        const ZERO: $float = 0.0;
+        const ONE: $float = 1.0;
+        const TWO: $float = 2.0;
+        const MAX: $float = <$float>::MAX;
+        const MIN: $float = <$float>::MIN;
+        const INFINITY: $float = <$float>::INFINITY;
+        const NEG_INFINITY: $float = <$float>::NEG_INFINITY;
+        const NAN: $float = <$float>::NAN;
+        const BITS: usize = mem::size_of::<$float>() * 8;
+    );
+}
+
+/// Define the float masks.
+macro_rules! float_masks {
+    (
+        float => $float:ty,
+        sign_mask => $sign:literal,
+        exponent_mask => $exponent:literal,
+        hidden_bit_mask => $hidden:literal,
+        mantissa_mask => $mantissa:literal,
+    ) => (
+        const SIGN_MASK: <$float>::Unsigned = $sign;
+        const EXPONENT_MASK: <$float>::Unsigned = $exponent;
+        const HIDDEN_BIT_MASK: <$float>::Unsigned = $hidden;
+        const MANTISSA_MASK: <$float>::Unsigned = $mantissa;
+        // The carry mask is always 1 bit above the hidden bit.
+        const CARRY_MASK: <$float>::Mantissa = $hidden << 1;
+        // Infinity is always every exponent bit set.
+        const INFINITY_BITS: <$float>::Unsigned = $exponent;
+        // Negative infinity is just infinity + sign.
+        const NEGATIVE_INFINITY_BITS: <$float>::Unsigned = $exponent | $sign;
+    );
+}
+
+/// Define the limb sizes.
+macro_rules! float_limbs {
+    (
+        bigint32_size => $bigint32:literal,
+        bigint64_size => $bigint64:literal,
+        bigfloat32_size => $bigfloat32:literal,
+        bigfloat64_size => $bigfloat64:literal,
+    ) => (
+        cfg_if! {
+        if #[cfg(limb_width_64)] {
+            const BIGINT_LIMBS: usize = $bigint64;
+            const BIGFLOAT_LIMBS: usize = $bigfloat64;
+        } else {
+            const BIGINT_LIMBS: usize = $bigint32;
+            const BIGFLOAT_LIMBS: usize = $bigfloat64;
+        }} // cfg_if
+    );
+}
+
+/// Define the float storage types.
+macro_rules! float_storage {
+    (
+        bigint32_size => $bigint32:literal,
+        bigint64_size => $bigint64:literal,
+        bigfloat32_size => $bigfloat32:literal,
+        bigfloat64_size => $bigfloat64:literal,
+    ) => (
+        cfg_if! {
+        if #[cfg(any(not(feature = "no_alloc"), feature = "radix"))] {
+            type BigintStorage = Vec<Limb>;
+        } else if #[cfg(limb_width_64)] {
+            type BigintStorage = arrayvec::ArrayVec<[Limb; $bigint64]>;
+        } else {
+            type BigintStorage = arrayvec::ArrayVec<[Limb; $bigint32]>;
+        }} // cfg_if
+
+        cfg_if! {
+        if #[cfg(not(feature = "no_alloc"))] {
+            type BigfloatStorage = Vec<Limb>;
+        } else if #[cfg(limb_width_64)] {
+            type BigfloatStorage = arrayvec::ArrayVec<[Limb; $bigfloat64]>;
+        } else {
+            type BigfloatStorage = arrayvec::ArrayVec<[Limb; $bigfloat64]>;
+        }} // cfg_if
+
+        float_limbs!(
+            bigint32_size => $bigint32,
+            bigint64_size => $bigint64,
+            bigfloat32_size => $bigfloat32,
+            bigfloat64_size => $bigfloat64,
+        );
+    );
+}
+
 // TODO(ahuszagh)
 //  Due to missing specifics or types for the following float types,
 //  `Float` is not yet fully implemented for:
@@ -924,148 +1023,78 @@ macro_rules! float_method {
 #[cfg(feature = "f16")]
 impl Float for f16 {
     type Unsigned = u16;
-    const ZERO: f16 = 0.0;
-    const ONE: f16 = 1.0;
-    const TWO: f16 = 2.0;
-    const MAX: f16 = f16::MAX;
-    const MIN: f16 = f16::MIN;
-    const INFINITY: f16 = f16::INFINITY;
-    const NEG_INFINITY: f16 = f16::NEG_INFINITY;
-    const NAN: f16 = f16::NAN;
-    const BITS: usize = 16;
-    const SIGN_MASK: u16 = 0x8000;
-    const EXPONENT_MASK: u16 = 0x7C00;
-    const HIDDEN_BIT_MASK: u16 = 0x0400;
-    const MANTISSA_MASK: u16 = 0x03FF;
-    const INFINITY_BITS: u16 = 0x7C00;
-    const NEGATIVE_INFINITY_BITS: u16 = Self::INFINITY_BITS | Self::SIGN_MASK;
+    type Mantissa = u64;
+    float_literals!(f16);
+    float_masks!(
+        float => Self,
+        sign_mask => 0x8000,
+        exponent_mask => 0x7C00,
+        hidden_bit_mask => 0x0400,
+        mantissa_mask => 0x03FF,
+    );
     const EXPONENT_SIZE: i32 = 5;
     const MANTISSA_SIZE: i32 = 10;
     const EXPONENT_BIAS: i32 = 15 + Self::MANTISSA_SIZE;
     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32 = 0x1F - Self::EXPONENT_BIAS;
 
-    cfg_if! {
-    if #[cfg(any(not(feature = "no_alloc"), feature = "radix"))] {
-        type BigintStorage = Vec<Limb>;
-    } else {
-        type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    }} // cfg_if
-
-    cfg_if! {
-    if #[cfg(not(feature = "no_alloc"))] {
-        type BigfloatStorage = Vec<Limb>;
-    } else {
-        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
-    }} // cfg_if
-
-    cfg_if! {
-    if #[cfg(limb_width_64)] {
-        const BIGINT_LIMBS: usize = 20;
-        const BIGFLOAT_LIMBS: usize = 10;
-    } else {
-        const BIGINT_LIMBS: usize = 20;
-        const BIGFLOAT_LIMBS: usize = 10;
-    }} // cfg_if
+    float_storage!(
+        bigint32_size => 20,
+        bigint64_size => 20,
+        bigfloat32_size => 10,
+        bigfloat64_size => 10,
+    );
 }
 
 #[cfg(feature = "f16")]
 impl Float for bf16 {
     type Unsigned = u16;
-    const ZERO: bf16 = 0.0;
-    const ONE: bf16 = 1.0;
-    const TWO: bf16 = 2.0;
-    const MAX: bf16 = bf16::MAX;
-    const MIN: bf16 = bf16::MIN;
-    const INFINITY: bf16 = bf16::INFINITY;
-    const NEG_INFINITY: bf16 = bf16::NEG_INFINITY;
-    const NAN: bf16 = bf16::NAN;
-    const BITS: usize = 16;
-    const SIGN_MASK: u16 = 0x8000;
-    const EXPONENT_MASK: u16 = 0x7F80;
-    const HIDDEN_BIT_MASK: u16 = 0x0080;
-    const MANTISSA_MASK: u16 = 0x007F;
-    const INFINITY_BITS: u16 = 0x7F80;
-    const NEGATIVE_INFINITY_BITS: u16 = Self::INFINITY_BITS | Self::SIGN_MASK;
+    type Mantissa = u64;
+    float_literals!(bf16);
+    float_masks!(
+        float => Self,
+        sign_mask => 0x8000,
+        exponent_mask => 0x7F80,
+        hidden_bit_mask => 0x0080,
+        mantissa_mask => 0x007F,
+    );
     const EXPONENT_SIZE: i32 = 8;
     const MANTISSA_SIZE: i32 = 7;
     const EXPONENT_BIAS: i32 = 127 + Self::MANTISSA_SIZE;
     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32 = 0xFF - Self::EXPONENT_BIAS;
 
-    cfg_if! {
-    if #[cfg(any(not(feature = "no_alloc"), feature = "radix"))] {
-        type BigintStorage = Vec<Limb>;
-    } else {
-        type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    }} // cfg_if
-
-    cfg_if! {
-    if #[cfg(not(feature = "no_alloc"))] {
-        type BigfloatStorage = Vec<Limb>;
-    } else if #[cfg(limb_width_64)] {
-        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
-    } else {
-        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    }} // cfg_if
-
-    cfg_if! {
-    if #[cfg(limb_width_64)] {
-        const BIGINT_LIMBS: usize = 20;
-        const BIGFLOAT_LIMBS: usize = 10;
-    } else {
-        const BIGINT_LIMBS: usize = 20;
-        const BIGFLOAT_LIMBS: usize = 20;
-    }} // cfg_if
+    float_storage!(
+        bigint32_size => 20,
+        bigint64_size => 20,
+        bigfloat32_size => 20,
+        bigfloat64_size => 10,
+    );
 }
 
 impl Float for f32 {
     type Unsigned = u32;
-    const ZERO: f32 = 0.0;
-    const ONE: f32 = 1.0;
-    const TWO: f32 = 2.0;
-    const MAX: f32 = f32::MAX;
-    const MIN: f32 = f32::MIN;
-    const INFINITY: f32 = f32::INFINITY;
-    const NEG_INFINITY: f32 = f32::NEG_INFINITY;
-    const NAN: f32 = f32::NAN;
-    const BITS: usize = 32;
-    const SIGN_MASK: u32 = 0x80000000;
-    const EXPONENT_MASK: u32 = 0x7F800000;
-    const HIDDEN_BIT_MASK: u32 = 0x00800000;
-    const MANTISSA_MASK: u32 = 0x007FFFFF;
-    const INFINITY_BITS: u32 = 0x7F800000;
-    const NEGATIVE_INFINITY_BITS: u32 = Self::INFINITY_BITS | Self::SIGN_MASK;
+    type Mantissa = u64;
+    float_literals!(f32);
+    float_masks!(
+        float => Self,
+        sign_mask => 0x80000000,
+        exponent_mask => 0x7F800000,
+        hidden_bit_mask => 0x00800000,
+        mantissa_mask => 0x007FFFFF,
+    );
     const EXPONENT_SIZE: i32 = 8;
     const MANTISSA_SIZE: i32 = 23;
     const EXPONENT_BIAS: i32 = 127 + Self::MANTISSA_SIZE;
     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32 = 0xFF - Self::EXPONENT_BIAS;
 
-    cfg_if! {
-    if #[cfg(any(not(feature = "no_alloc"), feature = "radix"))] {
-        type BigintStorage = Vec<Limb>;
-    } else {
-        type BigintStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    }} // cfg_if
-
-    cfg_if! {
-    if #[cfg(not(feature = "no_alloc"))] {
-        type BigfloatStorage = Vec<Limb>;
-    } else if #[cfg(limb_width_64)] {
-        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 10]>;
-    } else {
-        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    }} // cfg_if
-
-    cfg_if! {
-    if #[cfg(limb_width_64)] {
-        const BIGINT_LIMBS: usize = 20;
-        const BIGFLOAT_LIMBS: usize = 10;
-    } else {
-        const BIGINT_LIMBS: usize = 20;
-        const BIGFLOAT_LIMBS: usize = 20;
-    }} // cfg_if
+    float_storage!(
+        bigint32_size => 20,
+        bigint64_size => 20,
+        bigfloat32_size => 20,
+        bigfloat64_size => 10,
+    );
 
     #[inline]
     fn abs(self) -> f32 {
@@ -1135,53 +1164,27 @@ impl Float for f32 {
 
 impl Float for f64 {
     type Unsigned = u64;
-    const ZERO: f64 = 0.0;
-    const ONE: f64 = 1.0;
-    const TWO: f64 = 2.0;
-    const MAX: f64 = f64::MAX;
-    const MIN: f64 = f64::MIN;
-    const INFINITY: f64 = f64::INFINITY;
-    const NEG_INFINITY: f64 = f64::NEG_INFINITY;
-    const NAN: f64 = f64::NAN;
-    const BITS: usize = 64;
-    const SIGN_MASK: u64 = 0x8000000000000000;
-    const EXPONENT_MASK: u64 = 0x7FF0000000000000;
-    const HIDDEN_BIT_MASK: u64 = 0x0010000000000000;
-    const MANTISSA_MASK: u64 = 0x000FFFFFFFFFFFFF;
-    const INFINITY_BITS: u64 = 0x7FF0000000000000;
-    const NEGATIVE_INFINITY_BITS: u64 = Self::INFINITY_BITS | Self::SIGN_MASK;
+    type Mantissa = u64;
+    float_literals!(f64);
+    float_masks!(
+        float => Self,
+        sign_mask => 0x8000000000000000,
+        exponent_mask => 0x7FF0000000000000,
+        hidden_bit_mask => 0x0010000000000000,
+        mantissa_mask => 0x000FFFFFFFFFFFFF,
+    );
     const EXPONENT_SIZE: i32 = 11;
     const MANTISSA_SIZE: i32 = 52;
     const EXPONENT_BIAS: i32 = 1023 + Self::MANTISSA_SIZE;
     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32 = 0x7FF - Self::EXPONENT_BIAS;
 
-    cfg_if! {
-    if #[cfg(any(not(feature = "no_alloc"), feature = "radix"))] {
-        type BigintStorage = Vec<Limb>;
-    } else if #[cfg(limb_width_64)] {
-        type BigintStorage = arrayvec::ArrayVec<[Limb; 64]>;
-    } else {
-        type BigintStorage = arrayvec::ArrayVec<[Limb; 128]>;
-    }} // cfg_if
-
-    cfg_if! {
-    if #[cfg(not(feature = "no_alloc"))] {
-        type BigfloatStorage = Vec<Limb>;
-    } else if #[cfg(limb_width_64)] {
-        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 20]>;
-    } else {
-        type BigfloatStorage = arrayvec::ArrayVec<[Limb; 36]>;
-    }} // cfg_if
-
-    cfg_if! {
-    if #[cfg(limb_width_64)] {
-        const BIGINT_LIMBS: usize = 64;
-        const BIGFLOAT_LIMBS: usize = 20;
-    } else {
-        const BIGINT_LIMBS: usize = 128;
-        const BIGFLOAT_LIMBS: usize = 36;
-    }} // cfg_if
+    float_storage!(
+        bigint32_size => 128,
+        bigint64_size => 64,
+        bigfloat32_size => 36,
+        bigfloat64_size => 20,
+    );
 
     #[inline]
     fn abs(self) -> f64 {
@@ -1251,22 +1254,16 @@ impl Float for f64 {
 
 #[cfg(feature = "f128")]
 impl Float for f128 {
-    type Unsigned = u16;
-    const ZERO: f128 = 0.0;
-    const ONE: f128 = 1.0;
-    const TWO: f128 = 2.0;
-    const MAX: f128 = f128::MAX;
-    const MIN: f128 = f128::MIN;
-    const INFINITY: f128 = f128::INFINITY;
-    const NEG_INFINITY: f128 = f128::NEG_INFINITY;
-    const NAN: f128 = f128::NAN;
-    const BITS: usize = 128;
-    const SIGN_MASK: u128 = 0x80000000000000000000000000000000;
-    const EXPONENT_MASK: u128 = 0x7FFF0000000000000000000000000000;
-    const HIDDEN_BIT_MASK: u128 = 0x00010000000000000000000000000000;
-    const MANTISSA_MASK: u128 = 0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFF;
-    const INFINITY_BITS: u128 = 0x7FFF0000000000000000000000000000;
-    const NEGATIVE_INFINITY_BITS: u128 = Self::INFINITY_BITS | Self::SIGN_MASK;
+    type Unsigned = u128;
+    type Mantissa = u128;
+    float_literals!(f128);
+    float_masks!(
+        float => Self,
+        sign_mask => 0x80000000000000000000000000000000,
+        exponent_mask => 0x7FFF0000000000000000000000000000,
+        hidden_bit_mask => 0x00010000000000000000000000000000,
+        mantissa_mask => 0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFF,
+    );
     const EXPONENT_SIZE: i32 = 15;
     const MANTISSA_SIZE: i32 = 112;
     const EXPONENT_BIAS: i32 = 16383 + Self::MANTISSA_SIZE;
@@ -1276,14 +1273,12 @@ impl Float for f128 {
     type BigintStorage = Vec<Limb>;
     type BigfloatStorage = Vec<Limb>;
 
-    cfg_if! {
-    if #[cfg(limb_width_64)] {
-        const BIGINT_LIMBS: usize = 900;
-        const BIGFLOAT_LIMBS: usize = 700;
-    } else {
-        const BIGINT_LIMBS: usize = 1800;
-        const BIGFLOAT_LIMBS: usize = 1400;
-    }} // cfg_if
+    float_limbs!(
+        bigint32_size => 1800,
+        bigint64_size => 900,
+        bigfloat32_size => 1400,
+        bigfloat64_size => 700,
+    );
 }
 
 // TEST
