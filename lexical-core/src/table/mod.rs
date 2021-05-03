@@ -43,7 +43,7 @@ pub use self::decimal::*;
 pub use self::pow::*;
 
 cfg_if! {
-if #[cfg(feature = "binary")] {
+if #[cfg(feature = "power_of_two")] {
     mod binary;
     pub(crate) use self::binary::*;
 }} // cfg_if

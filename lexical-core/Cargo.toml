@@ -55,9 +55,9 @@ format = []
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["dtoa"]
 # Add support for parsing and writing power-of-two float and integer strings.
-binary = []
+power_of_two = []
 # Add support for parsing and writing non-decimal float and integer strings.
-radix = ["binary"]
+radix = ["power_of_two"]
 # Allow custom rounding schemes, at the cost of slower performance.
 rounding = []
 # Use the `std` library.

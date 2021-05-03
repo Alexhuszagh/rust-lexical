@@ -160,7 +160,7 @@ from_lexical_with_options!(atoi_with_options, i128);
 mod tests {
     use crate::error::*;
     use crate::traits::*;
-    #[cfg(any(feature = "format", feature = "binary"))]
+    #[cfg(any(feature = "format", feature = "power_of_two"))]
     use crate::util::*;
 
     #[cfg(feature = "property_tests")]
@@ -447,7 +447,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     fn i32_binary_test() {
         let options = ParseIntegerOptions::binary();
         assert_eq!(i32::from_lexical_with_options(b"11", &options), Ok(3));
@@ -457,7 +457,7 @@ mod tests {
     #[cfg(feature = "property_tests")]
     proptest! {
         #[test]
-        #[cfg(feature = "binary")]
+        #[cfg(feature = "power_of_two")]
         fn i32_binary_roundtrip_display_proptest(i in i32::MIN..i32::MAX) {
             let mut buffer = new_buffer();
             let write_opts = WriteIntegerOptions::binary();

@@ -37,7 +37,7 @@ macro_rules! to_radix {
 
 /// Return `None` if radix is invalid.
 /// Short-circuits to allow use in a const fn.
-#[cfg(all(feature = "binary", not(feature = "radix")))]
+#[cfg(all(feature = "power_of_two", not(feature = "radix")))]
 macro_rules! to_radix {
     ($radix:expr) => {{
         match $radix {
@@ -49,7 +49,7 @@ macro_rules! to_radix {
 
 /// Return `None` if radix is invalid.
 /// Short-circuits to allow use in a const fn.
-#[cfg(not(feature = "binary"))]
+#[cfg(not(feature = "power_of_two"))]
 macro_rules! to_radix {
     ($radix:expr) => {{
         if $radix != 10 {
@@ -166,7 +166,7 @@ impl ParseIntegerOptionsBuilder {
 
     /// Set the radix for ParseIntegerOptionsBuilder.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn radix(mut self, radix: u8) -> Self {
         self.radix = radix;
         self
@@ -238,7 +238,7 @@ impl ParseIntegerOptions {
 
     /// Create new options to parse the default binary format.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn binary() -> Self {
         Self {
             radix: 2,
@@ -257,7 +257,7 @@ impl ParseIntegerOptions {
 
     /// Create new options to parse the default hexadecimal format.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn hexadecimal() -> Self {
         Self {
             radix: 16,
@@ -432,7 +432,7 @@ impl ParseFloatOptionsBuilder {
 
     /// Set the radix for ParseFloatOptionsBuilder.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn radix(mut self, radix: u8) -> Self {
         self.radix = radix;
         self
@@ -440,7 +440,7 @@ impl ParseFloatOptionsBuilder {
 
     /// Set the exponent base for ParseFloatOptionsBuilder.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn exponent_base(mut self, exponent_base: u8) -> Self {
         self.exponent_base = exponent_base;
         self
@@ -448,7 +448,7 @@ impl ParseFloatOptionsBuilder {
 
     /// Set the exponent radix for ParseFloatOptionsBuilder.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn exponent_radix(mut self, exponent_radix: u8) -> Self {
         self.exponent_radix = exponent_radix;
         self
@@ -604,7 +604,7 @@ impl ParseFloatOptions {
 
     /// Create new options to write the default binary format.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn binary() -> Self {
         let compressed = 2 | (2 << 8) | (2 << 16) | DEFAULT_ROUNDING.as_u32() << 24;
         Self {
@@ -631,7 +631,7 @@ impl ParseFloatOptions {
 
     /// Create new options to write the default hexadecimal format.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn hexadecimal() -> Self {
         let compressed = 16 | (16 << 8) | (16 << 16) | DEFAULT_ROUNDING.as_u32() << 24;
         Self {
@@ -873,7 +873,7 @@ impl WriteIntegerOptionsBuilder {
 
     /// Set the radix for WriteIntegerOptionsBuilder.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn radix(mut self, radix: u8) -> Self {
         self.radix = radix;
         self
@@ -933,7 +933,7 @@ impl WriteIntegerOptions {
 
     /// Create new options to write the default binary format.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn binary() -> Self {
         Self {
             radix: 2,
@@ -950,7 +950,7 @@ impl WriteIntegerOptions {
 
     /// Create new options to write the default hexadecimal format.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn hexadecimal() -> Self {
         Self {
             radix: 16,
@@ -1065,7 +1065,7 @@ impl WriteFloatOptionsBuilder {
 
     /// Set the radix for WriteFloatOptionsBuilder.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn radix(mut self, radix: u8) -> Self {
         self.radix = radix;
         self
@@ -1175,7 +1175,7 @@ impl WriteFloatOptions {
 
     /// Create new options to write the default binary format.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn binary() -> Self {
         Self {
             compressed: 2,
@@ -1198,7 +1198,7 @@ impl WriteFloatOptions {
 
     /// Create new options to write the default hexadecimal format.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn hexadecimal() -> Self {
         Self {
             compressed: 16,
@@ -1387,7 +1387,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(all(feature = "binary", not(feature = "radix")))]
+    #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
     fn test_to_radix() {
         assert_eq!(to_radix(1), None);
         assert_eq!(to_radix(2), Some(2));
@@ -1398,7 +1398,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(not(feature = "binary"))]
+    #[cfg(not(feature = "power_of_two"))]
     fn test_to_radix() {
         assert_eq!(to_radix(1), None);
         assert_eq!(to_radix(2), None);

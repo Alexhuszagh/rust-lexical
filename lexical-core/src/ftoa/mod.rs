@@ -2,7 +2,7 @@
 
 // Hide implementation details.
 mod api;
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 mod binary;
 #[cfg(feature = "radix")]
 mod radix;

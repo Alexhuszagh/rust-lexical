@@ -736,7 +736,7 @@ mod tests {
         let format = NumberFormat::builder().exponent_backup(b'-').build();
         assert_eq!(format, None);
 
-        #[cfg(feature = "binary")]
+        #[cfg(feature = "power_of_two")]
         {
             let format = NumberFormat::builder().exponent_backup(b'e').build();
             assert!(format.is_none());
@@ -754,7 +754,7 @@ mod tests {
         let format = NumberFormat::STANDARD;
         assert_eq!(format.exponent(10), b'e');
 
-        #[cfg(feature = "binary")]
+        #[cfg(feature = "power_of_two")]
         {
             assert_eq!(format.exponent(2), b'^');
             assert_eq!(format.exponent(8), b'^');

@@ -789,7 +789,7 @@ impl NumberFormatBuilderV2 {
 
     /// Set the radix for mantissa digits.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn mantissa_radix(mut self, radix: u8) -> Self {
         self.mantissa_radix = radix;
         self
@@ -797,7 +797,7 @@ impl NumberFormatBuilderV2 {
 
     /// Set the radix for the exponent.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn exponent_base(mut self, base: OptionU8) -> Self {
         self.exponent_base = base;
         self
@@ -805,7 +805,7 @@ impl NumberFormatBuilderV2 {
 
     /// Set the radix for exponent digits.
     #[inline(always)]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     pub const fn exponent_radix(mut self, radix: OptionU8) -> Self {
         self.exponent_radix = radix;
         self
@@ -813,7 +813,7 @@ impl NumberFormatBuilderV2 {
 
     /// Set the optional character for the base prefix.
     #[inline(always)]
-    #[cfg(all(feature = "binary", feature = "format"))]
+    #[cfg(all(feature = "power_of_two", feature = "format"))]
     pub const fn base_prefix(mut self, base_prefix: OptionU8) -> Self {
         self.base_prefix = base_prefix;
         self
@@ -821,7 +821,7 @@ impl NumberFormatBuilderV2 {
 
     /// Set the optional character for the base suffix.
     #[inline(always)]
-    #[cfg(all(feature = "binary", feature = "format"))]
+    #[cfg(all(feature = "power_of_two", feature = "format"))]
     pub const fn base_suffix(mut self, base_suffix: OptionU8) -> Self {
         self.base_suffix = base_suffix;
         self
@@ -958,7 +958,7 @@ impl NumberFormatBuilderV2 {
 
     /// Set if base prefixes are case-sensitive.
     #[inline(always)]
-    #[cfg(all(feature = "binary", feature = "format"))]
+    #[cfg(all(feature = "power_of_two", feature = "format"))]
     pub const fn case_sensitive_base_prefix(mut self, flag: bool) -> Self {
         self.case_sensitive_base_prefix = flag;
         self
@@ -966,7 +966,7 @@ impl NumberFormatBuilderV2 {
 
     /// Set if base suffixes are case-sensitive.
     #[inline(always)]
-    #[cfg(all(feature = "binary", feature = "format"))]
+    #[cfg(all(feature = "power_of_two", feature = "format"))]
     pub const fn case_sensitive_base_suffix(mut self, flag: bool) -> Self {
         self.case_sensitive_base_suffix = flag;
         self

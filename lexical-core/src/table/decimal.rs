@@ -169,12 +169,12 @@ impl ExactExponent for f32 {
     #[inline]
     fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
         debug_assert_radix!(radix);
-        #[cfg(not(feature = "binary"))]
+        #[cfg(not(feature = "power_of_two"))]
         {
             (-10, 10)
         }
 
-        #[cfg(all(feature = "binary", not(feature = "radix")))]
+        #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
         {
             match radix.as_i32() {
                 2 => (-149, 127),
@@ -235,12 +235,12 @@ impl ExactExponent for f32 {
     #[inline]
     fn mantissa_limit<T: Integer>(radix: T) -> i32 {
         debug_assert_radix!(radix);
-        #[cfg(not(feature = "binary"))]
+        #[cfg(not(feature = "power_of_two"))]
         {
             7
         }
 
-        #[cfg(all(feature = "binary", not(feature = "radix")))]
+        #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
         {
             match radix.as_i32() {
                 2 => 24,
@@ -303,12 +303,12 @@ impl ExactExponent for f64 {
     #[inline]
     fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
         debug_assert_radix!(radix);
-        #[cfg(not(feature = "binary"))]
+        #[cfg(not(feature = "power_of_two"))]
         {
             (-22, 22)
         }
 
-        #[cfg(all(feature = "binary", not(feature = "radix")))]
+        #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
         {
             match radix.as_i32() {
                 2 => (-1074, 1023),
@@ -368,12 +368,12 @@ impl ExactExponent for f64 {
     #[inline]
     fn mantissa_limit<T: Integer>(radix: T) -> i32 {
         debug_assert_radix!(radix);
-        #[cfg(not(feature = "binary"))]
+        #[cfg(not(feature = "power_of_two"))]
         {
             15
         }
 
-        #[cfg(all(feature = "binary", not(feature = "radix")))]
+        #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
         {
             match radix.as_i32() {
                 2 => 53,
@@ -447,7 +447,7 @@ impl ExactExponent for f64 {
 /// No error-checking occurs, these methods are not safe.
 pub trait TablePower {
     /// Get power of 2 from exponent.
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     fn table_pow2(exponent: i32) -> Self;
 
     /// Get power of 2 from exponent.
@@ -455,7 +455,7 @@ pub trait TablePower {
 }
 
 /// Calculate 2^exponent assigned straight from bits.
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 macro_rules! bitwise_pow2 {
     ($exponent:ident, $float:ty, $unsigned:ty) => {{
         debug_assert!(
@@ -518,7 +518,7 @@ const_assert!(F32_POW10[1] / F32_POW10[0] == 10.0);
 
 impl TablePower for f32 {
     #[inline]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     fn table_pow2(exponent: i32) -> f32 {
         bitwise_pow2!(exponent, f32, u32)
     }
@@ -608,7 +608,7 @@ const_assert!(F64_POW10[1] / F64_POW10[0] == 10.0);
 
 impl TablePower for f64 {
     #[inline]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     fn table_pow2(exponent: i32) -> f64 {
         bitwise_pow2!(exponent, f64, u64)
     }
@@ -665,7 +665,7 @@ impl TablePower for f64 {
     }
 }
 
-#[cfg(all(test, feature = "binary"))]
+#[cfg(all(test, feature = "power_of_two"))]
 mod tests {
     use super::*;
 

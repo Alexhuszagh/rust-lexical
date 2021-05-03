@@ -52,8 +52,9 @@
 //      print(radix, radix**power, power)
 //  ```
 #[inline]
-#[cfg(feature = "binary")]
+#[cfg(feature = "radix")]
 pub(crate) fn u128_divisor(radix: u32) -> (u64, usize, u32) {
+    debug_assert_radix_primitive!(radix);
     match radix {
         2 => (9223372036854775808, 63, 0),   // 2^63
         3 => (12157665459056928801, 40, 0),  // 3^40
@@ -98,8 +99,27 @@ pub(crate) fn u128_divisor(radix: u32) -> (u64, usize, u32) {
 // Returns the divisor, the number of digits processed, and the
 // number of leading zeros in the divisor.
 #[inline]
-#[cfg(not(feature = "binary"))]
-pub(crate) fn u128_divisor(_: u32) -> (u64, usize, u32) {
+#[cfg(all(feature = "power_of_two", not(feature = "radix")))]
+pub(crate) fn u128_divisor(radix: u32) -> (u64, usize, u32) {
+    debug_assert_radix_primitive!(radix);
+    match radix {
+        2 => (9223372036854775808, 63, 0),   // 2^63
+        4 => (4611686018427387904, 31, 1),   // 4^31
+        8 => (9223372036854775808, 21, 0),   // 8^21
+        10 => (10000000000000000000, 19, 0), // 10^19
+        16 => (1152921504606846976, 15, 3),  // 16^15
+        32 => (1152921504606846976, 12, 3),  // 32^12
+        _ => unreachable!(),
+    }
+}
+
+// Get the divisor for optimized 128-bit division.
+// Returns the divisor, the number of digits processed, and the
+// number of leading zeros in the divisor.
+#[inline]
+#[cfg(not(feature = "power_of_two"))]
+pub(crate) fn u128_divisor(radix: u32) -> (u64, usize, u32) {
+    debug_assert_radix_primitive!(radix);
     (10000000000000000000, 19, 0) // 10^19
 }
 

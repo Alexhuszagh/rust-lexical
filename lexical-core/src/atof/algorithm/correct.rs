@@ -98,7 +98,7 @@ where
 
 /// Detect if a float representation is exactly halfway after truncation.
 #[inline(always)]
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 fn is_halfway<F: FloatType>(mantissa: u64) -> bool {
     // Get the leading and trailing zeros from the least-significant bit.
     let bit_length: i32 = 64 - mantissa.leading_zeros().as_i32();
@@ -112,7 +112,7 @@ fn is_halfway<F: FloatType>(mantissa: u64) -> bool {
 
 /// Detect if a float representation is odd after truncation.
 #[inline(always)]
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 fn is_odd<F: FloatType>(mantissa: u64) -> bool {
     // Get the leading and trailing zeros from the least-significant bit.
     let bit_length: i32 = 64 - mantissa.leading_zeros().as_i32();
@@ -135,7 +135,7 @@ fn is_odd<F: FloatType>(mantissa: u64) -> bool {
 /// This works since multiplying by the exponent will not affect the
 /// mantissa unless the exponent is denormal, which will cause truncation
 /// regardless.
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 fn pow2_fast_path<F>(mantissa: u64, radix: u32, radix_log2: i32, exponent: i32) -> F
 where
     F: FloatType,
@@ -361,7 +361,7 @@ where
 // POW2
 
 /// Parse power-of-two radix string to native float.
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 fn pow2_to_native<'a, F, Data>(
     mut data: Data,
     bytes: &'a [u8],
@@ -454,12 +454,12 @@ where
     F: FloatType,
     Data: FastDataInterface<'a>,
 {
-    #[cfg(not(feature = "binary"))]
+    #[cfg(not(feature = "power_of_two"))]
     {
         pown_to_native(data, bytes, radix, incorrect, lossy, sign, rounding)
     }
 
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     {
         let pow2_exp = log2(radix);
         match pow2_exp {
@@ -526,7 +526,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     fn is_odd_test() {
         // Variant of b1000000000000000000000001, a halfway value for f32.
         assert!(is_odd::<f32>(0x1000002));
@@ -565,7 +565,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     fn is_halfway_test() {
         // Variant of b1000000000000000000000001, a halfway value for f32.
         assert!(is_halfway::<f32>(0x1000001));
@@ -602,7 +602,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     fn float_pow2_fast_path() {
         // Everything is valid.
         let mantissa = 1 << 63;
@@ -617,7 +617,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     fn double_pow2_fast_path_test() {
         // Everything is valid.
         let mantissa = 1 << 63;
@@ -848,7 +848,7 @@ mod tests {
     fn atod_test() {
         let atod10 = move |x| f64::from_lexical_partial(x);
 
-        #[cfg(feature = "binary")]
+        #[cfg(feature = "power_of_two")]
         let atod2 = move |x| {
             let options = ParseFloatOptions::binary();
             f64::from_lexical_partial_with_options(x, &options)
@@ -929,10 +929,10 @@ mod tests {
         // Rounding error
         // Adapted from:
         //  https://www.exploringbinary.com/glibc-strtod-incorrectly-converts-2-to-the-negative-1075/
-        #[cfg(feature = "binary")]
+        #[cfg(feature = "power_of_two")]
         assert_eq!(Ok((5e-324, 14)), atod2(b"1^-10000110010"));
 
-        #[cfg(feature = "binary")]
+        #[cfg(feature = "power_of_two")]
         assert_eq!(Ok((0.0, 14)), atod2(b"1^-10000110011"));
         assert_eq!(Ok((0.0, 1077)), atod10(b"0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000024703282292062327208828439643411068618252990130716238221279284125033775363510437593264991818081799618989828234772285886546332835517796989819938739800539093906315035659515570226392290858392449105184435931802849936536152500319370457678249219365623669863658480757001585769269903706311928279558551332927834338409351978015531246597263579574622766465272827220056374006485499977096599470454020828166226237857393450736339007967761930577506740176324673600968951340535537458516661134223766678604162159680461914467291840300530057530849048765391711386591646239524912623653881879636239373280423891018672348497668235089863388587925628302755995657524455507255189313690836254779186948667994968324049705821028513185451396213837722826145437693412532098591327667236328125"));
 
@@ -972,7 +972,7 @@ mod tests {
         assert_eq!(Ok((38652960461239320000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0, 310)), atod10(b"38652960461239320000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"));
 
         // Round-trip for base2.
-        #[cfg(feature = "binary")]
+        #[cfg(feature = "power_of_two")]
         {
             assert_eq!(
                 Ok((f64::from_bits(0x3bcd261840000000), 33)),

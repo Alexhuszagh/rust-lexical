@@ -39,7 +39,7 @@ mod tests {
         assert_eq!(is_valid_control(b'.', 10), true);
         assert_eq!(is_valid_control(b'e', 10), true);
         assert_eq!(is_valid_control(b'p', 10), true);
-        if cfg!(feature = "binary") {
+        if cfg!(feature = "power_of_two") {
             assert_eq!(is_valid_control(b'b', 2), true);
             assert_eq!(is_valid_control(b'o', 8), true);
             assert_eq!(is_valid_control(b'd', 10), true);

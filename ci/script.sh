@@ -59,12 +59,12 @@ if [ ! -z $NO_FEATURES ]; then
 else
     LEXICAL_FEATURES=(
         "rounding"
-        "rounding,binary"
+        "rounding,power_of_two"
         "rounding,radix"
         "grisu3"
         "ryu"
         "format"
-        "format,binary"
+        "format,power_of_two"
         "format,radix"
     )
     CORE_FEATURES=("${LEXICAL_FEATURES[@]}")
@@ -78,16 +78,16 @@ check() {
 
     # Need to test a few permutations just to ensure everything compiles.
     features=(
-        "binary"
         "format"
         "radix"
+        "power_of_two"
         "rounding"
-        "format,binary"
         "format,radix"
         "format,rounding"
+        "format,power_of_two"
         "radix,rounding"
-        "format,binary,rounding"
         "format,radix,rounding"
+        "format,rounding,power_of_two"
     )
 
     # Iterate over all features.

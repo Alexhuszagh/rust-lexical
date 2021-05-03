@@ -3,7 +3,7 @@
 use crate::util::Limb;
 use static_assertions::const_assert;
 
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 use super::small64_binary;
 use super::small64_decimal;
 #[cfg(feature = "radix")]
@@ -12,13 +12,13 @@ use super::small64_radix;
 cfg_if! {
 if #[cfg(limb_width_32)] {
     use super::small32_decimal::*;
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     use super::small32_binary::*;
     #[cfg(feature = "radix")]
     use super::small32_radix::*;
 } else {
     use super::small64_decimal::*;
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     use super::small64_binary::*;
     #[cfg(feature = "radix")]
     use super::small64_radix::*;
@@ -29,7 +29,7 @@ const_assert!(POW5[1] / POW5[0] == 5);
 const_assert!(POW10[1] / POW10[0] == 10);
 
 cfg_if! {
-if #[cfg(feature = "binary")] {
+if #[cfg(feature = "power_of_two")] {
 // Ensure our small powers are valid.
 const_assert!(POW2[1] / POW2[0] == 2);
 const_assert!(POW4[1] / POW4[0] == 4);
@@ -77,7 +77,7 @@ const_assert!(POW36[1] / POW36[0] == 36);
 /// Get the correct small power from the radix.
 #[inline]
 pub(crate) fn get_small_powers(radix: u32) -> &'static [Limb] {
-    #[cfg(not(feature = "binary"))]
+    #[cfg(not(feature = "power_of_two"))]
     {
         match radix {
             5 => &POW5,
@@ -86,7 +86,7 @@ pub(crate) fn get_small_powers(radix: u32) -> &'static [Limb] {
         }
     }
 
-    #[cfg(all(feature = "binary", not(feature = "radix")))]
+    #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
     {
         match radix {
             2 => &POW2,
@@ -146,7 +146,7 @@ pub(crate) fn get_small_powers(radix: u32) -> &'static [Limb] {
 /// Get the correct 64-bit small power from the radix.
 #[inline]
 pub(crate) fn get_small_powers_64(radix: u32) -> &'static [u64] {
-    #[cfg(not(feature = "binary"))]
+    #[cfg(not(feature = "power_of_two"))]
     {
         match radix {
             5 => &small64_decimal::POW5,
@@ -155,7 +155,7 @@ pub(crate) fn get_small_powers_64(radix: u32) -> &'static [u64] {
         }
     }
 
-    #[cfg(all(feature = "binary", not(feature = "radix")))]
+    #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
     {
         match radix {
             2 => &small64_binary::POW2,

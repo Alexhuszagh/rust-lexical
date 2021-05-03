@@ -183,7 +183,7 @@ fn get_table(radix: u32) -> &'static [u8] {
 
 /// Get lookup table for 2 digit radix conversions.
 #[inline]
-#[cfg(all(feature = "binary", not(feature = "radix")))]
+#[cfg(all(feature = "power_of_two", not(feature = "radix")))]
 fn get_table(radix: u32) -> &'static [u8] {
     match radix {
         2 => &DIGIT_TO_BASE2_SQUARED,
@@ -198,7 +198,7 @@ fn get_table(radix: u32) -> &'static [u8] {
 
 /// Get lookup table for 2 digit radix conversions.
 #[inline]
-#[cfg(not(feature = "binary"))]
+#[cfg(not(feature = "power_of_two"))]
 fn get_table(_: u32) -> &'static [u8] {
     &DIGIT_TO_BASE10_SQUARED
 }

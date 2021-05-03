@@ -45,7 +45,7 @@ pub use self::rounding::*;
 pub use self::sign::*;
 
 cfg_if! {
-if #[cfg(feature = "binary")] {
+if #[cfg(feature = "power_of_two")] {
     mod fill;
     pub(crate) use self::fill::*;
 }} // cfg_if

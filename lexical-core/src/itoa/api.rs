@@ -3,21 +3,21 @@
 //! Uses either the optimized decimal algorithm, the optimized generic
 //! algorithm, or the naive algorithm.
 
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 use crate::config::*;
 use crate::traits::*;
 use crate::util::*;
 
 /// Select the back-end.
 use super::decimal::Decimal;
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 use super::generic::Generic;
 
 // HELPERS
 
 // Wrapper to facilitate calling a backend that writes iteratively to
 // the end of the buffer.
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 macro_rules! write_backwards {
     ($value:ident, $radix:expr, $buffer:ident, $t:tt, $cb:ident) => {{
         // Create a temporary buffer, and copy into it.
@@ -27,7 +27,7 @@ macro_rules! write_backwards {
         debug_assert_radix!($radix);
         let mut buffer: [u8; BUFFER_SIZE] = [b'0'; BUFFER_SIZE];
         let digits;
-        if cfg!(not(feature = "binary")) || $radix == 10 {
+        if cfg!(not(feature = "power_of_two")) || $radix == 10 {
             digits = &mut buffer[..$t::FORMATTED_SIZE_DECIMAL];
         } else {
             digits = &mut buffer[..$t::FORMATTED_SIZE];
@@ -40,10 +40,10 @@ macro_rules! write_backwards {
     }};
 }
 
-#[cfg(not(feature = "binary"))]
+#[cfg(not(feature = "power_of_two"))]
 pub(crate) trait Itoa: Decimal + UnsignedInteger {}
 
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 pub(crate) trait Itoa: Decimal + Generic + UnsignedInteger {}
 
 macro_rules! itoa_impl {
@@ -59,7 +59,7 @@ itoa_impl! { u8 u16 u32 u64 u128 usize }
 /// Forward itoa arguments to an optimized backend.
 ///  Preconditions: `value` must be non-negative and unsigned.
 #[inline]
-#[cfg(not(feature = "binary"))]
+#[cfg(not(feature = "power_of_two"))]
 pub(crate) fn itoa_positive<T>(value: T, _: u32, buffer: &mut [u8]) -> usize
 where
     T: Itoa,
@@ -70,7 +70,7 @@ where
 /// Forward itoa arguments to an optimized backend.
 ///  Preconditions: `value` must be non-negative and unsigned.
 #[inline]
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 pub(crate) fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8]) -> usize
 where
     T: Itoa,
@@ -345,7 +345,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     fn binary_test() {
         let mut buffer = new_buffer();
 

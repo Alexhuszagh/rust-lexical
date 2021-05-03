@@ -11,7 +11,7 @@ const_fn!(
 /// Get if the character is a digit.
 /// Optimize for case when we have a radix <= 10.
 #[inline(always)]
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 pub(crate) const fn is_digit(c: u8, radix: u32) -> bool {
     let digit = if radix <= 10 {
         match c {
@@ -33,7 +33,7 @@ const_fn!(
 /// Get if the character is a digit.
 /// Optimize for case when we have a radix == 10.
 #[inline(always)]
-#[cfg(not(feature = "binary"))]
+#[cfg(not(feature = "power_of_two"))]
 pub(crate) const fn is_digit(c: u8, _: u32) -> bool {
     let digit = match c {
         b'0'..=b'9' => c - b'0',

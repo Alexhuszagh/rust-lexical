@@ -1,6 +1,6 @@
 //! Polyfill of slice::fill to versions <= 1.50.0.
 
-#![cfg(feature = "binary")]
+#![cfg(feature = "power_of_two")]
 
 /// Has slice fill.
 #[inline(always)]

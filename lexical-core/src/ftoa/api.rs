@@ -62,7 +62,7 @@
 use crate::traits::*;
 use crate::util::*;
 
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 use super::binary::{double_binary, float_binary};
 #[cfg(feature = "radix")]
 use super::radix::{double_radix, float_radix};
@@ -82,11 +82,11 @@ if #[cfg(feature = "grisu3")] {
 /// Trait to define serialization of a float to string.
 pub(crate) trait FloatToString: Float {
     /// Export float to decimal string with optimized algorithm.
-    #[cfg(not(feature = "binary"))]
+    #[cfg(not(feature = "power_of_two"))]
     fn decimal<'a>(self, bytes: &'a mut [u8], format: NumberFormat) -> usize;
 
     /// Export float to binary string with optimized algorithm.
-    #[cfg(all(feature = "binary", not(feature = "radix")))]
+    #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
     fn binary<'a>(self, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize;
 
     /// Export float to radix string with slow algorithm.
@@ -96,13 +96,13 @@ pub(crate) trait FloatToString: Float {
 
 impl FloatToString for f32 {
     #[inline]
-    #[cfg(not(feature = "binary"))]
+    #[cfg(not(feature = "power_of_two"))]
     fn decimal<'a>(self, bytes: &'a mut [u8], format: NumberFormat) -> usize {
         float_decimal(self, bytes, format)
     }
 
     #[inline]
-    #[cfg(all(feature = "binary", not(feature = "radix")))]
+    #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
     fn binary<'a>(self, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize {
         if radix == 10 {
             float_decimal(self, bytes, format)
@@ -126,13 +126,13 @@ impl FloatToString for f32 {
 
 impl FloatToString for f64 {
     #[inline]
-    #[cfg(not(feature = "binary"))]
+    #[cfg(not(feature = "power_of_two"))]
     fn decimal<'a>(self, bytes: &'a mut [u8], format: NumberFormat) -> usize {
         double_decimal(self, bytes, format)
     }
 
     #[inline]
-    #[cfg(all(feature = "binary", not(feature = "radix")))]
+    #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
     fn binary<'a>(self, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize {
         if radix == 10 {
             double_decimal(self, bytes, format)
@@ -166,12 +166,12 @@ fn forward<'a, F: FloatToString>(
 ) -> usize {
     debug_assert_radix!(radix);
 
-    #[cfg(not(feature = "binary"))]
+    #[cfg(not(feature = "power_of_two"))]
     {
         value.decimal(bytes, format)
     }
 
-    #[cfg(all(feature = "binary", not(feature = "radix")))]
+    #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
     {
         value.binary(radix, bytes, format)
     }
@@ -424,7 +424,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     fn f32_binary_test() {
         let mut buffer = new_buffer();
         // positive
@@ -566,7 +566,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "binary")]
+    #[cfg(feature = "power_of_two")]
     fn f64_binary_test() {
         let mut buffer = new_buffer();
         // positive

@@ -1,6 +1,6 @@
 //! Cached tables for precalculated values for non-decimal strings.
 
-#![cfg(feature = "binary")]
+#![cfg(feature = "power_of_two")]
 
 // RADIX^2 TABLES
 // --------------

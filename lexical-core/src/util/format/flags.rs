@@ -251,7 +251,7 @@ check_subsequent_flags!(EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPA
 const_fn!(
 /// Determine if the digit separator is valid.
 #[inline]
-#[cfg(not(feature = "binary"))]
+#[cfg(not(feature = "power_of_two"))]
 pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
     match ch {
         b'0'..=b'9' => false,
@@ -263,7 +263,7 @@ pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
 const_fn!(
 /// Determine if the digit separator is valid.
 #[inline]
-#[cfg(feature = "binary")]
+#[cfg(feature = "power_of_two")]
 pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
     match ch {
         b'A'..=b'Z' => false,
@@ -486,7 +486,7 @@ mod tests {
         assert_eq!(is_valid_digit_separator(b'_'), true);
         assert_eq!(is_valid_digit_separator(b'\''), true);
         assert_eq!(is_valid_digit_separator(b'.'), true);
-        if cfg!(feature = "binary") {
+        if cfg!(feature = "power_of_two") {
             assert_eq!(is_valid_digit_separator(b'e'), false);
         } else {
             assert_eq!(is_valid_digit_separator(b'e'), true);
@@ -500,7 +500,7 @@ mod tests {
         assert_eq!(is_valid_decimal_point(b'_'), true);
         assert_eq!(is_valid_decimal_point(b'\''), true);
         assert_eq!(is_valid_decimal_point(b'.'), true);
-        if cfg!(feature = "binary") {
+        if cfg!(feature = "power_of_two") {
             assert_eq!(is_valid_decimal_point(b'e'), false);
         } else {
             assert_eq!(is_valid_decimal_point(b'e'), true);
@@ -529,7 +529,7 @@ mod tests {
         assert_eq!(is_valid_exponent_backup(b'0'), false);
         assert_eq!(is_valid_exponent_backup(128), false);
 
-        #[cfg(feature = "binary")]
+        #[cfg(feature = "power_of_two")]
         assert_eq!(is_valid_exponent_backup(b'e'), false);
     }
 
