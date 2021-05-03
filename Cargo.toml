@@ -133,6 +133,10 @@ name = "test-parse-unittests"
 path = "data/test-parse-unittests/main.rs"
 required-features = ["comprehensive_float_test"]
 
+[[bin]]
+name = "simple_example"
+path = "bin/simple_example.rs"
+
 # Benchmarks
 
 [[bench]]
