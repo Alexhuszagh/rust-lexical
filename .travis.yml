@@ -37,8 +37,9 @@ matrix:
       env: TARGET=x86_64-unknown-linux-gnu NO_STD=1 DISABLE_BENCHES=1 NO_FEATURES=1
 
     # Proptest does not work until versions >= 1.43.0, disable it.
+    # Criterion doesn't build <= 1.40.0, due to #[non_exhaustive] in memchr.
     - rust: 1.37.0
-      env: TARGET=x86_64-unknown-linux-gnu DISABLE_PROPERTY_TESTS=1 DISABLE_BENCHES=1
+      env: TARGET=x86_64-unknown-linux-gnu DISABLE_TESTS=1 DISABLE_BENCHES=1
 
     # Currently a bug in Criterion for Rustc versions 1.38.0 and 1.39.0,
     # where walkdir uses #[cfg(doctest)].

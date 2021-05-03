@@ -489,7 +489,7 @@ where
     // Write our 0 digits.
     bytes[0] = b'0';
     bytes[1] = decimal_point;
-    bytes[2..zero_digits + 1].fill(b'0');
+    slice_fill(&mut bytes[2..zero_digits + 1], b'0');
     let mut cursor = zero_digits + 1;
 
     // Generate our digits after the shift.
@@ -553,7 +553,7 @@ where
     if leading_digits >= digits.len() {
         // Need to write our digits, then trailing 0s, and a decimal point.
         copy_to_dst(bytes, &digits);
-        bytes[digits.len()..leading_digits].fill(b'0');
+        slice_fill(&mut bytes[digits.len()..leading_digits], b'0');
 
         // Write the decimal point and trailing 0.
         cursor = leading_digits;

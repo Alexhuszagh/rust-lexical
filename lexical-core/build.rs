@@ -30,4 +30,7 @@ fn main() {
         println!("cargo:rustc-cfg=has_const_if");
         println!("cargo:rustc-cfg=has_const_match");
     }
+    if (rustc.major, rustc.minor) >= (1, 50) {
+        println!("cargo:rustc-cfg=has_slice_fill");
+    }
 }

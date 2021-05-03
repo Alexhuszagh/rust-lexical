@@ -2,6 +2,9 @@
 
 set -ex
 
+# Print our cargo version, for debugging.
+cargo --version
+
 # Detect our build command. If we enabled cross, default to
 # that. Otherwise, only use cross if we are on CI and did
 # not explicitly disable it.

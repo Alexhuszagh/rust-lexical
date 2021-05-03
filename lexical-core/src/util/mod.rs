@@ -45,6 +45,12 @@ pub use self::rounding::*;
 pub use self::sign::*;
 
 cfg_if! {
+if #[cfg(feature = "binary")] {
+    mod fill;
+    pub(crate) use self::fill::*;
+}} // cfg_if
+
+cfg_if! {
 if #[cfg(feature = "format")] {
     mod skip_value;
     pub(crate) use self::skip_value::*;
