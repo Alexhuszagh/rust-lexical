@@ -90,6 +90,8 @@ assert_eq!(slc, b"15.1");
 
 # Features
 
+- **binary** Allow conversions to and from non-decimal strings.
+    <blockquote>With binary enabled, the radixes <code>{2, 4, 8, 10, 16, and 32}</code> are valid, otherwise, only 10 is valid.</blockquote>
 - **radix** Allow conversions to and from non-decimal strings.
     <blockquote>With radix enabled, any radix from 2 to 36 (inclusive) is valid, otherwise, only 10 is valid.</blockquote>
 - **format** Customize accepted inputs for number parsing.

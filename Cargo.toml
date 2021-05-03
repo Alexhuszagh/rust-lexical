@@ -56,7 +56,9 @@ no_alloc = ["lexical-core/no_alloc"]
 format = ["lexical-core/format"]
 # Use the optimized Grisu3 implementation from dtoa (not recommended).
 grisu3 = ["lexical-core/grisu3"]
-# Add support for [parsing non-decimal float and integer strings.
+# Add support for parsing and writing power-of-two float and integer strings.
+binary = ["lexical-core/binary"]
+# Add support for parsing and writing non-decimal float and integer strings.
 radix = ["lexical-core/radix"]
 # Allow custom rounding schemes, at the cost of slower performance.
 rounding = ["lexical-core/rounding"]

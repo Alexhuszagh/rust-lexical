@@ -25,7 +25,7 @@ pub(crate) const U128_FORMATTED_SIZE_DECIMAL: usize = 39;
 // Since we're declaring a variable on the stack, and our power-of-two
 // alignment dramatically improved atoi performance, do it.
 cfg_if! {
-if #[cfg(feature = "radix")] {
+if #[cfg(feature = "binary")] {
     // Use 256, actually, since we seem to have memory issues with f64.
     // Clearly not sufficient memory allocated for non-decimal values.
     pub(crate) const I8_FORMATTED_SIZE: usize = 16;

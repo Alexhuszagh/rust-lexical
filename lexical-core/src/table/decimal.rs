@@ -80,9 +80,23 @@ impl ExactExponent for f32 {
     #[inline]
     fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
         debug_assert_radix!(radix);
-        #[cfg(not(feature = "radix"))]
+        #[cfg(not(feature = "binary"))]
         {
             (-10, 10)
+        }
+
+        #[cfg(all(feature = "binary", not(feature = "radix")))]
+        {
+            match radix.as_i32() {
+                2 => (-149, 127),
+                4 => (-74, 63),
+                8 => (-49, 42),
+                10 => (-10, 10),
+                16 => (-37, 31),
+                32 => (-29, 25),
+                // Invalid radix
+                _ => unreachable!(),
+            }
         }
 
         #[cfg(feature = "radix")]
@@ -132,9 +146,23 @@ impl ExactExponent for f32 {
     #[inline]
     fn mantissa_limit<T: Integer>(radix: T) -> i32 {
         debug_assert_radix!(radix);
-        #[cfg(not(feature = "radix"))]
+        #[cfg(not(feature = "binary"))]
         {
             7
+        }
+
+        #[cfg(all(feature = "binary", not(feature = "radix")))]
+        {
+            match radix.as_i32() {
+                2 => 23,
+                4 => 11,
+                8 => 7,
+                10 => 7,
+                16 => 5,
+                32 => 4,
+                // Invalid radix
+                _ => unreachable!(),
+            }
         }
 
         #[cfg(feature = "radix")]
@@ -191,11 +219,24 @@ impl ExactExponent for f64 {
     #[inline]
     fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
         debug_assert_radix!(radix);
-        #[cfg(not(feature = "radix"))]
+        #[cfg(not(feature = "binary"))]
         {
             (-22, 22)
         }
 
+        #[cfg(all(feature = "binary", not(feature = "radix")))]
+        {
+            match radix.as_i32() {
+                2 => (-1074, 1023),
+                4 => (-537, 511),
+                8 => (-358, 341),
+                10 => (-22, 22),
+                16 => (-268, 255),
+                32 => (-214, 204),
+                // Invalid radix
+                _ => unreachable!(),
+            }
+        }
         #[cfg(feature = "radix")]
         {
             match radix.as_i32() {
@@ -243,9 +284,23 @@ impl ExactExponent for f64 {
     #[inline]
     fn mantissa_limit<T: Integer>(radix: T) -> i32 {
         debug_assert_radix!(radix);
-        #[cfg(not(feature = "radix"))]
+        #[cfg(not(feature = "binary"))]
         {
             15
+        }
+
+        #[cfg(all(feature = "binary", not(feature = "radix")))]
+        {
+            match radix.as_i32() {
+                2 => 52,
+                4 => 26,
+                8 => 17,
+                10 => 15,
+                16 => 13,
+                32 => 10,
+                // Invalid radix
+                _ => unreachable!(),
+            }
         }
 
         #[cfg(feature = "radix")]
@@ -307,15 +362,53 @@ impl ExactExponent for f64 {
 /// Calculate powers using pre-calculated lookup tables.
 /// No error-checking occurs, these methods are not safe.
 pub trait TablePower {
-    /// Exponent
-    const POW2_EXPONENT_BIAS: i32;
-
     /// Get power of 2 from exponent.
-    #[cfg(feature = "radix")]
+    #[cfg(feature = "binary")]
     fn table_pow2(exponent: i32) -> Self;
 
     /// Get power of 2 from exponent.
     fn table_pow<T: Integer>(radix: T, exponent: i32) -> Self;
+}
+
+/// Calculate 2^exponent assigned straight from bits.
+#[cfg(feature = "binary")]
+macro_rules! bitwise_pow2 {
+    ($exponent:ident, $float:ty, $unsigned:ty) => {{
+        debug_assert!(
+            $exponent + <$float>::EXPONENT_BIAS - 1 >= 0,
+            "table_pow2() have negative exponent."
+        );
+
+        // Say we have (for f32):
+        //     BIAS = 127
+        //     MANT_SIZE = 23
+        // Then, we have denormal floats and normal floats that take
+        // the following form:
+        //
+        // Denormal floats are [-BIAS-MANT_SIZE, -BIAS]
+        //     Take form of S00000000MMMMMMMMMMMMMMMMMMMMMMM
+        // Normal floats are [-BIAS+1, BIAS]
+        //     Take form of SEEEEEEE100000000000000000000000
+        //     Where S = Sign, E = Exponent, and M = Mantissa.
+
+        // We adjust our exp bias here so we can find denormal floats.
+        const MIN_EXP: i32 = <$float>::EXPONENT_BIAS - 1;
+        const BIAS: i32 = <$float>::EXPONENT_BIAS - <$float>::MANTISSA_SIZE;
+        if $exponent <= -BIAS {
+            // Denormal float, can calculate it based off the shift.
+            let shift = $exponent + MIN_EXP;
+            <$float>::from_bits(1 as $unsigned << shift)
+        } else {
+            // Normal float, just shift to the bias.
+            // Remember: we're not using the EXPONENT_BIAS here because
+            // we assume we're having a value in the hidden bit,
+            // which is `1 << MANTISSA_SIZE`. We therefore
+            // need to subtract MANTISSA_SIZE from our bias to calculate
+            // the float as the form `2^exponent`.
+            let biased_e = ($exponent + BIAS) as $unsigned;
+            <$float>::from_bits(biased_e << <$float>::MANTISSA_SIZE)
+        }
+    }};
 }
 
 // F32
@@ -340,16 +433,10 @@ const F32_POW10: [f32; 11] = [
 const_assert!(F32_POW10[1] / F32_POW10[0] == 10.0);
 
 impl TablePower for f32 {
-    const POW2_EXPONENT_BIAS: i32 = 149;
-
-    #[cfg(feature = "radix")]
     #[inline]
+    #[cfg(feature = "binary")]
     fn table_pow2(exponent: i32) -> f32 {
-        debug_assert!(
-            exponent + Self::POW2_EXPONENT_BIAS >= 0,
-            "table_pow2() have negative exponent."
-        );
-        F32_POW2[(exponent + Self::POW2_EXPONENT_BIAS).as_usize()]
+        bitwise_pow2!(exponent, f32, u32)
     }
 
     #[inline]
@@ -360,6 +447,7 @@ impl TablePower for f32 {
 
         #[cfg(not(feature = "radix"))]
         {
+            debug_assert!(radix.as_i32() == 10, "radix must be 10");
             F32_POW10[exponent]
         }
 
@@ -435,16 +523,10 @@ const F64_POW10: [f64; 23] = [
 const_assert!(F64_POW10[1] / F64_POW10[0] == 10.0);
 
 impl TablePower for f64 {
-    const POW2_EXPONENT_BIAS: i32 = 1074;
-
-    #[cfg(feature = "radix")]
     #[inline]
+    #[cfg(feature = "binary")]
     fn table_pow2(exponent: i32) -> f64 {
-        debug_assert!(
-            exponent + Self::POW2_EXPONENT_BIAS >= 0,
-            "table_pow2() have negative exponent."
-        );
-        F64_POW2[(exponent + Self::POW2_EXPONENT_BIAS).as_usize()]
+        bitwise_pow2!(exponent, f64, u64)
     }
 
     #[inline]
@@ -455,6 +537,7 @@ impl TablePower for f64 {
 
         #[cfg(not(feature = "radix"))]
         {
+            debug_assert!(radix.as_i32() == 10, "radix must be 10");
             F64_POW10[exponent]
         }
 
@@ -493,6 +576,42 @@ impl TablePower for f64 {
                 36 => F64_POW36[exponent],
                 // Invalid radix
                 _ => unreachable!(),
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // These tests are ignored so we can test them on x86_64, where
+    // we know powi has some guarantees. table_pow2 assigns directly
+    // from bits, and therefore will always be accurate, we
+    // just do a smoke test here.
+
+    #[test]
+    #[ignore]
+    #[cfg(feature = "binary")]
+    fn test_f32_roundtrip() {
+        // Check our logic is correct: by using a large type, we should
+        // ensure our table_pow2 function is valid.
+        for exp in -149i32..127 {
+            let float = f32::table_pow2(exp);
+            assert_eq!(float, f64::powi(2.0, exp) as f32);
+        }
+    }
+
+    #[test]
+    #[ignore]
+    #[cfg(feature = "binary")]
+    fn test_f64_roundtrip() {
+        for exp in -1074i32..1023 {
+            let float = f64::table_pow2(exp);
+            if exp > -1023 {
+                // Only check for normal floats, powi isn't stable for
+                // denormal floats.
+                assert_eq!(float, f64::powi(2.0, exp));
             }
         }
     }

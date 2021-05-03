@@ -3,21 +3,21 @@
 //! Uses either the optimized decimal algorithm, the optimized generic
 //! algorithm, or the naive algorithm.
 
-#[cfg(feature = "radix")]
+#[cfg(feature = "binary")]
 use crate::config::*;
 use crate::traits::*;
 use crate::util::*;
 
 /// Select the back-end.
 use super::decimal::Decimal;
-#[cfg(feature = "radix")]
+#[cfg(feature = "binary")]
 use super::generic::Generic;
 
 // HELPERS
 
 // Wrapper to facilitate calling a backend that writes iteratively to
 // the end of the buffer.
-#[cfg(feature = "radix")]
+#[cfg(feature = "binary")]
 macro_rules! write_backwards {
     ($value:ident, $radix:expr, $buffer:ident, $t:tt, $cb:ident) => {{
         // Create a temporary buffer, and copy into it.
@@ -27,7 +27,7 @@ macro_rules! write_backwards {
         debug_assert_radix!($radix);
         let mut buffer: [u8; BUFFER_SIZE] = [b'0'; BUFFER_SIZE];
         let digits;
-        if cfg!(not(feature = "radix")) || $radix == 10 {
+        if cfg!(not(feature = "binary")) || $radix == 10 {
             digits = &mut buffer[..$t::FORMATTED_SIZE_DECIMAL];
         } else {
             digits = &mut buffer[..$t::FORMATTED_SIZE];
@@ -40,10 +40,10 @@ macro_rules! write_backwards {
     }};
 }
 
-#[cfg(not(feature = "radix"))]
+#[cfg(not(feature = "binary"))]
 pub(crate) trait Itoa: Decimal + UnsignedInteger {}
 
-#[cfg(feature = "radix")]
+#[cfg(feature = "binary")]
 pub(crate) trait Itoa: Decimal + Generic + UnsignedInteger {}
 
 macro_rules! itoa_impl {
@@ -59,7 +59,7 @@ itoa_impl! { u8 u16 u32 u64 u128 usize }
 /// Forward itoa arguments to an optimized backend.
 ///  Preconditions: `value` must be non-negative and unsigned.
 #[inline]
-#[cfg(not(feature = "radix"))]
+#[cfg(not(feature = "binary"))]
 pub(crate) fn itoa_positive<T>(value: T, _: u32, buffer: &mut [u8]) -> usize
 where
     T: Itoa,
@@ -70,7 +70,7 @@ where
 /// Forward itoa arguments to an optimized backend.
 ///  Preconditions: `value` must be non-negative and unsigned.
 #[inline]
-#[cfg(feature = "radix")]
+#[cfg(feature = "binary")]
 pub(crate) fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8]) -> usize
 where
     T: Itoa,
@@ -344,8 +344,47 @@ mod tests {
         assert_eq!(b"-1", (-1i128).to_lexical(&mut buffer));
     }
 
-    #[cfg(feature = "radix")]
     #[test]
+    #[cfg(feature = "binary")]
+    fn binary_test() {
+        let mut buffer = new_buffer();
+
+        // Binary
+        let options = WriteIntegerOptions::binary();
+        assert_eq!(b"0", 0i128.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(b"1", 1i128.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(b"101", 5i128.to_lexical_with_options(&mut buffer, &options));
+        assert_eq!(
+            &b"1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"[..],
+            170141183460469231731687303715884105727i128.to_lexical_with_options(&mut buffer, &options)
+        );
+        assert_eq!(
+            &b"-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"[..],
+            (170141183460469231731687303715884105728u128 as i128).to_lexical_with_options(&mut buffer, &options)
+        );
+        assert_eq!(
+            b"-1",
+            (340282366920938463463374607431768211455u128 as i128)
+                .to_lexical_with_options(&mut buffer, &options)
+        );
+        assert_eq!(b"-1", (-1i128).to_lexical_with_options(&mut buffer, &options));
+
+        // Hexadecimal
+        let options = WriteIntegerOptions::hexadecimal();
+        assert_eq!(
+            &b"7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"[..],
+            170141183460469231731687303715884105727i128
+                .to_lexical_with_options(&mut buffer, &options)
+        );
+        assert_eq!(
+            &b"-80000000000000000000000000000000"[..],
+            (170141183460469231731687303715884105728u128 as i128)
+                .to_lexical_with_options(&mut buffer, &options)
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
     fn radix_test() {
         let data = [
             (2, "100101"),

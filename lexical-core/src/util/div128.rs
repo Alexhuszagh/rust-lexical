@@ -52,7 +52,7 @@
 //      print(radix, radix**power, power)
 //  ```
 #[inline]
-#[cfg(feature = "radix")]
+#[cfg(feature = "binary")]
 pub(crate) fn u128_divisor(radix: u32) -> (u64, usize, u32) {
     match radix {
         2 => (9223372036854775808, 63, 0),   // 2^63
@@ -98,7 +98,7 @@ pub(crate) fn u128_divisor(radix: u32) -> (u64, usize, u32) {
 // Returns the divisor, the number of digits processed, and the
 // number of leading zeros in the divisor.
 #[inline]
-#[cfg(not(feature = "radix"))]
+#[cfg(not(feature = "binary"))]
 pub(crate) fn u128_divisor(_: u32) -> (u64, usize, u32) {
     (10000000000000000000, 19, 0) // 10^19
 }
@@ -161,7 +161,7 @@ pub(crate) fn u128_divrem_1e19(n: u128) -> (u128, u64) {
 mod tests {
     use super::*;
 
-    use proptest::{prop_assert, prop_assert_eq, proptest};
+    use proptest::{prop_assert_eq, proptest};
 
     proptest! {
         #[test]

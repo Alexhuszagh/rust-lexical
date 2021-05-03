@@ -17,7 +17,7 @@ if #[cfg(feature = "no_alloc")] {
 // BASES
 
 /// Pow2 bases.
-#[cfg(feature = "radix")]
+#[cfg(feature = "binary")]
 pub(crate) const BASE_POW2: [u32; 5] = [2, 4, 8, 16, 32];
 
 /// Non-pow2 bases.

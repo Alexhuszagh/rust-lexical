@@ -3,6 +3,8 @@
 use crate::util::Limb;
 use static_assertions::const_assert;
 
+#[cfg(feature = "binary")]
+use super::small64_binary;
 use super::small64_decimal;
 #[cfg(feature = "radix")]
 use super::small64_radix;
@@ -10,10 +12,14 @@ use super::small64_radix;
 cfg_if! {
 if #[cfg(limb_width_32)] {
     use super::small32_decimal::*;
+    #[cfg(feature = "binary")]
+    use super::small32_binary::*;
     #[cfg(feature = "radix")]
     use super::small32_radix::*;
 } else {
     use super::small64_decimal::*;
+    #[cfg(feature = "binary")]
+    use super::small64_binary::*;
     #[cfg(feature = "radix")]
     use super::small64_radix::*;
 }} // cfg_if
@@ -23,21 +29,28 @@ const_assert!(POW5[1] / POW5[0] == 5);
 const_assert!(POW10[1] / POW10[0] == 10);
 
 cfg_if! {
-if #[cfg(feature = "radix")] {
+if #[cfg(feature = "binary")] {
 // Ensure our small powers are valid.
 const_assert!(POW2[1] / POW2[0] == 2);
+const_assert!(POW4[1] / POW4[0] == 4);
+const_assert!(POW8[1] / POW8[0] == 8);
+const_assert!(POW16[1] / POW16[0] == 16);
+const_assert!(POW32[1] / POW32[0] == 32);
+}} //cfg_if
+
+cfg_if! {
+if #[cfg(feature = "radix")] {
+// Ensure our small powers are valid.
 const_assert!(POW3[1] / POW3[0] == 3);
 const_assert!(POW4[1] / POW4[0] == 4);
 const_assert!(POW6[1] / POW6[0] == 6);
 const_assert!(POW7[1] / POW7[0] == 7);
-const_assert!(POW8[1] / POW8[0] == 8);
 const_assert!(POW9[1] / POW9[0] == 9);
 const_assert!(POW11[1] / POW11[0] == 11);
 const_assert!(POW12[1] / POW12[0] == 12);
 const_assert!(POW13[1] / POW13[0] == 13);
 const_assert!(POW14[1] / POW14[0] == 14);
 const_assert!(POW15[1] / POW15[0] == 15);
-const_assert!(POW16[1] / POW16[0] == 16);
 const_assert!(POW17[1] / POW17[0] == 17);
 const_assert!(POW18[1] / POW18[0] == 18);
 const_assert!(POW19[1] / POW19[0] == 19);
@@ -53,7 +66,6 @@ const_assert!(POW28[1] / POW28[0] == 28);
 const_assert!(POW29[1] / POW29[0] == 29);
 const_assert!(POW30[1] / POW30[0] == 30);
 const_assert!(POW31[1] / POW31[0] == 31);
-const_assert!(POW32[1] / POW32[0] == 32);
 const_assert!(POW33[1] / POW33[0] == 33);
 const_assert!(POW34[1] / POW34[0] == 34);
 const_assert!(POW35[1] / POW35[0] == 35);
@@ -65,11 +77,25 @@ const_assert!(POW36[1] / POW36[0] == 36);
 /// Get the correct small power from the radix.
 #[inline]
 pub(crate) fn get_small_powers(radix: u32) -> &'static [Limb] {
-    #[cfg(not(feature = "radix"))]
+    #[cfg(not(feature = "binary"))]
     {
         match radix {
             5 => &POW5,
             10 => &POW10,
+            _ => unreachable!(),
+        }
+    }
+
+    #[cfg(all(feature = "binary", not(feature = "radix")))]
+    {
+        match radix {
+            2 => &POW2,
+            5 => &POW5,
+            4 => &POW4,
+            8 => &POW8,
+            10 => &POW10,
+            16 => &POW16,
+            32 => &POW32,
             _ => unreachable!(),
         }
     }
@@ -120,7 +146,7 @@ pub(crate) fn get_small_powers(radix: u32) -> &'static [Limb] {
 /// Get the correct 64-bit small power from the radix.
 #[inline]
 pub(crate) fn get_small_powers_64(radix: u32) -> &'static [u64] {
-    #[cfg(not(feature = "radix"))]
+    #[cfg(not(feature = "binary"))]
     {
         match radix {
             5 => &small64_decimal::POW5,
@@ -129,16 +155,30 @@ pub(crate) fn get_small_powers_64(radix: u32) -> &'static [u64] {
         }
     }
 
+    #[cfg(all(feature = "binary", not(feature = "radix")))]
+    {
+        match radix {
+            2 => &small64_binary::POW2,
+            4 => &small64_binary::POW4,
+            5 => &small64_decimal::POW5,
+            8 => &small64_binary::POW8,
+            10 => &small64_decimal::POW10,
+            16 => &small64_binary::POW16,
+            32 => &small64_binary::POW32,
+            _ => unreachable!(),
+        }
+    }
+
     #[cfg(feature = "radix")]
     {
         match radix {
-            2 => &small64_radix::POW2,
+            2 => &small64_binary::POW2,
             3 => &small64_radix::POW3,
-            4 => &small64_radix::POW4,
+            4 => &small64_binary::POW4,
             5 => &small64_decimal::POW5,
             6 => &small64_radix::POW6,
             7 => &small64_radix::POW7,
-            8 => &small64_radix::POW8,
+            8 => &small64_binary::POW8,
             9 => &small64_radix::POW9,
             10 => &small64_decimal::POW10,
             11 => &small64_radix::POW11,
@@ -146,7 +186,7 @@ pub(crate) fn get_small_powers_64(radix: u32) -> &'static [u64] {
             13 => &small64_radix::POW13,
             14 => &small64_radix::POW14,
             15 => &small64_radix::POW15,
-            16 => &small64_radix::POW16,
+            16 => &small64_binary::POW16,
             17 => &small64_radix::POW17,
             18 => &small64_radix::POW18,
             19 => &small64_radix::POW19,
@@ -162,7 +202,7 @@ pub(crate) fn get_small_powers_64(radix: u32) -> &'static [u64] {
             29 => &small64_radix::POW29,
             30 => &small64_radix::POW30,
             31 => &small64_radix::POW31,
-            32 => &small64_radix::POW32,
+            32 => &small64_binary::POW32,
             33 => &small64_radix::POW33,
             34 => &small64_radix::POW34,
             35 => &small64_radix::POW35,

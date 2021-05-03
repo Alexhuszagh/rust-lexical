@@ -62,11 +62,10 @@
 use crate::traits::*;
 use crate::util::*;
 
-cfg_if! {
-if #[cfg(feature = "radix")] {
-    use super::binary::{double_binary, float_binary};
-    use super::radix::{double_radix, float_radix};
-}} // cfg_if
+#[cfg(feature = "binary")]
+use super::binary::{double_binary, float_binary};
+#[cfg(feature = "radix")]
+use super::radix::{double_radix, float_radix};
 
 // Select the back-end
 cfg_if! {
@@ -83,7 +82,12 @@ if #[cfg(feature = "grisu3")] {
 /// Trait to define serialization of a float to string.
 pub(crate) trait FloatToString: Float {
     /// Export float to decimal string with optimized algorithm.
+    #[cfg(not(feature = "binary"))]
     fn decimal<'a>(self, bytes: &'a mut [u8], format: NumberFormat) -> usize;
+
+    /// Export float to binary string with optimized algorithm.
+    #[cfg(all(feature = "binary", not(feature = "radix")))]
+    fn binary<'a>(self, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize;
 
     /// Export float to radix string with slow algorithm.
     #[cfg(feature = "radix")]
@@ -92,14 +96,27 @@ pub(crate) trait FloatToString: Float {
 
 impl FloatToString for f32 {
     #[inline]
+    #[cfg(not(feature = "binary"))]
     fn decimal<'a>(self, bytes: &'a mut [u8], format: NumberFormat) -> usize {
         float_decimal(self, bytes, format)
     }
 
     #[inline]
+    #[cfg(all(feature = "binary", not(feature = "radix")))]
+    fn binary<'a>(self, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize {
+        if radix == 10 {
+            float_decimal(self, bytes, format)
+        } else {
+            float_binary(self, radix, bytes, format)
+        }
+    }
+
+    #[inline]
     #[cfg(feature = "radix")]
     fn radix<'a>(self, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize {
-        if log2(radix) == 0 {
+        if radix == 10 {
+            float_decimal(self, bytes, format)
+        } else if log2(radix) == 0 {
             float_radix(self, radix, bytes, format)
         } else {
             float_binary(self, radix, bytes, format)
@@ -109,14 +126,27 @@ impl FloatToString for f32 {
 
 impl FloatToString for f64 {
     #[inline]
+    #[cfg(not(feature = "binary"))]
     fn decimal<'a>(self, bytes: &'a mut [u8], format: NumberFormat) -> usize {
         double_decimal(self, bytes, format)
     }
 
     #[inline]
+    #[cfg(all(feature = "binary", not(feature = "radix")))]
+    fn binary<'a>(self, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize {
+        if radix == 10 {
+            double_decimal(self, bytes, format)
+        } else {
+            double_binary(self, radix, bytes, format)
+        }
+    }
+
+    #[inline]
     #[cfg(feature = "radix")]
     fn radix<'a>(self, radix: u32, bytes: &'a mut [u8], format: NumberFormat) -> usize {
-        if log2(radix) == 0 {
+        if radix == 10 {
+            double_decimal(self, bytes, format)
+        } else if log2(radix) == 0 {
             double_radix(self, radix, bytes, format)
         } else {
             double_binary(self, radix, bytes, format)
@@ -136,17 +166,19 @@ fn forward<'a, F: FloatToString>(
 ) -> usize {
     debug_assert_radix!(radix);
 
-    #[cfg(not(feature = "radix"))]
+    #[cfg(not(feature = "binary"))]
     {
         value.decimal(bytes, format)
     }
 
+    #[cfg(all(feature = "binary", not(feature = "radix")))]
+    {
+        value.binary(radix, bytes, format)
+    }
+
     #[cfg(feature = "radix")]
     {
-        match radix {
-            10 => value.decimal(bytes, format),
-            _ => value.radix(radix, bytes, format),
-        }
+        value.radix(radix, bytes, format)
     }
 }
 
@@ -392,7 +424,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "radix")]
+    #[cfg(feature = "binary")]
     fn f32_binary_test() {
         let mut buffer = new_buffer();
         // positive
@@ -534,7 +566,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "radix")]
+    #[cfg(feature = "binary")]
     fn f64_binary_test() {
         let mut buffer = new_buffer();
         // positive

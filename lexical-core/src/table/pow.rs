@@ -71,7 +71,7 @@ pub trait StablePower: Float + ExactExponent + TablePower {
 
     /// Calculate power of 2 using precalculated table.
     #[inline]
-    #[cfg(feature = "radix")]
+    #[cfg(feature = "binary")]
     fn pow2(self, exponent: i32) -> Self {
         self * Self::table_pow2(exponent)
     }
@@ -245,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "radix")]
+    #[cfg(feature = "binary")]
     fn f32_pow2_test() {
         let (min, max) = f32::exponent_limit(2);
         for i in min + 1..max + 1 {
@@ -276,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "radix")]
+    #[cfg(feature = "binary")]
     fn f64_pow2_test() {
         let (min, max) = f64::exponent_limit(2);
         for i in min + 1..max + 1 {

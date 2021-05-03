@@ -250,7 +250,7 @@ check_subsequent_flags!(EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPA
 const_fn!(
     /// Determine if the digit separator is valid.
     #[inline]
-    #[cfg(not(feature = "radix"))]
+    #[cfg(not(feature = "binary"))]
     pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
         match ch {
             b'0'..=b'9' => false,
@@ -263,7 +263,7 @@ const_fn!(
 const_fn!(
     /// Determine if the digit separator is valid.
     #[inline]
-    #[cfg(feature = "radix")]
+    #[cfg(feature = "binary")]
     pub(crate) const fn is_valid_digit_separator(ch: u8) -> bool {
         match ch {
             b'A'..=b'Z' => false,
@@ -491,7 +491,7 @@ mod tests {
         assert_eq!(is_valid_digit_separator(b'_'), true);
         assert_eq!(is_valid_digit_separator(b'\''), true);
         assert_eq!(is_valid_digit_separator(b'.'), true);
-        if cfg!(feature = "radix") {
+        if cfg!(feature = "binary") {
             assert_eq!(is_valid_digit_separator(b'e'), false);
         } else {
             assert_eq!(is_valid_digit_separator(b'e'), true);
@@ -505,7 +505,7 @@ mod tests {
         assert_eq!(is_valid_decimal_point(b'_'), true);
         assert_eq!(is_valid_decimal_point(b'\''), true);
         assert_eq!(is_valid_decimal_point(b'.'), true);
-        if cfg!(feature = "radix") {
+        if cfg!(feature = "binary") {
             assert_eq!(is_valid_decimal_point(b'e'), false);
         } else {
             assert_eq!(is_valid_decimal_point(b'e'), true);
@@ -534,7 +534,7 @@ mod tests {
         assert_eq!(is_valid_exponent_backup(b'0'), false);
         assert_eq!(is_valid_exponent_backup(128), false);
 
-        #[cfg(feature = "radix")]
+        #[cfg(feature = "binary")]
         assert_eq!(is_valid_exponent_backup(b'e'), false);
     }
 

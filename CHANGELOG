@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - WriteIntegerOptions
 - Added `parse_with_options`, `parse_partial_with_options`
 - Added `to_string_with_options`.
+- Added the binary feature, for conversion to and from strings with power-of-two bases.
 
 ### Removed
 - Remove the write_format, write_radix, and similar functions

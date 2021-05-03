@@ -67,7 +67,7 @@ where
         Ok((F::INFINITY, iter.as_ptr()))
     } else {
         // Not infinity, may be valid with a different radix.
-        if cfg!(feature = "radix") {
+        if cfg!(feature = "binary") {
             algorithm::to_native::<F, Data>(data, bytes, sign, radix, incorrect, lossy, rounding)
         } else {
             Err((ErrorCode::InvalidDigit, bytes.as_ptr()))
@@ -101,7 +101,7 @@ where
         Ok((F::NAN, iter.as_ptr()))
     } else {
         // Not NaN, may be valid with a different radix.
-        if cfg!(feature = "radix") {
+        if cfg!(feature = "binary") {
             algorithm::to_native::<F, Data>(data, bytes, sign, radix, incorrect, lossy, rounding)
         } else {
             Err((ErrorCode::InvalidDigit, bytes.as_ptr()))
@@ -721,7 +721,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(all(feature = "radix", feature = "rounding"))]
+    #[cfg(all(feature = "binary", feature = "rounding"))]
     fn special_rounding_binary_test() {
         // Each one of these pairs is halfway, and we can detect the
         // rounding schemes from this.

@@ -5,6 +5,8 @@ mod large;
 mod small;
 
 // Always export, since it's required for the fast-path algorithm.
+#[cfg(feature = "binary")]
+mod small64_binary;
 mod small64_decimal;
 #[cfg(feature = "radix")]
 mod small64_radix;
@@ -13,6 +15,8 @@ cfg_if! {
 if #[cfg(limb_width_32)] {
     mod large32_decimal;
     mod small32_decimal;
+    #[cfg(feature = "binary")]
+    mod small32_binary;
     cfg_if! {
     if #[cfg(feature = "radix")] {
         mod large32_radix;

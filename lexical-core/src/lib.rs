@@ -240,6 +240,7 @@ pub(crate) mod lib {
 // the following modules, in order, is as follows:
 //      - config
 //      - error
+//      - result
 //      - util
 //      - options
 //      - traits

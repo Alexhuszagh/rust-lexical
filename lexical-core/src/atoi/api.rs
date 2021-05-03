@@ -160,7 +160,7 @@ from_lexical_with_options!(atoi_with_options, i128);
 mod tests {
     use crate::error::*;
     use crate::traits::*;
-    #[cfg(any(feature = "format", feature = "radix"))]
+    #[cfg(any(feature = "format", feature = "binary"))]
     use crate::util::*;
 
     #[cfg(feature = "property_tests")]
@@ -446,8 +446,26 @@ mod tests {
         assert!(i32::from_lexical_with_options(b"-012", &options).is_err());
     }
 
+    #[test]
+    #[cfg(feature = "binary")]
+    fn i32_binary_test() {
+        let options = ParseIntegerOptions::binary();
+        assert_eq!(i32::from_lexical_with_options(b"11", &options), Ok(3));
+        assert_eq!(i32::from_lexical_with_options(b"-11", &options), Ok(-3));
+    }
+
     #[cfg(feature = "property_tests")]
     proptest! {
+        #[test]
+        #[cfg(feature = "binary")]
+        fn i32_binary_roundtrip_display_proptest(i in i32::MIN..i32::MAX) {
+            let mut buffer = new_buffer();
+            let write_opts = WriteIntegerOptions::binary();
+            let parse_opts = ParseIntegerOptions::binary();
+            let digits = i32::to_lexical_with_options(i, &mut buffer, &write_opts);
+            prop_assert_eq!(i, i32::from_lexical_with_options(digits, &parse_opts).unwrap());
+        }
+
         #[test]
         fn u8_invalid_proptest(i in r"[+]?[0-9]{2}\D") {
             let result = u8::from_lexical(i.as_bytes());

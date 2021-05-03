@@ -3,6 +3,8 @@
 //! This algorithm is adapted from the V8 codebase,
 //! and may be found [here](https://github.com/v8/v8).
 
+#![cfg(feature = "radix")]
+
 use crate::config::*;
 use crate::itoa;
 use crate::table::*;

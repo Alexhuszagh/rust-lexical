@@ -1,5 +1,7 @@
 //! Optimized float serializer for radixes powers of 2.
 
+#![cfg(feature = "binary")]
+
 use crate::itoa;
 use crate::traits::*;
 use crate::util::*;

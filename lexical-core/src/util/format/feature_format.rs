@@ -1731,7 +1731,7 @@ impl NumberFormat {
         /// Get the exponent character based on the radix.
         #[inline(always)]
         pub const fn exponent(self, radix: u32) -> u8 {
-            if cfg!(feature = "radix") && radix != 10 {
+            if cfg!(feature = "binary") && radix != 10 {
                 self.exponent_backup()
             } else {
                 self.exponent_decimal()
@@ -2780,7 +2780,7 @@ mod tests {
         assert_eq!(flag.consecutive_digit_separator(), true);
         assert_eq!(flag.special_digit_separator(), true);
 
-        #[cfg(feature = "radix")]
+        #[cfg(feature = "binary")]
         assert_eq!(flag.exponent_backup(), b'^');
     }
 

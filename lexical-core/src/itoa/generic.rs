@@ -183,7 +183,22 @@ fn get_table(radix: u32) -> &'static [u8] {
 
 /// Get lookup table for 2 digit radix conversions.
 #[inline]
-#[cfg(not(feature = "radix"))]
+#[cfg(all(feature = "binary", not(feature = "radix")))]
+fn get_table(radix: u32) -> &'static [u8] {
+    match radix {
+        2 => &DIGIT_TO_BASE2_SQUARED,
+        4 => &DIGIT_TO_BASE4_SQUARED,
+        8 => &DIGIT_TO_BASE8_SQUARED,
+        10 => &DIGIT_TO_BASE10_SQUARED,
+        16 => &DIGIT_TO_BASE16_SQUARED,
+        32 => &DIGIT_TO_BASE32_SQUARED,
+        _ => unreachable!(),
+    }
+}
+
+/// Get lookup table for 2 digit radix conversions.
+#[inline]
+#[cfg(not(feature = "binary"))]
 fn get_table(_: u32) -> &'static [u8] {
     &DIGIT_TO_BASE10_SQUARED
 }

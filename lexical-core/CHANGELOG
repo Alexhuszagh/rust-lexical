@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `write_with_options`.
 - Added a faster float writer for power of 2 radixes.
 - Added the `required_exponent_notation` flag to `NumberFormat`.
+- Added the binary feature, for conversion to and from strings with power-of-two bases.
+
+### Changed
+- Removed pre-computed float tables of powers-of-two, and recreated stable powers of 2 through bit manipulations.
 
 ### Removed
 - Remove the write_format, write_radix, and similar functions

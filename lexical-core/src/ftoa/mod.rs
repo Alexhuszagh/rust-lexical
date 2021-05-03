@@ -2,12 +2,10 @@
 
 // Hide implementation details.
 mod api;
-
-cfg_if! {
-if #[cfg(feature = "radix")] {
-    mod binary;
-    mod radix;
-}} // cfg_if
+#[cfg(feature = "binary")]
+mod binary;
+#[cfg(feature = "radix")]
+mod radix;
 
 cfg_if! {
 if #[cfg(feature = "grisu3")] {
