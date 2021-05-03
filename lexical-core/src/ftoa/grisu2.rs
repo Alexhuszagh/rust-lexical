@@ -57,6 +57,12 @@ use crate::float::*;
 use crate::traits::*;
 use crate::util::*;
 
+// ALIASES
+// -------
+
+/// Alias with ~80 bits of precision, 64 for the mantissa and 16 for exponent.
+type ExtendedFloat80 = ExtendedFloat<u64>;
+
 // CACHED POWERS
 // -------------
 

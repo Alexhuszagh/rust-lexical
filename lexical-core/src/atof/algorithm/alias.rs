@@ -5,7 +5,8 @@ use crate::table::*;
 use crate::traits::*;
 
 use super::bignum::ToBigfloat;
-use super::errors::FloatErrors;
+use super::errors::*;
+use super::powers::*;
 
 // MAX CORRECT DIGITS
 // ------------------
@@ -560,52 +561,66 @@ impl MaxIncorrectDigits for f128 {
     }
 }
 
-// FLOAT TYPE
-// ----------
+// MANTISSA_TYPE
+// -------------
 
-/// Trait to simplify type signatures for atof.
-pub trait FloatType: StablePower + MaxCorrectDigits + MaxIncorrectDigits
-{
-    type ExtendedFloat: ExtendedFloatType<Self>;
+/// Mantissa type with simplified methods to get small powers.
+pub trait MantissaType: FloatErrors {
+    /// Get the maximum shift of the mantissa type.
+    const MAX_SHIFT: i32 = Self::FULL - 1;
+    /// Get the maximum exponent for the associated float type.
+    const MAX_EXPONENT: i32;
+
+    /// Get small powers for mantissa type.
+    fn small_powers(radix: u32) -> &'static [Self];
 }
-
-#[cfg(feature = "f16")]
-impl FloatType for f16 {
-    type ExtendedFloat = ExtendedFloat<Self::Unsigned>;
-}
-
-#[cfg(feature = "f16")]
-impl FloatType for bf16 {
-    type ExtendedFloat = ExtendedFloat<Self::Unsigned>;
-}
-
-impl FloatType for f32 {
-    type ExtendedFloat = ExtendedFloat<Self::Unsigned>;
-}
-
-impl FloatType for f64 {
-    type ExtendedFloat = ExtendedFloat<Self::Unsigned>;
-}
-
-#[cfg(feature = "f128")]
-impl FloatType for f128 {
-    type ExtendedFloat = ExtendedFloat<Self::Unsigned>;
-}
-
-// MANTISSA
-// --------
-
-/// Trait for a useable mantissa.
-pub(super) trait MantissaType: Mantissa + FloatErrors {}
-
-// TODO(ahuszagh) This should also have smaller types, maybe?
 
 impl MantissaType for u64 {
+    const MAX_EXPONENT: i32 = 0x7FF;    // 2^11 - 1
+
+    #[inline(always)]
+    fn small_powers(radix: u32) -> &'static [u64] {
+        get_small_powers_64(radix)
+    }
 }
 
 #[cfg(feature = "f128")]
 impl MantissaType for u128 {
+    const MAX_EXPONENT: i32 = 0x7FFF;   // 2^15 - 1
+
+    #[inline(always)]
+    fn small_powers(radix: u32) -> &'static [u128] {
+        todo!()
+    }
 }
+
+// FLOAT TYPE
+// ----------
+
+macro_rules! float_type {
+    ($($(#[$meta:meta])? $t:ty)*) => ($(
+        $(#[$meta])?
+        impl FloatType for $t {
+            type MantissaType = Self::Mantissa;
+            type ExtendedFloat = ExtendedFloat<Self::Unsigned>;
+        }
+    )*);
+}
+
+/// Trait to simplify type signatures for atof.
+pub trait FloatType: StablePower + MaxCorrectDigits + MaxIncorrectDigits
+{
+    type MantissaType: MantissaType;
+    type ExtendedFloat: ExtendedFloatType<Self>;
+}
+
+float_type!(
+    #[cfg(feature = "f16")] f16
+    #[cfg(feature = "f16")] bf16
+    f32
+    f64
+    #[cfg(feature = "f128")] f128
+);
 
 // EXTENDED FLOAT
 // --------------

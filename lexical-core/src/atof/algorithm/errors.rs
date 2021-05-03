@@ -14,6 +14,7 @@ use crate::util::*;
 // -------
 
 /// Check if the error is accurate with a round-nearest rounding scheme.
+// TODO(ahuszagh) This can be generic: M::BITS + 1
 #[inline]
 fn nearest_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64) -> bool {
     // Round-to-nearest, need to use the halfway point.
@@ -214,11 +215,13 @@ impl FloatErrors for u64 {
 impl FloatErrors for u128 {
     #[inline]
     fn error_scale() -> u32 {
+        // TODO(ahuszagh) Implement...
         0
     }
 
     #[inline]
     fn error_halfscale() -> u32 {
+        // TODO(ahuszagh) Implement...
         0
     }
 

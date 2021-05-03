@@ -3,6 +3,7 @@
 //! Uses either the imprecise or the precise algorithm.
 
 use crate::error::*;
+use crate::float::*;
 use crate::lib::slice;
 use crate::result::*;
 use crate::traits::*;
@@ -55,6 +56,7 @@ fn parse_infinity<'a, ToIter, StartsWith, Iter, F, Data>(
 ) -> ParseResult<(F, *const u8)>
 where
     F: FloatType,
+    ExtendedFloat<F::MantissaType>: ModeratePathCache<F::MantissaType>,
     ToIter: Fn(&'a [u8], u8) -> Iter,
     Iter: AsPtrIterator<'a, u8>,
     StartsWith: Fn(Iter, slice::Iter<'a, u8>) -> (bool, Iter),
@@ -91,6 +93,7 @@ fn parse_nan<'a, ToIter, StartsWith, Iter, F, Data>(
 ) -> ParseResult<(F, *const u8)>
 where
     F: FloatType,
+    ExtendedFloat<F::MantissaType>: ModeratePathCache<F::MantissaType>,
     ToIter: Fn(&'a [u8], u8) -> Iter,
     Iter: AsPtrIterator<'a, u8>,
     StartsWith: Fn(Iter, slice::Iter<'a, u8>) -> (bool, Iter),
@@ -129,6 +132,7 @@ fn parse_float_standard<'a, F, Data>(
 ) -> ParseResult<(F, *const u8)>
 where
     F: FloatType,
+    ExtendedFloat<F::MantissaType>: ModeratePathCache<F::MantissaType>,
     Data: FastDataInterface<'a>,
 {
     // Use predictive parsing to filter special cases. This leads to
@@ -183,6 +187,7 @@ fn parse_float_cs<'a, F, Data>(
 ) -> ParseResult<(F, *const u8)>
 where
     F: FloatType,
+    ExtendedFloat<F::MantissaType>: ModeratePathCache<F::MantissaType>,
     Data: FastDataInterface<'a>,
 {
     let digit_separator = data.format().digit_separator();
@@ -236,6 +241,7 @@ fn parse_float_c<'a, F, Data>(
 ) -> ParseResult<(F, *const u8)>
 where
     F: FloatType,
+    ExtendedFloat<F::MantissaType>: ModeratePathCache<F::MantissaType>,
     Data: FastDataInterface<'a>,
 {
     // Use predictive parsing to filter special cases. This leads to
@@ -290,6 +296,7 @@ fn parse_float_s<'a, F, Data>(
 ) -> ParseResult<(F, *const u8)>
 where
     F: FloatType,
+    ExtendedFloat<F::MantissaType>: ModeratePathCache<F::MantissaType>,
     Data: FastDataInterface<'a>,
 {
     let digit_separator = data.format().digit_separator();
@@ -341,6 +348,7 @@ fn parse_float<'a, F, Data>(
 ) -> ParseResult<(F, *const u8)>
 where
     F: FloatType,
+    ExtendedFloat<F::MantissaType>: ModeratePathCache<F::MantissaType>,
     Data: FastDataInterface<'a>,
 {
     parse_float_standard(
@@ -374,6 +382,7 @@ fn parse_float<'a, F, Data>(
 ) -> ParseResult<(F, *const u8)>
 where
     F: FloatType,
+    ExtendedFloat<F::MantissaType>: ModeratePathCache<F::MantissaType>,
     Data: FastDataInterface<'a>,
 {
     // Need to consider 3 possibilities:
@@ -484,6 +493,7 @@ fn atof<'a, F, Data>(
 ) -> ParseResult<(F, *const u8)>
 where
     F: FloatType,
+    ExtendedFloat<F::MantissaType>: ModeratePathCache<F::MantissaType>,
     Data: FastDataInterface<'a>,
 {
     let format = data.format();
@@ -510,7 +520,11 @@ where
 
 // Optimized atof with default options.
 #[inline(always)]
-fn atof_default<F: FloatType>(bytes: &[u8]) -> Result<(F, usize)> {
+fn atof_default<F>(bytes: &[u8]) -> Result<(F, usize)>
+where
+    F: FloatType,
+    ExtendedFloat<F::MantissaType>: ModeratePathCache<F::MantissaType>,
+{
     let format = NumberFormat::STANDARD;
     let result = apply_standard_interface!(
         atof::<F, _>,
@@ -533,10 +547,11 @@ fn atof_default<F: FloatType>(bytes: &[u8]) -> Result<(F, usize)> {
 
 // Atof with custom options.
 #[inline(always)]
-fn atof_with_options<F: FloatType>(
-    bytes: &[u8],
-    options: &ParseFloatOptions,
-) -> Result<(F, usize)> {
+fn atof_with_options<F>(bytes: &[u8], options: &ParseFloatOptions) -> Result<(F, usize)>
+where
+    F: FloatType,
+    ExtendedFloat<F::MantissaType>: ModeratePathCache<F::MantissaType>,
+{
     let format = options.format();
     let radix = options.radix();
     let incorrect = options.incorrect();

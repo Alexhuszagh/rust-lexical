@@ -13,10 +13,8 @@ use crate::util::*;
 use super::alias::*;
 use super::bhcomp;
 use super::cached::ModeratePathCache;
-use super::errors::FloatErrors;
 use super::format::*;
 use super::incorrect as incorrect_algorithm;
-use super::powers::get_small_powers_64;
 
 // HELPERS
 // -------
@@ -40,9 +38,10 @@ where
 /// Convert mantissa to exact value for a non-base2 power.
 ///
 /// Returns the resulting float and if the value can be represented exactly.
-fn fast_path<F>(mantissa: u64, radix: u32, exponent: i32) -> Option<F>
+fn fast_path<F, M>(mantissa: M, radix: u32, exponent: i32) -> Option<F>
 where
     F: FloatType,
+    M: MantissaType
 {
     debug_assert_radix!(radix);
     debug_assert!(log2(radix) == 0, "Cannot use `fast_path` with a power of 2.");
@@ -52,7 +51,7 @@ where
     let (min_exp, max_exp) = F::exponent_limit(radix);
     let shift_exp = F::mantissa_limit(radix);
     let mantissa_size = F::MANTISSA_SIZE + 1;
-    if mantissa >> mantissa_size != 0 {
+    if mantissa >> mantissa_size != M::ZERO {
         // Would require truncation of the mantissa.
         None
     } else if exponent == 0 {
@@ -70,7 +69,7 @@ where
         // number of digits in the mantissa is very small, but and
         // so digits can be shifted from the exponent to the mantissa.
         // https://www.exploringbinary.com/fast-path-decimal-to-floating-point-conversion/
-        let small_powers = get_small_powers_64(radix);
+        let small_powers = M::small_powers(radix);
         let shift = exponent - max_exp;
         let power = small_powers[shift.as_usize()];
 
@@ -78,7 +77,7 @@ where
         // prematurely return early, otherwise, if we didn't overshoot,
         // we can get an exact value.
         let value = mantissa.checked_mul(power)?;
-        if value >> mantissa_size != 0 {
+        if value >> mantissa_size != M::ZERO {
             None
         } else {
             // Use powi, since it's correct, and faster on
@@ -98,9 +97,9 @@ where
 /// Detect if a float representation is exactly halfway after truncation.
 #[inline(always)]
 #[cfg(feature = "power_of_two")]
-fn is_halfway<F: FloatType>(mantissa: u64) -> bool {
+fn is_halfway<F: FloatType, M: MantissaType>(mantissa: M) -> bool {
     // Get the leading and trailing zeros from the least-significant bit.
-    let bit_length: i32 = 64 - mantissa.leading_zeros().as_i32();
+    let bit_length: i32 = M::FULL - mantissa.leading_zeros().as_i32();
     let trailing_zeros: i32 = mantissa.trailing_zeros().as_i32();
 
     // We need exactly mantissa+2 elements between these if it is halfway.
@@ -112,14 +111,14 @@ fn is_halfway<F: FloatType>(mantissa: u64) -> bool {
 /// Detect if a float representation is odd after truncation.
 #[inline(always)]
 #[cfg(feature = "power_of_two")]
-fn is_odd<F: FloatType>(mantissa: u64) -> bool {
+fn is_odd<F: FloatType, M: MantissaType>(mantissa: M) -> bool {
     // Get the leading and trailing zeros from the least-significant bit.
-    let bit_length: i32 = 64 - mantissa.leading_zeros().as_i32();
+    let bit_length: i32 = M::FULL - mantissa.leading_zeros().as_i32();
     let shift = bit_length - (F::MANTISSA_SIZE + 1);
     if shift >= 0 {
         // Have enough bits to have a full mantissa in the float, need to
         // check if that last bit is set.
-        let mask = 1u64 << shift;
+        let mask = M::ONE << shift;
         mantissa & mask == mask
     } else {
         // Not enough bits for a full mantissa, must be even.
@@ -135,9 +134,10 @@ fn is_odd<F: FloatType>(mantissa: u64) -> bool {
 /// mantissa unless the exponent is denormal, which will cause truncation
 /// regardless.
 #[cfg(feature = "power_of_two")]
-fn pow2_fast_path<F>(mantissa: u64, radix: u32, radix_log2: i32, exponent: i32) -> F
+fn pow2_fast_path<F, M>(mantissa: M, radix: u32, radix_log2: i32, exponent: i32) -> F
 where
     F: FloatType,
+    M: MantissaType
 {
     debug_assert!(radix_log2 != 0, "Not a power of 2.");
 
@@ -187,7 +187,7 @@ fn multiply_exponent_extended<F, M>(
     kind: RoundingKind,
 ) -> bool
 where
-    M: FloatErrors,
+    M: MantissaType,
     F: Float,
     ExtendedFloat<M>: ModeratePathCache<M>,
 {
@@ -201,8 +201,8 @@ where
         true
     } else if large_index as usize >= powers.large.len() {
         // Overflow (assign infinity)
-        fp.mant = M::ONE << 63;
-        fp.exp = 0x7FF;
+        fp.mant = M::ONE << (M::FULL - 1);
+        fp.exp = M::MAX_EXPONENT;
         true
     } else {
         // Within the valid exponent range, multiply by the large and small
@@ -259,7 +259,7 @@ pub(super) fn moderate_path<F, M>(
     kind: RoundingKind,
 ) -> (ExtendedFloat<M>, bool)
 where
-    M: FloatErrors,
+    M: MantissaType,
     F: Float,
     ExtendedFloat<M>: ModeratePathCache<M>,
 {
@@ -278,16 +278,18 @@ where
 
 /// Fallback method. Do not inline so the stack requirements only occur
 /// if required.
-fn pown_fallback<'a, F, Data>(
+fn pown_fallback<'a, F, M, Data>(
     data: Data,
-    mantissa: u64,
+    mantissa: M,
     radix: u32,
     lossy: bool,
     sign: Sign,
     rounding: RoundingKind,
 ) -> F
 where
+    M: MantissaType,
     F: FloatType,
+    ExtendedFloat<M>: ModeratePathCache<M>,
     Data: SlowDataInterface<'a>,
 {
     let kind = internal_rounding(rounding, sign);
@@ -324,11 +326,12 @@ fn pown_to_native<'a, F, Data>(
 ) -> ParseResult<(F, *const u8)>
 where
     F: FloatType,
+    ExtendedFloat<F::MantissaType>: ModeratePathCache<F::MantissaType>,
     Data: FastDataInterface<'a>,
 {
     // Parse the mantissa and exponent.
     let ptr = data.extract(bytes, radix)?;
-    let (mantissa, truncated) = process_mantissa::<u64, _>(&data, radix);
+    let (mantissa, truncated) = process_mantissa::<F::MantissaType, _>(&data, radix);
 
     // Process the state to a float.
     let float = if mantissa.is_zero() {
@@ -339,7 +342,7 @@ where
     } else if truncated.is_zero() {
         // Try the fast path, no mantissa truncation.
         let mant_exp = data.mantissa_exponent(0);
-        if let Some(float) = fast_path::<F>(mantissa, radix, mant_exp) {
+        if let Some(float) = fast_path::<F, _>(mantissa, radix, mant_exp) {
             float
         } else if incorrect {
             incorrect_algorithm::to_native::<F, _>(data, radix)
@@ -375,7 +378,7 @@ where
 {
     // Parse the mantissa and exponent.
     let ptr = data.extract(bytes, radix)?;
-    let (mut mantissa, truncated) = process_mantissa::<u64, _>(&data, radix);
+    let (mut mantissa, truncated) = process_mantissa::<F::MantissaType, _>(&data, radix);
 
     // We have a power of 2, can get an exact value even if the mantissa
     // was truncated. Check to see if there are any truncated digits, depending
@@ -388,13 +391,13 @@ where
         if kind != RoundingKind::Downward {
             if cfg!(feature = "rounding") || kind == RoundingKind::NearestTieEven {
                 // Need to check if we're exactly halfway and if there are truncated digits.
-                if is_halfway::<F>(mantissa) && is_odd::<F>(mantissa) {
-                    mantissa += 1;
+                if is_halfway::<F, _>(mantissa) && is_odd::<F, _>(mantissa) {
+                    mantissa += F::MantissaType::ONE;
                 }
             } else if kind == RoundingKind::NearestTieAwayZero {
                 // Need to check if we're exactly halfway and if there are truncated digits.
-                if is_halfway::<F>(mantissa) {
-                    mantissa += 1;
+                if is_halfway::<F, _>(mantissa) {
+                    mantissa += F::MantissaType::ONE;
                 }
             } else {
                 // Need to check if there are any bytes present.
@@ -404,7 +407,7 @@ where
                 let count = iter.take_while(|&&c| c == b'0').count();
                 let is_truncated = count < slow.truncated_digits();
                 if is_truncated {
-                    mantissa += 1;
+                    mantissa += F::MantissaType::ONE;
                 }
             }
         }
@@ -416,7 +419,7 @@ where
             exp: exponent,
         };
         fp.into_rounded_float_impl::<F>(kind)
-    } else if mantissa >> mantissa_size != 0 {
+    } else if mantissa >> mantissa_size != F::MantissaType::ZERO {
         // Would be truncated, use the extended float.
         let kind = internal_rounding(rounding, sign);
         let slow = data.to_slow(truncated);
@@ -451,6 +454,7 @@ pub(crate) fn to_native<'a, F, Data>(
 ) -> ParseResult<(F, *const u8)>
 where
     F: FloatType,
+    ExtendedFloat<F::MantissaType>: ModeratePathCache<F::MantissaType>,
     Data: FastDataInterface<'a>,
 {
     #[cfg(not(feature = "power_of_two"))]
@@ -529,76 +533,76 @@ mod tests {
     #[cfg(feature = "power_of_two")]
     fn is_odd_test() {
         // Variant of b1000000000000000000000001, a halfway value for f32.
-        assert!(is_odd::<f32>(0x1000002));
-        assert!(is_odd::<f32>(0x2000004));
-        assert!(is_odd::<f32>(0x8000010000000000));
-        assert!(!is_odd::<f64>(0x1000002));
-        assert!(!is_odd::<f64>(0x2000004));
-        assert!(!is_odd::<f64>(0x8000010000000000));
+        assert!(is_odd::<f32, _>(0x1000002));
+        assert!(is_odd::<f32, _>(0x2000004));
+        assert!(is_odd::<f32, _>(0x8000010000000000));
+        assert!(!is_odd::<f64, _>(0x1000002));
+        assert!(!is_odd::<f64, _>(0x2000004));
+        assert!(!is_odd::<f64, _>(0x8000010000000000));
 
-        assert!(!is_odd::<f32>(0x1000001));
-        assert!(!is_odd::<f32>(0x2000002));
-        assert!(!is_odd::<f32>(0x8000008000000000));
-        assert!(!is_odd::<f64>(0x1000001));
-        assert!(!is_odd::<f64>(0x2000002));
-        assert!(!is_odd::<f64>(0x8000008000000000));
+        assert!(!is_odd::<f32, _>(0x1000001));
+        assert!(!is_odd::<f32, _>(0x2000002));
+        assert!(!is_odd::<f32, _>(0x8000008000000000));
+        assert!(!is_odd::<f64, _>(0x1000001));
+        assert!(!is_odd::<f64, _>(0x2000002));
+        assert!(!is_odd::<f64, _>(0x8000008000000000));
 
         // Variant of b100000000000000000000000000000000000000000000000000001,
         // a halfway value for f64
-        assert!(!is_odd::<f32>(0x3f000000000002));
-        assert!(!is_odd::<f32>(0x3f000000000003));
-        assert!(!is_odd::<f32>(0xFC00000000000800));
-        assert!(!is_odd::<f32>(0xFC00000000000C00));
-        assert!(is_odd::<f64>(0x3f000000000002));
-        assert!(is_odd::<f64>(0x3f000000000003));
-        assert!(is_odd::<f64>(0xFC00000000000800));
-        assert!(is_odd::<f64>(0xFC00000000000C00));
+        assert!(!is_odd::<f32, _>(0x3f000000000002));
+        assert!(!is_odd::<f32, _>(0x3f000000000003));
+        assert!(!is_odd::<f32, _>(0xFC00000000000800));
+        assert!(!is_odd::<f32, _>(0xFC00000000000C00));
+        assert!(is_odd::<f64, _>(0x3f000000000002));
+        assert!(is_odd::<f64, _>(0x3f000000000003));
+        assert!(is_odd::<f64, _>(0xFC00000000000800));
+        assert!(is_odd::<f64, _>(0xFC00000000000C00));
 
-        assert!(!is_odd::<f32>(0x3f000000000001));
-        assert!(!is_odd::<f32>(0x3f000000000004));
-        assert!(!is_odd::<f32>(0xFC00000000000400));
-        assert!(!is_odd::<f32>(0xFC00000000001000));
-        assert!(!is_odd::<f64>(0x3f000000000001));
-        assert!(!is_odd::<f64>(0x3f000000000004));
-        assert!(!is_odd::<f64>(0xFC00000000000400));
-        assert!(!is_odd::<f64>(0xFC00000000001000));
+        assert!(!is_odd::<f32, _>(0x3f000000000001));
+        assert!(!is_odd::<f32, _>(0x3f000000000004));
+        assert!(!is_odd::<f32, _>(0xFC00000000000400));
+        assert!(!is_odd::<f32, _>(0xFC00000000001000));
+        assert!(!is_odd::<f64, _>(0x3f000000000001));
+        assert!(!is_odd::<f64, _>(0x3f000000000004));
+        assert!(!is_odd::<f64, _>(0xFC00000000000400));
+        assert!(!is_odd::<f64, _>(0xFC00000000001000));
     }
 
     #[test]
     #[cfg(feature = "power_of_two")]
     fn is_halfway_test() {
         // Variant of b1000000000000000000000001, a halfway value for f32.
-        assert!(is_halfway::<f32>(0x1000001));
-        assert!(is_halfway::<f32>(0x2000002));
-        assert!(is_halfway::<f32>(0x8000008000000000));
-        assert!(!is_halfway::<f64>(0x1000001));
-        assert!(!is_halfway::<f64>(0x2000002));
-        assert!(!is_halfway::<f64>(0x8000008000000000));
+        assert!(is_halfway::<f32, _>(0x1000001));
+        assert!(is_halfway::<f32, _>(0x2000002));
+        assert!(is_halfway::<f32, _>(0x8000008000000000));
+        assert!(!is_halfway::<f64, _>(0x1000001));
+        assert!(!is_halfway::<f64, _>(0x2000002));
+        assert!(!is_halfway::<f64, _>(0x8000008000000000));
 
         // Variant of b10000000000000000000000001, which is 1-off a halfway value.
-        assert!(!is_halfway::<f32>(0x2000001));
-        assert!(!is_halfway::<f64>(0x2000001));
+        assert!(!is_halfway::<f32, _>(0x2000001));
+        assert!(!is_halfway::<f64, _>(0x2000001));
 
         // Variant of b100000000000000000000000000000000000000000000000000001,
         // a halfway value for f64
-        assert!(!is_halfway::<f32>(0x20000000000001));
-        assert!(!is_halfway::<f32>(0x40000000000002));
-        assert!(!is_halfway::<f32>(0x8000000000000400));
-        assert!(is_halfway::<f64>(0x20000000000001));
-        assert!(is_halfway::<f64>(0x40000000000002));
-        assert!(is_halfway::<f64>(0x8000000000000400));
+        assert!(!is_halfway::<f32, _>(0x20000000000001));
+        assert!(!is_halfway::<f32, _>(0x40000000000002));
+        assert!(!is_halfway::<f32, _>(0x8000000000000400));
+        assert!(is_halfway::<f64, _>(0x20000000000001));
+        assert!(is_halfway::<f64, _>(0x40000000000002));
+        assert!(is_halfway::<f64, _>(0x8000000000000400));
 
         // Variant of b111111000000000000000000000000000000000000000000000001,
         // a halfway value for f64.
-        assert!(!is_halfway::<f32>(0x3f000000000001));
-        assert!(!is_halfway::<f32>(0xFC00000000000400));
-        assert!(is_halfway::<f64>(0x3f000000000001));
-        assert!(is_halfway::<f64>(0xFC00000000000400));
+        assert!(!is_halfway::<f32, _>(0x3f000000000001));
+        assert!(!is_halfway::<f32, _>(0xFC00000000000400));
+        assert!(is_halfway::<f64, _>(0x3f000000000001));
+        assert!(is_halfway::<f64, _>(0xFC00000000000400));
 
         // Variant of b1000000000000000000000000000000000000000000000000000001,
         // which is 1-off a halfway value.
-        assert!(!is_halfway::<f32>(0x40000000000001));
-        assert!(!is_halfway::<f64>(0x40000000000001));
+        assert!(!is_halfway::<f32, _>(0x40000000000001));
+        assert!(!is_halfway::<f64, _>(0x40000000000001));
     }
 
     #[test]
@@ -611,7 +615,7 @@ mod tests {
             let pow2_exp = log2(base);
             for exp in min_exp - 20..max_exp + 30 {
                 // Always valid, ignore result
-                pow2_fast_path::<f32>(mantissa, base, pow2_exp, exp);
+                pow2_fast_path::<f32, _>(mantissa, base, pow2_exp, exp);
             }
         }
     }
@@ -626,7 +630,7 @@ mod tests {
             let pow2_exp = log2(base);
             for exp in min_exp - 20..max_exp + 30 {
                 // Ignore result, always valid
-                pow2_fast_path::<f64>(mantissa, base, pow2_exp, exp);
+                pow2_fast_path::<f64, _>(mantissa, base, pow2_exp, exp);
             }
         }
     }
@@ -638,38 +642,38 @@ mod tests {
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f32::exponent_limit(base);
             for exp in min_exp..max_exp + 1 {
-                let valid = fast_path::<f32>(mantissa, base, exp).is_some();
+                let valid = fast_path::<f32, _>(mantissa, base, exp).is_some();
                 assert!(valid, "should be valid {:?}.", (mantissa, base, exp));
             }
         }
 
         // Check slightly above valid exponents
-        let f = fast_path::<f32>(123, 10, 15);
+        let f = fast_path::<f32, _>(123, 10, 15);
         assert_eq!(f, Some(1.23e+17));
 
         // Exponent is 1 too high, pushes over the mantissa.
-        let f = fast_path::<f32>(123, 10, 16);
+        let f = fast_path::<f32, _>(123, 10, 16);
         assert!(f.is_none());
 
         // Mantissa is too large, checked_mul should overflow.
-        let f = fast_path::<f32>(mantissa, 10, 11);
+        let f = fast_path::<f32, _>(mantissa, 10, 11);
         assert!(f.is_none());
 
         // invalid mantissa
         #[cfg(feature = "radix")]
         {
             let (_, max_exp) = f64::exponent_limit(3);
-            let f = fast_path::<f32>(1 << f32::MANTISSA_SIZE, 3, max_exp + 1);
+            let f = fast_path::<f32, _>(1 << f32::MANTISSA_SIZE, 3, max_exp + 1);
             assert!(f.is_none(), "invalid mantissa");
         }
 
         // invalid exponents
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f32::exponent_limit(base);
-            let f = fast_path::<f32>(mantissa, base, min_exp - 1);
+            let f = fast_path::<f32, _>(mantissa, base, min_exp - 1);
             assert!(f.is_none(), "exponent under min_exp");
 
-            let f = fast_path::<f32>(mantissa, base, max_exp + 1);
+            let f = fast_path::<f32, _>(mantissa, base, max_exp + 1);
             assert!(f.is_none(), "exponent above max_exp");
         }
     }
@@ -681,7 +685,7 @@ mod tests {
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f64::exponent_limit(base);
             for exp in min_exp..max_exp + 1 {
-                let f = fast_path::<f64>(mantissa, base, exp);
+                let f = fast_path::<f64, _>(mantissa, base, exp);
                 assert!(f.is_some(), "should be valid {:?}.", (mantissa, base, exp));
             }
         }
@@ -690,17 +694,17 @@ mod tests {
         #[cfg(feature = "radix")]
         {
             let (_, max_exp) = f64::exponent_limit(3);
-            let f = fast_path::<f64>(1 << f64::MANTISSA_SIZE, 3, max_exp + 1);
+            let f = fast_path::<f64, _>(1 << f64::MANTISSA_SIZE, 3, max_exp + 1);
             assert!(f.is_none(), "invalid mantissa");
         }
 
         // invalid exponents
         for base in BASE_POWN.iter().cloned() {
             let (min_exp, max_exp) = f64::exponent_limit(base);
-            let f = fast_path::<f64>(mantissa, base, min_exp - 1);
+            let f = fast_path::<f64, _>(mantissa, base, min_exp - 1);
             assert!(f.is_none(), "exponent under min_exp");
 
-            let f = fast_path::<f64>(mantissa, base, max_exp + 1);
+            let f = fast_path::<f64, _>(mantissa, base, max_exp + 1);
             assert!(f.is_none(), "exponent above max_exp");
         }
     }

@@ -304,7 +304,9 @@ pub(crate) fn internal_rounding(kind: RoundingKind, sign: Sign) -> RoundingKind 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::float::ExtendedFloat80;
+    use super::super::float::ExtendedFloat;
+
+    type ExtendedFloat80 = ExtendedFloat<u64>;
 
     // NEAREST ROUNDING
 

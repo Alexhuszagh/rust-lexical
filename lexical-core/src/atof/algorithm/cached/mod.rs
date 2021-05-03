@@ -86,7 +86,7 @@ impl<M: Mantissa> ModeratePathPowers<M> {
 // ----------------------
 
 /// Cached powers as a trait for a floating-point type.
-pub(super) trait ModeratePathCache<M: Mantissa> {
+pub(crate) trait ModeratePathCache<M: Mantissa> {
     /// Get powers from radix.
     fn get_powers(radix: u32) -> &'static ModeratePathPowers<M>;
 }

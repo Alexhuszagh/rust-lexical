@@ -380,15 +380,6 @@ impl ExtendedFloat<u128> {
     }
 }
 
-// ALIASES
-
-/// Alias with ~80 bits of precision, 64 for the mantissa and 16 for exponent.
-pub type ExtendedFloat80 = ExtendedFloat<u64>;
-
-/// Alias with ~160 bits of precision, 128 for the mantissa and 32 for exponent.
-#[allow(dead_code)]
-pub type ExtendedFloat160 = ExtendedFloat<u128>;
-
 // TESTS
 // -----
 
@@ -397,6 +388,9 @@ mod tests {
     use super::*;
 
     use approx::assert_relative_eq;
+
+    type ExtendedFloat80 = ExtendedFloat<u64>;
+    type ExtendedFloat160 = ExtendedFloat<u128>;
 
     // NORMALIZE
 
