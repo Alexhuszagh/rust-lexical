@@ -103,6 +103,7 @@ assert_eq!(slc, b"15.1");
 - **no_alloc** Do not use a system allocator.
     <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. If the feature is turned off, storage for arbitrary-precision arithmetic will use dynamically-allocated memory rather than the stack.</blockquote>
 
+In terms of the static array storage for pre-computed values (required for accuracy and performance), 6KB are required if neither `radix` nor `binary` is enabled, 11KB are required if `binary` is enabled, and 127KB are required if `radix` is enabled. This is due to pre-computed powers being required for accurate calculations, and cannot be avoided.
 
 ## Format
 
