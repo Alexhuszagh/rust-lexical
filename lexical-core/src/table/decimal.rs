@@ -67,6 +67,95 @@ pub(crate) const DIGIT_TO_BASE10_SQUARED: [u8; 200] = [
 // EXACT EXPONENT
 // --------------
 
+// Calculating the exponent limit requires determining the largest exponent
+// we can calculate for a radix that can be **exactly** store in the
+// float type. If the value is a power-of-two, then we simply
+// need to scale the minimum, denormal exp and maximum exp to the type
+// size. Otherwise, we need to calculate the number of digits
+// that can fit into the type's precision, after removing a power-of-two
+// (since these values can be represented exactly).
+//
+// The mantissa limit is the number of digits we can remove from
+// the exponent into the mantissa, and is therefore is the
+// `⌊ precision / log2(radix) ⌋`, where precision does not include
+// the hidden bit.
+//
+// The algorithm for calculating both `exponent_limit` and `mantissa_limit`,
+// in Python, can be done as follows:
+//
+// ```python
+// import math
+//
+// def is_pow2(value):
+//     '''Calculate if a value is a power of 2.'''
+//
+//     floor = int(math.log2(value))
+//     return value == 2**floor
+//
+//
+// def remove_pow2(value):
+//     '''Remove a power of 2 from the value.'''
+//
+//     while math.floor(value / 2) == value / 2:
+//         value //= 2
+//     return value
+//
+//
+// def exponent_limit(radix, mantissa_size, min_exp, max_exp):
+//     '''
+//     Calculate the exponent limit for a float, for a given
+//     float type, where `radix` is the numerical base
+//     for the float type, and mantissa size is the length
+//     of the mantissa in bits. min_exp is the minimum,
+//     denormal binary exponent, and max_exp is the maximum
+//     binary exponent.
+//     '''
+//
+//     if is_pow2(radix):
+//         # Can always be exactly represented, calculate relative
+//         # to min and max exp.
+//         scaled_min_exp = int(min_exp / math.log2(radix))
+//         scaled_max_exp = int(max_exp / math.log2(radix))
+//         return (scaled_min_exp, scaled_max_exp)
+//     else:
+//         # Positive and negative should be the same,
+//         # since we need to find the maximum digit
+//         # representable with mantissa digits.
+//         # We first need to remove the highest power-of-
+//         # two from the radix, since these will be represented
+//         # with exponent digits.
+//         base = remove_pow2(radix)
+//         precision = mantissa_size + 1
+//         exp_limit = int(precision / math.log2(base))
+//         return (-exp_limit, exp_limit)
+//
+//
+// def mantissa_limit(radix, mantissa_size):
+//     '''
+//     Calculate mantissa limit for a float type, given
+//     the radix and the length of the mantissa in bits.
+//     '''
+//
+//     precision = mantissa_size + 1
+//     return int(precision / math.log2(radix))
+//
+//
+// def all_limits(mantissa_size, min_exp, max_exp):
+//     '''Print limits for all radixes.'''
+//
+//     print('match radix.as_i32() {')
+//     for radix in range(2, 37):
+//         exp_limit = exponent_limit(radix, mantissa_size, min_exp, max_exp)
+//         print(f'    {radix} => {exp_limit},')
+//     print('}')
+//
+//     print('match radix.as_i32() {')
+//     for radix in range(2, 37):
+//         mant_limit = mantissa_limit(radix, mantissa_size)
+//         print(f'    {radix} => {mant_limit},')
+//     print('}')
+// ```
+
 /// Get exact exponent limit for radix.
 pub trait ExactExponent {
     /// Get min and max exponent limits (exact) from radix.
@@ -154,11 +243,11 @@ impl ExactExponent for f32 {
         #[cfg(all(feature = "binary", not(feature = "radix")))]
         {
             match radix.as_i32() {
-                2 => 23,
-                4 => 11,
-                8 => 7,
+                2 => 24,
+                4 => 12,
+                8 => 8,
                 10 => 7,
-                16 => 5,
+                16 => 6,
                 32 => 4,
                 // Invalid radix
                 _ => unreachable!(),
@@ -168,13 +257,13 @@ impl ExactExponent for f32 {
         #[cfg(feature = "radix")]
         {
             match radix.as_i32() {
-                2 => 23,
+                2 => 24,
                 3 => 15,
-                4 => 11,
+                4 => 12,
                 5 => 10,
                 6 => 9,
                 7 => 8,
-                8 => 7,
+                8 => 8,
                 9 => 7,
                 10 => 7,
                 11 => 6,
@@ -182,7 +271,7 @@ impl ExactExponent for f32 {
                 13 => 6,
                 14 => 6,
                 15 => 6,
-                16 => 5,
+                16 => 6,
                 17 => 5,
                 18 => 5,
                 19 => 5,
@@ -209,11 +298,6 @@ impl ExactExponent for f32 {
         }
     }
 }
-
-/// Precalculated min and max exponents for values exactly representable as f64.
-///
-/// Table of values where `radix**min` and `radix**max` are the limits of types
-/// exactly representable as an f64.
 
 impl ExactExponent for f64 {
     #[inline]
@@ -292,7 +376,7 @@ impl ExactExponent for f64 {
         #[cfg(all(feature = "binary", not(feature = "radix")))]
         {
             match radix.as_i32() {
-                2 => 52,
+                2 => 53,
                 4 => 26,
                 8 => 17,
                 10 => 15,
@@ -306,7 +390,7 @@ impl ExactExponent for f64 {
         #[cfg(feature = "radix")]
         {
             match radix.as_i32() {
-                2 => 52,
+                2 => 53,
                 3 => 33,
                 4 => 26,
                 5 => 22,
