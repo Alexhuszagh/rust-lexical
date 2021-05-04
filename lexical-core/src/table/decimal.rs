@@ -165,6 +165,276 @@ pub trait ExactExponent {
     fn mantissa_limit<T: Integer>(radix: T) -> i32;
 }
 
+#[cfg(feature = "f16")]
+impl ExactExponent for f16 {
+    #[inline]
+    fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
+        debug_assert_radix!(radix);
+        #[cfg(not(feature = "power_of_two"))]
+        {
+            (-4, 4)
+        }
+
+        #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
+        {
+            match radix.as_i32() {
+                2 => (-24, 15),
+                4 => (-12, 7),
+                8 => (-8, 5),
+                10 => (-4, 4),
+                16 => (-6, 3),
+                32 => (-4, 3),
+                // Invalid radix
+                _ => unreachable!(),
+            }
+        }
+
+        #[cfg(feature = "radix")]
+        {
+            match radix.as_i32() {
+                2 => (-24, 15),
+                3 => (-6, 6),
+                4 => (-12, 7),
+                5 => (-4, 4),
+                6 => (-6, 6),
+                7 => (-3, 3),
+                8 => (-8, 5),
+                9 => (-3, 3),
+                10 => (-4, 4),
+                11 => (-3, 3),
+                12 => (-6, 6),
+                13 => (-2, 2),
+                14 => (-3, 3),
+                15 => (-2, 2),
+                16 => (-6, 3),
+                17 => (-2, 2),
+                18 => (-3, 3),
+                19 => (-2, 2),
+                20 => (-4, 4),
+                21 => (-2, 2),
+                22 => (-3, 3),
+                23 => (-2, 2),
+                24 => (-6, 6),
+                25 => (-2, 2),
+                26 => (-2, 2),
+                27 => (-2, 2),
+                28 => (-3, 3),
+                29 => (-2, 2),
+                30 => (-2, 2),
+                31 => (-2, 2),
+                32 => (-4, 3),
+                33 => (-2, 2),
+                34 => (-2, 2),
+                35 => (-2, 2),
+                36 => (-3, 3),
+                // Invalid radix
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    #[inline]
+    fn mantissa_limit<T: Integer>(radix: T) -> i32 {
+        debug_assert_radix!(radix);
+        #[cfg(not(feature = "power_of_two"))]
+        {
+            3
+        }
+
+        #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
+        {
+            match radix.as_i32() {
+                2 => 11,
+                4 => 5,
+                8 => 3,
+                10 => 3,
+                16 => 2,
+                32 => 2,
+                // Invalid radix
+                _ => unreachable!(),
+            }
+        }
+
+        #[cfg(feature = "radix")]
+        {
+            match radix.as_i32() {
+                2 => 11,
+                3 => 6,
+                4 => 5,
+                5 => 4,
+                6 => 4,
+                7 => 3,
+                8 => 3,
+                9 => 3,
+                10 => 3,
+                11 => 3,
+                12 => 3,
+                13 => 2,
+                14 => 2,
+                15 => 2,
+                16 => 2,
+                17 => 2,
+                18 => 2,
+                19 => 2,
+                20 => 2,
+                21 => 2,
+                22 => 2,
+                23 => 2,
+                24 => 2,
+                25 => 2,
+                26 => 2,
+                27 => 2,
+                28 => 2,
+                29 => 2,
+                30 => 2,
+                31 => 2,
+                32 => 2,
+                33 => 2,
+                34 => 2,
+                35 => 2,
+                36 => 2,
+                // Invalid radix
+                _ => unreachable!(),
+            }
+        }
+    }
+}
+
+#[cfg(feature = "f16")]
+impl ExactExponent for bf16 {
+    #[inline]
+    fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
+        debug_assert_radix!(radix);
+        #[cfg(not(feature = "power_of_two"))]
+        {
+            (-3, 3)
+        }
+
+        #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
+        {
+            match radix.as_i32() {
+                2 => (-133, 127),
+                4 => (-66, 63),
+                8 => (-44, 42),
+                10 => (-3, 3),
+                16 => (-33, 31),
+                32 => (-26, 25),
+                // Invalid radix
+                _ => unreachable!(),
+            }
+        }
+
+        #[cfg(feature = "radix")]
+        {
+            match radix.as_i32() {
+                2 => (-133, 127),
+                3 => (-5, 5),
+                4 => (-66, 63),
+                5 => (-3, 3),
+                6 => (-5, 5),
+                7 => (-2, 2),
+                8 => (-44, 42),
+                9 => (-2, 2),
+                10 => (-3, 3),
+                11 => (-2, 2),
+                12 => (-5, 5),
+                13 => (-2, 2),
+                14 => (-2, 2),
+                15 => (-2, 2),
+                16 => (-33, 31),
+                17 => (-1, 1),
+                18 => (-2, 2),
+                19 => (-1, 1),
+                20 => (-3, 3),
+                21 => (-1, 1),
+                22 => (-2, 2),
+                23 => (-1, 1),
+                24 => (-5, 5),
+                25 => (-1, 1),
+                26 => (-2, 2),
+                27 => (-1, 1),
+                28 => (-2, 2),
+                29 => (-1, 1),
+                30 => (-2, 2),
+                31 => (-1, 1),
+                32 => (-26, 25),
+                33 => (-1, 1),
+                34 => (-1, 1),
+                35 => (-1, 1),
+                36 => (-2, 2),
+                // Invalid radix
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    #[inline]
+    fn mantissa_limit<T: Integer>(radix: T) -> i32 {
+        debug_assert_radix!(radix);
+        #[cfg(not(feature = "power_of_two"))]
+        {
+            2
+        }
+
+        #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
+        {
+            match radix.as_i32() {
+                2 => 8,
+                4 => 4,
+                8 => 2,
+                10 => 2,
+                16 => 2,
+                32 => 1,
+                // Invalid radix
+                _ => unreachable!(),
+            }
+        }
+
+        #[cfg(feature = "radix")]
+        {
+            match radix.as_i32() {
+                2 => 8,
+                3 => 5,
+                4 => 4,
+                5 => 3,
+                6 => 3,
+                7 => 2,
+                8 => 2,
+                9 => 2,
+                10 => 2,
+                11 => 2,
+                12 => 2,
+                13 => 2,
+                14 => 2,
+                15 => 2,
+                16 => 2,
+                17 => 1,
+                18 => 1,
+                19 => 1,
+                20 => 1,
+                21 => 1,
+                22 => 1,
+                23 => 1,
+                24 => 1,
+                25 => 1,
+                26 => 1,
+                27 => 1,
+                28 => 1,
+                29 => 1,
+                30 => 1,
+                31 => 1,
+                32 => 1,
+                33 => 1,
+                34 => 1,
+                35 => 1,
+                36 => 1,
+                // Invalid radix
+                _ => unreachable!(),
+            }
+        }
+    }
+}
+
 impl ExactExponent for f32 {
     #[inline]
     fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
@@ -425,6 +695,141 @@ impl ExactExponent for f64 {
                 34 => 10,
                 35 => 10,
                 36 => 10,
+                // Invalid radix
+                _ => unreachable!(),
+            }
+        }
+    }
+}
+
+#[cfg(feature = "f128")]
+impl ExactExponent for f128 {
+    #[inline]
+    fn exponent_limit<T: Integer>(radix: T) -> (i32, i32) {
+        debug_assert_radix!(radix);
+        #[cfg(not(feature = "power_of_two"))]
+        {
+            (-48, 48)
+        }
+
+        #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
+        {
+            match radix.as_i32() {
+                2 => (-16494, 16383),
+                4 => (-8247, 8191),
+                8 => (-5498, 5461),
+                10 => (-48, 48),
+                16 => (-4123, 4095),
+                32 => (-3298, 3276),
+                // Invalid radix
+                _ => unreachable!(),
+            }
+        }
+
+        #[cfg(feature = "radix")]
+        {
+            match radix.as_i32() {
+                2 => (-16494, 16383),
+                3 => (-71, 71),
+                4 => (-8247, 8191),
+                5 => (-48, 48),
+                6 => (-71, 71),
+                7 => (-40, 40),
+                8 => (-5498, 5461),
+                9 => (-35, 35),
+                10 => (-48, 48),
+                11 => (-32, 32),
+                12 => (-71, 71),
+                13 => (-30, 30),
+                14 => (-40, 40),
+                15 => (-28, 28),
+                16 => (-4123, 4095),
+                17 => (-27, 27),
+                18 => (-35, 35),
+                19 => (-26, 26),
+                20 => (-48, 48),
+                21 => (-25, 25),
+                22 => (-32, 32),
+                23 => (-24, 24),
+                24 => (-71, 71),
+                25 => (-24, 24),
+                26 => (-30, 30),
+                27 => (-23, 23),
+                28 => (-40, 40),
+                29 => (-23, 23),
+                30 => (-28, 28),
+                31 => (-22, 22),
+                32 => (-3298, 3276),
+                33 => (-22, 22),
+                34 => (-27, 27),
+                35 => (-22, 22),
+                36 => (-35, 35),
+                // Invalid radix
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    #[inline]
+    fn mantissa_limit<T: Integer>(radix: T) -> i32 {
+        debug_assert_radix!(radix);
+        #[cfg(not(feature = "power_of_two"))]
+        {
+            34
+        }
+
+        #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
+        {
+            match radix.as_i32() {
+                2 => 113,
+                4 => 56,
+                8 => 37,
+                10 => 34,
+                16 => 28,
+                32 => 22,
+                // Invalid radix
+                _ => unreachable!(),
+            }
+        }
+
+        #[cfg(feature = "radix")]
+        {
+            match radix.as_i32() {
+                2 => 113,
+                3 => 71,
+                4 => 56,
+                5 => 48,
+                6 => 43,
+                7 => 40,
+                8 => 37,
+                9 => 35,
+                10 => 34,
+                11 => 32,
+                12 => 31,
+                13 => 30,
+                14 => 29,
+                15 => 28,
+                16 => 28,
+                17 => 27,
+                18 => 27,
+                19 => 26,
+                20 => 26,
+                21 => 25,
+                22 => 25,
+                23 => 24,
+                24 => 24,
+                25 => 24,
+                26 => 24,
+                27 => 23,
+                28 => 23,
+                29 => 23,
+                30 => 23,
+                31 => 22,
+                32 => 22,
+                33 => 22,
+                34 => 22,
+                35 => 22,
+                36 => 21,
                 // Invalid radix
                 _ => unreachable!(),
             }
