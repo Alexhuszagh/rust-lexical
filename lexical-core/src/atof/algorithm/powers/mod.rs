@@ -11,6 +11,7 @@ mod small64_decimal;
 #[cfg(feature = "radix")]
 mod small64_radix;
 
+// Limb-width dependent types.
 cfg_if! {
 if #[cfg(limb_width_32)] {
     mod large32_decimal;
@@ -27,6 +28,16 @@ if #[cfg(limb_width_32)] {
     #[cfg(feature = "radix")]
     mod large64_radix;
 }} // cfg_if
+
+// Only for fast-path for f128.
+cfg_if! {
+if #[cfg(feature = "f128")] {
+    mod small128_decimal;
+    #[cfg(feature = "power_of_two")]
+    mod small128_binary;
+    #[cfg(feature = "radix")]
+    mod small128_radix;
+}}  // cfg_if
 
 // Re-export methods.
 pub(crate) use self::large::*;

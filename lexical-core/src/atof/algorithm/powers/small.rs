@@ -24,6 +24,15 @@ if #[cfg(limb_width_32)] {
     use super::small64_radix::*;
 }} // cfg_if
 
+cfg_if! {
+if #[cfg(feature = "f128")] {
+    use super::small128_decimal;
+    #[cfg(feature = "power_of_two")]
+    use super::small128_binary;
+    #[cfg(feature = "radix")]
+    use super::small128_radix;
+}}  // cfg_if
+
 // ASSERTIONS
 const_assert!(POW5[1] / POW5[0] == 5);
 const_assert!(POW10[1] / POW10[0] == 10);
@@ -207,6 +216,76 @@ pub(crate) fn get_small_powers_64(radix: u32) -> &'static [u64] {
             34 => &small64_radix::POW34,
             35 => &small64_radix::POW35,
             36 => &small64_radix::POW36,
+            _ => unreachable!(),
+        }
+    }
+}
+
+/// Get the correct 128-bit small powers from the radix.
+#[inline]
+#[cfg(feature = "f128")]
+pub(crate) fn get_small_powers_128(radix: u32) -> &'static [u128] {
+    #[cfg(not(feature = "power_of_two"))]
+    {
+        match radix {
+            5 => &small128_decimal::POW5,
+            10 => &small128_decimal::POW10,
+            _ => unreachable!(),
+        }
+    }
+
+    #[cfg(all(feature = "power_of_two", not(feature = "radix")))]
+    {
+        match radix {
+            2 => &small128_binary::POW2,
+            4 => &small128_binary::POW4,
+            5 => &small128_decimal::POW5,
+            8 => &small128_binary::POW8,
+            10 => &small128_decimal::POW10,
+            16 => &small128_binary::POW16,
+            32 => &small128_binary::POW32,
+            _ => unreachable!(),
+        }
+    }
+
+    #[cfg(feature = "radix")]
+    {
+        match radix {
+            2 => &small128_binary::POW2,
+            3 => &small128_radix::POW3,
+            4 => &small128_binary::POW4,
+            5 => &small128_decimal::POW5,
+            6 => &small128_radix::POW6,
+            7 => &small128_radix::POW7,
+            8 => &small128_binary::POW8,
+            9 => &small128_radix::POW9,
+            10 => &small128_decimal::POW10,
+            11 => &small128_radix::POW11,
+            12 => &small128_radix::POW12,
+            13 => &small128_radix::POW13,
+            14 => &small128_radix::POW14,
+            15 => &small128_radix::POW15,
+            16 => &small128_binary::POW16,
+            17 => &small128_radix::POW17,
+            18 => &small128_radix::POW18,
+            19 => &small128_radix::POW19,
+            20 => &small128_radix::POW20,
+            21 => &small128_radix::POW21,
+            22 => &small128_radix::POW22,
+            23 => &small128_radix::POW23,
+            24 => &small128_radix::POW24,
+            25 => &small128_radix::POW25,
+            26 => &small128_radix::POW26,
+            27 => &small128_radix::POW27,
+            28 => &small128_radix::POW28,
+            29 => &small128_radix::POW29,
+            30 => &small128_radix::POW30,
+            31 => &small128_radix::POW31,
+            32 => &small128_binary::POW32,
+            33 => &small128_radix::POW33,
+            34 => &small128_radix::POW34,
+            35 => &small128_radix::POW35,
+            36 => &small128_radix::POW36,
             _ => unreachable!(),
         }
     }

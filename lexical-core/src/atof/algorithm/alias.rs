@@ -600,8 +600,7 @@ impl MantissaType for u128 {
 
     #[inline(always)]
     fn small_powers(radix: u32) -> &'static [u128] {
-        // TODO(ahuszagh) Implement..
-        todo!()
+        get_small_powers_128(radix)
     }
 
     #[inline(always)]

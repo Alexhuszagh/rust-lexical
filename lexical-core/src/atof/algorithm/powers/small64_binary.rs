@@ -1,5 +1,7 @@
 //! Precalculated small powers for binary 64-bit limbs.
 
+#![cfg(feature = "power_of_two")]
+
 // BINARY
 
 pub(super) const POW2: [u64; 64] = [
