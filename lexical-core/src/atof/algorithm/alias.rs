@@ -3,9 +3,11 @@
 use crate::float::*;
 use crate::table::*;
 use crate::traits::*;
+use crate::util::*;
 
 use super::bignum::ToBigfloat;
 use super::errors::*;
+use super::math::*;
 use super::powers::*;
 
 // MAX CORRECT DIGITS
@@ -573,6 +575,9 @@ pub trait MantissaType: FloatErrors {
 
     /// Get small powers for mantissa type.
     fn small_powers(radix: u32) -> &'static [Self];
+
+    /// Get the high mantissa bits for the type.
+    fn himant(slice: &[Limb]) -> (Self, bool);
 }
 
 impl MantissaType for u64 {
@@ -582,6 +587,11 @@ impl MantissaType for u64 {
     fn small_powers(radix: u32) -> &'static [u64] {
         get_small_powers_64(radix)
     }
+
+    #[inline(always)]
+    fn himant(slice: &[Limb]) -> (u64, bool) {
+        slice.hi64()
+    }
 }
 
 #[cfg(feature = "f128")]
@@ -590,7 +600,13 @@ impl MantissaType for u128 {
 
     #[inline(always)]
     fn small_powers(radix: u32) -> &'static [u128] {
+        // TODO(ahuszagh) Implement..
         todo!()
+    }
+
+    #[inline(always)]
+    fn himant(slice: &[Limb]) -> (u128, bool) {
+        slice.hi128()
     }
 }
 
@@ -601,6 +617,7 @@ macro_rules! float_type {
     ($($(#[$meta:meta])? $t:ty)*) => ($(
         $(#[$meta])?
         impl FloatType for $t {
+            type UnsignedType = Self::Unsigned;
             type MantissaType = Self::Mantissa;
             type ExtendedFloat = ExtendedFloat<Self::Unsigned>;
         }
@@ -608,8 +625,9 @@ macro_rules! float_type {
 }
 
 /// Trait to simplify type signatures for atof.
-pub trait FloatType: StablePower + MaxCorrectDigits + MaxIncorrectDigits
+pub(crate) trait FloatType: StablePower + MaxCorrectDigits + MaxIncorrectDigits
 {
+    type UnsignedType: FromUint;
     type MantissaType: MantissaType;
     type ExtendedFloat: ExtendedFloatType<Self>;
 }
@@ -626,13 +644,13 @@ float_type!(
 // --------------
 
 /// Trait for extended-float types.
-pub trait ExtendedFloatType<F: FloatType>: ToBigfloat<F> + From<F> {
+pub(crate) trait ExtendedFloatType<F: FloatType>: ToBigfloat<F> + From<F> {
     // I really wish I had any other choice **other** than getters and setters,
     // but since we can't specify fields in traits, and we can't use properties...
     // C'est la vie.
-    fn mant(&self) -> F::Unsigned;
+    fn mant(&self) -> F::UnsignedType;
     fn exp(&self) -> i32;
-    fn set_mant(&mut self, mant: F::Unsigned);
+    fn set_mant(&mut self, mant: F::UnsignedType);
     fn set_exp(&mut self, exp: i32);
 }
 

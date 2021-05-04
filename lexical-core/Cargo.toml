@@ -60,8 +60,19 @@ power_of_two = []
 radix = ["power_of_two"]
 # Allow custom rounding schemes, at the cost of slower performance.
 rounding = []
+# Currently undocumented, use the Eisel-Lemire algorithm.
+lemire = []
 # Use the `std` library.
 std = []
+
+# REMOVED ALGORITHMS
+# ------------------
+# Algorithms that exist solely because they are useful for demonstration,
+# purposes, or algorithm design, but not performant enough for current use.
+
+# Use algorithm M, which generates digits by scaling the numerator
+# and denominator into the range `[2^52, 2^53)`.
+algorithm_m = []
 
 # INTERNAL
 # --------

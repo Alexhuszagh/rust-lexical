@@ -79,6 +79,51 @@ fn split_u128(x: u128) -> [Limb; 2] {
     [as_limb(x), as_limb(x >> 64)]
 }
 
+/// Impl FromUint
+macro_rules! from_uint {
+    ($self:ident, $vec:ty, $split:ident) => {{
+        let mut v = <$vec>::default();
+        let slc = $split($self);
+        v.data_mut().extend_from_slice(&slc);
+        v.normalize();
+        v
+    }};
+}
+
+/// Create vector-like type from integral value.
+pub(crate) trait FromUint: UnsignedInteger {
+    /// Create vector-like type from value.
+    fn from_uint<VecType: SharedOps>(self) -> VecType;
+}
+
+impl FromUint for u16 {
+    #[inline]
+    fn from_uint<VecType: SharedOps>(self) -> VecType {
+        from_uint!(self, VecType, split_u16)
+    }
+}
+
+impl FromUint for u32 {
+    #[inline]
+    fn from_uint<VecType: SharedOps>(self) -> VecType {
+        from_uint!(self, VecType, split_u32)
+    }
+}
+
+impl FromUint for u64 {
+    #[inline]
+    fn from_uint<VecType: SharedOps>(self) -> VecType {
+        from_uint!(self, VecType, split_u64)
+    }
+}
+
+impl FromUint for u128 {
+    #[inline]
+    fn from_uint<VecType: SharedOps>(self) -> VecType {
+        from_uint!(self, VecType, split_u128)
+    }
+}
+
 // HI BITS
 // -------
 
@@ -388,7 +433,7 @@ fn u64_to_hi64_2(r0: u64, r1: u64) -> (u64, bool) {
 }
 
 /// Trait to export the high 64-bits from a little-endian slice.
-trait Hi64<T>: SliceLike<T> {
+pub(super) trait Hi64<T>: SliceLike<T> {
     /// Get the hi64 bits from a 1-limb slice.
     fn hi64_1(&self) -> (u64, bool);
 
@@ -566,7 +611,7 @@ fn u128_to_hi128_2(r0: u128, r1: u128) -> (u128, bool) {
 }
 
 /// Trait to export the high 128-bits from a little-endian slice.
-trait Hi128<T>: SliceLike<T> {
+pub(super) trait Hi128<T>: SliceLike<T> {
     /// Get the hi128 bits from a 1-limb slice.
     fn hi128_1(&self) -> (u128, bool);
 
@@ -2352,43 +2397,33 @@ pub(crate) trait SharedOps: Clone + Sized + Default {
     // CREATION
 
     /// Create new big integer from u16.
-    #[inline]
+    #[inline(always)]
     fn from_u16(x: u16) -> Self {
-        let mut v = Self::default();
-        let slc = split_u16(x);
-        v.data_mut().extend_from_slice(&slc);
-        v.normalize();
-        v
+        x.from_uint()
     }
 
     /// Create new big integer from u32.
-    #[inline]
+    #[inline(always)]
     fn from_u32(x: u32) -> Self {
-        let mut v = Self::default();
-        let slc = split_u32(x);
-        v.data_mut().extend_from_slice(&slc);
-        v.normalize();
-        v
+        x.from_uint()
     }
 
     /// Create new big integer from u64.
-    #[inline]
+    #[inline(always)]
     fn from_u64(x: u64) -> Self {
-        let mut v = Self::default();
-        let slc = split_u64(x);
-        v.data_mut().extend_from_slice(&slc);
-        v.normalize();
-        v
+        x.from_uint()
     }
 
     /// Create new big integer from u128.
-    #[inline]
+    #[inline(always)]
     fn from_u128(x: u128) -> Self {
-        let mut v = Self::default();
-        let slc = split_u128(x);
-        v.data_mut().extend_from_slice(&slc);
-        v.normalize();
-        v
+        x.from_uint()
+    }
+
+    /// Create new big integer from generic integer type.
+    #[inline(always)]
+    fn from_uint<T: FromUint>(x: T) -> Self {
+        x.from_uint()
     }
 
     // NORMALIZE

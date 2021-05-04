@@ -3,7 +3,7 @@
 use crate::float::*;
 use crate::traits::*;
 
-use super::alias::FloatType;
+use super::alias::{FloatType, MantissaType};
 use super::math::*;
 
 // BINARY FACTOR
@@ -86,12 +86,26 @@ pub(super) fn integral_binary_factor(radix: u32) -> u32 {
 ///  * `f128`     - 16530
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(Debug))]
-pub(crate) struct Bigint<F: Float> {
+pub(crate) struct Bigint<F: FloatType> {
     /// Internal storage for the Bigint, in little-endian order.
     pub(crate) data: F::BigintStorage,
 }
 
-impl<F: Float> Default for Bigint<F> {
+impl<F: FloatType> Bigint<F> {
+    /// Get the upper bits of the mantissa, shifted into place.
+    #[inline(always)]
+    pub(crate) fn himant(&self) -> (F::MantissaType, bool) {
+        F::MantissaType::himant(self.data().as_slice())
+    }
+
+    /// Create the container from the the mantissa digits.
+    #[inline(always)]
+    pub(crate) fn from_mant(mant: F::UnsignedType) -> Self {
+        Self::from_uint(mant)
+    }
+}
+
+impl<F: FloatType> Default for Bigint<F> {
     #[inline]
     fn default() -> Self {
         // We want to avoid lower-order
@@ -103,7 +117,7 @@ impl<F: Float> Default for Bigint<F> {
     }
 }
 
-impl<F: Float> SharedOps for Bigint<F> {
+impl<F: FloatType> SharedOps for Bigint<F> {
     type StorageType = F::BigintStorage;
 
     #[inline(always)]
@@ -117,10 +131,10 @@ impl<F: Float> SharedOps for Bigint<F> {
     }
 }
 
-impl<F: Float> SmallOps for Bigint<F> {
+impl<F: FloatType> SmallOps for Bigint<F> {
 }
 
-impl<F: Float> LargeOps for Bigint<F> {
+impl<F: FloatType> LargeOps for Bigint<F> {
 }
 
 // BIGFLOAT
@@ -140,7 +154,7 @@ impl<F: Float> LargeOps for Bigint<F> {
 ///  * `f128`     - 11564
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(Debug))]
-pub struct Bigfloat<F: Float> {
+pub(crate) struct Bigfloat<F: FloatType> {
     /// Internal storage for the Bigfloat, in little-endian order.
     ///
     /// Enough storage for up to 10^345, which is 2^1146, or more than
@@ -151,7 +165,7 @@ pub struct Bigfloat<F: Float> {
     pub(crate) exp: i32,
 }
 
-impl<F: Float> Default for Bigfloat<F> {
+impl<F: FloatType> Default for Bigfloat<F> {
     #[inline]
     fn default() -> Self {
         // We want to avoid lower-order
@@ -164,7 +178,7 @@ impl<F: Float> Default for Bigfloat<F> {
     }
 }
 
-impl<F: Float> SharedOps for Bigfloat<F> {
+impl<F: FloatType> SharedOps for Bigfloat<F> {
     type StorageType = F::BigfloatStorage;
 
     #[inline(always)]
@@ -178,7 +192,7 @@ impl<F: Float> SharedOps for Bigfloat<F> {
     }
 }
 
-impl<F: Float> SmallOps for Bigfloat<F> {
+impl<F: FloatType> SmallOps for Bigfloat<F> {
     #[inline]
     fn imul_pow2(&mut self, n: u32) {
         // Increment exponent to simulate actual multiplication.
@@ -186,14 +200,14 @@ impl<F: Float> SmallOps for Bigfloat<F> {
     }
 }
 
-impl<F: Float> LargeOps for Bigfloat<F> {
+impl<F: FloatType> LargeOps for Bigfloat<F> {
 }
 
 // TO BIGFLOAT
 // -----------
 
 /// Simple overloads to allow conversions of extended floats to big integers.
-pub trait ToBigfloat<F: FloatType> {
+pub(crate) trait ToBigfloat<F: FloatType> {
     fn to_bigfloat(&self) -> Bigfloat<F>;
 }
 

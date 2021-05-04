@@ -16,9 +16,11 @@ use crate::util::*;
 /// Check if the error is accurate with a round-nearest rounding scheme.
 // TODO(ahuszagh) This can be generic: M::BITS + 1
 #[inline]
-fn nearest_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64) -> bool {
+fn nearest_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64)
+    -> bool
+{
     // Round-to-nearest, need to use the halfway point.
-    if extrabits == 65 {
+    if extrabits >= 65 {
         // Underflow, we have a shift larger than the mantissa.
         // Representation is valid **only** if the value is close enough
         // overflow to the next bit within errors. If it overflows,
@@ -44,8 +46,12 @@ fn nearest_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u6
 /// Check if the error is accurate with a round-toward rounding scheme.
 #[inline]
 #[cfg(feature = "rounding")]
-fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64) -> bool {
-    if extrabits == 65 {
+fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64)
+    -> bool
+//where
+//    M: Mantissa
+{
+    if extrabits >= 65 {
         // Underflow, we have a literal 0.
         true
     } else {
@@ -189,10 +195,6 @@ impl FloatErrors for u64 {
 
         let extrabits = extrabits.as_u64();
         let errors = count.as_u64();
-        if extrabits > 65 {
-            // Underflow, we have a literal 0.
-            return true;
-        }
 
         #[cfg(not(feature = "rounding"))]
         {
@@ -210,25 +212,32 @@ impl FloatErrors for u64 {
     }
 }
 
-// 128-bit representation is always accurate, ignore this.
 #[cfg(feature = "f128")]
 impl FloatErrors for u128 {
     #[inline]
     fn error_scale() -> u32 {
-        // TODO(ahuszagh) Implement...
-        0
+        // TODO(ahuszagh) Verify this.
+        // Why do we have 8 above?
+        //      Because???
+        //      Is it due to the type size? Unlikely.
+        //  Is it due to
+        //      64 - 52 - 1 == 11
+        //      math.log2(8) == 3, so 3 units?
+        16
     }
 
     #[inline]
     fn error_halfscale() -> u32 {
-        // TODO(ahuszagh) Implement...
-        0
+        // TODO(ahuszagh) Verify this.
+        u128::error_scale() / 2
     }
 
     #[inline]
-    fn error_is_accurate<F: Float>(_: u32, _: &ExtendedFloat<u128>, _: RoundingKind) -> bool {
-        // Ignore the halfway problem, use more bits to aim for accuracy,
-        // but short-circuit to avoid extremely slow operations.
-        true
+    fn error_is_accurate<F: Float>(
+        count: u32,
+        fp: &ExtendedFloat<u128>,
+        kind: RoundingKind,
+    ) -> bool {
+        todo!()
     }
 }

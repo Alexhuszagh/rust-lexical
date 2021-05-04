@@ -224,8 +224,9 @@ where
     bigmant.imul_power(radix, exponent.as_u32());
 
     // Get the exact representation of the float from the big integer.
-    let (mant, is_truncated) = bigmant.hi64();
-    let exp = bigmant.bit_length().as_i32() - <u64 as Integer>::BITS.as_i32();
+    let (mant, is_truncated) = bigmant.himant();
+    let bits = F::MantissaType::FULL;
+    let exp = bigmant.bit_length().as_i32() - bits;
     let mut fp = ExtendedFloat {
         mant,
         exp,
@@ -249,6 +250,7 @@ pub(super) fn small_atof<'a, F, Data>(
     kind: RoundingKind,
 ) -> F
 where
+// FUCK MY TRAIT BOUNDS
     F: FloatType,
     Data: SlowDataInterface<'a>,
 {
@@ -259,7 +261,7 @@ where
 
     // Get the significant digits and the binary exponent for `b+h`.
     let theor = bigcomp::theoretical_float(f, kind);
-    let mut theor_digits = Bigint::from_u64(theor.mant().as_u64());
+    let mut theor_digits = Bigint::from_mant(theor.mant());
     let theor_exp = theor.exp();
 
     // We need to scale the real digits and `b+h` digits to be the same
@@ -277,7 +279,7 @@ where
         // Example: 10^-10, 2^-10   -> ( 0, 10, 0)
         // Example: 10^-10, 2^-15   -> (-5, 10, 0)
         // Example: 10^-10, 2^-5    -> ( 5, 10, 0)
-        // Example: 10^-10, 2^5 -> (15, 10, 0)
+        // Example: 10^-10, 2^5     -> (15, 10, 0)
         true => (theor_exp - real_exp, -real_exp, 0),
         // Cannot remove a power-of-two.
         false => (theor_exp, 0, -real_exp),

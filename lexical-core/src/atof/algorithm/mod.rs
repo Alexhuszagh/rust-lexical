@@ -21,3 +21,9 @@ pub(crate) mod incorrect;
 pub(crate) use self::alias::FloatType;
 pub(crate) use self::cached::ModeratePathCache;
 pub(crate) use self::format::*;
+
+// Internal implementation details.
+// These algorithms are no longer used, but they are useful.
+// Feature-gate them for testing.
+#[cfg(feature = "algorithm_m")]
+mod algorithm_m;

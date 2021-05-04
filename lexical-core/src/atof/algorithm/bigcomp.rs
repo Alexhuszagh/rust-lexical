@@ -127,7 +127,7 @@ where
 /// * `radix`           - Radix for the number parsing.
 /// * `sci_exponent`    - Exponent of basen string in scientific notation.
 #[inline]
-pub fn scaling_factor<F: FloatType>(radix: u32, sci_exponent: u32) -> Bigfloat<F> {
+pub(crate) fn scaling_factor<F: FloatType>(radix: u32, sci_exponent: u32) -> Bigfloat<F> {
     let mut factor: Bigfloat<F> = Bigfloat::default();
     factor.data.push(1);
     factor.imul_power(radix, sci_exponent);
