@@ -31,6 +31,7 @@ mod fast;
 
 // Moderate-Path
 mod extended_float;
+mod lemire; // TODO(ahuszagh) Implement...
 
 // Slow-Path
 mod bhcomp;

@@ -6,8 +6,8 @@
 //! of space, based on the source files here:
 //!     src/atof/algorithm/cached/float80_decimal.rs:   ~1 KB
 //!     src/atof/algorithm/cached/float80_radix.rs:     ~29 KB
-//!     src/atof/algorithm/cached/float160_decimal.rs:  ~1.6 KB
-//!     src/atof/algorithm/cached/float160_radix.rs:    ~50 KB
+//!     src/atof/algorithm/cached/float160_decimal.rs:  ~7 KB
+//!     src/atof/algorithm/cached/float160_radix.rs:    ~200 KB
 //!     src/atof/algorithm/powers/large32_decimal.rs:   ~5 KB
 //!     src/atof/algorithm/powers/large32_radix.rs:     ~50 KB
 //!     src/atof/algorithm/powers/large64_decimal.rs:   ~4.8 KB
@@ -32,7 +32,8 @@
 //!
 //! Note: these figures assume that 32-bit and 64-bit powers
 //! are mutually independent, and cached/float160 is not being compiled
-//! in (which it currently is not).
+//! in (which it currently is not). Storage requirements increase
+//! dramatically with support for `f128`.
 
 // Hide modules.
 mod decimal;

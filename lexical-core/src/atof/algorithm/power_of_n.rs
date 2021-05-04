@@ -37,20 +37,14 @@ where
     // Moderate path (use an extended 80-bit representation).
     let exponent = data.mantissa_exponent();
     let is_truncated = data.truncated_digits() != 0;
-    let (fp, valid) = moderate_path::<F, _>(mantissa, radix, exponent, is_truncated, kind);
-    if valid || is_lossy {
-        let float = fp.into_rounded_float_impl::<F>(kind);
-        return float;
-    }
+    let (float, valid) =
+        moderate_path::<F, _>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
 
-    // Slow path
-    let b = fp.into_rounded_float_impl::<F>(RoundingKind::Downward);
-    if b.is_special() {
-        // We have a non-finite number, we get to leave early.
-        return b;
+    // Check if we can return early, or use slow-path.
+    if valid || float.is_special() {
+        float
     } else {
-        let float = bhcomp::atof(data, radix, b, kind);
-        return float;
+        bhcomp::atof(data, radix, float, kind)
     }
 }
 

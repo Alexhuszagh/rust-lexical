@@ -275,7 +275,7 @@ where
             },
         }
 
-        // Multiply by the large power
+        // Multiply by the large power.
         fp.imul(&powers.get_large(large_index.as_usize()));
         if errors > 0 {
             errors += 1;
@@ -300,8 +300,9 @@ pub(super) fn moderate_path<F, M>(
     radix: u32,
     exponent: i32,
     truncated: bool,
+    is_lossy: bool,
     kind: RoundingKind,
-) -> (ExtendedFloat<M>, bool)
+) -> (F, bool)
 where
     M: MantissaType,
     F: Float,
@@ -312,7 +313,15 @@ where
         exp: 0,
     };
     let valid = multiply_exponent_extended::<F, M>(&mut fp, radix, exponent, truncated, kind);
-    (fp, valid)
+    if valid || is_lossy {
+        // Need to check if we have a 64-bit float, actually.
+        let float = fp.into_rounded_float_impl::<F>(kind);
+        (float, true)
+    } else {
+        // Need the slow-path algorithm.
+        let float = fp.into_rounded_float_impl::<F>(RoundingKind::Downward);
+        (float, false)
+    }
 }
 
 // TEST
@@ -328,22 +337,22 @@ mod tests {
         let kind = RoundingKind::NearestTieEven;
 
         // Halfway, round-down tests
-        assert!(moderate_path::<f64, _>(9007199254740992u64, radix, 0, false, kind).1);
-        assert!(!moderate_path::<f64, _>(9007199254740993u64, radix, 0, false, kind).1);
-        assert!(moderate_path::<f64, _>(9007199254740994u64, radix, 0, false, kind).1);
+        assert!(moderate_path::<f64, _>(9007199254740992u64, radix, 0, false, false, kind).1);
+        assert!(!moderate_path::<f64, _>(9007199254740993u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64, _>(9007199254740994u64, radix, 0, false, false, kind).1);
 
-        assert!(moderate_path::<f64, _>(18014398509481984u64, radix, 0, false, kind).1);
-        assert!(!moderate_path::<f64, _>(18014398509481986u64, radix, 0, false, kind).1);
-        assert!(moderate_path::<f64, _>(18014398509481988u64, radix, 0, false, kind).1);
+        assert!(moderate_path::<f64, _>(18014398509481984u64, radix, 0, false, false, kind).1);
+        assert!(!moderate_path::<f64, _>(18014398509481986u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64, _>(18014398509481988u64, radix, 0, false, false, kind).1);
 
-        assert!(moderate_path::<f64, _>(9223372036854775808u64, radix, 0, false, kind).1);
-        assert!(!moderate_path::<f64, _>(9223372036854776832u64, radix, 0, false, kind).1);
-        assert!(moderate_path::<f64, _>(9223372036854777856u64, radix, 0, false, kind).1);
+        assert!(moderate_path::<f64, _>(9223372036854775808u64, radix, 0, false, false, kind).1);
+        assert!(!moderate_path::<f64, _>(9223372036854776832u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64, _>(9223372036854777856u64, radix, 0, false, false, kind).1);
 
         // Add a 0 but say we're truncated.
-        assert!(moderate_path::<f64, _>(9007199254740992000u64, radix, -3, true, kind).1);
-        assert!(!moderate_path::<f64, _>(9007199254740993000u64, radix, -3, true, kind).1);
-        assert!(moderate_path::<f64, _>(9007199254740994000u64, radix, -3, true, kind).1);
+        assert!(moderate_path::<f64, _>(9007199254740992000u64, radix, -3, true, false, kind).1);
+        assert!(!moderate_path::<f64, _>(9007199254740993000u64, radix, -3, true, false, kind).1);
+        assert!(moderate_path::<f64, _>(9007199254740994000u64, radix, -3, true, false, kind).1);
     }
 
     #[test]
@@ -352,24 +361,24 @@ mod tests {
         let kind = RoundingKind::NearestTieEven;
 
         // Halfway, round-down tests
-        assert!(moderate_path::<f64, _>(9007199254740994u64, radix, 0, false, kind).1);
-        assert!(!moderate_path::<f64, _>(9007199254740995u64, radix, 0, false, kind).1);
-        assert!(moderate_path::<f64, _>(9007199254740996u64, radix, 0, false, kind).1);
+        assert!(moderate_path::<f64, _>(9007199254740994u64, radix, 0, false, false, kind).1);
+        assert!(!moderate_path::<f64, _>(9007199254740995u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64, _>(9007199254740996u64, radix, 0, false, false, kind).1);
 
-        assert!(moderate_path::<f64, _>(18014398509481988u64, radix, 0, false, kind).1);
-        assert!(!moderate_path::<f64, _>(18014398509481990u64, radix, 0, false, kind).1);
-        assert!(moderate_path::<f64, _>(18014398509481992u64, radix, 0, false, kind).1);
+        assert!(moderate_path::<f64, _>(18014398509481988u64, radix, 0, false, false, kind).1);
+        assert!(!moderate_path::<f64, _>(18014398509481990u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64, _>(18014398509481992u64, radix, 0, false, false, kind).1);
 
-        assert!(moderate_path::<f64, _>(9223372036854777856u64, radix, 0, false, kind).1);
-        assert!(!moderate_path::<f64, _>(9223372036854778880u64, radix, 0, false, kind).1);
-        assert!(moderate_path::<f64, _>(9223372036854779904u64, radix, 0, false, kind).1);
+        assert!(moderate_path::<f64, _>(9223372036854777856u64, radix, 0, false, false, kind).1);
+        assert!(!moderate_path::<f64, _>(9223372036854778880u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64, _>(9223372036854779904u64, radix, 0, false, false, kind).1);
 
         // Add a 0 but say we're truncated.
-        assert!(moderate_path::<f64, _>(9007199254740994000u64, radix, -3, true, kind).1);
-        assert!(!moderate_path::<f64, _>(9007199254740994990u64, radix, -3, true, kind).1);
-        assert!(!moderate_path::<f64, _>(9007199254740995000u64, radix, -3, true, kind).1);
-        assert!(!moderate_path::<f64, _>(9007199254740995010u64, radix, -3, true, kind).1);
-        assert!(moderate_path::<f64, _>(9007199254740996000u64, radix, -3, true, kind).1);
+        assert!(moderate_path::<f64, _>(9007199254740994000u64, radix, -3, true, false, kind).1);
+        assert!(!moderate_path::<f64, _>(9007199254740994990u64, radix, -3, true, false, kind).1);
+        assert!(!moderate_path::<f64, _>(9007199254740995000u64, radix, -3, true, false, kind).1);
+        assert!(!moderate_path::<f64, _>(9007199254740995010u64, radix, -3, true, false, kind).1);
+        assert!(moderate_path::<f64, _>(9007199254740996000u64, radix, -3, true, false, kind).1);
     }
 
     #[test]
@@ -378,14 +387,14 @@ mod tests {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
         let (f, valid) =
-            moderate_path::<f32, _>(mantissa, 3, 1, false, RoundingKind::NearestTieEven);
-        assert_eq!(f.into_f32(), 2.7670116e+19);
+            moderate_path::<f32, _>(mantissa, 3, 1, false, false, RoundingKind::NearestTieEven);
+        assert_eq!(f, 2.7670116e+19);
         assert!(valid, "exponent should be valid");
 
         let mantissa: u64 = 4746067219335938;
         let (f, valid) =
-            moderate_path::<f32, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
-        assert_eq!(f.into_f32(), 123456.1);
+            moderate_path::<f32, _>(mantissa, 15, -9, false, false, RoundingKind::NearestTieEven);
+        assert_eq!(f, 123456.1);
         assert!(valid, "exponent should be valid");
     }
 
@@ -395,20 +404,20 @@ mod tests {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
         let (f, valid) =
-            moderate_path::<f64, _>(mantissa, 3, 1, false, RoundingKind::NearestTieEven);
-        assert_eq!(f.into_f64(), 2.7670116110564327e+19);
+            moderate_path::<f64, _>(mantissa, 3, 1, false, false, RoundingKind::NearestTieEven);
+        assert_eq!(f, 2.7670116110564327e+19);
         assert!(valid, "exponent should be valid");
 
         // valid (ends of the earth, salting the earth)
         let (f, valid) =
-            moderate_path::<f64, _>(mantissa, 3, -695, true, RoundingKind::NearestTieEven);
-        assert_eq!(f.into_f64(), 2.32069302345e-313);
+            moderate_path::<f64, _>(mantissa, 3, -695, true, false, RoundingKind::NearestTieEven);
+        assert_eq!(f, 2.32069302345e-313);
         assert!(valid, "exponent should be valid");
 
         // invalid ("268A6.177777778", base 15)
         let mantissa: u64 = 4746067219335938;
         let (_, valid) =
-            moderate_path::<f64, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
+            moderate_path::<f64, _>(mantissa, 15, -9, false, false, RoundingKind::NearestTieEven);
         assert!(!valid, "exponent should be invalid");
 
         // valid ("268A6.177777778", base 15)
@@ -416,9 +425,15 @@ mod tests {
         #[cfg(feature = "f128")]
         {
             let mantissa: u128 = 4746067219335938;
-            let (f, valid) =
-                moderate_path::<f64, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
-            assert_eq!(f.into_f64(), 123456.1);
+            let (f, valid) = moderate_path::<f64, _>(
+                mantissa,
+                15,
+                -9,
+                false,
+                false,
+                RoundingKind::NearestTieEven,
+            );
+            assert_eq!(f, 123456.1);
             assert!(valid, "exponent should be valid");
         }
 
@@ -426,7 +441,7 @@ mod tests {
         // Adapted from test-parse-random failures.
         let mantissa: u64 = 1009;
         let (_, valid) =
-            moderate_path::<f64, _>(mantissa, 10, -31, false, RoundingKind::NearestTieEven);
+            moderate_path::<f64, _>(mantissa, 10, -31, false, false, RoundingKind::NearestTieEven);
         assert!(!valid, "exponent should be valid");
     }
 }

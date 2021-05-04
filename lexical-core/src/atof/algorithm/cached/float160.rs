@@ -11,12 +11,12 @@
 //! These files takes ~51 KB of storage.
 //!
 //! Total array storage:
-//!  Without radix: ~1.6 KB:
-//!     86 u128
-//!     78 i32
-//!  With radix: ~50 KB:
-//!     2534 u128
-//!     2300 i32
+//!  Without radix: ~7 KB:
+//!     355 u128
+//!     319 i32
+//!  With radix: ~200 KB:
+//!     10147 u128
+//!     9283 i32
 //!
 //! This file is mostly automatically generated, do not change values
 //! manually, unless you know what you are doing. The script to generate
@@ -34,9 +34,9 @@
 //! SMALL_INT_STR = "const BASE{0}_SMALL_INT_POWERS: [u128; {1}] = {2};"
 //! BIAS_STR = "const BASE{0}_BIAS: i32 = {1};"
 //! EXP_STR = "// {}^{}"
-//! POWER_STR = """pub(crate) const BASE{0}_POWERS: ModeratePathPowers<u128> = ModeratePathPowers {{
-//!     small: ExtendedFloatArray {{ mant: &BASE{0}_SMALL_MANTISSA, exp: &BASE{0}_SMALL_EXPONENT }},
-//!     large: ExtendedFloatArray {{ mant: &BASE{0}_LARGE_MANTISSA, exp: &BASE{0}_LARGE_EXPONENT }},
+//! POWER_STR = """pub(crate) const BASE{0}_POWERS: ModeratePathPowers<u128> = ModeratePathPowers
+//!     small: ExtendedFloatArray {{ mant: &BASE{0}_SMALL_MANTISSA, exp: &BASE{0}_SMALL_EXPONENT
+//!     large: ExtendedFloatArray {{ mant: &BASE{0}_LARGE_MANTISSA, exp: &BASE{0}_LARGE_EXPONENT
 //!     small_int: &BASE{0}_SMALL_INT_POWERS,
 //!     step: BASE{0}_STEP,
 //!     bias: BASE{0}_BIAS,
@@ -91,8 +91,19 @@
 //!     '''Generate the large powers for a given base.'''
 //!
 //!     # Get our starting parameters
-//!     min_exp = math.floor(math.log(5e-324, base) - math.log(0xFFFFFFFFFFFFFFFF, base))
-//!     max_exp = math.ceil(math.log(1.7976931348623157e+308, base))
+//!     # We can represent extremely small values using log2 accurately,
+//!     # using log2 on integral values. log(1/5) == -log(5).
+//!     # Likewise, 4.94e-324 is log(4.94) - log(10**324)
+//!
+//!     # Range for 128 bit floats is:
+//!     #   6.475e-4966
+//!     #   1.1897e4932
+//!     pos = math.log(6.475175, base) - math.log(10**4966, base)
+//!     sub = math.log(0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF, base)
+//!     min_exp = int(math.floor(pos - sub))
+//!
+//!     max_exp_float = math.log(1.1897, base) + math.log(10**4932, base)
+//!     max_exp = int(math.ceil(max_exp_float))
 //!     bitshift = calculate_bitshift(base, abs(min_exp - step))
 //!     fps = deque()
 //!
@@ -122,14 +133,15 @@
 //!     for fp, exp in fps:
 //!         value = "    {},".format(fp[index])
 //!         exp = EXP_STR.format(base, exp)
-//!         print(value.ljust(56, " ") + exp)
+//!         print(value.ljust(45, " ") + exp)
 //!     print("];")
 //!
 //!
 //! def generate_base(base):
 //!     '''Generate all powers and variables.'''
 //!
-//!     step = math.floor(math.log(1e10, base))
+//!     # Can't have above math.log10(2**128), or 38 values.
+//!     step = math.floor(math.log(1e35, base))
 //!     small, ints = generate_small(base, step)
 //!     large, bias = generate_large(base, step)
 //!
@@ -164,6 +176,7 @@
 //! if __name__ == '__main__':
 //!     generate()
 //! ```
+// TODO(ahuszagh) Update the storage counts.
 
 use crate::traits::*;
 
