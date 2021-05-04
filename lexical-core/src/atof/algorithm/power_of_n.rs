@@ -8,11 +8,17 @@ use crate::util::*;
 use super::alias::*;
 use super::bhcomp;
 use super::cached::ModeratePathCache;
-use super::extended_float::moderate_path;
 use super::fast::fast_path;
 use super::format::*;
 use super::incorrect;
 use super::mantissa::*;
+
+cfg_if! {
+if #[cfg(feature = "lemire")] {
+    use super::lemire::moderate_path;
+} else {
+    use super::extended_float::moderate_path;
+}}  // cfg_if
 
 // TO NATIVE
 // ---------

@@ -151,6 +151,7 @@ mod tests {
         assert_eq!(Ok((12.345, 6)), atod10(b"12.345"));
         assert_eq!(Ok((12345.6789, 10)), atod10(b"12345.6789"));
         assert_eq!(Ok((1.2345e10, 9)), atod10(b"1.2345e10"));
+        assert_eq!(Ok((1e-323, 6)), atod10(b"1e-323"));
         assert_eq!(Ok((1.2345e-308, 11)), atod10(b"1.2345e-308"));
 
         // Check expected rounding, using borderline cases.

@@ -572,6 +572,20 @@ pub trait MantissaType: FloatErrors {
     const MAX_SHIFT: i32 = Self::FULL - 1;
     /// Get the maximum exponent for the associated float type.
     const MAX_EXPONENT: i32;
+    /// Magic number for the math.log2(10).
+    ///
+    /// See `lemire` for details on how to generate these
+    /// magic numbers. Must be signed, and 64-bits is
+    /// always large enough.
+    const LOG2_10: i64;
+    /// Shift required to normalize the log2 calculation.
+    const LOG2_10_SHIFT: i32;
+    /// Bitmask for the hidden bit in exponent, which is an implicit 1 in the fraction.
+    const HIDDEN_BIT_MASK: Self;
+    /// Bitmask for the mantissa (fraction), excluding the hidden bit.
+    const MANTISSA_MASK: Self;
+    /// Mask to determine if a full-carry occurred (1 in bit above hidden bit).
+    const CARRY_MASK: Self;
 
     /// Get small powers for mantissa type.
     fn small_powers(radix: u32) -> &'static [Self];
@@ -582,6 +596,11 @@ pub trait MantissaType: FloatErrors {
 
 impl MantissaType for u64 {
     const MAX_EXPONENT: i32 = 0x7FF; // 2^11 - 1
+    const LOG2_10: i64 = 217706;
+    const LOG2_10_SHIFT: i32 = 16;
+    const HIDDEN_BIT_MASK: u64 = f64::HIDDEN_BIT_MASK;
+    const MANTISSA_MASK: u64 = f64::MANTISSA_MASK;
+    const CARRY_MASK: u64 = f64::CARRY_MASK;
 
     #[inline(always)]
     fn small_powers(radix: u32) -> &'static [u64] {
@@ -597,6 +616,11 @@ impl MantissaType for u64 {
 #[cfg(feature = "f128")]
 impl MantissaType for u128 {
     const MAX_EXPONENT: i32 = 0x7FFF; // 2^15 - 1
+    const LOG2_10: i64 = 14267572528;
+    const LOG2_10_SHIFT: i32 = 32;
+    const HIDDEN_BIT_MASK: u128 = f128::HIDDEN_BIT_MASK;
+    const MANTISSA_MASK: u128 = f128::MANTISSA_MASK;
+    const CARRY_MASK: u128 = f128::CARRY_MASK;
 
     #[inline(always)]
     fn small_powers(radix: u32) -> &'static [u128] {

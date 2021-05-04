@@ -31,7 +31,10 @@ mod fast;
 
 // Moderate-Path
 mod extended_float;
-mod lemire; // TODO(ahuszagh) Implement...
+cfg_if! {
+if #[cfg(feature = "lemire")] {
+    mod lemire;
+}}  // cfg_if
 
 // Slow-Path
 mod bhcomp;

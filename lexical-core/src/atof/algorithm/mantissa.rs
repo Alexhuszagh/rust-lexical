@@ -51,6 +51,9 @@ mod tests {
         let data = (b!("1009"), None, Some(b!("-31")), -31).into();
         assert_eq!((1009, 0), process_mantissa::<u64, Data>(&data, 10));
 
+        let data = (b!("1"), Some(b!("000000178813934326171875")), None, 0).into();
+        assert_eq!((10000001788139343261, 5), process_mantissa::<u64, Data>(&data, 10));
+
         // 128-bit
         let data = (b!("1"), Some(b!("2345")), None, 0).into();
         assert_eq!((12345, 0), process_mantissa::<u128, Data>(&data, 10));
