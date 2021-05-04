@@ -14,25 +14,30 @@ use crate::util::*;
 // -------
 
 /// Check if the error is accurate with a round-nearest rounding scheme.
-// TODO(ahuszagh) This can be generic: M::BITS + 1
 #[inline]
-fn nearest_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64)
+fn nearest_error_is_accurate<M>(errors: u32, fp: &ExtendedFloat<M>, extrabits: i32)
     -> bool
+where
+    M: Mantissa,
 {
+    let full = M::FULL;
+    let maskbits: M = as_cast(extrabits);
+    let errors: M = as_cast(errors);
+
     // Round-to-nearest, need to use the halfway point.
-    if extrabits >= 65 {
+    if extrabits >= full + 1 {
         // Underflow, we have a shift larger than the mantissa.
         // Representation is valid **only** if the value is close enough
         // overflow to the next bit within errors. If it overflows,
         // the representation is **not** valid.
         !fp.mant.overflowing_add(errors).1
     } else {
-        let mask: u64 = lower_n_mask(extrabits);
-        let extra: u64 = fp.mant & mask;
+        let mask = lower_n_mask(maskbits);
+        let extra = fp.mant & mask;
 
         // Round-to-nearest, need to check if we're close to halfway.
         // IE, b10100 | 100000, where `|` signifies the truncation point.
-        let halfway: u64 = lower_n_halfway(extrabits);
+        let halfway = lower_n_halfway(maskbits);
         let cmp1 = halfway.wrapping_sub(errors) < extra;
         let cmp2 = extra < halfway.wrapping_add(errors);
 
@@ -46,20 +51,24 @@ fn nearest_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u6
 /// Check if the error is accurate with a round-toward rounding scheme.
 #[inline]
 #[cfg(feature = "rounding")]
-fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64)
+fn toward_error_is_accurate<M>(errors: u32, fp: &ExtendedFloat<M>, extrabits: i32)
     -> bool
-//where
-//    M: Mantissa
+where
+    M: Mantissa,
 {
-    if extrabits >= 65 {
+    let full = M::FULL;
+    let maskbits: M = as_cast(extrabits);
+    let errors: M = as_cast(errors);
+
+    if extrabits >= full + 1 {
         // Underflow, we have a literal 0.
         true
     } else {
-        let mask: u64 = lower_n_mask(extrabits);
-        let extra: u64 = fp.mant & mask;
+        let mask: M = lower_n_mask(maskbits);
+        let extra: M = fp.mant & mask;
 
         // Round-towards, need to use `1 << extrabits`.
-        if extrabits == 64 {
+        if extrabits == full {
             // Round toward something, we need to check if either operation can overflow,
             // since we cannot exactly represent the comparison point as the type
             // in question.
@@ -73,7 +82,7 @@ fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64
             // IE, b10101 | 000000, where `|` signifies the truncation point.
             // If the extract bits +/- the error can overflow, then  we have
             // an issue.
-            let fullway: u64 = nth_bit(extrabits);
+            let fullway: M = nth_bit(maskbits);
             let cmp1 = fullway.wrapping_sub(errors) < extra;
             let cmp2 = extra < fullway.wrapping_add(errors);
 
@@ -105,33 +114,23 @@ fn toward_error_is_accurate(errors: u64, fp: &ExtendedFloat<u64>, extrabits: u64
 /// round between `b` and `b+1` with this representation.
 pub trait FloatErrors: Mantissa {
     /// Get the full error scale.
-    fn error_scale() -> u32;
-    /// Get the half error scale.
-    fn error_halfscale() -> u32;
-    /// Determine if the number of errors is tolerable for float precision.
-    fn error_is_accurate<F: Float>(
-        count: u32,
-        fp: &ExtendedFloat<Self>,
-        kind: RoundingKind,
-    ) -> bool;
-}
-
-impl FloatErrors for u64 {
-    #[inline]
+    #[inline(always)]
     fn error_scale() -> u32 {
         8
     }
 
+    /// Get the half error scale.
     #[inline]
     fn error_halfscale() -> u32 {
-        u64::error_scale() / 2
+        Self::error_scale() / 2
     }
 
+    /// Determine if the number of errors is tolerable for float precision.
     #[inline]
     #[allow(unused_variables)]
     fn error_is_accurate<F: Float>(
-        count: u32,
-        fp: &ExtendedFloat<u64>,
+        errors: u32,
+        fp: &ExtendedFloat<Self>,
         kind: RoundingKind,
     ) -> bool {
         // Determine if extended-precision float is a good approximation.
@@ -139,13 +138,15 @@ impl FloatErrors for u64 {
         // inaccurate, or if the representation is too close to halfway
         // that any operations could affect this halfway representation.
         // See the documentation for dtoa for more information.
+        let full = Self::FULL;
+        let nonsign_bits = full - 1;
         let bias = -(F::EXPONENT_BIAS - F::MANTISSA_SIZE);
-        let denormal_exp = bias - 63;
+        let denormal_exp = bias - nonsign_bits;
         // This is always a valid u32, since (denormal_exp - fp.exp)
         // will always be positive and the significand size is {23, 52}.
         let extrabits = match fp.exp <= denormal_exp {
-            true => 64 - F::MANTISSA_SIZE + denormal_exp - fp.exp,
-            false => 63 - F::MANTISSA_SIZE,
+            true => full - F::MANTISSA_SIZE + denormal_exp - fp.exp,
+            false => nonsign_bits - F::MANTISSA_SIZE,
         };
 
         // Our logic is as follows: we want to determine if the actual
@@ -193,51 +194,81 @@ impl FloatErrors for u64 {
         // if the representation is accurate, we need to use an **unsigned**
         // type for comparisons.
 
-        let extrabits = extrabits.as_u64();
-        let errors = count.as_u64();
-
         #[cfg(not(feature = "rounding"))]
         {
-            nearest_error_is_accurate(errors, fp, extrabits)
+            nearest_error_is_accurate::<Self>(errors, fp, extrabits)
         }
 
         #[cfg(feature = "rounding")]
         {
             if kind.is_nearest() {
-                nearest_error_is_accurate(errors, fp, extrabits)
+                nearest_error_is_accurate::<Self>(errors, fp, extrabits)
             } else {
-                toward_error_is_accurate(errors, fp, extrabits)
+                toward_error_is_accurate::<Self>(errors, fp, extrabits)
             }
         }
     }
 }
 
+impl FloatErrors for u64 {
+}
+
 #[cfg(feature = "f128")]
 impl FloatErrors for u128 {
-    #[inline]
-    fn error_scale() -> u32 {
-        // TODO(ahuszagh) Verify this.
-        // Why do we have 8 above?
-        //      Because???
-        //      Is it due to the type size? Unlikely.
-        //  Is it due to
-        //      64 - 52 - 1 == 11
-        //      math.log2(8) == 3, so 3 units?
-        16
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use super::super::correct::moderate_path;
+
+    #[test]
+    fn test_halfway_round_down() {
+        let radix = 10;
+        let kind = RoundingKind::NearestTieEven;
+
+        // Halfway, round-down tests
+        assert!(moderate_path::<f64, _>(9007199254740992u64, radix, 0, false, kind).1);
+        assert!(!moderate_path::<f64, _>(9007199254740993u64, radix, 0, false, kind).1);
+        assert!(moderate_path::<f64, _>(9007199254740994u64, radix, 0, false, kind).1);
+
+        assert!(moderate_path::<f64, _>(18014398509481984u64, radix, 0, false, kind).1);
+        assert!(!moderate_path::<f64, _>(18014398509481986u64, radix, 0, false, kind).1);
+        assert!(moderate_path::<f64, _>(18014398509481988u64, radix, 0, false, kind).1);
+
+        assert!(moderate_path::<f64, _>(9223372036854775808u64, radix, 0, false, kind).1);
+        assert!(!moderate_path::<f64, _>(9223372036854776832u64, radix, 0, false, kind).1);
+        assert!(moderate_path::<f64, _>(9223372036854777856u64, radix, 0, false, kind).1);
+
+        // Add a 0 but say we're truncated.
+        assert!(moderate_path::<f64, _>(9007199254740992000u64, radix, -3, true, kind).1);
+        assert!(!moderate_path::<f64, _>(9007199254740993000u64, radix, -3, true, kind).1);
+        assert!(moderate_path::<f64, _>(9007199254740994000u64, radix, -3, true, kind).1);
     }
 
-    #[inline]
-    fn error_halfscale() -> u32 {
-        // TODO(ahuszagh) Verify this.
-        u128::error_scale() / 2
-    }
+    #[test]
+    fn test_halfway_round_up() {
+        let radix = 10;
+        let kind = RoundingKind::NearestTieEven;
 
-    #[inline]
-    fn error_is_accurate<F: Float>(
-        count: u32,
-        fp: &ExtendedFloat<u128>,
-        kind: RoundingKind,
-    ) -> bool {
-        todo!()
+        // Halfway, round-down tests
+        assert!(moderate_path::<f64, _>(9007199254740994u64, radix, 0, false, kind).1);
+        assert!(!moderate_path::<f64, _>(9007199254740995u64, radix, 0, false, kind).1);
+        assert!(moderate_path::<f64, _>(9007199254740996u64, radix, 0, false, kind).1);
+
+        assert!(moderate_path::<f64, _>(18014398509481988u64, radix, 0, false, kind).1);
+        assert!(!moderate_path::<f64, _>(18014398509481990u64, radix, 0, false, kind).1);
+        assert!(moderate_path::<f64, _>(18014398509481992u64, radix, 0, false, kind).1);
+
+        assert!(moderate_path::<f64, _>(9223372036854777856u64, radix, 0, false, kind).1);
+        assert!(!moderate_path::<f64, _>(9223372036854778880u64, radix, 0, false, kind).1);
+        assert!(moderate_path::<f64, _>(9223372036854779904u64, radix, 0, false, kind).1);
+
+        // Add a 0 but say we're truncated.
+        assert!(moderate_path::<f64, _>(9007199254740994000u64, radix, -3, true, kind).1);
+        assert!(!moderate_path::<f64, _>(9007199254740994990u64, radix, -3, true, kind).1);
+        assert!(!moderate_path::<f64, _>(9007199254740995000u64, radix, -3, true, kind).1);
+        assert!(!moderate_path::<f64, _>(9007199254740995010u64, radix, -3, true, kind).1);
+        assert!(moderate_path::<f64, _>(9007199254740996000u64, radix, -3, true, kind).1);
     }
 }

@@ -179,7 +179,7 @@ where
 /// Multiply by pre-calculated powers of the base, modify the extended-
 /// float, and return if new value and if the value can be represented
 /// accurately.
-fn multiply_exponent_extended<F, M>(
+pub(crate) fn multiply_exponent_extended<F, M>(
     fp: &mut ExtendedFloat<M>,
     radix: u32,
     exponent: i32,
