@@ -6,7 +6,7 @@ use crate::traits::*;
 use crate::util::*;
 
 use super::bignum::ToBigfloat;
-use super::errors::*;
+use super::extended_float::FloatErrors;
 use super::math::*;
 use super::powers::*;
 
@@ -581,7 +581,7 @@ pub trait MantissaType: FloatErrors {
 }
 
 impl MantissaType for u64 {
-    const MAX_EXPONENT: i32 = 0x7FF;    // 2^11 - 1
+    const MAX_EXPONENT: i32 = 0x7FF; // 2^11 - 1
 
     #[inline(always)]
     fn small_powers(radix: u32) -> &'static [u64] {
@@ -596,7 +596,7 @@ impl MantissaType for u64 {
 
 #[cfg(feature = "f128")]
 impl MantissaType for u128 {
-    const MAX_EXPONENT: i32 = 0x7FFF;   // 2^15 - 1
+    const MAX_EXPONENT: i32 = 0x7FFF; // 2^15 - 1
 
     #[inline(always)]
     fn small_powers(radix: u32) -> &'static [u128] {
@@ -624,8 +624,7 @@ macro_rules! float_type {
 }
 
 /// Trait to simplify type signatures for atof.
-pub(crate) trait FloatType: StablePower + MaxCorrectDigits + MaxIncorrectDigits
-{
+pub(crate) trait FloatType: StablePower + MaxCorrectDigits + MaxIncorrectDigits {
     type UnsignedType: FromUint;
     type MantissaType: MantissaType;
     type ExtendedFloat: ExtendedFloatType<Self>;

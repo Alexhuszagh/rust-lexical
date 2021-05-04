@@ -5,15 +5,12 @@
 mod format;
 
 mod alias;
-mod bhcomp;
-mod bigcomp;
-mod bignum;
 mod cached;
-mod errors;
+mod mantissa;
 mod math;
 mod powers;
 
-// Export algorithms.
+// Export high-level algorithms.
 pub(crate) mod correct;
 pub(crate) mod incorrect;
 
@@ -21,6 +18,24 @@ pub(crate) mod incorrect;
 pub(crate) use self::alias::FloatType;
 pub(crate) use self::cached::ModeratePathCache;
 pub(crate) use self::format::*;
+
+// ALGORITHMS
+// ----------
+// Dispatchers.
+mod power_of_n;
+#[cfg(feature = "power_of_two")]
+mod power_of_two;
+
+// Fast-path
+mod fast;
+
+// Moderate-Path
+mod extended_float;
+
+// Slow-Path
+mod bhcomp;
+mod bigcomp;
+mod bignum;
 
 // Internal implementation details.
 // These algorithms are no longer used, but they are useful.

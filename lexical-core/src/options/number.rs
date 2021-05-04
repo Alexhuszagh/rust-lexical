@@ -1121,6 +1121,5 @@ impl NumberFormatBuilderV2 {
 
     // BUILDER
 
-
     // TODO(ahuszagh) Here...
 }

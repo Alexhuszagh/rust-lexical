@@ -46,10 +46,9 @@ use super::math::*;
 ///
 /// We want the returned quotient to have [64, 65) bits, IE, the bit
 /// length of the numerator - denominator is 64.
-fn scale_ratio<F>(num: &mut Bigint<F>, den: &mut Bigint<F>, mantissa_size: i32)
-    -> i32
+fn scale_ratio<F>(num: &mut Bigint<F>, den: &mut Bigint<F>, mantissa_size: i32) -> i32
 where
-    F: FloatType
+    F: FloatType,
 {
     // We to scale the numerator and the denominator so there are
     // MANTISSA_SIZE extra bits in the numerator, so we can at
@@ -88,9 +87,8 @@ pub(super) fn negative_exponent_atof<'a, F, Data>(
     radix: u32,
     max_digits: usize,
     exponent: i32,
-    kind: RoundingKind
-)
-    -> F
+    kind: RoundingKind,
+) -> F
 where
     F: FloatType,
     Data: SlowDataInterface<'a>,
@@ -134,7 +132,10 @@ where
     // overflowing the 53-bits of the mantissa in edge cases, these
     // should spill to the exponent using `next()`.
     // We also need to handle subnormal exponents.
-    let mut fp = ExtendedFloat { mant, exp };
+    let mut fp = ExtendedFloat {
+        mant,
+        exp,
+    };
     if fp.exp < F::DENORMAL_EXPONENT {
         // With subnormal exponents, we don't care if the remainder
         // is greater than halfway, since we're shifting right further.
@@ -175,13 +176,7 @@ where
 ///     `FloatSlice`).
 ///     sci_exponent and digits.size_hint() must not overflow i32.
 #[allow(dead_code)]
-pub(super) fn atof<'a, F, Data>(
-    data: Data,
-    radix: u32,
-    f: F,
-    kind: RoundingKind
-)
-    -> F
+pub(super) fn atof<'a, F, Data>(data: Data, radix: u32, f: F, kind: RoundingKind) -> F
 where
     F: FloatType,
     Data: SlowDataInterface<'a>,
@@ -217,7 +212,10 @@ mod tests {
         let kind = RoundingKind::NearestTieEven;
 
         let data: Data = (b!("8"), Some(b!("98846567431158")), Some(b!("+307")), 307).into();
-        assert_eq!(8.98846567431158e+307, atof::<f64, _>(data.to_slow(0), 10, 8.98846567431158e+307, kind));
+        assert_eq!(
+            8.98846567431158e+307,
+            atof::<f64, _>(data.to_slow(0), 10, 8.98846567431158e+307, kind)
+        );
 
         let data: Data = (b!("2"), Some(b!("47032822920623")), Some(b!("-324")), -324).into();
         assert_eq!(0.0, atof::<f64, _>(data.to_slow(0), 10, 0.0, kind));

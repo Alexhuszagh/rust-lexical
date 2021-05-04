@@ -37,7 +37,7 @@ if #[cfg(feature = "f128")] {
     mod small128_binary;
     #[cfg(feature = "radix")]
     mod small128_radix;
-}}  // cfg_if
+}} // cfg_if
 
 // Re-export methods.
 pub(crate) use self::large::*;

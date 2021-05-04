@@ -303,8 +303,8 @@ pub(crate) fn internal_rounding(kind: RoundingKind, sign: Sign) -> RoundingKind 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::float::ExtendedFloat;
+    use super::*;
 
     type ExtendedFloat80 = ExtendedFloat<u64>;
 

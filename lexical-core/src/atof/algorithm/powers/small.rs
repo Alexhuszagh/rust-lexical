@@ -31,7 +31,7 @@ if #[cfg(feature = "f128")] {
     use super::small128_binary;
     #[cfg(feature = "radix")]
     use super::small128_radix;
-}}  // cfg_if
+}} // cfg_if
 
 // ASSERTIONS
 const_assert!(POW5[1] / POW5[0] == 5);

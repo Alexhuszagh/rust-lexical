@@ -6,10 +6,7 @@
 #[cfg(feature = "radix")]
 macro_rules! debug_assert_radix_primitive {
     ($radix:expr) => {
-        debug_assert!(
-            $radix >= 2 && $radix <= 36,
-            "Numerical base must be from 2-36."
-        );
+        debug_assert!($radix >= 2 && $radix <= 36, "Numerical base must be from 2-36.");
     };
 }
 
@@ -37,7 +34,9 @@ macro_rules! debug_assert_radix_primitive {
 
 /// Check non-primitive radix is valid.
 macro_rules! debug_assert_radix {
-    ($radix:expr) => (debug_assert_radix_primitive!($radix.as_i32()));
+    ($radix:expr) => {
+        debug_assert_radix_primitive!($radix.as_i32())
+    };
 }
 
 // BUFFER

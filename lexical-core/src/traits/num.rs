@@ -924,7 +924,7 @@ macro_rules! float_method {
 
 /// Define the float literals.
 macro_rules! float_literals {
-    ($float:ty) => (
+    ($float:ty) => {
         const ZERO: $float = 0.0;
         const ONE: $float = 1.0;
         const TWO: $float = 2.0;
@@ -934,18 +934,19 @@ macro_rules! float_literals {
         const NEG_INFINITY: $float = <$float>::NEG_INFINITY;
         const NAN: $float = <$float>::NAN;
         const BITS: usize = mem::size_of::<$float>() * 8;
-    );
+    };
 }
 
 /// Define the float masks.
 macro_rules! float_masks {
     (
-        float => $float:ty,
-        sign_mask => $sign:literal,
-        exponent_mask => $exponent:literal,
-        hidden_bit_mask => $hidden:literal,
-        mantissa_mask => $mantissa:literal,
-    ) => (
+        float =>
+        $float:ty,sign_mask =>
+        $sign:literal,exponent_mask =>
+        $exponent:literal,hidden_bit_mask =>
+        $hidden:literal,mantissa_mask =>
+        $mantissa:literal,
+    ) => {
         const SIGN_MASK: <$float>::Unsigned = $sign;
         const EXPONENT_MASK: <$float>::Unsigned = $exponent;
         const HIDDEN_BIT_MASK: <$float>::Unsigned = $hidden;
@@ -956,17 +957,18 @@ macro_rules! float_masks {
         const INFINITY_BITS: <$float>::Unsigned = $exponent;
         // Negative infinity is just infinity + sign.
         const NEGATIVE_INFINITY_BITS: <$float>::Unsigned = $exponent | $sign;
-    );
+    };
 }
 
 /// Define the limb sizes.
 macro_rules! float_limbs {
     (
-        bigint32_size => $bigint32:literal,
-        bigint64_size => $bigint64:literal,
-        bigfloat32_size => $bigfloat32:literal,
-        bigfloat64_size => $bigfloat64:literal,
-    ) => (
+        bigint32_size =>
+        $bigint32:literal,bigint64_size =>
+        $bigint64:literal,bigfloat32_size =>
+        $bigfloat32:literal,bigfloat64_size =>
+        $bigfloat64:literal,
+    ) => {
         cfg_if! {
         if #[cfg(limb_width_64)] {
             const BIGINT_LIMBS: usize = $bigint64;
@@ -975,7 +977,7 @@ macro_rules! float_limbs {
             const BIGINT_LIMBS: usize = $bigint32;
             const BIGFLOAT_LIMBS: usize = $bigfloat64;
         }} // cfg_if
-    );
+    };
 }
 
 /// Define the float storage types.

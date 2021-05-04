@@ -1374,7 +1374,9 @@ impl SyntaxFormat {
     /// This method should **NEVER** be public, use the builder API.
     #[inline(always)]
     pub(crate) const fn new(bits: u64) -> Self {
-        Self { bits }
+        Self {
+            bits,
+        }
     }
 
     /// Create new format from digit separator.

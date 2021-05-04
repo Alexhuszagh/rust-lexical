@@ -4,19 +4,21 @@
 //!
 //! This implementation is loosely based off the Golang implementation,
 //! found here:
-//!     https://golang.org/src/strconv/atof.go
+//!     https://github.com/golang/go/blob/b10849fbb97a2244c086991b4623ae9f32c212d0/src/strconv/extfloat.go
 
 use crate::float::*;
 use crate::traits::*;
 use crate::util::*;
 
-// HELPERS
-// -------
+use super::alias::*;
+use super::cached::ModeratePathCache;
+
+// FLOAT ERRORS
+// ------------
 
 /// Check if the error is accurate with a round-nearest rounding scheme.
 #[inline]
-fn nearest_error_is_accurate<M>(errors: u32, fp: &ExtendedFloat<M>, extrabits: i32)
-    -> bool
+fn nearest_error_is_accurate<M>(errors: u32, fp: &ExtendedFloat<M>, extrabits: i32) -> bool
 where
     M: Mantissa,
 {
@@ -51,8 +53,7 @@ where
 /// Check if the error is accurate with a round-toward rounding scheme.
 #[inline]
 #[cfg(feature = "rounding")]
-fn toward_error_is_accurate<M>(errors: u32, fp: &ExtendedFloat<M>, extrabits: i32)
-    -> bool
+fn toward_error_is_accurate<M>(errors: u32, fp: &ExtendedFloat<M>, extrabits: i32) -> bool
 where
     M: Mantissa,
 {
@@ -93,9 +94,6 @@ where
         }
     }
 }
-
-// FLOAT ERRORS
-// ------------
 
 /// Calculate if the errors in calculating the extended-precision float.
 ///
@@ -217,10 +215,112 @@ impl FloatErrors for u64 {
 impl FloatErrors for u128 {
 }
 
+// MODERATE PATH
+// -------------
+
+/// Multiply the floating-point by the exponent.
+///
+/// Multiply by pre-calculated powers of the base, modify the extended-
+/// float, and return if new value and if the value can be represented
+/// accurately.
+pub(crate) fn multiply_exponent_extended<F, M>(
+    fp: &mut ExtendedFloat<M>,
+    radix: u32,
+    exponent: i32,
+    truncated: bool,
+    kind: RoundingKind,
+) -> bool
+where
+    M: MantissaType,
+    F: Float,
+    ExtendedFloat<M>: ModeratePathCache<M>,
+{
+    let powers = ExtendedFloat::<M>::get_powers(radix);
+    let exponent = exponent.saturating_add(powers.bias);
+    let small_index = exponent % powers.step;
+    let large_index = exponent / powers.step;
+    if exponent < 0 {
+        // Guaranteed underflow (assign 0).
+        fp.mant = M::ZERO;
+        true
+    } else if large_index as usize >= powers.large.len() {
+        // Overflow (assign infinity)
+        fp.mant = M::ONE << (M::FULL - 1);
+        fp.exp = M::MAX_EXPONENT;
+        true
+    } else {
+        // Within the valid exponent range, multiply by the large and small
+        // exponents and return the resulting value.
+
+        // Track errors to as a factor of unit in last-precision.
+        let mut errors: u32 = 0;
+        if truncated {
+            errors += M::error_halfscale();
+        }
+
+        // Multiply by the small power.
+        // Check if we can directly multiply by an integer, if not,
+        // use extended-precision multiplication.
+        match fp.mant.overflowing_mul(powers.get_small_int(small_index.as_usize())) {
+            // Overflow, multiplication unsuccessful, go slow path.
+            (_, true) => {
+                fp.normalize();
+                fp.imul(&powers.get_small(small_index.as_usize()));
+                errors += M::error_halfscale();
+            },
+            // No overflow, multiplication successful.
+            (mant, false) => {
+                fp.mant = mant;
+                fp.normalize();
+            },
+        }
+
+        // Multiply by the large power
+        fp.imul(&powers.get_large(large_index.as_usize()));
+        if errors > 0 {
+            errors += 1;
+        }
+        errors += M::error_halfscale();
+
+        // Normalize the floating point (and the errors).
+        let shift = fp.normalize();
+        errors <<= shift;
+
+        M::error_is_accurate::<F>(errors, &fp, kind)
+    }
+}
+
+/// Create a precise native float using an intermediate extended-precision float.
+///
+/// Return the float approximation and if the value can be accurately
+/// represented with mantissa bits of precision.
+#[inline(always)]
+pub(super) fn moderate_path<F, M>(
+    mantissa: M,
+    radix: u32,
+    exponent: i32,
+    truncated: bool,
+    kind: RoundingKind,
+) -> (ExtendedFloat<M>, bool)
+where
+    M: MantissaType,
+    F: Float,
+    ExtendedFloat<M>: ModeratePathCache<M>,
+{
+    let mut fp = ExtendedFloat {
+        mant: mantissa,
+        exp: 0,
+    };
+    let valid = multiply_exponent_extended::<F, M>(&mut fp, radix, exponent, truncated, kind);
+    (fp, valid)
+}
+
+// TEST
+// ----
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::correct::moderate_path;
 
     #[test]
     fn test_halfway_round_down() {
@@ -270,5 +370,63 @@ mod tests {
         assert!(!moderate_path::<f64, _>(9007199254740995000u64, radix, -3, true, kind).1);
         assert!(!moderate_path::<f64, _>(9007199254740995010u64, radix, -3, true, kind).1);
         assert!(moderate_path::<f64, _>(9007199254740996000u64, radix, -3, true, kind).1);
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn float_moderate_path_test() {
+        // valid (overflowing small mult)
+        let mantissa: u64 = 1 << 63;
+        let (f, valid) =
+            moderate_path::<f32, _>(mantissa, 3, 1, false, RoundingKind::NearestTieEven);
+        assert_eq!(f.into_f32(), 2.7670116e+19);
+        assert!(valid, "exponent should be valid");
+
+        let mantissa: u64 = 4746067219335938;
+        let (f, valid) =
+            moderate_path::<f32, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
+        assert_eq!(f.into_f32(), 123456.1);
+        assert!(valid, "exponent should be valid");
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn double_moderate_path_test() {
+        // valid (overflowing small mult)
+        let mantissa: u64 = 1 << 63;
+        let (f, valid) =
+            moderate_path::<f64, _>(mantissa, 3, 1, false, RoundingKind::NearestTieEven);
+        assert_eq!(f.into_f64(), 2.7670116110564327e+19);
+        assert!(valid, "exponent should be valid");
+
+        // valid (ends of the earth, salting the earth)
+        let (f, valid) =
+            moderate_path::<f64, _>(mantissa, 3, -695, true, RoundingKind::NearestTieEven);
+        assert_eq!(f.into_f64(), 2.32069302345e-313);
+        assert!(valid, "exponent should be valid");
+
+        // invalid ("268A6.177777778", base 15)
+        let mantissa: u64 = 4746067219335938;
+        let (_, valid) =
+            moderate_path::<f64, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
+        assert!(!valid, "exponent should be invalid");
+
+        // valid ("268A6.177777778", base 15)
+        // 123456.10000000001300614743687445, exactly, should not round up.
+        #[cfg(feature = "f128")]
+        {
+            let mantissa: u128 = 4746067219335938;
+            let (f, valid) =
+                moderate_path::<f64, _>(mantissa, 15, -9, false, RoundingKind::NearestTieEven);
+            assert_eq!(f.into_f64(), 123456.1);
+            assert!(valid, "exponent should be valid");
+        }
+
+        // Rounding error
+        // Adapted from test-parse-random failures.
+        let mantissa: u64 = 1009;
+        let (_, valid) =
+            moderate_path::<f64, _>(mantissa, 10, -31, false, RoundingKind::NearestTieEven);
+        assert!(!valid, "exponent should be valid");
     }
 }

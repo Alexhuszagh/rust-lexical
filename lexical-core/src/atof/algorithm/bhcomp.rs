@@ -166,14 +166,19 @@ macro_rules! toward_cb {
 /// Respect rounding rules in the config file.
 #[inline]
 #[allow(unused_variables)]
-pub(super) fn round_to_native<F, M>(fp: &mut ExtendedFloat<M>, is_truncated: bool, kind: RoundingKind)
-where
+pub(super) fn round_to_native<F, M>(
+    fp: &mut ExtendedFloat<M>,
+    is_truncated: bool,
+    kind: RoundingKind,
+) where
     F: FloatType,
     M: Mantissa,
 {
     #[cfg(feature = "rounding")]
     match kind {
-        RoundingKind::NearestTieEven => fp.round_to_native::<F, _>(nearest_cb!(M, is_truncated, tie_even)),
+        RoundingKind::NearestTieEven => {
+            fp.round_to_native::<F, _>(nearest_cb!(M, is_truncated, tie_even))
+        },
         RoundingKind::NearestTieAwayZero => {
             fp.round_to_native::<F, _>(nearest_cb!(M, is_truncated, tie_away_zero))
         },
@@ -250,7 +255,7 @@ pub(super) fn small_atof<'a, F, Data>(
     kind: RoundingKind,
 ) -> F
 where
-// FUCK MY TRAIT BOUNDS
+    // FUCK MY TRAIT BOUNDS
     F: FloatType,
     Data: SlowDataInterface<'a>,
 {

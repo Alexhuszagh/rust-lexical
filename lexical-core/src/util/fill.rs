@@ -7,7 +7,7 @@
 #[cfg(has_slice_fill)]
 pub(crate) fn slice_fill<T>(slice: &mut [T], value: T)
 where
-    T: Clone
+    T: Clone,
 {
     slice.fill(value)
 }
@@ -17,7 +17,7 @@ where
 #[cfg(not(has_slice_fill))]
 pub(crate) fn slice_fill<T>(slice: &mut [T], value: T)
 where
-    T: Clone
+    T: Clone,
 {
     for elem in slice {
         elem.clone_from(&value)

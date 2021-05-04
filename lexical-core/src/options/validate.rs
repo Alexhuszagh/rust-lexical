@@ -5,25 +5,27 @@
 use crate::util::*;
 
 const_fn!(
-/// Determine if the digit separator is valid.
-#[inline(always)]
-pub(crate) const fn is_ascii(ch: u8) -> bool {
-    ch < 0x80
-});
+    /// Determine if the digit separator is valid.
+    #[inline(always)]
+    pub(crate) const fn is_ascii(ch: u8) -> bool {
+        ch < 0x80
+    }
+);
 
 const_fn!(
-/// Determine if the control character is valid.
-///
-/// This depends on the radix, so we can allow, say, `p` for an
-/// exponent character if the radix is 16 (C++ hexadecimal floats
-/// do this).
-#[inline(always)]
-pub(crate) const fn is_valid_control(ch: u8, radix: u32) -> bool {
-    match ch {
-        b'+' | b'-'   => false,
-        _             => is_ascii(ch) && !is_digit(ch, radix)
+    /// Determine if the control character is valid.
+    ///
+    /// This depends on the radix, so we can allow, say, `p` for an
+    /// exponent character if the radix is 16 (C++ hexadecimal floats
+    /// do this).
+    #[inline(always)]
+    pub(crate) const fn is_valid_control(ch: u8, radix: u32) -> bool {
+        match ch {
+            b'+' | b'-' => false,
+            _ => is_ascii(ch) && !is_digit(ch, radix),
+        }
     }
-});
+);
 
 // TESTS
 // -----

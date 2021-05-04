@@ -1,7 +1,7 @@
 //! Configuration of valid characters for the numerical lexer.
 
-use static_assertions::const_assert;
 use crate::lib::{mem, num};
+use static_assertions::const_assert;
 
 // LEXER FORMAT
 
@@ -118,7 +118,7 @@ impl LexerFormat {
         exponent_radix: None,
         base_prefix: None,
         base_suffix: None,
-        __padding: b'\x00'
+        __padding: b'\x00',
     };
 }
 

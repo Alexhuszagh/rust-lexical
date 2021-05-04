@@ -10,4 +10,4 @@ if #[cfg(feature = "format")] {
 } else {
     mod not_feature_format;
     pub use self::not_feature_format::*;
-}}  // cfg_if
+}} // cfg_if

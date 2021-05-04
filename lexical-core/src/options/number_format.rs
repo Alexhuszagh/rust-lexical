@@ -8,10 +8,12 @@ use super::syntax::*;
 
 /// Define a new constant using a standard lexer format.
 macro_rules! standard {
-    ($Self:ident, $name:ident) => (pub const $name: $Self = $Self {
-        syntax: SyntaxFormat::$name,
-        lexer: LexerFormat::STANDARD,
-    };);
+    ($Self:ident, $name:ident) => {
+        pub const $name: $Self = $Self {
+            syntax: SyntaxFormat::$name,
+            lexer: LexerFormat::STANDARD,
+        };
+    };
 }
 
 // TODO(ahuszagh) Rename
