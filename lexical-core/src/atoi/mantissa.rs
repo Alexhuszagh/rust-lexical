@@ -33,9 +33,10 @@ where
     //  worth the performance penalty.
 
     let mut value: T = T::ZERO;
-    // On overflow, validate that all the remaining characters are valid
-    // digits, if not, return the first invalid digit. Otherwise,
-    // calculate the number of truncated digits.
+    // On overflow, calculate the number of truncated digits. For performance
+    // reasons, and the fact we accept arbitrary iterators, we do not
+    // validate all the truncated digits. This means truncated may contain
+    // a large number of **integral** zeros.
     while let Some(c) = integer.next() {
         value = match add_digit(value, to_digit(*c, radix).unwrap(), radix) {
             Some(v) => v,

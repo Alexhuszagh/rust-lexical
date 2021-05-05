@@ -2,6 +2,9 @@
 
 use crate::float::*;
 
+// TODO(ahuszagh) Just create a dummy implementation unless radix is enabled.
+// Also, won't need the power-of-10 anymore IIRC.
+
 // Cached powers
 mod float80;
 mod float80_decimal;
@@ -21,7 +24,7 @@ if #[cfg(feature = "f128")] {
 
 /// Precalculated powers that uses two-separate arrays for memory-efficiency.
 #[doc(hidden)]
-pub(crate) struct ExtendedFloatArray<M: Mantissa> {
+pub struct ExtendedFloatArray<M: Mantissa> {
     // Pre-calculated mantissa for the powers.
     pub mant: &'static [M],
     // Pre-calculated binary exponents for the powers.
@@ -51,7 +54,7 @@ impl<M: Mantissa> ExtendedFloatArray<M> {
 
 /// Precalculated powers of base N for the moderate path.
 #[doc(hidden)]
-pub(crate) struct ModeratePathPowers<M: Mantissa> {
+pub struct ModeratePathPowers<M: Mantissa> {
     // Pre-calculated small powers.
     pub small: ExtendedFloatArray<M>,
     // Pre-calculated large powers.
@@ -85,13 +88,17 @@ impl<M: Mantissa> ModeratePathPowers<M> {
 // CACHED EXTENDED POWERS
 // ----------------------
 
+// TODO(ahuszagh) Can just be for Mantissa lols. And then the actual
+// powers can be dependent on the features.
+/// Or, I can remove the actual... trait maybe? Hmmm
+
 /// Cached powers as a trait for a floating-point type.
-pub(crate) trait ModeratePathCache<M: Mantissa> {
+pub trait ModeratePathCache: Mantissa {
     /// Get powers from radix.
-    fn get_powers(radix: u32) -> &'static ModeratePathPowers<M>;
+    fn get_powers(radix: u32) -> &'static ModeratePathPowers<Self>;
 }
 
-impl ModeratePathCache<u64> for ExtendedFloat<u64> {
+impl ModeratePathCache for u64 {
     #[inline]
     fn get_powers(radix: u32) -> &'static ModeratePathPowers<u64> {
         float80::get_powers(radix)
@@ -99,7 +106,7 @@ impl ModeratePathCache<u64> for ExtendedFloat<u64> {
 }
 
 #[cfg(feature = "f128")]
-impl ModeratePathCache<u128> for ExtendedFloat<u128> {
+impl ModeratePathCache for u128 {
     #[inline]
     fn get_powers(radix: u32) -> &'static ModeratePathPowers<u128> {
         float160::get_powers(radix)

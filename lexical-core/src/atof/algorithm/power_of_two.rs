@@ -11,39 +11,6 @@ use super::alias::*;
 use super::format::*;
 use super::mantissa::*;
 
-// HALFWAY
-// -------
-
-/// Detect if a float representation is exactly halfway after truncation.
-#[inline(always)]
-fn is_halfway<F: FloatType, M: MantissaType>(mantissa: M) -> bool {
-    // Get the leading and trailing zeros from the least-significant bit.
-    let bit_length: i32 = M::FULL - mantissa.leading_zeros().as_i32();
-    let trailing_zeros: i32 = mantissa.trailing_zeros().as_i32();
-
-    // We need exactly mantissa+2 elements between these if it is halfway.
-    // The hidden bit is mantissa+1 elements away, which is the last non-
-    // truncated bit, while mantissa+2
-    bit_length - trailing_zeros == F::MANTISSA_SIZE + 2
-}
-
-/// Detect if a float representation is odd after truncation.
-#[inline(always)]
-fn is_odd<F: FloatType, M: MantissaType>(mantissa: M) -> bool {
-    // Get the leading and trailing zeros from the least-significant bit.
-    let bit_length: i32 = M::FULL - mantissa.leading_zeros().as_i32();
-    let shift = bit_length - (F::MANTISSA_SIZE + 1);
-    if shift >= 0 {
-        // Have enough bits to have a full mantissa in the float, need to
-        // check if that last bit is set.
-        let mask = M::ONE << shift;
-        mantissa & mask == mask
-    } else {
-        // Not enough bits for a full mantissa, must be even.
-        false
-    }
-}
-
 // FAST PATH
 // ---------
 
@@ -122,58 +89,30 @@ where
     fp.into_rounded_float_impl::<F>(kind)
 }
 
-// SLOW PATH
-// ---------
-
-/// Round-nearest, tie-even algorithm.
-#[inline(always)]
-fn round_nearest_tie_even<F>(mut mantissa: F::MantissaType) -> F::MantissaType
-where
-    F: FloatType,
-{
-    if is_halfway::<F, _>(mantissa) && is_odd::<F, _>(mantissa) {
-        mantissa += F::MantissaType::ONE;
-    }
-    mantissa
-}
-
-/// Round-nearest, tie-away-zero algorithm.
-#[inline(always)]
-fn round_nearest_tie_away_zero<F>(mut mantissa: F::MantissaType) -> F::MantissaType
-where
-    F: FloatType,
-{
-    if is_halfway::<F, _>(mantissa) {
-        mantissa += F::MantissaType::ONE;
-    }
-    mantissa
-}
+// ROUNDING
+// --------
 
 /// Round upward if the value is above the current representation.
 #[inline(always)]
+#[cfg(feature = "rounding")]
 fn round_upward<F>(mut mantissa: F::MantissaType, is_truncated: bool) -> F::MantissaType
 where
     F: FloatType,
 {
     if is_truncated {
-        mantissa += F::MantissaType::ONE;
+        mantissa += M::ONE;
     }
     mantissa
 }
 
-/// Round-downward. Always a no-op.
-#[inline(always)]
-fn round_downward<F>(mantissa: F::MantissaType) -> F::MantissaType
-where
-    F: FloatType,
-{
-    mantissa
-}
+// SLOW PATH
+// ---------
 
 /// Slow path for when we need to determine the rounding.
 ///
 /// Have a truncated mantissa, need to solve halfway rounding cases.
 #[inline(always)]
+#[allow(unused_variables, unused_mut)]
 fn slow_path<'a, F, Data>(
     data: Data,
     mut mantissa: F::MantissaType,
@@ -190,18 +129,12 @@ where
     let kind = internal_rounding(rounding, sign);
     let slow = data.to_slow(truncated);
 
-    #[cfg(not(feature = "rounding"))]
-    {
-        mantissa = round_nearest_tie_even::<F>(mantissa);
-    }
-
     #[cfg(feature = "rounding")]
     {
-        if kind == RoundingKind::NearestTieEven {
-            mantissa = round_nearest_tie_even::<F>(mantissa)
-        } else if kind == RoundingKind::NearestTieAwayZero {
-            mantissa = round_nearest_tie_away_zero::<F>(mantissa)
-        } else if kind == RoundingKind::Upward {
+        // Only need to check if we round-upward, to see if we have any
+        // truncation. Only add a single bit so then the impl rounding
+        // handles everything.
+        if kind == RoundingKind::Upward {
             // Need to check if there are any bytes present.
             // Check if there were any truncated bytes.
             let index = slow.mantissa_digits() - slow.truncated_digits();
@@ -209,8 +142,6 @@ where
             let count = iter.take_while(|&&c| c == b'0').count();
             let is_truncated = count < slow.truncated_digits();
             mantissa = round_upward::<F>(mantissa, is_truncated)
-        } else {
-            mantissa = round_downward::<F>(mantissa)
         }
     }
 
@@ -267,80 +198,6 @@ where
 mod tests {
     use super::*;
     use crate::table::*;
-
-    #[test]
-    fn is_odd_test() {
-        // Variant of b1000000000000000000000001, a halfway value for f32.
-        assert!(is_odd::<f32, _>(0x1000002));
-        assert!(is_odd::<f32, _>(0x2000004));
-        assert!(is_odd::<f32, _>(0x8000010000000000));
-        assert!(!is_odd::<f64, _>(0x1000002));
-        assert!(!is_odd::<f64, _>(0x2000004));
-        assert!(!is_odd::<f64, _>(0x8000010000000000));
-
-        assert!(!is_odd::<f32, _>(0x1000001));
-        assert!(!is_odd::<f32, _>(0x2000002));
-        assert!(!is_odd::<f32, _>(0x8000008000000000));
-        assert!(!is_odd::<f64, _>(0x1000001));
-        assert!(!is_odd::<f64, _>(0x2000002));
-        assert!(!is_odd::<f64, _>(0x8000008000000000));
-
-        // Variant of b100000000000000000000000000000000000000000000000000001,
-        // a halfway value for f64
-        assert!(!is_odd::<f32, _>(0x3f000000000002));
-        assert!(!is_odd::<f32, _>(0x3f000000000003));
-        assert!(!is_odd::<f32, _>(0xFC00000000000800));
-        assert!(!is_odd::<f32, _>(0xFC00000000000C00));
-        assert!(is_odd::<f64, _>(0x3f000000000002));
-        assert!(is_odd::<f64, _>(0x3f000000000003));
-        assert!(is_odd::<f64, _>(0xFC00000000000800));
-        assert!(is_odd::<f64, _>(0xFC00000000000C00));
-
-        assert!(!is_odd::<f32, _>(0x3f000000000001));
-        assert!(!is_odd::<f32, _>(0x3f000000000004));
-        assert!(!is_odd::<f32, _>(0xFC00000000000400));
-        assert!(!is_odd::<f32, _>(0xFC00000000001000));
-        assert!(!is_odd::<f64, _>(0x3f000000000001));
-        assert!(!is_odd::<f64, _>(0x3f000000000004));
-        assert!(!is_odd::<f64, _>(0xFC00000000000400));
-        assert!(!is_odd::<f64, _>(0xFC00000000001000));
-    }
-
-    #[test]
-    fn is_halfway_test() {
-        // Variant of b1000000000000000000000001, a halfway value for f32.
-        assert!(is_halfway::<f32, _>(0x1000001));
-        assert!(is_halfway::<f32, _>(0x2000002));
-        assert!(is_halfway::<f32, _>(0x8000008000000000));
-        assert!(!is_halfway::<f64, _>(0x1000001));
-        assert!(!is_halfway::<f64, _>(0x2000002));
-        assert!(!is_halfway::<f64, _>(0x8000008000000000));
-
-        // Variant of b10000000000000000000000001, which is 1-off a halfway value.
-        assert!(!is_halfway::<f32, _>(0x2000001));
-        assert!(!is_halfway::<f64, _>(0x2000001));
-
-        // Variant of b100000000000000000000000000000000000000000000000000001,
-        // a halfway value for f64
-        assert!(!is_halfway::<f32, _>(0x20000000000001));
-        assert!(!is_halfway::<f32, _>(0x40000000000002));
-        assert!(!is_halfway::<f32, _>(0x8000000000000400));
-        assert!(is_halfway::<f64, _>(0x20000000000001));
-        assert!(is_halfway::<f64, _>(0x40000000000002));
-        assert!(is_halfway::<f64, _>(0x8000000000000400));
-
-        // Variant of b111111000000000000000000000000000000000000000000000001,
-        // a halfway value for f64.
-        assert!(!is_halfway::<f32, _>(0x3f000000000001));
-        assert!(!is_halfway::<f32, _>(0xFC00000000000400));
-        assert!(is_halfway::<f64, _>(0x3f000000000001));
-        assert!(is_halfway::<f64, _>(0xFC00000000000400));
-
-        // Variant of b1000000000000000000000000000000000000000000000000000001,
-        // which is 1-off a halfway value.
-        assert!(!is_halfway::<f32, _>(0x40000000000001));
-        assert!(!is_halfway::<f64, _>(0x40000000000001));
-    }
 
     #[test]
     fn float_fast_path() {

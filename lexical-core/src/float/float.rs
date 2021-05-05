@@ -500,6 +500,9 @@ mod tests {
 
         // max value
         check_normalize(9007199254740991, 971, 11, 18446744073709549568, 960);
+
+        // Check with errors from power_of_two.
+        check_normalize(72057594037927936, -1078, 7, 9223372036854775808, -1085);
     }
 
     fn check_normalize_to(mant: u64, exp: i32, n: u32, shift: i32, r_mant: u64, r_exp: i32) {
@@ -773,7 +776,11 @@ mod tests {
 
         // Bug fixes
         // 1.2345e-308
-        check_round_to_f64(10234494226754558294, -1086, 2498655817078750, -1074)
+        check_round_to_f64(10234494226754558294, -1086, 2498655817078750, -1074);
+
+        // Check with errors from power_of_two.
+        // 2.2250738585072014e-308
+        check_round_to_f64(72057594037927936, -1078, 4503599627370496, -1074);
     }
 
     // FROM
@@ -1156,6 +1163,14 @@ mod tests {
             mant: 9223372036854776103,
         };
         assert_relative_eq!(x.into_f64(), 5e-324);
+
+        // Check with errors from power_of_two.
+        // 2.2250738585072014e-308
+        let x = ExtendedFloat80 {
+            exp: -1078,
+            mant: 72057594037927936,
+        };
+        assert_relative_eq!(x.into_f64(), 2.2250738585072014e-308);
 
         // Integers.
         for int in INTEGERS.iter() {

@@ -182,6 +182,7 @@ pub(super) fn round_to_native<F, M>(
         RoundingKind::NearestTieAwayZero => {
             fp.round_to_native::<F, _>(nearest_cb!(M, is_truncated, tie_away_zero))
         },
+        // Does this work with trailing integer 0s? Hmmm
         RoundingKind::Upward => fp.round_to_native::<F, _>(toward_cb!(M, is_truncated, upward)),
         RoundingKind::Downward => fp.round_to_native::<F, _>(toward_cb!(M, is_truncated, downard)),
         _ => unreachable!(),
@@ -229,6 +230,8 @@ where
     bigmant.imul_power(radix, exponent.as_u32());
 
     // Get the exact representation of the float from the big integer.
+    // Himant checks **all** the remaining bits after the mantissa,
+    // so it will check if **any** truncated digits exist.
     let (mant, is_truncated) = bigmant.himant();
     let bits = F::MantissaType::FULL;
     let exp = bigmant.bit_length().as_i32() - bits;

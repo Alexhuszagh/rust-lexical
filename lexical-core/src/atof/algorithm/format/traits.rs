@@ -8,12 +8,14 @@ use super::exponent::*;
 /// Private data interface for local utilities.
 pub(crate) trait FastDataInterfaceImpl<'a>: Sized {
     /// Get integer component of float.
+    /// NOTE: This may contain large numbers of trailing zeros.
     fn integer(&self) -> &'a [u8];
 
     /// Set integer component of float.
     fn set_integer(&mut self, integer: &'a [u8]);
 
     /// Get fraction component of float.
+    /// NOTE: This cannot contain trailing zeros.
     fn fraction(&self) -> Option<&'a [u8]>;
 
     /// Set fraction component of float.
@@ -35,12 +37,14 @@ pub(crate) trait FastDataInterfaceImpl<'a>: Sized {
 /// Private data interface for local utilities.
 pub(crate) trait SlowDataInterfaceImpl<'a>: Sized {
     /// Get integer component of float.
+    /// NOTE: This may contain large numbers of trailing zeros.
     fn integer(&self) -> &'a [u8];
 
     /// Set integer component of float.
     fn set_integer(&mut self, integer: &'a [u8]);
 
     /// Get fraction component of float.
+    /// NOTE: This cannot contain trailing zeros.
     fn fraction(&self) -> &'a [u8];
 
     /// Set fraction component of float.

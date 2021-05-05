@@ -16,7 +16,6 @@ pub(crate) mod incorrect;
 
 // Re-export the float type.
 pub(crate) use self::alias::FloatType;
-pub(crate) use self::cached::ModeratePathCache;
 pub(crate) use self::format::*;
 
 // ALGORITHMS
@@ -31,10 +30,7 @@ mod fast;
 
 // Moderate-Path
 mod extended_float;
-cfg_if! {
-if #[cfg(feature = "lemire")] {
-    mod lemire;
-}}  // cfg_if
+mod lemire;
 
 // Slow-Path
 mod bhcomp;

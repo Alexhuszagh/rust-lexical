@@ -5,8 +5,8 @@ use crate::table::*;
 use crate::traits::*;
 use crate::util::*;
 
-use super::bignum::ToBigfloat;
-use super::extended_float::FloatErrors;
+use super::bignum::*;
+use super::cached::*;
 use super::math::*;
 use super::powers::*;
 
@@ -567,7 +567,7 @@ impl MaxIncorrectDigits for f128 {
 // -------------
 
 /// Mantissa type with simplified methods to get small powers.
-pub trait MantissaType: FloatErrors {
+pub trait MantissaType: ModeratePathCache {
     /// Get the maximum shift of the mantissa type.
     const MAX_SHIFT: i32 = Self::FULL - 1;
     /// Get the maximum exponent for the associated float type.

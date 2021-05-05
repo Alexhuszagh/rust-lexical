@@ -75,8 +75,6 @@ std = ["lexical-core/std"]
 # Use algorithm M, which generates digits by scaling the numerator
 # and denominator into the range `[2^52, 2^53)`.
 algorithm_m = ["lexical-core/algorithm_m"]
-# Currently undocumented, use the Eisel-Lemire algorithm.
-lemire = ["lexical-core/lemire"]
 
 # INTERNAL
 # --------

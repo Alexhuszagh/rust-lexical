@@ -11,7 +11,6 @@ use crate::traits::*;
 use crate::util::*;
 
 use super::alias::*;
-use super::cached::ModeratePathCache;
 
 // FLOAT ERRORS
 // ------------
@@ -20,7 +19,7 @@ use super::cached::ModeratePathCache;
 #[inline]
 fn nearest_error_is_accurate<M>(errors: u32, fp: &ExtendedFloat<M>, extrabits: i32) -> bool
 where
-    M: Mantissa,
+    M: MantissaType,
 {
     let full = M::FULL;
     let maskbits: M = as_cast(extrabits);
@@ -55,7 +54,7 @@ where
 #[cfg(feature = "rounding")]
 fn toward_error_is_accurate<M>(errors: u32, fp: &ExtendedFloat<M>, extrabits: i32) -> bool
 where
-    M: Mantissa,
+    M: MantissaType,
 {
     let full = M::FULL;
     let maskbits: M = as_cast(extrabits);
@@ -95,124 +94,116 @@ where
     }
 }
 
-/// Calculate if the errors in calculating the extended-precision float.
-///
-/// Specifically, we want to know if we are close to a halfway representation,
-/// or halfway between `b` and `b+1`, or `b+h`. The halfway representation
-/// has the form:
-///     SEEEEEEEHMMMMMMMMMMMMMMMMMMMMMMM100...
-/// where:
-///     S = Sign Bit
-///     E = Exponent Bits
-///     H = Hidden Bit
-///     M = Mantissa Bits
-///
-/// The halfway representation has a bit set 1-after the mantissa digits,
-/// and no bits set immediately afterward, making it impossible to
-/// round between `b` and `b+1` with this representation.
-pub trait FloatErrors: Mantissa {
-    /// Get the full error scale.
-    #[inline(always)]
-    fn error_scale() -> u32 {
-        8
-    }
+// Calculate if the errors in calculating the extended-precision float.
+//
+// Specifically, we want to know if we are close to a halfway representation,
+// or halfway between `b` and `b+1`, or `b+h`. The halfway representation
+// has the form:
+//     SEEEEEEEHMMMMMMMMMMMMMMMMMMMMMMM100...
+// where:
+//     S = Sign Bit
+//     E = Exponent Bits
+//     H = Hidden Bit
+//     M = Mantissa Bits
+//
+// The halfway representation has a bit set 1-after the mantissa digits,
+// and no bits set immediately afterward, making it impossible to
+// round between `b` and `b+1` with this representation.
 
-    /// Get the half error scale.
-    #[inline]
-    fn error_halfscale() -> u32 {
-        Self::error_scale() / 2
-    }
-
-    /// Determine if the number of errors is tolerable for float precision.
-    #[inline]
-    #[allow(unused_variables)]
-    fn error_is_accurate<F: Float>(
-        errors: u32,
-        fp: &ExtendedFloat<Self>,
-        kind: RoundingKind,
-    ) -> bool {
-        // Determine if extended-precision float is a good approximation.
-        // If the error has affected too many units, the float will be
-        // inaccurate, or if the representation is too close to halfway
-        // that any operations could affect this halfway representation.
-        // See the documentation for dtoa for more information.
-        let full = Self::FULL;
-        let nonsign_bits = full - 1;
-        let bias = -(F::EXPONENT_BIAS - F::MANTISSA_SIZE);
-        let denormal_exp = bias - nonsign_bits;
-        // This is always a valid u32, since (denormal_exp - fp.exp)
-        // will always be positive and the significand size is {23, 52}.
-        let extrabits = match fp.exp <= denormal_exp {
-            true => full - F::MANTISSA_SIZE + denormal_exp - fp.exp,
-            false => nonsign_bits - F::MANTISSA_SIZE,
-        };
-
-        // Our logic is as follows: we want to determine if the actual
-        // mantissa and the errors during calculation differ significantly
-        // from the rounding point. The rounding point for round-nearest
-        // is the halfway point, IE, this when the truncated bits start
-        // with b1000..., while the rounding point for the round-toward
-        // is when the truncated bits are equal to 0.
-        // To do so, we can check whether the rounding point +/- the error
-        // are >/< the actual lower n bits.
-        //
-        // For whether we need to use signed or unsigned types for this
-        // analysis, see this example, using u8 rather than u64 to simplify
-        // things.
-        //
-        // # Comparisons
-        //      cmp1 = (halfway - errors) < extra
-        //      cmp1 = extra < (halfway + errors)
-        //
-        // # Large Extrabits, Low Errors
-        //
-        //      extrabits = 8
-        //      halfway          =  0b10000000
-        //      extra            =  0b10000010
-        //      errors           =  0b00000100
-        //      halfway - errors =  0b01111100
-        //      halfway + errors =  0b10000100
-        //
-        //      Unsigned:
-        //          halfway - errors = 124
-        //          halfway + errors = 132
-        //          extra            = 130
-        //          cmp1             = true
-        //          cmp2             = true
-        //      Signed:
-        //          halfway - errors = 124
-        //          halfway + errors = -124
-        //          extra            = -126
-        //          cmp1             = false
-        //          cmp2             = true
-        //
-        // # Conclusion
-        //
-        // Since errors will always be small, and since we want to detect
-        // if the representation is accurate, we need to use an **unsigned**
-        // type for comparisons.
-
-        #[cfg(not(feature = "rounding"))]
-        {
-            nearest_error_is_accurate::<Self>(errors, fp, extrabits)
-        }
-
-        #[cfg(feature = "rounding")]
-        {
-            if kind.is_nearest() {
-                nearest_error_is_accurate::<Self>(errors, fp, extrabits)
-            } else {
-                toward_error_is_accurate::<Self>(errors, fp, extrabits)
-            }
-        }
-    }
+/// Get the full error scale.
+#[inline(always)]
+fn error_scale() -> u32 {
+    8
 }
 
-impl FloatErrors for u64 {
+/// Get the half error scale.
+#[inline]
+fn error_halfscale() -> u32 {
+    error_scale() / 2
 }
 
-#[cfg(feature = "f128")]
-impl FloatErrors for u128 {
+/// Determine if the number of errors is tolerable for float precision.
+#[inline]
+#[allow(unused_variables)]
+fn error_is_accurate<F: FloatType, M: MantissaType>(
+    errors: u32,
+    fp: &ExtendedFloat<M>,
+    kind: RoundingKind,
+) -> bool {
+    // Determine if extended-precision float is a good approximation.
+    // If the error has affected too many units, the float will be
+    // inaccurate, or if the representation is too close to halfway
+    // that any operations could affect this halfway representation.
+    // See the documentation for dtoa for more information.
+    let full = M::FULL;
+    let nonsign_bits = full - 1;
+    let bias = -(F::EXPONENT_BIAS - F::MANTISSA_SIZE);
+    let denormal_exp = bias - nonsign_bits;
+    // This is always a valid u32, since (denormal_exp - fp.exp)
+    // will always be positive and the significand size is {23, 52}.
+    let extrabits = match fp.exp <= denormal_exp {
+        true => full - F::MANTISSA_SIZE + denormal_exp - fp.exp,
+        false => nonsign_bits - F::MANTISSA_SIZE,
+    };
+
+    // Our logic is as follows: we want to determine if the actual
+    // mantissa and the errors during calculation differ significantly
+    // from the rounding point. The rounding point for round-nearest
+    // is the halfway point, IE, this when the truncated bits start
+    // with b1000..., while the rounding point for the round-toward
+    // is when the truncated bits are equal to 0.
+    // To do so, we can check whether the rounding point +/- the error
+    // are >/< the actual lower n bits.
+    //
+    // For whether we need to use signed or unsigned types for this
+    // analysis, see this example, using u8 rather than u64 to simplify
+    // things.
+    //
+    // # Comparisons
+    //      cmp1 = (halfway - errors) < extra
+    //      cmp1 = extra < (halfway + errors)
+    //
+    // # Large Extrabits, Low Errors
+    //
+    //      extrabits = 8
+    //      halfway          =  0b10000000
+    //      extra            =  0b10000010
+    //      errors           =  0b00000100
+    //      halfway - errors =  0b01111100
+    //      halfway + errors =  0b10000100
+    //
+    //      Unsigned:
+    //          halfway - errors = 124
+    //          halfway + errors = 132
+    //          extra            = 130
+    //          cmp1             = true
+    //          cmp2             = true
+    //      Signed:
+    //          halfway - errors = 124
+    //          halfway + errors = -124
+    //          extra            = -126
+    //          cmp1             = false
+    //          cmp2             = true
+    //
+    // # Conclusion
+    //
+    // Since errors will always be small, and since we want to detect
+    // if the representation is accurate, we need to use an **unsigned**
+    // type for comparisons.
+
+    #[cfg(not(feature = "rounding"))]
+    {
+        nearest_error_is_accurate::<M>(errors, fp, extrabits)
+    }
+
+    #[cfg(feature = "rounding")]
+    {
+        if kind.is_nearest() {
+            nearest_error_is_accurate::<M>(errors, fp, extrabits)
+        } else {
+            toward_error_is_accurate::<M>(errors, fp, extrabits)
+        }
+    }
 }
 
 // MODERATE PATH
@@ -232,10 +223,9 @@ pub(crate) fn multiply_exponent_extended<F, M>(
 ) -> bool
 where
     M: MantissaType,
-    F: Float,
-    ExtendedFloat<M>: ModeratePathCache<M>,
+    F: FloatType,
 {
-    let powers = ExtendedFloat::<M>::get_powers(radix);
+    let powers = M::get_powers(radix);
     let exponent = exponent.saturating_add(powers.bias);
     let small_index = exponent % powers.step;
     let large_index = exponent / powers.step;
@@ -255,7 +245,7 @@ where
         // Track errors to as a factor of unit in last-precision.
         let mut errors: u32 = 0;
         if truncated {
-            errors += M::error_halfscale();
+            errors += error_halfscale();
         }
 
         // Multiply by the small power.
@@ -266,7 +256,7 @@ where
             (_, true) => {
                 fp.normalize();
                 fp.imul(&powers.get_small(small_index.as_usize()));
-                errors += M::error_halfscale();
+                errors += error_halfscale();
             },
             // No overflow, multiplication successful.
             (mant, false) => {
@@ -280,13 +270,13 @@ where
         if errors > 0 {
             errors += 1;
         }
-        errors += M::error_halfscale();
+        errors += error_halfscale();
 
         // Normalize the floating point (and the errors).
         let shift = fp.normalize();
         errors <<= shift;
 
-        M::error_is_accurate::<F>(errors, &fp, kind)
+        error_is_accurate::<F, _>(errors, &fp, kind)
     }
 }
 
@@ -295,24 +285,22 @@ where
 /// Return the float approximation and if the value can be accurately
 /// represented with mantissa bits of precision.
 #[inline(always)]
-pub(super) fn moderate_path<F, M>(
-    mantissa: M,
+pub(super) fn moderate_path<F>(
+    mantissa: F::MantissaType,
     radix: u32,
     exponent: i32,
-    truncated: bool,
+    is_truncated: bool,
     is_lossy: bool,
     kind: RoundingKind,
 ) -> (F, bool)
 where
-    M: MantissaType,
-    F: Float,
-    ExtendedFloat<M>: ModeratePathCache<M>,
+    F: FloatType,
 {
     let mut fp = ExtendedFloat {
         mant: mantissa,
         exp: 0,
     };
-    let valid = multiply_exponent_extended::<F, M>(&mut fp, radix, exponent, truncated, kind);
+    let valid = multiply_exponent_extended::<F, _>(&mut fp, radix, exponent, is_truncated, kind);
     if valid || is_lossy {
         // Need to check if we have a 64-bit float, actually.
         let float = fp.into_rounded_float_impl::<F>(kind);
@@ -337,22 +325,22 @@ mod tests {
         let kind = RoundingKind::NearestTieEven;
 
         // Halfway, round-down tests
-        assert!(moderate_path::<f64, _>(9007199254740992u64, radix, 0, false, false, kind).1);
-        assert!(!moderate_path::<f64, _>(9007199254740993u64, radix, 0, false, false, kind).1);
-        assert!(moderate_path::<f64, _>(9007199254740994u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64>(9007199254740992u64, radix, 0, false, false, kind).1);
+        assert!(!moderate_path::<f64>(9007199254740993u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64>(9007199254740994u64, radix, 0, false, false, kind).1);
 
-        assert!(moderate_path::<f64, _>(18014398509481984u64, radix, 0, false, false, kind).1);
-        assert!(!moderate_path::<f64, _>(18014398509481986u64, radix, 0, false, false, kind).1);
-        assert!(moderate_path::<f64, _>(18014398509481988u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64>(18014398509481984u64, radix, 0, false, false, kind).1);
+        assert!(!moderate_path::<f64>(18014398509481986u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64>(18014398509481988u64, radix, 0, false, false, kind).1);
 
-        assert!(moderate_path::<f64, _>(9223372036854775808u64, radix, 0, false, false, kind).1);
-        assert!(!moderate_path::<f64, _>(9223372036854776832u64, radix, 0, false, false, kind).1);
-        assert!(moderate_path::<f64, _>(9223372036854777856u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64>(9223372036854775808u64, radix, 0, false, false, kind).1);
+        assert!(!moderate_path::<f64>(9223372036854776832u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64>(9223372036854777856u64, radix, 0, false, false, kind).1);
 
         // Add a 0 but say we're truncated.
-        assert!(moderate_path::<f64, _>(9007199254740992000u64, radix, -3, true, false, kind).1);
-        assert!(!moderate_path::<f64, _>(9007199254740993000u64, radix, -3, true, false, kind).1);
-        assert!(moderate_path::<f64, _>(9007199254740994000u64, radix, -3, true, false, kind).1);
+        assert!(moderate_path::<f64>(9007199254740992000u64, radix, -3, true, false, kind).1);
+        assert!(!moderate_path::<f64>(9007199254740993000u64, radix, -3, true, false, kind).1);
+        assert!(moderate_path::<f64>(9007199254740994000u64, radix, -3, true, false, kind).1);
     }
 
     #[test]
@@ -361,24 +349,24 @@ mod tests {
         let kind = RoundingKind::NearestTieEven;
 
         // Halfway, round-down tests
-        assert!(moderate_path::<f64, _>(9007199254740994u64, radix, 0, false, false, kind).1);
-        assert!(!moderate_path::<f64, _>(9007199254740995u64, radix, 0, false, false, kind).1);
-        assert!(moderate_path::<f64, _>(9007199254740996u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64>(9007199254740994u64, radix, 0, false, false, kind).1);
+        assert!(!moderate_path::<f64>(9007199254740995u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64>(9007199254740996u64, radix, 0, false, false, kind).1);
 
-        assert!(moderate_path::<f64, _>(18014398509481988u64, radix, 0, false, false, kind).1);
-        assert!(!moderate_path::<f64, _>(18014398509481990u64, radix, 0, false, false, kind).1);
-        assert!(moderate_path::<f64, _>(18014398509481992u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64>(18014398509481988u64, radix, 0, false, false, kind).1);
+        assert!(!moderate_path::<f64>(18014398509481990u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64>(18014398509481992u64, radix, 0, false, false, kind).1);
 
-        assert!(moderate_path::<f64, _>(9223372036854777856u64, radix, 0, false, false, kind).1);
-        assert!(!moderate_path::<f64, _>(9223372036854778880u64, radix, 0, false, false, kind).1);
-        assert!(moderate_path::<f64, _>(9223372036854779904u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64>(9223372036854777856u64, radix, 0, false, false, kind).1);
+        assert!(!moderate_path::<f64>(9223372036854778880u64, radix, 0, false, false, kind).1);
+        assert!(moderate_path::<f64>(9223372036854779904u64, radix, 0, false, false, kind).1);
 
         // Add a 0 but say we're truncated.
-        assert!(moderate_path::<f64, _>(9007199254740994000u64, radix, -3, true, false, kind).1);
-        assert!(!moderate_path::<f64, _>(9007199254740994990u64, radix, -3, true, false, kind).1);
-        assert!(!moderate_path::<f64, _>(9007199254740995000u64, radix, -3, true, false, kind).1);
-        assert!(!moderate_path::<f64, _>(9007199254740995010u64, radix, -3, true, false, kind).1);
-        assert!(moderate_path::<f64, _>(9007199254740996000u64, radix, -3, true, false, kind).1);
+        assert!(moderate_path::<f64>(9007199254740994000u64, radix, -3, true, false, kind).1);
+        assert!(!moderate_path::<f64>(9007199254740994990u64, radix, -3, true, false, kind).1);
+        assert!(!moderate_path::<f64>(9007199254740995000u64, radix, -3, true, false, kind).1);
+        assert!(!moderate_path::<f64>(9007199254740995010u64, radix, -3, true, false, kind).1);
+        assert!(moderate_path::<f64>(9007199254740996000u64, radix, -3, true, false, kind).1);
     }
 
     #[test]
@@ -387,13 +375,13 @@ mod tests {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
         let (f, valid) =
-            moderate_path::<f32, _>(mantissa, 3, 1, false, false, RoundingKind::NearestTieEven);
+            moderate_path::<f32>(mantissa, 3, 1, false, false, RoundingKind::NearestTieEven);
         assert_eq!(f, 2.7670116e+19);
         assert!(valid, "exponent should be valid");
 
         let mantissa: u64 = 4746067219335938;
         let (f, valid) =
-            moderate_path::<f32, _>(mantissa, 15, -9, false, false, RoundingKind::NearestTieEven);
+            moderate_path::<f32>(mantissa, 15, -9, false, false, RoundingKind::NearestTieEven);
         assert_eq!(f, 123456.1);
         assert!(valid, "exponent should be valid");
     }
@@ -404,20 +392,20 @@ mod tests {
         // valid (overflowing small mult)
         let mantissa: u64 = 1 << 63;
         let (f, valid) =
-            moderate_path::<f64, _>(mantissa, 3, 1, false, false, RoundingKind::NearestTieEven);
+            moderate_path::<f64>(mantissa, 3, 1, false, false, RoundingKind::NearestTieEven);
         assert_eq!(f, 2.7670116110564327e+19);
         assert!(valid, "exponent should be valid");
 
         // valid (ends of the earth, salting the earth)
         let (f, valid) =
-            moderate_path::<f64, _>(mantissa, 3, -695, true, false, RoundingKind::NearestTieEven);
+            moderate_path::<f64>(mantissa, 3, -695, true, false, RoundingKind::NearestTieEven);
         assert_eq!(f, 2.32069302345e-313);
         assert!(valid, "exponent should be valid");
 
         // invalid ("268A6.177777778", base 15)
         let mantissa: u64 = 4746067219335938;
         let (_, valid) =
-            moderate_path::<f64, _>(mantissa, 15, -9, false, false, RoundingKind::NearestTieEven);
+            moderate_path::<f64>(mantissa, 15, -9, false, false, RoundingKind::NearestTieEven);
         assert!(!valid, "exponent should be invalid");
 
         // valid ("268A6.177777778", base 15)
@@ -425,7 +413,7 @@ mod tests {
         #[cfg(feature = "f128")]
         {
             let mantissa: u128 = 4746067219335938;
-            let (f, valid) = moderate_path::<f64, _>(
+            let (f, valid) = moderate_path::<f64>(
                 mantissa,
                 15,
                 -9,
@@ -441,7 +429,7 @@ mod tests {
         // Adapted from test-parse-random failures.
         let mantissa: u64 = 1009;
         let (_, valid) =
-            moderate_path::<f64, _>(mantissa, 10, -31, false, false, RoundingKind::NearestTieEven);
+            moderate_path::<f64>(mantissa, 10, -31, false, false, RoundingKind::NearestTieEven);
         assert!(!valid, "exponent should be valid");
     }
 }
