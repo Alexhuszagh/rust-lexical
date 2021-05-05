@@ -148,8 +148,12 @@ path = "data/test-parse-unittests/main.rs"
 required-features = ["comprehensive_float_test"]
 
 [[bin]]
-name = "simple_example"
-path = "bin/simple_example.rs"
+name = "simple_lexical_example"
+path = "bin/simple_lexical_example.rs"
+
+[[bin]]
+name = "simple_parse_example"
+path = "bin/simple_parse_example.rs"
 
 # Benchmarks
 
