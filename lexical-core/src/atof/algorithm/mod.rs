@@ -30,6 +30,7 @@ mod fast;
 
 // Moderate-Path
 mod extended_float;
+#[cfg(feature = "lemire")]
 mod lemire;
 
 // Slow-Path

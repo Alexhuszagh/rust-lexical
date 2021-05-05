@@ -176,7 +176,6 @@
 //! if __name__ == '__main__':
 //!     generate()
 //! ```
-// TODO(ahuszagh) Update the storage counts.
 
 use crate::traits::*;
 

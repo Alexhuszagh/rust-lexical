@@ -17,7 +17,7 @@ features = []
 proc-macro = true
 
 [features]
-default = ["no_alloc", "ryu", "std"]
+default = ["lemire", "no_alloc", "ryu", "std"]
 
 # FEATURES
 # --------
@@ -29,3 +29,4 @@ radix = ["lexical-core/radix"]
 rounding = ["lexical-core/rounding"]
 ryu = ["lexical-core/ryu"]
 std = ["lexical-core/std"]
+lemire = ["lexical-core/lemire"]

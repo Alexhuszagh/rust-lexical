@@ -2,9 +2,6 @@
 
 use crate::float::*;
 
-// TODO(ahuszagh) Just create a dummy implementation unless radix is enabled.
-// Also, won't need the power-of-10 anymore IIRC.
-
 // Cached powers
 mod float80;
 mod float80_decimal;
@@ -87,10 +84,6 @@ impl<M: Mantissa> ModeratePathPowers<M> {
 
 // CACHED EXTENDED POWERS
 // ----------------------
-
-// TODO(ahuszagh) Can just be for Mantissa lols. And then the actual
-// powers can be dependent on the features.
-/// Or, I can remove the actual... trait maybe? Hmmm
 
 /// Cached powers as a trait for a floating-point type.
 pub trait ModeratePathCache: Mantissa {

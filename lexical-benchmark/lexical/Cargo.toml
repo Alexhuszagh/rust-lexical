@@ -15,7 +15,7 @@ lazy_static = "1"
 serde_json = "1.0"
 
 [features]
-default = ["no_alloc", "ryu", "std"]
+default = ["lemire", "no_alloc", "ryu", "std"]
 
 # FEATURES
 # --------
@@ -27,6 +27,7 @@ radix = ["lexical-core/radix"]
 rounding = ["lexical-core/rounding"]
 ryu = ["lexical-core/ryu"]
 std = ["lexical-core/std"]
+lemire = ["lexical-core/lemire"]
 
 [[bench]]
 name = "atof"

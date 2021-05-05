@@ -10,15 +10,17 @@ use super::bhcomp;
 use super::fast::fast_path;
 use super::format::*;
 use super::incorrect;
-use super::lemire;
 use super::mantissa::*;
 
-#[cfg(any(feature = "f128", feature = "radix"))]
+#[cfg(feature = "lemire")]
+use super::lemire;
+#[cfg(any(not(feature = "lemire"), feature = "f128", feature = "radix"))]
 use super::extended_float;
 
 // TO NATIVE
 // ---------
 
+/// Shallow wrapper for the specialized moderate paths.
 #[inline(always)]
 fn moderate_path<F>(
     mantissa: F::MantissaType,
@@ -31,28 +33,32 @@ fn moderate_path<F>(
 where
     F: FloatType,
 {
-    #[cfg(not(any(feature = "f128", feature = "radix")))]
-    {
-        return lemire::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
-    }
-
-    #[cfg(all(feature = "f128", not(feature = "radix")))]
-    {
-        if F::MantissaType::BITS <= 64 {
-            return lemire::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
+    cfg_if! {
+    if #[cfg(feature = "lemire")] {
+        cfg_if! {
+        if #[cfg(feature = "radix")] {
+            // Only use lamire if 64-bit mantissa (evaluated at compile-time)
+            // and if the radix is 10.
+            if radix == 10 && F::MantissaType::BITS <= 64 {
+                return lemire::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
+            } else {
+                return extended_float::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
+            }
+        } else if #[cfg(feature = "f128")] {
+            // Only use the lamire algorithm if we have a 64-bit mantissa.
+            if F::MantissaType::BITS <= 64 {
+                return lemire::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
+            } else {
+                return extended_float::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
+            }
         } else {
-            return extended_float::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
-        }
-    }
-
-    #[cfg(feature = "radix")]
-    {
-        if radix == 10 && F::MantissaType::BITS <= 64 {
+            // Cannot support 128-bit floats or non-base 10 radixes here.
+            // Always use lamire.
             return lemire::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
-        } else {
-            return extended_float::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
-        }
-    }
+        }}  // cfg_if
+    } else {
+        return extended_float::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
+    }}  // cfg_if
 }
 
 /// Fallback method. Do not inline for performance reasons.

@@ -43,7 +43,7 @@ rustc_version = "0.3"
 approx = "0.4.0"
 
 [features]
-default = ["no_alloc", "ryu", "std"]
+default = ["lemire", "no_alloc", "ryu", "std"]
 
 # FEATURES
 # --------
@@ -62,6 +62,11 @@ radix = ["power_of_two"]
 rounding = []
 # Use the `std` library.
 std = []
+# Use the Eisel-Lemire algorithm, which parses floats faster for
+# the vast majority of cases, however, it requires additional
+# overhead and is slower for denormal floats and close-to-halfway
+# cases.
+lemire = []
 
 # REMOVED ALGORITHMS
 # ------------------

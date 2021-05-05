@@ -35,6 +35,7 @@
 //! of `14267572528`.
 
 #![allow(unused)] // TODO(ahuszagh) Remove
+#![cfg(feature = "lemire")]
 
 use crate::float::*;
 use crate::traits::*;

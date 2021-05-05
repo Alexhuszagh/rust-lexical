@@ -30,7 +30,7 @@ features = []
 version = "^0.8.0"
 
 [features]
-default = ["no_alloc", "ryu", "std"]
+default = ["lemire", "no_alloc", "ryu", "std"]
 
 # FEATURES
 # --------
@@ -53,6 +53,11 @@ rounding = ["lexical-core/rounding"]
 ryu = ["lexical-core/ryu"]
 # Use the `std` library.
 std = ["lexical-core/std"]
+# Use the Eisel-Lemire algorithm, which parses floats faster for
+# the vast majority of cases, however, it requires additional
+# overhead and is slower for denormal floats and close-to-halfway
+# cases.
+lemire = ["lexical-core/lemire"]
 
 # Use heavy optimizations for release builds, and make our panics to detect
 # internal logic errors safe for FFI, via abort.
