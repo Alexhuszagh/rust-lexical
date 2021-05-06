@@ -163,7 +163,7 @@ def run(test):
     global test_name
     test_name = test
 
-    t0 = time.clock()
+    t0 = time.perf_counter()
     msg("setting up supervisor")
     exe = os.path.join(releasedir(), test)
     proc = Popen(exe, bufsize=1<<20 , stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -186,7 +186,7 @@ def run(test):
         worker.join()
     msg("python is done")
     assert queue.empty(), "did not validate everything"
-    dt = time.clock() - t0
+    dt = time.perf_counter() - t0
     msg("took", round(dt, 3), "seconds")
 
 

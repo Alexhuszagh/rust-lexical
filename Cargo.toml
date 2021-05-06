@@ -148,6 +148,11 @@ path = "data/test-parse-unittests/main.rs"
 required-features = ["comprehensive_float_test"]
 
 [[bin]]
+name = "test-parse-golang"
+path = "data/test-parse-golang/main.rs"
+required-features = ["comprehensive_float_test"]
+
+[[bin]]
 name = "simple_lexical_example"
 path = "bin/simple_lexical_example.rs"
 

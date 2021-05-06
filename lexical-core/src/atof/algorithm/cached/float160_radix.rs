@@ -2,7 +2,7 @@
 
 #![cfg(feature = "radix")]
 
-use super::{ExtendedFloatArray, ModeratePathPowers};
+use super::cache::{ExtendedFloatArray, ModeratePathPowers};
 
 // LOW-LEVEL
 // ---------

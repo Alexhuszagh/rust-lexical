@@ -1,6 +1,6 @@
 //! Cached exponents for decimal values with 80-bit extended floats.
 
-use super::{ExtendedFloatArray, ModeratePathPowers};
+use super::cache::{ExtendedFloatArray, ModeratePathPowers};
 
 // LOW-LEVEL
 // ---------

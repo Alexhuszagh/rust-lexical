@@ -721,6 +721,10 @@ mod tests {
             f64::from_lexical_with_options(b"9007199254740995", &options).unwrap(),
             9007199254740994.0
         );
+        assert_eq!(
+            f64::from_lexical_with_options(b"9007199254740992000e-3", &options).unwrap(),
+            9007199254740992.0
+        );
     }
 
     #[test]

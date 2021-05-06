@@ -170,7 +170,7 @@ use crate::traits::*;
 use super::float80_decimal::*;
 #[cfg(feature = "radix")]
 use super::float80_radix::*;
-use super::ModeratePathPowers;
+use super::cache::ModeratePathPowers;
 
 /// Get powers from base.
 pub(crate) fn get_powers(radix: u32) -> &'static ModeratePathPowers<u64> {

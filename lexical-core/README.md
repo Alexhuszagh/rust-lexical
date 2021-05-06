@@ -23,6 +23,8 @@ If you want a minimal, stable, and compile-time friendly version of lexical-core
 - [Implementation Details](#implementation-details)
   - [Float to String](#float-to-string)
   - [String to Float](#string-to-float)
+  - [Halfway Cases](#halfway-cases)
+  - [Eisel-Lemire vs. Extended Float](#eisel-lemire-vs-extended-float)
   - [Arbitrary-Precision Arithmetic](#arbitrary-precision-arithmetic)
   - [Algorithm Background and Comparison](#algorithm-background-and-comparison)
 - [Known Issues](#known-issues)
@@ -360,7 +362,8 @@ Float parsing is difficult to do correctly, and major bugs have been found in im
 1. Hrvoje Abraham's [strtod](https://github.com/ahrvoje/numerics/tree/master/strtod) test cases.
 2. Rust's [test-float-parse](https://github.com/rust-lang/rust/tree/64185f205dcbd8db255ad6674e43c63423f2369a/src/etc/test-float-parse) unittests.
 3. Testbase's [stress tests](https://www.icir.org/vern/papers/testbase-report.pdf) for converting from decimal to binary.
-4. [Various](https://www.exploringbinary.com/glibc-strtod-incorrectly-converts-2-to-the-negative-1075/) [difficult](https://www.exploringbinary.com/how-glibc-strtod-works/) [cases](https://www.exploringbinary.com/how-strtod-works-and-sometimes-doesnt/) reported on blogs.
+4. Nigel Tao's [tests](https://github.com/nigeltao/parse-number-fxx-test-data) extracted from test suites for Freetype, Google's double-conversion library, IBM's IEEE-754R compliance test, as well as numerous other curated examples.
+5. [Various](https://www.exploringbinary.com/glibc-strtod-incorrectly-converts-2-to-the-negative-1075/) [difficult](https://www.exploringbinary.com/how-glibc-strtod-works/) [cases](https://www.exploringbinary.com/how-strtod-works-and-sometimes-doesnt/) reported on blogs.
 
 Although lexical may contain bugs leading to rounding error, it is tested against a comprehensive suite of random-data and near-halfway representations, and should be fast and correct for the vast majority of use-cases.
 
@@ -390,13 +393,55 @@ In order to implement an efficient parser in Rust, lexical uses the following st
 2. We handle special floats, such as "NaN", "inf", "Infinity". If we do not have a special float, we continue to the next step.
 3. We parse up to 64-bits from the string for the mantissa, ignoring any trailing digits, and parse the exponent (if present) as a signed 32-bit integer. If the exponent overflows or underflows, we set the value to i32::max_value() or i32::min_value(), respectively.
 4. **Fast Path** We then try to create an exact representation of a native binary float from parsed mantissa and exponent. If both can be exactly represented, we multiply the two to create an exact representation, since IEEE754 floats mandate the use of guard digits to minimizing rounding error. If either component cannot be exactly represented as the native float, we continue to the next step.
-5. **Moderate Path** If the `lemire` feature is enabled, we use the [Eisel-Lemire](https://nigeltao.github.io/blog/2020/eisel-lemire.html) algorithm. We first we create a representation of the float as a mantissa and the decimal exponent for that mantissa, create a 128-bit representation of the mantissa multiplied by the decimal exponent, and check for halfway representations. If we can differentiate our representation from halfway points, we return the correct representation. If we cannot unambiguously determine the correct floating-point representation, since the Eisel-Lemire algorithm cannot determine if the representation is `b` or `b+u`, we continue to the next step.
-6. **Fallback Moderate Path** We create an approximate, extended, 80-bit float type (64-bits for the mantissa, 16-bits for the exponent) from both components, and multiply them together. This minimizes the rounding error, through guard digits. We then estimate the error from the parsing and multiplication steps, and if the float +/- the error differs significantly from `b+h`, we return the correct representation (`b` or `b+u`). If we cannot unambiguously determine the correct floating-point representation, we round downwards to `b` and continue to the next step.
+5. **Moderate Path** If the `lemire` feature is enabled, we use the [Eisel-Lemire](https://nigeltao.github.io/blog/2020/eisel-lemire.html) algorithm. We first we create a representation of the float as a mantissa and the decimal exponent for that mantissa, create a 128-bit representation of the mantissa multiplied by the decimal exponent, and check for halfway representations. If we can differentiate our representation from halfway points, we return the correct representation. If we cannot unambiguously determine the correct floating-point representation, we round to the `b` representation and go to the slow path algorithm.
+6. **Fallback Moderate Path** If `lemire` feature is not enabled, we create an approximate, extended, 80-bit float type (64-bits for the mantissa, 16-bits for the exponent) from both components, and multiply them together. This minimizes the rounding error, through guard digits. We then estimate the error from the parsing and multiplication steps, and if the float +/- the error differs significantly from `b+h`, we return the correct representation (`b` or `b+u`). If we cannot unambiguously determine the correct floating-point representation, we round downwards to `b` and continue to the next step.
 7. **Slow Path** We use arbitrary-precision arithmetic to disambiguate the correct representation without any rounding error. We create an exact representation of the input digits as a big integer, to determine how to round the top 53 bits for the mantissa. If there is a fraction or a negative exponent, we create a representation of the significant digits for `b+h` and scale the input digits by the binary exponent in `b+h`, and scale the significant digits in `b+h` by the decimal exponent, and compare the two to determine if we need to round up or down.
 
 Since arbitrary-precision arithmetic is slow and scales poorly for decimal strings with many digits or exponents of high magnitude, lexical also supports a two faster algorithms:
 - A lossy algorithm, which returns the value from the fast or moderate path. This will be accurate to within 1 ULP.
 - An incorrect algorithm, which will return the exact value from the fast path, or an incorrect value to within a few ULP. This is only meant for applications where accuracy does not matter: only performance.
+
+## Halfway Cases
+
+When parsing floats, the most significant problem is determining how to round the resulting value. The IEEE-754 standard specifies rounding to nearest, then tie even.
+
+For example, using this rounding scheme to decimal numbers:
+- `8.9` would round to `9.0`.
+- `9.1` would round to `9.0`.
+- `9.5` would round to `10.0`.
+- `10.5` would round to `10.0`.
+
+With parsing from decimal strings to binary, fixed-width floating point numbers, we must round to the nearest float. This becomes tricky when values are near their halfway point. For example, with a single-precision float `f32`, we would round as follows:
+- `16777216.9` rounds to `16777216.0`
+- `16777217.0` rounds to `16777216.0`
+- `16777217.1` rounds to `16777218.0`
+
+This is easier illustrated if we represent the float in binary. First, here's the layout of an IEEE-754 single-precision float as bits:
+
+🟦🟩🟩🟩🟩🟩🟩🟩🟩🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪🟪
+
+Where:
+- 🟦 is the sign bit.
+- 🟩 are the exponent bits.
+- 🟪 are the mantissa, or significant digit, bits.
+
+We'll ignore the exponent and sign bits right now, and only consider the mantissa, or significant digits. The lowest exponent bit, also called the hidden bit, is used as an implicit, extra bit of precision for normal floats, meaning we have 24-bits of precision. For 3 numbers, we would therefore have the following representations, where the last bit is truncated off:
+
+- `16777216.0` => `100000000000000000000000 0`
+- `16777217.0` => `100000000000000000000000 1`
+- `16777218.0` => `100000000000000000000001 0`
+
+Therefore, `16777217.0` is exactly halfway between `16777216.0` and `16777218.0`. Although solving these halfway cases can superficially seem easy, simple algorithms will fail even when parsing the shortest, accurate decimal representation.
+
+## Eisel-Lemire vs. Extended Float
+
+The Eisel-Lemire [algorithm](https://nigeltao.github.io/blog/2020/eisel-lemire.html) is a fast, moderate path algorithm that creates an extended, 128-bit approximation of the mantissa scaled to the decimal exponent. The algorithm is not correct for all cases, but is accurate and fast for the vast majority of cases, and does not report false positives. The scaling uses a pre-computed table of 128-bit powers of 10, computed for the entire range of valid `f64` values.
+
+First, we create a 128-bit estimate by multiplying the 64-bit, normalized mantissa by the 64 high bits of the power of 10. We're currently within 2-units of the accurate representation, and if we cannot narrow this to a 1-unit range, then we expand to a 192-bit estimate, and proceed in a similar fashion to narrow to a 1-unit range. If the bits truncated after shifting would be a halfway point, the lower bits are all 0, then we round down to `b` and use the slow-path algorithm. This is very fast, because the major bottleneck is 1-2 64-bit multiply instructions.
+
+The extended-float algorithm creates an 80-bit extended-precision representation of the float (64-bits for the mantissa, 16-bits for the binary exponent), and then multiplies this extended-precision float by two pre-computed powers of 10 (a small power, and a large power, to minimize storage requirements). Although quite fast, this requires 2-3 64-bit multiply instructions, and is ~20% slower for algorithms that can create correct representations from both algorithms.
+
+Although the extended-float algorithm is more comprehensive (it can correctly the determine the accurate representation of more floats than the Eisel-Lemire algorithm), in practice, this reduced accuracy tends not to matter. Since neither algorithm produces false positives, and the slow-path algorithm is reasonably performant for the remaining cases, for almost all forms of data, Eisel-Lemire is faster than the extended-float algorithm.
 
 ## Arbitrary-Precision Arithmetic
 
@@ -472,7 +517,7 @@ Since our real digits are below the theoretical halfway point, we know we need t
 
 # Known Issues
 
-On the ARMVv6 architecture, the stable exponentiation for the fast, incorrect float parser is not fully stable. For example, `1e-300` is correct, while `5e-324` rounds to `0`, leading to "5e-324" being incorrectly parsed as `0`. This does not affect the default, correct float parser, nor ARMVv7 or ARMVv8 (aarch64) architectures. This bug can compound errors in the incorrect parser (feature-gated by disabling the `correct` feature`). It is not known if this bug is an artifact of Qemu emulation of ARMv6, or is actually representative the hardware.
+On the ARMv6 architecture, the stable exponentiation for the fast, incorrect float parser is not fully stable. For example, `1e-300` is correct, while `5e-324` rounds to `0`, leading to "5e-324" being incorrectly parsed as `0`. This does not affect the default, correct float parser, nor ARMVv7 or ARMVv8 (aarch64) architectures. This bug can compound errors in the incorrect parser. It is not known if this bug is an artifact of Qemu emulation of ARMv6, or is actually representative the hardware.
 
 Versions of lexical-core prior to 0.4.3 could round parsed floating-point numbers with an error of up to 1 ULP. This occurred for strings with 16 or more digits and a trailing 0 in the fraction, the `b+h` comparison in the slow-path algorithm incorrectly scales the the theoretical digits due to an over-calculated real exponent. This affects a very small percentage of inputs, however, it is recommended to update immediately.
 

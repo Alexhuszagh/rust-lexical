@@ -56,7 +56,7 @@ where
         }
     } else {
         extended_float::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind)
-    }}  // cfg_if
+    }} // cfg_if
 }
 
 /// Fallback method. Do not inline for performance reasons.
@@ -77,7 +77,8 @@ where
     // Moderate path (use an extended 80-bit representation).
     let exponent = data.mantissa_exponent();
     let is_truncated = data.truncated_digits() != 0;
-    let (float, valid) = moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
+    let (float, valid) =
+        moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
 
     // Check if we can return early, or use slow-path.
     if valid || float.is_special() {

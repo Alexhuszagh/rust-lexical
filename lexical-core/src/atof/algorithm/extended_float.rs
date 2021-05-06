@@ -413,14 +413,8 @@ mod tests {
         #[cfg(feature = "f128")]
         {
             let mantissa: u128 = 4746067219335938;
-            let (f, valid) = moderate_path::<f64>(
-                mantissa,
-                15,
-                -9,
-                false,
-                false,
-                RoundingKind::NearestTieEven,
-            );
+            let (f, valid) =
+                moderate_path::<f64>(mantissa, 15, -9, false, false, RoundingKind::NearestTieEven);
             assert_eq!(f, 123456.1);
             assert!(valid, "exponent should be valid");
         }
