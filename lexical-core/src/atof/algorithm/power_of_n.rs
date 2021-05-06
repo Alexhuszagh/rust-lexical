@@ -7,6 +7,7 @@ use crate::util::*;
 
 use super::alias::*;
 use super::bhcomp;
+use super::extended_float;
 use super::fast::fast_path;
 use super::format::*;
 use super::incorrect;
@@ -14,8 +15,6 @@ use super::mantissa::*;
 
 #[cfg(feature = "lemire")]
 use super::lemire;
-#[cfg(any(not(feature = "lemire"), feature = "f128", feature = "radix"))]
-use super::extended_float;
 
 // TO NATIVE
 // ---------
@@ -35,16 +34,15 @@ where
 {
     cfg_if! {
     if #[cfg(feature = "lemire")] {
-        cfg_if! {
-        if #[cfg(feature = "radix")] {
+        if cfg!(feature = "radix") {
             // Only use lamire if 64-bit mantissa (evaluated at compile-time)
             // and if the radix is 10.
             if radix == 10 && F::MantissaType::BITS <= 64 {
-                return lemire::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
+                lemire::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind)
             } else {
-                return extended_float::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
+                extended_float::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind)
             }
-        } else if #[cfg(feature = "f128")] {
+        } else if cfg!(feature = "f128") {
             // Only use the lamire algorithm if we have a 64-bit mantissa.
             if F::MantissaType::BITS <= 64 {
                 return lemire::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
@@ -55,9 +53,9 @@ where
             // Cannot support 128-bit floats or non-base 10 radixes here.
             // Always use lamire.
             return lemire::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
-        }}  // cfg_if
+        }
     } else {
-        return extended_float::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind);
+        extended_float::moderate_path::<F>(mantissa, radix, exponent, is_truncated, is_lossy, kind)
     }}  // cfg_if
 }
 

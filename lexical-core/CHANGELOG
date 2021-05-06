@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a faster float writer for power of 2 radixes.
 - Added the `required_exponent_notation` flag to `NumberFormat`.
 - Added the binary feature, for conversion to and from strings with power-of-two bases.
+- Added the lemire algorithm, for faster floating-point parsing of common numbers.
 
 ### Changed
 - Removed pre-computed float tables of powers-of-two, and recreated stable powers of 2 through bit manipulations.

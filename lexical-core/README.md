@@ -90,8 +90,8 @@ assert_eq!(slc, b"15.1");
 
 # Features
 
-- **binary** Allow conversions to and from non-decimal strings.
-    <blockquote>With binary enabled, the radixes <code>{2, 4, 8, 10, 16, and 32}</code> are valid, otherwise, only 10 is valid.</blockquote>
+- **power_of_two** Allow conversions to and from non-decimal strings.
+    <blockquote>With power_of_two enabled, the radixes <code>{2, 4, 8, 10, 16, and 32}</code> are valid, otherwise, only 10 is valid.</blockquote>
 - **radix** Allow conversions to and from non-decimal strings.
     <blockquote>With radix enabled, any radix from 2 to 36 (inclusive) is valid, otherwise, only 10 is valid.</blockquote>
 - **format** Customize accepted inputs for number parsing.
@@ -99,9 +99,11 @@ assert_eq!(slc, b"15.1");
 - **rounding** Enable custom rounding for IEEE754 floats.
     <blockquote>By default, lexical uses round-nearest, tie-even for float rounding (recommended by IEE754).</blockquote>
 - **ryu** Use dtolnay's [ryu](https://github.com/dtolnay/ryu/) library for float-to-string conversions.
-    <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. Ryu is ~2x as fast as other float formatters.</blockquote>
+    <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. Ryu is ~2x as fast as other float formatters. Note that enabling this feature disables most float-formatting options.</blockquote>
 - **no_alloc** Do not use a system allocator.
     <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. If the feature is turned off, storage for arbitrary-precision arithmetic will use dynamically-allocated memory rather than the stack.</blockquote>
+- **lemire** Use the lemire float-parsing algorithm.
+    <blockquote>Enabled by default, and may be turned off by setting <code>default-features = false</code>. The Eisel-Lemire is a fast float-parsing algorithm for most use-cases. See the <a href="https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#string-to-float">String to Float</a> section below for a more detailed explanation</blockquote>
 
 In terms of the static array storage for pre-computed values (required for accuracy and performance), 6KB are required if neither `radix` nor `binary` is enabled, 11KB are required if `binary` is enabled, and 127KB are required if `radix` is enabled. This is due to pre-computed powers being required for accurate calculations, and cannot be avoided.
 
@@ -388,11 +390,13 @@ In order to implement an efficient parser in Rust, lexical uses the following st
 2. We handle special floats, such as "NaN", "inf", "Infinity". If we do not have a special float, we continue to the next step.
 3. We parse up to 64-bits from the string for the mantissa, ignoring any trailing digits, and parse the exponent (if present) as a signed 32-bit integer. If the exponent overflows or underflows, we set the value to i32::max_value() or i32::min_value(), respectively.
 4. **Fast Path** We then try to create an exact representation of a native binary float from parsed mantissa and exponent. If both can be exactly represented, we multiply the two to create an exact representation, since IEEE754 floats mandate the use of guard digits to minimizing rounding error. If either component cannot be exactly represented as the native float, we continue to the next step.
-5. **Moderate Path** We create an approximate, extended, 80-bit float type (64-bits for the mantissa, 16-bits for the exponent) from both components, and multiplies them together. This minimizes the rounding error, through guard digits. We then estimate the error from the parsing and multiplication steps, and if the float +/- the error differs significantly from b+h, we return the correct representation (b or b+u). If we cannot unambiguously determine the correct floating-point representation, we continue to the next step.
-6. **Fallback Moderate Path** Next, we create a 128-bit representation of the numerator and denominator for b+h, to disambiguate b from b+u by comparing the actual digits in the input to theoretical digits generated from b+h. This is accurate for ~36 significant digits from a 128-bit approximation with decimal float strings. If the input is less than or equal to 36 digits, we return the value from this step. Otherwise, we continue to the next step.
+5. **Moderate Path** If the `lemire` feature is enabled, we use the [Eisel-Lemire](https://nigeltao.github.io/blog/2020/eisel-lemire.html) algorithm. We first we create a representation of the float as a mantissa and the decimal exponent for that mantissa, create a 128-bit representation of the mantissa multiplied by the decimal exponent, and check for halfway representations. If we can differentiate our representation from halfway points, we return the correct representation. If we cannot unambiguously determine the correct floating-point representation, since the Eisel-Lemire algorithm cannot determine if the representation is `b` or `b+u`, we continue to the next step.
+6. **Fallback Moderate Path** We create an approximate, extended, 80-bit float type (64-bits for the mantissa, 16-bits for the exponent) from both components, and multiply them together. This minimizes the rounding error, through guard digits. We then estimate the error from the parsing and multiplication steps, and if the float +/- the error differs significantly from `b+h`, we return the correct representation (`b` or `b+u`). If we cannot unambiguously determine the correct floating-point representation, we round downwards to `b` and continue to the next step.
 7. **Slow Path** We use arbitrary-precision arithmetic to disambiguate the correct representation without any rounding error. We create an exact representation of the input digits as a big integer, to determine how to round the top 53 bits for the mantissa. If there is a fraction or a negative exponent, we create a representation of the significant digits for `b+h` and scale the input digits by the binary exponent in `b+h`, and scale the significant digits in `b+h` by the decimal exponent, and compare the two to determine if we need to round up or down.
 
-Since arbitrary-precision arithmetic is slow and scales poorly for decimal strings with many digits or exponents of high magnitude, lexical also supports a lossy algorithm, which returns the result from the moderate path. The result from the lossy parser should be accurate to within 1 ULP.
+Since arbitrary-precision arithmetic is slow and scales poorly for decimal strings with many digits or exponents of high magnitude, lexical also supports a two faster algorithms:
+- A lossy algorithm, which returns the value from the fast or moderate path. This will be accurate to within 1 ULP.
+- An incorrect algorithm, which will return the exact value from the fast path, or an incorrect value to within a few ULP. This is only meant for applications where accuracy does not matter: only performance.
 
 ## Arbitrary-Precision Arithmetic
 
