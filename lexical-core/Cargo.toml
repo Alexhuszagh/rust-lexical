@@ -41,7 +41,29 @@ version_check = "0.9"
 approx = "0.4.0"
 
 [features]
-default = ["lemire", "no_alloc", "ryu", "std"]
+default = [
+    # Sub-crates.
+    "parse_floats",
+    "parse_integers",
+    "write_floats",
+    "write_integers",
+    # Default features.
+    "lemire",
+    "no_alloc",
+    "ryu",
+    "std"
+]
+
+# SUBCRATES
+# ---------
+# Enable the float parser.
+parse_floats = []
+# Enable the integer parser.
+parse_integers = []
+# Enable the float writer.
+write_floats = []
+# Enable the integer writer.
+write_integers = []
 
 # FEATURES
 # --------

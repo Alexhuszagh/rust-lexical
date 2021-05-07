@@ -21,7 +21,7 @@ where
     debug_assert!(n <= bits, "lower_n_mask() overflow in shl.");
 
     match n == bits {
-        true => N::max_value(),
+        true => N::MAX,
         false => (N::ONE << n) - N::ONE,
     }
 }

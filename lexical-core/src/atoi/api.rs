@@ -427,7 +427,7 @@ mod tests {
     #[cfg(feature = "property_tests")]
     proptest! {
         #[test]
-        #[cfg(feature = "power_of_two")]
+        #[cfg(all(feature = "write_integers", feature = "power_of_two"))]
         fn i32_binary_roundtrip_display_proptest(i in i32::MIN..i32::MAX) {
             let mut buffer = new_buffer();
             let write_opts = WriteIntegerOptions::binary();

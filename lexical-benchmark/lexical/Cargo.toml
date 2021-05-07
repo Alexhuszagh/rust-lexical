@@ -15,7 +15,14 @@ lazy_static = "1"
 serde_json = "1.0"
 
 [features]
-default = ["lemire", "no_alloc", "ryu", "std"]
+default = ["parse_floats", "lemire", "no_alloc", "std"]
+
+# SUBCRATES
+# ---------
+parse_floats = ["lexical-core/parse_floats"]
+parse_integers = ["lexical-core/parse_integers"]
+write_floats = ["lexical-core/write_floats"]
+write_integers = ["lexical-core/write_integers"]
 
 # FEATURES
 # --------

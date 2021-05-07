@@ -30,7 +30,29 @@ features = []
 version = "^0.8.0"
 
 [features]
-default = ["lemire", "no_alloc", "ryu", "std"]
+default = [
+    # Sub-crates.
+    "parse_floats",
+    "parse_integers",
+    "write_floats",
+    "write_integers",
+    # Default features.
+    "lemire",
+    "no_alloc",
+    "ryu",
+    "std"
+]
+
+# SUBCRATES
+# ---------
+# Enable the float parser.
+parse_floats = ["lexical-core/parse_floats"]
+# Enable the integer parser.
+parse_integers = ["lexical-core/parse_integers"]
+# Enable the float writer.
+write_floats = ["lexical-core/write_floats"]
+# Enable the integer writer.
+write_integers = ["lexical-core/write_integers"]
 
 # FEATURES
 # --------

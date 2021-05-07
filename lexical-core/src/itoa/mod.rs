@@ -6,5 +6,5 @@ mod decimal;
 #[cfg(feature = "power_of_two")]
 mod generic;
 
-#[cfg(feature = "power_of_two")]
+#[cfg(all(feature = "write_floats", feature = "power_of_two"))]
 pub(crate) use self::api::{itoa_positive, Itoa};

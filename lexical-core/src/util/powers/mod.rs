@@ -8,24 +8,25 @@
 //!
 //! In total, all the pre-computed tables take up the following amount
 //! of space, based on the source files here:
-// TODO(ahuszagh) Need to update these counts now that I've moved things around.
-//!     src/atof/algorithm/cached/float80_decimal.rs:   ~1 KB
-//!     src/atof/algorithm/cached/float80_radix.rs:     ~29 KB
-//!     src/atof/algorithm/cached/float160_decimal.rs:  ~7 KB
-//!     src/atof/algorithm/cached/float160_radix.rs:    ~200 KB
-//!     src/atof/algorithm/powers/large32_decimal.rs:   ~5 KB
-//!     src/atof/algorithm/powers/large32_radix.rs:     ~50 KB
-//!     src/atof/algorithm/powers/large64_decimal.rs:   ~4.8 KB
-//!     src/atof/algorithm/powers/large64_radix.rs:     ~50 KB
-//!     src/atof/algorithm/powers/small32_binary.rs:    ~296 B
-//!     src/atof/algorithm/powers/small32_decimal.rs:   ~96 B
-//!     src/atof/algorithm/powers/small32_radix.rs:     ~1 KB
-//!     src/atof/algorithm/powers/small64_binary.rs:    ~1.3 KB
-//!     src/atof/algorithm/powers/small64_decimal.rs:   ~384 B
-//!     src/atof/algorithm/powers/small64_radix.rs:     ~3.7 KB
-//!     src/table/binary.rs:                            ~2.7 KB
-//!     src/table/decimal.rs:                           ~430 B
-//!     src/table/radix.rs:                             ~35 KB
+//!     src/util/cached/float80_decimal.rs:             ~1 KB
+//!     src/util/cached/float80_radix.rs:               ~29 KB
+//!     src/util/cached/float160_decimal.rs:            ~7 KB
+//!     src/util/cached/float160_radix.rs:              ~200 KB
+//!     src/util/powers/large/decimal32.rs:             ~5 KB
+//!     src/util/powers/large/radix32.rs:               ~50 KB
+//!     src/util/powers/large/decimal64.rs:             ~4.8 KB
+//!     src/util/powers/large/radix64.rs:               ~50 KB
+//!     src/util/powers/small/binary32.rs:              ~296 B
+//!     src/util/powers/small/decimal32.rs:             ~96 B
+//!     src/util/powers/small/radix32.rs:               ~1 KB
+//!     src/util/powers/small/binary64.rs:              ~1.3 KB
+//!     src/util/powers/small/decimal64.rs:             ~384 B
+//!     src/util/powers/small/radix64.rs:               ~3.7 KB
+//!     src/util/float/decimal.rs:                      ~230 B
+//!     src/util/float/radix.rs:                        ~6 KB
+//!     src/util/digit/binary.rs:                       ~2.7 KB
+//!     src/util/digit/decimal.rs:                      ~200 B
+//!     src/util/digit/radix.rs:                        ~29 KB
 //!
 //! Therefore, the total storage with the radix feature is ~127 KB,
 //! while the total storage with the binary feature is ~11 KB,
@@ -41,9 +42,13 @@
 //! dramatically with support for `f128`.
 
 mod float;
-mod large;
-mod small;
-
 pub(crate) use self::float::*;
-pub(crate) use self::large::*;
-pub(crate) use self::small::*;
+
+cfg_if! {
+if #[cfg(feature = "parse_floats")] {
+    mod large;
+    mod small;
+
+    pub(crate) use self::large::*;
+    pub(crate) use self::small::*;
+}} // cfg_if

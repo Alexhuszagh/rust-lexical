@@ -34,6 +34,7 @@ pub(crate) const DIGIT_TO_CHAR: [u8; 36] = [
 // for a remainder of `3` for the radix^2 in radix 2 will give you `1` and `1`,
 // at indexes 6 and 7.
 
+#[cfg(write)]
 pub(crate) const DIGIT_TO_BASE10_SQUARED: [u8; 200] = [
     b'0', b'0', b'0', b'1', b'0', b'2', b'0', b'3', b'0', b'4', b'0', b'5', b'0', b'6', b'0', b'7',
     b'0', b'8', b'0', b'9', b'1', b'0', b'1', b'1', b'1', b'2', b'1', b'3', b'1', b'4', b'1', b'5',

@@ -525,6 +525,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "parse_floats")]
     fn f32_decimal_roundtrip_test() {
         let mut buffer = new_buffer();
         for &f in F32_DATA.iter() {
@@ -539,7 +540,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "radix")]
+    #[cfg(all(feature = "parse_floats", feature = "radix"))]
     fn f32_radix_roundtrip_test() {
         let mut buffer = new_buffer();
         for &f in F32_DATA.iter() {
@@ -659,6 +660,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "parse_floats")]
     fn f64_decimal_roundtrip_test() {
         let mut buffer = new_buffer();
         for &f in F64_DATA.iter() {
@@ -673,7 +675,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "radix")]
+    #[cfg(all(feature = "parse_floats", feature = "radix"))]
     fn f64_radix_roundtrip_test() {
         let mut buffer = new_buffer();
         for &f in F64_DATA.iter() {
@@ -692,7 +694,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "property_tests")]
+    #[cfg(all(feature = "parse_floats", feature = "property_tests"))]
     quickcheck! {
         fn f32_quickcheck(f: f32) -> bool {
             let mut buffer = new_buffer();
@@ -715,7 +717,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "property_tests")]
+    #[cfg(all(feature = "parse_floats", feature = "property_tests"))]
     proptest! {
         #[test]
         fn f32_proptest(i in f32::MIN..f32::MAX) {

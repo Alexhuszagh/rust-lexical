@@ -23,37 +23,39 @@ pub trait AsCast: AsPrimitive {
 }
 
 macro_rules! as_cast {
-    ($t:ty, $meth:ident) => {
+    ($($t:ty, $meth:ident ; )*) => ($(
         impl AsCast for $t {
             #[inline]
             fn as_cast<N: AsPrimitive>(n: N) -> $t {
                 n.$meth()
             }
         }
-    };
+    )*);
 }
 
-as_cast!(u8, as_u8);
-as_cast!(u16, as_u16);
-as_cast!(u32, as_u32);
-as_cast!(u64, as_u64);
-as_cast!(u128, as_u128);
-as_cast!(usize, as_usize);
-as_cast!(i8, as_i8);
-as_cast!(i16, as_i16);
-as_cast!(i32, as_i32);
-as_cast!(i64, as_i64);
-as_cast!(i128, as_i128);
-as_cast!(isize, as_isize);
-as_cast!(f32, as_f32);
-as_cast!(f64, as_f64);
+as_cast!(
+    u8, as_u8 ;
+    u16, as_u16 ;
+    u32, as_u32 ;
+    u64, as_u64 ;
+    u128, as_u128 ;
+    usize, as_usize ;
+    i8, as_i8 ;
+    i16, as_i16 ;
+    i32, as_i32 ;
+    i64, as_i64 ;
+    i128, as_i128 ;
+    isize, as_isize ;
+    f32, as_f32 ;
+    f64, as_f64 ;
+);
 
 // TEST
 // ----
 
 #[cfg(test)]
 mod tests {
-    use crate::util::traits::*;
+    use super::*;
 
     fn check_as_cast<T: AsCast>(t: T) {
         let _: i8 = as_cast(t);

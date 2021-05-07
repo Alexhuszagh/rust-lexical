@@ -642,7 +642,9 @@ macro_rules! float_type {
 }
 
 /// Trait to simplify type signatures for atof.
-pub(crate) trait FloatType: StablePower + MaxCorrectDigits + MaxIncorrectDigits {
+pub(crate) trait FloatType:
+    StablePower + ExactFloat + MaxCorrectDigits + MaxIncorrectDigits
+{
     type UnsignedType: FromUint;
     type MantissaType: MantissaType;
     type ExtendedFloat: ExtendedFloatType<Self>;

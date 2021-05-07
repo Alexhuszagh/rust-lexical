@@ -7,8 +7,8 @@
 //! are implemented, and others (like bitshift assigns) are unimplemented.
 
 use crate::lib::{cmp, fmt, iter, ops};
-use crate::options::*; // TODO(ahuszagh) Keep for options later.
-use crate::util::*;
+use crate::util::options::*;
+use crate::util::traits::*;
 
 // WRAPPED FLOAT
 // -------------
@@ -388,37 +388,12 @@ impl<T: Float> Integer for WrappedFloat<T> {
     const BITS: usize = T::BITS;
 
     #[inline]
-    fn max_value() -> Self {
-        Self::MAX
-    }
-
-    #[inline]
     fn min_value() -> Self {
         Self::MIN
     }
 
     #[inline]
-    fn count_ones(self) -> u32 {
-        unreachable!()
-    }
-
-    #[inline]
-    fn count_zeros(self) -> u32 {
-        unreachable!()
-    }
-
-    #[inline]
     fn leading_zeros(self) -> u32 {
-        unreachable!()
-    }
-
-    #[inline]
-    fn trailing_zeros(self) -> u32 {
-        unreachable!()
-    }
-
-    #[inline]
-    fn pow(self, _: u32) -> Self {
         unreachable!()
     }
 
@@ -438,28 +413,13 @@ impl<T: Float> Integer for WrappedFloat<T> {
     }
 
     #[inline]
-    fn checked_div(self, i: Self) -> Option<Self> {
-        Some(self / i)
+    fn overflowing_add(self, i: Self) -> (Self, bool) {
+        (self + i, false)
     }
 
     #[inline]
-    fn checked_rem(self, i: Self) -> Option<Self> {
-        Some(self % i)
-    }
-
-    #[inline]
-    fn checked_neg(self) -> Option<Self> {
-        Some(-self)
-    }
-
-    #[inline]
-    fn checked_shl(self, _: u32) -> Option<Self> {
-        unimplemented!()
-    }
-
-    #[inline]
-    fn checked_shr(self, _: u32) -> Option<Self> {
-        unimplemented!()
+    fn overflowing_mul(self, i: Self) -> (Self, bool) {
+        (self * i, false)
     }
 
     #[inline]
@@ -478,68 +438,8 @@ impl<T: Float> Integer for WrappedFloat<T> {
     }
 
     #[inline]
-    fn wrapping_div(self, i: Self) -> Self {
-        self / i
-    }
-
-    #[inline]
-    fn wrapping_rem(self, i: Self) -> Self {
-        self % i
-    }
-
-    #[inline]
     fn wrapping_neg(self) -> Self {
         -self
-    }
-
-    #[inline]
-    fn wrapping_shl(self, _: u32) -> Self {
-        unimplemented!()
-    }
-
-    #[inline]
-    fn wrapping_shr(self, _: u32) -> Self {
-        unimplemented!()
-    }
-
-    #[inline]
-    fn overflowing_add(self, i: Self) -> (Self, bool) {
-        (self + i, false)
-    }
-
-    #[inline]
-    fn overflowing_sub(self, i: Self) -> (Self, bool) {
-        (self - i, false)
-    }
-
-    #[inline]
-    fn overflowing_mul(self, i: Self) -> (Self, bool) {
-        (self * i, false)
-    }
-
-    #[inline]
-    fn overflowing_div(self, i: Self) -> (Self, bool) {
-        (self / i, false)
-    }
-
-    #[inline]
-    fn overflowing_rem(self, i: Self) -> (Self, bool) {
-        (self % i, false)
-    }
-
-    #[inline]
-    fn overflowing_neg(self) -> (Self, bool) {
-        (-self, false)
-    }
-
-    #[inline]
-    fn overflowing_shl(self, _: u32) -> (Self, bool) {
-        unimplemented!()
-    }
-
-    #[inline]
-    fn overflowing_shr(self, _: u32) -> (Self, bool) {
-        unimplemented!()
     }
 
     #[inline]
@@ -572,19 +472,6 @@ impl<T: Float> ops::Neg for WrappedFloat<T> {
 }
 
 impl<T: Float> SignedInteger for WrappedFloat<T> {
-    fn checked_abs(self) -> Option<Self> {
-        Some(self.wrapping_abs())
-    }
-
-    fn wrapping_abs(self) -> Self {
-        WrappedFloat {
-            data: self.data.abs(),
-        }
-    }
-
-    fn overflowing_abs(self) -> (Self, bool) {
-        (self.wrapping_abs(), false)
-    }
 }
 
 // TEST

@@ -13,6 +13,7 @@
 //      - config
 //      - error
 //      - result
+//      - iterator
 //      - digit
 //      - powers
 //      - options
@@ -27,35 +28,42 @@
 mod misc;
 #[macro_use]
 mod traits;
+
 mod algorithm;
-mod cached;
 mod config;
 mod digit;
 mod error;
-mod float;
+mod format; // TODO(ahuszagh) Need to refactor.
 mod iterator;
 mod math;
+mod options; // TODO(ahuszagh) Need to refactor.
 mod powers;
 mod result;
 
-// TODO(ahuszagh) Need to rework these two.
-mod format;
-mod options;
-
 // Publicly export everything with crate-visibility.
 pub(crate) use self::algorithm::*;
-pub(crate) use self::cached::*;
 pub(crate) use self::config::*;
 pub(crate) use self::digit::*;
-pub(crate) use self::float::*;
 pub(crate) use self::iterator::*;
 pub(crate) use self::math::*;
 pub(crate) use self::powers::*;
 
 // Publicly export config globally.
 pub use self::error::*;
-pub use self::format::*; // TODO(ahuszagh) Move to crate::options
+pub use self::format::*;
 pub use self::misc::*;
-pub use self::options::*; // TODO(ahuszagh) Move to crate::options
+pub use self::options::*;
 pub use self::result::*;
 pub use self::traits::*;
+
+cfg_if! {
+if #[cfg(feature = "parse_floats")] {
+    mod cached;
+    pub(crate) use self::cached::*;
+}} // cfg_if
+
+cfg_if! {
+if #[cfg(any(feature = "parse_floats", feature = "write_floats"))] {
+    mod float;
+    pub(crate) use self::float::*;
+}} // cfg_if

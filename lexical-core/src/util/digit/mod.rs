@@ -7,13 +7,13 @@ pub(crate) use self::decimal::*;
 pub(crate) use self::funcs::*;
 
 cfg_if! {
-if #[cfg(feature = "power_of_two")] {
+if #[cfg(all(write, feature = "power_of_two"))] {
     mod binary;
     pub(crate) use self::binary::*;
 }} // cfg_if
 
 cfg_if! {
-if #[cfg(feature = "radix")] {
+if #[cfg(all(write, feature = "radix"))] {
     mod radix;
     pub(crate) use self::radix::*;
 }} // cfg_if

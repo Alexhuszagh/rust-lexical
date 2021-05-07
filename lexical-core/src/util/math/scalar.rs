@@ -51,7 +51,7 @@ pub fn isub(x: &mut Limb, y: Limb) -> bool {
 pub fn mul(x: Limb, y: Limb, carry: Limb) -> (Limb, Limb) {
     // Cannot overflow, as long as wide is 2x as wide. This is because
     // the following is always true:
-    // `Wide::max_value() - (Narrow::max_value() * Narrow::max_value()) >= Narrow::max_value()`
+    // `Wide::MAX - (Narrow::MAX * Narrow::MAX) >= Narrow::MAX`
     let z: Wide = as_wide(x) * as_wide(y) + as_wide(carry);
     (as_limb(z), as_limb(z >> <Limb as Integer>::BITS))
 }

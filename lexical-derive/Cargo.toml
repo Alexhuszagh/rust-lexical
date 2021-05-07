@@ -17,7 +17,25 @@ features = []
 proc-macro = true
 
 [features]
-default = ["lemire", "no_alloc", "ryu", "std"]
+default = [
+    # Sub-crates.
+    "parse_floats",
+    "parse_integers",
+    "write_floats",
+    "write_integers",
+    # Default features.
+    "lemire",
+    "no_alloc",
+    "ryu",
+    "std"
+]
+
+# SUBCRATES
+# ---------
+parse_floats = ["lexical-core/parse_floats"]
+parse_integers = ["lexical-core/parse_integers"]
+write_floats = ["lexical-core/write_floats"]
+write_integers = ["lexical-core/write_integers"]
 
 # FEATURES
 # --------

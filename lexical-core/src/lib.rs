@@ -20,6 +20,13 @@
 //! # Getting Started
 //!
 //! ```rust
+//! # #[cfg(all(
+//! #     feature = "parse_floats",
+//! #     feature = "parse_integers",
+//! #     feature = "write_floats",
+//! #     feature = "write_integers",
+//! # ))]
+//! # {
 //! extern crate lexical_core;
 //!
 //! // String to number using Rust slices.
@@ -60,6 +67,7 @@
 //! let mut buf = [b'0'; f64::FORMATTED_SIZE_DECIMAL];
 //! let slc = lexical_core::write::<f64>(15.1, &mut buf);
 //! assert_eq!(slc, b"15.1");
+//! # }
 //! ```
 //!
 //! # Conversion API
@@ -125,7 +133,7 @@
 //!
 //! ```
 //! # pub fn main() {
-//! #[cfg(feature = "format")] {
+//! # #[cfg(all(feature = "parse_floats", feature = "format"))] {
 //!     // This creates a format to parse a European-style float number.
 //!     // The decimal point is a comma, and the digit separators (optional)
 //!     // are periods.
@@ -157,7 +165,7 @@
 //!         lexical_core::parse_with_options::<f32>(b"1E+2", &options),
 //!         Ok(100.0)
 //!     );
-//! }
+//! # }
 //! # }
 //! ```
 //!
@@ -174,8 +182,10 @@
 //! [`WriteFloatOptions`]: struct.WriteFloatOptions.html
 //! [`WriteIntegerOptions`]: struct.WriteIntegerOptions.html
 
-// Silence warnings for unused doc comments
+// Silence warnings for unused doc comments.
+// Only warn about unused code if we're compiling with all features.
 #![allow(unused_doc_comments)]
+#![cfg_attr(allow_unused, allow(unused))]
 // FEATURES
 // --------
 
@@ -226,17 +236,20 @@ pub(crate) mod lib {
 // Hide implementation details.
 #[macro_use]
 mod util;
-#[macro_use]
-mod options;
+//#[macro_use]
+//mod options;  // TODO(ahuszagh) Finish re-working.
 
 // Re-export configuration, options, and utilities globally.
-pub use options::*;
 pub use util::*;
 
 // Submodules
+#[cfg(feature = "parse_floats")]
 mod atof;
+#[cfg(parse)]
 mod atoi;
+#[cfg(feature = "write_floats")]
 mod ftoa;
+#[cfg(write)]
 mod itoa;
 
 // API
@@ -259,6 +272,8 @@ mod itoa;
 /// # Example
 ///
 /// ```
+/// # pub fn main() {
+/// #[cfg(feature = "write_floats")] {
 /// // import `Number` trait to get the `FORMATTED_SIZE_DECIMAL` of the number.
 /// use lexical_core::Number;
 ///
@@ -268,16 +283,23 @@ mod itoa;
 /// lexical_core::write(float, &mut buffer);
 ///
 /// assert_eq!(&buffer[0..9], b"3.1415927");
+/// # }
+/// # }
 /// ```
 ///
 /// This will panic, because the buffer is not large enough:
 ///
 /// ```should_panic
+/// # #[cfg(feature = "write_floats")] {
 /// // note: the buffer is only one byte large
 /// let mut buffer = [0u8; 1];
 /// let float = 3.14159265359_f32;
 ///
 /// lexical_core::write(float, &mut buffer);
+/// # }
+/// # #[cfg(not(feature = "write_floats"))] {
+/// #     panic!("");
+/// # }
 /// ```
 #[inline]
 pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8]) -> &'a mut [u8] {
@@ -302,6 +324,8 @@ pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8]) -> &'a mut [u8] {
 /// # Example
 ///
 /// ```
+/// # pub fn main() {
+/// #[cfg(feature = "write_floats")] {
 /// // import `Number` trait to get the `FORMATTED_SIZE` of the number.
 /// use lexical_core::Number;
 ///
@@ -312,17 +336,24 @@ pub fn write<'a, N: ToLexical>(n: N, bytes: &'a mut [u8]) -> &'a mut [u8] {
 /// lexical_core::write_with_options(float, &mut buffer, &options);
 ///
 /// assert_eq!(&buffer[0..9], b"3.1415927");
+/// # }
+/// # }
 /// ```
 ///
 /// This will panic, because the buffer is not large enough:
 ///
 /// ```should_panic
+/// # #[cfg(feature = "write_floats")] {
 /// // note: the buffer is only one byte large
 /// let mut buffer = [0u8; 1];
 /// let float = 3.14159265359_f32;
 ///
 /// let options = lexical_core::WriteFloatOptions::decimal();
 /// lexical_core::write_with_options(float, &mut buffer, &options);
+/// # }
+/// # #[cfg(not(feature = "write_floats"))] {
+/// #     panic!("");
+/// # }
 /// ```
 #[inline]
 pub fn write_with_options<'a, N: ToLexicalOptions>(

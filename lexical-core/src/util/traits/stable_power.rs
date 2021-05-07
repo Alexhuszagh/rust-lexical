@@ -3,7 +3,6 @@
 use crate::util::powers::TablePower;
 
 use super::cast::as_cast;
-use super::exact_float::ExactFloat;
 use super::num::Float;
 
 // STABLE POWER
@@ -50,7 +49,7 @@ macro_rules! bitwise_pow2 {
 }
 
 /// Stable power implementations for increased numeric stability.
-pub trait StablePower: TablePower + ExactFloat + Float {
+pub trait StablePower: TablePower + Float {
     // ITERATIVE
 
     /// Get max exponent for `iterative_pow`.

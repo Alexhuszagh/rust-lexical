@@ -15,6 +15,7 @@ If you want a minimal, stable, and compile-time friendly version of lexical-core
 
 - [Getting Started](#getting-started)
 - [Benchmarks](#benchmarks)
+- [Sub-Crates](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#sub-crates)
 - [Features](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#features)
 - [Options](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#options)
 - [Constants](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core#constants)

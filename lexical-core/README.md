@@ -14,6 +14,7 @@ If you want a minimal, stable, and compile-time friendly version of lexical-core
 **Table of Contents**
 
 - [Getting Started](#getting-started)
+- [Sub-Crates](#sub-crates)
 - [Features](#features)
   - [Format](#format)
 - [Options](#options)
@@ -89,6 +90,15 @@ let mut buf = [b'0'; f64::FORMATTED_SIZE_DECIMAL];
 let slc = lexical_core::write::<f64>(15.1, &mut buf);
 assert_eq!(slc, b"15.1");
 ```
+
+# Sub-Crates
+
+In order to speed up compile times, lexical-core enable you to select the broad functionality you wish to use as features. All sub-crates are enabled by default.
+
+- **parse_floats** Enable the float parser.
+- **parse_integers** Enable the integer parser.
+- **write_floats** Enable the float writer.
+- **write_integers** Enable the integer writer.
 
 # Features
 

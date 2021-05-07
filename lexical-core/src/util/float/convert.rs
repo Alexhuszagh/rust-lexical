@@ -1,7 +1,7 @@
 //! Convert between extended-precision and native floats/integers.
 
 use crate::lib::mem;
-use crate::util::*;
+use crate::util::traits::*;
 
 use super::extended_float::*;
 

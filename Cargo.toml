@@ -46,7 +46,29 @@ itoa_impl = { version = "0.4", features = ["i128"], package = "itoa" }
 lazy_static = "1"
 
 [features]
-default = ["lemire", "no_alloc", "ryu", "std"]
+default = [
+    # Sub-crates.
+    "parse_floats",
+    "parse_integers",
+    "write_floats",
+    "write_integers",
+    # Default features.
+    "lemire",
+    "no_alloc",
+    "ryu",
+    "std"
+]
+
+# SUBCRATES
+# ---------
+# Enable the float parser.
+parse_floats = ["lexical-core/parse_floats"]
+# Enable the integer parser.
+parse_integers = ["lexical-core/parse_integers"]
+# Enable the float writer.
+write_floats = ["lexical-core/write_floats"]
+# Enable the integer writer.
+write_integers = ["lexical-core/write_integers"]
 
 # FEATURES
 # --------
@@ -88,9 +110,10 @@ property_tests = ["lexical-core/property_tests"]
 # Testing only.
 comprehensive_float_test = ["rand/std", "serde/std", "serde_derive", "std", "toml"]
 
-# Binaries
-# Special testing binaries for the runtests.py scripts.
+# BINARIES
+# --------
 
+# Special testing binaries for the runtests.py scripts.
 [[bin]]
 name = "few_ones"
 path = "data/test-parse-random/few_ones.rs"
@@ -151,15 +174,19 @@ name = "test-parse-golang"
 path = "data/test-parse-golang/main.rs"
 required-features = ["comprehensive_float_test"]
 
+# Simple binaries to test the binary size of lexical functions.
 [[bin]]
 name = "simple_lexical_example"
 path = "bin/simple_lexical_example.rs"
+required-features = ["parse_floats"]
 
 [[bin]]
 name = "simple_parse_example"
 path = "bin/simple_parse_example.rs"
+required-features = ["parse_floats"]
 
-# Benchmarks
+# BENCHMARKS
+# ----------
 
 [[bench]]
 name = "atof"
@@ -190,6 +217,9 @@ harness = false
 name = "ftoa"
 path = "benches/ftoa.rs"
 harness = false
+
+# PROFILES
+# --------
 
 [profile.dev]
 opt-level = 0

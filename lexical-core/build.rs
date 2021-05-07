@@ -20,8 +20,25 @@ fn main() {
         println!("cargo:rustc-cfg=limb_width_32");
     }
 
+    // Simplify detection of when we need to use alloc.
     #[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
     println!("cargo:rustc-cfg=use_alloc");
+
+    // Simplify feature-gating depending on sub-crates.
+    #[cfg(any(feature = "parse_floats", feature = "parse_integers"))]
+    println!("cargo:rustc-cfg=parse");
+
+    #[cfg(any(feature = "write_floats", feature = "write_integers"))]
+    println!("cargo:rustc-cfg=write");
+
+    // Allow unused unless we're compiling all sub-crates.
+    #[cfg(not(all(
+        feature = "parse_floats",
+        feature = "parse_integers",
+        feature = "write_floats",
+        feature = "write_integers",
+    )))]
+    println!("cargo:rustc-cfg=allow_unused");
 
     // Feature support.
     // Drop these when we raise the MSRV.

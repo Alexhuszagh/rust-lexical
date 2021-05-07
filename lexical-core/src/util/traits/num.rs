@@ -5,7 +5,6 @@
 //! numbers in generic code.
 
 use crate::lib::{f32, f64, fmt, iter, mem, ops};
-use crate::options::*; // Refactor when we move options.
 use crate::util::config::*;
 use crate::util::options::*;
 
@@ -155,37 +154,17 @@ pub trait Integer:
     const BITS: usize;
 
     // FUNCTIONS (INHERITED)
-    fn max_value() -> Self;
     fn min_value() -> Self;
-    fn count_ones(self) -> u32;
-    fn count_zeros(self) -> u32;
     fn leading_zeros(self) -> u32;
-    fn trailing_zeros(self) -> u32;
-    fn pow(self, i: u32) -> Self;
     fn checked_add(self, i: Self) -> Option<Self>;
     fn checked_sub(self, i: Self) -> Option<Self>;
     fn checked_mul(self, i: Self) -> Option<Self>;
-    fn checked_div(self, i: Self) -> Option<Self>;
-    fn checked_rem(self, i: Self) -> Option<Self>;
-    fn checked_neg(self) -> Option<Self>;
-    fn checked_shl(self, i: u32) -> Option<Self>;
-    fn checked_shr(self, i: u32) -> Option<Self>;
+    fn overflowing_add(self, i: Self) -> (Self, bool);
+    fn overflowing_mul(self, i: Self) -> (Self, bool);
     fn wrapping_add(self, i: Self) -> Self;
     fn wrapping_sub(self, i: Self) -> Self;
     fn wrapping_mul(self, i: Self) -> Self;
-    fn wrapping_div(self, i: Self) -> Self;
-    fn wrapping_rem(self, i: Self) -> Self;
     fn wrapping_neg(self) -> Self;
-    fn wrapping_shl(self, i: u32) -> Self;
-    fn wrapping_shr(self, i: u32) -> Self;
-    fn overflowing_add(self, i: Self) -> (Self, bool);
-    fn overflowing_sub(self, i: Self) -> (Self, bool);
-    fn overflowing_mul(self, i: Self) -> (Self, bool);
-    fn overflowing_div(self, i: Self) -> (Self, bool);
-    fn overflowing_rem(self, i: Self) -> (Self, bool);
-    fn overflowing_neg(self) -> (Self, bool);
-    fn overflowing_shl(self, i: u32) -> (Self, bool);
-    fn overflowing_shr(self, i: u32) -> (Self, bool);
     fn saturating_add(self, i: Self) -> Self;
     fn saturating_sub(self, i: Self) -> Self;
     fn saturating_mul(self, i: Self) -> Self;
@@ -268,38 +247,13 @@ macro_rules! integer_impl {
             const BITS: usize = mem::size_of::<$t>() * 8;
 
             #[inline]
-            fn max_value() -> Self {
-                Self::MAX
-            }
-
-            #[inline]
             fn min_value() -> Self {
                 Self::MIN
             }
 
             #[inline]
-            fn count_ones(self) -> u32 {
-                $t::count_ones(self)
-            }
-
-            #[inline]
-            fn count_zeros(self) -> u32 {
-                $t::count_zeros(self)
-            }
-
-            #[inline]
             fn leading_zeros(self) -> u32 {
                 $t::leading_zeros(self)
-            }
-
-            #[inline]
-            fn trailing_zeros(self) -> u32 {
-                $t::trailing_zeros(self)
-            }
-
-            #[inline]
-            fn pow(self, i: u32) -> Self {
-                $t::pow(self, i)
             }
 
             #[inline]
@@ -318,28 +272,13 @@ macro_rules! integer_impl {
             }
 
             #[inline]
-            fn checked_div(self, i: Self) -> Option<Self> {
-                $t::checked_div(self, i)
+            fn overflowing_add(self, i: Self) -> (Self, bool) {
+                $t::overflowing_add(self, i)
             }
 
             #[inline]
-            fn checked_rem(self, i: Self) -> Option<Self> {
-                $t::checked_rem(self, i)
-            }
-
-            #[inline]
-            fn checked_neg(self) -> Option<Self> {
-                $t::checked_neg(self)
-            }
-
-            #[inline]
-            fn checked_shl(self, i: u32) -> Option<Self> {
-                $t::checked_shl(self,i)
-            }
-
-            #[inline]
-            fn checked_shr(self, i: u32) -> Option<Self> {
-                $t::checked_shr(self,i)
+            fn overflowing_mul(self, i: Self) -> (Self, bool) {
+                $t::overflowing_mul(self, i)
             }
 
             #[inline]
@@ -358,68 +297,8 @@ macro_rules! integer_impl {
             }
 
             #[inline]
-            fn wrapping_div(self, i: Self) -> Self {
-                $t::wrapping_div(self, i)
-            }
-
-            #[inline]
-            fn wrapping_rem(self, i: Self) -> Self {
-                $t::wrapping_rem(self, i)
-            }
-
-            #[inline]
             fn wrapping_neg(self) -> Self {
                 $t::wrapping_neg(self)
-            }
-
-            #[inline]
-            fn wrapping_shl(self, i: u32) -> Self {
-                $t::wrapping_shl(self,i)
-            }
-
-            #[inline]
-            fn wrapping_shr(self, i: u32) -> Self {
-                $t::wrapping_shr(self,i)
-            }
-
-            #[inline]
-            fn overflowing_add(self, i: Self) -> (Self, bool) {
-                $t::overflowing_add(self, i)
-            }
-
-            #[inline]
-            fn overflowing_sub(self, i: Self) -> (Self, bool) {
-                $t::overflowing_sub(self, i)
-            }
-
-            #[inline]
-            fn overflowing_mul(self, i: Self) -> (Self, bool) {
-                $t::overflowing_mul(self, i)
-            }
-
-            #[inline]
-            fn overflowing_div(self, i: Self) -> (Self, bool) {
-                $t::overflowing_div(self, i)
-            }
-
-            #[inline]
-            fn overflowing_rem(self, i: Self) -> (Self, bool) {
-                $t::overflowing_rem(self, i)
-            }
-
-            #[inline]
-            fn overflowing_neg(self) -> (Self, bool) {
-                $t::overflowing_neg(self)
-            }
-
-            #[inline]
-            fn overflowing_shl(self, i: u32) -> (Self, bool) {
-                $t::overflowing_shl(self,i)
-            }
-
-            #[inline]
-            fn overflowing_shr(self, i: u32) -> (Self, bool) {
-                $t::overflowing_shr(self,i)
             }
 
             #[inline]
@@ -445,7 +324,7 @@ integer_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
 /// Unwrap or get T::max_value().
 #[inline]
 pub(crate) fn unwrap_or_max<T: Integer>(t: Option<T>) -> T {
-    t.unwrap_or(T::max_value())
+    t.unwrap_or(T::MAX)
 }
 
 // SIGNED INTEGER
@@ -453,28 +332,11 @@ pub(crate) fn unwrap_or_max<T: Integer>(t: Option<T>) -> T {
 
 /// Defines a trait that supports signed integral operations.
 #[doc(hidden)]
-pub trait SignedInteger: Integer + ops::Neg<Output = Self> {
-    // FUNCTIONS (INHERITED)
-    fn checked_abs(self) -> Option<Self>;
-    fn wrapping_abs(self) -> Self;
-    fn overflowing_abs(self) -> (Self, bool);
-}
+pub trait SignedInteger: Integer + ops::Neg<Output = Self> {}
 
 macro_rules! signed_integer_impl {
     ($($t:tt)*) => ($(
-        impl SignedInteger for $t {
-            fn checked_abs(self) -> Option<Self> {
-                $t::checked_abs(self)
-            }
-
-            fn wrapping_abs(self) -> Self {
-                $t::wrapping_abs(self)
-            }
-
-            fn overflowing_abs(self) -> (Self, bool) {
-                $t::overflowing_abs(self)
-            }
-        }
+        impl SignedInteger for $t {}
     )*)
 }
 
@@ -600,12 +462,10 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     // Re-export the to and from bits methods.
     fn abs(self) -> Self;
     fn ceil(self) -> Self;
-    fn exp(self) -> Self;
     fn floor(self) -> Self;
     fn ln(self) -> Self;
     fn powi(self, n: i32) -> Self;
     fn powf(self, f: Self) -> Self;
-    fn round(self) -> Self;
     fn to_bits(self) -> Self::Unsigned;
     fn from_bits(u: Self::Unsigned) -> Self;
     fn is_sign_positive(self) -> bool;
@@ -966,11 +826,6 @@ impl Float for f32 {
     }
 
     #[inline]
-    fn exp(self) -> f32 {
-        float_method!(self, f32, exp, expf)
-    }
-
-    #[inline]
     fn floor(self) -> f32 {
         float_method!(self, f32, floor, floorf)
     }
@@ -993,11 +848,6 @@ impl Float for f32 {
     #[inline]
     fn powf(self, n: f32) -> f32 {
         float_method!(self, f32, powf, powf, n)
-    }
-
-    #[inline]
-    fn round(self) -> f32 {
-        float_method!(self, f32, round, roundf)
     }
 
     #[inline]
@@ -1056,11 +906,6 @@ impl Float for f64 {
     }
 
     #[inline]
-    fn exp(self) -> f64 {
-        float_method!(self, f64, exp, exp)
-    }
-
-    #[inline]
     fn floor(self) -> f64 {
         float_method!(self, f64, floor, floor)
     }
@@ -1083,11 +928,6 @@ impl Float for f64 {
     #[inline]
     fn powf(self, n: f64) -> f64 {
         float_method!(self, f64, powf, pow, n)
-    }
-
-    #[inline]
-    fn round(self) -> f64 {
-        float_method!(self, f64, round, round)
     }
 
     #[inline]
@@ -1321,12 +1161,10 @@ mod tests {
         // Check functions
         let _ = x.abs();
         let _ = x.ceil();
-        let _ = x.exp();
         let _ = x.floor();
         let _ = x.ln();
         let _ = x.powi(5);
         let _ = x.powf(T::ONE);
-        let _ = x.round();
         let _ = x.to_bits();
         assert_eq!(T::from_bits(x.to_bits()), x);
         let _ = x.is_sign_positive();
