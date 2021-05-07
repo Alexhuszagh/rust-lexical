@@ -36,10 +36,10 @@ use std::error::Error as StdError;
 /// # Safety
 ///
 /// Assigning any value outside the range `[-15, -1]` to value of type
-/// ErrorCode may invoke undefined-behavior.
+/// ParseErrorCode may invoke undefined-behavior.
 #[repr(i32)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub enum ErrorCode {
+pub enum ParseErrorCode {
     /// Integral overflow occurred during numeric parsing.
     ///
     /// Numeric overflow takes precedence over the presence of an invalid
@@ -90,39 +90,48 @@ pub enum ErrorCode {
 /// This error is FFI-compatible for interfacing with C code.
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct Error {
+pub struct ParseError {
     /// Error code designating the type of error occurred.
-    pub code: ErrorCode,
+    pub code: ParseErrorCode,
     /// Optional position within the buffer for the error.
     pub index: usize,
 }
 
-impl From<ErrorCode> for Error {
+impl From<ParseErrorCode> for ParseError {
     #[inline]
-    fn from(code: ErrorCode) -> Self {
-        Error {
+    fn from(code: ParseErrorCode) -> Self {
+        ParseError {
             code,
             index: 0,
         }
     }
 }
 
-impl From<(ErrorCode, usize)> for Error {
+impl From<(ParseErrorCode, usize)> for ParseError {
     #[inline]
-    fn from(error: (ErrorCode, usize)) -> Self {
-        Error {
+    fn from(error: (ParseErrorCode, usize)) -> Self {
+        ParseError {
             code: error.0,
             index: error.1,
         }
     }
 }
 
-impl Display for Error {
+impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "lexical error: {:?} at index {}.", self.code, self.index)
     }
 }
 
 #[cfg(feature = "std")]
-impl StdError for Error {
+impl StdError for ParseError {
 }
+
+// AlIASES
+// -------
+
+/// Alias for ParseErrorCode for backwards compatibility.
+pub type ErrorCode = ParseErrorCode;
+
+/// Alias for ParseError for backwards compatibility.
+pub type Error = ParseError;

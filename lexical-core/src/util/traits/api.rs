@@ -6,7 +6,7 @@
 
 use super::num::Number;
 
-use crate::util::Result;
+use crate::util::result::*;
 
 // HELPERS
 
@@ -40,7 +40,7 @@ pub trait FromLexical: Number {
     /// digit, and therefore may mask an invalid digit error.
     ///
     /// * `bytes`   - Slice containing a numeric string.
-    fn from_lexical(bytes: &[u8]) -> Result<Self>;
+    fn from_lexical(bytes: &[u8]) -> ParseResult<Self>;
 
     /// Checked parser for a string-to-number conversion.
     ///
@@ -48,12 +48,12 @@ pub trait FromLexical: Number {
     /// of the string), returning the number of processed digits
     /// and the parsed value until that point.
     ///
-    /// Returns a `Result` containing either the parsed value
+    /// Returns a `ParseResult` containing either the parsed value
     /// and the number of processed digits, or an error containing
     /// any errors that occurred during parsing.
     ///
     /// * `bytes`   - Slice containing a numeric string.
-    fn from_lexical_partial(bytes: &[u8]) -> Result<(Self, usize)>;
+    fn from_lexical_partial(bytes: &[u8]) -> ParseResult<(Self, usize)>;
 }
 
 // Implement FromLexical for numeric type.
@@ -63,13 +63,13 @@ macro_rules! from_lexical {
     ($cb:expr, $t:ty $(, #[$meta:meta])?) => (
         impl FromLexical for $t {
             $(#[$meta:meta])?
-            fn from_lexical(bytes: &[u8]) -> Result<$t>
+            fn from_lexical(bytes: &[u8]) -> ParseResult<$t>
             {
                 to_complete!($cb, bytes)
             }
 
             $(#[$meta:meta])?
-            fn from_lexical_partial(bytes: &[u8]) -> Result<($t, usize)>
+            fn from_lexical_partial(bytes: &[u8]) -> ParseResult<($t, usize)>
             {
                 $cb(bytes)
             }
@@ -89,12 +89,12 @@ pub trait FromLexicalOptions: FromLexical {
     /// float strings, required float components, digit separators,
     /// exponent characters, and more.
     ///
-    /// Returns a `Result` containing either the parsed value,
+    /// Returns a `ParseResult` containing either the parsed value,
     /// or an error containing any errors that occurred during parsing.
     ///
     /// * `bytes`   - Slice containing a numeric string.
     /// * `options` - Options to dictate number parsing.
-    fn from_lexical_with_options(bytes: &[u8], options: &Self::ParseOptions) -> Result<Self>;
+    fn from_lexical_with_options(bytes: &[u8], options: &Self::ParseOptions) -> ParseResult<Self>;
 
     /// Checked parser for a string-to-number conversion.
     ///
@@ -102,7 +102,7 @@ pub trait FromLexicalOptions: FromLexical {
     /// of the string), returning the number of processed digits
     /// and the parsed value until that point.
     ///
-    /// Returns a `Result` containing either the parsed value
+    /// Returns a `ParseResult` containing either the parsed value
     /// and the number of processed digits, or an error containing
     /// any errors that occurred during parsing.
     ///
@@ -111,7 +111,7 @@ pub trait FromLexicalOptions: FromLexical {
     fn from_lexical_partial_with_options(
         bytes: &[u8],
         options: &Self::ParseOptions,
-    ) -> Result<(Self, usize)>;
+    ) -> ParseResult<(Self, usize)>;
 }
 
 // Implement FromLexicalOptions for numeric type.
@@ -122,14 +122,14 @@ macro_rules! from_lexical_with_options {
         impl FromLexicalOptions for $t {
             $(#[$meta:meta])?
             fn from_lexical_with_options(bytes: &[u8], options: &Self::ParseOptions)
-                -> Result<Self>
+                -> ParseResult<Self>
             {
                 to_complete!($cb, bytes, options)
             }
 
             $(#[$meta:meta])?
             fn from_lexical_partial_with_options(bytes: &[u8], options: &Self::ParseOptions)
-                -> Result<($t, usize)>
+                -> ParseResult<($t, usize)>
             {
                 $cb(bytes, options)
             }

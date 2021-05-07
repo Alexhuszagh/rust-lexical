@@ -91,7 +91,7 @@ fn validate_no_leading_zeros<'a>(
     digits: &[u8],
     digit_separator: u8,
     ptr: *const u8,
-) -> ParseResult<()> {
+) -> ParseTupleResult<()> {
     // Check if the next character is a sign symbol.
     let index = distance(digits.as_ptr(), ptr);
     let digits = &digits[..index];
@@ -146,7 +146,7 @@ fn parse_digits<'a, T, Iter>(
     mut iter: Iter,
     radix: u32,
     sign: Sign,
-) -> ParseResult<(T, *const u8)>
+) -> ParseTupleResult<(T, *const u8)>
 where
     T: Integer,
     Iter: AsPtrIterator<'a, u8>,
@@ -165,7 +165,7 @@ where
 
 // Standalone atoi processor without a digit separator.
 #[inline(always)]
-fn standalone<T>(bytes: &[u8], radix: u32) -> ParseResult<(T, *const u8)>
+fn standalone<T>(bytes: &[u8], radix: u32) -> ParseTupleResult<(T, *const u8)>
 where
     T: Integer,
 {
@@ -178,7 +178,7 @@ where
 // Consumes leading, internal, trailing, and consecutive digit separators.
 #[inline(always)]
 #[cfg(feature = "format")]
-fn standalone_iltc<T>(bytes: &[u8], radix: u32, digit_separator: u8) -> ParseResult<(T, *const u8)>
+fn standalone_iltc<T>(bytes: &[u8], radix: u32, digit_separator: u8) -> ParseTupleResult<(T, *const u8)>
 where
     T: Integer,
 {
@@ -198,7 +198,7 @@ macro_rules! standalone_atoi_separator {
     (fn $name:ident,sign => $sign:ident,consume => $consume:ident) => {
         #[inline(always)]
         #[cfg(feature = "format")]
-        fn $name<T>(bytes: &[u8], radix: u32, digit_separator: u8) -> ParseResult<(T, *const u8)>
+        fn $name<T>(bytes: &[u8], radix: u32, digit_separator: u8) -> ParseTupleResult<(T, *const u8)>
         where
             T: Integer,
         {
@@ -300,7 +300,7 @@ standalone_atoi_separator!(
 
 // Standalone atoi processor without a digit separator.
 #[inline(always)]
-pub(crate) fn standalone_no_separator<T>(bytes: &[u8], radix: u32) -> ParseResult<(T, *const u8)>
+pub(crate) fn standalone_no_separator<T>(bytes: &[u8], radix: u32) -> ParseTupleResult<(T, *const u8)>
 where
     T: Integer,
 {
@@ -314,7 +314,7 @@ pub(crate) fn standalone_separator<V>(
     bytes: &[u8],
     radix: u32,
     format: NumberFormat,
-) -> ParseResult<(V, *const u8)>
+) -> ParseTupleResult<(V, *const u8)>
 where
     V: Integer,
 {
@@ -423,7 +423,7 @@ fn parse_digits_128_fast<'a, W, N, Iter>(
     iter: Iter,
     radix: u32,
     sign: Sign,
-) -> ParseResult<(W, *const u8)>
+) -> ParseTupleResult<(W, *const u8)>
 where
     W: Integer,
     N: Integer,
@@ -441,7 +441,7 @@ fn parse_digits_128_slow<'a, T, Iter>(
     radix: u32,
     step: usize,
     sign: Sign,
-) -> ParseResult<(T, *const u8)>
+) -> ParseTupleResult<(T, *const u8)>
 where
     T: Integer,
     Iter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>,
@@ -469,7 +469,7 @@ fn parse_digits_128<'a, W, N, Iter>(
     iter: Iter,
     radix: u32,
     sign: Sign,
-) -> ParseResult<(W, *const u8)>
+) -> ParseTupleResult<(W, *const u8)>
 where
     W: Integer,
     N: Integer,
@@ -491,7 +491,7 @@ where
 
 /// Standalone atoi processor for 128-bit integers without a digit separator.
 #[inline(always)]
-fn standalone_128<W, N>(bytes: &[u8], radix: u32) -> ParseResult<(W, *const u8)>
+fn standalone_128<W, N>(bytes: &[u8], radix: u32) -> ParseTupleResult<(W, *const u8)>
 where
     W: Integer,
     N: Integer,
@@ -509,7 +509,7 @@ fn standalone_128_iltc<W, N>(
     bytes: &[u8],
     radix: u32,
     digit_separator: u8,
-) -> ParseResult<(W, *const u8)>
+) -> ParseTupleResult<(W, *const u8)>
 where
     W: Integer,
     N: Integer,
@@ -530,7 +530,7 @@ macro_rules! standalone_atoi_128_separator {
     (fn $name:ident,sign => $sign:ident,consume => $consume:ident) => {
         #[inline]
         #[cfg(feature = "format")]
-        fn $name<W, N>(bytes: &[u8], radix: u32, digit_separator: u8) -> ParseResult<(W, *const u8)>
+        fn $name<W, N>(bytes: &[u8], radix: u32, digit_separator: u8) -> ParseTupleResult<(W, *const u8)>
         where
             W: Integer,
             N: Integer,
@@ -634,7 +634,7 @@ standalone_atoi_128_separator!(
 pub(crate) fn standalone_128_no_separator<W, N>(
     bytes: &[u8],
     radix: u32,
-) -> ParseResult<(W, *const u8)>
+) -> ParseTupleResult<(W, *const u8)>
 where
     W: Integer,
     N: Integer,
@@ -649,7 +649,7 @@ pub(crate) fn standalone_128_separator<W, N>(
     bytes: &[u8],
     radix: u32,
     format: NumberFormat,
-) -> ParseResult<(W, *const u8)>
+) -> ParseTupleResult<(W, *const u8)>
 where
     W: Integer,
     N: Integer,

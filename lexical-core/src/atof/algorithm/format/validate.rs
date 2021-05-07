@@ -72,7 +72,7 @@ where
 /// Validate the extracted integer has no leading zeros.
 #[inline]
 #[cfg(feature = "format")]
-pub(super) fn validate_no_leading_zeros<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_no_leading_zeros<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -93,7 +93,7 @@ where
 /// Validate the extracted mantissa float components.
 ///      1. Validate non-empty significant digits (integer or fraction).
 #[inline(always)]
-pub(super) fn validate_permissive_mantissa<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_permissive_mantissa<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -111,7 +111,7 @@ where
 ///      1. Validate integer component is non-empty.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_required_integer<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_required_integer<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -127,7 +127,7 @@ where
 ///      1. Validate fraction component is non-empty if present.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_required_fraction<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_required_fraction<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -144,7 +144,7 @@ where
 ///      2. Validate fraction component is non-empty if present.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_required_digits<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_required_digits<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -162,7 +162,7 @@ where
 /// Validate mantissa depending on float format.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_mantissa<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_mantissa<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -187,7 +187,7 @@ where
 /// Validate the required exponent component.
 ///      1). If the exponent has been defined, ensure at least 1 digit follows it.
 #[inline]
-pub(super) fn validate_required_exponent_digits<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_required_exponent_digits<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -215,7 +215,7 @@ where
 ///      A no-op, since the data is optional.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_optional_exponent<'a, Data>(_: &Data) -> ParseResult<()>
+pub(super) fn validate_optional_exponent<'a, Data>(_: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -225,7 +225,7 @@ where
 /// Validate required exponent component with required digits.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_required_exponent_and_digits<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_required_exponent_and_digits<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -238,7 +238,7 @@ where
 /// Validate required exponent component without requiring any digits.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_required_exponent_without_digits<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_required_exponent_without_digits<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -251,7 +251,7 @@ where
 /// Validate invalid exponent component.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_invalid_exponent<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_invalid_exponent<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -264,7 +264,7 @@ where
 /// Validate exponent depending on float format.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_exponent<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_exponent<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -285,7 +285,7 @@ where
 /// Validate optional exponent sign.
 ///      A no-op, since the data is optional.
 #[inline(always)]
-pub(super) fn validate_optional_exponent_sign<'a, Data>(_: &Data) -> ParseResult<()>
+pub(super) fn validate_optional_exponent_sign<'a, Data>(_: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -295,7 +295,7 @@ where
 /// Validate a required exponent sign.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_required_exponent_sign<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_required_exponent_sign<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -313,7 +313,7 @@ where
 /// Validate a required exponent sign.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_no_positive_exponent_sign<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_no_positive_exponent_sign<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -330,7 +330,7 @@ where
 /// Validate exponent sign depending on float format.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_exponent_sign<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_exponent_sign<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -347,7 +347,7 @@ where
 
 /// Validate an exponent may occur with or without a fraction.
 #[inline(always)]
-pub(super) fn validate_exponent_optional_fraction<'a, Data>(_: &Data) -> ParseResult<()>
+pub(super) fn validate_exponent_optional_fraction<'a, Data>(_: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -357,7 +357,7 @@ where
 /// Validate an exponent requires a fraction component.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_exponent_required_fraction<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_exponent_required_fraction<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {
@@ -370,7 +370,7 @@ where
 /// Validate exponent fraction depending on float format.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_exponent_fraction<'a, Data>(data: &Data) -> ParseResult<()>
+pub(super) fn validate_exponent_fraction<'a, Data>(data: &Data) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {

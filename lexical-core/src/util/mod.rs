@@ -13,7 +13,6 @@
 //      - config
 //      - error
 //      - result
-//      - cached
 //      - digit
 //      - powers
 //      - options
@@ -21,6 +20,7 @@
 //      - algorithm
 //      - math
 //      - float
+//      - cached
 
 // Hide implementation details.
 #[macro_use]

@@ -211,16 +211,16 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     fn extract_exponent(&mut self, bytes: &'a [u8], radix: u32) -> &'a [u8];
 
     // Validate the extracted mantissa components.
-    fn validate_mantissa(&self) -> ParseResult<()>;
+    fn validate_mantissa(&self) -> ParseTupleResult<()>;
 
     // Validate the extracted exponent component.
-    fn validate_exponent(&self) -> ParseResult<()>;
+    fn validate_exponent(&self) -> ParseTupleResult<()>;
 
     // Validate the extracted exponent depending on the fraction component.
-    fn validate_exponent_fraction(&self) -> ParseResult<()>;
+    fn validate_exponent_fraction(&self) -> ParseTupleResult<()>;
 
     // Validate the extracted exponent sign.
-    fn validate_exponent_sign(&self) -> ParseResult<()>;
+    fn validate_exponent_sign(&self) -> ParseTupleResult<()>;
 
     // Trim leading 0s and digit separators.
     fn ltrim_zero(&self, bytes: &'a [u8]) -> (&'a [u8], usize);
@@ -245,7 +245,7 @@ pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
 
     /// Extract float subcomponents from input bytes.
     #[inline]
-    fn extract(&mut self, bytes: &'a [u8], radix: u32) -> ParseResult<*const u8> {
+    fn extract(&mut self, bytes: &'a [u8], radix: u32) -> ParseTupleResult<*const u8> {
         // Parse the integer, aka, the digits preceding any control characters.
         let mut digits = bytes;
         digits = self.extract_integer(digits, radix);
@@ -425,22 +425,22 @@ macro_rules! fast_data_interface {
             }
 
             #[inline(always)]
-            fn validate_mantissa(&self) -> ParseResult<()> {
+            fn validate_mantissa(&self) -> ParseTupleResult<()> {
                 $validate_mantissa(self)
             }
 
             #[inline(always)]
-            fn validate_exponent(&self) -> ParseResult<()> {
+            fn validate_exponent(&self) -> ParseTupleResult<()> {
                 $validate_exponent(self)
             }
 
             #[inline(always)]
-            fn validate_exponent_fraction(&self) -> ParseResult<()> {
+            fn validate_exponent_fraction(&self) -> ParseTupleResult<()> {
                 $validate_exponent_fraction(self)
             }
 
             #[inline(always)]
-            fn validate_exponent_sign(&self) -> ParseResult<()> {
+            fn validate_exponent_sign(&self) -> ParseTupleResult<()> {
                 $validate_exponent_sign(self)
             }
 

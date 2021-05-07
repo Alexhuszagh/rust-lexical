@@ -94,7 +94,7 @@ pub(crate) fn to_native<'a, F, Data>(
     is_lossy: bool,
     sign: Sign,
     rounding: RoundingKind,
-) -> ParseResult<(F, *const u8)>
+) -> ParseTupleResult<(F, *const u8)>
 where
     F: FloatType,
     Data: FastDataInterface<'a>,

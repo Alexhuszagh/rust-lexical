@@ -128,7 +128,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         } else {
             self.mant.leading_zeros()
         };
-        shl(self, shift);
+        shl(self, shift as i32);
         shift
     }
 

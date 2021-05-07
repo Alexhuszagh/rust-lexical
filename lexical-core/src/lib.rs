@@ -235,18 +235,6 @@ pub(crate) mod lib {
 // -------
 
 // Hide implementation details.
-//
-// To speed up compile times and simplify the internal logic,
-// the following modules, in order, is as follows:
-//      - util
-//      - options
-//      - traits
-//      - float
-//      - atoi/itoa
-//      - atof/ftoa
-//
-// Modules should only import from other modules above them.
-// TODO(ahuszagh) These should... all be moved to util?
 #[macro_use]
 mod util;
 #[macro_use]
@@ -363,7 +351,7 @@ pub fn write_with_options<'a, N: ToLexicalOptions>(
 ///
 /// * `bytes`   - Byte slice containing a numeric string.
 #[inline]
-pub fn parse<N: FromLexical>(bytes: &[u8]) -> Result<N> {
+pub fn parse<N: FromLexical>(bytes: &[u8]) -> ParseResult<N> {
     N::from_lexical(bytes)
 }
 
@@ -378,7 +366,7 @@ pub fn parse<N: FromLexical>(bytes: &[u8]) -> Result<N> {
 pub fn parse_with_options<N: FromLexicalOptions>(
     bytes: &[u8],
     options: &N::ParseOptions,
-) -> Result<N> {
+) -> ParseResult<N> {
     N::from_lexical_with_options(bytes, options)
 }
 
@@ -390,7 +378,7 @@ pub fn parse_with_options<N: FromLexicalOptions>(
 ///
 /// * `bytes`   - Byte slice containing a numeric string.
 #[inline]
-pub fn parse_partial<N: FromLexical>(bytes: &[u8]) -> Result<(N, usize)> {
+pub fn parse_partial<N: FromLexical>(bytes: &[u8]) -> ParseResult<(N, usize)> {
     N::from_lexical_partial(bytes)
 }
 
@@ -406,6 +394,6 @@ pub fn parse_partial<N: FromLexical>(bytes: &[u8]) -> Result<(N, usize)> {
 pub fn parse_partial_with_options<N: FromLexicalOptions>(
     bytes: &[u8],
     options: &N::ParseOptions,
-) -> Result<(N, usize)> {
+) -> ParseResult<(N, usize)> {
     N::from_lexical_partial_with_options(bytes, options)
 }

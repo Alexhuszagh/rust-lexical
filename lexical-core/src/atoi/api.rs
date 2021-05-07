@@ -9,7 +9,7 @@ use super::generic::*;
 
 pub(crate) trait Atoi: Integer {
     // Parse integer from string.
-    fn atoi(bytes: &[u8], radix: u32) -> ParseResult<(Self, *const u8)>;
+    fn atoi(bytes: &[u8], radix: u32) -> ParseTupleResult<(Self, *const u8)>;
 
     // Parse integer from string with format.
     #[cfg(feature = "format")]
@@ -17,7 +17,7 @@ pub(crate) trait Atoi: Integer {
         bytes: &[u8],
         radix: u32,
         format: NumberFormat,
-    ) -> ParseResult<(Self, *const u8)>;
+    ) -> ParseTupleResult<(Self, *const u8)>;
 }
 
 // Implement atoi for type.
@@ -26,7 +26,7 @@ macro_rules! atoi_impl {
         impl Atoi for $t {
             #[inline(always)]
             fn atoi(bytes: &[u8], radix: u32)
-                -> ParseResult<($t, *const u8)>
+                -> ParseTupleResult<($t, *const u8)>
             {
                 standalone_no_separator(bytes, radix)
             }
@@ -34,7 +34,7 @@ macro_rules! atoi_impl {
             #[inline(always)]
             #[cfg(feature = "format")]
             fn atoi_format(bytes: &[u8], radix: u32, format: NumberFormat)
-                -> ParseResult<($t, *const u8)>
+                -> ParseTupleResult<($t, *const u8)>
             {
                 standalone_separator(bytes, radix, format)
             }
@@ -46,7 +46,7 @@ atoi_impl! { u8 u16 u32 u64 usize i8 i16 i32 i64 isize }
 
 impl Atoi for u128 {
     #[inline(always)]
-    fn atoi(bytes: &[u8], radix: u32) -> ParseResult<(u128, *const u8)> {
+    fn atoi(bytes: &[u8], radix: u32) -> ParseTupleResult<(u128, *const u8)> {
         standalone_128_no_separator::<u128, u64>(bytes, radix)
     }
 
@@ -56,14 +56,14 @@ impl Atoi for u128 {
         bytes: &[u8],
         radix: u32,
         format: NumberFormat,
-    ) -> ParseResult<(u128, *const u8)> {
+    ) -> ParseTupleResult<(u128, *const u8)> {
         standalone_128_separator::<u128, u64>(bytes, radix, format)
     }
 }
 
 impl Atoi for i128 {
     #[inline(always)]
-    fn atoi(bytes: &[u8], radix: u32) -> ParseResult<(i128, *const u8)> {
+    fn atoi(bytes: &[u8], radix: u32) -> ParseTupleResult<(i128, *const u8)> {
         standalone_128_no_separator::<i128, i64>(bytes, radix)
     }
 
@@ -73,7 +73,7 @@ impl Atoi for i128 {
         bytes: &[u8],
         radix: u32,
         format: NumberFormat,
-    ) -> ParseResult<(i128, *const u8)> {
+    ) -> ParseTupleResult<(i128, *const u8)> {
         standalone_128_separator::<i128, i64>(bytes, radix, format)
     }
 }

@@ -48,7 +48,7 @@ fn parse_infinity<'a, ToIter, StartsWith, Iter, F, Data>(
     infinity_string: &'static [u8],
     to_iter: ToIter,
     starts_with: StartsWith,
-) -> ParseResult<(F, *const u8)>
+) -> ParseTupleResult<(F, *const u8)>
 // TODO(ahuszagh) Is this valid with digit separators in special values?
 where
     F: FloatType,
@@ -85,7 +85,7 @@ fn parse_nan<'a, ToIter, StartsWith, Iter, F, Data>(
     nan_string: &'static [u8],
     to_iter: ToIter,
     starts_with: StartsWith,
-) -> ParseResult<(F, *const u8)>
+) -> ParseTupleResult<(F, *const u8)>
 where
     F: FloatType,
     ToIter: Fn(&'a [u8], u8) -> Iter,
@@ -123,7 +123,7 @@ fn parse_float_standard<'a, F, Data>(
     nan_string: &'static [u8],
     inf_string: &'static [u8],
     infinity_string: &'static [u8],
-) -> ParseResult<(F, *const u8)>
+) -> ParseTupleResult<(F, *const u8)>
 where
     F: FloatType,
     Data: FastDataInterface<'a>,
@@ -177,7 +177,7 @@ fn parse_float_cs<'a, F, Data>(
     nan_string: &'static [u8],
     inf_string: &'static [u8],
     infinity_string: &'static [u8],
-) -> ParseResult<(F, *const u8)>
+) -> ParseTupleResult<(F, *const u8)>
 where
     F: FloatType,
     Data: FastDataInterface<'a>,
@@ -230,7 +230,7 @@ fn parse_float_c<'a, F, Data>(
     nan_string: &'static [u8],
     inf_string: &'static [u8],
     infinity_string: &'static [u8],
-) -> ParseResult<(F, *const u8)>
+) -> ParseTupleResult<(F, *const u8)>
 where
     F: FloatType,
     Data: FastDataInterface<'a>,
@@ -284,7 +284,7 @@ fn parse_float_s<'a, F, Data>(
     nan_string: &'static [u8],
     inf_string: &'static [u8],
     infinity_string: &'static [u8],
-) -> ParseResult<(F, *const u8)>
+) -> ParseTupleResult<(F, *const u8)>
 where
     F: FloatType,
     Data: FastDataInterface<'a>,
@@ -335,7 +335,7 @@ fn parse_float<'a, F, Data>(
     nan_string: &'static [u8],
     inf_string: &'static [u8],
     infinity_string: &'static [u8],
-) -> ParseResult<(F, *const u8)>
+) -> ParseTupleResult<(F, *const u8)>
 where
     F: FloatType,
     Data: FastDataInterface<'a>,
@@ -368,7 +368,7 @@ fn parse_float<'a, F, Data>(
     nan_string: &'static [u8],
     inf_string: &'static [u8],
     infinity_string: &'static [u8],
-) -> ParseResult<(F, *const u8)>
+) -> ParseTupleResult<(F, *const u8)>
 where
     F: FloatType,
     Data: FastDataInterface<'a>,
@@ -439,14 +439,14 @@ where
 /// Validate sign byte is valid.
 #[inline(always)]
 #[cfg(not(feature = "format"))]
-fn validate_sign(_: &[u8], _: &[u8], _: Sign, _: NumberFormat) -> ParseResult<()> {
+fn validate_sign(_: &[u8], _: &[u8], _: Sign, _: NumberFormat) -> ParseTupleResult<()> {
     Ok(())
 }
 
 /// Validate sign byte is valid.
 #[inline]
 #[cfg(feature = "format")]
-fn validate_sign(bytes: &[u8], digits: &[u8], sign: Sign, format: NumberFormat) -> ParseResult<()> {
+fn validate_sign(bytes: &[u8], digits: &[u8], sign: Sign, format: NumberFormat) -> ParseTupleResult<()> {
     let has_sign = bytes.as_ptr() != digits.as_ptr();
     if format.no_positive_mantissa_sign() && has_sign && sign == Sign::Positive {
         Err((ErrorCode::InvalidPositiveMantissaSign, bytes.as_ptr()))
@@ -478,7 +478,7 @@ fn atof<'a, F, Data>(
     nan_string: &'static [u8],
     inf_string: &'static [u8],
     infinity_string: &'static [u8],
-) -> ParseResult<(F, *const u8)>
+) -> ParseTupleResult<(F, *const u8)>
 where
     F: FloatType,
     Data: FastDataInterface<'a>,

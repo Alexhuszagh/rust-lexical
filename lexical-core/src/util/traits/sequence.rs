@@ -345,21 +345,6 @@ impl<T: Ord> BinarySearch<T> for dyn SliceLikeImpl<T> {
     }
 }
 
-/// Collection that has a `sort()` method.
-pub trait Sort<T: Ord> {
-    // TODO(ahuszagh) Currently bugged on no_std.
-    ///// Sort sequence.
-    //fn sort(&mut self);
-}
-
-impl<T: Ord> Sort<T> for dyn SliceLikeImpl<T> {
-    // TODO(ahuszagh) Currently bugged on no_std.
-    //#[inline]
-    //fn sort(&mut self) {
-    //    <[T]>::sort(self.as_mut_slice())
-    //}
-}
-
 /// Collection that has a `sort_unstable()` method.
 pub trait SortUnstable<T: Ord> {
     /// Sort sequence without preserving order of equal elements.
@@ -500,22 +485,6 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
         <[T]>::chunks_mut(self.as_mut_slice(), size)
     }
 
-    // CHUNKS EXACT
-    // Currently unused, restore and add default implementation if required
-    // later. Requires rustc >= 1.31.0.
-    //
-    //    /// Get iterator over exactly `size`-length immutable elements in sequence.
-    //    #[inline]
-    //    fn chunks_exact(&self, size: usize) -> slice::ChunksExact<T> {
-    //        <[T]>::chunks_exact(self.as_slice(), size)
-    //    }
-    //
-    //    /// Get iterator over exactly `size`-length mutable elements in sequence.
-    //    #[inline]
-    //    fn chunks_exact_mut(&mut self, size: usize) -> slice::ChunksExactMut<T> {
-    //        <[T]>::chunks_exact_mut(self.as_mut_slice(), size)
-    //    }
-
     // FIRST
 
     /// Get an immutable reference to the first item.
@@ -598,36 +567,6 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
         <[T]>::len(self.as_slice())
     }
 
-    // Currently unused, restore and add default implementation if required
-    // later. Requires rustc >= 1.31.0.
-    //    // RCHUNKS
-    //
-    //    /// Get iterator over `size`-length immutable elements in sequence.
-    //    #[inline]
-    //    fn rchunks(&self, size: usize) -> slice::RChunks<T> {
-    //        <[T]>::rchunks(self.as_slice(), size)
-    //    }
-    //
-    //    /// Get iterator over `size`-length mutable elements in sequence.
-    //    #[inline]
-    //    fn rchunks_mut(&mut self, size: usize) -> slice::RChunksMut<T> {
-    //        <[T]>::rchunks_mut(self.as_mut_slice(), size)
-    //    }
-    //
-    //    // RCHUNKS EXACT
-    //
-    //    /// Get iterator over exactly `size`-length immutable elements in sequence.
-    //    #[inline]
-    //    fn rchunks_exact(&self, size: usize) -> slice::RChunksExact<T> {
-    //        <[T]>::rchunks_exact(self.as_slice(), size)
-    //    }
-    //
-    //    /// Get iterator over exactly `size`-length mutable elements in sequence.
-    //    #[inline]
-    //    fn rchunks_exact_mut(&mut self, size: usize) -> slice::RChunksExactMut<T> {
-    //        <[T]>::rchunks_exact_mut(self.as_mut_slice(), size)
-    //    }
-
     // REVERSE
 
     /// Reverse elements in collection.
@@ -635,38 +574,6 @@ pub trait SliceLike<T>: SliceLikeImpl<T> {
     fn reverse(&mut self) {
         <[T]>::reverse(self.as_mut_slice())
     }
-
-    // ROTATE
-
-    // Currently unused, restore and add default implementation if required
-    // later. Requires rustc >= 1.26.0.
-    //    /// Rotate elements of slice left.
-    //    #[inline]
-    //    fn rotate_left(&mut self, mid: usize) {
-    //        <[T]>::rotate_left(self.as_mut_slice(), mid)
-    //    }
-    //
-    //    /// Rotate elements of slice right.
-    //    #[inline]
-    //    fn rotate_right(&mut self, mid: usize) {
-    //        <[T]>::rotate_right(self.as_mut_slice(), mid)
-    //    }
-
-    // RSPLIT
-
-    // Currently unused, restore and add default implementation if required
-    // later. Requires rustc >= 1.27.0.
-    //    /// Split on condition into immutable subslices, start from the back of the slice.
-    //    #[inline]
-    //    fn rsplit<F: FnMut(&T) -> bool>(&self, func: F) -> slice::RSplit<T, F> {
-    //        <[T]>::rsplit(self.as_slice(), func)
-    //    }
-    //
-    //    /// Split on condition into mutable subslices, start from the back of the slice.
-    //    #[inline]
-    //    fn rsplit_mut<F: FnMut(&T) -> bool>(&mut self, func: F) -> slice::RSplitMut<T, F> {
-    //        <[T]>::rsplit_mut(self.as_mut_slice(), func)
-    //    }
 
     // RSPLITN
 

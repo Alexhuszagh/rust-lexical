@@ -1,19 +1,18 @@
 //! Parser result type.
 
-use super::error::{Error, ErrorCode};
 use crate::lib::result::Result as StdResult;
-// TODO(ahuszagh) Here... Lololol
+
+use super::error::*;
 
 /// A specialized Result type for lexical operations.
-pub type Result<T> = StdResult<T, Error>;
+pub type ParseResult<T> = StdResult<T, ParseError>;
 
-/// Specialized error type for format parsers.
-/// I---ummm this was bad future-proofing lolol.
-pub(crate) type ParseError = (ErrorCode, *const u8);
+/// Alias of ParseResult for backwards compatibility.
+pub type Result<T> = ParseResult<T>;
 
-/// Specialized result type for format parsers.
-pub(crate) type ParseResult<T> = StdResult<T, ParseError>;
+/// Specialized result type for number parsers.
+pub(crate) type ParseTupleResult<T> = StdResult<T, (ParseErrorCode, *const u8)>;
 
 /// Type definition for result when testing parsing.
 #[cfg(test)]
-pub(crate) type ParseTestResult<T> = StdResult<T, ErrorCode>;
+pub(crate) type ParseTestResult<T> = StdResult<T, ParseErrorCode>;
