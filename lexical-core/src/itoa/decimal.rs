@@ -123,8 +123,6 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use crate::table::*;
-use crate::traits::*;
 use crate::util::*;
 
 // Lookup table for optimized base10 itoa.
@@ -194,14 +192,14 @@ macro_rules! last_index {
 /// Write 1 digit to buffer.
 #[inline]
 #[allow(unused_unsafe)]
-fn write_1(value: u32, buffer: &mut [u8]) {
-    unchecked_index_mut!(buffer[0] = digit_to_char(value));
+unsafe fn write_1(value: u32, buffer: &mut [u8]) {
+    unchecked_index_mut!(buffer[0] = digit_to_char(value as usize));
 }
 
 /// Write 2 digits to buffer.
 #[inline]
 #[allow(unused_unsafe)]
-fn write_2(value: u32, buffer: &mut [u8]) {
+unsafe fn write_2(value: u32, buffer: &mut [u8]) {
     let i_0 = last_index!(value);
     unchecked_index_mut!(buffer[1] = unchecked_index!(TABLE[i_0 + 1]));
     unchecked_index_mut!(buffer[0] = unchecked_index!(TABLE[i_0 + 0]));
@@ -210,7 +208,7 @@ fn write_2(value: u32, buffer: &mut [u8]) {
 /// Write 3 digits to buffer.
 #[inline]
 #[allow(unused_unsafe)]
-fn write_3(value: u32, buffer: &mut [u8]) {
+unsafe fn write_3(value: u32, buffer: &mut [u8]) {
     let v_0 = value;
     let v_1 = v_0 / 100;
     let i_0 = sequential_index!(v_0, v_1);
@@ -223,7 +221,7 @@ fn write_3(value: u32, buffer: &mut [u8]) {
 /// Write 4 digits to buffer.
 #[inline]
 #[allow(unused_unsafe)]
-fn write_4(value: u32, buffer: &mut [u8]) {
+unsafe fn write_4(value: u32, buffer: &mut [u8]) {
     let v_0 = value;
     let v_1 = v_0 / 100;
     let i_0 = sequential_index!(v_0, v_1);
@@ -237,7 +235,7 @@ fn write_4(value: u32, buffer: &mut [u8]) {
 /// Write 5 digits to buffer.
 #[inline]
 #[allow(unused_unsafe)]
-fn write_5(value: u32, buffer: &mut [u8]) {
+unsafe fn write_5(value: u32, buffer: &mut [u8]) {
     let v_0 = value;
     let v_1 = v_0 / 100;
     let v_2 = v_1 / 100;
@@ -254,7 +252,7 @@ fn write_5(value: u32, buffer: &mut [u8]) {
 /// Write 10 digits to buffer.
 #[inline]
 #[allow(unused_unsafe)]
-fn write_10(value: u32, buffer: &mut [u8]) {
+unsafe fn write_10(value: u32, buffer: &mut [u8]) {
     let t0 = value / 100000000;
     let v_0 = value.wrapping_sub(t0.wrapping_mul(100000000));
     let v_1 = v_0 / 100;
@@ -281,7 +279,7 @@ fn write_10(value: u32, buffer: &mut [u8]) {
 /// Write 15 digits to buffer.
 #[inline]
 #[allow(unused_unsafe)]
-fn write_15(value: u64, buffer: &mut [u8]) {
+unsafe fn write_15(value: u64, buffer: &mut [u8]) {
     let t_0 = (value / 100000000).as_u32();
     let v_0 = value.as_u32().wrapping_sub(t_0.wrapping_mul(100000000));
     let v_1 = v_0 / 100;
@@ -319,7 +317,7 @@ fn write_15(value: u64, buffer: &mut [u8]) {
 /// Write 19 digits to buffer (used internally for the u128 writers).
 #[inline]
 #[allow(unused_unsafe)]
-fn write_19(value: u64, buffer: &mut [u8]) {
+unsafe fn write_19(value: u64, buffer: &mut [u8]) {
     let t_0 = (value / 100000000).as_u32();
     let t_1 = (value / 10000000000000000).as_u32();
     let v_0 = value.as_u32().wrapping_sub(t_0.wrapping_mul(100000000));
@@ -366,7 +364,7 @@ fn write_19(value: u64, buffer: &mut [u8]) {
 /// Write 20 digits to buffer.
 #[inline]
 #[allow(unused_unsafe)]
-fn write_20(value: u64, buffer: &mut [u8]) {
+unsafe fn write_20(value: u64, buffer: &mut [u8]) {
     let t_0 = (value / 100000000).as_u32();
     let t_1 = (value / 10000000000000000).as_u32();
     let v_0 = value.as_u32().wrapping_sub(t_0.wrapping_mul(100000000));
@@ -414,7 +412,7 @@ fn write_20(value: u64, buffer: &mut [u8]) {
 /// Write 25 digits to buffer.
 #[inline]
 #[allow(unused_unsafe)]
-fn write_25(value: u128, buffer: &mut [u8]) {
+unsafe fn write_25(value: u128, buffer: &mut [u8]) {
     // Split value into high 6 and low 19.
     let (high, low) = u128_divrem_1e19(value);
 
@@ -440,7 +438,7 @@ fn write_25(value: u128, buffer: &mut [u8]) {
 /// Write 29 digits to buffer.
 #[inline]
 #[allow(unused_unsafe)]
-fn write_29(value: u128, buffer: &mut [u8]) {
+unsafe fn write_29(value: u128, buffer: &mut [u8]) {
     // Split value into high 10 and low 19.
     let (high, low) = u128_divrem_1e19(value);
 
@@ -475,7 +473,7 @@ fn write_29(value: u128, buffer: &mut [u8]) {
 /// Write 34 digits to buffer.
 #[inline]
 #[allow(unused_unsafe)]
-fn write_34(value: u128, buffer: &mut [u8]) {
+unsafe fn write_34(value: u128, buffer: &mut [u8]) {
     // Split value into high 15 and low 19.
     let (high, low) = u128_divrem_1e19(value);
 
@@ -521,7 +519,7 @@ fn write_34(value: u128, buffer: &mut [u8]) {
 /// Write 39 digits to buffer.
 #[inline]
 #[allow(unused_unsafe)]
-fn write_39(value: u128, buffer: &mut [u8]) {
+unsafe fn write_39(value: u128, buffer: &mut [u8]) {
     // Split value into high 20 and low 19.
     let (high, low) = u128_divrem_1e19(value);
 
@@ -535,7 +533,7 @@ fn write_39(value: u128, buffer: &mut [u8]) {
     write_19(mid, &mut unchecked_index_mut!(buffer[1..]));
 
     // Write high 1 to the front of the buffer.
-    unchecked_index_mut!(buffer[0] = digit_to_char(high));
+    unchecked_index_mut!(buffer[0] = digit_to_char(high as usize));
 }
 
 // WRITE RAMGE
@@ -546,7 +544,7 @@ fn write_39(value: u128, buffer: &mut [u8]) {
 
 /// Write 1-3 digits (from a u8 value).
 #[inline]
-fn write_1_3(value: u32, buffer: &mut [u8]) -> usize {
+unsafe fn write_1_3(value: u32, buffer: &mut [u8]) -> usize {
     if value < 10 {
         write_1(value, buffer);
         1
@@ -561,7 +559,7 @@ fn write_1_3(value: u32, buffer: &mut [u8]) -> usize {
 
 /// Write 1-3 digits (from a u16 value).
 #[inline]
-fn write_1_5(value: u32, buffer: &mut [u8]) -> usize {
+unsafe fn write_1_5(value: u32, buffer: &mut [u8]) -> usize {
     if value < 10 {
         write_1(value, buffer);
         1
@@ -582,7 +580,7 @@ fn write_1_5(value: u32, buffer: &mut [u8]) -> usize {
 
 /// Write 5-10 digits (from a u32 value).
 #[inline]
-fn write_5_10(value: u32, buffer: &mut [u8]) -> usize {
+unsafe fn write_5_10(value: u32, buffer: &mut [u8]) -> usize {
     // Use a temporary buffer so we only need a single code path.
     let mut tmp_buf: [u8; 16] = [b'0'; 16];
     let digits = &mut tmp_buf[..10];
@@ -593,7 +591,7 @@ fn write_5_10(value: u32, buffer: &mut [u8]) -> usize {
 
 /// Write 10-15 digits (from a u64 value).
 #[inline]
-fn write_10_15(value: u64, buffer: &mut [u8]) -> usize {
+unsafe fn write_10_15(value: u64, buffer: &mut [u8]) -> usize {
     // Use a temporary buffer so we only need a single code path.
     let mut tmp_buf: [u8; 32] = [b'0'; 32];
     let digits = &mut tmp_buf[..15];
@@ -604,7 +602,7 @@ fn write_10_15(value: u64, buffer: &mut [u8]) -> usize {
 
 /// Write 15-20 digits (from a u64 value).
 #[inline]
-fn write_15_20(value: u64, buffer: &mut [u8]) -> usize {
+unsafe fn write_15_20(value: u64, buffer: &mut [u8]) -> usize {
     // Use a temporary buffer so we only need a single code path.
     let mut tmp_buf: [u8; 32] = [b'0'; 32];
     let digits = &mut tmp_buf[..20];
@@ -615,7 +613,7 @@ fn write_15_20(value: u64, buffer: &mut [u8]) -> usize {
 
 /// Write 20-25 digits (from a u64 value).
 #[inline]
-fn write_20_25(value: u128, buffer: &mut [u8]) -> usize {
+unsafe fn write_20_25(value: u128, buffer: &mut [u8]) -> usize {
     // Use a temporary buffer so we only need a single code path.
     let mut tmp_buf: [u8; 64] = [b'0'; 64];
     let digits = &mut tmp_buf[..25];
@@ -626,7 +624,7 @@ fn write_20_25(value: u128, buffer: &mut [u8]) -> usize {
 
 /// Write 25-29 digits (from a u64 value).
 #[inline]
-fn write_25_29(value: u128, buffer: &mut [u8]) -> usize {
+unsafe fn write_25_29(value: u128, buffer: &mut [u8]) -> usize {
     // Use a temporary buffer so we only need a single code path.
     let mut tmp_buf: [u8; 64] = [b'0'; 64];
     let digits = &mut tmp_buf[..29];
@@ -637,7 +635,7 @@ fn write_25_29(value: u128, buffer: &mut [u8]) -> usize {
 
 /// Write 29-34 digits (from a u64 value).
 #[inline]
-fn write_29_34(value: u128, buffer: &mut [u8]) -> usize {
+unsafe fn write_29_34(value: u128, buffer: &mut [u8]) -> usize {
     // Use a temporary buffer so we only need a single code path.
     let mut tmp_buf: [u8; 64] = [b'0'; 64];
     let digits = &mut tmp_buf[..34];
@@ -648,7 +646,7 @@ fn write_29_34(value: u128, buffer: &mut [u8]) -> usize {
 
 /// Write 34-39 digits (from a u64 value).
 #[inline]
-fn write_34_39(value: u128, buffer: &mut [u8]) -> usize {
+unsafe fn write_34_39(value: u128, buffer: &mut [u8]) -> usize {
     // Use a temporary buffer so we only need a single code path.
     let mut tmp_buf: [u8; 64] = [b'0'; 64];
     let digits = &mut tmp_buf[..39];
@@ -668,72 +666,82 @@ fn write_34_39(value: u128, buffer: &mut [u8]) -> usize {
 /// Internal integer formatter for u8.
 #[inline]
 fn u8toa(value: u8, buffer: &mut [u8]) -> usize {
-    write_1_3(value.as_u32(), buffer)
+    unsafe {
+        write_1_3(value.as_u32(), buffer)
+    }
 }
 
 /// Internal integer formatter for u16.
 #[inline]
 fn u16toa(value: u16, buffer: &mut [u8]) -> usize {
-    write_1_5(value.as_u32(), buffer)
+    unsafe {
+        write_1_5(value.as_u32(), buffer)
+    }
 }
 
 /// Internal integer formatter for u32.
 #[inline]
 fn u32toa(value: u32, buffer: &mut [u8]) -> usize {
-    if value >> 16 == 0 {
-        // [0, 2^16 - 1]
-        write_1_5(value, buffer)
-    } else {
-        // [2^16, 2^32 - 1]
-        write_5_10(value, buffer)
+    unsafe {
+        if value >> 16 == 0 {
+            // [0, 2^16 - 1]
+            write_1_5(value, buffer)
+        } else {
+            // [2^16, 2^32 - 1]
+            write_5_10(value, buffer)
+        }
     }
 }
 
 /// Internal integer formatter for u64.
 #[inline]
 fn u64toa(value: u64, buffer: &mut [u8]) -> usize {
-    if value >> 16 == 0 {
-        // [0, 2^16 - 1]
-        write_1_5(value.as_u32(), buffer)
-    } else if value >> 32 == 0 {
-        // [2^16, 2^32 - 1]
-        write_5_10(value.as_u32(), buffer)
-    } else if value >> 48 == 0 {
-        // [2^32, 2^48 - 1]
-        write_10_15(value, buffer)
-    } else {
-        // [2^48, 2^64 - 1]
-        write_15_20(value, buffer)
+    unsafe {
+        if value >> 16 == 0 {
+            // [0, 2^16 - 1]
+            write_1_5(value.as_u32(), buffer)
+        } else if value >> 32 == 0 {
+            // [2^16, 2^32 - 1]
+            write_5_10(value.as_u32(), buffer)
+        } else if value >> 48 == 0 {
+            // [2^32, 2^48 - 1]
+            write_10_15(value, buffer)
+        } else {
+            // [2^48, 2^64 - 1]
+            write_15_20(value, buffer)
+        }
     }
 }
 
 /// Internal integer formatter for u128.
 #[inline]
 fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
-    if value >> 16 == 0 {
-        // [0, 2^16 - 1]
-        write_1_5(value.as_u32(), buffer)
-    } else if value >> 32 == 0 {
-        // [2^16, 2^32 - 1]
-        write_5_10(value.as_u32(), buffer)
-    } else if value >> 48 == 0 {
-        // [2^32, 2^48 - 1]
-        write_10_15(value.as_u64(), buffer)
-    } else if value >> 64 == 0 {
-        // [2^48, 2^64 - 1]
-        write_15_20(value.as_u64(), buffer)
-    } else if value >> 80 == 0 {
-        // [2^64, 2^80 - 1]
-        write_20_25(value, buffer)
-    } else if value >> 96 == 0 {
-        // [2^80, 2^96 - 1]
-        write_25_29(value, buffer)
-    } else if value >> 112 == 0 {
-        // [2^96, 2^112 - 1]
-        write_29_34(value, buffer)
-    } else {
-        // [2^112, 2^128 - 1]
-        write_34_39(value, buffer)
+    unsafe {
+        if value >> 16 == 0 {
+            // [0, 2^16 - 1]
+            write_1_5(value.as_u32(), buffer)
+        } else if value >> 32 == 0 {
+            // [2^16, 2^32 - 1]
+            write_5_10(value.as_u32(), buffer)
+        } else if value >> 48 == 0 {
+            // [2^32, 2^48 - 1]
+            write_10_15(value.as_u64(), buffer)
+        } else if value >> 64 == 0 {
+            // [2^48, 2^64 - 1]
+            write_15_20(value.as_u64(), buffer)
+        } else if value >> 80 == 0 {
+            // [2^64, 2^80 - 1]
+            write_20_25(value, buffer)
+        } else if value >> 96 == 0 {
+            // [2^80, 2^96 - 1]
+            write_25_29(value, buffer)
+        } else if value >> 112 == 0 {
+            // [2^96, 2^112 - 1]
+            write_29_34(value, buffer)
+        } else {
+            // [2^112, 2^128 - 1]
+            write_34_39(value, buffer)
+        }
     }
 }
 

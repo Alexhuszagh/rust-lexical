@@ -1,8 +1,6 @@
 //! Incorrect, fast algorithms for string-to-float conversions.
 
 use crate::atoi;
-use crate::float::*;
-use crate::traits::*;
 use crate::util::*;
 
 use super::alias::*;

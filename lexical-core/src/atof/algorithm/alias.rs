@@ -1,14 +1,8 @@
 //! Aliases and traits to simplify float-parsing.
 
-use crate::float::*;
-use crate::table::*;
-use crate::traits::*;
 use crate::util::*;
 
 use super::bignum::*;
-use super::cached::*;
-use super::math::*;
-use super::powers::*;
 
 // MAX CORRECT DIGITS
 // ------------------

@@ -6,8 +6,6 @@
 //! found here:
 //!     https://github.com/golang/go/blob/b10849fbb97a2244c086991b4623ae9f32c212d0/src/strconv/extfloat.go
 
-use crate::float::*;
-use crate::traits::*;
 use crate::util::*;
 
 use super::alias::*;

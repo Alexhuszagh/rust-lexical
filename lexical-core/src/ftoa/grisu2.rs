@@ -53,8 +53,6 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use crate::float::*;
-use crate::traits::*;
 use crate::util::*;
 
 // ALIASES

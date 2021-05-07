@@ -1,7 +1,6 @@
 //! Validate buffers and other information.
 
-use crate::error::*;
-use crate::result::*;
+use crate::util::*;
 
 use super::traits::*;
 

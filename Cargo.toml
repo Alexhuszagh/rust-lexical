@@ -16,6 +16,7 @@ exclude = [
     "ci/*",
     "data/*",
     "benches/*",
+    "bin/*",
     "lexical-benchmark/*",
     "lexical-capi/*",
     "lexical-codegen/*",

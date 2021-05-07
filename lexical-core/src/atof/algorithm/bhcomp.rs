@@ -3,15 +3,12 @@
 //! Compares the actual significant digits of the mantissa to the
 //! theoretical digits from `b+h`, scaled into the proper range.
 
-use crate::float::*;
-use crate::traits::*;
 use crate::util::*;
 
 use super::alias::*;
 use super::bigcomp;
 use super::bignum::*;
 use super::format::*;
-use super::math::*;
 
 // PARSE MANTISSA
 // --------------

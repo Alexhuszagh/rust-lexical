@@ -6,10 +6,9 @@
 //! by multiplying a valid mantissa representation along with digits
 //! shifted from the exponent to the mantissa.
 //!
-//! See `src/table/decimal.rs` `ExactExponent` for detailed documentation
+//! See `traits/exact_float.rs` `ExactFloat` for detailed documentation
 //! on these limits.
 
-use crate::traits::*;
 use crate::util::*;
 
 use super::alias::*;
@@ -79,7 +78,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::table::*;
 
     #[test]
     fn float_fast_path_test() {

@@ -1,6 +1,5 @@
 //! String-to-integer routines specialized to parse the mantissa of a float.
 
-use crate::traits::*;
 use crate::util::*;
 
 use super::shared::*;

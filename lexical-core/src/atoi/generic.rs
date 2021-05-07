@@ -77,9 +77,6 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use crate::error::*;
-use crate::result::*;
-use crate::traits::*;
 use crate::util::*;
 
 use super::shared::*;

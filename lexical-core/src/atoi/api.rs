@@ -1,7 +1,5 @@
 //! Fast lexical string-to-integer conversion routines.
 
-use crate::result::*;
-use crate::traits::*;
 use crate::util::*;
 
 use super::generic::*;
@@ -158,9 +156,6 @@ from_lexical_with_options!(atoi_with_options, i128);
 
 #[cfg(test)]
 mod tests {
-    use crate::error::*;
-    use crate::traits::*;
-    #[cfg(any(feature = "format", feature = "power_of_two"))]
     use crate::util::*;
 
     #[cfg(feature = "property_tests")]

@@ -2,7 +2,6 @@
 
 use crate::atoi;
 use crate::lib::slice;
-use crate::traits::*;
 use crate::util::*;
 
 use super::traits::*;

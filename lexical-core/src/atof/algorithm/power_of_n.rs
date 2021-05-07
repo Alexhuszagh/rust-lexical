@@ -1,8 +1,5 @@
 //! Dispatcher for the non-power-of-two algorithms.
 
-use crate::float::*;
-use crate::result::*;
-use crate::traits::*;
 use crate::util::*;
 
 use super::alias::*;

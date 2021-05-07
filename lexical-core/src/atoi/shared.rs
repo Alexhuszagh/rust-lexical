@@ -1,6 +1,6 @@
 //! Shared definitions for string-to-integer conversions.
 
-use crate::traits::*;
+use crate::util::*;
 
 // SHARED
 // ------

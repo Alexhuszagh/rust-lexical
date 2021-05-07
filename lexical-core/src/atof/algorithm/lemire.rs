@@ -37,8 +37,6 @@
 
 #![cfg(feature = "lemire")]
 
-use crate::float::*;
-use crate::traits::*;
 use crate::util::*;
 
 use super::alias::*;
@@ -71,7 +69,6 @@ pub(crate) fn mul<M: Mantissa>(x: M, y: M) -> (M, M) {
 // ROUNDING
 // --------
 
-// Incorrect, this does not handle both lmaooooooo
 /// Round-nearest. Handles both round-nearest tie-even and tie-away-zero.
 #[inline(always)]
 fn round_nearest<M>(mantissa: M) -> M
@@ -150,15 +147,18 @@ where
         // Have a literal zero. If we shift the bits, we'll get 0.
         return (F::ZERO, true);
     } else if exp <= 0 {
-        // Have a denormal float, try to get `b` from the value. Need it
-        // to be rounded-down. We've shifted to 1 above the carry bit, IE,
-        // the 2 above the normal point point we'd be. Our shift therefore
-        // needs to be exp + 2.
-        let shift = exp.wrapping_neg() + 2;
-        let mut mantissa: F::Unsigned = as_cast(mantissa);
-        mantissa >>= shift;
-        // No exponent bits.
-        return (F::from_bits(mantissa), false);
+        // We don't actually care about the accuracy here,
+        // since we're going straight to the extended-float algorithm.
+        return (F::ZERO, false);
+        //// Have a denormal float, try to get `b` from the value. Need it
+        //// to be rounded-down. We've shifted to 1 above the carry bit, IE,
+        //// the 2 above the normal point point we'd be. Our shift therefore
+        //// needs to be exp + 2.
+        //let shift = exp.wrapping_neg() + 2;
+        //let mut mantissa: F::Unsigned = as_cast(mantissa);
+        //mantissa >>= shift;
+        //// No exponent bits.
+        //return (F::from_bits(mantissa), false);
     }
 
     // Get our raw bits.
@@ -313,15 +313,18 @@ where
             && merged_lo.wrapping_add(M::ONE) == M::ZERO
             && y_lo.wrapping_add(mantissa) < mantissa
         {
-            // Halfway. Use x_hi since it's guaranteed to be within
-            // 1 bit of our desired representation, set below.
-            // Since we're rounding down, to get the base representation,
-            // we might be 1 bit too low. This is because if we have
-            // multiplication issues, then we're 1 bit too low (which
-            // is why we're at the wider approximation: checking for overflow).
-            let (mantissa, exp2, is_truncated) = shift_to_carry(x_hi + M::ONE, exp2, carry_shift);
-            let float = to_float(mantissa, exp2, is_truncated, RoundingKind::Downward).0;
-            return (float, false);
+            // We don't actually care about the accuracy here,
+            // since we're going straight to the extended-float algorithm.
+            return (F::ZERO, false);
+            //// Halfway. Use x_hi since it's guaranteed to be within
+            //// 1 bit of our desired representation, set below.
+            //// Since we're rounding down, to get the base representation,
+            //// we might be 1 bit too low. This is because if we have
+            //// multiplication issues, then we're 1 bit too low (which
+            //// is why we're at the wider approximation: checking for overflow).
+            //let (mantissa, exp2, is_truncated) = shift_to_carry(x_hi + M::ONE, exp2, carry_shift);
+            //let float = to_float(mantissa, exp2, is_truncated, RoundingKind::Downward).0;
+            //return (float, false);
         } else {
             x_hi = merged_hi;
             x_lo = merged_lo;
@@ -334,10 +337,13 @@ where
     // Check for a halfway representation.
     let three: M = as_cast(3);
     if x_lo == M::ZERO && x_hi & mask == M::ZERO && mantissa & three == M::ONE {
-        // Halfway, invalid representation. Return the representation rounded-down.
-        // We can round down safely here, since we're exactly at a halfway representation.
-        let float = to_float(mantissa, exp2, false, RoundingKind::Downward).0;
-        return (float, false);
+        // We don't actually care about the accuracy here,
+        // since we're going straight to the extended-float algorithm.
+        return (F::ZERO, false);
+        //// Halfway, invalid representation. Return the representation rounded-down.
+        //// We can round down safely here, since we're exactly at a halfway representation.
+        //let float = to_float(mantissa, exp2, false, RoundingKind::Downward).0;
+        //return (float, false);
     }
 
     to_float(mantissa, exp2, is_truncated, kind)
@@ -369,10 +375,8 @@ where
     F: FloatType,
 {
     let (float, valid) = eisel_lemire::<F, _>(mantissa, radix, exponent, kind);
-    if is_lossy {
-        (float, true)
-    } else if valid {
-        if !is_truncated {
+    if valid {
+        if !is_truncated || is_lossy {
             (float, true)
         } else {
             let mantissa_up = mantissa + F::MantissaType::ONE;
@@ -1084,10 +1088,7 @@ mod tests {
             (9007199254740992.0, true),
             eisel_lemire::<f64, _>(9007199254740992u64, radix, 0, kind)
         );
-        assert_eq!(
-            (9007199254740992.0, false),
-            eisel_lemire::<f64, _>(9007199254740993u64, radix, 0, kind)
-        );
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(9007199254740993u64, radix, 0, kind));
         assert_eq!(
             (9007199254740994.0, true),
             eisel_lemire::<f64, _>(9007199254740994u64, radix, 0, kind)
@@ -1096,28 +1097,16 @@ mod tests {
             (9223372036854775808.0, true),
             eisel_lemire::<f64, _>(9223372036854775808u64, radix, 0, kind)
         );
-        assert_eq!(
-            (9223372036854775808.0, false),
-            eisel_lemire::<f64, _>(9223372036854776832u64, radix, 0, kind)
-        );
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(9223372036854776832u64, radix, 0, kind));
         assert_eq!(
             (9223372036854777856.0, true),
             eisel_lemire::<f64, _>(9223372036854777856u64, radix, 0, kind)
         );
 
         // We can't get an accurate representation here.
-        assert_eq!(
-            (9007199254740992.0, false),
-            eisel_lemire::<f64, _>(9007199254740992000u64, radix, -3, kind)
-        );
-        assert_eq!(
-            (9007199254740992.0, false),
-            eisel_lemire::<f64, _>(9007199254740993000u64, radix, -3, kind)
-        );
-        assert_eq!(
-            (9007199254740994.0, false),
-            eisel_lemire::<f64, _>(9007199254740994000u64, radix, -3, kind)
-        );
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(9007199254740992000u64, radix, -3, kind));
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(9007199254740993000u64, radix, -3, kind));
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(9007199254740994000u64, radix, -3, kind));
 
         // Check with the extended-float backup.
         assert_eq!(
@@ -1204,18 +1193,9 @@ mod tests {
         );
 
         // We can't get an accurate representation here.
-        assert_eq!(
-            (9007199254740994.0, false),
-            eisel_lemire::<f64, _>(9007199254740994000u64, radix, -3, kind)
-        );
-        assert_eq!(
-            (9007199254740994.0, false),
-            eisel_lemire::<f64, _>(9007199254740995000u64, radix, -3, kind)
-        );
-        assert_eq!(
-            (9007199254740996.0, false),
-            eisel_lemire::<f64, _>(9007199254740996000u64, radix, -3, kind)
-        );
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(9007199254740994000u64, radix, -3, kind));
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(9007199254740995000u64, radix, -3, kind));
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(9007199254740996000u64, radix, -3, kind));
 
         // Check with the extended-float backup.
         assert_eq!(
@@ -1281,10 +1261,7 @@ mod tests {
             (9007199254740992.0, true),
             eisel_lemire::<f64, _>(9007199254740992u64, radix, 0, kind)
         );
-        assert_eq!(
-            (9007199254740992.0, false),
-            eisel_lemire::<f64, _>(9007199254740993u64, radix, 0, kind)
-        );
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(9007199254740993u64, radix, 0, kind));
         assert_eq!(
             (9007199254740994.0, true),
             eisel_lemire::<f64, _>(9007199254740994u64, radix, 0, kind)
@@ -1301,10 +1278,7 @@ mod tests {
             (18014398509481984.0, true),
             eisel_lemire::<f64, _>(18014398509481984u64, radix, 0, kind)
         );
-        assert_eq!(
-            (18014398509481984.0, false),
-            eisel_lemire::<f64, _>(18014398509481986u64, radix, 0, kind)
-        );
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(18014398509481986u64, radix, 0, kind));
         assert_eq!(
             (18014398509481988.0, true),
             eisel_lemire::<f64, _>(18014398509481988u64, radix, 0, kind)
@@ -1324,10 +1298,7 @@ mod tests {
             (9007199254740992.0, true),
             eisel_lemire::<f64, _>(9007199254740992u64, radix, 0, kind)
         );
-        assert_eq!(
-            (9007199254740992.0, false),
-            eisel_lemire::<f64, _>(9007199254740993u64, radix, 0, kind)
-        );
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(9007199254740993u64, radix, 0, kind));
         assert_eq!(
             (9007199254740994.0, true),
             eisel_lemire::<f64, _>(9007199254740994u64, radix, 0, kind)
@@ -1344,10 +1315,7 @@ mod tests {
             (18014398509481984.0, true),
             eisel_lemire::<f64, _>(18014398509481984u64, radix, 0, kind)
         );
-        assert_eq!(
-            (18014398509481984.0, false),
-            eisel_lemire::<f64, _>(18014398509481986u64, radix, 0, kind)
-        );
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(18014398509481986u64, radix, 0, kind));
         assert_eq!(
             (18014398509481988.0, true),
             eisel_lemire::<f64, _>(18014398509481988u64, radix, 0, kind)
@@ -1367,10 +1335,7 @@ mod tests {
             (9007199254740992.0, true),
             eisel_lemire::<f64, _>(9007199254740992u64, radix, 0, kind)
         );
-        assert_eq!(
-            (9007199254740992.0, false),
-            eisel_lemire::<f64, _>(9007199254740993u64, radix, 0, kind)
-        );
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(9007199254740993u64, radix, 0, kind));
         assert_eq!(
             (9007199254740994.0, true),
             eisel_lemire::<f64, _>(9007199254740994u64, radix, 0, kind)
@@ -1387,10 +1352,7 @@ mod tests {
             (18014398509481984.0, true),
             eisel_lemire::<f64, _>(18014398509481984u64, radix, 0, kind)
         );
-        assert_eq!(
-            (18014398509481984.0, false),
-            eisel_lemire::<f64, _>(18014398509481986u64, radix, 0, kind)
-        );
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(18014398509481986u64, radix, 0, kind));
         assert_eq!(
             (18014398509481988.0, true),
             eisel_lemire::<f64, _>(18014398509481988u64, radix, 0, kind)
@@ -1410,10 +1372,7 @@ mod tests {
             (9007199254740992.0, true),
             eisel_lemire::<f64, _>(9007199254740992u64, radix, 0, kind)
         );
-        assert_eq!(
-            (9007199254740992.0, false),
-            eisel_lemire::<f64, _>(9007199254740993u64, radix, 0, kind)
-        );
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(9007199254740993u64, radix, 0, kind));
         assert_eq!(
             (9007199254740994.0, true),
             eisel_lemire::<f64, _>(9007199254740994u64, radix, 0, kind)
@@ -1430,10 +1389,7 @@ mod tests {
             (18014398509481984.0, true),
             eisel_lemire::<f64, _>(18014398509481984u64, radix, 0, kind)
         );
-        assert_eq!(
-            (18014398509481984.0, false),
-            eisel_lemire::<f64, _>(18014398509481986u64, radix, 0, kind)
-        );
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(18014398509481986u64, radix, 0, kind));
         assert_eq!(
             (18014398509481988.0, true),
             eisel_lemire::<f64, _>(18014398509481988u64, radix, 0, kind)
@@ -1446,10 +1402,7 @@ mod tests {
             (18014398509481992.0, true),
             eisel_lemire::<f64, _>(18014398509481992u64, radix, 0, kind)
         );
-        assert_eq!(
-            (9007199254740992.0, false),
-            eisel_lemire::<f64, _>(9007199254740992000u64, radix, -3, kind)
-        );
+        assert_eq!((0.0, false), eisel_lemire::<f64, _>(9007199254740992000u64, radix, -3, kind));
     }
 
     #[test]

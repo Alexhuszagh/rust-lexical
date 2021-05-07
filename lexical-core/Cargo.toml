@@ -37,7 +37,7 @@ quickcheck = { version = "1.0.3", optional = true }
 proptest = { version = "0.10.1", optional = true }
 
 [build-dependencies]
-rustc_version = "0.3"
+version_check = "0.9"
 
 [dev-dependencies]
 approx = "0.4.0"

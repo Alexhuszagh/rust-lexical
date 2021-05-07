@@ -5,10 +5,7 @@
 
 #![cfg(feature = "radix")]
 
-use crate::config::*;
 use crate::itoa;
-use crate::table::*;
-use crate::traits::*;
 use crate::util::*;
 
 // FTOA BASEN
@@ -94,7 +91,7 @@ fn ftoa_naive<'a>(value: f64, radix: u32, bytes: &'a mut [u8], format: NumberFor
             fraction *= base;
             delta *= base;
             // Write digit.
-            let digit = fraction as i32;
+            let digit = fraction as usize;
             buffer[fraction_cursor] = digit_to_char(digit);
             fraction_cursor += 1;
             // Calculate remainder.

@@ -3,7 +3,6 @@
 #![cfg(feature = "power_of_two")]
 
 use crate::itoa;
-use crate::traits::*;
 use crate::util::*;
 
 // ALGORITHM

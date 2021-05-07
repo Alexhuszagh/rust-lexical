@@ -1,6 +1,5 @@
 //! Permissive float-parsing data interface.
 
-use crate::result::*;
 use crate::util::*;
 
 use super::exponent::*;
@@ -53,7 +52,6 @@ data_interface!(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error::*;
 
     macro_rules! permissive {
         ($integer:expr, $fraction:expr, $exponent:expr, $raw_exponent:expr) => {

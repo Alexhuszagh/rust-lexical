@@ -1,6 +1,5 @@
 //! Correct algorithms for string-to-float conversions.
 
-use crate::result::*;
 use crate::util::*;
 
 use super::alias::*;
@@ -49,8 +48,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error::*;
-    use crate::traits::*;
 
     #[test]
     fn atof_test() {

@@ -20,6 +20,7 @@ data/test-parse-random/errors.txt
 /build
 *.pyc
 lexical-core/proptest-regressions/
+cargo-timing*.html
 
 # Perftools
 perf.data

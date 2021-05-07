@@ -70,8 +70,6 @@
 //  ax.legend(loc=2, prop={'size': 14})
 //  plt.show()
 
-use crate::table::*;
-use crate::traits::*;
 use crate::util::*;
 
 // Generic itoa algorithm.
@@ -86,53 +84,55 @@ macro_rules! generic_algorithm {
         $radix2:ident,
         $radix4:ident
     ) => {{
-        while $value >= $radix4 {
-            let r = $value % $radix4;
-            $value /= $radix4;
-            let r1 = ($t::TWO * (r / $radix2)).as_usize();
-            let r2 = ($t::TWO * (r % $radix2)).as_usize();
+        unsafe {
+            while $value >= $radix4 {
+                let r = $value % $radix4;
+                $value /= $radix4;
+                let r1 = ($t::TWO * (r / $radix2)).as_usize();
+                let r2 = ($t::TWO * (r % $radix2)).as_usize();
 
-            // This is always safe, since the table is 2*radix^2, and
-            // r1 and r2 must be in the range [0, 2*radix^2-1), since the maximum
-            // value of r is `radix4-1`, which must have a div and r
-            // in the range [0, radix^2-1).
-            $index -= 1;
-            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r2 + 1]));
-            $index -= 1;
-            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r2]));
-            $index -= 1;
-            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r1 + 1]));
-            $index -= 1;
-            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r1]));
-        }
+                // This is always safe, since the table is 2*radix^2, and
+                // r1 and r2 must be in the range [0, 2*radix^2-1), since the maximum
+                // value of r is `radix4-1`, which must have a div and r
+                // in the range [0, radix^2-1).
+                $index -= 1;
+                unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r2 + 1]));
+                $index -= 1;
+                unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r2]));
+                $index -= 1;
+                unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r1 + 1]));
+                $index -= 1;
+                unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r1]));
+            }
 
-        // Decode 2 digits at a time.
-        while $value >= $radix2 {
-            let r = ($t::TWO * ($value % $radix2)).as_usize();
-            $value /= $radix2;
+            // Decode 2 digits at a time.
+            while $value >= $radix2 {
+                let r = ($t::TWO * ($value % $radix2)).as_usize();
+                $value /= $radix2;
 
-            // This is always safe, since the table is 2*radix^2, and
-            // r must be in the range [0, 2*radix^2-1).
-            $index -= 1;
-            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r + 1]));
-            $index -= 1;
-            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r]));
-        }
+                // This is always safe, since the table is 2*radix^2, and
+                // r must be in the range [0, 2*radix^2-1).
+                $index -= 1;
+                unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r + 1]));
+                $index -= 1;
+                unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r]));
+            }
 
-        // Decode last 2 digits.
-        if $value < $radix {
-            // This is always safe, since value < radix, so it must be < 36.
-            // Digit must be <= 36.
-            $index -= 1;
-            unchecked_index_mut!($buffer[$index] = digit_to_char($value));
-        } else {
-            let r = ($t::TWO * $value).as_usize();
-            // This is always safe, since the table is 2*radix^2, and the value
-            // must <= radix^2, so rem must be in the range [0, 2*radix^2-1).
-            $index -= 1;
-            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r + 1]));
-            $index -= 1;
-            unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r]));
+            // Decode last 2 digits.
+            if $value < $radix {
+                // This is always safe, since value < radix, so it must be < 36.
+                // Digit must be <= 36.
+                $index -= 1;
+                unchecked_index_mut!($buffer[$index] = digit_to_char($value.as_usize()));
+            } else {
+                let r = ($t::TWO * $value).as_usize();
+                // This is always safe, since the table is 2*radix^2, and the value
+                // must <= radix^2, so rem must be in the range [0, 2*radix^2-1).
+                $index -= 1;
+                unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r + 1]));
+                $index -= 1;
+                unchecked_index_mut!($buffer[$index] = unchecked_index!($table[r]));
+            }
         }
     }};
 }

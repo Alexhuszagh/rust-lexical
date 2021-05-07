@@ -1,6 +1,5 @@
 //! Traits that provide format-dependent data for floating parsing algorithms.
 
-use crate::result::*;
 use crate::util::*;
 
 use super::exponent::*;

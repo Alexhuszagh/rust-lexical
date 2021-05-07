@@ -27,8 +27,6 @@
 
 #![cfg(feature = "algorithm_m")]
 
-use crate::float::*;
-use crate::traits::*;
 use crate::util::*;
 
 use super::alias::*;
@@ -36,7 +34,6 @@ use super::bhcomp;
 use super::bigcomp;
 use super::bignum::*;
 use super::format::*;
-use super::math::*;
 
 // ALGORITHM M
 

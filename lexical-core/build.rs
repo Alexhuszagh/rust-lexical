@@ -1,5 +1,3 @@
-use rustc_version::version;
-
 fn main() {
     // TARGET
     // ------
@@ -22,15 +20,17 @@ fn main() {
         println!("cargo:rustc-cfg=limb_width_32");
     }
 
+    // Feature support.
+    // Drop these when we raise the MSRV.
+
     // We also need to know whether we can use const fn
-    // in match or loop statements. Drop this when we
-    // drop support for Rustc versions < 1.46.0.
-    let rustc = version().unwrap();
-    if (rustc.major, rustc.minor) >= (1, 46) {
+    // in match or loop statements.
+    if version_check::is_min_version("1.46.0").unwrap_or(false) {
         println!("cargo:rustc-cfg=has_const_if");
         println!("cargo:rustc-cfg=has_const_match");
     }
-    if (rustc.major, rustc.minor) >= (1, 50) {
+    // Need slice::fill for the binary float writer.
+    if version_check::is_min_version("1.50.0").unwrap_or(false) {
         println!("cargo:rustc-cfg=has_slice_fill");
     }
 }

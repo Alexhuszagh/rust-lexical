@@ -59,7 +59,6 @@
 //
 //  These functions are ugly as a result.
 
-use crate::traits::*;
 use crate::util::*;
 
 #[cfg(feature = "power_of_two")]
@@ -326,7 +325,6 @@ to_lexical_with_options!(ftoa_with_options, f64);
 #[cfg(test)]
 mod tests {
     // Shouldn't need to include atof, should be fine with ToLexical in scope.
-    use crate::traits::*;
     use crate::util::*;
     use approx::assert_relative_eq;
 

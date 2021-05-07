@@ -238,38 +238,22 @@ pub(crate) mod lib {
 //
 // To speed up compile times and simplify the internal logic,
 // the following modules, in order, is as follows:
-//      - config
-//      - error
-//      - result
 //      - util
 //      - options
 //      - traits
-//      - table
 //      - float
 //      - atoi/itoa
 //      - atof/ftoa
 //
 // Modules should only import from other modules above them.
+// TODO(ahuszagh) These should... all be moved to util?
 #[macro_use]
 mod util;
 #[macro_use]
 mod options;
-#[macro_use]
-mod traits;
-
-mod config;
-mod error;
-mod float;
-mod result;
-mod table;
 
 // Re-export configuration, options, and utilities globally.
-pub use config::*;
-pub use error::*;
 pub use options::*;
-pub use result::*;
-pub use table::*;
-pub use traits::*;
 pub use util::*;
 
 // Submodules

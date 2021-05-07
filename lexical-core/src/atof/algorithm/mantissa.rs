@@ -1,9 +1,9 @@
 //! Fast, correct parser for the mantissa digits.
 
 use crate::atoi;
+use crate::util::*;
 
 use super::format::*;
-use crate::float::Mantissa;
 
 // Parse the raw float state into a mantissa, calculating the number
 // of truncated digits and the offset.

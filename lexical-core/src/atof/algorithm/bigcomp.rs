@@ -9,14 +9,11 @@
 //!     https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/
 
 use crate::lib::cmp;
-use crate::table::*;
-use crate::traits::*;
 use crate::util::*;
 
 use super::alias::*;
 use super::bignum::*;
 use super::format::*;
-use super::math::*;
 
 // ROUNDING
 // --------
@@ -171,7 +168,7 @@ where
     // in the radix as the number of leading zeros.
     let wlz = integral_binary_factor(radix).as_usize();
     let nlz = den.leading_zeros().wrapping_sub(wlz) & (<u32 as Integer>::BITS - 1);
-    small::ishl_bits(den.data_mut(), nlz);
+    den.ishl_bits(nlz);
     den.exp -= nlz.as_i32();
 
     // Need to scale the numerator or denominator to the same value.
@@ -180,7 +177,7 @@ where
     let shift = diff.abs().as_usize();
     if diff < 0 {
         // Need to shift the numerator left.
-        small::ishl(num.data_mut(), shift);
+        num.ishl(shift);
         num.exp -= shift.as_i32()
     } else if diff > 0 {
         // Need to shift denominator left, go by a power of <Limb as Integer>::BITS.
@@ -192,7 +189,7 @@ where
         // Since we're using a power from the denominator to the
         // numerator, we to invert r, not add u32::BITS.
         let r = -r;
-        small::ishl_bits(num.data_mut(), r.as_usize());
+        num.ishl_bits(r.as_usize());
         num.exp -= r;
         if !q.is_zero() {
             den.pad_zero_digits(q);
@@ -211,7 +208,7 @@ macro_rules! compare_digits {
                 Some(&v) => v,
                 None => return cmp::Ordering::Less,
             };
-            let expected = digit_to_char($num.quorem(&$den));
+            let expected = digit_to_char($num.quorem(&$den).as_usize());
             $num.imul_small($radix);
             if actual < expected {
                 return cmp::Ordering::Less;
@@ -243,7 +240,7 @@ where
 {
     // Iterate until we get a difference in the generated digits.
     // If we run out,return Equal.
-    let radix = as_limb(radix);
+    let radix: Limb = as_cast(radix);
     let mut iter = integer.chain(fraction);
     compare_digits!(iter, radix, num, den);
 

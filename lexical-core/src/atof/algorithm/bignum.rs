@@ -1,10 +1,8 @@
 //! Big integer type definition.
 
-use crate::float::*;
-use crate::traits::*;
+use crate::util::*;
 
-use super::alias::{FloatType, MantissaType};
-use super::math::*;
+use super::alias::*;
 
 // BINARY FACTOR
 // -------------

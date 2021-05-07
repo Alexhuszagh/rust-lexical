@@ -2,10 +2,6 @@
 //!
 //! Uses either the imprecise or the precise algorithm.
 
-use crate::error::*;
-use crate::lib::slice;
-use crate::result::*;
-use crate::traits::*;
 use crate::util::*;
 
 use super::algorithm::correct as algorithm;
@@ -25,15 +21,15 @@ use super::algorithm::*;
 
 /// Convert slice to iterator without digit separators.
 #[inline(always)]
-fn to_iter<'a>(bytes: &'a [u8], _: u8) -> slice::Iter<'a, u8> {
-    bytes.iter()
+fn to_iter<'a>(bytes: &'a [u8], digit_separator: u8) -> IteratorNoSeparator<'a> {
+    iterate_digits_no_separator(bytes, digit_separator)
 }
 
 /// Convert slice to iterator with digit separators.
 #[inline(always)]
 #[cfg(feature = "format")]
-fn to_iter_s<'a>(bytes: &'a [u8], digit_separator: u8) -> SkipValueIterator<'a, u8> {
-    SkipValueIterator::new(bytes, digit_separator)
+fn to_iter_s<'a>(bytes: &'a [u8], digit_separator: u8) -> IteratorSeparator<'a> {
+    iterate_digits_ignore_separator(bytes, digit_separator)
 }
 
 // PARSER
@@ -53,11 +49,12 @@ fn parse_infinity<'a, ToIter, StartsWith, Iter, F, Data>(
     to_iter: ToIter,
     starts_with: StartsWith,
 ) -> ParseResult<(F, *const u8)>
+// TODO(ahuszagh) Is this valid with digit separators in special values?
 where
     F: FloatType,
     ToIter: Fn(&'a [u8], u8) -> Iter,
     Iter: AsPtrIterator<'a, u8>,
-    StartsWith: Fn(Iter, slice::Iter<'a, u8>) -> (bool, Iter),
+    StartsWith: Fn(Iter, IteratorNoSeparator<'a>) -> (bool, Iter),
     Data: FastDataInterface<'a>,
 {
     let digit_separator = data.format().digit_separator();
@@ -93,7 +90,7 @@ where
     F: FloatType,
     ToIter: Fn(&'a [u8], u8) -> Iter,
     Iter: AsPtrIterator<'a, u8>,
-    StartsWith: Fn(Iter, slice::Iter<'a, u8>) -> (bool, Iter),
+    StartsWith: Fn(Iter, IteratorNoSeparator<'a>) -> (bool, Iter),
     Data: FastDataInterface<'a>,
 {
     let digit_separator = data.format().digit_separator();
@@ -187,7 +184,7 @@ where
 {
     let digit_separator = data.format().digit_separator();
     let starts_with = starts_with_iter;
-    match SkipValueIterator::new(bytes, digit_separator).next() {
+    match IteratorSeparator::new(bytes, digit_separator).next() {
         Some(&b'i') | Some(&b'I') => parse_infinity(
             data,
             bytes,
@@ -294,7 +291,7 @@ where
 {
     let digit_separator = data.format().digit_separator();
     let starts_with = case_insensitive_starts_with_iter;
-    match SkipValueIterator::new(bytes, digit_separator).next() {
+    match IteratorSeparator::new(bytes, digit_separator).next() {
         Some(&b'i') | Some(&b'I') => parse_infinity(
             data,
             bytes,
@@ -581,8 +578,6 @@ from_lexical_with_options!(atof_with_options, f64);
 
 #[cfg(test)]
 mod tests {
-    use crate::error::*;
-    use crate::traits::*;
     use crate::util::*;
 
     use approx::assert_relative_eq;
@@ -1089,6 +1084,7 @@ mod tests {
             assert_eq!(Ok(5e-323), f64::from_lexical_with_options(b"5e-323", &options));
             assert_eq!(Ok(5e-324), f64::from_lexical_with_options(b"5e-324", &options));
         }
+
         // due to issues in how the data is parsed, manually extracting
         // non-exponents of 1.<e-299 is prone to error
         // test the limit of our ability

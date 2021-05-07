@@ -3,12 +3,8 @@
 // Hide implementation details.
 #[macro_use]
 mod format;
-
 mod alias;
-mod cached;
 mod mantissa;
-mod math;
-mod powers;
 
 // Export high-level algorithms.
 pub(crate) mod correct;

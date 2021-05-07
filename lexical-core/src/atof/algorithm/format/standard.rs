@@ -1,6 +1,5 @@
 //! Standard float-parsing data interface.
 
-use crate::result::*;
 use crate::util::*;
 
 use super::exponent::*;
@@ -75,7 +74,6 @@ impl<'a> From<DataTuple<'a>> for StandardFastDataInterface<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error::*;
 
     macro_rules! standard {
         ($integer:expr, $fraction:expr, $exponent:expr, $raw_exponent:expr) => {

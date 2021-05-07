@@ -2,9 +2,6 @@
 
 #![cfg(feature = "power_of_two")]
 
-use crate::float::*;
-use crate::result::*;
-use crate::traits::*;
 use crate::util::*;
 
 use super::alias::*;
@@ -95,9 +92,9 @@ where
 /// Round upward if the value is above the current representation.
 #[inline(always)]
 #[cfg(feature = "rounding")]
-fn round_upward<F>(mut mantissa: F::MantissaType, is_truncated: bool) -> F::MantissaType
+fn round_upward<M>(mut mantissa: M, is_truncated: bool) -> M
 where
-    F: FloatType,
+    M: MantissaType,
 {
     if is_truncated {
         mantissa += M::ONE;
@@ -141,7 +138,7 @@ where
             let iter = slow.integer_iter().chain(slow.fraction_iter()).skip(index);
             let count = iter.take_while(|&&c| c == b'0').count();
             let is_truncated = count < slow.truncated_digits();
-            mantissa = round_upward::<F>(mantissa, is_truncated)
+            mantissa = round_upward(mantissa, is_truncated)
         }
     }
 
@@ -197,7 +194,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::table::*;
 
     #[test]
     fn float_fast_path() {

@@ -3,9 +3,6 @@
 //! Uses either the optimized decimal algorithm, the optimized generic
 //! algorithm, or the naive algorithm.
 
-#[cfg(feature = "power_of_two")]
-use crate::config::*;
-use crate::traits::*;
 use crate::util::*;
 
 /// Select the back-end.
@@ -36,7 +33,9 @@ macro_rules! write_backwards {
         // Write backwards to buffer and copy output to slice.
         let offset = $value.$cb($radix, digits);
         debug_assert!(offset <= digits.len());
-        copy_to_dst($buffer, &unchecked_index!(digits[offset..]))
+        unsafe {
+            copy_to_dst($buffer, &unchecked_index!(digits[offset..]))
+        }
     }};
 }
 
@@ -139,10 +138,13 @@ where
     Unsigned: Itoa,
 {
     if value < Narrow::ZERO {
-        unchecked_index_mut!(buffer[0] = b'-');
-        let value: Wide = as_cast(value);
-        let value: Unsigned = as_cast(value.wrapping_neg());
-        itoa_positive(value, radix, &mut unchecked_index_mut!(buffer[1..])) + 1
+        unsafe {
+            unchecked_index_mut!(buffer[0] = b'-');
+            let buffer = &mut unchecked_index_mut!(buffer[1..]);
+            let value: Wide = as_cast(value);
+            let value: Unsigned = as_cast(value.wrapping_neg());
+            itoa_positive(value, radix, buffer) + 1
+        }
     } else {
         let value: Unsigned = as_cast(value);
         itoa_positive(value, radix, buffer)
@@ -189,7 +191,6 @@ signed_to_lexical!(isize, i64, u64);
 #[cfg(test)]
 mod tests {
     // Shouldn't need to include atoi, should be fine with ToLexical in scope.
-    use crate::traits::*;
     use crate::util::*;
 
     cfg_if! {
