@@ -37,7 +37,7 @@ if [ ! -z $NO_STD ]; then
 fi
 
 # Have std, need to add `std` to features.
-REQUIRED_FEATURES=""
+REQUIRED_FEATURES="parse_floats,parse_integers,write_floats,write_integers"
 if [ -z $NO_STD ]; then
     REQUIRED_FEATURES="std,$REQUIRED_FEATURES"
 fi
@@ -101,6 +101,12 @@ build() {
     features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
     $CARGO build $CARGO_TARGET $features
     $CARGO build $CARGO_TARGET $features --release
+
+    # Check each of our sub-crates compiles.
+    $CARGO build $CARGO_TARGET --no-default-features --features=std,parse_floats
+    $CARGO build $CARGO_TARGET --no-default-features --features=std,parse_integers
+    $CARGO build $CARGO_TARGET --no-default-features --features=std,write_floats
+    $CARGO build $CARGO_TARGET --no-default-features --features=std,write_integers
 }
 
 # Test target.

@@ -188,6 +188,7 @@ pub use lexical_core::{NumberFormat, NumberFormatBuilder};
 
 // Re-export the Result, Error and ErrorCode globally.
 pub use lexical_core::{Error, ErrorCode, Result};
+pub use lexical_core::{ParseError, ParseErrorCode, ParseResult};
 
 // Re-export the parsing options.
 pub use lexical_core::{ParseFloatOptions, ParseFloatOptionsBuilder};
