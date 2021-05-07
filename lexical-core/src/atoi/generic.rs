@@ -395,22 +395,22 @@ macro_rules! parse_digits_u128 {
                         Some(v) => v,
                         None => {
                             // Add temporary to value and return early.
-                            let radix_pow = $radix.as_u64().pow(index.as_u32());
+                            let radix_pow = ($radix as u64).pow(index as u32);
                             add_temporary_128!($value, value, radix_pow, c, $op, $code);
                             return Ok(($value, c));
                         },
                     };
 
                     // Don't have to worry about overflows.
-                    value *= $radix.as_u64();
-                    value += digit.as_u64();
+                    value *= $radix as u64;
+                    value += digit as u64;
                 } else {
                     break;
                 }
             }
 
             // Add the temporary value to the total value.
-            let radix_pow = $radix.as_u64().pow(index.as_u32());
+            let radix_pow = ($radix as u64).pow(index as u32);
             add_temporary_128!($value, value, radix_pow, $iter.as_ptr(), $op, $code);
         }
     }};

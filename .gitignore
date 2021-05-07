@@ -22,6 +22,7 @@ data/test-parse-random/errors.txt
 lexical-core/proptest-regressions/
 cargo-timing*.html
 *.mm_profdata
+profdata_*
 
 # Perftools
 perf.data

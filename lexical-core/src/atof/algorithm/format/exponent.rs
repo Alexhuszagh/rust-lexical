@@ -10,6 +10,22 @@ use super::traits::*;
 /// signed/unsigned detection during sign parsing.
 type FloatType = f64;
 
+/// Convert usize to optional i32.
+#[inline(always)]
+fn usize_to_i32(size: usize) -> Option<i32> {
+    if size < i32::max_value() as usize {
+        Some(size as i32)
+    } else {
+        None
+    }
+}
+
+/// Convert usize to optional i32.
+#[inline(always)]
+fn usize_to_i32_or_max(size: usize) -> i32 {
+    usize_to_i32(size).unwrap_or(i32::max_value())
+}
+
 // EXPONENT CALCULATION
 
 // Calculate the scientific notation exponent without overflow.
@@ -22,10 +38,10 @@ pub(super) fn scientific_exponent(
     fraction_start: usize,
 ) -> i32 {
     if integer_digits == 0 {
-        let fraction_start = fraction_start.try_i32_or_max();
+        let fraction_start = usize_to_i32_or_max(fraction_start);
         exponent.saturating_sub(fraction_start).saturating_sub(1)
     } else {
-        let integer_shift = (integer_digits - 1).try_i32_or_max();
+        let integer_shift = usize_to_i32_or_max(integer_digits - 1);
         exponent.saturating_add(integer_shift)
     }
 }
@@ -42,9 +58,9 @@ pub(super) fn mantissa_exponent(
     truncated: usize,
 ) -> i32 {
     if fraction_digits > truncated {
-        raw_exponent.saturating_sub((fraction_digits - truncated).try_i32_or_max())
+        raw_exponent.saturating_sub(usize_to_i32_or_max(fraction_digits - truncated))
     } else {
-        raw_exponent.saturating_add((truncated - fraction_digits).try_i32_or_max())
+        raw_exponent.saturating_add(usize_to_i32_or_max(truncated - fraction_digits))
     }
 }
 

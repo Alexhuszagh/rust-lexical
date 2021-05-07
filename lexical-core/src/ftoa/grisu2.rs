@@ -75,9 +75,9 @@ fn cached_grisu_power(exp: i32, k: &mut i32) -> &'static ExtendedFloat80 {
     const EXPMAX: i32 = -32;
     const EXPMIN: i32 = -60;
 
-    let approx = -((exp + NPOWERS).as_f64()) * ONE_LOG_TEN;
-    let approx = approx.as_i32();
-    let mut idx = ((approx - FIRSTPOWER) / STEPPOWERS).as_usize();
+    let approx = -((exp + NPOWERS) as f64) * ONE_LOG_TEN;
+    let approx = approx as i32;
+    let mut idx = ((approx - FIRSTPOWER) / STEPPOWERS) as usize;
 
     loop {
         // Use `arr.get(idx)`, which explicitly provides a reference,
@@ -98,7 +98,7 @@ fn cached_grisu_power(exp: i32, k: &mut i32) -> &'static ExtendedFloat80 {
             continue;
         }
 
-        *k = FIRSTPOWER + idx.as_i32() * STEPPOWERS;
+        *k = FIRSTPOWER + idx as i32 * STEPPOWERS;
         return power;
     }
 }
@@ -528,11 +528,11 @@ fn generate_digits(
         let div = divp.next().unwrap();
         let digit = part1 / div;
         if digit != 0 || idx != 0 {
-            digits[idx] = digit.as_u8() + b'0';
+            digits[idx] = digit as u8 + b'0';
             idx += 1;
         }
 
-        part1 -= digit.as_u64() * div;
+        part1 -= digit as u64 * div;
         kappa -= 1;
 
         let tmp = (part1 << -one.exp) + part2;
@@ -553,7 +553,7 @@ fn generate_digits(
 
         let digit = part2 >> -one.exp;
         if digit != 0 || idx != 0 {
-            digits[idx] = digit.as_u8() + b'0';
+            digits[idx] = digit as u8 + b'0';
             idx += 1;
         }
 
@@ -603,13 +603,13 @@ fn emit_digits(
     let decimal_point = format.decimal_point();
     let exponent_character = format.exponent(10);
 
-    let exp = k + ndigits.as_i32() - 1;
-    let mut exp = exp.abs().as_usize();
+    let exp = k + ndigits as i32 - 1;
+    let mut exp = exp.abs() as usize;
 
     // write plain integer (with ".0" suffix).
     if k >= 0 && exp < (ndigits + 7) {
         let idx = ndigits;
-        let count = k.as_usize();
+        let count = k as usize;
         // These are all safe, since digits.len() >= idx, and
         // dest.len() >= idx+count+2, so the range must be valid.
         copy_to_dst(dest, &digits[..idx]);
@@ -617,15 +617,15 @@ fn emit_digits(
         dest[idx + count] = decimal_point;
         dest[idx + count + 1] = b'0';
 
-        return ndigits + k.as_usize() + 2;
+        return ndigits + k as usize + 2;
     }
 
     // write decimal w/o scientific notation
     if k < 0 && (k > -7 || exp < 4) {
-        let offset = ndigits.as_isize() - k.abs().as_isize();
+        let offset = ndigits as isize - k.abs() as isize;
         // fp < 1.0 -> write leading zero
         if offset <= 0 {
-            let offset = (-offset).as_usize();
+            let offset = (-offset) as usize;
             // These are all safe, since digits.len() >= ndigits, and
             // dest.len() >= ndigits+offset+2, so the range must be valid.
             dest[0] = b'0';
@@ -636,7 +636,7 @@ fn emit_digits(
             return ndigits + 2 + offset;
         } else {
             // fp > 1.0
-            let offset = offset.as_usize();
+            let offset = offset as usize;
             // These are all safe, since digits.len() >= ndigits, and
             // dest.len() >= ndigits+1, so the range must be valid.
             copy_to_dst(dest, &digits[..offset]);
@@ -664,7 +664,7 @@ fn emit_digits(
 
     *dst_iter.next().unwrap() = exponent_character;
 
-    *dst_iter.next().unwrap() = match k + ndigits.as_i32() - 1 < 0 {
+    *dst_iter.next().unwrap() = match k + ndigits as i32 - 1 < 0 {
         true => b'-',
         false => b'+',
     };
@@ -672,18 +672,18 @@ fn emit_digits(
     let mut cent: usize = 0;
     if exp > 99 {
         cent = exp / 100;
-        *dst_iter.next().unwrap() = cent.as_u8() + b'0';
+        *dst_iter.next().unwrap() = cent as u8 + b'0';
         exp -= cent * 100;
     }
     if exp > 9 {
         let dec = exp / 10;
-        *dst_iter.next().unwrap() = dec.as_u8() + b'0';
+        *dst_iter.next().unwrap() = dec as u8 + b'0';
         exp -= dec * 10;
     } else if cent != 0 {
         *dst_iter.next().unwrap() = b'0';
     }
 
-    let shift = (exp % 10).as_u8();
+    let shift = (exp % 10) as u8;
     *dst_iter.next().unwrap() = shift + b'0';
 
     dst_len - dst_iter.count()
@@ -706,7 +706,7 @@ fn fpconv_dtoa(d: f64, dest: &mut [u8], format: NumberFormat) -> usize {
 /// and non-zero.
 #[inline]
 pub(crate) fn float_decimal<'a>(f: f32, bytes: &'a mut [u8], format: NumberFormat) -> usize {
-    double_decimal(f.as_f64(), bytes, format)
+    double_decimal(f as f64, bytes, format)
 }
 
 // F64

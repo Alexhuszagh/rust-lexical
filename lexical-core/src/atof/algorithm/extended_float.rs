@@ -249,11 +249,11 @@ where
         // Multiply by the small power.
         // Check if we can directly multiply by an integer, if not,
         // use extended-precision multiplication.
-        match fp.mant.overflowing_mul(powers.get_small_int(small_index.as_usize())) {
+        match fp.mant.overflowing_mul(powers.get_small_int(small_index as usize)) {
             // Overflow, multiplication unsuccessful, go slow path.
             (_, true) => {
                 fp.normalize();
-                fp.imul(&powers.get_small(small_index.as_usize()));
+                fp.imul(&powers.get_small(small_index as usize));
                 errors += error_halfscale();
             },
             // No overflow, multiplication successful.
@@ -264,7 +264,7 @@ where
         }
 
         // Multiply by the large power.
-        fp.imul(&powers.get_large(large_index.as_usize()));
+        fp.imul(&powers.get_large(large_index as usize));
         if errors > 0 {
             errors += 1;
         }

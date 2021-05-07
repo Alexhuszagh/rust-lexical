@@ -514,7 +514,7 @@ where
     // Normalize the divisor so the leading-bit is set to 1.
     // x is the dividend, y is the divisor.
     // Need a leading zero on the numerator.
-    let s = y.rindex(0).leading_zeros().as_usize();
+    let s = y.rindex(0).leading_zeros() as usize;
     let m = x.len();
     let n = y.len();
     let mut xn: T = small::shl_bits(x, s);

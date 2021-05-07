@@ -125,80 +125,6 @@ impl<T: Float> AsPrimitive for WrappedFloat<T> {
     }
 }
 
-// IMPL TRY PRIMITIVE
-
-impl<T: Float> TryPrimitive for WrappedFloat<T> {
-    #[inline]
-    fn try_u8(self) -> Option<u8> {
-        try_cast(self.data)
-    }
-
-    #[inline]
-    fn try_u16(self) -> Option<u16> {
-        try_cast(self.data)
-    }
-
-    #[inline]
-    fn try_u32(self) -> Option<u32> {
-        try_cast(self.data)
-    }
-
-    #[inline]
-    fn try_u64(self) -> Option<u64> {
-        try_cast(self.data)
-    }
-
-    #[inline]
-    fn try_u128(self) -> Option<u128> {
-        try_cast(self.data)
-    }
-
-    #[inline]
-    fn try_usize(self) -> Option<usize> {
-        try_cast(self.data)
-    }
-
-    #[inline]
-    fn try_i8(self) -> Option<i8> {
-        try_cast(self.data)
-    }
-
-    #[inline]
-    fn try_i16(self) -> Option<i16> {
-        try_cast(self.data)
-    }
-
-    #[inline]
-    fn try_i32(self) -> Option<i32> {
-        try_cast(self.data)
-    }
-
-    #[inline]
-    fn try_i64(self) -> Option<i64> {
-        try_cast(self.data)
-    }
-
-    #[inline]
-    fn try_i128(self) -> Option<i128> {
-        try_cast(self.data)
-    }
-
-    #[inline]
-    fn try_isize(self) -> Option<isize> {
-        try_cast(self.data)
-    }
-
-    #[inline]
-    fn try_f32(self) -> Option<f32> {
-        try_cast(self.data)
-    }
-
-    #[inline]
-    fn try_f64(self) -> Option<f64> {
-        try_cast(self.data)
-    }
-}
-
 // IMPL AS CAST
 
 impl<T: Float> AsCast for WrappedFloat<T> {
@@ -208,15 +134,6 @@ impl<T: Float> AsCast for WrappedFloat<T> {
         WrappedFloat {
             data: as_cast(n.as_f64()),
         }
-    }
-}
-
-// IMPL TRY CAST
-
-impl<N: Primitive, T: Float + TryCast<N>> TryCast<N> for WrappedFloat<T> {
-    #[inline]
-    fn try_cast(self) -> Option<N> {
-        try_cast(self.data)
     }
 }
 
@@ -718,30 +635,6 @@ mod tests {
         let _: isize = as_cast(x);
         let _: f32 = as_cast(x);
         let _: f64 = as_cast(x);
-    }
-
-    fn check_try_cast_compile<T: Integer>(x: T) {
-        // Try cast
-        let _: Option<u8> = try_cast(x);
-        let _: Option<u16> = try_cast(x);
-        let _: Option<u32> = try_cast(x);
-        let _: Option<u64> = try_cast(x);
-        let _: Option<u128> = try_cast(x);
-        let _: Option<usize> = try_cast(x);
-        let _: Option<i8> = try_cast(x);
-        let _: Option<i16> = try_cast(x);
-        let _: Option<i32> = try_cast(x);
-        let _: Option<i64> = try_cast(x);
-        let _: Option<i128> = try_cast(x);
-        let _: Option<isize> = try_cast(x);
-        let _: Option<f32> = try_cast(x);
-        let _: Option<f64> = try_cast(x);
-    }
-
-    #[allow(dead_code)] // Compile-only
-    fn try_cast_test() {
-        check_try_cast_compile(WrappedFloat::from_float(65f32));
-        check_try_cast_compile(WrappedFloat::from_float(65f64));
     }
 
     #[test]

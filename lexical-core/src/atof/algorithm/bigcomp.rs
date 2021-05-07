@@ -146,7 +146,7 @@ where
     F: FloatType,
 {
     let theor = theoretical_float(f, kind).to_bigfloat();
-    let factor = scaling_factor(radix, sci_exponent.abs().as_u32());
+    let factor = scaling_factor(radix, sci_exponent.abs() as u32);
     let mut num: Bigfloat<F>;
     let mut den: Bigfloat<F>;
 
@@ -166,19 +166,19 @@ where
 
     // Scale the denominator so it has the number of bits
     // in the radix as the number of leading zeros.
-    let wlz = integral_binary_factor(radix).as_usize();
+    let wlz = integral_binary_factor(radix) as usize;
     let nlz = den.leading_zeros().wrapping_sub(wlz) & (<u32 as Integer>::BITS - 1);
     den.ishl_bits(nlz);
-    den.exp -= nlz.as_i32();
+    den.exp -= nlz as i32;
 
     // Need to scale the numerator or denominator to the same value.
     // We don't want to shift the denominator, so...
     let diff = den.exp - num.exp;
-    let shift = diff.abs().as_usize();
+    let shift = diff.abs() as usize;
     if diff < 0 {
         // Need to shift the numerator left.
         num.ishl(shift);
-        num.exp -= shift.as_i32()
+        num.exp -= shift as i32;
     } else if diff > 0 {
         // Need to shift denominator left, go by a power of <Limb as Integer>::BITS.
         // After this, the numerator will be non-normalized, and the
@@ -189,11 +189,11 @@ where
         // Since we're using a power from the denominator to the
         // numerator, we to invert r, not add u32::BITS.
         let r = -r;
-        num.ishl_bits(r.as_usize());
+        num.ishl_bits(r as usize);
         num.exp -= r;
         if !q.is_zero() {
             den.pad_zero_digits(q);
-            den.exp -= <Limb as Integer>::BITS.as_i32() * q.as_i32();
+            den.exp -= Limb::FULL * q as i32;
         }
     }
 
@@ -208,7 +208,7 @@ macro_rules! compare_digits {
                 Some(&v) => v,
                 None => return cmp::Ordering::Less,
             };
-            let expected = digit_to_char($num.quorem(&$den).as_usize());
+            let expected = digit_to_char($num.quorem(&$den) as usize);
             $num.imul_small($radix);
             if actual < expected {
                 return cmp::Ordering::Less;

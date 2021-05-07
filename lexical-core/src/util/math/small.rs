@@ -37,7 +37,7 @@ pub fn leading_zeros(x: &[Limb]) -> usize {
     if x.is_empty() {
         0
     } else {
-        x.rindex(0).leading_zeros().as_usize()
+        x.rindex(0).leading_zeros() as usize
     }
 }
 
@@ -49,7 +49,7 @@ pub fn trailing_zeros(x: &[Limb]) -> usize {
     let index = trailing_zero_limbs(x);
     let mut count = index.saturating_mul(<Limb as Integer>::BITS);
     if let Some(value) = x.get(index) {
-        count = count.saturating_add(value.trailing_zeros().as_usize());
+        count = count.saturating_add(value.trailing_zeros() as usize);
     }
     count
 }

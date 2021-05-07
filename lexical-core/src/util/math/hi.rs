@@ -43,28 +43,28 @@ fn u16_to_hi16_2(r0: u16, r1: u16) -> (u16, bool) {
 #[inline]
 fn u32_to_hi16_1(r0: u32) -> (u16, bool) {
     let r0 = u32_to_hi32_1(r0).0;
-    ((r0 >> 16).as_u16(), r0.as_u16() != 0)
+    ((r0 >> 16) as u16, r0 as u16 != 0)
 }
 
 /// Shift 2 32-bit integers to high 16-bits.
 #[inline]
 fn u32_to_hi16_2(r0: u32, r1: u32) -> (u16, bool) {
     let (r0, n) = u32_to_hi32_2(r0, r1);
-    ((r0 >> 16).as_u16(), n || r0.as_u16() != 0)
+    ((r0 >> 16) as u16, n || r0 as u16 != 0)
 }
 
 /// Shift 64-bit integer to high 16-bits.
 #[inline]
 fn u64_to_hi16_1(r0: u64) -> (u16, bool) {
     let r0 = u64_to_hi64_1(r0).0;
-    ((r0 >> 48).as_u16(), r0.as_u16() != 0)
+    ((r0 >> 48) as u16, r0 as u16 != 0)
 }
 
 /// Shift 2 64-bit integers to high 16-bits.
 #[inline]
 fn u64_to_hi16_2(r0: u64, r1: u64) -> (u16, bool) {
     let (r0, n) = u64_to_hi64_2(r0, r1);
-    ((r0 >> 48).as_u16(), n || r0.as_u16() != 0)
+    ((r0 >> 48) as u16, n || r0 as u16 != 0)
 }
 
 /// Trait to export the high 16-bits from a little-endian slice.
@@ -174,14 +174,14 @@ fn u32_to_hi32_2(r0: u32, r1: u32) -> (u32, bool) {
 #[inline]
 fn u64_to_hi32_1(r0: u64) -> (u32, bool) {
     let r0 = u64_to_hi64_1(r0).0;
-    ((r0 >> 32).as_u32(), r0.as_u32() != 0)
+    ((r0 >> 32) as u32, r0 as u32 != 0)
 }
 
 /// Shift 2 64-bit integers to high 32-bits.
 #[inline]
 fn u64_to_hi32_2(r0: u64, r1: u64) -> (u32, bool) {
     let (r0, n) = u64_to_hi64_2(r0, r1);
-    ((r0 >> 32).as_u32(), n || r0.as_u32() != 0)
+    ((r0 >> 32) as u32, n || r0 as u32 != 0)
 }
 
 /// Trait to export the high 32-bits from a little-endian slice.
@@ -212,15 +212,15 @@ impl Hi32<u16> for [u16] {
     fn hi32_1(&self) -> (u32, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
-        u32_to_hi32_1(rview[0].as_u32())
+        u32_to_hi32_1(rview[0] as u32)
     }
 
     #[inline]
     fn hi32_2(&self) -> (u32, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
-        let r0 = rview[0].as_u32() << 16;
-        let r1 = rview[1].as_u32();
+        let r0 = (rview[0] as u32) << 16;
+        let r1 = rview[1] as u32;
         u32_to_hi32_1(r0 | r1)
     }
 
@@ -228,9 +228,9 @@ impl Hi32<u16> for [u16] {
     fn hi32_3(&self) -> (u32, bool) {
         debug_assert!(self.len() >= 3);
         let rview = self.rview();
-        let r0 = rview[0].as_u32();
-        let r1 = rview[1].as_u32() << 16;
-        let r2 = rview[2].as_u32();
+        let r0 = rview[0] as u32;
+        let r1 = (rview[1] as u32) << 16;
+        let r2 = rview[2] as u32;
         let (v, n) = u32_to_hi32_2(r0, r1 | r2);
         (v, n || nonzero(self, 3))
     }
@@ -346,7 +346,7 @@ impl Hi64<u16> for [u16] {
     fn hi64_1(&self) -> (u64, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
-        let r0 = rview[0].as_u64();
+        let r0 = rview[0] as u64;
         u64_to_hi64_1(r0)
     }
 
@@ -354,8 +354,8 @@ impl Hi64<u16> for [u16] {
     fn hi64_2(&self) -> (u64, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
-        let r0 = rview[0].as_u64() << 16;
-        let r1 = rview[1].as_u64();
+        let r0 = (rview[0] as u64) << 16;
+        let r1 = rview[1] as u64;
         u64_to_hi64_1(r0 | r1)
     }
 
@@ -363,9 +363,9 @@ impl Hi64<u16> for [u16] {
     fn hi64_3(&self) -> (u64, bool) {
         debug_assert!(self.len() == 3);
         let rview = self.rview();
-        let r0 = rview[0].as_u64() << 32;
-        let r1 = rview[1].as_u64() << 16;
-        let r2 = rview[2].as_u64();
+        let r0 = (rview[0] as u64) << 32;
+        let r1 = (rview[1] as u64) << 16;
+        let r2 = rview[2] as u64;
         u64_to_hi64_1(r0 | r1 | r2)
     }
 
@@ -373,10 +373,10 @@ impl Hi64<u16> for [u16] {
     fn hi64_4(&self) -> (u64, bool) {
         debug_assert!(self.len() == 4);
         let rview = self.rview();
-        let r0 = rview[0].as_u64() << 48;
-        let r1 = rview[1].as_u64() << 32;
-        let r2 = rview[2].as_u64() << 16;
-        let r3 = rview[3].as_u64();
+        let r0 = (rview[0] as u64) << 48;
+        let r1 = (rview[1] as u64) << 32;
+        let r2 = (rview[2] as u64) << 16;
+        let r3 = rview[3] as u64;
         u64_to_hi64_1(r0 | r1 | r2 | r3)
     }
 
@@ -384,11 +384,11 @@ impl Hi64<u16> for [u16] {
     fn hi64_5(&self) -> (u64, bool) {
         debug_assert!(self.len() >= 5);
         let rview = self.rview();
-        let r0 = rview[0].as_u64();
-        let r1 = rview[1].as_u64() << 48;
-        let r2 = rview[2].as_u64() << 32;
-        let r3 = rview[3].as_u64() << 16;
-        let r4 = rview[4].as_u64();
+        let r0 = rview[0] as u64;
+        let r1 = (rview[1] as u64) << 48;
+        let r2 = (rview[2] as u64) << 32;
+        let r3 = (rview[3] as u64) << 16;
+        let r4 = rview[4] as u64;
         let (v, n) = u64_to_hi64_2(r0, r1 | r2 | r3 | r4);
         (v, n || nonzero(self, 5))
     }
@@ -399,7 +399,7 @@ impl Hi64<u32> for [u32] {
     fn hi64_1(&self) -> (u64, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
-        let r0 = rview[0].as_u64();
+        let r0 = rview[0] as u64;
         u64_to_hi64_1(r0)
     }
 
@@ -407,8 +407,8 @@ impl Hi64<u32> for [u32] {
     fn hi64_2(&self) -> (u64, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
-        let r0 = rview[0].as_u64() << 32;
-        let r1 = rview[1].as_u64();
+        let r0 = (rview[0] as u64) << 32;
+        let r1 = rview[1] as u64;
         u64_to_hi64_1(r0 | r1)
     }
 
@@ -416,9 +416,9 @@ impl Hi64<u32> for [u32] {
     fn hi64_3(&self) -> (u64, bool) {
         debug_assert!(self.len() >= 3);
         let rview = self.rview();
-        let r0 = rview[0].as_u64();
-        let r1 = rview[1].as_u64() << 32;
-        let r2 = rview[2].as_u64();
+        let r0 = rview[0] as u64;
+        let r1 = (rview[1] as u64) << 32;
+        let r2 = rview[2] as u64;
         let (v, n) = u64_to_hi64_2(r0, r1 | r2);
         (v, n || nonzero(self, 3))
     }
@@ -539,7 +539,7 @@ impl Hi128<u16> for [u16] {
     fn hi128_1(&self) -> (u128, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
-        let r0 = rview[0].as_u128();
+        let r0 = rview[0] as u128;
         u128_to_hi128_1(r0)
     }
 
@@ -547,8 +547,8 @@ impl Hi128<u16> for [u16] {
     fn hi128_2(&self) -> (u128, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
-        let r0 = rview[0].as_u128() << 16;
-        let r1 = rview[1].as_u128();
+        let r0 = (rview[0] as u128) << 16;
+        let r1 = rview[1] as u128;
         u128_to_hi128_1(r0 | r1)
     }
 
@@ -556,9 +556,9 @@ impl Hi128<u16> for [u16] {
     fn hi128_3(&self) -> (u128, bool) {
         debug_assert!(self.len() == 3);
         let rview = self.rview();
-        let r0 = rview[0].as_u128() << 32;
-        let r1 = rview[1].as_u128() << 16;
-        let r2 = rview[2].as_u128();
+        let r0 = (rview[0] as u128) << 32;
+        let r1 = (rview[1] as u128) << 16;
+        let r2 = rview[2] as u128;
         u128_to_hi128_1(r0 | r1 | r2)
     }
 
@@ -566,10 +566,10 @@ impl Hi128<u16> for [u16] {
     fn hi128_4(&self) -> (u128, bool) {
         debug_assert!(self.len() == 4);
         let rview = self.rview();
-        let r0 = rview[0].as_u128() << 48;
-        let r1 = rview[1].as_u128() << 32;
-        let r2 = rview[2].as_u128() << 16;
-        let r3 = rview[3].as_u128();
+        let r0 = (rview[0] as u128) << 48;
+        let r1 = (rview[1] as u128) << 32;
+        let r2 = (rview[2] as u128) << 16;
+        let r3 = rview[3] as u128;
         u128_to_hi128_1(r0 | r1 | r2 | r3)
     }
 
@@ -577,11 +577,11 @@ impl Hi128<u16> for [u16] {
     fn hi128_5(&self) -> (u128, bool) {
         debug_assert!(self.len() == 5);
         let rview = self.rview();
-        let r0 = rview[0].as_u128() << 64;
-        let r1 = rview[1].as_u128() << 48;
-        let r2 = rview[2].as_u128() << 32;
-        let r3 = rview[3].as_u128() << 16;
-        let r4 = rview[4].as_u128();
+        let r0 = (rview[0] as u128) << 64;
+        let r1 = (rview[1] as u128) << 48;
+        let r2 = (rview[2] as u128) << 32;
+        let r3 = (rview[3] as u128) << 16;
+        let r4 = rview[4] as u128;
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4)
     }
 
@@ -589,12 +589,12 @@ impl Hi128<u16> for [u16] {
     fn hi128_6(&self) -> (u128, bool) {
         debug_assert!(self.len() == 6);
         let rview = self.rview();
-        let r0 = rview[0].as_u128() << 80;
-        let r1 = rview[1].as_u128() << 64;
-        let r2 = rview[2].as_u128() << 48;
-        let r3 = rview[3].as_u128() << 32;
-        let r4 = rview[4].as_u128() << 16;
-        let r5 = rview[5].as_u128();
+        let r0 = (rview[0] as u128) << 80;
+        let r1 = (rview[1] as u128) << 64;
+        let r2 = (rview[2] as u128) << 48;
+        let r3 = (rview[3] as u128) << 32;
+        let r4 = (rview[4] as u128) << 16;
+        let r5 = rview[5] as u128;
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5)
     }
 
@@ -602,13 +602,13 @@ impl Hi128<u16> for [u16] {
     fn hi128_7(&self) -> (u128, bool) {
         debug_assert!(self.len() == 7);
         let rview = self.rview();
-        let r0 = rview[0].as_u128() << 96;
-        let r1 = rview[1].as_u128() << 80;
-        let r2 = rview[2].as_u128() << 64;
-        let r3 = rview[3].as_u128() << 48;
-        let r4 = rview[4].as_u128() << 32;
-        let r5 = rview[5].as_u128() << 16;
-        let r6 = rview[6].as_u128();
+        let r0 = (rview[0] as u128) << 96;
+        let r1 = (rview[1] as u128) << 80;
+        let r2 = (rview[2] as u128) << 64;
+        let r3 = (rview[3] as u128) << 48;
+        let r4 = (rview[4] as u128) << 32;
+        let r5 = (rview[5] as u128) << 16;
+        let r6 = rview[6] as u128;
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5 | r6)
     }
 
@@ -616,14 +616,14 @@ impl Hi128<u16> for [u16] {
     fn hi128_8(&self) -> (u128, bool) {
         debug_assert!(self.len() == 8);
         let rview = self.rview();
-        let r0 = rview[0].as_u128() << 112;
-        let r1 = rview[1].as_u128() << 96;
-        let r2 = rview[2].as_u128() << 80;
-        let r3 = rview[3].as_u128() << 64;
-        let r4 = rview[4].as_u128() << 48;
-        let r5 = rview[5].as_u128() << 32;
-        let r6 = rview[6].as_u128() << 16;
-        let r7 = rview[7].as_u128();
+        let r0 = (rview[0] as u128) << 112;
+        let r1 = (rview[1] as u128) << 96;
+        let r2 = (rview[2] as u128) << 80;
+        let r3 = (rview[3] as u128) << 64;
+        let r4 = (rview[4] as u128) << 48;
+        let r5 = (rview[5] as u128) << 32;
+        let r6 = (rview[6] as u128) << 16;
+        let r7 = rview[7] as u128;
         u128_to_hi128_1(r0 | r1 | r2 | r3 | r4 | r5 | r6 | r7)
     }
 
@@ -631,15 +631,15 @@ impl Hi128<u16> for [u16] {
     fn hi128_9(&self) -> (u128, bool) {
         debug_assert!(self.len() >= 9);
         let rview = self.rview();
-        let r0 = rview[0].as_u128();
-        let r1 = rview[1].as_u128() << 112;
-        let r2 = rview[2].as_u128() << 96;
-        let r3 = rview[3].as_u128() << 80;
-        let r4 = rview[4].as_u128() << 64;
-        let r5 = rview[5].as_u128() << 48;
-        let r6 = rview[6].as_u128() << 32;
-        let r7 = rview[7].as_u128() << 16;
-        let r8 = rview[8].as_u128();
+        let r0 = rview[0] as u128;
+        let r1 = (rview[1] as u128) << 112;
+        let r2 = (rview[2] as u128) << 96;
+        let r3 = (rview[3] as u128) << 80;
+        let r4 = (rview[4] as u128) << 64;
+        let r5 = (rview[5] as u128) << 48;
+        let r6 = (rview[6] as u128) << 32;
+        let r7 = (rview[7] as u128) << 16;
+        let r8 = rview[8] as u128;
         let (v, n) = u128_to_hi128_2(r0, r1 | r2 | r3 | r4 | r5 | r6 | r7 | r8);
         (v, n || nonzero(self, 9))
     }
@@ -650,7 +650,7 @@ impl Hi128<u32> for [u32] {
     fn hi128_1(&self) -> (u128, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
-        let r0 = rview[0].as_u128();
+        let r0 = rview[0] as u128;
         u128_to_hi128_1(r0)
     }
 
@@ -658,8 +658,8 @@ impl Hi128<u32> for [u32] {
     fn hi128_2(&self) -> (u128, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
-        let r0 = rview[0].as_u128() << 32;
-        let r1 = rview[1].as_u128();
+        let r0 = (rview[0] as u128) << 32;
+        let r1 = rview[1] as u128;
         u128_to_hi128_1(r0 | r1)
     }
 
@@ -667,9 +667,9 @@ impl Hi128<u32> for [u32] {
     fn hi128_3(&self) -> (u128, bool) {
         debug_assert!(self.len() == 3);
         let rview = self.rview();
-        let r0 = rview[0].as_u128() << 64;
-        let r1 = rview[1].as_u128() << 32;
-        let r2 = rview[2].as_u128();
+        let r0 = (rview[0] as u128) << 64;
+        let r1 = (rview[1] as u128) << 32;
+        let r2 = rview[2] as u128;
         u128_to_hi128_1(r0 | r1 | r2)
     }
 
@@ -677,10 +677,10 @@ impl Hi128<u32> for [u32] {
     fn hi128_4(&self) -> (u128, bool) {
         debug_assert!(self.len() == 4);
         let rview = self.rview();
-        let r0 = rview[0].as_u128() << 96;
-        let r1 = rview[1].as_u128() << 64;
-        let r2 = rview[2].as_u128() << 32;
-        let r3 = rview[3].as_u128();
+        let r0 = (rview[0] as u128) << 96;
+        let r1 = (rview[1] as u128) << 64;
+        let r2 = (rview[2] as u128) << 32;
+        let r3 = rview[3] as u128;
         u128_to_hi128_1(r0 | r1 | r2 | r3)
     }
 
@@ -688,11 +688,11 @@ impl Hi128<u32> for [u32] {
     fn hi128_5(&self) -> (u128, bool) {
         debug_assert!(self.len() >= 5);
         let rview = self.rview();
-        let r0 = rview[0].as_u128();
-        let r1 = rview[1].as_u128() << 96;
-        let r2 = rview[2].as_u128() << 64;
-        let r3 = rview[3].as_u128() << 32;
-        let r4 = rview[4].as_u128();
+        let r0 = rview[0] as u128;
+        let r1 = (rview[1] as u128) << 96;
+        let r2 = (rview[2] as u128) << 64;
+        let r3 = (rview[3] as u128) << 32;
+        let r4 = rview[4] as u128;
         let (v, n) = u128_to_hi128_2(r0, r1 | r2 | r3 | r4);
         (v, n || nonzero(self, 5))
     }
@@ -723,7 +723,7 @@ impl Hi128<u64> for [u64] {
     fn hi128_1(&self) -> (u128, bool) {
         debug_assert!(self.len() == 1);
         let rview = self.rview();
-        let r0 = rview[0].as_u128();
+        let r0 = rview[0] as u128;
         u128_to_hi128_1(r0)
     }
 
@@ -731,8 +731,8 @@ impl Hi128<u64> for [u64] {
     fn hi128_2(&self) -> (u128, bool) {
         debug_assert!(self.len() == 2);
         let rview = self.rview();
-        let r0 = rview[0].as_u128() << 64;
-        let r1 = rview[1].as_u128();
+        let r0 = (rview[0] as u128) << 64;
+        let r1 = rview[1] as u128;
         u128_to_hi128_1(r0 | r1)
     }
 
@@ -740,9 +740,9 @@ impl Hi128<u64> for [u64] {
     fn hi128_3(&self) -> (u128, bool) {
         debug_assert!(self.len() >= 3);
         let rview = self.rview();
-        let r0 = rview[0].as_u128();
-        let r1 = rview[1].as_u128() << 64;
-        let r2 = rview[2].as_u128();
+        let r0 = rview[0] as u128;
+        let r1 = (rview[1] as u128) << 64;
+        let r2 = rview[2] as u128;
         let (v, n) = u128_to_hi128_2(r0, r1 | r2);
         (v, n || nonzero(self, 3))
     }

@@ -395,19 +395,19 @@ pub fn scale_sci_exp(sci_exp: i32, exponent_base: u32) -> i32 {
 
 /// Write float to string with exponent notation.
 #[inline]
-fn ftoa_exponent<'a, Mant: UnsignedInteger>(
+fn ftoa_exponent<'a, M: UnsignedInteger>(
     radix: u32,
     exponent_base: u32,
     exponent_radix: u32,
     bits_per_digit: i32,
     bytes: &'a mut [u8],
     format: NumberFormat,
-    mantissa: Mant,
+    mantissa: M,
     exp: i32,
     sci_exp: i32,
 ) -> usize
 where
-    Mant: itoa::Itoa,
+    M: itoa::Itoa,
 {
     // Config options
     let decimal_point = format.decimal_point();
@@ -460,17 +460,17 @@ where
 ///
 /// Has a negative exponent (shift right) and no exponent notation.
 #[inline]
-fn ftoa_negative_no_exponent<'a, Mant: UnsignedInteger>(
+fn ftoa_negative_no_exponent<'a, M: UnsignedInteger>(
     radix: u32,
     bits_per_digit: i32,
     bytes: &'a mut [u8],
     format: NumberFormat,
-    mantissa: Mant,
+    mantissa: M,
     exp: i32,
     sci_exp: i32,
 ) -> usize
 where
-    Mant: itoa::Itoa,
+    M: itoa::Itoa,
 {
     // Config options
     let decimal_point = format.decimal_point();

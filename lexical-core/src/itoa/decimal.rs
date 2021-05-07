@@ -138,7 +138,7 @@ const TABLE: &[u8] = &DIGIT_TO_BASE10_SQUARED;
 // Calculate the number of leading 0s.
 macro_rules! ctlz {
     ($value:ident) => {
-        $value.leading_zeros().as_usize()
+        $value.leading_zeros() as usize
     };
 }
 
@@ -173,14 +173,14 @@ macro_rules! calculate_offset {
 // Convert sequential values to index.
 macro_rules! sequential_index {
     ($v0:ident, $v1:ident) => {
-        ($v0 * 2 - $v1 * 200).as_usize()
+        ($v0 * 2 - $v1 * 200) as usize
     };
 }
 
 // Convert singular value to index.
 macro_rules! last_index {
     ($value:ident) => {
-        (2 * $value).as_usize()
+        (2 * $value) as usize
     };
 }
 
@@ -280,8 +280,8 @@ unsafe fn write_10(value: u32, buffer: &mut [u8]) {
 #[inline]
 #[allow(unused_unsafe)]
 unsafe fn write_15(value: u64, buffer: &mut [u8]) {
-    let t_0 = (value / 100000000).as_u32();
-    let v_0 = value.as_u32().wrapping_sub(t_0.wrapping_mul(100000000));
+    let t_0 = (value / 100000000) as u32;
+    let v_0 = (value as u32).wrapping_sub(t_0.wrapping_mul(100000000));
     let v_1 = v_0 / 100;
     let v_2 = v_1 / 100;
     let v_3 = v_2 / 100;
@@ -318,9 +318,9 @@ unsafe fn write_15(value: u64, buffer: &mut [u8]) {
 #[inline]
 #[allow(unused_unsafe)]
 unsafe fn write_19(value: u64, buffer: &mut [u8]) {
-    let t_0 = (value / 100000000).as_u32();
-    let t_1 = (value / 10000000000000000).as_u32();
-    let v_0 = value.as_u32().wrapping_sub(t_0.wrapping_mul(100000000));
+    let t_0 = (value / 100000000) as u32;
+    let t_1 = (value / 10000000000000000) as u32;
+    let v_0 = (value as u32).wrapping_sub(t_0.wrapping_mul(100000000));
     let v_1 = v_0 / 100;
     let v_2 = v_1 / 100;
     let v_3 = v_2 / 100;
@@ -365,9 +365,9 @@ unsafe fn write_19(value: u64, buffer: &mut [u8]) {
 #[inline]
 #[allow(unused_unsafe)]
 unsafe fn write_20(value: u64, buffer: &mut [u8]) {
-    let t_0 = (value / 100000000).as_u32();
-    let t_1 = (value / 10000000000000000).as_u32();
-    let v_0 = value.as_u32().wrapping_sub(t_0.wrapping_mul(100000000));
+    let t_0 = (value / 100000000) as u32;
+    let t_1 = (value / 10000000000000000) as u32;
+    let v_0 = (value as u32).wrapping_sub(t_0.wrapping_mul(100000000));
     let v_1 = v_0 / 100;
     let v_2 = v_1 / 100;
     let v_3 = v_2 / 100;
@@ -420,8 +420,8 @@ unsafe fn write_25(value: u128, buffer: &mut [u8]) {
     write_19(low, &mut unchecked_index_mut!(buffer[6..]));
 
     // Write high 6 to the front of the buffer.
-    let value = high.as_u64();
-    let v_0 = value.as_u32();
+    let value = high as u64;
+    let v_0 = value as u32;
     let v_1 = v_0 / 100;
     let v_2 = v_1 / 100;
     let i_0 = sequential_index!(v_0, v_1);
@@ -446,9 +446,9 @@ unsafe fn write_29(value: u128, buffer: &mut [u8]) {
     write_19(low, &mut unchecked_index_mut!(buffer[10..]));
 
     // Write high 10 to the front of the buffer.
-    let value = high.as_u64();
-    let t_0 = (value / 100000000).as_u32();
-    let v_0 = value.as_u32().wrapping_sub(t_0.wrapping_mul(100000000));
+    let value = high as u64;
+    let t_0 = (value / 100000000) as u32;
+    let v_0 = (value as u32).wrapping_sub(t_0.wrapping_mul(100000000));
     let v_1 = v_0 / 100;
     let v_2 = v_1 / 100;
     let v_3 = v_2 / 100;
@@ -481,9 +481,9 @@ unsafe fn write_34(value: u128, buffer: &mut [u8]) {
     write_19(low, &mut unchecked_index_mut!(buffer[15..]));
 
     // Write high 15 to the front of the buffer.
-    let value = high.as_u64();
-    let t_0 = (value / 100000000).as_u32();
-    let v_0 = value.as_u32().wrapping_sub(t_0.wrapping_mul(100000000));
+    let value = high as u64;
+    let t_0 = (value / 100000000) as u32;
+    let v_0 = (value as u32).wrapping_sub(t_0.wrapping_mul(100000000));
     let v_1 = v_0 / 100;
     let v_2 = v_1 / 100;
     let v_3 = v_2 / 100;
@@ -667,7 +667,7 @@ unsafe fn write_34_39(value: u128, buffer: &mut [u8]) -> usize {
 #[inline]
 fn u8toa(value: u8, buffer: &mut [u8]) -> usize {
     unsafe {
-        write_1_3(value.as_u32(), buffer)
+        write_1_3(value as u32, buffer)
     }
 }
 
@@ -675,7 +675,7 @@ fn u8toa(value: u8, buffer: &mut [u8]) -> usize {
 #[inline]
 fn u16toa(value: u16, buffer: &mut [u8]) -> usize {
     unsafe {
-        write_1_5(value.as_u32(), buffer)
+        write_1_5(value as u32, buffer)
     }
 }
 
@@ -699,10 +699,10 @@ fn u64toa(value: u64, buffer: &mut [u8]) -> usize {
     unsafe {
         if value >> 16 == 0 {
             // [0, 2^16 - 1]
-            write_1_5(value.as_u32(), buffer)
+            write_1_5(value as u32, buffer)
         } else if value >> 32 == 0 {
             // [2^16, 2^32 - 1]
-            write_5_10(value.as_u32(), buffer)
+            write_5_10(value as u32, buffer)
         } else if value >> 48 == 0 {
             // [2^32, 2^48 - 1]
             write_10_15(value, buffer)
@@ -719,16 +719,16 @@ fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
     unsafe {
         if value >> 16 == 0 {
             // [0, 2^16 - 1]
-            write_1_5(value.as_u32(), buffer)
+            write_1_5(value as u32, buffer)
         } else if value >> 32 == 0 {
             // [2^16, 2^32 - 1]
-            write_5_10(value.as_u32(), buffer)
+            write_5_10(value as u32, buffer)
         } else if value >> 48 == 0 {
             // [2^32, 2^48 - 1]
-            write_10_15(value.as_u64(), buffer)
+            write_10_15(value as u64, buffer)
         } else if value >> 64 == 0 {
             // [2^48, 2^64 - 1]
-            write_15_20(value.as_u64(), buffer)
+            write_15_20(value as u64, buffer)
         } else if value >> 80 == 0 {
             // [2^64, 2^80 - 1]
             write_20_25(value, buffer)
@@ -749,17 +749,17 @@ cfg_if! {
 if #[cfg(target_pointer_width = "16")] {
     #[inline]
     fn usizetoa(value: usize, buffer: &mut [u8]) -> usize {
-        u16toa(value.as_u16(), buffer)
+        u16toa(value as u16, buffer)
     }
 } else if #[cfg(target_pointer_width = "32")] {
     #[inline]
     fn usizetoa(value: usize, buffer: &mut [u8]) -> usize {
-        u32toa(value.as_u32(), buffer)
+        u32toa(value as u32, buffer)
     }
 } else if #[cfg(target_pointer_width = "64")] {
     #[inline]
     fn usizetoa(value: usize, buffer: &mut [u8]) -> usize {
-        u64toa(value.as_u64(), buffer)
+        u64toa(value as u64, buffer)
     }
 }} // cfg_if
 

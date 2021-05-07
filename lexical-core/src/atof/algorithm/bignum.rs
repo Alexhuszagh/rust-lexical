@@ -19,7 +19,7 @@ pub(super) fn integral_binary_factor(radix: u32) -> u32 {
 
     #[cfg(feature = "radix")]
     {
-        match radix.as_i32() {
+        match radix {
             2 => 1,
             3 => 2,
             4 => 2,
@@ -194,7 +194,7 @@ impl<F: FloatType> SmallOps for Bigfloat<F> {
     #[inline]
     fn imul_pow2(&mut self, n: u32) {
         // Increment exponent to simulate actual multiplication.
-        self.exp += n.as_i32();
+        self.exp += n as i32;
     }
 }
 

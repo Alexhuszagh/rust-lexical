@@ -108,7 +108,7 @@ where
     // We want to use the asymptotically faster algorithm if we're going
     // to be using Karabatsu multiplication sometime during the result,
     // otherwise, just use exponentiation by squaring.
-    let bit_length = 32 - n.leading_zeros().as_usize();
+    let bit_length = 32 - n.leading_zeros() as usize;
     debug_assert!(bit_length != 0 && bit_length <= large_powers.len());
     if x.len() + large_powers[bit_length - 1].len() < 2 * large::KARATSUBA_CUTOFF {
         // We can use iterative small powers to make this faster for the
@@ -117,7 +117,7 @@ where
         // Multiply by the largest small power until n < step.
         let step = small_powers.len() - 1;
         let power = small_powers[step];
-        let mut n = n.as_usize();
+        let mut n = n as usize;
         while n >= step {
             small::imul(x, power);
             n -= step;
@@ -133,7 +133,7 @@ where
         // Multiply by higher order powers.
         let mut idx: usize = 0;
         let mut bit: usize = 1;
-        let mut n = n.as_usize();
+        let mut n = n as usize;
         while n != 0 {
             if n & bit != 0 {
                 debug_assert!(idx < large_powers.len());

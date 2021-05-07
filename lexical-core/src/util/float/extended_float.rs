@@ -139,7 +139,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
     #[inline]
     pub fn normalize_to(&mut self, n: u32) -> i32 {
         debug_assert!(
-            n <= M::BITS.as_u32(),
+            n <= M::BITS as u32,
             "ExtendedFloat::normalize_to() attempting to shift beyond type size."
         );
 
@@ -151,7 +151,7 @@ impl<M: Mantissa> ExtendedFloat<M> {
         } else {
             self.mant.leading_zeros()
         };
-        let shift = leading.as_i32() - n.as_i32();
+        let shift = leading as i32 - n as i32;
         if shift > 0 {
             // Need to shift left
             shl(self, shift);

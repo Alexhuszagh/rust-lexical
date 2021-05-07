@@ -9,7 +9,7 @@ use crate::options::*;  // Refactor when we move options.
 use crate::util::config::*;
 use crate::util::options::*;
 
-use super::cast::{AsCast, TryCast};
+use super::cast::AsCast;
 use super::primitive::Primitive;
 use super::sequence::CloneableVecLike;
 
@@ -255,130 +255,6 @@ pub trait Integer:
     fn bit_length(self) -> u32 {
         Self::BITS as u32 - self.leading_zeros()
     }
-
-    // TRY CAST OR MAX
-
-    #[inline]
-    fn try_u8_or_max(self) -> u8 {
-        try_cast_or_max(self)
-    }
-
-    #[inline]
-    fn try_u16_or_max(self) -> u16 {
-        try_cast_or_max(self)
-    }
-
-    #[inline]
-    fn try_u32_or_max(self) -> u32 {
-        try_cast_or_max(self)
-    }
-
-    #[inline]
-    fn try_u64_or_max(self) -> u64 {
-        try_cast_or_max(self)
-    }
-
-    #[inline]
-    fn try_u128_or_max(self) -> u128 {
-        try_cast_or_max(self)
-    }
-
-    #[inline]
-    fn try_usize_or_max(self) -> usize {
-        try_cast_or_max(self)
-    }
-
-    #[inline]
-    fn try_i8_or_max(self) -> i8 {
-        try_cast_or_max(self)
-    }
-
-    #[inline]
-    fn try_i16_or_max(self) -> i16 {
-        try_cast_or_max(self)
-    }
-
-    #[inline]
-    fn try_i32_or_max(self) -> i32 {
-        try_cast_or_max(self)
-    }
-
-    #[inline]
-    fn try_i64_or_max(self) -> i64 {
-        try_cast_or_max(self)
-    }
-
-    #[inline]
-    fn try_i128_or_max(self) -> i128 {
-        try_cast_or_max(self)
-    }
-
-    #[inline]
-    fn try_isize_or_max(self) -> isize {
-        try_cast_or_max(self)
-    }
-
-    // TRY CAST OR MIN
-
-    #[inline]
-    fn try_u8_or_min(self) -> u8 {
-        try_cast_or_min(self)
-    }
-
-    #[inline]
-    fn try_u16_or_min(self) -> u16 {
-        try_cast_or_min(self)
-    }
-
-    #[inline]
-    fn try_u32_or_min(self) -> u32 {
-        try_cast_or_min(self)
-    }
-
-    #[inline]
-    fn try_u64_or_min(self) -> u64 {
-        try_cast_or_min(self)
-    }
-
-    #[inline]
-    fn try_u128_or_min(self) -> u128 {
-        try_cast_or_min(self)
-    }
-
-    #[inline]
-    fn try_usize_or_min(self) -> usize {
-        try_cast_or_min(self)
-    }
-
-    #[inline]
-    fn try_i8_or_min(self) -> i8 {
-        try_cast_or_min(self)
-    }
-
-    #[inline]
-    fn try_i16_or_min(self) -> i16 {
-        try_cast_or_min(self)
-    }
-
-    #[inline]
-    fn try_i32_or_min(self) -> i32 {
-        try_cast_or_min(self)
-    }
-
-    #[inline]
-    fn try_i64_or_min(self) -> i64 {
-        try_cast_or_min(self)
-    }
-
-    #[inline]
-    fn try_i128_or_min(self) -> i128 {
-        try_cast_or_min(self)
-    }
-
-    #[inline]
-    fn try_isize_or_min(self) -> isize {
-        try_cast_or_min(self)
-    }
 }
 
 macro_rules! integer_impl {
@@ -570,24 +446,6 @@ integer_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
 #[inline]
 pub(crate) fn unwrap_or_max<T: Integer>(t: Option<T>) -> T {
     t.unwrap_or(T::max_value())
-}
-
-/// Unwrap or get T::min_value().
-#[inline]
-pub(crate) fn unwrap_or_min<T: Integer>(t: Option<T>) -> T {
-    t.unwrap_or(T::min_value())
-}
-
-/// Try to convert to U, if not, return U::max_value().
-#[inline]
-pub(crate) fn try_cast_or_max<U: Integer, T: TryCast<U>>(t: T) -> U {
-    unwrap_or_max(TryCast::try_cast(t))
-}
-
-/// Try to convert to U, if not, return U::min_value().
-#[inline]
-pub(crate) fn try_cast_or_min<U: Integer, T: TryCast<U>>(t: T) -> U {
-    unwrap_or_min(TryCast::try_cast(t))
 }
 
 // SIGNED INTEGER
@@ -1439,39 +1297,6 @@ mod tests {
 
         let x: Option<u8> = Some(1);
         assert_eq!(unwrap_or_max(x), 1);
-    }
-
-    #[test]
-    fn unwrap_or_min_test() {
-        let x: Option<u8> = None;
-        assert_eq!(unwrap_or_min(x), u8::min_value());
-
-        let x: Option<u8> = Some(1);
-        assert_eq!(unwrap_or_min(x), 1);
-    }
-
-    #[test]
-    fn try_cast_or_max_test() {
-        let x: u8 = try_cast_or_max(u16::min_value());
-        assert_eq!(x, u8::min_value());
-
-        let x: u8 = try_cast_or_max(u8::max_value() as u16);
-        assert_eq!(x, u8::max_value());
-
-        let x: u8 = try_cast_or_max(u16::max_value());
-        assert_eq!(x, u8::max_value());
-    }
-
-    #[test]
-    fn try_cast_or_min_test() {
-        let x: u8 = try_cast_or_min(u16::min_value());
-        assert_eq!(x, u8::min_value());
-
-        let x: u8 = try_cast_or_min(u8::max_value() as u16);
-        assert_eq!(x, u8::max_value());
-
-        let x: u8 = try_cast_or_min(u16::max_value());
-        assert_eq!(x, u8::min_value());
     }
 
     fn check_float<T: Float>(mut x: T) {

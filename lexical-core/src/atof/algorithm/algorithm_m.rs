@@ -53,19 +53,19 @@ where
     // the resulting quotient will have `MANTISSA_SIZE` or
     // `MANTISSA_SIZE+1` bits. This is fine, since having 1 extra bit
     // is easy to deal with, especially with the remainder.
-    let exp = num.bit_length().as_i32() - den.bit_length().as_i32();
+    let exp = num.bit_length() as i32 - den.bit_length() as i32;
     let shift = mantissa_size - exp;
     let nlz = den.leading_zeros();
     if shift > 0 {
         // Need to shift the numerator left, adjust the binary exponent.
-        let shift = shift.as_usize();
+        let shift = shift as usize;
         let s2 = nlz;
         let s1 = shift + s2;
         num.ishl(s1);
         den.ishl(s2);
     } else if shift < 0 {
         // Need to shift the denominator left, and ensure it's divisible by Limb::BITS.
-        let shift = (-shift).as_usize();
+        let shift = (-shift) as usize;
         let s2 = nlz + (shift % <Limb as Integer>::BITS);
         let s1 = shift + s2;
         num.ishl(s2);
@@ -94,7 +94,7 @@ where
     let exponent = -exponent;
     let mut num = bhcomp::parse_mantissa::<F, _>(data, radix, max_digits);
     let mut den = Bigint::<F>::from_u32(1);
-    den.imul_power(radix, exponent.as_u32());
+    den.imul_power(radix, exponent as u32);
 
     // Scale the numerator and denominator into range, using the bit-length.
     // This may be off by +1, however, that gives us 1 extra bit on the
@@ -105,7 +105,7 @@ where
     // Calculate in a single operation, without scaling,
     // the exponent, and then scale it to the mantissa bits.
     let (mut quo, mut rem) = num.div_large(&den);
-    if quo.bit_length().as_i32() == F::MANTISSA_SIZE {
+    if quo.bit_length() as i32 == F::MANTISSA_SIZE {
         // Under-estimated the quotient by 1 bit, scale the numerator
         // up by 2, and then re-do.
         num.ishl(1);
@@ -120,7 +120,7 @@ where
     // Have at max mantissa_size bits with the hidden bit (+1),
     // we we can grab and lower bits and shift them in in case
     // we are using 32-bit limbs.
-    debug_assert!(quo.bit_length() == F::MANTISSA_SIZE.as_usize() + 1);
+    debug_assert!(quo.bit_length() as i32 == F::MANTISSA_SIZE + 1);
     let shift = F::BITS - quo.bit_length();
     let mant = quo.himant().0 >> shift;
 
@@ -185,7 +185,7 @@ where
     // have finite representations, and all odd ones do not.
     let max_digits = unwrap_or_max(F::max_correct_digits(radix));
     let count = max_digits.min(data.mantissa_digits());
-    let exponent = data.scientific_exponent() + 1 - count.as_i32();
+    let exponent = data.scientific_exponent() + 1 - count as i32;
 
     if bhcomp::use_bigcomp(radix, count) {
         bigcomp::atof(data, radix, f, kind)

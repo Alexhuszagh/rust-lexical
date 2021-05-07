@@ -59,7 +59,7 @@ where
 {
     let small_powers = Bigint::<F>::small_powers(radix);
     let count = data.mantissa_digits();
-    let bits = count / integral_binary_factor(radix).as_usize();
+    let bits = count / integral_binary_factor(radix) as usize;
     let bytes = bits / <Limb as Integer>::BITS;
 
     // Main loop
@@ -224,14 +224,14 @@ where
     // The binary exponent is the binary exponent for the mantissa
     // shifted to the hidden bit.
     let mut bigmant = parse_mantissa::<F, Data>(data, radix, max_digits);
-    bigmant.imul_power(radix, exponent.as_u32());
+    bigmant.imul_power(radix, exponent as u32);
 
     // Get the exact representation of the float from the big integer.
     // Himant checks **all** the remaining bits after the mantissa,
     // so it will check if **any** truncated digits exist.
     let (mant, is_truncated) = bigmant.himant();
     let bits = F::MantissaType::FULL;
-    let exp = bigmant.bit_length().as_i32() - bits;
+    let exp = bigmant.bit_length() as i32 - bits;
     let mut fp = ExtendedFloat {
         mant,
         exp,
@@ -292,15 +292,15 @@ where
 
     // Carry out our multiplication.
     if halfradix_exp != 0 {
-        theor_digits.imul_power(radix / 2, halfradix_exp.as_u32());
+        theor_digits.imul_power(radix / 2, halfradix_exp as u32);
     }
     if radix_exp != 0 {
-        theor_digits.imul_power(radix, radix_exp.as_u32());
+        theor_digits.imul_power(radix, radix_exp as u32);
     }
     if binary_exp > 0 {
-        theor_digits.imul_power(2, binary_exp.as_u32());
+        theor_digits.imul_power(2, binary_exp as u32);
     } else if binary_exp < 0 {
-        real_digits.imul_power(2, (-binary_exp).as_u32());
+        real_digits.imul_power(2, (-binary_exp) as u32);
     }
 
     bigcomp::round_to_native(f, real_digits.compare(&theor_digits), kind)
@@ -324,7 +324,7 @@ where
     // have finite representations, and all odd ones do not.
     let max_digits = unwrap_or_max(F::max_correct_digits(radix));
     let count = max_digits.min(data.mantissa_digits());
-    let exponent = data.scientific_exponent() + 1 - count.as_i32();
+    let exponent = data.scientific_exponent() + 1 - count as i32;
 
     if cfg!(feature = "radix") && use_bigcomp(radix, count) {
         // Use the slower algorithm for giant data, since we use a lot less memory.

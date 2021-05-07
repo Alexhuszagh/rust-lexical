@@ -50,9 +50,9 @@ where
     let mut iter = data.fraction_iter();
     while !iter.consumed() && nonzero_digits <= max_digits {
         let (value, length) = atoi::standalone_mantissa_incorrect_n::<u64, _>(&mut iter, radix, 12);
-        digits = digits.saturating_add(length.as_i32());
+        digits = digits.saturating_add(length as i32);
         if !value.is_zero() {
-            nonzero_digits = nonzero_digits.saturating_add(length.as_i32());
+            nonzero_digits = nonzero_digits.saturating_add(length as i32);
             fraction += F::iterative_pow(as_cast(value), radix, -digits);
         }
     }

@@ -7,7 +7,7 @@
 
 use crate::lib::fmt;
 
-use super::cast::{AsCast, TryCast};
+use super::cast::AsCast;
 
 // AS PRIMITIVE
 // ------------
@@ -34,72 +34,72 @@ pub trait AsPrimitive: Copy + PartialEq + PartialOrd + Send + Sync {
 macro_rules! as_primitive {
     ($($t:ty)*) => ($(
         impl AsPrimitive for $t {
-            #[inline]
+            #[inline(always)]
             fn as_u8(self) -> u8 {
                 self as u8
             }
 
-            #[inline]
+            #[inline(always)]
             fn as_u16(self) -> u16 {
                 self as u16
             }
 
-            #[inline]
+            #[inline(always)]
             fn as_u32(self) -> u32 {
                 self as u32
             }
 
-            #[inline]
+            #[inline(always)]
             fn as_u64(self) -> u64 {
                 self as u64
             }
 
-            #[inline]
+            #[inline(always)]
             fn as_u128(self) -> u128 {
                 self as u128
             }
 
-            #[inline]
+            #[inline(always)]
             fn as_usize(self) -> usize {
                 self as usize
             }
 
-            #[inline]
+            #[inline(always)]
             fn as_i8(self) -> i8 {
                 self as i8
             }
 
-            #[inline]
+            #[inline(always)]
             fn as_i16(self) -> i16 {
                 self as i16
             }
 
-            #[inline]
+            #[inline(always)]
             fn as_i32(self) -> i32 {
                 self as i32
             }
 
-            #[inline]
+            #[inline(always)]
             fn as_i64(self) -> i64 {
                 self as i64
             }
 
-            #[inline]
+            #[inline(always)]
             fn as_i128(self) -> i128 {
                 self as i128
             }
 
-            #[inline]
+            #[inline(always)]
             fn as_isize(self) -> isize {
                 self as isize
             }
 
-            #[inline]
+            #[inline(always)]
             fn as_f32(self) -> f32 {
                 self as f32
             }
 
-            #[inline]
+            #[inline(always)]
             fn as_f64(self) -> f64 {
                 self as f64
             }
@@ -109,106 +109,12 @@ macro_rules! as_primitive {
 
 as_primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
 
-// TRY PRIMITIVE
-// -------------
-
-macro_rules! def_try_primitive {
-    ($($t:ty)*) => (
-        /// Type that can be converted to primitive with `as`.
-        #[doc(hidden)]
-        pub trait TryPrimitive:
-            AsCast +
-            $(TryCast<$t> +)*
-        {
-            #[inline]
-            fn try_u8(self) -> Option<u8> {
-                self.try_cast()
-            }
-
-            #[inline]
-            fn try_u16(self) -> Option<u16> {
-                self.try_cast()
-            }
-
-            #[inline]
-            fn try_u32(self) -> Option<u32> {
-                self.try_cast()
-            }
-
-            #[inline]
-            fn try_u64(self) -> Option<u64> {
-                self.try_cast()
-            }
-
-            #[inline]
-            fn try_u128(self) -> Option<u128> {
-                self.try_cast()
-            }
-
-            #[inline]
-            fn try_usize(self) -> Option<usize> {
-                self.try_cast()
-            }
-
-            #[inline]
-            fn try_i8(self) -> Option<i8> {
-                self.try_cast()
-            }
-
-            #[inline]
-            fn try_i16(self) -> Option<i16> {
-                self.try_cast()
-            }
-
-            #[inline]
-            fn try_i32(self) -> Option<i32> {
-                self.try_cast()
-            }
-
-            #[inline]
-            fn try_i64(self) -> Option<i64> {
-                self.try_cast()
-            }
-
-            #[inline]
-            fn try_i128(self) -> Option<i128> {
-                self.try_cast()
-            }
-
-            #[inline]
-            fn try_isize(self) -> Option<isize> {
-                self.try_cast()
-            }
-
-            #[inline]
-            fn try_f32(self) -> Option<f32> {
-                self.try_cast()
-            }
-
-            #[inline]
-            fn try_f64(self) -> Option<f64> {
-                self.try_cast()
-            }
-        }
-    );
-}
-
-def_try_primitive!(u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64);
-
-macro_rules! try_primitive {
-    ($($t:ty)*) => ($(
-        impl TryPrimitive for $t {}
-    )*)
-}
-
-try_primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
-
 // PRIMITIVE
 // ---------
 
 /// Primitive type trait (which all have static lifetimes).
 #[doc(hidden)]
-pub trait Primitive: 'static + fmt::Debug + fmt::Display + TryPrimitive {}
+pub trait Primitive: 'static + fmt::Debug + fmt::Display + AsCast {}
 
 macro_rules! primitive {
     ($($t:ty)*) => ($(

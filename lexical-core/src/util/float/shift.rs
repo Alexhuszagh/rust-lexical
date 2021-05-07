@@ -36,5 +36,5 @@ pub(super) fn shl<M: Mantissa>(fp: &mut ExtendedFloat<M>, shift: i32) {
     debug_assert!(shift < M::FULL, "shl() overflow in shift left.");
 
     fp.mant <<= shift;
-    fp.exp -= shift.as_i32();
+    fp.exp -= shift;
 }
