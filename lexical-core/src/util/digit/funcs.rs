@@ -1,6 +1,6 @@
 //! Utilities to convert and identify digits.
 
-#![cfg_attr(rustfmt, rustfmt::skip::macros(const_fn))]
+#![cfg_attr(rustfmt, rustfmt::skip)]
 
 use super::decimal::*;
 

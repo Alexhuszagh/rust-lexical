@@ -33,9 +33,7 @@ macro_rules! write_backwards {
         // Write backwards to buffer and copy output to slice.
         let offset = $value.$cb($radix, digits);
         debug_assert!(offset <= digits.len());
-        unsafe {
-            copy_to_dst($buffer, &unchecked_index!(digits[offset..]))
-        }
+        unsafe { copy_to_dst($buffer, &unchecked_index!(digits[offset..])) }
     }};
 }
 

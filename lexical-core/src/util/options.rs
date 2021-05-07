@@ -1,6 +1,6 @@
 //! Configuration options for parsing and formatting numbers.
 
-#![cfg_attr(rustfmt, rustfmt::skip::macros(const_fn))]
+#![cfg_attr(rustfmt, rustfmt::skip)]
 
 use super::config::BUFFER_SIZE;
 use super::format::NumberFormat;
@@ -61,19 +61,18 @@ macro_rules! to_radix {
 
 /// Check if byte array starts with case-insensitive N.
 const_fn!(
-    #[inline]
-    const fn starts_with_n(bytes: &[u8]) -> bool {
-        if bytes.len() == 0 {
-            false
-        } else {
-            match bytes[0] {
-                b'N' => true,
-                b'n' => true,
-                _ => false,
-            }
+#[inline]
+const fn starts_with_n(bytes: &[u8]) -> bool {
+    if bytes.len() == 0 {
+        false
+    } else {
+        match bytes[0] {
+            b'N' => true,
+            b'n' => true,
+            _ => false,
         }
     }
-);
+});
 
 /// Get the NaN string if the NaN string is valid.
 macro_rules! to_nan_string {
@@ -88,20 +87,19 @@ macro_rules! to_nan_string {
 }
 
 const_fn!(
-    /// Check if byte array starts with case-insensitive I.
-    #[inline]
-    const fn starts_with_i(bytes: &[u8]) -> bool {
-        if bytes.len() == 0 {
-            false
-        } else {
-            match bytes[0] {
-                b'I' => true,
-                b'i' => true,
-                _ => false,
-            }
+/// Check if byte array starts with case-insensitive I.
+#[inline]
+const fn starts_with_i(bytes: &[u8]) -> bool {
+    if bytes.len() == 0 {
+        false
+    } else {
+        match bytes[0] {
+            b'I' => true,
+            b'i' => true,
+            _ => false,
         }
     }
-);
+});
 
 /// Get the short infinity string if the infinity string is valid.
 macro_rules! to_inf_string {
@@ -184,17 +182,16 @@ impl ParseIntegerOptionsBuilder {
     // BUILDERS
 
     const_fn!(
-        /// Build the ParseIntegerOptions struct.
-        #[inline(always)]
-        pub const fn build(self) -> Option<ParseIntegerOptions> {
-            let radix = to_radix!(self.radix) as u32;
-            let format = self.format;
-            Some(ParseIntegerOptions {
-                radix,
-                format,
-            })
-        }
-    );
+    /// Build the ParseIntegerOptions struct.
+    #[inline(always)]
+    pub const fn build(self) -> Option<ParseIntegerOptions> {
+        let radix = to_radix!(self.radix) as u32;
+        let format = self.format;
+        Some(ParseIntegerOptions {
+            radix,
+            format,
+        })
+    });
 }
 
 impl Default for ParseIntegerOptionsBuilder {
@@ -458,16 +455,15 @@ impl ParseFloatOptionsBuilder {
     }
 
     const_fn!(
-        /// Set the format specifier for ParseFloatOptionsBuilder.
-        #[inline(always)]
-        pub const fn format(mut self, format: Option<NumberFormat>) -> Self {
-            self.format = match format {
-                Some(format) => format,
-                None => DEFAULT_FORMAT,
-            };
-            self
-        }
-    );
+    /// Set the format specifier for ParseFloatOptionsBuilder.
+    #[inline(always)]
+    pub const fn format(mut self, format: Option<NumberFormat>) -> Self {
+        self.format = match format {
+            Some(format) => format,
+            None => DEFAULT_FORMAT,
+        };
+        self
+    });
 
     /// Set the rounding kind for ParseFloatOptionsBuilder.
     #[inline(always)]
@@ -515,35 +511,34 @@ impl ParseFloatOptionsBuilder {
     // BUILDERS
 
     const_fn!(
-        /// Build the ParseFloatOptions struct.
-        #[inline(always)]
-        pub const fn build(self) -> Option<ParseFloatOptions> {
-            let radix = to_radix!(self.radix) as u32;
-            let exponent_base = (to_radix!(self.exponent_base) as u32) << 8;
-            let exponent_radix = (to_radix!(self.exponent_radix) as u32) << 16;
-            let kind = self.rounding.as_u32() << 24;
-            let incorrect = (self.incorrect as u32) << 28;
-            let lossy = (self.lossy as u32) << 29;
-            let compressed = radix | exponent_base | exponent_radix | kind | incorrect | lossy;
-            let format = self.format;
-            let nan_string = to_nan_string!(self.nan_string);
-            let inf_string = to_inf_string!(self.inf_string);
-            let infinity_string = to_infinity_string!(self.infinity_string, self.inf_string);
+    /// Build the ParseFloatOptions struct.
+    #[inline(always)]
+    pub const fn build(self) -> Option<ParseFloatOptions> {
+        let radix = to_radix!(self.radix) as u32;
+        let exponent_base = (to_radix!(self.exponent_base) as u32) << 8;
+        let exponent_radix = (to_radix!(self.exponent_radix) as u32) << 16;
+        let kind = self.rounding.as_u32() << 24;
+        let incorrect = (self.incorrect as u32) << 28;
+        let lossy = (self.lossy as u32) << 29;
+        let compressed = radix | exponent_base | exponent_radix | kind | incorrect | lossy;
+        let format = self.format;
+        let nan_string = to_nan_string!(self.nan_string);
+        let inf_string = to_inf_string!(self.inf_string);
+        let infinity_string = to_infinity_string!(self.infinity_string, self.inf_string);
 
-            // Validate we can't use incorrect **and** lossy together.
-            if self.incorrect && self.lossy {
-                return None;
-            }
-
-            Some(ParseFloatOptions {
-                compressed,
-                format,
-                nan_string,
-                inf_string,
-                infinity_string,
-            })
+        // Validate we can't use incorrect **and** lossy together.
+        if self.incorrect && self.lossy {
+            return None;
         }
-    );
+
+        Some(ParseFloatOptions {
+            compressed,
+            format,
+            nan_string,
+            inf_string,
+            infinity_string,
+        })
+    });
 }
 
 impl Default for ParseFloatOptionsBuilder {
@@ -725,12 +720,11 @@ impl ParseFloatOptions {
     }
 
     const_fn!(
-        /// Get the exponent character.
-        #[inline(always)]
-        pub const fn exponent(&self) -> u8 {
-            self.format.exponent(self.radix())
-        }
-    );
+    /// Get the exponent character.
+    #[inline(always)]
+    pub const fn exponent(&self) -> u8 {
+        self.format.exponent(self.radix())
+    });
 
     // SETTERS
 
@@ -888,15 +882,14 @@ impl WriteIntegerOptionsBuilder {
     // BUILDERS
 
     const_fn!(
-        /// Build the WriteIntegerOptions struct.
-        #[inline(always)]
-        pub const fn build(self) -> Option<WriteIntegerOptions> {
-            let radix = to_radix!(self.radix) as u32;
-            Some(WriteIntegerOptions {
-                radix,
-            })
-        }
-    );
+    /// Build the WriteIntegerOptions struct.
+    #[inline(always)]
+    pub const fn build(self) -> Option<WriteIntegerOptions> {
+        let radix = to_radix!(self.radix) as u32;
+        Some(WriteIntegerOptions {
+            radix,
+        })
+    });
 }
 
 impl Default for WriteIntegerOptionsBuilder {
@@ -1109,24 +1102,23 @@ impl WriteFloatOptionsBuilder {
     // BUILDERS
 
     const_fn!(
-        /// Build the ParseFloatOptions struct.
-        #[inline(always)]
-        pub const fn build(self) -> Option<WriteFloatOptions> {
-            let radix = to_radix!(self.radix) as u32;
-            let trim_floats = (self.trim_floats as u32) << 8;
-            let compressed = radix | trim_floats;
-            let format = self.format;
-            let nan_string = to_nan_string!(self.nan_string);
-            let inf_string = to_inf_string!(self.inf_string);
+    /// Build the ParseFloatOptions struct.
+    #[inline(always)]
+    pub const fn build(self) -> Option<WriteFloatOptions> {
+        let radix = to_radix!(self.radix) as u32;
+        let trim_floats = (self.trim_floats as u32) << 8;
+        let compressed = radix | trim_floats;
+        let format = self.format;
+        let nan_string = to_nan_string!(self.nan_string);
+        let inf_string = to_inf_string!(self.inf_string);
 
-            Some(WriteFloatOptions {
-                compressed,
-                format,
-                nan_string,
-                inf_string,
-            })
-        }
-    );
+        Some(WriteFloatOptions {
+            compressed,
+            format,
+            nan_string,
+            inf_string,
+        })
+    });
 }
 
 impl Default for WriteFloatOptionsBuilder {
@@ -1249,40 +1241,37 @@ impl WriteFloatOptions {
     }
 
     const_fn!(
-        /// Get the digit separator character.
-        #[inline(always)]
-        pub const fn digit_separator(&self) -> u8 {
-            match self.format {
-                Some(format) => format.digit_separator(),
-                None => b'\x00',
-            }
+    /// Get the digit separator character.
+    #[inline(always)]
+    pub const fn digit_separator(&self) -> u8 {
+        match self.format {
+            Some(format) => format.digit_separator(),
+            None => b'\x00',
         }
-    );
+    });
 
     const_fn!(
-        /// Get the decimal point character.
-        #[inline(always)]
-        pub const fn decimal_point(&self) -> u8 {
-            match self.format {
-                Some(format) => format.decimal_point(),
-                None => b'.',
-            }
+    /// Get the decimal point character.
+    #[inline(always)]
+    pub const fn decimal_point(&self) -> u8 {
+        match self.format {
+            Some(format) => format.decimal_point(),
+            None => b'.',
         }
-    );
+    });
 
     const_fn!(
-        /// Get the exponent character.
-        #[inline(always)]
-        pub const fn exponent(&self) -> u8 {
-            // Const fn version of unwrap_or().
-            let format = match self.format {
-                Some(format) => format,
-                None => DEFAULT_FORMAT,
-            };
+    /// Get the exponent character.
+    #[inline(always)]
+    pub const fn exponent(&self) -> u8 {
+        // Const fn version of unwrap_or().
+        let format = match self.format {
+            Some(format) => format,
+            None => DEFAULT_FORMAT,
+        };
 
-            format.exponent(self.radix())
-        }
-    );
+        format.exponent(self.radix())
+    });
 
     // SETTERS
 

@@ -1,7 +1,7 @@
 //! Dummy implementation of `format` without the feature enabled.
 
 #![cfg(not(feature = "format"))]
-#![cfg_attr(rustfmt, rustfmt::skip::macros(const_fn))]
+#![cfg_attr(rustfmt, rustfmt::skip)]
 
 use bitflags::bitflags;
 
@@ -113,16 +113,15 @@ impl NumberFormat {
     }
 
     const_fn!(
-        /// Get the exponent character based on the radix.
-        #[inline(always)]
-        pub const fn exponent(self, radix: u32) -> u8 {
-            if cfg!(feature = "power_of_two") && radix != 10 {
-                self.exponent_backup()
-            } else {
-                self.exponent_decimal()
-            }
+    /// Get the exponent character based on the radix.
+    #[inline(always)]
+    pub const fn exponent(self, radix: u32) -> u8 {
+        if cfg!(feature = "power_of_two") && radix != 10 {
+            self.exponent_backup()
+        } else {
+            self.exponent_decimal()
         }
-    );
+    });
 
     /// Get if digits are required before the decimal point.
     #[inline(always)]
@@ -393,55 +392,52 @@ impl NumberFormatBuilder {
     }
 
     const_fn!(
-        /// Set the decimal exponent character for the number format.
-        #[inline(always)]
-        pub const fn exponent_decimal(mut self, exponent_decimal: u8) -> Self {
-            self.exponent_decimal = flags::to_ascii_lowercase(exponent_decimal);
-            self
-        }
-    );
+    /// Set the decimal exponent character for the number format.
+    #[inline(always)]
+    pub const fn exponent_decimal(mut self, exponent_decimal: u8) -> Self {
+        self.exponent_decimal = flags::to_ascii_lowercase(exponent_decimal);
+        self
+    });
 
     const_fn!(
-        /// Set the backup exponent character for the number format.
-        #[inline(always)]
-        pub const fn exponent_backup(mut self, exponent_backup: u8) -> Self {
-            self.exponent_backup = flags::to_ascii_lowercase(exponent_backup);
-            self
-        }
-    );
+    /// Set the backup exponent character for the number format.
+    #[inline(always)]
+    pub const fn exponent_backup(mut self, exponent_backup: u8) -> Self {
+        self.exponent_backup = flags::to_ascii_lowercase(exponent_backup);
+        self
+    });
 
     // BUILDER
 
     const_fn!(
-        /// Create `NumberFormat` from builder options.
-        ///
-        /// If the format is invalid, this function will return `None`.
-        #[inline]
-        pub const fn build(&self) -> Option<NumberFormat> {
-            let mut format = NumberFormat::new(0);
+    /// Create `NumberFormat` from builder options.
+    ///
+    /// If the format is invalid, this function will return `None`.
+    #[inline]
+    pub const fn build(&self) -> Option<NumberFormat> {
+        let mut format = NumberFormat::new(0);
 
-            // Add punctuation characters.
-            format.bits |= flags::decimal_point_to_flags(self.decimal_point);
-            format.bits |= flags::exponent_decimal_to_flags(self.exponent_decimal);
-            format.bits |= flags::exponent_backup_to_flags(self.exponent_backup);
+        // Add punctuation characters.
+        format.bits |= flags::decimal_point_to_flags(self.decimal_point);
+        format.bits |= flags::exponent_decimal_to_flags(self.exponent_decimal);
+        format.bits |= flags::exponent_backup_to_flags(self.exponent_backup);
 
-            // Validation.
-            let is_invalid = !flags::is_valid_decimal_point(self.decimal_point)
-                || !flags::is_valid_exponent_decimal(self.exponent_decimal)
-                || !flags::is_valid_exponent_backup(self.exponent_backup)
-                || !flags::is_valid_punctuation(
-                    b'\x00',
-                    self.decimal_point,
-                    self.exponent_decimal,
-                    self.exponent_backup,
-                );
+        // Validation.
+        let is_invalid = !flags::is_valid_decimal_point(self.decimal_point)
+            || !flags::is_valid_exponent_decimal(self.exponent_decimal)
+            || !flags::is_valid_exponent_backup(self.exponent_backup)
+            || !flags::is_valid_punctuation(
+                b'\x00',
+                self.decimal_point,
+                self.exponent_decimal,
+                self.exponent_backup,
+            );
 
-            match is_invalid {
-                true => None,
-                false => Some(format),
-            }
+        match is_invalid {
+            true => None,
+            false => Some(format),
         }
-    );
+    });
 }
 
 impl Default for NumberFormatBuilder {

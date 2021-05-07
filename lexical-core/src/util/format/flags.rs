@@ -1,7 +1,7 @@
 //! Shared flags for number formats.
 
 #![cfg_attr(not(feature = "format"), allow(dead_code))]
-#![cfg_attr(rustfmt, rustfmt::skip::macros(const_fn))]
+#![cfg_attr(rustfmt, rustfmt::skip)]
 
 // We have a lot of flags that may not be enabled when the format
 // feature is off, but we don't want to add cfg_if feature gates
@@ -297,40 +297,38 @@ const_fn!(
 );
 
 const_fn!(
-    /// Determine if the exponent backup character is valid.
-    #[inline]
-    pub(crate) const fn is_valid_exponent_backup(ch: u8) -> bool {
-        is_valid_digit_separator(ch)
-    }
-);
+/// Determine if the exponent backup character is valid.
+#[inline]
+pub(crate) const fn is_valid_exponent_backup(ch: u8) -> bool {
+    is_valid_digit_separator(ch)
+});
 
 const_fn!(
-    /// Determine if all of the "punctuation" characters are valid.
-    #[inline]
-    pub(crate) const fn is_valid_punctuation(
-        digit_separator: u8,
-        decimal_point: u8,
-        exponent_decimal: u8,
-        exponent_backup: u8,
-    ) -> bool {
-        if digit_separator == decimal_point {
-            false
-        } else if digit_separator == exponent_decimal {
-            false
-        } else if digit_separator == exponent_backup {
-            false
-        } else if decimal_point == exponent_decimal {
-            false
-        } else if decimal_point == exponent_backup {
-            false
-        } else {
-            // exponent_decimal and exponent_backup can be the same as long as
-            // both are valid: in case someone always wants b'^' to be
-            // the exponent character.
-            true
-        }
+/// Determine if all of the "punctuation" characters are valid.
+#[inline]
+pub(crate) const fn is_valid_punctuation(
+    digit_separator: u8,
+    decimal_point: u8,
+    exponent_decimal: u8,
+    exponent_backup: u8,
+) -> bool {
+    if digit_separator == decimal_point {
+        false
+    } else if digit_separator == exponent_decimal {
+        false
+    } else if digit_separator == exponent_backup {
+        false
+    } else if decimal_point == exponent_decimal {
+        false
+    } else if decimal_point == exponent_backup {
+        false
+    } else {
+        // exponent_decimal and exponent_backup can be the same as long as
+        // both are valid: in case someone always wants b'^' to be
+        // the exponent character.
+        true
     }
-);
+});
 
 // FLAG FUNCTIONS
 // --------------

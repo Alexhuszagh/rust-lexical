@@ -13,4 +13,4 @@ pub use self::extended_float::*;
 // Re-export internal tools.
 pub(crate) use self::convert::*;
 pub(crate) use self::rounding::*;
-pub(crate) use self::wrapped::*;    // TODO(Ahuszagh) Rename?
+pub(crate) use self::wrapped::*; // TODO(Ahuszagh) Rename?

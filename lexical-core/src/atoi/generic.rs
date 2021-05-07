@@ -178,7 +178,11 @@ where
 // Consumes leading, internal, trailing, and consecutive digit separators.
 #[inline(always)]
 #[cfg(feature = "format")]
-fn standalone_iltc<T>(bytes: &[u8], radix: u32, digit_separator: u8) -> ParseTupleResult<(T, *const u8)>
+fn standalone_iltc<T>(
+    bytes: &[u8],
+    radix: u32,
+    digit_separator: u8,
+) -> ParseTupleResult<(T, *const u8)>
 where
     T: Integer,
 {
@@ -198,7 +202,11 @@ macro_rules! standalone_atoi_separator {
     (fn $name:ident,sign => $sign:ident,consume => $consume:ident) => {
         #[inline(always)]
         #[cfg(feature = "format")]
-        fn $name<T>(bytes: &[u8], radix: u32, digit_separator: u8) -> ParseTupleResult<(T, *const u8)>
+        fn $name<T>(
+            bytes: &[u8],
+            radix: u32,
+            digit_separator: u8,
+        ) -> ParseTupleResult<(T, *const u8)>
         where
             T: Integer,
         {
@@ -300,7 +308,10 @@ standalone_atoi_separator!(
 
 // Standalone atoi processor without a digit separator.
 #[inline(always)]
-pub(crate) fn standalone_no_separator<T>(bytes: &[u8], radix: u32) -> ParseTupleResult<(T, *const u8)>
+pub(crate) fn standalone_no_separator<T>(
+    bytes: &[u8],
+    radix: u32,
+) -> ParseTupleResult<(T, *const u8)>
 where
     T: Integer,
 {
@@ -530,7 +541,11 @@ macro_rules! standalone_atoi_128_separator {
     (fn $name:ident,sign => $sign:ident,consume => $consume:ident) => {
         #[inline]
         #[cfg(feature = "format")]
-        fn $name<W, N>(bytes: &[u8], radix: u32, digit_separator: u8) -> ParseTupleResult<(W, *const u8)>
+        fn $name<W, N>(
+            bytes: &[u8],
+            radix: u32,
+            digit_separator: u8,
+        ) -> ParseTupleResult<(W, *const u8)>
         where
             W: Integer,
             N: Integer,

@@ -35,8 +35,8 @@ mod error;
 mod float;
 mod iterator;
 mod math;
-mod result;
 mod powers;
+mod result;
 
 // TODO(ahuszagh) Need to rework these two.
 mod format;
@@ -55,7 +55,7 @@ pub(crate) use self::powers::*;
 // Publicly export config globally.
 pub use self::error::*;
 pub use self::format::*; // TODO(ahuszagh) Move to crate::options
-pub use self::options::*; // TODO(ahuszagh) Move to crate::options
 pub use self::misc::*;
+pub use self::options::*; // TODO(ahuszagh) Move to crate::options
 pub use self::result::*;
 pub use self::traits::*;

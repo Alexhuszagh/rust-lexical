@@ -23,15 +23,6 @@ cargo fmt
 
 cd lexical-core
 cargo fmt
-# We have a few files that seem to be ignored, enable these.
-rustfmt --config-path rustfmt.toml src/atof/algorithm/cached/float160.rs
-rustfmt --config-path rustfmt.toml src/atof/algorithm/cached/float160_decimal.rs
-rustfmt --config-path rustfmt.toml src/atof/algorithm/cached/float160_radix.rs
-rustfmt --config-path rustfmt.toml src/atof/algorithm/cached/float80_radix.rs
-rustfmt --config-path rustfmt.toml src/atof/algorithm/powers/large32_radix.rs
-rustfmt --config-path rustfmt.toml src/atof/algorithm/powers/large64_radix.rs
-rustfmt --config-path rustfmt.toml src/atof/algorithm/powers/small32_radix.rs
-rustfmt --config-path rustfmt.toml src/atof/algorithm/powers/small64_radix.rs
 
 cd ../lexical-capi
 cargo fmt

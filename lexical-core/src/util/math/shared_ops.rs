@@ -4,8 +4,8 @@ use crate::lib::cmp;
 use crate::util::config::*;
 use crate::util::traits::*;
 
-use super::hi::*;
 use super::from_uint::*;
+use super::hi::*;
 use super::large;
 use super::small;
 

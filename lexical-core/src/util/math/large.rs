@@ -169,7 +169,6 @@ where
     z
 }
 
-
 // MULTIPLICATIION
 // ---------------
 

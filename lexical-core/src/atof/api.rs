@@ -446,7 +446,12 @@ fn validate_sign(_: &[u8], _: &[u8], _: Sign, _: NumberFormat) -> ParseTupleResu
 /// Validate sign byte is valid.
 #[inline]
 #[cfg(feature = "format")]
-fn validate_sign(bytes: &[u8], digits: &[u8], sign: Sign, format: NumberFormat) -> ParseTupleResult<()> {
+fn validate_sign(
+    bytes: &[u8],
+    digits: &[u8],
+    sign: Sign,
+    format: NumberFormat,
+) -> ParseTupleResult<()> {
     let has_sign = bytes.as_ptr() != digits.as_ptr();
     if format.no_positive_mantissa_sign() && has_sign && sign == Sign::Positive {
         Err((ErrorCode::InvalidPositiveMantissaSign, bytes.as_ptr()))

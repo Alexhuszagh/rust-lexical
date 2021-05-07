@@ -238,7 +238,9 @@ where
 /// Validate required exponent component without requiring any digits.
 #[inline(always)]
 #[cfg(feature = "format")]
-pub(super) fn validate_required_exponent_without_digits<'a, Data>(data: &Data) -> ParseTupleResult<()>
+pub(super) fn validate_required_exponent_without_digits<'a, Data>(
+    data: &Data,
+) -> ParseTupleResult<()>
 where
     Data: FastDataInterface<'a>,
 {

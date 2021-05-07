@@ -311,11 +311,8 @@ fn ftoa_with_options<F: FloatToString>(
 
 // TO LEXICAL
 
-to_lexical!(ftoa, f32);
-to_lexical!(ftoa, f64);
-
-to_lexical_with_options!(ftoa_with_options, f32);
-to_lexical_with_options!(ftoa_with_options, f64);
+to_lexical!(ftoa, f32 f64);
+to_lexical_with_options!(ftoa_with_options, f32 f64);
 
 // TESTS
 // -----

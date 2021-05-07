@@ -6,7 +6,7 @@ use crate::lib::ptr;
 
 /// Calculate the difference between two pointers.
 #[inline]
-pub fn distance<T>(first: *const T, last: *const T) -> usize {
+pub fn distance(first: *const u8, last: *const u8) -> usize {
     debug_assert!(last >= first, "range must be positive.");
     let f = first as usize;
     let l = last as usize;

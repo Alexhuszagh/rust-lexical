@@ -5,11 +5,11 @@
 use crate::lib::mem;
 
 use crate::util::config::*;
-use crate::util::traits::*;
 use crate::util::powers::*;
+use crate::util::traits::*;
 
-use super::small;
 use super::large;
+use super::small;
 
 // POWER
 // -----

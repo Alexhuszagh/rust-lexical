@@ -4,8 +4,8 @@ use crate::util::config::*;
 use crate::util::powers::*;
 
 use super::power;
-use super::small;
 use super::shared_ops::*;
+use super::small;
 
 /// Generate the imul_pown wrappers.
 macro_rules! imul_power {

@@ -5,8 +5,8 @@
 
 mod cast;
 mod div128;
-mod hi;
 mod from_uint;
+mod hi;
 mod large;
 mod large_ops;
 mod log2;

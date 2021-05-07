@@ -41,9 +41,9 @@
 //! dramatically with support for `f128`.
 
 mod float;
-mod small;
 mod large;
+mod small;
 
 pub(crate) use self::float::*;
-pub(crate) use self::small::*;
 pub(crate) use self::large::*;
+pub(crate) use self::small::*;

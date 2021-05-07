@@ -1,7 +1,7 @@
 //! Rounding-scheme identifiers.
 
 #![allow(non_upper_case_globals)]
-#![cfg_attr(rustfmt, rustfmt::skip::macros(const_fn))]
+#![cfg_attr(rustfmt, rustfmt::skip)]
 
 // Allow dead code so we compile these enum variants even
 // if we don't expose them without the rounding feature.
@@ -68,24 +68,22 @@ bitflags! {
 
 impl RoundingKind {
     const_fn!(
-        /// Determine if we are rounding to the nearest value, then tying away.
-        #[inline]
-        pub const fn is_nearest(self) -> bool {
-            match self {
-                RoundingKind::NearestTieEven => true,
-                RoundingKind::NearestTieAwayZero => true,
-                _ => false,
-            }
+    /// Determine if we are rounding to the nearest value, then tying away.
+    #[inline]
+    pub const fn is_nearest(self) -> bool {
+        match self {
+            RoundingKind::NearestTieEven => true,
+            RoundingKind::NearestTieAwayZero => true,
+            _ => false,
         }
-    );
+    });
 
     const_fn!(
-        /// Determine if we are rounding to the nearest value, then tying away.
-        #[inline]
-        pub const fn is_toward(self) -> bool {
-            !self.is_nearest()
-        }
-    );
+    /// Determine if we are rounding to the nearest value, then tying away.
+    #[inline]
+    pub const fn is_toward(self) -> bool {
+        !self.is_nearest()
+    });
 
     /// Convert rounding kind to u32.
     #[inline(always)]

@@ -1,7 +1,7 @@
 //! Test utilities.
 
-use crate::util::traits::*;
 use crate::util::config::*;
+use crate::util::traits::*;
 
 cfg_if! {
 if #[cfg(feature = "no_alloc")] {

@@ -5,7 +5,7 @@
 //! numbers in generic code.
 
 use crate::lib::{f32, f64, fmt, iter, mem, ops};
-use crate::options::*;  // Refactor when we move options.
+use crate::options::*; // Refactor when we move options.
 use crate::util::config::*;
 use crate::util::options::*;
 
@@ -13,7 +13,7 @@ use super::cast::AsCast;
 use super::primitive::Primitive;
 use super::sequence::CloneableVecLike;
 
-#[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
+#[cfg(use_alloc)]
 use crate::lib::Vec;
 
 // NUMBER

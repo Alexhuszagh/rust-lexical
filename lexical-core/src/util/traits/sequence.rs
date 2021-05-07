@@ -528,7 +528,7 @@ pub trait CloneableVecLike<T: Clone + Copy + Send>: Send + Clone + VecLike<T> {
 // --------
 
 cfg_if! {
-if #[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))] {
+if #[cfg(use_alloc)] {
 use crate::lib::Vec;
 
 impl<T> SliceLikeImpl<T> for Vec<T> {

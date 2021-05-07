@@ -20,6 +20,9 @@ fn main() {
         println!("cargo:rustc-cfg=limb_width_32");
     }
 
+    #[cfg(any(not(feature = "no_alloc"), feature = "f128", feature = "radix"))]
+    println!("cargo:rustc-cfg=use_alloc");
+
     // Feature support.
     // Drop these when we raise the MSRV.
 

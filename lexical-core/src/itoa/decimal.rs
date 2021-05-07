@@ -666,17 +666,13 @@ unsafe fn write_34_39(value: u128, buffer: &mut [u8]) -> usize {
 /// Internal integer formatter for u8.
 #[inline]
 fn u8toa(value: u8, buffer: &mut [u8]) -> usize {
-    unsafe {
-        write_1_3(value as u32, buffer)
-    }
+    unsafe { write_1_3(value as u32, buffer) }
 }
 
 /// Internal integer formatter for u16.
 #[inline]
 fn u16toa(value: u16, buffer: &mut [u8]) -> usize {
-    unsafe {
-        write_1_5(value as u32, buffer)
-    }
+    unsafe { write_1_5(value as u32, buffer) }
 }
 
 /// Internal integer formatter for u32.

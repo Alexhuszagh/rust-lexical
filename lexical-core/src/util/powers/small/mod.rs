@@ -3,9 +3,9 @@
 use crate::util::config::Limb;
 use static_assertions::const_assert;
 
-mod decimal64;
 #[cfg(feature = "power_of_two")]
 mod binary64;
+mod decimal64;
 #[cfg(feature = "radix")]
 mod radix64;
 

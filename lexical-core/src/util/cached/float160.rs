@@ -179,10 +179,10 @@
 
 #![cfg(feature = "f128")]
 
-use super::ModeratePathPowers;
 use super::float160_decimal::*;
 #[cfg(feature = "radix")]
 use super::float160_radix::*;
+use super::ModeratePathPowers;
 
 /// Get powers from radix.
 pub(crate) fn get_powers(radix: u32) -> &'static ModeratePathPowers<u128> {
