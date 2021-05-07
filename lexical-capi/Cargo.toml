@@ -41,8 +41,6 @@ i128 = []
 no_alloc = ["lexical-core/no_alloc"]
 # Add support for different float string formats.
 format = ["lexical-core/format"]
-# Use the optimized Grisu3 implementation from dtoa (not recommended).
-grisu3 = ["lexical-core/grisu3"]
 # Add support for parsing and writing power-of-two float and integer strings.
 power_of_two = ["lexical-core/power_of_two"]
 # Add support for parsing and writing non-decimal float and integer strings.

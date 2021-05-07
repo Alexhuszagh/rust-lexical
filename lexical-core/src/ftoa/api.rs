@@ -68,9 +68,7 @@ use super::radix::{double_radix, float_radix};
 
 // Select the back-end
 cfg_if! {
-if #[cfg(feature = "grisu3")] {
-    use super::grisu3::{double_decimal, float_decimal};
-} else if #[cfg(feature = "ryu")] {
+if #[cfg(feature = "ryu")] {
     use super::ryu::{double_decimal, float_decimal};
 } else {
     use super::grisu2::{double_decimal, float_decimal};

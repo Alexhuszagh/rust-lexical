@@ -123,33 +123,8 @@ where
 // FROM LEXICAL
 // ------------
 
-from_lexical!(atoi, u8);
-from_lexical!(atoi, u16);
-from_lexical!(atoi, u32);
-from_lexical!(atoi, u64);
-from_lexical!(atoi, usize);
-from_lexical!(atoi, u128);
-
-from_lexical!(atoi, i8);
-from_lexical!(atoi, i16);
-from_lexical!(atoi, i32);
-from_lexical!(atoi, i64);
-from_lexical!(atoi, isize);
-from_lexical!(atoi, i128);
-
-from_lexical_with_options!(atoi_with_options, u8);
-from_lexical_with_options!(atoi_with_options, u16);
-from_lexical_with_options!(atoi_with_options, u32);
-from_lexical_with_options!(atoi_with_options, u64);
-from_lexical_with_options!(atoi_with_options, usize);
-from_lexical_with_options!(atoi_with_options, u128);
-
-from_lexical_with_options!(atoi_with_options, i8);
-from_lexical_with_options!(atoi_with_options, i16);
-from_lexical_with_options!(atoi_with_options, i32);
-from_lexical_with_options!(atoi_with_options, i64);
-from_lexical_with_options!(atoi_with_options, isize);
-from_lexical_with_options!(atoi_with_options, i128);
+from_lexical!(atoi, u8 u16 u32 u64 usize u128 i8 i16 i32 i64 isize i128);
+from_lexical_with_options!(atoi_with_options, u8 u16 u32 u64 usize u128 i8 i16 i32 i64 isize i128);
 
 // TESTS
 // -----

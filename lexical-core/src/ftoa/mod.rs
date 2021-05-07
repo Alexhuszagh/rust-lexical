@@ -8,9 +8,7 @@ mod binary;
 mod radix;
 
 cfg_if! {
-if #[cfg(feature = "grisu3")] {
-    mod grisu3;
-} else if #[cfg(feature = "ryu")] {
+if #[cfg(feature = "ryu")] {
     mod ryu;
 } else {
     mod grisu2;

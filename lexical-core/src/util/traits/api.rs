@@ -60,7 +60,7 @@ pub trait FromLexical: Number {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! from_lexical {
-    ($cb:expr, $t:ty $(, #[$meta:meta])?) => (
+    ($cb:expr, $($t:ty $(, #[$meta:meta])?)*) => ($(
         impl FromLexical for $t {
             $(#[$meta:meta])?
             fn from_lexical(bytes: &[u8]) -> ParseResult<$t>
@@ -74,7 +74,7 @@ macro_rules! from_lexical {
                 $cb(bytes)
             }
         }
-    )
+    )*)
 }
 
 // FROM LEXICAL WITH OPTIONS
@@ -118,7 +118,7 @@ pub trait FromLexicalOptions: FromLexical {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! from_lexical_with_options {
-    ($cb:expr, $t:ty $(, #[$meta:meta])?) => (
+    ($cb:expr, $($t:ty $(, #[$meta:meta])?)*) => ($(
         impl FromLexicalOptions for $t {
             $(#[$meta:meta])?
             fn from_lexical_with_options(bytes: &[u8], options: &Self::ParseOptions)
@@ -134,7 +134,7 @@ macro_rules! from_lexical_with_options {
                 $cb(bytes, options)
             }
         }
-    )
+    )*)
 }
 
 // TO LEXICAL
@@ -172,7 +172,7 @@ pub trait ToLexical: Number {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! to_lexical {
-    ($cb:expr, $t:ty $(, #[$meta:meta])?) => (
+    ($cb:expr, $($t:ty $(, #[$meta:meta])?)*) => ($(
         impl ToLexical for $t {
             $(#[$meta:meta])?
             fn to_lexical<'a>(self, bytes: &'a mut [u8])
@@ -183,7 +183,7 @@ macro_rules! to_lexical {
                 &mut bytes[..len]
             }
         }
-    )
+    )*)
 }
 
 // TO LEXICAL WITH OPTIONS
@@ -218,7 +218,7 @@ pub trait ToLexicalOptions: ToLexical {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! to_lexical_with_options {
-    ($cb:expr, $t:ty $(, #[$meta:meta])?) => (
+    ($cb:expr, $($t:ty $(, #[$meta:meta])?)*) => ($(
         impl ToLexicalOptions for $t {
             $(#[$meta:meta])?
             fn to_lexical_with_options<'a>(self, bytes: &'a mut [u8], options: &Self::WriteOptions)
@@ -229,5 +229,5 @@ macro_rules! to_lexical_with_options {
                 &mut bytes[..len]
             }
         }
-    )
+    )*)
 }

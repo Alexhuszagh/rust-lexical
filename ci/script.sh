@@ -61,7 +61,6 @@ else
         "rounding"
         "rounding,power_of_two"
         "rounding,radix"
-        "grisu3"
         "ryu"
         "format"
         "format,power_of_two"

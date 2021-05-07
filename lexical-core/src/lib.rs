@@ -201,17 +201,9 @@ extern crate alloc;
 #[cfg(feature = "no_alloc")]
 extern crate arrayvec;
 
-// Ensure only one back-end is enabled.
-#[cfg(all(feature = "grisu3", feature = "ryu"))]
-compile_error!("Lexical only accepts one of the following backends: `grisu3` or `ryu`.");
-
 // Import the back-end, if applicable.
-cfg_if! {
-if #[cfg(feature = "grisu3")] {
-    extern crate dtoa;
-} else if #[cfg(feature = "ryu")] {
-    extern crate ryu;
-}} // cfg_if
+#[cfg(feature = "ryu")]
+extern crate ryu;
 
 /// Facade around the core features for name mangling.
 pub(crate) mod lib {
@@ -227,7 +219,7 @@ pub(crate) mod lib {
         pub(crate) use std::vec::Vec;
 
         #[cfg(not(feature = "std"))]
-        pub(crate) use ::alloc::vec::Vec;
+        pub(crate) use alloc::vec::Vec;
     }} // cfg_if
 } // lib
 

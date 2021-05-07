@@ -567,11 +567,8 @@ where
 // FROM LEXICAL
 // ------------
 
-from_lexical!(atof_default, f32);
-from_lexical!(atof_default, f64);
-
-from_lexical_with_options!(atof_with_options, f32);
-from_lexical_with_options!(atof_with_options, f64);
+from_lexical!(atof_default, f32 f64);
+from_lexical_with_options!(atof_with_options, f32 f64);
 
 // TESTS
 // -----

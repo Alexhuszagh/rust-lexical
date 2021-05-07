@@ -136,7 +136,7 @@ pub fn copy_to_dst<'a, Bytes: AsRef<[u8]>>(dst: &'a mut [u8], src: Bytes) -> usi
 
 /// Length-check variant of ptr::write_bytes for a slice.
 #[inline]
-#[cfg(not(any(feature = "grisu3", feature = "ryu")))]
+#[cfg(not(feature = "ryu"))]
 pub fn write_bytes(dst: &mut [u8], byte: u8) {
     unsafe {
         ptr::write_bytes(dst.as_mut_ptr(), byte, dst.len());

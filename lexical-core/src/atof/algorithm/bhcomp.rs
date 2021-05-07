@@ -255,7 +255,6 @@ pub(super) fn small_atof<'a, F, Data>(
     kind: RoundingKind,
 ) -> F
 where
-    // FUCK MY TRAIT BOUNDS
     F: FloatType,
     Data: SlowDataInterface<'a>,
 {

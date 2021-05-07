@@ -21,7 +21,6 @@ default = ["lemire", "no_alloc", "ryu", "std"]
 # --------
 no_alloc = ["lexical-core/no_alloc"]
 format = ["lexical-core/format"]
-grisu3 = ["lexical-core/grisu3"]
 power_of_two = ["lexical-core/power_of_two"]
 radix = ["lexical-core/radix"]
 rounding = ["lexical-core/rounding"]
