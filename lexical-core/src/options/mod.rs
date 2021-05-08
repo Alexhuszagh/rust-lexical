@@ -700,15 +700,15 @@
 
 #![allow(dead_code)] // TODO(ahuszagh) Remove
 
-// TODO(ahuszagh) Restore later...
 mod lexer;
 mod number;
 #[cfg(feature = "format")]
 mod number_format;
-mod rounding;
 mod syntax;
 mod validate;
 
+// TODO(ahuszagh) Need to add options as well.
+// TODO(ahuszagh) Need to export SyntaxFormat, LexerFormat
 //pub use self::number::*;
 
 // TESTS

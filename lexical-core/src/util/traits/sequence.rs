@@ -22,7 +22,7 @@ use crate::lib::{iter, mem, ops, ptr, slice};
 /// warning. Smallvec is similarly licensed under an MIT/Apache dual license.
 ///
 /// [`smallvec`]: https://github.com/servo/rust-smallvec
-pub fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
+fn insert_many<V, T, I>(vec: &mut V, index: usize, iterable: I)
 where
     V: VecLike<T>,
     I: iter::IntoIterator<Item = T>,
@@ -162,6 +162,7 @@ where
 // RSLICE INDEX
 
 /// A trait for reversed-indexing operations.
+#[doc(hidden)]
 pub trait RSliceIndex<T: ?Sized> {
     /// Output type for the index.
     type Output: ?Sized;
@@ -201,6 +202,7 @@ impl<T> RSliceIndex<[T]> for usize {
 /// REVERSE VIEW
 
 /// Reverse, immutable view of a sequence.
+#[doc(hidden)]
 pub struct ReverseView<'a, T: 'a> {
     inner: &'a [T],
 }
@@ -217,6 +219,7 @@ impl<'a, T> ops::Index<usize> for ReverseView<'a, T> {
 /// REVERSE VIEW MUT
 
 /// Reverse, mutable view of a sequence.
+#[doc(hidden)]
 pub struct ReverseViewMut<'a, T: 'a> {
     inner: &'a mut [T],
 }
@@ -242,6 +245,7 @@ impl<'a, T: 'a> ops::IndexMut<usize> for ReverseViewMut<'a, T> {
 /// Implied base trait for slice-like types.
 ///
 /// Used to provide specializations since it requires no generic function parameters.
+#[doc(hidden)]
 pub trait SliceLikeImpl<T> {
     // AS SLICE
 
@@ -267,6 +271,7 @@ impl<T> SliceLikeImpl<T> for [T] {
 }
 
 /// Slice-like container.
+#[doc(hidden)]
 pub trait SliceLike<T>: SliceLikeImpl<T> {
     // CORE
     // ----
@@ -460,6 +465,7 @@ impl<T> SliceLike<T> for [T] {
 // VECLIKE
 
 /// Vector-like container.
+#[doc(hidden)]
 pub trait VecLike<T>:
     Default
     + iter::FromIterator<T>
@@ -516,6 +522,7 @@ pub trait VecLike<T>:
 /// Vector-like container with cloneable values.
 ///
 /// Implemented for Vec, SmallVec, and StackVec.
+#[doc(hidden)]
 pub trait CloneableVecLike<T: Clone + Copy + Send>: Send + Clone + VecLike<T> {
     /// Extend collection from slice.
     fn extend_from_slice(&mut self, other: &[T]);

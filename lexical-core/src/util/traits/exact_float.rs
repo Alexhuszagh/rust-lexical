@@ -93,6 +93,7 @@
 // ```
 
 /// Get exact exponent limit for radix.
+#[doc(hidden)]
 pub trait ExactFloat {
     /// Get min and max exponent limits (exact) from radix.
     fn exponent_limit(radix: u32) -> (i32, i32);

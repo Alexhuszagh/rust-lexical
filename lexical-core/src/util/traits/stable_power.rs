@@ -49,6 +49,7 @@ macro_rules! bitwise_pow2 {
 }
 
 /// Stable power implementations for increased numeric stability.
+#[doc(hidden)]
 pub trait StablePower: TablePower + Float {
     // ITERATIVE
 

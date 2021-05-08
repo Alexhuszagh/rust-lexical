@@ -21,7 +21,12 @@ bitflags! {
         // HIDDEN DEFAULTS
 
         /// Standard float format.
+        #[doc(hidden)]
         const STANDARD = 0;
+
+        /// For compatibility with the NumberFormat builder.
+        #[doc(hidden)]
+        const DIGIT_SEPARATOR_FLAG_MASK = 0;
     }
 }
 

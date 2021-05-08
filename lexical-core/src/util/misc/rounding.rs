@@ -36,7 +36,8 @@ bitflags! {
     ///
     /// Assigning any value outside the range `[1-4]` to value of type
     /// RoundingKind may invoke undefined-behavior. Internally,
-    /// we never store a value > 0xF, so it may be represented in 4 bits.
+    /// we never store a value larger than 0xF, so it may be represented
+    /// in 4 bits.
     #[repr(C)]
     pub struct RoundingKind: u32 {
         /// Round to the nearest, tie to even.

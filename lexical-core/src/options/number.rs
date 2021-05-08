@@ -1,10 +1,42 @@
 //! Configuration for the syntax and valid characters of a number.
 
+use crate::util::{NumberFormatError, NumberFormatErrorCode};
+
 use super::lexer::*;
 use super::syntax::*;
+use super::validate::*;
 
-// TODO(ahuszagh) Need to have the builder here.
-// The builders above shouldn't be used, for obvious reasons.
+// HELPERS
+// -------
+
+/// Add single flag to SyntaxFormat.
+macro_rules! add_flag {
+    ($syntax:ident, $bool:expr, $flag:ident) => {
+        if cfg!(feature = "format") && $bool {
+            let bits = $syntax.bits() | $flag;
+            SyntaxFormat::new(bits)
+        } else {
+            $syntax
+        }
+    };
+}
+
+/// Add multiple flags to SyntaxFormat.
+macro_rules! add_flags {
+    ($syntax:expr $(; $bool:expr, $flag:ident)*) => {{
+        let mut syntax = $syntax;
+        $(syntax = add_flag!(syntax, $bool, $flag);)*
+        syntax
+    }};
+}
+
+/// Check if a defined flag is invalid.
+#[cfg(feature = "format")]
+macro_rules! check_flag {
+    ($flags:ident, $mask:ident, $invalid:ident) => {
+        $flags.bits() & SyntaxFormat::$mask.bits() == SyntaxFormat::$invalid.bits()
+    };
+}
 
 // NUMBER FORMAT
 // -------------
@@ -341,8 +373,6 @@ impl NumberFormatV2 {
         syntax: SyntaxFormat::STANDARD,
         lexer: LexerFormat::STANDARD,
     };
-
-    // BUILDERS
 
     // BUILDERS
 
@@ -763,7 +793,6 @@ impl NumberFormatBuilderV2 {
     }
 
     // SETTERS
-    // TODO(ahuszagh) Feature-gate!!!
 
     /// Set the digit separator for the number format.
     #[inline(always)]
@@ -863,6 +892,7 @@ impl NumberFormatBuilderV2 {
 
     /// Set if a positive sign before the mantissa is not allowed.
     #[inline(always)]
+    #[cfg(feature = "format")]
     pub const fn no_positive_mantissa_sign(mut self, flag: bool) -> Self {
         self.no_positive_mantissa_sign = flag;
         self
@@ -1030,6 +1060,7 @@ impl NumberFormatBuilderV2 {
 
     /// Set if a digit separator is allowed after any fraction digits.
     #[inline(always)]
+    #[cfg(feature = "format")]
     pub const fn fraction_trailing_digit_separator(mut self, flag: bool) -> Self {
         self.fraction_trailing_digit_separator = flag;
         self
@@ -1121,5 +1152,176 @@ impl NumberFormatBuilderV2 {
 
     // BUILDER
 
-    // TODO(ahuszagh) Here...
+    const_fn!(
+        /// Create `NumberFormat` from builder options.
+        ///
+        /// If the format is invalid, this function will return an error
+        /// explaining why the format was invalid.
+        #[inline]
+        pub const fn build(&self) -> Result<NumberFormatV2, NumberFormatError> {
+            // Build our lexer format.
+            let lexer = LexerFormat {
+                exponent: self.exponent,
+                decimal_point: self.decimal_point,
+                mantissa_radix: self.mantissa_radix,
+                exponent_base: self.exponent_base,
+                exponent_radix: self.exponent_radix,
+                base_prefix: self.base_prefix,
+                base_suffix: self.base_suffix,
+                __padding: b'\x00',
+            };
+
+            // Build our syntax format.
+            let mut syntax = add_flags!(
+                SyntaxFormat::new(0) ;
+                self.required_integer_digits, REQUIRED_INTEGER_DIGITS ;
+                self.required_fraction_digits, REQUIRED_FRACTION_DIGITS ;
+                self.required_exponent_digits, REQUIRED_EXPONENT_DIGITS ;
+                self.no_positive_mantissa_sign, NO_POSITIVE_MANTISSA_SIGN ;
+                self.required_mantissa_sign, REQUIRED_MANTISSA_SIGN ;
+                self.no_exponent_notation, NO_EXPONENT_NOTATION ;
+                self.no_positive_exponent_sign, NO_POSITIVE_EXPONENT_SIGN ;
+                self.required_exponent_sign, REQUIRED_EXPONENT_SIGN ;
+                self.no_exponent_without_fraction, NO_EXPONENT_WITHOUT_FRACTION ;
+                self.no_special, NO_SPECIAL ;
+                self.case_sensitive_special, CASE_SENSITIVE_SPECIAL ;
+                self.no_integer_leading_zeros, NO_INTEGER_LEADING_ZEROS ;
+                self.no_float_leading_zeros, NO_FLOAT_LEADING_ZEROS ;
+                self.required_exponent_notation, REQUIRED_EXPONENT_NOTATION ;
+                self.integer_internal_digit_separator, INTEGER_INTERNAL_DIGIT_SEPARATOR ;
+                self.fraction_internal_digit_separator, FRACTION_INTERNAL_DIGIT_SEPARATOR ;
+                self.exponent_internal_digit_separator, EXPONENT_INTERNAL_DIGIT_SEPARATOR ;
+                self.integer_leading_digit_separator, INTEGER_LEADING_DIGIT_SEPARATOR ;
+                self.fraction_leading_digit_separator, FRACTION_LEADING_DIGIT_SEPARATOR ;
+                self.exponent_leading_digit_separator, EXPONENT_LEADING_DIGIT_SEPARATOR ;
+                self.integer_trailing_digit_separator, INTEGER_TRAILING_DIGIT_SEPARATOR ;
+                self.fraction_trailing_digit_separator, FRACTION_TRAILING_DIGIT_SEPARATOR ;
+                self.exponent_trailing_digit_separator, EXPONENT_TRAILING_DIGIT_SEPARATOR ;
+                self.integer_consecutive_digit_separator, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR ;
+                self.fraction_consecutive_digit_separator, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR ;
+                self.exponent_consecutive_digit_separator, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR ;
+                self.special_digit_separator, SPECIAL_DIGIT_SEPARATOR
+            );
+            if syntax.intersects(SyntaxFormat::DIGIT_SEPARATOR_FLAG_MASK) {
+                let bits = syntax.bits() | digit_separator_to_flags(self.digit_separator);
+                syntax = SyntaxFormat::new(bits);
+            }
+
+            // Get the maximum radix to limit valid digits.
+            let exponent_base = unwrap_or(self.exponent_base, 0);
+            let exponent_radix = unwrap_or(self.exponent_radix, 0);
+            let radix = max(max(self.mantissa_radix, exponent_base), exponent_radix);
+
+            // Validate our inputs.
+            if !is_valid_radix(self.mantissa_radix) {
+                Err(NumberFormatError {
+                    code: NumberFormatErrorCode::InvalidMantissaRadix,
+                })
+            } else if !is_valid_optional_radix(self.exponent_base) {
+                Err(NumberFormatError {
+                    code: NumberFormatErrorCode::InvalidExponentBase,
+                })
+            } else if !is_valid_optional_radix(self.exponent_radix) {
+                Err(NumberFormatError {
+                    code: NumberFormatErrorCode::InvalidExponentRadix,
+                })
+            } else if !is_valid_control(self.exponent, radix) {
+                Err(NumberFormatError {
+                    code: NumberFormatErrorCode::InvalidExponentSymbol,
+                })
+            } else if !is_valid_control(self.decimal_point, radix) {
+                Err(NumberFormatError {
+                    code: NumberFormatErrorCode::InvalidDecimalPoint,
+                })
+            } else if !is_valid_control(self.digit_separator, radix) {
+                Err(NumberFormatError {
+                    code: NumberFormatErrorCode::InvalidDigitSeparator,
+                })
+            } else {
+                // Validate SyntaxFormat.
+                #[cfg(feature = "format")]
+                {
+                    if !is_valid_optional_control(self.base_prefix, radix) {
+                        Err(NumberFormatError {
+                            code: NumberFormatErrorCode::InvalidBasePrefix,
+                        })
+                    } else if !is_valid_optional_control(self.base_suffix, radix) {
+                        Err(NumberFormatError {
+                            code: NumberFormatErrorCode::InvalidBaseSuffix,
+                        })
+                    } else if !is_valid_punctuation(
+                        self.digit_separator,
+                        self.exponent,
+                        self.decimal_point,
+                        self.base_prefix,
+                        self.base_suffix,
+                    ) {
+                        Err(NumberFormatError {
+                            code: NumberFormatErrorCode::InvalidPunctuation,
+                        })
+                    } else if syntax.intersects(SyntaxFormat::NO_EXPONENT_NOTATION)
+                        && syntax.intersects(SyntaxFormat::EXPONENT_FLAG_MASK)
+                    {
+                        Err(NumberFormatError {
+                            code: NumberFormatErrorCode::InvalidExponentFlags,
+                        })
+                    } else if self.no_positive_mantissa_sign && self.required_mantissa_sign {
+                        Err(NumberFormatError {
+                            code: NumberFormatErrorCode::InvalidMantissaSign,
+                        })
+                    } else if self.no_positive_exponent_sign && self.required_exponent_sign {
+                        Err(NumberFormatError {
+                            code: NumberFormatErrorCode::InvalidExponentSign,
+                        })
+                    } else if self.no_special
+                        && (self.case_sensitive_special || self.special_digit_separator)
+                    {
+                        Err(NumberFormatError {
+                            code: NumberFormatErrorCode::InvalidSpecial,
+                        })
+                    } else if check_flag!(
+                        syntax,
+                        INTEGER_DIGIT_SEPARATOR_FLAG_MASK,
+                        INTEGER_CONSECUTIVE_DIGIT_SEPARATOR
+                    ) {
+                        Err(NumberFormatError {
+                            code: NumberFormatErrorCode::InvalidConsecutiveIntegerDigitSeparator,
+                        })
+                    } else if check_flag!(
+                        syntax,
+                        FRACTION_DIGIT_SEPARATOR_FLAG_MASK,
+                        FRACTION_CONSECUTIVE_DIGIT_SEPARATOR
+                    ) {
+                        Err(NumberFormatError {
+                            code: NumberFormatErrorCode::InvalidConsecutiveFractionDigitSeparator,
+                        })
+                    } else if check_flag!(
+                        syntax,
+                        EXPONENT_DIGIT_SEPARATOR_FLAG_MASK,
+                        EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR
+                    ) {
+                        Err(NumberFormatError {
+                            code: NumberFormatErrorCode::InvalidConsecutiveExponentDigitSeparator,
+                        })
+                    } else {
+                        Ok(NumberFormatV2 {
+                            syntax,
+                            lexer,
+                        })
+                    }
+                }
+
+                // Skip SyntaxFormat, already valid at this point.
+                #[cfg(not(feature = "format"))]
+                {
+                    Ok(NumberFormatV2 {
+                        syntax,
+                        lexer,
+                    })
+                }
+            }
+        }
+    );
 }
+
+// TODO(ahuszagh) Add unittests...

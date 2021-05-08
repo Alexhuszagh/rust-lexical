@@ -2,6 +2,7 @@
 
 #[macro_use]
 mod flags;
+pub(crate) use self::flags::*;
 
 cfg_if! {
 if #[cfg(feature = "format")] {

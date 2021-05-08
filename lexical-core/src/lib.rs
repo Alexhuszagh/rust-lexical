@@ -237,7 +237,7 @@ pub(crate) mod lib {
 #[macro_use]
 mod util;
 //#[macro_use]
-//mod options;  // TODO(ahuszagh) Finish re-working.
+mod options; // TODO(ahuszagh) Finish re-working.
 
 // Re-export configuration, options, and utilities globally.
 pub use util::*;
