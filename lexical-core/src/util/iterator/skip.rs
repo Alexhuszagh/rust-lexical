@@ -77,6 +77,11 @@ impl<'a, T: 'a + PartialEq> AsPtrIterator<'a, T> for SkipValueIterator<'a, T> {
     fn as_ptr(&self) -> *const T {
         self.iter.as_slice().as_ptr()
     }
+
+    #[inline]
+    fn peek(&mut self) -> Option<&'a T> {
+        self.iter.as_slice().get(0)
+    }
 }
 
 // TESTS

@@ -10,12 +10,19 @@ use crate::lib::slice;
 pub(crate) trait AsPtrIterator<'a, T: 'a>: Iterator<Item = &'a T> {
     /// Get raw pointer from iterator state.
     fn as_ptr(&self) -> *const T;
+    /// Peek the next value
+    fn peek(&mut self) -> Option<Self::Item>;
 }
 
 impl<'a, T> AsPtrIterator<'a, T> for slice::Iter<'a, T> {
     #[inline]
     fn as_ptr(&self) -> *const T {
         self.as_slice().as_ptr()
+    }
+
+    #[inline]
+    fn peek(&mut self) -> Option<&'a T> {
+        self.as_slice().get(0)
     }
 }
 

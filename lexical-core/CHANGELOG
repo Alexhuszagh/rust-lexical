@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the binary feature, for conversion to and from strings with power-of-two bases.
 - Added the lemire algorithm, for faster floating-point parsing of common numbers.
 - Removed the dtoa feature.
+- Re-wrote NumberFormat to allow more extensive configuration.
+- Fixed a bug with trailing digit separators in special values.
 
 ### Changed
 - Removed pre-computed float tables of powers-of-two, and recreated stable powers of 2 through bit manipulations.

@@ -32,11 +32,39 @@ fn to_iter_s<'a>(bytes: &'a [u8], digit_separator: u8) -> IteratorSeparator<'a> 
     iterate_digits_ignore_separator(bytes, digit_separator)
 }
 
+/// Trim trailing digit separators. Always a no-op.
+#[inline(always)]
+fn trim<'a, Iter>(iter: Iter, _: u8) -> Iter
+where
+    Iter: AsPtrIterator<'a, u8>
+{
+    iter
+}
+
+/// Trim trailing digit separators.
+#[inline(always)]
+#[cfg(feature = "format")]
+fn trim_s<'a, Iter>(mut iter: Iter, digit_separator: u8) -> Iter
+where
+    Iter: AsPtrIterator<'a, u8>
+{
+    while let Some(&peeked) = iter.peek() {
+        if peeked == digit_separator {
+            // Consume the digit separator, don't need to read it.
+            iter.next();
+        } else {
+            break;
+        }
+    }
+    iter
+}
+
+
 // PARSER
 
 /// Parse infinity from string.
 #[inline]
-fn parse_infinity<'a, ToIter, StartsWith, Iter, F, Data>(
+fn parse_infinity<'a, ToIter, StartsWith, Trim, Iter, F, Data>(
     data: Data,
     bytes: &'a [u8],
     sign: Sign,
@@ -48,19 +76,22 @@ fn parse_infinity<'a, ToIter, StartsWith, Iter, F, Data>(
     infinity_string: &'static [u8],
     to_iter: ToIter,
     starts_with: StartsWith,
+    trim: Trim,
 ) -> ParseTupleResult<(F, *const u8)>
-// TODO(ahuszagh) Is this valid with digit separators in special values?
 where
     F: FloatType,
     ToIter: Fn(&'a [u8], u8) -> Iter,
     Iter: AsPtrIterator<'a, u8>,
     StartsWith: Fn(Iter, IteratorNoSeparator<'a>) -> (bool, Iter),
+    Trim: Fn(Iter, u8) -> Iter,
     Data: FastDataInterface<'a>,
 {
     let digit_separator = data.format().digit_separator();
     if let (true, iter) = starts_with(to_iter(bytes, digit_separator), infinity_string.iter()) {
+        let iter = trim(iter, digit_separator);
         Ok((F::INFINITY, iter.as_ptr()))
     } else if let (true, iter) = starts_with(to_iter(bytes, digit_separator), inf_string.iter()) {
+        let iter = trim(iter, digit_separator);
         Ok((F::INFINITY, iter.as_ptr()))
     } else {
         // Not infinity, may be valid with a different radix.
@@ -74,7 +105,7 @@ where
 
 /// Parse NaN from string.
 #[inline]
-fn parse_nan<'a, ToIter, StartsWith, Iter, F, Data>(
+fn parse_nan<'a, ToIter, StartsWith, Trim, Iter, F, Data>(
     data: Data,
     bytes: &'a [u8],
     sign: Sign,
@@ -85,16 +116,19 @@ fn parse_nan<'a, ToIter, StartsWith, Iter, F, Data>(
     nan_string: &'static [u8],
     to_iter: ToIter,
     starts_with: StartsWith,
+    trim: Trim,
 ) -> ParseTupleResult<(F, *const u8)>
 where
     F: FloatType,
     ToIter: Fn(&'a [u8], u8) -> Iter,
     Iter: AsPtrIterator<'a, u8>,
     StartsWith: Fn(Iter, IteratorNoSeparator<'a>) -> (bool, Iter),
+    Trim: Fn(Iter, u8) -> Iter,
     Data: FastDataInterface<'a>,
 {
     let digit_separator = data.format().digit_separator();
     if let (true, iter) = starts_with(to_iter(bytes, digit_separator), nan_string.iter()) {
+        let iter = trim(iter, digit_separator);
         Ok((F::NAN, iter.as_ptr()))
     } else {
         // Not NaN, may be valid with a different radix.
@@ -131,6 +165,7 @@ where
     // Use predictive parsing to filter special cases. This leads to
     // dramatic performance gains.
     let starts_with = case_insensitive_starts_with_iter;
+    let trimmer = trim;
     match bytes[0] {
         b'i' | b'I' => parse_infinity(
             data,
@@ -144,6 +179,7 @@ where
             infinity_string,
             to_iter,
             starts_with,
+            trimmer,
         ),
         b'N' | b'n' => parse_nan(
             data,
@@ -156,6 +192,7 @@ where
             nan_string,
             to_iter,
             starts_with,
+            trimmer,
         ),
         _ => algorithm::to_native::<F, Data>(data, bytes, sign, radix, incorrect, lossy, rounding),
     }
@@ -184,6 +221,7 @@ where
 {
     let digit_separator = data.format().digit_separator();
     let starts_with = starts_with_iter;
+    let trimmer = trim_s;
     match IteratorSeparator::new(bytes, digit_separator).next() {
         Some(&b'i') | Some(&b'I') => parse_infinity(
             data,
@@ -197,6 +235,7 @@ where
             infinity_string,
             to_iter_s,
             starts_with,
+            trimmer,
         ),
         Some(&b'n') | Some(&b'N') => parse_nan(
             data,
@@ -209,6 +248,7 @@ where
             nan_string,
             to_iter_s,
             starts_with,
+            trimmer,
         ),
         _ => algorithm::to_native::<F, Data>(data, bytes, sign, radix, incorrect, lossy, rounding),
     }
@@ -238,6 +278,7 @@ where
     // Use predictive parsing to filter special cases. This leads to
     // dramatic performance gains.
     let starts_with = starts_with_iter;
+    let trimmer = trim;
     match bytes[0] {
         b'i' | b'I' => parse_infinity(
             data,
@@ -251,6 +292,7 @@ where
             infinity_string,
             to_iter,
             starts_with,
+            trimmer,
         ),
         b'N' | b'n' => parse_nan(
             data,
@@ -263,6 +305,7 @@ where
             nan_string,
             to_iter,
             starts_with,
+            trimmer,
         ),
         _ => algorithm::to_native::<F, Data>(data, bytes, sign, radix, incorrect, lossy, rounding),
     }
@@ -291,6 +334,7 @@ where
 {
     let digit_separator = data.format().digit_separator();
     let starts_with = case_insensitive_starts_with_iter;
+    let trimmer = trim_s;
     match IteratorSeparator::new(bytes, digit_separator).next() {
         Some(&b'i') | Some(&b'I') => parse_infinity(
             data,
@@ -304,6 +348,7 @@ where
             infinity_string,
             to_iter_s,
             starts_with,
+            trimmer,
         ),
         Some(&b'n') | Some(&b'N') => parse_nan(
             data,
@@ -316,6 +361,7 @@ where
             nan_string,
             to_iter_s,
             starts_with,
+            trimmer,
         ),
         _ => algorithm::to_native::<F, Data>(data, bytes, sign, radix, incorrect, lossy, rounding),
     }
@@ -1247,6 +1293,20 @@ mod tests {
         assert!(f64::from_lexical_with_options(b"n_an", &o3).is_err());
         assert!(f64::from_lexical_with_options(b"n_an", &o4).is_err());
         assert!(f64::from_lexical_with_options(b"n_an", &o5).is_err());
+
+        // Leading digit separator + case-sensitive NaN.
+        assert!(f64::from_lexical_with_options(b"_n_a_n", &o1).is_err());
+        assert!(f64::from_lexical_with_options(b"_n_a_n", &o2).unwrap().is_nan());
+        assert!(f64::from_lexical_with_options(b"_n_a_n", &o3).is_err());
+        assert!(f64::from_lexical_with_options(b"_n_a_n", &o4).is_err());
+        assert!(f64::from_lexical_with_options(b"_n_a_n", &o5).is_err());
+
+        // Trailing digit separator + case-sensitive NaN.
+        assert!(f64::from_lexical_with_options(b"n_a_n_", &o1).is_err());
+        assert!(f64::from_lexical_with_options(b"n_a_n_", &o2).unwrap().is_nan());
+        assert!(f64::from_lexical_with_options(b"n_a_n_", &o3).is_err());
+        assert!(f64::from_lexical_with_options(b"n_a_n_", &o4).is_err());
+        assert!(f64::from_lexical_with_options(b"n_a_n_", &o5).is_err());
     }
 
     #[test]
