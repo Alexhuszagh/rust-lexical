@@ -1,6 +1,6 @@
 ---
 name: Custom issue template
-about: Describe this issue template's purpose here.
+about: Issue template for miscellaneous issues.
 title: "[OTHER]"
 labels: ''
 assignees: Alexhuszagh
@@ -11,8 +11,8 @@ assignees: Alexhuszagh
 
 If applicable to the issue, here are a few things you should provide to help me understand the issue:
 
-- Rust version : `rustc -V`
-- lexical version :
+- Rust version: `rustc -V`
+- lexical version:
 - lexical compilation features used:
 
 ## Description

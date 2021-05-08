@@ -1,6 +1,6 @@
 ---
 name: Documentation
-about: Update the project's documentation
+about: Request changes to the project's documentation.
 title: "[DOC]"
 labels: documentation
 assignees: Alexhuszagh

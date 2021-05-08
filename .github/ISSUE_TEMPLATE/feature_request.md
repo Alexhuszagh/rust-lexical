@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Suggest an idea for this project.
 title: "[FEATURE]"
 labels: enhancement
 assignees: Alexhuszagh
@@ -8,7 +8,7 @@ assignees: Alexhuszagh
 ---
 
 ## Problem
-A clear and concise description of what the problem is. Ex. rust-lexical does not parse standard-conforming JSON numbers.
+A clear and concise description of what the problem is. Ex. lexical does not parse standard-conforming JSON numbers.
 
 ## Solution
 A clear and concise description of what you want to happen.
@@ -17,8 +17,8 @@ A clear and concise description of what you want to happen.
 
 If applicable to the feature request, here are a few things you should provide to help me understand the issue:
 
-- Rust version : `rustc -V`
-- lexical version :
+- Rust version: `rustc -V`
+- lexical version:
 - lexical compilation features used:
 
 ## Alternatives

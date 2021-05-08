@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a report to help us improve.
 title: "[BUG]"
 labels: bug
 assignees: Alexhuszagh
@@ -15,8 +15,8 @@ Please include a clear and concise description of the bug. If the bug includes a
 
 Here are a few things you should provide to help me understand the issue:
 
-- Rust version : `rustc -V`
-- lexical version :
+- Rust version: `rustc -V`
+- lexical version:
 - lexical compilation features used:
 
 ## Test case

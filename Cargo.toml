@@ -108,7 +108,7 @@ algorithm_m = ["lexical-core/algorithm_m"]
 property_tests = ["lexical-core/property_tests"]
 # Build the comprehensive float parsing tests.
 # Testing only.
-comprehensive_float_test = ["rand/std", "serde/std", "serde_derive", "std", "toml"]
+comprehensive_float_test = ["parse_floats", "rand/std", "serde/std", "serde_derive", "std", "toml"]
 
 # BINARIES
 # --------
