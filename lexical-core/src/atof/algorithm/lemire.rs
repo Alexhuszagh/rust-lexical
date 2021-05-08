@@ -93,7 +93,7 @@ fn round_upward<M>(mut mantissa: M, is_truncated: bool) -> M
 where
     M: UnsignedInteger,
 {
-    if is_truncated || mantissa & M::ONE != M::ZERO {
+    if is_truncated || !(mantissa & M::ONE).is_zero() {
         mantissa += M::ONE;
     }
     mantissa
@@ -118,7 +118,7 @@ fn shift_to_carry<M: Mantissa>(x_hi: M, exp2: i32, carry_shift: i32) -> (M, i32,
     let is_truncated: bool;
     if cfg!(feature = "rounding") {
         let truncated_mask = (M::ONE << shift) - M::ONE;
-        is_truncated = x_hi & truncated_mask != M::ZERO;
+        is_truncated = !(x_hi & truncated_mask).is_zero();
     } else {
         is_truncated = false;
     }
@@ -310,7 +310,7 @@ where
 
         // Check for a halfway representation.
         if merged_hi & mask == mask
-            && merged_lo.wrapping_add(M::ONE) == M::ZERO
+            && merged_lo.wrapping_add(M::ONE).is_zero()
             && y_lo.wrapping_add(mantissa) < mantissa
         {
             // We don't actually care about the accuracy here,
@@ -336,7 +336,7 @@ where
 
     // Check for a halfway representation.
     let three: M = as_cast(3);
-    if x_lo == M::ZERO && x_hi & mask == M::ZERO && mantissa & three == M::ONE {
+    if x_lo.is_zero() && (x_hi & mask).is_zero() && (mantissa & three).is_one() {
         // We don't actually care about the accuracy here,
         // since we're going straight to the extended-float algorithm.
         return (F::ZERO, false);

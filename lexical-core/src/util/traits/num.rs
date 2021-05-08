@@ -4,7 +4,7 @@
 //! types, and trait bounds, and conversions for working with
 //! numbers in generic code.
 
-use crate::lib::{f32, f64, fmt, iter, mem, ops};
+use crate::lib::{f32, f64, mem, ops};
 use crate::util::config::*;
 use crate::util::options::*;
 
@@ -22,8 +22,6 @@ use crate::lib::Vec;
 #[doc(hidden)]
 pub trait Number:
     Primitive +
-    // Iteration
-    iter::Product + iter::Sum +
     // Operations
     ops::Add<Output=Self> +
     ops::AddAssign +
@@ -89,61 +87,18 @@ number_impl! {
 pub trait Integer:
     // Basic
     Number + Eq + Ord +
-    // Display
-    fmt::Binary + fmt::Octal + fmt::LowerHex + fmt::UpperHex +
-    fmt::Display + fmt::Debug +
-    //Operations
+    // Operations
     ops::BitAnd<Output=Self> +
     ops::BitAndAssign +
     ops::BitOr<Output=Self> +
     ops::BitOrAssign +
     ops::BitXor<Output=Self> +
     ops::BitXorAssign +
-    ops::Not +
     ops::Shl<Self, Output=Self> +
-    ops::Shl<u8, Output=Self> +
-    ops::Shl<u16, Output=Self> +
-    ops::Shl<u32, Output=Self> +
-    ops::Shl<u64, Output=Self> +
-    ops::Shl<usize, Output=Self> +
-    ops::Shl<i8, Output=Self> +
-    ops::Shl<i16, Output=Self> +
-    ops::Shl<i64, Output=Self> +
-    ops::Shl<isize, Output=Self> +
     ops::Shl<i32, Output=Self> +
-    ops::ShlAssign<Self> +
-    ops::ShlAssign<u8> +
-    ops::ShlAssign<u16> +
-    ops::ShlAssign<u32> +
-    ops::ShlAssign<u64> +
-    ops::ShlAssign<usize> +
-    ops::ShlAssign<i8> +
-    ops::ShlAssign<i16> +
     ops::ShlAssign<i32> +
-    ops::ShlAssign<i64> +
-    ops::ShlAssign<isize> +
-    ops::Shr<Self, Output=Self> +
-    ops::Shr<u8, Output=Self> +
-    ops::Shr<u16, Output=Self> +
-    ops::Shr<u32, Output=Self> +
-    ops::Shr<u64, Output=Self> +
-    ops::Shr<usize, Output=Self> +
-    ops::Shr<i8, Output=Self> +
-    ops::Shr<i16, Output=Self> +
-    ops::Shr<i64, Output=Self> +
-    ops::Shr<isize, Output=Self> +
     ops::Shr<i32, Output=Self> +
-    ops::ShrAssign<Self> +
-    ops::ShrAssign<u8> +
-    ops::ShrAssign<u16> +
-    ops::ShrAssign<u32> +
-    ops::ShrAssign<u64> +
-    ops::ShrAssign<usize> +
-    ops::ShrAssign<i8> +
-    ops::ShrAssign<i16> +
     ops::ShrAssign<i32> +
-    ops::ShrAssign<i64> +
-    ops::ShrAssign<isize>
 {
     // CONSTANTS
     const ZERO: Self;
@@ -1050,52 +1005,15 @@ mod tests {
         let _ = x & T::ONE;
         let _ = x | T::ONE;
         let _ = x ^ T::ONE;
-        let _ = !x;
         x &= T::ONE;
         x |= T::ONE;
         x ^= T::ONE;
 
         // Bitshifts
-        let _ = x << 1u8;
-        let _ = x << 1u16;
-        let _ = x << 1u32;
-        let _ = x << 1u64;
-        let _ = x << 1usize;
-        let _ = x << 1i8;
-        let _ = x << 1i16;
         let _ = x << 1i32;
-        let _ = x << 1i64;
-        let _ = x << 1isize;
-        let _ = x >> 1u8;
-        let _ = x >> 1u16;
-        let _ = x >> 1u32;
-        let _ = x >> 1u64;
-        let _ = x >> 1usize;
-        let _ = x >> 1i8;
-        let _ = x >> 1i16;
         let _ = x >> 1i32;
-        let _ = x >> 1i64;
-        let _ = x >> 1isize;
-        x <<= 1u8;
-        x <<= 1u16;
-        x <<= 1u32;
-        x <<= 1u64;
-        x <<= 1usize;
-        x <<= 1i8;
-        x <<= 1i16;
         x <<= 1i32;
-        x <<= 1i64;
-        x <<= 1isize;
-        x >>= 1u8;
-        x >>= 1u16;
-        x >>= 1u32;
-        x >>= 1u64;
-        x >>= 1usize;
-        x >>= 1i8;
-        x >>= 1i16;
         x >>= 1i32;
-        x >>= 1i64;
-        x >>= 1isize;
 
         // Functions
         assert!(T::ZERO.is_zero());

@@ -87,7 +87,6 @@ pub(super) const fn is_valid_radix(radix: u8) -> bool {
 
 const_fn!(
 /// Returns if the optional radix is valid.
-#[cfg(not(feature = "power_of_two"))]
 pub(super) const fn is_valid_optional_radix(radix: OptionU8) -> bool {
     match radix {
         Some(radix) => is_valid_radix(radix.get()),
