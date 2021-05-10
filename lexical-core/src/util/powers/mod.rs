@@ -8,10 +8,10 @@
 //!
 //! In total, all the pre-computed tables take up the following amount
 //! of space, based on the source files here:
-//!     src/util/cached/float80_decimal.rs:             ~1 KB
-//!     src/util/cached/float80_radix.rs:               ~29 KB
-//!     src/util/cached/float160_decimal.rs:            ~7 KB
-//!     src/util/cached/float160_radix.rs:              ~200 KB
+//!     src/util/cached/float80_decimal.rs:             ~688 B
+//!     src/util/cached/float80_radix.rs:               ~20 KB
+//!     src/util/cached/float160_decimal.rs:            ~2.8 KB
+//!     src/util/cached/float160_radix.rs:              ~162 KB
 //!     src/util/powers/large/decimal32.rs:             ~5 KB
 //!     src/util/powers/large/radix32.rs:               ~50 KB
 //!     src/util/powers/large/decimal64.rs:             ~4.8 KB
@@ -28,7 +28,7 @@
 //!     src/util/digit/decimal.rs:                      ~200 B
 //!     src/util/digit/radix.rs:                        ~29 KB
 //!
-//! Therefore, the total storage with the radix feature is ~127 KB,
+//! Therefore, the total storage with the radix feature is ~118 KB,
 //! while the total storage with the binary feature is ~11 KB,
 //! while the total storage without the radix feature is ~6 KB.
 //! There's no real way around this extra storage, since in order

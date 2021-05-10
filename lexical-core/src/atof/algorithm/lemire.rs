@@ -26,7 +26,7 @@
 //!         exp2_guess = num * exp // den
 //!         if exp2_exact != exp2_guess:
 //!             raise ValueError(f'{exp}')
-//!     return num, den
+//!     return num, bitshift
 //! ```
 //!
 //! For 64-bit and smaller floats, we therefore need a bitshift of 16,

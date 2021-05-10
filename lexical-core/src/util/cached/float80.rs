@@ -11,12 +11,10 @@
 //! These files takes ~30 KB of storage.
 //!
 //! Total array storage:
-//!  Without radix: ~1 KB:
+//!  Without radix: ~688 B:
 //!     86 u64
-//!     78 i32
-//!  With radix: ~29 KB:
+//!  With radix: ~20 KB:
 //!     2534 u64
-//!     2300 i32
 //!
 //! This file is mostly automatically generated, do not change values
 //! manually, unless you know what you are doing. The script to generate
