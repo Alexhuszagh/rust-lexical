@@ -36,7 +36,7 @@ fn to_iter_s<'a>(bytes: &'a [u8], digit_separator: u8) -> IteratorSeparator<'a> 
 #[inline(always)]
 fn trim<'a, Iter>(iter: Iter, _: u8) -> Iter
 where
-    Iter: AsPtrIterator<'a, u8>
+    Iter: AsPtrIterator<'a, u8>,
 {
     iter
 }
@@ -46,7 +46,7 @@ where
 #[cfg(feature = "format")]
 fn trim_s<'a, Iter>(mut iter: Iter, digit_separator: u8) -> Iter
 where
-    Iter: AsPtrIterator<'a, u8>
+    Iter: AsPtrIterator<'a, u8>,
 {
     while let Some(&peeked) = iter.peek() {
         if peeked == digit_separator {
@@ -58,7 +58,6 @@ where
     }
     iter
 }
-
 
 // PARSER
 

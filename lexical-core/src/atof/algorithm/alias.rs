@@ -566,14 +566,6 @@ pub trait MantissaType: ModeratePathCache {
     const MAX_SHIFT: i32 = Self::FULL - 1;
     /// Get the maximum exponent for the associated float type.
     const MAX_EXPONENT: i32;
-    /// Magic number for the math.log2(10).
-    ///
-    /// See `lemire` for details on how to generate these
-    /// magic numbers. Must be signed, and 64-bits is
-    /// always large enough.
-    const LOG2_10: i64;
-    /// Shift required to normalize the log2 calculation.
-    const LOG2_10_SHIFT: i32;
     /// Bitmask for the hidden bit in exponent, which is an implicit 1 in the fraction.
     const HIDDEN_BIT_MASK: Self;
     /// Bitmask for the mantissa (fraction), excluding the hidden bit.
@@ -590,8 +582,6 @@ pub trait MantissaType: ModeratePathCache {
 
 impl MantissaType for u64 {
     const MAX_EXPONENT: i32 = 0x7FF; // 2^11 - 1
-    const LOG2_10: i64 = 217706;
-    const LOG2_10_SHIFT: i32 = 16;
     const HIDDEN_BIT_MASK: u64 = f64::HIDDEN_BIT_MASK;
     const MANTISSA_MASK: u64 = f64::MANTISSA_MASK;
     const CARRY_MASK: u64 = f64::CARRY_MASK;

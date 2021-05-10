@@ -18,14 +18,14 @@
 //! ```python
 //! import math
 //!
-//! def get_range(max_exp, bitshift):
+//! def get_range(radix, max_exp, bitshift):
 //!     den = 1 << bitshift
-//!     num = int(math.ceil(math.log2(10) * den))
-//!     for exp10 in range(0, max_exp):
-//!         exp2_exact = int(math.log2(10**exp10))
-//!         exp2_guess = num * exp10 // den
+//!     num = int(math.ceil(math.log2(radix) * den))
+//!     for exp in range(0, max_exp):
+//!         exp2_exact = int(math.log2(radix**exp))
+//!         exp2_guess = num * exp // den
 //!         if exp2_exact != exp2_guess:
-//!             raise ValueError(f'{exp10}')
+//!             raise ValueError(f'{exp}')
 //!     return num, den
 //! ```
 //!
@@ -259,7 +259,8 @@ where
     let bias = F::EXPONENT_BIAS - F::MANTISSA_SIZE;
 
     // Need to convert our base 10 exponent to base 2, as an estimate.
-    let unbiased_exp2 = (M::LOG2_10 * exponent as i64) >> M::LOG2_10_SHIFT;
+    let powers = M::get_powers(radix);
+    let unbiased_exp2 = (powers.log2 * exponent as i64) >> powers.log2_shift;
     let exp2 = unbiased_exp2 as i32 + (M::FULL + bias) - ctlz;
 
     // Now need to get our extended, power of 10:

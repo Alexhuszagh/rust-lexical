@@ -29,36 +29,6 @@ if #[cfg(all(feature = "radix", feature = "f128"))] {
     mod float80_decimal;
 }} // cfg_if
 
-// POWERS
-// ------
-
-/// Precalculated powers that uses two-separate arrays for memory-efficiency.
-#[doc(hidden)]
-pub struct ExtendedFloatArray<M: Mantissa> {
-    // Pre-calculated mantissa for the powers.
-    pub mant: &'static [M],
-    // Pre-calculated binary exponents for the powers.
-    pub exp: &'static [i32],
-}
-
-/// Allow indexing of values without bounds checking
-impl<M: Mantissa> ExtendedFloatArray<M> {
-    #[inline]
-    pub fn get_extended_float(&self, index: usize) -> ExtendedFloat<M> {
-        let mant = self.mant[index];
-        let exp = self.exp[index];
-        ExtendedFloat {
-            mant,
-            exp,
-        }
-    }
-
-    #[inline]
-    pub fn len(&self) -> usize {
-        self.mant.len()
-    }
-}
-
 // MODERATE PATH POWERS
 // --------------------
 
@@ -66,27 +36,42 @@ impl<M: Mantissa> ExtendedFloatArray<M> {
 #[doc(hidden)]
 pub struct ModeratePathPowers<M: Mantissa> {
     // Pre-calculated small powers.
-    pub small: ExtendedFloatArray<M>,
+    pub small: &'static [M],
     // Pre-calculated large powers.
-    pub large: ExtendedFloatArray<M>,
+    pub large: &'static [M],
     /// Pre-calculated small powers as 64-bit integers
     pub small_int: &'static [M],
     // Step between large powers and number of small powers.
     pub step: i32,
     // Exponent bias for the large powers.
     pub bias: i32,
+    /// ceil(log2(radix)) scaled as a multiplier.
+    pub log2: i64,
+    /// Bitshift for the log2 multiplier.
+    pub log2_shift: i32,
 }
 
 /// Allow indexing of values without bounds checking
 impl<M: Mantissa> ModeratePathPowers<M> {
     #[inline]
     pub fn get_small(&self, index: usize) -> ExtendedFloat<M> {
-        self.small.get_extended_float(index)
+        let mant = self.small[index];
+        let exp = (1 - M::FULL as i64) + ((self.log2 * index as i64) >> self.log2_shift);
+        ExtendedFloat {
+            mant,
+            exp: exp as i32,
+        }
     }
 
     #[inline]
     pub fn get_large(&self, index: usize) -> ExtendedFloat<M> {
-        self.large.get_extended_float(index)
+        let mant = self.large[index];
+        let biased_e = index as i64 * self.step as i64 - self.bias as i64;
+        let exp = (1 - M::FULL as i64) + ((self.log2 * biased_e) >> self.log2_shift);
+        ExtendedFloat {
+            mant,
+            exp: exp as i32,
+        }
     }
 
     #[inline]
