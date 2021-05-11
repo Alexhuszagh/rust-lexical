@@ -700,12 +700,19 @@
 
 #![allow(dead_code)] // TODO(ahuszagh) Remove
 
+#[macro_use]
+mod validate;
+
+mod config;
 mod lexer;
 mod number;
 #[cfg(feature = "format")]
 mod number_format;
+mod parse_float;
+mod parse_integer;
 mod syntax;
-mod validate;
+mod write_float;
+mod write_integer;
 
 // TODO(ahuszagh) Need to add options as well.
 // TODO(ahuszagh) Need to export SyntaxFormat, LexerFormat

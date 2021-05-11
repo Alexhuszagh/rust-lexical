@@ -10,6 +10,11 @@ pub type ParseResult<T> = StdResult<T, ParseError>;
 /// Alias of ParseResult for backwards compatibility.
 pub type Result<T> = ParseResult<T>;
 
+// TODO(ahuszagh) Should probably have result types for:
+//  NumberFormat
+//  Options
+//  Can only do after refactor.
+
 /// Specialized result type for number parsers.
 pub(crate) type ParseTupleResult<T> = StdResult<T, (ParseErrorCode, *const u8)>;
 

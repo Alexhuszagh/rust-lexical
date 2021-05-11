@@ -327,11 +327,12 @@ impl StdError for NumberFormatError {
 /// const int32_t INFINITY_STRING_TOO_LONG = -6;
 /// const int32_t INFINITY_STRING_TOO_SHORT = -7;
 /// const int32_t INVALID_FLOAT_PARSE_ALGORITHM = -8;
+/// const int32_t INVALID_RADIX = -9;
 /// ```
 ///
 /// # Safety
 ///
-/// Assigning any value outside the range `[-8, -1]` to value of type
+/// Assigning any value outside the range `[-9, -1]` to value of type
 /// OptionsErrorCode may invoke undefined-behavior.
 #[repr(i32)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -352,6 +353,8 @@ pub enum OptionsErrorCode {
     InfinityStringTooShort     = -7,
     /// Invalid float parsing algorithm.
     InvalidFloatParseAlgorithm = -8,
+    /// Invalid radix for the significant digits.
+    InvalidRadix               = -9,
 
     // We may add additional variants later, so ensure that client matching
     // does not depend on exhaustive matching.
@@ -370,6 +373,7 @@ impl Display for OptionsErrorCode {
             Self::InfinityStringTooLong => "'long infinity string is too long'",
             Self::InfinityStringTooShort => "'long infinity string is too short'",
             Self::InvalidFloatParseAlgorithm => "'invalid combination of float parse algorithms'",
+            Self::InvalidRadix => "'invalid radix for significant digits'",
             _ => unimplemented!(),
         };
         write!(f, "{}", message)

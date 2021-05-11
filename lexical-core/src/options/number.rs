@@ -2,6 +2,7 @@
 
 use crate::util::{NumberFormatError, NumberFormatErrorCode};
 
+use super::config::*;
 use super::lexer::*;
 use super::syntax::*;
 use super::validate::*;

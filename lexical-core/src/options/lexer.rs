@@ -1,15 +1,8 @@
 //! Configuration of valid characters for the numerical lexer.
 
-use crate::lib::{mem, num};
-use static_assertions::const_assert;
+use super::config::*;
 
 // LEXER FORMAT
-
-/// Type with the exact same size as a `u8`.
-pub type OptionU8 = Option<num::NonZeroU8>;
-
-// Ensure the sizes are identical.
-const_assert!(mem::size_of::<OptionU8>() == mem::size_of::<u8>());
 
 /// Configuration of control and digit characters during parsing.
 ///
@@ -111,9 +104,9 @@ impl LexerFormat {
     /// Standard lexer format.
     #[doc(hidden)]
     pub const STANDARD: Self = Self {
-        exponent: b'e',
-        decimal_point: b'.',
-        mantissa_radix: 10,
+        exponent: DEFAULT_EXPONENT,
+        decimal_point: DEFAULT_DECIMAL_POINT,
+        mantissa_radix: DEFAULT_RADIX,
         exponent_base: None,
         exponent_radix: None,
         base_prefix: None,

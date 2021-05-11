@@ -4,7 +4,7 @@
 
 use crate::util::*;
 
-use super::lexer::OptionU8;
+use super::config::*;
 
 // HELPERS
 // -------
@@ -32,6 +32,91 @@ pub(super) const fn max(x: u8, y: u8) -> u8 {
 #[inline(always)]
 const fn is_ascii(ch: u8) -> bool {
     ch < 0x80
+}
+
+// MACROS
+// ------
+
+/// Check if byte array starts with case-insensitive N.
+const_fn!(
+#[inline]
+pub(super) const fn starts_with_n(bytes: &[u8]) -> bool {
+    if bytes.len() == 0 {
+        false
+    } else {
+        match bytes[0] {
+            b'N' => true,
+            b'n' => true,
+            _ => false,
+        }
+    }
+});
+
+/// Get the NaN string if the NaN string is valid.
+macro_rules! to_nan_string {
+    ($nan:expr) => {{
+        if !starts_with_n($nan) {
+            return Err(OptionsError {
+                code: OptionsErrorCode::InvalidNanString,
+            });
+        } else if $nan.len() > MAX_SPECIAL_STRING {
+            return Err(OptionsError {
+                code: OptionsErrorCode::NanStringTooLong,
+            });
+        }
+        $nan
+    }};
+}
+
+const_fn!(
+/// Check if byte array starts with case-insensitive I.
+#[inline]
+pub(super) const fn starts_with_i(bytes: &[u8]) -> bool {
+    if bytes.len() == 0 {
+        false
+    } else {
+        match bytes[0] {
+            b'I' => true,
+            b'i' => true,
+            _ => false,
+        }
+    }
+});
+
+/// Get the short infinity string if the infinity string is valid.
+macro_rules! to_inf_string {
+    ($inf:expr) => {{
+        if !starts_with_i($inf) {
+            return Err(OptionsError {
+                code: OptionsErrorCode::InvalidInfString,
+            });
+        } else if $inf.len() > MAX_SPECIAL_STRING {
+            return Err(OptionsError {
+                code: OptionsErrorCode::InfStringTooLong,
+            });
+        }
+        $inf
+    }};
+}
+
+/// Get the long infinity string if the infinity string is valid.
+macro_rules! to_infinity_string {
+    ($infinity:expr, $inf:expr) => {{
+        if !starts_with_i($infinity) {
+            return Err(OptionsError {
+                code: OptionsErrorCode::InvalidInfinityString,
+            });
+        } else if $infinity.len() < $inf.len() {
+            return Err(OptionsError {
+                code: OptionsErrorCode::InfinityStringTooShort,
+            });
+        } else if $infinity.len() > MAX_SPECIAL_STRING {
+            return Err(OptionsError {
+                code: OptionsErrorCode::InfinityStringTooLong,
+            });
+        }
+        $infinity
+    }};
 }
 
 // VALIDATORS
