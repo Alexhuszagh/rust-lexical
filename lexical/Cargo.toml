@@ -1,0 +1,20 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
+categories = ["parsing", "encoding", "no-std", "value-formatting"]
+description = "Lexical, to- and from-string conversion routines."
+edition = "2018"
+keywords = ["parsing", "lexical", "encoding", "no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical"
+readme = "README.md"
+repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
+version = "0.1.0"
+
+[dependencies]
+lexical_core = { version = "0.1", optional = true, path = "../lexical_core" }
+
+[features]
+default = ["std"]
+# Use the standard library.
+std = []

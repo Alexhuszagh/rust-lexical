@@ -1,0 +1,17 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
+categories = ["parsing", "no-std"]
+description = "Efficient parsing of integers from strings."
+edition = "2018"
+keywords = ["parsing", "lexical", "no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical_parse_integer"
+readme = "README.md"
+repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
+version = "0.1.0"
+
+[features]
+default = ["std"]
+# Use the standard library.
+std = []

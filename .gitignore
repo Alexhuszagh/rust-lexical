@@ -1,0 +1,17 @@
+target/
+**/*.rs.bk
+Cargo.lock
+/__pycache__
+/build
+*.pyc
+*.mm_profdata
+profdata_*
+
+# Perftools
+perf.data
+perf.data.old
+
+# Test files
+errors.txt
+cargo-timing*.html
+proptest-regressions/
