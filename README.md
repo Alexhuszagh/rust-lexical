@@ -7,6 +7,8 @@ lexical
 
 **NOTE:** Major improvements in float parsing have recently been [developed](https://arxiv.org/pdf/2101.11408.pdf), courtesy of @lemire. A rust implementation [exists](https://github.com/aldanor/fast-float-rust), and I will eventually be rebasing this repository off of those developments. If you do not need the support for custom radixes in lexical, or the support for float formatting, integer parsing, or integer formatting, you should probably use that `fast-float-rust` instead.
 
+**NOTE:** These changes have since been [merged](https://github.com/rust-lang/rust/pull/86761) into Rust core. Very soon, lexical may not be needed for the vast majority of projects.
+
 Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical is simple to use and focuses on performance and correctness. Finally, [lexical-core](lexical-core) is suitable for environments without a memory allocator, not requiring any internal allocations by default.
 
 **Similar Projects**
