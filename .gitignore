@@ -4,12 +4,13 @@ Cargo.lock
 /__pycache__
 /build
 *.pyc
-*.mm_profdata
-profdata_*
+TODO.md
 
 # Perftools
 perf.data
 perf.data.old
+*.mm_profdata
+profdata_*
 
 # Test files
 errors.txt
