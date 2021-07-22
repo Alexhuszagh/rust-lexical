@@ -19,6 +19,10 @@ static_assertions = "1"
 default = ["std"]
 # Use the standard library.
 std = []
+# Add support for writing power-of-two integer strings.
+power_of_two = []
+# Add support for writing non-decimal integer strings.
+radix = []
 
 # Internal only features.
 # Enable the lint checks.

@@ -1,17 +1,18 @@
+use lexical_util::num::UnsignedInteger;
 use lexical_write_integer::decimal;
 use quickcheck::quickcheck;
 
 #[test]
 fn fast_log2_test() {
     // Check the first, even if illogical case works.
-    assert_eq!(decimal::fast_log2(0), 0);
-    assert_eq!(decimal::fast_log2(1), 0);
-    assert_eq!(decimal::fast_log2(2), 1);
-    assert_eq!(decimal::fast_log2(3), 1);
+    assert_eq!(decimal::fast_log2(0u32), 0);
+    assert_eq!(decimal::fast_log2(1u32), 0);
+    assert_eq!(decimal::fast_log2(2u32), 1);
+    assert_eq!(decimal::fast_log2(3u32), 1);
 
-    assert_eq!(decimal::fast_log2((1 << 16) - 1), 15);
-    assert_eq!(decimal::fast_log2(1 << 16), 16);
-    assert_eq!(decimal::fast_log2((1 << 16) + 1), 16);
+    assert_eq!(decimal::fast_log2((1u32 << 16) - 1), 15);
+    assert_eq!(decimal::fast_log2(1u32 << 16), 16);
+    assert_eq!(decimal::fast_log2((1u32 << 16) + 1), 16);
 
     assert_eq!(decimal::fast_log2(u32::MAX), 31);
 }
@@ -29,6 +30,23 @@ fn fast_digit_count_test() {
     assert_eq!(decimal::fast_digit_count((1 << 16) + 1), 5);
 
     assert_eq!(decimal::fast_digit_count(u32::MAX), 10);
+}
+
+#[test]
+fn fallback_digit_count_test() {
+    assert_eq!(decimal::fallback_digit_count(0u32), 1);
+    assert_eq!(decimal::fallback_digit_count(1u32), 1);
+    assert_eq!(decimal::fallback_digit_count(9u32), 1);
+    assert_eq!(decimal::fallback_digit_count(10u32), 2);
+    assert_eq!(decimal::fallback_digit_count(11u32), 2);
+
+    assert_eq!(decimal::fallback_digit_count((1u32 << 16) - 1), 5);
+    assert_eq!(decimal::fallback_digit_count(1u32 << 16), 5);
+    assert_eq!(decimal::fallback_digit_count((1u32 << 16) + 1), 5);
+
+    assert_eq!(decimal::fallback_digit_count(u32::MAX), 10);
+    assert_eq!(decimal::fallback_digit_count(u64::MAX), 20);
+    assert_eq!(decimal::fallback_digit_count(u128::MAX), 39);
 }
 
 #[test]
@@ -151,6 +169,10 @@ fn u32toa_test() {
     }
 }
 
+// TODO(ahuszagh)
+//  Add u64
+//  Add u128
+
 fn slow_log2(x: u32) -> usize {
     // Slow approach to calculating a log2, using floats.
     if x == 0 {
@@ -160,28 +182,8 @@ fn slow_log2(x: u32) -> usize {
     }
 }
 
-fn slow_digit_count(x: u32) -> usize {
-    if x < 10 {
-        1
-    } else if x < 100 {
-        2
-    } else if x < 1000 {
-        3
-    } else if x < 10000 {
-        4
-    } else if x < 100000 {
-        5
-    } else if x < 1000000 {
-        6
-    } else if x < 10000000 {
-        7
-    } else if x < 100000000 {
-        8
-    } else if x < 1000000000 {
-        9
-    } else {
-        10
-    }
+fn slow_digit_count<T: UnsignedInteger>(x: T) -> usize {
+    x.as_u128().to_string().len()
 }
 
 quickcheck! {
@@ -191,6 +193,10 @@ quickcheck! {
 
     fn fast_digit_count_quickcheck(x: u32) -> bool {
         slow_digit_count(x) == decimal::fast_digit_count(x)
+    }
+
+    fn fallback_digit_count_quickcheck(x: u128) -> bool {
+        slow_digit_count(x) == decimal::fallback_digit_count(x)
     }
 
     fn u8toa_quickcheck(x: u8) -> bool {
@@ -213,4 +219,8 @@ quickcheck! {
         actual.len() == unsafe { decimal::u32toa(x, &mut buffer) } &&
             &buffer[..actual.len()] == actual.as_bytes()
     }
+
+    // TODO(ahuszagh)
+    //  Add u64
+    //  Add u128
 }

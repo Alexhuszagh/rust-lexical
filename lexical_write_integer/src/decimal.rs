@@ -23,6 +23,7 @@ use crate::lib::hint;
 
 use super::table::DIGIT_TO_BASE10_SQUARED;
 use lexical_util::algorithm::copy_to_dst;
+use lexical_util::num::UnsignedInteger;
 
 // TODO(ahuszagh) Here...
 
@@ -37,8 +38,22 @@ use lexical_util::algorithm::copy_to_dst;
 /// Described here:
 ///   https://lemire.me/blog/2021/05/28/computing-the-number-of-digits-of-an-integer-quickly/
 #[inline]
-pub fn fast_log2(x: u32) -> usize {
-    u32::BITS as usize - 1 - (x | 1).leading_zeros() as usize
+pub fn fast_log2<T: UnsignedInteger>(x: T) -> usize {
+    T::BITS - 1 - (x | T::ONE).leading_zeros() as usize
+}
+
+/// Calculate the fast, integral log10 of a value.
+///
+/// This is relatively easy to explain as well: we calculate the log2
+/// of the value, then multiply by an integral constant for the log10(2).
+///
+/// Note that this value is frequently off by 1, so we need to round-up
+/// accordingly. This magic number is valid at least up until `1<<18`,
+/// which works for all values, since our max log2 is 127.
+#[inline]
+pub fn fast_log10<T: UnsignedInteger>(x: T) -> usize {
+    let log2 = fast_log2(x);
+    (log2 * 1233) >> 12
 }
 
 /// Fast algorithm to calculate the number of digits in an integer.
@@ -97,10 +112,69 @@ pub fn fast_digit_count(x: u32) -> usize {
     count as usize
 }
 
+/// Slightly slower algorithm to calculate the number of digits in an integer.
+///
+/// This uses no static storage, and uses a fast log10(2) estimation
+/// to calculate the number of digits, from the log2 value.
+///
+/// Described here:
+///     https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/
+#[inline]
+pub fn fallback_digit_count<T: UnsignedInteger>(x: T) -> usize {
+    const TABLE: [u128; 38] = [
+        10,
+        100,
+        1000,
+        10000,
+        100000,
+        1000000,
+        10000000,
+        100000000,
+        1000000000,
+        10000000000,
+        100000000000,
+        1000000000000,
+        10000000000000,
+        100000000000000,
+        1000000000000000,
+        10000000000000000,
+        100000000000000000,
+        1000000000000000000,
+        10000000000000000000,
+        100000000000000000000,
+        1000000000000000000000,
+        10000000000000000000000,
+        100000000000000000000000,
+        1000000000000000000000000,
+        10000000000000000000000000,
+        100000000000000000000000000,
+        1000000000000000000000000000,
+        10000000000000000000000000000,
+        100000000000000000000000000000,
+        1000000000000000000000000000000,
+        10000000000000000000000000000000,
+        100000000000000000000000000000000,
+        1000000000000000000000000000000000,
+        10000000000000000000000000000000000,
+        100000000000000000000000000000000000,
+        1000000000000000000000000000000000000,
+        10000000000000000000000000000000000000,
+        100000000000000000000000000000000000000
+    ];
+
+    // This value is always within 1: calculate if we need to round-up
+    // based on a pre-computed table. This is always safe, since we ensure
+    // the index is in bounds right before.
+    let log10 = fast_log10(x);
+    let shift_up = log10 < TABLE.len() && x.as_u128() >= unsafe { *TABLE.get_unchecked(log10) };
+
+    log10 + shift_up as usize + 1
+}
+
 /// Convert a value from `[100, 1000)` into a table offset.
 #[inline]
 fn sequential_index(v0: u32, v1: u32) -> usize {
-    2 * v0 as usize - 200 * v1 as usize
+    (2 * v0 - 200 * v1) as usize
 }
 
 /// Convert a value from `[10, 100)` into a table offset.
@@ -246,14 +320,13 @@ unsafe fn write_5(value: u32, buffer: &mut [u8]) {
 ///
 /// Writing to the buffer is safe as long as the buffer is at least 10 bytes,
 /// and indexing the table will be safe as long as the `value < 10^10`.
-/// This is always true, since `u32::MAX < 10^10`.
 #[inline]
-unsafe fn write_10(value: u32, buffer: &mut [u8]) {
+unsafe fn write_10(value: u64, buffer: &mut [u8]) {
     debug_assert!(buffer.len() >= 10);
-    debug_assert!(value >= 100000);
+    debug_assert!((100000..10000000000).contains(&value));
 
-    let t0 = value / 100000000;
-    let v_0 = value.wrapping_sub(t0.wrapping_mul(100000000));
+    let t0 = (value / 100000000) as u32;
+    let v_0 = (value as u32).wrapping_sub(t0.wrapping_mul(100000000));
     let v_1 = v_0 / 100;
     let v_2 = v_1 / 100;
     let v_3 = v_2 / 100;
@@ -296,6 +369,227 @@ unsafe fn write_10(value: u32, buffer: &mut [u8]) {
     }
 }
 
+/// Write 15 digits to buffer.
+///
+/// # Safety
+///
+/// Writing to the buffer is safe as long as the buffer is at least 15 bytes,
+/// and indexing the table will be safe as long as the `value < 10^15`.
+#[inline]
+unsafe fn write_15(value: u64, buffer: &mut [u8]) {
+    debug_assert!(buffer.len() >= 15);
+    debug_assert!((10000000000..1000000000000000).contains(&value));
+
+    let t_0 = (value / 100000000) as u32;
+    let v_0 = (value as u32).wrapping_sub(t_0.wrapping_mul(100000000));
+    let v_1 = v_0 / 100;
+    let v_2 = v_1 / 100;
+    let v_3 = v_2 / 100;
+    let v_4 = t_0;
+    let v_5 = v_4 / 100;
+    let v_6 = v_5 / 100;
+    let v_7 = v_6 / 100;
+    let i_0 = sequential_index(v_0, v_1);
+    let i_1 = sequential_index(v_1, v_2);
+    let i_2 = sequential_index(v_2, v_3);
+    let i_3 = last_index(v_3);
+    let i_4 = sequential_index(v_4, v_5);
+    let i_5 = sequential_index(v_5, v_6);
+    let i_6 = sequential_index(v_6, v_7);
+    let i_7 = last_index(v_7);
+    unsafe {
+        *buffer.get_unchecked_mut(14) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_0 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(13) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_0 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(12) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_1 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(11) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_1 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(10) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_2 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(9) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_2 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(8) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_3 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(7) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_3 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(6) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_4 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(5) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_4 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(4) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_5 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(3) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_5 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(2) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_6 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(1) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_6 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(0) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_7 + 1);
+    }
+}
+
+/// Write 20 digits to buffer.
+///
+/// # Safety
+///
+/// Writing to the buffer is safe as long as the buffer is at least 20 bytes,
+/// and indexing the table will be safe as long as the `value < 10^20`.
+///
+/// # Note
+///
+/// Due to how slow 128-bit division is, this is only for u64. `write_25`
+/// will handle all those cases, for 20-25 digits.
+#[inline]
+unsafe fn write_20(value: u64, buffer: &mut [u8]) {
+    debug_assert!(buffer.len() >= 20);
+    debug_assert!(value >= 1000000000000000);
+
+    let t_0 = (value / 100000000) as u32;
+    let t_1 = (value / 10000000000000000) as u32;
+    let v_0 = (value as u32).wrapping_sub(t_0.wrapping_mul(100000000));
+    let v_1 = v_0 / 100;
+    let v_2 = v_1 / 100;
+    let v_3 = v_2 / 100;
+    let v_4 = t_0.wrapping_sub(t_1.wrapping_mul(100000000));
+    let v_5 = v_4 / 100;
+    let v_6 = v_5 / 100;
+    let v_7 = v_6 / 100;
+    let v_8 = t_1;
+    let v_9 = v_8 / 100;
+    let i_0 = sequential_index(v_0, v_1);
+    let i_1 = sequential_index(v_1, v_2);
+    let i_2 = sequential_index(v_2, v_3);
+    let i_3 = last_index(v_3);
+    let i_4 = sequential_index(v_4, v_5);
+    let i_5 = sequential_index(v_5, v_6);
+    let i_6 = sequential_index(v_6, v_7);
+    let i_7 = last_index(v_7);
+    let i_8 = sequential_index(v_8, v_9);
+    let i_9 = last_index(v_9);
+    unsafe {
+        *buffer.get_unchecked_mut(19) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_0 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(18) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_0 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(17) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_1 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(16) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_1 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(15) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_2 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(14) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_2 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(13) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_3 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(12) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_3 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(11) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_4 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(10) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_4 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(9) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_5 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(8) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_5 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(7) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_6 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(6) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_6 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(5) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_7 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(4) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_7 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(3) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_8 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(2) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_8 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(1) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_9 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(0) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_9 + 0);
+    }
+}
+
+// TODO(ahuszagh) Need write_19
+
+/// Write 25 digits to buffer.
+///
+/// # Safety
+///
+/// Writing to the buffer is safe as long as the buffer is at least 25 bytes,
+/// and indexing the table will be safe as long as the `value < 10^25`.
+#[inline]
+unsafe fn write_25(value: u128, buffer: &mut [u8]) {
+    todo!();
+}
+
+/// Write 30 digits to buffer.
+///
+/// # Safety
+///
+/// Writing to the buffer is safe as long as the buffer is at least 30 bytes,
+/// and indexing the table will be safe as long as the `value < 10^30`.
+#[inline]
+unsafe fn write_30(value: u128, buffer: &mut [u8]) {
+    todo!();
+}
+
+/// Write 35 digits to buffer.
+///
+/// # Safety
+///
+/// Writing to the buffer is safe as long as the buffer is at least 35 bytes,
+/// and indexing the table will be safe as long as the `value < 10^35`.
+#[inline]
+unsafe fn write_35(value: u128, buffer: &mut [u8]) {
+    todo!();
+}
+
+/// Write 39 digits to buffer.
+///
+/// # Safety
+///
+/// Writing to the buffer is safe as long as the buffer is at least 39 bytes,
+/// and indexing the table will be safe as long as the `value < 10^39`.
+#[inline]
+unsafe fn write_39(value: u128, buffer: &mut [u8]) {
+    todo!();
+}
+
 // FORMATTERS
 // ----------
 
@@ -309,7 +603,6 @@ unsafe fn write_10(value: u32, buffer: &mut [u8]) {
 /// # Safety
 ///
 /// Safe as long as the buffer can hold at least 3 elements.
-#[inline]
 pub unsafe fn u8toa(value: u8, buffer: &mut [u8]) -> usize {
     debug_assert!(buffer.len() >= 3);
     debug_assert!(fast_digit_count(u8::MAX as u32) <= 3);
@@ -342,7 +635,6 @@ pub unsafe fn u8toa(value: u8, buffer: &mut [u8]) -> usize {
 /// # Safety
 ///
 /// Safe as long as the buffer can hold at least 5 elements.
-#[inline]
 pub unsafe fn u16toa(value: u16, buffer: &mut [u8]) -> usize {
     debug_assert!(buffer.len() >= 5);
     debug_assert!(fast_digit_count(u16::MAX as u32) <= 5);
@@ -383,7 +675,6 @@ pub unsafe fn u16toa(value: u16, buffer: &mut [u8]) -> usize {
 /// # Safety
 ///
 /// Safe as long as the buffer can hold at least 10 elements.
-#[inline]
 pub unsafe fn u32toa(value: u32, buffer: &mut [u8]) -> usize {
     debug_assert!(buffer.len() >= 10);
     debug_assert!(fast_digit_count(u32::MAX) <= 10);
@@ -410,17 +701,174 @@ pub unsafe fn u32toa(value: u32, buffer: &mut [u8]) -> usize {
         5 => unsafe {
             write_5(value, buffer);
         },
-        _ => {
+        6..=10 => {
             // SAFETY: safe if the buffer length is at least 10.
-            // Since u8 has no trap representations, and a trivial drop,
-            // this is also safe. The digit count cannot be larger than
-            // 10, due to the limits of u32.
+            // The digit count cannot be larger than 10, due to the
+            // limits of u32.
+            let mut digits: [u8; 16] = [b'0'; 16];
+            unsafe {
+                write_10(value as u64, &mut digits);
+                copy_to_dst(buffer, digits.get_unchecked(10 - count..));
+            }
+        },
+        // SAFETY: Safe, since there cannot be more than 10 digits.
+        _ => unsafe { hint::unreachable_unchecked() },
+    }
+
+    count
+}
+
+/// Write a `u64` to a buffer, and return the number of bytes written.
+///
+/// # Safety
+///
+/// Safe as long as the buffer can hold at least 20 elements.
+pub unsafe fn u64toa(value: u64, buffer: &mut [u8]) -> usize {
+    debug_assert!(buffer.len() >= 20);
+    debug_assert!(fallback_digit_count(u64::MAX) <= 20);
+
+    let count = fallback_digit_count(value);
+    match count {
+        // SAFETY: safe if the buffer length is at least 1.
+        1 => unsafe {
+            write_1(value as u32, buffer);
+        },
+        // SAFETY: safe if the buffer length is at least 2.
+        2 => unsafe {
+            write_2(value as u32, buffer);
+        },
+        // SAFETY: safe if the buffer length is at least 3.
+        3 => unsafe {
+            write_3(value as u32, buffer);
+        },
+        // SAFETY: safe if the buffer length is at least 4.
+        4 => unsafe {
+            write_4(value as u32, buffer);
+        },
+        // SAFETY: safe if the buffer length is at least 5.
+        5 => unsafe {
+            write_5(value as u32, buffer);
+        },
+        6..=10 => {
+            // SAFETY: safe if the buffer length is at least 10.
             let mut digits: [u8; 16] = [b'0'; 16];
             unsafe {
                 write_10(value, &mut digits);
+                copy_to_dst(buffer, digits.get_unchecked(10 - count..));
             }
-            copy_to_dst(buffer, digits.get_unchecked(10 - count..));
         },
+        11..=15 => {
+            // SAFETY: safe if the buffer length is at least 15.
+            let mut digits: [u8; 16] = [b'0'; 16];
+            unsafe {
+                write_15(value, &mut digits);
+                copy_to_dst(buffer, digits.get_unchecked(15 - count..));
+            }
+        },
+        16..=20 => {
+            // SAFETY: safe if the buffer length is at least 20.
+            let mut digits: [u8; 32] = [b'0'; 32];
+            unsafe {
+                write_20(value, &mut digits);
+                copy_to_dst(buffer, digits.get_unchecked(20 - count..));
+            }
+        },
+        // SAFETY: Safe, since there cannot be more than 20 digits.
+        _ => unsafe { hint::unreachable_unchecked() },
+    }
+
+    count
+}
+
+/// Write a `u128` to a buffer, and return the number of bytes written.
+///
+/// # Safety
+///
+/// Safe as long as the buffer can hold at least 39 elements.
+pub unsafe fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
+    debug_assert!(buffer.len() >= 39);
+    debug_assert!(fallback_digit_count(u128::MAX) <= 39);
+
+    let count = fallback_digit_count(value);
+    match count {
+        // SAFETY: safe if the buffer length is at least 1.
+        1 => unsafe {
+            write_1(value as u32, buffer);
+        },
+        // SAFETY: safe if the buffer length is at least 2.
+        2 => unsafe {
+            write_2(value as u32, buffer);
+        },
+        // SAFETY: safe if the buffer length is at least 3.
+        3 => unsafe {
+            write_3(value as u32, buffer);
+        },
+        // SAFETY: safe if the buffer length is at least 4.
+        4 => unsafe {
+            write_4(value as u32, buffer);
+        },
+        // SAFETY: safe if the buffer length is at least 5.
+        5 => unsafe {
+            write_5(value as u32, buffer);
+        },
+        6..=10 => {
+            // SAFETY: safe if the buffer length is at least 10.
+            let mut digits: [u8; 16] = [b'0'; 16];
+            unsafe {
+                write_10(value as u64, &mut digits);
+                copy_to_dst(buffer, digits.get_unchecked(10 - count..));
+            }
+        },
+        11..=15 => {
+            // SAFETY: safe if the buffer length is at least 15.
+            let mut digits: [u8; 16] = [b'0'; 16];
+            unsafe {
+                write_15(value as u64, &mut digits);
+                copy_to_dst(buffer, digits.get_unchecked(15 - count..));
+            }
+        },
+        16..=19 => {
+            // SAFETY: safe if the buffer length is at least 20.
+            let mut digits: [u8; 32] = [b'0'; 32];
+            unsafe {
+                write_20(value as u64, &mut digits);
+                copy_to_dst(buffer, digits.get_unchecked(20 - count..));
+            }
+        },
+        20..=25 => {
+            // SAFETY: safe if the buffer length is at least 25.
+            let mut digits: [u8; 32] = [b'0'; 32];
+            unsafe {
+                write_25(value, &mut digits);
+                copy_to_dst(buffer, digits.get_unchecked(25 - count..));
+            }
+        },
+        26..=30 => {
+            // SAFETY: safe if the buffer length is at least 30.
+            let mut digits: [u8; 32] = [b'0'; 32];
+            unsafe {
+                write_30(value, &mut digits);
+                copy_to_dst(buffer, digits.get_unchecked(30 - count..));
+            }
+        },
+        31..=35 => {
+            // SAFETY: safe if the buffer length is at least 35.
+            let mut digits: [u8; 48] = [b'0'; 48];
+            unsafe {
+                write_35(value, &mut digits);
+                copy_to_dst(buffer, digits.get_unchecked(35 - count..));
+            }
+        },
+        36..=39 => {
+            // SAFETY: safe if the buffer length is at least 39.
+            let mut digits: [u8; 48] = [b'0'; 48];
+            unsafe {
+                write_39(value, &mut digits);
+                copy_to_dst(buffer, digits.get_unchecked(39 - count..));
+            }
+        },
+        // SAFETY: Safe, since there cannot be more than 39 digits.
+        _ => unsafe { hint::unreachable_unchecked() },
     }
 
     count
