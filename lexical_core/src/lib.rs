@@ -1,3 +1,4 @@
+//!
 //! TODO(ahuszagh) Document...
 
 // We want to have the same safety guarantees as Rust core,

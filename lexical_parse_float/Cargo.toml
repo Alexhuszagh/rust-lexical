@@ -20,6 +20,10 @@ features = ["parse_floats"]
 default = ["std"]
 # Use the standard library.
 std = []
+# Add support for parsing power-of-two float strings.
+power_of_two = ["lexical_util/power_of_two"]
+# Add support for parsing non-decimal float strings.
+radix = ["lexical_util/radix", "power_of_two"]
 
 # Internal only features.
 # Enable the lint checks.

@@ -8,24 +8,12 @@ members = [
     "lexical_write_float",
 ]
 
-# TODO(ahuszagh) Add benches later
-# Should probably be an external dependency.
-
-# PROFILES
-# --------
-
 [profile.dev]
 opt-level = 0
 debug = true
 lto = false
 
 [profile.release]
-opt-level = 3
-debug = false
-debug-assertions = false
-lto = true
-
-[profile.bench]
 opt-level = 3
 debug = false
 debug-assertions = false

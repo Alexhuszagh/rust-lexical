@@ -1173,6 +1173,22 @@ pub unsafe fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
     count
 }
 
+/// Write a `usize` to a buffer, and return the number of bytes written.
+///
+/// # Safety
+///
+/// Safe as long as the buffer can hold at least `FORMATTED_SIZE_DECIMAL`
+/// elements.
+pub unsafe fn usizetoa(value: usize, buffer: &mut [u8]) -> usize {
+    if cfg!(target_pointer_width = "16") {
+        u16toa(value as u16, buffer)
+    } else if cfg!(target_pointer_width = "32") {
+        u32toa(value as u32, buffer)
+    } else {
+        u64toa(value as u64, buffer)
+    }
+}
+
 // Export integer to string.
 pub(super) trait Decimal {
     unsafe fn decimal(self, buffer: &mut [u8]) -> usize;
@@ -1196,4 +1212,5 @@ decimal_impl! {
     u32 u32toa ;
     u64 u64toa ;
     u128 u128toa ;
+    usize usizetoa ;
 }

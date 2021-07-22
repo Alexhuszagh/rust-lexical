@@ -192,6 +192,21 @@ pub(super) trait Generic {
     unsafe fn generic(self, radix: u32, buffer: &mut [u8]) -> usize;
 }
 
+// Don't implement generic for a few types.
+macro_rules! generic_unimpl {
+    ($($t:ty)*) => ($(
+        impl Generic for $t {
+            #[inline(always)]
+            unsafe fn generic(self, _: u32, _: &mut [u8]) -> usize {
+                // Forces a hard error if we have a logic error in our code.
+                unimplemented!()
+            }
+        }
+    )*);
+}
+
+generic_unimpl! { u8 u16 usize }
+
 // Implement generic for type.
 macro_rules! generic_impl {
     ($($t:ty)*) => ($(
@@ -209,7 +224,7 @@ macro_rules! generic_impl {
     )*);
 }
 
-generic_impl! { u8 u16 u32 u64 usize }
+generic_impl! { u32 u64 }
 
 impl Generic for u128 {
     #[inline(always)]

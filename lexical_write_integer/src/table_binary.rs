@@ -2,6 +2,34 @@
 
 #![cfg(feature = "power_of_two")]
 
+#[cfg(not(feature = "radix"))]
+use crate::lib::hint;
+#[cfg(not(feature = "radix"))]
+use crate::table_decimal::*;
+#[cfg(not(feature = "radix"))]
+use lexical_util::assert::debug_assert_radix;
+
+/// Get lookup table for 2 digit radix conversions.
+///
+/// # Safety
+///
+/// Safe as long as the radix provided is valid.
+#[inline]
+#[cfg(not(feature = "radix"))]
+pub unsafe fn get_table(radix: u32) -> &'static [u8] {
+    debug_assert_radix(radix);
+    match radix {
+        2 => &DIGIT_TO_BASE2_SQUARED,
+        4 => &DIGIT_TO_BASE4_SQUARED,
+        8 => &DIGIT_TO_BASE8_SQUARED,
+        10 => &DIGIT_TO_BASE10_SQUARED,
+        16 => &DIGIT_TO_BASE16_SQUARED,
+        32 => &DIGIT_TO_BASE32_SQUARED,
+        // SAFETY: This is safe as long as the radix is valid.
+        _ => unsafe { hint::unreachable_unchecked() },
+    }
+}
+
 // RADIX^2 TABLES
 // --------------
 

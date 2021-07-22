@@ -20,7 +20,7 @@ macro_rules! itoa_impl {
     )*)
 }
 
-itoa_impl! { u8 u16 u32 u64 u128 }
+itoa_impl! { u8 u16 u32 u64 u128 usize }
 
 /// Forward itoa arguments to an optimized backend.
 ///  Preconditions: `value` must be non-negative and unsigned.
@@ -30,9 +30,10 @@ itoa_impl! { u8 u16 u32 u64 u128 }
 /// Safe as long as the buffer can hold `FORMATTED_SIZE_DECIMAL` elements.
 #[inline]
 #[cfg(not(feature = "power_of_two"))]
-unsafe fn itoa_positive<T>(value: T, _: u32, buffer: &mut [u8]) -> usize
+unsafe fn itoa_positive<T, U>(value: T, _: u32, buffer: &mut [u8]) -> usize
 where
     T: Itoa,
+    U: Itoa,
 {
     unsafe { value.decimal(buffer) }
 }
@@ -46,13 +47,15 @@ where
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
 #[inline]
 #[cfg(feature = "power_of_two")]
-unsafe fn itoa_positive<T>(value: T, radix: u32, buffer: &mut [u8]) -> usize
+unsafe fn itoa_positive<T, U>(value: T, radix: u32, buffer: &mut [u8]) -> usize
 where
     T: Itoa,
+    U: Itoa,
 {
     if radix == 10 {
         unsafe { value.decimal(buffer) }
     } else {
+        let value: U = as_cast(value);
         unsafe { value.generic(radix, buffer) }
     }
 }
@@ -68,11 +71,10 @@ where
 #[inline]
 unsafe fn unsigned<Narrow, Wide>(value: Narrow, radix: u32, buffer: &mut [u8]) -> usize
 where
-    Narrow: UnsignedInteger,
+    Narrow: Itoa,
     Wide: Itoa,
 {
-    let value: Wide = as_cast(value);
-    unsafe { itoa_positive(value, radix, buffer) }
+    unsafe { itoa_positive::<Narrow, Wide>(value, radix, buffer) }
 }
 
 macro_rules! unsigned_to_lexical {
@@ -129,7 +131,7 @@ where
 
     // SAFETY: safe as long as there is at least 1 element, which
     // the buffer should have at least `FORMATTED_SIZE` elements.
-    unsafe { itoa_positive(unsigned, radix, buffer) + count }
+    unsafe { itoa_positive::<Unsigned, Unsigned>(unsigned, radix, buffer) + count }
 }
 
 macro_rules! signed_to_lexical {
