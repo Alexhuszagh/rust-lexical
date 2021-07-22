@@ -23,6 +23,8 @@
 //! (a BSD-like license), and may be found here:
 //!     https://github.com/rust-lang-nursery/compiler-builtins/blob/master/LICENSE.TXT
 
+use crate::assert::debug_assert_radix;
+
 /// Get the divisor for optimized 128-bit division.
 /// Returns the divisor, the number of digits processed, and the
 /// number of leading zeros in the divisor.
@@ -54,8 +56,7 @@
 #[inline]
 #[cfg(feature = "radix")]
 pub fn u128_divisor(radix: u32) -> (u64, usize, u32) {
-    // TODO(ahuszagh) Fix the validation...
-    //debug_assert_radix!(radix);
+    debug_assert_radix(radix);
     match radix {
         2 => (9223372036854775808, 63, 0),   // 2^63
         3 => (12157665459056928801, 40, 0),  // 3^40
@@ -94,4 +95,83 @@ pub fn u128_divisor(radix: u32) -> (u64, usize, u32) {
         36 => (4738381338321616896, 12, 1),  // 36^12
         _ => unreachable!(),
     }
+}
+
+// Get the divisor for optimized 128-bit division.
+// Returns the divisor, the number of digits processed, and the
+// number of leading zeros in the divisor.
+#[inline]
+#[cfg(all(feature = "power_of_two", not(feature = "radix")))]
+pub fn u128_divisor(radix: u32) -> (u64, usize, u32) {
+    debug_assert_radix(radix);
+    match radix {
+        2 => (9223372036854775808, 63, 0),   // 2^63
+        4 => (4611686018427387904, 31, 1),   // 4^31
+        8 => (9223372036854775808, 21, 0),   // 8^21
+        10 => (10000000000000000000, 19, 0), // 10^19
+        16 => (1152921504606846976, 15, 3),  // 16^15
+        32 => (1152921504606846976, 12, 3),  // 32^12
+        _ => unreachable!(),
+    }
+}
+
+// Get the divisor for optimized 128-bit division.
+// Returns the divisor, the number of digits processed, and the
+// number of leading zeros in the divisor.
+#[inline]
+#[cfg(not(feature = "power_of_two"))]
+pub fn u128_divisor(radix: u32) -> (u64, usize, u32) {
+    debug_assert_radix(radix);
+    (10000000000000000000, 19, 0) // 10^19
+}
+
+// Optimized division/remainder algorithm for u128.
+// This is because the codegen for u128 divrem is very inefficient in Rust,
+// calling both `__udivmodti4` twice internally, rather than a single time.
+#[inline]
+pub fn u128_divrem(n: u128, d: u64, d_ctlz: u32) -> (u128, u64) {
+    // Ensure we have the correct number of leading zeros passed.
+    debug_assert_eq!(d_ctlz, d.leading_zeros());
+
+    // Optimize if we can divide using u64 first.
+    let high = (n >> 64) as u64;
+    if high == 0 {
+        let low = n as u64;
+        return ((low / d) as u128, low % d);
+    }
+
+    // sr = 1 + u64::BITS + d.leading_zeros() - high.leading_zeros();
+    let sr = 65 + d_ctlz - high.leading_zeros();
+
+    // 1 <= sr <= u64::BITS - 1
+    let mut q: u128 = n << (128 - sr);
+    let mut r: u128 = n >> sr;
+    let mut carry: u64 = 0;
+
+    // Don't use a range because they may generate references to memcpy in unoptimized code
+    // Loop invariants:  r < d; carry is 0 or 1
+    let mut i = 0;
+    while i < sr {
+        i += 1;
+
+        // r:q = ((r:q) << 1) | carry
+        r = (r << 1) | (q >> 127);
+        q = (q << 1) | carry as u128;
+
+        // carry = 0
+        // if r >= d {
+        //     r -= d;
+        //     carry = 1;
+        // }
+        let s = (d as u128).wrapping_sub(r).wrapping_sub(1) as i128 >> 127;
+        carry = (s & 1) as u64;
+        r -= (d as u128) & s as u128;
+    }
+
+    ((q << 1) | carry as u128, r as u64)
+}
+
+// Divide by 1e19 for base10 algorithms.
+pub fn u128_divrem_1e19(n: u128) -> (u128, u64) {
+    u128_divrem(n, 10000000000000000000, 0)
 }

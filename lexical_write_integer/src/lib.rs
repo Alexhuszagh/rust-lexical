@@ -16,6 +16,7 @@ pub(crate) mod lib {
 }
 
 pub mod decimal;
+pub mod generic;
 pub mod table;
 
 mod table_binary;

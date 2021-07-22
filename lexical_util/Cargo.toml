@@ -15,6 +15,10 @@ version = "0.1.0"
 libm = "0.2.1"
 static_assertions = "1"
 
+[dev-dependencies]
+quickcheck = "1.0.3"
+proptest = "0.10.1"
+
 [features]
 default = ["std"]
 # Use the standard library.

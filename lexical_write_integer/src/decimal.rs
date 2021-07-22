@@ -14,18 +14,17 @@
 //!  or less, highlighting the advantage of removing for loops with
 //!  minimal branches. It also scales well for 64 or more bit integers.
 
+// TODO(ahuszagh) Add more documentation...
+
 // We use the identity op for indexing for spacing reasons.
 #![allow(clippy::identity_op)]
-
-// TODO(ahuszagh) Add more documentation...
 
 use crate::lib::hint;
 
 use super::table::DIGIT_TO_BASE10_SQUARED;
 use lexical_util::algorithm::copy_to_dst;
+use lexical_util::div128::u128_divrem_1e19;
 use lexical_util::num::UnsignedInteger;
-
-// TODO(ahuszagh) Here...
 
 /// Fast integral log2.
 ///
@@ -159,7 +158,7 @@ pub fn fallback_digit_count<T: UnsignedInteger>(x: T) -> usize {
         100000000000000000000000000000000000,
         1000000000000000000000000000000000000,
         10000000000000000000000000000000000000,
-        100000000000000000000000000000000000000
+        100000000000000000000000000000000000000,
     ];
 
     // This value is always within 1: calculate if we need to round-up
@@ -544,7 +543,99 @@ unsafe fn write_20(value: u64, buffer: &mut [u8]) {
     }
 }
 
-// TODO(ahuszagh) Need write_19
+/// Write 19 digits to buffer (used internally for the u128 writers).
+///
+/// # Safety
+///
+/// Writing to the buffer is safe as long as the buffer is at least 19 bytes,
+/// and indexing the table will be safe as long as the `value < 10^19`.
+#[inline]
+unsafe fn write_19(value: u64, buffer: &mut [u8]) {
+    debug_assert!(buffer.len() >= 19);
+    // The value might have lower bits with all zeros, so we should just
+    // check it's below the maximum range.
+    debug_assert!(value <= 10000000000000000000);
+
+    let t_0 = (value / 100000000) as u32;
+    let t_1 = (value / 10000000000000000) as u32;
+    let v_0 = (value as u32).wrapping_sub(t_0.wrapping_mul(100000000));
+    let v_1 = v_0 / 100;
+    let v_2 = v_1 / 100;
+    let v_3 = v_2 / 100;
+    let v_4 = t_0.wrapping_sub(t_1.wrapping_mul(100000000));
+    let v_5 = v_4 / 100;
+    let v_6 = v_5 / 100;
+    let v_7 = v_6 / 100;
+    let v_8 = t_1;
+    let v_9 = v_8 / 100;
+    let i_0 = sequential_index(v_0, v_1);
+    let i_1 = sequential_index(v_1, v_2);
+    let i_2 = sequential_index(v_2, v_3);
+    let i_3 = last_index(v_3);
+    let i_4 = sequential_index(v_4, v_5);
+    let i_5 = sequential_index(v_5, v_6);
+    let i_6 = sequential_index(v_6, v_7);
+    let i_7 = last_index(v_7);
+    let i_8 = sequential_index(v_8, v_9);
+    let i_9 = last_index(v_9);
+    unsafe {
+        *buffer.get_unchecked_mut(18) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_0 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(17) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_0 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(16) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_1 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(15) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_1 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(14) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_2 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(13) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_2 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(12) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_3 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(11) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_3 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(10) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_4 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(9) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_4 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(8) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_5 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(7) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_5 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(6) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_6 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(5) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_6 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(4) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_7 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(3) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_7 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(2) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_8 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(1) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_8 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(0) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_9 + 1);
+    }
+}
 
 /// Write 25 digits to buffer.
 ///
@@ -554,7 +645,43 @@ unsafe fn write_20(value: u64, buffer: &mut [u8]) {
 /// and indexing the table will be safe as long as the `value < 10^25`.
 #[inline]
 unsafe fn write_25(value: u128, buffer: &mut [u8]) {
-    todo!();
+    debug_assert!(buffer.len() >= 25);
+    debug_assert!((10000000000000000000..10000000000000000000000000).contains(&value));
+
+    // Split value into high 6 and low 19.
+    let (high, low) = u128_divrem_1e19(value);
+
+    // Write low 19 to the end of the buffer.
+    // SAFETY: safe since we have at least 25 elements, so we can index safely
+    // from 6-onward and have at least 19 elements.
+    write_19(low, unsafe { buffer.get_unchecked_mut(6..) });
+
+    // Write high 6 to the front of the buffer.
+    let value = high as u64;
+    let v_0 = value as u32;
+    let v_1 = v_0 / 100;
+    let v_2 = v_1 / 100;
+    let i_0 = sequential_index(v_0, v_1);
+    let i_1 = sequential_index(v_1, v_2);
+    let i_2 = last_index(v_2);
+    unsafe {
+        *buffer.get_unchecked_mut(5) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_0 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(4) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_0 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(3) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_1 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(2) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_1 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(1) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_2 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(0) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_2 + 0);
+    }
 }
 
 /// Write 30 digits to buffer.
@@ -565,7 +692,65 @@ unsafe fn write_25(value: u128, buffer: &mut [u8]) {
 /// and indexing the table will be safe as long as the `value < 10^30`.
 #[inline]
 unsafe fn write_30(value: u128, buffer: &mut [u8]) {
-    todo!();
+    debug_assert!(buffer.len() >= 30);
+    debug_assert!((10000000000000000000000000..1000000000000000000000000000000).contains(&value));
+
+    // Split value into high 11 and low 19.
+    let (high, low) = u128_divrem_1e19(value);
+
+    // Write low 19 to the end of the buffer.
+    // SAFETY: safe since we have at least 30 elements, so we can index safely
+    // from 11-onward and have at least 19 elements.
+    write_19(low, unsafe { buffer.get_unchecked_mut(11..) });
+
+    // Write high 11 to the front of the buffer.
+    let value = high as u64;
+    let t_0 = (value / 100000000) as u32;
+    let v_0 = (value as u32).wrapping_sub(t_0.wrapping_mul(100000000));
+    let v_1 = v_0 / 100;
+    let v_2 = v_1 / 100;
+    let v_3 = v_2 / 100;
+    let v_4 = t_0;
+    let v_5 = v_4 / 100;
+    let i_0 = sequential_index(v_0, v_1);
+    let i_1 = sequential_index(v_1, v_2);
+    let i_2 = sequential_index(v_2, v_3);
+    let i_3 = last_index(v_3);
+    let i_4 = sequential_index(v_4, v_5);
+    let i_5 = last_index(v_5);
+    unsafe {
+        *buffer.get_unchecked_mut(10) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_0 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(9) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_0 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(8) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_1 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(7) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_1 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(6) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_2 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(5) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_2 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(4) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_3 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(3) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_3 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(2) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_4 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(1) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_4 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(0) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_5 + 1);
+    }
 }
 
 /// Write 35 digits to buffer.
@@ -576,7 +761,87 @@ unsafe fn write_30(value: u128, buffer: &mut [u8]) {
 /// and indexing the table will be safe as long as the `value < 10^35`.
 #[inline]
 unsafe fn write_35(value: u128, buffer: &mut [u8]) {
-    todo!();
+    debug_assert!(buffer.len() >= 35);
+    debug_assert!(
+        (1000000000000000000000000000000..100000000000000000000000000000000000).contains(&value)
+    );
+
+    // Split value into high 16 and low 19.
+    let (high, low) = u128_divrem_1e19(value);
+
+    // Write low 19 to the end of the buffer.
+    // SAFETY: safe since we have at least 35 elements, so we can index safely
+    // from 16-onward and have at least 19 elements.
+    write_19(low, unsafe { buffer.get_unchecked_mut(16..) });
+
+    // Write high 16 to the front of the buffer.
+    let value = high as u64;
+    let t_0 = (value / 100000000) as u32;
+    let v_0 = (value as u32).wrapping_sub(t_0.wrapping_mul(100000000));
+    let v_1 = v_0 / 100;
+    let v_2 = v_1 / 100;
+    let v_3 = v_2 / 100;
+    let v_4 = t_0;
+    let v_5 = v_4 / 100;
+    let v_6 = v_5 / 100;
+    let v_7 = v_6 / 100;
+    let i_0 = sequential_index(v_0, v_1);
+    let i_1 = sequential_index(v_1, v_2);
+    let i_2 = sequential_index(v_2, v_3);
+    let i_3 = last_index(v_3);
+    let i_4 = sequential_index(v_4, v_5);
+    let i_5 = sequential_index(v_5, v_6);
+    let i_6 = sequential_index(v_6, v_7);
+    let i_7 = last_index(v_7);
+
+    unsafe {
+        *buffer.get_unchecked_mut(15) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_0 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(14) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_0 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(13) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_1 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(12) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_1 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(11) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_2 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(10) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_2 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(9) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_3 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(8) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_3 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(7) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_4 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(6) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_4 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(5) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_5 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(4) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_5 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(3) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_6 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(2) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_6 + 0);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(1) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_7 + 1);
+    }
+    unsafe {
+        *buffer.get_unchecked_mut(0) = *DIGIT_TO_BASE10_SQUARED.get_unchecked(i_7 + 0);
+    }
 }
 
 /// Write 39 digits to buffer.
@@ -587,7 +852,31 @@ unsafe fn write_35(value: u128, buffer: &mut [u8]) {
 /// and indexing the table will be safe as long as the `value < 10^39`.
 #[inline]
 unsafe fn write_39(value: u128, buffer: &mut [u8]) {
-    todo!();
+    debug_assert!(buffer.len() >= 39);
+    debug_assert!(value >= 100000000000000000000000000000000000);
+
+    // Split value into high 20 and low 19.
+    let (high, low) = u128_divrem_1e19(value);
+
+    // Write low 19 to the end of the buffer.
+    // SAFETY: safe since we have at least 39 elements, so we can index safely
+    // from 20-onward and have at least 19 elements.
+    write_19(low, unsafe { buffer.get_unchecked_mut(20..) });
+
+    // Split the value into the high 1 and mid 19.
+    let (high, mid) = u128_divrem_1e19(high);
+
+    // Write low 19 to the middle of the buffer.
+    // SAFETY: safe since we have at least 39 elements, so we can index safely
+    // from 1-onward and have at least 19 elements.
+    write_19(mid, unsafe { buffer.get_unchecked_mut(1..) });
+
+    // Write the high 1 to the front of the buffer
+    // SAFETY: safe since we have at least 39 elements, and high must be
+    // in the range `[0, 9]`.
+    unsafe {
+        *buffer.get_unchecked_mut(0) = high as u8 + b'0';
+    }
 }
 
 // FORMATTERS

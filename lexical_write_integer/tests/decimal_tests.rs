@@ -169,9 +169,278 @@ fn u32toa_test() {
     }
 }
 
-// TODO(ahuszagh)
-//  Add u64
-//  Add u128
+#[test]
+fn u64toa_test() {
+    let mut buffer = [b'0'; 32];
+    unsafe {
+        assert_eq!(decimal::u64toa(5, &mut buffer), 1);
+        assert_eq!(&buffer[..1], b"5");
+
+        assert_eq!(decimal::u64toa(11, &mut buffer), 2);
+        assert_eq!(&buffer[..2], b"11");
+
+        assert_eq!(decimal::u64toa(99, &mut buffer), 2);
+        assert_eq!(&buffer[..2], b"99");
+
+        assert_eq!(decimal::u64toa(101, &mut buffer), 3);
+        assert_eq!(&buffer[..3], b"101");
+
+        assert_eq!(decimal::u64toa(999, &mut buffer), 3);
+        assert_eq!(&buffer[..3], b"999");
+
+        assert_eq!(decimal::u64toa(1001, &mut buffer), 4);
+        assert_eq!(&buffer[..4], b"1001");
+
+        assert_eq!(decimal::u64toa(9999, &mut buffer), 4);
+        assert_eq!(&buffer[..4], b"9999");
+
+        assert_eq!(decimal::u64toa(10001, &mut buffer), 5);
+        assert_eq!(&buffer[..5], b"10001");
+
+        assert_eq!(decimal::u64toa(65535, &mut buffer), 5);
+        assert_eq!(&buffer[..5], b"65535");
+
+        assert_eq!(decimal::u64toa(99999, &mut buffer), 5);
+        assert_eq!(&buffer[..5], b"99999");
+
+        assert_eq!(decimal::u64toa(100001, &mut buffer), 6);
+        assert_eq!(&buffer[..6], b"100001");
+
+        assert_eq!(decimal::u64toa(999999, &mut buffer), 6);
+        assert_eq!(&buffer[..6], b"999999");
+
+        assert_eq!(decimal::u64toa(1000001, &mut buffer), 7);
+        assert_eq!(&buffer[..7], b"1000001");
+
+        assert_eq!(decimal::u64toa(9999999, &mut buffer), 7);
+        assert_eq!(&buffer[..7], b"9999999");
+
+        assert_eq!(decimal::u64toa(10000001, &mut buffer), 8);
+        assert_eq!(&buffer[..8], b"10000001");
+
+        assert_eq!(decimal::u64toa(99999999, &mut buffer), 8);
+        assert_eq!(&buffer[..8], b"99999999");
+
+        assert_eq!(decimal::u64toa(100000001, &mut buffer), 9);
+        assert_eq!(&buffer[..9], b"100000001");
+
+        assert_eq!(decimal::u64toa(999999999, &mut buffer), 9);
+        assert_eq!(&buffer[..9], b"999999999");
+
+        assert_eq!(decimal::u64toa(1000000001, &mut buffer), 10);
+        assert_eq!(&buffer[..10], b"1000000001");
+
+        assert_eq!(decimal::u64toa(9999999999, &mut buffer), 10);
+        assert_eq!(&buffer[..10], b"9999999999");
+
+        assert_eq!(decimal::u64toa(10000000001, &mut buffer), 11);
+        assert_eq!(&buffer[..11], b"10000000001");
+
+        assert_eq!(decimal::u64toa(99999999999, &mut buffer), 11);
+        assert_eq!(&buffer[..11], b"99999999999");
+
+        assert_eq!(decimal::u64toa(100000000001, &mut buffer), 12);
+        assert_eq!(&buffer[..12], b"100000000001");
+
+        assert_eq!(decimal::u64toa(999999999999, &mut buffer), 12);
+        assert_eq!(&buffer[..12], b"999999999999");
+
+        assert_eq!(decimal::u64toa(1000000000001, &mut buffer), 13);
+        assert_eq!(&buffer[..13], b"1000000000001");
+
+        assert_eq!(decimal::u64toa(9999999999999, &mut buffer), 13);
+        assert_eq!(&buffer[..13], b"9999999999999");
+
+        assert_eq!(decimal::u64toa(10000000000001, &mut buffer), 14);
+        assert_eq!(&buffer[..14], b"10000000000001");
+
+        assert_eq!(decimal::u64toa(99999999999999, &mut buffer), 14);
+        assert_eq!(&buffer[..14], b"99999999999999");
+
+        assert_eq!(decimal::u64toa(100000000000001, &mut buffer), 15);
+        assert_eq!(&buffer[..15], b"100000000000001");
+
+        assert_eq!(decimal::u64toa(999999999999999, &mut buffer), 15);
+        assert_eq!(&buffer[..15], b"999999999999999");
+
+        assert_eq!(decimal::u64toa(1000000000000001, &mut buffer), 16);
+        assert_eq!(&buffer[..16], b"1000000000000001");
+
+        assert_eq!(decimal::u64toa(9999999999999999, &mut buffer), 16);
+        assert_eq!(&buffer[..16], b"9999999999999999");
+
+        assert_eq!(decimal::u64toa(10000000000000001, &mut buffer), 17);
+        assert_eq!(&buffer[..17], b"10000000000000001");
+
+        assert_eq!(decimal::u64toa(99999999999999999, &mut buffer), 17);
+        assert_eq!(&buffer[..17], b"99999999999999999");
+
+        assert_eq!(decimal::u64toa(100000000000000001, &mut buffer), 18);
+        assert_eq!(&buffer[..18], b"100000000000000001");
+
+        assert_eq!(decimal::u64toa(999999999999999999, &mut buffer), 18);
+        assert_eq!(&buffer[..18], b"999999999999999999");
+
+        assert_eq!(decimal::u64toa(1000000000000000001, &mut buffer), 19);
+        assert_eq!(&buffer[..19], b"1000000000000000001");
+
+        assert_eq!(decimal::u64toa(9999999999999999999, &mut buffer), 19);
+        assert_eq!(&buffer[..19], b"9999999999999999999");
+
+        assert_eq!(decimal::u64toa(10000000000000000001, &mut buffer), 20);
+        assert_eq!(&buffer[..20], b"10000000000000000001");
+
+        assert_eq!(decimal::u64toa(18446744073709551615, &mut buffer), 20);
+        assert_eq!(&buffer[..20], b"18446744073709551615");
+    }
+}
+
+#[test]
+fn u128toa_test() {
+    let mut buffer = [b'0'; 48];
+    unsafe {
+        assert_eq!(decimal::u128toa(5, &mut buffer), 1);
+        assert_eq!(&buffer[..1], b"5");
+
+        assert_eq!(decimal::u128toa(11, &mut buffer), 2);
+        assert_eq!(&buffer[..2], b"11");
+
+        assert_eq!(decimal::u128toa(99, &mut buffer), 2);
+        assert_eq!(&buffer[..2], b"99");
+
+        assert_eq!(decimal::u128toa(101, &mut buffer), 3);
+        assert_eq!(&buffer[..3], b"101");
+
+        assert_eq!(decimal::u128toa(999, &mut buffer), 3);
+        assert_eq!(&buffer[..3], b"999");
+
+        assert_eq!(decimal::u128toa(1001, &mut buffer), 4);
+        assert_eq!(&buffer[..4], b"1001");
+
+        assert_eq!(decimal::u128toa(9999, &mut buffer), 4);
+        assert_eq!(&buffer[..4], b"9999");
+
+        assert_eq!(decimal::u128toa(10001, &mut buffer), 5);
+        assert_eq!(&buffer[..5], b"10001");
+
+        assert_eq!(decimal::u128toa(65535, &mut buffer), 5);
+        assert_eq!(&buffer[..5], b"65535");
+
+        assert_eq!(decimal::u128toa(99999, &mut buffer), 5);
+        assert_eq!(&buffer[..5], b"99999");
+
+        assert_eq!(decimal::u128toa(100001, &mut buffer), 6);
+        assert_eq!(&buffer[..6], b"100001");
+
+        assert_eq!(decimal::u128toa(999999, &mut buffer), 6);
+        assert_eq!(&buffer[..6], b"999999");
+
+        assert_eq!(decimal::u128toa(1000001, &mut buffer), 7);
+        assert_eq!(&buffer[..7], b"1000001");
+
+        assert_eq!(decimal::u128toa(9999999, &mut buffer), 7);
+        assert_eq!(&buffer[..7], b"9999999");
+
+        assert_eq!(decimal::u128toa(10000001, &mut buffer), 8);
+        assert_eq!(&buffer[..8], b"10000001");
+
+        assert_eq!(decimal::u128toa(99999999, &mut buffer), 8);
+        assert_eq!(&buffer[..8], b"99999999");
+
+        assert_eq!(decimal::u128toa(100000001, &mut buffer), 9);
+        assert_eq!(&buffer[..9], b"100000001");
+
+        assert_eq!(decimal::u128toa(999999999, &mut buffer), 9);
+        assert_eq!(&buffer[..9], b"999999999");
+
+        assert_eq!(decimal::u128toa(1000000001, &mut buffer), 10);
+        assert_eq!(&buffer[..10], b"1000000001");
+
+        assert_eq!(decimal::u128toa(9999999999, &mut buffer), 10);
+        assert_eq!(&buffer[..10], b"9999999999");
+
+        assert_eq!(decimal::u128toa(10000000001, &mut buffer), 11);
+        assert_eq!(&buffer[..11], b"10000000001");
+
+        assert_eq!(decimal::u128toa(99999999999, &mut buffer), 11);
+        assert_eq!(&buffer[..11], b"99999999999");
+
+        assert_eq!(decimal::u128toa(100000000001, &mut buffer), 12);
+        assert_eq!(&buffer[..12], b"100000000001");
+
+        assert_eq!(decimal::u128toa(999999999999, &mut buffer), 12);
+        assert_eq!(&buffer[..12], b"999999999999");
+
+        assert_eq!(decimal::u128toa(1000000000001, &mut buffer), 13);
+        assert_eq!(&buffer[..13], b"1000000000001");
+
+        assert_eq!(decimal::u128toa(9999999999999, &mut buffer), 13);
+        assert_eq!(&buffer[..13], b"9999999999999");
+
+        assert_eq!(decimal::u128toa(10000000000001, &mut buffer), 14);
+        assert_eq!(&buffer[..14], b"10000000000001");
+
+        assert_eq!(decimal::u128toa(99999999999999, &mut buffer), 14);
+        assert_eq!(&buffer[..14], b"99999999999999");
+
+        assert_eq!(decimal::u128toa(100000000000001, &mut buffer), 15);
+        assert_eq!(&buffer[..15], b"100000000000001");
+
+        assert_eq!(decimal::u128toa(999999999999999, &mut buffer), 15);
+        assert_eq!(&buffer[..15], b"999999999999999");
+
+        assert_eq!(decimal::u128toa(1000000000000001, &mut buffer), 16);
+        assert_eq!(&buffer[..16], b"1000000000000001");
+
+        assert_eq!(decimal::u128toa(9999999999999999, &mut buffer), 16);
+        assert_eq!(&buffer[..16], b"9999999999999999");
+
+        assert_eq!(decimal::u128toa(10000000000000001, &mut buffer), 17);
+        assert_eq!(&buffer[..17], b"10000000000000001");
+
+        assert_eq!(decimal::u128toa(99999999999999999, &mut buffer), 17);
+        assert_eq!(&buffer[..17], b"99999999999999999");
+
+        assert_eq!(decimal::u128toa(100000000000000001, &mut buffer), 18);
+        assert_eq!(&buffer[..18], b"100000000000000001");
+
+        assert_eq!(decimal::u128toa(999999999999999999, &mut buffer), 18);
+        assert_eq!(&buffer[..18], b"999999999999999999");
+
+        assert_eq!(decimal::u128toa(1000000000000000001, &mut buffer), 19);
+        assert_eq!(&buffer[..19], b"1000000000000000001");
+
+        assert_eq!(decimal::u128toa(9999999999999999999, &mut buffer), 19);
+        assert_eq!(&buffer[..19], b"9999999999999999999");
+
+        assert_eq!(decimal::u128toa(10000000000000000001, &mut buffer), 20);
+        assert_eq!(&buffer[..20], b"10000000000000000001");
+
+        assert_eq!(decimal::u128toa(999999999999999999999999, &mut buffer), 24);
+        assert_eq!(&buffer[..24], b"999999999999999999999999");
+
+        assert_eq!(decimal::u128toa(1000000000000000000000001, &mut buffer), 25);
+        assert_eq!(&buffer[..25], b"1000000000000000000000001");
+
+        assert_eq!(decimal::u128toa(66620387370000000000000000000, &mut buffer), 29);
+        assert_eq!(&buffer[..29], b"66620387370000000000000000000");
+
+        assert_eq!(decimal::u128toa(99999999999999999999999999999, &mut buffer), 29);
+        assert_eq!(&buffer[..29], b"99999999999999999999999999999");
+
+        assert_eq!(decimal::u128toa(100000000000000000000000000001, &mut buffer), 30);
+        assert_eq!(&buffer[..30], b"100000000000000000000000000001");
+
+        assert_eq!(decimal::u128toa(9999999999999999999999999999999999, &mut buffer), 34);
+        assert_eq!(&buffer[..34], b"9999999999999999999999999999999999");
+
+        assert_eq!(decimal::u128toa(10000000000000000000000000000000001, &mut buffer), 35);
+        assert_eq!(&buffer[..35], b"10000000000000000000000000000000001");
+
+        assert_eq!(decimal::u128toa(340282366920938463463374607431768211455, &mut buffer), 39);
+        assert_eq!(&buffer[..39], b"340282366920938463463374607431768211455");
+    }
+}
 
 fn slow_log2(x: u32) -> usize {
     // Slow approach to calculating a log2, using floats.
@@ -220,7 +489,17 @@ quickcheck! {
             &buffer[..actual.len()] == actual.as_bytes()
     }
 
-    // TODO(ahuszagh)
-    //  Add u64
-    //  Add u128
+    fn u64toa_quickcheck(x: u64) -> bool {
+        let actual = x.to_string();
+        let mut buffer = [b'0'; 32];
+        actual.len() == unsafe { decimal::u64toa(x, &mut buffer) } &&
+            &buffer[..actual.len()] == actual.as_bytes()
+    }
+
+    fn u128toa_quickcheck(x: u128) -> bool {
+        let actual = x.to_string();
+        let mut buffer = [b'0'; 48];
+        actual.len() == unsafe { decimal::u128toa(x, &mut buffer) } &&
+            &buffer[..actual.len()] == actual.as_bytes()
+    }
 }

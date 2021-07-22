@@ -16,6 +16,7 @@ pub(crate) mod lib {
 }
 
 pub mod algorithm;
+pub mod assert;
 pub mod div128;
 pub mod iterator;
 pub mod num;
