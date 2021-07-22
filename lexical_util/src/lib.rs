@@ -15,4 +15,6 @@ pub(crate) mod lib {
     pub(crate) use core::*;
 }
 
+pub mod algorithm;
 pub mod iterator;
+pub mod num;

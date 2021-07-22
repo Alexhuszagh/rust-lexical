@@ -12,9 +12,22 @@ repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
 version = "0.1.0"
 
 [dependencies]
-lexical_util = { version = "0.1", optional = true, path = "../lexical_util" }
+lexical_util = { version = "0.1", path = "../lexical_util" }
+static_assertions = "1"
+
+[dev-dependencies]
+quickcheck = "1.0.3"
+proptest = "0.10.1"
 
 [features]
 default = ["std"]
 # Use the standard library.
 std = []
+# Add support for writing power-of-two integer strings.
+power_of_two = []
+# Add support for writing non-decimal integer strings.
+radix = ["power_of_two"]
+
+# Internal only features.
+# Enable the lint checks.
+lint = []

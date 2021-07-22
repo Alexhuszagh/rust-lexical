@@ -66,7 +66,7 @@ pub trait Iterator<'a, T: 'a>: iter::Iterator<Item = &'a T> + Clone {
         debug_assert!(Self::IS_CONTIGOUS);
 
         // Ensure the the size of V is divisible by the size of T.
-        let count = mem::size_of::<V>() % mem::size_of::<T>();
+        let count = mem::size_of::<V>() / mem::size_of::<T>();
         debug_assert!(mem::size_of::<V>() % mem::size_of::<T>() == 0);
 
         let slc = self.as_slice();
@@ -82,7 +82,7 @@ pub trait Iterator<'a, T: 'a>: iter::Iterator<Item = &'a T> + Clone {
     #[inline]
     fn read<V>(&mut self) -> Option<V> {
         // Ensure the the size of V is divisible by the size of T.
-        let count = mem::size_of::<V>() % mem::size_of::<T>();
+        let count = mem::size_of::<V>() / mem::size_of::<T>();
         debug_assert!(mem::size_of::<V>() % mem::size_of::<T>() == 0);
 
         if Self::IS_CONTIGOUS && self.as_slice().len() >= count {

@@ -12,6 +12,7 @@ repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
 version = "0.1.0"
 
 [dependencies]
+libm = "0.2.1"
 static_assertions = "1"
 
 [features]
