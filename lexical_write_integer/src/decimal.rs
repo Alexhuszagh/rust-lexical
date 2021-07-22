@@ -1162,3 +1162,29 @@ pub unsafe fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
 
     count
 }
+
+
+// Export integer to string.
+pub(super) trait Decimal {
+    unsafe fn decimal(self, buffer: &mut [u8]) -> usize;
+}
+
+macro_rules! decimal_impl {
+    ($($t:tt $cb:ident ; )*) => ($(
+        impl Decimal for $t {
+            #[inline(always)]
+            unsafe fn decimal(self, buffer: &mut [u8]) -> usize {
+                // SAFETY: safe as long as buffer is large enough to hold the max value.
+                unsafe { $cb(self, buffer) }
+            }
+        }
+    )*)
+}
+
+decimal_impl! {
+    u8 u8toa ;
+    u16 u16toa ;
+    u32 u32toa ;
+    u64 u64toa ;
+    u128 u128toa ;
+}

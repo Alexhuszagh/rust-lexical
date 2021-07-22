@@ -6,9 +6,11 @@
 
 #![cfg(feature = "power_of_two")]
 
+use lexical_util::algorithm::copy_to_dst;
+use lexical_util::constants::FormattedSize;
 use lexical_util::div128::{u128_divisor, u128_divrem};
 use lexical_util::num::{as_cast, UnsignedInteger};
-use crate::table::digit_to_char;
+use crate::table::{digit_to_char, get_table};
 
 // TODO(ahuszagh) Add more documentation...
 
@@ -169,4 +171,42 @@ pub unsafe fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [
         }
     }
     index
+}
+
+// Export integer to string.
+pub(super) trait Generic {
+    unsafe fn generic(self, radix: u32, buffer: &mut [u8]) -> usize;
+}
+
+// Implement generic for type.
+macro_rules! generic_impl {
+    ($($t:ty)*) => ($(
+        impl Generic for $t {
+            #[inline(always)]
+            unsafe fn generic(self, radix: u32, buffer: &mut [u8]) -> usize {
+                let table = get_table(radix);
+                let mut digits = [b'0'; <$t>::FORMATTED_SIZE];
+                // SAFETY: safe as long as buffer is large enough to hold the max value.
+                unsafe {
+                    let index = generic(self, radix, table, &mut digits);
+                    copy_to_dst(buffer, &mut digits.get_unchecked_mut(index..))
+                }
+            }
+        }
+    )*);
+}
+
+generic_impl! { u8 u16 u32 u64 usize }
+
+impl Generic for u128 {
+    #[inline(always)]
+    unsafe fn generic(self, radix: u32, buffer: &mut [u8]) -> usize {
+        let table = get_table(radix);
+        let mut digits = [b'0'; u128::FORMATTED_SIZE];
+        // SAFETY: safe as long as buffer is large enough to hold the max value.
+        unsafe {
+            let index = generic_u128(self, radix, table, &mut digits);
+            copy_to_dst(buffer, &mut digits.get_unchecked_mut(index..))
+        }
+    }
 }

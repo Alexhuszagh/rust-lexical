@@ -12,6 +12,7 @@ repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
 version = "0.1.0"
 
 [dependencies]
+cfg-if = "1.0"
 libm = "0.2.1"
 static_assertions = "1"
 
@@ -26,7 +27,7 @@ std = []
 # Add support for writing power-of-two integer strings.
 power_of_two = []
 # Add support for writing non-decimal integer strings.
-radix = []
+radix = ["power_of_two"]
 
 # Internal only features.
 # Enable the lint checks.
