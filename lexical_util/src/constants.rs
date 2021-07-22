@@ -1,5 +1,7 @@
 //! Pre-defined constants for lexical-core.
 
+#![cfg(feature = "write")]
+
 /// The size, in bytes, of formatted values.
 pub trait FormattedSize {
     /// Maximum number of bytes required to serialize a number to string.
@@ -53,7 +55,7 @@ if #[cfg(target_pointer_width = "16")] {
 } else if #[cfg(target_pointer_width = "64")] {
     formatted_size_impl! { isize 20 128 ; }
     formatted_size_impl! { usize 20 128 ; }
-}}  // cfg_if
+}} // cfg_if
 
 /// Maximum number of bytes required to serialize any number to string.
 pub const BUFFER_SIZE: usize = f64::FORMATTED_SIZE;

@@ -19,6 +19,10 @@ pub mod decimal;
 pub mod generic;
 pub mod table;
 
+mod api;
 mod table_binary;
 mod table_decimal;
 mod table_radix;
+
+// Re-exports
+pub use self::api::ToLexical;

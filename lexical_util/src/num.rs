@@ -431,6 +431,7 @@ unsigned_integer_impl! { u8 u16 u32 u64 u128 usize }
 
 /// Float information for native float types.
 #[doc(hidden)]
+#[cfg(feature = "floats")]
 pub trait Float: Number + ops::Neg<Output = Self> {
     /// Unsigned type of the same size.
     type Unsigned: UnsignedInteger;
@@ -637,6 +638,7 @@ pub trait Float: Number + ops::Neg<Output = Self> {
 }
 
 /// Wrap float method for `std` and `no_std` context.
+#[cfg(feature = "floats")]
 macro_rules! float_method {
     ($f:ident, $t:tt, $meth:ident, $libm:ident $(,$i:expr)*) => ({
         if cfg!(feature = "std") {
@@ -648,6 +650,7 @@ macro_rules! float_method {
 }
 
 /// Define the float literals.
+#[cfg(feature = "floats")]
 macro_rules! float_literals {
     ($float:ty) => {
         const ZERO: $float = 0.0;
@@ -663,6 +666,7 @@ macro_rules! float_literals {
 }
 
 /// Define the float masks.
+#[cfg(feature = "floats")]
 macro_rules! float_masks {
     (
         float =>
@@ -691,7 +695,7 @@ macro_rules! float_masks {
 //      - bf16
 //      - f128
 
-#[cfg(feature = "f16")]
+#[cfg(all(feature = "f16", feature = "floats"))]
 impl Float for f16 {
     type Unsigned = u16;
     float_literals!(f16);
@@ -709,7 +713,7 @@ impl Float for f16 {
     const MAX_EXPONENT: i32 = 0x1F - Self::EXPONENT_BIAS;
 }
 
-#[cfg(feature = "f16")]
+#[cfg(all(feature = "f16", feature = "floats"))]
 impl Float for bf16 {
     type Unsigned = u16;
     float_literals!(bf16);
@@ -727,6 +731,7 @@ impl Float for bf16 {
     const MAX_EXPONENT: i32 = 0xFF - Self::EXPONENT_BIAS;
 }
 
+#[cfg(feature = "floats")]
 impl Float for f32 {
     type Unsigned = u32;
     float_literals!(f32);
@@ -798,6 +803,7 @@ impl Float for f32 {
     }
 }
 
+#[cfg(feature = "floats")]
 impl Float for f64 {
     type Unsigned = u64;
     float_literals!(f64);
@@ -869,7 +875,7 @@ impl Float for f64 {
     }
 }
 
-#[cfg(feature = "f128")]
+#[cfg(all(feature = "f128", feature = "floats"))]
 impl Float for f128 {
     type Unsigned = u128;
     float_literals!(f128);

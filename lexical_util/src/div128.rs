@@ -23,6 +23,8 @@
 //! (a BSD-like license), and may be found here:
 //!     https://github.com/rust-lang-nursery/compiler-builtins/blob/master/LICENSE.TXT
 
+#![cfg(feature = "write")]
+
 use crate::assert::debug_assert_radix;
 
 /// Get the divisor for optimized 128-bit division.
@@ -129,6 +131,7 @@ pub fn u128_divisor(radix: u32) -> (u64, usize, u32) {
 // This is because the codegen for u128 divrem is very inefficient in Rust,
 // calling both `__udivmodti4` twice internally, rather than a single time.
 #[inline]
+#[allow(clippy::many_single_char_names)]
 pub fn u128_divrem(n: u128, d: u64, d_ctlz: u32) -> (u128, u64) {
     // Ensure we have the correct number of leading zeros passed.
     debug_assert_eq!(d_ctlz, d.leading_zeros());

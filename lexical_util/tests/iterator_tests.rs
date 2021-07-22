@@ -1,3 +1,5 @@
+#![cfg(feature = "parse")]
+
 #[test]
 fn slice_iterator_test() {
     use lexical_util::iterator::Iterator;

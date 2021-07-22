@@ -654,7 +654,9 @@ unsafe fn write_25(value: u128, buffer: &mut [u8]) {
     // Write low 19 to the end of the buffer.
     // SAFETY: safe since we have at least 25 elements, so we can index safely
     // from 6-onward and have at least 19 elements.
-    write_19(low, unsafe { buffer.get_unchecked_mut(6..) });
+    unsafe {
+        write_19(low, buffer.get_unchecked_mut(6..));
+    }
 
     // Write high 6 to the front of the buffer.
     let value = high as u64;
@@ -701,7 +703,9 @@ unsafe fn write_30(value: u128, buffer: &mut [u8]) {
     // Write low 19 to the end of the buffer.
     // SAFETY: safe since we have at least 30 elements, so we can index safely
     // from 11-onward and have at least 19 elements.
-    write_19(low, unsafe { buffer.get_unchecked_mut(11..) });
+    unsafe {
+        write_19(low, buffer.get_unchecked_mut(11..));
+    }
 
     // Write high 11 to the front of the buffer.
     let value = high as u64;
@@ -772,7 +776,9 @@ unsafe fn write_35(value: u128, buffer: &mut [u8]) {
     // Write low 19 to the end of the buffer.
     // SAFETY: safe since we have at least 35 elements, so we can index safely
     // from 16-onward and have at least 19 elements.
-    write_19(low, unsafe { buffer.get_unchecked_mut(16..) });
+    unsafe {
+        write_19(low, buffer.get_unchecked_mut(16..));
+    }
 
     // Write high 16 to the front of the buffer.
     let value = high as u64;
@@ -861,7 +867,9 @@ unsafe fn write_39(value: u128, buffer: &mut [u8]) {
     // Write low 19 to the end of the buffer.
     // SAFETY: safe since we have at least 39 elements, so we can index safely
     // from 20-onward and have at least 19 elements.
-    write_19(low, unsafe { buffer.get_unchecked_mut(20..) });
+    unsafe {
+        write_19(low, buffer.get_unchecked_mut(20..));
+    }
 
     // Split the value into the high 1 and mid 19.
     let (high, mid) = u128_divrem_1e19(high);
@@ -869,7 +877,9 @@ unsafe fn write_39(value: u128, buffer: &mut [u8]) {
     // Write low 19 to the middle of the buffer.
     // SAFETY: safe since we have at least 39 elements, so we can index safely
     // from 1-onward and have at least 19 elements.
-    write_19(mid, unsafe { buffer.get_unchecked_mut(1..) });
+    unsafe {
+        write_19(mid, buffer.get_unchecked_mut(1..));
+    }
 
     // Write the high 1 to the front of the buffer
     // SAFETY: safe since we have at least 39 elements, and high must be
@@ -997,7 +1007,7 @@ pub unsafe fn u32toa(value: u32, buffer: &mut [u8]) -> usize {
             let mut digits: [u8; 16] = [b'0'; 16];
             unsafe {
                 write_10(value as u64, &mut digits);
-                copy_to_dst(buffer, digits.get_unchecked(10 - count..));
+                copy_to_dst(buffer, digits.get_unchecked(10 - count..10));
             }
         },
         // SAFETY: Safe, since there cannot be more than 10 digits.
@@ -1043,7 +1053,7 @@ pub unsafe fn u64toa(value: u64, buffer: &mut [u8]) -> usize {
             let mut digits: [u8; 16] = [b'0'; 16];
             unsafe {
                 write_10(value, &mut digits);
-                copy_to_dst(buffer, digits.get_unchecked(10 - count..));
+                copy_to_dst(buffer, digits.get_unchecked(10 - count..10));
             }
         },
         11..=15 => {
@@ -1051,7 +1061,7 @@ pub unsafe fn u64toa(value: u64, buffer: &mut [u8]) -> usize {
             let mut digits: [u8; 16] = [b'0'; 16];
             unsafe {
                 write_15(value, &mut digits);
-                copy_to_dst(buffer, digits.get_unchecked(15 - count..));
+                copy_to_dst(buffer, digits.get_unchecked(15 - count..15));
             }
         },
         16..=20 => {
@@ -1059,7 +1069,7 @@ pub unsafe fn u64toa(value: u64, buffer: &mut [u8]) -> usize {
             let mut digits: [u8; 32] = [b'0'; 32];
             unsafe {
                 write_20(value, &mut digits);
-                copy_to_dst(buffer, digits.get_unchecked(20 - count..));
+                copy_to_dst(buffer, digits.get_unchecked(20 - count..20));
             }
         },
         // SAFETY: Safe, since there cannot be more than 20 digits.
@@ -1105,7 +1115,7 @@ pub unsafe fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
             let mut digits: [u8; 16] = [b'0'; 16];
             unsafe {
                 write_10(value as u64, &mut digits);
-                copy_to_dst(buffer, digits.get_unchecked(10 - count..));
+                copy_to_dst(buffer, digits.get_unchecked(10 - count..10));
             }
         },
         11..=15 => {
@@ -1113,7 +1123,7 @@ pub unsafe fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
             let mut digits: [u8; 16] = [b'0'; 16];
             unsafe {
                 write_15(value as u64, &mut digits);
-                copy_to_dst(buffer, digits.get_unchecked(15 - count..));
+                copy_to_dst(buffer, digits.get_unchecked(15 - count..15));
             }
         },
         16..=19 => {
@@ -1121,7 +1131,7 @@ pub unsafe fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
             let mut digits: [u8; 32] = [b'0'; 32];
             unsafe {
                 write_20(value as u64, &mut digits);
-                copy_to_dst(buffer, digits.get_unchecked(20 - count..));
+                copy_to_dst(buffer, digits.get_unchecked(20 - count..20));
             }
         },
         20..=25 => {
@@ -1129,7 +1139,7 @@ pub unsafe fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
             let mut digits: [u8; 32] = [b'0'; 32];
             unsafe {
                 write_25(value, &mut digits);
-                copy_to_dst(buffer, digits.get_unchecked(25 - count..));
+                copy_to_dst(buffer, digits.get_unchecked(25 - count..25));
             }
         },
         26..=30 => {
@@ -1137,7 +1147,7 @@ pub unsafe fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
             let mut digits: [u8; 32] = [b'0'; 32];
             unsafe {
                 write_30(value, &mut digits);
-                copy_to_dst(buffer, digits.get_unchecked(30 - count..));
+                copy_to_dst(buffer, digits.get_unchecked(30 - count..30));
             }
         },
         31..=35 => {
@@ -1145,7 +1155,7 @@ pub unsafe fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
             let mut digits: [u8; 48] = [b'0'; 48];
             unsafe {
                 write_35(value, &mut digits);
-                copy_to_dst(buffer, digits.get_unchecked(35 - count..));
+                copy_to_dst(buffer, digits.get_unchecked(35 - count..35));
             }
         },
         36..=39 => {
@@ -1153,7 +1163,7 @@ pub unsafe fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
             let mut digits: [u8; 48] = [b'0'; 48];
             unsafe {
                 write_39(value, &mut digits);
-                copy_to_dst(buffer, digits.get_unchecked(39 - count..));
+                copy_to_dst(buffer, digits.get_unchecked(39 - count..39));
             }
         },
         // SAFETY: Safe, since there cannot be more than 39 digits.
@@ -1162,7 +1172,6 @@ pub unsafe fn u128toa(value: u128, buffer: &mut [u8]) -> usize {
 
     count
 }
-
 
 // Export integer to string.
 pub(super) trait Decimal {

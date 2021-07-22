@@ -11,10 +11,16 @@ readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
 version = "0.1.0"
 
-[dependencies]
-lexical_util = { version = "0.1", path = "../lexical_util" }
+[dependencies.lexical_util]
+version = "0.1"
+path = "../lexical_util"
+features = ["parse_integers"]
 
 [features]
 default = ["std"]
 # Use the standard library.
 std = []
+
+# Internal only features.
+# Enable the lint checks.
+lint = []

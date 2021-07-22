@@ -8,6 +8,7 @@ use crate::lib::ptr;
 ///
 /// Safe as long as `dst` is larger than `src`.
 #[inline]
+#[cfg(feature = "write")]
 pub unsafe fn copy_to_dst<Bytes: AsRef<[u8]>>(dst: &mut [u8], src: Bytes) -> usize {
     debug_assert!(dst.len() >= src.as_ref().len());
 

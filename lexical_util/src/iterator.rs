@@ -3,6 +3,8 @@
 //! The traits are iterable, and provide optimizations for contiguous
 //! iterators, while still working for non-contiguous data.
 
+#![cfg(feature = "parse")]
+
 use crate::lib::{iter, mem, ptr, slice};
 
 /// Iterator over a contiguous block of memory.

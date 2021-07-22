@@ -1,12 +1,14 @@
 //! Debugging assertions to check a radix is valid.
 
+use crate::constants::FormattedSize;
+
 // RADIX
 
 /// Check radix is in range [2, 36] in debug builds.
 #[inline]
 #[cfg(feature = "radix")]
 pub fn debug_assert_radix(radix: u32) {
-    debug_assert!(radix >= 2 && radix <= 36, "Numerical base must be from 2-36.");
+    debug_assert!((2..=36).contains(&radix), "Numerical base must be from 2-36.");
 }
 
 /// Check radix is is 10 or a power of 2.
@@ -27,4 +29,42 @@ pub fn debug_assert_radix(radix: u32) {
 #[cfg(not(feature = "power_of_two"))]
 pub fn debug_assert_radix(radix: u32) {
     debug_assert!(radix == 10, "Numerical base must be 10.");
+}
+
+// BUFFER
+
+/// Debug assertion the buffer has sufficient room for the output.
+#[inline]
+#[cfg(feature = "write")]
+pub fn debug_assert_buffer<T: FormattedSize>(radix: u32, len: usize) {
+    debug_assert!(
+        match radix {
+            10 => len >= T::FORMATTED_SIZE_DECIMAL,
+            _ => len >= T::FORMATTED_SIZE,
+        },
+        "Buffer is too small: may overwrite buffer in release builds."
+    );
+}
+
+/// Assertion the buffer has sufficient room for the output.
+#[inline]
+#[cfg(all(feature = "power_of_two", feature = "write"))]
+pub fn assert_buffer<T: FormattedSize>(radix: u32, len: usize) {
+    assert!(
+        match radix {
+            10 => len >= T::FORMATTED_SIZE_DECIMAL,
+            _ => len >= T::FORMATTED_SIZE,
+        },
+        "Buffer is too small: may overwrite buffer in release builds."
+    );
+}
+
+/// Assertion the buffer has sufficient room for the output.
+#[inline]
+#[cfg(all(not(feature = "power_of_two"), feature = "write"))]
+pub fn assert_buffer<T: FormattedSize>(_: u32, len: usize) {
+    assert!(
+        len >= T::FORMATTED_SIZE_DECIMAL,
+        "Buffer is too small: may overwrite buffer in release builds."
+    );
 }

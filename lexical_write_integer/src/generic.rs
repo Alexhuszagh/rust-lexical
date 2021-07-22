@@ -6,11 +6,12 @@
 
 #![cfg(feature = "power_of_two")]
 
+use crate::table::{digit_to_char, get_table};
 use lexical_util::algorithm::copy_to_dst;
+use lexical_util::assert::debug_assert_radix;
 use lexical_util::constants::FormattedSize;
 use lexical_util::div128::{u128_divisor, u128_divrem};
 use lexical_util::num::{as_cast, UnsignedInteger};
-use crate::table::{digit_to_char, get_table};
 
 // TODO(ahuszagh) Add more documentation...
 
@@ -31,6 +32,8 @@ unsafe fn generic_algorithm<T: UnsignedInteger>(
     buffer: &mut [u8],
     mut index: usize,
 ) -> usize {
+    debug_assert_radix(radix);
+
     // Pre-compute our powers of radix.
     let radix = as_cast(radix);
     let radix2 = radix * radix;
@@ -122,14 +125,16 @@ pub unsafe fn generic<T>(value: T, radix: u32, table: &[u8], buffer: &mut [u8]) 
 where
     T: UnsignedInteger,
 {
+    // This is so that radix^4 does not overflow, since 36^4 overflows a u16.
     debug_assert!(T::BITS >= 32, "Must have at least 32 bits in the input.");
+    debug_assert_radix(radix);
 
-    // Both forms of unchecked indexing cannot overflow.
+    // SAFETY: Both forms of unchecked indexing cannot overflow.
     // The table always has 2*radix^2 elements, so it must be a legal index.
-    // The buffer is ensured to have at least MAX_DIGITS or MAX_DIGITS_BASE10
-    // characters, which is the maximum number of digits an integer of
-    // that size may write.
-    generic_algorithm(value, radix, table, buffer, buffer.len())
+    // The buffer is ensured to have at least `FORMATTED_SIZE` or
+    // `FORMATTED_SIZE_DECIMAL` characters, which is the maximum number of
+    // digits an integer of that size may write.
+    unsafe { generic_algorithm(value, radix, table, buffer, buffer.len()) }
 }
 
 /// Optimized implementation for radix-N 128-bit numbers.
@@ -139,13 +144,14 @@ where
 /// Safe as long as the buffer is large enough to hold as many digits
 /// that can be in the largest value of `T`, in radix `N`.
 #[inline]
-pub unsafe fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [u8]) -> usize
-{
-    // Both forms of unchecked indexing cannot overflow.
+pub unsafe fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [u8]) -> usize {
+    debug_assert_radix(radix);
+
+    // SAFETY: Both forms of unchecked indexing cannot overflow.
     // The table always has 2*radix^2 elements, so it must be a legal index.
-    // The buffer is ensured to have at least MAX_DIGITS or MAX_DIGITS_BASE10
-    // characters, which is the maximum number of digits an integer of
-    // that size may write.
+    // The buffer is ensured to have at least `FORMATTED_SIZE` or
+    // `FORMATTED_SIZE_DECIMAL` characters, which is the maximum number of
+    // digits an integer of that size may write.
 
     // Use power-reduction to minimize the number of operations.
     // Idea taken from "3 Optimization Tips for C++".
@@ -159,15 +165,19 @@ pub unsafe fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [
     // we just skip down `digits` digits for the next value.
     let (value, low) = u128_divrem(value, divisor, d_ctlz);
     let mut index = buffer.len();
-    generic_algorithm(low, radix, table, buffer, index);
+    unsafe {
+        generic_algorithm(low, radix, table, buffer, index);
+    }
     index -= step;
     if value != 0 {
         let (value, mid) = u128_divrem(value, divisor, d_ctlz);
-        generic_algorithm(mid, radix, table, buffer, index);
+        unsafe {
+            generic_algorithm(mid, radix, table, buffer, index);
+        }
         index -= step;
 
         if value != 0 {
-            index = generic_algorithm(value as u64, radix, table, buffer, index);
+            index = unsafe { generic_algorithm(value as u64, radix, table, buffer, index) };
         }
     }
     index
@@ -175,6 +185,10 @@ pub unsafe fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [
 
 // Export integer to string.
 pub(super) trait Generic {
+    /// # SAFETY
+    ///
+    /// Safe as long as buffer is at least `FORMATTED_SIZE` elements long,
+    /// (or `FORMATTED_SIZE_DECIMAL` for decimal), and the radix is valid.
     unsafe fn generic(self, radix: u32, buffer: &mut [u8]) -> usize;
 }
 
@@ -184,10 +198,9 @@ macro_rules! generic_impl {
         impl Generic for $t {
             #[inline(always)]
             unsafe fn generic(self, radix: u32, buffer: &mut [u8]) -> usize {
-                let table = get_table(radix);
                 let mut digits = [b'0'; <$t>::FORMATTED_SIZE];
-                // SAFETY: safe as long as buffer is large enough to hold the max value.
                 unsafe {
+                    let table = get_table(radix);
                     let index = generic(self, radix, table, &mut digits);
                     copy_to_dst(buffer, &mut digits.get_unchecked_mut(index..))
                 }
@@ -201,10 +214,10 @@ generic_impl! { u8 u16 u32 u64 usize }
 impl Generic for u128 {
     #[inline(always)]
     unsafe fn generic(self, radix: u32, buffer: &mut [u8]) -> usize {
-        let table = get_table(radix);
         let mut digits = [b'0'; u128::FORMATTED_SIZE];
         // SAFETY: safe as long as buffer is large enough to hold the max value.
         unsafe {
+            let table = get_table(radix);
             let index = generic_u128(self, radix, table, &mut digits);
             copy_to_dst(buffer, &mut digits.get_unchecked_mut(index..))
         }

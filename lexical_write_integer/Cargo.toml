@@ -12,8 +12,12 @@ repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
 version = "0.1.0"
 
 [dependencies]
-lexical_util = { version = "0.1", path = "../lexical_util" }
 static_assertions = "1"
+
+[dependencies.lexical_util]
+version = "0.1"
+path = "../lexical_util"
+features = ["write_integers"]
 
 [dev-dependencies]
 quickcheck = "1.0.3"

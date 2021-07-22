@@ -2,6 +2,8 @@
 
 use std::str::from_utf8_unchecked;
 
+use lexical_util::constants::BUFFER_SIZE;
+use lexical_util::num::UnsignedInteger;
 use lexical_write_integer::{generic, table};
 use proptest::prelude::*;
 
@@ -15,6 +17,76 @@ fn u128toa_test() {
         let index = generic::generic_u128(value, radix, tbl, &mut buffer);
         let y = u128::from_str_radix(from_utf8_unchecked(&buffer[index..]), radix);
         assert_eq!(y, Ok(value));
+    }
+}
+
+#[cfg(feature = "power_of_two")]
+fn itoa<T: UnsignedInteger>(x: T, radix: u32, actual: &[u8]) {
+    let mut buffer = [b'0'; BUFFER_SIZE];
+    unsafe {
+        let tbl = table::get_table(radix);
+        let index = generic::generic(x, radix, tbl, &mut buffer);
+        assert_eq!(BUFFER_SIZE - actual.len(), index);
+        assert_eq!(actual, &buffer[index..])
+    }
+}
+
+#[test]
+#[cfg(feature = "power_of_two")]
+fn binary_test() {
+    // Binary
+    itoa(0u128, 2, b"0");
+    itoa(1u128, 2, b"1");
+    itoa(5u128, 2, b"101");
+    itoa(170141183460469231731687303715884105727u128, 2, b"1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111");
+
+    // Hexadecimal
+    itoa(170141183460469231731687303715884105727u128, 16, b"7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
+}
+
+#[test]
+#[cfg(feature = "radix")]
+fn radix_test() {
+    let data = [
+        (2, "100101"),
+        (3, "1101"),
+        (4, "211"),
+        (5, "122"),
+        (6, "101"),
+        (7, "52"),
+        (8, "45"),
+        (9, "41"),
+        (10, "37"),
+        (11, "34"),
+        (12, "31"),
+        (13, "2B"),
+        (14, "29"),
+        (15, "27"),
+        (16, "25"),
+        (17, "23"),
+        (18, "21"),
+        (19, "1I"),
+        (20, "1H"),
+        (21, "1G"),
+        (22, "1F"),
+        (23, "1E"),
+        (24, "1D"),
+        (25, "1C"),
+        (26, "1B"),
+        (27, "1A"),
+        (28, "19"),
+        (29, "18"),
+        (30, "17"),
+        (31, "16"),
+        (32, "15"),
+        (33, "14"),
+        (34, "13"),
+        (35, "12"),
+        (36, "11"),
+    ];
+
+    for (radix, expected) in data.iter() {
+        itoa(37u32, *radix, expected.as_bytes());
     }
 }
 
