@@ -1,6 +1,8 @@
 //! Pre-computed tables for writing integral strings.
 
+#[cfg(feature = "power_of_two")]
 use crate::lib::hint;
+#[cfg(feature = "power_of_two")]
 use lexical_util::assert::debug_assert_radix;
 
 // Re-export all the feature-specific files.

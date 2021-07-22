@@ -120,6 +120,8 @@ pub unsafe fn generic<T>(value: T, radix: u32, table: &[u8], buffer: &mut [u8]) 
 where
     T: UnsignedInteger,
 {
+    debug_assert!(T::BITS >= 32, "Must have at least 32 bits in the input.");
+
     // Both forms of unchecked indexing cannot overflow.
     // The table always has 2*radix^2 elements, so it must be a legal index.
     // The buffer is ensured to have at least MAX_DIGITS or MAX_DIGITS_BASE10
@@ -145,17 +147,22 @@ pub unsafe fn generic_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [
 
     // Use power-reduction to minimize the number of operations.
     // Idea taken from "3 Optimization Tips for C++".
-    let (divisor, _, d_ctlz) = u128_divisor(radix);
+    // Need to keep the steps, cause the lower values may
+    // have internal 0s.
+    let (divisor, step, d_ctlz) = u128_divisor(radix);
 
     // Decode 4-digits at a time.
     // To deal with internal 0 values or values with internal 0 digits set,
     // we store the starting index, and if not all digits are written,
     // we just skip down `digits` digits for the next value.
     let (value, low) = u128_divrem(value, divisor, d_ctlz);
-    let mut index = generic_algorithm(low, radix, table, buffer, buffer.len());
+    let mut index = buffer.len();
+    generic_algorithm(low, radix, table, buffer, index);
+    index -= step;
     if value != 0 {
         let (value, mid) = u128_divrem(value, divisor, d_ctlz);
-        index = generic_algorithm(mid, radix, table, buffer, index);
+        generic_algorithm(mid, radix, table, buffer, index);
+        index -= step;
 
         if value != 0 {
             index = generic_algorithm(value as u64, radix, table, buffer, index);
