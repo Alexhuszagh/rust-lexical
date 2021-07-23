@@ -3,31 +3,28 @@
 use std::str::from_utf8_unchecked;
 
 use lexical_util::constants::BUFFER_SIZE;
-use lexical_util::num::UnsignedInteger;
-use lexical_write_integer::{generic, table};
+use lexical_write_integer::generic::Generic;
 use proptest::prelude::*;
 
 #[test]
 fn u128toa_test() {
-    let mut buffer = [b'0'; 128];
+    let mut buffer = [b'\x00'; 128];
     unsafe {
         let radix = 12;
-        let tbl = table::get_table(radix);
         let value = 136551478823710021067381144334863695872u128;
-        let index = generic::generic_u128(value, radix, tbl, &mut buffer);
-        let y = u128::from_str_radix(from_utf8_unchecked(&buffer[index..]), radix);
+        let count = value.generic(radix, &mut buffer);
+        let y = u128::from_str_radix(from_utf8_unchecked(&buffer[..count]), radix);
         assert_eq!(y, Ok(value));
     }
 }
 
 #[cfg(feature = "power_of_two")]
-fn itoa<T: UnsignedInteger>(x: T, radix: u32, actual: &[u8]) {
-    let mut buffer = [b'0'; BUFFER_SIZE];
+fn itoa<T: Generic>(x: T, radix: u32, actual: &[u8]) {
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
     unsafe {
-        let tbl = table::get_table(radix);
-        let index = generic::generic(x, radix, tbl, &mut buffer);
-        assert_eq!(BUFFER_SIZE - actual.len(), index);
-        assert_eq!(actual, &buffer[index..])
+        let count = x.generic(radix, &mut buffer);
+        assert_eq!(actual.len(), count);
+        assert_eq!(actual, &buffer[..count])
     }
 }
 
@@ -90,36 +87,11 @@ fn radix_test() {
     }
 }
 
-fn u8toa_mockup(x: u8, radix: u32) -> Result<(), TestCaseError> {
-    let mut buffer = [b'0'; 16];
-    unsafe {
-        let tbl = table::get_table(radix);
-        let index = generic::generic(x as u32, radix, tbl, &mut buffer);
-        let y = u8::from_str_radix(from_utf8_unchecked(&buffer[index..]), radix);
-        prop_assert_eq!(y, Ok(x));
-    }
-
-    Ok(())
-}
-
-fn u16toa_mockup(x: u16, radix: u32) -> Result<(), TestCaseError> {
-    let mut buffer = [b'0'; 16];
-    unsafe {
-        let tbl = table::get_table(radix);
-        let index = generic::generic(x as u32, radix, tbl, &mut buffer);
-        let y = u16::from_str_radix(from_utf8_unchecked(&buffer[index..]), radix);
-        prop_assert_eq!(y, Ok(x));
-    }
-
-    Ok(())
-}
-
 fn u32toa_mockup(x: u32, radix: u32) -> Result<(), TestCaseError> {
-    let mut buffer = [b'0'; 32];
+    let mut buffer = [b'\x00'; 32];
     unsafe {
-        let tbl = table::get_table(radix);
-        let index = generic::generic(x as u32, radix, tbl, &mut buffer);
-        let y = u32::from_str_radix(from_utf8_unchecked(&buffer[index..]), radix);
+        let count = x.generic(radix, &mut buffer);
+        let y = u32::from_str_radix(from_utf8_unchecked(&buffer[..count]), radix);
         prop_assert_eq!(y, Ok(x));
     }
 
@@ -127,11 +99,10 @@ fn u32toa_mockup(x: u32, radix: u32) -> Result<(), TestCaseError> {
 }
 
 fn u64toa_mockup(x: u64, radix: u32) -> Result<(), TestCaseError> {
-    let mut buffer = [b'0'; 64];
+    let mut buffer = [b'\x00'; 64];
     unsafe {
-        let tbl = table::get_table(radix);
-        let index = generic::generic(x, radix, tbl, &mut buffer);
-        let y = u64::from_str_radix(from_utf8_unchecked(&buffer[index..]), radix);
+        let count = x.generic(radix, &mut buffer);
+        let y = u64::from_str_radix(from_utf8_unchecked(&buffer[..count]), radix);
         prop_assert_eq!(y, Ok(x));
     }
 
@@ -139,11 +110,10 @@ fn u64toa_mockup(x: u64, radix: u32) -> Result<(), TestCaseError> {
 }
 
 fn u128toa_mockup(x: u128, radix: u32) -> Result<(), TestCaseError> {
-    let mut buffer = [b'0'; 128];
+    let mut buffer = [b'\x00'; 128];
     unsafe {
-        let tbl = table::get_table(radix);
-        let index = generic::generic_u128(x, radix, tbl, &mut buffer);
-        let y = u128::from_str_radix(from_utf8_unchecked(&buffer[index..]), radix);
+        let count = x.generic(radix, &mut buffer);
+        let y = u128::from_str_radix(from_utf8_unchecked(&buffer[..count]), radix);
         prop_assert_eq!(y, Ok(x));
     }
 
@@ -151,32 +121,6 @@ fn u128toa_mockup(x: u128, radix: u32) -> Result<(), TestCaseError> {
 }
 
 proptest! {
-    #[test]
-    #[cfg(feature = "radix")]
-    fn u8toa_proptest(x: u8, radix in 2u32..=36) {
-        u8toa_mockup(x, radix)?;
-    }
-
-    #[test]
-    #[cfg(not(feature = "radix"))]
-    fn u8toa_proptest(x: u8, power in 1u32..=5) {
-        let radix = 2u32.pow(power);
-        u8toa_mockup(x, radix)?;
-    }
-
-    #[test]
-    #[cfg(feature = "radix")]
-    fn u16toa_proptest(x: u16, radix in 2u32..=36) {
-        u16toa_mockup(x, radix)?;
-    }
-
-    #[test]
-    #[cfg(not(feature = "radix"))]
-    fn u16toa_proptest(x: u16, power in 1u32..=5) {
-        let radix = 2u32.pow(power);
-        u16toa_mockup(x, radix)?;
-    }
-
     #[test]
     #[cfg(feature = "radix")]
     fn u32toa_proptest(x: u32, radix in 2u32..=36) {

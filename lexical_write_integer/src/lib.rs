@@ -15,6 +15,7 @@ pub(crate) mod lib {
     pub(crate) use core::*;
 }
 
+pub mod algorithm;
 pub mod decimal;
 pub mod generic;
 pub mod table;

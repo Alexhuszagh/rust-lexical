@@ -23,7 +23,7 @@ macro_rules! itoa_impl {
 itoa_impl! { u8 u16 u32 u64 u128 usize }
 
 /// Forward itoa arguments to an optimized backend.
-///  Preconditions: `value` must be non-negative and unsigned.
+/// Preconditions: `value` must be non-negative and unsigned.
 ///
 /// # Safety
 ///
@@ -39,7 +39,7 @@ where
 }
 
 /// Forward itoa arguments to an optimized backend.
-///  Preconditions: `value` must be non-negative and unsigned.
+/// Preconditions: `value` must be non-negative and unsigned.
 ///
 /// # Safety
 ///
@@ -52,10 +52,10 @@ where
     T: Itoa,
     U: Itoa,
 {
+    let value: U = as_cast(value);
     if radix == 10 {
         unsafe { value.decimal(buffer) }
     } else {
-        let value: U = as_cast(value);
         unsafe { value.generic(radix, buffer) }
     }
 }
@@ -116,6 +116,10 @@ where
     let mut count = 0;
     let unsigned: Unsigned;
     if value < Narrow::ZERO {
+        // Need to cast the value to the same size as unsigned type, since if
+        // the value is **exactly** `Narrow::MIN`, and it it is then cast
+        // as the wrapping negative as the unsigned value, a wider type
+        // will have a very different value.
         let value: Wide = as_cast(value);
         unsigned = as_cast(value.wrapping_neg());
         count += 1;

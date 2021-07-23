@@ -193,27 +193,27 @@ macro_rules! bench {
             group.measurement_time(Duration::from_secs(5));
             let seed = fastrand::u64(..);
 
-            let u8_data = genarray::<u8, COUNT>($strategy, seed);
-            let u16_data = genarray::<u16, COUNT>($strategy, seed);
-            let u32_data = genarray::<u32, COUNT>($strategy, seed);
-            let u64_data = genarray::<u64, COUNT>($strategy, seed);
+            //let u8_data = genarray::<u8, COUNT>($strategy, seed);
+            //let u16_data = genarray::<u16, COUNT>($strategy, seed);
+            //let u32_data = genarray::<u32, COUNT>($strategy, seed);
+            //let u64_data = genarray::<u64, COUNT>($strategy, seed);
             let u128_data = genarray::<u128, COUNT>($strategy, seed);
-            let i8_data = genarray::<i8, COUNT>($strategy, seed);
-            let i16_data = genarray::<i16, COUNT>($strategy, seed);
-            let i32_data = genarray::<i32, COUNT>($strategy, seed);
-            let i64_data = genarray::<i64, COUNT>($strategy, seed);
-            let i128_data = genarray::<i128, COUNT>($strategy, seed);
+            //let i8_data = genarray::<i8, COUNT>($strategy, seed);
+            //let i16_data = genarray::<i16, COUNT>($strategy, seed);
+            //let i32_data = genarray::<i32, COUNT>($strategy, seed);
+            //let i64_data = genarray::<i64, COUNT>($strategy, seed);
+            //let i128_data = genarray::<i128, COUNT>($strategy, seed);
 
-            generator!(group, $name, "u8", u8_data);
-            generator!(group, $name, "u16", u16_data);
-            generator!(group, $name, "u32", u32_data);
-            generator!(group, $name, "u64", u64_data);
+            //generator!(group, $name, "u8", u8_data);
+            //generator!(group, $name, "u16", u16_data);
+            //generator!(group, $name, "u32", u32_data);
+            //generator!(group, $name, "u64", u64_data);
             generator!(group, $name, "u128", u128_data);
-            generator!(group, $name, "i8", i8_data);
-            generator!(group, $name, "i16", i16_data);
-            generator!(group, $name, "i32", i32_data);
-            generator!(group, $name, "i64", i64_data);
-            generator!(group, $name, "i128", i128_data);
+            //generator!(group, $name, "i8", i8_data);
+            //generator!(group, $name, "i16", i16_data);
+            //generator!(group, $name, "i32", i32_data);
+            //generator!(group, $name, "i64", i64_data);
+            //generator!(group, $name, "i128", i128_data);
         }
     };
 }
@@ -242,14 +242,14 @@ macro_rules! bench_signed {
 
 // TODO(ahuszagh) Restore these...
 bench!(uniform, "uniform", RandomGen::Uniform);
-//bench!(simple, "simple", RandomGen::Simple);
+bench!(simple, "simple", RandomGen::Simple);
 //bench!(large, "large", RandomGen::Large);
 //bench_signed!(simple_signed, "simple_signed", RandomGen::SimpleSigned);
 //bench_signed!(large_signed, "large_signed", RandomGen::LargeSigned);
 
 criterion_group!(uniform_benches, uniform);
-//criterion_group!(simple_benches, simple);
+criterion_group!(simple_benches, simple);
 //criterion_group!(large_benches, large);
 //criterion_group!(simple_signed_benches, simple_signed);
 //criterion_group!(large_signed_benches, large_signed);
-criterion_main!(uniform_benches/*, simple_benches, large_benches, simple_signed_benches, large_signed_benches*/);
+criterion_main!(uniform_benches, simple_benches/*, large_benches, simple_signed_benches, large_signed_benches*/);

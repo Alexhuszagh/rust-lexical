@@ -16,3 +16,4 @@ profdata_*
 errors.txt
 cargo-timing*.html
 proptest-regressions/
+*.proptest-regressions
