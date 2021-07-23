@@ -55,6 +55,14 @@ use crate::assert::debug_assert_radix;
 ///     power = find_pow(radix)
 ///     print(radix, radix**power, power)
 /// ```
+
+// TODO(ahuszagh) This is poorly optimized.
+//  See this:
+// Integer division algorithm is based on the following paper:
+//
+//   T. Granlund and P. Montgomery, “Division by Invariant Integers Using Multiplication”
+//   in Proc. of the SIGPLAN94 Conference on Programming Language Design and
+//   Implementation, 1994, pp. 61–72
 #[inline]
 #[cfg(feature = "radix")]
 pub fn u128_divisor(radix: u32) -> (u64, usize, u32) {

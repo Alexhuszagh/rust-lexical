@@ -125,7 +125,7 @@ unsafe fn write_step_digits<T: UnsignedInteger>(
     table: &[u8],
     buffer: &mut [u8],
     index: usize,
-    step: usize
+    step: usize,
 ) -> usize {
     let start = index;
     // SAFETY: safe as long as the call to write_step_digits is safe.
@@ -133,7 +133,9 @@ unsafe fn write_step_digits<T: UnsignedInteger>(
     // Write the remaining 0 bytes.
     // SAFETY: this is always safe as long as end is less than the buffer length.
     let end = start.saturating_sub(step);
-    ptr::write_bytes(buffer.as_mut_ptr().add(end), b'0', index - end);
+    unsafe {
+        ptr::write_bytes(buffer.as_mut_ptr().add(end), b'0', index - end);
+    }
 
     end
 }
@@ -175,7 +177,7 @@ pub unsafe fn algorithm_u128(value: u128, radix: u32, table: &[u8], buffer: &mut
     // If the value can be represented in a 64-bit integer, we can
     // do this as a native integer.
     if value <= u64::MAX as u128 {
-        return algorithm(value as u64, radix, table, buffer);
+        return unsafe { algorithm(value as u64, radix, table, buffer) };
     }
 
     // SAFETY: Both forms of unchecked indexing cannot overflow.
@@ -200,7 +202,7 @@ pub unsafe fn algorithm_u128(value: u128, radix: u32, table: &[u8], buffer: &mut
         index = write_step_digits(low, radix, table, buffer, index, step);
     }
     if value <= u64::MAX as u128 {
-        return write_digits(value as u64, radix, table, buffer, index);
+        return unsafe { write_digits(value as u64, radix, table, buffer, index) };
     }
 
     // Value has to be greater than 1.8e38

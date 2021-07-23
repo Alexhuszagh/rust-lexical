@@ -10,8 +10,8 @@
 
 #![cfg(feature = "power_of_two")]
 
-use crate::lib::mem;
 use crate::algorithm::{algorithm, algorithm_u128};
+use crate::lib::mem;
 use crate::table::get_table;
 use lexical_util::algorithm::copy_to_dst;
 use lexical_util::num::UnsignedInteger;

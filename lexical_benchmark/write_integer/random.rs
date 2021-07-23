@@ -154,7 +154,9 @@ macro_rules! itoa_generator {
                 $data.iter().for_each(|&x| {
                     itoa::write(&mut buffer, x).unwrap();
                     black_box(&buffer);
-                    unsafe { buffer.set_len(0); }
+                    unsafe {
+                        buffer.set_len(0);
+                    }
                 })
             })
         });
@@ -169,7 +171,9 @@ macro_rules! fmt_generator {
             bench.iter(|| {
                 $data.iter().for_each(|&x| {
                     black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
-                    unsafe { buffer.set_len(0); }
+                    unsafe {
+                        buffer.set_len(0);
+                    }
                 })
             })
         });
@@ -252,4 +256,7 @@ criterion_group!(simple_benches, simple);
 //criterion_group!(large_benches, large);
 //criterion_group!(simple_signed_benches, simple_signed);
 //criterion_group!(large_signed_benches, large_signed);
-criterion_main!(uniform_benches, simple_benches/*, large_benches, simple_signed_benches, large_signed_benches*/);
+criterion_main!(
+    uniform_benches,
+    simple_benches /*, large_benches, simple_signed_benches, large_signed_benches*/
+);

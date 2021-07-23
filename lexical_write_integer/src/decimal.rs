@@ -217,7 +217,7 @@ impl DigitCount for u128 {
 
 // Export integer to string.
 pub trait Decimal: DigitCount {
-    /// # SAFETY
+    /// # Safety
     ///
     /// Safe as long as buffer is at least `FORMATTED_SIZE` elements long,
     /// (or `FORMATTED_SIZE_DECIMAL` for decimal), and the radix is valid.

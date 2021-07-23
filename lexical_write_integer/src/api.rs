@@ -35,6 +35,7 @@ where
     T: Itoa,
     U: Itoa,
 {
+    let value: U = as_cast(value);
     unsafe { value.decimal(buffer) }
 }
 
@@ -113,29 +114,28 @@ where
     Wide: SignedInteger,
     Unsigned: Itoa,
 {
-    let mut count = 0;
-    let unsigned: Unsigned;
     if value < Narrow::ZERO {
         // Need to cast the value to the same size as unsigned type, since if
         // the value is **exactly** `Narrow::MIN`, and it it is then cast
         // as the wrapping negative as the unsigned value, a wider type
         // will have a very different value.
         let value: Wide = as_cast(value);
-        unsigned = as_cast(value.wrapping_neg());
-        count += 1;
+        let unsigned: Unsigned = as_cast(value.wrapping_neg());
         // SAFETY: safe as long as there is at least 1 element, which
         // the buffer should have at least `FORMATTED_SIZE` elements.
         unsafe {
             *buffer.get_unchecked_mut(0) = b'-';
             buffer = buffer.get_unchecked_mut(1..);
         }
+        // SAFETY: safe as long as there is at least 1 element, which
+        // the buffer should have at least `FORMATTED_SIZE` elements.
+        unsafe { itoa_positive::<Unsigned, Unsigned>(unsigned, radix, buffer) + 1 }
     } else {
-        unsigned = as_cast(value);
+        let unsigned: Unsigned = as_cast(value);
+        // SAFETY: safe as long as there is at least 1 element, which
+        // the buffer should have at least `FORMATTED_SIZE` elements.
+        unsafe { itoa_positive::<Unsigned, Unsigned>(unsigned, radix, buffer) }
     }
-
-    // SAFETY: safe as long as there is at least 1 element, which
-    // the buffer should have at least `FORMATTED_SIZE` elements.
-    unsafe { itoa_positive::<Unsigned, Unsigned>(unsigned, radix, buffer) + count }
 }
 
 macro_rules! signed_to_lexical {
