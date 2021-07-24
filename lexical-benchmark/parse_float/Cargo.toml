@@ -1,0 +1,24 @@
+[package]
+name = "lexical-parse-float-benchmark"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies.lexical-parse-float]
+path = "../../lexical-parse-float"
+default-features = false
+features = []
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+
+[features]
+std = ["lexical-parse-float/std"]
+radix = ["lexical-parse-float/radix"]
+power-of-two = ["lexical-parse-float/power-of-two"]
+
+[[bench]]
+name = "write_integer"
+path = "bench.rs"
+harness = false

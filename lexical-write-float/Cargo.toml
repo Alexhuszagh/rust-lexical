@@ -1,0 +1,30 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
+categories = ["value-formatting", "encoding", "no-std"]
+description = "Efficient formatting of floats to strings."
+edition = "2018"
+keywords = ["encoding", "lexical", "no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-write-float"
+readme = "README.md"
+repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
+version = "0.1.0"
+
+[dependencies.lexical-util]
+version = "0.1"
+path = "../lexical-util"
+features = ["write-floats"]
+
+[features]
+default = ["std"]
+# Use the standard library.
+std = []
+# Add support for writing power-of-two float strings.
+power-of-two = ["lexical-util/power-of-two"]
+# Add support for writing non-decimal float strings.
+radix = ["lexical-util/radix", "power-of-two"]
+
+# Internal only features.
+# Enable the lint checks.
+lint = []

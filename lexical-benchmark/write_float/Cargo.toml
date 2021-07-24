@@ -1,0 +1,24 @@
+[package]
+name = "lexical-write-float-benchmark"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies.lexical-write-float]
+path = "../../lexical-write-float"
+default-features = false
+features = []
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+
+[features]
+std = ["lexical-write-float/std"]
+radix = ["lexical-write-float/radix"]
+power-of-two = ["lexical-write-float/power-of-two"]
+
+[[bench]]
+name = "write_integer"
+path = "bench.rs"
+harness = false

@@ -1,0 +1,37 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
+categories = ["value-formatting", "encoding", "no-std"]
+description = "Efficient formatting of integers to strings."
+edition = "2018"
+keywords = ["encoding", "lexical", "no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-write-integer"
+readme = "README.md"
+repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
+version = "0.1.0"
+
+[dependencies]
+static_assertions = "1"
+
+[dependencies.lexical-util]
+version = "0.1"
+path = "../lexical-util"
+features = ["write-integers"]
+
+[dev-dependencies]
+quickcheck = "1.0.3"
+proptest = "0.10.1"
+
+[features]
+default = ["std"]
+# Use the standard library.
+std = ["lexical-util/std"]
+# Add support for writing power-of-two integer strings.
+power-of-two = ["lexical-util/power-of-two"]
+# Add support for writing non-decimal integer strings.
+radix = ["lexical-util/radix", "power-of-two"]
+
+# Internal only features.
+# Enable the lint checks.
+lint = []

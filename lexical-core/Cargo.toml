@@ -1,0 +1,70 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
+categories = ["parsing", "encoding", "no-std", "value-formatting"]
+description = "Lexical, to- and from-string conversion routines."
+edition = "2018"
+keywords = ["parsing", "lexical", "encoding", "no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-core"
+readme = "README.md"
+repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
+version = "0.1.0"
+
+[dependencies.lexical-parse-integer]
+version = "0.1"
+optional = true
+path = "../lexical-parse-integer"
+
+[dependencies.lexical-parse-float]
+version = "0.1"
+optional = true
+path = "../lexical-parse-float"
+
+[dependencies.lexical-write-integer]
+version = "0.1"
+optional = true
+path = "../lexical-write-integer"
+
+[dependencies.lexical-write-float]
+version = "0.1"
+optional = true
+path = "../lexical-write-float"
+
+[features]
+# Need to enable all for backwards compatibility.
+default = ["std", "write-integers", "write-floats", "parse-integers", "parse-floats"]
+# Use the standard library.
+std = []
+# Add support for writing integers.
+write-integers = ["lexical-write-integer"]
+# Add support for writing floats.
+write-floats = ["lexical-write-float"]
+# Add support for parsing integers.
+parse-integers = ["lexical-parse-integer"]
+# Add support for parsing floats.
+parse-floats = ["lexical-parse-float"]
+
+# Add support for parsing power-of-two float strings.
+power-of-two = [
+    "lexical-write-integer/power-of-two",
+    "lexical-write-float/power-of-two",
+    "lexical-parse-integer/power-of-two",
+    "lexical-parse-float/power-of-two"
+]
+# Add support for parsing non-decimal float strings.
+radix = [
+    "lexical-write-integer/radix",
+    "lexical-write-float/radix",
+    "lexical-parse-integer/radix",
+    "lexical-parse-float/radix"
+]
+
+# Internal only features.
+# Enable the lint checks.
+lint = [
+    "lexical-write-integer/lint",
+    "lexical-write-float/lint",
+    "lexical-parse-integer/lint",
+    "lexical-parse-float/lint"
+]

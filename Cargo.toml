@@ -1,11 +1,11 @@
 [workspace]
 members = [
     "lexical",
-    "lexical_core",
-    "lexical_parse_integer",
-    "lexical_parse_float",
-    "lexical_write_integer",
-    "lexical_write_float",
+    "lexical-core",
+    "lexical-parse-integer",
+    "lexical-parse-float",
+    "lexical-write-integer",
+    "lexical-write-float",
 ]
 
 [profile.dev]

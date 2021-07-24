@@ -1,0 +1,64 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
+categories = ["value-formatting", "encoding", "no-std"]
+description = "Shared utilities for lexical creates."
+edition = "2018"
+keywords = ["no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-util"
+readme = "README.md"
+repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
+version = "0.1.0"
+
+[dependencies]
+cfg-if = "1.0"
+# TODO(ahuszagh) libm may no longer be needed.
+libm = { version = "0.2.1", optional = true }
+static_assertions = "1"
+
+[dev-dependencies]
+quickcheck = "1.0.3"
+proptest = "0.10.1"
+
+# FEATURES
+# --------
+# In order to improve compile times, we have separate support
+# for each numeric conversion. Since these features are additive,
+# if more features are added, separate crates can add support
+# for more features without requiring re-compilation of lexical.
+
+[features]
+default = ["std"]
+# Use the standard library.
+std = []
+# Add support for writing power-of-two integer strings.
+power-of-two = []
+# Add support for writing integers.
+write-integers = ["write", "integers"]
+# Add support for writing floats.
+write-floats = ["write", "floats"]
+# Add support for parsing integers.
+parse-integers = ["parse", "integers"]
+# Add support for parsing floats.
+parse-floats = ["parse", "floats"]
+
+# Internal only features.
+# Enable the lint checks.
+lint = []
+# Add support for writing non-decimal integer strings.
+radix = ["power-of-two"]
+# Add support for writing numbers.
+write = []
+# Add support for parsing numbers.
+parse = []
+# Add support for conversions to or from integers.
+integers = []
+# Add support for conversions to or from floats.
+floats = ["libm"]
+
+# Currently unsupported.
+# Enable support for 16-bit floats
+f16 = []
+# Enable support for 128-bit floats
+f128 = []

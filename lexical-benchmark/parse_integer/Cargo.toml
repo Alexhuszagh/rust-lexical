@@ -1,0 +1,24 @@
+[package]
+name = "lexical-parse-integer-benchmark"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies.lexical-parse-integer]
+path = "../../lexical-parse-integer"
+default-features = false
+features = []
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+
+[features]
+std = ["lexical-parse-integer/std"]
+radix = ["lexical-parse-integer/radix"]
+power-of-two = ["lexical-parse-integer/power-of-two"]
+
+[[bench]]
+name = "write_integer"
+path = "bench.rs"
+harness = false

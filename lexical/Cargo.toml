@@ -11,24 +11,28 @@ readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
 version = "0.1.0"
 
-[dependencies.lexical_core]
+[dependencies.lexical-core]
 version = "0.1"
 optional = true
-path = "../lexical_core"
+path = "../lexical-core"
 
 [features]
 default = ["std"]
 # Use the standard library.
 std = []
 # Add support for writing integers.
-write_integers = ["lexical_core/write_integers"]
+write-integers = ["lexical-core/write-integers"]
 # Add support for writing floats.
-write_floats = ["lexical_core/write_floats"]
+write-floats = ["lexical-core/write-floats"]
 # Add support for parsing integers.
-parse_integers = ["lexical_core/parse_integers"]
+parse-integers = ["lexical-core/parse-integers"]
 # Add support for parsing floats.
-parse_floats = ["lexical_core/parse_floats"]
+parse-floats = ["lexical-core/parse-floats"]
+# Add support for parsing power-of-two float strings.
+power-of-two = ["lexical-core/power-of-two"]
+# Add support for parsing non-decimal float strings.
+radix = ["lexical-core/radix"]
 
 # Internal only features.
 # Enable the lint checks.
-lint = ["lexical_core/lint"]
+lint = ["lexical-core/lint"]
