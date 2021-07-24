@@ -1,9 +1,9 @@
 [workspace]
 members = [
-    "parse_integer",
-    "parse_float",
-    "write_integer",
-    "write_float",
+    "parse-integer",
+    "parse-float",
+    "write-integer",
+    "write-float",
 ]
 
 [profile.bench]
