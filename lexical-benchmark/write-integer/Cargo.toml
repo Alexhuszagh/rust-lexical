@@ -29,11 +29,10 @@ std = ["lexical-util/std", "lexical-write-integer/std"]
 radix = ["lexical-util/radix", "lexical-write-integer/radix"]
 power-of-two = ["lexical-util/power-of-two", "lexical-write-integer/power-of-two"]
 
-# TODO(ahuszagh) Restore...
-#[[bench]]
-#name = "json"
-#path = "json.rs"
-#harness = false
+[[bench]]
+name = "json"
+path = "json.rs"
+harness = false
 
 [[bench]]
 name = "random"

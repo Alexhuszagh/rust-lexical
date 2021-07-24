@@ -56,7 +56,7 @@ def change_directory(path):
 def process_rust_benchmark(line):
     '''Process the result of an individual Rust benchmark.'''
 
-    pattern = r'test (\w+)/(\w+) \.\.\. bench:\s+ (\d+) (\w+)/iter'
+    pattern = r'test ([A-Za-z0-9_:]+)/([A-Za-z0-9_:]+) \.\.\. bench:\s+ (\d+) (\w+)/iter'
     match = re.match(pattern, line)
     group = match.group(1)
     name = match.group(2)

@@ -244,11 +244,11 @@ macro_rules! bench_signed {
     };
 }
 
-bench!(uniform, "uniform", RandomGen::Uniform);
-bench!(simple, "simple", RandomGen::Simple);
-bench!(large, "large", RandomGen::Large);
-bench_signed!(simple_signed, "simple_signed", RandomGen::SimpleSigned);
-bench_signed!(large_signed, "large_signed", RandomGen::LargeSigned);
+bench!(uniform, "random:uniform", RandomGen::Uniform);
+bench!(simple, "random:simple", RandomGen::Simple);
+bench!(large, "random:large", RandomGen::Large);
+bench_signed!(simple_signed, "random:simple_signed", RandomGen::SimpleSigned);
+bench_signed!(large_signed, "random:large_signed", RandomGen::LargeSigned);
 
 criterion_group!(uniform_benches, uniform);
 criterion_group!(simple_benches, simple);
@@ -256,5 +256,9 @@ criterion_group!(large_benches, large);
 criterion_group!(simple_signed_benches, simple_signed);
 criterion_group!(large_signed_benches, large_signed);
 criterion_main!(
-    uniform_benches, simple_benches, large_benches, simple_signed_benches, large_signed_benches
+    uniform_benches,
+    simple_benches,
+    large_benches,
+    simple_signed_benches,
+    large_signed_benches
 );
