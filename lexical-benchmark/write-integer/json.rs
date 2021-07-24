@@ -325,7 +325,7 @@ fn random(criterion: &mut Criterion) {
 }
 
 fn chain_random(criterion: &mut Criterion) {
-    let mut group = criterion.benchmark_group("json:random");
+    let mut group = criterion.benchmark_group("json:chain_random");
     group.measurement_time(Duration::from_secs(5));
 
     generator!(group, "u8", chain(simple_u8_data().iter(), random_u8_data().iter()));
@@ -338,4 +338,4 @@ fn chain_random(criterion: &mut Criterion) {
 criterion_group!(simple_benches, simple);
 criterion_group!(random_benches, random);
 criterion_group!(chain_random_benches, chain_random);
-criterion_main!(simple_benches, random_benches);
+criterion_main!(simple_benches, random_benches, chain_random_benches);

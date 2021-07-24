@@ -85,15 +85,12 @@ def run_benchmark(args):
         command.append(f'--features={args.features}')
     # Use the bencher output since it's consistent and easy to parse.
     command += ['--', '--output-format', 'bencher']
-    process = subprocess.Popen(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
+    process = subprocess.Popen(command, stdout=subprocess.PIPE)
     data = collections.defaultdict(dict)
     for line in iter(process.stdout.readline, b''):
-        if line.startswith(b'test'):
-            line = line.decode('utf-8')
+        line = line.decode('utf-8')
+        print(line)
+        if line.startswith('test'):
             group, name, speed = process_rust_benchmark(line)
             data[group][name] = speed
 
