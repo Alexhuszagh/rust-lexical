@@ -162,7 +162,10 @@ unsigned_to_lexical! { usize u64 ; }
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
 #[inline]
-unsafe fn signed<Narrow, Wide, Unsigned, const RADIX: u32>(value: Narrow, mut buffer: &mut [u8]) -> usize
+unsafe fn signed<Narrow, Wide, Unsigned, const RADIX: u32>(
+    value: Narrow,
+    mut buffer: &mut [u8],
+) -> usize
 where
     Narrow: SignedInteger,
     Wide: SignedInteger,

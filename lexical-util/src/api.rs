@@ -190,6 +190,6 @@ macro_rules! to_lexical_with_options {
                 bytes: &'a mut [u8],
                 options: &Self::Options,
             ) -> &'a mut [u8];
-         }
-     };
- }
+        }
+    };
+}

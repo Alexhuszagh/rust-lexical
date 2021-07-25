@@ -10,7 +10,7 @@
 use crate::lib::ptr;
 use crate::table::digit_to_char;
 use lexical_util::assert::{assert_radix, debug_assert_radix};
-use lexical_util::div128::{u64_step, u128_divrem};
+use lexical_util::div128::{u128_divrem, u64_step};
 use lexical_util::num::{as_cast, UnsignedInteger};
 
 // NOTE: Don't use too many generics:
@@ -176,7 +176,11 @@ where
 /// Safe as long as the buffer is large enough to hold as many digits
 /// that can be in the largest value of `T`, in radix `N`.
 #[inline]
-pub unsafe fn algorithm_u128<const RADIX: u32>(value: u128, table: &[u8], buffer: &mut [u8]) -> usize {
+pub unsafe fn algorithm_u128<const RADIX: u32>(
+    value: u128,
+    table: &[u8],
+    buffer: &mut [u8],
+) -> usize {
     assert_radix::<RADIX>();
 
     // Quick approximations to make the algorithm **a lot** faster.
