@@ -1,6 +1,8 @@
 # Benchmarks
 
-These benchmarks were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.12.5/Fedora 34, and run against commit [3e4e1c4](https://github.com/Alexhuszagh/rust-lexical-experimental/3e4e1c446b19d30cc56f2f8e7078242f4f72c7a3). The exact code and data used to run the benchmark can be seen [here](/lexical-benchmark/write-integer).
+These benchmarks were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.12.5/Fedora 34, and run against commit [469e805](https://github.com/Alexhuszagh/rust-lexical-experimental/469e8053a5d1c8b3592840cf97a5a28511e2651d). The exact code and data used to run the benchmark can be seen [here](/lexical-benchmark/write-integer).
+
+Since there is no analogous feature in Rust's fmt, or any 3rd party library, this merely benchmarks decimal strings while the `radix` feature is enabled. This is because the `radix` feature can add numerous code paths, which could affect code generation and therefore performance. This file is therefore
 
 # Random
 
@@ -8,31 +10,31 @@ These benchmarks were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` proce
 
 A benchmark on randomly-generated numbers uniformly distributed over the entire range.
 
-![Uniform Random Data](/lexical-write-integer/assets/random_uniform.svg)
+![Uniform Random Data](/lexical-write-integer/assets/random_uniform_features=radix.svg)
 
 **Simple**
 
 A benchmark on randomly-generated, simple numbers to test parsing numbers with few digits, Each number is in the range `[0, 1000]` (or `[0, 50]` for `u8`).
 
-![Simple Random Data](/lexical-write-integer/assets/random_simple.svg)
+![Simple Random Data](/lexical-write-integer/assets/random_simple_features=radix.svg)
 
 **Large**
 
 A benchmark on randomly-generated, large numbers to test parsing numbers with many digits.
 
-![Large Random Data](/lexical-write-integer/assets/random_large.svg)
+![Large Random Data](/lexical-write-integer/assets/random_large_features=radix.svg)
 
 **Simple Negative**
 
 A benchmark on randomly-generated, simple, positive and negative numbers to test parsing numbers with few digits. Each number is in the range `[-1000, 1000]` (or `[-50, 50]` for `u8`).
 
-![Simple Negative Random Data](/lexical-write-integer/assets/random_simple_signed.svg)
+![Simple Negative Random Data](/lexical-write-integer/assets/random_simple_signed_features=radix.svg)
 
 **Large Negative**
 
 A benchmark on randomly-generated, large, negative numbers to test parsing negative numbers with many digits.
 
-![Large Negative Random Data](/lexical-write-integer/assets/random_large_signed.svg)
+![Large Negative Random Data](/lexical-write-integer/assets/random_large_signed_features=radix.svg)
 
 # JSON
 
@@ -48,7 +50,7 @@ np.random.randint(0, 500, size=10000, dtype=np.uint64)
 [random.randrange(0, 500) for _ in range(10000)]
 ```
 
-![JSON Simple Data](/lexical-write-integer/assets/json_simple.svg)
+![JSON Simple Data](/lexical-write-integer/assets/json_simple_features=radix.svg)
 
 **Random**
 
@@ -68,10 +70,10 @@ np.random.randint(-9223372036854775808, 9223372036854775807, size=10000, dtype=n
 [random.randrange(-2**127, 2**127-1) for _ in range(10000)]
 ```
 
-![JSON Random Data](/lexical-write-integer/assets/json_random.svg)
+![JSON Random Data](/lexical-write-integer/assets/json_random_features=radix.svg)
 
 **Chained Random**
 
 A benchmark on randomly parsing simple or random data, using a PRNG to ensure the parsing algorithm does not know if simple or random data is being parsed. This is mostly a precaution, in case an algorithm branches on the number of digits to avoid branch prediction from skewing the results.
 
-![JSON Chained Random Data](/lexical-write-integer/assets/json_chain_random.svg)
+![JSON Chained Random Data](/lexical-write-integer/assets/json_chain_random_features=radix.svg)

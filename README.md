@@ -1,7 +1,7 @@
 lexical-experimental
 ====================
 
-This is an experimental branch of [lexical](https://github.com/Alexhuszagh/rust-lexical), with a focus on fast compile times and modularization. Each subcomponent, such as integer parsing, float parsing, will be broken in workspaces.
+This is an experimental branch of [lexical](https://github.com/Alexhuszagh/rust-lexical), with a focus on fast compile times, optimal performance, and modularization. Each subcomponent, such as integer parsing, float parsing, will be broken in workspaces.
 
 Currently, the various algorithm designs and benchmarks can be seen markdown files in each respective crate. The current crates are:
 

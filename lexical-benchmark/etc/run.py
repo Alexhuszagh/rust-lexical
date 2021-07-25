@@ -42,6 +42,16 @@ def parse_args(argv=None):
     )
     return parser.parse_args(argv)
 
+def filename(basename, args):
+    '''Get a resilient name for the benchmark data.'''
+
+    name = basename
+    if args.no_default_features:
+        name = f'{name}_nodefault'
+    if args.features:
+        name = f'{name}_features={args.features}'
+    return name
+
 @contextlib.contextmanager
 def change_directory(path):
     '''Change directory and return to the original directory afterwards.'''
@@ -108,7 +118,7 @@ def main(argv=None):
     for bench in benches:
         with change_directory(f'{home}/{bench}'):
             data = run_benchmark(args)
-            with open(f'{home}/results/{bench}.json', 'w') as file:
+            with open(f'{home}/results/{filename(bench, args)}.json', 'w') as file:
                 json.dump(data, file)
 
 if __name__ == '__main__':

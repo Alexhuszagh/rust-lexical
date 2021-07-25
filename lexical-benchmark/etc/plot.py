@@ -28,7 +28,27 @@ def parse_args(argv=None):
         help='''name of benchmarks to run''',
         default='parse-float,parse-integer,write-float,write-integer',
     )
+    parser.add_argument(
+        '--features',
+        help='''optional features to add''',
+        default='',
+    )
+    parser.add_argument(
+        '--no-default-features',
+        help='''disable default features''',
+        action='store_true',
+    )
     return parser.parse_args(argv)
+
+def filename(basename, args):
+    '''Get a resilient name for the benchmark data.'''
+
+    name = basename
+    if args.no_default_features:
+        name = f'{name}_nodefault'
+    if args.features:
+        name = f'{name}_features={args.features}'
+    return name
 
 def format_time(time):
     '''Format time to be a nice value.'''
@@ -93,54 +113,54 @@ def plot_write_integer_figure(data, path, title):
     fig.clf()
 
 
-def plot_write_integer():
+def plot_write_integer(args):
     '''Plot the write integer dataset.'''
 
     assets = f'{home}/../lexical-write-integer/assets'
-    with open(f'{home}/results/write-integer.json') as file:
+    with open(f'{home}/results/{filename("write-integer", args)}.json') as file:
         data = json.load(file)
 
     # First plot JSON data.
     plot_write_integer_figure(
         data['json:simple'],
-        f'{assets}/json_simple.svg',
+        f'{assets}/{filename("json_simple", args)}.svg',
         'JSON Data: Simple',
     )
     plot_write_integer_figure(
         data['json:random'],
-        f'{assets}/json_random.svg',
+        f'{assets}/{filename("json_random", args)}.svg',
         'JSON Data: Random',
     )
     plot_write_integer_figure(
         data['json:chain_random'],
-        f'{assets}/json_chain_random.svg',
+        f'{assets}/{filename("json_chain_random", args)}.svg',
         'JSON Data: Chained Random',
     )
 
     # First plot random data.
     plot_write_integer_figure(
         data['random:uniform'],
-        f'{assets}/random_uniform.svg',
+        f'{assets}/{filename("random_uniform", args)}.svg',
         'Random Data: Uniform',
     )
     plot_write_integer_figure(
         data['random:simple'],
-        f'{assets}/random_simple.svg',
+        f'{assets}/{filename("random_simple", args)}.svg',
         'Random Data: Simple',
     )
     plot_write_integer_figure(
         data['random:large'],
-        f'{assets}/random_large.svg',
+        f'{assets}/{filename("random_large", args)}.svg',
         'Random Data: Large',
     )
     plot_write_integer_figure(
         data['random:simple_signed'],
-        f'{assets}/random_simple_signed.svg',
+        f'{assets}/{filename("random_simple_signed", args)}.svg',
         'Random Data: Simple Negative',
     )
     plot_write_integer_figure(
         data['random:large_signed'],
-        f'{assets}/random_large_signed.svg',
+        f'{assets}/{filename("random_large_signed", args)}.svg',
         'Random Data: Large Negative',
     )
 
@@ -151,13 +171,13 @@ def main(argv=None):
     benches = args.benches.split(',')
     for bench in benches:
         if bench == 'write-integer':
-            plot_write_integer()
+            plot_write_integer(args)
         elif bench == 'write-float':
-            plot_write_float()
+            plot_write_float(args)
         elif bench == 'parse-integer':
-            plot_parse_integer()
+            plot_parse_integer(args)
         elif bench == 'parse-float':
-            plot_parse_float()
+            plot_parse_float(args)
         else:
             raise NotImplementedError
 
