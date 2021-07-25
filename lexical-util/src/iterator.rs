@@ -17,7 +17,7 @@ use crate::lib::{iter, mem, ptr, slice};
 /// implemented for non-contiguous data.
 pub trait Iterator<'a, T: 'a>: iter::Iterator<Item = &'a T> + Clone {
     /// Determine if each yielded value is adjacent in memory.
-    const IS_CONTIGOUS: bool;
+    const IS_CONTIGUOUS: bool;
 
     /// Create new iterator from slice and a skip value.
     fn new(slc: &'a [T], skip: T) -> Self;
@@ -30,6 +30,12 @@ pub trait Iterator<'a, T: 'a>: iter::Iterator<Item = &'a T> + Clone {
 
     /// Get a slice to the current start of the iterator.
     fn as_slice(&self) -> &'a [T];
+
+    /// Get the number of elements left in the slice.
+    #[inline]
+    fn slice_len(&self) -> usize {
+        self.as_slice().len()
+    }
 
     /// Get if the iterator cannot return any more elements.
     ///
@@ -64,30 +70,26 @@ pub trait Iterator<'a, T: 'a>: iter::Iterator<Item = &'a T> + Clone {
     /// Safe as long as the number of the buffer is contains as least as
     /// many bytes as the size of V.
     #[inline]
-    unsafe fn read_unchecked<V>(&mut self) -> V {
-        debug_assert!(Self::IS_CONTIGOUS);
+    unsafe fn read_unchecked<V>(&self) -> V {
+        debug_assert!(Self::IS_CONTIGUOUS);
 
         // Ensure the the size of V is divisible by the size of T.
-        let count = mem::size_of::<V>() / mem::size_of::<T>();
         debug_assert!(mem::size_of::<V>() % mem::size_of::<T>() == 0);
 
         let slc = self.as_slice();
         // SAFETY: safe as long as the slice has at least count elements.
-        let value = unsafe { ptr::read_unaligned::<V>(slc.as_ptr() as *const _) };
-        let rest = unsafe { slc.get_unchecked(count..) };
-        *self = self.from_slice(rest);
-        value
+        unsafe { ptr::read_unaligned::<V>(slc.as_ptr() as *const _) }
     }
 
     /// Try to read a value of a different type from the iterator.
     /// This advances the internal state of the iterator.
     #[inline]
-    fn read<V>(&mut self) -> Option<V> {
+    fn read<V>(&self) -> Option<V> {
         // Ensure the the size of V is divisible by the size of T.
         let count = mem::size_of::<V>() / mem::size_of::<T>();
         debug_assert!(mem::size_of::<V>() % mem::size_of::<T>() == 0);
 
-        if Self::IS_CONTIGOUS && self.as_slice().len() >= count {
+        if Self::IS_CONTIGUOUS && self.as_slice().len() >= count {
             // SAFETY: safe since we've guaranteed the buffer is greater than
             // the number of elements read.
             unsafe { Some(self.read_unchecked()) }
@@ -95,10 +97,34 @@ pub trait Iterator<'a, T: 'a>: iter::Iterator<Item = &'a T> + Clone {
             None
         }
     }
+
+    /// Advance the internal slice by `N` elements.
+    ///
+    /// # Safety
+    ///
+    /// As long as the iterator is at least `N` elements, this
+    /// is safe.
+    #[inline]
+    unsafe fn step_by_unchecked(&mut self, count: usize) {
+        debug_assert!(Self::IS_CONTIGUOUS);
+        debug_assert!(self.slice_len() >= count);
+        let rest = unsafe { self.as_slice().get_unchecked(count..) };
+        *self = self.from_slice(rest);
+    }
+
+    /// Advance the internal slice by 1 element.
+    ///
+    /// # Safety
+    ///
+    /// Safe as long as the iterator is not empty.
+    #[inline]
+    unsafe fn step_unchecked(&mut self) {
+        unsafe { self.step_by_unchecked(1) };
+    }
 }
 
 impl<'a, T: Clone> Iterator<'a, T> for slice::Iter<'a, T> {
-    const IS_CONTIGOUS: bool = true;
+    const IS_CONTIGUOUS: bool = true;
 
     #[inline]
     fn new(slc: &'a [T], _: T) -> Self {
@@ -145,20 +171,5 @@ impl<'a, T: Clone> Iterator<'a, T> for slice::Iter<'a, T> {
         } else {
             None
         }
-    }
-}
-
-/// Iterator where each yielded value is adjacent in memory.
-///
-/// A default implementation is provided for slice iterators.
-pub trait ContiguousIterator<'a, T: 'a>: Iterator<'a, T> {
-    /// Get the number of elements remaining in the iterator.
-    fn len(&self) -> usize;
-}
-
-impl<'a, T: Clone> ContiguousIterator<'a, T> for slice::Iter<'a, T> {
-    #[inline]
-    fn len(&self) -> usize {
-        self.as_slice().len()
     }
 }

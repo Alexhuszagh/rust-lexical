@@ -22,7 +22,7 @@ pub trait Generic: UnsignedInteger {
     ///
     /// Safe as long as buffer is at least `FORMATTED_SIZE` elements long,
     /// (or `FORMATTED_SIZE_DECIMAL` for decimal), and the radix is valid.
-    unsafe fn generic(self, radix: u32, buffer: &mut [u8]) -> usize;
+    unsafe fn generic<const RADIX: u32>(self, buffer: &mut [u8]) -> usize;
 }
 
 // Don't implement generic for small types, where we could have an overflow.
@@ -30,7 +30,7 @@ macro_rules! generic_unimpl {
     ($($t:ty)*) => ($(
         impl Generic for $t {
             #[inline(always)]
-            unsafe fn generic(self, _: u32, _: &mut [u8]) -> usize {
+            unsafe fn generic<const __: u32>(self, _: &mut [u8]) -> usize {
                 // Forces a hard error if we have a logic error in our code.
                 unimplemented!()
             }
@@ -45,14 +45,14 @@ macro_rules! generic_impl {
     ($($t:ty)*) => ($(
         impl Generic for $t {
             #[inline(always)]
-            unsafe fn generic(self, radix: u32, buffer: &mut [u8]) -> usize {
+            unsafe fn generic<const RADIX: u32>(self, buffer: &mut [u8]) -> usize {
                 // SAFETY: safe as long as buffer is large enough to hold the max value.
                 // We never read unwritten values, and we never assume the data is initialized.
                 let mut digits: mem::MaybeUninit<[u8; 64]> = mem::MaybeUninit::uninit();
                 unsafe {
                     let digits = &mut *digits.as_mut_ptr();
-                    let table = get_table(radix);
-                    let index = algorithm(self, radix, table, digits);
+                    let table = get_table::<RADIX>();
+                    let index = algorithm(self, RADIX, table, digits);
                     copy_to_dst(buffer, &mut digits.get_unchecked_mut(index..))
                 }
             }
@@ -64,14 +64,14 @@ generic_impl! { u32 u64 }
 
 impl Generic for u128 {
     #[inline(always)]
-    unsafe fn generic(self, radix: u32, buffer: &mut [u8]) -> usize {
+    unsafe fn generic<const RADIX: u32>(self, buffer: &mut [u8]) -> usize {
         // SAFETY: safe as long as buffer is large enough to hold the max value.
         // We never read unwritten values, and we never assume the data is initialized.
         let mut digits: mem::MaybeUninit<[u8; 128]> = mem::MaybeUninit::uninit();
         unsafe {
             let digits = &mut *digits.as_mut_ptr();
-            let table = get_table(radix);
-            let index = algorithm_u128(self, radix, table, digits);
+            let table = get_table::<RADIX>();
+            let index = algorithm_u128::<RADIX>(self, table, digits);
             copy_to_dst(buffer, &mut digits.get_unchecked_mut(index..))
         }
     }

@@ -10,11 +10,13 @@ name = "lexical-util"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
 version = "0.1.0"
+exclude = [
+    "etc/*",
+    "cargo-timing*.html"
+]
 
 [dependencies]
 cfg-if = "1.0"
-# TODO(ahuszagh) libm may no longer be needed.
-libm = { version = "0.2.1", optional = true }
 static_assertions = "1"
 
 [dev-dependencies]
@@ -32,8 +34,12 @@ proptest = "0.10.1"
 default = ["std"]
 # Use the standard library.
 std = []
-# Add support for writing power-of-two integer strings.
+# Add support for numerical conversions with power-of-two strings.
 power-of-two = []
+# Add support for numerical conversions with non-decimal strings.
+radix = ["power-of-two"]
+# Add support for parsing custom numerical formats.
+format = []
 # Add support for writing integers.
 write-integers = ["write", "integers"]
 # Add support for writing floats.
@@ -46,8 +52,6 @@ parse-floats = ["parse", "floats"]
 # Internal only features.
 # Enable the lint checks.
 lint = []
-# Add support for writing non-decimal integer strings.
-radix = ["power-of-two"]
 # Add support for writing numbers.
 write = []
 # Add support for parsing numbers.
@@ -55,7 +59,7 @@ parse = []
 # Add support for conversions to or from integers.
 integers = []
 # Add support for conversions to or from floats.
-floats = ["libm"]
+floats = []
 
 # Currently unsupported.
 # Enable support for 16-bit floats

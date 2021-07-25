@@ -18,6 +18,7 @@ pub(crate) mod lib {
 pub mod algorithm;
 pub mod decimal;
 pub mod generic;
+pub mod options;
 pub mod table;
 
 mod api;
@@ -26,4 +27,5 @@ mod table_decimal;
 mod table_radix;
 
 // Re-exports
-pub use self::api::ToLexical;
+pub use self::api::{ToLexical, ToLexicalWithOptions};
+pub use self::options::Options;

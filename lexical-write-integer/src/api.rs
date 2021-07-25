@@ -1,12 +1,14 @@
 //! Implements the algorithm in terms of the lexical API.
 
 /// Select the back-end.
-use super::decimal::Decimal;
+use crate::decimal::Decimal;
 #[cfg(feature = "power-of-two")]
-use super::generic::Generic;
+use crate::generic::Generic;
+use crate::options::Options;
 
+use lexical_util::assert::{assert_buffer, assert_radix, debug_assert_buffer};
 use lexical_util::num::{as_cast, SignedInteger, UnsignedInteger};
-use lexical_util::{to_lexical_impl, to_lexical_trait};
+use lexical_util::{to_lexical, to_lexical_with_options};
 
 #[cfg(not(feature = "power-of-two"))]
 pub(crate) trait Itoa: Decimal + UnsignedInteger {}
@@ -30,7 +32,7 @@ itoa_impl! { u8 u16 u32 u64 u128 usize }
 /// Safe as long as the buffer can hold `FORMATTED_SIZE_DECIMAL` elements.
 #[inline]
 #[cfg(not(feature = "power-of-two"))]
-unsafe fn itoa_positive<T, U>(value: T, _: u32, buffer: &mut [u8]) -> usize
+unsafe fn itoa_positive<T, U, const __: u32>(value: T, buffer: &mut [u8]) -> usize
 where
     T: Itoa,
     U: Itoa,
@@ -48,16 +50,16 @@ where
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
 #[inline]
 #[cfg(feature = "power-of-two")]
-unsafe fn itoa_positive<T, U>(value: T, radix: u32, buffer: &mut [u8]) -> usize
+unsafe fn itoa_positive<T, U, const RADIX: u32>(value: T, buffer: &mut [u8]) -> usize
 where
     T: Itoa,
     U: Itoa,
 {
     let value: U = as_cast(value);
-    if radix == 10 {
+    if RADIX == 10 {
         unsafe { value.decimal(buffer) }
     } else {
-        unsafe { value.generic(radix, buffer) }
+        unsafe { value.generic::<RADIX>(buffer) }
     }
 }
 
@@ -70,21 +72,73 @@ where
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
 #[inline]
-unsafe fn unsigned<Narrow, Wide>(value: Narrow, radix: u32, buffer: &mut [u8]) -> usize
+unsafe fn unsigned<Narrow, Wide, const RADIX: u32>(value: Narrow, buffer: &mut [u8]) -> usize
 where
     Narrow: Itoa,
     Wide: Itoa,
 {
-    unsafe { itoa_positive::<Narrow, Wide>(value, radix, buffer) }
+    unsafe { itoa_positive::<Narrow, Wide, RADIX>(value, buffer) }
 }
 
+// Implement ToLexical for numeric type.
 macro_rules! unsigned_to_lexical {
-    ($($narrow:tt $wide:tt ;)*) => ($(
-        to_lexical_impl!(unsigned::<$narrow, $wide>, $narrow);
-    )*);
+    ($($narrow:tt $wide:tt $(, #[$meta:meta])? ; )*) => ($(
+        impl ToLexical for $narrow {
+            $(#[$meta:meta])?
+            unsafe fn to_lexical_unchecked<'a>(self, bytes: &'a mut [u8])
+                -> &'a mut [u8]
+            {
+                debug_assert_buffer::<$narrow>(10, bytes.len());
+                // SAFETY: safe if the buffer is sufficiently large.
+                let len = unsafe { unsigned::<$narrow, $wide, 10>(self, bytes) };
+                &mut bytes[..len]
+            }
+
+            $(#[$meta:meta])?
+            fn to_lexical<'a>(self, bytes: &'a mut [u8])
+                -> &'a mut [u8]
+            {
+                assert_buffer::<$narrow>(10, bytes.len());
+                // SAFETY: safe since the buffer is sufficiently large.
+                unsafe { self.to_lexical_unchecked(bytes) }
+            }
+        }
+
+        impl ToLexicalWithOptions for $narrow {
+            type Options = Options;
+
+            $(#[$meta:meta])?
+            unsafe fn to_lexical_with_options_unchecked<'a, const RADIX: u32>(
+                self,
+                bytes: &'a mut [u8],
+                _: &Self::Options,
+            ) -> &'a mut [u8]
+            {
+                debug_assert_buffer::<$narrow>(RADIX, bytes.len());
+                assert_radix::<RADIX>();
+                // SAFETY: safe if the buffer is sufficiently large.
+                let len = unsafe { unsigned::<$narrow, $wide, RADIX>(self, bytes) };
+                &mut bytes[..len]
+            }
+
+            $(#[$meta:meta])?
+            fn to_lexical_with_options<'a, const RADIX: u32>(
+                self,
+                bytes: &'a mut [u8],
+                options: &Self::Options,
+            ) -> &'a mut [u8]
+            {
+                assert_buffer::<$narrow>(RADIX, bytes.len());
+                assert_radix::<RADIX>();
+                // SAFETY: safe since the buffer is sufficiently large.
+                unsafe { self.to_lexical_with_options_unchecked::<RADIX>(bytes, options) }
+            }
+        }
+    )*)
 }
 
-to_lexical_trait! {}
+to_lexical! {}
+to_lexical_with_options! {}
 unsigned_to_lexical! {
     u8 u32 ;
     u16 u32 ;
@@ -108,7 +162,7 @@ unsigned_to_lexical! { usize u64 ; }
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
 #[inline]
-unsafe fn signed<Narrow, Wide, Unsigned>(value: Narrow, radix: u32, mut buffer: &mut [u8]) -> usize
+unsafe fn signed<Narrow, Wide, Unsigned, const RADIX: u32>(value: Narrow, mut buffer: &mut [u8]) -> usize
 where
     Narrow: SignedInteger,
     Wide: SignedInteger,
@@ -129,19 +183,70 @@ where
         }
         // SAFETY: safe as long as there is at least 1 element, which
         // the buffer should have at least `FORMATTED_SIZE` elements.
-        unsafe { itoa_positive::<Unsigned, Unsigned>(unsigned, radix, buffer) + 1 }
+        unsafe { itoa_positive::<Unsigned, Unsigned, RADIX>(unsigned, buffer) + 1 }
     } else {
         let unsigned: Unsigned = as_cast(value);
         // SAFETY: safe as long as there is at least 1 element, which
         // the buffer should have at least `FORMATTED_SIZE` elements.
-        unsafe { itoa_positive::<Unsigned, Unsigned>(unsigned, radix, buffer) }
+        unsafe { itoa_positive::<Unsigned, Unsigned, RADIX>(unsigned, buffer) }
     }
 }
 
+// Implement ToLexical for numeric type.
 macro_rules! signed_to_lexical {
-    ($($narrow:tt $wide:tt $unsigned:tt ;)*) => ($(
-        to_lexical_impl!(signed::<$narrow, $wide, $unsigned>, $narrow);
-    )*);
+    ($($narrow:tt $wide:tt $unsigned:tt $(, #[$meta:meta])? ; )*) => ($(
+        impl ToLexical for $narrow {
+            $(#[$meta:meta])?
+            unsafe fn to_lexical_unchecked<'a>(self, bytes: &'a mut [u8])
+                -> &'a mut [u8]
+            {
+                debug_assert_buffer::<$narrow>(10, bytes.len());
+                // SAFETY: safe if the buffer is sufficiently large.
+                let len = unsafe { signed::<$narrow, $wide, $unsigned, 10>(self, bytes) };
+                &mut bytes[..len]
+            }
+
+            $(#[$meta:meta])?
+            fn to_lexical<'a>(self, bytes: &'a mut [u8])
+                -> &'a mut [u8]
+            {
+                assert_buffer::<$narrow>(10, bytes.len());
+                // SAFETY: safe since the buffer is sufficiently large.
+                unsafe { self.to_lexical_unchecked(bytes) }
+            }
+        }
+
+        impl ToLexicalWithOptions for $narrow {
+            type Options = Options;
+
+            $(#[$meta:meta])?
+            unsafe fn to_lexical_with_options_unchecked<'a, const RADIX: u32>(
+                self,
+                bytes: &'a mut [u8],
+                _: &Self::Options,
+            ) -> &'a mut [u8]
+            {
+                debug_assert_buffer::<$narrow>(RADIX, bytes.len());
+                assert_radix::<RADIX>();
+                // SAFETY: safe if the buffer is sufficiently large.
+                let len = unsafe { signed::<$narrow, $wide, $unsigned, RADIX>(self, bytes) };
+                &mut bytes[..len]
+            }
+
+            $(#[$meta:meta])?
+            fn to_lexical_with_options<'a, const RADIX: u32>(
+                self,
+                bytes: &'a mut [u8],
+                options: &Self::Options,
+            ) -> &'a mut [u8]
+            {
+                assert_buffer::<$narrow>(RADIX, bytes.len());
+                assert_radix::<RADIX>();
+                // SAFETY: safe since the buffer is sufficiently large.
+                unsafe { self.to_lexical_with_options_unchecked::<RADIX>(bytes, options) }
+            }
+        }
+    )*)
 }
 
 signed_to_lexical! {

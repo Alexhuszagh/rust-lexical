@@ -17,6 +17,7 @@ criterion = { version = "0.3", features = ["html_reports"] }
 std = ["lexical-parse-integer/std"]
 radix = ["lexical-parse-integer/radix"]
 power-of-two = ["lexical-parse-integer/power-of-two"]
+format = ["lexical-parse-integer/format"]
 
 [[bench]]
 name = "write_integer"

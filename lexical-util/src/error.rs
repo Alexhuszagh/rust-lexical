@@ -86,6 +86,12 @@ pub enum ParseErrorCode {
     InvalidLeadingZeros         = -15,
     /// No exponent with required exponent notation.
     MissingExponent             = -16,
+    /// Integral sign was required, but not found.
+    MissingSign                 = -17,
+    /// Invalid positive sign for an integer was found.
+    InvalidPositiveSign         = -18,
+    /// Invalid negative sign for an unsigned type was found.
+    InvalidNegativeSign         = -19,
 }
 
 impl fmt::Display for ParseErrorCode {
@@ -115,6 +121,11 @@ impl fmt::Display for ParseErrorCode {
                 "'invalid number with leading zeros before digits'"
             },
             ParseErrorCode::MissingExponent => "'missing required exponent'",
+            ParseErrorCode::MissingSign => "'missing required `+/-` sign for integer'",
+            ParseErrorCode::InvalidPositiveSign => "'invalid `+` sign for an integer was found'",
+            ParseErrorCode::InvalidNegativeSign => {
+                "'invalid `-` sign for an unsigned type was found'"
+            },
         };
         write!(formatter, "{}", message)
     }

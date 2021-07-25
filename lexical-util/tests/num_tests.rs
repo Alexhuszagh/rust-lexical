@@ -193,12 +193,6 @@ fn check_float<T: num::Float>(mut x: T) {
     x %= T::ONE;
 
     // Check functions
-    let _ = x.abs();
-    let _ = x.ceil();
-    let _ = x.floor();
-    let _ = x.ln();
-    let _ = x.powi(5);
-    let _ = x.powf(T::ONE);
     let _ = x.to_bits();
     assert_eq!(T::from_bits(x.to_bits()), x);
     let _ = x.is_sign_positive();

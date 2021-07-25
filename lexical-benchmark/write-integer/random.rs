@@ -181,10 +181,10 @@ macro_rules! fmt_generator {
 }
 
 macro_rules! generator {
-    ($group:ident, $name:literal, $type:literal, $data:expr) => {{
-        lexical_generator!($group, concat!("write_", $name, "_", $type, "_lexical"), $data);
-        itoa_generator!($group, concat!("write_", $name, "_", $type, "_itoa"), $data);
-        fmt_generator!($group, concat!("write_", $name, "_", $type, "_fmt"), $data);
+    ($group:ident, $type:literal, $data:expr) => {{
+        lexical_generator!($group, concat!("write_", $type, "_lexical"), $data);
+        itoa_generator!($group, concat!("write_", $type, "_itoa"), $data);
+        fmt_generator!($group, concat!("write_", $type, "_fmt"), $data);
     }};
 }
 
@@ -208,16 +208,16 @@ macro_rules! bench {
             let i64_data = genarray::<i64, COUNT>($strategy, seed);
             let i128_data = genarray::<i128, COUNT>($strategy, seed);
 
-            generator!(group, $name, "u8", u8_data);
-            generator!(group, $name, "u16", u16_data);
-            generator!(group, $name, "u32", u32_data);
-            generator!(group, $name, "u64", u64_data);
-            generator!(group, $name, "u128", u128_data);
-            generator!(group, $name, "i8", i8_data);
-            generator!(group, $name, "i16", i16_data);
-            generator!(group, $name, "i32", i32_data);
-            generator!(group, $name, "i64", i64_data);
-            generator!(group, $name, "i128", i128_data);
+            generator!(group, "u8", u8_data);
+            generator!(group, "u16", u16_data);
+            generator!(group, "u32", u32_data);
+            generator!(group, "u64", u64_data);
+            generator!(group, "u128", u128_data);
+            generator!(group, "i8", i8_data);
+            generator!(group, "i16", i16_data);
+            generator!(group, "i32", i32_data);
+            generator!(group, "i64", i64_data);
+            generator!(group, "i128", i128_data);
         }
     };
 }
@@ -235,11 +235,11 @@ macro_rules! bench_signed {
             let i64_data = genarray::<i64, COUNT>($strategy, seed);
             let i128_data = genarray::<i128, COUNT>($strategy, seed);
 
-            generator!(group, $name, "i8", i8_data);
-            generator!(group, $name, "i16", i16_data);
-            generator!(group, $name, "i32", i32_data);
-            generator!(group, $name, "i64", i64_data);
-            generator!(group, $name, "i128", i128_data);
+            generator!(group, "i8", i8_data);
+            generator!(group, "i16", i16_data);
+            generator!(group, "i32", i32_data);
+            generator!(group, "i64", i64_data);
+            generator!(group, "i128", i128_data);
         }
     };
 }

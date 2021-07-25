@@ -2,9 +2,27 @@ use std::fmt::Debug;
 use std::str::{from_utf8_unchecked, FromStr};
 
 use lexical_util::constants::FormattedSize;
-use lexical_write_integer::ToLexical;
+#[cfg(feature = "radix")]
+use lexical_util::constants::BUFFER_SIZE;
+use lexical_write_integer::{Options, ToLexical, ToLexicalWithOptions};
 use proptest::prelude::*;
 use quickcheck::quickcheck;
+
+trait Roundtrip: ToLexical + ToLexicalWithOptions + FromStr {
+    fn from_str_radix(src: &str, radix: u32) -> Result<Self, std::num::ParseIntError>;
+}
+
+macro_rules! roundtrip_impl {
+    ($($t:ty)*) => ($(
+        impl Roundtrip for $t {
+            fn from_str_radix(src: &str, radix: u32) -> Result<Self, std::num::ParseIntError> {
+                <$t>::from_str_radix(src, radix)
+            }
+        }
+    )*);
+}
+
+roundtrip_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
 
 #[test]
 fn u8_test() {
@@ -147,15 +165,98 @@ fn i128_test() {
     assert_eq!(b"-1", (-1i128).to_lexical(&mut buffer));
 }
 
+#[test]
+#[cfg(feature = "radix")]
+fn proptest_failures_radix() {
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let options = Options::new();
+    assert_eq!(b"A8", 128u8.to_lexical_with_options::<12>(&mut buffer, &options));
+}
+
+#[test]
+fn options_test() {
+    let mut buffer = [b'\x00'; 48];
+    let options = Options::new();
+    assert_eq!(b"0", 0u8.to_lexical_with_options::<10>(&mut buffer, &options));
+    assert_eq!(b"0", 0u16.to_lexical_with_options::<10>(&mut buffer, &options));
+    assert_eq!(b"0", 0u32.to_lexical_with_options::<10>(&mut buffer, &options));
+    assert_eq!(b"0", 0u64.to_lexical_with_options::<10>(&mut buffer, &options));
+    assert_eq!(b"0", 0u128.to_lexical_with_options::<10>(&mut buffer, &options));
+    assert_eq!(b"0", 0i8.to_lexical_with_options::<10>(&mut buffer, &options));
+    assert_eq!(b"0", 0i16.to_lexical_with_options::<10>(&mut buffer, &options));
+    assert_eq!(b"0", 0i32.to_lexical_with_options::<10>(&mut buffer, &options));
+    assert_eq!(b"0", 0i64.to_lexical_with_options::<10>(&mut buffer, &options));
+    assert_eq!(b"0", 0i128.to_lexical_with_options::<10>(&mut buffer, &options));
+}
+
+#[test]
+#[cfg(feature = "radix")]
+fn options_radix_test() {
+    let mut buffer = [b'\x00'; 48];
+    let options = Options::new();
+    assert_eq!(b"A8", 128u8.to_lexical_with_options::<12>(&mut buffer, &options));
+}
+
 fn roundtrip<T>(x: T) -> T
 where
-    T: ToLexical + FromStr,
+    T: Roundtrip,
     <T as FromStr>::Err: Debug,
 {
     let mut buffer = [b'\x00'; 48];
     let bytes = x.to_lexical(&mut buffer);
     let string = unsafe { from_utf8_unchecked(bytes) };
     string.parse::<T>().unwrap()
+}
+
+#[cfg(feature = "radix")]
+fn roundtrip_radix<T>(x: T, radix: u32) -> T
+where
+    T: Roundtrip,
+    <T as FromStr>::Err: Debug,
+{
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let options = T::Options::default();
+    // Trick it into assuming we have a valid radix.
+    let bytes = match radix {
+        2 => x.to_lexical_with_options::<2>(&mut buffer, &options),
+        3 => x.to_lexical_with_options::<3>(&mut buffer, &options),
+        4 => x.to_lexical_with_options::<4>(&mut buffer, &options),
+        5 => x.to_lexical_with_options::<5>(&mut buffer, &options),
+        6 => x.to_lexical_with_options::<6>(&mut buffer, &options),
+        7 => x.to_lexical_with_options::<7>(&mut buffer, &options),
+        8 => x.to_lexical_with_options::<8>(&mut buffer, &options),
+        9 => x.to_lexical_with_options::<9>(&mut buffer, &options),
+        10 => x.to_lexical_with_options::<10>(&mut buffer, &options),
+        11 => x.to_lexical_with_options::<11>(&mut buffer, &options),
+        12 => x.to_lexical_with_options::<12>(&mut buffer, &options),
+        13 => x.to_lexical_with_options::<13>(&mut buffer, &options),
+        14 => x.to_lexical_with_options::<14>(&mut buffer, &options),
+        15 => x.to_lexical_with_options::<15>(&mut buffer, &options),
+        16 => x.to_lexical_with_options::<16>(&mut buffer, &options),
+        17 => x.to_lexical_with_options::<17>(&mut buffer, &options),
+        18 => x.to_lexical_with_options::<18>(&mut buffer, &options),
+        19 => x.to_lexical_with_options::<19>(&mut buffer, &options),
+        20 => x.to_lexical_with_options::<20>(&mut buffer, &options),
+        21 => x.to_lexical_with_options::<21>(&mut buffer, &options),
+        22 => x.to_lexical_with_options::<22>(&mut buffer, &options),
+        23 => x.to_lexical_with_options::<23>(&mut buffer, &options),
+        24 => x.to_lexical_with_options::<24>(&mut buffer, &options),
+        25 => x.to_lexical_with_options::<25>(&mut buffer, &options),
+        26 => x.to_lexical_with_options::<26>(&mut buffer, &options),
+        27 => x.to_lexical_with_options::<27>(&mut buffer, &options),
+        28 => x.to_lexical_with_options::<28>(&mut buffer, &options),
+        29 => x.to_lexical_with_options::<29>(&mut buffer, &options),
+        30 => x.to_lexical_with_options::<30>(&mut buffer, &options),
+        31 => x.to_lexical_with_options::<31>(&mut buffer, &options),
+        32 => x.to_lexical_with_options::<32>(&mut buffer, &options),
+        33 => x.to_lexical_with_options::<33>(&mut buffer, &options),
+        34 => x.to_lexical_with_options::<34>(&mut buffer, &options),
+        35 => x.to_lexical_with_options::<35>(&mut buffer, &options),
+        36 => x.to_lexical_with_options::<36>(&mut buffer, &options),
+        _ => unreachable!(),
+    };
+    let string = unsafe { from_utf8_unchecked(bytes) };
+    T::from_str_radix(string, radix).unwrap()
 }
 
 #[test]
@@ -1174,6 +1275,78 @@ proptest! {
     #[test]
     fn isize_proptest(i in isize::min_value()..isize::max_value()) {
         prop_assert_eq!(i, roundtrip(i));
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn u8_proptest_radix(i in u8::min_value()..u8::max_value(), radix in 2u32..=36) {
+        prop_assert_eq!(i, roundtrip_radix(i, radix));
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn i8_proptest_radix(i in i8::min_value()..i8::max_value(), radix in 2u32..=36) {
+        prop_assert_eq!(i, roundtrip_radix(i, radix));
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn u16_proptest_radix(i in u16::min_value()..u16::max_value(), radix in 2u32..=36) {
+        prop_assert_eq!(i, roundtrip_radix(i, radix));
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn i16_proptest_radix(i in i16::min_value()..i16::max_value(), radix in 2u32..=36) {
+        prop_assert_eq!(i, roundtrip_radix(i, radix));
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn u32_proptest_radix(i in u32::min_value()..u32::max_value(), radix in 2u32..=36) {
+        prop_assert_eq!(i, roundtrip_radix(i, radix));
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn i32_proptest_radix(i in i32::min_value()..i32::max_value(), radix in 2u32..=36) {
+        prop_assert_eq!(i, roundtrip_radix(i, radix));
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn u64_proptest_radix(i in u64::min_value()..u64::max_value(), radix in 2u32..=36) {
+        prop_assert_eq!(i, roundtrip_radix(i, radix));
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn i64_proptest_radix(i in i64::min_value()..i64::max_value(), radix in 2u32..=36) {
+        prop_assert_eq!(i, roundtrip_radix(i, radix));
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn u128_proptest_radix(i in u128::min_value()..u128::max_value(), radix in 2u32..=36) {
+        prop_assert_eq!(i, roundtrip_radix(i, radix));
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn i128_proptest_radix(i in i128::min_value()..i128::max_value(), radix in 2u32..=36) {
+        prop_assert_eq!(i, roundtrip_radix(i, radix));
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn usize_proptest_radix(i in usize::min_value()..usize::max_value(), radix in 2u32..=36) {
+        prop_assert_eq!(i, roundtrip_radix(i, radix));
+    }
+
+    #[test]
+    #[cfg(feature = "radix")]
+    fn isize_proptest_radix(i in isize::min_value()..isize::max_value(), radix in 2u32..=36) {
+        prop_assert_eq!(i, roundtrip_radix(i, radix));
     }
 }
 

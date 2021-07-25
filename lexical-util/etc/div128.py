@@ -82,9 +82,14 @@ def print_pow2(radix):
     mask = (1 << shr) - 1
 
     print('#[inline]')
-    print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64, usize) {{')
-    print(f'    let (d, r) = pow2_u128_divrem(n, {mask}, {shr});')
-    print(f'    (d, r, {digits})')
+    print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64) {{')
+    print(f'    pow2_u128_divrem(n, {mask}, {shr})')
+    print('}')
+    print('')
+
+    print('#[inline]')
+    print(f'fn u64_step_{radix}() -> usize {{')
+    print(f'    {digits}')
     print('}')
     print('')
 
@@ -93,9 +98,14 @@ def print_fast(radix, divisor, fast_shr, factor, factor_shr, digits):
 
     fast = 1 << (64 + fast_shr)
     print('#[inline]')
-    print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64, usize) {{')
-    print(f'    let (d, r) = fast_u128_divrem(n, {divisor}, {fast}, {fast_shr}, {factor}, {factor_shr});')
-    print(f'    (d, r, {digits})')
+    print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64) {{')
+    print(f'    fast_u128_divrem(n, {divisor}, {fast}, {fast_shr}, {factor}, {factor_shr})')
+    print('}')
+    print('')
+
+    print('#[inline]')
+    print(f'fn u64_step_{radix}() -> usize {{')
+    print(f'    {digits}')
     print('}')
     print('')
 
@@ -103,9 +113,14 @@ def print_moderate(radix, divisor, factor, factor_shr, digits):
     '''Print the moderate division algorithm.'''
 
     print('#[inline]')
-    print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64, usize) {{')
-    print(f'    let (d, r) = moderate_u128_divrem(n, {divisor}, {factor}, {factor_shr});')
-    print(f'    (d, r, {digits})')
+    print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64) {{')
+    print(f'    moderate_u128_divrem(n, {divisor}, {factor}, {factor_shr})')
+    print('}')
+    print('')
+
+    print('#[inline]')
+    print(f'fn u64_step_{radix}() -> usize {{')
+    print(f'    {digits}')
     print('}')
     print('')
 
@@ -114,9 +129,14 @@ def print_slow(radix, divisor, digits):
 
     ctlz = 66 - len(bin(divisor))
     print('#[inline]')
-    print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64, usize) {{')
-    print(f'    let (d, r) = slow_u128_divrem(n, {divisor}, {ctlz});')
-    print(f'    (d, r, {digits})')
+    print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64) {{')
+    print(f'    slow_u128_divrem(n, {divisor}, {ctlz})')
+    print('}')
+    print('')
+
+    print('#[inline]')
+    print(f'fn u64_step_{radix}() -> usize {{')
+    print(f'    {digits}')
     print('}')
     print('')
 

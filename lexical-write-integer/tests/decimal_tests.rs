@@ -380,7 +380,6 @@ fn u128toa_test() {
         assert_eq!(999999999999999999999999u128.decimal(&mut buffer), 24);
         assert_eq!(&buffer[..24], b"999999999999999999999999");
 
-        // TODO(ahuszagh) This is giving wrong results...
         assert_eq!(1000000000000000000000001u128.decimal(&mut buffer), 25);
         assert_eq!(&buffer[..25], b"1000000000000000000000001");
 

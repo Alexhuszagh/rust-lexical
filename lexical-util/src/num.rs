@@ -485,12 +485,6 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     // FUNCTIONS (INHERITED)
 
     // Re-export the to and from bits methods.
-    fn abs(self) -> Self;
-    fn ceil(self) -> Self;
-    fn floor(self) -> Self;
-    fn ln(self) -> Self;
-    fn powi(self, n: i32) -> Self;
-    fn powf(self, f: Self) -> Self;
     fn to_bits(self) -> Self::Unsigned;
     fn from_bits(u: Self::Unsigned) -> Self;
     fn is_sign_positive(self) -> bool;
@@ -637,18 +631,6 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     }
 }
 
-/// Wrap float method for `std` and `no_std` context.
-#[cfg(feature = "floats")]
-macro_rules! float_method {
-    ($f:ident, $t:tt, $meth:ident, $libm:ident $(,$i:expr)*) => ({
-        if cfg!(feature = "std") {
-            $t::$meth($f $(,$i)*)
-        } else {
-            libm::$libm($f $(,$i)*)
-        }
-    })
-}
-
 /// Define the float literals.
 #[cfg(feature = "floats")]
 macro_rules! float_literals {
@@ -749,40 +731,6 @@ impl Float for f32 {
     const MAX_EXPONENT: i32 = 0xFF - Self::EXPONENT_BIAS;
 
     #[inline]
-    fn abs(self) -> f32 {
-        float_method!(self, f32, abs, fabsf)
-    }
-
-    #[inline]
-    fn ceil(self) -> f32 {
-        float_method!(self, f32, ceil, ceilf)
-    }
-
-    #[inline]
-    fn floor(self) -> f32 {
-        float_method!(self, f32, floor, floorf)
-    }
-
-    #[inline]
-    fn ln(self) -> f32 {
-        float_method!(self, f32, ln, logf)
-    }
-
-    #[inline]
-    fn powi(self, n: i32) -> f32 {
-        if cfg!(feature = "std") {
-            f32::powi(self, n)
-        } else {
-            self.powf(n as f32)
-        }
-    }
-
-    #[inline]
-    fn powf(self, n: f32) -> f32 {
-        float_method!(self, f32, powf, powf, n)
-    }
-
-    #[inline]
     fn to_bits(self) -> u32 {
         f32::to_bits(self)
     }
@@ -819,40 +767,6 @@ impl Float for f64 {
     const EXPONENT_BIAS: i32 = 1023 + Self::MANTISSA_SIZE;
     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32 = 0x7FF - Self::EXPONENT_BIAS;
-
-    #[inline]
-    fn abs(self) -> f64 {
-        float_method!(self, f64, abs, fabs)
-    }
-
-    #[inline]
-    fn ceil(self) -> f64 {
-        float_method!(self, f64, ceil, ceil)
-    }
-
-    #[inline]
-    fn floor(self) -> f64 {
-        float_method!(self, f64, floor, floor)
-    }
-
-    #[inline]
-    fn ln(self) -> f64 {
-        float_method!(self, f64, ln, log)
-    }
-
-    #[inline]
-    fn powi(self, n: i32) -> f64 {
-        if cfg!(feature = "std") {
-            f64::powi(self, n)
-        } else {
-            self.powf(n as f64)
-        }
-    }
-
-    #[inline]
-    fn powf(self, n: f64) -> f64 {
-        float_method!(self, f64, powf, pow, n)
-    }
 
     #[inline]
     fn to_bits(self) -> u64 {

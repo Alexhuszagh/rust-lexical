@@ -264,7 +264,7 @@ impl Decimal for u128 {
         // SAFETY: safe as long as buffer is large enough to hold the max value.
         let count = self.digit_count();
         unsafe {
-            algorithm_u128(self, 10, &DIGIT_TO_BASE10_SQUARED, &mut buffer[..count]);
+            algorithm_u128::<10>(self, &DIGIT_TO_BASE10_SQUARED, &mut buffer[..count]);
             count
         }
     }

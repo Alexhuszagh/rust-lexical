@@ -3,16 +3,20 @@
 //! These routines are highly optimized: they unroll 4 loops at a time,
 //! using pre-computed base^2 tables.
 //!
-//! See [Algorithm.md](/Algorithm/md) for a more detailed description of
-//! the algorithm choice here.
+//! See [Algorithm.md](/Algorithm.md) for a more detailed description of
+//! the algorithm choice here. See [Benchmarks.md](/Benchmarks.md) for
+//! recent benchmark data.
 
 use crate::lib::ptr;
 use crate::table::digit_to_char;
-use lexical_util::assert::debug_assert_radix;
-use lexical_util::div128::u128_divrem;
+use lexical_util::assert::{assert_radix, debug_assert_radix};
+use lexical_util::div128::{u64_step, u128_divrem};
 use lexical_util::num::{as_cast, UnsignedInteger};
 
-// TODO(ahuszagh) Add more documentation...
+// NOTE: Don't use too many generics:
+//  We don't need generics for most of the internal algorithms,
+//  and doing so kills performance. Why? I don't know, but assuming
+//  it messed with the compiler's code generation.
 
 /// Generic itoa algorithm.
 ///
@@ -127,6 +131,8 @@ unsafe fn write_step_digits<T: UnsignedInteger>(
     index: usize,
     step: usize,
 ) -> usize {
+    debug_assert_radix(radix);
+
     let start = index;
     // SAFETY: safe as long as the call to write_step_digits is safe.
     let index = unsafe { write_digits(value, radix, table, buffer, index) };
@@ -170,14 +176,14 @@ where
 /// Safe as long as the buffer is large enough to hold as many digits
 /// that can be in the largest value of `T`, in radix `N`.
 #[inline]
-pub unsafe fn algorithm_u128(value: u128, radix: u32, table: &[u8], buffer: &mut [u8]) -> usize {
-    debug_assert_radix(radix);
+pub unsafe fn algorithm_u128<const RADIX: u32>(value: u128, table: &[u8], buffer: &mut [u8]) -> usize {
+    assert_radix::<RADIX>();
 
     // Quick approximations to make the algorithm **a lot** faster.
     // If the value can be represented in a 64-bit integer, we can
     // do this as a native integer.
-    if value <= u64::MAX as u128 {
-        return unsafe { algorithm(value as u64, radix, table, buffer) };
+    if value <= u64::MAX as _ {
+        return unsafe { algorithm(value as u64, RADIX, table, buffer) };
     }
 
     // SAFETY: Both forms of unchecked indexing cannot overflow.
@@ -193,22 +199,23 @@ pub unsafe fn algorithm_u128(value: u128, radix: u32, table: &[u8], buffer: &mut
     // To deal with internal 0 values or values with internal 0 digits set,
     // we store the starting index, and if not all digits are written,
     // we just skip down `digits` digits for the next value.
-    let (value, low, step) = u128_divrem(value, radix);
+    let step = u64_step::<RADIX>();
+    let (value, low) = u128_divrem::<RADIX>(value);
     let mut index = buffer.len();
     unsafe {
-        index = write_step_digits(low, radix, table, buffer, index, step);
+        index = write_step_digits(low, RADIX, table, buffer, index, step);
     }
-    if value <= u64::MAX as u128 {
-        return unsafe { write_digits(value as u64, radix, table, buffer, index) };
+    if value <= u64::MAX as _ {
+        return unsafe { write_digits(value as u64, RADIX, table, buffer, index) };
     }
 
     // Value has to be greater than 1.8e38
-    let (value, mid, step) = u128_divrem(value, radix);
+    let (value, mid) = u128_divrem::<RADIX>(value);
     unsafe {
-        index = write_step_digits(mid, radix, table, buffer, index, step);
+        index = write_step_digits(mid, RADIX, table, buffer, index, step);
     }
     if index != 0 {
-        index = unsafe { write_digits(value as u64, radix, table, buffer, index) };
+        index = unsafe { write_digits(value as u64, RADIX, table, buffer, index) };
     }
 
     index

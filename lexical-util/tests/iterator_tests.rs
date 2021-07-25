@@ -9,6 +9,11 @@ fn slice_iterator_test() {
     assert_eq!(iter.as_slice(), &digits[..]);
     assert_eq!(iter.as_ptr(), digits.as_ptr());
     assert_eq!(iter.read::<u32>().unwrap(), 0x34333231);
+    assert_eq!(iter.slice_len(), 5);
+    unsafe {
+        iter.step_by_unchecked(4);
+    }
+    assert_eq!(iter.slice_len(), 1);
 
     let mut iter = digits.iter();
     assert_eq!(iter.read::<u64>(), None);

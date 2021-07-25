@@ -10,6 +10,10 @@ name = "lexical-core"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
 version = "0.1.0"
+exclude = [
+    "assets/*",
+    "cargo-timing*.html"
+]
 
 [dependencies.lexical-parse-integer]
 version = "0.1"
@@ -58,6 +62,11 @@ radix = [
     "lexical-write-float/radix",
     "lexical-parse-integer/radix",
     "lexical-parse-float/radix"
+]
+# Add support for parsing custom numerical formats.
+format = [
+    "lexical-parse-integer/format",
+    "lexical-parse-float/format"
 ]
 
 # Internal only features.

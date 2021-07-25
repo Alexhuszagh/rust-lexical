@@ -10,6 +10,10 @@ name = "lexical-write-float"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
 version = "0.1.0"
+exclude = [
+    "assets/*",
+    "cargo-timing*.html"
+]
 
 [dependencies.lexical-util]
 version = "0.1"

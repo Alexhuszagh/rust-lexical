@@ -16,9 +16,9 @@ use lexical_util::assert::debug_assert_radix;
 /// Safe as long as the radix provided is valid.
 #[inline]
 #[cfg(not(feature = "radix"))]
-pub unsafe fn get_table(radix: u32) -> &'static [u8] {
-    debug_assert_radix(radix);
-    match radix {
+pub unsafe fn get_table<const RADIX: u32>() -> &'static [u8] {
+    debug_assert_radix(RADIX);
+    match RADIX {
         2 => &DIGIT_TO_BASE2_SQUARED,
         4 => &DIGIT_TO_BASE4_SQUARED,
         8 => &DIGIT_TO_BASE8_SQUARED,
