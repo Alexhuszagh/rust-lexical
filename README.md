@@ -9,6 +9,8 @@ lexical
 
 **NOTE:** These changes have since been [merged](https://github.com/rust-lang/rust/pull/86761) into Rust core. Very soon, lexical may not be needed for the vast majority of projects.
 
+**NOTE:** Major changes to lexical are currently underway, for faster compile times and performance. The current status can be seen at [rust-lexical-experimental](https://github.com/Alexhuszagh/rust-lexical-experimental).
+
 Fast lexical conversion routines for both std and no_std environments. Lexical provides routines to convert numbers to and from decimal strings. Lexical is simple to use and focuses on performance and correctness. Finally, [lexical-core](lexical-core) is suitable for environments without a memory allocator, not requiring any internal allocations by default.
 
 **Similar Projects**
