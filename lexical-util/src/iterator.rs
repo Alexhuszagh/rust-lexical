@@ -5,9 +5,9 @@
 
 #![cfg(feature = "parse")]
 
-use crate::lib::{iter, mem, ptr, slice};
+use crate::lib::{mem, ptr, slice};
 
-/// Iterator over a contiguous block of memory.
+/// Iterator over a contiguous block of bytes.
 ///
 /// This allows us to convert to-and-from-slices, raw pointers, and
 /// peek/query the data from either end cheaply.
@@ -15,21 +15,18 @@ use crate::lib::{iter, mem, ptr, slice};
 /// A default implementation is provided for slice iterators.
 /// This trait **should never** return `null` from `as_ptr`, or be
 /// implemented for non-contiguous data.
-pub trait Iterator<'a, T: 'a>: iter::Iterator<Item = &'a T> + Clone {
+pub trait ByteIter<'a>: Iterator<Item = &'a u8> + Clone {
     /// Determine if each yielded value is adjacent in memory.
     const IS_CONTIGUOUS: bool;
 
-    /// Create new iterator from slice and a skip value.
-    fn new(slc: &'a [T], skip: T) -> Self;
-
-    /// Create new iterator from slice, using the slice's skip character.
-    fn from_slice(&self, slc: &'a [T]) -> Self;
+    /// Create new iterator from slice.
+    fn new(slc: &'a [u8]) -> Self;
 
     /// Get a ptr to the current start of the iterator.
-    fn as_ptr(&self) -> *const T;
+    fn as_ptr(&self) -> *const u8;
 
     /// Get a slice to the current start of the iterator.
-    fn as_slice(&self) -> &'a [T];
+    fn as_slice(&self) -> &'a [u8];
 
     /// Get the number of elements left in the slice.
     #[inline]
@@ -73,9 +70,6 @@ pub trait Iterator<'a, T: 'a>: iter::Iterator<Item = &'a T> + Clone {
     unsafe fn read_unchecked<V>(&self) -> V {
         debug_assert!(Self::IS_CONTIGUOUS);
 
-        // Ensure the the size of V is divisible by the size of T.
-        debug_assert!(mem::size_of::<V>() % mem::size_of::<T>() == 0);
-
         let slc = self.as_slice();
         // SAFETY: safe as long as the slice has at least count elements.
         unsafe { ptr::read_unaligned::<V>(slc.as_ptr() as *const _) }
@@ -85,11 +79,7 @@ pub trait Iterator<'a, T: 'a>: iter::Iterator<Item = &'a T> + Clone {
     /// This advances the internal state of the iterator.
     #[inline]
     fn read<V>(&self) -> Option<V> {
-        // Ensure the the size of V is divisible by the size of T.
-        let count = mem::size_of::<V>() / mem::size_of::<T>();
-        debug_assert!(mem::size_of::<V>() % mem::size_of::<T>() == 0);
-
-        if Self::IS_CONTIGUOUS && self.as_slice().len() >= count {
+        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<V>() {
             // SAFETY: safe since we've guaranteed the buffer is greater than
             // the number of elements read.
             unsafe { Some(self.read_unchecked()) }
@@ -109,7 +99,7 @@ pub trait Iterator<'a, T: 'a>: iter::Iterator<Item = &'a T> + Clone {
         debug_assert!(Self::IS_CONTIGUOUS);
         debug_assert!(self.slice_len() >= count);
         let rest = unsafe { self.as_slice().get_unchecked(count..) };
-        *self = self.from_slice(rest);
+        *self = Self::new(rest);
     }
 
     /// Advance the internal slice by 1 element.
@@ -123,26 +113,21 @@ pub trait Iterator<'a, T: 'a>: iter::Iterator<Item = &'a T> + Clone {
     }
 }
 
-impl<'a, T: Clone> Iterator<'a, T> for slice::Iter<'a, T> {
+impl<'a> ByteIter<'a> for slice::Iter<'a, u8> {
     const IS_CONTIGUOUS: bool = true;
 
     #[inline]
-    fn new(slc: &'a [T], _: T) -> Self {
+    fn new(slc: &'a [u8]) -> Self {
         slc.iter()
     }
 
     #[inline]
-    fn from_slice(&self, slc: &'a [T]) -> Self {
-        slc.iter()
-    }
-
-    #[inline]
-    fn as_ptr(&self) -> *const T {
+    fn as_ptr(&self) -> *const u8 {
         self.as_slice().as_ptr()
     }
 
     #[inline]
-    fn as_slice(&self) -> &'a [T] {
+    fn as_slice(&self) -> &'a [u8] {
         slice::Iter::as_slice(self)
     }
 

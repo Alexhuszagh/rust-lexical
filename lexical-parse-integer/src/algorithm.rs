@@ -3,7 +3,7 @@
 use lexical_util::assert::debug_assert_radix;
 use lexical_util::div128::u64_step;
 use lexical_util::error::ParseErrorCode;
-use lexical_util::iterator::Iterator;
+use lexical_util::iterator::ByteIter;
 use lexical_util::num::{as_cast, Integer};
 use lexical_util::result::ParseResult;
 
@@ -249,7 +249,7 @@ pub fn parse_4digits<const RADIX: u32>(mut v: u32) -> u32 {
 pub fn try_parse_4digits<'a, T, Iter, const RADIX: u32>(iter: &mut Iter) -> Option<T>
 where
     T: Integer,
-    Iter: Iterator<'a, u8>,
+    Iter: ByteIter<'a>,
 {
     // Can't do fast optimizations with radixes larger than 10, since
     // we no longer have a contiguous ASCII block. Likewise, cannot
@@ -322,7 +322,7 @@ pub fn parse_8digits<const RADIX: u32>(mut v: u64) -> u64 {
 pub fn try_parse_8digits<'a, T, Iter, const RADIX: u32>(iter: &mut Iter) -> Option<T>
 where
     T: Integer,
-    Iter: Iterator<'a, u8>,
+    Iter: ByteIter<'a>,
 {
     // Can't do fast optimizations with radixes larger than 10, since
     // we no longer have a contiguous ASCII block. Likewise, cannot
@@ -367,7 +367,7 @@ pub fn parse_digits<'a, T, Iter, const RADIX: u32>(
 ) -> ParseResult<(T, usize)>
 where
     T: Integer,
-    Iter: Iterator<'a, u8>,
+    Iter: ByteIter<'a>,
 {
     if T::IS_SIGNED && is_negative {
         parse_digits!(iter, RADIX, checked_sub, Underflow, T, Iter)
@@ -386,7 +386,7 @@ pub fn parse_digits_128<'a, T, Iter, const RADIX: u32>(
 ) -> ParseResult<(T, usize)>
 where
     T: Integer,
-    Iter: Iterator<'a, u8>,
+    Iter: ByteIter<'a>,
 {
     if T::IS_SIGNED && is_negative {
         parse_digits_128!(iter, RADIX, checked_sub, Underflow, T, Iter)
@@ -429,7 +429,7 @@ fn parse_sign_and_validate<'a, T, Iter, const RADIX: u32, const FORMAT: u128>(
 ) -> ParseResult<bool>
 where
     T: Integer,
-    Iter: Iterator<'a, u8>,
+    Iter: ByteIter<'a>,
 {
     let is_negative = match iter.peek() {
         Some(&b'+') if positive_sign_allowed::<FORMAT>() => {
@@ -448,7 +448,7 @@ where
     };
     // Note: need to call as a trait function.
     //  The standard library may add an `is_empty` function for iterators.
-    if Iterator::is_empty(iter) {
+    if ByteIter::is_empty(iter) {
         return into_error!(Empty, iter);
     }
     if !leading_zeros_allowed::<FORMAT>() && iter.peek() == Some(&b'0') {
