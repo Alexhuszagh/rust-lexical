@@ -1,7 +1,7 @@
 #![cfg(feature = "parse")]
 
-use std::slice;
 use lexical_util::iterator::ByteIter;
+use std::slice;
 
 #[test]
 fn slice_iterator_test() {
@@ -38,7 +38,11 @@ fn slice_iterator_test() {
 
     let mut iter = digits.iter();
     assert_eq!(iter.peek(), Some(&b'1'));
-    unsafe { iter.step_unchecked(); }
+    unsafe {
+        iter.step_unchecked();
+    }
     assert_eq!(iter.peek(), Some(&b'2'));
-    unsafe { iter.step_unchecked(); }
+    unsafe {
+        iter.step_unchecked();
+    }
 }

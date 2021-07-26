@@ -2,45 +2,6 @@ use lexical_parse_integer::algorithm;
 use proptest::prelude::*;
 
 #[test]
-fn char_to_digit_test() {
-    // char_to_digit doesn't care about the radix.
-    for c in b'0'..=b'9' {
-        assert_eq!(algorithm::char_to_digit::<10>(c), Some(c as u32 - b'0' as u32));
-    }
-    assert_eq!(algorithm::char_to_digit::<10>(0x29), None);
-    assert_eq!(algorithm::char_to_digit::<10>(0x3A), None);
-    assert_eq!(algorithm::char_to_digit::<10>(0x59), None);
-
-    for c in b'0'..=b'8' {
-        assert_eq!(algorithm::char_to_digit::<9>(c), Some(c as u32 - b'0' as u32));
-    }
-    assert_eq!(algorithm::char_to_digit::<9>(0x29), None);
-    assert_eq!(algorithm::char_to_digit::<9>(0x39), None);
-    assert_eq!(algorithm::char_to_digit::<9>(0x3A), None);
-    assert_eq!(algorithm::char_to_digit::<9>(0x59), None);
-
-    for c in b'0'..=b'9' {
-        assert_eq!(algorithm::char_to_digit::<16>(c), Some(c as u32 - b'0' as u32));
-    }
-    for c in b'a'..=b'f' {
-        assert_eq!(algorithm::char_to_digit::<16>(c), Some(c as u32 - b'a' as u32 + 10));
-    }
-    for c in b'A'..=b'F' {
-        assert_eq!(algorithm::char_to_digit::<16>(c), Some(c as u32 - b'A' as u32 + 10));
-    }
-    assert_eq!(algorithm::char_to_digit::<16>(0x29), None);
-    assert_eq!(algorithm::char_to_digit::<16>(0x40), None);
-    assert_eq!(algorithm::char_to_digit::<16>(0x3A), None);
-    assert_eq!(algorithm::char_to_digit::<16>(0x59), None);
-    assert_eq!(algorithm::char_to_digit::<16>(0x41), Some(10));
-    assert_eq!(algorithm::char_to_digit::<16>(0x47), None);
-    assert_eq!(algorithm::char_to_digit::<16>(0x5A), None);
-    assert_eq!(algorithm::char_to_digit::<16>(0x61), Some(10));
-    assert_eq!(algorithm::char_to_digit::<16>(0x67), None);
-    assert_eq!(algorithm::char_to_digit::<16>(0x7A), None);
-}
-
-#[test]
 fn test_is_4digits() {
     let value: u32 = 0x31_32_33_34;
     assert!(!algorithm::is_4digits::<4>(value));

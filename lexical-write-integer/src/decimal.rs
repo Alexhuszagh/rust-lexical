@@ -5,7 +5,7 @@
 //! This scales well with integer size, short of `u128`, due to the slower
 //! division algorithms required.
 //!
-//! See [Algorithm.md](/Algorithm/md) for a more detailed description of
+//! See [Algorithm.md](/docs/Algorithm.md) for a more detailed description of
 //! the algorithm choice here.
 
 use crate::algorithm::{algorithm, algorithm_u128};

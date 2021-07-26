@@ -18,6 +18,7 @@ pub(crate) mod lib {
 pub mod algorithm;
 pub mod assert;
 pub mod constants;
+pub mod digit;
 pub mod div128;
 pub mod error;
 pub mod format;

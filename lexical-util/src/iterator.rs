@@ -53,7 +53,10 @@ pub trait ByteIter<'a>: Iterator<Item = &'a u8> + Clone {
     ///
     /// # Safety
     ///
-    /// Safe as long as the number of the buffer is not empty.
+    /// Safe as long as there is at least a single valid value left in
+    /// the iterator. Note that the behavior of this may lead to out-of-bounds
+    /// access (for contiguous iterators) or panics (for non-contiguous
+    /// iterators).
     unsafe fn peek_unchecked(&mut self) -> Self::Item;
 
     /// Peek the next value of the iterator, without consuming it.

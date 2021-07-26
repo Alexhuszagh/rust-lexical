@@ -3,13 +3,13 @@
 //! These routines are highly optimized: they unroll 4 loops at a time,
 //! using pre-computed base^2 tables.
 //!
-//! See [Algorithm.md](/Algorithm.md) for a more detailed description of
-//! the algorithm choice here. See [Benchmarks.md](/Benchmarks.md) for
+//! See [Algorithm.md](/docs/Algorithm.md) for a more detailed description of
+//! the algorithm choice here. See [Benchmarks.md](/docs/Benchmarks.md) for
 //! recent benchmark data.
 
 use crate::lib::ptr;
-use crate::table::digit_to_char;
 use lexical_util::assert::{assert_radix, debug_assert_radix};
+use lexical_util::digit::digit_to_char;
 use lexical_util::div128::{u128_divrem, u64_step};
 use lexical_util::num::{as_cast, UnsignedInteger};
 
@@ -97,7 +97,7 @@ unsafe fn write_digits<T: UnsignedInteger>(
         // Digit must be < 36.
         index -= 1;
         unsafe {
-            *buffer.get_unchecked_mut(index) = digit_to_char(value.as_usize());
+            *buffer.get_unchecked_mut(index) = digit_to_char(value.as_u32());
         }
     } else {
         let r = (T::TWO * value).as_usize();

@@ -1,6 +1,7 @@
 //! The algorithm definitions for the the string-to-integer conversions.
 
 use lexical_util::assert::debug_assert_radix;
+use lexical_util::digit::char_to_digit_const;
 use lexical_util::div128::u64_step;
 use lexical_util::error::ParseErrorCode;
 use lexical_util::iterator::ByteIter;
@@ -12,31 +13,6 @@ macro_rules! into_error {
     ($code:ident, $iter:ident $(,$shift:expr)?) => {
         Err((ParseErrorCode::$code, $iter.slice_len() $(+ $shift)?).into())
     };
-}
-
-/// Convert a character to a digit.
-/// This optimizes for cases where radix is <= 10, and uses a decent,
-/// match-based fallback algorithm.
-#[inline]
-pub fn char_to_digit<const RADIX: u32>(c: u8) -> Option<u32> {
-    let digit = if RADIX <= 10 {
-        // Optimize for small radixes.
-        (c.wrapping_sub(b'0')) as u32
-    } else {
-        // Fallback, still decently fast.
-        let digit = match c {
-            b'0'..=b'9' => c - b'0',
-            b'A'..=b'Z' => c - b'A' + 10,
-            b'a'..=b'z' => c - b'a' + 10,
-            _ => 0xFF,
-        };
-        digit as u32
-    };
-    if digit < RADIX {
-        Some(digit)
-    } else {
-        None
-    }
 }
 
 /// Parse 8-digits at a time.
@@ -120,7 +96,7 @@ macro_rules! parse_digits {
 
         // Do our slow parsing algorithm: 1 digit at a time.
         while let Some(&c) = $iter.next() {
-            let digit = match char_to_digit::<$radix>(c) {
+            let digit = match char_to_digit_const::<$radix>(c) {
                 Some(v) => v,
                 None => return Ok((value, $iter.slice_len())),
             };
@@ -175,7 +151,7 @@ macro_rules! parse_digits_128 {
             while index < step {
                 if let Some(&c) = $iter.next() {
                     index += 1;
-                    let digit = match char_to_digit::<$radix>(c) {
+                    let digit = match char_to_digit_const::<$radix>(c) {
                         Some(v) => v,
                         None => {
                             // Add temporary to value and return early.
