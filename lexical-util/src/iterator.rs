@@ -5,7 +5,7 @@
 
 #![cfg(feature = "parse")]
 
-use crate::lib::{mem, ptr, slice};
+use crate::lib::{mem, ptr};
 
 /// Iterator over a contiguous block of bytes.
 ///
@@ -28,11 +28,11 @@ pub trait ByteIter<'a>: Iterator<Item = &'a u8> + Clone {
     /// Get a slice to the current start of the iterator.
     fn as_slice(&self) -> &'a [u8];
 
-    /// Get the number of elements left in the slice.
-    #[inline]
-    fn slice_len(&self) -> usize {
-        self.as_slice().len()
-    }
+    /// Get the total number of elements in the underlying slice.
+    fn length(&self) -> usize;
+
+    /// Get the current index of the iterator in the slice.
+    fn cursor(&self) -> usize;
 
     /// Get if the iterator cannot return any more elements.
     ///
@@ -97,13 +97,7 @@ pub trait ByteIter<'a>: Iterator<Item = &'a u8> + Clone {
     ///
     /// As long as the iterator is at least `N` elements, this
     /// is safe.
-    #[inline]
-    unsafe fn step_by_unchecked(&mut self, count: usize) {
-        debug_assert!(Self::IS_CONTIGUOUS);
-        debug_assert!(self.slice_len() >= count);
-        let rest = unsafe { self.as_slice().get_unchecked(count..) };
-        *self = Self::new(rest);
-    }
+    unsafe fn step_by_unchecked(&mut self, count: usize);
 
     /// Advance the internal slice by 1 element.
     ///
@@ -113,51 +107,5 @@ pub trait ByteIter<'a>: Iterator<Item = &'a u8> + Clone {
     #[inline]
     unsafe fn step_unchecked(&mut self) {
         unsafe { self.step_by_unchecked(1) };
-    }
-}
-
-impl<'a> ByteIter<'a> for slice::Iter<'a, u8> {
-    const IS_CONTIGUOUS: bool = true;
-
-    #[inline]
-    fn new(slc: &'a [u8]) -> Self {
-        slc.iter()
-    }
-
-    #[inline]
-    fn as_ptr(&self) -> *const u8 {
-        self.as_slice().as_ptr()
-    }
-
-    #[inline]
-    fn as_slice(&self) -> &'a [u8] {
-        slice::Iter::as_slice(self)
-    }
-
-    #[inline]
-    fn is_consumed(&mut self) -> bool {
-        self.as_slice().is_empty()
-    }
-
-    #[inline]
-    fn is_empty(&self) -> bool {
-        self.as_slice().is_empty()
-    }
-
-    #[inline]
-    unsafe fn peek_unchecked(&mut self) -> Self::Item {
-        let slc = self.as_slice();
-        // SAFETY: safe as long as the slice is not empty.
-        unsafe { slc.get_unchecked(0) }
-    }
-
-    #[inline]
-    fn peek(&mut self) -> Option<Self::Item> {
-        if !self.is_consumed() {
-            // SAFETY: the slice cannot be empty, so this is safe
-            Some(unsafe { self.peek_unchecked() })
-        } else {
-            None
-        }
     }
 }

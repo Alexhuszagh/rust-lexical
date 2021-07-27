@@ -66,13 +66,13 @@ const fn digit_separator<const FORMAT: u128>() -> u8 {
 // ---------
 
 /// Trait to simplify creation of a `SkipIterator`.
-pub trait SkipIter<'a>: IntoIterator<Item = &'a u8> {
+pub trait SkipIter<'a> {
     /// Create `SkipIterator` from format and current type.
     fn skip_iter<const RADIX: u32, const FORMAT: u128>(&'a self)
         -> SkipIterator<'a, RADIX, FORMAT>;
 }
 
-impl<'a> SkipIter<'a> for &'a [u8] {
+impl<'a> SkipIter<'a> for [u8] {
     #[inline]
     fn skip_iter<const RADIX: u32, const FORMAT: u128>(
         &'a self,
@@ -108,7 +108,7 @@ impl<'a, const RADIX: u32, const FORMAT: u128> SkipIterator<'a, RADIX, FORMAT> {
     /// Create new iterator.
     #[inline]
     pub fn new(slc: &'a [u8]) -> Self {
-        SkipIterator {
+        Self {
             slc,
             index: 0,
         }
@@ -164,13 +164,23 @@ impl<'a, const RADIX: u32, const FORMAT: u128> ByteIter<'a> for SkipIterator<'a,
     }
 
     #[inline]
+    fn length(&self) -> usize {
+        self.slc.len()
+    }
+
+    #[inline]
+    fn cursor(&self) -> usize {
+        self.index
+    }
+
+    #[inline]
     fn is_consumed(&mut self) -> bool {
-        todo!();
+        self.peek().is_none()
     }
 
     #[inline]
     fn is_empty(&self) -> bool {
-        todo!();
+        self.index >= self.slc.len()
     }
 
     // NOTE: panics if the peeked value isn't valid.
@@ -199,6 +209,11 @@ impl<'a, const RADIX: u32, const FORMAT: u128> ByteIter<'a> for SkipIterator<'a,
             ILTC => peek_iltc(self),
             _ => unreachable!(),
         }
+    }
+
+    #[inline]
+    unsafe fn step_by_unchecked(&mut self, _: usize) {
+        unimplemented!("Not a contiguous iterator.");
     }
 }
 
@@ -292,10 +307,10 @@ fn is_lt<'a, const RADIX: u32, const FORMAT: u128>(
 #[inline]
 fn peek_1<'a, Callback, const RADIX: u32, const FORMAT: u128>(
     iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-    is_skip: Callback
+    is_skip: Callback,
 ) -> Option<&'a u8>
 where
-    Callback: Fn(&mut SkipIterator<'a, RADIX, FORMAT>) -> bool
+    Callback: Fn(&mut SkipIterator<'a, RADIX, FORMAT>) -> bool,
 {
     // This will only consume a single digit separator.
     // This will not consume consecutive digit separators.
@@ -319,10 +334,10 @@ where
 #[inline]
 fn peek_n<'a, Callback, const RADIX: u32, const FORMAT: u128>(
     iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-    is_skip: Callback
+    is_skip: Callback,
 ) -> Option<&'a u8>
 where
-    Callback: Fn(&mut SkipIterator<'a, RADIX, FORMAT>) -> bool
+    Callback: Fn(&mut SkipIterator<'a, RADIX, FORMAT>) -> bool,
 {
     // This will consume consecutive digit separators.
     let value = iter.slc.get(iter.index)?;

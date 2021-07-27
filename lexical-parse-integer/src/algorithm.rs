@@ -2,16 +2,16 @@
 
 use lexical_util::assert::debug_assert_radix;
 use lexical_util::digit::char_to_digit_const;
-use lexical_util::div128::u64_step;
 use lexical_util::error::ParseErrorCode;
 use lexical_util::iterator::ByteIter;
 use lexical_util::num::{as_cast, Integer};
 use lexical_util::result::ParseResult;
+use lexical_util::step::u64_step;
 
 /// Simple short-circuit to an error.
 macro_rules! into_error {
-    ($code:ident, $iter:ident $(,$shift:expr)?) => {
-        Err((ParseErrorCode::$code, $iter.slice_len() $(+ $shift)?).into())
+    ($code:ident, $iter:ident $(- $shift:expr)?) => {
+        Err((ParseErrorCode::$code, $iter.cursor() $(- $shift)?).into())
     };
 }
 
@@ -23,7 +23,7 @@ macro_rules! parse_8digits {
         $radix:ident,
         $addsub:ident,
         $overflow:ident,
-        $t:ty,
+        $t:ident,
         $iter_type:ty
     ) => {
         let radix: $t = as_cast($radix);
@@ -53,7 +53,7 @@ macro_rules! parse_4digits {
         $radix:ident,
         $addsub:ident,
         $overflow:ident,
-        $t:ty,
+        $t:ident,
         $iter_type:ty
     ) => {
         let radix: $t = as_cast($radix);
@@ -77,7 +77,7 @@ macro_rules! parse_4digits {
 /// Parse digits for a positive or negative value.
 /// Optimized for operations with machine integers.
 macro_rules! parse_digits {
-    ($iter:ident, $radix:ident, $addsub:ident, $overflow:ident, $t:ty, $iter_type:ty) => {{
+    ($iter:ident, $radix:ident, $addsub:ident, $overflow:ident, $t:ident, $iter_type:ty) => {{
         let mut value = <$t>::ZERO;
 
         // Optimizations for reading 8-digits at a time.
@@ -98,37 +98,43 @@ macro_rules! parse_digits {
         while let Some(&c) = $iter.next() {
             let digit = match char_to_digit_const::<$radix>(c) {
                 Some(v) => v,
-                None => return Ok((value, $iter.slice_len())),
+                None => return Ok((value, $iter.cursor() - 1)),
             };
             value = match value.checked_mul(as_cast($radix)) {
                 Some(v) => v,
-                None => return into_error!($overflow, $iter, 1),
+                None => return into_error!($overflow, $iter - 1),
             };
             value = match value.$addsub(as_cast(digit)) {
                 Some(v) => v,
-                None => return into_error!($overflow, $iter, 1),
+                None => return into_error!($overflow, $iter - 1),
             };
         }
 
-        // Iterator must be empty.
-        Ok((value, 0))
+        Ok((value, $iter.cursor()))
     }};
 }
 
 // Add 64-bit temporary to the 128-bit value.
-macro_rules! add_temporary_128 {
+macro_rules! add_temp_128 {
     (
-        $value:ident, $val64:ident, $iter:ident, $addsub:ident, $overflow:ident, $mul:ident, $t:ty
+        $value:ident,
+        $val64:ident,
+        $iter:ident,
+        $addsub:ident,
+        $overflow:ident,
+        $mul:ident,
+        $t:ident
+        $(- $shift:expr)?
     ) => {{
         if $value != <$t>::ZERO {
             $value = match $value.checked_mul(as_cast($mul)) {
                 Some(v) => v,
-                None => return into_error!($overflow, $iter),
+                None => return into_error!($overflow, $iter $(- $shift)?),
             };
         }
         $value = match $value.$addsub(as_cast($val64)) {
             Some(v) => v,
-            None => return into_error!($overflow, $iter),
+            None => return into_error!($overflow, $iter $(- $shift)?),
         };
     }};
 }
@@ -137,7 +143,7 @@ macro_rules! add_temporary_128 {
 /// Uses a few optimizations to speed up operations on a non-native,
 /// 128-bit type.
 macro_rules! parse_digits_128 {
-    ($iter:ident, $radix:ident, $addsub:ident, $overflow:ident, $t:ty, $iter_type:ty) => {{
+    ($iter:ident, $radix:ident, $addsub:ident, $overflow:ident, $t:ident, $iter_type:ty) => {{
         let mut value = <$t>::ZERO;
         parse_8digits!(value, $iter, $radix, $addsub, $overflow, $t, $iter_type);
         parse_4digits!(value, $iter, $radix, $addsub, $overflow, $t, $iter_type);
@@ -156,8 +162,8 @@ macro_rules! parse_digits_128 {
                         None => {
                             // Add temporary to value and return early.
                             let mul = ($radix as u64).pow(index as u32);
-                            add_temporary_128!(value, val64, $iter, $addsub, $overflow, mul, $t);
-                            return Ok((value, $iter.slice_len()));
+                            add_temp_128!(value, val64, $iter, $addsub, $overflow, mul, $t - 1);
+                            return Ok((value, $iter.cursor() - 1));
                         },
                     };
 
@@ -171,11 +177,10 @@ macro_rules! parse_digits_128 {
 
             // Add the temporary value to the total value.
             let mul = ($radix as u64).pow(index as u32);
-            add_temporary_128!(value, val64, $iter, $addsub, $overflow, mul, $t);
+            add_temp_128!(value, val64, $iter, $addsub, $overflow, mul, $t);
         }
 
-        // Iterator must be empty.
-        Ok((value, 0))
+        Ok((value, $iter.cursor()))
     }};
 }
 
@@ -336,6 +341,8 @@ where
 /// using positive data, then negate it. Parsing `-128` for `i8` would lead
 /// to numerical overflow, which would then incorrectly produce an invalid
 /// value. Therefore, we must split the digit parsing into 2 discrete paths.
+///
+/// Returns a result containing the value and the number of digits parsed.
 #[inline]
 pub fn parse_digits<'a, T, Iter, const RADIX: u32>(
     mut iter: Iter,
@@ -355,6 +362,8 @@ where
 /// Highly optimized algorithm to parse digits for 128-bit integers.
 /// 128-bit integers have slower native operations, so using native
 /// operations when possible leads to faster performance.
+///
+/// Returns a result containing the value and the number of digits parsed.
 #[inline]
 pub fn parse_digits_128<'a, T, Iter, const RADIX: u32>(
     mut iter: Iter,
@@ -399,6 +408,9 @@ const fn leading_zeros_allowed<const FORMAT: u128>() -> bool {
 /// 4. Handles if the sign is required, but missing.
 /// 5. Handles if the iterator is empty, before or after parsing the sign.
 /// 6. Handles if the iterator has invalid, leading zeros.
+///
+/// Returns if the value is negative, or any values detected when
+/// validating the input.
 #[inline]
 fn parse_sign_and_validate<'a, T, Iter, const RADIX: u32, const FORMAT: u128>(
     iter: &mut Iter,
@@ -435,31 +447,59 @@ where
 
 /// Core parsing algorithm for machine integers.
 /// See `parse_digits` for a detailed explanation of the algorithms.
+///
+/// Returns the parsed value and the number of digits processed.
 #[inline]
-pub fn algorithm<T, const RADIX: u32, const FORMAT: u128>(bytes: &[u8]) -> ParseResult<(T, usize)>
+pub fn algorithm<'a, T, Iter, const RADIX: u32, const FORMAT: u128>(
+    mut iter: Iter,
+) -> ParseResult<(T, usize)>
 where
     T: Integer,
+    Iter: ByteIter<'a>,
 {
+    debug_assert!(T::BITS != 128);
     debug_assert_radix(RADIX);
 
-    // TODO(ahuszagh) Going to need a proper iterator...
-    let mut iter = bytes.iter();
     let is_negative = parse_sign_and_validate::<T, _, RADIX, FORMAT>(&mut iter)?;
     parse_digits::<T, _, RADIX>(iter, is_negative)
 }
 
 /// Optimized implementation of the above algorithm for 128-bit integers.
+///
+/// Returns the parsed value and the number of digits processed.
 #[inline]
-pub fn algorithm_128<T, const RADIX: u32, const FORMAT: u128>(
-    bytes: &[u8],
+pub fn algorithm_128<'a, T, Iter, const RADIX: u32, const FORMAT: u128>(
+    mut iter: Iter,
 ) -> ParseResult<(T, usize)>
 where
     T: Integer,
+    Iter: ByteIter<'a>,
 {
     debug_assert!(T::BITS == 128);
+    debug_assert_radix(RADIX);
 
-    // TODO(ahuszagh) Going to need a proper iterator...
-    let mut iter = bytes.iter();
     let is_negative = parse_sign_and_validate::<T, _, RADIX, FORMAT>(&mut iter)?;
     parse_digits_128::<T, _, RADIX>(iter, is_negative)
 }
+
+// TODO(ahuszagh) This is the general approach later.
+//#[inline]
+//pub fn algorithm_128<T, const RADIX: u32, const FORMAT: u128>(
+//    bytes: &[u8],
+//) -> ParseResult<(T, usize)>
+//where
+//    T: Integer,
+//{
+//    #[cfg(not(feature = "format"))] {
+//        return algorithm_128_iter::<_, _, RADIX, FORMAT>(bytes.noskip_iter());
+//    }
+//
+//    #[cfg(feature = "format")] {
+//        // TODO(ahuszagh) This is a dummy implementation... Ewwww
+//        if FORMAT == 0 {
+//            return algorithm_128_iter::<_, _, RADIX, FORMAT>(bytes.noskip_iter());
+//        } else {
+//            return algorithm_128_iter::<_, _, RADIX, FORMAT>(bytes.skip_iter::<RADIX, FORMAT>());
+//        }
+//    }
+//}

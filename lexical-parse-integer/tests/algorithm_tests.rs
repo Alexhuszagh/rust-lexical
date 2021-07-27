@@ -1,4 +1,6 @@
 use lexical_parse_integer::algorithm;
+use lexical_util::error::ParseErrorCode;
+use lexical_util::noskip::NoSkipIter;
 use proptest::prelude::*;
 
 #[test]
@@ -28,12 +30,14 @@ fn test_parse_4digits() {
 
 #[test]
 fn test_try_parse_4digits() {
-    assert_eq!(algorithm::try_parse_4digits::<u32, _, 10>(&mut b"1234".iter()), Some(1234));
-    assert_eq!(algorithm::try_parse_4digits::<u32, _, 10>(&mut b"123".iter()), None);
-    assert_eq!(algorithm::try_parse_4digits::<u32, _, 10>(&mut b"123\x00".iter()), None);
-    assert_eq!(algorithm::try_parse_4digits::<u32, _, 10>(&mut b"123.".iter()), None);
-    assert_eq!(algorithm::try_parse_4digits::<u32, _, 10>(&mut b"123_".iter()), None);
-    assert_eq!(algorithm::try_parse_4digits::<u32, _, 10>(&mut b"1234_".iter()), Some(1234));
+    let parse =
+        |digits: &[u8]| algorithm::try_parse_4digits::<u32, _, 10>(&mut digits.noskip_iter());
+    assert_eq!(parse(b"1234"), Some(1234));
+    assert_eq!(parse(b"123"), None);
+    assert_eq!(parse(b"123\x00"), None);
+    assert_eq!(parse(b"123."), None);
+    assert_eq!(parse(b"123_"), None);
+    assert_eq!(parse(b"1234_"), Some(1234));
 }
 
 #[test]
@@ -78,12 +82,35 @@ fn test_parse_8digits() {
 
 #[test]
 fn test_try_parse_8digits() {
-    assert_eq!(algorithm::try_parse_8digits::<u64, _, 10>(&mut b"12345678".iter()), Some(12345678));
-    assert_eq!(algorithm::try_parse_8digits::<u64, _, 10>(&mut b"1234567".iter()), None);
-    assert_eq!(algorithm::try_parse_8digits::<u64, _, 10>(&mut b"1234567\x00".iter()), None);
-    assert_eq!(algorithm::try_parse_8digits::<u64, _, 10>(&mut b"1234567.".iter()), None);
-    assert_eq!(algorithm::try_parse_8digits::<u64, _, 10>(&mut b"1234567_".iter()), None);
-    assert_eq!(algorithm::try_parse_8digits::<u64, _, 10>(&mut b"12345678".iter()), Some(12345678));
+    let parse =
+        |digits: &[u8]| algorithm::try_parse_8digits::<u64, _, 10>(&mut digits.noskip_iter());
+
+    assert_eq!(parse(b"12345678"), Some(12345678));
+    assert_eq!(parse(b"1234567"), None);
+    assert_eq!(parse(b"1234567\x00"), None);
+    assert_eq!(parse(b"1234567."), None);
+    assert_eq!(parse(b"1234567_"), None);
+    assert_eq!(parse(b"12345678"), Some(12345678));
+}
+
+#[test]
+fn algorithm_test() {
+    let parse_u32 = |digits: &[u8]| algorithm::algorithm::<u32, _, 10, 0>(digits.noskip_iter());
+    let parse_i32 = |digits: &[u8]| algorithm::algorithm::<i32, _, 10, 0>(digits.noskip_iter());
+
+    // TODO(ahuszagh) Need to add other stuff inside...
+    assert_eq!(parse_u32(b"12345"), Ok((12345, 5)));
+    assert_eq!(parse_u32(b"+12345"), Ok((12345, 6)));
+    assert_eq!(parse_u32(b"-12345"), Err(ParseErrorCode::InvalidNegativeSign.into()));
+    assert_eq!(parse_i32(b"12345"), Ok((12345, 5)));
+    assert_eq!(parse_i32(b"-12345"), Ok((-12345, 6)));
+    assert_eq!(parse_i32(b"+12345"), Ok((12345, 6)));
+    assert_eq!(parse_i32(b"+123.45"), Ok((123, 4)));
+}
+
+#[test]
+fn algorithm_128_test() {
+    // TODO(ahuszagh) Number format?
 }
 
 proptest! {

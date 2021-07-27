@@ -10,8 +10,9 @@
 use crate::lib::ptr;
 use lexical_util::assert::{assert_radix, debug_assert_radix};
 use lexical_util::digit::digit_to_char;
-use lexical_util::div128::{u128_divrem, u64_step};
+use lexical_util::div128::u128_divrem;
 use lexical_util::num::{as_cast, UnsignedInteger};
+use lexical_util::step::u64_step;
 
 // NOTE: Don't use too many generics:
 //  We don't need generics for most of the internal algorithms,
