@@ -35,6 +35,8 @@ std = ["lexical-util/std"]
 power-of-two = ["lexical-util/power-of-two"]
 # Add support for writing non-decimal integer strings.
 radix = ["lexical-util/radix", "power-of-two"]
+# Reduce code size at the cost of performance.
+compact = ["lexical-util/compact"]
 
 # Internal only features.
 # Enable the lint checks.

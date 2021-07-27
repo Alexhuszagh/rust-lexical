@@ -2,3 +2,6 @@
 //! TODO(ahuszagh) Add more documentation here...
 
 pub mod algorithm;
+pub mod compact;
+
+mod api;

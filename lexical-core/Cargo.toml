@@ -68,6 +68,13 @@ format = [
     "lexical-parse-integer/format",
     "lexical-parse-float/format"
 ]
+# Reduce code size at the cost of performance.
+compact = [
+    "lexical-write-integer/compact",
+    "lexical-write-float/compact",
+    "lexical-parse-integer/compact",
+    "lexical-parse-float/compact"
+]
 
 # Internal only features.
 # Enable the lint checks.

@@ -41,6 +41,7 @@
 //! See `etc/div128.py` for the script to generate the divisors and the
 //! constants, and the division algorithm.
 
+#![cfg(not(feature = "compact"))]
 #![cfg(feature = "write")]
 
 use crate::assert::debug_assert_radix;
@@ -52,7 +53,7 @@ use crate::mul::mulhi;
 /// lower `shr` bits of the digits.
 #[inline]
 #[allow(clippy::many_single_char_names)]
-pub fn pow2_u128_divrem(n: u128, mask: u64, shr: u32) -> (u128, u64) {
+pub const fn pow2_u128_divrem(n: u128, mask: u64, shr: u32) -> (u128, u64) {
     let quot = n >> shr;
     let rem = mask & n as u64;
     (quot, rem)
@@ -151,12 +152,12 @@ pub fn slow_u128_divrem(n: u128, d: u64, d_ctlz: u32) -> (u128, u64) {
 ///
 /// This returns the quotient and the remainder.
 /// For the number of digits processed, see `u64_step`.
-#[inline]
-pub fn u128_divrem<const RADIX: u32>(n: u128) -> (u128, u64) {
-    debug_assert_radix(RADIX);
+#[inline(always)]
+pub fn u128_divrem(n: u128, radix: u32) -> (u128, u64) {
+    debug_assert_radix(radix);
 
     if cfg!(feature = "radix") {
-        match RADIX {
+        match radix {
             2 => u128_divrem_2(n),
             3 => u128_divrem_3(n),
             4 => u128_divrem_4(n),
@@ -195,7 +196,7 @@ pub fn u128_divrem<const RADIX: u32>(n: u128) -> (u128, u64) {
             _ => unreachable!(),
         }
     } else if cfg!(feature = "power-of-two") {
-        match RADIX {
+        match radix {
             2 => u128_divrem_2(n),
             4 => u128_divrem_4(n),
             8 => u128_divrem_8(n),
@@ -218,7 +219,7 @@ pub fn u128_divrem<const RADIX: u32>(n: u128) -> (u128, u64) {
 // in the function signatures of the functions they call.
 
 #[inline]
-fn u128_divrem_2(n: u128) -> (u128, u64) {
+const fn u128_divrem_2(n: u128) -> (u128, u64) {
     pow2_u128_divrem(n, 18446744073709551615, 64)
 }
 
@@ -228,7 +229,7 @@ fn u128_divrem_3(n: u128) -> (u128, u64) {
 }
 
 #[inline]
-fn u128_divrem_4(n: u128) -> (u128, u64) {
+const fn u128_divrem_4(n: u128) -> (u128, u64) {
     pow2_u128_divrem(n, 18446744073709551615, 64)
 }
 
@@ -255,7 +256,7 @@ fn u128_divrem_7(n: u128) -> (u128, u64) {
 }
 
 #[inline]
-fn u128_divrem_8(n: u128) -> (u128, u64) {
+const fn u128_divrem_8(n: u128) -> (u128, u64) {
     pow2_u128_divrem(n, 9223372036854775807, 63)
 }
 
@@ -309,7 +310,7 @@ fn u128_divrem_15(n: u128) -> (u128, u64) {
 }
 
 #[inline]
-fn u128_divrem_16(n: u128) -> (u128, u64) {
+const fn u128_divrem_16(n: u128) -> (u128, u64) {
     pow2_u128_divrem(n, 18446744073709551615, 64)
 }
 
@@ -424,7 +425,7 @@ fn u128_divrem_31(n: u128) -> (u128, u64) {
 }
 
 #[inline]
-fn u128_divrem_32(n: u128) -> (u128, u64) {
+const fn u128_divrem_32(n: u128) -> (u128, u64) {
     pow2_u128_divrem(n, 1152921504606846975, 60)
 }
 

@@ -13,8 +13,8 @@
 /// match-based fallback algorithm.
 #[inline]
 #[cfg(feature = "parse")]
-pub const fn char_to_digit_const<const RADIX: u32>(c: u8) -> Option<u32> {
-    let digit = if RADIX <= 10 {
+pub const fn char_to_digit_const(c: u8, radix: u32) -> Option<u32> {
+    let digit = if radix <= 10 {
         // Optimize for small radixes.
         (c.wrapping_sub(b'0')) as u32
     } else {
@@ -27,7 +27,7 @@ pub const fn char_to_digit_const<const RADIX: u32>(c: u8) -> Option<u32> {
         };
         digit as u32
     };
-    if digit < RADIX {
+    if digit < radix {
         Some(digit)
     } else {
         None
@@ -37,8 +37,8 @@ pub const fn char_to_digit_const<const RADIX: u32>(c: u8) -> Option<u32> {
 /// Determine if a character is a digit with a radix known at compile time.
 #[inline]
 #[cfg(feature = "parse")]
-pub const fn char_is_digit_const<const RADIX: u32>(c: u8) -> bool {
-    char_to_digit_const::<RADIX>(c).is_some()
+pub const fn char_is_digit_const(c: u8, radix: u32) -> bool {
+    char_to_digit_const(c, radix).is_some()
 }
 
 /// Convert a digit to a character with a radix known at compile time.
@@ -47,8 +47,8 @@ pub const fn char_is_digit_const<const RADIX: u32>(c: u8) -> bool {
 /// match-based fallback algorithm.
 #[inline]
 #[cfg(feature = "write")]
-pub fn digit_to_char_const<const RADIX: u32>(digit: u32) -> u8 {
-    if RADIX <= 10 || digit < 10 {
+pub const fn digit_to_char_const(digit: u32, radix: u32) -> u8 {
+    if radix <= 10 || digit < 10 {
         // Can short-circuit if we know the radix is small at compile time.
         digit as u8 + b'0'
     } else {

@@ -8,18 +8,19 @@
 //! See `etc/div128.py` for the script to generate the divisors and the
 //! constants, and the division algorithm.
 
+#![cfg(not(feature = "compact"))]
 #![cfg(any(feature = "parse", feature = "write"))]
 
 use crate::assert::debug_assert_radix;
 
 /// Calculate the maximum number of digits
 /// number of digits processed by 128-bit division.
-#[inline]
-pub fn u64_step<const RADIX: u32>() -> usize {
-    debug_assert_radix(RADIX);
+#[inline(always)]
+pub fn u64_step(radix: u32) -> usize {
+    debug_assert_radix(radix);
 
     if cfg!(feature = "radix") {
-        match RADIX {
+        match radix {
             2 => u64_step_2(),
             3 => u64_step_3(),
             4 => u64_step_4(),
@@ -58,7 +59,7 @@ pub fn u64_step<const RADIX: u32>() -> usize {
             _ => unreachable!(),
         }
     } else if cfg!(feature = "power-of-two") {
-        match RADIX {
+        match radix {
             2 => u64_step_2(),
             4 => u64_step_4(),
             8 => u64_step_8(),
@@ -78,176 +79,176 @@ pub fn u64_step<const RADIX: u32>() -> usize {
 // Preferably, edit the source code to generate the constants.
 
 #[inline]
-fn u64_step_2() -> usize {
+const fn u64_step_2() -> usize {
     64
 }
 
 #[inline]
-fn u64_step_3() -> usize {
+const fn u64_step_3() -> usize {
     40
 }
 
 #[inline]
-fn u64_step_4() -> usize {
+const fn u64_step_4() -> usize {
     32
 }
 
 #[inline]
-fn u64_step_5() -> usize {
+const fn u64_step_5() -> usize {
     27
 }
 
 #[inline]
-fn u64_step_6() -> usize {
+const fn u64_step_6() -> usize {
     24
 }
 
 #[inline]
-fn u64_step_7() -> usize {
+const fn u64_step_7() -> usize {
     22
 }
 
 #[inline]
-fn u64_step_8() -> usize {
+const fn u64_step_8() -> usize {
     21
 }
 
 #[inline]
-fn u64_step_9() -> usize {
+const fn u64_step_9() -> usize {
     20
 }
 
 #[inline]
-fn u64_step_10() -> usize {
+const fn u64_step_10() -> usize {
     19
 }
 
 #[inline]
-fn u64_step_11() -> usize {
+const fn u64_step_11() -> usize {
     18
 }
 
 #[inline]
-fn u64_step_12() -> usize {
+const fn u64_step_12() -> usize {
     17
 }
 
 #[inline]
-fn u64_step_13() -> usize {
+const fn u64_step_13() -> usize {
     17
 }
 
 #[inline]
-fn u64_step_14() -> usize {
+const fn u64_step_14() -> usize {
     16
 }
 
 #[inline]
-fn u64_step_15() -> usize {
+const fn u64_step_15() -> usize {
     16
 }
 
 #[inline]
-fn u64_step_16() -> usize {
+const fn u64_step_16() -> usize {
     16
 }
 
 #[inline]
-fn u64_step_17() -> usize {
+const fn u64_step_17() -> usize {
     15
 }
 
 #[inline]
-fn u64_step_18() -> usize {
+const fn u64_step_18() -> usize {
     15
 }
 
 #[inline]
-fn u64_step_19() -> usize {
+const fn u64_step_19() -> usize {
     15
 }
 
 #[inline]
-fn u64_step_20() -> usize {
+const fn u64_step_20() -> usize {
     14
 }
 
 #[inline]
-fn u64_step_21() -> usize {
+const fn u64_step_21() -> usize {
     14
 }
 
 #[inline]
-fn u64_step_22() -> usize {
+const fn u64_step_22() -> usize {
     14
 }
 
 #[inline]
-fn u64_step_23() -> usize {
+const fn u64_step_23() -> usize {
     14
 }
 
 #[inline]
-fn u64_step_24() -> usize {
+const fn u64_step_24() -> usize {
     13
 }
 
 #[inline]
-fn u64_step_25() -> usize {
+const fn u64_step_25() -> usize {
     13
 }
 
 #[inline]
-fn u64_step_26() -> usize {
+const fn u64_step_26() -> usize {
     13
 }
 
 #[inline]
-fn u64_step_27() -> usize {
+const fn u64_step_27() -> usize {
     13
 }
 
 #[inline]
-fn u64_step_28() -> usize {
+const fn u64_step_28() -> usize {
     13
 }
 
 #[inline]
-fn u64_step_29() -> usize {
+const fn u64_step_29() -> usize {
     13
 }
 
 #[inline]
-fn u64_step_30() -> usize {
+const fn u64_step_30() -> usize {
     13
 }
 
 #[inline]
-fn u64_step_31() -> usize {
+const fn u64_step_31() -> usize {
     12
 }
 
 #[inline]
-fn u64_step_32() -> usize {
+const fn u64_step_32() -> usize {
     12
 }
 
 #[inline]
-fn u64_step_33() -> usize {
+const fn u64_step_33() -> usize {
     12
 }
 
 #[inline]
-fn u64_step_34() -> usize {
+const fn u64_step_34() -> usize {
     12
 }
 
 #[inline]
-fn u64_step_35() -> usize {
+const fn u64_step_35() -> usize {
     12
 }
 
 #[inline]
-fn u64_step_36() -> usize {
+const fn u64_step_36() -> usize {
     12
 }

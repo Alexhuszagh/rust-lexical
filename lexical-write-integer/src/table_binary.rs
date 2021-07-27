@@ -1,5 +1,6 @@
 //! Pre-computed tables for writing non-decimal strings.
 
+#![cfg(not(feature = "compact"))]
 #![cfg(feature = "power-of-two")]
 
 #[cfg(not(feature = "radix"))]

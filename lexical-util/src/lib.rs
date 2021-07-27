@@ -32,4 +32,5 @@ pub mod step;
 
 mod api;
 mod feature_format;
+mod format_flags;
 mod not_feature_format;

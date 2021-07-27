@@ -1,67 +1,12 @@
 //! Implements the algorithm in terms of the lexical API.
 
 /// Select the back-end.
-use crate::decimal::Decimal;
-#[cfg(feature = "power-of-two")]
-use crate::generic::Generic;
 use crate::options::Options;
+use crate::write::WriteInteger;
 
 use lexical_util::assert::{assert_buffer, assert_radix, debug_assert_buffer};
-use lexical_util::num::{as_cast, SignedInteger, UnsignedInteger};
+use lexical_util::num::{as_cast, SignedInteger};
 use lexical_util::{to_lexical, to_lexical_with_options};
-
-#[cfg(not(feature = "power-of-two"))]
-pub(crate) trait Itoa: Decimal + UnsignedInteger {}
-
-#[cfg(feature = "power-of-two")]
-pub(crate) trait Itoa: Decimal + Generic + UnsignedInteger {}
-
-macro_rules! itoa_impl {
-    ($($t:ty)*) => ($(
-        impl Itoa for $t {}
-    )*)
-}
-
-itoa_impl! { u8 u16 u32 u64 u128 usize }
-
-/// Forward itoa arguments to an optimized backend.
-/// Preconditions: `value` must be non-negative and unsigned.
-///
-/// # Safety
-///
-/// Safe as long as the buffer can hold `FORMATTED_SIZE_DECIMAL` elements.
-#[inline]
-#[cfg(not(feature = "power-of-two"))]
-unsafe fn itoa_positive<T, U, const __: u32>(value: T, buffer: &mut [u8]) -> usize
-where
-    T: Itoa,
-    U: Itoa,
-{
-    let value: U = as_cast(value);
-    unsafe { value.decimal(buffer) }
-}
-
-/// Forward itoa arguments to an optimized backend.
-/// Preconditions: `value` must be non-negative and unsigned.
-///
-/// # Safety
-///
-/// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
-/// (or `FORMATTED_SIZE_DECIMAL` for decimal).
-#[inline]
-#[cfg(feature = "power-of-two")]
-unsafe fn itoa_positive<T, U, const RADIX: u32>(value: T, buffer: &mut [u8]) -> usize
-where
-    T: Itoa,
-    U: Itoa,
-{
-    let value: U = as_cast(value);
-    if RADIX == 10 {
-        unsafe { value.decimal(buffer) }
-    } else {
-        unsafe { value.generic::<RADIX>(buffer) }
-    }
-}
 
 // UNSIGNED
 
@@ -74,11 +19,55 @@ where
 #[inline]
 unsafe fn unsigned<Narrow, Wide, const RADIX: u32>(value: Narrow, buffer: &mut [u8]) -> usize
 where
-    Narrow: Itoa,
-    Wide: Itoa,
+    Narrow: WriteInteger,
+    Wide: WriteInteger,
 {
-    unsafe { itoa_positive::<Narrow, Wide, RADIX>(value, buffer) }
+    unsafe { value.write_integer::<Wide, RADIX>(buffer) }
 }
+
+// SIGNED
+
+/// Callback for signed integer formatter.
+///
+/// # Safety
+///
+/// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
+/// (or `FORMATTED_SIZE_DECIMAL` for decimal).
+#[inline]
+unsafe fn signed<Narrow, Wide, Unsigned, const RADIX: u32>(
+    value: Narrow,
+    mut buffer: &mut [u8],
+) -> usize
+where
+    Narrow: SignedInteger,
+    Wide: SignedInteger,
+    Unsigned: WriteInteger,
+{
+    if value < Narrow::ZERO {
+        // Need to cast the value to the same size as unsigned type, since if
+        // the value is **exactly** `Narrow::MIN`, and it it is then cast
+        // as the wrapping negative as the unsigned value, a wider type
+        // will have a very different value.
+        let value: Wide = as_cast(value);
+        let unsigned: Unsigned = as_cast(value.wrapping_neg());
+        // SAFETY: safe as long as there is at least 1 element, which
+        // the buffer should have at least `FORMATTED_SIZE` elements.
+        unsafe {
+            *buffer.get_unchecked_mut(0) = b'-';
+            buffer = buffer.get_unchecked_mut(1..);
+        }
+        // SAFETY: safe as long as there is at least 1 element, which
+        // the buffer should have at least `FORMATTED_SIZE` elements.
+        unsafe { unsigned.write_integer::<Unsigned, RADIX>(buffer) + 1 }
+    } else {
+        let unsigned: Unsigned = as_cast(value);
+        // SAFETY: safe as long as there is at least 1 element, which
+        // the buffer should have at least `FORMATTED_SIZE` elements.
+        unsafe { unsigned.write_integer::<Unsigned, RADIX>(buffer) }
+    }
+}
+
+// API
 
 // Implement ToLexical for numeric type.
 macro_rules! unsigned_to_lexical {
@@ -152,48 +141,6 @@ unsigned_to_lexical! { usize u32 ; }
 
 #[cfg(target_pointer_width = "64")]
 unsigned_to_lexical! { usize u64 ; }
-
-// SIGNED
-
-/// Callback for signed integer formatter.
-///
-/// # Safety
-///
-/// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
-/// (or `FORMATTED_SIZE_DECIMAL` for decimal).
-#[inline]
-unsafe fn signed<Narrow, Wide, Unsigned, const RADIX: u32>(
-    value: Narrow,
-    mut buffer: &mut [u8],
-) -> usize
-where
-    Narrow: SignedInteger,
-    Wide: SignedInteger,
-    Unsigned: Itoa,
-{
-    if value < Narrow::ZERO {
-        // Need to cast the value to the same size as unsigned type, since if
-        // the value is **exactly** `Narrow::MIN`, and it it is then cast
-        // as the wrapping negative as the unsigned value, a wider type
-        // will have a very different value.
-        let value: Wide = as_cast(value);
-        let unsigned: Unsigned = as_cast(value.wrapping_neg());
-        // SAFETY: safe as long as there is at least 1 element, which
-        // the buffer should have at least `FORMATTED_SIZE` elements.
-        unsafe {
-            *buffer.get_unchecked_mut(0) = b'-';
-            buffer = buffer.get_unchecked_mut(1..);
-        }
-        // SAFETY: safe as long as there is at least 1 element, which
-        // the buffer should have at least `FORMATTED_SIZE` elements.
-        unsafe { itoa_positive::<Unsigned, Unsigned, RADIX>(unsigned, buffer) + 1 }
-    } else {
-        let unsigned: Unsigned = as_cast(value);
-        // SAFETY: safe as long as there is at least 1 element, which
-        // the buffer should have at least `FORMATTED_SIZE` elements.
-        unsafe { itoa_positive::<Unsigned, Unsigned, RADIX>(unsigned, buffer) }
-    }
-}
 
 // Implement ToLexical for numeric type.
 macro_rules! signed_to_lexical {

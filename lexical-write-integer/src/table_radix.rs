@@ -1,5 +1,6 @@
 //! Pre-computed tables for writing non-decimal strings.
 
+#![cfg(not(feature = "compact"))]
 #![cfg(feature = "radix")]
 
 use crate::lib::hint;

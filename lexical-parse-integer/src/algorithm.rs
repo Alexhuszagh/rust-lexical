@@ -1,4 +1,14 @@
-//! The algorithm definitions for the the string-to-integer conversions.
+//! Radix-generic, optimized, string-to-integer conversion routines.
+//!
+//! These routines are highly optimized: they use various optimizations
+//! to read multiple digits at-a-time with less multiplication instructions,
+//! as well as other optimizations to avoid unnecessary compile-time branching.
+//!
+//! See [Algorithm.md](/docs/Algorithm.md) for a more detailed description of
+//! the algorithm choice here. See [Benchmarks.md](/docs/Benchmarks.md) for
+//! recent benchmark data.
+
+#![cfg(not(feature = "compact"))]
 
 use lexical_util::assert::debug_assert_radix;
 use lexical_util::digit::char_to_digit_const;
@@ -96,7 +106,7 @@ macro_rules! parse_digits {
 
         // Do our slow parsing algorithm: 1 digit at a time.
         while let Some(&c) = $iter.next() {
-            let digit = match char_to_digit_const::<$radix>(c) {
+            let digit = match char_to_digit_const(c, $radix) {
                 Some(v) => v,
                 None => return Ok((value, $iter.cursor() - 1)),
             };
@@ -150,14 +160,14 @@ macro_rules! parse_digits_128 {
 
         // After our fast-path optimizations, now try to parse 1 digit at a time.
         // We use temporary 64-bit values for better performance here.
-        let step = u64_step::<$radix>();
+        let step = u64_step($radix);
         while !$iter.is_consumed() {
             let mut val64: u64 = 0;
             let mut index = 0;
             while index < step {
                 if let Some(&c) = $iter.next() {
                     index += 1;
-                    let digit = match char_to_digit_const::<$radix>(c) {
+                    let digit = match char_to_digit_const(c, $radix) {
                         Some(v) => v,
                         None => {
                             // Add temporary to value and return early.
@@ -324,7 +334,7 @@ where
     }
 }
 
-/// Highly optimized algorithm to parse digits for machine floats.
+/// Highly optimized algorithm to parse digits for machine integers.
 ///
 /// If the type size is >= 64 bits, then use optimizations to parse up
 /// to 8-digits at a time, since we can get at most 2 iterations.
@@ -412,9 +422,7 @@ const fn leading_zeros_allowed<const FORMAT: u128>() -> bool {
 /// Returns if the value is negative, or any values detected when
 /// validating the input.
 #[inline]
-fn parse_sign_and_validate<'a, T, Iter, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut Iter,
-) -> ParseResult<bool>
+fn parse_sign_and_validate<'a, T, Iter, const FORMAT: u128>(iter: &mut Iter) -> ParseResult<bool>
 where
     T: Integer,
     Iter: ByteIter<'a>,
@@ -460,7 +468,7 @@ where
     debug_assert!(T::BITS != 128);
     debug_assert_radix(RADIX);
 
-    let is_negative = parse_sign_and_validate::<T, _, RADIX, FORMAT>(&mut iter)?;
+    let is_negative = parse_sign_and_validate::<T, _, FORMAT>(&mut iter)?;
     parse_digits::<T, _, RADIX>(iter, is_negative)
 }
 
@@ -478,7 +486,7 @@ where
     debug_assert!(T::BITS == 128);
     debug_assert_radix(RADIX);
 
-    let is_negative = parse_sign_and_validate::<T, _, RADIX, FORMAT>(&mut iter)?;
+    let is_negative = parse_sign_and_validate::<T, _, FORMAT>(&mut iter)?;
     parse_digits_128::<T, _, RADIX>(iter, is_negative)
 }
 

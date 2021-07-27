@@ -1,4 +1,4 @@
-//! Radix-generic, lexical integer-to-string conversion routines.
+//! Radix-generic, optimized, integer-to-string conversion routines.
 //!
 //! These routines are highly optimized: they unroll 4 loops at a time,
 //! using pre-computed base^2 tables.
@@ -6,6 +6,8 @@
 //! See [Algorithm.md](/docs/Algorithm.md) for a more detailed description of
 //! the algorithm choice here. See [Benchmarks.md](/docs/Benchmarks.md) for
 //! recent benchmark data.
+
+#![cfg(not(feature = "compact"))]
 
 use crate::lib::ptr;
 use lexical_util::assert::{assert_radix, debug_assert_radix};
@@ -19,9 +21,9 @@ use lexical_util::step::u64_step;
 //  and doing so kills performance. Why? I don't know, but assuming
 //  it messed with the compiler's code generation.
 
-/// Generic itoa algorithm.
+/// Write integral digits to buffer.
 ///
-/// This algorithm first writers 4, then 2 digits at a time, finally
+/// This algorithm first writes 4, then 2 digits at a time, finally
 /// the last 1 or 2 digits, using power reduction to speed up the
 /// algorithm a lot.
 ///
@@ -204,8 +206,8 @@ pub unsafe fn algorithm_u128<const RADIX: u32>(
     // To deal with internal 0 values or values with internal 0 digits set,
     // we store the starting index, and if not all digits are written,
     // we just skip down `digits` digits for the next value.
-    let step = u64_step::<RADIX>();
-    let (value, low) = u128_divrem::<RADIX>(value);
+    let step = u64_step(RADIX);
+    let (value, low) = u128_divrem(value, RADIX);
     let mut index = buffer.len();
     unsafe {
         index = write_step_digits(low, RADIX, table, buffer, index, step);
@@ -215,7 +217,7 @@ pub unsafe fn algorithm_u128<const RADIX: u32>(
     }
 
     // Value has to be greater than 1.8e38
-    let (value, mid) = u128_divrem::<RADIX>(value);
+    let (value, mid) = u128_divrem(value, RADIX);
     unsafe {
         index = write_step_digits(mid, RADIX, table, buffer, index, step);
     }

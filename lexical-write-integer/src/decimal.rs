@@ -8,6 +8,8 @@
 //! See [Algorithm.md](/docs/Algorithm.md) for a more detailed description of
 //! the algorithm choice here.
 
+#![cfg(not(feature = "compact"))]
+
 use crate::algorithm::{algorithm, algorithm_u128};
 use crate::table::DIGIT_TO_BASE10_SQUARED;
 use lexical_util::num::UnsignedInteger;
@@ -215,7 +217,7 @@ impl DigitCount for u128 {
     }
 }
 
-// Export integer to string.
+/// Write integer to decimal string.
 pub trait Decimal: DigitCount {
     /// # Safety
     ///

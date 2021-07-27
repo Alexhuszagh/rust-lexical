@@ -16,10 +16,12 @@ pub(crate) mod lib {
 }
 
 pub mod algorithm;
+pub mod compact;
 pub mod decimal;
-pub mod generic;
 pub mod options;
+pub mod radix;
 pub mod table;
+pub mod write;
 
 mod api;
 mod table_binary;

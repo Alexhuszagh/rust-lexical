@@ -1,3 +1,4 @@
-#![cfg(all(not(feature = "format"), feature = "parse"))]
+#![cfg(feature = "parse")]
+#![cfg(not(feature = "format"))]
 
 // TODO(ahuszagh) Implement...

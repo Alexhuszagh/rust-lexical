@@ -8,6 +8,7 @@
 //! See [Algorithm.md](/docs/Algorithm.md) for a more detailed description of
 //! the algorithm choice here.
 
+#![cfg(not(feature = "compact"))]
 #![cfg(feature = "power-of-two")]
 
 use crate::algorithm::{algorithm, algorithm_u128};
@@ -16,21 +17,21 @@ use crate::table::get_table;
 use lexical_util::algorithm::copy_to_dst;
 use lexical_util::num::UnsignedInteger;
 
-// Export integer to string.
-pub trait Generic: UnsignedInteger {
+/// Write integer to radix string.
+pub trait Radix: UnsignedInteger {
     /// # SAFETY
     ///
     /// Safe as long as buffer is at least `FORMATTED_SIZE` elements long,
     /// (or `FORMATTED_SIZE_DECIMAL` for decimal), and the radix is valid.
-    unsafe fn generic<const RADIX: u32>(self, buffer: &mut [u8]) -> usize;
+    unsafe fn radix<const RADIX: u32>(self, buffer: &mut [u8]) -> usize;
 }
 
-// Don't implement generic for small types, where we could have an overflow.
-macro_rules! generic_unimpl {
+// Don't implement radix for small types, where we could have an overflow.
+macro_rules! radix_unimpl {
     ($($t:ty)*) => ($(
-        impl Generic for $t {
+        impl Radix for $t {
             #[inline(always)]
-            unsafe fn generic<const __: u32>(self, _: &mut [u8]) -> usize {
+            unsafe fn radix<const __: u32>(self, _: &mut [u8]) -> usize {
                 // Forces a hard error if we have a logic error in our code.
                 unimplemented!()
             }
@@ -38,16 +39,17 @@ macro_rules! generic_unimpl {
     )*);
 }
 
-generic_unimpl! { u8 u16 usize }
+radix_unimpl! { u8 u16 usize }
 
-// Implement generic for type.
-macro_rules! generic_impl {
+// Implement radix for type.
+macro_rules! radix_impl {
     ($($t:ty)*) => ($(
-        impl Generic for $t {
+        impl Radix for $t {
             #[inline(always)]
-            unsafe fn generic<const RADIX: u32>(self, buffer: &mut [u8]) -> usize {
+            unsafe fn radix<const RADIX: u32>(self, buffer: &mut [u8]) -> usize {
                 // SAFETY: safe as long as buffer is large enough to hold the max value.
                 // We never read unwritten values, and we never assume the data is initialized.
+                debug_assert!(Self::BITS <= 64);
                 let mut digits: mem::MaybeUninit<[u8; 64]> = mem::MaybeUninit::uninit();
                 unsafe {
                     let digits = &mut *digits.as_mut_ptr();
@@ -60,13 +62,15 @@ macro_rules! generic_impl {
     )*);
 }
 
-generic_impl! { u32 u64 }
+radix_impl! { u32 u64 }
 
-impl Generic for u128 {
+impl Radix for u128 {
     #[inline(always)]
-    unsafe fn generic<const RADIX: u32>(self, buffer: &mut [u8]) -> usize {
+    unsafe fn radix<const RADIX: u32>(self, buffer: &mut [u8]) -> usize {
         // SAFETY: safe as long as buffer is large enough to hold the max value.
         // We never read unwritten values, and we never assume the data is initialized.
+        // Need at least 128-bits, at least as many as the bits in the current type.
+        debug_assert!(Self::BITS <= 128);
         let mut digits: mem::MaybeUninit<[u8; 128]> = mem::MaybeUninit::uninit();
         unsafe {
             let digits = &mut *digits.as_mut_ptr();

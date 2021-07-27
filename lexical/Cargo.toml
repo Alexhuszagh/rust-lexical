@@ -38,6 +38,8 @@ power-of-two = ["lexical-core/power-of-two"]
 radix = ["lexical-core/radix"]
 # Add support for parsing custom numerical formats.
 format = ["lexical-core/format"]
+# Reduce code size at the cost of performance.
+compact = ["lexical-core/compact"]
 
 # Internal only features.
 # Enable the lint checks.

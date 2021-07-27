@@ -1,5 +1,7 @@
 //! Pre-computed tables for writing decimal strings.
 
+#![cfg(not(feature = "compact"))]
+
 // RADIX^2 TABLES
 // --------------
 

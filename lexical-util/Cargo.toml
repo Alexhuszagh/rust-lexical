@@ -48,6 +48,8 @@ write-floats = ["write", "floats"]
 parse-integers = ["parse", "integers"]
 # Add support for parsing floats.
 parse-floats = ["parse", "floats"]
+# Reduce code size at the cost of performance.
+compact = []
 
 # Internal only features.
 # Enable the lint checks.

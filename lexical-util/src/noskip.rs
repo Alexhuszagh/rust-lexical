@@ -120,6 +120,7 @@ impl<'a> ByteIter<'a> for NoSkipIterator<'a> {
     }
 
     #[inline]
+    #[allow(clippy::assertions_on_constants)]
     unsafe fn step_by_unchecked(&mut self, count: usize) {
         debug_assert!(Self::IS_CONTIGUOUS);
         debug_assert!(self.as_slice().len() >= count);

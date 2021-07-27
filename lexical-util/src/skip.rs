@@ -127,7 +127,7 @@ impl<'a, const RADIX: u32, const FORMAT: u128> SkipIterator<'a, RADIX, FORMAT> {
 
     /// Determine if the character is a digit.
     pub const fn is_digit(&self, value: u8) -> bool {
-        char_is_digit_const::<RADIX>(value)
+        char_is_digit_const(value, RADIX)
     }
 }
 

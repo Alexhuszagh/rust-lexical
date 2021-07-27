@@ -88,7 +88,7 @@ def print_pow2(radix):
     print('')
 
     print('#[inline]')
-    print(f'fn u64_step_{radix}() -> usize {{')
+    print(f'const fn u64_step_{radix}() -> usize {{')
     print(f'    {digits}')
     print('}')
     print('')
@@ -104,7 +104,7 @@ def print_fast(radix, divisor, fast_shr, factor, factor_shr, digits):
     print('')
 
     print('#[inline]')
-    print(f'fn u64_step_{radix}() -> usize {{')
+    print(f'const fn u64_step_{radix}() -> usize {{')
     print(f'    {digits}')
     print('}')
     print('')
@@ -113,13 +113,13 @@ def print_moderate(radix, divisor, factor, factor_shr, digits):
     '''Print the moderate division algorithm.'''
 
     print('#[inline]')
-    print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64) {{')
+    print(f'const fn u128_divrem_{radix}(n: u128) -> (u128, u64) {{')
     print(f'    moderate_u128_divrem(n, {divisor}, {factor}, {factor_shr})')
     print('}')
     print('')
 
     print('#[inline]')
-    print(f'fn u64_step_{radix}() -> usize {{')
+    print(f'const fn u64_step_{radix}() -> usize {{')
     print(f'    {digits}')
     print('}')
     print('')
@@ -135,7 +135,7 @@ def print_slow(radix, divisor, digits):
     print('')
 
     print('#[inline]')
-    print(f'fn u64_step_{radix}() -> usize {{')
+    print(f'const fn u64_step_{radix}() -> usize {{')
     print(f'    {digits}')
     print('}')
     print('')

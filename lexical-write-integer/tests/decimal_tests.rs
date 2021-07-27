@@ -1,3 +1,5 @@
+#![cfg(not(feature = "compact"))]
+
 use lexical_util::num::UnsignedInteger;
 use lexical_write_integer::decimal::{self, Decimal, DigitCount};
 use quickcheck::quickcheck;

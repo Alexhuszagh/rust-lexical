@@ -11,7 +11,7 @@ use crate::lib::{fmt, mem, ops};
 
 /// Type that can be converted to primitive with `as`.
 #[doc(hidden)]
-pub trait AsPrimitive: Copy + PartialEq + PartialOrd + Send + Sync {
+pub trait AsPrimitive: Copy + PartialEq + PartialOrd + Send + Sync + Sized {
     fn as_u8(self) -> u8;
     fn as_u16(self) -> u16;
     fn as_u32(self) -> u32;
