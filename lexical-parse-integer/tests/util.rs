@@ -1,5 +1,7 @@
+use lexical_util::format::NumberFormatBuilder;
+
 pub const fn to_format(radix: u32) -> u128 {
-    // TODO(ahuszagh) Need to actually implement...
-    use lexical_util::format::MANTISSA_RADIX_SHIFT;
-    (radix as u128) << MANTISSA_RADIX_SHIFT
+    NumberFormatBuilder::new()
+        .mantissa_radix(radix as u8)
+        .build()
 }

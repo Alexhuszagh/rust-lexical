@@ -38,43 +38,238 @@
 #![cfg(all(feature = "format", feature = "parse"))]
 
 use crate::digit::char_is_digit_const;
-use crate::iterator::ByteIter;
+use crate::format::NumberFormat;
+use crate::format_flags as flags;
+use crate::iterator::{Byte, ByteIter};
 
-// TODO(ahuszagh) Remove these:
-//  Temporary constants to enable our logic to work.
-pub const I: u128 = 0x1;
-pub const L: u128 = 0x2;
-pub const T: u128 = 0x3;
-pub const IL: u128 = 0x4;
-pub const IT: u128 = 0x5;
-pub const LT: u128 = 0x6;
-pub const ILT: u128 = 0x7;
-pub const IC: u128 = 0x8;
-pub const LC: u128 = 0x9;
-pub const TC: u128 = 0xA;
-pub const ILC: u128 = 0xB;
-pub const ITC: u128 = 0xC;
-pub const LTC: u128 = 0xD;
-pub const ILTC: u128 = 0xE;
+// PEEK
+// ----
 
-// TODO(ahuszagh) Actually implement...
-const fn digit_separator<const FORMAT: u128>() -> u8 {
-    b'_'
+/// Determine if the digit separator is internal.
+///
+/// Preconditions: Assumes `slc[index]` is a digit separator.
+/// The compiler optimizes this pretty well: it's almost as efficient as
+/// optimized assembly without bounds checking.
+macro_rules! is_i {
+    ($self:ident) => (!is_l!($self) && !is_t!($self));
+}
+
+/// Determine if the digit separator is leading.
+///
+/// Preconditions: Assumes `slc[index]` is a digit separator.
+/// The compiler optimizes this pretty well: it's almost as efficient as
+/// optimized assembly without bounds checking.
+macro_rules! is_l {
+    ($self:ident) => {{
+        // Consume any digit separators before the current one.
+        let mut index = $self.byte.index;
+        while index > 0 && $self.byte.slc.get(index - 1).map_or(false, |&x| $self.is_digit_separator(x)) {
+            index -= 1;
+        }
+
+        // True if there are no items before the digit separator, or character
+        // before the digit separators is not a digit.
+        index == 0 || !$self.byte.slc.get(index - 1).map_or(false, |&x| $self.is_digit(x))
+    }};
+}
+
+/// Determine if the digit separator is trailing.
+///
+/// Preconditions: Assumes `slc[index]` is a digit separator.
+/// The compiler optimizes this pretty well: it's almost as efficient as
+/// optimized assembly without bounds checking.
+macro_rules! is_t {
+    ($self:ident) => {{
+        // Consume any digit separators after the current one.
+        let mut index = $self.byte.index;
+        while index < $self.byte.slc.len()
+            && $self.byte.slc.get(index + 1).map_or(false, |&x| $self.is_digit_separator(x))
+        {
+            index += 1;
+        }
+
+        index == $self.byte.slc.len() || !$self.byte.slc.get(index + 1).map_or(false, |&x| $self.is_digit(x))
+    }};
+}
+
+/// Determine if the digit separator is leading or internal.
+///
+/// Preconditions: Assumes `slc[index]` is a digit separator.
+macro_rules! is_il {
+    ($self:ident) => (is_l!($self) || !is_t!($self));
+}
+
+/// Determine if the digit separator is internal or trailing.
+///
+/// Preconditions: Assumes `slc[index]` is a digit separator.
+macro_rules! is_it {
+    ($self:ident) => (is_t!($self) || !is_l!($self));
+}
+
+/// Determine if the digit separator is leading or trailing.
+///
+/// Preconditions: Assumes `slc[index]` is a digit separator.
+macro_rules! is_lt {
+    ($self:ident) => (is_l!($self) || is_t!($self));
+}
+
+/// Determine if the digit separator is internal, leading, or trailing.
+macro_rules! is_ilt {
+    ($self:ident) => (true);
+}
+
+/// Consumes 1 or more digit separators.
+/// Peeks the next token that's not a digit separator.
+macro_rules! peek_1 {
+    ($self:ident, $is_skip:ident) => {{
+        // This will consume consecutive digit separators.
+        let value = $self.byte.slc.get($self.byte.index)?;
+        let is_digit_separator = $self.is_digit_separator(*value);
+        if is_digit_separator && $is_skip!($self) {
+            // Have a skippable digit separator: keep incrementing until we find
+            // a non-digit separator character. Don't need any complex checks
+            // here, since we've already done them above.
+            let mut index = $self.byte.index + 1;
+            while index < $self.length()
+                && $self.byte.slc.get(index).map_or(false, |&x| $self.is_digit_separator(x))
+            {
+                index += 1;
+            }
+            $self.byte.index = index;
+            $self.byte.slc.get($self.byte.index)
+        } else {
+            // Have 1 of 2 conditions:
+            //  1. A non-digit separator character.
+            //  2. A digit separator that is not valid in the context.
+            Some(value)
+        }
+    }};
+}
+
+/// Consumes 1 or more digit separators.
+/// Peeks the next token that's not a digit separator.
+macro_rules! peek_n {
+    ($self:ident, $is_skip:ident) => {{
+        // This will consume consecutive digit separators.
+        let value = $self.byte.slc.get($self.byte.index)?;
+        let is_digit_separator = $self.is_digit_separator(*value);
+        if is_digit_separator && $is_skip!($self) {
+            // Have a skippable digit separator: keep incrementing until we find
+            // a non-digit separator character. Don't need any complex checks
+            // here, since we've already done them above.
+            let mut index = $self.byte.index + 1;
+            while index < $self.byte.slc.len()
+                && $self.byte.slc.get(index).map_or(false, |&x| $self.is_digit_separator(x))
+            {
+                index += 1;
+            }
+            $self.byte.index = index;
+            $self.byte.slc.get($self.byte.index)
+        } else {
+            // Have 1 of 2 conditions:
+            //  1. A non-digit separator character.
+            //  2. A digit separator that is not valid in the context.
+            Some(value)
+        }
+    }};
+}
+
+/// Consumes no digit separators and peeks the next value.
+macro_rules! peek_noskip {
+    ($self:ident) => ($self.byte.slc.get($self.byte.index));
+}
+
+/// Consumes at most 1 leading digit separator and peeks the next value.
+macro_rules! peek_l {
+    ($self:ident) => (peek_1!($self, is_l));
+}
+
+/// Consumes at most 1 internal digit separator and peeks the next value.
+macro_rules! peek_i {
+    ($self:ident) => (peek_1!($self, is_i));
+}
+
+/// Consumes at most 1 trailing digit separator and peeks the next value.
+macro_rules! peek_t {
+    ($self:ident) => (peek_1!($self, is_t));
+}
+
+/// Consumes at most 1 internal/leading digit separator and peeks the next value.
+macro_rules! peek_il {
+    ($self:ident) => (peek_1!($self, is_il));
+}
+
+/// Consumes at most 1 internal/trailing digit separator and peeks the next value.
+macro_rules! peek_it {
+    ($self:ident) => (peek_1!($self, is_it));
+}
+
+/// Consumes at most 1 leading/trailing digit separator and peeks the next value.
+macro_rules! peek_lt {
+    ($self:ident) => (peek_1!($self, is_lt));
+}
+
+/// Consumes at most 1 digit separator and peeks the next value.
+macro_rules! peek_ilt {
+    ($self:ident) => (peek_1!($self, is_ilt));
+}
+
+/// Consumes 1 or more leading digit separators and peeks the next value.
+macro_rules! peek_lc {
+    ($self:ident) => (peek_n!($self, is_l));
+}
+
+/// Consumes 1 or more internal digit separators and peeks the next value.
+macro_rules! peek_ic {
+    ($self:ident) => (peek_n!($self, is_i));
+}
+
+/// Consumes 1 or more trailing digit separators and peeks the next value.
+macro_rules! peek_tc {
+    ($self:ident) => (peek_n!($self, is_t));
+}
+
+/// Consumes 1 or more internal/leading digit separators and peeks the next value.
+macro_rules! peek_ilc {
+    ($self:ident) => (peek_n!($self, is_il));
+}
+
+/// Consumes 1 or more internal/trailing digit separators and peeks the next value.
+macro_rules! peek_itc {
+    ($self:ident) => (peek_n!($self, is_it));
+}
+
+/// Consumes 1 or more leading/trailing digit separators and peeks the next value.
+macro_rules! peek_ltc {
+    ($self:ident) => (peek_n!($self, is_lt));
+}
+
+/// Consumes 1 or more digit separators and peeks the next value.
+macro_rules! peek_iltc {
+    ($self:ident) => {{
+        loop {
+            let value = $self.byte.slc.get($self.byte.index)?;
+            if !$self.is_digit_separator(*value) {
+                return Some(value)
+            }
+            $self.byte.index += 1;
+        }
+    }};
 }
 
 // SKIP ITER
 // ---------
 
-/// Trait to simplify creation of a `SkipIterator`.
-pub trait SkipIter<'a> {
-    /// Create `SkipIterator` from format and current type.
-    fn skip_iter<const FORMAT: u128>(&'a self) -> SkipIterator<'a, FORMAT>;
+/// Trait to simplify creation of a `Skip` object.
+pub trait AsSkip<'a> {
+    /// Create `Skip` from object.
+    fn skip<const FORMAT: u128>(&'a self) -> Skip<'a, FORMAT>;
 }
 
-impl<'a> SkipIter<'a> for [u8] {
+impl<'a> AsSkip<'a> for [u8] {
     #[inline]
-    fn skip_iter<const FORMAT: u128>(&'a self) -> SkipIterator<'a, FORMAT> {
-        SkipIterator::new(self)
+    fn skip<const FORMAT: u128>(&'a self) -> Skip<'a, FORMAT> {
+        Skip::new(self)
     }
 }
 
@@ -94,70 +289,35 @@ impl<'a> SkipIter<'a> for [u8] {
 /// The radix is required to allow us to differentiate digit from
 /// non-digit characters (see [DigitSeparators](/docs/DigitSeparators.md)
 /// for a detailed explanation on why).
-///
-/// Finally, `mask` is required to mask the digit separator flags
-/// so we can work on integral, fraction, and exponent characters
-/// with similar logic.
 #[derive(Clone)]
-pub struct SkipIterator<'a, const FORMAT: u128> {
+pub struct Skip<'a, const FORMAT: u128> {
     /// The raw slice for the iterator.
     slc: &'a [u8],
     /// Current index of the iterator in the slice.
     index: usize,
-    /// The mask for the digit separator flags.
-    /// This may either be integer, fraction, or exponent.
-    mask: u64,
 }
 
-impl<'a, const FORMAT: u128> SkipIterator<'a, FORMAT> {
-    /// Create new iterator.
+impl<'a, const FORMAT: u128> Skip<'a, FORMAT> {
+    /// Create new byte object.
     #[inline]
     pub fn new(slc: &'a [u8]) -> Self {
-        // TODO(ahuszagh) Going to need a mask.
         Self {
             slc,
             index: 0,
-            mask: 0,
         }
-    }
-
-    /// Determine if the character is a digit separator.
-    pub const fn is_digit_separator(&self, value: u8) -> bool {
-        if digit_separator::<FORMAT>() == 0 {
-            // Check at compile time if we have an invalid digit separator.
-            // b'\x00', or the NUL character, is this invalid value.
-            false
-        } else {
-            value == digit_separator::<FORMAT>()
-        }
-    }
-
-    /// Determine if the character is a digit.
-    pub const fn is_digit(&self, value: u8) -> bool {
-        // TODO(ahuszagh) Fix...
-        char_is_digit_const(value, 10)
     }
 }
 
-impl<'a, const FORMAT: u128> Iterator for SkipIterator<'a, FORMAT> {
-    type Item = &'a u8;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        // Peek will handle everything properly internally.
-        let value = self.peek()?;
-        // Increment the index so we know not to re-fetch it.
-        self.index += 1;
-        Some(value)
-    }
-}
-
-impl<'a, const FORMAT: u128> ByteIter<'a> for SkipIterator<'a, FORMAT> {
+impl<'a, const FORMAT: u128> Byte<'a> for Skip<'a, FORMAT> {
     const IS_CONTIGUOUS: bool = false;
+    type IntegerIter = IntegerSkipIterator<'a, FORMAT>;
+    type FractionIter = FractionSkipIterator<'a, FORMAT>;
+    type ExponentIter = ExponentSkipIterator<'a, FORMAT>;
+    type SpecialIter = SpecialSkipIterator<'a, FORMAT>;
 
     #[inline]
     fn new(slc: &'a [u8]) -> Self {
-        SkipIterator::new(slc)
+        Skip::new(slc)
     }
 
     #[inline]
@@ -182,262 +342,259 @@ impl<'a, const FORMAT: u128> ByteIter<'a> for SkipIterator<'a, FORMAT> {
     }
 
     #[inline]
-    fn is_consumed(&mut self) -> bool {
-        self.peek().is_none()
-    }
-
-    #[inline]
     fn is_empty(&self) -> bool {
         self.index >= self.slc.len()
     }
 
-    // NOTE: panics if the peeked value isn't valid.
     #[inline]
-    unsafe fn peek_unchecked(&mut self) -> Self::Item {
-        self.peek().unwrap()
+    fn integer_iter(&'a mut self) -> Self::IntegerIter {
+        Self::IntegerIter { byte: self }
     }
+
+    #[inline]
+    fn fraction_iter(&'a mut self) -> Self::FractionIter {
+        Self::FractionIter { byte: self }
+    }
+
+    #[inline]
+    fn exponent_iter(&'a mut self) -> Self::ExponentIter {
+        Self::ExponentIter { byte: self }
+    }
+
+    #[inline]
+    fn special_iter(&'a mut self) -> Self::SpecialIter {
+        Self::SpecialIter { byte: self }
+    }
+}
+
+// ITERATOR HELPERS
+// ----------------
+
+/// Create skip iterator definition.
+macro_rules! skip_iterator {
+    ($iterator:ident, $doc:literal) => (
+        #[doc = $doc]
+        pub struct $iterator<'a, const FORMAT: u128> {
+            /// The internal byte object for the skip iterator.
+            byte: &'a mut Skip<'a, FORMAT>,
+        }
+    );
+}
+
+macro_rules! is_digit_separator {
+    ($format:ident) => (
+        /// Determine if the character is a digit separator.
+        pub const fn is_digit_separator(&self, value: u8) -> bool {
+            let format = NumberFormat::<{ $format }> {};
+            let digit_separator = format.digit_separator();
+            if digit_separator == 0 {
+                // Check at compile time if we have an invalid digit separator.
+                // b'\x00', or the NUL character, is this invalid value.
+                false
+            } else {
+                value == digit_separator
+            }
+        }
+    );
+}
+
+/// Create impl block for skip iterator.
+macro_rules! skip_iterator_impl {
+    ($iterator:ident, $radix_cb:ident) => (
+        impl<'a, const FORMAT: u128> $iterator<'a, FORMAT> {
+            is_digit_separator!(FORMAT);
+
+            /// Determine if the character is a digit.
+            pub const fn is_digit(&self, value: u8) -> bool {
+                let format = NumberFormat::<{ FORMAT }> {};
+                char_is_digit_const(value, format.$radix_cb())
+            }
+        }
+    );
+}
+
+/// Create impl Iterator block for skip iterator.
+macro_rules! skip_iterator_iterator_impl {
+    ($iterator:ident) => (
+        impl<'a, const FORMAT: u128> Iterator for $iterator<'a, FORMAT> {
+            type Item = &'a u8;
+
+            #[inline]
+            fn next(&mut self) -> Option<Self::Item> {
+                // Peek will handle everything properly internally.
+                let value = self.peek()?;
+                // Increment the index so we know not to re-fetch it.
+                self.byte.index += 1;
+                Some(value)
+            }
+        }
+    );
+}
+
+/// Create base methods for the ByteIter block of a skip iterator.
+macro_rules! skip_iterator_byteiter_base {
+    () => (
+        const IS_CONTIGUOUS: bool = false;
+
+        #[inline]
+        fn as_ptr(&self) -> *const u8 {
+            self.byte.as_ptr()
+        }
+
+        #[inline]
+        fn as_slice(&self) -> &'a [u8] {
+            self.byte.as_slice()
+        }
+
+        #[inline]
+        fn length(&self) -> usize {
+            self.byte.length()
+        }
+
+        #[inline]
+        fn cursor(&self) -> usize {
+            self.byte.cursor()
+        }
+
+        #[inline]
+        fn is_consumed(&mut self) -> bool {
+            self.peek().is_none()
+        }
+
+        #[inline]
+        fn is_empty(&self) -> bool {
+            self.byte.is_empty()
+        }
+
+        // NOTE: panics if the peeked value isn't valid.
+        #[inline]
+        unsafe fn peek_unchecked(&mut self) -> Self::Item {
+            self.peek().unwrap()
+        }
+
+        #[inline]
+        unsafe fn step_by_unchecked(&mut self, _: usize) {
+            unimplemented!("Not a contiguous iterator.");
+        }
+    );
+}
+
+/// Create impl ByteIter block for skip iterator.
+macro_rules! skip_iterator_byteiter_impl {
+    (
+        $iterator:ident,
+        $mask:ident,
+        $i:ident,
+        $l:ident,
+        $t:ident,
+        $c:ident
+    ) => (
+        impl<'a, const FORMAT: u128> ByteIter<'a> for $iterator<'a, FORMAT> {
+            skip_iterator_byteiter_base!();
+
+            #[inline]
+            fn peek(&mut self) -> Option<Self::Item> {
+                let format = NumberFormat::<{ FORMAT }> {};
+                const IL: u128 = flags::$i | flags::$l;
+                const IT: u128 = flags::$i | flags::$t;
+                const LT: u128 = flags::$l | flags::$t;
+                const ILT: u128 = flags::$i | flags::$l | flags::$t;
+                const IC: u128 = flags::$i | flags::$c;
+                const LC: u128 = flags::$l | flags::$c;
+                const TC: u128 = flags::$t | flags::$c;
+                const ILC: u128 = IL | flags::$c;
+                const ITC: u128 = IT | flags::$c;
+                const LTC: u128 = LT | flags::$c;
+                const ILTC: u128 = ILT | flags::$c;
+
+                match format.interface_flags() & flags::$mask {
+                    0 => peek_noskip!(self),
+                    flags::$i => peek_i!(self),
+                    flags::$l => peek_l!(self),
+                    flags::$t => peek_t!(self),
+                    IL => peek_il!(self),
+                    IT => peek_it!(self),
+                    LT => peek_lt!(self),
+                    ILT => peek_ilt!(self),
+                    IC => peek_ic!(self),
+                    LC => peek_lc!(self),
+                    TC => peek_tc!(self),
+                    ILC => peek_ilc!(self),
+                    ITC => peek_itc!(self),
+                    LTC => peek_ltc!(self),
+                    ILTC => peek_iltc!(self),
+                    _ => unreachable!(),
+                }
+            }
+        }
+    );
+}
+
+// INTEGER SKIP ITERATOR
+// ---------------------
+
+skip_iterator!(IntegerSkipIterator, "Iterator that skips over digit separators in the integer.");
+skip_iterator_impl!(IntegerSkipIterator, mantissa_radix);
+skip_iterator_iterator_impl!(IntegerSkipIterator);
+skip_iterator_byteiter_impl!(
+    IntegerSkipIterator,
+    INTEGER_DIGIT_SEPARATOR_FLAG_MASK,
+    INTEGER_INTERNAL_DIGIT_SEPARATOR,
+    INTEGER_LEADING_DIGIT_SEPARATOR,
+    INTEGER_TRAILING_DIGIT_SEPARATOR,
+    INTEGER_CONSECUTIVE_DIGIT_SEPARATOR
+);
+
+// FRACTION SKIP ITERATOR
+// ----------------------
+
+skip_iterator!(FractionSkipIterator, "Iterator that skips over digit separators in the fraction.");
+skip_iterator_impl!(FractionSkipIterator, mantissa_radix);
+skip_iterator_iterator_impl!(FractionSkipIterator);
+skip_iterator_byteiter_impl!(
+    FractionSkipIterator,
+    FRACTION_DIGIT_SEPARATOR_FLAG_MASK,
+    FRACTION_INTERNAL_DIGIT_SEPARATOR,
+    FRACTION_LEADING_DIGIT_SEPARATOR,
+    FRACTION_TRAILING_DIGIT_SEPARATOR,
+    FRACTION_CONSECUTIVE_DIGIT_SEPARATOR
+);
+
+// EXPONENT SKIP ITERATOR
+// ----------------------
+
+skip_iterator!(ExponentSkipIterator, "Iterator that skips over digit separators in the exponent.");
+skip_iterator_impl!(ExponentSkipIterator, exponent_radix);
+skip_iterator_iterator_impl!(ExponentSkipIterator);
+skip_iterator_byteiter_impl!(
+    ExponentSkipIterator,
+    EXPONENT_DIGIT_SEPARATOR_FLAG_MASK,
+    EXPONENT_INTERNAL_DIGIT_SEPARATOR,
+    EXPONENT_LEADING_DIGIT_SEPARATOR,
+    EXPONENT_TRAILING_DIGIT_SEPARATOR,
+    EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR
+);
+
+// SPECIAL SKIP ITERATOR
+// ---------------------
+
+skip_iterator!(SpecialSkipIterator, "Iterator that skips over digit separators in special floats.");
+skip_iterator_iterator_impl!(SpecialSkipIterator);
+
+impl<'a, const FORMAT: u128> SpecialSkipIterator<'a, FORMAT> {
+    is_digit_separator!(FORMAT);
+}
+
+impl<'a, const FORMAT: u128> ByteIter<'a> for SpecialSkipIterator<'a, FORMAT> {
+    skip_iterator_byteiter_base!();
 
     #[inline]
     fn peek(&mut self) -> Option<Self::Item> {
-        // TODO(ahuszagh) This a dummy implementation, will do later correctly...
-        match FORMAT {
-            I => peek_i(self),
-            L => peek_l(self),
-            T => peek_t(self),
-            IL => peek_il(self),
-            IT => peek_it(self),
-            LT => peek_lt(self),
-            ILT => peek_ilt(self),
-            IC => peek_ic(self),
-            LC => peek_lc(self),
-            TC => peek_tc(self),
-            ILC => peek_ilc(self),
-            ITC => peek_itc(self),
-            LTC => peek_ltc(self),
-            ILTC => peek_iltc(self),
-            _ => unreachable!(),
+        let format = NumberFormat::<{ FORMAT }> {};
+        if format.special_digit_separator() {
+            peek_iltc!(self)
+        } else {
+            peek_noskip!(self)
         }
     }
-
-    #[inline]
-    unsafe fn step_by_unchecked(&mut self, _: usize) {
-        unimplemented!("Not a contiguous iterator.");
-    }
-}
-
-// PEEK
-// ----
-
-/// Determine if the digit separator is internal.
-///
-/// Preconditions: Assumes `slc[index]` is a digit separator.
-/// The compiler optimizes this pretty well: it's almost as efficient as
-/// optimized assembly without bounds checking.
-#[inline]
-fn is_i<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> bool {
-    !is_l(iter) && !is_t(iter)
-}
-
-/// Determine if the digit separator is leading.
-///
-/// Preconditions: Assumes `slc[index]` is a digit separator.
-/// The compiler optimizes this pretty well: it's almost as efficient as
-/// optimized assembly without bounds checking.
-#[inline]
-fn is_l<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> bool {
-    // Consume any digit separators before the current one.
-    let mut index = iter.index;
-    while index > 0 && iter.slc.get(index - 1).map_or(false, |&x| iter.is_digit_separator(x)) {
-        index -= 1;
-    }
-
-    // True if there are no items before the digit separator, or character
-    // before the digit separators is not a digit.
-    index == 0 || !iter.slc.get(index - 1).map_or(false, |&x| iter.is_digit(x))
-}
-
-/// Determine if the digit separator is trailing.
-///
-/// Preconditions: Assumes `slc[index]` is a digit separator.
-/// The compiler optimizes this pretty well: it's almost as efficient as
-/// optimized assembly without bounds checking.
-#[inline]
-fn is_t<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> bool {
-    // Consume any digit separators after the current one.
-    let mut index = iter.index;
-    while index < iter.slc.len()
-        && iter.slc.get(index + 1).map_or(false, |&x| iter.is_digit_separator(x))
-    {
-        index += 1;
-    }
-
-    index == iter.slc.len() || !iter.slc.get(index + 1).map_or(false, |&x| iter.is_digit(x))
-}
-
-/// Determine if the digit separator is leading or internal.
-///
-/// Preconditions: Assumes `slc[index]` is a digit separator.
-#[inline]
-fn is_il<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> bool {
-    is_l(iter) || !is_t(iter)
-}
-
-/// Determine if the digit separator is internal or trailing.
-///
-/// Preconditions: Assumes `slc[index]` is a digit separator.
-#[inline]
-fn is_it<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> bool {
-    is_t(iter) || !is_l(iter)
-}
-
-/// Determine if the digit separator is leading or trailing.
-///
-/// Preconditions: Assumes `slc[index]` is a digit separator.
-#[inline]
-fn is_lt<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> bool {
-    is_l(iter) || is_t(iter)
-}
-
-/// Consumes at most 1 digit separator.
-/// Peeks the next token that's not a digit separator.
-#[inline]
-fn peek_1<'a, Callback, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, FORMAT>,
-    is_skip: Callback,
-) -> Option<&'a u8>
-where
-    Callback: Fn(&mut SkipIterator<'a, FORMAT>) -> bool,
-{
-    // This will only consume a single digit separator.
-    // This will not consume consecutive digit separators.
-    let value = iter.slc.get(iter.index)?;
-    let is_digit_separator = iter.is_digit_separator(*value);
-    if is_digit_separator && is_skip(iter) {
-        // Have a skippable digit separator: increment the index and skip to
-        // the next value, which we cannot skip.
-        iter.index += 1;
-        iter.slc.get(iter.index)
-    } else {
-        // Have 1 of 2 conditions:
-        //  1. A non-digit separator character.
-        //  2. A digit separator that is not valid in the context.
-        Some(value)
-    }
-}
-
-/// Consumes 1 or more digit separators.
-/// Peeks the next token that's not a digit separator.
-#[inline]
-fn peek_n<'a, Callback, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, FORMAT>,
-    is_skip: Callback,
-) -> Option<&'a u8>
-where
-    Callback: Fn(&mut SkipIterator<'a, FORMAT>) -> bool,
-{
-    // This will consume consecutive digit separators.
-    let value = iter.slc.get(iter.index)?;
-    let is_digit_separator = iter.is_digit_separator(*value);
-    if is_digit_separator && is_skip(iter) {
-        // Have a skippable digit separator: keep incrementing until we find
-        // a non-digit separator character. Don't need any complex checks
-        // here, since we've already done them above.
-        let mut index = iter.index + 1;
-        while index < iter.slc.len()
-            && iter.slc.get(index).map_or(false, |&x| iter.is_digit_separator(x))
-        {
-            index += 1;
-        }
-        iter.index = index;
-        iter.slc.get(iter.index)
-    } else {
-        // Have 1 of 2 conditions:
-        //  1. A non-digit separator character.
-        //  2. A digit separator that is not valid in the context.
-        Some(value)
-    }
-}
-
-/// Consumes at most 1 leading digit separator and peeks the next value.
-#[inline]
-fn peek_l<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_1(iter, is_l)
-}
-
-/// Consumes at most 1 internal digit separator and peeks the next value.
-#[inline]
-fn peek_i<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_1(iter, is_i)
-}
-
-/// Consumes at most 1 trailing digit separator and peeks the next value.
-#[inline]
-fn peek_t<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_1(iter, is_t)
-}
-
-/// Consumes at most 1 internal/leading digit separator and peeks the next value.
-#[inline]
-fn peek_il<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_1(iter, is_il)
-}
-
-/// Consumes at most 1 internal/trailing digit separator and peeks the next value.
-#[inline]
-fn peek_it<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_1(iter, is_it)
-}
-
-/// Consumes at most 1 leading/trailing digit separator and peeks the next value.
-#[inline]
-fn peek_lt<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_1(iter, is_lt)
-}
-
-/// Consumes at most 1 digit separator and peeks the next value.
-#[inline]
-fn peek_ilt<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_1(iter, |_| true)
-}
-
-/// Consumes 1 or more leading digit separators and peeks the next value.
-#[inline]
-fn peek_lc<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_n(iter, is_l)
-}
-
-/// Consumes 1 or more internal digit separators and peeks the next value.
-#[inline]
-fn peek_ic<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_n(iter, is_i)
-}
-
-/// Consumes 1 or more trailing digit separators and peeks the next value.
-#[inline]
-fn peek_tc<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_n(iter, is_t)
-}
-
-/// Consumes 1 or more internal/leading digit separators and peeks the next value.
-#[inline]
-fn peek_ilc<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_n(iter, is_il)
-}
-
-/// Consumes 1 or more internal/trailing digit separators and peeks the next value.
-#[inline]
-fn peek_itc<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_n(iter, is_it)
-}
-
-/// Consumes 1 or more leading/trailing digit separators and peeks the next value.
-#[inline]
-fn peek_ltc<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_n(iter, is_lt)
-}
-
-/// Consumes 1 or more digit separators and peeks the next value.
-#[inline]
-fn peek_iltc<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
-    peek_n(iter, |_| true)
 }

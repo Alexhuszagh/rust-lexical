@@ -2,11 +2,12 @@
 
 #[cfg(feature = "format")]
 use lexical_util::format::NumberFormat;
-use lexical_util::noskip::NoSkipIter;
+use lexical_util::iterator::Byte;
+use lexical_util::noskip::AsNoSkip;
 use lexical_util::num::Integer;
 use lexical_util::result::Result;
 #[cfg(feature = "format")]
-use lexical_util::skip::SkipIter;
+use lexical_util::skip::AsSkip;
 
 #[cfg(not(feature = "compact"))]
 use crate::algorithm::{algorithm, algorithm_128};
@@ -19,16 +20,19 @@ macro_rules! parse_integer {
     ($algorithm:ident, $bytes:ident, $format:ident) => {{
         #[cfg(not(feature = "format"))]
         {
-            return $algorithm::<_, _, $format>($bytes.noskip_iter());
+            let mut bytes = $bytes.noskip();
+            return $algorithm::<_, _, $format>(bytes.integer_iter());
         }
 
         #[cfg(feature = "format")]
         {
             let format = NumberFormat::<{ $format }> {};
             if format.digit_separator() == 0 {
-                return $algorithm::<_, _, $format>($bytes.noskip_iter());
+                let mut bytes = $bytes.noskip();
+                return $algorithm::<_, _, $format>(bytes.integer_iter());
             } else {
-                return $algorithm::<_, _, $format>($bytes.skip_iter::<{ $format }>());
+                let mut bytes = $bytes.skip::<{ $format }>();
+                return $algorithm::<_, _, $format>(bytes.integer_iter());
             }
         }
     }};

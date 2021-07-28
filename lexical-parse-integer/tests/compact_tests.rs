@@ -4,14 +4,21 @@ mod util;
 
 use lexical_parse_integer::compact;
 use lexical_util::error::ErrorCode;
-use lexical_util::noskip::NoSkipIter;
+use lexical_util::iterator::Byte;
+use lexical_util::noskip::AsNoSkip;
 use util::to_format;
 
 #[test]
 fn algorithm_test() {
     const FORMAT: u128 = to_format(10);
-    let parse_u32 = |digits: &[u8]| compact::algorithm::<u32, _, FORMAT>(digits.noskip_iter());
-    let parse_i32 = |digits: &[u8]| compact::algorithm::<i32, _, FORMAT>(digits.noskip_iter());
+    let parse_u32 = |digits: &[u8]| {
+        let mut bytes = digits.noskip();
+        compact::algorithm::<u32, _, FORMAT>(bytes.integer_iter())
+    };
+    let parse_i32 = |digits: &[u8]| {
+        let mut bytes = digits.noskip();
+        compact::algorithm::<i32, _, FORMAT>(bytes.integer_iter())
+    };
 
     assert_eq!(parse_u32(b"12345"), Ok((12345, 5)));
     assert_eq!(parse_u32(b"+12345"), Ok((12345, 6)));

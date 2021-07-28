@@ -1,18 +1,19 @@
 #![cfg(feature = "parse")]
 
-use lexical_util::iterator::ByteIter;
-use lexical_util::noskip::{NoSkipIter, NoSkipIterator};
+use lexical_util::iterator::{Byte, ByteIter};
+use lexical_util::noskip::{AsNoSkip, NoSkip};
 
 #[test]
 fn noskip_iterator_test() {
-    assert!(NoSkipIterator::IS_CONTIGUOUS);
+    assert!(NoSkip::IS_CONTIGUOUS);
 
     let digits = b"12345";
-    let iter1 = NoSkipIterator::new(digits);
-    let iter2 = NoSkipIterator::new(digits);
-    assert!(iter1.eq(iter2));
+    let mut byte1 = NoSkip::new(digits);
+    let mut byte2 = NoSkip::new(digits);
+    assert!(byte1.integer_iter().eq(byte2.integer_iter()));
 
-    let mut iter = digits.noskip_iter();
+    let mut byte = digits.noskip();
+    let mut iter = byte.integer_iter();
     assert_eq!(iter.as_slice(), &digits[..]);
     assert_eq!(iter.as_ptr(), digits.as_ptr());
     assert_eq!(iter.is_consumed(), false);
@@ -31,13 +32,15 @@ fn noskip_iterator_test() {
     assert_eq!(iter.peek(), None);
     assert_eq!(iter.next(), None);
 
-    let mut iter = digits.noskip_iter();
+    let mut byte = digits.noskip();
+    let mut iter = byte.integer_iter();
     assert_eq!(iter.read::<u64>(), None);
     assert_eq!(iter.nth(4).unwrap(), &b'5');
     assert_eq!(iter.as_slice(), &digits[digits.len()..]);
     assert_eq!(iter.as_ptr(), digits[digits.len()..].as_ptr());
 
-    let mut iter = digits.noskip_iter();
+    let mut byte = digits.noskip();
+    let mut iter = byte.integer_iter();
     assert_eq!(iter.peek(), Some(&b'1'));
     unsafe {
         iter.step_unchecked();
@@ -51,18 +54,27 @@ fn noskip_iterator_test() {
 #[test]
 #[cfg(feature = "format")]
 fn skip_iterator_test() {
-    use lexical_util::skip::{self, SkipIter, SkipIterator};
+    use std::num;
+    use lexical_util::format::{NumberFormat, NumberFormatBuilder};
+    use lexical_util::skip::{AsSkip, Skip};
+    use static_assertions::const_assert;
 
-    // TODO(ahuszagh) In the future, needs to have a digit separator.
-    type Iter<'a> = SkipIterator<'a, { skip::ILTC }>;
-    assert!(!Iter::IS_CONTIGUOUS);
+    pub const FORMAT: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .digit_separator_flags(true)
+        .build();
+    const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+
+    type SkipByte<'a> = Skip<'a, { FORMAT }>;
+    assert!(!SkipByte::IS_CONTIGUOUS);
 
     let digits = b"123_45";
-    let iter1 = Iter::new(digits);
-    let iter2 = Iter::new(digits);
-    assert!(iter1.eq(iter2));
+    let mut byte1 = SkipByte::new(digits);
+    let mut byte2 = SkipByte::new(digits);
+    assert!(byte1.integer_iter().eq(byte2.integer_iter()));
 
-    let mut iter = digits.skip_iter::<{ skip::ILTC }>();
+    let mut byte = digits.skip::<{ FORMAT }>();
+    let mut iter = byte.integer_iter();
     assert_eq!(iter.as_slice(), &digits[..]);
     assert_eq!(iter.as_ptr(), digits.as_ptr());
     assert_eq!(iter.is_consumed(), false);
@@ -79,7 +91,8 @@ fn skip_iterator_test() {
     assert_eq!(iter.next(), Some(&b'5'));
     assert_eq!(iter.next(), None);
 
-    let mut iter = digits.skip_iter::<{ skip::ILTC }>();
+    let mut byte = digits.skip::<{ FORMAT }>();
+    let mut iter = byte.integer_iter();
     assert_eq!(iter.nth(4).unwrap(), &b'5');
     assert_eq!(iter.as_slice(), &digits[digits.len()..]);
     assert_eq!(iter.as_ptr(), digits[digits.len()..].as_ptr());

@@ -187,8 +187,8 @@ fn json_data() -> &'static TestData {
     lazy_static! {
         static ref DATA: TestData = {
             let mut path = bench_dir();
-            path.push("write-integer");
-            path.push("data.json");
+            path.push("data");
+            path.push("integer.json");
             let file = std::fs::File::open(path).unwrap();
             let reader = std::io::BufReader::new(file);
             serde_json::from_reader(reader).unwrap()

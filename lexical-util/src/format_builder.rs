@@ -1,5 +1,7 @@
 //! Builder for the number format.
 
+#![cfg(feature = "parse")]
+
 use crate::format_flags as flags;
 use crate::lib::{mem, num};
 use static_assertions::const_assert;
@@ -24,6 +26,13 @@ macro_rules! add_flags {
     ($format:ident ; $($bool:expr, $flag:ident ;)*) => {{
         $(add_flag!($format, $bool, $flag);)*
     }};
+}
+
+/// Determine if a flag is set in the format.
+macro_rules! has_flag {
+    ($format:ident, $flag:ident) => {
+        $format & flags::$flag != 0
+    };
 }
 
 /// Unwrap `Option` as a const fn.
@@ -764,13 +773,13 @@ impl NumberFormatBuilder {
         self
     }
 
-    /// Set all integer digit separator flag masks.
+    /// Set all digit separator flag masks.
     #[inline(always)]
     #[cfg(feature = "format")]
-    pub const fn digit_separator_flag_mask(mut self, flag: bool) -> Self {
-        self = self.integer_digit_separator_flag_mask(flag);
-        self = self.fraction_digit_separator_flag_mask(flag);
-        self = self.exponent_digit_separator_flag_mask(flag);
+    pub const fn digit_separator_flags(mut self, flag: bool) -> Self {
+        self = self.integer_digit_separator_flags(flag);
+        self = self.fraction_digit_separator_flags(flag);
+        self = self.exponent_digit_separator_flags(flag);
         self = self.special_digit_separator(flag);
         self
     }
@@ -778,7 +787,7 @@ impl NumberFormatBuilder {
     /// Set all integer digit separator flag masks.
     #[inline(always)]
     #[cfg(feature = "format")]
-    pub const fn integer_digit_separator_flag_mask(mut self, flag: bool) -> Self {
+    pub const fn integer_digit_separator_flags(mut self, flag: bool) -> Self {
         self = self.integer_internal_digit_separator(flag);
         self = self.integer_leading_digit_separator(flag);
         self = self.integer_trailing_digit_separator(flag);
@@ -789,7 +798,7 @@ impl NumberFormatBuilder {
     /// Set all fraction digit separator flag masks.
     #[inline(always)]
     #[cfg(feature = "format")]
-    pub const fn fraction_digit_separator_flag_mask(mut self, flag: bool) -> Self {
+    pub const fn fraction_digit_separator_flags(mut self, flag: bool) -> Self {
         self = self.fraction_internal_digit_separator(flag);
         self = self.fraction_leading_digit_separator(flag);
         self = self.fraction_trailing_digit_separator(flag);
@@ -800,7 +809,7 @@ impl NumberFormatBuilder {
     /// Set all exponent digit separator flag masks.
     #[inline(always)]
     #[cfg(feature = "format")]
-    pub const fn exponent_digit_separator_flag_mask(mut self, flag: bool) -> Self {
+    pub const fn exponent_digit_separator_flags(mut self, flag: bool) -> Self {
         self = self.exponent_internal_digit_separator(flag);
         self = self.exponent_leading_digit_separator(flag);
         self = self.exponent_trailing_digit_separator(flag);
@@ -877,38 +886,37 @@ impl NumberFormatBuilder {
             mantissa_radix: flags::mantissa_radix(format) as u8,
             exponent_base: num::NonZeroU8::new(flags::exponent_base(format) as u8),
             exponent_radix: num::NonZeroU8::new(flags::exponent_radix(format) as u8),
-            // TODO(ahuszagh) Here... Need to remove all these
-            required_integer_digits: false,
-            required_fraction_digits: false,
-            required_exponent_digits: true,
-            required_mantissa_digits: true,
-            no_positive_mantissa_sign: false,
-            required_mantissa_sign: false,
-            no_exponent_notation: false,
-            no_positive_exponent_sign: false,
-            required_exponent_sign: false,
-            no_exponent_without_fraction: false,
-            no_special: false,
-            case_sensitive_special: false,
-            no_integer_leading_zeros: false,
-            no_float_leading_zeros: false,
-            required_exponent_notation: false,
-            case_sensitive_exponent: false,
-            case_sensitive_base_prefix: false,
-            case_sensitive_base_suffix: false,
-            integer_internal_digit_separator: false,
-            fraction_internal_digit_separator: false,
-            exponent_internal_digit_separator: false,
-            integer_leading_digit_separator: false,
-            fraction_leading_digit_separator: false,
-            exponent_leading_digit_separator: false,
-            integer_trailing_digit_separator: false,
-            fraction_trailing_digit_separator: false,
-            exponent_trailing_digit_separator: false,
-            integer_consecutive_digit_separator: false,
-            fraction_consecutive_digit_separator: false,
-            exponent_consecutive_digit_separator: false,
-            special_digit_separator: false,
+            required_integer_digits: has_flag!(format, REQUIRED_INTEGER_DIGITS),
+            required_fraction_digits: has_flag!(format, REQUIRED_FRACTION_DIGITS),
+            required_exponent_digits: has_flag!(format, REQUIRED_EXPONENT_DIGITS),
+            required_mantissa_digits: has_flag!(format, REQUIRED_MANTISSA_DIGITS),
+            no_positive_mantissa_sign: has_flag!(format, NO_POSITIVE_MANTISSA_SIGN),
+            required_mantissa_sign: has_flag!(format, REQUIRED_MANTISSA_SIGN),
+            no_exponent_notation: has_flag!(format, NO_EXPONENT_NOTATION),
+            no_positive_exponent_sign: has_flag!(format, NO_POSITIVE_EXPONENT_SIGN),
+            required_exponent_sign: has_flag!(format, REQUIRED_EXPONENT_SIGN),
+            no_exponent_without_fraction: has_flag!(format, NO_EXPONENT_WITHOUT_FRACTION),
+            no_special: has_flag!(format, NO_SPECIAL),
+            case_sensitive_special: has_flag!(format, CASE_SENSITIVE_SPECIAL),
+            no_integer_leading_zeros: has_flag!(format, NO_INTEGER_LEADING_ZEROS),
+            no_float_leading_zeros: has_flag!(format, NO_FLOAT_LEADING_ZEROS),
+            required_exponent_notation: has_flag!(format, REQUIRED_EXPONENT_NOTATION),
+            case_sensitive_exponent: has_flag!(format, CASE_SENSITIVE_EXPONENT),
+            case_sensitive_base_prefix: has_flag!(format, CASE_SENSITIVE_BASE_PREFIX),
+            case_sensitive_base_suffix: has_flag!(format, CASE_SENSITIVE_BASE_SUFFIX),
+            integer_internal_digit_separator: has_flag!(format, INTEGER_INTERNAL_DIGIT_SEPARATOR),
+            fraction_internal_digit_separator: has_flag!(format, FRACTION_INTERNAL_DIGIT_SEPARATOR),
+            exponent_internal_digit_separator: has_flag!(format, EXPONENT_INTERNAL_DIGIT_SEPARATOR),
+            integer_leading_digit_separator: has_flag!(format, INTEGER_LEADING_DIGIT_SEPARATOR),
+            fraction_leading_digit_separator: has_flag!(format, FRACTION_LEADING_DIGIT_SEPARATOR),
+            exponent_leading_digit_separator: has_flag!(format, EXPONENT_LEADING_DIGIT_SEPARATOR),
+            integer_trailing_digit_separator: has_flag!(format, INTEGER_TRAILING_DIGIT_SEPARATOR),
+            fraction_trailing_digit_separator: has_flag!(format, FRACTION_TRAILING_DIGIT_SEPARATOR),
+            exponent_trailing_digit_separator: has_flag!(format, EXPONENT_TRAILING_DIGIT_SEPARATOR),
+            integer_consecutive_digit_separator: has_flag!(format, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR),
+            fraction_consecutive_digit_separator: has_flag!(format, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR),
+            exponent_consecutive_digit_separator: has_flag!(format, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR),
+            special_digit_separator: has_flag!(format, SPECIAL_DIGIT_SEPARATOR),
         }
     }
 }
