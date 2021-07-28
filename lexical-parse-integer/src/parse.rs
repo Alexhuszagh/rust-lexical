@@ -26,6 +26,8 @@ macro_rules! parse_integer {
 
         #[cfg(feature = "format")]
         {
+            // The compiler isn't good enough to optimize this at compile
+            // time to realize this **has** to be the same as without format.
             let format = NumberFormat::<{ $format }> {};
             if format.digit_separator() == 0 {
                 let mut bytes = $bytes.noskip();

@@ -86,22 +86,30 @@ impl<'a> Byte<'a> for NoSkip<'a> {
 
     #[inline]
     fn integer_iter(&'a mut self) -> Self::IntegerIter {
-        Self::IntegerIter { byte: self }
+        Self::IntegerIter {
+            byte: self,
+        }
     }
 
     #[inline]
     fn fraction_iter(&'a mut self) -> Self::FractionIter {
-        Self::FractionIter { byte: self }
+        Self::FractionIter {
+            byte: self,
+        }
     }
 
     #[inline]
     fn exponent_iter(&'a mut self) -> Self::ExponentIter {
-        Self::ExponentIter { byte: self }
+        Self::ExponentIter {
+            byte: self,
+        }
     }
 
     #[inline]
     fn special_iter(&'a mut self) -> Self::SpecialIter {
-        Self::SpecialIter { byte: self }
+        Self::SpecialIter {
+            byte: self,
+        }
     }
 }
 

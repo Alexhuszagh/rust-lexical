@@ -54,10 +54,10 @@ fn noskip_iterator_test() {
 #[test]
 #[cfg(feature = "format")]
 fn skip_iterator_test() {
-    use std::num;
     use lexical_util::format::{NumberFormat, NumberFormatBuilder};
     use lexical_util::skip::{AsSkip, Skip};
     use static_assertions::const_assert;
+    use std::num;
 
     pub const FORMAT: u128 = NumberFormatBuilder::new()
         .digit_separator(num::NonZeroU8::new(b'_'))

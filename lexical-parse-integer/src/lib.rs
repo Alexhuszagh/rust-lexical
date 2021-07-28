@@ -11,3 +11,7 @@ pub mod parse;
 pub mod sign;
 
 mod api;
+
+// Re-exports
+pub use self::api::{FromLexical, FromLexicalWithOptions};
+pub use self::options::Options;

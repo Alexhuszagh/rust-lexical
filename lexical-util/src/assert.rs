@@ -16,10 +16,7 @@ pub fn debug_assert_radix(radix: u32) {
 #[inline]
 #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
 pub fn debug_assert_radix(radix: u32) {
-    debug_assert!(
-        matches!(radix, 2 | 4 | 8 | 10 | 16 | 32),
-        "Numerical base must be from 2-36."
-    );
+    debug_assert!(matches!(radix, 2 | 4 | 8 | 10 | 16 | 32), "Numerical base must be from 2-36.");
 }
 
 /// Check radix is equal to 10.
@@ -40,10 +37,7 @@ pub fn assert_radix<const RADIX: u32>() {
 #[inline]
 #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
 pub fn assert_radix<const RADIX: u32>() {
-    assert!(
-        matches!(RADIX, 2 | 4 | 8 | 10 | 16 | 32),
-        "Numerical base must be from 2-36."
-    );
+    assert!(matches!(RADIX, 2 | 4 | 8 | 10 | 16 | 32), "Numerical base must be from 2-36.");
 }
 
 /// Check radix is equal to 10.

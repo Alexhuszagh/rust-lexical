@@ -913,9 +913,18 @@ impl NumberFormatBuilder {
             integer_trailing_digit_separator: has_flag!(format, INTEGER_TRAILING_DIGIT_SEPARATOR),
             fraction_trailing_digit_separator: has_flag!(format, FRACTION_TRAILING_DIGIT_SEPARATOR),
             exponent_trailing_digit_separator: has_flag!(format, EXPONENT_TRAILING_DIGIT_SEPARATOR),
-            integer_consecutive_digit_separator: has_flag!(format, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR),
-            fraction_consecutive_digit_separator: has_flag!(format, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR),
-            exponent_consecutive_digit_separator: has_flag!(format, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR),
+            integer_consecutive_digit_separator: has_flag!(
+                format,
+                INTEGER_CONSECUTIVE_DIGIT_SEPARATOR
+            ),
+            fraction_consecutive_digit_separator: has_flag!(
+                format,
+                FRACTION_CONSECUTIVE_DIGIT_SEPARATOR
+            ),
+            exponent_consecutive_digit_separator: has_flag!(
+                format,
+                EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR
+            ),
             special_digit_separator: has_flag!(format, SPECIAL_DIGIT_SEPARATOR),
         }
     }

@@ -51,7 +51,9 @@ use crate::iterator::{Byte, ByteIter};
 /// The compiler optimizes this pretty well: it's almost as efficient as
 /// optimized assembly without bounds checking.
 macro_rules! is_i {
-    ($self:ident) => (!is_l!($self) && !is_t!($self));
+    ($self:ident) => {
+        !is_l!($self) && !is_t!($self)
+    };
 }
 
 /// Determine if the digit separator is leading.
@@ -63,7 +65,9 @@ macro_rules! is_l {
     ($self:ident) => {{
         // Consume any digit separators before the current one.
         let mut index = $self.byte.index;
-        while index > 0 && $self.byte.slc.get(index - 1).map_or(false, |&x| $self.is_digit_separator(x)) {
+        while index > 0
+            && $self.byte.slc.get(index - 1).map_or(false, |&x| $self.is_digit_separator(x))
+        {
             index -= 1;
         }
 
@@ -88,7 +92,8 @@ macro_rules! is_t {
             index += 1;
         }
 
-        index == $self.byte.slc.len() || !$self.byte.slc.get(index + 1).map_or(false, |&x| $self.is_digit(x))
+        index == $self.byte.slc.len()
+            || !$self.byte.slc.get(index + 1).map_or(false, |&x| $self.is_digit(x))
     }};
 }
 
@@ -96,26 +101,34 @@ macro_rules! is_t {
 ///
 /// Preconditions: Assumes `slc[index]` is a digit separator.
 macro_rules! is_il {
-    ($self:ident) => (is_l!($self) || !is_t!($self));
+    ($self:ident) => {
+        is_l!($self) || !is_t!($self)
+    };
 }
 
 /// Determine if the digit separator is internal or trailing.
 ///
 /// Preconditions: Assumes `slc[index]` is a digit separator.
 macro_rules! is_it {
-    ($self:ident) => (is_t!($self) || !is_l!($self));
+    ($self:ident) => {
+        is_t!($self) || !is_l!($self)
+    };
 }
 
 /// Determine if the digit separator is leading or trailing.
 ///
 /// Preconditions: Assumes `slc[index]` is a digit separator.
 macro_rules! is_lt {
-    ($self:ident) => (is_l!($self) || is_t!($self));
+    ($self:ident) => {
+        is_l!($self) || is_t!($self)
+    };
 }
 
 /// Determine if the digit separator is internal, leading, or trailing.
 macro_rules! is_ilt {
-    ($self:ident) => (true);
+    ($self:ident) => {
+        true
+    };
 }
 
 /// Consumes 1 or more digit separators.
@@ -176,72 +189,100 @@ macro_rules! peek_n {
 
 /// Consumes no digit separators and peeks the next value.
 macro_rules! peek_noskip {
-    ($self:ident) => ($self.byte.slc.get($self.byte.index));
+    ($self:ident) => {
+        $self.byte.slc.get($self.byte.index)
+    };
 }
 
 /// Consumes at most 1 leading digit separator and peeks the next value.
 macro_rules! peek_l {
-    ($self:ident) => (peek_1!($self, is_l));
+    ($self:ident) => {
+        peek_1!($self, is_l)
+    };
 }
 
 /// Consumes at most 1 internal digit separator and peeks the next value.
 macro_rules! peek_i {
-    ($self:ident) => (peek_1!($self, is_i));
+    ($self:ident) => {
+        peek_1!($self, is_i)
+    };
 }
 
 /// Consumes at most 1 trailing digit separator and peeks the next value.
 macro_rules! peek_t {
-    ($self:ident) => (peek_1!($self, is_t));
+    ($self:ident) => {
+        peek_1!($self, is_t)
+    };
 }
 
 /// Consumes at most 1 internal/leading digit separator and peeks the next value.
 macro_rules! peek_il {
-    ($self:ident) => (peek_1!($self, is_il));
+    ($self:ident) => {
+        peek_1!($self, is_il)
+    };
 }
 
 /// Consumes at most 1 internal/trailing digit separator and peeks the next value.
 macro_rules! peek_it {
-    ($self:ident) => (peek_1!($self, is_it));
+    ($self:ident) => {
+        peek_1!($self, is_it)
+    };
 }
 
 /// Consumes at most 1 leading/trailing digit separator and peeks the next value.
 macro_rules! peek_lt {
-    ($self:ident) => (peek_1!($self, is_lt));
+    ($self:ident) => {
+        peek_1!($self, is_lt)
+    };
 }
 
 /// Consumes at most 1 digit separator and peeks the next value.
 macro_rules! peek_ilt {
-    ($self:ident) => (peek_1!($self, is_ilt));
+    ($self:ident) => {
+        peek_1!($self, is_ilt)
+    };
 }
 
 /// Consumes 1 or more leading digit separators and peeks the next value.
 macro_rules! peek_lc {
-    ($self:ident) => (peek_n!($self, is_l));
+    ($self:ident) => {
+        peek_n!($self, is_l)
+    };
 }
 
 /// Consumes 1 or more internal digit separators and peeks the next value.
 macro_rules! peek_ic {
-    ($self:ident) => (peek_n!($self, is_i));
+    ($self:ident) => {
+        peek_n!($self, is_i)
+    };
 }
 
 /// Consumes 1 or more trailing digit separators and peeks the next value.
 macro_rules! peek_tc {
-    ($self:ident) => (peek_n!($self, is_t));
+    ($self:ident) => {
+        peek_n!($self, is_t)
+    };
 }
 
 /// Consumes 1 or more internal/leading digit separators and peeks the next value.
 macro_rules! peek_ilc {
-    ($self:ident) => (peek_n!($self, is_il));
+    ($self:ident) => {
+        peek_n!($self, is_il)
+    };
 }
 
 /// Consumes 1 or more internal/trailing digit separators and peeks the next value.
 macro_rules! peek_itc {
-    ($self:ident) => (peek_n!($self, is_it));
+    ($self:ident) => {
+        peek_n!($self, is_it)
+    };
 }
 
 /// Consumes 1 or more leading/trailing digit separators and peeks the next value.
 macro_rules! peek_ltc {
-    ($self:ident) => (peek_n!($self, is_lt));
+    ($self:ident) => {
+        peek_n!($self, is_lt)
+    };
 }
 
 /// Consumes 1 or more digit separators and peeks the next value.
@@ -250,7 +291,7 @@ macro_rules! peek_iltc {
         loop {
             let value = $self.byte.slc.get($self.byte.index)?;
             if !$self.is_digit_separator(*value) {
-                return Some(value)
+                return Some(value);
             }
             $self.byte.index += 1;
         }
@@ -348,22 +389,30 @@ impl<'a, const FORMAT: u128> Byte<'a> for Skip<'a, FORMAT> {
 
     #[inline]
     fn integer_iter(&'a mut self) -> Self::IntegerIter {
-        Self::IntegerIter { byte: self }
+        Self::IntegerIter {
+            byte: self,
+        }
     }
 
     #[inline]
     fn fraction_iter(&'a mut self) -> Self::FractionIter {
-        Self::FractionIter { byte: self }
+        Self::FractionIter {
+            byte: self,
+        }
     }
 
     #[inline]
     fn exponent_iter(&'a mut self) -> Self::ExponentIter {
-        Self::ExponentIter { byte: self }
+        Self::ExponentIter {
+            byte: self,
+        }
     }
 
     #[inline]
     fn special_iter(&'a mut self) -> Self::SpecialIter {
-        Self::SpecialIter { byte: self }
+        Self::SpecialIter {
+            byte: self,
+        }
     }
 }
 
@@ -372,17 +421,17 @@ impl<'a, const FORMAT: u128> Byte<'a> for Skip<'a, FORMAT> {
 
 /// Create skip iterator definition.
 macro_rules! skip_iterator {
-    ($iterator:ident, $doc:literal) => (
+    ($iterator:ident, $doc:literal) => {
         #[doc = $doc]
         pub struct $iterator<'a, const FORMAT: u128> {
             /// The internal byte object for the skip iterator.
             byte: &'a mut Skip<'a, FORMAT>,
         }
-    );
+    };
 }
 
 macro_rules! is_digit_separator {
-    ($format:ident) => (
+    ($format:ident) => {
         /// Determine if the character is a digit separator.
         pub const fn is_digit_separator(&self, value: u8) -> bool {
             let format = NumberFormat::<{ $format }> {};
@@ -395,12 +444,12 @@ macro_rules! is_digit_separator {
                 value == digit_separator
             }
         }
-    );
+    };
 }
 
 /// Create impl block for skip iterator.
 macro_rules! skip_iterator_impl {
-    ($iterator:ident, $radix_cb:ident) => (
+    ($iterator:ident, $radix_cb:ident) => {
         impl<'a, const FORMAT: u128> $iterator<'a, FORMAT> {
             is_digit_separator!(FORMAT);
 
@@ -410,12 +459,12 @@ macro_rules! skip_iterator_impl {
                 char_is_digit_const(value, format.$radix_cb())
             }
         }
-    );
+    };
 }
 
 /// Create impl Iterator block for skip iterator.
 macro_rules! skip_iterator_iterator_impl {
-    ($iterator:ident) => (
+    ($iterator:ident) => {
         impl<'a, const FORMAT: u128> Iterator for $iterator<'a, FORMAT> {
             type Item = &'a u8;
 
@@ -428,12 +477,12 @@ macro_rules! skip_iterator_iterator_impl {
                 Some(value)
             }
         }
-    );
+    };
 }
 
 /// Create base methods for the ByteIter block of a skip iterator.
 macro_rules! skip_iterator_byteiter_base {
-    () => (
+    () => {
         const IS_CONTIGUOUS: bool = false;
 
         #[inline]
@@ -476,19 +525,12 @@ macro_rules! skip_iterator_byteiter_base {
         unsafe fn step_by_unchecked(&mut self, _: usize) {
             unimplemented!("Not a contiguous iterator.");
         }
-    );
+    };
 }
 
 /// Create impl ByteIter block for skip iterator.
 macro_rules! skip_iterator_byteiter_impl {
-    (
-        $iterator:ident,
-        $mask:ident,
-        $i:ident,
-        $l:ident,
-        $t:ident,
-        $c:ident
-    ) => (
+    ($iterator:ident, $mask:ident, $i:ident, $l:ident, $t:ident, $c:ident) => {
         impl<'a, const FORMAT: u128> ByteIter<'a> for $iterator<'a, FORMAT> {
             skip_iterator_byteiter_base!();
 
@@ -527,7 +569,7 @@ macro_rules! skip_iterator_byteiter_impl {
                 }
             }
         }
-    );
+    };
 }
 
 // INTEGER SKIP ITERATOR
