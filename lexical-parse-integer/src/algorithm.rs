@@ -95,19 +95,20 @@ macro_rules! parse_digits {
         let mut value = <$t>::ZERO;
         let radix = NumberFormat::<{ $format }>::MANTISSA_RADIX;
 
-        // Optimizations for reading 8-digits at a time.
-        // Makes no sense to do 8 digits at a time for 32-bit values,
-        // since it can only hold 8 digits for base 10.
-        if T::BITS >= 64 && radix <= 10 && <$iter_type>::IS_CONTIGUOUS {
-            parse_8digits!(value, $iter, $format, $addsub, $overflow, $t, $iter_type);
-        }
-
-        // Optimizations for reading 4-digits at a time.
-        // 36^4 is larger than a 16-bit integer. Likewise, 10^4 is almost
-        // the limit of u16, so it's not worth it.
-        if T::BITS >= 32 && radix <= 10 && <$iter_type>::IS_CONTIGUOUS {
-            parse_4digits!(value, $iter, $format, $addsub, $overflow, $t, $iter_type);
-        }
+// TODO(ahuszagh) Check if this fixes performance issues...
+//        // Optimizations for reading 8-digits at a time.
+//        // Makes no sense to do 8 digits at a time for 32-bit values,
+//        // since it can only hold 8 digits for base 10.
+//        if T::BITS >= 64 && radix <= 10 && <$iter_type>::IS_CONTIGUOUS {
+//            parse_8digits!(value, $iter, $format, $addsub, $overflow, $t, $iter_type);
+//        }
+//
+//        // Optimizations for reading 4-digits at a time.
+//        // 36^4 is larger than a 16-bit integer. Likewise, 10^4 is almost
+//        // the limit of u16, so it's not worth it.
+//        if T::BITS >= 32 && radix <= 10 && <$iter_type>::IS_CONTIGUOUS {
+//            parse_4digits!(value, $iter, $format, $addsub, $overflow, $t, $iter_type);
+//        }
 
         // Do our slow parsing algorithm: 1 digit at a time.
         while let Some(&c) = $iter.next() {
@@ -170,12 +171,13 @@ macro_rules! parse_digits_128 {
     ) => {{
         let mut value = <$t>::ZERO;
         let radix = NumberFormat::<{ $format }>::MANTISSA_RADIX;
-        parse_8digits!(value, $iter, $format, $addsub, $overflow, $t, $iter_type);
-        parse_4digits!(value, $iter, $format, $addsub, $overflow, $t, $iter_type);
+        let step = u64_step(radix);
+        // TODO(ahuszagh) Check if this actually helps...
+        //parse_8digits!(value, $iter, $format, $addsub, $overflow, $t, $iter_type);
+        //parse_4digits!(value, $iter, $format, $addsub, $overflow, $t, $iter_type);
 
         // After our fast-path optimizations, now try to parse 1 digit at a time.
         // We use temporary 64-bit values for better performance here.
-        let step = u64_step(radix);
         while !$iter.is_consumed() {
             let mut val64: u64 = 0;
             let mut index = 0;
@@ -401,7 +403,17 @@ where
     T: Integer,
     Iter: ByteIter<'a>,
 {
-    if T::IS_SIGNED && is_negative {
+    let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX;
+    let step = u64_step(radix);
+    if T::IS_SIGNED && iter.length() < step {
+        // `radix^step - 1` can be `u64::MAX`, which is obviously larger
+        // than `i64::MAX`. Must be 1 less than step.
+        let (value, count) = parse_digits::<i64, _, FORMAT>(iter, is_negative)?;
+        Ok((as_cast::<T, _>(value), count))
+    } else if iter.length() <= step {
+        let (value, count) = parse_digits::<u64, _, FORMAT>(iter, is_negative)?;
+        Ok((as_cast::<T, _>(value), count))
+    } else if T::IS_SIGNED && is_negative {
         parse_digits_128!(iter, FORMAT, checked_sub, Underflow, T, Iter)
     } else {
         parse_digits_128!(iter, FORMAT, checked_add, Overflow, T, Iter)
