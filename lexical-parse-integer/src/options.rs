@@ -1,6 +1,4 @@
-//! Configuration options for writing integers.
-//!
-//! This is a dummy implementation, since writing integers never have options.
+//! Configuration options for parsing integers.
 
 // TODO(ahuszagh) Should add a builder trait at some point.
 //  Will interfere with const fn though, unfortunately.
@@ -53,7 +51,7 @@ impl Default for OptionsBuilder {
 /// # Examples
 ///
 /// ```rust
-/// use lexical_write_integer::options::Options;
+/// use lexical_parse_integer::options::Options;
 ///
 /// # pub fn main() {
 /// let options = Options::builder()

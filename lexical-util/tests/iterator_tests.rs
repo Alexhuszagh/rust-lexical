@@ -54,7 +54,7 @@ fn skip_iterator_test() {
     use lexical_util::skip::{self, SkipIter, SkipIterator};
 
     // TODO(ahuszagh) In the future, needs to have a digit separator.
-    type Iter<'a> = SkipIterator<'a, 10, { skip::ILTC }>;
+    type Iter<'a> = SkipIterator<'a, { skip::ILTC }>;
     assert!(!Iter::IS_CONTIGUOUS);
 
     let digits = b"123_45";
@@ -62,7 +62,7 @@ fn skip_iterator_test() {
     let iter2 = Iter::new(digits);
     assert!(iter1.eq(iter2));
 
-    let mut iter = digits.skip_iter::<10, { skip::ILTC }>();
+    let mut iter = digits.skip_iter::<{ skip::ILTC }>();
     assert_eq!(iter.as_slice(), &digits[..]);
     assert_eq!(iter.as_ptr(), digits.as_ptr());
     assert_eq!(iter.is_consumed(), false);
@@ -79,7 +79,7 @@ fn skip_iterator_test() {
     assert_eq!(iter.next(), Some(&b'5'));
     assert_eq!(iter.next(), None);
 
-    let mut iter = digits.skip_iter::<10, { skip::ILTC }>();
+    let mut iter = digits.skip_iter::<{ skip::ILTC }>();
     assert_eq!(iter.nth(4).unwrap(), &b'5');
     assert_eq!(iter.as_slice(), &digits[digits.len()..]);
     assert_eq!(iter.as_ptr(), digits[digits.len()..].as_ptr());

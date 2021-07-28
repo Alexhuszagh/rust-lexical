@@ -16,14 +16,17 @@ macro_rules! lexical_partial_to_complete {
     };
 }
 
+// NOTE:
+//  We use macros to define the traits, rather than implement here
+//  since we can't define traits for types when both are defined outside
+//  the current crate, including in workspaces.
+
 // FROM LEXICAL
 
-// Define FromLexical trait.
-// We use this since we can't define external traits for types
-// defined outside the current crates.
+/// Define FromLexical trait.
 #[macro_export]
 #[cfg(feature = "parse")]
-macro_rules! from_lexical_trait {
+macro_rules! from_lexical {
     () => {
         /// Trait for numerical types that can be parsed from bytes.
         pub trait FromLexical: lexical_util::num::Number {
@@ -39,7 +42,7 @@ macro_rules! from_lexical_trait {
             /// digit, and therefore may mask an invalid digit error.
             ///
             /// * `bytes`   - Slice containing a numeric string.
-            fn from_lexical(bytes: &[u8]) -> lexical_util::result::ParseResult<Self>;
+            fn from_lexical(bytes: &[u8]) -> lexical_util::result::Result<Self>;
 
             /// Checked parser for a string-to-number conversion.
             ///
@@ -47,25 +50,81 @@ macro_rules! from_lexical_trait {
             /// of the string), returning the number of processed digits
             /// and the parsed value until that point.
             ///
-            /// Returns a `ParseResult` containing either the parsed value
+            /// Returns a `Result` containing either the parsed value
             /// and the number of processed digits, or an error containing
             /// any errors that occurred during parsing.
             ///
             /// * `bytes`   - Slice containing a numeric string.
-            fn from_lexical_partial(
-                bytes: &[u8],
-            ) -> lexical_util::result::ParseResult<(Self, usize)>;
+            fn from_lexical_partial(bytes: &[u8]) -> lexical_util::result::Result<(Self, usize)>;
         }
     };
 }
 
-// TODO(ahuszagh) Need FromLexicalOptions
+/// Define FromLexicalWithOptions trait.
+#[macro_export]
+#[cfg(feature = "parse")]
+macro_rules! from_lexical_with_options {
+    () => {
+        /// Trait for numerical types that can be parsed from bytes with custom options.
+        ///
+        /// The `Options` type specifies the configurable options to provide.
+        pub trait FromLexicalWithOptions: lexical_util::num::Number {
+            /// Custom formatting options for parsing a number.
+            type Options: Default;
+
+            /// Checked parser for a string-to-number conversion.
+            ///
+            /// This method parses the entire string, returning an error if
+            /// any invalid digits are found during parsing. The parsing
+            /// is dictated by the options, which specifies special
+            /// float strings, required float components, digit separators,
+            /// exponent characters, and more.
+            ///
+            /// Returns a `Result` containing either the parsed value,
+            /// or an error containing any errors that occurred during parsing.
+            ///
+            /// * `FORMAT`  - Flags and characters designating the number grammar.
+            /// * `bytes`   - Slice containing a numeric string.
+            /// * `options` - Options to dictate number parsing.
+            ///
+            /// The `FORMAT` packed struct is built using `NumberFormatBuilder`.
+            /// Any invalid number format will prevent parsing, returning
+            /// the appropriate format error. If you are unsure which format
+            /// to use, use `lexical_util::format::STANDARD`.
+            fn from_lexical_with_options<const FORMAT: u128>(
+                bytes: &[u8],
+                options: &Self::Options,
+            ) -> lexical_util::result::Result<Self>;
+
+            /// Checked parser for a string-to-number conversion.
+            ///
+            /// This method parses until an invalid digit is found (or the end
+            /// of the string), returning the number of processed digits
+            /// and the parsed value until that point.
+            ///
+            /// Returns a `Result` containing either the parsed value
+            /// and the number of processed digits, or an error containing
+            /// any errors that occurred during parsing.
+            ///
+            /// * `FORMAT`  - Flags and characters designating the number grammar.
+            /// * `bytes`   - Slice containing a numeric string.
+            /// * `options` - Options to dictate number parsing.
+            ///
+            /// The `FORMAT` packed struct is built using `NumberFormatBuilder`.
+            /// Any invalid number format will prevent parsing, returning
+            /// the appropriate format error. If you are unsure which format
+            /// to use, use `lexical_util::format::STANDARD`.
+            fn from_lexical_partial_with_options<const FORMAT: u128>(
+                bytes: &[u8],
+                options: &Self::Options,
+            ) -> lexical_util::result::Result<(Self, usize)>;
+        }
+    };
+}
 
 // TO LEXICAL
 
-// Define ToLexical trait.
-// We use this since we can't define external traits for types
-// defined outside the current crates.
+/// Define ToLexical trait.
 #[macro_export]
 #[cfg(feature = "write")]
 macro_rules! to_lexical {
@@ -120,14 +179,12 @@ macro_rules! to_lexical {
     };
 }
 
-// Define ToLexicalWithOptions trait.
-// We use this since we can't define external traits for types
-// defined outside the current crates.
+/// Define ToLexicalWithOptions trait.
 #[macro_export]
 #[cfg(feature = "write")]
 macro_rules! to_lexical_with_options {
     () => {
-        /// Trait for numerical types that can be serialized to bytes.
+        /// Trait for numerical types that can be serialized to bytes with custom options.
         ///
         /// To determine the number of bytes required to serialize a value to
         /// string, check the associated constants from a required trait:

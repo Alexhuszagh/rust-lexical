@@ -15,7 +15,7 @@ use crate::algorithm::{algorithm, algorithm_u128};
 use crate::lib::mem;
 use crate::table::get_table;
 use lexical_util::algorithm::copy_to_dst;
-use lexical_util::num::UnsignedInteger;
+use lexical_util::num::{Integer, UnsignedInteger};
 
 /// Write integer to radix string.
 pub trait Radix: UnsignedInteger {
@@ -49,7 +49,7 @@ macro_rules! radix_impl {
             unsafe fn radix<const RADIX: u32>(self, buffer: &mut [u8]) -> usize {
                 // SAFETY: safe as long as buffer is large enough to hold the max value.
                 // We never read unwritten values, and we never assume the data is initialized.
-                debug_assert!(Self::BITS <= 64);
+                debug_assert!(<Self as Integer>::BITS <= 64);
                 let mut digits: mem::MaybeUninit<[u8; 64]> = mem::MaybeUninit::uninit();
                 unsafe {
                     let digits = &mut *digits.as_mut_ptr();
@@ -70,7 +70,7 @@ impl Radix for u128 {
         // SAFETY: safe as long as buffer is large enough to hold the max value.
         // We never read unwritten values, and we never assume the data is initialized.
         // Need at least 128-bits, at least as many as the bits in the current type.
-        debug_assert!(Self::BITS <= 128);
+        debug_assert!(<Self as Integer>::BITS <= 128);
         let mut digits: mem::MaybeUninit<[u8; 128]> = mem::MaybeUninit::uninit();
         unsafe {
             let digits = &mut *digits.as_mut_ptr();

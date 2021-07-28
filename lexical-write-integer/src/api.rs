@@ -1,9 +1,7 @@
 //! Implements the algorithm in terms of the lexical API.
 
-/// Select the back-end.
 use crate::options::Options;
 use crate::write::WriteInteger;
-
 use lexical_util::assert::{assert_buffer, assert_radix, debug_assert_buffer};
 use lexical_util::num::{as_cast, SignedInteger};
 use lexical_util::{to_lexical, to_lexical_with_options};

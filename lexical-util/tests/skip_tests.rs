@@ -4,7 +4,7 @@ use lexical_util::skip::{self, SkipIter};
 
 fn skip_iter_eq<const FORMAT: u128>(input: &[u8], output: &[u8]) {
     // next is done in terms of peek, so we're safe here.
-    assert!(input.skip_iter::<10, FORMAT>().eq(output.iter()));
+    assert!(input.skip_iter::<FORMAT>().eq(output.iter()));
 }
 
 #[test]

@@ -68,15 +68,12 @@ const fn digit_separator<const FORMAT: u128>() -> u8 {
 /// Trait to simplify creation of a `SkipIterator`.
 pub trait SkipIter<'a> {
     /// Create `SkipIterator` from format and current type.
-    fn skip_iter<const RADIX: u32, const FORMAT: u128>(&'a self)
-        -> SkipIterator<'a, RADIX, FORMAT>;
+    fn skip_iter<const FORMAT: u128>(&'a self) -> SkipIterator<'a, FORMAT>;
 }
 
 impl<'a> SkipIter<'a> for [u8] {
     #[inline]
-    fn skip_iter<const RADIX: u32, const FORMAT: u128>(
-        &'a self,
-    ) -> SkipIterator<'a, RADIX, FORMAT> {
+    fn skip_iter<const FORMAT: u128>(&'a self) -> SkipIterator<'a, FORMAT> {
         SkipIterator::new(self)
     }
 }
@@ -92,25 +89,35 @@ impl<'a> SkipIter<'a> for [u8] {
 /// The format allows us to dictate the actual behavior of
 /// the iterator: in what contexts does it skip digit separators.
 ///
-/// `RADIX` is required to allow us to differentiate digit from
+/// `FORMAT` is required to tell us what the digit separator is, and where
+/// the digit separators are allowed, as well tell us the radix.
+/// The radix is required to allow us to differentiate digit from
 /// non-digit characters (see [DigitSeparators](/docs/DigitSeparators.md)
-/// for a detailed explanation on why), and `FORMAT` is required to tell
-/// us what the digit separator is, and where the digit separator
+/// for a detailed explanation on why).
+///
+/// Finally, `mask` is required to mask the digit separator flags
+/// so we can work on integral, fraction, and exponent characters
+/// with similar logic.
 #[derive(Clone)]
-pub struct SkipIterator<'a, const RADIX: u32, const FORMAT: u128> {
+pub struct SkipIterator<'a, const FORMAT: u128> {
     /// The raw slice for the iterator.
     slc: &'a [u8],
     /// Current index of the iterator in the slice.
     index: usize,
+    /// The mask for the digit separator flags.
+    /// This may either be integer, fraction, or exponent.
+    mask: u64,
 }
 
-impl<'a, const RADIX: u32, const FORMAT: u128> SkipIterator<'a, RADIX, FORMAT> {
+impl<'a, const FORMAT: u128> SkipIterator<'a, FORMAT> {
     /// Create new iterator.
     #[inline]
     pub fn new(slc: &'a [u8]) -> Self {
+        // TODO(ahuszagh) Going to need a mask.
         Self {
             slc,
             index: 0,
+            mask: 0,
         }
     }
 
@@ -127,11 +134,12 @@ impl<'a, const RADIX: u32, const FORMAT: u128> SkipIterator<'a, RADIX, FORMAT> {
 
     /// Determine if the character is a digit.
     pub const fn is_digit(&self, value: u8) -> bool {
-        char_is_digit_const(value, RADIX)
+        // TODO(ahuszagh) Fix...
+        char_is_digit_const(value, 10)
     }
 }
 
-impl<'a, const RADIX: u32, const FORMAT: u128> Iterator for SkipIterator<'a, RADIX, FORMAT> {
+impl<'a, const FORMAT: u128> Iterator for SkipIterator<'a, FORMAT> {
     type Item = &'a u8;
 
     #[inline]
@@ -144,7 +152,7 @@ impl<'a, const RADIX: u32, const FORMAT: u128> Iterator for SkipIterator<'a, RAD
     }
 }
 
-impl<'a, const RADIX: u32, const FORMAT: u128> ByteIter<'a> for SkipIterator<'a, RADIX, FORMAT> {
+impl<'a, const FORMAT: u128> ByteIter<'a> for SkipIterator<'a, FORMAT> {
     const IS_CONTIGUOUS: bool = false;
 
     #[inline]
@@ -226,9 +234,7 @@ impl<'a, const RADIX: u32, const FORMAT: u128> ByteIter<'a> for SkipIterator<'a,
 /// The compiler optimizes this pretty well: it's almost as efficient as
 /// optimized assembly without bounds checking.
 #[inline]
-fn is_i<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> bool {
+fn is_i<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> bool {
     !is_l(iter) && !is_t(iter)
 }
 
@@ -238,9 +244,7 @@ fn is_i<'a, const RADIX: u32, const FORMAT: u128>(
 /// The compiler optimizes this pretty well: it's almost as efficient as
 /// optimized assembly without bounds checking.
 #[inline]
-fn is_l<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> bool {
+fn is_l<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> bool {
     // Consume any digit separators before the current one.
     let mut index = iter.index;
     while index > 0 && iter.slc.get(index - 1).map_or(false, |&x| iter.is_digit_separator(x)) {
@@ -258,9 +262,7 @@ fn is_l<'a, const RADIX: u32, const FORMAT: u128>(
 /// The compiler optimizes this pretty well: it's almost as efficient as
 /// optimized assembly without bounds checking.
 #[inline]
-fn is_t<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> bool {
+fn is_t<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> bool {
     // Consume any digit separators after the current one.
     let mut index = iter.index;
     while index < iter.slc.len()
@@ -276,9 +278,7 @@ fn is_t<'a, const RADIX: u32, const FORMAT: u128>(
 ///
 /// Preconditions: Assumes `slc[index]` is a digit separator.
 #[inline]
-fn is_il<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> bool {
+fn is_il<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> bool {
     is_l(iter) || !is_t(iter)
 }
 
@@ -286,9 +286,7 @@ fn is_il<'a, const RADIX: u32, const FORMAT: u128>(
 ///
 /// Preconditions: Assumes `slc[index]` is a digit separator.
 #[inline]
-fn is_it<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> bool {
+fn is_it<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> bool {
     is_t(iter) || !is_l(iter)
 }
 
@@ -296,21 +294,19 @@ fn is_it<'a, const RADIX: u32, const FORMAT: u128>(
 ///
 /// Preconditions: Assumes `slc[index]` is a digit separator.
 #[inline]
-fn is_lt<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> bool {
+fn is_lt<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> bool {
     is_l(iter) || is_t(iter)
 }
 
 /// Consumes at most 1 digit separator.
 /// Peeks the next token that's not a digit separator.
 #[inline]
-fn peek_1<'a, Callback, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
+fn peek_1<'a, Callback, const FORMAT: u128>(
+    iter: &mut SkipIterator<'a, FORMAT>,
     is_skip: Callback,
 ) -> Option<&'a u8>
 where
-    Callback: Fn(&mut SkipIterator<'a, RADIX, FORMAT>) -> bool,
+    Callback: Fn(&mut SkipIterator<'a, FORMAT>) -> bool,
 {
     // This will only consume a single digit separator.
     // This will not consume consecutive digit separators.
@@ -332,12 +328,12 @@ where
 /// Consumes 1 or more digit separators.
 /// Peeks the next token that's not a digit separator.
 #[inline]
-fn peek_n<'a, Callback, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
+fn peek_n<'a, Callback, const FORMAT: u128>(
+    iter: &mut SkipIterator<'a, FORMAT>,
     is_skip: Callback,
 ) -> Option<&'a u8>
 where
-    Callback: Fn(&mut SkipIterator<'a, RADIX, FORMAT>) -> bool,
+    Callback: Fn(&mut SkipIterator<'a, FORMAT>) -> bool,
 {
     // This will consume consecutive digit separators.
     let value = iter.slc.get(iter.index)?;
@@ -364,112 +360,84 @@ where
 
 /// Consumes at most 1 leading digit separator and peeks the next value.
 #[inline]
-fn peek_l<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_l<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_1(iter, is_l)
 }
 
 /// Consumes at most 1 internal digit separator and peeks the next value.
 #[inline]
-fn peek_i<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_i<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_1(iter, is_i)
 }
 
 /// Consumes at most 1 trailing digit separator and peeks the next value.
 #[inline]
-fn peek_t<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_t<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_1(iter, is_t)
 }
 
 /// Consumes at most 1 internal/leading digit separator and peeks the next value.
 #[inline]
-fn peek_il<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_il<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_1(iter, is_il)
 }
 
 /// Consumes at most 1 internal/trailing digit separator and peeks the next value.
 #[inline]
-fn peek_it<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_it<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_1(iter, is_it)
 }
 
 /// Consumes at most 1 leading/trailing digit separator and peeks the next value.
 #[inline]
-fn peek_lt<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_lt<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_1(iter, is_lt)
 }
 
 /// Consumes at most 1 digit separator and peeks the next value.
 #[inline]
-fn peek_ilt<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_ilt<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_1(iter, |_| true)
 }
 
 /// Consumes 1 or more leading digit separators and peeks the next value.
 #[inline]
-fn peek_lc<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_lc<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_n(iter, is_l)
 }
 
 /// Consumes 1 or more internal digit separators and peeks the next value.
 #[inline]
-fn peek_ic<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_ic<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_n(iter, is_i)
 }
 
 /// Consumes 1 or more trailing digit separators and peeks the next value.
 #[inline]
-fn peek_tc<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_tc<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_n(iter, is_t)
 }
 
 /// Consumes 1 or more internal/leading digit separators and peeks the next value.
 #[inline]
-fn peek_ilc<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_ilc<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_n(iter, is_il)
 }
 
 /// Consumes 1 or more internal/trailing digit separators and peeks the next value.
 #[inline]
-fn peek_itc<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_itc<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_n(iter, is_it)
 }
 
 /// Consumes 1 or more leading/trailing digit separators and peeks the next value.
 #[inline]
-fn peek_ltc<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_ltc<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_n(iter, is_lt)
 }
 
 /// Consumes 1 or more digit separators and peeks the next value.
 #[inline]
-fn peek_iltc<'a, const RADIX: u32, const FORMAT: u128>(
-    iter: &mut SkipIterator<'a, RADIX, FORMAT>,
-) -> Option<&'a u8> {
+fn peek_iltc<'a, const FORMAT: u128>(iter: &mut SkipIterator<'a, FORMAT>) -> Option<&'a u8> {
     peek_n(iter, |_| true)
 }

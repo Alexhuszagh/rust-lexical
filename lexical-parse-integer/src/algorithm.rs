@@ -10,39 +10,34 @@
 
 #![cfg(not(feature = "compact"))]
 
+use crate::sign::parse_sign_and_validate;
 use lexical_util::assert::debug_assert_radix;
 use lexical_util::digit::char_to_digit_const;
-use lexical_util::error::ParseErrorCode;
+use lexical_util::format::NumberFormat;
 use lexical_util::iterator::ByteIter;
 use lexical_util::num::{as_cast, Integer};
-use lexical_util::result::ParseResult;
+use lexical_util::result::Result;
 use lexical_util::step::u64_step;
 
-/// Simple short-circuit to an error.
-macro_rules! into_error {
-    ($code:ident, $iter:ident $(- $shift:expr)?) => {
-        Err((ParseErrorCode::$code, $iter.cursor() $(- $shift)?).into())
-    };
-}
-
 /// Parse 8-digits at a time.
+#[rustfmt::skip]
 macro_rules! parse_8digits {
     (
         $value:ident,
         $iter:ident,
-        $radix:ident,
+        $format:ident,
         $addsub:ident,
         $overflow:ident,
         $t:ident,
         $iter_type:ty
     ) => {
-        let radix: $t = as_cast($radix);
+        let radix: $t = as_cast(NumberFormat::<{ $format }>::MANTISSA_RADIX);
         let radix2: $t = radix.wrapping_mul(radix);
         let radix4: $t = radix2.wrapping_mul(radix2);
         let radix8: $t = radix4.wrapping_mul(radix4);
 
         // Try our fast, 8-digit at a time optimizations.
-        while let Some(val8) = try_parse_8digits::<$t, $iter_type, $radix>(&mut $iter) {
+        while let Some(val8) = try_parse_8digits::<$t, $iter_type, $format>(&mut $iter) {
             $value = match $value.checked_mul(radix8) {
                 Some(v) => v,
                 None => return into_error!($overflow, $iter),
@@ -56,22 +51,23 @@ macro_rules! parse_8digits {
 }
 
 /// Parse 4-digits at a time.
+#[rustfmt::skip]
 macro_rules! parse_4digits {
     (
         $value:ident,
         $iter:ident,
-        $radix:ident,
+        $format:ident,
         $addsub:ident,
         $overflow:ident,
         $t:ident,
         $iter_type:ty
     ) => {
-        let radix: $t = as_cast($radix);
+        let radix: $t = as_cast(NumberFormat::<{ $format }>::MANTISSA_RADIX);
         let radix2: $t = radix.wrapping_mul(radix);
         let radix4: $t = radix2.wrapping_mul(radix2);
 
         // Try our fast, 4-digit at a time optimizations.
-        while let Some(val4) = try_parse_4digits::<$t, $iter_type, $radix>(&mut $iter) {
+        while let Some(val4) = try_parse_4digits::<$t, $iter_type, $format>(&mut $iter) {
             $value = match $value.checked_mul(radix4) {
                 Some(v) => v,
                 None => return into_error!($overflow, $iter),
@@ -86,31 +82,40 @@ macro_rules! parse_4digits {
 
 /// Parse digits for a positive or negative value.
 /// Optimized for operations with machine integers.
+#[rustfmt::skip]
 macro_rules! parse_digits {
-    ($iter:ident, $radix:ident, $addsub:ident, $overflow:ident, $t:ident, $iter_type:ty) => {{
+    (
+        $iter:ident,
+        $format:ident,
+        $addsub:ident,
+        $overflow:ident,
+        $t:ident,
+        $iter_type:ty
+    ) => {{
         let mut value = <$t>::ZERO;
+        let radix = NumberFormat::<{ $format }>::MANTISSA_RADIX;
 
         // Optimizations for reading 8-digits at a time.
         // Makes no sense to do 8 digits at a time for 32-bit values,
         // since it can only hold 8 digits for base 10.
-        if T::BITS >= 64 && $radix <= 10 && <$iter_type>::IS_CONTIGUOUS {
-            parse_8digits!(value, $iter, $radix, $addsub, $overflow, $t, $iter_type);
+        if T::BITS >= 64 && radix <= 10 && <$iter_type>::IS_CONTIGUOUS {
+            parse_8digits!(value, $iter, $format, $addsub, $overflow, $t, $iter_type);
         }
 
         // Optimizations for reading 4-digits at a time.
         // 36^4 is larger than a 16-bit integer. Likewise, 10^4 is almost
         // the limit of u16, so it's not worth it.
-        if T::BITS >= 32 && $radix <= 10 && <$iter_type>::IS_CONTIGUOUS {
-            parse_4digits!(value, $iter, $radix, $addsub, $overflow, $t, $iter_type);
+        if T::BITS >= 32 && radix <= 10 && <$iter_type>::IS_CONTIGUOUS {
+            parse_4digits!(value, $iter, $format, $addsub, $overflow, $t, $iter_type);
         }
 
         // Do our slow parsing algorithm: 1 digit at a time.
         while let Some(&c) = $iter.next() {
-            let digit = match char_to_digit_const(c, $radix) {
+            let digit = match char_to_digit_const(c, radix) {
                 Some(v) => v,
                 None => return Ok((value, $iter.cursor() - 1)),
             };
-            value = match value.checked_mul(as_cast($radix)) {
+            value = match value.checked_mul(as_cast(radix)) {
                 Some(v) => v,
                 None => return into_error!($overflow, $iter - 1),
             };
@@ -125,6 +130,7 @@ macro_rules! parse_digits {
 }
 
 // Add 64-bit temporary to the 128-bit value.
+#[rustfmt::skip]
 macro_rules! add_temp_128 {
     (
         $value:ident,
@@ -152,33 +158,42 @@ macro_rules! add_temp_128 {
 /// Parse digits for a positive or negative value.
 /// Uses a few optimizations to speed up operations on a non-native,
 /// 128-bit type.
+#[rustfmt::skip]
 macro_rules! parse_digits_128 {
-    ($iter:ident, $radix:ident, $addsub:ident, $overflow:ident, $t:ident, $iter_type:ty) => {{
+    (
+        $iter:ident,
+        $format:ident,
+        $addsub:ident,
+        $overflow:ident,
+        $t:ident,
+        $iter_type:ty
+    ) => {{
         let mut value = <$t>::ZERO;
-        parse_8digits!(value, $iter, $radix, $addsub, $overflow, $t, $iter_type);
-        parse_4digits!(value, $iter, $radix, $addsub, $overflow, $t, $iter_type);
+        let radix = NumberFormat::<{ $format }>::MANTISSA_RADIX;
+        parse_8digits!(value, $iter, $format, $addsub, $overflow, $t, $iter_type);
+        parse_4digits!(value, $iter, $format, $addsub, $overflow, $t, $iter_type);
 
         // After our fast-path optimizations, now try to parse 1 digit at a time.
         // We use temporary 64-bit values for better performance here.
-        let step = u64_step($radix);
+        let step = u64_step(radix);
         while !$iter.is_consumed() {
             let mut val64: u64 = 0;
             let mut index = 0;
             while index < step {
                 if let Some(&c) = $iter.next() {
                     index += 1;
-                    let digit = match char_to_digit_const(c, $radix) {
+                    let digit = match char_to_digit_const(c, radix) {
                         Some(v) => v,
                         None => {
                             // Add temporary to value and return early.
-                            let mul = ($radix as u64).pow(index as u32);
+                            let mul = (radix as u64).pow(index as u32);
                             add_temp_128!(value, val64, $iter, $addsub, $overflow, mul, $t - 1);
                             return Ok((value, $iter.cursor() - 1));
                         },
                     };
 
                     // Don't have to worry about overflows.
-                    val64 *= $radix as u64;
+                    val64 *= radix as u64;
                     val64 += digit as u64;
                 } else {
                     break;
@@ -186,7 +201,7 @@ macro_rules! parse_digits_128 {
             }
 
             // Add the temporary value to the total value.
-            let mul = ($radix as u64).pow(index as u32);
+            let mul = (radix as u64).pow(index as u32);
             add_temp_128!(value, val64, $iter, $addsub, $overflow, mul, $t);
         }
 
@@ -196,8 +211,9 @@ macro_rules! parse_digits_128 {
 
 /// Determine if 4 bytes, read raw from bytes, are 4 digits for the radix.
 #[inline]
-pub fn is_4digits<const RADIX: u32>(v: u32) -> bool {
-    debug_assert!(RADIX <= 10);
+pub fn is_4digits<const FORMAT: u128>(v: u32) -> bool {
+    let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX;
+    debug_assert!(radix <= 10);
 
     // We want to have a wrapping add and sub such that only values from the
     // range `[0x30, 0x39]` (or narrower for custom radixes) will not
@@ -205,7 +221,7 @@ pub fn is_4digits<const RADIX: u32>(v: u32) -> bool {
     // into into `0x80` if the digit is 1 above, or `0x46` for the value `0x39`.
     // Likewise, we only valid for `[0x30, 0x38]` for radix 8, so we need
     // `0x47`.
-    let add = 0x46 + 10 - RADIX;
+    let add = 0x46 + 10 - radix;
     let add = add + (add << 8) + (add << 16) + (add << 24);
     // This aims to underflow if anything is below the min digit: if we have any
     // values under `0x30`, then this underflows and wraps into the high bit.
@@ -218,15 +234,16 @@ pub fn is_4digits<const RADIX: u32>(v: u32) -> bool {
 
 /// Parse 4 bytes read from bytes into 4 digits.
 #[inline]
-pub fn parse_4digits<const RADIX: u32>(mut v: u32) -> u32 {
-    debug_assert!(RADIX <= 10);
+pub fn parse_4digits<const FORMAT: u128>(mut v: u32) -> u32 {
+    let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX;
+    debug_assert!(radix <= 10);
 
     // Normalize our digits to the range `[0, 9]`.
     v -= 0x3030_3030;
     // Scale digits in 0 <= Nn <= 99.
-    v = (v * RADIX) + (v >> 8);
+    v = (v * radix) + (v >> 8);
     // Scale digits in 0 <= Nnnn <= 9999.
-    v = ((v & 0x0000007f) * RADIX * RADIX) + ((v >> 16) & 0x0000007f);
+    v = ((v & 0x0000007f) * radix * radix) + ((v >> 16) & 0x0000007f);
 
     v
 }
@@ -237,7 +254,7 @@ pub fn parse_4digits<const RADIX: u32>(mut v: u32) -> u32 {
 /// This approach is described in full here:
 ///     https://johnnylee-sde.github.io/Fast-numeric-string-to-int/
 #[inline]
-pub fn try_parse_4digits<'a, T, Iter, const RADIX: u32>(iter: &mut Iter) -> Option<T>
+pub fn try_parse_4digits<'a, T, Iter, const FORMAT: u128>(iter: &mut Iter) -> Option<T>
 where
     T: Integer,
     Iter: ByteIter<'a>,
@@ -245,17 +262,17 @@ where
     // Can't do fast optimizations with radixes larger than 10, since
     // we no longer have a contiguous ASCII block. Likewise, cannot
     // use non-contiguous iterators.
-    debug_assert!(RADIX <= 10);
+    debug_assert!(NumberFormat::<{ FORMAT }>::MANTISSA_RADIX <= 10);
     debug_assert!(Iter::IS_CONTIGUOUS);
 
     // Read our digits, validate the input, and check from there.
     let bytes = u32::from_le(iter.read::<u32>()?);
-    if is_4digits::<RADIX>(bytes) {
+    if is_4digits::<FORMAT>(bytes) {
         // SAFETY: safe since we have at least 4 bytes in the buffer.
         unsafe {
             iter.step_by_unchecked(4);
         }
-        Some(as_cast(parse_4digits::<RADIX>(bytes)))
+        Some(as_cast(parse_4digits::<FORMAT>(bytes)))
     } else {
         None
     }
@@ -264,10 +281,11 @@ where
 /// Determine if 8 bytes, read raw from bytes, are 8 digits for the radix.
 /// See `is_4digits` for the algorithm description.
 #[inline]
-pub fn is_8digits<const RADIX: u32>(v: u64) -> bool {
-    debug_assert!(RADIX <= 10);
+pub fn is_8digits<const FORMAT: u128>(v: u64) -> bool {
+    let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX;
+    debug_assert!(radix <= 10);
 
-    let add = 0x46 + 10 - RADIX;
+    let add = 0x46 + 10 - radix;
     let add = add + (add << 8) + (add << 16) + (add << 24);
     let add = (add as u64) | ((add as u64) << 32);
     // This aims to underflow if anything is below the min digit: if we have any
@@ -283,13 +301,13 @@ pub fn is_8digits<const RADIX: u32>(v: u64) -> bool {
 /// Credit for this goes to @aqrit, which further optimizes the
 /// optimization described by Johnny Lee above.
 #[inline]
-pub fn parse_8digits<const RADIX: u32>(mut v: u64) -> u64 {
-    debug_assert!(RADIX <= 10);
+pub fn parse_8digits<const FORMAT: u128>(mut v: u64) -> u64 {
+    let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX as u64;
+    debug_assert!(radix <= 10);
 
     // Create our masks. Assume the optimizer will do this at compile time.
     // It seems like an optimizing compiler **will** do this, so we
     // should be safe.
-    let radix = RADIX as u64;
     let radix2 = radix * radix;
     let radix4 = radix2 * radix2;
     let radix6 = radix2 * radix4;
@@ -310,7 +328,7 @@ pub fn parse_8digits<const RADIX: u32>(mut v: u64) -> u64 {
 /// Use a fast-path optimization, where we attempt to parse 8 digits at a time.
 /// This reduces the number of multiplications necessary to 3, instead of 8.
 #[inline]
-pub fn try_parse_8digits<'a, T, Iter, const RADIX: u32>(iter: &mut Iter) -> Option<T>
+pub fn try_parse_8digits<'a, T, Iter, const FORMAT: u128>(iter: &mut Iter) -> Option<T>
 where
     T: Integer,
     Iter: ByteIter<'a>,
@@ -318,17 +336,17 @@ where
     // Can't do fast optimizations with radixes larger than 10, since
     // we no longer have a contiguous ASCII block. Likewise, cannot
     // use non-contiguous iterators.
-    debug_assert!(RADIX <= 10);
+    debug_assert!(NumberFormat::<{ FORMAT }>::MANTISSA_RADIX <= 10);
     debug_assert!(Iter::IS_CONTIGUOUS);
 
     // Read our digits, validate the input, and check from there.
     let bytes = u64::from_le(iter.read::<u64>()?);
-    if is_8digits::<RADIX>(bytes) {
+    if is_8digits::<FORMAT>(bytes) {
         // SAFETY: safe since we have at least 8 bytes in the buffer.
         unsafe {
             iter.step_by_unchecked(8);
         }
-        Some(as_cast(parse_8digits::<RADIX>(bytes)))
+        Some(as_cast(parse_8digits::<FORMAT>(bytes)))
     } else {
         None
     }
@@ -354,18 +372,18 @@ where
 ///
 /// Returns a result containing the value and the number of digits parsed.
 #[inline]
-pub fn parse_digits<'a, T, Iter, const RADIX: u32>(
+pub fn parse_digits<'a, T, Iter, const FORMAT: u128>(
     mut iter: Iter,
     is_negative: bool,
-) -> ParseResult<(T, usize)>
+) -> Result<(T, usize)>
 where
     T: Integer,
     Iter: ByteIter<'a>,
 {
     if T::IS_SIGNED && is_negative {
-        parse_digits!(iter, RADIX, checked_sub, Underflow, T, Iter)
+        parse_digits!(iter, FORMAT, checked_sub, Underflow, T, Iter)
     } else {
-        parse_digits!(iter, RADIX, checked_add, Overflow, T, Iter)
+        parse_digits!(iter, FORMAT, checked_add, Overflow, T, Iter)
     }
 }
 
@@ -375,82 +393,19 @@ where
 ///
 /// Returns a result containing the value and the number of digits parsed.
 #[inline]
-pub fn parse_digits_128<'a, T, Iter, const RADIX: u32>(
+pub fn parse_digits_128<'a, T, Iter, const FORMAT: u128>(
     mut iter: Iter,
     is_negative: bool,
-) -> ParseResult<(T, usize)>
+) -> Result<(T, usize)>
 where
     T: Integer,
     Iter: ByteIter<'a>,
 {
     if T::IS_SIGNED && is_negative {
-        parse_digits_128!(iter, RADIX, checked_sub, Underflow, T, Iter)
+        parse_digits_128!(iter, FORMAT, checked_sub, Underflow, T, Iter)
     } else {
-        parse_digits_128!(iter, RADIX, checked_add, Overflow, T, Iter)
+        parse_digits_128!(iter, FORMAT, checked_add, Overflow, T, Iter)
     }
-}
-
-// TODO(ahuszagh) Remove this, just for the format logic right now.
-#[inline]
-const fn positive_sign_allowed<const FORMAT: u128>() -> bool {
-    true
-}
-
-// TODO(ahuszagh) Remove this, just for the format logic right now.
-#[inline]
-const fn required_sign<const FORMAT: u128>() -> bool {
-    false
-}
-
-// TODO(ahuszagh) Remove this, just for the format logic right now.
-#[inline]
-const fn leading_zeros_allowed<const FORMAT: u128>() -> bool {
-    true
-}
-
-/// Determines if the integer is negative and validates the input data.
-///
-/// This routine does the following:
-///
-/// 1. Parses the sign digit.
-/// 2. Handles if positive signs before integers are not allowed.
-/// 3. Handles negative signs if the type is unsigned.
-/// 4. Handles if the sign is required, but missing.
-/// 5. Handles if the iterator is empty, before or after parsing the sign.
-/// 6. Handles if the iterator has invalid, leading zeros.
-///
-/// Returns if the value is negative, or any values detected when
-/// validating the input.
-#[inline]
-fn parse_sign_and_validate<'a, T, Iter, const FORMAT: u128>(iter: &mut Iter) -> ParseResult<bool>
-where
-    T: Integer,
-    Iter: ByteIter<'a>,
-{
-    let is_negative = match iter.peek() {
-        Some(&b'+') if positive_sign_allowed::<FORMAT>() => {
-            iter.next();
-            false
-        },
-        Some(&b'-') if T::IS_SIGNED => {
-            iter.next();
-            true
-        },
-        Some(&b'+') => return into_error!(InvalidPositiveSign, iter),
-        Some(&b'-') => return into_error!(InvalidNegativeSign, iter),
-        Some(_) if !required_sign::<FORMAT>() => false,
-        Some(_) => return into_error!(MissingSign, iter),
-        None => return into_error!(Empty, iter),
-    };
-    // Note: need to call as a trait function.
-    //  The standard library may add an `is_empty` function for iterators.
-    if ByteIter::is_empty(iter) {
-        return into_error!(Empty, iter);
-    }
-    if !leading_zeros_allowed::<FORMAT>() && iter.peek() == Some(&b'0') {
-        return into_error!(InvalidLeadingZeros, iter);
-    }
-    Ok(is_negative)
 }
 
 /// Core parsing algorithm for machine integers.
@@ -458,56 +413,30 @@ where
 ///
 /// Returns the parsed value and the number of digits processed.
 #[inline]
-pub fn algorithm<'a, T, Iter, const RADIX: u32, const FORMAT: u128>(
-    mut iter: Iter,
-) -> ParseResult<(T, usize)>
+pub fn algorithm<'a, T, Iter, const FORMAT: u128>(mut iter: Iter) -> Result<(T, usize)>
 where
     T: Integer,
     Iter: ByteIter<'a>,
 {
-    debug_assert!(T::BITS != 128);
-    debug_assert_radix(RADIX);
+    debug_assert!(T::BITS < 128);
+    debug_assert_radix(NumberFormat::<{ FORMAT }>::MANTISSA_RADIX);
 
     let is_negative = parse_sign_and_validate::<T, _, FORMAT>(&mut iter)?;
-    parse_digits::<T, _, RADIX>(iter, is_negative)
+    parse_digits::<T, _, FORMAT>(iter, is_negative)
 }
 
 /// Optimized implementation of the above algorithm for 128-bit integers.
 ///
 /// Returns the parsed value and the number of digits processed.
 #[inline]
-pub fn algorithm_128<'a, T, Iter, const RADIX: u32, const FORMAT: u128>(
-    mut iter: Iter,
-) -> ParseResult<(T, usize)>
+pub fn algorithm_128<'a, T, Iter, const FORMAT: u128>(mut iter: Iter) -> Result<(T, usize)>
 where
     T: Integer,
     Iter: ByteIter<'a>,
 {
     debug_assert!(T::BITS == 128);
-    debug_assert_radix(RADIX);
+    debug_assert_radix(NumberFormat::<{ FORMAT }>::MANTISSA_RADIX);
 
     let is_negative = parse_sign_and_validate::<T, _, FORMAT>(&mut iter)?;
-    parse_digits_128::<T, _, RADIX>(iter, is_negative)
+    parse_digits_128::<T, _, FORMAT>(iter, is_negative)
 }
-
-// TODO(ahuszagh) This is the general approach later.
-//#[inline]
-//pub fn algorithm_128<T, const RADIX: u32, const FORMAT: u128>(
-//    bytes: &[u8],
-//) -> ParseResult<(T, usize)>
-//where
-//    T: Integer,
-//{
-//    #[cfg(not(feature = "format"))] {
-//        return algorithm_128_iter::<_, _, RADIX, FORMAT>(bytes.noskip_iter());
-//    }
-//
-//    #[cfg(feature = "format")] {
-//        // TODO(ahuszagh) This is a dummy implementation... Ewwww
-//        if FORMAT == 0 {
-//            return algorithm_128_iter::<_, _, RADIX, FORMAT>(bytes.noskip_iter());
-//        } else {
-//            return algorithm_128_iter::<_, _, RADIX, FORMAT>(bytes.skip_iter::<RADIX, FORMAT>());
-//        }
-//    }
-//}

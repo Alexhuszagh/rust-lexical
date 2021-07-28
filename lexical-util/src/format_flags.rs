@@ -20,12 +20,12 @@
 //! ```text
 //! 0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-//! |I/R|F/R|E/R|+/M|R/M|e/e|+/E|R/E|e/F|S/S|S/C|N/I|N/F|R/e|e/C|e/P|
+//! |I/R|F/R|E/R|M/R|+/M|R/M|e/e|+/E|R/E|e/F|S/S|S/C|N/I|N/F|R/e|e/C|
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 //!
 //! 16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-//! |e/S|                                                           |
+//! |e/P|e/S|                                                       |
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 //!
 //! 32  33  34  35  36  37  38  39  40  41 42  43  44  45  46  47   48
@@ -43,6 +43,7 @@
 //!         I/R = Required integer digits.
 //!         F/R = Required fraction digits.
 //!         E/R = Required exponent digits.
+//!         M/R = Required mantissa digits.
 //!         +/M = No mantissa positive sign.
 //!         R/M = Required positive sign.
 //!         e/e = No exponent notation.
@@ -207,8 +208,8 @@
 
 use static_assertions::const_assert;
 
-// FLAG ASSERTIONS
-// ---------------
+// ASSERTIONS
+// ----------
 
 // Ensure all our bit flags are valid.
 macro_rules! check_subsequent_flags {
@@ -217,64 +218,78 @@ macro_rules! check_subsequent_flags {
     };
 }
 
+// Ensure all our bit masks don't overlap.
+macro_rules! check_subsequent_masks {
+    ($x:ident, $y:ident) => {
+        const_assert!($x & $y == 0);
+    };
+}
+
+// Check all our masks are in the range `[0, 255]` after shifting.
+macro_rules! check_mask_shifts {
+    ($mask:ident, $shift:ident) => {
+        const_assert!(0 < $mask >> $shift && 255 >= $mask >> $shift);
+    };
+}
+
+// Ensure all our bit masks don't overlap with existing flags.
+macro_rules! check_masks_and_flags {
+    ($x:ident, $y:ident) => {
+        const_assert!($x & $y == 0);
+    };
+}
+
 // NON-DIGIT SEPARATOR FLAGS & MASKS
 // ---------------------------------
 
 /// Digits are required before the decimal point.
-pub const REQUIRED_INTEGER_DIGITS: u128 =
-    0x00000000000000000000000000000001;
+pub const REQUIRED_INTEGER_DIGITS: u128 = 1 << 0;
 
 /// Digits are required after the decimal point.
 /// This check will only occur if the decimal point is present.
-pub const REQUIRED_FRACTION_DIGITS: u128 =
-    0x00000000000000000000000000000002;
+pub const REQUIRED_FRACTION_DIGITS: u128 = 1 << 1;
 
 /// Digits are required after the exponent character.
 /// This check will only occur if the exponent character is present.
-pub const REQUIRED_EXPONENT_DIGITS: u128 =
-    0x00000000000000000000000000000004;
+pub const REQUIRED_EXPONENT_DIGITS: u128 = 1 << 2;
 
-/// Digits are required before or after the control characters.
+/// Mantissa digits are required (either before or after the decimal point).
+pub const REQUIRED_MANTISSA_DIGITS: u128 = 1 << 3;
+
+/// At least 1 digit in the number is required.
 pub const REQUIRED_DIGITS: u128 =
     REQUIRED_INTEGER_DIGITS |
     REQUIRED_FRACTION_DIGITS |
-    REQUIRED_EXPONENT_DIGITS;
+    REQUIRED_EXPONENT_DIGITS |
+    REQUIRED_MANTISSA_DIGITS;
 
 /// Positive sign before the mantissa is not allowed.
-pub const NO_POSITIVE_MANTISSA_SIGN: u128 =
-    0x00000000000000000000000000000008;
+pub const NO_POSITIVE_MANTISSA_SIGN: u128 = 1 << 4;
 
 /// Positive sign before the mantissa is required.
-pub const REQUIRED_MANTISSA_SIGN: u128 =
-    0x00000000000000000000000000000010;
+pub const REQUIRED_MANTISSA_SIGN: u128 = 1 << 5;
 
 /// Exponent notation is not allowed.
-pub const NO_EXPONENT_NOTATION: u128 =
-    0x00000000000000000000000000000020;
+pub const NO_EXPONENT_NOTATION: u128 = 1 << 6;
 
 /// Positive sign before the exponent is not allowed.
-pub const NO_POSITIVE_EXPONENT_SIGN: u128 =
-    0x00000000000000000000000000000040;
+pub const NO_POSITIVE_EXPONENT_SIGN: u128 = 1 << 7;
 
 /// Positive sign before the exponent is required.
-pub const REQUIRED_EXPONENT_SIGN: u128 =
-    0x00000000000000000000000000000080;
+pub const REQUIRED_EXPONENT_SIGN: u128 = 1 << 8;
 
 /// Exponent without a fraction component is not allowed.
 ///
 /// This only checks if a decimal point precedes the exponent character.
 /// To require fraction digits or exponent digits with this check,
 /// please use the appropriate flags.
-pub const NO_EXPONENT_WITHOUT_FRACTION: u128 =
-    0x00000000000000000000000000000100;
+pub const NO_EXPONENT_WITHOUT_FRACTION: u128 = 1 << 9;
 
 /// Special (non-finite) values are not allowed.
-pub const NO_SPECIAL: u128 =
-    0x00000000000000000000000000000200;
+pub const NO_SPECIAL: u128 = 1 << 10;
 
 /// Special (non-finite) values are case-sensitive.
-pub const CASE_SENSITIVE_SPECIAL: u128 =
-    0x00000000000000000000000000000400;
+pub const CASE_SENSITIVE_SPECIAL: u128 = 1 << 11;
 
 /// Leading zeros before an integer value are not allowed.
 ///
@@ -290,8 +305,7 @@ pub const CASE_SENSITIVE_SPECIAL: u128 =
 /// for example, in languages like C, this will not auto-
 /// deduce that the radix is 8 with leading zeros, for an octal
 /// literal.
-pub const NO_INTEGER_LEADING_ZEROS: u128 =
-    0x00000000000000000000000000000800;
+pub const NO_INTEGER_LEADING_ZEROS: u128 = 1 << 12;
 
 /// Leading zeros before a float value are not allowed.
 ///
@@ -307,21 +321,29 @@ pub const NO_INTEGER_LEADING_ZEROS: u128 =
 /// for example, in languages like C, this will not auto-
 /// deduce that the radix is 8 with leading zeros, for an octal
 /// literal.
-pub const NO_FLOAT_LEADING_ZEROS: u128 =
-    0x00000000000000000000000000001000;
+pub const NO_FLOAT_LEADING_ZEROS: u128 = 1 << 13;
 
 /// Exponent notation is required.
 ///
 /// Valid floats must contain an exponent notation character, and if
 /// applicable, a sign character and digits afterwards.
-pub const REQUIRED_EXPONENT_NOTATION: u128 =
-    0x00000000000000000000000000002000;
+pub const REQUIRED_EXPONENT_NOTATION: u128 = 1 << 14;
+
+/// Exponent characters are case-sensitive.
+pub const CASE_SENSITIVE_EXPONENT: u128 = 1 << 15;
+
+/// Base prefixes are case-sensitive.
+pub const CASE_SENSITIVE_BASE_PREFIX: u128 = 1 << 16;
+
+/// Base suffixes are case-sensitive.
+pub const CASE_SENSITIVE_BASE_SUFFIX: u128 = 1 << 17;
 
 // Non-digit separator flags.
 const_assert!(REQUIRED_INTEGER_DIGITS == 1);
 check_subsequent_flags!(REQUIRED_INTEGER_DIGITS, REQUIRED_FRACTION_DIGITS);
 check_subsequent_flags!(REQUIRED_FRACTION_DIGITS, REQUIRED_EXPONENT_DIGITS);
-check_subsequent_flags!(REQUIRED_EXPONENT_DIGITS, NO_POSITIVE_MANTISSA_SIGN);
+check_subsequent_flags!(REQUIRED_EXPONENT_DIGITS, REQUIRED_MANTISSA_DIGITS);
+check_subsequent_flags!(REQUIRED_MANTISSA_DIGITS, NO_POSITIVE_MANTISSA_SIGN);
 check_subsequent_flags!(NO_POSITIVE_MANTISSA_SIGN, REQUIRED_MANTISSA_SIGN);
 check_subsequent_flags!(REQUIRED_MANTISSA_SIGN, NO_EXPONENT_NOTATION);
 check_subsequent_flags!(NO_EXPONENT_NOTATION, NO_POSITIVE_EXPONENT_SIGN);
@@ -333,58 +355,48 @@ check_subsequent_flags!(NO_SPECIAL, CASE_SENSITIVE_SPECIAL);
 check_subsequent_flags!(CASE_SENSITIVE_SPECIAL, NO_INTEGER_LEADING_ZEROS);
 check_subsequent_flags!(NO_INTEGER_LEADING_ZEROS, NO_FLOAT_LEADING_ZEROS);
 check_subsequent_flags!(NO_FLOAT_LEADING_ZEROS, REQUIRED_EXPONENT_NOTATION);
+check_subsequent_flags!(REQUIRED_EXPONENT_NOTATION, CASE_SENSITIVE_EXPONENT);
+check_subsequent_flags!(CASE_SENSITIVE_EXPONENT, CASE_SENSITIVE_BASE_PREFIX);
+check_subsequent_flags!(CASE_SENSITIVE_BASE_PREFIX, CASE_SENSITIVE_BASE_SUFFIX);
 
 // DIGIT SEPARATOR FLAGS & MASKS
 // -----------------------------
 
 /// Digit separators are allowed between integer digits.
-pub const INTEGER_INTERNAL_DIGIT_SEPARATOR: u128 =
-    0x00000000000000000000000100000000;
+pub const INTEGER_INTERNAL_DIGIT_SEPARATOR: u128 = 1 << 32;
 
 /// Digit separators are allowed between fraction digits.
-pub const FRACTION_INTERNAL_DIGIT_SEPARATOR: u128 =
-    0x00000000000000000000000200000000;
+pub const FRACTION_INTERNAL_DIGIT_SEPARATOR: u128 = 1 << 33;
 
 /// Digit separators are allowed between exponent digits.
-pub const EXPONENT_INTERNAL_DIGIT_SEPARATOR: u128 =
-    0x00000000000000000000000400000000;
+pub const EXPONENT_INTERNAL_DIGIT_SEPARATOR: u128 = 1 << 34;
 
 /// A digit separator is allowed before any integer digits.
-pub const INTEGER_LEADING_DIGIT_SEPARATOR: u128 =
-    0x00000000000000000000000800000000;
+pub const INTEGER_LEADING_DIGIT_SEPARATOR: u128 = 1 << 35;
 
 /// A digit separator is allowed before any fraction digits.
-pub const FRACTION_LEADING_DIGIT_SEPARATOR: u128 =
-    0x00000000000000000000001000000000;
+pub const FRACTION_LEADING_DIGIT_SEPARATOR: u128 = 1 << 36;
 
 /// A digit separator is allowed before any exponent digits.
-pub const EXPONENT_LEADING_DIGIT_SEPARATOR: u128 =
-    0x00000000000000000000002000000000;
+pub const EXPONENT_LEADING_DIGIT_SEPARATOR: u128 = 1 << 37;
 
 /// A digit separator is allowed after any integer digits.
-pub const INTEGER_TRAILING_DIGIT_SEPARATOR: u128 =
-    0x00000000000000000000004000000000;
+pub const INTEGER_TRAILING_DIGIT_SEPARATOR: u128 = 1 << 38;
 
 /// A digit separator is allowed after any fraction digits.
-pub const FRACTION_TRAILING_DIGIT_SEPARATOR: u128 =
-    0x00000000000000000000008000000000;
+pub const FRACTION_TRAILING_DIGIT_SEPARATOR: u128 = 1 << 39;
 
 /// A digit separator is allowed after any exponent digits.
-pub const EXPONENT_TRAILING_DIGIT_SEPARATOR: u128 =
-    0x00000000000000000000010000000000;
+pub const EXPONENT_TRAILING_DIGIT_SEPARATOR: u128 = 1 << 40;
 
 /// Multiple consecutive integer digit separators are allowed.
-pub const INTEGER_CONSECUTIVE_DIGIT_SEPARATOR: u128 =
-    0x00000000000000000000020000000000;
-
+pub const INTEGER_CONSECUTIVE_DIGIT_SEPARATOR: u128 = 1 << 41;
 
 /// Multiple consecutive fraction digit separators are allowed.
-pub const FRACTION_CONSECUTIVE_DIGIT_SEPARATOR: u128 =
-    0x00000000000000000000040000000000;
+pub const FRACTION_CONSECUTIVE_DIGIT_SEPARATOR: u128 = 1 << 42;
 
 /// Multiple consecutive exponent digit separators are allowed.
-pub const EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR: u128 =
-    0x00000000000000000000080000000000;
+pub const EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR: u128 = 1 << 43;
 
 /// Digit separators are allowed between digits.
 pub const INTERNAL_DIGIT_SEPARATOR: u128 =
@@ -411,8 +423,7 @@ pub const CONSECUTIVE_DIGIT_SEPARATOR: u128 =
     EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
 
 /// Any digit separators are allowed in special (non-finite) values.
-pub const SPECIAL_DIGIT_SEPARATOR: u128 =
-    0x00000000000000000000100000000000;
+pub const SPECIAL_DIGIT_SEPARATOR: u128 = 1 << 44;
 
 // Digit separator flags.
 const_assert!(INTEGER_INTERNAL_DIGIT_SEPARATOR == 1 << 32);
@@ -429,64 +440,162 @@ check_subsequent_flags!(INTEGER_CONSECUTIVE_DIGIT_SEPARATOR, FRACTION_CONSECUTIV
 check_subsequent_flags!(FRACTION_CONSECUTIVE_DIGIT_SEPARATOR, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
 check_subsequent_flags!(EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPARATOR);
 
-// CONSTROL CHARACTER & RADIX MASKS
-// --------------------------------
-
-/// Mask to extract the digit separator character.
-pub const DIGIT_SEPARATOR: u128 =
-    0x000000000000007F0000000000000000;
+// CONTROL CHARACTER & RADIX MASKS
+// -------------------------------
 
 /// Shift to convert to and from a digit separator as a `u8`.
 pub const DIGIT_SEPARATOR_SHIFT: i32 = 64;
 
-/// Mask to extract the decimal point character.
-pub const DECIMAL_POINT: u128 =
-    0x0000000000007F000000000000000000;
+/// Mask to extract the digit separator character.
+pub const DIGIT_SEPARATOR: u128 = 0x7F << DIGIT_SEPARATOR_SHIFT;
 
 /// Shift to convert to and from a decimal point as a `u8`.
 pub const DECIMAL_POINT_SHIFT: i32 = 72;
 
-/// Mask to extract the exponent character.
-pub const EXPONENT: u128 =
-    0x00000000007F00000000000000000000;
+/// Mask to extract the decimal point character.
+pub const DECIMAL_POINT: u128 = 0x7F << DECIMAL_POINT_SHIFT;
 
 /// Shift to convert to and from an exponent as a `u8`.
 pub const EXPONENT_SHIFT: i32 = 80;
 
-/// Mask to extract the base prefix character.
-pub const BASE_PREFIX: u128 =
-    0x000000007F0000000000000000000000;
+/// Mask to extract the exponent character.
+pub const EXPONENT: u128 = 0x7F << EXPONENT_SHIFT;
 
 /// Shift to convert to and from a base prefix as a `u8`.
 pub const BASE_PREFIX_SHIFT: i32 = 88;
 
-/// Mask to extract the base suffix character.
-pub const BASE_SUFFIX: u128 =
-    0x0000007F000000000000000000000000;
+/// Mask to extract the base prefix character.
+pub const BASE_PREFIX: u128 = 0x7F << BASE_PREFIX_SHIFT;
 
 /// Shift to convert to and from a base suffix as a `u8`.
 pub const BASE_SUFFIX_SHIFT: i32 = 96;
 
-/// Mask to extract the mantissa radix: the radix for the significant digits.
-pub const MANTISSA_RADIX: u128 =
-    0x00003F00000000000000000000000000;
+/// Mask to extract the base suffix character.
+pub const BASE_SUFFIX: u128 = 0x7F << BASE_SUFFIX_SHIFT;
 
 /// Shift to convert to and from a mantissa radix as a `u32`.
 pub const MANTISSA_RADIX_SHIFT: i32 = 104;
 
-/// Mask to extract the exponent base: the base the exponent is raised to.
-pub const EXPONENT_BASE: u128 =
-    0x003F0000000000000000000000000000;
+/// Mask to extract the mantissa radix: the radix for the significant digits.
+pub const MANTISSA_RADIX: u128 = 0x3F << MANTISSA_RADIX_SHIFT;
 
 /// Shift to convert to and from an exponent base as a `u32`.
 pub const EXPONENT_BASE_SHIFT: i32 = 112;
 
-/// Mask to extract the exponent radix: the radix for the exponent digits.
-pub const EXPONENT_RADIX: u128 =
-    0x3F000000000000000000000000000000;
+/// Mask to extract the exponent base: the base the exponent is raised to.
+pub const EXPONENT_BASE: u128 = 0x3F << EXPONENT_BASE_SHIFT;
 
 /// Shift to convert to and from an exponent radix as a `u32`.
 pub const EXPONENT_RADIX_SHIFT: i32 = 120;
+
+/// Mask to extract the exponent radix: the radix for the exponent digits.
+pub const EXPONENT_RADIX: u128 = 0x3F << EXPONENT_RADIX_SHIFT;
+
+// Masks do not overlap.
+check_subsequent_masks!(DIGIT_SEPARATOR, DECIMAL_POINT);
+check_subsequent_masks!(DECIMAL_POINT, EXPONENT);
+check_subsequent_masks!(EXPONENT, BASE_PREFIX);
+check_subsequent_masks!(BASE_PREFIX, BASE_SUFFIX);
+check_subsequent_masks!(BASE_SUFFIX, MANTISSA_RADIX);
+check_subsequent_masks!(MANTISSA_RADIX, EXPONENT_BASE);
+check_subsequent_masks!(EXPONENT_BASE, EXPONENT_RADIX);
+
+// Check all our shifts shift the masks to a single byte.
+check_mask_shifts!(DIGIT_SEPARATOR, DIGIT_SEPARATOR_SHIFT);
+check_mask_shifts!(DECIMAL_POINT, DECIMAL_POINT_SHIFT);
+check_mask_shifts!(EXPONENT, EXPONENT_SHIFT);
+check_mask_shifts!(BASE_PREFIX, BASE_PREFIX_SHIFT);
+check_mask_shifts!(BASE_SUFFIX, BASE_SUFFIX_SHIFT);
+check_mask_shifts!(MANTISSA_RADIX, MANTISSA_RADIX_SHIFT);
+check_mask_shifts!(EXPONENT_BASE, EXPONENT_BASE_SHIFT);
+check_mask_shifts!(EXPONENT_RADIX, EXPONENT_RADIX_SHIFT);
+
+// Check masks don't overlap with neighboring flags.
+check_masks_and_flags!(DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPARATOR);
+
+// HIDDEN MASKS
+// ------------
+
+/// Mask to extract the flag bits.
+pub const FLAG_MASK: u128 =
+    REQUIRED_DIGITS |
+    NO_POSITIVE_MANTISSA_SIGN |
+    REQUIRED_MANTISSA_SIGN |
+    NO_EXPONENT_NOTATION |
+    NO_POSITIVE_EXPONENT_SIGN |
+    REQUIRED_EXPONENT_SIGN |
+    NO_EXPONENT_WITHOUT_FRACTION |
+    NO_SPECIAL |
+    CASE_SENSITIVE_SPECIAL |
+    NO_INTEGER_LEADING_ZEROS |
+    NO_FLOAT_LEADING_ZEROS |
+    REQUIRED_EXPONENT_NOTATION |
+    INTERNAL_DIGIT_SEPARATOR |
+    LEADING_DIGIT_SEPARATOR |
+    TRAILING_DIGIT_SEPARATOR |
+    CONSECUTIVE_DIGIT_SEPARATOR |
+    SPECIAL_DIGIT_SEPARATOR;
+
+/// Mask to extract the flag bits controlling interface parsing.
+///
+/// This mask controls all the flags handled by the interface,
+/// omitting those that are handled prior. This limits the
+/// number of match paths required to determine the correct
+/// interface.
+pub const INTERFACE_FLAG_MASK: u128 =
+    REQUIRED_DIGITS |
+    NO_EXPONENT_NOTATION |
+    NO_POSITIVE_EXPONENT_SIGN |
+    REQUIRED_EXPONENT_SIGN |
+    NO_EXPONENT_WITHOUT_FRACTION |
+    NO_FLOAT_LEADING_ZEROS |
+    REQUIRED_EXPONENT_NOTATION |
+    INTERNAL_DIGIT_SEPARATOR |
+    LEADING_DIGIT_SEPARATOR |
+    TRAILING_DIGIT_SEPARATOR |
+    CONSECUTIVE_DIGIT_SEPARATOR;
+
+/// Mask to extract digit separator flags.
+pub const DIGIT_SEPARATOR_FLAG_MASK: u128 =
+    INTERNAL_DIGIT_SEPARATOR |
+    LEADING_DIGIT_SEPARATOR |
+    TRAILING_DIGIT_SEPARATOR |
+    CONSECUTIVE_DIGIT_SEPARATOR |
+    SPECIAL_DIGIT_SEPARATOR;
+
+/// Mask to extract exponent flags.
+pub const EXPONENT_FLAG_MASK: u128 =
+    REQUIRED_EXPONENT_DIGITS |
+    NO_EXPONENT_NOTATION |
+    NO_POSITIVE_EXPONENT_SIGN |
+    REQUIRED_EXPONENT_SIGN |
+    NO_EXPONENT_WITHOUT_FRACTION |
+    REQUIRED_EXPONENT_NOTATION |
+    EXPONENT_INTERNAL_DIGIT_SEPARATOR |
+    EXPONENT_LEADING_DIGIT_SEPARATOR |
+    EXPONENT_TRAILING_DIGIT_SEPARATOR |
+    EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
+
+/// Mask to extract integer digit separator flags.
+pub const INTEGER_DIGIT_SEPARATOR_FLAG_MASK: u128 =
+    INTEGER_INTERNAL_DIGIT_SEPARATOR |
+    INTEGER_LEADING_DIGIT_SEPARATOR |
+    INTEGER_TRAILING_DIGIT_SEPARATOR |
+    INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
+
+/// Mask to extract fraction digit separator flags.
+pub const FRACTION_DIGIT_SEPARATOR_FLAG_MASK: u128 =
+    FRACTION_INTERNAL_DIGIT_SEPARATOR |
+    FRACTION_LEADING_DIGIT_SEPARATOR |
+    FRACTION_TRAILING_DIGIT_SEPARATOR |
+    FRACTION_CONSECUTIVE_DIGIT_SEPARATOR;
+
+/// Mask to extract exponent digit separator flags.
+pub const EXPONENT_DIGIT_SEPARATOR_FLAG_MASK: u128 =
+    EXPONENT_INTERNAL_DIGIT_SEPARATOR |
+    EXPONENT_LEADING_DIGIT_SEPARATOR |
+    EXPONENT_TRAILING_DIGIT_SEPARATOR |
+    EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
 
 // EXTRACTORS
 // ----------
@@ -523,33 +632,149 @@ pub const fn base_suffix(format: u128) -> u8 {
 
 /// Extract the mantissa radix from the format packed struct.
 #[inline]
-pub const fn mantissa_radix(format: u128) -> u8 {
-    ((format & MANTISSA_RADIX) >> MANTISSA_RADIX_SHIFT) as u8
+pub const fn mantissa_radix(format: u128) -> u32 {
+    ((format & MANTISSA_RADIX) >> MANTISSA_RADIX_SHIFT) as u32
 }
 
 /// Extract the exponent base from the format packed struct.
+/// If not provided, defaults to `mantissa_radix`.
 #[inline]
-pub const fn exponent_base(format: u128) -> u8 {
-    ((format & EXPONENT_BASE) >> EXPONENT_BASE_SHIFT) as u8
+pub const fn exponent_base(format: u128) -> u32 {
+    let radix = ((format & EXPONENT_BASE) >> EXPONENT_BASE_SHIFT) as u32;
+    if radix == 0 {
+        mantissa_radix(format)
+    } else {
+        radix
+    }
 }
 
 /// Extract the exponent radix from the format packed struct.
+/// If not provided, defaults to `mantissa_radix`.
 #[inline]
-pub const fn exponent_radix(format: u128) -> u8 {
-    ((format & EXPONENT_RADIX) >> EXPONENT_RADIX_SHIFT) as u8
+pub const fn exponent_radix(format: u128) -> u32 {
+    let radix = ((format & EXPONENT_RADIX) >> EXPONENT_RADIX_SHIFT) as u32;
+    if radix == 0 {
+        mantissa_radix(format)
+    } else {
+        radix
+    }
 }
 
 // VALIDATORS
 // ----------
 
-///// Determine if the digit separator is valid.
-//#[inline]
-//pub const fn is_valid_digit_separator(format: u128) -> bool {
-//    let radix = (format & MANTISSA_RADIX).max(format & EXPONENT_RADIX)
-//    // TODO(ahuszagh) Need to convert to a digit...
-////    match ch {
-////        b'0'..=b'9' => false,
-////        b'+' | b'-' => false,
-////        _ => ch.is_ascii(),
-////    }
-//}
+/// Determine if an optional control character is valid.
+#[inline]
+const fn is_valid_optional_control(format: u128, value: u8) -> bool {
+    use crate::digit::char_is_digit_const;
+
+    // Need to get the larger of the two radix values, since these
+    // will be the characters that define the valid digits.
+    // const fn doesn't support max as of 1.55 nightly.
+    let mradix = mantissa_radix(format);
+    let eradix = exponent_radix(format);
+    let radix = if mradix > eradix {
+        mradix
+    } else {
+        eradix
+    };
+
+    // Validate the digit separator isn't a digit or sign character,
+    // and is valid ASCII, and the format feature is enabled.
+    !char_is_digit_const(value, radix) &&
+        value != b'+' &&
+        value != b'-' &&
+        value.is_ascii()
+}
+
+/// Determine if an control character is valid.
+#[inline]
+const fn is_valid_control(format: u128, value: u8) -> bool {
+    value != 0 && is_valid_optional_control(format, value)
+}
+
+/// Determine if the digit separator is valid.
+/// Digit separators must not be valid digits or sign characters.
+#[inline]
+pub const fn is_valid_digit_separator(format: u128) -> bool {
+    let value = digit_separator(format);
+    if cfg!(feature = "format") {
+        is_valid_optional_control(format, value)
+    } else {
+        value == 0
+    }
+}
+
+/// Determine if the decimal point character is valid.
+#[inline]
+pub const fn is_valid_decimal_point(format: u128) -> bool {
+    is_valid_control(format, decimal_point(format))
+}
+
+/// Determine if the exponent character is valid.
+#[inline]
+pub const fn is_valid_exponent(format: u128) -> bool {
+    is_valid_control(format, exponent(format))
+}
+
+/// Determine if the base prefix character is valid.
+#[inline]
+pub const fn is_valid_base_prefix(format: u128) -> bool {
+    let value = base_prefix(format);
+    if cfg!(feature = "format") {
+        is_valid_optional_control(format, value)
+    } else {
+        value == 0
+    }
+}
+
+/// Determine if the base suffix character is valid.
+#[inline]
+pub const fn is_valid_base_suffix(format: u128) -> bool {
+    let value = base_suffix(format);
+    if cfg!(feature = "format") {
+        is_valid_optional_control(format, value)
+    } else {
+        value == 0
+    }
+}
+
+/// Determine if all of the "punctuation" characters are valid.
+#[inline]
+#[allow(clippy::if_same_then_else)]
+pub const fn is_valid_punctuation(format: u128) -> bool {
+    if decimal_point(format) == 0 || exponent(format) == 0 {
+        // Can't have optional mandatory characters.
+        false
+    } else if decimal_point(format) == exponent(format) {
+        // Can't have overlapping characters.
+        false
+    } else if cfg!(not(feature = "format")) && digit_separator(format) != 0 {
+        // Digit separator set when not allowed.
+        false
+    } else {
+        let separator = digit_separator(format);
+        let prefix = base_prefix(format);
+        let suffix = base_suffix(format);
+        // Check all are optional, or enough are not present.
+        match (separator, prefix, suffix) {
+            (0, 0, 0) => true,
+            (_, 0, 0) => true,
+            (0, _, 0) => true,
+            (0, 0, _) => true,
+            // Can't have more than 1 0, check they're all different
+            (x, y, z) => x != y && x != z,
+        }
+    }
+}
+
+/// Determine if the radix is valid.
+pub const fn is_valid_radix(radix: u32) -> bool {
+    if cfg!(feature = "radix") {
+        radix >= 2 && radix <= 36
+    } else if cfg!(feature = "power-of-two") {
+        matches!(radix, 2 | 4 | 8 | 10 | 16 | 32)
+    } else {
+        radix == 10
+    }
+}

@@ -4,19 +4,13 @@
 
 #![cfg(feature = "compact")]
 
+use crate::sign::parse_sign_and_validate;
 use lexical_util::assert::debug_assert_radix;
 use lexical_util::digit::char_to_digit;
-use lexical_util::error::ParseErrorCode;
+use lexical_util::format::NumberFormat;
 use lexical_util::iterator::ByteIter;
 use lexical_util::num::{as_cast, Integer};
-use lexical_util::result::ParseResult;
-
-/// Simple short-circuit to an error.
-macro_rules! into_error {
-    ($code:ident, $iter:ident $(- $shift:expr)?) => {
-        Err((ParseErrorCode::$code, $iter.cursor() $(- $shift)?).into())
-    };
-}
+use lexical_util::result::Result;
 
 /// Parse digits for a positive or negative value.
 /// Optimized for operations with machine integers.
@@ -51,7 +45,7 @@ pub fn parse_digits<'a, T, Iter>(
     mut iter: Iter,
     radix: u32,
     is_negative: bool,
-) -> ParseResult<(T, usize)>
+) -> Result<(T, usize)>
 where
     T: Integer,
     Iter: ByteIter<'a>,
@@ -63,86 +57,19 @@ where
     }
 }
 
-// TODO(ahuszagh) Remove this, just for the format logic right now.
-#[inline]
-const fn positive_sign_allowed(_: u128) -> bool {
-    true
-}
-
-// TODO(ahuszagh) Remove this, just for the format logic right now.
-#[inline]
-const fn required_sign(_: u128) -> bool {
-    false
-}
-
-// TODO(ahuszagh) Remove this, just for the format logic right now.
-#[inline]
-const fn leading_zeros_allowed(_: u128) -> bool {
-    true
-}
-
-/// Determines if the integer is negative and validates the input data.
-///
-/// This routine does the following:
-///
-/// 1. Parses the sign digit.
-/// 2. Handles if positive signs before integers are not allowed.
-/// 3. Handles negative signs if the type is unsigned.
-/// 4. Handles if the sign is required, but missing.
-/// 5. Handles if the iterator is empty, before or after parsing the sign.
-/// 6. Handles if the iterator has invalid, leading zeros.
-///
-/// Returns if the value is negative, or any values detected when
-/// validating the input.
-#[inline]
-fn parse_sign_and_validate<'a, Iter>(
-    iter: &mut Iter,
-    format: u128,
-    is_signed: bool,
-) -> ParseResult<bool>
-where
-    Iter: ByteIter<'a>,
-{
-    let is_negative = match iter.peek() {
-        Some(&b'+') if positive_sign_allowed(format) => {
-            iter.next();
-            false
-        },
-        Some(&b'-') if is_signed => {
-            iter.next();
-            true
-        },
-        Some(&b'+') => return into_error!(InvalidPositiveSign, iter),
-        Some(&b'-') => return into_error!(InvalidNegativeSign, iter),
-        Some(_) if !required_sign(format) => false,
-        Some(_) => return into_error!(MissingSign, iter),
-        None => return into_error!(Empty, iter),
-    };
-    // Note: need to call as a trait function.
-    //  The standard library may add an `is_empty` function for iterators.
-    if ByteIter::is_empty(iter) {
-        return into_error!(Empty, iter);
-    }
-    if !leading_zeros_allowed(format) && iter.peek() == Some(&b'0') {
-        return into_error!(InvalidLeadingZeros, iter);
-    }
-    Ok(is_negative)
-}
-
 /// Core parsing algorithm.
 /// See `parse_digits` for a detailed explanation of the algorithms.
 ///
 /// Returns the parsed value and the number of digits processed.
 #[inline]
-pub fn algorithm<'a, T, Iter, const RADIX: u32, const FORMAT: u128>(
-    mut iter: Iter,
-) -> ParseResult<(T, usize)>
+pub fn algorithm<'a, T, Iter, const FORMAT: u128>(mut iter: Iter) -> Result<(T, usize)>
 where
     T: Integer,
     Iter: ByteIter<'a>,
 {
-    debug_assert_radix(RADIX);
+    let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX;
+    debug_assert_radix(radix);
 
-    let is_negative = parse_sign_and_validate(&mut iter, FORMAT, T::IS_SIGNED)?;
-    parse_digits(iter, RADIX, is_negative)
+    let is_negative = parse_sign_and_validate::<T, _, FORMAT>(&mut iter)?;
+    parse_digits(iter, radix, is_negative)
 }
