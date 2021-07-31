@@ -24,14 +24,14 @@ pub mod error;
 pub mod format;
 pub mod iterator;
 pub mod mul;
-pub mod noskip;
 pub mod num;
 pub mod result;
-pub mod skip;
 pub mod step;
 
 mod api;
 mod feature_format;
 mod format_builder;
 mod format_flags;
+mod noskip;
 mod not_feature_format;
+mod skip;

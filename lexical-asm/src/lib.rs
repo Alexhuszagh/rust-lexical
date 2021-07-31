@@ -1,7 +1,7 @@
 #![allow(unused)]
 
-use lexical_util::error::Error;
 use lexical_parse_integer::FromLexical;
+use lexical_util::error::Error;
 
 // PARSE INTEGER
 // -------------
@@ -125,7 +125,9 @@ fn from_str_radix<T: FromStrRadixHelper>(src: &str, radix: u32) -> Result<T, Par
     );
 
     if src.is_empty() {
-        return Err(PIE { kind: Empty });
+        return Err(PIE {
+            kind: Empty,
+        });
     }
 
     let is_signed_ty = T::from_u32(0) > T::min_value();
@@ -138,8 +140,10 @@ fn from_str_radix<T: FromStrRadixHelper>(src: &str, radix: u32) -> Result<T, Par
 
     let (is_positive, digits) = match src[0] {
         b'+' | b'-' if src[1..].is_empty() => {
-            return Err(PIE { kind: InvalidDigit });
-        }
+            return Err(PIE {
+                kind: InvalidDigit,
+            });
+        },
         b'+' => (true, &src[1..]),
         b'-' if is_signed_ty => (false, &src[1..]),
         _ => (true, src),
@@ -151,15 +155,27 @@ fn from_str_radix<T: FromStrRadixHelper>(src: &str, radix: u32) -> Result<T, Par
         for &c in digits {
             let x = match (c as char).to_digit(radix) {
                 Some(x) => x,
-                None => return Err(PIE { kind: InvalidDigit }),
+                None => {
+                    return Err(PIE {
+                        kind: InvalidDigit,
+                    })
+                },
             };
             result = match result.checked_mul(radix) {
                 Some(result) => result,
-                None => return Err(PIE { kind: PosOverflow }),
+                None => {
+                    return Err(PIE {
+                        kind: PosOverflow,
+                    })
+                },
             };
             result = match result.checked_add(x) {
                 Some(result) => result,
-                None => return Err(PIE { kind: PosOverflow }),
+                None => {
+                    return Err(PIE {
+                        kind: PosOverflow,
+                    })
+                },
             };
         }
     } else {
@@ -167,15 +183,27 @@ fn from_str_radix<T: FromStrRadixHelper>(src: &str, radix: u32) -> Result<T, Par
         for &c in digits {
             let x = match (c as char).to_digit(radix) {
                 Some(x) => x,
-                None => return Err(PIE { kind: InvalidDigit }),
+                None => {
+                    return Err(PIE {
+                        kind: InvalidDigit,
+                    })
+                },
             };
             result = match result.checked_mul(radix) {
                 Some(result) => result,
-                None => return Err(PIE { kind: NegOverflow }),
+                None => {
+                    return Err(PIE {
+                        kind: NegOverflow,
+                    })
+                },
             };
             result = match result.checked_sub(x) {
                 Some(result) => result,
-                None => return Err(PIE { kind: NegOverflow }),
+                None => {
+                    return Err(PIE {
+                        kind: NegOverflow,
+                    })
+                },
             };
         }
     }

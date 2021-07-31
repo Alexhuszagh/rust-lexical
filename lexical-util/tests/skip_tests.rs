@@ -2,14 +2,14 @@
 
 use lexical_util::format::{NumberFormat, NumberFormatBuilder};
 use lexical_util::iterator::Byte;
-use lexical_util::skip::AsSkip;
+use lexical_util::digit::AsDigits;
 use static_assertions::const_assert;
 use std::num;
 
 fn skip_iter_eq<const FORMAT: u128>(input: &[u8], output: &[u8]) {
     // next is done in terms of peek, so we're safe here.
-    let mut input = input.skip::<{ FORMAT }>();
-    let mut output = output.skip::<{ FORMAT }>();
+    let mut input = input.digits::<{ FORMAT }>();
+    let mut output = output.digits::<{ FORMAT }>();
     assert!(input.integer_iter().eq(output.integer_iter()));
 }
 

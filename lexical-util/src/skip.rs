@@ -1,6 +1,6 @@
 //! An iterator that skips values equal to a provided value.
 //!
-//! SkipIterator iterates over a slice, returning all values
+//! Iterators over a contiguous slice, returning all values
 //! except for those matching the provided skip value.
 //!
 //! # Complexity
@@ -301,16 +301,16 @@ macro_rules! peek_iltc {
 // SKIP ITER
 // ---------
 
-/// Trait to simplify creation of a `Skip` object.
-pub trait AsSkip<'a> {
-    /// Create `Skip` from object.
-    fn skip<const FORMAT: u128>(&'a self) -> Skip<'a, FORMAT>;
+/// Trait to simplify creation of a `Digits` object.
+pub trait AsDigits<'a> {
+    /// Create `Digits` from object.
+    fn digits<const FORMAT: u128>(&'a self) -> Digits<'a, FORMAT>;
 }
 
-impl<'a> AsSkip<'a> for [u8] {
+impl<'a> AsDigits<'a> for [u8] {
     #[inline]
-    fn skip<const FORMAT: u128>(&'a self) -> Skip<'a, FORMAT> {
-        Skip::new(self)
+    fn digits<const FORMAT: u128>(&'a self) -> Digits<'a, FORMAT> {
+        Digits::new(self)
     }
 }
 
@@ -331,14 +331,14 @@ impl<'a> AsSkip<'a> for [u8] {
 /// non-digit characters (see [DigitSeparators](/docs/DigitSeparators.md)
 /// for a detailed explanation on why).
 #[derive(Clone)]
-pub struct Skip<'a, const FORMAT: u128> {
+pub struct Digits<'a, const FORMAT: u128> {
     /// The raw slice for the iterator.
     slc: &'a [u8],
     /// Current index of the iterator in the slice.
     index: usize,
 }
 
-impl<'a, const FORMAT: u128> Skip<'a, FORMAT> {
+impl<'a, const FORMAT: u128> Digits<'a, FORMAT> {
     /// Create new byte object.
     #[inline]
     pub fn new(slc: &'a [u8]) -> Self {
@@ -349,16 +349,16 @@ impl<'a, const FORMAT: u128> Skip<'a, FORMAT> {
     }
 }
 
-impl<'a, const FORMAT: u128> Byte<'a> for Skip<'a, FORMAT> {
+impl<'a, const FORMAT: u128> Byte<'a> for Digits<'a, FORMAT> {
     const IS_CONTIGUOUS: bool = false;
-    type IntegerIter = IntegerSkipIterator<'a, FORMAT>;
-    type FractionIter = FractionSkipIterator<'a, FORMAT>;
-    type ExponentIter = ExponentSkipIterator<'a, FORMAT>;
-    type SpecialIter = SpecialSkipIterator<'a, FORMAT>;
+    type IntegerIter = IntegerDigitsIterator<'a, FORMAT>;
+    type FractionIter = FractionDigitsIterator<'a, FORMAT>;
+    type ExponentIter = ExponentDigitsIterator<'a, FORMAT>;
+    type SpecialIter = SpecialDigitsIterator<'a, FORMAT>;
 
     #[inline]
     fn new(slc: &'a [u8]) -> Self {
-        Skip::new(slc)
+        Digits::new(slc)
     }
 
     #[inline]
@@ -425,7 +425,7 @@ macro_rules! skip_iterator {
         #[doc = $doc]
         pub struct $iterator<'a, const FORMAT: u128> {
             /// The internal byte object for the skip iterator.
-            byte: &'a mut Skip<'a, FORMAT>,
+            byte: &'a mut Digits<'a, FORMAT>,
         }
     };
 }
@@ -522,8 +522,18 @@ macro_rules! skip_iterator_byteiter_base {
         }
 
         #[inline]
-        unsafe fn step_by_unchecked(&mut self, _: usize) {
-            unimplemented!("Not a contiguous iterator.");
+        unsafe fn step_by_unchecked(&mut self, count: usize) {
+            // Since this isn't contiguous, it only works
+            // if the value is in the range `[0, 1]`.
+            // Also, need to make sure we **peeked** a value.
+            debug_assert!(self.as_slice().len() >= count);
+            debug_assert!(count == 0 || count == 1);
+            debug_assert!({
+                let index = self.byte.index;
+                self.peek();
+                index == self.byte.index
+            });
+            self.byte.index += count;
         }
     };
 }
@@ -575,11 +585,11 @@ macro_rules! skip_iterator_byteiter_impl {
 // INTEGER SKIP ITERATOR
 // ---------------------
 
-skip_iterator!(IntegerSkipIterator, "Iterator that skips over digit separators in the integer.");
-skip_iterator_impl!(IntegerSkipIterator, mantissa_radix);
-skip_iterator_iterator_impl!(IntegerSkipIterator);
+skip_iterator!(IntegerDigitsIterator, "Iterator that skips over digit separators in the integer.");
+skip_iterator_impl!(IntegerDigitsIterator, mantissa_radix);
+skip_iterator_iterator_impl!(IntegerDigitsIterator);
 skip_iterator_byteiter_impl!(
-    IntegerSkipIterator,
+    IntegerDigitsIterator,
     INTEGER_DIGIT_SEPARATOR_FLAG_MASK,
     INTEGER_INTERNAL_DIGIT_SEPARATOR,
     INTEGER_LEADING_DIGIT_SEPARATOR,
@@ -590,11 +600,11 @@ skip_iterator_byteiter_impl!(
 // FRACTION SKIP ITERATOR
 // ----------------------
 
-skip_iterator!(FractionSkipIterator, "Iterator that skips over digit separators in the fraction.");
-skip_iterator_impl!(FractionSkipIterator, mantissa_radix);
-skip_iterator_iterator_impl!(FractionSkipIterator);
+skip_iterator!(FractionDigitsIterator, "Iterator that skips over digit separators in the fraction.");
+skip_iterator_impl!(FractionDigitsIterator, mantissa_radix);
+skip_iterator_iterator_impl!(FractionDigitsIterator);
 skip_iterator_byteiter_impl!(
-    FractionSkipIterator,
+    FractionDigitsIterator,
     FRACTION_DIGIT_SEPARATOR_FLAG_MASK,
     FRACTION_INTERNAL_DIGIT_SEPARATOR,
     FRACTION_LEADING_DIGIT_SEPARATOR,
@@ -605,11 +615,11 @@ skip_iterator_byteiter_impl!(
 // EXPONENT SKIP ITERATOR
 // ----------------------
 
-skip_iterator!(ExponentSkipIterator, "Iterator that skips over digit separators in the exponent.");
-skip_iterator_impl!(ExponentSkipIterator, exponent_radix);
-skip_iterator_iterator_impl!(ExponentSkipIterator);
+skip_iterator!(ExponentDigitsIterator, "Iterator that skips over digit separators in the exponent.");
+skip_iterator_impl!(ExponentDigitsIterator, exponent_radix);
+skip_iterator_iterator_impl!(ExponentDigitsIterator);
 skip_iterator_byteiter_impl!(
-    ExponentSkipIterator,
+    ExponentDigitsIterator,
     EXPONENT_DIGIT_SEPARATOR_FLAG_MASK,
     EXPONENT_INTERNAL_DIGIT_SEPARATOR,
     EXPONENT_LEADING_DIGIT_SEPARATOR,
@@ -620,14 +630,14 @@ skip_iterator_byteiter_impl!(
 // SPECIAL SKIP ITERATOR
 // ---------------------
 
-skip_iterator!(SpecialSkipIterator, "Iterator that skips over digit separators in special floats.");
-skip_iterator_iterator_impl!(SpecialSkipIterator);
+skip_iterator!(SpecialDigitsIterator, "Iterator that skips over digit separators in special floats.");
+skip_iterator_iterator_impl!(SpecialDigitsIterator);
 
-impl<'a, const FORMAT: u128> SpecialSkipIterator<'a, FORMAT> {
+impl<'a, const FORMAT: u128> SpecialDigitsIterator<'a, FORMAT> {
     is_digit_separator!(FORMAT);
 }
 
-impl<'a, const FORMAT: u128> ByteIter<'a> for SpecialSkipIterator<'a, FORMAT> {
+impl<'a, const FORMAT: u128> ByteIter<'a> for SpecialDigitsIterator<'a, FORMAT> {
     skip_iterator_byteiter_base!();
 
     #[inline]

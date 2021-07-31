@@ -17,3 +17,6 @@ errors.txt
 cargo-timing*.html
 proptest-regressions/
 *.proptest-regressions
+
+# Custom files for annotating x86 regressions/improvements.
+*.asm

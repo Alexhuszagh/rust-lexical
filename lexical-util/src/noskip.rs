@@ -3,23 +3,23 @@
 //! This iterator has both the length of the original slice, as
 //! well as the current position of the iterator in the buffer.
 
-#![cfg(feature = "parse")]
+#![cfg(all(feature = "parse", not(feature = "format")))]
 
 use crate::iterator::{Byte, ByteIter};
 
 // NOSKIP ITER
 // -----------
 
-/// Trait to simplify creation of a `NoSkip` object.
-pub trait AsNoSkip<'a> {
-    /// Create `NoSkip` from object.
-    fn noskip(&'a self) -> NoSkip<'a>;
+/// Trait to simplify creation of a `Digits` object.
+pub trait AsDigits<'a> {
+    /// Create `Digits` from object.
+    fn digits<const __: u128>(&'a self) -> Digits<'a>;
 }
 
-impl<'a> AsNoSkip<'a> for [u8] {
+impl<'a> AsDigits<'a> for [u8] {
     #[inline]
-    fn noskip(&'a self) -> NoSkip<'a> {
-        NoSkip::new(self)
+    fn digits<const __: u128>(&'a self) -> Digits<'a> {
+        Digits::new(self)
     }
 }
 
@@ -28,14 +28,14 @@ impl<'a> AsNoSkip<'a> for [u8] {
 
 /// Slice iterator that stores the original length of the slice.
 #[derive(Clone)]
-pub struct NoSkip<'a> {
+pub struct Digits<'a> {
     /// The raw slice for the iterator.
     slc: &'a [u8],
     /// Current index of the iterator in the slice.
     index: usize,
 }
 
-impl<'a> NoSkip<'a> {
+impl<'a> Digits<'a> {
     /// Create new byte object.
     #[inline]
     pub const fn new(slc: &'a [u8]) -> Self {
@@ -46,16 +46,16 @@ impl<'a> NoSkip<'a> {
     }
 }
 
-impl<'a> Byte<'a> for NoSkip<'a> {
+impl<'a> Byte<'a> for Digits<'a> {
     const IS_CONTIGUOUS: bool = true;
-    type IntegerIter = NoSkipIterator<'a>;
-    type FractionIter = NoSkipIterator<'a>;
-    type ExponentIter = NoSkipIterator<'a>;
-    type SpecialIter = NoSkipIterator<'a>;
+    type IntegerIter = DigitsIterator<'a>;
+    type FractionIter = DigitsIterator<'a>;
+    type ExponentIter = DigitsIterator<'a>;
+    type SpecialIter = DigitsIterator<'a>;
 
     #[inline]
     fn new(slc: &'a [u8]) -> Self {
-        NoSkip::new(slc)
+        Digits::new(slc)
     }
 
     #[inline]
@@ -117,12 +117,12 @@ impl<'a> Byte<'a> for NoSkip<'a> {
 // ---------------
 
 /// Slice iterator that stores the original length of the slice.
-pub struct NoSkipIterator<'a> {
+pub struct DigitsIterator<'a> {
     /// The internal byte object for the noskip iterator.
-    byte: &'a mut NoSkip<'a>,
+    byte: &'a mut Digits<'a>,
 }
 
-impl<'a> Iterator for NoSkipIterator<'a> {
+impl<'a> Iterator for DigitsIterator<'a> {
     type Item = &'a u8;
 
     #[inline]
@@ -133,15 +133,15 @@ impl<'a> Iterator for NoSkipIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for NoSkipIterator<'a> {
+impl<'a> ExactSizeIterator for DigitsIterator<'a> {
     #[inline]
     fn len(&self) -> usize {
         self.length() - self.cursor()
     }
 }
 
-impl<'a> ByteIter<'a> for NoSkipIterator<'a> {
-    const IS_CONTIGUOUS: bool = NoSkip::IS_CONTIGUOUS;
+impl<'a> ByteIter<'a> for DigitsIterator<'a> {
+    const IS_CONTIGUOUS: bool = Digits::IS_CONTIGUOUS;
 
     #[inline]
     fn as_ptr(&self) -> *const u8 {
