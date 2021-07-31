@@ -298,7 +298,7 @@ macro_rules! peek_iltc {
     }};
 }
 
-// SKIP ITER
+// AS DIGITS
 // ---------
 
 /// Trait to simplify creation of a `Digits` object.
@@ -314,8 +314,8 @@ impl<'a> AsDigits<'a> for [u8] {
     }
 }
 
-// SKIP
-// ----
+// DIGITS
+// ------
 
 /// Slice iterator that skips characters matching a given value.
 ///
@@ -350,7 +350,7 @@ impl<'a, const FORMAT: u128> Digits<'a, FORMAT> {
 }
 
 impl<'a, const FORMAT: u128> Byte<'a> for Digits<'a, FORMAT> {
-    const IS_CONTIGUOUS: bool = false;
+    const IS_CONTIGUOUS: bool = NumberFormat::<{ FORMAT }>::DIGIT_SEPARATOR == 0;
     type IntegerIter = IntegerDigitsIterator<'a, FORMAT>;
     type FractionIter = FractionDigitsIterator<'a, FORMAT>;
     type ExponentIter = ExponentDigitsIterator<'a, FORMAT>;
@@ -482,8 +482,8 @@ macro_rules! skip_iterator_iterator_impl {
 
 /// Create base methods for the ByteIter block of a skip iterator.
 macro_rules! skip_iterator_byteiter_base {
-    () => {
-        const IS_CONTIGUOUS: bool = false;
+    ($format:ident) => {
+        const IS_CONTIGUOUS: bool = NumberFormat::<{ $format }>::DIGIT_SEPARATOR == 0;
 
         #[inline]
         fn as_ptr(&self) -> *const u8 {
@@ -523,17 +523,23 @@ macro_rules! skip_iterator_byteiter_base {
 
         #[inline]
         unsafe fn step_by_unchecked(&mut self, count: usize) {
-            // Since this isn't contiguous, it only works
-            // if the value is in the range `[0, 1]`.
-            // Also, need to make sure we **peeked** a value.
-            debug_assert!(self.as_slice().len() >= count);
-            debug_assert!(count == 0 || count == 1);
-            debug_assert!({
-                let index = self.byte.index;
-                self.peek();
-                index == self.byte.index
-            });
-            self.byte.index += count;
+            if Self::IS_CONTIGUOUS {
+                // Contiguous, can skip most of these checks.
+                debug_assert!(self.as_slice().len() >= count);
+                self.byte.index += count;
+            } else {
+                // Since this isn't contiguous, it only works
+                // if the value is in the range `[0, 1]`.
+                // Also, need to make sure we **peeked** a value.
+                debug_assert!(self.as_slice().len() >= count);
+                debug_assert!(count == 0 || count == 1);
+                debug_assert!({
+                    let index = self.byte.index;
+                    self.peek();
+                    index == self.byte.index
+                });
+                self.byte.index += count;
+            }
         }
     };
 }
@@ -542,7 +548,7 @@ macro_rules! skip_iterator_byteiter_base {
 macro_rules! skip_iterator_byteiter_impl {
     ($iterator:ident, $mask:ident, $i:ident, $l:ident, $t:ident, $c:ident) => {
         impl<'a, const FORMAT: u128> ByteIter<'a> for $iterator<'a, FORMAT> {
-            skip_iterator_byteiter_base!();
+            skip_iterator_byteiter_base!(FORMAT);
 
             #[inline]
             fn peek(&mut self) -> Option<Self::Item> {
@@ -582,8 +588,8 @@ macro_rules! skip_iterator_byteiter_impl {
     };
 }
 
-// INTEGER SKIP ITERATOR
-// ---------------------
+// INTEGER DIGITS ITERATOR
+// -----------------------
 
 skip_iterator!(IntegerDigitsIterator, "Iterator that skips over digit separators in the integer.");
 skip_iterator_impl!(IntegerDigitsIterator, mantissa_radix);
@@ -597,8 +603,8 @@ skip_iterator_byteiter_impl!(
     INTEGER_CONSECUTIVE_DIGIT_SEPARATOR
 );
 
-// FRACTION SKIP ITERATOR
-// ----------------------
+// FRACTION DIGITS ITERATOR
+// ------------------------
 
 skip_iterator!(FractionDigitsIterator, "Iterator that skips over digit separators in the fraction.");
 skip_iterator_impl!(FractionDigitsIterator, mantissa_radix);
@@ -612,8 +618,8 @@ skip_iterator_byteiter_impl!(
     FRACTION_CONSECUTIVE_DIGIT_SEPARATOR
 );
 
-// EXPONENT SKIP ITERATOR
-// ----------------------
+// EXPONENT DIGITS ITERATOR
+// ------------------------
 
 skip_iterator!(ExponentDigitsIterator, "Iterator that skips over digit separators in the exponent.");
 skip_iterator_impl!(ExponentDigitsIterator, exponent_radix);
@@ -627,8 +633,8 @@ skip_iterator_byteiter_impl!(
     EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR
 );
 
-// SPECIAL SKIP ITERATOR
-// ---------------------
+// SPECIAL DIGITS ITERATOR
+// -----------------------
 
 skip_iterator!(SpecialDigitsIterator, "Iterator that skips over digit separators in special floats.");
 skip_iterator_iterator_impl!(SpecialDigitsIterator);
@@ -638,7 +644,7 @@ impl<'a, const FORMAT: u128> SpecialDigitsIterator<'a, FORMAT> {
 }
 
 impl<'a, const FORMAT: u128> ByteIter<'a> for SpecialDigitsIterator<'a, FORMAT> {
-    skip_iterator_byteiter_base!();
+    skip_iterator_byteiter_base!(FORMAT);
 
     #[inline]
     fn peek(&mut self) -> Option<Self::Item> {

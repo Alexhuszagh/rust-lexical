@@ -7,8 +7,8 @@
 
 use crate::iterator::{Byte, ByteIter};
 
-// NOSKIP ITER
-// -----------
+// AS DIGITS
+// ---------
 
 /// Trait to simplify creation of a `Digits` object.
 pub trait AsDigits<'a> {
@@ -23,7 +23,7 @@ impl<'a> AsDigits<'a> for [u8] {
     }
 }
 
-// NOSKIP
+// DIGITS
 // ------
 
 /// Slice iterator that stores the original length of the slice.
@@ -113,7 +113,7 @@ impl<'a> Byte<'a> for Digits<'a> {
     }
 }
 
-// NOSKIP ITERATOR
+// DIGITS ITERATOR
 // ---------------
 
 /// Slice iterator that stores the original length of the slice.
