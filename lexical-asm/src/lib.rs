@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use lexical_util::error::ErrorCode;
+use lexical_util::error::Error;
 use lexical_parse_integer::FromLexical;
 
 // PARSE INTEGER
@@ -8,7 +8,7 @@ use lexical_parse_integer::FromLexical;
 
 macro_rules! parse_lexical {
     ($($name:ident $t:ty ;)*) => ($(
-        pub fn $name(s: &str) -> Result<$t, ErrorCode> {
+        pub fn $name(s: &str) -> Result<$t, Error> {
             <$t>::from_lexical(s.as_bytes())
         }
     )*);

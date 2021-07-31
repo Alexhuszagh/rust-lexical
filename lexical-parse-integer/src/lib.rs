@@ -9,7 +9,7 @@ mod error;
 pub mod options;
 pub mod parse;
 pub mod sign;
-mod bare;   // TODO(ahuszagh) Remove
+pub mod bare;   // TODO(ahuszagh) Remove
 
 mod api;
 

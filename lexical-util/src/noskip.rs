@@ -196,4 +196,12 @@ impl<'a> ByteIter<'a> for NoSkipIterator<'a> {
         debug_assert!(self.as_slice().len() >= count);
         self.byte.index += count;
     }
+
+    #[inline]
+    #[allow(clippy::assertions_on_constants)]
+    unsafe fn step_unchecked(&mut self) {
+        debug_assert!(Self::IS_CONTIGUOUS);
+        debug_assert!(self.as_slice().len() >= 1);
+        self.byte.index += 1;
+    }
 }
