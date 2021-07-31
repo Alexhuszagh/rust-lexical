@@ -1,7 +1,7 @@
 // TODO(ahuszagh) Add FromLexicalWithOptions.
 // TODO(ahuszagh) Add format and radix tests.
-use lexical_util::error::ErrorCode;
 use lexical_parse_integer::FromLexical;
+use lexical_util::error::ErrorCode;
 use proptest::prelude::*;
 
 #[test]
@@ -78,14 +78,8 @@ fn u64_decimal_test() {
 fn i64_decimal_test() {
     assert_eq!(Ok(0), i64::from_lexical(b"0"));
     assert_eq!(Ok(9223372036854775807), i64::from_lexical(b"9223372036854775807"));
-    assert_eq!(
-        Err((ErrorCode::Overflow, 18).into()),
-        i64::from_lexical(b"9223372036854775808")
-    );
-    assert_eq!(
-        Err((ErrorCode::Overflow, 19).into()),
-        i64::from_lexical(b"18446744073709551615")
-    );
+    assert_eq!(Err((ErrorCode::Overflow, 18).into()), i64::from_lexical(b"9223372036854775808"));
+    assert_eq!(Err((ErrorCode::Overflow, 19).into()), i64::from_lexical(b"18446744073709551615"));
     assert_eq!(Ok(-1), i64::from_lexical(b"-1"));
     assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i64::from_lexical(b"1a"));
 

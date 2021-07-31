@@ -606,7 +606,10 @@ skip_iterator_byteiter_impl!(
 // FRACTION DIGITS ITERATOR
 // ------------------------
 
-skip_iterator!(FractionDigitsIterator, "Iterator that skips over digit separators in the fraction.");
+skip_iterator!(
+    FractionDigitsIterator,
+    "Iterator that skips over digit separators in the fraction."
+);
 skip_iterator_impl!(FractionDigitsIterator, mantissa_radix);
 skip_iterator_iterator_impl!(FractionDigitsIterator);
 skip_iterator_byteiter_impl!(
@@ -621,7 +624,10 @@ skip_iterator_byteiter_impl!(
 // EXPONENT DIGITS ITERATOR
 // ------------------------
 
-skip_iterator!(ExponentDigitsIterator, "Iterator that skips over digit separators in the exponent.");
+skip_iterator!(
+    ExponentDigitsIterator,
+    "Iterator that skips over digit separators in the exponent."
+);
 skip_iterator_impl!(ExponentDigitsIterator, exponent_radix);
 skip_iterator_iterator_impl!(ExponentDigitsIterator);
 skip_iterator_byteiter_impl!(
@@ -636,7 +642,10 @@ skip_iterator_byteiter_impl!(
 // SPECIAL DIGITS ITERATOR
 // -----------------------
 
-skip_iterator!(SpecialDigitsIterator, "Iterator that skips over digit separators in special floats.");
+skip_iterator!(
+    SpecialDigitsIterator,
+    "Iterator that skips over digit separators in special floats."
+);
 skip_iterator_iterator_impl!(SpecialDigitsIterator);
 
 impl<'a, const FORMAT: u128> SpecialDigitsIterator<'a, FORMAT> {

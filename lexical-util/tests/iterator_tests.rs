@@ -1,7 +1,7 @@
 #![cfg(feature = "parse")]
 
-use lexical_util::iterator::{Byte, ByteIter};
 use lexical_util::digit::{AsDigits, Digits};
+use lexical_util::iterator::{Byte, ByteIter};
 
 #[test]
 #[cfg(not(feature = "format"))]

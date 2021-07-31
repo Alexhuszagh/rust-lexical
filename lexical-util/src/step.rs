@@ -8,7 +8,6 @@
 //! See `etc/div128.py` for the script to generate the divisors and the
 //! constants, and the division algorithm.
 
-#![cfg(not(feature = "compact"))]
 #![cfg(any(feature = "parse", feature = "write"))]
 
 use crate::assert::debug_assert_radix;

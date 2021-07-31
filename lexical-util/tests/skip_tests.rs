@@ -1,8 +1,8 @@
 #![cfg(all(feature = "format", feature = "parse"))]
 
+use lexical_util::digit::AsDigits;
 use lexical_util::format::{NumberFormat, NumberFormatBuilder};
 use lexical_util::iterator::Byte;
-use lexical_util::digit::AsDigits;
 use static_assertions::const_assert;
 use std::num;
 

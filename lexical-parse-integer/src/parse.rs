@@ -1,7 +1,10 @@
 //! Shared trait and methods for parsing integers.
 
 // TODO(ahuszagh) Going to have to select the correct back-end.
-use crate::bare::{algorithm_complete, algorithm_partial};
+#[cfg(not(feature = "compact"))]
+use crate::algorithmv2::{algorithm_complete, algorithm_partial};
+#[cfg(feature = "compact")]
+use crate::compactv2::{algorithm_complete, algorithm_partial};
 use lexical_util::num::Integer;
 use lexical_util::result::Result;
 

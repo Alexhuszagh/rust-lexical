@@ -4,11 +4,10 @@
 #[macro_use]
 mod shared;
 
-//pub mod algorithm;
-//pub mod compact;
+pub mod algorithmv2; // TODO(ahuszagh) Rename to algorithm
+pub mod compactv2; // TODO(ahuszagh) Rename to compact
 pub mod options;
 pub mod parse;
-pub mod bare;   // TODO(ahuszagh) Remove
 
 mod api;
 
