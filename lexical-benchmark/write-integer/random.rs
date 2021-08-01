@@ -125,8 +125,8 @@ signed_rng_impl! {
 fn genarray<T: IntegerRng, const N: usize>(strategy: RandomGen, seed: u64) -> [T; N] {
     let mut rng = Rng::with_seed(seed);
     let mut array: [T; N] = [T::ZERO; N];
-    for index in 0..N {
-        array[index] = T::gen(strategy, &mut rng);
+    for item in array.iter_mut() {
+        *item = T::gen(strategy, &mut rng);
     }
     array
 }
