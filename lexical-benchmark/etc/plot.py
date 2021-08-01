@@ -69,8 +69,8 @@ def format_time(time):
     time /= 1000
     return f'{strip_zero(str(round(time, 3)))} s'
 
-def plot_write_integer_figure(data, path, title):
-    '''Plot JSON data'''
+def plot_figure(data, path, title, prefix):
+    '''Plot a generic figure.'''
 
     keys = [i.split('_')[1:] for i in data.keys()]
     xticks = sorted({i[0] for i in keys}, key=lambda x: (x[0], int(x[1:])))
@@ -82,7 +82,7 @@ def plot_write_integer_figure(data, path, title):
         '''Plot an axis with various subfigures.'''
 
         for library in libraries:
-            ys = [data[f'write_{i}_{library}'] for i in xticks]
+            ys = [data[f'{prefix}_{i}_{library}'] for i in xticks]
             points = ax.semilogy(
                 xticks, ys, '-o', mec='k', ms=15,
                 mew=1, alpha=.8, label=library
@@ -112,6 +112,10 @@ def plot_write_integer_figure(data, path, title):
     fig.savefig(path, format='svg')
     fig.clf()
 
+def plot_write_integer_figure(data, path, title):
+    '''Plot write integer figure'''
+
+    plot_figure(data, path, title, 'write')
 
 def plot_write_integer(args):
     '''Plot the write integer dataset.'''
@@ -159,6 +163,57 @@ def plot_write_integer(args):
         'Random Data: Simple Negative',
     )
     plot_write_integer_figure(
+        data['random:large_signed'],
+        f'{assets}/{filename("random_large_signed", args)}.svg',
+        'Random Data: Large Negative',
+    )
+
+def plot_parse_integer_figure(data, path, title):
+    '''Plot parse integer figure'''
+
+    plot_figure(data, path, title, 'parse')
+
+def plot_parse_integer(args):
+    '''Plot the parse integer dataset.'''
+
+    assets = f'{home}/../lexical-parse-integer/assets'
+    with open(f'{home}/results/{filename("parse-integer", args)}.json') as file:
+        data = json.load(file)
+
+    # First plot JSON data.
+    plot_parse_integer_figure(
+        data['json:simple'],
+        f'{assets}/{filename("json_simple", args)}.svg',
+        'JSON Data: Simple',
+    )
+    plot_parse_integer_figure(
+        data['json:random'],
+        f'{assets}/{filename("json_random", args)}.svg',
+        'JSON Data: Random',
+    )
+
+    # First plot random data.
+    plot_parse_integer_figure(
+        data['random:uniform'],
+        f'{assets}/{filename("random_uniform", args)}.svg',
+        'Random Data: Uniform',
+    )
+    plot_parse_integer_figure(
+        data['random:simple'],
+        f'{assets}/{filename("random_simple", args)}.svg',
+        'Random Data: Simple',
+    )
+    plot_parse_integer_figure(
+        data['random:large'],
+        f'{assets}/{filename("random_large", args)}.svg',
+        'Random Data: Large',
+    )
+    plot_parse_integer_figure(
+        data['random:simple_signed'],
+        f'{assets}/{filename("random_simple_signed", args)}.svg',
+        'Random Data: Simple Negative',
+    )
+    plot_parse_integer_figure(
         data['random:large_signed'],
         f'{assets}/{filename("random_large_signed", args)}.svg',
         'Random Data: Large Negative',

@@ -5,6 +5,7 @@ use std::str::from_utf8_unchecked;
 
 use lexical_util::constants::BUFFER_SIZE;
 use lexical_write_integer::radix::Radix;
+#[cfg(not(miri))]
 use proptest::prelude::*;
 
 #[test]
@@ -163,6 +164,7 @@ fn u128toa_mockup(x: u128, radix: u32) -> Result<(), TestCaseError> {
     Ok(())
 }
 
+#[cfg(not(miri))]
 proptest! {
     #[test]
     #[cfg(feature = "radix")]

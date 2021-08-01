@@ -1,6 +1,3 @@
-// TODO(ahuszagh) Add FromLexicalWithOptions.
-// TODO(ahuszagh) Add format and radix tests.
-
 mod util;
 
 use lexical_parse_integer::{FromLexical, FromLexicalWithOptions, Options};
@@ -8,6 +5,7 @@ use lexical_util::error::ErrorCode;
 #[cfg(feature = "format")]
 use lexical_util::format::NumberFormatBuilder;
 use lexical_util::format::STANDARD;
+#[cfg(not(miri))]
 use proptest::prelude::*;
 #[cfg(feature = "radix")]
 use util::to_format;
@@ -200,9 +198,7 @@ fn radix_test() {
 #[cfg(feature = "format")]
 fn i32_no_leading_zeros_test() {
     let options = Options::new();
-    const FORMAT: u128 = NumberFormatBuilder::new()
-        .no_integer_leading_zeros(true)
-        .build();
+    const FORMAT: u128 = NumberFormatBuilder::new().no_integer_leading_zeros(true).build();
     assert!(i32::from_lexical_with_options::<FORMAT>(b"1", &options).is_ok());
     assert!(i32::from_lexical_with_options::<FORMAT>(b"0", &options).is_ok());
     assert!(i32::from_lexical_with_options::<FORMAT>(b"01", &options).is_err());
@@ -210,80 +206,76 @@ fn i32_no_leading_zeros_test() {
     assert!(i32::from_lexical_with_options::<FORMAT>(b"010", &options).is_err());
 }
 
-// TODO(ahuszagh) Restore...
-//#[test]
-//#[cfg(feature = "format")]
-//fn i32_integer_internal_digit_separator_test() {
-//    let format = NumberFormat::PERMISSIVE
-//        .rebuild()
-//        .integer_internal_digit_separator(true)
-//        .digit_separator(b'_')
-//        .build()
-//        .unwrap();
-//    let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
-//    assert!(i32::from_lexical_with_options(b"3_1", &options).is_ok());
-//    assert!(i32::from_lexical_with_options(b"_31", &options).is_err());
-//    assert!(i32::from_lexical_with_options(b"31_", &options).is_err());
-//}
-//
-//#[test]
-//#[cfg(feature = "format")]
-//fn i32_integer_leading_digit_separator_test() {
-//    let format = NumberFormat::PERMISSIVE
-//        .rebuild()
-//        .integer_leading_digit_separator(true)
-//        .digit_separator(b'_')
-//        .build()
-//        .unwrap();
-//    let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
-//    assert!(i32::from_lexical_with_options(b"3_1", &options).is_err());
-//    assert!(i32::from_lexical_with_options(b"_31", &options).is_ok());
-//    assert!(i32::from_lexical_with_options(b"31_", &options).is_err());
-//}
-//
-//#[test]
-//#[cfg(feature = "format")]
-//fn i32_integer_trailing_digit_separator_test() {
-//    let format = NumberFormat::PERMISSIVE
-//        .rebuild()
-//        .integer_trailing_digit_separator(true)
-//        .digit_separator(b'_')
-//        .build()
-//        .unwrap();
-//    let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
-//    assert!(i32::from_lexical_with_options(b"3_1", &options).is_err());
-//    assert!(i32::from_lexical_with_options(b"_31", &options).is_err());
-//    assert!(i32::from_lexical_with_options(b"31_", &options).is_ok());
-//}
-//
-//#[test]
-//#[cfg(feature = "format")]
-//fn i32_integer_consecutive_digit_separator_test() {
-//    let format = NumberFormat::PERMISSIVE
-//        .rebuild()
-//        .integer_internal_digit_separator(true)
-//        .integer_consecutive_digit_separator(true)
-//        .digit_separator(b'_')
-//        .build()
-//        .unwrap();
-//    let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
-//    assert!(i32::from_lexical_with_options(b"3_1", &options).is_ok());
-//    assert!(i32::from_lexical_with_options(b"3__1", &options).is_ok());
-//    assert!(i32::from_lexical_with_options(b"_31", &options).is_err());
-//    assert!(i32::from_lexical_with_options(b"31_", &options).is_err());
-//}
-//
-//#[test]
-//#[cfg(feature = "format")]
-//fn i32_json_no_leading_zero() {
-//    let format = NumberFormat::JSON;
-//    let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
-//    assert!(i32::from_lexical_with_options(b"12", &options).is_ok());
-//    assert!(i32::from_lexical_with_options(b"-12", &options).is_ok());
-//    assert!(i32::from_lexical_with_options(b"012", &options).is_err());
-//    assert!(i32::from_lexical_with_options(b"-012", &options).is_err());
-//}
+#[test]
+#[cfg(feature = "format")]
+fn i32_integer_internal_digit_separator_test() {
+    let options = Options::new();
+    const FORMAT: u128 = NumberFormatBuilder::new()
+        .digit_separator(std::num::NonZeroU8::new(b'_'))
+        .integer_internal_digit_separator(true)
+        .build();
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"3_1", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"_31", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"31_", &options).is_err());
+}
 
+#[test]
+#[cfg(feature = "format")]
+fn i32_integer_leading_digit_separator_test() {
+    let options = Options::new();
+    const FORMAT: u128 = NumberFormatBuilder::new()
+        .digit_separator(std::num::NonZeroU8::new(b'_'))
+        .integer_leading_digit_separator(true)
+        .build();
+
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"3_1", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"_31", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"31_", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn i32_integer_trailing_digit_separator_test() {
+    let options = Options::new();
+    const FORMAT: u128 = NumberFormatBuilder::new()
+        .digit_separator(std::num::NonZeroU8::new(b'_'))
+        .integer_trailing_digit_separator(true)
+        .build();
+
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"3_1", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"_31", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"31_", &options).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn i32_integer_consecutive_digit_separator_test() {
+    let options = Options::new();
+    const FORMAT: u128 = NumberFormatBuilder::new()
+        .digit_separator(std::num::NonZeroU8::new(b'_'))
+        .integer_internal_digit_separator(true)
+        .integer_consecutive_digit_separator(true)
+        .build();
+
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"3_1", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"3__1", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"_31", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"31_", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn i32_json_no_leading_zero() {
+    let options = Options::new();
+    use lexical_util::format::JSON;
+
+    assert!(i32::from_lexical_with_options::<{ JSON }>(b"12", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<{ JSON }>(b"-12", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<{ JSON }>(b"012", &options).is_err());
+    assert!(i32::from_lexical_with_options::<{ JSON }>(b"-012", &options).is_err());
+}
+
+#[cfg(not(miri))]
 proptest! {
     #[test]
     #[cfg(feature = "power-of-two")]

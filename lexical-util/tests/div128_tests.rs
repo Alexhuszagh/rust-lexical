@@ -1,5 +1,6 @@
 #![cfg(not(feature = "compact"))]
 #![cfg(feature = "write")]
+#![cfg(not(miri))]
 
 use lexical_util::div128::u128_divrem;
 use lexical_util::step::u64_step;

@@ -78,6 +78,31 @@ Examples therefore include:
 
 This opens up a lot of possibilities: what is a valid control character? In practice, it's much easier to define control characters as every character that's not a valid digit, and therefore to handle parsing we just need to check against valid digits and the digit separator.
 
-// TODO(ahuszagh) 
-//  Document the actual iterator design.
-//  Document the algorithm.
+# Iterator Design
+
+The iterator is therefore a generic based on the format specification: this allows the iterator to resolve all unnecessary branching at compile time.
+
+The underlying iterator itself is very simple, and is effectively just:
+
+```rust
+pub struct Digits<'a> {
+    slc: &'a [u8],
+    index: usize,
+}
+```
+
+The optimizing compiler translates this to very efficient machine code: it's as efficient as a normal slice iterator. However, it has a few advantages:
+
+1. For partial parsers and error handling, the index is already known, and does not need to be derived from pointer comparisons.
+2. It allows easy implementation of `peek`/`next` algorithms, since next is always `peek` and then increasing the `index` by 1.
+
+Each digit separator iterator therefore is comprised of 4 different skip conditions, in addition to the skipped value:
+
+1. \[L\], or leading digit separators.
+2. \[I\], or internal digit separators.
+3. \[T\], or trailing digit separators.
+4. \[C\], or consecutive digit separators.
+
+Therefore, `peek_iltc` means skip internal, leading, trailing, and consecutive digit separators. Different components of the number, such as the integral, fractional, and exponential digits may have different rules. To accommodate this, `Digits` is not technically an iterator, but rather contains `integer_iter`, `fraction_iter`, `exponent_iter`, and `special_iter`, to ensure the proper rules are followed and the correct branches are resolved at compile time.
+
+Finally, if no digits are skipped for a given component, we can enable all the optimizations for no-skip iterators, including parsing multiple digits at a given time using fewer multiplication instructions.

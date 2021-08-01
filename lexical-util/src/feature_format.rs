@@ -2212,17 +2212,21 @@ const_assert!(NumberFormat::<{ GO_STRING }> {}.is_valid());
 //    | Self::REQUIRED_EXPONENT_DIGITS.bits
 //    | Self::INTERNAL_DIGIT_SEPARATOR.bits
 //);
-//
-//// JSON [456]
-///// Number format for a JSON literal floating-point number.
-//const JSON = (
-//    Self::REQUIRED_DIGITS.bits
-//    | Self::NO_POSITIVE_MANTISSA_SIGN.bits
-//    | Self::NO_SPECIAL.bits
-//    | Self::NO_INTEGER_LEADING_ZEROS.bits
-//    | Self::NO_FLOAT_LEADING_ZEROS.bits
-//);
-//
+
+// JSON [456]
+/// Number format for a JSON literal floating-point number.
+#[rustfmt::skip]
+pub const JSON: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'\''))
+    .required_digits(true)
+    .no_positive_mantissa_sign(true)
+    .no_special(true)
+    .no_integer_leading_zeros(true)
+    .no_float_leading_zeros(true)
+    .build();
+
+const_assert!(NumberFormat::<{ JSON }> {}.is_valid());
+
 //// TOML [34569AB]
 ///// Number format for a TOML literal floating-point number.
 //const TOML = (

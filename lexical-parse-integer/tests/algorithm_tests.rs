@@ -6,6 +6,7 @@ use lexical_parse_integer::algorithm;
 use lexical_util::digit::AsDigits;
 use lexical_util::format::STANDARD;
 use lexical_util::iterator::Byte;
+#[cfg(not(miri))]
 use proptest::prelude::*;
 #[cfg(feature = "radix")]
 use util::to_format;
@@ -56,7 +57,8 @@ fn test_try_parse_4digits() {
 #[test]
 fn test_is_8digits() {
     let value: u64 = 0x31_32_33_34_35_36_37_38;
-    #[cfg(feature = "radix")] {
+    #[cfg(feature = "radix")]
+    {
         assert!(!algorithm::is_8digits::<{ to_format(4) }>(value));
         assert!(!algorithm::is_8digits::<{ to_format(5) }>(value));
     }
@@ -91,7 +93,8 @@ fn test_parse_8digits() {
     // 12344321
     let value: u64 = 0x31_32_33_34_34_33_32_31;
     assert_eq!(algorithm::parse_8digits::<{ STANDARD }>(value), 12344321);
-    #[cfg(feature = "radix")] {
+    #[cfg(feature = "radix")]
+    {
         assert_eq!(algorithm::parse_8digits::<{ to_format(9) }>(value), 6052420);
         assert_eq!(algorithm::parse_8digits::<{ to_format(8) }>(value), 2738385);
         assert_eq!(algorithm::parse_8digits::<{ to_format(7) }>(value), 1120400);
@@ -143,6 +146,7 @@ fn algorithm_128_test() {
     assert_eq!(parse_i128(b"+123.45"), Ok((123, 4)));
 }
 
+#[cfg(not(miri))]
 proptest! {
     #[test]
     fn parse_4digits_proptest(

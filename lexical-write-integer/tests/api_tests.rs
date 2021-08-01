@@ -5,7 +5,9 @@ use lexical_util::constants::FormattedSize;
 #[cfg(feature = "radix")]
 use lexical_util::constants::BUFFER_SIZE;
 use lexical_write_integer::{Options, ToLexical, ToLexicalWithOptions};
+#[cfg(not(miri))]
 use proptest::prelude::*;
+#[cfg(not(miri))]
 use quickcheck::quickcheck;
 
 trait Roundtrip: ToLexical + ToLexicalWithOptions + FromStr {
@@ -1166,6 +1168,7 @@ fn u128_pow10_test() {
     }
 }
 
+#[cfg(not(miri))]
 quickcheck! {
     fn u8_quickcheck(i: u8) -> bool {
         i == roundtrip(i)
@@ -1216,6 +1219,7 @@ quickcheck! {
     }
 }
 
+#[cfg(not(miri))]
 proptest! {
     #[test]
     fn u8_proptest(i in u8::min_value()..u8::max_value()) {

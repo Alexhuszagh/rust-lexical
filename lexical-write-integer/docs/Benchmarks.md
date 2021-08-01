@@ -12,25 +12,25 @@ A benchmark on randomly-generated numbers uniformly distributed over the entire 
 
 **Simple**
 
-A benchmark on randomly-generated, simple numbers to test parsing numbers with few digits, Each number is in the range `[0, 1000]` (or `[0, 50]` for `u8`).
+A benchmark on randomly-generated, simple numbers to test writing numbers with few digits, Each number is in the range `[0, 1000]` (or `[0, 50]` for `u8`).
 
 ![Simple Random Data](/lexical-write-integer/assets/random_simple.svg)
 
 **Large**
 
-A benchmark on randomly-generated, large numbers to test parsing numbers with many digits.
+A benchmark on randomly-generated, large numbers to test writing numbers with many digits.
 
 ![Large Random Data](/lexical-write-integer/assets/random_large.svg)
 
 **Simple Negative**
 
-A benchmark on randomly-generated, simple, positive and negative numbers to test parsing numbers with few digits. Each number is in the range `[-1000, 1000]` (or `[-50, 50]` for `u8`).
+A benchmark on randomly-generated, simple, positive and negative numbers to test writing numbers with few digits. Each number is in the range `[-1000, 1000]` (or `[-50, 50]` for `u8`).
 
 ![Simple Negative Random Data](/lexical-write-integer/assets/random_simple_signed.svg)
 
 **Large Negative**
 
-A benchmark on randomly-generated, large, negative numbers to test parsing negative numbers with many digits.
+A benchmark on randomly-generated, large, negative numbers to test writing negative numbers with many digits.
 
 ![Large Negative Random Data](/lexical-write-integer/assets/random_large_signed.svg)
 
@@ -72,6 +72,6 @@ np.random.randint(-9223372036854775808, 9223372036854775807, size=10000, dtype=n
 
 **Chained Random**
 
-A benchmark on randomly parsing simple or random data, using a PRNG to ensure the parsing algorithm does not know if simple or random data is being parsed. This is mostly a precaution, in case an algorithm branches on the number of digits to avoid branch prediction from skewing the results.
+A benchmark on randomly writing simple or random data, using a PRNG to ensure the writing algorithm does not know if simple or random data is being parsed. This is mostly a precaution, in case an algorithm branches on the number of digits to avoid branch prediction from skewing the results.
 
 ![JSON Chained Random Data](/lexical-write-integer/assets/json_chain_random.svg)

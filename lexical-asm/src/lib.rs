@@ -1,7 +1,7 @@
-#![allow(unused)]
-
 use lexical_parse_integer::FromLexical;
+use lexical_write_integer::ToLexical;
 use lexical_util::error::Error;
+use std::io::Write;
 
 // PARSE INTEGER
 // -------------
@@ -53,32 +53,16 @@ parse_core! {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-enum IntErrorKind {
-    /// Value being parsed is empty.
-    ///
-    /// This variant will be constructed when parsing an empty string.
+pub enum IntErrorKind {
     Empty,
-    /// Contains an invalid digit in its context.
-    ///
-    /// Among other causes, this variant will be constructed when parsing a string that
-    /// contains a non-ASCII char.
-    ///
-    /// This variant is also constructed when a `+` or `-` is misplaced within a string
-    /// either on its own or in the middle of a number.
     InvalidDigit,
-    /// Integer is too large to store in target integer type.
     PosOverflow,
-    /// Integer is too small to store in target integer type.
     NegOverflow,
-    /// Value was Zero
-    ///
-    /// This variant will be emitted when the parsing string has a value of zero, which
-    /// would be illegal for non-zero types.
     Zero,
 }
 
 pub struct ParseIntError {
-    kind: IntErrorKind,
+    pub kind: IntErrorKind,
 }
 
 trait FromStrRadixHelper: PartialOrd + Copy {
@@ -131,11 +115,6 @@ fn from_str_radix<T: FromStrRadixHelper>(src: &str, radix: u32) -> Result<T, Par
     }
 
     let is_signed_ty = T::from_u32(0) > T::min_value();
-
-    // all valid digits are ascii, so we will just iterate over the utf8 bytes
-    // and cast them to chars. .to_digit() will safely return None for anything
-    // other than a valid ascii digit for the given radix, including the first-byte
-    // of multi-byte sequences
     let src = src.as_bytes();
 
     let (is_positive, digits) = match src[0] {
@@ -151,7 +130,6 @@ fn from_str_radix<T: FromStrRadixHelper>(src: &str, radix: u32) -> Result<T, Par
 
     let mut result = T::from_u32(0);
     if is_positive {
-        // The number is positive
         for &c in digits {
             let x = match (c as char).to_digit(radix) {
                 Some(x) => x,
@@ -179,7 +157,6 @@ fn from_str_radix<T: FromStrRadixHelper>(src: &str, radix: u32) -> Result<T, Par
             };
         }
     } else {
-        // The number is negative
         for &c in digits {
             let x = match (c as char).to_digit(radix) {
                 Some(x) => x,
@@ -210,4 +187,48 @@ fn from_str_radix<T: FromStrRadixHelper>(src: &str, radix: u32) -> Result<T, Par
     Ok(result)
 }
 
-// TODO(ahuszagh) Add more, like write integer
+// WRITE INTEGER
+// -------------
+
+macro_rules! write_lexical {
+    ($($name:ident $t:ty ;)*) => ($(
+        pub fn $name(value: $t, buffer: &mut [u8]) -> &mut [u8] {
+            value.to_lexical(buffer)
+        }
+    )*);
+}
+
+write_lexical! {
+    u8_write_lexical u8 ;
+    u16_write_lexical u16 ;
+    u32_write_lexical u32 ;
+    u64_write_lexical u64 ;
+    u128_write_lexical u128 ;
+    i8_write_lexical i8 ;
+    i16_write_lexical i16 ;
+    i32_write_lexical i32 ;
+    i64_write_lexical i64 ;
+    i128_write_lexical i128 ;
+}
+
+macro_rules! write_std {
+    ($($name:ident $t:ty ;)*) => ($(
+        pub fn $name(value: $t, buffer: &mut Vec<u8>) -> &mut [u8] {
+            write!(buffer, "{}", value).unwrap();
+            buffer
+        }
+    )*);
+}
+
+write_std! {
+    u8_write_std u8 ;
+    u16_write_std u16 ;
+    u32_write_std u32 ;
+    u64_write_std u64 ;
+    u128_write_std u128 ;
+    i8_write_std i8 ;
+    i16_write_std i16 ;
+    i32_write_std i32 ;
+    i64_write_std i64 ;
+    i128_write_std i128 ;
+}

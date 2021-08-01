@@ -1,7 +1,9 @@
 #![cfg(not(feature = "compact"))]
 
-use lexical_util::num::UnsignedInteger;
 use lexical_write_integer::decimal::{self, Decimal, DigitCount};
+#[cfg(not(miri))]
+use lexical_util::num::UnsignedInteger;
+#[cfg(not(miri))]
 use quickcheck::quickcheck;
 
 #[test]
@@ -405,6 +407,7 @@ fn u128toa_test() {
     }
 }
 
+#[cfg(not(miri))]
 fn slow_log2(x: u32) -> usize {
     // Slow approach to calculating a log2, using floats.
     if x == 0 {
@@ -414,10 +417,12 @@ fn slow_log2(x: u32) -> usize {
     }
 }
 
+#[cfg(not(miri))]
 fn slow_digit_count<T: UnsignedInteger>(x: T) -> usize {
     x.as_u128().to_string().len()
 }
 
+#[cfg(not(miri))]
 quickcheck! {
     fn fast_log2_quickcheck(x: u32) -> bool {
         slow_log2(x) == decimal::fast_log2(x)

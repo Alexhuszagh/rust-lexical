@@ -1,7 +1,5 @@
 #![cfg(feature = "compact")]
 
-mod util;
-
 use lexical_parse_integer::compact;
 use lexical_util::format::STANDARD;
 

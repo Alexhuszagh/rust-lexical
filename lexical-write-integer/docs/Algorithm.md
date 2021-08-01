@@ -221,3 +221,21 @@ Strategies 2. and 3. are generally combined into a single function, allowing a f
 4. Combined, generalized 128-bit divrem.
 
 Approach 3. only works if `factor` can be represented in 128 bits, which is not true for all values. In the fallback case, we have to rely on true, 128-bit division. Rust, however, for `divrem` calls both division and remainder separately, requiring two, separate calls to `__udivmodti4`. We therefore just combine them into a single call.
+
+**Compact**
+
+For our compact implementation, prioritizing code size at the cost of performance, we use a naive algorithm that writes 1 digit at a time, without any additional optimizations. This algorithm is trivial to verify, and is effectively analogous to the following code:
+
+```rust
+let mut index = buffer.len();
+while value >= radix {
+    let r = value % radix;
+    value /= radix;
+    index -= 1;
+    buffer[index] = digit_to_char(r);
+}
+
+let r = value % radix;
+index -= 1;
+buffer[index] = digit_to_char(r);
+```

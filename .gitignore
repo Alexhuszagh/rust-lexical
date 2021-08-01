@@ -1,3 +1,4 @@
+# Standard Rust files
 target/
 **/*.rs.bk
 Cargo.lock
@@ -20,3 +21,7 @@ proptest-regressions/
 
 # Custom files for annotating x86 regressions/improvements.
 *.asm
+
+# Fuzzing data
+corpus/
+artifacts/

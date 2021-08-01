@@ -350,6 +350,8 @@ impl<'a, const FORMAT: u128> Digits<'a, FORMAT> {
 }
 
 impl<'a, const FORMAT: u128> Byte<'a> for Digits<'a, FORMAT> {
+    // This is fine as the digit separator, since it's only always
+    // contiguous if no digits are **ever** skipped.
     const IS_CONTIGUOUS: bool = NumberFormat::<{ FORMAT }>::DIGIT_SEPARATOR == 0;
     type IntegerIter = IntegerDigitsIterator<'a, FORMAT>;
     type FractionIter = FractionDigitsIterator<'a, FORMAT>;
@@ -482,8 +484,11 @@ macro_rules! skip_iterator_iterator_impl {
 
 /// Create base methods for the ByteIter block of a skip iterator.
 macro_rules! skip_iterator_byteiter_base {
-    ($format:ident) => {
-        const IS_CONTIGUOUS: bool = NumberFormat::<{ $format }>::DIGIT_SEPARATOR == 0;
+    ($format:ident, $mask:ident) => {
+        // It's contiguous if we don't skip over any values.
+        // IE, the digit separator flags for the iterator over
+        // the digits doesn't skip any values.
+        const IS_CONTIGUOUS: bool = $format & flags::$mask == 0;
 
         #[inline]
         fn as_ptr(&self) -> *const u8 {
@@ -548,7 +553,7 @@ macro_rules! skip_iterator_byteiter_base {
 macro_rules! skip_iterator_byteiter_impl {
     ($iterator:ident, $mask:ident, $i:ident, $l:ident, $t:ident, $c:ident) => {
         impl<'a, const FORMAT: u128> ByteIter<'a> for $iterator<'a, FORMAT> {
-            skip_iterator_byteiter_base!(FORMAT);
+            skip_iterator_byteiter_base!(FORMAT, $mask);
 
             #[inline]
             fn peek(&mut self) -> Option<Self::Item> {
@@ -565,7 +570,7 @@ macro_rules! skip_iterator_byteiter_impl {
                 const LTC: u128 = LT | flags::$c;
                 const ILTC: u128 = ILT | flags::$c;
 
-                match format.interface_flags() & flags::$mask {
+                match format.digit_separator_flags() & flags::$mask {
                     0 => peek_noskip!(self),
                     flags::$i => peek_i!(self),
                     flags::$l => peek_l!(self),
@@ -653,7 +658,7 @@ impl<'a, const FORMAT: u128> SpecialDigitsIterator<'a, FORMAT> {
 }
 
 impl<'a, const FORMAT: u128> ByteIter<'a> for SpecialDigitsIterator<'a, FORMAT> {
-    skip_iterator_byteiter_base!(FORMAT);
+    skip_iterator_byteiter_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
 
     #[inline]
     fn peek(&mut self) -> Option<Self::Item> {

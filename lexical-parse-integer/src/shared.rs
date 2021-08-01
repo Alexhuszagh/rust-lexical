@@ -12,28 +12,28 @@ macro_rules! into_error {
 
 /// Return an value for a complete parser.
 macro_rules! into_ok_complete {
-    ($value:ident, $index:expr) => {
+    ($value:expr, $index:expr) => {
         Ok(as_cast($value))
     };
 }
 
 /// Return an value and index for a partial parser.
 macro_rules! into_ok_partial {
-    ($value:ident, $index:expr) => {
+    ($value:expr, $index:expr) => {
         Ok((as_cast($value), $index))
     };
 }
 
 /// Return an error for a complete parser upon an invalid digit.
 macro_rules! invalid_digit_complete {
-    ($value:ident, $index:expr) => {
+    ($value:expr, $index:expr) => {
         into_error!(InvalidDigit, $index)
     };
 }
 
 /// Return a value for a partial parser upon an invalid digit.
 macro_rules! invalid_digit_partial {
-    ($value:ident, $index:expr) => {
+    ($value:expr, $index:expr) => {
         into_ok_partial!($value, $index)
     };
 }
@@ -206,7 +206,16 @@ macro_rules! algorithm {
         // check if the next value is invalid. It's invalid if the
         // first is 0, and the next is not a valid digit.
         if format.no_integer_leading_zeros() && iter.peek() == Some(&b'0') {
-            return into_error!(InvalidLeadingZeros, shift);
+            // Has at least 1 element, and is a 0. Check if the next
+            // peeked value is a valid digit.
+            let index = iter.cursor();
+            unsafe { iter.step_by_unchecked(1); }
+            match iter.peek().map(|&c| char_to_digit_const(c, format.radix())) {
+                // Valid digit, we have an invalid value.
+                Some(Some(_)) => return into_error!(InvalidLeadingZeros, index),
+                // Either not a digit that follows, or nothing follows.
+                _ => return $into_ok!(<$t>::ZERO, index),
+            };
         }
 
         // Optimization for 128-bit integers.

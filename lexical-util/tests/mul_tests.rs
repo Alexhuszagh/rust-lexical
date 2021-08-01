@@ -1,3 +1,5 @@
+#![cfg(not(miri))]
+
 use lexical_util::mul::{mul, mulhi};
 use quickcheck::quickcheck;
 
