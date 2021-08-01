@@ -92,6 +92,7 @@ def plot_timings(timings, output, workspace=''):
     text_length = 0
     count = len(timings) + 1
     fig, ax = plt.subplots()
+    bar_height = count * 0.05
 
     def plot_timing(name):
         '''Plot the timing of a specific value.'''
@@ -104,14 +105,14 @@ def plot_timings(timings, output, workspace=''):
         duration, rmeta = timings[name]
         local_offset = offset
         ax.add_patch(patches.Rectangle(
-            (offset, count - 0.25), duration, 0.5,
+            (offset, count - bar_height / 2), duration, bar_height,
             alpha=0.6,
             facecolor='lightskyblue',
             label=name,
         ))
         local_offset += rmeta
         ax.add_patch(patches.Rectangle(
-            (local_offset, count - 0.25), duration - rmeta, 0.5,
+            (local_offset, count - bar_height / 2), duration - rmeta, bar_height,
             alpha=0.6,
             facecolor='darkorchid',
             label=f'{name}_rmeta',
@@ -122,9 +123,10 @@ def plot_timings(timings, output, workspace=''):
             text_length = max(len(text), text_length)
         ax.annotate(
             text,
-            xy=(local_offset + 0.02, count - 0.125),
+            xy=(local_offset + 0.02, count),
             xycoords='data',
             horizontalalignment='left',
+            verticalalignment='center',
         )
         count -= 1
 
@@ -169,6 +171,7 @@ def plot_timings(timings, output, workspace=''):
     ax.set_xlabel('Time (s)')
 
     # Hide the y-axis labels.
+    ax.set_yticks(list(range(1, len(timings) + 2)))
     ax.yaxis.set_tick_params(which='both', length=0)
     plt.setp(ax.get_yticklabels(), visible=False)
 
