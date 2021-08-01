@@ -50,6 +50,12 @@ pub trait Byte<'a>: Clone {
     /// but weaker variant of `is_consumed()`.
     fn is_empty(&self) -> bool;
 
+    // Determine if the abstraction is contiguous.
+    #[inline]
+    fn is_contiguous(&self) -> bool {
+        Self::IS_CONTIGUOUS
+    }
+
     /// Read a value of a difference type from the iterator.
     /// This advances the internal state of the iterator.
     ///
@@ -130,6 +136,12 @@ pub trait ByteIter<'a>: Iterator<Item = &'a u8> {
     /// iterator has an empty slice. It is effectively a cheaper,
     /// but weaker variant of `is_consumed()`.
     fn is_empty(&self) -> bool;
+
+    // Determine if the iterator is contiguous.
+    #[inline]
+    fn is_contiguous(&self) -> bool {
+        Self::IS_CONTIGUOUS
+    }
 
     /// Peek the next value of the iterator, without checking bounds.
     ///

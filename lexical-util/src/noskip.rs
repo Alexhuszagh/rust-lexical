@@ -201,7 +201,7 @@ impl<'a> ByteIter<'a> for DigitsIterator<'a> {
     #[allow(clippy::assertions_on_constants)]
     unsafe fn step_unchecked(&mut self) {
         debug_assert!(Self::IS_CONTIGUOUS);
-        debug_assert!(self.as_slice().len() >= 1);
+        debug_assert!(!self.as_slice().is_empty());
         self.byte.index += 1;
     }
 }

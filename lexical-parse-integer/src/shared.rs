@@ -1,4 +1,7 @@
 //! Shared algorithms and utilities for parsing integers.
+//!
+//! These allow implementations of partial and complete parsers
+//! using a single code-path via macros.
 
 /// Return an error, returning the index and the error.
 macro_rules! into_error {
@@ -8,30 +11,30 @@ macro_rules! into_error {
 }
 
 /// Return an value for a complete parser.
-macro_rules! into_ok_value {
+macro_rules! into_ok_complete {
     ($value:ident, $index:expr) => {
         Ok(as_cast($value))
     };
 }
 
 /// Return an value and index for a partial parser.
-macro_rules! into_ok_index {
+macro_rules! into_ok_partial {
     ($value:ident, $index:expr) => {
         Ok((as_cast($value), $index))
     };
 }
 
 /// Return an error for a complete parser upon an invalid digit.
-macro_rules! invalid_digit_err {
+macro_rules! invalid_digit_complete {
     ($value:ident, $index:expr) => {
         into_error!(InvalidDigit, $index)
     };
 }
 
 /// Return a value for a partial parser upon an invalid digit.
-macro_rules! invalid_digit_ok {
+macro_rules! invalid_digit_partial {
     ($value:ident, $index:expr) => {
-        into_ok_index!($value, $index)
+        into_ok_partial!($value, $index)
     };
 }
 
@@ -66,10 +69,15 @@ macro_rules! parse_sign {
         //  these cases.
         match $iter.peek() {
             Some(&b'+') if !$format.no_positive_mantissa_sign() => (false, 1),
-            Some(&b'-') if T::IS_SIGNED => (true, 1),
             Some(&b'+') if $format.no_positive_mantissa_sign() => {
                 return into_error!(InvalidPositiveSign, 0);
             },
+            // Don't add the check for the negative sign here if unsigned,
+            // since it absolutely decimates performance. If it's for a
+            // partial parser, we'll simply get 0 digits parsed, like before.
+            // Complete parsers will still error, like before. That is, it's
+            // correct **enough**.
+            Some(&b'-') if T::IS_SIGNED => (true, 1),
             Some(_) if $format.required_mantissa_sign() => return into_error!(MissingSign, 0),
             _ => (false, 0),
         }
@@ -88,12 +96,63 @@ macro_rules! parse_value {
         $into_ok:ident
     ) => {{
         let mut value = <$t>::ZERO;
+        let format = NumberFormat::<{ $format }> {};
         if !<$t>::IS_SIGNED || !$is_negative {
-            $parser!(value, $iter, $format.radix(), checked_add, Overflow, $invalid_digit);
+            $parser!(
+                value,
+                $iter,
+                $format,
+                format.radix(),
+                checked_add,
+                Overflow,
+                $t,
+                $invalid_digit
+            );
         } else {
-            $parser!(value, $iter, $format.radix(), checked_sub, Underflow, $invalid_digit);
+            $parser!(
+                value,
+                $iter,
+                $format,
+                format.radix(),
+                checked_sub,
+                Underflow,
+                $t,
+                $invalid_digit
+            );
         }
         $into_ok!(value, $iter.length())
+    }};
+}
+
+/// Parse digits for a positive or negative value.
+/// This has no multiple-digit optimizations.
+#[rustfmt::skip]
+macro_rules! parse_compact {
+    (
+        $value:ident,
+        $iter:ident,
+        $format:ident,
+        $radix:expr,
+        $addsub:ident,
+        $overflow:ident,
+        $t:ident,
+        $invalid_digit:ident
+    ) => {{
+        // Do our slow parsing algorithm: 1 digit at a time.
+        while let Some(&c) = $iter.next() {
+            let digit = match char_to_digit_const(c, $radix) {
+                Some(v) => v,
+                None => return $invalid_digit!($value, $iter.cursor() - 1),
+            };
+            $value = match $value.checked_mul(as_cast($radix)) {
+                Some(v) => v,
+                None => return into_error!($overflow, $iter.cursor() - 1),
+            };
+            $value = match $value.$addsub(as_cast(digit)) {
+                Some(v) => v,
+                None => return into_error!($overflow, $iter.cursor() - 1),
+            };
+        }
     }};
 }
 
@@ -113,6 +172,8 @@ macro_rules! algorithm {
     ) => {{
         let format = NumberFormat::<{ $format }> {};
 
+        // WARNING:
+        // --------
         // None of this code can be changed for optimization reasons.
         // Do not change it without benchmarking every change.
         //  1. You cannot use the NoSkipIterator in the loop,
@@ -124,6 +185,10 @@ macro_rules! algorithm {
         //      of the loop is slightly faster.
         //  3. Partial and complete parsers cannot be efficiently done
         //      together.
+        //
+        // If you try to refactor without carefully monitoring benchmarks or
+        // assembly generation, please log the number of wasted hours: so
+        //  10 hours so far.
 
         // With `step_by_unchecked`, this is sufficiently optimized.
         // Removes conditional paths, to, which simplifies maintenance.
@@ -138,7 +203,8 @@ macro_rules! algorithm {
             return into_error!(Empty, shift);
         }
         // If we have a format that doesn't accept leading zeros,
-        // check if the next value is invalid.
+        // check if the next value is invalid. It's invalid if the
+        // first is 0, and the next is not a valid digit.
         if format.no_integer_leading_zeros() && iter.peek() == Some(&b'0') {
             return into_error!(InvalidLeadingZeros, shift);
         }
@@ -152,13 +218,17 @@ macro_rules! algorithm {
             <$t>::BITS == 128 &&
             iter.length() <= u64_step(format.radix()) {
                 // These types will get resolved at compile time.
+                // Choose the compact parser, since we've already got enough
+                // branching at this point, and it kills performance for
+                // small 128-bit values. Can increase parse time for simple
+                // values by ~60% or more.
                 if <$t>::IS_SIGNED {
-                    parse_value!(iter, is_negative, format, i64, $parser, $invalid_digit, $into_ok)
+                    parse_value!(iter, is_negative, $format, i64, parse_compact, $invalid_digit, $into_ok)
                 } else {
-                    parse_value!(iter, is_negative, format, u64, $parser, $invalid_digit, $into_ok)
+                    parse_value!(iter, is_negative, $format, u64, parse_compact, $invalid_digit, $into_ok)
                 }
         } else {
-            parse_value!(iter, is_negative, format, $t, $parser, $invalid_digit, $into_ok)
+            parse_value!(iter, is_negative, $format, $t, $parser, $invalid_digit, $into_ok)
         }
     }};
 }

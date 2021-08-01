@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use fastrand::Rng;
-use lexical_util::num::Integer;
 use lexical_parse_integer::FromLexical;
+use lexical_util::num::Integer;
 
 // Default random data size.
 const COUNT: usize = 1000;

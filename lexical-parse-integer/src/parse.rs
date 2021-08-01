@@ -1,31 +1,15 @@
 //! Shared trait and methods for parsing integers.
 
-// TODO(ahuszagh) Going to have to select the correct back-end.
+// Select the correct back-end.
 #[cfg(not(feature = "compact"))]
-use crate::algorithmv2::{algorithm_complete, algorithm_partial};
+use crate::algorithm::{algorithm_complete, algorithm_partial};
 #[cfg(feature = "compact")]
-use crate::compactv2::{algorithm_complete, algorithm_partial};
+use crate::compact::{algorithm_complete, algorithm_partial};
+
 use lexical_util::num::Integer;
 use lexical_util::result::Result;
 
-/// Parse integer trait, implemented in terms of the compact back-end.
-#[cfg(feature = "compact")]
-pub trait ParseInteger: Integer {
-    /// Forward complete parser parameters to an unoptimized backend.
-    #[cfg_attr(not(feature = "compact"), inline(always))]
-    fn parse_complete<const FORMAT: u128>(bytes: &[u8]) -> Result<Self> {
-        algorithm_complete::<_, { FORMAT }>(bytes)
-    }
-
-    /// Forward partial parser parameters to an unoptimized backend.
-    #[cfg_attr(not(feature = "compact"), inline(always))]
-    fn parse_partial<const FORMAT: u128>(bytes: &[u8]) -> Result<(Self, usize)> {
-        algorithm_partial::<_, { FORMAT }>(bytes)
-    }
-}
-
 /// Parse integer trait, implemented in terms of the optimized back-end.
-#[cfg(not(feature = "compact"))]
 pub trait ParseInteger: Integer {
     /// Forward complete parser parameters to an unoptimized backend.
     #[cfg_attr(not(feature = "compact"), inline(always))]

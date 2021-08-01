@@ -1,8 +1,16 @@
 // TODO(ahuszagh) Add FromLexicalWithOptions.
 // TODO(ahuszagh) Add format and radix tests.
-use lexical_parse_integer::FromLexical;
+
+mod util;
+
+use lexical_parse_integer::{FromLexical, FromLexicalWithOptions, Options};
 use lexical_util::error::ErrorCode;
+#[cfg(feature = "format")]
+use lexical_util::format::NumberFormatBuilder;
+use lexical_util::format::STANDARD;
 use proptest::prelude::*;
+#[cfg(feature = "radix")]
+use util::to_format;
 
 #[test]
 fn u8_decimal_test() {
@@ -83,8 +91,9 @@ fn i64_decimal_test() {
     assert_eq!(Ok(-1), i64::from_lexical(b"-1"));
     assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i64::from_lexical(b"1a"));
 
-    // Add tests discovered via fuzzing.
-    assert_eq!(Err((ErrorCode::Overflow, 19).into()), i64::from_lexical(b"406260572150672006000066000000060060007667760000000000000000000+00000006766767766666767665670000000000000000000000666"));
+    // Add tests discovered via fuzzing. This won't necessarily be the
+    // proper index, since we use multi-digit parsing.
+    assert_eq!(ErrorCode::Overflow, i64::from_lexical(b"406260572150672006000066000000060060007667760000000000000000000+00000006766767766666767665670000000000000000000000666").err().unwrap().code);
 }
 
 #[test]
@@ -125,7 +134,171 @@ fn i128_decimal_test() {
     assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i128::from_lexical(b"1a"));
 }
 
+#[test]
+fn options_test() {
+    let options = Options::new();
+    assert_eq!(Ok(0), i128::from_lexical_with_options::<STANDARD>(b"0", &options));
+}
+
+#[test]
+#[cfg(feature = "power-of-two")]
+fn i32_binary_test() {
+    let options = Options::new();
+    const FORMAT: u128 = to_format(2);
+    assert_eq!(i32::from_lexical_with_options::<FORMAT>(b"11", &options), Ok(3));
+    assert_eq!(i32::from_lexical_with_options::<FORMAT>(b"-11", &options), Ok(-3));
+}
+
+#[cfg(feature = "radix")]
+fn radix_to_u32<const FORMAT: u128>(bytes: &[u8], expected: u32) {
+    let options = Options::new();
+    let result = u32::from_lexical_with_options::<{ FORMAT }>(bytes, &options);
+    assert_eq!(result, Ok(expected));
+}
+
+#[test]
+#[cfg(feature = "radix")]
+fn radix_test() {
+    radix_to_u32::<{ to_format(2) }>(b"100101", 37);
+    radix_to_u32::<{ to_format(3) }>(b"1101", 37);
+    radix_to_u32::<{ to_format(4) }>(b"211", 37);
+    radix_to_u32::<{ to_format(5) }>(b"122", 37);
+    radix_to_u32::<{ to_format(6) }>(b"101", 37);
+    radix_to_u32::<{ to_format(7) }>(b"52", 37);
+    radix_to_u32::<{ to_format(8) }>(b"45", 37);
+    radix_to_u32::<{ to_format(9) }>(b"41", 37);
+    radix_to_u32::<{ to_format(10) }>(b"37", 37);
+    radix_to_u32::<{ to_format(11) }>(b"34", 37);
+    radix_to_u32::<{ to_format(12) }>(b"31", 37);
+    radix_to_u32::<{ to_format(13) }>(b"2B", 37);
+    radix_to_u32::<{ to_format(14) }>(b"29", 37);
+    radix_to_u32::<{ to_format(15) }>(b"27", 37);
+    radix_to_u32::<{ to_format(16) }>(b"25", 37);
+    radix_to_u32::<{ to_format(17) }>(b"23", 37);
+    radix_to_u32::<{ to_format(18) }>(b"21", 37);
+    radix_to_u32::<{ to_format(19) }>(b"1I", 37);
+    radix_to_u32::<{ to_format(20) }>(b"1H", 37);
+    radix_to_u32::<{ to_format(21) }>(b"1G", 37);
+    radix_to_u32::<{ to_format(22) }>(b"1F", 37);
+    radix_to_u32::<{ to_format(23) }>(b"1E", 37);
+    radix_to_u32::<{ to_format(24) }>(b"1D", 37);
+    radix_to_u32::<{ to_format(25) }>(b"1C", 37);
+    radix_to_u32::<{ to_format(26) }>(b"1B", 37);
+    radix_to_u32::<{ to_format(27) }>(b"1A", 37);
+    radix_to_u32::<{ to_format(28) }>(b"19", 37);
+    radix_to_u32::<{ to_format(29) }>(b"18", 37);
+    radix_to_u32::<{ to_format(30) }>(b"17", 37);
+    radix_to_u32::<{ to_format(31) }>(b"16", 37);
+    radix_to_u32::<{ to_format(32) }>(b"15", 37);
+    radix_to_u32::<{ to_format(33) }>(b"14", 37);
+    radix_to_u32::<{ to_format(34) }>(b"13", 37);
+    radix_to_u32::<{ to_format(35) }>(b"12", 37);
+    radix_to_u32::<{ to_format(36) }>(b"11", 37);
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn i32_no_leading_zeros_test() {
+    let options = Options::new();
+    const FORMAT: u128 = NumberFormatBuilder::new()
+        .no_integer_leading_zeros(true)
+        .build();
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"1", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"0", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"01", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"10", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"010", &options).is_err());
+}
+
+// TODO(ahuszagh) Restore...
+//#[test]
+//#[cfg(feature = "format")]
+//fn i32_integer_internal_digit_separator_test() {
+//    let format = NumberFormat::PERMISSIVE
+//        .rebuild()
+//        .integer_internal_digit_separator(true)
+//        .digit_separator(b'_')
+//        .build()
+//        .unwrap();
+//    let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
+//    assert!(i32::from_lexical_with_options(b"3_1", &options).is_ok());
+//    assert!(i32::from_lexical_with_options(b"_31", &options).is_err());
+//    assert!(i32::from_lexical_with_options(b"31_", &options).is_err());
+//}
+//
+//#[test]
+//#[cfg(feature = "format")]
+//fn i32_integer_leading_digit_separator_test() {
+//    let format = NumberFormat::PERMISSIVE
+//        .rebuild()
+//        .integer_leading_digit_separator(true)
+//        .digit_separator(b'_')
+//        .build()
+//        .unwrap();
+//    let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
+//    assert!(i32::from_lexical_with_options(b"3_1", &options).is_err());
+//    assert!(i32::from_lexical_with_options(b"_31", &options).is_ok());
+//    assert!(i32::from_lexical_with_options(b"31_", &options).is_err());
+//}
+//
+//#[test]
+//#[cfg(feature = "format")]
+//fn i32_integer_trailing_digit_separator_test() {
+//    let format = NumberFormat::PERMISSIVE
+//        .rebuild()
+//        .integer_trailing_digit_separator(true)
+//        .digit_separator(b'_')
+//        .build()
+//        .unwrap();
+//    let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
+//    assert!(i32::from_lexical_with_options(b"3_1", &options).is_err());
+//    assert!(i32::from_lexical_with_options(b"_31", &options).is_err());
+//    assert!(i32::from_lexical_with_options(b"31_", &options).is_ok());
+//}
+//
+//#[test]
+//#[cfg(feature = "format")]
+//fn i32_integer_consecutive_digit_separator_test() {
+//    let format = NumberFormat::PERMISSIVE
+//        .rebuild()
+//        .integer_internal_digit_separator(true)
+//        .integer_consecutive_digit_separator(true)
+//        .digit_separator(b'_')
+//        .build()
+//        .unwrap();
+//    let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
+//    assert!(i32::from_lexical_with_options(b"3_1", &options).is_ok());
+//    assert!(i32::from_lexical_with_options(b"3__1", &options).is_ok());
+//    assert!(i32::from_lexical_with_options(b"_31", &options).is_err());
+//    assert!(i32::from_lexical_with_options(b"31_", &options).is_err());
+//}
+//
+//#[test]
+//#[cfg(feature = "format")]
+//fn i32_json_no_leading_zero() {
+//    let format = NumberFormat::JSON;
+//    let options = ParseIntegerOptions::builder().format(Some(format)).build().unwrap();
+//    assert!(i32::from_lexical_with_options(b"12", &options).is_ok());
+//    assert!(i32::from_lexical_with_options(b"-12", &options).is_ok());
+//    assert!(i32::from_lexical_with_options(b"012", &options).is_err());
+//    assert!(i32::from_lexical_with_options(b"-012", &options).is_err());
+//}
+
 proptest! {
+    #[test]
+    #[cfg(feature = "power-of-two")]
+    fn i32_binary_roundtrip_display_proptest(i in i32::MIN..i32::MAX) {
+        let options = Options::new();
+        const FORMAT: u128 = to_format(2);
+        let digits = if i < 0 {
+            format!("-{:b}", (i as i64).wrapping_neg())
+        } else {
+            format!("{:b}", i)
+        };
+        let result = i32::from_lexical_with_options::<FORMAT>(digits.as_bytes(), &options);
+        prop_assert_eq!(i, result.unwrap());
+    }
+
     #[test]
     fn u8_invalid_proptest(i in r"[+]?[0-9]{2}\D") {
         let result = u8::from_lexical(i.as_bytes());

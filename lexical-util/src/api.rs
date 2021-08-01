@@ -1,21 +1,5 @@
 //! Implement string conversion routines in a single trait.
 
-/// Map partial result to complete result.
-#[macro_export]
-#[cfg(feature = "parse")]
-macro_rules! lexical_partial_to_complete {
-    ($cb:expr, $bytes:expr $(,$args:expr)*) => {
-        match $cb($bytes $(,$args)*) {
-            Err(e)                  => Err(e),
-            Ok((value, processed))  => if processed == $bytes.len() {
-                Ok(value)
-            } else{
-                Err((lexical_util::error::ErrorCode::InvalidDigit, processed).into())
-            }
-        }
-    };
-}
-
 // NOTE:
 //  We use macros to define the traits, rather than implement here
 //  since we can't define traits for types when both are defined outside

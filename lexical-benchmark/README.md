@@ -1,7 +1,7 @@
 lexical-benchmark
 =================
 
-Benchmarks comparing lexical to numeric conversion routines
+Benchmarks comparing lexical to other numeric conversion routines.
 
 # Running the Benchmark
 
