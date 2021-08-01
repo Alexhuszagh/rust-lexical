@@ -5,10 +5,10 @@ use std::str::from_utf8_unchecked;
 
 use lexical_util::constants::BUFFER_SIZE;
 use lexical_write_integer::radix::Radix;
-#[cfg(not(miri))]
 use proptest::prelude::*;
 
 #[test]
+#[cfg(feature = "radix")]
 fn u128toa_test() {
     let mut buffer = [b'\x00'; 128];
     unsafe {
@@ -164,15 +164,16 @@ fn u128toa_mockup(x: u128, radix: u32) -> Result<(), TestCaseError> {
     Ok(())
 }
 
-#[cfg(not(miri))]
 proptest! {
     #[test]
+    #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
     fn u32toa_proptest(x: u32, radix in 2u32..=36) {
         u32toa_mockup(x, radix)?;
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     #[cfg(not(feature = "radix"))]
     fn u32toa_proptest(x: u32, power in 1u32..=5) {
         let radix = 2u32.pow(power);
@@ -180,12 +181,14 @@ proptest! {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
     fn u64toa_proptest(x: u64, radix in 2u32..=36) {
         u64toa_mockup(x, radix)?;
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     #[cfg(not(feature = "radix"))]
     fn u64toa_proptest(x: u64, power in 1u32..=5) {
         let radix = 2u32.pow(power);
@@ -193,12 +196,14 @@ proptest! {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
     fn u128toa_proptest(x: u128, radix in 2u32..=36) {
         u128toa_mockup(x, radix)?;
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     #[cfg(not(feature = "radix"))]
     fn u128toa_proptest(x: u128, power in 1u32..=5) {
         let radix = 2u32.pow(power);

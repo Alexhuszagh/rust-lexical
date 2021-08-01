@@ -1,12 +1,12 @@
 #![cfg(not(feature = "compact"))]
 
+#[cfg(feature = "radix")]
 mod util;
 
 use lexical_parse_integer::algorithm;
 use lexical_util::digit::AsDigits;
 use lexical_util::format::STANDARD;
 use lexical_util::iterator::Byte;
-#[cfg(not(miri))]
 use proptest::prelude::*;
 #[cfg(feature = "radix")]
 use util::to_format;
@@ -146,9 +146,9 @@ fn algorithm_128_test() {
     assert_eq!(parse_i128(b"+123.45"), Ok((123, 4)));
 }
 
-#[cfg(not(miri))]
 proptest! {
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn parse_4digits_proptest(
         a in 0x30u32..0x39,
         b in 0x30u32..0x39,
@@ -163,6 +163,7 @@ proptest! {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn parse_8digits_proptest(
         a in 0x30u64..0x39,
         b in 0x30u64..0x39,

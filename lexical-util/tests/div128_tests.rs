@@ -1,6 +1,5 @@
 #![cfg(not(feature = "compact"))]
 #![cfg(feature = "write")]
-#![cfg(not(miri))]
 
 use lexical_util::div128::u128_divrem;
 use lexical_util::step::u64_step;
@@ -8,6 +7,7 @@ use proptest::{prop_assert_eq, proptest};
 
 proptest! {
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn u128_divrem_proptest(i in u128::min_value()..u128::max_value()) {
         let (hi, lo) = u128_divrem(i, 10);
         let step = u64_step(10);
@@ -17,6 +17,7 @@ proptest! {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
     fn u128_divrem_2_proptest(i in u128::min_value()..u128::max_value(), radix in 2u32..=36) {
         // Simulate a const expr.
