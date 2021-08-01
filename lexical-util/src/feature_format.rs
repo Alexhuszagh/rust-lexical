@@ -2270,10 +2270,8 @@ const_assert!(NumberFormat::<{ JSON }> {}.is_valid());
 
 // MONGODB [01345678M]
 /// Number format for a MongoDB literal floating-point number.
-pub const MONGODB: u128 = NumberFormatBuilder::new()
-    .case_sensitive_special(true)
-    .no_float_leading_zeros(true)
-    .build();
+pub const MONGODB: u128 =
+    NumberFormatBuilder::new().case_sensitive_special(true).no_float_leading_zeros(true).build();
 
 const_assert!(NumberFormat::<{ MONGODB }> {}.is_valid());
 
