@@ -17,6 +17,8 @@ Currently, the various algorithm designs and benchmarks can be seen markdown fil
 
 Extensive documentation is currently found in the [docs](/docs) subdirectory, as well as the `docs` subdirectory of each workspace. Each subdirectory contains a `Algorithm.md`, which explains algorithm design and implementation, and `Benchmarks.md` which shows the performance of the algorithm compared to other, known implementations. Any additional design considerations will be found there as well.
 
+For an analysis of build times, see [BuildTimings.md](/docs/BuildTimings.md).
+
 # Code Structure
 
 The project is split into compact, relatively isolated workspaces to enable fast compile times. Functionality is generally made **public**, although any non-documented members are not guaranteed to be stable. Tests are separated from the actual module, and comprehensively test each individual component.

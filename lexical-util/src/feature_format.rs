@@ -2267,40 +2267,34 @@ const_assert!(NumberFormat::<{ JSON }> {}.is_valid());
 //    Self::REQUIRED_EXPONENT_DIGITS.bits
 //    | Self::NO_SPECIAL.bits
 //);
-//
-//// MONGODB [01345678M]
-///// Number format for a MongoDB literal floating-point number.
-//const MONGODB = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//    | Self::NO_FLOAT_LEADING_ZEROS.bits
-//);
-//
-//// HIDDEN DEFAULTS AND INTERFACES
-//
-///// Number format when no flags are set.
-//#[doc(hidden)]
-//const PERMISSIVE = 0;
-//
-///// Permissive interface float format flags.
-//#[doc(hidden)]
-//const PERMISSIVE_INTERFACE = Self::PERMISSIVE.bits & Self::INTERFACE_FLAG_MASK.bits;
-//
-///// Standard float format.
-//#[doc(hidden)]
-//const STANDARD = Self::RUST_STRING.bits;
-//
-///// Standard interface float format flags.
-//#[doc(hidden)]
-//const STANDARD_INTERFACE = Self::STANDARD.bits & Self::INTERFACE_FLAG_MASK.bits;
-//
-///// Number format when all digit separator flags are set.
-//#[doc(hidden)]
-//const IGNORE = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::DIGIT_SEPARATOR_FLAG_MASK.bits
-//);
-//
-///// Ignore interface float format flags.
-//#[doc(hidden)]
-//const IGNORE_INTERFACE = Self::IGNORE.bits & Self::INTERFACE_FLAG_MASK.bits;
+
+// MONGODB [01345678M]
+/// Number format for a MongoDB literal floating-point number.
+pub const MONGODB: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .no_float_leading_zeros(true)
+    .build();
+
+const_assert!(NumberFormat::<{ MONGODB }> {}.is_valid());
+
+// HIDDEN DEFAULTS AND INTERFACES
+
+/// Number format when no flags are set.
+#[doc(hidden)]
+#[rustfmt::skip]
+pub const PERMISSIVE: u128 = NumberFormatBuilder::new()
+    .required_exponent_digits(false)
+    .required_mantissa_digits(false)
+    .build();
+
+const_assert!(NumberFormat::<{ PERMISSIVE }> {}.is_valid());
+
+/// Number format when all digit separator flags are set.
+#[doc(hidden)]
+#[rustfmt::skip]
+pub const IGNORE: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .digit_separator_flags(true)
+    .build();
+
+const_assert!(NumberFormat::<{ IGNORE }> {}.is_valid());
