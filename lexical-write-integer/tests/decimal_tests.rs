@@ -1,8 +1,8 @@
 #![cfg(not(feature = "compact"))]
 
-use lexical_write_integer::decimal::{self, Decimal, DigitCount};
 #[cfg(not(miri))]
 use lexical_util::num::UnsignedInteger;
+use lexical_write_integer::decimal::{self, Decimal, DigitCount};
 #[cfg(not(miri))]
 use quickcheck::quickcheck;
 

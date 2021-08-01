@@ -30,6 +30,18 @@ Furthermore, unsafety uses the following conventions:
 
 This implementation also places a heavy focus on code bloat: with algorithms both optimized for performance and size. By default, this focuses on performance, however, using the `compact` feature, you can also opt-in to reduced code size at the cost of performance. The compact algorithms minimize the use of pre-computed tables and other optimizations at the cost of performance.
 
+# Developing
+
+The [scripts](/scripts) directory contains numerous scripts for testing, fuzzing, analyzing, and formatting code. Since many development features are nightly-only, this ensures the proper compiler features are used.
+
+- `asm.sh`: Emit assembly for common functionality.
+- `fmt.sh`: Run `cargo fmt` and `cargo clippy` in all projects and workspaces, on nightly.
+- `fuzz.sh`: Run fuzzer for a given target.
+- `hooks.sh`: Install formatting and lint hooks on commits.
+- `test.sh`: Run the test suite with Valgrind and Miri.
+
+Please run `scripts/fmt.sh` before committing any code, ideally by installing the pre-commit hook via `scripts/hooks.sh`.
+
 # License
 
 Lexical is dual licensed under the Apache 2.0 license as well as the MIT license. See the LICENCE-MIT and the LICENCE-APACHE files for the licenses.

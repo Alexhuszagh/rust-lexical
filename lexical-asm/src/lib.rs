@@ -1,6 +1,6 @@
 use lexical_parse_integer::FromLexical;
-use lexical_write_integer::ToLexical;
 use lexical_util::error::Error;
+use lexical_write_integer::ToLexical;
 use std::io::Write;
 
 // PARSE INTEGER
