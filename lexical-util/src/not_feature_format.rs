@@ -6,6 +6,7 @@
 #![cfg(not(feature = "format"))]
 
 use crate::error::{Error, ErrorCode};
+use crate::format_builder::NumberFormatBuilder;
 use crate::format_flags as flags;
 
 /// Wrapper for the 128-bit packed struct.
@@ -559,5 +560,13 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     #[inline(always)]
     pub const fn exponent_digit_separator_flags(&self) -> u128 {
         FORMAT & flags::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK
+    }
+
+    // BUILDER
+
+    // Get the number format builder from the format.
+    #[inline]
+    pub const fn builder() -> NumberFormatBuilder {
+        NumberFormatBuilder::rebuild(FORMAT)
     }
 }

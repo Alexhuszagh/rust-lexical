@@ -1241,6 +1241,14 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     pub const fn exponent_digit_separator_flags(&self) -> u128 {
         FORMAT & flags::EXPONENT_DIGIT_SEPARATOR_FLAG_MASK
     }
+
+    // BUILDER
+
+    // Get the number format builder from the format.
+    #[inline]
+    pub const fn builder() -> NumberFormatBuilder {
+        NumberFormatBuilder::rebuild(FORMAT)
+    }
 }
 
 // PRE-DEFINED CONSTANTS// PRE-DEFINED

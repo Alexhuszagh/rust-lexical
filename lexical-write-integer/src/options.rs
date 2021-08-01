@@ -2,8 +2,7 @@
 //!
 //! This is a dummy implementation, since writing integers never have options.
 
-// TODO(ahuszagh) Should add a builder trait at some point.
-//  Will interfere with const fn though, unfortunately.
+use lexical_util::result::Result;
 
 /// Builder for `Options`.
 #[repr(C)]
@@ -28,16 +27,17 @@ impl OptionsBuilder {
     ///
     /// # Safety
     ///
-    /// Safe as long as`is_valid` is true.
+    /// Safe as long as `is_valid` is true.
     #[inline(always)]
-    pub const unsafe fn build_unchecked(self) -> Options {
+    pub const unsafe fn build_unchecked(&self) -> Options {
         Options {}
     }
 
     /// Build the Options struct.
     #[inline(always)]
-    pub const fn build(self) -> Option<Options> {
-        Some(Options {})
+    pub const fn build(&self) -> Result<Options> {
+        // SAFETY: always safe, since it must be valid.
+        Ok(unsafe { self.build_unchecked() })
     }
 }
 
@@ -87,6 +87,7 @@ impl Options {
     }
 
     /// Create OptionsBuilder using existing values.
+    #[inline(always)]
     pub const fn rebuild(self) -> OptionsBuilder {
         OptionsBuilder {}
     }
