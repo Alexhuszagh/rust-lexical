@@ -1297,6 +1297,7 @@ pub const PYTHON36_LITERAL: u128 = NumberFormatBuilder::new()
     .digit_separator(num::NonZeroU8::new(b'_'))
     .no_special(true)
     .no_integer_leading_zeros(true)
+    .internal_digit_separator(true)
     .build();
 
 const_assert!(NumberFormat::<{ PYTHON36_LITERAL }> {}.is_valid());
@@ -1592,632 +1593,770 @@ pub const GO_STRING: u128 = NumberFormatBuilder::new()
 
 const_assert!(NumberFormat::<{ GO_STRING }> {}.is_valid());
 
-// TODO(ahuszagh) Add a few constants.
+// HASKELL LITERAL [456MN]
+/// Number format for a Haskell literal floating-point number.
+#[rustfmt::skip]
+pub const HASKELL_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_digits(true)
+    .no_positive_mantissa_sign(true)
+    .no_special(true)
+    .build();
 
-//// PRE-DEFINED
-////
-//// Sample Format Shorthand:
-//// ------------------------
-////
-//// The format shorthand lists the test cases, and if applicable,
-//// the digit separator character. For example, the shorthand
-//// `[134-_]` specifies it passes tests 1, 3, and 4, and uses
-//// `'_'` as a digit-separator character. Meanwhile, `[0]` means it
-//// passes test 0, and has no digit separator.
-//
-//// HASKELL LITERAL [456MN]
-///// Number format for a Haskell literal floating-point number.
-//const HASKELL_LITERAL = (
-//    Self::REQUIRED_DIGITS.bits
-//    | Self::NO_POSITIVE_MANTISSA_SIGN.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// HASKELL STRING [45678MN]
-///// Number format to parse a Haskell float from string.
-//const HASKELL_STRING = (
-//    Self::REQUIRED_DIGITS.bits
-//    | Self::NO_POSITIVE_MANTISSA_SIGN.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// JAVASCRIPT LITERAL [01345678M]
-///// Number format for a Javascript literal floating-point number.
-//const JAVASCRIPT_LITERAL = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//    | Self::NO_FLOAT_LEADING_ZEROS.bits
-//);
-//
-//// JAVASCRIPT STRING [012345678MN]
-///// Number format to parse a Javascript float from string.
-//const JAVASCRIPT_STRING = (
-//    Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// PERL LITERAL [0134569ABDEFGHIJKMN-_]
-///// Number format for a Perl literal floating-point number.
-//const PERL_LITERAL = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::FRACTION_LEADING_DIGIT_SEPARATOR.bits
-//    | Self::EXPONENT_LEADING_DIGIT_SEPARATOR.bits
-//    | Self::TRAILING_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//);
-//
-//// PERL STRING [01234567MN]
-///// Number format to parse a Perl float from string.
-//const PERL_STRING = Self::PERMISSIVE.bits;
-//
-//// PHP LITERAL [01345678MN]
-///// Number format for a PHP literal floating-point number.
-//const PHP_LITERAL = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// PHP STRING [0123456MN]
-///// Number format to parse a PHP float from string.
-//const PHP_STRING = (
-//    Self::NO_SPECIAL.bits
-//);
-//
-//// JAVA LITERAL [0134569ABIJKMN-_]
-///// Number format for a Java literal floating-point number.
-//const JAVA_LITERAL = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//);
-//
-//// JAVA STRING [01345678MN]
-///// Number format to parse a Java float from string.
-//const JAVA_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// R LITERAL [01345678MN]
-///// Number format for a R literal floating-point number.
-//const R_LITERAL = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// R STRING [01234567MN]
-///// Number format to parse a R float from string.
-//const R_STRING = Self::PERMISSIVE.bits;
-//
-//// KOTLIN LITERAL [0134569ABIJKN-_]
-///// Number format for a Kotlin literal floating-point number.
-//const KOTLIN_LITERAL = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//    | Self::NO_INTEGER_LEADING_ZEROS.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//);
-//
-//// KOTLIN STRING [0134568MN]
-///// Number format to parse a Kotlin float from string.
-//const KOTLIN_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// JULIA LITERAL [01345689AMN-_]
-///// Number format for a Julia literal floating-point number.
-//const JULIA_LITERAL = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//    | Self::INTEGER_INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::FRACTION_INTERNAL_DIGIT_SEPARATOR.bits
-//);
-//
-//// JULIA STRING [01345678MN]
-///// Number format to parse a Julia float from string.
-//const JULIA_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//);
-//
-///// Number format for a C# literal floating-point number.
-//const CSHARP_LITERAL = Self::CSHARP7_LITERAL.bits;
-//
-///// Number format to parse a C# float from string.
-//const CSHARP_STRING = Self::CSHARP7_STRING.bits;
-//
-//// CSHARP7 LITERAL [034569ABIJKMN-_]
-///// Number format for a C#7 literal floating-point number.
-//const CSHARP7_LITERAL = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_FRACTION_DIGITS.bits
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//);
-//
-//// CSHARP7 STRING [0134568MN]
-///// Number format to parse a C#7 float from string.
-//const CSHARP7_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// CSHARP6 LITERAL [03456MN]
-///// Number format for a C#6 literal floating-point number.
-//const CSHARP6_LITERAL = (
-//    Self::REQUIRED_FRACTION_DIGITS.bits
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// CSHARP6 STRING [0134568MN]
-///// Number format to parse a C#6 float from string.
-//const CSHARP6_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// CSHARP5 LITERAL [03456MN]
-///// Number format for a C#5 literal floating-point number.
-//const CSHARP5_LITERAL = (
-//    Self::REQUIRED_FRACTION_DIGITS.bits
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// CSHARP5 STRING [0134568MN]
-///// Number format to parse a C#5 float from string.
-//const CSHARP5_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// CSHARP4 LITERAL [03456MN]
-///// Number format for a C#4 literal floating-point number.
-//const CSHARP4_LITERAL = (
-//    Self::REQUIRED_FRACTION_DIGITS.bits
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// CSHARP4 STRING [0134568MN]
-///// Number format to parse a C#4 float from string.
-//const CSHARP4_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// CSHARP3 LITERAL [03456MN]
-///// Number format for a C#3 literal floating-point number.
-//const CSHARP3_LITERAL = (
-//    Self::REQUIRED_FRACTION_DIGITS.bits
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// CSHARP3 STRING [0134568MN]
-///// Number format to parse a C#3 float from string.
-//const CSHARP3_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// CSHARP2 LITERAL [03456MN]
-///// Number format for a C#2 literal floating-point number.
-//const CSHARP2_LITERAL = (
-//    Self::REQUIRED_FRACTION_DIGITS.bits
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// CSHARP2 STRING [0134568MN]
-///// Number format to parse a C#2 float from string.
-//const CSHARP2_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// CSHARP1 LITERAL [03456MN]
-///// Number format for a C#1 literal floating-point number.
-//const CSHARP1_LITERAL = (
-//    Self::REQUIRED_FRACTION_DIGITS.bits
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// CSHARP1 STRING [0134568MN]
-///// Number format to parse a C#1 float from string.
-//const CSHARP1_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// KAWA LITERAL [013456MN]
-///// Number format for a Kawa literal floating-point number.
-//const KAWA_LITERAL = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// KAWA STRING [013456MN]
-///// Number format to parse a Kawa float from string.
-//const KAWA_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// GAMBITC LITERAL [013456MN]
-///// Number format for a Gambit-C literal floating-point number.
-//const GAMBITC_LITERAL = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// GAMBITC STRING [013456MN]
-///// Number format to parse a Gambit-C float from string.
-//const GAMBITC_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// GUILE LITERAL [013456MN]
-///// Number format for a Guile literal floating-point number.
-//const GUILE_LITERAL = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// GUILE STRING [013456MN]
-///// Number format to parse a Guile float from string.
-//const GUILE_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// CLOJURE LITERAL [13456MN]
-///// Number format for a Clojure literal floating-point number.
-//const CLOJURE_LITERAL = (
-//    Self::REQUIRED_INTEGER_DIGITS.bits
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// CLOJURE STRING [01345678MN]
-///// Number format to parse a Clojure float from string.
-//const CLOJURE_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// ERLANG LITERAL [34578MN]
-///// Number format for an Erlang literal floating-point number.
-//const ERLANG_LITERAL = (
-//    Self::REQUIRED_DIGITS.bits
-//    | Self::NO_EXPONENT_WITHOUT_FRACTION.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// ERLANG STRING [345MN]
-///// Number format to parse an Erlang float from string.
-//const ERLANG_STRING = (
-//    Self::REQUIRED_DIGITS.bits
-//    | Self::NO_EXPONENT_WITHOUT_FRACTION.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// ELM LITERAL [456]
-///// Number format for an Elm literal floating-point number.
-//const ELM_LITERAL = (
-//    Self::REQUIRED_DIGITS.bits
-//    | Self::NO_POSITIVE_MANTISSA_SIGN.bits
-//    | Self::NO_INTEGER_LEADING_ZEROS.bits
-//    | Self::NO_FLOAT_LEADING_ZEROS.bits
-//);
-//
-//// ELM STRING [01345678MN]
-///// Number format to parse an Elm float from string.
-//// Note: There is no valid representation of NaN, just Infinity.
-//const ELM_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// SCALA LITERAL [3456]
-///// Number format for a Scala literal floating-point number.
-//const SCALA_LITERAL = (
-//    Self::REQUIRED_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//    | Self::NO_INTEGER_LEADING_ZEROS.bits
-//    | Self::NO_FLOAT_LEADING_ZEROS.bits
-//);
-//
-//// SCALA STRING [01345678MN]
-///// Number format to parse a Scala float from string.
-//const SCALA_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// ELIXIR LITERAL [3459ABMN-_]
-///// Number format for an Elixir literal floating-point number.
-//const ELIXIR_LITERAL = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_DIGITS.bits
-//    | Self::NO_EXPONENT_WITHOUT_FRACTION.bits
-//    | Self::NO_SPECIAL.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//);
-//
-//// ELIXIR STRING [345MN]
-///// Number format to parse an Elixir float from string.
-//const ELIXIR_STRING = (
-//    Self::REQUIRED_DIGITS.bits
-//    | Self::NO_EXPONENT_WITHOUT_FRACTION.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// FORTRAN LITERAL [013456MN]
-///// Number format for a FORTRAN literal floating-point number.
-//const FORTRAN_LITERAL = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// FORTRAN STRING [0134567MN]
-///// Number format to parse a FORTRAN float from string.
-//const FORTRAN_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//);
-//
-//// D LITERAL [0134569ABFGHIJKN-_]
-///// Number format for a D literal floating-point number.
-//const D_LITERAL = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//    | Self::NO_INTEGER_LEADING_ZEROS.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::TRAILING_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//);
-//
-//// D STRING [01345679AFGMN-_]
-///// Number format to parse a D float from string.
-//const D_STRING = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::INTEGER_INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::FRACTION_INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::INTEGER_TRAILING_DIGIT_SEPARATOR.bits
-//    | Self::FRACTION_TRAILING_DIGIT_SEPARATOR.bits
-//);
-//
-//// COFFEESCRIPT LITERAL [01345678]
-///// Number format for a Coffeescript literal floating-point number.
-//const COFFEESCRIPT_LITERAL = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//    | Self::NO_INTEGER_LEADING_ZEROS.bits
-//    | Self::NO_FLOAT_LEADING_ZEROS.bits
-//);
-//
-//// COFFEESCRIPT STRING [012345678MN]
-///// Number format to parse a Coffeescript float from string.
-//const COFFEESCRIPT_STRING = (
-//    Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// COBOL LITERAL [0345MN]
-///// Number format for a Cobol literal floating-point number.
-//const COBOL_LITERAL = (
-//    Self::REQUIRED_FRACTION_DIGITS.bits
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_EXPONENT_WITHOUT_FRACTION.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// COBOL STRING [012356MN]
-///// Number format to parse a Cobol float from string.
-//const COBOL_STRING = (
-//    Self::REQUIRED_EXPONENT_SIGN.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// FSHARP LITERAL [13456789ABIJKMN-_]
-///// Number format for a F# literal floating-point number.
-//const FSHARP_LITERAL = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_INTEGER_DIGITS.bits
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//);
-//
-//// FSHARP STRING [013456789ABCDEFGHIJKLMN-_]
-///// Number format to parse a F# float from string.
-//const FSHARP_STRING = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//    | Self::LEADING_DIGIT_SEPARATOR.bits
-//    | Self::TRAILING_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//    | Self::SPECIAL_DIGIT_SEPARATOR.bits
-//);
-//
-//// VB LITERAL [03456MN]
-///// Number format for a Visual Basic literal floating-point number.
-//const VB_LITERAL = (
-//    Self::REQUIRED_FRACTION_DIGITS.bits
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// VB STRING [01345678MN]
-///// Number format to parse a Visual Basic float from string.
-//// Note: To my knowledge, Visual Basic cannot parse infinity.
-//const VB_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// OCAML LITERAL [1456789ABDFGHIJKMN-_]
-///// Number format for an OCaml literal floating-point number.
-//const OCAML_LITERAL = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_INTEGER_DIGITS.bits
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_POSITIVE_MANTISSA_SIGN.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::FRACTION_LEADING_DIGIT_SEPARATOR.bits
-//    | Self::TRAILING_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//);
-//
-//// OCAML STRING [01345679ABCDEFGHIJKLMN-_]
-///// Number format to parse an OCaml float from string.
-//const OCAML_STRING = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::LEADING_DIGIT_SEPARATOR.bits
-//    | Self::TRAILING_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//    | Self::SPECIAL_DIGIT_SEPARATOR.bits
-//);
-//
-//// OBJECTIVEC LITERAL [013456MN]
-///// Number format for an Objective-C literal floating-point number.
-//const OBJECTIVEC_LITERAL = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// OBJECTIVEC STRING [013456MN]
-///// Number format to parse an Objective-C float from string.
-//const OBJECTIVEC_STRING = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// REASONML LITERAL [13456789ABDFGHIJKMN-_]
-///// Number format for a ReasonML literal floating-point number.
-//const REASONML_LITERAL = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_INTEGER_DIGITS.bits
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::FRACTION_LEADING_DIGIT_SEPARATOR.bits
-//    | Self::TRAILING_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//);
-//
-//// REASONML STRING [01345679ABCDEFGHIJKLMN-_]
-///// Number format to parse a ReasonML float from string.
-//const REASONML_STRING = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::LEADING_DIGIT_SEPARATOR.bits
-//    | Self::TRAILING_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//    | Self::SPECIAL_DIGIT_SEPARATOR.bits
-//);
-//
-//// OCTAVE LITERAL [013456789ABDFGHIJKMN-_]
-///// Number format for an Octave literal floating-point number.
-//// Note: Octave accepts both NaN and nan, Inf and inf.
-//const OCTAVE_LITERAL = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::FRACTION_LEADING_DIGIT_SEPARATOR.bits
-//    | Self::TRAILING_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//);
-//
-//// OCTAVE STRING [01345679ABCDEFGHIJKMN-,]
-///// Number format to parse an Octave float from string.
-//const OCTAVE_STRING = (
-//    flags::digit_separator_to_flags(b',')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::LEADING_DIGIT_SEPARATOR.bits
-//    | Self::TRAILING_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//);
-//
-//// MATLAB LITERAL [013456789ABDFGHIJKMN-_]
-///// Number format for an Matlab literal floating-point number.
-//// Note: Matlab accepts both NaN and nan, Inf and inf.
-//const MATLAB_LITERAL = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::FRACTION_LEADING_DIGIT_SEPARATOR.bits
-//    | Self::TRAILING_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//);
-//
-//// MATLAB STRING [01345679ABCDEFGHIJKMN-,]
-///// Number format to parse an Matlab float from string.
-//const MATLAB_STRING = (
-//    flags::digit_separator_to_flags(b',')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::LEADING_DIGIT_SEPARATOR.bits
-//    | Self::TRAILING_DIGIT_SEPARATOR.bits
-//    | Self::CONSECUTIVE_DIGIT_SEPARATOR.bits
-//);
-//
-//// ZIG LITERAL [1456MN]
-///// Number format for a Zig literal floating-point number.
-//const ZIG_LITERAL = (
-//    Self::REQUIRED_INTEGER_DIGITS.bits
-//    | Self::NO_POSITIVE_MANTISSA_SIGN.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// ZIG STRING [01234567MN]
-///// Number format to parse a Zig float from string.
-//const ZIG_STRING = Self::PERMISSIVE.bits;
-//
-//// SAGE LITERAL [012345678MN]
-///// Number format for a Sage literal floating-point number.
-//// Note: Both Infinity and infinity are accepted.
-//const SAGE_LITERAL = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// SAGE STRING [01345679ABMN-_]
-///// Number format to parse a Sage float from string.
-//const SAGE_STRING = (
-//    flags::digit_separator_to_flags(b'_')
-//    | Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//);
+const_assert!(NumberFormat::<{ HASKELL_LITERAL }> {}.is_valid());
+
+// HASKELL STRING [45678MN]
+/// Number format to parse a Haskell float from string.
+#[rustfmt::skip]
+pub const HASKELL_STRING: u128 = NumberFormatBuilder::new()
+    .required_digits(true)
+    .no_positive_mantissa_sign(true)
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ HASKELL_STRING }> {}.is_valid());
+
+// JAVASCRIPT LITERAL [01345678M]
+/// Number format for a Javascript literal floating-point number.
+#[rustfmt::skip]
+pub const JAVASCRIPT_LITERAL: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .no_float_leading_zeros(true)
+    .build();
+
+const_assert!(NumberFormat::<{ JAVASCRIPT_LITERAL }> {}.is_valid());
+
+// JAVASCRIPT STRING [012345678MN]
+/// Number format to parse a Javascript float from string.
+#[rustfmt::skip]
+pub const JAVASCRIPT_STRING: u128 = NumberFormatBuilder::new()
+    .required_exponent_digits(false)
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ JAVASCRIPT_STRING }> {}.is_valid());
+
+// PERL LITERAL [0134569ABDEFGHIJKMN-_]
+/// Number format for a Perl literal floating-point number.
+#[rustfmt::skip]
+pub const PERL_LITERAL: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .no_special(true)
+    .internal_digit_separator(true)
+    .fraction_leading_digit_separator(true)
+    .exponent_leading_digit_separator(true)
+    .trailing_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ PERL_LITERAL }> {}.is_valid());
+
+// PERL STRING [01234567MN]
+/// Number format to parse a Perl float from string.
+pub const PERL_STRING: u128 = PERMISSIVE;
+
+// PHP LITERAL [01345678MN]
+/// Number format for a PHP literal floating-point number.
+#[rustfmt::skip]
+pub const PHP_LITERAL: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ PHP_LITERAL }> {}.is_valid());
+
+// PHP STRING [0123456MN]
+/// Number format to parse a PHP float from string.
+#[rustfmt::skip]
+pub const PHP_STRING: u128 = NumberFormatBuilder::new()
+    .required_exponent_digits(false)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ PHP_STRING }> {}.is_valid());
+
+// JAVA LITERAL [0134569ABIJKMN-_]
+/// Number format for a Java literal floating-point number.
+#[rustfmt::skip]
+pub const JAVA_LITERAL: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .no_special(true)
+    .internal_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ JAVA_LITERAL }> {}.is_valid());
+
+// JAVA STRING [01345678MN]
+/// Number format to parse a Java float from string.
+#[rustfmt::skip]
+pub const JAVA_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ JAVA_STRING }> {}.is_valid());
+
+// R LITERAL [01345678MN]
+/// Number format for a R literal floating-point number.
+#[rustfmt::skip]
+pub const R_LITERAL: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ R_LITERAL }> {}.is_valid());
+
+// R STRING [01234567MN]
+/// Number format to parse a R float from string.
+pub const R_STRING: u128 = PERMISSIVE;
+
+// KOTLIN LITERAL [0134569ABIJKN-_]
+/// Number format for a Kotlin literal floating-point number.
+#[rustfmt::skip]
+pub const KOTLIN_LITERAL: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .no_special(true)
+    .no_integer_leading_zeros(true)
+    .internal_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ KOTLIN_LITERAL }> {}.is_valid());
+
+// KOTLIN STRING [0134568MN]
+/// Number format to parse a Kotlin float from string.
+#[rustfmt::skip]
+pub const KOTLIN_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ KOTLIN_STRING }> {}.is_valid());
+
+// JULIA LITERAL [01345689AMN-_]
+/// Number format for a Julia literal floating-point number.
+#[rustfmt::skip]
+pub const JULIA_LITERAL: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .case_sensitive_special(true)
+    .integer_internal_digit_separator(true)
+    .fraction_internal_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ JULIA_LITERAL }> {}.is_valid());
+
+// JULIA STRING [01345678MN]
+/// Number format to parse a Julia float from string.
+#[rustfmt::skip]
+pub const JULIA_STRING: u128 = NumberFormatBuilder::new().build();
+const_assert!(NumberFormat::<{ JULIA_STRING }> {}.is_valid());
+
+/// Number format for a C# literal floating-point number.
+pub const CSHARP_LITERAL: u128 = CSHARP7_LITERAL;
+
+/// Number format to parse a C# float from string.
+pub const CSHARP_STRING: u128 = CSHARP7_STRING;
+
+// CSHARP7 LITERAL [034569ABIJKMN-_]
+/// Number format for a C#7 literal floating-point number.
+#[rustfmt::skip]
+pub const CSHARP7_LITERAL: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .required_fraction_digits(true)
+    .no_special(true)
+    .internal_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP7_LITERAL }> {}.is_valid());
+
+// CSHARP7 STRING [0134568MN]
+/// Number format to parse a C#7 float from string.
+#[rustfmt::skip]
+pub const CSHARP7_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP7_STRING }> {}.is_valid());
+
+// CSHARP6 LITERAL [03456MN]
+/// Number format for a C#6 literal floating-point number.
+#[rustfmt::skip]
+pub const CSHARP6_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_fraction_digits(true)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP6_LITERAL }> {}.is_valid());
+
+// CSHARP6 STRING [0134568MN]
+/// Number format to parse a C#6 float from string.
+#[rustfmt::skip]
+pub const CSHARP6_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP6_STRING }> {}.is_valid());
+
+// CSHARP5 LITERAL [03456MN]
+/// Number format for a C#5 literal floating-point number.
+#[rustfmt::skip]
+pub const CSHARP5_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_fraction_digits(true)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP5_LITERAL }> {}.is_valid());
+
+// CSHARP5 STRING [0134568MN]
+/// Number format to parse a C#5 float from string.
+#[rustfmt::skip]
+pub const CSHARP5_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP5_STRING }> {}.is_valid());
+
+// CSHARP4 LITERAL [03456MN]
+/// Number format for a C#4 literal floating-point number.
+#[rustfmt::skip]
+pub const CSHARP4_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_fraction_digits(true)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP4_LITERAL }> {}.is_valid());
+
+// CSHARP4 STRING [0134568MN]
+/// Number format to parse a C#4 float from string.
+#[rustfmt::skip]
+pub const CSHARP4_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP4_STRING }> {}.is_valid());
+
+// CSHARP3 LITERAL [03456MN]
+/// Number format for a C#3 literal floating-point number.
+#[rustfmt::skip]
+pub const CSHARP3_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_fraction_digits(true)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP3_LITERAL }> {}.is_valid());
+
+// CSHARP3 STRING [0134568MN]
+/// Number format to parse a C#3 float from string.
+#[rustfmt::skip]
+pub const CSHARP3_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP3_STRING }> {}.is_valid());
+
+// CSHARP2 LITERAL [03456MN]
+/// Number format for a C#2 literal floating-point number.
+#[rustfmt::skip]
+pub const CSHARP2_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_fraction_digits(true)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP2_LITERAL }> {}.is_valid());
+
+// CSHARP2 STRING [0134568MN]
+/// Number format to parse a C#2 float from string.
+#[rustfmt::skip]
+pub const CSHARP2_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP2_STRING }> {}.is_valid());
+
+// CSHARP1 LITERAL [03456MN]
+/// Number format for a C#1 literal floating-point number.
+#[rustfmt::skip]
+pub const CSHARP1_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_fraction_digits(true)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP1_LITERAL }> {}.is_valid());
+
+// CSHARP1 STRING [0134568MN]
+/// Number format to parse a C#1 float from string.
+#[rustfmt::skip]
+pub const CSHARP1_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CSHARP1_STRING }> {}.is_valid());
+
+// KAWA LITERAL [013456MN]
+/// Number format for a Kawa literal floating-point number.
+#[rustfmt::skip]
+pub const KAWA_LITERAL: u128 = NumberFormatBuilder::new()
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ KAWA_LITERAL }> {}.is_valid());
+
+// KAWA STRING [013456MN]
+/// Number format to parse a Kawa float from string.
+#[rustfmt::skip]
+pub const KAWA_STRING: u128 = NumberFormatBuilder::new()
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ KAWA_STRING }> {}.is_valid());
+
+// GAMBITC LITERAL [013456MN]
+/// Number format for a Gambit-C literal floating-point number.
+#[rustfmt::skip]
+pub const GAMBITC_LITERAL: u128 = NumberFormatBuilder::new()
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ GAMBITC_LITERAL }> {}.is_valid());
+
+// GAMBITC STRING [013456MN]
+/// Number format to parse a Gambit-C float from string.
+#[rustfmt::skip]
+pub const GAMBITC_STRING: u128 = NumberFormatBuilder::new()
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ GAMBITC_STRING }> {}.is_valid());
+
+// GUILE LITERAL [013456MN]
+/// Number format for a Guile literal floating-point number.
+#[rustfmt::skip]
+pub const GUILE_LITERAL: u128 = NumberFormatBuilder::new()
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ GUILE_LITERAL }> {}.is_valid());
+
+// GUILE STRING [013456MN]
+/// Number format to parse a Guile float from string.
+#[rustfmt::skip]
+pub const GUILE_STRING: u128 = NumberFormatBuilder::new()
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ GUILE_STRING }> {}.is_valid());
+
+// CLOJURE LITERAL [13456MN]
+/// Number format for a Clojure literal floating-point number.
+#[rustfmt::skip]
+pub const CLOJURE_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_integer_digits(true)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CLOJURE_LITERAL }> {}.is_valid());
+
+// CLOJURE STRING [01345678MN]
+/// Number format to parse a Clojure float from string.
+#[rustfmt::skip]
+pub const CLOJURE_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ CLOJURE_STRING }> {}.is_valid());
+
+// ERLANG LITERAL [34578MN]
+/// Number format for an Erlang literal floating-point number.
+#[rustfmt::skip]
+pub const ERLANG_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_digits(true)
+    .no_exponent_without_fraction(true)
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ ERLANG_LITERAL }> {}.is_valid());
+
+// ERLANG STRING [345MN]
+/// Number format to parse an Erlang float from string.
+#[rustfmt::skip]
+pub const ERLANG_STRING: u128 = NumberFormatBuilder::new()
+    .required_digits(true)
+    .no_exponent_without_fraction(true)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ ERLANG_STRING }> {}.is_valid());
+
+// ELM LITERAL [456]
+/// Number format for an Elm literal floating-point number.
+#[rustfmt::skip]
+pub const ELM_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_digits(true)
+    .no_positive_mantissa_sign(true)
+    .no_integer_leading_zeros(true)
+    .no_float_leading_zeros(true)
+    .build();
+
+const_assert!(NumberFormat::<{ ELM_LITERAL }> {}.is_valid());
+
+// ELM STRING [01345678MN]
+// Note: There is no valid representation of NaN, just Infinity.
+/// Number format to parse an Elm float from string.
+#[rustfmt::skip]
+pub const ELM_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ ELM_STRING }> {}.is_valid());
+
+// SCALA LITERAL [3456]
+/// Number format for a Scala literal floating-point number.
+#[rustfmt::skip]
+pub const SCALA_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_digits(true)
+    .no_special(true)
+    .no_integer_leading_zeros(true)
+    .no_float_leading_zeros(true)
+    .build();
+
+const_assert!(NumberFormat::<{ SCALA_LITERAL }> {}.is_valid());
+
+// SCALA STRING [01345678MN]
+/// Number format to parse a Scala float from string.
+#[rustfmt::skip]
+pub const SCALA_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ SCALA_STRING }> {}.is_valid());
+
+// ELIXIR LITERAL [3459ABMN-_]
+/// Number format for an Elixir literal floating-point number.
+#[rustfmt::skip]
+pub const ELIXIR_LITERAL: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .required_digits(true)
+    .no_exponent_without_fraction(true)
+    .no_special(true)
+    .internal_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ ELIXIR_LITERAL }> {}.is_valid());
+
+// ELIXIR STRING [345MN]
+/// Number format to parse an Elixir float from string.
+#[rustfmt::skip]
+pub const ELIXIR_STRING: u128 = NumberFormatBuilder::new()
+    .required_digits(true)
+    .no_exponent_without_fraction(true)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ ELIXIR_STRING }> {}.is_valid());
+
+// FORTRAN LITERAL [013456MN]
+/// Number format for a FORTRAN literal floating-point number.
+#[rustfmt::skip]
+pub const FORTRAN_LITERAL: u128 = NumberFormatBuilder::new()
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ FORTRAN_LITERAL }> {}.is_valid());
+
+// FORTRAN STRING [0134567MN]
+/// Number format to parse a FORTRAN float from string.
+#[rustfmt::skip]
+pub const FORTRAN_STRING: u128 = NumberFormatBuilder::new().build();
+const_assert!(NumberFormat::<{ FORTRAN_STRING }> {}.is_valid());
+
+// D LITERAL [0134569ABFGHIJKN-_]
+/// Number format for a D literal floating-point number.
+#[rustfmt::skip]
+pub const D_LITERAL: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .no_special(true)
+    .no_integer_leading_zeros(true)
+    .internal_digit_separator(true)
+    .trailing_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ D_LITERAL }> {}.is_valid());
+
+// D STRING [01345679AFGMN-_]
+/// Number format to parse a D float from string.
+#[rustfmt::skip]
+pub const D_STRING: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .integer_internal_digit_separator(true)
+    .fraction_internal_digit_separator(true)
+    .integer_trailing_digit_separator(true)
+    .fraction_trailing_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ D_STRING }> {}.is_valid());
+
+// COFFEESCRIPT LITERAL [01345678]
+/// Number format for a Coffeescript literal floating-point number.
+#[rustfmt::skip]
+pub const COFFEESCRIPT_LITERAL: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .no_integer_leading_zeros(true)
+    .no_float_leading_zeros(true)
+    .build();
+
+const_assert!(NumberFormat::<{ COFFEESCRIPT_LITERAL }> {}.is_valid());
+
+// COFFEESCRIPT STRING [012345678MN]
+/// Number format to parse a Coffeescript float from string.
+#[rustfmt::skip]
+pub const COFFEESCRIPT_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ COFFEESCRIPT_STRING }> {}.is_valid());
+
+// COBOL LITERAL [0345MN]
+/// Number format for a Cobol literal floating-point number.
+#[rustfmt::skip]
+pub const COBOL_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_fraction_digits(true)
+    .no_exponent_without_fraction(true)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ COBOL_LITERAL }> {}.is_valid());
+
+// COBOL STRING [012356MN]
+/// Number format to parse a Cobol float from string.
+#[rustfmt::skip]
+pub const COBOL_STRING: u128 = NumberFormatBuilder::new()
+    .required_exponent_sign(true)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ COBOL_STRING }> {}.is_valid());
+
+// FSHARP LITERAL [13456789ABIJKMN-_]
+/// Number format for a F# literal floating-point number.
+#[rustfmt::skip]
+pub const FSHARP_LITERAL: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .required_integer_digits(true)
+    .required_exponent_digits(true)
+    .case_sensitive_special(true)
+    .internal_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ FSHARP_LITERAL }> {}.is_valid());
+
+// FSHARP STRING [013456789ABCDEFGHIJKLMN-_]
+/// Number format to parse a F# float from string.
+#[rustfmt::skip]
+pub const FSHARP_STRING: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .case_sensitive_special(true)
+    .internal_digit_separator(true)
+    .leading_digit_separator(true)
+    .trailing_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .special_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ FSHARP_STRING }> {}.is_valid());
+
+// VB LITERAL [03456MN]
+/// Number format for a Visual Basic literal floating-point number.
+#[rustfmt::skip]
+pub const VB_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_fraction_digits(true)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ VB_LITERAL }> {}.is_valid());
+
+// VB STRING [01345678MN]
+/// Number format to parse a Visual Basic float from string.
+// Note: To my knowledge, Visual Basic cannot parse infinity.
+#[rustfmt::skip]
+pub const VB_STRING: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ VB_STRING }> {}.is_valid());
+
+// OCAML LITERAL [1456789ABDFGHIJKMN-_]
+/// Number format for an OCaml literal floating-point number.
+#[rustfmt::skip]
+pub const OCAML_LITERAL: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .required_integer_digits(true)
+    .required_exponent_digits(true)
+    .no_positive_mantissa_sign(true)
+    .case_sensitive_special(true)
+    .internal_digit_separator(true)
+    .fraction_leading_digit_separator(true)
+    .trailing_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ OCAML_LITERAL }> {}.is_valid());
+
+// OCAML STRING [01345679ABCDEFGHIJKLMN-_]
+/// Number format to parse an OCaml float from string.
+#[rustfmt::skip]
+pub const OCAML_STRING: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .internal_digit_separator(true)
+    .leading_digit_separator(true)
+    .trailing_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .special_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ OCAML_STRING }> {}.is_valid());
+
+// OBJECTIVEC LITERAL [013456MN]
+/// Number format for an Objective-C literal floating-point number.
+#[rustfmt::skip]
+pub const OBJECTIVEC_LITERAL: u128 = NumberFormatBuilder::new()
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ OBJECTIVEC_LITERAL }> {}.is_valid());
+
+// OBJECTIVEC STRING [013456MN]
+/// Number format to parse an Objective-C float from string.
+#[rustfmt::skip]
+pub const OBJECTIVEC_STRING: u128 = NumberFormatBuilder::new()
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ OBJECTIVEC_STRING }> {}.is_valid());
+
+// REASONML LITERAL [13456789ABDFGHIJKMN-_]
+/// Number format for a ReasonML literal floating-point number.
+#[rustfmt::skip]
+pub const REASONML_LITERAL: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .required_integer_digits(true)
+    .required_exponent_digits(true)
+    .case_sensitive_special(true)
+    .internal_digit_separator(true)
+    .fraction_leading_digit_separator(true)
+    .trailing_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ REASONML_LITERAL }> {}.is_valid());
+
+// REASONML STRING [01345679ABCDEFGHIJKLMN-_]
+/// Number format to parse a ReasonML float from string.
+#[rustfmt::skip]
+pub const REASONML_STRING: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .internal_digit_separator(true)
+    .leading_digit_separator(true)
+    .trailing_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .special_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ REASONML_STRING }> {}.is_valid());
+
+// OCTAVE LITERAL [013456789ABDFGHIJKMN-_]
+// Note: Octave accepts both NaN and nan, Inf and inf.
+/// Number format for an Octave literal floating-point number.
+#[rustfmt::skip]
+pub const OCTAVE_LITERAL: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .case_sensitive_special(true)
+    .internal_digit_separator(true)
+    .fraction_leading_digit_separator(true)
+    .trailing_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ OCTAVE_LITERAL }> {}.is_valid());
+
+// OCTAVE STRING [01345679ABCDEFGHIJKMN-,]
+/// Number format to parse an Octave float from string.
+#[rustfmt::skip]
+pub const OCTAVE_STRING: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b','))
+    .internal_digit_separator(true)
+    .leading_digit_separator(true)
+    .trailing_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ OCTAVE_STRING }> {}.is_valid());
+
+// MATLAB LITERAL [013456789ABDFGHIJKMN-_]
+// Note: Matlab accepts both NaN and nan, Inf and inf.
+/// Number format for an Matlab literal floating-point number.
+#[rustfmt::skip]
+pub const MATLAB_LITERAL: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .case_sensitive_special(true)
+    .internal_digit_separator(true)
+    .fraction_leading_digit_separator(true)
+    .trailing_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ MATLAB_LITERAL }> {}.is_valid());
+
+// MATLAB STRING [01345679ABCDEFGHIJKMN-,]
+/// Number format to parse an Matlab float from string.
+#[rustfmt::skip]
+pub const MATLAB_STRING: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b','))
+    .internal_digit_separator(true)
+    .leading_digit_separator(true)
+    .trailing_digit_separator(true)
+    .consecutive_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ MATLAB_STRING }> {}.is_valid());
+
+// ZIG LITERAL [1456MN]
+/// Number format for a Zig literal floating-point number.
+#[rustfmt::skip]
+pub const ZIG_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_integer_digits(true)
+    .no_positive_mantissa_sign(true)
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ ZIG_LITERAL }> {}.is_valid());
+
+// ZIG STRING [01234567MN]
+/// Number format to parse a Zig float from string.
+pub const ZIG_STRING: u128 = PERMISSIVE;
+
+// SAGE LITERAL [012345678MN]
+// Note: Both Infinity and infinity are accepted.
+/// Number format for a Sage literal floating-point number.
+#[rustfmt::skip]
+pub const SAGE_LITERAL: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ SAGE_LITERAL }> {}.is_valid());
+
+// SAGE STRING [01345679ABMN-_]
+/// Number format to parse a Sage float from string.
+#[rustfmt::skip]
+pub const SAGE_STRING: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .internal_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ SAGE_STRING }> {}.is_valid());
 
 // JSON [456]
 /// Number format for a JSON literal floating-point number.
 #[rustfmt::skip]
 pub const JSON: u128 = NumberFormatBuilder::new()
-    .digit_separator(num::NonZeroU8::new(b'\''))
     .required_digits(true)
     .no_positive_mantissa_sign(true)
     .no_special(true)
@@ -2227,51 +2366,68 @@ pub const JSON: u128 = NumberFormatBuilder::new()
 
 const_assert!(NumberFormat::<{ JSON }> {}.is_valid());
 
-//// TOML [34569AB]
-///// Number format for a TOML literal floating-point number.
-//const TOML = (
-//    Self::REQUIRED_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//    | Self::INTERNAL_DIGIT_SEPARATOR.bits
-//    | Self::NO_INTEGER_LEADING_ZEROS.bits
-//    | Self::NO_FLOAT_LEADING_ZEROS.bits
-//);
-//
-//// YAML (defined in-terms of JSON schema).
-///// Number format for a YAML literal floating-point number.
-//const YAML = Self::JSON.bits;
-//
-//// XML [01234578MN]
-///// Number format for a XML literal floating-point number.
-//const XML = (
-//    Self::CASE_SENSITIVE_SPECIAL.bits
-//);
-//
-//// SQLITE [013456MN]
-///// Number format for a SQLite literal floating-point number.
-//const SQLITE = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// POSTGRESQL [013456MN]
-///// Number format for a PostgreSQL literal floating-point number.
-//const POSTGRESQL = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
-//
-//// MYSQL [013456MN]
-///// Number format for a MySQL literal floating-point number.
-//const MYSQL = (
-//    Self::REQUIRED_EXPONENT_DIGITS.bits
-//    | Self::NO_SPECIAL.bits
-//);
+// TOML [34569AB]
+/// Number format for a TOML literal floating-point number.
+#[rustfmt::skip]
+pub const TOML: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .required_digits(false)
+    .no_special(true)
+    .no_integer_leading_zeros(true)
+    .no_float_leading_zeros(true)
+    .internal_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ TOML }> {}.is_valid());
+
+// YAML (defined in-terms of JSON schema).
+/// Number format for a YAML literal floating-point number.
+pub const YAML: u128 = JSON;
+
+// XML [01234578MN]
+/// Number format for a XML literal floating-point number.
+#[rustfmt::skip]
+pub const XML: u128 = NumberFormatBuilder::new()
+    .required_exponent_digits(false)
+    .case_sensitive_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ XML }> {}.is_valid());
+
+// SQLITE [013456MN]
+/// Number format for a SQLite literal floating-point number.
+#[rustfmt::skip]
+pub const SQLITE: u128 = NumberFormatBuilder::new()
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ SQLITE }> {}.is_valid());
+
+// POSTGRESQL [013456MN]
+/// Number format for a PostgreSQL literal floating-point number.
+#[rustfmt::skip]
+pub const POSTGRESQL: u128 = NumberFormatBuilder::new()
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ POSTGRESQL }> {}.is_valid());
+
+// MYSQL [013456MN]
+/// Number format for a MySQL literal floating-point number.
+#[rustfmt::skip]
+pub const MYSQL: u128 = NumberFormatBuilder::new()
+    .no_special(true)
+    .build();
+
+const_assert!(NumberFormat::<{ MYSQL }> {}.is_valid());
 
 // MONGODB [01345678M]
 /// Number format for a MongoDB literal floating-point number.
-pub const MONGODB: u128 =
-    NumberFormatBuilder::new().case_sensitive_special(true).no_float_leading_zeros(true).build();
+#[rustfmt::skip]
+pub const MONGODB: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .no_float_leading_zeros(true)
+    .build();
 
 const_assert!(NumberFormat::<{ MONGODB }> {}.is_valid());
 
