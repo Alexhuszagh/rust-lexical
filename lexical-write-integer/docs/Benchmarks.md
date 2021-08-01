@@ -1,6 +1,6 @@
 # Benchmarks
 
-These benchmarks were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.12.5/Fedora 34, and run against commit [3e4e1c4](https://github.com/Alexhuszagh/rust-lexical-experimental/3e4e1c446b19d30cc56f2f8e7078242f4f72c7a3). The exact code and data used to run the benchmark can be seen [here](/lexical-benchmark/write-integer).
+These benchmarks were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.12.5/Fedora 34, and run against commit [3e4e1c4](https://github.com/Alexhuszagh/rust-lexical-experimental/commit/3e4e1c446b19d30cc56f2f8e7078242f4f72c7a3). The exact code and data used to run the benchmark can be seen [here](/lexical-benchmark/write-integer).
 
 # Random
 
