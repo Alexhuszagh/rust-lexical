@@ -1,4 +1,6 @@
-use lexical_util::format::{self, NumberFormat, NumberFormatBuilder};
+#[cfg(feature = "format")]
+use lexical_util::format;
+use lexical_util::format::{NumberFormat, NumberFormatBuilder};
 
 #[test]
 fn decimal_test() {

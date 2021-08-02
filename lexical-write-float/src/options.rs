@@ -226,7 +226,9 @@ impl OptionsBuilder {
     ///
     /// # Safety
     ///
-    /// Safe as long as `is_valid` is true.
+    /// Safe as long as `is_valid` is true. If `nan_string` and `inf_string`
+    /// are too long, writing special floats may lead to severe buffer overflows,
+    /// and therefore severe security vulnerabilities.
     #[inline(always)]
     pub const unsafe fn build_unchecked(&self) -> Options {
         Options {

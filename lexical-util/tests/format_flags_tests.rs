@@ -88,7 +88,7 @@ fn test_is_valid_exponent() {
     }
 }
 
-#[cfg(feature = "format")]
+#[cfg(all(feature = "power-of-two", feature = "format"))]
 fn is_valid_punctuation(
     digit_separator: u8,
     decimal_point: u8,
