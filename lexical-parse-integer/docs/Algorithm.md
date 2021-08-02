@@ -31,7 +31,7 @@ while let Some(&c) = iter.next() {
         Some(v) => v,
         None => return Err(...),
     };
-    value = match value.checked_add(as_cast(digit)) {
+    value = match value.checked_add(digit) {
         Some(v) => v,
         None => return Err(...),
     };

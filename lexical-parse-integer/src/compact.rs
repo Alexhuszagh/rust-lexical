@@ -7,7 +7,7 @@
 use lexical_util::digit::{char_to_digit_const, AsDigits};
 use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{Byte, ByteIter};
-use lexical_util::num::{as_cast, Integer, Number};
+use lexical_util::num::{as_cast, AsPrimitive, Integer, Number};
 use lexical_util::result::Result;
 use lexical_util::step::u64_step;
 

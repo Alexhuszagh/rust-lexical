@@ -3,7 +3,7 @@
 use crate::options::Options;
 use crate::write::WriteInteger;
 use lexical_util::assert::{assert_buffer, assert_radix, debug_assert_buffer};
-use lexical_util::num::{as_cast, SignedInteger};
+use lexical_util::num::SignedInteger;
 use lexical_util::{to_lexical, to_lexical_with_options};
 
 // UNSIGNED
@@ -46,8 +46,8 @@ where
         // the value is **exactly** `Narrow::MIN`, and it it is then cast
         // as the wrapping negative as the unsigned value, a wider type
         // will have a very different value.
-        let value: Wide = as_cast(value);
-        let unsigned: Unsigned = as_cast(value.wrapping_neg());
+        let value = Wide::as_cast(value);
+        let unsigned = Unsigned::as_cast(value.wrapping_neg());
         // SAFETY: safe as long as there is at least 1 element, which
         // the buffer should have at least `FORMATTED_SIZE` elements.
         unsafe {
@@ -58,7 +58,7 @@ where
         // the buffer should have at least `FORMATTED_SIZE` elements.
         unsafe { unsigned.write_integer::<Unsigned, RADIX>(buffer) + 1 }
     } else {
-        let unsigned: Unsigned = as_cast(value);
+        let unsigned = Unsigned::as_cast(value);
         // SAFETY: safe as long as there is at least 1 element, which
         // the buffer should have at least `FORMATTED_SIZE` elements.
         unsafe { unsigned.write_integer::<Unsigned, RADIX>(buffer) }

@@ -1,7 +1,5 @@
 //! Shared trait and methods for writing integers.
 
-use lexical_util::num::as_cast;
-
 /// Select the back-end.
 #[cfg(feature = "compact")]
 use crate::compact::Compact;
@@ -24,7 +22,7 @@ pub trait WriteInteger: Compact {
     where
         U: Compact,
     {
-        let value: U = as_cast(self);
+        let value = U::as_cast(self);
         unsafe { value.compact(RADIX, buffer) }
     }
 }
@@ -43,7 +41,7 @@ pub trait WriteInteger: Decimal {
     where
         U: Decimal,
     {
-        let value: U = as_cast(self);
+        let value = U::as_cast(self);
         unsafe { value.decimal(buffer) }
     }
 }
@@ -63,7 +61,7 @@ pub trait WriteInteger: Decimal + Radix {
     where
         U: Decimal + Radix,
     {
-        let value: U = as_cast(self);
+        let value = U::as_cast(self);
         if RADIX == 10 {
             unsafe { value.decimal(buffer) }
         } else {

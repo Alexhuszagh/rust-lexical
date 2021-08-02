@@ -10,7 +10,7 @@ use crate::lib::mem;
 use lexical_util::algorithm::copy_to_dst;
 use lexical_util::assert::debug_assert_radix;
 use lexical_util::digit::digit_to_char;
-use lexical_util::num::{as_cast, UnsignedInteger};
+use lexical_util::num::{AsCast, UnsignedInteger};
 
 /// Write integral digits to buffer.
 ///
@@ -30,13 +30,13 @@ pub unsafe fn write_digits<T: UnsignedInteger>(
     debug_assert_radix(radix);
 
     // Decode all but the last digit.
-    let radix = as_cast(radix);
+    let radix = T::from_u32(radix);
     while value >= radix {
         let r = value % radix;
         value /= radix;
         index -= 1;
         unsafe {
-            *buffer.get_unchecked_mut(index) = digit_to_char(r.as_u32());
+            *buffer.get_unchecked_mut(index) = digit_to_char(u32::as_cast(r));
         }
     }
 
@@ -44,7 +44,7 @@ pub unsafe fn write_digits<T: UnsignedInteger>(
     let r = value % radix;
     index -= 1;
     unsafe {
-        *buffer.get_unchecked_mut(index) = digit_to_char(r.as_u32());
+        *buffer.get_unchecked_mut(index) = digit_to_char(u32::as_cast(r));
     }
 
     index

@@ -26,6 +26,7 @@ pub trait AsPrimitive: Copy + PartialEq + PartialOrd + Send + Sync + Sized {
     fn as_isize(self) -> isize;
     fn as_f32(self) -> f32;
     fn as_f64(self) -> f64;
+    fn from_u32(value: u32) -> Self;
 }
 
 macro_rules! as_primitive {
@@ -33,72 +34,77 @@ macro_rules! as_primitive {
         impl AsPrimitive for $t {
             #[inline(always)]
             fn as_u8(self) -> u8 {
-                self as u8
+                self as _
             }
 
             #[inline(always)]
             fn as_u16(self) -> u16 {
-                self as u16
+                self as _
             }
 
             #[inline(always)]
             fn as_u32(self) -> u32 {
-                self as u32
+                self as _
             }
 
             #[inline(always)]
             fn as_u64(self) -> u64 {
-                self as u64
+                self as _
             }
 
             #[inline(always)]
             fn as_u128(self) -> u128 {
-                self as u128
+                self as _
             }
 
             #[inline(always)]
             fn as_usize(self) -> usize {
-                self as usize
+                self as _
             }
 
             #[inline(always)]
             fn as_i8(self) -> i8 {
-                self as i8
+                self as _
             }
 
             #[inline(always)]
             fn as_i16(self) -> i16 {
-                self as i16
+                self as _
             }
 
             #[inline(always)]
             fn as_i32(self) -> i32 {
-                self as i32
+                self as _
             }
 
             #[inline(always)]
             fn as_i64(self) -> i64 {
-                self as i64
+                self as _
             }
 
             #[inline(always)]
             fn as_i128(self) -> i128 {
-                self as i128
+                self as _
             }
 
             #[inline(always)]
             fn as_isize(self) -> isize {
-                self as isize
+                self as _
             }
 
             #[inline(always)]
             fn as_f32(self) -> f32 {
-                self as f32
+                self as _
             }
 
             #[inline(always)]
             fn as_f64(self) -> f64 {
-                self as f64
+                self as _
+            }
+
+            #[inline(always)]
+            fn from_u32(value: u32) -> Self {
+                value as _
             }
         }
     )*)
@@ -119,7 +125,7 @@ pub trait AsCast: AsPrimitive {
 /// Allows the high-level conversion of generic types as if `as` was used.
 #[inline]
 pub fn as_cast<U: AsCast, T: AsCast>(t: T) -> U {
-    AsCast::as_cast(t)
+    U::as_cast(t)
 }
 
 macro_rules! as_cast {
@@ -127,7 +133,7 @@ macro_rules! as_cast {
         impl AsCast for $t {
             #[inline]
             fn as_cast<N: AsPrimitive>(n: N) -> $t {
-                n.$meth()
+                n.$meth() as _
             }
         }
     )*);
@@ -262,7 +268,6 @@ pub trait Integer:
     fn saturating_sub(self, i: Self) -> Self;
     fn saturating_mul(self, i: Self) -> Self;
 
-
     /// Get the fast ceiling of the quotient from integer division.
     /// Not safe, since the remainder can easily overflow.
     #[inline]
@@ -270,8 +275,8 @@ pub trait Integer:
         let q = self / y;
         let r = self % y;
         match r == Self::ZERO {
-            true  => (q, r.as_i32()),
-            false => (q + Self::ONE, r.as_i32() - y.as_i32())
+            true  => (q, i32::as_cast(r)),
+            false => (q + Self::ONE, i32::as_cast(r) - i32::as_cast(y))
         }
     }
 
@@ -534,7 +539,7 @@ pub trait Float: Number + ops::Neg<Output = Self> {
         }
 
         let bits = self.to_bits();
-        let biased_e: i32 = AsCast::as_cast((bits & Self::EXPONENT_MASK) >> Self::MANTISSA_SIZE);
+        let biased_e = i32::as_cast((bits & Self::EXPONENT_MASK) >> Self::MANTISSA_SIZE).as_i32();
         biased_e - Self::EXPONENT_BIAS
     }
 

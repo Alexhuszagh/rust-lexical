@@ -1,6 +1,6 @@
 //! Fast multiplication routines.
 
-use super::num::{as_cast, UnsignedInteger};
+use crate::num::{as_cast, UnsignedInteger};
 
 /// Multiply two unsigned, integral values, and return the hi and lo product.
 ///

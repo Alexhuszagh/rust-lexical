@@ -144,11 +144,11 @@ macro_rules! parse_compact {
                 Some(v) => v,
                 None => return $invalid_digit!($value, $iter.cursor() - 1),
             };
-            $value = match $value.checked_mul(as_cast($radix)) {
+            $value = match $value.checked_mul(<$t>::from_u32($radix)) {
                 Some(v) => v,
                 None => return into_error!($overflow, $iter.cursor() - 1),
             };
-            $value = match $value.$addsub(as_cast(digit)) {
+            $value = match $value.$addsub(<$t>::from_u32(digit)) {
                 Some(v) => v,
                 None => return into_error!($overflow, $iter.cursor() - 1),
             };

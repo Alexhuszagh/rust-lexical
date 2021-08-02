@@ -13,7 +13,7 @@
 use lexical_util::digit::{char_to_digit_const, AsDigits};
 use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{Byte, ByteIter};
-use lexical_util::num::{as_cast, Integer, Number};
+use lexical_util::num::{as_cast, AsPrimitive, Integer, Number};
 use lexical_util::result::Result;
 use lexical_util::step::u64_step;
 
@@ -34,7 +34,7 @@ macro_rules! parse_8digits {
         $overflow:ident,
         $t:ident
     ) => {{
-        let radix: $t = as_cast(NumberFormat::<{ $format }>::MANTISSA_RADIX);
+        let radix: $t = <$t>::from_u32(NumberFormat::<{ $format }>::MANTISSA_RADIX);
         let radix2: $t = radix.wrapping_mul(radix);
         let radix4: $t = radix2.wrapping_mul(radix2);
         let radix8: $t = radix4.wrapping_mul(radix4);
@@ -68,7 +68,7 @@ macro_rules! parse_4digits {
         $overflow:ident,
         $t:ident
     ) => {{
-        let radix: $t = as_cast(NumberFormat::<{ $format }>::MANTISSA_RADIX);
+        let radix: $t = <$t>::from_u32(NumberFormat::<{ $format }>::MANTISSA_RADIX);
         let radix2: $t = radix.wrapping_mul(radix);
         let radix4: $t = radix2.wrapping_mul(radix2);
 
@@ -214,7 +214,7 @@ where
         unsafe {
             iter.step_by_unchecked(4);
         }
-        Some(as_cast(parse_4digits::<FORMAT>(bytes)))
+        Some(T::from_u32(parse_4digits::<FORMAT>(bytes)))
     } else {
         None
     }
@@ -288,7 +288,7 @@ where
         unsafe {
             iter.step_by_unchecked(8);
         }
-        Some(as_cast(parse_8digits::<FORMAT>(bytes)))
+        Some(T::as_cast(parse_8digits::<FORMAT>(bytes)))
     } else {
         None
     }

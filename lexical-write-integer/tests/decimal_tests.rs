@@ -415,7 +415,7 @@ fn slow_log2(x: u32) -> usize {
 }
 
 fn slow_digit_count<T: UnsignedInteger>(x: T) -> usize {
-    x.as_u128().to_string().len()
+    x.to_string().len()
 }
 
 quickcheck! {

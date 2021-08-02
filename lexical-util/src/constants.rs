@@ -45,17 +45,20 @@ formatted_size_impl! {
     //f256 256 1024 ;
 }
 
-cfg_if::cfg_if! {
-if #[cfg(target_pointer_width = "16")] {
-    formatted_size_impl! { isize 6 32 ; }
-    formatted_size_impl! { usize 5 32 ; }
-} else if #[cfg(target_pointer_width = "32")] {
-    formatted_size_impl! { isize 11 64 ; }
-    formatted_size_impl! { usize 10 64 ; }
-} else if #[cfg(target_pointer_width = "64")] {
-    formatted_size_impl! { isize 20 128 ; }
-    formatted_size_impl! { usize 20 128 ; }
-}} // cfg_if
+#[cfg(target_pointer_width = "16")]
+formatted_size_impl! { isize 6 32 ; }
+#[cfg(target_pointer_width = "16")]
+formatted_size_impl! { usize 5 32 ; }
+
+#[cfg(target_pointer_width = "32")]
+formatted_size_impl! { isize 11 64 ; }
+#[cfg(target_pointer_width = "32")]
+formatted_size_impl! { usize 10 64 ; }
+
+#[cfg(target_pointer_width = "64")]
+formatted_size_impl! { isize 20 128 ; }
+#[cfg(target_pointer_width = "64")]
+formatted_size_impl! { usize 20 128 ; }
 
 /// Maximum number of bytes required to serialize any number to string.
 pub const BUFFER_SIZE: usize = f64::FORMATTED_SIZE;

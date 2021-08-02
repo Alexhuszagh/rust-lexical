@@ -13,7 +13,7 @@ use crate::lib::ptr;
 use lexical_util::assert::{assert_radix, debug_assert_radix};
 use lexical_util::digit::digit_to_char;
 use lexical_util::div128::u128_divrem;
-use lexical_util::num::{as_cast, UnsignedInteger};
+use lexical_util::num::{AsCast, UnsignedInteger};
 use lexical_util::step::u64_step;
 
 // NOTE: Don't use too many generics:
@@ -41,7 +41,7 @@ unsafe fn write_digits<T: UnsignedInteger>(
     debug_assert_radix(radix);
 
     // Pre-compute our powers of radix.
-    let radix = as_cast(radix);
+    let radix = T::from_u32(radix);
     let radix2 = radix * radix;
     let radix4 = radix2 * radix2;
 
@@ -52,8 +52,8 @@ unsafe fn write_digits<T: UnsignedInteger>(
     while value >= radix4 {
         let r = value % radix4;
         value /= radix4;
-        let r1 = (T::TWO * (r / radix2)).as_usize();
-        let r2 = (T::TWO * (r % radix2)).as_usize();
+        let r1 = usize::as_cast(T::TWO * (r / radix2));
+        let r2 = usize::as_cast(T::TWO * (r % radix2));
 
         // SAFETY: This is always safe, since the table is 2*radix^2, and
         // r1 and r2 must be in the range [0, 2*radix^2-1), since the maximum
@@ -79,7 +79,7 @@ unsafe fn write_digits<T: UnsignedInteger>(
 
     // Decode 2 digits at a time.
     while value >= radix2 {
-        let r = (T::TWO * (value % radix2)).as_usize();
+        let r = usize::as_cast(T::TWO * (value % radix2));
         value /= radix2;
 
         // SAFETY: this is always safe, since the table is 2*radix^2, and
@@ -100,10 +100,10 @@ unsafe fn write_digits<T: UnsignedInteger>(
         // Digit must be < 36.
         index -= 1;
         unsafe {
-            *buffer.get_unchecked_mut(index) = digit_to_char(value.as_u32());
+            *buffer.get_unchecked_mut(index) = digit_to_char(u32::as_cast(value));
         }
     } else {
-        let r = (T::TWO * value).as_usize();
+        let r = usize::as_cast(T::TWO * value);
         // SAFETY: this is always safe, since the table is 2*radix^2, and
         // the value must <= radix^2, so rem must be in the range
         // [0, 2*radix^2-1).

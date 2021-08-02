@@ -16,7 +16,6 @@ exclude = [
 ]
 
 [dependencies]
-cfg-if = "1.0"
 static_assertions = "1"
 
 [dev-dependencies]

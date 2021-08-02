@@ -12,6 +12,7 @@ perf.data
 perf.data.old
 *.mm_profdata
 profdata_*
+chrome_profiler.json
 
 # Test files
 errors.txt
