@@ -1247,9 +1247,15 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
 
     // BUILDER
 
-    // Get the number format builder from the format.
+    /// Get the number format builder from the format.
     #[inline]
     pub const fn builder() -> NumberFormatBuilder {
+        NumberFormatBuilder::new()
+    }
+
+    /// Get the number format builder from the format.
+    #[inline]
+    pub const fn rebuild() -> NumberFormatBuilder {
         NumberFormatBuilder::rebuild(FORMAT)
     }
 }
@@ -2460,6 +2466,8 @@ const_assert!(NumberFormat::<{ PERMISSIVE }> {}.is_valid());
 pub const IGNORE: u128 = NumberFormatBuilder::new()
     .digit_separator(num::NonZeroU8::new(b'_'))
     .digit_separator_flags(true)
+    .required_exponent_digits(false)
+    .required_mantissa_digits(false)
     .build();
 
 const_assert!(NumberFormat::<{ IGNORE }> {}.is_valid());

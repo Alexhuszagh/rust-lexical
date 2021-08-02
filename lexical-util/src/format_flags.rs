@@ -529,6 +529,9 @@ pub const FLAG_MASK: u128 =
     NO_INTEGER_LEADING_ZEROS |
     NO_FLOAT_LEADING_ZEROS |
     REQUIRED_EXPONENT_NOTATION |
+    CASE_SENSITIVE_EXPONENT |
+    CASE_SENSITIVE_BASE_PREFIX |
+    CASE_SENSITIVE_BASE_SUFFIX |
     INTERNAL_DIGIT_SEPARATOR |
     LEADING_DIGIT_SEPARATOR |
     TRAILING_DIGIT_SEPARATOR |
@@ -742,6 +745,8 @@ pub const fn is_valid_base_suffix(format: u128) -> bool {
 #[inline]
 #[allow(clippy::if_same_then_else)]
 pub const fn is_valid_punctuation(format: u128) -> bool {
+    // All the checks against optional characters with mandatory are fine:
+    // if they're not 0, then they can't overlap, and mandatory can't be 0.
     if decimal_point(format) == 0 || exponent(format) == 0 {
         // Can't have optional mandatory characters.
         false
@@ -750,6 +755,18 @@ pub const fn is_valid_punctuation(format: u128) -> bool {
         false
     } else if cfg!(not(feature = "format")) && digit_separator(format) != 0 {
         // Digit separator set when not allowed.
+        false
+    } else if digit_separator(format) == decimal_point(format) {
+        false
+    } else if digit_separator(format) == exponent(format) {
+        false
+    } else if base_prefix(format) == decimal_point(format) {
+        false
+    } else if base_prefix(format) == exponent(format) {
+        false
+    } else if base_suffix(format) == decimal_point(format) {
+        false
+    } else if base_suffix(format) == exponent(format) {
         false
     } else {
         let separator = digit_separator(format);
@@ -761,8 +778,8 @@ pub const fn is_valid_punctuation(format: u128) -> bool {
             (_, 0, 0) => true,
             (0, _, 0) => true,
             (0, 0, _) => true,
-            // Can't have more than 1 0, check they're all different
-            (x, y, z) => x != y && x != z,
+            // Can't have more than 1 0, check they're all different.
+            (x, y, z) => x != y && x != z && y != z,
         }
     }
 }

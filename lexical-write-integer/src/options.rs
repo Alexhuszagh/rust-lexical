@@ -87,7 +87,7 @@ impl Options {
 
     /// Create OptionsBuilder using existing values.
     #[inline(always)]
-    pub const fn rebuild(self) -> OptionsBuilder {
+    pub const fn rebuild(&self) -> OptionsBuilder {
         OptionsBuilder {}
     }
 }
