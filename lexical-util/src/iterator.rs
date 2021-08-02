@@ -5,7 +5,7 @@
 
 #![cfg(feature = "parse")]
 
-use crate::lib::{mem, ptr};
+use core::{mem, ptr};
 
 /// Context-aware, iterator-like trait for raw bytes.
 ///

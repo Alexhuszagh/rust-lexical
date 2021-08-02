@@ -1,10 +1,10 @@
 #![cfg(all(feature = "format", feature = "parse"))]
 
+use core::num;
 use lexical_util::digit::AsDigits;
 use lexical_util::format::{NumberFormat, NumberFormatBuilder};
 use lexical_util::iterator::Byte;
 use static_assertions::const_assert;
-use std::num;
 
 fn skip_iter_eq<const FORMAT: u128>(input: &[u8], output: &[u8]) {
     // next is done in terms of peek, so we're safe here.

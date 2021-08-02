@@ -3,10 +3,11 @@
 #![cfg(not(feature = "compact"))]
 #![cfg(feature = "radix")]
 
-use crate::lib::hint;
 use crate::table_binary::*;
 use crate::table_decimal::*;
+use core::hint;
 use lexical_util::assert::debug_assert_radix;
+use lexical_util::format::NumberFormat;
 
 /// Get lookup table for 2 digit radix conversions.
 ///
@@ -15,9 +16,9 @@ use lexical_util::assert::debug_assert_radix;
 /// Safe as long as the radix provided is valid.
 #[inline]
 #[cfg(feature = "radix")]
-pub unsafe fn get_table<const RADIX: u32>() -> &'static [u8] {
-    debug_assert_radix(RADIX);
-    match RADIX {
+pub unsafe fn get_table<const FORMAT: u128>() -> &'static [u8] {
+    debug_assert_radix(NumberFormat::<{ FORMAT }>::RADIX);
+    match NumberFormat::<{ FORMAT }>::RADIX {
         2 => &DIGIT_TO_BASE2_SQUARED,
         3 => &DIGIT_TO_BASE3_SQUARED,
         4 => &DIGIT_TO_BASE4_SQUARED,

@@ -22,7 +22,6 @@ pub use crate::skip::{AsDigits, Digits};
 /// This optimizes for cases where radix is <= 10, and uses a decent,
 /// match-based fallback algorithm.
 #[inline]
-#[cfg(feature = "parse")]
 pub const fn char_to_digit_const(c: u8, radix: u32) -> Option<u32> {
     let digit = if radix <= 10 {
         // Optimize for small radixes.
@@ -46,7 +45,6 @@ pub const fn char_to_digit_const(c: u8, radix: u32) -> Option<u32> {
 
 /// Determine if a character is a digit with a radix known at compile time.
 #[inline]
-#[cfg(feature = "parse")]
 pub const fn char_is_digit_const(c: u8, radix: u32) -> bool {
     char_to_digit_const(c, radix).is_some()
 }

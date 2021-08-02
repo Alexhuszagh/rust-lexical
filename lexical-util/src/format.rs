@@ -1,7 +1,5 @@
 //! Consistent API when the `format` feature is enabled or disabled.
 
-#![cfg(feature = "parse")]
-
 #[cfg(feature = "format")]
 pub use crate::feature_format::*;
 pub use crate::format_builder::*;

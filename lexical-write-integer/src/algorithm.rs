@@ -9,10 +9,11 @@
 
 #![cfg(not(feature = "compact"))]
 
-use crate::lib::ptr;
-use lexical_util::assert::{assert_radix, debug_assert_radix};
+use core::ptr;
+use lexical_util::assert::debug_assert_radix;
 use lexical_util::digit::digit_to_char;
 use lexical_util::div128::u128_divrem;
+use lexical_util::format::NumberFormat;
 use lexical_util::num::{AsCast, UnsignedInteger};
 use lexical_util::step::u64_step;
 
@@ -179,18 +180,22 @@ where
 /// Safe as long as the buffer is large enough to hold as many digits
 /// that can be in the largest value of `T`, in radix `N`.
 #[inline]
-pub unsafe fn algorithm_u128<const RADIX: u32>(
+pub unsafe fn algorithm_u128<const FORMAT: u128>(
     value: u128,
     table: &[u8],
     buffer: &mut [u8],
 ) -> usize {
-    assert_radix::<RADIX>();
+    //  NOTE:
+    //      Use the const version of radix for u64_step and u128_divrem
+    //      to ensure they're evaluated at compile time.
+    assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
 
     // Quick approximations to make the algorithm **a lot** faster.
     // If the value can be represented in a 64-bit integer, we can
     // do this as a native integer.
+    let radix = NumberFormat::<{ FORMAT }>::RADIX;
     if value <= u64::MAX as _ {
-        return unsafe { algorithm(value as u64, RADIX, table, buffer) };
+        return unsafe { algorithm(value as u64, radix, table, buffer) };
     }
 
     // SAFETY: Both forms of unchecked indexing cannot overflow.
@@ -206,23 +211,23 @@ pub unsafe fn algorithm_u128<const RADIX: u32>(
     // To deal with internal 0 values or values with internal 0 digits set,
     // we store the starting index, and if not all digits are written,
     // we just skip down `digits` digits for the next value.
-    let step = u64_step(RADIX);
-    let (value, low) = u128_divrem(value, RADIX);
+    let step = u64_step(NumberFormat::<{ FORMAT }>::RADIX);
+    let (value, low) = u128_divrem(value, NumberFormat::<{ FORMAT }>::RADIX);
     let mut index = buffer.len();
     unsafe {
-        index = write_step_digits(low, RADIX, table, buffer, index, step);
+        index = write_step_digits(low, radix, table, buffer, index, step);
     }
     if value <= u64::MAX as _ {
-        return unsafe { write_digits(value as u64, RADIX, table, buffer, index) };
+        return unsafe { write_digits(value as u64, radix, table, buffer, index) };
     }
 
     // Value has to be greater than 1.8e38
-    let (value, mid) = u128_divrem(value, RADIX);
+    let (value, mid) = u128_divrem(value, NumberFormat::<{ FORMAT }>::RADIX);
     unsafe {
-        index = write_step_digits(mid, RADIX, table, buffer, index, step);
+        index = write_step_digits(mid, radix, table, buffer, index, step);
     }
     if index != 0 {
-        index = unsafe { write_digits(value as u64, RADIX, table, buffer, index) };
+        index = unsafe { write_digits(value as u64, radix, table, buffer, index) };
     }
 
     index

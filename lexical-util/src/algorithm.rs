@@ -1,7 +1,7 @@
 //! Simple, shared algorithms for slices and iterators.
 
 #[cfg(feature = "write")]
-use crate::lib::ptr;
+use core::ptr;
 
 /// Copy bytes from source to destination.
 ///

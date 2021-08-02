@@ -1,5 +1,5 @@
+use core::time::Duration;
 use std::path::PathBuf;
-use std::time::Duration;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lazy_static::lazy_static;

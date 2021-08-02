@@ -5,7 +5,7 @@
 
 #![cfg(feature = "compact")]
 
-use crate::lib::mem;
+use core::mem;
 
 use lexical_util::algorithm::copy_to_dst;
 use lexical_util::assert::debug_assert_radix;

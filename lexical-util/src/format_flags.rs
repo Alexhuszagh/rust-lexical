@@ -203,7 +203,6 @@
 //! 43. MySQL
 //! 44. MongoDB
 
-#![cfg(feature = "parse")]
 #![cfg_attr(rustfmt, rustfmt::skip)]
 
 use static_assertions::const_assert;
@@ -447,49 +446,49 @@ check_subsequent_flags!(EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPA
 pub const DIGIT_SEPARATOR_SHIFT: i32 = 64;
 
 /// Mask to extract the digit separator character.
-pub const DIGIT_SEPARATOR: u128 = 0x7F << DIGIT_SEPARATOR_SHIFT;
+pub const DIGIT_SEPARATOR: u128 = 0xFF << DIGIT_SEPARATOR_SHIFT;
 
 /// Shift to convert to and from a decimal point as a `u8`.
 pub const DECIMAL_POINT_SHIFT: i32 = 72;
 
 /// Mask to extract the decimal point character.
-pub const DECIMAL_POINT: u128 = 0x7F << DECIMAL_POINT_SHIFT;
+pub const DECIMAL_POINT: u128 = 0xFF << DECIMAL_POINT_SHIFT;
 
 /// Shift to convert to and from an exponent as a `u8`.
 pub const EXPONENT_SHIFT: i32 = 80;
 
 /// Mask to extract the exponent character.
-pub const EXPONENT: u128 = 0x7F << EXPONENT_SHIFT;
+pub const EXPONENT: u128 = 0xFF << EXPONENT_SHIFT;
 
 /// Shift to convert to and from a base prefix as a `u8`.
 pub const BASE_PREFIX_SHIFT: i32 = 88;
 
 /// Mask to extract the base prefix character.
-pub const BASE_PREFIX: u128 = 0x7F << BASE_PREFIX_SHIFT;
+pub const BASE_PREFIX: u128 = 0xFF << BASE_PREFIX_SHIFT;
 
 /// Shift to convert to and from a base suffix as a `u8`.
 pub const BASE_SUFFIX_SHIFT: i32 = 96;
 
 /// Mask to extract the base suffix character.
-pub const BASE_SUFFIX: u128 = 0x7F << BASE_SUFFIX_SHIFT;
+pub const BASE_SUFFIX: u128 = 0xFF << BASE_SUFFIX_SHIFT;
 
 /// Shift to convert to and from a mantissa radix as a `u32`.
 pub const MANTISSA_RADIX_SHIFT: i32 = 104;
 
 /// Mask to extract the mantissa radix: the radix for the significant digits.
-pub const MANTISSA_RADIX: u128 = 0x3F << MANTISSA_RADIX_SHIFT;
+pub const MANTISSA_RADIX: u128 = 0xFF << MANTISSA_RADIX_SHIFT;
 
 /// Shift to convert to and from an exponent base as a `u32`.
 pub const EXPONENT_BASE_SHIFT: i32 = 112;
 
 /// Mask to extract the exponent base: the base the exponent is raised to.
-pub const EXPONENT_BASE: u128 = 0x3F << EXPONENT_BASE_SHIFT;
+pub const EXPONENT_BASE: u128 = 0xFF << EXPONENT_BASE_SHIFT;
 
 /// Shift to convert to and from an exponent radix as a `u32`.
 pub const EXPONENT_RADIX_SHIFT: i32 = 120;
 
 /// Mask to extract the exponent radix: the radix for the exponent digits.
-pub const EXPONENT_RADIX: u128 = 0x3F << EXPONENT_RADIX_SHIFT;
+pub const EXPONENT_RADIX: u128 = 0xFF << EXPONENT_RADIX_SHIFT;
 
 // Masks do not overlap.
 check_subsequent_masks!(DIGIT_SEPARATOR, DECIMAL_POINT);

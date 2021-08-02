@@ -2,10 +2,9 @@
 //!
 //! See `feature_format` for detailed documentation.
 
-#![cfg(feature = "parse")]
 #![cfg(not(feature = "format"))]
 
-use crate::error::{Error, ErrorCode};
+use crate::error::Error;
 use crate::format_builder::NumberFormatBuilder;
 use crate::format_flags as flags;
 
@@ -13,82 +12,91 @@ use crate::format_flags as flags;
 ///
 /// The following values are explicitly set, and therefore not configurable:
 ///     1. required_integer_digits
-//      2. required_fraction_digits
-//      3. required_exponent_digits
-//      4. required_mantissa_digits
-//      5. required_digits
-//      6. no_positive_mantissa_sign
-//      7. required_mantissa_sign
-//      8. no_exponent_notation
-//      9. no_positive_exponent_sign
-//      10. required_exponent_sign
-//      11. no_exponent_without_fraction
-//      12. no_special
-//      13. case_sensitive_special
-//      14. no_integer_leading_zeros
-//      15. no_float_leading_zeros
-//      16. required_exponent_notation
-//      17. case_sensitive_exponent
-//      18. case_sensitive_base_prefix
-//      19. case_sensitive_base_suffix
-//      20. integer_internal_digit_separator
-//      21. fraction_internal_digit_separator
-//      22. exponent_internal_digit_separator
-//      23. internal_digit_separator
-//      24. integer_leading_digit_separator
-//      25. fraction_leading_digit_separator
-//      26. exponent_leading_digit_separator
-//      27. leading_digit_separator
-//      28. integer_trailing_digit_separator
-//      29. fraction_trailing_digit_separator
-//      30. exponent_trailing_digit_separator
-//      31. trailing_digit_separator
-//      32. integer_consecutive_digit_separator
-//      33. fraction_consecutive_digit_separator
-//      34. exponent_consecutive_digit_separator
-//      35. consecutive_digit_separator
-//      36. special_digit_separator
-//      37. digit_separator
-//      38. base_prefix
-//      39. base_suffix
-//      40. exponent_base
-//      41. exponent_radix
+///     2. required_fraction_digits
+///     3. required_exponent_digits
+///     4. required_mantissa_digits
+///     5. required_digits
+///     6. no_positive_mantissa_sign
+///     7. required_mantissa_sign
+///     8. no_exponent_notation
+///     9. no_positive_exponent_sign
+///     10. required_exponent_sign
+///     11. no_exponent_without_fraction
+///     12. no_special
+///     13. case_sensitive_special
+///     14. no_integer_leading_zeros
+///     15. no_float_leading_zeros
+///     16. required_exponent_notation
+///     17. case_sensitive_exponent
+///     18. case_sensitive_base_prefix
+///     19. case_sensitive_base_suffix
+///     20. integer_internal_digit_separator
+///     21. fraction_internal_digit_separator
+///     22. exponent_internal_digit_separator
+///     23. internal_digit_separator
+///     24. integer_leading_digit_separator
+///     25. fraction_leading_digit_separator
+///     26. exponent_leading_digit_separator
+///     27. leading_digit_separator
+///     28. integer_trailing_digit_separator
+///     29. fraction_trailing_digit_separator
+///     30. exponent_trailing_digit_separator
+///     31. trailing_digit_separator
+///     32. integer_consecutive_digit_separator
+///     33. fraction_consecutive_digit_separator
+///     34. exponent_consecutive_digit_separator
+///     35. consecutive_digit_separator
+///     36. special_digit_separator
+///     37. digit_separator
+///     38. base_prefix
+///     39. base_suffix
+///     40. exponent_base
+///     41. exponent_radix
+///
+/// See `NumberFormatBuilder` for the `FORMAT` fields
+/// for the packed struct.
 pub struct NumberFormat<const FORMAT: u128>;
 
 impl<const FORMAT: u128> NumberFormat<FORMAT> {
+    // CONSTRUCTORS
+
+    /// Create new instance (for methods and validation).
+    pub const fn new() -> Self {
+        Self {}
+    }
+
     // VALIDATION
 
     /// Determine if the number format is valid.
     pub const fn is_valid(&self) -> bool {
-        // Note: enum equality is not a const fn, so use integer equality.
-        self.error().code as i32 == ErrorCode::Success as i32
+        self.error().is_success()
     }
 
     /// Get error from invalid number format.
     pub const fn error(&self) -> Error {
         let valid_flags = flags::REQUIRED_EXPONENT_DIGITS | flags::REQUIRED_MANTISSA_DIGITS;
         if !flags::is_valid_radix(self.mantissa_radix()) {
-            Error::new(ErrorCode::InvalidMantissaRadix)
+            Error::InvalidMantissaRadix
         } else if self.exponent_base() != self.mantissa_radix() {
-            Error::new(ErrorCode::InvalidExponentBase)
+            Error::InvalidExponentBase
         } else if self.exponent_radix() != self.mantissa_radix() {
-            Error::new(ErrorCode::InvalidExponentRadix)
+            Error::InvalidExponentRadix
         } else if !flags::is_valid_digit_separator(FORMAT) {
-            Error::new(ErrorCode::InvalidDigitSeparator)
+            Error::InvalidDigitSeparator
         } else if !flags::is_valid_decimal_point(FORMAT) {
-            Error::new(ErrorCode::InvalidDecimalPoint)
+            Error::InvalidDecimalPoint
         } else if !flags::is_valid_exponent(FORMAT) {
-            Error::new(ErrorCode::InvalidExponentSymbol)
+            Error::InvalidExponentSymbol
         } else if !flags::is_valid_base_prefix(FORMAT) {
-            Error::new(ErrorCode::InvalidBasePrefix)
+            Error::InvalidBasePrefix
         } else if !flags::is_valid_base_suffix(FORMAT) {
-            Error::new(ErrorCode::InvalidBaseSuffix)
+            Error::InvalidBaseSuffix
         } else if !flags::is_valid_punctuation(FORMAT) {
-            Error::new(ErrorCode::InvalidPunctuation)
+            Error::InvalidPunctuation
         } else if self.flags() != valid_flags {
-            Error::new(ErrorCode::InvalidFlags)
+            Error::InvalidFlags
         } else {
-            Error::new(ErrorCode::Success)
+            Error::Success
         }
     }
 

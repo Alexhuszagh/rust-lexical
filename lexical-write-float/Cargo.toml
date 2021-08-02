@@ -20,6 +20,9 @@ version = "0.1"
 path = "../lexical-util"
 features = ["write-floats"]
 
+[dependencies]
+static_assertions = "1"
+
 [features]
 default = ["std"]
 # Use the standard library.

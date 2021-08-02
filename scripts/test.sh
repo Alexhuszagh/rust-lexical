@@ -9,6 +9,7 @@ script_dir=`dirname "${BASH_SOURCE[0]}"`
 cd "$script_dir"/..
 
 cargo +nightly test
+cargo +nightly test --all-features
 if [ "$SKIP_VALGRIND" == "" ]; then
     cargo +nightly valgrind test
 fi

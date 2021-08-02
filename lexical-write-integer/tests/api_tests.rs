@@ -1,12 +1,17 @@
-use std::fmt::Debug;
-use std::str::{from_utf8_unchecked, FromStr};
+#[cfg(feature = "radix")]
+mod util;
 
+use core::fmt::Debug;
+use core::str::{from_utf8_unchecked, FromStr};
 use lexical_util::constants::FormattedSize;
 #[cfg(feature = "radix")]
 use lexical_util::constants::BUFFER_SIZE;
+use lexical_util::format::STANDARD;
 use lexical_write_integer::{Options, ToLexical, ToLexicalWithOptions};
 use proptest::prelude::*;
 use quickcheck::quickcheck;
+#[cfg(feature = "radix")]
+use util::from_radix;
 
 trait Roundtrip: ToLexical + ToLexicalWithOptions + FromStr {
     fn from_str_radix(src: &str, radix: u32) -> Result<Self, std::num::ParseIntError>;
@@ -168,33 +173,35 @@ fn i128_test() {
 #[test]
 #[cfg(feature = "radix")]
 fn proptest_failures_radix() {
+    const FORMAT: u128 = from_radix(12);
     let mut buffer = [b'\x00'; BUFFER_SIZE];
     let options = Options::new();
-    assert_eq!(b"A8", 128u8.to_lexical_with_options::<12>(&mut buffer, &options));
+    assert_eq!(b"A8", 128u8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &options));
 }
 
 #[test]
 fn options_test() {
     let mut buffer = [b'\x00'; 48];
     let options = Options::new();
-    assert_eq!(b"0", 0u8.to_lexical_with_options::<10>(&mut buffer, &options));
-    assert_eq!(b"0", 0u16.to_lexical_with_options::<10>(&mut buffer, &options));
-    assert_eq!(b"0", 0u32.to_lexical_with_options::<10>(&mut buffer, &options));
-    assert_eq!(b"0", 0u64.to_lexical_with_options::<10>(&mut buffer, &options));
-    assert_eq!(b"0", 0u128.to_lexical_with_options::<10>(&mut buffer, &options));
-    assert_eq!(b"0", 0i8.to_lexical_with_options::<10>(&mut buffer, &options));
-    assert_eq!(b"0", 0i16.to_lexical_with_options::<10>(&mut buffer, &options));
-    assert_eq!(b"0", 0i32.to_lexical_with_options::<10>(&mut buffer, &options));
-    assert_eq!(b"0", 0i64.to_lexical_with_options::<10>(&mut buffer, &options));
-    assert_eq!(b"0", 0i128.to_lexical_with_options::<10>(&mut buffer, &options));
+    assert_eq!(b"0", 0u8.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
+    assert_eq!(b"0", 0u16.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
+    assert_eq!(b"0", 0u32.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
+    assert_eq!(b"0", 0u64.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
+    assert_eq!(b"0", 0u128.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
+    assert_eq!(b"0", 0i8.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
+    assert_eq!(b"0", 0i16.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
+    assert_eq!(b"0", 0i32.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
+    assert_eq!(b"0", 0i64.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
+    assert_eq!(b"0", 0i128.to_lexical_with_options::<{ STANDARD }>(&mut buffer, &options));
 }
 
 #[test]
 #[cfg(feature = "radix")]
 fn options_radix_test() {
+    const FORMAT: u128 = from_radix(12);
     let mut buffer = [b'\x00'; 48];
     let options = Options::new();
-    assert_eq!(b"A8", 128u8.to_lexical_with_options::<12>(&mut buffer, &options));
+    assert_eq!(b"A8", 128u8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &options));
 }
 
 fn roundtrip<T>(x: T) -> T
@@ -218,41 +225,41 @@ where
     let options = T::Options::default();
     // Trick it into assuming we have a valid radix.
     let bytes = match radix {
-        2 => x.to_lexical_with_options::<2>(&mut buffer, &options),
-        3 => x.to_lexical_with_options::<3>(&mut buffer, &options),
-        4 => x.to_lexical_with_options::<4>(&mut buffer, &options),
-        5 => x.to_lexical_with_options::<5>(&mut buffer, &options),
-        6 => x.to_lexical_with_options::<6>(&mut buffer, &options),
-        7 => x.to_lexical_with_options::<7>(&mut buffer, &options),
-        8 => x.to_lexical_with_options::<8>(&mut buffer, &options),
-        9 => x.to_lexical_with_options::<9>(&mut buffer, &options),
-        10 => x.to_lexical_with_options::<10>(&mut buffer, &options),
-        11 => x.to_lexical_with_options::<11>(&mut buffer, &options),
-        12 => x.to_lexical_with_options::<12>(&mut buffer, &options),
-        13 => x.to_lexical_with_options::<13>(&mut buffer, &options),
-        14 => x.to_lexical_with_options::<14>(&mut buffer, &options),
-        15 => x.to_lexical_with_options::<15>(&mut buffer, &options),
-        16 => x.to_lexical_with_options::<16>(&mut buffer, &options),
-        17 => x.to_lexical_with_options::<17>(&mut buffer, &options),
-        18 => x.to_lexical_with_options::<18>(&mut buffer, &options),
-        19 => x.to_lexical_with_options::<19>(&mut buffer, &options),
-        20 => x.to_lexical_with_options::<20>(&mut buffer, &options),
-        21 => x.to_lexical_with_options::<21>(&mut buffer, &options),
-        22 => x.to_lexical_with_options::<22>(&mut buffer, &options),
-        23 => x.to_lexical_with_options::<23>(&mut buffer, &options),
-        24 => x.to_lexical_with_options::<24>(&mut buffer, &options),
-        25 => x.to_lexical_with_options::<25>(&mut buffer, &options),
-        26 => x.to_lexical_with_options::<26>(&mut buffer, &options),
-        27 => x.to_lexical_with_options::<27>(&mut buffer, &options),
-        28 => x.to_lexical_with_options::<28>(&mut buffer, &options),
-        29 => x.to_lexical_with_options::<29>(&mut buffer, &options),
-        30 => x.to_lexical_with_options::<30>(&mut buffer, &options),
-        31 => x.to_lexical_with_options::<31>(&mut buffer, &options),
-        32 => x.to_lexical_with_options::<32>(&mut buffer, &options),
-        33 => x.to_lexical_with_options::<33>(&mut buffer, &options),
-        34 => x.to_lexical_with_options::<34>(&mut buffer, &options),
-        35 => x.to_lexical_with_options::<35>(&mut buffer, &options),
-        36 => x.to_lexical_with_options::<36>(&mut buffer, &options),
+        2 => x.to_lexical_with_options::<{ from_radix(2) }>(&mut buffer, &options),
+        3 => x.to_lexical_with_options::<{ from_radix(3) }>(&mut buffer, &options),
+        4 => x.to_lexical_with_options::<{ from_radix(4) }>(&mut buffer, &options),
+        5 => x.to_lexical_with_options::<{ from_radix(5) }>(&mut buffer, &options),
+        6 => x.to_lexical_with_options::<{ from_radix(6) }>(&mut buffer, &options),
+        7 => x.to_lexical_with_options::<{ from_radix(7) }>(&mut buffer, &options),
+        8 => x.to_lexical_with_options::<{ from_radix(8) }>(&mut buffer, &options),
+        9 => x.to_lexical_with_options::<{ from_radix(9) }>(&mut buffer, &options),
+        10 => x.to_lexical_with_options::<{ from_radix(10) }>(&mut buffer, &options),
+        11 => x.to_lexical_with_options::<{ from_radix(11) }>(&mut buffer, &options),
+        12 => x.to_lexical_with_options::<{ from_radix(12) }>(&mut buffer, &options),
+        13 => x.to_lexical_with_options::<{ from_radix(13) }>(&mut buffer, &options),
+        14 => x.to_lexical_with_options::<{ from_radix(14) }>(&mut buffer, &options),
+        15 => x.to_lexical_with_options::<{ from_radix(15) }>(&mut buffer, &options),
+        16 => x.to_lexical_with_options::<{ from_radix(16) }>(&mut buffer, &options),
+        17 => x.to_lexical_with_options::<{ from_radix(17) }>(&mut buffer, &options),
+        18 => x.to_lexical_with_options::<{ from_radix(18) }>(&mut buffer, &options),
+        19 => x.to_lexical_with_options::<{ from_radix(19) }>(&mut buffer, &options),
+        20 => x.to_lexical_with_options::<{ from_radix(20) }>(&mut buffer, &options),
+        21 => x.to_lexical_with_options::<{ from_radix(21) }>(&mut buffer, &options),
+        22 => x.to_lexical_with_options::<{ from_radix(22) }>(&mut buffer, &options),
+        23 => x.to_lexical_with_options::<{ from_radix(23) }>(&mut buffer, &options),
+        24 => x.to_lexical_with_options::<{ from_radix(24) }>(&mut buffer, &options),
+        25 => x.to_lexical_with_options::<{ from_radix(25) }>(&mut buffer, &options),
+        26 => x.to_lexical_with_options::<{ from_radix(26) }>(&mut buffer, &options),
+        27 => x.to_lexical_with_options::<{ from_radix(27) }>(&mut buffer, &options),
+        28 => x.to_lexical_with_options::<{ from_radix(28) }>(&mut buffer, &options),
+        29 => x.to_lexical_with_options::<{ from_radix(29) }>(&mut buffer, &options),
+        30 => x.to_lexical_with_options::<{ from_radix(30) }>(&mut buffer, &options),
+        31 => x.to_lexical_with_options::<{ from_radix(31) }>(&mut buffer, &options),
+        32 => x.to_lexical_with_options::<{ from_radix(32) }>(&mut buffer, &options),
+        33 => x.to_lexical_with_options::<{ from_radix(33) }>(&mut buffer, &options),
+        34 => x.to_lexical_with_options::<{ from_radix(34) }>(&mut buffer, &options),
+        35 => x.to_lexical_with_options::<{ from_radix(35) }>(&mut buffer, &options),
+        36 => x.to_lexical_with_options::<{ from_radix(36) }>(&mut buffer, &options),
         _ => unreachable!(),
     };
     let string = unsafe { from_utf8_unchecked(bytes) };

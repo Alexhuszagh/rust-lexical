@@ -9,15 +9,15 @@ use lexical_util::format::STANDARD;
 use lexical_util::iterator::Byte;
 use proptest::prelude::*;
 #[cfg(feature = "radix")]
-use util::to_format;
+use util::from_radix;
 
 #[test]
 fn test_is_4digits() {
     let value: u32 = 0x31_32_33_34;
     #[cfg(feature = "radix")]
-    assert!(!algorithm::is_4digits::<{ to_format(4) }>(value));
+    assert!(!algorithm::is_4digits::<{ from_radix(4) }>(value));
     #[cfg(feature = "radix")]
-    assert!(algorithm::is_4digits::<{ to_format(5) }>(value));
+    assert!(algorithm::is_4digits::<{ from_radix(5) }>(value));
     assert!(algorithm::is_4digits::<{ STANDARD }>(value));
 
     let value: u32 = 0x29_30_39_38;
@@ -28,7 +28,7 @@ fn test_is_4digits() {
 
     let value: u32 = 0x31_32_33_39;
     #[cfg(feature = "radix")]
-    assert!(!algorithm::is_4digits::<{ to_format(9) }>(value));
+    assert!(!algorithm::is_4digits::<{ from_radix(9) }>(value));
     assert!(algorithm::is_4digits::<{ STANDARD }>(value));
 }
 
@@ -36,7 +36,7 @@ fn test_is_4digits() {
 fn test_parse_4digits() {
     assert_eq!(algorithm::parse_4digits::<{ STANDARD }>(0x31_32_33_34), 4321);
     #[cfg(feature = "radix")]
-    assert_eq!(algorithm::parse_4digits::<{ to_format(5) }>(0x31_32_33_34), 586);
+    assert_eq!(algorithm::parse_4digits::<{ from_radix(5) }>(0x31_32_33_34), 586);
     assert_eq!(algorithm::parse_4digits::<{ STANDARD }>(0x36_37_38_39), 9876);
 }
 
@@ -59,8 +59,8 @@ fn test_is_8digits() {
     let value: u64 = 0x31_32_33_34_35_36_37_38;
     #[cfg(feature = "radix")]
     {
-        assert!(!algorithm::is_8digits::<{ to_format(4) }>(value));
-        assert!(!algorithm::is_8digits::<{ to_format(5) }>(value));
+        assert!(!algorithm::is_8digits::<{ from_radix(4) }>(value));
+        assert!(!algorithm::is_8digits::<{ from_radix(5) }>(value));
     }
     assert!(algorithm::is_8digits::<{ STANDARD }>(value));
 
@@ -72,7 +72,7 @@ fn test_is_8digits() {
 
     let value: u64 = 0x31_32_33_34_35_36_37_39;
     #[cfg(feature = "radix")]
-    assert!(!algorithm::is_8digits::<{ to_format(9) }>(value));
+    assert!(!algorithm::is_8digits::<{ from_radix(9) }>(value));
     assert!(algorithm::is_8digits::<{ STANDARD }>(value));
 }
 
@@ -82,24 +82,24 @@ fn test_parse_8digits() {
     let value: u64 = 0x30_30_30_30_30_30_30_31;
     assert_eq!(algorithm::parse_8digits::<{ STANDARD }>(value), 10000000);
     #[cfg(feature = "radix")]
-    assert_eq!(algorithm::parse_8digits::<{ to_format(5) }>(value), 78125);
+    assert_eq!(algorithm::parse_8digits::<{ from_radix(5) }>(value), 78125);
 
     // 00000010
     let value: u64 = 0x30_31_30_30_30_30_30_30;
     assert_eq!(algorithm::parse_8digits::<{ STANDARD }>(value), 10);
     #[cfg(feature = "radix")]
-    assert_eq!(algorithm::parse_8digits::<{ to_format(5) }>(value), 5);
+    assert_eq!(algorithm::parse_8digits::<{ from_radix(5) }>(value), 5);
 
     // 12344321
     let value: u64 = 0x31_32_33_34_34_33_32_31;
     assert_eq!(algorithm::parse_8digits::<{ STANDARD }>(value), 12344321);
     #[cfg(feature = "radix")]
     {
-        assert_eq!(algorithm::parse_8digits::<{ to_format(9) }>(value), 6052420);
-        assert_eq!(algorithm::parse_8digits::<{ to_format(8) }>(value), 2738385);
-        assert_eq!(algorithm::parse_8digits::<{ to_format(7) }>(value), 1120400);
-        assert_eq!(algorithm::parse_8digits::<{ to_format(6) }>(value), 402745);
-        assert_eq!(algorithm::parse_8digits::<{ to_format(5) }>(value), 121836);
+        assert_eq!(algorithm::parse_8digits::<{ from_radix(9) }>(value), 6052420);
+        assert_eq!(algorithm::parse_8digits::<{ from_radix(8) }>(value), 2738385);
+        assert_eq!(algorithm::parse_8digits::<{ from_radix(7) }>(value), 1120400);
+        assert_eq!(algorithm::parse_8digits::<{ from_radix(6) }>(value), 402745);
+        assert_eq!(algorithm::parse_8digits::<{ from_radix(5) }>(value), 121836);
     }
 }
 

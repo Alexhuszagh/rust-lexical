@@ -1,9 +1,7 @@
 //! Builder for the number format.
 
-#![cfg(feature = "parse")]
-
 use crate::format_flags as flags;
-use crate::lib::{mem, num};
+use core::{mem, num};
 use static_assertions::const_assert;
 
 /// Type with the exact same size as a `u8`.
@@ -45,6 +43,11 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 
 /// Build number format from specifications.
 ///
+/// Returns the format on calling build if it was able to compile the format,
+/// otherwise, returns None.
+///
+/// # Fields
+///
 /// * `digit_separator`                         - Character to separate digits.
 /// * `exponent`                                - Character to designate exponent notation.
 /// * `decimal_point`                           - Character to designate the decimal point.
@@ -83,8 +86,83 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 /// * `fraction_consecutive_digit_separator`    - If multiple consecutive fraction digit separators are allowed.
 /// * `special_digit_separator`                 - If any digit separators are allowed in special (non-finite) values.
 ///
-/// Returns the format on calling build if it was able to compile the format,
-/// otherwise, returns None.
+/// # Write Integer Fields
+///
+/// No fields are used for writing integers.
+///
+/// # Parse Integer Fields
+///
+/// These fields are used for parsing integers:
+///
+/// * `digit_separator`
+/// * `mantissa_radix`
+/// * `base_prefix`
+/// * `base_suffix`
+/// * `no_positive_mantissa_sign`
+/// * `required_mantissa_sign`
+/// * `no_integer_leading_zeros`
+/// * `integer_internal_digit_separator`
+/// * `integer_leading_digit_separator`
+/// * `integer_trailing_digit_separator`
+/// * `integer_consecutive_digit_separator`
+///
+/// # Write Float Fields
+///
+/// These fields are used for writing floats:
+///
+/// * `exponent`
+/// * `decimal_point`
+/// * `mantissa_radix`
+/// * `exponent_base`
+/// * `exponent_radix`
+/// * `no_positive_mantissa_sign`
+/// * `required_mantissa_sign`
+/// * `no_exponent_notation`
+/// * `no_positive_exponent_sign`
+/// * `required_exponent_sign`
+/// * `required_exponent_notation`
+///
+/// # Parse Float Fields
+///
+/// These fields are used for parsing floats:
+///
+/// * `digit_separator`
+/// * `exponent`
+/// * `decimal_point`
+/// * `mantissa_radix`
+/// * `exponent_base`
+/// * `exponent_radix`
+/// * `base_prefix`
+/// * `base_suffix`
+/// * `required_integer_digits`
+/// * `required_fraction_digits`
+/// * `required_exponent_digits`
+/// * `no_positive_mantissa_sign`
+/// * `required_mantissa_sign`
+/// * `no_exponent_notation`
+/// * `no_positive_exponent_sign`
+/// * `required_exponent_sign`
+/// * `no_exponent_without_fraction`
+/// * `no_special`
+/// * `case_sensitive_special`
+/// * `no_integer_leading_zeros`
+/// * `no_float_leading_zeros`
+/// * `required_exponent_notation`
+/// * `case_sensitive_exponent`
+/// * `case_sensitive_base_prefix`
+/// * `case_sensitive_base_suffix`
+/// * `integer_internal_digit_separator`
+/// * `fraction_internal_digit_separator`
+/// * `exponent_internal_digit_separator`
+/// * `integer_leading_digit_separator`
+/// * `fraction_leading_digit_separator`
+/// * `exponent_leading_digit_separator`
+/// * `integer_trailing_digit_separator`
+/// * `fraction_trailing_digit_separator`
+/// * `exponent_trailing_digit_separator`
+/// * `integer_consecutive_digit_separator`
+/// * `fraction_consecutive_digit_separator`
+/// * `special_digit_separator`
 pub struct NumberFormatBuilder {
     digit_separator: OptionU8,
     exponent: u8,
@@ -128,6 +206,8 @@ pub struct NumberFormatBuilder {
 }
 
 impl NumberFormatBuilder {
+    // CONSTRUCTORS
+
     /// Create new NumberFormatBuilder with default arguments.
     #[inline(always)]
     pub const fn new() -> Self {
@@ -171,6 +251,49 @@ impl NumberFormatBuilder {
             fraction_consecutive_digit_separator: false,
             exponent_consecutive_digit_separator: false,
             special_digit_separator: false,
+        }
+    }
+
+    /// Create number format for standard, binary number.
+    #[cfg(feature = "power-of-two")]
+    pub const fn binary() -> u128 {
+        Self::from_radix(2)
+    }
+
+    /// Create number format for standard, octal number.
+    #[cfg(feature = "power-of-two")]
+    pub const fn octal() -> u128 {
+        Self::from_radix(8)
+    }
+
+    /// Create number format for standard, octal number.
+    pub const fn decimal() -> u128 {
+        let mut builder = Self::new();
+        builder.mantissa_radix = 10;
+        builder.exponent_base = num::NonZeroU8::new(10);
+        builder.exponent_radix = num::NonZeroU8::new(10);
+        builder.build()
+    }
+
+    /// Create number format for standard, hexadecimal number.
+    #[cfg(feature = "power-of-two")]
+    pub const fn hexadecimal() -> u128 {
+        Self::from_radix(16)
+    }
+
+    /// Create number format from radix.
+    #[cfg(feature = "power-of-two")]
+    pub const fn from_radix(radix: u8) -> u128 {
+        let builder = Self::new()
+            .radix(radix)
+            .exponent_base(num::NonZeroU8::new(radix))
+            .exponent_radix(num::NonZeroU8::new(radix));
+
+        // 'e' is a valid digit for radix >= 15.
+        if radix >= 15 {
+            builder.exponent(b'^').build()
+        } else {
+            builder.build()
         }
     }
 
@@ -432,6 +555,13 @@ impl NumberFormatBuilder {
     pub const fn decimal_point(mut self, character: u8) -> Self {
         self.decimal_point = character;
         self
+    }
+
+    /// Alias for mantissa radix.
+    #[inline(always)]
+    #[cfg(feature = "power-of-two")]
+    pub const fn radix(self, radix: u8) -> Self {
+        self.mantissa_radix(radix)
     }
 
     /// Set the radix for mantissa digits.

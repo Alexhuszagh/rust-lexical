@@ -3,11 +3,11 @@
 use lexical_util::result::Result;
 
 /// Builder for `Options`.
-#[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct OptionsBuilder {}
 
 impl OptionsBuilder {
+    /// Create new options builder with default options.
     #[inline(always)]
     pub const fn new() -> Self {
         Self {}
@@ -59,7 +59,6 @@ impl Default for OptionsBuilder {
 ///     .unwrap();
 /// # }
 /// ```
-#[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Options {}
 

@@ -2,7 +2,8 @@
 
 use crate::options::Options;
 use crate::write::WriteInteger;
-use lexical_util::assert::{assert_buffer, assert_radix, debug_assert_buffer};
+use lexical_util::assert::{assert_buffer, debug_assert_buffer};
+use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::num::SignedInteger;
 use lexical_util::{to_lexical, to_lexical_with_options};
 
@@ -15,12 +16,12 @@ use lexical_util::{to_lexical, to_lexical_with_options};
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
 #[inline]
-unsafe fn unsigned<Narrow, Wide, const RADIX: u32>(value: Narrow, buffer: &mut [u8]) -> usize
+unsafe fn unsigned<Narrow, Wide, const FORMAT: u128>(value: Narrow, buffer: &mut [u8]) -> usize
 where
     Narrow: WriteInteger,
     Wide: WriteInteger,
 {
-    unsafe { value.write_integer::<Wide, RADIX>(buffer) }
+    unsafe { value.write_integer::<Wide, FORMAT>(buffer) }
 }
 
 // SIGNED
@@ -32,7 +33,7 @@ where
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
 #[inline]
-unsafe fn signed<Narrow, Wide, Unsigned, const RADIX: u32>(
+unsafe fn signed<Narrow, Wide, Unsigned, const FORMAT: u128>(
     value: Narrow,
     mut buffer: &mut [u8],
 ) -> usize
@@ -56,12 +57,12 @@ where
         }
         // SAFETY: safe as long as there is at least 1 element, which
         // the buffer should have at least `FORMATTED_SIZE` elements.
-        unsafe { unsigned.write_integer::<Unsigned, RADIX>(buffer) + 1 }
+        unsafe { unsigned.write_integer::<Unsigned, FORMAT>(buffer) + 1 }
     } else {
         let unsigned = Unsigned::as_cast(value);
         // SAFETY: safe as long as there is at least 1 element, which
         // the buffer should have at least `FORMATTED_SIZE` elements.
-        unsafe { unsigned.write_integer::<Unsigned, RADIX>(buffer) }
+        unsafe { unsigned.write_integer::<Unsigned, FORMAT>(buffer) }
     }
 }
 
@@ -77,7 +78,7 @@ macro_rules! unsigned_to_lexical {
             {
                 debug_assert_buffer::<$narrow>(10, bytes.len());
                 // SAFETY: safe if the buffer is sufficiently large.
-                let len = unsafe { unsigned::<$narrow, $wide, 10>(self, bytes) };
+                let len = unsafe { unsigned::<$narrow, $wide, { STANDARD }>(self, bytes) };
                 &mut bytes[..len]
             }
 
@@ -95,30 +96,30 @@ macro_rules! unsigned_to_lexical {
             type Options = Options;
 
             $(#[$meta:meta])?
-            unsafe fn to_lexical_with_options_unchecked<'a, const RADIX: u32>(
+            unsafe fn to_lexical_with_options_unchecked<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],
                 _: &Self::Options,
             ) -> &'a mut [u8]
             {
-                debug_assert_buffer::<$narrow>(RADIX, bytes.len());
-                assert_radix::<RADIX>();
+                debug_assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
+                assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
                 // SAFETY: safe if the buffer is sufficiently large.
-                let len = unsafe { unsigned::<$narrow, $wide, RADIX>(self, bytes) };
+                let len = unsafe { unsigned::<$narrow, $wide, FORMAT>(self, bytes) };
                 &mut bytes[..len]
             }
 
             $(#[$meta:meta])?
-            fn to_lexical_with_options<'a, const RADIX: u32>(
+            fn to_lexical_with_options<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],
                 options: &Self::Options,
             ) -> &'a mut [u8]
             {
-                assert_buffer::<$narrow>(RADIX, bytes.len());
-                assert_radix::<RADIX>();
+                assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
+                assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
                 // SAFETY: safe since the buffer is sufficiently large.
-                unsafe { self.to_lexical_with_options_unchecked::<RADIX>(bytes, options) }
+                unsafe { self.to_lexical_with_options_unchecked::<FORMAT>(bytes, options) }
             }
         }
     )*)
@@ -150,7 +151,7 @@ macro_rules! signed_to_lexical {
             {
                 debug_assert_buffer::<$narrow>(10, bytes.len());
                 // SAFETY: safe if the buffer is sufficiently large.
-                let len = unsafe { signed::<$narrow, $wide, $unsigned, 10>(self, bytes) };
+                let len = unsafe { signed::<$narrow, $wide, $unsigned, { STANDARD }>(self, bytes) };
                 &mut bytes[..len]
             }
 
@@ -168,30 +169,30 @@ macro_rules! signed_to_lexical {
             type Options = Options;
 
             $(#[$meta:meta])?
-            unsafe fn to_lexical_with_options_unchecked<'a, const RADIX: u32>(
+            unsafe fn to_lexical_with_options_unchecked<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],
                 _: &Self::Options,
             ) -> &'a mut [u8]
             {
-                debug_assert_buffer::<$narrow>(RADIX, bytes.len());
-                assert_radix::<RADIX>();
+                debug_assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
+                assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
                 // SAFETY: safe if the buffer is sufficiently large.
-                let len = unsafe { signed::<$narrow, $wide, $unsigned, RADIX>(self, bytes) };
+                let len = unsafe { signed::<$narrow, $wide, $unsigned, FORMAT>(self, bytes) };
                 &mut bytes[..len]
             }
 
             $(#[$meta:meta])?
-            fn to_lexical_with_options<'a, const RADIX: u32>(
+            fn to_lexical_with_options<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],
                 options: &Self::Options,
             ) -> &'a mut [u8]
             {
-                assert_buffer::<$narrow>(RADIX, bytes.len());
-                assert_radix::<RADIX>();
+                assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
+                assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
                 // SAFETY: safe since the buffer is sufficiently large.
-                unsafe { self.to_lexical_with_options_unchecked::<RADIX>(bytes, options) }
+                unsafe { self.to_lexical_with_options_unchecked::<FORMAT>(bytes, options) }
             }
         }
     )*)

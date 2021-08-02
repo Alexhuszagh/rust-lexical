@@ -7,6 +7,8 @@ use crate::compact::Compact;
 use crate::decimal::Decimal;
 #[cfg(all(not(feature = "compact"), feature = "power-of-two"))]
 use crate::radix::Radix;
+#[cfg(any(feature = "compact", feature = "power-of-two"))]
+use lexical_util::format::NumberFormat;
 
 /// Write integer trait, implemented in terms of the compact back-end.
 #[cfg(feature = "compact")]
@@ -18,12 +20,12 @@ pub trait WriteInteger: Compact {
     ///
     /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
     /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
-    unsafe fn write_integer<U, const RADIX: u32>(self, buffer: &mut [u8]) -> usize
+    unsafe fn write_integer<U, const FORMAT: u128>(self, buffer: &mut [u8]) -> usize
     where
         U: Compact,
     {
         let value = U::as_cast(self);
-        unsafe { value.compact(RADIX, buffer) }
+        unsafe { value.compact(NumberFormat::<{ FORMAT }>::RADIX, buffer) }
     }
 }
 
@@ -37,7 +39,7 @@ pub trait WriteInteger: Decimal {
     ///
     /// Safe as long as the buffer can hold `FORMATTED_SIZE_DECIMAL` elements.
     #[inline]
-    unsafe fn write_integer<U, const __: u32>(self, buffer: &mut [u8]) -> usize
+    unsafe fn write_integer<U, const __: u128>(self, buffer: &mut [u8]) -> usize
     where
         U: Decimal,
     {
@@ -57,15 +59,15 @@ pub trait WriteInteger: Decimal + Radix {
     /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
     /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
     #[inline]
-    unsafe fn write_integer<U, const RADIX: u32>(self, buffer: &mut [u8]) -> usize
+    unsafe fn write_integer<U, const FORMAT: u128>(self, buffer: &mut [u8]) -> usize
     where
         U: Decimal + Radix,
     {
         let value = U::as_cast(self);
-        if RADIX == 10 {
+        if NumberFormat::<{ FORMAT }>::RADIX == 10 {
             unsafe { value.decimal(buffer) }
         } else {
-            unsafe { value.radix::<RADIX>(buffer) }
+            unsafe { value.radix::<{ FORMAT }>(buffer) }
         }
     }
 }

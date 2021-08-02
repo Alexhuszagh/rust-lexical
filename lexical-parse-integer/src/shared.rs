@@ -6,7 +6,7 @@
 /// Return an error, returning the index and the error.
 macro_rules! into_error {
     ($code:ident, $index:expr) => {
-        Err((lexical_util::error::ErrorCode::$code, $index).into())
+        Err((lexical_util::error::Error::$code($index)))
     };
 }
 

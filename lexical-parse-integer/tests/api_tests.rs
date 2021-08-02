@@ -2,13 +2,13 @@
 mod util;
 
 use lexical_parse_integer::{FromLexical, FromLexicalWithOptions, Options};
-use lexical_util::error::ErrorCode;
+use lexical_util::error::Error;
 #[cfg(feature = "format")]
 use lexical_util::format::NumberFormatBuilder;
 use lexical_util::format::STANDARD;
 use proptest::prelude::*;
 #[cfg(feature = "power-of-two")]
-use util::to_format;
+use util::from_radix;
 
 #[test]
 fn u8_decimal_test() {
@@ -16,18 +16,18 @@ fn u8_decimal_test() {
     assert_eq!(Ok(127), u8::from_lexical(b"127"));
     assert_eq!(Ok(128), u8::from_lexical(b"128"));
     assert_eq!(Ok(255), u8::from_lexical(b"255"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), u8::from_lexical(b"-1"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), u8::from_lexical(b"1a"));
+    assert_eq!(Err(Error::InvalidDigit(0)), u8::from_lexical(b"-1"));
+    assert_eq!(Err(Error::InvalidDigit(1)), u8::from_lexical(b"1a"));
 }
 
 #[test]
 fn i8_decimal_test() {
     assert_eq!(Ok(0), i8::from_lexical(b"0"));
     assert_eq!(Ok(127), i8::from_lexical(b"127"));
-    assert_eq!(Err((ErrorCode::Overflow, 2).into()), i8::from_lexical(b"128"));
-    assert_eq!(Err((ErrorCode::Overflow, 2).into()), i8::from_lexical(b"255"));
+    assert_eq!(Err(Error::Overflow(2)), i8::from_lexical(b"128"));
+    assert_eq!(Err(Error::Overflow(2)), i8::from_lexical(b"255"));
     assert_eq!(Ok(-1), i8::from_lexical(b"-1"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i8::from_lexical(b"1a"));
+    assert_eq!(Err(Error::InvalidDigit(1)), i8::from_lexical(b"1a"));
 }
 
 #[test]
@@ -36,18 +36,18 @@ fn u16_decimal_test() {
     assert_eq!(Ok(32767), u16::from_lexical(b"32767"));
     assert_eq!(Ok(32768), u16::from_lexical(b"32768"));
     assert_eq!(Ok(65535), u16::from_lexical(b"65535"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), u16::from_lexical(b"-1"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), u16::from_lexical(b"1a"));
+    assert_eq!(Err(Error::InvalidDigit(0)), u16::from_lexical(b"-1"));
+    assert_eq!(Err(Error::InvalidDigit(1)), u16::from_lexical(b"1a"));
 }
 
 #[test]
 fn i16_decimal_test() {
     assert_eq!(Ok(0), i16::from_lexical(b"0"));
     assert_eq!(Ok(32767), i16::from_lexical(b"32767"));
-    assert_eq!(Err((ErrorCode::Overflow, 4).into()), i16::from_lexical(b"32768"));
-    assert_eq!(Err((ErrorCode::Overflow, 4).into()), i16::from_lexical(b"65535"));
+    assert_eq!(Err(Error::Overflow(4)), i16::from_lexical(b"32768"));
+    assert_eq!(Err(Error::Overflow(4)), i16::from_lexical(b"65535"));
     assert_eq!(Ok(-1), i16::from_lexical(b"-1"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i16::from_lexical(b"1a"));
+    assert_eq!(Err(Error::InvalidDigit(1)), i16::from_lexical(b"1a"));
 }
 
 #[test]
@@ -56,18 +56,18 @@ fn u32_decimal_test() {
     assert_eq!(Ok(2147483647), u32::from_lexical(b"2147483647"));
     assert_eq!(Ok(2147483648), u32::from_lexical(b"2147483648"));
     assert_eq!(Ok(4294967295), u32::from_lexical(b"4294967295"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), u32::from_lexical(b"-1"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), u32::from_lexical(b"1a"));
+    assert_eq!(Err(Error::InvalidDigit(0)), u32::from_lexical(b"-1"));
+    assert_eq!(Err(Error::InvalidDigit(1)), u32::from_lexical(b"1a"));
 }
 
 #[test]
 fn i32_decimal_test() {
     assert_eq!(Ok(0), i32::from_lexical(b"0"));
     assert_eq!(Ok(2147483647), i32::from_lexical(b"2147483647"));
-    assert_eq!(Err((ErrorCode::Overflow, 9).into()), i32::from_lexical(b"2147483648"));
-    assert_eq!(Err((ErrorCode::Overflow, 9).into()), i32::from_lexical(b"4294967295"));
+    assert_eq!(Err(Error::Overflow(9)), i32::from_lexical(b"2147483648"));
+    assert_eq!(Err(Error::Overflow(9)), i32::from_lexical(b"4294967295"));
     assert_eq!(Ok(-1), i32::from_lexical(b"-1"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i32::from_lexical(b"1a"));
+    assert_eq!(Err(Error::InvalidDigit(1)), i32::from_lexical(b"1a"));
 }
 
 #[test]
@@ -76,22 +76,22 @@ fn u64_decimal_test() {
     assert_eq!(Ok(9223372036854775807), u64::from_lexical(b"9223372036854775807"));
     assert_eq!(Ok(9223372036854775808), u64::from_lexical(b"9223372036854775808"));
     assert_eq!(Ok(18446744073709551615), u64::from_lexical(b"18446744073709551615"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), u64::from_lexical(b"-1"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), u64::from_lexical(b"1a"));
+    assert_eq!(Err(Error::InvalidDigit(0)), u64::from_lexical(b"-1"));
+    assert_eq!(Err(Error::InvalidDigit(1)), u64::from_lexical(b"1a"));
 }
 
 #[test]
 fn i64_decimal_test() {
     assert_eq!(Ok(0), i64::from_lexical(b"0"));
     assert_eq!(Ok(9223372036854775807), i64::from_lexical(b"9223372036854775807"));
-    assert_eq!(Err((ErrorCode::Overflow, 18).into()), i64::from_lexical(b"9223372036854775808"));
-    assert_eq!(Err((ErrorCode::Overflow, 19).into()), i64::from_lexical(b"18446744073709551615"));
+    assert_eq!(Err(Error::Overflow(18)), i64::from_lexical(b"9223372036854775808"));
+    assert_eq!(Err(Error::Overflow(19)), i64::from_lexical(b"18446744073709551615"));
     assert_eq!(Ok(-1), i64::from_lexical(b"-1"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i64::from_lexical(b"1a"));
+    assert_eq!(Err(Error::InvalidDigit(1)), i64::from_lexical(b"1a"));
 
     // Add tests discovered via fuzzing. This won't necessarily be the
     // proper index, since we use multi-digit parsing.
-    assert_eq!(ErrorCode::Overflow, i64::from_lexical(b"406260572150672006000066000000060060007667760000000000000000000+00000006766767766666767665670000000000000000000000666").err().unwrap().code);
+    assert!(i64::from_lexical(b"406260572150672006000066000000060060007667760000000000000000000+00000006766767766666767665670000000000000000000000666").err().unwrap().is_overflow());
 }
 
 #[test]
@@ -109,8 +109,8 @@ fn u128_decimal_test() {
         Ok(340282366920938463463374607431768211455),
         u128::from_lexical(b"340282366920938463463374607431768211455")
     );
-    assert_eq!(Err((ErrorCode::InvalidDigit, 0).into()), u128::from_lexical(b"-1"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), u128::from_lexical(b"1a"));
+    assert_eq!(Err(Error::InvalidDigit(0)), u128::from_lexical(b"-1"));
+    assert_eq!(Err(Error::InvalidDigit(1)), u128::from_lexical(b"1a"));
 }
 
 #[test]
@@ -121,15 +121,15 @@ fn i128_decimal_test() {
         i128::from_lexical(b"170141183460469231731687303715884105727")
     );
     assert_eq!(
-        Err((ErrorCode::Overflow, 38).into()),
+        Err(Error::Overflow(38)),
         i128::from_lexical(b"170141183460469231731687303715884105728")
     );
     assert_eq!(
-        Err((ErrorCode::Overflow, 38).into()),
+        Err(Error::Overflow(38)),
         i128::from_lexical(b"340282366920938463463374607431768211455")
     );
     assert_eq!(Ok(-1), i128::from_lexical(b"-1"));
-    assert_eq!(Err((ErrorCode::InvalidDigit, 1).into()), i128::from_lexical(b"1a"));
+    assert_eq!(Err(Error::InvalidDigit(1)), i128::from_lexical(b"1a"));
 }
 
 #[test]
@@ -142,7 +142,7 @@ fn options_test() {
 #[cfg(feature = "power-of-two")]
 fn i32_binary_test() {
     let options = Options::new();
-    const FORMAT: u128 = to_format(2);
+    const FORMAT: u128 = from_radix(2);
     assert_eq!(i32::from_lexical_with_options::<FORMAT>(b"11", &options), Ok(3));
     assert_eq!(i32::from_lexical_with_options::<FORMAT>(b"-11", &options), Ok(-3));
 }
@@ -157,41 +157,41 @@ fn radix_to_u32<const FORMAT: u128>(bytes: &[u8], expected: u32) {
 #[test]
 #[cfg(feature = "radix")]
 fn radix_test() {
-    radix_to_u32::<{ to_format(2) }>(b"100101", 37);
-    radix_to_u32::<{ to_format(3) }>(b"1101", 37);
-    radix_to_u32::<{ to_format(4) }>(b"211", 37);
-    radix_to_u32::<{ to_format(5) }>(b"122", 37);
-    radix_to_u32::<{ to_format(6) }>(b"101", 37);
-    radix_to_u32::<{ to_format(7) }>(b"52", 37);
-    radix_to_u32::<{ to_format(8) }>(b"45", 37);
-    radix_to_u32::<{ to_format(9) }>(b"41", 37);
-    radix_to_u32::<{ to_format(10) }>(b"37", 37);
-    radix_to_u32::<{ to_format(11) }>(b"34", 37);
-    radix_to_u32::<{ to_format(12) }>(b"31", 37);
-    radix_to_u32::<{ to_format(13) }>(b"2B", 37);
-    radix_to_u32::<{ to_format(14) }>(b"29", 37);
-    radix_to_u32::<{ to_format(15) }>(b"27", 37);
-    radix_to_u32::<{ to_format(16) }>(b"25", 37);
-    radix_to_u32::<{ to_format(17) }>(b"23", 37);
-    radix_to_u32::<{ to_format(18) }>(b"21", 37);
-    radix_to_u32::<{ to_format(19) }>(b"1I", 37);
-    radix_to_u32::<{ to_format(20) }>(b"1H", 37);
-    radix_to_u32::<{ to_format(21) }>(b"1G", 37);
-    radix_to_u32::<{ to_format(22) }>(b"1F", 37);
-    radix_to_u32::<{ to_format(23) }>(b"1E", 37);
-    radix_to_u32::<{ to_format(24) }>(b"1D", 37);
-    radix_to_u32::<{ to_format(25) }>(b"1C", 37);
-    radix_to_u32::<{ to_format(26) }>(b"1B", 37);
-    radix_to_u32::<{ to_format(27) }>(b"1A", 37);
-    radix_to_u32::<{ to_format(28) }>(b"19", 37);
-    radix_to_u32::<{ to_format(29) }>(b"18", 37);
-    radix_to_u32::<{ to_format(30) }>(b"17", 37);
-    radix_to_u32::<{ to_format(31) }>(b"16", 37);
-    radix_to_u32::<{ to_format(32) }>(b"15", 37);
-    radix_to_u32::<{ to_format(33) }>(b"14", 37);
-    radix_to_u32::<{ to_format(34) }>(b"13", 37);
-    radix_to_u32::<{ to_format(35) }>(b"12", 37);
-    radix_to_u32::<{ to_format(36) }>(b"11", 37);
+    radix_to_u32::<{ from_radix(2) }>(b"100101", 37);
+    radix_to_u32::<{ from_radix(3) }>(b"1101", 37);
+    radix_to_u32::<{ from_radix(4) }>(b"211", 37);
+    radix_to_u32::<{ from_radix(5) }>(b"122", 37);
+    radix_to_u32::<{ from_radix(6) }>(b"101", 37);
+    radix_to_u32::<{ from_radix(7) }>(b"52", 37);
+    radix_to_u32::<{ from_radix(8) }>(b"45", 37);
+    radix_to_u32::<{ from_radix(9) }>(b"41", 37);
+    radix_to_u32::<{ from_radix(10) }>(b"37", 37);
+    radix_to_u32::<{ from_radix(11) }>(b"34", 37);
+    radix_to_u32::<{ from_radix(12) }>(b"31", 37);
+    radix_to_u32::<{ from_radix(13) }>(b"2B", 37);
+    radix_to_u32::<{ from_radix(14) }>(b"29", 37);
+    radix_to_u32::<{ from_radix(15) }>(b"27", 37);
+    radix_to_u32::<{ from_radix(16) }>(b"25", 37);
+    radix_to_u32::<{ from_radix(17) }>(b"23", 37);
+    radix_to_u32::<{ from_radix(18) }>(b"21", 37);
+    radix_to_u32::<{ from_radix(19) }>(b"1I", 37);
+    radix_to_u32::<{ from_radix(20) }>(b"1H", 37);
+    radix_to_u32::<{ from_radix(21) }>(b"1G", 37);
+    radix_to_u32::<{ from_radix(22) }>(b"1F", 37);
+    radix_to_u32::<{ from_radix(23) }>(b"1E", 37);
+    radix_to_u32::<{ from_radix(24) }>(b"1D", 37);
+    radix_to_u32::<{ from_radix(25) }>(b"1C", 37);
+    radix_to_u32::<{ from_radix(26) }>(b"1B", 37);
+    radix_to_u32::<{ from_radix(27) }>(b"1A", 37);
+    radix_to_u32::<{ from_radix(28) }>(b"19", 37);
+    radix_to_u32::<{ from_radix(29) }>(b"18", 37);
+    radix_to_u32::<{ from_radix(30) }>(b"17", 37);
+    radix_to_u32::<{ from_radix(31) }>(b"16", 37);
+    radix_to_u32::<{ from_radix(32) }>(b"15", 37);
+    radix_to_u32::<{ from_radix(33) }>(b"14", 37);
+    radix_to_u32::<{ from_radix(34) }>(b"13", 37);
+    radix_to_u32::<{ from_radix(35) }>(b"12", 37);
+    radix_to_u32::<{ from_radix(36) }>(b"11", 37);
 }
 
 #[test]
@@ -275,13 +275,56 @@ fn i32_json_no_leading_zero() {
     assert!(i32::from_lexical_with_options::<{ JSON }>(b"-012", &options).is_err());
 }
 
+macro_rules! is_error {
+    ($result:expr, $check:ident) => {{
+        let result = $result;
+        prop_assert!(result.is_err());
+        let err = result.err().unwrap();
+        prop_assert!(err.$check());
+    }};
+}
+
+macro_rules! is_invalid_digit {
+    ($result:expr) => {
+        is_error!($result, is_invalid_digit)
+    };
+}
+
+macro_rules! is_empty {
+    ($result:expr) => {
+        is_error!($result, is_empty)
+    };
+}
+
+macro_rules! is_overflow {
+    ($result:expr) => {
+        is_error!($result, is_overflow)
+    };
+}
+
+macro_rules! is_underflow {
+    ($result:expr) => {
+        is_error!($result, is_underflow)
+    };
+}
+
+macro_rules! is_invalid_digit_match {
+    ($result:expr, $p1:pat $(| $prest:pat)*) => {{
+        let result = $result;
+        prop_assert!(result.is_err());
+        let err = result.err().unwrap();
+        prop_assert!(err.is_invalid_digit());
+        prop_assert!(matches!(*err.index().unwrap(), $p1 $(| $prest)*));
+    }};
+}
+
 proptest! {
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "power-of-two")]
     fn i32_binary_roundtrip_display_proptest(i in i32::MIN..i32::MAX) {
         let options = Options::new();
-        const FORMAT: u128 = to_format(2);
+        const FORMAT: u128 = from_radix(2);
         let digits = if i < 0 {
             format!("-{:b}", (i as i64).wrapping_neg())
         } else {
@@ -294,432 +337,360 @@ proptest! {
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u8_invalid_proptest(i in r"[+]?[0-9]{2}\D") {
-        let result = u8::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let index = result.err().unwrap().index;
-        prop_assert!(index == 2 || index == 3);
+        is_invalid_digit_match!(u8::from_lexical(i.as_bytes()), 2 | 3);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u8_overflow_proptest(i in r"[+]?[1-9][0-9]{3}") {
-        let result = u8::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Overflow);
+        is_overflow!(u8::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u8_negative_proptest(i in r"[-][1-9][0-9]{2}") {
-        let result = u8::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::InvalidDigit);
+        is_invalid_digit!(u8::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u8_double_sign_proptest(i in r"[+]{2}[0-9]{2}") {
-        let result = u8::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 1);
+        is_invalid_digit_match!(u8::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u8_sign_only_proptest(i in r"[+]") {
-        let result = u8::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Empty);
+        is_empty!(u8::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u8_trailing_digits_proptest(i in r"[+]?[0-9]{2}\D[0-9]{2}") {
-        let result = u8::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 2 || error.index == 3);
+        is_invalid_digit_match!(u8::from_lexical(i.as_bytes()), 2 | 3);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i8_invalid_proptest(i in r"[+-]?[0-9]{2}\D") {
-        let result = i8::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 2 || error.index == 3);
+        is_invalid_digit_match!(i8::from_lexical(i.as_bytes()), 2 | 3);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i8_overflow_proptest(i in r"[+]?[1-9][0-9]{3}\D") {
-        let result = i8::from_lexical(i.as_bytes());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Overflow);
+        is_overflow!(i8::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i8_underflow_proptest(i in r"[-][1-9][0-9]{3}\D") {
-        let result = i8::from_lexical(i.as_bytes());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Underflow);
+        is_underflow!(i8::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i8_double_sign_proptest(i in r"[+-]{2}[0-9]{2}") {
-        let result = i8::from_lexical(i.as_bytes());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 1);
+        is_invalid_digit_match!(i8::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i8_sign_only_proptest(i in r"[+-]") {
-        let result = i8::from_lexical(i.as_bytes());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::Empty);
+        is_empty!(i8::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i8_trailing_digits_proptest(i in r"[+-]?[0-9]{2}\D[0-9]{2}") {
-        let result = i8::from_lexical(i.as_bytes());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 2 || error.index == 3);
+        is_invalid_digit_match!(i8::from_lexical(i.as_bytes()), 2 | 3);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u16_invalid_proptest(i in r"[+]?[0-9]{4}\D") {
-        let result = u16::from_lexical(i.as_bytes());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 4 || error.index == 5);
+        is_invalid_digit_match!(u16::from_lexical(i.as_bytes()), 4 | 5);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u16_overflow_proptest(i in r"[+]?[1-9][0-9]{5}\D") {
-        let result = u16::from_lexical(i.as_bytes());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Overflow);
+        is_overflow!(u16::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u16_negative_proptest(i in r"[-][1-9][0-9]{4}") {
-        let result = u16::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::InvalidDigit);
+        is_invalid_digit!(u16::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u16_double_sign_proptest(i in r"[+]{2}[0-9]{4}") {
-        let result = u16::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 1);
+        is_invalid_digit_match!(u16::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u16_sign_only_proptest(i in r"[+]") {
-        let result = u16::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Empty);
+        is_empty!(u16::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u16_trailing_digits_proptest(i in r"[+]?[0-9]{4}\D[0-9]{2}") {
-        let result = u16::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 4 || error.index == 5);
+        is_invalid_digit_match!(u16::from_lexical(i.as_bytes()), 4 | 5);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i16_invalid_proptest(i in r"[+-]?[0-9]{4}\D") {
-        let result = i16::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 4 || error.index == 5);
+        is_invalid_digit_match!(i16::from_lexical(i.as_bytes()), 4 | 5);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i16_overflow_proptest(i in r"[+]?[1-9][0-9]{5}\D") {
-        let result = i16::from_lexical(i.as_bytes());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Overflow);
+        is_overflow!(i16::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i16_underflow_proptest(i in r"[-][1-9][0-9]{5}\DD") {
-        let result = i16::from_lexical(i.as_bytes());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Underflow);
+        is_underflow!(i16::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i16_double_sign_proptest(i in r"[+-]{2}[0-9]{4}") {
-        let result = i16::from_lexical(i.as_bytes());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 1);
+        is_invalid_digit_match!(i16::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i16_sign_only_proptest(i in r"[+-]") {
-        let result = i16::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Empty);
+        is_empty!(i16::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i16_trailing_digits_proptest(i in r"[+-]?[0-9]{4}\D[0-9]{2}") {
-        let result = i16::from_lexical(i.as_bytes());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 4 || error.index == 5);
+        is_invalid_digit_match!(i16::from_lexical(i.as_bytes()), 4 | 5);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u32_invalid_proptest(i in r"[+]?[0-9]{9}\D") {
-        let result = u32::from_lexical(i.as_bytes());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 9 || error.index == 10);
+        is_invalid_digit_match!(u32::from_lexical(i.as_bytes()), 9 | 10);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u32_overflow_proptest(i in r"[+]?[1-9][0-9]{10}\D") {
-        let result = u32::from_lexical(i.as_bytes());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Overflow);
+        is_overflow!(u32::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u32_negative_proptest(i in r"[-][1-9][0-9]{9}") {
-        let result = u32::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::InvalidDigit);
+        is_invalid_digit!(u32::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u32_double_sign_proptest(i in r"[+]{2}[0-9]{9}") {
-        let result = u32::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 1);
+        is_invalid_digit_match!(u32::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u32_sign_only_proptest(i in r"[+]") {
-        let result = u32::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Empty);
+        is_empty!(u32::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u32_trailing_digits_proptest(i in r"[+]?[0-9]{9}\D[0-9]{2}") {
-        let result = u32::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 9 || error.index == 10);
+        is_invalid_digit_match!(u32::from_lexical(i.as_bytes()), 9 | 10);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i32_invalid_proptest(i in r"[+-]?[0-9]{9}\D") {
-        let result = i32::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 9 || error.index == 10);
+        is_invalid_digit_match!(i32::from_lexical(i.as_bytes()), 9 | 10);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i32_overflow_proptest(i in r"[+]?[1-9][0-9]{10}\D") {
-        let result = i32::from_lexical(i.as_bytes());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Overflow);
+        is_overflow!(i32::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i32_underflow_proptest(i in r"-[1-9][0-9]{10}\D") {
-        let result = i32::from_lexical(i.as_bytes());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Underflow);
+        is_underflow!(i32::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i32_double_sign_proptest(i in r"[+-]{2}[0-9]{9}") {
-        let result = i32::from_lexical(i.as_bytes());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 1);
+        is_invalid_digit_match!(i32::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i32_sign_only_proptest(i in r"[+-]") {
-        let result = i32::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Empty);
+        is_empty!(i32::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i32_trailing_digits_proptest(i in r"[+-]?[0-9]{9}\D[0-9]{2}") {
-        let result = i32::from_lexical(i.as_bytes());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 9 || error.index == 10);
+        is_invalid_digit_match!(i32::from_lexical(i.as_bytes()), 9 | 10);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u64_invalid_proptest(i in r"[+]?[0-9]{19}\D") {
-        let result = u64::from_lexical(i.as_bytes());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 19 || error.index == 20);
+        is_invalid_digit_match!(u64::from_lexical(i.as_bytes()), 19 | 20);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u64_overflow_proptest(i in r"[+]?[1-9][0-9]{21}\D") {
-        let result = u64::from_lexical(i.as_bytes());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Overflow);
+        is_overflow!(u64::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u64_negative_proptest(i in r"[-][1-9][0-9]{21}") {
-        let result = u64::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::InvalidDigit);
+        is_invalid_digit!(u64::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u64_double_sign_proptest(i in r"[+]{2}[0-9]{19}") {
-        let result = u64::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 1);
+        is_invalid_digit_match!(u64::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u64_sign_only_proptest(i in r"[+]") {
-        let result = u64::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Empty);
+        is_empty!(u64::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn u64_trailing_digits_proptest(i in r"[+]?[0-9]{19}\D[0-9]{2}") {
-        let result = u64::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 19 || error.index == 20);
+        is_invalid_digit_match!(u64::from_lexical(i.as_bytes()), 19 | 20);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i64_invalid_proptest(i in r"[+-]?[0-9]{18}\D") {
-        let result = i64::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 18 || error.index == 19);
+        is_invalid_digit_match!(i64::from_lexical(i.as_bytes()), 18 | 19);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i64_overflow_proptest(i in r"[+]?[1-9][0-9]{19}\D") {
-        let result = i64::from_lexical(i.as_bytes());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Overflow);
+        is_overflow!(i64::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i64_underflow_proptest(i in r"-[1-9][0-9]{19}\D") {
-        let result = i64::from_lexical(i.as_bytes());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Underflow);
+        is_underflow!(i64::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i64_double_sign_proptest(i in r"[+-]{2}[0-9]{18}") {
-        let result = i64::from_lexical(i.as_bytes());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 1);
+        is_invalid_digit_match!(i64::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i64_sign_only_proptest(i in r"[+-]") {
-        let result = i32::from_lexical(i.as_bytes());
-        prop_assert!(result.is_err());
-        let code = result.err().unwrap().code;
-        prop_assert_eq!(code, ErrorCode::Empty);
+        is_empty!(i64::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i64_trailing_digits_proptest(i in r"[+-]?[0-9]{18}\D[0-9]{2}") {
-        let result = i64::from_lexical(i.as_bytes());
-        let error = result.err().unwrap();
-        prop_assert_eq!(error.code, ErrorCode::InvalidDigit);
-        prop_assert!(error.index == 18 || error.index == 19);
+        is_invalid_digit_match!(i64::from_lexical(i.as_bytes()), 18 | 19);
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn u128_invalid_proptest(i in r"[+]?[0-9]{38}\D") {
+        is_invalid_digit_match!(u128::from_lexical(i.as_bytes()), 38 | 39);
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn u128_overflow_proptest(i in r"[+]?[1-9][0-9]{39}\D") {
+        is_overflow!(u128::from_lexical(i.as_bytes()));
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn u128_negative_proptest(i in r"[-][1-9][0-9]{39}") {
+        is_invalid_digit!(u128::from_lexical(i.as_bytes()));
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn u128_double_sign_proptest(i in r"[+]{2}[0-9]{38}") {
+        is_invalid_digit_match!(u128::from_lexical(i.as_bytes()), 1);
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn u128_sign_only_proptest(i in r"[+]") {
+        is_empty!(u128::from_lexical(i.as_bytes()));
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn u128_trailing_digits_proptest(i in r"[+]?[0-9]{38}\D[0-9]{2}") {
+        is_invalid_digit_match!(u128::from_lexical(i.as_bytes()), 38 | 39);
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn i128_invalid_proptest(i in r"[+-]?[0-9]{38}\D") {
+        is_invalid_digit_match!(i128::from_lexical(i.as_bytes()), 38 | 39);
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn i128_overflow_proptest(i in r"[+]?[1-9][0-9]{39}\D") {
+        is_overflow!(i128::from_lexical(i.as_bytes()));
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn i128_underflow_proptest(i in r"-[1-9][0-9]{39}\D") {
+        is_underflow!(i128::from_lexical(i.as_bytes()));
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn i128_double_sign_proptest(i in r"[+-]{2}[0-9]{38}") {
+        is_invalid_digit_match!(i128::from_lexical(i.as_bytes()), 1);
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn i128_sign_only_proptest(i in r"[+-]") {
+        is_empty!(i128::from_lexical(i.as_bytes()));
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn i128_trailing_digits_proptest(i in r"[+-]?[0-9]{38}\D[0-9]{2}") {
+        is_invalid_digit_match!(i128::from_lexical(i.as_bytes()), 38 | 39);
     }
 }

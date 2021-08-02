@@ -190,7 +190,7 @@ macro_rules! to_lexical_with_options {
             /// Returns a subslice of the input buffer containing the written bytes,
             /// starting from the same address in memory as the input slice.
             ///
-            /// * `RADIX`   - The radix to serialize the string as.
+            /// * `FORMAT`  - Flags and characters designating the number grammar.
             /// * `value`   - Number to serialize.
             /// * `bytes`   - Buffer to write number to.
             /// * `options` - Options for number formatting.
@@ -202,7 +202,7 @@ macro_rules! to_lexical_with_options {
             /// provided, a buffer overflow is very likely.
             ///
             /// [`FORMATTED_SIZE`]: trait.Number.html#associatedconstant.FORMATTED_SIZE
-            unsafe fn to_lexical_with_options_unchecked<'a, const RADIX: u32>(
+            unsafe fn to_lexical_with_options_unchecked<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],
                 options: &Self::Options,
@@ -213,7 +213,7 @@ macro_rules! to_lexical_with_options {
             /// Returns a subslice of the input buffer containing the written bytes,
             /// starting from the same address in memory as the input slice.
             ///
-            /// * `RADIX`   - The radix to serialize the string as.
+            /// * `FORMAT`  - Flags and characters designating the number grammar.
             /// * `value`   - Number to serialize.
             /// * `bytes`   - Buffer to write number to.
             /// * `options` - Options for number formatting.
@@ -226,7 +226,7 @@ macro_rules! to_lexical_with_options {
             /// [`FORMATTED_SIZE`] elements.
             ///
             /// [`FORMATTED_SIZE`]: trait.Number.html#associatedconstant.FORMATTED_SIZE
-            fn to_lexical_with_options<'a, const RADIX: u32>(
+            fn to_lexical_with_options<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],
                 options: &Self::Options,

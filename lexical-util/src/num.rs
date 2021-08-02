@@ -4,7 +4,7 @@
 //! types, and trait bounds, and conversions for working with
 //! numbers in generic code.
 
-use crate::lib::{fmt, mem, ops};
+use core::{fmt, mem, ops};
 
 // AS PRIMITIVE
 // ------------
@@ -682,41 +682,41 @@ macro_rules! float_masks {
 //      - bf16
 //      - f128
 
-#[cfg(all(feature = "f16", feature = "floats"))]
-impl Float for f16 {
-    type Unsigned = u16;
-    float_literals!(f16);
-    float_masks!(
-        float => Self,
-        sign_mask => 0x8000,
-        exponent_mask => 0x7C00,
-        hidden_bit_mask => 0x0400,
-        mantissa_mask => 0x03FF,
-    );
-    const EXPONENT_SIZE: i32 = 5;
-    const MANTISSA_SIZE: i32 = 10;
-    const EXPONENT_BIAS: i32 = 15 + Self::MANTISSA_SIZE;
-    const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
-    const MAX_EXPONENT: i32 = 0x1F - Self::EXPONENT_BIAS;
-}
+// #[cfg(all(feature = "f16", feature = "floats"))]
+// impl Float for f16 {
+//     type Unsigned = u16;
+//     float_literals!(f16);
+//     float_masks!(
+//         float => Self,
+//         sign_mask => 0x8000,
+//         exponent_mask => 0x7C00,
+//         hidden_bit_mask => 0x0400,
+//         mantissa_mask => 0x03FF,
+//     );
+//     const EXPONENT_SIZE: i32 = 5;
+//     const MANTISSA_SIZE: i32 = 10;
+//     const EXPONENT_BIAS: i32 = 15 + Self::MANTISSA_SIZE;
+//     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
+//     const MAX_EXPONENT: i32 = 0x1F - Self::EXPONENT_BIAS;
+// }
 
-#[cfg(all(feature = "f16", feature = "floats"))]
-impl Float for bf16 {
-    type Unsigned = u16;
-    float_literals!(bf16);
-    float_masks!(
-        float => Self,
-        sign_mask => 0x8000,
-        exponent_mask => 0x7F80,
-        hidden_bit_mask => 0x0080,
-        mantissa_mask => 0x007F,
-    );
-    const EXPONENT_SIZE: i32 = 8;
-    const MANTISSA_SIZE: i32 = 7;
-    const EXPONENT_BIAS: i32 = 127 + Self::MANTISSA_SIZE;
-    const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
-    const MAX_EXPONENT: i32 = 0xFF - Self::EXPONENT_BIAS;
-}
+// #[cfg(all(feature = "f16", feature = "floats"))]
+// impl Float for bf16 {
+//     type Unsigned = u16;
+//     float_literals!(bf16);
+//     float_masks!(
+//         float => Self,
+//         sign_mask => 0x8000,
+//         exponent_mask => 0x7F80,
+//         hidden_bit_mask => 0x0080,
+//         mantissa_mask => 0x007F,
+//     );
+//     const EXPONENT_SIZE: i32 = 8;
+//     const MANTISSA_SIZE: i32 = 7;
+//     const EXPONENT_BIAS: i32 = 127 + Self::MANTISSA_SIZE;
+//     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
+//     const MAX_EXPONENT: i32 = 0xFF - Self::EXPONENT_BIAS;
+// }
 
 #[cfg(feature = "floats")]
 impl Float for f32 {
@@ -794,20 +794,20 @@ impl Float for f64 {
     }
 }
 
-#[cfg(all(feature = "f128", feature = "floats"))]
-impl Float for f128 {
-    type Unsigned = u128;
-    float_literals!(f128);
-    float_masks!(
-        float => Self,
-        sign_mask => 0x80000000000000000000000000000000,
-        exponent_mask => 0x7FFF0000000000000000000000000000,
-        hidden_bit_mask => 0x00010000000000000000000000000000,
-        mantissa_mask => 0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFF,
-    );
-    const EXPONENT_SIZE: i32 = 15;
-    const MANTISSA_SIZE: i32 = 112;
-    const EXPONENT_BIAS: i32 = 16383 + Self::MANTISSA_SIZE;
-    const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
-    const MAX_EXPONENT: i32 = 0x7FFF - Self::EXPONENT_BIAS;
-}
+// #[cfg(all(feature = "f128", feature = "floats"))]
+// impl Float for f128 {
+//     type Unsigned = u128;
+//     float_literals!(f128);
+//     float_masks!(
+//         float => Self,
+//         sign_mask => 0x80000000000000000000000000000000,
+//         exponent_mask => 0x7FFF0000000000000000000000000000,
+//         hidden_bit_mask => 0x00010000000000000000000000000000,
+//         mantissa_mask => 0x0000FFFFFFFFFFFFFFFFFFFFFFFFFFFF,
+//     );
+//     const EXPONENT_SIZE: i32 = 15;
+//     const MANTISSA_SIZE: i32 = 112;
+//     const EXPONENT_BIAS: i32 = 16383 + Self::MANTISSA_SIZE;
+//     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
+//     const MAX_EXPONENT: i32 = 0x7FFF - Self::EXPONENT_BIAS;
+// }

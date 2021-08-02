@@ -691,13 +691,12 @@
 //      db.movie.find()
 //      ```
 
-#![cfg(feature = "parse")]
 #![cfg(feature = "format")]
 
-use crate::error::{Error, ErrorCode};
+use crate::error::Error;
 use crate::format_builder::NumberFormatBuilder;
 use crate::format_flags as flags;
-use crate::lib::num;
+use core::num;
 
 use static_assertions::const_assert;
 
@@ -709,10 +708,15 @@ macro_rules! from_flag {
 }
 
 /// Wrapper for the 128-bit packed struct.
+///
+/// See `NumberFormatBuilder` for the `FORMAT` fields
+/// for the packed struct.
 pub struct NumberFormat<const FORMAT: u128>;
 
 #[rustfmt::skip]
 impl<const FORMAT: u128> NumberFormat<FORMAT> {
+    // CONSTRUCTORS
+
     /// Create new instance (for methods and validation).
     pub const fn new() -> Self {
         Self {}
@@ -722,48 +726,47 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
 
     /// Determine if the number format is valid.
     pub const fn is_valid(&self) -> bool {
-        // Note: enum equality is not a const fn, so use integer equality.
-        self.error().code as i32 == ErrorCode::Success as i32
+        self.error().is_success()
     }
 
     /// Get error from invalid number format.
     pub const fn error(&self) -> Error {
         if !flags::is_valid_radix(self.mantissa_radix()) {
-            Error::new(ErrorCode::InvalidMantissaRadix)
+            Error::InvalidMantissaRadix
         } else if !flags::is_valid_radix(self.exponent_base()) {
-            Error::new(ErrorCode::InvalidExponentBase)
+            Error::InvalidExponentBase
         } else if !flags::is_valid_radix(self.exponent_radix()) {
-            Error::new(ErrorCode::InvalidExponentRadix)
+            Error::InvalidExponentRadix
         } else if !flags::is_valid_digit_separator(FORMAT) {
-            Error::new(ErrorCode::InvalidDigitSeparator)
+            Error::InvalidDigitSeparator
         } else if !flags::is_valid_decimal_point(FORMAT) {
-            Error::new(ErrorCode::InvalidDecimalPoint)
+            Error::InvalidDecimalPoint
         } else if !flags::is_valid_exponent(FORMAT) {
-            Error::new(ErrorCode::InvalidExponentSymbol)
+            Error::InvalidExponentSymbol
         } else if !flags::is_valid_base_prefix(FORMAT) {
-            Error::new(ErrorCode::InvalidBasePrefix)
+            Error::InvalidBasePrefix
         } else if !flags::is_valid_base_suffix(FORMAT) {
-            Error::new(ErrorCode::InvalidBaseSuffix)
+            Error::InvalidBaseSuffix
         } else if !flags::is_valid_punctuation(FORMAT) {
-            Error::new(ErrorCode::InvalidPunctuation)
+            Error::InvalidPunctuation
         } else if self.exponent_flags() == flags::NO_EXPONENT_NOTATION {
-            Error::new(ErrorCode::InvalidExponentFlags)
+            Error::InvalidExponentFlags
         } else if self.no_positive_mantissa_sign() && self.required_mantissa_sign() {
-            Error::new(ErrorCode::InvalidMantissaSign)
+            Error::InvalidMantissaSign
         } else if self.no_positive_exponent_sign() && self.required_exponent_sign() {
-            Error::new(ErrorCode::InvalidExponentSign)
+            Error::InvalidExponentSign
         } else if self.no_special() && self.case_sensitive_special() {
-            Error::new(ErrorCode::InvalidSpecial)
+            Error::InvalidSpecial
         } else if self.no_special() && self.special_digit_separator() {
-            Error::new(ErrorCode::InvalidSpecial)
+            Error::InvalidSpecial
         } else if self.integer_digit_separator_flags() == flags::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR {
-            Error::new(ErrorCode::InvalidConsecutiveIntegerDigitSeparator)
+            Error::InvalidConsecutiveIntegerDigitSeparator
         } else if self.fraction_digit_separator_flags() == flags::FRACTION_CONSECUTIVE_DIGIT_SEPARATOR {
-            Error::new(ErrorCode::InvalidConsecutiveFractionDigitSeparator)
+            Error::InvalidConsecutiveFractionDigitSeparator
         } else if self.exponent_digit_separator_flags() == flags::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR {
-            Error::new(ErrorCode::InvalidConsecutiveExponentDigitSeparator)
+            Error::InvalidConsecutiveExponentDigitSeparator
         } else {
-            Error::new(ErrorCode::Success)
+            Error::Success
         }
     }
 
