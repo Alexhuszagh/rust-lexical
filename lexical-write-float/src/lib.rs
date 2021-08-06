@@ -6,6 +6,9 @@
 #![cfg_attr(feature = "lint", warn(unsafe_op_in_unsafe_fn))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[macro_use]
+mod index;
+
 pub mod algorithm;
 pub mod binary;
 pub mod compact;

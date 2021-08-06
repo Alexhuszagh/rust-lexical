@@ -246,6 +246,8 @@ impl OptionsBuilder {
     /// Build the ParseFloatOptions struct.
     #[inline(always)]
     pub const fn build(self) -> Result<Options> {
+        let min_digits = unwrap_or_zero_usize(self.min_significant_digits);
+        let max_digits = unwrap_or_max_usize(self.max_significant_digits);
         if self.nan_string.is_empty() || !matches!(self.nan_string[0], b'N' | b'n') {
             Err(Error::InvalidNanString)
         } else if self.nan_string.len() > MAX_SPECIAL_STRING_LENGTH {
@@ -254,6 +256,12 @@ impl OptionsBuilder {
             Err(Error::InvalidInfString)
         } else if self.inf_string.len() > MAX_SPECIAL_STRING_LENGTH {
             Err(Error::InfStringTooLong)
+        } else if max_digits < min_digits {
+            Err(Error::InvalidFloatPrecision)
+        } else if unwrap_or_zero_i32(self.negative_exponent_break) > 0 {
+            Err(Error::InvalidNegativeExponentBreak)
+        } else if unwrap_or_zero_i32(self.positive_exponent_break) < 0 {
+            Err(Error::InvalidPositiveExponentBreak)
         } else {
             // SAFETY: always safe, since it must be valid.
             Ok(unsafe { self.build_unchecked() })
@@ -492,5 +500,31 @@ impl Default for Options {
     #[inline(always)]
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Define unwrap_or_zero for a custom type.
+macro_rules! unwrap_or_zero {
+    ($name:ident, $opt:ident, $t:ident) => {
+        /// Unwrap `Option` as a const fn.
+        #[inline(always)]
+        const fn $name(option: $opt) -> $t {
+            match option {
+                Some(x) => x.get(),
+                None => 0,
+            }
+        }
+    };
+}
+
+unwrap_or_zero!(unwrap_or_zero_usize, OptionUsize, usize);
+unwrap_or_zero!(unwrap_or_zero_i32, OptionI32, i32);
+
+/// Unwrap `Option` as a const fn.
+#[inline(always)]
+const fn unwrap_or_max_usize(option: OptionUsize) -> usize {
+    match option {
+        Some(x) => x.get(),
+        None => usize::MAX,
     }
 }

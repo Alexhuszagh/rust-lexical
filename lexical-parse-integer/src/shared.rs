@@ -198,7 +198,8 @@ macro_rules! algorithm {
 
         let mut iter = byte.integer_iter();
         let (is_negative, shift) = parse_sign!(iter, format);
-        unsafe { iter.step_by_unchecked(shift); }
+        // SAFETY: safe since we shift at most one for a parsed sign byte.
+        unsafe { iter.step_by_unchecked(shift) };
         if ByteIter::is_empty(&iter) {
             return into_error!(Empty, shift);
         }
@@ -209,7 +210,8 @@ macro_rules! algorithm {
             // Has at least 1 element, and is a 0. Check if the next
             // peeked value is a valid digit.
             let index = iter.cursor();
-            unsafe { iter.step_by_unchecked(1); }
+            // SAFETY: safe, have at least 1 element and that element is 0.
+            unsafe { iter.step_by_unchecked(1) };
             match iter.peek().map(|&c| char_to_digit_const(c, format.radix())) {
                 // Valid digit, we have an invalid value.
                 Some(Some(_)) => return into_error!(InvalidLeadingZeros, index),
@@ -232,9 +234,25 @@ macro_rules! algorithm {
                 // small 128-bit values. Can increase parse time for simple
                 // values by ~60% or more.
                 if <$t>::IS_SIGNED {
-                    parse_value!(iter, is_negative, $format, i64, parse_compact, $invalid_digit, $into_ok)
+                    parse_value!(
+                        iter,
+                        is_negative,
+                        $format,
+                        i64,
+                        parse_compact,
+                        $invalid_digit,
+                        $into_ok
+                    )
                 } else {
-                    parse_value!(iter, is_negative, $format, u64, parse_compact, $invalid_digit, $into_ok)
+                    parse_value!(
+                        iter,
+                        is_negative,
+                        $format,
+                        u64,
+                        parse_compact,
+                        $invalid_digit,
+                        $into_ok
+                    )
                 }
         } else {
             parse_value!(iter, is_negative, $format, $t, $parser, $invalid_digit, $into_ok)

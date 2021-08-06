@@ -108,7 +108,7 @@ fn is_valid_punctuation(
 }
 
 #[test]
-#[cfg(feature = "format")]
+#[cfg(all(feature = "power-of-two", feature = "format"))]
 fn test_is_valid_punctuation() {
     assert_eq!(is_valid_punctuation(b'_', b'.', b'e', b'h', 0), true);
     assert_eq!(is_valid_punctuation(b'_', b'.', b'^', b'h', 0), true);

@@ -29,23 +29,22 @@ pub unsafe fn write_digits<T: UnsignedInteger>(
 ) -> usize {
     debug_assert_radix(radix);
 
+    // SAFETY: All of these are safe for the buffer writes as long as
+    // the buffer is large enough to hold `T::MAX` digits in radix `N`.
+
     // Decode all but the last digit.
     let radix = T::from_u32(radix);
     while value >= radix {
         let r = value % radix;
         value /= radix;
         index -= 1;
-        unsafe {
-            *buffer.get_unchecked_mut(index) = digit_to_char(u32::as_cast(r));
-        }
+        unsafe { index_unchecked_mut!(buffer[index]) = digit_to_char(u32::as_cast(r)) };
     }
 
     // Decode last digit.
     let r = value % radix;
     index -= 1;
-    unsafe {
-        *buffer.get_unchecked_mut(index) = digit_to_char(u32::as_cast(r));
-    }
+    unsafe { index_unchecked_mut!(buffer[index]) = digit_to_char(u32::as_cast(r)) };
 
     index
 }
@@ -66,7 +65,7 @@ pub trait Compact: UnsignedInteger {
             let digits = &mut *digits.as_mut_ptr();
             let length = digits.len();
             let index = write_digits(self, radix, digits, length);
-            copy_to_dst(buffer, &mut digits.get_unchecked_mut(index..))
+            copy_to_dst(buffer, &mut index_unchecked_mut!(digits[index..]))
         }
     }
 }

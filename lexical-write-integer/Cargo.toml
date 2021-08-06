@@ -21,6 +21,7 @@ static_assertions = "1"
 [dependencies.lexical-util]
 version = "0.1"
 path = "../lexical-util"
+default-features = false
 features = ["write-integers"]
 
 [dev-dependencies]
@@ -37,7 +38,11 @@ power-of-two = ["lexical-util/power-of-two"]
 radix = ["lexical-util/radix", "power-of-two"]
 # Reduce code size at the cost of performance.
 compact = ["lexical-util/compact"]
+# Ensure only safe indexing is used.
+# This is not enabled by default for writers, due to the performance
+# costs, and since input can be easily validated to avoid buffer overwrites.
+safe = []
 
 # Internal only features.
 # Enable the lint checks.
-lint = []
+lint = ["lexical-util/lint"]

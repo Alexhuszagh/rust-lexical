@@ -18,6 +18,7 @@ exclude = [
 [dependencies.lexical-util]
 version = "0.1"
 path = "../lexical-util"
+default-features = false
 features = ["parse-integers"]
 
 [dev-dependencies]
@@ -27,7 +28,7 @@ proptest = "0.10.1"
 [features]
 default = ["std"]
 # Use the standard library.
-std = []
+std = ["lexical-util/std"]
 # Add support for parsing power-of-two integer strings.
 power-of-two = ["lexical-util/power-of-two"]
 # Add support for parsing non-decimal integer strings.
@@ -36,7 +37,10 @@ radix = ["lexical-util/radix", "power-of-two"]
 format = ["lexical-util/format"]
 # Reduce code size at the cost of performance.
 compact = ["lexical-util/compact"]
+# Ensure only safe indexing is used. This is a no-op, since all
+# examples of potential memory unsafety are trivial to prove safe.
+safe = []
 
 # Internal only features.
 # Enable the lint checks.
-lint = []
+lint = ["lexical-util/lint"]

@@ -116,6 +116,12 @@ pub enum Error {
     InvalidFloatParseAlgorithm,
     /// Invalid radix for the significant digits.
     InvalidRadix,
+    /// Invalid precision flags for writing floats.
+    InvalidFloatPrecision,
+    /// Invalid negative exponent break: break is above 0.
+    InvalidNegativeExponentBreak,
+    /// Invalid positive exponent break: break is below 0.
+    InvalidPositiveExponentBreak,
 
     // NOT AN ERROR
     /// An error did not actually occur, and the result was successful.
@@ -193,6 +199,9 @@ impl Error {
             Self::InfinityStringTooShort => None,
             Self::InvalidFloatParseAlgorithm => None,
             Self::InvalidRadix => None,
+            Self::InvalidFloatPrecision => None,
+            Self::InvalidNegativeExponentBreak => None,
+            Self::InvalidPositiveExponentBreak => None,
 
             // NOT AN ERROR
             Self::Success => None,
@@ -253,6 +262,9 @@ impl Error {
     is_error_type!(is_infinity_string_too_short, InfinityStringTooShort);
     is_error_type!(is_invalid_float_parse_algorithm, InvalidFloatParseAlgorithm);
     is_error_type!(is_invalid_radix, InvalidRadix);
+    is_error_type!(is_invalid_float_precision, InvalidFloatPrecision);
+    is_error_type!(is_invalid_negative_exponent_break, InvalidNegativeExponentBreak);
+    is_error_type!(is_invalid_positive_exponent_break, InvalidPositiveExponentBreak);
     is_error_type!(is_success, Success);
 }
 
@@ -330,6 +342,9 @@ impl fmt::Display for Error {
             Self::InfinityStringTooShort => options_message!(formatter, "'long infinity string is too short'"),
             Self::InvalidFloatParseAlgorithm => options_message!(formatter, "'invalid combination of float parse algorithms'"),
             Self::InvalidRadix => options_message!(formatter, "'invalid radix for significant digits'"),
+            Self::InvalidFloatPrecision => options_message!(formatter, "'invalid float precision: min digits is larger than max digits'"),
+            Self::InvalidNegativeExponentBreak => options_message!(formatter, "'invalid negative exponent break: value is above 0'"),
+            Self::InvalidPositiveExponentBreak => options_message!(formatter, "'invalid positive exponent break: value is below 0'"),
 
             // NOT AN ERROR
             Self::Success => write!(formatter, "'not actually an error'"),

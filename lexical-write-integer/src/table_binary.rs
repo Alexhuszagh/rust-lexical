@@ -10,18 +10,22 @@ use core::hint;
 #[cfg(not(feature = "radix"))]
 use lexical_util::assert::debug_assert_radix;
 #[cfg(not(feature = "radix"))]
-use lexical_util::format::NumberFormat;
+use lexical_util::format::radix_from_flags;
 
 /// Get lookup table for 2 digit radix conversions.
+///
+/// * `FORMAT` - Number format.
+/// * `MASK` - Mask to extract the radix value.
+/// * `SHIFT` - Shift to normalize the radix value in `[0, 0x3f]`.
 ///
 /// # Safety
 ///
 /// Safe as long as the radix provided is valid.
 #[inline]
 #[cfg(not(feature = "radix"))]
-pub unsafe fn get_table<const FORMAT: u128>() -> &'static [u8] {
-    debug_assert_radix(NumberFormat::<{ FORMAT }>::RADIX);
-    match NumberFormat::<{ FORMAT }>::RADIX {
+pub unsafe fn get_table<const FORMAT: u128, const MASK: u128, const SHIFT: i32>() -> &'static [u8] {
+    debug_assert_radix(radix_from_flags(FORMAT, MASK, SHIFT));
+    match radix_from_flags(FORMAT, MASK, SHIFT) {
         2 => &DIGIT_TO_BASE2_SQUARED,
         4 => &DIGIT_TO_BASE4_SQUARED,
         8 => &DIGIT_TO_BASE8_SQUARED,

@@ -34,6 +34,7 @@ macro_rules! has_flag {
 }
 
 /// Unwrap `Option` as a const fn.
+#[inline(always)]
 const fn unwrap_or_zero(option: OptionU8) -> u8 {
     match option {
         Some(x) => x.get(),

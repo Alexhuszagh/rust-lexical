@@ -478,6 +478,12 @@ pub const MANTISSA_RADIX_SHIFT: i32 = 104;
 /// Mask to extract the mantissa radix: the radix for the significant digits.
 pub const MANTISSA_RADIX: u128 = 0xFF << MANTISSA_RADIX_SHIFT;
 
+/// Alias for MANTISSA_RADIX_SHIFT.
+pub const RADIX_SHIFT: i32 = MANTISSA_RADIX_SHIFT;
+
+/// Alias for MANTISSA_RADIX.
+pub const RADIX: u128 = MANTISSA_RADIX;
+
 /// Shift to convert to and from an exponent base as a `u32`.
 pub const EXPONENT_BASE_SHIFT: i32 = 112;
 
@@ -655,6 +661,17 @@ pub const fn exponent_base(format: u128) -> u32 {
 #[inline]
 pub const fn exponent_radix(format: u128) -> u32 {
     let radix = ((format & EXPONENT_RADIX) >> EXPONENT_RADIX_SHIFT) as u32;
+    if radix == 0 {
+        mantissa_radix(format)
+    } else {
+        radix
+    }
+}
+
+/// Extract a generic radix from the format and bitflags.
+#[inline]
+pub const fn radix_from_flags(format: u128, mask: u128, shift: i32) -> u32 {
+    let radix = ((format & mask) >> shift) as u32;
     if radix == 0 {
         mantissa_radix(format)
     } else {

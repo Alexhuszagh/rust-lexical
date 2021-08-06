@@ -63,7 +63,7 @@ integers = []
 floats = []
 
 # Currently unsupported.
-# Enable support for 16-bit floats
+# Enable support for 16-bit floats.
 f16 = []
-# Enable support for 128-bit floats
+# Enable support for 128-bit floats.
 f128 = []

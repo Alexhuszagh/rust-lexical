@@ -9,11 +9,10 @@
 
 #![cfg(not(feature = "compact"))]
 
-use core::ptr;
 use lexical_util::assert::debug_assert_radix;
 use lexical_util::digit::digit_to_char;
 use lexical_util::div128::u128_divrem;
-use lexical_util::format::NumberFormat;
+use lexical_util::format::{radix_from_flags, NumberFormat};
 use lexical_util::num::{AsCast, UnsignedInteger};
 use lexical_util::step::u64_step;
 
@@ -61,21 +60,13 @@ unsafe fn write_digits<T: UnsignedInteger>(
         // value of r is `radix4-1`, which must have a div and r
         // in the range [0, radix^2-1).
         index -= 1;
-        unsafe {
-            *buffer.get_unchecked_mut(index) = *table.get_unchecked(r2 + 1);
-        }
+        unsafe { index_unchecked_mut!(buffer[index] = table[r2 + 1]) };
         index -= 1;
-        unsafe {
-            *buffer.get_unchecked_mut(index) = *table.get_unchecked(r2);
-        }
+        unsafe { index_unchecked_mut!(buffer[index] = table[r2]) };
         index -= 1;
-        unsafe {
-            *buffer.get_unchecked_mut(index) = *table.get_unchecked(r1 + 1);
-        }
+        unsafe { index_unchecked_mut!(buffer[index] = table[r1 + 1]) };
         index -= 1;
-        unsafe {
-            *buffer.get_unchecked_mut(index) = *table.get_unchecked(r1);
-        }
+        unsafe { index_unchecked_mut!(buffer[index] = table[r1]) };
     }
 
     // Decode 2 digits at a time.
@@ -86,36 +77,25 @@ unsafe fn write_digits<T: UnsignedInteger>(
         // SAFETY: this is always safe, since the table is 2*radix^2, and
         // r must be in the range [0, 2*radix^2-1).
         index -= 1;
-        unsafe {
-            *buffer.get_unchecked_mut(index) = *table.get_unchecked(r + 1);
-        }
+        unsafe { index_unchecked_mut!(buffer[index] = table[r + 1]) };
         index -= 1;
-        unsafe {
-            *buffer.get_unchecked_mut(index) = *table.get_unchecked(r);
-        }
+        unsafe { index_unchecked_mut!(buffer[index] = table[r]) };
     }
 
     // Decode last 2 digits.
     if value < radix {
         // SAFETY: this is always safe, since value < radix, so it must be < 36.
-        // Digit must be < 36.
         index -= 1;
-        unsafe {
-            *buffer.get_unchecked_mut(index) = digit_to_char(u32::as_cast(value));
-        }
+        unsafe { index_unchecked_mut!(buffer[index]) = digit_to_char(u32::as_cast(value)) };
     } else {
         let r = usize::as_cast(T::TWO * value);
         // SAFETY: this is always safe, since the table is 2*radix^2, and
         // the value must <= radix^2, so rem must be in the range
         // [0, 2*radix^2-1).
         index -= 1;
-        unsafe {
-            *buffer.get_unchecked_mut(index) = *table.get_unchecked(r + 1);
-        }
+        unsafe { index_unchecked_mut!(buffer[index] = table[r + 1]) };
         index -= 1;
-        unsafe {
-            *buffer.get_unchecked_mut(index) = *table.get_unchecked(r);
-        }
+        unsafe { index_unchecked_mut!(buffer[index] = table[r]) };
     }
 
     index
@@ -144,7 +124,8 @@ unsafe fn write_step_digits<T: UnsignedInteger>(
     // SAFETY: this is always safe as long as end is less than the buffer length.
     let end = start.saturating_sub(step);
     unsafe {
-        ptr::write_bytes(buffer.as_mut_ptr().add(end), b'0', index - end);
+        let zeros = &mut index_unchecked_mut!(buffer[end..index]);
+        slice_fill_unchecked!(zeros, b'0');
     }
 
     end
@@ -180,7 +161,7 @@ where
 /// Safe as long as the buffer is large enough to hold as many digits
 /// that can be in the largest value of `T`, in radix `N`.
 #[inline]
-pub unsafe fn algorithm_u128<const FORMAT: u128>(
+pub unsafe fn algorithm_u128<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
     value: u128,
     table: &[u8],
     buffer: &mut [u8],
@@ -193,7 +174,7 @@ pub unsafe fn algorithm_u128<const FORMAT: u128>(
     // Quick approximations to make the algorithm **a lot** faster.
     // If the value can be represented in a 64-bit integer, we can
     // do this as a native integer.
-    let radix = NumberFormat::<{ FORMAT }>::RADIX;
+    let radix = radix_from_flags(FORMAT, MASK, SHIFT);
     if value <= u64::MAX as _ {
         return unsafe { algorithm(value as u64, radix, table, buffer) };
     }
@@ -211,21 +192,17 @@ pub unsafe fn algorithm_u128<const FORMAT: u128>(
     // To deal with internal 0 values or values with internal 0 digits set,
     // we store the starting index, and if not all digits are written,
     // we just skip down `digits` digits for the next value.
-    let step = u64_step(NumberFormat::<{ FORMAT }>::RADIX);
-    let (value, low) = u128_divrem(value, NumberFormat::<{ FORMAT }>::RADIX);
+    let step = u64_step(radix_from_flags(FORMAT, MASK, SHIFT));
+    let (value, low) = u128_divrem(value, radix_from_flags(FORMAT, MASK, SHIFT));
     let mut index = buffer.len();
-    unsafe {
-        index = write_step_digits(low, radix, table, buffer, index, step);
-    }
+    index = unsafe { write_step_digits(low, radix, table, buffer, index, step) };
     if value <= u64::MAX as _ {
         return unsafe { write_digits(value as u64, radix, table, buffer, index) };
     }
 
     // Value has to be greater than 1.8e38
-    let (value, mid) = u128_divrem(value, NumberFormat::<{ FORMAT }>::RADIX);
-    unsafe {
-        index = write_step_digits(mid, radix, table, buffer, index, step);
-    }
+    let (value, mid) = u128_divrem(value, radix_from_flags(FORMAT, MASK, SHIFT));
+    index = unsafe { write_step_digits(mid, radix, table, buffer, index, step) };
     if index != 0 {
         index = unsafe { write_digits(value as u64, radix, table, buffer, index) };
     }

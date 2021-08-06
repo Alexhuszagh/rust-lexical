@@ -18,7 +18,14 @@ exclude = [
 [dependencies.lexical-util]
 version = "0.1"
 path = "../lexical-util"
+default-features = false
 features = ["write-floats"]
+
+[dependencies.lexical-write-integer]
+version = "0.1"
+path = "../lexical-write-integer"
+default-features = false
+features = []
 
 [dependencies]
 static_assertions = "1"
@@ -26,14 +33,36 @@ static_assertions = "1"
 [features]
 default = ["std"]
 # Use the standard library.
-std = []
+std = [
+    "lexical-util/std",
+    "lexical-write-integer/std"
+]
 # Add support for writing power-of-two float strings.
-power-of-two = ["lexical-util/power-of-two"]
+power-of-two = [
+    "lexical-util/power-of-two",
+    "lexical-write-integer/power-of-two"
+]
 # Add support for writing non-decimal float strings.
-radix = ["lexical-util/radix", "power-of-two"]
+radix = [
+    "lexical-util/radix",
+    "lexical-write-integer/radix",
+    "power-of-two"
+]
+# Add support for writing custom float formats.
+format = ["lexical-util/format"]
 # Reduce code size at the cost of performance.
-compact = ["lexical-util/compact"]
+compact = [
+    "lexical-util/compact",
+    "lexical-write-integer/compact"
+]
+# Ensure only safe indexing is used.
+# This is not enabled by default for writers, due to the performance
+# costs, and since input can be easily validated to avoid buffer overwrites.
+safe = ["lexical-write-integer/safe"]
 
 # Internal only features.
 # Enable the lint checks.
-lint = []
+lint = [
+    "lexical-util/lint",
+    "lexical-write-integer/lint"
+]

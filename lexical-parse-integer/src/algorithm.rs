@@ -211,9 +211,7 @@ where
     let bytes = u32::from_le(iter.read::<u32>()?);
     if is_4digits::<FORMAT>(bytes) {
         // SAFETY: safe since we have at least 4 bytes in the buffer.
-        unsafe {
-            iter.step_by_unchecked(4);
-        }
+        unsafe { iter.step_by_unchecked(4) };
         Some(T::from_u32(parse_4digits::<FORMAT>(bytes)))
     } else {
         None
@@ -285,9 +283,7 @@ where
     let bytes = u64::from_le(iter.read::<u64>()?);
     if is_8digits::<FORMAT>(bytes) {
         // SAFETY: safe since we have at least 8 bytes in the buffer.
-        unsafe {
-            iter.step_by_unchecked(8);
-        }
+        unsafe { iter.step_by_unchecked(8) };
         Some(T::as_cast(parse_8digits::<FORMAT>(bytes)))
     } else {
         None

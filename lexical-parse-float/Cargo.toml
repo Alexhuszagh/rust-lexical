@@ -20,19 +20,44 @@ version = "0.1"
 path = "../lexical-util"
 features = ["parse-floats"]
 
+[dependencies.lexical-parse-integer]
+version = "0.1"
+path = "../lexical-parse-integer"
+default-features = false
+features = []
+
 [features]
 default = ["std"]
 # Use the standard library.
-std = []
+std = [
+    "lexical-util/std",
+    "lexical-parse-integer/std"
+]
 # Add support for parsing power-of-two float strings.
-power-of-two = ["lexical-util/power-of-two"]
+power-of-two = [
+    "lexical-util/power-of-two",
+    "lexical-parse-integer/power-of-two"
+]
 # Add support for parsing non-decimal float strings.
-radix = ["lexical-util/radix", "power-of-two"]
+radix = [
+    "lexical-util/radix",
+    "lexical-parse-integer/radix",
+    "power-of-two"
+]
 # Add support for parsing custom float formats.
-format = ["lexical-util/format"]
+format = [
+    "lexical-util/format",
+    "lexical-parse-integer/format"
+]
 # Reduce code size at the cost of performance.
-compact = ["lexical-util/compact"]
+compact = [
+    "lexical-util/compact",
+    "lexical-parse-integer/compact"
+]
 
 # Internal only features.
 # Enable the lint checks.
-lint = []
+lint = [
+    "lexical-util/lint",
+    "lexical-parse-integer/lint"
+]

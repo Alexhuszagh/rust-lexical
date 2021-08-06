@@ -509,18 +509,21 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     }
 
     /// The base for the exponent.
-    pub const EXPONENT_BASE: u32 = Self::RADIX;
+    pub const EXPONENT_BASE: u32 = flags::exponent_base(FORMAT);
 
-    /// Get the base for the exponent. This is always `radix`.
+    /// Get the base for the exponent.
+    ///
+    /// IE, a base of 2 means we have `mantissa * 2^exponent`.
+    /// If not provided, it defaults to `radix`.
     #[inline(always)]
     pub const fn exponent_base(&self) -> u32 {
         Self::EXPONENT_BASE
     }
 
     /// The radix for the exponent digits.
-    pub const EXPONENT_RADIX: u32 = Self::RADIX;
+    pub const EXPONENT_RADIX: u32 = flags::exponent_radix(FORMAT);
 
-    /// Get the radix for the exponent digits. This is always `radix`.
+    /// Get the radix for the exponent digits.
     #[inline(always)]
     pub const fn exponent_radix(&self) -> u32 {
         Self::EXPONENT_RADIX

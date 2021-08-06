@@ -21,7 +21,7 @@ where
     Narrow: WriteInteger,
     Wide: WriteInteger,
 {
-    unsafe { value.write_integer::<Wide, FORMAT>(buffer) }
+    unsafe { value.write_mantissa::<Wide, FORMAT>(buffer) }
 }
 
 // SIGNED
@@ -49,20 +49,16 @@ where
         // will have a very different value.
         let value = Wide::as_cast(value);
         let unsigned = Unsigned::as_cast(value.wrapping_neg());
-        // SAFETY: safe as long as there is at least 1 element, which
-        // the buffer should have at least `FORMATTED_SIZE` elements.
+        // SAFETY: safe as long as there is at least `FORMATTED_SIZE` elements.
         unsafe {
-            *buffer.get_unchecked_mut(0) = b'-';
-            buffer = buffer.get_unchecked_mut(1..);
+            index_unchecked_mut!(buffer[0]) = b'-';
+            buffer = &mut index_unchecked_mut!(buffer[1..]);
+            unsigned.write_mantissa::<Unsigned, FORMAT>(buffer) + 1
         }
-        // SAFETY: safe as long as there is at least 1 element, which
-        // the buffer should have at least `FORMATTED_SIZE` elements.
-        unsafe { unsigned.write_integer::<Unsigned, FORMAT>(buffer) + 1 }
     } else {
         let unsigned = Unsigned::as_cast(value);
-        // SAFETY: safe as long as there is at least 1 element, which
-        // the buffer should have at least `FORMATTED_SIZE` elements.
-        unsafe { unsigned.write_integer::<Unsigned, FORMAT>(buffer) }
+        // SAFETY: safe as long as there is at least `FORMATTED_SIZE` elements.
+        unsafe { unsigned.write_mantissa::<Unsigned, FORMAT>(buffer) }
     }
 }
 
@@ -77,9 +73,11 @@ macro_rules! unsigned_to_lexical {
                 -> &'a mut [u8]
             {
                 debug_assert_buffer::<$narrow>(10, bytes.len());
-                // SAFETY: safe if the buffer is sufficiently large.
-                let len = unsafe { unsigned::<$narrow, $wide, { STANDARD }>(self, bytes) };
-                &mut bytes[..len]
+                // SAFETY: safe if `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.
+                unsafe {
+                    let len = unsigned::<$narrow, $wide, { STANDARD }>(self, bytes);
+                    &mut index_unchecked_mut!(bytes[..len])
+                }
             }
 
             $(#[$meta:meta])?
@@ -87,7 +85,7 @@ macro_rules! unsigned_to_lexical {
                 -> &'a mut [u8]
             {
                 assert_buffer::<$narrow>(10, bytes.len());
-                // SAFETY: safe since the buffer is sufficiently large.
+                // SAFETY: safe since `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.
                 unsafe { self.to_lexical_unchecked(bytes) }
             }
         }
@@ -104,9 +102,11 @@ macro_rules! unsigned_to_lexical {
             {
                 debug_assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
                 assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
-                // SAFETY: safe if the buffer is sufficiently large.
-                let len = unsafe { unsigned::<$narrow, $wide, FORMAT>(self, bytes) };
-                &mut bytes[..len]
+                // SAFETY: safe if `bytes.len() > Self::FORMATTED_SIZE`.
+                unsafe {
+                    let len = unsigned::<$narrow, $wide, FORMAT>(self, bytes);
+                    &mut index_unchecked_mut!(bytes[..len])
+                }
             }
 
             $(#[$meta:meta])?
@@ -118,7 +118,7 @@ macro_rules! unsigned_to_lexical {
             {
                 assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
                 assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
-                // SAFETY: safe since the buffer is sufficiently large.
+                // SAFETY: safe since `bytes.len() > Self::FORMATTED_SIZE`.
                 unsafe { self.to_lexical_with_options_unchecked::<FORMAT>(bytes, options) }
             }
         }
@@ -150,9 +150,11 @@ macro_rules! signed_to_lexical {
                 -> &'a mut [u8]
             {
                 debug_assert_buffer::<$narrow>(10, bytes.len());
-                // SAFETY: safe if the buffer is sufficiently large.
-                let len = unsafe { signed::<$narrow, $wide, $unsigned, { STANDARD }>(self, bytes) };
-                &mut bytes[..len]
+                // SAFETY: safe if `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.
+                unsafe {
+                    let len = signed::<$narrow, $wide, $unsigned, { STANDARD }>(self, bytes);
+                    &mut index_unchecked_mut!(bytes[..len])
+                }
             }
 
             $(#[$meta:meta])?
@@ -160,7 +162,7 @@ macro_rules! signed_to_lexical {
                 -> &'a mut [u8]
             {
                 assert_buffer::<$narrow>(10, bytes.len());
-                // SAFETY: safe since the buffer is sufficiently large.
+                // SAFETY: safe since `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.
                 unsafe { self.to_lexical_unchecked(bytes) }
             }
         }
@@ -177,9 +179,11 @@ macro_rules! signed_to_lexical {
             {
                 debug_assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
                 assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
-                // SAFETY: safe if the buffer is sufficiently large.
-                let len = unsafe { signed::<$narrow, $wide, $unsigned, FORMAT>(self, bytes) };
-                &mut bytes[..len]
+                // SAFETY: safe if `bytes.len() > Self::FORMATTED_SIZE`.
+                unsafe {
+                    let len = signed::<$narrow, $wide, $unsigned, FORMAT>(self, bytes);
+                    &mut index_unchecked_mut!(bytes[..len])
+                }
             }
 
             $(#[$meta:meta])?
@@ -191,7 +195,7 @@ macro_rules! signed_to_lexical {
             {
                 assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
                 assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
-                // SAFETY: safe since the buffer is sufficiently large.
+                // SAFETY: safe since `bytes.len() > Self::FORMATTED_SIZE`.
                 unsafe { self.to_lexical_with_options_unchecked::<FORMAT>(bytes, options) }
             }
         }

@@ -12,7 +12,7 @@
 
 use crate::algorithm::{algorithm, algorithm_u128};
 use crate::table::DIGIT_TO_BASE10_SQUARED;
-use lexical_util::format::STANDARD;
+use lexical_util::format::{RADIX, RADIX_SHIFT, STANDARD};
 use lexical_util::num::UnsignedInteger;
 
 /// Fast integral log2.
@@ -95,7 +95,7 @@ pub fn fast_digit_count(x: u32) -> usize {
     // SAFETY: always safe, since fast_log2 will always return a value
     // <= 32. This is because the range of values from `ctlz(x | 1)` is
     // `[0, 31]`, so `32 - 1 - ctlz(x | 1)` must be in the range `[0, 31]`.
-    let shift = unsafe { *TABLE.get_unchecked(fast_log2(x)) };
+    let shift = unsafe { index_unchecked!(TABLE[fast_log2(x)]) };
     let count = (x as u64 + shift) >> 32;
     count as usize
 }
@@ -267,7 +267,11 @@ impl Decimal for u128 {
         // SAFETY: safe as long as buffer is large enough to hold the max value.
         let count = self.digit_count();
         unsafe {
-            algorithm_u128::<{ STANDARD }>(self, &DIGIT_TO_BASE10_SQUARED, &mut buffer[..count]);
+            algorithm_u128::<{ STANDARD }, { RADIX }, { RADIX_SHIFT }>(
+                self,
+                &DIGIT_TO_BASE10_SQUARED,
+                &mut buffer[..count],
+            );
             count
         }
     }

@@ -22,3 +22,25 @@ pub unsafe fn copy_to_dst<Bytes: AsRef<[u8]>>(dst: &mut [u8], src: Bytes) -> usi
 
     src.len()
 }
+
+/// Count the number of trailing characters equal to a given value.
+#[inline]
+#[cfg(feature = "write")]
+pub fn rtrim_char_count(slc: &[u8], c: u8) -> usize {
+    slc.iter().rev().take_while(|&&si| si == c).count()
+}
+
+/// Trim character from the end (right-side) of a slice.
+#[inline]
+#[cfg(feature = "write")]
+pub fn rtrim_char_slice(slc: &[u8], c: u8) -> (&[u8], usize) {
+    let count = rtrim_char_count(slc, c);
+    let index = slc.len() - count;
+    // Count must be <= slc.len(), and therefore, slc.len() - count must
+    // also be <= slc.len(), since this is derived from an iterator
+    // in the standard library.
+    debug_assert!(count <= slc.len());
+    debug_assert!(index <= slc.len());
+    let slc = unsafe { slc.get_unchecked(..index) };
+    (slc, count)
+}
