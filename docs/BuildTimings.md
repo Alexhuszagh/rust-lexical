@@ -1,6 +1,6 @@
 # Build Timings
 
-The build timings were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.12.5/Fedora 34, and run against commit [6141258](https://github.com/Alexhuszagh/rust-lexical-experimental/commit/6141258fdb4bcc5845232119dc19d0db7cbec188).
+The build timings were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.12.5/Fedora 34, and run against commit [c858a0e](https://github.com/Alexhuszagh/rust-lexical-experimental/commit/c858a0ee9ed841a1d95f55eaf746f8c87e25f7bc).
 
 **All**
 
