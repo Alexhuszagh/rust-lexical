@@ -462,11 +462,11 @@ where
 /// based on the number of maximum digits. In addition, `exponent_base`
 /// and `mantissa_radix` in `FORMAT` must be identical.
 #[inline]
-pub unsafe fn write_float_scientific<'a, M, const FORMAT: u128>(
+pub unsafe fn write_float_scientific<M, const FORMAT: u128>(
     mantissa: M,
     exp: i32,
     sci_exp: i32,
-    bytes: &'a mut [u8],
+    bytes: &mut [u8],
     options: &Options,
 ) -> usize
 where
@@ -516,7 +516,7 @@ where
         // Need to have at least 1 digit, the trailing `.0`.
         unsafe { index_unchecked_mut!(bytes[cursor]) = b'0' };
         cursor += 1;
-    } else {
+    } else if exact_count > count {
         // NOTE: Neither `exact_count >= count >= 2`.
         // We need to write `exact_count - (cursor - 1)` digits, since
         // cursor includes the decimal point.
@@ -551,7 +551,7 @@ where
     // Write our exponent digits.
     // SAFETY: safe since bytes must be large enough to store all digits.
     cursor += unsafe {
-        positive_exp.write_exponent::<M, FORMAT>(&mut index_unchecked_mut!(bytes[cursor..]))
+        positive_exp.write_exponent::<u32, FORMAT>(&mut index_unchecked_mut!(bytes[cursor..]))
     };
 
     cursor
@@ -565,11 +565,11 @@ where
 /// Safe as long as `bytes` is large enough to hold the number of
 /// significant digits and the leading zeros.
 #[inline]
-pub unsafe fn write_float_negative_exponent<'a, M, const FORMAT: u128>(
+pub unsafe fn write_float_negative_exponent<M, const FORMAT: u128>(
     mantissa: M,
     exp: i32,
     sci_exp: i32,
-    bytes: &'a mut [u8],
+    bytes: &mut [u8],
     options: &Options,
 ) -> usize
 where
@@ -629,7 +629,7 @@ where
     }
 
     // Check if we need to write more trailing digits.
-    if count < exact_count {
+    if exact_count > count {
         let zeros = exact_count - count;
         // SAFETY: safe if the buffer is large enough to hold the significant digits.
         unsafe {
@@ -650,11 +650,11 @@ where
 /// Safe as long as `bytes` is large enough to hold the number of
 /// significant digits and the (optional) trailing zeros.
 #[inline]
-pub unsafe fn write_float_positive_exponent<'a, M, const FORMAT: u128>(
+pub unsafe fn write_float_positive_exponent<M, const FORMAT: u128>(
     mantissa: M,
     exp: i32,
     sci_exp: i32,
-    bytes: &'a mut [u8],
+    bytes: &mut [u8],
     options: &Options,
 ) -> usize
 where
@@ -679,7 +679,7 @@ where
         count - zeros
     };
 
-    // Write the exponent sign.
+    // Write the significant digits.
     // Calculate the number of digits we can write left of the decimal point.
     // If we have a scientific exp of 0, we still need
     // to write 1 digit before, so it's ⌊ leading_bits / bits_per_digit ⌋ + 1.
@@ -697,20 +697,20 @@ where
             slice_fill_unchecked!(digits, b'0');
         }
         cursor = leading_digits;
-        bytes[cursor] = decimal_point;
+        unsafe { index_unchecked_mut!(bytes[cursor]) = decimal_point };
         cursor += 1;
-        bytes[cursor] = b'0';
+        unsafe { index_unchecked_mut!(bytes[cursor]) = b'0' };
         cursor += 1;
         count += 1;
     } else {
         // We have less leading digits than digits we wrote: find the
         // decimal point index, shift all digits by 1, then write it.
         // SAFETY: safe if the buffer is large enough to hold the significant digits.
-        let zeros = count - leading_digits;
+        let shifted = count - leading_digits;
         unsafe {
             let src = index_unchecked!(bytes[leading_digits..count]).as_ptr();
             let dst = &mut index_unchecked_mut!(bytes[leading_digits + 1..count + 1]);
-            copy_unchecked!(dst, src, zeros);
+            copy_unchecked!(dst, src, shifted);
             index_unchecked_mut!(bytes[leading_digits]) = decimal_point;
             cursor = count + 1;
         }
@@ -722,14 +722,14 @@ where
         exact_count = min_digits.get().max(count);
     }
 
-    // change the number of digits written, if we need to add more or trim digits.
+    // Change the number of digits written, if we need to add more or trim digits.
     if options.trim_floats() && exact_count == count {
         // SAFETY: safe, cursor must be at least 3.
         if unsafe { index_unchecked!(bytes[cursor - 2]) == decimal_point } {
             // Need to trim floats from trailing zeros, and we have only a decimal
             cursor -= 2;
         }
-    } else if count < exact_count {
+    } else if exact_count > count {
         // Check if we need to write more trailing digits.
         let zeros = exact_count - count;
         // SAFETY: safe if the buffer is large enough to hold the significant digits.
@@ -760,9 +760,9 @@ where
 ///
 /// Panics if exponent notation is used, and the exponent base and
 /// mantissa radix are not the same in `FORMAT`.
-pub unsafe fn write_float<'a, F: Float, const FORMAT: u128>(
+pub unsafe fn write_float<F: Float, const FORMAT: u128>(
     float: F,
-    bytes: &'a mut [u8],
+    bytes: &mut [u8],
     options: &Options,
 ) -> usize
 where

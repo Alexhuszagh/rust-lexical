@@ -37,8 +37,16 @@ macro_rules! slice_fill_unchecked {
 /// Copy to a slice, without bounds checking.
 #[cfg(not(feature = "safe"))]
 macro_rules! copy_unchecked {
-    ($dst:ident, $src:ident, $srclen:ident) => {
+    ($dst:expr, $src:expr, $srclen:expr) => {
         core::ptr::copy($src, $dst.as_mut_ptr(), $srclen)
+    };
+}
+
+/// Copy to a slice without overlaps, without bounds checking.
+#[cfg(not(feature = "safe"))]
+macro_rules! copy_nonoverlapping_unchecked {
+    ($dst:expr, $src:expr, $srclen:expr) => {
+        core::ptr::copy_nonoverlapping($src, $dst.as_mut_ptr(), $srclen)
     };
 }
 
@@ -73,7 +81,15 @@ macro_rules! slice_fill_unchecked {
 /// Copy to a slice, with bounds checking.
 #[cfg(feature = "safe")]
 macro_rules! copy_unchecked {
-    ($dst:ident, $src:ident, $srclen:ident) => {
+    ($dst:expr, $src:expr, $srclen:expr) => {
         $dst.copy_from_slice(unsafe { core::slice::from_raw_parts($src, $srclen) })
+    };
+}
+
+/// Copy to a slice, with bounds checking.
+#[cfg(feature = "safe")]
+macro_rules! copy_nonoverlapping_unchecked {
+    ($dst:expr, $src:expr, $srclen:expr) => {
+        copy_unchecked!($dst, $src, $srclen)
     };
 }

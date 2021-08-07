@@ -30,6 +30,11 @@ features = []
 [dependencies]
 static_assertions = "1"
 
+[dev-dependencies]
+quickcheck = "1.0.3"
+proptest = "0.10.1"
+fraction = "0.8.0"
+
 [features]
 default = ["std"]
 # Use the standard library.

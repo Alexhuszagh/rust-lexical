@@ -12,6 +12,7 @@ pub mod constants;
 pub mod digit;
 pub mod div128;
 pub mod error;
+pub mod extended_float;
 pub mod format;
 pub mod iterator;
 pub mod mul;
