@@ -1,24 +1,6 @@
-#![feature(llvm_asm)]
+#![feature(bench_black_box)]
 
-mod black_box;
-#[cfg(not(feature = "lexical"))]
-mod core_parse;
+#[macro_use]
+mod parse;
 
-use black_box::black_box;
-#[cfg(not(feature = "lexical"))]
-use core_parse::from_str_radix;
-#[cfg(feature = "lexical")]
-use lexical_parse_integer::FromLexical;
-
-#[inline(never)]
-fn parse(s: &str) -> u32 {
-    #[cfg(feature = "lexical")]
-    return u32::from_lexical(s.as_bytes()).unwrap();
-
-    #[cfg(not(feature = "lexical"))]
-    return from_str_radix::<u32>(s, 10).unwrap();
-}
-
-pub fn main() {
-    let _ = black_box(parse(black_box("12")));
-}
+integer_module!(u32);

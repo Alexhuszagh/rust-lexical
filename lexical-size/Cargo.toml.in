@@ -31,6 +31,7 @@ default-features = false
 features = []
 
 [features]
+default = ["std"]
 lexical = []
 std = [
     "lexical-util/std",

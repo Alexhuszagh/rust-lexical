@@ -31,6 +31,7 @@ default-features = false
 features = []
 
 [features]
+default = ["std"]
 lexical = []
 std = [
     "lexical-util/std",
@@ -163,8 +164,8 @@ name = "write-float-f64"
 path = "bin/write-float-f64.rs"
 required-features = ["compact"] # TODO(ahuszagh) Remove after dragonbox is done
 
-[profile.dev]
-opt-level = 1
-debug = true
-debug-assertions = true
-lto = false
+[profile.release]
+opt-level = 2
+debug = false
+debug-assertions = false
+lto = true

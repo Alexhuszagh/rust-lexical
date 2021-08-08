@@ -1,11 +1,7 @@
 // CORE
 // Carbon copy of the implementation from Rust core.
-// This is to avoid issues with symbol generation
-// since by default the normal implementation is
-// already present in all binaries, and therefore takes
-// up 0 bytes.
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 #[non_exhaustive]
 pub enum IntErrorKind {
     Empty,
@@ -14,7 +10,7 @@ pub enum IntErrorKind {
     NegOverflow,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct ParseIntError {
     pub kind: IntErrorKind,
 }
@@ -52,7 +48,7 @@ macro_rules! doit {
 }
 doit! { i8 i16 i32 i64 i128 isize u8 u16 u32 u64 u128 usize }
 
-pub fn from_str_radix<T: FromStrRadixHelper>(src: &str, radix: u32) -> Result<T, ParseIntError> {
+pub fn parse_int<T: FromStrRadixHelper>(src: &str, radix: u32) -> Result<T, ParseIntError> {
     use self::IntErrorKind::*;
     use self::ParseIntError as PIE;
 

@@ -89,7 +89,7 @@ def write_manifest(level):
     with open(manifest, 'w') as file:
         file.write(contents)
 
-def build(args, level, is_core):
+def build(args, level, is_lexical):
     '''Build the project.'''
 
     os.chdir(f'{home}/lexical-size')
@@ -97,10 +97,13 @@ def build(args, level, is_core):
     if args.no_default_features:
         command = f'{command} --no-default-features'
     features = args.features
-    if not is_core:
-        features = ','.join([features, 'lexical'])
-    if args.features:
-        command = f'{command} --features={args.features}'
+    if is_lexical:
+        if features:
+            features = f'{features},lexical'
+        else:
+            features = 'lexical'
+    if features:
+        command = f'{command} --features={features}'
     if LEVELS[level] == 'release':
         command = f'{command} --release'
     subprocess.check_call(
@@ -161,37 +164,52 @@ def strip(level):
                 stdout=subprocess.DEVNULL,
             )
 
-def print_report(unstripped, stripped, level, is_core):
+def print_report(data, level):
     '''Print markdown-based report for the file sizes.'''
 
-    if is_core:
-        print(f'Binary Sizes for Core -- Opt-Level {level}')
-    else:
-        print(f'Binary Sizes for Lexical -- Opt-Level {level}')
+    def sort_key(x):
+        split = x.split('-')
+        ctype = split[-1]
+        return (split[0], split[1], ctype[0], int(ctype[1:]))
 
-    print(f'|function|size|size(stripped)|')
-    print(f'|:-:|:-:|:-:|')
-    keys = sorted(stripped)
+    print(f'**Optimization Level "{level}"**')
+    print('')
+    print(f'|Function|Size Lexical|Size Lexical (stripped)|Size Core|Size Core (stripped)|')
+    print(f'|:-:|:-:|:-:|:-:|:-:|')
+    keys = sorted(data['core']['stripped'], key=sort_key)
     for key in keys:
-        print(f'|{key}|{unstripped[key]}|{stripped[key]}|')
+        uc = data['core']['unstripped'][key]
+        sc = data['core']['stripped'][key]
+        ul = data['lexical']['unstripped'][key]
+        sl = data['lexical']['stripped'][key]
+        print(f'|{key}|{ul}|{sl}|{uc}|{sc}|')
     print('', flush=True)
+
+def generate_size_data(args, level, is_lexical):
+    '''Generate the size data for a given build configuration.'''
+
+    write_manifest(level)
+    clean()
+    build(args, level, is_lexical)
+    unstripped = get_sizes(level)
+    strip(level)
+    stripped = get_sizes(level)
+
+    return {
+        'unstripped': unstripped,
+        'stripped': stripped,
+    }
 
 def main(argv=None):
     '''Entry point.'''
 
-    # TODO(ahuszagh) Might be worth using nm...
-    #   nm -C --print-size --size-sort --radix=d target/release/write-integer-i128
     args = parse_args(argv)
     opt_levels = args.opt_levels.split(',')
-    for is_core in [True, False]:
-        for level in opt_levels:
-            write_manifest(level)
-            clean()
-            build(args, level, is_core)
-            unstripped = get_sizes(level)
-            strip(level)
-            stripped = get_sizes(level)
-            print_report(unstripped, stripped, level, is_core)
+    for level in opt_levels:
+        data = {}
+        data['core'] = generate_size_data(args, level, False)
+        data['lexical'] = generate_size_data(args, level, True)
+        print_report(data, level)
 
 if __name__ == '__main__':
     main()
