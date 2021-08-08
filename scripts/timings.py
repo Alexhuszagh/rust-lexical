@@ -22,7 +22,7 @@ home = os.path.dirname(scripts)
 def parse_args(argv=None):
     '''Create and parse our command line arguments.'''
 
-    parser = argparse.ArgumentParser(description='Run a benchmark.')
+    parser = argparse.ArgumentParser(description='Time building lexical.')
     parser.add_argument(
         '--workspaces',
         help='''name of workspaces to include''',
@@ -51,14 +51,19 @@ def clean(directory=home):
         stderr=subprocess.DEVNULL,
     )
 
-def build(directory=home):
+def build(args, directory=home):
     '''Build the project and get the timings output.'''
 
     os.chdir(directory)
+    command = 'cargo +nightly build -Z timings=json'
+    if args.no_default_features:
+        command = f'{command} --no-default-features'
+    if args.features:
+        command = f'{command} --features={args.features}'
     process = subprocess.Popen(
         # Use shell for faster performance.
         # Spawning a new process is a **lot** slower, gives misleading info.
-        'cargo +nightly build -Z timings=json',
+        command,
         shell=True,
         stderr=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
@@ -188,7 +193,7 @@ def plot_all(args):
     '''Build and plot the timings for the root module.'''
 
     clean()
-    timings = build()
+    timings = build(args)
     path = f'{home}/assets/{filename("all", args)}.svg'
     plot_timings(timings, path)
 
@@ -196,7 +201,7 @@ def plot_workspace(args, workspace):
     '''Build and plot the timings for the root module.'''
 
     clean()
-    timings = build(workspace)
+    timings = build(args, workspace)
     basename = filename(workspace, args)
     path = f'{home}/assets/{basename}.svg'
     plot_timings(timings, path, workspace)

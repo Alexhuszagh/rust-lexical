@@ -18,28 +18,37 @@ exclude = [
 [dependencies.lexical-parse-integer]
 version = "0.1"
 optional = true
+default-features = false
 path = "../lexical-parse-integer"
 
 [dependencies.lexical-parse-float]
 version = "0.1"
 optional = true
+default-features = false
 path = "../lexical-parse-float"
 
 [dependencies.lexical-write-integer]
 version = "0.1"
 optional = true
+default-features = false
 path = "../lexical-write-integer"
 
 [dependencies.lexical-write-float]
 version = "0.1"
 optional = true
+default-features = false
 path = "../lexical-write-float"
 
 [features]
 # Need to enable all for backwards compatibility.
 default = ["std", "write-integers", "write-floats", "parse-integers", "parse-floats"]
 # Use the standard library.
-std = []
+std = [
+    "lexical-write-integer/std",
+    "lexical-write-float/std",
+    "lexical-parse-integer/std",
+    "lexical-parse-float/std"
+]
 # Add support for writing integers.
 write-integers = ["lexical-write-integer"]
 # Add support for writing floats.
@@ -66,7 +75,8 @@ radix = [
 # Add support for parsing custom numerical formats.
 format = [
     "lexical-parse-integer/format",
-    "lexical-parse-float/format"
+    "lexical-parse-float/format",
+    "lexical-write-float/format"
 ]
 # Reduce code size at the cost of performance.
 compact = [

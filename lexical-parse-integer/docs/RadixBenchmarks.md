@@ -1,6 +1,6 @@
 # Benchmarks
 
-These benchmarks were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.12.5/Fedora 34, and run against commit [cfb6667](https://github.com/Alexhuszagh/rust-lexical-experimental/commit/cfb6667c067430b8e16dbe75be513810023df603). The exact code and data used to run the benchmark can be seen [here](/lexical-benchmark/parse-integer).
+These benchmarks were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` processor, on Linux 5.12.5/Fedora 34, and run against commit [cfb6667](https://github.com/Alexhuszagh/rust-lexical-experimental/commit/cfb6667c067430b8e16dbe75be513810023df603). The Rust compiler version was `rustc 1.55.0-nightly (b41936b92 2021-07-20)`. The exact code and data used to run the benchmark can be seen [here](/lexical-benchmark/parse-integer).
 
 This merely benchmarks decimal strings while the `radix` feature is enabled. This is because the `radix` feature can add numerous code paths, which could affect code generation and therefore performance, and therefore exists to show no major regressions occur.
 

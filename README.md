@@ -40,7 +40,9 @@ The [scripts](/scripts) directory contains numerous scripts for testing, fuzzing
 - `fmt.sh`: Run `cargo fmt` and `cargo clippy` in all projects and workspaces, on nightly.
 - `fuzz.sh`: Run fuzzer for a given target.
 - `hooks.sh`: Install formatting and lint hooks on commits.
+- `size.py`: Calculate lexical binary sizes.
 - `test.sh`: Run the test suite with Valgrind and Miri.
+- `timings.py`: Plot build times.
 
 Please run `scripts/fmt.sh` before committing any code, ideally by installing the pre-commit hook via `scripts/hooks.sh`.
 

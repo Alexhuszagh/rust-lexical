@@ -13,3 +13,4 @@ The entire list of dependencies required is:
   - Miri (`rustup +nightly component add miri`)
   - Valgrind (`cargo +nightly install valgrind`)
 - Python3.6+
+- python-magic (`pip install python magic --user`)
