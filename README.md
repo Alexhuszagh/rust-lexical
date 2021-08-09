@@ -5,13 +5,13 @@ This is an experimental branch of [lexical](https://github.com/Alexhuszagh/rust-
 
 Currently, the various algorithm designs and benchmarks can be seen markdown files in each respective crate. The current crates are:
 
-- lexical-util (shared utilities for all crates).
-- lexical-parse-integer (parse integers from string).
-- lexical-parse-float (parse floats from string).
-- lexical-write-integer (write integers to string).
-- lexical-write-float (write floats to string).
-- lexical-core (meta-crate for all specific parsers).
-- lexical (high-level wrappers when a system allocator exists).
+- [lexical-util](/lexical-util) (shared utilities for all crates).
+- [lexical-parse-integer](/lexical-parse-integer) (parse integers from string).
+- [lexical-parse-float](/lexical-parse-float) (parse floats from string).
+- [lexical-write-integer](/lexical-write-integer) (write integers to string).
+- [lexical-write-float](/lexical-write-float) (write floats to string).
+- [lexical-core](/lexical-core) (meta-crate for all specific parsers).
+- [lexical](/lexical) (high-level wrappers when a system allocator exists).
 
 # Documentation
 
@@ -36,15 +36,17 @@ This implementation also places a heavy focus on code bloat: with algorithms bot
 
 The [scripts](/scripts) directory contains numerous scripts for testing, fuzzing, analyzing, and formatting code. Since many development features are nightly-only, this ensures the proper compiler features are used.
 
-- `asm.sh`: Emit assembly for common functionality.
-- `fmt.sh`: Run `cargo fmt` and `cargo clippy` in all projects and workspaces, on nightly.
-- `fuzz.sh`: Run fuzzer for a given target.
-- `hooks.sh`: Install formatting and lint hooks on commits.
-- `size.py`: Calculate lexical binary sizes.
-- `test.sh`: Run the test suite with Valgrind and Miri.
-- `timings.py`: Plot build times.
+- [asm.sh](asm.sh): Emit assembly for common functionality.
+- [check.sh](check.sh): Check rustfmt and clippy without formatting any code.
+- [fmt.sh](fmt.sh): Run `cargo fmt` and `cargo clippy` in all projects and workspaces, on nightly.
+- [fuzz.sh](fuzz.sh): Run fuzzer for a given target.
+- [hooks.sh](hooks.sh): Install formatting and lint hooks on commits.
+- [link.sh](link.sh): Rebuild all symbolic links.
+- [size.py](size.py): Calculate lexical binary sizes.
+- [test.sh](test.sh): Run the test suite with Valgrind and Miri.
+- [timings.py](timings.py): Plot build times.
 
-Please run `scripts/fmt.sh` before committing any code, ideally by installing the pre-commit hook via `scripts/hooks.sh`.
+Please run [fmt.sh](scripts/fmt.sh) before committing any code, ideally by installing the pre-commit hook via [hooks.sh](scripts/hooks.sh).
 
 # License
 
