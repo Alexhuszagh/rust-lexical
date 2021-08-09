@@ -2,6 +2,7 @@
 
 #![cfg(not(feature = "compact"))]
 #![cfg(feature = "power-of-two")]
+#![doc(hidden)]
 
 #[cfg(not(feature = "radix"))]
 use crate::table_decimal::*;

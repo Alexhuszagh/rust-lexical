@@ -4,6 +4,7 @@
 //! exponent base to be the same.
 
 #![cfg(feature = "power-of-two")]
+#![doc(hidden)]
 
 use crate::options::{Options, RoundMode};
 use lexical_util::algorithm::rtrim_char_count;

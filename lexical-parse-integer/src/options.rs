@@ -1,5 +1,7 @@
 //! Configuration options for parsing integers.
 
+#![doc(hidden)]
+
 use lexical_util::result::Result;
 
 /// Builder for `Options`.

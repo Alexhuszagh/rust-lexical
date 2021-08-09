@@ -8,23 +8,14 @@ use static_assertions::const_assert;
 #[cfg(feature = "std")]
 use std::error;
 
-/// ERROR
-// ------
-
 /// Error code during parsing, indicating failure type.
 #[non_exhaustive]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum Error {
     // PARSE ERRORS
     /// Integral overflow occurred during numeric parsing.
-    ///
-    /// Numeric overflow takes precedence over the presence of an invalid
-    /// digit.
     Overflow(usize),
     /// Integral underflow occurred during numeric parsing.
-    ///
-    /// Numeric overflow takes precedence over the presence of an invalid
-    /// digit.
     Underflow(usize),
     /// Invalid digit found before string termination.
     InvalidDigit(usize),

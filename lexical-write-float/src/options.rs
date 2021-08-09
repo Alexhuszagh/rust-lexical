@@ -1,5 +1,7 @@
 //! Configuration options for writing floats.
 
+#![doc(hidden)]
+
 use core::{mem, num};
 use lexical_util::constants::FormattedSize;
 use lexical_util::error::Error;

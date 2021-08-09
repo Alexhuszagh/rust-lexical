@@ -2,6 +2,7 @@
 
 #![cfg(not(feature = "compact"))]
 #![cfg(feature = "radix")]
+#![doc(hidden)]
 
 use crate::table_binary::*;
 use crate::table_decimal::*;

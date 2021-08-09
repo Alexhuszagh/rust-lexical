@@ -10,7 +10,6 @@ use core::{fmt, mem, ops};
 // ------------
 
 /// Type that can be converted to primitive with `as`.
-#[doc(hidden)]
 pub trait AsPrimitive: Copy + PartialEq + PartialOrd + Send + Sync + Sized {
     fn as_u8(self) -> u8;
     fn as_u16(self) -> u16;
@@ -160,7 +159,6 @@ as_cast!(
 // ---------
 
 /// Primitive type trait (which all have static lifetimes).
-#[doc(hidden)]
 pub trait Primitive: 'static + fmt::Debug + fmt::Display + AsCast {}
 
 macro_rules! primitive {
@@ -175,7 +173,6 @@ primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
 // ------
 
 /// Numerical type trait.
-#[doc(hidden)]
 pub trait Number:
     Default +
     Primitive +
@@ -227,7 +224,6 @@ number_impl! {
 // -------
 
 /// Defines a trait that supports integral operations.
-#[doc(hidden)]
 pub trait Integer:
     // Basic
     Number + Eq + Ord +
@@ -411,7 +407,6 @@ integer_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
 // --------------
 
 /// Defines a trait that supports signed integral operations.
-#[doc(hidden)]
 pub trait SignedInteger: Integer + ops::Neg<Output = Self> {}
 
 macro_rules! signed_integer_impl {
@@ -426,7 +421,6 @@ signed_integer_impl! { i8 i16 i32 i64 i128 isize }
 // ----------------
 
 /// Defines a trait that supports unsigned integral operations.
-#[doc(hidden)]
 pub trait UnsignedInteger: Integer {}
 
 macro_rules! unsigned_integer_impl {
@@ -441,7 +435,6 @@ unsigned_integer_impl! { u8 u16 u32 u64 u128 usize }
 // -----
 
 /// Float information for native float types.
-#[doc(hidden)]
 #[cfg(feature = "floats")]
 pub trait Float: Number + ops::Neg<Output = Self> {
     /// Unsigned type of the same size.

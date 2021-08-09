@@ -1,5 +1,7 @@
 //! Shared trait and methods for writing integers.
 
+#![doc(hidden)]
+
 /// Select the back-end.
 #[cfg(feature = "compact")]
 use crate::compact::Compact;
@@ -53,12 +55,18 @@ macro_rules! write_exponent {
 #[cfg(feature = "compact")]
 pub trait WriteInteger: Compact {
     /// Forward write integer parameters to an unoptimized backend.
-    /// Preconditions: `value` must be non-negative and unsigned.
+    ///
+    /// # Preconditions
+    ///
+    /// `value` must be non-negative and unsigned.
     ///
     /// # Safety
     ///
-    /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
-    /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
+    /// Safe as long as the buffer can hold [`FORMATTED_SIZE`] elements
+    /// (or [`FORMATTED_SIZE_DECIMAL`] for decimal).
+    ///
+    /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
+    /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
     unsafe fn write_integer<U, const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
         self,
         buffer: &mut [u8],
@@ -79,11 +87,16 @@ pub trait WriteInteger: Compact {
 #[cfg(all(not(feature = "compact"), not(feature = "power-of-two")))]
 pub trait WriteInteger: Decimal {
     /// Forward write integer parameters to an optimized backend.
-    /// Preconditions: `value` must be non-negative and unsigned.
+    ///
+    /// # Preconditions
+    ///
+    /// `value` must be non-negative and unsigned.
     ///
     /// # Safety
     ///
-    /// Safe as long as the buffer can hold `FORMATTED_SIZE_DECIMAL` elements.
+    /// Safe as long as the buffer can hold [`FORMATTED_SIZE_DECIMAL`] elements.
+    ///
+    /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
     #[inline]
     unsafe fn write_integer<U, const __: u128, const ___: u128, const ____: i32>(
         self,
@@ -104,12 +117,18 @@ pub trait WriteInteger: Decimal {
 #[cfg(all(not(feature = "compact"), feature = "power-of-two"))]
 pub trait WriteInteger: Decimal + Radix {
     /// Forward write integer parameters to an optimized backend.
-    /// Preconditions: `value` must be non-negative and unsigned.
+    ///
+    /// # Preconditions
+    ///
+    /// `value` must be non-negative and unsigned.
     ///
     /// # Safety
     ///
-    /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
-    /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
+    /// Safe as long as the buffer can hold [`FORMATTED_SIZE`] elements
+    /// (or [`FORMATTED_SIZE_DECIMAL`] for decimal).
+    ///
+    /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
+    /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
     #[inline]
     unsafe fn write_integer<U, const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
         self,

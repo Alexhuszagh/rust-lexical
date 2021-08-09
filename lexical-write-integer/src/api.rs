@@ -1,5 +1,7 @@
 //! Implements the algorithm in terms of the lexical API.
 
+#![doc(hidden)]
+
 use crate::options::Options;
 use crate::write::WriteInteger;
 use lexical_util::assert::{assert_buffer, debug_assert_buffer};

@@ -5,10 +5,13 @@
 //! This scales well with integer size, short of `u128`, due to the slower
 //! division algorithms required.
 //!
-//! See [Algorithm.md](/docs/Algorithm.md) for a more detailed description of
-//! the algorithm choice here.
+//! See [`Algorithm.md`] for a more detailed description of the algorithm
+//! choice here.
+//!
+//! [`Algorithm.md`]: https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-write-integer/docs/Algorithm.md
 
 #![cfg(not(feature = "compact"))]
+#![doc(hidden)]
 
 use crate::algorithm::{algorithm, algorithm_u128};
 use crate::table::DIGIT_TO_BASE10_SQUARED;
@@ -23,8 +26,9 @@ use lexical_util::num::UnsignedInteger;
 /// and `log2(3) == 1`. Therefore, we must take the log of an odd number,
 /// and subtract one.
 ///
-/// Described here:
-///   https://lemire.me/blog/2021/05/28/computing-the-number-of-digits-of-an-integer-quickly/
+/// This algorithm is described in detail in "Computing the number of digits
+/// of an integer quickly", available
+/// [here](https://lemire.me/blog/2021/05/28/computing-the-number-of-digits-of-an-integer-quickly/).
 #[inline]
 pub fn fast_log2<T: UnsignedInteger>(x: T) -> usize {
     T::BITS - 1 - (x | T::ONE).leading_zeros() as usize
@@ -50,12 +54,14 @@ pub fn fast_log10<T: UnsignedInteger>(x: T) -> usize {
 /// we first write digits until we get to 32-bits, then we call this.
 ///
 /// The values are as follows:
-///     2^32 for j = 1
-///     ⌈log10(2^j)⌉ * 2^128 + 2^128 – 10^(⌈log10(2j)⌉) for j from 2 to 30
-///     ⌈log10(2^j)⌉ for j = 31 and j = 32
 ///
-/// Described here:
-///     https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/
+/// - `2^32 for j = 1`
+/// - `⌈log10(2^j)⌉ * 2^128 + 2^128 – 10^(⌈log10(2j)⌉) for j from 2 to 30`
+/// - `⌈log10(2^j)⌉ for j = 31 and j = 32`
+///
+/// This algorithm is described in detail in "Computing the number of digits
+/// of an integer even faster", available
+/// [here](https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/).
 #[inline]
 pub fn fast_digit_count(x: u32) -> usize {
     const TABLE: [u64; 32] = [
@@ -105,8 +111,9 @@ pub fn fast_digit_count(x: u32) -> usize {
 /// This uses no static storage, and uses a fast log10(2) estimation
 /// to calculate the number of digits, from the log2 value.
 ///
-/// Described here:
-///     https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/
+/// This algorithm is described in detail in "Computing the number of digits
+/// of an integer even faster", available
+/// [here](https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/).
 #[inline]
 pub fn fallback_digit_count<T: UnsignedInteger>(x: T, table: &[T]) -> usize {
     // This value is always within 1: calculate if we need to round-up
@@ -222,8 +229,11 @@ impl DigitCount for u128 {
 pub trait Decimal: DigitCount {
     /// # Safety
     ///
-    /// Safe as long as buffer is at least `FORMATTED_SIZE` elements long,
-    /// (or `FORMATTED_SIZE_DECIMAL` for decimal), and the radix is valid.
+    /// Safe as long as buffer is at least [`FORMATTED_SIZE`] elements long,
+    /// (or [`FORMATTED_SIZE_DECIMAL`] for decimal), and the radix is valid.
+    ///
+    /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
+    /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
     unsafe fn decimal(self, buffer: &mut [u8]) -> usize;
 }
 

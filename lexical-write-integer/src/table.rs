@@ -1,6 +1,7 @@
 //! Pre-computed tables for writing integral strings.
 
 #![cfg(not(feature = "compact"))]
+#![doc(hidden)]
 
 // Re-export all the feature-specific files.
 #[cfg(feature = "power-of-two")]

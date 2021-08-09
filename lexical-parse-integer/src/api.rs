@@ -1,5 +1,7 @@
 ////! Implements the algorithm in terms of the lexical API.
 
+#![doc(hidden)]
+
 use crate::options::Options;
 use crate::parse::ParseInteger;
 use lexical_util::format::{NumberFormat, STANDARD};

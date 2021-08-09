@@ -1,4 +1,4 @@
-//! Pre-defined constants for lexical-core.
+//! Pre-defined constants for numeric types.
 
 #![cfg(feature = "write")]
 

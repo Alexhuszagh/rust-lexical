@@ -17,13 +17,9 @@ macro_rules! from_lexical {
             /// Checked parser for a string-to-number conversion.
             ///
             /// This method parses the entire string, returning an error if
-            /// any invalid digits are found during parsing.
-            ///
-            /// Returns a `Result` containing either the parsed value,
-            /// or an error containing any errors that occurred during parsing.
-            ///
-            /// Numeric overflow takes precedence over the presence of an invalid
-            /// digit, and therefore may mask an invalid digit error.
+            /// any invalid digits are found during parsing. Returns a `Result`
+            /// containing either the parsed value, or an error containing
+            /// any errors that occurred during parsing.
             ///
             /// * `bytes`   - Slice containing a numeric string.
             fn from_lexical(bytes: &[u8]) -> lexical_util::result::Result<Self>;
@@ -32,11 +28,10 @@ macro_rules! from_lexical {
             ///
             /// This method parses until an invalid digit is found (or the end
             /// of the string), returning the number of processed digits
-            /// and the parsed value until that point.
-            ///
-            /// Returns a `Result` containing either the parsed value
-            /// and the number of processed digits, or an error containing
-            /// any errors that occurred during parsing.
+            /// and the parsed value until that point. Returns a `Result`
+            /// containing either the parsed value and the number of processed
+            /// digits, or an error containing any errors that occurred during
+            /// parsing.
             ///
             /// * `bytes`   - Slice containing a numeric string.
             fn from_lexical_partial(bytes: &[u8]) -> lexical_util::result::Result<(Self, usize)>;
@@ -62,19 +57,21 @@ macro_rules! from_lexical_with_options {
             /// any invalid digits are found during parsing. The parsing
             /// is dictated by the options, which specifies special
             /// float strings, required float components, digit separators,
-            /// exponent characters, and more.
-            ///
-            /// Returns a `Result` containing either the parsed value,
-            /// or an error containing any errors that occurred during parsing.
+            /// exponent characters, and more. Returns a `Result` containing
+            /// either the parsed value, or an error containing any errors
+            /// that occurred during parsing.
             ///
             /// * `FORMAT`  - Flags and characters designating the number grammar.
             /// * `bytes`   - Slice containing a numeric string.
             /// * `options` - Options to dictate number parsing.
             ///
-            /// The `FORMAT` packed struct is built using `NumberFormatBuilder`.
+            /// The `FORMAT` packed struct is built using [`NumberFormatBuilder`].
             /// Any invalid number format will prevent parsing, returning
             /// the appropriate format error. If you are unsure which format
-            /// to use, use `lexical_util::format::STANDARD`.
+            /// to use, use [`STANDARD`].
+            ///
+            /// [`NumberFormatBuilder`]: lexical_util::format::NumberFormatBuilder
+            /// [`STANDARD`]: lexical_util::format::STANDARD
             fn from_lexical_with_options<const FORMAT: u128>(
                 bytes: &[u8],
                 options: &Self::Options,
@@ -84,20 +81,22 @@ macro_rules! from_lexical_with_options {
             ///
             /// This method parses until an invalid digit is found (or the end
             /// of the string), returning the number of processed digits
-            /// and the parsed value until that point.
-            ///
-            /// Returns a `Result` containing either the parsed value
-            /// and the number of processed digits, or an error containing
-            /// any errors that occurred during parsing.
+            /// and the parsed value until that point. Returns a `Result`
+            /// containing either the parsed value and the number of
+            /// processed digits, or an error containing any errors that
+            /// occurred during parsing.
             ///
             /// * `FORMAT`  - Flags and characters designating the number grammar.
             /// * `bytes`   - Slice containing a numeric string.
             /// * `options` - Options to dictate number parsing.
             ///
-            /// The `FORMAT` packed struct is built using `NumberFormatBuilder`.
+            /// The `FORMAT` packed struct is built using [`NumberFormatBuilder`].
             /// Any invalid number format will prevent parsing, returning
             /// the appropriate format error. If you are unsure which format
-            /// to use, use `lexical_util::format::STANDARD`.
+            /// to use, use [`STANDARD`].
+            ///
+            /// [`NumberFormatBuilder`]: lexical_util::format::NumberFormatBuilder
+            /// [`STANDARD`]: lexical_util::format::STANDARD
             fn from_lexical_partial_with_options<const FORMAT: u128>(
                 bytes: &[u8],
                 options: &Self::Options,
@@ -120,8 +119,8 @@ macro_rules! to_lexical {
         /// - [`FORMATTED_SIZE`]
         /// - [`FORMATTED_SIZE_DECIMAL`]
         ///
-        /// [`FORMATTED_SIZE`]: trait.FormattedSize.html#associatedconstant.FORMATTED_SIZE
-        /// [`FORMATTED_SIZE_DECIMAL`]: trait.FormattedSize.html#associatedconstant.FORMATTED_SIZE_DECIMAL
+        /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
+        /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
         pub trait ToLexical:
             lexical_util::constants::FormattedSize + lexical_util::num::Number
         {
@@ -139,7 +138,7 @@ macro_rules! to_lexical {
             /// [`FORMATTED_SIZE_DECIMAL`] elements. If a smaller buffer is
             /// provided, a buffer overflow is very likely.
             ///
-            /// [`FORMATTED_SIZE_DECIMAL`]: trait.Number.html#associatedconstant.FORMATTED_SIZE_DECIMAL
+            /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
             unsafe fn to_lexical_unchecked<'a>(self, bytes: &'a mut [u8]) -> &'a mut [u8];
 
             /// Serializer for a number-to-string conversion.
@@ -157,7 +156,7 @@ macro_rules! to_lexical {
             /// the function will not panic, ensure the buffer has at least
             /// [`FORMATTED_SIZE_DECIMAL`] elements.
             ///
-            /// [`FORMATTED_SIZE_DECIMAL`]: trait.Number.html#associatedconstant.FORMATTED_SIZE_DECIMAL
+            /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
             fn to_lexical<'a>(self, bytes: &'a mut [u8]) -> &'a mut [u8];
         }
     };
@@ -177,8 +176,8 @@ macro_rules! to_lexical_with_options {
         ///
         /// The `Options` type specifies the configurable options to provide.
         ///
-        /// [`FORMATTED_SIZE`]: trait.FormattedSize.html#associatedconstant.FORMATTED_SIZE
-        /// [`FORMATTED_SIZE_DECIMAL`]: trait.FormattedSize.html#associatedconstant.FORMATTED_SIZE_DECIMAL
+        /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
+        /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
         pub trait ToLexicalWithOptions:
             lexical_util::constants::FormattedSize + lexical_util::num::Number
         {
@@ -201,7 +200,7 @@ macro_rules! to_lexical_with_options {
             /// [`FORMATTED_SIZE`] elements. If a smaller buffer is
             /// provided, a buffer overflow is very likely.
             ///
-            /// [`FORMATTED_SIZE`]: trait.Number.html#associatedconstant.FORMATTED_SIZE
+            /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
             unsafe fn to_lexical_with_options_unchecked<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],
@@ -225,7 +224,7 @@ macro_rules! to_lexical_with_options {
             /// the function will not panic, ensure the buffer has at least
             /// [`FORMATTED_SIZE`] elements.
             ///
-            /// [`FORMATTED_SIZE`]: trait.Number.html#associatedconstant.FORMATTED_SIZE
+            /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
             fn to_lexical_with_options<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],

@@ -3,6 +3,7 @@
 //! These routines aim to be compact, at the cost of performance.
 
 #![cfg(feature = "compact")]
+#![doc(hidden)]
 
 use crate::shared::is_overflow;
 use lexical_util::digit::{char_to_digit_const, AsDigits};

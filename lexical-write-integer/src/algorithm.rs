@@ -8,6 +8,7 @@
 //! recent benchmark data.
 
 #![cfg(not(feature = "compact"))]
+#![doc(hidden)]
 
 use lexical_util::assert::debug_assert_radix;
 use lexical_util::digit::digit_to_char;

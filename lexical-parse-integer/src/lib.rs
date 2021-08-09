@@ -11,15 +11,35 @@
 //! we try to parse 4 digits at a time, and for 64-bit and larger integers,
 //! we try to parse 8 digits at a time. Attempting both checks leads to
 //! significant performance penalties for simple strings, so only 1
-//! optimization is used at at a time. See [Algorithm.md](/docs/Algorithm.md)
-//! for documentation on the algorithms used. See
-//! [Benchmarks.md](/docs/Benchmarks.md) for benchmark results compared to
-//! other string-to-integer implementations.
+//! optimization is used at at a time. See [`Algorithm.md`]
+//! for documentation on the algorithms used. See [`Benchmarks.md`] for
+//! benchmark results compared to other string-to-integer implementations.
 //!
 //! In addition, a compact, fallback algorithm uses a naive, simple
 //! algorithm, parsing only a single digit at a time. This avoid any
 //! unnecessary branching and produces smaller binaries, but comes
 //! at a significant performance penalty for integers with more digits.
+//!
+//! # Features
+//!
+//! * `std` - Use the standard library.
+//! * `power-of-two` - Add support for parsing power-of-two integer strings.
+//! * `radix` - Add support for strings of any radix.
+//! * `format` - Add support for parsing custom integer formats.
+//! * `compact` - Reduce code size at the cost of performance.
+//! * `safe` - Ensure only memory-safe indexing is used.
+//!
+//! `safe` is a no-op, since all parsers are memory-safe by default.
+//!
+//! # Note
+//!
+//! Only documentation functionality os considered part of the public API:
+//! any of the modules, internal functions, or structs may change
+//! release-to-release without major or minor version changes. Use
+//! internal implementation details at your own risk.
+//!
+//! [`Algorithm.md`]: https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-integer/docs/Algorithm.md
+//! [`Benchmarks.md`]: https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-integer/docs/Benchmarks.md
 
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
@@ -39,4 +59,7 @@ mod api;
 
 // Re-exports
 pub use self::api::{FromLexical, FromLexicalWithOptions};
-pub use self::options::Options;
+pub use self::options::{Options, OptionsBuilder};
+pub use lexical_util::error::Error;
+pub use lexical_util::format::{NumberFormatBuilder, STANDARD};
+pub use lexical_util::result::Result;

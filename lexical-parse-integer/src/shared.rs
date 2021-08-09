@@ -22,6 +22,8 @@
 //!     values. This avoids any unnecessary branching.
 //! 7. Multi-digit optimizations for larger sizes.
 
+#![doc(hidden)]
+
 use lexical_util::format::NumberFormat;
 use lexical_util::num::{as_cast, Integer, UnsignedInteger};
 use lexical_util::step::max_step;

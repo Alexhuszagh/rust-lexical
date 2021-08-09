@@ -4,6 +4,7 @@
 //! slower at the cost of smaller binary size.
 
 #![cfg(feature = "compact")]
+#![doc(hidden)]
 
 use core::mem;
 

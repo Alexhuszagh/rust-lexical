@@ -9,6 +9,6 @@ pub use crate::not_feature_format::*;
 
 use static_assertions::const_assert;
 
-/// Standard number format. This is identical to `RUST_STRING`.
+/// Standard number format. This is identical to the Rust string format.
 pub const STANDARD: u128 = NumberFormatBuilder::new().build();
 const_assert!(NumberFormat::<{ STANDARD }> {}.is_valid());

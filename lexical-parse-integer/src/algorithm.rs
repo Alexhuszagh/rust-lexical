@@ -9,6 +9,7 @@
 //! recent benchmark data.
 
 #![cfg(not(feature = "compact"))]
+#![doc(hidden)]
 
 use crate::shared::is_overflow;
 use lexical_util::digit::{char_to_digit_const, AsDigits};
@@ -195,7 +196,7 @@ pub fn parse_4digits<const FORMAT: u128>(mut v: u32) -> u32 {
 /// This reduces the number of multiplications necessary to 2, instead of 4.
 ///
 /// This approach is described in full here:
-///     https://johnnylee-sde.github.io/Fast-numeric-string-to-int/
+/// <https://johnnylee-sde.github.io/Fast-numeric-string-to-int/>
 #[inline]
 pub fn try_parse_4digits<'a, T, Iter, const FORMAT: u128>(iter: &mut Iter) -> Option<T>
 where

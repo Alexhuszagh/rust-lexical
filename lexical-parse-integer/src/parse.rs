@@ -1,5 +1,7 @@
 //! Shared trait and methods for parsing integers.
 
+#![doc(hidden)]
+
 // Select the correct back-end.
 #[cfg(not(feature = "compact"))]
 use crate::algorithm::{algorithm_complete, algorithm_partial};

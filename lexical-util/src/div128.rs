@@ -5,8 +5,8 @@
 //! The more optimized algorithms for calculating the divisor constants are
 //! based off of the paper "Division by Invariant Integers Using Multiplication",
 //! by T. Granlund and P. Montgomery, in "Proc. of the SIGPLAN94 Conference
-//! on Programming Language Design and Implementation", available online at:
-//! <https://gmplib.org/~tege/divcnst-pldi94.pdf>.
+//! on Programming Language Design and Implementation", available online
+//! [here](https://gmplib.org/~tege/divcnst-pldi94.pdf).
 //!
 //! This approach is derived from the Rust algorithm for formatting 128-bit
 //! values, and therefore is similarly dual-licensed under MIT/Apache-2.0.
@@ -23,23 +23,22 @@
 //!
 //! This module calculates the optimal divisors for each radix,
 //! and exports a general-purpose division algorithm for u128 where
-//! the divisor can fit in a u64.
+//! the divisor can fit in a u64. The moderate algorithm is derived from
+//! dtolnay/itoa, which can be found
+//! [here](https://github.com/dtolnay/itoa/blob/master/src/udiv128.rs), which
+//! in turn is derived from Rust's compiler-builtins crate, which can be found
+//! [here](https://github.com/rust-lang-nursery/compiler-builtins/blob/master/src/int/udiv.rs).
 //!
-//! This implementation is derived from dtolnay/itoa, which can be found here:
-//!     https://github.com/dtolnay/itoa/blob/master/src/udiv128.rs
-//!
-//! This implementation is also derived from Rust's compiler-builtins crate,
-//! which can be found here:
-//!     https://github.com/rust-lang-nursery/compiler-builtins/blob/master/src/int/udiv.rs
-//!
-//! Licensing for this module may be under the MIT or Illinois license
-//! (a BSD-like license), and may be found here:
-//!     https://github.com/rust-lang-nursery/compiler-builtins/blob/master/LICENSE.TXT
+//! Licensing for these routines is therefore subject to an MIT/Illinois
+//! dual license (a BSD-like license), while the rest of the module is
+//! subject to an MIT/Apache-2.0 dual-license.
 //!
 //! # Generation
 //!
-//! See `etc/div128.py` for the script to generate the divisors and the
+//! See [`etc/div128.py`] for the script to generate the divisors and the
 //! constants, and the division algorithm.
+//!
+//! [`etc/div128.py`]: https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-util/etc/div128.py
 
 #![cfg(not(feature = "compact"))]
 #![cfg(feature = "write")]
@@ -151,7 +150,8 @@ pub fn slow_u128_divrem(n: u128, d: u64, d_ctlz: u32) -> (u128, u64) {
 /// 4. Fallback cases.
 ///
 /// This returns the quotient and the remainder.
-/// For the number of digits processed, see `min_step (for u64)`.
+/// For the number of digits processed, see
+/// [min_step](crate::step::min_step).
 #[inline(always)]
 pub fn u128_divrem(n: u128, radix: u32) -> (u128, u64) {
     debug_assert_radix(radix);

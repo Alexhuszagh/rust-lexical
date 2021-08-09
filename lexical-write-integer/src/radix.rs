@@ -10,6 +10,7 @@
 
 #![cfg(not(feature = "compact"))]
 #![cfg(feature = "power-of-two")]
+#![doc(hidden)]
 
 use crate::algorithm::{algorithm, algorithm_u128};
 use crate::table::get_table;

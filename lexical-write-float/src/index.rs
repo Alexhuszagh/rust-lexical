@@ -5,6 +5,7 @@
 //! of randomized input. Parsers are much trickier to validate.
 
 #![cfg_attr(not(feature = "power-of-two"), allow(unused_macros))]
+#![doc(hidden)]
 
 /// Index a buffer, without bounds checking.
 #[cfg(not(feature = "safe"))]

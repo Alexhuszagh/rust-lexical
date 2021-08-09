@@ -2,6 +2,8 @@
 //!
 //! This is a dummy implementation, since writing integers never have options.
 
+#![doc(hidden)]
+
 use lexical_util::result::Result;
 
 /// Builder for `Options`.

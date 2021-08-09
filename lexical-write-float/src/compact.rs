@@ -19,6 +19,7 @@
 //! 5. Support for trimming floats (".0") is also included.
 
 #![cfg(feature = "compact")]
+#![doc(hidden)]
 
 use crate::options::{Options, RoundMode};
 use core::mem;
