@@ -36,15 +36,15 @@ This implementation also places a heavy focus on code bloat: with algorithms bot
 
 The [scripts](/scripts) directory contains numerous scripts for testing, fuzzing, analyzing, and formatting code. Since many development features are nightly-only, this ensures the proper compiler features are used.
 
-- [asm.sh](asm.sh): Emit assembly for common functionality.
-- [check.sh](check.sh): Check rustfmt and clippy without formatting any code.
-- [fmt.sh](fmt.sh): Run `cargo fmt` and `cargo clippy` in all projects and workspaces, on nightly.
-- [fuzz.sh](fuzz.sh): Run fuzzer for a given target.
-- [hooks.sh](hooks.sh): Install formatting and lint hooks on commits.
-- [link.sh](link.sh): Rebuild all symbolic links.
-- [size.py](size.py): Calculate lexical binary sizes.
-- [test.sh](test.sh): Run the test suite with Valgrind and Miri.
-- [timings.py](timings.py): Plot build times.
+- [asm.sh](/scripts/asm.sh): Emit assembly for common functionality.
+- [check.sh](/scripts/check.sh): Check rustfmt and clippy without formatting any code.
+- [fmt.sh](/scripts/fmt.sh): Run `cargo fmt` and `cargo clippy` in all projects and workspaces, on nightly.
+- [fuzz.sh](/scripts/fuzz.sh): Run fuzzer for a given target.
+- [hooks.sh](/scripts/hooks.sh): Install formatting and lint hooks on commits.
+- [link.sh](/scripts/link.sh): Rebuild all symbolic links.
+- [size.py](/scripts/size.py): Calculate lexical binary sizes.
+- [test.sh](/scripts/test.sh): Run the test suite with Valgrind and Miri.
+- [timings.py](/scripts/timings.py): Plot build times.
 
 Please run [fmt.sh](scripts/fmt.sh) before committing any code, ideally by installing the pre-commit hook via [hooks.sh](scripts/hooks.sh).
 
