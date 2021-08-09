@@ -6,6 +6,8 @@ use core::str::{from_utf8_unchecked, FromStr};
 use lexical_util::constants::FormattedSize;
 #[cfg(feature = "radix")]
 use lexical_util::constants::BUFFER_SIZE;
+#[cfg(feature = "format")]
+use lexical_util::format::NumberFormatBuilder;
 use lexical_util::format::STANDARD;
 use lexical_write_integer::{Options, ToLexical, ToLexicalWithOptions};
 use proptest::prelude::*;
@@ -28,6 +30,17 @@ macro_rules! roundtrip_impl {
 }
 
 roundtrip_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
+
+#[test]
+#[cfg(feature = "format")]
+fn mandatory_sign_test() {
+    let mut buffer = [b'\x00'; 16];
+    let options = Options::new();
+    const FORMAT: u128 = NumberFormatBuilder::new().required_mantissa_sign(true).build();
+    assert_eq!(b"+0", 0i8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &options));
+    assert_eq!(b"-1", (-1i8).to_lexical_with_options::<{ FORMAT }>(&mut buffer, &options));
+    assert_eq!(b"+1", 1i8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &options));
+}
 
 #[test]
 fn u8_test() {

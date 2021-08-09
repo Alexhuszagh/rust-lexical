@@ -76,6 +76,7 @@ radix = [
 format = [
     "lexical-parse-integer/format",
     "lexical-parse-float/format",
+    "lexical-write-integer/format",
     "lexical-write-float/format"
 ]
 # Reduce code size at the cost of performance.

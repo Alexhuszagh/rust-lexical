@@ -58,7 +58,7 @@ pub trait WriteInteger: Compact {
     ///
     /// # Preconditions
     ///
-    /// `value` must be non-negative and unsigned.
+    /// `self` must be non-negative and unsigned.
     ///
     /// # Safety
     ///
@@ -90,7 +90,7 @@ pub trait WriteInteger: Decimal {
     ///
     /// # Preconditions
     ///
-    /// `value` must be non-negative and unsigned.
+    /// `self` must be non-negative and unsigned.
     ///
     /// # Safety
     ///
@@ -120,7 +120,7 @@ pub trait WriteInteger: Decimal + Radix {
     ///
     /// # Preconditions
     ///
-    /// `value` must be non-negative and unsigned.
+    /// `self` must be non-negative and unsigned.
     ///
     /// # Safety
     ///

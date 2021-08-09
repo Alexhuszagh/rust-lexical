@@ -28,6 +28,7 @@ default = ["std"]
 std = ["lexical-util/std", "lexical-write-integer/std"]
 radix = ["lexical-util/radix", "lexical-write-integer/radix"]
 power-of-two = ["lexical-util/power-of-two", "lexical-write-integer/power-of-two"]
+format = ["lexical-util/format", "lexical-write-integer/format"]
 
 [[bench]]
 name = "json"

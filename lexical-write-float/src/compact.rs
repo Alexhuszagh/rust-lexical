@@ -35,9 +35,9 @@ use lexical_write_integer::write::WriteInteger;
 /// with Integers", by Florian Loitsch, available online at:
 /// <https://www.cs.tufts.edu/~nr/cs257/archive/florian-loitsch/printf.pdf>.
 ///
-/// # Preconditions
-///
-/// `float` must not be special (NaN or Infinity).
+/// This assumes the float is:
+///     1). Non-special (NaN or Infinite).
+///     2). Non-negative.
 ///
 /// # Safety
 ///
@@ -55,6 +55,7 @@ pub unsafe fn write_float<F: Float, const FORMAT: u128>(
     let format = NumberFormat::<{ FORMAT }> {};
     assert!(format.is_valid());
     debug_assert!(!float.is_special());
+    debug_assert!(float >= F::ZERO);
 
     // Write our mantissa digits to a temporary buffer.
     let digits: mem::MaybeUninit<[u8; 32]> = mem::MaybeUninit::uninit();

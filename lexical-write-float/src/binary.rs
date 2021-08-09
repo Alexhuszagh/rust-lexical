@@ -601,7 +601,7 @@ where
     let zero_digits = fast_ceildiv(zero_bits, bits_per_digit) as usize;
 
     // Write our 0 digits.
-    // SAFETY: must be safe since since `bytes.len() < BUFFER_SIZE - 2`.
+    // SAFETY: safe if `bytes.len() > BUFFER_SIZE - 2`.
     unsafe {
         index_unchecked_mut!(bytes[0]) = b'0';
         index_unchecked_mut!(bytes[1]) = decimal_point;
@@ -691,7 +691,7 @@ where
     let mut cursor: usize;
     if leading_digits >= count {
         // We have more leading digits than digits we wrote: can write
-        // any additional digits, and then just write the remaining ones.
+        // any additional digits, and then just write the remaining zeros.
         // SAFETY: safe if the buffer is large enough to hold the significant digits.
         unsafe {
             let digits = &mut index_unchecked_mut!(bytes[count..leading_digits]);
@@ -747,9 +747,8 @@ where
 /// Optimized float-to-string algorithm for power of 2 radixes.
 ///
 /// This assumes the float is:
-///     1). Non-zero
-///     2). Non-special (NaN or Infinite).
-///     3). Non-negative.
+///     1). Non-special (NaN or Infinite).
+///     2). Non-negative.
 ///
 /// # Safety
 ///
@@ -776,6 +775,7 @@ where
     let format = NumberFormat::<{ FORMAT }> {};
     assert!(format.is_valid());
     debug_assert!(!float.is_special());
+    debug_assert!(float >= F::ZERO);
 
     // Quickly calculate the number of bits we would have written.
     // This simulates writing the digits, so we can calculate the

@@ -56,6 +56,7 @@ format = [
     "lexical-util/format",
     "lexical-parse-integer/format",
     "lexical-parse-float/format",
+    "lexical-write-integer/format",
     "lexical-write-float/format"
 ]
 compact = [

@@ -23,7 +23,18 @@ where
     Narrow: WriteInteger,
     Wide: WriteInteger,
 {
-    unsafe { value.write_mantissa::<Wide, FORMAT>(buffer) }
+    let format = NumberFormat::<FORMAT> {};
+    if cfg!(feature = "format") && format.required_mantissa_sign() {
+        // SAFETY: safe as long as there is at least `FORMATTED_SIZE` elements.
+        unsafe {
+            index_unchecked_mut!(buffer[0]) = b'+';
+            let buffer = &mut index_unchecked_mut!(buffer[1..]);
+            value.write_mantissa::<Wide, FORMAT>(buffer) + 1
+        }
+    } else {
+        // SAFETY: safe as long as there is at least `FORMATTED_SIZE` elements.
+        unsafe { value.write_mantissa::<Wide, FORMAT>(buffer) }
+    }
 }
 
 // SIGNED
@@ -37,13 +48,14 @@ where
 #[inline]
 unsafe fn signed<Narrow, Wide, Unsigned, const FORMAT: u128>(
     value: Narrow,
-    mut buffer: &mut [u8],
+    buffer: &mut [u8],
 ) -> usize
 where
     Narrow: SignedInteger,
     Wide: SignedInteger,
     Unsigned: WriteInteger,
 {
+    let format = NumberFormat::<FORMAT> {};
     if value < Narrow::ZERO {
         // Need to cast the value to the same size as unsigned type, since if
         // the value is **exactly** `Narrow::MIN`, and it it is then cast
@@ -54,7 +66,15 @@ where
         // SAFETY: safe as long as there is at least `FORMATTED_SIZE` elements.
         unsafe {
             index_unchecked_mut!(buffer[0]) = b'-';
-            buffer = &mut index_unchecked_mut!(buffer[1..]);
+            let buffer = &mut index_unchecked_mut!(buffer[1..]);
+            unsigned.write_mantissa::<Unsigned, FORMAT>(buffer) + 1
+        }
+    } else if cfg!(feature = "format") && format.required_mantissa_sign() {
+        let unsigned = Unsigned::as_cast(value);
+        // SAFETY: safe as long as there is at least `FORMATTED_SIZE` elements.
+        unsafe {
+            index_unchecked_mut!(buffer[0]) = b'+';
+            let buffer = &mut index_unchecked_mut!(buffer[1..]);
             unsigned.write_mantissa::<Unsigned, FORMAT>(buffer) + 1
         }
     } else {

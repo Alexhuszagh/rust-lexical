@@ -197,6 +197,8 @@ fn check_float<T: num::Float>(mut x: T) {
     assert_eq!(T::from_bits(x.to_bits()), x);
     let _ = x.is_sign_positive();
     let _ = x.is_sign_negative();
+    let _ = x.ln();
+    let _ = x.floor();
 
     // Check properties
     let _ = x.to_bits() & T::SIGN_MASK;

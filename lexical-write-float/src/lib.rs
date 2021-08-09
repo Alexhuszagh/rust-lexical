@@ -67,8 +67,11 @@ pub mod hex;
 pub mod options;
 pub mod radix;
 
+mod api;
+mod write;
+
 // Re-exports
-//pub use self::api::{ToLexical, ToLexicalWithOptions};
+pub use self::api::{ToLexical, ToLexicalWithOptions};
 pub use self::options::{Options, OptionsBuilder};
 pub use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 pub use lexical_util::format::{NumberFormatBuilder, STANDARD};

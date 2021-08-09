@@ -491,6 +491,8 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     // Re-export the to and from bits methods.
     fn to_bits(self) -> Self::Unsigned;
     fn from_bits(u: Self::Unsigned) -> Self;
+    fn ln(self) -> Self;
+    fn floor(self) -> Self;
     fn is_sign_positive(self) -> bool;
     fn is_sign_negative(self) -> bool;
 
@@ -745,6 +747,16 @@ impl Float for f32 {
     }
 
     #[inline]
+    fn ln(self) -> f32 {
+        f32::ln(self)
+    }
+
+    #[inline]
+    fn floor(self) -> f32 {
+        f32::floor(self)
+    }
+
+    #[inline]
     fn is_sign_positive(self) -> bool {
         f32::is_sign_positive(self)
     }
@@ -780,6 +792,16 @@ impl Float for f64 {
     #[inline]
     fn from_bits(u: u64) -> f64 {
         f64::from_bits(u)
+    }
+
+    #[inline]
+    fn ln(self) -> f64 {
+        f64::ln(self)
+    }
+
+    #[inline]
+    fn floor(self) -> f64 {
+        f64::floor(self)
     }
 
     #[inline]
