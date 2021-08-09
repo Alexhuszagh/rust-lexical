@@ -10,12 +10,13 @@
 
 #![cfg(not(feature = "compact"))]
 
+use crate::shared::is_overflow;
 use lexical_util::digit::{char_to_digit_const, AsDigits};
 use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{Byte, ByteIter};
-use lexical_util::num::{as_cast, AsPrimitive, Integer, Number};
+use lexical_util::num::{as_cast, Integer, UnsignedInteger};
 use lexical_util::result::Result;
-use lexical_util::step::u64_step;
+use lexical_util::step::min_step;
 
 // ALGORITHM
 
@@ -30,25 +31,17 @@ macro_rules! parse_8digits {
         $value:ident,
         $iter:ident,
         $format:ident,
-        $addsub:ident,
-        $overflow:ident,
         $t:ident
     ) => {{
-        let radix: $t = <$t>::from_u32(NumberFormat::<{ $format }>::MANTISSA_RADIX);
+        let radix: $t = as_cast(NumberFormat::<{ $format }>::MANTISSA_RADIX);
         let radix2: $t = radix.wrapping_mul(radix);
         let radix4: $t = radix2.wrapping_mul(radix2);
         let radix8: $t = radix4.wrapping_mul(radix4);
 
         // Try our fast, 8-digit at a time optimizations.
         while let Some(val8) = try_parse_8digits::<$t, _, $format>(&mut $iter) {
-            $value = match $value.checked_mul(radix8) {
-                Some(v) => v,
-                None => return into_error!($overflow, $iter.cursor()),
-            };
-            $value = match $value.$addsub(val8) {
-                Some(v) => v,
-                None => return into_error!($overflow, $iter.cursor()),
-            };
+            $value = $value.wrapping_mul(radix8);
+            $value = $value.wrapping_add(val8);
         }
     }};
 }
@@ -64,24 +57,16 @@ macro_rules! parse_4digits {
         $value:ident,
         $iter:ident,
         $format:ident,
-        $addsub:ident,
-        $overflow:ident,
         $t:ident
     ) => {{
-        let radix: $t = <$t>::from_u32(NumberFormat::<{ $format }>::MANTISSA_RADIX);
+        let radix: $t = as_cast(NumberFormat::<{ $format }>::MANTISSA_RADIX);
         let radix2: $t = radix.wrapping_mul(radix);
         let radix4: $t = radix2.wrapping_mul(radix2);
 
         // Try our fast, 4-digit at a time optimizations.
         while let Some(val4) = try_parse_4digits::<$t, _, $format>(&mut $iter) {
-            $value = match $value.checked_mul(radix4) {
-                Some(v) => v,
-                None => return into_error!($overflow, $iter.cursor()),
-            };
-            $value = match $value.$addsub(val4) {
-                Some(v) => v,
-                None => return into_error!($overflow, $iter.cursor()),
-            };
+            $value = $value.wrapping_mul(radix4);
+            $value = $value.wrapping_add(val4);
         }
     }};
 }
@@ -94,59 +79,75 @@ macro_rules! parse_digits {
         $value:ident,
         $iter:ident,
         $format:ident,
-        $radix:expr,
-        $addsub:ident,
-        $overflow:ident,
+        $is_negative:ident,
+        $start_index:ident,
         $t:ident,
+        $u:ident,
         $invalid_digit:ident
     ) => {{
-        // WARNING:
-        // Performance is heavily dependent on the amount of branching.
-        // We therefore optimize for worst cases only to a certain extent:
-        // that is, since most integers aren't randomly distributed, but
-        // are more likely to be smaller values, we need to avoid overbranching
-        // to ensure small digit parsing isn't impacted too much. We therefore
-        // only enable 4-digit **or** 8-digit optimizations, but not both.
-        // If not, the two branch passes kill performance for small 64-bit
-        // and 128-bit values.
+        //  WARNING:
+        //      Performance is heavily dependent on the amount of branching.
+        //      We therefore optimize for worst cases only to a certain extent:
+        //      that is, since most integers aren't randomly distributed, but
+        //      are more likely to be smaller values, we need to avoid overbranching
+        //      to ensure small digit parsing isn't impacted too much. We therefore
+        //      only enable 4-digit **or** 8-digit optimizations, but not both.
+        //      If not, the two branch passes kill performance for small 64-bit
+        //      and 128-bit values.
         //
-        // DO NOT MAKE CHANGES without monitoring the resulting benchmarks,
-        // or performance could greatly be impacted.
+        //      However, for signed integers, the increased amount of branching
+        //      makes these multi-digit optimizations not worthwhile. For large
+        //      64-bit, signed integers, the performance benefit is ~23% faster.
+        //      However, the performance penalty for smaller, more common integers
+        //      is ~50%. Therefore, these optimizations are not worth the penalty.
+        //
+        //      For unsigned and 128-bit signed integers, the performance penalties
+        //      are minimal and the performance gains are substantial, so re-enable
+        //      the optimizations.
+        //
+        //  DO NOT MAKE CHANGES without monitoring the resulting benchmarks,
+        //  or performance could greatly be impacted.
+        let radix = NumberFormat::<{ $format }>::MANTISSA_RADIX;
 
         // Optimizations for reading 8-digits at a time.
         // Makes no sense to do 8 digits at a time for 32-bit values,
         // since it can only hold 8 digits for base 10.
-        if T::BITS >= 64 && $radix <= 10 && $iter.is_contiguous() {
-            parse_8digits!($value, $iter, $format, $addsub, $overflow, $t);
+        if <$t>::BITS == 128 && radix <= 10 && $iter.is_contiguous() {
+            parse_8digits!($value, $iter, $format, $u);
+        }
+        if <$t>::BITS == 64 && radix <= 10 && $iter.is_contiguous() && !<$t>::IS_SIGNED {
+            parse_8digits!($value, $iter, $format, $u);
         }
 
         // Optimizations for reading 4-digits at a time.
         // 36^4 is larger than a 16-bit integer. Likewise, 10^4 is almost
         // the limit of u16, so it's not worth it.
-        if T::BITS == 32 && $radix <= 10 && $iter.is_contiguous() {
-            parse_4digits!($value, $iter, $format, $addsub, $overflow, $t);
+        if <$t>::BITS == 32 && radix <= 10 && $iter.is_contiguous() && !<$t>::IS_SIGNED {
+            parse_4digits!($value, $iter, $format, $u);
         }
 
-        parse_compact!($value, $iter, $format, $radix, $addsub, $overflow, $t, $invalid_digit)
+        parse_1digit!($value, $iter, $format, $is_negative, $start_index, $t, $u, $invalid_digit)
     }};
 }
 
 /// Algorithm for the complete parser.
 #[inline]
-pub fn algorithm_complete<T, const FORMAT: u128>(bytes: &[u8]) -> Result<T>
+pub fn algorithm_complete<T, Unsigned, const FORMAT: u128>(bytes: &[u8]) -> Result<T>
 where
     T: Integer,
+    Unsigned: UnsignedInteger,
 {
-    algorithm!(bytes, FORMAT, T, parse_digits, invalid_digit_complete, into_ok_complete)
+    algorithm!(bytes, FORMAT, T, Unsigned, parse_digits, invalid_digit_complete, into_ok_complete)
 }
 
 /// Algorithm for the partial parser.
 #[inline]
-pub fn algorithm_partial<T, const FORMAT: u128>(bytes: &[u8]) -> Result<(T, usize)>
+pub fn algorithm_partial<T, Unsigned, const FORMAT: u128>(bytes: &[u8]) -> Result<(T, usize)>
 where
     T: Integer,
+    Unsigned: UnsignedInteger,
 {
-    algorithm!(bytes, FORMAT, T, parse_digits, invalid_digit_partial, into_ok_partial)
+    algorithm!(bytes, FORMAT, T, Unsigned, parse_digits, invalid_digit_partial, into_ok_partial)
 }
 
 // DIGIT OPTIMIZATIONS
@@ -212,7 +213,7 @@ where
     if is_4digits::<FORMAT>(bytes) {
         // SAFETY: safe since we have at least 4 bytes in the buffer.
         unsafe { iter.step_by_unchecked(4) };
-        Some(T::from_u32(parse_4digits::<FORMAT>(bytes)))
+        Some(T::as_cast(parse_4digits::<FORMAT>(bytes)))
     } else {
         None
     }

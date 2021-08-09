@@ -12,13 +12,13 @@ use lexical_util::{from_lexical, from_lexical_with_options};
 /// can actually be evaluated at compile-time, which causes major branching
 /// issues.
 macro_rules! integer_from_lexical {
-    ($($t:tt $(, #[$meta:meta])? ; )*) => ($(
+    ($($t:ident $unsigned:ident $(, #[$meta:meta])? ; )*) => ($(
         impl FromLexical for $t {
             $(#[$meta:meta])?
             #[cfg_attr(not(feature = "compact"), inline)]
             fn from_lexical(bytes: &[u8]) -> lexical_util::result::Result<Self>
             {
-                Self::parse_complete::<STANDARD>(bytes)
+                Self::parse_complete::<$unsigned, STANDARD>(bytes)
             }
 
             $(#[$meta:meta])?
@@ -27,7 +27,7 @@ macro_rules! integer_from_lexical {
                 bytes: &[u8],
             ) -> lexical_util::result::Result<(Self, usize)>
             {
-                Self::parse_partial::<STANDARD>(bytes)
+                Self::parse_partial::<$unsigned, STANDARD>(bytes)
             }
         }
 
@@ -45,7 +45,7 @@ macro_rules! integer_from_lexical {
                 if !format.is_valid() {
                     return Err(format.error());
                 }
-                Self::parse_complete::<FORMAT>(bytes)
+                Self::parse_complete::<$unsigned, FORMAT>(bytes)
             }
 
             $(#[$meta:meta])?
@@ -59,7 +59,7 @@ macro_rules! integer_from_lexical {
                 if !format.is_valid() {
                     return Err(format.error());
                 }
-                Self::parse_partial::<FORMAT>(bytes)
+                Self::parse_partial::<$unsigned, FORMAT>(bytes)
             }
         }
     )*)
@@ -68,16 +68,16 @@ macro_rules! integer_from_lexical {
 from_lexical! {}
 from_lexical_with_options! {}
 integer_from_lexical! {
-    u8 ;
-    u16 ;
-    u32 ;
-    u64 ;
-    u128 ;
-    usize ;
-    i8 ;
-    i16 ;
-    i32 ;
-    i64 ;
-    i128 ;
-    isize ;
+    u8 u8 ;
+    u16 u16 ;
+    u32 u32 ;
+    u64 u64 ;
+    u128 u128 ;
+    usize usize ;
+    i8 u8 ;
+    i16 u16 ;
+    i32 u32 ;
+    i64 u64 ;
+    i128 u128 ;
+    isize usize ;
 }

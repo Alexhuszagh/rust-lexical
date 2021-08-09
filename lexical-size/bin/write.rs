@@ -20,17 +20,19 @@ macro_rules! integer_module {
                         .unwrap()
                         .trim()
                         .as_bytes()
-                        .as_ptr() as *const _
+                        .as_ptr() as *const _,
                 )
             };
 
-            #[cfg(feature = "lexical")] {
+            #[cfg(feature = "lexical")]
+            {
                 let buffer: mem::MaybeUninit<[u8; 128]> = mem::MaybeUninit::uninit();
                 let mut buffer = unsafe { buffer.assume_init() };
                 println!("{}", value.to_lexical(&mut buffer).len());
             }
 
-            #[cfg(not(feature = "lexical"))] {
+            #[cfg(not(feature = "lexical"))]
+            {
                 let mut buffer = Vec::with_capacity(128);
                 buffer.write_fmt(format_args!("{}", value)).unwrap();
                 println!("{}", buffer.len());
@@ -48,9 +50,9 @@ macro_rules! float_module {
         use lexical_util::format::STANDARD;
         #[cfg(feature = "lexical")]
         use lexical_write_float::{compact, Options};
+        use std::io::BufRead;
         #[cfg(not(feature = "lexical"))]
         use std::io::Write;
-        use std::io::BufRead;
 
         pub fn main() {
             let value: $t = unsafe {
@@ -63,19 +65,22 @@ macro_rules! float_module {
                         .unwrap()
                         .trim()
                         .as_bytes()
-                        .as_ptr() as *const _
+                        .as_ptr() as *const _,
                 )
             };
 
-            #[cfg(feature = "lexical")] {
+            #[cfg(feature = "lexical")]
+            {
                 let buffer: mem::MaybeUninit<[u8; 128]> = mem::MaybeUninit::uninit();
                 let mut buffer = unsafe { buffer.assume_init() };
                 let options = Options::builder().build().unwrap();
-                let count = unsafe { compact::write_float::<_, STANDARD>(value, &mut buffer, &options) };
+                let count =
+                    unsafe { compact::write_float::<_, STANDARD>(value, &mut buffer, &options) };
                 println!("{}", count);
             }
 
-            #[cfg(not(feature = "lexical"))] {
+            #[cfg(not(feature = "lexical"))]
+            {
                 let mut buffer = Vec::with_capacity(128);
                 buffer.write_fmt(format_args!("{}", value)).unwrap();
                 println!("{}", buffer.len());

@@ -12,25 +12,20 @@ macro_rules! integer_module {
 
         pub fn main() {
             #[cfg(feature = "lexical")]
-            println!("{}", <$t>::from_lexical(std::io::stdin()
-                .lock()
-                .lines()
-                .next()
-                .unwrap()
-                .unwrap()
-                .trim()
-                .as_bytes()
-            ).unwrap() as usize);
+            println!(
+                "{}",
+                <$t>::from_lexical(
+                    std::io::stdin().lock().lines().next().unwrap().unwrap().trim().as_bytes()
+                )
+                .unwrap() as usize
+            );
 
             #[cfg(not(feature = "lexical"))]
-            println!("{}", parse_int::<$t>(std::io::stdin()
-                .lock()
-                .lines()
-                .next()
-                .unwrap()
-                .unwrap()
-                .trim(), 10
-            ).unwrap() as usize);
+            println!(
+                "{}",
+                parse_int::<$t>(std::io::stdin().lock().lines().next().unwrap().unwrap().trim(), 10)
+                    .unwrap() as usize
+            );
         }
     };
 }

@@ -5,249 +5,1336 @@
 //!
 //! # Generation
 //!
-//! See `etc/div128.py` for the script to generate the divisors and the
+//! See `etc/step.py` for the script to generate the divisors and the
 //! constants, and the division algorithm.
 
 #![cfg(any(feature = "parse", feature = "write"))]
 
-use crate::assert::debug_assert_radix;
+// NOTE:
+//  Fallback radixes use 1 for the value to avoid infinite loops,
+//  but allowing them in `const fn`.
 
-/// Calculate the maximum number of digits
-/// number of digits processed by 128-bit division.
+/// Calculate the maximum number of digits that can always be processed
+/// without overflowing for a given type. For example, 19 digits can
+/// always be processed for a decimal string for `u64` without overflowing.
 #[inline(always)]
-pub fn u64_step(radix: u32) -> usize {
-    debug_assert_radix(radix);
-
+pub const fn min_step(radix: u32, bits: usize, is_signed: bool) -> usize {
     if cfg!(feature = "radix") {
         match radix {
-            2 => u64_step_2(),
-            3 => u64_step_3(),
-            4 => u64_step_4(),
-            5 => u64_step_5(),
-            6 => u64_step_6(),
-            7 => u64_step_7(),
-            8 => u64_step_8(),
-            9 => u64_step_9(),
-            10 => u64_step_10(),
-            11 => u64_step_11(),
-            12 => u64_step_12(),
-            13 => u64_step_13(),
-            14 => u64_step_14(),
-            15 => u64_step_15(),
-            16 => u64_step_16(),
-            17 => u64_step_17(),
-            18 => u64_step_18(),
-            19 => u64_step_19(),
-            20 => u64_step_20(),
-            21 => u64_step_21(),
-            22 => u64_step_22(),
-            23 => u64_step_23(),
-            24 => u64_step_24(),
-            25 => u64_step_25(),
-            26 => u64_step_26(),
-            27 => u64_step_27(),
-            28 => u64_step_28(),
-            29 => u64_step_29(),
-            30 => u64_step_30(),
-            31 => u64_step_31(),
-            32 => u64_step_32(),
-            33 => u64_step_33(),
-            34 => u64_step_34(),
-            35 => u64_step_35(),
-            36 => u64_step_36(),
-            _ => unreachable!(),
+            2 => min_step_2(bits, is_signed),
+            3 => min_step_3(bits, is_signed),
+            4 => min_step_4(bits, is_signed),
+            5 => min_step_5(bits, is_signed),
+            6 => min_step_6(bits, is_signed),
+            7 => min_step_7(bits, is_signed),
+            8 => min_step_8(bits, is_signed),
+            9 => min_step_9(bits, is_signed),
+            10 => min_step_10(bits, is_signed),
+            11 => min_step_11(bits, is_signed),
+            12 => min_step_12(bits, is_signed),
+            13 => min_step_13(bits, is_signed),
+            14 => min_step_14(bits, is_signed),
+            15 => min_step_15(bits, is_signed),
+            16 => min_step_16(bits, is_signed),
+            17 => min_step_17(bits, is_signed),
+            18 => min_step_18(bits, is_signed),
+            19 => min_step_19(bits, is_signed),
+            20 => min_step_20(bits, is_signed),
+            21 => min_step_21(bits, is_signed),
+            22 => min_step_22(bits, is_signed),
+            23 => min_step_23(bits, is_signed),
+            24 => min_step_24(bits, is_signed),
+            25 => min_step_25(bits, is_signed),
+            26 => min_step_26(bits, is_signed),
+            27 => min_step_27(bits, is_signed),
+            28 => min_step_28(bits, is_signed),
+            29 => min_step_29(bits, is_signed),
+            30 => min_step_30(bits, is_signed),
+            31 => min_step_31(bits, is_signed),
+            32 => min_step_32(bits, is_signed),
+            33 => min_step_33(bits, is_signed),
+            34 => min_step_34(bits, is_signed),
+            35 => min_step_35(bits, is_signed),
+            36 => min_step_36(bits, is_signed),
+            _ => 1,
         }
     } else if cfg!(feature = "power-of-two") {
         match radix {
-            2 => u64_step_2(),
-            4 => u64_step_4(),
-            8 => u64_step_8(),
-            10 => u64_step_10(),
-            16 => u64_step_16(),
-            32 => u64_step_32(),
-            _ => unreachable!(),
+            2 => min_step_2(bits, is_signed),
+            4 => min_step_4(bits, is_signed),
+            8 => min_step_8(bits, is_signed),
+            10 => min_step_10(bits, is_signed),
+            16 => min_step_16(bits, is_signed),
+            32 => min_step_32(bits, is_signed),
+            _ => 1,
         }
     } else {
-        u64_step_10()
+        min_step_10(bits, is_signed)
     }
 }
 
+/// Calculate the maximum number of digits that can be processed
+/// without always overflowing for a given type. For example, 20 digits can
+/// be processed for a decimal string for `u64` without overflowing, but
+/// it may overflow.
+#[inline(always)]
+pub const fn max_step(radix: u32, bits: usize, is_signed: bool) -> usize {
+    if cfg!(feature = "radix") {
+        match radix {
+            2 => max_step_2(bits, is_signed),
+            3 => max_step_3(bits, is_signed),
+            4 => max_step_4(bits, is_signed),
+            5 => max_step_5(bits, is_signed),
+            6 => max_step_6(bits, is_signed),
+            7 => max_step_7(bits, is_signed),
+            8 => max_step_8(bits, is_signed),
+            9 => max_step_9(bits, is_signed),
+            10 => max_step_10(bits, is_signed),
+            11 => max_step_11(bits, is_signed),
+            12 => max_step_12(bits, is_signed),
+            13 => max_step_13(bits, is_signed),
+            14 => max_step_14(bits, is_signed),
+            15 => max_step_15(bits, is_signed),
+            16 => max_step_16(bits, is_signed),
+            17 => max_step_17(bits, is_signed),
+            18 => max_step_18(bits, is_signed),
+            19 => max_step_19(bits, is_signed),
+            20 => max_step_20(bits, is_signed),
+            21 => max_step_21(bits, is_signed),
+            22 => max_step_22(bits, is_signed),
+            23 => max_step_23(bits, is_signed),
+            24 => max_step_24(bits, is_signed),
+            25 => max_step_25(bits, is_signed),
+            26 => max_step_26(bits, is_signed),
+            27 => max_step_27(bits, is_signed),
+            28 => max_step_28(bits, is_signed),
+            29 => max_step_29(bits, is_signed),
+            30 => max_step_30(bits, is_signed),
+            31 => max_step_31(bits, is_signed),
+            32 => max_step_32(bits, is_signed),
+            33 => max_step_33(bits, is_signed),
+            34 => max_step_34(bits, is_signed),
+            35 => max_step_35(bits, is_signed),
+            36 => max_step_36(bits, is_signed),
+            _ => 1,
+        }
+    } else if cfg!(feature = "power-of-two") {
+        match radix {
+            2 => max_step_2(bits, is_signed),
+            4 => max_step_4(bits, is_signed),
+            8 => max_step_8(bits, is_signed),
+            10 => max_step_10(bits, is_signed),
+            16 => max_step_16(bits, is_signed),
+            32 => max_step_32(bits, is_signed),
+            _ => 1,
+        }
+    } else {
+        max_step_10(bits, is_signed)
+    }
+}
+
+/// Calculate the number of digits that can be processed without overflowing a u64.
+/// Helper function since this is used for 128-bit division.
+#[inline(always)]
+pub const fn u64_step(radix: u32) -> usize {
+    min_step(radix, 64, false)
+}
+
 // AUTO-GENERATED
-// These functions were auto-generated by `etc/div128.py`.
+// These functions were auto-generated by `etc/step.py`.
 // Do not edit them unless there is a good reason to.
 // Preferably, edit the source code to generate the constants.
+//
+// NOTE: For the fallthrough value for types (in case of adding short
+// or wider type support in the future), use 1 so it doesn't infinitely
+// recurse. Under normal circumstances, this will never be called.
 
 #[inline]
-const fn u64_step_2() -> usize {
-    64
+const fn max_step_2(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 7,
+        8 if !is_signed => 8,
+        16 if is_signed => 15,
+        16 if !is_signed => 16,
+        32 if is_signed => 31,
+        32 if !is_signed => 32,
+        64 if is_signed => 63,
+        64 if !is_signed => 64,
+        128 if is_signed => 127,
+        128 if !is_signed => 128,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_3() -> usize {
-    40
+const fn min_step_2(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 7,
+        8 if !is_signed => 8,
+        16 if is_signed => 15,
+        16 if !is_signed => 16,
+        32 if is_signed => 31,
+        32 if !is_signed => 32,
+        64 if is_signed => 63,
+        64 if !is_signed => 64,
+        128 if is_signed => 127,
+        128 if !is_signed => 128,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_4() -> usize {
-    32
+const fn max_step_3(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 5,
+        8 if !is_signed => 6,
+        16 if is_signed => 10,
+        16 if !is_signed => 11,
+        32 if is_signed => 20,
+        32 if !is_signed => 21,
+        64 if is_signed => 40,
+        64 if !is_signed => 41,
+        128 if is_signed => 81,
+        128 if !is_signed => 81,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_5() -> usize {
-    27
+const fn min_step_3(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 4,
+        8 if !is_signed => 5,
+        16 if is_signed => 9,
+        16 if !is_signed => 10,
+        32 if is_signed => 19,
+        32 if !is_signed => 20,
+        64 if is_signed => 39,
+        64 if !is_signed => 40,
+        128 if is_signed => 80,
+        128 if !is_signed => 80,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_6() -> usize {
-    24
+const fn max_step_4(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 4,
+        8 if !is_signed => 4,
+        16 if is_signed => 8,
+        16 if !is_signed => 8,
+        32 if is_signed => 16,
+        32 if !is_signed => 16,
+        64 if is_signed => 32,
+        64 if !is_signed => 32,
+        128 if is_signed => 64,
+        128 if !is_signed => 64,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_7() -> usize {
-    22
+const fn min_step_4(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 3,
+        8 if !is_signed => 4,
+        16 if is_signed => 7,
+        16 if !is_signed => 8,
+        32 if is_signed => 15,
+        32 if !is_signed => 16,
+        64 if is_signed => 31,
+        64 if !is_signed => 32,
+        128 if is_signed => 63,
+        128 if !is_signed => 64,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_8() -> usize {
-    21
+const fn max_step_5(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 4,
+        8 if !is_signed => 4,
+        16 if is_signed => 7,
+        16 if !is_signed => 7,
+        32 if is_signed => 14,
+        32 if !is_signed => 14,
+        64 if is_signed => 28,
+        64 if !is_signed => 28,
+        128 if is_signed => 55,
+        128 if !is_signed => 56,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_9() -> usize {
-    20
+const fn min_step_5(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 3,
+        8 if !is_signed => 3,
+        16 if is_signed => 6,
+        16 if !is_signed => 6,
+        32 if is_signed => 13,
+        32 if !is_signed => 13,
+        64 if is_signed => 27,
+        64 if !is_signed => 27,
+        128 if is_signed => 54,
+        128 if !is_signed => 55,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_10() -> usize {
-    19
+const fn max_step_6(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 3,
+        8 if !is_signed => 4,
+        16 if is_signed => 6,
+        16 if !is_signed => 7,
+        32 if is_signed => 12,
+        32 if !is_signed => 13,
+        64 if is_signed => 25,
+        64 if !is_signed => 25,
+        128 if is_signed => 50,
+        128 if !is_signed => 50,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_11() -> usize {
-    18
+const fn min_step_6(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 3,
+        16 if is_signed => 5,
+        16 if !is_signed => 6,
+        32 if is_signed => 11,
+        32 if !is_signed => 12,
+        64 if is_signed => 24,
+        64 if !is_signed => 24,
+        128 if is_signed => 49,
+        128 if !is_signed => 49,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_12() -> usize {
-    17
+const fn max_step_7(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 3,
+        8 if !is_signed => 3,
+        16 if is_signed => 6,
+        16 if !is_signed => 6,
+        32 if is_signed => 12,
+        32 if !is_signed => 12,
+        64 if is_signed => 23,
+        64 if !is_signed => 23,
+        128 if is_signed => 46,
+        128 if !is_signed => 46,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_13() -> usize {
-    17
+const fn min_step_7(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 5,
+        16 if !is_signed => 5,
+        32 if is_signed => 11,
+        32 if !is_signed => 11,
+        64 if is_signed => 22,
+        64 if !is_signed => 22,
+        128 if is_signed => 45,
+        128 if !is_signed => 45,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_14() -> usize {
-    16
+const fn max_step_8(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 3,
+        8 if !is_signed => 3,
+        16 if is_signed => 5,
+        16 if !is_signed => 6,
+        32 if is_signed => 11,
+        32 if !is_signed => 11,
+        64 if is_signed => 21,
+        64 if !is_signed => 22,
+        128 if is_signed => 43,
+        128 if !is_signed => 43,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_15() -> usize {
-    16
+const fn min_step_8(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 5,
+        16 if !is_signed => 5,
+        32 if is_signed => 10,
+        32 if !is_signed => 10,
+        64 if is_signed => 21,
+        64 if !is_signed => 21,
+        128 if is_signed => 42,
+        128 if !is_signed => 42,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_16() -> usize {
-    16
+const fn max_step_9(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 3,
+        8 if !is_signed => 3,
+        16 if is_signed => 5,
+        16 if !is_signed => 6,
+        32 if is_signed => 10,
+        32 if !is_signed => 11,
+        64 if is_signed => 20,
+        64 if !is_signed => 21,
+        128 if is_signed => 41,
+        128 if !is_signed => 41,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_17() -> usize {
-    15
+const fn min_step_9(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 5,
+        32 if is_signed => 9,
+        32 if !is_signed => 10,
+        64 if is_signed => 19,
+        64 if !is_signed => 20,
+        128 if is_signed => 40,
+        128 if !is_signed => 40,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_18() -> usize {
-    15
+const fn max_step_10(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 3,
+        8 if !is_signed => 3,
+        16 if is_signed => 5,
+        16 if !is_signed => 5,
+        32 if is_signed => 10,
+        32 if !is_signed => 10,
+        64 if is_signed => 19,
+        64 if !is_signed => 20,
+        128 if is_signed => 39,
+        128 if !is_signed => 39,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_19() -> usize {
-    15
+const fn min_step_10(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 9,
+        32 if !is_signed => 9,
+        64 if is_signed => 18,
+        64 if !is_signed => 19,
+        128 if is_signed => 38,
+        128 if !is_signed => 38,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_20() -> usize {
-    14
+const fn max_step_11(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 3,
+        8 if !is_signed => 3,
+        16 if is_signed => 5,
+        16 if !is_signed => 5,
+        32 if is_signed => 9,
+        32 if !is_signed => 10,
+        64 if is_signed => 19,
+        64 if !is_signed => 19,
+        128 if is_signed => 37,
+        128 if !is_signed => 38,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_21() -> usize {
-    14
+const fn min_step_11(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 8,
+        32 if !is_signed => 9,
+        64 if is_signed => 18,
+        64 if !is_signed => 18,
+        128 if is_signed => 36,
+        128 if !is_signed => 37,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_22() -> usize {
-    14
+const fn max_step_12(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 3,
+        16 if is_signed => 5,
+        16 if !is_signed => 5,
+        32 if is_signed => 9,
+        32 if !is_signed => 9,
+        64 if is_signed => 18,
+        64 if !is_signed => 18,
+        128 if is_signed => 36,
+        128 if !is_signed => 36,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_23() -> usize {
-    14
+const fn min_step_12(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 8,
+        32 if !is_signed => 8,
+        64 if is_signed => 17,
+        64 if !is_signed => 17,
+        128 if is_signed => 35,
+        128 if !is_signed => 35,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_24() -> usize {
-    13
+const fn max_step_13(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 3,
+        16 if is_signed => 5,
+        16 if !is_signed => 5,
+        32 if is_signed => 9,
+        32 if !is_signed => 9,
+        64 if is_signed => 18,
+        64 if !is_signed => 18,
+        128 if is_signed => 35,
+        128 if !is_signed => 35,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_25() -> usize {
-    13
+const fn min_step_13(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 8,
+        32 if !is_signed => 8,
+        64 if is_signed => 17,
+        64 if !is_signed => 17,
+        128 if is_signed => 34,
+        128 if !is_signed => 34,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_26() -> usize {
-    13
+const fn max_step_14(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 3,
+        16 if is_signed => 4,
+        16 if !is_signed => 5,
+        32 if is_signed => 9,
+        32 if !is_signed => 9,
+        64 if is_signed => 17,
+        64 if !is_signed => 17,
+        128 if is_signed => 34,
+        128 if !is_signed => 34,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_27() -> usize {
-    13
+const fn min_step_14(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 2,
+        16 if is_signed => 3,
+        16 if !is_signed => 4,
+        32 if is_signed => 8,
+        32 if !is_signed => 8,
+        64 if is_signed => 16,
+        64 if !is_signed => 16,
+        128 if is_signed => 33,
+        128 if !is_signed => 33,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_28() -> usize {
-    13
+const fn max_step_15(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 3,
+        16 if is_signed => 4,
+        16 if !is_signed => 5,
+        32 if is_signed => 8,
+        32 if !is_signed => 9,
+        64 if is_signed => 17,
+        64 if !is_signed => 17,
+        128 if is_signed => 33,
+        128 if !is_signed => 33,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_29() -> usize {
-    13
+const fn min_step_15(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 2,
+        16 if is_signed => 3,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 8,
+        64 if is_signed => 16,
+        64 if !is_signed => 16,
+        128 if is_signed => 32,
+        128 if !is_signed => 32,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_30() -> usize {
-    13
+const fn max_step_16(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 8,
+        32 if !is_signed => 8,
+        64 if is_signed => 16,
+        64 if !is_signed => 16,
+        128 if is_signed => 32,
+        128 if !is_signed => 32,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_31() -> usize {
-    12
+const fn min_step_16(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 2,
+        16 if is_signed => 3,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 8,
+        64 if is_signed => 15,
+        64 if !is_signed => 16,
+        128 if is_signed => 31,
+        128 if !is_signed => 32,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_32() -> usize {
-    12
+const fn max_step_17(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 8,
+        32 if !is_signed => 8,
+        64 if is_signed => 16,
+        64 if !is_signed => 16,
+        128 if is_signed => 32,
+        128 if !is_signed => 32,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_33() -> usize {
-    12
+const fn min_step_17(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 15,
+        64 if !is_signed => 15,
+        128 if is_signed => 31,
+        128 if !is_signed => 31,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_34() -> usize {
-    12
+const fn max_step_18(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 8,
+        32 if !is_signed => 8,
+        64 if is_signed => 16,
+        64 if !is_signed => 16,
+        128 if is_signed => 31,
+        128 if !is_signed => 31,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_35() -> usize {
-    12
+const fn min_step_18(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 15,
+        64 if !is_signed => 15,
+        128 if is_signed => 30,
+        128 if !is_signed => 30,
+        _ => 1,
+    }
 }
 
 #[inline]
-const fn u64_step_36() -> usize {
-    12
+const fn max_step_19(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 8,
+        32 if !is_signed => 8,
+        64 if is_signed => 15,
+        64 if !is_signed => 16,
+        128 if is_signed => 30,
+        128 if !is_signed => 31,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_19(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 14,
+        64 if !is_signed => 15,
+        128 if is_signed => 29,
+        128 if !is_signed => 30,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_20(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 8,
+        32 if !is_signed => 8,
+        64 if is_signed => 15,
+        64 if !is_signed => 15,
+        128 if is_signed => 30,
+        128 if !is_signed => 30,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_20(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 14,
+        64 if !is_signed => 14,
+        128 if is_signed => 29,
+        128 if !is_signed => 29,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_21(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 8,
+        32 if !is_signed => 8,
+        64 if is_signed => 15,
+        64 if !is_signed => 15,
+        128 if is_signed => 29,
+        128 if !is_signed => 30,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_21(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 14,
+        64 if !is_signed => 14,
+        128 if is_signed => 28,
+        128 if !is_signed => 29,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_22(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 8,
+        64 if is_signed => 15,
+        64 if !is_signed => 15,
+        128 if is_signed => 29,
+        128 if !is_signed => 29,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_22(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 7,
+        64 if is_signed => 14,
+        64 if !is_signed => 14,
+        128 if is_signed => 28,
+        128 if !is_signed => 28,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_23(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 8,
+        64 if is_signed => 14,
+        64 if !is_signed => 15,
+        128 if is_signed => 29,
+        128 if !is_signed => 29,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_23(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 7,
+        64 if is_signed => 13,
+        64 if !is_signed => 14,
+        128 if is_signed => 28,
+        128 if !is_signed => 28,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_24(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 14,
+        64 if !is_signed => 14,
+        128 if is_signed => 28,
+        128 if !is_signed => 28,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_24(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 6,
+        64 if is_signed => 13,
+        64 if !is_signed => 13,
+        128 if is_signed => 27,
+        128 if !is_signed => 27,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_25(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 14,
+        64 if !is_signed => 14,
+        128 if is_signed => 28,
+        128 if !is_signed => 28,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_25(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 6,
+        64 if is_signed => 13,
+        64 if !is_signed => 13,
+        128 if is_signed => 27,
+        128 if !is_signed => 27,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_26(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 14,
+        64 if !is_signed => 14,
+        128 if is_signed => 28,
+        128 if !is_signed => 28,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_26(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 6,
+        64 if is_signed => 13,
+        64 if !is_signed => 13,
+        128 if is_signed => 27,
+        128 if !is_signed => 27,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_27(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 14,
+        64 if !is_signed => 14,
+        128 if is_signed => 27,
+        128 if !is_signed => 27,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_27(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 6,
+        64 if is_signed => 13,
+        64 if !is_signed => 13,
+        128 if is_signed => 26,
+        128 if !is_signed => 26,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_28(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 14,
+        64 if !is_signed => 14,
+        128 if is_signed => 27,
+        128 if !is_signed => 27,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_28(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 6,
+        64 if is_signed => 13,
+        64 if !is_signed => 13,
+        128 if is_signed => 26,
+        128 if !is_signed => 26,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_29(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 13,
+        64 if !is_signed => 14,
+        128 if is_signed => 27,
+        128 if !is_signed => 27,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_29(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 6,
+        64 if is_signed => 12,
+        64 if !is_signed => 13,
+        128 if is_signed => 26,
+        128 if !is_signed => 26,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_30(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 13,
+        64 if !is_signed => 14,
+        128 if is_signed => 26,
+        128 if !is_signed => 27,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_30(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 6,
+        64 if is_signed => 12,
+        64 if !is_signed => 13,
+        128 if is_signed => 25,
+        128 if !is_signed => 26,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_31(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 4,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 13,
+        64 if !is_signed => 13,
+        128 if is_signed => 26,
+        128 if !is_signed => 26,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_31(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 6,
+        64 if is_signed => 12,
+        64 if !is_signed => 12,
+        128 if is_signed => 25,
+        128 if !is_signed => 25,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_32(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 3,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 13,
+        64 if !is_signed => 13,
+        128 if is_signed => 26,
+        128 if !is_signed => 26,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_32(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 3,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 6,
+        64 if is_signed => 12,
+        64 if !is_signed => 12,
+        128 if is_signed => 25,
+        128 if !is_signed => 25,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_33(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 3,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 13,
+        64 if !is_signed => 13,
+        128 if is_signed => 26,
+        128 if !is_signed => 26,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_33(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 2,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 6,
+        64 if is_signed => 12,
+        64 if !is_signed => 12,
+        128 if is_signed => 25,
+        128 if !is_signed => 25,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_34(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 3,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 13,
+        64 if !is_signed => 13,
+        128 if is_signed => 25,
+        128 if !is_signed => 26,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_34(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 2,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 6,
+        64 if is_signed => 12,
+        64 if !is_signed => 12,
+        128 if is_signed => 24,
+        128 if !is_signed => 25,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_35(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 3,
+        16 if !is_signed => 4,
+        32 if is_signed => 7,
+        32 if !is_signed => 7,
+        64 if is_signed => 13,
+        64 if !is_signed => 13,
+        128 if is_signed => 25,
+        128 if !is_signed => 25,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_35(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 2,
+        16 if !is_signed => 3,
+        32 if is_signed => 6,
+        32 if !is_signed => 6,
+        64 if is_signed => 12,
+        64 if !is_signed => 12,
+        128 if is_signed => 24,
+        128 if !is_signed => 24,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn max_step_36(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 2,
+        8 if !is_signed => 2,
+        16 if is_signed => 3,
+        16 if !is_signed => 4,
+        32 if is_signed => 6,
+        32 if !is_signed => 7,
+        64 if is_signed => 13,
+        64 if !is_signed => 13,
+        128 if is_signed => 25,
+        128 if !is_signed => 25,
+        _ => 1,
+    }
+}
+
+#[inline]
+const fn min_step_36(bits: usize, is_signed: bool) -> usize {
+    match bits {
+        8 if is_signed => 1,
+        8 if !is_signed => 1,
+        16 if is_signed => 2,
+        16 if !is_signed => 3,
+        32 if is_signed => 5,
+        32 if !is_signed => 6,
+        64 if is_signed => 12,
+        64 if !is_signed => 12,
+        128 if is_signed => 24,
+        128 if !is_signed => 24,
+        _ => 1,
+    }
 }

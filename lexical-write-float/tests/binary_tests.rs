@@ -1029,7 +1029,6 @@ macro_rules! parse_float {
 parse_float!(parse_f32, f32, to_f32);
 parse_float!(parse_f64, f64, to_f64);
 
-// TODO(ahuszagh) Need binary and octal (2^1, 2^3), and that's it.
 quickcheck! {
     fn f32_binary_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];

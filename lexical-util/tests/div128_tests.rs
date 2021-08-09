@@ -19,7 +19,7 @@ proptest! {
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
-    fn u128_divrem_2_proptest(i in u128::min_value()..u128::max_value(), radix in 2u32..=36) {
+    fn u128_divrem_radix_proptest(i in u128::min_value()..u128::max_value(), radix in 2u32..=36) {
         // Simulate a const expr.
         let (hi, lo) = u128_divrem(i, radix);
         let step = u64_step(radix);

@@ -2,6 +2,29 @@
 //!
 //! These allow implementations of partial and complete parsers
 //! using a single code-path via macros.
+//!
+//! This looks relatively, complex, but it's quite simple. Almost all
+//! of these branches are resolved at compile-time, so the resulting
+//! code is quite small while handling all of the internal complexity.
+//!
+//! 1. Helpers to process ok and error results for both complete and partial
+//!     parsers. They have different APIs, and mixing the APIs leads to
+//!     substantial performance hits.
+//! 2. Overflow checking on invalid digits for partial parsers, while
+//!     just returning invalid digits for complete parsers.
+//! 3. A format-aware sign parser.
+//! 4. Digit parsing algorithms which explicitly wrap on overflow, for no
+//!     additional overhead. This has major performance wins for **most**
+//!     real-world integers, so most valid input will be substantially faster.
+//! 5. An algorithm to detect if overflow occurred. This is comprehensive,
+//!     and short-circuits for common cases.
+//! 6. A parsing algorithm for unsigned integers, always producing positive
+//!     values. This avoids any unnecessary branching.
+//! 7. Multi-digit optimizations for larger sizes.
+
+use lexical_util::format::NumberFormat;
+use lexical_util::num::{as_cast, Integer, UnsignedInteger};
+use lexical_util::step::max_step;
 
 /// Return an error, returning the index and the error.
 macro_rules! into_error {
@@ -26,16 +49,45 @@ macro_rules! into_ok_partial {
 
 /// Return an error for a complete parser upon an invalid digit.
 macro_rules! invalid_digit_complete {
-    ($value:expr, $index:expr) => {
-        into_error!(InvalidDigit, $index)
-    };
+    (
+        $value:ident,
+        $iter:ident,
+        $format:ident,
+        $is_negative:ident,
+        $start_index:ident,
+        $t:ident,
+        $u:ident
+    ) => {{
+        // Don't do any overflow checking here: we don't need it.
+        into_error!(InvalidDigit, $iter.cursor() - 1)
+    }};
 }
 
 /// Return a value for a partial parser upon an invalid digit.
+/// This checks for numeric overflow, and returns the appropriate error.
 macro_rules! invalid_digit_partial {
-    ($value:expr, $index:expr) => {
-        into_ok_partial!($value, $index)
-    };
+    (
+        $value:ident,
+        $iter:ident,
+        $format:ident,
+        $is_negative:ident,
+        $start_index:ident,
+        $t:ident,
+        $u:ident
+    ) => {{
+        let radix = NumberFormat::<{ $format }>::MANTISSA_RADIX;
+        let count = $iter.current_count() - $start_index - 1;
+        if is_overflow::<$t, $u, $format>($value, count, $is_negative) {
+            let min = min_step(radix, <$t as Integer>::BITS, <$t>::IS_SIGNED);
+            if <$t>::IS_SIGNED && $is_negative {
+                into_error!(Underflow, (count - 1).min(min + 1))
+            } else {
+                into_error!(Overflow, (count - 1).min(min + 1))
+            }
+        } else {
+            into_ok_partial!($value, $iter.cursor() - 1)
+        }
+    }};
 }
 
 /// Parse the sign from the leading digits.
@@ -84,74 +136,115 @@ macro_rules! parse_sign {
     };
 }
 
+/// Determine if the value has overflowed.
+#[cfg_attr(not(feature = "compact"), inline)]
+pub(super) fn is_overflow<T, U, const FORMAT: u128>(
+    value: U,
+    count: usize,
+    is_negative: bool,
+) -> bool
+where
+    T: Integer,
+    U: UnsignedInteger,
+{
+    let format = NumberFormat::<{ FORMAT }> {};
+
+    let max = max_step(format.radix(), T::BITS, T::IS_SIGNED);
+    let radix: U = as_cast(format.radix());
+    let min_value: U = radix.pow(max as u32 - 1);
+    if T::IS_SIGNED {
+        // Signed type: have to deal with 2's complement.
+        let max_value: U = as_cast::<U, _>(T::MAX) + U::ONE;
+        if count > max
+            || (count == max
+                && (value < min_value || value > max_value || (!is_negative && value == max_value)))
+        {
+            // Must have overflowed, or wrapped.
+            // 1. Guaranteed overflow due to too many digits.
+            // 2. Guaranteed overflow due to wrap.
+            // 3. Guaranteed overflow since it's too large for the signed type.
+            // 4. Guaranteed overflow due to 2's complement.
+            return true;
+        }
+    } else if count > max || (count == max && value < min_value) {
+        // Must have overflowed: too many digits or wrapped.
+        return true;
+    }
+    false
+}
+
 /// Parse the value for the given type.
 macro_rules! parse_value {
     (
         $iter:ident,
         $is_negative:ident,
         $format:ident,
+        $start_index:ident,
         $t:ident,
+        $u:ident,
         $parser:ident,
         $invalid_digit:ident,
         $into_ok:ident
     ) => {{
-        let mut value = <$t>::ZERO;
+        // Use a simple optimization: parse as an unsigned integer, using
+        // unsigned arithmetic , avoiding any branching in the initial stage.
+        // We can then validate the input based on the signed integer limits,
+        // and cast the value over, which is fast. Leads to substantial
+        // improvements due to decreased branching for all but `i8`.
+        let mut value = <$u>::ZERO;
         let format = NumberFormat::<{ $format }> {};
-        if !<$t>::IS_SIGNED || !$is_negative {
-            $parser!(
-                value,
-                $iter,
-                $format,
-                format.radix(),
-                checked_add,
-                Overflow,
-                $t,
-                $invalid_digit
-            );
+        $parser!(value, $iter, $format, $is_negative, $start_index, $t, $u, $invalid_digit);
+        let count = $iter.current_count() - $start_index;
+
+        if is_overflow::<$t, $u, $format>(value, count, $is_negative) {
+            let min = min_step(format.radix(), <$t as Integer>::BITS, <$t>::IS_SIGNED);
+            if <$t>::IS_SIGNED && $is_negative {
+                into_error!(Underflow, (count - 1).min(min + 1))
+            } else {
+                into_error!(Overflow, (count - 1).min(min + 1))
+            }
+        } else if <$t>::IS_SIGNED && $is_negative {
+            // Need to cast it to the signed type first, so we don't
+            // get an invalid representation for i128 if it's widened.
+            $into_ok!(as_cast::<$t, _>(value.wrapping_neg()), $iter.length())
         } else {
-            $parser!(
-                value,
-                $iter,
-                $format,
-                format.radix(),
-                checked_sub,
-                Underflow,
-                $t,
-                $invalid_digit
-            );
+            $into_ok!(value, $iter.length())
         }
-        $into_ok!(value, $iter.length())
     }};
 }
 
-/// Parse digits for a positive or negative value.
+/// Parse a single digit at a time.
 /// This has no multiple-digit optimizations.
 #[rustfmt::skip]
-macro_rules! parse_compact {
+macro_rules! parse_1digit {
     (
         $value:ident,
         $iter:ident,
         $format:ident,
-        $radix:expr,
-        $addsub:ident,
-        $overflow:ident,
+        $is_negative:ident,
+        $start_index:ident,
         $t:ident,
+        $u:ident,
         $invalid_digit:ident
     ) => {{
+        let radix = NumberFormat::<{ $format }>::MANTISSA_RADIX;
+
         // Do our slow parsing algorithm: 1 digit at a time.
         while let Some(&c) = $iter.next() {
-            let digit = match char_to_digit_const(c, $radix) {
+            let digit = match char_to_digit_const(c, radix) {
                 Some(v) => v,
-                None => return $invalid_digit!($value, $iter.cursor() - 1),
+                None => return $invalid_digit!(
+                    $value,
+                    $iter,
+                    $format,
+                    $is_negative,
+                    $start_index,
+                    $t,
+                    $u
+                ),
             };
-            $value = match $value.checked_mul(<$t>::from_u32($radix)) {
-                Some(v) => v,
-                None => return into_error!($overflow, $iter.cursor() - 1),
-            };
-            $value = match $value.$addsub(<$t>::from_u32(digit)) {
-                Some(v) => v,
-                None => return into_error!($overflow, $iter.cursor() - 1),
-            };
+            $value = $value.wrapping_mul(as_cast(radix));
+            $value = $value.wrapping_add(as_cast(digit));
         }
     }};
 }
@@ -166,6 +259,7 @@ macro_rules! algorithm {
         $bytes:ident,
         $format:ident,
         $t:ident,
+        $u:ident,
         $parser:ident,
         $invalid_digit:ident,
         $into_ok:ident
@@ -188,7 +282,7 @@ macro_rules! algorithm {
         //
         // If you try to refactor without carefully monitoring benchmarks or
         // assembly generation, please log the number of wasted hours: so
-        //  10 hours so far.
+        //  16 hours so far.
 
         // With `step_by_unchecked`, this is sufficiently optimized.
         // Removes conditional paths, to, which simplifies maintenance.
@@ -206,12 +300,14 @@ macro_rules! algorithm {
         // If we have a format that doesn't accept leading zeros,
         // check if the next value is invalid. It's invalid if the
         // first is 0, and the next is not a valid digit.
-        if format.no_integer_leading_zeros() && iter.peek() == Some(&b'0') {
-            // Has at least 1 element, and is a 0. Check if the next
-            // peeked value is a valid digit.
-            let index = iter.cursor();
-            // SAFETY: safe, have at least 1 element and that element is 0.
-            unsafe { iter.step_by_unchecked(1) };
+        let mut start_index = iter.cursor();
+        let zeros = iter.skip_zeros();
+        start_index += zeros;
+        if format.no_integer_leading_zeros() && zeros != 0 {
+            let index = iter.cursor() - zeros;
+            if zeros > 1 {
+                return into_error!(InvalidLeadingZeros, index);
+            }
             match iter.peek().map(|&c| char_to_digit_const(c, format.radix())) {
                 // Valid digit, we have an invalid value.
                 Some(Some(_)) => return into_error!(InvalidLeadingZeros, index),
@@ -220,42 +316,23 @@ macro_rules! algorithm {
             };
         }
 
-        // Optimization for 128-bit integers.
-        // This always works, since the length includes the sign bit.
-        // If the input is 64 digits, base 2, with the sign, then the
-        // value can't be greater than `2^63 - 1` magnitude, which can
-        // be stored by any positive or negative 64-bit int.
-        if cfg!(not(feature = "compact")) &&
-            <$t>::BITS == 128 &&
-            iter.length() <= u64_step(format.radix()) {
-                // These types will get resolved at compile time.
-                // Choose the compact parser, since we've already got enough
-                // branching at this point, and it kills performance for
-                // small 128-bit values. Can increase parse time for simple
-                // values by ~60% or more.
-                if <$t>::IS_SIGNED {
-                    parse_value!(
-                        iter,
-                        is_negative,
-                        $format,
-                        i64,
-                        parse_compact,
-                        $invalid_digit,
-                        $into_ok
-                    )
-                } else {
-                    parse_value!(
-                        iter,
-                        is_negative,
-                        $format,
-                        u64,
-                        parse_compact,
-                        $invalid_digit,
-                        $into_ok
-                    )
-                }
-        } else {
-            parse_value!(iter, is_negative, $format, $t, $parser, $invalid_digit, $into_ok)
-        }
+        //  NOTE:
+        //      Don't add optimizations for 128-bit integers.
+        //      128-bit multiplication is rather efficient, it's only division
+        //      that's very slow. Any shortcut optimizations increasing branching,
+        //      and even if parsing a 64-bit integer is marginally faster, it
+        //      culminates in **way** slower performance overall for simple
+        //      integers, and no improvement for large integers.
+        parse_value!(
+            iter,
+            is_negative,
+            $format,
+            start_index,
+            $t,
+            $u,
+            $parser,
+            $invalid_digit,
+            $into_ok
+        )
     }};
 }

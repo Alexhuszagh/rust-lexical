@@ -80,6 +80,11 @@ impl<'a> Byte<'a> for Digits<'a> {
     }
 
     #[inline]
+    fn current_count(&self) -> usize {
+        self.index
+    }
+
+    #[inline]
     fn is_empty(&self) -> bool {
         self.index >= self.slc.len()
     }
@@ -161,6 +166,11 @@ impl<'a> ByteIter<'a> for DigitsIterator<'a> {
     #[inline]
     fn cursor(&self) -> usize {
         self.byte.cursor()
+    }
+
+    #[inline]
+    fn current_count(&self) -> usize {
+        self.byte.current_count()
     }
 
     #[inline]

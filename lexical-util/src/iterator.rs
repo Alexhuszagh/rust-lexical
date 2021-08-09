@@ -41,6 +41,9 @@ pub trait Byte<'a>: Clone {
     /// Get the current index of the iterator in the slice.
     fn cursor(&self) -> usize;
 
+    /// Get the current number of values returned by the iterator.
+    fn current_count(&self) -> usize;
+
     /// Get if the buffer underlying the iterator is empty.
     ///
     /// This might not be the same thing as `is_consumed`: `is_consumed`
@@ -122,6 +125,9 @@ pub trait ByteIter<'a>: Iterator<Item = &'a u8> {
     /// Get the current index of the iterator in the slice.
     fn cursor(&self) -> usize;
 
+    /// Get the current number of values returned by the iterator.
+    fn current_count(&self) -> usize;
+
     /// Get if the iterator cannot return any more elements.
     ///
     /// This may advance the internal iterator state, but not
@@ -155,6 +161,16 @@ pub trait ByteIter<'a>: Iterator<Item = &'a u8> {
 
     /// Peek the next value of the iterator, without consuming it.
     fn peek(&mut self) -> Option<Self::Item>;
+
+    /// Skip zeros from the start of the iterator
+    #[inline]
+    fn skip_zeros(&mut self) -> usize {
+        let start = self.cursor();
+        while let Some(&b'0') = self.peek() {
+            self.next();
+        }
+        self.cursor() - start
+    }
 
     /// Read a value of a difference type from the iterator.
     /// This advances the internal state of the iterator.

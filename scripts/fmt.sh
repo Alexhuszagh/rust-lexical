@@ -12,5 +12,8 @@ cargo +nightly fmt
 cd lexical-asm
 cargo +nightly fmt
 
+cd ../lexical-size
+cargo +nightly fmt
+
 cd ../lexical-benchmark
 cargo +nightly fmt

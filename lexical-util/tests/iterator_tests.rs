@@ -23,11 +23,13 @@ fn digits_iterator_test() {
     assert_eq!(iter.read::<u32>().unwrap(), 0x34333231);
     assert_eq!(iter.length(), 5);
     assert_eq!(iter.cursor(), 0);
+    assert_eq!(iter.current_count(), 0);
     unsafe {
         iter.step_by_unchecked(4);
     }
     assert_eq!(iter.length(), 5);
     assert_eq!(iter.cursor(), 4);
+    assert_eq!(iter.current_count(), 4);
     assert_eq!(unsafe { iter.peek_unchecked() }, &b'5');
     assert_eq!(iter.peek(), Some(&b'5'));
     assert_eq!(iter.next(), Some(&b'5'));
@@ -88,7 +90,11 @@ fn skip_iterator_test() {
     assert_eq!(iter.next(), Some(&b'1'));
     assert_eq!(iter.next(), Some(&b'2'));
     assert_eq!(iter.next(), Some(&b'3'));
+    assert_eq!(iter.cursor(), 3);
+    assert_eq!(iter.current_count(), 3);
     assert_eq!(iter.next(), Some(&b'4'));
+    assert_eq!(iter.cursor(), 5);
+    assert_eq!(iter.current_count(), 4);
     assert_eq!(iter.next(), Some(&b'5'));
     assert_eq!(iter.next(), None);
 

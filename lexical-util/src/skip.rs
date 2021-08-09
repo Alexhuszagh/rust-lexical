@@ -336,6 +336,9 @@ pub struct Digits<'a, const FORMAT: u128> {
     slc: &'a [u8],
     /// Current index of the iterator in the slice.
     index: usize,
+    /// The current count of values returned by the iterator.
+    /// This is only used if the iterator is not contiguous.
+    count: usize,
 }
 
 impl<'a, const FORMAT: u128> Digits<'a, FORMAT> {
@@ -345,6 +348,7 @@ impl<'a, const FORMAT: u128> Digits<'a, FORMAT> {
         Self {
             slc,
             index: 0,
+            count: 0,
         }
     }
 }
@@ -382,6 +386,17 @@ impl<'a, const FORMAT: u128> Byte<'a> for Digits<'a, FORMAT> {
     #[inline]
     fn cursor(&self) -> usize {
         self.index
+    }
+
+    #[inline]
+    fn current_count(&self) -> usize {
+        // If the buffer is contiguous, then we don't need to track the
+        // number of values: the current index is enough.
+        if Self::IS_CONTIGUOUS {
+            self.index
+        } else {
+            self.count
+        }
     }
 
     #[inline]
@@ -476,6 +491,11 @@ macro_rules! skip_iterator_iterator_impl {
                 let value = self.peek()?;
                 // Increment the index so we know not to re-fetch it.
                 self.byte.index += 1;
+                if !Self::IS_CONTIGUOUS {
+                    // Only increment the count if it's not contiguous, otherwise,
+                    // this is an unnecessary performance penalty.
+                    self.byte.count += 1;
+                }
                 Some(value)
             }
         }
@@ -508,6 +528,11 @@ macro_rules! skip_iterator_byteiter_base {
         #[inline]
         fn cursor(&self) -> usize {
             self.byte.cursor()
+        }
+
+        #[inline]
+        fn current_count(&self) -> usize {
+            self.byte.current_count()
         }
 
         #[inline]

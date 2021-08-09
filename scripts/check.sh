@@ -13,8 +13,12 @@ cd "$script_dir"/..
 cargo +nightly fmt -- --check
 cargo +nightly clippy -- --deny warnings
 
-# ASM and benchmarks use separate workspaces, do those separately.
+# ASM, size, and benchmarks use separate workspaces, do those separately.
 cd lexical-asm
+cargo +nightly fmt -- --check
+cargo +nightly clippy -- --deny warnings
+
+cd ../lexical-size
 cargo +nightly fmt -- --check
 cargo +nightly clippy -- --deny warnings
 

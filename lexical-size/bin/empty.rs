@@ -1,13 +1,5 @@
 use std::io::BufRead;
 
 pub fn main() {
-    println!("{}", std::io::stdin()
-        .lock()
-        .lines()
-        .next()
-        .unwrap()
-        .unwrap()
-        .trim()
-        .len()
-    );
+    println!("{}", std::io::stdin().lock().lines().next().unwrap().unwrap().trim().len());
 }

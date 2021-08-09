@@ -91,7 +91,11 @@ fn i64_decimal_test() {
 
     // Add tests discovered via fuzzing. This won't necessarily be the
     // proper index, since we use multi-digit parsing.
-    assert!(i64::from_lexical(b"406260572150672006000066000000060060007667760000000000000000000+00000006766767766666767665670000000000000000000000666").err().unwrap().is_overflow());
+    assert!(i64::from_lexical(b"406260572150672006000066000000060060007667760000000000000000000+00000006766767766666767665670000000000000000000000666").err().unwrap().is_invalid_digit());
+    assert!(i64::from_lexical(b"406260572150672006000066000000060060007667760000000000000000000")
+        .err()
+        .unwrap()
+        .is_overflow());
 }
 
 #[test]
@@ -378,13 +382,13 @@ proptest! {
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i8_overflow_proptest(i in r"[+]?[1-9][0-9]{3}\D") {
+    fn i8_overflow_proptest(i in r"[+]?[1-9][0-9]{3}") {
         is_overflow!(i8::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i8_underflow_proptest(i in r"[-][1-9][0-9]{3}\D") {
+    fn i8_underflow_proptest(i in r"[-][1-9][0-9]{3}") {
         is_underflow!(i8::from_lexical(i.as_bytes()));
     }
 
@@ -414,7 +418,7 @@ proptest! {
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn u16_overflow_proptest(i in r"[+]?[1-9][0-9]{5}\D") {
+    fn u16_overflow_proptest(i in r"[+]?[1-9][0-9]{5}") {
         is_overflow!(u16::from_lexical(i.as_bytes()));
     }
 
@@ -450,13 +454,13 @@ proptest! {
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i16_overflow_proptest(i in r"[+]?[1-9][0-9]{5}\D") {
+    fn i16_overflow_proptest(i in r"[+]?[1-9][0-9]{5}") {
         is_overflow!(i16::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i16_underflow_proptest(i in r"[-][1-9][0-9]{5}\DD") {
+    fn i16_underflow_proptest(i in r"[-][1-9][0-9]{5}") {
         is_underflow!(i16::from_lexical(i.as_bytes()));
     }
 
@@ -486,7 +490,7 @@ proptest! {
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn u32_overflow_proptest(i in r"[+]?[1-9][0-9]{10}\D") {
+    fn u32_overflow_proptest(i in r"[+]?[1-9][0-9]{10}") {
         is_overflow!(u32::from_lexical(i.as_bytes()));
     }
 
@@ -522,13 +526,13 @@ proptest! {
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i32_overflow_proptest(i in r"[+]?[1-9][0-9]{10}\D") {
+    fn i32_overflow_proptest(i in r"[+]?[1-9][0-9]{10}") {
         is_overflow!(i32::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i32_underflow_proptest(i in r"-[1-9][0-9]{10}\D") {
+    fn i32_underflow_proptest(i in r"-[1-9][0-9]{10}") {
         is_underflow!(i32::from_lexical(i.as_bytes()));
     }
 
@@ -558,7 +562,7 @@ proptest! {
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn u64_overflow_proptest(i in r"[+]?[1-9][0-9]{21}\D") {
+    fn u64_overflow_proptest(i in r"[+]?[1-9][0-9]{21}") {
         is_overflow!(u64::from_lexical(i.as_bytes()));
     }
 
@@ -594,13 +598,13 @@ proptest! {
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i64_overflow_proptest(i in r"[+]?[1-9][0-9]{19}\D") {
+    fn i64_overflow_proptest(i in r"[+]?[1-9][0-9]{19}") {
         is_overflow!(i64::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i64_underflow_proptest(i in r"-[1-9][0-9]{19}\D") {
+    fn i64_underflow_proptest(i in r"-[1-9][0-9]{19}") {
         is_underflow!(i64::from_lexical(i.as_bytes()));
     }
 
@@ -630,7 +634,7 @@ proptest! {
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn u128_overflow_proptest(i in r"[+]?[1-9][0-9]{39}\D") {
+    fn u128_overflow_proptest(i in r"[+]?[1-9][0-9]{39}") {
         is_overflow!(u128::from_lexical(i.as_bytes()));
     }
 
@@ -666,13 +670,13 @@ proptest! {
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i128_overflow_proptest(i in r"[+]?[1-9][0-9]{39}\D") {
+    fn i128_overflow_proptest(i in r"[+]?[1-9][0-9]{39}") {
         is_overflow!(i128::from_lexical(i.as_bytes()));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i128_underflow_proptest(i in r"-[1-9][0-9]{39}\D") {
+    fn i128_underflow_proptest(i in r"-[1-9][0-9]{39}") {
         is_underflow!(i128::from_lexical(i.as_bytes()));
     }
 
@@ -691,6 +695,8 @@ proptest! {
     #[test]
     #[cfg_attr(miri, ignore)]
     fn i128_trailing_digits_proptest(i in r"[+-]?[0-9]{38}\D[0-9]{2}") {
+        let res = i128::from_lexical(i.as_bytes());
+        println!("res={:?}", res);
         is_invalid_digit_match!(i128::from_lexical(i.as_bytes()), 38 | 39);
     }
 }

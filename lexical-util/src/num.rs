@@ -255,6 +255,7 @@ pub trait Integer:
     // FUNCTIONS (INHERITED)
     fn leading_zeros(self) -> u32;
     fn trailing_zeros(self) -> u32;
+    fn pow(self, exp: u32) -> Self;
     fn checked_add(self, i: Self) -> Option<Self>;
     fn checked_sub(self, i: Self) -> Option<Self>;
     fn checked_mul(self, i: Self) -> Option<Self>;
@@ -379,6 +380,11 @@ macro_rules! integer_impl {
             #[inline]
             fn wrapping_neg(self) -> Self {
                 $t::wrapping_neg(self)
+            }
+
+            #[inline]
+            fn pow(self, exp: u32) -> Self {
+                Self::pow(self, exp)
             }
 
             #[inline]

@@ -151,7 +151,7 @@ pub fn slow_u128_divrem(n: u128, d: u64, d_ctlz: u32) -> (u128, u64) {
 /// 4. Fallback cases.
 ///
 /// This returns the quotient and the remainder.
-/// For the number of digits processed, see `u64_step`.
+/// For the number of digits processed, see `min_step (for u64)`.
 #[inline(always)]
 pub fn u128_divrem(n: u128, radix: u32) -> (u128, u64) {
     debug_assert_radix(radix);
