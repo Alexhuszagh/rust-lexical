@@ -79,7 +79,14 @@ where
     let mut fraction = float - integer;
 
     // We only compute fractional digits up to the input double's precision.
-    let mut delta = F::as_cast(0.5) * (float.next_positive() - float);
+    // This fails if the value is at f64::MAX. IF we take the next positive,
+    // we'll get literal infinite. We don't care about NaN comparisons, since
+    // the float **must** be finite, so do this.
+    let mut delta = if float.to_bits() == F::MAX.to_bits() {
+        F::as_cast(0.5) * (float - float.prev_positive())
+    } else {
+        F::as_cast(0.5) * (float.next_positive() - float)
+    };
     delta = F::ZERO.next_positive().max_finite(delta);
     debug_assert!(delta > F::ZERO);
 
@@ -491,6 +498,8 @@ pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
     cursor += 1;
 
     // Write the fraction component.
+    // We've only consumed `integer_count` digits, since this input
+    // may have been truncated.
     let digits = unsafe { &index_unchecked!(digits[integer_count..]) };
     let fraction_count = count.saturating_sub(integer_length);
     if fraction_count > 0 {

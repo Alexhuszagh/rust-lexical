@@ -12,10 +12,7 @@ use lexical_write_float::{radix, Options};
 use lexical_write_integer::write::WriteInteger;
 use parse_radix::{parse_f32, parse_f64};
 use proptest::prelude::*;
-// FIXME:
-//  Quickcheck is currently disabled, due to bugs described below.
-//  Tracking issue is https://github.com/BurntSushi/quickcheck/issues/295
-// use quickcheck::quickcheck;
+use quickcheck::quickcheck;
 
 const BASE3: u128 = NumberFormatBuilder::from_radix(3);
 const BASE5: u128 = NumberFormatBuilder::from_radix(5);
@@ -110,6 +107,15 @@ fn write_float_test() {
     write_float::<_, BASE3>(0.5f64, &options, "0.1111111111111111111111111111111112");
     write_float::<_, BASE3>(0.75f64, &options, "0.202020202020202020202020202020202");
     write_float::<_, BASE3>(0.9998475842097241f64, &options, "0.22222222");
+
+    // Adapted from bugs in quickcheck.
+    write_float::<_, BASE3>(
+        1.7976931348623157e+308f64,
+        &options,
+        "1.0020200012020012100112000100111212e212221",
+    );
+    // Adapted from bugs in quickcheck.
+    write_float::<_, BASE3>(3.4028235e+38f32, &options, "2.022011021210002e2222");
 
     // Try changing the exponent limits.
     let options = Options::builder()
@@ -232,72 +238,76 @@ fn f64_radix_roundtrip_test() {
     }
 }
 
-// FIXME:
-//  There's an issue in quickcheck with the following inputs:
-//      f32::from_bits(0b11001111000000000000000000000000);   // -2147483600.0
-//      f64::from_bits(0b1100001111100000000000000000000000000000000000000000000000000000) // f=-9223372036854776000.0
-//  These repeat infinitely, preventing the test harness from working.
-//quickcheck! {
-//    fn f32_base3_quickcheck(f: f32) -> bool {
-//        let mut buffer = [b'\x00'; BUFFER_SIZE];
-//        let options = Options::builder().build().unwrap();
-//        if f.is_special() {
-//            true
-//        } else {
-//            let f = f.abs();
-//            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
-//            let roundtrip = parse_f32(&buffer[..count], 3, b'e');
-//            relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
-//        }
-//    }
-//
-//    fn f32_base5_quickcheck(f: f32) -> bool {
-//        let mut buffer = [b'\x00'; BUFFER_SIZE];
-//        let options = Options::builder().build().unwrap();
-//        if f.is_special() {
-//            true
-//        } else {
-//            let f = f.abs();
-//            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
-//            let roundtrip = parse_f32(&buffer[..count], 5, b'e');
-//            relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
-//        }
-//    }
-//
-//    fn f64_base3_quickcheck(f: f64) -> bool {
-//        let mut buffer = [b'\x00'; BUFFER_SIZE];
-//        let options = Options::builder().build().unwrap();
-//        if f.is_special() {
-//            true
-//        } else {
-//            let f = f.abs();
-//            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
-//            let roundtrip = parse_f64(&buffer[..count], 3, b'e');
-//            relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
-//        }
-//    }
-//
-//    fn f64_base5_quickcheck(f: f64) -> bool {
-//        let mut buffer = [b'\x00'; BUFFER_SIZE];
-//        let options = Options::builder().build().unwrap();
-//        if f.is_special() {
-//            true
-//        } else {
-//            println!("f={:?}", f);
-//            let f = f.abs();
-//            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
-//            let roundtrip = parse_f64(&buffer[..count], 5, b'e');
-//            relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
-//        }
-//    }
-//}
+//  NOTE:
+//      Due to how we round-up by default, for min or max values, the output
+//      frequently rounds up to infinity, meaning we can't roundtrip. These
+//      should be inf, or F::MAX, but we can't guarantee it, so just skip them.
+
+quickcheck! {
+    #[cfg_attr(miri, ignore)]
+    fn f32_base3_quickcheck(f: f32) -> bool {
+        let mut buffer = [b'\x00'; BUFFER_SIZE];
+        let options = Options::builder().build().unwrap();
+        if f.is_special() || f == f32::MAX || f == f32::MIN {
+            true
+        } else {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 3, b'e');
+            relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
+        }
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f32_base5_quickcheck(f: f32) -> bool {
+        let mut buffer = [b'\x00'; BUFFER_SIZE];
+        let options = Options::builder().build().unwrap();
+        if f.is_special() || f == f32::MAX || f == f32::MIN {
+            true
+        } else {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 5, b'e');
+            relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
+        }
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f64_base3_quickcheck(f: f64) -> bool {
+        let mut buffer = [b'\x00'; BUFFER_SIZE];
+        let options = Options::builder().build().unwrap();
+        if f.is_special() || f == f64::MAX || f == f64::MIN {
+            true
+        } else {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 3, b'e');
+            relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
+        }
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f64_base5_quickcheck(f: f64) -> bool {
+        let mut buffer = [b'\x00'; BUFFER_SIZE];
+        let options = Options::builder().build().unwrap();
+        if f.is_special() || f == f64::MAX || f == f64::MIN {
+            true
+        } else {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 5, b'e');
+            relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
+        }
+    }
+}
 
 proptest! {
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn f32_base3_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
-        if !f.is_special() {
+        if !(f.is_special() || f == f32::MAX || f == f32::MIN) {
             let f = f.abs();
             let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
             let roundtrip = parse_f32(&buffer[..count], 3, b'e');
@@ -307,10 +317,11 @@ proptest! {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn f32_base5_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
-        if !f.is_special() {
+        if !(f.is_special() || f == f32::MAX || f == f32::MIN) {
             let f = f.abs();
             let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
             let roundtrip = parse_f32(&buffer[..count], 5, b'e');
@@ -320,10 +331,11 @@ proptest! {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn f64_base3_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
-        if !f.is_special() {
+        if !(f.is_special() || f == f64::MAX || f == f64::MIN) {
             let f = f.abs();
             let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
             let roundtrip = parse_f64(&buffer[..count], 3, b'e');
@@ -333,10 +345,11 @@ proptest! {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn f64_base5_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
-        if !f.is_special() {
+        if !(f.is_special() || f == f64::MAX || f == f64::MIN) {
             let f = f.abs();
             let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
             let roundtrip = parse_f64(&buffer[..count], 5, b'e');

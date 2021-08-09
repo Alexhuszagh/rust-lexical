@@ -950,6 +950,7 @@ fn write_float_test() {
 }
 
 quickcheck! {
+    #[cfg_attr(miri, ignore)]
     fn f32_binary_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -963,6 +964,7 @@ quickcheck! {
         }
     }
 
+    #[cfg_attr(miri, ignore)]
     fn f32_octal_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -976,6 +978,7 @@ quickcheck! {
         }
     }
 
+    #[cfg_attr(miri, ignore)]
     fn f64_binary_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -989,6 +992,7 @@ quickcheck! {
         }
     }
 
+    #[cfg_attr(miri, ignore)]
     fn f64_octal_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -1005,6 +1009,7 @@ quickcheck! {
 
 proptest! {
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn f32_binary_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -1017,6 +1022,7 @@ proptest! {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn f32_octal_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -1029,6 +1035,7 @@ proptest! {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn f64_binary_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -1041,6 +1048,7 @@ proptest! {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn f64_octal_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();

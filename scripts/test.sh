@@ -13,10 +13,10 @@ export RUSTFLAGS="--deny warnings"
 cargo +nightly test
 cargo +nightly test --all-features
 if [ "$SKIP_VALGRIND" == "" ]; then
-    cargo +nightly valgrind test
+    cargo +nightly valgrind test --features=radix
 fi
 if [ "$SKIP_MIRI" == "" ]; then
-    cargo +nightly miri test --tests
+    cargo +nightly miri test --features=radix --tests
 fi
 
 # Test various feature combinations.

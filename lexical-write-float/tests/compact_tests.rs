@@ -506,6 +506,7 @@ fn f64_roundtrip_test() {
 }
 
 quickcheck! {
+    #[cfg_attr(miri, ignore)]
     fn f32_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -520,6 +521,7 @@ quickcheck! {
         }
     }
 
+    #[cfg_attr(miri, ignore)]
     fn f64_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -537,6 +539,7 @@ quickcheck! {
 
 proptest! {
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn f32_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -550,6 +553,7 @@ proptest! {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn f64_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
