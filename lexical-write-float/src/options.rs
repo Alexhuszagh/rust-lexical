@@ -39,6 +39,10 @@ pub struct OptionsBuilder {
     max_significant_digits: OptionUsize,
     /// Minimum number of significant digits to write.
     /// If not set, it defaults to the algorithm's default.
+    /// Note that this isn't fully respected: if you wish to format
+    /// `0.1` with 25 significant digits, the correct result **should**
+    /// be `0.100000000000000005551115`. However, we would output
+    /// `0.100000000000000000000000`, which is still the nearest float.
     min_significant_digits: OptionUsize,
     /// Maximum exponent prior to using scientific notation.
     /// This is ignored if the exponent base is not the same as the mantissa radix.
