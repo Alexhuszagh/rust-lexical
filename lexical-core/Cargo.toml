@@ -55,6 +55,8 @@ std = [
     "lexical-parse-integer/std",
     "lexical-parse-float/std"
 ]
+# Add support for nightly-only features.
+nightly = ["lexical-parse-float/nightly"]
 # Add support for writing integers.
 write-integers = ["lexical-write-integer", "write", "integers"]
 # Add support for writing floats.
@@ -123,3 +125,17 @@ parse = []
 integers = []
 # Add support for conversions to or from floats.
 floats = []
+
+# Currently unsupported.
+# Enable support for 16-bit floats.
+f16 = [
+    "lexical-util/f16",
+    "lexical-parse-float/f16",
+    "lexical-write-float/f16"
+]
+# Enable support for 128-bit floats.
+f128 = [
+    "lexical-util/f128",
+    "lexical-parse-float/f128",
+    "lexical-write-float/f128"
+]

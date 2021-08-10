@@ -7,6 +7,9 @@ use crate::options::Options;
 use lexical_util::num::Float;
 use lexical_util::result::Result;
 
+// API
+// ---
+
 /// Parse integer trait, implemented in terms of the optimized back-end.
 pub trait ParseFloat: Float {
     /// Forward complete parser parameters to the backend.
@@ -31,3 +34,6 @@ macro_rules! parse_float_impl {
 }
 
 parse_float_impl! { f32 f64 }
+
+// PARSE
+// -----

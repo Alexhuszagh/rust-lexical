@@ -57,9 +57,11 @@ compact = [
     "lexical-util/compact",
     "lexical-parse-integer/compact"
 ]
-# Ensure only safe indexing is used. This is a no-op, since all
+# Ensure only safe indexing is used. This is effectively a no-op, since all
 # examples of potential memory unsafety are trivial to prove safe.
 safe = ["lexical-parse-integer/safe"]
+# Add support for nightly-only features.
+nightly = []
 
 # Internal only features.
 # Enable the lint checks.
@@ -67,3 +69,9 @@ lint = [
     "lexical-util/lint",
     "lexical-parse-integer/lint"
 ]
+
+# Currently unsupported.
+# Enable support for 16-bit floats.
+f16 = ["lexical-util/f16"]
+# Enable support for 128-bit floats.
+f128 = ["lexical-util/f128"]

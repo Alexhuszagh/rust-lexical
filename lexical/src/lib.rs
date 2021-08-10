@@ -37,13 +37,13 @@
 //!
 //! # Conversion API
 //!
-//! **To String**
-//!
+#![cfg_attr(feature = "write", doc = " **To String**")]
+#![cfg_attr(feature = "write", doc = "")]
 #![cfg_attr(feature = "write", doc = " - [`to_string`]")]
 #![cfg_attr(feature = "write", doc = " - [`to_string_with_options`]")]
 //!
-//! **From String**
-//!
+#![cfg_attr(feature = "write", doc = " **From String**")]
+#![cfg_attr(feature = "write", doc = "")]
 #![cfg_attr(feature = "parse", doc = " - [`parse`]")]
 #![cfg_attr(feature = "parse", doc = " - [`parse_partial`]")]
 #![cfg_attr(feature = "parse", doc = " - [`parse_with_options`]")]
@@ -271,13 +271,13 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-#[cfg(not(feature = "std"))]
+#[cfg(all(feature = "write", not(feature = "std")))]
 use alloc::string::String;
-#[cfg(not(feature = "std"))]
+#[cfg(all(feature = "write", not(feature = "std")))]
 use alloc::vec::Vec;
-#[cfg(feature = "std")]
+#[cfg(all(feature = "write", feature = "std"))]
 use std::string::String;
-#[cfg(feature = "std")]
+#[cfg(all(feature = "write", feature = "std"))]
 use std::vec::Vec;
 
 pub use lexical_core::format::{self, NumberFormatBuilder};

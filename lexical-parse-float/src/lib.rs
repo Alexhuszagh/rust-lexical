@@ -30,16 +30,29 @@
 #![allow(unused_unsafe)]
 #![cfg_attr(feature = "lint", warn(unsafe_op_in_unsafe_fn))]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(feature = "nightly", feature(asm))]
+
+#[macro_use]
+mod index;
 
 pub mod bellerophon;
 pub mod binary;
 pub mod compact;
+pub mod float;
+pub mod fpu;
 pub mod lemire;
+pub mod libm;
+pub mod limits;
+pub mod number;
 pub mod options;
 pub mod slow;
+pub mod table;
 
 mod api;
 mod parse;
+mod table_binary;
+mod table_decimal;
+mod table_radix;
 
 // Re-exports
 pub use self::api::{FromLexical, FromLexicalWithOptions};

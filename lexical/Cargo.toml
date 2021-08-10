@@ -24,7 +24,9 @@ path = "../lexical-core"
 # Need to enable all for backwards compatibility.
 default = ["std", "write-integers", "write-floats", "parse-integers", "parse-floats"]
 # Use the standard library.
-std = []
+std = ["lexical-core/std"]
+# Add support for nightly-only features.
+nightly = ["lexical-core/nightly"]
 # Add support for writing integers.
 write-integers = ["lexical-core/write-integers", "write", "integers"]
 # Add support for writing floats.
@@ -53,3 +55,9 @@ parse = []
 integers = []
 # Add support for conversions to or from floats.
 floats = []
+
+# Currently unsupported.
+# Enable support for 16-bit floats.
+f16 = ["lexical-core/f16"]
+# Enable support for 128-bit floats.
+f128 = ["lexical-core/f128"]

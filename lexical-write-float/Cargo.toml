@@ -76,3 +76,9 @@ lint = [
     "lexical-util/lint",
     "lexical-write-integer/lint"
 ]
+
+# Currently unsupported.
+# Enable support for 16-bit floats.
+f16 = ["lexical-util/f16"]
+# Enable support for 128-bit floats.
+f128 = ["lexical-util/f128"]

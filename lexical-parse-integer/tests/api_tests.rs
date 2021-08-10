@@ -696,7 +696,6 @@ proptest! {
     #[cfg_attr(miri, ignore)]
     fn i128_trailing_digits_proptest(i in r"[+-]?[0-9]{38}\D[0-9]{2}") {
         let res = i128::from_lexical(i.as_bytes());
-        println!("res={:?}", res);
         is_invalid_digit_match!(i128::from_lexical(i.as_bytes()), 38 | 39);
     }
 }

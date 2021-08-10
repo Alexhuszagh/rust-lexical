@@ -86,7 +86,6 @@ where
     let decimal_point = format.decimal_point();
     let exponent_character = format.exponent();
 
-    // TODO(ahuszagh) Confirm this logic is valid...
     // Write our value, then trim trailing zeros, before we check the exact
     // bounds of the digits, to avoid accidentally choosing too many digits.
     // shl is the powers of two we have missing from our exponent that nee
@@ -136,11 +135,7 @@ where
     }
 
     // Now, write our scientific notation.
-    // TODO(ahuszagh) Is this valid?
-    println!("sci_exp={:?}", sci_exp);
-    // TODO(ahuszagh) Need a new scale_sci_exp function.
     let scaled_sci_exp = scale_sci_exp(sci_exp, bits_per_digit, bits_per_base);
-    println!("scaled_sci_exp={:?}", scaled_sci_exp);
     unsafe { index_unchecked_mut!(bytes[cursor]) = exponent_character };
     cursor += 1;
 

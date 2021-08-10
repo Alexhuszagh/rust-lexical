@@ -78,15 +78,13 @@
 //!
 //! # Conversion API
 //!
-//! **To String**
+#![cfg_attr(feature = "write", doc = " **To String**")]
+#![cfg_attr(feature = "write", doc = "")]
+#![cfg_attr(feature = "write", doc = " - [`to_string`]")]
+#![cfg_attr(feature = "write", doc = " - [`to_string_with_options`]")]
 //!
-#![cfg_attr(feature = "write", doc = " - [`write`]")]
-#![cfg_attr(feature = "write", doc = " - [`write_unchecked`]")]
-#![cfg_attr(feature = "write", doc = " - [`write_with_options`]")]
-#![cfg_attr(feature = "write", doc = " - [`write_with_options_unchecked`]")]
-//!
-//! **From String**
-//!
+#![cfg_attr(feature = "write", doc = " **From String**")]
+#![cfg_attr(feature = "write", doc = "")]
 #![cfg_attr(feature = "parse", doc = " - [`parse`]")]
 #![cfg_attr(feature = "parse", doc = " - [`parse_partial`]")]
 #![cfg_attr(feature = "parse", doc = " - [`parse_with_options`]")]
