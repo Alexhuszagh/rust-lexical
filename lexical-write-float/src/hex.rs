@@ -1,10 +1,26 @@
 //! Optimized float serializer for hexadecimal floats.
+//!
+//! This actually works for any case where we can exactly represent
+//! any power of the mantissa radix using the exponent base. For example,
+//! given a mantissa radix of `16`, and an exponent base of `8`,
+//! `16^2` cannot be exactly represented in octal. In short:
+//! ⌊log2(r) / log2(b)⌋ == ⌈log2(r) / log2(b)⌉.
+//!
+//! This gives us the following mantissa radix/exponent base combinations:
+//!
+//! - 4, 2
+//! - 8, 2
+//! - 16, 2
+//! - 32, 2
+//! - 16, 4
 
 #![cfg(feature = "power-of-two")]
 #![doc(hidden)]
 
 use crate::binary::{
     calculate_shl,
+    fast_ceildiv,
+    fast_log2,
     truncate_and_round,
     write_float_negative_exponent,
     write_float_positive_exponent,
@@ -18,6 +34,24 @@ use lexical_write_integer::write::WriteInteger;
 
 // ALGORITHM
 // ---------
+
+/// We need to scale the scientific exponent for writing.
+///
+/// This is similar to [binary::scale_sci_exp](crate::binary::scale_sci_exp),
+/// however, we need to effectively have the same algorithm with `bits_per_base`
+/// instead of `bits_per_digit`. However, `bits_per_base` is smaller, and
+/// will not properly floor the values, so we add in an extra step.
+#[inline(always)]
+pub fn scale_sci_exp(sci_exp: i32, bits_per_digit: i32, bits_per_base: i32) -> i32 {
+    if sci_exp < 0 {
+        let neg_sci_exp = sci_exp.wrapping_neg();
+        let floor = fast_ceildiv(neg_sci_exp, bits_per_digit);
+        (floor * bits_per_digit / bits_per_base).wrapping_neg()
+    } else {
+        let floor = sci_exp / bits_per_digit;
+        floor * bits_per_digit / bits_per_base
+    }
+}
 
 /// Write float to string in scientific notation.
 ///
@@ -47,15 +81,20 @@ where
 
     // Config options
     let format = NumberFormat::<{ FORMAT }> {};
-    let bits_per_digit = 4;
+    let bits_per_digit = fast_log2(format.mantissa_radix());
+    let bits_per_base = fast_log2(format.exponent_base());
     let decimal_point = format.decimal_point();
     let exponent_character = format.exponent();
 
+    // TODO(ahuszagh) Confirm this logic is valid...
     // Write our value, then trim trailing zeros, before we check the exact
     // bounds of the digits, to avoid accidentally choosing too many digits.
-    // This won't actually affect the significant digits, since we're using
-    // base 2 so we can just shift any excess digits to the exponent.
-    let value = mantissa;
+    // shl is the powers of two we have missing from our exponent that nee
+    // to be transferred to our significant digits. Since the all mantissa
+    // radix powers can be **exactly** represented by exponent bases,
+    // we can just shift this into the mantissa.
+    let shl = calculate_shl(exp, bits_per_digit);
+    let value = mantissa << shl;
 
     // SAFETY: safe since the buffer must be larger than `M::FORMATTED_SIZE`.
     let count = unsafe {
@@ -97,8 +136,11 @@ where
     }
 
     // Now, write our scientific notation.
-    let shl = calculate_shl(exp, bits_per_digit);
-    let scaled_sci_exp = sci_exp * bits_per_digit - shl;
+    // TODO(ahuszagh) Is this valid?
+    println!("sci_exp={:?}", sci_exp);
+    // TODO(ahuszagh) Need a new scale_sci_exp function.
+    let scaled_sci_exp = scale_sci_exp(sci_exp, bits_per_digit, bits_per_base);
+    println!("scaled_sci_exp={:?}", scaled_sci_exp);
     unsafe { index_unchecked_mut!(bytes[cursor]) = exponent_character };
     cursor += 1;
 
@@ -157,9 +199,10 @@ where
     assert!(format.is_valid());
     debug_assert!(!float.is_special());
     debug_assert!(float >= F::ZERO);
-    debug_assert!(format.radix() == 16);
-    debug_assert!(format.exponent_base() == 2);
-    debug_assert!(format.exponent_radix() == 10);
+    debug_assert!(matches!(
+        (format.radix(), format.exponent_base()),
+        (4, 2) | (8, 2) | (16, 2) | (32, 2) | (16, 4)
+    ));
 
     // Quickly calculate the number of bits we would have written.
     // This simulates writing the digits, so we can calculate the

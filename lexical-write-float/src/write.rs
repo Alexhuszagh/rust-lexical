@@ -56,12 +56,11 @@ pub trait WriteFloat: Float {
 
         #[cfg(feature = "power-of-two")]
         {
-            let radix = format.radix();
-            let exponent_base = format.exponent_base();
-            if radix != exponent_base {
-                assert!(radix == 16);
-                assert!(exponent_base == 2);
-                assert!(format.exponent_radix() == 10);
+            if format.radix() != format.exponent_base() {
+                assert!(matches!(
+                    (format.radix(), format.exponent_base()),
+                    (4, 2) | (8, 2) | (16, 2) | (32, 2) | (16, 4)
+                ));
             }
         }
 
@@ -84,11 +83,10 @@ pub trait WriteFloat: Float {
                 // SAFETY: safe if the buffer can hold the significant digits
                 let radix = format.radix();
                 let exponent_base = format.exponent_base();
-                let exponent_radix = format.exponent_radix();
                 count
                     + if radix == 10 {
                         unsafe { write_float_decimal::<_, FORMAT>(float, bytes, options) }
-                    } else if radix == 16 && exponent_base == 2 && exponent_radix == 10 {
+                    } else if radix != exponent_base {
                         unsafe { hex::write_float::<_, FORMAT>(float, bytes, options) }
                     } else {
                         unsafe { binary::write_float::<_, FORMAT>(float, bytes, options) }
@@ -100,11 +98,10 @@ pub trait WriteFloat: Float {
                 // SAFETY: safe if the buffer can hold the significant digits
                 let radix = format.radix();
                 let exponent_base = format.exponent_base();
-                let exponent_radix = format.exponent_radix();
                 count
                     + if radix == 10 {
                         unsafe { write_float_decimal::<_, FORMAT>(float, bytes, options) }
-                    } else if radix == 16 && exponent_base == 2 && exponent_radix == 10 {
+                    } else if radix != exponent_base {
                         unsafe { hex::write_float::<_, FORMAT>(float, bytes, options) }
                     } else if matches!(radix, 2 | 4 | 8 | 16 | 32) {
                         unsafe { binary::write_float::<_, FORMAT>(float, bytes, options) }
