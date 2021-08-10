@@ -234,8 +234,8 @@ impl OptionsBuilder {
     ///
     /// # Safety
     ///
-    /// Safe as long as `is_valid` is true. If `nan_string` and `inf_string`
-    /// are too long, writing special floats may lead to severe buffer overflows,
+    /// Safe as long as `is_valid` is true. If `nan_string` or `inf_string`
+    /// are too long, writing special floats may lead to buffer overflows,
     /// and therefore severe security vulnerabilities.
     #[inline(always)]
     pub const unsafe fn build_unchecked(&self) -> Options {
@@ -251,7 +251,7 @@ impl OptionsBuilder {
         }
     }
 
-    /// Build the ParseFloatOptions struct.
+    /// Build the Options struct.
     #[inline(always)]
     pub const fn build(self) -> Result<Options> {
         let min_digits = unwrap_or_zero_usize(self.min_significant_digits);

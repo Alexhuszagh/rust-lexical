@@ -31,7 +31,19 @@
 #![cfg_attr(feature = "lint", warn(unsafe_op_in_unsafe_fn))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod bellerophon;
+pub mod binary;
+pub mod compact;
+pub mod lemire;
+pub mod options;
+pub mod slow;
+
+mod api;
+mod parse;
+
 // Re-exports
+pub use self::api::{FromLexical, FromLexicalWithOptions};
+pub use self::options::{Options, OptionsBuilder};
 pub use lexical_util::error::Error;
 pub use lexical_util::format::{self, NumberFormatBuilder};
 pub use lexical_util::options::ParseOptions;

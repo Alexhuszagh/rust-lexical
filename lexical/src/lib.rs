@@ -264,9 +264,6 @@ use std::string::String;
 #[cfg(feature = "std")]
 use std::vec::Vec;
 
-// TODO(ahuszagh) Re-enable when implemented.
-//#[cfg(feature = "parse-floats")]
-//pub use lexical_core::{ParseFloatOptions, ParseFloatOptionsBuilder};
 pub use lexical_core::format::{self, NumberFormatBuilder};
 #[cfg(feature = "parse")]
 pub use lexical_core::Error;
@@ -280,6 +277,8 @@ pub use lexical_core::WriteOptions;
 pub use lexical_core::{FormattedSize, BUFFER_SIZE};
 #[cfg(feature = "parse")]
 pub use lexical_core::{FromLexical, FromLexicalWithOptions};
+#[cfg(feature = "parse-floats")]
+pub use lexical_core::{ParseFloatOptions, ParseFloatOptionsBuilder};
 #[cfg(feature = "parse-integers")]
 pub use lexical_core::{ParseIntegerOptions, ParseIntegerOptionsBuilder};
 #[cfg(feature = "write")]
@@ -508,7 +507,7 @@ pub fn parse_with_options<N: FromLexicalWithOptions, Bytes: AsRef<[u8]>, const F
 /// ```rust
 /// # pub fn main() {
 /// const FORMAT: u128 = lexical::NumberFormatBuilder::new()
-///     .exponent_decimal(b'^')
+///     .exponent(b'^')
 ///     .decimal_point(b',')
 ///     .build();
 ///

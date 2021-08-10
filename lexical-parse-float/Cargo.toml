@@ -26,6 +26,9 @@ path = "../lexical-parse-integer"
 default-features = false
 features = []
 
+[dependencies]
+static_assertions = "1"
+
 [features]
 default = ["std"]
 # Use the standard library.

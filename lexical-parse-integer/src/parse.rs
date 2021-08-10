@@ -13,13 +13,13 @@ use lexical_util::result::Result;
 
 /// Parse integer trait, implemented in terms of the optimized back-end.
 pub trait ParseInteger: Integer {
-    /// Forward complete parser parameters to an unoptimized backend.
+    /// Forward complete parser parameters to the backend.
     #[cfg_attr(not(feature = "compact"), inline(always))]
     fn parse_complete<Unsigned: UnsignedInteger, const FORMAT: u128>(bytes: &[u8]) -> Result<Self> {
         algorithm_complete::<_, Unsigned, { FORMAT }>(bytes)
     }
 
-    /// Forward partial parser parameters to an unoptimized backend.
+    /// Forward partial parser parameters to the backend.
     #[cfg_attr(not(feature = "compact"), inline(always))]
     fn parse_partial<Unsigned: UnsignedInteger, const FORMAT: u128>(
         bytes: &[u8],

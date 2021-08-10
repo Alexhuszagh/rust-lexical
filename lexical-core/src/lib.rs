@@ -329,6 +329,11 @@
 #![cfg_attr(feature = "lint", warn(unsafe_op_in_unsafe_fn))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(feature = "parse-floats")]
+use lexical_parse_float::{
+    FromLexical as FromFloat,
+    FromLexicalWithOptions as FromFloatWithOptions,
+};
 #[cfg(feature = "parse-integers")]
 use lexical_parse_integer::{
     FromLexical as FromInteger,
@@ -344,6 +349,11 @@ use lexical_write_float::{ToLexical as ToFloat, ToLexicalWithOptions as ToFloatW
 use lexical_write_integer::{ToLexical as ToInteger, ToLexicalWithOptions as ToIntegerWithOptions};
 
 // Re-exports
+#[cfg(feature = "parse-floats")]
+pub use lexical_parse_float::{
+    Options as ParseFloatOptions,
+    OptionsBuilder as ParseFloatOptionsBuilder,
+};
 #[cfg(feature = "parse-integers")]
 pub use lexical_parse_integer::{
     Options as ParseIntegerOptions,
@@ -432,17 +442,16 @@ macro_rules! integer_from_lexical {
 #[cfg(feature = "parse-integers")]
 integer_from_lexical! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
 
-// TODO(ahuszagh) Restore when implemented.
-///// Implement `FromLexical` and `FromLexicalWithOptions` for floats.
-//#[cfg(feature = "parse-floats")]
-//macro_rules! float_from_lexical {
-//    ($($t:ident)*) => ($(
-//        from_lexical_impl!($t, FromFloat, FromFloatWithOptions, ParseFloatOptions);
-//    )*);
-//}
-//
-//#[cfg(feature = "parse-floats")]
-//float_from_lexical! { f32 f64 }
+/// Implement `FromLexical` and `FromLexicalWithOptions` for floats.
+#[cfg(feature = "parse-floats")]
+macro_rules! float_from_lexical {
+    ($($t:ident)*) => ($(
+        from_lexical_impl!($t, FromFloat, FromFloatWithOptions, ParseFloatOptions);
+    )*);
+}
+
+#[cfg(feature = "parse-floats")]
+float_from_lexical! { f32 f64 }
 
 // Implement ToLexical for numeric type.
 #[cfg(feature = "write")]
