@@ -52,6 +52,7 @@ pub mod format;
 pub mod iterator;
 pub mod mul;
 pub mod num;
+pub mod options;
 pub mod result;
 pub mod step;
 

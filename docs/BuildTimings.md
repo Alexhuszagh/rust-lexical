@@ -4,20 +4,20 @@ The build timings were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` proc
 
 **All**
 
-![All](/assets/all.svg)
+![All](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/all.svg)
 
 **Parse Integer**
 
-![Parse Integer](/assets/lexical-parse-integer.svg)
+![Parse Integer](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/lexical-parse-integer.svg)
 
 **Write Integer**
 
-![Write Integer](/assets/lexical-write-integer.svg)
+![Write Integer](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/lexical-write-integer.svg)
 
 **Parse Float**
 
-![Parse Float](/assets/lexical-parse-float.svg)
+![Parse Float](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/lexical-parse-float.svg)
 
 **Write Float**
 
-![Write Float](/assets/lexical-write-float.svg)
+![Write Float](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/lexical-write-float.svg)

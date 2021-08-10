@@ -5,6 +5,8 @@
 use core::{mem, num};
 use lexical_util::constants::FormattedSize;
 use lexical_util::error::Error;
+use lexical_util::format::NumberFormat;
+use lexical_util::options::WriteOptions;
 use lexical_util::result::Result;
 use static_assertions::const_assert;
 
@@ -506,6 +508,77 @@ impl Default for Options {
     #[inline(always)]
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl WriteOptions for Options {
+    #[inline(always)]
+    fn is_valid(&self) -> bool {
+        Self::is_valid(self)
+    }
+
+    #[inline(always)]
+    fn buffer_size<T: FormattedSize, const FORMAT: u128>(&self) -> usize {
+        let format = NumberFormat::<{ FORMAT }> {};
+
+        // At least 2 for the decimal point and sign.
+        let mut count: usize = 2;
+
+        // First need to calculate maximum number of digits from leading or
+        // trailing zeros, IE, the exponent break.
+        if !format.no_exponent_notation() {
+            let min_exp = self.negative_exponent_break().map_or(-5, |x| x.get());
+            let max_exp = self.positive_exponent_break().map_or(9, |x| x.get());
+            let exp = min_exp.abs().max(max_exp) as usize;
+            if cfg!(feature = "power-of-two") && exp < 13 {
+                // 11 for the exponent digits in binary, 1 for the sign, 1 for the symbol
+                count += 13;
+            } else if exp < 5 {
+                // 3 for the exponent digits in decimal, 1 for the sign, 1 for the symbol
+                count += 5;
+            } else {
+                // More leading or trailing zeros than the exponent digits.
+                count += exp;
+            }
+        } else if cfg!(feature = "power-of-two") {
+            // Min is 2^-1075.
+            count += 1075;
+        } else {
+            // Min is 10^-324.
+            count += 324;
+        }
+
+        // Now add the number of significant digits.
+        let radix = format.radix();
+        let formatted_digits = if radix == 10 {
+            // Really should be 18, but add some extra to be cautious.
+            28
+        } else {
+            //  BINARY:
+            //      53 significant mantissa bits for binary, add a few extra.
+            //  RADIX:
+            //      Our limit is `delta`. The maximum relative delta is 2.22e-16,
+            //      around 1. If we have values below 1, our delta is smaller, but
+            //      the max fraction is also a lot smaller. Above, and our fraction
+            //      must be < 1.0, so our delta is less significant. Therefore,
+            //      if our fraction is just less than 1, for a float near 2.0,
+            //      we can do at **maximum** 33 digits (for base 3). Let's just
+            //      assume it's a lot higher, and go with 64.
+            64
+        };
+        let digits = if let Some(max_digits) = self.max_significant_digits() {
+            formatted_digits.min(max_digits.get())
+        } else {
+            formatted_digits
+        };
+        let digits = if let Some(min_digits) = self.min_significant_digits() {
+            digits.max(min_digits.get())
+        } else {
+            formatted_digits
+        };
+        count += digits;
+
+        count
     }
 }
 

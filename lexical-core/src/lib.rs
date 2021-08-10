@@ -276,7 +276,7 @@
 //!     Ok(0.0)
 //! );
 //! assert_eq!(
-//!     lexical_core::parse_with_options::<f32>(b"1E+2", &options),
+//!     lexical_core::parse_with_options::<f32, JSON>(b"1E+2", &options),
 //!     Ok(100.0)
 //! );
 //! # }
@@ -296,6 +296,12 @@
 //! - [Parsing Integers](lexical_parse_integer#benchmarks)
 //! - [Writing Floats](lexical_write_float#benchmarks)
 //! - [Writing Integers](lexical_write_integer#benchmarks)
+//!
+#![doc = include_str!("../../docs/BinarySize.md")]
+//!
+#![doc = include_str!("../../docs/BuildTimings.md")]
+//!
+#![doc = include_str!("../../docs/DigitSeparators.md")]
 //!
 //! # Version Support
 //!
@@ -332,9 +338,9 @@ use lexical_parse_integer::{
 use lexical_util::{from_lexical, from_lexical_with_options};
 #[cfg(feature = "write")]
 use lexical_util::{to_lexical, to_lexical_with_options};
-#[cfg(feature = "parse-floats")]
+#[cfg(feature = "write-floats")]
 use lexical_write_float::{ToLexical as ToFloat, ToLexicalWithOptions as ToFloatWithOptions};
-#[cfg(feature = "parse-integers")]
+#[cfg(feature = "write-integers")]
 use lexical_write_integer::{ToLexical as ToInteger, ToLexicalWithOptions as ToIntegerWithOptions};
 
 // Re-exports
@@ -348,6 +354,10 @@ pub use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 #[cfg(feature = "parse")]
 pub use lexical_util::error::Error;
 pub use lexical_util::format::{self, NumberFormatBuilder};
+#[cfg(feature = "parse")]
+pub use lexical_util::options::ParseOptions;
+#[cfg(feature = "write")]
+pub use lexical_util::options::WriteOptions;
 #[cfg(feature = "parse")]
 pub use lexical_util::result::Result;
 #[cfg(feature = "write-floats")]
@@ -743,6 +753,7 @@ pub unsafe fn write_with_options_unchecked<'a, N: ToLexicalWithOptions, const FO
 /// # }
 /// ```
 #[inline]
+#[cfg(feature = "parse")]
 pub fn parse<N: FromLexical>(bytes: &[u8]) -> Result<N> {
     N::from_lexical(bytes)
 }
@@ -767,6 +778,7 @@ pub fn parse<N: FromLexical>(bytes: &[u8]) -> Result<N> {
 /// # }
 /// ```
 #[inline]
+#[cfg(feature = "parse")]
 pub fn parse_partial<N: FromLexical>(bytes: &[u8]) -> Result<(N, usize)> {
     N::from_lexical_partial(bytes)
 }
@@ -794,6 +806,7 @@ pub fn parse_partial<N: FromLexical>(bytes: &[u8]) -> Result<(N, usize)> {
 /// # }
 /// ```
 #[inline]
+#[cfg(feature = "parse")]
 pub fn parse_with_options<N: FromLexicalWithOptions, const FORMAT: u128>(
     bytes: &[u8],
     options: &N::Options,
@@ -825,6 +838,7 @@ pub fn parse_with_options<N: FromLexicalWithOptions, const FORMAT: u128>(
 /// # }
 /// ```
 #[inline]
+#[cfg(feature = "parse")]
 pub fn parse_partial_with_options<N: FromLexicalWithOptions, const FORMAT: u128>(
     bytes: &[u8],
     options: &N::Options,

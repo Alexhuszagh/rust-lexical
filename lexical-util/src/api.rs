@@ -49,7 +49,7 @@ macro_rules! from_lexical_with_options {
         /// The `Options` type specifies the configurable options to provide.
         pub trait FromLexicalWithOptions: lexical_util::num::Number {
             /// Custom formatting options for parsing a number.
-            type Options: Default;
+            type Options: lexical_util::options::ParseOptions;
 
             /// Checked parser for a string-to-number conversion.
             ///
@@ -182,7 +182,7 @@ macro_rules! to_lexical_with_options {
             lexical_util::constants::FormattedSize + lexical_util::num::Number
         {
             /// Custom formatting options for writing a number.
-            type Options: Default;
+            type Options: lexical_util::options::WriteOptions;
 
             /// Serializer for a number-to-string conversion.
             ///

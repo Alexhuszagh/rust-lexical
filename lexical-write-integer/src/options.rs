@@ -4,6 +4,8 @@
 
 #![doc(hidden)]
 
+use lexical_util::constants::FormattedSize;
+use lexical_util::options::WriteOptions;
 use lexical_util::result::Result;
 
 /// Builder for `Options`.
@@ -98,5 +100,17 @@ impl Default for Options {
     #[inline(always)]
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl WriteOptions for Options {
+    #[inline(always)]
+    fn is_valid(&self) -> bool {
+        Self::is_valid(self)
+    }
+
+    #[inline(always)]
+    fn buffer_size<T: FormattedSize, const FORMAT: u128>(&self) -> usize {
+        T::FORMATTED_SIZE
     }
 }

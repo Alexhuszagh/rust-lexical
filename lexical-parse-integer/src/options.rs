@@ -2,6 +2,7 @@
 
 #![doc(hidden)]
 
+use lexical_util::options::ParseOptions;
 use lexical_util::result::Result;
 
 /// Builder for `Options`.
@@ -96,5 +97,12 @@ impl Default for Options {
     #[inline(always)]
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl ParseOptions for Options {
+    #[inline(always)]
+    fn is_valid(&self) -> bool {
+        Self::is_valid(self)
     }
 }

@@ -73,4 +73,5 @@ pub use self::api::{FromLexical, FromLexicalWithOptions};
 pub use self::options::{Options, OptionsBuilder};
 pub use lexical_util::error::Error;
 pub use lexical_util::format::{self, NumberFormatBuilder};
+pub use lexical_util::options::ParseOptions;
 pub use lexical_util::result::Result;

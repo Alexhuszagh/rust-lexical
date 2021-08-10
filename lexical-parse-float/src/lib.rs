@@ -34,4 +34,5 @@
 // Re-exports
 pub use lexical_util::error::Error;
 pub use lexical_util::format::{self, NumberFormatBuilder};
+pub use lexical_util::options::ParseOptions;
 pub use lexical_util::result::Result;
