@@ -34,7 +34,7 @@ This implementation also places a heavy focus on code bloat: with algorithms bot
 
 # Developing
 
-The [scripts](/scripts) directory contains numerous scripts for testing, fuzzing, analyzing, and formatting code. Since many development features are nightly-only, this ensures the proper compiler features are used.
+The [scripts](/scripts) directory contains numerous scripts for testing, fuzzing, analyzing, and formatting code. Since many development features are nightly-only, this ensures the proper compiler features are used. This requires a recent version of a nightly compiler (1.51.0+) installed via Rustup, which can be invoked as `cargo +nightly`.
 
 - [asm.sh](/scripts/asm.sh): Emit assembly for common functionality.
 - [check.sh](/scripts/check.sh): Check rustfmt and clippy without formatting any code.
@@ -47,6 +47,10 @@ The [scripts](/scripts) directory contains numerous scripts for testing, fuzzing
 - [timings.py](/scripts/timings.py): Plot build times.
 
 Please run [fmt.sh](scripts/fmt.sh) before committing any code, ideally by installing the pre-commit hook via [hooks.sh](scripts/hooks.sh).
+
+# Version Support
+
+The minimum, standard, required version is 1.51.0, for const generic support.
 
 # License
 

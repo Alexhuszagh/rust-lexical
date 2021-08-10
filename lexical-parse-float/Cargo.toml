@@ -54,6 +54,9 @@ compact = [
     "lexical-util/compact",
     "lexical-parse-integer/compact"
 ]
+# Ensure only safe indexing is used. This is a no-op, since all
+# examples of potential memory unsafety are trivial to prove safe.
+safe = ["lexical-parse-integer/safe"]
 
 # Internal only features.
 # Enable the lint checks.

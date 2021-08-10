@@ -14,6 +14,8 @@
 //! The control format defines what characters are valid, that is, which
 //! characters should be consider valid to continue tokenization.
 
+#![cfg(feature = "format")]
+
 // Sample test code for each language used:
 //
 //  Rust
@@ -691,8 +693,6 @@
 //      db.movie.find()
 //      ```
 
-#![cfg(feature = "format")]
-
 use crate::error::Error;
 use crate::format_builder::NumberFormatBuilder;
 use crate::format_flags as flags;
@@ -711,6 +711,7 @@ macro_rules! from_flag {
 ///
 /// See `NumberFormatBuilder` for the `FORMAT` fields
 /// for the packed struct.
+#[doc(hidden)]
 pub struct NumberFormat<const FORMAT: u128>;
 
 #[rustfmt::skip]

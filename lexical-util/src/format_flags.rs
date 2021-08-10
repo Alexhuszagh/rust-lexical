@@ -522,6 +522,7 @@ check_masks_and_flags!(DIGIT_SEPARATOR, SPECIAL_DIGIT_SEPARATOR);
 // ------------
 
 /// Mask to extract the flag bits.
+#[doc(hidden)]
 pub const FLAG_MASK: u128 =
     REQUIRED_DIGITS |
     NO_POSITIVE_MANTISSA_SIGN |
@@ -550,6 +551,7 @@ pub const FLAG_MASK: u128 =
 /// omitting those that are handled prior. This limits the
 /// number of match paths required to determine the correct
 /// interface.
+#[doc(hidden)]
 pub const INTERFACE_FLAG_MASK: u128 =
     REQUIRED_DIGITS |
     NO_EXPONENT_NOTATION |
@@ -564,6 +566,7 @@ pub const INTERFACE_FLAG_MASK: u128 =
     CONSECUTIVE_DIGIT_SEPARATOR;
 
 /// Mask to extract digit separator flags.
+#[doc(hidden)]
 pub const DIGIT_SEPARATOR_FLAG_MASK: u128 =
     INTERNAL_DIGIT_SEPARATOR |
     LEADING_DIGIT_SEPARATOR |
@@ -572,6 +575,7 @@ pub const DIGIT_SEPARATOR_FLAG_MASK: u128 =
     SPECIAL_DIGIT_SEPARATOR;
 
 /// Mask to extract exponent flags.
+#[doc(hidden)]
 pub const EXPONENT_FLAG_MASK: u128 =
     REQUIRED_EXPONENT_DIGITS |
     NO_EXPONENT_NOTATION |
@@ -585,6 +589,7 @@ pub const EXPONENT_FLAG_MASK: u128 =
     EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR;
 
 /// Mask to extract integer digit separator flags.
+#[doc(hidden)]
 pub const INTEGER_DIGIT_SEPARATOR_FLAG_MASK: u128 =
     INTEGER_INTERNAL_DIGIT_SEPARATOR |
     INTEGER_LEADING_DIGIT_SEPARATOR |
@@ -592,6 +597,7 @@ pub const INTEGER_DIGIT_SEPARATOR_FLAG_MASK: u128 =
     INTEGER_CONSECUTIVE_DIGIT_SEPARATOR;
 
 /// Mask to extract fraction digit separator flags.
+#[doc(hidden)]
 pub const FRACTION_DIGIT_SEPARATOR_FLAG_MASK: u128 =
     FRACTION_INTERNAL_DIGIT_SEPARATOR |
     FRACTION_LEADING_DIGIT_SEPARATOR |
@@ -599,6 +605,7 @@ pub const FRACTION_DIGIT_SEPARATOR_FLAG_MASK: u128 =
     FRACTION_CONSECUTIVE_DIGIT_SEPARATOR;
 
 /// Mask to extract exponent digit separator flags.
+#[doc(hidden)]
 pub const EXPONENT_DIGIT_SEPARATOR_FLAG_MASK: u128 =
     EXPONENT_INTERNAL_DIGIT_SEPARATOR |
     EXPONENT_LEADING_DIGIT_SEPARATOR |

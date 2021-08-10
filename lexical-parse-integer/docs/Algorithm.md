@@ -1,7 +1,5 @@
 # Algorithm Approach
 
-To see the benchmarks of lexical to other popular implementations, see [Benchmarks.md](/lexical-write-integer/docs/Benchmarks.md). To see the benchmarks of lexical when the radix feature is enabled, see [RadixBenchmarks.md](/lexical-write-integer/docs/RadixBenchmarks.md).
-
 **Parsing Multiple Digits**
 
 Normally, to parse 8 digits, we need at **least** 7 multiplies. However, for numeric strings with a radix <= 10, all digits are adjacent in the range `[0x30, 0x39]`, meaning we can validate all digits are valid using bitmasks or addition/subtraction operations, and can normalize the digits by subtracting `0x30`. For a detailed explanation of the algorithm, see ["Fast numeric string to int"](https://johnnylee-sde.github.io/Fast-numeric-string-to-int/) by Johnny Lee.

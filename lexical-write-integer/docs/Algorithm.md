@@ -1,7 +1,5 @@
 # Algorithm Approach
 
-To see the benchmarks of lexical to other popular implementations, see [Benchmarks.md](/lexical-write-integer/docs/Benchmarks.md). To see the benchmarks of lexical when the radix feature is enabled, see [RadixBenchmarks.md](/lexical-write-integer/docs/RadixBenchmarks.md).
-
 **Digit Counting**
 
 Fast digit counting can remove the requirement to use intermediate buffers when writing digits, since the digits are written in reverse order, which can lead to dramatic performance improvements.

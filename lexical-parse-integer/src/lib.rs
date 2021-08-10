@@ -11,9 +11,7 @@
 //! we try to parse 4 digits at a time, and for 64-bit and larger integers,
 //! we try to parse 8 digits at a time. Attempting both checks leads to
 //! significant performance penalties for simple strings, so only 1
-//! optimization is used at at a time. See [`Algorithm.md`]
-//! for documentation on the algorithms used. See [`Benchmarks.md`] for
-//! benchmark results compared to other string-to-integer implementations.
+//! optimization is used at at a time.
 //!
 //! In addition, a compact, fallback algorithm uses a naive, simple
 //! algorithm, parsing only a single digit at a time. This avoid any
@@ -33,14 +31,27 @@
 //!
 //! # Note
 //!
-//! Only documentation functionality os considered part of the public API:
+//! Only documented functionality is considered part of the public API:
 //! any of the modules, internal functions, or structs may change
 //! release-to-release without major or minor version changes. Use
 //! internal implementation details at your own risk.
 //!
-//! [`Algorithm.md`]: https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-integer/docs/Algorithm.md
-//! [`Benchmarks.md`]: https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-integer/docs/Benchmarks.md
-
+//! lexical-parse-integer mainly exists as an implementation detail for
+//! lexical-core, although its API is stable. If you would like to use
+//! a high-level API that writes to and parses from `String` and `&str`,
+//! respectively, please look at [lexical](https://crates.io/crates/lexical)
+//! instead. If you would like an API that supports multiple numeric
+//! conversions, please look at [lexical-core](https://crates.io/crates/lexical-core)
+//! instead.
+//!
+//! # Version Support
+//!
+//! The minimum, standard, required version is 1.51.0, for const generic
+//! support. Older versions of lexical support older Rust versions.
+//!
+#![doc = include_str!("../docs/Algorithm.md")]
+//!
+#![doc = include_str!("../docs/Benchmarks.md")]
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
 #![allow(unused_unsafe)]
@@ -61,5 +72,5 @@ mod api;
 pub use self::api::{FromLexical, FromLexicalWithOptions};
 pub use self::options::{Options, OptionsBuilder};
 pub use lexical_util::error::Error;
-pub use lexical_util::format::{NumberFormatBuilder, STANDARD};
+pub use lexical_util::format::{self, NumberFormatBuilder};
 pub use lexical_util::result::Result;

@@ -5,8 +5,20 @@
 /// The size, in bytes, of formatted values.
 pub trait FormattedSize {
     /// Maximum number of bytes required to serialize a number to string.
+    ///
+    /// Note that this value may be insufficient if digit precision control,
+    /// exponent break points, or disabling exponent notation is used.
+    /// Please read the documentation in [`lexical_write_float`] for more information.
+    ///
+    /// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical-experimental/tree/main/lexical-write-float
     const FORMATTED_SIZE: usize;
     /// Maximum number of bytes required to serialize a number to a decimal string.
+    ///
+    /// Note that this value may be insufficient if digit precision control,
+    /// exponent break points, or disabling exponent notation is used.
+    /// Please read the documentation in [`lexical_write_float`] for more information.
+    ///
+    /// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical-experimental/tree/main/lexical-write-float
     const FORMATTED_SIZE_DECIMAL: usize;
 }
 
@@ -61,4 +73,10 @@ formatted_size_impl! { isize 20 128 ; }
 formatted_size_impl! { usize 20 128 ; }
 
 /// Maximum number of bytes required to serialize any number to string.
+///
+/// Note that this value may be insufficient if digit precision control,
+/// exponent break points, or disabling exponent notation is used.
+/// Please read the documentation in [`lexical_write_float`] for more information.
+///
+/// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical-experimental/tree/main/lexical-write-float
 pub const BUFFER_SIZE: usize = f64::FORMATTED_SIZE;

@@ -55,6 +55,7 @@ use crate::format_flags as flags;
 ///
 /// See `NumberFormatBuilder` for the `FORMAT` fields
 /// for the packed struct.
+#[doc(hidden)]
 pub struct NumberFormat<const FORMAT: u128>;
 
 impl<const FORMAT: u128> NumberFormat<FORMAT> {

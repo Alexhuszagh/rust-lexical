@@ -15,6 +15,11 @@ exclude = [
     "cargo-timing*.html"
 ]
 
+[dependencies.lexical-util]
+version = "0.1"
+default-features = false
+path = "../lexical-util"
+
 [dependencies.lexical-parse-integer]
 version = "0.1"
 optional = true
@@ -44,22 +49,24 @@ path = "../lexical-write-float"
 default = ["std", "write-integers", "write-floats", "parse-integers", "parse-floats"]
 # Use the standard library.
 std = [
+    "lexical-util/std",
     "lexical-write-integer/std",
     "lexical-write-float/std",
     "lexical-parse-integer/std",
     "lexical-parse-float/std"
 ]
 # Add support for writing integers.
-write-integers = ["lexical-write-integer"]
+write-integers = ["lexical-write-integer", "write", "integers"]
 # Add support for writing floats.
-write-floats = ["lexical-write-float"]
+write-floats = ["lexical-write-float", "write", "floats"]
 # Add support for parsing integers.
-parse-integers = ["lexical-parse-integer"]
+parse-integers = ["lexical-parse-integer", "parse", "integers"]
 # Add support for parsing floats.
-parse-floats = ["lexical-parse-float"]
+parse-floats = ["lexical-parse-float", "parse", "floats"]
 
 # Add support for parsing power-of-two float strings.
 power-of-two = [
+    "lexical-util/power-of-two",
     "lexical-write-integer/power-of-two",
     "lexical-write-float/power-of-two",
     "lexical-parse-integer/power-of-two",
@@ -67,6 +74,7 @@ power-of-two = [
 ]
 # Add support for parsing non-decimal float strings.
 radix = [
+    "lexical-util/radix",
     "lexical-write-integer/radix",
     "lexical-write-float/radix",
     "lexical-parse-integer/radix",
@@ -74,6 +82,7 @@ radix = [
 ]
 # Add support for parsing custom numerical formats.
 format = [
+    "lexical-util/format",
     "lexical-parse-integer/format",
     "lexical-parse-float/format",
     "lexical-write-integer/format",
@@ -86,12 +95,31 @@ compact = [
     "lexical-parse-integer/compact",
     "lexical-parse-float/compact"
 ]
+# Ensure only safe indexing is used.
+# This is only relevant for the number writers, since the parsers
+# are memory safe by default (and only use memory unsafety when
+# is the trivial to prove correct).
+safe = [
+    "lexical-write-integer/safe",
+    "lexical-write-float/safe",
+    "lexical-parse-integer/safe",
+    "lexical-parse-float/safe"
+]
 
 # Internal only features.
 # Enable the lint checks.
 lint = [
+    "lexical-util/lint",
     "lexical-write-integer/lint",
     "lexical-write-float/lint",
     "lexical-parse-integer/lint",
     "lexical-parse-float/lint"
 ]
+# Add support for writing numbers.
+write = []
+# Add support for parsing numbers.
+parse = []
+# Add support for conversions to or from integers.
+integers = []
+# Add support for conversions to or from floats.
+floats = []
