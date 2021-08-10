@@ -34,6 +34,21 @@
 //! let d = lexical::parse::<f64, _>("3a");         // Err(Error(_)), failed to parse.
 //! # }
 //! ```
+//!
+//! # Conversion API
+//!
+//! **To String**
+//!
+#![cfg_attr(feature = "write", doc = " - [`to_string`]")]
+#![cfg_attr(feature = "write", doc = " - [`to_string_with_options`]")]
+//!
+//! **From String**
+//!
+#![cfg_attr(feature = "parse", doc = " - [`parse`]")]
+#![cfg_attr(feature = "parse", doc = " - [`parse_partial`]")]
+#![cfg_attr(feature = "parse", doc = " - [`parse_with_options`]")]
+#![cfg_attr(feature = "parse", doc = " - [`parse_partial_with_options`]")]
+//!
 //! # Features
 //!
 //! In accordance with the Rust ethos, all features are additive: the crate
@@ -182,10 +197,11 @@
 //! - The rounding mode when truncating significant digits while writing.
 //!
 //! The available options are:
-//! - [`ParseFloatOptions`]
-//! - [`ParseIntegerOptions`]
-//! - [`WriteFloatOptions`]
-//! - [`WriteIntegerOptions`]
+//!
+#![cfg_attr(feature = "parse-floats", doc = " - [`ParseFloatOptions`]")]
+#![cfg_attr(feature = "parse-integers", doc = " - [`ParseIntegerOptions`]")]
+#![cfg_attr(feature = "write-floats", doc = " - [`WriteFloatOptions`]")]
+#![cfg_attr(feature = "write-integers", doc = " - [`WriteIntegerOptions`]")]
 //!
 //! ## Example
 //!
@@ -518,6 +534,7 @@ pub fn parse_with_options<N: FromLexicalWithOptions, Bytes: AsRef<[u8]>, const F
 /// # }
 /// ```
 #[inline]
+#[cfg(feature = "parse")]
 pub fn parse_partial_with_options<
     N: FromLexicalWithOptions,
     Bytes: AsRef<[u8]>,

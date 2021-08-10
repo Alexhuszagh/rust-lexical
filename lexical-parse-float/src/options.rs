@@ -2,15 +2,12 @@
 
 #![doc(hidden)]
 
-use lexical_util::constants::FormattedSize;
 use lexical_util::error::Error;
 use lexical_util::options::ParseOptions;
 use lexical_util::result::Result;
-use static_assertions::const_assert;
 
 /// Maximum length for a special string.
 const MAX_SPECIAL_STRING_LENGTH: usize = 50;
-const_assert!(MAX_SPECIAL_STRING_LENGTH < f32::FORMATTED_SIZE_DECIMAL);
 
 /// Builder for `Options`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]

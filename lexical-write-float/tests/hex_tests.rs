@@ -241,16 +241,8 @@ fn write_float_scientific_test() {
         &options,
         "K.B1Q1AF62CSe60",
     );
-    write_float_scientific::<_, BASE32_2_10>(
-        0.1172839450617284e20f64,
-        &options,
-        "A.5GT0L7J16Ee60",
-    );
-    write_float_scientific::<_, BASE32_2_10>(
-        0.0586419725308642e20f64,
-        &options,
-        "5.2OEGAJPGJ7e60",
-    );
+    write_float_scientific::<_, BASE32_2_10>(0.1172839450617284e20f64, &options, "A.5GT0L7J16Ee60");
+    write_float_scientific::<_, BASE32_2_10>(0.0586419725308642e20f64, &options, "5.2OEGAJPGJ7e60");
     write_float_scientific::<_, BASE32_2_10>(
         0.0293209862654321e20f64,
         &options,

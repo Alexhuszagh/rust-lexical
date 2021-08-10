@@ -1,5 +1,6 @@
 //! Shared traits for the options API.
 
+#[cfg(feature = "write")]
 use crate::constants::FormattedSize;
 
 /// Shared trait for all writer options.

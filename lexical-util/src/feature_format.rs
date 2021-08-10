@@ -1351,6 +1351,12 @@ pub const CXX_LITERAL: u128 = CXX20_LITERAL;
 /// Number format to parse a C++ float from string.
 pub const CXX_STRING: u128 = CXX20_STRING;
 
+/// Number format for a C++ literal hexadecimal floating-point number.
+pub const CXX_HEX_LITERAL: u128 = CXX20_HEX_LITERAL;
+
+/// Number format to parse a C++ hexadecimal float from string.
+pub const CXX_HEX_STRING: u128 = CXX20_HEX_STRING;
+
 // C++20 LITERAL [013456789ABMN-']
 /// Number format for a C++20 literal floating-point number.
 #[rustfmt::skip]
@@ -1367,6 +1373,38 @@ const_assert!(NumberFormat::<{ CXX20_LITERAL }> {}.is_valid());
 #[rustfmt::skip]
 pub const CXX20_STRING: u128 = NumberFormatBuilder::new().build();
 const_assert!(NumberFormat::<{ CXX20_STRING }> {}.is_valid());
+
+// C++20 HEX LITERAL [013456789ABMN-']
+/// Number format for a C++20 literal hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const CXX20_HEX_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_exponent_notation(true)
+    .digit_separator(num::NonZeroU8::new(b'\''))
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .case_sensitive_special(true)
+    .internal_digit_separator(true)
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ CXX20_HEX_LITERAL }> {}.is_valid());
+
+// C++20 HEX STRING [0134567MN]
+/// Number format for a C++20 string hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const CXX20_HEX_STRING: u128 = NumberFormatBuilder::new()
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ CXX20_HEX_STRING }> {}.is_valid());
 
 // C++17 LITERAL [013456789ABMN-']
 /// Number format for a C++17 literal floating-point number.
@@ -1385,6 +1423,38 @@ const_assert!(NumberFormat::<{ CXX17_LITERAL }> {}.is_valid());
 pub const CXX17_STRING: u128 = NumberFormatBuilder::new().build();
 const_assert!(NumberFormat::<{ CXX17_STRING }> {}.is_valid());
 
+// C++17 HEX LITERAL [013456789ABMN-']
+/// Number format for a C++17 literal hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const CXX17_HEX_LITERAL: u128 = NumberFormatBuilder::new()
+    .required_exponent_notation(true)
+    .digit_separator(num::NonZeroU8::new(b'\''))
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .case_sensitive_special(true)
+    .internal_digit_separator(true)
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ CXX17_HEX_LITERAL }> {}.is_valid());
+
+// C++17 HEX STRING [0134567MN]
+/// Number format for a C++17 string hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const CXX17_HEX_STRING: u128 = NumberFormatBuilder::new()
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ CXX17_HEX_STRING }> {}.is_valid());
+
 // C++14 LITERAL [013456789ABMN-']
 /// Number format for a C++14 literal floating-point number.
 #[rustfmt::skip]
@@ -1402,6 +1472,20 @@ const_assert!(NumberFormat::<{ CXX14_LITERAL }> {}.is_valid());
 pub const CXX14_STRING: u128 = NumberFormatBuilder::new().build();
 const_assert!(NumberFormat::<{ CXX14_STRING }> {}.is_valid());
 
+// C++14 HEX STRING [0134567MN]
+/// Number format for a C++14 string hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const CXX14_HEX_STRING: u128 = NumberFormatBuilder::new()
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ CXX14_HEX_STRING }> {}.is_valid());
+
 // C++11 LITERAL [01345678MN]
 /// Number format for a C++11 literal floating-point number.
 #[rustfmt::skip]
@@ -1416,6 +1500,20 @@ const_assert!(NumberFormat::<{ CXX11_LITERAL }> {}.is_valid());
 #[rustfmt::skip]
 pub const CXX11_STRING: u128 = NumberFormatBuilder::new().build();
 const_assert!(NumberFormat::<{ CXX11_STRING }> {}.is_valid());
+
+// C++11 HEX STRING [0134567MN]
+/// Number format for a C++11 string hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const CXX11_HEX_STRING: u128 = NumberFormatBuilder::new()
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ CXX11_HEX_STRING }> {}.is_valid());
 
 // C++03 LITERAL [01345678MN]
 /// Number format for a C++03 literal floating-point number.
@@ -1453,6 +1551,12 @@ pub const C_LITERAL: u128 = C18_LITERAL;
 /// Number format to parse a C float from string.
 pub const C_STRING: u128 = C18_STRING;
 
+/// Number format for a C literal hexadecimal floating-point number.
+pub const C_HEX_LITERAL: u128 = C18_HEX_LITERAL;
+
+/// Number format to parse a C hexadecimal float from string.
+pub const C_HEX_STRING: u128 = C18_HEX_STRING;
+
 // C18 LITERAL [01345678MN]
 /// Number format for a C++98 literal floating-point number.
 #[rustfmt::skip]
@@ -1467,6 +1571,36 @@ const_assert!(NumberFormat::<{ C18_LITERAL }> {}.is_valid());
 #[rustfmt::skip]
 pub const C18_STRING: u128 = NumberFormatBuilder::new().build();
 const_assert!(NumberFormat::<{ C18_STRING }> {}.is_valid());
+
+// C18 HEX LITERAL [01345678MN]
+/// Number format for a C++98 literal hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const C18_HEX_LITERAL: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .required_exponent_notation(true)
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ C18_HEX_LITERAL }> {}.is_valid());
+
+// C18 HEX STRING [0134567MN]
+/// Number format for a C18 string hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const C18_HEX_STRING: u128 = NumberFormatBuilder::new()
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ C18_HEX_STRING }> {}.is_valid());
 
 // C11 LITERAL [01345678MN]
 /// Number format for a C++98 literal floating-point number.
@@ -1483,6 +1617,36 @@ const_assert!(NumberFormat::<{ C11_LITERAL }> {}.is_valid());
 pub const C11_STRING: u128 = NumberFormatBuilder::new().build();
 const_assert!(NumberFormat::<{ C11_STRING }> {}.is_valid());
 
+// C11 HEX LITERAL [01345678MN]
+/// Number format for a C++98 literal hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const C11_HEX_LITERAL: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .required_exponent_notation(true)
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ C11_HEX_LITERAL }> {}.is_valid());
+
+// C11 HEX STRING [0134567MN]
+/// Number format for a C11 string hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const C11_HEX_STRING: u128 = NumberFormatBuilder::new()
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ C11_HEX_STRING }> {}.is_valid());
+
 // C99 LITERAL [01345678MN]
 /// Number format for a C++98 literal floating-point number.
 #[rustfmt::skip]
@@ -1497,6 +1661,36 @@ const_assert!(NumberFormat::<{ C99_LITERAL }> {}.is_valid());
 #[rustfmt::skip]
 pub const C99_STRING: u128 = NumberFormatBuilder::new().build();
 const_assert!(NumberFormat::<{ C99_STRING }> {}.is_valid());
+
+// C99 HEX LITERAL [01345678MN]
+/// Number format for a C++98 literal hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const C99_HEX_LITERAL: u128 = NumberFormatBuilder::new()
+    .case_sensitive_special(true)
+    .required_exponent_notation(true)
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ C99_HEX_LITERAL }> {}.is_valid());
+
+// C99 HEX STRING [0134567MN]
+/// Number format for a C99 string hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const C99_HEX_STRING: u128 = NumberFormatBuilder::new()
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ C99_HEX_STRING }> {}.is_valid());
 
 // C90 LITERAL [013456MN]
 /// Number format for a C++98 literal floating-point number.
@@ -1513,6 +1707,20 @@ const_assert!(NumberFormat::<{ C90_LITERAL }> {}.is_valid());
 pub const C90_STRING: u128 = NumberFormatBuilder::new().build();
 const_assert!(NumberFormat::<{ C90_STRING }> {}.is_valid());
 
+// C90 HEX STRING [0134567MN]
+/// Number format for a C90 string hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const C90_HEX_STRING: u128 = NumberFormatBuilder::new()
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ C90_HEX_STRING }> {}.is_valid());
+
 // C89 LITERAL [013456MN]
 /// Number format for a C++98 literal floating-point number.
 #[rustfmt::skip]
@@ -1527,6 +1735,20 @@ const_assert!(NumberFormat::<{ C89_LITERAL }> {}.is_valid());
 #[rustfmt::skip]
 pub const C89_STRING: u128 = NumberFormatBuilder::new().build();
 const_assert!(NumberFormat::<{ C89_STRING }> {}.is_valid());
+
+// C89 HEX STRING [0134567MN]
+/// Number format for a C89 string hexadecimal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const C89_HEX_STRING: u128 = NumberFormatBuilder::new()
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .build();
+
+#[cfg(feature = "power-of-two")]
+const_assert!(NumberFormat::<{ C89_HEX_STRING }> {}.is_valid());
 
 // RUBY LITERAL [345689AMN-_]
 /// Number format for a Ruby literal floating-point number.
@@ -1764,6 +1986,36 @@ const_assert!(NumberFormat::<{ JULIA_LITERAL }> {}.is_valid());
 #[rustfmt::skip]
 pub const JULIA_STRING: u128 = NumberFormatBuilder::new().build();
 const_assert!(NumberFormat::<{ JULIA_STRING }> {}.is_valid());
+
+// JULIA HEX LITERAL [01345689AMN-_]
+/// Number format for a Julia literal floating-point number.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const JULIA_HEX_LITERAL: u128 = NumberFormatBuilder::new()
+    .digit_separator(num::NonZeroU8::new(b'_'))
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .case_sensitive_special(true)
+    .integer_internal_digit_separator(true)
+    .fraction_internal_digit_separator(true)
+    .build();
+
+const_assert!(NumberFormat::<{ JULIA_HEX_LITERAL }> {}.is_valid());
+
+// JULIA HEX STRING [01345678MN]
+/// Number format to parse a Julia float from string.
+#[rustfmt::skip]
+#[cfg(feature = "power-of-two")]
+pub const JULIA_HEX_STRING: u128 = NumberFormatBuilder::new()
+    .exponent(b'p')
+    .mantissa_radix(16)
+    .exponent_base(num::NonZeroU8::new(2))
+    .exponent_radix(num::NonZeroU8::new(10))
+    .build();
+
+const_assert!(NumberFormat::<{ JULIA_HEX_STRING }> {}.is_valid());
 
 /// Number format for a C# literal floating-point number.
 pub const CSHARP_LITERAL: u128 = CSHARP7_LITERAL;

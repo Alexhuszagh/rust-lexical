@@ -80,17 +80,17 @@
 //!
 //! **To String**
 //!
-//! - [`write`]
-//! - [`write_unchecked`]
-//! - [`write_with_options`]
-//! - [`write_with_options_unchecked`]
+#![cfg_attr(feature = "write", doc = " - [`write`]")]
+#![cfg_attr(feature = "write", doc = " - [`write_unchecked`]")]
+#![cfg_attr(feature = "write", doc = " - [`write_with_options`]")]
+#![cfg_attr(feature = "write", doc = " - [`write_with_options_unchecked`]")]
 //!
 //! **From String**
 //!
-//! - [`parse`]
-//! - [`parse_partial`]
-//! - [`parse_with_options`]
-//! - [`parse_partial_with_options`]
+#![cfg_attr(feature = "parse", doc = " - [`parse`]")]
+#![cfg_attr(feature = "parse", doc = " - [`parse_partial`]")]
+#![cfg_attr(feature = "parse", doc = " - [`parse_with_options`]")]
+#![cfg_attr(feature = "parse", doc = " - [`parse_partial_with_options`]")]
 //!
 //! # Features
 //!
@@ -240,10 +240,11 @@
 //! - The rounding mode when truncating significant digits while writing.
 //!
 //! The available options are:
-//! - [`ParseFloatOptions`]
-//! - [`ParseIntegerOptions`]
-//! - [`WriteFloatOptions`]
-//! - [`WriteIntegerOptions`]
+//!
+#![cfg_attr(feature = "parse-floats", doc = " - [`ParseFloatOptions`]")]
+#![cfg_attr(feature = "parse-integers", doc = " - [`ParseIntegerOptions`]")]
+#![cfg_attr(feature = "write-floats", doc = " - [`WriteFloatOptions`]")]
+#![cfg_attr(feature = "write-integers", doc = " - [`WriteIntegerOptions`]")]
 //!
 //! ## Example
 //!
@@ -285,17 +286,35 @@
 //!
 //! # Algorithms
 //!
-//! - [Parsing Floats](lexical_parse_float#algorithm-approach)
-//! - [Parsing Integers](lexical_parse_integer#algorithm-approach)
-//! - [Writing Floats](lexical_write_float#algorithm-approach)
-//! - [Writing Integers](lexical_write_integer#algorithm-approach)
+#![cfg_attr(
+    feature = "parse-floats",
+    doc = " - [Parsing Floats](lexical_parse_float#algorithm-approach)"
+)]
+#![cfg_attr(
+    feature = "parse-integers",
+    doc = " - [Parsing Integers](lexical_parse_integer#algorithm-approach)"
+)]
+#![cfg_attr(
+    feature = "write-floats",
+    doc = " - [Writing Floats](lexical_write_float#algorithm-approach)"
+)]
+#![cfg_attr(
+    feature = "write-integers",
+    doc = " - [Writing Integers](lexical_write_integer#algorithm-approach)"
+)]
 //!
 //! # Benchmarks
 //!
-//! - [Parsing Floats](lexical_parse_float#benchmarks)
-//! - [Parsing Integers](lexical_parse_integer#benchmarks)
-//! - [Writing Floats](lexical_write_float#benchmarks)
-//! - [Writing Integers](lexical_write_integer#benchmarks)
+#![cfg_attr(feature = "parse-floats", doc = " - [Parsing Floats](lexical_parse_float#benchmarks)")]
+#![cfg_attr(
+    feature = "parse-integers",
+    doc = " - [Parsing Integers](lexical_parse_integer#benchmarks)"
+)]
+#![cfg_attr(feature = "write-floats", doc = " - [Writing Floats](lexical_write_float#benchmarks)")]
+#![cfg_attr(
+    feature = "write-integers",
+    doc = " - [Writing Integers](lexical_write_integer#benchmarks)"
+)]
 //!
 #![doc = include_str!("../../docs/BinarySize.md")]
 //!
@@ -676,6 +695,7 @@ pub unsafe fn write_unchecked<N: ToLexical>(n: N, bytes: &mut [u8]) -> &mut [u8]
 /// # }
 /// ```
 #[inline]
+#[cfg(feature = "write")]
 pub fn write_with_options<'a, N: ToLexicalWithOptions, const FORMAT: u128>(
     n: N,
     bytes: &'a mut [u8],
@@ -734,6 +754,7 @@ pub fn write_with_options<'a, N: ToLexicalWithOptions, const FORMAT: u128>(
 /// # }
 /// ```
 #[inline]
+#[cfg(feature = "write")]
 pub unsafe fn write_with_options_unchecked<'a, N: ToLexicalWithOptions, const FORMAT: u128>(
     n: N,
     bytes: &'a mut [u8],

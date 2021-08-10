@@ -22,30 +22,102 @@
 #![cfg_attr(feature = "format", doc = " - [PYTHON2_STRING](crate::format::PYTHON2_STRING)")]
 #![cfg_attr(feature = "format", doc = " - [CXX_LITERAL](crate::format::CXX_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [CXX_STRING](crate::format::CXX_STRING)")]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [CXX_HEX_LITERAL](crate::format::CXX_HEX_LITERAL)"
+)]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [CXX_HEX_STRING](crate::format::CXX_HEX_STRING)"
+)]
 #![cfg_attr(feature = "format", doc = " - [CXX20_LITERAL](crate::format::CXX20_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [CXX20_STRING](crate::format::CXX20_STRING)")]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [CXX20_HEX_LITERAL](crate::format::CXX20_HEX_LITERAL)"
+)]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [CXX20_HEX_STRING](crate::format::CXX20_HEX_STRING)"
+)]
 #![cfg_attr(feature = "format", doc = " - [CXX17_LITERAL](crate::format::CXX17_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [CXX17_STRING](crate::format::CXX17_STRING)")]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [CXX17_HEX_LITERAL](crate::format::CXX17_HEX_LITERAL)"
+)]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [CXX17_HEX_STRING](crate::format::CXX17_HEX_STRING)"
+)]
 #![cfg_attr(feature = "format", doc = " - [CXX14_LITERAL](crate::format::CXX14_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [CXX14_STRING](crate::format::CXX14_STRING)")]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [CXX14_HEX_STRING](crate::format::CXX14_HEX_STRING)"
+)]
 #![cfg_attr(feature = "format", doc = " - [CXX11_LITERAL](crate::format::CXX11_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [CXX11_STRING](crate::format::CXX11_STRING)")]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [CXX11_HEX_STRING](crate::format::CXX11_HEX_STRING)"
+)]
 #![cfg_attr(feature = "format", doc = " - [CXX03_LITERAL](crate::format::CXX03_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [CXX03_STRING](crate::format::CXX03_STRING)")]
 #![cfg_attr(feature = "format", doc = " - [CXX98_LITERAL](crate::format::CXX98_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [CXX98_STRING](crate::format::CXX98_STRING)")]
 #![cfg_attr(feature = "format", doc = " - [C_LITERAL](crate::format::C_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [C_STRING](crate::format::C_STRING)")]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [C_HEX_LITERAL](crate::format::C_HEX_LITERAL)"
+)]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [C_HEX_STRING](crate::format::C_HEX_STRING)"
+)]
 #![cfg_attr(feature = "format", doc = " - [C18_LITERAL](crate::format::C18_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [C18_STRING](crate::format::C18_STRING)")]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [C18_HEX_LITERAL](crate::format::C18_HEX_LITERAL)"
+)]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [C18_HEX_STRING](crate::format::C18_HEX_STRING)"
+)]
 #![cfg_attr(feature = "format", doc = " - [C11_LITERAL](crate::format::C11_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [C11_STRING](crate::format::C11_STRING)")]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [C11_HEX_LITERAL](crate::format::C11_HEX_LITERAL)"
+)]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [C11_HEX_STRING](crate::format::C11_HEX_STRING)"
+)]
 #![cfg_attr(feature = "format", doc = " - [C99_LITERAL](crate::format::C99_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [C99_STRING](crate::format::C99_STRING)")]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [C99_HEX_LITERAL](crate::format::C99_HEX_LITERAL)"
+)]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [C99_HEX_STRING](crate::format::C99_HEX_STRING)"
+)]
 #![cfg_attr(feature = "format", doc = " - [C90_LITERAL](crate::format::C90_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [C90_STRING](crate::format::C90_STRING)")]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [C90_HEX_STRING](crate::format::C90_HEX_STRING)"
+)]
 #![cfg_attr(feature = "format", doc = " - [C89_LITERAL](crate::format::C89_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [C89_STRING](crate::format::C89_STRING)")]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [C89_HEX_STRING](crate::format::C89_HEX_STRING)"
+)]
 #![cfg_attr(feature = "format", doc = " - [RUBY_LITERAL](crate::format::RUBY_LITERAL)")]
 #![cfg_attr(
     all(feature = "format", feature = "power-of-two"),
@@ -72,6 +144,14 @@
 #![cfg_attr(feature = "format", doc = " - [KOTLIN_STRING](crate::format::KOTLIN_STRING)")]
 #![cfg_attr(feature = "format", doc = " - [JULIA_LITERAL](crate::format::JULIA_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [JULIA_STRING](crate::format::JULIA_STRING)")]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [JULIA_HEX_LITERAL](crate::format::JULIA_HEX_LITERAL)"
+)]
+#![cfg_attr(
+    all(feature = "format", feature = "power-of-two"),
+    doc = " - [JULIA_HEX_STRING](crate::format::JULIA_HEX_STRING)"
+)]
 #![cfg_attr(feature = "format", doc = " - [CSHARP_LITERAL](crate::format::CSHARP_LITERAL)")]
 #![cfg_attr(feature = "format", doc = " - [CSHARP_STRING](crate::format::CSHARP_STRING)")]
 #![cfg_attr(feature = "format", doc = " - [CSHARP7_LITERAL](crate::format::CSHARP7_LITERAL)")]
