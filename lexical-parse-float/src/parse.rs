@@ -8,10 +8,9 @@
 use crate::float::LemireFloat;
 use crate::number::Number;
 use crate::options::Options;
-use lexical_util::digit::AsDigits;
 use lexical_util::error::Error;
 use lexical_util::format::NumberFormat;
-use lexical_util::iterator::{Byte, ByteIter};
+use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
 use lexical_util::result::Result;
 
 // API
@@ -67,7 +66,7 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     options: &Options,
 ) -> Result<F> {
     let format = NumberFormat::<{ FORMAT }> {};
-    let mut byte = bytes.digits::<{ FORMAT }>();
+    let mut byte = bytes.bytes::<{ FORMAT }>();
     let (is_negative, shift) = parse_sign!(byte, format);
     // SAFETY: safe since we shift at most one for a parsed sign byte.
     unsafe { byte.step_by_unchecked(shift) };
@@ -76,10 +75,10 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     }
 
     // Parse our a small representation of our number.
-    let num = match parse_number::<_, FORMAT>(byte.clone(), is_negative) {
+    let num = match parse_number::<FORMAT>(byte.clone(), is_negative) {
         Some(r) => r,
         None => {
-            if let Some(value) = parse_special::<_, _, FORMAT>(byte.clone(), is_negative, options) {
+            if let Some(value) = parse_special::<_, FORMAT>(byte.clone(), is_negative, options) {
                 return Ok(value);
             } else {
                 return Err(Error::InvalidDigit(byte.cursor()));
@@ -103,7 +102,7 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     options: &Options,
 ) -> Result<(F, usize)> {
     let format = NumberFormat::<{ FORMAT }> {};
-    let mut byte = bytes.digits::<{ FORMAT }>();
+    let mut byte = bytes.bytes::<{ FORMAT }>();
     let (is_negative, shift) = parse_sign!(byte, format);
     // SAFETY: safe since we shift at most one for a parsed sign byte.
     unsafe { byte.step_by_unchecked(shift) };
@@ -112,11 +111,11 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     }
 
     // Parse our a small representation of our number.
-    let (num, count) = match parse_partial_number::<_, FORMAT>(byte.clone(), is_negative) {
+    let (num, count) = match parse_partial_number::<FORMAT>(byte.clone(), is_negative) {
         Some(r) => r,
         None => {
             if let Some(value) =
-                parse_partial_special::<_, _, FORMAT>(byte.clone(), is_negative, options)
+                parse_partial_special::<_, FORMAT>(byte.clone(), is_negative, options)
             {
                 return Ok(value);
             } else {
@@ -139,76 +138,59 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
 /// significant digits and the decimal exponent.
 #[inline]
 #[allow(unused)] // TODO(ahuszagh) Remove...
-pub fn parse_partial_number<'a: 'b, 'b, Bytes, const FORMAT: u128>(
-    byte: Bytes,
+pub fn parse_partial_number<const FORMAT: u128>(
+    mut byte: Bytes<FORMAT>,
     is_negative: bool,
-) -> Option<(Number, usize)>
-where
-    Bytes: Byte<'a, 'b>,
-{
+) -> Option<(Number, usize)> {
+    debug_assert!(!byte.is_done());
+
+    // Parse our integral digits.
+    let mut mantissa = 0_u64;
+    let digits_start = byte.clone();
+    // TODO(ahuszagh) Need to just do our parse-integer stuff here...
+
     todo!();
 }
 
 /// Try to parse a non-special floating point number.
 #[inline]
-pub fn parse_number<'a: 'b, 'b, Bytes, const FORMAT: u128>(
-    byte: Bytes,
-    is_negative: bool,
-) -> Option<Number>
-where
-    Bytes: Byte<'a, 'b>,
-{
-    let cursor = byte.cursor();
+pub fn parse_number<const FORMAT: u128>(byte: Bytes<FORMAT>, is_negative: bool) -> Option<Number> {
     let length = byte.length();
-    if let Some((float, count)) = parse_partial_number::<_, FORMAT>(byte, is_negative) {
-        if count == length - cursor {
+    if let Some((float, count)) = parse_partial_number::<FORMAT>(byte, is_negative) {
+        if count == length {
             return Some(float);
         }
     }
     None
 }
 
-// TODO(ahuszagh) We know the left one is longer, so...
-
 /// Determine if the input data matches the special string.
 /// If there's no match, returns 0. Otherwise, returns the byte's cursor.
 #[inline]
-#[allow(unused)] // TODO(ahuszagh) Remove...
-fn is_special_eq<'a: 'b, 'b, Bytes, const FORMAT: u128>(
-    mut byte: Bytes,
-    string: &'static [u8],
-) -> usize
-where
-    Bytes: Byte<'a, 'b>,
-{
+fn is_special_eq<const FORMAT: u128>(mut byte: Bytes<FORMAT>, string: &'static [u8]) -> usize {
     let format = NumberFormat::<{ FORMAT }> {};
-    // TODO(ahuszagh) This fails due to lifetime issues.
-    //  This is of course, fucking hell.
-    //    let mut x = byte.special_iter();
-    //    let mut y = string.iter();
-    //    if cfg!(feature = "format") && format.case_sensitive_special() {
-    //        // TODO(ahuszagh) I do need to remember to trim the bytes afterwards.
-    //        if starts_with(x, y) {
-    //            todo!();
-    //        }
-    //    } else {
-    //        // TODO(ahuszagh) I do need to remember to trim the bytes afterwards.
-    //        if case_insensitive_starts_with(x, y) {
-    //            todo!();
-    //        }
-    //    }
+    if cfg!(feature = "format") && format.case_sensitive_special() {
+        if starts_with(byte.special_iter(), string.iter()) {
+            // Trim the iterator afterwards.
+            byte.special_iter().peek();
+            return byte.cursor();
+        }
+    } else if case_insensitive_starts_with(byte.special_iter(), string.iter()) {
+        // Trim the iterator afterwards.
+        byte.special_iter().peek();
+        return byte.cursor();
+    }
     0
 }
 
 /// Parse a positive representation of a special, non-finite float.
 #[inline]
-pub fn parse_positive_special<'a: 'b, 'b, F, Bytes, const FORMAT: u128>(
-    byte: Bytes,
+pub fn parse_positive_special<F, const FORMAT: u128>(
+    byte: Bytes<FORMAT>,
     options: &Options,
 ) -> Option<(F, usize)>
 where
     F: LemireFloat,
-    Bytes: Byte<'a, 'b>,
 {
     let format = NumberFormat::<{ FORMAT }> {};
     if cfg!(feature = "format") && format.no_special() {
@@ -218,17 +200,17 @@ where
     let cursor = byte.cursor();
     let length = byte.length() - cursor;
     if length >= options.nan_string().len() {
-        let count = is_special_eq::<_, FORMAT>(byte.clone(), options.nan_string());
+        let count = is_special_eq::<FORMAT>(byte.clone(), options.nan_string());
         if count != 0 {
             return Some((F::NAN, count));
         }
     }
     if length >= options.inf_string().len() {
-        let count = is_special_eq::<_, FORMAT>(byte.clone(), options.infinity_string());
+        let count = is_special_eq::<FORMAT>(byte.clone(), options.infinity_string());
         if count != 0 {
             return Some((F::INFINITY, count));
         }
-        let count = is_special_eq::<_, FORMAT>(byte.clone(), options.inf_string());
+        let count = is_special_eq::<FORMAT>(byte.clone(), options.inf_string());
         if count != 0 {
             return Some((F::INFINITY, count));
         }
@@ -239,16 +221,15 @@ where
 
 /// Parse a partial representation of a special, non-finite float.
 #[inline]
-pub fn parse_partial_special<'a: 'b, 'b, F, Bytes, const FORMAT: u128>(
-    byte: Bytes,
+pub fn parse_partial_special<F, const FORMAT: u128>(
+    byte: Bytes<FORMAT>,
     is_negative: bool,
     options: &Options,
 ) -> Option<(F, usize)>
 where
     F: LemireFloat,
-    Bytes: Byte<'a, 'b>,
 {
-    let (mut float, count) = parse_positive_special::<F, _, FORMAT>(byte, options)?;
+    let (mut float, count) = parse_positive_special::<F, FORMAT>(byte, options)?;
     if is_negative {
         float = -float;
     }
@@ -257,20 +238,17 @@ where
 
 /// Try to parse a special, non-finite float.
 #[inline]
-pub fn parse_special<'a: 'b, 'b, F, Bytes, const FORMAT: u128>(
-    byte: Bytes,
+pub fn parse_special<F, const FORMAT: u128>(
+    byte: Bytes<FORMAT>,
     is_negative: bool,
     options: &Options,
 ) -> Option<F>
 where
     F: LemireFloat,
-    Bytes: Byte<'a, 'b>,
 {
-    let cursor = byte.cursor();
     let length = byte.length();
-    if let Some((float, count)) = parse_partial_special::<F, _, FORMAT>(byte, is_negative, options)
-    {
-        if count == length - cursor {
+    if let Some((float, count)) = parse_partial_special::<F, FORMAT>(byte, is_negative, options) {
+        if count == length {
             return Some(float);
         }
     }
@@ -363,10 +341,11 @@ where
             return true;
         }
         let yi = *yi.unwrap();
-        if x.next().map_or(true, |&xi| {
+        let is_not_equal = x.next().map_or(true, |&xi| {
             let xor = xi ^ yi;
             xor != 0 && xor != 0x20
-        }) {
+        });
+        if is_not_equal {
             return false;
         }
     }
