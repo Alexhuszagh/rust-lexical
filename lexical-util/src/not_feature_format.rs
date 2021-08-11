@@ -84,10 +84,6 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
             Error::InvalidExponentRadix
         } else if !flags::is_valid_digit_separator(FORMAT) {
             Error::InvalidDigitSeparator
-        } else if !flags::is_valid_decimal_point(FORMAT) {
-            Error::InvalidDecimalPoint
-        } else if !flags::is_valid_exponent(FORMAT) {
-            Error::InvalidExponentSymbol
         } else if !flags::is_valid_base_prefix(FORMAT) {
             Error::InvalidBasePrefix
         } else if !flags::is_valid_base_suffix(FORMAT) {
@@ -440,24 +436,6 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     #[inline(always)]
     pub const fn digit_separator(&self) -> u8 {
         Self::DIGIT_SEPARATOR
-    }
-
-    /// The decimal point character in the packed struct.
-    pub const DECIMAL_POINT: u8 = flags::decimal_point(FORMAT);
-
-    /// Get the decimal point character.
-    #[inline(always)]
-    pub const fn decimal_point(&self) -> u8 {
-        Self::DECIMAL_POINT
-    }
-
-    /// The exponent character in the packed struct.
-    pub const EXPONENT: u8 = flags::exponent(FORMAT);
-
-    /// Get the exponent character.
-    #[inline(always)]
-    pub const fn exponent(&self) -> u8 {
-        Self::EXPONENT
     }
 
     /// The base prefix character in the packed struct.

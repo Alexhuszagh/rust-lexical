@@ -39,7 +39,6 @@ const BASE4_8_4: u128 = NumberFormatBuilder::new()
     .exponent_radix(num::NonZeroU8::new(4))
     .build();
 const BASE32_2_32: u128 = NumberFormatBuilder::new()
-    .exponent(b'^')
     .mantissa_radix(32)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(32))

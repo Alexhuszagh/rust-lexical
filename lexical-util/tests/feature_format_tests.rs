@@ -7,8 +7,6 @@ fn ignore_test() {
     let fmt = format::NumberFormat::<{ format::IGNORE }> {};
     assert_eq!(fmt.flags(), format::DIGIT_SEPARATOR_FLAG_MASK);
     assert_eq!(fmt.digit_separator(), b'_');
-    assert_eq!(fmt.decimal_point(), b'.');
-    assert_eq!(fmt.exponent(), b'e');
     assert_eq!(fmt.required_integer_digits(), false);
     assert_eq!(fmt.required_fraction_digits(), false);
     assert_eq!(fmt.required_exponent_digits(), false);

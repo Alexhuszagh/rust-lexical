@@ -279,10 +279,6 @@
 //!
 //! - [DIGIT_SEPARATOR_SHIFT](crate::format::DIGIT_SEPARATOR_SHIFT)
 //! - [DIGIT_SEPARATOR](crate::format::DIGIT_SEPARATOR)
-//! - [DECIMAL_POINT_SHIFT](crate::format::DECIMAL_POINT_SHIFT)
-//! - [DECIMAL_POINT](crate::format::DECIMAL_POINT)
-//! - [EXPONENT_SHIFT](crate::format::EXPONENT_SHIFT)
-//! - [EXPONENT](crate::format::EXPONENT)
 //! - [BASE_PREFIX_SHIFT](crate::format::BASE_PREFIX_SHIFT)
 //! - [BASE_PREFIX](crate::format::BASE_PREFIX)
 //! - [BASE_SUFFIX_SHIFT](crate::format::BASE_SUFFIX_SHIFT)
@@ -301,8 +297,6 @@
 //! Functions to get control characters from the format packed struct.
 //!
 //! - [digit_separator](crate::format::digit_separator)
-//! - [decimal_point](crate::format::decimal_point)
-//! - [exponent](crate::format::exponent)
 //! - [base_prefix](crate::format::base_prefix)
 //! - [base_suffix](crate::format::base_suffix)
 //! - [mantissa_radix](crate::format::mantissa_radix)
@@ -315,8 +309,6 @@
 //! Functions to validate control characters for the format packed struct.
 //!
 //! - [is_valid_digit_separator](is_valid_digit_separator)
-//! - [is_valid_decimal_point](is_valid_decimal_point)
-//! - [is_valid_exponent](is_valid_exponent)
 //! - [is_valid_base_prefix](is_valid_base_prefix)
 //! - [is_valid_base_suffix](is_valid_base_suffix)
 //! - [is_valid_punctuation](is_valid_punctuation)

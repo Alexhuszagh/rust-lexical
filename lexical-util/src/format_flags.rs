@@ -76,18 +76,18 @@
 //! ```
 //!
 //! The upper 64-bits are designated for control characters and radixes,
-//! such as the digit separator character, decimal point, radix characters,
+//! such as the digit separator and base prefix characters, radixes,
 //! and more.
 //!
 //! ```text
 //! 64  65  66  67  68  69  70  71  72  73  74  75  76  77  78  79  80
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-//! |     Digit Separator       |   |       Decimal Point       |   |
+//! |     Digit Separator       |                                   |
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 //!
 //! 80  81  82  83  84  85  86  87  88  89  90  91  92  93  94  95  96
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-//! |      Exponent Symbol      |   |        Base Prefix        |   |
+//! |                               |        Base Prefix        |   |
 //! +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 //!
 //! 96  97  98  99  100 101 102 103 104 105 106 107 108 109 110 111 112
@@ -448,18 +448,6 @@ pub const DIGIT_SEPARATOR_SHIFT: i32 = 64;
 /// Mask to extract the digit separator character.
 pub const DIGIT_SEPARATOR: u128 = 0xFF << DIGIT_SEPARATOR_SHIFT;
 
-/// Shift to convert to and from a decimal point as a `u8`.
-pub const DECIMAL_POINT_SHIFT: i32 = 72;
-
-/// Mask to extract the decimal point character.
-pub const DECIMAL_POINT: u128 = 0xFF << DECIMAL_POINT_SHIFT;
-
-/// Shift to convert to and from an exponent as a `u8`.
-pub const EXPONENT_SHIFT: i32 = 80;
-
-/// Mask to extract the exponent character.
-pub const EXPONENT: u128 = 0xFF << EXPONENT_SHIFT;
-
 /// Shift to convert to and from a base prefix as a `u8`.
 pub const BASE_PREFIX_SHIFT: i32 = 88;
 
@@ -497,9 +485,7 @@ pub const EXPONENT_RADIX_SHIFT: i32 = 120;
 pub const EXPONENT_RADIX: u128 = 0xFF << EXPONENT_RADIX_SHIFT;
 
 // Masks do not overlap.
-check_subsequent_masks!(DIGIT_SEPARATOR, DECIMAL_POINT);
-check_subsequent_masks!(DECIMAL_POINT, EXPONENT);
-check_subsequent_masks!(EXPONENT, BASE_PREFIX);
+check_subsequent_masks!(DIGIT_SEPARATOR, BASE_PREFIX);
 check_subsequent_masks!(BASE_PREFIX, BASE_SUFFIX);
 check_subsequent_masks!(BASE_SUFFIX, MANTISSA_RADIX);
 check_subsequent_masks!(MANTISSA_RADIX, EXPONENT_BASE);
@@ -507,8 +493,6 @@ check_subsequent_masks!(EXPONENT_BASE, EXPONENT_RADIX);
 
 // Check all our shifts shift the masks to a single byte.
 check_mask_shifts!(DIGIT_SEPARATOR, DIGIT_SEPARATOR_SHIFT);
-check_mask_shifts!(DECIMAL_POINT, DECIMAL_POINT_SHIFT);
-check_mask_shifts!(EXPONENT, EXPONENT_SHIFT);
 check_mask_shifts!(BASE_PREFIX, BASE_PREFIX_SHIFT);
 check_mask_shifts!(BASE_SUFFIX, BASE_SUFFIX_SHIFT);
 check_mask_shifts!(MANTISSA_RADIX, MANTISSA_RADIX_SHIFT);
@@ -621,18 +605,6 @@ pub const fn digit_separator(format: u128) -> u8 {
     ((format & DIGIT_SEPARATOR) >> DIGIT_SEPARATOR_SHIFT) as u8
 }
 
-/// Extract the decimal point character from the format packed struct.
-#[inline]
-pub const fn decimal_point(format: u128) -> u8 {
-    ((format & DECIMAL_POINT) >> DECIMAL_POINT_SHIFT) as u8
-}
-
-/// Extract the exponent character from the format packed struct.
-#[inline]
-pub const fn exponent(format: u128) -> u8 {
-    ((format & EXPONENT) >> EXPONENT_SHIFT) as u8
-}
-
 /// Extract the base prefix character from the format packed struct.
 #[inline]
 pub const fn base_prefix(format: u128) -> u8 {
@@ -735,18 +707,6 @@ pub const fn is_valid_digit_separator(format: u128) -> bool {
     }
 }
 
-/// Determine if the decimal point character is valid.
-#[inline]
-pub const fn is_valid_decimal_point(format: u128) -> bool {
-    is_valid_control(format, decimal_point(format))
-}
-
-/// Determine if the exponent character is valid.
-#[inline]
-pub const fn is_valid_exponent(format: u128) -> bool {
-    is_valid_control(format, exponent(format))
-}
-
 /// Determine if the base prefix character is valid.
 #[inline]
 pub const fn is_valid_base_prefix(format: u128) -> bool {
@@ -775,26 +735,8 @@ pub const fn is_valid_base_suffix(format: u128) -> bool {
 pub const fn is_valid_punctuation(format: u128) -> bool {
     // All the checks against optional characters with mandatory are fine:
     // if they're not 0, then they can't overlap, and mandatory can't be 0.
-    if decimal_point(format) == 0 || exponent(format) == 0 {
-        // Can't have optional mandatory characters.
-        false
-    } else if decimal_point(format) == exponent(format) {
-        // Can't have overlapping characters.
-        false
-    } else if cfg!(not(feature = "format")) && digit_separator(format) != 0 {
+    if cfg!(not(feature = "format")) && digit_separator(format) != 0 {
         // Digit separator set when not allowed.
-        false
-    } else if digit_separator(format) == decimal_point(format) {
-        false
-    } else if digit_separator(format) == exponent(format) {
-        false
-    } else if base_prefix(format) == decimal_point(format) {
-        false
-    } else if base_prefix(format) == exponent(format) {
-        false
-    } else if base_suffix(format) == decimal_point(format) {
-        false
-    } else if base_suffix(format) == exponent(format) {
         false
     } else {
         let separator = digit_separator(format);

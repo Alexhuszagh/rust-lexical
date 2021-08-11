@@ -98,7 +98,7 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     // Can only do fast and moderate path optimizations if we
     // can shift significant digits to and from the exponent.
     if format.mantissa_radix() == format.exponent_base() {
-        let num = match parse_number::<FORMAT>(byte.clone(), is_negative) {
+        let num = match parse_number::<FORMAT>(byte.clone(), is_negative, options) {
             Ok(n) => n,
             Err(e) => {
                 if let Some(value) = parse_special::<_, FORMAT>(byte.clone(), is_negative, options)
@@ -139,7 +139,8 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     // Can only do fast and moderate path optimizations if we
     // can shift significant digits to and from the exponent.
     if format.mantissa_radix() == format.exponent_base() {
-        let (num, count) = match parse_partial_number::<FORMAT>(byte.clone(), is_negative) {
+        let (num, count) = match parse_partial_number::<FORMAT>(byte.clone(), is_negative, options)
+        {
             Ok(n) => n,
             Err(e) => {
                 if let Some(value) =
@@ -172,11 +173,12 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
 pub fn parse_partial_number<const FORMAT: u128>(
     mut byte: Bytes<FORMAT>,
     is_negative: bool,
+    options: &Options,
 ) -> Result<(Number, usize)> {
     // Config options
     let format = NumberFormat::<{ FORMAT }> {};
-    let decimal_point = format.decimal_point();
-    let exponent_character = format.exponent();
+    let decimal_point = options.decimal_point();
+    let exponent_character = options.exponent();
     debug_assert!(format.is_valid());
     debug_assert!(!byte.is_done());
 
@@ -326,9 +328,13 @@ pub fn parse_partial_number<const FORMAT: u128>(
 
 /// Try to parse a non-special floating point number.
 #[inline]
-pub fn parse_number<const FORMAT: u128>(byte: Bytes<FORMAT>, is_negative: bool) -> Result<Number> {
+pub fn parse_number<const FORMAT: u128>(
+    byte: Bytes<FORMAT>,
+    is_negative: bool,
+    options: &Options,
+) -> Result<Number> {
     let length = byte.length();
-    let (float, count) = parse_partial_number::<FORMAT>(byte, is_negative)?;
+    let (float, count) = parse_partial_number::<FORMAT>(byte, is_negative, options)?;
     if count == length {
         Ok(float)
     } else {

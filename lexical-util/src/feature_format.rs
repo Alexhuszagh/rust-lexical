@@ -740,10 +740,6 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
             Error::InvalidExponentRadix
         } else if !flags::is_valid_digit_separator(FORMAT) {
             Error::InvalidDigitSeparator
-        } else if !flags::is_valid_decimal_point(FORMAT) {
-            Error::InvalidDecimalPoint
-        } else if !flags::is_valid_exponent(FORMAT) {
-            Error::InvalidExponentSymbol
         } else if !flags::is_valid_base_prefix(FORMAT) {
             Error::InvalidBasePrefix
         } else if !flags::is_valid_base_suffix(FORMAT) {
@@ -1112,24 +1108,6 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
         Self::DIGIT_SEPARATOR
     }
 
-    /// The decimal point character in the packed struct.
-    pub const DECIMAL_POINT: u8 = flags::decimal_point(FORMAT);
-
-    /// Get the decimal point character.
-    #[inline(always)]
-    pub const fn decimal_point(&self) -> u8 {
-        Self::DECIMAL_POINT
-    }
-
-    /// The exponent character in the packed struct.
-    pub const EXPONENT: u8 = flags::exponent(FORMAT);
-
-    /// Get the exponent character.
-    #[inline(always)]
-    pub const fn exponent(&self) -> u8 {
-        Self::EXPONENT
-    }
-
     /// The base prefix character in the packed struct.
     pub const BASE_PREFIX: u8 = flags::base_prefix(FORMAT);
 
@@ -1381,7 +1359,6 @@ const_assert!(NumberFormat::<{ CXX20_STRING }> {}.is_valid());
 pub const CXX20_HEX_LITERAL: u128 = NumberFormatBuilder::new()
     .required_exponent_notation(true)
     .digit_separator(num::NonZeroU8::new(b'\''))
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1397,7 +1374,6 @@ const_assert!(NumberFormat::<{ CXX20_HEX_LITERAL }> {}.is_valid());
 #[rustfmt::skip]
 #[cfg(feature = "power-of-two")]
 pub const CXX20_HEX_STRING: u128 = NumberFormatBuilder::new()
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1430,7 +1406,6 @@ const_assert!(NumberFormat::<{ CXX17_STRING }> {}.is_valid());
 pub const CXX17_HEX_LITERAL: u128 = NumberFormatBuilder::new()
     .required_exponent_notation(true)
     .digit_separator(num::NonZeroU8::new(b'\''))
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1446,7 +1421,6 @@ const_assert!(NumberFormat::<{ CXX17_HEX_LITERAL }> {}.is_valid());
 #[rustfmt::skip]
 #[cfg(feature = "power-of-two")]
 pub const CXX17_HEX_STRING: u128 = NumberFormatBuilder::new()
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1477,7 +1451,6 @@ const_assert!(NumberFormat::<{ CXX14_STRING }> {}.is_valid());
 #[rustfmt::skip]
 #[cfg(feature = "power-of-two")]
 pub const CXX14_HEX_STRING: u128 = NumberFormatBuilder::new()
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1506,7 +1479,6 @@ const_assert!(NumberFormat::<{ CXX11_STRING }> {}.is_valid());
 #[rustfmt::skip]
 #[cfg(feature = "power-of-two")]
 pub const CXX11_HEX_STRING: u128 = NumberFormatBuilder::new()
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1579,7 +1551,6 @@ const_assert!(NumberFormat::<{ C18_STRING }> {}.is_valid());
 pub const C18_HEX_LITERAL: u128 = NumberFormatBuilder::new()
     .case_sensitive_special(true)
     .required_exponent_notation(true)
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1593,7 +1564,6 @@ const_assert!(NumberFormat::<{ C18_HEX_LITERAL }> {}.is_valid());
 #[rustfmt::skip]
 #[cfg(feature = "power-of-two")]
 pub const C18_HEX_STRING: u128 = NumberFormatBuilder::new()
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1624,7 +1594,6 @@ const_assert!(NumberFormat::<{ C11_STRING }> {}.is_valid());
 pub const C11_HEX_LITERAL: u128 = NumberFormatBuilder::new()
     .case_sensitive_special(true)
     .required_exponent_notation(true)
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1638,7 +1607,6 @@ const_assert!(NumberFormat::<{ C11_HEX_LITERAL }> {}.is_valid());
 #[rustfmt::skip]
 #[cfg(feature = "power-of-two")]
 pub const C11_HEX_STRING: u128 = NumberFormatBuilder::new()
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1669,7 +1637,6 @@ const_assert!(NumberFormat::<{ C99_STRING }> {}.is_valid());
 pub const C99_HEX_LITERAL: u128 = NumberFormatBuilder::new()
     .case_sensitive_special(true)
     .required_exponent_notation(true)
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1683,7 +1650,6 @@ const_assert!(NumberFormat::<{ C99_HEX_LITERAL }> {}.is_valid());
 #[rustfmt::skip]
 #[cfg(feature = "power-of-two")]
 pub const C99_HEX_STRING: u128 = NumberFormatBuilder::new()
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1712,7 +1678,6 @@ const_assert!(NumberFormat::<{ C90_STRING }> {}.is_valid());
 #[rustfmt::skip]
 #[cfg(feature = "power-of-two")]
 pub const C90_HEX_STRING: u128 = NumberFormatBuilder::new()
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1741,7 +1706,6 @@ const_assert!(NumberFormat::<{ C89_STRING }> {}.is_valid());
 #[rustfmt::skip]
 #[cfg(feature = "power-of-two")]
 pub const C89_HEX_STRING: u128 = NumberFormatBuilder::new()
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -1993,7 +1957,6 @@ const_assert!(NumberFormat::<{ JULIA_STRING }> {}.is_valid());
 #[cfg(feature = "power-of-two")]
 pub const JULIA_HEX_LITERAL: u128 = NumberFormatBuilder::new()
     .digit_separator(num::NonZeroU8::new(b'_'))
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))
@@ -2009,7 +1972,6 @@ const_assert!(NumberFormat::<{ JULIA_HEX_LITERAL }> {}.is_valid());
 #[rustfmt::skip]
 #[cfg(feature = "power-of-two")]
 pub const JULIA_HEX_STRING: u128 = NumberFormatBuilder::new()
-    .exponent(b'p')
     .mantissa_radix(16)
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(10))

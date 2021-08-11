@@ -8,8 +8,6 @@ fn format_properties_test() {
     assert_eq!(format.flags(), STANDARD & format::FLAG_MASK);
     assert_eq!(format.interface_flags(), STANDARD & format::INTERFACE_FLAG_MASK);
     assert_eq!(format.digit_separator(), b'\x00');
-    assert_eq!(format.decimal_point(), b'.');
-    assert_eq!(format.exponent(), b'e');
     assert_eq!(format.base_prefix(), b'\x00');
     assert_eq!(format.base_suffix(), b'\x00');
     assert_eq!(format.mantissa_radix(), 10);

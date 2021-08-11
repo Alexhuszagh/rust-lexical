@@ -5,7 +5,7 @@ mod parse_radix;
 use approx::{assert_relative_eq, relative_eq};
 use core::num;
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
-use lexical_util::format::{NumberFormat, NumberFormatBuilder};
+use lexical_util::format::NumberFormatBuilder;
 use lexical_util::num::Float;
 use lexical_write_float::options::RoundMode;
 use lexical_write_float::{radix, Options};
@@ -179,14 +179,13 @@ fn write_float_test() {
 macro_rules! test_radix {
     ($parse:ident, $f:ident, $radix:expr, $buffer:ident, $options:ident) => {{
         const FORMAT: u128 = NumberFormatBuilder::from_radix($radix);
-        let format = NumberFormat::<FORMAT> {};
         let options = if $radix >= 15 {
             $options.rebuild().exponent(b'^').build().unwrap()
         } else {
             $options.clone()
         };
         let count = unsafe { radix::write_float::<_, FORMAT>($f, &mut $buffer, &options) };
-        let roundtrip = $parse(&$buffer[..count], $radix, format.exponent());
+        let roundtrip = $parse(&$buffer[..count], $radix, options.exponent());
         assert_relative_eq!($f, roundtrip, epsilon = 1e-6, max_relative = 3e-6);
     }};
 }

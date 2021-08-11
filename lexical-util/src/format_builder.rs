@@ -50,8 +50,6 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 /// # Fields
 ///
 /// * `digit_separator`                         - Character to separate digits.
-/// * `exponent`                                - Character to designate exponent notation.
-/// * `decimal_point`                           - Character to designate the decimal point.
 /// * `mantissa_radix`                          - Radix for mantissa digits.
 /// * `exponent_base`                           - Base for the exponent.
 /// * `exponent_radix`                          - Radix for the exponent digits.
@@ -112,8 +110,6 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 ///
 /// These fields are used for writing floats:
 ///
-/// * `exponent`
-/// * `decimal_point`
 /// * `mantissa_radix`
 /// * `exponent_base`
 /// * `exponent_radix`
@@ -129,8 +125,6 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 /// These fields are used for parsing floats:
 ///
 /// * `digit_separator`
-/// * `exponent`
-/// * `decimal_point`
 /// * `mantissa_radix`
 /// * `exponent_base`
 /// * `exponent_radix`
@@ -167,8 +161,6 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 /// * `special_digit_separator`
 pub struct NumberFormatBuilder {
     digit_separator: OptionU8,
-    exponent: u8,
-    decimal_point: u8,
     base_prefix: OptionU8,
     base_suffix: OptionU8,
     mantissa_radix: u8,
@@ -215,8 +207,6 @@ impl NumberFormatBuilder {
     pub const fn new() -> Self {
         Self {
             digit_separator: None,
-            exponent: b'e',
-            decimal_point: b'.',
             base_prefix: None,
             base_suffix: None,
             mantissa_radix: 10,
@@ -286,17 +276,11 @@ impl NumberFormatBuilder {
     /// Create number format from radix.
     #[cfg(feature = "power-of-two")]
     pub const fn from_radix(radix: u8) -> u128 {
-        let builder = Self::new()
+        Self::new()
             .radix(radix)
             .exponent_base(num::NonZeroU8::new(radix))
-            .exponent_radix(num::NonZeroU8::new(radix));
-
-        // 'e' is a valid digit for radix >= 15.
-        if radix >= 15 {
-            builder.exponent(b'^').build()
-        } else {
-            builder.build()
-        }
+            .exponent_radix(num::NonZeroU8::new(radix))
+            .build()
     }
 
     // GETTERS
@@ -305,18 +289,6 @@ impl NumberFormatBuilder {
     #[inline(always)]
     pub const fn get_digit_separator(&self) -> OptionU8 {
         self.digit_separator
-    }
-
-    /// Get the exponent character for the number format.
-    #[inline(always)]
-    pub const fn get_exponent(&self) -> u8 {
-        self.exponent
-    }
-
-    /// Get the decimal point character for the number format.
-    #[inline(always)]
-    pub const fn get_decimal_point(&self) -> u8 {
-        self.decimal_point
     }
 
     /// Get the radix for mantissa digits.
@@ -542,20 +514,6 @@ impl NumberFormatBuilder {
     #[cfg(feature = "format")]
     pub const fn digit_separator(mut self, character: OptionU8) -> Self {
         self.digit_separator = character;
-        self
-    }
-
-    /// Set the exponent character for the number format.
-    #[inline(always)]
-    pub const fn exponent(mut self, character: u8) -> Self {
-        self.exponent = character;
-        self
-    }
-
-    /// Set the decimal point character for the number format.
-    #[inline(always)]
-    pub const fn decimal_point(mut self, character: u8) -> Self {
-        self.decimal_point = character;
         self
     }
 
@@ -995,8 +953,6 @@ impl NumberFormatBuilder {
             format |=
                 (unwrap_or_zero(self.digit_separator) as u128) << flags::DIGIT_SEPARATOR_SHIFT;
         }
-        format |= (self.decimal_point as u128) << flags::DECIMAL_POINT_SHIFT;
-        format |= (self.exponent as u128) << flags::EXPONENT_SHIFT;
         format |= (unwrap_or_zero(self.base_prefix) as u128) << flags::BASE_PREFIX_SHIFT;
         format |= (unwrap_or_zero(self.base_suffix) as u128) << flags::BASE_SUFFIX_SHIFT;
         format |= (self.mantissa_radix as u128) << flags::MANTISSA_RADIX_SHIFT;
@@ -1011,8 +967,6 @@ impl NumberFormatBuilder {
     pub const fn rebuild(format: u128) -> Self {
         NumberFormatBuilder {
             digit_separator: num::NonZeroU8::new(flags::digit_separator(format)),
-            exponent: flags::exponent(format),
-            decimal_point: flags::decimal_point(format),
             base_prefix: num::NonZeroU8::new(flags::base_prefix(format)),
             base_suffix: num::NonZeroU8::new(flags::base_suffix(format)),
             mantissa_radix: flags::mantissa_radix(format) as u8,
