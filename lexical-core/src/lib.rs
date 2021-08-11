@@ -78,10 +78,12 @@
 //!
 //! # Conversion API
 //!
-#![cfg_attr(feature = "write", doc = " **To String**")]
+#![cfg_attr(feature = "write", doc = " **Write**")]
 #![cfg_attr(feature = "write", doc = "")]
-#![cfg_attr(feature = "write", doc = " - [`to_string`]")]
-#![cfg_attr(feature = "write", doc = " - [`to_string_with_options`]")]
+#![cfg_attr(feature = "write", doc = " - [`write`]")]
+#![cfg_attr(feature = "write", doc = " - [`write_unchecked`]")]
+#![cfg_attr(feature = "write", doc = " - [`write_with_options`]")]
+#![cfg_attr(feature = "write", doc = " - [`write_with_options_unchecked`]")]
 //!
 #![cfg_attr(feature = "write", doc = " **From String**")]
 #![cfg_attr(feature = "write", doc = "")]
@@ -161,7 +163,7 @@
 //! # }
 //! ```
 //!
-//! See the [NumberFormat](#numberformat) section below for more information.
+//! See the [Number Format](#number-format) section below for more information.
 //!
 //! ### power-of-two
 //!
@@ -201,15 +203,11 @@
 //!     formatting options.
 //! - The Options API.
 //!
-//! ## NumberFormat
+//! ## Number Format
 //!
 //! The number format class provides numerous flags to specify
-//! number parsing or writing, including:
-//! - The exponent character (default `b'e'`, or `b'^'`).
-//! - The decimal point character (default `b'.'`).
-//!
-//! When the `power-of-two` feature is enabled, additional flags are
-//! added:
+//! number parsing or writing. When the `power-of-two` feature is
+//! enabled, additional flags are added:
 //! - The radix for the significant digits (default `10`).
 //! - The radix for the exponent base (default `10`).
 //! - The radix for the exponent digits (default `10`).
@@ -231,6 +229,8 @@
 //! The Options API provides high-level options to specify number parsing
 //! or writing, options not intrinsically tied to a number format.
 //! For example, the Options API provides:
+//! - The exponent character (default `b'e'`, or `b'^'`).
+//! - The decimal point character (default `b'.'`).
 //! - Custom `NaN`, `Infinity` string representations.
 //! - Whether to trim the fraction component from integral floats.
 //! - The exponent break point for scientific notation.
@@ -243,6 +243,9 @@
 #![cfg_attr(feature = "parse-integers", doc = " - [`ParseIntegerOptions`]")]
 #![cfg_attr(feature = "write-floats", doc = " - [`WriteFloatOptions`]")]
 #![cfg_attr(feature = "write-integers", doc = " - [`WriteIntegerOptions`]")]
+//!
+//! In addition, pre-defined constants for each category of options may
+//! be found in their respective modules.
 //!
 //! ## Example
 //!
@@ -258,10 +261,11 @@
 //! // are periods.
 //! const EUROPEAN: u128 = lexical_core::NumberFormatBuilder::new()
 //!     .digit_separator(b'.')
+//!     .build();
+//! let options = lexical_core::ParseFloatOptions::builder()
 //!     .decimal_point(b',')
 //!     .build()
 //!     .unwrap();
-//! let options = lexical_core::ParseFloatOptions::new();
 //! assert_eq!(
 //!     lexical_core::parse_with_options::<f32, EUROPEAN>(b"300,10", &options),
 //!     Ok(300.10)
@@ -368,11 +372,13 @@ use lexical_write_integer::{ToLexical as ToInteger, ToLexicalWithOptions as ToIn
 // Re-exports
 #[cfg(feature = "parse-floats")]
 pub use lexical_parse_float::{
+    options as parse_float_options,
     Options as ParseFloatOptions,
     OptionsBuilder as ParseFloatOptionsBuilder,
 };
 #[cfg(feature = "parse-integers")]
 pub use lexical_parse_integer::{
+    options as parse_integer_options,
     Options as ParseIntegerOptions,
     OptionsBuilder as ParseIntegerOptionsBuilder,
 };
@@ -389,11 +395,13 @@ pub use lexical_util::options::WriteOptions;
 pub use lexical_util::result::Result;
 #[cfg(feature = "write-floats")]
 pub use lexical_write_float::{
+    options as write_float_options,
     Options as WriteFloatOptions,
     OptionsBuilder as WriteFloatOptionsBuilder,
 };
 #[cfg(feature = "write-integers")]
 pub use lexical_write_integer::{
+    options as write_integer_options,
     Options as WriteIntegerOptions,
     OptionsBuilder as WriteIntegerOptionsBuilder,
 };

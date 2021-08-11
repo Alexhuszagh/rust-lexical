@@ -64,6 +64,7 @@ mod table_radix;
 
 // Re-exports
 pub use self::api::{ToLexical, ToLexicalWithOptions};
+#[doc(inline)]
 pub use self::options::{Options, OptionsBuilder};
 pub use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 pub use lexical_util::format::{self, NumberFormatBuilder};

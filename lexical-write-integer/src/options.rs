@@ -2,11 +2,10 @@
 //!
 //! This is a dummy implementation, since writing integers never have options.
 
-#![doc(hidden)]
-
 use lexical_util::constants::FormattedSize;
 use lexical_util::options::WriteOptions;
 use lexical_util::result::Result;
+use static_assertions::const_assert;
 
 /// Builder for `Options`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -114,3 +113,11 @@ impl WriteOptions for Options {
         T::FORMATTED_SIZE
     }
 }
+
+// PRE-DEFINED CONSTANTS
+// ---------------------
+
+/// Standard number format.
+#[rustfmt::skip]
+pub const STANDARD: Options = Options::new();
+const_assert!(STANDARD.is_valid());

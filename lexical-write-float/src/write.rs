@@ -39,7 +39,9 @@ pub trait WriteFloat: Float {
     ///
     /// Panics if the number format is invalid, or if scientific notation
     /// is used and the exponent base does not equal the mantissa radix
-    /// and the format is not a hexadecimal float.
+    /// and the format is not a hexadecimal float. It also panics
+    /// if `options.nan_string` or `options.inf_string` is None and asked
+    /// to serialize a NaN or Inf value.
     ///
     /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
     /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
@@ -118,24 +120,34 @@ pub trait WriteFloat: Float {
         } else if self.is_nan() {
             // SAFETY: safe is the buffer is longer than the NaN string.
             // The NaN string must be <= 50 characters.
-            let length = options.nan_string().len();
-            unsafe {
-                let src = options.nan_string().as_ptr();
-                let dst = &mut index_unchecked_mut!(bytes[..length]);
-                copy_nonoverlapping_unchecked!(dst, src, length);
+            if let Some(nan_string) = options.nan_string() {
+                let length = nan_string.len();
+                unsafe {
+                    let src = nan_string.as_ptr();
+                    let dst = &mut index_unchecked_mut!(bytes[..length]);
+                    copy_nonoverlapping_unchecked!(dst, src, length);
+                }
+                count + length
+            } else {
+                // PANIC: cannot serialize NaN.
+                panic!("NaN explicitly disabled but asked to write NaN as string.");
             }
-            count + length
         } else {
             // is_inf
             // SAFETY: safe is the buffer is longer than the Inf string.
             // The Inf string must be <= 50 characters.
-            let length = options.inf_string().len();
-            unsafe {
-                let src = options.inf_string().as_ptr();
-                let dst = &mut index_unchecked_mut!(bytes[..length]);
-                copy_nonoverlapping_unchecked!(dst, src, length);
+            if let Some(inf_string) = options.inf_string() {
+                let length = inf_string.len();
+                unsafe {
+                    let src = inf_string.as_ptr();
+                    let dst = &mut index_unchecked_mut!(bytes[..length]);
+                    copy_nonoverlapping_unchecked!(dst, src, length);
+                }
+                count + length
+            } else {
+                // PANIC: cannot serialize inf.
+                panic!("Inf explicitly disabled but asked to write Inf as string.");
             }
-            count + length
         }
     }
 }

@@ -15,6 +15,9 @@ exclude = [
     "cargo-timing*.html"
 ]
 
+[dependencies]
+static_assertions = "1"
+
 [dependencies.lexical-util]
 version = "0.1"
 path = "../lexical-util"

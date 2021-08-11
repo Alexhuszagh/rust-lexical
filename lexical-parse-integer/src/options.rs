@@ -1,9 +1,8 @@
 //! Configuration options for parsing integers.
 
-#![doc(hidden)]
-
 use lexical_util::options::ParseOptions;
 use lexical_util::result::Result;
+use static_assertions::const_assert;
 
 /// Builder for `Options`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -106,3 +105,11 @@ impl ParseOptions for Options {
         Self::is_valid(self)
     }
 }
+
+// PRE-DEFINED CONSTANTS
+// ---------------------
+
+/// Standard number format.
+#[rustfmt::skip]
+pub const STANDARD: Options = Options::new();
+const_assert!(STANDARD.is_valid());

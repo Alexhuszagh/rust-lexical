@@ -1,7 +1,5 @@
 //! Configuration options for writing floats.
 
-#![doc(hidden)]
-
 use core::{mem, num};
 use lexical_util::ascii::{is_valid_ascii, is_valid_letter_slice};
 use lexical_util::constants::FormattedSize;
@@ -64,9 +62,9 @@ pub struct OptionsBuilder {
     /// Character to separate the integer from the fraction components.
     decimal_point: u8,
     /// String representation of Not A Number, aka `NaN`.
-    nan_string: &'static [u8],
+    nan_string: Option<&'static [u8]>,
     /// String representation of `Infinity`.
-    inf_string: &'static [u8],
+    inf_string: Option<&'static [u8]>,
 }
 
 impl OptionsBuilder {
@@ -83,8 +81,8 @@ impl OptionsBuilder {
             trim_floats: false,
             exponent: b'e',
             decimal_point: b'.',
-            nan_string: b"NaN",
-            inf_string: b"inf",
+            nan_string: Some(b"NaN"),
+            inf_string: Some(b"inf"),
         }
     }
 
@@ -140,13 +138,13 @@ impl OptionsBuilder {
 
     /// Get the string representation for `NaN`.
     #[inline(always)]
-    pub const fn get_nan_string(&self) -> &'static [u8] {
+    pub const fn get_nan_string(&self) -> Option<&'static [u8]> {
         self.nan_string
     }
 
     /// Get the short string representation for `Infinity`.
     #[inline(always)]
-    pub const fn get_inf_string(&self) -> &'static [u8] {
+    pub const fn get_inf_string(&self) -> Option<&'static [u8]> {
         self.inf_string
     }
 
@@ -210,14 +208,14 @@ impl OptionsBuilder {
 
     /// Set the string representation for `NaN`.
     #[inline(always)]
-    pub const fn nan_string(mut self, nan_string: &'static [u8]) -> Self {
+    pub const fn nan_string(mut self, nan_string: Option<&'static [u8]>) -> Self {
         self.nan_string = nan_string;
         self
     }
 
     /// Set the string representation for `Infinity`.
     #[inline(always)]
-    pub const fn inf_string(mut self, inf_string: &'static [u8]) -> Self {
+    pub const fn inf_string(mut self, inf_string: Option<&'static [u8]>) -> Self {
         self.inf_string = inf_string;
         self
     }
@@ -228,11 +226,17 @@ impl OptionsBuilder {
     #[inline(always)]
     #[allow(clippy::if_same_then_else, clippy::needless_bool)]
     pub const fn nan_str_is_valid(&self) -> bool {
-        if self.nan_string.is_empty() || self.nan_string.len() > MAX_SPECIAL_STRING_LENGTH {
+        if self.nan_string.is_none() {
+            return true;
+        }
+
+        let nan = unwrap_str(self.nan_string);
+        let length = nan.len();
+        if length == 0 || length > MAX_SPECIAL_STRING_LENGTH {
             false
-        } else if !matches!(self.nan_string[0], b'N' | b'n') {
+        } else if !matches!(nan[0], b'N' | b'n') {
             false
-        } else if !is_valid_letter_slice(self.nan_string) {
+        } else if !is_valid_letter_slice(nan) {
             false
         } else {
             true
@@ -243,11 +247,17 @@ impl OptionsBuilder {
     #[inline(always)]
     #[allow(clippy::if_same_then_else, clippy::needless_bool)]
     pub const fn inf_str_is_valid(&self) -> bool {
-        if self.inf_string.is_empty() || self.inf_string.len() > MAX_SPECIAL_STRING_LENGTH {
+        if self.inf_string.is_none() {
+            return true;
+        }
+
+        let inf = unwrap_str(self.inf_string);
+        let length = inf.len();
+        if length == 0 || length > MAX_SPECIAL_STRING_LENGTH {
             false
-        } else if !matches!(self.inf_string[0], b'I' | b'i') {
+        } else if !matches!(inf[0], b'I' | b'i') {
             false
-        } else if !is_valid_letter_slice(self.inf_string) {
+        } else if !is_valid_letter_slice(inf) {
             false
         } else {
             true
@@ -298,21 +308,31 @@ impl OptionsBuilder {
     #[inline(always)]
     #[allow(clippy::if_same_then_else)]
     pub const fn build(&self) -> Result<Options> {
+        if self.nan_string.is_some() {
+            let nan = unwrap_str(self.nan_string);
+            if nan.is_empty() || !matches!(nan[0], b'N' | b'n') {
+                return Err(Error::InvalidNanString);
+            } else if !is_valid_letter_slice(nan) {
+                return Err(Error::InvalidNanString);
+            } else if nan.len() > MAX_SPECIAL_STRING_LENGTH {
+                return Err(Error::NanStringTooLong);
+            }
+        }
+
+        if self.inf_string.is_some() {
+            let inf = unwrap_str(self.inf_string);
+            if inf.is_empty() || !matches!(inf[0], b'I' | b'i') {
+                return Err(Error::InvalidInfString);
+            } else if !is_valid_letter_slice(inf) {
+                return Err(Error::InvalidInfString);
+            } else if inf.len() > MAX_SPECIAL_STRING_LENGTH {
+                return Err(Error::InfStringTooLong);
+            }
+        }
+
         let min_digits = unwrap_or_zero_usize(self.min_significant_digits);
         let max_digits = unwrap_or_max_usize(self.max_significant_digits);
-        if self.nan_string.is_empty() || !matches!(self.nan_string[0], b'N' | b'n') {
-            Err(Error::InvalidNanString)
-        } else if !is_valid_letter_slice(self.nan_string) {
-            Err(Error::InvalidNanString)
-        } else if self.nan_string.len() > MAX_SPECIAL_STRING_LENGTH {
-            Err(Error::NanStringTooLong)
-        } else if self.inf_string.is_empty() || !matches!(self.inf_string[0], b'I' | b'i') {
-            Err(Error::InvalidInfString)
-        } else if !is_valid_letter_slice(self.inf_string) {
-            Err(Error::InvalidInfString)
-        } else if self.inf_string.len() > MAX_SPECIAL_STRING_LENGTH {
-            Err(Error::InfStringTooLong)
-        } else if max_digits < min_digits {
+        if max_digits < min_digits {
             Err(Error::InvalidFloatPrecision)
         } else if unwrap_or_zero_i32(self.negative_exponent_break) > 0 {
             Err(Error::InvalidNegativeExponentBreak)
@@ -378,9 +398,9 @@ pub struct Options {
     /// Character to separate the integer from the fraction components.
     decimal_point: u8,
     /// String representation of Not A Number, aka `NaN`.
-    nan_string: &'static [u8],
+    nan_string: Option<&'static [u8]>,
     /// String representation of `Infinity`.
-    inf_string: &'static [u8],
+    inf_string: Option<&'static [u8]>,
 }
 
 impl Options {
@@ -451,13 +471,13 @@ impl Options {
 
     /// Get the string representation for `NaN`.
     #[inline(always)]
-    pub const fn nan_string(&self) -> &'static [u8] {
+    pub const fn nan_string(&self) -> Option<&'static [u8]> {
         self.nan_string
     }
 
     /// Get the short string representation for `Infinity`.
     #[inline(always)]
-    pub const fn inf_string(&self) -> &'static [u8] {
+    pub const fn inf_string(&self) -> Option<&'static [u8]> {
         self.inf_string
     }
 
@@ -555,7 +575,7 @@ impl Options {
     ///
     /// Unsafe if `nan_string.len() > MAX_SPECIAL_STRING_LENGTH`.
     #[inline(always)]
-    pub unsafe fn set_nan_string(&mut self, nan_string: &'static [u8]) {
+    pub unsafe fn set_nan_string(&mut self, nan_string: Option<&'static [u8]>) {
         self.nan_string = nan_string
     }
 
@@ -566,7 +586,7 @@ impl Options {
     ///
     /// Unsafe if `nan_string.len() > MAX_SPECIAL_STRING_LENGTH`.
     #[inline(always)]
-    pub unsafe fn set_inf_string(&mut self, inf_string: &'static [u8]) {
+    pub unsafe fn set_inf_string(&mut self, inf_string: Option<&'static [u8]>) {
         self.inf_string = inf_string
     }
 
@@ -699,3 +719,17 @@ const fn unwrap_or_max_usize(option: OptionUsize) -> usize {
         None => usize::MAX,
     }
 }
+
+/// Unwrap `Option` as a const fn.
+#[inline(always)]
+const fn unwrap_str(option: Option<&'static [u8]>) -> &'static [u8] {
+    match option {
+        Some(x) => x,
+        None => &[],
+    }
+}
+
+// PRE-DEFINED CONSTANTS
+// ---------------------
+
+// TODO(ahuszagh) Implement...

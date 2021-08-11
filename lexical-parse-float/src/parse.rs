@@ -453,20 +453,28 @@ where
 
     let cursor = byte.cursor();
     let length = byte.length() - cursor;
-    if length >= options.nan_string().len() {
-        let count = is_special_eq::<FORMAT>(byte.clone(), options.nan_string());
-        if count != 0 {
-            return Some((F::NAN, count));
+    if let Some(nan_string) = options.nan_string() {
+        if length >= nan_string.len() {
+            let count = is_special_eq::<FORMAT>(byte.clone(), nan_string);
+            if count != 0 {
+                return Some((F::NAN, count));
+            }
         }
     }
-    if length >= options.inf_string().len() {
-        let count = is_special_eq::<FORMAT>(byte.clone(), options.infinity_string());
-        if count != 0 {
-            return Some((F::INFINITY, count));
+    if let Some(infinity_string) = options.infinity_string() {
+        if length >= infinity_string.len() {
+            let count = is_special_eq::<FORMAT>(byte.clone(), infinity_string);
+            if count != 0 {
+                return Some((F::INFINITY, count));
+            }
         }
-        let count = is_special_eq::<FORMAT>(byte.clone(), options.inf_string());
-        if count != 0 {
-            return Some((F::INFINITY, count));
+    }
+    if let Some(inf_string) = options.inf_string() {
+        if length >= inf_string.len() {
+            let count = is_special_eq::<FORMAT>(byte.clone(), inf_string);
+            if count != 0 {
+                return Some((F::INFINITY, count));
+            }
         }
     }
 

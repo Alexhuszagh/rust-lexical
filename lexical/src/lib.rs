@@ -120,7 +120,7 @@
 //! # }
 //! ```
 //!
-//! See the [NumberFormat](#numberformat) section below for more information.
+//! See the [Number Format](#number-format) section below for more information.
 //!
 //! ### power-of-two
 //!
@@ -160,15 +160,11 @@
 //!     formatting options.
 //! - The Options API.
 //!
-//! ## NumberFormat
+//! ## Number Format
 //!
 //! The number format class provides numerous flags to specify
-//! number parsing or writing, including:
-//! - The exponent character (default `b'e'`, or `b'^'`).
-//! - The decimal point character (default `b'.'`).
-//!
-//! When the `power-of-two` feature is enabled, additional flags are
-//! added:
+//! number parsing or writing. When the `power-of-two` feature is
+//! enabled, additional flags are added:
 //! - The radix for the significant digits (default `10`).
 //! - The radix for the exponent base (default `10`).
 //! - The radix for the exponent digits (default `10`).
@@ -190,6 +186,8 @@
 //! The Options API provides high-level options to specify number parsing
 //! or writing, options not intrinsically tied to a number format.
 //! For example, the Options API provides:
+//! - The exponent character (default `b'e'`, or `b'^'`).
+//! - The decimal point character (default `b'.'`).
 //! - Custom `NaN`, `Infinity` string representations.
 //! - Whether to trim the fraction component from integral floats.
 //! - The exponent break point for scientific notation.
@@ -202,6 +200,9 @@
 #![cfg_attr(feature = "parse-integers", doc = " - [`ParseIntegerOptions`]")]
 #![cfg_attr(feature = "write-floats", doc = " - [`WriteFloatOptions`]")]
 #![cfg_attr(feature = "write-integers", doc = " - [`WriteIntegerOptions`]")]
+//!
+//! In addition, pre-defined constants for each category of options may
+//! be found in their respective modules.
 //!
 //! ## Example
 //!
@@ -217,10 +218,12 @@
 //! // are periods.
 //! const EUROPEAN: u128 = lexical::NumberFormatBuilder::new()
 //!     .digit_separator(b'.')
+//!     .build()
+//!     .unwrap();
+//! let options = lexical_core::ParseFloatOptions::builder()
 //!     .decimal_point(b',')
 //!     .build()
 //!     .unwrap();
-//! let options = lexical::ParseFloatOptions::new();
 //! assert_eq!(
 //!     lexical::parse_with_options::<f32, EUROPEAN, _>("300,10", &options),
 //!     Ok(300.10)
@@ -289,20 +292,20 @@ pub use lexical_core::ParseOptions;
 pub use lexical_core::Result;
 #[cfg(feature = "write")]
 pub use lexical_core::WriteOptions;
+#[cfg(feature = "parse-floats")]
+pub use lexical_core::{parse_float_options, ParseFloatOptions, ParseFloatOptionsBuilder};
+#[cfg(feature = "parse-integers")]
+pub use lexical_core::{parse_integer_options, ParseIntegerOptions, ParseIntegerOptionsBuilder};
+#[cfg(feature = "write-floats")]
+pub use lexical_core::{write_float_options, WriteFloatOptions, WriteFloatOptionsBuilder};
+#[cfg(feature = "write-integers")]
+pub use lexical_core::{write_integer_options, WriteIntegerOptions, WriteIntegerOptionsBuilder};
 #[cfg(feature = "write")]
 pub use lexical_core::{FormattedSize, BUFFER_SIZE};
 #[cfg(feature = "parse")]
 pub use lexical_core::{FromLexical, FromLexicalWithOptions};
-#[cfg(feature = "parse-floats")]
-pub use lexical_core::{ParseFloatOptions, ParseFloatOptionsBuilder};
-#[cfg(feature = "parse-integers")]
-pub use lexical_core::{ParseIntegerOptions, ParseIntegerOptionsBuilder};
 #[cfg(feature = "write")]
 pub use lexical_core::{ToLexical, ToLexicalWithOptions};
-#[cfg(feature = "write-floats")]
-pub use lexical_core::{WriteFloatOptions, WriteFloatOptionsBuilder};
-#[cfg(feature = "write-integers")]
-pub use lexical_core::{WriteIntegerOptions, WriteIntegerOptionsBuilder};
 
 // HELPERS
 
@@ -391,23 +394,23 @@ pub fn to_string_with_options<N: ToLexicalWithOptions, const FORMAT: u128>(
 ///
 /// ```rust
 /// # extern crate lexical;
-/// # use lexical::ErrorCode;
+/// # use lexical::Error;
 /// # pub fn main() {
 /// // Create our error.
-/// fn err_code<T>(r: lexical::Result<T>) -> ErrorCode {
-///     r.err().unwrap().code
+/// fn error<T>(r: lexical::Result<T>) -> Error {
+///     r.err().unwrap()
 /// }
 ///
 /// // String overloads
 /// assert_eq!(lexical::parse::<i32, _>("5"), Ok(5));
-/// assert_eq!(err_code(lexical::parse::<i32, _>("1a")), ErrorCode::InvalidDigit);
+/// assert!(lexical::parse::<i32, _>("1a").err().unwrap().is_invalid_digit());
 /// assert_eq!(lexical::parse::<f32, _>("0"), Ok(0.0));
 /// assert_eq!(lexical::parse::<f32, _>("1.0"), Ok(1.0));
 /// assert_eq!(lexical::parse::<f32, _>("1."), Ok(1.0));
 ///
 /// // Bytes overloads
 /// assert_eq!(lexical::parse::<i32, _>(b"5"), Ok(5));
-/// assert_eq!(err_code(lexical::parse::<i32, _>(b"1a")), ErrorCode::InvalidDigit);
+/// assert!(lexical::parse::<f32, _>(b"1a").err().unwrap().is_invalid_digit());
 /// assert_eq!(lexical::parse::<f32, _>(b"0"), Ok(0.0));
 /// assert_eq!(lexical::parse::<f32, _>(b"1.0"), Ok(1.0));
 /// assert_eq!(lexical::parse::<f32, _>(b"1."), Ok(1.0));
@@ -435,7 +438,6 @@ pub fn parse<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result<N> {
 ///
 /// ```rust
 /// # extern crate lexical;
-/// # use lexical::ErrorCode;
 /// # pub fn main() {
 ///
 /// // String overloads
@@ -480,12 +482,12 @@ pub fn parse_partial<N: FromLexical, Bytes: AsRef<[u8]>>(bytes: Bytes) -> Result
 ///
 /// ```rust
 /// # pub fn main() {
-/// const FORMAT: u128 = lexical::NumberFormatBuilder::new()
+/// const FORMAT: u128 = lexical::format::STANDARD;
+/// let options = lexical::ParseFloatOptions::builder()
 ///     .exponent(b'^')
 ///     .decimal_point(b',')
-///     .build();
-///
-/// let options = lexical::ParseFloatOptions::new();
+///     .build()
+///     .unwrap();
 /// assert_eq!(lexical::parse_with_options::<f32, _, FORMAT>("0", &options), Ok(0.0));
 /// assert_eq!(lexical::parse_with_options::<f32, _, FORMAT>("1,2345", &options), Ok(1.2345));
 /// assert_eq!(lexical::parse_with_options::<f32, _, FORMAT>("1,2345^4", &options), Ok(12345.0));
@@ -522,12 +524,12 @@ pub fn parse_with_options<N: FromLexicalWithOptions, Bytes: AsRef<[u8]>, const F
 ///
 /// ```rust
 /// # pub fn main() {
-/// const FORMAT: u128 = lexical::NumberFormatBuilder::new()
+/// const FORMAT: u128 = lexical::format::STANDARD;
+/// let options = lexical::ParseFloatOptions::builder()
 ///     .exponent(b'^')
 ///     .decimal_point(b',')
-///     .build();
-///
-/// let options = lexical::ParseFloatOptions::new();
+///     .build()
+///     .unwrap();
 /// assert_eq!(lexical::parse_partial_with_options::<f32, _, FORMAT>("0", &options), Ok((0.0, 1)));
 /// assert_eq!(lexical::parse_partial_with_options::<f32, _, FORMAT>("1,2345", &options), Ok((1.2345, 6)));
 /// assert_eq!(lexical::parse_partial_with_options::<f32, _, FORMAT>("1,2345^4", &options), Ok((12345.0, 8)));

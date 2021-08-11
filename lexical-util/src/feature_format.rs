@@ -1239,7 +1239,8 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     }
 }
 
-// PRE-DEFINED CONSTANTS// PRE-DEFINED
+// PRE-DEFINED CONSTANTS
+// ---------------------
 //
 // Sample Format Shorthand:
 // ------------------------
@@ -2224,6 +2225,7 @@ pub const ELM_LITERAL: u128 = NumberFormatBuilder::new()
     .no_positive_mantissa_sign(true)
     .no_integer_leading_zeros(true)
     .no_float_leading_zeros(true)
+    .no_special(true)
     .build();
 
 const_assert!(NumberFormat::<{ ELM_LITERAL }> {}.is_valid());

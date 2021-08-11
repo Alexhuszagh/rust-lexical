@@ -1,11 +1,10 @@
 //! Configuration options for parsing floats.
 
-#![doc(hidden)]
-
 use lexical_util::ascii::{is_valid_ascii, is_valid_letter_slice};
 use lexical_util::error::Error;
-use lexical_util::options::ParseOptions;
+use lexical_util::options::{self, ParseOptions};
 use lexical_util::result::Result;
+use static_assertions::const_assert;
 
 /// Maximum length for a special string.
 const MAX_SPECIAL_STRING_LENGTH: usize = 50;
@@ -21,11 +20,11 @@ pub struct OptionsBuilder {
     /// Character to separate the integer from the fraction components.
     decimal_point: u8,
     /// String representation of Not A Number, aka `NaN`.
-    nan_string: &'static [u8],
+    nan_string: Option<&'static [u8]>,
     /// Short string representation of `Infinity`.
-    inf_string: &'static [u8],
+    inf_string: Option<&'static [u8]>,
     /// Long string representation of `Infinity`.
-    infinity_string: &'static [u8],
+    infinity_string: Option<&'static [u8]>,
 }
 
 impl OptionsBuilder {
@@ -36,9 +35,9 @@ impl OptionsBuilder {
             lossy: false,
             exponent: b'e',
             decimal_point: b'.',
-            nan_string: b"NaN",
-            inf_string: b"inf",
-            infinity_string: b"infinity",
+            nan_string: Some(b"NaN"),
+            inf_string: Some(b"inf"),
+            infinity_string: Some(b"infinity"),
         }
     }
 
@@ -64,19 +63,19 @@ impl OptionsBuilder {
 
     /// Get the string representation for `NaN`.
     #[inline(always)]
-    pub const fn get_nan_string(&self) -> &'static [u8] {
+    pub const fn get_nan_string(&self) -> Option<&'static [u8]> {
         self.nan_string
     }
 
     /// Get the short string representation for `Infinity`.
     #[inline(always)]
-    pub const fn get_inf_string(&self) -> &'static [u8] {
+    pub const fn get_inf_string(&self) -> Option<&'static [u8]> {
         self.inf_string
     }
 
     /// Get the long string representation for `Infinity`.
     #[inline(always)]
-    pub const fn get_infinity_string(&self) -> &'static [u8] {
+    pub const fn get_infinity_string(&self) -> Option<&'static [u8]> {
         self.infinity_string
     }
 
@@ -105,21 +104,21 @@ impl OptionsBuilder {
 
     /// Set the string representation for `NaN`.
     #[inline(always)]
-    pub const fn nan_string(mut self, nan_string: &'static [u8]) -> Self {
+    pub const fn nan_string(mut self, nan_string: Option<&'static [u8]>) -> Self {
         self.nan_string = nan_string;
         self
     }
 
     /// Set the short string representation for `Infinity`.
     #[inline(always)]
-    pub const fn inf_string(mut self, inf_string: &'static [u8]) -> Self {
+    pub const fn inf_string(mut self, inf_string: Option<&'static [u8]>) -> Self {
         self.inf_string = inf_string;
         self
     }
 
     /// Set the long string representation for `Infinity`.
     #[inline(always)]
-    pub const fn infinity_string(mut self, infinity_string: &'static [u8]) -> Self {
+    pub const fn infinity_string(mut self, infinity_string: Option<&'static [u8]>) -> Self {
         self.infinity_string = infinity_string;
         self
     }
@@ -130,11 +129,17 @@ impl OptionsBuilder {
     #[inline(always)]
     #[allow(clippy::if_same_then_else, clippy::needless_bool)]
     pub const fn nan_str_is_valid(&self) -> bool {
-        if self.nan_string.is_empty() || self.nan_string.len() > MAX_SPECIAL_STRING_LENGTH {
+        if self.nan_string.is_none() {
+            return true;
+        }
+
+        let nan = unwrap_str(self.nan_string);
+        let length = nan.len();
+        if length == 0 || length > MAX_SPECIAL_STRING_LENGTH {
             false
-        } else if !matches!(self.nan_string[0], b'N' | b'n') {
+        } else if !matches!(nan[0], b'N' | b'n') {
             false
-        } else if !is_valid_letter_slice(self.nan_string) {
+        } else if !is_valid_letter_slice(nan) {
             false
         } else {
             true
@@ -145,14 +150,22 @@ impl OptionsBuilder {
     #[inline(always)]
     #[allow(clippy::if_same_then_else, clippy::needless_bool)]
     pub const fn inf_str_is_valid(&self) -> bool {
-        let length = self.inf_string.len();
-        if self.inf_string.is_empty() || length > MAX_SPECIAL_STRING_LENGTH {
+        if self.infinity_string.is_none() && self.inf_string.is_some() {
+            return false;
+        } else if self.inf_string.is_none() {
+            return true;
+        }
+
+        let inf = unwrap_str(self.inf_string);
+        let length = inf.len();
+        let infinity = unwrap_str(self.infinity_string);
+        if length == 0 || length > MAX_SPECIAL_STRING_LENGTH {
             false
-        } else if !matches!(self.inf_string[0], b'I' | b'i') {
+        } else if !matches!(inf[0], b'I' | b'i') {
             false
-        } else if length > self.infinity_string.len() {
+        } else if length > infinity.len() {
             false
-        } else if !is_valid_letter_slice(self.infinity_string) {
+        } else if !is_valid_letter_slice(inf) {
             false
         } else {
             true
@@ -163,14 +176,21 @@ impl OptionsBuilder {
     #[inline(always)]
     #[allow(clippy::if_same_then_else, clippy::needless_bool)]
     pub const fn infinity_string_is_valid(&self) -> bool {
-        let length = self.infinity_string.len();
-        if self.infinity_string.is_empty() || length > MAX_SPECIAL_STRING_LENGTH {
+        if self.infinity_string.is_none() && self.inf_string.is_some() {
+            return false;
+        } else if self.infinity_string.is_none() {
+            return true;
+        }
+        let inf = unwrap_str(self.inf_string);
+        let infinity = unwrap_str(self.infinity_string);
+        let length = infinity.len();
+        if length == 0 || length > MAX_SPECIAL_STRING_LENGTH {
             false
-        } else if !matches!(self.infinity_string[0], b'I' | b'i') {
+        } else if !matches!(infinity[0], b'I' | b'i') {
             false
-        } else if length < self.inf_string.len() {
+        } else if length < inf.len() {
             false
-        } else if !is_valid_letter_slice(self.inf_string) {
+        } else if !is_valid_letter_slice(infinity) {
             false
         } else {
             true
@@ -219,37 +239,54 @@ impl OptionsBuilder {
     #[inline(always)]
     #[allow(clippy::if_same_then_else)]
     pub const fn build(&self) -> Result<Options> {
-        let nan_length = self.nan_string.len();
-        let inf_length = self.inf_string.len();
-        let infinity_length = self.infinity_string.len();
-        if nan_length == 0 || !matches!(self.nan_string[0], b'N' | b'n') {
-            Err(Error::InvalidNanString)
-        } else if !is_valid_letter_slice(self.nan_string) {
-            Err(Error::InvalidNanString)
-        } else if nan_length > MAX_SPECIAL_STRING_LENGTH {
-            Err(Error::NanStringTooLong)
-        } else if inf_length == 0 || !matches!(self.inf_string[0], b'I' | b'i') {
-            Err(Error::InvalidInfString)
-        } else if !is_valid_letter_slice(self.inf_string) {
-            Err(Error::InvalidInfString)
-        } else if inf_length > MAX_SPECIAL_STRING_LENGTH {
-            Err(Error::InfStringTooLong)
-        } else if infinity_length == 0 || !matches!(self.infinity_string[0], b'I' | b'i') {
-            Err(Error::InvalidInfinityString)
-        } else if !is_valid_letter_slice(self.infinity_string) {
-            Err(Error::InvalidInfinityString)
-        } else if infinity_length > MAX_SPECIAL_STRING_LENGTH {
-            Err(Error::InfinityStringTooLong)
-        } else if infinity_length < inf_length {
-            Err(Error::InfinityStringTooShort)
-        } else if !is_valid_ascii(self.exponent) {
-            Err(Error::InvalidExponentSymbol)
+        if !is_valid_ascii(self.exponent) {
+            return Err(Error::InvalidExponentSymbol);
         } else if !is_valid_ascii(self.decimal_point) {
-            Err(Error::InvalidDecimalPoint)
-        } else {
-            // SAFETY: always safe, since it must be valid.
-            Ok(unsafe { self.build_unchecked() })
+            return Err(Error::InvalidDecimalPoint);
         }
+
+        if self.nan_string.is_some() {
+            let nan = unwrap_str(self.nan_string);
+            if nan.is_empty() || !matches!(nan[0], b'N' | b'n') {
+                return Err(Error::InvalidNanString);
+            } else if !is_valid_letter_slice(nan) {
+                return Err(Error::InvalidNanString);
+            } else if nan.len() > MAX_SPECIAL_STRING_LENGTH {
+                return Err(Error::NanStringTooLong);
+            }
+        }
+
+        if self.inf_string.is_some() && self.infinity_string.is_none() {
+            return Err(Error::InfinityStringTooShort);
+        }
+
+        if self.inf_string.is_some() {
+            let inf = unwrap_str(self.inf_string);
+            if inf.is_empty() || !matches!(inf[0], b'I' | b'i') {
+                return Err(Error::InvalidInfString);
+            } else if !is_valid_letter_slice(inf) {
+                return Err(Error::InvalidInfString);
+            } else if inf.len() > MAX_SPECIAL_STRING_LENGTH {
+                return Err(Error::InfStringTooLong);
+            }
+        }
+
+        if self.infinity_string.is_some() {
+            let inf = unwrap_str(self.inf_string);
+            let infinity = unwrap_str(self.infinity_string);
+            if infinity.is_empty() || !matches!(infinity[0], b'I' | b'i') {
+                return Err(Error::InvalidInfinityString);
+            } else if !is_valid_letter_slice(infinity) {
+                return Err(Error::InvalidInfinityString);
+            } else if infinity.len() > MAX_SPECIAL_STRING_LENGTH {
+                return Err(Error::InfinityStringTooLong);
+            } else if infinity.len() < inf.len() {
+                return Err(Error::InfinityStringTooShort);
+            }
+        }
+
+        // SAFETY: always safe, since it must be valid.
+        Ok(unsafe { self.build_unchecked() })
     }
 }
 
@@ -260,6 +297,24 @@ impl Default for OptionsBuilder {
     }
 }
 
+/// Options to customize parsing floats.
+///
+/// # Examples
+///
+/// ```rust
+/// # extern crate lexical_core;
+/// use lexical_core::ParseFloatOptions;
+///
+/// # pub fn main() {
+/// let options = Options::builder()
+///     .lossy(true)
+///     .nan_string(Some(b"NaN"))
+///     .inf_string(Some(b"Inf"))
+///     .infinity_string(Some(b"Infinity"))
+///     .build()
+///     .unwrap();
+/// # }
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Options {
     /// Disable the use of arbitrary-precision arithmetic, and always
@@ -270,11 +325,11 @@ pub struct Options {
     /// Character to separate the integer from the fraction components.
     decimal_point: u8,
     /// String representation of Not A Number, aka `NaN`.
-    nan_string: &'static [u8],
+    nan_string: Option<&'static [u8]>,
     /// Short string representation of `Infinity`.
-    inf_string: &'static [u8],
+    inf_string: Option<&'static [u8]>,
     /// Long string representation of `Infinity`.
-    infinity_string: &'static [u8],
+    infinity_string: Option<&'static [u8]>,
 }
 
 impl Options {
@@ -315,19 +370,19 @@ impl Options {
 
     /// Get the string representation for `NaN`.
     #[inline(always)]
-    pub const fn nan_string(&self) -> &'static [u8] {
+    pub const fn nan_string(&self) -> Option<&'static [u8]> {
         self.nan_string
     }
 
     /// Get the short string representation for `Infinity`.
     #[inline(always)]
-    pub const fn inf_string(&self) -> &'static [u8] {
+    pub const fn inf_string(&self) -> Option<&'static [u8]> {
         self.inf_string
     }
 
     /// Get the long string representation for `Infinity`.
     #[inline(always)]
-    pub const fn infinity_string(&self) -> &'static [u8] {
+    pub const fn infinity_string(&self) -> Option<&'static [u8]> {
         self.infinity_string
     }
 
@@ -372,7 +427,7 @@ impl Options {
     ///
     /// Unsafe if `nan_string.len() > MAX_SPECIAL_STRING_LENGTH`.
     #[inline(always)]
-    pub unsafe fn set_nan_string(&mut self, nan_string: &'static [u8]) {
+    pub unsafe fn set_nan_string(&mut self, nan_string: Option<&'static [u8]>) {
         self.nan_string = nan_string
     }
 
@@ -383,7 +438,7 @@ impl Options {
     ///
     /// Unsafe if `inf_string.len() > MAX_SPECIAL_STRING_LENGTH`.
     #[inline(always)]
-    pub unsafe fn set_inf_string(&mut self, inf_string: &'static [u8]) {
+    pub unsafe fn set_inf_string(&mut self, inf_string: Option<&'static [u8]>) {
         self.inf_string = inf_string
     }
 
@@ -394,7 +449,7 @@ impl Options {
     ///
     /// Unsafe if `infinity_string.len() > MAX_SPECIAL_STRING_LENGTH`.
     #[inline(always)]
-    pub unsafe fn set_infinity_string(&mut self, infinity_string: &'static [u8]) {
+    pub unsafe fn set_infinity_string(&mut self, infinity_string: Option<&'static [u8]>) {
         self.infinity_string = infinity_string
     }
 
@@ -433,3 +488,75 @@ impl ParseOptions for Options {
         Self::is_valid(self)
     }
 }
+
+/// Unwrap `Option` as a const fn.
+#[inline(always)]
+const fn unwrap_str(option: Option<&'static [u8]>) -> &'static [u8] {
+    match option {
+        Some(x) => x,
+        None => &[],
+    }
+}
+
+// PRE-DEFINED CONSTANTS
+// ---------------------
+
+// Only constants that differ from the standard version are included.
+
+/// Standard number format.
+#[rustfmt::skip]
+pub const STANDARD: Options = Options::new();
+const_assert!(STANDARD.is_valid());
+
+/// Numerical format with a decimal comma.
+/// This is the standard numerical format for most of the world.
+#[rustfmt::skip]
+pub const DECIMAL_COMMA: Options = unsafe {
+    Options::builder()
+        .decimal_point(b',')
+        .build_unchecked()
+};
+const_assert!(DECIMAL_COMMA.is_valid());
+
+/// Numerical format for hexadecimal floats, which use a `p` exponent.
+#[rustfmt::skip]
+pub const HEX_FLOAT: Options = unsafe {
+    Options::builder()
+        .exponent(b'p')
+        .build_unchecked()
+};
+const_assert!(HEX_FLOAT.is_valid());
+
+/// Numerical format where `^` is used as the exponent notation character.
+/// This isn't very common, but is useful when `e` or `p` are valid digits.
+#[rustfmt::skip]
+pub const CARAT_EXPONENT: Options = unsafe {
+    Options::builder()
+        .exponent(b'^')
+        .build_unchecked()
+};
+const_assert!(CARAT_EXPONENT.is_valid());
+
+// TODO(ahuszagh) Add a lot more...
+
+/// Number format for a Javascript literal floating-point number.
+#[rustfmt::skip]
+pub const JAVASCRIPT_LITERAL: Options = unsafe {
+    Options::builder()
+        .inf_string(options::JAVASCRIPT_INF)
+        .infinity_string(options::JAVASCRIPT_INFINITY)
+        .build_unchecked()
+};
+const_assert!(JAVASCRIPT_LITERAL.is_valid());
+
+/// Number format to parse a Javascript float from string.
+#[rustfmt::skip]
+pub const JAVASCRIPT_STRING: Options = unsafe {
+    Options::builder()
+        .inf_string(options::JAVASCRIPT_INF)
+        .infinity_string(options::JAVASCRIPT_INFINITY)
+        .build_unchecked()
+};
+const_assert!(JAVASCRIPT_STRING.is_valid());
+
+// TODO(ahuszagh) Add a few languages...

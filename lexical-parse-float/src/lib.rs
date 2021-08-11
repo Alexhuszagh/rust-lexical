@@ -56,6 +56,7 @@ mod table_radix;
 
 // Re-exports
 pub use self::api::{FromLexical, FromLexicalWithOptions};
+#[doc(inline)]
 pub use self::options::{Options, OptionsBuilder};
 pub use lexical_util::error::Error;
 pub use lexical_util::format::{self, NumberFormatBuilder};

@@ -202,6 +202,12 @@ macro_rules! to_lexical_with_options {
             ///
             /// # Panics
             ///
+            /// **Floats Only**
+            ///
+            /// These panics are only when using uncommon features for float
+            /// writing, represent configuration errors, so runtime error
+            /// handling is not provided.
+            ///
             /// Panics if the provided number format is invalid, or if the
             /// mantissa radix is not equal to the exponent base
             /// and the mantissa radix/exponent base combinations are
@@ -212,6 +218,9 @@ macro_rules! to_lexical_with_options {
             /// - `16, 2`
             /// - `32, 2`
             /// - `16, 4`
+            ///
+            /// Panics as well if the NaN or Inf string provided to the writer
+            /// is disabled, but the value provided is NaN or Inf, respectively.
             ///
             /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
             unsafe fn to_lexical_with_options_unchecked<'a, const FORMAT: u128>(
@@ -237,6 +246,12 @@ macro_rules! to_lexical_with_options {
             /// the function will not panic, ensure the buffer has at least
             /// [`FORMATTED_SIZE`] elements.
             ///
+            /// **Floats Only**
+            ///
+            /// These panics are only when using uncommon features for float
+            /// writing, represent configuration errors, so runtime error
+            /// handling is not provided.
+            ///
             /// Also panics if the provided number format is invalid, or
             /// if the mantissa radix is not equal to the exponent base
             /// and the mantissa radix/exponent base combinations are
@@ -247,6 +262,9 @@ macro_rules! to_lexical_with_options {
             /// - `16, 2`
             /// - `32, 2`
             /// - `16, 4`
+            ///
+            /// Panics as well if the NaN or Inf string provided to the writer
+            /// is disabled, but the value provided is NaN or Inf, respectively.
             ///
             /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
             fn to_lexical_with_options<'a, const FORMAT: u128>(

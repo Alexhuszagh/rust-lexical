@@ -1,4 +1,3 @@
-#[cfg(feature = "format")]
 use lexical_util::format::{NumberFormat, NumberFormatBuilder};
 
 #[test]
