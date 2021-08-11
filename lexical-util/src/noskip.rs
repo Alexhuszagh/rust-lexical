@@ -117,6 +117,26 @@ impl<'a, const __: u128> Bytes<'a, __> {
         }
     }
 
+    /// Check if the next element is a given value.
+    #[inline]
+    pub fn first_is(&mut self, value: u8) -> bool {
+        if let Some(&c) = self.slc.get(self.index) {
+            c == value
+        } else {
+            false
+        }
+    }
+
+    /// Check if the next element is a given value without case sensitivity.
+    #[inline]
+    pub fn case_insensitive_first_is(&mut self, value: u8) -> bool {
+        if let Some(&c) = self.slc.get(self.index) {
+            c.to_ascii_lowercase() == value.to_ascii_lowercase()
+        } else {
+            false
+        }
+    }
+
     /// Get iterator over integer digits.
     #[inline]
     pub fn integer_iter<'b>(&'b mut self) -> BytesIterator<'a, 'b, __> {

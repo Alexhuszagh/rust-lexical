@@ -83,8 +83,8 @@ where
     let format = NumberFormat::<{ FORMAT }> {};
     let bits_per_digit = fast_log2(format.mantissa_radix());
     let bits_per_base = fast_log2(format.exponent_base());
-    let decimal_point = format.decimal_point();
-    let exponent_character = format.exponent();
+    let decimal_point = options.decimal_point();
+    let exponent_character = options.exponent();
 
     // Write our value, then trim trailing zeros, before we check the exact
     // bounds of the digits, to avoid accidentally choosing too many digits.

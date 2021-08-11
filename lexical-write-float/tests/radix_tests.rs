@@ -180,7 +180,12 @@ macro_rules! test_radix {
     ($parse:ident, $f:ident, $radix:expr, $buffer:ident, $options:ident) => {{
         const FORMAT: u128 = NumberFormatBuilder::from_radix($radix);
         let format = NumberFormat::<FORMAT> {};
-        let count = unsafe { radix::write_float::<_, FORMAT>($f, &mut $buffer, &$options) };
+        let options = if $radix >= 15 {
+            $options.rebuild().exponent(b'^').build().unwrap()
+        } else {
+            $options.clone()
+        };
+        let count = unsafe { radix::write_float::<_, FORMAT>($f, &mut $buffer, &options) };
         let roundtrip = $parse(&$buffer[..count], $radix, format.exponent());
         assert_relative_eq!($f, roundtrip, epsilon = 1e-6, max_relative = 3e-6);
     }};

@@ -42,6 +42,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod algorithm;
+pub mod ascii;
 pub mod assert;
 pub mod constants;
 pub mod digit;

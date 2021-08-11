@@ -691,9 +691,19 @@ pub const fn radix_from_flags(format: u128, mask: u128, shift: i32) -> u32 {
 
 /// Determine if an optional control character is valid.
 #[inline]
-const fn is_valid_optional_control(format: u128, value: u8) -> bool {
+const fn is_valid_optional_control_radix(radix: u32, value: u8) -> bool {
+    // Validate the character isn't a digit or sign character, and is valid ASCII.
+    use crate::ascii::is_valid_ascii;
     use crate::digit::char_is_digit_const;
+    !char_is_digit_const(value, radix) &&
+        value != b'+' &&
+        value != b'-' &&
+        (is_valid_ascii(value) || value == 0)
+}
 
+/// Determine if an optional control character is valid.
+#[inline]
+const fn is_valid_optional_control(format: u128, value: u8) -> bool {
     // Need to get the larger of the two radix values, since these
     // will be the characters that define the valid digits.
     // const fn doesn't support max as of 1.55 nightly.
@@ -704,13 +714,7 @@ const fn is_valid_optional_control(format: u128, value: u8) -> bool {
     } else {
         eradix
     };
-
-    // Validate the digit separator isn't a digit or sign character,
-    // and is valid ASCII, and the format feature is enabled.
-    !char_is_digit_const(value, radix) &&
-        value != b'+' &&
-        value != b'-' &&
-        value.is_ascii()
+    is_valid_optional_control_radix(radix, value)
 }
 
 /// Determine if an control character is valid.
@@ -805,6 +809,35 @@ pub const fn is_valid_punctuation(format: u128) -> bool {
             // Can't have more than 1 0, check they're all different.
             (x, y, z) => x != y && x != z && y != z,
         }
+    }
+}
+
+/// Determine if all of the "punctuation" characters for the options API are valid.
+#[inline]
+#[allow(clippy::if_same_then_else, clippy::needless_bool)]
+pub const fn is_valid_options_punctuation(format: u128, exponent: u8, decimal_point: u8) -> bool {
+    // All the checks against optional characters with mandatory are fine:
+    // if they're not 0, then they can't overlap, and mandatory can't be 0.
+    if !is_valid_control(format, decimal_point) || !is_valid_control(format, exponent) {
+        // Must be in the valid range.
+        false
+    } else if decimal_point == exponent {
+        // Can't have overlapping characters.
+        false
+    } else if cfg!(feature = "format") && digit_separator(format) == decimal_point {
+        false
+    } else if cfg!(feature = "format") && digit_separator(format) == exponent {
+        false
+    } else if cfg!(feature = "format") && base_prefix(format) == decimal_point {
+        false
+    } else if cfg!(feature = "format") && base_prefix(format) == exponent {
+        false
+    } else if cfg!(feature = "format") && base_suffix(format) == decimal_point {
+        false
+    } else if cfg!(feature = "format") && base_suffix(format) == exponent {
+        false
+    } else {
+        true
     }
 }
 

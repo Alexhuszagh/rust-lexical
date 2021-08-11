@@ -480,8 +480,8 @@ where
     // Config options
     let format = NumberFormat::<{ FORMAT }> {};
     let bits_per_digit = fast_log2(format.mantissa_radix());
-    let decimal_point = format.decimal_point();
-    let exponent_character = format.exponent();
+    let decimal_point = options.decimal_point();
+    let exponent_character = options.exponent();
 
     // Validate our options: we don't support different exponent bases here.
     debug_assert!(format.mantissa_radix() == format.exponent_base());
@@ -589,7 +589,7 @@ where
     // Config options
     let format = NumberFormat::<{ FORMAT }> {};
     let bits_per_digit = fast_log2(format.mantissa_radix());
-    let decimal_point = format.decimal_point();
+    let decimal_point = options.decimal_point();
 
     // The number of 0 bits we need to pad left (reducing the
     // exponent) is just the negative scientific exponent.
@@ -666,7 +666,7 @@ where
     // Config options
     let format = NumberFormat::<{ FORMAT }> {};
     let bits_per_digit = fast_log2(format.mantissa_radix());
-    let decimal_point = format.decimal_point();
+    let decimal_point = options.decimal_point();
 
     // Write our value, then trim trailing zeros, before we check the exact
     // bounds of the digits, to avoid accidentally choosing too many digits.

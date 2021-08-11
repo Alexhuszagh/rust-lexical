@@ -32,6 +32,7 @@ const BASE16_4_10: u128 = NumberFormatBuilder::new()
     .exponent_base(num::NonZeroU8::new(4))
     .exponent_radix(num::NonZeroU8::new(10))
     .build();
+const HEX_OPTIONS: Options = unsafe { Options::builder().exponent(b'^').build_unchecked() };
 
 // NOTE: This doesn't handle float rounding or truncation.
 // It assumes this has already been done.
@@ -175,165 +176,173 @@ fn write_float_scientific_test() {
     );
 
     // Check no formatting, base16/2.
-    write_float_scientific::<_, BASE16_2_10>(0.0f64, &options, "0.0e0");
-    write_float_scientific::<_, BASE16_2_10>(1.0f64, &options, "1.0e0");
-    write_float_scientific::<_, BASE16_2_10>(2.0f64, &options, "2.0e0");
-    write_float_scientific::<_, BASE16_2_10>(0.5f64, &options, "8.0e-4");
+    write_float_scientific::<_, BASE16_2_10>(0.0f64, &HEX_OPTIONS, "0.0^0");
+    write_float_scientific::<_, BASE16_2_10>(1.0f64, &HEX_OPTIONS, "1.0^0");
+    write_float_scientific::<_, BASE16_2_10>(2.0f64, &HEX_OPTIONS, "2.0^0");
+    write_float_scientific::<_, BASE16_2_10>(0.5f64, &HEX_OPTIONS, "8.0^-4");
     write_float_scientific::<_, BASE16_2_10>(
         0.2345678901234567890e20f64,
-        &options,
-        "1.45874153CC267e64",
+        &HEX_OPTIONS,
+        "1.45874153CC267^64",
     );
     write_float_scientific::<_, BASE16_2_10>(
         0.1172839450617284e20f64,
-        &options,
-        "A.2C3A0A9E61338e60",
+        &HEX_OPTIONS,
+        "A.2C3A0A9E61338^60",
     );
     write_float_scientific::<_, BASE16_2_10>(
         0.0586419725308642e20f64,
-        &options,
-        "5.161D054F3099Ce60",
+        &HEX_OPTIONS,
+        "5.161D054F3099C^60",
     );
     write_float_scientific::<_, BASE16_2_10>(
         0.0293209862654321e20f64,
-        &options,
-        "2.8B0E82A7984CEe60",
+        &HEX_OPTIONS,
+        "2.8B0E82A7984CE^60",
     );
     write_float_scientific::<_, BASE16_2_10>(
         0.01466049313271605e20f64,
-        &options,
-        "1.45874153CC267e60",
+        &HEX_OPTIONS,
+        "1.45874153CC267^60",
     );
 
     write_float_scientific::<_, BASE16_2_10>(
         0.2345678901234567890e-20f64,
-        &options,
-        "B.13C075317BAC8e-72",
+        &HEX_OPTIONS,
+        "B.13C075317BAC8^-72",
     );
     write_float_scientific::<_, BASE16_2_10>(
         0.1172839450617284e-20f64,
-        &options,
-        "5.89E03A98BDD64e-72",
+        &HEX_OPTIONS,
+        "5.89E03A98BDD64^-72",
     );
     write_float_scientific::<_, BASE16_2_10>(
         0.0586419725308642e-20f64,
-        &options,
-        "2.C4F01D4C5EEB2e-72",
+        &HEX_OPTIONS,
+        "2.C4F01D4C5EEB2^-72",
     );
     write_float_scientific::<_, BASE16_2_10>(
         0.0293209862654321e-20f64,
-        &options,
-        "1.62780EA62F759e-72",
+        &HEX_OPTIONS,
+        "1.62780EA62F759^-72",
     );
     write_float_scientific::<_, BASE16_2_10>(
         0.01466049313271605e-20f64,
-        &options,
-        "B.13C075317BAC8e-76",
+        &HEX_OPTIONS,
+        "B.13C075317BAC8^-76",
     );
 
     // Check no formatting, base32/2.
-    write_float_scientific::<_, BASE32_2_10>(0.0f64, &options, "0.0e0");
-    write_float_scientific::<_, BASE32_2_10>(1.0f64, &options, "1.0e0");
-    write_float_scientific::<_, BASE32_2_10>(2.0f64, &options, "2.0e0");
-    write_float_scientific::<_, BASE32_2_10>(0.5f64, &options, "G.0e-5");
+    write_float_scientific::<_, BASE32_2_10>(0.0f64, &HEX_OPTIONS, "0.0^0");
+    write_float_scientific::<_, BASE32_2_10>(1.0f64, &HEX_OPTIONS, "1.0^0");
+    write_float_scientific::<_, BASE32_2_10>(2.0f64, &HEX_OPTIONS, "2.0^0");
+    write_float_scientific::<_, BASE32_2_10>(0.5f64, &HEX_OPTIONS, "G.0^-5");
     write_float_scientific::<_, BASE32_2_10>(
         0.2345678901234567890e20f64,
-        &options,
-        "K.B1Q1AF62CSe60",
+        &HEX_OPTIONS,
+        "K.B1Q1AF62CS^60",
     );
-    write_float_scientific::<_, BASE32_2_10>(0.1172839450617284e20f64, &options, "A.5GT0L7J16Ee60");
-    write_float_scientific::<_, BASE32_2_10>(0.0586419725308642e20f64, &options, "5.2OEGAJPGJ7e60");
+    write_float_scientific::<_, BASE32_2_10>(
+        0.1172839450617284e20f64,
+        &HEX_OPTIONS,
+        "A.5GT0L7J16E^60",
+    );
+    write_float_scientific::<_, BASE32_2_10>(
+        0.0586419725308642e20f64,
+        &HEX_OPTIONS,
+        "5.2OEGAJPGJ7^60",
+    );
     write_float_scientific::<_, BASE32_2_10>(
         0.0293209862654321e20f64,
-        &options,
-        "2.HC7859SO9JGe60",
+        &HEX_OPTIONS,
+        "2.HC7859SO9JG^60",
     );
     write_float_scientific::<_, BASE32_2_10>(
         0.01466049313271605e20f64,
-        &options,
-        "1.8M3K2KUC4POe60",
+        &HEX_OPTIONS,
+        "1.8M3K2KUC4PO^60",
     );
 
     write_float_scientific::<_, BASE32_2_10>(
         0.2345678901234567890e-20f64,
-        &options,
-        "2.OJO1QJ2UTCGe-70",
+        &HEX_OPTIONS,
+        "2.OJO1QJ2UTCG^-70",
     );
     write_float_scientific::<_, BASE32_2_10>(
         0.1172839450617284e-20f64,
-        &options,
-        "1.C9S0T9HFEM8e-70",
+        &HEX_OPTIONS,
+        "1.C9S0T9HFEM8^-70",
     );
     write_float_scientific::<_, BASE32_2_10>(
         0.0586419725308642e-20f64,
-        &options,
-        "M.4U0EKONNB4e-75",
+        &HEX_OPTIONS,
+        "M.4U0EKONNB4^-75",
     );
     write_float_scientific::<_, BASE32_2_10>(
         0.0293209862654321e-20f64,
-        &options,
-        "B.2F07ACBRLIe-75",
+        &HEX_OPTIONS,
+        "B.2F07ACBRLI^-75",
     );
     write_float_scientific::<_, BASE32_2_10>(
         0.01466049313271605e-20f64,
-        &options,
-        "5.H7G3L65TQPe-75",
+        &HEX_OPTIONS,
+        "5.H7G3L65TQP^-75",
     );
 
     // Check no formatting, base16/4.
-    write_float_scientific::<_, BASE16_4_10>(0.0f64, &options, "0.0e0");
-    write_float_scientific::<_, BASE16_4_10>(1.0f64, &options, "1.0e0");
-    write_float_scientific::<_, BASE16_4_10>(2.0f64, &options, "2.0e0");
-    write_float_scientific::<_, BASE16_4_10>(0.5f64, &options, "8.0e-2");
+    write_float_scientific::<_, BASE16_4_10>(0.0f64, &HEX_OPTIONS, "0.0^0");
+    write_float_scientific::<_, BASE16_4_10>(1.0f64, &HEX_OPTIONS, "1.0^0");
+    write_float_scientific::<_, BASE16_4_10>(2.0f64, &HEX_OPTIONS, "2.0^0");
+    write_float_scientific::<_, BASE16_4_10>(0.5f64, &HEX_OPTIONS, "8.0^-2");
     write_float_scientific::<_, BASE16_4_10>(
         0.2345678901234567890e20f64,
-        &options,
-        "1.45874153CC267e32",
+        &HEX_OPTIONS,
+        "1.45874153CC267^32",
     );
     write_float_scientific::<_, BASE16_4_10>(
         0.1172839450617284e20f64,
-        &options,
-        "A.2C3A0A9E61338e30",
+        &HEX_OPTIONS,
+        "A.2C3A0A9E61338^30",
     );
     write_float_scientific::<_, BASE16_4_10>(
         0.0586419725308642e20f64,
-        &options,
-        "5.161D054F3099Ce30",
+        &HEX_OPTIONS,
+        "5.161D054F3099C^30",
     );
     write_float_scientific::<_, BASE16_4_10>(
         0.0293209862654321e20f64,
-        &options,
-        "2.8B0E82A7984CEe30",
+        &HEX_OPTIONS,
+        "2.8B0E82A7984CE^30",
     );
     write_float_scientific::<_, BASE16_4_10>(
         0.01466049313271605e20f64,
-        &options,
-        "1.45874153CC267e30",
+        &HEX_OPTIONS,
+        "1.45874153CC267^30",
     );
 
     write_float_scientific::<_, BASE16_4_10>(
         0.2345678901234567890e-20f64,
-        &options,
-        "B.13C075317BAC8e-36",
+        &HEX_OPTIONS,
+        "B.13C075317BAC8^-36",
     );
     write_float_scientific::<_, BASE16_4_10>(
         0.1172839450617284e-20f64,
-        &options,
-        "5.89E03A98BDD64e-36",
+        &HEX_OPTIONS,
+        "5.89E03A98BDD64^-36",
     );
     write_float_scientific::<_, BASE16_4_10>(
         0.0586419725308642e-20f64,
-        &options,
-        "2.C4F01D4C5EEB2e-36",
+        &HEX_OPTIONS,
+        "2.C4F01D4C5EEB2^-36",
     );
     write_float_scientific::<_, BASE16_4_10>(
         0.0293209862654321e-20f64,
-        &options,
-        "1.62780EA62F759e-36",
+        &HEX_OPTIONS,
+        "1.62780EA62F759^-36",
     );
     write_float_scientific::<_, BASE16_4_10>(
         0.01466049313271605e-20f64,
-        &options,
-        "B.13C075317BAC8e-38",
+        &HEX_OPTIONS,
+        "B.13C075317BAC8^-38",
     );
 }

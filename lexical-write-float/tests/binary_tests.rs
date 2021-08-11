@@ -44,6 +44,7 @@ const BASE32_2_32: u128 = NumberFormatBuilder::new()
     .exponent_base(num::NonZeroU8::new(2))
     .exponent_radix(num::NonZeroU8::new(32))
     .build();
+const HEX_OPTIONS: Options = unsafe { Options::builder().exponent(b'^').build_unchecked() };
 
 #[test]
 fn fast_log2_test() {
@@ -266,26 +267,26 @@ fn write_float_scientific_test() {
     write_float_scientific::<_, OCTAL>(0.01466049313271605e2f64, &options, "1.35647401775514462e0");
 
     // Check no formatting, hexadecimal.
-    write_float_scientific::<_, HEX>(0.0f64, &options, "0.0^0");
-    write_float_scientific::<_, HEX>(1.0f64, &options, "1.0^0");
-    write_float_scientific::<_, HEX>(2.0f64, &options, "2.0^0");
-    write_float_scientific::<_, HEX>(0.5f64, &options, "8.0^-1");
-    write_float_scientific::<_, HEX>(0.2345678901234567890e2f64, &options, "1.774F01FED3264^1");
-    write_float_scientific::<_, HEX>(0.1172839450617284e2f64, &options, "B.BA780FF69932^0");
-    write_float_scientific::<_, HEX>(0.0586419725308642e2f64, &options, "5.DD3C07FB4C99^0");
-    write_float_scientific::<_, HEX>(0.0293209862654321e2f64, &options, "2.EE9E03FDA64C8^0");
-    write_float_scientific::<_, HEX>(0.01466049313271605e2f64, &options, "1.774F01FED3264^0");
+    write_float_scientific::<_, HEX>(0.0f64, &HEX_OPTIONS, "0.0^0");
+    write_float_scientific::<_, HEX>(1.0f64, &HEX_OPTIONS, "1.0^0");
+    write_float_scientific::<_, HEX>(2.0f64, &HEX_OPTIONS, "2.0^0");
+    write_float_scientific::<_, HEX>(0.5f64, &HEX_OPTIONS, "8.0^-1");
+    write_float_scientific::<_, HEX>(0.2345678901234567890e2f64, &HEX_OPTIONS, "1.774F01FED3264^1");
+    write_float_scientific::<_, HEX>(0.1172839450617284e2f64, &HEX_OPTIONS, "B.BA780FF69932^0");
+    write_float_scientific::<_, HEX>(0.0586419725308642e2f64, &HEX_OPTIONS, "5.DD3C07FB4C99^0");
+    write_float_scientific::<_, HEX>(0.0293209862654321e2f64, &HEX_OPTIONS, "2.EE9E03FDA64C8^0");
+    write_float_scientific::<_, HEX>(0.01466049313271605e2f64, &HEX_OPTIONS, "1.774F01FED3264^0");
 
     // Check no formatting, base 32.
-    write_float_scientific::<_, BASE32>(0.0f64, &options, "0.0^0");
-    write_float_scientific::<_, BASE32>(1.0f64, &options, "1.0^0");
-    write_float_scientific::<_, BASE32>(2.0f64, &options, "2.0^0");
-    write_float_scientific::<_, BASE32>(0.5f64, &options, "G.0^-1");
-    write_float_scientific::<_, BASE32>(0.2345678901234567890e2f64, &options, "N.EJO1VR9ICG^0");
-    write_float_scientific::<_, BASE32>(0.1172839450617284e2f64, &options, "B.N9S0VTKP68^0");
-    write_float_scientific::<_, BASE32>(0.0586419725308642e2f64, &options, "5.RKU0FUQCJ4^0");
-    write_float_scientific::<_, BASE32>(0.0293209862654321e2f64, &options, "2.TQF07VD69I^0");
-    write_float_scientific::<_, BASE32>(0.01466049313271605e2f64, &options, "1.ET7G3VMJ4P^0");
+    write_float_scientific::<_, BASE32>(0.0f64, &HEX_OPTIONS, "0.0^0");
+    write_float_scientific::<_, BASE32>(1.0f64, &HEX_OPTIONS, "1.0^0");
+    write_float_scientific::<_, BASE32>(2.0f64, &HEX_OPTIONS, "2.0^0");
+    write_float_scientific::<_, BASE32>(0.5f64, &HEX_OPTIONS, "G.0^-1");
+    write_float_scientific::<_, BASE32>(0.2345678901234567890e2f64, &HEX_OPTIONS, "N.EJO1VR9ICG^0");
+    write_float_scientific::<_, BASE32>(0.1172839450617284e2f64, &HEX_OPTIONS, "B.N9S0VTKP68^0");
+    write_float_scientific::<_, BASE32>(0.0586419725308642e2f64, &HEX_OPTIONS, "5.RKU0FUQCJ4^0");
+    write_float_scientific::<_, BASE32>(0.0293209862654321e2f64, &HEX_OPTIONS, "2.TQF07VD69I^0");
+    write_float_scientific::<_, BASE32>(0.01466049313271605e2f64, &HEX_OPTIONS, "1.ET7G3VMJ4P^0");
 
     // Negative exponent
 
@@ -355,18 +356,18 @@ fn write_float_scientific_test() {
     write_float_scientific::<_, OCTAL>(0.01466049313271605f64, &options, "7.4031220506131767e-3");
 
     // Check no formatting, hexadecimal.
-    write_float_scientific::<_, HEX>(0.2345678901234567890f64, &options, "3.C0CA428C59FB8^-1");
-    write_float_scientific::<_, HEX>(0.1172839450617284f64, &options, "1.E06521462CFDC^-1");
-    write_float_scientific::<_, HEX>(0.0586419725308642f64, &options, "F.03290A3167EE^-2");
-    write_float_scientific::<_, HEX>(0.0293209862654321f64, &options, "7.81948518B3F7^-2");
-    write_float_scientific::<_, HEX>(0.01466049313271605f64, &options, "3.C0CA428C59FB8^-2");
+    write_float_scientific::<_, HEX>(0.2345678901234567890f64, &HEX_OPTIONS, "3.C0CA428C59FB8^-1");
+    write_float_scientific::<_, HEX>(0.1172839450617284f64, &HEX_OPTIONS, "1.E06521462CFDC^-1");
+    write_float_scientific::<_, HEX>(0.0586419725308642f64, &HEX_OPTIONS, "F.03290A3167EE^-2");
+    write_float_scientific::<_, HEX>(0.0293209862654321f64, &HEX_OPTIONS, "7.81948518B3F7^-2");
+    write_float_scientific::<_, HEX>(0.01466049313271605f64, &HEX_OPTIONS, "3.C0CA428C59FB8^-2");
 
     // Check no formatting, base 32.
-    write_float_scientific::<_, BASE32>(0.2345678901234567890f64, &options, "7.G6A8A65JUS^-1");
-    write_float_scientific::<_, BASE32>(0.1172839450617284f64, &options, "3.O354532PVE^-1");
-    write_float_scientific::<_, BASE32>(0.0586419725308642f64, &options, "1.S1II2HHCVN^-1");
-    write_float_scientific::<_, BASE32>(0.0293209862654321f64, &options, "U.0P918OMFRG^-2");
-    write_float_scientific::<_, BASE32>(0.01466049313271605f64, &options, "F.0CKGKCB7TO^-2");
+    write_float_scientific::<_, BASE32>(0.2345678901234567890f64, &HEX_OPTIONS, "7.G6A8A65JUS^-1");
+    write_float_scientific::<_, BASE32>(0.1172839450617284f64, &HEX_OPTIONS, "3.O354532PVE^-1");
+    write_float_scientific::<_, BASE32>(0.0586419725308642f64, &HEX_OPTIONS, "1.S1II2HHCVN^-1");
+    write_float_scientific::<_, BASE32>(0.0293209862654321f64, &HEX_OPTIONS, "U.0P918OMFRG^-2");
+    write_float_scientific::<_, BASE32>(0.01466049313271605f64, &HEX_OPTIONS, "F.0CKGKCB7TO^-2");
 
     // Different exponent radix.
     write_float_scientific::<_, BASE2_2_4>(
@@ -548,18 +549,58 @@ fn write_float_negative_exponent_test() {
     );
 
     // Check no formatting, hexadecimal.
-    write_float_negative_exponent::<_, HEX>(0.2345678901234567890f64, &options, "0.3C0CA428C59FB8");
-    write_float_negative_exponent::<_, HEX>(0.1172839450617284f64, &options, "0.1E06521462CFDC");
-    write_float_negative_exponent::<_, HEX>(0.0586419725308642f64, &options, "0.0F03290A3167EE");
-    write_float_negative_exponent::<_, HEX>(0.0293209862654321f64, &options, "0.0781948518B3F7");
-    write_float_negative_exponent::<_, HEX>(0.01466049313271605f64, &options, "0.03C0CA428C59FB8");
+    write_float_negative_exponent::<_, HEX>(
+        0.2345678901234567890f64,
+        &HEX_OPTIONS,
+        "0.3C0CA428C59FB8",
+    );
+    write_float_negative_exponent::<_, HEX>(
+        0.1172839450617284f64,
+        &HEX_OPTIONS,
+        "0.1E06521462CFDC",
+    );
+    write_float_negative_exponent::<_, HEX>(
+        0.0586419725308642f64,
+        &HEX_OPTIONS,
+        "0.0F03290A3167EE",
+    );
+    write_float_negative_exponent::<_, HEX>(
+        0.0293209862654321f64,
+        &HEX_OPTIONS,
+        "0.0781948518B3F7",
+    );
+    write_float_negative_exponent::<_, HEX>(
+        0.01466049313271605f64,
+        &HEX_OPTIONS,
+        "0.03C0CA428C59FB8",
+    );
 
     // Check no formatting, base 32.
-    write_float_negative_exponent::<_, BASE32>(0.2345678901234567890f64, &options, "0.7G6A8A65JUS");
-    write_float_negative_exponent::<_, BASE32>(0.1172839450617284f64, &options, "0.3O354532PVE");
-    write_float_negative_exponent::<_, BASE32>(0.0586419725308642f64, &options, "0.1S1II2HHCVN");
-    write_float_negative_exponent::<_, BASE32>(0.0293209862654321f64, &options, "0.0U0P918OMFRG");
-    write_float_negative_exponent::<_, BASE32>(0.01466049313271605f64, &options, "0.0F0CKGKCB7TO");
+    write_float_negative_exponent::<_, BASE32>(
+        0.2345678901234567890f64,
+        &HEX_OPTIONS,
+        "0.7G6A8A65JUS",
+    );
+    write_float_negative_exponent::<_, BASE32>(
+        0.1172839450617284f64,
+        &HEX_OPTIONS,
+        "0.3O354532PVE",
+    );
+    write_float_negative_exponent::<_, BASE32>(
+        0.0586419725308642f64,
+        &HEX_OPTIONS,
+        "0.1S1II2HHCVN",
+    );
+    write_float_negative_exponent::<_, BASE32>(
+        0.0293209862654321f64,
+        &HEX_OPTIONS,
+        "0.0U0P918OMFRG",
+    );
+    write_float_negative_exponent::<_, BASE32>(
+        0.01466049313271605f64,
+        &HEX_OPTIONS,
+        "0.0F0CKGKCB7TO",
+    );
 
     // Different exponent radix.
     write_float_negative_exponent::<_, BASE2_2_4>(
@@ -748,32 +789,64 @@ fn write_float_positive_exponent_test() {
     );
 
     // Check no formatting, hexadecimal.
-    write_float_positive_exponent::<_, HEX>(0.0f64, &options, "0.0");
-    write_float_positive_exponent::<_, HEX>(1.0f64, &options, "1.0");
-    write_float_positive_exponent::<_, HEX>(2.0f64, &options, "2.0");
+    write_float_positive_exponent::<_, HEX>(0.0f64, &HEX_OPTIONS, "0.0");
+    write_float_positive_exponent::<_, HEX>(1.0f64, &HEX_OPTIONS, "1.0");
+    write_float_positive_exponent::<_, HEX>(2.0f64, &HEX_OPTIONS, "2.0");
     write_float_positive_exponent::<_, HEX>(
         0.2345678901234567890e2f64,
-        &options,
+        &HEX_OPTIONS,
         "17.74F01FED3264",
     );
-    write_float_positive_exponent::<_, HEX>(0.1172839450617284e2f64, &options, "B.BA780FF69932");
-    write_float_positive_exponent::<_, HEX>(0.0586419725308642e2f64, &options, "5.DD3C07FB4C99");
-    write_float_positive_exponent::<_, HEX>(0.0293209862654321e2f64, &options, "2.EE9E03FDA64C8");
-    write_float_positive_exponent::<_, HEX>(0.01466049313271605e2f64, &options, "1.774F01FED3264");
+    write_float_positive_exponent::<_, HEX>(
+        0.1172839450617284e2f64,
+        &HEX_OPTIONS,
+        "B.BA780FF69932",
+    );
+    write_float_positive_exponent::<_, HEX>(
+        0.0586419725308642e2f64,
+        &HEX_OPTIONS,
+        "5.DD3C07FB4C99",
+    );
+    write_float_positive_exponent::<_, HEX>(
+        0.0293209862654321e2f64,
+        &HEX_OPTIONS,
+        "2.EE9E03FDA64C8",
+    );
+    write_float_positive_exponent::<_, HEX>(
+        0.01466049313271605e2f64,
+        &HEX_OPTIONS,
+        "1.774F01FED3264",
+    );
 
     // Check no formatting, base 32.
-    write_float_positive_exponent::<_, BASE32>(0.0f64, &options, "0.0");
-    write_float_positive_exponent::<_, BASE32>(1.0f64, &options, "1.0");
-    write_float_positive_exponent::<_, BASE32>(2.0f64, &options, "2.0");
+    write_float_positive_exponent::<_, BASE32>(0.0f64, &HEX_OPTIONS, "0.0");
+    write_float_positive_exponent::<_, BASE32>(1.0f64, &HEX_OPTIONS, "1.0");
+    write_float_positive_exponent::<_, BASE32>(2.0f64, &HEX_OPTIONS, "2.0");
     write_float_positive_exponent::<_, BASE32>(
         0.2345678901234567890e2f64,
-        &options,
+        &HEX_OPTIONS,
         "N.EJO1VR9ICG",
     );
-    write_float_positive_exponent::<_, BASE32>(0.1172839450617284e2f64, &options, "B.N9S0VTKP68");
-    write_float_positive_exponent::<_, BASE32>(0.0586419725308642e2f64, &options, "5.RKU0FUQCJ4");
-    write_float_positive_exponent::<_, BASE32>(0.0293209862654321e2f64, &options, "2.TQF07VD69I");
-    write_float_positive_exponent::<_, BASE32>(0.01466049313271605e2f64, &options, "1.ET7G3VMJ4P");
+    write_float_positive_exponent::<_, BASE32>(
+        0.1172839450617284e2f64,
+        &HEX_OPTIONS,
+        "B.N9S0VTKP68",
+    );
+    write_float_positive_exponent::<_, BASE32>(
+        0.0586419725308642e2f64,
+        &HEX_OPTIONS,
+        "5.RKU0FUQCJ4",
+    );
+    write_float_positive_exponent::<_, BASE32>(
+        0.0293209862654321e2f64,
+        &HEX_OPTIONS,
+        "2.TQF07VD69I",
+    );
+    write_float_positive_exponent::<_, BASE32>(
+        0.01466049313271605e2f64,
+        &HEX_OPTIONS,
+        "1.ET7G3VMJ4P",
+    );
 
     // Different exponent radix.
     write_float_positive_exponent::<_, BASE2_2_4>(
@@ -798,7 +871,7 @@ fn write_float_positive_exponent_test() {
     );
     write_float_positive_exponent::<_, BASE32_2_32>(
         0.2345678901234567890e2f64,
-        &options,
+        &HEX_OPTIONS,
         "N.EJO1VR9ICG",
     );
 

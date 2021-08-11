@@ -4,7 +4,8 @@
 
 use crate::options::Options;
 use crate::parse::ParseFloat;
-use lexical_util::format::{NumberFormat, STANDARD};
+use lexical_util::error::Error;
+use lexical_util::format::{is_valid_options_punctuation, NumberFormat, STANDARD};
 use lexical_util::{from_lexical, from_lexical_with_options};
 
 // API
@@ -47,6 +48,8 @@ macro_rules! float_from_lexical {
                 let format = NumberFormat::<{ FORMAT }> {};
                 if !format.is_valid() {
                     return Err(format.error());
+                } else if !is_valid_options_punctuation(FORMAT, options.exponent(), options.decimal_point()) {
+                    return Err(Error::InvalidPunctuation);
                 }
                 Self::parse_complete::<FORMAT>(bytes, options)
             }
@@ -57,10 +60,6 @@ macro_rules! float_from_lexical {
                 options: &Self::Options,
             ) -> lexical_util::result::Result<(Self, usize)>
             {
-                let format = NumberFormat::<{ FORMAT }> {};
-                if !format.is_valid() {
-                    return Err(format.error());
-                }
                 Self::parse_partial::<FORMAT>(bytes, options)
             }
         }

@@ -5,11 +5,12 @@
 use crate::options::Options;
 use crate::write::WriteFloat;
 use lexical_util::constants::FormattedSize;
-use lexical_util::format::{NumberFormat, STANDARD};
+use lexical_util::format::{is_valid_options_punctuation, NumberFormat, STANDARD};
 use lexical_util::options::WriteOptions;
 use lexical_util::{to_lexical, to_lexical_with_options};
 
 /// Check if a buffer is sufficiently large.
+#[inline]
 fn check_buffer<T, const FORMAT: u128>(len: usize, options: &Options) -> bool
 where
     T: FormattedSize,
@@ -59,6 +60,7 @@ macro_rules! float_to_lexical {
             ) -> &'a mut [u8]
             {
                 assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
+                assert!(is_valid_options_punctuation(FORMAT, options.exponent(), options.decimal_point()));
                 debug_assert!(check_buffer::<Self, { FORMAT }>(bytes.len(), &options));
                 // SAFETY: safe if `check_buffer::<FORMAT>(bytes.len(), &options)`.
                 unsafe {
@@ -74,7 +76,6 @@ macro_rules! float_to_lexical {
                 options: &Self::Options,
             ) -> &'a mut [u8]
             {
-                assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
                 assert!(check_buffer::<Self, { FORMAT }>(bytes.len(), &options));
                 // SAFETY: safe since `check_buffer::<FORMAT>(bytes.len(), &options)`.
                 unsafe { self.to_lexical_with_options_unchecked::<FORMAT>(bytes, options) }

@@ -200,6 +200,19 @@ macro_rules! to_lexical_with_options {
             /// [`FORMATTED_SIZE`] elements. If a smaller buffer is
             /// provided, a buffer overflow is very likely.
             ///
+            /// # Panics
+            ///
+            /// Panics if the provided number format is invalid, or if the
+            /// mantissa radix is not equal to the exponent base
+            /// and the mantissa radix/exponent base combinations are
+            /// not in the following list:
+            ///
+            /// - `4, 2`
+            /// - `8, 2`
+            /// - `16, 2`
+            /// - `32, 2`
+            /// - `16, 4`
+            ///
             /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
             unsafe fn to_lexical_with_options_unchecked<'a, const FORMAT: u128>(
                 self,
@@ -223,6 +236,17 @@ macro_rules! to_lexical_with_options {
             /// must provide a slice of sufficient size. In order to ensure
             /// the function will not panic, ensure the buffer has at least
             /// [`FORMATTED_SIZE`] elements.
+            ///
+            /// Also panics if the provided number format is invalid, or
+            /// if the mantissa radix is not equal to the exponent base
+            /// and the mantissa radix/exponent base combinations are
+            /// not in the following list:
+            ///
+            /// - `4, 2`
+            /// - `8, 2`
+            /// - `16, 2`
+            /// - `32, 2`
+            /// - `16, 4`
             ///
             /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
             fn to_lexical_with_options<'a, const FORMAT: u128>(

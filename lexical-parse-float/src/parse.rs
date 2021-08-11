@@ -8,10 +8,14 @@
 use crate::float::LemireFloat;
 use crate::number::Number;
 use crate::options::Options;
+#[cfg(not(feature = "compact"))]
+use lexical_parse_integer::algorithm;
+use lexical_util::digit::char_to_digit_const;
 use lexical_util::error::Error;
 use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
 use lexical_util::result::Result;
+use lexical_util::step::u64_step;
 
 // API
 // ---
@@ -42,7 +46,7 @@ parse_float_impl! { f32 f64 }
 // PARSE
 // -----
 
-macro_rules! parse_sign {
+macro_rules! parse_mantissa_sign {
     ($byte:ident, $format:ident) => {{
         match $byte.integer_iter().peek() {
             Some(&b'+') if !$format.no_positive_mantissa_sign() => (false, 1),
@@ -58,6 +62,22 @@ macro_rules! parse_sign {
     }};
 }
 
+macro_rules! parse_exponent_sign {
+    ($byte:ident, $format:ident) => {{
+        match $byte.integer_iter().peek() {
+            Some(&b'+') if !$format.no_positive_exponent_sign() => (false, 1),
+            Some(&b'+') if $format.no_positive_exponent_sign() => {
+                return Err(Error::InvalidPositiveExponentSign($byte.cursor()));
+            },
+            Some(&b'-') => (true, 1),
+            Some(_) if $format.required_mantissa_sign() => {
+                return Err(Error::MissingExponentSign($byte.cursor()));
+            },
+            _ => (false, 0),
+        }
+    }};
+}
+
 /// Parse a float from bytes using a complete parser.
 #[inline]
 #[allow(unused)] // TODO(ahuszagh) Remove...
@@ -67,7 +87,7 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
 ) -> Result<F> {
     let format = NumberFormat::<{ FORMAT }> {};
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let (is_negative, shift) = parse_sign!(byte, format);
+    let (is_negative, shift) = parse_mantissa_sign!(byte, format);
     // SAFETY: safe since we shift at most one for a parsed sign byte.
     unsafe { byte.step_by_unchecked(shift) };
     if byte.integer_iter().is_consumed() {
@@ -75,18 +95,23 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     }
 
     // Parse our a small representation of our number.
-    let num = match parse_number::<FORMAT>(byte.clone(), is_negative) {
-        Some(r) => r,
-        None => {
-            if let Some(value) = parse_special::<_, FORMAT>(byte.clone(), is_negative, options) {
-                return Ok(value);
-            } else {
-                return Err(Error::InvalidDigit(byte.cursor()));
-            }
-        },
-    };
-    if let Some(value) = num.try_fast_path::<_, FORMAT>() {
-        return Ok(value);
+    // Can only do fast and moderate path optimizations if we
+    // can shift significant digits to and from the exponent.
+    if format.mantissa_radix() == format.exponent_base() {
+        let num = match parse_number::<FORMAT>(byte.clone(), is_negative) {
+            Ok(n) => n,
+            Err(e) => {
+                if let Some(value) = parse_special::<_, FORMAT>(byte.clone(), is_negative, options)
+                {
+                    return Ok(value);
+                } else {
+                    return Err(e);
+                }
+            },
+        };
+        if let Some(value) = num.try_fast_path::<_, FORMAT>() {
+            return Ok(value);
+        }
     }
 
     // TODO(ahuszagh) Need parse_number now...
@@ -103,7 +128,7 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
 ) -> Result<(F, usize)> {
     let format = NumberFormat::<{ FORMAT }> {};
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let (is_negative, shift) = parse_sign!(byte, format);
+    let (is_negative, shift) = parse_mantissa_sign!(byte, format);
     // SAFETY: safe since we shift at most one for a parsed sign byte.
     unsafe { byte.step_by_unchecked(shift) };
     if byte.integer_iter().is_consumed() {
@@ -111,20 +136,24 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     }
 
     // Parse our a small representation of our number.
-    let (num, count) = match parse_partial_number::<FORMAT>(byte.clone(), is_negative) {
-        Some(r) => r,
-        None => {
-            if let Some(value) =
-                parse_partial_special::<_, FORMAT>(byte.clone(), is_negative, options)
-            {
-                return Ok(value);
-            } else {
-                return Err(Error::InvalidDigit(byte.cursor()));
-            }
-        },
-    };
-    if let Some(value) = num.try_fast_path::<_, FORMAT>() {
-        return Ok((value, count));
+    // Can only do fast and moderate path optimizations if we
+    // can shift significant digits to and from the exponent.
+    if format.mantissa_radix() == format.exponent_base() {
+        let (num, count) = match parse_partial_number::<FORMAT>(byte.clone(), is_negative) {
+            Ok(n) => n,
+            Err(e) => {
+                if let Some(value) =
+                    parse_partial_special::<_, FORMAT>(byte.clone(), is_negative, options)
+                {
+                    return Ok(value);
+                } else {
+                    return Err(e);
+                }
+            },
+        };
+        if let Some(value) = num.try_fast_path::<_, FORMAT>() {
+            return Ok((value, count));
+        }
     }
 
     // TODO(ahuszagh) Need parse_number now...
@@ -132,37 +161,256 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     todo!()
 }
 
+// NUMBER
+// ------
+
 /// Parse a partial, non-special floating point number.
 ///
 /// This creates a representation of the float as the
 /// significant digits and the decimal exponent.
 #[inline]
-#[allow(unused)] // TODO(ahuszagh) Remove...
 pub fn parse_partial_number<const FORMAT: u128>(
     mut byte: Bytes<FORMAT>,
     is_negative: bool,
-) -> Option<(Number, usize)> {
+) -> Result<(Number, usize)> {
+    // Config options
+    let format = NumberFormat::<{ FORMAT }> {};
+    let decimal_point = format.decimal_point();
+    let exponent_character = format.exponent();
+    debug_assert!(format.is_valid());
     debug_assert!(!byte.is_done());
 
     // Parse our integral digits.
     let mut mantissa = 0_u64;
-    let digits_start = byte.clone();
-    // TODO(ahuszagh) Need to just do our parse-integer stuff here...
+    let start = byte.clone();
+    parse_digits::<_, _, FORMAT>(byte.integer_iter(), |digit| {
+        mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
+    });
+    let mut n_digits = byte.cursor() - start.cursor();
+    if cfg!(feature = "format") && format.required_integer_digits() && n_digits == 0 {
+        return Err(Error::EmptyInteger(byte.cursor()));
+    }
 
-    todo!();
+    // Handle decimal point and digits afterwards.
+    let mut n_after_dot = 0;
+    let mut exponent = 0_i64;
+    let int_end = byte.cursor() as i64;
+    if byte.first_is(decimal_point) {
+        // SAFETY: s cannot be empty due to first_is
+        unsafe { byte.step_unchecked() };
+        let before = byte.cursor();
+        #[cfg(not(feature = "compact"))]
+        parse_8digits::<_, FORMAT>(byte.fraction_iter(), &mut mantissa);
+        parse_digits::<_, _, FORMAT>(byte.fraction_iter(), |digit| {
+            mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
+        });
+        n_after_dot = byte.cursor() - before;
+        exponent = -(n_after_dot as i64);
+        if cfg!(feature = "format") && format.required_fraction_digits() && n_after_dot == 0 {
+            return Err(Error::EmptyFraction(byte.cursor()));
+        }
+    }
+
+    n_digits += n_after_dot;
+    if format.required_mantissa_digits() && n_digits == 0 {
+        return Err(Error::EmptyMantissa(byte.cursor()));
+    }
+
+    // Handle scientific notation.
+    let mut explicit_exponent = 0_i64;
+    let is_exponent = if cfg!(feature = "format") && format.case_sensitive_exponent() {
+        byte.first_is(exponent_character)
+    } else {
+        byte.case_insensitive_first_is(exponent_character)
+    };
+    if is_exponent {
+        // SAFETY: byte cannot be empty due to first_is
+        unsafe { byte.step_unchecked() };
+        let (is_negative, shift) = parse_exponent_sign!(byte, format);
+        let before = byte.cursor();
+        // SAFETY: safe since we shift at most one for a parsed sign byte.
+        unsafe { byte.step_by_unchecked(shift) };
+        parse_digits::<_, _, FORMAT>(byte.exponent_iter(), |digit| {
+            if explicit_exponent < 0x10000 {
+                explicit_exponent *= format.radix() as i64;
+                explicit_exponent += digit as i64;
+            }
+        });
+        if format.required_exponent_digits() && byte.cursor() - before == 0 {
+            return Err(Error::EmptyExponent(byte.cursor()));
+        }
+        // Handle our sign, and get the explicit part of the exponent.
+        let explicit_exponent = if is_negative {
+            -explicit_exponent
+        } else {
+            explicit_exponent
+        };
+        exponent += explicit_exponent;
+    }
+
+    // Get the number of parsed digits (total), and redo if we had overflow.
+    let end = byte.cursor();
+    let mut step = u64_step(format.radix());
+    let mut many_digits = false;
+    if cfg!(feature = "format") && !format.required_mantissa_digits() && n_digits == 0 {
+        exponent = 0;
+    }
+    if n_digits <= step {
+        return Ok((
+            Number {
+                exponent,
+                mantissa,
+                is_negative,
+                many_digits: false,
+            },
+            end,
+        ));
+    }
+
+    // Check for leading zeros, and to see if we had a false overflow.
+    n_digits -= step;
+    let mut zeros = start.clone();
+    let mut zeros_integer = zeros.integer_iter();
+    while zeros_integer.peek_is(b'0') {
+        n_digits -= 1;
+        // SAFETY: safe since zeros cannot be empty due to peek_is
+        unsafe { zeros_integer.step_unchecked() };
+    }
+    if zeros.first_is(decimal_point) {
+        // SAFETY: safe since zeros cannot be empty due to first_is
+        unsafe { zeros.step_unchecked() };
+    }
+    let mut zeros_fraction = zeros.fraction_iter();
+    while zeros_fraction.peek_is(b'0') {
+        n_digits -= 1;
+        // SAFETY: safe since zeros cannot be empty due to peek_is
+        unsafe { zeros_fraction.step_unchecked() };
+    }
+
+    // Now, check if we explicitly overflowed.
+    if n_digits > 0 {
+        // Have more than 19 significant digits, so we overflowed.
+        many_digits = true;
+        mantissa = 0;
+        let mut byte = start;
+        parse_u64_digits::<_, FORMAT>(byte.integer_iter(), &mut mantissa, &mut step);
+        exponent = if step == 0 {
+            // Filled our mantissa with just the integer.
+            byte.cursor() as i64 - int_end
+        } else {
+            // SAFETY: the next byte must be present and be '.'
+            // We know this is true because we had more than 19
+            // digits previously, so we overflowed a 64-bit integer,
+            // but parsing only the integral digits produced less
+            // than 19 digits. That means we must have a decimal
+            // point, and at least 1 fractional digit.
+            unsafe { byte.step_unchecked() };
+            let before = byte.cursor() as i64;
+            parse_u64_digits::<_, FORMAT>(byte.fraction_iter(), &mut mantissa, &mut step);
+            before - byte.cursor() as i64
+        };
+        // Add back the explicit exponent.
+        exponent += explicit_exponent;
+    }
+
+    Ok((
+        Number {
+            exponent,
+            mantissa,
+            is_negative,
+            many_digits,
+        },
+        end,
+    ))
 }
 
 /// Try to parse a non-special floating point number.
 #[inline]
-pub fn parse_number<const FORMAT: u128>(byte: Bytes<FORMAT>, is_negative: bool) -> Option<Number> {
+pub fn parse_number<const FORMAT: u128>(byte: Bytes<FORMAT>, is_negative: bool) -> Result<Number> {
     let length = byte.length();
-    if let Some((float, count)) = parse_partial_number::<FORMAT>(byte, is_negative) {
-        if count == length {
-            return Some(float);
+    let (float, count) = parse_partial_number::<FORMAT>(byte, is_negative)?;
+    if count == length {
+        Ok(float)
+    } else {
+        Err(Error::InvalidDigit(count))
+    }
+}
+
+// DIGITS
+// ------
+
+/// Iteratively parse and consume digits from bytes.
+#[inline]
+pub fn parse_digits<'a, Iter, Cb, const FORMAT: u128>(mut iter: Iter, mut cb: Cb)
+where
+    Iter: BytesIter<'a>,
+    Cb: FnMut(u32),
+{
+    let format = NumberFormat::<{ FORMAT }> {};
+    let radix = format.radix();
+    while let Some(&c) = iter.peek() {
+        match char_to_digit_const(c, radix) {
+            Some(v) => cb(v),
+            None => break,
+        }
+        // SAFETY: iter cannot be empty
+        unsafe { iter.step_unchecked() };
+    }
+}
+
+/// Iteratively parse and consume digits in intervals of 8.
+#[inline]
+#[cfg(not(feature = "compact"))]
+pub fn parse_8digits<'a, Iter, const FORMAT: u128>(mut iter: Iter, mantissa: &mut u64)
+where
+    Iter: BytesIter<'a>,
+{
+    let format = NumberFormat::<{ FORMAT }> {};
+    let radix: u64 = format.radix() as u64;
+    if cfg!(not(feature = "radix")) || radix <= 10 {
+        let radix2 = radix.wrapping_mul(radix);
+        let radix4 = radix2.wrapping_mul(radix2);
+        let radix8 = radix4.wrapping_mul(radix4);
+        // Can do up to 2 iterations without overflowing.
+        if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
+            *mantissa = mantissa.wrapping_mul(radix8).wrapping_add(v);
+            if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
+                *mantissa = mantissa.wrapping_mul(radix8).wrapping_add(v);
+            }
         }
     }
-    None
 }
+
+/// Iteratively parse and consume digits in intervals of 8.
+#[inline]
+pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
+    mut iter: Iter,
+    mantissa: &mut u64,
+    step: &mut usize,
+) where
+    Iter: BytesIter<'a>,
+{
+    let format = NumberFormat::<{ FORMAT }> {};
+    let radix = format.radix();
+    while *step > 0 {
+        if let Some(&c) = iter.peek() {
+            match char_to_digit_const(c, radix) {
+                Some(digit) => {
+                    *mantissa = *mantissa * radix as u64 + digit as u64;
+                    *step -= 1;
+                    // SAFETY: iter cannot be empty
+                    unsafe { iter.step_unchecked() };
+                },
+                None => break,
+            }
+        } else {
+            break;
+        }
+    }
+}
+
+// SPECIAL
+// -------
 
 /// Determine if the input data matches the special string.
 /// If there's no match, returns 0. Otherwise, returns the byte's cursor.
@@ -255,8 +503,8 @@ where
     None
 }
 
-// HELPERS
-// -------
+// STARTS WITH
+// -----------
 
 /// Check if left iter starts with right iter.
 ///

@@ -23,7 +23,7 @@ pub struct Number {
     /// The significant digits of the float.
     pub mantissa: u64,
     /// If the float is negative.
-    pub negative: bool,
+    pub is_negative: bool,
     /// If the significant digits were truncated.
     pub many_digits: bool,
 }
@@ -85,7 +85,7 @@ impl Number {
                 // SAFETY: safe, since the `table.len() - 1 == max_exponent`.
                 F::as_cast(mantissa) * unsafe { F::pow_fast_path(max_exponent as _, radix) }
             };
-            if self.negative {
+            if self.is_negative {
                 value = -value;
             }
             Some(value)

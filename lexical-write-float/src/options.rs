@@ -3,6 +3,7 @@
 #![doc(hidden)]
 
 use core::{mem, num};
+use lexical_util::ascii::{is_valid_ascii, is_valid_letter_slice};
 use lexical_util::constants::FormattedSize;
 use lexical_util::error::Error;
 use lexical_util::format::NumberFormat;
@@ -34,7 +35,7 @@ const MAX_SPECIAL_STRING_LENGTH: usize = 50;
 const_assert!(MAX_SPECIAL_STRING_LENGTH < f32::FORMATTED_SIZE_DECIMAL);
 
 /// Builder for `Options`.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OptionsBuilder {
     /// Maximum number of significant digits to write.
     /// If not set, it defaults to the algorithm's default.
@@ -58,6 +59,10 @@ pub struct OptionsBuilder {
     round_mode: RoundMode,
     /// Trim the trailing ".0" from integral float strings.
     trim_floats: bool,
+    /// Character to designate the exponent component of a float.
+    exponent: u8,
+    /// Character to separate the integer from the fraction components.
+    decimal_point: u8,
     /// String representation of Not A Number, aka `NaN`.
     nan_string: &'static [u8],
     /// String representation of `Infinity`.
@@ -76,6 +81,8 @@ impl OptionsBuilder {
             negative_exponent_break: None,
             round_mode: RoundMode::Round,
             trim_floats: false,
+            exponent: b'e',
+            decimal_point: b'.',
             nan_string: b"NaN",
             inf_string: b"inf",
         }
@@ -117,6 +124,18 @@ impl OptionsBuilder {
     #[inline(always)]
     pub const fn get_trim_floats(&self) -> bool {
         self.trim_floats
+    }
+
+    /// Get the character to designate the exponent component of a float.
+    #[inline(always)]
+    pub const fn get_exponent(&self) -> u8 {
+        self.exponent
+    }
+
+    /// Get the character to separate the integer from the fraction components.
+    #[inline(always)]
+    pub const fn get_decimal_point(&self) -> u8 {
+        self.decimal_point
     }
 
     /// Get the string representation for `NaN`.
@@ -175,6 +194,20 @@ impl OptionsBuilder {
         self
     }
 
+    /// Set the character to designate the exponent component of a float.
+    #[inline(always)]
+    pub const fn exponent(mut self, exponent: u8) -> Self {
+        self.exponent = exponent;
+        self
+    }
+
+    /// Set the character to separate the integer from the fraction components.
+    #[inline(always)]
+    pub const fn decimal_point(mut self, decimal_point: u8) -> Self {
+        self.decimal_point = decimal_point;
+        self
+    }
+
     /// Set the string representation for `NaN`.
     #[inline(always)]
     pub const fn nan_string(mut self, nan_string: &'static [u8]) -> Self {
@@ -199,6 +232,8 @@ impl OptionsBuilder {
             false
         } else if !matches!(self.nan_string[0], b'N' | b'n') {
             false
+        } else if !is_valid_letter_slice(self.nan_string) {
+            false
         } else {
             true
         }
@@ -212,6 +247,8 @@ impl OptionsBuilder {
             false
         } else if !matches!(self.inf_string[0], b'I' | b'i') {
             false
+        } else if !is_valid_letter_slice(self.inf_string) {
+            false
         } else {
             true
         }
@@ -221,7 +258,11 @@ impl OptionsBuilder {
     #[inline(always)]
     #[allow(clippy::if_same_then_else, clippy::needless_bool)]
     pub const fn is_valid(&self) -> bool {
-        if !self.nan_str_is_valid() {
+        if !is_valid_ascii(self.exponent) {
+            false
+        } else if !is_valid_ascii(self.decimal_point) {
+            false
+        } else if !self.nan_str_is_valid() {
             false
         } else if !self.inf_str_is_valid() {
             false
@@ -246,6 +287,8 @@ impl OptionsBuilder {
             negative_exponent_break: self.negative_exponent_break,
             round_mode: self.round_mode,
             trim_floats: self.trim_floats,
+            exponent: self.exponent,
+            decimal_point: self.decimal_point,
             nan_string: self.nan_string,
             inf_string: self.inf_string,
         }
@@ -253,14 +296,19 @@ impl OptionsBuilder {
 
     /// Build the Options struct.
     #[inline(always)]
-    pub const fn build(self) -> Result<Options> {
+    #[allow(clippy::if_same_then_else)]
+    pub const fn build(&self) -> Result<Options> {
         let min_digits = unwrap_or_zero_usize(self.min_significant_digits);
         let max_digits = unwrap_or_max_usize(self.max_significant_digits);
         if self.nan_string.is_empty() || !matches!(self.nan_string[0], b'N' | b'n') {
             Err(Error::InvalidNanString)
+        } else if !is_valid_letter_slice(self.nan_string) {
+            Err(Error::InvalidNanString)
         } else if self.nan_string.len() > MAX_SPECIAL_STRING_LENGTH {
             Err(Error::NanStringTooLong)
         } else if self.inf_string.is_empty() || !matches!(self.inf_string[0], b'I' | b'i') {
+            Err(Error::InvalidInfString)
+        } else if !is_valid_letter_slice(self.inf_string) {
             Err(Error::InvalidInfString)
         } else if self.inf_string.len() > MAX_SPECIAL_STRING_LENGTH {
             Err(Error::InfStringTooLong)
@@ -270,6 +318,10 @@ impl OptionsBuilder {
             Err(Error::InvalidNegativeExponentBreak)
         } else if unwrap_or_zero_i32(self.positive_exponent_break) < 0 {
             Err(Error::InvalidPositiveExponentBreak)
+        } else if !is_valid_ascii(self.exponent) {
+            Err(Error::InvalidExponentSymbol)
+        } else if !is_valid_ascii(self.decimal_point) {
+            Err(Error::InvalidDecimalPoint)
         } else {
             // SAFETY: always safe, since it must be valid.
             Ok(unsafe { self.build_unchecked() })
@@ -301,7 +353,7 @@ impl Default for OptionsBuilder {
 ///     .unwrap();
 /// # }
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Options {
     /// Maximum number of significant digits to write.
     /// If not set, it defaults to the algorithm's default.
@@ -321,6 +373,10 @@ pub struct Options {
     round_mode: RoundMode,
     /// Trim the trailing ".0" from integral float strings.
     trim_floats: bool,
+    /// Character to designate the exponent component of a float.
+    exponent: u8,
+    /// Character to separate the integer from the fraction components.
+    decimal_point: u8,
     /// String representation of Not A Number, aka `NaN`.
     nan_string: &'static [u8],
     /// String representation of `Infinity`.
@@ -379,6 +435,18 @@ impl Options {
     #[inline(always)]
     pub const fn trim_floats(&self) -> bool {
         self.trim_floats
+    }
+
+    /// Get the character to designate the exponent component of a float.
+    #[inline(always)]
+    pub const fn exponent(&self) -> u8 {
+        self.exponent
+    }
+
+    /// Get the character to separate the integer from the fraction components.
+    #[inline(always)]
+    pub const fn decimal_point(&self) -> u8 {
+        self.decimal_point
     }
 
     /// Get the string representation for `NaN`.
@@ -458,6 +526,28 @@ impl Options {
         self.trim_floats = trim_floats;
     }
 
+    /// Set the character to designate the exponent component of a float.
+    ///
+    /// # Safety
+    ///
+    /// Never unsafe, but may produce invalid output if the exponent
+    /// is not a valid ASCII character.
+    #[inline(always)]
+    pub unsafe fn set_exponent(&mut self, exponent: u8) {
+        self.exponent = exponent;
+    }
+
+    /// Set the character to separate the integer from the fraction components.
+    ///
+    /// # Safety
+    ///
+    /// Never unsafe, but may produce invalid output if the decimal point
+    /// is not a valid ASCII character.
+    #[inline(always)]
+    pub unsafe fn set_decimal_point(&mut self, decimal_point: u8) {
+        self.decimal_point = decimal_point;
+    }
+
     /// Set the string representation for `NaN`.
     /// Unsafe, use the builder API for option validation.
     ///
@@ -498,6 +588,8 @@ impl Options {
             negative_exponent_break: self.negative_exponent_break,
             round_mode: self.round_mode,
             trim_floats: self.trim_floats,
+            exponent: self.exponent,
+            decimal_point: self.decimal_point,
             nan_string: self.nan_string,
             inf_string: self.inf_string,
         }

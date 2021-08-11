@@ -60,6 +60,7 @@ const fn unwrap_or_zero(option: OptionU8) -> u8 {
 /// * `required_integer_digits`                 - If digits are required before the decimal point.
 /// * `required_fraction_digits`                - If digits are required after the decimal point.
 /// * `required_exponent_digits`                - If digits are required after the exponent character.
+/// * `required_mantissa_digits`                - If at least 1 significant digit is required.
 /// * `no_positive_mantissa_sign`               - If positive sign before the mantissa is not allowed.
 /// * `required_mantissa_sign`                  - If positive sign before the mantissa is required.
 /// * `no_exponent_notation`                    - If exponent notation is not allowed.

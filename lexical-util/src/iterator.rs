@@ -73,6 +73,26 @@ pub trait BytesIter<'a>: Iterator<Item = &'a u8> {
     /// Peek the next value of the iterator, without consuming it.
     fn peek(&mut self) -> Option<Self::Item>;
 
+    /// Check if the next element is a given value.
+    #[inline]
+    fn peek_is(&mut self, value: u8) -> bool {
+        if let Some(&c) = self.peek() {
+            c == value
+        } else {
+            false
+        }
+    }
+
+    /// Check if the next element is a given value without case sensitivity.
+    #[inline]
+    fn case_insensitive_peek_is(&mut self, value: u8) -> bool {
+        if let Some(&c) = self.peek() {
+            c.to_ascii_lowercase() == value.to_ascii_lowercase()
+        } else {
+            false
+        }
+    }
+
     /// Skip zeros from the start of the iterator
     #[inline]
     fn skip_zeros(&mut self) -> usize {

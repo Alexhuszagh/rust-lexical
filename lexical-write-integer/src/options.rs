@@ -9,7 +9,7 @@ use lexical_util::options::WriteOptions;
 use lexical_util::result::Result;
 
 /// Builder for `Options`.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct OptionsBuilder {}
 
 impl OptionsBuilder {
@@ -65,7 +65,7 @@ impl Default for OptionsBuilder {
 ///     .unwrap();
 /// # }
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Options {}
 
 impl Options {

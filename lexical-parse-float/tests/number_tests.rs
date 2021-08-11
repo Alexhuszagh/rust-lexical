@@ -6,7 +6,7 @@ fn is_fast_path_test() {
     let mut number = Number {
         exponent: -4,
         mantissa: 12345,
-        negative: false,
+        is_negative: false,
         many_digits: false,
     };
     assert_eq!(number.is_fast_path::<f32, { STANDARD }>(), true);
@@ -55,7 +55,7 @@ fn try_fast_path_test() {
     let mut number = Number {
         exponent: -4,
         mantissa: 12345,
-        negative: false,
+        is_negative: false,
         many_digits: false,
     };
     assert_eq!(number.try_fast_path::<f32, { STANDARD }>(), Some(1.2345));

@@ -361,8 +361,8 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
 
     // Config options
     let format = NumberFormat::<{ FORMAT }> {};
-    let decimal_point = format.decimal_point();
-    let exponent_character = format.exponent();
+    let decimal_point = options.decimal_point();
+    let exponent_character = options.exponent();
 
     // Determine the exact number of digits to write.
     let mut exact_count: usize = ndigits;
@@ -451,8 +451,7 @@ pub unsafe fn write_float_negative_exponent<const FORMAT: u128>(
     debug_assert!(k + ndigits as i32 - 1 < 0);
 
     // Config options
-    let format = NumberFormat::<{ FORMAT }> {};
-    let decimal_point = format.decimal_point();
+    let decimal_point = options.decimal_point();
 
     let exp = k + ndigits as i32 - 1;
     let exp = exp.wrapping_neg() as usize;
@@ -515,8 +514,7 @@ pub unsafe fn write_float_positive_exponent<const FORMAT: u128>(
     debug_assert!(k + ndigits as i32 - 1 >= 0);
 
     // Config options
-    let format = NumberFormat::<{ FORMAT }> {};
-    let decimal_point = format.decimal_point();
+    let decimal_point = options.decimal_point();
 
     // Now need to write our significant digits.
     let exp = (k + ndigits as i32 - 1) as usize;

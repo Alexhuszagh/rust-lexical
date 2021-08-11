@@ -352,8 +352,8 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     // Config options.
     let format = NumberFormat::<{ FORMAT }> {};
     assert!(format.is_valid());
-    let decimal_point = format.decimal_point();
-    let exponent_character = format.exponent();
+    let decimal_point = options.decimal_point();
+    let exponent_character = options.exponent();
 
     // Round and truncate the number of significant digits.
     let start: usize;
@@ -463,7 +463,7 @@ pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
     // Config options.
     let format = NumberFormat::<{ FORMAT }> {};
     assert!(format.is_valid());
-    let decimal_point = format.decimal_point();
+    let decimal_point = options.decimal_point();
 
     // Round and truncate the number of significant digits.
     let start = integer_cursor;
