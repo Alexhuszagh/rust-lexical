@@ -24,7 +24,7 @@ Rather than do checked multiplication and additions in each loop, which increase
 
 Given the following unoptimized code:
 
-```rust
+```rust,ignore
 pub fn parse(bytes: &[u8]) -> Result<u64, ()> {
     let mut value: u64 = 0;
     let mut iter = bytes.iter();
@@ -82,7 +82,7 @@ example::parse:
 
 We optimize it to the following code:
 
-```rust
+```rust,ignore
 pub fn parse(bytes: &[u8]) -> Result<u64, ()> {
     let mut value: u64 = 0;
     let mut iter = bytes.iter();
@@ -122,7 +122,7 @@ This is much more efficient, however, there is one major limitation: we cannot k
 
 For unsigned integers, this is quite easy: we merely need to know the maximum number of digits that can be parsed without guaranteeing numerical overflow, and the number of digits that were parsed.
 
-```rust
+```rust,ignore
 // For example, max could be 20 for u64.
 let count = ...;    // Actual number of digits parsed.
 let max = ...;      // Maximum number of digits that could be parsed.
@@ -135,7 +135,7 @@ let is_overflow = count > max || (count == max && value < min_value);
 
 For signed integers, it's slightly more complicated, but still quite easy:
 
-```rust
+```rust,ignore
 // For example, max could be 18 for i64.
 let count = ...;        // Actual number of digits parsed.
 let max = ...;          // Maximum number of digits that could be parsed.
@@ -153,7 +153,7 @@ let is_overflow = count > max
 
 All of the powers and constant generation is resolved at compile-time, producing efficient routines. For example, for `u64`, the following rust code:
 
-```rust
+```rust,ignore
 pub fn is_overflow(value: u64, count: usize) -> bool {
     let max: usize = 20;
     let min_value = 10u64.pow(max as u32 - 1);
@@ -182,7 +182,7 @@ Not bad at all.
 
 For our compact implementation, prioritizing code size at the cost of performance, we use a naive algorithm that parses 1 digit at a time, without any additional optimizations. This algorithm is trivial to verify, and is effectively analogous to the following code:
 
-```rust
+```rust,ignore
 let mut value = 0;
 while let Some(&c) = iter.next() {
     let digit = match (c as char).to_digit(radix) {

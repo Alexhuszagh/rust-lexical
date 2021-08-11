@@ -3,13 +3,6 @@
 //! This both contains routines to convert to and from digits,
 //! as well as iterate over digits while skipping digit separators.
 
-// Re-export our digit iterators.
-#[cfg(all(feature = "parse", not(feature = "format")))]
-pub use crate::noskip::{AsDigits, Digits};
-
-#[cfg(all(feature = "parse", feature = "format"))]
-pub use crate::skip::{AsDigits, Digits};
-
 // CONST FNS
 // ---------
 

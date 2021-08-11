@@ -174,26 +174,29 @@ where
 /// If there's no match, returns 0. Otherwise, returns the byte's cursor.
 #[inline]
 #[allow(unused)] // TODO(ahuszagh) Remove...
-fn is_special_eq<'a: 'b, 'b, Bytes, const FORMAT: u128>(mut byte: Bytes, string: &'static [u8]) -> usize
+fn is_special_eq<'a: 'b, 'b, Bytes, const FORMAT: u128>(
+    mut byte: Bytes,
+    string: &'static [u8],
+) -> usize
 where
     Bytes: Byte<'a, 'b>,
 {
     let format = NumberFormat::<{ FORMAT }> {};
     // TODO(ahuszagh) This fails due to lifetime issues.
     //  This is of course, fucking hell.
-//    let mut x = byte.special_iter();
-//    let mut y = string.iter();
-//    if cfg!(feature = "format") && format.case_sensitive_special() {
-//        // TODO(ahuszagh) I do need to remember to trim the bytes afterwards.
-//        if starts_with(x, y) {
-//            todo!();
-//        }
-//    } else {
-//        // TODO(ahuszagh) I do need to remember to trim the bytes afterwards.
-//        if case_insensitive_starts_with(x, y) {
-//            todo!();
-//        }
-//    }
+    //    let mut x = byte.special_iter();
+    //    let mut y = string.iter();
+    //    if cfg!(feature = "format") && format.case_sensitive_special() {
+    //        // TODO(ahuszagh) I do need to remember to trim the bytes afterwards.
+    //        if starts_with(x, y) {
+    //            todo!();
+    //        }
+    //    } else {
+    //        // TODO(ahuszagh) I do need to remember to trim the bytes afterwards.
+    //        if case_insensitive_starts_with(x, y) {
+    //            todo!();
+    //        }
+    //    }
     0
 }
 

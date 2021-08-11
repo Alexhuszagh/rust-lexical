@@ -6,9 +6,9 @@
 #![doc(hidden)]
 
 use crate::shared::is_overflow;
-use lexical_util::digit::{char_to_digit_const, AsDigits};
+use lexical_util::digit::char_to_digit_const;
 use lexical_util::format::NumberFormat;
-use lexical_util::iterator::{Byte, ByteIter};
+use lexical_util::iterator::AsBytes;
 use lexical_util::num::{as_cast, Integer, UnsignedInteger};
 use lexical_util::result::Result;
 use lexical_util::step::min_step;

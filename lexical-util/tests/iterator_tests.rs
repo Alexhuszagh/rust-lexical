@@ -1,12 +1,13 @@
 #![cfg(feature = "parse")]
 
-use lexical_util::digit::{AsDigits, Digits};
-use lexical_util::iterator::{Byte, ByteIter};
+use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
 
 #[test]
 #[cfg(not(feature = "format"))]
 fn digits_iterator_test() {
     use lexical_util::format::STANDARD;
+
+    type Digits<'a> = Bytes<'a, { STANDARD }>;
     assert!(Digits::IS_CONTIGUOUS);
 
     let digits = b"12345";
@@ -14,12 +15,12 @@ fn digits_iterator_test() {
     let mut byte2 = Digits::new(digits);
     assert!(byte1.integer_iter().eq(byte2.integer_iter()));
 
-    let mut byte = digits.digits::<{ STANDARD }>();
+    let mut byte = digits.bytes::<{ STANDARD }>();
     let mut iter = byte.integer_iter();
     assert_eq!(iter.as_slice(), &digits[..]);
     assert_eq!(iter.as_ptr(), digits.as_ptr());
     assert_eq!(iter.is_consumed(), false);
-    assert_eq!(ByteIter::is_empty(&iter), false);
+    assert_eq!(iter.is_done(), false);
     assert_eq!(iter.read::<u32>().unwrap(), 0x34333231);
     assert_eq!(iter.length(), 5);
     assert_eq!(iter.cursor(), 0);
@@ -36,14 +37,14 @@ fn digits_iterator_test() {
     assert_eq!(iter.peek(), None);
     assert_eq!(iter.next(), None);
 
-    let mut byte = digits.digits::<{ STANDARD }>();
+    let mut byte = digits.bytes::<{ STANDARD }>();
     let mut iter = byte.integer_iter();
     assert_eq!(iter.read::<u64>(), None);
     assert_eq!(iter.nth(4).unwrap(), &b'5');
     assert_eq!(iter.as_slice(), &digits[digits.len()..]);
     assert_eq!(iter.as_ptr(), digits[digits.len()..].as_ptr());
 
-    let mut byte = digits.digits::<{ STANDARD }>();
+    let mut byte = digits.bytes::<{ STANDARD }>();
     let mut iter = byte.integer_iter();
     assert_eq!(iter.peek(), Some(&b'1'));
     unsafe {
@@ -68,20 +69,20 @@ fn skip_iterator_test() {
         .build();
     const_assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
 
-    type DigitsByte<'a> = Digits<'a, { FORMAT }>;
-    assert!(!DigitsByte::IS_CONTIGUOUS);
+    type Digits<'a> = Bytes<'a, { FORMAT }>;
+    assert!(!Digits::IS_CONTIGUOUS);
 
     let digits = b"123_45";
-    let mut byte1 = DigitsByte::new(digits);
-    let mut byte2 = DigitsByte::new(digits);
+    let mut byte1 = Digits::new(digits);
+    let mut byte2 = Digits::new(digits);
     assert!(byte1.integer_iter().eq(byte2.integer_iter()));
 
-    let mut byte = digits.digits::<{ FORMAT }>();
+    let mut byte = digits.bytes::<{ FORMAT }>();
     let mut iter = byte.integer_iter();
     assert_eq!(iter.as_slice(), &digits[..]);
     assert_eq!(iter.as_ptr(), digits.as_ptr());
     assert_eq!(iter.is_consumed(), false);
-    assert_eq!(ByteIter::is_empty(&iter), false);
+    assert_eq!(iter.is_done(), false);
     assert_eq!(iter.length(), 6);
     assert_eq!(iter.cursor(), 0);
 
@@ -98,7 +99,7 @@ fn skip_iterator_test() {
     assert_eq!(iter.next(), Some(&b'5'));
     assert_eq!(iter.next(), None);
 
-    let mut byte = digits.digits::<{ FORMAT }>();
+    let mut byte = digits.bytes::<{ FORMAT }>();
     let mut iter = byte.integer_iter();
     assert_eq!(iter.nth(4).unwrap(), &b'5');
     assert_eq!(iter.as_slice(), &digits[digits.len()..]);

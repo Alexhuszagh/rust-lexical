@@ -12,9 +12,9 @@
 #![doc(hidden)]
 
 use crate::shared::is_overflow;
-use lexical_util::digit::{char_to_digit_const, AsDigits};
+use lexical_util::digit::char_to_digit_const;
 use lexical_util::format::NumberFormat;
-use lexical_util::iterator::{Byte, ByteIter};
+use lexical_util::iterator::{AsBytes, BytesIter};
 use lexical_util::num::{as_cast, Integer, UnsignedInteger};
 use lexical_util::result::Result;
 use lexical_util::step::min_step;
@@ -201,7 +201,7 @@ pub fn parse_4digits<const FORMAT: u128>(mut v: u32) -> u32 {
 pub fn try_parse_4digits<'a, T, Iter, const FORMAT: u128>(iter: &mut Iter) -> Option<T>
 where
     T: Integer,
-    Iter: ByteIter<'a>,
+    Iter: BytesIter<'a>,
 {
     // Can't do fast optimizations with radixes larger than 10, since
     // we no longer have a contiguous ASCII block. Likewise, cannot
@@ -273,7 +273,7 @@ pub fn parse_8digits<const FORMAT: u128>(mut v: u64) -> u64 {
 pub fn try_parse_8digits<'a, T, Iter, const FORMAT: u128>(iter: &mut Iter) -> Option<T>
 where
     T: Integer,
-    Iter: ByteIter<'a>,
+    Iter: BytesIter<'a>,
 {
     // Can't do fast optimizations with radixes larger than 10, since
     // we no longer have a contiguous ASCII block. Likewise, cannot

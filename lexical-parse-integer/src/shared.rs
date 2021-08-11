@@ -290,13 +290,13 @@ macro_rules! algorithm {
         // Removes conditional paths, to, which simplifies maintenance.
         // The skip version of the iterator automatically coalesces to
         // the noskip iterator.
-        let mut byte = $bytes.digits::<{ $format }>();
+        let mut byte = $bytes.bytes::<{ $format }>();
 
         let mut iter = byte.integer_iter();
         let (is_negative, shift) = parse_sign!(iter, format);
         // SAFETY: safe since we shift at most one for a parsed sign byte.
         unsafe { iter.step_by_unchecked(shift) };
-        if ByteIter::is_empty(&iter) {
+        if iter.is_done() {
             return into_error!(Empty, shift);
         }
         // If we have a format that doesn't accept leading zeros,

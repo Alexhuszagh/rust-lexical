@@ -1,15 +1,14 @@
 #![cfg(all(feature = "format", feature = "parse"))]
 
 use core::num;
-use lexical_util::digit::AsDigits;
 use lexical_util::format::{NumberFormat, NumberFormatBuilder};
-use lexical_util::iterator::Byte;
+use lexical_util::iterator::AsBytes;
 use static_assertions::const_assert;
 
 fn skip_iter_eq<const FORMAT: u128>(input: &[u8], output: &[u8]) {
     // next is done in terms of peek, so we're safe here.
-    let mut input = input.digits::<{ FORMAT }>();
-    let mut output = output.digits::<{ FORMAT }>();
+    let mut input = input.bytes::<{ FORMAT }>();
+    let mut output = output.bytes::<{ FORMAT }>();
     assert!(input.integer_iter().eq(output.integer_iter()));
 }
 

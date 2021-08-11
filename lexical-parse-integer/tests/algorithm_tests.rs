@@ -4,9 +4,8 @@
 mod util;
 
 use lexical_parse_integer::algorithm;
-use lexical_util::digit::AsDigits;
 use lexical_util::format::STANDARD;
-use lexical_util::iterator::Byte;
+use lexical_util::iterator::AsBytes;
 use proptest::prelude::*;
 #[cfg(feature = "radix")]
 use util::from_radix;
@@ -43,7 +42,7 @@ fn test_parse_4digits() {
 #[test]
 fn test_try_parse_4digits() {
     let parse = |bytes: &[u8]| {
-        let mut digits = bytes.digits::<{ STANDARD }>();
+        let mut digits = bytes.bytes::<{ STANDARD }>();
         algorithm::try_parse_4digits::<u32, _, STANDARD>(&mut digits.integer_iter())
     };
     assert_eq!(parse(b"1234"), Some(1234));
@@ -106,7 +105,7 @@ fn test_parse_8digits() {
 #[test]
 fn test_try_parse_8digits() {
     let parse = |bytes: &[u8]| {
-        let mut digits = bytes.digits::<{ STANDARD }>();
+        let mut digits = bytes.bytes::<{ STANDARD }>();
         algorithm::try_parse_8digits::<u64, _, STANDARD>(&mut digits.integer_iter())
     };
 
