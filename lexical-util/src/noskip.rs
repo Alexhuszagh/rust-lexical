@@ -11,6 +11,7 @@ use crate::iterator::{Byte, ByteIter};
 // ---------
 
 /// Trait to simplify creation of a `Digits` object.
+// TODO(ahuszagh) Add trait bounds here?
 pub trait AsDigits<'a> {
     /// Create `Digits` from object.
     fn digits<const __: u128>(&'a self) -> Digits<'a>;
@@ -27,6 +28,7 @@ impl<'a> AsDigits<'a> for [u8] {
 // ------
 
 /// Slice iterator that stores the original length of the slice.
+// TODO(ahuszagh) Add trait bounds here?
 #[derive(Clone)]
 pub struct Digits<'a> {
     /// The raw slice for the iterator.
@@ -46,12 +48,12 @@ impl<'a> Digits<'a> {
     }
 }
 
-impl<'a> Byte<'a> for Digits<'a> {
+impl<'a: 'b, 'b> Byte<'a, 'b> for Digits<'a> {
     const IS_CONTIGUOUS: bool = true;
-    type IntegerIter = DigitsIterator<'a>;
-    type FractionIter = DigitsIterator<'a>;
-    type ExponentIter = DigitsIterator<'a>;
-    type SpecialIter = DigitsIterator<'a>;
+    type IntegerIter = DigitsIterator<'a, 'b>;
+    type FractionIter = DigitsIterator<'a, 'b>;
+    type ExponentIter = DigitsIterator<'a, 'b>;
+    type SpecialIter = DigitsIterator<'a, 'b>;
 
     #[inline]
     fn new(slc: &'a [u8]) -> Self {
@@ -90,31 +92,47 @@ impl<'a> Byte<'a> for Digits<'a> {
     }
 
     #[inline]
-    fn integer_iter(&'a mut self) -> Self::IntegerIter {
+    fn integer_iter(&'b mut self) -> Self::IntegerIter {
         Self::IntegerIter {
             byte: self,
         }
     }
 
     #[inline]
-    fn fraction_iter(&'a mut self) -> Self::FractionIter {
+    fn fraction_iter(&'b mut self) -> Self::FractionIter {
         Self::FractionIter {
             byte: self,
         }
     }
 
     #[inline]
-    fn exponent_iter(&'a mut self) -> Self::ExponentIter {
+    fn exponent_iter(&'b mut self) -> Self::ExponentIter {
         Self::ExponentIter {
             byte: self,
         }
     }
 
     #[inline]
-    fn special_iter(&'a mut self) -> Self::SpecialIter {
+    fn special_iter(&'b mut self) -> Self::SpecialIter {
         Self::SpecialIter {
             byte: self,
         }
+    }
+
+    #[inline]
+    #[allow(clippy::assertions_on_constants)]
+    unsafe fn step_by_unchecked(&mut self, count: usize) {
+        debug_assert!(Self::IS_CONTIGUOUS);
+        debug_assert!(self.as_slice().len() >= count);
+        self.index += count;
+    }
+
+    #[inline]
+    #[allow(clippy::assertions_on_constants)]
+    unsafe fn step_unchecked(&mut self) {
+        debug_assert!(Self::IS_CONTIGUOUS);
+        debug_assert!(!self.as_slice().is_empty());
+        self.index += 1;
     }
 }
 
@@ -122,12 +140,12 @@ impl<'a> Byte<'a> for Digits<'a> {
 // ---------------
 
 /// Slice iterator that stores the original length of the slice.
-pub struct DigitsIterator<'a> {
+pub struct DigitsIterator<'a: 'b, 'b> {
     /// The internal byte object for the noskip iterator.
-    byte: &'a mut Digits<'a>,
+    byte: &'b mut Digits<'a>,
 }
 
-impl<'a> Iterator for DigitsIterator<'a> {
+impl<'a: 'b, 'b> Iterator for DigitsIterator<'a, 'b> {
     type Item = &'a u8;
 
     #[inline]
@@ -138,14 +156,14 @@ impl<'a> Iterator for DigitsIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for DigitsIterator<'a> {
+impl<'a: 'b, 'b> ExactSizeIterator for DigitsIterator<'a, 'b> {
     #[inline]
     fn len(&self) -> usize {
         self.length() - self.cursor()
     }
 }
 
-impl<'a> ByteIter<'a> for DigitsIterator<'a> {
+impl<'a: 'b, 'b> ByteIter<'a> for DigitsIterator<'a, 'b> {
     const IS_CONTIGUOUS: bool = Digits::IS_CONTIGUOUS;
 
     #[inline]
@@ -200,18 +218,14 @@ impl<'a> ByteIter<'a> for DigitsIterator<'a> {
     }
 
     #[inline]
-    #[allow(clippy::assertions_on_constants)]
     unsafe fn step_by_unchecked(&mut self, count: usize) {
-        debug_assert!(Self::IS_CONTIGUOUS);
-        debug_assert!(self.as_slice().len() >= count);
-        self.byte.index += count;
+        // SAFETY: safe as long as `slc.len() >= count`.
+        unsafe { self.byte.step_by_unchecked(count) }
     }
 
     #[inline]
-    #[allow(clippy::assertions_on_constants)]
     unsafe fn step_unchecked(&mut self) {
-        debug_assert!(Self::IS_CONTIGUOUS);
-        debug_assert!(!self.as_slice().is_empty());
-        self.byte.index += 1;
+        // SAFETY: safe as long as `slc.len() >= 1`.
+        unsafe { self.byte.step_unchecked() }
     }
 }

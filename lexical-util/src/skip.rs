@@ -353,14 +353,14 @@ impl<'a, const FORMAT: u128> Digits<'a, FORMAT> {
     }
 }
 
-impl<'a, const FORMAT: u128> Byte<'a> for Digits<'a, FORMAT> {
+impl<'a: 'b, 'b, const FORMAT: u128> Byte<'a, 'b> for Digits<'a, FORMAT> {
     // This is fine as the digit separator, since it's only always
     // contiguous if no digits are **ever** skipped.
     const IS_CONTIGUOUS: bool = NumberFormat::<{ FORMAT }>::DIGIT_SEPARATOR == 0;
-    type IntegerIter = IntegerDigitsIterator<'a, FORMAT>;
-    type FractionIter = FractionDigitsIterator<'a, FORMAT>;
-    type ExponentIter = ExponentDigitsIterator<'a, FORMAT>;
-    type SpecialIter = SpecialDigitsIterator<'a, FORMAT>;
+    type IntegerIter = IntegerDigitsIterator<'a, 'b, FORMAT>;
+    type FractionIter = FractionDigitsIterator<'a, 'b, FORMAT>;
+    type ExponentIter = ExponentDigitsIterator<'a, 'b, FORMAT>;
+    type SpecialIter = SpecialDigitsIterator<'a, 'b, FORMAT>;
 
     #[inline]
     fn new(slc: &'a [u8]) -> Self {
@@ -405,30 +405,51 @@ impl<'a, const FORMAT: u128> Byte<'a> for Digits<'a, FORMAT> {
     }
 
     #[inline]
-    fn integer_iter(&'a mut self) -> Self::IntegerIter {
+    fn integer_iter(&'b mut self) -> Self::IntegerIter {
         Self::IntegerIter {
             byte: self,
         }
     }
 
     #[inline]
-    fn fraction_iter(&'a mut self) -> Self::FractionIter {
+    fn fraction_iter(&'b mut self) -> Self::FractionIter {
         Self::FractionIter {
             byte: self,
         }
     }
 
     #[inline]
-    fn exponent_iter(&'a mut self) -> Self::ExponentIter {
+    fn exponent_iter(&'b mut self) -> Self::ExponentIter {
         Self::ExponentIter {
             byte: self,
         }
     }
 
     #[inline]
-    fn special_iter(&'a mut self) -> Self::SpecialIter {
+    fn special_iter(&'b mut self) -> Self::SpecialIter {
         Self::SpecialIter {
             byte: self,
+        }
+    }
+
+    #[inline]
+    unsafe fn step_by_unchecked(&mut self, count: usize) {
+        if Self::IS_CONTIGUOUS {
+            // Contiguous, can skip most of these checks.
+            debug_assert!(self.as_slice().len() >= count);
+            self.index += count;
+        } else {
+            // Since this isn't contiguous, it only works
+            // if the value is in the range `[0, 1]`.
+            // We also need to make sure the **current** value
+            // isn't a digit separator.
+            let format = NumberFormat::<{ FORMAT }> {};
+            debug_assert!(self.as_slice().len() >= count);
+            debug_assert!(count == 0 || count == 1);
+            debug_assert!(
+                count == 0 || self.slc.get(self.index) != Some(&format.digit_separator())
+            );
+            self.index += count;
         }
     }
 }
@@ -440,9 +461,9 @@ impl<'a, const FORMAT: u128> Byte<'a> for Digits<'a, FORMAT> {
 macro_rules! skip_iterator {
     ($iterator:ident, $doc:literal) => {
         #[doc = $doc]
-        pub struct $iterator<'a, const FORMAT: u128> {
+        pub struct $iterator<'a: 'b, 'b, const FORMAT: u128> {
             /// The internal byte object for the skip iterator.
-            byte: &'a mut Digits<'a, FORMAT>,
+            byte: &'b mut Digits<'a, FORMAT>,
         }
     };
 }
@@ -467,7 +488,7 @@ macro_rules! is_digit_separator {
 /// Create impl block for skip iterator.
 macro_rules! skip_iterator_impl {
     ($iterator:ident, $radix_cb:ident) => {
-        impl<'a, const FORMAT: u128> $iterator<'a, FORMAT> {
+        impl<'a: 'b, 'b, const FORMAT: u128> $iterator<'a, 'b, FORMAT> {
             is_digit_separator!(FORMAT);
 
             /// Determine if the character is a digit.
@@ -482,7 +503,7 @@ macro_rules! skip_iterator_impl {
 /// Create impl Iterator block for skip iterator.
 macro_rules! skip_iterator_iterator_impl {
     ($iterator:ident) => {
-        impl<'a, const FORMAT: u128> Iterator for $iterator<'a, FORMAT> {
+        impl<'a: 'b, 'b, const FORMAT: u128> Iterator for $iterator<'a, 'b, FORMAT> {
             type Item = &'a u8;
 
             #[inline]
@@ -553,23 +574,8 @@ macro_rules! skip_iterator_byteiter_base {
 
         #[inline]
         unsafe fn step_by_unchecked(&mut self, count: usize) {
-            if Self::IS_CONTIGUOUS {
-                // Contiguous, can skip most of these checks.
-                debug_assert!(self.as_slice().len() >= count);
-                self.byte.index += count;
-            } else {
-                // Since this isn't contiguous, it only works
-                // if the value is in the range `[0, 1]`.
-                // Also, need to make sure we **peeked** a value.
-                debug_assert!(self.as_slice().len() >= count);
-                debug_assert!(count == 0 || count == 1);
-                debug_assert!({
-                    let index = self.byte.index;
-                    self.peek();
-                    index == self.byte.index
-                });
-                self.byte.index += count;
-            }
+            // SAFETY: safe as long as `slc.len() >= count`.
+            unsafe { self.byte.step_by_unchecked(count) }
         }
     };
 }
@@ -577,7 +583,7 @@ macro_rules! skip_iterator_byteiter_base {
 /// Create impl ByteIter block for skip iterator.
 macro_rules! skip_iterator_byteiter_impl {
     ($iterator:ident, $mask:ident, $i:ident, $l:ident, $t:ident, $c:ident) => {
-        impl<'a, const FORMAT: u128> ByteIter<'a> for $iterator<'a, FORMAT> {
+        impl<'a: 'b, 'b, const FORMAT: u128> ByteIter<'a> for $iterator<'a, 'b, FORMAT> {
             skip_iterator_byteiter_base!(FORMAT, $mask);
 
             #[inline]
@@ -678,11 +684,11 @@ skip_iterator!(
 );
 skip_iterator_iterator_impl!(SpecialDigitsIterator);
 
-impl<'a, const FORMAT: u128> SpecialDigitsIterator<'a, FORMAT> {
+impl<'a: 'b, 'b, const FORMAT: u128> SpecialDigitsIterator<'a, 'b, FORMAT> {
     is_digit_separator!(FORMAT);
 }
 
-impl<'a, const FORMAT: u128> ByteIter<'a> for SpecialDigitsIterator<'a, FORMAT> {
+impl<'a: 'b, 'b, const FORMAT: u128> ByteIter<'a> for SpecialDigitsIterator<'a, 'b, FORMAT> {
     skip_iterator_byteiter_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
 
     #[inline]

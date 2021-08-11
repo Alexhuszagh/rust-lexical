@@ -10,7 +10,7 @@ use core::{mem, ptr};
 /// Context-aware, iterator-like trait for raw bytes.
 ///
 /// This provides methods to convert to and from slices, as well
-pub trait Byte<'a>: Clone {
+pub trait Byte<'a: 'b, 'b>: Clone {
     /// Determine if each yielded value is adjacent in memory.
     const IS_CONTIGUOUS: bool;
 
@@ -89,16 +89,34 @@ pub trait Byte<'a>: Clone {
     }
 
     /// Get iterator over integer digits.
-    fn integer_iter(&'a mut self) -> Self::IntegerIter;
+    fn integer_iter(&'b mut self) -> Self::IntegerIter;
 
     /// Get iterator over fraction digits.
-    fn fraction_iter(&'a mut self) -> Self::FractionIter;
+    fn fraction_iter(&'b mut self) -> Self::FractionIter;
 
     /// Get iterator over exponent digits.
-    fn exponent_iter(&'a mut self) -> Self::ExponentIter;
+    fn exponent_iter(&'b mut self) -> Self::ExponentIter;
 
     /// Get iterator over special floating point values.
-    fn special_iter(&'a mut self) -> Self::SpecialIter;
+    fn special_iter(&'b mut self) -> Self::SpecialIter;
+
+    /// Advance the byte by `N` elements.
+    ///
+    /// # Safety
+    ///
+    /// As long as the iterator is at least `N` elements, this
+    /// is safe.
+    unsafe fn step_by_unchecked(&mut self, count: usize);
+
+    /// Advance the byte by 1 element.
+    ///
+    /// # Safety
+    ///
+    /// Safe as long as the iterator is not empty.
+    #[inline]
+    unsafe fn step_unchecked(&mut self) {
+        unsafe { self.step_by_unchecked(1) };
+    }
 }
 
 /// Iterator over a contiguous block of bytes.
