@@ -13,6 +13,7 @@
 #![doc(hidden)]
 
 use crate::options::{Options, RoundMode};
+use crate::shared::{round_up, write_exponent};
 use core::mem;
 use lexical_util::algorithm::{ltrim_char_count, rtrim_char_count};
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
@@ -163,36 +164,16 @@ where
     } else {
         naive_exponent(float, format.radix())
     };
-    let min_exp = options.negative_exponent_break().map_or(-5, |x| x.get());
-    let max_exp = options.positive_exponent_break().map_or(9, |x| x.get());
-    if !format.no_exponent_notation()
-        && (format.required_exponent_notation() || sci_exp < min_exp || sci_exp > max_exp)
-    {
-        // Write digits in scientific notation.
-        unsafe {
-            write_float_scientific::<FORMAT>(
-                sci_exp,
-                &mut buffer,
-                bytes,
-                initial_cursor,
-                integer_cursor,
-                fraction_cursor,
-                options,
-            )
-        }
-    } else {
-        // Write digits without scientific notation.
-        unsafe {
-            write_float_nonscientific::<FORMAT>(
-                &mut buffer,
-                bytes,
-                initial_cursor,
-                integer_cursor,
-                fraction_cursor,
-                options,
-            )
-        }
-    }
+    write_float!(
+        FORMAT,
+        sci_exp,
+        options,
+        write_float_scientific,
+        write_float_nonscientific,
+        write_float_nonscientific,
+        args => sci_exp, &mut buffer, bytes, initial_cursor,
+                integer_cursor, fraction_cursor, options,
+    )
 }
 
 // Store the first digit and up to `BUFFER_SIZE - 20` digits
@@ -212,37 +193,6 @@ where
 // Just pad it a bit, we don't want memory corruption.
 const MAX_NONDIGIT_LENGTH: usize = 25;
 const MAX_DIGIT_LENGTH: usize = BUFFER_SIZE - MAX_NONDIGIT_LENGTH;
-
-/// Round-up the last digit.
-///
-/// # Safety
-///
-/// Safe as long as `count <= digits.len()`.
-pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> usize {
-    debug_assert!(count <= digits.len());
-
-    let mut index = count;
-    let max_digit = digit_to_char_const(radix - 1, radix);
-    while index != 0 {
-        // SAFETY: safe if `count <= digits.len()`, since then
-        // `index > 0 && index <= digits.len()`.
-        let c = unsafe { index_unchecked!(digits[index - 1]) };
-        if c < max_digit {
-            // SAFETY: safe since `index > 0 && index <= digits.len()`.
-            unsafe { index_unchecked_mut!(digits[index - 1]) = c + 1 };
-            return index;
-        }
-        // Don't have to assign b'0' otherwise, since we're just carrying
-        // to the next digit.
-        index -= 1;
-    }
-
-    // Means all digits were b'9': we need to round up.
-    // SAFETY: safe since `digits.len() > 1`.
-    unsafe { index_unchecked_mut!(digits[0]) = b'1' };
-
-    1
-}
 
 /// Round mantissa to the nearest value, returning only the number
 /// of significant digits. Also returns the number of bits of the mantissa.
@@ -353,7 +303,6 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     let format = NumberFormat::<{ FORMAT }> {};
     assert!(format.is_valid());
     let decimal_point = options.decimal_point();
-    let exponent_character = options.exponent();
 
     // Round and truncate the number of significant digits.
     let start: usize;
@@ -416,28 +365,8 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     }
 
     // Now, write our scientific notation.
-    unsafe { index_unchecked_mut!(bytes[cursor]) = exponent_character };
-    cursor += 1;
-
-    // We've handled the zero case: write the sign for the exponent.
-    let positive_exp: u32;
-    if sci_exp < 0 {
-        unsafe { index_unchecked_mut!(bytes[cursor]) = b'-' };
-        cursor += 1;
-        positive_exp = sci_exp.wrapping_neg() as u32;
-    } else if cfg!(feature = "format") && format.required_exponent_sign() {
-        unsafe { index_unchecked_mut!(bytes[cursor]) = b'+' };
-        cursor += 1;
-        positive_exp = sci_exp as u32;
-    } else {
-        positive_exp = sci_exp as u32;
-    }
-
-    // Write our exponent digits.
     // SAFETY: safe since bytes must be large enough to store all digits.
-    cursor += unsafe {
-        positive_exp.write_exponent::<u32, FORMAT>(&mut index_unchecked_mut!(bytes[cursor..]))
-    };
+    unsafe { write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent()) };
 
     cursor
 }
@@ -450,6 +379,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
 /// significant digits and the leading zeros.
 #[inline]
 pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
+    _: i32,
     buffer: &mut [u8],
     bytes: &mut [u8],
     initial_cursor: usize,

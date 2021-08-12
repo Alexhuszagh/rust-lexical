@@ -68,6 +68,8 @@
 
 #[macro_use]
 mod index;
+#[macro_use]
+mod shared;
 
 pub mod algorithm;
 pub mod binary;

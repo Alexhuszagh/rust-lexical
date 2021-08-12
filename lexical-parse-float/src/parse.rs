@@ -5,7 +5,10 @@
 
 #![doc(hidden)]
 
-use crate::float::{extended_to_float, LemireFloat};
+#[cfg(all(not(feature = "compact"), feature = "radix"))]
+use crate::bellerophon::bellerophon;
+use crate::float::{extended_to_float, ExtendedFloat80, LemireFloat};
+#[cfg(not(feature = "compact"))]
 use crate::lemire::lemire;
 use crate::number::Number;
 use crate::options::Options;
@@ -85,6 +88,31 @@ macro_rules! parse_exponent_sign {
     }};
 }
 
+/// Utility to extract the result and handle any errors from parsing a `Number`.
+macro_rules! parse_number {
+    (
+        $format:ident,
+        $byte:ident,
+        $is_negative:ident,
+        $options:ident,
+        $parse_normal:ident,
+        $parse_special:ident
+    ) => {{
+        match $parse_normal::<$format>($byte.clone(), $is_negative, $options) {
+            Ok(n) => n,
+            Err(e) => {
+                if let Some(value) =
+                    $parse_special::<_, $format>($byte.clone(), $is_negative, $options)
+                {
+                    return Ok(value);
+                } else {
+                    return Err(e);
+                }
+            },
+        }
+    }};
+}
+
 /// Parse a float from bytes using a complete parser.
 #[inline]
 #[allow(unused)] // TODO(ahuszagh) Remove...
@@ -105,29 +133,13 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     // Can only do fast and moderate path optimizations if we
     // can shift significant digits to and from the exponent.
     let (fp, is_negative) = if format.mantissa_radix() == format.exponent_base() {
-        let num = match parse_number::<FORMAT>(byte.clone(), is_negative, options) {
-            Ok(n) => n,
-            Err(e) => {
-                if let Some(value) = parse_special::<_, FORMAT>(byte.clone(), is_negative, options)
-                {
-                    return Ok(value);
-                } else {
-                    return Err(e);
-                }
-            },
-        };
+        let num = parse_number!(FORMAT, byte, is_negative, options, parse_number, parse_special);
         // Try the fast-path algorithm.
         if let Some(value) = num.try_fast_path::<_, FORMAT>() {
             return Ok(value);
         }
         // Now try the moderate path algorithm.
-        if format.mantissa_radix() == 10 {
-            // Use the Eisel-Lemire algorithm.
-            (lemire::<F>(&num), is_negative)
-        } else {
-            // Use the fallback Bellerephon algorithm.
-            todo!();
-        }
+        (moderate_path::<F, FORMAT>(&num), is_negative)
     } else {
         // Need to skip straight to the slow path algorithm.
         //ExtendedFloat80 { mant: 0, exp: 0 }
@@ -139,6 +151,10 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     if fp.exp < 0 {
         todo!();
     }
+
+    // TODO(ahuszagh) Need to do something if is_lossy.
+    // We've got a weird mix of features going on: is_lossy fails
+    //  in some cases...
 
     // Convert to native float and return result.
     let mut float = extended_to_float::<F>(fp);
@@ -168,36 +184,29 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     // Can only do fast and moderate path optimizations if we
     // can shift significant digits to and from the exponent.
     let (fp, is_negative, count) = if format.mantissa_radix() == format.exponent_base() {
-        let (num, count) = match parse_partial_number::<FORMAT>(byte.clone(), is_negative, options)
-        {
-            Ok(n) => n,
-            Err(e) => {
-                if let Some(value) =
-                    parse_partial_special::<_, FORMAT>(byte.clone(), is_negative, options)
-                {
-                    return Ok(value);
-                } else {
-                    return Err(e);
-                }
-            },
-        };
+        let (num, count) = parse_number!(
+            FORMAT,
+            byte,
+            is_negative,
+            options,
+            parse_partial_number,
+            parse_partial_special
+        );
         // Try the fast-path algorithm.
         if let Some(value) = num.try_fast_path::<_, FORMAT>() {
             return Ok((value, count));
         }
         // Now try the moderate path algorithm.
-        if format.mantissa_radix() == 10 {
-            // Use the Eisel-Lemire algorithm.
-            (lemire::<F>(&num), is_negative, count)
-        } else {
-            // Use the fallback Bellerephon algorithm.
-            todo!();
-        }
+        (moderate_path::<F, FORMAT>(&num), is_negative, count)
     } else {
         // Need to skip straight to the slow path algorithm.
         //ExtendedFloat80 { mant: 0, exp: 0 }
         todo!();
     };
+
+    // TODO(ahuszagh) Need to do something if is_lossy.
+    // We've got a weird mix of features going on: is_lossy fails
+    //  in some cases...
 
     // Unable to correctly round the float using the Eisel-Lemire algorithm.
     // Fallback to a slower, but always correct algorithm.
@@ -211,6 +220,54 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
         float = -float;
     }
     Ok((float, count))
+}
+
+/// Wrapper for different moderate-path algorithms.
+/// A return exponent of `-1` indicates an invalid value.
+#[inline]
+pub fn moderate_path<F: LemireFloat, const FORMAT: u128>(num: &Number) -> ExtendedFloat80 {
+    #[cfg(feature = "compact")]
+    {
+        ExtendedFloat80 {
+            mant: num.mantissa,
+            exp: -1,
+        }
+    }
+
+    #[cfg(not(feature = "compact"))]
+    {
+        #[cfg(feature = "radix")]
+        {
+            let format = NumberFormat::<{ FORMAT }> {};
+            let radix = format.mantissa_radix();
+            if radix == 10 {
+                lemire::<F>(num)
+            } else if matches!(radix, 2 | 4 | 8 | 16 | 32) {
+                // Implement the power-of-two backends.
+                todo!();
+            } else {
+                bellerophon::<F, FORMAT>(num)
+            }
+        }
+
+        #[cfg(all(feature = "power-of-two", not(feature = "radix")))]
+        {
+            let format = NumberFormat::<{ FORMAT }> {};
+            let radix = format.mantissa_radix();
+            debug_assert!(matches!(radix, 2 | 4 | 8 | 10 | 16 | 32));
+            if radix == 10 {
+                lemire::<F>(num)
+            } else {
+                // Implement the power-of-two backends.
+                todo!();
+            }
+        }
+
+        #[cfg(not(feature = "power-of-two"))]
+        {
+            lemire::<F>(num)
+        }
+    }
 }
 
 // NUMBER

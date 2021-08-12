@@ -112,7 +112,7 @@ pub trait WriteFloat: Float {
                     }
             }
 
-            #[cfg(not(feature = "radix"))]
+            #[cfg(not(feature = "power-of-two"))]
             {
                 // SAFETY: safe if the buffer can hold the significant digits
                 count + unsafe { write_float_decimal::<_, FORMAT>(float, bytes, options) }

@@ -22,12 +22,12 @@
 #![doc(hidden)]
 
 use crate::options::{Options, RoundMode};
+use crate::shared::{round_up, write_exponent};
 use core::mem;
 use lexical_util::digit::digit_to_char_const;
 use lexical_util::extended_float::ExtendedFloat;
 use lexical_util::format::NumberFormat;
 use lexical_util::num::{AsPrimitive, Float};
-use lexical_write_integer::write::WriteInteger;
 
 /// Compact float-to-string algorithm for decimal strings.
 ///
@@ -69,28 +69,20 @@ pub unsafe fn write_float<F: Float, const FORMAT: u128>(
         // SAFETY: safe since `digits.len()` is large enough to always hold enough digits.
         let (ndigits, k) = unsafe { grisu(float, &mut digits) };
         // SAFETY: safe since `ndigits < digits.len()`.
-        unsafe { round_and_truncate(&mut digits, ndigits, k, options) }
+        unsafe { truncate_and_round(&mut digits, ndigits, k, options) }
     };
 
     // See if we should write the number in exponent notation.
-    let min_exp = options.negative_exponent_break().map_or(-5, |x| x.get());
-    let max_exp = options.positive_exponent_break().map_or(9, |x| x.get());
     let exp = k + ndigits as i32 - 1;
-    if !format.no_exponent_notation()
-        && (format.required_exponent_notation() || exp < min_exp || exp > max_exp)
-    {
-        // Write digits in scientific notation.
-        // SAFETY: safe as long as bytes is large enough to hold all the digits.
-        unsafe { write_float_scientific::<FORMAT>(bytes, &mut digits, ndigits, k, options) }
-    } else if exp >= 0 {
-        // Write positive exponent without scientific notation.
-        // SAFETY: safe as long as bytes is large enough to hold all the digits.
-        unsafe { write_float_positive_exponent::<FORMAT>(bytes, &mut digits, ndigits, k, options) }
-    } else {
-        // Write negative exponent without scientific notation.
-        // SAFETY: safe as long as bytes is large enough to hold all the digits.
-        unsafe { write_float_negative_exponent::<FORMAT>(bytes, &mut digits, ndigits, k, options) }
-    }
+    write_float!(
+        FORMAT,
+        exp,
+        options,
+        write_float_scientific,
+        write_float_positive_exponent,
+        write_float_negative_exponent,
+        args => bytes, &mut digits, ndigits, k, options,
+    )
 }
 
 /// Round digit to normal approximation.
@@ -254,42 +246,12 @@ pub unsafe fn grisu<F: Float>(float: F, digits: &mut [u8]) -> (usize, i32) {
     unsafe { generate_digits(&w, &upper, &lower, digits, k) }
 }
 
-/// Round-up the last digit.
-///
-/// # Safety
-///
-/// Safe as long as `ndigits <= digits.len()`.
-pub unsafe fn round_up(digits: &mut [u8], ndigits: usize) -> usize {
-    debug_assert!(ndigits <= digits.len());
-
-    let mut index = ndigits;
-    while index != 0 {
-        // SAFETY: safe if `ndigits <= digits.len()`, since then
-        // `index > 0 && index <= digits.len()`.
-        let digit = unsafe { index_unchecked!(digits[index - 1]) };
-        if digit < b'9' {
-            // SAFETY: safe since `index > 0 && index <= digits.len()`.
-            unsafe { index_unchecked_mut!(digits[index - 1]) = digit + 1 };
-            return index;
-        }
-        // Don't have to assign b'0' otherwise, since we're just carrying
-        // to the next digit.
-        index -= 1;
-    }
-
-    // Means all digits were b'9': we need to round up.
-    // SAFETY: safe since `digits.len() > 1`.
-    unsafe { index_unchecked_mut!(digits[0]) = b'1' };
-
-    1
-}
-
 /// Round the number of digits based on the maximum digits.
 ///
 /// # Safety
 ///
 /// Safe as long as `ndigits <= digits.len()`.
-pub unsafe fn round_and_truncate(
+pub unsafe fn truncate_and_round(
     digits: &mut [u8],
     ndigits: usize,
     k: i32,
@@ -326,7 +288,7 @@ pub unsafe fn round_and_truncate(
     } else if truncated > b'5' {
         // Round-up always.
         // SAFETY: safe if `ndigits <= digits.len()`, because `max_digits < ndigits`.
-        unsafe { round_up(digits, max_digits) }
+        unsafe { round_up(digits, max_digits, 10) }
     } else {
         // Have a near-halfway case, resolve it.
         // SAFETY: safe if `ndigits < digits.len()`.
@@ -335,7 +297,7 @@ pub unsafe fn round_and_truncate(
         let is_above = unsafe { index_unchecked!(to_round[2..]).iter().any(|&x| x != b'0') };
         if is_odd || is_above {
             // SAFETY: safe if `ndigits <= digits.len()`, because `max_digits < ndigits`.
-            unsafe { round_up(digits, max_digits) }
+            unsafe { round_up(digits, max_digits, 10) }
         } else {
             max_digits
         }
@@ -360,9 +322,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     debug_assert!(ndigits <= 20);
 
     // Config options
-    let format = NumberFormat::<{ FORMAT }> {};
     let decimal_point = options.decimal_point();
-    let exponent_character = options.exponent();
 
     // Determine the exact number of digits to write.
     let mut exact_count: usize = ndigits;
@@ -404,31 +364,9 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     }
 
     // Now, write our scientific notation.
-    unsafe { index_unchecked_mut!(bytes[cursor]) = exponent_character };
-    cursor += 1;
-
-    // We've handled the zero case: write the sign for the exponent.
-    let exp = k + ndigits as i32 - 1;
-    let positive_exp: u32;
-    if exp < 0 {
-        // SAFETY: safe if bytes is large enough to hold the output
-        unsafe { index_unchecked_mut!(bytes[cursor]) = b'-' };
-        cursor += 1;
-        positive_exp = exp.wrapping_neg() as u32;
-    } else if cfg!(feature = "format") && format.required_exponent_sign() {
-        // SAFETY: safe if bytes is large enough to hold the output
-        unsafe { index_unchecked_mut!(bytes[cursor]) = b'+' };
-        cursor += 1;
-        positive_exp = exp as u32;
-    } else {
-        positive_exp = exp as u32;
-    }
-
-    // Write our exponent digits.
     // SAFETY: safe since bytes must be large enough to store all digits.
-    cursor += unsafe {
-        positive_exp.write_exponent::<u32, FORMAT>(&mut index_unchecked_mut!(bytes[cursor..]))
-    };
+    let exp = k + ndigits as i32 - 1;
+    unsafe { write_exponent::<FORMAT>(bytes, &mut cursor, exp, options.exponent()) };
 
     cursor
 }

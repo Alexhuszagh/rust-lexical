@@ -7,6 +7,7 @@
 #![doc(hidden)]
 
 use crate::options::{Options, RoundMode};
+use crate::shared::write_exponent;
 use lexical_util::algorithm::rtrim_char_count;
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 use lexical_util::format::NumberFormat;
@@ -481,7 +482,6 @@ where
     let format = NumberFormat::<{ FORMAT }> {};
     let bits_per_digit = fast_log2(format.mantissa_radix());
     let decimal_point = options.decimal_point();
-    let exponent_character = options.exponent();
 
     // Validate our options: we don't support different exponent bases here.
     debug_assert!(format.mantissa_radix() == format.exponent_base());
@@ -532,28 +532,7 @@ where
 
     // Now, write our scientific notation.
     let scaled_sci_exp = scale_sci_exp(sci_exp, bits_per_digit);
-    unsafe { index_unchecked_mut!(bytes[cursor]) = exponent_character };
-    cursor += 1;
-
-    // We've handled the zero case: write the sign for the exponent.
-    let positive_exp: u32;
-    if scaled_sci_exp < 0 {
-        unsafe { index_unchecked_mut!(bytes[cursor]) = b'-' };
-        cursor += 1;
-        positive_exp = scaled_sci_exp.wrapping_neg() as u32;
-    } else if cfg!(feature = "format") && format.required_exponent_sign() {
-        unsafe { index_unchecked_mut!(bytes[cursor]) = b'+' };
-        cursor += 1;
-        positive_exp = scaled_sci_exp as u32;
-    } else {
-        positive_exp = scaled_sci_exp as u32;
-    }
-
-    // Write our exponent digits.
-    // SAFETY: safe since bytes must be large enough to store all digits.
-    cursor += unsafe {
-        positive_exp.write_exponent::<u32, FORMAT>(&mut index_unchecked_mut!(bytes[cursor..]))
-    };
+    unsafe { write_exponent::<FORMAT>(bytes, &mut cursor, scaled_sci_exp, options.exponent()) };
 
     cursor
 }
@@ -807,38 +786,20 @@ where
     // be less than, and the max must be above 0.
     let exp = float.exponent();
     let mut sci_exp = exp + mantissa_bits as i32 - 1;
-    let min_exp = options.negative_exponent_break().map_or(-5, |x| x.get());
-    let max_exp = options.positive_exponent_break().map_or(9, |x| x.get());
 
     // Normalize the exponent if we have an actual zero.
     if mantissa == <F as Float>::Unsigned::ZERO {
         sci_exp = 0;
     }
 
-    if !format.no_exponent_notation()
-        && (format.required_exponent_notation() || sci_exp < min_exp || sci_exp > max_exp)
-    {
-        // Validate our input: check if the format is invalid.
-        assert_eq!(
-            NumberFormat::<FORMAT>::RADIX,
-            NumberFormat::<FORMAT>::EXPONENT_BASE,
-            "If using exponent notation, the mantissa radix must equal the exponent base."
-        );
-
-        // Write digits in scientific notation.
-        // SAFETY: safe as long as bytes is large enough to hold all the digits.
-        unsafe { write_float_scientific::<_, FORMAT>(mantissa, exp, sci_exp, bytes, options) }
-    } else if sci_exp >= 0 {
-        // Write positive exponent without scientific notation.
-        // SAFETY: safe as long as bytes is large enough to hold all the digits.
-        unsafe {
-            write_float_positive_exponent::<_, FORMAT>(mantissa, exp, sci_exp, bytes, options)
-        }
-    } else {
-        // Write negative exponent without scientific notation.
-        // SAFETY: safe as long as bytes is large enough to hold all the digits.
-        unsafe {
-            write_float_negative_exponent::<_, FORMAT>(mantissa, exp, sci_exp, bytes, options)
-        }
-    }
+    write_float!(
+        FORMAT,
+        sci_exp,
+        options,
+        write_float_scientific,
+        write_float_positive_exponent,
+        write_float_negative_exponent,
+        generic => _,
+        args => mantissa, exp, sci_exp, bytes, options,
+    )
 }
