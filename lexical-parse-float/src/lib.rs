@@ -52,6 +52,7 @@ mod api;
 mod parse;
 mod table_binary;
 mod table_decimal;
+mod table_lemire;
 mod table_radix;
 
 // Re-exports

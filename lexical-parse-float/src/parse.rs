@@ -5,7 +5,8 @@
 
 #![doc(hidden)]
 
-use crate::float::LemireFloat;
+use crate::float::{extended_to_float, LemireFloat};
+use crate::lemire::lemire;
 use crate::number::Number;
 use crate::options::Options;
 #[cfg(not(feature = "compact"))]
@@ -45,6 +46,12 @@ parse_float_impl! { f32 f64 }
 
 // PARSE
 // -----
+
+// NOTE:
+//  The partial and complete parsers are done separately because it provides
+//  minor optimizations when parsing invalid input, and the logic is slightly
+//  different internally. Most of the code is reshared, so the duplicated
+//  code is only like 30 lines.
 
 macro_rules! parse_mantissa_sign {
     ($byte:ident, $format:ident) => {{
@@ -97,7 +104,7 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     // Parse our a small representation of our number.
     // Can only do fast and moderate path optimizations if we
     // can shift significant digits to and from the exponent.
-    if format.mantissa_radix() == format.exponent_base() {
+    let (fp, is_negative) = if format.mantissa_radix() == format.exponent_base() {
         let num = match parse_number::<FORMAT>(byte.clone(), is_negative, options) {
             Ok(n) => n,
             Err(e) => {
@@ -109,14 +116,36 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
                 }
             },
         };
+        // Try the fast-path algorithm.
         if let Some(value) = num.try_fast_path::<_, FORMAT>() {
             return Ok(value);
         }
+        // Now try the moderate path algorithm.
+        if format.mantissa_radix() == 10 {
+            // Use the Eisel-Lemire algorithm.
+            (lemire::<F>(&num), is_negative)
+        } else {
+            // Use the fallback Bellerephon algorithm.
+            todo!();
+        }
+    } else {
+        // Need to skip straight to the slow path algorithm.
+        //ExtendedFloat80 { mant: 0, exp: 0 }
+        todo!();
+    };
+
+    // Unable to correctly round the float using the Eisel-Lemire algorithm.
+    // Fallback to a slower, but always correct algorithm.
+    if fp.exp < 0 {
+        todo!();
     }
 
-    // TODO(ahuszagh) Need parse_number now...
-
-    todo!()
+    // Convert to native float and return result.
+    let mut float = extended_to_float::<F>(fp);
+    if is_negative {
+        float = -float;
+    }
+    Ok(float)
 }
 
 /// Parse a float from bytes using a partial parser.
@@ -138,7 +167,7 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     // Parse our a small representation of our number.
     // Can only do fast and moderate path optimizations if we
     // can shift significant digits to and from the exponent.
-    if format.mantissa_radix() == format.exponent_base() {
+    let (fp, is_negative, count) = if format.mantissa_radix() == format.exponent_base() {
         let (num, count) = match parse_partial_number::<FORMAT>(byte.clone(), is_negative, options)
         {
             Ok(n) => n,
@@ -152,14 +181,36 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
                 }
             },
         };
+        // Try the fast-path algorithm.
         if let Some(value) = num.try_fast_path::<_, FORMAT>() {
             return Ok((value, count));
         }
+        // Now try the moderate path algorithm.
+        if format.mantissa_radix() == 10 {
+            // Use the Eisel-Lemire algorithm.
+            (lemire::<F>(&num), is_negative, count)
+        } else {
+            // Use the fallback Bellerephon algorithm.
+            todo!();
+        }
+    } else {
+        // Need to skip straight to the slow path algorithm.
+        //ExtendedFloat80 { mant: 0, exp: 0 }
+        todo!();
+    };
+
+    // Unable to correctly round the float using the Eisel-Lemire algorithm.
+    // Fallback to a slower, but always correct algorithm.
+    if fp.exp < 0 {
+        todo!();
     }
 
-    // TODO(ahuszagh) Need parse_number now...
-
-    todo!()
+    // Convert to native float and return result.
+    let mut float = extended_to_float::<F>(fp);
+    if is_negative {
+        float = -float;
+    }
+    Ok((float, count))
 }
 
 // NUMBER

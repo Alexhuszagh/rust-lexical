@@ -10,7 +10,11 @@ use crate::libm::{powd, powf};
 use crate::limits::ExactFloat;
 #[cfg(not(feature = "compact"))]
 use crate::table::{get_small_f32_power, get_small_f64_power, get_small_int_power};
-use lexical_util::num::Float;
+use lexical_util::extended_float::ExtendedFloat;
+use lexical_util::num::{AsCast, Float};
+
+/// Alias with ~80 bits of precision, 64 for the mantissa and 16 for exponent.
+pub type ExtendedFloat80 = ExtendedFloat<u64>;
 
 /// Helper trait to add more float characteristics for parsing floats.
 pub trait RawFloat: Float + ExactFloat {
@@ -116,6 +120,9 @@ pub trait LemireFloat: RawFloat {
 
     /// Largest decimal exponent for a non-infinite value.
     const LARGEST_POWER_OF_TEN: i32;
+
+    // Largest exponent value `(1 << EXP_BITS) - 1`.
+    const INFINITE_POWER: i32 = Self::MAX_EXPONENT + Self::EXPONENT_BIAS;
 }
 
 impl LemireFloat for f32 {
@@ -134,12 +141,22 @@ impl LemireFloat for f64 {
     const LARGEST_POWER_OF_TEN: i32 = 308;
 }
 
+#[inline(always)]
 #[cfg(all(feature = "std", feature = "compact"))]
 pub fn powf(x: f32, y: f32) -> f32 {
     x.powf(y)
 }
 
+#[inline(always)]
 #[cfg(all(feature = "std", feature = "compact"))]
 pub fn powd(x: f64, y: f64) -> f64 {
     x.powf(y)
+}
+
+/// Converts an `ExtendedFloat` to the closest machine float type.
+#[inline(always)]
+pub fn extended_to_float<F: LemireFloat>(x: ExtendedFloat80) -> F {
+    let mut word = x.mant;
+    word |= (x.exp as u64) << F::MANTISSA_SIZE;
+    F::from_bits(F::Unsigned::as_cast(word))
 }
