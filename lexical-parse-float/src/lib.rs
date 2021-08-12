@@ -50,6 +50,7 @@ pub mod table;
 
 mod api;
 mod parse;
+mod table_bellerophon;
 mod table_binary;
 mod table_decimal;
 mod table_lemire;
