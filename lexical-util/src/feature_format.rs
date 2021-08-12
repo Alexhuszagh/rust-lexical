@@ -462,7 +462,7 @@
 // --
 //
 // Setup:
-//      Run `fsharpi` to enter the interpreter.
+//      Run `dotnet fsi` to enter the interpreter.
 //
 // Code:
 //      ```text
@@ -2387,7 +2387,6 @@ const_assert!(NumberFormat::<{ FSHARP_LITERAL }> {}.is_valid());
 #[rustfmt::skip]
 pub const FSHARP_STRING: u128 = NumberFormatBuilder::new()
     .digit_separator(num::NonZeroU8::new(b'_'))
-    .case_sensitive_special(true)
     .internal_digit_separator(true)
     .leading_digit_separator(true)
     .trailing_digit_separator(true)
