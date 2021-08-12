@@ -14,205 +14,14 @@
 //!  With radix: ~20 KB:
 //!     2534 u64
 //!
-//! This file is mostly automatically generated, do not change values
-//! manually, unless you know what you are doing. The script to generate
-//! the values is as follows:
-//!
-//! ```text
-//! import math
-//! from collections import deque
-//!
-//! STEP_STR = "const BASE{0}_STEP: i32 = {1};"
-//! SMALL_MANTISSA_STR = "const BASE{0}_SMALL_MANTISSA: [u64; {1}] = ["
-//! SMALL_EXPONENT_STR = "const BASE{0}_SMALL_EXPONENT: [i32; {1}] = ["
-//! LARGE_MANTISSA_STR = "const BASE{0}_LARGE_MANTISSA: [u64; {1}] = ["
-//! LARGE_EXPONENT_STR = "const BASE{0}_LARGE_EXPONENT: [i32; {1}] = ["
-//! SMALL_INT_STR = "const BASE{0}_SMALL_INT_POWERS: [u64; {1}] = {2};"
-//! BIAS_STR = "const BASE{0}_BIAS: i32 = {1};"
-//! EXP_STR = "// {}^{}"
-//! POWER_STR = """pub const BASE{0}_POWERS: BellerophonPowers = BellerophonPowers {{
-//!     small: ExtendedFloatArray {{ mant: &BASE{0}_SMALL_MANTISSA, exp: &BASE{0}_SMALL_EXPONENT }},
-//!     large: ExtendedFloatArray {{ mant: &BASE{0}_LARGE_MANTISSA, exp: &BASE{0}_LARGE_EXPONENT }},
-//!     small_int: &BASE{0}_SMALL_INT_POWERS,
-//!     step: BASE{0}_STEP,
-//!     bias: BASE{0}_BIAS,
-//! }};\n"""
-//!
-//! def calculate_bitshift(base, exponent):
-//!     '''
-//!     Calculate the bitshift required for a given base. The exponent
-//!     is the absolute value of the max exponent (log distance from 1.)
-//!     '''
-//!
-//!     return 63 + math.ceil(math.log2(base**exponent))
-//!
-//!
-//! def next_fp(fp, base, step = 1):
-//!     '''Generate the next extended-floating point value.'''
-//!
-//!     return (fp[0] * (base**step), fp[1])
-//!
-//!
-//! def prev_fp(fp, base, step = 1):
-//!     '''Generate the previous extended-floating point value.'''
-//!
-//!     return (fp[0] // (base**step), fp[1])
-//!
-//!
-//! def normalize_fp(fp):
-//!     '''Normalize a extended-float so the MSB is the 64th bit'''
-//!
-//!     while fp[0] >> 64 != 0:
-//!         fp = (fp[0] >> 1, fp[1] + 1)
-//!     return fp
-//!
-//!
-//! def generate_small(base, count):
-//!     '''Generate the small powers for a given base'''
-//!
-//!     bitshift = calculate_bitshift(base, count)
-//!     fps = []
-//!     fp = (1 << bitshift, -bitshift)
-//!     for exp in range(count):
-//!         fps.append((normalize_fp(fp), exp))
-//!         fp = next_fp(fp, base)
-//!
-//!     # Print the small powers as integers.
-//!     ints = [base**i for _, i in fps]
-//!
-//!     return fps, ints
-//!
-//!
-//! def generate_large(base, step):
-//!     '''Generate the large powers for a given base.'''
-//!
-//!     # Get our starting parameters
-//!     min_exp = math.floor(math.log(5e-324, base) - math.log(0xFFFFFFFFFFFFFFFF, base))
-//!     max_exp = math.ceil(math.log(1.7976931348623157e+308, base))
-//!     bitshift = calculate_bitshift(base, abs(min_exp - step))
-//!     fps = deque()
-//!
-//!     # Add negative exponents
-//!     # We need to go below the minimum exponent, since we need
-//!     # all resulting exponents to be positive.
-//!     fp = (1 << bitshift, -bitshift)
-//!     for exp in range(-step, min_exp-step, -step):
-//!         fp = prev_fp(fp, base, step)
-//!         fps.appendleft((normalize_fp(fp), exp))
-//!
-//!     # Add positive exponents
-//!     fp = (1 << bitshift, -bitshift)
-//!     fps.append((normalize_fp(fp), 0))
-//!     for exp in range(step, max_exp, step):
-//!         fp = next_fp(fp, base, step)
-//!         fps.append((normalize_fp(fp), exp))
-//!
-//!     # Return the smallest exp, AKA, the bias
-//!     return fps, -fps[0][1]
-//!
-//!
-//! def print_array(base, string, fps, index):
-//!     '''Print an entire array'''
-//!
-//!     print(string.format(base, len(fps)))
-//!     for fp, exp in fps:
-//!         value = "    {},".format(fp[index])
-//!         exp = EXP_STR.format(base, exp)
-//!         print(value.ljust(30, " ") + exp)
-//!     print("];")
-//!
-//!
-//! def generate_base(base):
-//!     '''Generate all powers and variables.'''
-//!
-//!     step = math.floor(math.log(1e10, base))
-//!     small, ints = generate_small(base, step)
-//!     large, bias = generate_large(base, step)
-//!
-//!     print_array(base, SMALL_MANTISSA_STR, small, 0)
-//!     print_array(base, SMALL_EXPONENT_STR, small, 1)
-//!     print_array(base, LARGE_MANTISSA_STR, large, 0)
-//!     print_array(base, LARGE_EXPONENT_STR, large, 1)
-//!     print(SMALL_INT_STR.format(base, len(ints), ints))
-//!     print(STEP_STR.format(base, step))
-//!     print(BIAS_STR.format(base, bias))
-//!
-//!
-//! def generate():
-//!     '''Generate all bases.'''
-//!
-//!     bases = [
-//!         3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21,
-//!         22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36
-//!     ]
-//!
-//!     for base in bases:
-//!         print("// BASE{}\n".format(base))
-//!         generate_base(base)
-//!         print("")
-//!
-//!     print("// HIGH LEVEL\n// ----------\n")
-//!
-//!     for base in bases:
-//!         print(POWER_STR.format(base))
-//!
-//!
-//! if __name__ == '__main__':
-//!     generate()
-//! ```
+//! DO NOT MODIFY: Generated by `etc/bellerophon_table.py`
 
-#![cfg(not(feature = "compact"))]
 #![cfg(feature = "radix")]
 #![doc(hidden)]
 
-use crate::float::ExtendedFloat80;
-
-/// Precalculated powers of base N for the Bellerophon algorithm.
-pub struct BellerophonPowers {
-    // Pre-calculated small powers.
-    pub small: &'static [u64],
-    // Pre-calculated large powers.
-    pub large: &'static [u64],
-    /// Pre-calculated small powers as 64-bit integers
-    pub small_int: &'static [u64],
-    // Step between large powers and number of small powers.
-    pub step: i32,
-    // Exponent bias for the large powers.
-    pub bias: i32,
-    /// ceil(log2(radix)) scaled as a multiplier.
-    pub log2: i64,
-    /// Bitshift for the log2 multiplier.
-    pub log2_shift: i32,
-}
-
-/// Allow indexing of values without bounds checking
-impl BellerophonPowers {
-    #[inline]
-    pub fn get_small(&self, index: usize) -> ExtendedFloat80 {
-        let mant = self.small[index];
-        let exp = (1 - 64) + ((self.log2 * index as i64) >> self.log2_shift);
-        ExtendedFloat80 {
-            mant,
-            exp: exp as i32,
-        }
-    }
-
-    #[inline]
-    pub fn get_large(&self, index: usize) -> ExtendedFloat80 {
-        let mant = self.large[index];
-        let biased_e = index as i64 * self.step as i64 - self.bias as i64;
-        let exp = (1 - 64) + ((self.log2 * biased_e) >> self.log2_shift);
-        ExtendedFloat80 {
-            mant,
-            exp: exp as i32,
-        }
-    }
-
-    #[inline]
-    pub fn get_small_int(&self, index: usize) -> u64 {
-        self.small_int[index]
-    }
-}
+use crate::bellerophon::BellerophonPowers;
+#[cfg(feature = "compact")]
+use crate::table_bellerophon_decimal::BASE10_POWERS;
 
 /// Get Bellerophon powers from radix.
 #[inline]
@@ -223,6 +32,8 @@ pub const fn bellerophon_powers(radix: u32) -> &'static BellerophonPowers {
         6 => &BASE6_POWERS,
         7 => &BASE7_POWERS,
         9 => &BASE9_POWERS,
+        #[cfg(feature = "compact")]
+        10 => &BASE10_POWERS,
         11 => &BASE11_POWERS,
         12 => &BASE12_POWERS,
         13 => &BASE13_POWERS,
@@ -255,7 +66,7 @@ pub const fn bellerophon_powers(radix: u32) -> &'static BellerophonPowers {
 // HIGH LEVEL
 // ----------
 
-const INVALID_POWERS: BellerophonPowers = BellerophonPowers {
+pub const INVALID_POWERS: BellerophonPowers = BellerophonPowers {
     small: &[],
     large: &[],
     small_int: &[],
@@ -265,7 +76,7 @@ const INVALID_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: 0,
 };
 
-const BASE3_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE3_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE3_SMALL_MANTISSA,
     large: &BASE3_LARGE_MANTISSA,
     small_int: &BASE3_SMALL_INT_POWERS,
@@ -275,7 +86,7 @@ const BASE3_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE3_LOG2_SHIFT,
 };
 
-const BASE5_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE5_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE5_SMALL_MANTISSA,
     large: &BASE5_LARGE_MANTISSA,
     small_int: &BASE5_SMALL_INT_POWERS,
@@ -285,7 +96,7 @@ const BASE5_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE5_LOG2_SHIFT,
 };
 
-const BASE6_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE6_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE6_SMALL_MANTISSA,
     large: &BASE6_LARGE_MANTISSA,
     small_int: &BASE6_SMALL_INT_POWERS,
@@ -295,7 +106,7 @@ const BASE6_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE6_LOG2_SHIFT,
 };
 
-const BASE7_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE7_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE7_SMALL_MANTISSA,
     large: &BASE7_LARGE_MANTISSA,
     small_int: &BASE7_SMALL_INT_POWERS,
@@ -305,7 +116,7 @@ const BASE7_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE7_LOG2_SHIFT,
 };
 
-const BASE9_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE9_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE9_SMALL_MANTISSA,
     large: &BASE9_LARGE_MANTISSA,
     small_int: &BASE9_SMALL_INT_POWERS,
@@ -315,7 +126,7 @@ const BASE9_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE9_LOG2_SHIFT,
 };
 
-const BASE11_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE11_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE11_SMALL_MANTISSA,
     large: &BASE11_LARGE_MANTISSA,
     small_int: &BASE11_SMALL_INT_POWERS,
@@ -325,7 +136,7 @@ const BASE11_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE11_LOG2_SHIFT,
 };
 
-const BASE12_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE12_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE12_SMALL_MANTISSA,
     large: &BASE12_LARGE_MANTISSA,
     small_int: &BASE12_SMALL_INT_POWERS,
@@ -335,7 +146,7 @@ const BASE12_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE12_LOG2_SHIFT,
 };
 
-const BASE13_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE13_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE13_SMALL_MANTISSA,
     large: &BASE13_LARGE_MANTISSA,
     small_int: &BASE13_SMALL_INT_POWERS,
@@ -345,7 +156,7 @@ const BASE13_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE13_LOG2_SHIFT,
 };
 
-const BASE14_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE14_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE14_SMALL_MANTISSA,
     large: &BASE14_LARGE_MANTISSA,
     small_int: &BASE14_SMALL_INT_POWERS,
@@ -355,7 +166,7 @@ const BASE14_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE14_LOG2_SHIFT,
 };
 
-const BASE15_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE15_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE15_SMALL_MANTISSA,
     large: &BASE15_LARGE_MANTISSA,
     small_int: &BASE15_SMALL_INT_POWERS,
@@ -365,7 +176,7 @@ const BASE15_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE15_LOG2_SHIFT,
 };
 
-const BASE17_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE17_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE17_SMALL_MANTISSA,
     large: &BASE17_LARGE_MANTISSA,
     small_int: &BASE17_SMALL_INT_POWERS,
@@ -375,7 +186,7 @@ const BASE17_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE17_LOG2_SHIFT,
 };
 
-const BASE18_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE18_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE18_SMALL_MANTISSA,
     large: &BASE18_LARGE_MANTISSA,
     small_int: &BASE18_SMALL_INT_POWERS,
@@ -385,7 +196,7 @@ const BASE18_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE18_LOG2_SHIFT,
 };
 
-const BASE19_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE19_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE19_SMALL_MANTISSA,
     large: &BASE19_LARGE_MANTISSA,
     small_int: &BASE19_SMALL_INT_POWERS,
@@ -395,7 +206,7 @@ const BASE19_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE19_LOG2_SHIFT,
 };
 
-const BASE20_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE20_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE20_SMALL_MANTISSA,
     large: &BASE20_LARGE_MANTISSA,
     small_int: &BASE20_SMALL_INT_POWERS,
@@ -405,7 +216,7 @@ const BASE20_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE20_LOG2_SHIFT,
 };
 
-const BASE21_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE21_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE21_SMALL_MANTISSA,
     large: &BASE21_LARGE_MANTISSA,
     small_int: &BASE21_SMALL_INT_POWERS,
@@ -415,7 +226,7 @@ const BASE21_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE21_LOG2_SHIFT,
 };
 
-const BASE22_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE22_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE22_SMALL_MANTISSA,
     large: &BASE22_LARGE_MANTISSA,
     small_int: &BASE22_SMALL_INT_POWERS,
@@ -425,7 +236,7 @@ const BASE22_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE22_LOG2_SHIFT,
 };
 
-const BASE23_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE23_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE23_SMALL_MANTISSA,
     large: &BASE23_LARGE_MANTISSA,
     small_int: &BASE23_SMALL_INT_POWERS,
@@ -435,7 +246,7 @@ const BASE23_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE23_LOG2_SHIFT,
 };
 
-const BASE24_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE24_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE24_SMALL_MANTISSA,
     large: &BASE24_LARGE_MANTISSA,
     small_int: &BASE24_SMALL_INT_POWERS,
@@ -445,7 +256,7 @@ const BASE24_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE24_LOG2_SHIFT,
 };
 
-const BASE25_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE25_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE25_SMALL_MANTISSA,
     large: &BASE25_LARGE_MANTISSA,
     small_int: &BASE25_SMALL_INT_POWERS,
@@ -455,7 +266,7 @@ const BASE25_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE25_LOG2_SHIFT,
 };
 
-const BASE26_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE26_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE26_SMALL_MANTISSA,
     large: &BASE26_LARGE_MANTISSA,
     small_int: &BASE26_SMALL_INT_POWERS,
@@ -465,7 +276,7 @@ const BASE26_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE26_LOG2_SHIFT,
 };
 
-const BASE27_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE27_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE27_SMALL_MANTISSA,
     large: &BASE27_LARGE_MANTISSA,
     small_int: &BASE27_SMALL_INT_POWERS,
@@ -475,7 +286,7 @@ const BASE27_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE27_LOG2_SHIFT,
 };
 
-const BASE28_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE28_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE28_SMALL_MANTISSA,
     large: &BASE28_LARGE_MANTISSA,
     small_int: &BASE28_SMALL_INT_POWERS,
@@ -485,7 +296,7 @@ const BASE28_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE28_LOG2_SHIFT,
 };
 
-const BASE29_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE29_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE29_SMALL_MANTISSA,
     large: &BASE29_LARGE_MANTISSA,
     small_int: &BASE29_SMALL_INT_POWERS,
@@ -495,7 +306,7 @@ const BASE29_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE29_LOG2_SHIFT,
 };
 
-const BASE30_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE30_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE30_SMALL_MANTISSA,
     large: &BASE30_LARGE_MANTISSA,
     small_int: &BASE30_SMALL_INT_POWERS,
@@ -505,7 +316,7 @@ const BASE30_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE30_LOG2_SHIFT,
 };
 
-const BASE31_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE31_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE31_SMALL_MANTISSA,
     large: &BASE31_LARGE_MANTISSA,
     small_int: &BASE31_SMALL_INT_POWERS,
@@ -515,7 +326,7 @@ const BASE31_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE31_LOG2_SHIFT,
 };
 
-const BASE33_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE33_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE33_SMALL_MANTISSA,
     large: &BASE33_LARGE_MANTISSA,
     small_int: &BASE33_SMALL_INT_POWERS,
@@ -525,7 +336,7 @@ const BASE33_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE33_LOG2_SHIFT,
 };
 
-const BASE34_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE34_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE34_SMALL_MANTISSA,
     large: &BASE34_LARGE_MANTISSA,
     small_int: &BASE34_SMALL_INT_POWERS,
@@ -535,7 +346,7 @@ const BASE34_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE34_LOG2_SHIFT,
 };
 
-const BASE35_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE35_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE35_SMALL_MANTISSA,
     large: &BASE35_LARGE_MANTISSA,
     small_int: &BASE35_SMALL_INT_POWERS,
@@ -545,7 +356,7 @@ const BASE35_POWERS: BellerophonPowers = BellerophonPowers {
     log2_shift: BASE35_LOG2_SHIFT,
 };
 
-const BASE36_POWERS: BellerophonPowers = BellerophonPowers {
+pub const BASE36_POWERS: BellerophonPowers = BellerophonPowers {
     small: &BASE36_SMALL_MANTISSA,
     large: &BASE36_LARGE_MANTISSA,
     small_int: &BASE36_SMALL_INT_POWERS,

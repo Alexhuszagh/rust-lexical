@@ -1,5 +1,6 @@
-use lexical_parse_float::float::RawFloat;
+use lexical_parse_float::float::{self, RawFloat};
 use lexical_parse_float::limits::ExactFloat;
+use lexical_util::num::Float;
 
 #[test]
 fn exponent_fast_path_test() {
@@ -141,4 +142,23 @@ fn int_pow_fast_path_test() {
         int_pow_fast_path(35);
         int_pow_fast_path(36);
     }
+}
+
+fn extended_to_float<F: RawFloat>(mantissa: u64, exponent: i32, expected: F) {
+    let fp = float::ExtendedFloat80 {
+        mant: mantissa,
+        exp: exponent,
+    };
+    assert_eq!(float::extended_to_float::<F>(fp), expected);
+}
+
+#[test]
+fn extended_to_float_test() {
+    let max_mant = (1 << f64::MANTISSA_SIZE) - 1;
+    let max_exp = f64::INFINITE_POWER - 1;
+    extended_to_float::<f64>(0, 0, 0.0);
+    extended_to_float::<f64>(1, 0, 5e-324);
+    extended_to_float::<f64>(max_mant, max_exp, f64::MAX);
+    extended_to_float::<f64>(0, 1076, 9007199254740992.0);
+    extended_to_float::<f64>(1, 1076, 9007199254740994.0);
 }

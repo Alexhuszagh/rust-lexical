@@ -37,7 +37,6 @@ mod index;
 
 pub mod bellerophon;
 pub mod binary;
-pub mod compact;
 pub mod float;
 pub mod fpu;
 pub mod lemire;
@@ -50,11 +49,14 @@ pub mod table;
 
 mod api;
 mod parse;
-mod table_bellerophon;
+mod table_bellerophon_decimal;
+mod table_bellerophon_radix;
 mod table_binary;
 mod table_decimal;
+mod table_large;
 mod table_lemire;
 mod table_radix;
+mod table_small;
 
 // Re-exports
 pub use self::api::{FromLexical, FromLexicalWithOptions};

@@ -21,6 +21,9 @@ pub trait RawFloat: Float + ExactFloat {
     // Maximum mantissa for the fast-path (`1 << 53` for f64).
     const MAX_MANTISSA_FAST_PATH: u64 = 2_u64 << Self::MANTISSA_SIZE;
 
+    // Largest exponent value `(1 << EXP_BITS) - 1`.
+    const INFINITE_POWER: i32 = Self::MAX_EXPONENT + Self::EXPONENT_BIAS;
+
     /// Minimum exponent that for a fast path case, or `-⌊(MANTISSA_SIZE+1)/log2(r)⌋`
     /// where `r` is the radix with powers-of-two removed.
     #[inline(always)]
@@ -120,9 +123,6 @@ pub trait LemireFloat: RawFloat {
 
     /// Largest decimal exponent for a non-infinite value.
     const LARGEST_POWER_OF_TEN: i32;
-
-    // Largest exponent value `(1 << EXP_BITS) - 1`.
-    const INFINITE_POWER: i32 = Self::MAX_EXPONENT + Self::EXPONENT_BIAS;
 }
 
 impl LemireFloat for f32 {
@@ -155,7 +155,7 @@ pub fn powd(x: f64, y: f64) -> f64 {
 
 /// Converts an `ExtendedFloat` to the closest machine float type.
 #[inline(always)]
-pub fn extended_to_float<F: LemireFloat>(x: ExtendedFloat80) -> F {
+pub fn extended_to_float<F: Float>(x: ExtendedFloat80) -> F {
     let mut word = x.mant;
     word |= (x.exp as u64) << F::MANTISSA_SIZE;
     F::from_bits(F::Unsigned::as_cast(word))

@@ -1,14 +1,8 @@
 //! Pre-computed tables for writing float strings.
 
-#![cfg(not(feature = "compact"))]
 #![doc(hidden)]
 
 // Re-export all the feature-specific files.
-#[cfg(feature = "radix")]
-pub use crate::table_bellerophon::*;
-#[cfg(feature = "power-of-two")]
-pub use crate::table_binary::*;
-pub use crate::table_decimal::*;
-pub use crate::table_lemire::*;
-#[cfg(feature = "radix")]
-pub use crate::table_radix::*;
+pub use crate::table_large::*;
+#[cfg(not(feature = "compact"))]
+pub use crate::table_small::*;

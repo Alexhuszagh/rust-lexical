@@ -14,14 +14,14 @@
 //! found [here](https://github.com/golang/go/blob/b10849fbb97a2244c086991b4623ae9f32c212d0/src/strconv/extfloat.go).
 //! This code is therefore subject to a 3-clause BSD license.
 
-#![cfg(not(feature = "compact"))]
-#![cfg(feature = "radix")]
+#![cfg(any(feature = "compact", feature = "radix"))]
 #![doc(hidden)]
 
-use crate::float::{ExtendedFloat80, LemireFloat};
+use crate::float::{ExtendedFloat80, RawFloat};
 use crate::number::Number;
 use crate::table::bellerophon_powers;
 use lexical_util::format::NumberFormat;
+use lexical_util::num::AsPrimitive;
 
 // ALGORITHM
 // ---------
@@ -35,8 +35,7 @@ use lexical_util::format::NumberFormat;
 /// unable to unambiguously round the significant digits.
 ///
 /// This has been modified to return a biased, rather than unbiased exponent.
-#[inline]
-pub fn bellerophon<F: LemireFloat, const FORMAT: u128>(num: &Number) -> ExtendedFloat80 {
+pub fn bellerophon<F: RawFloat, const FORMAT: u128>(num: &Number) -> ExtendedFloat80 {
     let format = NumberFormat::<{ FORMAT }> {};
     let fp_zero = ExtendedFloat80 {
         mant: 0,
@@ -103,9 +102,54 @@ pub fn bellerophon<F: LemireFloat, const FORMAT: u128>(num: &Number) -> Extended
     let shift = normalize(&mut fp);
     errors <<= shift;
 
+    // Check if we have a literal 0 or overflow here.
+    // If we have an exponent of -63, we can still have a valid shift,
+    // giving a case where we have too many errors and need to round-up.
+    fp.exp += F::EXPONENT_BIAS;
+    if -fp.exp + 1 > 64 {
+        // Have more than 64 bits below the minimum exponent, must be 0.
+        return fp_zero;
+    }
+
+    // Too many errors accumulated, return an error.
     if !error_is_accurate::<F>(errors, &fp) {
         fp.exp = -1;
+        return fp;
     }
+    // Check for a denormal float, if after the shift the exponent is negative.
+    let mantissa_shift = 64 - F::MANTISSA_SIZE - 1;
+    if -fp.exp >= mantissa_shift {
+        // Have a denormal float that can't be 0.
+        // The extra 1 is to adjust for the denormal float, which is
+        // `1 - F::EXPONENT_BIAS`. This works as before, because our
+        // old logic rounded to `F::DENORMAL_EXPONENT` (now 1), and then
+        // checked if `exp == F::DENORMAL_EXPONENT` and no hidden mask
+        // bit was set. Here, we handle that here, rather than later.
+        let power2 = -fp.exp + 1;
+        round_nearest_tie_even(&mut fp, power2);
+        // Check for round-up: if rounding-nearest carried us to the hidden bit.
+        fp.exp = (fp.mant >= F::HIDDEN_BIT_MASK.as_u64()) as i32;
+        return fp;
+    }
+
+    // The float is normal, round to the hidden bit.
+    round_nearest_tie_even(&mut fp, mantissa_shift);
+
+    // Check if we carried, and if so, shift the bit to the hidden bit.
+    let carry_mask = F::CARRY_MASK.as_u64();
+    if fp.mant & carry_mask == carry_mask {
+        fp.mant >>= 1;
+        fp.exp += 1;
+    }
+
+    // Check for overflow again.
+    if fp.exp >= F::INFINITE_POWER {
+        // Exponent is above largest normal value, must be infinite.
+        return fp_inf;
+    }
+
+    // Remove the hidden bit.
+    fp.mant &= F::MANTISSA_MASK.as_u64();
     fp
 }
 
@@ -135,28 +179,36 @@ const fn error_scale() -> u32 {
 }
 
 /// Get the half error scale.
-#[inline]
+#[inline(always)]
 const fn error_halfscale() -> u32 {
     error_scale() / 2
 }
 
 /// Determine if the number of errors is tolerable for float precision.
-#[inline]
-fn error_is_accurate<F: LemireFloat>(errors: u32, fp: &ExtendedFloat80) -> bool {
+#[cfg_attr(not(feature = "compact"), inline)]
+fn error_is_accurate<F: RawFloat>(errors: u32, fp: &ExtendedFloat80) -> bool {
+    // Check we can't have a literal 0 denormal float.
+    debug_assert!(fp.exp >= -64);
+
     // Determine if extended-precision float is a good approximation.
     // If the error has affected too many units, the float will be
     // inaccurate, or if the representation is too close to halfway
     // that any operations could affect this halfway representation.
     // See the documentation for dtoa for more information.
-    let full = 64;
-    let nonsign_bits = full - 1;
-    let bias = -(F::EXPONENT_BIAS - F::MANTISSA_SIZE);
-    let denormal_exp = bias - nonsign_bits;
-    // This is always a valid u32, since (denormal_exp - fp.exp)
+
+    // This is always a valid u32, since `fp.exp >= -64`
     // will always be positive and the significand size is {23, 52}.
-    let extrabits = match fp.exp <= denormal_exp {
-        true => full - F::MANTISSA_SIZE + denormal_exp - fp.exp,
-        false => nonsign_bits - F::MANTISSA_SIZE,
+    let mantissa_shift = 64 - F::MANTISSA_SIZE - 1;
+
+    // The unbiased exponent checks is `unbiased_exp <= F::MANTISSA_SIZE
+    // - F::EXPONENT_BIAS -64 + 1`, or `biased_exp <= F::MANTISSA_SIZE - 63`,
+    // or `biased_exp <= mantissa_shift`.
+    let extrabits = match fp.exp <= -mantissa_shift {
+        // Denormal, since shifting to the hidden bit still has a negative exponent.
+        // The unbiased check calculation for bits is `1 - F::EXPONENT_BIAS - unbiased_exp`,
+        // or `1 - biased_exp`.
+        true => 1 - fp.exp,
+        false => 64 - F::MANTISSA_SIZE - 1,
     };
 
     // Our logic is as follows: we want to determine if the actual
@@ -207,7 +259,7 @@ fn error_is_accurate<F: LemireFloat>(errors: u32, fp: &ExtendedFloat80) -> bool 
     let errors = errors as u64;
 
     // Round-to-nearest, need to use the halfway point.
-    if extrabits >= full + 1 {
+    if extrabits > 64 {
         // Underflow, we have a shift larger than the mantissa.
         // Representation is valid **only** if the value is close enough
         // overflow to the next bit within errors. If it overflows,
@@ -239,6 +291,7 @@ fn error_is_accurate<F: LemireFloat>(errors: u32, fp: &ExtendedFloat80) -> bool 
 /// itself is 0.
 ///
 /// Get the number of bytes shifted.
+#[cfg_attr(not(feature = "compact"), inline)]
 pub fn normalize(fp: &mut ExtendedFloat80) -> i32 {
     // Note:
     // Using the ctlz intrinsic via leading_zeros is way faster (~10x)
@@ -273,6 +326,7 @@ pub fn normalize(fp: &mut ExtendedFloat80) -> i32 {
 ///     1. Non-signed multiplication of mantissas (requires 2x as many bits as input).
 ///     2. Normalization of the result (not done here).
 ///     3. Addition of exponents.
+#[cfg_attr(not(feature = "compact"), inline)]
 pub fn mul(x: &ExtendedFloat80, y: &ExtendedFloat80) -> ExtendedFloat80 {
     // Logic check, values must be decently normalized prior to multiplication.
     debug_assert!(x.mant >> 32 != 0);
@@ -355,4 +409,102 @@ pub fn lower_n_halfway(n: u64) -> u64 {
 pub fn nth_bit(n: u64) -> u64 {
     debug_assert!(n < 64, "nth_bit() overflow in shl.");
     1 << n
+}
+
+// ROUNDING
+// --------
+
+/// Shift right N-bytes and round towards a direction.
+///
+/// Return if we have any truncated bytes.
+#[inline(always)]
+pub fn round_nearest_tie_even(fp: &mut ExtendedFloat80, shift: i32) {
+    // Ensure we've already handled denormal values that underflow.
+    debug_assert!(shift <= 64);
+
+    // Extract the truncated bits using mask.
+    // Calculate if the value of the truncated bits are either above
+    // the mid-way point, or equal to it.
+    //
+    // For example, for 4 truncated bytes, the mask would be 0b1111
+    // and the midway point would be 0b1000.
+    let mask = lower_n_mask(shift as u64);
+    let halfway = lower_n_halfway(shift as u64);
+    let truncated_bits = fp.mant & mask;
+    let is_above = truncated_bits > halfway;
+    let is_halfway = truncated_bits == halfway;
+
+    // Bit shift so the leading bit is in the hidden bit.
+    // This optimixes pretty well:
+    //  ```text
+    //   mov     ecx, esi
+    //   shr     rdi, cl
+    //   xor     eax, eax
+    //   cmp     esi, 64
+    //   cmovne  rax, rdi
+    //   ret
+    //  ```
+    fp.mant = match shift == 64 {
+        true => 0,
+        false => fp.mant >> shift,
+    };
+    fp.exp += shift;
+
+    // Extract the last bit after shifting (and determine if it is odd).
+    let is_odd = fp.mant & 1 == 1;
+
+    // Calculate if we need to roundup.
+    // We need to roundup if we are above halfway, or if we are odd
+    // and at half-way (need to tie-to-even). Avoid the branch here.
+    fp.mant += (is_above || (is_odd && is_halfway)) as u64;
+}
+
+// POWERS
+// ------
+
+/// Precalculated powers of base N for the Bellerophon algorithm.
+pub struct BellerophonPowers {
+    // Pre-calculated small powers.
+    pub small: &'static [u64],
+    // Pre-calculated large powers.
+    pub large: &'static [u64],
+    /// Pre-calculated small powers as 64-bit integers
+    pub small_int: &'static [u64],
+    // Step between large powers and number of small powers.
+    pub step: i32,
+    // Exponent bias for the large powers.
+    pub bias: i32,
+    /// ceil(log2(radix)) scaled as a multiplier.
+    pub log2: i64,
+    /// Bitshift for the log2 multiplier.
+    pub log2_shift: i32,
+}
+
+/// Allow indexing of values without bounds checking
+impl BellerophonPowers {
+    #[inline]
+    pub const fn get_small(&self, index: usize) -> ExtendedFloat80 {
+        let mant = self.small[index];
+        let exp = (1 - 64) + ((self.log2 * index as i64) >> self.log2_shift);
+        ExtendedFloat80 {
+            mant,
+            exp: exp as i32,
+        }
+    }
+
+    #[inline]
+    pub const fn get_large(&self, index: usize) -> ExtendedFloat80 {
+        let mant = self.large[index];
+        let biased_e = index as i64 * self.step as i64 - self.bias as i64;
+        let exp = (1 - 64) + ((self.log2 * biased_e) >> self.log2_shift);
+        ExtendedFloat80 {
+            mant,
+            exp: exp as i32,
+        }
+    }
+
+    #[inline]
+    pub const fn get_small_int(&self, index: usize) -> u64 {
+        self.small_int[index]
+    }
 }

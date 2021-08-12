@@ -5,7 +5,7 @@
 
 #![doc(hidden)]
 
-#[cfg(all(not(feature = "compact"), feature = "radix"))]
+#[cfg(any(feature = "compact", feature = "radix"))]
 use crate::bellerophon::bellerophon;
 use crate::float::{extended_to_float, ExtendedFloat80, LemireFloat};
 #[cfg(not(feature = "compact"))]
@@ -24,17 +24,38 @@ use lexical_util::step::u64_step;
 // API
 // ---
 
+/// Check if the radix is valid and error otherwise
+macro_rules! check_radix {
+    ($format:ident) => {{
+        #[cfg(feature = "power-of-two")]
+        {
+            let format = NumberFormat::<{ $format }> {};
+            if format.radix() != format.exponent_base() {
+                let valid_radix = matches!(
+                    (format.radix(), format.exponent_base()),
+                    (4, 2) | (8, 2) | (16, 2) | (32, 2) | (16, 4)
+                );
+                if !valid_radix {
+                    return Err(Error::InvalidRadix);
+                }
+            }
+        }
+    }};
+}
+
 /// Parse integer trait, implemented in terms of the optimized back-end.
 pub trait ParseFloat: LemireFloat {
     /// Forward complete parser parameters to the backend.
     #[cfg_attr(not(feature = "compact"), inline(always))]
     fn parse_complete<const FORMAT: u128>(bytes: &[u8], options: &Options) -> Result<Self> {
+        check_radix!(FORMAT);
         parse_complete::<Self, FORMAT>(bytes, options)
     }
 
     /// Forward complete parser parameters to the backend.
     #[cfg_attr(not(feature = "compact"), inline(always))]
     fn parse_partial<const FORMAT: u128>(bytes: &[u8], options: &Options) -> Result<(Self, usize)> {
+        check_radix!(FORMAT);
         parse_partial::<Self, FORMAT>(bytes, options)
     }
 }
@@ -115,7 +136,6 @@ macro_rules! parse_number {
 
 /// Parse a float from bytes using a complete parser.
 #[inline]
-#[allow(unused)] // TODO(ahuszagh) Remove...
 pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
     options: &Options,
@@ -140,9 +160,11 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
         }
         // Now try the moderate path algorithm.
         (moderate_path::<F, FORMAT>(&num), is_negative)
+    } else if format.radix() != format.exponent_base() {
+        // Need to use a specialized moderate path algorithm for hex-like floats
+        todo!();
     } else {
         // Need to skip straight to the slow path algorithm.
-        //ExtendedFloat80 { mant: 0, exp: 0 }
         todo!();
     };
 
@@ -166,7 +188,6 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
 
 /// Parse a float from bytes using a partial parser.
 #[inline]
-#[allow(unused)] // TODO(ahuszagh) Remove...
 pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
     options: &Options,
@@ -198,9 +219,11 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
         }
         // Now try the moderate path algorithm.
         (moderate_path::<F, FORMAT>(&num), is_negative, count)
+    } else if format.radix() != format.exponent_base() {
+        // Need to use a specialized moderate path algorithm for hex-like floats
+        todo!();
     } else {
         // Need to skip straight to the slow path algorithm.
-        //ExtendedFloat80 { mant: 0, exp: 0 }
         todo!();
     };
 
@@ -228,9 +251,22 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
 pub fn moderate_path<F: LemireFloat, const FORMAT: u128>(num: &Number) -> ExtendedFloat80 {
     #[cfg(feature = "compact")]
     {
-        ExtendedFloat80 {
-            mant: num.mantissa,
-            exp: -1,
+        #[cfg(feature = "power-of-two")]
+        {
+            let format = NumberFormat::<{ FORMAT }> {};
+            let radix = format.mantissa_radix();
+            debug_assert!(matches!(radix, 2 | 4 | 8 | 10 | 16 | 32));
+            if matches!(radix, 2 | 4 | 8 | 16 | 32) {
+                // Implement the power-of-two backends.
+                todo!();
+            } else {
+                bellerophon::<F, FORMAT>(num)
+            }
+        }
+
+        #[cfg(not(feature = "power-of-two"))]
+        {
+            bellerophon::<F, FORMAT>(num)
         }
     }
 

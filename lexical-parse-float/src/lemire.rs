@@ -1,4 +1,7 @@
 //! Implementation of the Eisel-Lemire algorithm.
+//!
+//! This is adapted from [fast-float-rust](https://github.com/aldanor/fast-float-rust),
+//! a port of [fast_float](https://github.com/fastfloat/fast_float) to Rust.
 
 #![cfg(not(feature = "compact"))]
 #![doc(hidden)]
