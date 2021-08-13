@@ -174,7 +174,7 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     // Parse our a small representation of our number.
     // Can only do fast and moderate path optimizations if we
     // can shift significant digits to and from the exponent.
-    let fp = if format.mantissa_radix() == format.exponent_base() {
+    let mut fp = if format.mantissa_radix() == format.exponent_base() {
         let num = parse_number!(FORMAT, byte, is_negative, options, parse_number, parse_special);
         // Try the fast-path algorithm.
         if let Some(value) = num.try_fast_path::<_, FORMAT>() {
@@ -200,7 +200,7 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     // lossy, we can't be here.
     if fp.exp < 0 {
         debug_assert!(!options.lossy());
-        todo!();
+        fp = slow_path::<F, FORMAT>(byte);
     }
 
     // Convert to native float and return result.
@@ -225,7 +225,7 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     // Parse our a small representation of our number.
     // Can only do fast and moderate path optimizations if we
     // can shift significant digits to and from the exponent.
-    let (fp, count) = if format.mantissa_radix() == format.exponent_base() {
+    let (mut fp, count) = if format.mantissa_radix() == format.exponent_base() {
         let (num, count) = parse_number!(
             FORMAT,
             byte,
@@ -258,12 +258,20 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     // lossy, we can't be here.
     if fp.exp < 0 {
         debug_assert!(!options.lossy());
-        todo!();
+        let length = count - byte.cursor();
+        // SAFETY: safe, since, count must be <= the byte slice length.
+        let slc = byte.as_slice();
+        let slc = unsafe { &index_unchecked!(slc[..length]) };
+        let byte = slc.bytes::<{ FORMAT }>();
+        fp = slow_path::<F, FORMAT>(byte);
     }
 
     // Convert to native float and return result.
     Ok((to_native!(F, fp, is_negative), count))
 }
+
+// PATHS
+// -----
 
 /// Wrapper for different moderate-path algorithms.
 /// A return exponent of `-1` indicates an invalid value.
@@ -327,6 +335,14 @@ pub fn moderate_path<F: LemireFloat, const FORMAT: u128>(
             lemire::<F>(num, lossy)
         }
     }
+}
+
+/// Invoke the slow path.
+/// At this point, the float string has already been validated.
+#[inline]
+#[allow(unused)] // TODO(ahuszagh) Remove
+pub fn slow_path<F: LemireFloat, const FORMAT: u128>(mut byte: Bytes<FORMAT>) -> ExtendedFloat80 {
+    todo!();
 }
 
 // NUMBER
