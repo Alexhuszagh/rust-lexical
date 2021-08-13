@@ -1,6 +1,9 @@
-use lexical_parse_integer::FromLexical;
+use core::num::ParseFloatError;
+use lexical_parse_float::FromLexical as FloatFromLexical;
+use lexical_parse_integer::FromLexical as IntFromLexical;
 use lexical_util::error::Error;
-use lexical_write_integer::ToLexical;
+use lexical_write_float::ToLexical as FloatToLexical;
+use lexical_write_integer::ToLexical as IntToLexical;
 use std::io::Write;
 
 // PARSE INTEGER
@@ -25,9 +28,11 @@ parse_lexical! {
     i32_parse_lexical i32 ;
     i64_parse_lexical i64 ;
     i128_parse_lexical i128 ;
+    f32_parse_lexical f32 ;
+    f64_parse_lexical f64 ;
 }
 
-macro_rules! parse_core {
+macro_rules! parse_from_str_radix {
     ($($name:ident $t:ty ;)*) => ($(
         pub fn $name(s: &str) -> Result<$t, ParseIntError> {
             from_str_radix::<$t>(s, 10)
@@ -35,7 +40,15 @@ macro_rules! parse_core {
     )*);
 }
 
-parse_core! {
+macro_rules! parse_core {
+    ($($name:ident $t:ty ;)*) => ($(
+        pub fn $name(s: &str) -> Result<$t, ParseFloatError> {
+            s.parse::<$t>()
+        }
+    )*);
+}
+
+parse_from_str_radix! {
     u8_parse_core u8 ;
     u16_parse_core u16 ;
     u32_parse_core u32 ;
@@ -46,6 +59,11 @@ parse_core! {
     i32_parse_core i32 ;
     i64_parse_core i64 ;
     i128_parse_core i128 ;
+}
+
+parse_core! {
+    f32_parse_core f32 ;
+    f64_parse_core f64 ;
 }
 
 // CORE
@@ -209,6 +227,8 @@ write_lexical! {
     i32_write_lexical i32 ;
     i64_write_lexical i64 ;
     i128_write_lexical i128 ;
+    f32_write_lexical f32 ;
+    f64_write_lexical f64 ;
 }
 
 macro_rules! write_std {
@@ -231,4 +251,6 @@ write_std! {
     i32_write_std i32 ;
     i64_write_std i64 ;
     i128_write_std i128 ;
+    f32_write_std f32 ;
+    f64_write_std f64 ;
 }

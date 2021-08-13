@@ -10,19 +10,9 @@
 use crate::float::{ExtendedFloat80, RawFloat};
 use crate::mask::lower_n_halfway;
 use crate::number::Number;
+use crate::parse::log2;
 use lexical_util::format::NumberFormat;
 use lexical_util::num::AsPrimitive;
-
-/// Quick log2 that evaluates at compile time for the radix.
-const fn log2(radix: u32) -> i32 {
-    match radix {
-        2 => 1,
-        4 => 2,
-        8 => 3,
-        16 => 4,
-        _ => 5,
-    }
-}
 
 /// Algorithm specialized for radixes of powers-of-two.
 #[inline]

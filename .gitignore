@@ -20,6 +20,10 @@ cargo-timing*.html
 proptest-regressions/
 *.proptest-regressions
 
+# Code coverage files.
+tarpaulin-report.html
+cobertura.xml
+
 # Custom files for annotating x86 regressions/improvements.
 *.asm
 

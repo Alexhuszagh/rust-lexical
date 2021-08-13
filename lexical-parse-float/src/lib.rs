@@ -39,7 +39,6 @@ pub mod bellerophon;
 pub mod binary;
 pub mod float;
 pub mod fpu;
-pub mod hex;
 pub mod lemire;
 pub mod libm;
 pub mod limits;

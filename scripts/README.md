@@ -12,5 +12,6 @@ The entire list of dependencies required is:
   - Fmt (`rustup component add rustfmt --toolchain nightly`)
   - Miri (`rustup +nightly component add miri`)
   - Valgrind (`cargo +nightly install valgrind`)
+  - Tarpaulin (`cargo +nightly install cargo-tarpaulin`)
 - Python3.6+
 - python-magic (`pip install python magic --user`)

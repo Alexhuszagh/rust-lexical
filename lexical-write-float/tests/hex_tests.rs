@@ -346,3 +346,35 @@ fn write_float_scientific_test() {
         "B.13C075317BAC8^-38",
     );
 }
+
+// NOTE: This doesn't handle float rounding or truncation.
+// It assumes this has already been done.
+fn write_float<T: Float, const FORMAT: u128>(f: T, options: &Options, expected: &str)
+where
+    <T as Float>::Unsigned: WriteInteger + FormattedSize,
+{
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let count = unsafe { hex::write_float::<_, FORMAT>(f, &mut buffer, options) };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn write_float_test() {
+    let options = Options::builder().build().unwrap();
+    use lexical_util::format::NumberFormat;
+    println!("format.error={:?}", NumberFormat::<BASE4_2_10> {}.error());
+    write_float::<_, BASE4_2_10>(
+        0.2345678901234567890f64,
+        &options,
+        "0.033000302210022030112133232",
+    );
+    write_float::<_, BASE4_2_10>(0.1172839450617284f64, &options, "0.013200121102011012023033313");
+    write_float::<_, BASE4_2_10>(0.0586419725308642f64, &options, "0.0033000302210022030112133232");
+    write_float::<_, BASE4_2_10>(0.0293209862654321f64, &options, "1.3200121102011012023033313e-6");
+    write_float::<_, BASE4_2_10>(
+        0.01466049313271605f64,
+        &options,
+        "3.3000302210022030112133232e-8",
+    );
+}

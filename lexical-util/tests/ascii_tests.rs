@@ -20,6 +20,12 @@ fn is_valid_ascii_test() {
 }
 
 #[test]
+fn is_valid_ascii_slice_test() {
+    assert_eq!(ascii::is_valid_ascii_slice(b" 09a"), true);
+    assert_eq!(ascii::is_valid_ascii_slice(b" 09a\x1b"), false);
+}
+
+#[test]
 fn is_valid_letter_test() {
     assert_eq!(ascii::is_valid_letter(b'\x00'), false);
     assert_eq!(ascii::is_valid_letter(b'\n'), false);
@@ -36,4 +42,10 @@ fn is_valid_letter_test() {
     assert_eq!(ascii::is_valid_letter(b'z'), true);
     assert_eq!(ascii::is_valid_letter(b'~'), false);
     assert_eq!(ascii::is_valid_letter(b'\x7f'), false);
+}
+
+#[test]
+fn is_valid_letter_slice_test() {
+    assert_eq!(ascii::is_valid_letter_slice(b" 09a"), false);
+    assert_eq!(ascii::is_valid_letter_slice(b"aZAz"), true);
 }

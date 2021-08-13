@@ -10,8 +10,6 @@ use crate::bellerophon::bellerophon;
 #[cfg(feature = "power-of-two")]
 use crate::binary::binary;
 use crate::float::{extended_to_float, ExtendedFloat80, LemireFloat};
-#[cfg(feature = "power-of-two")]
-use crate::hex::{hex, hex_partial};
 #[cfg(not(feature = "compact"))]
 use crate::lemire::lemire;
 use crate::number::Number;
@@ -145,22 +143,6 @@ macro_rules! parse_number {
     }};
 }
 
-/// Parse a hexadecimal float representation
-macro_rules! parse_hex {
-    ($float:ident, $format:ident, $byte:ident, $options:ident, $parser:ident) => {{
-        // Need to use a specialized moderate path algorithm for hex-like floats
-        #[cfg(feature = "power-of-two")]
-        {
-            $parser::<$float, $format>($byte.clone(), $options.lossy())?
-        }
-
-        #[cfg(not(feature = "power-of-two"))]
-        {
-            unreachable!()
-        }
-    }};
-}
-
 /// Convert extended float to native.
 macro_rules! to_native {
     ($type:ident, $fp:ident, $is_negative:ident) => {{
@@ -173,7 +155,6 @@ macro_rules! to_native {
 }
 
 /// Parse a float from bytes using a complete parser.
-#[inline]
 pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
     options: &Options,
@@ -188,19 +169,13 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     }
 
     // Parse our a small representation of our number.
-    // Can only do fast and moderate path optimizations if we
-    // can shift significant digits to and from the exponent.
-    let mut fp = if format.mantissa_radix() == format.exponent_base() {
-        let num = parse_number!(FORMAT, byte, is_negative, options, parse_number, parse_special);
-        // Try the fast-path algorithm.
-        if let Some(value) = num.try_fast_path::<_, FORMAT>() {
-            return Ok(value);
-        }
-        // Now try the moderate path algorithm.
-        moderate_path::<F, FORMAT>(&num, options.lossy())
-    } else {
-        parse_hex!(F, FORMAT, byte, options, hex)
-    };
+    let num = parse_number!(FORMAT, byte, is_negative, options, parse_number, parse_special);
+    // Try the fast-path algorithm.
+    if let Some(value) = num.try_fast_path::<_, FORMAT>() {
+        return Ok(value);
+    }
+    // Now try the moderate path algorithm.
+    let mut fp = moderate_path::<F, FORMAT>(&num, options.lossy());
 
     // Unable to correctly round the float using the fast or moderate algorithms.
     // Fallback to a slower, but always correct algorithm. If we have
@@ -215,7 +190,6 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
 }
 
 /// Parse a float from bytes using a partial parser.
-#[inline]
 pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
     options: &Options,
@@ -230,35 +204,32 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     }
 
     // Parse our a small representation of our number.
-    // Can only do fast and moderate path optimizations if we
-    // can shift significant digits to and from the exponent.
-    let (mut fp, count) = if format.mantissa_radix() == format.exponent_base() {
-        let (num, count) = parse_number!(
-            FORMAT,
-            byte,
-            is_negative,
-            options,
-            parse_partial_number,
-            parse_partial_special
-        );
-        // Try the fast-path algorithm.
-        if let Some(value) = num.try_fast_path::<_, FORMAT>() {
-            return Ok((value, count));
-        }
-        // Now try the moderate path algorithm.
-        (moderate_path::<F, FORMAT>(&num, options.lossy()), count)
-    } else {
-        parse_hex!(F, FORMAT, byte, options, hex_partial)
-    };
+    let (num, count) = parse_number!(
+        FORMAT,
+        byte,
+        is_negative,
+        options,
+        parse_partial_number,
+        parse_partial_special
+    );
+    // Try the fast-path algorithm.
+    if let Some(value) = num.try_fast_path::<_, FORMAT>() {
+        return Ok((value, count));
+    }
+    // Now try the moderate path algorithm.
+    let mut fp = moderate_path::<F, FORMAT>(&num, options.lossy());
 
     // Unable to correctly round the float using the fast or moderate algorithms.
     // Fallback to a slower, but always correct algorithm. If we have
     // lossy, we can't be here.
     if fp.exp < 0 {
         debug_assert!(!options.lossy());
+        // Trim the byte size, since we already know the input that
+        // comprises the float. We don't need the rest, to simplify
+        // internal parsing logic.
         let length = count - byte.cursor();
-        // SAFETY: safe, since, count must be <= the byte slice length.
         let slc = byte.as_slice();
+        // SAFETY: safe, since, count must be <= the byte slice length.
         let slc = unsafe { &index_unchecked!(slc[..length]) };
         let byte = slc.bytes::<{ FORMAT }>();
         fp = slow_path::<F, FORMAT>(byte);
@@ -362,6 +333,8 @@ pub fn parse_partial_number<const FORMAT: u128>(
     let exponent_character = options.exponent();
     debug_assert!(format.is_valid());
     debug_assert!(!byte.is_done());
+    let bits_per_digit = log2(format.mantissa_radix()) as i64;
+    let bits_per_base = log2(format.exponent_base()) as i64;
 
     // Parse our integral digits.
     let mut mantissa = 0_u64;
@@ -377,6 +350,7 @@ pub fn parse_partial_number<const FORMAT: u128>(
     // Handle decimal point and digits afterwards.
     let mut n_after_dot = 0;
     let mut exponent = 0_i64;
+    let mut implicit_exponent: i64;
     let int_end = byte.cursor() as i64;
     if byte.first_is(decimal_point) {
         // SAFETY: s cannot be empty due to first_is
@@ -388,7 +362,13 @@ pub fn parse_partial_number<const FORMAT: u128>(
             mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
         });
         n_after_dot = byte.cursor() - before;
-        exponent = -(n_after_dot as i64);
+        implicit_exponent = -(n_after_dot as i64);
+        if format.mantissa_radix() == format.exponent_base() {
+            exponent = implicit_exponent;
+        } else {
+            debug_assert!(bits_per_digit % bits_per_base == 0);
+            exponent = implicit_exponent * bits_per_digit / bits_per_base;
+        };
         if cfg!(feature = "format") && format.required_fraction_digits() && n_after_dot == 0 {
             return Err(Error::EmptyFraction(byte.cursor()));
         }
@@ -477,7 +457,7 @@ pub fn parse_partial_number<const FORMAT: u128>(
         mantissa = 0;
         let mut byte = start;
         parse_u64_digits::<_, FORMAT>(byte.integer_iter(), &mut mantissa, &mut step);
-        exponent = if step == 0 {
+        implicit_exponent = if step == 0 {
             // Filled our mantissa with just the integer.
             byte.cursor() as i64 - int_end
         } else {
@@ -491,6 +471,12 @@ pub fn parse_partial_number<const FORMAT: u128>(
             let before = byte.cursor() as i64;
             parse_u64_digits::<_, FORMAT>(byte.fraction_iter(), &mut mantissa, &mut step);
             before - byte.cursor() as i64
+        };
+        if format.mantissa_radix() == format.exponent_base() {
+            exponent = implicit_exponent;
+        } else {
+            debug_assert!(bits_per_digit % bits_per_base == 0);
+            exponent = implicit_exponent * bits_per_digit / bits_per_base;
         };
         // Add back the explicit exponent.
         exponent += explicit_exponent;
@@ -791,5 +777,22 @@ where
         if is_not_equal {
             return false;
         }
+    }
+}
+
+// LOG2
+// ----
+
+/// Quick log2 that evaluates at compile time for the radix.
+/// Note that this may produce inaccurate results for other radixes:
+/// we don't care since it's only called for powers-of-two.
+#[inline]
+pub const fn log2(radix: u32) -> i32 {
+    match radix {
+        2 => 1,
+        4 => 2,
+        8 => 3,
+        16 => 4,
+        _ => 5,
     }
 }

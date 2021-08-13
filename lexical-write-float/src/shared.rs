@@ -110,13 +110,6 @@ macro_rules! write_float {
         let outside_break = $sci_exp < min_exp || $sci_exp > max_exp;
         let require_exponent = format.required_exponent_notation() || outside_break;
         if !format.no_exponent_notation() && require_exponent {
-            // Validate our input: check if the format is invalid.
-            assert_eq!(
-                NumberFormat::<$format>::RADIX,
-                NumberFormat::<$format>::EXPONENT_BASE,
-                "If using exponent notation, the mantissa radix must equal the exponent base."
-            );
-
             // Write digits in scientific notation.
             // SAFETY: safe as long as bytes is large enough to hold all the digits.
             unsafe { $write_scientific::<$($generic,)? FORMAT>($($args,)*) }
