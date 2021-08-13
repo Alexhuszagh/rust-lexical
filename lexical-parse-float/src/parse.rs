@@ -8,12 +8,13 @@
 #[cfg(any(feature = "compact", feature = "radix"))]
 use crate::bellerophon::bellerophon;
 #[cfg(feature = "power-of-two")]
-use crate::binary::binary;
+use crate::binary::{binary, slow_binary};
 use crate::float::{extended_to_float, ExtendedFloat80, LemireFloat};
 #[cfg(not(feature = "compact"))]
 use crate::lemire::lemire;
 use crate::number::Number;
 use crate::options::Options;
+use crate::slow::slow_decimal;
 #[cfg(not(feature = "compact"))]
 use lexical_parse_integer::algorithm;
 use lexical_util::digit::char_to_digit_const;
@@ -182,7 +183,7 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     // lossy, we can't be here.
     if fp.exp < 0 {
         debug_assert!(!options.lossy());
-        fp = slow_path::<F, FORMAT>(byte);
+        fp = slow_path::<F, FORMAT>(byte, num.exponent, options.decimal_point());
     }
 
     // Convert to native float and return result.
@@ -232,7 +233,7 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
         // SAFETY: safe, since, count must be <= the byte slice length.
         let slc = unsafe { &index_unchecked!(slc[..length]) };
         let byte = slc.bytes::<{ FORMAT }>();
-        fp = slow_path::<F, FORMAT>(byte);
+        fp = slow_path::<F, FORMAT>(byte, num.exponent, options.decimal_point());
     }
 
     // Convert to native float and return result.
@@ -309,9 +310,25 @@ pub fn moderate_path<F: LemireFloat, const FORMAT: u128>(
 /// Invoke the slow path.
 /// At this point, the float string has already been validated.
 #[inline]
-#[allow(unused)] // TODO(ahuszagh) Remove
-pub fn slow_path<F: LemireFloat, const FORMAT: u128>(mut byte: Bytes<FORMAT>) -> ExtendedFloat80 {
-    todo!();
+pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
+    byte: Bytes<FORMAT>,
+    exponent: i64,
+    decimal_point: u8,
+) -> ExtendedFloat80 {
+    #[cfg(not(feature = "power-of-two"))]
+    {
+        slow_decimal::<F, FORMAT>(byte, exponent, decimal_point)
+    }
+
+    #[cfg(feature = "power-of-two")]
+    {
+        let format = NumberFormat::<{ FORMAT }> {};
+        if matches!(format.mantissa_radix(), 2 | 4 | 8 | 16 | 32) {
+            slow_binary::<F, FORMAT>(byte, exponent, decimal_point)
+        } else {
+            slow_decimal::<F, FORMAT>(byte, exponent, decimal_point)
+        }
+    }
 }
 
 // NUMBER

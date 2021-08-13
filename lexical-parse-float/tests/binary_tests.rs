@@ -1,8 +1,9 @@
 #![cfg(feature = "power-of-two")]
 
-use lexical_parse_float::binary::binary;
+use lexical_parse_float::binary::{binary, slow_binary};
 use lexical_parse_float::number::Number;
 use lexical_util::format::NumberFormatBuilder;
+use lexical_util::iterator::AsBytes;
 
 const BINARY: u128 = NumberFormatBuilder::from_radix(2);
 const BASE4: u128 = NumberFormatBuilder::from_radix(4);
@@ -119,4 +120,19 @@ fn test_halfway_round_up() {
     assert_eq!(compute_float64::<BASE32>(-1, 288230376151711808, false), (1076, 1));
     assert_eq!(compute_float64::<BASE32>(-1, 288230376151711840, false), (1076, 2));
     assert_eq!(compute_float64::<BASE32>(-1, 288230376151711872, false), (1076, 2));
+}
+
+fn compute_float64_slow<const FORMAT: u128>(s: &[u8], exponent: i64) -> (i32, u64) {
+    let fp = slow_binary::<f64, FORMAT>(s.bytes::<FORMAT>(), exponent, b'.');
+    (fp.exp, fp.mant)
+}
+
+#[test]
+fn test_slow() {
+    let s = b"100000000000000000000000000000000000000000000000000001.0000000000000";
+    assert_eq!(compute_float64_slow::<BINARY>(s, -10), (1076, 0));
+    let s = b"100000000000000000000000000000000000000000000000000001.000000000000000000001";
+    assert_eq!(compute_float64_slow::<BINARY>(s, -10), (1076, 1));
+    let s = b"100000000000000000000000000000000000000000000000000001.000000000000010000000";
+    assert_eq!(compute_float64_slow::<BINARY>(s, -10), (1076, 1));
 }
