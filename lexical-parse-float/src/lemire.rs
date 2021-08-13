@@ -12,13 +12,17 @@ use crate::table::{LARGEST_POWER_OF_FIVE, POWER_OF_FIVE_128, SMALLEST_POWER_OF_F
 
 /// Ensure truncation of digits doesn't affect our computation, by doing 2 passes.
 #[inline]
-pub fn lemire<F: LemireFloat>(num: &Number) -> ExtendedFloat80 {
+pub fn lemire<F: LemireFloat>(num: &Number, lossy: bool) -> ExtendedFloat80 {
     // If significant digits were truncated, then we can have rounding error
     // only if `mantissa + 1` produces a different result. We also avoid
     // redundantly using the Eisel-Lemire algorithm if it was unable to
     // correctly round on the first pass.
-    let mut fp = compute_float::<F>(num.exponent, num.mantissa);
-    if num.many_digits && fp.exp >= 0 && fp != compute_float::<F>(num.exponent, num.mantissa + 1) {
+    let mut fp = compute_float::<F>(num.exponent, num.mantissa, lossy);
+    if !lossy
+        && num.many_digits
+        && fp.exp >= 0
+        && fp != compute_float::<F>(num.exponent, num.mantissa + 1, false)
+    {
         fp.exp = -1;
     }
     fp
@@ -42,7 +46,7 @@ pub fn lemire<F: LemireFloat>(num: &Number) -> ExtendedFloat80 {
 /// at a Gigabyte per Second" in section 5, "Fast Algorithm", and
 /// section 6, "Exact Numbers And Ties", available online:
 /// <https://arxiv.org/abs/2101.11408.pdf>.
-pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64) -> ExtendedFloat80 {
+pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> ExtendedFloat80 {
     let fp_zero = ExtendedFloat80 {
         mant: 0,
         exp: 0,
@@ -66,7 +70,7 @@ pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64) -> ExtendedFloat80 {
     let lz = w.leading_zeros();
     w <<= lz;
     let (lo, hi) = compute_product_approx(q, w, F::MANTISSA_SIZE as usize + 3);
-    if lo == 0xFFFF_FFFF_FFFF_FFFF {
+    if !lossy && lo == 0xFFFF_FFFF_FFFF_FFFF {
         // If we have failed to approximate w x 5^-q with our 128-bit value.
         // Since the addition of 1 could lead to an overflow which could then
         // round up over the half-way point, this can lead to improper rounding

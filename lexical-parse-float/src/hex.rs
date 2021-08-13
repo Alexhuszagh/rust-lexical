@@ -16,5 +16,36 @@
 
 #![cfg(feature = "power-of-two")]
 #![doc(hidden)]
+#![allow(unused)] // TODO(ahuszagh) Remove
+
+use crate::float::{ExtendedFloat80, RawFloat};
+use lexical_util::error::Error;
+use lexical_util::iterator::{Bytes, BytesIter};
+use lexical_util::result::Result;
+
+/// Algorithm specialized for radixes of powers-of-two with different exponent bases.
+#[inline]
+pub fn hex<F: RawFloat, const FORMAT: u128>(
+    mut byte: Bytes<FORMAT>,
+    lossy: bool,
+) -> Result<ExtendedFloat80> {
+    let length = byte.length();
+    let (fp, count) = hex_partial::<F, FORMAT>(byte, lossy)?;
+    if count == length {
+        Ok(fp)
+    } else {
+        Err(Error::InvalidDigit(count))
+    }
+}
+
+/// Algorithm specialized for radixes of powers-of-two with different exponent bases.
+#[inline]
+pub fn hex_partial<F: RawFloat, const FORMAT: u128>(
+    mut byte: Bytes<FORMAT>,
+    lossy: bool,
+) -> Result<(ExtendedFloat80, usize)> {
+    // TODO(ahuszagh) Actually... this doesn't work... LOLOL
+    todo!();
+}
 
 // TODO(ahuszagh) Implement...

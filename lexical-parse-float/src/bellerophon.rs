@@ -18,6 +18,7 @@
 #![doc(hidden)]
 
 use crate::float::{ExtendedFloat80, RawFloat};
+use crate::mask::{lower_n_halfway, lower_n_mask};
 use crate::number::Number;
 use crate::table::bellerophon_powers;
 use lexical_util::format::NumberFormat;
@@ -35,8 +36,11 @@ use lexical_util::num::AsPrimitive;
 /// unable to unambiguously round the significant digits.
 ///
 /// This has been modified to return a biased, rather than unbiased exponent.
-pub fn bellerophon<F: RawFloat, const FORMAT: u128>(num: &Number) -> ExtendedFloat80 {
+pub fn bellerophon<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> ExtendedFloat80 {
     let format = NumberFormat::<{ FORMAT }> {};
+    debug_assert!(!matches!(format.radix(), 2 | 4 | 8 | 16 | 32));
+    debug_assert!(format.mantissa_radix() == format.exponent_base());
+
     let fp_zero = ExtendedFloat80 {
         mant: 0,
         exp: 0,
@@ -112,10 +116,11 @@ pub fn bellerophon<F: RawFloat, const FORMAT: u128>(num: &Number) -> ExtendedFlo
     }
 
     // Too many errors accumulated, return an error.
-    if !error_is_accurate::<F>(errors, &fp) {
+    if !lossy && !error_is_accurate::<F>(errors, &fp) {
         fp.exp = -1;
         return fp;
     }
+
     // Check for a denormal float, if after the shift the exponent is negative.
     let mantissa_shift = 64 - F::MANTISSA_SIZE - 1;
     if -fp.exp >= mantissa_shift {
@@ -353,62 +358,6 @@ pub fn mul(x: &ExtendedFloat80, y: &ExtendedFloat80) -> ExtendedFloat80 {
         mant: x1_y1 + (x1_y0 >> 32) + (x0_y1 >> 32) + (tmp >> 32),
         exp: x.exp + y.exp + u64::BITS as i32,
     }
-}
-
-/// Generate a bitwise mask for the lower `n` bits.
-///
-/// # Examples
-///
-/// ```
-/// # use lexical_parse_float::bellerophon::lower_n_mask;
-/// # pub fn main() {
-/// assert_eq!(lower_n_mask(2), 0b11);
-/// # }
-/// ```
-#[inline]
-pub fn lower_n_mask(n: u64) -> u64 {
-    debug_assert!(n <= 64, "lower_n_mask() overflow in shl.");
-
-    match n == 64 {
-        true => u64::MAX,
-        false => (1 << n) - 1,
-    }
-}
-
-/// Calculate the halfway point for the lower `n` bits.
-///
-/// # Examples
-///
-/// ```
-/// # use lexical_parse_float::bellerophon::lower_n_halfway;
-/// # pub fn main() {
-/// assert_eq!(lower_n_halfway(2), 0b10);
-/// # }
-/// ```
-#[inline]
-pub fn lower_n_halfway(n: u64) -> u64 {
-    debug_assert!(n <= 64, "lower_n_halfway() overflow in shl.");
-
-    match n == 0 {
-        true => 0,
-        false => nth_bit(n - 1),
-    }
-}
-
-/// Calculate a scalar factor of 2 above the halfway point.
-///
-/// # Examples
-///
-/// ```text
-/// # use lexical_parse_float::bellerophon::nth_bit;
-/// # pub fn main() {
-/// assert_eq!(nth_bit(2), 0b100);
-/// # }
-/// ```
-#[inline]
-pub fn nth_bit(n: u64) -> u64 {
-    debug_assert!(n < 64, "nth_bit() overflow in shl.");
-    1 << n
 }
 
 // ROUNDING

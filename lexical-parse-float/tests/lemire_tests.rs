@@ -5,12 +5,12 @@
 use lexical_parse_float::lemire::compute_float;
 
 fn compute_float32(q: i64, w: u64) -> (i32, u64) {
-    let fp = compute_float::<f32>(q, w);
+    let fp = compute_float::<f32>(q, w, false);
     (fp.exp, fp.mant)
 }
 
 fn compute_float64(q: i64, w: u64) -> (i32, u64) {
-    let fp = compute_float::<f64>(q, w);
+    let fp = compute_float::<f64>(q, w, false);
     (fp.exp, fp.mant)
 }
 

@@ -1,4 +1,4 @@
-#![cfg(any(feature = "compact", feature = "radix"))]
+#![cfg(feature = "compact")]
 
 use lexical_parse_float::bellerophon::bellerophon;
 use lexical_parse_float::float::{extended_to_float, ExtendedFloat80, RawFloat};
@@ -18,7 +18,7 @@ fn bellerophon_test<F: RawFloat, const FORMAT: u128>(
         is_negative: false,
         many_digits,
     };
-    let xfp = bellerophon::<F, FORMAT>(&num);
+    let xfp = bellerophon::<F, FORMAT>(&num, false);
     let yfp = ExtendedFloat80 {
         mant: ymant,
         exp: yexp,
@@ -38,7 +38,6 @@ fn bellerophon_test<F: RawFloat, const FORMAT: u128>(
     }
 }
 
-#[cfg(feature = "compact")]
 fn compute_float32(q: i64, w: u64) -> (i32, u64) {
     let num = Number {
         exponent: q,
@@ -46,11 +45,10 @@ fn compute_float32(q: i64, w: u64) -> (i32, u64) {
         is_negative: false,
         many_digits: false,
     };
-    let fp = bellerophon::<f32, { STANDARD }>(&num);
+    let fp = bellerophon::<f32, { STANDARD }>(&num, false);
     (fp.exp, fp.mant)
 }
 
-#[cfg(feature = "compact")]
 fn compute_float64(q: i64, w: u64) -> (i32, u64) {
     let num = Number {
         exponent: q,
@@ -58,12 +56,11 @@ fn compute_float64(q: i64, w: u64) -> (i32, u64) {
         is_negative: false,
         many_digits: false,
     };
-    let fp = bellerophon::<f64, { STANDARD }>(&num);
+    let fp = bellerophon::<f64, { STANDARD }>(&num, false);
     (fp.exp, fp.mant)
 }
 
 #[test]
-#[cfg(feature = "compact")]
 fn halfway_round_down_test() {
     // Halfway, round-down tests
     bellerophon_test::<f64, { STANDARD }>(9007199254740992, 0, false, 0, 1076);
@@ -85,9 +82,8 @@ fn halfway_round_down_test() {
 }
 
 #[test]
-#[cfg(feature = "compact")]
 fn test_halfway_round_up() {
-    // Halfway, round-down tests
+    // Halfway, round-up tests
     bellerophon_test::<f64, { STANDARD }>(9007199254740994, 0, false, 1, 1076);
     bellerophon_test::<f64, { STANDARD }>(9007199254740995, 0, false, 9223372036854778880, -1);
     bellerophon_test::<f64, { STANDARD }>(9007199254740996, 0, false, 2, 1076);
@@ -110,7 +106,6 @@ fn test_halfway_round_up() {
 }
 
 #[test]
-#[cfg(feature = "compact")]
 fn test_extremes() {
     // Need to check we get proper results with rounding for near-infinity
     // and near-zero and/or denormal floats.
@@ -201,7 +196,6 @@ fn test_extremes() {
 }
 
 #[test]
-#[cfg(feature = "compact")]
 fn compute_float_f32_rounding() {
     // These test near-halfway cases for single-precision floats.
     assert_eq!(compute_float32(0, 16777216), (151, 0));
@@ -221,7 +215,6 @@ fn compute_float_f32_rounding() {
 }
 
 #[test]
-#[cfg(feature = "compact")]
 fn compute_float_f64_rounding() {
     // These test near-halfway cases for double-precision floats.
     assert_eq!(compute_float64(0, 9007199254740992), (1076, 0));
