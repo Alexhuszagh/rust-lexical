@@ -145,6 +145,22 @@ macro_rules! parse_number {
     }};
 }
 
+/// Parse a hexadecimal float representation
+macro_rules! parse_hex {
+    ($float:ident, $format:ident, $byte:ident, $options:ident, $parser:ident) => {{
+        // Need to use a specialized moderate path algorithm for hex-like floats
+        #[cfg(feature = "power-of-two")]
+        {
+            $parser::<$float, $format>($byte.clone(), $options.lossy())?
+        }
+
+        #[cfg(not(feature = "power-of-two"))]
+        {
+            unreachable!()
+        }
+    }};
+}
+
 /// Convert extended float to native.
 macro_rules! to_native {
     ($type:ident, $fp:ident, $is_negative:ident) => {{
@@ -183,16 +199,7 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
         // Now try the moderate path algorithm.
         moderate_path::<F, FORMAT>(&num, options.lossy())
     } else {
-        // Need to use a specialized moderate path algorithm for hex-like floats
-        #[cfg(feature = "power-of-two")]
-        {
-            hex::<F, FORMAT>(byte.clone(), options.lossy())?
-        }
-
-        #[cfg(not(feature = "power-of-two"))]
-        {
-            unreachable!()
-        }
+        parse_hex!(F, FORMAT, byte, options, hex)
     };
 
     // Unable to correctly round the float using the fast or moderate algorithms.
@@ -241,16 +248,7 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
         // Now try the moderate path algorithm.
         (moderate_path::<F, FORMAT>(&num, options.lossy()), count)
     } else {
-        // Need to use a specialized moderate path algorithm for hex-like floats
-        #[cfg(feature = "power-of-two")]
-        {
-            hex_partial::<F, FORMAT>(byte.clone(), options.lossy())?
-        }
-
-        #[cfg(not(feature = "power-of-two"))]
-        {
-            unreachable!()
-        }
+        parse_hex!(F, FORMAT, byte, options, hex_partial)
     };
 
     // Unable to correctly round the float using the fast or moderate algorithms.

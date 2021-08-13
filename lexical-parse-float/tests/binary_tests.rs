@@ -33,6 +33,18 @@ fn compute_float64<const FORMAT: u128>(q: i64, w: u64, many_digits: bool) -> (i3
 }
 
 #[test]
+fn computef32_test() {
+    // Halfway, round-down tests
+    assert_eq!(compute_float32::<BINARY>(0, 16777216, false), (151, 0));
+    assert_eq!(compute_float32::<BINARY>(0, 16777217, false), (151, 0));
+    assert_eq!(compute_float32::<BINARY>(0, 16777218, false), (151, 1));
+
+    assert_eq!(compute_float32::<BINARY>(0, 33554432, false), (152, 0));
+    assert_eq!(compute_float32::<BINARY>(0, 33554434, false), (152, 0));
+    assert_eq!(compute_float32::<BINARY>(0, 33554436, false), (152, 1));
+}
+
+#[test]
 fn halfway_round_down_test() {
     // Halfway, round-down tests
     assert_eq!(compute_float64::<BINARY>(0, 9007199254740992, false), (1076, 0));
