@@ -46,12 +46,12 @@ pub mod limits;
 pub mod mask;
 pub mod number;
 pub mod options;
+pub mod parse;
 pub mod shared;
 pub mod slow;
 pub mod table;
 
 mod api;
-mod parse;
 mod table_bellerophon_decimal;
 mod table_bellerophon_radix;
 mod table_binary;

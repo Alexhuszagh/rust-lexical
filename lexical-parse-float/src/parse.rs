@@ -577,7 +577,11 @@ where
     }
 }
 
-/// Iteratively parse and consume digits in intervals of 8.
+/// Iteratively parse and consume digits without overflowing.
+///
+/// # Preconditions
+///
+/// There must be at least `step` digits left in iterator.
 #[inline]
 pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     mut iter: Iter,
@@ -587,20 +591,37 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     Iter: BytesIter<'a>,
 {
     let format = NumberFormat::<{ FORMAT }> {};
-    let radix = format.radix();
-    while *step > 0 {
-        if let Some(&c) = iter.peek() {
-            match char_to_digit_const(c, radix) {
-                Some(digit) => {
-                    *mantissa = *mantissa * radix as u64 + digit as u64;
-                    *step -= 1;
-                    // SAFETY: iter cannot be empty
-                    unsafe { iter.step_unchecked() };
-                },
-                None => break,
+    let radix = format.radix() as u64;
+
+    // Try to parse 8 digits at a time, if we can.
+    #[cfg(not(feature = "compact"))]
+    if cfg!(not(feature = "radix")) || radix <= 10 {
+        let radix2 = radix.wrapping_mul(radix);
+        let radix4 = radix2.wrapping_mul(radix2);
+        let radix8 = radix4.wrapping_mul(radix4);
+        while *step > 8 {
+            // Can do up to 2 iterations without overflowing.
+            if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
+                *mantissa = mantissa.wrapping_mul(radix8).wrapping_add(v);
+                *step -= 8;
+            } else {
+                break;
             }
-        } else {
-            break;
+        }
+    }
+
+    // Parse single digits at a time.
+    while *step > 0 {
+        // We haven't overflowed yet, so we must have less digits than step.
+        let c = *iter.peek().unwrap();
+        match char_to_digit_const(c, radix as u32) {
+            Some(digit) => {
+                *mantissa = *mantissa * radix + digit as u64;
+                *step -= 1;
+                // SAFETY: iter cannot be empty
+                unsafe { iter.step_unchecked() };
+            },
+            None => break,
         }
     }
 }
@@ -611,7 +632,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
 /// Determine if the input data matches the special string.
 /// If there's no match, returns 0. Otherwise, returns the byte's cursor.
 #[inline]
-fn is_special_eq<const FORMAT: u128>(mut byte: Bytes<FORMAT>, string: &'static [u8]) -> usize {
+pub fn is_special_eq<const FORMAT: u128>(mut byte: Bytes<FORMAT>, string: &'static [u8]) -> usize {
     let format = NumberFormat::<{ FORMAT }> {};
     if cfg!(feature = "format") && format.case_sensitive_special() {
         if shared::starts_with(byte.special_iter(), string.iter()) {

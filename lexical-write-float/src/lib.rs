@@ -77,9 +77,9 @@ pub mod compact;
 pub mod hex;
 pub mod options;
 pub mod radix;
+pub mod write;
 
 mod api;
-mod write;
 
 // Re-exports
 pub use self::api::{ToLexical, ToLexicalWithOptions};
