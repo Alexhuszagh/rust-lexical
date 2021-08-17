@@ -129,7 +129,7 @@ pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
     // Himant checks **all** the remaining bits after the mantissa,
     // so it will check if **any** truncated digits exist.
     let (mant, is_truncated) = bigmant.hi64();
-    let exp = bigmant.bit_length() as i32 - 64;
+    let exp = bigmant.bit_length() as i32 - 64 + F::EXPONENT_BIAS;
     let mut fp = ExtendedFloat80 {
         mant,
         exp,
@@ -138,7 +138,7 @@ pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
     // Shift the digits into position and determine if we need to round-up.
     shared::round::<F, _>(&mut fp, |f, s| {
         shared::round_nearest_tie_even(f, s, |is_odd, is_halfway, is_above| {
-            is_above || (is_odd && is_truncated) || (is_odd && is_halfway)
+            is_above || (is_halfway && is_truncated) || (is_odd && is_halfway)
         });
     });
     fp

@@ -1236,15 +1236,22 @@ pub unsafe fn karatsuba_uneven_mul<const SIZE: usize>(
 /// Multiply bigint by bigint using grade-school multiplication algorithm.
 #[inline(always)]
 pub fn large_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) {
+    // We're not really in a condition where using Karatsuba
+    // multiplication makes sense, so we're just going to use long
+    // division. ~20% speedup compared to:
+    //      *x = karatsuba_mul_fwd(x, y);
+    // TODO(ahuszagh) **Bench** this.
+    //  Need
+
     if y.len() == 1 {
         // SAFETY: safe since `y.len() == 1`.
         small_mul(x, unsafe { index_unchecked!(y[0]) });
     } else if x.len() < y.len() {
         // SAFETY: safe since `y.len() > x.len()`.
-        *x = unsafe { karatsuba_mul(x, y) };
+        *x = unsafe { long_mul(x, y) };
     } else {
         // SAFETY: safe since `x.len() >= y.len()`.
-        *x = unsafe { karatsuba_mul(y, x) };
+        *x = unsafe { long_mul(y, x) };
     }
 }
 

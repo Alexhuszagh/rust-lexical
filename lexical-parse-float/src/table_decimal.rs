@@ -3,6 +3,7 @@
 #![doc(hidden)]
 #![cfg(not(feature = "compact"))]
 
+#[cfg(not(feature = "power-of-two"))]
 use crate::bigint::Limb;
 use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit, u64_power_limit};
 #[cfg(not(feature = "power-of-two"))]
