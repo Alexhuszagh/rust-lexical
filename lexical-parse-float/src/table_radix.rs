@@ -222,16 +222,6 @@ pub unsafe fn get_small_f64_power3(exponent: usize) -> f64 {
     unsafe { index_unchecked!(SMALL_F64_POW3[exponent]) }
 }
 
-/// Get pre-computed int power of 5.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW5.len()`.
-#[inline(always)]
-pub unsafe fn get_small_int_power5(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW5[exponent]) }
-}
-
 /// Get pre-computed f32 power of 5.
 ///
 /// # Safety
@@ -1181,40 +1171,6 @@ pub const LARGE_POW3: [u64; 5] = [
 
 /// Step for large power-of-3 for 32-bit limbs.
 pub const LARGE_POW3_STEP: u32 = 200;
-
-/// Pre-computed, small powers-of-5.
-pub const SMALL_INT_POW5: [u64; 28] = [
-    1,
-    5,
-    25,
-    125,
-    625,
-    3125,
-    15625,
-    78125,
-    390625,
-    1953125,
-    9765625,
-    48828125,
-    244140625,
-    1220703125,
-    6103515625,
-    30517578125,
-    152587890625,
-    762939453125,
-    3814697265625,
-    19073486328125,
-    95367431640625,
-    476837158203125,
-    2384185791015625,
-    11920928955078125,
-    59604644775390625,
-    298023223876953125,
-    1490116119384765625,
-    7450580596923828125,
-];
-const_assert!(SMALL_INT_POW5.len() > f64_mantissa_limit(5) as usize);
-const_assert!(SMALL_INT_POW5.len() == u64_power_limit(5) as usize + 1);
 
 /// Pre-computed, small powers-of-5.
 pub const SMALL_F32_POW5: [f32; 11] =

@@ -592,6 +592,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
     /// Warning: This is not a general-purpose division algorithm,
     /// it is highly specialized for peeling off singular digits.
     #[inline]
+    #[cfg(feature = "radix")]
     pub fn quorem(&mut self, y: &Self) -> Limb {
         large_quorem(self, y)
     }
@@ -915,12 +916,6 @@ pub fn scalar_add(x: Limb, y: Limb) -> (Limb, bool) {
     x.overflowing_add(y)
 }
 
-/// Subtract two small integers and return the resulting value and if overflow happens.
-#[inline(always)]
-pub fn scalar_sub(x: Limb, y: Limb) -> (Limb, bool) {
-    x.overflowing_sub(y)
-}
-
 /// Multiply two small integers (with carry) (and return the overflow contribution).
 ///
 /// Returns the (low, high) components.
@@ -931,17 +926,6 @@ pub fn scalar_mul(x: Limb, y: Limb, carry: Limb) -> (Limb, Limb) {
     // `Wide::MAX - (Narrow::MAX * Narrow::MAX) >= Narrow::MAX`
     let z: Wide = (x as Wide) * (y as Wide) + (carry as Wide);
     (z as Limb, (z >> LIMB_BITS) as Limb)
-}
-
-/// Divide two small integers (with remainder) (and return the remainder contribution).
-///
-/// Returns the (value, remainder) components.
-#[inline(always)]
-pub fn scalar_div(x: Limb, y: Limb, rem: Limb) -> (Limb, Limb) {
-    // Cannot overflow, as long as wide is 2x as wide.
-    let x = (x as Wide) | ((rem as Wide) << LIMB_BITS);
-    let y = y as Wide;
-    ((x / y) as Limb, (x % y) as Limb)
 }
 
 // SMALL
@@ -971,28 +955,6 @@ pub fn small_add<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb) {
     small_add_from(x, y, 0);
 }
 
-/// Subtract bigint by small integer.
-#[inline]
-pub fn small_sub_from<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb, start: usize) {
-    let mut index = start;
-    let mut carry = y;
-    while carry != 0 && index < x.len() {
-        // SAFETY: safe, since `index < x.len()`.
-        let result = scalar_sub(unsafe { index_unchecked!(x[index]) }, carry);
-        unsafe { index_unchecked_mut!(x[index]) = result.0 };
-        carry = result.1 as Limb;
-        index += 1;
-    }
-    // Remove any leading zeros we added.
-    x.normalize();
-}
-
-/// Subtract bigint by small integer.
-#[inline(always)]
-pub fn small_sub<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb) {
-    small_sub_from(x, y, 0);
-}
-
 /// Multiply bigint by small integer.
 #[inline]
 pub fn small_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb) {
@@ -1006,22 +968,6 @@ pub fn small_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb) {
     if carry != 0 {
         x.try_push(carry);
     }
-}
-
-/// Divide bigint by small integer.
-#[inline]
-pub fn small_div<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb) -> Limb {
-    // Divide iteratively over all elements, adding the remainder each time.
-    let mut rem: Limb = 0;
-    for xi in x.iter_mut() {
-        let result = scalar_div(*xi, y, rem);
-        *xi = result.0;
-        rem = result.1;
-    }
-    // Remove any leading zeros we added.
-    x.normalize();
-
-    rem
 }
 
 // LARGE
@@ -1071,50 +1017,6 @@ fn large_add_from<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb], start: 
 #[inline(always)]
 pub fn large_add<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) {
     large_add_from(x, y, 0);
-}
-
-/// Subtract bigint from bigint.
-pub fn large_sub<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) {
-    // Quick underflow check.
-    if x.len() < y.len() {
-        // SAFETY: safe, `0 <= SIZE`.
-        unsafe { x.truncate_unchecked(0) };
-        return;
-    }
-
-    // Iteratively subtract elements from y to x.
-    let mut carry = false;
-    for index in 0..y.len() {
-        // SAFETY: safe since `index < y.len() && x.len() >= y.len()`.
-        let xi = unsafe { &mut index_unchecked_mut!(x[index]) };
-        // SAFETY: safe since `index < y.len()`.
-        let yi = unsafe { index_unchecked!(y[index]) };
-
-        // Only one op of the two ops can underflow, since we subtracted at max
-        // 0 - Limb::max_value(). Add the previous carry, and store the current
-        // carry for the next.
-        let result = scalar_sub(*xi, yi);
-        *xi = result.0;
-        let mut tmp = result.1;
-        if carry {
-            let result = scalar_sub(*xi, 1);
-            *xi = result.0;
-            tmp |= result.1;
-        }
-        carry = tmp;
-    }
-
-    if carry && x.len() > y.len() {
-        // small_sub_from will normalize the result, which cannot be 0.
-        small_sub_from(x, 1, y.len());
-    } else if carry {
-        // Carried our underflow, but have no more digits left: assign a literal 0.
-        // SAFETY: safe, `0 <= SIZE`.
-        unsafe { x.truncate_unchecked(0) };
-    } else {
-        // Need to normalize our result, since we might leading zeros.
-        x.normalize();
-    }
 }
 
 /// Grade-school multiplication algorithm.
@@ -1232,6 +1134,7 @@ pub fn large_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) {
 ///
 /// Adapted from David M. Gay's dtoa, and therefore under an MIT license:
 ///     www.netlib.org/fp/dtoa.c
+#[cfg(feature = "radix")]
 #[allow(clippy::many_single_char_names)]
 pub fn large_quorem<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Limb {
     // If we have an empty divisor, error out early.

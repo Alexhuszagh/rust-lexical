@@ -118,11 +118,14 @@ fn math_test() {
         assert_eq!(&*x, &[0, 18446744073709551610, 18446744073709551594, 26]);
     }
 
-    let mut x: VecType = vec_from_u32(&[0, 0, 0, 536870912]);
-    let y: VecType = vec_from_u32(&[3358091099, 2770363594, 2782716766, 217327764]);
-    assert_eq!(x.quorem(&y), 2);
-    let expected: VecType = vec_from_u32(&[1873752394, 3049207402, 3024501058, 102215382]);
-    assert_eq!(&*x, &*expected);
+    #[cfg(feature = "radix")]
+    {
+        let mut x: VecType = vec_from_u32(&[0, 0, 0, 536870912]);
+        let y: VecType = vec_from_u32(&[3358091099, 2770363594, 2782716766, 217327764]);
+        assert_eq!(x.quorem(&y), 2);
+        let expected: VecType = vec_from_u32(&[1873752394, 3049207402, 3024501058, 102215382]);
+        assert_eq!(&*x, &*expected);
+    }
 
     let mut x = VecType::from_u32(0xFFFFFFFF);
     let y = VecType::from_u32(5);
@@ -168,24 +171,10 @@ fn scalar_add_test() {
 }
 
 #[test]
-fn scalar_sub_test() {
-    assert_eq!(bigint::scalar_sub(5, 5), (0, false));
-    assert_eq!(bigint::scalar_sub(5, 6), (Limb::MAX, true));
-}
-
-#[test]
 fn scalar_mul_test() {
     assert_eq!(bigint::scalar_mul(5, 5, 0), (25, 0));
     assert_eq!(bigint::scalar_mul(5, 5, 1), (26, 0));
     assert_eq!(bigint::scalar_mul(Limb::MAX, 2, 0), (Limb::MAX - 1, 1));
-}
-
-#[test]
-fn scalar_div_test() {
-    assert_eq!(bigint::scalar_div(25, 5, 0), (5, 0));
-    assert_eq!(bigint::scalar_div(25, 4, 0), (6, 1));
-    assert_eq!(bigint::scalar_div(25, 4, 1), (4611686018427387910, 1));
-    assert_eq!(bigint::scalar_div(Limb::MAX, 2, 0), (Limb::MAX / 2, 1));
 }
 
 #[test]
@@ -210,31 +199,6 @@ fn small_add_test() {
     let mut x = VecType::from_u64(0xFFFFFFFFFFFFFFFF);
     bigint::small_add(&mut x, 7);
     let expected: VecType = vec_from_u32(&[6, 0, 1]);
-    assert_eq!(&*x, &*expected);
-}
-
-#[test]
-fn small_sub_test() {
-    let mut x: VecType = vec_from_u32(&[4, 1]);
-    bigint::small_sub(&mut x, 5);
-    let expected = VecType::from_u32(4294967295);
-    assert_eq!(&*x, &*expected);
-
-    let mut x = VecType::from_u32(12);
-    bigint::small_sub(&mut x, 7);
-    let expected = VecType::from_u32(5);
-    assert_eq!(&*x, &*expected);
-
-    // Single carry, internal overflow
-    let mut x: VecType = vec_from_u32(&[6, 0x80000001]);
-    bigint::small_sub(&mut x, 7);
-    let expected = VecType::from_u64(0x80000000FFFFFFFF);
-    assert_eq!(&*x, &*expected);
-
-    // Double carry, overflow
-    let mut x: VecType = vec_from_u32(&[6, 0, 1]);
-    bigint::small_sub(&mut x, 7);
-    let expected = VecType::from_u64(0xFFFFFFFFFFFFFFFF);
     assert_eq!(&*x, &*expected);
 }
 
@@ -268,37 +232,6 @@ fn small_mul_test() {
     let mut x = VecType::from_u64(0x3333333333333334);
     bigint::small_mul(&mut x, 5);
     let expected: VecType = vec_from_u32(&[4, 0, 1]);
-    assert_eq!(&*x, &*expected);
-}
-
-#[test]
-fn small_div_test() {
-    let mut x = VecType::from_u32(4);
-    assert_eq!(bigint::small_div(&mut x, 7), 4);
-    let expected = VecType::new();
-    assert_eq!(&*x, &*expected);
-
-    let mut x = VecType::from_u32(3);
-    assert_eq!(bigint::small_div(&mut x, 7), 3);
-    let expected = VecType::new();
-    assert_eq!(&*x, &*expected);
-
-    // Check roundup, odd, halfway
-    let mut x = VecType::from_u32(15);
-    assert_eq!(bigint::small_div(&mut x, 10), 5);
-    let expected = VecType::from_u32(1);
-    assert_eq!(&*x, &*expected);
-
-    // Check 1 carry.
-    let mut x = VecType::from_u64(0x133333334);
-    assert_eq!(bigint::small_div(&mut x, 5), 1);
-    let expected = VecType::from_u32(0x3D70A3D7);
-    assert_eq!(&*x, &*expected);
-
-    // Check 2 carries.
-    let mut x = VecType::from_u64(0x3333333333333334);
-    assert_eq!(bigint::small_div(&mut x, 5), 4);
-    let expected: VecType = vec_from_u32(&[0xD70A3D70, 0xA3D70A3]);
     assert_eq!(&*x, &*expected);
 }
 
@@ -374,44 +307,6 @@ fn large_add_test() {
 }
 
 #[test]
-fn large_sub_test() {
-    // Overflow, both single values
-    let mut x: VecType = vec_from_u32(&[4, 1]);
-    let y = VecType::from_u32(5);
-    bigint::large_sub(&mut x, &y);
-    let expected = VecType::from_u32(4294967295);
-    assert_eq!(&*x, &*expected);
-
-    // No overflow, single value
-    let mut x = VecType::from_u32(12);
-    let y = VecType::from_u32(7);
-    bigint::large_sub(&mut x, &y);
-    let expected = VecType::from_u32(5);
-    assert_eq!(&*x, &*expected);
-
-    // Single carry, internal overflow
-    let mut x: VecType = vec_from_u32(&[6, 0x80000001]);
-    let y = VecType::from_u32(7);
-    bigint::large_sub(&mut x, &y);
-    let expected: VecType = vec_from_u32(&[0xFFFFFFFF, 0x80000000]);
-    assert_eq!(&*x, &*expected);
-
-    // Zeros out.
-    let mut x: VecType = vec_from_u32(&[0xFFFFFFFF, 0x7FFFFFFF]);
-    let y: VecType = vec_from_u32(&[0xFFFFFFFF, 0x7FFFFFFF]);
-    bigint::large_sub(&mut x, &y);
-    let expected = VecType::new();
-    assert_eq!(&*x, &*expected);
-
-    // 1st overflows, 2nd doesn't.
-    let mut x: VecType = vec_from_u32(&[0xFFFFFFFE, 0x80000000]);
-    let y: VecType = vec_from_u32(&[0xFFFFFFFF, 0x7FFFFFFF]);
-    bigint::large_sub(&mut x, &y);
-    let expected = VecType::from_u32(0xFFFFFFFF);
-    assert_eq!(&*x, &*expected);
-}
-
-#[test]
 fn large_mul_test() {
     // Test by empty
     let mut x = VecType::from_u32(0xFFFFFFFF);
@@ -474,6 +369,7 @@ fn very_large_mul_test() {
 }
 
 #[test]
+#[cfg(feature = "radix")]
 fn quorem_test() {
     let mut x: VecType = vec_from_u32(&[0, 0, 0, 536870912]);
     let y: VecType = vec_from_u32(&[3358091099, 2770363594, 2782716766, 217327764]);

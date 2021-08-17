@@ -22,8 +22,11 @@ use static_assertions::const_assert;
 #[inline]
 #[cfg(not(feature = "power-of-two"))]
 pub unsafe fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
-    debug_assert_radix(radix);
-    unsafe { get_small_int_power10(exponent) }
+    match radix {
+        5 => unsafe { get_small_int_power5(exponent) },
+        10 => unsafe { get_small_int_power10(exponent) },
+        _ => unreachable!(),
+    }
 }
 
 /// Get lookup table for small f32 powers.
@@ -58,6 +61,16 @@ pub const fn get_large_int_power(_: u32) -> (&'static [Limb], u32) {
     (&LARGE_POW5, LARGE_POW5_STEP)
 }
 
+/// Get pre-computed int power of 5.
+///
+/// # Safety
+///
+/// Safe as long as the `exponent < SMALL_INT_POW5.len()`.
+#[inline(always)]
+pub unsafe fn get_small_int_power5(exponent: usize) -> u64 {
+    unsafe { index_unchecked!(SMALL_INT_POW5[exponent]) }
+}
+
 /// Get pre-computed int power of 10.
 ///
 /// # Safety
@@ -90,6 +103,40 @@ pub unsafe fn get_small_f64_power10(exponent: usize) -> f64 {
 
 // TABLES
 // ------
+
+/// Pre-computed, small powers-of-5.
+pub const SMALL_INT_POW5: [u64; 28] = [
+    1,
+    5,
+    25,
+    125,
+    625,
+    3125,
+    15625,
+    78125,
+    390625,
+    1953125,
+    9765625,
+    48828125,
+    244140625,
+    1220703125,
+    6103515625,
+    30517578125,
+    152587890625,
+    762939453125,
+    3814697265625,
+    19073486328125,
+    95367431640625,
+    476837158203125,
+    2384185791015625,
+    11920928955078125,
+    59604644775390625,
+    298023223876953125,
+    1490116119384765625,
+    7450580596923828125,
+];
+const_assert!(SMALL_INT_POW5.len() > f64_mantissa_limit(5) as usize);
+const_assert!(SMALL_INT_POW5.len() == u64_power_limit(5) as usize + 1);
 
 /// Pre-computed, small powers-of-10.
 pub const SMALL_INT_POW10: [u64; 20] = [
