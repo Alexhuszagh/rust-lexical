@@ -223,6 +223,25 @@ pub fn negative_digit_comp<F: RawFloat, const FORMAT: u128>(
     fp
 }
 
+/// Add a temporary value to our mantissa.
+macro_rules! add_temporary {
+    (@max $result:ident, $max_native:ident, $counter:ident, $value:ident) => {
+        $result.data.mul_small($max_native);
+        $result.data.add_small($value);
+        $counter = 0;
+        $value = 0;
+    };
+
+    ($format:ident, $result:ident, $counter:ident, $value:ident) => {
+        if $counter != 0 {
+            // SAFETY: safe, since `counter < step`.
+            let small_power = unsafe { f64::int_pow_fast_path($counter, $format.radix()) };
+            $result.data.mul_small(small_power as Limb);
+            $result.data.add_small($value);
+        }
+    };
+}
+
 /// Add a single digit to the big integer
 macro_rules! add_digit {
     (
@@ -245,17 +264,32 @@ macro_rules! add_digit {
         $counter += 1;
         $count += 1;
         if $counter == $step {
-            $result.data.mul_small($max_native);
-            $result.data.add_small($value);
-            $counter = 0;
-            $value = 0;
+            add_temporary!(@max $result, $max_native, $counter, $value);
         }
 
         // Check if we've exhausted our max digits.
         if $count == $max_digits {
             // Need to check if we're truncated, and round-up accordingly.
+            add_temporary!($format, $result, $counter, $value);
             return $is_truncated();
         }
+    }};
+}
+
+/// Check and round-up the fraction if any non-zero digits exist.
+macro_rules! round_up_fraction {
+    ($format:ident, $byte:ident, $result:ident, $count:ident) => {{
+        for &digit in $byte.fraction_iter() {
+            if !char_is_digit_const(digit, $format.radix()) {
+                // Hit the exponent: no more digits, no need to round-up.
+                return ($result, $count);
+            } else if digit != b'0' {
+                // Need to round-up.
+                $result.data.add_small(1);
+                return ($result, $count);
+            }
+        }
+        ($result, $count)
     }};
 }
 
@@ -294,7 +328,10 @@ pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
             Some(v) => v,
             None if c == decimal_point => break,
             // Encountered an exponent character.
-            None => return (result, count),
+            None => {
+                add_temporary!(format, result, counter, value);
+                return (result, count);
+            },
         };
         add_digit!(
             format,
@@ -315,23 +352,11 @@ pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
                         return (result, count);
                     } else if digit != b'0' {
                         // Need to round-up.
-                        // TODO(ahuszagh) Do I need to mult like before???
                         result.data.add_small(1);
                         return (result, count);
                     }
                 }
-                for &digit in byte.fraction_iter() {
-                    if !char_is_digit_const(digit, format.radix()) {
-                        // Hit the exponent: no more digits, no need to round-up.
-                        return (result, count);
-                    } else if digit != b'0' {
-                        // Need to round-up.
-                        // TODO(ahuszagh) Do I need to mult like before???
-                        result.data.add_small(1);
-                        return (result, count);
-                    }
-                }
-                (result, count)
+                round_up_fraction!(format, byte, result, count)
             }
         );
     }
@@ -341,7 +366,10 @@ pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
         let digit = match char_to_digit_const(c, radix) {
             Some(v) => v,
             // Encountered an exponent character.
-            None => return (result, count),
+            None => {
+                add_temporary!(format, result, counter, value);
+                return (result, count);
+            },
         };
         add_digit!(
             format,
@@ -353,31 +381,13 @@ pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
             count,
             value,
             result,
-            || {
-                for &digit in byte.fraction_iter() {
-                    if !char_is_digit_const(digit, format.radix()) {
-                        // Hit the exponent: no more digits, no need to round-up.
-                        return (result, count);
-                    } else if digit != b'0' {
-                        // Need to round-up.
-                        // TODO(ahuszagh) Do I need to mult like before???
-                        result.data.add_small(1);
-                        return (result, count);
-                    }
-                }
-                (result, count)
-            }
+            || round_up_fraction!(format, byte, result, count)
         );
     }
 
     // We will always have a remainder, as long as we entered the loop
     // once, or counter % step is 0.
-    if counter != 0 {
-        // SAFETY: safe, since `counter < step`.
-        let small_power = unsafe { f64::int_pow_fast_path(counter, format.radix()) };
-        result.data.mul_small(small_power as Limb);
-        result.data.add_small(value);
-    }
+    add_temporary!(format, result, counter, value);
 
     (result, count)
 }
@@ -530,12 +540,9 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
     } else if diff > 0 {
         // Need to shift denominator left, go by a power of LIMB_BITS.
         // After this, the numerator will be non-normalized, and the
-        // denominator will be normalized.
-        // We need to add one to the quotient,since we're calculating the
-        // ceiling of the divmod.
+        // denominator will be normalized. We need to add one to the
+        // quotient,since we're calculating the ceiling of the divmod.
         let (q, r) = shift.ceil_divmod(LIMB_BITS);
-        // Since we're using a power from the denominator to the
-        // numerator, we to invert r, not add u32::BITS.
         let r = -r;
         num.shl_bits(r as usize).unwrap();
         num.exp -= r;
@@ -564,7 +571,7 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
 
 /// Compare digits between the generated values the ratio and the actual view.
 #[cfg(feature = "radix")]
-fn compare_bytes<const FORMAT: u128>(
+pub fn compare_bytes<const FORMAT: u128>(
     mut byte: Bytes<FORMAT>,
     mut num: Bigfloat,
     den: Bigfloat,
@@ -596,7 +603,7 @@ fn compare_bytes<const FORMAT: u128>(
 /// Calculate the scientific exponent from a `Number` value.
 /// Any other attempts would require slowdowns for faster algorithms.
 #[inline]
-fn scientific_exponent<const FORMAT: u128>(num: &Number) -> i32 {
+pub fn scientific_exponent<const FORMAT: u128>(num: &Number) -> i32 {
     // This has the significant digits and exponent relative to those
     // digits: therefore, we just need to scale to mantissa to `[1, radix)`.
     // This doesn't need to be very fast.

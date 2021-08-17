@@ -200,8 +200,7 @@ impl Bigfloat {
     /// Shift-left the entire buffer n limbs.
     #[inline]
     pub fn shl_limbs(&mut self, n: usize) -> Option<()> {
-        self.exp += n as i32;
-        Some(())
+        shl_limbs(&mut self.data, n)
     }
 
     /// Shift-left the entire buffer n bits.

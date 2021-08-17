@@ -32,15 +32,15 @@ fn simple_test() {
     assert_eq!(x.exp, 10);
 
     x.shl_limbs(1);
-    assert_eq!(&*x.data, &[19531250]);
-    assert_eq!(x.exp, 11);
+    assert_eq!(&*x.data, &[0, 19531250]);
+    assert_eq!(x.exp, 10);
 
     assert_eq!(x.leading_zeros(), LIMB_BITS as u32 - 25);
 
     x *= &y;
-    let expected = vec_from_u32(&[0, 0, 9765625]);
+    let expected = vec_from_u32(&[0, 0, 0, 0, 9765625]);
     assert!(x.data == expected, "failed");
-    assert_eq!(x.exp, -52);
+    assert_eq!(x.exp, -53);
 }
 
 #[test]
