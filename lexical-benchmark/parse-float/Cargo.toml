@@ -26,6 +26,11 @@ path = "canada.rs"
 harness = false
 
 [[bench]]
+name = "contrived"
+path = "contrived.rs"
+harness = false
+
+[[bench]]
 name = "json"
 path = "json.rs"
 harness = false
