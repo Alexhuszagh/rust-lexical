@@ -93,7 +93,7 @@ impl Bigint {
             pow::<BIGINT_LIMBS>(&mut self.data, odd, exp)
         }
         if shift != 0 {
-            shl(&mut self.data, (exp as usize) << shift);
+            shl(&mut self.data, (exp * shift) as usize);
         }
     }
 
@@ -187,7 +187,7 @@ impl Bigfloat {
             pow::<BIGFLOAT_LIMBS>(&mut self.data, odd, exp)
         }
         if shift != 0 {
-            self.exp += (exp as i32) << shift;
+            self.exp += (exp * shift) as i32;
         }
     }
 
@@ -612,7 +612,8 @@ impl<const SIZE: usize> PartialEq for StackVec<SIZE> {
     #[inline]
     #[allow(clippy::op_ref)]
     fn eq(&self, other: &Self) -> bool {
-        self.len() == other.len() && &*self == &*other
+        use core::ops::Deref;
+        self.len() == other.len() && self.deref() == other.deref()
     }
 }
 
@@ -655,6 +656,7 @@ impl<const SIZE: usize> ops::DerefMut for StackVec<SIZE> {
 }
 
 impl<const SIZE: usize> ops::MulAssign<&[Limb]> for StackVec<SIZE> {
+    #[inline]
     fn mul_assign(&mut self, rhs: &[Limb]) {
         large_mul(self, rhs);
     }

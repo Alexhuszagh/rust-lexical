@@ -2,6 +2,7 @@
 
 use crate::float::{ExtendedFloat80, RawFloat};
 use crate::mask::{lower_n_halfway, lower_n_mask};
+#[cfg(feature = "power-of-two")]
 use lexical_util::format::NumberFormat;
 use lexical_util::num::AsPrimitive;
 
@@ -21,6 +22,7 @@ pub fn calculate_shift<F: RawFloat>(power2: i32) -> i32 {
 
 /// Calculate the biased, binary exponent from the mantissa shift and exponent.
 #[inline(always)]
+#[cfg(feature = "power-of-two")]
 pub fn calculate_power2<F: RawFloat, const FORMAT: u128>(exponent: i64, ctlz: u32) -> i32 {
     let format = NumberFormat::<{ FORMAT }> {};
     exponent as i32 * log2(format.exponent_base()) + F::EXPONENT_BIAS - ctlz as i32
@@ -42,7 +44,9 @@ pub const fn log2(radix: u32) -> i32 {
         4 => 2,
         8 => 3,
         16 => 4,
-        _ => 5,
+        32 => 5,
+        // Fallthrough to 1 for non-power-of-two radixes.
+        _ => 1,
     }
 }
 

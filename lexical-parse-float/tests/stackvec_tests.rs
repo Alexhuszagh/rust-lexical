@@ -118,9 +118,17 @@ fn math_test() {
         assert_eq!(&*x, &[0, 18446744073709551610, 18446744073709551594, 26]);
     }
 
-    // TODO(ahuszagh)
-    //  quorem
-    //  mul_assign
+    let mut x: VecType = vec_from_u32(&[0, 0, 0, 536870912]);
+    let y: VecType = vec_from_u32(&[3358091099, 2770363594, 2782716766, 217327764]);
+    assert_eq!(x.quorem(&y), 2);
+    let expected: VecType = vec_from_u32(&[1873752394, 3049207402, 3024501058, 102215382]);
+    assert_eq!(&*x, &*expected);
+
+    let mut x = VecType::from_u32(0xFFFFFFFF);
+    let y = VecType::from_u32(5);
+    x *= &y;
+    let expected: VecType = vec_from_u32(&[0xFFFFFFFB, 0x4]);
+    assert_eq!(&*x, &*expected);
 
     // Test with carry
     let mut x = VecType::from_u32(1);
@@ -133,14 +141,51 @@ fn math_test() {
 fn hi_test() {
     assert_eq!(unsafe { bigint::nonzero(&[0, 0, 0], 0) }, false);
     assert_eq!(unsafe { bigint::nonzero(&[1, 0, 0], 0) }, true);
+
+    assert_eq!(bigint::u32_to_hi16_1(1), (0x8000, false));
+    assert_eq!(bigint::u32_to_hi16_2(1, 4), (0x8000, true));
+    assert_eq!(bigint::u32_to_hi32_1(1), (0x80000000, false));
+    assert_eq!(bigint::u32_to_hi32_2(1, 4), (0x80000002, false));
     assert_eq!(bigint::u32_to_hi64_1(1), (0x8000000000000000, false));
     assert_eq!(bigint::u32_to_hi64_2(1, 4), (0x8000000200000000, false));
     assert_eq!(bigint::u32_to_hi64_2(1, 5), (0x8000000280000000, false));
     assert_eq!(bigint::u32_to_hi64_3(1, 5, 4), (0x8000000280000002, false));
     assert_eq!(bigint::u32_to_hi64_3(1, 5, 5), (0x8000000280000002, true));
+
+    assert_eq!(bigint::u64_to_hi16_1(1), (0x8000, false));
+    assert_eq!(bigint::u64_to_hi16_2(1, 4), (0x8000, true));
+    assert_eq!(bigint::u64_to_hi32_1(1), (0x80000000, false));
+    assert_eq!(bigint::u64_to_hi32_2(1, 4), (0x80000000, true));
     assert_eq!(bigint::u64_to_hi64_1(1), (0x8000000000000000, false));
     assert_eq!(bigint::u64_to_hi64_2(1, 4), (0x8000000000000002, false));
     assert_eq!(bigint::u64_to_hi64_2(1, 5), (0x8000000000000002, true));
+}
+
+#[test]
+fn scalar_add_test() {
+    assert_eq!(bigint::scalar_add(5, 5), (10, false));
+    assert_eq!(bigint::scalar_add(Limb::MAX, 1), (0, true));
+}
+
+#[test]
+fn scalar_sub_test() {
+    assert_eq!(bigint::scalar_sub(5, 5), (0, false));
+    assert_eq!(bigint::scalar_sub(5, 6), (Limb::MAX, true));
+}
+
+#[test]
+fn scalar_mul_test() {
+    assert_eq!(bigint::scalar_mul(5, 5, 0), (25, 0));
+    assert_eq!(bigint::scalar_mul(5, 5, 1), (26, 0));
+    assert_eq!(bigint::scalar_mul(Limb::MAX, 2, 0), (Limb::MAX - 1, 1));
+}
+
+#[test]
+fn scalar_div_test() {
+    assert_eq!(bigint::scalar_div(25, 5, 0), (5, 0));
+    assert_eq!(bigint::scalar_div(25, 4, 0), (6, 1));
+    assert_eq!(bigint::scalar_div(25, 4, 1), (4611686018427387910, 1));
+    assert_eq!(bigint::scalar_div(Limb::MAX, 2, 0), (Limb::MAX / 2, 1));
 }
 
 #[test]
@@ -496,4 +541,17 @@ fn shl_test() {
     bigint::shl(&mut x, 27);
     let expected: VecType = vec_from_u32(&[0, 0, 0x20020010, 0x8040100, 0xD2210408]);
     assert_eq!(&*x, &*expected);
+}
+
+#[test]
+fn split_radix_test() {
+    assert_eq!(bigint::split_radix(10), (5, 1));
+    if cfg!(feature = "radix") {
+        assert_eq!(bigint::split_radix(2), (0, 1));
+        assert_eq!(bigint::split_radix(4), (0, 2));
+        assert_eq!(bigint::split_radix(8), (0, 3));
+        assert_eq!(bigint::split_radix(16), (0, 4));
+        assert_eq!(bigint::split_radix(32), (0, 5));
+        assert_eq!(bigint::split_radix(14), (7, 1));
+    }
 }
