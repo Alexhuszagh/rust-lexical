@@ -1104,13 +1104,6 @@ pub fn large_sub<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) {
     }
 }
 
-/// Number of digits to bottom-out to asymptotically slow algorithms.
-///
-/// Karatsuba tends to out-perform long-multiplication at ~320-640 bits,
-/// so we go halfway, while Newton division tends to out-perform
-/// Algorithm D at ~1024 bits. We can toggle this for optimal performance.
-pub const KARATSUBA_CUTOFF: usize = 32;
-
 /// Grade-school multiplication algorithm.
 ///
 /// Slow, naive algorithm, using limb-bit bases and just shifting left for
@@ -1118,7 +1111,62 @@ pub const KARATSUBA_CUTOFF: usize = 32;
 /// but it's extremely simple, and works in O(n*m) time, which is fine
 /// by me. Each iteration, of which there are `m` iterations, requires
 /// `n` multiplications, and `n` additions, or grade-school multiplication.
-fn long_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> StackVec<SIZE> {
+///
+/// Don't use Karatsuba multiplication, since out implementation seems to
+/// be slower asymptotically, which is likely just due to the small sizes
+/// we deal with here. For example, running on the following data:
+///
+/// ```text
+/// const SMALL_X: &[u32] = &[
+///     766857581, 3588187092, 1583923090, 2204542082, 1564708913, 2695310100, 3676050286,
+///     1022770393, 468044626, 446028186
+/// ];
+/// const SMALL_Y: &[u32] = &[
+///     3945492125, 3250752032, 1282554898, 1708742809, 1131807209, 3171663979, 1353276095,
+///     1678845844, 2373924447, 3640713171
+/// ];
+/// const LARGE_X: &[u32] = &[
+///     3647536243, 2836434412, 2154401029, 1297917894, 137240595, 790694805, 2260404854,
+///     3872698172, 690585094, 99641546, 3510774932, 1672049983, 2313458559, 2017623719,
+///     638180197, 1140936565, 1787190494, 1797420655, 14113450, 2350476485, 3052941684,
+///     1993594787, 2901001571, 4156930025, 1248016552, 848099908, 2660577483, 4030871206,
+///     692169593, 2835966319, 1781364505, 4266390061, 1813581655, 4210899844, 2137005290,
+///     2346701569, 3715571980, 3386325356, 1251725092, 2267270902, 474686922, 2712200426,
+///     197581715, 3087636290, 1379224439, 1258285015, 3230794403, 2759309199, 1494932094,
+///     326310242
+/// ];
+/// const LARGE_Y: &[u32] = &[
+///     1574249566, 868970575, 76716509, 3198027972, 1541766986, 1095120699, 3891610505,
+///     2322545818, 1677345138, 865101357, 2650232883, 2831881215, 3985005565, 2294283760,
+///     3468161605, 393539559, 3665153349, 1494067812, 106699483, 2596454134, 797235106,
+///     705031740, 1209732933, 2732145769, 4122429072, 141002534, 790195010, 4014829800,
+///     1303930792, 3649568494, 308065964, 1233648836, 2807326116, 79326486, 1262500691,
+///     621809229, 2258109428, 3819258501, 171115668, 1139491184, 2979680603, 1333372297,
+///     1657496603, 2790845317, 4090236532, 4220374789, 601876604, 1828177209, 2372228171,
+///     2247372529
+/// ];
+/// ```
+///
+/// We get the following results:
+
+/// ```text
+/// mul/small:long          time:   [220.23 ns 221.47 ns 222.81 ns]
+/// Found 4 outliers among 100 measurements (4.00%)
+///   2 (2.00%) high mild
+///   2 (2.00%) high severe
+/// mul/small:karatsuba     time:   [233.88 ns 234.63 ns 235.44 ns]
+/// Found 11 outliers among 100 measurements (11.00%)
+///   8 (8.00%) high mild
+///   3 (3.00%) high severe
+/// mul/large:long          time:   [1.9365 us 1.9455 us 1.9558 us]
+/// Found 12 outliers among 100 measurements (12.00%)
+///   7 (7.00%) high mild
+///   5 (5.00%) high severe
+/// mul/large:karatsuba     time:   [4.4250 us 4.4515 us 4.4812 us]
+/// ```
+///
+/// In short, Karatsuba multiplication is never worthwhile for out use-case.
+pub fn long_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> StackVec<SIZE> {
     // Using the immutable value, multiply by all the scalars in y, using
     // the algorithm defined above. Use a single buffer to avoid
     // frequent reallocations. Handle the first case to avoid a redundant
@@ -1144,114 +1192,16 @@ fn long_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> StackVec<SIZE> {
     z
 }
 
-/// Split two buffers into halfway, into (lo, hi).
-///
-/// # Safety
-///
-/// Safe if `index <= x.len()`.
-#[inline]
-pub unsafe fn karatsuba_split(x: &[Limb], index: usize) -> (&[Limb], &[Limb]) {
-    unsafe {
-        let x0 = &index_unchecked!(x[..index]);
-        let x1 = &index_unchecked!(x[index..]);
-        (x0, x1)
-    }
-}
-
-/// Karatsuba multiplication algorithm with roughly equal input sizes.
-///
-/// # Safety
-///
-/// Safe if `y.len() >= x.len()`.
-pub unsafe fn karatsuba_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> StackVec<SIZE> {
-    if y.len() <= KARATSUBA_CUTOFF {
-        // Bottom-out to long division for small cases.
-        long_mul(x, y)
-    } else if x.len() < y.len() / 2 {
-        unsafe { karatsuba_uneven_mul(x, y) }
-    } else {
-        // Do our 3 multiplications.
-        let m = y.len() / 2;
-        // SAFETY: safe, since `x.len() >= y.len / 2`.
-        let (xl, xh) = unsafe { karatsuba_split(x, m) };
-        // SAFETY: safe, since `y.len() >= y.len / 2`.
-        let (yl, yh) = unsafe { karatsuba_split(y, m) };
-        let mut sumx = StackVec::<SIZE>::try_from(xl).unwrap();
-        large_add(&mut sumx, xh);
-        let mut sumy = StackVec::<SIZE>::try_from(yl).unwrap();
-        large_add(&mut sumy, yh);
-        // SAFETY: safe since `xl.len() == yl.len()`.
-        let z0 = unsafe { karatsuba_mul::<SIZE>(xl, yl) };
-        // SAFETY: safe since `sumx.len() <= sumy.len()`.
-        let mut z1 = unsafe { karatsuba_mul::<SIZE>(&sumx, &sumy) };
-        // SAFETY: safe since `xh.len() <= yh.len()`.
-        let z2 = unsafe { karatsuba_mul::<SIZE>(xh, yh) };
-        // Properly scale z1, which is `z1 - z2 - zo`.
-        large_sub(&mut z1, &z2);
-        large_sub(&mut z1, &z0);
-
-        // Create our result, which is equal to, in little-endian order:
-        // [z0, z1 - z2 - z0, z2]
-        //  z1 must be shifted m digits (2^(32m)) over.
-        //  z2 must be shifted 2*m digits (2^(64m)) over.
-        let mut result = StackVec::<SIZE>::new();
-        result.try_extend(&z0).unwrap();
-        large_add_from(&mut result, &z1, m);
-        large_add_from(&mut result, &z2, 2 * m);
-
-        result
-    }
-}
-
-/// Karatsuba multiplication algorithm where y is substantially larger than x.
-///
-/// # Safety
-///
-/// Safe if `y.len() >= x.len()`.
-pub unsafe fn karatsuba_uneven_mul<const SIZE: usize>(
-    x: &[Limb],
-    mut y: &[Limb],
-) -> StackVec<SIZE> {
-    let mut result = StackVec::new();
-    result.try_resize(x.len() + y.len(), 0).unwrap();
-
-    // This effectively is like grade-school multiplication between
-    // two numbers, except we're using splits on `y`, and the intermediate
-    // step is a Karatsuba multiplication.
-    let mut start = 0;
-    while !y.is_empty() {
-        let m = x.len().min(y.len());
-        // SAFETY: safe, since `m <= y.len()`.
-        let (yl, yh) = unsafe { karatsuba_split(y, m) };
-        let prod = unsafe { karatsuba_mul::<SIZE>(x, yl) };
-        large_add_from(&mut result, &prod, start);
-        y = yh;
-        start += m;
-    }
-    result.normalize();
-
-    result
-}
-
 /// Multiply bigint by bigint using grade-school multiplication algorithm.
 #[inline(always)]
 pub fn large_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) {
-    // We're not really in a condition where using Karatsuba
-    // multiplication makes sense, so we're just going to use long
-    // division. ~20% speedup compared to:
-    //      *x = karatsuba_mul_fwd(x, y);
-    // TODO(ahuszagh) **Bench** this.
-    //  Need
-
+    // Karatsuba multiplication never makes sense, so just use grade school
+    // multiplication.
     if y.len() == 1 {
         // SAFETY: safe since `y.len() == 1`.
         small_mul(x, unsafe { index_unchecked!(y[0]) });
-    } else if x.len() < y.len() {
-        // SAFETY: safe since `y.len() > x.len()`.
-        *x = unsafe { long_mul(x, y) };
     } else {
-        // SAFETY: safe since `x.len() >= y.len()`.
-        *x = unsafe { long_mul(y, x) };
+        *x = long_mul(y, x);
     }
 }
 
@@ -1450,10 +1400,12 @@ pub fn bit_length(x: &[Limb]) -> u32 {
 /// Get the base, odd radix, and the power-of-two for the type.
 pub const fn split_radix(radix: u32) -> (u32, u32) {
     match radix {
-        2 if cfg!(feature = "power-of-two") => (0, 1),
+        // Is also needed for decimal floats, due to `negative_digit_comp`.
+        2 => (0, 1),
         3 if cfg!(feature = "radix") => (3, 0),
         4 if cfg!(feature = "power-of-two") => (0, 2),
-        5 if cfg!(feature = "radix") => (5, 0),
+        // Is also needed for decimal floats, due to `negative_digit_comp`.
+        5 => (5, 0),
         6 if cfg!(feature = "radix") => (3, 1),
         7 if cfg!(feature = "radix") => (7, 0),
         8 if cfg!(feature = "power-of-two") => (0, 3),

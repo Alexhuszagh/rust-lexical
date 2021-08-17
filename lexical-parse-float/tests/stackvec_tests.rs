@@ -444,8 +444,10 @@ fn large_mul_test() {
 }
 
 #[test]
-fn karatsuba_mul_test() {
-    // Test cases triggered to use `karatsuba_mul`.
+fn very_large_mul_test() {
+    // Test cases triggered to that would normally use `karatsuba_mul`.
+    // Karatsuba multiplication was ripped out, however, these are useful
+    // test cases.
     let mut x: VecType = vec_from_u32(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     let y: VecType = vec_from_u32(&[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
     bigint::large_mul(&mut x, &y);
@@ -455,7 +457,7 @@ fn karatsuba_mul_test() {
     ]);
     assert_eq!(&*x, &*expected);
 
-    // Test cases to use karatsuba_uneven_mul
+    // Test cases triggered to that would normally use `karatsuba_uneven_mul`.
     let mut x: VecType = vec_from_u32(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     let y: VecType = vec_from_u32(&[
         4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,

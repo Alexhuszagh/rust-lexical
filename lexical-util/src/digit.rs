@@ -47,7 +47,7 @@ pub const fn char_is_digit_const(c: u8, radix: u32) -> bool {
 /// This optimizes for cases where radix is <= 10, and uses a decent,
 /// match-based fallback algorithm.
 #[inline]
-#[cfg(feature = "write")]
+#[cfg(any(feature = "write", feature = "floats"))]
 pub const fn digit_to_char_const(digit: u32, radix: u32) -> u8 {
     if radix <= 10 || digit < 10 {
         // Can short-circuit if we know the radix is small at compile time.

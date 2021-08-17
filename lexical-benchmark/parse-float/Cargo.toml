@@ -12,6 +12,7 @@ features = []
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
+lazy_static = "1"
 
 [features]
 std = ["lexical-parse-float/std"]
@@ -20,6 +21,6 @@ power-of-two = ["lexical-parse-float/power-of-two"]
 format = ["lexical-parse-float/format"]
 
 [[bench]]
-name = "write_integer"
-path = "bench.rs"
+name = "pow"
+path = "pow.rs"
 harness = false
