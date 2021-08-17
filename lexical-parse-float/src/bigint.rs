@@ -2,6 +2,8 @@
 //!
 //! This includes minimal stackvector for use in big-integer arithmetic.
 
+#![doc(hidden)]
+
 #[cfg(feature = "radix")]
 use crate::float::ExtendedFloat80;
 use crate::float::RawFloat;

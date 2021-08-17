@@ -1,5 +1,7 @@
 //! Shared utilities and algorithms.
 
+#![doc(hidden)]
+
 use crate::float::{ExtendedFloat80, RawFloat};
 use crate::mask::{lower_n_halfway, lower_n_mask};
 #[cfg(feature = "power-of-two")]

@@ -1,10 +1,12 @@
 //! Utilities to generate bitmasks.
 
+#![doc(hidden)]
+
 /// Generate a bitwise mask for the lower `n` bits.
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
 /// # use lexical_parse_float::bellerophon::lower_n_mask;
 /// # pub fn main() {
 /// assert_eq!(lower_n_mask(2), 0b11);
@@ -24,7 +26,7 @@ pub fn lower_n_mask(n: u64) -> u64 {
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
 /// # use lexical_parse_float::bellerophon::lower_n_halfway;
 /// # pub fn main() {
 /// assert_eq!(lower_n_halfway(2), 0b10);
@@ -44,7 +46,7 @@ pub fn lower_n_halfway(n: u64) -> u64 {
 ///
 /// # Examples
 ///
-/// ```text
+/// ```rust
 /// # use lexical_parse_float::bellerophon::nth_bit;
 /// # pub fn main() {
 /// assert_eq!(nth_bit(2), 0b100);

@@ -480,8 +480,8 @@ macro_rules! fraction_compare {
 /// `b` and `b+u`, where `b+u` is 1 unit in the least-precision. Therefore,
 /// the string must be close to `b+h`.
 ///
-/// Adapted from:
-///     https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/
+/// Adapted from "Bigcomp: Deciding Truncated, Near Halfway Conversions",
+/// available [here](https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/).
 #[cfg(feature = "radix")]
 pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
     byte: Bytes<FORMAT>,
