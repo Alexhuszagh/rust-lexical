@@ -9,20 +9,32 @@ use lexical_util::format::STANDARD;
 fn halfway_round_down_test() {
     // Halfway, round-down tests
     bellerophon_test::<f64, { STANDARD }>(9007199254740992, 0, false, 0, 1076);
-    bellerophon_test::<f64, { STANDARD }>(9007199254740993, 0, false, 9223372036854776832, -1);
+    bellerophon_test::<f64, { STANDARD }>(9007199254740993, 0, false, 9223372036854776832, -31703);
     bellerophon_test::<f64, { STANDARD }>(9007199254740994, 0, false, 1, 1076);
 
     bellerophon_test::<f64, { STANDARD }>(18014398509481984, 0, false, 0, 1077);
-    bellerophon_test::<f64, { STANDARD }>(18014398509481986, 0, false, 9223372036854776832, -1);
+    bellerophon_test::<f64, { STANDARD }>(18014398509481986, 0, false, 9223372036854776832, -31702);
     bellerophon_test::<f64, { STANDARD }>(18014398509481988, 0, false, 1, 1077);
 
     bellerophon_test::<f64, { STANDARD }>(9223372036854775808, 0, false, 0, 1086);
-    bellerophon_test::<f64, { STANDARD }>(9223372036854776832, 0, false, 9223372036854776832, -1);
+    bellerophon_test::<f64, { STANDARD }>(
+        9223372036854776832,
+        0,
+        false,
+        9223372036854776832,
+        -31693,
+    );
     bellerophon_test::<f64, { STANDARD }>(9223372036854777856, 0, false, 1, 1086);
 
     // Add a 0 but say we're truncated.
     bellerophon_test::<f64, { STANDARD }>(9007199254740992000, -3, true, 0, 1076);
-    bellerophon_test::<f64, { STANDARD }>(9007199254740993000, -3, true, 9223372036854776832, -1);
+    bellerophon_test::<f64, { STANDARD }>(
+        9007199254740993000,
+        -3,
+        true,
+        9223372036854776832,
+        -31703,
+    );
     bellerophon_test::<f64, { STANDARD }>(9007199254740994000, -3, true, 1, 1076);
 }
 
@@ -30,22 +42,46 @@ fn halfway_round_down_test() {
 fn halfway_round_up_test() {
     // Halfway, round-up tests
     bellerophon_test::<f64, { STANDARD }>(9007199254740994, 0, false, 1, 1076);
-    bellerophon_test::<f64, { STANDARD }>(9007199254740995, 0, false, 9223372036854778880, -1);
+    bellerophon_test::<f64, { STANDARD }>(9007199254740995, 0, false, 9223372036854778880, -31703);
     bellerophon_test::<f64, { STANDARD }>(9007199254740996, 0, false, 2, 1076);
 
     bellerophon_test::<f64, { STANDARD }>(18014398509481988, 0, false, 1, 1077);
-    bellerophon_test::<f64, { STANDARD }>(18014398509481990, 0, false, 9223372036854778880, -1);
+    bellerophon_test::<f64, { STANDARD }>(18014398509481990, 0, false, 9223372036854778880, -31702);
     bellerophon_test::<f64, { STANDARD }>(18014398509481992, 0, false, 2, 1077);
 
     bellerophon_test::<f64, { STANDARD }>(9223372036854777856, 0, false, 1, 1086);
-    bellerophon_test::<f64, { STANDARD }>(9223372036854778880, 0, false, 9223372036854778880, -1);
+    bellerophon_test::<f64, { STANDARD }>(
+        9223372036854778880,
+        0,
+        false,
+        9223372036854778880,
+        -31693,
+    );
     bellerophon_test::<f64, { STANDARD }>(9223372036854779904, 0, false, 2, 1086);
 
     // Add a 0 but say we're truncated.
     bellerophon_test::<f64, { STANDARD }>(9007199254740994000, -3, true, 1, 1076);
-    bellerophon_test::<f64, { STANDARD }>(9007199254740994990, -3, true, 9223372036854778869, -1);
-    bellerophon_test::<f64, { STANDARD }>(9007199254740995000, -3, true, 9223372036854778879, -1);
-    bellerophon_test::<f64, { STANDARD }>(9007199254740995010, -3, true, 9223372036854778890, -1);
+    bellerophon_test::<f64, { STANDARD }>(
+        9007199254740994990,
+        -3,
+        true,
+        9223372036854778869,
+        -31703,
+    );
+    bellerophon_test::<f64, { STANDARD }>(
+        9007199254740995000,
+        -3,
+        true,
+        9223372036854778879,
+        -31703,
+    );
+    bellerophon_test::<f64, { STANDARD }>(
+        9007199254740995010,
+        -3,
+        true,
+        9223372036854778890,
+        -31703,
+    );
     bellerophon_test::<f64, { STANDARD }>(9007199254740995050, -3, true, 2, 1076);
     bellerophon_test::<f64, { STANDARD }>(9007199254740996000, -3, true, 2, 1076);
 }
@@ -63,14 +99,14 @@ fn extremes_test() {
         -342,
         false,
         9223372036854775808,
-        -1,
+        -32831,
     );
     bellerophon_test::<f64, { STANDARD }>(
         2470328229206232725,
         -342,
         false,
         9223372036854775824,
-        -1,
+        -32831,
     );
     bellerophon_test::<f64, { STANDARD }>(2470328229206232726, -342, false, 1, 0);
     bellerophon_test::<f64, { STANDARD }>(2470328229206232730, -342, false, 1, 0);
@@ -87,14 +123,14 @@ fn extremes_test() {
         290,
         false,
         18446744073709548540,
-        -1,
+        -30733,
     );
     bellerophon_test::<f64, { STANDARD }>(
         1797693134862315609,
         290,
         false,
         18446744073709548550,
-        -1,
+        -30733,
     );
     bellerophon_test::<f64, { STANDARD }>(179769313486231561, 291, false, 4503599627370495, 2046);
     bellerophon_test::<f64, { STANDARD }>(17976931348623157, 292, false, 4503599627370495, 2046);
@@ -128,14 +164,14 @@ fn extremes_test() {
         -326,
         false,
         18446744073709545462,
-        -1,
+        -32779,
     );
     bellerophon_test::<f64, { STANDARD }>(
         2225073858507200642,
         -326,
         false,
         18446744073709545472,
-        -1,
+        -32779,
     );
     bellerophon_test::<f64, { STANDARD }>(222507385850720065, -325, false, 4503599627370495, 0);
 }
@@ -144,18 +180,18 @@ fn extremes_test() {
 fn compute_float_f32_test() {
     // These test near-halfway cases for single-precision floats.
     assert_eq!(compute_float32(0, 16777216), (151, 0));
-    assert_eq!(compute_float32(0, 16777217), (-1, 9223372586610589696));
+    assert_eq!(compute_float32(0, 16777217), (-32657, 9223372586610589696));
     assert_eq!(compute_float32(0, 16777218), (151, 1));
-    assert_eq!(compute_float32(0, 16777219), (-1, 9223373686122217472));
+    assert_eq!(compute_float32(0, 16777219), (-32657, 9223373686122217472));
     assert_eq!(compute_float32(0, 16777220), (151, 2));
 
     // These are examples of the above tests, with
     // digits from the exponent shifted to the mantissa.
     assert_eq!(compute_float32(-10, 167772160000000000), (151, 0));
-    assert_eq!(compute_float32(-10, 167772170000000000), (-1, 9223372586610589696));
+    assert_eq!(compute_float32(-10, 167772170000000000), (-32657, 9223372586610589696));
     assert_eq!(compute_float32(-10, 167772180000000000), (151, 1));
     // Let's check the lines to see if anything is different in table...
-    assert_eq!(compute_float32(-10, 167772190000000000), (-1, 9223373686122217472));
+    assert_eq!(compute_float32(-10, 167772190000000000), (-32657, 9223373686122217472));
     assert_eq!(compute_float32(-10, 167772200000000000), (151, 2));
 }
 
@@ -163,21 +199,21 @@ fn compute_float_f32_test() {
 fn compute_float_f64_test() {
     // These test near-halfway cases for double-precision floats.
     assert_eq!(compute_float64(0, 9007199254740992), (1076, 0));
-    assert_eq!(compute_float64(0, 9007199254740993), (-1, 9223372036854776832));
+    assert_eq!(compute_float64(0, 9007199254740993), (-31703, 9223372036854776832));
     assert_eq!(compute_float64(0, 9007199254740994), (1076, 1));
-    assert_eq!(compute_float64(0, 9007199254740995), (-1, 9223372036854778880));
+    assert_eq!(compute_float64(0, 9007199254740995), (-31703, 9223372036854778880));
     assert_eq!(compute_float64(0, 9007199254740996), (1076, 2));
     assert_eq!(compute_float64(0, 18014398509481984), (1077, 0));
-    assert_eq!(compute_float64(0, 18014398509481986), (-1, 9223372036854776832));
+    assert_eq!(compute_float64(0, 18014398509481986), (-31702, 9223372036854776832));
     assert_eq!(compute_float64(0, 18014398509481988), (1077, 1));
-    assert_eq!(compute_float64(0, 18014398509481990), (-1, 9223372036854778880));
+    assert_eq!(compute_float64(0, 18014398509481990), (-31702, 9223372036854778880));
     assert_eq!(compute_float64(0, 18014398509481992), (1077, 2));
 
     // These are examples of the above tests, with
     // digits from the exponent shifted to the mantissa.
     assert_eq!(compute_float64(-3, 9007199254740992000), (1076, 0));
-    assert_eq!(compute_float64(-3, 9007199254740993000), (-1, 9223372036854776832));
+    assert_eq!(compute_float64(-3, 9007199254740993000), (-31703, 9223372036854776832));
     assert_eq!(compute_float64(-3, 9007199254740994000), (1076, 1));
-    assert_eq!(compute_float64(-3, 9007199254740995000), (-1, 9223372036854778879));
+    assert_eq!(compute_float64(-3, 9007199254740995000), (-31703, 9223372036854778879));
     assert_eq!(compute_float64(-3, 9007199254740996000), (1076, 2));
 }

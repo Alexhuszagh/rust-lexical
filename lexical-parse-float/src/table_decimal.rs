@@ -3,7 +3,8 @@
 #![doc(hidden)]
 #![cfg(not(feature = "compact"))]
 
-use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit};
+use crate::bigint::Limb;
+use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit, u64_power_limit};
 #[cfg(not(feature = "power-of-two"))]
 use lexical_util::assert::debug_assert_radix;
 use static_assertions::const_assert;
@@ -50,6 +51,12 @@ pub unsafe fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
     unsafe { get_small_f64_power10(exponent) }
 }
 
+/// Get pre-computed power for a large power of radix.
+#[cfg(not(feature = "power-of-two"))]
+pub const fn get_large_int_power(_: u32) -> (&'static [Limb], u32) {
+    (&LARGE_POW5, LARGE_POW5_STEP)
+}
+
 /// Get pre-computed int power of 10.
 ///
 /// # Safety
@@ -84,7 +91,7 @@ pub unsafe fn get_small_f64_power10(exponent: usize) -> f64 {
 // ------
 
 /// Pre-computed, small powers-of-10.
-pub const SMALL_INT_POW10: [u64; 16] = [
+pub const SMALL_INT_POW10: [u64; 20] = [
     1,
     10,
     100,
@@ -101,8 +108,13 @@ pub const SMALL_INT_POW10: [u64; 16] = [
     10000000000000,
     100000000000000,
     1000000000000000,
+    10000000000000000,
+    100000000000000000,
+    1000000000000000000,
+    10000000000000000000,
 ];
 const_assert!(SMALL_INT_POW10.len() > f64_mantissa_limit(10) as usize);
+const_assert!(SMALL_INT_POW10.len() == u64_power_limit(10) as usize + 1);
 
 /// Pre-computed, small powers-of-10.
 pub const SMALL_F32_POW10: [f32; 16] =
@@ -115,3 +127,23 @@ pub const SMALL_F64_POW10: [f64; 32] = [
     1e17, 1e18, 1e19, 1e20, 1e21, 1e22, 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 ];
 const_assert!(SMALL_F64_POW10.len() > f64_exponent_limit(10).1 as usize);
+
+/// Pre-computed large power-of-5 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW5: [u32; 10] = [
+    4279965485, 329373468, 4020270615, 2137533757, 4287402176, 1057042919, 1071430142, 2440757623,
+    381945767, 46164893,
+];
+
+/// Pre-computed large power-of-5 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW5: [u64; 5] = [
+    1414648277510068013,
+    9180637584431281687,
+    4539964771860779200,
+    10482974169319127550,
+    198276706040285095,
+];
+
+/// Step for large power-of-5 for 32-bit limbs.
+pub const LARGE_POW5_STEP: u32 = 135;

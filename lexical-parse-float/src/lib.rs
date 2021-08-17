@@ -36,6 +36,7 @@
 mod index;
 
 pub mod bellerophon;
+pub mod bigint;
 pub mod binary;
 pub mod float;
 pub mod fpu;
@@ -45,6 +46,7 @@ pub mod limits;
 pub mod mask;
 pub mod number;
 pub mod options;
+pub mod shared;
 pub mod slow;
 pub mod table;
 

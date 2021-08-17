@@ -35,6 +35,8 @@ fn compute_float_f32_rounding() {
 
 #[test]
 fn compute_float_f64_rounding() {
+    // Also need to check halfway cases **inside** that exponent range.
+
     // These test near-halfway cases for double-precision floats.
     assert_eq!(compute_float64(0, 9007199254740992), (1076, 0));
     assert_eq!(compute_float64(0, 9007199254740993), (1076, 0));
@@ -46,6 +48,15 @@ fn compute_float_f64_rounding() {
     assert_eq!(compute_float64(0, 18014398509481988), (1077, 1));
     assert_eq!(compute_float64(0, 18014398509481990), (1077, 2));
     assert_eq!(compute_float64(0, 18014398509481992), (1077, 2));
+
+    // Test a much closer set of examples.
+    assert_eq!(compute_float64(0, 9007199254740991), (1075, 4503599627370495));
+    assert_eq!(compute_float64(0, 9223372036854776831), (1086, 0));
+    assert_eq!(compute_float64(0, 9223372036854776832), (1086, 0));
+    assert_eq!(compute_float64(0, 9223372036854776833), (1086, 1));
+    assert_eq!(compute_float64(-42, 9123456727292927), (936, 1854521741541368));
+    assert_eq!(compute_float64(-43, 91234567272929275), (936, 1854521741541369));
+    assert_eq!(compute_float64(-42, 9123456727292928), (936, 1854521741541369));
 
     // These are examples of the above tests, with
     // digits from the exponent shifted to the mantissa.

@@ -62,7 +62,10 @@ fn halfway_round_down_test() {
 
     // Add a 0 but say we're truncated.
     assert_eq!(compute_float64::<BINARY>(-10, 9223372036854775808, true), (1076, 0));
-    assert_eq!(compute_float64::<BINARY>(-10, 9223372036854776832, true), (-1, 0));
+    assert_eq!(
+        compute_float64::<BINARY>(-10, 9223372036854776832, true),
+        (-31703, 9223372036854776832)
+    );
     assert_eq!(compute_float64::<BINARY>(-10, 9223372036854777856, true), (1076, 1));
 
     // Check other bases.

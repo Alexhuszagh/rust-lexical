@@ -8,6 +8,7 @@
 
 use crate::float::{ExtendedFloat80, LemireFloat};
 use crate::number::Number;
+use crate::shared;
 use crate::table::{LARGEST_POWER_OF_FIVE, POWER_OF_FIVE_128, SMALLEST_POWER_OF_FIVE};
 
 /// Ensure truncation of digits doesn't affect our computation, by doing 2 passes.
@@ -23,7 +24,8 @@ pub fn lemire<F: LemireFloat>(num: &Number, lossy: bool) -> ExtendedFloat80 {
         && fp.exp >= 0
         && fp != compute_float::<F>(num.exponent, num.mantissa + 1, false)
     {
-        fp.exp = -1;
+        // Bias the exponent so it's < 0, and we can determine it later.
+        fp.exp += shared::INVALID_FP;
     }
     fp
 }
@@ -46,6 +48,7 @@ pub fn lemire<F: LemireFloat>(num: &Number, lossy: bool) -> ExtendedFloat80 {
 /// at a Gigabyte per Second" in section 5, "Fast Algorithm", and
 /// section 6, "Exact Numbers And Ties", available online:
 /// <https://arxiv.org/abs/2101.11408.pdf>.
+#[allow(unreachable_code)] // TODO(ahuszagh) Remove when the panic triggers.
 pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> ExtendedFloat80 {
     let fp_zero = ExtendedFloat80 {
         mant: 0,
@@ -54,10 +57,6 @@ pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> Extende
     let fp_inf = ExtendedFloat80 {
         mant: 0,
         exp: F::INFINITE_POWER,
-    };
-    let fp_error = ExtendedFloat80 {
-        mant: 0,
-        exp: -1,
     };
 
     // Short-circuit if the value can only be a literal 0 or infinity.
@@ -88,7 +87,19 @@ pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> Extende
         // <https://arxiv.org/pdf/2101.11408.pdf#section.8>.
         let inside_safe_exponent = (q >= -27) && (q <= 55);
         if !inside_safe_exponent {
-            return fp_error;
+            // The value **cannot** be infinite, nor can it be zero, since
+            // we're within a small exponent range, so we can have simple
+            // logic here: we don't want to return a simple error.
+            panic!("!inside_safe_exponent!!! q={:?}, w={:?}", q, w);
+            let hilz = hi.leading_zeros() as i32;
+            let mantissa = hi << hilz;
+            // Want to add 1 if the upper bit is set, so this is 1 - hilz.
+            let shift = 1 - hilz - lz as i32;
+            let power2 = power(q as i32) - F::MINIMUM_EXPONENT + shift;
+            return ExtendedFloat80 {
+                mant: mantissa,
+                exp: power2 + shared::INVALID_FP,
+            };
         }
     }
     let upperbit = (hi >> 63) as i32;

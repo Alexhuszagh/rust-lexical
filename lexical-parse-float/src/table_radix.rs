@@ -4,7 +4,8 @@
 #![cfg(not(feature = "compact"))]
 #![doc(hidden)]
 
-use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit};
+use crate::bigint::Limb;
+use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit, u64_power_limit};
 use crate::table_binary::*;
 use crate::table_decimal::*;
 use core::hint;
@@ -164,6 +165,30 @@ pub unsafe fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
             36 => get_small_f64_power36(exponent),
             _ => hint::unreachable_unchecked(),
         }
+    }
+}
+
+/// Get pre-computed power for a large power of radix.
+pub const fn get_large_int_power(radix: u32) -> (&'static [Limb], u32) {
+    match radix {
+        3 => (&LARGE_POW3, LARGE_POW3_STEP),
+        5 => (&LARGE_POW5, LARGE_POW5_STEP),
+        7 => (&LARGE_POW7, LARGE_POW7_STEP),
+        9 => (&LARGE_POW9, LARGE_POW9_STEP),
+        11 => (&LARGE_POW11, LARGE_POW11_STEP),
+        13 => (&LARGE_POW13, LARGE_POW13_STEP),
+        15 => (&LARGE_POW15, LARGE_POW15_STEP),
+        17 => (&LARGE_POW17, LARGE_POW17_STEP),
+        19 => (&LARGE_POW19, LARGE_POW19_STEP),
+        21 => (&LARGE_POW21, LARGE_POW21_STEP),
+        23 => (&LARGE_POW23, LARGE_POW23_STEP),
+        25 => (&LARGE_POW25, LARGE_POW25_STEP),
+        27 => (&LARGE_POW27, LARGE_POW27_STEP),
+        29 => (&LARGE_POW29, LARGE_POW29_STEP),
+        31 => (&LARGE_POW31, LARGE_POW31_STEP),
+        33 => (&LARGE_POW33, LARGE_POW33_STEP),
+        // Remaining radix: must be 35.
+        _ => (&LARGE_POW35, LARGE_POW35_STEP),
     }
 }
 
@@ -1041,150 +1066,11 @@ pub unsafe fn get_small_f64_power36(exponent: usize) -> f64 {
 // ------
 
 //  NOTE:
-//      These tables were automatically generated using the following
-//      script. Do not modify them unless you have a very good reason to.
-//  ```text
-//  def print_int(radix, max_exp):
-//      print(f'/// Pre-computed, small powers-of-{radix}.')
-//      print(f'pub const SMALL_INT_POW{radix}: [u64; {max_exp + 1}] = [')
-//      for exponent in range(0, max_exp + 1):
-//          print(f'    {radix**exponent},')
-//      print('];')
-//      print(f'const_assert!(SMALL_INT_POW{radix}.len() > f64_mantissa_limit({radix}) as usize);')
-//      print('')
-//
-//  def print_f32(radix, max_exp):
-//      print(f'/// Pre-computed, small powers-of-{radix}.')
-//      print(f'pub const SMALL_F32_POW{radix}: [f32; {max_exp + 1}] = [')
-//      for exponent in range(0, max_exp + 1):
-//          print(f'    {float(radix)**exponent},')
-//      print('];')
-//      print(f'const_assert!(SMALL_F32_POW{radix}.len() > f32_exponent_limit({radix}).1 as usize);')
-//      print('')
-//
-//  def print_f64(radix, max_exp):
-//      print(f'/// Pre-computed, small powers-of-{radix}.')
-//      print(f'pub const SMALL_F64_POW{radix}: [f64; {max_exp + 1}] = [')
-//      for exponent in range(0, max_exp + 1):
-//          print(f'    {float(radix)**exponent},')
-//      print('];')
-//      print(f'const_assert!(SMALL_F64_POW{radix}.len() > f64_exponent_limit({radix}).1 as usize);')
-//      print('')
-//
-//  def print_tables(radix, f64_mant_limit, f32_exp_limit, f64_exp_limit):
-//      print_int(radix, f64_mant_limit)
-//      print_f32(radix, f32_exp_limit)
-//      print_f64(radix, f64_exp_limit)
-//
-//  def f32_exponent_limit(radix):
-//      return {
-//          3 : (-15, 15),
-//          5 : (-10, 10),
-//          6 : (-15, 15),
-//          7 : (-8, 8),
-//          9 : (-7, 7),
-//          11: (-6, 6),
-//          12: (-15, 15),
-//          13: (-6, 6),
-//          14: (-8, 8),
-//          15: (-6, 6),
-//          17: (-5, 5),
-//          18: (-7, 7),
-//          19: (-5, 5),
-//          20: (-10, 10),
-//          21: (-5, 5),
-//          22: (-6, 6),
-//          23: (-5, 5),
-//          24: (-15, 15),
-//          25: (-5, 5),
-//          26: (-6, 6),
-//          27: (-5, 5),
-//          28: (-8, 8),
-//          29: (-4, 4),
-//          30: (-6, 6),
-//          31: (-4, 4),
-//          33: (-4, 4),
-//          34: (-5, 5),
-//          35: (-4, 4),
-//          36: (-7, 7),
-//      }[radix]
-//
-//  def f64_exponent_limit(radix):
-//      return {
-//          3: (-33, 33),
-//          5: (-22, 22),
-//          6: (-33, 33),
-//          7: (-18, 18),
-//          9: (-16, 16),
-//          11: (-15, 15),
-//          12: (-33, 33),
-//          13: (-14, 14),
-//          14: (-18, 18),
-//          15: (-13, 13),
-//          17: (-12, 12),
-//          18: (-16, 16),
-//          19: (-12, 12),
-//          20: (-22, 22),
-//          21: (-12, 12),
-//          22: (-15, 15),
-//          23: (-11, 11),
-//          24: (-33, 33),
-//          25: (-11, 11),
-//          26: (-14, 14),
-//          27: (-11, 11),
-//          28: (-18, 18),
-//          29: (-10, 10),
-//          30: (-13, 13),
-//          31: (-10, 10),
-//          33: (-10, 10),
-//          34: (-12, 12),
-//          35: (-10, 10),
-//          36: (-16, 16),
-//      }[radix]
-//
-//  def f64_mantissa_limit(radix):
-//      return {
-//          3: 33,
-//          5: 22,
-//          6: 20,
-//          7: 18,
-//          9: 16,
-//          11: 15,
-//          12: 14,
-//          13: 14,
-//          14: 13,
-//          15: 13,
-//          17: 12,
-//          18: 12,
-//          19: 12,
-//          20: 12,
-//          21: 12,
-//          22: 11,
-//          23: 11,
-//          24: 11,
-//          25: 11,
-//          26: 11,
-//          27: 11,
-//          28: 11,
-//          29: 10,
-//          30: 10,
-//          31: 10,
-//          33: 10,
-//          34: 10,
-//          35: 10,
-//          36: 10,
-//      }[radix]
-//
-//  radixes = [3, 5, 6, 7, 9, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36]
-//  for radix in radixes:
-//      f64_mant_limit = f64_mantissa_limit(radix)
-//      f32_exp_limit = f32_exponent_limit(radix)[1]
-//      f64_exp_limit = f64_exponent_limit(radix)[1]
-//      print_tables(radix, f64_mant_limit, f32_exp_limit, f64_exp_limit)
-//  ```
+//      These tables were automatically generated using `etc/powers_table.py`.
+//      Do not modify them unless you have a very good reason to.
 
 /// Pre-computed, small powers-of-3.
-pub const SMALL_INT_POW3: [u64; 34] = [
+pub const SMALL_INT_POW3: [u64; 41] = [
     1,
     3,
     9,
@@ -1219,8 +1105,16 @@ pub const SMALL_INT_POW3: [u64; 34] = [
     617673396283947,
     1853020188851841,
     5559060566555523,
+    16677181699666569,
+    50031545098999707,
+    150094635296999121,
+    450283905890997363,
+    1350851717672992089,
+    4052555153018976267,
+    12157665459056928801,
 ];
 const_assert!(SMALL_INT_POW3.len() > f64_mantissa_limit(3) as usize);
+const_assert!(SMALL_INT_POW3.len() == u64_power_limit(3) as usize + 1);
 
 /// Pre-computed, small powers-of-3.
 pub const SMALL_F32_POW3: [f32; 16] = [
@@ -1268,8 +1162,28 @@ pub const SMALL_F64_POW3: [f64; 34] = [
 ];
 const_assert!(SMALL_F64_POW3.len() > f64_exponent_limit(3).1 as usize);
 
+/// Pre-computed large power-of-3 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW3: [u32; 10] = [
+    2868424865, 1543175966, 3836194338, 2213345014, 1148585654, 4252227966, 1995653935, 3256521594,
+    1051739806, 534087228,
+];
+
+/// Pre-computed large power-of-3 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW3: [u64; 5] = [
+    6627890308811632801,
+    9506244453730856482,
+    18263180050255185590,
+    13986653746943443759,
+    2293887178523035294,
+];
+
+/// Step for large power-of-3 for 32-bit limbs.
+pub const LARGE_POW3_STEP: u32 = 200;
+
 /// Pre-computed, small powers-of-5.
-pub const SMALL_INT_POW5: [u64; 23] = [
+pub const SMALL_INT_POW5: [u64; 28] = [
     1,
     5,
     25,
@@ -1293,8 +1207,14 @@ pub const SMALL_INT_POW5: [u64; 23] = [
     95367431640625,
     476837158203125,
     2384185791015625,
+    11920928955078125,
+    59604644775390625,
+    298023223876953125,
+    1490116119384765625,
+    7450580596923828125,
 ];
 const_assert!(SMALL_INT_POW5.len() > f64_mantissa_limit(5) as usize);
+const_assert!(SMALL_INT_POW5.len() == u64_power_limit(5) as usize + 1);
 
 /// Pre-computed, small powers-of-5.
 pub const SMALL_F32_POW5: [f32; 11] =
@@ -1330,7 +1250,7 @@ pub const SMALL_F64_POW5: [f64; 23] = [
 const_assert!(SMALL_F64_POW5.len() > f64_exponent_limit(5).1 as usize);
 
 /// Pre-computed, small powers-of-6.
-pub const SMALL_INT_POW6: [u64; 21] = [
+pub const SMALL_INT_POW6: [u64; 25] = [
     1,
     6,
     36,
@@ -1352,8 +1272,13 @@ pub const SMALL_INT_POW6: [u64; 21] = [
     101559956668416,
     609359740010496,
     3656158440062976,
+    21936950640377856,
+    131621703842267136,
+    789730223053602816,
+    4738381338321616896,
 ];
 const_assert!(SMALL_INT_POW6.len() > f64_mantissa_limit(6) as usize);
+const_assert!(SMALL_INT_POW6.len() == u64_power_limit(6) as usize + 1);
 
 /// Pre-computed, small powers-of-6.
 pub const SMALL_F32_POW6: [f32; 16] = [
@@ -1416,7 +1341,7 @@ pub const SMALL_F64_POW6: [f64; 34] = [
 const_assert!(SMALL_F64_POW6.len() > f64_exponent_limit(6).1 as usize);
 
 /// Pre-computed, small powers-of-7.
-pub const SMALL_INT_POW7: [u64; 19] = [
+pub const SMALL_INT_POW7: [u64; 23] = [
     1,
     7,
     49,
@@ -1436,8 +1361,13 @@ pub const SMALL_INT_POW7: [u64; 19] = [
     33232930569601,
     232630513987207,
     1628413597910449,
+    11398895185373143,
+    79792266297612001,
+    558545864083284007,
+    3909821048582988049,
 ];
 const_assert!(SMALL_INT_POW7.len() > f64_mantissa_limit(7) as usize);
+const_assert!(SMALL_INT_POW7.len() == u64_power_limit(7) as usize + 1);
 
 /// Pre-computed, small powers-of-7.
 pub const SMALL_F32_POW7: [f32; 9] =
@@ -1468,8 +1398,28 @@ pub const SMALL_F64_POW7: [f64; 19] = [
 ];
 const_assert!(SMALL_F64_POW7.len() > f64_exponent_limit(7).1 as usize);
 
+/// Pre-computed large power-of-7 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW7: [u32; 10] = [
+    3938635601, 4013708425, 513691597, 1762742544, 3619207677, 480247883, 3793395133, 740892944,
+    1592317061, 1837154,
+];
+
+/// Pre-computed large power-of-7 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW7: [u64; 5] = [
+    17238746424993304401,
+    7570921578261532621,
+    2062648955077442045,
+    3182110968110554557,
+    7890517940032645,
+];
+
+/// Step for large power-of-7 for 32-bit limbs.
+pub const LARGE_POW7_STEP: u32 = 110;
+
 /// Pre-computed, small powers-of-9.
-pub const SMALL_INT_POW9: [u64; 17] = [
+pub const SMALL_INT_POW9: [u64; 21] = [
     1,
     9,
     81,
@@ -1487,8 +1437,13 @@ pub const SMALL_INT_POW9: [u64; 17] = [
     22876792454961,
     205891132094649,
     1853020188851841,
+    16677181699666569,
+    150094635296999121,
+    1350851717672992089,
+    12157665459056928801,
 ];
 const_assert!(SMALL_INT_POW9.len() > f64_mantissa_limit(9) as usize);
+const_assert!(SMALL_INT_POW9.len() == u64_power_limit(9) as usize + 1);
 
 /// Pre-computed, small powers-of-9.
 pub const SMALL_F32_POW9: [f32; 8] = [1.0, 9.0, 81.0, 729.0, 6561.0, 59049.0, 531441.0, 4782969.0];
@@ -1516,8 +1471,28 @@ pub const SMALL_F64_POW9: [f64; 17] = [
 ];
 const_assert!(SMALL_F64_POW9.len() > f64_exponent_limit(9).1 as usize);
 
+/// Pre-computed large power-of-9 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW9: [u32; 10] = [
+    2868424865, 1543175966, 3836194338, 2213345014, 1148585654, 4252227966, 1995653935, 3256521594,
+    1051739806, 534087228,
+];
+
+/// Pre-computed large power-of-9 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW9: [u64; 5] = [
+    6627890308811632801,
+    9506244453730856482,
+    18263180050255185590,
+    13986653746943443759,
+    2293887178523035294,
+];
+
+/// Step for large power-of-9 for 32-bit limbs.
+pub const LARGE_POW9_STEP: u32 = 100;
+
 /// Pre-computed, small powers-of-11.
-pub const SMALL_INT_POW11: [u64; 16] = [
+pub const SMALL_INT_POW11: [u64; 19] = [
     1,
     11,
     121,
@@ -1534,8 +1509,12 @@ pub const SMALL_INT_POW11: [u64; 16] = [
     34522712143931,
     379749833583241,
     4177248169415651,
+    45949729863572161,
+    505447028499293771,
+    5559917313492231481,
 ];
 const_assert!(SMALL_INT_POW11.len() > f64_mantissa_limit(11) as usize);
+const_assert!(SMALL_INT_POW11.len() == u64_power_limit(11) as usize + 1);
 
 /// Pre-computed, small powers-of-11.
 pub const SMALL_F32_POW11: [f32; 7] = [1.0, 11.0, 121.0, 1331.0, 14641.0, 161051.0, 1771561.0];
@@ -1562,8 +1541,28 @@ pub const SMALL_F64_POW11: [f64; 16] = [
 ];
 const_assert!(SMALL_F64_POW11.len() > f64_exponent_limit(11).1 as usize);
 
+/// Pre-computed large power-of-11 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW11: [u32; 10] = [
+    2172432537, 2346616081, 1851665372, 2301834192, 1763429507, 4086589879, 4002403721, 2932076170,
+    987565374, 10683238,
+];
+
+/// Pre-computed large power-of-11 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW11: [u64; 5] = [
+    10078639326335119513,
+    9886302577306250204,
+    17551769884233026691,
+    12593171263533340041,
+    45884158812949822,
+];
+
+/// Step for large power-of-11 for 32-bit limbs.
+pub const LARGE_POW11_STEP: u32 = 90;
+
 /// Pre-computed, small powers-of-12.
-pub const SMALL_INT_POW12: [u64; 15] = [
+pub const SMALL_INT_POW12: [u64; 18] = [
     1,
     12,
     144,
@@ -1579,8 +1578,12 @@ pub const SMALL_INT_POW12: [u64; 15] = [
     8916100448256,
     106993205379072,
     1283918464548864,
+    15407021574586368,
+    184884258895036416,
+    2218611106740436992,
 ];
 const_assert!(SMALL_INT_POW12.len() > f64_mantissa_limit(12) as usize);
+const_assert!(SMALL_INT_POW12.len() == u64_power_limit(12) as usize + 1);
 
 /// Pre-computed, small powers-of-12.
 pub const SMALL_F32_POW12: [f32; 16] = [
@@ -1643,7 +1646,7 @@ pub const SMALL_F64_POW12: [f64; 34] = [
 const_assert!(SMALL_F64_POW12.len() > f64_exponent_limit(12).1 as usize);
 
 /// Pre-computed, small powers-of-13.
-pub const SMALL_INT_POW13: [u64; 15] = [
+pub const SMALL_INT_POW13: [u64; 18] = [
     1,
     13,
     169,
@@ -1659,8 +1662,12 @@ pub const SMALL_INT_POW13: [u64; 15] = [
     23298085122481,
     302875106592253,
     3937376385699289,
+    51185893014090757,
+    665416609183179841,
+    8650415919381337933,
 ];
 const_assert!(SMALL_INT_POW13.len() > f64_mantissa_limit(13) as usize);
+const_assert!(SMALL_INT_POW13.len() == u64_power_limit(13) as usize + 1);
 
 /// Pre-computed, small powers-of-13.
 pub const SMALL_F32_POW13: [f32; 7] = [1.0, 13.0, 169.0, 2197.0, 28561.0, 371293.0, 4826809.0];
@@ -1686,8 +1693,28 @@ pub const SMALL_F64_POW13: [f64; 15] = [
 ];
 const_assert!(SMALL_F64_POW13.len() > f64_exponent_limit(13).1 as usize);
 
+/// Pre-computed large power-of-13 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW13: [u32; 10] = [
+    3146523293, 4222426932, 2977536293, 1295813598, 1909522258, 1606005718, 3366933208, 327990755,
+    3779976816, 97397137,
+];
+
+/// Pre-computed large power-of-13 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW13: [u64; 5] = [
+    18135185585836139165,
+    5565477028099627301,
+    6897742037908520786,
+    1408709569482281688,
+    418317521919008368,
+];
+
+/// Step for large power-of-13 for 32-bit limbs.
+pub const LARGE_POW13_STEP: u32 = 85;
+
 /// Pre-computed, small powers-of-14.
-pub const SMALL_INT_POW14: [u64; 14] = [
+pub const SMALL_INT_POW14: [u64; 17] = [
     1,
     14,
     196,
@@ -1702,8 +1729,12 @@ pub const SMALL_INT_POW14: [u64; 14] = [
     4049565169664,
     56693912375296,
     793714773254144,
+    11112006825558016,
+    155568095557812224,
+    2177953337809371136,
 ];
 const_assert!(SMALL_INT_POW14.len() > f64_mantissa_limit(14) as usize);
+const_assert!(SMALL_INT_POW14.len() == u64_power_limit(14) as usize + 1);
 
 /// Pre-computed, small powers-of-14.
 pub const SMALL_F32_POW14: [f32; 9] =
@@ -1735,7 +1766,7 @@ pub const SMALL_F64_POW14: [f64; 19] = [
 const_assert!(SMALL_F64_POW14.len() > f64_exponent_limit(14).1 as usize);
 
 /// Pre-computed, small powers-of-15.
-pub const SMALL_INT_POW15: [u64; 14] = [
+pub const SMALL_INT_POW15: [u64; 17] = [
     1,
     15,
     225,
@@ -1750,8 +1781,12 @@ pub const SMALL_INT_POW15: [u64; 14] = [
     8649755859375,
     129746337890625,
     1946195068359375,
+    29192926025390625,
+    437893890380859375,
+    6568408355712890625,
 ];
 const_assert!(SMALL_INT_POW15.len() > f64_mantissa_limit(15) as usize);
+const_assert!(SMALL_INT_POW15.len() == u64_power_limit(15) as usize + 1);
 
 /// Pre-computed, small powers-of-15.
 pub const SMALL_F32_POW15: [f32; 7] = [1.0, 15.0, 225.0, 3375.0, 50625.0, 759375.0, 11390625.0];
@@ -1776,8 +1811,28 @@ pub const SMALL_F64_POW15: [f64; 14] = [
 ];
 const_assert!(SMALL_F64_POW15.len() > f64_exponent_limit(15).1 as usize);
 
+/// Pre-computed large power-of-15 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW15: [u32; 10] = [
+    3507049217, 2300028134, 3886839708, 4190270956, 1622122702, 1947334599, 204338878, 3105278257,
+    2490561006, 24584533,
+];
+
+/// Pre-computed large power-of-15 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW15: [u64; 5] = [
+    9878545618916954881,
+    17997076721285494684,
+    8363738418696397006,
+    13337068558999221950,
+    105589767712993774,
+];
+
+/// Step for large power-of-15 for 32-bit limbs.
+pub const LARGE_POW15_STEP: u32 = 80;
+
 /// Pre-computed, small powers-of-17.
-pub const SMALL_INT_POW17: [u64; 13] = [
+pub const SMALL_INT_POW17: [u64; 16] = [
     1,
     17,
     289,
@@ -1791,8 +1846,12 @@ pub const SMALL_INT_POW17: [u64; 13] = [
     2015993900449,
     34271896307633,
     582622237229761,
+    9904578032905937,
+    168377826559400929,
+    2862423051509815793,
 ];
 const_assert!(SMALL_INT_POW17.len() > f64_mantissa_limit(17) as usize);
+const_assert!(SMALL_INT_POW17.len() == u64_power_limit(17) as usize + 1);
 
 /// Pre-computed, small powers-of-17.
 pub const SMALL_F32_POW17: [f32; 6] = [1.0, 17.0, 289.0, 4913.0, 83521.0, 1419857.0];
@@ -1816,8 +1875,28 @@ pub const SMALL_F64_POW17: [f64; 13] = [
 ];
 const_assert!(SMALL_F64_POW17.len() > f64_exponent_limit(17).1 as usize);
 
+/// Pre-computed large power-of-17 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW17: [u32; 10] = [
+    2990615473, 2810986799, 4066186761, 2554374905, 4073187723, 2831536001, 529177471, 3891721527,
+    4211495815, 386393,
+];
+
+/// Pre-computed large power-of-17 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW17: [u64; 5] = [
+    12073096374183340977,
+    10970956682764293641,
+    12161354525814811019,
+    16714816684133358463,
+    1659549509899143,
+];
+
+/// Step for large power-of-17 for 32-bit limbs.
+pub const LARGE_POW17_STEP: u32 = 75;
+
 /// Pre-computed, small powers-of-18.
-pub const SMALL_INT_POW18: [u64; 13] = [
+pub const SMALL_INT_POW18: [u64; 16] = [
     1,
     18,
     324,
@@ -1831,8 +1910,12 @@ pub const SMALL_INT_POW18: [u64; 13] = [
     3570467226624,
     64268410079232,
     1156831381426176,
+    20822964865671168,
+    374813367582081024,
+    6746640616477458432,
 ];
 const_assert!(SMALL_INT_POW18.len() > f64_mantissa_limit(18) as usize);
+const_assert!(SMALL_INT_POW18.len() == u64_power_limit(18) as usize + 1);
 
 /// Pre-computed, small powers-of-18.
 pub const SMALL_F32_POW18: [f32; 8] =
@@ -1862,7 +1945,7 @@ pub const SMALL_F64_POW18: [f64; 17] = [
 const_assert!(SMALL_F64_POW18.len() > f64_exponent_limit(18).1 as usize);
 
 /// Pre-computed, small powers-of-19.
-pub const SMALL_INT_POW19: [u64; 13] = [
+pub const SMALL_INT_POW19: [u64; 16] = [
     1,
     19,
     361,
@@ -1876,8 +1959,12 @@ pub const SMALL_INT_POW19: [u64; 13] = [
     6131066257801,
     116490258898219,
     2213314919066161,
+    42052983462257059,
+    799006685782884121,
+    15181127029874798299,
 ];
 const_assert!(SMALL_INT_POW19.len() > f64_mantissa_limit(19) as usize);
+const_assert!(SMALL_INT_POW19.len() == u64_power_limit(19) as usize + 1);
 
 /// Pre-computed, small powers-of-19.
 pub const SMALL_F32_POW19: [f32; 6] = [1.0, 19.0, 361.0, 6859.0, 130321.0, 2476099.0];
@@ -1901,8 +1988,28 @@ pub const SMALL_F64_POW19: [f64; 13] = [
 ];
 const_assert!(SMALL_F64_POW19.len() > f64_exponent_limit(19).1 as usize);
 
+/// Pre-computed large power-of-19 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW19: [u32; 10] = [
+    844079147, 4109067463, 2265902219, 1405351247, 3107957240, 2205473157, 271286156, 2969717342,
+    1924040718, 1621366965,
+];
+
+/// Pre-computed large power-of-19 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW19: [u64; 5] = [
+    17648310371486769195,
+    6035937647523720331,
+    9472435084628830712,
+    12754838862525333388,
+    6963718091413817358,
+];
+
+/// Step for large power-of-19 for 32-bit limbs.
+pub const LARGE_POW19_STEP: u32 = 75;
+
 /// Pre-computed, small powers-of-20.
-pub const SMALL_INT_POW20: [u64; 13] = [
+pub const SMALL_INT_POW20: [u64; 15] = [
     1,
     20,
     400,
@@ -1916,8 +2023,11 @@ pub const SMALL_INT_POW20: [u64; 13] = [
     10240000000000,
     204800000000000,
     4096000000000000,
+    81920000000000000,
+    1638400000000000000,
 ];
 const_assert!(SMALL_INT_POW20.len() > f64_mantissa_limit(20) as usize);
+const_assert!(SMALL_INT_POW20.len() == u64_power_limit(20) as usize + 1);
 
 /// Pre-computed, small powers-of-20.
 pub const SMALL_F32_POW20: [f32; 11] = [
@@ -1964,7 +2074,7 @@ pub const SMALL_F64_POW20: [f64; 23] = [
 const_assert!(SMALL_F64_POW20.len() > f64_exponent_limit(20).1 as usize);
 
 /// Pre-computed, small powers-of-21.
-pub const SMALL_INT_POW21: [u64; 13] = [
+pub const SMALL_INT_POW21: [u64; 15] = [
     1,
     21,
     441,
@@ -1978,8 +2088,11 @@ pub const SMALL_INT_POW21: [u64; 13] = [
     16679880978201,
     350277500542221,
     7355827511386641,
+    154472377739119461,
+    3243919932521508681,
 ];
 const_assert!(SMALL_INT_POW21.len() > f64_mantissa_limit(21) as usize);
+const_assert!(SMALL_INT_POW21.len() == u64_power_limit(21) as usize + 1);
 
 /// Pre-computed, small powers-of-21.
 pub const SMALL_F32_POW21: [f32; 6] = [1.0, 21.0, 441.0, 9261.0, 194481.0, 4084101.0];
@@ -2003,8 +2116,28 @@ pub const SMALL_F64_POW21: [f64; 13] = [
 ];
 const_assert!(SMALL_F64_POW21.len() > f64_exponent_limit(21).1 as usize);
 
+/// Pre-computed large power-of-21 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW21: [u32; 10] = [
+    138418921, 1265804130, 2218244279, 959999061, 1977606600, 816701562, 1115590038, 3476226057,
+    1985711423, 722290,
+];
+
+/// Pre-computed large power-of-21 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW21: [u64; 5] = [
+    5436587341630151401,
+    4123164573403953335,
+    3507706501359722952,
+    14930277229433621910,
+    3102213913939263,
+];
+
+/// Step for large power-of-21 for 32-bit limbs.
+pub const LARGE_POW21_STEP: u32 = 70;
+
 /// Pre-computed, small powers-of-22.
-pub const SMALL_INT_POW22: [u64; 12] = [
+pub const SMALL_INT_POW22: [u64; 15] = [
     1,
     22,
     484,
@@ -2017,8 +2150,12 @@ pub const SMALL_INT_POW22: [u64; 12] = [
     1207269217792,
     26559922791424,
     584318301411328,
+    12855002631049216,
+    282810057883082752,
+    6221821273427820544,
 ];
 const_assert!(SMALL_INT_POW22.len() > f64_mantissa_limit(22) as usize);
+const_assert!(SMALL_INT_POW22.len() == u64_power_limit(22) as usize + 1);
 
 /// Pre-computed, small powers-of-22.
 pub const SMALL_F32_POW22: [f32; 7] = [1.0, 22.0, 484.0, 10648.0, 234256.0, 5153632.0, 113379904.0];
@@ -2046,7 +2183,7 @@ pub const SMALL_F64_POW22: [f64; 16] = [
 const_assert!(SMALL_F64_POW22.len() > f64_exponent_limit(22).1 as usize);
 
 /// Pre-computed, small powers-of-23.
-pub const SMALL_INT_POW23: [u64; 12] = [
+pub const SMALL_INT_POW23: [u64; 15] = [
     1,
     23,
     529,
@@ -2059,8 +2196,12 @@ pub const SMALL_INT_POW23: [u64; 12] = [
     1801152661463,
     41426511213649,
     952809757913927,
+    21914624432020321,
+    504036361936467383,
+    11592836324538749809,
 ];
 const_assert!(SMALL_INT_POW23.len() > f64_mantissa_limit(23) as usize);
+const_assert!(SMALL_INT_POW23.len() == u64_power_limit(23) as usize + 1);
 
 /// Pre-computed, small powers-of-23.
 pub const SMALL_F32_POW23: [f32; 6] = [1.0, 23.0, 529.0, 12167.0, 279841.0, 6436343.0];
@@ -2083,8 +2224,28 @@ pub const SMALL_F64_POW23: [f64; 12] = [
 ];
 const_assert!(SMALL_F64_POW23.len() > f64_exponent_limit(23).1 as usize);
 
+/// Pre-computed large power-of-23 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW23: [u32; 10] = [
+    1403677489, 2801905613, 3028338484, 1469351396, 2741227823, 193620048, 1084942677, 2905110101,
+    3742230796, 421026827,
+];
+
+/// Pre-computed large power-of-23 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW23: [u64; 5] = [
+    12034092975717509937,
+    6310816195180283700,
+    831591776751178031,
+    12477352876159199573,
+    1808296456445880588,
+];
+
+/// Step for large power-of-23 for 32-bit limbs.
+pub const LARGE_POW23_STEP: u32 = 70;
+
 /// Pre-computed, small powers-of-24.
-pub const SMALL_INT_POW24: [u64; 12] = [
+pub const SMALL_INT_POW24: [u64; 14] = [
     1,
     24,
     576,
@@ -2097,8 +2258,11 @@ pub const SMALL_INT_POW24: [u64; 12] = [
     2641807540224,
     63403380965376,
     1521681143169024,
+    36520347436056576,
+    876488338465357824,
 ];
 const_assert!(SMALL_INT_POW24.len() > f64_mantissa_limit(24) as usize);
+const_assert!(SMALL_INT_POW24.len() == u64_power_limit(24) as usize + 1);
 
 /// Pre-computed, small powers-of-24.
 pub const SMALL_F32_POW24: [f32; 16] = [
@@ -2161,7 +2325,7 @@ pub const SMALL_F64_POW24: [f64; 34] = [
 const_assert!(SMALL_F64_POW24.len() > f64_exponent_limit(24).1 as usize);
 
 /// Pre-computed, small powers-of-25.
-pub const SMALL_INT_POW25: [u64; 12] = [
+pub const SMALL_INT_POW25: [u64; 14] = [
     1,
     25,
     625,
@@ -2174,8 +2338,11 @@ pub const SMALL_INT_POW25: [u64; 12] = [
     3814697265625,
     95367431640625,
     2384185791015625,
+    59604644775390625,
+    1490116119384765625,
 ];
 const_assert!(SMALL_INT_POW25.len() > f64_mantissa_limit(25) as usize);
+const_assert!(SMALL_INT_POW25.len() == u64_power_limit(25) as usize + 1);
 
 /// Pre-computed, small powers-of-25.
 pub const SMALL_F32_POW25: [f32; 6] = [1.0, 25.0, 625.0, 15625.0, 390625.0, 9765625.0];
@@ -2198,8 +2365,28 @@ pub const SMALL_F64_POW25: [f64; 12] = [
 ];
 const_assert!(SMALL_F64_POW25.len() > f64_exponent_limit(25).1 as usize);
 
+/// Pre-computed large power-of-25 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW25: [u32; 10] = [
+    2358447641, 1624633829, 2031259829, 1986676888, 2941191183, 611941596, 1880507741, 990341507,
+    3289036379, 14772,
+];
+
+/// Pre-computed large power-of-25 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW25: [u64; 5] = [
+    6977749165888704025,
+    8532712263710314677,
+    2628269144823235599,
+    4253484386316862813,
+    63448545932891,
+];
+
+/// Step for large power-of-25 for 32-bit limbs.
+pub const LARGE_POW25_STEP: u32 = 65;
+
 /// Pre-computed, small powers-of-26.
-pub const SMALL_INT_POW26: [u64; 12] = [
+pub const SMALL_INT_POW26: [u64; 14] = [
     1,
     26,
     676,
@@ -2212,8 +2399,11 @@ pub const SMALL_INT_POW26: [u64; 12] = [
     5429503678976,
     141167095653376,
     3670344486987776,
+    95428956661682176,
+    2481152873203736576,
 ];
 const_assert!(SMALL_INT_POW26.len() > f64_mantissa_limit(26) as usize);
+const_assert!(SMALL_INT_POW26.len() == u64_power_limit(26) as usize + 1);
 
 /// Pre-computed, small powers-of-26.
 pub const SMALL_F32_POW26: [f32; 7] =
@@ -2241,7 +2431,7 @@ pub const SMALL_F64_POW26: [f64; 15] = [
 const_assert!(SMALL_F64_POW26.len() > f64_exponent_limit(26).1 as usize);
 
 /// Pre-computed, small powers-of-27.
-pub const SMALL_INT_POW27: [u64; 12] = [
+pub const SMALL_INT_POW27: [u64; 14] = [
     1,
     27,
     729,
@@ -2254,8 +2444,11 @@ pub const SMALL_INT_POW27: [u64; 12] = [
     7625597484987,
     205891132094649,
     5559060566555523,
+    150094635296999121,
+    4052555153018976267,
 ];
 const_assert!(SMALL_INT_POW27.len() > f64_mantissa_limit(27) as usize);
+const_assert!(SMALL_INT_POW27.len() == u64_power_limit(27) as usize + 1);
 
 /// Pre-computed, small powers-of-27.
 pub const SMALL_F32_POW27: [f32; 6] = [1.0, 27.0, 729.0, 19683.0, 531441.0, 14348907.0];
@@ -2278,8 +2471,28 @@ pub const SMALL_F64_POW27: [f64; 12] = [
 ];
 const_assert!(SMALL_F64_POW27.len() > f64_exponent_limit(27).1 as usize);
 
+/// Pre-computed large power-of-27 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW27: [u32; 10] = [
+    1249037595, 465894344, 2861423576, 2518924695, 4122946360, 4029669975, 3949684612, 3795800505,
+    3556955416, 2197889,
+];
+
+/// Pre-computed large power-of-27 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW27: [u64; 5] = [
+    2001000972120411419,
+    10818699188973198296,
+    17307300760421083960,
+    16302839035064969092,
+    9439864932193560,
+];
+
+/// Step for large power-of-27 for 32-bit limbs.
+pub const LARGE_POW27_STEP: u32 = 65;
+
 /// Pre-computed, small powers-of-28.
-pub const SMALL_INT_POW28: [u64; 12] = [
+pub const SMALL_INT_POW28: [u64; 14] = [
     1,
     28,
     784,
@@ -2292,8 +2505,11 @@ pub const SMALL_INT_POW28: [u64; 12] = [
     10578455953408,
     296196766695424,
     8293509467471872,
+    232218265089212416,
+    6502111422497947648,
 ];
 const_assert!(SMALL_INT_POW28.len() > f64_mantissa_limit(28) as usize);
+const_assert!(SMALL_INT_POW28.len() == u64_power_limit(28) as usize + 1);
 
 /// Pre-computed, small powers-of-28.
 pub const SMALL_F32_POW28: [f32; 9] =
@@ -2325,7 +2541,7 @@ pub const SMALL_F64_POW28: [f64; 19] = [
 const_assert!(SMALL_F64_POW28.len() > f64_exponent_limit(28).1 as usize);
 
 /// Pre-computed, small powers-of-29.
-pub const SMALL_INT_POW29: [u64; 11] = [
+pub const SMALL_INT_POW29: [u64; 14] = [
     1,
     29,
     841,
@@ -2337,8 +2553,12 @@ pub const SMALL_INT_POW29: [u64; 11] = [
     500246412961,
     14507145975869,
     420707233300201,
+    12200509765705829,
+    353814783205469041,
+    10260628712958602189,
 ];
 const_assert!(SMALL_INT_POW29.len() > f64_mantissa_limit(29) as usize);
+const_assert!(SMALL_INT_POW29.len() == u64_power_limit(29) as usize + 1);
 
 /// Pre-computed, small powers-of-29.
 pub const SMALL_F32_POW29: [f32; 5] = [1.0, 29.0, 841.0, 24389.0, 707281.0];
@@ -2360,8 +2580,28 @@ pub const SMALL_F64_POW29: [f64; 11] = [
 ];
 const_assert!(SMALL_F64_POW29.len() > f64_exponent_limit(29).1 as usize);
 
+/// Pre-computed large power-of-29 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW29: [u32; 10] = [
+    3437097245, 219578399, 3191687836, 3061529344, 4005823358, 3201416410, 694756510, 1988053185,
+    463784885, 228681542,
+];
+
+/// Pre-computed large power-of-29 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW29: [u64; 5] = [
+    943082046050136349,
+    13149168411416021660,
+    13749978785833550718,
+    8538623412978394270,
+    982179744552635317,
+];
+
+/// Step for large power-of-29 for 32-bit limbs.
+pub const LARGE_POW29_STEP: u32 = 65;
+
 /// Pre-computed, small powers-of-30.
-pub const SMALL_INT_POW30: [u64; 11] = [
+pub const SMALL_INT_POW30: [u64; 14] = [
     1,
     30,
     900,
@@ -2373,8 +2613,12 @@ pub const SMALL_INT_POW30: [u64; 11] = [
     656100000000,
     19683000000000,
     590490000000000,
+    17714700000000000,
+    531441000000000000,
+    15943230000000000000,
 ];
 const_assert!(SMALL_INT_POW30.len() > f64_mantissa_limit(30) as usize);
+const_assert!(SMALL_INT_POW30.len() == u64_power_limit(30) as usize + 1);
 
 /// Pre-computed, small powers-of-30.
 pub const SMALL_F32_POW30: [f32; 7] =
@@ -2401,7 +2645,7 @@ pub const SMALL_F64_POW30: [f64; 14] = [
 const_assert!(SMALL_F64_POW30.len() > f64_exponent_limit(30).1 as usize);
 
 /// Pre-computed, small powers-of-31.
-pub const SMALL_INT_POW31: [u64; 11] = [
+pub const SMALL_INT_POW31: [u64; 13] = [
     1,
     31,
     961,
@@ -2413,8 +2657,11 @@ pub const SMALL_INT_POW31: [u64; 11] = [
     852891037441,
     26439622160671,
     819628286980801,
+    25408476896404831,
+    787662783788549761,
 ];
 const_assert!(SMALL_INT_POW31.len() > f64_mantissa_limit(31) as usize);
+const_assert!(SMALL_INT_POW31.len() == u64_power_limit(31) as usize + 1);
 
 /// Pre-computed, small powers-of-31.
 pub const SMALL_F32_POW31: [f32; 5] = [1.0, 31.0, 961.0, 29791.0, 923521.0];
@@ -2436,8 +2683,28 @@ pub const SMALL_F64_POW31: [f64; 11] = [
 ];
 const_assert!(SMALL_F64_POW31.len() > f64_exponent_limit(31).1 as usize);
 
+/// Pre-computed large power-of-31 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW31: [u32; 10] = [
+    3128270977, 627186439, 3737223222, 1519964902, 4275419645, 1305227997, 3310009113, 99290790,
+    2685019127, 609,
+];
+
+/// Pre-computed large power-of-31 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW31: [u64; 5] = [
+    2693745247127969921,
+    6528199548895068214,
+    5605911565214005757,
+    426450699154012953,
+    2618320102391,
+];
+
+/// Step for large power-of-31 for 32-bit limbs.
+pub const LARGE_POW31_STEP: u32 = 60;
+
 /// Pre-computed, small powers-of-33.
-pub const SMALL_INT_POW33: [u64; 11] = [
+pub const SMALL_INT_POW33: [u64; 13] = [
     1,
     33,
     1089,
@@ -2449,8 +2716,11 @@ pub const SMALL_INT_POW33: [u64; 11] = [
     1406408618241,
     46411484401953,
     1531578985264449,
+    50542106513726817,
+    1667889514952984961,
 ];
 const_assert!(SMALL_INT_POW33.len() > f64_mantissa_limit(33) as usize);
+const_assert!(SMALL_INT_POW33.len() == u64_power_limit(33) as usize + 1);
 
 /// Pre-computed, small powers-of-33.
 pub const SMALL_F32_POW33: [f32; 5] = [1.0, 33.0, 1089.0, 35937.0, 1185921.0];
@@ -2472,8 +2742,28 @@ pub const SMALL_F64_POW33: [f64; 11] = [
 ];
 const_assert!(SMALL_F64_POW33.len() > f64_exponent_limit(33).1 as usize);
 
+/// Pre-computed large power-of-33 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW33: [u32; 10] = [
+    1612820353, 1081423072, 127566253, 3291061608, 3338225311, 2497994496, 2486573331, 4032720849,
+    2585834285, 25953,
+];
+
+/// Pre-computed large power-of-33 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW33: [u64; 5] = [
+    4644676728992673665,
+    14135001975608738221,
+    10728804669246228127,
+    17320404162838927635,
+    111469872067373,
+];
+
+/// Step for large power-of-33 for 32-bit limbs.
+pub const LARGE_POW33_STEP: u32 = 60;
+
 /// Pre-computed, small powers-of-34.
-pub const SMALL_INT_POW34: [u64; 11] = [
+pub const SMALL_INT_POW34: [u64; 13] = [
     1,
     34,
     1156,
@@ -2485,8 +2775,11 @@ pub const SMALL_INT_POW34: [u64; 11] = [
     1785793904896,
     60716992766464,
     2064377754059776,
+    70188843638032384,
+    2386420683693101056,
 ];
 const_assert!(SMALL_INT_POW34.len() > f64_mantissa_limit(34) as usize);
+const_assert!(SMALL_INT_POW34.len() == u64_power_limit(34) as usize + 1);
 
 /// Pre-computed, small powers-of-34.
 pub const SMALL_F32_POW34: [f32; 6] = [1.0, 34.0, 1156.0, 39304.0, 1336336.0, 45435424.0];
@@ -2511,7 +2804,7 @@ pub const SMALL_F64_POW34: [f64; 13] = [
 const_assert!(SMALL_F64_POW34.len() > f64_exponent_limit(34).1 as usize);
 
 /// Pre-computed, small powers-of-35.
-pub const SMALL_INT_POW35: [u64; 11] = [
+pub const SMALL_INT_POW35: [u64; 13] = [
     1,
     35,
     1225,
@@ -2523,8 +2816,11 @@ pub const SMALL_INT_POW35: [u64; 11] = [
     2251875390625,
     78815638671875,
     2758547353515625,
+    96549157373046875,
+    3379220508056640625,
 ];
 const_assert!(SMALL_INT_POW35.len() > f64_mantissa_limit(35) as usize);
+const_assert!(SMALL_INT_POW35.len() == u64_power_limit(35) as usize + 1);
 
 /// Pre-computed, small powers-of-35.
 pub const SMALL_F32_POW35: [f32; 5] = [1.0, 35.0, 1225.0, 42875.0, 1500625.0];
@@ -2546,8 +2842,28 @@ pub const SMALL_F64_POW35: [f64; 11] = [
 ];
 const_assert!(SMALL_F64_POW35.len() > f64_exponent_limit(35).1 as usize);
 
+/// Pre-computed large power-of-35 for 32-bit limbs.
+#[cfg(not(all(target_pointer_width = "64", not(target_arch = "sparc"))))]
+pub const LARGE_POW35: [u32; 10] = [
+    2481068081, 3589182317, 2073348182, 2214889340, 548239849, 1614245998, 4081052795, 291764764,
+    3369344364, 886020,
+];
+
+/// Pre-computed large power-of-35 for 64-bit limbs.
+#[cfg(all(target_pointer_width = "64", not(target_arch = "sparc")))]
+pub const LARGE_POW35: [u64; 5] = [
+    15415420673377572913,
+    9512877281632372822,
+    6933133769657121257,
+    1253120123586210939,
+    3805430292946284,
+];
+
+/// Step for large power-of-35 for 32-bit limbs.
+pub const LARGE_POW35_STEP: u32 = 60;
+
 /// Pre-computed, small powers-of-36.
-pub const SMALL_INT_POW36: [u64; 11] = [
+pub const SMALL_INT_POW36: [u64; 13] = [
     1,
     36,
     1296,
@@ -2559,8 +2875,11 @@ pub const SMALL_INT_POW36: [u64; 11] = [
     2821109907456,
     101559956668416,
     3656158440062976,
+    131621703842267136,
+    4738381338321616896,
 ];
 const_assert!(SMALL_INT_POW36.len() > f64_mantissa_limit(36) as usize);
+const_assert!(SMALL_INT_POW36.len() == u64_power_limit(36) as usize + 1);
 
 /// Pre-computed, small powers-of-36.
 pub const SMALL_F32_POW36: [f32; 8] =

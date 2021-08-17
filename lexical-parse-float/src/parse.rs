@@ -14,7 +14,8 @@ use crate::float::{extended_to_float, ExtendedFloat80, LemireFloat};
 use crate::lemire::lemire;
 use crate::number::Number;
 use crate::options::Options;
-use crate::slow::slow_decimal;
+use crate::shared;
+use crate::slow::slow_radix;
 #[cfg(not(feature = "compact"))]
 use lexical_parse_integer::algorithm;
 use lexical_util::digit::char_to_digit_const;
@@ -183,7 +184,9 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     // lossy, we can't be here.
     if fp.exp < 0 {
         debug_assert!(!options.lossy());
-        fp = slow_path::<F, FORMAT>(byte, num.exponent, options.decimal_point());
+        // Undo the invalid extended float biasing.
+        fp.exp -= shared::INVALID_FP;
+        fp = slow_path::<F, FORMAT>(byte, num, fp, options.decimal_point());
     }
 
     // Convert to native float and return result.
@@ -233,7 +236,9 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
         // SAFETY: safe, since, count must be <= the byte slice length.
         let slc = unsafe { &index_unchecked!(slc[..length]) };
         let byte = slc.bytes::<{ FORMAT }>();
-        fp = slow_path::<F, FORMAT>(byte, num.exponent, options.decimal_point());
+        // Undo the invalid extended float biasing.
+        fp.exp -= shared::INVALID_FP;
+        fp = slow_path::<F, FORMAT>(byte, num, fp, options.decimal_point());
     }
 
     // Convert to native float and return result.
@@ -312,21 +317,22 @@ pub fn moderate_path<F: LemireFloat, const FORMAT: u128>(
 #[inline]
 pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
     byte: Bytes<FORMAT>,
-    exponent: i64,
+    num: Number,
+    fp: ExtendedFloat80,
     decimal_point: u8,
 ) -> ExtendedFloat80 {
     #[cfg(not(feature = "power-of-two"))]
     {
-        slow_decimal::<F, FORMAT>(byte, exponent, decimal_point)
+        slow_radix::<F, FORMAT>(byte, num, fp, decimal_point)
     }
 
     #[cfg(feature = "power-of-two")]
     {
         let format = NumberFormat::<{ FORMAT }> {};
         if matches!(format.mantissa_radix(), 2 | 4 | 8 | 16 | 32) {
-            slow_binary::<F, FORMAT>(byte, exponent, decimal_point)
+            slow_binary::<F, FORMAT>(byte, num.exponent, decimal_point)
         } else {
-            slow_decimal::<F, FORMAT>(byte, exponent, decimal_point)
+            slow_radix::<F, FORMAT>(byte, num, fp, decimal_point)
         }
     }
 }
@@ -350,8 +356,8 @@ pub fn parse_partial_number<const FORMAT: u128>(
     let exponent_character = options.exponent();
     debug_assert!(format.is_valid());
     debug_assert!(!byte.is_done());
-    let bits_per_digit = log2(format.mantissa_radix()) as i64;
-    let bits_per_base = log2(format.exponent_base()) as i64;
+    let bits_per_digit = shared::log2(format.mantissa_radix()) as i64;
+    let bits_per_base = shared::log2(format.exponent_base()) as i64;
 
     // Parse our integral digits.
     let mut mantissa = 0_u64;
@@ -608,12 +614,12 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
 fn is_special_eq<const FORMAT: u128>(mut byte: Bytes<FORMAT>, string: &'static [u8]) -> usize {
     let format = NumberFormat::<{ FORMAT }> {};
     if cfg!(feature = "format") && format.case_sensitive_special() {
-        if starts_with(byte.special_iter(), string.iter()) {
+        if shared::starts_with(byte.special_iter(), string.iter()) {
             // Trim the iterator afterwards.
             byte.special_iter().peek();
             return byte.cursor();
         }
-    } else if case_insensitive_starts_with(byte.special_iter(), string.iter()) {
+    } else if shared::case_insensitive_starts_with(byte.special_iter(), string.iter()) {
         // Trim the iterator afterwards.
         byte.special_iter().peek();
         return byte.cursor();
@@ -699,117 +705,4 @@ where
         }
     }
     None
-}
-
-// STARTS WITH
-// -----------
-
-/// Check if left iter starts with right iter.
-///
-/// This optimizes decently well, to the following ASM for pure slices:
-///
-/// ```text
-/// starts_with_slc:
-///         xor     eax, eax
-/// .LBB0_1:
-///         cmp     rcx, rax
-///         je      .LBB0_2
-///         cmp     rsi, rax
-///         je      .LBB0_5
-///         movzx   r8d, byte ptr [rdi + rax]
-///         lea     r9, [rax + 1]
-///         cmp     r8b, byte ptr [rdx + rax]
-///         mov     rax, r9
-///         je      .LBB0_1
-/// .LBB0_5:
-///         xor     eax, eax
-///         ret
-/// .LBB0_2:
-///         mov     al, 1
-///         ret
-/// ```
-#[inline]
-pub fn starts_with<'a, 'b, Iter1, Iter2>(mut x: Iter1, mut y: Iter2) -> bool
-where
-    Iter1: Iterator<Item = &'a u8>,
-    Iter2: Iterator<Item = &'b u8>,
-{
-    loop {
-        // Only call `next()` on x if y is not None, otherwise,
-        // we may incorrectly consume an x character.
-        let yi = y.next();
-        if yi.is_none() {
-            return true;
-        } else if x.next() != yi {
-            return false;
-        }
-    }
-}
-
-/// Check if left iter starts with right iter without case-sensitivity.
-///
-/// This optimizes decently well, to the following ASM for pure slices:
-///
-/// ```text
-/// case_insensitive_starts_with_slc:
-///         xor     eax, eax
-/// .LBB1_1:
-///         cmp     rcx, rax
-///         je      .LBB1_2
-///         cmp     rsi, rax
-///         je      .LBB1_5
-///         movzx   r8d, byte ptr [rdi + rax]
-///         xor     r8b, byte ptr [rdx + rax]
-///         add     rax, 1
-///         test    r8b, -33
-///         je      .LBB1_1
-/// .LBB1_5:
-///         xor     eax, eax
-///         ret
-/// .LBB1_2:
-///         mov     al, 1
-///         ret
-/// ```
-#[inline]
-pub fn case_insensitive_starts_with<'a, 'b, Iter1, Iter2>(mut x: Iter1, mut y: Iter2) -> bool
-where
-    Iter1: Iterator<Item = &'a u8>,
-    Iter2: Iterator<Item = &'b u8>,
-{
-    // We use a faster optimization here for ASCII letters, which NaN
-    // and infinite strings **must** be. [A-Z] is 0x41-0x5A, while
-    // [a-z] is 0x61-0x7A. Therefore, the xor must be 0 or 32 if they
-    // are case-insensitive equal, but only if at least 1 of the inputs
-    // is an ASCII letter.
-    loop {
-        let yi = y.next();
-        if yi.is_none() {
-            return true;
-        }
-        let yi = *yi.unwrap();
-        let is_not_equal = x.next().map_or(true, |&xi| {
-            let xor = xi ^ yi;
-            xor != 0 && xor != 0x20
-        });
-        if is_not_equal {
-            return false;
-        }
-    }
-}
-
-// LOG2
-// ----
-
-/// Quick log2 that evaluates at compile time for the radix.
-/// Note that this may produce inaccurate results for other radixes:
-/// we don't care since it's only called for powers-of-two.
-#[inline]
-pub const fn log2(radix: u32) -> i32 {
-    match radix {
-        2 => 1,
-        4 => 2,
-        8 => 3,
-        16 => 4,
-        _ => 5,
-    }
 }
