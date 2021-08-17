@@ -21,6 +21,16 @@ power-of-two = ["lexical-parse-float/power-of-two"]
 format = ["lexical-parse-float/format"]
 
 [[bench]]
-name = "pow"
-path = "pow.rs"
+name = "canada"
+path = "canada.rs"
+harness = false
+
+[[bench]]
+name = "json"
+path = "json.rs"
+harness = false
+
+[[bench]]
+name = "random"
+path = "random.rs"
 harness = false

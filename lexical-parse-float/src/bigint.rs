@@ -857,13 +857,24 @@ pub const fn u64_to_hi64_2(r0: u64, r1: u64) -> (u64, bool) {
 ///     test bigcomp_f32_lexical ... bench:         671 ns/iter (+/- 31)
 ///     test bigcomp_f64_lexical ... bench:       1,394 ns/iter (+/- 47)
 ///
+/// The following benchmarks were run on `1 * 5^300`, using native `pow`,
+/// a version with only small powers, and one with pre-computed powers
+/// of `5^(3 * max_exp)`, rather than `5^(5 * max_exp)`.
+///
+/// However, using large powers is crucial for good performance for higher
+/// powers.
+///     pow/default             time:   [426.20 ns 427.96 ns 429.89 ns]
+///     pow/small               time:   [2.9270 us 2.9411 us 2.9565 us]
+///     pow/large:3             time:   [838.51 ns 842.21 ns 846.27 ns]
+///
 /// Even using worst-case scenarios, exponentiation by squaring is
 /// significantly slower for our workloads. Just multiply by small powers,
 /// in simple cases, and use precalculated large powers in other cases.
+///
+/// Furthermore, using sufficiently big large powers is also crucial for
+/// performance. This is a tradeoff of binary size and performance, and
+/// using a single value at ~`5^(5 * max_exp)` seems optimal.
 pub fn pow<const SIZE: usize>(x: &mut StackVec<SIZE>, base: u32, mut exp: u32) {
-    // TODO(ahuszagh) Restore the benchmarks...
-    // These probably aren't valid anymore...
-
     // Minimize the number of iterations for large exponents: just
     // do a few steps with a large powers.
     #[cfg(not(feature = "compact"))]
