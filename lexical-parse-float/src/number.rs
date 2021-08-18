@@ -17,7 +17,7 @@ use lexical_util::format::NumberFormat;
 /// radix are the same, since we need to be able to move powers in and
 /// out of the exponent.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct Number {
+pub struct Number<'a> {
     /// The exponent of the float, scaled to the mantissa.
     pub exponent: i64,
     /// The significant digits of the float.
@@ -26,9 +26,13 @@ pub struct Number {
     pub is_negative: bool,
     /// If the significant digits were truncated.
     pub many_digits: bool,
+    /// The significant integer digits.
+    pub integer: &'a [u8],
+    /// The significant fraction digits.
+    pub fraction: Option<&'a [u8]>,
 }
 
-impl Number {
+impl<'a> Number<'a> {
     /// Detect if the float can be accurately reconstructed from native floats.
     #[inline]
     pub fn is_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> bool {

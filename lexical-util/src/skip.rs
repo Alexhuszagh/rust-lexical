@@ -362,6 +362,12 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         self.as_slice().as_ptr()
     }
 
+    /// Get a slice to the entire buffer.
+    #[inline]
+    pub fn as_buffer(&self) -> &'a [u8] {
+        self.slc
+    }
+
     /// Get a slice to the current start of the iterator.
     #[inline]
     pub fn as_slice(&self) -> &'a [u8] {

@@ -345,11 +345,11 @@ pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
 /// This creates a representation of the float as the
 /// significant digits and the decimal exponent.
 #[inline]
-pub fn parse_partial_number<const FORMAT: u128>(
-    mut byte: Bytes<FORMAT>,
+pub fn parse_partial_number<'a, const FORMAT: u128>(
+    mut byte: Bytes<'a, FORMAT>,
     is_negative: bool,
     options: &Options,
-) -> Result<(Number, usize)> {
+) -> Result<(Number<'a>, usize)> {
     // Config options
     let format = NumberFormat::<{ FORMAT }> {};
     let decimal_point = options.decimal_point();
@@ -369,22 +369,25 @@ pub fn parse_partial_number<const FORMAT: u128>(
     if cfg!(feature = "format") && format.required_integer_digits() && n_digits == 0 {
         return Err(Error::EmptyInteger(byte.cursor()));
     }
+    let integer_digits = unsafe { start.as_slice().get_unchecked(..n_digits) };
 
     // Handle decimal point and digits afterwards.
     let mut n_after_dot = 0;
     let mut exponent = 0_i64;
     let mut implicit_exponent: i64;
     let int_end = byte.cursor() as i64;
+    let mut fraction_digits = None;
     if byte.first_is(decimal_point) {
         // SAFETY: s cannot be empty due to first_is
         unsafe { byte.step_unchecked() };
-        let before = byte.cursor();
+        let before = byte.clone();
         #[cfg(not(feature = "compact"))]
         parse_8digits::<_, FORMAT>(byte.fraction_iter(), &mut mantissa);
         parse_digits::<_, _, FORMAT>(byte.fraction_iter(), |digit| {
             mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
         });
-        n_after_dot = byte.cursor() - before;
+        n_after_dot = byte.cursor() - before.cursor();
+        fraction_digits = Some(unsafe { before.as_slice().get_unchecked(..n_after_dot) });
         implicit_exponent = -(n_after_dot as i64);
         if format.mantissa_radix() == format.exponent_base() {
             exponent = implicit_exponent;
@@ -448,6 +451,8 @@ pub fn parse_partial_number<const FORMAT: u128>(
                 mantissa,
                 is_negative,
                 many_digits: false,
+                integer: integer_digits,
+                fraction: fraction_digits,
             },
             end,
         ));
@@ -480,6 +485,7 @@ pub fn parse_partial_number<const FORMAT: u128>(
         mantissa = 0;
         let mut byte = start;
         // Skip leading zeros, so we can use the step properly.
+        // TODO(ahuszagh) We can do this off of **just** the integer digits.
         byte.integer_iter().skip_zeros();
         parse_u64_digits::<_, FORMAT>(byte.integer_iter(), &mut mantissa, &mut step);
         implicit_exponent = if step == 0 {
@@ -517,6 +523,8 @@ pub fn parse_partial_number<const FORMAT: u128>(
             mantissa,
             is_negative,
             many_digits,
+            integer: integer_digits,
+            fraction: fraction_digits,
         },
         end,
     ))
@@ -524,11 +532,11 @@ pub fn parse_partial_number<const FORMAT: u128>(
 
 /// Try to parse a non-special floating point number.
 #[inline]
-pub fn parse_number<const FORMAT: u128>(
-    byte: Bytes<FORMAT>,
+pub fn parse_number<'a, const FORMAT: u128>(
+    byte: Bytes<'a, FORMAT>,
     is_negative: bool,
     options: &Options,
-) -> Result<Number> {
+) -> Result<Number<'a>> {
     let length = byte.length();
     let (float, count) = parse_partial_number::<FORMAT>(byte, is_negative, options)?;
     if count == length {
