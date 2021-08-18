@@ -18,6 +18,8 @@ pub fn bellerophon_test<F: RawFloat, const FORMAT: u128>(
         mantissa: xmant,
         is_negative: false,
         many_digits,
+        integer: &[],
+        fraction: None,
     };
     let xfp = bellerophon::<F, FORMAT>(&num, false);
     let yfp = ExtendedFloat80 {
@@ -45,6 +47,8 @@ pub fn compute_float32(q: i64, w: u64) -> (i32, u64) {
         mantissa: w,
         is_negative: false,
         many_digits: false,
+        integer: &[],
+        fraction: None,
     };
     let fp = bellerophon::<f32, { STANDARD }>(&num, false);
     (fp.exp, fp.mant)
@@ -56,6 +60,8 @@ pub fn compute_float64(q: i64, w: u64) -> (i32, u64) {
         mantissa: w,
         is_negative: false,
         many_digits: false,
+        integer: &[],
+        fraction: None,
     };
     let fp = bellerophon::<f64, { STANDARD }>(&num, false);
     (fp.exp, fp.mant)

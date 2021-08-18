@@ -369,6 +369,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     if cfg!(feature = "format") && format.required_integer_digits() && n_digits == 0 {
         return Err(Error::EmptyInteger(byte.cursor()));
     }
+    // SAFETY: safe, since `n_digits <= start.as_slice().len()`.
     let integer_digits = unsafe { start.as_slice().get_unchecked(..n_digits) };
 
     // Handle decimal point and digits afterwards.
@@ -387,6 +388,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
             mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
         });
         n_after_dot = byte.cursor() - before.cursor();
+        // SAFETY: safe, since `n_after_dot <= before.as_slice().len()`.
         fraction_digits = Some(unsafe { before.as_slice().get_unchecked(..n_after_dot) });
         implicit_exponent = -(n_after_dot as i64);
         if format.mantissa_radix() == format.exponent_base() {
@@ -483,29 +485,26 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         // Have more than 19 significant digits, so we overflowed.
         many_digits = true;
         mantissa = 0;
-        let mut byte = start;
+        let mut integer = integer_digits.bytes::<{ FORMAT }>();
         // Skip leading zeros, so we can use the step properly.
-        // TODO(ahuszagh) We can do this off of **just** the integer digits.
-        byte.integer_iter().skip_zeros();
-        parse_u64_digits::<_, FORMAT>(byte.integer_iter(), &mut mantissa, &mut step);
+        integer.integer_iter().skip_zeros();
+        parse_u64_digits::<_, FORMAT>(integer.integer_iter(), &mut mantissa, &mut step);
         implicit_exponent = if step == 0 {
             // Filled our mantissa with just the integer.
             int_end - byte.cursor() as i64
         } else {
-            // SAFETY: the next byte must be present and be '.'
-            // We know this is true because we had more than 19
+            // We know this can't be a None since we had more than 19
             // digits previously, so we overflowed a 64-bit integer,
             // but parsing only the integral digits produced less
             // than 19 digits. That means we must have a decimal
             // point, and at least 1 fractional digit.
-            unsafe { byte.step_unchecked() };
-            let before = byte.cursor() as i64;
+            let mut fraction = fraction_digits.unwrap().bytes::<{ FORMAT }>();
             // Skip leading zeros, so we can use the step properly.
             if mantissa == 0 {
-                byte.fraction_iter().skip_zeros();
+                fraction.fraction_iter().skip_zeros();
             }
-            parse_u64_digits::<_, FORMAT>(byte.fraction_iter(), &mut mantissa, &mut step);
-            before - byte.cursor() as i64
+            parse_u64_digits::<_, FORMAT>(fraction.fraction_iter(), &mut mantissa, &mut step);
+            -(fraction.cursor() as i64)
         };
         if format.mantissa_radix() == format.exponent_base() {
             exponent = implicit_exponent;
@@ -625,17 +624,15 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     }
 
     // Parse single digits at a time.
-    while *step > 0 {
-        // We haven't overflowed yet, so we must have less digits than step.
-        let c = *iter.peek().unwrap();
-        match char_to_digit_const(c, radix as u32) {
-            Some(digit) => {
-                *mantissa = *mantissa * radix + digit as u64;
-                *step -= 1;
-                // SAFETY: iter cannot be empty
-                unsafe { iter.step_unchecked() };
-            },
-            None => break,
+    while let Some(&c) = iter.peek() {
+        if *step > 0 {
+            let digit = char_to_digit_const(c, radix as u32).unwrap();
+            *mantissa = *mantissa * radix + digit as u64;
+            *step -= 1;
+            // SAFETY: safe, since `iter` cannot be empty.
+            unsafe { iter.step_unchecked() };
+        } else {
+            break;
         }
     }
 }
