@@ -105,13 +105,10 @@ pub fn bellerophon<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -
     // Normalize the floating point (and the errors).
     let shift = normalize(&mut fp);
     errors <<= shift;
-
-    // Check if we have a literal 0 or overflow here.
-    // If we have an exponent of -63, we can still have a valid shift,
-    // giving a case where we have too many errors and need to round-up.
     fp.exp += F::EXPONENT_BIAS;
-    if -fp.exp + 1 > 64 {
-        // Have more than 64 bits below the minimum exponent, must be 0.
+
+    // Check for literal overflow, even with halfway cases.
+    if -fp.exp + 1 > 65 {
         return fp_zero;
     }
 
@@ -120,6 +117,14 @@ pub fn bellerophon<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -
         // Bias the exponent so we know it's invalid.
         fp.exp += shared::INVALID_FP;
         return fp;
+    }
+
+    // Check if we have a literal 0 or overflow here.
+    // If we have an exponent of -63, we can still have a valid shift,
+    // giving a case where we have too many errors and need to round-up.
+    if -fp.exp + 1 == 65 {
+        // Have more than 64 bits below the minimum exponent, must be 0.
+        return fp_zero;
     }
 
     shared::round::<F, _>(&mut fp, |f, s| {

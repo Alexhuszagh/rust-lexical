@@ -171,14 +171,18 @@ where
 
     // Check for a denormal float, if after the shift the exponent is negative.
     if -fp.exp >= mantissa_shift {
-        // Have a denormal float that can't be 0.
+        // Have a denormal float that isn't a literal 0.
         // The extra 1 is to adjust for the denormal float, which is
         // `1 - F::EXPONENT_BIAS`. This works as before, because our
         // old logic rounded to `F::DENORMAL_EXPONENT` (now 1), and then
         // checked if `exp == F::DENORMAL_EXPONENT` and no hidden mask
         // bit was set. Here, we handle that here, rather than later.
+        //
+        // This might round-down to 0, but shift will be at **max** 65,
+        // for halfway cases rounding towards 0.
         let shift = -fp.exp + 1;
-        cb(fp, shift);
+        debug_assert!(shift <= 65);
+        cb(fp, shift.min(64));
         // Check for round-up: if rounding-nearest carried us to the hidden bit.
         fp.exp = (fp.mant >= F::HIDDEN_BIT_MASK.as_u64()) as i32;
         return;
@@ -260,6 +264,7 @@ where
 /// Round our significant digits into place, truncating them.
 #[cfg_attr(not(feature = "compact"), inline)]
 pub fn round_down(fp: &mut ExtendedFloat80, shift: i32) {
+    // Might have a shift greater than 64 if we have an error.
     fp.mant = match shift == 64 {
         true => 0,
         false => fp.mant >> shift,

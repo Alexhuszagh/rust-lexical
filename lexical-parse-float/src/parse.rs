@@ -426,7 +426,7 @@ pub fn parse_partial_number<const FORMAT: u128>(
             return Err(Error::EmptyExponent(byte.cursor()));
         }
         // Handle our sign, and get the explicit part of the exponent.
-        let explicit_exponent = if is_negative {
+        explicit_exponent = if is_negative {
             -explicit_exponent
         } else {
             explicit_exponent
@@ -458,7 +458,7 @@ pub fn parse_partial_number<const FORMAT: u128>(
     let mut zeros = start.clone();
     let mut zeros_integer = zeros.integer_iter();
     while zeros_integer.peek_is(b'0') {
-        n_digits -= 1;
+        n_digits = n_digits.saturating_sub(1);
         // SAFETY: safe since zeros cannot be empty due to peek_is
         unsafe { zeros_integer.step_unchecked() };
     }
@@ -468,7 +468,7 @@ pub fn parse_partial_number<const FORMAT: u128>(
     }
     let mut zeros_fraction = zeros.fraction_iter();
     while zeros_fraction.peek_is(b'0') {
-        n_digits -= 1;
+        n_digits = n_digits.saturating_sub(1);
         // SAFETY: safe since zeros cannot be empty due to peek_is
         unsafe { zeros_fraction.step_unchecked() };
     }
@@ -479,10 +479,12 @@ pub fn parse_partial_number<const FORMAT: u128>(
         many_digits = true;
         mantissa = 0;
         let mut byte = start;
+        // Skip leading zeros, so we can use the step properly.
+        byte.integer_iter().skip_zeros();
         parse_u64_digits::<_, FORMAT>(byte.integer_iter(), &mut mantissa, &mut step);
         implicit_exponent = if step == 0 {
             // Filled our mantissa with just the integer.
-            byte.cursor() as i64 - int_end
+            int_end - byte.cursor() as i64
         } else {
             // SAFETY: the next byte must be present and be '.'
             // We know this is true because we had more than 19
@@ -492,6 +494,10 @@ pub fn parse_partial_number<const FORMAT: u128>(
             // point, and at least 1 fractional digit.
             unsafe { byte.step_unchecked() };
             let before = byte.cursor() as i64;
+            // Skip leading zeros, so we can use the step properly.
+            if mantissa == 0 {
+                byte.fraction_iter().skip_zeros();
+            }
             parse_u64_digits::<_, FORMAT>(byte.fraction_iter(), &mut mantissa, &mut step);
             before - byte.cursor() as i64
         };

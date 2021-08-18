@@ -90,6 +90,28 @@ fn parse_partial_number_test() {
     assert_eq!(num.exponent, -4);
     assert_eq!(num.many_digits, false);
     assert_eq!(count, 6);
+
+    // Leading zeros
+    let string = b"00000000000000000000001.2345 ";
+    let byte = string.bytes::<{ FORMAT }>();
+    let result = parse::parse_partial_number(byte, false, &options);
+    assert!(result.is_ok());
+    let (num, count) = result.unwrap();
+    assert_eq!(num.mantissa, 12345);
+    assert_eq!(num.exponent, -4);
+    assert_eq!(num.many_digits, false);
+    assert_eq!(count, 28);
+
+    // Leading zeros
+    let string = b"0.00000000000000000000012345 ";
+    let byte = string.bytes::<{ FORMAT }>();
+    let result = parse::parse_partial_number(byte, false, &options);
+    assert!(result.is_ok());
+    let (num, count) = result.unwrap();
+    assert_eq!(num.mantissa, 12345);
+    assert_eq!(num.exponent, -26);
+    assert_eq!(num.many_digits, false);
+    assert_eq!(count, 28);
 }
 
 #[test]

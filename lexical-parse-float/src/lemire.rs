@@ -24,8 +24,9 @@ pub fn lemire<F: LemireFloat>(num: &Number, lossy: bool) -> ExtendedFloat80 {
         && fp.exp >= 0
         && fp != compute_float::<F>(num.exponent, num.mantissa + 1, false)
     {
-        // Bias the exponent so it's < 0, and we can determine it later.
-        fp.exp += shared::INVALID_FP;
+        // Need to re-calculate, since the previous values are rounded
+        // when the slow path algorithm expects a normalized extended float.
+        fp = compute_error::<F>(num.exponent, num.mantissa);
     }
     fp
 }
@@ -48,7 +49,6 @@ pub fn lemire<F: LemireFloat>(num: &Number, lossy: bool) -> ExtendedFloat80 {
 /// at a Gigabyte per Second" in section 5, "Fast Algorithm", and
 /// section 6, "Exact Numbers And Ties", available online:
 /// <https://arxiv.org/abs/2101.11408.pdf>.
-#[allow(unreachable_code)] // TODO(ahuszagh) Remove when the panic triggers.
 pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> ExtendedFloat80 {
     let fp_zero = ExtendedFloat80 {
         mant: 0,
@@ -66,7 +66,7 @@ pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> Extende
         return fp_inf;
     }
     // Normalize our significant digits, so the most-significant bit is set.
-    let lz = w.leading_zeros();
+    let lz = w.leading_zeros() as i32;
     w <<= lz;
     let (lo, hi) = compute_product_approx(q, w, F::MANTISSA_SIZE as usize + 3);
     if !lossy && lo == 0xFFFF_FFFF_FFFF_FFFF {
@@ -87,24 +87,12 @@ pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> Extende
         // <https://arxiv.org/pdf/2101.11408.pdf#section.8>.
         let inside_safe_exponent = (q >= -27) && (q <= 55);
         if !inside_safe_exponent {
-            // The value **cannot** be infinite, nor can it be zero, since
-            // we're within a small exponent range, so we can have simple
-            // logic here: we don't want to return a simple error.
-            panic!("!inside_safe_exponent!!! q={:?}, w={:?}", q, w);
-            let hilz = hi.leading_zeros() as i32;
-            let mantissa = hi << hilz;
-            // Want to add 1 if the upper bit is set, so this is 1 - hilz.
-            let shift = 1 - hilz - lz as i32;
-            let power2 = power(q as i32) - F::MINIMUM_EXPONENT + shift;
-            return ExtendedFloat80 {
-                mant: mantissa,
-                exp: power2 + shared::INVALID_FP,
-            };
+            return compute_error_scaled::<F>(q, hi, lz);
         }
     }
     let upperbit = (hi >> 63) as i32;
     let mut mantissa = hi >> (upperbit + 64 - F::MANTISSA_SIZE - 3);
-    let mut power2 = power(q as i32) + upperbit - lz as i32 - F::MINIMUM_EXPONENT;
+    let mut power2 = power(q as i32) + upperbit - lz - F::MINIMUM_EXPONENT;
     if power2 <= 0 {
         if -power2 + 1 >= 64 {
             // Have more than 64 bits below the minimum exponent, must be 0.
@@ -159,6 +147,31 @@ pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> Extende
     ExtendedFloat80 {
         mant: mantissa,
         exp: power2,
+    }
+}
+
+/// Fallback algorithm to calculate the non-rounded representation.
+/// This calculates the extended representation, and then normalizes
+/// the resulting representation, so the high bit is set.
+#[inline]
+pub fn compute_error<F: LemireFloat>(q: i64, mut w: u64) -> ExtendedFloat80 {
+    let lz = w.leading_zeros() as i32;
+    w <<= lz;
+    let hi = compute_product_approx(q, w, F::MANTISSA_SIZE as usize + 3).1;
+    compute_error_scaled::<F>(q, hi, lz)
+}
+
+/// Compute the error from a mantissa scaled to the exponent.
+#[inline]
+pub fn compute_error_scaled<F: LemireFloat>(q: i64, mut w: u64, lz: i32) -> ExtendedFloat80 {
+    // Want to normalize the float, but this is faster than ctlz on most architectures.
+    let hilz = (w >> 63) as i32 ^ 1;
+    w <<= hilz;
+    let power2 = power(q as i32) + F::EXPONENT_BIAS - hilz - lz - 62;
+
+    ExtendedFloat80 {
+        mant: w,
+        exp: power2 + shared::INVALID_FP,
     }
 }
 

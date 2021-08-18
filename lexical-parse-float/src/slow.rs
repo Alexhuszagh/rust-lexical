@@ -18,9 +18,7 @@ use core::cmp;
 use lexical_util::digit::digit_to_char_const;
 use lexical_util::digit::{char_is_digit_const, char_to_digit_const};
 use lexical_util::format::NumberFormat;
-use lexical_util::iterator::Bytes;
-#[cfg(feature = "radix")]
-use lexical_util::iterator::BytesIter;
+use lexical_util::iterator::{Bytes, BytesIter};
 use lexical_util::num::{AsPrimitive, Integer};
 
 // ALGORITHM
@@ -126,7 +124,7 @@ pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
     bigmant.pow(format.radix(), exponent as u32);
 
     // Get the exact representation of the float from the big integer.
-    // Himant checks **all** the remaining bits after the mantissa,
+    // hi64 checks **all** the remaining bits after the mantissa,
     // so it will check if **any** truncated digits exist.
     let (mant, is_truncated) = bigmant.hi64();
     let exp = bigmant.bit_length() as i32 - 64 + F::EXPONENT_BIAS;
@@ -276,6 +274,18 @@ macro_rules! add_digit {
     }};
 }
 
+/// Round-up a truncated value.
+macro_rules! round_up_truncated {
+    ($format:ident, $result:ident, $count:ident) => {{
+        // Need to round-up.
+        // Can't just add 1, since this can accidentally round-up
+        // values to a halfway point, which can cause invalid results.
+        $result.data.mul_small($format.radix() as Limb);
+        $result.data.add_small(1);
+        $count += 1;
+    }};
+}
+
 /// Check and round-up the fraction if any non-zero digits exist.
 macro_rules! round_up_fraction {
     ($format:ident, $byte:ident, $result:ident, $count:ident) => {{
@@ -284,8 +294,7 @@ macro_rules! round_up_fraction {
                 // Hit the exponent: no more digits, no need to round-up.
                 return ($result, $count);
             } else if digit != b'0' {
-                // Need to round-up.
-                $result.data.add_small(1);
+                round_up_truncated!($format, $result, $count);
                 return ($result, $count);
             }
         }
@@ -323,6 +332,7 @@ pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
     let max_native = (format.radix() as Limb).pow(step as u32);
 
     // Process the integer digits.
+    byte.integer_iter().skip_zeros();
     for &c in byte.integer_iter() {
         let digit = match char_to_digit_const(c, radix) {
             Some(v) => v,
@@ -351,8 +361,7 @@ pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
                         // Hit the exponent: no more digits, no need to round-up.
                         return (result, count);
                     } else if digit != b'0' {
-                        // Need to round-up.
-                        result.data.add_small(1);
+                        round_up_truncated!(format, result, count);
                         return (result, count);
                     }
                 }
@@ -362,6 +371,10 @@ pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
     }
 
     // Process the fraction digits.
+    if count == 0 {
+        // No digits added yet, can skip leading fraction zeros too.
+        byte.fraction_iter().skip_zeros();
+    }
     for &c in byte.fraction_iter() {
         let digit = match char_to_digit_const(c, radix) {
             Some(v) => v,

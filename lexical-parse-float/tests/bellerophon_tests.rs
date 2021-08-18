@@ -3,17 +3,30 @@
 mod bellerophon;
 
 use bellerophon::{bellerophon_test, compute_float32, compute_float64};
+use lexical_parse_float::shared::INVALID_FP;
 use lexical_util::format::STANDARD;
 
 #[test]
 fn halfway_round_down_test() {
     // Halfway, round-down tests
     bellerophon_test::<f64, { STANDARD }>(9007199254740992, 0, false, 0, 1076);
-    bellerophon_test::<f64, { STANDARD }>(9007199254740993, 0, false, 9223372036854776832, -31703);
+    bellerophon_test::<f64, { STANDARD }>(
+        9007199254740993,
+        0,
+        false,
+        9223372036854776832,
+        1065 + INVALID_FP,
+    );
     bellerophon_test::<f64, { STANDARD }>(9007199254740994, 0, false, 1, 1076);
 
     bellerophon_test::<f64, { STANDARD }>(18014398509481984, 0, false, 0, 1077);
-    bellerophon_test::<f64, { STANDARD }>(18014398509481986, 0, false, 9223372036854776832, -31702);
+    bellerophon_test::<f64, { STANDARD }>(
+        18014398509481986,
+        0,
+        false,
+        9223372036854776832,
+        1066 + INVALID_FP,
+    );
     bellerophon_test::<f64, { STANDARD }>(18014398509481988, 0, false, 1, 1077);
 
     bellerophon_test::<f64, { STANDARD }>(9223372036854775808, 0, false, 0, 1086);
@@ -22,7 +35,7 @@ fn halfway_round_down_test() {
         0,
         false,
         9223372036854776832,
-        -31693,
+        1075 + INVALID_FP,
     );
     bellerophon_test::<f64, { STANDARD }>(9223372036854777856, 0, false, 1, 1086);
 
@@ -33,7 +46,7 @@ fn halfway_round_down_test() {
         -3,
         true,
         9223372036854776832,
-        -31703,
+        1065 + INVALID_FP,
     );
     bellerophon_test::<f64, { STANDARD }>(9007199254740994000, -3, true, 1, 1076);
 }
@@ -42,11 +55,23 @@ fn halfway_round_down_test() {
 fn halfway_round_up_test() {
     // Halfway, round-up tests
     bellerophon_test::<f64, { STANDARD }>(9007199254740994, 0, false, 1, 1076);
-    bellerophon_test::<f64, { STANDARD }>(9007199254740995, 0, false, 9223372036854778880, -31703);
+    bellerophon_test::<f64, { STANDARD }>(
+        9007199254740995,
+        0,
+        false,
+        9223372036854778880,
+        1065 + INVALID_FP,
+    );
     bellerophon_test::<f64, { STANDARD }>(9007199254740996, 0, false, 2, 1076);
 
     bellerophon_test::<f64, { STANDARD }>(18014398509481988, 0, false, 1, 1077);
-    bellerophon_test::<f64, { STANDARD }>(18014398509481990, 0, false, 9223372036854778880, -31702);
+    bellerophon_test::<f64, { STANDARD }>(
+        18014398509481990,
+        0,
+        false,
+        9223372036854778880,
+        1066 + INVALID_FP,
+    );
     bellerophon_test::<f64, { STANDARD }>(18014398509481992, 0, false, 2, 1077);
 
     bellerophon_test::<f64, { STANDARD }>(9223372036854777856, 0, false, 1, 1086);
@@ -55,7 +80,7 @@ fn halfway_round_up_test() {
         0,
         false,
         9223372036854778880,
-        -31693,
+        1075 + INVALID_FP,
     );
     bellerophon_test::<f64, { STANDARD }>(9223372036854779904, 0, false, 2, 1086);
 
@@ -66,21 +91,21 @@ fn halfway_round_up_test() {
         -3,
         true,
         9223372036854778869,
-        -31703,
+        1065 + INVALID_FP,
     );
     bellerophon_test::<f64, { STANDARD }>(
         9007199254740995000,
         -3,
         true,
         9223372036854778879,
-        -31703,
+        1065 + INVALID_FP,
     );
     bellerophon_test::<f64, { STANDARD }>(
         9007199254740995010,
         -3,
         true,
         9223372036854778890,
-        -31703,
+        1065 + INVALID_FP,
     );
     bellerophon_test::<f64, { STANDARD }>(9007199254740995050, -3, true, 2, 1076);
     bellerophon_test::<f64, { STANDARD }>(9007199254740996000, -3, true, 2, 1076);
@@ -93,7 +118,13 @@ fn extremes_test() {
     bellerophon_test::<f64, { STANDARD }>(5, -324, false, 1, 0);
     bellerophon_test::<f64, { STANDARD }>(10, -324, false, 2, 0);
     // This is very close to 2.4703282292062327206e-342.
-    bellerophon_test::<f64, { STANDARD }>(2470328229206232720, -342, false, 0, 0);
+    bellerophon_test::<f64, { STANDARD }>(
+        2470328229206232720,
+        -342,
+        false,
+        18446744073709551608,
+        -64 + INVALID_FP,
+    );
     bellerophon_test::<f64, { STANDARD }>(
         2470328229206232721,
         -342,
@@ -180,18 +211,18 @@ fn extremes_test() {
 fn compute_float_f32_test() {
     // These test near-halfway cases for single-precision floats.
     assert_eq!(compute_float32(0, 16777216), (151, 0));
-    assert_eq!(compute_float32(0, 16777217), (-32657, 9223372586610589696));
+    assert_eq!(compute_float32(0, 16777217), (111 + INVALID_FP, 9223372586610589696));
     assert_eq!(compute_float32(0, 16777218), (151, 1));
-    assert_eq!(compute_float32(0, 16777219), (-32657, 9223373686122217472));
+    assert_eq!(compute_float32(0, 16777219), (111 + INVALID_FP, 9223373686122217472));
     assert_eq!(compute_float32(0, 16777220), (151, 2));
 
     // These are examples of the above tests, with
     // digits from the exponent shifted to the mantissa.
     assert_eq!(compute_float32(-10, 167772160000000000), (151, 0));
-    assert_eq!(compute_float32(-10, 167772170000000000), (-32657, 9223372586610589696));
+    assert_eq!(compute_float32(-10, 167772170000000000), (111 + INVALID_FP, 9223372586610589696));
     assert_eq!(compute_float32(-10, 167772180000000000), (151, 1));
     // Let's check the lines to see if anything is different in table...
-    assert_eq!(compute_float32(-10, 167772190000000000), (-32657, 9223373686122217472));
+    assert_eq!(compute_float32(-10, 167772190000000000), (111 + INVALID_FP, 9223373686122217472));
     assert_eq!(compute_float32(-10, 167772200000000000), (151, 2));
 }
 
@@ -199,21 +230,21 @@ fn compute_float_f32_test() {
 fn compute_float_f64_test() {
     // These test near-halfway cases for double-precision floats.
     assert_eq!(compute_float64(0, 9007199254740992), (1076, 0));
-    assert_eq!(compute_float64(0, 9007199254740993), (-31703, 9223372036854776832));
+    assert_eq!(compute_float64(0, 9007199254740993), (1065 + INVALID_FP, 9223372036854776832));
     assert_eq!(compute_float64(0, 9007199254740994), (1076, 1));
-    assert_eq!(compute_float64(0, 9007199254740995), (-31703, 9223372036854778880));
+    assert_eq!(compute_float64(0, 9007199254740995), (1065 + INVALID_FP, 9223372036854778880));
     assert_eq!(compute_float64(0, 9007199254740996), (1076, 2));
     assert_eq!(compute_float64(0, 18014398509481984), (1077, 0));
-    assert_eq!(compute_float64(0, 18014398509481986), (-31702, 9223372036854776832));
+    assert_eq!(compute_float64(0, 18014398509481986), (1066 + INVALID_FP, 9223372036854776832));
     assert_eq!(compute_float64(0, 18014398509481988), (1077, 1));
-    assert_eq!(compute_float64(0, 18014398509481990), (-31702, 9223372036854778880));
+    assert_eq!(compute_float64(0, 18014398509481990), (1066 + INVALID_FP, 9223372036854778880));
     assert_eq!(compute_float64(0, 18014398509481992), (1077, 2));
 
     // These are examples of the above tests, with
     // digits from the exponent shifted to the mantissa.
     assert_eq!(compute_float64(-3, 9007199254740992000), (1076, 0));
-    assert_eq!(compute_float64(-3, 9007199254740993000), (-31703, 9223372036854776832));
+    assert_eq!(compute_float64(-3, 9007199254740993000), (1065 + INVALID_FP, 9223372036854776832));
     assert_eq!(compute_float64(-3, 9007199254740994000), (1076, 1));
-    assert_eq!(compute_float64(-3, 9007199254740995000), (-31703, 9223372036854778879));
+    assert_eq!(compute_float64(-3, 9007199254740995000), (1065 + INVALID_FP, 9223372036854778879));
     assert_eq!(compute_float64(-3, 9007199254740996000), (1076, 2));
 }
