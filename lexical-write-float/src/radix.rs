@@ -441,10 +441,10 @@ pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
         // SAFETY: safe if the buffer is large enough to hold the significant digits.
         unsafe {
             let src = digits.as_ptr();
-            let dst = &mut index_unchecked_mut!(bytes[cursor..cursor + fraction_count]);
+            let end = cursor + fraction_count;
+            let dst = &mut index_unchecked_mut!(bytes[cursor..end]);
             copy_nonoverlapping_unchecked!(dst, src, fraction_count);
-            let zeros =
-                rtrim_char_count(&index_unchecked!(bytes[cursor..cursor + fraction_count]), b'0');
+            let zeros = rtrim_char_count(&index_unchecked!(bytes[cursor..end]), b'0');
             cursor += fraction_count - zeros;
         }
     } else if options.trim_floats() {

@@ -1,33 +1,12 @@
+#[macro_use]
+mod input;
+
 use core::time::Duration;
-use std::path::PathBuf;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lazy_static::lazy_static;
 use lexical_parse_integer::FromLexical;
 use serde::Deserialize;
-
-// PATHS
-
-/// Return the `target/debug` directory path.
-pub fn debug_dir() -> PathBuf {
-    std::env::current_exe()
-        .expect("unittest executable path")
-        .parent()
-        .expect("unittest executable directory")
-        .parent()
-        .expect("debug directory")
-        .to_path_buf()
-}
-
-/// Return the `target` directory path.
-pub fn target_dir() -> PathBuf {
-    debug_dir().parent().expect("target directory").to_path_buf()
-}
-
-/// Return the benchmark directory path.
-pub fn bench_dir() -> PathBuf {
-    target_dir().parent().expect("bench directory").to_path_buf()
-}
 
 // JSON
 
@@ -90,49 +69,9 @@ struct TestData {
 
 fn json_data() -> &'static TestData {
     lazy_static! {
-        static ref DATA: TestData = {
-            let mut path = bench_dir();
-            path.push("data");
-            path.push("integer.json");
-            let file = std::fs::File::open(path).unwrap();
-            let reader = std::io::BufReader::new(file);
-            serde_json::from_reader(reader).unwrap()
-        };
+        static ref DATA: TestData = input::read_json("integer.json");
     }
     &*DATA
-}
-
-// GENERATORS
-
-macro_rules! lexical_generator {
-    ($group:ident, $name:expr, $iter:expr, $t:ty) => {{
-        $group.bench_function($name, |bench| {
-            bench.iter(|| {
-                $iter.for_each(|x| {
-                    black_box(<$t>::from_lexical(x.as_bytes()).unwrap());
-                })
-            })
-        });
-    }};
-}
-
-macro_rules! core_generator {
-    ($group:ident, $name:expr, $iter:expr, $t:ty) => {{
-        $group.bench_function($name, |bench| {
-            bench.iter(|| {
-                $iter.for_each(|x| {
-                    black_box(x.parse::<$t>().unwrap());
-                })
-            })
-        });
-    }};
-}
-
-macro_rules! generator {
-    ($group:ident, $type:literal, $iter:expr, $t:ty) => {{
-        lexical_generator!($group, concat!("parse_", $type, "_lexical"), $iter, $t);
-        core_generator!($group, concat!("parse_", $type, "_core"), $iter, $t);
-    }};
 }
 
 // BENCHES

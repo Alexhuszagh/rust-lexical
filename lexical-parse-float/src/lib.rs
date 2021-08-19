@@ -23,6 +23,8 @@
 #![doc = include_str!("../docs/Algorithm.md")]
 //!
 #![doc = include_str!("../docs/Benchmarks.md")]
+//!
+#![doc = include_str!("../docs/BigInteger.md")]
 // TODO(ahuszagh) Document...
 
 // We want to have the same safety guarantees as Rust core,
