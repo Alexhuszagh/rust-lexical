@@ -186,7 +186,7 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
         debug_assert!(!options.lossy());
         // Undo the invalid extended float biasing.
         fp.exp -= shared::INVALID_FP;
-        fp = slow_path::<F, FORMAT>(byte, num, fp, options.decimal_point());
+        fp = slow_path::<F, FORMAT>(num, fp);
     }
 
     // Convert to native float and return result.
@@ -228,17 +228,9 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     // lossy, we can't be here.
     if fp.exp < 0 {
         debug_assert!(!options.lossy());
-        // Trim the byte size, since we already know the input that
-        // comprises the float. We don't need the rest, to simplify
-        // internal parsing logic.
-        let length = count - byte.cursor();
-        let slc = byte.as_slice();
-        // SAFETY: safe, since, count must be <= the byte slice length.
-        let slc = unsafe { &index_unchecked!(slc[..length]) };
-        let byte = slc.bytes::<{ FORMAT }>();
         // Undo the invalid extended float biasing.
         fp.exp -= shared::INVALID_FP;
-        fp = slow_path::<F, FORMAT>(byte, num, fp, options.decimal_point());
+        fp = slow_path::<F, FORMAT>(num, fp);
     }
 
     // Convert to native float and return result.
@@ -316,14 +308,12 @@ pub fn moderate_path<F: LemireFloat, const FORMAT: u128>(
 /// At this point, the float string has already been validated.
 #[inline]
 pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
-    byte: Bytes<FORMAT>,
     num: Number,
     fp: ExtendedFloat80,
-    decimal_point: u8,
 ) -> ExtendedFloat80 {
     #[cfg(not(feature = "power-of-two"))]
     {
-        slow_radix::<F, FORMAT>(byte, num, fp, decimal_point)
+        slow_radix::<F, FORMAT>(num, fp)
     }
 
     #[cfg(feature = "power-of-two")]
@@ -332,7 +322,7 @@ pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
         if matches!(format.mantissa_radix(), 2 | 4 | 8 | 16 | 32) {
             slow_binary::<F, FORMAT>(num)
         } else {
-            slow_radix::<F, FORMAT>(byte, num, fp, decimal_point)
+            slow_radix::<F, FORMAT>(num, fp)
         }
     }
 }
@@ -350,6 +340,16 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     is_negative: bool,
     options: &Options,
 ) -> Result<(Number<'a>, usize)> {
+    //  NOTE:
+    //      We need to minimize the number of multiplication instructions
+    //      to not decimate performance for extremely long strings, but
+    //      we cannot affect performance in **common** cases, which means
+    //      overflow checking, bounds-checking, or anything else
+    //      out-of-the-question. The only solution therefore is limiting
+    //      the size of the buffer we do multiplications on. In practice,
+    //      this is just `buffer.len().min(step)`, but we can only do this
+    //      if we don't have digit separators.
+
     // Config options
     let format = NumberFormat::<{ FORMAT }> {};
     let decimal_point = options.decimal_point();
@@ -358,19 +358,29 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     debug_assert!(!byte.is_done());
     let bits_per_digit = shared::log2(format.mantissa_radix()) as i64;
     let bits_per_base = shared::log2(format.exponent_base()) as i64;
+    let mut step = u64_step(format.radix());
+
+    // INTEGER
 
     // Parse our integral digits.
     let mut mantissa = 0_u64;
     let start = byte.clone();
-    parse_digits::<_, _, FORMAT>(byte.integer_iter(), |digit| {
+    // Skip leading zeros, to avoid unnecessary multiplication instructions.
+    let mut integer_iter = byte.integer_iter();
+    integer_iter.skip_zeros();
+    parse_digits::<_, _, FORMAT>(integer_iter, |digit| {
         mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
     });
     let mut n_digits = byte.cursor() - start.cursor();
     if cfg!(feature = "format") && format.required_integer_digits() && n_digits == 0 {
         return Err(Error::EmptyInteger(byte.cursor()));
     }
+
+    // Store the integer digits for slow-path algorithms.
     // SAFETY: safe, since `n_digits <= start.as_slice().len()`.
     let integer_digits = unsafe { start.as_slice().get_unchecked(..n_digits) };
+
+    // FRACTION
 
     // Handle decimal point and digits afterwards.
     let mut n_after_dot = 0;
@@ -382,14 +392,22 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         // SAFETY: s cannot be empty due to first_is
         unsafe { byte.step_unchecked() };
         let before = byte.clone();
+        // Skip leading zeros, to avoid unnecessary multiplication instructions.
+        if mantissa == 0 {
+            byte.fraction_iter().skip_zeros();
+        }
         #[cfg(not(feature = "compact"))]
         parse_8digits::<_, FORMAT>(byte.fraction_iter(), &mut mantissa);
         parse_digits::<_, _, FORMAT>(byte.fraction_iter(), |digit| {
             mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
         });
         n_after_dot = byte.cursor() - before.cursor();
+
+        // Store the fraction digits for slow-path algorithms.
         // SAFETY: safe, since `n_after_dot <= before.as_slice().len()`.
         fraction_digits = Some(unsafe { before.as_slice().get_unchecked(..n_after_dot) });
+
+        // Calculate the implicit exponent: the number of digits after the dot.
         implicit_exponent = -(n_after_dot as i64);
         if format.mantissa_radix() == format.exponent_base() {
             exponent = implicit_exponent;
@@ -406,6 +424,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     if format.required_mantissa_digits() && n_digits == 0 {
         return Err(Error::EmptyMantissa(byte.cursor()));
     }
+
+    // EXPONENT
 
     // Handle scientific notation.
     let mut explicit_exponent = 0_i64;
@@ -439,9 +459,10 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         exponent += explicit_exponent;
     }
 
+    // CHECK OVERFLOW
+
     // Get the number of parsed digits (total), and redo if we had overflow.
     let end = byte.cursor();
-    let mut step = u64_step(format.radix());
     let mut many_digits = false;
     if cfg!(feature = "format") && !format.required_mantissa_digits() && n_digits == 0 {
         exponent = 0;
@@ -480,6 +501,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         unsafe { zeros_fraction.step_unchecked() };
     }
 
+    // OVERFLOW
+
     // Now, check if we explicitly overflowed.
     if n_digits > 0 {
         // Have more than 19 significant digits, so we overflowed.
@@ -487,8 +510,9 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         mantissa = 0;
         let mut integer = integer_digits.bytes::<{ FORMAT }>();
         // Skip leading zeros, so we can use the step properly.
-        integer.integer_iter().skip_zeros();
-        parse_u64_digits::<_, FORMAT>(integer.integer_iter(), &mut mantissa, &mut step);
+        let mut integer_iter = integer.integer_iter();
+        integer_iter.skip_zeros();
+        parse_u64_digits::<_, FORMAT>(integer_iter, &mut mantissa, &mut step);
         implicit_exponent = if step == 0 {
             // Filled our mantissa with just the integer.
             int_end - integer.cursor() as i64
@@ -499,11 +523,12 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
             // than 19 digits. That means we must have a decimal
             // point, and at least 1 fractional digit.
             let mut fraction = fraction_digits.unwrap().bytes::<{ FORMAT }>();
+            let mut fraction_iter = fraction.fraction_iter();
             // Skip leading zeros, so we can use the step properly.
             if mantissa == 0 {
-                fraction.fraction_iter().skip_zeros();
+                fraction_iter.skip_zeros();
             }
-            parse_u64_digits::<_, FORMAT>(fraction.fraction_iter(), &mut mantissa, &mut step);
+            parse_u64_digits::<_, FORMAT>(fraction_iter, &mut mantissa, &mut step);
             -(fraction.cursor() as i64)
         };
         if format.mantissa_radix() == format.exponent_base() {

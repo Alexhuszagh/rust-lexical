@@ -74,6 +74,17 @@ impl<'a, const __: u128> Bytes<'a, __> {
         self.index
     }
 
+    /// Set the current index of the iterator in the slice.
+    ///
+    /// # Safety
+    ///
+    /// Safe if `index <= self.length()`.
+    #[inline]
+    pub unsafe fn set_cursor(&mut self, index: usize) {
+        debug_assert!(index <= self.length());
+        self.index = index
+    }
+
     /// Get the current number of values returned by the iterator.
     #[inline]
     pub fn current_count(&self) -> usize {
@@ -227,6 +238,11 @@ impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
     #[inline]
     fn cursor(&self) -> usize {
         self.byte.cursor()
+    }
+
+    #[inline]
+    unsafe fn set_cursor(&mut self, index: usize) {
+        self.byte.set_cursor(index);
     }
 
     #[inline]

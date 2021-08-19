@@ -17,9 +17,9 @@ use core::cmp;
 use lexical_parse_integer::algorithm;
 #[cfg(feature = "radix")]
 use lexical_util::digit::digit_to_char_const;
-use lexical_util::digit::{char_is_digit_const, char_to_valid_digit_const};
+use lexical_util::digit::char_to_valid_digit_const;
 use lexical_util::format::NumberFormat;
-use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
+use lexical_util::iterator::{AsBytes, BytesIter};
 use lexical_util::num::{AsPrimitive, Integer};
 
 // ALGORITHM
@@ -43,11 +43,8 @@ use lexical_util::num::{AsPrimitive, Integer};
 /// a large number of digits to unambiguously determine how to round.
 #[inline]
 pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
-    // TODO(ahuszagh) Remove the byte
-    byte: Bytes<FORMAT>,
     num: Number,
     fp: ExtendedFloat80,
-    decimal_point: u8,
 ) -> ExtendedFloat80 {
     // Ensure our preconditions are valid:
     //  1. The significant digits are not shifted into place.
@@ -76,7 +73,7 @@ pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
             digit_comp::<F, FORMAT>(num, fp, sci_exp, max_digits)
         } else {
             // Fallback to infinite digits.
-            byte_comp::<F, FORMAT>(byte, num, fp, sci_exp, decimal_point)
+            byte_comp::<F, FORMAT>(num, fp, sci_exp)
         }
     }
 
@@ -244,8 +241,7 @@ macro_rules! try_parse_8digits {
             let radix8 = radix4.wrapping_mul(radix4);
 
             while $step - $counter >= 8 && $max_digits - $count >= 8 {
-                if let Some(v) = algorithm::try_parse_8digits::<Limb, _, FORMAT>(&mut $iter)
-                {
+                if let Some(v) = algorithm::try_parse_8digits::<Limb, _, FORMAT>(&mut $iter) {
                     $value = $value.wrapping_mul(radix8).wrapping_add(v);
                     $counter += 8;
                     $count += 8;
@@ -254,7 +250,7 @@ macro_rules! try_parse_8digits {
                 }
             }
         }
-    }}
+    }};
 }
 
 /// Add a digit to the temporary value.
@@ -319,12 +315,24 @@ macro_rules! round_up_truncated {
 /// Check and round-up the fraction if any non-zero digits exist.
 macro_rules! round_up_nonzero {
     ($format:ident, $iter:expr, $result:ident, $count:ident) => {{
-        let iter = $iter;
+        // NOTE: All digits must be valid.
+        let mut iter = $iter;
+
+        // First try reading 8-digits at a time.
+        if iter.is_contiguous() {
+            while let Some(value) = iter.read::<u64>() {
+                // SAFETY: safe since we have at least 8 bytes in the buffer.
+                unsafe { iter.step_by_unchecked(8) };
+                if value != 0x3030_3030_3030_3030 {
+                    // Have non-zero digits, exit early.
+                    round_up_truncated!($format, $result, $count);
+                    return ($result, $count);
+                }
+            }
+        }
+
         for &digit in iter {
-            if !char_is_digit_const(digit, $format.radix()) {
-                // Hit the exponent: no more digits, no need to round-up.
-                return ($result, $count);
-            } else if digit != b'0' {
+            if digit != b'0' {
                 round_up_truncated!($format, $result, $count);
                 return ($result, $count);
             }
@@ -436,13 +444,12 @@ pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
 /// Compare actual integer digits to the theoretical digits.
 #[cfg(feature = "radix")]
 macro_rules! integer_compare {
-    ($iter:ident, $num:ident, $den:ident, $radix:ident, $decimal_point:ident) => {{
+    ($iter:ident, $num:ident, $den:ident, $radix:ident) => {{
         // Compare the integer digits.
         while !$num.data.is_empty() {
+            // All digits **must** be valid.
             let actual = match $iter.next() {
-                Some(&v) if v == $decimal_point => break,
-                Some(&v) if char_is_digit_const(v, $radix) => v,
-                // No more actual digits, or hit the exponent.
+                Some(&v) => v,
                 _ => return cmp::Ordering::Less,
             };
             let rem = $num.data.quorem(&$den.data) as u32;
@@ -458,12 +465,7 @@ macro_rules! integer_compare {
         // Still have integer digits, check if any are non-zero.
         if $num.data.is_empty() {
             for &digit in $iter {
-                if digit == $decimal_point {
-                    break;
-                } else if !char_is_digit_const(digit, $radix) {
-                    // Hit the exponent
-                    return cmp::Ordering::Equal;
-                } else if digit != b'0' {
+                if digit != b'0' {
                     return cmp::Ordering::Greater;
                 }
             }
@@ -478,10 +480,9 @@ macro_rules! fraction_compare {
         // Compare the fraction digits.
         // We can only be here if we hit a decimal point.
         while !$num.data.is_empty() {
-            // If we've hit the exponent portion, we've got less
-            // significant digits.
+            // All digits **must** be valid.
             let actual = match $iter.next() {
-                Some(&v) if char_is_digit_const(v, $radix) => v,
+                Some(&v) => v,
                 // No more actual digits, or hit the exponent.
                 _ => return cmp::Ordering::Less,
             };
@@ -497,16 +498,10 @@ macro_rules! fraction_compare {
 
         // Still have fraction digits, check if any are non-zero.
         for &digit in $iter {
-            if !char_is_digit_const(digit, $radix) {
-                // Hit the exponent
-                return cmp::Ordering::Equal;
-            } else if digit != b'0' {
+            if digit != b'0' {
                 return cmp::Ordering::Greater;
             }
         }
-
-        // Exhausted both, must be equal.
-        cmp::Ordering::Equal
     }};
 }
 
@@ -525,12 +520,9 @@ macro_rules! fraction_compare {
 /// available [here](https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/).
 #[cfg(feature = "radix")]
 pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
-    // TODO(ahuszagh) Remove the byte
-    byte: Bytes<FORMAT>,
-    num: Number,
+    number: Number,
     mut fp: ExtendedFloat80,
     sci_exp: i32,
-    decimal_point: u8,
 ) -> ExtendedFloat80 {
     // Ensure our preconditions are valid:
     //  1. The significant digits are not shifted into place.
@@ -596,7 +588,7 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
     }
 
     // Compare our theoretical and real digits and round nearest, tie even.
-    let ord = compare_bytes::<FORMAT>(byte, num, den, decimal_point);
+    let ord = compare_bytes::<FORMAT>(number, num, den);
     shared::round::<F, _>(&mut fp, |f, s| {
         shared::round_nearest_tie_even(f, s, |is_odd, _, _| {
             // Can ignore `is_halfway` and `is_above`, since those were
@@ -615,29 +607,35 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
 /// Compare digits between the generated values the ratio and the actual view.
 #[cfg(feature = "radix")]
 pub fn compare_bytes<const FORMAT: u128>(
-    mut byte: Bytes<FORMAT>,
+    number: Number,
     mut num: Bigfloat,
     den: Bigfloat,
-    decimal_point: u8,
 ) -> cmp::Ordering {
     let format = NumberFormat::<FORMAT> {};
     let radix = format.radix();
 
     // Now need to compare the theoretical digits. First, I need to trim
     // any leading zeros, and will also need to ignore trailing ones.
-    byte.integer_iter().skip_zeros();
-    if byte.first_is(decimal_point) {
-        // SAFETY: safe since zeros cannot be empty due to first_is
-        unsafe { byte.step_unchecked() };
-        let mut fraction_iter = byte.fraction_iter();
+    let mut integer = number.integer.bytes::<{ FORMAT }>();
+    let mut integer_iter = integer.integer_iter();
+    integer_iter.skip_zeros();
+    if integer_iter.is_done() {
+        // Cannot be empty, since we must have at least **some** significant digits.
+        let mut fraction = number.fraction.unwrap().bytes::<{ FORMAT }>();
+        let mut fraction_iter = fraction.fraction_iter();
         fraction_iter.skip_zeros();
-        fraction_compare!(fraction_iter, num, den, radix)
+        fraction_compare!(fraction_iter, num, den, radix);
     } else {
-        let mut integer_iter = byte.integer_iter();
-        integer_compare!(integer_iter, num, den, radix, decimal_point);
-        let mut fraction_iter = byte.fraction_iter();
-        fraction_compare!(fraction_iter, num, den, radix)
+        integer_compare!(integer_iter, num, den, radix);
+        if let Some(fraction) = number.fraction {
+            let mut fraction = fraction.bytes::<{ FORMAT }>();
+            let mut fraction_iter = fraction.fraction_iter();
+            fraction_compare!(fraction_iter, num, den, radix);
+        }
     }
+
+    // Exhausted both, must be equal.
+    cmp::Ordering::Equal
 }
 
 // SCALING

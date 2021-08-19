@@ -36,6 +36,13 @@ pub trait BytesIter<'a>: Iterator<Item = &'a u8> {
     /// Get the current index of the iterator in the slice.
     fn cursor(&self) -> usize;
 
+    /// Set the current index of the iterator in the slice.
+    ///
+    /// # Safety
+    ///
+    /// Safe if `index <= self.length()`.
+    unsafe fn set_cursor(&mut self, index: usize);
+
     /// Get the current number of values returned by the iterator.
     fn current_count(&self) -> usize;
 
