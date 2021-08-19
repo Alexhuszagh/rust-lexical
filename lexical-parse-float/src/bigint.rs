@@ -1314,6 +1314,7 @@ pub fn bit_length(x: &[Limb]) -> u32 {
 // -----
 
 /// Get the base, odd radix, and the power-of-two for the type.
+#[inline(always)]
 pub const fn split_radix(radix: u32) -> (u32, u32) {
     match radix {
         // Is also needed for decimal floats, due to `negative_digit_comp`.

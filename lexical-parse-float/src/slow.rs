@@ -92,6 +92,7 @@ pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
 /// exponent relative to the significant digits, we scale the real
 /// digits to the theoretical digits for `b` and determine if we
 /// need to round-up.
+#[inline]
 pub fn digit_comp<F: RawFloat, const FORMAT: u128>(
     num: Number,
     fp: ExtendedFloat80,

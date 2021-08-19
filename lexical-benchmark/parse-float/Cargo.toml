@@ -39,3 +39,14 @@ harness = false
 name = "random"
 path = "random.rs"
 harness = false
+
+# Perftools binaries.
+[[bin]]
+name = "denormal30"
+path = "denormal30.rs"
+harness = false
+
+[[bin]]
+name = "denormal6400"
+path = "denormal6400.rs"
+harness = false

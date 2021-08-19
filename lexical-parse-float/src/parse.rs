@@ -349,8 +349,22 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     //          - checking for explicit overflow, via `overflowing_mul`.
     //          - counting the max number of steps.
     //          - subslicing the string, and only processing the first `step` digits.
+    //          - pre-computing the maximum power, and only adding until then.
     //
     //      All of these lead to substantial performance penalty.
+    //      If we pre-parse the string, then only process it then, we
+    //      get a performance penalty of ~2.5x (20ns to 50ns) for common
+    //      floats, an unacceptable cost, while only improving performance
+    //      for rare floats 5-25% (9.3µs to 7.5µs for denormal with 6400
+    //      digits, and 7.8µs to 7.4µs for large floats with 6400 digits).
+    //
+    //      The performance cost is **almost** entirely in this function,
+    //      but additional branching **does** not improve performance,
+    //      and pre-tokenization is a recipe for failure. For halfway
+    //      cases with smaller numbers of digits, the majority of the
+    //      performance cost is in the big integer arithmetic (`pow` and
+    //      `parse_mantissa`), which suggests few optimizations can or should
+    //      be made.
 
     // Config options
     let format = NumberFormat::<{ FORMAT }> {};
