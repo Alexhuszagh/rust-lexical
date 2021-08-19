@@ -380,7 +380,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     // Parse our integral digits.
     let mut mantissa = 0_u64;
     let start = byte.clone();
-    // Skip leading zeros, to avoid unnecessary multiplication instructions.
+    #[cfg(not(feature = "compact"))]
+    parse_8digits::<_, FORMAT>(byte.integer_iter(), &mut mantissa);
     parse_digits::<_, _, FORMAT>(byte.integer_iter(), |digit| {
         mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
     });
@@ -405,7 +406,6 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         // SAFETY: s cannot be empty due to first_is
         unsafe { byte.step_unchecked() };
         let before = byte.clone();
-        // Skip leading zeros, to avoid unnecessary multiplication instructions.
         #[cfg(not(feature = "compact"))]
         parse_8digits::<_, FORMAT>(byte.fraction_iter(), &mut mantissa);
         parse_digits::<_, _, FORMAT>(byte.fraction_iter(), |digit| {
@@ -616,12 +616,10 @@ where
         let radix2 = radix.wrapping_mul(radix);
         let radix4 = radix2.wrapping_mul(radix2);
         let radix8 = radix4.wrapping_mul(radix4);
-        // Can do up to 2 iterations without overflowing.
-        if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
+        // Can do up to 2 iterations without overflowing, however, for large
+        // inputs, this is much faster than any other alternative.
+        while let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
             *mantissa = mantissa.wrapping_mul(radix8).wrapping_add(v);
-            if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
-                *mantissa = mantissa.wrapping_mul(radix8).wrapping_add(v);
-            }
         }
     }
 }

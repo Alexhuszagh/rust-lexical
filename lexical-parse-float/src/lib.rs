@@ -1,4 +1,14 @@
-//! Fast and compact string-to-float conversions.
+//! Fast lexical string-to-float conversion routines.
+//!
+//! The default implementations are highly optimized both for simple
+//! strings, as well as input with large numbers of digits. In order to
+//! keep performance optimal for simple strings, we avoid overly branching
+//! to minimize the number of branches (and therefore optimization checks).
+//! Most of the branches in the code are resolved at compile-time, and
+//! the resulting ASM as well as comprehensive benchmarks are monitored
+//! to ensure there are no regressions. For simple floats, we use an
+//! optimized digit parser with multiple-digit optimizations (parsing
+//! 8 digits in 3 multiplication instructions).
 //!
 //! # Note
 //!
