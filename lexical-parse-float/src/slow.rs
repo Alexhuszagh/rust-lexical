@@ -15,9 +15,9 @@ use crate::number::Number;
 use crate::shared;
 use core::cmp;
 use lexical_parse_integer::algorithm;
+use lexical_util::digit::char_to_valid_digit_const;
 #[cfg(feature = "radix")]
 use lexical_util::digit::digit_to_char_const;
-use lexical_util::digit::char_to_valid_digit_const;
 use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{AsBytes, BytesIter};
 use lexical_util::num::{AsPrimitive, Integer};
@@ -451,7 +451,8 @@ macro_rules! integer_compare {
             // All digits **must** be valid.
             let actual = match $iter.next() {
                 Some(&v) => v,
-                _ => return cmp::Ordering::Less,
+                // Could have hit the decimal point.
+                _ => break,
             };
             let rem = $num.data.quorem(&$den.data) as u32;
             let expected = digit_to_char_const(rem, $radix);
@@ -562,8 +563,10 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
     // in the radix as the number of leading zeros.
     let wlz = integral_binary_factor(format.radix());
     let nlz = den.leading_zeros().wrapping_sub(wlz) & (32 - 1);
-    den.shl_bits(nlz as usize).unwrap();
-    den.exp -= nlz as i32;
+    if nlz != 0 {
+        den.shl_bits(nlz as usize).unwrap();
+        den.exp -= nlz as i32;
+    }
 
     // Need to scale the numerator or denominator to the same value.
     // We don't want to shift the denominator, so...
@@ -580,8 +583,10 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
         // quotient,since we're calculating the ceiling of the divmod.
         let (q, r) = shift.ceil_divmod(LIMB_BITS);
         let r = -r;
-        num.shl_bits(r as usize).unwrap();
-        num.exp -= r;
+        if r != 0 {
+            num.shl_bits(r as usize).unwrap();
+            num.exp -= r;
+        }
         if q != 0 {
             den.shl_limbs(q).unwrap();
             den.exp -= LIMB_BITS as i32 * q as i32;
@@ -632,6 +637,9 @@ pub fn compare_bytes<const FORMAT: u128>(
             let mut fraction = fraction.bytes::<{ FORMAT }>();
             let mut fraction_iter = fraction.fraction_iter();
             fraction_compare!(fraction_iter, num, den, radix);
+        } else if !num.data.is_empty() {
+            // We had more theoretical digits, but no more actual digits.
+            return cmp::Ordering::Less;
         }
     }
 

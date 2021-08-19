@@ -21,7 +21,7 @@ use lexical_util::num::{Integer, UnsignedInteger};
 
 /// Write integer to radix string.
 pub trait Radix: UnsignedInteger {
-    /// # SAFETY
+    /// # Safety
     ///
     /// Safe as long as buffer is at least `FORMATTED_SIZE` elements long,
     /// (or `FORMATTED_SIZE_DECIMAL` for decimal), and the radix is valid.
@@ -82,7 +82,6 @@ impl Radix for u128 {
         // SAFETY: safe as long as buffer is large enough to hold the max value.
         // We never read unwritten values, and we never assume the data is initialized.
         // Need at least 128-bits, at least as many as the bits in the current type.
-        debug_assert!(<Self as Integer>::BITS <= 128);
         let mut digits: mem::MaybeUninit<[u8; 128]> = mem::MaybeUninit::uninit();
         unsafe {
             let digits = &mut *digits.as_mut_ptr();

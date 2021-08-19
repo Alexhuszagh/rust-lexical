@@ -40,6 +40,7 @@ use lexical_write_integer::write::WriteInteger;
 /// # Panics
 ///
 /// Panics if exponent notation is used.
+#[allow(clippy::collapsible_if)]
 pub unsafe fn write_float<F: Float, const FORMAT: u128>(
     float: F,
     bytes: &mut [u8],
@@ -196,7 +197,12 @@ const MAX_DIGIT_LENGTH: usize = BUFFER_SIZE - MAX_NONDIGIT_LENGTH;
 
 /// Round mantissa to the nearest value, returning only the number
 /// of significant digits. Also returns the number of bits of the mantissa.
+///
+/// # Safety
+///
+/// Safe if `end <= buffer.len()`.
 #[inline]
+#[allow(clippy::comparison_chain)]
 pub unsafe fn truncate_and_round(
     buffer: &mut [u8],
     start: usize,
@@ -270,7 +276,7 @@ pub unsafe fn truncate_and_round(
                 return unsafe { round_up(digits, max_digits, radix) };
             }
         }
-        return max_digits;
+        max_digits
     }
 }
 
@@ -306,14 +312,12 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
 
     // Round and truncate the number of significant digits.
     let start: usize;
-    let end: usize;
     if sci_exp <= 0 {
         start = ((initial_cursor as i32) - sci_exp - 1) as usize;
-        end = fraction_cursor.min(start + MAX_DIGIT_LENGTH + 1);
     } else {
         start = integer_cursor;
-        end = fraction_cursor.min(start + MAX_DIGIT_LENGTH + 1);
     }
+    let end = fraction_cursor.min(start + MAX_DIGIT_LENGTH + 1);
     // SAFETY: safe since `start + count <= end && end <= buffer.len()`.
     let count = unsafe { truncate_and_round(buffer, start, end, format.radix(), options) };
     // SAFETY: safe since `start + count <= end`.
@@ -359,7 +363,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
         // SAFETY: this is safe as long as the buffer was large enough
         // to hold `min_significant_digits + 1`.
         unsafe {
-            slice_fill_unchecked!(&mut index_unchecked_mut!(bytes[cursor..digits_end]), b'0');
+            slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..digits_end]), b'0');
         }
         cursor = digits_end;
     }
@@ -439,7 +443,8 @@ pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
             let src = digits.as_ptr();
             let dst = &mut index_unchecked_mut!(bytes[cursor..cursor + fraction_count]);
             copy_nonoverlapping_unchecked!(dst, src, fraction_count);
-            let zeros = rtrim_char_count(&index_unchecked!(bytes[cursor..cursor + count]), b'0');
+            let zeros =
+                rtrim_char_count(&index_unchecked!(bytes[cursor..cursor + fraction_count]), b'0');
             cursor += fraction_count - zeros;
         }
     } else if options.trim_floats() {
@@ -467,7 +472,7 @@ pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
         // SAFETY: this is safe as long as the buffer was large enough
         // to hold `min_significant_digits + 1`.
         unsafe {
-            slice_fill_unchecked!(&mut index_unchecked_mut!(bytes[cursor..digits_end]), b'0');
+            slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..digits_end]), b'0');
         }
         cursor = digits_end;
     }

@@ -3,7 +3,6 @@
 use lexical_parse_float::binary::{binary, slow_binary};
 use lexical_parse_float::number::Number;
 use lexical_util::format::NumberFormatBuilder;
-use lexical_util::iterator::AsBytes;
 
 const BINARY: u128 = NumberFormatBuilder::from_radix(2);
 const BASE4: u128 = NumberFormatBuilder::from_radix(4);

@@ -14,48 +14,7 @@ use lexical_parse_integer::algorithm;
 use lexical_util::digit::char_to_valid_digit_const;
 use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{AsBytes, BytesIter};
-use lexical_util::num::AsPrimitive;
 use lexical_util::step::u64_step;
-
-/// Shift and round the digits and return the extended-precision float.
-macro_rules! shift_and_round {
-    ($t:ident, $mantissa:ident, $power2:ident, $roundup:expr) => {{
-        let fp_inf = ExtendedFloat80 {
-            mant: 0,
-            exp: F::INFINITE_POWER,
-        };
-
-        // Now we need to determine how to round: we know we're even and were
-        // at a halfway point. Get our shift, and then check our assertions are
-        // valid.
-        let shift = shared::calculate_shift::<$t>($power2);
-
-        // Round up if we had truncated any digits.
-        $mantissa >>= shift;
-        $power2 += shift;
-        $mantissa += $roundup;
-
-        // Check if we carried, and if so, shift the bit to the hidden bit.
-        let carry_mask = $t::CARRY_MASK.as_u64();
-        if $mantissa & carry_mask == carry_mask {
-            $mantissa >>= 1;
-            $power2 += 1;
-        }
-
-        // Check for overflow.
-        if $power2 >= $t::INFINITE_POWER {
-            // Exponent is above largest normal value, must be infinite.
-            return fp_inf;
-        }
-
-        // Remove the hidden bit.
-        $mantissa &= $t::MANTISSA_MASK.as_u64();
-        ExtendedFloat80 {
-            mant: $mantissa,
-            exp: $power2,
-        }
-    }};
-}
 
 // ALGORITHM
 // ---------
@@ -73,7 +32,7 @@ pub fn binary<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> Ext
 
     // Normalize our mantissa for simpler results.
     let ctlz = num.mantissa.leading_zeros();
-    let mut mantissa = num.mantissa << ctlz;
+    let mantissa = num.mantissa << ctlz;
 
     // Quick check if we're close to a halfway point.
     // Since we're using powers-of-two, we can clearly tell if we're at
@@ -86,7 +45,7 @@ pub fn binary<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> Ext
     // if it's above that, always round-up. If it's odd, we can always
     // disambiguate the float. If it's even, and exactly halfway, this
     // step fails.
-    let mut power2 = shared::calculate_power2::<F, FORMAT>(num.exponent, ctlz);
+    let power2 = shared::calculate_power2::<F, FORMAT>(num.exponent, ctlz);
     if -power2 + 1 >= 64 {
         // Have more than 63 bits below the minimum exponent, must be 0.
         // Since we can't have partial digit rounding, this is true always
@@ -117,7 +76,15 @@ pub fn binary<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> Ext
     // Shift our digits into place, and round up if needed.
     let is_above = mantissa & truncated > halfway;
     let round_up = is_above || (!is_even && is_halfway);
-    shift_and_round!(F, mantissa, power2, round_up as u64)
+    let mut fp = ExtendedFloat80 {
+        mant: mantissa,
+        exp: power2,
+    };
+
+    shared::round::<F, _>(&mut fp, |f, s| {
+        shared::round_nearest_tie_even(f, s, |_, _, _| round_up);
+    });
+    fp
 }
 
 /// Iteratively parse and consume digits without overflowing.
@@ -224,7 +191,15 @@ pub fn slow_binary<F: RawFloat, const FORMAT: u128>(num: Number) -> ExtendedFloa
     // Normalize our mantissa for simpler results.
     let ctlz = mantissa.leading_zeros();
     mantissa <<= ctlz;
-    let mut power2 = shared::calculate_power2::<F, FORMAT>(num.exponent, ctlz);
+    let power2 = shared::calculate_power2::<F, FORMAT>(num.exponent, ctlz);
 
-    shift_and_round!(F, mantissa, power2, !zero as u64)
+    let mut fp = ExtendedFloat80 {
+        mant: mantissa,
+        exp: power2,
+    };
+
+    shared::round::<F, _>(&mut fp, |f, s| {
+        shared::round_nearest_tie_even(f, s, |_, _, _| !zero);
+    });
+    fp
 }

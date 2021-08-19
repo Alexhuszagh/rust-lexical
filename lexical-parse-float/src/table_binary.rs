@@ -106,6 +106,8 @@ pub unsafe fn get_small_int_power2(exponent: usize) -> u64 {
 /// Always safe, just marked unsafe for API compatibility.
 #[inline(always)]
 pub unsafe fn get_small_f32_power2(exponent: usize) -> f32 {
+    // Can't handle values above the denormal size.
+    debug_assert!(exponent as i32 <= f32::EXPONENT_BIAS - f32::MANTISSA_SIZE);
     let shift = (f32::EXPONENT_BIAS - f32::MANTISSA_SIZE) as u32;
     let bits = (exponent as u32 + shift) << f32::MANTISSA_SIZE;
     f32::from_bits(bits)
@@ -118,6 +120,8 @@ pub unsafe fn get_small_f32_power2(exponent: usize) -> f32 {
 /// Always safe, just marked unsafe for API compatibility.
 #[inline(always)]
 pub unsafe fn get_small_f64_power2(exponent: usize) -> f64 {
+    // Can't handle values above the denormal size.
+    debug_assert!(exponent as i32 <= f64::EXPONENT_BIAS - f64::MANTISSA_SIZE);
     let shift = (f64::EXPONENT_BIAS - f64::MANTISSA_SIZE) as u64;
     let bits = (exponent as u64 + shift) << f64::MANTISSA_SIZE;
     f64::from_bits(bits)

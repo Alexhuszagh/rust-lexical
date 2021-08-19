@@ -526,7 +526,7 @@ where
         // SAFETY: this is safe as long as the buffer was large enough
         // to hold `min_significant_digits + 1`.
         unsafe {
-            slice_fill_unchecked!(&mut index_unchecked_mut!(bytes[cursor..digits_end]), b'0');
+            slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..digits_end]), b'0');
         }
         cursor = digits_end;
     }
