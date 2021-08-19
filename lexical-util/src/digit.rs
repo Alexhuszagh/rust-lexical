@@ -10,13 +10,11 @@
 // which is **most** of our cases. There are cases where for codegen, using a
 // runtime algorithm is preferable.
 
-/// Convert a character to a digit with a radix known at compile time.
-///
-/// This optimizes for cases where radix is <= 10, and uses a decent,
-/// match-based fallback algorithm.
+/// Unchecked, highly optimized algorithm to convert a char to a digit.
+/// This only works if the input character is known to be a valid digit.
 #[inline]
-pub const fn char_to_digit_const(c: u8, radix: u32) -> Option<u32> {
-    let digit = if radix <= 10 {
+pub const fn char_to_valid_digit_const(c: u8, radix: u32) -> u32 {
+    if radix <= 10 {
         // Optimize for small radixes.
         (c.wrapping_sub(b'0')) as u32
     } else {
@@ -28,7 +26,16 @@ pub const fn char_to_digit_const(c: u8, radix: u32) -> Option<u32> {
             _ => 0xFF,
         };
         digit as u32
-    };
+    }
+}
+
+/// Convert a character to a digit with a radix known at compile time.
+///
+/// This optimizes for cases where radix is <= 10, and uses a decent,
+/// match-based fallback algorithm.
+#[inline]
+pub const fn char_to_digit_const(c: u8, radix: u32) -> Option<u32> {
+    let digit = char_to_valid_digit_const(c, radix);
     if digit < radix {
         Some(digit)
     } else {

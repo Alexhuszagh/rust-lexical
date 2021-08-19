@@ -9,11 +9,13 @@
 use crate::float::{ExtendedFloat80, RawFloat};
 use crate::mask::lower_n_halfway;
 use crate::number::Number;
-use crate::parse::parse_digits;
 use crate::shared;
+use lexical_parse_integer::algorithm;
+use lexical_util::digit::char_to_valid_digit_const;
 use lexical_util::format::NumberFormat;
-use lexical_util::iterator::Bytes;
+use lexical_util::iterator::{AsBytes, BytesIter};
 use lexical_util::num::AsPrimitive;
+use lexical_util::step::u64_step;
 
 /// Shift and round the digits and return the extended-precision float.
 macro_rules! shift_and_round {
@@ -118,21 +120,52 @@ pub fn binary<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> Ext
     shift_and_round!(F, mantissa, power2, round_up as u64)
 }
 
-/// Check add a digit to the buffer.
-macro_rules! checked_add_digit {
-    ($mant:ident, $overflowed:ident, $zero:ident, $radix:ident, $digit:ident) => {{
-        if !$overflowed {
-            let result = $mant.checked_mul($radix as _).and_then(|x| x.checked_add($digit as _));
-            if let Some(mant) = result {
-                $mant = mant;
+/// Iteratively parse and consume digits without overflowing.
+#[inline]
+pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
+    mut iter: Iter,
+    mantissa: &mut u64,
+    step: &mut usize,
+    overflowed: &mut bool,
+    zero: &mut bool,
+) where
+    Iter: BytesIter<'a>,
+{
+    let format = NumberFormat::<{ FORMAT }> {};
+    let radix = format.radix() as u64;
+
+    // Try to parse 8 digits at a time, if we can.
+    #[cfg(not(feature = "compact"))]
+    if cfg!(not(feature = "radix")) || radix <= 10 {
+        let radix2 = radix.wrapping_mul(radix);
+        let radix4 = radix2.wrapping_mul(radix2);
+        let radix8 = radix4.wrapping_mul(radix4);
+        while *step > 8 {
+            if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
+                *mantissa = mantissa.wrapping_mul(radix8).wrapping_add(v);
+                *step -= 8;
             } else {
-                $overflowed = true;
-                $zero &= ($digit == 0);
+                break;
+            }
+        }
+    }
+
+    // Parse single digits at a time.
+    while let Some(&c) = iter.next() {
+        let digit = char_to_valid_digit_const(c, radix as _);
+        if !*overflowed {
+            let result = mantissa.checked_mul(radix as _).and_then(|x| x.checked_add(digit as _));
+            if let Some(mant) = result {
+                *mantissa = mant;
+            } else {
+                *overflowed = true;
+                *zero &= digit == 0;
             }
         } else {
-            $zero &= ($digit == 0);
+            *zero &= digit == 0;
         }
-    }};
+        *step = step.saturating_sub(1);
+    }
 }
 
 /// Fallback, slow algorithm optimized for powers-of-two.
@@ -140,14 +173,10 @@ macro_rules! checked_add_digit {
 /// This avoids the need for arbitrary-precision arithmetic, since the result
 /// will always be a near-halfway representation where rounded-down it's even.
 #[inline]
-pub fn slow_binary<F: RawFloat, const FORMAT: u128>(
-    mut byte: Bytes<FORMAT>,
-    exponent: i64,
-    decimal_point: u8,
-) -> ExtendedFloat80 {
+pub fn slow_binary<F: RawFloat, const FORMAT: u128>(num: Number) -> ExtendedFloat80 {
     let format = NumberFormat::<{ FORMAT }> {};
     let radix = format.radix();
-    debug_assert!(matches!(format.radix(), 2 | 4 | 8 | 16 | 32));
+    debug_assert!(matches!(radix, 2 | 4 | 8 | 16 | 32));
 
     // This assumes the sign bit has already been parsed, and we're
     // starting with the integer digits, and the float format has been
@@ -162,17 +191,30 @@ pub fn slow_binary<F: RawFloat, const FORMAT: u128>(
     let mut zero = true;
 
     // Parse the integer digits.
-    parse_digits::<_, _, FORMAT>(byte.integer_iter(), |digit| {
-        checked_add_digit!(mantissa, overflow, zero, radix, digit);
-    });
+    let mut step = u64_step(radix);
+    let mut integer = num.integer.bytes::<FORMAT>();
+    integer.integer_iter().skip_zeros();
+    parse_u64_digits::<_, FORMAT>(
+        integer.integer_iter(),
+        &mut mantissa,
+        &mut step,
+        &mut overflow,
+        &mut zero,
+    );
 
     // Parse the fraction digits.
-    if byte.first_is(decimal_point) {
-        // SAFETY: s cannot be empty due to first_is
-        unsafe { byte.step_unchecked() };
-        parse_digits::<_, _, FORMAT>(byte.fraction_iter(), |digit| {
-            checked_add_digit!(mantissa, overflow, zero, radix, digit);
-        });
+    if let Some(fraction) = num.fraction {
+        let mut fraction = fraction.bytes::<FORMAT>();
+        if mantissa == 0 {
+            fraction.fraction_iter().skip_zeros();
+        }
+        parse_u64_digits::<_, FORMAT>(
+            fraction.fraction_iter(),
+            &mut mantissa,
+            &mut step,
+            &mut overflow,
+            &mut zero,
+        );
     }
 
     // Note: we're not guaranteed to have overflowed here, although it's
@@ -182,7 +224,7 @@ pub fn slow_binary<F: RawFloat, const FORMAT: u128>(
     // Normalize our mantissa for simpler results.
     let ctlz = mantissa.leading_zeros();
     mantissa <<= ctlz;
-    let mut power2 = shared::calculate_power2::<F, FORMAT>(exponent, ctlz);
+    let mut power2 = shared::calculate_power2::<F, FORMAT>(num.exponent, ctlz);
 
     shift_and_round!(F, mantissa, power2, !zero as u64)
 }

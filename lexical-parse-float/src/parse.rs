@@ -18,7 +18,7 @@ use crate::shared;
 use crate::slow::slow_radix;
 #[cfg(not(feature = "compact"))]
 use lexical_parse_integer::algorithm;
-use lexical_util::digit::char_to_digit_const;
+use lexical_util::digit::{char_to_digit_const, char_to_valid_digit_const};
 use lexical_util::error::Error;
 use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
@@ -330,7 +330,7 @@ pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
     {
         let format = NumberFormat::<{ FORMAT }> {};
         if matches!(format.mantissa_radix(), 2 | 4 | 8 | 16 | 32) {
-            slow_binary::<F, FORMAT>(byte, num.exponent, decimal_point)
+            slow_binary::<F, FORMAT>(num)
         } else {
             slow_radix::<F, FORMAT>(byte, num, fp, decimal_point)
         }
@@ -491,7 +491,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         parse_u64_digits::<_, FORMAT>(integer.integer_iter(), &mut mantissa, &mut step);
         implicit_exponent = if step == 0 {
             // Filled our mantissa with just the integer.
-            int_end - byte.cursor() as i64
+            int_end - integer.cursor() as i64
         } else {
             // We know this can't be a None since we had more than 19
             // digits previously, so we overflowed a 64-bit integer,
@@ -613,7 +613,6 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
         let radix4 = radix2.wrapping_mul(radix2);
         let radix8 = radix4.wrapping_mul(radix4);
         while *step > 8 {
-            // Can do up to 2 iterations without overflowing.
             if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
                 *mantissa = mantissa.wrapping_mul(radix8).wrapping_add(v);
                 *step -= 8;
@@ -626,7 +625,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     // Parse single digits at a time.
     while let Some(&c) = iter.peek() {
         if *step > 0 {
-            let digit = char_to_digit_const(c, radix as u32).unwrap();
+            let digit = char_to_valid_digit_const(c, radix as u32);
             *mantissa = *mantissa * radix + digit as u64;
             *step -= 1;
             // SAFETY: safe, since `iter` cannot be empty.

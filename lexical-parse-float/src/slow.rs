@@ -14,11 +14,12 @@ use crate::limits::{u32_power_limit, u64_power_limit};
 use crate::number::Number;
 use crate::shared;
 use core::cmp;
+use lexical_parse_integer::algorithm;
 #[cfg(feature = "radix")]
 use lexical_util::digit::digit_to_char_const;
-use lexical_util::digit::{char_is_digit_const, char_to_digit_const};
+use lexical_util::digit::{char_is_digit_const, char_to_valid_digit_const};
 use lexical_util::format::NumberFormat;
-use lexical_util::iterator::{Bytes, BytesIter};
+use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
 use lexical_util::num::{AsPrimitive, Integer};
 
 // ALGORITHM
@@ -42,6 +43,7 @@ use lexical_util::num::{AsPrimitive, Integer};
 /// a large number of digits to unambiguously determine how to round.
 #[inline]
 pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
+    // TODO(ahuszagh) Remove the byte
     byte: Bytes<FORMAT>,
     num: Number,
     fp: ExtendedFloat80,
@@ -71,10 +73,10 @@ pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
     {
         if let Some(max_digits) = F::max_digits(format.radix()) {
             // Can use our finite number of digit algorithm.
-            digit_comp::<F, FORMAT>(byte, fp, sci_exp, decimal_point, max_digits)
+            digit_comp::<F, FORMAT>(num, fp, sci_exp, max_digits)
         } else {
             // Fallback to infinite digits.
-            byte_comp::<F, FORMAT>(byte, fp, sci_exp, decimal_point)
+            byte_comp::<F, FORMAT>(byte, num, fp, sci_exp, decimal_point)
         }
     }
 
@@ -82,7 +84,7 @@ pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
     {
         // Can use our finite number of digit algorithm.
         let max_digits = F::max_digits(format.radix()).unwrap();
-        digit_comp::<F, FORMAT>(byte, fp, sci_exp, decimal_point, max_digits)
+        digit_comp::<F, FORMAT>(num, fp, sci_exp, max_digits)
     }
 }
 
@@ -94,13 +96,12 @@ pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
 /// digits to the theoretical digits for `b` and determine if we
 /// need to round-up.
 pub fn digit_comp<F: RawFloat, const FORMAT: u128>(
-    byte: Bytes<FORMAT>,
+    num: Number,
     fp: ExtendedFloat80,
     sci_exp: i32,
-    decimal_point: u8,
     max_digits: usize,
 ) -> ExtendedFloat80 {
-    let (bigmant, digits) = parse_mantissa::<F, FORMAT>(byte, decimal_point, max_digits);
+    let (bigmant, digits) = parse_mantissa::<F, FORMAT>(num, max_digits);
     // This can't underflow, since `digits` is at most `max_digits`.
     let exponent = sci_exp + 1 - digits as i32;
     if exponent >= 0 {
@@ -221,57 +222,87 @@ pub fn negative_digit_comp<F: RawFloat, const FORMAT: u128>(
     fp
 }
 
+/// Try to parse 8 digits at a time.
+#[cfg(not(feature = "compact"))]
+macro_rules! try_parse_8digits {
+    (
+        $format:ident,
+        $iter:ident,
+        $value:ident,
+        $count:ident,
+        $counter:ident,
+        $step:ident,
+        $max_digits:ident
+    ) => {{
+        let format = NumberFormat::<$format> {};
+        let radix = format.radix() as Limb;
+
+        // Try 8-digit optimizations.
+        if cfg!(not(feature = "radix")) || radix <= 10 {
+            let radix2 = radix.wrapping_mul(radix);
+            let radix4 = radix2.wrapping_mul(radix2);
+            let radix8 = radix4.wrapping_mul(radix4);
+
+            while $step - $counter >= 8 && $max_digits - $count >= 8 {
+                if let Some(v) = algorithm::try_parse_8digits::<Limb, _, FORMAT>(&mut $iter)
+                {
+                    $value = $value.wrapping_mul(radix8).wrapping_add(v);
+                    $counter += 8;
+                    $count += 8;
+                } else {
+                    break;
+                }
+            }
+        }
+    }}
+}
+
+/// Add a digit to the temporary value.
+macro_rules! add_digit {
+    ($c:ident, $radix:ident, $value:ident, $counter:ident, $count:ident) => {{
+        let digit = char_to_valid_digit_const($c, $radix);
+        $value *= $radix as Limb;
+        $value += digit as Limb;
+
+        // Increment our counters.
+        $counter += 1;
+        $count += 1;
+    }};
+}
+
 /// Add a temporary value to our mantissa.
 macro_rules! add_temporary {
-    (@max $result:ident, $max_native:ident, $counter:ident, $value:ident) => {
-        $result.data.mul_small($max_native);
+    // Multiply by the small power and add the native value.
+    (@mul $result:ident, $power:expr, $value:expr) => {
+        $result.data.mul_small($power);
         $result.data.add_small($value);
-        $counter = 0;
-        $value = 0;
     };
 
     ($format:ident, $result:ident, $counter:ident, $value:ident) => {
         if $counter != 0 {
             // SAFETY: safe, since `counter < step`.
             let small_power = unsafe { f64::int_pow_fast_path($counter, $format.radix()) };
-            $result.data.mul_small(small_power as Limb);
-            $result.data.add_small($value);
+            add_temporary!(@mul $result, small_power as Limb, $value);
+            $counter = 0;
+            $value = 0;
         }
     };
-}
 
-/// Add a single digit to the big integer
-macro_rules! add_digit {
-    (
-        $format:ident,
-        $max_digits:ident,
-        $step:ident,
-        $max_native:ident,
-        $digit:ident,
-        $counter:ident,
-        $count:ident,
-        $value:ident,
-        $result:ident,
-        $is_truncated:expr
-    ) => {{
-        // Add our temporary values.
-        $value *= $format.radix() as Limb;
-        $value += $digit as Limb;
-
-        // Check if we've reached our max native value.
-        $counter += 1;
-        $count += 1;
-        if $counter == $step {
-            add_temporary!(@max $result, $max_native, $counter, $value);
+    // Add a temporary where we won't read the counter results internally.
+    (@end $format:ident, $result:ident, $counter:ident, $value:ident) => {
+        if $counter != 0 {
+            // SAFETY: safe, since `counter < step`.
+            let small_power = unsafe { f64::int_pow_fast_path($counter, $format.radix()) };
+            add_temporary!(@mul $result, small_power as Limb, $value);
         }
+    };
 
-        // Check if we've exhausted our max digits.
-        if $count == $max_digits {
-            // Need to check if we're truncated, and round-up accordingly.
-            add_temporary!($format, $result, $counter, $value);
-            return $is_truncated();
-        }
-    }};
+    // Add the maximum native value.
+    (@max $format:ident, $result:ident, $counter:ident, $value:ident, $max:ident) => {
+        add_temporary!(@mul $result, $max, $value);
+        $counter = 0;
+        $value = 0;
+    };
 }
 
 /// Round-up a truncated value.
@@ -280,16 +311,16 @@ macro_rules! round_up_truncated {
         // Need to round-up.
         // Can't just add 1, since this can accidentally round-up
         // values to a halfway point, which can cause invalid results.
-        $result.data.mul_small($format.radix() as Limb);
-        $result.data.add_small(1);
+        add_temporary!(@mul $result, $format.radix() as Limb, 1);
         $count += 1;
     }};
 }
 
 /// Check and round-up the fraction if any non-zero digits exist.
-macro_rules! round_up_fraction {
-    ($format:ident, $byte:ident, $result:ident, $count:ident) => {{
-        for &digit in $byte.fraction_iter() {
+macro_rules! round_up_nonzero {
+    ($format:ident, $iter:expr, $result:ident, $count:ident) => {{
+        let iter = $iter;
+        for &digit in iter {
             if !char_is_digit_const(digit, $format.radix()) {
                 // Hit the exponent: no more digits, no need to round-up.
                 return ($result, $count);
@@ -298,7 +329,6 @@ macro_rules! round_up_fraction {
                 return ($result, $count);
             }
         }
-        ($result, $count)
     }};
 }
 
@@ -307,8 +337,7 @@ macro_rules! round_up_fraction {
 /// Returns the parsed mantissa and the number of digits in the mantissa.
 /// The max digits is the maximum number of digits plus one.
 pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
-    mut byte: Bytes<FORMAT>,
-    decimal_point: u8,
+    num: Number,
     max_digits: usize,
 ) -> (Bigint, usize) {
     let format = NumberFormat::<FORMAT> {};
@@ -332,75 +361,74 @@ pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
     let max_native = (format.radix() as Limb).pow(step as u32);
 
     // Process the integer digits.
-    byte.integer_iter().skip_zeros();
-    for &c in byte.integer_iter() {
-        let digit = match char_to_digit_const(c, radix) {
-            Some(v) => v,
-            None if c == decimal_point => break,
-            // Encountered an exponent character.
-            None => {
-                add_temporary!(format, result, counter, value);
-                return (result, count);
-            },
-        };
-        add_digit!(
-            format,
-            max_digits,
-            step,
-            max_native,
-            digit,
-            counter,
-            count,
-            value,
-            result,
-            || {
-                for &digit in byte.integer_iter() {
-                    if digit == decimal_point {
-                        break;
-                    } else if !char_is_digit_const(digit, format.radix()) {
-                        // Hit the exponent: no more digits, no need to round-up.
-                        return (result, count);
-                    } else if digit != b'0' {
-                        round_up_truncated!(format, result, count);
-                        return (result, count);
+    let mut integer = num.integer.bytes::<FORMAT>();
+    let mut integer_iter = integer.integer_iter();
+    integer_iter.skip_zeros();
+    'integer: while !integer_iter.is_done() {
+        #[cfg(not(feature = "compact"))]
+        try_parse_8digits!(FORMAT, integer_iter, value, count, counter, step, max_digits);
+
+        // Parse a digit at a time, until we reach step.
+        while counter < step {
+            if let Some(&c) = integer_iter.next() {
+                add_digit!(c, radix, value, counter, count);
+
+                // Check if we've exhausted our max digits.
+                if count == max_digits {
+                    // Need to check if we're truncated, and round-up accordingly.
+                    add_temporary!(@end format, result, counter, value);
+                    round_up_nonzero!(format, integer_iter, result, count);
+                    if let Some(fraction) = num.fraction {
+                        let mut fraction = fraction.bytes::<FORMAT>();
+                        round_up_nonzero!(format, fraction.fraction_iter(), result, count)
                     }
+                    return (result, count);
                 }
-                round_up_fraction!(format, byte, result, count)
+            } else {
+                break 'integer;
             }
-        );
+        }
+
+        // Add our temporary from the loop.
+        add_temporary!(@max format, result, counter, value, max_native);
     }
 
     // Process the fraction digits.
-    if count == 0 {
-        // No digits added yet, can skip leading fraction zeros too.
-        byte.fraction_iter().skip_zeros();
-    }
-    for &c in byte.fraction_iter() {
-        let digit = match char_to_digit_const(c, radix) {
-            Some(v) => v,
-            // Encountered an exponent character.
-            None => {
-                add_temporary!(format, result, counter, value);
-                return (result, count);
-            },
-        };
-        add_digit!(
-            format,
-            max_digits,
-            step,
-            max_native,
-            digit,
-            counter,
-            count,
-            value,
-            result,
-            || round_up_fraction!(format, byte, result, count)
-        );
+    if let Some(fraction) = num.fraction {
+        let mut fraction = fraction.bytes::<FORMAT>();
+        let mut fraction_iter = fraction.integer_iter();
+        if count == 0 {
+            // No digits added yet, can skip leading fraction zeros too.
+            fraction_iter.skip_zeros();
+        }
+        'fraction: while !fraction_iter.is_done() {
+            #[cfg(not(feature = "compact"))]
+            try_parse_8digits!(FORMAT, fraction_iter, value, count, counter, step, max_digits);
+
+            // Parse a digit at a time, until we reach step.
+            while counter < step {
+                if let Some(&c) = fraction_iter.next() {
+                    add_digit!(c, radix, value, counter, count);
+
+                    // Check if we've exhausted our max digits.
+                    if count == max_digits {
+                        add_temporary!(@end format, result, counter, value);
+                        round_up_nonzero!(format, fraction_iter, result, count);
+                        return (result, count);
+                    }
+                } else {
+                    break 'fraction;
+                }
+            }
+
+            // Add our temporary from the loop.
+            add_temporary!(@max format, result, counter, value, max_native);
+        }
     }
 
     // We will always have a remainder, as long as we entered the loop
     // once, or counter % step is 0.
-    add_temporary!(format, result, counter, value);
+    add_temporary!(@end format, result, counter, value);
 
     (result, count)
 }
@@ -497,7 +525,9 @@ macro_rules! fraction_compare {
 /// available [here](https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/).
 #[cfg(feature = "radix")]
 pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
+    // TODO(ahuszagh) Remove the byte
     byte: Bytes<FORMAT>,
+    num: Number,
     mut fp: ExtendedFloat80,
     sci_exp: i32,
     decimal_point: u8,
