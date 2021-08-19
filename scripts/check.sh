@@ -11,17 +11,20 @@ cd "$script_dir"/..
 
 # Do the formatting and clippy for all our project workspaces.
 cargo +nightly fmt -- --check
-cargo +nightly clippy -- --deny warnings
+cargo +nightly clippy --no-default-features -- --deny warnings
+cargo +nightly clippy --features=compact -- --deny warnings
+cargo +nightly clippy --features=format,radix -- --deny warnings
+cargo +nightly clippy --all-features -- --deny warnings
 
 # ASM, size, and benchmarks use separate workspaces, do those separately.
 cd lexical-asm
 cargo +nightly fmt -- --check
-cargo +nightly clippy -- --deny warnings
+cargo +nightly clippy --all-features -- --deny warnings
 
 cd ../lexical-size
 cargo +nightly fmt -- --check
-cargo +nightly clippy -- --deny warnings
+cargo +nightly clippy --all-features -- --deny warnings
 
 cd ../lexical-benchmark
 cargo +nightly fmt -- --check
-cargo +nightly clippy --benches -- --deny warnings
+cargo +nightly clippy --all-features --benches -- --deny warnings

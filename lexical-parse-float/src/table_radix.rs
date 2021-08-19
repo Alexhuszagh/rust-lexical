@@ -3,6 +3,7 @@
 #![cfg(feature = "radix")]
 #![cfg(not(feature = "compact"))]
 #![doc(hidden)]
+#![allow(clippy::excessive_precision)]
 
 use crate::bigint::Limb;
 use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit, u64_power_limit};

@@ -518,7 +518,6 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         if Self::IS_CONTIGUOUS {
             // Contiguous, can skip most of these checks.
             debug_assert!(self.as_slice().len() >= count);
-            self.index += count;
         } else {
             // Since this isn't contiguous, it only works
             // if the value is in the range `[0, 1]`.
@@ -530,8 +529,8 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
             debug_assert!(
                 count == 0 || self.slc.get(self.index) != Some(&format.digit_separator())
             );
-            self.index += count;
         }
+        self.index += count;
     }
 
     /// Advance the byte by 1 element.

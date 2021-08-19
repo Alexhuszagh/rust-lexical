@@ -221,6 +221,8 @@ impl Bigfloat {
 
 #[cfg(feature = "radix")]
 impl ops::MulAssign<&Bigfloat> for Bigfloat {
+    #[inline]
+    #[allow(clippy::suspicious_op_assign_impl)]
     fn mul_assign(&mut self, rhs: &Bigfloat) {
         large_mul(&mut self.data, &rhs.data);
         self.exp += rhs.exp;
@@ -1081,6 +1083,7 @@ pub fn large_add<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) {
 /// ```
 ///
 /// In short, Karatsuba multiplication is never worthwhile for out use-case.
+#[allow(clippy::needless_range_loop)]
 pub fn long_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> StackVec<SIZE> {
     // Using the immutable value, multiply by all the scalars in y, using
     // the algorithm defined above. Use a single buffer to avoid

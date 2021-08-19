@@ -10,6 +10,7 @@ use crate::float::{ExtendedFloat80, RawFloat};
 use crate::mask::lower_n_halfway;
 use crate::number::Number;
 use crate::shared;
+#[cfg(not(feature = "compact"))]
 use lexical_parse_integer::algorithm;
 use lexical_util::digit::char_to_valid_digit_const;
 use lexical_util::format::NumberFormat;
@@ -89,6 +90,7 @@ pub fn binary<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> Ext
 
 /// Iteratively parse and consume digits without overflowing.
 #[inline]
+#[allow(unused_mut)]
 pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     mut iter: Iter,
     mantissa: &mut u64,
@@ -118,7 +120,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     }
 
     // Parse single digits at a time.
-    while let Some(&c) = iter.next() {
+    for &c in iter {
         let digit = char_to_valid_digit_const(c, radix as _);
         if !*overflowed {
             let result = mantissa.checked_mul(radix as _).and_then(|x| x.checked_add(digit as _));

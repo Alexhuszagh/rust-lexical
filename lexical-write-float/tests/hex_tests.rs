@@ -362,7 +362,6 @@ where
 #[test]
 fn write_float_test() {
     let options = Options::builder().build().unwrap();
-    use lexical_util::format::NumberFormat;
 
     write_float::<_, BASE4_2_10>(
         0.2345678901234567890f64,

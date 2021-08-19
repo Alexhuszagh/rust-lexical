@@ -14,6 +14,7 @@ use crate::limits::{u32_power_limit, u64_power_limit};
 use crate::number::Number;
 use crate::shared;
 use core::cmp;
+#[cfg(not(feature = "compact"))]
 use lexical_parse_integer::algorithm;
 use lexical_util::digit::char_to_valid_digit_const;
 #[cfg(feature = "radix")]
@@ -521,6 +522,7 @@ macro_rules! fraction_compare {
 /// Adapted from "Bigcomp: Deciding Truncated, Near Halfway Conversions",
 /// available [here](https://www.exploringbinary.com/bigcomp-deciding-truncated-near-halfway-conversions/).
 #[cfg(feature = "radix")]
+#[allow(clippy::comparison_chain)]
 pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
     number: Number,
     mut fp: ExtendedFloat80,
@@ -533,7 +535,7 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
     let format = NumberFormat::<FORMAT> {};
 
     // Round down our extended-precision float and calculate `b`.
-    let mut b = fp.clone();
+    let mut b = fp;
     shared::round::<F, _>(&mut b, shared::round_down);
     let b = extended_to_float::<F>(b);
 

@@ -251,6 +251,7 @@ pub unsafe fn grisu<F: Float>(float: F, digits: &mut [u8]) -> (usize, i32) {
 /// # Safety
 ///
 /// Safe as long as `ndigits <= digits.len()`.
+#[allow(clippy::comparison_chain)]
 pub unsafe fn truncate_and_round(
     digits: &mut [u8],
     ndigits: usize,
@@ -312,6 +313,7 @@ pub unsafe fn truncate_and_round(
 ///
 /// Safe as long as `bytes` is large enough to hold the number of digits
 /// and the scientific notation's exponent digits.
+#[allow(clippy::comparison_chain)]
 pub unsafe fn write_float_scientific<const FORMAT: u128>(
     bytes: &mut [u8],
     digits: &mut [u8],
@@ -357,7 +359,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     if ndigits < exact_count {
         let zeros = exact_count - ndigits;
         unsafe {
-            slice_fill_unchecked!(&mut index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
+            slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
         }
     } else if ndigits > exact_count {
         cursor -= ndigits - exact_count;
@@ -378,6 +380,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
 ///
 /// Safe as long as `bytes` is large enough to hold the number of
 /// significant digits and the leading zeros.
+#[allow(clippy::comparison_chain)]
 pub unsafe fn write_float_negative_exponent<const FORMAT: u128>(
     bytes: &mut [u8],
     digits: &mut [u8],
@@ -425,7 +428,7 @@ pub unsafe fn write_float_negative_exponent<const FORMAT: u128>(
     if ndigits < exact_count {
         let zeros = exact_count - ndigits;
         unsafe {
-            slice_fill_unchecked!(&mut index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
+            slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
         }
     } else if ndigits > exact_count {
         cursor -= ndigits - exact_count;
@@ -449,7 +452,7 @@ pub unsafe fn write_float_positive_exponent<const FORMAT: u128>(
     options: &Options,
 ) -> usize {
     debug_assert!(ndigits <= 20);
-    debug_assert!(k + ndigits as i32 - 1 >= 0);
+    debug_assert!(k + ndigits as i32 > 0);
 
     // Config options
     let decimal_point = options.decimal_point();
