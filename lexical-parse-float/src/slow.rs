@@ -372,7 +372,7 @@ pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
     let mut integer = num.integer.bytes::<FORMAT>();
     let mut integer_iter = integer.integer_iter();
     integer_iter.skip_zeros();
-    'integer: while !integer_iter.is_done() {
+    'integer: loop {
         #[cfg(not(feature = "compact"))]
         try_parse_8digits!(FORMAT, integer_iter, value, count, counter, step, max_digits);
 
@@ -409,7 +409,7 @@ pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
             // No digits added yet, can skip leading fraction zeros too.
             fraction_iter.skip_zeros();
         }
-        'fraction: while !fraction_iter.is_done() {
+        'fraction: loop {
             #[cfg(not(feature = "compact"))]
             try_parse_8digits!(FORMAT, fraction_iter, value, count, counter, step, max_digits);
 

@@ -644,7 +644,7 @@ macro_rules! skip_iterator_byteiter_base {
 
         #[inline]
         unsafe fn set_cursor(&mut self, index: usize) {
-            self.byte.set_cursor(index);
+            unsafe { self.byte.set_cursor(index) };
         }
 
         #[inline]

@@ -242,7 +242,7 @@ impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
 
     #[inline]
     unsafe fn set_cursor(&mut self, index: usize) {
-        self.byte.set_cursor(index);
+        unsafe { self.byte.set_cursor(index) };
     }
 
     #[inline]

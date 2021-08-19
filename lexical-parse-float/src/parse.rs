@@ -341,14 +341,16 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     options: &Options,
 ) -> Result<(Number<'a>, usize)> {
     //  NOTE:
-    //      We need to minimize the number of multiplication instructions
-    //      to not decimate performance for extremely long strings, but
-    //      we cannot affect performance in **common** cases, which means
-    //      overflow checking, bounds-checking, or anything else
-    //      out-of-the-question. The only solution therefore is limiting
-    //      the size of the buffer we do multiplications on. In practice,
-    //      this is just `buffer.len().min(step)`, but we can only do this
-    //      if we don't have digit separators.
+    //      There are no satisfactory optimizations to reduce the number
+    //      of multiplications for very long input strings, but this will
+    //      be a small fraction of the performance penalty anyway.
+    //
+    //      We've tried:
+    //          - checking for explicit overflow, via `overflowing_mul`.
+    //          - counting the max number of steps.
+    //          - subslicing the string, and only processing the first `step` digits.
+    //
+    //      All of these lead to substantial performance penalty.
 
     // Config options
     let format = NumberFormat::<{ FORMAT }> {};
@@ -358,7 +360,6 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     debug_assert!(!byte.is_done());
     let bits_per_digit = shared::log2(format.mantissa_radix()) as i64;
     let bits_per_base = shared::log2(format.exponent_base()) as i64;
-    let mut step = u64_step(format.radix());
 
     // INTEGER
 
@@ -366,9 +367,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let mut mantissa = 0_u64;
     let start = byte.clone();
     // Skip leading zeros, to avoid unnecessary multiplication instructions.
-    let mut integer_iter = byte.integer_iter();
-    integer_iter.skip_zeros();
-    parse_digits::<_, _, FORMAT>(integer_iter, |digit| {
+    parse_digits::<_, _, FORMAT>(byte.integer_iter(), |digit| {
         mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
     });
     let mut n_digits = byte.cursor() - start.cursor();
@@ -393,9 +392,6 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         unsafe { byte.step_unchecked() };
         let before = byte.clone();
         // Skip leading zeros, to avoid unnecessary multiplication instructions.
-        if mantissa == 0 {
-            byte.fraction_iter().skip_zeros();
-        }
         #[cfg(not(feature = "compact"))]
         parse_8digits::<_, FORMAT>(byte.fraction_iter(), &mut mantissa);
         parse_digits::<_, _, FORMAT>(byte.fraction_iter(), |digit| {
@@ -463,6 +459,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 
     // Get the number of parsed digits (total), and redo if we had overflow.
     let end = byte.cursor();
+    let mut step = u64_step(format.radix());
     let mut many_digits = false;
     if cfg!(feature = "format") && !format.required_mantissa_digits() && n_digits == 0 {
         exponent = 0;
