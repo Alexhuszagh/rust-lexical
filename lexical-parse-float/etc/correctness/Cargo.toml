@@ -1,0 +1,75 @@
+[package]
+name = "lexical-parse-float-correctness"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies.lexical-parse-float]
+path = "../.."
+default-features = false
+features = []
+
+[dependencies]
+rand = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.5"
+
+[features]
+std = ["lexical-parse-float/std"]
+power-of-two = ["lexical-parse-float/power-of-two"]
+radix = ["lexical-parse-float/radix"]
+format = ["lexical-parse-float/format"]
+compact = ["lexical-parse-float/compact"]
+
+[workspace]
+
+# Special testing binaries for the runtests.py scripts.
+[[bin]]
+name = "few_ones"
+path = "test-parse-random/few_ones.rs"
+
+[[bin]]
+name = "huge-pow10"
+path = "test-parse-random/huge-pow10.rs"
+
+[[bin]]
+name = "long-fractions"
+path = "test-parse-random/long-fractions.rs"
+
+[[bin]]
+name = "many-digits"
+path = "test-parse-random/many-digits.rs"
+
+[[bin]]
+name = "rand-f64"
+path = "test-parse-random/rand-f64.rs"
+
+[[bin]]
+name = "short-decimals"
+path = "test-parse-random/short-decimals.rs"
+
+[[bin]]
+name = "subnorm"
+path = "test-parse-random/subnorm.rs"
+
+[[bin]]
+name = "tiny-pow10"
+path = "test-parse-random/tiny-pow10.rs"
+
+[[bin]]
+name = "u32-small"
+path = "test-parse-random/u32-small.rs"
+
+[[bin]]
+name = "u64-pow2"
+path = "test-parse-random/u64-pow2.rs"
+
+[[bin]]
+name = "test-parse-golang"
+path = "test-parse-golang/main.rs"
+
+[[bin]]
+name = "test-parse-unittests"
+path = "test-parse-unittests/main.rs"
