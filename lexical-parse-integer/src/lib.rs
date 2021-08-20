@@ -52,6 +52,7 @@
 #![doc = include_str!("../docs/Algorithm.md")]
 //!
 #![doc = include_str!("../docs/Benchmarks.md")]
+
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
 #![allow(unused_unsafe)]

@@ -134,7 +134,8 @@ fn parse_8digits_test() {
     let digits = b"1234567890123456789012345";
     let mut byte = digits.bytes::<{ FORMAT }>();
     parse::parse_8digits::<_, FORMAT>(byte.integer_iter(), &mut mantissa);
-    assert_eq!(mantissa, 1234567890123456);
+    // We don't check for overflow.
+    assert_eq!(mantissa, 11177671081359486962);
 }
 
 #[test]

@@ -6,9 +6,36 @@
 //! to minimize the number of branches (and therefore optimization checks).
 //! Most of the branches in the code are resolved at compile-time, and
 //! the resulting ASM as well as comprehensive benchmarks are monitored
-//! to ensure there are no regressions. For simple floats, we use an
-//! optimized digit parser with multiple-digit optimizations (parsing
-//! 8 digits in 3 multiplication instructions).
+//! to ensure there are no regressions.
+//!
+//! For simple floats, we use an optimized digit parser with multiple-digit
+//! optimizations (parsing 8 digits in 3 multiplication instructions),
+//! and then use machine floats to create an exact representation with
+//! high throughput. In more complex cases, we use the Eisel-Lemire
+//! algorithm, described in "Number Parsing at a Gigabyte per Second",
+//! available online [here](https://arxiv.org/abs/2101.11408). The
+//! Eisel-Lemire algorithm creates an extended representation using a
+//! 128-bit (or a fallback 192-bit representation) of the significant
+//! digits of the float, scaled to the proper exponent using pre-computed
+//! powers-of-5.
+//!
+//! If the Eisel-Lemire algorithm is unable to unambiguously round the float,
+//! we fallback to using optimized, big-integer algorithms, which are
+//! described in [Algorithm Approach](#algorithm-approach) below.
+//!
+//! # Features
+//!
+//! * `std` - Use the standard library.
+//! * `power-of-two` - Add support for parsing power-of-two integer strings.
+//! * `radix` - Add support for strings of any radix.
+//! * `format` - Add support for parsing custom integer formats.
+//! * `compact` - Reduce code size at the cost of performance.
+//! * `safe` - Ensure only memory-safe indexing is used.
+//! * `nightly` - Enable assembly instructions to control FPU rounding modes.
+//!
+//! `safe` has a fairly minimal impact, since all parsers are memory-safe
+//! by default except where unsafe functionality can trivially be proven
+//! correct.
 //!
 //! # Note
 //!
@@ -35,7 +62,6 @@
 #![doc = include_str!("../docs/Benchmarks.md")]
 //!
 #![doc = include_str!("../docs/BigInteger.md")]
-// TODO(ahuszagh) Document...
 
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.

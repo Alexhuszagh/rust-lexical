@@ -385,7 +385,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     parse_digits::<_, _, FORMAT>(byte.integer_iter(), |digit| {
         mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
     });
-    let mut n_digits = byte.cursor() - start.cursor();
+    let mut n_digits = byte.current_count() - start.current_count();
     if cfg!(feature = "format") && format.required_integer_digits() && n_digits == 0 {
         return Err(Error::EmptyInteger(byte.cursor()));
     }
@@ -400,7 +400,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let mut n_after_dot = 0;
     let mut exponent = 0_i64;
     let mut implicit_exponent: i64;
-    let int_end = byte.cursor() as i64;
+    let int_end = byte.current_count() as i64;
     let mut fraction_digits = None;
     if byte.first_is(decimal_point) {
         // SAFETY: s cannot be empty due to first_is
@@ -411,7 +411,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         parse_digits::<_, _, FORMAT>(byte.fraction_iter(), |digit| {
             mantissa = mantissa.wrapping_mul(format.radix() as _).wrapping_add(digit as _);
         });
-        n_after_dot = byte.cursor() - before.cursor();
+        n_after_dot = byte.current_count() - before.current_count();
 
         // Store the fraction digits for slow-path algorithms.
         // SAFETY: safe, since `n_after_dot <= before.as_slice().len()`.
@@ -448,7 +448,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         // SAFETY: byte cannot be empty due to first_is
         unsafe { byte.step_unchecked() };
         let (is_negative, shift) = parse_exponent_sign!(byte, format);
-        let before = byte.cursor();
+        let before = byte.current_count();
         // SAFETY: safe since we shift at most one for a parsed sign byte.
         unsafe { byte.step_by_unchecked(shift) };
         parse_digits::<_, _, FORMAT>(byte.exponent_iter(), |digit| {
@@ -457,7 +457,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
                 explicit_exponent += digit as i64;
             }
         });
-        if format.required_exponent_digits() && byte.cursor() - before == 0 {
+        if format.required_exponent_digits() && byte.current_count() - before == 0 {
             return Err(Error::EmptyExponent(byte.cursor()));
         }
         // Handle our sign, and get the explicit part of the exponent.
@@ -526,7 +526,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         parse_u64_digits::<_, FORMAT>(integer_iter, &mut mantissa, &mut step);
         implicit_exponent = if step == 0 {
             // Filled our mantissa with just the integer.
-            int_end - integer.cursor() as i64
+            int_end - integer.current_count() as i64
         } else {
             // We know this can't be a None since we had more than 19
             // digits previously, so we overflowed a 64-bit integer,
@@ -540,7 +540,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
                 fraction_iter.skip_zeros();
             }
             parse_u64_digits::<_, FORMAT>(fraction_iter, &mut mantissa, &mut step);
-            -(fraction.cursor() as i64)
+            -(fraction.current_count() as i64)
         };
         if format.mantissa_radix() == format.exponent_base() {
             exponent = implicit_exponent;
