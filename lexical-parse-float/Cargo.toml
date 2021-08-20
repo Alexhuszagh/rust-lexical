@@ -12,6 +12,7 @@ repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
 version = "0.1.0"
 exclude = [
     "assets/*",
+    "etc/*",
     "cargo-timing*.html"
 ]
 
@@ -71,7 +72,7 @@ compact = [
 # examples of potential memory unsafety are trivial to prove safe.
 safe = ["lexical-parse-integer/safe"]
 # Add support for nightly-only features.
-nightly = []
+nightly = ["lexical-parse-integer/nightly"]
 
 # Internal only features.
 # Enable the lint checks.

@@ -318,11 +318,26 @@
     doc = " - [Writing Integers](lexical_write_integer#benchmarks)"
 )]
 //!
-#![doc = include_str!("../../docs/BinarySize.md")]
+#![cfg_attr(feature = "nightly", doc = include_str!("../../docs/BinarySize.md"))]
 //!
-#![doc = include_str!("../../docs/BuildTimings.md")]
+#![cfg_attr(feature = "nightly", doc = include_str!("../../docs/BuildTimings.md"))]
 //!
-#![doc = include_str!("../../docs/DigitSeparators.md")]
+#![cfg_attr(feature = "nightly", doc = include_str!("../../docs/DigitSeparators.md"))]
+//!
+#![cfg_attr(
+    not(feature = "nightly"),
+    doc = " - [Binary Size](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/docs/BinarySize.md)"
+)]
+//!
+#![cfg_attr(
+    not(feature = "nightly"),
+    doc = " - [Build Timings](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/docs/BuildTimings.md)"
+)]
+//!
+#![cfg_attr(
+    not(feature = "nightly"),
+    doc = " - [Digit Separators](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/docs/DigitSeparators.md)"
+)]
 //!
 //! # Version Support
 //!

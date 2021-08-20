@@ -12,6 +12,7 @@ repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
 version = "0.1.0"
 exclude = [
     "assets/*",
+    "etc/*",
     "cargo-timing*.html"
 ]
 
@@ -69,6 +70,8 @@ compact = [
 # This is not enabled by default for writers, due to the performance
 # costs, and since input can be easily validated to avoid buffer overwrites.
 safe = ["lexical-write-integer/safe"]
+# Add support for nightly-only features.
+nightly = ["lexical-write-integer/nightly"]
 
 # Internal only features.
 # Enable the lint checks.

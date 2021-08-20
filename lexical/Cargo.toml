@@ -12,6 +12,7 @@ repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
 version = "0.1.0"
 exclude = [
     "assets/*",
+    "etc/*",
     "cargo-timing*.html"
 ]
 

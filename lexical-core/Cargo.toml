@@ -12,6 +12,7 @@ repository = "https://github.com/Alexhuszagh/rust-lexical-experimental"
 version = "0.1.0"
 exclude = [
     "assets/*",
+    "etc/*",
     "cargo-timing*.html"
 ]
 
@@ -55,8 +56,6 @@ std = [
     "lexical-parse-integer/std",
     "lexical-parse-float/std"
 ]
-# Add support for nightly-only features.
-nightly = ["lexical-parse-float/nightly"]
 # Add support for writing integers.
 write-integers = ["lexical-write-integer", "write", "integers"]
 # Add support for writing floats.
@@ -106,6 +105,13 @@ safe = [
     "lexical-write-float/safe",
     "lexical-parse-integer/safe",
     "lexical-parse-float/safe"
+]
+# Add support for nightly-only features.
+nightly = [
+    "lexical-write-integer/nightly",
+    "lexical-write-float/nightly",
+    "lexical-parse-integer/nightly",
+    "lexical-parse-float/nightly"
 ]
 
 # Internal only features.
