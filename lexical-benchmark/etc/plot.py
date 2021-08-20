@@ -10,9 +10,11 @@
 import argparse
 import json
 import os
+import re
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import numpy as np
 
 plt.style.use('ggplot')
 
@@ -69,14 +71,71 @@ def format_time(time):
     time /= 1000
     return f'{strip_zero(str(round(time, 3)))} s'
 
-def plot_figure(data, path, title, prefix):
-    '''Plot a generic figure.'''
+def integer_sort_key(x):
+    '''Sort key for an integral value.'''
+    return (x[0], int(x[1:]))
+
+def plot_bar(
+    prefix=None,
+    xlabel=None,
+    data=None,
+    path=None,
+    title=None,
+    key=None
+):
+    '''Plot a generic bar chart.'''
 
     keys = [i.split('_')[1:] for i in data.keys()]
-    xticks = sorted({i[0] for i in keys}, key=lambda x: (x[0], int(x[1:])))
+    xticks = sorted({i[0] for i in keys})
     libraries = sorted({i[1] for i in keys})
-    unsigned = [i for i in xticks if i.startswith('u')]
-    signed = [i for i in xticks if i.startswith('i')]
+
+    def plot_ax(ax, xticks):
+        '''Plot an axis with various subfigures.'''
+
+        length = len(xticks)
+        width = 0.4 / len(libraries)
+        x = np.arange(length)
+        for index, library in enumerate(libraries):
+            xi = x + width * index
+            yi = [data[f'{prefix}_{i}_{library}'] for i in xticks]
+            plt.bar(xi, yi, width, label=library, alpha=.7)
+
+        ax.grid(color='white', linestyle='solid')
+        ax.set_title(title)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel('Time (Log)')
+        ax.set_yscale('log')
+        ax.set_xticks(x + width * len(libraries) / 4)
+        ax.set_xticklabels(xticks, rotation=-45)
+        ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: format_time(x)))
+        ax.legend(libraries, fancybox=True, framealpha=1, shadow=True, borderpad=1)
+
+    fig = plt.figure(figsize=(10, 8))
+    index = 1
+    ax = fig.add_subplot(1, 1, 1)
+    plot_ax(ax, xticks)
+
+    fig.savefig(path, format='svg')
+    fig.clf()
+
+def plot_scatter(
+    prefix=None,
+    xlabel=None,
+    data=None,
+    path=None,
+    title=None,
+    rows=None,
+    key=None
+):
+    '''Plot a generic scatter plot.'''
+
+    keys = [i.split('_')[1:] for i in data.keys()]
+    xticks = sorted({i[0] for i in keys}, key=key)
+    libraries = sorted({i[1] for i in keys})
+    row_data = [xticks]
+    if rows is not None:
+        row_data = [[i for i in xticks if i.startswith(r)] for r in rows]
+        row_data = [i for i in row_data if i]
 
     def plot_ax(ax, xticks):
         '''Plot an axis with various subfigures.'''
@@ -87,35 +146,25 @@ def plot_figure(data, path, title, prefix):
                 xticks, ys, '-o', mec='k', ms=15,
                 mew=1, alpha=.8, label=library
             )
-            labels = [format_time(i) for i in ys]
 
         ax.grid(color='white', linestyle='solid')
         ax.set_title(title)
-        ax.set_xlabel('Integer Types')
+        ax.set_xlabel(xlabel)
         ax.set_ylabel('Time (Log)')
         ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: format_time(x)))
         ax.legend(libraries, fancybox=True, framealpha=1, shadow=True, borderpad=1)
 
-    nrows = bool(signed) + bool(unsigned)
+    nrows = len(row_data)
     height = 8 * nrows
     fig = plt.figure(figsize=(10, height))
     index = 1
-    if unsigned:
+    for row in row_data:
         ax = fig.add_subplot(nrows, 1, index)
-        plot_ax(ax, unsigned)
-        index += 1
-    if signed:
-        ax = fig.add_subplot(nrows, 1, index)
-        plot_ax(ax, signed)
+        plot_ax(ax, row)
         index += 1
 
     fig.savefig(path, format='svg')
     fig.clf()
-
-def plot_write_integer_figure(data, path, title):
-    '''Plot write integer figure'''
-
-    plot_figure(data, path, title, 'write')
 
 def plot_write_integer(args):
     '''Plot the write integer dataset.'''
@@ -124,54 +173,160 @@ def plot_write_integer(args):
     with open(f'{home}/results/{filename("write-integer", args)}.json') as file:
         data = json.load(file)
 
+    scatter_kwds = {
+        'prefix': 'write',
+        'xlabel': 'Integer Types',
+        'rows': ['u', 'i'],
+        'key': integer_sort_key,
+    }
+
     # First plot JSON data.
-    plot_write_integer_figure(
-        data['json:simple'],
-        f'{assets}/{filename("json_simple", args)}.svg',
-        'JSON Data: Simple',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['json:simple'],
+        path=f'{assets}/{filename("json_simple", args)}.svg',
+        title='JSON Data: Simple',
     )
-    plot_write_integer_figure(
-        data['json:random'],
-        f'{assets}/{filename("json_random", args)}.svg',
-        'JSON Data: Random',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['json:random'],
+        path=f'{assets}/{filename("json_random", args)}.svg',
+        title='JSON Data: Random',
     )
-    plot_write_integer_figure(
-        data['json:chain_random'],
-        f'{assets}/{filename("json_chain_random", args)}.svg',
-        'JSON Data: Chained Random',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['json:chain_random'],
+        path=f'{assets}/{filename("json_chain_random", args)}.svg',
+        title='JSON Data: Chained Random',
     )
 
     # First plot random data.
-    plot_write_integer_figure(
-        data['random:uniform'],
-        f'{assets}/{filename("random_uniform", args)}.svg',
-        'Random Data: Uniform',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['random:uniform'],
+        path=f'{assets}/{filename("random_uniform", args)}.svg',
+        title='Random Data: Uniform',
     )
-    plot_write_integer_figure(
-        data['random:simple'],
-        f'{assets}/{filename("random_simple", args)}.svg',
-        'Random Data: Simple',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['random:simple'],
+        path=f'{assets}/{filename("random_simple", args)}.svg',
+        title='Random Data: Simple',
     )
-    plot_write_integer_figure(
-        data['random:large'],
-        f'{assets}/{filename("random_large", args)}.svg',
-        'Random Data: Large',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['random:large'],
+        path=f'{assets}/{filename("random_large", args)}.svg',
+        title='Random Data: Large',
     )
-    plot_write_integer_figure(
-        data['random:simple_signed'],
-        f'{assets}/{filename("random_simple_signed", args)}.svg',
-        'Random Data: Simple Negative',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['random:simple_signed'],
+        path=f'{assets}/{filename("random_simple_signed", args)}.svg',
+        title='Random Data: Simple Negative',
     )
-    plot_write_integer_figure(
-        data['random:large_signed'],
-        f'{assets}/{filename("random_large_signed", args)}.svg',
-        'Random Data: Large Negative',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['random:large_signed'],
+        path=f'{assets}/{filename("random_large_signed", args)}.svg',
+        title='Random Data: Large Negative',
     )
 
-def plot_parse_integer_figure(data, path, title):
-    '''Plot parse integer figure'''
+def plot_parse_float_figure(data, path, title):
+    '''Plot parse float figure'''
 
-    plot_figure(data, path, title, 'parse')
+    plot_float_figure(data, path, title, 'parse')
+
+def plot_parse_float(args):
+    '''Plot the parse float dataset.'''
+
+    assets = f'{home}/../lexical-parse-float/assets'
+    with open(f'{home}/results/{filename("parse-float", args)}.json') as file:
+        data = json.load(file)
+
+    # Need to plot the real data sets.
+    real_data = {
+        **data['canada'],
+        **data['earth'],
+        **data['mesh'],
+    }
+    plot_bar(
+        prefix='parse',
+        xlabel='Dataset',
+        data=real_data,
+        path=f'{assets}/{filename("real", args)}.svg',
+        title='Real Datasets',
+    )
+
+    # Parse the random data
+    random_keys = [k for k in data.keys() if k.startswith('random')]
+    random_data = {}
+    for key in random_keys:
+        name = key.split(':')[1].replace('_', '-')
+        subkeys = [i for i in data[key].keys() if 'f64' in i]
+        for subkey in subkeys:
+            keyname = subkey.replace('f64', name)
+            random_data[keyname] = data[key][subkey]
+    plot_bar(
+        prefix='parse',
+        xlabel='Generator',
+        data=random_data,
+        path=f'{assets}/{filename("random", args)}.svg',
+        title='Random Data',
+    )
+
+    # Plot the contrived data.
+    contrived_map = {
+        "fast": data["contrived:fast"],
+        "disguised": data["contrived:disguised"],
+        "moderate": data["contrived:moderate"],
+        "halfway": data["contrived:halfway"],
+        "large": data["contrived:large30"],
+        "denormal": data["contrived:denormal30"],
+    }
+    contrived_sort = {k: i for i, k in enumerate(contrived_map.keys())}
+    contrived_data = {}
+    for key, values in contrived_map.items():
+        contrived_data.update({k.replace('f64', key): v for k, v in values.items()})
+    plot_scatter(
+        prefix='parse',
+        xlabel='Float Type',
+        data=contrived_data,
+        path=f'{assets}/{filename("contrived", args)}.svg',
+        title='Contrived Data',
+        key=lambda x: contrived_sort[x],
+    )
+
+    # Plot the denormal and large data
+    large_keys = [i for i in data.keys() if 'large' in i]
+    large_data = {}
+    for key in large_keys:
+        name = key[len('contrived:large'):]
+        values = data[key]
+        large_data.update({k.replace('f64', name): v for k, v in values.items()})
+    plot_scatter(
+        prefix='parse',
+        xlabel='Digit Count',
+        data=large_data,
+        path=f'{assets}/{filename("large", args)}.svg',
+        title='Large, Near-Halfway Floats',
+        key=lambda x: int(x),
+    )
+
+    denormal_keys = [i for i in data.keys() if 'denormal' in i]
+    denormal_data = {}
+    for key in denormal_keys:
+        name = key[len('contrived:denormal'):]
+        values = data[key]
+        denormal_data.update({k.replace('f64', name): v for k, v in values.items()})
+    plot_scatter(
+        prefix='parse',
+        xlabel='Digit Count',
+        data=denormal_data,
+        path=f'{assets}/{filename("denormal", args)}.svg',
+        title='Denormal, Near-Halfway Floats',
+        key=lambda x: int(x),
+    )
 
 def plot_parse_integer(args):
     '''Plot the parse integer dataset.'''
@@ -180,43 +335,57 @@ def plot_parse_integer(args):
     with open(f'{home}/results/{filename("parse-integer", args)}.json') as file:
         data = json.load(file)
 
+    scatter_kwds = {
+        'prefix': 'parse',
+        'xlabel': 'Integer Types',
+        'rows': ['u', 'i'],
+        'key': integer_sort_key,
+    }
+
     # First plot JSON data.
-    plot_parse_integer_figure(
-        data['json:simple'],
-        f'{assets}/{filename("json_simple", args)}.svg',
-        'JSON Data: Simple',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['json:simple'],
+        path=f'{assets}/{filename("json_simple", args)}.svg',
+        title='JSON Data: Simple',
     )
-    plot_parse_integer_figure(
-        data['json:random'],
-        f'{assets}/{filename("json_random", args)}.svg',
-        'JSON Data: Random',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['json:random'],
+        path=f'{assets}/{filename("json_random", args)}.svg',
+        title='JSON Data: Random',
     )
 
     # First plot random data.
-    plot_parse_integer_figure(
-        data['random:uniform'],
-        f'{assets}/{filename("random_uniform", args)}.svg',
-        'Random Data: Uniform',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['random:uniform'],
+        path=f'{assets}/{filename("random_uniform", args)}.svg',
+        title='Random Data: Uniform',
     )
-    plot_parse_integer_figure(
-        data['random:simple'],
-        f'{assets}/{filename("random_simple", args)}.svg',
-        'Random Data: Simple',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['random:simple'],
+        path=f'{assets}/{filename("random_simple", args)}.svg',
+        title='Random Data: Simple',
     )
-    plot_parse_integer_figure(
-        data['random:large'],
-        f'{assets}/{filename("random_large", args)}.svg',
-        'Random Data: Large',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['random:large'],
+        path=f'{assets}/{filename("random_large", args)}.svg',
+        title='Random Data: Large',
     )
-    plot_parse_integer_figure(
-        data['random:simple_signed'],
-        f'{assets}/{filename("random_simple_signed", args)}.svg',
-        'Random Data: Simple Negative',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['random:simple_signed'],
+        path=f'{assets}/{filename("random_simple_signed", args)}.svg',
+        title='Random Data: Simple Negative',
     )
-    plot_parse_integer_figure(
-        data['random:large_signed'],
-        f'{assets}/{filename("random_large_signed", args)}.svg',
-        'Random Data: Large Negative',
+    plot_scatter(
+        **scatter_kwds,
+        data=data['random:large_signed'],
+        path=f'{assets}/{filename("random_large_signed", args)}.svg',
+        title='Random Data: Large Negative',
     )
 
 def main(argv=None):
