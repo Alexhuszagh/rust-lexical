@@ -89,14 +89,15 @@ impl Bigint {
 
     /// Multiply and assign as if by exponentiation by a power.
     #[inline]
-    pub fn pow(&mut self, base: u32, exp: u32) {
+    pub fn pow(&mut self, base: u32, exp: u32) -> Option<()> {
         let (odd, shift) = split_radix(base);
         if odd != 0 {
-            pow::<BIGINT_LIMBS>(&mut self.data, odd, exp)
+            pow::<BIGINT_LIMBS>(&mut self.data, odd, exp)?;
         }
         if shift != 0 {
-            shl(&mut self.data, (exp * shift) as usize);
+            shl(&mut self.data, (exp * shift) as usize)?;
         }
+        Some(())
     }
 
     /// Calculate the bit-length of the big-integer.
@@ -183,14 +184,15 @@ impl Bigfloat {
 
     /// Multiply and assign as if by exponentiation by a power.
     #[inline]
-    pub fn pow(&mut self, base: u32, exp: u32) {
+    pub fn pow(&mut self, base: u32, exp: u32) -> Option<()> {
         let (odd, shift) = split_radix(base);
         if odd != 0 {
-            pow::<BIGFLOAT_LIMBS>(&mut self.data, odd, exp)
+            pow::<BIGFLOAT_LIMBS>(&mut self.data, odd, exp)?;
         }
         if shift != 0 {
             self.exp += (exp * shift) as i32;
         }
+        Some(())
     }
 
     /// Shift-left the entire buffer n bits, where bits is less than the limb size.
@@ -224,7 +226,7 @@ impl ops::MulAssign<&Bigfloat> for Bigfloat {
     #[inline]
     #[allow(clippy::suspicious_op_assign_impl)]
     fn mul_assign(&mut self, rhs: &Bigfloat) {
-        large_mul(&mut self.data, &rhs.data);
+        large_mul(&mut self.data, &rhs.data).unwrap();
         self.exp += rhs.exp;
     }
 }
@@ -601,14 +603,14 @@ impl<const SIZE: usize> StackVec<SIZE> {
 
     /// AddAssign small integer.
     #[inline]
-    pub fn add_small(&mut self, y: Limb) {
-        small_add(self, y);
+    pub fn add_small(&mut self, y: Limb) -> Option<()> {
+        small_add(self, y)
     }
 
     /// MulAssign small integer.
     #[inline]
-    pub fn mul_small(&mut self, y: Limb) {
-        small_mul(self, y);
+    pub fn mul_small(&mut self, y: Limb) -> Option<()> {
+        small_mul(self, y)
     }
 }
 
@@ -662,7 +664,7 @@ impl<const SIZE: usize> ops::DerefMut for StackVec<SIZE> {
 impl<const SIZE: usize> ops::MulAssign<&[Limb]> for StackVec<SIZE> {
     #[inline]
     fn mul_assign(&mut self, rhs: &[Limb]) {
-        large_mul(self, rhs);
+        large_mul(self, rhs).unwrap();
     }
 }
 
@@ -879,14 +881,14 @@ pub const fn u64_to_hi64_2(r0: u64, r1: u64) -> (u64, bool) {
 /// Furthermore, using sufficiently big large powers is also crucial for
 /// performance. This is a tradeoff of binary size and performance, and
 /// using a single value at ~`5^(5 * max_exp)` seems optimal.
-pub fn pow<const SIZE: usize>(x: &mut StackVec<SIZE>, base: u32, mut exp: u32) {
+pub fn pow<const SIZE: usize>(x: &mut StackVec<SIZE>, base: u32, mut exp: u32) -> Option<()> {
     // Minimize the number of iterations for large exponents: just
     // do a few steps with a large powers.
     #[cfg(not(feature = "compact"))]
     {
         let (large, step) = get_large_int_power(base);
         while exp >= step {
-            large_mul(x, large);
+            large_mul(x, large)?;
             exp -= step;
         }
     }
@@ -899,14 +901,15 @@ pub fn pow<const SIZE: usize>(x: &mut StackVec<SIZE>, base: u32, mut exp: u32) {
     };
     let max_native = (base as Limb).pow(small_step);
     while exp >= small_step {
-        small_mul(x, max_native);
+        small_mul(x, max_native)?;
         exp -= small_step;
     }
     if exp != 0 {
         // SAFETY: safe, since `exp < small_step`.
         let small_power = unsafe { f64::int_pow_fast_path(exp as usize, base) };
-        small_mul(x, small_power as Limb);
+        small_mul(x, small_power as Limb)?;
     }
+    Some(())
 }
 
 // SCALAR
@@ -935,7 +938,7 @@ pub fn scalar_mul(x: Limb, y: Limb, carry: Limb) -> (Limb, Limb) {
 
 /// Add small integer to bigint starting from offset.
 #[inline]
-pub fn small_add_from<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb, start: usize) {
+pub fn small_add_from<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb, start: usize) -> Option<()> {
     let mut index = start;
     let mut carry = y;
     while carry != 0 && index < x.len() {
@@ -947,19 +950,20 @@ pub fn small_add_from<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb, start:
     }
     // If we carried past all the elements, add to the end of the buffer.
     if carry != 0 {
-        x.try_push(carry);
+        x.try_push(carry)?;
     }
+    Some(())
 }
 
 /// Add small integer to bigint.
 #[inline(always)]
-pub fn small_add<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb) {
-    small_add_from(x, y, 0);
+pub fn small_add<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb) -> Option<()> {
+    small_add_from(x, y, 0)
 }
 
 /// Multiply bigint by small integer.
 #[inline]
-pub fn small_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb) {
+pub fn small_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb) -> Option<()> {
     let mut carry = 0;
     for xi in x.iter_mut() {
         let result = scalar_mul(*xi, y, carry);
@@ -968,15 +972,16 @@ pub fn small_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb) {
     }
     // If we carried past all the elements, add to the end of the buffer.
     if carry != 0 {
-        x.try_push(carry);
+        x.try_push(carry)?;
     }
+    Some(())
 }
 
 // LARGE
 // -----
 
 /// Add bigint to bigint starting from offset.
-fn large_add_from<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb], start: usize) {
+fn large_add_from<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb], start: usize) -> Option<()> {
     // The effective x buffer is from `xstart..x.len()`, so we need to treat
     // that as the current range. If the effective y buffer is longer, need
     // to resize to that, + the start index.
@@ -1011,14 +1016,15 @@ fn large_add_from<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb], start: 
 
     // Handle overflow.
     if carry {
-        small_add_from(x, 1, y.len() + start);
+        small_add_from(x, 1, y.len() + start)?;
     }
+    Some(())
 }
 
 /// Add bigint to bigint.
 #[inline(always)]
-pub fn large_add<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) {
-    large_add_from(x, y, 0);
+pub fn large_add<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Option<()> {
+    large_add_from(x, y, 0)
 }
 
 /// Grade-school multiplication algorithm.
@@ -1084,43 +1090,44 @@ pub fn large_add<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) {
 ///
 /// In short, Karatsuba multiplication is never worthwhile for out use-case.
 #[allow(clippy::needless_range_loop)]
-pub fn long_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> StackVec<SIZE> {
+pub fn long_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> Option<StackVec<SIZE>> {
     // Using the immutable value, multiply by all the scalars in y, using
     // the algorithm defined above. Use a single buffer to avoid
     // frequent reallocations. Handle the first case to avoid a redundant
     // addition, since we know y.len() >= 1.
-    let mut z = StackVec::<SIZE>::try_from(x).unwrap();
+    let mut z = StackVec::<SIZE>::try_from(x)?;
     if !y.is_empty() {
         // SAFETY: safe, since `y.len() > 0`.
         let y0 = unsafe { index_unchecked!(y[0]) };
-        small_mul(&mut z, y0);
+        small_mul(&mut z, y0)?;
 
         for index in 1..y.len() {
             // SAFETY: safe, since `index < y.len()`.
             let yi = unsafe { index_unchecked!(y[index]) };
             if yi != 0 {
-                let mut zi = StackVec::<SIZE>::try_from(x).unwrap();
-                small_mul(&mut zi, yi);
-                large_add_from(&mut z, &zi, index);
+                let mut zi = StackVec::<SIZE>::try_from(x)?;
+                small_mul(&mut zi, yi)?;
+                large_add_from(&mut z, &zi, index)?;
             }
         }
     }
 
     z.normalize();
-    z
+    Some(z)
 }
 
 /// Multiply bigint by bigint using grade-school multiplication algorithm.
 #[inline(always)]
-pub fn large_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) {
+pub fn large_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Option<()> {
     // Karatsuba multiplication never makes sense, so just use grade school
     // multiplication.
     if y.len() == 1 {
         // SAFETY: safe since `y.len() == 1`.
-        small_mul(x, unsafe { index_unchecked!(y[0]) });
+        small_mul(x, unsafe { index_unchecked!(y[0]) })?;
     } else {
-        *x = long_mul(y, x);
+        *x = long_mul(y, x)?;
     }
+    Some(())
 }
 
 /// Emit a single digit for the quotient and store the remainder in-place.

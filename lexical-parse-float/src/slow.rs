@@ -121,7 +121,7 @@ pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
     // Now, we can calculate the mantissa and the exponent from this.
     // The binary exponent is the binary exponent for the mantissa
     // shifted to the hidden bit.
-    bigmant.pow(format.radix(), exponent as u32);
+    bigmant.pow(format.radix(), exponent as u32).unwrap();
 
     // Get the exact representation of the float from the big integer.
     // hi64 checks **all** the remaining bits after the mantissa,
@@ -193,15 +193,15 @@ pub fn negative_digit_comp<F: RawFloat, const FORMAT: u128>(
     };
 
     if halfradix_exp != 0 {
-        theor_digits.pow(radix / 2, halfradix_exp as u32);
+        theor_digits.pow(radix / 2, halfradix_exp as u32).unwrap();
     }
     if radix_exp != 0 {
-        theor_digits.pow(radix, radix_exp as u32);
+        theor_digits.pow(radix, radix_exp as u32).unwrap();
     }
     if binary_exp > 0 {
-        theor_digits.pow(2, binary_exp as u32);
+        theor_digits.pow(2, binary_exp as u32).unwrap();
     } else if binary_exp < 0 {
-        real_digits.pow(2, (-binary_exp) as u32);
+        real_digits.pow(2, (-binary_exp) as u32).unwrap();
     }
 
     // Compare our theoretical and real digits and round nearest, tie even.
@@ -272,8 +272,8 @@ macro_rules! add_digit {
 macro_rules! add_temporary {
     // Multiply by the small power and add the native value.
     (@mul $result:ident, $power:expr, $value:expr) => {
-        $result.data.mul_small($power);
-        $result.data.add_small($value);
+        $result.data.mul_small($power).unwrap();
+        $result.data.add_small($value).unwrap();
     };
 
     ($format:ident, $result:ident, $counter:ident, $value:ident) => {
@@ -457,7 +457,7 @@ macro_rules! integer_compare {
             };
             let rem = $num.data.quorem(&$den.data) as u32;
             let expected = digit_to_char_const(rem, $radix);
-            $num.data.mul_small($radix as Limb);
+            $num.data.mul_small($radix as Limb).unwrap();
             if actual < expected {
                 return cmp::Ordering::Less;
             } else if actual > expected {
@@ -491,7 +491,7 @@ macro_rules! fraction_compare {
             };
             let rem = $num.data.quorem(&$den.data) as u32;
             let expected = digit_to_char_const(rem, $radix);
-            $num.data.mul_small($radix as Limb);
+            $num.data.mul_small($radix as Limb).unwrap();
             if actual < expected {
                 return cmp::Ordering::Less;
             } else if actual > expected {
@@ -544,7 +544,7 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
 
     // Now, create a scaling factor for the digit count.
     let mut factor = Bigfloat::from_u32(1);
-    factor.pow(format.radix(), sci_exp.abs() as u32);
+    factor.pow(format.radix(), sci_exp.abs() as u32).unwrap();
     let mut num: Bigfloat;
     let mut den: Bigfloat;
 
