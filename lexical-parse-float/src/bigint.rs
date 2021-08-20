@@ -938,7 +938,11 @@ pub fn scalar_mul(x: Limb, y: Limb, carry: Limb) -> (Limb, Limb) {
 
 /// Add small integer to bigint starting from offset.
 #[inline]
-pub fn small_add_from<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb, start: usize) -> Option<()> {
+pub fn small_add_from<const SIZE: usize>(
+    x: &mut StackVec<SIZE>,
+    y: Limb,
+    start: usize,
+) -> Option<()> {
     let mut index = start;
     let mut carry = y;
     while carry != 0 && index < x.len() {
@@ -981,7 +985,11 @@ pub fn small_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb) -> Option<(
 // -----
 
 /// Add bigint to bigint starting from offset.
-fn large_add_from<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb], start: usize) -> Option<()> {
+fn large_add_from<const SIZE: usize>(
+    x: &mut StackVec<SIZE>,
+    y: &[Limb],
+    start: usize,
+) -> Option<()> {
     // The effective x buffer is from `xstart..x.len()`, so we need to treat
     // that as the current range. If the effective y buffer is longer, need
     // to resize to that, + the start index.
