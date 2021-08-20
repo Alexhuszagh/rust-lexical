@@ -288,56 +288,23 @@
 //!
 //! # Algorithms
 //!
-#![cfg_attr(
-    feature = "parse-floats",
-    doc = " - [Parsing Floats](lexical_parse_float#algorithm-approach)"
-)]
-#![cfg_attr(
-    feature = "parse-integers",
-    doc = " - [Parsing Integers](lexical_parse_integer#algorithm-approach)"
-)]
-#![cfg_attr(
-    feature = "write-floats",
-    doc = " - [Writing Floats](lexical_write_float#algorithm-approach)"
-)]
-#![cfg_attr(
-    feature = "write-integers",
-    doc = " - [Writing Integers](lexical_write_integer#algorithm-approach)"
-)]
+//! - [Parsing Floats](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-float/docs/Algorithm.md)
+//! - [Parsing Integers](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-integer/docs/Algorithm.md)
+//! - [Writing Floats](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-write-float/docs/Algorithm.md)
+//! - [Writing Integers](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-write-integer/docs/Algorithm.md)
 //!
 //! # Benchmarks
 //!
-#![cfg_attr(feature = "parse-floats", doc = " - [Parsing Floats](lexical_parse_float#benchmarks)")]
-#![cfg_attr(
-    feature = "parse-integers",
-    doc = " - [Parsing Integers](lexical_parse_integer#benchmarks)"
-)]
-#![cfg_attr(feature = "write-floats", doc = " - [Writing Floats](lexical_write_float#benchmarks)")]
-#![cfg_attr(
-    feature = "write-integers",
-    doc = " - [Writing Integers](lexical_write_integer#benchmarks)"
-)]
+//! - [Parsing Floats](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-float/docs/Benchmarks.md)
+//! - [Parsing Integers](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-integer/docs/Benchmarks.md)
+//! - [Writing Floats](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-write-float/docs/Benchmarks.md)
+//! - [Writing Integers](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-write-integer/docs/Benchmarks.md)
 //!
-#![cfg_attr(feature = "nightly", doc = include_str!("../../docs/BinarySize.md"))]
+//! # Design
 //!
-#![cfg_attr(feature = "nightly", doc = include_str!("../../docs/BuildTimings.md"))]
-//!
-#![cfg_attr(feature = "nightly", doc = include_str!("../../docs/DigitSeparators.md"))]
-//!
-#![cfg_attr(
-    not(feature = "nightly"),
-    doc = " - [Binary Size](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/docs/BinarySize.md)"
-)]
-//!
-#![cfg_attr(
-    not(feature = "nightly"),
-    doc = " - [Build Timings](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/docs/BuildTimings.md)"
-)]
-//!
-#![cfg_attr(
-    not(feature = "nightly"),
-    doc = " - [Digit Separators](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/docs/DigitSeparators.md)"
-)]
+//! - [Binary Size](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/docs/BinarySize.md)
+//! - [Build Timings](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/docs/BuildTimings.md)
+//! - [Digit Separators](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/docs/DigitSeparators.md)
 //!
 //! # Version Support
 //!

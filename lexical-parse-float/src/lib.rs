@@ -57,26 +57,12 @@
 //! The minimum, standard, required version is 1.51.0, for const generic
 //! support. Older versions of lexical support older Rust versions.
 //!
-#![cfg_attr(feature = "nightly", doc = include_str!("../docs/Algorithm.md"))]
+//! # Design
 //!
-#![cfg_attr(feature = "nightly", doc = include_str!("../docs/Benchmarks.md"))]
-//!
-#![cfg_attr(feature = "nightly", doc = include_str!("../docs/BigInteger.md"))]
-//!
-#![cfg_attr(
-    not(feature = "nightly"),
-    doc = " - [Algorithm Approach](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-float/docs/Algorithm.md)"
-)]
-//!
-#![cfg_attr(
-    not(feature = "nightly"),
-    doc = " - [Benchmarks](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-float/docs/Benchmarks.md)"
-)]
-//!
-#![cfg_attr(
-    not(feature = "nightly"),
-    doc = " - [Big Integer Implementation](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-float/docs/BigInteger.md)"
-)]
+//! - [Algorithm Approach](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-float/docs/Algorithm.md)
+//! - [Benchmarks](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-float/docs/Benchmarks.md)
+//! - [Big Integer Implementation](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-parse-float/docs/BigInteger.md)
+
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
 #![allow(unused_unsafe)]
