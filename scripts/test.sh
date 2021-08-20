@@ -13,10 +13,10 @@ export RUSTFLAGS="--deny warnings"
 cargo +nightly test
 cargo +nightly test --all-features
 if [ "$SKIP_VALGRIND" == "" ]; then
-    cargo +nightly valgrind test --features=radix
+    cargo +nightly valgrind test --features=radix --tests --release
 fi
 if [ "$SKIP_MIRI" == "" ]; then
-    cargo +nightly miri test --features=radix --tests
+    cargo +nightly miri test --features=radix --tests --release
 fi
 
 # Test various feature combinations.
@@ -39,13 +39,13 @@ fi
 # This is very slow, but uses Valgrind to test all features.
 if [ "$SKIP_VALGRIND" == "" ] && [ "$LEXICAL_VALGRIND_TEST_ALL" != "" ]; then
     for features in "${FEATURES[@]}"; do
-        cargo +nightly valgrind test --features="$features"
+        cargo +nightly valgrind test --features="$features" --tests --release
     done
 fi
 
 # This is very slow, but uses Miri to test all features.
 if [ "$SKIP_MIRI" == "" ] && [ "$LEXICAL_MIRI_TEST_ALL" != "" ]; then
     for features in "${FEATURES[@]}"; do
-        cargo +nightly miri test --features="$features" --tests
+        cargo +nightly miri test --features="$features" --tests --release
     done
 fi
