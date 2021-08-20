@@ -16,7 +16,7 @@ Rather than do checked multiplication and additions in each loop, which increase
 
 Our algorithm for parsing digits therefore is as follows, where the in-depth discussion of parsing multiple digits can be found in [lexical-parse-integer](https://github.com/Alexhuszagh/rust-lexical-experimental/tree/main/lexical-parse-integer).
 
-```rust
+```rust,ignore
 use lexical_parse_integer::algorithm::try_parse_8digits;
 
 /// Iteratively parse and consume digits in intervals of 8.

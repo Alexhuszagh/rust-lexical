@@ -12,7 +12,7 @@ The most computationally expensive part of big-integer arithmetic is exponentiat
 
 First, we remove powers-of-two from the radix, since `10^30 == 5^30 * 2^30`. This allows us to use bitshifts, rather than multiplication, to multiply by powers-of-two, greatly improving performance. For the remaining, odd, powers, we use a simple exponentiation algorithm that is very efficient:
 
-```rust
+```rust,ignore
 /// Step for large power-of-5 for 32-bit limbs.
 pub const LARGE_POW5_STEP: u32 = 135;
 
@@ -63,7 +63,7 @@ For big-integer multiplication, required for exponentiation, two main algorithms
 
 In practice, grade school multiplication is as follows:
 
-```rust
+```rust,ignore
 /// Grade-school multiplication algorithm.
 pub fn long_mul(x: &[u64], y: &[u64]) -> StackVec {
     let mut z = StackVec::try_from(x).unwrap();
@@ -93,7 +93,7 @@ For our `byte_comp` algorithm, in order to iteratively shave digits off the big-
 
 A simple, yet efficient, implementation of the algorithm is as follows:
 
-```rust
+```rust,ignore
 /// Emit a single digit for the quotient and store the remainder in-place.
 pub fn large_quorem(x: &mut StackVec, y: &[u64]) -> u64 {
     // Numerator is smaller the denominator, quotient always 0.
