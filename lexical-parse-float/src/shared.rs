@@ -8,6 +8,17 @@ use crate::mask::{lower_n_halfway, lower_n_mask};
 use lexical_util::format::NumberFormat;
 use lexical_util::num::AsPrimitive;
 
+// 8 DIGIT
+// -------
+
+/// Check if we can try to parse 8 digits.
+#[cfg(not(feature = "compact"))]
+macro_rules! can_try_parse_8digits {
+    ($iter:expr, $radix:expr) => {
+        $iter.is_contiguous() && (cfg!(not(feature = "radix")) || $radix <= 10)
+    };
+}
+
 // POWER2
 // ------
 

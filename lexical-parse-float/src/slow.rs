@@ -237,7 +237,7 @@ macro_rules! try_parse_8digits {
         let radix = format.radix() as Limb;
 
         // Try 8-digit optimizations.
-        if cfg!(not(feature = "radix")) || radix <= 10 {
+        if can_try_parse_8digits!($iter, radix) {
             let radix2 = radix.wrapping_mul(radix);
             let radix4 = radix2.wrapping_mul(radix2);
             let radix8 = radix4.wrapping_mul(radix4);

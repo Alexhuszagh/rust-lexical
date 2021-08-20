@@ -747,7 +747,7 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
             Error::InvalidBaseSuffix
         } else if !flags::is_valid_punctuation(FORMAT) {
             Error::InvalidPunctuation
-        } else if self.exponent_flags() == flags::NO_EXPONENT_NOTATION {
+        } else if !flags::is_valid_exponent_flags(FORMAT) {
             Error::InvalidExponentFlags
         } else if self.no_positive_mantissa_sign() && self.required_mantissa_sign() {
             Error::InvalidMantissaSign

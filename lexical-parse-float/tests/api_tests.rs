@@ -1,9 +1,15 @@
+#[cfg(feature = "radix")]
 use approx::assert_relative_eq;
+#[cfg(feature = "format")]
+use core::num;
 use lexical_parse_float::{FromLexical, FromLexicalWithOptions, Options};
 use lexical_util::error::Error;
+#[cfg(feature = "format")]
+use lexical_util::format;
 #[cfg(feature = "power-of-two")]
 use lexical_util::format::NumberFormatBuilder;
 use lexical_util::format::STANDARD;
+use proptest::prelude::*;
 
 #[cfg(feature = "radix")]
 const F32_DATA: [f32; 31] = [
@@ -131,6 +137,118 @@ macro_rules! test_all {
         test_radix!($f, 35, $buffer, $data);
         test_radix!($f, 36, $buffer, $data);
     }};
+}
+
+#[test]
+fn special_bytes_test() {
+    const FORMAT: u128 = STANDARD;
+
+    // Test serializing and deserializing special strings.
+    assert!(f32::from_lexical(b"NaN").unwrap().is_nan());
+    assert!(f32::from_lexical(b"nan").unwrap().is_nan());
+    assert!(f32::from_lexical(b"NAN").unwrap().is_nan());
+    assert!(f32::from_lexical(b"inf").unwrap().is_infinite());
+    assert!(f32::from_lexical(b"INF").unwrap().is_infinite());
+    assert!(f32::from_lexical(b"Infinity").unwrap().is_infinite());
+
+    let options =
+        Options::builder().nan_string(Some(b"nan")).inf_string(Some(b"Infinity")).build().unwrap();
+
+    // The error message depends on whether the radix feature is enabled.
+    assert!(f32::from_lexical_with_options::<FORMAT>(b"inf", &options).is_err());
+    assert!(f32::from_lexical_with_options::<FORMAT>(b"Infinity", &options).unwrap().is_infinite());
+}
+
+#[test]
+fn f32_decimal_test() {
+    // integer test
+    assert_eq!(0.0, f32::from_lexical(b"0").unwrap());
+    assert_eq!(1.0, f32::from_lexical(b"1").unwrap());
+    assert_eq!(12.0, f32::from_lexical(b"12").unwrap());
+    assert_eq!(123.0, f32::from_lexical(b"123").unwrap());
+    assert_eq!(1234.0, f32::from_lexical(b"1234").unwrap());
+    assert_eq!(12345.0, f32::from_lexical(b"12345").unwrap());
+    assert_eq!(123456.0, f32::from_lexical(b"123456").unwrap());
+    assert_eq!(1234567.0, f32::from_lexical(b"1234567").unwrap());
+    assert_eq!(12345678.0, f32::from_lexical(b"12345678").unwrap());
+
+    // No fraction after decimal point test
+    assert_eq!(1.0, f32::from_lexical(b"1.").unwrap());
+    assert_eq!(12.0, f32::from_lexical(b"12.").unwrap());
+    assert_eq!(1234567.0, f32::from_lexical(b"1234567.").unwrap());
+
+    // No integer before decimal point test
+    assert_eq!(0.1, f32::from_lexical(b".1").unwrap());
+    assert_eq!(0.12, f32::from_lexical(b".12").unwrap());
+    assert_eq!(0.1234567, f32::from_lexical(b".1234567").unwrap());
+
+    // decimal test
+    assert_eq!(123.1, f32::from_lexical(b"123.1").unwrap());
+    assert_eq!(123.12, f32::from_lexical(b"123.12").unwrap());
+    assert_eq!(123.123, f32::from_lexical(b"123.123").unwrap());
+    assert_eq!(123.1234, f32::from_lexical(b"123.1234").unwrap());
+    assert_eq!(123.12345, f32::from_lexical(b"123.12345").unwrap());
+
+    // rounding test
+    assert_eq!(123456790.0, f32::from_lexical(b"123456789").unwrap());
+    assert_eq!(123456790.0, f32::from_lexical(b"123456789.1").unwrap());
+    assert_eq!(123456790.0, f32::from_lexical(b"123456789.12").unwrap());
+    assert_eq!(123456790.0, f32::from_lexical(b"123456789.123").unwrap());
+    assert_eq!(123456790.0, f32::from_lexical(b"123456789.1234").unwrap());
+    assert_eq!(123456790.0, f32::from_lexical(b"123456789.12345").unwrap());
+
+    // exponent test
+    assert_eq!(123456789.12345, f32::from_lexical(b"1.2345678912345e8").unwrap());
+    assert_eq!(123450000.0, f32::from_lexical(b"1.2345e+8").unwrap());
+    assert_eq!(1.2345e+11, f32::from_lexical(b"1.2345e+11").unwrap());
+    assert_eq!(1.2345e+11, f32::from_lexical(b"123450000000").unwrap());
+    assert_eq!(1.2345e+38, f32::from_lexical(b"1.2345e+38").unwrap());
+    assert_eq!(1.2345e+38, f32::from_lexical(b"123450000000000000000000000000000000000").unwrap());
+    assert_eq!(1.2345e-8, f32::from_lexical(b"1.2345e-8").unwrap());
+    assert_eq!(1.2345e-8, f32::from_lexical(b"0.000000012345").unwrap());
+    assert_eq!(1.2345e-38, f32::from_lexical(b"1.2345e-38").unwrap());
+    assert_eq!(
+        1.2345e-38,
+        f32::from_lexical(b"0.000000000000000000000000000000000000012345").unwrap()
+    );
+
+    assert!(f32::from_lexical(b"NaN").unwrap().is_nan());
+    assert!(f32::from_lexical(b"nan").unwrap().is_nan());
+    assert!(f32::from_lexical(b"NAN").unwrap().is_nan());
+    assert!(f32::from_lexical(b"inf").unwrap().is_infinite());
+    assert!(f32::from_lexical(b"INF").unwrap().is_infinite());
+    assert!(f32::from_lexical(b"+inf").unwrap().is_infinite());
+    assert!(f32::from_lexical(b"-inf").unwrap().is_infinite());
+
+    // Check various expected failures.
+    assert_eq!(Err(Error::Empty(0)), f32::from_lexical(b""));
+    assert_eq!(Err(Error::EmptyMantissa(0)), f32::from_lexical(b"e"));
+    assert_eq!(Err(Error::EmptyMantissa(0)), f32::from_lexical(b"E"));
+    assert_eq!(Err(Error::EmptyMantissa(1)), f32::from_lexical(b".e1"));
+    assert_eq!(Err(Error::EmptyMantissa(1)), f32::from_lexical(b".e-1"));
+    assert_eq!(Err(Error::EmptyMantissa(0)), f32::from_lexical(b"e1"));
+    assert_eq!(Err(Error::EmptyMantissa(0)), f32::from_lexical(b"e-1"));
+    assert_eq!(Err(Error::Empty(1)), f32::from_lexical(b"+"));
+    assert_eq!(Err(Error::Empty(1)), f32::from_lexical(b"-"));
+
+    // Bug fix for Issue #8
+    assert_eq!(Ok(5.002868148396374), f32::from_lexical(b"5.002868148396374"));
+
+    // Other bug fixes
+    assert_eq!(Ok(7.2625224e+37), f32::from_lexical(b"72625224000000000000000000000000000000"));
+    assert_eq!(Ok(7.2625224e+37), f32::from_lexical(b"72625224000000000000000000000000000000.0"));
+    assert_eq!(Ok(-7.2625224e+37), f32::from_lexical(b"-72625224000000000000000000000000000000"));
+    assert_eq!(Ok(-7.2625224e+37), f32::from_lexical(b"-72625224000000000000000000000000000000.0"));
+}
+
+#[test]
+#[cfg(feature = "radix")]
+fn f32_radix_test() {
+    const FORMAT: u128 = NumberFormatBuilder::from_radix(36);
+    let options = Options::builder().exponent(b'^').build().unwrap();
+    assert_eq!(1234.0, f32::from_lexical_with_options::<FORMAT>(b"YA", &options).unwrap());
+    let options = options.rebuild().lossy(true).build().unwrap();
+    assert_eq!(1234.0, f32::from_lexical_with_options::<FORMAT>(b"YA", &options).unwrap());
 }
 
 #[test]
@@ -355,6 +473,137 @@ fn parse_f64_test() {
 }
 
 #[test]
+fn f64_decimal_test() {
+    // integer test
+    assert_eq!(0.0, f64::from_lexical(b"0").unwrap());
+    assert_eq!(1.0, f64::from_lexical(b"1").unwrap());
+    assert_eq!(12.0, f64::from_lexical(b"12").unwrap());
+    assert_eq!(123.0, f64::from_lexical(b"123").unwrap());
+    assert_eq!(1234.0, f64::from_lexical(b"1234").unwrap());
+    assert_eq!(12345.0, f64::from_lexical(b"12345").unwrap());
+    assert_eq!(123456.0, f64::from_lexical(b"123456").unwrap());
+    assert_eq!(1234567.0, f64::from_lexical(b"1234567").unwrap());
+    assert_eq!(12345678.0, f64::from_lexical(b"12345678").unwrap());
+
+    // No fraction after decimal point test
+    assert_eq!(1.0, f64::from_lexical(b"1.").unwrap());
+    assert_eq!(12.0, f64::from_lexical(b"12.").unwrap());
+    assert_eq!(1234567.0, f64::from_lexical(b"1234567.").unwrap());
+
+    // No integer before decimal point test
+    assert_eq!(0.1, f64::from_lexical(b".1").unwrap());
+    assert_eq!(0.12, f64::from_lexical(b".12").unwrap());
+    assert_eq!(0.1234567, f64::from_lexical(b".1234567").unwrap());
+
+    // decimal test
+    assert_eq!(123456789.0, f64::from_lexical(b"123456789").unwrap());
+    assert_eq!(123456789.1, f64::from_lexical(b"123456789.1").unwrap());
+    assert_eq!(123456789.12, f64::from_lexical(b"123456789.12").unwrap());
+    assert_eq!(123456789.123, f64::from_lexical(b"123456789.123").unwrap());
+    assert_eq!(123456789.1234, f64::from_lexical(b"123456789.1234").unwrap());
+    assert_eq!(123456789.12345, f64::from_lexical(b"123456789.12345").unwrap());
+    assert_eq!(123456789.123456, f64::from_lexical(b"123456789.123456").unwrap());
+    assert_eq!(123456789.1234567, f64::from_lexical(b"123456789.1234567").unwrap());
+    assert_eq!(123456789.12345678, f64::from_lexical(b"123456789.12345678").unwrap());
+
+    // rounding test
+    assert_eq!(123456789.12345679, f64::from_lexical(b"123456789.123456789").unwrap());
+    assert_eq!(123456789.12345679, f64::from_lexical(b"123456789.1234567890").unwrap());
+    assert_eq!(123456789.12345679, f64::from_lexical(b"123456789.123456789012").unwrap());
+    assert_eq!(123456789.12345679, f64::from_lexical(b"123456789.1234567890123").unwrap());
+    assert_eq!(123456789.12345679, f64::from_lexical(b"123456789.12345678901234").unwrap());
+
+    // exponent test
+    assert_eq!(123456789.12345, f64::from_lexical(b"1.2345678912345e8").unwrap());
+    assert_eq!(123450000.0, f64::from_lexical(b"1.2345e+8").unwrap());
+    assert_eq!(1.2345e+11, f64::from_lexical(b"123450000000").unwrap());
+    assert_eq!(1.2345e+11, f64::from_lexical(b"1.2345e+11").unwrap());
+    assert_eq!(1.2345e+38, f64::from_lexical(b"1.2345e+38").unwrap());
+    assert_eq!(1.2345e+38, f64::from_lexical(b"123450000000000000000000000000000000000").unwrap());
+    assert_eq!(1.2345e+308, f64::from_lexical(b"1.2345e+308").unwrap());
+    assert_eq!(1.2345e+308, f64::from_lexical(b"123450000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap());
+    assert_eq!(0.000000012345, f64::from_lexical(b"1.2345e-8").unwrap());
+    assert_eq!(1.2345e-8, f64::from_lexical(b"0.000000012345").unwrap());
+    assert_eq!(1.2345e-38, f64::from_lexical(b"1.2345e-38").unwrap());
+    assert_eq!(
+        1.2345e-38,
+        f64::from_lexical(b"0.000000000000000000000000000000000000012345").unwrap()
+    );
+
+    // denormalized (try extremely low values)
+    assert_eq!(1.2345e-308, f64::from_lexical(b"1.2345e-308").unwrap());
+
+    // due to issues in how the data is parsed, manually extracting
+    // non-exponents of 1.<e-299 is prone to error
+    // test the limit of our ability
+    // We tend to get relative errors of 1e-16, even at super low values.
+    assert_eq!(1.2345e-299, f64::from_lexical(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345").unwrap());
+
+    // Keep pushing from -300 to -324
+    assert_eq!(1.2345e-300, f64::from_lexical(b"0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345").unwrap());
+
+    assert_eq!(1.2345e-310, f64::from_lexical(b"0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345").unwrap());
+    assert_eq!(1.2345e-320, f64::from_lexical(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345").unwrap());
+    assert_eq!(1.2345e-321, f64::from_lexical(b"0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012345").unwrap());
+    assert_eq!(1.24e-322, f64::from_lexical(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000124").unwrap());
+    assert_eq!(Ok(1e-323), f64::from_lexical(b"0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001"));
+    assert_eq!(Ok(5e-324), f64::from_lexical(b"0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005"));
+
+    assert!(f64::from_lexical(b"NaN").unwrap().is_nan());
+    assert!(f64::from_lexical(b"nan").unwrap().is_nan());
+    assert!(f64::from_lexical(b"NAN").unwrap().is_nan());
+    assert!(f64::from_lexical(b"inf").unwrap().is_infinite());
+    assert!(f64::from_lexical(b"INF").unwrap().is_infinite());
+    assert!(f64::from_lexical(b"+inf").unwrap().is_infinite());
+    assert!(f64::from_lexical(b"-inf").unwrap().is_infinite());
+
+    // Check various expected failures.
+    assert_eq!(Err(Error::Empty(0)), f64::from_lexical(b""));
+    assert_eq!(Err(Error::EmptyMantissa(0)), f64::from_lexical(b"e"));
+    assert_eq!(Err(Error::EmptyMantissa(0)), f64::from_lexical(b"E"));
+    assert_eq!(Err(Error::EmptyMantissa(1)), f64::from_lexical(b".e1"));
+    assert_eq!(Err(Error::EmptyMantissa(1)), f64::from_lexical(b".e-1"));
+    assert_eq!(Err(Error::EmptyMantissa(0)), f64::from_lexical(b"e1"));
+    assert_eq!(Err(Error::EmptyMantissa(0)), f64::from_lexical(b"e-1"));
+
+    // Check various reports from a fuzzer.
+    assert_eq!(Err(Error::EmptyExponent(2)), f64::from_lexical(b"0e"));
+    assert_eq!(Err(Error::EmptyExponent(4)), f64::from_lexical(b"0.0e"));
+    assert_eq!(Err(Error::EmptyMantissa(1)), f64::from_lexical(b".E"));
+    assert_eq!(Err(Error::EmptyMantissa(1)), f64::from_lexical(b".e"));
+    assert_eq!(Err(Error::EmptyMantissa(0)), f64::from_lexical(b"E2252525225"));
+    assert_eq!(Err(Error::EmptyMantissa(0)), f64::from_lexical(b"e2252525225"));
+    assert_eq!(Ok(f64::INFINITY), f64::from_lexical(b"2E200000000000"));
+
+    // Add various unittests from proptests.
+    assert_eq!(Err(Error::EmptyExponent(2)), f64::from_lexical(b"0e"));
+    assert_eq!(Err(Error::EmptyMantissa(1)), f64::from_lexical(b"."));
+    assert_eq!(Err(Error::EmptyMantissa(2)), f64::from_lexical(b"+."));
+    assert_eq!(Err(Error::EmptyMantissa(2)), f64::from_lexical(b"-."));
+    assert_eq!(Err(Error::Empty(1)), f64::from_lexical(b"+"));
+    assert_eq!(Err(Error::Empty(1)), f64::from_lexical(b"-"));
+
+    // Bug fix for Issue #8
+    assert_eq!(Ok(5.002868148396374), f64::from_lexical(b"5.002868148396374"));
+
+    // Other bug fixes
+    assert_eq!(Ok(1.620515050981309e+308), f64::from_lexical(b"162051505098130900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"));
+    assert_eq!(Ok(1.620515050981309e+308), f64::from_lexical(b"162051505098130900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"));
+    assert_eq!(Ok(-1.620515050981309e+308), f64::from_lexical(b"-162051505098130900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"));
+    assert_eq!(Ok(-1.620515050981309e+308), f64::from_lexical(b"-162051505098130900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0"));
+}
+
+#[test]
+#[cfg(feature = "radix")]
+fn f64_radix_test() {
+    const FORMAT: u128 = NumberFormatBuilder::from_radix(36);
+    let options = Options::builder().exponent(b'^').build().unwrap();
+    assert_eq!(1234.0, f64::from_lexical_with_options::<FORMAT>(b"YA", &options).unwrap());
+    let options = options.rebuild().lossy(true).build().unwrap();
+    assert_eq!(1234.0, f64::from_lexical_with_options::<FORMAT>(b"YA", &options).unwrap());
+}
+
+#[test]
 fn parse_f64_large_zeros_test() {
     // Test numbers with a massive number of 0s in the integer component.
     let parse = move |x| f64::from_lexical_partial(x);
@@ -457,7 +706,7 @@ fn parse_binary_f64_test() {
 
     // Let's test comically long digits (round-up).
     assert_eq!(Ok((2.2250738585072009e-308, 170)), parse_binary(b"1111111111111111111111111111111111111111111111111111000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000^-10010011011"));
-    assert_eq!(Ok((2.2250738585072009e-308, 170)), parse_binary(b"1111111111111111111111111111111111111111111111111111011111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111^-10010011011"));
+    assert_eq!(Ok((2.2250738585016205150509813090000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000072009e-308, 170)), parse_binary(b"1111111111111111111111111111111111111111111111111111011111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111^-10010011011"));
     assert_eq!(Ok((2.2250738585072014e-308, 170)), parse_binary(b"1111111111111111111111111111111111111111111111111111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000^-10010011011"));
     assert_eq!(Ok((2.2250738585072014e-308, 170)), parse_binary(b"1111111111111111111111111111111111111111111111111111111111111111111111000000000000000000000000000000000000000000000000000000000000000000000000000000000000000^-10010011011"));
 }
@@ -491,4 +740,585 @@ fn parse_f64_lossy_test() {
     assert_eq!(Ok((12.345, 6)), parse(b"12.345"));
     assert_eq!(Ok((12345.6789, 10)), parse(b"12345.6789"));
     assert_eq!(Ok((1.2345e10, 9)), parse(b"1.2345e10"));
+}
+
+#[test]
+fn f32_lossy_decimal_test() {
+    const FORMAT: u128 = STANDARD;
+
+    let options = Options::builder().lossy(true).build().unwrap();
+    assert_eq!(
+        Err(Error::EmptyMantissa(1)),
+        f32::from_lexical_with_options::<FORMAT>(b".", &options)
+    );
+    assert_eq!(Err(Error::Empty(0)), f32::from_lexical_with_options::<FORMAT>(b"", &options));
+    assert_eq!(Ok(0.0), f32::from_lexical_with_options::<FORMAT>(b"0.0", &options));
+    assert_eq!(
+        Err((Error::InvalidDigit(1)).into()),
+        f32::from_lexical_with_options::<FORMAT>(b"1a", &options)
+    );
+
+    // Bug fix for Issue #8
+    assert_eq!(
+        Ok(5.002868148396374),
+        f32::from_lexical_with_options::<FORMAT>(b"5.002868148396374", &options)
+    );
+}
+
+#[test]
+fn f64_lossy_decimal_test() {
+    const FORMAT: u128 = STANDARD;
+
+    let options = Options::builder().lossy(true).build().unwrap();
+    assert_eq!(
+        Err(Error::EmptyMantissa(1)),
+        f64::from_lexical_with_options::<FORMAT>(b".", &options)
+    );
+    assert_eq!(Err(Error::Empty(0)), f64::from_lexical_with_options::<FORMAT>(b"", &options));
+    assert_eq!(Ok(0.0), f64::from_lexical_with_options::<FORMAT>(b"0.0", &options));
+    assert_eq!(
+        Err((Error::InvalidDigit(1)).into()),
+        f64::from_lexical_with_options::<FORMAT>(b"1a", &options)
+    );
+
+    // Bug fix for Issue #8
+    assert_eq!(
+        Ok(5.002868148396374),
+        f64::from_lexical_with_options::<FORMAT>(b"5.002868148396374", &options)
+    );
+}
+
+#[cfg(feature = "format")]
+const fn rebuild(format: u128) -> NumberFormatBuilder {
+    NumberFormatBuilder::rebuild(format)
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_special_test() {
+    //  Comments match (no_special, case_sensitive, has_sep)
+    const F1: u128 = STANDARD;
+    const F2: u128 = format::IGNORE;
+    const F3: u128 = rebuild(F1).no_special(true).build();
+    const F4: u128 = rebuild(F1).case_sensitive_special(true).build();
+    const F5: u128 = rebuild(F2).case_sensitive_special(true).build();
+
+    let opts = Options::new();
+
+    // Easy NaN
+    assert!(f64::from_lexical_with_options::<F1>(b"NaN", &opts).unwrap().is_nan());
+    assert!(f64::from_lexical_with_options::<F2>(b"NaN", &opts).unwrap().is_nan());
+    assert!(f64::from_lexical_with_options::<F3>(b"NaN", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F4>(b"NaN", &opts).unwrap().is_nan());
+    assert!(f64::from_lexical_with_options::<F5>(b"NaN", &opts).unwrap().is_nan());
+
+    // Case-sensitive NaN.
+    assert!(f64::from_lexical_with_options::<F1>(b"nan", &opts).unwrap().is_nan());
+    assert!(f64::from_lexical_with_options::<F2>(b"nan", &opts).unwrap().is_nan());
+    assert!(f64::from_lexical_with_options::<F3>(b"nan", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F4>(b"nan", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F5>(b"nan", &opts).is_err());
+
+    // Digit-separator NaN.
+    assert!(f64::from_lexical_with_options::<F1>(b"N_aN", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F2>(b"N_aN", &opts).unwrap().is_nan());
+    assert!(f64::from_lexical_with_options::<F3>(b"N_aN", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F4>(b"N_aN", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F5>(b"N_aN", &opts).unwrap().is_nan());
+
+    // Digit-separator + case-sensitive NaN.
+    assert!(f64::from_lexical_with_options::<F1>(b"n_an", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F2>(b"n_an", &opts).unwrap().is_nan());
+    assert!(f64::from_lexical_with_options::<F3>(b"n_an", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F4>(b"n_an", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F5>(b"n_an", &opts).is_err());
+
+    // Leading digit separator + case-sensitive NaN.
+    assert!(f64::from_lexical_with_options::<F1>(b"_n_a_n", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F2>(b"_n_a_n", &opts).unwrap().is_nan());
+    assert!(f64::from_lexical_with_options::<F3>(b"_n_a_n", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F4>(b"_n_a_n", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F5>(b"_n_a_n", &opts).is_err());
+
+    // Trailing digit separator + case-sensitive NaN.
+    assert!(f64::from_lexical_with_options::<F1>(b"n_a_n_", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F2>(b"n_a_n_", &opts).unwrap().is_nan());
+    assert!(f64::from_lexical_with_options::<F3>(b"n_a_n_", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F4>(b"n_a_n_", &opts).is_err());
+    assert!(f64::from_lexical_with_options::<F5>(b"n_a_n_", &opts).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_required_integer_digits_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE).required_integer_digits(true).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b".0", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_required_fraction_digits_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE).required_fraction_digits(true).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3", &options).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_required_digits_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE).required_digits(true).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b".0", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_no_positive_mantissa_sign_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE).no_positive_mantissa_sign(true).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"-3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.0", &options).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_required_mantissa_sign_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE).required_mantissa_sign(true).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"-3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.0", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_no_exponent_notation_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE).no_exponent_notation(true).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3e", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3e-", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3", &options).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_optional_exponent_test() {
+    const FORMAT: u128 = format::PERMISSIVE;
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &options).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_required_exponent_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE).required_exponent_digits(true).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e-", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &options).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_no_positive_exponent_sign_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE).no_positive_exponent_sign(true).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.0e7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.0e+7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.0e-7", &options).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_required_exponent_sign_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE).required_exponent_sign(true).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.0e7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.0e+7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.0e-7", &options).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_no_exponent_without_fraction_test() {
+    const F1: u128 = rebuild(format::PERMISSIVE).no_exponent_without_fraction(true).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<F1>(b"3.0e7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<F1>(b"3.e7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<F1>(b"3e7", &options).is_err());
+
+    const F2: u128 = rebuild(F1).required_fraction_digits(true).build();
+    assert!(f64::from_lexical_with_options::<F2>(b"3.0e7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<F2>(b"3.e7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<F2>(b"3e7", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_no_leading_zeros_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE).no_float_leading_zeros(true).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"1.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"0.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"01.0", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"10.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"010.0", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_required_exponent_notation_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE)
+        .required_exponent_digits(false)
+        .required_exponent_notation(true)
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3.0e", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"0.e", &options).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_integer_internal_digit_separator_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE)
+        .integer_internal_digit_separator(true)
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3_1.0e7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"_31.0e7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31_.0e7", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_fraction_internal_digit_separator_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE)
+        .fraction_internal_digit_separator(true)
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.0_1e7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31._01e7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01_e7", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_exponent_internal_digit_separator_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE)
+        .exponent_internal_digit_separator(true)
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e7_1", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e_71", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e71_", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_integer_leading_digit_separator_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE)
+        .integer_leading_digit_separator(true)
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3_1.0e7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"_31.0e7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31_.0e7", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_fraction_leading_digit_separator_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE)
+        .fraction_leading_digit_separator(true)
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.0_1e7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31._01e7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01_e7", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_exponent_leading_digit_separator_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE)
+        .exponent_leading_digit_separator(true)
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e7_1", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e_71", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e71_", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_integer_trailing_digit_separator_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE)
+        .integer_trailing_digit_separator(true)
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3_1.0e7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"_31.0e7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31_.0e7", &options).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_fraction_trailing_digit_separator_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE)
+        .fraction_trailing_digit_separator(true)
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.0_1e7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31._01e7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01_e7", &options).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_exponent_trailing_digit_separator_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE)
+        .exponent_trailing_digit_separator(true)
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e7_1", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e_71", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e71_", &options).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_integer_consecutive_digit_separator_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE)
+        .integer_internal_digit_separator(true)
+        .integer_consecutive_digit_separator(true)
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"3__1.0e7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"_31.0e7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31_.0e7", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_fraction_consecutive_digit_separator_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE)
+        .fraction_internal_digit_separator(true)
+        .fraction_consecutive_digit_separator(true)
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.0__1e7", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31._01e7", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01_e7", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_exponent_consecutive_digit_separator_test() {
+    const FORMAT: u128 = rebuild(format::PERMISSIVE)
+        .exponent_internal_digit_separator(true)
+        .exponent_consecutive_digit_separator(true)
+        .digit_separator(num::NonZeroU8::new(b'_'))
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e7__1", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e_71", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"31.01e71_", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_json_exponent_without_dot() {
+    // Tests courtesy of @ijl:
+    //  https://github.com/Alexhuszagh/rust-lexical/issues/24#issuecomment-578153783
+    const FORMAT: u128 = format::JSON;
+    let options = Options::new();
+    // JSONTestSuite/test_parsing/y_number_0e1.json
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"0e1", &options).is_ok());
+    // JSONTestSuite/test_parsing/y_number_int_with_exp.json
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"20e1", &options).is_ok());
+    // JSONTestSuite/test_parsing/y_number_real_capital_e_pos_exp.json
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"1E+2", &options).is_ok());
+    // JSONTestSuite/test_transform/number_1e-999.json
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"1E-999", &options).is_ok());
+    // nativejson-benchmark/data/jsonchecker/pass01.json
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"23456789012E66", &options).is_ok());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_json_exponent_requires_digit() {
+    // Tests courtesy of @ijl:
+    //  https://github.com/Alexhuszagh/rust-lexical/issues/24#issuecomment-578153783
+    const FORMAT: u128 = format::JSON;
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"1e", &options).is_err());
+    // JSONTestSuite/test_parsing/n_number_9.e+.json
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"9.e+", &options).is_err());
+    // JSONTestSuite/test_parsing/n_number_2.e-3.json
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"2.e-3", &options).is_err());
+    // JSONTestSuite/test_parsing/n_number_real_without_fractional_part.json
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"1.", &options).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn f64_json_no_leading_zero() {
+    const FORMAT: u128 = format::JSON;
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"12.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"-12.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"012.0", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"-012.0", &options).is_err());
+}
+
+proptest! {
+    #[test]
+    fn f32_invalid_proptest(i in r"[+-]?[0-9]{2}[^\deE]?\.[^\deE]?[0-9]{2}[^\deE]?e[+-]?[0-9]+[^\deE]") {
+        let res = f32::from_lexical(i.as_bytes());
+        prop_assert!(res.is_err());
+        prop_assert!(res.err().unwrap().is_invalid_digit());
+    }
+
+    #[test]
+    fn f32_double_sign_proptest(i in r"[+-]{2}[0-9]{2}\.[0-9]{2}e[+-]?[0-9]+") {
+        let res = f32::from_lexical(i.as_bytes());
+        prop_assert!(res.is_err());
+        prop_assert!(
+            res.err().unwrap().is_invalid_digit() ||
+            res.err().unwrap().is_empty_mantissa()
+        );
+    }
+
+    #[test]
+    fn f32_sign_or_dot_only_proptest(i in r"[+-]?\.?") {
+        let res = f32::from_lexical(i.as_bytes());
+        prop_assert!(res.is_err());
+        prop_assert!(
+            res.err().unwrap().is_empty() ||
+            res.err().unwrap().is_empty_mantissa()
+        );
+    }
+
+    #[test]
+    fn f32_double_exponent_sign_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]{2}[0-9]+") {
+        let res = f32::from_lexical(i.as_bytes());
+        prop_assert!(res.is_err());
+        prop_assert!(res.err().unwrap().is_empty_exponent());
+    }
+
+    #[test]
+    fn f32_missing_exponent_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]?") {
+        let res = f32::from_lexical(i.as_bytes());
+        prop_assert!(res.is_err());
+        prop_assert!(res.err().unwrap().is_empty_exponent());
+    }
+
+    #[test]
+    fn f32_roundtrip_display_proptest(i in f32::MIN..f32::MAX) {
+        let input: String = format!("{}", i);
+        prop_assert_eq!(i, f32::from_lexical(input.as_bytes()).unwrap());
+    }
+
+    #[test]
+    fn f32_roundtrip_debug_proptest(i in f32::MIN..f32::MAX) {
+        let input: String = format!("{:?}", i);
+        prop_assert_eq!(i, f32::from_lexical(input.as_bytes()).unwrap());
+    }
+
+    #[test]
+    fn f32_roundtrip_scientific_proptest(i in f32::MIN..f32::MAX) {
+        let input: String = format!("{:e}", i);
+        prop_assert_eq!(i, f32::from_lexical(input.as_bytes()).unwrap());
+    }
+
+    #[test]
+    fn f64_invalid_proptest(i in r"[+-]?[0-9]{2}[^\deE]?\.[^\deE]?[0-9]{2}[^\deE]?e[+-]?[0-9]+[^\deE]") {
+        let res = f64::from_lexical(i.as_bytes());
+        prop_assert!(res.is_err());
+        prop_assert!(res.err().unwrap().is_invalid_digit());
+    }
+
+    #[test]
+    fn f64_double_sign_proptest(i in r"[+-]{2}[0-9]{2}\.[0-9]{2}e[+-]?[0-9]+") {
+        let res = f64::from_lexical(i.as_bytes());
+        prop_assert!(res.is_err());
+        prop_assert!(
+            res.err().unwrap().is_invalid_digit() ||
+            res.err().unwrap().is_empty_mantissa()
+        );
+    }
+
+    #[test]
+    fn f64_sign_or_dot_only_proptest(i in r"[+-]?\.?") {
+        let res = f64::from_lexical(i.as_bytes());
+        prop_assert!(res.is_err());
+        prop_assert!(
+            res.err().unwrap().is_empty() ||
+            res.err().unwrap().is_empty_mantissa()
+        );
+    }
+
+    #[test]
+    fn f64_double_exponent_sign_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]{2}[0-9]+") {
+        let res = f64::from_lexical(i.as_bytes());
+        prop_assert!(res.is_err());
+        prop_assert!(res.err().unwrap().is_empty_exponent());
+    }
+
+    #[test]
+    fn f64_missing_exponent_proptest(i in r"[+-]?[0-9]{2}\.[0-9]{2}e[+-]?") {
+        let res = f64::from_lexical(i.as_bytes());
+        prop_assert!(res.is_err());
+        prop_assert!(res.err().unwrap().is_empty_exponent());
+    }
+
+    #[test]
+    fn f64_roundtrip_display_proptest(i in f64::MIN..f64::MAX) {
+        let input: String = format!("{}", i);
+        prop_assert_eq!(i, f64::from_lexical(input.as_bytes()).unwrap());
+    }
+
+    #[test]
+    fn f64_roundtrip_debug_proptest(i in f64::MIN..f64::MAX) {
+        let input: String = format!("{:?}", i);
+        prop_assert_eq!(i, f64::from_lexical(input.as_bytes()).unwrap());
+    }
+
+    #[test]
+    fn f64_roundtrip_scientific_proptest(i in f64::MIN..f64::MAX) {
+        let input: String = format!("{:e}", i);
+        prop_assert_eq!(i, f64::from_lexical(input.as_bytes()).unwrap());
+    }
 }

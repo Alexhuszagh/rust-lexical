@@ -335,6 +335,7 @@ pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
 /// This creates a representation of the float as the
 /// significant digits and the decimal exponent.
 #[inline]
+#[allow(clippy::collapsible_if)]
 pub fn parse_partial_number<'a, const FORMAT: u128>(
     mut byte: Bytes<'a, FORMAT>,
     is_negative: bool,
@@ -394,13 +395,20 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     // SAFETY: safe, since `n_digits <= start.as_slice().len()`.
     let integer_digits = unsafe { start.as_slice().get_unchecked(..n_digits) };
 
+    // Check if integer leading zeros are disabled.
+    if cfg!(feature = "format") && format.no_float_leading_zeros() {
+        if integer_digits.len() > 1 && integer_digits.get(0) == Some(&b'0') {
+            return Err(Error::InvalidLeadingZeros(start.cursor()));
+        }
+    }
+
     // FRACTION
 
     // Handle decimal point and digits afterwards.
     let mut n_after_dot = 0;
     let mut exponent = 0_i64;
     let mut implicit_exponent: i64;
-    let int_end = byte.current_count() as i64;
+    let int_end = n_digits as i64;
     let mut fraction_digits = None;
     if byte.first_is(decimal_point) {
         // SAFETY: s cannot be empty due to first_is
@@ -445,12 +453,27 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         byte.case_insensitive_first_is(exponent_character)
     };
     if is_exponent {
+        // Check float format syntax checks.
+        if cfg!(feature = "format") {
+            if format.no_exponent_notation() {
+                return Err(Error::InvalidExponent(byte.cursor()));
+            }
+            // Check if we have no fraction but we required exponent notation.
+            if format.no_exponent_without_fraction() && fraction_digits.is_none() {
+                return Err(Error::ExponentWithoutFraction(byte.cursor()));
+            }
+        }
+
         // SAFETY: byte cannot be empty due to first_is
         unsafe { byte.step_unchecked() };
         let (is_negative, shift) = parse_exponent_sign!(byte, format);
-        let before = byte.current_count();
         // SAFETY: safe since we shift at most one for a parsed sign byte.
         unsafe { byte.step_by_unchecked(shift) };
+        if cfg!(feature = "format") && format.required_exponent_sign() && shift == 0 {
+            return Err(Error::MissingExponentSign(byte.cursor()));
+        }
+
+        let before = byte.current_count();
         parse_digits::<_, _, FORMAT>(byte.exponent_iter(), |digit| {
             if explicit_exponent < 0x10000 {
                 explicit_exponent *= format.radix() as i64;
@@ -467,6 +490,8 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
             explicit_exponent
         };
         exponent += explicit_exponent;
+    } else if cfg!(feature = "format") && format.required_exponent_notation() {
+        return Err(Error::MissingExponent(byte.cursor()));
     }
 
     // CHECK OVERFLOW
@@ -612,7 +637,7 @@ where
 {
     let format = NumberFormat::<{ FORMAT }> {};
     let radix: u64 = format.radix() as u64;
-    if cfg!(not(feature = "radix")) || radix <= 10 {
+    if can_try_parse_8digits!(iter, radix) {
         let radix2 = radix.wrapping_mul(radix);
         let radix4 = radix2.wrapping_mul(radix2);
         let radix8 = radix4.wrapping_mul(radix4);
@@ -642,7 +667,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
 
     // Try to parse 8 digits at a time, if we can.
     #[cfg(not(feature = "compact"))]
-    if cfg!(not(feature = "radix")) || radix <= 10 {
+    if can_try_parse_8digits!(iter, radix) {
         let radix2 = radix.wrapping_mul(radix);
         let radix4 = radix2.wrapping_mul(radix2);
         let radix8 = radix4.wrapping_mul(radix4);

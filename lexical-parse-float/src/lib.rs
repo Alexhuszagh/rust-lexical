@@ -62,7 +62,6 @@
 #![doc = include_str!("../docs/Benchmarks.md")]
 //!
 #![doc = include_str!("../docs/BigInteger.md")]
-
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
 #![allow(unused_unsafe)]
@@ -72,6 +71,8 @@
 
 #[macro_use]
 mod index;
+#[macro_use]
+pub mod shared;
 
 pub mod bellerophon;
 pub mod bigint;
@@ -85,7 +86,6 @@ pub mod mask;
 pub mod number;
 pub mod options;
 pub mod parse;
-pub mod shared;
 pub mod slow;
 pub mod table;
 

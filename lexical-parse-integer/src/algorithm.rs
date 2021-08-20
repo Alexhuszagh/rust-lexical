@@ -21,6 +21,13 @@ use lexical_util::step::min_step;
 
 // ALGORITHM
 
+/// Check if we can try to parse 8 digits.
+macro_rules! can_try_parse_8digits {
+    ($iter:expr, $radix:expr) => {
+        $iter.is_contiguous() && (cfg!(not(feature = "radix")) || $radix <= 10)
+    };
+}
+
 /// Parse 8-digits at a time.
 ///
 /// See the algorithm description in `parse_8digits`.
@@ -113,17 +120,17 @@ macro_rules! parse_digits {
         // Optimizations for reading 8-digits at a time.
         // Makes no sense to do 8 digits at a time for 32-bit values,
         // since it can only hold 8 digits for base 10.
-        if <$t>::BITS == 128 && radix <= 10 && $iter.is_contiguous() {
+        if <$t>::BITS == 128 && can_try_parse_8digits!($iter, radix) {
             parse_8digits!($value, $iter, $format, $u);
         }
-        if <$t>::BITS == 64 && radix <= 10 && $iter.is_contiguous() && !<$t>::IS_SIGNED {
+        if <$t>::BITS == 64 && can_try_parse_8digits!($iter, radix) && !<$t>::IS_SIGNED {
             parse_8digits!($value, $iter, $format, $u);
         }
 
         // Optimizations for reading 4-digits at a time.
         // 36^4 is larger than a 16-bit integer. Likewise, 10^4 is almost
         // the limit of u16, so it's not worth it.
-        if <$t>::BITS == 32 && radix <= 10 && $iter.is_contiguous() && !<$t>::IS_SIGNED {
+        if <$t>::BITS == 32 && can_try_parse_8digits!($iter, radix) && !<$t>::IS_SIGNED {
             parse_4digits!($value, $iter, $format, $u);
         }
 

@@ -454,8 +454,8 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// Check if the next element is a given value.
     #[inline]
     pub fn first_is(&mut self, value: u8) -> bool {
-        let format = NumberFormat::<{ FORMAT }> {};
-        debug_assert!(self.slc.get(self.index) != Some(&format.digit_separator()));
+        // Don't assert not a digit separator, since this can occur when
+        // a different component does not allow digit separators there.
         if let Some(&c) = self.slc.get(self.index) {
             c == value
         } else {
@@ -466,8 +466,8 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// Check if the next element is a given value without case sensitivity.
     #[inline]
     pub fn case_insensitive_first_is(&mut self, value: u8) -> bool {
-        let format = NumberFormat::<{ FORMAT }> {};
-        debug_assert!(self.slc.get(self.index) != Some(&format.digit_separator()));
+        // Don't assert not a digit separator, since this can occur when
+        // a different component does not allow digit separators there.
         if let Some(&c) = self.slc.get(self.index) {
             c.to_ascii_lowercase() == value.to_ascii_lowercase()
         } else {

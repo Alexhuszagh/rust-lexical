@@ -41,7 +41,7 @@ pub enum Error {
     MissingExponentSign(usize),
     /// Exponent was present without fraction component.
     ExponentWithoutFraction(usize),
-    /// Integer had invalid leading zeros.
+    /// Integer or integer component of float had invalid leading zeros.
     InvalidLeadingZeros(usize),
     /// No exponent with required exponent notation.
     MissingExponent(usize),

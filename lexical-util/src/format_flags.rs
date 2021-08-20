@@ -661,6 +661,13 @@ pub const fn radix_from_flags(format: u128, mask: u128, shift: i32) -> u32 {
 // VALIDATORS
 // ----------
 
+/// Determine if the provided exponent flags are valid.
+#[inline]
+pub const fn is_valid_exponent_flags(format: u128) -> bool {
+    // Both cannot be set.
+    format & NO_EXPONENT_NOTATION == 0 || format & REQUIRED_EXPONENT_NOTATION == 0
+}
+
 /// Determine if an optional control character is valid.
 #[inline]
 const fn is_valid_optional_control_radix(radix: u32, value: u8) -> bool {

@@ -105,7 +105,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
 
     // Try to parse 8 digits at a time, if we can.
     #[cfg(not(feature = "compact"))]
-    if cfg!(not(feature = "radix")) || radix <= 10 {
+    if can_try_parse_8digits!(iter, radix) {
         let radix2 = radix.wrapping_mul(radix);
         let radix4 = radix2.wrapping_mul(radix2);
         let radix8 = radix4.wrapping_mul(radix4);

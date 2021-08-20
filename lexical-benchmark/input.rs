@@ -54,12 +54,7 @@ pub fn read_lines(name: &str) -> Vec<String> {
     let mut path = bench_dir();
     path.push("data");
     path.push(name);
-    std::fs::read_to_string(path)
-        .unwrap()
-        .trim()
-        .lines()
-        .map(String::from)
-        .collect()
+    std::fs::read_to_string(path).unwrap().trim().lines().map(String::from).collect()
 }
 
 /// Read data as CSV from file.
@@ -307,9 +302,7 @@ float_rng! { f32 f64 }
 
 // Generate a static array of random values.
 #[inline]
-pub fn from_random<T: NumberRng>(strategy: RandomGen, count: usize, seed: u64)
-    -> Vec<String>
-{
+pub fn from_random<T: NumberRng>(strategy: RandomGen, count: usize, seed: u64) -> Vec<String> {
     let mut rng = Rng::with_seed(seed);
     let mut vec: Vec<String> = Vec::with_capacity(count);
     for _ in 0..count {
