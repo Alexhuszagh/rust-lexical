@@ -10,8 +10,8 @@ cd "$script_dir"/..
 
 export RUSTFLAGS="--deny warnings"
 
-cargo +nightly test
-cargo +nightly test --all-features
+cargo +nightly test --tests
+cargo +nightly test --all-features --tests
 if [ "$SKIP_VALGRIND" == "" ]; then
     cargo +nightly valgrind test --features=radix --tests --release
 fi
@@ -32,7 +32,7 @@ FEATURES=(
 )
 if [ "$SKIP_FEATURES" == "" ]; then
     for features in "${FEATURES[@]}"; do
-        cargo +nightly test --features="$features"
+        cargo +nightly test --features="$features" --tests
     done
 fi
 
