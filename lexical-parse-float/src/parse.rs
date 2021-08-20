@@ -475,7 +475,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 
         let before = byte.current_count();
         parse_digits::<_, _, FORMAT>(byte.exponent_iter(), |digit| {
-            if explicit_exponent < 0x10000 {
+            if explicit_exponent < 0x10000000 {
                 explicit_exponent *= format.radix() as i64;
                 explicit_exponent += digit as i64;
             }
