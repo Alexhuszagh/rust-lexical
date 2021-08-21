@@ -996,7 +996,7 @@ fn large_add_from<const SIZE: usize>(
     if y.len() > x.len().saturating_sub(start) {
         // Ensure we panic if we can't extend the buffer.
         // This avoids any unsafe behavior afterwards.
-        x.try_resize(y.len() + start, 0).unwrap();
+        x.try_resize(y.len() + start, 0)?;
     }
 
     // Iteratively add elements from y to x.

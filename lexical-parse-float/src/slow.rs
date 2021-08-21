@@ -100,7 +100,7 @@ pub fn digit_comp<F: RawFloat, const FORMAT: u128>(
     sci_exp: i32,
     max_digits: usize,
 ) -> ExtendedFloat80 {
-    let (bigmant, digits) = parse_mantissa::<F, FORMAT>(num, max_digits);
+    let (bigmant, digits) = parse_mantissa::<FORMAT>(num, max_digits);
     // This can't underflow, since `digits` is at most `max_digits`.
     let exponent = sci_exp + 1 - digits as i32;
     if exponent >= 0 {
@@ -346,7 +346,7 @@ macro_rules! round_up_nonzero {
 ///
 /// Returns the parsed mantissa and the number of digits in the mantissa.
 /// The max digits is the maximum number of digits plus one.
-pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
+pub fn parse_mantissa<const FORMAT: u128>(
     num: Number,
     max_digits: usize,
 ) -> (Bigint, usize) {
@@ -379,28 +379,28 @@ pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
         try_parse_8digits!(FORMAT, integer_iter, value, count, counter, step, max_digits);
 
         // Parse a digit at a time, until we reach step.
-        while counter < step {
+        while counter < step && count < max_digits {
             if let Some(&c) = integer_iter.next() {
                 add_digit!(c, radix, value, counter, count);
-
-                // Check if we've exhausted our max digits.
-                if count == max_digits {
-                    // Need to check if we're truncated, and round-up accordingly.
-                    add_temporary!(@end format, result, counter, value);
-                    round_up_nonzero!(format, integer_iter, result, count);
-                    if let Some(fraction) = num.fraction {
-                        let mut fraction = fraction.bytes::<FORMAT>();
-                        round_up_nonzero!(format, fraction.fraction_iter(), result, count)
-                    }
-                    return (result, count);
-                }
             } else {
                 break 'integer;
             }
         }
 
-        // Add our temporary from the loop.
-        add_temporary!(@max format, result, counter, value, max_native);
+        // Check if we've exhausted our max digits.
+        if count == max_digits {
+            // Need to check if we're truncated, and round-up accordingly.
+            add_temporary!(@end format, result, counter, value);
+            round_up_nonzero!(format, integer_iter, result, count);
+            if let Some(fraction) = num.fraction {
+                let mut fraction = fraction.bytes::<FORMAT>();
+                round_up_nonzero!(format, fraction.fraction_iter(), result, count)
+            }
+            return (result, count);
+        } else {
+            // Add our temporary from the loop.
+            add_temporary!(@max format, result, counter, value, max_native);
+        }
     }
 
     // Process the fraction digits.
@@ -416,23 +416,23 @@ pub fn parse_mantissa<F: RawFloat, const FORMAT: u128>(
             try_parse_8digits!(FORMAT, fraction_iter, value, count, counter, step, max_digits);
 
             // Parse a digit at a time, until we reach step.
-            while counter < step {
+            while counter < step && count < max_digits {
                 if let Some(&c) = fraction_iter.next() {
                     add_digit!(c, radix, value, counter, count);
-
-                    // Check if we've exhausted our max digits.
-                    if count == max_digits {
-                        add_temporary!(@end format, result, counter, value);
-                        round_up_nonzero!(format, fraction_iter, result, count);
-                        return (result, count);
-                    }
                 } else {
                     break 'fraction;
                 }
             }
 
-            // Add our temporary from the loop.
-            add_temporary!(@max format, result, counter, value, max_native);
+            // Check if we've exhausted our max digits.
+            if count == max_digits {
+                add_temporary!(@end format, result, counter, value);
+                round_up_nonzero!(format, fraction_iter, result, count);
+                return (result, count);
+            } else {
+                // Add our temporary from the loop.
+                add_temporary!(@max format, result, counter, value, max_native);
+            }
         }
     }
 
