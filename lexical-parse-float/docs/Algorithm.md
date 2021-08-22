@@ -212,6 +212,12 @@ Other float-parsing algorithms, such as [go](https://github.com/golang/go/blob/m
 4. For the fallback `byte_comp` algorithm, we use a division algorithm optimized for the generation of a single digit from a given radix, by setting the leading bit in the denominator 4 below the most-significant bit (in decimal strings). This requires only 1 native division per digit generated.
 4. The individual "limbs" of the big integers are optimized to the architecture we compile on, for example, u32 on x86 and u64 on x86-64, minimizing the number of native operations required. Currently, 64-bit limbs are used on all 64-bit architectures except SPARCv8 and SPARCv9, where 128-bit multiplication is emulated rather than implemented in hardware.
 
+## Limb Sizes
+
+An important consideration in big-integer arithmetic is the size of the limbs we use, to ensure optimal performance for the native architecture. Currently, all tested 64-bit architectures besides SPARCv8 and SPARCv9 have support for 128-bit multiplication, or the ability to extract the high and low bits of a 64-bit multiplication in 2 steps. This is considerably more efficient than using 32-bit limbs, and so on those architectures we default to 64-bit limbs, and on all else we fallback to 32-bit limbs.
+
+Therefore, the largest performance gains relative to the `decimal` implementation, which has similar relative performance on all architectures, is when using 64-bit limbs. Regardless, `digit_comp` is faster than the `decimal` algorithm in all cases: ~5-9x faster for 64-bit limbs, and ~3x-5x faster for 32-bit limbs. This difference makes quite a lot of sense when emulating 128-bit multiplication with native 64-bit multiplication takes 3-4 multiplication instructions, which almost entirely explains the performance gap.
+
 ## Validation
 
 Float parsing is difficult to do correctly, and major bugs have been found in implementations from [libstdc++'s strtod](https://www.exploringbinary.com/glibc-strtod-incorrectly-converts-2-to-the-negative-1075/) to [Python](https://bugs.python.org/issue7632). In order to validate the accuracy of the lexical, we employ the following external tests:

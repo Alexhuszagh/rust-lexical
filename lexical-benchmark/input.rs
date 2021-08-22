@@ -11,28 +11,28 @@ use lexical_util::num::Integer;
 
 // PATH
 
-/// Return the `target/debug` directory path.
-#[inline]
-pub fn debug_dir() -> std::path::PathBuf {
-    std::env::current_exe()
-        .expect("unittest executable path")
-        .parent()
-        .expect("unittest executable directory")
-        .parent()
-        .expect("debug directory")
-        .to_path_buf()
-}
-
 /// Return the `target` directory path.
 #[inline]
 pub fn target_dir() -> std::path::PathBuf {
-    debug_dir().parent().expect("target directory").to_path_buf()
+    // Cross-compiling creates a different directory
+    let mut path = std::env::current_exe().unwrap();
+    while let Some(basename) = path.file_name() {
+        if basename == "target" {
+            break;
+        } else {
+            path.pop();
+        }
+    }
+
+    path
 }
 
 /// Return the benchmark directory path.
 #[inline]
 pub fn bench_dir() -> std::path::PathBuf {
-    target_dir().parent().expect("bench directory").to_path_buf()
+    let mut path = target_dir();
+    path.pop();
+    path
 }
 
 // FILE
