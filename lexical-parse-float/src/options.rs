@@ -302,8 +302,7 @@ impl Default for OptionsBuilder {
 /// # Examples
 ///
 /// ```rust
-/// # extern crate lexical_core;
-/// use lexical_core::ParseFloatOptions;
+/// use lexical_parse_float::Options;
 ///
 /// # pub fn main() {
 /// let options = Options::builder()

@@ -7,7 +7,7 @@
 /// # Examples
 ///
 /// ```rust
-/// # use lexical_parse_float::bellerophon::lower_n_mask;
+/// # use lexical_parse_float::mask::lower_n_mask;
 /// # pub fn main() {
 /// assert_eq!(lower_n_mask(2), 0b11);
 /// # }
@@ -27,7 +27,7 @@ pub fn lower_n_mask(n: u64) -> u64 {
 /// # Examples
 ///
 /// ```rust
-/// # use lexical_parse_float::bellerophon::lower_n_halfway;
+/// # use lexical_parse_float::mask::lower_n_halfway;
 /// # pub fn main() {
 /// assert_eq!(lower_n_halfway(2), 0b10);
 /// # }
@@ -47,7 +47,7 @@ pub fn lower_n_halfway(n: u64) -> u64 {
 /// # Examples
 ///
 /// ```rust
-/// # use lexical_parse_float::bellerophon::nth_bit;
+/// # use lexical_parse_float::mask::nth_bit;
 /// # pub fn main() {
 /// assert_eq!(nth_bit(2), 0b100);
 /// # }

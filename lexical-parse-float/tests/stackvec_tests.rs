@@ -33,10 +33,11 @@ fn simple_test() {
     assert_eq!(x.len(), 2);
     assert_eq!(x.is_empty(), false);
     assert_eq!(x.hi16(), (0x8000, true));
-    assert_eq!(x.hi32(), (0x80000000, true));
     if LIMB_BITS == 32 {
+        assert_eq!(x.hi32(), (0x80000002, true));
         assert_eq!(x.hi64(), (0x8000000280000000, false));
     } else {
+        assert_eq!(x.hi32(), (0x80000000, true));
         assert_eq!(x.hi64(), (0x8000000000000002, true));
     }
     let rview = x.rview();
@@ -112,11 +113,12 @@ fn math_test() {
     x.mul_small(3);
     assert_eq!(&*x, &[0, 6, 27]);
     x.mul_small(Limb::MAX);
-    if LIMB_BITS == 32 {
-        assert_eq!(&*x, &[0, 4294967290, 4294967274, 26]);
+    let expected: VecType = if LIMB_BITS == 32 {
+        vec_from_u32(&[0, 4294967290, 4294967274, 26])
     } else {
-        assert_eq!(&*x, &[0, 18446744073709551610, 18446744073709551594, 26]);
-    }
+        vec_from_u32(&[0, 0, 4294967290, 4294967295, 4294967274, 4294967295, 26])
+    };
+    assert_eq!(&*x, &*expected);
 
     #[cfg(feature = "radix")]
     {

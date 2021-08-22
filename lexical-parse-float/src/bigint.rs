@@ -718,7 +718,7 @@ impl<'a, T> ops::Index<usize> for ReverseView<'a, T> {
 /// Safe as long as `rindex < x.len()`.
 #[inline]
 pub unsafe fn nonzero(x: &[Limb], rindex: usize) -> bool {
-    debug_assert!(rindex < x.len());
+    debug_assert!(rindex <= x.len());
 
     let len = x.len();
     let slc = unsafe { &index_unchecked!(x[..len - rindex]) };

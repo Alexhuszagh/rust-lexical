@@ -650,9 +650,9 @@ pub const fn u64_power_limit(radix: u32) -> u32 {
 /// digits required to exactly represent that float. This makes sense,
 /// and the exact reference and I quote is:
 ///
-///     A necessary and sufficient condition for all numbers representable in radix β
-///     with a finite number of digits to be representable in radix γ with a
-///     finite number of digits is that β should divide an integer power of γ.
+///  > A necessary and sufficient condition for all numbers representable in radix β
+///  > with a finite number of digits to be representable in radix γ with a
+///  > finite number of digits is that β should divide an integer power of γ.
 ///
 /// According to the "Handbook of Floating Point Arithmetic",
 /// for IEEE754, with emin being the min exponent, p2 being the
