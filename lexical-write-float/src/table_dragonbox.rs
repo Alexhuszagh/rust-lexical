@@ -23,84 +23,84 @@ pub const N64_POWERS_OF_FIVE: usize = (LARGEST_F64_POW5 - SMALLEST_F64_POW5 + 1)
 /// This is very similar to the high bits for `DRAGONBOX64_POWERS_OF_FIVE`,
 /// with rounding obviously for the bits.
 pub const DRAGONBOX32_POWERS_OF_FIVE: [u64; N32_POWERS_OF_FIVE] = [
-    0x81ceb32c4b43fcf5,
-    0xa2425ff75e14fc32,
-    0xcad2f7f5359a3b3f,
-    0xfd87b5f28300ca0e,
-    0x9e74d1b791e07e49,
-    0xc612062576589ddb,
-    0xf79687aed3eec552,
-    0x9abe14cd44753b53,
-    0xc16d9a0095928a28,
-    0xf1c90080baf72cb2,
-    0x971da05074da7bef,
-    0xbce5086492111aeb,
-    0xec1e4a7db69561a6,
-    0x9392ee8e921d5d08,
-    0xb877aa3236a4b44a,
-    0xe69594bec44de15c,
-    0x901d7cf73ab0acda,
-    0xb424dc35095cd810,
-    0xe12e13424bb40e14,
-    0x8cbccc096f5088cc,
-    0xafebff0bcb24aaff,
-    0xdbe6fecebdedd5bf,
-    0x89705f4136b4a598,
-    0xabcc77118461cefd,
-    0xd6bf94d5e57a42bd,
-    0x8637bd05af6c69b6,
-    0xa7c5ac471b478424,
-    0xd1b71758e219652c,
-    0x83126e978d4fdf3c,
-    0xa3d70a3d70a3d70b,
-    0xcccccccccccccccd,
-    0x8000000000000000,
-    0xa000000000000000,
-    0xc800000000000000,
-    0xfa00000000000000,
-    0x9c40000000000000,
-    0xc350000000000000,
-    0xf424000000000000,
-    0x9896800000000000,
-    0xbebc200000000000,
-    0xee6b280000000000,
-    0x9502f90000000000,
-    0xba43b74000000000,
-    0xe8d4a51000000000,
-    0x9184e72a00000000,
-    0xb5e620f480000000,
-    0xe35fa931a0000000,
-    0x8e1bc9bf04000000,
-    0xb1a2bc2ec5000000,
-    0xde0b6b3a76400000,
-    0x8ac7230489e80000,
-    0xad78ebc5ac620000,
-    0xd8d726b7177a8000,
-    0x878678326eac9000,
-    0xa968163f0a57b400,
-    0xd3c21bcecceda100,
-    0x84595161401484a0,
-    0xa56fa5b99019a5c8,
-    0xcecb8f27f4200f3a,
-    0x813f3978f8940984,
-    0xa18f07d736b90be5,
-    0xc9f2c9cd04674ede,
-    0xfc6f7c4045812296,
-    0x9dc5ada82b70b59d,
-    0xc5371912364ce305,
-    0xf684df56c3e01bc6,
-    0x9a130b963a6c115c,
-    0xc097ce7bc90715b3,
-    0xf0bdc21abb48db20,
-    0x96769950b50d88f4,
-    0xbc143fa4e250eb31,
-    0xeb194f8e1ae525fd,
-    0x92efd1b8d0cf37be,
-    0xb7abc627050305ad,
-    0xe596b7b0c643c719,
-    0x8f7e32ce7bea5c6f,
-    0xb35dbf821ae4f38b,
-    0xe0352f62a19e306e,
+    0x81ceb32c4b43fcf5, // 5^-31
+    0xa2425ff75e14fc32, // 5^-30
+    0xcad2f7f5359a3b3f, // 5^-29
+    0xfd87b5f28300ca0e, // 5^-28
+    0x9e74d1b791e07e49, // 5^-27
+    0xc612062576589ddb, // 5^-26
+    0xf79687aed3eec552, // 5^-25
+    0x9abe14cd44753b53, // 5^-24
+    0xc16d9a0095928a28, // 5^-23
+    0xf1c90080baf72cb2, // 5^-22
+    0x971da05074da7bef, // 5^-21
+    0xbce5086492111aeb, // 5^-20
+    0xec1e4a7db69561a6, // 5^-19
+    0x9392ee8e921d5d08, // 5^-18
+    0xb877aa3236a4b44a, // 5^-17
+    0xe69594bec44de15c, // 5^-16
+    0x901d7cf73ab0acda, // 5^-15
+    0xb424dc35095cd810, // 5^-14
+    0xe12e13424bb40e14, // 5^-13
+    0x8cbccc096f5088cc, // 5^-12
+    0xafebff0bcb24aaff, // 5^-11
+    0xdbe6fecebdedd5bf, // 5^-10
+    0x89705f4136b4a598, // 5^-9
+    0xabcc77118461cefd, // 5^-8
+    0xd6bf94d5e57a42bd, // 5^-7
+    0x8637bd05af6c69b6, // 5^-6
+    0xa7c5ac471b478424, // 5^-5
+    0xd1b71758e219652c, // 5^-4
+    0x83126e978d4fdf3c, // 5^-3
+    0xa3d70a3d70a3d70b, // 5^-2
+    0xcccccccccccccccd, // 5^-1
+    0x8000000000000000, // 5^0
+    0xa000000000000000, // 5^1
+    0xc800000000000000, // 5^2
+    0xfa00000000000000, // 5^3
+    0x9c40000000000000, // 5^4
+    0xc350000000000000, // 5^5
+    0xf424000000000000, // 5^6
+    0x9896800000000000, // 5^7
+    0xbebc200000000000, // 5^8
+    0xee6b280000000000, // 5^9
+    0x9502f90000000000, // 5^10
+    0xba43b74000000000, // 5^11
+    0xe8d4a51000000000, // 5^12
+    0x9184e72a00000000, // 5^13
+    0xb5e620f480000000, // 5^14
+    0xe35fa931a0000000, // 5^15
+    0x8e1bc9bf04000000, // 5^16
+    0xb1a2bc2ec5000000, // 5^17
+    0xde0b6b3a76400000, // 5^18
+    0x8ac7230489e80000, // 5^19
+    0xad78ebc5ac620000, // 5^20
+    0xd8d726b7177a8000, // 5^21
+    0x878678326eac9000, // 5^22
+    0xa968163f0a57b400, // 5^23
+    0xd3c21bcecceda100, // 5^24
+    0x84595161401484a0, // 5^25
+    0xa56fa5b99019a5c8, // 5^26
+    0xcecb8f27f4200f3a, // 5^27
+    0x813f3978f8940984, // 5^28
+    0xa18f07d736b90be5, // 5^29
+    0xc9f2c9cd04674ede, // 5^30
+    0xfc6f7c4045812296, // 5^31
+    0x9dc5ada82b70b59d, // 5^32
+    0xc5371912364ce305, // 5^33
+    0xf684df56c3e01bc6, // 5^34
+    0x9a130b963a6c115c, // 5^35
+    0xc097ce7bc90715b3, // 5^36
+    0xf0bdc21abb48db20, // 5^37
+    0x96769950b50d88f4, // 5^38
+    0xbc143fa4e250eb31, // 5^39
+    0xeb194f8e1ae525fd, // 5^40
+    0x92efd1b8d0cf37be, // 5^41
+    0xb7abc627050305ad, // 5^42
+    0xe596b7b0c643c719, // 5^43
+    0x8f7e32ce7bea5c6f, // 5^44
+    0xb35dbf821ae4f38b, // 5^45
+    0xe0352f62a19e306e, // 5^46
 ];
 
 /// Pre-computed powers-of-5 for the dragonbox algorithm for f64.
