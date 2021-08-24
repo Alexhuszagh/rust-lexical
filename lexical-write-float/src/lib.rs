@@ -76,17 +76,21 @@ mod shared;
 pub mod algorithm;
 pub mod binary;
 pub mod compact;
+pub mod float;
 pub mod hex;
 pub mod options;
 pub mod radix;
+pub mod table;
 pub mod write;
 
 mod api;
+mod table_dragonbox;
+mod table_grisu;
 
 // Re-exports
 pub use self::api::{ToLexical, ToLexicalWithOptions};
 #[doc(inline)]
-pub use self::options::{Options, OptionsBuilder};
+pub use self::options::{Options, OptionsBuilder, RoundMode};
 pub use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 pub use lexical_util::format::{self, NumberFormatBuilder};
 pub use lexical_util::options::WriteOptions;

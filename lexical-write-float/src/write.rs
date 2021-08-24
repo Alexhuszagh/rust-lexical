@@ -14,14 +14,14 @@ use crate::hex;
 #[cfg(feature = "radix")]
 use crate::radix;
 
+use crate::float::RawFloat;
 use crate::options::Options;
 use lexical_util::constants::FormattedSize;
 use lexical_util::format::NumberFormat;
-use lexical_util::num::Float;
 use lexical_write_integer::write::WriteInteger;
 
 /// Write float trait.
-pub trait WriteFloat: Float {
+pub trait WriteFloat: RawFloat {
     /// Forward write integer parameters to an unoptimized backend.
     ///
     /// # Safety

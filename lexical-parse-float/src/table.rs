@@ -1,4 +1,4 @@
-//! Pre-computed tables for writing float strings.
+//! Pre-computed tables for parsing float strings.
 
 #![doc(hidden)]
 

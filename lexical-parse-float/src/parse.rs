@@ -28,6 +28,14 @@ use lexical_util::step::u64_step;
 // API
 // ---
 
+/// Check f radix is a power-of-2.
+#[cfg(feature = "power-of-two")]
+macro_rules! is_power_two {
+    ($radix:expr) => {
+        matches!($radix, 2 | 4 | 8 | 16 | 32)
+    };
+}
+
 /// Check if the radix is valid and error otherwise
 macro_rules! check_radix {
     ($format:ident) => {{
@@ -252,9 +260,7 @@ pub fn moderate_path<F: LemireFloat, const FORMAT: u128>(
         #[cfg(feature = "power-of-two")]
         {
             let format = NumberFormat::<{ FORMAT }> {};
-            let radix = format.mantissa_radix();
-            debug_assert!(matches!(radix, 2 | 4 | 8 | 10 | 16 | 32));
-            if matches!(radix, 2 | 4 | 8 | 16 | 32) {
+            if is_power_two!(format.mantissa_radix()) {
                 // Implement the power-of-two backends.
                 binary::<F, FORMAT>(num, lossy)
             } else {
@@ -276,7 +282,7 @@ pub fn moderate_path<F: LemireFloat, const FORMAT: u128>(
             let radix = format.mantissa_radix();
             if radix == 10 {
                 lemire::<F>(num, lossy)
-            } else if matches!(radix, 2 | 4 | 8 | 16 | 32) {
+            } else if is_power_two!(radix) {
                 // Implement the power-of-two backends.
                 binary::<F, FORMAT>(num, lossy)
             } else {
@@ -319,7 +325,7 @@ pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
     #[cfg(feature = "power-of-two")]
     {
         let format = NumberFormat::<{ FORMAT }> {};
-        if matches!(format.mantissa_radix(), 2 | 4 | 8 | 16 | 32) {
+        if is_power_two!(format.mantissa_radix()) {
             slow_binary::<F, FORMAT>(num)
         } else {
             slow_radix::<F, FORMAT>(num, fp)

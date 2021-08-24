@@ -367,8 +367,8 @@ impl Default for OptionsBuilder {
 /// # pub fn main() {
 /// let options = Options::builder()
 ///     .trim_floats(true)
-///     .nan_string(b"NaN")
-///     .inf_string(b"Inf")
+///     .nan_string(Some(b"NaN"))
+///     .inf_string(Some(b"Inf"))
 ///     .build()
 ///     .unwrap();
 /// # }

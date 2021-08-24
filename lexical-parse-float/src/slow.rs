@@ -143,6 +143,25 @@ pub fn positive_digit_comp<F: RawFloat, const FORMAT: u128>(
 }
 
 /// Generate the significant digits with a negative exponent relative to mantissa.
+///
+/// This algorithm is quite simple: we have the significant digits `m1 * b^N1`,
+/// where `m1` is the bigint mantissa, `b` is the radix, and `N1` is the radix
+/// exponent. We then calculate the theoretical representation of `b+h`, which
+/// is `m2 * 2^N2`, where `m2` is the bigint mantissa and `N2` is the binary
+/// exponent. If we had infinite, efficient floating precision, this would be
+/// equal to `m1 / b^-N1` and then compare it to `m2 * 2^N2`.
+///
+/// Since we cannot divide and keep precision, we must multiply the other:
+/// if we want to do `m1 / b^-N1 >= m2 * 2^N2`, we can do
+/// `m1 >= m2 * b^-N1 * 2^N2` Going to the decimal case, we can show and example
+/// and simplify this further: `m1 >= m2 * 2^N2 * 10^-N1`. Since we can remove
+/// a power-of-two, this is `m1 >= m2 * 2^(N2 - N1) * 5^-N1`. Therefore, if
+/// `N2 - N1 > 0`, we need have `m1 >= m2 * 2^(N2 - N1) * 5^-N1`, otherwise,
+/// we have `m1 * 2^(N1 - N2) >= m2 * 5^-N1`, where the resulting exponents
+/// are all positive.
+///
+/// This allows us to compare both floats using integers efficiently
+/// without any loss of precision.
 #[allow(clippy::comparison_chain)]
 pub fn negative_digit_comp<F: RawFloat, const FORMAT: u128>(
     bigmant: Bigint,
@@ -346,10 +365,7 @@ macro_rules! round_up_nonzero {
 ///
 /// Returns the parsed mantissa and the number of digits in the mantissa.
 /// The max digits is the maximum number of digits plus one.
-pub fn parse_mantissa<const FORMAT: u128>(
-    num: Number,
-    max_digits: usize,
-) -> (Bigint, usize) {
+pub fn parse_mantissa<const FORMAT: u128>(num: Number, max_digits: usize) -> (Bigint, usize) {
     let format = NumberFormat::<FORMAT> {};
     let radix = format.radix();
 
