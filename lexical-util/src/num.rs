@@ -234,6 +234,7 @@ pub trait Integer:
     ops::BitOrAssign +
     ops::BitXor<Output=Self> +
     ops::BitXorAssign +
+    ops::Not<Output=Self> +
     ops::Shl<Self, Output=Self> +
     ops::Shl<i32, Output=Self> +
     ops::ShlAssign<i32> +

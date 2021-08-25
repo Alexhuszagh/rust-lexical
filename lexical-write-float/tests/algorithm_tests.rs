@@ -194,7 +194,10 @@ fn write_digits_f64_test() {
 fn write_float_scientific_test() {
     let options = Options::new();
     let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let decimal = ExtendedFloat80 { mant: 1, exp: 0 };
+    let decimal = ExtendedFloat80 {
+        mant: 1,
+        exp: 0,
+    };
     let count = unsafe {
         algorithm::write_float_scientific::<f64, DECIMAL>(&mut buffer, decimal, 0, &options)
     };
@@ -213,7 +216,10 @@ fn write_float_scientific_test() {
 fn write_float_positive_exponent_test() {
     let options = Options::new();
     let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let decimal = ExtendedFloat80 { mant: 1, exp: 0 };
+    let decimal = ExtendedFloat80 {
+        mant: 1,
+        exp: 0,
+    };
     let count = unsafe {
         algorithm::write_float_positive_exponent::<f64, DECIMAL>(&mut buffer, decimal, 0, &options)
     };
@@ -232,7 +238,10 @@ fn write_float_positive_exponent_test() {
 fn write_float_negative_exponent_test() {
     let options = Options::new();
     let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let decimal = ExtendedFloat80 { mant: 1, exp: -1 };
+    let decimal = ExtendedFloat80 {
+        mant: 1,
+        exp: -1,
+    };
     let count = unsafe {
         algorithm::write_float_negative_exponent::<f64, DECIMAL>(&mut buffer, decimal, -1, &options)
     };

@@ -47,8 +47,8 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     options: &Options,
 ) -> usize {
-    debug_assert!(float.is_sign_positive());
     debug_assert!(!float.is_special());
+    debug_assert!(float >= F::ZERO);
 
     let fp = to_decimal(float);
     let digit_count = F::digit_count(fp.mant);
@@ -328,12 +328,15 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
 /// returned to the nearest mantissa. For example, `1.5f32` will return
 /// `ExtendedFloat80 { mant: 15, exp: -1 }`, although trailing zeros
 /// might not be removed.
+///
+/// This algorithm **only** fails when `float == 0.0`, and we want to
+/// short-circuit anyway.
 #[inline]
 pub fn to_decimal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let bits = float.to_bits();
     let mantissa_bits = bits & F::MANTISSA_MASK;
 
-    if bits.as_u64() == 0 {
+    if (bits & !F::SIGN_MASK).as_u64() == 0 {
         return extended_float(0, 0);
     }
 
@@ -622,6 +625,7 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
 }
 
 /// Compute the interval I = (w−,w]..
+#[allow(clippy::comparison_chain, clippy::if_same_then_else)]
 pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> ExtendedFloat80 {
     let mantissa = float.mantissa().as_u64();
     let exponent = float.exponent();

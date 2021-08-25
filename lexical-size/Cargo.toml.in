@@ -158,9 +158,7 @@ path = "bin/write-integer-u128.rs"
 [[bin]]
 name = "write-float-f32"
 path = "bin/write-float-f32.rs"
-required-features = ["compact"] # TODO(ahuszagh) Remove after dragonbox is done
 
 [[bin]]
 name = "write-float-f64"
 path = "bin/write-float-f64.rs"
-required-features = ["compact"] # TODO(ahuszagh) Remove after dragonbox is done
