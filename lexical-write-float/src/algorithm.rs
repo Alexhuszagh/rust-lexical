@@ -15,13 +15,16 @@
 
 use crate::float::{ExtendedFloat80, RawFloat};
 use crate::options::{Options, RoundMode};
+use crate::shared::{truncate_and_round_decimal, write_exponent};
 use crate::table::*;
+use lexical_util::format::NumberFormat;
 use lexical_util::num::{AsPrimitive, Float, Integer};
-// TODO(ahuszagh) Restore...
-//use lexical_write_integer::decimal::fast_digit_count;
-//use lexical_write_integer::table::DIGIT_TO_BASE10_SQUARED;
+use lexical_write_integer::decimal::DigitCount;
+use lexical_write_integer::table::DIGIT_TO_BASE10_SQUARED;
 
 // TODO(ahuszagh) Implement...
+// TODO(ahuszagh) Need to handle rounding and stuff...
+//      And trailing zeros...
 
 /// Optimized float-to-string algorithm for decimal strings.
 ///
@@ -36,65 +39,181 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
     options: &Options,
 ) -> usize {
     debug_assert!(float.is_sign_positive());
-    let fp = to_extended(float, options);
-    unsafe { write_digits::<FORMAT>(fp, bytes, options) }
+    debug_assert!(!float.is_special());
+
+    let fp = to_decimal(float, options);
+    let digit_count = F::digit_count(fp.mant);
+    let sci_exp = fp.exp + digit_count as i32 - 1;
+
+    // Note that for performance reasons, we write the significant digits
+    // later into the algorithms, since we can determine the right path
+    // and write the significant digits without using an intermediate buffer
+    // in most cases.
+
+    write_float!(
+        FORMAT,
+        sci_exp,
+        options,
+        write_float_scientific,
+        write_float_positive_exponent,
+        write_float_negative_exponent,
+        generic => F,
+        args => bytes, fp, options,
+    )
 }
 
-/// Write the significant digits to the buffer.
+/// Write float to string in scientific notation.
 ///
 /// # Safety
 ///
-/// Safe as long as the float isn't special (NaN or Infinity), and `bytes`
-/// is large enough to hold the significant digits.
-#[allow(unused)] // TODO(ahuszagh) Restore...
-pub unsafe fn write_digits<const FORMAT: u128>(
-    fp: ExtendedFloat80,
+/// Safe as long as `bytes` is large enough to hold the number of digits
+/// and the scientific notation's exponent digits.
+pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
+    fp: ExtendedFloat80,
     options: &Options,
 ) -> usize {
-    // return to_chars_detail::to_chars<Float, FloatTraits>(
-    //     result.significand, result.exponent, buffer);
+    // Config options.
+    let format = NumberFormat::<{ FORMAT }> {};
+    assert!(format.is_valid());
+    let decimal_point = options.decimal_point();
 
-    //    let mut s32: u32;
-    //    let mut remaining_digits_minus_1: i32;
-    //    let mut exponent_position: i32;
-    //    let mut may_have_more_trailing_zeros = false;
-    //    let mut exponent = fp.exp;
+    // Write the significant digits, and round them.
+    // SAFETY: safe, if we have enough bytes to write the significant digits.
+    let mut digits = unsafe { &mut index_unchecked_mut!(bytes[1..]) };
+    let digit_count = unsafe { F::write_digits(digits, fp.mant) };
+
+    // Truncate and round the significant digits.
+    // SAFETY: safe since `digit_count < digits.len()`.
+    let (digit_count, exp) =
+        unsafe { truncate_and_round_decimal(&mut digits, digit_count, fp.exp, options) };
+
+    // Determine the exact number of digits to write.
+    let mut exact_count: usize = digit_count;
+    if let Some(min_digits) = options.min_significant_digits() {
+        exact_count = min_digits.get().max(exact_count);
+    }
+
+    // Adjust to scientific notation.
+    // SAFETY: safe if the above steps were safe, since `bytes.len() >= 2`.
+    let mut cursor: usize;
+    unsafe {
+        index_unchecked_mut!(bytes[0] = bytes[1]);
+        index_unchecked_mut!(bytes[1]) = decimal_point;
+
+        if digit_count == 1 && options.trim_floats() {
+            cursor = 1;
+        } else if digit_count == 1 {
+            index_unchecked_mut!(bytes[2]) = b'0';
+            cursor = 3;
+        } else if digit_count < exact_count {
+            // Adjust the number of digits written, by appending zeros.
+            cursor = digit_count + 1;
+            let zeros = exact_count - digit_count;
+            unsafe {
+                slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
+            }
+        } else {
+            cursor = digit_count + 1;
+        }
+    }
+
+    // Now, write our scientific notation.
+    // SAFETY: safe since bytes must be large enough to store all digits.
+    let sci_exp = exp + digit_count as i32 - 1;
+    unsafe { write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent()) };
+
+    cursor
+}
+
+/// Write negative float to string without scientific notation.
+/// Has a negative exponent (shift right) and no scientific notation.
+///
+/// # Safety
+///
+/// Safe as long as `bytes` is large enough to hold the number of
+/// significant digits and the leading zeros.
+#[allow(unused)] // TODO(ahuszagh) Restore...
+pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u128>(
+    bytes: &mut [u8],
+    fp: ExtendedFloat80,
+    options: &Options,
+) -> usize {
+    // TODO(ahuszagh) Here...
+    //    // Config options.
+    //    let decimal_point = options.decimal_point();
+    //    let sci_exp = (fp.exp + digit_count as i32 - 1).wrapping_neg() as usize;
     //
-    //    if fp.mant >> 32 != 0 {
-    //        // Since significand is at most 10^17, the quotient is at most 10^9, so
-    //        // it fits inside 32-bit integer
-    //        s32 = (fp.mant / 1_0000_0000) as u32;
-    //        let mut r = (fp.mant as u32).wrapping_sub(s32.wrapping_mul(1_0000_0000));
-    //
-    //        remaining_digits_minus_1 = fast_digit_count(s32) as i32 + 8 - 1;
-    //        exponent += remaining_digits_minus_1;
-    //        exponent_position = remaining_digits_minus_1 + 2;
-    //
-    //        if r != 0 {
-    //            // Print 8 digits
-    //            // `c = r % 1_0000` https://bugs.llvm.org/show_bug.cgi?id=38217
-    //            let c = r - 1_0000 * (r / 1_0000);
-    //            r /= 1_0000;
-    //
-    //            // c1 = r / 100; c2 = r % 100;
-    //            let (c1, c2) = fast_div(r, 100, 14, 5);
-    //            // c3 = c / 100; c4 = c % 100;
-    //            let (c3, c4) = fast_div(c, 100, 14, 5);
-    //
-    //            todo!();
-    //        }
+    //    // Write our 0 digits.
+    //    // SAFETY: must be safe since since `bytes.len() < BUFFER_SIZE - 2`.
+    //    unsafe {
+    //        index_unchecked_mut!(bytes[0]) = b'0';
+    //        index_unchecked_mut!(bytes[1]) = decimal_point;
+    //        let digits = &mut index_unchecked_mut!(bytes[2..sci_exp + 1]);
+    //        slice_fill_unchecked!(digits, b'0');
+    //    }
+    //    let mut cursor = sci_exp + 1;
+
+    // TODO(ahuszagh)
+    //    // Write out significant digits.
+    //    // SAFETY: safe if bytes is large enough to hold all the significant digits.
+    //    let digits = unsafe { &mut index_unchecked_mut!(bytes[cursor..]) };
+    //    cursor += F::write_digits(digits, fp.mant, digit_count, options);
+
+    todo!();
+}
+
+/// Write positive float to string without scientific notation.
+/// Has a positive exponent (shift left) and no scientific notation.
+///
+/// # Safety
+///
+/// Safe as long as `bytes` is large enough to hold the number of
+/// significant digits and the (optional) trailing zeros.
+#[allow(unused)] // TODO(ahuszagh) Restore...
+pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u128>(
+    bytes: &mut [u8],
+    fp: ExtendedFloat80,
+    options: &Options,
+) -> usize {
+    //    // Config options.
+    //    let decimal_point = options.decimal_point();
+    //    let sci_exp = (fp.exp + digit_count as i32 - 1) as usize;
+    //    let leading_digits = sci_exp + 1;
+
+    // TODO(ahuszagh)
+    //    // Write out all the digits.
+    //    // SAFETY: safe if bytes is large enough to hold all the significant digits.
+    //    let mut cursor = F::write_digits(bytes, fp.mant, digit_count, options);
+    //    if leading_digits >= cursor {
+    //        // We have more leading digits than digits we wrote: can write
+    //        // any additional digits, and then just write the remaining ones.
+    //        // SAFETY: safe if the buffer is large enough to hold the significant digits.
+    //    } else {
+    //        // We have less leading digits than digits we wrote.
+    //        // Shift all digits, and write the decimal point.
     //    }
 
     todo!();
 }
 
+// ALGORITHM
+// ---------
+
 /// Get an extended representation of the decimal float.
-/// Assumes float is not 0.0.
+///
+/// The returned float has a decimal exponent, and the significant digits
+/// returned to the nearest mantissa. For example, `1.5f32` will return
+/// `ExtendedFloat80 { mant: 15, exp: -1 }`, although trailing zeros
+/// might not be removed.
 #[inline]
-pub fn to_extended<F: RawFloat>(float: F, options: &Options) -> ExtendedFloat80 {
+pub fn to_decimal<F: RawFloat>(float: F, options: &Options) -> ExtendedFloat80 {
     let bits = float.to_bits();
     let mantissa_bits = bits & F::MANTISSA_MASK;
+
+    if bits.as_u64() == 0 {
+        return extended_float(0, 0);
+    }
 
     // Shorter interval case; proceed like Schubfach. One might think this
     // condition is wrong, since when exponent_bits == 1 and two_fc == 0,
@@ -127,21 +246,15 @@ pub fn to_extended<F: RawFloat>(float: F, options: &Options) -> ExtendedFloat80 
     // NOTE: unlike Dragonbox, we don't need to check exponent_bits,
     // since if both the exponent bits and mantissa bits are 0, we have
     // a literal 0.
-
-    if bits.as_u64() == 0 {
-        // Have a literal 0.
-        extended_float(0, 0)
-    } else {
-        match options.round_mode() {
-            RoundMode::Round => {
-                if mantissa_bits.as_u64() == 0 {
-                    compute_round_short(float, options)
-                } else {
-                    compute_round(float, options)
-                }
-            },
-            RoundMode::Truncate => compute_truncate(float, options),
-        }
+    match options.round_mode() {
+        RoundMode::Round => {
+            if mantissa_bits.as_u64() == 0 {
+                compute_round_short(float, options)
+            } else {
+                compute_round(float, options)
+            }
+        },
+        RoundMode::Truncate => compute_truncate(float, options),
     }
 }
 
@@ -370,6 +483,294 @@ pub fn compute_truncate<F: RawFloat>(float: F, options: &Options) -> ExtendedFlo
     let exponent = minus_k + F::KAPPA as i32;
 
     extended_float(significand, exponent)
+}
+
+// DIGITS
+// ------
+
+/// Write 2 digits to buffer.
+macro_rules! write_digits {
+    ($bytes:ident, $index:ident, $r:ident) => {{
+        $index -= 1;
+        unsafe { index_unchecked_mut!($bytes[$index] = DIGIT_TO_BASE10_SQUARED[$r + 1]) };
+        $index -= 1;
+        unsafe { index_unchecked_mut!($bytes[$index] = DIGIT_TO_BASE10_SQUARED[$r]) };
+    }};
+
+    (@1 $bytes:ident, $index:ident, $r:ident) => {{
+        $index -= 1;
+        unsafe { index_unchecked_mut!($bytes[$index] = DIGIT_TO_BASE10_SQUARED[$r]) };
+    }};
+}
+
+/// Write 1 digit to buffer.
+macro_rules! write_digit {
+    ($bytes:ident, $index:ident, $r:ident) => {{
+        $index -= 1;
+        unsafe { index_unchecked_mut!($bytes[$index]) = b'0' + $r as u8 };
+    }};
+}
+
+/// Shift index and digit count.
+macro_rules! shift_digits {
+    ($index:ident, $digit_count:ident, $count:literal) => {{
+        $index -= $count;
+        $digit_count -= $count;
+    }};
+}
+
+/// Write the significant digits, when the significant digits can fit in a
+/// 32-bit integer. Returns the number of digits written. This assumes any
+/// trailing zeros have been removed.
+///
+/// # Safety
+///
+/// Safe if `bytes.len() >= 10`.
+#[inline]
+pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32, digit_count: usize) -> usize {
+    debug_assert!(bytes.len() >= 10);
+
+    let mut index = digit_count;
+    let mut s32 = mantissa;
+    // Need at least more than 5, since we will always write at least 1 trailing value.
+    while index >= 5 {
+        let c = s32 % 10000;
+        s32 /= 10000;
+        // c1 = s32 / 100; c2 = s32 % 100;
+        let (c1, c2) = fast_div(c, 100, 14, 5);
+        let r1 = c1 as usize * 2;
+        let r2 = c2 as usize * 2;
+
+        // SAFETY: This is always safe, since the `table.len() == 200`.
+        write_digits!(bytes, index, r2);
+        write_digits!(bytes, index, r1);
+    }
+
+    if index >= 3 {
+        // c1 = s32 / 100; c2 = s32 % 100;
+        let (c1, c2) = fast_div(s32, 100, 14, 5);
+        s32 = c1;
+        let r2 = c2 as usize * 2;
+
+        // SAFETY: This is always safe, since the `table.len() == 200`.
+        write_digits!(bytes, index, r2);
+    }
+    if index > 1 {
+        debug_assert!(index == 2);
+        // d1 = s32 / 10; d2 = s32 % 10;
+        let (d1, d2) = fast_div(s32, 10, 7, 3);
+
+        // SAFETY: this is always safe, since `index == 2`.
+        write_digit!(bytes, index, d2);
+        write_digit!(bytes, index, d1);
+    } else {
+        debug_assert!(index == 1);
+
+        // SAFETY: this is always safe, since `index == 1`.
+        write_digit!(bytes, index, s32);
+    }
+
+    digit_count
+}
+
+/// Write the significant digits, when the significant digits cannot fit in a
+/// 32-bit integer. Returns the number of digits written. Note that this
+/// might not be the same as the number of digits in the mantissa, since
+/// trailing zeros will be removed.
+///
+/// # Safety
+///
+/// Safe if `bytes.len() >= 20`.
+#[inline]
+#[allow(clippy::branches_sharing_code)]
+pub unsafe fn write_digits_u64(bytes: &mut [u8], mantissa: u64, mut digit_count: usize) -> usize {
+    debug_assert!(bytes.len() >= 20);
+
+    let mut index = digit_count;
+    let mut s32: u32;
+    let mut trailing_zeros = false;
+    let mut tz: u8;
+
+    // Write the upper 32 bits.
+    if mantissa >> 32 != 0 {
+        // Since significand is at most 10^17, the quotient is at most 10^9, so
+        // it fits inside 32-bit integer.
+        s32 = (mantissa / 100000000) as u32;
+        let mut r = mantissa.wrapping_sub((s32 as u64).wrapping_mul(100000000)) as u32;
+
+        if r != 0 {
+            let c = r % 10000;
+            r /= 10000;
+            // c1 = s32 / 100; c2 = s32 % 100;
+            let (c1, c2) = fast_div(r, 100, 14, 5);
+            // c3 = c / 100; c4 = c % 100;
+            let (c3, c4) = fast_div(c, 100, 14, 5);
+            // SAFETY: safe, since `c4 < 100`.
+            tz = unsafe { TRAILING_ZEROS[c4 as usize] };
+            let r1 = c1 as usize * 2;
+            let r2 = c2 as usize * 2;
+            let r3 = c3 as usize * 2;
+            let r4 = c4 as usize * 2;
+
+            if tz == 0 {
+                // SAFETY: This is always safe, since the `table.len() == 200`.
+                write_digits!(bytes, index, r4);
+                write_digits!(bytes, index, r3);
+                write_digits!(bytes, index, r2);
+                write_digits!(bytes, index, r1);
+            } else if tz == 1 {
+                shift_digits!(index, digit_count, 1);
+                // SAFETY: This is always safe, since the `table.len() == 200`.
+                write_digits!(@1 bytes, index, r4);
+                write_digits!(bytes, index, r3);
+                write_digits!(bytes, index, r2);
+                write_digits!(bytes, index, r1);
+            } else {
+                shift_digits!(index, digit_count, 2);
+                // SAFETY: safe, since `c3 < 100`.
+                tz = unsafe { TRAILING_ZEROS[c3 as usize] };
+                if tz == 0 {
+                    // SAFETY: This is always safe, since the `table.len() == 200`.
+                    write_digits!(bytes, index, r3);
+                    write_digits!(bytes, index, r2);
+                    write_digits!(bytes, index, r1);
+                } else if tz == 1 {
+                    shift_digits!(index, digit_count, 1);
+                    // SAFETY: This is always safe, since the `table.len() == 200`.
+                    write_digits!(@1 bytes, index, r3);
+                    write_digits!(bytes, index, r2);
+                    write_digits!(bytes, index, r1);
+                } else {
+                    shift_digits!(index, digit_count, 2);
+                    // SAFETY: safe, since `c2 < 100`.
+                    tz = unsafe { TRAILING_ZEROS[c2 as usize] };
+                    if tz == 0 {
+                        // SAFETY: This is always safe, since the `table.len() == 200`.
+                        write_digits!(bytes, index, r2);
+                        write_digits!(bytes, index, r1);
+                    } else if tz == 1 {
+                        shift_digits!(index, digit_count, 1);
+                        write_digits!(@1 bytes, index, r2);
+                        write_digits!(bytes, index, r1);
+                    } else {
+                        shift_digits!(index, digit_count, 2);
+                        // SAFETY: safe, since `c1 < 100`.
+                        tz = unsafe { TRAILING_ZEROS[c1 as usize] };
+                        if tz == 0 {
+                            // SAFETY: This is always safe, since the `table.len() == 200`.
+                            write_digits!(bytes, index, r1);
+                        } else {
+                            // We assumed r != 0, so c1 cannot be zero in this case.
+                            debug_assert!(tz == 1);
+                            shift_digits!(index, digit_count, 1);
+                            write_digits!(@1 bytes, index, r1);
+                        }
+                    }
+                }
+            }
+        } else {
+            // r == 0
+            shift_digits!(index, digit_count, 8);
+            trailing_zeros = true;
+        }
+    } else {
+        // mantissa >> 32 == 0
+        s32 = mantissa as u32;
+        trailing_zeros = true;
+    }
+
+    // Write the lower 32 bits.
+    // Need at least more than 5, since we will always write at least 1 trailing value.
+    while index >= 5 {
+        let c = s32 % 10000;
+        s32 /= 10000;
+        // c1 = s32 / 100; c2 = s32 % 100;
+        let (c1, c2) = fast_div(c, 100, 14, 5);
+        let r1 = c1 as usize * 2;
+        let r2 = c2 as usize * 2;
+
+        if trailing_zeros {
+            // SAFETY: safe, since `c2 < 100`.
+            tz = unsafe { TRAILING_ZEROS[c2 as usize] };
+            if tz == 0 {
+                // SAFETY: This is always safe, since the `table.len() == 200`.
+                write_digits!(bytes, index, r2);
+                write_digits!(bytes, index, r1);
+                trailing_zeros = false;
+            } else if tz == 1 {
+                // SAFETY: This is always safe, since the `table.len() == 200`.
+                shift_digits!(index, digit_count, 1);
+                write_digits!(@1 bytes, index, r2);
+                write_digits!(bytes, index, r1);
+                trailing_zeros = false;
+            } else {
+                shift_digits!(index, digit_count, 2);
+                // SAFETY: safe, since `c1 < 100`.
+                tz = unsafe { TRAILING_ZEROS[c1 as usize] };
+                if tz == 0 {
+                    write_digits!(bytes, index, r1);
+                    trailing_zeros = false;
+                } else if tz == 1 {
+                    shift_digits!(index, digit_count, 1);
+                    write_digits!(@1 bytes, index, r1);
+                    trailing_zeros = false;
+                } else {
+                    shift_digits!(index, digit_count, 2);
+                }
+            }
+        } else {
+            // SAFETY: This is always safe, since the `table.len() == 200`.
+            write_digits!(bytes, index, r2);
+            write_digits!(bytes, index, r1);
+        }
+    }
+
+    if index >= 3 {
+        // c1 = s32 / 100; c2 = s32 % 100;
+        let (c1, c2) = fast_div(s32, 100, 14, 5);
+        s32 = c1;
+        let r2 = c2 as usize * 2;
+
+        if trailing_zeros {
+            // SAFETY: safe, since `c1 < 100`.
+            tz = unsafe { TRAILING_ZEROS[c2 as usize] };
+            if tz == 0 {
+                write_digits!(bytes, index, r2);
+                trailing_zeros = false;
+            } else if tz == 1 {
+                shift_digits!(index, digit_count, 1);
+                write_digits!(@1 bytes, index, r2);
+                trailing_zeros = false;
+            } else {
+                shift_digits!(index, digit_count, 2);
+            }
+        } else {
+            // SAFETY: This is always safe, since the `table.len() == 200`.
+            write_digits!(bytes, index, r2);
+        }
+    }
+
+    if index > 1 {
+        debug_assert!(index == 2);
+        // d1 = s32 / 10; d2 = s32 % 10;
+        let (d1, d2) = fast_div(s32, 10, 7, 3);
+
+        // SAFETY: this is always safe, since `index == 2`.
+        if trailing_zeros && d2 == 0 {
+            shift_digits!(index, digit_count, 1);
+            write_digit!(bytes, index, d1);
+        } else {
+            write_digit!(bytes, index, d2);
+            write_digit!(bytes, index, d1);
+        }
+    } else {
+        debug_assert!(index == 1);
+
+        // SAFETY: this is always safe, since `index == 1`.
+        write_digit!(bytes, index, s32);
+    }
+
+    digit_count
 }
 
 // EXTENDED
@@ -726,6 +1127,17 @@ pub fn compute_round_up_u64<F: DragonboxFloat>(pow5: u64, beta_minus_1: i32) -> 
     ((pow5 >> (shift - beta_minus_1)) + 1) / 2
 }
 
+// TABLE
+// -----
+
+/// THe number of trailing zeros, pre-calculated for all values from 0-100.
+const TRAILING_ZEROS: [u8; 100] = [
+    2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+    0, 0, 0, 0,
+];
+
 // DRAGONBOX FLOAT
 // ---------------
 
@@ -886,6 +1298,17 @@ pub trait DragonboxFloat: Float {
     type Power;
     type Table;
 
+    /// Quick calculation for the number of significant digits in the float.
+    fn digit_count(mantissa: u64) -> usize;
+
+    /// Write the significant digits to a buffer.
+    /// Does not handle rounding or truncated digits.
+    ///
+    /// # Safety
+    ///
+    /// Safe if `bytes` is large enough to hold a decimal string for mantissa.
+    unsafe fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize;
+
     /// Get the pre-computed Dragonbox power from the exponent.
     ///
     /// # Safety
@@ -987,6 +1410,17 @@ impl DragonboxFloat for f32 {
     type Table = Div32Table<{ Self::TABLE_SIZE }>;
 
     #[inline(always)]
+    fn digit_count(mantissa: u64) -> usize {
+        (mantissa as u32).digit_count()
+    }
+
+    #[inline(always)]
+    unsafe fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize {
+        let digit_count = Self::digit_count(mantissa);
+        unsafe { write_digits_u32(bytes, mantissa as u32, digit_count) }
+    }
+
+    #[inline(always)]
     unsafe fn dragonbox_power(exponent: i32) -> Self::Power {
         debug_assert!((SMALLEST_F32_POW5..=LARGEST_F32_POW5).contains(&exponent));
         let index = (exponent - SMALLEST_F32_POW5) as usize;
@@ -1074,6 +1508,17 @@ impl DragonboxFloat for f64 {
 
     type Power = (u64, u64);
     type Table = Div64Table<{ Self::TABLE_SIZE }>;
+
+    #[inline(always)]
+    fn digit_count(mantissa: u64) -> usize {
+        mantissa.digit_count()
+    }
+
+    #[inline(always)]
+    unsafe fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize {
+        let digit_count = Self::digit_count(mantissa);
+        unsafe { write_digits_u64(bytes, mantissa, digit_count) }
+    }
 
     #[inline(always)]
     unsafe fn dragonbox_power(exponent: i32) -> Self::Power {

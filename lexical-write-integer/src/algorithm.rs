@@ -17,6 +17,24 @@ use lexical_util::format::{radix_from_flags, NumberFormat};
 use lexical_util::num::{AsCast, UnsignedInteger};
 use lexical_util::step::u64_step;
 
+/// Write 2 digits to buffer.
+macro_rules! write_digits {
+    ($bytes:ident, $index:ident, $table:ident, $r:ident) => {{
+        $index -= 1;
+        unsafe { index_unchecked_mut!($bytes[$index] = $table[$r + 1]) };
+        $index -= 1;
+        unsafe { index_unchecked_mut!($bytes[$index] = $table[$r]) };
+    }};
+}
+
+/// Write 1 digit to buffer.
+macro_rules! write_digit {
+    ($bytes:ident, $index:ident, $r:ident) => {{
+        $index -= 1;
+        unsafe { index_unchecked_mut!($bytes[$index]) = digit_to_char($r) };
+    }};
+}
+
 // NOTE: Don't use too many generics:
 //  We don't need generics for most of the internal algorithms,
 //  and doing so kills performance. Why? I don't know, but assuming
@@ -60,14 +78,8 @@ unsafe fn write_digits<T: UnsignedInteger>(
         // r1 and r2 must be in the range [0, 2*radix^2-1), since the maximum
         // value of r is `radix4-1`, which must have a div and r
         // in the range [0, radix^2-1).
-        index -= 1;
-        unsafe { index_unchecked_mut!(buffer[index] = table[r2 + 1]) };
-        index -= 1;
-        unsafe { index_unchecked_mut!(buffer[index] = table[r2]) };
-        index -= 1;
-        unsafe { index_unchecked_mut!(buffer[index] = table[r1 + 1]) };
-        index -= 1;
-        unsafe { index_unchecked_mut!(buffer[index] = table[r1]) };
+        write_digits!(buffer, index, table, r2);
+        write_digits!(buffer, index, table, r1);
     }
 
     // Decode 2 digits at a time.
@@ -77,26 +89,20 @@ unsafe fn write_digits<T: UnsignedInteger>(
 
         // SAFETY: this is always safe, since the table is 2*radix^2, and
         // r must be in the range [0, 2*radix^2-1).
-        index -= 1;
-        unsafe { index_unchecked_mut!(buffer[index] = table[r + 1]) };
-        index -= 1;
-        unsafe { index_unchecked_mut!(buffer[index] = table[r]) };
+        write_digits!(buffer, index, table, r);
     }
 
     // Decode last 2 digits.
     if value < radix {
         // SAFETY: this is always safe, since value < radix, so it must be < 36.
-        index -= 1;
-        unsafe { index_unchecked_mut!(buffer[index]) = digit_to_char(u32::as_cast(value)) };
+        let r = u32::as_cast(value);
+        write_digit!(buffer, index, r);
     } else {
         let r = usize::as_cast(T::TWO * value);
         // SAFETY: this is always safe, since the table is 2*radix^2, and
         // the value must <= radix^2, so rem must be in the range
         // [0, 2*radix^2-1).
-        index -= 1;
-        unsafe { index_unchecked_mut!(buffer[index] = table[r + 1]) };
-        index -= 1;
-        unsafe { index_unchecked_mut!(buffer[index] = table[r]) };
+        write_digits!(buffer, index, table, r);
     }
 
     index

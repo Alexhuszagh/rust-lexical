@@ -5,6 +5,7 @@ use lexical_util::constants::BUFFER_SIZE;
 use lexical_util::extended_float::ExtendedFloat;
 use lexical_util::format::NumberFormatBuilder;
 use lexical_util::num::Float;
+use lexical_write_float::float::RawFloat;
 use lexical_write_float::options::RoundMode;
 use lexical_write_float::{compact, Options};
 use proptest::prelude::*;
@@ -335,7 +336,7 @@ fn mul_test() {
     check_mul(10 << 31, -31, 10 << 31, -31, 25, 2);
 }
 
-fn write_float<T: Float, const FORMAT: u128>(f: T, options: &Options, expected: &str) {
+fn write_float<T: RawFloat, const FORMAT: u128>(f: T, options: &Options, expected: &str) {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
     let count = unsafe { compact::write_float::<_, FORMAT>(f, &mut buffer, options) };
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
@@ -478,6 +479,25 @@ fn f32_roundtrip_test() {
         let roundtrip = actual.parse::<f32>();
         assert_eq!(roundtrip, Ok(float));
     }
+}
+
+#[test]
+fn write_float_scientific_test() {
+    let options = Options::new();
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let mut digits = [b'1', 1];
+    let count = unsafe {
+        compact::write_float_scientific::<DECIMAL>(&mut buffer, &mut digits, 1, 0, &options)
+    };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, "1.0e0");
+
+    let options = Options::builder().trim_floats(true).build().unwrap();
+    let count = unsafe {
+        compact::write_float_scientific::<DECIMAL>(&mut buffer, &mut digits, 1, 0, &options)
+    };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, "1e0");
 }
 
 #[test]

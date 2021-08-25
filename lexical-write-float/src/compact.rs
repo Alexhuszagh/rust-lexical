@@ -22,8 +22,8 @@
 #![doc(hidden)]
 
 use crate::float::{ExtendedFloat80, RawFloat};
-use crate::options::{Options, RoundMode};
-use crate::shared::{round_up, write_exponent};
+use crate::options::Options;
+use crate::shared::{truncate_and_round_decimal, write_exponent};
 use crate::table::GRISU_POWERS_OF_TEN;
 use core::mem;
 use lexical_util::digit::digit_to_char_const;
@@ -70,7 +70,7 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
         // SAFETY: safe since `digits.len()` is large enough to always hold enough digits.
         let (ndigits, k) = unsafe { grisu(float, &mut digits) };
         // SAFETY: safe since `ndigits < digits.len()`.
-        unsafe { truncate_and_round(&mut digits, ndigits, k, options) }
+        unsafe { truncate_and_round_decimal(&mut digits, ndigits, k, options) }
     };
 
     // See if we should write the number in exponent notation.
@@ -247,67 +247,6 @@ pub unsafe fn grisu<F: Float>(float: F, digits: &mut [u8]) -> (usize, i32) {
     unsafe { generate_digits(&w, &upper, &lower, digits, k) }
 }
 
-/// Round the number of digits based on the maximum digits.
-///
-/// # Safety
-///
-/// Safe as long as `ndigits <= digits.len()`.
-#[allow(clippy::comparison_chain)]
-pub unsafe fn truncate_and_round(
-    digits: &mut [u8],
-    ndigits: usize,
-    k: i32,
-    options: &Options,
-) -> (usize, i32) {
-    debug_assert!(ndigits <= digits.len());
-
-    let max_digits = if let Some(digits) = options.max_significant_digits() {
-        digits.get()
-    } else {
-        return (ndigits, k);
-    };
-    if max_digits >= ndigits {
-        return (ndigits, k);
-    }
-
-    // Need to adjust `k`, since we're shortening the digits in the input.
-    let shift = ndigits - max_digits;
-    let k = k + shift as i32;
-    if options.round_mode() == RoundMode::Truncate {
-        // Don't round input, just shorten number of digits emitted.
-        return (max_digits, k);
-    }
-
-    // We need to round-nearest, tie-even, so we need to handle
-    // the truncation **here**. If the representation is above
-    // halfway at all, we need to round up, even if 1 digit.
-
-    // Get the last non-truncated digit, and the remaining ones.
-    let truncated = unsafe { index_unchecked!(digits[max_digits]) };
-    let digits = if truncated < b'5' {
-        // Just truncate, going to round-down anyway.
-        max_digits
-    } else if truncated > b'5' {
-        // Round-up always.
-        // SAFETY: safe if `ndigits <= digits.len()`, because `max_digits < ndigits`.
-        unsafe { round_up(digits, max_digits, 10) }
-    } else {
-        // Have a near-halfway case, resolve it.
-        // SAFETY: safe if `ndigits < digits.len()`.
-        let to_round = unsafe { &index_unchecked!(digits[max_digits - 1..ndigits]) };
-        let is_odd = unsafe { index_unchecked!(to_round[0]) % 2 == 1 };
-        let is_above = unsafe { index_unchecked!(to_round[2..]).iter().any(|&x| x != b'0') };
-        if is_odd || is_above {
-            // SAFETY: safe if `ndigits <= digits.len()`, because `max_digits < ndigits`.
-            unsafe { round_up(digits, max_digits, 10) }
-        } else {
-            max_digits
-        }
-    };
-
-    (digits, k)
-}
-
 /// Write float to string in scientific notation.
 ///
 /// # Safety
@@ -329,9 +268,6 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
 
     // Determine the exact number of digits to write.
     let mut exact_count: usize = ndigits;
-    if let Some(max_digits) = options.max_significant_digits() {
-        exact_count = max_digits.get().min(ndigits);
-    }
     if let Some(min_digits) = options.min_significant_digits() {
         exact_count = min_digits.get().max(exact_count);
     }
@@ -347,7 +283,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
             cursor = 1;
         } else if ndigits == 1 {
             index_unchecked_mut!(bytes[2]) = b'0';
-            cursor = 2;
+            cursor = 3;
         } else {
             let src = index_unchecked!(digits[1..ndigits]).as_ptr();
             let dst = &mut index_unchecked_mut!(bytes[2..ndigits + 1]);
@@ -357,13 +293,12 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     }
 
     // Adjust the number of digits written, based on the exact number of digits.
+    debug_assert!(ndigits <= exact_count);
     if ndigits < exact_count {
         let zeros = exact_count - ndigits;
         unsafe {
             slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
         }
-    } else if ndigits > exact_count {
-        cursor -= ndigits - exact_count;
     }
 
     // Now, write our scientific notation.

@@ -1,5 +1,6 @@
 #![cfg(not(feature = "compact"))]
 
+use lexical_write_float::algorithm::DragonboxFloat;
 use lexical_write_float::{algorithm, Options, RoundMode};
 
 fn floor_shift(integer: u32, fraction: u64, shift: i32) -> i32 {
@@ -116,7 +117,7 @@ fn floor_log2_test() {
     assert_eq!(algorithm::floor_log2(128), 7);
 }
 
-fn to_extended_f32(float: f32, round: bool) -> (u64, i32) {
+fn to_decimal_f32(float: f32, round: bool) -> (u64, i32) {
     let mut builder = Options::builder();
     if round {
         builder = builder.round_mode(RoundMode::Round);
@@ -124,11 +125,11 @@ fn to_extended_f32(float: f32, round: bool) -> (u64, i32) {
         builder = builder.round_mode(RoundMode::Truncate);
     }
     let options = builder.build().unwrap();
-    let fp = algorithm::to_extended(float, &options);
+    let fp = algorithm::to_decimal(float, &options);
     (fp.mant, fp.exp)
 }
 
-fn to_extended_f64(float: f64, round: bool) -> (u64, i32) {
+fn to_decimal_f64(float: f64, round: bool) -> (u64, i32) {
     let mut builder = Options::builder();
     if round {
         builder = builder.round_mode(RoundMode::Round);
@@ -136,31 +137,67 @@ fn to_extended_f64(float: f64, round: bool) -> (u64, i32) {
         builder = builder.round_mode(RoundMode::Truncate);
     }
     let options = builder.build().unwrap();
-    let fp = algorithm::to_extended(float, &options);
+    let fp = algorithm::to_decimal(float, &options);
     (fp.mant, fp.exp)
 }
 
 #[test]
-fn to_extended_test() {
-    assert_eq!(to_extended_f32(0.0, true), (0, 0));
-    assert_eq!(to_extended_f32(0.5, true), (5, -1));
-    assert_eq!(to_extended_f32(1.0, true), (1, 0));
-    assert_eq!(to_extended_f32(1.5, true), (15, -1));
-    assert_eq!(to_extended_f32(1.23456, true), (123456, -5));
-    assert_eq!(to_extended_f32(0.0, false), (0, 0));
-    assert_eq!(to_extended_f32(0.5, false), (5, -1));
-    assert_eq!(to_extended_f32(1.0, false), (1, 0));
-    assert_eq!(to_extended_f32(1.5, false), (15, -1));
-    assert_eq!(to_extended_f32(1.23456, false), (12345601, -7));
+fn to_decimal_test() {
+    assert_eq!(to_decimal_f32(0.0, true), (0, 0));
+    assert_eq!(to_decimal_f32(0.5, true), (5, -1));
+    assert_eq!(to_decimal_f32(1.0, true), (1, 0));
+    assert_eq!(to_decimal_f32(1.5, true), (15, -1));
+    assert_eq!(to_decimal_f32(1.23456, true), (123456, -5));
+    assert_eq!(to_decimal_f32(0.0, false), (0, 0));
+    assert_eq!(to_decimal_f32(0.5, false), (5, -1));
+    assert_eq!(to_decimal_f32(1.0, false), (1, 0));
+    assert_eq!(to_decimal_f32(1.5, false), (15, -1));
+    assert_eq!(to_decimal_f32(1.23456, false), (12345601, -7));
 
-    assert_eq!(to_extended_f64(0.0, true), (0, 0));
-    assert_eq!(to_extended_f64(0.5, true), (5000000000000000, -16));
-    assert_eq!(to_extended_f64(1.0, true), (1000000000000000, -15));
-    assert_eq!(to_extended_f64(1.5, true), (1500000000000000, -15));
-    assert_eq!(to_extended_f64(1.23456, true), (1234560000000000, -15));
-    assert_eq!(to_extended_f64(0.0, false), (0, 0));
-    assert_eq!(to_extended_f64(0.5, false), (500000000000000, -15));
-    assert_eq!(to_extended_f64(1.0, false), (1000000000000000, -15));
-    assert_eq!(to_extended_f64(1.5, false), (1500000000000000, -15));
-    assert_eq!(to_extended_f64(1.23456, false), (12345600000000002, -16));
+    assert_eq!(to_decimal_f64(0.0, true), (0, 0));
+    assert_eq!(to_decimal_f64(0.5, true), (5000000000000000, -16));
+    assert_eq!(to_decimal_f64(1.0, true), (1000000000000000, -15));
+    assert_eq!(to_decimal_f64(1.5, true), (1500000000000000, -15));
+    assert_eq!(to_decimal_f64(1.23456, true), (1234560000000000, -15));
+    assert_eq!(to_decimal_f64(0.0, false), (0, 0));
+    assert_eq!(to_decimal_f64(0.5, false), (500000000000000, -15));
+    assert_eq!(to_decimal_f64(1.0, false), (1000000000000000, -15));
+    assert_eq!(to_decimal_f64(1.5, false), (1500000000000000, -15));
+    assert_eq!(to_decimal_f64(1.23456, false), (12345600000000002, -16));
+}
+
+fn write_digits_f32(buffer: &mut [u8], value: u64, expected: &str) {
+    let count = unsafe { f32::write_digits(buffer, value) };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn write_digits_f32_test() {
+    let mut buffer = [b'\x00'; 32];
+    write_digits_f32(&mut buffer, 0, "0");
+    write_digits_f32(&mut buffer, 1, "1");
+    write_digits_f32(&mut buffer, 11, "11");
+    write_digits_f32(&mut buffer, 23, "23");
+    write_digits_f32(&mut buffer, 4294967295, "4294967295");
+}
+
+fn write_digits_f64(buffer: &mut [u8], value: u64, expected: &str) {
+    let count = unsafe { f64::write_digits(buffer, value) };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn write_digits_f64_test() {
+    let mut buffer = [b'\x00'; 32];
+    write_digits_f64(&mut buffer, 0, "0");
+    write_digits_f64(&mut buffer, 1, "1");
+    write_digits_f64(&mut buffer, 10, "1");
+    write_digits_f64(&mut buffer, 11, "11");
+    write_digits_f64(&mut buffer, 110, "11");
+    write_digits_f64(&mut buffer, 23, "23");
+    write_digits_f64(&mut buffer, 230, "23");
+    write_digits_f64(&mut buffer, 4294967295, "4294967295");
+    write_digits_f64(&mut buffer, 42949672950, "4294967295");
 }
