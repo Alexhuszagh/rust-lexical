@@ -5,6 +5,13 @@ use lexical_util::digit::digit_to_char_const;
 use lexical_util::format::NumberFormat;
 use lexical_write_integer::write::WriteInteger;
 
+/// Debug assertion to ensure we properly rounded the significant digits.
+#[inline(always)]
+pub fn debug_assert_digits(digit_count: usize, options: &Options) {
+    let max_digits = options.max_significant_digits().map_or(digit_count, |x| x.get());
+    debug_assert!(digit_count <= max_digits);
+}
+
 /// Round-up the last digit, from a buffer of digits.
 ///
 /// Round up the last digit, incrementally handling all subsequent

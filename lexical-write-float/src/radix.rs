@@ -13,7 +13,7 @@
 #![doc(hidden)]
 
 use crate::options::{Options, RoundMode};
-use crate::shared::{round_up, write_exponent};
+use crate::shared::{debug_assert_digits, round_up, write_exponent};
 use core::mem;
 use lexical_util::algorithm::{ltrim_char_count, rtrim_char_count};
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
@@ -341,6 +341,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     let mut cursor = count + 1;
 
     // Determine if we need to add more trailing zeros.
+    debug_assert_digits(count, options);
     let mut exact_count: usize = count;
     if let Some(min_digits) = options.min_significant_digits() {
         exact_count = min_digits.get().max(count);
@@ -457,6 +458,8 @@ pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
     }
 
     // Determine if we need to add more trailing zeros.
+    // Note: we might have written an extra digit for leading digits.
+    debug_assert_digits(count - 1, options);
     let mut exact_count: usize = count;
     if let Some(min_digits) = options.min_significant_digits() {
         exact_count = min_digits.get().max(count);

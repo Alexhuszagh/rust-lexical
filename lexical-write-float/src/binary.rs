@@ -8,7 +8,7 @@
 #![doc(hidden)]
 
 use crate::options::{Options, RoundMode};
-use crate::shared::write_exponent;
+use crate::shared::{debug_assert_digits, write_exponent};
 use lexical_util::algorithm::rtrim_char_count;
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 use lexical_util::format::NumberFormat;
@@ -504,6 +504,7 @@ where
     let mut cursor = count + 1;
 
     // Determine if we need to add more trailing zeros.
+    debug_assert_digits(count, options);
     let mut exact_count: usize = count;
     if let Some(min_digits) = options.min_significant_digits() {
         exact_count = min_digits.get().max(count);
@@ -604,6 +605,7 @@ where
     cursor += count;
 
     // Determine if we need to add more trailing zeros.
+    debug_assert_digits(count, options);
     let mut exact_count: usize = count;
     if let Some(min_digits) = options.min_significant_digits() {
         exact_count = min_digits.get().max(count);
@@ -700,6 +702,8 @@ where
     }
 
     // Determine if we need to add more trailing zeros after a decimal point.
+    // Note: we might have written an extra digit for leading digits.
+    debug_assert_digits(count - 1, options);
     let mut exact_count: usize = count;
     if let Some(min_digits) = options.min_significant_digits() {
         exact_count = min_digits.get().max(count);

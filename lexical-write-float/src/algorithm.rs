@@ -9,22 +9,31 @@
 //! We use a u64 for the significant digits, even for a 32-bit integer,
 //! however, we use the proper bitshifts, etc. for the float in question,
 //! rather than clobbering the result to f64, as Rust's port does.
+//!
+//! Each one of the algorithms described here has the main implementation,
+//! according to the reference Dragonbox paper, as well as an alias for
+//! our own purposes. The existing algorithms include:
+//!
+//! 1. compute_nearest_normal
+//! 2. compute_nearest_shorter
+//! 3. compute_left_closed_directed
+//! 4. compute_right_closed_directed
+//!
+//! `compute_nearest_normal` and `compute_nearest_shorter` are used for
+//! round-nearest, tie-even and `compute_right_closed_directed` is used
+//! for round-to-zero (see below for details).
 
 #![cfg(not(feature = "compact"))]
 #![doc(hidden)]
 
 use crate::float::{ExtendedFloat80, RawFloat};
 use crate::options::{Options, RoundMode};
-use crate::shared::{truncate_and_round_decimal, write_exponent};
+use crate::shared::{debug_assert_digits, truncate_and_round_decimal, write_exponent};
 use crate::table::*;
 use lexical_util::format::NumberFormat;
 use lexical_util::num::{AsPrimitive, Float, Integer};
 use lexical_write_integer::decimal::DigitCount;
 use lexical_write_integer::table::DIGIT_TO_BASE10_SQUARED;
-
-// TODO(ahuszagh) Implement...
-// TODO(ahuszagh) Need to handle rounding and stuff...
-//      And trailing zeros...
 
 /// Optimized float-to-string algorithm for decimal strings.
 ///
@@ -41,7 +50,7 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
     debug_assert!(float.is_sign_positive());
     debug_assert!(!float.is_special());
 
-    let fp = to_decimal(float, options);
+    let fp = to_decimal(float);
     let digit_count = F::digit_count(fp.mant);
     let sci_exp = fp.exp + digit_count as i32 - 1;
 
@@ -58,7 +67,7 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
         write_float_positive_exponent,
         write_float_negative_exponent,
         generic => F,
-        args => bytes, fp, options,
+        args => bytes, fp, sci_exp, options,
     )
 }
 
@@ -71,6 +80,7 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
 pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     fp: ExtendedFloat80,
+    sci_exp: i32,
     options: &Options,
 ) -> usize {
     // Config options.
@@ -85,10 +95,11 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
 
     // Truncate and round the significant digits.
     // SAFETY: safe since `digit_count < digits.len()`.
-    let (digit_count, exp) =
+    let (digit_count, _) =
         unsafe { truncate_and_round_decimal(&mut digits, digit_count, fp.exp, options) };
 
     // Determine the exact number of digits to write.
+    debug_assert_digits(digit_count, options);
     let mut exact_count: usize = digit_count;
     if let Some(min_digits) = options.min_significant_digits() {
         exact_count = min_digits.get().max(exact_count);
@@ -120,7 +131,6 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
 
     // Now, write our scientific notation.
     // SAFETY: safe since bytes must be large enough to store all digits.
-    let sci_exp = exp + digit_count as i32 - 1;
     unsafe { write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent()) };
 
     cursor
@@ -136,6 +146,7 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
 pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     fp: ExtendedFloat80,
+    sci_exp: i32,
     options: &Options,
 ) -> usize {
     // Config options.
@@ -144,8 +155,6 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     // Get the scientific exponent: it doesn't matter if this is accurate
     // after digit trimming, since it tells us the number of leading zeros,
     // which is **all** we need to know.
-    let digit_count = F::digit_count(fp.mant);
-    let sci_exp = fp.exp + digit_count as i32 - 1;
     let sci_exp = sci_exp.wrapping_neg() as usize;
     debug_assert!(sci_exp >= 1);
 
@@ -172,7 +181,8 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     // We use an extra leading digit so that way can detect carries efficiently.
     debug_assert!(cursor > 0);
     let digits = unsafe { &mut index_unchecked_mut!(bytes[cursor - 1..]) };
-    let (digit_count, _) = unsafe { truncate_and_round_decimal(digits, digit_count + 1, fp.exp, options) };
+    let (digit_count, _) =
+        unsafe { truncate_and_round_decimal(digits, digit_count + 1, fp.exp, options) };
     // We need to adjust for the extra 0 at the start
     let digit_count = digit_count - 1;
     if digit_count == 1 && unsafe { index_unchecked!(digits[0]) } == b'1' {
@@ -199,6 +209,7 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     }
 
     // Determine the exact number of digits to write.
+    debug_assert_digits(digit_count, options);
     let mut exact_count: usize = digit_count;
     if let Some(min_digits) = options.min_significant_digits() {
         exact_count = min_digits.get().max(exact_count);
@@ -225,31 +236,87 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
 ///
 /// Safe as long as `bytes` is large enough to hold the number of
 /// significant digits and the (optional) trailing zeros.
-#[allow(unused)] // TODO(ahuszagh) Restore...
 pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     fp: ExtendedFloat80,
+    sci_exp: i32,
     options: &Options,
 ) -> usize {
-    //    // Config options.
-    //    let decimal_point = options.decimal_point();
-    //    let sci_exp = (fp.exp + digit_count as i32 - 1) as usize;
-    //    let leading_digits = sci_exp + 1;
+    // Config options.
+    let decimal_point = options.decimal_point();
 
-    // TODO(ahuszagh)
-    //    // Write out all the digits.
-    //    // SAFETY: safe if bytes is large enough to hold all the significant digits.
-    //    let mut cursor = F::write_digits(bytes, fp.mant, digit_count, options);
-    //    if leading_digits >= cursor {
-    //        // We have more leading digits than digits we wrote: can write
-    //        // any additional digits, and then just write the remaining ones.
-    //        // SAFETY: safe if the buffer is large enough to hold the significant digits.
-    //    } else {
-    //        // We have less leading digits than digits we wrote.
-    //        // Shift all digits, and write the decimal point.
-    //    }
+    // Write out our significant digits.
+    // Let's be optimistic and try to write without needing to move digits.
+    // This only works if the if the resulting leading digits, or `sci_exp + 1`,
+    // is greater than the written digits. If not, we have to move digits after
+    // and then adjust the decimal point. However, with truncating and remove
+    // trailing zeros, we **don't** know the exact digit count **yet**.
+    // SAFETY: safe, if we have enough bytes to write the significant digits.
+    let digit_count = unsafe { F::write_digits(bytes, fp.mant) };
+    let (mut digit_count, _) =
+        unsafe { truncate_and_round_decimal(bytes, digit_count, fp.exp, options) };
 
-    todo!();
+    // Now, check if we have shift digits.
+    let leading_digits = sci_exp as usize + 1;
+    let mut cursor: usize;
+    if leading_digits >= digit_count {
+        // Great: we have more leading digits than we wrote, can write trailing zeros
+        // and an optional decimal point.
+        // SAFETY: safe if the buffer is large enough to hold the significant digits.
+        unsafe {
+            let digits = &mut index_unchecked_mut!(bytes[digit_count..leading_digits]);
+            slice_fill_unchecked!(digits, b'0');
+        }
+        cursor = leading_digits;
+        unsafe { index_unchecked_mut!(bytes[cursor]) = decimal_point };
+        cursor += 1;
+        unsafe { index_unchecked_mut!(bytes[cursor]) = b'0' };
+        cursor += 1;
+        digit_count += 1;
+    } else {
+        // Need to shift digits internally, and write the decimal point.
+        // First, move the digits by 1 after leading digits.
+        // SAFETY: safe if the buffer is large enough to hold the significant digits.
+        let count = digit_count - leading_digits;
+        unsafe {
+            let src = index_unchecked!(bytes[leading_digits..digit_count]).as_ptr();
+            let dst = &mut index_unchecked_mut!(bytes[leading_digits + 1..digit_count + 1]);
+            copy_unchecked!(dst, src, count);
+        }
+
+        // Now, write the decimal point.
+        // SAFETY: safe if the above step was safe, since `leading_digits < digit_count`.
+        unsafe { index_unchecked_mut!(bytes[leading_digits]) = decimal_point };
+        cursor = digit_count + 1;
+    }
+
+    // Determine the exact number of digits to write.
+    // Note: we might have written an extra digit for leading digits.
+    debug_assert_digits(digit_count - 1, options);
+    let mut exact_count: usize = digit_count;
+    if let Some(min_digits) = options.min_significant_digits() {
+        exact_count = min_digits.get().max(exact_count);
+    }
+
+    // Change the number of digits written, if we need to add more or trim digits.
+    if options.trim_floats() && exact_count == digit_count {
+        // SAFETY: safe, cursor must be at least 3.
+        if unsafe { index_unchecked!(bytes[cursor - 2]) == decimal_point } {
+            // Need to trim floats from trailing zeros, and we have only a decimal
+            cursor -= 2;
+        }
+    } else if exact_count > digit_count {
+        // Check if we need to write more trailing digits.
+        let zeros = exact_count - digit_count;
+        // SAFETY: safe if the buffer is large enough to hold the significant digits.
+        unsafe {
+            let digits = &mut index_unchecked_mut!(bytes[cursor..cursor + zeros]);
+            slice_fill_unchecked!(digits, b'0');
+        }
+        cursor += zeros;
+    }
+
+    cursor
 }
 
 // ALGORITHM
@@ -262,7 +329,7 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
 /// `ExtendedFloat80 { mant: 15, exp: -1 }`, although trailing zeros
 /// might not be removed.
 #[inline]
-pub fn to_decimal<F: RawFloat>(float: F, options: &Options) -> ExtendedFloat80 {
+pub fn to_decimal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let bits = float.to_bits();
     let mantissa_bits = bits & F::MANTISSA_MASK;
 
@@ -270,6 +337,8 @@ pub fn to_decimal<F: RawFloat>(float: F, options: &Options) -> ExtendedFloat80 {
         return extended_float(0, 0);
     }
 
+    // Round-nearest, tie-even case:
+    //
     // Shorter interval case; proceed like Schubfach. One might think this
     // condition is wrong, since when exponent_bits == 1 and two_fc == 0,
     // the interval is actually regular. However, it turns out that this
@@ -301,22 +370,37 @@ pub fn to_decimal<F: RawFloat>(float: F, options: &Options) -> ExtendedFloat80 {
     // NOTE: unlike Dragonbox, we don't need to check exponent_bits,
     // since if both the exponent bits and mantissa bits are 0, we have
     // a literal 0.
-    match options.round_mode() {
-        RoundMode::Round => {
-            if mantissa_bits.as_u64() == 0 {
-                compute_round_short(float, options)
-            } else {
-                compute_round(float, options)
-            }
-        },
-        RoundMode::Truncate => compute_truncate(float, options),
+
+    // Toward zero case:
+    //
+    // According to the main Dragonbox algorithm, this is the left-closed
+    // directed rounding case, however, that is the case of I = [w,w+), which
+    // does not round-down. Rather, we want the right-closed directed rounding
+    // case, or I = (w−,w]. Unfortunately, this doesn't work, since it truncates
+    // **too** much, so we just round-nearest, tie-even, then direct the rounding.
+
+    if mantissa_bits.as_u64() == 0 {
+        compute_round_short(float)
+    } else {
+        compute_round(float)
     }
 }
 
-/// Simpler case, where we have **only** the hidden bit set.
-pub fn compute_round_short<F: RawFloat>(float: F, options: &Options) -> ExtendedFloat80 {
-    debug_assert!(options.round_mode() == RoundMode::Round);
+/// Compute for a simple case when rounding nearest, tie-even.
+#[inline(always)]
+pub fn compute_round_short<F: RawFloat>(float: F) -> ExtendedFloat80 {
+    compute_nearest_shorter(float)
+}
 
+/// Compute for a non-simple case when rounding nearest, tie-even.
+#[inline(always)]
+pub fn compute_round<F: RawFloat>(float: F) -> ExtendedFloat80 {
+    compute_nearest_normal(float)
+}
+
+/// Compute the interval I = [m−w,m+w] if even, otherwise, (m−w,m+w).
+/// This is the simple case for a finite number where only the hidden bit is set.
+pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // Compute k and beta.
     let exponent = float.exponent();
     let minus_k = floor_log10_pow2_minus_log10_4_over_3(exponent);
@@ -334,12 +418,12 @@ pub fn compute_round_short<F: RawFloat>(float: F, options: &Options) -> Extended
 
     // If we don't accept the right endpoint and if the right endpoint is an
     // integer, decrease it.
-    if !interval_type.include_right_endpoint() && is_right_endpoint(exponent) {
+    if !interval_type.include_right_endpoint() && is_right_endpoint::<F>(exponent) {
         zi -= 1;
     }
 
     // If the left endpoint is not an integer, increase it.
-    if !interval_type.include_left_endpoint() && is_left_endpoint(exponent) {
+    if !interval_type.include_left_endpoint() && is_left_endpoint::<F>(exponent) {
         xi += 1;
     }
 
@@ -362,7 +446,7 @@ pub fn compute_round_short<F: RawFloat>(float: F, options: &Options) -> Extended
     let upper_threshold: i32 = -floor_log5_pow2(bits + 2) - 2 - bits;
 
     if exponent >= lower_threshold && exponent <= upper_threshold {
-        significand = options.round_mode().break_rounding_tie(significand);
+        significand = RoundMode::Round.break_rounding_tie(significand);
     } else if significand < xi {
         significand += 1;
     }
@@ -370,11 +454,10 @@ pub fn compute_round_short<F: RawFloat>(float: F, options: &Options) -> Extended
     extended_float(significand, exponent)
 }
 
-/// The main algorithm assumes the input is a normal/subnormal finite number.
+/// Compute the interval I = [m−w,m+w] if even, otherwise, (m−w,m+w).
+/// This is the normal case for a finite number with non-zero significant digits.
 #[allow(clippy::comparison_chain)]
-pub fn compute_round<F: RawFloat>(float: F, options: &Options) -> ExtendedFloat80 {
-    debug_assert!(options.round_mode() == RoundMode::Round);
-
+pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let mantissa = float.mantissa().as_u64();
     let exponent = float.exponent();
     let is_even = mantissa % 2 == 0;
@@ -433,7 +516,7 @@ pub fn compute_round<F: RawFloat>(float: F, options: &Options) -> ExtendedFloat8
         let include_left = interval_type.include_left_endpoint();
         let is_prod = F::is_product_fc_pm_half(two_fl, exponent, minus_k);
         let is_mul_parity = F::compute_mul_parity(two_fl, &pow5, beta_minus_1);
-        if !((include_left && is_prod) || is_mul_parity) {
+        if (include_left && is_prod) || is_mul_parity {
             return short_circuit();
         }
     }
@@ -465,7 +548,7 @@ pub fn compute_round<F: RawFloat>(float: F, options: &Options) -> ExtendedFloat8
             // when z^(f) == epsilon^(f), or equivalently, when y is an integer.
             // For tie-to-up case, we can just choose the upper one.
             if F::is_product_fc(two_fc, exponent, minus_k) {
-                significand = options.round_mode().break_rounding_tie(significand);
+                significand = RoundMode::Round.break_rounding_tie(significand);
             }
         }
     }
@@ -473,11 +556,9 @@ pub fn compute_round<F: RawFloat>(float: F, options: &Options) -> ExtendedFloat8
     extended_float(significand, exponent)
 }
 
-/// The main algorithm when truncating digits.
+/// Compute the interval I = [w,w+).
 #[allow(clippy::comparison_chain)]
-pub fn compute_truncate<F: RawFloat>(float: F, options: &Options) -> ExtendedFloat80 {
-    debug_assert!(options.round_mode() == RoundMode::Truncate);
-
+pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let mantissa = float.mantissa().as_u64();
     let exponent = float.exponent();
 
@@ -528,6 +609,61 @@ pub fn compute_truncate<F: RawFloat>(float: F, options: &Options) -> ExtendedFlo
         let is_prod = F::is_product_fc(two_fc + 2, exponent, minus_k);
         let is_mul_parity = F::compute_mul_parity(two_fc + 2, &pow5, beta_minus_1);
         if !(is_mul_parity || is_prod) {
+            return short_circuit();
+        }
+    }
+
+    // Step 3: Find the significand with the smaller divisor
+    significand *= 10;
+    significand -= F::small_div_pow10(r) as u64;
+    let exponent = minus_k + F::KAPPA as i32;
+
+    extended_float(significand, exponent)
+}
+
+/// Compute the interval I = (w−,w]..
+pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> ExtendedFloat80 {
+    let mantissa = float.mantissa().as_u64();
+    let exponent = float.exponent();
+
+    // Step 1: Schubfach multiplier calculation
+    // Compute k and beta.
+    let minus_k = floor_log10_pow2(exponent - shorter as i32) - F::KAPPA as i32;
+    // SAFETY: safe, since value must be finite and therefore in the correct range.
+    let pow5 = unsafe { F::dragonbox_power(-minus_k) };
+    let beta_minus_1 = exponent + floor_log2_pow10(-minus_k);
+
+    // Compute zi and deltai.
+    // 10^kappa <= deltai < 10^(kappa + 1)
+    let two_fc = mantissa << 1;
+    let deltai = F::compute_delta(&pow5, beta_minus_1 - shorter as i32);
+    let zi = F::compute_mul(two_fc << beta_minus_1, &pow5);
+
+    // Step 2: Try larger divisor; remove trailing zeros if necessary
+    let big_divisor = pow32(10, F::KAPPA + 1);
+
+    // Using an upper bound on zi, we might be able to optimize the division
+    // better than the compiler; we are computing zi / big_divisor here.
+    let exp = F::KAPPA + 1;
+    let max_pow2 = F::MANTISSA_SIZE + F::KAPPA as i32 + 2;
+    let max_pow5 = F::KAPPA as i32 + 1;
+    let mut significand = divide_by_pow10(zi, exp, max_pow2, max_pow5);
+    let r = (zi - big_divisor as u64 * significand) as u32;
+
+    // Short-circuit case.
+    let short_circuit = || {
+        let (mant, exp) = F::process_trailing_zeros(significand, minus_k + F::KAPPA as i32 + 1);
+        extended_float(mant, exp)
+    };
+
+    // Check for short-circuit.
+    if r < deltai {
+        return short_circuit();
+    } else if r == deltai {
+        // Compare the fractional parts.
+        if shorter && F::compute_mul_parity(two_fc * 2 - 1, &pow5, beta_minus_1 - 1) {
+            return short_circuit();
+        } else if !shorter && F::compute_mul_parity(two_fc - 1, &pow5, beta_minus_1) {
             return short_circuit();
         }
     }
@@ -859,19 +995,19 @@ pub const fn is_endpoint(exponent: i32, lower: i32, upper: i32) -> bool {
 }
 
 #[inline(always)]
-pub const fn is_right_endpoint(exponent: i32) -> bool {
-    const LOWER_THRESHOLD: i32 = 0;
-    const FACTORS: u32 = count_factors(5, (1 << (f64::MANTISSA_SIZE + 1)) + 1) + 1;
-    const UPPER_THRESHOLD: i32 = 2 + floor_log2(pow64(10, FACTORS) / 3);
-    is_endpoint(exponent, LOWER_THRESHOLD, UPPER_THRESHOLD)
+pub fn is_right_endpoint<F: Float>(exponent: i32) -> bool {
+    let lower_threshold = 0;
+    let factors = count_factors(5, (1 << (F::MANTISSA_SIZE + 1)) + 1) + 1;
+    let upper_threshold = 2 + floor_log2(pow64(10, factors) / 3);
+    is_endpoint(exponent, lower_threshold, upper_threshold)
 }
 
 #[inline(always)]
-pub const fn is_left_endpoint(exponent: i32) -> bool {
-    const LOWER_THRESHOLD: i32 = 2;
-    const FACTORS: u32 = count_factors(5, (1 << (f64::MANTISSA_SIZE + 2)) - 1) + 1;
-    const UPPER_THRESHOLD: i32 = 2 + floor_log2(pow64(10, FACTORS) / 3);
-    is_endpoint(exponent, LOWER_THRESHOLD, UPPER_THRESHOLD)
+pub fn is_left_endpoint<F: Float>(exponent: i32) -> bool {
+    let lower_threshold = 2;
+    let factors = count_factors(5, (1 << (F::MANTISSA_SIZE + 2)) - 1) + 1;
+    let upper_threshold = 2 + floor_log2(pow64(10, factors) / 3);
+    is_endpoint(exponent, lower_threshold, upper_threshold)
 }
 
 // MUL
@@ -1121,7 +1257,10 @@ impl RoundMode {
 #[non_exhaustive]
 pub enum IntervalType {
     Symmetric(bool),
+    Asymmetric(bool),
     Closed,
+    Open,
+    LeftClosedRightOpen,
     RightClosedLeftOpen,
 }
 
@@ -1131,7 +1270,10 @@ impl IntervalType {
     pub fn is_symmetric(&self) -> bool {
         match self {
             Self::Symmetric(_) => true,
+            Self::Asymmetric(_) => false,
             Self::Closed => true,
+            Self::Open => true,
+            Self::LeftClosedRightOpen => false,
             Self::RightClosedLeftOpen => false,
         }
     }
@@ -1141,7 +1283,10 @@ impl IntervalType {
     pub fn include_left_endpoint(&self) -> bool {
         match self {
             Self::Symmetric(closed) => *closed,
+            Self::Asymmetric(left_closed) => *left_closed,
             Self::Closed => true,
+            Self::Open => false,
+            Self::LeftClosedRightOpen => true,
             Self::RightClosedLeftOpen => false,
         }
     }
@@ -1151,7 +1296,10 @@ impl IntervalType {
     pub fn include_right_endpoint(&self) -> bool {
         match self {
             Self::Symmetric(closed) => *closed,
+            Self::Asymmetric(left_closed) => !*left_closed,
             Self::Closed => true,
+            Self::Open => false,
+            Self::LeftClosedRightOpen => false,
             Self::RightClosedLeftOpen => true,
         }
     }
@@ -1178,7 +1326,7 @@ pub fn compute_right_endpoint_u64<F: DragonboxFloat>(pow5: u64, beta_minus_1: i3
 /// Determine if we should round up for the short interval case.
 #[inline(always)]
 pub fn compute_round_up_u64<F: DragonboxFloat>(pow5: u64, beta_minus_1: i32) -> u64 {
-    let shift = 64 - f64::MANTISSA_SIZE - 2;
+    let shift = 64 - F::MANTISSA_SIZE - 2;
     ((pow5 >> (shift - beta_minus_1)) + 1) / 2
 }
 

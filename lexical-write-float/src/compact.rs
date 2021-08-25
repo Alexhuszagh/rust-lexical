@@ -23,7 +23,7 @@
 
 use crate::float::{ExtendedFloat80, RawFloat};
 use crate::options::Options;
-use crate::shared::{truncate_and_round_decimal, write_exponent};
+use crate::shared::{debug_assert_digits, truncate_and_round_decimal, write_exponent};
 use crate::table::GRISU_POWERS_OF_TEN;
 use core::mem;
 use lexical_util::digit::digit_to_char_const;
@@ -269,6 +269,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     let decimal_point = options.decimal_point();
 
     // Determine the exact number of digits to write.
+    debug_assert_digits(ndigits, options);
     let mut exact_count: usize = ndigits;
     if let Some(min_digits) = options.min_significant_digits() {
         exact_count = min_digits.get().max(exact_count);
@@ -356,10 +357,8 @@ pub unsafe fn write_float_negative_exponent<const FORMAT: u128>(
     }
 
     // Determine the exact number of digits to write.
+    debug_assert_digits(ndigits, options);
     let mut exact_count: usize = ndigits;
-    if let Some(max_digits) = options.max_significant_digits() {
-        exact_count = max_digits.get().min(ndigits);
-    }
     if let Some(min_digits) = options.min_significant_digits() {
         exact_count = min_digits.get().max(exact_count);
     }
@@ -442,10 +441,9 @@ pub unsafe fn write_float_positive_exponent<const FORMAT: u128>(
     }
 
     // Determine the exact number of digits to write.
+    // Note: we might have written an extra digit for leading digits.
+    debug_assert_digits(ndigits - 1, options);
     let mut exact_count: usize = ndigits;
-    if let Some(max_digits) = options.max_significant_digits() {
-        exact_count = max_digits.get().min(ndigits);
-    }
     if let Some(min_digits) = options.min_significant_digits() {
         exact_count = min_digits.get().max(exact_count);
     }
