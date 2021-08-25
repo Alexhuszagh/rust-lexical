@@ -264,6 +264,8 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     debug_assert!(ndigits <= 20);
 
     // Config options
+    let format = NumberFormat::<{ FORMAT }> {};
+    assert!(format.is_valid());
     let decimal_point = options.decimal_point();
 
     // Determine the exact number of digits to write.
@@ -279,7 +281,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
         index_unchecked_mut!(bytes[0] = digits[0]);
         index_unchecked_mut!(bytes[1]) = decimal_point;
 
-        if ndigits == 1 && options.trim_floats() {
+        if !format.no_exponent_without_fraction() && ndigits == 1 && options.trim_floats() {
             cursor = 1;
         } else if ndigits == 1 {
             index_unchecked_mut!(bytes[2]) = b'0';
@@ -293,9 +295,11 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     }
 
     // Adjust the number of digits written, based on the exact number of digits.
+    // Cursor is 1 if we trimmed floats, in which case skip this.
     debug_assert!(ndigits <= exact_count);
-    if ndigits < exact_count {
+    if cursor != 1 && ndigits < exact_count {
         let zeros = exact_count - ndigits;
+        // SAFETY: safe if bytes is large enough to hold the significant digits.
         unsafe {
             slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
         }
@@ -334,7 +338,7 @@ pub unsafe fn write_float_negative_exponent<const FORMAT: u128>(
     let exp = exp.wrapping_neg() as usize;
 
     // Write our 0 digits.
-    // SAFETY: must be safe since since `bytes.len() < BUFFER_SIZE - 2`.
+    // SAFETY: safe if `bytes.len() < BUFFER_SIZE - 2`.
     unsafe {
         index_unchecked_mut!(bytes[0]) = b'0';
         index_unchecked_mut!(bytes[1]) = decimal_point;

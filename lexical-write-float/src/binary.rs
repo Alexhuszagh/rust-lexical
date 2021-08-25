@@ -610,6 +610,8 @@ where
     }
 
     // Check if we need to write more trailing digits.
+    // NOTE: we cannot have a "0.1" case here, since we've previous truncated
+    // the significant digits, and the result is < 1.
     if exact_count > count {
         let zeros = exact_count - count;
         // SAFETY: safe if the buffer is large enough to hold the significant digits.

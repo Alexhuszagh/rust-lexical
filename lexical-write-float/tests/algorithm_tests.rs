@@ -1,7 +1,12 @@
 #![cfg(not(feature = "compact"))]
 
+use lexical_util::constants::BUFFER_SIZE;
+use lexical_util::format::NumberFormatBuilder;
+use lexical_write_float::float::ExtendedFloat80;
 use lexical_write_float::algorithm::DragonboxFloat;
 use lexical_write_float::{algorithm, Options, RoundMode};
+
+const DECIMAL: u128 = NumberFormatBuilder::decimal();
 
 fn floor_shift(integer: u32, fraction: u64, shift: i32) -> i32 {
     ((integer << shift) | (fraction >> (64 - shift)) as u32) as i32
@@ -200,4 +205,42 @@ fn write_digits_f64_test() {
     write_digits_f64(&mut buffer, 230, "23");
     write_digits_f64(&mut buffer, 4294967295, "4294967295");
     write_digits_f64(&mut buffer, 42949672950, "4294967295");
+}
+
+#[test]
+fn write_float_scientific_test() {
+    let options = Options::new();
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let decimal = ExtendedFloat80 { mant: 1, exp: 0 };
+    let count = unsafe {
+        algorithm::write_float_scientific::<f64, DECIMAL>(&mut buffer, decimal, &options)
+    };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, "1.0e0");
+
+    let options = Options::builder().trim_floats(true).build().unwrap();
+    let count = unsafe {
+        algorithm::write_float_scientific::<f64, DECIMAL>(&mut buffer, decimal, &options)
+    };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, "1e0");
+}
+
+#[test]
+fn write_float_negative_exponent_test() {
+    let options = Options::new();
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let decimal = ExtendedFloat80 { mant: 1, exp: -1 };
+    let count = unsafe {
+        algorithm::write_float_negative_exponent::<f64, DECIMAL>(&mut buffer, decimal, &options)
+    };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, "0.1");
+
+    let options = Options::builder().trim_floats(true).build().unwrap();
+    let count = unsafe {
+        algorithm::write_float_negative_exponent::<f64, DECIMAL>(&mut buffer, decimal, &options)
+    };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, "0.1");
 }

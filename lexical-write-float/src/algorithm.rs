@@ -78,7 +78,7 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     assert!(format.is_valid());
     let decimal_point = options.decimal_point();
 
-    // Write the significant digits, and round them.
+    // Write the significant digits
     // SAFETY: safe, if we have enough bytes to write the significant digits.
     let mut digits = unsafe { &mut index_unchecked_mut!(bytes[1..]) };
     let digit_count = unsafe { F::write_digits(digits, fp.mant) };
@@ -94,14 +94,14 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
         exact_count = min_digits.get().max(exact_count);
     }
 
-    // Adjust to scientific notation.
+    // Write any trailing digits.
     // SAFETY: safe if the above steps were safe, since `bytes.len() >= 2`.
     let mut cursor: usize;
     unsafe {
         index_unchecked_mut!(bytes[0] = bytes[1]);
         index_unchecked_mut!(bytes[1]) = decimal_point;
 
-        if digit_count == 1 && options.trim_floats() {
+        if !format.no_exponent_without_fraction() && digit_count == 1 && options.trim_floats() {
             cursor = 1;
         } else if digit_count == 1 {
             index_unchecked_mut!(bytes[2]) = b'0';
@@ -133,34 +133,89 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
 ///
 /// Safe as long as `bytes` is large enough to hold the number of
 /// significant digits and the leading zeros.
-#[allow(unused)] // TODO(ahuszagh) Restore...
 pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     fp: ExtendedFloat80,
     options: &Options,
 ) -> usize {
-    // TODO(ahuszagh) Here...
-    //    // Config options.
-    //    let decimal_point = options.decimal_point();
-    //    let sci_exp = (fp.exp + digit_count as i32 - 1).wrapping_neg() as usize;
-    //
-    //    // Write our 0 digits.
-    //    // SAFETY: must be safe since since `bytes.len() < BUFFER_SIZE - 2`.
-    //    unsafe {
-    //        index_unchecked_mut!(bytes[0]) = b'0';
-    //        index_unchecked_mut!(bytes[1]) = decimal_point;
-    //        let digits = &mut index_unchecked_mut!(bytes[2..sci_exp + 1]);
-    //        slice_fill_unchecked!(digits, b'0');
-    //    }
-    //    let mut cursor = sci_exp + 1;
+    // Config options.
+    let decimal_point = options.decimal_point();
 
-    // TODO(ahuszagh)
-    //    // Write out significant digits.
-    //    // SAFETY: safe if bytes is large enough to hold all the significant digits.
-    //    let digits = unsafe { &mut index_unchecked_mut!(bytes[cursor..]) };
-    //    cursor += F::write_digits(digits, fp.mant, digit_count, options);
+    // Get the scientific exponent: it doesn't matter if this is accurate
+    // after digit trimming, since it tells us the number of leading zeros,
+    // which is **all** we need to know.
+    let digit_count = F::digit_count(fp.mant);
+    let sci_exp = fp.exp + digit_count as i32 - 1;
+    let sci_exp = sci_exp.wrapping_neg() as usize;
+    debug_assert!(sci_exp >= 1);
 
-    todo!();
+    // Write our 0 digits.
+    // SAFETY: safe if `bytes.len() < BUFFER_SIZE - 2`.
+    let mut cursor = sci_exp + 1;
+    debug_assert!(cursor >= 2);
+    unsafe {
+        // We write 0 digits even over the decimal point, since we might have
+        // to round carry over. This is rare, but it could happen, and would
+        // require a shift after. The good news is: if we have a shift, we
+        // only need to move 1 digit.
+        let digits = &mut index_unchecked_mut!(bytes[..cursor]);
+        slice_fill_unchecked!(digits, b'0');
+    }
+
+    // Write out our significant digits.
+    // SAFETY: safe, if we have enough bytes to write the significant digits.
+    let digits = unsafe { &mut index_unchecked_mut!(bytes[cursor..]) };
+    let digit_count = unsafe { F::write_digits(digits, fp.mant) };
+
+    // Truncate and round the significant digits.
+    // SAFETY: safe since `cursor > 0 && cursor < digits.len()`.
+    // We use an extra leading digit so that way can detect carries efficiently.
+    debug_assert!(cursor > 0);
+    let digits = unsafe { &mut index_unchecked_mut!(bytes[cursor - 1..]) };
+    let (digit_count, _) = unsafe { truncate_and_round_decimal(digits, digit_count + 1, fp.exp, options) };
+    // We need to adjust for the extra 0 at the start
+    let digit_count = digit_count - 1;
+    if digit_count == 1 && unsafe { index_unchecked!(digits[0]) } == b'1' {
+        // Rounded-up, and carried.
+        // We have 1 of two cases here: we carried to index 1, in which case
+        // we have `1.0`.
+        if cursor == 2 {
+            // SAFETY: safe if `bytes.len() >= 3`.
+            unsafe {
+                index_unchecked_mut!(bytes[0]) = b'1';
+                if options.trim_floats() {
+                    cursor = 1;
+                } else {
+                    index_unchecked_mut!(bytes[1]) = decimal_point;
+                    index_unchecked_mut!(bytes[2]) = b'0';
+                    cursor = 3;
+                }
+            }
+        }
+    } else {
+        // SAFETY: safe if `bytes.len() >= 2`.
+        unsafe { index_unchecked_mut!(bytes[1]) = decimal_point };
+        cursor += digit_count;
+    }
+
+    // Determine the exact number of digits to write.
+    let mut exact_count: usize = digit_count;
+    if let Some(min_digits) = options.min_significant_digits() {
+        exact_count = min_digits.get().max(exact_count);
+    }
+
+    // Write any trailing digits.
+    // Cursor is 1 if we trimmed floats, in which case skip this.
+    if cursor != 1 && digit_count < exact_count {
+        let zeros = exact_count - digit_count;
+        // SAFETY: safe if bytes is large enough to hold the significant digits.
+        unsafe {
+            slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
+        }
+        cursor += zeros;
+    }
+
+    cursor
 }
 
 /// Write positive float to string without scientific notation.

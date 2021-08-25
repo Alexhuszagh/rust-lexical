@@ -2,16 +2,13 @@
 
 use core::num;
 use lexical_util::constants::BUFFER_SIZE;
-use lexical_util::extended_float::ExtendedFloat;
 use lexical_util::format::NumberFormatBuilder;
 use lexical_util::num::Float;
-use lexical_write_float::float::RawFloat;
-use lexical_write_float::options::RoundMode;
-use lexical_write_float::{compact, Options};
+use lexical_write_float::float::{ExtendedFloat80, RawFloat};
+use lexical_write_float::{compact, Options, RoundMode};
 use proptest::prelude::*;
 use quickcheck::quickcheck;
 
-type ExtendedFloat80 = ExtendedFloat<u64>;
 const DECIMAL: u128 = NumberFormatBuilder::decimal();
 
 fn check_normalize(mant: u64, exp: i32, ymant: u64, yexp: i32) {
@@ -498,6 +495,44 @@ fn write_float_scientific_test() {
     };
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, "1e0");
+}
+
+#[test]
+fn write_float_positive_exponent_test() {
+    let options = Options::new();
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let mut digits = [b'1', 1];
+    let count = unsafe {
+        compact::write_float_positive_exponent::<DECIMAL>(&mut buffer, &mut digits, 1, 0, &options)
+    };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, "1.0");
+
+    let options = Options::builder().trim_floats(true).build().unwrap();
+    let count = unsafe {
+        compact::write_float_positive_exponent::<DECIMAL>(&mut buffer, &mut digits, 1, 0, &options)
+    };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, "1");
+}
+
+#[test]
+fn write_float_negative_exponent_test() {
+    let options = Options::new();
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let mut digits = [b'1', 1];
+    let count = unsafe {
+        compact::write_float_negative_exponent::<DECIMAL>(&mut buffer, &mut digits, 1, -1, &options)
+    };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, "0.1");
+
+    let options = Options::builder().trim_floats(true).build().unwrap();
+    let count = unsafe {
+        compact::write_float_negative_exponent::<DECIMAL>(&mut buffer, &mut digits, 1, -1, &options)
+    };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, "0.1");
 }
 
 #[test]
