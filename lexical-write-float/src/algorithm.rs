@@ -441,7 +441,6 @@ pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
 
     // Otherwise, compute the round-up of y.
     let mut significand = F::compute_round_up(&pow5, beta_minus_1);
-    let exponent = minus_k;
 
     // When tie occurs, choose one of them according to the rule.
     let bits: i32 = F::MANTISSA_SIZE;
@@ -454,7 +453,12 @@ pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
         significand += 1;
     }
 
-    extended_float(significand, exponent)
+    // Ensure we haven't re-assigned exponent or minus_k, since this
+    // is a massive potential security vulnerability.
+    debug_assert!(float.exponent() == exponent);
+    debug_assert!(minus_k == floor_log10_pow2_minus_log10_4_over_3(exponent));
+
+    extended_float(significand, minus_k)
 }
 
 /// Compute the interval I = [m−w,m+w] if even, otherwise, (m−w,m+w).
@@ -526,7 +530,6 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
 
     // Step 3: Find the significand with the smaller divisor
     significand *= 10;
-    let exponent = minus_k + F::KAPPA as i32;
 
     let dist = r - (deltai / 2) + (small_divisor / 2);
     let approx_y_parity = ((dist ^ (small_divisor / 2)) & 1) != 0;
@@ -556,7 +559,12 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
         }
     }
 
-    extended_float(significand, exponent)
+    // Ensure we haven't re-assigned exponent or minus_k, since this
+    // is a massive potential security vulnerability.
+    debug_assert!(float.exponent() == exponent);
+    debug_assert!(minus_k == floor_log10_pow2(exponent) - F::KAPPA as i32);
+
+    extended_float(significand, minus_k + F::KAPPA as i32)
 }
 
 /// Compute the interval I = [w,w+).
@@ -619,9 +627,13 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // Step 3: Find the significand with the smaller divisor
     significand *= 10;
     significand -= F::small_div_pow10(r) as u64;
-    let exponent = minus_k + F::KAPPA as i32;
 
-    extended_float(significand, exponent)
+    // Ensure we haven't re-assigned exponent or minus_k, since this
+    // is a massive potential security vulnerability.
+    debug_assert!(float.exponent() == exponent);
+    debug_assert!(minus_k == floor_log10_pow2(exponent) - F::KAPPA as i32);
+
+    extended_float(significand, minus_k + F::KAPPA as i32)
 }
 
 /// Compute the interval I = (w−,w]..
@@ -675,9 +687,13 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
     // Step 3: Find the significand with the smaller divisor
     significand *= 10;
     significand -= F::small_div_pow10(r) as u64;
-    let exponent = minus_k + F::KAPPA as i32;
 
-    extended_float(significand, exponent)
+    // Ensure we haven't re-assigned exponent or minus_k, since this
+    // is a massive potential security vulnerability.
+    debug_assert!(float.exponent() == exponent);
+    debug_assert!(minus_k == floor_log10_pow2(exponent - shorter as i32) - F::KAPPA as i32);
+
+    extended_float(significand, minus_k + F::KAPPA as i32)
 }
 
 // DIGITS
@@ -1417,8 +1433,10 @@ macro_rules! div10 {
 macro_rules! divisible_by_pow5 {
     (Self:: $table:ident, $x:ident, $exp:ident) => {{
         // SAFETY: safe if `exp < TABLE_SIZE`.
-        let mod_inv = unsafe { *Self::$table.mod_inv.get_unchecked($exp as usize) };
-        let max_quo = unsafe { *Self::$table.max_quotients.get_unchecked($exp as usize) };
+        let mod_inv = &Self::$table.mod_inv;
+        let max_quotients = &Self::$table.max_quotients;
+        let mod_inv = unsafe { index_unchecked!(mod_inv[$exp as usize]) };
+        let max_quo = unsafe { index_unchecked!(max_quotients[$exp as usize]) };
         $x.wrapping_mul(mod_inv as u64) <= max_quo as u64
     }};
 }
@@ -1571,7 +1589,8 @@ pub trait DragonboxFloat: Float {
             // For k < 0
             false
         } else {
-            // SAFETY: safe since `minus_k <= MAX_POW5_FACTOR + 1`.
+            // SAFETY: safe since `minus_k < MAX_POW5_FACTOR + 1`.
+            debug_assert!(minus_k < Self::MAX_POW5_FACTOR + 1);
             unsafe { Self::divisible_by_pow5(two_f, minus_k as u32) }
         }
     }
@@ -1587,7 +1606,8 @@ pub trait DragonboxFloat: Float {
         if exponent > Self::DIV5_THRESHOLD {
             false
         } else if exponent > upper_threshold {
-            // SAFETY: safe since `minus_k <= MAX_POW5_FACTOR + 1`.
+            // SAFETY: safe since `minus_k < MAX_POW5_FACTOR + 1`.
+            debug_assert!(minus_k < Self::MAX_POW5_FACTOR + 1);
             unsafe { Self::divisible_by_pow5(two_f, minus_k as u32) }
         } else if exponent >= lower_threshold {
             // Both exponents are nonnegative

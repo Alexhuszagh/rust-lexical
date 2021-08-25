@@ -3,6 +3,15 @@ use lexical_write_float::ToLexical;
 use proptest::prelude::*;
 use quickcheck::quickcheck;
 
+#[test]
+fn fuzz_tests() {
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let f = 355259285044678240000000000000000000000000000000000000000000f64;
+    let actual = unsafe { std::str::from_utf8_unchecked(f.to_lexical(&mut buffer)) };
+    let roundtrip = actual.parse::<f64>();
+    assert_eq!(Ok(f), roundtrip);
+}
+
 quickcheck! {
     #[cfg_attr(miri, ignore)]
     fn f32_quickcheck(f: f32) -> bool {

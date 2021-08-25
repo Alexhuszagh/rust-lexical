@@ -133,6 +133,14 @@ name = "parse-float-f64"
 path = "fuzz_targets/parse-float-f64.rs"
 
 [[bin]]
+name = "write-float-f32"
+path = "fuzz_targets/write-float-f32.rs"
+
+[[bin]]
+name = "write-float-f64"
+path = "fuzz_targets/write-float-f64.rs"
+
+[[bin]]
 name = "write-integer-i8"
 path = "fuzz_targets/write-integer-i8.rs"
 
