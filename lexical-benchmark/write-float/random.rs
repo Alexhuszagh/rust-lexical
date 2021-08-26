@@ -1,84 +1,12 @@
+#[macro_use]
 mod input;
 
 use core::time::Duration;
-
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use lexical_util::constants::BUFFER_SIZE;
 use lexical_write_float::ToLexical;
 
 // Default random data size.
 const COUNT: usize = 1000;
-
-// GENERATORS
-
-macro_rules! lexical_generator {
-    ($group:ident, $name:expr, $iter:expr) => {{
-        let mut buffer: [u8; BUFFER_SIZE] = [b'0'; BUFFER_SIZE];
-        $group.bench_function($name, |bench| {
-            bench.iter(|| {
-                $iter.for_each(|&x| {
-                    black_box(unsafe { x.to_lexical_unchecked(&mut buffer) });
-                })
-            })
-        });
-    }};
-}
-
-macro_rules! dtoa_generator {
-    ($group:ident, $name:expr, $iter:expr) => {{
-        let mut buffer = vec![b'0'; 256];
-        $group.bench_function($name, |bench| {
-            bench.iter(|| {
-                $iter.for_each(|x| {
-                    dtoa::write(&mut buffer, *x).unwrap();
-                    black_box(&buffer);
-                    unsafe {
-                        buffer.set_len(0);
-                    } // Way faster than Vec::clear().
-                })
-            })
-        });
-    }};
-}
-
-macro_rules! ryu_generator {
-    ($group:ident, $name:expr, $iter:expr, $fmt:ident) => {{
-        let mut buffer: [u8; 256] = [b'0'; 256];
-        $group.bench_function($name, |bench| {
-            bench.iter(|| {
-                $iter.for_each(|x| unsafe {
-                    black_box(ryu::raw::$fmt(*x, buffer.as_mut_ptr()));
-                })
-            })
-        });
-    }};
-}
-
-macro_rules! fmt_generator {
-    ($group:ident, $name:expr, $iter:expr) => {{
-        use std::io::Write;
-        let mut buffer = vec![b'0'; 256];
-        $group.bench_function($name, |bench| {
-            bench.iter(|| {
-                $iter.for_each(|x| {
-                    black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
-                    unsafe {
-                        buffer.set_len(0);
-                    } // Way faster than Vec::clear().
-                })
-            })
-        });
-    }};
-}
-
-macro_rules! generator {
-    ($group:ident, $type:expr, $iter:expr, $fmt:ident) => {{
-        lexical_generator!($group, concat!("write_", $type, "_lexical"), $iter);
-        dtoa_generator!($group, concat!("write_", $type, "_dtoa"), $iter);
-        ryu_generator!($group, concat!("write_", $type, "_ryu"), $iter, $fmt);
-        fmt_generator!($group, concat!("write_", $type, "_fmt"), $iter);
-    }};
-}
 
 // BENCHES
 
@@ -89,17 +17,11 @@ macro_rules! bench {
             group.measurement_time(Duration::from_secs(5));
             let seed = fastrand::u64(..);
 
-            let f32_data: Vec<f32> = input::from_random::<f32>($strategy, COUNT, seed)
-                .iter()
-                .map(|x| x.parse::<f32>().unwrap())
-                .collect();
-            let f64_data: Vec<f64> = input::from_random::<f64>($strategy, COUNT, seed)
-                .iter()
-                .map(|x| x.parse::<f64>().unwrap())
-                .collect();
+            let f32_data = input::type_from_random::<f32>($strategy, COUNT, seed);
+            let f64_data = input::type_from_random::<f64>($strategy, COUNT, seed);
 
-            generator!(group, "f32", f32_data.iter(), format32);
-            generator!(group, "f64", f64_data.iter(), format64);
+            write_float_generator!(group, "f32", f32_data.iter(), format32);
+            write_float_generator!(group, "f64", f64_data.iter(), format64);
         }
     };
 }

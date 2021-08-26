@@ -4,7 +4,6 @@
 mod input;
 
 use std::time::Duration;
-
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lexical_parse_float::FromLexical;
 
@@ -54,7 +53,7 @@ macro_rules! bench {
         fn $fn(criterion: &mut Criterion) {
             let mut group = criterion.benchmark_group($name);
             group.measurement_time(Duration::from_secs(5));
-            generator!(group, "f64", $iter, f64);
+            parse_float_generator!(group, "f64", $iter, f64);
         }
     };
 }

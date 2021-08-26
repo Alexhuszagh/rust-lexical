@@ -13,7 +13,7 @@ fn mesh(criterion: &mut Criterion) {
     group.measurement_time(Duration::from_secs(5));
 
     let data = input::read_lines("mesh.txt");
-    generator!(group, "mesh", data.iter(), f64);
+    parse_float_generator!(group, "mesh", data.iter(), f64);
 }
 
 criterion_group!(mesh_benches, mesh);

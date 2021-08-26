@@ -18,11 +18,11 @@ macro_rules! bench {
             group.measurement_time(Duration::from_secs(5));
             let seed = fastrand::u64(..);
 
-            let f32_data = input::from_random::<f32>($strategy, COUNT, seed);
-            let f64_data = input::from_random::<f64>($strategy, COUNT, seed);
+            let f32_data = input::string_from_random::<f32>($strategy, COUNT, seed);
+            let f64_data = input::string_from_random::<f64>($strategy, COUNT, seed);
 
-            generator!(group, "f32", f32_data.iter(), f32);
-            generator!(group, "f64", f64_data.iter(), f64);
+            parse_float_generator!(group, "f32", f32_data.iter(), f32);
+            parse_float_generator!(group, "f64", f64_data.iter(), f64);
         }
     };
 }

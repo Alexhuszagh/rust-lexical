@@ -3,6 +3,8 @@
 
 #![allow(dead_code, unused_macros)]
 
+use core::fmt::Debug;
+use core::str::FromStr;
 use fastrand::Rng;
 #[cfg(feature = "floats")]
 use lexical_util::num::Float;
@@ -72,6 +74,55 @@ pub fn read_csv(name: &str) -> Vec<String> {
         .flatten()
         .map(String::from)
         .collect()
+}
+
+/// Parse JSON data as a given type.
+macro_rules! json_data {
+    ($t:ty, $file:literal) => (
+        fn json_data() -> &'static $t {
+            use lazy_static::lazy_static;
+            lazy_static! {
+                static ref DATA: $t = input::read_json($file);
+            }
+            &*DATA
+        }
+    );
+}
+
+/// Generate an array of values as static data
+macro_rules! static_data {
+    ($($fn:ident $cb:ident $f1:ident $t:tt ; )*) => ($(
+        fn $fn() -> &'static [$t] {
+            use lazy_static::lazy_static;
+            lazy_static! {
+                static ref DATA: Vec<$t> = {
+                    $cb()
+                        .$f1
+                        .iter()
+                        .map(|x| x.parse::<$t>().unwrap())
+                        .collect()
+                };
+            }
+            &*DATA
+        }
+    )*);
+
+    ($($fn:ident $cb:ident $f1:ident $f2:ident $t:tt ; )*) => ($(
+        fn $fn() -> &'static [$t] {
+            use lazy_static::lazy_static;
+            lazy_static! {
+                static ref DATA: Vec<$t> = {
+                    $cb()
+                        .$f1
+                        .$f2
+                        .iter()
+                        .map(|x| x.parse::<$t>().unwrap())
+                        .collect()
+                };
+            }
+            &*DATA
+        }
+    )*);
 }
 
 // RANDOM
@@ -303,7 +354,10 @@ float_rng! { f32 f64 }
 
 // Generate a static array of random values.
 #[inline]
-pub fn from_random<T: NumberRng>(strategy: RandomGen, count: usize, seed: u64) -> Vec<String> {
+pub fn string_from_random<T>(strategy: RandomGen, count: usize, seed: u64) -> Vec<String>
+where
+    T: NumberRng
+{
     let mut rng = Rng::with_seed(seed);
     let mut vec: Vec<String> = Vec::with_capacity(count);
     for _ in 0..count {
@@ -312,7 +366,102 @@ pub fn from_random<T: NumberRng>(strategy: RandomGen, count: usize, seed: u64) -
     vec
 }
 
+// Generate a static array of random values.
+#[inline]
+pub fn type_from_random<T>(strategy: RandomGen, count: usize, seed: u64) -> Vec<T>
+where
+    T: NumberRng + FromStr,
+    <T as FromStr>::Err: Debug,
+{
+    string_from_random::<T>(strategy, count, seed)
+        .iter()
+        .map(|x| x.parse::<T>().unwrap())
+        .collect()
+}
+
 // GENERATORS
+
+macro_rules! to_lexical_generator {
+    ($group:ident, $name:expr, $iter:expr) => {{
+        use lexical_util::constants::BUFFER_SIZE;
+        let mut buffer: [u8; BUFFER_SIZE] = [b'0'; BUFFER_SIZE];
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $iter.for_each(|&x| {
+                    black_box(unsafe { x.to_lexical_unchecked(&mut buffer) });
+                })
+            })
+        });
+    }};
+}
+
+macro_rules! dtoa_generator {
+    ($group:ident, $name:expr, $iter:expr) => {{
+        use lexical_util::constants::BUFFER_SIZE;
+        let mut buffer = vec![b'0'; BUFFER_SIZE];
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $iter.for_each(|x| {
+                    dtoa::write(&mut buffer, *x).unwrap();
+                    black_box(&buffer);
+                    unsafe {
+                        buffer.set_len(0);
+                    } // Way faster than Vec::clear().
+                })
+            })
+        });
+    }};
+}
+
+macro_rules! ryu_generator {
+    ($group:ident, $name:expr, $iter:expr, $fmt:ident) => {{
+        use lexical_util::constants::BUFFER_SIZE;
+        let mut buffer: [u8; BUFFER_SIZE] = [b'0'; BUFFER_SIZE];
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $iter.for_each(|x| unsafe {
+                    black_box(ryu::raw::$fmt(*x, buffer.as_mut_ptr()));
+                })
+            })
+        });
+    }};
+}
+
+macro_rules! itoa_generator {
+    ($group:ident, $name:expr, $iter:expr) => {{
+        use lexical_util::constants::BUFFER_SIZE;
+        let mut buffer = vec![b'0'; BUFFER_SIZE];
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $iter.for_each(|&x| {
+                    itoa::write(&mut buffer, x).unwrap();
+                    black_box(&buffer);
+                    unsafe {
+                        buffer.set_len(0);
+                    }
+                })
+            })
+        });
+    }};
+}
+
+macro_rules! fmt_generator {
+    ($group:ident, $name:expr, $iter:expr) => {{
+        use lexical_util::constants::BUFFER_SIZE;
+        use std::io::Write;
+        let mut buffer = vec![b'0'; BUFFER_SIZE];
+        $group.bench_function($name, |bench| {
+            bench.iter(|| {
+                $iter.for_each(|&x| {
+                    black_box(buffer.write_fmt(format_args!("{}", x)).unwrap());
+                    unsafe {
+                        buffer.set_len(0);
+                    }
+                })
+            })
+        });
+    }};
+}
 
 macro_rules! from_lexical_generator {
     ($group:ident, $name:expr, $iter:expr, $t:ty) => {{
@@ -338,9 +487,33 @@ macro_rules! str_parse_generator {
     }};
 }
 
-macro_rules! generator {
+macro_rules! parse_float_generator {
     ($group:ident, $type:literal, $iter:expr, $t:ty) => {{
         from_lexical_generator!($group, concat!("parse_", $type, "_lexical"), $iter, $t);
         str_parse_generator!($group, concat!("parse_", $type, "_core"), $iter, $t);
+    }};
+}
+
+macro_rules! parse_integer_generator {
+    ($group:ident, $type:literal, $iter:expr, $t:ty) => {{
+        from_lexical_generator!($group, concat!("parse_", $type, "_lexical"), $iter, $t);
+        str_parse_generator!($group, concat!("parse_", $type, "_core"), $iter, $t);
+    }};
+}
+
+macro_rules! write_float_generator {
+    ($group:ident, $type:expr, $iter:expr, $fmt:ident) => {{
+        to_lexical_generator!($group, concat!("write_", $type, "_lexical"), $iter);
+        dtoa_generator!($group, concat!("write_", $type, "_dtoa"), $iter);
+        ryu_generator!($group, concat!("write_", $type, "_ryu"), $iter, $fmt);
+        fmt_generator!($group, concat!("write_", $type, "_fmt"), $iter);
+    }};
+}
+
+macro_rules! write_integer_generator {
+    ($group:ident, $type:expr, $iter:expr) => {{
+        to_lexical_generator!($group, concat!("write_", $type, "_lexical"), $iter);
+        itoa_generator!($group, concat!("write_", $type, "_itoa"), $iter);
+        fmt_generator!($group, concat!("write_", $type, "_fmt"), $iter);
     }};
 }

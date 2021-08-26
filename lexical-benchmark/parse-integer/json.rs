@@ -2,9 +2,7 @@
 mod input;
 
 use core::time::Duration;
-
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use lazy_static::lazy_static;
 use lexical_parse_integer::FromLexical;
 use serde::Deserialize;
 
@@ -67,12 +65,7 @@ struct TestData {
     random: RandomData,
 }
 
-fn json_data() -> &'static TestData {
-    lazy_static! {
-        static ref DATA: TestData = input::read_json("integer.json");
-    }
-    &*DATA
-}
+json_data!(TestData, "integer.json");
 
 // BENCHES
 
@@ -80,28 +73,28 @@ fn simple(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("json:simple");
     group.measurement_time(Duration::from_secs(5));
 
-    generator!(group, "u8", json_data().simple.u8_data.iter(), u8);
-    generator!(group, "u16", json_data().simple.u16_data.iter(), u16);
-    generator!(group, "u32", json_data().simple.u32_data.iter(), u32);
-    generator!(group, "u64", json_data().simple.u64_data.iter(), u64);
-    generator!(group, "u128", json_data().simple.u128_data.iter(), u128);
+    parse_integer_generator!(group, "u8", json_data().simple.u8_data.iter(), u8);
+    parse_integer_generator!(group, "u16", json_data().simple.u16_data.iter(), u16);
+    parse_integer_generator!(group, "u32", json_data().simple.u32_data.iter(), u32);
+    parse_integer_generator!(group, "u64", json_data().simple.u64_data.iter(), u64);
+    parse_integer_generator!(group, "u128", json_data().simple.u128_data.iter(), u128);
 }
 
 fn random(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("json:random");
     group.measurement_time(Duration::from_secs(5));
 
-    generator!(group, "u8", json_data().random.u8_data.iter(), u8);
-    generator!(group, "u16", json_data().random.u16_data.iter(), u16);
-    generator!(group, "u32", json_data().random.u32_data.iter(), u32);
-    generator!(group, "u64", json_data().random.u64_data.iter(), u64);
-    generator!(group, "u128", json_data().random.u128_data.iter(), u128);
+    parse_integer_generator!(group, "u8", json_data().random.u8_data.iter(), u8);
+    parse_integer_generator!(group, "u16", json_data().random.u16_data.iter(), u16);
+    parse_integer_generator!(group, "u32", json_data().random.u32_data.iter(), u32);
+    parse_integer_generator!(group, "u64", json_data().random.u64_data.iter(), u64);
+    parse_integer_generator!(group, "u128", json_data().random.u128_data.iter(), u128);
 
-    generator!(group, "i8", json_data().random.i8_data.iter(), i8);
-    generator!(group, "i16", json_data().random.i16_data.iter(), i16);
-    generator!(group, "i32", json_data().random.i32_data.iter(), i32);
-    generator!(group, "i64", json_data().random.i64_data.iter(), i64);
-    generator!(group, "i128", json_data().random.i128_data.iter(), i128);
+    parse_integer_generator!(group, "i8", json_data().random.i8_data.iter(), i8);
+    parse_integer_generator!(group, "i16", json_data().random.i16_data.iter(), i16);
+    parse_integer_generator!(group, "i32", json_data().random.i32_data.iter(), i32);
+    parse_integer_generator!(group, "i64", json_data().random.i64_data.iter(), i64);
+    parse_integer_generator!(group, "i128", json_data().random.i128_data.iter(), i128);
 }
 
 criterion_group!(simple_benches, simple);
