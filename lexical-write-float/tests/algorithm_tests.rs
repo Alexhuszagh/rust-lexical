@@ -147,10 +147,10 @@ fn to_decimal_test() {
     assert_eq!(to_decimal_f32(2147483600.0), (21474836, 2));
 
     assert_eq!(to_decimal_f64(0.0), (0, 0));
-    assert_eq!(to_decimal_f64(0.5), (5000000000000000, -16));
-    assert_eq!(to_decimal_f64(1.0), (1000000000000000, -15));
-    assert_eq!(to_decimal_f64(1.5), (1500000000000000, -15));
-    assert_eq!(to_decimal_f64(1.23456), (1234560000000000, -15));
+    assert_eq!(to_decimal_f64(0.5), (5, -1));
+    assert_eq!(to_decimal_f64(1.0), (1, 0));
+    assert_eq!(to_decimal_f64(1.5), (15, -1));
+    assert_eq!(to_decimal_f64(1.23456), (123456, -5));
 }
 
 fn write_digits_f32(buffer: &mut [u8], value: u64, expected: &str) {
@@ -181,13 +181,10 @@ fn write_digits_f64_test() {
     let mut buffer = [b'\x00'; 32];
     write_digits_f64(&mut buffer, 0, "0");
     write_digits_f64(&mut buffer, 1, "1");
-    write_digits_f64(&mut buffer, 10, "1");
     write_digits_f64(&mut buffer, 11, "11");
-    write_digits_f64(&mut buffer, 110, "11");
     write_digits_f64(&mut buffer, 23, "23");
-    write_digits_f64(&mut buffer, 230, "23");
     write_digits_f64(&mut buffer, 4294967295, "4294967295");
-    write_digits_f64(&mut buffer, 42949672950, "4294967295");
+    write_digits_f64(&mut buffer, 4294967296, "4294967296");
 }
 
 #[test]

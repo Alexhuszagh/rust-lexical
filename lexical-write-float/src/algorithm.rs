@@ -28,7 +28,7 @@
 
 use crate::float::{ExtendedFloat80, RawFloat};
 use crate::options::{Options, RoundMode};
-use crate::shared::{debug_assert_digits, truncate_and_round_decimal, write_exponent};
+use crate::shared;
 use crate::table::*;
 use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::num::{AsPrimitive, Float, Integer};
@@ -96,14 +96,10 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     // Truncate and round the significant digits.
     // SAFETY: safe since `digit_count < digits.len()`.
     let (digit_count, _) =
-        unsafe { truncate_and_round_decimal(&mut digits, digit_count, fp.exp, options) };
+        unsafe { shared::truncate_and_round_decimal(&mut digits, digit_count, fp.exp, options) };
 
     // Determine the exact number of digits to write.
-    debug_assert_digits(digit_count, options);
-    let mut exact_count: usize = digit_count;
-    if let Some(min_digits) = options.min_significant_digits() {
-        exact_count = min_digits.get().max(exact_count);
-    }
+    let exact_count = shared::min_exact_digits(digit_count, options, 0);
 
     // Write any trailing digits.
     // SAFETY: safe if the above steps were safe, since `bytes.len() >= 2`.
@@ -131,7 +127,7 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
 
     // Now, write our scientific notation.
     // SAFETY: safe since bytes must be large enough to store all digits.
-    unsafe { write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent()) };
+    unsafe { shared::write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent()) };
 
     cursor
 }
@@ -182,7 +178,7 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     debug_assert!(cursor > 0);
     let digits = unsafe { &mut index_unchecked_mut!(bytes[cursor - 1..]) };
     let (digit_count, _) =
-        unsafe { truncate_and_round_decimal(digits, digit_count + 1, fp.exp, options) };
+        unsafe { shared::truncate_and_round_decimal(digits, digit_count + 1, fp.exp, options) };
     // We need to adjust for the extra 0 at the start
     let digit_count = digit_count - 1;
     if digit_count == 1 && unsafe { index_unchecked!(digits[0]) } == b'1' {
@@ -209,11 +205,7 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     }
 
     // Determine the exact number of digits to write.
-    debug_assert_digits(digit_count, options);
-    let mut exact_count: usize = digit_count;
-    if let Some(min_digits) = options.min_significant_digits() {
-        exact_count = min_digits.get().max(exact_count);
-    }
+    let exact_count = shared::min_exact_digits(digit_count, options, 0);
 
     // Write any trailing digits.
     // Cursor is 1 if we trimmed floats, in which case skip this.
@@ -254,7 +246,7 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
     // SAFETY: safe, if we have enough bytes to write the significant digits.
     let digit_count = unsafe { F::write_digits(bytes, fp.mant) };
     let (mut digit_count, _) =
-        unsafe { truncate_and_round_decimal(bytes, digit_count, fp.exp, options) };
+        unsafe { shared::truncate_and_round_decimal(bytes, digit_count, fp.exp, options) };
 
     // Now, check if we have shift digits.
     let leading_digits = sci_exp as usize + 1;
@@ -292,11 +284,7 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
 
     // Determine the exact number of digits to write.
     // Note: we might have written an extra digit for leading digits.
-    debug_assert_digits(digit_count - 1, options);
-    let mut exact_count: usize = digit_count;
-    if let Some(min_digits) = options.min_significant_digits() {
-        exact_count = min_digits.get().max(exact_count);
-    }
+    let exact_count = shared::min_exact_digits(digit_count, options, 1);
 
     // Change the number of digits written, if we need to add more or trim digits.
     if options.trim_floats() && exact_count == digit_count {
@@ -1557,7 +1545,7 @@ impl DragonboxFloat for f64 {
             // This branch is extremely unlikely.
             // I suspect it is impossible to get into this branch.
             if n32 & 0xff == 0 {
-                quo32 = (n32 >> 8) * table.mod_inv[8];
+                quo32 = (n32 >> 8).wrapping_mul(table.mod_inv[8]);
                 if quo32 <= table.max_quotients[8] {
                     n = quo32 as u64;
                     return (n, 16);

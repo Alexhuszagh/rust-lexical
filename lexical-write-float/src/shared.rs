@@ -12,6 +12,17 @@ pub fn debug_assert_digits(digit_count: usize, options: &Options) {
     debug_assert!(digit_count <= max_digits);
 }
 
+/// Get the exact number of digits from a minimum bound.
+#[inline(always)]
+pub fn min_exact_digits(digit_count: usize, options: &Options, shift: usize) -> usize {
+    debug_assert_digits(digit_count - shift, options);
+    let mut exact_count: usize = digit_count;
+    if let Some(min_digits) = options.min_significant_digits() {
+        exact_count = min_digits.get().max(exact_count);
+    }
+    exact_count
+}
+
 /// Round-up the last digit, from a buffer of digits.
 ///
 /// Round up the last digit, incrementally handling all subsequent
