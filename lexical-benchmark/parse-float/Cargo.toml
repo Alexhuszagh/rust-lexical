@@ -23,12 +23,14 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 [features]
-default = ["std", "floats"]
+default = ["std", "floats", "json"]
 std = ["lexical-util/std", "lexical-parse-float/std"]
 radix = ["lexical-util/radix", "lexical-parse-float/radix"]
 power-of-two = ["lexical-util/power-of-two", "lexical-parse-float/power-of-two"]
 format = ["lexical-util/format", "lexical-parse-float/format"]
+compact = ["lexical-util/compact", "lexical-parse-float/compact"]
 floats = []
+json = []
 
 [[bench]]
 name = "canada"

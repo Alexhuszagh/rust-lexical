@@ -39,6 +39,7 @@ pub fn bench_dir() -> std::path::PathBuf {
 
 /// Parse JSON data from file.
 #[inline]
+#[cfg(feature = "json")]
 pub fn read_json<T: serde::de::DeserializeOwned>(name: &str) -> T {
     let mut path = bench_dir();
     path.push("data");

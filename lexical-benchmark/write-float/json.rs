@@ -56,7 +56,7 @@ macro_rules! lexical_generator {
         $group.bench_function($name, |bench| {
             bench.iter(|| {
                 $iter.for_each(|&x| {
-                    black_box(x.to_lexical(&mut buffer));
+                    black_box(unsafe { x.to_lexical_unchecked(&mut buffer) });
                 })
             })
         });

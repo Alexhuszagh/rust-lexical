@@ -30,10 +30,12 @@ use crate::float::{ExtendedFloat80, RawFloat};
 use crate::options::{Options, RoundMode};
 use crate::shared::{debug_assert_digits, truncate_and_round_decimal, write_exponent};
 use crate::table::*;
-use lexical_util::format::NumberFormat;
+use lexical_util::algorithm::rtrim_char_count;
+use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::num::{AsPrimitive, Float, Integer};
 use lexical_write_integer::decimal::DigitCount;
 use lexical_write_integer::table::DIGIT_TO_BASE10_SQUARED;
+use lexical_write_integer::write::WriteInteger;
 
 /// Optimized float-to-string algorithm for decimal strings.
 ///
@@ -738,50 +740,11 @@ macro_rules! shift_digits {
 ///
 /// Safe if `bytes.len() >= 10`.
 #[inline]
-pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32, digit_count: usize) -> usize {
-    debug_assert!(bytes.len() >= 10);
-
-    let mut index = digit_count;
-    let mut s32 = mantissa;
-    // Need at least more than 5, since we will always write at least 1 trailing value.
-    while index >= 5 {
-        let c = s32 % 10000;
-        s32 /= 10000;
-        // c1 = s32 / 100; c2 = s32 % 100;
-        let (c1, c2) = fast_div(c, 100, 14, 5);
-        let r1 = c1 as usize * 2;
-        let r2 = c2 as usize * 2;
-
-        // SAFETY: This is always safe, since the `table.len() == 200`.
-        write_digits!(bytes, index, r2);
-        write_digits!(bytes, index, r1);
-    }
-
-    if index >= 3 {
-        // c1 = s32 / 100; c2 = s32 % 100;
-        let (c1, c2) = fast_div(s32, 100, 14, 5);
-        s32 = c1;
-        let r2 = c2 as usize * 2;
-
-        // SAFETY: This is always safe, since the `table.len() == 200`.
-        write_digits!(bytes, index, r2);
-    }
-    if index > 1 {
-        debug_assert!(index == 2);
-        // d1 = s32 / 10; d2 = s32 % 10;
-        let (d1, d2) = fast_div(s32, 10, 7, 3);
-
-        // SAFETY: this is always safe, since `index == 2`.
-        write_digit!(bytes, index, d2);
-        write_digit!(bytes, index, d1);
-    } else {
-        debug_assert!(index == 1);
-
-        // SAFETY: this is always safe, since `index == 1`.
-        write_digit!(bytes, index, s32);
-    }
-
-    digit_count
+pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32, _digit_count: usize) -> usize {
+    // Dragonbox has a heavily-branched, dubiously optimized algorithm using
+    // fast division, that leads to no practical performance benefits in my
+    // benchmarks, and the division algorithm is at best ~3% faster.
+    mantissa.write_mantissa::<u32, { STANDARD }>(bytes)
 }
 
 /// Write the significant digits, when the significant digits cannot fit in a
@@ -794,194 +757,18 @@ pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32, digit_count: usi
 /// Safe if `bytes.len() >= 20`.
 #[inline]
 #[allow(clippy::branches_sharing_code)]
-pub unsafe fn write_digits_u64(bytes: &mut [u8], mantissa: u64, mut digit_count: usize) -> usize {
-    debug_assert!(bytes.len() >= 20);
-
-    let mut index = digit_count;
-    let mut s32: u32;
-    let mut trailing_zeros = false;
-    let mut tz: u8;
-
-    // Write the upper 32 bits.
-    if mantissa >> 32 != 0 {
-        // Since significand is at most 10^17, the quotient is at most 10^9, so
-        // it fits inside 32-bit integer.
-        s32 = (mantissa / 100000000) as u32;
-        let mut r = mantissa.wrapping_sub((s32 as u64).wrapping_mul(100000000)) as u32;
-
-        if r != 0 {
-            let c = r % 10000;
-            r /= 10000;
-            // c1 = s32 / 100; c2 = s32 % 100;
-            let (c1, c2) = fast_div(r, 100, 14, 5);
-            // c3 = c / 100; c4 = c % 100;
-            let (c3, c4) = fast_div(c, 100, 14, 5);
-            // SAFETY: safe, since `c4 < 100`.
-            tz = unsafe { TRAILING_ZEROS[c4 as usize] };
-            let r1 = c1 as usize * 2;
-            let r2 = c2 as usize * 2;
-            let r3 = c3 as usize * 2;
-            let r4 = c4 as usize * 2;
-
-            if tz == 0 {
-                // SAFETY: This is always safe, since the `table.len() == 200`.
-                write_digits!(bytes, index, r4);
-                write_digits!(bytes, index, r3);
-                write_digits!(bytes, index, r2);
-                write_digits!(bytes, index, r1);
-            } else if tz == 1 {
-                shift_digits!(index, digit_count, 1);
-                // SAFETY: This is always safe, since the `table.len() == 200`.
-                write_digits!(@1 bytes, index, r4);
-                write_digits!(bytes, index, r3);
-                write_digits!(bytes, index, r2);
-                write_digits!(bytes, index, r1);
-            } else {
-                shift_digits!(index, digit_count, 2);
-                // SAFETY: safe, since `c3 < 100`.
-                tz = unsafe { TRAILING_ZEROS[c3 as usize] };
-                if tz == 0 {
-                    // SAFETY: This is always safe, since the `table.len() == 200`.
-                    write_digits!(bytes, index, r3);
-                    write_digits!(bytes, index, r2);
-                    write_digits!(bytes, index, r1);
-                } else if tz == 1 {
-                    shift_digits!(index, digit_count, 1);
-                    // SAFETY: This is always safe, since the `table.len() == 200`.
-                    write_digits!(@1 bytes, index, r3);
-                    write_digits!(bytes, index, r2);
-                    write_digits!(bytes, index, r1);
-                } else {
-                    shift_digits!(index, digit_count, 2);
-                    // SAFETY: safe, since `c2 < 100`.
-                    tz = unsafe { TRAILING_ZEROS[c2 as usize] };
-                    if tz == 0 {
-                        // SAFETY: This is always safe, since the `table.len() == 200`.
-                        write_digits!(bytes, index, r2);
-                        write_digits!(bytes, index, r1);
-                    } else if tz == 1 {
-                        shift_digits!(index, digit_count, 1);
-                        write_digits!(@1 bytes, index, r2);
-                        write_digits!(bytes, index, r1);
-                    } else {
-                        shift_digits!(index, digit_count, 2);
-                        // SAFETY: safe, since `c1 < 100`.
-                        tz = unsafe { TRAILING_ZEROS[c1 as usize] };
-                        if tz == 0 {
-                            // SAFETY: This is always safe, since the `table.len() == 200`.
-                            write_digits!(bytes, index, r1);
-                        } else {
-                            // We assumed r != 0, so c1 cannot be zero in this case.
-                            debug_assert!(tz == 1);
-                            shift_digits!(index, digit_count, 1);
-                            write_digits!(@1 bytes, index, r1);
-                        }
-                    }
-                }
-            }
-        } else {
-            // r == 0
-            shift_digits!(index, digit_count, 8);
-            trailing_zeros = true;
-        }
-    } else {
-        // mantissa >> 32 == 0
-        s32 = mantissa as u32;
-        trailing_zeros = true;
-    }
-
-    // Write the lower 32 bits.
-    // Need at least more than 5, since we will always write at least 1 trailing value.
-    while index >= 5 {
-        let c = s32 % 10000;
-        s32 /= 10000;
-        // c1 = s32 / 100; c2 = s32 % 100;
-        let (c1, c2) = fast_div(c, 100, 14, 5);
-        let r1 = c1 as usize * 2;
-        let r2 = c2 as usize * 2;
-
-        if trailing_zeros {
-            // SAFETY: safe, since `c2 < 100`.
-            tz = unsafe { TRAILING_ZEROS[c2 as usize] };
-            if tz == 0 {
-                // SAFETY: This is always safe, since the `table.len() == 200`.
-                write_digits!(bytes, index, r2);
-                write_digits!(bytes, index, r1);
-                trailing_zeros = false;
-            } else if tz == 1 {
-                // SAFETY: This is always safe, since the `table.len() == 200`.
-                shift_digits!(index, digit_count, 1);
-                write_digits!(@1 bytes, index, r2);
-                write_digits!(bytes, index, r1);
-                trailing_zeros = false;
-            } else {
-                shift_digits!(index, digit_count, 2);
-                // SAFETY: safe, since `c1 < 100`.
-                tz = unsafe { TRAILING_ZEROS[c1 as usize] };
-                if tz == 0 {
-                    write_digits!(bytes, index, r1);
-                    trailing_zeros = false;
-                } else if tz == 1 {
-                    shift_digits!(index, digit_count, 1);
-                    write_digits!(@1 bytes, index, r1);
-                    trailing_zeros = false;
-                } else {
-                    shift_digits!(index, digit_count, 2);
-                }
-            }
-        } else {
-            // SAFETY: This is always safe, since the `table.len() == 200`.
-            write_digits!(bytes, index, r2);
-            write_digits!(bytes, index, r1);
-        }
-    }
-
-    if index >= 3 {
-        // c1 = s32 / 100; c2 = s32 % 100;
-        let (c1, c2) = fast_div(s32, 100, 14, 5);
-        s32 = c1;
-        let r2 = c2 as usize * 2;
-
-        if trailing_zeros {
-            // SAFETY: safe, since `c1 < 100`.
-            tz = unsafe { TRAILING_ZEROS[c2 as usize] };
-            if tz == 0 {
-                write_digits!(bytes, index, r2);
-                trailing_zeros = false;
-            } else if tz == 1 {
-                shift_digits!(index, digit_count, 1);
-                write_digits!(@1 bytes, index, r2);
-                trailing_zeros = false;
-            } else {
-                shift_digits!(index, digit_count, 2);
-            }
-        } else {
-            // SAFETY: This is always safe, since the `table.len() == 200`.
-            write_digits!(bytes, index, r2);
-        }
-    }
-
-    if index > 1 {
-        debug_assert!(index == 2);
-        // d1 = s32 / 10; d2 = s32 % 10;
-        let (d1, d2) = fast_div(s32, 10, 7, 3);
-
-        // SAFETY: this is always safe, since `index == 2`.
-        if trailing_zeros && d2 == 0 {
-            shift_digits!(index, digit_count, 1);
-            write_digit!(bytes, index, d1);
-        } else {
-            write_digit!(bytes, index, d2);
-            write_digit!(bytes, index, d1);
-        }
-    } else {
-        debug_assert!(index == 1);
-
-        // SAFETY: this is always safe, since `index == 1`.
-        write_digit!(bytes, index, s32);
-    }
-
-    digit_count
+pub unsafe fn write_digits_u64(bytes: &mut [u8], mantissa: u64, mut _digit_count: usize) -> usize {
+    // Dragonbox has a heavily-branched, dubiously optimized algorithm using
+    // fast division, that leads to no practical performance benefits in my
+    // benchmarks, and the division algorithm is at best ~3% faster. It also
+    // tries to avoid writing digits extensively, but requires division operations
+    // for each step regardless, which means the **actual** overhead of said
+    // branching likely exceeds any benefits.
+    let count = mantissa.write_mantissa::<u64, { STANDARD }>(bytes);
+    // SAFETY: safe, since we just wrote `count` digits.
+    let zeros = rtrim_char_count(unsafe { &index_unchecked!(bytes[..count]) }, b'0');
+    // Want to return **at least** 1 digit.
+    (count - zeros).max(1)
 }
 
 // EXTENDED
