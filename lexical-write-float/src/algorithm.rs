@@ -979,23 +979,6 @@ pub const fn div64_table<const N: usize>(a: u64) -> Div64Table<N> {
     div_table!(u64, Div64Table, mod64_inverse, a)
 }
 
-/// Granlund-Montgomery style fast division
-#[inline]
-pub const fn fast_div(
-    n: u32,
-    divisor: u32,
-    max_precision: u32,
-    additional_precision: u32,
-) -> (u32, u32) {
-    // max_precision ∊ (0, 32] && `n < 2^MAX_PRECISION`.
-
-    let left_end = (((1 << (max_precision + additional_precision)) + divisor - 1) / divisor) as u32;
-    let quotient = (n.wrapping_mul(left_end)) >> (max_precision + additional_precision);
-    let remainder = n - divisor * quotient;
-
-    (quotient, remainder)
-}
-
 // ROUNDING
 // --------
 

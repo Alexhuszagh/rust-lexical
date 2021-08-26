@@ -13,7 +13,7 @@
 #![doc(hidden)]
 
 use crate::options::{Options, RoundMode};
-use crate::shared::{debug_assert_digits, round_up, write_exponent};
+use crate::shared;
 use core::mem;
 use lexical_util::algorithm::{ltrim_char_count, rtrim_char_count};
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
@@ -247,7 +247,7 @@ pub unsafe fn truncate_and_round(
         // Round-up always.
         // SAFETY: safe if `start <= end, because `max_digits < count`.
         let digits = unsafe { &mut index_unchecked_mut!(buffer[start..start + max_digits]) };
-        unsafe { round_up(digits, max_digits, radix) }
+        unsafe { shared::round_up(digits, max_digits, radix) }
     } else if rem == 0 {
         // Even radix, our halfway point `$c00000.....`.
         // SAFETY: safe if `start <= end, because `max_digits < count`.
@@ -259,7 +259,7 @@ pub unsafe fn truncate_and_round(
             // Above halfway or at halfway and even, round-up
             // SAFETY: safe if `count <= digits.len()`, because `max_digits < count`.
             let digits = unsafe { &mut index_unchecked_mut!(buffer[start..start + max_digits]) };
-            unsafe { round_up(digits, max_digits, radix) }
+            unsafe { shared::round_up(digits, max_digits, radix) }
         }
     } else {
         // Odd radix, our halfway point is `$c$c$c$c$c$c....`. Cannot halfway points.
@@ -273,7 +273,7 @@ pub unsafe fn truncate_and_round(
                 // SAFETY: safe if `count <= digits.len()`, because `max_digits < count`.
                 let digits =
                     unsafe { &mut index_unchecked_mut!(buffer[start..start + max_digits]) };
-                return unsafe { round_up(digits, max_digits, radix) };
+                return unsafe { shared::round_up(digits, max_digits, radix) };
             }
         }
         max_digits
@@ -341,11 +341,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     let mut cursor = count + 1;
 
     // Determine if we need to add more trailing zeros.
-    debug_assert_digits(count, options);
-    let mut exact_count: usize = count;
-    if let Some(min_digits) = options.min_significant_digits() {
-        exact_count = min_digits.get().max(count);
-    }
+    let exact_count = shared::min_exact_digits(count, options, 0);
 
     // Write any trailing digits to the output.
     // SAFETY: bytes cannot be empty.
@@ -371,7 +367,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
 
     // Now, write our scientific notation.
     // SAFETY: safe since bytes must be large enough to store all digits.
-    unsafe { write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent()) };
+    unsafe { shared::write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent()) };
 
     cursor
 }
@@ -459,11 +455,7 @@ pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
 
     // Determine if we need to add more trailing zeros.
     // Note: we might have written an extra digit for leading digits.
-    debug_assert_digits(count - 1, options);
-    let mut exact_count: usize = count;
-    if let Some(min_digits) = options.min_significant_digits() {
-        exact_count = min_digits.get().max(count);
-    }
+    let exact_count = shared::min_exact_digits(count, options, 1);
 
     // Write any trailing digits to the output.
     // SAFETY: bytes cannot be empty.

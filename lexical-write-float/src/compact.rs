@@ -23,7 +23,7 @@
 
 use crate::float::{ExtendedFloat80, RawFloat};
 use crate::options::Options;
-use crate::shared::{debug_assert_digits, truncate_and_round_decimal, write_exponent};
+use crate::shared;
 use crate::table::GRISU_POWERS_OF_TEN;
 use core::mem;
 use lexical_util::digit::digit_to_char_const;
@@ -70,7 +70,7 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
         // SAFETY: safe since `digits.len()` is large enough to always hold enough digits.
         let (ndigits, k) = unsafe { grisu(float, &mut digits) };
         // SAFETY: safe since `ndigits < digits.len()`.
-        unsafe { truncate_and_round_decimal(&mut digits, ndigits, k, options) }
+        unsafe { shared::truncate_and_round_decimal(&mut digits, ndigits, k, options) }
     };
 
     // See if we should write the number in exponent notation.
@@ -269,11 +269,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     let decimal_point = options.decimal_point();
 
     // Determine the exact number of digits to write.
-    debug_assert_digits(ndigits, options);
-    let mut exact_count: usize = ndigits;
-    if let Some(min_digits) = options.min_significant_digits() {
-        exact_count = min_digits.get().max(exact_count);
-    }
+    let exact_count = shared::min_exact_digits(ndigits, options, 0);
 
     // Write our significant digits
     // SAFETY: safe since both digits and bytes must be >= 1 byte.
@@ -304,12 +300,13 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
         unsafe {
             slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
         }
+        cursor += zeros;
     }
 
     // Now, write our scientific notation.
     // SAFETY: safe since bytes must be large enough to store all digits.
     let exp = k + ndigits as i32 - 1;
-    unsafe { write_exponent::<FORMAT>(bytes, &mut cursor, exp, options.exponent()) };
+    unsafe { shared::write_exponent::<FORMAT>(bytes, &mut cursor, exp, options.exponent()) };
 
     cursor
 }
@@ -357,11 +354,7 @@ pub unsafe fn write_float_negative_exponent<const FORMAT: u128>(
     }
 
     // Determine the exact number of digits to write.
-    debug_assert_digits(ndigits, options);
-    let mut exact_count: usize = ndigits;
-    if let Some(min_digits) = options.min_significant_digits() {
-        exact_count = min_digits.get().max(exact_count);
-    }
+    let exact_count = shared::min_exact_digits(ndigits, options, 0);
 
     // Adjust the number of digits written, based on the exact number of digits.
     if ndigits < exact_count {
@@ -442,11 +435,7 @@ pub unsafe fn write_float_positive_exponent<const FORMAT: u128>(
 
     // Determine the exact number of digits to write.
     // Note: we might have written an extra digit for leading digits.
-    debug_assert_digits(ndigits - 1, options);
-    let mut exact_count: usize = ndigits;
-    if let Some(min_digits) = options.min_significant_digits() {
-        exact_count = min_digits.get().max(exact_count);
-    }
+    let exact_count = shared::min_exact_digits(ndigits, options, 1);
 
     // Change the number of digits written, if we need to add more or trim digits.
     if options.trim_floats() && exact_count == ndigits {

@@ -8,7 +8,7 @@
 #![doc(hidden)]
 
 use crate::options::{Options, RoundMode};
-use crate::shared::{debug_assert_digits, write_exponent};
+use crate::shared;
 use lexical_util::algorithm::rtrim_char_count;
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 use lexical_util::format::NumberFormat;
@@ -504,11 +504,7 @@ where
     let mut cursor = count + 1;
 
     // Determine if we need to add more trailing zeros.
-    debug_assert_digits(count, options);
-    let mut exact_count: usize = count;
-    if let Some(min_digits) = options.min_significant_digits() {
-        exact_count = min_digits.get().max(count);
-    }
+    let exact_count = shared::min_exact_digits(count, options, 0);
 
     // Write any trailing digits to the output.
     // SAFETY: bytes cannot be empty.
@@ -534,7 +530,9 @@ where
 
     // Now, write our scientific notation.
     let scaled_sci_exp = scale_sci_exp(sci_exp, bits_per_digit);
-    unsafe { write_exponent::<FORMAT>(bytes, &mut cursor, scaled_sci_exp, options.exponent()) };
+    unsafe {
+        shared::write_exponent::<FORMAT>(bytes, &mut cursor, scaled_sci_exp, options.exponent())
+    };
 
     cursor
 }
@@ -605,11 +603,7 @@ where
     cursor += count;
 
     // Determine if we need to add more trailing zeros.
-    debug_assert_digits(count, options);
-    let mut exact_count: usize = count;
-    if let Some(min_digits) = options.min_significant_digits() {
-        exact_count = min_digits.get().max(count);
-    }
+    let exact_count = shared::min_exact_digits(count, options, 0);
 
     // Check if we need to write more trailing digits.
     // NOTE: we cannot have a "0.1" case here, since we've previous truncated
@@ -703,11 +697,7 @@ where
 
     // Determine if we need to add more trailing zeros after a decimal point.
     // Note: we might have written an extra digit for leading digits.
-    debug_assert_digits(count - 1, options);
-    let mut exact_count: usize = count;
-    if let Some(min_digits) = options.min_significant_digits() {
-        exact_count = min_digits.get().max(count);
-    }
+    let exact_count = shared::min_exact_digits(count, options, 1);
 
     // Change the number of digits written, if we need to add more or trim digits.
     if options.trim_floats() && exact_count == count {

@@ -26,7 +26,7 @@ use crate::binary::{
     write_float_positive_exponent,
 };
 use crate::options::Options;
-use crate::shared::{debug_assert_digits, write_exponent};
+use crate::shared;
 use lexical_util::algorithm::rtrim_char_count;
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 use lexical_util::format::NumberFormat;
@@ -107,11 +107,7 @@ where
     let mut cursor = count + 1;
 
     // Determine if we need to add more trailing zeros.
-    debug_assert_digits(count, options);
-    let mut exact_count: usize = count;
-    if let Some(min_digits) = options.min_significant_digits() {
-        exact_count = min_digits.get().max(count);
-    }
+    let exact_count = shared::min_exact_digits(count, options, 0);
 
     // Write any trailing digits to the output.
     // SAFETY: bytes cannot be empty.
@@ -138,7 +134,9 @@ where
     // Now, write our scientific notation.
     // SAFETY: safe since bytes must be large enough to store all digits.
     let scaled_sci_exp = scale_sci_exp(sci_exp, bits_per_digit, bits_per_base);
-    unsafe { write_exponent::<FORMAT>(bytes, &mut cursor, scaled_sci_exp, options.exponent()) };
+    unsafe {
+        shared::write_exponent::<FORMAT>(bytes, &mut cursor, scaled_sci_exp, options.exponent())
+    };
 
     cursor
 }

@@ -8,12 +8,28 @@ const COUNT: usize = 1000;
 
 // ALGORITHMS
 
+// Compiles to:
+//  example::normal_div:
+//          mov     eax, edi
+//          imul    rax, rax, 1374389535
+//          shr     rax, 37
+//          imul    ecx, eax, 100
+//          sub     edi, ecx
+//          mov     edx, edi
+//          ret
 fn standard_div(v: u32) -> (u32, u32) {
     let x = v / 100;
     let y = v % 100;
     (x, y)
 }
 
+// Compiles to:
+//  example::fast_div:
+//          imul    eax, edi, 5243
+//          shr     eax, 19
+//          imul    edx, eax, -100
+//          add     edx, edi
+//          ret
 fn fast_div(v: u32) -> (u32, u32) {
     let divisor = 100;
     let max_precision = 14;
