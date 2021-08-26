@@ -76,6 +76,14 @@ name = "empty"
 path = "bin/empty.rs"
 
 [[bin]]
+name = "parse-float-f32"
+path = "bin/parse-float-f32.rs"
+
+[[bin]]
+name = "parse-float-f64"
+path = "bin/parse-float-f64.rs"
+
+[[bin]]
 name = "parse-integer-i8"
 path = "bin/parse-integer-i8.rs"
 

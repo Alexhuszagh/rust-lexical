@@ -47,9 +47,7 @@ macro_rules! float_module {
         #[cfg(feature = "lexical")]
         use core::mem;
         #[cfg(feature = "lexical")]
-        use lexical_util::format::STANDARD;
-        #[cfg(feature = "lexical")]
-        use lexical_write_float::{compact, Options};
+        use lexical_write_float::ToLexical;
         use std::io::BufRead;
         #[cfg(not(feature = "lexical"))]
         use std::io::Write;
@@ -73,10 +71,7 @@ macro_rules! float_module {
             {
                 let buffer: mem::MaybeUninit<[u8; 128]> = mem::MaybeUninit::uninit();
                 let mut buffer = unsafe { buffer.assume_init() };
-                let options = Options::builder().build().unwrap();
-                let count =
-                    unsafe { compact::write_float::<_, STANDARD>(value, &mut buffer, &options) };
-                println!("{}", count);
+                println!("{}", value.to_lexical(&mut buffer).len());
             }
 
             #[cfg(not(feature = "lexical"))]

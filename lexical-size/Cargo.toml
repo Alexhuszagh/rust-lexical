@@ -58,6 +58,7 @@ format = [
     "lexical-util/format",
     "lexical-parse-integer/format",
     "lexical-parse-float/format",
+    "lexical-write-integer/format",
     "lexical-write-float/format"
 ]
 compact = [
@@ -73,6 +74,14 @@ compact = [
 [[bin]]
 name = "empty"
 path = "bin/empty.rs"
+
+[[bin]]
+name = "parse-float-f32"
+path = "bin/parse-float-f32.rs"
+
+[[bin]]
+name = "parse-float-f64"
+path = "bin/parse-float-f64.rs"
 
 [[bin]]
 name = "parse-integer-i8"
@@ -163,7 +172,7 @@ name = "write-float-f64"
 path = "bin/write-float-f64.rs"
 
 [profile.release]
-opt-level = 2
+opt-level = "z"
 debug = false
 debug-assertions = false
 lto = true
