@@ -31,14 +31,7 @@ features = []
 static_assertions = "1"
 
 [dev-dependencies]
-approx = "0.5.0"
 proptest = "0.10.1"
-
-[dev-dependencies.lexical-write-float]
-version = "0.1"
-path = "../lexical-write-float"
-default-features = false
-features = ["radix", "std"]
 
 [features]
 default = ["std"]

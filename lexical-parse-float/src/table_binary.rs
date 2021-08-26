@@ -24,11 +24,11 @@ use lexical_util::num::Float;
 #[inline]
 #[cfg(not(feature = "radix"))]
 pub unsafe fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
-    debug_assert_radix(radix);
     unsafe {
         match radix {
             2 => get_small_int_power2(exponent),
             4 => get_small_int_power4(exponent),
+            5 => get_small_int_power5(exponent),
             8 => get_small_int_power8(exponent),
             10 => get_small_int_power10(exponent),
             16 => get_small_int_power16(exponent),

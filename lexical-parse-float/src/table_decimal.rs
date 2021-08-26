@@ -3,7 +3,7 @@
 #![doc(hidden)]
 #![cfg(not(feature = "compact"))]
 
-#[cfg(not(feature = "power-of-two"))]
+#[cfg(not(feature = "radix"))]
 use crate::bigint::Limb;
 use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit, u64_power_limit};
 #[cfg(not(feature = "power-of-two"))]
@@ -56,7 +56,7 @@ pub unsafe fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
 }
 
 /// Get pre-computed power for a large power of radix.
-#[cfg(not(feature = "power-of-two"))]
+#[cfg(not(feature = "radix"))]
 pub const fn get_large_int_power(_: u32) -> (&'static [Limb], u32) {
     (&LARGE_POW5, LARGE_POW5_STEP)
 }

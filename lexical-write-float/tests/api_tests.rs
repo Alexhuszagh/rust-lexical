@@ -21,8 +21,6 @@ quickcheck! {
         if f.is_nan() {
             roundtrip.is_ok() && roundtrip.unwrap().is_nan()
         } else {
-            println!("f={:?}", f);
-            println!("roundtrip={:?}", roundtrip);
             roundtrip == Ok(f)
         }
     }

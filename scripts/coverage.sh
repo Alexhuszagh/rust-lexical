@@ -8,6 +8,8 @@
 #   3. Doesn't cover feature gates well.
 #   4. It marks missing code coverage for code without branches.
 
+set -e
+
 # Change to our project home.
 script_dir=`dirname "${BASH_SOURCE[0]}"`
 cd "$script_dir"/..

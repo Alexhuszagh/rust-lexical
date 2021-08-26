@@ -1332,9 +1332,11 @@ pub const CXX_LITERAL: u128 = CXX20_LITERAL;
 pub const CXX_STRING: u128 = CXX20_STRING;
 
 /// Number format for a C++ literal hexadecimal floating-point number.
+#[cfg(feature = "power-of-two")]
 pub const CXX_HEX_LITERAL: u128 = CXX20_HEX_LITERAL;
 
 /// Number format to parse a C++ hexadecimal float from string.
+#[cfg(feature = "power-of-two")]
 pub const CXX_HEX_STRING: u128 = CXX20_HEX_STRING;
 
 // C++20 LITERAL [013456789ABMN-']
@@ -1526,9 +1528,11 @@ pub const C_LITERAL: u128 = C18_LITERAL;
 pub const C_STRING: u128 = C18_STRING;
 
 /// Number format for a C literal hexadecimal floating-point number.
+#[cfg(feature = "power-of-two")]
 pub const C_HEX_LITERAL: u128 = C18_HEX_LITERAL;
 
 /// Number format to parse a C hexadecimal float from string.
+#[cfg(feature = "power-of-two")]
 pub const C_HEX_STRING: u128 = C18_HEX_STRING;
 
 // C18 LITERAL [01345678MN]
@@ -1967,6 +1971,7 @@ pub const JULIA_HEX_LITERAL: u128 = NumberFormatBuilder::new()
     .fraction_internal_digit_separator(true)
     .build();
 
+#[cfg(feature = "power-of-two")]
 const_assert!(NumberFormat::<{ JULIA_HEX_LITERAL }> {}.is_valid());
 
 // JULIA HEX STRING [01345678MN]
@@ -1979,6 +1984,7 @@ pub const JULIA_HEX_STRING: u128 = NumberFormatBuilder::new()
     .exponent_radix(num::NonZeroU8::new(10))
     .build();
 
+#[cfg(feature = "power-of-two")]
 const_assert!(NumberFormat::<{ JULIA_HEX_STRING }> {}.is_valid());
 
 /// Number format for a C# literal floating-point number.
