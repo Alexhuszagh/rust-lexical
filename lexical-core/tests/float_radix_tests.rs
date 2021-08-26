@@ -80,7 +80,7 @@ macro_rules! test_radix {
             NumberFormatBuilder,
             ParseFloatOptions,
             ToLexicalWithOptions,
-            WriteFloatOptions
+            WriteFloatOptions,
         };
 
         const FORMAT: u128 = NumberFormatBuilder::from_radix($radix);

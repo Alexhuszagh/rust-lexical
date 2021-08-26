@@ -1002,7 +1002,7 @@ pub const fn fast_div(
     // max_precision ∊ (0, 32] && `n < 2^MAX_PRECISION`.
 
     let left_end = (((1 << (max_precision + additional_precision)) + divisor - 1) / divisor) as u32;
-    let quotient = (n * left_end) >> (max_precision + additional_precision);
+    let quotient = (n.wrapping_mul(left_end)) >> (max_precision + additional_precision);
     let remainder = n - divisor * quotient;
 
     (quotient, remainder)

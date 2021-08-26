@@ -10,13 +10,18 @@ path = "../../lexical-util"
 default-features = false
 features = []
 
+[dependencies.lexical-parse-float]
+path = "../../lexical-parse-float"
+default-features = false
+features = []
+
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
 fastrand = "1.4"
 
 [features]
 default = ["std", "integers"]
-std = ["lexical-util/std"]
+std = ["lexical-util/std", "lexical-parse-float/std"]
 integers = []
 
 [[bench]]

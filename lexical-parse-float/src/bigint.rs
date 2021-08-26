@@ -985,7 +985,7 @@ pub fn small_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: Limb) -> Option<(
 // -----
 
 /// Add bigint to bigint starting from offset.
-fn large_add_from<const SIZE: usize>(
+pub fn large_add_from<const SIZE: usize>(
     x: &mut StackVec<SIZE>,
     y: &[Limb],
     start: usize,

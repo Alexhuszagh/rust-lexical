@@ -20,7 +20,7 @@ fn fast_div(v: u32) -> (u32, u32) {
     let additional_precision = 5;
 
     let left_end = (((1 << (max_precision + additional_precision)) + divisor - 1) / divisor) as u32;
-    let quotient = (v * left_end) >> (max_precision + additional_precision);
+    let quotient = (v.wrapping_mul(left_end)) >> (max_precision + additional_precision);
     let remainder = v - divisor * quotient;
 
     (quotient, remainder)
@@ -54,10 +54,7 @@ macro_rules! bench {
             group.measurement_time(Duration::from_secs(5));
             let seed = fastrand::u64(..);
 
-            let data: Vec<u32> = input::from_random::<u32>($strategy, COUNT, seed)
-                .iter()
-                .map(|x| x.parse::<u32>().unwrap())
-                .collect();
+            let data = input::type_from_random::<u32>($strategy, COUNT, seed);
 
             generator!(group, $name, data.iter());
         }

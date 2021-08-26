@@ -78,7 +78,7 @@ pub fn read_csv(name: &str) -> Vec<String> {
 
 /// Parse JSON data as a given type.
 macro_rules! json_data {
-    ($t:ty, $file:literal) => (
+    ($t:ty, $file:literal) => {
         fn json_data() -> &'static $t {
             use lazy_static::lazy_static;
             lazy_static! {
@@ -86,7 +86,7 @@ macro_rules! json_data {
             }
             &*DATA
         }
-    );
+    };
 }
 
 /// Generate an array of values as static data
@@ -356,7 +356,7 @@ float_rng! { f32 f64 }
 #[inline]
 pub fn string_from_random<T>(strategy: RandomGen, count: usize, seed: u64) -> Vec<String>
 where
-    T: NumberRng
+    T: NumberRng,
 {
     let mut rng = Rng::with_seed(seed);
     let mut vec: Vec<String> = Vec::with_capacity(count);
@@ -373,10 +373,7 @@ where
     T: NumberRng + FromStr,
     <T as FromStr>::Err: Debug,
 {
-    string_from_random::<T>(strategy, count, seed)
-        .iter()
-        .map(|x| x.parse::<T>().unwrap())
-        .collect()
+    string_from_random::<T>(strategy, count, seed).iter().map(|x| x.parse::<T>().unwrap()).collect()
 }
 
 // GENERATORS
