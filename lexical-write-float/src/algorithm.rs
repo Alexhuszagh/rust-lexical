@@ -30,11 +30,9 @@ use crate::float::{ExtendedFloat80, RawFloat};
 use crate::options::{Options, RoundMode};
 use crate::shared::{debug_assert_digits, truncate_and_round_decimal, write_exponent};
 use crate::table::*;
-use lexical_util::algorithm::rtrim_char_count;
 use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::num::{AsPrimitive, Float, Integer};
 use lexical_write_integer::decimal::DigitCount;
-use lexical_write_integer::table::DIGIT_TO_BASE10_SQUARED;
 use lexical_write_integer::write::WriteInteger;
 
 /// Optimized float-to-string algorithm for decimal strings.
@@ -701,36 +699,16 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
 // DIGITS
 // ------
 
-/// Write 2 digits to buffer.
-macro_rules! write_digits {
-    ($bytes:ident, $index:ident, $r:ident) => {{
-        $index -= 1;
-        unsafe { index_unchecked_mut!($bytes[$index] = DIGIT_TO_BASE10_SQUARED[$r + 1]) };
-        $index -= 1;
-        unsafe { index_unchecked_mut!($bytes[$index] = DIGIT_TO_BASE10_SQUARED[$r]) };
-    }};
-
-    (@1 $bytes:ident, $index:ident, $r:ident) => {{
-        $index -= 1;
-        unsafe { index_unchecked_mut!($bytes[$index] = DIGIT_TO_BASE10_SQUARED[$r]) };
-    }};
-}
-
-/// Write 1 digit to buffer.
-macro_rules! write_digit {
-    ($bytes:ident, $index:ident, $r:ident) => {{
-        $index -= 1;
-        unsafe { index_unchecked_mut!($bytes[$index]) = b'0' + $r as u8 };
-    }};
-}
-
-/// Shift index and digit count.
-macro_rules! shift_digits {
-    ($index:ident, $digit_count:ident, $count:literal) => {{
-        $index -= $count;
-        $digit_count -= $count;
-    }};
-}
+//  NOTE:
+//      Dragonbox has a heavily-branched, dubiously optimized algorithm using
+//      fast division, that leads to no practical performance benefits in my
+//      benchmarks, and the division algorithm is at best ~3% faster. It also
+//      tries to avoid writing digits extensively, but requires division operations
+//      for each step regardless, which means the **actual** overhead of said
+//      branching likely exceeds any benefits. The code is also impossible to
+//      maintain, and in my benchmarks is slower (by a small amount) for
+//      a 32-bit mantissa, and a **lot** slower for a 64-bit mantissa,
+//      where we need to trim trailing zeros.
 
 /// Write the significant digits, when the significant digits can fit in a
 /// 32-bit integer. Returns the number of digits written. This assumes any
@@ -741,10 +719,7 @@ macro_rules! shift_digits {
 /// Safe if `bytes.len() >= 10`.
 #[inline]
 pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32, _digit_count: usize) -> usize {
-    // Dragonbox has a heavily-branched, dubiously optimized algorithm using
-    // fast division, that leads to no practical performance benefits in my
-    // benchmarks, and the division algorithm is at best ~3% faster.
-    mantissa.write_mantissa::<u32, { STANDARD }>(bytes)
+    unsafe { mantissa.write_mantissa::<u32, { STANDARD }>(bytes) }
 }
 
 /// Write the significant digits, when the significant digits cannot fit in a
@@ -758,17 +733,7 @@ pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32, _digit_count: us
 #[inline]
 #[allow(clippy::branches_sharing_code)]
 pub unsafe fn write_digits_u64(bytes: &mut [u8], mantissa: u64, mut _digit_count: usize) -> usize {
-    // Dragonbox has a heavily-branched, dubiously optimized algorithm using
-    // fast division, that leads to no practical performance benefits in my
-    // benchmarks, and the division algorithm is at best ~3% faster. It also
-    // tries to avoid writing digits extensively, but requires division operations
-    // for each step regardless, which means the **actual** overhead of said
-    // branching likely exceeds any benefits.
-    let count = mantissa.write_mantissa::<u64, { STANDARD }>(bytes);
-    // SAFETY: safe, since we just wrote `count` digits.
-    let zeros = rtrim_char_count(unsafe { &index_unchecked!(bytes[..count]) }, b'0');
-    // Want to return **at least** 1 digit.
-    (count - zeros).max(1)
+    unsafe { mantissa.write_mantissa::<u64, { STANDARD }>(bytes) }
 }
 
 // EXTENDED
@@ -1137,17 +1102,6 @@ pub fn compute_round_up_u64<F: DragonboxFloat>(pow5: u64, beta_minus_1: i32) -> 
     ((pow5 >> (shift - beta_minus_1)) + 1) / 2
 }
 
-// TABLE
-// -----
-
-/// THe number of trailing zeros, pre-calculated for all values from 0-100.
-const TRAILING_ZEROS: [u8; 100] = [
-    2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
-    0, 0, 0, 0,
-];
-
 // DRAGONBOX FLOAT
 // ---------------
 
@@ -1209,7 +1163,7 @@ macro_rules! div10 {
             $quo = ($n >> 1).wrapping_mul($table.mod_inv[1]);
             if ($quo <= $table.max_quotients[1]) {
                 $n = $quo;
-                $($mul = ($mul >> 1) * $table.mod_inv[1];)?
+                $( $mul = ($mul >> 1).wrapping_mul($table.mod_inv[1]); )?
                 $s |= 0x1;
             }
         }
@@ -1575,8 +1529,10 @@ impl DragonboxFloat for f64 {
 
     #[inline(always)]
     fn process_trailing_zeros(mantissa: u64, exponent: i32) -> (u64, i32) {
-        // Policy is to ignore the trailing zeros.
-        (mantissa, exponent)
+        // Policy is to remove the trailing zeros.
+        // This differs from dragonbox proper, but leads to faster benchmarks.
+        let (mantissa, trailing) = Self::remove_trailing_zeros(mantissa);
+        (mantissa, exponent + trailing)
     }
 
     #[inline(always)]
