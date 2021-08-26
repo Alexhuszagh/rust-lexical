@@ -71,6 +71,10 @@ def format_time(time):
     time /= 1000
     return f'{strip_zero(str(round(time, 3)))} s'
 
+def float_sort_key(x):
+    '''Sort key for an float value.'''
+    return (x[0], int(x[1:]))
+
 def integer_sort_key(x):
     '''Sort key for an integral value.'''
     return (x[0], int(x[1:]))
@@ -166,6 +170,71 @@ def plot_scatter(
     fig.savefig(path, format='svg')
     fig.clf()
 
+def plot_write_float(args):
+    '''Plot the write float dataset.'''
+
+    assets = f'{home}/../lexical-write-float/assets'
+    with open(f'{home}/results/{filename("write-float", args)}.json') as file:
+        data = json.load(file)
+
+    bar_kwds = {
+        'prefix': 'write',
+        'xlabel': 'Float Types',
+        'key': float_sort_key,
+    }
+
+    # First plot JSON data.
+    plot_bar(
+        **bar_kwds,
+        data=data['json'],
+        path=f'{assets}/{filename("json", args)}.svg',
+        title='JSON Data',
+    )
+
+    # Plot random data.
+    plot_bar(
+        **bar_kwds,
+        data=data['random:uniform'],
+        path=f'{assets}/{filename("random_uniform", args)}.svg',
+        title='Random Data: Uniform',
+    )
+    plot_bar(
+        **bar_kwds,
+        data=data['random:one_over_rand32'],
+        path=f'{assets}/{filename("random_one_over_rand32", args)}.svg',
+        title='Random Data: One Over Rand32',
+    )
+    plot_bar(
+        **bar_kwds,
+        data=data['random:simple_uniform32'],
+        path=f'{assets}/{filename("random_simple_uniform32", args)}.svg',
+        title='Random Data: Simple Uniform32',
+    )
+    plot_bar(
+        **bar_kwds,
+        data=data['random:simple_int32'],
+        path=f'{assets}/{filename("random_simple_int32", args)}.svg',
+        title='Random Data: Simple Int32',
+    )
+    plot_bar(
+        **bar_kwds,
+        data=data['random:simple_int64'],
+        path=f'{assets}/{filename("random_simple_int64", args)}.svg',
+        title='Random Data: Simple Int64',
+    )
+    plot_bar(
+        **bar_kwds,
+        data=data['random:big_int_dot_int'],
+        path=f'{assets}/{filename("random_big_int_dot_int", args)}.svg',
+        title='Random Data: BigInt.Int',
+    )
+    plot_bar(
+        **bar_kwds,
+        data=data['random:big_ints'],
+        path=f'{assets}/{filename("random_big_ints", args)}.svg',
+        title='Random Data: BigInts',
+    )
+
 def plot_write_integer(args):
     '''Plot the write integer dataset.'''
 
@@ -180,7 +249,7 @@ def plot_write_integer(args):
         'key': integer_sort_key,
     }
 
-    # First plot JSON data.
+    # Plot JSON data.
     plot_scatter(
         **scatter_kwds,
         data=data['json:simple'],
@@ -200,7 +269,7 @@ def plot_write_integer(args):
         title='JSON Data: Chained Random',
     )
 
-    # First plot random data.
+    # Plot random data.
     plot_scatter(
         **scatter_kwds,
         data=data['random:uniform'],
@@ -231,11 +300,6 @@ def plot_write_integer(args):
         path=f'{assets}/{filename("random_large_signed", args)}.svg',
         title='Random Data: Large Negative',
     )
-
-def plot_parse_float_figure(data, path, title):
-    '''Plot parse float figure'''
-
-    plot_float_figure(data, path, title, 'parse')
 
 def plot_parse_float(args):
     '''Plot the parse float dataset.'''

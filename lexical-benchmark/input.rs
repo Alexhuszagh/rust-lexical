@@ -1,7 +1,7 @@
 //! Input data reader and random-number generator for benchmarks.
 //! This is adapted from fast-float-rust.
 
-#![allow(dead_code)]
+#![allow(dead_code, unused_macros)]
 
 use fastrand::Rng;
 #[cfg(feature = "floats")]
