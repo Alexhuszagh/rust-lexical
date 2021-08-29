@@ -344,29 +344,6 @@ pub unsafe fn generate_digits(
 ) -> (usize, i32) {
     debug_assert!(fp.mant != 0);
 
-    const TENS: [u64; 20] = [
-        10000000000000000000,
-        1000000000000000000,
-        100000000000000000,
-        10000000000000000,
-        1000000000000000,
-        100000000000000,
-        10000000000000,
-        1000000000000,
-        100000000000,
-        10000000000,
-        1000000000,
-        100000000,
-        10000000,
-        1000000,
-        100000,
-        10000,
-        1000,
-        100,
-        10,
-        1,
-    ];
-
     let wmant = upper.mant - fp.mant;
     let mut delta = upper.mant - lower.mant;
 
@@ -380,11 +357,9 @@ pub unsafe fn generate_digits(
 
     let mut idx: usize = 0;
     let mut kappa: i32 = 10;
-    let mut index = 10;
+    let mut div = 1000000000;
 
     while kappa > 0 {
-        // SAFETY: safe, TENS.len() == 20.
-        let div = unsafe { index_unchecked!(TENS[index]) };
         let digit = part1 / div;
         if digit != 0 || idx != 0 {
             // SAFETY: safe, digits.len() == 32.
@@ -394,7 +369,6 @@ pub unsafe fn generate_digits(
 
         part1 -= digit as u64 * div;
         kappa -= 1;
-        index += 1;
 
         let tmp = (part1 << -one.exp) + part2;
         if tmp <= delta {
@@ -403,11 +377,12 @@ pub unsafe fn generate_digits(
             unsafe { round_digit(digits, idx, delta, tmp, div << -one.exp, wmant) };
             return (idx, k);
         }
+        div /= 10;
     }
 
     // 10
     // Guaranteed to be safe, TENS has 20 elements.
-    let mut index = 18;
+    let mut ten = 10;
     loop {
         part2 *= 10;
         delta *= 10;
@@ -424,14 +399,12 @@ pub unsafe fn generate_digits(
         }
 
         part2 &= one.mant - 1;
-        // SAFETY: safe, TENS.len() == 20, and `index >= 0 && index <= 18`.
-        let ten = unsafe { index_unchecked!(TENS[index]) };
-        index -= 1;
         if part2 < delta {
             k += kappa;
             unsafe { round_digit(digits, idx, delta, part2, one.mant, wmant * ten) };
             return (idx, k);
         }
+        ten *= 10;
     }
 }
 
