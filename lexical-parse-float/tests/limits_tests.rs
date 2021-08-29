@@ -14,7 +14,9 @@ fn exponent_limit_test() {
 
 #[test]
 fn power_limit_test() {
+    assert_eq!(limits::u32_power_limit(5), 13);
     assert_eq!(limits::u32_power_limit(10), 9);
+    assert_eq!(limits::u64_power_limit(5), 27);
     assert_eq!(limits::u64_power_limit(10), 19);
 }
 

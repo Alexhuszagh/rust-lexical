@@ -26,6 +26,7 @@ use crate::options::Options;
 use crate::shared;
 use crate::table::GRISU_POWERS_OF_TEN;
 use core::mem;
+use lexical_util::algorithm::rtrim_char_count;
 use lexical_util::digit::digit_to_char_const;
 use lexical_util::format::NumberFormat;
 use lexical_util::num::{AsPrimitive, Float};
@@ -62,50 +63,269 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
     let digits: mem::MaybeUninit<[u8; 32]> = mem::MaybeUninit::uninit();
     // SAFETY: safe, since we never read bytes that weren't written.
     let mut digits = unsafe { digits.assume_init() };
-    let (ndigits, k) = if float == F::ZERO {
+    let (digit_count, kappa, carried) = if float == F::ZERO {
         // SAFETY: safe since `digits.len() == 32`.
         unsafe { index_unchecked_mut!(digits[0]) = b'0' };
-        (1, 0)
+        (1, 0, false)
     } else {
         // SAFETY: safe since `digits.len()` is large enough to always hold enough digits.
-        let (ndigits, k) = unsafe { grisu(float, &mut digits) };
-        // SAFETY: safe since `ndigits < digits.len()`.
-        unsafe { shared::truncate_and_round_decimal(&mut digits, ndigits, k, options) }
+        unsafe {
+            let (start, k) = grisu(float, &mut digits);
+            let (end, carried) = shared::truncate_and_round_decimal(&mut digits, start, options);
+            (end, k + start as i32 - end as i32, carried)
+        }
     };
 
-    // See if we should write the number in exponent notation.
-    let exp = k + ndigits as i32 - 1;
+    let sci_exp = kappa + digit_count as i32 - 1 + carried as i32;
     write_float!(
         FORMAT,
-        exp,
+        sci_exp,
         options,
         write_float_scientific,
         write_float_positive_exponent,
         write_float_negative_exponent,
-        args => bytes, &mut digits, ndigits, k, options,
+        args => bytes, &mut digits, digit_count, sci_exp, options,
     )
 }
+
+/// Write float to string in scientific notation.
+///
+/// # Safety
+///
+/// Safe as long as `bytes` is large enough to hold the number of digits
+/// and the scientific notation's exponent digits.
+#[allow(clippy::comparison_chain)]
+pub unsafe fn write_float_scientific<const FORMAT: u128>(
+    bytes: &mut [u8],
+    digits: &mut [u8],
+    digit_count: usize,
+    sci_exp: i32,
+    options: &Options,
+) -> usize {
+    debug_assert!(rtrim_char_count(&digits[..digit_count], b'0') == 0 || digit_count == 1);
+    debug_assert!(digit_count <= 20);
+
+    // Config options
+    let format = NumberFormat::<{ FORMAT }> {};
+    assert!(format.is_valid());
+    let decimal_point = options.decimal_point();
+
+    // Determine the exact number of digits to write.
+    let exact_count = shared::min_exact_digits(digit_count, options);
+
+    // Write our significant digits
+    // SAFETY: safe since both digits and bytes must be >= 1 byte.
+    let mut cursor: usize;
+    unsafe {
+        index_unchecked_mut!(bytes[0] = digits[0]);
+        index_unchecked_mut!(bytes[1]) = decimal_point;
+
+        if !format.no_exponent_without_fraction() && digit_count == 1 && options.trim_floats() {
+            // No more digits and need to trim floats.
+            cursor = 1;
+        } else if digit_count < exact_count {
+            // Write our significant digits.
+            let src = index_unchecked!(digits[1..digit_count]).as_ptr();
+            let dst = &mut index_unchecked_mut!(bytes[2..digit_count + 1]);
+            copy_nonoverlapping_unchecked!(dst, src, digit_count - 1);
+            cursor = digit_count + 1;
+
+            // Adjust the number of digits written, by appending zeros.
+            let zeros = exact_count - digit_count;
+            unsafe {
+                slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
+            }
+            cursor += zeros;
+        } else if digit_count == 1 {
+            // Write a single, trailing 0.
+            index_unchecked_mut!(bytes[2]) = b'0';
+            cursor = 3;
+        } else {
+            // Write our significant digits.
+            let src = index_unchecked!(digits[1..digit_count]).as_ptr();
+            let dst = &mut index_unchecked_mut!(bytes[2..digit_count + 1]);
+            copy_nonoverlapping_unchecked!(dst, src, digit_count - 1);
+            cursor = digit_count + 1;
+        }
+    }
+
+    // Now, write our scientific notation.
+    // SAFETY: safe since bytes must be large enough to store all digits.
+    unsafe { shared::write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent()) };
+
+    cursor
+}
+
+/// Write negative float to string without scientific notation.
+/// Has a negative exponent (shift right) and no scientific notation.
+///
+/// # Safety
+///
+/// Safe as long as `bytes` is large enough to hold the number of
+/// significant digits and the leading zeros.
+#[allow(clippy::comparison_chain)]
+pub unsafe fn write_float_negative_exponent<const FORMAT: u128>(
+    bytes: &mut [u8],
+    digits: &mut [u8],
+    digit_count: usize,
+    sci_exp: i32,
+    options: &Options,
+) -> usize {
+    debug_assert!(rtrim_char_count(&digits[..digit_count], b'0') == 0);
+    debug_assert!(digit_count <= 20);
+    debug_assert!(sci_exp < 0);
+
+    // Config options
+    let decimal_point = options.decimal_point();
+    let sci_exp = sci_exp.wrapping_neg() as usize;
+
+    // Write our 0 digits. Note that we cannot have carried, since we previously
+    // adjusted for carrying and rounding before.
+    // SAFETY: safe if `bytes.len() < BUFFER_SIZE - 2`.
+    unsafe {
+        index_unchecked_mut!(bytes[0]) = b'0';
+        index_unchecked_mut!(bytes[1]) = decimal_point;
+        let digits = &mut index_unchecked_mut!(bytes[2..sci_exp + 1]);
+        slice_fill_unchecked!(digits, b'0');
+    }
+    let mut cursor = sci_exp + 1;
+
+    // Write out significant digits.
+    unsafe {
+        let src = digits.as_ptr();
+        let dst = &mut index_unchecked_mut!(bytes[cursor..cursor + digit_count]);
+        copy_nonoverlapping_unchecked!(dst, src, digit_count);
+        cursor += digit_count;
+    }
+
+    // Determine the exact number of digits to write.
+    let exact_count = shared::min_exact_digits(digit_count, options);
+
+    // Adjust the number of digits written, based on the exact number of digits.
+    if digit_count < exact_count {
+        let zeros = exact_count - digit_count;
+        // SAFETY: safe if bytes is large enough to hold the significant digits.
+        unsafe {
+            slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
+        }
+        cursor += zeros;
+    }
+
+    cursor
+}
+
+/// Write positive float to string without scientific notation.
+/// Has a positive exponent (shift left) and no scientific notation.
+///
+/// # Safety
+///
+/// Safe as long as `bytes` is large enough to hold the number of
+/// significant digits and the (optional) trailing zeros.
+pub unsafe fn write_float_positive_exponent<const FORMAT: u128>(
+    bytes: &mut [u8],
+    digits: &mut [u8],
+    mut digit_count: usize,
+    sci_exp: i32,
+    options: &Options,
+) -> usize {
+    debug_assert!(rtrim_char_count(&digits[..digit_count], b'0') == 0 || digit_count == 1);
+    debug_assert!(digit_count <= 20);
+    debug_assert!(sci_exp >= 0);
+
+    // Config options
+    let decimal_point = options.decimal_point();
+
+    // Now need to write our significant digits.
+    let leading_digits = sci_exp as usize + 1;
+    let mut cursor: usize;
+    let mut trimmed = false;
+    if leading_digits >= digit_count {
+        // We have more leading digits than digits we wrote: can write
+        // any additional digits, and then just write the remaining ones.
+        // SAFETY: safe if the buffer is large enough to hold the significant digits.
+        unsafe {
+            let src = digits.as_ptr();
+            let dst = &mut index_unchecked_mut!(bytes[..digit_count]);
+            copy_nonoverlapping_unchecked!(dst, src, digit_count);
+            let digits = &mut index_unchecked_mut!(bytes[digit_count..leading_digits]);
+            slice_fill_unchecked!(digits, b'0');
+        }
+        cursor = leading_digits;
+        digit_count = leading_digits;
+        // Only write decimal point if we're not trimming floats.
+        if !options.trim_floats() {
+            unsafe { index_unchecked_mut!(bytes[cursor]) = decimal_point };
+            cursor += 1;
+            unsafe { index_unchecked_mut!(bytes[cursor]) = b'0' };
+            cursor += 1;
+            digit_count += 1;
+        } else {
+            trimmed = true;
+        }
+    } else {
+        // We have less leading digits than digits we wrote.
+
+        // Write the digits before the decimal point.
+        // SAFETY: safe if the buffer is large enough to hold the significant digits.
+        unsafe {
+            let src = digits.as_ptr();
+            let dst = &mut index_unchecked_mut!(bytes[..leading_digits]);
+            copy_nonoverlapping_unchecked!(dst, src, leading_digits);
+            index_unchecked_mut!(bytes[leading_digits]) = decimal_point;
+        }
+
+        // Write the digits after the decimal point.
+        // SAFETY: safe if the buffer is large enough to hold the significant digits.
+        unsafe {
+            let src = index_unchecked!(digits[leading_digits..digit_count]).as_ptr();
+            let dst = &mut index_unchecked_mut!(bytes[leading_digits + 1..digit_count + 1]);
+            copy_nonoverlapping_unchecked!(dst, src, digit_count - leading_digits);
+        }
+
+        cursor = digit_count + 1;
+    }
+
+    // Determine the exact number of digits to write.
+    let exact_count = shared::min_exact_digits(digit_count, options);
+
+    // Change the number of digits written, if we need to add more or trim digits.
+    if !trimmed && exact_count > digit_count {
+        // Check if we need to write more trailing digits.
+        let zeros = exact_count - digit_count;
+        // SAFETY: safe if the buffer is large enough to hold the significant digits.
+        unsafe {
+            let digits = &mut index_unchecked_mut!(bytes[cursor..cursor + zeros]);
+            slice_fill_unchecked!(digits, b'0');
+        }
+        cursor += zeros;
+    }
+
+    cursor
+}
+
+// ALGORITHM
+// ---------
 
 /// Round digit to normal approximation.
 ///
 /// # Safety
 ///
-/// Safe as long as `ndigits <= digits.len() && ndigits >= 0`.
+/// Safe as long as `digit_count <= digits.len() && digit_count >= 0`.
 unsafe fn round_digit(
     digits: &mut [u8],
-    ndigits: usize,
+    digit_count: usize,
     delta: u64,
     mut rem: u64,
     kappa: u64,
     mant: u64,
 ) {
-    debug_assert!((1..=digits.len()).contains(&ndigits));
+    debug_assert!((1..=digits.len()).contains(&digit_count));
 
     while rem < mant
         && delta - rem >= kappa
         && (rem + kappa < mant || mant - rem > rem + kappa - mant)
     {
-        unsafe { index_unchecked_mut!(digits[ndigits - 1]) -= 1 };
+        unsafe { index_unchecked_mut!(digits[digit_count - 1]) -= 1 };
         rem += kappa;
     }
 }
@@ -245,217 +465,6 @@ pub unsafe fn grisu<F: Float>(float: F, digits: &mut [u8]) -> (usize, i32) {
 
     // SAFETY: safe since generate_digits can only generate 18 digits
     unsafe { generate_digits(&w, &upper, &lower, digits, k) }
-}
-
-/// Write float to string in scientific notation.
-///
-/// # Safety
-///
-/// Safe as long as `bytes` is large enough to hold the number of digits
-/// and the scientific notation's exponent digits.
-#[allow(clippy::comparison_chain)]
-pub unsafe fn write_float_scientific<const FORMAT: u128>(
-    bytes: &mut [u8],
-    digits: &mut [u8],
-    ndigits: usize,
-    k: i32,
-    options: &Options,
-) -> usize {
-    debug_assert!(ndigits <= 20);
-
-    // Config options
-    let format = NumberFormat::<{ FORMAT }> {};
-    assert!(format.is_valid());
-    let decimal_point = options.decimal_point();
-
-    // Determine the exact number of digits to write.
-    let exact_count = shared::min_exact_digits(ndigits, options, 0);
-
-    // Write our significant digits
-    // SAFETY: safe since both digits and bytes must be >= 1 byte.
-    let mut cursor: usize;
-    unsafe {
-        index_unchecked_mut!(bytes[0] = digits[0]);
-        index_unchecked_mut!(bytes[1]) = decimal_point;
-
-        if !format.no_exponent_without_fraction() && ndigits == 1 && options.trim_floats() {
-            cursor = 1;
-        } else if ndigits == 1 {
-            index_unchecked_mut!(bytes[2]) = b'0';
-            cursor = 3;
-        } else {
-            let src = index_unchecked!(digits[1..ndigits]).as_ptr();
-            let dst = &mut index_unchecked_mut!(bytes[2..ndigits + 1]);
-            copy_nonoverlapping_unchecked!(dst, src, ndigits - 1);
-            cursor = ndigits + 1;
-        }
-    }
-
-    // Adjust the number of digits written, based on the exact number of digits.
-    // Cursor is 1 if we trimmed floats, in which case skip this.
-    debug_assert!(ndigits <= exact_count);
-    if cursor != 1 && ndigits < exact_count {
-        let zeros = exact_count - ndigits;
-        // SAFETY: safe if bytes is large enough to hold the significant digits.
-        unsafe {
-            slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
-        }
-        cursor += zeros;
-    }
-
-    // Now, write our scientific notation.
-    // SAFETY: safe since bytes must be large enough to store all digits.
-    let exp = k + ndigits as i32 - 1;
-    unsafe { shared::write_exponent::<FORMAT>(bytes, &mut cursor, exp, options.exponent()) };
-
-    cursor
-}
-
-/// Write negative float to string without scientific notation.
-/// Has a negative exponent (shift right) and no scientific notation.
-///
-/// # Safety
-///
-/// Safe as long as `bytes` is large enough to hold the number of
-/// significant digits and the leading zeros.
-#[allow(clippy::comparison_chain)]
-pub unsafe fn write_float_negative_exponent<const FORMAT: u128>(
-    bytes: &mut [u8],
-    digits: &mut [u8],
-    ndigits: usize,
-    k: i32,
-    options: &Options,
-) -> usize {
-    debug_assert!(ndigits <= 20);
-    debug_assert!(k + ndigits as i32 - 1 < 0);
-
-    // Config options
-    let decimal_point = options.decimal_point();
-
-    let exp = k + ndigits as i32 - 1;
-    let exp = exp.wrapping_neg() as usize;
-
-    // Write our 0 digits.
-    // SAFETY: safe if `bytes.len() < BUFFER_SIZE - 2`.
-    unsafe {
-        index_unchecked_mut!(bytes[0]) = b'0';
-        index_unchecked_mut!(bytes[1]) = decimal_point;
-        let digits = &mut index_unchecked_mut!(bytes[2..exp + 1]);
-        slice_fill_unchecked!(digits, b'0');
-    }
-    let mut cursor = exp + 1;
-
-    // Write out significant digits.
-    unsafe {
-        let src = digits.as_ptr();
-        let dst = &mut index_unchecked_mut!(bytes[cursor..cursor + ndigits]);
-        copy_nonoverlapping_unchecked!(dst, src, ndigits);
-        cursor += ndigits;
-    }
-
-    // Determine the exact number of digits to write.
-    let exact_count = shared::min_exact_digits(ndigits, options, 0);
-
-    // Adjust the number of digits written, based on the exact number of digits.
-    if ndigits < exact_count {
-        let zeros = exact_count - ndigits;
-        unsafe {
-            slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
-        }
-    } else if ndigits > exact_count {
-        cursor -= ndigits - exact_count;
-    }
-
-    cursor
-}
-
-/// Write positive float to string without scientific notation.
-/// Has a positive exponent (shift left) and no scientific notation.
-///
-/// # Safety
-///
-/// Safe as long as `bytes` is large enough to hold the number of
-/// significant digits and the (optional) trailing zeros.
-pub unsafe fn write_float_positive_exponent<const FORMAT: u128>(
-    bytes: &mut [u8],
-    digits: &mut [u8],
-    mut ndigits: usize,
-    k: i32,
-    options: &Options,
-) -> usize {
-    debug_assert!(ndigits <= 20);
-    debug_assert!(k + ndigits as i32 > 0);
-
-    // Config options
-    let decimal_point = options.decimal_point();
-
-    // Now need to write our significant digits.
-    let exp = (k + ndigits as i32 - 1) as usize;
-    let leading_digits = exp + 1;
-    let mut cursor: usize;
-    if leading_digits >= ndigits {
-        // We have more leading digits than digits we wrote: can write
-        // any additional digits, and then just write the remaining ones.
-        // SAFETY: safe if the buffer is large enough to hold the significant digits.
-        unsafe {
-            let src = digits.as_ptr();
-            let dst = &mut index_unchecked_mut!(bytes[..ndigits]);
-            copy_nonoverlapping_unchecked!(dst, src, ndigits);
-            let digits = &mut index_unchecked_mut!(bytes[ndigits..leading_digits]);
-            slice_fill_unchecked!(digits, b'0');
-        }
-        cursor = leading_digits;
-        unsafe { index_unchecked_mut!(bytes[cursor]) = decimal_point };
-        cursor += 1;
-        unsafe { index_unchecked_mut!(bytes[cursor]) = b'0' };
-        cursor += 1;
-        ndigits += 1;
-    } else {
-        // We have less leading digits than digits we wrote.
-
-        // Write the digits before the decimal point.
-        // SAFETY: safe if the buffer is large enough to hold the significant digits.
-        unsafe {
-            let src = digits.as_ptr();
-            let dst = &mut index_unchecked_mut!(bytes[..leading_digits]);
-            copy_nonoverlapping_unchecked!(dst, src, leading_digits);
-            index_unchecked_mut!(bytes[leading_digits]) = decimal_point;
-        }
-
-        // Write the digits after the decimal point.
-        // SAFETY: safe if the buffer is large enough to hold the significant digits.
-        unsafe {
-            let src = index_unchecked!(digits[leading_digits..ndigits]).as_ptr();
-            let dst = &mut index_unchecked_mut!(bytes[leading_digits + 1..ndigits + 1]);
-            copy_nonoverlapping_unchecked!(dst, src, ndigits - leading_digits);
-        }
-
-        cursor = ndigits + 1;
-    }
-
-    // Determine the exact number of digits to write.
-    // Note: we might have written an extra digit for leading digits.
-    let exact_count = shared::min_exact_digits(ndigits, options, 1);
-
-    // Change the number of digits written, if we need to add more or trim digits.
-    if options.trim_floats() && exact_count == ndigits {
-        // SAFETY: safe, cursor must be at least 3.
-        if unsafe { index_unchecked!(bytes[cursor - 2]) == decimal_point } {
-            // Need to trim floats from trailing zeros, and we have only a decimal
-            cursor -= 2;
-        }
-    } else if exact_count > ndigits {
-        // Check if we need to write more trailing digits.
-        let zeros = exact_count - ndigits;
-        // SAFETY: safe if the buffer is large enough to hold the significant digits.
-        unsafe {
-            let digits = &mut index_unchecked_mut!(bytes[cursor..cursor + zeros]);
-            slice_fill_unchecked!(digits, b'0');
-        }
-        cursor += zeros;
-    }
-
-    cursor
 }
 
 // EXTENDED FLOAT

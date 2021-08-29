@@ -50,7 +50,14 @@ macro_rules! float_module {
             #[cfg(not(feature = "lexical"))]
             println!(
                 "{}",
-                std::io::stdin().lock().lines().next().unwrap().unwrap().trim().parse::<$t>()
+                std::io::stdin()
+                    .lock()
+                    .lines()
+                    .next()
+                    .unwrap()
+                    .unwrap()
+                    .trim()
+                    .parse::<$t>()
                     .unwrap() as usize
             );
         }

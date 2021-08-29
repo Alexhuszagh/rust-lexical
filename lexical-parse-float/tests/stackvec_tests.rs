@@ -45,10 +45,23 @@ fn simple_test() {
     assert_eq!(x[1], 1);
     assert_eq!(rview[0], 1);
     assert_eq!(rview[1], 5);
+    assert_eq!(rview.get(1), Some(&5));
+    assert_eq!(rview.get(2), None);
 
     assert_eq!(VecType::from_u16(u16::MAX).hi16(), (u16::MAX, false));
     assert_eq!(VecType::from_u32(u32::MAX).hi32(), (u32::MAX, false));
     assert_eq!(VecType::from_u64(u64::MAX).hi64(), (u64::MAX, false));
+}
+
+#[test]
+fn bounds_test() {
+    type ShortVec = StackVec<2>;
+    let mut x = ShortVec::from_u32(1);
+    assert_eq!(x.try_push(2), Some(()));
+    assert_eq!(x.try_push(5), None);
+
+    assert_eq!(x.try_resize(0, 0), Some(()));
+    assert_eq!(x.try_resize(3, 0), None);
 }
 
 #[test]
@@ -72,6 +85,7 @@ fn cmp_test() {
     // Simple
     let x = VecType::from_u32(1);
     let y = VecType::from_u32(2);
+    assert_eq!(x.partial_cmp(&x), Some(cmp::Ordering::Equal));
     assert_eq!(x.cmp(&x), cmp::Ordering::Equal);
     assert_eq!(x.cmp(&y), cmp::Ordering::Less);
 

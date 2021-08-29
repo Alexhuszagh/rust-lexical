@@ -935,6 +935,9 @@ impl NumberFormatBuilder {
             self.no_integer_leading_zeros, NO_INTEGER_LEADING_ZEROS ;
             self.no_float_leading_zeros, NO_FLOAT_LEADING_ZEROS ;
             self.required_exponent_notation, REQUIRED_EXPONENT_NOTATION ;
+            self.case_sensitive_exponent, CASE_SENSITIVE_EXPONENT ;
+            self.case_sensitive_base_prefix, CASE_SENSITIVE_BASE_PREFIX ;
+            self.case_sensitive_base_suffix, CASE_SENSITIVE_BASE_SUFFIX ;
             self.integer_internal_digit_separator, INTEGER_INTERNAL_DIGIT_SEPARATOR ;
             self.fraction_internal_digit_separator, FRACTION_INTERNAL_DIGIT_SEPARATOR ;
             self.exponent_internal_digit_separator, EXPONENT_INTERNAL_DIGIT_SEPARATOR ;

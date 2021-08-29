@@ -422,6 +422,21 @@ fn write_float_scientific_test() {
         "1.1313103300013332310302121e2",
     );
 
+    let options = Options::builder()
+        .min_significant_digits(num::NonZeroUsize::new(5))
+        .trim_floats(true)
+        .build()
+        .unwrap();
+    write_float_scientific::<_, BINARY>(0.0f64, &options, "0e0");
+    write_float_scientific::<_, BINARY>(1.0f64, &options, "1e0");
+    write_float_scientific::<_, BINARY>(2.0f64, &options, "1e1");
+    write_float_scientific::<_, BINARY>(0.5f64, &options, "1e-1");
+    write_float_scientific::<_, BASE4>(
+        0.2345678901234567890e2f64,
+        &options,
+        "1.1313103300013332310302121e2",
+    );
+
     // Check trimming floats
     let options = Options::builder().trim_floats(true).build().unwrap();
     write_float_scientific::<_, BINARY>(1f32, &options, "1e0");
@@ -644,6 +659,18 @@ fn write_float_negative_exponent_test() {
     // Check with a minimum number of digits.
     let options =
         Options::builder().min_significant_digits(num::NonZeroUsize::new(5)).build().unwrap();
+    write_float_negative_exponent::<_, BINARY>(0.5f64, &options, "0.10000");
+    write_float_negative_exponent::<_, BASE4>(
+        0.2345678901234567890f64,
+        &options,
+        "0.033000302210022030112133232",
+    );
+
+    let options = Options::builder()
+        .min_significant_digits(num::NonZeroUsize::new(5))
+        .trim_floats(true)
+        .build()
+        .unwrap();
     write_float_negative_exponent::<_, BINARY>(0.5f64, &options, "0.10000");
     write_float_negative_exponent::<_, BASE4>(
         0.2345678901234567890f64,
@@ -897,6 +924,18 @@ fn write_float_positive_exponent_test() {
         "10111.0111010011110000001",
     );
 
+    let options = Options::builder()
+        .min_significant_digits(num::NonZeroUsize::new(5))
+        .trim_floats(true)
+        .build()
+        .unwrap();
+    write_float_positive_exponent::<_, BINARY>(1.0f64, &options, "1");
+    write_float_positive_exponent::<_, BINARY>(
+        0.2345678901234567890e2f32,
+        &options,
+        "10111.0111010011110000001",
+    );
+
     // Check trimming floats works.
     let options = Options::builder().trim_floats(true).build().unwrap();
     write_float_positive_exponent::<_, BINARY>(1.0f64, &options, "1");
@@ -1019,6 +1058,35 @@ fn write_float_test() {
         .unwrap();
     write_float::<_, BINARY>(23.45678901234567890f64, &round, "11000.0");
     write_float::<_, BINARY>(23.45678901234567890f64, &truncate, "10110.0");
+
+    let truncate = Options::builder()
+        .max_significant_digits(num::NonZeroUsize::new(8))
+        .round_mode(RoundMode::Truncate)
+        .build()
+        .unwrap();
+    let round = Options::builder()
+        .max_significant_digits(num::NonZeroUsize::new(8))
+        .round_mode(RoundMode::Round)
+        .build()
+        .unwrap();
+
+    write_float::<_, BINARY>(1.2345678901234567890e0f64, &truncate, "1.001111");
+    write_float::<_, BINARY>(1.2345678901234567890e0f64, &round, "1.001111");
+    write_float::<_, BINARY>(1.2345678901234567890e1f64, &truncate, "1100.0101");
+    write_float::<_, BINARY>(1.2345678901234567890e1f64, &round, "1100.011");
+    write_float::<_, BINARY>(1.2345678901234567890e2f64, &truncate, "1111011.0");
+    write_float::<_, BINARY>(1.2345678901234567890e2f64, &round, "1111011.1");
+    write_float::<_, BINARY>(1.2345678901234567890e3f64, &truncate, "1.001101e1010");
+    write_float::<_, BINARY>(1.2345678901234567890e3f64, &round, "1.001101e1010");
+
+    let truncate = Options::builder()
+        .max_significant_digits(num::NonZeroUsize::new(8))
+        .round_mode(RoundMode::Truncate)
+        .trim_floats(true)
+        .build()
+        .unwrap();
+    write_float::<_, BINARY>(1.2345678901234567890e2f64, &truncate, "1111011");
+    write_float::<_, BINARY>(1.2345678901234567890e2f64, &round, "1111011.1");
 }
 
 quickcheck! {

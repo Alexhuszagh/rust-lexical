@@ -161,6 +161,61 @@ fn write_float_test() {
     write_float::<_, BASE3>(93.82715604938272f64, &options, "10111");
     write_float::<_, BASE3>(375.3086241975309f64, &options, "111220");
 
+    // Check min digits and trim floats.
+    let options = Options::builder()
+        .min_significant_digits(num::NonZeroUsize::new(50))
+        .trim_floats(true)
+        .build()
+        .unwrap();
+    write_float::<_, BASE3>(
+        2.9999999999999f64,
+        &options,
+        "2.2222222222222222222222222220201100000000000000000",
+    );
+    write_float::<_, BASE3>(3.0f64, &options, "10");
+    write_float::<_, BASE3>(
+        8.9999999999999f64,
+        &options,
+        "22.222222222222222222222222222020200000000000000000",
+    );
+    write_float::<_, BASE3>(9.0f64, &options, "100");
+    write_float::<_, BASE3>(
+        0.33333333f64,
+        &options,
+        "0.0222222222222222212010101201000200000000000000000",
+    );
+    write_float::<_, BASE3>(
+        12157665459056928801.0f64,
+        &options,
+        "2.2222222222222222222222222222222220000000000000000e1110",
+    );
+    write_float::<_, BASE3>(
+        8.225263339969959e-20f64,
+        &options,
+        "0.2222222222222222222222222222222202000000000000000e-1111",
+    );
+
+    // Check carry.
+    let options =
+        Options::builder().max_significant_digits(num::NonZeroUsize::new(3)).build().unwrap();
+    write_float::<_, BASE3>(2.9999999999999f64, &options, "10.0");
+    write_float::<_, BASE3>(3.0f64, &options, "10.0");
+    write_float::<_, BASE3>(8.9999999999999f64, &options, "100.0");
+    write_float::<_, BASE3>(9.0f64, &options, "100.0");
+    write_float::<_, BASE3>(12157665459056928801.0f64, &options, "1.0e1111");
+    write_float::<_, BASE3>(8.225263339969959e-20f64, &options, "1.0e-1111");
+
+    // Check carry and trim floats.
+    let options = Options::builder()
+        .max_significant_digits(num::NonZeroUsize::new(3))
+        .trim_floats(true)
+        .build()
+        .unwrap();
+    write_float::<_, BASE3>(3.0f64, &options, "10");
+    write_float::<_, BASE3>(9.0f64, &options, "100");
+    write_float::<_, BASE3>(12157665459056928801.0f64, &options, "1e1111");
+    write_float::<_, BASE3>(8.225263339969959e-20f64, &options, "1e-1111");
+
     // Test the round mode.
     let truncate = Options::builder()
         .max_significant_digits(num::NonZeroUsize::new(2))

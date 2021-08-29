@@ -5,17 +5,9 @@ use lexical_util::digit::digit_to_char_const;
 use lexical_util::format::NumberFormat;
 use lexical_write_integer::write::WriteInteger;
 
-/// Debug assertion to ensure we properly rounded the significant digits.
-#[inline(always)]
-pub fn debug_assert_digits(digit_count: usize, options: &Options) {
-    let max_digits = options.max_significant_digits().map_or(digit_count, |x| x.get());
-    debug_assert!(digit_count <= max_digits);
-}
-
 /// Get the exact number of digits from a minimum bound.
 #[inline(always)]
-pub fn min_exact_digits(digit_count: usize, options: &Options, shift: usize) -> usize {
-    debug_assert_digits(digit_count - shift, options);
+pub fn min_exact_digits(digit_count: usize, options: &Options) -> usize {
     let mut exact_count: usize = digit_count;
     if let Some(min_digits) = options.min_significant_digits() {
         exact_count = min_digits.get().max(exact_count);
@@ -31,7 +23,8 @@ pub fn min_exact_digits(digit_count: usize, options: &Options, shift: usize) -> 
 /// # Safety
 ///
 /// Safe as long as `count <= digits.len()`.
-pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> usize {
+#[cfg_attr(not(feature = "compact"), inline)]
+pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, bool) {
     debug_assert!(count <= digits.len());
 
     let mut index = count;
@@ -43,7 +36,7 @@ pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> usize {
         if digit < max_digit {
             // SAFETY: safe since `index > 0 && index <= digits.len()`.
             unsafe { index_unchecked_mut!(digits[index - 1]) = digit + 1 };
-            return index;
+            return (index, false);
         }
         // Don't have to assign b'0' otherwise, since we're just carrying
         // to the next digit.
@@ -54,13 +47,14 @@ pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> usize {
     // SAFETY: safe since `digits.len() > 1`.
     unsafe { index_unchecked_mut!(digits[0]) = b'1' };
 
-    1
+    (1, true)
 }
 
 /// Round the number of digits based on the maximum digits, for decimal digits.
 /// `digits` is a mutable buffer of the current digits, `digit_count` is the
 /// length of the written digits in `digits`, and `exp` is the decimal exponent
-/// relative to the digits.
+/// relative to the digits. Returns the digit count, resulting exp, and if
+/// the input carried to the next digit.
 ///
 /// # Safety
 ///
@@ -70,26 +64,23 @@ pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> usize {
 pub unsafe fn truncate_and_round_decimal(
     digits: &mut [u8],
     digit_count: usize,
-    exp: i32,
     options: &Options,
-) -> (usize, i32) {
+) -> (usize, bool) {
     debug_assert!(digit_count <= digits.len());
 
     let max_digits = if let Some(digits) = options.max_significant_digits() {
         digits.get()
     } else {
-        return (digit_count, exp);
+        return (digit_count, false);
     };
     if max_digits >= digit_count {
-        return (digit_count, exp);
+        return (digit_count, false);
     }
 
-    // Need to adjust `exp`, since we're shortening the digits in the input.
-    let shift = digit_count - max_digits;
-    let exp = exp + shift as i32;
+    // Check if we're truncating, if so, shorten the digits in the input.
     if options.round_mode() == RoundMode::Truncate {
         // Don't round input, just shorten number of digits emitted.
-        return (max_digits, exp);
+        return (max_digits, false);
     }
 
     // We need to round-nearest, tie-even, so we need to handle
@@ -98,9 +89,9 @@ pub unsafe fn truncate_and_round_decimal(
 
     // Get the last non-truncated digit, and the remaining ones.
     let truncated = unsafe { index_unchecked!(digits[max_digits]) };
-    let digits = if truncated < b'5' {
+    let (digits, carried) = if truncated < b'5' {
         // Just truncate, going to round-down anyway.
-        max_digits
+        (max_digits, false)
     } else if truncated > b'5' {
         // Round-up always.
         // SAFETY: safe if `digit_count <= digits.len()`, because `max_digits < digit_count`.
@@ -118,11 +109,11 @@ pub unsafe fn truncate_and_round_decimal(
             // SAFETY: safe if `digit_count <= digits.len()`, because `max_digits < digit_count`.
             unsafe { round_up(digits, max_digits, 10) }
         } else {
-            max_digits
+            (max_digits, false)
         }
     };
 
-    (digits, exp)
+    (digits, carried)
 }
 
 /// Write the sign for the exponent.

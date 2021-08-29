@@ -1,11 +1,12 @@
 #![cfg(not(feature = "compact"))]
 
+use core::num;
 use lexical_util::constants::BUFFER_SIZE;
 use lexical_util::format::NumberFormatBuilder;
 use lexical_util::num::Float;
 use lexical_write_float::algorithm::DragonboxFloat;
 use lexical_write_float::float::{ExtendedFloat80, RawFloat};
-use lexical_write_float::{algorithm, Options};
+use lexical_write_float::{algorithm, Options, RoundMode};
 use proptest::prelude::*;
 use quickcheck::quickcheck;
 
@@ -151,6 +152,8 @@ fn to_decimal_test() {
     assert_eq!(to_decimal_f64(1.0), (1, 0));
     assert_eq!(to_decimal_f64(1.5), (15, -1));
     assert_eq!(to_decimal_f64(1.23456), (123456, -5));
+    assert_eq!(to_decimal_f64(2.2250738585072014e-308), (22250738585072014, -324));
+    assert_eq!(to_decimal_f64(1.7976931348623157e+308), (17976931348623157, 292));
 }
 
 fn write_digits_f32(buffer: &mut [u8], value: u64, expected: &str) {
@@ -187,70 +190,266 @@ fn write_digits_f64_test() {
     write_digits_f64(&mut buffer, 4294967296, "4294967296");
 }
 
+fn write_float_scientific(mant: u64, exp: i32, options: &Options, expected: &str) {
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let fp = ExtendedFloat80 {
+        mant,
+        exp,
+    };
+    let digit_count = f64::digit_count(fp.mant);
+    let sci_exp = fp.exp + digit_count as i32 - 1;
+    let count = unsafe {
+        algorithm::write_float_scientific::<f64, DECIMAL>(&mut buffer, fp, sci_exp, &options)
+    };
+    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+    assert_eq!(actual, expected);
+}
+
 #[test]
 fn write_float_scientific_test() {
     let options = Options::new();
-    let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let decimal = ExtendedFloat80 {
-        mant: 1,
-        exp: 0,
-    };
-    let count = unsafe {
-        algorithm::write_float_scientific::<f64, DECIMAL>(&mut buffer, decimal, 0, &options)
-    };
-    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
-    assert_eq!(actual, "1.0e0");
+    write_float_scientific(1, 0, &options, "1.0e0");
+    write_float_scientific(1, 3, &options, "1.0e3");
+    write_float_scientific(1, -12, &options, "1.0e-12");
+    write_float_scientific(999999999999999, -15, &options, "9.99999999999999e-1");
+    write_float_scientific(999999999999999, -14, &options, "9.99999999999999e0");
+    write_float_scientific(999999999999999, -16, &options, "9.99999999999999e-2");
+    write_float_scientific(17976931348623157, 292, &options, "1.7976931348623157e308");
+    write_float_scientific(22250738585072014, -324, &options, "2.2250738585072014e-308");
+
+    let options =
+        Options::builder().min_significant_digits(num::NonZeroUsize::new(50)).build().unwrap();
+    write_float_scientific(1, 0, &options, "1.0000000000000000000000000000000000000000000000000e0");
+    write_float_scientific(1, 3, &options, "1.0000000000000000000000000000000000000000000000000e3");
+    write_float_scientific(
+        1,
+        -12,
+        &options,
+        "1.0000000000000000000000000000000000000000000000000e-12",
+    );
+    write_float_scientific(
+        999999999999999,
+        -15,
+        &options,
+        "9.9999999999999900000000000000000000000000000000000e-1",
+    );
+    write_float_scientific(
+        999999999999999,
+        -14,
+        &options,
+        "9.9999999999999900000000000000000000000000000000000e0",
+    );
+    write_float_scientific(
+        999999999999999,
+        -16,
+        &options,
+        "9.9999999999999900000000000000000000000000000000000e-2",
+    );
+    write_float_scientific(
+        17976931348623157,
+        292,
+        &options,
+        "1.7976931348623157000000000000000000000000000000000e308",
+    );
+    write_float_scientific(
+        22250738585072014,
+        -324,
+        &options,
+        "2.2250738585072014000000000000000000000000000000000e-308",
+    );
+
+    let options =
+        Options::builder().max_significant_digits(num::NonZeroUsize::new(5)).build().unwrap();
+    write_float_scientific(1, 0, &options, "1.0e0");
+    write_float_scientific(1, 3, &options, "1.0e3");
+    write_float_scientific(1, -12, &options, "1.0e-12");
+    write_float_scientific(999999999999999, -15, &options, "1.0e0");
+    write_float_scientific(999999999999999, -14, &options, "1.0e1");
+    write_float_scientific(999999999999999, -16, &options, "1.0e-1");
+    write_float_scientific(17976931348623157, 292, &options, "1.7977e308");
+    write_float_scientific(22250738585072014, -324, &options, "2.2251e-308");
 
     let options = Options::builder().trim_floats(true).build().unwrap();
+    write_float_scientific(1, 0, &options, "1e0");
+    write_float_scientific(1, 3, &options, "1e3");
+    write_float_scientific(1, -12, &options, "1e-12");
+    write_float_scientific(999999999999999, -15, &options, "9.99999999999999e-1");
+    write_float_scientific(999999999999999, -14, &options, "9.99999999999999e0");
+    write_float_scientific(999999999999999, -16, &options, "9.99999999999999e-2");
+    write_float_scientific(17976931348623157, 292, &options, "1.7976931348623157e308");
+    write_float_scientific(22250738585072014, -324, &options, "2.2250738585072014e-308");
+}
+
+fn write_float_positive_exponent(mant: u64, exp: i32, options: &Options, expected: &str) {
+    let mut buffer = [b'\x00'; 512];
+    let fp = ExtendedFloat80 {
+        mant,
+        exp,
+    };
+    let digit_count = f64::digit_count(fp.mant);
+    let sci_exp = fp.exp + digit_count as i32 - 1;
     let count = unsafe {
-        algorithm::write_float_scientific::<f64, DECIMAL>(&mut buffer, decimal, 0, &options)
+        algorithm::write_float_positive_exponent::<f64, DECIMAL>(&mut buffer, fp, sci_exp, &options)
     };
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
-    assert_eq!(actual, "1e0");
+    assert_eq!(actual, expected);
 }
 
 #[test]
 fn write_float_positive_exponent_test() {
     let options = Options::new();
-    let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let decimal = ExtendedFloat80 {
-        mant: 1,
-        exp: 0,
-    };
-    let count = unsafe {
-        algorithm::write_float_positive_exponent::<f64, DECIMAL>(&mut buffer, decimal, 0, &options)
-    };
-    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
-    assert_eq!(actual, "1.0");
+    write_float_positive_exponent(1, 0, &options, "1.0");
+    write_float_positive_exponent(1, 3, &options, "1000.0");
+    write_float_positive_exponent(1, 12, &options, "1000000000000.0");
+    write_float_positive_exponent(999999999999999, -14, &options, "9.99999999999999");
+    write_float_positive_exponent(999999999999999, -13, &options, "99.9999999999999");
+    write_float_positive_exponent(999999999999999, -12, &options, "999.999999999999");
+    write_float_positive_exponent(17976931348623157, 292, &options, "179769313486231570000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0");
+
+    let options =
+        Options::builder().min_significant_digits(num::NonZeroUsize::new(50)).build().unwrap();
+    write_float_positive_exponent(
+        1,
+        0,
+        &options,
+        "1.0000000000000000000000000000000000000000000000000",
+    );
+    write_float_positive_exponent(
+        1,
+        3,
+        &options,
+        "1000.0000000000000000000000000000000000000000000000",
+    );
+    write_float_positive_exponent(
+        1,
+        12,
+        &options,
+        "1000000000000.0000000000000000000000000000000000000",
+    );
+    write_float_positive_exponent(
+        999999999999999,
+        -14,
+        &options,
+        "9.9999999999999900000000000000000000000000000000000",
+    );
+    write_float_positive_exponent(
+        999999999999999,
+        -13,
+        &options,
+        "99.999999999999900000000000000000000000000000000000",
+    );
+    write_float_positive_exponent(
+        999999999999999,
+        -12,
+        &options,
+        "999.99999999999900000000000000000000000000000000000",
+    );
+    write_float_positive_exponent(17976931348623157, 292, &options, "179769313486231570000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0");
+
+    let options =
+        Options::builder().max_significant_digits(num::NonZeroUsize::new(5)).build().unwrap();
+    write_float_positive_exponent(1, 0, &options, "1.0");
+    write_float_positive_exponent(1, 3, &options, "1000.0");
+    write_float_positive_exponent(1, 12, &options, "1000000000000.0");
+    write_float_positive_exponent(999999999999999, -14, &options, "10.0");
+    write_float_positive_exponent(999999999999999, -13, &options, "100.0");
+    write_float_positive_exponent(999999999999999, -12, &options, "1000.0");
+    write_float_positive_exponent(17976931348623157, 292, &options, "179770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0");
 
     let options = Options::builder().trim_floats(true).build().unwrap();
+    write_float_positive_exponent(1, 0, &options, "1");
+    write_float_positive_exponent(1, 3, &options, "1000");
+    write_float_positive_exponent(1, 12, &options, "1000000000000");
+    write_float_positive_exponent(999999999999999, -14, &options, "9.99999999999999");
+    write_float_positive_exponent(999999999999999, -13, &options, "99.9999999999999");
+    write_float_positive_exponent(999999999999999, -12, &options, "999.999999999999");
+    write_float_positive_exponent(17976931348623157, 292, &options, "179769313486231570000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+}
+
+fn write_float_negative_exponent(mant: u64, exp: i32, options: &Options, expected: &str) {
+    let mut buffer = [b'\x00'; 512];
+    let fp = ExtendedFloat80 {
+        mant,
+        exp,
+    };
+    let digit_count = f64::digit_count(fp.mant);
+    let sci_exp = fp.exp + digit_count as i32 - 1;
     let count = unsafe {
-        algorithm::write_float_positive_exponent::<f64, DECIMAL>(&mut buffer, decimal, 0, &options)
+        algorithm::write_float_negative_exponent::<f64, DECIMAL>(&mut buffer, fp, sci_exp, &options)
     };
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
-    assert_eq!(actual, "1");
+    assert_eq!(actual, expected);
 }
 
 #[test]
 fn write_float_negative_exponent_test() {
     let options = Options::new();
-    let mut buffer = [b'\x00'; BUFFER_SIZE];
-    let decimal = ExtendedFloat80 {
-        mant: 1,
-        exp: -1,
-    };
-    let count = unsafe {
-        algorithm::write_float_negative_exponent::<f64, DECIMAL>(&mut buffer, decimal, -1, &options)
-    };
-    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
-    assert_eq!(actual, "0.1");
+    write_float_negative_exponent(1, -1, &options, "0.1");
+    write_float_negative_exponent(1, -3, &options, "0.001");
+    write_float_negative_exponent(1, -12, &options, "0.000000000001");
+    write_float_negative_exponent(999999999999999, -17, &options, "0.00999999999999999");
+    write_float_negative_exponent(999999999999999, -16, &options, "0.0999999999999999");
+    write_float_negative_exponent(999999999999999, -15, &options, "0.999999999999999");
+    write_float_negative_exponent(22250738585072014, -324, &options, "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022250738585072014");
+
+    let options =
+        Options::builder().min_significant_digits(num::NonZeroUsize::new(50)).build().unwrap();
+    write_float_negative_exponent(
+        1,
+        -1,
+        &options,
+        "0.10000000000000000000000000000000000000000000000000",
+    );
+    write_float_negative_exponent(
+        1,
+        -3,
+        &options,
+        "0.0010000000000000000000000000000000000000000000000000",
+    );
+    write_float_negative_exponent(
+        1,
+        -12,
+        &options,
+        "0.0000000000010000000000000000000000000000000000000000000000000",
+    );
+    write_float_negative_exponent(
+        999999999999999,
+        -17,
+        &options,
+        "0.0099999999999999900000000000000000000000000000000000",
+    );
+    write_float_negative_exponent(
+        999999999999999,
+        -16,
+        &options,
+        "0.099999999999999900000000000000000000000000000000000",
+    );
+    write_float_negative_exponent(
+        999999999999999,
+        -15,
+        &options,
+        "0.99999999999999900000000000000000000000000000000000",
+    );
+    write_float_negative_exponent(22250738585072014, -324, &options, "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022250738585072014000000000000000000000000000000000");
+
+    let options =
+        Options::builder().max_significant_digits(num::NonZeroUsize::new(5)).build().unwrap();
+    write_float_negative_exponent(1, -1, &options, "0.1");
+    write_float_negative_exponent(1, -3, &options, "0.001");
+    write_float_negative_exponent(1, -12, &options, "0.000000000001");
+    write_float_negative_exponent(999999999999999, -17, &options, "0.01");
+    write_float_negative_exponent(999999999999999, -16, &options, "0.1");
+    write_float_negative_exponent(999999999999999, -15, &options, "1.0");
+    write_float_negative_exponent(22250738585072014, -324, &options, "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022251");
 
     let options = Options::builder().trim_floats(true).build().unwrap();
-    let count = unsafe {
-        algorithm::write_float_negative_exponent::<f64, DECIMAL>(&mut buffer, decimal, -1, &options)
-    };
-    let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
-    assert_eq!(actual, "0.1");
+    write_float_negative_exponent(1, -1, &options, "0.1");
+    write_float_negative_exponent(1, -3, &options, "0.001");
+    write_float_negative_exponent(1, -12, &options, "0.000000000001");
+    write_float_negative_exponent(999999999999999, -17, &options, "0.00999999999999999");
+    write_float_negative_exponent(999999999999999, -16, &options, "0.0999999999999999");
+    write_float_negative_exponent(999999999999999, -15, &options, "0.999999999999999");
+    write_float_negative_exponent(22250738585072014, -324, &options, "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022250738585072014");
 }
 
 // Test data for roundtrips.
@@ -402,6 +601,58 @@ fn f64_test() {
     write_float::<_, DECIMAL>(1.2345678901234567890e1f64, &options, "12.345678901234567");
     write_float::<_, DECIMAL>(1.2345678901234567890e2f64, &options, "123.45678901234568");
     write_float::<_, DECIMAL>(1.2345678901234567890e3f64, &options, "1234.567890123457");
+    write_float::<_, DECIMAL>(1.5f64, &options, "1.5");
+    write_float::<_, DECIMAL>(1.0e-17f64, &options, "1e-17");
+    write_float::<_, DECIMAL>(9.99999999999999e-16f64, &options, "9.99999999999999e-16");
+    write_float::<_, DECIMAL>(9.99999999999999e-15f64, &options, "9.99999999999999e-15");
+    write_float::<_, DECIMAL>(0.00999999999999999f64, &options, "0.00999999999999999");
+    write_float::<_, DECIMAL>(0.0999999999999999f64, &options, "0.0999999999999999");
+    write_float::<_, DECIMAL>(0.999999999999999f64, &options, "0.999999999999999");
+    write_float::<_, DECIMAL>(9.99999999999999f64, &options, "9.99999999999999");
+    write_float::<_, DECIMAL>(99.9999999999999f64, &options, "99.9999999999999");
+    write_float::<_, DECIMAL>(999.999999999999f64, &options, "999.999999999999");
+    write_float::<_, DECIMAL>(1000.0f64, &options, "1000");
+    write_float::<_, DECIMAL>(1.7976931348623157e308f64, &options, "1.7976931348623157e308");
+    write_float::<_, DECIMAL>(2.2250738585072014e-308f64, &options, "2.2250738585072014e-308");
+
+    let options = Options::builder()
+        .min_significant_digits(num::NonZeroUsize::new(50))
+        .trim_floats(true)
+        .build()
+        .unwrap();
+    write_float::<_, DECIMAL>(1.0e17f64, &options, "1e17");
+    write_float::<_, DECIMAL>(1.0e-17f64, &options, "1e-17");
+    write_float::<_, DECIMAL>(1000.0f64, &options, "1000");
+    write_float::<_, DECIMAL>(
+        9.99999999999999e16f64,
+        &options,
+        "9.9999999999999900000000000000000000000000000000000e16",
+    );
+    write_float::<_, DECIMAL>(
+        9.99999999999999e-16f64,
+        &options,
+        "9.9999999999999900000000000000000000000000000000000e-16",
+    );
+
+    let truncate = Options::builder()
+        .max_significant_digits(num::NonZeroUsize::new(4))
+        .round_mode(RoundMode::Truncate)
+        .build()
+        .unwrap();
+    let round = Options::builder()
+        .max_significant_digits(num::NonZeroUsize::new(4))
+        .round_mode(RoundMode::Round)
+        .build()
+        .unwrap();
+
+    write_float::<_, DECIMAL>(1.2345678901234567890e0f64, &truncate, "1.234");
+    write_float::<_, DECIMAL>(1.2345678901234567890e0f64, &round, "1.235");
+    write_float::<_, DECIMAL>(1.2345678901234567890e1f64, &truncate, "12.34");
+    write_float::<_, DECIMAL>(1.2345678901234567890e1f64, &round, "12.35");
+    write_float::<_, DECIMAL>(1.2345678901234567890e2f64, &truncate, "123.4");
+    write_float::<_, DECIMAL>(1.2345678901234567890e2f64, &round, "123.5");
+    write_float::<_, DECIMAL>(1.2345678901234567890e3f64, &truncate, "1234.0");
+    write_float::<_, DECIMAL>(1.2345678901234567890e3f64, &round, "1235.0");
 }
 
 #[test]
@@ -414,6 +665,28 @@ fn f64_roundtrip_test() {
         let roundtrip = actual.parse::<f64>();
         assert_eq!(roundtrip, Ok(float));
     }
+}
+
+#[test]
+fn is_endpoint_test() {
+    assert_eq!(algorithm::is_endpoint(5, 2, 10), true);
+    assert_eq!(algorithm::is_endpoint(5, 6, 10), false);
+}
+
+#[test]
+fn is_right_endpoint_test() {
+    assert_eq!(algorithm::is_right_endpoint::<f64>(1), true);
+    assert_eq!(algorithm::is_right_endpoint::<f64>(2), true);
+    assert_eq!(algorithm::is_right_endpoint::<f64>(3), true);
+    assert_eq!(algorithm::is_right_endpoint::<f64>(4), false);
+}
+
+#[test]
+fn is_left_endpoint_test() {
+    assert_eq!(algorithm::is_left_endpoint::<f64>(1), false);
+    assert_eq!(algorithm::is_left_endpoint::<f64>(2), true);
+    assert_eq!(algorithm::is_left_endpoint::<f64>(3), true);
+    assert_eq!(algorithm::is_left_endpoint::<f64>(4), false);
 }
 
 quickcheck! {

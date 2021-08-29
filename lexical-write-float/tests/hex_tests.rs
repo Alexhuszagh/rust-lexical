@@ -345,6 +345,40 @@ fn write_float_scientific_test() {
         &HEX_OPTIONS,
         "B.13C075317BAC8^-38",
     );
+
+    // Check with a minimum number of digits.
+    let options =
+        Options::builder().min_significant_digits(num::NonZeroUsize::new(5)).build().unwrap();
+    write_float_scientific::<_, BASE16_4_10>(0.0f64, &options, "0.0000e0");
+    write_float_scientific::<_, BASE16_4_10>(1.0f64, &options, "1.0000e0");
+    write_float_scientific::<_, BASE16_4_10>(2.0f64, &options, "2.0000e0");
+    write_float_scientific::<_, BASE16_4_10>(0.5f64, &options, "8.0000e-2");
+    write_float_scientific::<_, BASE16_4_10>(
+        0.2345678901234567890e2f64,
+        &options,
+        "1.774F01FED3264e2",
+    );
+
+    let options = Options::builder()
+        .min_significant_digits(num::NonZeroUsize::new(5))
+        .trim_floats(true)
+        .build()
+        .unwrap();
+    write_float_scientific::<_, BASE16_4_10>(0.0f64, &options, "0e0");
+    write_float_scientific::<_, BASE16_4_10>(1.0f64, &options, "1e0");
+    write_float_scientific::<_, BASE16_4_10>(2.0f64, &options, "2e0");
+    write_float_scientific::<_, BASE16_4_10>(0.5f64, &options, "8e-2");
+    write_float_scientific::<_, BASE16_4_10>(
+        0.2345678901234567890e2f64,
+        &options,
+        "1.774F01FED3264e2",
+    );
+
+    // Check trimming floats
+    let options = Options::builder().trim_floats(true).build().unwrap();
+    write_float_scientific::<_, BASE16_4_10>(1f32, &options, "1e0");
+    write_float_scientific::<_, BASE16_4_10>(1.4e-45f32, &options, "8e-76");
+    write_float_scientific::<_, BASE16_4_10>(1.2345678901234567890f32, &options, "1.3C0CA4e0");
 }
 
 // NOTE: This doesn't handle float rounding or truncation.

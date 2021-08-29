@@ -30,6 +30,30 @@ fn special_bytes_test() {
 }
 
 #[test]
+#[cfg(feature = "power-of-two")]
+fn invalid_format_test() {
+    const FORMAT: u128 = NumberFormatBuilder::from_radix(40);
+    let options = Options::new();
+    let res = f32::from_lexical_with_options::<FORMAT>(b"inf", &options);
+    assert!(res.is_err());
+    assert_eq!(res, Err(Error::InvalidMantissaRadix));
+}
+
+#[test]
+#[cfg(all(feature = "power-of-two", feature = "format"))]
+fn invalid_punctuation_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new()
+        .digit_separator(num::NonZeroU8::new(b'h'))
+        .base_prefix(num::NonZeroU8::new(b'h'))
+        .integer_internal_digit_separator(true)
+        .build();
+    let options = Options::new();
+    let res = f32::from_lexical_with_options::<FORMAT>(b"inf", &options);
+    assert!(res.is_err());
+    assert_eq!(res, Err(Error::InvalidPunctuation));
+}
+
+#[test]
 fn f32_decimal_test() {
     // integer test
     assert_eq!(0.0, f32::from_lexical(b"0").unwrap());
@@ -714,6 +738,19 @@ fn f64_special_test() {
     assert!(f64::from_lexical_with_options::<F3>(b"n_a_n_", &opts).is_err());
     assert!(f64::from_lexical_with_options::<F4>(b"n_a_n_", &opts).is_err());
     assert!(f64::from_lexical_with_options::<F5>(b"n_a_n_", &opts).is_err());
+}
+
+#[test]
+#[cfg(feature = "format")]
+fn case_sensitive_exponent_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new().case_sensitive_exponent(true).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e+300", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0E+300", &options).is_err());
+
+    assert!(f64::from_lexical(b"+3.0e+300").is_ok());
+    assert!(f64::from_lexical(b"+3.0E+300").is_ok());
 }
 
 #[test]

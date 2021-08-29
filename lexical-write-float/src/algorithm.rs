@@ -84,6 +84,7 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     options: &Options,
 ) -> usize {
     // Config options.
+    debug_assert_eq!(count_factors_u64(10, fp.mant), 0);
     let format = NumberFormat::<{ FORMAT }> {};
     assert!(format.is_valid());
     let decimal_point = options.decimal_point();
@@ -95,11 +96,12 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
 
     // Truncate and round the significant digits.
     // SAFETY: safe since `digit_count < digits.len()`.
-    let (digit_count, _) =
-        unsafe { shared::truncate_and_round_decimal(&mut digits, digit_count, fp.exp, options) };
+    let (digit_count, carried) =
+        unsafe { shared::truncate_and_round_decimal(&mut digits, digit_count, options) };
+    let sci_exp = sci_exp + carried as i32;
 
     // Determine the exact number of digits to write.
-    let exact_count = shared::min_exact_digits(digit_count, options, 0);
+    let exact_count = shared::min_exact_digits(digit_count, options);
 
     // Write any trailing digits.
     // SAFETY: safe if the above steps were safe, since `bytes.len() >= 2`.
@@ -110,9 +112,6 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
 
         if !format.no_exponent_without_fraction() && digit_count == 1 && options.trim_floats() {
             cursor = 1;
-        } else if digit_count == 1 {
-            index_unchecked_mut!(bytes[2]) = b'0';
-            cursor = 3;
         } else if digit_count < exact_count {
             // Adjust the number of digits written, by appending zeros.
             cursor = digit_count + 1;
@@ -120,6 +119,10 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
             unsafe {
                 slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
             }
+            cursor += zeros;
+        } else if digit_count == 1 {
+            index_unchecked_mut!(bytes[2]) = b'0';
+            cursor = 3;
         } else {
             cursor = digit_count + 1;
         }
@@ -145,14 +148,12 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     sci_exp: i32,
     options: &Options,
 ) -> usize {
+    debug_assert!(sci_exp < 0);
+    debug_assert_eq!(count_factors_u64(10, fp.mant), 0);
+
     // Config options.
     let decimal_point = options.decimal_point();
-
-    // Get the scientific exponent: it doesn't matter if this is accurate
-    // after digit trimming, since it tells us the number of leading zeros,
-    // which is **all** we need to know.
     let sci_exp = sci_exp.wrapping_neg() as usize;
-    debug_assert!(sci_exp >= 1);
 
     // Write our 0 digits.
     // SAFETY: safe if `bytes.len() < BUFFER_SIZE - 2`.
@@ -176,27 +177,32 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     // SAFETY: safe since `cursor > 0 && cursor < digits.len()`.
     // We use an extra leading digit so that way can detect carries efficiently.
     debug_assert!(cursor > 0);
-    let digits = unsafe { &mut index_unchecked_mut!(bytes[cursor - 1..]) };
-    let (digit_count, _) =
-        unsafe { shared::truncate_and_round_decimal(digits, digit_count + 1, fp.exp, options) };
-    // We need to adjust for the extra 0 at the start
-    let digit_count = digit_count - 1;
-    if digit_count == 1 && unsafe { index_unchecked!(digits[0]) } == b'1' {
-        // Rounded-up, and carried.
-        // We have 1 of two cases here: we carried to index 1, in which case
-        // we have `1.0`.
-        if cursor == 2 {
-            // SAFETY: safe if `bytes.len() >= 3`.
-            unsafe {
-                index_unchecked_mut!(bytes[0]) = b'1';
-                if options.trim_floats() {
-                    cursor = 1;
-                } else {
-                    index_unchecked_mut!(bytes[1]) = decimal_point;
-                    index_unchecked_mut!(bytes[2]) = b'0';
-                    cursor = 3;
-                }
+    let (digit_count, carried) =
+        unsafe { shared::truncate_and_round_decimal(digits, digit_count, options) };
+
+    // Handle any trailing digits.
+    let mut trimmed = false;
+    if carried && cursor == 2 {
+        // Rounded-up, and carried to the first byte, so instead of having
+        // 0.9999, we have 1.0.
+        // SAFETY: safe if `bytes.len() >= 3`.
+        unsafe {
+            index_unchecked_mut!(bytes[0]) = b'1';
+            if options.trim_floats() {
+                cursor = 1;
+                trimmed = true;
+            } else {
+                index_unchecked_mut!(bytes[1]) = decimal_point;
+                index_unchecked_mut!(bytes[2]) = b'0';
+                cursor = 3;
             }
+        }
+    } else if carried {
+        // Carried, so we need to remove 1 zero before our digits.
+        // SAFETY: safe if `bytes.len() > cursor`.
+        unsafe {
+            index_unchecked_mut!(bytes[1]) = decimal_point;
+            index_unchecked_mut!(bytes[cursor - 1] = bytes[cursor]);
         }
     } else {
         // SAFETY: safe if `bytes.len() >= 2`.
@@ -205,11 +211,11 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     }
 
     // Determine the exact number of digits to write.
-    let exact_count = shared::min_exact_digits(digit_count, options, 0);
+    let exact_count = shared::min_exact_digits(digit_count, options);
 
     // Write any trailing digits.
     // Cursor is 1 if we trimmed floats, in which case skip this.
-    if cursor != 1 && digit_count < exact_count {
+    if !trimmed && digit_count < exact_count {
         let zeros = exact_count - digit_count;
         // SAFETY: safe if bytes is large enough to hold the significant digits.
         unsafe {
@@ -235,6 +241,8 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
     options: &Options,
 ) -> usize {
     // Config options.
+    debug_assert!(sci_exp >= 0);
+    debug_assert_eq!(count_factors_u64(10, fp.mant), 0);
     let decimal_point = options.decimal_point();
 
     // Write out our significant digits.
@@ -245,12 +253,13 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
     // trailing zeros, we **don't** know the exact digit count **yet**.
     // SAFETY: safe, if we have enough bytes to write the significant digits.
     let digit_count = unsafe { F::write_digits(bytes, fp.mant) };
-    let (mut digit_count, _) =
-        unsafe { shared::truncate_and_round_decimal(bytes, digit_count, fp.exp, options) };
+    let (mut digit_count, carried) =
+        unsafe { shared::truncate_and_round_decimal(bytes, digit_count, options) };
 
     // Now, check if we have shift digits.
-    let leading_digits = sci_exp as usize + 1;
+    let leading_digits = sci_exp as usize + 1 + carried as usize;
     let mut cursor: usize;
+    let mut trimmed = false;
     if leading_digits >= digit_count {
         // Great: we have more leading digits than we wrote, can write trailing zeros
         // and an optional decimal point.
@@ -260,11 +269,17 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
             slice_fill_unchecked!(digits, b'0');
         }
         cursor = leading_digits;
-        unsafe { index_unchecked_mut!(bytes[cursor]) = decimal_point };
-        cursor += 1;
-        unsafe { index_unchecked_mut!(bytes[cursor]) = b'0' };
-        cursor += 1;
-        digit_count += 1;
+        digit_count = leading_digits;
+        // Only write decimal point if we're not trimming floats.
+        if !options.trim_floats() {
+            unsafe { index_unchecked_mut!(bytes[cursor]) = decimal_point };
+            cursor += 1;
+            unsafe { index_unchecked_mut!(bytes[cursor]) = b'0' };
+            cursor += 1;
+            digit_count += 1;
+        } else {
+            trimmed = true;
+        }
     } else {
         // Need to shift digits internally, and write the decimal point.
         // First, move the digits by 1 after leading digits.
@@ -283,17 +298,12 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
     }
 
     // Determine the exact number of digits to write.
-    // Note: we might have written an extra digit for leading digits.
-    let exact_count = shared::min_exact_digits(digit_count, options, 1);
+    // Don't worry if we carried: we cannot write **MORE** digits if we've
+    // already previously truncated the input.
+    let exact_count = shared::min_exact_digits(digit_count, options);
 
     // Change the number of digits written, if we need to add more or trim digits.
-    if options.trim_floats() && exact_count == digit_count {
-        // SAFETY: safe, cursor must be at least 3.
-        if unsafe { index_unchecked!(bytes[cursor - 2]) == decimal_point } {
-            // Need to trim floats from trailing zeros, and we have only a decimal
-            cursor -= 2;
-        }
-    } else if exact_count > digit_count {
+    if !trimmed && exact_count > digit_count {
         // Check if we need to write more trailing digits.
         let zeros = exact_count - digit_count;
         // SAFETY: safe if the buffer is large enough to hold the significant digits.
@@ -881,8 +891,19 @@ pub const fn pow64(radix: u32, mut exp: u32) -> u64 {
 #[inline(always)]
 pub const fn count_factors(radix: usize, mut n: usize) -> u32 {
     let mut c = 0;
-    while n % radix == 0 {
+    while n != 0 && n % radix == 0 {
         n /= radix;
+        c += 1;
+    }
+    c
+}
+
+/// Counter the number of powers of radix are in `n`.
+#[inline(always)]
+pub const fn count_factors_u64(radix: u32, mut n: u64) -> u32 {
+    let mut c = 0;
+    while n != 0 && n % radix as u64 == 0 {
+        n /= radix as u64;
         c += 1;
     }
     c
@@ -1526,7 +1547,6 @@ impl DragonboxFloat for f64 {
 
             // Is n divisible by 10^8?
             // This branch is extremely unlikely.
-            // I suspect it is impossible to get into this branch.
             if n32 & 0xff == 0 {
                 quo32 = (n32 >> 8).wrapping_mul(table.mod_inv[8]);
                 if quo32 <= table.max_quotients[8] {
