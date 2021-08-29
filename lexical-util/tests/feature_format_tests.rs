@@ -1,5 +1,6 @@
 #![cfg(feature = "format")]
 
+use core::num;
 use lexical_util::format;
 
 #[test]
@@ -23,6 +24,9 @@ fn ignore_test() {
     assert_eq!(fmt.no_integer_leading_zeros(), false);
     assert_eq!(fmt.no_float_leading_zeros(), false);
     assert_eq!(fmt.required_exponent_notation(), false);
+    assert_eq!(fmt.case_sensitive_exponent(), false);
+    assert_eq!(fmt.case_sensitive_base_prefix(), false);
+    assert_eq!(fmt.case_sensitive_base_suffix(), false);
     assert_eq!(fmt.integer_internal_digit_separator(), true);
     assert_eq!(fmt.fraction_internal_digit_separator(), true);
     assert_eq!(fmt.exponent_internal_digit_separator(), true);
@@ -48,39 +52,66 @@ fn test_flag<const FORMAT: u128>() {
     assert_eq!(fmt.digit_separator(), 0);
 }
 
+macro_rules! test_flag {
+    ($field:ident, $flag:ident) => {{
+        test_flag::<{ format::$flag }>();
+
+        if format::$flag & format::CONSECUTIVE_DIGIT_SEPARATOR == 0 {
+            const FORMAT: u128 = format::NumberFormatBuilder::new()
+                .digit_separator(num::NonZeroU8::new(b'_'))
+                .$field(true)
+                .build();
+            let fmt = format::NumberFormat::<FORMAT> {};
+            assert_eq!(fmt.is_valid(), true);
+            assert_eq!(fmt.$field(), true);
+        } else {
+            const FORMAT: u128 = format::NumberFormatBuilder::new()
+                .digit_separator(num::NonZeroU8::new(b'_'))
+                .internal_digit_separator(true)
+                .leading_digit_separator(true)
+                .trailing_digit_separator(true)
+                .$field(true)
+                .build();
+            let fmt = format::NumberFormat::<FORMAT> {};
+            assert_eq!(fmt.is_valid(), true);
+            assert_eq!(fmt.$field(), true);
+        }
+    }};
+}
+
 #[test]
 fn flags_test() {
-    test_flag::<{ format::REQUIRED_INTEGER_DIGITS }>();
-    test_flag::<{ format::REQUIRED_FRACTION_DIGITS }>();
-    test_flag::<{ format::REQUIRED_EXPONENT_DIGITS }>();
-    test_flag::<{ format::REQUIRED_MANTISSA_DIGITS }>();
-    test_flag::<{ format::NO_POSITIVE_MANTISSA_SIGN }>();
-    test_flag::<{ format::REQUIRED_MANTISSA_SIGN }>();
-    test_flag::<{ format::NO_EXPONENT_NOTATION }>();
-    test_flag::<{ format::NO_POSITIVE_EXPONENT_SIGN }>();
-    test_flag::<{ format::REQUIRED_EXPONENT_SIGN }>();
-    test_flag::<{ format::NO_EXPONENT_WITHOUT_FRACTION }>();
-    test_flag::<{ format::NO_SPECIAL }>();
-    test_flag::<{ format::CASE_SENSITIVE_SPECIAL }>();
-    test_flag::<{ format::NO_INTEGER_LEADING_ZEROS }>();
-    test_flag::<{ format::NO_FLOAT_LEADING_ZEROS }>();
-    test_flag::<{ format::REQUIRED_EXPONENT_NOTATION }>();
-    test_flag::<{ format::CASE_SENSITIVE_EXPONENT }>();
-    test_flag::<{ format::CASE_SENSITIVE_BASE_PREFIX }>();
-    test_flag::<{ format::CASE_SENSITIVE_BASE_SUFFIX }>();
-    test_flag::<{ format::INTEGER_INTERNAL_DIGIT_SEPARATOR }>();
-    test_flag::<{ format::FRACTION_INTERNAL_DIGIT_SEPARATOR }>();
-    test_flag::<{ format::EXPONENT_INTERNAL_DIGIT_SEPARATOR }>();
-    test_flag::<{ format::INTEGER_LEADING_DIGIT_SEPARATOR }>();
-    test_flag::<{ format::FRACTION_LEADING_DIGIT_SEPARATOR }>();
-    test_flag::<{ format::EXPONENT_LEADING_DIGIT_SEPARATOR }>();
-    test_flag::<{ format::INTEGER_TRAILING_DIGIT_SEPARATOR }>();
-    test_flag::<{ format::FRACTION_TRAILING_DIGIT_SEPARATOR }>();
-    test_flag::<{ format::EXPONENT_TRAILING_DIGIT_SEPARATOR }>();
-    test_flag::<{ format::INTEGER_CONSECUTIVE_DIGIT_SEPARATOR }>();
-    test_flag::<{ format::FRACTION_CONSECUTIVE_DIGIT_SEPARATOR }>();
-    test_flag::<{ format::EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR }>();
-    test_flag::<{ format::SPECIAL_DIGIT_SEPARATOR }>();
+    test_flag!(required_integer_digits, REQUIRED_INTEGER_DIGITS);
+    test_flag!(required_fraction_digits, REQUIRED_FRACTION_DIGITS);
+    test_flag!(required_exponent_digits, REQUIRED_EXPONENT_DIGITS);
+    test_flag!(required_mantissa_digits, REQUIRED_MANTISSA_DIGITS);
+    test_flag!(no_positive_mantissa_sign, NO_POSITIVE_MANTISSA_SIGN);
+    test_flag!(required_mantissa_sign, REQUIRED_MANTISSA_SIGN);
+    test_flag!(no_exponent_notation, NO_EXPONENT_NOTATION);
+    test_flag!(no_positive_exponent_sign, NO_POSITIVE_EXPONENT_SIGN);
+    test_flag!(required_exponent_sign, REQUIRED_EXPONENT_SIGN);
+    test_flag!(no_exponent_without_fraction, NO_EXPONENT_WITHOUT_FRACTION);
+    test_flag!(no_special, NO_SPECIAL);
+    test_flag!(case_sensitive_special, CASE_SENSITIVE_SPECIAL);
+    test_flag!(no_integer_leading_zeros, NO_INTEGER_LEADING_ZEROS);
+    test_flag!(no_float_leading_zeros, NO_FLOAT_LEADING_ZEROS);
+    test_flag!(required_exponent_notation, REQUIRED_EXPONENT_NOTATION);
+    test_flag!(case_sensitive_exponent, CASE_SENSITIVE_EXPONENT);
+    test_flag!(case_sensitive_base_prefix, CASE_SENSITIVE_BASE_PREFIX);
+    test_flag!(case_sensitive_base_suffix, CASE_SENSITIVE_BASE_SUFFIX);
+    test_flag!(integer_internal_digit_separator, INTEGER_INTERNAL_DIGIT_SEPARATOR);
+    test_flag!(fraction_internal_digit_separator, FRACTION_INTERNAL_DIGIT_SEPARATOR);
+    test_flag!(exponent_internal_digit_separator, EXPONENT_INTERNAL_DIGIT_SEPARATOR);
+    test_flag!(integer_leading_digit_separator, INTEGER_LEADING_DIGIT_SEPARATOR);
+    test_flag!(fraction_leading_digit_separator, FRACTION_LEADING_DIGIT_SEPARATOR);
+    test_flag!(exponent_leading_digit_separator, EXPONENT_LEADING_DIGIT_SEPARATOR);
+    test_flag!(integer_trailing_digit_separator, INTEGER_TRAILING_DIGIT_SEPARATOR);
+    test_flag!(fraction_trailing_digit_separator, FRACTION_TRAILING_DIGIT_SEPARATOR);
+    test_flag!(exponent_trailing_digit_separator, EXPONENT_TRAILING_DIGIT_SEPARATOR);
+    test_flag!(integer_consecutive_digit_separator, INTEGER_CONSECUTIVE_DIGIT_SEPARATOR);
+    test_flag!(fraction_consecutive_digit_separator, FRACTION_CONSECUTIVE_DIGIT_SEPARATOR);
+    test_flag!(exponent_consecutive_digit_separator, EXPONENT_CONSECUTIVE_DIGIT_SEPARATOR);
+    test_flag!(special_digit_separator, SPECIAL_DIGIT_SEPARATOR);
 }
 
 #[test]
