@@ -149,3 +149,6 @@ f128 = [
     "lexical-parse-float/f128",
     "lexical-write-float/f128"
 ]
+
+[package.metadata.docs.rs]
+features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats"]

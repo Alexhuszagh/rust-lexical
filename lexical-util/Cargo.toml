@@ -73,3 +73,6 @@ floats = []
 f16 = []
 # Enable support for 128-bit floats.
 f128 = []
+
+[package.metadata.docs.rs]
+features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats"]

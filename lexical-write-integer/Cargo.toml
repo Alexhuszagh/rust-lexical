@@ -56,3 +56,6 @@ nightly = []
 # Internal only features.
 # Enable the lint checks.
 lint = ["lexical-util/lint"]
+
+[package.metadata.docs.rs]
+features = ["radix", "format"]

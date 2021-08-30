@@ -13,6 +13,6 @@ The entire list of dependencies required is:
   - Miri (`rustup +nightly component add miri`)
   - Valgrind (`cargo +nightly install valgrind`)
   - Tarpaulin (`cargo +nightly install cargo-tarpaulin`)
-  - Fuzz (`cargo +nightly install carg-fuzz`)
+  - Fuzz (`cargo +nightly install cargo-fuzz`)
 - Python3.6+
 - python-magic (`pip install python magic --user`)
