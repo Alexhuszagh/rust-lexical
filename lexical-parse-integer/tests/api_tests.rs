@@ -279,6 +279,74 @@ fn i32_json_no_leading_zero() {
     assert!(i32::from_lexical_with_options::<{ JSON }>(b"-012", &options).is_err());
 }
 
+#[test]
+#[cfg(all(feature = "power-of-two", feature = "format"))]
+fn base_prefix_test() {
+    use core::num;
+
+    const FORMAT: u128 = NumberFormatBuilder::new().base_prefix(num::NonZeroU8::new(b'x')).build();
+    let options = Options::new();
+
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"0x", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"-0x", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"-0x1", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"0x12", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"12", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"-0x12", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"0x-12", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"012", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"-0x012", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"-0x012h", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"-0x012h ", &options).is_err());
+
+    assert!(i32::from_lexical_partial_with_options::<FORMAT>(b"-0x012h", &options).is_ok());
+    assert!(i32::from_lexical_partial_with_options::<FORMAT>(b"-0x012h ", &options).is_ok());
+}
+
+#[test]
+#[cfg(all(feature = "power-of-two", feature = "format"))]
+fn base_suffix_test() {
+    use core::num;
+
+    const FORMAT: u128 = NumberFormatBuilder::new().base_suffix(num::NonZeroU8::new(b'h')).build();
+    let options = Options::new();
+
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"h", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"-h", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"-1h", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"12h", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"12", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"-12h", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"0x-12", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"0x12", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"012h", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"-012", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"-0x012h", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"-0x012h ", &options).is_err());
+
+    assert!(i32::from_lexical_partial_with_options::<FORMAT>(b"-0x012h", &options).is_ok());
+    assert!(i32::from_lexical_partial_with_options::<FORMAT>(b"-0x012h ", &options).is_ok());
+}
+
+#[test]
+#[cfg(all(feature = "power-of-two", feature = "format"))]
+fn base_prefix_and_suffix_test() {
+    use core::num;
+
+    const FORMAT: u128 = NumberFormatBuilder::new()
+        .base_prefix(num::NonZeroU8::new(b'x'))
+        .base_suffix(num::NonZeroU8::new(b'h'))
+        .build();
+    let options = Options::new();
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"+3h", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"+0x3", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"+0x3h", &options).is_ok());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"+0x3h ", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"+0xh", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"+h", &options).is_err());
+    assert!(i32::from_lexical_with_options::<FORMAT>(b"+0x", &options).is_err());
+}
+
 macro_rules! is_error {
     ($result:expr, $check:ident) => {{
         let result = $result;

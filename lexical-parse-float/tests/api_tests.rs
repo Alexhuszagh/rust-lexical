@@ -1108,6 +1108,70 @@ fn f64_json_no_leading_zero() {
     assert!(f64::from_lexical_with_options::<FORMAT>(b"-012.0", &options).is_err());
 }
 
+#[test]
+#[cfg(all(feature = "power-of-two", feature = "format"))]
+fn base_prefix_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new().base_prefix(num::NonZeroU8::new(b'x')).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x ", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x3", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x3.0e+300", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x3.0e+300", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x3.0e+300 ", &options).is_err());
+
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+0x", &options).is_err());
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+0x ", &options).is_err());
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+0x3", &options).is_ok());
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+3.0", &options).is_ok());
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+0x3.0e+300", &options).is_ok());
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+0x3.0e+300", &options).is_ok());
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+0x3.0e+300 ", &options).is_ok());
+}
+
+#[test]
+#[cfg(all(feature = "power-of-two", feature = "format"))]
+fn base_suffix_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new().base_suffix(num::NonZeroU8::new(b'h')).build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"h", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"-h ", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+h ", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3h", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0h", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e+300h", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e+300h", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3.0e+300h ", &options).is_err());
+
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+h", &options).is_err());
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+h ", &options).is_err());
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+3h", &options).is_ok());
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+3.0", &options).is_ok());
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+3.0h", &options).is_ok());
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+3.0e+300h", &options).is_ok());
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+3.0e+300h", &options).is_ok());
+    assert!(f64::from_lexical_partial_with_options::<FORMAT>(b"+3.0e+300h ", &options).is_ok());
+}
+
+#[test]
+#[cfg(all(feature = "power-of-two", feature = "format"))]
+fn base_prefix_and_suffix_test() {
+    const FORMAT: u128 = NumberFormatBuilder::new()
+        .base_prefix(num::NonZeroU8::new(b'x'))
+        .base_suffix(num::NonZeroU8::new(b'h'))
+        .build();
+    let options = Options::new();
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+3h", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x3", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x3h", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+0xh", &options).is_err());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x3.0e+300h", &options).is_ok());
+    assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x3.0e+300h ", &options).is_err());
+}
+
 proptest! {
     #[test]
     #[cfg_attr(miri, ignore)]

@@ -238,20 +238,24 @@ macro_rules! parse_1digit {
                 Some(v) => v,
                 None => {
                     // Need to check for a base suffix, if so, return a valid value.
+                    // We can't have a base suffix at the first value (need at least
+                    // 1 digit).
                     let base_suffix = format.base_suffix();
-                    if cfg!(feature = "format") && base_suffix != 0 {
+                    if cfg!(feature = "format") && base_suffix != 0 && $iter.cursor() - $start_index > 1 {
                         let is_suffix = if format.case_sensitive_base_suffix() {
                             c == base_suffix
                         } else {
                             c.to_ascii_lowercase() == base_suffix.to_ascii_lowercase()
                         };
-                        if is_suffix {
-                            // SAFETY: safe since we `byte.len() >= 1`.
+                        if is_suffix && $iter.is_done() {
+                            // Break out of the loop, we've finished parsing.
+                            break;
+                        } else if is_suffix {
+                            // Haven't finished parsing, so we're going to call
+                            // invalid_digit!. Need to ensure we include the
+                            // base suffix in that.
+                            // SAFETY: safe since the iterator is not empty.
                             unsafe { $iter.step_unchecked() };
-                            if $iter.is_done() {
-                                // Break out of the loop, we've finished parsing.
-                                break;
-                            }
                         }
                     }
                     // Might have handled our base-prefix here.
@@ -342,6 +346,8 @@ macro_rules! algorithm {
                     unsafe { iter.step_unchecked() };
                     if iter.is_done() {
                         return into_error!(Empty, iter.cursor());
+                    } else {
+                        start_index += 1;
                     }
                 }
             }
