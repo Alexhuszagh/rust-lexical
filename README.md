@@ -10,7 +10,7 @@ If you want a minimal, stable, and compile-time friendly version of lexical's fl
 **Table of Contents**
 
 - [Getting Started](#getting-started)
-- [Partial/Complete Parsers](#partial-complete-parsers)
+- [Partial/Complete Parsers](#partialcomplete-parsers)
 - [no_std](#no_std)
 - [Features](#features)
 - [Customization](#customization)
@@ -120,23 +120,23 @@ let d: f64 = lexical_core::parse(b"3a")?;     // Err(Error(_)), failed to parse.
 
 Lexical feature-gates each numeric conversion routine, resulting in faster compile times if certain numeric conversions. These features can be enabled/disabled for both `lexical-core` (which does not require a system allocator) and `lexical`. By default, all conversions are enabled.
 
-- **parse-floats** Enable string-to-float conversions.
-- **parse-integers** Enable string-to-integer conversions.
-- **write-floats** Enable float-to-string conversions.
-- **write-integers** Enable integer-to-string conversions.
+- **parse-floats**: &ensp; Enable string-to-float conversions.
+- **parse-integers**: &ensp; Enable string-to-integer conversions.
+- **write-floats**: &ensp; Enable float-to-string conversions.
+- **write-integers**: &ensp; Enable integer-to-string conversions.
 
 Lexical is highly customizable, and contains numerous other optional features:
 
-- **std** Enable use of the Rust standard library (enabled by default).
-- **power_of_two** Enable conversions to and from non-decimal strings.
+- **std**: &ensp; Enable use of the Rust standard library (enabled by default).
+- **power-of-two**: &ensp; Enable conversions to and from non-decimal strings.
     <blockquote>With power_of_two enabled, the radixes <code>{2, 4, 8, 10, 16, and 32}</code> are valid, otherwise, only 10 is valid. This enables common conversions to/from hexadecimal integers/floats, without requiring large pre-computed tables for other radixes.</blockquote>
-- **radix** Allow conversions to and from non-decimal strings.
+- **radix**: &ensp; Allow conversions to and from non-decimal strings.
     <blockquote>With radix enabled, any radix from 2 to 36 (inclusive) is valid, otherwise, only 10 is valid.</blockquote>
-- **format** Customize acceptable number formats for number parsing and writing.
+- **format**: &ensp; Customize acceptable number formats for number parsing and writing.
     <blockquote>With format enabled, the number format is dictated through bitflags and masks packed into a <code>u128</code>. These dictate the valid syntax of parsed and written numbers, including enabling digit separators, requiring integer or fraction digits, and toggling case-sensitive exponent characters.</blockquote>
-- **compact** Optimize for binary size at the expense of performance. 
+- **compact**: &ensp; Optimize for binary size at the expense of performance. 
     <blockquote>This minimizes the use of pre-computed tables, producing significantly smaller binaries.</blockquote>
-- **safe** Require all array indexing to be bounds-checked. 
+- **safe**: &ensp; Require all array indexing to be bounds-checked. 
     <blockquote>This is effectively a no-op for number parsers, since they use safe indexing except where indexing without bounds checking can be trivially shown to be correct. The number writers frequently use unsafe indexing, since we can easily over-estimate the number of digits in the output due to the fixed-length input.</blockquote>
 
 To ensure the safety when bounds checking is disabled, we extensively fuzz the all numeric conversion routines. See the [Safety](#safety) section below for more information.
@@ -145,7 +145,7 @@ Lexical also places a heavy focus on code bloat: with algorithms both optimized 
 
 # Customization
 
-> **WARNING:** If changing the number of significant digits written, disabling the use of exponent notation, or changing exponent notation thresholds, `BUFFER_SIZE` may be insufficient to hold the resulting output. `WriteOptions::buffer_size` will provide a correct upper bound on the number of bytes written. If a buffer of insufficient length is provided, lexical-core will panic.
+> ⚠ **WARNING:** If changing the number of significant digits written, disabling the use of exponent notation, or changing exponent notation thresholds, `BUFFER_SIZE` may be insufficient to hold the resulting output. `WriteOptions::buffer_size` will provide a correct upper bound on the number of bytes written. If a buffer of insufficient length is provided, lexical-core will panic.
 
 Every language has competing specifications for valid numerical input, meaning a number parser for Rust will incorrectly accept or reject input for different programming or data languages. For example:
 
