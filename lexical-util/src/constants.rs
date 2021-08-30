@@ -10,7 +10,7 @@ pub trait FormattedSize {
     /// exponent break points, or disabling exponent notation is used.
     /// Please read the documentation in [`lexical_write_float`] for more information.
     ///
-    /// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical-experimental/tree/main/lexical-write-float
+    /// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-write-float
     const FORMATTED_SIZE: usize;
     /// Maximum number of bytes required to serialize a number to a decimal string.
     ///
@@ -18,7 +18,7 @@ pub trait FormattedSize {
     /// exponent break points, or disabling exponent notation is used.
     /// Please read the documentation in [`lexical_write_float`] for more information.
     ///
-    /// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical-experimental/tree/main/lexical-write-float
+    /// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-write-float
     const FORMATTED_SIZE_DECIMAL: usize;
 }
 
@@ -78,5 +78,5 @@ formatted_size_impl! { usize 20 128 ; }
 /// exponent break points, or disabling exponent notation is used.
 /// Please read the documentation in [`lexical_write_float`] for more information.
 ///
-/// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical-experimental/tree/main/lexical-write-float
+/// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-write-float
 pub const BUFFER_SIZE: usize = f64::FORMATTED_SIZE;

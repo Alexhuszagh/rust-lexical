@@ -10,86 +10,86 @@ All these binaries sizes are *relative* to the size of an empty Rust binary: tha
 
 **Optimization Level "0"**
 
-![Parse Unstripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_unstripped_opt0.svg)
-![Write Unstripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_unstripped_opt0.svg)
-![Parse Stripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_stripped_opt0.svg)
-![Write Stripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_stripped_opt0.svg)
+![Parse Unstripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_unstripped_opt0.svg)
+![Write Unstripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_unstripped_opt0.svg)
+![Parse Stripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_stripped_opt0.svg)
+![Write Stripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_stripped_opt0.svg)
 
 **Optimization Level "1"**
 
-![Parse Unstripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_unstripped_opt1.svg)
-![Write Unstripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_unstripped_opt1.svg)
-![Parse Stripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_stripped_opt1.svg)
-![Write Stripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_stripped_opt1.svg)
+![Parse Unstripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_unstripped_opt1.svg)
+![Write Unstripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_unstripped_opt1.svg)
+![Parse Stripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_stripped_opt1.svg)
+![Write Stripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_stripped_opt1.svg)
 
 **Optimization Level "2"**
 
-![Parse Unstripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_unstripped_opt2.svg)
-![Write Unstripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_unstripped_opt2.svg)
-![Parse Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_stripped_opt2.svg)
-![Write Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_stripped_opt2.svg)
+![Parse Unstripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_unstripped_opt2.svg)
+![Write Unstripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_unstripped_opt2.svg)
+![Parse Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_stripped_opt2.svg)
+![Write Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_stripped_opt2.svg)
 
 **Optimization Level "3"**
 
-![Parse Unstripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_unstripped_opt3.svg)
-![Write Unstripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_unstripped_opt3.svg)
-![Parse Stripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_stripped_opt3.svg)
-![Write Stripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_stripped_opt3.svg)
+![Parse Unstripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_unstripped_opt3.svg)
+![Write Unstripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_unstripped_opt3.svg)
+![Parse Stripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_stripped_opt3.svg)
+![Write Stripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_stripped_opt3.svg)
 
 **Optimization Level "s"**
 
-![Parse Unstripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_unstripped_opts.svg)
-![Write Unstripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_unstripped_opts.svg)
-![Parse Stripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_stripped_opts.svg)
-![Write Stripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_stripped_opts.svg)
+![Parse Unstripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_unstripped_opts.svg)
+![Write Unstripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_unstripped_opts.svg)
+![Parse Stripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_stripped_opts.svg)
+![Write Stripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_stripped_opts.svg)
 
 **Optimization Level "z"**
 
-![Parse Unstripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_unstripped_optz.svg)
-![Write Unstripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_unstripped_optz.svg)
-![Parse Stripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_stripped_optz.svg)
-![Write Stripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_stripped_optz.svg)
+![Parse Unstripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_unstripped_optz.svg)
+![Write Unstripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_unstripped_optz.svg)
+![Parse Stripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_stripped_optz.svg)
+![Write Stripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_stripped_optz.svg)
 
 # Compact
 
 **Optimization Level "0"**
 
-![Parse Unstripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_unstripped_opt0_features=compact.svg)
-![Write Unstripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_unstripped_opt0_features=compact.svg)
-![Parse Stripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_stripped_opt0_features=compact.svg)
-![Write Stripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_stripped_opt0_features=compact.svg)
+![Parse Unstripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_unstripped_opt0_features=compact.svg)
+![Write Unstripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_unstripped_opt0_features=compact.svg)
+![Parse Stripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_stripped_opt0_features=compact.svg)
+![Write Stripped - Optimization Level "0"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_stripped_opt0_features=compact.svg)
 
 **Optimization Level "1"**
 
-![Parse Unstripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_unstripped_opt1_features=compact.svg)
-![Write Unstripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_unstripped_opt1_features=compact.svg)
-![Parse Stripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_stripped_opt1_features=compact.svg)
-![Write Stripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_stripped_opt1_features=compact.svg)
+![Parse Unstripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_unstripped_opt1_features=compact.svg)
+![Write Unstripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_unstripped_opt1_features=compact.svg)
+![Parse Stripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_stripped_opt1_features=compact.svg)
+![Write Stripped - Optimization Level "1"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_stripped_opt1_features=compact.svg)
 
 **Optimization Level "2"**
 
-![Parse Unstripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_unstripped_opt2_features=compact.svg)
-![Write Unstripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_unstripped_opt2_features=compact.svg)
-![Parse Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_stripped_opt2_features=compact.svg)
-![Write Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_stripped_opt2_features=compact.svg)
+![Parse Unstripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_unstripped_opt2_features=compact.svg)
+![Write Unstripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_unstripped_opt2_features=compact.svg)
+![Parse Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_stripped_opt2_features=compact.svg)
+![Write Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_stripped_opt2_features=compact.svg)
 
 **Optimization Level "3"**
 
-![Parse Unstripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_unstripped_opt3_features=compact.svg)
-![Write Unstripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_unstripped_opt3_features=compact.svg)
-![Parse Stripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_stripped_opt3_features=compact.svg)
-![Write Stripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_stripped_opt3_features=compact.svg)
+![Parse Unstripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_unstripped_opt3_features=compact.svg)
+![Write Unstripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_unstripped_opt3_features=compact.svg)
+![Parse Stripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_stripped_opt3_features=compact.svg)
+![Write Stripped - Optimization Level "3"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_stripped_opt3_features=compact.svg)
 
 **Optimization Level "s"**
 
-![Parse Unstripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_unstripped_opts_features=compact.svg)
-![Write Unstripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_unstripped_opts_features=compact.svg)
-![Parse Stripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_stripped_opts_features=compact.svg)
-![Write Stripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_stripped_opts_features=compact.svg)
+![Parse Unstripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_unstripped_opts_features=compact.svg)
+![Write Unstripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_unstripped_opts_features=compact.svg)
+![Parse Stripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_stripped_opts_features=compact.svg)
+![Write Stripped - Optimization Level "s"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_stripped_opts_features=compact.svg)
 
 **Optimization Level "z"**
 
-![Parse Unstripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_unstripped_optz_features=compact.svg)
-![Write Unstripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_unstripped_optz_features=compact.svg)
-![Parse Stripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/parse_stripped_optz_features=compact.svg)
-![Write Stripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical-experimental/main/assets/write_stripped_optz_features=compact.svg)
+![Parse Unstripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_unstripped_optz_features=compact.svg)
+![Write Unstripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_unstripped_optz_features=compact.svg)
+![Parse Stripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_stripped_optz_features=compact.svg)
+![Write Stripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_stripped_optz_features=compact.svg)

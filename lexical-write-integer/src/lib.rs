@@ -39,8 +39,8 @@
 //!
 //! # Design
 //!
-//! - [Algorithm Approach](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-write-integer/docs/Algorithm.md)
-//! - [Benchmarks](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-write-integer/docs/Benchmarks.md)
+//! - [Algorithm Approach](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-write-integer/docs/Algorithm.md)
+//! - [Benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-write-integer/docs/Benchmarks.md)
 
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.

@@ -59,8 +59,8 @@
 //!
 //! # Design
 //!
-//! - [Algorithm Approach](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-write-float/docs/Algorithm.md)
-//! - [Benchmarks](https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-write-float/docs/Benchmarks.md)
+//! - [Algorithm Approach](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-write-float/docs/Algorithm.md)
+//! - [Benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-write-float/docs/Benchmarks.md)
 
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.

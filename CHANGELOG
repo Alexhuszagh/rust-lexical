@@ -21,6 +21,7 @@ This is a very large release that involved a full re-write from the ground-up.
 - Added the `required_exponent_notation` flag to `NumberFormat`.
 - Added the `power-of-two` feature, for conversion to and from strings with power-of-two bases.
 - Added the `compact` feature, optimized for binary size rather than performance.
+- Added extensive documentation on benchmarks, algorithms used, and internal implementation details.
 
 ### Changed
 - Made the Eisel-Lemire algorithm the default float-parser, leading to substantial improvements in performance.
@@ -36,6 +37,7 @@ This is a very large release that involved a full re-write from the ground-up.
 - Reduced static storage required for extended-float algorithms.
 - Fixed a bug with trailing digit separators in special values.
 - Updated the fuzz handlers and conformance tests.
+- Simplified the big-integer arithmetic, improving performance and simplifying maintenance for float parsing algorithms.
 
 ### Removed
 - Remove the `write_format`, `write_radix`, and similar functions.

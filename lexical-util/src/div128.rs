@@ -38,7 +38,7 @@
 //! See [`etc/div128.py`] for the script to generate the divisors and the
 //! constants, and the division algorithm.
 //!
-//! [`etc/div128.py`]: https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-util/etc/div128.py
+//! [`etc/div128.py`]: https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-util/etc/div128.py
 
 #![cfg(not(feature = "compact"))]
 #![cfg(feature = "write")]

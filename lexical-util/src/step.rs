@@ -8,7 +8,7 @@
 //! See [`etc/step.py`] for the script to generate the divisors and the
 //! constants, and the division algorithm.
 //!
-//! [`etc/step.py`]: https://github.com/Alexhuszagh/rust-lexical-experimental/blob/main/lexical-util/etc/step.py
+//! [`etc/step.py`]: https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-util/etc/step.py
 
 #![cfg(any(feature = "parse", feature = "write"))]
 
