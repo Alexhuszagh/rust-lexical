@@ -229,21 +229,42 @@ macro_rules! parse_1digit {
         $u:ident,
         $invalid_digit:ident
     ) => {{
+        let format = NumberFormat::<{ $format }>;
         let radix = NumberFormat::<{ $format }>::MANTISSA_RADIX;
 
         // Do our slow parsing algorithm: 1 digit at a time.
         while let Some(&c) = $iter.next() {
             let digit = match char_to_digit_const(c, radix) {
                 Some(v) => v,
-                None => return $invalid_digit!(
-                    $value,
-                    $iter,
-                    $format,
-                    $is_negative,
-                    $start_index,
-                    $t,
-                    $u
-                ),
+                None => {
+                    // Need to check for a base suffix, if so, return a valid value.
+                    let base_suffix = format.base_suffix();
+                    if cfg!(feature = "format") && base_suffix != 0 {
+                        let is_suffix = if format.case_sensitive_base_suffix() {
+                            c == base_suffix
+                        } else {
+                            c.to_ascii_lowercase() == base_suffix.to_ascii_lowercase()
+                        };
+                        if is_suffix {
+                            // SAFETY: safe since we `byte.len() >= 1`.
+                            unsafe { $iter.step_unchecked() };
+                            if $iter.is_done() {
+                                // Break out of the loop, we've finished parsing.
+                                break;
+                            }
+                        }
+                    }
+                    // Might have handled our base-prefix here.
+                    return $invalid_digit!(
+                        $value,
+                        $iter,
+                        $format,
+                        $is_negative,
+                        $start_index,
+                        $t,
+                        $u
+                    );
+                },
             };
             $value = $value.wrapping_mul(as_cast(radix));
             $value = $value.wrapping_add(as_cast(digit));
@@ -299,13 +320,38 @@ macro_rules! algorithm {
         if iter.is_done() {
             return into_error!(Empty, shift);
         }
-        // If we have a format that doesn't accept leading zeros,
-        // check if the next value is invalid. It's invalid if the
-        // first is 0, and the next is not a valid digit.
+        // Skip any leading zeros.
         let mut start_index = iter.cursor();
         let zeros = iter.skip_zeros();
         start_index += zeros;
-        if format.no_integer_leading_zeros() && zeros != 0 {
+
+        // Now, check to see if we have a valid base prefix.
+        let base_prefix = format.base_prefix();
+        let mut is_prefix = false;
+        if cfg!(feature = "format") && base_prefix != 0 && zeros == 1 {
+            // Check to see if the next character is the base prefix.
+            // We must have a format like `0x`, `0d`, `0o`. Note:
+            if let Some(&c) = iter.peek() {
+                is_prefix = if format.case_sensitive_base_prefix() {
+                    c == base_prefix
+                } else {
+                    c.to_ascii_lowercase() == base_prefix.to_ascii_lowercase()
+                };
+                if is_prefix {
+                    // SAFETY: safe since we `byte.len() >= 1`.
+                    unsafe { iter.step_unchecked() };
+                    if iter.is_done() {
+                        return into_error!(Empty, iter.cursor());
+                    }
+                }
+            }
+        }
+
+        // If we have a format that doesn't accept leading zeros,
+        // check if the next value is invalid. It's invalid if the
+        // first is 0, and the next is not a valid digit.
+        if cfg!(feature = "format") && !is_prefix && format.no_integer_leading_zeros() && zeros != 0 {
+            // Cannot have a base prefix and no leading zeros.
             let index = iter.cursor() - zeros;
             if zeros > 1 {
                 return into_error!(InvalidLeadingZeros, index);

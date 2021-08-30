@@ -384,6 +384,31 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 
     // INTEGER
 
+    // Check to see if we have a valid base prefix.
+    let base_prefix = format.base_prefix();
+    let mut is_prefix = false;
+    let mut iter = byte.integer_iter();
+    if cfg!(feature = "format") && base_prefix != 0 && iter.peek() == Some(&b'0') {
+        // SAFETY: safe since we `byte.len() >= 1`.
+        unsafe { iter.step_unchecked() };
+        // Check to see if the next character is the base prefix.
+        // We must have a format like `0x`, `0d`, `0o`. Note:
+        if let Some(&c) = iter.peek() {
+            is_prefix = if format.case_sensitive_base_prefix() {
+                c == base_prefix
+            } else {
+                c.to_ascii_lowercase() == base_prefix.to_ascii_lowercase()
+            };
+            if is_prefix {
+                // SAFETY: safe since we `byte.len() >= 1`.
+                unsafe { iter.step_unchecked() };
+                if iter.is_done() {
+                    return Err(Error::Empty(iter.cursor()));
+                }
+            }
+        }
+    }
+
     // Parse our integral digits.
     let mut mantissa = 0_u64;
     let start = byte.clone();
@@ -402,7 +427,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let integer_digits = unsafe { start.as_slice().get_unchecked(..n_digits) };
 
     // Check if integer leading zeros are disabled.
-    if cfg!(feature = "format") && format.no_float_leading_zeros() {
+    if cfg!(feature = "format") && !is_prefix && format.no_float_leading_zeros() {
         if integer_digits.len() > 1 && integer_digits.get(0) == Some(&b'0') {
             return Err(Error::InvalidLeadingZeros(start.cursor()));
         }
@@ -498,6 +523,22 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         exponent += explicit_exponent;
     } else if cfg!(feature = "format") && format.required_exponent_notation() {
         return Err(Error::MissingExponent(byte.cursor()));
+    }
+
+    // Check to see if we have a valid base suffix.
+    // We've already trimmed any leading digit separators here, so we can be safe
+    // that the first character **is not** a digit separator.
+    let base_suffix = format.base_suffix();
+    if cfg!(feature = "format") && base_suffix != 0 {
+        let is_suffix = if cfg!(feature = "format") && format.case_sensitive_base_suffix() {
+            byte.first_is(base_suffix)
+        } else {
+            byte.case_insensitive_first_is(base_suffix)
+        };
+        if is_suffix {
+            // SAFETY: safe since we `byte.len() >= 1`.
+            unsafe { byte.step_unchecked() };
+        }
     }
 
     // CHECK OVERFLOW
