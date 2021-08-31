@@ -25,7 +25,9 @@ fn ignore_test() {
     assert_eq!(fmt.no_float_leading_zeros(), false);
     assert_eq!(fmt.required_exponent_notation(), false);
     assert_eq!(fmt.case_sensitive_exponent(), false);
+    #[cfg(feature = "power-of-two")]
     assert_eq!(fmt.case_sensitive_base_prefix(), false);
+    #[cfg(feature = "power-of-two")]
     assert_eq!(fmt.case_sensitive_base_suffix(), false);
     assert_eq!(fmt.integer_internal_digit_separator(), true);
     assert_eq!(fmt.fraction_internal_digit_separator(), true);
@@ -97,7 +99,9 @@ fn flags_test() {
     test_flag!(no_float_leading_zeros, NO_FLOAT_LEADING_ZEROS);
     test_flag!(required_exponent_notation, REQUIRED_EXPONENT_NOTATION);
     test_flag!(case_sensitive_exponent, CASE_SENSITIVE_EXPONENT);
+    #[cfg(feature = "power-of-two")]
     test_flag!(case_sensitive_base_prefix, CASE_SENSITIVE_BASE_PREFIX);
+    #[cfg(feature = "power-of-two")]
     test_flag!(case_sensitive_base_suffix, CASE_SENSITIVE_BASE_SUFFIX);
     test_flag!(integer_internal_digit_separator, INTEGER_INTERNAL_DIGIT_SEPARATOR);
     test_flag!(fraction_internal_digit_separator, FRACTION_INTERNAL_DIGIT_SEPARATOR);

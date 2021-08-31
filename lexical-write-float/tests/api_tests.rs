@@ -5,6 +5,15 @@ use proptest::prelude::*;
 use quickcheck::quickcheck;
 
 #[test]
+fn error_tests() {
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let f = 2762159900.0f32;
+    let actual = unsafe { std::str::from_utf8_unchecked(f.to_lexical(&mut buffer)) };
+    let roundtrip = actual.parse::<f32>();
+    assert_eq!(Ok(f), roundtrip);
+}
+
+#[test]
 fn fuzz_tests() {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
     let f = 355259285044678240000000000000000000000000000000000000000000f64;
