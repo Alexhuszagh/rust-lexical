@@ -18,8 +18,16 @@ use lexical_util::num::{AsCast, UnsignedInteger};
 use lexical_util::step::u64_step;
 
 /// Write 2 digits to buffer.
+///
+/// # Safety
+///
+/// Safe if `bytes` is large enough to hold 2 characters, `index >= 2`,
+/// and if the 2 * remainder, or `r`, has it so `r + 1 < table.len()`.
 macro_rules! write_digits {
     ($bytes:ident, $index:ident, $table:ident, $r:ident) => {{
+        debug_assert!($index >= 2);
+        debug_assert!($bytes.len() >= 2);
+        debug_assert!($r + 1 < $table.len());
         $index -= 1;
         unsafe { index_unchecked_mut!($bytes[$index] = $table[$r + 1]) };
         $index -= 1;
@@ -28,8 +36,15 @@ macro_rules! write_digits {
 }
 
 /// Write 1 digit to buffer.
+///
+/// # Safety
+///
+/// Safe if `bytes` is large enough to hold 1 characters, and `r < 36`.
 macro_rules! write_digit {
     ($bytes:ident, $index:ident, $r:ident) => {{
+        debug_assert!($index >= 1);
+        debug_assert!($bytes.len() >= 1);
+        debug_assert!($r < 36);
         $index -= 1;
         unsafe { index_unchecked_mut!($bytes[$index]) = digit_to_char($r) };
     }};
@@ -128,7 +143,7 @@ unsafe fn write_step_digits<T: UnsignedInteger>(
     // SAFETY: safe as long as the call to write_step_digits is safe.
     let index = unsafe { write_digits(value, radix, table, buffer, index) };
     // Write the remaining 0 bytes.
-    // SAFETY: this is always safe as long as end is less than the buffer length.
+    // SAFETY: this is always safe since `end < index && index < start`.
     let end = start.saturating_sub(step);
     unsafe {
         let zeros = &mut index_unchecked_mut!(buffer[end..index]);
@@ -183,6 +198,7 @@ pub unsafe fn algorithm_u128<const FORMAT: u128, const MASK: u128, const SHIFT: 
     // do this as a native integer.
     let radix = radix_from_flags(FORMAT, MASK, SHIFT);
     if value <= u64::MAX as _ {
+        // SAFETY: safe if the buffer is large enough to hold the significant digits.
         return unsafe { algorithm(value as u64, radix, table, buffer) };
     }
 

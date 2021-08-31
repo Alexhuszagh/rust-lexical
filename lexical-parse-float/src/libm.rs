@@ -22,8 +22,12 @@
 #![cfg(all(not(feature = "std"), feature = "compact"))]
 #![doc(hidden)]
 
+/// # Safety
+///
+/// Safe if `index < array.len()`.
 macro_rules! i {
     ($array:ident, $index:expr) => {
+        // SAFETY: safe if `index < array.len()`.
         unsafe { index_unchecked!($array[$index]) }
     };
 }
@@ -390,6 +394,10 @@ pub fn sqrtf(x: f32) -> f32 {
         use core::arch::x86::*;
         #[cfg(target_arch = "x86_64")]
         use core::arch::x86_64::*;
+        // SAFETY: safe, since `_mm_set_ss` takes a 32-bit float, and returns
+        // a 128-bit type with the lowest 32-bits as `x`, `_mm_sqrt_ss` calculates
+        // the sqrt of this 128-bit vector, and `_mm_cvtss_f32` extracts the lower
+        // 32-bits as a 32-bit float.
         unsafe {
             let m = _mm_set_ss(x);
             let m_sqrt = _mm_sqrt_ss(m);
@@ -1065,6 +1073,10 @@ pub fn sqrtd(x: f64) -> f64 {
         use core::arch::x86::*;
         #[cfg(target_arch = "x86_64")]
         use core::arch::x86_64::*;
+        // SAFETY: safe, since `_mm_set_sd` takes a 64-bit float, and returns
+        // a 128-bit type with the lowest 64-bits as `x`, `_mm_sqrt_ss` calculates
+        // the sqrt of this 128-bit vector, and `_mm_cvtss_f64` extracts the lower
+        // 64-bits as a 64-bit float.
         unsafe {
             let m = _mm_set_sd(x);
             let m_sqrt = _mm_sqrt_pd(m);

@@ -550,7 +550,7 @@ impl Options {
     ///
     /// # Safety
     ///
-    /// Never unsafe, but may produce invalid output if the exponent
+    /// Always safe, but may produce invalid output if the exponent
     /// is not a valid ASCII character.
     #[inline(always)]
     pub unsafe fn set_exponent(&mut self, exponent: u8) {
@@ -561,7 +561,7 @@ impl Options {
     ///
     /// # Safety
     ///
-    /// Never unsafe, but may produce invalid output if the decimal point
+    /// Always safe, but may produce invalid output if the decimal point
     /// is not a valid ASCII character.
     #[inline(always)]
     pub unsafe fn set_decimal_point(&mut self, decimal_point: u8) {
@@ -573,7 +573,9 @@ impl Options {
     ///
     /// # Safety
     ///
-    /// Unsafe if `nan_string.len() > MAX_SPECIAL_STRING_LENGTH`.
+    /// Unsafe if `nan_string.len() > MAX_SPECIAL_STRING_LENGTH`. This might
+    /// cause a special string larger than the buffer length to be written,
+    /// causing a buffer overflow, potentially a severe security vulnerability.
     #[inline(always)]
     pub unsafe fn set_nan_string(&mut self, nan_string: Option<&'static [u8]>) {
         self.nan_string = nan_string
@@ -584,7 +586,9 @@ impl Options {
     ///
     /// # Safety
     ///
-    /// Unsafe if `nan_string.len() > MAX_SPECIAL_STRING_LENGTH`.
+    /// Unsafe if `nan_string.len() > MAX_SPECIAL_STRING_LENGTH`. This might
+    /// cause a special string larger than the buffer length to be written,
+    /// causing a buffer overflow, potentially a severe security vulnerability.
     #[inline(always)]
     pub unsafe fn set_inf_string(&mut self, inf_string: Option<&'static [u8]>) {
         self.inf_string = inf_string
@@ -733,6 +737,10 @@ const fn unwrap_str(option: Option<&'static [u8]>) -> &'static [u8] {
 // ---------------------
 
 // Only constants that differ from the standard version are included.
+// SAFETY: all of these are safe, since they are checked to be valid
+// after calling `build_unchecked`. Furthermore, even though the methods
+// are marked as `unsafe`, none of the produced options can cause memory
+// safety issues since the special strings are smaller than the buffer size.
 
 /// Standard number format.
 #[rustfmt::skip]

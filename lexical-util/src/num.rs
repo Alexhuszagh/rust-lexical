@@ -857,9 +857,13 @@ impl Float for f64 {
 // libm can be found online [here](https://github.com/rust-lang/libm),
 // and is similarly licensed under an Apache2.0/MIT license
 
+/// # Safety
+///
+/// Safe as long as `e` is properly initialized.
 #[cfg(all(not(feature = "std"), feature = "floats"))]
 macro_rules! volatile {
     ($e:expr) => {
+        // SAFETY: safe as long as `$e` has been properly initialized.
         unsafe {
             core::ptr::read_volatile(&$e);
         }

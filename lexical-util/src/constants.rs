@@ -7,17 +7,26 @@ pub trait FormattedSize {
     /// Maximum number of bytes required to serialize a number to string.
     ///
     /// Note that this value may be insufficient if digit precision control,
-    /// exponent break points, or disabling exponent notation is used.
-    /// Please read the documentation in [`lexical_write_float`] for more information.
+    /// exponent break points, or disabling exponent notation is used. If
+    /// you are changing the number significant digits written, the exponent
+    /// break points, or disabling scientific notation, you will need a larger
+    /// buffer than the one provided. An upper limit on the buffer size can
+    /// then be determined using [`WriteOptions::buffer_size`].
     ///
+    /// [`WriteOptions::buffer_size`]: lexical_util::options::WriteOptions::buffer_size
     /// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-write-float
     const FORMATTED_SIZE: usize;
+
     /// Maximum number of bytes required to serialize a number to a decimal string.
     ///
     /// Note that this value may be insufficient if digit precision control,
-    /// exponent break points, or disabling exponent notation is used.
-    /// Please read the documentation in [`lexical_write_float`] for more information.
+    /// exponent break points, or disabling exponent notation is used. If
+    /// you are changing the number significant digits written, the exponent
+    /// break points, or disabling scientific notation, you will need a larger
+    /// buffer than the one provided. An upper limit on the buffer size can
+    /// then be determined using [`WriteOptions::buffer_size`].
     ///
+    /// [`WriteOptions::buffer_size`]: lexical_util::options::WriteOptions::buffer_size
     /// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-write-float
     const FORMATTED_SIZE_DECIMAL: usize;
 }
@@ -31,7 +40,7 @@ macro_rules! formatted_size_impl {
             const FORMATTED_SIZE: usize = $decimal;
             const FORMATTED_SIZE_DECIMAL: usize = $decimal;
         }
-    )*)
+    )*);
 }
 
 formatted_size_impl! {

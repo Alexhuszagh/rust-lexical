@@ -68,7 +68,8 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
         unsafe { index_unchecked_mut!(digits[0]) = b'0' };
         (1, 0, false)
     } else {
-        // SAFETY: safe since `digits.len()` is large enough to always hold enough digits.
+        // SAFETY: safe since `digits.len()` is large enough to always hold
+        // the generated digits, which is always <= 18.
         unsafe {
             let (start, k) = grisu(float, &mut digits);
             let (end, carried) = shared::truncate_and_round_decimal(&mut digits, start, options);
@@ -114,12 +115,13 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     let exact_count = shared::min_exact_digits(digit_count, options);
 
     // Write our significant digits
-    // SAFETY: safe since both digits and bytes must be >= 1 byte.
     let mut cursor: usize;
     unsafe {
+        // SAFETY: safe since `digits.len() == 32 && bytes.len() >= 2`.
         index_unchecked_mut!(bytes[0] = digits[0]);
         index_unchecked_mut!(bytes[1]) = decimal_point;
 
+        // SAFETY: safe if bytes is large enough to store all significant digits.
         if !format.no_exponent_without_fraction() && digit_count == 1 && options.trim_floats() {
             // No more digits and need to trim floats.
             cursor = 1;
@@ -132,9 +134,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
 
             // Adjust the number of digits written, by appending zeros.
             let zeros = exact_count - digit_count;
-            unsafe {
-                slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
-            }
+            slice_fill_unchecked!(index_unchecked_mut!(bytes[cursor..cursor + zeros]), b'0');
             cursor += zeros;
         } else if digit_count == 1 {
             // Write a single, trailing 0.
@@ -150,7 +150,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     }
 
     // Now, write our scientific notation.
-    // SAFETY: safe since bytes must be large enough to store all digits.
+    // SAFETY: safe since bytes must be large enough to store the largest float.
     unsafe { shared::write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent()) };
 
     cursor
@@ -191,6 +191,7 @@ pub unsafe fn write_float_negative_exponent<const FORMAT: u128>(
     let mut cursor = sci_exp + 1;
 
     // Write out significant digits.
+    // SAFETY: safe if the buffer is large enough to hold all the significant digits.
     unsafe {
         let src = digits.as_ptr();
         let dst = &mut index_unchecked_mut!(bytes[cursor..cursor + digit_count]);
@@ -254,6 +255,7 @@ pub unsafe fn write_float_positive_exponent<const FORMAT: u128>(
         digit_count = leading_digits;
         // Only write decimal point if we're not trimming floats.
         if !options.trim_floats() {
+            // SAFETY: safe if `cursor + 2 <= bytes.len()`.
             unsafe { index_unchecked_mut!(bytes[cursor]) = decimal_point };
             cursor += 1;
             unsafe { index_unchecked_mut!(bytes[cursor]) = b'0' };
@@ -310,7 +312,7 @@ pub unsafe fn write_float_positive_exponent<const FORMAT: u128>(
 ///
 /// # Safety
 ///
-/// Safe as long as `digit_count <= digits.len() && digit_count >= 0`.
+/// Safe as long as `digit_count <= digits.len() && digit_count > 0`.
 unsafe fn round_digit(
     digits: &mut [u8],
     digit_count: usize,
@@ -325,6 +327,7 @@ unsafe fn round_digit(
         && delta - rem >= kappa
         && (rem + kappa < mant || mant - rem > rem + kappa - mant)
     {
+        // SAFETY: safe if `digit_count > 0`.
         unsafe { index_unchecked_mut!(digits[digit_count - 1]) -= 1 };
         rem += kappa;
     }
@@ -401,6 +404,7 @@ pub unsafe fn generate_digits(
         part2 &= one.mant - 1;
         if part2 < delta {
             k += kappa;
+            // SAFETY: safe since `idx < digits.len() && idx > 0`.
             unsafe { round_digit(digits, idx, delta, part2, one.mant, wmant * ten) };
             return (idx, k);
         }
@@ -544,7 +548,7 @@ pub fn mul(x: &ExtendedFloat80, y: &ExtendedFloat80) -> ExtendedFloat80 {
 ///
 /// # Safety
 ///
-/// Safe as long as exp is within the range [-1075, ]
+/// Safe as long as exp is within the range [-1140, 1089]
 unsafe fn cached_grisu_power(exp: i32) -> (ExtendedFloat80, i32) {
     // Make the bounds 64 + 1 larger, since those will still work,
     // but the exp can be biased within that range.
@@ -612,6 +616,7 @@ pub trait GrisuFloat: Float {
     /// Safe as long as `index < GRISU_POWERS_OF_TEN.len()`.
     #[inline(always)]
     unsafe fn grisu_power(index: usize) -> u64 {
+        debug_assert!(index <= GRISU_POWERS_OF_TEN.len());
         unsafe { index_unchecked!(GRISU_POWERS_OF_TEN[index]) }
     }
 }

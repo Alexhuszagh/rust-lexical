@@ -13,12 +13,9 @@ use core::ptr;
 pub unsafe fn copy_to_dst<Bytes: AsRef<[u8]>>(dst: &mut [u8], src: Bytes) -> usize {
     debug_assert!(dst.len() >= src.as_ref().len());
 
+    // SAFETY: safe, if `dst.len() <= src.len()`.
     let src = src.as_ref();
-    let dst = unsafe { dst.get_unchecked_mut(..src.len()) };
-
-    unsafe {
-        ptr::copy_nonoverlapping(src.as_ptr(), dst.as_mut_ptr(), src.len());
-    }
+    unsafe { ptr::copy_nonoverlapping(src.as_ptr(), dst.as_mut_ptr(), src.len()) };
 
     src.len()
 }
@@ -48,6 +45,7 @@ pub fn rtrim_char_slice(slc: &[u8], c: u8) -> (&[u8], usize) {
     // in the standard library.
     debug_assert!(count <= slc.len());
     debug_assert!(index <= slc.len());
+    // SAFETY: safe since `count <= slc.len()` and therefore `index <= slc.len()`.
     let slc = unsafe { slc.get_unchecked(..index) };
     (slc, count)
 }

@@ -260,6 +260,7 @@ macro_rules! decimal_impl {
             unsafe fn decimal(self, buffer: &mut [u8]) -> usize {
                 // SAFETY: safe as long as buffer is large enough to hold the max value.
                 let count = self.digit_count();
+                debug_assert!(count <= buffer.len());
                 unsafe {
                     algorithm(self, 10, &DIGIT_TO_BASE10_SQUARED, &mut buffer[..count]);
                     count
@@ -276,6 +277,7 @@ impl Decimal for u128 {
     unsafe fn decimal(self, buffer: &mut [u8]) -> usize {
         // SAFETY: safe as long as buffer is large enough to hold the max value.
         let count = self.digit_count();
+        debug_assert!(count <= buffer.len());
         unsafe {
             algorithm_u128::<{ STANDARD }, { RADIX }, { RADIX_SHIFT }>(
                 self,

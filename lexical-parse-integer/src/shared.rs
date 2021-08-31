@@ -254,7 +254,8 @@ macro_rules! parse_1digit {
                             // Haven't finished parsing, so we're going to call
                             // invalid_digit!. Need to ensure we include the
                             // base suffix in that.
-                            // SAFETY: safe since the iterator is not empty.
+                            // SAFETY: safe since the iterator is not empty, as checked
+                            // in `$iter.is_done()` above.
                             unsafe { $iter.step_unchecked() };
                         }
                     }

@@ -118,8 +118,9 @@ pub trait WriteFloat: RawFloat {
                 count + unsafe { write_float_decimal::<_, FORMAT>(float, bytes, options) }
             }
         } else if self.is_nan() {
-            // SAFETY: safe is the buffer is longer than the NaN string.
-            // The NaN string must be <= 50 characters.
+            // SAFETY: safe if the buffer is longer than the NaN string.
+            // The NaN string must be <= 50 characters, so safe as long as
+            // the options were build using safe methods.
             if let Some(nan_string) = options.nan_string() {
                 let length = nan_string.len();
                 unsafe {
@@ -134,8 +135,9 @@ pub trait WriteFloat: RawFloat {
             }
         } else {
             // is_inf
-            // SAFETY: safe is the buffer is longer than the Inf string.
-            // The Inf string must be <= 50 characters.
+            // SAFETY: safe if the buffer is longer than the Inf string.
+            // The Inf string must be <= 50 characters, so safe as long as
+            // the options were build using safe methods.
             if let Some(inf_string) = options.inf_string() {
                 let length = inf_string.len();
                 unsafe {

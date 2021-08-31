@@ -58,7 +58,8 @@ impl<'a, const __: u128> Bytes<'a, __> {
     /// Get a slice to the current start of the iterator.
     #[inline]
     pub fn as_slice(&self) -> &'a [u8] {
-        // SAFETY: safe since index must be in range
+        debug_assert!(self.index <= self.length());
+        // SAFETY: safe since index must be in range.
         unsafe { self.slc.get_unchecked(self.index..) }
     }
 
@@ -109,6 +110,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     #[allow(clippy::assertions_on_constants)]
     pub unsafe fn read_unchecked<V>(&self) -> V {
         debug_assert!(Self::IS_CONTIGUOUS);
+        debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
 
         let slc = self.as_slice();
         // SAFETY: safe as long as the slice has at least count elements.
@@ -242,6 +244,8 @@ impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
 
     #[inline]
     unsafe fn set_cursor(&mut self, index: usize) {
+        debug_assert!(index <= self.length());
+        // SAFETY: safe if `index <= self.length()`.
         unsafe { self.byte.set_cursor(index) };
     }
 
@@ -262,7 +266,7 @@ impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
 
     #[inline]
     unsafe fn peek_unchecked(&mut self) -> <Self as Iterator>::Item {
-        // SAFETY: safe as long as the slice is not empty.
+        // SAFETY: safe if `self.cursor() < self.length()`.
         unsafe { self.byte.slc.get_unchecked(self.byte.index) }
     }
 
@@ -278,6 +282,7 @@ impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
 
     #[inline]
     unsafe fn read_unchecked<V>(&self) -> V {
+        debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
         // SAFETY: safe as long as the slice has at least count elements.
         unsafe { self.byte.read_unchecked() }
     }
@@ -289,12 +294,14 @@ impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
 
     #[inline]
     unsafe fn step_by_unchecked(&mut self, count: usize) {
+        debug_assert!(self.as_slice().len() >= count);
         // SAFETY: safe as long as `slc.len() >= count`.
         unsafe { self.byte.step_by_unchecked(count) }
     }
 
     #[inline]
     unsafe fn step_unchecked(&mut self) {
+        debug_assert!(!self.as_slice().is_empty());
         // SAFETY: safe as long as `slc.len() >= 1`.
         unsafe { self.byte.step_unchecked() }
     }

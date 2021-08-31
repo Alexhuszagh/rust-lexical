@@ -31,7 +31,8 @@ pub unsafe fn write_digits<T: UnsignedInteger>(
     debug_assert_radix(radix);
 
     // SAFETY: All of these are safe for the buffer writes as long as
-    // the buffer is large enough to hold `T::MAX` digits in radix `N`.
+    // the buffer is large enough to hold `T::FORMATTED_SIZE` digits,
+    // and `radix <= 36`.
 
     // Decode all but the last digit.
     let radix = T::from_u32(radix);

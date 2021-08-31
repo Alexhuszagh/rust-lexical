@@ -102,6 +102,7 @@ where
             // Write digit.
             let digit = fraction.as_u32();
             let c = digit_to_char_const(digit, format.radix());
+            // SAFETY: safe since we never write more than 1100 digits.
             unsafe { index_unchecked_mut!(buffer[fraction_cursor]) = c };
             fraction_cursor += 1;
             // Calculate remainder.
@@ -118,10 +119,12 @@ where
                             break;
                         }
                         // Reconstruct digit.
+                        // SAFETY: safe since we never write more than 1100 digits.
                         let c = unsafe { index_unchecked!(buffer[fraction_cursor]) };
                         if let Some(digit) = char_to_digit_const(c, format.radix()) {
                             let idx = digit + 1;
                             let c = digit_to_char_const(idx, format.radix());
+                            // SAFETY: safe since we never write more than 1100 digits.
                             unsafe { index_unchecked_mut!(buffer[fraction_cursor]) = c };
                             fraction_cursor += 1;
                             break;
@@ -143,6 +146,8 @@ where
     while (integer / base).exponent() > 0 {
         integer /= base;
         integer_cursor -= 1;
+        // SAFETY: safe since we never write more than 1100 digits, because
+        // the largest integer at `f64::MAX` is ~1024 digits.
         unsafe { index_unchecked_mut!(buffer[integer_cursor]) = b'0' };
     }
 
@@ -151,6 +156,8 @@ where
         integer_cursor -= 1;
         let idx = remainder.as_u32();
         let c = digit_to_char_const(idx, format.radix());
+        // SAFETY: safe since we never write more than 1100 digits, because
+        // the largest integer at `f64::MAX` is ~1024 digits.
         unsafe { index_unchecked_mut!(buffer[integer_cursor]) = c };
         integer = (integer - remainder) / base;
 
@@ -229,7 +236,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     // Get as many digits as possible, up to `MAX_DIGIT_LENGTH+1`
     // since we are ignoring the digit for the first digit,
     // or the number of written digits.
-    // SAFETY: safe since the buffer must be larger than `M::FORMATTED_SIZE`.
+    // SAFETY: safe if the buffer is large enough to hold the significant digits.
     let digit_count = unsafe {
         index_unchecked_mut!(bytes[0] = digits[0]);
         index_unchecked_mut!(bytes[1]) = decimal_point;
@@ -252,6 +259,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
         cursor -= 1;
     } else if exact_count < 2 {
         // Need to have at least 1 digit, the trailing `.0`.
+        // SAFETY: safe as long as `cursor < bytes.len()`.
         unsafe { index_unchecked_mut!(bytes[cursor]) = b'0' };
         cursor += 1;
     } else if exact_count > digit_count {
@@ -268,7 +276,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     }
 
     // Now, write our scientific notation.
-    // SAFETY: safe since bytes must be large enough to store all digits.
+    // SAFETY: safe if bytes is large enough to store the largest float with the smallest radix.
     unsafe { shared::write_exponent::<FORMAT>(bytes, &mut cursor, sci_exp, options.exponent()) };
 
     cursor
@@ -311,6 +319,8 @@ pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
     if carried {
         debug_assert!(digit_count == 1);
         start -= 1;
+        // SAFETY: safe since `start > 0`, since we have 1100 bytes for integer digits,
+        // but the theoretical max is ~1024.
         unsafe { index_unchecked_mut!(buffer[start]) = b'1' };
     }
 
@@ -344,6 +354,7 @@ pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
     // Write the fraction component.
     // We've only consumed `integer_count` digits, since this input
     // may have been truncated.
+    // SAFETY: safe since `integer_count < digits.len()` since `digit_count < digits.len()`.
     let digits = unsafe { &index_unchecked!(digits[integer_count..]) };
     let fraction_count = digit_count.saturating_sub(integer_length);
     if fraction_count > 0 {
@@ -361,6 +372,7 @@ pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
         // Remove the decimal point, went too far.
         cursor -= 1;
     } else {
+        // SAFETY: safe if `cursor < bytes.len()`.
         unsafe { index_unchecked_mut!(bytes[cursor]) = b'0' };
         cursor += 1;
         digit_count += 1;
@@ -442,6 +454,7 @@ pub unsafe fn truncate_and_round(
 
     // Need to add the number of leading zeros to the digits digit_count.
     let max_digits = {
+        // SAFETY: safe since `start + max_digits < end`.
         let digits = unsafe { &mut index_unchecked_mut!(buffer[start..start + max_digits]) };
         max_digits + ltrim_char_count(digits, b'0')
     };

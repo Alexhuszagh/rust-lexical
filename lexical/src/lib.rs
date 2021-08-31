@@ -310,10 +310,15 @@ pub use lexical_core::{ToLexical, ToLexicalWithOptions};
 // HELPERS
 
 /// Get a vector as a slice, including the capacity.
+///
+/// # Safety
+///
+/// Safe if we never read uninitialized memory.
 #[inline]
 #[cfg(feature = "write")]
 unsafe fn vector_as_slice<T>(buf: &mut Vec<T>) -> &mut [T] {
     let first = buf.as_mut_ptr();
+    // SAFETY: safe if as long as uninitialized memory is never read.
     unsafe { core::slice::from_raw_parts_mut(first, buf.capacity()) }
 }
 

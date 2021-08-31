@@ -84,6 +84,25 @@ scripts/check.sh
 SKIP_MIRI=1 scripts/test.sh
 ```
 
+# Safety
+
+In order to ensure memory safety even when using unsafe features, we have the following requirements.
+
+- All code with local unsafety must be marked as an `unsafe` function.
+- All unsafe macros must have a `# Safety` section in the documentation.
+- All unsafe functions must have a `# Safety` section in the documentation.
+- All code using `unsafe` functionality must have a `// SAFETY:` section on the previous line, and must contain an `unsafe` block, even in `unsafe` functions.
+- If multiple lines have similar safety guarantees, a `// SAFETY:` section can be used for a block or small segment of code.
+
+In order to very that the safety guarantees are met, any changes to `unsafe` code must be fuzzed, the test suite must be run with Valgrind, and must pass the following commands:
+
+```bash
+# Ensure `unsafe` blocks are used within `unsafe` functions.
+RUSTFLAGS="--deny warnings" cargo +nightly build --features=lint
+# Ensure clippy checks pass for `# Safety` sections.
+cargo +nightly clippy --all-features -- --deny warnings
+```
+
 # Algorithm Changes
 
 Each workspace has a "docs" directory containing detailed descriptions of algorithms and benchmarks. If you make any substantial changes to an algorithm, you should both update the algorithm description and the provided benchmarks.

@@ -89,7 +89,8 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     assert!(format.is_valid());
     let decimal_point = options.decimal_point();
 
-    // Write the significant digits
+    // Write the significant digits. Write at index 1, so we can shift 1
+    // for the decimal point without intermediate buffers.
     // SAFETY: safe, if we have enough bytes to write the significant digits.
     let mut digits = unsafe { &mut index_unchecked_mut!(bytes[1..]) };
     let digit_count = unsafe { F::write_digits(digits, fp.mant) };
@@ -104,7 +105,7 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     let exact_count = shared::min_exact_digits(digit_count, options);
 
     // Write any trailing digits.
-    // SAFETY: safe if the above steps were safe, since `bytes.len() >= 2`.
+    // SAFETY: safe, if we have enough bytes to write the significant digits.
     let mut cursor: usize;
     unsafe {
         index_unchecked_mut!(bytes[0] = bytes[1]);
@@ -156,9 +157,9 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     let sci_exp = sci_exp.wrapping_neg() as usize;
 
     // Write our 0 digits.
-    // SAFETY: safe if `bytes.len() < BUFFER_SIZE - 2`.
     let mut cursor = sci_exp + 1;
     debug_assert!(cursor >= 2);
+    // SAFETY: safe, if we have enough bytes to write the significant digits.
     unsafe {
         // We write 0 digits even over the decimal point, since we might have
         // to round carry over. This is rare, but it could happen, and would
@@ -175,7 +176,6 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
 
     // Truncate and round the significant digits.
     // SAFETY: safe since `cursor > 0 && cursor < digits.len()`.
-    // We use an extra leading digit so that way can detect carries efficiently.
     debug_assert!(cursor > 0);
     let (digit_count, carried) =
         unsafe { shared::truncate_and_round_decimal(digits, digit_count, options) };
@@ -199,7 +199,7 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
         }
     } else if carried {
         // Carried, so we need to remove 1 zero before our digits.
-        // SAFETY: safe if `bytes.len() > cursor`.
+        // SAFETY: safe if `bytes.len() > cursor && cursor > 0`.
         unsafe {
             index_unchecked_mut!(bytes[1]) = decimal_point;
             index_unchecked_mut!(bytes[cursor - 1] = bytes[cursor]);
@@ -272,6 +272,7 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
         digit_count = leading_digits;
         // Only write decimal point if we're not trimming floats.
         if !options.trim_floats() {
+            // SAFETY: safe if `bytes.len() >= cursor + 2`.
             unsafe { index_unchecked_mut!(bytes[cursor]) = decimal_point };
             cursor += 1;
             unsafe { index_unchecked_mut!(bytes[cursor]) = b'0' };
@@ -714,9 +715,10 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
 ///
 /// # Safety
 ///
-/// Safe if `bytes.len() >= 10`.
+/// Safe if `bytes.len() >= 10`, since `u32::MAX` is at most 10 digits.
 #[inline]
-pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32, _digit_count: usize) -> usize {
+pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
+    debug_assert!(bytes.len() >= 10);
     unsafe { mantissa.write_mantissa::<u32, { STANDARD }>(bytes) }
 }
 
@@ -727,10 +729,11 @@ pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32, _digit_count: us
 ///
 /// # Safety
 ///
-/// Safe if `bytes.len() >= 20`.
+/// Safe if `bytes.len() >= 20`, since `u64::MAX` is at most 20 digits.
 #[inline]
 #[allow(clippy::branches_sharing_code)]
-pub unsafe fn write_digits_u64(bytes: &mut [u8], mantissa: u64, mut _digit_count: usize) -> usize {
+pub unsafe fn write_digits_u64(bytes: &mut [u8], mantissa: u64) -> usize {
+    debug_assert!(bytes.len() >= 20);
     unsafe { mantissa.write_mantissa::<u64, { STANDARD }>(bytes) }
 }
 
@@ -1163,11 +1166,16 @@ macro_rules! div10 {
 }
 
 /// Determine if `x` is divisible by `5^exp`.
+///
+/// # Safety
+///
+/// Safe if `exp < table.mod_inv.len()`
 macro_rules! divisible_by_pow5 {
     (Self:: $table:ident, $x:ident, $exp:ident) => {{
-        // SAFETY: safe if `exp < TABLE_SIZE`.
+        debug_assert!(($exp as usize) < Self::$table.mod_inv.len());
         let mod_inv = &Self::$table.mod_inv;
         let max_quotients = &Self::$table.max_quotients;
+        // SAFETY: safe if `exp < TABLE_SIZE`.
         let mod_inv = unsafe { index_unchecked!(mod_inv[$exp as usize]) };
         let max_quo = unsafe { index_unchecked!(max_quotients[$exp as usize]) };
         $x.wrapping_mul(mod_inv) <= max_quo
@@ -1378,8 +1386,8 @@ impl DragonboxFloat for f32 {
     #[inline(always)]
     unsafe fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize {
         debug_assert!(mantissa <= u32::MAX as u64);
-        let digit_count = Self::digit_count(mantissa);
-        unsafe { write_digits_u32(bytes, mantissa as u32, digit_count) }
+        // SAFETY: safe is `bytes.len() >= 10`.
+        unsafe { write_digits_u32(bytes, mantissa as u32) }
     }
 
     #[inline(always)]
@@ -1451,6 +1459,7 @@ impl DragonboxFloat for f32 {
     unsafe fn divisible_by_pow5(x: u64, exp: u32) -> bool {
         debug_assert!(x <= u32::MAX as u64);
         let x = x as u32;
+        // SAFETY: safe if `exp < Self::DIV5_TABLE.mod_inv.len()`.
         divisible_by_pow5!(Self::DIV5_TABLE, x, exp)
     }
 
@@ -1480,8 +1489,8 @@ impl DragonboxFloat for f64 {
 
     #[inline(always)]
     unsafe fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize {
-        let digit_count = Self::digit_count(mantissa);
-        unsafe { write_digits_u64(bytes, mantissa, digit_count) }
+        // SAFETY: safe if `bytes.len() >= 20`.
+        unsafe { write_digits_u64(bytes, mantissa) }
     }
 
     #[inline(always)]
@@ -1584,6 +1593,7 @@ impl DragonboxFloat for f64 {
 
     #[inline(always)]
     unsafe fn divisible_by_pow5(x: u64, exp: u32) -> bool {
+        // SAFETY: safe if `exp < Self::DIV5_TABLE.mod_inv.len()`.
         divisible_by_pow5!(Self::DIV5_TABLE, x, exp)
     }
 

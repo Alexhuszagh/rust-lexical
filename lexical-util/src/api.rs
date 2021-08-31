@@ -197,8 +197,15 @@ macro_rules! to_lexical_with_options {
             /// # Safety
             ///
             /// Safe as long as the caller has provided a buffer of at least
-            /// [`FORMATTED_SIZE`] elements. If a smaller buffer is
-            /// provided, a buffer overflow is very likely.
+            /// [`FORMATTED_SIZE`] elements. If a smaller buffer is provided, a
+            /// buffer overflow is very likely. If you are changing the
+            /// number significant digits written, the exponent break points,
+            /// or disabling scientific notation, you will need a larger buffer
+            /// than the one provided. An upper limit on the buffer size can
+            /// then be determined using [`WriteOptions::buffer_size`]. If you
+            /// are not using `min_significant_digits`, 1200 bytes is always
+            /// enough to hold the the output for a custom radix, and `400`
+            /// is always enough for decimal strings.
             ///
             /// # Panics
             ///
@@ -222,6 +229,7 @@ macro_rules! to_lexical_with_options {
             /// Panics as well if the NaN or Inf string provided to the writer
             /// is disabled, but the value provided is NaN or Inf, respectively.
             ///
+            /// [`WriteOptions::buffer_size`]: lexical_util::options::WriteOptions::buffer_size
             /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
             unsafe fn to_lexical_with_options_unchecked<'a, const FORMAT: u128>(
                 self,
@@ -244,7 +252,14 @@ macro_rules! to_lexical_with_options {
             /// Panics if the buffer is not of sufficient size. The caller
             /// must provide a slice of sufficient size. In order to ensure
             /// the function will not panic, ensure the buffer has at least
-            /// [`FORMATTED_SIZE`] elements.
+            /// [`FORMATTED_SIZE`] elements. If you are changing the
+            /// number significant digits written, the exponent break points,
+            /// or disabling scientific notation, you will need a larger buffer
+            /// than the one provided. An upper limit on the buffer size can
+            /// then be determined using [`WriteOptions::buffer_size`]. If you
+            /// are not using `min_significant_digits`, 1200 bytes is always
+            /// enough to hold the the output for a custom radix, and `400`
+            /// is always enough for decimal strings.
             ///
             /// **Floats Only**
             ///
@@ -266,6 +281,7 @@ macro_rules! to_lexical_with_options {
             /// Panics as well if the NaN or Inf string provided to the writer
             /// is disabled, but the value provided is NaN or Inf, respectively.
             ///
+            /// [`WriteOptions::buffer_size`]: lexical_util::options::WriteOptions::buffer_size
             /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
             fn to_lexical_with_options<'a, const FORMAT: u128>(
                 self,

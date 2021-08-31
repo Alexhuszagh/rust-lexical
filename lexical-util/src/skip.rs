@@ -432,6 +432,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     #[inline]
     pub unsafe fn read_unchecked<V>(&self) -> V {
         debug_assert!(Self::IS_CONTIGUOUS);
+        debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
 
         let slc = self.as_slice();
         // SAFETY: safe as long as the slice has at least count elements.
@@ -540,6 +541,8 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// Safe as long as the iterator is not empty.
     #[inline]
     pub unsafe fn step_unchecked(&mut self) {
+        debug_assert!(!self.as_slice().is_empty());
+        // SAFETY: safe if `self.index < self.length()`.
         unsafe { self.step_by_unchecked(1) };
     }
 }
@@ -643,6 +646,8 @@ macro_rules! skip_iterator_byteiter_base {
 
         #[inline]
         unsafe fn set_cursor(&mut self, index: usize) {
+            debug_assert!(index <= self.length());
+            // SAFETY: safe if `index <= self.length()`.
             unsafe { self.byte.set_cursor(index) };
         }
 
@@ -673,6 +678,7 @@ macro_rules! skip_iterator_byteiter_base {
 
         #[inline]
         unsafe fn read_unchecked<V>(&self) -> V {
+            debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
             // SAFETY: safe as long as the slice has at least count elements.
             unsafe { self.byte.read_unchecked() }
         }
@@ -684,6 +690,7 @@ macro_rules! skip_iterator_byteiter_base {
 
         #[inline]
         unsafe fn step_by_unchecked(&mut self, count: usize) {
+            debug_assert!(self.as_slice().len() >= count);
             // SAFETY: safe as long as `slc.len() >= count`.
             unsafe { self.byte.step_by_unchecked(count) }
         }

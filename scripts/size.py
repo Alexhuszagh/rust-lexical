@@ -275,7 +275,7 @@ def print_report(args, data, level):
         **bar_kwds,
         data=stripped,
         path=f'{assets}/{file}.svg',
-        title=f'Parse Unstripped Data -- Optimization Level "{level}"',
+        title=f'Parse Stripped Data -- Optimization Level "{level}"',
     )
 
     stripped = {
@@ -287,7 +287,7 @@ def print_report(args, data, level):
         **bar_kwds,
         data=stripped,
         path=f'{assets}/{file}.svg',
-        title=f'Write Unstripped Data -- Optimization Level "{level}"',
+        title=f'Write Stripped Data -- Optimization Level "{level}"',
     )
 
     # Print the report

@@ -32,7 +32,7 @@ macro_rules! float_to_lexical {
                 -> &'a mut [u8]
             {
                 debug_assert!(check_buffer::<Self, { STANDARD }>(bytes.len(), &DEFAULT_OPTIONS));
-                // SAFETY: safe if `check_buffer::<STANDARD>(bytes.len(), &options)`.
+                // SAFETY: safe if `check_buffer::<STANDARD>(bytes.len(), &options)` passes.
                 unsafe {
                     let len = self.write_float::<{ STANDARD }>(bytes, &DEFAULT_OPTIONS);
                     &mut index_unchecked_mut!(bytes[..len])
@@ -44,7 +44,7 @@ macro_rules! float_to_lexical {
                 -> &'a mut [u8]
             {
                 assert!(check_buffer::<Self, { STANDARD }>(bytes.len(), &DEFAULT_OPTIONS));
-                // SAFETY: safe since `check_buffer::<STANDARD>(bytes.len(), &options)`.
+                // SAFETY: safe since `check_buffer::<STANDARD>(bytes.len(), &options)` passes.
                 unsafe { self.to_lexical_unchecked(bytes) }
             }
         }
@@ -62,7 +62,7 @@ macro_rules! float_to_lexical {
                 assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
                 assert!(is_valid_options_punctuation(FORMAT, options.exponent(), options.decimal_point()));
                 debug_assert!(check_buffer::<Self, { FORMAT }>(bytes.len(), &options));
-                // SAFETY: safe if `check_buffer::<FORMAT>(bytes.len(), &options)`.
+                // SAFETY: safe if `check_buffer::<FORMAT>(bytes.len(), &options)` passes.
                 unsafe {
                     let len = self.write_float::<{ FORMAT }>(bytes, &options);
                     &mut index_unchecked_mut!(bytes[..len])
@@ -77,7 +77,7 @@ macro_rules! float_to_lexical {
             ) -> &'a mut [u8]
             {
                 assert!(check_buffer::<Self, { FORMAT }>(bytes.len(), &options));
-                // SAFETY: safe since `check_buffer::<FORMAT>(bytes.len(), &options)`.
+                // SAFETY: safe since `check_buffer::<FORMAT>(bytes.len(), &options)` passes.
                 unsafe { self.to_lexical_with_options_unchecked::<FORMAT>(bytes, options) }
             }
         }

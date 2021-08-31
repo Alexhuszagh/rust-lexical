@@ -22,6 +22,7 @@ use static_assertions::const_assert;
 #[inline]
 #[cfg(not(feature = "power-of-two"))]
 pub unsafe fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
+    // NOTE: don't check the radix since we also use it for half radix, or 5.
     match radix {
         5 => unsafe { get_small_int_power5(exponent) },
         10 => unsafe { get_small_int_power10(exponent) },

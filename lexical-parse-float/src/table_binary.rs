@@ -24,6 +24,7 @@ use lexical_util::num::Float;
 #[inline]
 #[cfg(not(feature = "radix"))]
 pub unsafe fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
+    // NOTE: don't check the radix since we also use it for half radix, or 5.
     unsafe {
         match radix {
             2 => get_small_int_power2(exponent),

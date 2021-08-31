@@ -58,7 +58,7 @@ pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, b
 ///
 /// # Safety
 ///
-/// Safe as long as `ndigits <= digits.len()`.
+/// Safe as long as `digit_count <= digits.len()`.
 #[allow(clippy::comparison_chain)]
 #[cfg_attr(not(feature = "compact"), inline)]
 pub unsafe fn truncate_and_round_decimal(
@@ -88,6 +88,7 @@ pub unsafe fn truncate_and_round_decimal(
     // halfway at all, we need to round up, even if 1 digit.
 
     // Get the last non-truncated digit, and the remaining ones.
+    // SAFETY: safe if `digit_count < digits.len()`, since `max_digits < digit_count`.
     let truncated = unsafe { index_unchecked!(digits[max_digits]) };
     let (digits, carried) = if truncated < b'5' {
         // Just truncate, going to round-down anyway.
@@ -120,7 +121,8 @@ pub unsafe fn truncate_and_round_decimal(
 ///
 /// # Safety
 ///
-/// Safe if `bytes.len() > cursor + 1`.
+/// Safe if `bytes` is large enough to hold the largest possible exponent,
+/// with an extra byte for the sign.
 #[cfg_attr(not(feature = "compact"), inline)]
 pub unsafe fn write_exponent_sign<const FORMAT: u128>(
     bytes: &mut [u8],

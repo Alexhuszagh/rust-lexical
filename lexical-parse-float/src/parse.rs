@@ -389,7 +389,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let mut is_prefix = false;
     let mut iter = byte.integer_iter();
     if cfg!(feature = "format") && base_prefix != 0 && iter.peek() == Some(&b'0') {
-        // SAFETY: safe since we `byte.len() >= 1`.
+        // SAFETY: safe since `byte.len() >= 1`.
         unsafe { iter.step_unchecked() };
         // Check to see if the next character is the base prefix.
         // We must have a format like `0x`, `0d`, `0o`. Note:
@@ -400,7 +400,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
                 c.to_ascii_lowercase() == base_prefix.to_ascii_lowercase()
             };
             if is_prefix {
-                // SAFETY: safe since we `byte.len() >= 1`.
+                // SAFETY: safe since `byte.len() >= 1`.
                 unsafe { iter.step_unchecked() };
                 if iter.is_done() {
                     return Err(Error::Empty(iter.cursor()));
@@ -424,6 +424,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 
     // Store the integer digits for slow-path algorithms.
     // SAFETY: safe, since `n_digits <= start.as_slice().len()`.
+    debug_assert!(n_digits <= start.as_slice().len());
     let integer_digits = unsafe { start.as_slice().get_unchecked(..n_digits) };
 
     // Check if integer leading zeros are disabled.
@@ -454,6 +455,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 
         // Store the fraction digits for slow-path algorithms.
         // SAFETY: safe, since `n_after_dot <= before.as_slice().len()`.
+        debug_assert!(n_after_dot <= before.as_slice().len());
         fraction_digits = Some(unsafe { before.as_slice().get_unchecked(..n_after_dot) });
 
         // Calculate the implicit exponent: the number of digits after the dot.
@@ -536,7 +538,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
             byte.case_insensitive_first_is(base_suffix)
         };
         if is_suffix {
-            // SAFETY: safe since we `byte.len() >= 1`.
+            // SAFETY: safe since `byte.len() >= 1`.
             unsafe { byte.step_unchecked() };
         }
     }
@@ -670,7 +672,7 @@ where
             Some(v) => cb(v),
             None => break,
         }
-        // SAFETY: iter cannot be empty
+        // SAFETY: iter cannot be empty due to `iter.peek()`.
         unsafe { iter.step_unchecked() };
     }
 }
@@ -734,7 +736,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
             let digit = char_to_valid_digit_const(c, radix as u32);
             *mantissa = *mantissa * radix + digit as u64;
             *step -= 1;
-            // SAFETY: safe, since `iter` cannot be empty.
+            // SAFETY: safe, since `iter` cannot be empty due to `iter.peek()`.
             unsafe { iter.step_unchecked() };
         } else {
             break;

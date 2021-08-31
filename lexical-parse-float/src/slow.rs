@@ -295,9 +295,12 @@ macro_rules! add_temporary {
         $result.data.add_small($value).unwrap();
     };
 
+    // # Safety
+    //
+    // Safe is `counter <= step`, or smaller than the table size.
     ($format:ident, $result:ident, $counter:ident, $value:ident) => {
         if $counter != 0 {
-            // SAFETY: safe, since `counter < step`.
+            // SAFETY: safe, since `counter <= step`, or smaller than the table size.
             let small_power = unsafe { f64::int_pow_fast_path($counter, $format.radix()) };
             add_temporary!(@mul $result, small_power as Limb, $value);
             $counter = 0;
@@ -306,9 +309,13 @@ macro_rules! add_temporary {
     };
 
     // Add a temporary where we won't read the counter results internally.
+    //
+    // # Safety
+    //
+    // Safe is `counter <= step`, or smaller than the table size.
     (@end $format:ident, $result:ident, $counter:ident, $value:ident) => {
         if $counter != 0 {
-            // SAFETY: safe, since `counter < step`.
+            // SAFETY: safe, since `counter <= step`, or smaller than the table size.
             let small_power = unsafe { f64::int_pow_fast_path($counter, $format.radix()) };
             add_temporary!(@mul $result, small_power as Limb, $value);
         }
@@ -406,6 +413,7 @@ pub fn parse_mantissa<const FORMAT: u128>(num: Number, max_digits: usize) -> (Bi
         // Check if we've exhausted our max digits.
         if count == max_digits {
             // Need to check if we're truncated, and round-up accordingly.
+            // SAFETY: safe since `counter <= step`.
             add_temporary!(@end format, result, counter, value);
             round_up_nonzero!(format, integer_iter, result, count);
             if let Some(fraction) = num.fraction {
@@ -415,6 +423,7 @@ pub fn parse_mantissa<const FORMAT: u128>(num: Number, max_digits: usize) -> (Bi
             return (result, count);
         } else {
             // Add our temporary from the loop.
+            // SAFETY: safe since `counter <= step`.
             add_temporary!(@max format, result, counter, value, max_native);
         }
     }
@@ -442,11 +451,13 @@ pub fn parse_mantissa<const FORMAT: u128>(num: Number, max_digits: usize) -> (Bi
 
             // Check if we've exhausted our max digits.
             if count == max_digits {
+                // SAFETY: safe since `counter <= step`.
                 add_temporary!(@end format, result, counter, value);
                 round_up_nonzero!(format, fraction_iter, result, count);
                 return (result, count);
             } else {
                 // Add our temporary from the loop.
+                // SAFETY: safe since `counter <= step`.
                 add_temporary!(@max format, result, counter, value, max_native);
             }
         }
@@ -454,6 +465,7 @@ pub fn parse_mantissa<const FORMAT: u128>(num: Number, max_digits: usize) -> (Bi
 
     // We will always have a remainder, as long as we entered the loop
     // once, or counter % step is 0.
+    // SAFETY: safe since `counter <= step`.
     add_temporary!(@end format, result, counter, value);
 
     (result, count)

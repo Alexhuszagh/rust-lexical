@@ -245,21 +245,33 @@ pub struct StackVec<const SIZE: usize> {
 
 /// Extract the hi bits from the buffer.
 macro_rules! hi {
+    // # Safety
+    //
+    // Safe as long as the `stackvec.len() >= 1`.
     (@1 $self:ident, $rview:ident, $t:ident, $fn:ident) => {{
         $fn(unsafe { index_unchecked!($rview[0]) as $t })
     }};
 
+    // # Safety
+    //
+    // Safe as long as the `stackvec.len() >= 2`.
     (@2 $self:ident, $rview:ident, $t:ident, $fn:ident) => {{
         let r0 = unsafe { index_unchecked!($rview[0]) as $t };
         let r1 = unsafe { index_unchecked!($rview[1]) as $t };
         $fn(r0, r1)
     }};
 
+    // # Safety
+    //
+    // Safe as long as the `stackvec.len() >= 2`.
     (@nonzero2 $self:ident, $rview:ident, $t:ident, $fn:ident) => {{
         let (v, n) = hi!(@2 $self, $rview, $t, $fn);
         (v, n || unsafe { nonzero($self, 2 ) })
     }};
 
+    // # Safety
+    //
+    // Safe as long as the `stackvec.len() >= 3`.
     (@3 $self:ident, $rview:ident, $t:ident, $fn:ident) => {{
         let r0 = unsafe { index_unchecked!($rview[0]) as $t };
         let r1 = unsafe { index_unchecked!($rview[1]) as $t };
@@ -267,6 +279,9 @@ macro_rules! hi {
         $fn(r0, r1, r2)
     }};
 
+    // # Safety
+    //
+    // Safe as long as the `stackvec.len() >= 3`.
     (@nonzero3 $self:ident, $rview:ident, $t:ident, $fn:ident) => {{
         let (v, n) = hi!(@3 $self, $rview, $t, $fn);
         (v, n || unsafe { nonzero($self, 3 ) })
@@ -644,6 +659,8 @@ impl<const SIZE: usize> ops::Deref for StackVec<SIZE> {
     type Target = [Limb];
     #[inline]
     fn deref(&self) -> &[Limb] {
+        // SAFETY: safe since `self.data[..self.len()]` must be initialized
+        // and `self.len() <= self.capacity()`.
         unsafe {
             let ptr = self.data.as_ptr() as *const Limb;
             slice::from_raw_parts(ptr, self.len())
@@ -654,6 +671,8 @@ impl<const SIZE: usize> ops::Deref for StackVec<SIZE> {
 impl<const SIZE: usize> ops::DerefMut for StackVec<SIZE> {
     #[inline]
     fn deref_mut(&mut self) -> &mut [Limb] {
+        // SAFETY: safe since `self.data[..self.len()]` must be initialized
+        // and `self.len() <= self.capacity()`.
         unsafe {
             let ptr = self.data.as_mut_ptr() as *mut Limb;
             slice::from_raw_parts_mut(ptr, self.len())
@@ -681,7 +700,7 @@ impl<'a, T: 'a> ReverseView<'a, T> {
     /// # Safety
     ///
     /// Safe if forward indexing would be safe for the type,
-    /// that is
+    /// or `index < self.inner.len()`.
     #[inline(always)]
     pub unsafe fn get_unchecked(&self, index: usize) -> &T {
         debug_assert!(index < self.inner.len());
@@ -715,12 +734,13 @@ impl<'a, T> ops::Index<usize> for ReverseView<'a, T> {
 ///
 /// # Safety
 ///
-/// Safe as long as `rindex < x.len()`.
+/// Safe as long as `rindex <= x.len()`.
 #[inline]
 pub unsafe fn nonzero(x: &[Limb], rindex: usize) -> bool {
     debug_assert!(rindex <= x.len());
 
     let len = x.len();
+    // SAFETY: safe if `rindex < x.len()`, since then `x.len() - rindex < x.len()`.
     let slc = unsafe { &index_unchecked!(x[..len - rindex]) };
     slc.iter().rev().any(|&x| x != 0)
 }
@@ -1168,9 +1188,9 @@ pub fn large_quorem<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Li
     }
 
     // Calculate our initial estimate for q.
-    // SAFETY: safe since `m > 0 && m == x.len()`.
+    // SAFETY: safe since `m > 0 && m == x.len()`, since `m > n && n > 0`.
     let xm_1 = unsafe { index_unchecked!(x[m - 1]) };
-    // SAFETY: safe since `n > 0 && n == n.len()`.
+    // SAFETY: safe since `n > 0 && n == y.len()`.
     let yn_1 = unsafe { index_unchecked!(y[n - 1]) };
     let mut q = xm_1 / (yn_1 + 1);
 
@@ -1179,7 +1199,7 @@ pub fn large_quorem<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Li
         let mut borrow: Wide = 0;
         let mut carry: Wide = 0;
         for j in 0..m {
-            // SAFETY: safe, since `j < m && m == y.len()`.
+            // SAFETY: safe, since `j < n && n == y.len()`.
             let yj = unsafe { index_unchecked!(y[j]) } as Wide;
             let p = yj * q as Wide + carry;
             carry = p >> LIMB_BITS;
@@ -1199,7 +1219,7 @@ pub fn large_quorem<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Li
         let mut borrow: Wide = 0;
         let mut carry: Wide = 0;
         for j in 0..m {
-            // SAFETY: safe, since `j < m && m == y.len()`.
+            // SAFETY: safe, since `j < n && n == y.len()`.
             let yj = unsafe { index_unchecked!(y[j]) } as Wide;
             let p = yj + carry;
             carry = p >> LIMB_BITS;

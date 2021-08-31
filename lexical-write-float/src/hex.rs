@@ -174,7 +174,7 @@ where
     let exact_count = shared::min_exact_digits(digit_count, options);
 
     // Write any trailing digits to the output.
-    // SAFETY: bytes cannot be empty.
+    // SAFETY: safe if the buffer is large enough to hold the significant digits.
     if !format.no_exponent_without_fraction() && cursor == 2 && options.trim_floats() {
         // Need to trim floats from trailing zeros, and we have only a decimal.
         cursor -= 1;
@@ -196,7 +196,7 @@ where
     }
 
     // Now, write our scientific notation.
-    // SAFETY: safe since bytes must be large enough to store all digits.
+    // SAFETY: safe if bytes is large enough to store all digits.
     let scaled_sci_exp = scale_sci_exp(sci_exp, bits_per_digit, bits_per_base);
     unsafe {
         shared::write_exponent::<FORMAT>(bytes, &mut cursor, scaled_sci_exp, options.exponent())
