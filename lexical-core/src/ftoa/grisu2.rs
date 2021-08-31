@@ -106,7 +106,7 @@ fn cached_grisu_power(exp: i32, k: &mut i32) -> &'static ExtendedFloat80 {
 /// Cached powers of ten as specified by the Grisu algorithm.
 ///
 /// Cached powers of 10^k, calculated as if by:
-/// `ceil((alpha-e+63) * ONE_LOG_TEN);`
+/// `ceil((alpha-e+63) * ONE_LOG_TEN);`.
 const GRISU_POWERS_OF_TEN: [ExtendedFloat80; 87] = [
     ExtendedFloat80 {
         mant: 18054884314459144840,

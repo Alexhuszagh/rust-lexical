@@ -447,6 +447,8 @@ bitflags! {
         /// Number format to parse a Python float from string.
         const PYTHON_STRING = Self::PYTHON3_STRING.bits;
 
+        // TODO(ahuszagh) Python now supports digit separators.
+        //  This is as-of PEP515, Python3.6.
         // PYTHON3 LITERAL [013456N]
         /// Number format for a Python3 literal floating-point number.
         const PYTHON3_LITERAL = (

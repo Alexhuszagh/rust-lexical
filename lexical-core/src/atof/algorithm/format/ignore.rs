@@ -19,9 +19,9 @@ data_interface!(
     fields => {
         format: NumberFormat,
     },
-    integer_iter => (IteratorSeparator, iterate_digits_ignore_separator),
-    fraction_iter => (IteratorSeparator, iterate_digits_ignore_separator),
-    exponent_iter => (IteratorSeparator, iterate_digits_ignore_separator),
+    integer_iter => (IterS, to_iter_s),
+    fraction_iter => (IterS, to_iter_s),
+    exponent_iter => (IterS, to_iter_s),
     format => |this: &Self| this.format,
     consume_integer_digits => consume_digits_ignore_separator,
     consume_fraction_digits => consume_digits_ignore_separator,

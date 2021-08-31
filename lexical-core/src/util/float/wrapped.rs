@@ -16,7 +16,7 @@ use crate::util::traits::*;
 /// Wrap a float to act like an integer.
 ///
 /// Required for the lossy atof algorithm.
-#[derive(Clone, Copy, Debug, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, PartialOrd)]
 pub(crate) struct WrappedFloat<T: Float> {
     /// Internal data.
     data: T,

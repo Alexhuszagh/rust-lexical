@@ -318,6 +318,13 @@ mod tests {
     use super::*;
 
     #[test]
+    fn dummy_test() {
+        let radix = 10;
+        let kind = RoundingKind::NearestTieEven;
+        assert!(moderate_path::<f64>(2470328229206232721u64, radix, -342, false, false, kind).1);
+    }
+
+    #[test]
     fn test_halfway_round_down() {
         let radix = 10;
         let kind = RoundingKind::NearestTieEven;

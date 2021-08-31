@@ -21,6 +21,7 @@ use crate::lib::Vec;
 /// Numerical type trait.
 #[doc(hidden)]
 pub trait Number:
+    Default +
     Primitive +
     // Operations
     ops::Add<Output=Self> +

@@ -145,13 +145,13 @@ macro_rules! slow_data_interface_impl {
 /// Data interface for fast float parsers.
 pub(crate) trait FastDataInterface<'a>: FastDataInterfaceImpl<'a> {
     /// Integer digits iterator type.
-    type IntegerIter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>;
+    type IntegerIter: ContiguousIterator<'a, u8>;
 
     /// Float digits iterator type.
-    type FractionIter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>;
+    type FractionIter: ContiguousIterator<'a, u8>;
 
     /// Exponent digits iterator type.
-    type ExponentIter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>;
+    type ExponentIter: ContiguousIterator<'a, u8>;
 
     /// Associated slow data type.
     type SlowInterface: SlowDataInterface<'a>;
@@ -485,10 +485,10 @@ macro_rules! fast_data_interface {
 /// Data interface for moderate/slow float parsers.
 pub(crate) trait SlowDataInterface<'a>: SlowDataInterfaceImpl<'a> {
     /// Integer digits iterator type.
-    type IntegerIter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>;
+    type IntegerIter: ContiguousIterator<'a, u8>;
 
     /// Float digits iterator type.
-    type FractionIter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>;
+    type FractionIter: ContiguousIterator<'a, u8>;
 
     /// Iterate over all integer digits.
     fn integer_iter(&self) -> Self::IntegerIter;

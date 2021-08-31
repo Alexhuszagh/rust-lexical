@@ -70,10 +70,6 @@ pub(super) fn mantissa_exponent(
 // Uses an abstract iterator to allow generic implementations
 // iterators to work. This only works with greedy iterators, where we
 // know exactly when we should stop upon encountering a given character.
-//
-// Precondition:
-//      Iter should not implement ConsumedIterator, since it would break
-//      the assumption in `extract_exponent_iltc`.
 #[inline(always)]
 fn extract_and_parse_exponent<'a, Data, Iter>(
     data: &mut Data,
@@ -84,7 +80,7 @@ fn extract_and_parse_exponent<'a, Data, Iter>(
 ) -> &'a [u8]
 where
     Data: FastDataInterface<'a>,
-    Iter: AsPtrIterator<'a, u8>,
+    Iter: ContiguousIterator<'a, u8>,
 {
     let (raw_exponent, ptr) = atoi::standalone_exponent(iter, radix, sign);
     data.set_raw_exponent(raw_exponent);
@@ -117,7 +113,7 @@ fn parse_exponent<'a, Data>(
     Data: FastDataInterface<'a>,
 {
     // Get an iterator over our digits and sign bits, and parse the exponent.
-    let iter = iterate_digits_ignore_separator(leading, digit_separator);
+    let iter = to_iter_s(leading, digit_separator);
 
     // Parse the exponent and store the extracted digits.
     let bytes_len = bytes.len() - trailing.len();
@@ -148,7 +144,7 @@ where
     // Remove leading exponent character and parse exponent.
     let bytes = &bytes[1..];
     let (sign, digits) = parse_sign_no_separator::<FloatType>(bytes, digit_separator);
-    let iter = iterate_digits_no_separator(digits, digit_separator);
+    let iter = to_iter_n(digits, digit_separator);
     extract_and_parse_exponent(data, iter, bytes, radix, sign)
 }
 
@@ -169,7 +165,7 @@ where
     // We're not calling `consumed()`, so it's fine to have trailing underscores.
     let bytes = &bytes[1..];
     let (sign, digits) = parse_sign_lc_separator::<FloatType>(bytes, digit_separator);
-    let iter = iterate_digits_ignore_separator(digits, digit_separator);
+    let iter = to_iter_s(digits, digit_separator);
     extract_and_parse_exponent(data, iter, bytes, radix, sign)
 }
 

@@ -322,6 +322,9 @@ fn round_up(value: i32, base: i32) -> i32 {
 /// Calculate the fast ceiling, integral division.
 #[inline(always)]
 fn fast_ceildiv(value: i32, base: i32) -> i32 {
+    // TODO(ahuszagh) This can be done way faster...
+    // (value + base - 1) / base
+    // q = (x % y) ? x / y + 1 : x / y;
     round_up(value, base) / base
 }
 

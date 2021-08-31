@@ -252,6 +252,14 @@ mod ftoa;
 #[cfg(write)]
 mod itoa;
 
+// TODO(ahuszagh) this is an experimental branch for supporting changes
+// that Daniel Lemire has made.
+//  TODO(ahuszagh) Should probably have Float traits for specific radixes,
+//      with pre-determined code for it... (Sounds... very bloaty)...
+//
+mod atof_v2;
+pub use atof_v2::parse_float as parse_float_v2;
+
 // API
 // ---
 

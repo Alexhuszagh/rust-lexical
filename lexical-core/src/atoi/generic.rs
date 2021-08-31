@@ -95,7 +95,7 @@ fn validate_no_leading_zeros<'a>(
     // Check if the next character is a sign symbol.
     let index = distance(digits.as_ptr(), ptr);
     let digits = &digits[..index];
-    let mut iter = iterate_digits_ignore_separator(digits, digit_separator);
+    let mut iter = to_iter_s(digits, digit_separator);
     let is_zero = match iter.next() {
         Some(&b'+') | Some(&b'-') => false,
         Some(&b'0') => true,
@@ -149,7 +149,7 @@ fn parse_digits<'a, T, Iter>(
 ) -> ParseTupleResult<(T, *const u8)>
 where
     T: Integer,
-    Iter: AsPtrIterator<'a, u8>,
+    Iter: ContiguousIterator<'a, u8>,
 {
     let mut value = T::ZERO;
     if sign == Sign::Positive {
@@ -170,7 +170,7 @@ where
     T: Integer,
 {
     let (sign, digits) = parse_sign!(bytes, T::IS_SIGNED, Empty);
-    let iter = iterate_digits_no_separator(digits, b'\x00');
+    let iter = to_iter_n(digits, b'\x00');
     parse_digits(digits, iter, radix, sign)
 }
 
@@ -190,7 +190,7 @@ where
     if digits.is_empty() {
         return Err((ErrorCode::Empty, digits.as_ptr()));
     }
-    let iter = iterate_digits_ignore_separator(digits, digit_separator);
+    let iter = to_iter_s(digits, digit_separator);
     parse_digits(digits, iter, radix, sign)
 }
 
@@ -218,7 +218,7 @@ macro_rules! standalone_atoi_separator {
 
             // Extract the integer subslice, then parse.
             let leading = $consume(digits, radix, digit_separator).0;
-            let iter = iterate_digits_ignore_separator(leading, digit_separator);
+            let iter = to_iter_s(leading, digit_separator);
 
             parse_digits(leading, iter, radix, sign)
         }
@@ -438,7 +438,7 @@ fn parse_digits_128_fast<'a, W, N, Iter>(
 where
     W: Integer,
     N: Integer,
-    Iter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>,
+    Iter: ContiguousIterator<'a, u8>,
 {
     let (value, ptr) = parse_digits::<N, _>(digits, iter, radix, sign)?;
     Ok((as_cast(value), ptr))
@@ -455,7 +455,7 @@ fn parse_digits_128_slow<'a, T, Iter>(
 ) -> ParseTupleResult<(T, *const u8)>
 where
     T: Integer,
-    Iter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>,
+    Iter: ContiguousIterator<'a, u8>,
 {
     let mut value = T::ZERO;
     if sign == Sign::Positive {
@@ -484,7 +484,7 @@ fn parse_digits_128<'a, W, N, Iter>(
 where
     W: Integer,
     N: Integer,
-    Iter: ConsumedIterator<Item = &'a u8> + AsPtrIterator<'a, u8>,
+    Iter: ContiguousIterator<'a, u8>,
 {
     // This is guaranteed to be safe, since if the length is
     // 1 less than step, and the min radix is 2, the value must be
@@ -508,7 +508,7 @@ where
     N: Integer,
 {
     let (sign, digits) = parse_sign!(bytes, W::IS_SIGNED, Empty);
-    let iter = iterate_digits_no_separator(digits, b'\x00');
+    let iter = to_iter_n(digits, b'\x00');
     parse_digits_128::<W, N, _>(digits, iter, radix, sign)
 }
 
@@ -529,7 +529,7 @@ where
     if digits.is_empty() {
         return Err((ErrorCode::Empty, digits.as_ptr()));
     }
-    let iter = iterate_digits_ignore_separator(digits, digit_separator);
+    let iter = to_iter_s(digits, digit_separator);
     parse_digits_128::<W, N, _>(digits, iter, radix, sign)
 }
 
@@ -558,7 +558,7 @@ macro_rules! standalone_atoi_128_separator {
 
             // Extract the integer subslice, then parse.
             let leading = $consume(digits, radix, digit_separator).0;
-            let iter = iterate_digits_ignore_separator(leading, digit_separator);
+            let iter = to_iter_s(leading, digit_separator);
             parse_digits_128::<W, N, _>(leading, iter, radix, sign)
         }
     };

@@ -16,6 +16,8 @@ use super::validate::*;
 pub struct WriteFloatOptionsBuilder {
     /// Number format.
     format: Option<NumberFormatV2>,
+    // TODO(ahuszagh) Round mode might be good too.
+    // Add upper_e_break, lower_e_break
     /// Maximum number of significant digits to write.
     /// If not set, it defaults to the formatter's default.
     max_significant_digits: OptionUsize,

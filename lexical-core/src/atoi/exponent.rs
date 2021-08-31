@@ -54,7 +54,7 @@ pub(crate) fn standalone_exponent<'a, Iter>(
     sign: Sign,
 ) -> (i32, *const u8)
 where
-    Iter: AsPtrIterator<'a, u8>,
+    Iter: ContiguousIterator<'a, u8>,
 {
     // Parse the sign bit or current data.
     let mut value = 0;
