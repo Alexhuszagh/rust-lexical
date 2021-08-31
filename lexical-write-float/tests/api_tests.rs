@@ -11,6 +11,11 @@ fn error_tests() {
     let actual = unsafe { std::str::from_utf8_unchecked(f.to_lexical(&mut buffer)) };
     let roundtrip = actual.parse::<f32>();
     assert_eq!(Ok(f), roundtrip);
+
+    let f = 77371252000000000000000000.0f32;
+    let actual = unsafe { std::str::from_utf8_unchecked(f.to_lexical(&mut buffer)) };
+    let roundtrip = actual.parse::<f32>();
+    assert_eq!(Ok(f), roundtrip);
 }
 
 #[test]

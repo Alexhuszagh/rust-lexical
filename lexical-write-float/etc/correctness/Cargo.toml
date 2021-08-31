@@ -1,0 +1,38 @@
+[package]
+name = "lexical-write-float-correctness"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies.lexical-write-float]
+path = "../.."
+default-features = false
+features = []
+
+[dependencies.lexical-util]
+path = "../../../lexical-util"
+default-features = false
+features = []
+
+[dependencies]
+clap = "3.0.0-beta.4"
+fastrand = "1.4"
+
+[features]
+std = ["lexical-util/std", "lexical-write-float/std"]
+power-of-two = ["lexical-util/power-of-two", "lexical-write-float/power-of-two"]
+radix = ["lexical-util/radix", "lexical-write-float/radix"]
+format = ["lexical-util/format", "lexical-write-float/format"]
+compact = ["lexical-util/compact", "lexical-write-float/compact"]
+
+[workspace]
+
+# Special testing binaries for the dragonbox built-in conformance tests.
+[[bin]]
+name = "shorter_interval"
+path = "dragonbox/shorter_interval.rs"
+
+[[bin]]
+name = "random"
+path = "dragonbox/random.rs"

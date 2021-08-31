@@ -147,6 +147,7 @@ fn to_decimal_test() {
     assert_eq!(to_decimal_f32(2147481600.0), (21474816, 2));
     assert_eq!(to_decimal_f32(2147483600.0), (21474836, 2));
     assert_eq!(to_decimal_f32(2762159900.0), (27621599, 2));
+    assert_eq!(to_decimal_f32(77371252000000000000000000.0), (77371252, 18));
 
     assert_eq!(to_decimal_f64(0.0), (0, 0));
     assert_eq!(to_decimal_f64(0.5), (5, -1));

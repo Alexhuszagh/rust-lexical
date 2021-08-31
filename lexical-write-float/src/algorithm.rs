@@ -424,7 +424,7 @@ pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
     }
 
     // If the left endpoint is not an integer, increase it.
-    if !interval_type.include_left_endpoint() && is_left_endpoint::<F>(exponent) {
+    if !(interval_type.include_left_endpoint() && is_left_endpoint::<F>(exponent)) {
         xi += 1;
     }
 
