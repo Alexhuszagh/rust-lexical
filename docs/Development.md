@@ -60,6 +60,7 @@ In addition, the following non-Rust dependencies must be installed:
 The [scripts](https://github.com/Alexhuszagh/rust-lexical/tree/main/scripts) directory contains numerous scripts for testing, fuzzing, analyzing, and formatting code. Since many development features are nightly-only, this ensures the proper compiler features are used. This requires a recent version of a nightly compiler (1.51.0+) installed via Rustup, which can be invoked as `cargo +nightly`.
 
 - [asm.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/asm.sh): Emit assembly for numeric conversion routines, to identify performance regression.
+- [bench.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/bench.sh): Check the benchmarks compile and run.
 - [check.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/check.sh): Check rustfmt and clippy without formatting any code.
 - [fmt.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/fmt.sh): Run `cargo fmt` and `cargo clippy` in all projects and workspaces, on nightly.
 - [fuzz.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/fuzz.sh): Run fuzzer for a given target.
