@@ -1,0 +1,91 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
+categories = ["value-formatting", "encoding", "no-std"]
+description = "Efficient formatting of floats to strings."
+edition = "2018"
+keywords = ["encoding", "lexical", "no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-write-float"
+readme = "README.md"
+repository = "https://github.com/Alexhuszagh/rust-lexical"
+version = "0.1.0"
+exclude = [
+    "assets/*",
+    "docs/*",
+    "etc/*",
+    "cargo-timing*.html"
+]
+
+[dependencies.lexical-util]
+version = "0.1"
+path = "../lexical-util"
+default-features = false
+features = ["write-floats"]
+
+[dependencies.lexical-write-integer]
+version = "0.1"
+path = "../lexical-write-integer"
+default-features = false
+features = []
+
+[dependencies]
+static_assertions = "1"
+
+[dev-dependencies]
+approx = "0.5.0"
+# FIXME: Replace back to "1.0.4" once the PR is merged.
+#  There's an issue in quickcheck due to an infinitely repeating shrinker.
+#  Issue:   https://github.com/BurntSushi/quickcheck/issues/295
+#  Fix:     https://github.com/BurntSushi/quickcheck/pull/296
+quickcheck = { git = "https://github.com/neithernut/quickcheck/", branch = "i32min-shrink-bound" }
+proptest = "0.10.1"
+fraction = "0.8.0"
+
+[features]
+default = ["std"]
+# Use the standard library.
+std = [
+    "lexical-util/std",
+    "lexical-write-integer/std"
+]
+# Add support for writing power-of-two float strings.
+power-of-two = [
+    "lexical-util/power-of-two",
+    "lexical-write-integer/power-of-two"
+]
+# Add support for writing non-decimal float strings.
+radix = [
+    "lexical-util/radix",
+    "lexical-write-integer/radix",
+    "power-of-two"
+]
+# Add support for writing custom float formats.
+format = ["lexical-util/format"]
+# Reduce code size at the cost of performance.
+compact = [
+    "lexical-util/compact",
+    "lexical-write-integer/compact"
+]
+# Ensure only safe indexing is used.
+# This is not enabled by default for writers, due to the performance
+# costs, and since input can be easily validated to avoid buffer overwrites.
+safe = ["lexical-write-integer/safe"]
+# Add support for nightly-only features.
+nightly = ["lexical-write-integer/nightly"]
+
+# Internal only features.
+# Enable the lint checks.
+lint = [
+    "lexical-util/lint",
+    "lexical-write-integer/lint"
+]
+
+# Currently unsupported.
+# Enable support for 16-bit floats.
+f16 = ["lexical-util/f16"]
+# Enable support for 128-bit floats.
+f128 = ["lexical-util/f128"]
+
+[package.metadata.docs.rs]
+features = ["radix", "format"]

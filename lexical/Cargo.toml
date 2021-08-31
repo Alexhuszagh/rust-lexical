@@ -1,0 +1,68 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
+categories = ["parsing", "encoding", "no-std", "value-formatting"]
+description = "Lexical, to- and from-string conversion routines."
+edition = "2018"
+keywords = ["parsing", "lexical", "encoding", "no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical"
+readme = "README.md"
+repository = "https://github.com/Alexhuszagh/rust-lexical"
+version = "0.1.0"
+exclude = [
+    "assets/*",
+    "docs/*",
+    "etc/*",
+    "cargo-timing*.html"
+]
+
+[dependencies.lexical-core]
+version = "0.1"
+default-features = false
+path = "../lexical-core"
+
+[features]
+# Need to enable all for backwards compatibility.
+default = ["std", "write-integers", "write-floats", "parse-integers", "parse-floats"]
+# Use the standard library.
+std = ["lexical-core/std"]
+# Add support for nightly-only features.
+nightly = ["lexical-core/nightly"]
+# Add support for writing integers.
+write-integers = ["lexical-core/write-integers", "write", "integers"]
+# Add support for writing floats.
+write-floats = ["lexical-core/write-floats", "write", "floats"]
+# Add support for parsing integers.
+parse-integers = ["lexical-core/parse-integers", "parse", "integers"]
+# Add support for parsing floats.
+parse-floats = ["lexical-core/parse-floats", "parse", "floats"]
+# Add support for parsing power-of-two float strings.
+power-of-two = ["lexical-core/power-of-two"]
+# Add support for parsing non-decimal float strings.
+radix = ["lexical-core/radix"]
+# Add support for parsing custom numerical formats.
+format = ["lexical-core/format"]
+# Reduce code size at the cost of performance.
+compact = ["lexical-core/compact"]
+
+# Internal only features.
+# Enable the lint checks.
+lint = ["lexical-core/lint"]
+# Add support for writing numbers.
+write = []
+# Add support for parsing numbers.
+parse = []
+# Add support for conversions to or from integers.
+integers = []
+# Add support for conversions to or from floats.
+floats = []
+
+# Currently unsupported.
+# Enable support for 16-bit floats.
+f16 = ["lexical-core/f16"]
+# Enable support for 128-bit floats.
+f128 = ["lexical-core/f128"]
+
+[package.metadata.docs.rs]
+features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats"]

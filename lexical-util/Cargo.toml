@@ -1,0 +1,78 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
+categories = ["value-formatting", "encoding", "no-std"]
+description = "Shared utilities for lexical creates."
+edition = "2018"
+keywords = ["no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-util"
+readme = "README.md"
+repository = "https://github.com/Alexhuszagh/rust-lexical"
+version = "0.1.0"
+exclude = [
+    "assets/*",
+    "docs/*",
+    "etc/*",
+    "cargo-timing*.html"
+]
+
+[dependencies]
+static_assertions = "1"
+
+[dev-dependencies]
+# FIXME: Replace back to "1.0.4" once the PR is merged.
+#  There's an issue in quickcheck due to an infinitely repeating shrinker.
+#  Issue:   https://github.com/BurntSushi/quickcheck/issues/295
+#  Fix:     https://github.com/BurntSushi/quickcheck/pull/296
+quickcheck = { git = "https://github.com/neithernut/quickcheck/", branch = "i32min-shrink-bound" }
+proptest = "0.10.1"
+
+# FEATURES
+# --------
+# In order to improve compile times, we have separate support
+# for each numeric conversion. Since these features are additive,
+# if more features are added, separate crates can add support
+# for more features without requiring re-compilation of lexical.
+
+[features]
+default = ["std"]
+# Use the standard library.
+std = []
+# Add support for numerical conversions with power-of-two strings.
+power-of-two = []
+# Add support for numerical conversions with non-decimal strings.
+radix = ["power-of-two"]
+# Add support for parsing custom numerical formats.
+format = []
+# Add support for writing integers.
+write-integers = ["write", "integers"]
+# Add support for writing floats.
+write-floats = ["write", "floats"]
+# Add support for parsing integers.
+parse-integers = ["parse", "integers"]
+# Add support for parsing floats.
+parse-floats = ["parse", "floats"]
+# Reduce code size at the cost of performance.
+compact = []
+
+# Internal only features.
+# Enable the lint checks.
+lint = []
+# Add support for writing numbers.
+write = []
+# Add support for parsing numbers.
+parse = []
+# Add support for conversions to or from integers.
+integers = []
+# Add support for conversions to or from floats.
+floats = []
+
+# Currently unsupported.
+# Enable support for 16-bit floats.
+f16 = []
+# Enable support for 128-bit floats.
+f128 = []
+
+[package.metadata.docs.rs]
+features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats"]

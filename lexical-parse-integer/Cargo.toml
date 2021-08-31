@@ -1,0 +1,60 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
+categories = ["parsing", "no-std"]
+description = "Efficient parsing of integers from strings."
+edition = "2018"
+keywords = ["parsing", "lexical", "no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-parse-integer"
+readme = "README.md"
+repository = "https://github.com/Alexhuszagh/rust-lexical"
+version = "0.1.0"
+exclude = [
+    "assets/*",
+    "docs/*",
+    "etc/*",
+    "cargo-timing*.html"
+]
+
+[dependencies]
+static_assertions = "1"
+
+[dependencies.lexical-util]
+version = "0.1"
+path = "../lexical-util"
+default-features = false
+features = ["parse-integers"]
+
+[dev-dependencies]
+# FIXME: Replace back to "1.0.4" once the PR is merged.
+#  There's an issue in quickcheck due to an infinitely repeating shrinker.
+#  Issue:   https://github.com/BurntSushi/quickcheck/issues/295
+#  Fix:     https://github.com/BurntSushi/quickcheck/pull/296
+quickcheck = { git = "https://github.com/neithernut/quickcheck/", branch = "i32min-shrink-bound" }
+proptest = "0.10.1"
+
+[features]
+default = ["std"]
+# Use the standard library.
+std = ["lexical-util/std"]
+# Add support for parsing power-of-two integer strings.
+power-of-two = ["lexical-util/power-of-two"]
+# Add support for parsing non-decimal integer strings.
+radix = ["lexical-util/radix", "power-of-two"]
+# Add support for parsing custom integer formats.
+format = ["lexical-util/format"]
+# Reduce code size at the cost of performance.
+compact = ["lexical-util/compact"]
+# Ensure only safe indexing is used. This is a no-op, since all
+# examples of potential memory unsafety are trivial to prove safe.
+safe = []
+# Add support for nightly-only features.
+nightly = []
+
+# Internal only features.
+# Enable the lint checks.
+lint = ["lexical-util/lint"]
+
+[package.metadata.docs.rs]
+features = ["radix", "format"]

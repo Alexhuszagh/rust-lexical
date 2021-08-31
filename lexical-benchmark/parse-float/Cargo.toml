@@ -1,0 +1,74 @@
+[package]
+name = "lexical-parse-float-benchmark"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies.lexical-util]
+path = "../../lexical-util"
+default-features = false
+features = []
+
+[dependencies.lexical-parse-float]
+path = "../../lexical-parse-float"
+default-features = false
+features = []
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+fastrand = "1.4"
+lazy_static = "1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[features]
+default = ["std", "floats", "json"]
+std = ["lexical-util/std", "lexical-parse-float/std"]
+radix = ["lexical-util/radix", "lexical-parse-float/radix"]
+power-of-two = ["lexical-util/power-of-two", "lexical-parse-float/power-of-two"]
+format = ["lexical-util/format", "lexical-parse-float/format"]
+compact = ["lexical-util/compact", "lexical-parse-float/compact"]
+floats = []
+json = []
+
+[[bench]]
+name = "canada"
+path = "canada.rs"
+harness = false
+
+[[bench]]
+name = "contrived"
+path = "contrived.rs"
+harness = false
+
+[[bench]]
+name = "earth"
+path = "earth.rs"
+harness = false
+
+[[bench]]
+name = "json"
+path = "json.rs"
+harness = false
+
+[[bench]]
+name = "mesh"
+path = "mesh.rs"
+harness = false
+
+[[bench]]
+name = "random"
+path = "random.rs"
+harness = false
+
+# Perftools binaries.
+[[bin]]
+name = "denormal30"
+path = "denormal30.rs"
+harness = false
+
+[[bin]]
+name = "denormal6400"
+path = "denormal6400.rs"
+harness = false

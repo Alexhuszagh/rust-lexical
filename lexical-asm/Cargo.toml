@@ -1,0 +1,76 @@
+[package]
+name = "lexical-asm"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies.lexical-util]
+path = "../lexical-util"
+default-features = false
+features = []
+
+[dependencies.lexical-parse-integer]
+path = "../lexical-parse-integer"
+default-features = false
+features = []
+
+[dependencies.lexical-write-integer]
+path = "../lexical-write-integer"
+default-features = false
+features = []
+
+[dependencies.lexical-parse-float]
+path = "../lexical-parse-float"
+default-features = false
+features = []
+
+[dependencies.lexical-write-float]
+path = "../lexical-write-float"
+default-features = false
+features = []
+
+[features]
+std = [
+    "lexical-util/std",
+    "lexical-write-integer/std",
+    "lexical-write-float/std",
+    "lexical-parse-integer/std",
+    "lexical-parse-float/std"
+]
+power-of-two = [
+    "lexical-util/power-of-two",
+    "lexical-write-integer/power-of-two",
+    "lexical-write-float/power-of-two",
+    "lexical-parse-integer/power-of-two",
+    "lexical-parse-float/power-of-two"
+]
+radix = [
+    "lexical-util/radix",
+    "lexical-write-integer/radix",
+    "lexical-write-float/radix",
+    "lexical-parse-integer/radix",
+    "lexical-parse-float/radix"
+]
+format = [
+    "lexical-util/format",
+    "lexical-parse-integer/format",
+    "lexical-parse-float/format",
+    "lexical-write-integer/format",
+    "lexical-write-float/format"
+]
+compact = [
+    "lexical-util/compact",
+    "lexical-write-integer/compact",
+    "lexical-write-float/compact",
+    "lexical-parse-integer/compact",
+    "lexical-parse-float/compact"
+]
+
+[workspace]
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+lto = true

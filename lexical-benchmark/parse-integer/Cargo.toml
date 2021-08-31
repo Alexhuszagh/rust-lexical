@@ -1,0 +1,43 @@
+[package]
+name = "lexical-parse-integer-benchmark"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies.lexical-util]
+path = "../../lexical-util"
+default-features = false
+features = []
+
+[dependencies.lexical-parse-integer]
+path = "../../lexical-parse-integer"
+default-features = false
+features = []
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+fastrand = "1.4"
+lazy_static = "1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[features]
+default = ["std", "integers", "json"]
+std = ["lexical-util/std", "lexical-parse-integer/std"]
+radix = ["lexical-util/radix", "lexical-parse-integer/radix"]
+power-of-two = ["lexical-util/power-of-two", "lexical-parse-integer/power-of-two"]
+format = ["lexical-util/format", "lexical-parse-integer/format"]
+compact = ["lexical-util/compact", "lexical-parse-integer/compact"]
+integers = []
+json = []
+
+[[bench]]
+name = "json"
+path = "json.rs"
+harness = false
+
+[[bench]]
+name = "random"
+path = "random.rs"
+harness = false

@@ -1,0 +1,61 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
+categories = ["value-formatting", "encoding", "no-std"]
+description = "Efficient formatting of integers to strings."
+edition = "2018"
+keywords = ["encoding", "lexical", "no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-write-integer"
+readme = "README.md"
+repository = "https://github.com/Alexhuszagh/rust-lexical"
+version = "0.1.0"
+exclude = [
+    "assets/*",
+    "docs/*",
+    "etc/*",
+    "cargo-timing*.html"
+]
+
+[dependencies]
+static_assertions = "1"
+
+[dependencies.lexical-util]
+version = "0.1"
+path = "../lexical-util"
+default-features = false
+features = ["write-integers"]
+
+[dev-dependencies]
+# FIXME: Replace back to "1.0.4" once the PR is merged.
+#  There's an issue in quickcheck due to an infinitely repeating shrinker.
+#  Issue:   https://github.com/BurntSushi/quickcheck/issues/295
+#  Fix:     https://github.com/BurntSushi/quickcheck/pull/296
+quickcheck = { git = "https://github.com/neithernut/quickcheck/", branch = "i32min-shrink-bound" }
+proptest = "0.10.1"
+
+[features]
+default = ["std"]
+# Use the standard library.
+std = ["lexical-util/std"]
+# Add support for writing power-of-two integer strings.
+power-of-two = ["lexical-util/power-of-two"]
+# Add support for writing non-decimal integer strings.
+radix = ["lexical-util/radix", "power-of-two"]
+# Add support for writing custom integer formats.
+format = ["lexical-util/format"]
+# Reduce code size at the cost of performance.
+compact = ["lexical-util/compact"]
+# Ensure only safe indexing is used.
+# This is not enabled by default for writers, due to the performance
+# costs, and since input can be easily validated to avoid buffer overwrites.
+safe = []
+# Add support for nightly-only features.
+nightly = []
+
+# Internal only features.
+# Enable the lint checks.
+lint = ["lexical-util/lint"]
+
+[package.metadata.docs.rs]
+features = ["radix", "format"]

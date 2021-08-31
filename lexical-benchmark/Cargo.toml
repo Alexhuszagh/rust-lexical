@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "algorithm",
+    "parse-integer",
+    "parse-float",
+    "write-integer",
+    "write-float",
+]
+
+[profile.bench]
+opt-level = 3
+debug = false
+debug-assertions = false
+lto = true

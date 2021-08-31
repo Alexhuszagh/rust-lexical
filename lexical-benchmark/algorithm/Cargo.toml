@@ -1,0 +1,35 @@
+[package]
+name = "algorithm"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies.lexical-util]
+path = "../../lexical-util"
+default-features = false
+features = []
+
+[dependencies.lexical-parse-float]
+path = "../../lexical-parse-float"
+default-features = false
+features = []
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+fastrand = "1.4"
+
+[features]
+default = ["std", "integers"]
+std = ["lexical-util/std", "lexical-parse-float/std"]
+integers = []
+
+[[bench]]
+name = "bigint"
+path = "bigint.rs"
+harness = false
+
+[[bench]]
+name = "division"
+path = "division.rs"
+harness = false

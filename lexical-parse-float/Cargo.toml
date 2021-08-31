@@ -1,0 +1,85 @@
+[package]
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+autobenches = false
+categories = ["parsing", "no-std"]
+description = "Efficient parsing of floats from strings."
+edition = "2018"
+keywords = ["parsing", "lexical", "no_std"]
+license = "MIT/Apache-2.0"
+name = "lexical-parse-float"
+readme = "README.md"
+repository = "https://github.com/Alexhuszagh/rust-lexical"
+version = "0.1.0"
+exclude = [
+    "assets/*",
+    "docs/*",
+    "etc/*",
+    "cargo-timing*.html"
+]
+
+[dependencies.lexical-util]
+version = "0.1"
+path = "../lexical-util"
+features = ["parse-floats"]
+
+[dependencies.lexical-parse-integer]
+version = "0.1"
+path = "../lexical-parse-integer"
+default-features = false
+features = []
+
+[dependencies]
+static_assertions = "1"
+
+[dev-dependencies]
+proptest = "0.10.1"
+
+[features]
+default = ["std"]
+# Use the standard library.
+std = [
+    "lexical-util/std",
+    "lexical-parse-integer/std"
+]
+# Add support for parsing power-of-two float strings.
+power-of-two = [
+    "lexical-util/power-of-two",
+    "lexical-parse-integer/power-of-two"
+]
+# Add support for parsing non-decimal float strings.
+radix = [
+    "lexical-util/radix",
+    "lexical-parse-integer/radix",
+    "power-of-two"
+]
+# Add support for parsing custom float formats.
+format = [
+    "lexical-util/format",
+    "lexical-parse-integer/format"
+]
+# Reduce code size at the cost of performance.
+compact = [
+    "lexical-util/compact",
+    "lexical-parse-integer/compact"
+]
+# Ensure only safe indexing is used. This is effectively a no-op, since all
+# examples of potential memory unsafety are trivial to prove safe.
+safe = ["lexical-parse-integer/safe"]
+# Add support for nightly-only features.
+nightly = ["lexical-parse-integer/nightly"]
+
+# Internal only features.
+# Enable the lint checks.
+lint = [
+    "lexical-util/lint",
+    "lexical-parse-integer/lint"
+]
+
+# Currently unsupported.
+# Enable support for 16-bit floats.
+f16 = ["lexical-util/f16"]
+# Enable support for 128-bit floats.
+f128 = ["lexical-util/f128"]
+
+[package.metadata.docs.rs]
+features = ["radix", "format"]

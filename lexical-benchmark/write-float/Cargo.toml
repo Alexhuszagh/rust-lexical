@@ -1,0 +1,45 @@
+[package]
+name = "lexical-write-float-benchmark"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies.lexical-util]
+path = "../../lexical-util"
+default-features = false
+features = []
+
+[dependencies.lexical-write-float]
+path = "../../lexical-write-float"
+default-features = false
+features = []
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+dtoa = "0.4"
+fastrand = "1.4"
+lazy_static = "1"
+ryu = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[features]
+default = ["std", "floats", "json"]
+std = ["lexical-util/std", "lexical-write-float/std"]
+radix = ["lexical-util/radix", "lexical-write-float/radix"]
+power-of-two = ["lexical-util/power-of-two", "lexical-write-float/power-of-two"]
+format = ["lexical-util/format", "lexical-write-float/format"]
+compact = ["lexical-util/compact", "lexical-write-float/compact"]
+floats = []
+json = []
+
+[[bench]]
+name = "json"
+path = "json.rs"
+harness = false
+
+[[bench]]
+name = "random"
+path = "random.rs"
+harness = false

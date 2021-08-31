@@ -1,0 +1,189 @@
+[package]
+name = "lexical-fuzz"
+version = "0.0.1"
+authors = ["Alex Huszagh <ahuszagh@gmail.com>"]
+edition = "2018"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies.lexical-util]
+path = "../lexical-util"
+default-features = false
+features = []
+
+[dependencies.lexical-parse-float]
+path = "../lexical-parse-float"
+default-features = false
+features = []
+
+[dependencies.lexical-parse-integer]
+path = "../lexical-parse-integer"
+default-features = false
+features = []
+
+[dependencies.lexical-write-float]
+path = "../lexical-write-float"
+default-features = false
+features = []
+
+[dependencies.lexical-write-integer]
+path = "../lexical-write-integer"
+default-features = false
+features = []
+
+[dependencies]
+libfuzzer-sys = "0.2.0"
+
+[features]
+std = [
+    "lexical-write-integer/std",
+    "lexical-write-float/std",
+    "lexical-parse-integer/std",
+    "lexical-parse-float/std"
+]
+power-of-two = [
+    "lexical-write-integer/power-of-two",
+    "lexical-write-float/power-of-two",
+    "lexical-parse-integer/power-of-two",
+    "lexical-parse-float/power-of-two"
+]
+radix = [
+    "lexical-write-integer/radix",
+    "lexical-write-float/radix",
+    "lexical-parse-integer/radix",
+    "lexical-parse-float/radix"
+]
+format = [
+    "lexical-parse-integer/format",
+    "lexical-parse-float/format",
+    "lexical-write-integer/format",
+    "lexical-write-float/format"
+]
+compact = [
+    "lexical-write-integer/compact",
+    "lexical-write-float/compact",
+    "lexical-parse-integer/compact",
+    "lexical-parse-float/compact"
+]
+
+[workspace]
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+lto = true
+
+[[bin]]
+name = "parse-integer-i8"
+path = "fuzz_targets/parse-integer-i8.rs"
+
+[[bin]]
+name = "parse-integer-i16"
+path = "fuzz_targets/parse-integer-i16.rs"
+
+[[bin]]
+name = "parse-integer-i32"
+path = "fuzz_targets/parse-integer-i32.rs"
+
+[[bin]]
+name = "parse-integer-i64"
+path = "fuzz_targets/parse-integer-i64.rs"
+
+[[bin]]
+name = "parse-integer-i128"
+path = "fuzz_targets/parse-integer-i128.rs"
+
+[[bin]]
+name = "parse-integer-isize"
+path = "fuzz_targets/parse-integer-isize.rs"
+
+[[bin]]
+name = "parse-integer-u8"
+path = "fuzz_targets/parse-integer-u8.rs"
+
+[[bin]]
+name = "parse-integer-u16"
+path = "fuzz_targets/parse-integer-u16.rs"
+
+[[bin]]
+name = "parse-integer-u32"
+path = "fuzz_targets/parse-integer-u32.rs"
+
+[[bin]]
+name = "parse-integer-u64"
+path = "fuzz_targets/parse-integer-u64.rs"
+
+[[bin]]
+name = "parse-integer-u128"
+path = "fuzz_targets/parse-integer-u128.rs"
+
+[[bin]]
+name = "parse-integer-usize"
+path = "fuzz_targets/parse-integer-usize.rs"
+
+[[bin]]
+name = "parse-float-f32"
+path = "fuzz_targets/parse-float-f32.rs"
+
+[[bin]]
+name = "parse-float-f64"
+path = "fuzz_targets/parse-float-f64.rs"
+
+[[bin]]
+name = "write-float-f32"
+path = "fuzz_targets/write-float-f32.rs"
+
+[[bin]]
+name = "write-float-f64"
+path = "fuzz_targets/write-float-f64.rs"
+
+[[bin]]
+name = "write-integer-i8"
+path = "fuzz_targets/write-integer-i8.rs"
+
+[[bin]]
+name = "write-integer-i16"
+path = "fuzz_targets/write-integer-i16.rs"
+
+[[bin]]
+name = "write-integer-i32"
+path = "fuzz_targets/write-integer-i32.rs"
+
+[[bin]]
+name = "write-integer-i64"
+path = "fuzz_targets/write-integer-i64.rs"
+
+[[bin]]
+name = "write-integer-i128"
+path = "fuzz_targets/write-integer-i128.rs"
+
+[[bin]]
+name = "write-integer-isize"
+path = "fuzz_targets/write-integer-isize.rs"
+
+[[bin]]
+name = "write-integer-u8"
+path = "fuzz_targets/write-integer-u8.rs"
+
+[[bin]]
+name = "write-integer-u16"
+path = "fuzz_targets/write-integer-u16.rs"
+
+[[bin]]
+name = "write-integer-u32"
+path = "fuzz_targets/write-integer-u32.rs"
+
+[[bin]]
+name = "write-integer-u64"
+path = "fuzz_targets/write-integer-u64.rs"
+
+[[bin]]
+name = "write-integer-u128"
+path = "fuzz_targets/write-integer-u128.rs"
+
+[[bin]]
+name = "write-integer-usize"
+path = "fuzz_targets/write-integer-usize.rs"
