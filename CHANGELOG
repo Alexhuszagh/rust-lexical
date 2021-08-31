@@ -44,6 +44,7 @@ This is a very large release that involved a full re-write from the ground-up.
 - Remove the `parse_format`, `parse_radix`, and similar functions.
 - Removed the `dtoa` feature.
 - Removed the `rounding` feature.
+- Removed the lexical-capi. Existing, high-performance C/C++ libraries exist, so it's no longer practical.
 
 ## [0.7.6] 2021-04-21
 ### Changed
