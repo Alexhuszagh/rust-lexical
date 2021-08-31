@@ -1170,7 +1170,7 @@ macro_rules! divisible_by_pow5 {
         let max_quotients = &Self::$table.max_quotients;
         let mod_inv = unsafe { index_unchecked!(mod_inv[$exp as usize]) };
         let max_quo = unsafe { index_unchecked!(max_quotients[$exp as usize]) };
-        $x.wrapping_mul(mod_inv as u64) <= max_quo as u64
+        $x.wrapping_mul(mod_inv) <= max_quo
     }};
 }
 
@@ -1371,11 +1371,13 @@ impl DragonboxFloat for f32 {
 
     #[inline(always)]
     fn digit_count(mantissa: u64) -> usize {
+        debug_assert!(mantissa <= u32::MAX as u64);
         (mantissa as u32).digit_count()
     }
 
     #[inline(always)]
     unsafe fn write_digits(bytes: &mut [u8], mantissa: u64) -> usize {
+        debug_assert!(mantissa <= u32::MAX as u64);
         let digit_count = Self::digit_count(mantissa);
         unsafe { write_digits_u32(bytes, mantissa as u32, digit_count) }
     }
@@ -1447,6 +1449,8 @@ impl DragonboxFloat for f32 {
 
     #[inline(always)]
     unsafe fn divisible_by_pow5(x: u64, exp: u32) -> bool {
+        debug_assert!(x <= u32::MAX as u64);
+        let x = x as u32;
         divisible_by_pow5!(Self::DIV5_TABLE, x, exp)
     }
 
