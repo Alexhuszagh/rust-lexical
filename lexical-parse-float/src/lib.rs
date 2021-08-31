@@ -59,9 +59,9 @@
 //!
 //! # Design
 //!
-//! - [Algorithm Approach](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-parse-float/docs/Algorithm.md)
-//! - [Benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-parse-float/docs/Benchmarks.md)
-//! - [Big Integer Implementation](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-parse-float/docs/BigInteger.md)
+//! - [Algorithm Approach](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/Algorithm.md)
+//! - [Benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/Benchmarks.md)
+//! - [Big Integer Implementation](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/BigInteger.md)
 
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.

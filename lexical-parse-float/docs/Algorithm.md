@@ -14,7 +14,7 @@ This means we can parse 8 digits in 3 (rather than 7) multiplies, which scales w
 
 Rather than do checked multiplication and additions in each loop, which increases the amount of branching, we can check after if numeric overflow has occurred by checking the number of parsed digits, and the resulting value. In order to check for potential overflow, we use the **maximum** number of digits, or `step` digits, that can always be parsed without overflow, and detect afterwards if we parsed more significant digits than that. In the case of potential overflow, we then re-parse the input string, up until `step` digits, and return the significant digits. By avoiding overflow checking while parsing on the first pass, we get significant performance improvements for common floats, while less common inputs have a trivial amount of additional overhead.
 
-Our algorithm for parsing digits therefore is as follows, where the in-depth discussion of parsing multiple digits can be found in [lexical-parse-integer](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-parse-integer).
+Our algorithm for parsing digits therefore is as follows, where the in-depth discussion of parsing multiple digits can be found in [lexical-parse-integer](https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-parse-integer).
 
 ```rust,ignore
 use lexical_parse_integer::algorithm::try_parse_8digits;

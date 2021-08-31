@@ -237,12 +237,12 @@ let options = lexical::WriteFloatOptions::builder()
 
 Lexical's API reference can be found on [docs.rs](https://docs.rs/lexical), as can [lexical-core's](lexical-core). Detailed descriptions of the algorithms used can be found here:
 
-- [Parsing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-parse-integer/docs/Algorithm.md)
-- [Parsing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-parse-float/docs/Algorithm.md)
-- [Writing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-write-integer/docs/Algorithm.md)
-- [Writing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-write-float/docs/Algorithm.md)
+- [Parsing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-integer/docs/Algorithm.md)
+- [Parsing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/Algorithm.md)
+- [Writing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-integer/docs/Algorithm.md)
+- [Writing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-float/docs/Algorithm.md)
 
-In addition, descriptions of how lexical handles [digit separators](https://github.com/Alexhuszagh/rust-lexical/blob/master/docs/DigitSeparators.md) and implements [big-integer arithmetic](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-parse-float/docs/BigInteger.md) are also documented.
+In addition, descriptions of how lexical handles [digit separators](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/DigitSeparators.md) and implements [big-integer arithmetic](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/BigInteger.md) are also documented.
 
 # Validation
 
@@ -264,44 +264,44 @@ Various benchmarks, binary sizes, and compile times are shown here:
 
 **Build Timings**
 
-The compile-times when building with all numeric conversions enabled. For a more fine-tuned breakdown, see [build timings](https://github.com/Alexhuszagh/rust-lexical/blob/master/docs/BuildTimings.md).
+The compile-times when building with all numeric conversions enabled. For a more fine-tuned breakdown, see [build timings](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/BuildTimings.md).
 
-![Build Timings](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/all.svg)
+![Build Timings](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/all.svg)
 
 **Binary Size**
 
-The binary sizes of stripped binaries compiled at optimization level "2". For a more fine-tuned breakdown, see [binary sizes](https://github.com/Alexhuszagh/rust-lexical/blob/master/docs/BinarySize.md).
+The binary sizes of stripped binaries compiled at optimization level "2". For a more fine-tuned breakdown, see [binary sizes](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/BinarySize.md).
 
-![Parse Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/parse_stripped_opt2.svg)
-![Write Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/assets/write_stripped_opt2.svg)
+![Parse Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/parse_stripped_opt2.svg)
+![Write Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/write_stripped_opt2.svg)
 
 **Benchmarks -- Parse Integer**
 
-A benchmark on randomly-generated integers uniformly distributed over the entire range. For a more fine-tuned breakdown, see [benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-parse-integer/docs/Benchmarks.md).
+A benchmark on randomly-generated integers uniformly distributed over the entire range. For a more fine-tuned breakdown, see [benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-integer/docs/Benchmarks.md).
 
-![Uniform Random Data](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/lexical-parse-integer/assets/random_uniform.svg)
+![Uniform Random Data](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/lexical-parse-integer/assets/random_uniform.svg)
 
 **Benchmarks -- Parse Float**
 
-A benchmark on parsing floats from various real-world data sets. For a more fine-tuned breakdown, see [benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-parse-float/docs/Benchmarks.md).
+A benchmark on parsing floats from various real-world data sets. For a more fine-tuned breakdown, see [benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/Benchmarks.md).
 
-![Real Data](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/lexical-parse-float/assets/real.svg)
+![Real Data](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/lexical-parse-float/assets/real.svg)
 
 **Benchmarks -- Write Integer**
 
-A benchmark on writing random integers uniformly distributed over the entire range. For a more fine-tuned breakdown, see [benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-write-integer/docs/Benchmarks.md).
+A benchmark on writing random integers uniformly distributed over the entire range. For a more fine-tuned breakdown, see [benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-integer/docs/Benchmarks.md).
 
-![Uniform Random Data](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/lexical-write-integer/assets/random_uniform.svg)
+![Uniform Random Data](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/lexical-write-integer/assets/random_uniform.svg)
 
 **Benchmarks -- Write Float**
 
-A benchmark on writing floats generated via a random-number generator and parsed from a JSON document. For a more fine-tuned breakdown, see [benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-write-float/docs/Benchmarks.md).
+A benchmark on writing floats generated via a random-number generator and parsed from a JSON document. For a more fine-tuned breakdown, see [benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-float/docs/Benchmarks.md).
 
-![Random Data](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/master/lexical-write-float/assets/json.svg)
+![Random Data](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/lexical-write-float/assets/json.svg)
 
 # Safety
 
-Due to the use of memory unsafe code in the integer and float writers, we extensively fuzz our float writers and parsers. The fuzz harnesses may be found under [fuzz](https://github.com/Alexhuszagh/rust-lexical/tree/master/fuzz), and are run continuously. So far, we've parsed over 34 billion floats, and written over 17 billion floats.
+Due to the use of memory unsafe code in the integer and float writers, we extensively fuzz our float writers and parsers. The fuzz harnesses may be found under [fuzz](https://github.com/Alexhuszagh/rust-lexical/tree/main/fuzz), and are run continuously. So far, we've parsed over 34 billion floats, and written over 17 billion floats.
 
 Due to the simple logic of the integer writers, and the lack of memory safety in the integer parsers, we minimally fuzz both, and test it with edge-cases, which has shown no memory safety issues to date.
 
@@ -347,7 +347,7 @@ lexical uses [semantic versioning](https://semver.org/). Removing support for Ru
 
 # Changelog
 
-All changes are documented in [CHANGELOG](https://github.com/Alexhuszagh/rust-lexical/blob/master/CHANGELOG).
+All changes are documented in [CHANGELOG](https://github.com/Alexhuszagh/rust-lexical/blob/main/CHANGELOG).
 
 # License
 
@@ -355,6 +355,6 @@ Lexical is dual licensed under the Apache 2.0 license as well as the MIT license
 
 # Contributing
 
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in lexical by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions. Contributing to the repository means abiding by the [code of conduct](https://github.com/Alexhuszagh/rust-lexical/blob/master/CODE_OF_CONDUCT.md).
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in lexical by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions. Contributing to the repository means abiding by the [code of conduct](https://github.com/Alexhuszagh/rust-lexical/blob/main/CODE_OF_CONDUCT.md).
 
-For the process on how to contribute to lexical, see the [development](https://github.com/Alexhuszagh/rust-lexical/blob/master/docs/Development.md) quick-start guide.
+For the process on how to contribute to lexical, see the [development](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/Development.md) quick-start guide.

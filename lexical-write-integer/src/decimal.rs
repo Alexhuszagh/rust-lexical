@@ -8,7 +8,7 @@
 //! See [`Algorithm.md`] for a more detailed description of the algorithm
 //! choice here.
 //!
-//! [`Algorithm.md`]: https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-write-integer/docs/Algorithm.md
+//! [`Algorithm.md`]: https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-integer/docs/Algorithm.md
 
 #![cfg(not(feature = "compact"))]
 #![doc(hidden)]

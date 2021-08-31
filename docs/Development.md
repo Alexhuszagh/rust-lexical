@@ -11,13 +11,13 @@ cargo +nightly test
 
 Lexical is broken up into compact, relatively isolated workspaces to separate functionality based on the numeric conversion, minimizing compile times and simplifying testing feature-dependent code. The workspaces are:
 
-- [lexical-util](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-util): Shared utilities for all workspaces.
-- [lexical-parse-integer](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-parse-integer): Parse integers from string.
-- [lexical-parse-float](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-parse-float): Parse floats from string.
-- [lexical-write-integer](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-write-integer): Write integers to string.
-- [lexical-write-float](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-write-float): Write floats to string.
-- [lexical-core](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical-core): Public API for numeric conversion routines without requiring a system allocator.
-- [lexical](https://github.com/Alexhuszagh/rust-lexical/tree/master/lexical): Public API for numeric conversion routines with a system allocator.
+- [lexical-util](https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-util): Shared utilities for all workspaces.
+- [lexical-parse-integer](https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-parse-integer): Parse integers from string.
+- [lexical-parse-float](https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-parse-float): Parse floats from string.
+- [lexical-write-integer](https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-write-integer): Write integers to string.
+- [lexical-write-float](https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-write-float): Write floats to string.
+- [lexical-core](https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-core): Public API for numeric conversion routines without requiring a system allocator.
+- [lexical](https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical): Public API for numeric conversion routines with a system allocator.
 
 Functionality is generally made **public** to separate the tests from the implementation, although non-documented members is not stable, and any changes to this code is not considered a breaking change. Tests are separated from the actual implementation, and comprehensively test each individual component.
 
@@ -57,19 +57,19 @@ In addition, the following non-Rust dependencies must be installed:
 
 # Development Process
 
-The [scripts](https://github.com/Alexhuszagh/rust-lexical/tree/master/scripts) directory contains numerous scripts for testing, fuzzing, analyzing, and formatting code. Since many development features are nightly-only, this ensures the proper compiler features are used. This requires a recent version of a nightly compiler (1.51.0+) installed via Rustup, which can be invoked as `cargo +nightly`.
+The [scripts](https://github.com/Alexhuszagh/rust-lexical/tree/main/scripts) directory contains numerous scripts for testing, fuzzing, analyzing, and formatting code. Since many development features are nightly-only, this ensures the proper compiler features are used. This requires a recent version of a nightly compiler (1.51.0+) installed via Rustup, which can be invoked as `cargo +nightly`.
 
-- [asm.sh](https://github.com/Alexhuszagh/rust-lexical/blob/master/scripts/asm.sh): Emit assembly for numeric conversion routines, to identify performance regression.
-- [check.sh](https://github.com/Alexhuszagh/rust-lexical/blob/master/scripts/check.sh): Check rustfmt and clippy without formatting any code.
-- [fmt.sh](https://github.com/Alexhuszagh/rust-lexical/blob/master/scripts/fmt.sh): Run `cargo fmt` and `cargo clippy` in all projects and workspaces, on nightly.
-- [fuzz.sh](https://github.com/Alexhuszagh/rust-lexical/blob/master/scripts/fuzz.sh): Run fuzzer for a given target.
-- [hooks.sh](https://github.com/Alexhuszagh/rust-lexical/blob/master/scripts/hooks.sh): Install formatting and lint hooks on commits.
-- [link.sh](https://github.com/Alexhuszagh/rust-lexical/blob/master/scripts/link.sh): Rebuild all symbolic links.
-- [size.py](https://github.com/Alexhuszagh/rust-lexical/blob/master/scripts/size.py): Calculate lexical binary sizes.
-- [test.sh](https://github.com/Alexhuszagh/rust-lexical/blob/master/scripts/test.sh): Run the test suite with Valgrind and Miri.
-- [timings.py](https://github.com/Alexhuszagh/rust-lexical/blob/master/scripts/timings.py): Plot build times.
+- [asm.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/asm.sh): Emit assembly for numeric conversion routines, to identify performance regression.
+- [check.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/check.sh): Check rustfmt and clippy without formatting any code.
+- [fmt.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/fmt.sh): Run `cargo fmt` and `cargo clippy` in all projects and workspaces, on nightly.
+- [fuzz.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/fuzz.sh): Run fuzzer for a given target.
+- [hooks.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/hooks.sh): Install formatting and lint hooks on commits.
+- [link.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/link.sh): Rebuild all symbolic links.
+- [size.py](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/size.py): Calculate lexical binary sizes.
+- [test.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/test.sh): Run the test suite with Valgrind and Miri.
+- [timings.py](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/timings.py): Plot build times.
 
-Please run [fmt.sh](https://github.com/Alexhuszagh/rust-lexical/blob/master/scripts/fmt.sh) before committing any code, ideally by installing the pre-commit hook via [hooks.sh](https://github.com/Alexhuszagh/rust-lexical/blob/master/scripts/hooks.sh).
+Please run [fmt.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/fmt.sh) before committing any code, ideally by installing the pre-commit hook via [hooks.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/hooks.sh).
 
 All PRs must pass the following checks:
 

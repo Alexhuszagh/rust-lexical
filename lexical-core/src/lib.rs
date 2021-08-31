@@ -288,23 +288,23 @@
 //!
 //! # Algorithms
 //!
-//! - [Parsing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-parse-float/docs/Algorithm.md)
-//! - [Parsing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-parse-integer/docs/Algorithm.md)
-//! - [Writing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-write-float/docs/Algorithm.md)
-//! - [Writing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-write-integer/docs/Algorithm.md)
+//! - [Parsing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/Algorithm.md)
+//! - [Parsing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-integer/docs/Algorithm.md)
+//! - [Writing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-float/docs/Algorithm.md)
+//! - [Writing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-integer/docs/Algorithm.md)
 //!
 //! # Benchmarks
 //!
-//! - [Parsing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-parse-float/docs/Benchmarks.md)
-//! - [Parsing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-parse-integer/docs/Benchmarks.md)
-//! - [Writing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-write-float/docs/Benchmarks.md)
-//! - [Writing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/master/lexical-write-integer/docs/Benchmarks.md)
+//! - [Parsing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/Benchmarks.md)
+//! - [Parsing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-integer/docs/Benchmarks.md)
+//! - [Writing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-float/docs/Benchmarks.md)
+//! - [Writing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-integer/docs/Benchmarks.md)
 //!
 //! # Design
 //!
-//! - [Binary Size](https://github.com/Alexhuszagh/rust-lexical/blob/master/docs/BinarySize.md)
-//! - [Build Timings](https://github.com/Alexhuszagh/rust-lexical/blob/master/docs/BuildTimings.md)
-//! - [Digit Separators](https://github.com/Alexhuszagh/rust-lexical/blob/master/docs/DigitSeparators.md)
+//! - [Binary Size](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/BinarySize.md)
+//! - [Build Timings](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/BuildTimings.md)
+//! - [Digit Separators](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/DigitSeparators.md)
 //!
 //! # Version Support
 //!
