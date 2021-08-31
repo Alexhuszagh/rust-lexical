@@ -36,6 +36,7 @@ In order to fully test and develop lexical, a recent, nightly compiler along wit
 - Valgrind
 - Tarpaulin
 - Fuzz
+- Count
 
 These dependencies may be installed via:
 
@@ -47,6 +48,7 @@ rustup +nightly component add miri
 cargo +nightly install valgrind
 cargo +nightly install cargo-tarpaulin
 cargo +nightly install cargo-fuzz
+cargo +nightly install cargo-count
 ```
 
 In addition, the following non-Rust dependencies must be installed:
@@ -69,6 +71,7 @@ The [scripts](https://github.com/Alexhuszagh/rust-lexical/tree/main/scripts) dir
 - [size.py](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/size.py): Calculate lexical binary sizes.
 - [test.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/test.sh): Run the test suite with Valgrind and Miri.
 - [timings.py](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/timings.py): Plot build times.
+- [unsafe.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/unsafe.sh): Count lines of code and metrics of unsafe code usage.
 
 Please run [fmt.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/fmt.sh) before committing any code, ideally by installing the pre-commit hook via [hooks.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/hooks.sh).
 
