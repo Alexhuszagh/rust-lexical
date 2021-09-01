@@ -7,6 +7,7 @@
 '''
 
 import argparse
+import json
 import magic
 import mimetypes
 import subprocess
@@ -65,6 +66,16 @@ def parse_args(argv=None):
         help='''disable default features''',
         action='store_true',
     )
+    parser.add_argument(
+        '--plot',
+        help='''plot graphs''',
+        action='store_true',
+    )
+    parser.add_argument(
+        '--run',
+        help='''generate size data''',
+        action='store_true',
+    )
     return parser.parse_args(argv)
 
 def filename(basename, args):
@@ -108,7 +119,7 @@ def plot_bar(
         ax.set_yscale('log')
         ax.set_xticks(x + width * len(libraries) / 4)
         ax.set_xticklabels(xticks, rotation=-45)
-        ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: filesize(x)))
+        ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: prettyify(x)))
         ax.legend(libraries, fancybox=True, framealpha=1, shadow=True, borderpad=1)
 
     fig = plt.figure(figsize=(10, 8))
@@ -178,7 +189,7 @@ def is_executable(path):
     '''Determine if a file is a binary executable.'''
     return magic.from_file(path, mime=True) == 'application/x-pie-executable'
 
-def filesize(size):
+def prettyify(size):
     '''Get the human readable filesize from bytes.'''
 
     suffixes = ['KB', 'MB', 'GB', 'TB']
@@ -192,6 +203,24 @@ def filesize(size):
 
     return f'{size:0.1f}PB'
 
+def get_file_size(path):
+    '''Read the file size of a given binary.'''
+
+    # Use the size utility, and grep for 2 sections.
+    # We can't use `stat`, or `file`, or any other
+    # utility that isn't aware of padding. We have
+    # 3 sections that matter: .rodata, .text, and .data.
+    #   .text: Compiled code
+    #   .rodata: Read-only data
+    #   .data: Other data (often empty).
+    cmd = ['size', '-A', '-d', path]
+    stdout = subprocess.run(cmd, check=True, stdout=subprocess.PIPE).stdout
+    stdout = stdout.decode('utf-8')
+    lines = [i.strip() for i in stdout.splitlines()[2:] if i.strip()]
+    sections = dict([i.split()[:2] for i in lines])
+
+    return int(sections['.text']) + int(sections['.data']) + int(sections['.rodata'])
+
 def get_sizes(level):
     '''Get the binary sizes for all targets.'''
 
@@ -201,8 +230,7 @@ def get_sizes(level):
     for filename in os.listdir(target):
         path = os.path.join(target, filename)
         if os.path.isfile(path) and is_executable(path):
-            st = os.stat(path)
-            data[filename] = st.st_size
+            data[filename] = get_file_size(path)
 
     empty = data.pop('empty')
 
@@ -223,9 +251,10 @@ def strip(level):
                 stdout=subprocess.DEVNULL,
             )
 
-def print_report(args, data, level):
+def plot_level(args, data, level):
     '''Print markdown-based report for the file sizes.'''
 
+    print(f'Plotting binary sizes for optimization level {level}.')
     def sort_key(x):
         split = x.split('-')
         ctype = split[-1]
@@ -233,7 +262,7 @@ def print_report(args, data, level):
 
     def flatten(lib, key, filter):
         subdata = {k: v for k, v in data[lib][key].items() if filter in k}
-        return {f'{lib}_{k.split("-")[2]}': v for k, v in data[lib][key].items()}
+        return {f'{lib}_{k.split("-")[2]}': v for k, v in subdata.items()}
 
     # Create the bar graphs
     assets = f'{home}/assets'
@@ -290,23 +319,10 @@ def print_report(args, data, level):
         title=f'Write Stripped Data -- Optimization Level "{level}"',
     )
 
-    # Print the report
-    print(f'**Optimization Level "{level}"**')
-    print('')
-    print(f'|Function|Size Lexical|Size Lexical (stripped)|Size Core|Size Core (stripped)|')
-    print(f'|:-:|:-:|:-:|:-:|:-:|')
-    keys = sorted(data['core']['stripped'], key=sort_key)
-    for key in keys:
-        uc = filesize(data['core']['unstripped'][key])
-        sc = filesize(data['core']['stripped'][key])
-        ul = filesize(data['lexical']['unstripped'][key])
-        sl = filesize(data['lexical']['stripped'][key])
-        print(f'|{key}|{ul}|{sl}|{uc}|{sc}|')
-    print('', flush=True)
-
-def generate_size_data(args, level, is_lexical):
+def run_level(args, level, is_lexical):
     '''Generate the size data for a given build configuration.'''
 
+    print(f'Calculating binary sizes for optimization level {level}.')
     write_manifest(level)
     clean()
     build(args, level, is_lexical)
@@ -319,16 +335,41 @@ def generate_size_data(args, level, is_lexical):
         'stripped': stripped,
     }
 
-def main(argv=None):
-    '''Entry point.'''
+def run(args):
+    '''Run the size calculations.'''
 
-    args = parse_args(argv)
+    assets = f'{home}/assets'
     opt_levels = args.opt_levels.split(',')
     for level in opt_levels:
         data = {}
-        data['core'] = generate_size_data(args, level, False)
-        data['lexical'] = generate_size_data(args, level, True)
-        print_report(args, data, level)
+        data['core'] = run_level(args, level, False)
+        data['lexical'] = run_level(args, level, True)
+        file = filename(f'parse{level}', args)
+        with open(f'{assets}/{file}.json', 'w') as file:
+            json.dump(data, file)
+
+def plot(args):
+    '''Plot the size calculations.'''
+
+    assets = f'{home}/assets'
+    opt_levels = args.opt_levels.split(',')
+    for level in opt_levels:
+        file = filename(f'parse{level}', args)
+        with open(f'{assets}/{file}.json', 'r') as file:
+            data = json.load(file)
+        plot_level(args, data, level)
+
+def main(argv=None):
+    '''Entry point.'''
+
+    if os.name != 'posix':
+        raise NotImplementedError('Currently only supported on POSIX.')
+
+    args = parse_args(argv)
+    if args.run:
+        run(args)
+    if args.plot:
+        plot(args)
 
 if __name__ == '__main__':
     main()
