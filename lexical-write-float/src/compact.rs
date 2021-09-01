@@ -538,7 +538,7 @@ pub fn mul(x: &ExtendedFloat80, y: &ExtendedFloat80) -> ExtendedFloat80 {
 
     ExtendedFloat80 {
         mant: x1_y1 + (x1_y0 >> 32) + (x0_y1 >> 32) + (tmp >> 32),
-        exp: x.exp + y.exp + u64::BITS as i32,
+        exp: x.exp + y.exp + 64,
     }
 }
 
