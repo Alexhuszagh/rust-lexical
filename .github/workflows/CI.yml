@@ -58,7 +58,7 @@ jobs:
         with:
           use-cross: true
           command: test
-          args: --target ${{matrix.target}} --all-features
+          args: --target ${{matrix.target}} --features=radix,format,compact
 
   notest:
     name: Rust ${{matrix.target}}
@@ -88,16 +88,6 @@ jobs:
           use-cross: true
           command: check
           args: --target ${{matrix.target}}
-      - uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: test
-          args: --target ${{matrix.target}}
-      - uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: test
-          args: --target ${{matrix.target}} --all-features
 
   features:
     name: Test Feature Combinations

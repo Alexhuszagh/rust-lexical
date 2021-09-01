@@ -23,7 +23,7 @@ jobs:
           toolchain: ${{matrix.rust}}
       - run: cargo check
       - run: cargo test
-      - run: cargo test --all-features
+      - run: cargo test --features=radix,format,compact
 
   check:
     name: Lint code
