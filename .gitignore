@@ -26,6 +26,7 @@ cobertura.xml
 
 # Custom files for annotating x86 regressions/improvements.
 *.asm
+lexical-size/Cargo.toml
 
 # Fuzzing data
 corpus/
