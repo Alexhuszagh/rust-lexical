@@ -84,7 +84,7 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     options: &Options,
 ) -> usize {
     // Config options.
-    debug_assert_eq!(count_factors_u64(10, fp.mant), 0);
+    debug_assert_eq!(count_factors(10, fp.mant), 0);
     let format = NumberFormat::<{ FORMAT }> {};
     assert!(format.is_valid());
     let decimal_point = options.decimal_point();
@@ -150,7 +150,7 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
     options: &Options,
 ) -> usize {
     debug_assert!(sci_exp < 0);
-    debug_assert_eq!(count_factors_u64(10, fp.mant), 0);
+    debug_assert_eq!(count_factors(10, fp.mant), 0);
 
     // Config options.
     let decimal_point = options.decimal_point();
@@ -242,7 +242,7 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
 ) -> usize {
     // Config options.
     debug_assert!(sci_exp >= 0);
-    debug_assert_eq!(count_factors_u64(10, fp.mant), 0);
+    debug_assert_eq!(count_factors(10, fp.mant), 0);
     let decimal_point = options.decimal_point();
 
     // Write out our significant digits.
@@ -770,7 +770,7 @@ pub const fn is_endpoint(exponent: i32, lower: i32, upper: i32) -> bool {
 #[inline(always)]
 pub fn is_right_endpoint<F: Float>(exponent: i32) -> bool {
     let lower_threshold = 0;
-    let factors = count_factors(5, (1 << (F::MANTISSA_SIZE + 1)) + 1) + 1;
+    let factors = count_factors(5, (1u64 << (F::MANTISSA_SIZE + 1)) + 1) + 1;
     let upper_threshold = 2 + floor_log2(pow64(10, factors) / 3);
     is_endpoint(exponent, lower_threshold, upper_threshold)
 }
@@ -778,7 +778,7 @@ pub fn is_right_endpoint<F: Float>(exponent: i32) -> bool {
 #[inline(always)]
 pub fn is_left_endpoint<F: Float>(exponent: i32) -> bool {
     let lower_threshold = 2;
-    let factors = count_factors(5, (1 << (F::MANTISSA_SIZE + 2)) - 1) + 1;
+    let factors = count_factors(5, (1u64 << (F::MANTISSA_SIZE + 2)) - 1) + 1;
     let upper_threshold = 2 + floor_log2(pow64(10, factors) / 3);
     is_endpoint(exponent, lower_threshold, upper_threshold)
 }
@@ -892,18 +892,7 @@ pub const fn pow64(radix: u32, mut exp: u32) -> u64 {
 
 /// Counter the number of powers of radix are in `n`.
 #[inline(always)]
-pub const fn count_factors(radix: usize, mut n: usize) -> u32 {
-    let mut c = 0;
-    while n != 0 && n % radix == 0 {
-        n /= radix;
-        c += 1;
-    }
-    c
-}
-
-/// Counter the number of powers of radix are in `n`.
-#[inline(always)]
-pub const fn count_factors_u64(radix: u32, mut n: u64) -> u32 {
+pub const fn count_factors(radix: u32, mut n: u64) -> u32 {
     let mut c = 0;
     while n != 0 && n % radix as u64 == 0 {
         n /= radix as u64;

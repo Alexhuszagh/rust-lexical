@@ -11,7 +11,7 @@ The entire list of dependencies required is:
   - Clippy (`rustup component add clippy --toolchain nightly`)
   - Fmt (`rustup component add rustfmt --toolchain nightly`)
   - Miri (`rustup +nightly component add miri`)
-  - Valgrind (`cargo +nightly install valgrind`)
+  - Valgrind (`cargo +nightly install cargo-valgrind`)
   - Tarpaulin (`cargo +nightly install cargo-tarpaulin`)
   - Fuzz (`cargo +nightly install cargo-fuzz`)
   - Count (`cargo +nightly install cargo-count`)

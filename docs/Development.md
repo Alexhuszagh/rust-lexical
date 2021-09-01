@@ -45,7 +45,7 @@ rustup toolchain install nightly
 rustup +nightly component add clippy
 rustup +nightly component add rustfmt
 rustup +nightly component add miri
-cargo +nightly install valgrind
+cargo +nightly install cargo-valgrind
 cargo +nightly install cargo-tarpaulin
 cargo +nightly install cargo-fuzz
 cargo +nightly install cargo-count

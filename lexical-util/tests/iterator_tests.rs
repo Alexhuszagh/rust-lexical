@@ -21,7 +21,7 @@ fn digits_iterator_test() {
     assert_eq!(iter.as_ptr(), digits.as_ptr());
     assert_eq!(iter.is_consumed(), false);
     assert_eq!(iter.is_done(), false);
-    assert_eq!(iter.read::<u32>().unwrap(), 0x34333231);
+    assert_eq!(u32::from_le(iter.read::<u32>().unwrap()), 0x34333231);
     assert_eq!(iter.length(), 5);
     assert_eq!(iter.cursor(), 0);
     assert_eq!(iter.current_count(), 0);

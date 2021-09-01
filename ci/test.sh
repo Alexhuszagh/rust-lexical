@@ -3,24 +3,12 @@
 
 set -ex
 
+# Change to our project home.
+script_dir=`dirname "${BASH_SOURCE[0]}"`
+cd "$script_dir"/..
+
 # Print our cargo version, for debugging.
 cargo --version
-
-# Detect our build command. If we enabled cross, default to
-# that. Otherwise, only use cross if we are on CI and did
-# not explicitly disable it.
-if [ ! -z $ENABLE_CROSS ]; then
-    # Specifically enabled cross.
-    CARGO=cross
-    CARGO_TARGET="--target $TARGET"
-elif [ -z $CI ] || [ ! -z $DISABLE_CROSS ]; then
-    # Explicitly disabled cross, use cargo.
-    CARGO=cargo
-else
-    # On CI, did not disable cross, use cross.
-    CARGO=cross
-    CARGO_TARGET="--target $TARGET"
-fi
 
 # Force default tests to disable default feature on NO_STD.
 if [ ! -z $NO_STD ]; then
@@ -50,30 +38,30 @@ check() {
     # Need to test a few permutations just to ensure everything compiles.
     for features in "${FEATURES[@]}"; do
         check_features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES,$features"
-        $CARGO check $CARGO_TARGET --tests $check_features
+        cargo check --tests $check_features
     done
+
+    # Check each of our sub-crates compiles.
+    cd lexical-parse-float
+    cargo check --tests $check_features
+
+    cd ../lexical-parse-integer
+    cargo check --tests $check_features
+
+    cd ../lexical-write-float
+    cargo check --tests $check_features
+
+    cd ../lexical-write-integer
+    cargo check --tests $check_features
+
+    cd ..
 }
 
 # Build target.
 build() {
     build_features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
-    $CARGO build $CARGO_TARGET $build_features
-    $CARGO build $CARGO_TARGET $build_features --release
-
-    # Check each of our sub-crates compiles.
-    cd lexical-parse-float
-    $CARGO build $CARGO_TARGET
-
-    cd ../lexical-parse-integer
-    $CARGO build $CARGO_TARGET
-
-    cd ../lexical-write-float
-    $CARGO build $CARGO_TARGET
-
-    cd ../lexical-write-integer
-    $CARGO build $CARGO_TARGET
-
-    cd ..
+    cargo build $build_features
+    cargo build $build_features --release
 }
 
 # Test target.
@@ -87,18 +75,8 @@ test() {
 
     # Default tests.
     test_features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
-    $CARGO test $CARGO_TARGET $test_features $DOCTESTS
-    $CARGO test $CARGO_TARGET $test_features $DOCTESTS --release
-
-    if [ ! -z $NO_FEATURES ]; then
-        return
-    fi
-
-    # Iterate over special features.
-    for features in "${FEATURES[@]}"; do
-        test_features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES,$features"
-        $CARGO test $CARGO_TARGET $test_features $DOCTESTS
-    done
+    cargo test $test_features $DOCTESTS
+    cargo test $test_features $DOCTESTS --release
 }
 
 # Dry-run bench target
@@ -117,8 +95,10 @@ bench() {
         return
     fi
 
+    cd lexical-benchmark
     bench_features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
-    $CARGO test $CARGO_TARGET $bench_features --bench '*'
+    cargo test $bench_features --bench '*'
+    cd ..
 }
 
 main() {
@@ -128,13 +108,9 @@ main() {
     bench
 
     if [ ! -z $NIGHTLY ]; then
-        rustup toolchain install nightly
         scripts/check.sh
         RUSTFLAGS="--deny warnings" cargo +nightly build --features=lint
     fi
 }
 
-# we don't run the "test phase" when doing deploys
-if [ -z $TRAVIS_TAG ]; then
-    main
-fi
+main
