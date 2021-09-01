@@ -87,7 +87,7 @@ macro_rules! test_radix {
 
         let write_options = WriteFloatOptions::builder().exponent(b'^').build().unwrap();
         let parse_options = ParseFloatOptions::builder().exponent(b'^').build().unwrap();
-        for float in $data {
+        for &float in $data.iter() {
             let data = float.to_lexical_with_options::<FORMAT>(&mut $buffer, &write_options);
             let roundtrip = $f::from_lexical_with_options::<FORMAT>(data, &parse_options).unwrap();
             assert_relative_eq!(float, roundtrip, epsilon = 1e-6, max_relative = 3e-6);

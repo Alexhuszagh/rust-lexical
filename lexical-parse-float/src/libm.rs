@@ -4,6 +4,9 @@
 //! libm can be found online [here](https://github.com/rust-lang/libm),
 //! and is similarly licensed under an Apache2.0/MIT license
 
+#![cfg(all(not(feature = "std"), feature = "compact"))]
+#![doc(hidden)]
+
 /* origin: FreeBSD /usr/src/lib/msun/src/e_powf.c */
 /*
  * Conversion to float by Ian Lance Taylor, Cygnus Support, ian@cygnus.com.
@@ -18,9 +21,6 @@
  * is preserved.
  * ====================================================
  */
-
-#![cfg(all(not(feature = "std"), feature = "compact"))]
-#![doc(hidden)]
 
 /// # Safety
 ///

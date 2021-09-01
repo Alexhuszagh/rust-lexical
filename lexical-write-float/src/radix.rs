@@ -166,12 +166,17 @@ where
         }
     }
 
-    // Write our exponent.
-    let sci_exp = if float == F::ZERO {
-        0
-    } else {
-        naive_exponent(float, format.radix())
-    };
+    // Get our exponent.
+    // We can't use a naive float log algorithm, since rounding issues can
+    // cause major issues. For example, `12157665459056928801f64` is `3^40`,
+    // but glibc gives us (f.ln() / 3.0.ln()) of `39.999`, while Android, and
+    // MUSL libm, and openlibm give us `40.0`, the correct answer. This of
+    // course means we have off-by-1 errors, so the correct way is to trim
+    // leading zeros, and then calculate the exponent as the offset.
+    // SAFETY: safe since both `integer_cursor` and `fraction_cursor` within bounds.
+    let digits = unsafe { &index_unchecked!(buffer[integer_cursor..fraction_cursor]) };
+    let zero_count = ltrim_char_count(digits, b'0');
+    let sci_exp: i32 = initial_cursor as i32 - integer_cursor as i32 - zero_count as i32 - 1;
     write_float!(
         FORMAT,
         sci_exp,
@@ -506,20 +511,4 @@ pub unsafe fn truncate_and_round(
         }
         (max_digits, false)
     }
-}
-
-// MATH
-// ----
-
-/// Calculate the naive exponent from a minimal value.
-///
-/// Don't export this for float, since it's specialized for radix.
-#[inline]
-fn naive_exponent<F: Float>(float: F, radix: u32) -> i32 {
-    // floor returns the minimal value, which is our
-    // desired exponent
-    // ln(1.1e-5) -> -4.95 -> -5
-    // ln(1.1e5) -> -5.04 -> 5
-    debug_assert!(float != F::ZERO);
-    (float.ln() / F::as_cast(radix).ln()).floor().as_i32()
 }

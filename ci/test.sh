@@ -43,16 +43,16 @@ check() {
 
     # Check each of our sub-crates compiles.
     cd lexical-parse-float
-    cargo check --tests $check_features
+    cargo check --tests
 
     cd ../lexical-parse-integer
-    cargo check --tests $check_features
+    cargo check --tests
 
     cd ../lexical-write-float
-    cargo check --tests $check_features
+    cargo check --tests
 
     cd ../lexical-write-integer
-    cargo check --tests $check_features
+    cargo check --tests
 
     cd ..
 }

@@ -37,8 +37,13 @@ fn simple_test() {
 
     assert_eq!(x.leading_zeros(), LIMB_BITS as u32 - 25);
 
+    // y has a 0 for 32-bit limbs, no 0s for 64-bit limbs.
     x *= &y;
-    let expected = vec_from_u32(&[0, 0, 0, 0, 9765625]);
+    let expected = if LIMB_BITS == 32 {
+        vec_from_u32(&[0, 0, 0, 9765625])
+    } else {
+        vec_from_u32(&[0, 0, 0, 0, 9765625])
+    };
     assert!(x.data == expected, "failed");
     assert_eq!(x.exp, -53);
 }
