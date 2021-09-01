@@ -2,16 +2,14 @@
 // Modified 2021 Alex Huszagh
 // Distributed under an Apache2.0/Boost license.
 
-use clap::{AppSettings, Clap};
+mod opts;
+mod roundtrip;
+
+use clap::Clap;
 use lexical_write_float::float::RawFloat;
 use lexical_write_float::{BUFFER_SIZE, ToLexical};
-
-#[derive(Clap)]
-#[clap(setting = AppSettings::ColoredHelp)]
-struct Opts {
-    #[clap(short, long, default_value = "10000000")]
-    iterations: usize,
-}
+use opts::Opts;
+use roundtrip::roundtrip;
 
 trait FloatRng: RawFloat {
     fn uniform() -> Self;
@@ -82,17 +80,7 @@ macro_rules! random {
             let mut buffer = [b'0'; BUFFER_SIZE];
             for _ in 0..=count {
                 let float = F::$cb();
-                let bytes = float.to_lexical(&mut buffer);
-                let string = unsafe { std::str::from_utf8_unchecked(bytes) };
-                let roundtrip = string.parse::<F>().map_err(|_| float.to_string())?;
-                let is_equal = if float.is_nan() {
-                    roundtrip.is_nan()
-                } else {
-                    float == roundtrip
-                };
-                if !is_equal {
-                    return Err(float.to_string())
-                }
+                roundtrip(float, &mut buffer)?;
             }
             Ok(())
         }

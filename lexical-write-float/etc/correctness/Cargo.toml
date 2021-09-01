@@ -36,3 +36,7 @@ path = "dragonbox/shorter_interval.rs"
 [[bin]]
 name = "random"
 path = "dragonbox/random.rs"
+
+[[bin]]
+name = "simple_random"
+path = "dragonbox/simple_random.rs"

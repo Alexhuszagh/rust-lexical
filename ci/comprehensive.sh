@@ -26,3 +26,4 @@ cd "$script_home"/..
 cd lexical-write-float/etc/correctness
 cargo run $FEATURES --release --bin shorter_interval
 cargo run $FEATURES --release --bin random
+cargo run $FEATURES --release --bin simple_random  -- --iterations 1000000
