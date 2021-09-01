@@ -13,9 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          # iOS
-          - aarch64-apple-ios
-          - x86_64-apple-ios
+          # iOS targets don't work, since rust-embedded doesn't provide images.
           - x86_64-apple-darwin
 
     steps:
