@@ -50,9 +50,19 @@ pub fn bellerophon<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -
         exp: F::INFINITE_POWER,
     };
 
+    // Early short-circuit, in case of literal 0 or infinity.
+    // This allows us to avoid narrow casts causing numeric overflow,
+    // and is a quick check for any radix.
+    if num.mantissa == 0 || num.exponent <= -0x1000 {
+        return fp_zero;
+    } else if num.exponent >= 0x1000 {
+        return fp_inf;
+    }
+
     // Calculate our indexes for our extended-precision multiplication.
     let powers = bellerophon_powers(format.radix());
-    let exponent = (num.exponent as i32).saturating_add(powers.bias);
+    // This narrowing cast is safe, since exponent must be in a valid range.
+    let exponent = num.exponent as i32 + powers.bias;
     let small_index = exponent % powers.step;
     let large_index = exponent / powers.step;
 
