@@ -1,0 +1,23 @@
+name: Comprehensive
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  comprehensive:
+    name: Comprehensive Correctness Tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            override: true
+            components: rustfmt, clippy
+      - run: ci/comprehensive.sh
+      - run: ALL_FEATURES=1 ci/comprehensive.sh

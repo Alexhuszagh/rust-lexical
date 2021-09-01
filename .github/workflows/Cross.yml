@@ -1,4 +1,4 @@
-name: CI
+name: Cross
 
 on:
   pull_request:
@@ -88,52 +88,3 @@ jobs:
           use-cross: true
           command: check
           args: --target ${{matrix.target}}
-
-  features:
-    name: Test Feature Combinations
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install latest nightly
-        uses: actions-rs/toolchain@v1
-        with:
-            toolchain: nightly
-            override: true
-            components: rustfmt, clippy
-      - run: ci/test.sh
-      - run: NIGHTLY=1 NO_STD=1 ci/test.sh
-
-  comprehensive:
-    name: Comprehensive Correctness Tests
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install latest nightly
-        uses: actions-rs/toolchain@v1
-        with:
-            toolchain: nightly
-            override: true
-            components: rustfmt, clippy
-      - run: ci/comprehensive.sh
-      - run: ALL_FEATURES=1 ci/comprehensive.sh
-
-  valgrind:
-    name: Valgrind Tests
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install latest nightly
-        uses: actions-rs/toolchain@v1
-        with:
-            toolchain: nightly
-            override: true
-      - run: sudo apt-get install valgrind
-      - run: cargo +nightly install cargo-valgrind
-      - run: cargo +nightly valgrind test --release
-      - run: cargo +nightly valgrind test --all-features --release
