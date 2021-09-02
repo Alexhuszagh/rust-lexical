@@ -8,8 +8,8 @@ use lexical_util::format;
 use lexical_util::format::NumberFormatBuilder;
 use lexical_util::format::STANDARD;
 use lexical_util::num::Float;
-use quickcheck::quickcheck;
 use proptest::prelude::*;
+use quickcheck::quickcheck;
 
 #[test]
 fn special_bytes_test() {
@@ -147,12 +147,31 @@ fn f32_radix_test() {
     assert_eq!(1234.0, f32::from_lexical_with_options::<BASE36>(b"YA", &options).unwrap());
 
     const BASE21: u128 = NumberFormatBuilder::from_radix(21);
-    assert_eq!(2879628700000000000000000.0, f32::from_lexical_with_options::<BASE21>(b"4.BHJ97^I", &options).unwrap());
-    assert_eq!(48205230000000000000000000000000000000.0, f32::from_lexical_with_options::<BASE21>(b"4.C4407^17", &options).unwrap());
-    assert_eq!(105861930000000000000000000000000000000.0, f32::from_lexical_with_options::<BASE21>(b"A.15A^17", &options).unwrap());
-    assert_eq!(63900540000000000000000000000000000000.0, f32::from_lexical_with_options::<BASE21>(b"6.1AK^17", &options).unwrap());
-    assert_eq!(48205210000000000000000000000000000000.0, f32::from_lexical_with_options::<BASE21>(b"4.C44^17", &options).unwrap());
-    assert_eq!(48205230000000000000000000000000000000.0, f32::from_lexical_with_options::<BASE21>(b"4C440700000000000000000000000.0", &options).unwrap());
+    assert_eq!(
+        2879628700000000000000000.0,
+        f32::from_lexical_with_options::<BASE21>(b"4.BHJ97^I", &options).unwrap()
+    );
+    assert_eq!(
+        48205230000000000000000000000000000000.0,
+        f32::from_lexical_with_options::<BASE21>(b"4.C4407^17", &options).unwrap()
+    );
+    assert_eq!(
+        105861930000000000000000000000000000000.0,
+        f32::from_lexical_with_options::<BASE21>(b"A.15A^17", &options).unwrap()
+    );
+    assert_eq!(
+        63900540000000000000000000000000000000.0,
+        f32::from_lexical_with_options::<BASE21>(b"6.1AK^17", &options).unwrap()
+    );
+    assert_eq!(
+        48205210000000000000000000000000000000.0,
+        f32::from_lexical_with_options::<BASE21>(b"4.C44^17", &options).unwrap()
+    );
+    assert_eq!(
+        48205230000000000000000000000000000000.0,
+        f32::from_lexical_with_options::<BASE21>(b"4C440700000000000000000000000.0", &options)
+            .unwrap()
+    );
 }
 
 #[test]

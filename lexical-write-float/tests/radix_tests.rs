@@ -305,12 +305,12 @@ fn base21_test() {
     let f = 2879632400000000000000000.0f32;
     let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
     let roundtrip = parse_f32(&buffer[..count], 21, b'^');
-    assert_relative_eq!(f, roundtrip, epsilon=1e-5, max_relative=1e-5);
+    assert_relative_eq!(f, roundtrip, epsilon = 1e-5, max_relative = 1e-5);
 
     let f = 48205284000000000000000000000000000000.0f32;
     let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
     let roundtrip = parse_f32(&buffer[..count], 21, b'^');
-    assert_relative_eq!(f, roundtrip, epsilon=1e-5, max_relative=1e-5);
+    assert_relative_eq!(f, roundtrip, epsilon = 1e-5, max_relative = 1e-5);
 
     let options = Options::builder()
         .exponent(b'^')
@@ -320,12 +320,12 @@ fn base21_test() {
     let f = 105861640000000000000000000000000000000.0f32;
     let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
     let roundtrip = parse_f32(&buffer[..count], 21, b'^');
-    assert_relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+    assert_relative_eq!(f, roundtrip, epsilon = 1e-1, max_relative = 1e-1);
 
     let f = 63900220000000000000000000000000000000.0f32;
     let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
     let roundtrip = parse_f32(&buffer[..count], 21, b'^');
-    assert_relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+    assert_relative_eq!(f, roundtrip, epsilon = 1e-1, max_relative = 1e-1);
 
     let f = 48205284000000000000000000000000000000.0f32;
     let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
@@ -334,7 +334,7 @@ fn base21_test() {
     let options = Options::builder()
         .min_significant_digits(num::NonZeroUsize::new(15))
         .positive_exponent_break(num::NonZeroI32::new(0x1000))
-            .negative_exponent_break(num::NonZeroI32::new(-0x1000))
+        .negative_exponent_break(num::NonZeroI32::new(-0x1000))
         .build()
         .unwrap();
     let f = 48205284000000000000000000000000000000.0f32;
@@ -348,9 +348,15 @@ fn base21_test() {
 //      should be inf, or F::MAX, but we can't guarantee it, so just skip them.
 
 macro_rules! is_overflow {
-    ($f:ident, $max:literal, $min:literal) => ($f.is_special() || $f >= $max || $f <= $min);
-    (@f32 $f:ident) => (is_overflow!($f, 3e38, -3e38));
-    (@f64 $f:ident) => (is_overflow!($f, 1.5e308, -1.5e308));
+    ($f:ident, $max:literal, $min:literal) => {
+        $f.is_special() || $f >= $max || $f <= $min
+    };
+    (@f32 $f:ident) => {
+        is_overflow!($f, 3e38, -3e38)
+    };
+    (@f64 $f:ident) => {
+        is_overflow!($f, 1.5e308, -1.5e308)
+    };
 }
 
 quickcheck! {
