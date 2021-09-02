@@ -16,6 +16,7 @@ use quickcheck::quickcheck;
 
 const BASE3: u128 = NumberFormatBuilder::from_radix(3);
 const BASE5: u128 = NumberFormatBuilder::from_radix(5);
+const BASE21: u128 = NumberFormatBuilder::from_radix(21);
 
 const F32_DATA: [f32; 31] = [
     0.,
@@ -297,17 +298,67 @@ fn f64_radix_roundtrip_test() {
     }
 }
 
+#[test]
+fn base21_test() {
+    let mut buffer = [b'\x00'; 512];
+    let options = Options::builder().exponent(b'^').build().unwrap();
+    let f = 2879632400000000000000000.0f32;
+    let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+    let roundtrip = parse_f32(&buffer[..count], 21, b'^');
+    assert_relative_eq!(f, roundtrip, epsilon=1e-5, max_relative=1e-5);
+
+    let f = 48205284000000000000000000000000000000.0f32;
+    let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+    let roundtrip = parse_f32(&buffer[..count], 21, b'^');
+    assert_relative_eq!(f, roundtrip, epsilon=1e-5, max_relative=1e-5);
+
+    let options = Options::builder()
+        .exponent(b'^')
+        .max_significant_digits(num::NonZeroUsize::new(4))
+        .build()
+        .unwrap();
+    let f = 105861640000000000000000000000000000000.0f32;
+    let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+    let roundtrip = parse_f32(&buffer[..count], 21, b'^');
+    assert_relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+
+    let f = 63900220000000000000000000000000000000.0f32;
+    let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+    let roundtrip = parse_f32(&buffer[..count], 21, b'^');
+    assert_relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+
+    let f = 48205284000000000000000000000000000000.0f32;
+    let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+    assert_eq!(b"4.C44^17", &buffer[..count]);
+
+    let options = Options::builder()
+        .min_significant_digits(num::NonZeroUsize::new(15))
+        .positive_exponent_break(num::NonZeroI32::new(0x1000))
+            .negative_exponent_break(num::NonZeroI32::new(-0x1000))
+        .build()
+        .unwrap();
+    let f = 48205284000000000000000000000000000000.0f32;
+    let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+    assert_eq!(b"4C440700000000000000000000000.0", &buffer[..count]);
+}
+
 //  NOTE:
 //      Due to how we round-up by default, for min or max values, the output
 //      frequently rounds up to infinity, meaning we can't roundtrip. These
 //      should be inf, or F::MAX, but we can't guarantee it, so just skip them.
+
+macro_rules! is_overflow {
+    ($f:ident, $max:literal, $min:literal) => ($f.is_special() || $f >= $max || $f <= $min);
+    (@f32 $f:ident) => (is_overflow!($f, 3e38, -3e38));
+    (@f64 $f:ident) => (is_overflow!($f, 1.5e308, -1.5e308));
+}
 
 quickcheck! {
     #[cfg_attr(miri, ignore)]
     fn f32_base3_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
-        if f.is_special() || f == f32::MAX || f == f32::MIN {
+        if is_overflow!(@f32 f) {
             true
         } else {
             let f = f.abs();
@@ -321,7 +372,7 @@ quickcheck! {
     fn f32_base5_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
-        if f.is_special() || f == f32::MAX || f == f32::MIN {
+        if is_overflow!(@f32 f) {
             true
         } else {
             let f = f.abs();
@@ -332,10 +383,24 @@ quickcheck! {
     }
 
     #[cfg_attr(miri, ignore)]
+    fn f32_base21_quickcheck(f: f32) -> bool {
+        let mut buffer = [b'\x00'; BUFFER_SIZE];
+        let options = Options::builder().exponent(b'^').build().unwrap();
+        if is_overflow!(@f32 f) {
+            true
+        } else {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 21, b'^');
+            relative_eq!(f, roundtrip, epsilon=1e-5, max_relative=1e-5)
+        }
+    }
+
+    #[cfg_attr(miri, ignore)]
     fn f64_base3_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
-        if f.is_special() || f == f64::MAX || f == f64::MIN {
+        if is_overflow!(@f64 f) {
             true
         } else {
             let f = f.abs();
@@ -349,12 +414,26 @@ quickcheck! {
     fn f64_base5_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
-        if f.is_special() || f == f64::MAX || f == f64::MIN {
+        if is_overflow!(@f64 f) {
             true
         } else {
             let f = f.abs();
             let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
             let roundtrip = parse_f64(&buffer[..count], 5, b'e');
+            relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
+        }
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f64_base21_quickcheck(f: f64) -> bool {
+        let mut buffer = [b'\x00'; BUFFER_SIZE];
+        let options = Options::builder().exponent(b'^').build().unwrap();
+        if is_overflow!(@f64 f) {
+            true
+        } else {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 21, b'^');
             relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6)
         }
     }
@@ -366,7 +445,7 @@ proptest! {
     fn f32_base3_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
-        if !(f.is_special() || f == f32::MAX || f == f32::MIN) {
+        if !(is_overflow!(@f32 f)) {
             let f = f.abs();
             let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
             let roundtrip = parse_f32(&buffer[..count], 3, b'e');
@@ -380,7 +459,7 @@ proptest! {
     fn f32_base5_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
-        if !(f.is_special() || f == f32::MAX || f == f32::MIN) {
+        if !(is_overflow!(@f32 f)) {
             let f = f.abs();
             let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
             let roundtrip = parse_f32(&buffer[..count], 5, b'e');
@@ -391,10 +470,244 @@ proptest! {
 
     #[test]
     #[cfg_attr(miri, ignore)]
+    fn f32_base21_proptest(f in f32::MIN..f32::MAX) {
+        let mut buffer = [b'\x00'; BUFFER_SIZE];
+        let options = Options::builder().exponent(b'^').build().unwrap();
+        if !(is_overflow!(@f32 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 21, b'^');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-5, max_relative=1e-5);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f32_base3_short_proptest(f in f32::MIN..f32::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .max_significant_digits(num::NonZeroUsize::new(4))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f32 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 3, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f32_base5_short_proptest(f in f32::MIN..f32::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .max_significant_digits(num::NonZeroUsize::new(4))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f32 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 5, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f32_base21_short_proptest(f in f32::MIN..f32::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .exponent(b'^')
+            .max_significant_digits(num::NonZeroUsize::new(4))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f32 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 21, b'^');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f32_base3_long_proptest(f in f32::MIN..f32::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .min_significant_digits(num::NonZeroUsize::new(15))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f32 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 3, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f32_base5_long_proptest(f in f32::MIN..f32::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .min_significant_digits(num::NonZeroUsize::new(15))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f32 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 5, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f32_base21_long_proptest(f in f32::MIN..f32::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .exponent(b'^')
+            .min_significant_digits(num::NonZeroUsize::new(15))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f32 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 21, b'^');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f32_base3_short_exponent_proptest(f in f32::MIN..f32::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .max_significant_digits(num::NonZeroUsize::new(4))
+            .positive_exponent_break(num::NonZeroI32::new(1))
+            .negative_exponent_break(num::NonZeroI32::new(-1))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f32 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 3, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f32_base5_short_exponent_proptest(f in f32::MIN..f32::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .max_significant_digits(num::NonZeroUsize::new(4))
+            .positive_exponent_break(num::NonZeroI32::new(1))
+            .negative_exponent_break(num::NonZeroI32::new(-1))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f32 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 5, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f32_base21_short_exponent_proptest(f in f32::MIN..f32::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .exponent(b'^')
+            .max_significant_digits(num::NonZeroUsize::new(4))
+            .positive_exponent_break(num::NonZeroI32::new(1))
+            .negative_exponent_break(num::NonZeroI32::new(-1))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f32 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 21, b'^');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f32_base3_long_exponent_proptest(f in f32::MIN..f32::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .min_significant_digits(num::NonZeroUsize::new(15))
+            .positive_exponent_break(num::NonZeroI32::new(1))
+            .negative_exponent_break(num::NonZeroI32::new(-1))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f32 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 3, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f32_base5_long_exponent_proptest(f in f32::MIN..f32::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .min_significant_digits(num::NonZeroUsize::new(15))
+            .positive_exponent_break(num::NonZeroI32::new(1))
+            .negative_exponent_break(num::NonZeroI32::new(-1))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f32 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 5, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f32_base21_long_exponent_proptest(f in f32::MIN..f32::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .exponent(b'^')
+            .min_significant_digits(num::NonZeroUsize::new(15))
+            .positive_exponent_break(num::NonZeroI32::new(1))
+            .negative_exponent_break(num::NonZeroI32::new(-1))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f32 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let roundtrip = parse_f32(&buffer[..count], 21, b'^');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
     fn f64_base3_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
-        if !(f.is_special() || f == f64::MAX || f == f64::MIN) {
+        if !(is_overflow!(@f64 f)) {
             let f = f.abs();
             let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
             let roundtrip = parse_f64(&buffer[..count], 3, b'e');
@@ -408,11 +721,245 @@ proptest! {
     fn f64_base5_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
-        if !(f.is_special() || f == f64::MAX || f == f64::MIN) {
+        if !(is_overflow!(@f64 f)) {
             let f = f.abs();
             let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
             let roundtrip = parse_f64(&buffer[..count], 5, b'e');
             let equal = relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f64_base21_proptest(f in f64::MIN..f64::MAX) {
+        let mut buffer = [b'\x00'; BUFFER_SIZE];
+        let options = Options::builder().exponent(b'^').build().unwrap();
+        if !(is_overflow!(@f64 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 21, b'^');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-6, max_relative=1e-6);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f64_base3_short_proptest(f in f64::MIN..f64::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .max_significant_digits(num::NonZeroUsize::new(4))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f64 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 3, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f64_base5_short_proptest(f in f64::MIN..f64::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .max_significant_digits(num::NonZeroUsize::new(4))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f64 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 5, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f64_base21_short_proptest(f in f64::MIN..f64::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .exponent(b'^')
+            .max_significant_digits(num::NonZeroUsize::new(4))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f64 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 21, b'^');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f64_base3_long_proptest(f in f64::MIN..f64::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .min_significant_digits(num::NonZeroUsize::new(15))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f64 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 3, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f64_base5_long_proptest(f in f64::MIN..f64::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .min_significant_digits(num::NonZeroUsize::new(15))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f64 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 5, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f64_base21_long_proptest(f in f64::MIN..f64::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .exponent(b'^')
+            .min_significant_digits(num::NonZeroUsize::new(15))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f64 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 21, b'^');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+        #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f64_base3_short_exponent_proptest(f in f64::MIN..f64::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .max_significant_digits(num::NonZeroUsize::new(4))
+            .positive_exponent_break(num::NonZeroI32::new(1))
+            .negative_exponent_break(num::NonZeroI32::new(-1))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f64 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 3, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f64_base5_short_exponent_proptest(f in f64::MIN..f64::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .max_significant_digits(num::NonZeroUsize::new(4))
+            .positive_exponent_break(num::NonZeroI32::new(1))
+            .negative_exponent_break(num::NonZeroI32::new(-1))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f64 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 5, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f64_base21_short_exponent_proptest(f in f64::MIN..f64::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .exponent(b'^')
+            .max_significant_digits(num::NonZeroUsize::new(4))
+            .positive_exponent_break(num::NonZeroI32::new(1))
+            .negative_exponent_break(num::NonZeroI32::new(-1))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f64 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 21, b'^');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f64_base3_long_exponent_proptest(f in f64::MIN..f64::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .min_significant_digits(num::NonZeroUsize::new(15))
+            .positive_exponent_break(num::NonZeroI32::new(1))
+            .negative_exponent_break(num::NonZeroI32::new(-1))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f64 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE3>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 3, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f64_base5_long_exponent_proptest(f in f64::MIN..f64::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .min_significant_digits(num::NonZeroUsize::new(15))
+            .positive_exponent_break(num::NonZeroI32::new(1))
+            .negative_exponent_break(num::NonZeroI32::new(-1))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f64 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE5>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 5, b'e');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
+            prop_assert!(equal)
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f64_base21_long_exponent_proptest(f in f64::MIN..f64::MAX) {
+        let mut buffer = [b'\x00'; 512];
+        let options = Options::builder()
+            .exponent(b'^')
+            .min_significant_digits(num::NonZeroUsize::new(15))
+            .positive_exponent_break(num::NonZeroI32::new(1))
+            .negative_exponent_break(num::NonZeroI32::new(-1))
+            .build()
+            .unwrap();
+        if !(is_overflow!(@f64 f)) {
+            let f = f.abs();
+            let count = unsafe { radix::write_float::<_, BASE21>(f, &mut buffer, &options) };
+            let roundtrip = parse_f64(&buffer[..count], 21, b'^');
+            let equal = relative_eq!(f, roundtrip, epsilon=1e-1, max_relative=1e-1);
             prop_assert!(equal)
         }
     }

@@ -1,7 +1,7 @@
 //! Shared utilities for writing floats.
 
 use crate::options::{Options, RoundMode};
-use lexical_util::digit::digit_to_char_const;
+use lexical_util::digit::{char_to_valid_digit_const, digit_to_char_const};
 use lexical_util::format::NumberFormat;
 use lexical_write_integer::write::WriteInteger;
 
@@ -28,14 +28,16 @@ pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, b
     debug_assert!(count <= digits.len());
 
     let mut index = count;
-    let max_digit = digit_to_char_const(radix - 1, radix);
+    let max_char = digit_to_char_const(radix - 1, radix);
     while index != 0 {
         // SAFETY: safe if `count <= digits.len()`, since then
         // `index > 0 && index <= digits.len()`.
-        let digit = unsafe { index_unchecked!(digits[index - 1]) };
-        if digit < max_digit {
+        let c = unsafe { index_unchecked!(digits[index - 1]) };
+        if c < max_char {
             // SAFETY: safe since `index > 0 && index <= digits.len()`.
-            unsafe { index_unchecked_mut!(digits[index - 1]) = digit + 1 };
+            let digit = char_to_valid_digit_const(c, radix);
+            let rounded = digit_to_char_const(digit + 1, radix);
+            unsafe { index_unchecked_mut!(digits[index - 1]) = rounded };
             return (index, false);
         }
         // Don't have to assign b'0' otherwise, since we're just carrying

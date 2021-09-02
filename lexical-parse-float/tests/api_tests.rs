@@ -7,6 +7,8 @@ use lexical_util::format;
 #[cfg(any(feature = "format", feature = "power-of-two"))]
 use lexical_util::format::NumberFormatBuilder;
 use lexical_util::format::STANDARD;
+use lexical_util::num::Float;
+use quickcheck::quickcheck;
 use proptest::prelude::*;
 
 #[test]
@@ -138,11 +140,19 @@ fn f32_decimal_test() {
 #[test]
 #[cfg(feature = "radix")]
 fn f32_radix_test() {
-    const FORMAT: u128 = NumberFormatBuilder::from_radix(36);
+    const BASE36: u128 = NumberFormatBuilder::from_radix(36);
     let options = Options::builder().exponent(b'^').build().unwrap();
-    assert_eq!(1234.0, f32::from_lexical_with_options::<FORMAT>(b"YA", &options).unwrap());
+    assert_eq!(1234.0, f32::from_lexical_with_options::<BASE36>(b"YA", &options).unwrap());
     let options = options.rebuild().lossy(true).build().unwrap();
-    assert_eq!(1234.0, f32::from_lexical_with_options::<FORMAT>(b"YA", &options).unwrap());
+    assert_eq!(1234.0, f32::from_lexical_with_options::<BASE36>(b"YA", &options).unwrap());
+
+    const BASE21: u128 = NumberFormatBuilder::from_radix(21);
+    assert_eq!(2879628700000000000000000.0, f32::from_lexical_with_options::<BASE21>(b"4.BHJ97^I", &options).unwrap());
+    assert_eq!(48205230000000000000000000000000000000.0, f32::from_lexical_with_options::<BASE21>(b"4.C4407^17", &options).unwrap());
+    assert_eq!(105861930000000000000000000000000000000.0, f32::from_lexical_with_options::<BASE21>(b"A.15A^17", &options).unwrap());
+    assert_eq!(63900540000000000000000000000000000000.0, f32::from_lexical_with_options::<BASE21>(b"6.1AK^17", &options).unwrap());
+    assert_eq!(48205210000000000000000000000000000000.0, f32::from_lexical_with_options::<BASE21>(b"4.C44^17", &options).unwrap());
+    assert_eq!(48205230000000000000000000000000000000.0, f32::from_lexical_with_options::<BASE21>(b"4C440700000000000000000000000.0", &options).unwrap());
 }
 
 #[test]
@@ -1177,6 +1187,94 @@ fn base_prefix_and_suffix_test() {
     assert!(f64::from_lexical_with_options::<FORMAT>(b"+0xh", &options).is_err());
     assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x3.0e+300h", &options).is_ok());
     assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x3.0e+300h ", &options).is_err());
+}
+
+fn float_equal<F: Float>(x: F, y: F) -> bool {
+    if x.is_nan() {
+        y.is_nan()
+    } else {
+        y == x
+    }
+}
+
+quickcheck! {
+    #[cfg_attr(miri, ignore)]
+    fn f32_roundtrip_quickcheck(x: f32) -> bool {
+        let string = x.to_string();
+        let result = f32::from_lexical(string.as_bytes());
+        result.map_or(false, |y| float_equal(x, y))
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f32_short_decimal_quickcheck(x: f32) -> bool {
+        let string = format!("{:.4}", x);
+        let actual = f32::from_lexical(string.as_bytes());
+        let expected = string.parse::<f32>();
+        actual.map_or(false, |y| expected.map_or(false, |x| float_equal(x, y)))
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f32_long_decimal_quickcheck(x: f32) -> bool {
+        let string = format!("{:.100}", x);
+        let actual = f32::from_lexical(string.as_bytes());
+        let expected = string.parse::<f32>();
+        actual.map_or(false, |y| expected.map_or(false, |x| float_equal(x, y)))
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f32_short_exponent_quickcheck(x: f32) -> bool {
+        let string = format!("{:.4e}", x);
+        let actual = f32::from_lexical(string.as_bytes());
+        let expected = string.parse::<f32>();
+        actual.map_or(false, |y| expected.map_or(false, |x| float_equal(x, y)))
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f32_long_exponent_quickcheck(x: f32) -> bool {
+        let string = format!("{:.100e}", x);
+        let actual = f32::from_lexical(string.as_bytes());
+        let expected = string.parse::<f32>();
+        actual.map_or(false, |y| expected.map_or(false, |x| float_equal(x, y)))
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f64_roundtrip_quickcheck(x: f64) -> bool {
+        let string = x.to_string();
+        let result = f64::from_lexical(string.as_bytes());
+        result.map_or(false, |y| float_equal(x, y))
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f64_short_decimal_quickcheck(x: f64) -> bool {
+        let string = format!("{:.4}", x);
+        let actual = f64::from_lexical(string.as_bytes());
+        let expected = string.parse::<f64>();
+        actual.map_or(false, |y| expected.map_or(false, |x| float_equal(x, y)))
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f64_long_decimal_quickcheck(x: f64) -> bool {
+        let string = format!("{:.100}", x);
+        let actual = f64::from_lexical(string.as_bytes());
+        let expected = string.parse::<f64>();
+        actual.map_or(false, |y| expected.map_or(false, |x| float_equal(x, y)))
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f64_short_exponent_quickcheck(x: f64) -> bool {
+        let string = format!("{:.4e}", x);
+        let actual = f64::from_lexical(string.as_bytes());
+        let expected = string.parse::<f64>();
+        actual.map_or(false, |y| expected.map_or(false, |x| float_equal(x, y)))
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f64_long_exponent_quickcheck(x: f64) -> bool {
+        let string = format!("{:.100e}", x);
+        let actual = f64::from_lexical(string.as_bytes());
+        let expected = string.parse::<f64>();
+        actual.map_or(false, |y| expected.map_or(false, |x| float_equal(x, y)))
+    }
 }
 
 proptest! {
