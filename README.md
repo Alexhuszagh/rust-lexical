@@ -266,14 +266,14 @@ Various benchmarks, binary sizes, and compile times are shown here:
 
 The compile-times when building with all numeric conversions enabled. For a more fine-tuned breakdown, see [build timings](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/BuildTimings.md).
 
-![Build Timings](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/all.svg)
+![Build Timings](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/timings_all_posix.svg)
 
 **Binary Size**
 
 The binary sizes of stripped binaries compiled at optimization level "2". For a more fine-tuned breakdown, see [binary sizes](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/BinarySize.md).
 
-![Parse Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/parse_stripped_opt2.svg)
-![Write Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/write_stripped_opt2.svg)
+![Parse Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/size_parse_stripped_opt2_posix.svg)
+![Write Stripped - Optimization Level "2"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/size_write_stripped_opt2_posix.svg)
 
 **Benchmarks -- Parse Integer**
 

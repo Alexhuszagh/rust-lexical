@@ -3,12 +3,15 @@
     size
     ====
 
-    Get the binary sizes from executables using lexical.
+    Get the binary sizes from executables using lexical. By default,
+    this uses binutils `size` command to probe binary sizes: if `size`
+    is not on the path, like on Windows, you can set the `SIZE` environment
+    variable to manually specify the `size` executable. Likewise, the `strip`
+    command can be overrided by the `STRIP` environment variable.
 '''
 
 import argparse
 import json
-import magic
 import mimetypes
 import subprocess
 import os
@@ -19,8 +22,15 @@ import numpy as np
 
 plt.style.use('ggplot')
 
+if os.name == 'nt':
+    from winmagic import magic
+else:
+    import magic
+
 scripts = os.path.dirname(os.path.realpath(__file__))
 home = os.path.dirname(scripts)
+size_command = os.environ.get('SIZE', 'size')
+strip_command = os.environ.get('STRIP', 'strip')
 
 LEVELS = {
     '0': 'debug',
@@ -187,7 +197,10 @@ def build(args, level, is_lexical):
 
 def is_executable(path):
     '''Determine if a file is a binary executable.'''
-    return magic.from_file(path, mime=True) == 'application/x-pie-executable'
+    if os.name == 'nt':
+        return magic.from_file(path, mime=True) == 'application/x-dosexec'
+    else:
+        return magic.from_file(path, mime=True) == 'application/x-pie-executable'
 
 def prettyify(size):
     '''Get the human readable filesize from bytes.'''
@@ -211,15 +224,21 @@ def get_file_size(path):
     # utility that isn't aware of padding. We have
     # 3 sections that matter: .rodata, .text, and .data.
     #   .text: Compiled code
-    #   .rodata: Read-only data
+    #   .rodata: Read-only data (on Windows, this is `.rdata`)
     #   .data: Other data (often empty).
-    cmd = ['size', '-A', '-d', path]
+    cmd = [size_command, '-A', '-d', path]
     stdout = subprocess.run(cmd, check=True, stdout=subprocess.PIPE).stdout
     stdout = stdout.decode('utf-8')
     lines = [i.strip() for i in stdout.splitlines()[2:] if i.strip()]
     sections = dict([i.split()[:2] for i in lines])
+    text = int(sections['.text'])
+    data = int(sections['.data'])
+    if os.name == 'nt':
+        rodata = int(sections['.rdata'])
+    else:
+        rodata = int(sections['.rodata'])
 
-    return int(sections['.text']) + int(sections['.data']) + int(sections['.rodata'])
+    return text + data + rodata
 
 def get_sizes(level):
     '''Get the binary sizes for all targets.'''
@@ -230,7 +249,10 @@ def get_sizes(level):
     for filename in os.listdir(target):
         path = os.path.join(target, filename)
         if os.path.isfile(path) and is_executable(path):
-            data[filename] = get_file_size(path)
+            exe_name = filename
+            if os.name == 'nt':
+                exe_name = filename[:-len('.exe')]
+            data[exe_name] = get_file_size(path)
 
     empty = data.pop('empty')
 
@@ -239,14 +261,17 @@ def get_sizes(level):
 def strip(level):
     '''Strip all the binaries'''
 
+    if os.name == 'nt':
+        # The Portable Executable format uses PDB for debugging info.
+        return
+
     build_type = LEVELS[level]
     target = f'{home}/lexical-size/target/{build_type}'
     for filename in os.listdir(target):
         path = os.path.join(target, filename)
         if os.path.isfile(path) and is_executable(path):
             subprocess.check_call(
-                f'strip "{path}"',
-                shell=True,
+                [strip_command, path],
                 stderr=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
             )
@@ -271,53 +296,78 @@ def plot_level(args, data, level):
         'key': sort_key,
     }
 
-    unstripped = {
-        **flatten('core', 'unstripped', 'parse'),
-        **flatten('lexical', 'unstripped', 'parse'),
-    }
-    file = filename(f'parse_unstripped_opt{level}', args)
-    plot_bar(
-        **bar_kwds,
-        data=unstripped,
-        path=f'{assets}/{file}.svg',
-        title=f'Parse Unstripped Data -- Optimization Level "{level}"',
-    )
+    if os.name == 'nt':
+        pe = {
+            **flatten('core', 'pe', 'parse'),
+            **flatten('lexical', 'pe', 'parse'),
+        }
+        file = filename(f'size_parse_pe_opt{level}_{os.name}', args)
+        plot_bar(
+            **bar_kwds,
+            data=pe,
+            path=f'{assets}/{file}.svg',
+            title=f'Parse Unstripped Data -- Optimization Level "{level}"',
+        )
 
-    unstripped = {
-        **flatten('core', 'unstripped', 'write'),
-        **flatten('lexical', 'unstripped', 'write'),
-    }
-    file = filename(f'write_unstripped_opt{level}', args)
-    plot_bar(
-        **bar_kwds,
-        data=unstripped,
-        path=f'{assets}/{file}.svg',
-        title=f'Write Unstripped Data -- Optimization Level "{level}"',
-    )
+        pe = {
+            **flatten('core', 'pe', 'write'),
+            **flatten('lexical', 'pe', 'write'),
+        }
+        file = filename(f'size_write_pe_opt{level}_{os.name}', args)
+        plot_bar(
+            **bar_kwds,
+            data=pe,
+            path=f'{assets}/{file}.svg',
+            title=f'Write Unstripped Data -- Optimization Level "{level}"',
+        )
+    else:
+        unstripped = {
+            **flatten('core', 'unstripped', 'parse'),
+            **flatten('lexical', 'unstripped', 'parse'),
+        }
+        file = filename(f'size_parse_unstripped_opt{level}_{os.name}', args)
+        plot_bar(
+            **bar_kwds,
+            data=unstripped,
+            path=f'{assets}/{file}.svg',
+            title=f'Parse Unstripped Data -- Optimization Level "{level}"',
+        )
 
-    stripped = {
-        **flatten('core', 'stripped', 'parse'),
-        **flatten('lexical', 'stripped', 'parse'),
-    }
-    file = filename(f'parse_stripped_opt{level}', args)
-    plot_bar(
-        **bar_kwds,
-        data=stripped,
-        path=f'{assets}/{file}.svg',
-        title=f'Parse Stripped Data -- Optimization Level "{level}"',
-    )
+        unstripped = {
+            **flatten('core', 'unstripped', 'write'),
+            **flatten('lexical', 'unstripped', 'write'),
+        }
+        file = filename(f'size_write_unstripped_opt{level}_{os.name}', args)
+        plot_bar(
+            **bar_kwds,
+            data=unstripped,
+            path=f'{assets}/{file}.svg',
+            title=f'Write Unstripped Data -- Optimization Level "{level}"',
+        )
 
-    stripped = {
-        **flatten('core', 'stripped', 'write'),
-        **flatten('lexical', 'stripped', 'write'),
-    }
-    file = filename(f'write_stripped_opt{level}', args)
-    plot_bar(
-        **bar_kwds,
-        data=stripped,
-        path=f'{assets}/{file}.svg',
-        title=f'Write Stripped Data -- Optimization Level "{level}"',
-    )
+        stripped = {
+            **flatten('core', 'stripped', 'parse'),
+            **flatten('lexical', 'stripped', 'parse'),
+        }
+        file = filename(f'size_parse_stripped_opt{level}_{os.name}', args)
+        plot_bar(
+            **bar_kwds,
+            data=stripped,
+            path=f'{assets}/{file}.svg',
+            title=f'Parse Stripped Data -- Optimization Level "{level}"',
+        )
+
+        stripped = {
+            **flatten('core', 'stripped', 'write'),
+            **flatten('lexical', 'stripped', 'write'),
+        }
+        file = filename(f'size_write_stripped_opt{level}_{os.name}', args)
+        plot_bar(
+            **bar_kwds,
+            data=stripped,
+            path=f'{assets}/{file}.svg',
+            title=f'Write Stripped Data -- Optimization Level "{level}"',
+        )
 
 def run_level(args, level, is_lexical):
     '''Generate the size data for a given build configuration.'''
@@ -326,14 +376,15 @@ def run_level(args, level, is_lexical):
     write_manifest(level)
     clean()
     build(args, level, is_lexical)
-    unstripped = get_sizes(level)
-    strip(level)
-    stripped = get_sizes(level)
+    data = {}
+    if os.name == 'nt':
+        data['pe'] = get_sizes(level)
+    else:
+        data['unstripped'] = get_sizes(level)
+        strip(level)
+        data['stripped'] = get_sizes(level)
 
-    return {
-        'unstripped': unstripped,
-        'stripped': stripped,
-    }
+    return data
 
 def run(args):
     '''Run the size calculations.'''
@@ -344,7 +395,7 @@ def run(args):
         data = {}
         data['core'] = run_level(args, level, False)
         data['lexical'] = run_level(args, level, True)
-        file = filename(f'parse{level}', args)
+        file = filename(f'size{level}_{os.name}', args)
         with open(f'{assets}/{file}.json', 'w') as file:
             json.dump(data, file)
 
@@ -354,16 +405,13 @@ def plot(args):
     assets = f'{home}/assets'
     opt_levels = args.opt_levels.split(',')
     for level in opt_levels:
-        file = filename(f'parse{level}', args)
+        file = filename(f'size{level}_{os.name}', args)
         with open(f'{assets}/{file}.json', 'r') as file:
             data = json.load(file)
         plot_level(args, data, level)
 
 def main(argv=None):
     '''Entry point.'''
-
-    if os.name != 'posix':
-        raise NotImplementedError('Currently only supported on POSIX.')
 
     args = parse_args(argv)
     if args.run:

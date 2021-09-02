@@ -4,20 +4,20 @@ The build timings were run on an `Intel(R) Core(TM) i7-6560U CPU @ 2.20GHz` proc
 
 **All**
 
-![All](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/all.svg)
+![All](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/timings_all_posix.svg)
 
 **Parse Integer**
 
-![Parse Integer](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/lexical-parse-integer.svg)
+![Parse Integer](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/timings_lexical-parse-integer_posix.svg)
 
 **Write Integer**
 
-![Write Integer](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/lexical-write-integer.svg)
+![Write Integer](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/timings_lexical-write-integer_posix.svg)
 
 **Parse Float**
 
-![Parse Float](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/lexical-parse-float.svg)
+![Parse Float](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/timings_lexical-parse-float_posix.svg)
 
 **Write Float**
 
-![Write Float](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/lexical-write-float.svg)
+![Write Float](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/timings_lexical-write-float_posix.svg)

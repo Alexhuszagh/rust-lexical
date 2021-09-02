@@ -17,3 +17,5 @@ The entire list of dependencies required is:
   - Count (`cargo +nightly install cargo-count`)
 - Python3.6+
 - python-magic (`pip install python magic --user`)
+
+**Note:** On Windows, python-magic must be installed via `pip install python-magic-win64`.

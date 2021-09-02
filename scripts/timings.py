@@ -195,7 +195,7 @@ def plot_all(args):
 
     clean()
     timings = build(args)
-    path = f'{home}/assets/{filename("all", args)}.svg'
+    path = f'{home}/assets/timings_{filename("all", args)}_{os.name}.svg'
     plot_timings(timings, path)
 
 def plot_workspace(args, workspace):
@@ -203,7 +203,7 @@ def plot_workspace(args, workspace):
 
     clean()
     timings = build(args, workspace)
-    basename = filename(workspace, args)
+    basename = f'timings_{filename(workspace, args)}_{os.name}'
     path = f'{home}/assets/{basename}.svg'
     plot_timings(timings, path, workspace)
 

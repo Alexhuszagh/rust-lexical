@@ -54,7 +54,7 @@ cargo +nightly install cargo-count
 In addition, the following non-Rust dependencies must be installed:
 
 - Python3.6+
-- python-magic
+- python-magic (python-magic-win64 on Windows)
 - Valgrind
 
 # Development Process
