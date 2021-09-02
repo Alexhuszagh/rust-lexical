@@ -306,7 +306,7 @@ def plot_level(args, data, level):
             **bar_kwds,
             data=pe,
             path=f'{assets}/{file}.svg',
-            title=f'Parse Unstripped Data -- Optimization Level "{level}"',
+            title=f'Parse Data -- Optimization Level "{level}"',
         )
 
         pe = {
@@ -318,7 +318,7 @@ def plot_level(args, data, level):
             **bar_kwds,
             data=pe,
             path=f'{assets}/{file}.svg',
-            title=f'Write Unstripped Data -- Optimization Level "{level}"',
+            title=f'Write Data -- Optimization Level "{level}"',
         )
     else:
         unstripped = {

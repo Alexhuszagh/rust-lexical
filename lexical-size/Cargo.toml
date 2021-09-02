@@ -171,8 +171,8 @@ path = "bin/write-float-f32.rs"
 name = "write-float-f64"
 path = "bin/write-float-f64.rs"
 
-[profile.dev]
-opt-level = 0
-debug = true
-debug-assertions = true
-lto = false
+[profile.release]
+opt-level = "z"
+debug = false
+debug-assertions = false
+lto = true
