@@ -22,6 +22,23 @@ fn parse_complete_test() {
 }
 
 #[test]
+fn fast_path_complete_test() {
+    const FORMAT: u128 = STANDARD;
+    let options = Options::new();
+    let string = b"1.2345e10";
+    let result = parse::fast_path_complete::<f64, FORMAT>(string, &options);
+    assert_eq!(result, Ok(1.2345e10));
+
+    let string = b"1.2345e";
+    let result = parse::fast_path_complete::<f64, FORMAT>(string, &options);
+    assert!(result.is_err());
+
+    let string = b"1.2345 ";
+    let result = parse::fast_path_complete::<f64, FORMAT>(string, &options);
+    assert!(result.is_err());
+}
+
+#[test]
 fn parse_partial_test() {
     const FORMAT: u128 = STANDARD;
     let options = Options::new();
@@ -35,6 +52,23 @@ fn parse_partial_test() {
 
     let string = b"1.2345 ";
     let result = parse::parse_partial::<f64, FORMAT>(string, &options);
+    assert_eq!(result, Ok((1.2345, 6)));
+}
+
+#[test]
+fn fast_path_partial_test() {
+    const FORMAT: u128 = STANDARD;
+    let options = Options::new();
+    let string = b"1.2345e10";
+    let result = parse::fast_path_partial::<f64, FORMAT>(string, &options);
+    assert_eq!(result, Ok((1.2345e10, 9)));
+
+    let string = b"1.2345e";
+    let result = parse::fast_path_partial::<f64, FORMAT>(string, &options);
+    assert!(result.is_err());
+
+    let string = b"1.2345 ";
+    let result = parse::fast_path_partial::<f64, FORMAT>(string, &options);
     assert_eq!(result, Ok((1.2345, 6)));
 }
 

@@ -52,6 +52,23 @@
 //! conversions, please look at [lexical-core](https://crates.io/crates/lexical-core)
 //! instead.
 //!
+//! # Machine Float-Only Algorithm
+//!
+//! We also support an algorithm that uses only machine floats for the
+//! fast-path algorithm, however, this may be slower for floats with large
+//! exponents since it uses an iterative algorithm. A code sample
+//! using this is:
+//!
+//! ```rust
+//! use lexical_parse_float::Options;
+//! use lexical_parse_float::format::STANDARD;
+//! use lexical_parse_float::parse::ParseFloat;
+//!
+//! let options = Options::new();
+//! let result = f64::fast_path_complete::<{ STANDARD }>(b"1.34000", &options);
+//! assert_eq!(result, Ok(1.34000));
+//! ```
+//!
 //! # Version Support
 //!
 //! The minimum, standard, required version is 1.51.0, for const generic
