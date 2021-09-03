@@ -2,6 +2,8 @@
 
 use lexical_util::bf16::bf16;
 use lexical_util::num::Float;
+use proptest::prelude::*;
+use quickcheck::quickcheck;
 
 #[test]
 fn as_f32_test() {
@@ -41,4 +43,21 @@ fn math_tests() {
     assert_eq!(bf16::ONE / bf16::ONE, bf16::ONE);
     assert_eq!(bf16::ONE - bf16::ONE, bf16::ZERO);
     assert_eq!(bf16::ONE % bf16::ONE, bf16::ZERO);
+}
+
+quickcheck! {
+    #[cfg_attr(miri, ignore)]
+    fn f32_roundtrip_quickcheck(x: u16) -> bool {
+        let f = bf16::from_bits(x).as_f32();
+        bf16::from_f32(f).to_bits() == x
+    }
+}
+
+proptest! {
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn f32_roundtrip_proptest(x in u16::MIN..u16::MAX) {
+        let f = bf16::from_bits(x).as_f32();
+        prop_assert_eq!(bf16::from_f32(f).to_bits(), x);
+    }
 }

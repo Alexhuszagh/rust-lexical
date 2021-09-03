@@ -1,7 +1,11 @@
 #[cfg(feature = "format")]
 use core::num;
 use lexical_parse_float::{FromLexical, FromLexicalWithOptions, Options};
+#[cfg(feature = "f16")]
+use lexical_util::bf16::bf16;
 use lexical_util::error::Error;
+#[cfg(feature = "f16")]
+use lexical_util::f16::f16;
 #[cfg(feature = "format")]
 use lexical_util::format;
 #[cfg(any(feature = "format", feature = "power-of-two"))]
@@ -1293,6 +1297,22 @@ quickcheck! {
         let actual = f64::from_lexical(string.as_bytes());
         let expected = string.parse::<f64>();
         actual.map_or(false, |y| expected.map_or(false, |x| float_equal(x, y)))
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn f16_roundtrip_quickcheck(bits: u16) -> bool {
+        let x = f16::from_bits(bits);
+        let string = x.as_f32().to_string();
+        let result = f16::from_lexical(string.as_bytes());
+        result.map_or(false, |y| float_equal(x, y))
+    }
+
+    #[cfg_attr(miri, ignore)]
+    fn bf16_roundtrip_quickcheck(bits: u16) -> bool {
+        let x = bf16::from_bits(bits);
+        let string = x.as_f32().to_string();
+        let result = bf16::from_lexical(string.as_bytes());
+        result.map_or(false, |y| float_equal(x, y))
     }
 }
 
