@@ -1299,6 +1299,7 @@ quickcheck! {
         actual.map_or(false, |y| expected.map_or(false, |x| float_equal(x, y)))
     }
 
+    #[cfg(feature = "f16")]
     #[cfg_attr(miri, ignore)]
     fn f16_roundtrip_quickcheck(bits: u16) -> bool {
         let x = f16::from_bits(bits);
@@ -1307,6 +1308,7 @@ quickcheck! {
         result.map_or(false, |y| float_equal(x, y))
     }
 
+    #[cfg(feature = "f16")]
     #[cfg_attr(miri, ignore)]
     fn bf16_roundtrip_quickcheck(bits: u16) -> bool {
         let x = bf16::from_bits(bits);
