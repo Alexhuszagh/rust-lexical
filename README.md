@@ -303,7 +303,7 @@ A benchmark on writing floats generated via a random-number generator and parsed
 
 # Safety
 
-Due to the use of memory unsafe code in the integer and float writers, we extensively fuzz our float writers and parsers. The fuzz harnesses may be found under [fuzz](https://github.com/Alexhuszagh/rust-lexical/tree/main/fuzz), and are run continuously. So far, we've parsed and written over 68 billion floats.
+Due to the use of memory unsafe code in the integer and float writers, we extensively fuzz our float writers and parsers. The fuzz harnesses may be found under [fuzz](https://github.com/Alexhuszagh/rust-lexical/tree/main/fuzz), and are run continuously. So far, we've parsed and written over 72 billion floats.
 
 Due to the simple logic of the integer writers, and the lack of memory safety in the integer parsers, we minimally fuzz both, and test it with edge-cases, which has shown no memory safety issues to date.
 
