@@ -30,6 +30,10 @@ use crate::float::{ExtendedFloat80, RawFloat};
 use crate::options::{Options, RoundMode};
 use crate::shared;
 use crate::table::*;
+#[cfg(feature = "f16")]
+use lexical_util::bf16::bf16;
+#[cfg(feature = "f16")]
+use lexical_util::f16::f16;
 use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::num::{AsPrimitive, Float, Integer};
 use lexical_write_integer::decimal::DigitCount;
@@ -1596,3 +1600,90 @@ impl DragonboxFloat for f64 {
         small_div_pow10!(n, SMALL_F64_DIV10_INFO)
     }
 }
+
+#[cfg(feature = "f16")]
+macro_rules! dragonbox_unimpl {
+    ($($t:ident)*) => ($(
+        impl DragonboxFloat for $t {
+            const KAPPA: u32 = 0;
+            const DECIMAL_DIGITS: usize = 0;
+            const DIV5_TABLE: Self::Table = 0;
+
+            type Power = u64;
+            type Table = u8;
+
+            #[inline(always)]
+            fn digit_count(_: u64) -> usize {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            unsafe fn write_digits(_: &mut [u8], _: u64) -> usize {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            unsafe fn dragonbox_power(_: i32) -> Self::Power {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            fn compute_left_endpoint(_: &Self::Power, _: i32) -> u64 {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            fn compute_right_endpoint(_: &Self::Power, _: i32) -> u64 {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            fn compute_round_up(_: &Self::Power, _: i32) -> u64 {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            fn compute_mul(_: u64, _: &Self::Power) -> u64 {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            fn compute_mul_parity(_: u64, _: &Self::Power, _: i32) -> bool {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            fn compute_delta(_: &Self::Power, _: i32) -> u32 {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            fn process_trailing_zeros(_: u64, _: i32) -> (u64, i32) {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            fn remove_trailing_zeros(_: u64) -> (u64, i32) {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            unsafe fn divisible_by_pow5(_: u64, _: u32) -> bool {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            fn check_div_pow10(_: u32) -> (u32, bool) {
+                unimplemented!()
+            }
+
+            #[inline(always)]
+            fn small_div_pow10(_: u32) -> u32 {
+                unimplemented!()
+            }
+        }
+    )*);
+}
+
+#[cfg(feature = "f16")]
+dragonbox_unimpl! { bf16 f16 }

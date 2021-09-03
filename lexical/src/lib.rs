@@ -292,6 +292,8 @@ pub use lexical_core::ParseOptions;
 pub use lexical_core::Result;
 #[cfg(feature = "write")]
 pub use lexical_core::WriteOptions;
+#[cfg(feature = "f16")]
+pub use lexical_core::{bf16, f16};
 #[cfg(feature = "parse-floats")]
 pub use lexical_core::{parse_float_options, ParseFloatOptions, ParseFloatOptionsBuilder};
 #[cfg(feature = "parse-integers")]

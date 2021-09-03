@@ -104,7 +104,11 @@ mod table_small;
 pub use self::api::{FromLexical, FromLexicalWithOptions};
 #[doc(inline)]
 pub use self::options::{Options, OptionsBuilder};
+#[cfg(feature = "f16")]
+pub use lexical_util::bf16::bf16;
 pub use lexical_util::error::Error;
+#[cfg(feature = "f16")]
+pub use lexical_util::f16::f16;
 pub use lexical_util::format::{self, NumberFormatBuilder};
 pub use lexical_util::options::ParseOptions;
 pub use lexical_util::result::Result;

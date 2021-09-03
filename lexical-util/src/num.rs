@@ -4,6 +4,10 @@
 //! types, and trait bounds, and conversions for working with
 //! numbers in generic code.
 
+#[cfg(feature = "f16")]
+use crate::bf16::bf16;
+#[cfg(feature = "f16")]
+use crate::f16::f16;
 use core::{fmt, mem, ops};
 
 // AS PRIMITIVE
@@ -26,6 +30,12 @@ pub trait AsPrimitive: Copy + PartialEq + PartialOrd + Send + Sync + Sized {
     fn as_f32(self) -> f32;
     fn as_f64(self) -> f64;
     fn from_u32(value: u32) -> Self;
+
+    #[cfg(feature = "f16")]
+    fn as_f16(self) -> f16;
+
+    #[cfg(feature = "f16")]
+    fn as_bf16(self) -> bf16;
 }
 
 macro_rules! as_primitive {
@@ -105,11 +115,118 @@ macro_rules! as_primitive {
             fn from_u32(value: u32) -> Self {
                 value as _
             }
+
+            #[cfg(feature = "f16")]
+            #[inline(always)]
+            fn as_f16(self) -> f16 {
+                f16::from_f32(self as f32)
+            }
+
+            #[cfg(feature = "f16")]
+            #[inline(always)]
+            fn as_bf16(self) -> bf16 {
+                bf16::from_f32(self as f32)
+            }
         }
     )*)
 }
 
 as_primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
+
+#[cfg(feature = "f16")]
+macro_rules! half_as_primitive {
+    ($($t:ty)*) => ($(
+        impl AsPrimitive for $t {
+            #[inline(always)]
+            fn as_u8(self) -> u8 {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn as_u16(self) -> u16 {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn as_u32(self) -> u32 {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn as_u64(self) -> u64 {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn as_u128(self) -> u128 {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn as_usize(self) -> usize {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn as_i8(self) -> i8 {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn as_i16(self) -> i16 {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn as_i32(self) -> i32 {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn as_i64(self) -> i64 {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn as_i128(self) -> i128 {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn as_isize(self) -> isize {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn as_f32(self) -> f32 {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn as_f64(self) -> f64 {
+                self.as_f32() as _
+            }
+
+            #[inline(always)]
+            fn from_u32(value: u32) -> Self {
+                Self::from_f32(value as _)
+            }
+
+            #[inline(always)]
+            fn as_f16(self) -> f16 {
+                f16::from_f32(self.as_f32())
+            }
+
+            #[inline(always)]
+            fn as_bf16(self) -> bf16 {
+                bf16::from_f32(self.as_f32())
+            }
+        }
+    )*)
+}
+
+#[cfg(feature = "f16")]
+half_as_primitive! { f16 bf16 }
 
 // AS CAST
 // -------
@@ -155,6 +272,12 @@ as_cast!(
     f64, as_f64 ;
 );
 
+#[cfg(feature = "f16")]
+as_cast!(
+    f16, as_f16 ;
+    bf16, as_bf16 ;
+);
+
 // PRIMITIVE
 // ---------
 
@@ -168,6 +291,9 @@ macro_rules! primitive {
 }
 
 primitive! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 }
+
+#[cfg(feature = "f16")]
+primitive! { f16 bf16 }
 
 // NUMBER
 // ------
@@ -213,11 +339,15 @@ number_impl! {
     i64 true ;
     i128 true ;
     isize true ;
-    // f16 true
-    // bf16 true
     f32 true ;
     f64 true ;
     // f128 true
+}
+
+#[cfg(feature = "f16")]
+number_impl! {
+    f16 true ;
+    bf16 true ;
 }
 
 // INTEGER
@@ -680,45 +810,158 @@ macro_rules! float_masks {
 
 //  Due to missing specifics or types for the following float types,
 //  `Float` is not yet fully implemented for:
-//      - f16
-//      - bf16
 //      - f128
 
-// #[cfg(all(feature = "f16", feature = "floats"))]
-// impl Float for f16 {
-//     type Unsigned = u16;
-//     float_literals!(f16);
-//     float_masks!(
-//         float => Self,
-//         sign_mask => 0x8000,
-//         exponent_mask => 0x7C00,
-//         hidden_bit_mask => 0x0400,
-//         mantissa_mask => 0x03FF,
-//     );
-//     const EXPONENT_SIZE: i32 = 5;
-//     const MANTISSA_SIZE: i32 = 10;
-//     const EXPONENT_BIAS: i32 = 15 + Self::MANTISSA_SIZE;
-//     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
-//     const MAX_EXPONENT: i32 = 0x1F - Self::EXPONENT_BIAS;
-// }
+#[cfg(feature = "f16")]
+macro_rules! float_one {
+    ($f:ident) => {
+        (($f::EXPONENT_BIAS - $f::MANTISSA_SIZE) as u16) << $f::MANTISSA_SIZE
+    };
+}
 
-// #[cfg(all(feature = "f16", feature = "floats"))]
-// impl Float for bf16 {
-//     type Unsigned = u16;
-//     float_literals!(bf16);
-//     float_masks!(
-//         float => Self,
-//         sign_mask => 0x8000,
-//         exponent_mask => 0x7F80,
-//         hidden_bit_mask => 0x0080,
-//         mantissa_mask => 0x007F,
-//     );
-//     const EXPONENT_SIZE: i32 = 8;
-//     const MANTISSA_SIZE: i32 = 7;
-//     const EXPONENT_BIAS: i32 = 127 + Self::MANTISSA_SIZE;
-//     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
-//     const MAX_EXPONENT: i32 = 0xFF - Self::EXPONENT_BIAS;
-// }
+#[cfg(feature = "f16")]
+macro_rules! float_two {
+    ($f:ident) => {
+        (($f::EXPONENT_BIAS - $f::MANTISSA_SIZE + 1) as u16) << $f::MANTISSA_SIZE
+    };
+}
+
+#[cfg(feature = "f16")]
+macro_rules! float_max {
+    ($f:ident) => {
+        ($f::EXPONENT_MASK ^ $f::HIDDEN_BIT_MASK) | $f::MANTISSA_MASK
+    };
+}
+
+#[cfg(feature = "f16")]
+macro_rules! float_min {
+    ($f:ident) => {
+        $f::MAX.to_bits() | $f::SIGN_MASK
+    };
+}
+
+#[cfg(feature = "f16")]
+macro_rules! float_nan {
+    ($f:ident) => {
+        $f::EXPONENT_MASK | ($f::HIDDEN_BIT_MASK >> 1)
+    };
+}
+
+#[cfg(feature = "f16")]
+impl Float for f16 {
+    type Unsigned = u16;
+
+    const ZERO: Self = Self::from_bits(0);
+    const ONE: Self = Self::from_bits(float_one!(Self));
+    const TWO: Self = Self::from_bits(float_two!(Self));
+    const MAX: Self = Self::from_bits(float_max!(Self));
+    const MIN: Self = Self::from_bits(float_min!(Self));
+    const INFINITY: Self = Self::from_bits(Self::INFINITY_BITS);
+    const NEG_INFINITY: Self = Self::from_bits(Self::NEGATIVE_INFINITY_BITS);
+    const NAN: Self = Self::from_bits(float_nan!(Self));
+    const BITS: usize = mem::size_of::<Self>() * 8;
+
+    float_masks!(
+        float => Self,
+        sign_mask => 0x8000,
+        exponent_mask => 0x7C00,
+        hidden_bit_mask => 0x0400,
+        mantissa_mask => 0x03FF,
+    );
+    const EXPONENT_SIZE: i32 = 5;
+    const MANTISSA_SIZE: i32 = 10;
+    const EXPONENT_BIAS: i32 = 15 + Self::MANTISSA_SIZE;
+    const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
+    const MAX_EXPONENT: i32 = 0x1F - Self::EXPONENT_BIAS;
+
+    #[inline]
+    fn to_bits(self) -> u16 {
+        f16::to_bits(self)
+    }
+
+    #[inline]
+    fn from_bits(u: u16) -> f16 {
+        f16::from_bits(u)
+    }
+
+    #[inline]
+    fn ln(self) -> f16 {
+        f16::from_f32(self.as_f32().ln())
+    }
+
+    #[inline]
+    fn floor(self) -> f16 {
+        f16::from_f32(self.as_f32().floor())
+    }
+
+    #[inline]
+    fn is_sign_positive(self) -> bool {
+        self.to_bits() & Self::SIGN_MASK == 0
+    }
+
+    #[inline]
+    fn is_sign_negative(self) -> bool {
+        !self.is_sign_positive()
+    }
+}
+
+#[cfg(feature = "f16")]
+impl Float for bf16 {
+    type Unsigned = u16;
+
+    const ZERO: Self = Self::from_bits(0);
+    const ONE: Self = Self::from_bits(float_one!(Self));
+    const TWO: Self = Self::from_bits(float_two!(Self));
+    const MAX: Self = Self::from_bits(float_max!(Self));
+    const MIN: Self = Self::from_bits(float_min!(Self));
+    const INFINITY: Self = Self::from_bits(Self::INFINITY_BITS);
+    const NEG_INFINITY: Self = Self::from_bits(Self::NEGATIVE_INFINITY_BITS);
+    const NAN: Self = Self::from_bits(float_nan!(Self));
+    const BITS: usize = mem::size_of::<Self>() * 8;
+
+    float_masks!(
+        float => Self,
+        sign_mask => 0x8000,
+        exponent_mask => 0x7F80,
+        hidden_bit_mask => 0x0080,
+        mantissa_mask => 0x007F,
+    );
+    const EXPONENT_SIZE: i32 = 8;
+    const MANTISSA_SIZE: i32 = 7;
+    const EXPONENT_BIAS: i32 = 127 + Self::MANTISSA_SIZE;
+    const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
+    const MAX_EXPONENT: i32 = 0xFF - Self::EXPONENT_BIAS;
+
+    #[inline]
+    fn to_bits(self) -> u16 {
+        bf16::to_bits(self)
+    }
+
+    #[inline]
+    fn from_bits(u: u16) -> bf16 {
+        bf16::from_bits(u)
+    }
+
+    #[inline]
+    fn ln(self) -> bf16 {
+        bf16::from_f32(self.as_f32().ln())
+    }
+
+    #[inline]
+    fn floor(self) -> bf16 {
+        bf16::from_f32(self.as_f32().floor())
+    }
+
+    #[inline]
+    fn is_sign_positive(self) -> bool {
+        self.to_bits() & Self::SIGN_MASK == 0
+    }
+
+    #[inline]
+    fn is_sign_negative(self) -> bool {
+        !self.is_sign_positive()
+    }
+}
 
 #[cfg(feature = "floats")]
 impl Float for f32 {
@@ -832,7 +1075,7 @@ impl Float for f64 {
     }
 }
 
-// #[cfg(all(feature = "f128", feature = "floats"))]
+// #[cfg(feature = "f128")]
 // impl Float for f128 {
 //     type Unsigned = u128;
 //     float_literals!(f128);

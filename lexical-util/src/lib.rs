@@ -44,11 +44,13 @@
 pub mod algorithm;
 pub mod ascii;
 pub mod assert;
+pub mod bf16;
 pub mod constants;
 pub mod digit;
 pub mod div128;
 pub mod error;
 pub mod extended_float;
+pub mod f16;
 pub mod format;
 pub mod iterator;
 pub mod mul;

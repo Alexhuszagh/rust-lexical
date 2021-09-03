@@ -27,7 +27,11 @@ use crate::shared;
 use crate::table::GRISU_POWERS_OF_TEN;
 use core::mem;
 use lexical_util::algorithm::rtrim_char_count;
+#[cfg(feature = "f16")]
+use lexical_util::bf16::bf16;
 use lexical_util::digit::digit_to_char_const;
+#[cfg(feature = "f16")]
+use lexical_util::f16::f16;
 use lexical_util::format::NumberFormat;
 use lexical_util::num::{AsPrimitive, Float};
 
@@ -628,3 +632,18 @@ macro_rules! grisu_impl {
 }
 
 grisu_impl! { f32 f64 }
+
+#[cfg(feature = "f16")]
+macro_rules! grisu_unimpl {
+    ($($t:ident)*) => ($(
+        impl GrisuFloat for $t {
+            #[inline(always)]
+            unsafe fn grisu_power(_: usize) -> u64 {
+                unimplemented!()
+            }
+        }
+    )*);
+}
+
+#[cfg(feature = "f16")]
+grisu_unimpl! { bf16 f16 }

@@ -70,9 +70,9 @@ floats = []
 
 # Currently unsupported.
 # Enable support for 16-bit floats.
-f16 = []
+f16 = ["floats"]
 # Enable support for 128-bit floats.
-f128 = []
+f128 = ["floats"]
 
 [package.metadata.docs.rs]
 features = ["radix", "format", "write-integers", "write-floats", "parse-integers", "parse-floats"]

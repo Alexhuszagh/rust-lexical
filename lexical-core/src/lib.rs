@@ -364,10 +364,14 @@ pub use lexical_parse_integer::{
     Options as ParseIntegerOptions,
     OptionsBuilder as ParseIntegerOptionsBuilder,
 };
+#[cfg(feature = "f16")]
+pub use lexical_util::bf16::bf16;
 #[cfg(feature = "write")]
 pub use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 #[cfg(feature = "parse")]
 pub use lexical_util::error::Error;
+#[cfg(feature = "f16")]
+pub use lexical_util::f16::f16;
 pub use lexical_util::format::{self, NumberFormatBuilder};
 #[cfg(feature = "parse")]
 pub use lexical_util::options::ParseOptions;

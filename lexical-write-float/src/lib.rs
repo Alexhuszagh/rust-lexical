@@ -91,6 +91,10 @@ mod table_grisu;
 pub use self::api::{ToLexical, ToLexicalWithOptions};
 #[doc(inline)]
 pub use self::options::{Options, OptionsBuilder, RoundMode};
+#[cfg(feature = "f16")]
+pub use lexical_util::bf16::bf16;
 pub use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
+#[cfg(feature = "f16")]
+pub use lexical_util::f16::f16;
 pub use lexical_util::format::{self, NumberFormatBuilder};
 pub use lexical_util::options::WriteOptions;

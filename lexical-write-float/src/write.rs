@@ -16,7 +16,11 @@ use crate::radix;
 
 use crate::float::RawFloat;
 use crate::options::Options;
+#[cfg(feature = "f16")]
+use lexical_util::bf16::bf16;
 use lexical_util::constants::FormattedSize;
+#[cfg(feature = "f16")]
+use lexical_util::f16::f16;
 use lexical_util::format::NumberFormat;
 use lexical_write_integer::write::WriteInteger;
 
@@ -161,3 +165,20 @@ macro_rules! write_float_impl {
 }
 
 write_float_impl! { f32 f64 }
+
+#[cfg(feature = "f16")]
+macro_rules! write_float_as_f32 {
+    ($($t:ty)*) => ($(
+        impl WriteFloat for $t {
+            #[inline]
+            unsafe fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> usize
+            {
+                // SAFETY: safe if `bytes` is large enough to hold the written bytes.
+                unsafe { self.as_f32().write_float::<FORMAT>(bytes, options) }
+            }
+        }
+    )*)
+}
+
+#[cfg(feature = "f16")]
+write_float_as_f32! { bf16 f16 }

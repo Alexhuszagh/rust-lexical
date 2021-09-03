@@ -72,6 +72,8 @@ compact = [
 safe = ["lexical-parse-integer/safe"]
 # Add support for nightly-only features.
 nightly = ["lexical-parse-integer/nightly"]
+# Enable support for 16-bit floats.
+f16 = ["lexical-util/f16"]
 
 # Internal only features.
 # Enable the lint checks.
@@ -81,8 +83,6 @@ lint = [
 ]
 
 # Currently unsupported.
-# Enable support for 16-bit floats.
-f16 = ["lexical-util/f16"]
 # Enable support for 128-bit floats.
 f128 = ["lexical-util/f128"]
 
