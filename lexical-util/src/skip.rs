@@ -532,6 +532,11 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
             );
         }
         self.index += count;
+        if !Self::IS_CONTIGUOUS {
+            // Only increment the count if it's not contiguous, otherwise,
+            // this is an unnecessary performance penalty.
+            self.count += count;
+        }
     }
 
     /// Advance the byte by 1 element.

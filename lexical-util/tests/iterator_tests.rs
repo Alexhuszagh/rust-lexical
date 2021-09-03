@@ -85,7 +85,16 @@ fn skip_iterator_test() {
     assert_eq!(iter.is_done(), false);
     assert_eq!(iter.length(), 6);
     assert_eq!(iter.cursor(), 0);
+    assert_eq!(iter.current_count(), 0);
+    unsafe { iter.step_unchecked() };
+    assert_eq!(iter.cursor(), 1);
+    assert_eq!(iter.current_count(), 1);
+    iter.next();
+    assert_eq!(iter.cursor(), 2);
+    assert_eq!(iter.current_count(), 2);
 
+    let mut byte = digits.bytes::<{ FORMAT }>();
+    let mut iter = byte.integer_iter();
     assert_eq!(unsafe { iter.peek_unchecked() }, &b'1');
     assert_eq!(iter.peek(), Some(&b'1'));
     assert_eq!(iter.next(), Some(&b'1'));

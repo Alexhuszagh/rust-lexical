@@ -1212,6 +1212,22 @@ fn base_prefix_and_suffix_test() {
     assert!(f64::from_lexical_with_options::<FORMAT>(b"+0x3.0e+300h ", &options).is_err());
 }
 
+#[test]
+#[cfg(feature = "format")]
+fn issue66_test() {
+    const RUST: u128 = format::RUST_LITERAL;
+    const JSON: u128 = format::JSON;
+    const CXX: u128 = format::CXX17_LITERAL;
+
+    let options = Options::new();
+
+    assert_eq!(f64::from_lexical_with_options::<JSON>(b"42.0", &options), Ok(42.0));
+    assert_eq!(f64::from_lexical_with_options::<RUST>(b"42.0", &options), Ok(42.0));
+    assert_eq!(f64::from_lexical_with_options::<RUST>(b"4_2.0", &options), Ok(42.0));
+    assert_eq!(f64::from_lexical_with_options::<CXX>(b"42.0", &options), Ok(42.0));
+    assert_eq!(f64::from_lexical_with_options::<CXX>(b"4'2.0", &options), Ok(42.0));
+}
+
 fn float_equal<F: Float>(x: F, y: F) -> bool {
     if x.is_nan() {
         y.is_nan()
