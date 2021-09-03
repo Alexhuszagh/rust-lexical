@@ -97,4 +97,39 @@ impl<'a> Number<'a> {
             None
         }
     }
+
+    /// Force a fast-path algorithm, even when it may not be accurate.
+    pub fn force_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> F {
+        let format = NumberFormat::<FORMAT> {};
+        debug_assert!(format.mantissa_radix() == format.exponent_base());
+
+        #[cfg(feature = "nightly")]
+        let _cw = set_precision::<F>();
+
+        let radix = format.radix();
+        let mut value = F::as_cast(self.mantissa);
+        let max_exponent = F::max_exponent_fast_path(radix);
+        let mut exponent = self.exponent.abs();
+        if self.exponent < 0 {
+            while exponent > max_exponent {
+                // SAFETY: safe, since pow_fast_path is always safe for max_exponent.
+                value /= unsafe { F::pow_fast_path(max_exponent as _, radix) };
+                exponent -= max_exponent;
+            }
+            // SAFETY: safe, since the `exponent < max_exponent`.
+            value /= unsafe { F::pow_fast_path(exponent as _, radix) };
+        } else {
+            while exponent > max_exponent {
+                // SAFETY: safe, since pow_fast_path is always safe for max_exponent.
+                value *= unsafe { F::pow_fast_path(max_exponent as _, radix) };
+                exponent -= max_exponent;
+            }
+            // SAFETY: safe, since the `exponent < max_exponent`.
+            value *= unsafe { F::pow_fast_path(exponent as _, radix) };
+        }
+        if self.is_negative {
+            value = -value;
+        }
+        value
+    }
 }

@@ -75,11 +75,28 @@ pub trait ParseFloat: LemireFloat {
         parse_complete::<Self, FORMAT>(bytes, options)
     }
 
-    /// Forward complete parser parameters to the backend.
+    /// Forward partial parser parameters to the backend.
     #[cfg_attr(not(feature = "compact"), inline(always))]
     fn parse_partial<const FORMAT: u128>(bytes: &[u8], options: &Options) -> Result<(Self, usize)> {
         check_radix!(FORMAT);
         parse_partial::<Self, FORMAT>(bytes, options)
+    }
+
+    /// Forward complete parser parameters to the backend, using only the fast path.
+    #[cfg_attr(not(feature = "compact"), inline(always))]
+    fn fast_path_complete<const FORMAT: u128>(bytes: &[u8], options: &Options) -> Result<Self> {
+        check_radix!(FORMAT);
+        fast_path_complete::<Self, FORMAT>(bytes, options)
+    }
+
+    /// Forward partial parser parameters to the backend, using only the fast path.
+    #[cfg_attr(not(feature = "compact"), inline(always))]
+    fn fast_path_partial<const FORMAT: u128>(
+        bytes: &[u8],
+        options: &Options,
+    ) -> Result<(Self, usize)> {
+        check_radix!(FORMAT);
+        fast_path_partial::<Self, FORMAT>(bytes, options)
     }
 }
 
@@ -96,13 +113,32 @@ macro_rules! parse_float_as_f32 {
     ($($t:ty)*) => ($(
         impl ParseFloat for $t {
             #[cfg_attr(not(feature = "compact"), inline(always))]
-            fn parse_complete<const FORMAT: u128>(bytes: &[u8], options: &Options) -> Result<Self> {
+            fn parse_complete<const FORMAT: u128>(bytes: &[u8], options: &Options)
+                -> Result<Self>
+            {
                 Ok(Self::from_f32(parse_complete::<f32, FORMAT>(bytes, options)?))
             }
 
             #[cfg_attr(not(feature = "compact"), inline(always))]
-            fn parse_partial<const FORMAT: u128>(bytes: &[u8], options: &Options) -> Result<(Self, usize)> {
+            fn parse_partial<const FORMAT: u128>(bytes: &[u8], options: &Options)
+                -> Result<(Self, usize)>
+            {
                 let (float, count) = parse_partial::<f32, FORMAT>(bytes, options)?;
+                Ok((Self::from_f32(float), count))
+            }
+
+            #[cfg_attr(not(feature = "compact"), inline(always))]
+            fn fast_path_complete<const FORMAT: u128>(bytes: &[u8], options: &Options)
+                -> Result<Self>
+            {
+                Ok(Self::from_f32(fast_path_complete::<f32, FORMAT>(bytes, options)?))
+            }
+
+            #[cfg_attr(not(feature = "compact"), inline(always))]
+            fn fast_path_partial<const FORMAT: u128>(bytes: &[u8], options: &Options)
+                -> Result<(Self, usize)>
+            {
+                let (float, count) = fast_path_partial::<f32, FORMAT>(bytes, options)?;
                 Ok((Self::from_f32(float), count))
             }
         }
@@ -226,6 +262,25 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     Ok(to_native!(F, fp, is_negative))
 }
 
+/// Parse a float using only the fast path as a complete parser.
+pub fn fast_path_complete<F: LemireFloat, const FORMAT: u128>(
+    bytes: &[u8],
+    options: &Options,
+) -> Result<F> {
+    let format = NumberFormat::<{ FORMAT }> {};
+    let mut byte = bytes.bytes::<{ FORMAT }>();
+    let (is_negative, shift) = parse_mantissa_sign!(byte, format);
+    // SAFETY: safe since we shift at most one for a parsed sign byte.
+    unsafe { byte.step_by_unchecked(shift) };
+    if byte.integer_iter().is_consumed() {
+        return Err(Error::Empty(byte.cursor()));
+    }
+
+    // Parse our a small representation of our number.
+    let num = parse_number!(FORMAT, byte, is_negative, options, parse_number, parse_special);
+    Ok(num.force_fast_path::<_, FORMAT>())
+}
+
 /// Parse a float from bytes using a partial parser.
 pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
@@ -268,6 +323,32 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
 
     // Convert to native float and return result.
     Ok((to_native!(F, fp, is_negative), count))
+}
+
+/// Parse a float using only the fast path as a partial parser.
+pub fn fast_path_partial<F: LemireFloat, const FORMAT: u128>(
+    bytes: &[u8],
+    options: &Options,
+) -> Result<(F, usize)> {
+    let format = NumberFormat::<{ FORMAT }> {};
+    let mut byte = bytes.bytes::<{ FORMAT }>();
+    let (is_negative, shift) = parse_mantissa_sign!(byte, format);
+    // SAFETY: safe since we shift at most one for a parsed sign byte.
+    unsafe { byte.step_by_unchecked(shift) };
+    if byte.integer_iter().is_consumed() {
+        return Err(Error::Empty(byte.cursor()));
+    }
+
+    // Parse our a small representation of our number.
+    let (num, count) = parse_number!(
+        FORMAT,
+        byte,
+        is_negative,
+        options,
+        parse_partial_number,
+        parse_partial_special
+    );
+    Ok((num.force_fast_path::<_, FORMAT>(), count))
 }
 
 // PATHS
