@@ -4,7 +4,11 @@
 
 use crate::options::Options;
 use crate::write::WriteFloat;
+#[cfg(feature = "f16")]
+use lexical_util::bf16::bf16;
 use lexical_util::constants::FormattedSize;
+#[cfg(feature = "f16")]
+use lexical_util::f16::f16;
 use lexical_util::format::{is_valid_options_punctuation, NumberFormat, STANDARD};
 use lexical_util::options::WriteOptions;
 use lexical_util::{to_lexical, to_lexical_with_options};
@@ -89,4 +93,9 @@ to_lexical_with_options! {}
 float_to_lexical! {
     f32 ;
     f64 ;
+}
+#[cfg(feature = "f16")]
+float_to_lexical! {
+    f16 ;
+    bf16 ;
 }

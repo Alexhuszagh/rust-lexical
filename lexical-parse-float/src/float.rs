@@ -10,7 +10,11 @@ use crate::libm::{powd, powf};
 use crate::limits::{ExactFloat, MaxDigits};
 #[cfg(not(feature = "compact"))]
 use crate::table::{get_small_f32_power, get_small_f64_power, get_small_int_power};
+#[cfg(feature = "f16")]
+use lexical_util::bf16::bf16;
 use lexical_util::extended_float::ExtendedFloat;
+#[cfg(feature = "f16")]
+use lexical_util::f16::f16;
 use lexical_util::num::{AsCast, Float};
 
 /// Alias with ~80 bits of precision, 64 for the mantissa and 16 for exponent.
@@ -94,6 +98,22 @@ impl RawFloat for f64 {
     }
 }
 
+#[cfg(feature = "f16")]
+impl RawFloat for f16 {
+    #[inline(always)]
+    unsafe fn pow_fast_path(_: usize, _: u32) -> Self {
+        unimplemented!()
+    }
+}
+
+#[cfg(feature = "f16")]
+impl RawFloat for bf16 {
+    #[inline(always)]
+    unsafe fn pow_fast_path(_: usize, _: u32) -> Self {
+        unimplemented!()
+    }
+}
+
 /// Helper trait to add more float characteristics for the Eisel-Lemire algorithm.
 pub trait LemireFloat: RawFloat {
     // Round-to-even only happens for negative values of q
@@ -141,6 +161,24 @@ impl LemireFloat for f64 {
     const MINIMUM_EXPONENT: i32 = -1023;
     const SMALLEST_POWER_OF_TEN: i32 = -342;
     const LARGEST_POWER_OF_TEN: i32 = 308;
+}
+
+#[cfg(feature = "f16")]
+impl LemireFloat for f16 {
+    const MIN_EXPONENT_ROUND_TO_EVEN: i32 = 0;
+    const MAX_EXPONENT_ROUND_TO_EVEN: i32 = 0;
+    const MINIMUM_EXPONENT: i32 = 0;
+    const SMALLEST_POWER_OF_TEN: i32 = 0;
+    const LARGEST_POWER_OF_TEN: i32 = 0;
+}
+
+#[cfg(feature = "f16")]
+impl LemireFloat for bf16 {
+    const MIN_EXPONENT_ROUND_TO_EVEN: i32 = 0;
+    const MAX_EXPONENT_ROUND_TO_EVEN: i32 = 0;
+    const MINIMUM_EXPONENT: i32 = 0;
+    const SMALLEST_POWER_OF_TEN: i32 = 0;
+    const LARGEST_POWER_OF_TEN: i32 = 0;
 }
 
 #[inline(always)]

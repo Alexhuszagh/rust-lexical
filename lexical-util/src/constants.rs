@@ -2,6 +2,11 @@
 
 #![cfg(feature = "write")]
 
+#[cfg(feature = "f16")]
+use crate::bf16::bf16;
+#[cfg(feature = "f16")]
+use crate::f16::f16;
+
 /// The size, in bytes, of formatted values.
 pub trait FormattedSize {
     /// Maximum number of bytes required to serialize a number to string.
@@ -64,6 +69,12 @@ formatted_size_impl! {
     f64 64 256 ;
     //f128 128 512 ;
     //f256 256 1024 ;
+}
+
+#[cfg(feature = "f16")]
+formatted_size_impl! {
+    f16 64 256 ;
+    bf16 64 256 ;
 }
 
 #[cfg(target_pointer_width = "16")]

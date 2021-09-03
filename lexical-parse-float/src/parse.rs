@@ -18,8 +18,12 @@ use crate::shared;
 use crate::slow::slow_radix;
 #[cfg(not(feature = "compact"))]
 use lexical_parse_integer::algorithm;
+#[cfg(feature = "f16")]
+use lexical_util::bf16::bf16;
 use lexical_util::digit::{char_to_digit_const, char_to_valid_digit_const};
 use lexical_util::error::Error;
+#[cfg(feature = "f16")]
+use lexical_util::f16::f16;
 use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
 use lexical_util::result::Result;
@@ -86,6 +90,27 @@ macro_rules! parse_float_impl {
 }
 
 parse_float_impl! { f32 f64 }
+
+#[cfg(feature = "f16")]
+macro_rules! parse_float_as_f32 {
+    ($($t:ty)*) => ($(
+        impl ParseFloat for $t {
+            #[cfg_attr(not(feature = "compact"), inline(always))]
+            fn parse_complete<const FORMAT: u128>(bytes: &[u8], options: &Options) -> Result<Self> {
+                Ok(Self::from_f32(parse_complete::<f32, FORMAT>(bytes, options)?))
+            }
+
+            #[cfg_attr(not(feature = "compact"), inline(always))]
+            fn parse_partial<const FORMAT: u128>(bytes: &[u8], options: &Options) -> Result<(Self, usize)> {
+                let (float, count) = parse_partial::<f32, FORMAT>(bytes, options)?;
+                Ok((Self::from_f32(float), count))
+            }
+        }
+    )*)
+}
+
+#[cfg(feature = "f16")]
+parse_float_as_f32! { bf16 f16 }
 
 // PARSE
 // -----

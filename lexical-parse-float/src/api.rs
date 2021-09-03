@@ -4,7 +4,11 @@
 
 use crate::options::Options;
 use crate::parse::ParseFloat;
+#[cfg(feature = "f16")]
+use lexical_util::bf16::bf16;
 use lexical_util::error::Error;
+#[cfg(feature = "f16")]
+use lexical_util::f16::f16;
 use lexical_util::format::{is_valid_options_punctuation, NumberFormat, STANDARD};
 use lexical_util::{from_lexical, from_lexical_with_options};
 
@@ -69,3 +73,6 @@ macro_rules! float_from_lexical {
 from_lexical! {}
 from_lexical_with_options! {}
 float_from_lexical! { f32 f64 }
+
+#[cfg(feature = "f16")]
+float_from_lexical! { bf16 f16 }

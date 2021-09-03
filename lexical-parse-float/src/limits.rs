@@ -3,6 +3,10 @@
 #![doc(hidden)]
 
 use lexical_util::assert::debug_assert_radix;
+#[cfg(feature = "f16")]
+use lexical_util::bf16::bf16;
+#[cfg(feature = "f16")]
+use lexical_util::f16::f16;
 
 // EXACT EXPONENT
 // --------------
@@ -38,188 +42,6 @@ pub trait ExactFloat {
     fn mantissa_limit(radix: u32) -> i64;
 }
 
-//#[cfg(feature = "f16")]
-//impl ExactFloat for f16 {
-//    #[inline(always)]
-//    fn exponent_limit(radix: u32) -> (i64, i64) {
-//        debug_assert_radix(radix);
-//        match radix {
-//           2 if cfg!(feature = "power-of-two") => (-24, 15),
-//           3 if cfg!(feature = "radix") => (-6, 6),
-//           4 if cfg!(feature = "power-of-two") => (-12, 7),
-//           5 if cfg!(feature = "radix") => (-4, 4),
-//           6 if cfg!(feature = "radix") => (-6, 6),
-//           7 if cfg!(feature = "radix") => (-3, 3),
-//           8 if cfg!(feature = "power-of-two") => (-8, 5),
-//           9 if cfg!(feature = "radix") => (-3, 3),
-//           10 => (-4, 4),
-//           11 if cfg!(feature = "radix") => (-3, 3),
-//           12 if cfg!(feature = "radix") => (-6, 6),
-//           13 if cfg!(feature = "radix") => (-2, 2),
-//           14 if cfg!(feature = "radix") => (-3, 3),
-//           15 if cfg!(feature = "radix") => (-2, 2),
-//           16 if cfg!(feature = "power-of-two") => (-6, 3),
-//           17 if cfg!(feature = "radix") => (-2, 2),
-//           18 if cfg!(feature = "radix") => (-3, 3),
-//           19 if cfg!(feature = "radix") => (-2, 2),
-//           20 if cfg!(feature = "radix") => (-4, 4),
-//           21 if cfg!(feature = "radix") => (-2, 2),
-//           22 if cfg!(feature = "radix") => (-3, 3),
-//           23 if cfg!(feature = "radix") => (-2, 2),
-//           24 if cfg!(feature = "radix") => (-6, 6),
-//           25 if cfg!(feature = "radix") => (-2, 2),
-//           26 if cfg!(feature = "radix") => (-2, 2),
-//           27 if cfg!(feature = "radix") => (-2, 2),
-//           28 if cfg!(feature = "radix") => (-3, 3),
-//           29 if cfg!(feature = "radix") => (-2, 2),
-//           30 if cfg!(feature = "radix") => (-2, 2),
-//           31 if cfg!(feature = "radix") => (-2, 2),
-//           32 if cfg!(feature = "power-of-two") => (-4, 3),
-//           33 if cfg!(feature = "radix") => (-2, 2),
-//           34 if cfg!(feature = "radix") => (-2, 2),
-//           35 if cfg!(feature = "radix") => (-2, 2),
-//           36 if cfg!(feature = "radix") => (-3, 3),
-//            // Invalid radix
-//            _ => unreachable!(),
-//        }
-//    }
-//
-//    #[inline(always)]
-//    fn mantissa_limit(radix: u32) -> i64 {
-//        debug_assert_radix(radix);
-//        match radix {
-//            2 if cfg!(feature = "power-of-two") => 11,
-//            3 if cfg!(feature = "radix") => 6,
-//            4 if cfg!(feature = "power-of-two") => 5,
-//            5 if cfg!(feature = "radix") => 4,
-//            6 if cfg!(feature = "radix") => 4,
-//            7 if cfg!(feature = "radix") => 3,
-//            8 if cfg!(feature = "power-of-two") => 3,
-//            9 if cfg!(feature = "radix") => 3,
-//            10 => 3,
-//            11 if cfg!(feature = "radix") => 3,
-//            12 if cfg!(feature = "radix") => 3,
-//            13 if cfg!(feature = "radix") => 2,
-//            14 if cfg!(feature = "radix") => 2,
-//            15 if cfg!(feature = "radix") => 2,
-//            16 if cfg!(feature = "power-of-two") => 2,
-//            17 if cfg!(feature = "radix") => 2,
-//            18 if cfg!(feature = "radix") => 2,
-//            19 if cfg!(feature = "radix") => 2,
-//            20 if cfg!(feature = "radix") => 2,
-//            21 if cfg!(feature = "radix") => 2,
-//            22 if cfg!(feature = "radix") => 2,
-//            23 if cfg!(feature = "radix") => 2,
-//            24 if cfg!(feature = "radix") => 2,
-//            25 if cfg!(feature = "radix") => 2,
-//            26 if cfg!(feature = "radix") => 2,
-//            27 if cfg!(feature = "radix") => 2,
-//            28 if cfg!(feature = "radix") => 2,
-//            29 if cfg!(feature = "radix") => 2,
-//            30 if cfg!(feature = "radix") => 2,
-//            31 if cfg!(feature = "radix") => 2,
-//            32 if cfg!(feature = "power-of-two") => 2,
-//            33 if cfg!(feature = "radix") => 2,
-//            34 if cfg!(feature = "radix") => 2,
-//            35 if cfg!(feature = "radix") => 2,
-//            36 if cfg!(feature = "radix") => 2,
-//            // Invalid radix
-//            _ => unreachable!(),
-//        }
-//    }
-//}
-
-//#[cfg(feature = "f16")]
-//impl ExactFloat for bf16 {
-//    #[inline(always)]
-//    fn exponent_limit(radix: u32) -> (i64, i64) {
-//        debug_assert_radix(radix);
-//        match radix {
-//            2 if cfg!(feature = "power-of-two") => (-133, 127),
-//            3 if cfg!(feature = "radix") => (-5, 5),
-//            4 if cfg!(feature = "power-of-two") => (-66, 63),
-//            5 if cfg!(feature = "radix") => (-3, 3),
-//            6 if cfg!(feature = "radix") => (-5, 5),
-//            7 if cfg!(feature = "radix") => (-2, 2),
-//            8 if cfg!(feature = "power-of-two") => (-44, 42),
-//            9 if cfg!(feature = "radix") => (-2, 2),
-//            10 => (-3, 3),
-//            11 if cfg!(feature = "radix") => (-2, 2),
-//            12 if cfg!(feature = "radix") => (-5, 5),
-//            13 if cfg!(feature = "radix") => (-2, 2),
-//            14 if cfg!(feature = "radix") => (-2, 2),
-//            15 if cfg!(feature = "radix") => (-2, 2),
-//            16 if cfg!(feature = "power-of-two") => (-33, 31),
-//            17 if cfg!(feature = "radix") => (-1, 1),
-//            18 if cfg!(feature = "radix") => (-2, 2),
-//            19 if cfg!(feature = "radix") => (-1, 1),
-//            20 if cfg!(feature = "radix") => (-3, 3),
-//            21 if cfg!(feature = "radix") => (-1, 1),
-//            22 if cfg!(feature = "radix") => (-2, 2),
-//            23 if cfg!(feature = "radix") => (-1, 1),
-//            24 if cfg!(feature = "radix") => (-5, 5),
-//            25 if cfg!(feature = "radix") => (-1, 1),
-//            26 if cfg!(feature = "radix") => (-2, 2),
-//            27 if cfg!(feature = "radix") => (-1, 1),
-//            28 if cfg!(feature = "radix") => (-2, 2),
-//            29 if cfg!(feature = "radix") => (-1, 1),
-//            30 if cfg!(feature = "radix") => (-2, 2),
-//            31 if cfg!(feature = "radix") => (-1, 1),
-//            32 if cfg!(feature = "power-of-two") => (-26, 25),
-//            33 if cfg!(feature = "radix") => (-1, 1),
-//            34 if cfg!(feature = "radix") => (-1, 1),
-//            35 if cfg!(feature = "radix") => (-1, 1),
-//            36 if cfg!(feature = "radix") => (-2, 2),
-//            // Invalid radix
-//            _ => unreachable!(),
-//        }
-//    }
-//
-//    #[inline(always)]
-//    fn mantissa_limit(radix: u32) -> i64 {
-//        debug_assert_radix(radix);
-//        match radix {
-//            2 if cfg!(feature = "power-of-two") => 8,
-//            3 if cfg!(feature = "radix") => 5,
-//            4 if cfg!(feature = "power-of-two") => 4,
-//            5 if cfg!(feature = "radix") => 3,
-//            6 if cfg!(feature = "radix") => 3,
-//            7 if cfg!(feature = "radix") => 2,
-//            8 if cfg!(feature = "power-of-two") => 2,
-//            9 if cfg!(feature = "radix") => 2,
-//            10 => 2,
-//            11 if cfg!(feature = "radix") => 2,
-//            12 if cfg!(feature = "radix") => 2,
-//            13 if cfg!(feature = "radix") => 2,
-//            14 if cfg!(feature = "radix") => 2,
-//            15 if cfg!(feature = "radix") => 2,
-//            16 if cfg!(feature = "power-of-two") => 2,
-//            17 if cfg!(feature = "radix") => 1,
-//            18 if cfg!(feature = "radix") => 1,
-//            19 if cfg!(feature = "radix") => 1,
-//            20 if cfg!(feature = "radix") => 1,
-//            21 if cfg!(feature = "radix") => 1,
-//            22 if cfg!(feature = "radix") => 1,
-//            23 if cfg!(feature = "radix") => 1,
-//            24 if cfg!(feature = "radix") => 1,
-//            25 if cfg!(feature = "radix") => 1,
-//            26 if cfg!(feature = "radix") => 1,
-//            27 if cfg!(feature = "radix") => 1,
-//            28 if cfg!(feature = "radix") => 1,
-//            29 if cfg!(feature = "radix") => 1,
-//            30 if cfg!(feature = "radix") => 1,
-//            31 if cfg!(feature = "radix") => 1,
-//            32 if cfg!(feature = "power-of-two") => 1,
-//            33 if cfg!(feature = "radix") => 1,
-//            34 if cfg!(feature = "radix") => 1,
-//            35 if cfg!(feature = "radix") => 1,
-//            36 if cfg!(feature = "radix") => 1,
-//            // Invalid radix
-//            _ => unreachable!(),
-//        }
-//    }
-//}
-
 impl ExactFloat for f32 {
     #[inline(always)]
     fn exponent_limit(radix: u32) -> (i64, i64) {
@@ -245,6 +67,32 @@ impl ExactFloat for f64 {
     fn mantissa_limit(radix: u32) -> i64 {
         debug_assert_radix(radix);
         f64_mantissa_limit(radix)
+    }
+}
+
+#[cfg(feature = "f16")]
+impl ExactFloat for f16 {
+    #[inline(always)]
+    fn exponent_limit(_: u32) -> (i64, i64) {
+        unimplemented!()
+    }
+
+    #[inline(always)]
+    fn mantissa_limit(_: u32) -> i64 {
+        unimplemented!()
+    }
+}
+
+#[cfg(feature = "f16")]
+impl ExactFloat for bf16 {
+    #[inline(always)]
+    fn exponent_limit(_: u32) -> (i64, i64) {
+        unimplemented!()
+    }
+
+    #[inline(always)]
+    fn mantissa_limit(_: u32) -> i64 {
+        unimplemented!()
     }
 }
 
@@ -751,60 +599,6 @@ pub trait MaxDigits {
     fn max_digits(radix: u32) -> Option<usize>;
 }
 
-///// emin = -14
-///// p2 = 11
-//#[cfg(feature = "f16")]
-//impl MaxDigits for f16 {
-//    #[inline(always)]
-//    fn max_digits(radix: u32) -> Option<usize> {
-//        match radix {
-//            6 => Some(21),
-//            10 => Some(23),
-//            12 => Some(23),
-//            14 => Some(23),
-//            18 => Some(23),
-//            20 => Some(23),
-//            22 => Some(24),
-//            24 => Some(24),
-//            26 => Some(24),
-//            28 => Some(24),
-//            30 => Some(24),
-//            34 => Some(24),
-//            36 => Some(24),
-//            // Powers of two should be unreachable.
-//            // Odd numbers will have infinite digits.
-//            _ => None,
-//        }
-//    }
-//}
-
-///// emin = -126
-///// p2 = 8
-//#[cfg(feature = "f16")]
-//impl MaxDigits for bf16 {
-//    #[inline(always)]
-//    fn max_digits(radix: u32) -> Option<usize> {
-//        match radix {
-//            6 => Some(87),
-//            10 => Some(98),
-//            12 => Some(101),
-//            14 => Some(103),
-//            18 => Some(106),
-//            20 => Some(107),
-//            22 => Some(107),
-//            24 => Some(108),
-//            26 => Some(109),
-//            28 => Some(109),
-//            30 => Some(110),
-//            34 => Some(111),
-//            36 => Some(111),
-//            // Powers of two should be unreachable.
-//            // Odd numbers will have infinite digits.
-//            _ => None,
-//        }
-//    }
-//}
-
 /// emin = -126
 /// p2 = 24
 impl MaxDigits for f32 {
@@ -822,6 +616,22 @@ impl MaxDigits for f64 {
     fn max_digits(radix: u32) -> Option<usize> {
         debug_assert_radix(radix);
         f64_max_digits(radix)
+    }
+}
+
+#[cfg(feature = "f16")]
+impl MaxDigits for f16 {
+    #[inline(always)]
+    fn max_digits(_: u32) -> Option<usize> {
+        unimplemented!()
+    }
+}
+
+#[cfg(feature = "f16")]
+impl MaxDigits for bf16 {
+    #[inline(always)]
+    fn max_digits(_: u32) -> Option<usize> {
+        unimplemented!()
     }
 }
 
