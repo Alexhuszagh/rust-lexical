@@ -18,7 +18,7 @@ pub trait FormattedSize {
     /// buffer than the one provided. An upper limit on the buffer size can
     /// then be determined using [`WriteOptions::buffer_size`].
     ///
-    /// [`WriteOptions::buffer_size`]: lexical_util::options::WriteOptions::buffer_size
+    /// [`WriteOptions::buffer_size`]: crate::options::WriteOptions::buffer_size
     /// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-write-float
     const FORMATTED_SIZE: usize;
 
@@ -31,7 +31,7 @@ pub trait FormattedSize {
     /// buffer than the one provided. An upper limit on the buffer size can
     /// then be determined using [`WriteOptions::buffer_size`].
     ///
-    /// [`WriteOptions::buffer_size`]: lexical_util::options::WriteOptions::buffer_size
+    /// [`WriteOptions::buffer_size`]: crate::options::WriteOptions::buffer_size
     /// [`lexical_write_float`]: https://github.com/Alexhuszagh/rust-lexical/tree/main/lexical-write-float
     const FORMATTED_SIZE_DECIMAL: usize;
 }
