@@ -158,6 +158,61 @@ fn to_decimal_test() {
     assert_eq!(to_decimal_f64(1.7976931348623157e+308), (17976931348623157, 292));
 }
 
+fn compute_nearest_shorter(float: f64) -> (u64, i32) {
+    let fp = algorithm::compute_nearest_shorter(float);
+    (fp.mant, fp.exp)
+}
+
+#[test]
+fn compute_nearest_shorter_test() {
+    assert_eq!(compute_nearest_shorter(0.5), (5, -1));
+    assert_eq!(compute_nearest_shorter(1.0), (1, 0));
+    assert_eq!(compute_nearest_shorter(2.0), (2, 0));
+}
+
+fn compute_nearest_normal(float: f64) -> (u64, i32) {
+    let fp = algorithm::compute_nearest_normal(float);
+    (fp.mant, fp.exp)
+}
+
+#[test]
+fn compute_nearest_normal_test() {
+    assert_eq!(compute_nearest_normal(1.23456), (123456, -5));
+    assert_eq!(compute_nearest_normal(13.9999999999999982236431606), (13999999999999998, -15));
+}
+
+fn compute_left_closed_directed(float: f64) -> (u64, i32) {
+    let fp = algorithm::compute_left_closed_directed(float);
+    (fp.mant, fp.exp)
+}
+
+#[test]
+fn compute_left_closed_directed_test() {
+    assert_eq!(compute_left_closed_directed(1.23456), (12345600000000002, -16));
+    assert_eq!(
+        compute_left_closed_directed(13.9999999999999982236431606),
+        (13999999999999999, -15)
+    );
+}
+
+fn compute_right_closed_directed(float: f64) -> (u64, i32) {
+    // Assume we do not have a shorter case.
+    let bits = float.to_bits();
+    let mantissa_bits = bits & f64::MANTISSA_MASK;
+    assert!(mantissa_bits != 0);
+    let fp = algorithm::compute_right_closed_directed(float, false);
+    (fp.mant, fp.exp)
+}
+
+#[test]
+fn compute_right_closed_directed_test() {
+    assert_eq!(compute_right_closed_directed(1.23456), (123456, -5));
+    assert_eq!(
+        compute_right_closed_directed(13.9999999999999982236431606),
+        (13999999999999982, -15)
+    );
+}
+
 fn write_digits_f32(buffer: &mut [u8], value: u64, expected: &str) {
     let count = unsafe { f32::write_digits(buffer, value) };
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };

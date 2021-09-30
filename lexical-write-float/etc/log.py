@@ -104,7 +104,7 @@ def gen_log5_2(max_exp=1492):
 def gen_log5_2_sub_log5_3(max_exp=2427):
     return gen_fast_log_sub(max_exp, 5, 2, 5, 3, dragonbox_log5_2_sub_log5_3)
 
-# This is for generating x * log10(2) - log10(4) / 3
+# This is for generating x * log10(2) - log10(4 / 3)
 def gen_log10_2_sub_log10_4_div3(max_exp=1700):
     return gen_fast_log_sub_div(max_exp, 10, 2, 10, 4, 3, dragonbox_log10_2_sub_log10_4_div3)
 

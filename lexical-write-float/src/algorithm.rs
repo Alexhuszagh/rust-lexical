@@ -96,13 +96,13 @@ pub unsafe fn write_float_scientific<F: DragonboxFloat, const FORMAT: u128>(
     // Write the significant digits. Write at index 1, so we can shift 1
     // for the decimal point without intermediate buffers.
     // SAFETY: safe, if we have enough bytes to write the significant digits.
-    let mut digits = unsafe { &mut index_unchecked_mut!(bytes[1..]) };
+    let digits = unsafe { &mut index_unchecked_mut!(bytes[1..]) };
     let digit_count = unsafe { F::write_digits(digits, fp.mant) };
 
     // Truncate and round the significant digits.
     // SAFETY: safe since `digit_count < digits.len()`.
     let (digit_count, carried) =
-        unsafe { shared::truncate_and_round_decimal(&mut digits, digit_count, options) };
+        unsafe { shared::truncate_and_round_decimal(digits, digit_count, options) };
     let sci_exp = sci_exp + carried as i32;
 
     // Determine the exact number of digits to write.
@@ -375,8 +375,41 @@ pub fn to_decimal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // According to the main Dragonbox algorithm, this is the left-closed
     // directed rounding case, however, that is the case of I = [w,w+), which
     // does not round-down. Rather, we want the right-closed directed rounding
-    // case, or I = (w−,w]. Unfortunately, this doesn't work, since it truncates
-    // **too** much, so we just round-nearest, tie-even, then direct the rounding.
+    // case, or I = (w−,w]. Unfortunately, this doesn't work, since if it
+    // goes toward `w-` it can round-down which produces misleading results,
+    // within the context of our float formatter, so we just round-nearest, \
+    // tie-even, then direct the rounding.
+    //
+    // An example of cases where this matters is:
+    //    **compute_nearest_normal**
+    //
+    //    - `1.23456 => (123456, -5)` for binary32.
+    //    - `1.23456 => (123456, -5)` for binary64.
+    //    - `13.9999999999999982236431606 => (13999999999999998, -15)` for binary64.
+    //
+    //     **compute_left_closed_directed**
+    //
+    //    - `1.23456 => (12345601, -7)` for binary32.
+    //    - `1.23456 => (12345600000000002, -16)` for binary64.
+    //    - `13.9999999999999982236431606 => (13999999999999999, -15)` for binary64.
+    //
+    //     **compute_right_closed_directed**
+    //
+    //    - `1.23456 => (123456, -5)` for binary32.
+    //    - `1.23456 => (123456, -5)` for binary64.
+    //    - `13.9999999999999982236431606 => (13999999999999982, -15)` for binary64.
+    //
+    // In the case of `13.9999999999999982236431606`, we get `14.0` for
+    // binary64 using `compute_nearest_normal` and `13.99999999999998` for
+    // `compute_right_closed_directed`.
+    //
+    // In the case of `1.2345600000000001017497198`, we get `1.23456` for
+    // binary64 using `compute_nearest_normal` `1.2345601` using
+    // `compute_left_closed_directed`.
+    //
+    // Neither of these is an expected result when truncating digits (we expect
+    // `13.999999999999998` when truncating for the first case, and `1.23456` for
+    // the second case).
 
     if mantissa_bits.as_u64() == 0 {
         compute_round_short(float)
@@ -673,9 +706,13 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
         return short_circuit();
     } else if r == deltai {
         // Compare the fractional parts.
-        if shorter && F::compute_mul_parity(two_fc * 2 - 1, &pow5, beta_minus_1 - 1) {
-            return short_circuit();
-        } else if !shorter && F::compute_mul_parity(two_fc - 1, &pow5, beta_minus_1) {
+        let two_f = two_fc
+            - if shorter {
+                1
+            } else {
+                2
+            };
+        if F::compute_mul_parity(two_f, &pow5, beta_minus_1) {
             return short_circuit();
         }
     }
@@ -805,7 +842,7 @@ pub const fn umul192_middle64(x: u64, hi: u64, lo: u64) -> u64 {
 
 #[inline(always)]
 pub const fn umul96_upper32(x: u64, y: u64) -> u64 {
-    umul128_upper64(x, y)
+    umul128_upper64(x, y) as u32 as _
 }
 
 #[inline(always)]
@@ -854,7 +891,7 @@ pub const fn floor_log5_pow2_minus_log5_3(q: i32) -> i32 {
 #[inline(always)]
 pub const fn floor_log10_pow2_minus_log10_4_over_3(q: i32) -> i32 {
     // NOTE: these values aren't actually exact:
-    //      They're off sfor -295 and 97, so any automated way of computing
+    //      They're off for -295 and 97, so any automated way of computing
     //      them will also be off.
     q.wrapping_mul(1262611).wrapping_sub(524031) >> 22
 }
@@ -1098,6 +1135,11 @@ pub const fn low(pow5: &(u64, u64)) -> u64 {
 /// Calculate the maximum possible power for the mantissa.
 #[inline(always)]
 pub fn max_power<F: DragonboxFloat>() -> i32 {
+    //  NOTE:
+    //      Dragonbox's reference implementation uses
+    //      `max_mantissa = max / pow64(10, F::KAPPA + 1)`, but then does
+    //      `p < max_mantissa / 10`, which produces the same result in all
+    //      cases.
     let max = F::Unsigned::MAX.as_u64();
     let max_mantissa = max / pow64(10, F::KAPPA + 2);
     let mut k = 0i32;
