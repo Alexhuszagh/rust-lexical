@@ -372,15 +372,15 @@ pub fn to_decimal<F: RawFloat>(float: F) -> ExtendedFloat80 {
 
     // Toward zero case:
     //
-    // According to the main Dragonbox algorithm, this is the left-closed
-    // directed rounding case, however, that is the case of I = [w,w+), which
-    // does not round-down. Rather, we want the right-closed directed rounding
-    // case, or I = (w−,w]. Unfortunately, this doesn't work, since if it
-    // goes toward `w-` it can round-down which produces misleading results,
-    // within the context of our float formatter, so we just round-nearest, \
-    // tie-even, then direct the rounding.
+    // What we need is a compute-nearest, but with truncated digits in the
+    // truncated case. Note that we don't need the left-closed direct
+    // rounding case of I = [w,w+), or right-closed directed rounding
+    // case of I = (w−,w], since these produce the shortest intervals for
+    // a **float parser** assuming the rounding of the float-parser.
+    // The left-directed case assumes the float parser will round-down,
+    // while the right-directed case assumed the float parser will round-up.
     //
-    // An example of cases where this matters is:
+    // A few examples of this behavior is described here:
     //    **compute_nearest_normal**
     //
     //    - `1.23456 => (123456, -5)` for binary32.
@@ -398,18 +398,6 @@ pub fn to_decimal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     //    - `1.23456 => (123456, -5)` for binary32.
     //    - `1.23456 => (123456, -5)` for binary64.
     //    - `13.9999999999999982236431606 => (13999999999999982, -15)` for binary64.
-    //
-    // In the case of `13.9999999999999982236431606`, we get `14.0` for
-    // binary64 using `compute_nearest_normal` and `13.99999999999998` for
-    // `compute_right_closed_directed`.
-    //
-    // In the case of `1.2345600000000001017497198`, we get `1.23456` for
-    // binary64 using `compute_nearest_normal` `1.2345601` using
-    // `compute_left_closed_directed`.
-    //
-    // Neither of these is an expected result when truncating digits (we expect
-    // `13.999999999999998` when truncating for the first case, and `1.23456` for
-    // the second case).
 
     if mantissa_bits.as_u64() == 0 {
         compute_round_short(float)
