@@ -20,6 +20,7 @@ exclude = [
 [dependencies.lexical-util]
 version = "0.8"
 path = "../lexical-util"
+default-features = false
 features = ["parse-floats"]
 
 [dependencies.lexical-parse-integer]
