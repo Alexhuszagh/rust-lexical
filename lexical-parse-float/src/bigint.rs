@@ -298,6 +298,14 @@ impl<const SIZE: usize> StackVec<SIZE> {
         }
     }
 
+    pub fn as_mut_ptr(&mut self) -> *mut Limb {
+        self.data.as_mut_ptr().cast::<Limb>()
+    }
+
+    pub fn as_ptr(&self) -> *const Limb {
+        self.data.as_ptr().cast::<Limb>()
+    }
+
     /// Construct a vector from an existing slice.
     #[inline]
     pub fn try_from(x: &[Limb]) -> Option<Self> {
@@ -350,7 +358,9 @@ impl<const SIZE: usize> StackVec<SIZE> {
         debug_assert!(self.len() < self.capacity());
         // SAFETY: safe, capacity is less than the current size.
         unsafe {
-            ptr::write(self.as_mut_ptr().add(self.len()), value);
+            let len = self.len();
+            let ptr = self.as_mut_ptr().add(len);
+            ptr.write(value);
             self.length += 1;
         }
     }
@@ -1302,11 +1312,13 @@ pub fn shl_limbs<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<
         // SAFE: since x is not empty, and `x.len() + n <= x.capacity()`.
         unsafe {
             // Move the elements.
-            let src = x.as_ptr();
-            let dst = x.as_mut_ptr().add(n);
-            ptr::copy(src, dst, x.len());
+            let x_len = x.len();
+            let ptr = x.as_mut_ptr();
+            let src = ptr;
+            let dst = ptr.add(n);
+            ptr::copy(src, dst, x_len);
             // Write our 0s.
-            ptr::write_bytes(x.as_mut_ptr(), 0, n);
+            ptr::write_bytes(ptr, 0, n);
             x.set_len(len);
         }
         Some(())
