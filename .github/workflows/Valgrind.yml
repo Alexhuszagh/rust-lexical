@@ -1,9 +1,7 @@
 name: Valgrind
 
 on:
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+  [push, pull_request, workflow_dispatch]
 
 jobs:
   valgrind:
