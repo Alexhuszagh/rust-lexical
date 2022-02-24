@@ -1242,6 +1242,7 @@ fn floorf(x: f32) -> f32 {
  * to produce the hexadecimal values shown.
  */
 
+#[allow(clippy::eq_op, clippy::excessive_precision)]
 #[cfg(all(not(feature = "std"), feature = "floats"))]
 fn logd(mut x: f64) -> f64 {
     const LN2_HI: f64 = 6.93147180369123816490e-01; /* 3fe62e42 fee00000 */
@@ -1313,6 +1314,7 @@ fn logd(mut x: f64) -> f64 {
  * ====================================================
  */
 
+#[allow(clippy::eq_op, clippy::excessive_precision)]
 #[cfg(all(not(feature = "std"), feature = "floats"))]
 fn logf(mut x: f32) -> f32 {
     const LN2_HI: f32 = 6.9313812256e-01; /* 0x3f317180 */
