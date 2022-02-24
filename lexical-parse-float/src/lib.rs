@@ -80,6 +80,9 @@
 //! - [Benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/Benchmarks.md)
 //! - [Big Integer Implementation](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/BigInteger.md)
 
+// Inline ASM was stabilized in 1.59.0.
+// FIXME: Remove when the MSRV for Rustc >= 1.59.0.
+#![allow(stable_features)]
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
 #![allow(unused_unsafe)]
