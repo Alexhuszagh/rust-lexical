@@ -50,6 +50,7 @@ pub trait BytesIter<'a>: Iterator<Item = &'a u8> {
     ///
     /// This may advance the internal iterator state, but not
     /// modify the next returned value.
+    #[allow(clippy::wrong_self_convention)]
     fn is_consumed(&mut self) -> bool;
 
     /// Get if the buffer underlying the iterator is empty.
