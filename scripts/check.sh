@@ -1,7 +1,7 @@
 #!/bin/bash
 # Ensure formatting and clippy is done on nightly.
 
-set -e
+set -ex
 
 # Change to our project home.
 script_dir=`dirname "${BASH_SOURCE[0]}"`
