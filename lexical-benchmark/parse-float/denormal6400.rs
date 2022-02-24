@@ -1,4 +1,7 @@
-#![feature(llvm_asm)]
+// Inline ASM was stabilized in 1.59.0.
+// FIXME: Remove when the MSRV for Rustc >= 1.59.0.
+#![allow(stable_features)]
+#![cfg_attr(feature = "nightly", feature(asm))]
 
 mod black_box;
 use black_box::black_box;

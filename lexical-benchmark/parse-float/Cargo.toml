@@ -29,6 +29,7 @@ radix = ["lexical-util/radix", "lexical-parse-float/radix"]
 power-of-two = ["lexical-util/power-of-two", "lexical-parse-float/power-of-two"]
 format = ["lexical-util/format", "lexical-parse-float/format"]
 compact = ["lexical-util/compact", "lexical-parse-float/compact"]
+asm = []
 floats = []
 json = []
 

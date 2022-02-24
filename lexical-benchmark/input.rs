@@ -70,8 +70,7 @@ pub fn read_csv(name: &str) -> Vec<String> {
         .unwrap()
         .trim()
         .lines()
-        .map(|x| x.split(','))
-        .flatten()
+        .flat_map(|x| x.split(','))
         .map(String::from)
         .collect()
 }

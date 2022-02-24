@@ -18,6 +18,9 @@ pub use fpu_precision::set_precision;
 // computations are performed in the desired precision.
 #[cfg(all(target_arch = "x86", not(target_feature = "sse2")))]
 mod fpu_precision {
+    // We only support the latest nightly, which is 1.59+.
+    // THe `asm!` macro was stabilized in 1.59.0.
+    use core::arch::asm;
     use core::mem::size_of;
 
     /// A structure used to preserve the original value of the FPU control word, so that it can be

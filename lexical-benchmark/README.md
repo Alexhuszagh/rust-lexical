@@ -13,3 +13,5 @@ The benchmark requires the following:
 4. An installation of [Rust](https://doc.rust-lang.org/1.0.0/book/installing-rust.html).
 5. An installation of Google [Benchmark](https://github.com/google/benchmark).
 5. An installation of [CMake](https://cmake.org/download/).
+
+The use of a Rust version >= 1.59.0, with the feature `asm`, is highly recommended for better metrics and/or performance.
