@@ -220,12 +220,11 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
     let decimal_point = options.decimal_point();
 
     // Round and truncate the number of significant digits.
-    let start: usize;
-    if sci_exp <= 0 {
-        start = ((initial_cursor as i32) - sci_exp - 1) as usize;
+    let start: usize = if sci_exp <= 0 {
+        ((initial_cursor as i32) - sci_exp - 1) as usize
     } else {
-        start = integer_cursor;
-    }
+        integer_cursor
+    };
     let end = fraction_cursor.min(start + MAX_DIGIT_LENGTH + 1);
     // SAFETY: safe since `start + digit_count <= end && end <= buffer.len()`.
     let (digit_count, carried) =
