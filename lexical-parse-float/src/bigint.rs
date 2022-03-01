@@ -298,10 +298,14 @@ impl<const SIZE: usize> StackVec<SIZE> {
         }
     }
 
+    /// Get a mutable ptr to the current start of the big integer.
+    #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut Limb {
         self.data.as_mut_ptr().cast::<Limb>()
     }
 
+    /// Get a ptr to the current start of the big integer.
+    #[inline]
     pub fn as_ptr(&self) -> *const Limb {
         self.data.as_ptr().cast::<Limb>()
     }
