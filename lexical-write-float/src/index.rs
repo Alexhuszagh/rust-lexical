@@ -7,6 +7,14 @@
 #![cfg_attr(not(feature = "power-of-two"), allow(unused_macros))]
 #![doc(hidden)]
 
+/// Enable an assertion only when the `safe` feature is enabled.
+macro_rules! safe_assert {
+    ($cond:expr $(,)?) => {
+        #[cfg(feature = "safe")]
+        assert!($cond);
+    };
+}
+
 /// Index a buffer, without bounds checking.
 #[cfg(not(feature = "safe"))]
 macro_rules! index_unchecked {
@@ -32,14 +40,6 @@ macro_rules! index_unchecked_mut {
 macro_rules! slice_fill_unchecked {
     ($slc:expr, $value:expr) => {
         core::ptr::write_bytes($slc.as_mut_ptr(), $value, $slc.len())
-    };
-}
-
-/// Copy to a slice, without bounds checking.
-#[cfg(not(feature = "safe"))]
-macro_rules! copy_unchecked {
-    ($dst:expr, $src:expr, $srclen:expr) => {
-        core::ptr::copy($src, $dst.as_mut_ptr(), $srclen)
     };
 }
 
@@ -81,16 +81,9 @@ macro_rules! slice_fill_unchecked {
 
 /// Copy to a slice, with bounds checking.
 #[cfg(feature = "safe")]
-macro_rules! copy_unchecked {
-    ($dst:expr, $src:expr, $srclen:expr) => {
-        $dst.copy_from_slice(unsafe { core::slice::from_raw_parts($src, $srclen) })
-    };
-}
-
-/// Copy to a slice, with bounds checking.
-#[cfg(feature = "safe")]
 macro_rules! copy_nonoverlapping_unchecked {
     ($dst:expr, $src:expr, $srclen:expr) => {
-        copy_unchecked!($dst, $src, $srclen)
+        let slc = unsafe { core::slice::from_raw_parts($src, $srclen) };
+        $dst.copy_from_slice(slc)
     };
 }

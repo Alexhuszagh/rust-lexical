@@ -335,13 +335,15 @@ where
         }
     } else {
         // We have less leading digits than digits we wrote: find the
-        // decimal point index, shift all digits by 1, then write it.
+        // decimal point index, shift all digits right by 1, then write it.
         // SAFETY: safe if the buffer is large enough to hold the significant digits.
         let shifted = digit_count - leading_digits;
         unsafe {
-            let src = index_unchecked!(bytes[leading_digits..digit_count]).as_ptr();
-            let dst = &mut index_unchecked_mut!(bytes[leading_digits + 1..digit_count + 1]);
-            copy_unchecked!(dst, src, shifted);
+            let buf = &mut index_unchecked_mut!(bytes[leading_digits..digit_count + 1]);
+            safe_assert!(buf.len() > shifted);
+            for i in (0..shifted).rev() {
+                index_unchecked_mut!(buf[i + 1] = buf[i]);
+            }
             index_unchecked_mut!(bytes[leading_digits]) = decimal_point;
             cursor = digit_count + 1;
         }

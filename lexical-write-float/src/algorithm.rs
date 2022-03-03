@@ -289,13 +289,15 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
         }
     } else {
         // Need to shift digits internally, and write the decimal point.
-        // First, move the digits by 1 after leading digits.
+        // First, move the digits right by 1 after leading digits.
         // SAFETY: safe if the buffer is large enough to hold the significant digits.
         let count = digit_count - leading_digits;
         unsafe {
-            let src = index_unchecked!(bytes[leading_digits..digit_count]).as_ptr();
-            let dst = &mut index_unchecked_mut!(bytes[leading_digits + 1..digit_count + 1]);
-            copy_unchecked!(dst, src, count);
+            let buf = &mut index_unchecked_mut!(bytes[leading_digits..digit_count + 1]);
+            safe_assert!(buf.len() > count);
+            for i in (0..count).rev() {
+                index_unchecked_mut!(buf[i + 1] = buf[i]);
+            }
         }
 
         // Now, write the decimal point.
