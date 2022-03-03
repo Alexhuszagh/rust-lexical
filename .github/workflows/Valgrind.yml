@@ -16,6 +16,7 @@ jobs:
         with:
             toolchain: nightly
             override: true
+      - run: sudo apt-get update
       - run: sudo apt-get install valgrind
       - run: cargo +nightly install cargo-valgrind
       - run: cargo +nightly valgrind test --release
