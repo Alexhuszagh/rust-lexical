@@ -281,6 +281,7 @@ macro_rules! test_all {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn f32_radix_roundtrip_test() {
     let mut buffer = [b'\x00'; 1200];
     let options = Options::new();
@@ -290,6 +291,7 @@ fn f32_radix_roundtrip_test() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn f64_radix_roundtrip_test() {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
     let options = Options::new();

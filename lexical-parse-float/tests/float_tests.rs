@@ -43,6 +43,7 @@ fn pow_fast_path(radix: u32) {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn pow_fast_path_test() {
     pow_fast_path(10);
     if cfg!(feature = "power-of-two") {

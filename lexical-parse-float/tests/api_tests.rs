@@ -179,6 +179,7 @@ fn f32_radix_test() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn parse_f32_test() {
     let parse = move |x| f32::from_lexical_partial(x);
 
@@ -241,6 +242,7 @@ fn parse_f32_test() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn parse_f64_test() {
     let parse = move |x| f64::from_lexical_partial(x);
 

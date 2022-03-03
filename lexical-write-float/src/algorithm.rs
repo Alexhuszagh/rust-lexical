@@ -238,8 +238,6 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
 ///
 /// Safe as long as `bytes` is large enough to hold the number of
 /// significant digits and the (optional) trailing zeros.
-// TODO: There is a bug here... but i do not know where
-// run `MIRIFLAGS="-Zmiri-tag-raw-pointers" cargo miri test f32_roundtrip_test` to find it.
 pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u128>(
     bytes: &mut [u8],
     fp: ExtendedFloat80,

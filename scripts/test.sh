@@ -11,6 +11,7 @@ script_dir=`dirname "${BASH_SOURCE[0]}"`
 cd "$script_dir"/..
 
 export RUSTFLAGS="--deny warnings"
+export MIRIFLAGS="-Zmiri-tag-raw-pointers"
 
 cargo +nightly test
 cargo +nightly test --all-features
