@@ -39,7 +39,10 @@ macro_rules! index_unchecked_mut {
 #[cfg(not(feature = "safe"))]
 macro_rules! slice_fill_unchecked {
     ($slc:expr, $value:expr) => {
-        core::ptr::write_bytes($slc.as_mut_ptr(), $value, $slc.len())
+        // Get the length first to avoid stacked borrows, since we might
+        // have a complex expression for the slice calculation.
+        let len = $slc.len();
+        core::ptr::write_bytes($slc.as_mut_ptr(), $value, len)
     };
 }
 
