@@ -283,7 +283,7 @@ use std::string::String;
 #[cfg(all(feature = "write", feature = "std"))]
 use std::vec::Vec;
 
-pub use lexical_core::format::{self, NumberFormatBuilder};
+pub use lexical_core::format::{self, format_error, format_is_valid, NumberFormatBuilder};
 #[cfg(feature = "parse")]
 pub use lexical_core::Error;
 #[cfg(feature = "parse")]

@@ -73,7 +73,7 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
         self.error().is_success()
     }
 
-    /// Get error from invalid number format.
+    /// Get the error type from the format.
     pub const fn error(&self) -> Error {
         let valid_flags = flags::REQUIRED_EXPONENT_DIGITS | flags::REQUIRED_MANTISSA_DIGITS;
         if !flags::is_valid_radix(self.mantissa_radix()) {

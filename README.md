@@ -39,14 +39,16 @@ And get started using lexical:
 
 ```rust
 // Number to string
-lexical::to_string(3.0);            // "3.0", always has a fraction suffix,
-lexical::to_string(3);              // "3"
+use lexical_core::BUFFER_SIZE;
+let mut buffer = [b'0'; BUFFER_SIZE];
+lexical_core::write(3.0, &mut buffer);   // "3.0", always has a fraction suffix,
+lexical_core::write(3, &mut buffer);     // "3"
 
 // String to number.
-let i: i32 = lexical::parse("3")?;      // Ok(3), auto-type deduction.
-let f: f32 = lexical::parse("3.5")?;    // Ok(3.5)
-let d: f64 = lexical::parse("3.5")?;    // Ok(3.5), error checking parse.
-let d: f64 = lexical::parse("3a")?;     // Err(Error(_)), failed to parse.
+let i: i32 = lexical_core::parse("3")?;      // Ok(3), auto-type deduction.
+let f: f32 = lexical_core::parse("3.5")?;    // Ok(3.5)
+let d: f64 = lexical_core::parse("3.5")?;    // Ok(3.5), error checking parse.
+let d: f64 = lexical_core::parse("3a")?;     // Err(Error(_)), failed to parse.
 ```
 
 In order to use lexical in generic code, the trait bounds `FromLexical` (for `parse`) and `ToLexical` (for `to_string`) are provided.
@@ -54,12 +56,14 @@ In order to use lexical in generic code, the trait bounds `FromLexical` (for `pa
 ```rust
 /// Multiply a value in a string by multiplier, and serialize to string.
 fn mul_2<T>(value: &str, multiplier: T)
-    -> Result<String, lexical::Error>
+    -> Result<String, lexical_core::Error>
 where 
-    T: lexical::ToLexical + lexical::FromLexical,
+    T: lexical_core::ToLexical + lexical_core::FromLexical,
 {
-    let value: T = lexical::parse(value)?;
-    Ok(lexical::to_string(value * multiplier))
+    let value: T = lexical_core::parse(value.as_bytes())?;
+    let mut buffer = [b'0'; lexical_core::BUFFER_SIZE];
+    let bytes = lexical_core::write(value * multiplier, &mut buffer);
+    Ok(std::str::from_utf8(bytes).unwrap())
 }
 ```
 
@@ -73,7 +77,7 @@ Lexical has both partial and complete parsers: the complete parsers ensure the e
 // This will return Err(Error::InvalidDigit(3)), indicating
 // the first invalid character occurred at the index 3 in the input
 // string (the space character).
-let x: i32 = lexical::parse("123 456")?;
+let x: i32 = lexical_core::parse(b"123 456")?;
 ```
 
 **Partial Parsers**
@@ -81,7 +85,7 @@ let x: i32 = lexical::parse("123 456")?;
 ```rust
 // This will return Ok((123, 3)), indicating that 3 digits were successfully
 // parsed, and that the returned value is `123`.
-let (x, count): (i32, usize) = lexical::parse_partial("123 456")?;
+let (x, count): (i32, usize) = lexical_core::parse_partial(b"123 456")?;
 ```
 
 # no_std
@@ -154,13 +158,13 @@ Every language has competing specifications for valid numerical input, meaning a
 ```rust
 // Valid in Rust strings.
 // Not valid in JSON.
-let f: f64 = lexical::parse(b"3.e7")?;  // 3e7
+let f: f64 = lexical_core::parse(b"3.e7")?;  // 3e7
 
 // Let's only accept JSON floats.
-const JSON: u128 = lexical::format::JSON;
+const JSON: u128 = lexical_core::format::JSON;
 let options = ParseFloatOptions::new();
-let f: f64 = lexical::parse_with_options::<JSON>(b"3.0e7", &options)?; // 3e7
-let f: f64 = lexical::parse_with_options::<JSON>(b"3.e7", &options)?;  // Errors!
+let f: f64 = lexical_core::parse_with_options::<JSON>(b"3.0e7", &options)?; // 3e7
+let f: f64 = lexical_core::parse_with_options::<JSON>(b"3.e7", &options)?;  // Errors!
 ```
 
 Due the high variability in the syntax of numbers in different programming and data languages, we provide 2 different APIs to simplify converting numbers with different syntax requirements.
@@ -196,7 +200,7 @@ including:
 An example of building a custom number format is as follows:
 
 ```rust
-const FORMAT: u128 = lexical::NumberFormatBuilder::new()
+const FORMAT: u128 = lexical_core::NumberFormatBuilder::new()
     // Disable exponent notation.
     .no_exponent_notation(true)
     // Disable all special numbers, such as Nan and Inf.
@@ -206,7 +210,7 @@ const FORMAT: u128 = lexical::NumberFormatBuilder::new()
 // Due to use in a `const fn`, we can't panic or expect users to unwrap invalid
 // formats, so it's up to the caller to verify the format. If an invalid format
 // is provided to a parser or writer, the function will error or panic, respectively.
-debug_assert!(lexical::format::NumberFormat::<FORMAT> {}.is_valid());
+debug_assert!(lexical_core::format_is_valid::<FORMAT>());
 ```
 
 ## Options API
@@ -218,7 +222,7 @@ An example of building a custom options struct is as follows:
 ```rust
 use std::num;
 
-let options = lexical::WriteFloatOptions::builder()
+let options = lexical_core::WriteFloatOptions::builder()
     // Only write up to 5 significant digits, IE, `1.23456` becomes `1.2345`.
     .max_significant_digits(num::NonZeroUsize::new(5))
     // Never write less than 5 significant digits, `1.1` becomes `1.1000`.

@@ -730,7 +730,7 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
         self.error().is_success()
     }
 
-    /// Get error from invalid number format.
+    /// Get the error type from the format.
     #[allow(clippy::if_same_then_else)]
     pub const fn error(&self) -> Error {
         if !flags::is_valid_radix(self.mantissa_radix()) {

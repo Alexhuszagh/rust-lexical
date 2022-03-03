@@ -372,7 +372,7 @@ pub use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 pub use lexical_util::error::Error;
 #[cfg(feature = "f16")]
 pub use lexical_util::f16::f16;
-pub use lexical_util::format::{self, NumberFormatBuilder};
+pub use lexical_util::format::{self, format_error, format_is_valid, NumberFormatBuilder};
 #[cfg(feature = "parse")]
 pub use lexical_util::options::ParseOptions;
 #[cfg(feature = "write")]
