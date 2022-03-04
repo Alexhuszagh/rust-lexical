@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Fixed `no_std` in `lexical-parse-float` when default features are disabled.
+- Fixed issue in parsing integers with the `power-of-two` feature enabled for radixes 16 and 32.
 
 ## [0.8.2] 2021-10-04
 ### Changed

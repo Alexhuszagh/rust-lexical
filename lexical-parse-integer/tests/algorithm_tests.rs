@@ -1,19 +1,19 @@
 #![cfg(not(feature = "compact"))]
 
-#[cfg(feature = "radix")]
+#[cfg(feature = "power-of-two")]
 mod util;
 
 use lexical_parse_integer::algorithm;
 use lexical_util::format::STANDARD;
 use lexical_util::iterator::AsBytes;
 use proptest::prelude::*;
-#[cfg(feature = "radix")]
+#[cfg(feature = "power-of-two")]
 use util::from_radix;
 
 #[test]
 fn test_is_4digits() {
     let value: u32 = 0x31_32_33_34;
-    #[cfg(feature = "radix")]
+    #[cfg(feature = "power-of-two")]
     assert!(!algorithm::is_4digits::<{ from_radix(4) }>(value));
     #[cfg(feature = "radix")]
     assert!(algorithm::is_4digits::<{ from_radix(5) }>(value));
@@ -56,11 +56,10 @@ fn test_try_parse_4digits() {
 #[test]
 fn test_is_8digits() {
     let value: u64 = 0x31_32_33_34_35_36_37_38;
+    #[cfg(feature = "power-of-two")]
+    assert!(!algorithm::is_8digits::<{ from_radix(4) }>(value));
     #[cfg(feature = "radix")]
-    {
-        assert!(!algorithm::is_8digits::<{ from_radix(4) }>(value));
-        assert!(!algorithm::is_8digits::<{ from_radix(5) }>(value));
-    }
+    assert!(!algorithm::is_8digits::<{ from_radix(5) }>(value));
     assert!(algorithm::is_8digits::<{ STANDARD }>(value));
 
     let value: u64 = 0x29_30_31_32_33_34_35_36;
@@ -92,10 +91,12 @@ fn test_parse_8digits() {
     // 12344321
     let value: u64 = 0x31_32_33_34_34_33_32_31;
     assert_eq!(algorithm::parse_8digits::<{ STANDARD }>(value), 12344321);
+    #[cfg(feature = "power-of-two")]
+    assert_eq!(algorithm::parse_8digits::<{ from_radix(8) }>(value), 2738385);
+
     #[cfg(feature = "radix")]
     {
         assert_eq!(algorithm::parse_8digits::<{ from_radix(9) }>(value), 6052420);
-        assert_eq!(algorithm::parse_8digits::<{ from_radix(8) }>(value), 2738385);
         assert_eq!(algorithm::parse_8digits::<{ from_radix(7) }>(value), 1120400);
         assert_eq!(algorithm::parse_8digits::<{ from_radix(6) }>(value), 402745);
         assert_eq!(algorithm::parse_8digits::<{ from_radix(5) }>(value), 121836);
@@ -117,6 +118,12 @@ fn test_try_parse_8digits() {
     assert_eq!(parse(b"12345678"), Some(12345678));
 }
 
+macro_rules! parse_radix {
+    ($i:literal) => {
+        |bytes: &[u8]| algorithm::algorithm_partial::<u32, u32, { from_radix($i) }>(bytes)
+    };
+}
+
 #[test]
 fn algorithm_test() {
     let parse_u32 = |bytes: &[u8]| algorithm::algorithm_partial::<u32, u32, STANDARD>(bytes);
@@ -129,6 +136,25 @@ fn algorithm_test() {
     assert_eq!(parse_i32(b"-12345"), Ok((-12345, 6)));
     assert_eq!(parse_i32(b"+12345"), Ok((12345, 6)));
     assert_eq!(parse_i32(b"+123.45"), Ok((123, 4)));
+
+    // Need to try with other radixes here, especially to ensure no regressions with #71.
+    // Issue: https://github.com/Alexhuszagh/rust-lexical/issues/71
+    #[cfg(feature = "power-of-two")]
+    {
+        // This should try to invoke `parse_4digits` since it's more than
+        // 4 digits, and unsigned.
+        assert_eq!(parse_radix!(4)(b"12345"), Ok((27, 3)));
+        assert_eq!(parse_radix!(8)(b"12345"), Ok((5349, 5)));
+        assert_eq!(parse_radix!(16)(b"12345"), Ok((74565, 5)));
+        assert_eq!(parse_radix!(32)(b"12345"), Ok((1117317, 5)));
+    }
+
+    #[cfg(feature = "radix")]
+    {
+        assert_eq!(parse_radix!(6)(b"12345"), Ok((1865, 5)));
+        assert_eq!(parse_radix!(12)(b"12345"), Ok((24677, 5)));
+        assert_eq!(parse_radix!(24)(b"12345"), Ok((361253, 5)));
+    }
 }
 
 #[test]
