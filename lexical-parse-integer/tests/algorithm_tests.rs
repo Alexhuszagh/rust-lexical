@@ -118,6 +118,7 @@ fn test_try_parse_8digits() {
     assert_eq!(parse(b"12345678"), Some(12345678));
 }
 
+#[cfg(feature = "power-of-two")]
 macro_rules! parse_radix {
     ($i:literal) => {
         |bytes: &[u8]| algorithm::algorithm_partial::<u32, u32, { from_radix($i) }>(bytes)
