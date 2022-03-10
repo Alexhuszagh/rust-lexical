@@ -15,7 +15,7 @@ use lexical_util::num::AsPrimitive;
 #[cfg(not(feature = "compact"))]
 macro_rules! can_try_parse_8digits {
     ($iter:expr, $radix:expr) => {
-        $iter.is_contiguous() && (cfg!(not(feature = "radix")) || $radix <= 10)
+        $iter.is_contiguous() && (cfg!(not(feature = "power-of-two")) || $radix <= 10)
     };
 }
 

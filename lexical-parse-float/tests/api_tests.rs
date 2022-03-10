@@ -1230,6 +1230,18 @@ fn issue66_test() {
     assert_eq!(f64::from_lexical_with_options::<CXX>(b"4'2.0", &options), Ok(42.0));
 }
 
+#[test]
+#[cfg(feature = "power-of-two")]
+fn issue68_test() {
+    const FORMAT: u128 = NumberFormatBuilder::from_radix(16);
+    let options = Options::builder().exponent(b'^').build().unwrap();
+
+    // Roughly 2^1375, 15 1s.
+    let hex = b"1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111";
+    assert_eq!(f32::INFINITY, f32::from_lexical_with_options::<FORMAT>(hex, &options).unwrap());
+    assert_eq!(f64::INFINITY, f64::from_lexical_with_options::<FORMAT>(hex, &options).unwrap());
+}
+
 fn float_equal<F: Float>(x: F, y: F) -> bool {
     if x.is_nan() {
         y.is_nan()
