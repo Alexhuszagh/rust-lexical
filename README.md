@@ -94,7 +94,7 @@ let (x, count): (i32, usize) = lexical_core::parse_partial(b"123 456")?;
 
 ```toml
 [dependencies.lexical-core]
-version = "0.8"
+version = "0.8.3"
 default-features = false
 # Can select only desired parsing/writing features.
 features = ["write-integers", "write-floats", "parse-integers", "parse-floats"]
