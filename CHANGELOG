@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added support for `-Zmiri-tag-raw-pointers` in miri correctness checks.
 - Added the documented functions `format_error` and `format_is_valid` to determine if a format packed struct is valid, since the previous checks relied on undocumented behavior.
+- Added `from_radix` to `ParseFloatOptions` and `WriteFloatOptions`, to simplify creating the default options with a different radix.
 
 ### Changed
 - Fixed `no_std` in `lexical-parse-float` when default features are disabled.
-- Fixed issue in parsing integers with the `power-of-two` feature enabled for radixes 16 and 32.
+- Fixed issue in parsing integers and floats with the `power-of-two` feature enabled for radixes 16 and 32.
 
 ## [0.8.2] 2021-10-04
 ### Changed
