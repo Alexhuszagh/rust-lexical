@@ -340,6 +340,21 @@ impl Options {
         unsafe { Self::builder().build_unchecked() }
     }
 
+    /// Create the default options for a given radix.
+    #[inline(always)]
+    #[cfg(feature = "power-of-two")]
+    pub const fn from_radix(radix: u8) -> Self {
+        // Need to determine the correct exponent character ('e' or '^'),
+        // since the default character is `e` normally, but this is a valid
+        // digit for radix >= 15.
+        let mut builder = Self::builder();
+        if radix >= 15 {
+            builder = builder.exponent(b'^');
+        }
+        // SAFETY: always safe since it uses the default arguments.
+        unsafe { builder.build_unchecked() }
+    }
+
     // GETTERS
 
     /// Check if the options state is valid.
