@@ -90,7 +90,7 @@ let (x, count): (i32, usize) = lexical_core::parse_partial(b"123 456")?;
 
 # no_std
 
-`lexical-core` does not depend on a standard library, not a system allocator. To use `lexical-core` in a `no_std` environment, add the following to `Cargo.toml`:
+`lexical-core` does not depend on a standard library, nor a system allocator. To use `lexical-core` in a `no_std` environment, add the following to `Cargo.toml`:
 
 ```toml
 [dependencies.lexical-core]
