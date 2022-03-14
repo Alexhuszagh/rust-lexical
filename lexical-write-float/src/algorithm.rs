@@ -35,7 +35,7 @@ use lexical_util::bf16::bf16;
 #[cfg(feature = "f16")]
 use lexical_util::f16::f16;
 use lexical_util::format::{NumberFormat, STANDARD};
-use lexical_util::num::{AsPrimitive, Float, Integer};
+use lexical_util::num::{AsPrimitive, Float};
 use lexical_write_integer::decimal::DigitCount;
 use lexical_write_integer::write::WriteInteger;
 
@@ -426,13 +426,13 @@ pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // Compute k and beta.
     let exponent = float.exponent();
     let minus_k = floor_log10_pow2_minus_log10_4_over_3(exponent);
-    let beta_minus_1 = exponent + floor_log2_pow10(-minus_k);
+    let beta = exponent + floor_log2_pow10(-minus_k);
 
     // Compute xi and zi.
     // SAFETY: safe, since value must be finite and therefore in the correct range.
     let pow5 = unsafe { F::dragonbox_power(-minus_k) };
-    let mut xi = F::compute_left_endpoint(&pow5, beta_minus_1);
-    let mut zi = F::compute_right_endpoint(&pow5, beta_minus_1);
+    let mut xi = F::compute_left_endpoint(&pow5, beta);
+    let mut zi = F::compute_right_endpoint(&pow5, beta);
 
     // Get the interval type.
     // Must be Round since we only use compute_round with a round-nearest direction.
@@ -459,7 +459,7 @@ pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
     }
 
     // Otherwise, compute the round-up of y.
-    let mut significand = F::compute_round_up(&pow5, beta_minus_1);
+    let mut significand = F::compute_round_up(&pow5, beta);
 
     // When tie occurs, choose one of them according to the rule.
     let bits: i32 = F::MANTISSA_SIZE;
@@ -493,14 +493,22 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let minus_k = floor_log10_pow2(exponent) - F::KAPPA as i32;
     // SAFETY: safe, since value must be finite and therefore in the correct range.
     let pow5 = unsafe { F::dragonbox_power(-minus_k) };
-    let beta_minus_1 = exponent + floor_log2_pow10(-minus_k);
+    let beta = exponent + floor_log2_pow10(-minus_k);
 
     // Compute zi and deltai.
     // 10^kappa <= deltai < 10^(kappa + 1)
     let two_fc = mantissa << 1;
-    let deltai = F::compute_delta(&pow5, beta_minus_1);
-    let two_fr = two_fc | 1;
-    let zi = F::compute_mul(two_fr << beta_minus_1, &pow5);
+    let deltai = F::compute_delta(&pow5, beta);
+    // For the case of binary32, the result of integer check is not correct for
+    // 29711844 * 2^-82
+    // = 6.1442653300000000008655037797566933477355632930994033813476... * 10^-18
+    // and 29711844 * 2^-81
+    // = 1.2288530660000000001731007559513386695471126586198806762695... * 10^-17,
+    // and they are the unique counterexamples. However, since 29711844 is even,
+    // this does not cause any problem for the endpoints calculations; it can only
+    // cause a problem when we need to perform integer check for the center.
+    // Fortunately, with these inputs, that branch is never executed, so we are fine.
+    let (zi, is_z_integer) = F::compute_mul((two_fc | 1) << beta, &pow5);
 
     // Step 2: Try larger divisor; remove trailing zeros if necessary
     let big_divisor = pow32(10, F::KAPPA + 1);
@@ -509,10 +517,9 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // Using an upper bound on zi, we might be able to optimize the division
     // better than the compiler; we are computing zi / big_divisor here.
     let exp = F::KAPPA + 1;
-    let max_pow2 = F::MANTISSA_SIZE + F::KAPPA as i32 + 2;
-    let max_pow5 = F::KAPPA as i32 + 1;
-    let mut significand = divide_by_pow10(zi, exp, max_pow2, max_pow5);
-    let mut r = (zi - big_divisor as u64 * significand) as u32;
+    let n_max = (1 << (F::MANTISSA_SIZE + 1)) * big_divisor as u64 - 1;
+    let mut significand = F::divide_by_pow10(zi, exp, n_max);
+    let mut r = (zi - (big_divisor as u64).wrapping_mul(significand)) as u32;
 
     // Get the interval type.
     // Must be Round since we only use compute_round with a round-nearest direction.
@@ -528,7 +535,7 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     if r < deltai {
         // Exclude the right endpoint if necessary.
         let include_right = interval_type.include_right_endpoint();
-        if r == 0 && !include_right && F::is_product_fc_pm_half(two_fr, exponent, minus_k) {
+        if r == 0 && !include_right && is_z_integer {
             significand -= 1;
             r = big_divisor;
         } else {
@@ -536,14 +543,24 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
         }
     } else if r == deltai {
         // r == deltai; compare fractional parts.
-        // Check conditions in the order different from the paper to take
-        // advantage of short-circuiting.
         let two_fl = two_fc - 1;
         let include_left = interval_type.include_left_endpoint();
-        let is_prod = F::is_product_fc_pm_half(two_fl, exponent, minus_k);
-        let is_mul_parity = F::compute_mul_parity(two_fl, &pow5, beta_minus_1);
-        if (include_left && is_prod) || is_mul_parity {
-            return short_circuit();
+
+        if !include_left || exponent < F::FC_PM_HALF_LOWER || exponent > F::DIV_BY_5_THRESHOLD {
+            // If the left endpoint is not included, the condition for
+            // success is z^(f) < delta^(f) (odd parity).
+            // Otherwise, the inequalities on exponent ensure that
+            // x is not an integer, so if z^(f) >= delta^(f) (even parity), we in fact
+            // have strict inequality.
+            let parity = F::compute_mul_parity(two_fl, &pow5, beta).0;
+            if parity {
+                return short_circuit();
+            }
+        } else {
+            let (xi_parity, x_is_integer) = F::compute_mul_parity(two_fl, &pow5, beta);
+            if xi_parity || x_is_integer {
+                return short_circuit();
+            }
         }
     }
 
@@ -560,21 +577,21 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     significand += dist as u64;
 
     if is_dist_div_by_kappa {
-        // Check z^(f) >= epsilon^(f)
+        // Check z^(f) >= epsilon^(f).
         // We have either yi == zi - epsiloni or yi == (zi - epsiloni) - 1,
-        // where yi == zi - epsiloni if and only if z^(f) >= epsilon^(f)
-        // Since there are only 2 possibilities, we only need to care about the parity.
-        // Also, zi and r should have the same parity since the divisor
-        // is an even number.
-        if F::compute_mul_parity(two_fc, &pow5, beta_minus_1) != approx_y_parity {
+        // where yi == zi - epsiloni if and only if z^(f) >= epsilon^(f).
+        // Since there are only 2 possibilities, we only need to care about the
+        // parity. Also, zi and r should have the same parity since the divisor is
+        // an even number.
+        let (yi_parity, is_y_integer) = F::compute_mul_parity(two_fc, &pow5, beta);
+
+        if yi_parity != approx_y_parity {
             significand -= 1;
-        } else {
+        } else if is_y_integer {
             // If z^(f) >= epsilon^(f), we might have a tie
             // when z^(f) == epsilon^(f), or equivalently, when y is an integer.
             // For tie-to-up case, we can just choose the upper one.
-            if F::is_product_fc(two_fc, exponent, minus_k) {
-                significand = RoundMode::Round.break_rounding_tie(significand);
-            }
+            significand = RoundMode::Round.break_rounding_tie(significand);
         }
     }
 
@@ -597,15 +614,27 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let minus_k = floor_log10_pow2(exponent) - F::KAPPA as i32;
     // SAFETY: safe, since value must be finite and therefore in the correct range.
     let pow5 = unsafe { F::dragonbox_power(-minus_k) };
-    let beta_minus_1 = exponent + floor_log2_pow10(-minus_k);
+    let beta = exponent + floor_log2_pow10(-minus_k);
 
     // Compute zi and deltai.
     // 10^kappa <= deltai < 10^(kappa + 1)
     let two_fc = mantissa << 1;
-    let deltai = F::compute_delta(&pow5, beta_minus_1);
-    let mut xi = F::compute_mul(two_fc << beta_minus_1, &pow5);
+    let deltai = F::compute_delta(&pow5, beta);
+    let (mut xi, mut is_x_integer) = F::compute_mul(two_fc << beta, &pow5);
 
-    if !F::is_product_fc(two_fc, exponent, minus_k) {
+    // Deal with the unique exceptional cases
+    // 29711844 * 2^-82
+    // = 6.1442653300000000008655037797566933477355632930994033813476... * 10^-18
+    // and 29711844 * 2^-81
+    // = 1.2288530660000000001731007559513386695471126586198806762695... * 10^-17
+    // for binary32.
+    if F::BITS == 32 {
+        if exponent <= -80 {
+            is_x_integer = false;
+        }
+    }
+
+    if !is_x_integer {
         xi += 1;
     }
 
@@ -615,10 +644,9 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // Using an upper bound on xi, we might be able to optimize the division
     // better than the compiler; we are computing xi / big_divisor here.
     let exp = F::KAPPA + 1;
-    let max_pow2 = F::MANTISSA_SIZE + F::KAPPA as i32 + 2;
-    let max_pow5 = F::KAPPA as i32 + 1;
-    let mut significand = divide_by_pow10(xi, exp, max_pow2, max_pow5);
-    let mut r = (xi - big_divisor as u64 * significand) as u32;
+    let n_max = (1 << (F::MANTISSA_SIZE + 1)) * big_divisor as u64 - 1;
+    let mut significand = F::divide_by_pow10(xi, exp, n_max);
+    let mut r = (xi - (big_divisor as u64).wrapping_mul(significand)) as u32;
 
     if r != 0 {
         significand += 1;
@@ -636,16 +664,20 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
         return short_circuit();
     } else if r == deltai {
         // Compare the fractional parts.
-        let is_prod = F::is_product_fc(two_fc + 2, exponent, minus_k);
-        let is_mul_parity = F::compute_mul_parity(two_fc + 2, &pow5, beta_minus_1);
-        if !(is_mul_parity || is_prod) {
+        // This branch is never taken for the exceptional cases
+        // 2f_c = 29711482, e = -81
+        // (6.1442649164096937243516663440523473127541365101933479309082... * 10^-18)
+        // and 2f_c = 29711482, e = -80
+        // (1.2288529832819387448703332688104694625508273020386695861816... * 10^-17).
+        let (zi_parity, is_z_integer) = F::compute_mul_parity(two_fc + 2, &pow5, beta);
+        if !(zi_parity && is_z_integer) {
             return short_circuit();
         }
     }
 
     // Step 3: Find the significand with the smaller divisor
     significand *= 10;
-    significand -= F::small_div_pow10(r) as u64;
+    significand -= F::div_pow10(r) as u64;
 
     // Ensure we haven't re-assigned exponent or minus_k, since this
     // is a massive potential security vulnerability.
@@ -666,24 +698,23 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
     let minus_k = floor_log10_pow2(exponent - shorter as i32) - F::KAPPA as i32;
     // SAFETY: safe, since value must be finite and therefore in the correct range.
     let pow5 = unsafe { F::dragonbox_power(-minus_k) };
-    let beta_minus_1 = exponent + floor_log2_pow10(-minus_k);
+    let beta = exponent + floor_log2_pow10(-minus_k);
 
     // Compute zi and deltai.
     // 10^kappa <= deltai < 10^(kappa + 1)
     let two_fc = mantissa << 1;
-    let deltai = F::compute_delta(&pow5, beta_minus_1 - shorter as i32);
-    let zi = F::compute_mul(two_fc << beta_minus_1, &pow5);
+    let deltai = F::compute_delta(&pow5, beta - shorter as i32);
+    let zi = F::compute_mul(two_fc << beta, &pow5).0;
 
     // Step 2: Try larger divisor; remove trailing zeros if necessary
     let big_divisor = pow32(10, F::KAPPA + 1);
 
-    // Using an upper bound on zi, we might be able to optimize the division
-    // better than the compiler; we are computing zi / big_divisor here.
+    // Using an upper bound on zi, we might be able to optimize the division better than
+    // the compiler; we are computing zi / big_divisor here.
     let exp = F::KAPPA + 1;
-    let max_pow2 = F::MANTISSA_SIZE + F::KAPPA as i32 + 2;
-    let max_pow5 = F::KAPPA as i32 + 1;
-    let mut significand = divide_by_pow10(zi, exp, max_pow2, max_pow5);
-    let r = (zi - big_divisor as u64 * significand) as u32;
+    let n_max = (1 << (F::MANTISSA_SIZE + 1)) * big_divisor as u64 - 1;
+    let mut significand = F::divide_by_pow10(zi, exp, n_max);
+    let r = (zi - (big_divisor as u64).wrapping_mul(significand)) as u32;
 
     // Short-circuit case.
     let short_circuit = || {
@@ -702,14 +733,14 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
             } else {
                 2
             };
-        if F::compute_mul_parity(two_f, &pow5, beta_minus_1) {
+        if F::compute_mul_parity(two_f, &pow5, beta).0 {
             return short_circuit();
         }
     }
 
     // Step 3: Find the significand with the smaller divisor
     significand *= 10;
-    significand -= F::small_div_pow10(r) as u64;
+    significand -= F::div_pow10(r) as u64;
 
     // Ensure we haven't re-assigned exponent or minus_k, since this
     // is a massive potential security vulnerability.
@@ -817,22 +848,22 @@ pub const fn umul128_upper64(x: u64, y: u64) -> u64 {
 }
 
 #[inline(always)]
-pub const fn umul192_upper64(x: u64, hi: u64, lo: u64) -> u64 {
-    let mut g0 = x as u128 * hi as u128;
-    g0 += umul128_upper64(x, lo) as u128;
-    (g0 >> 64) as u64
+pub const fn umul192_upper128(x: u64, hi: u64, lo: u64) -> (u64, u64) {
+    let mut r = x as u128 * hi as u128;
+    r += umul128_upper64(x, lo) as u128;
+    ((r >> 64) as u64, r as u64)
 }
 
 #[inline(always)]
-pub const fn umul192_middle64(x: u64, hi: u64, lo: u64) -> u64 {
-    let g01 = x.wrapping_mul(hi);
-    let g10 = umul128_upper64(x, lo);
-    g01.wrapping_add(g10)
+pub const fn umul192_lower128(x: u64, yhi: u64, ylo: u64) -> (u64, u64) {
+    let hi = x.wrapping_mul(yhi);
+    let hi_lo = x as u128 * ylo as u128;
+    (hi + (hi_lo >> 64) as u64, hi_lo as u64)
 }
 
 #[inline(always)]
-pub const fn umul96_upper32(x: u64, y: u64) -> u64 {
-    umul128_upper64(x, y) as u32 as _
+pub const fn umul96_upper64(x: u64, y: u64) -> u64 {
+    umul128_upper64(x << 32, y)
 }
 
 #[inline(always)]
@@ -926,91 +957,34 @@ pub const fn count_factors(radix: u32, mut n: u64) -> u32 {
 // ---
 
 // Compute floor(n / 10^exp) for small exp.
-// Precondition: n <= 2^a * 5^b (a = max_pow2, b = max_pow5)
+// Precondition: exp >= 0.
 #[inline(always)]
-pub const fn divide_by_pow10(n: u64, exp: u32, max_pow2: i32, max_pow5: i32) -> u64 {
-    // Specialize for 64-bit division by 1000.
-    // Ensure that the correctness condition is met.
-    let pow2 = max_pow2 + (floor_log2_pow10(exp as i32 + max_pow5) - (exp as i32 + max_pow5));
-    if exp == 3 && pow2 < 70 {
-        umul128_upper64(n, 0x8312_6e97_8d4f_df3c) >> 9
+pub const fn divide_by_pow10_32(n: u32, exp: u32) -> u32 {
+    // Specialize for 32-bit division by 100.
+    // Compiler is supposed to generate the identical code for just writing
+    // "n / 100", but for some reason MSVC generates an inefficient code
+    // (mul + mov for no apparent reason, instead of single imul),
+    // so we does this manually.
+    if exp == 2 {
+        ((n as u64 * 1374389535) >> 37) as u32
     } else {
-        n / pow64(10, exp)
+        let divisor = pow32(exp as u32, 10);
+        n / divisor
     }
 }
 
-/// Calculate the modular inverse for the type.
-macro_rules! mod_inverse {
-    ($t:ident, $a:ident) => {{
-        // By Euler's theorem, a^phi(2^n) == 1 (mod 2^n),
-        // where phi(2^n) = 2^(n-1), so the modular inverse of a is
-        // a^(2^(n-1) - 1) = a^(1 + 2 + 2^2 + ... + 2^(n-2)).
-        let mut mod_inverse: $t = 1;
-        let mut i = 1;
-        while i < <$t as Integer>::BITS {
-            mod_inverse = mod_inverse.wrapping_mul(mod_inverse).wrapping_mul($a);
-            i += 1;
-        }
-        mod_inverse
-    }};
-}
-
+// Compute floor(n / 10^exp) for small exp.
+// Precondition: n <= n_max
 #[inline(always)]
-pub const fn mod32_inverse(a: u32) -> u32 {
-    mod_inverse!(u32, a)
-}
-
-#[inline(always)]
-pub const fn mod64_inverse(a: u64) -> u64 {
-    mod_inverse!(u64, a)
-}
-
-pub struct Div32Table<const N: usize> {
-    mod_inv: [u32; N],
-    max_quotients: [u32; N],
-}
-
-pub struct Div64Table<const N: usize> {
-    mod_inv: [u64; N],
-    max_quotients: [u64; N],
-}
-
-/// Generate a division table as a const fn.
-macro_rules! div_table {
-    ($t:ident, $table:ident, $modular_inverse:ident, $a:ident) => {{
-        let mod_inverse = $modular_inverse($a);
-        let mut mod_inv = [0; N];
-        let mut max_quotients = [0; N];
-        let mut pow_of_mod_inverse: $t = 1;
-        let mut pow_of_a = 1;
-        let mut i = 0;
-
-        while i < N {
-            mod_inv[i] = pow_of_mod_inverse;
-            max_quotients[i] = $t::MAX / pow_of_a;
-
-            pow_of_mod_inverse = pow_of_mod_inverse.wrapping_mul(mod_inverse);
-            pow_of_a *= $a;
-            i += 1;
-        }
-
-        $table {
-            mod_inv,
-            max_quotients,
-        }
-    }};
-}
-
-/// Generate a pre-computed table of u32 constants for division.
-#[inline(always)]
-pub const fn div32_table<const N: usize>(a: u32) -> Div32Table<N> {
-    div_table!(u32, Div32Table, mod32_inverse, a)
-}
-
-/// Generate a pre-computed table of u64 constants for division.
-#[inline(always)]
-pub const fn div64_table<const N: usize>(a: u64) -> Div64Table<N> {
-    div_table!(u64, Div64Table, mod64_inverse, a)
+pub const fn divide_by_pow10_64(n: u64, exp: u32, n_max: u64) -> u64 {
+    // Specialize for 64-bit division by 1000.
+    // Ensure that the correctness condition is met.
+    if exp == 3 && n_max <= 15534100272597517998 {
+        umul128_upper64(n, 2361183241434822607) >> 7
+    } else {
+        let divisor = pow64(exp as u32, 10);
+        n / divisor
+    }
 }
 
 // ROUNDING
@@ -1018,9 +992,12 @@ pub const fn div64_table<const N: usize>(a: u64) -> Div64Table<N> {
 
 impl RoundMode {
     /// Zero out the lowest bit.
+    // NOTE: this is now `prefer_round_down` in dragonbox, but this
+    // logic is simpler for Rust to handle.
     #[inline(always)]
     pub const fn break_rounding_tie(&self, significand: u64) -> u64 {
         match self {
+            // r.significand % 2 != 0 ? r.significand : r.significand - 1
             RoundMode::Round => significand & !1u64,
             RoundMode::Truncate => significand - 1u64,
         }
@@ -1085,26 +1062,30 @@ impl IntervalType {
 // ENDPOINTS
 // ---------
 
-/// Compute the left endpoint from a 64-bit power-of-5..
+/// Compute the left or right endpoint from a 64-bit power-of-5.
 #[inline(always)]
-pub fn compute_left_endpoint_u64<F: DragonboxFloat>(pow5: u64, beta_minus_1: i32) -> u64 {
-    let zero_carry = pow5 >> (F::MANTISSA_SIZE as usize + 2);
+pub fn compute_endpoint_u64<F: DragonboxFloat, const SHIFT: usize>(pow5: u64, beta: i32) -> u64 {
+    let zero_carry = pow5 >> (F::MANTISSA_SIZE as usize + SHIFT);
     let mantissa_shift = 64 - F::MANTISSA_SIZE as usize - 1;
-    (pow5 - zero_carry) >> (mantissa_shift as i32 - beta_minus_1)
+    (pow5 - zero_carry) >> (mantissa_shift as i32 - beta)
+}
+
+/// Compute the left endpoint from a 64-bit power-of-5.
+#[inline(always)]
+pub fn compute_left_endpoint_u64<F: DragonboxFloat>(pow5: u64, beta: i32) -> u64 {
+    compute_endpoint_u64::<F, 2>(pow5, beta)
 }
 
 #[inline(always)]
-pub fn compute_right_endpoint_u64<F: DragonboxFloat>(pow5: u64, beta_minus_1: i32) -> u64 {
-    let zero_carry = pow5 >> (F::MANTISSA_SIZE as usize + 1);
-    let mantissa_shift = 64 - F::MANTISSA_SIZE as usize - 1;
-    (pow5 + zero_carry) >> (mantissa_shift as i32 - beta_minus_1)
+pub fn compute_right_endpoint_u64<F: DragonboxFloat>(pow5: u64, beta: i32) -> u64 {
+    compute_endpoint_u64::<F, 1>(pow5, beta)
 }
 
 /// Determine if we should round up for the short interval case.
 #[inline(always)]
-pub fn compute_round_up_u64<F: DragonboxFloat>(pow5: u64, beta_minus_1: i32) -> u64 {
+pub fn compute_round_up_u64<F: DragonboxFloat>(pow5: u64, beta: i32) -> u64 {
     let shift = 64 - F::MANTISSA_SIZE - 2;
-    ((pow5 >> (shift - beta_minus_1)) + 1) / 2
+    ((pow5 >> (shift - beta)) + 1) / 2
 }
 
 // DRAGONBOX FLOAT
@@ -1122,144 +1103,63 @@ pub const fn low(pow5: &(u64, u64)) -> u64 {
     pow5.1
 }
 
-/// Calculate the maximum possible power for the mantissa.
+/// ROR instruction for 32-bit type.
 #[inline(always)]
-pub fn max_power<F: DragonboxFloat>() -> i32 {
-    //  NOTE:
-    //      Dragonbox's reference implementation uses
-    //      `max_mantissa = max / pow64(10, F::KAPPA + 1)`, but then does
-    //      `p < max_mantissa / 10`, which produces the same result in all
-    //      cases.
-    let max = F::Unsigned::MAX.as_u64();
-    let max_mantissa = max / pow64(10, F::KAPPA + 2);
-    let mut k = 0i32;
-    let mut p = 1u64;
-    while p < max_mantissa {
-        p *= 10;
-        k += 1;
-    }
-    k
+pub const fn rotr32(n: u32, r: u32) -> u32 {
+    let r = r & 31;
+    (n >> r) | (n << (32 - r))
 }
 
-/// Check and calculate quotient for value by 10^N.
-macro_rules! div10 {
-    (@4 $table:ident, $n:ident, $quo:ident, $s:ident $(, $mul:ident)?) => {{
-        // Is n divisible by 10^4?
-        if $n & 0xf == 0 {
-            $quo = ($n >> 4).wrapping_mul($table.mod_inv[4]);
-            if ($quo <= $table.max_quotients[4]) {
-                $n = $quo;
-                $($mul = 10000;)?
-                $s |= 0x4;
-            }
-        }
-    }};
-
-    (@2 $table:ident, $n:ident, $quo:ident, $s:ident $(, $mul:ident)?) => {{
-        // Is n divisible by 10^2?
-        if $n & 0x3 == 0 {
-            $quo = ($n >> 2).wrapping_mul($table.mod_inv[2]);
-            if ($quo <= $table.max_quotients[2]) {
-                $n = $quo;
-                $($mul = if $s == 4 { 100 } else { 1000000 };)?
-                $s |= 0x2;
-            }
-        }
-    }};
-
-    (@1 $table:ident, $n:ident, $quo:ident, $s:ident $(, $mul:ident)?) => {{
-        // Is n divisible by 10^2?
-        if $n & 0x1 == 0 {
-            $quo = ($n >> 1).wrapping_mul($table.mod_inv[1]);
-            if ($quo <= $table.max_quotients[1]) {
-                $n = $quo;
-                $( $mul = ($mul >> 1).wrapping_mul($table.mod_inv[1]); )?
-                $s |= 0x1;
-            }
-        }
-    }};
-}
-
-/// Determine if `x` is divisible by `5^exp`.
-///
-/// # Safety
-///
-/// Safe if `exp < table.mod_inv.len()`
-macro_rules! divisible_by_pow5 {
-    (Self:: $table:ident, $x:ident, $exp:ident) => {{
-        debug_assert!(($exp as usize) < Self::$table.mod_inv.len());
-        let mod_inv = &Self::$table.mod_inv;
-        let max_quotients = &Self::$table.max_quotients;
-        // SAFETY: safe if `exp < TABLE_SIZE`.
-        let mod_inv = unsafe { index_unchecked!(mod_inv[$exp as usize]) };
-        let max_quo = unsafe { index_unchecked!(max_quotients[$exp as usize]) };
-        $x.wrapping_mul(mod_inv) <= max_quo
-    }};
+/// ROR instruction for 64-bit type.
+#[inline(always)]
+pub const fn rotr64(n: u64, r: u64) -> u64 {
+    let r = r & 63;
+    (n >> r) | (n << (64 - r))
 }
 
 /// Magic numbers for division by a power of 10.
+/// Replace n by floor(n / 10^N).
+/// Returns true if and only if n is divisible by 10^N.
+/// Precondition: n <= 10^(N+1)
+/// !!It takes an in-out parameter!!
 struct Div10Info {
     magic_number: u32,
-    bits_for_comparison: i32,
-    threshold: u32,
     shift_amount: i32,
-}
-
-impl Div10Info {
-    #[inline(always)]
-    pub const fn comparison_mask(&self) -> u32 {
-        (1u32 << self.bits_for_comparison) - 1
-    }
 }
 
 const F32_DIV10_INFO: Div10Info = Div10Info {
-    magic_number: 0xcccd,
-    bits_for_comparison: 16,
-    threshold: 0x3333,
-    shift_amount: 19,
+    magic_number: 6554,
+    shift_amount: 16,
 };
 
 const F64_DIV10_INFO: Div10Info = Div10Info {
-    magic_number: 0x147c29,
-    bits_for_comparison: 12,
-    threshold: 0xa3,
-    shift_amount: 27,
+    magic_number: 656,
+    shift_amount: 16,
 };
 
 macro_rules! check_div_pow10 {
-    ($n:ident, $float:ident, $info:ident) => {{
-        let mut res = $n * $info.magic_number;
+    ($n:ident, $exp:literal, $float:ident, $info:ident) => {{
+        // Make sure the computation for max_n does not overflow.
+        debug_assert!($exp + 1 <= floor_log10_pow2(31));
+        debug_assert!($n as u64 <= pow64(10, $exp + 1));
 
-        // The lowest N bits of (n & comparison_mask) must be zero, and
-        // (n >> N) & comparison_mask must be at most threshold.
-        let shr = $float::KAPPA;
-        let shl = $info.bits_for_comparison as u32 - $float::KAPPA;
-        let c = ((res >> shr) | (res << shl)) & $info.comparison_mask();
+        let n = $n.wrapping_mul($info.magic_number);
+        let mask = (1u32 << $info.shift_amount) - 1;
+        let r = (n & mask) < $info.magic_number;
 
-        res >>= $info.shift_amount;
-        (res, c <= $info.threshold)
+        (n >> $info.shift_amount, r)
     }};
 }
 
-/// Magic numbers for division by a small power of 10.
-struct SmallDiv10Info {
-    magic_number: u32,
-    shift_amount: i32,
-}
+// These constants are efficient because we can do it in 32-bits.
+const MOD_INV_5_U32: u32 = 0xCCCC_CCCD;
+const MOD_INV_25_U32: u32 = MOD_INV_5_U32.wrapping_mul(MOD_INV_5_U32);
+const MOD_INV_5_U64: u64 = 0xCCCC_CCCC_CCCC_CCCD;
+const MOD_INV_25_U64: u64 = MOD_INV_5_U64.wrapping_mul(MOD_INV_5_U64);
 
-const SMALL_F32_DIV10_INFO: SmallDiv10Info = SmallDiv10Info {
-    magic_number: 0xcccd,
-    shift_amount: 19,
-};
-
-const SMALL_F64_DIV10_INFO: SmallDiv10Info = SmallDiv10Info {
-    magic_number: 0xa3d8,
-    shift_amount: 22,
-};
-
-macro_rules! small_div_pow10 {
+macro_rules! div_pow10 {
     ($n:ident, $info:ident) => {{
-        ($n * $info.magic_number) >> $info.shift_amount
+        $n.wrapping_mul($info.magic_number) >> $info.shift_amount
     }};
 }
 
@@ -1270,14 +1170,10 @@ pub trait DragonboxFloat: Float {
     /// Ceiling of the maximum number of float decimal digits + 1.
     /// Or, ceil((MANTISSA_SIZE + 1) / log2(10)) + 1.
     const DECIMAL_DIGITS: usize;
-
-    const MAX_POW5_FACTOR: i32 = floor_log5_pow2(Self::MANTISSA_SIZE + 2);
-    const TABLE_SIZE: usize = Self::MAX_POW5_FACTOR as usize + 1;
-    const DIV5_THRESHOLD: i32 = floor_log2_pow10(Self::MAX_POW5_FACTOR + Self::KAPPA as i32 + 1);
-    const DIV5_TABLE: Self::Table;
+    const FC_PM_HALF_LOWER: i32 = -(Self::KAPPA as i32) - floor_log5_pow2(Self::KAPPA as i32);
+    const DIV_BY_5_THRESHOLD: i32 = floor_log2_pow10(Self::KAPPA as i32 + 1);
 
     type Power;
-    type Table;
 
     /// Quick calculation for the number of significant digits in the float.
     fn digit_count(mantissa: u64) -> usize;
@@ -1306,8 +1202,8 @@ pub trait DragonboxFloat: Float {
     /// Handle rounding-up for the short interval case.
     fn compute_round_up(pow5: &Self::Power, beta_minus_1: i32) -> u64;
 
-    fn compute_mul(u: u64, pow5: &Self::Power) -> u64;
-    fn compute_mul_parity(two_f: u64, pow5: &Self::Power, beta_minus_1: i32) -> bool;
+    fn compute_mul(u: u64, pow5: &Self::Power) -> (u64, bool);
+    fn compute_mul_parity(two_f: u64, pow5: &Self::Power, beta_minus_1: i32) -> (bool, bool);
     fn compute_delta(pow5: &Self::Power, beta_minus_1: i32) -> u32;
 
     /// Handle trailing zeros, conditional on the float type.
@@ -1316,62 +1212,11 @@ pub trait DragonboxFloat: Float {
     /// Remove trailing zeros from the float.
     fn remove_trailing_zeros(mantissa: u64) -> (u64, i32);
 
-    /// Determine if two_f is divisible by 5^exp.
-    ///
-    /// # Safety
-    ///
-    /// Safe if `exp < TABLE_SIZE`.
-    unsafe fn divisible_by_pow5(x: u64, exp: u32) -> bool;
-
     /// Determine if two_f is divisible by 2^exp.
     #[inline(always)]
     fn divisible_by_pow2(x: u64, exp: u32) -> bool {
         // Preconditions: exp >= 1 && x != 0
         x.trailing_zeros() >= exp
-    }
-
-    #[inline(always)]
-    fn is_product_fc_pm_half(two_f: u64, exponent: i32, minus_k: i32) -> bool {
-        let lower_threshold = -(Self::KAPPA as i32) - floor_log5_pow2(Self::KAPPA as i32);
-        let upper_threshold = floor_log2_pow10(Self::KAPPA as i32 + 1);
-
-        if exponent < lower_threshold {
-            // Case I: f = fc +- 1/2
-            false
-        } else if exponent <= upper_threshold {
-            // For k >= 0
-            true
-        } else if exponent > Self::DIV5_THRESHOLD {
-            // For k < 0
-            false
-        } else {
-            // SAFETY: safe since `minus_k < MAX_POW5_FACTOR + 1`.
-            debug_assert!(minus_k < Self::MAX_POW5_FACTOR + 1);
-            unsafe { Self::divisible_by_pow5(two_f, minus_k as u32) }
-        }
-    }
-
-    #[inline(always)]
-    fn is_product_fc(two_f: u64, exponent: i32, minus_k: i32) -> bool {
-        let lower_threshold = -(Self::KAPPA as i32) - 1 - floor_log5_pow2(Self::KAPPA as i32 + 1);
-        let upper_threshold = floor_log2_pow10(Self::KAPPA as i32 + 1);
-
-        // Case II: f = fc + 1
-        // Case III: f = fc
-        // Exponent for 5 is negative
-        if exponent > Self::DIV5_THRESHOLD {
-            false
-        } else if exponent > upper_threshold {
-            // SAFETY: safe since `minus_k < MAX_POW5_FACTOR + 1`.
-            debug_assert!(minus_k < Self::MAX_POW5_FACTOR + 1);
-            unsafe { Self::divisible_by_pow5(two_f, minus_k as u32) }
-        } else if exponent >= lower_threshold {
-            // Both exponents are nonnegative
-            true
-        } else {
-            // Exponent for 2 is negative
-            Self::divisible_by_pow2(two_f, (minus_k - exponent + 1) as u32)
-        }
     }
 
     // Replace n by floor(n / 10^N).
@@ -1381,16 +1226,18 @@ pub trait DragonboxFloat: Float {
 
     // Compute floor(n / 10^N) for small n and exp.
     // Precondition: n <= 10^(N+1)
-    fn small_div_pow10(n: u32) -> u32;
+    fn div_pow10(n: u32) -> u32;
+
+    // Compute floor(n / 10^N) for small N.
+    // Precondition: n <= n_max
+    fn divide_by_pow10(n: u64, exp: u32, n_max: u64) -> u64;
 }
 
 impl DragonboxFloat for f32 {
     const KAPPA: u32 = 1;
     const DECIMAL_DIGITS: usize = 9;
-    const DIV5_TABLE: Self::Table = div32_table::<{ Self::TABLE_SIZE }>(5);
 
     type Power = u64;
-    type Table = Div32Table<{ Self::TABLE_SIZE }>;
 
     #[inline(always)]
     fn digit_count(mantissa: u64) -> usize {
@@ -1429,19 +1276,24 @@ impl DragonboxFloat for f32 {
     }
 
     #[inline(always)]
-    fn compute_mul(u: u64, pow5: &Self::Power) -> u64 {
-        umul96_upper32(u, *pow5)
+    fn compute_mul(u: u64, pow5: &Self::Power) -> (u64, bool) {
+        let r = umul96_upper64(u, *pow5);
+        (r >> 32, r == 0)
     }
 
     #[inline(always)]
-    fn compute_mul_parity(two_f: u64, pow5: &Self::Power, beta_minus_1: i32) -> bool {
-        // beta_minus_1 ∊ [1, 64]
-        ((umul96_lower64(two_f, *pow5) >> (64 - beta_minus_1)) & 1) != 0
+    fn compute_mul_parity(two_f: u64, pow5: &Self::Power, beta: i32) -> (bool, bool) {
+        debug_assert!((1..64).contains(&beta));
+
+        let r = umul96_lower64(two_f, *pow5);
+        let parity = r >> ((64 - beta) & 1);
+        let is_integer = r >> (32 - beta);
+        (parity != 0, is_integer != 0)
     }
 
     #[inline(always)]
-    fn compute_delta(pow5: &Self::Power, beta_minus_1: i32) -> u32 {
-        (*pow5 >> (64 - 1 - beta_minus_1)) as u32
+    fn compute_delta(pow5: &Self::Power, beta: i32) -> u32 {
+        (*pow5 >> (64 - 1 - beta)) as u32
     }
 
     #[inline(always)]
@@ -1454,48 +1306,50 @@ impl DragonboxFloat for f32 {
     #[inline(always)]
     fn remove_trailing_zeros(mantissa: u64) -> (u64, i32) {
         debug_assert!(mantissa <= u32::MAX as u64);
-        debug_assert!(max_power::<Self>() == 7);
+        debug_assert!(mantissa != 0);
 
-        // Efficient because we can do it in 32-bits.
         let mut n = mantissa as u32;
-        let table = div32_table::<{ Self::DECIMAL_DIGITS }>(5);
-
-        // Perform a binary search
         let mut quo: u32;
         let mut s: i32 = 0;
-        div10!(@4 table, n, quo, s);
-        div10!(@2 table, n, quo, s);
-        div10!(@1 table, n, quo, s);
+        loop {
+            quo = rotr32(n.wrapping_mul(MOD_INV_25_U32), 2);
+            if quo <= u32::MAX / 100 {
+                n = quo;
+                s += 2;
+            } else {
+                break;
+            }
+        }
 
+        quo = rotr32(n.wrapping_mul(MOD_INV_5_U32), 1);
+        if quo <= u32::MAX / 10 {
+            n = quo;
+            s |= 1;
+        }
         (n as u64, s)
     }
 
     #[inline(always)]
-    unsafe fn divisible_by_pow5(x: u64, exp: u32) -> bool {
-        debug_assert!(x <= u32::MAX as u64);
-        let x = x as u32;
-        // SAFETY: safe if `exp < Self::DIV5_TABLE.mod_inv.len()`.
-        divisible_by_pow5!(Self::DIV5_TABLE, x, exp)
-    }
-
-    #[inline(always)]
     fn check_div_pow10(n: u32) -> (u32, bool) {
-        check_div_pow10!(n, f32, F32_DIV10_INFO)
+        check_div_pow10!(n, 1, f32, F32_DIV10_INFO)
     }
 
     #[inline(always)]
-    fn small_div_pow10(n: u32) -> u32 {
-        small_div_pow10!(n, SMALL_F32_DIV10_INFO)
+    fn div_pow10(n: u32) -> u32 {
+        div_pow10!(n, F32_DIV10_INFO)
+    }
+
+    #[inline(always)]
+    fn divide_by_pow10(n: u64, exp: u32, _: u64) -> u64 {
+        divide_by_pow10_32(n as u32, exp) as u64
     }
 }
 
 impl DragonboxFloat for f64 {
     const KAPPA: u32 = 2;
     const DECIMAL_DIGITS: usize = 17;
-    const DIV5_TABLE: Self::Table = div64_table::<{ Self::TABLE_SIZE }>(5);
 
     type Power = (u64, u64);
-    type Table = Div64Table<{ Self::TABLE_SIZE }>;
 
     #[inline(always)]
     fn digit_count(mantissa: u64) -> usize {
@@ -1532,19 +1386,24 @@ impl DragonboxFloat for f64 {
     }
 
     #[inline(always)]
-    fn compute_mul(u: u64, pow5: &Self::Power) -> u64 {
-        umul192_upper64(u, high(pow5), low(pow5))
+    fn compute_mul(u: u64, pow5: &Self::Power) -> (u64, bool) {
+        let (hi, lo) = umul192_upper128(u, high(pow5), low(pow5));
+        (hi, lo == 0)
     }
 
     #[inline(always)]
-    fn compute_mul_parity(two_f: u64, pow5: &Self::Power, beta_minus_1: i32) -> bool {
-        // beta_minus_1 ∊ [1, 64]
-        ((umul192_middle64(two_f, high(pow5), low(pow5)) >> (64 - beta_minus_1)) & 1) != 0
+    fn compute_mul_parity(two_f: u64, pow5: &Self::Power, beta: i32) -> (bool, bool) {
+        debug_assert!((1..64).contains(&beta));
+
+        let (rhi, rlo) = umul192_lower128(two_f, high(pow5), low(pow5));
+        let parity = rhi >> ((64 - beta) & 1);
+        let is_integer = (rhi << beta) | (rlo >> (64 - beta));
+        (parity != 0, is_integer != 0)
     }
 
     #[inline(always)]
-    fn compute_delta(pow5: &Self::Power, beta_minus_1: i32) -> u32 {
-        (high(pow5) >> (64 - 1 - beta_minus_1)) as u32
+    fn compute_delta(pow5: &Self::Power, beta: i32) -> u32 {
+        (high(pow5) >> (64 - 1 - beta)) as u32
     }
 
     #[inline(always)]
@@ -1557,69 +1416,78 @@ impl DragonboxFloat for f64 {
 
     #[inline(always)]
     fn remove_trailing_zeros(mantissa: u64) -> (u64, i32) {
-        debug_assert!(max_power::<Self>() == 16);
+        debug_assert!(mantissa != 0);
 
-        // Divide by 10^8 and reduce to 32-bits.
-        // Since ret_value.significand <= (2^64 - 1) / 1000 < 10^17,
-        // both of the quotient and the r should fit in 32-bits.
-        let mut n = mantissa;
-        let table = div32_table::<{ f32::DECIMAL_DIGITS }>(5);
+        // This magic number is ceil(2^90 / 10^8).
+        let magic_number = 12379400392853802749u64;
+        let nm = mantissa as u128 * magic_number as u128;
 
-        // If the number is divisible by 10^8, work with the quotient.
-        let quo_pow10_8 = divide_by_pow10(n, 8, 54, 0) as u32;
-        let mut rem = n.wrapping_sub(100000000.wrapping_mul(quo_pow10_8 as u64)) as u32;
+        // Is n is divisible by 10^8?
+        let high = (nm >> 64) as u64;
+        let mask = (1 << (90 - 64)) - 1;
+        let low = nm as u64;
+        if high & mask == 0 && low < magic_number {
+            // If yes, work with the quotient.
+            let mut n = (high >> (90 - 64)) as u32;
+            let mut s: i32 = 8;
+            let mut quo: u32;
 
-        if rem == 0 {
-            let mut n32 = quo_pow10_8;
-            let mut quo32: u32;
-
-            // Is n divisible by 10^8?
-            // This branch is extremely unlikely.
-            if n32 & 0xff == 0 {
-                quo32 = (n32 >> 8).wrapping_mul(table.mod_inv[8]);
-                if quo32 <= table.max_quotients[8] {
-                    n = quo32 as u64;
-                    return (n, 16);
+            loop {
+                quo = rotr32(n.wrapping_mul(MOD_INV_25_U32), 2);
+                if quo <= u32::MAX / 100 {
+                    n = quo;
+                    s += 2;
+                } else {
+                    break;
                 }
             }
 
-            // Otherwise, perform a binary search.
-            let mut s: i32 = 8;
+            quo = rotr32(n.wrapping_mul(MOD_INV_5_U32), 1);
+            if quo <= u32::MAX / 10 {
+                n = quo;
+                s |= 1;
+            }
 
-            div10!(@4 table, n32, quo32, s);
-            div10!(@2 table, n32, quo32, s);
-            div10!(@1 table, n32, quo32, s);
-
-            (n32 as u64, s)
+            (n as u64, s)
         } else {
-            // If the number is not divisible by 10^8, work with the remainder.
-            let mut quo32: u32;
-            let mut mul: u32 = 100000000;
+            // If n is not divisible by 10^8, work with n itself.
+            let mut n = mantissa;
             let mut s: i32 = 0;
+            let mut quo: u64;
 
-            div10!(@4 table, rem, quo32, s, mul);
-            div10!(@2 table, rem, quo32, s, mul);
-            div10!(@1 table, rem, quo32, s, mul);
+            loop {
+                quo = rotr64(n.wrapping_mul(MOD_INV_25_U64), 2);
+                if quo <= u64::MAX / 100 {
+                    n = quo;
+                    s += 2;
+                } else {
+                    break;
+                }
+            }
 
-            let n = rem as u64 + quo_pow10_8 as u64 * mul as u64;
+            quo = rotr64(n.wrapping_mul(MOD_INV_5_U64), 1);
+            if quo <= u64::MAX / 10 {
+                n = quo;
+                s |= 1;
+            }
+
             (n, s)
         }
     }
 
     #[inline(always)]
-    unsafe fn divisible_by_pow5(x: u64, exp: u32) -> bool {
-        // SAFETY: safe if `exp < Self::DIV5_TABLE.mod_inv.len()`.
-        divisible_by_pow5!(Self::DIV5_TABLE, x, exp)
-    }
-
-    #[inline(always)]
     fn check_div_pow10(n: u32) -> (u32, bool) {
-        check_div_pow10!(n, f64, F64_DIV10_INFO)
+        check_div_pow10!(n, 2, f64, F64_DIV10_INFO)
     }
 
     #[inline(always)]
-    fn small_div_pow10(n: u32) -> u32 {
-        small_div_pow10!(n, SMALL_F64_DIV10_INFO)
+    fn div_pow10(n: u32) -> u32 {
+        div_pow10!(n, F64_DIV10_INFO)
+    }
+
+    #[inline(always)]
+    fn divide_by_pow10(n: u64, exp: u32, n_max: u64) -> u64 {
+        divide_by_pow10_64(n, exp, n_max)
     }
 }
 
@@ -1629,10 +1497,8 @@ macro_rules! dragonbox_unimpl {
         impl DragonboxFloat for $t {
             const KAPPA: u32 = 0;
             const DECIMAL_DIGITS: usize = 0;
-            const DIV5_TABLE: Self::Table = 0;
 
             type Power = u64;
-            type Table = u8;
 
             #[inline(always)]
             fn digit_count(_: u64) -> usize {
@@ -1660,17 +1526,17 @@ macro_rules! dragonbox_unimpl {
             }
 
             #[inline(always)]
-            fn compute_round_up(_: &Self::Power, _: i32) -> u64 {
+            fn compute_round_up(_: &Self::Power, _: i32) -> (u64, bool) {
                 unimplemented!()
             }
 
             #[inline(always)]
-            fn compute_mul(_: u64, _: &Self::Power) -> u64 {
+            fn compute_mul(_: u64, _: &Self::Power) -> (u64, bool) {
                 unimplemented!()
             }
 
             #[inline(always)]
-            fn compute_mul_parity(_: u64, _: &Self::Power, _: i32) -> bool {
+            fn compute_mul_parity(_: u64, _: &Self::Power, _: i32) -> (bool, bool) {
                 unimplemented!()
             }
 
@@ -1690,17 +1556,12 @@ macro_rules! dragonbox_unimpl {
             }
 
             #[inline(always)]
-            unsafe fn divisible_by_pow5(_: u64, _: u32) -> bool {
-                unimplemented!()
-            }
-
-            #[inline(always)]
             fn check_div_pow10(_: u32) -> (u32, bool) {
                 unimplemented!()
             }
 
             #[inline(always)]
-            fn small_div_pow10(_: u32) -> u32 {
+            fn div_pow10(_: u32) -> u32 {
                 unimplemented!()
             }
         }

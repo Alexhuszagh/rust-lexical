@@ -92,12 +92,6 @@ fn floor_log10_pow2_minus_log10_4_over_3_test() {
 }
 
 #[test]
-fn max_power_test() {
-    assert_eq!(algorithm::max_power::<f32>(), 7);
-    assert_eq!(algorithm::max_power::<f64>(), 16);
-}
-
-#[test]
 fn pow32_test() {
     assert_eq!(algorithm::pow32(10, 1), 10);
     assert_eq!(algorithm::pow32(10, 2), 100);
