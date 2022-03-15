@@ -466,8 +466,9 @@ pub fn compute_nearest_shorter<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let lower_threshold: i32 = -floor_log5_pow2_minus_log5_3(bits + 4) - 2 - bits;
     let upper_threshold: i32 = -floor_log5_pow2(bits + 2) - 2 - bits;
 
-    if exponent >= lower_threshold && exponent <= upper_threshold {
-        significand = RoundMode::Round.break_rounding_tie(significand);
+    let round_down = RoundMode::Round.prefer_round_down(significand);
+    if round_down && exponent >= lower_threshold && exponent <= upper_threshold {
+        significand -= 1;
     } else if significand < xi {
         significand += 1;
     }
@@ -525,24 +526,27 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // Must be Round since we only use compute_round with a round-nearest direction.
     let interval_type = IntervalType::Symmetric(is_even);
 
-    // Short-circuit case.
-    let short_circuit = || {
-        let (mant, exp) = F::process_trailing_zeros(significand, minus_k + F::KAPPA as i32 + 1);
-        extended_float(mant, exp)
-    };
-
     // Check for short-circuit.
+    // We use this, since the `goto` statements in dragonbox are unidiomatic
+    // in Rust and lead to unmaintainable code. Using a simple closure is much
+    // simpler, however, we do store a boolean in some cases to determine
+    // if we need to short-circuit.
+    let mut should_short_circuit = true;
     if r < deltai {
         // Exclude the right endpoint if necessary.
         let include_right = interval_type.include_right_endpoint();
         if r == 0 && !include_right && is_z_integer {
             significand -= 1;
             r = big_divisor;
-        } else {
-            return short_circuit();
+            should_short_circuit = false;
         }
-    } else if r == deltai {
+    } else if r > deltai {
+        should_short_circuit = false;
+    } else {
         // r == deltai; compare fractional parts.
+        // Due to the more complex logic in the new dragonbox algorithm,
+        // it's much easier logically to store if we should short circuit,
+        // the default, and only mark
         let two_fl = two_fc - 1;
         let include_left = interval_type.include_left_endpoint();
 
@@ -553,54 +557,60 @@ pub fn compute_nearest_normal<F: RawFloat>(float: F) -> ExtendedFloat80 {
             // x is not an integer, so if z^(f) >= delta^(f) (even parity), we in fact
             // have strict inequality.
             let parity = F::compute_mul_parity(two_fl, &pow5, beta).0;
-            if parity {
-                return short_circuit();
+            if !parity {
+                should_short_circuit = false;
             }
         } else {
             let (xi_parity, x_is_integer) = F::compute_mul_parity(two_fl, &pow5, beta);
-            if xi_parity || x_is_integer {
-                return short_circuit();
+            if !xi_parity && !x_is_integer {
+                should_short_circuit = false
             }
         }
     }
 
-    // Step 3: Find the significand with the smaller divisor
-    significand *= 10;
+    if should_short_circuit {
+        // Short-circuit case.
+        let (mant, exp) = F::process_trailing_zeros(significand, minus_k + F::KAPPA as i32 + 1);
+        extended_float(mant, exp)
+    } else {
+        // Step 3: Find the significand with the smaller divisor
+        significand *= 10;
 
-    let dist = r - (deltai / 2) + (small_divisor / 2);
-    let approx_y_parity = ((dist ^ (small_divisor / 2)) & 1) != 0;
+        let dist = r - (deltai / 2) + (small_divisor / 2);
+        let approx_y_parity = ((dist ^ (small_divisor / 2)) & 1) != 0;
 
-    // Is dist divisible by 10^kappa?
-    let (dist, is_dist_div_by_kappa) = F::check_div_pow10(dist);
+        // Is dist divisible by 10^kappa?
+        let (dist, is_dist_div_by_kappa) = F::check_div_pow10(dist);
 
-    // Add dist / 10^kappa to the significand.
-    significand += dist as u64;
+        // Add dist / 10^kappa to the significand.
+        significand += dist as u64;
 
-    if is_dist_div_by_kappa {
-        // Check z^(f) >= epsilon^(f).
-        // We have either yi == zi - epsiloni or yi == (zi - epsiloni) - 1,
-        // where yi == zi - epsiloni if and only if z^(f) >= epsilon^(f).
-        // Since there are only 2 possibilities, we only need to care about the
-        // parity. Also, zi and r should have the same parity since the divisor is
-        // an even number.
-        let (yi_parity, is_y_integer) = F::compute_mul_parity(two_fc, &pow5, beta);
+        if is_dist_div_by_kappa {
+            // Check z^(f) >= epsilon^(f).
+            // We have either yi == zi - epsiloni or yi == (zi - epsiloni) - 1,
+            // where yi == zi - epsiloni if and only if z^(f) >= epsilon^(f).
+            // Since there are only 2 possibilities, we only need to care about the
+            // parity. Also, zi and r should have the same parity since the divisor is
+            // an even number.
+            let (yi_parity, is_y_integer) = F::compute_mul_parity(two_fc, &pow5, beta);
+            let round_down = RoundMode::Round.prefer_round_down(significand);
 
-        if yi_parity != approx_y_parity {
-            significand -= 1;
-        } else if is_y_integer {
-            // If z^(f) >= epsilon^(f), we might have a tie
-            // when z^(f) == epsilon^(f), or equivalently, when y is an integer.
-            // For tie-to-up case, we can just choose the upper one.
-            significand = RoundMode::Round.break_rounding_tie(significand);
+            if yi_parity != approx_y_parity || (is_y_integer && round_down) {
+                // If z^(f) >= epsilon^(f), we might have a tie
+                // when z^(f) == epsilon^(f), or equivalently, when y is an integer.
+                // For tie-to-up case, we can just choose the upper one.
+                //significand -= 1;
+                significand -= 1;
+            }
         }
+
+        // Ensure we haven't re-assigned exponent or minus_k, since this
+        // is a massive potential security vulnerability.
+        debug_assert!(float.exponent() == exponent);
+        debug_assert!(minus_k == floor_log10_pow2(exponent) - F::KAPPA as i32);
+
+        extended_float(significand, minus_k + F::KAPPA as i32)
     }
-
-    // Ensure we haven't re-assigned exponent or minus_k, since this
-    // is a massive potential security vulnerability.
-    debug_assert!(float.exponent() == exponent);
-    debug_assert!(minus_k == floor_log10_pow2(exponent) - F::KAPPA as i32);
-
-    extended_float(significand, minus_k + F::KAPPA as i32)
 }
 
 /// Compute the interval I = [w,w+).
@@ -628,10 +638,8 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
     // and 29711844 * 2^-81
     // = 1.2288530660000000001731007559513386695471126586198806762695... * 10^-17
     // for binary32.
-    if F::BITS == 32 {
-        if exponent <= -80 {
-            is_x_integer = false;
-        }
+    if F::BITS == 32 && exponent <= -80 {
+        is_x_integer = false;
     }
 
     if !is_x_integer {
@@ -653,15 +661,14 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
         r = big_divisor - r;
     }
 
-    // Short-circuit case.
-    let short_circuit = || {
-        let (mant, exp) = F::process_trailing_zeros(significand, minus_k + F::KAPPA as i32 + 1);
-        extended_float(mant, exp)
-    };
-
     // Check for short-circuit.
-    if r < deltai {
-        return short_circuit();
+    // We use this, since the `goto` statements in dragonbox are unidiomatic
+    // in Rust and lead to unmaintainable code. Using a simple closure is much
+    // simpler, however, we do store a boolean in some cases to determine
+    // if we need to short-circuit.
+    let mut should_short_circuit = true;
+    if r > deltai {
+        should_short_circuit = false;
     } else if r == deltai {
         // Compare the fractional parts.
         // This branch is never taken for the exceptional cases
@@ -670,21 +677,26 @@ pub fn compute_left_closed_directed<F: RawFloat>(float: F) -> ExtendedFloat80 {
         // and 2f_c = 29711482, e = -80
         // (1.2288529832819387448703332688104694625508273020386695861816... * 10^-17).
         let (zi_parity, is_z_integer) = F::compute_mul_parity(two_fc + 2, &pow5, beta);
-        if !(zi_parity && is_z_integer) {
-            return short_circuit();
+        if zi_parity || is_z_integer {
+            should_short_circuit = false;
         }
     }
 
-    // Step 3: Find the significand with the smaller divisor
-    significand *= 10;
-    significand -= F::div_pow10(r) as u64;
+    if should_short_circuit {
+        let (mant, exp) = F::process_trailing_zeros(significand, minus_k + F::KAPPA as i32 + 1);
+        extended_float(mant, exp)
+    } else {
+        // Step 3: Find the significand with the smaller divisor
+        significand *= 10;
+        significand -= F::div_pow10(r) as u64;
 
-    // Ensure we haven't re-assigned exponent or minus_k, since this
-    // is a massive potential security vulnerability.
-    debug_assert!(float.exponent() == exponent);
-    debug_assert!(minus_k == floor_log10_pow2(exponent) - F::KAPPA as i32);
+        // Ensure we haven't re-assigned exponent or minus_k, since this
+        // is a massive potential security vulnerability.
+        debug_assert!(float.exponent() == exponent);
+        debug_assert!(minus_k == floor_log10_pow2(exponent) - F::KAPPA as i32);
 
-    extended_float(significand, minus_k + F::KAPPA as i32)
+        extended_float(significand, minus_k + F::KAPPA as i32)
+    }
 }
 
 /// Compute the interval I = (w−,w]..
@@ -716,15 +728,14 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
     let mut significand = F::divide_by_pow10(zi, exp, n_max);
     let r = (zi - (big_divisor as u64).wrapping_mul(significand)) as u32;
 
-    // Short-circuit case.
-    let short_circuit = || {
-        let (mant, exp) = F::process_trailing_zeros(significand, minus_k + F::KAPPA as i32 + 1);
-        extended_float(mant, exp)
-    };
-
     // Check for short-circuit.
-    if r < deltai {
-        return short_circuit();
+    // We use this, since the `goto` statements in dragonbox are unidiomatic
+    // in Rust and lead to unmaintainable code. Using a simple closure is much
+    // simpler, however, we do store a boolean in some cases to determine
+    // if we need to short-circuit.
+    let mut should_short_circuit = true;
+    if r > deltai {
+        should_short_circuit = false;
     } else if r == deltai {
         // Compare the fractional parts.
         let two_f = two_fc
@@ -733,21 +744,26 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
             } else {
                 2
             };
-        if F::compute_mul_parity(two_f, &pow5, beta).0 {
-            return short_circuit();
+        if !F::compute_mul_parity(two_f, &pow5, beta).0 {
+            should_short_circuit = false;
         }
     }
 
-    // Step 3: Find the significand with the smaller divisor
-    significand *= 10;
-    significand -= F::div_pow10(r) as u64;
+    if should_short_circuit {
+        let (mant, exp) = F::process_trailing_zeros(significand, minus_k + F::KAPPA as i32 + 1);
+        extended_float(mant, exp)
+    } else {
+        // Step 3: Find the significand with the smaller divisor
+        significand *= 10;
+        significand -= F::div_pow10(r) as u64;
 
-    // Ensure we haven't re-assigned exponent or minus_k, since this
-    // is a massive potential security vulnerability.
-    debug_assert!(float.exponent() == exponent);
-    debug_assert!(minus_k == floor_log10_pow2(exponent - shorter as i32) - F::KAPPA as i32);
+        // Ensure we haven't re-assigned exponent or minus_k, since this
+        // is a massive potential security vulnerability.
+        debug_assert!(float.exponent() == exponent);
+        debug_assert!(minus_k == floor_log10_pow2(exponent - shorter as i32) - F::KAPPA as i32);
 
-    extended_float(significand, minus_k + F::KAPPA as i32)
+        extended_float(significand, minus_k + F::KAPPA as i32)
+    }
 }
 
 // DIGITS
@@ -991,15 +1007,12 @@ pub const fn divide_by_pow10_64(n: u64, exp: u32, n_max: u64) -> u64 {
 // --------
 
 impl RoundMode {
-    /// Zero out the lowest bit.
-    // NOTE: this is now `prefer_round_down` in dragonbox, but this
-    // logic is simpler for Rust to handle.
+    /// Determine if we should round down.
     #[inline(always)]
-    pub const fn break_rounding_tie(&self, significand: u64) -> u64 {
+    pub const fn prefer_round_down(&self, significand: u64) -> bool {
         match self {
-            // r.significand % 2 != 0 ? r.significand : r.significand - 1
-            RoundMode::Round => significand & !1u64,
-            RoundMode::Truncate => significand - 1u64,
+            RoundMode::Round => significand % 2 != 0,
+            RoundMode::Truncate => true,
         }
     }
 }
@@ -1062,23 +1075,19 @@ impl IntervalType {
 // ENDPOINTS
 // ---------
 
-/// Compute the left or right endpoint from a 64-bit power-of-5.
+/// Compute the left endpoint from a 64-bit power-of-5.
 #[inline(always)]
-pub fn compute_endpoint_u64<F: DragonboxFloat, const SHIFT: usize>(pow5: u64, beta: i32) -> u64 {
-    let zero_carry = pow5 >> (F::MANTISSA_SIZE as usize + SHIFT);
+pub fn compute_left_endpoint_u64<F: DragonboxFloat>(pow5: u64, beta: i32) -> u64 {
+    let zero_carry = pow5 >> (F::MANTISSA_SIZE as usize + 2);
     let mantissa_shift = 64 - F::MANTISSA_SIZE as usize - 1;
     (pow5 - zero_carry) >> (mantissa_shift as i32 - beta)
 }
 
-/// Compute the left endpoint from a 64-bit power-of-5.
-#[inline(always)]
-pub fn compute_left_endpoint_u64<F: DragonboxFloat>(pow5: u64, beta: i32) -> u64 {
-    compute_endpoint_u64::<F, 2>(pow5, beta)
-}
-
 #[inline(always)]
 pub fn compute_right_endpoint_u64<F: DragonboxFloat>(pow5: u64, beta: i32) -> u64 {
-    compute_endpoint_u64::<F, 1>(pow5, beta)
+    let zero_carry = pow5 >> (F::MANTISSA_SIZE as usize + 1);
+    let mantissa_shift = 64 - F::MANTISSA_SIZE as usize - 1;
+    (pow5 + zero_carry) >> (mantissa_shift as i32 - beta)
 }
 
 /// Determine if we should round up for the short interval case.
@@ -1140,7 +1149,7 @@ const F64_DIV10_INFO: Div10Info = Div10Info {
 macro_rules! check_div_pow10 {
     ($n:ident, $exp:literal, $float:ident, $info:ident) => {{
         // Make sure the computation for max_n does not overflow.
-        debug_assert!($exp + 1 <= floor_log10_pow2(31));
+        debug_assert!($exp + 2 < floor_log10_pow2(31));
         debug_assert!($n as u64 <= pow64(10, $exp + 1));
 
         let n = $n.wrapping_mul($info.magic_number);
@@ -1278,7 +1287,7 @@ impl DragonboxFloat for f32 {
     #[inline(always)]
     fn compute_mul(u: u64, pow5: &Self::Power) -> (u64, bool) {
         let r = umul96_upper64(u, *pow5);
-        (r >> 32, r == 0)
+        (r >> 32, (r as u32) == 0)
     }
 
     #[inline(always)]
@@ -1286,9 +1295,9 @@ impl DragonboxFloat for f32 {
         debug_assert!((1..64).contains(&beta));
 
         let r = umul96_lower64(two_f, *pow5);
-        let parity = r >> ((64 - beta) & 1);
+        let parity = (r >> (64 - beta)) & 1;
         let is_integer = r >> (32 - beta);
-        (parity != 0, is_integer != 0)
+        (parity != 0, is_integer == 0)
     }
 
     #[inline(always)]
@@ -1396,9 +1405,9 @@ impl DragonboxFloat for f64 {
         debug_assert!((1..64).contains(&beta));
 
         let (rhi, rlo) = umul192_lower128(two_f, high(pow5), low(pow5));
-        let parity = rhi >> ((64 - beta) & 1);
+        let parity = (rhi >> (64 - beta)) & 1;
         let is_integer = (rhi << beta) | (rlo >> (64 - beta));
-        (parity != 0, is_integer != 0)
+        (parity != 0, is_integer == 0)
     }
 
     #[inline(always)]
