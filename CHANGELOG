@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.4] 2022-03-15
+### Changed
+- Updated the dragonbox algorithm to implement the new changes to decrease code size.
+
 ## [0.8.3] 2022-03-10
 ### Added
 - Added support for `-Zmiri-tag-raw-pointers` in miri correctness checks.
