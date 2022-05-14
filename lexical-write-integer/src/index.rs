@@ -5,8 +5,7 @@
 //! of randomized input. Parsers are much trickier to validate.
 
 // `index_unchecked_mut`'s 2nd arm is unused in `compact`.
-#![cfg_attr(feature = "compact", allow(unused_macros))]
-#![cfg_attr(feature = "compact", allow(unused_macro_rules))]
+#![cfg_attr(feature = "compact", allow(unused_macros, unused_macro_rules))]
 #![doc(hidden)]
 
 /// Index a buffer, without bounds checking.
