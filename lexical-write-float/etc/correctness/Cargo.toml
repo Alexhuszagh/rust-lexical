@@ -15,8 +15,11 @@ path = "../../../lexical-util"
 default-features = false
 features = []
 
+[dependencies.clap]
+version = "3.1.18"
+features = ["derive"]
+
 [dependencies]
-clap = "3.0.0-beta.4"
 fastrand = "1.4"
 
 [features]

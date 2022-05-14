@@ -5,7 +5,7 @@
 mod opts;
 mod roundtrip;
 
-use clap::Clap;
+use clap::Parser;
 use lexical_write_float::BUFFER_SIZE;
 use opts::Opts;
 use roundtrip::roundtrip;

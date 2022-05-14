@@ -1,9 +1,8 @@
 // Shared command-line options.
 
-use clap::{AppSettings, Clap};
+use clap::Parser;
 
-#[derive(Clap)]
-#[clap(setting = AppSettings::ColoredHelp)]
+#[derive(Parser)]
 pub struct Opts {
     #[clap(short, long, default_value = "10000000")]
     pub iterations: usize,
