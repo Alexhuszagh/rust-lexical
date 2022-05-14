@@ -295,19 +295,6 @@ macro_rules! add_temporary {
         $result.data.add_small($value).unwrap();
     };
 
-    // # Safety
-    //
-    // Safe is `counter <= step`, or smaller than the table size.
-    ($format:ident, $result:ident, $counter:ident, $value:ident) => {
-        if $counter != 0 {
-            // SAFETY: safe, since `counter <= step`, or smaller than the table size.
-            let small_power = unsafe { f64::int_pow_fast_path($counter, $format.radix()) };
-            add_temporary!(@mul $result, small_power as Limb, $value);
-            $counter = 0;
-            $value = 0;
-        }
-    };
-
     // Add a temporary where we won't read the counter results internally.
     //
     // # Safety
@@ -572,7 +559,7 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
 
     // Now, create a scaling factor for the digit count.
     let mut factor = Bigfloat::from_u32(1);
-    factor.pow(format.radix(), sci_exp.abs() as u32).unwrap();
+    factor.pow(format.radix(), sci_exp.unsigned_abs()).unwrap();
     let mut num: Bigfloat;
     let mut den: Bigfloat;
 
@@ -601,7 +588,7 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
     // Need to scale the numerator or denominator to the same value.
     // We don't want to shift the denominator, so...
     let diff = den.exp - num.exp;
-    let shift = diff.abs() as usize;
+    let shift = diff.unsigned_abs() as usize;
     if diff < 0 {
         // Need to shift the numerator left.
         num.shl(shift).unwrap();

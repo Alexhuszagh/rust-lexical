@@ -1,7 +1,7 @@
 //! Input data reader and random-number generator for benchmarks.
 //! This is adapted from fast-float-rust.
 
-#![allow(dead_code, unused_macros)]
+#![allow(dead_code, unused_macros, unused_macro_rules)]
 
 use core::fmt::Debug;
 use core::str::FromStr;

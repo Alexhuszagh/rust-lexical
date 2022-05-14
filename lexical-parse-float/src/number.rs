@@ -53,6 +53,8 @@ impl<'a> Number<'a> {
     ///
     /// There is an exception: disguised fast-path cases, where we can shift
     /// powers-of-10 from the exponent to the significant digits.
+    // `set_precision` doesn't return a unit value on x87 FPUs.
+    #[allow(clippy::let_unit_value)]
     pub fn try_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> Option<F> {
         let format = NumberFormat::<FORMAT> {};
         debug_assert!(format.mantissa_radix() == format.exponent_base());
@@ -99,6 +101,8 @@ impl<'a> Number<'a> {
     }
 
     /// Force a fast-path algorithm, even when it may not be accurate.
+    // `set_precision` doesn't return a unit value on x87 FPUs.
+    #[allow(clippy::let_unit_value)]
     pub fn force_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> F {
         let format = NumberFormat::<FORMAT> {};
         debug_assert!(format.mantissa_radix() == format.exponent_base());

@@ -4,7 +4,9 @@
 //! and other tests and careful validation against a wide range
 //! of randomized input. Parsers are much trickier to validate.
 
+// `index_unchecked_mut`'s 2nd arm is unused in `compact`.
 #![cfg_attr(feature = "compact", allow(unused_macros))]
+#![cfg_attr(feature = "compact", allow(unused_macro_rules))]
 #![doc(hidden)]
 
 /// Index a buffer, without bounds checking.
@@ -16,6 +18,9 @@ macro_rules! index_unchecked {
 }
 
 /// Index a buffer and get a mutable reference, without bounds checking.
+// The `($x:ident[$i:expr] = $y:ident[$j:expr])` is not used with `compact`.
+// The newer version of the lint is `unused_macro_rules`, but this isn't
+// supported until nightly-2022-05-12.
 #[cfg(not(feature = "safe"))]
 macro_rules! index_unchecked_mut {
     ($x:ident[$i:expr]) => {
@@ -44,6 +49,9 @@ macro_rules! index_unchecked {
 }
 
 /// Index a buffer and get a mutable reference, with bounds checking.
+// The `($x:ident[$i:expr] = $y:ident[$j:expr])` is not used with `compact`.
+// The newer version of the lint is `unused_macro_rules`, but this isn't
+// supported until nightly-2022-05-12.
 #[cfg(feature = "safe")]
 macro_rules! index_unchecked_mut {
     ($x:ident[$i:expr]) => {

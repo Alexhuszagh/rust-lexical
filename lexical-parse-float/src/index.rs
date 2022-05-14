@@ -20,10 +20,6 @@ macro_rules! index_unchecked_mut {
     ($x:ident[$i:expr]) => {
         *$x.get_unchecked_mut($i)
     };
-
-    ($x:ident[$i:expr] = $y:ident[$j:expr]) => {
-        *$x.get_unchecked_mut($i) = *$y.get_unchecked($j)
-    };
 }
 
 /// Index a buffer, with bounds checking.
@@ -39,9 +35,5 @@ macro_rules! index_unchecked {
 macro_rules! index_unchecked_mut {
     ($x:ident[$i:expr]) => {
         $x[$i]
-    };
-
-    ($x:ident[$i:expr] = $y:ident[$j:expr]) => {
-        $x[$i] = $y[$j]
     };
 }
