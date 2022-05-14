@@ -258,7 +258,7 @@ impl NumberFormatBuilder {
         Self::from_radix(8)
     }
 
-    /// Create number format for standard, octal number.
+    /// Create number format for standard, decimal number.
     pub const fn decimal() -> u128 {
         let mut builder = Self::new();
         builder.mantissa_radix = 10;
