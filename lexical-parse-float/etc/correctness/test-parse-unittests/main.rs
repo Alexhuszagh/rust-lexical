@@ -16,6 +16,7 @@ struct StrtodTests {
     ConversionTests: Vec<ConversionTest>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct FormattingTest {
     UID: String,
@@ -24,6 +25,7 @@ struct FormattingTest {
     int: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct ConversionTest {
     UID: String,
