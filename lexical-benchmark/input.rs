@@ -90,6 +90,7 @@ macro_rules! json_data {
 }
 
 /// Generate an array of values as static data
+#[allow(unknown_lints, unused_macro_rules)]
 macro_rules! static_data {
     ($($fn:ident $cb:ident $f1:ident $t:tt ; )*) => ($(
         fn $fn() -> &'static [$t] {
