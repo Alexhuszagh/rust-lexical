@@ -17,7 +17,7 @@ where
         float == roundtrip
     };
     if !is_equal {
-        return Err(float.to_string())
+        return Err(float.to_string());
     }
     Ok(())
 }
