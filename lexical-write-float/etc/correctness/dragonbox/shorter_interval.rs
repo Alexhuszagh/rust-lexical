@@ -4,7 +4,7 @@
 
 use lexical_util::num::as_cast;
 use lexical_write_float::float::RawFloat;
-use lexical_write_float::{BUFFER_SIZE, ToLexical};
+use lexical_write_float::{ToLexical, BUFFER_SIZE};
 
 fn shorter_interval_test<F>() -> Result<(), String>
 where
@@ -17,7 +17,7 @@ where
         let string = unsafe { std::str::from_utf8_unchecked(float.to_lexical(&mut buffer)) };
         let roundtrip = string.parse::<F>().map_err(|_| float.to_string())?;
         if roundtrip != float {
-            return Err(float.to_string())
+            return Err(float.to_string());
         }
     }
     Ok(())

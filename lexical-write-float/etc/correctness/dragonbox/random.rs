@@ -5,9 +5,9 @@
 mod opts;
 mod roundtrip;
 
-use clap::Clap;
+use clap::Parser;
 use lexical_write_float::float::RawFloat;
-use lexical_write_float::{BUFFER_SIZE, ToLexical};
+use lexical_write_float::{ToLexical, BUFFER_SIZE};
 use opts::Opts;
 use roundtrip::roundtrip;
 
@@ -72,7 +72,7 @@ macro_rules! float_rng {
 float_rng! { f32 f64 }
 
 macro_rules! random {
-    ($name:ident, $cb:ident) => (
+    ($name:ident, $cb:ident) => {
         fn $name<F>(count: usize) -> Result<(), String>
         where
             F: FloatRng + ToLexical + std::str::FromStr + std::string::ToString,
@@ -84,7 +84,7 @@ macro_rules! random {
             }
             Ok(())
         }
-    );
+    };
 }
 
 random!(uniform_random, uniform);
