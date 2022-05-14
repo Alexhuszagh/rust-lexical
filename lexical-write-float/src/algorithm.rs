@@ -874,7 +874,8 @@ pub const fn umul192_upper128(x: u64, hi: u64, lo: u64) -> (u64, u64) {
 pub const fn umul192_lower128(x: u64, yhi: u64, ylo: u64) -> (u64, u64) {
     let hi = x.wrapping_mul(yhi);
     let hi_lo = x as u128 * ylo as u128;
-    (hi + (hi_lo >> 64) as u64, hi_lo as u64)
+    // NOTE: This can wrap exactly to 0, and this is desired.
+    (hi.wrapping_add((hi_lo >> 64) as u64), hi_lo as u64)
 }
 
 #[inline(always)]
