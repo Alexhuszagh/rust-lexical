@@ -93,7 +93,8 @@ fn floor_log10_pow2_minus_log10_4_over_3_test() {
 
 #[test]
 fn issue84_test() {
-    let (hi, lo) = algorithm::umul192_lower128(15966911296221875, 0xcccccccccccccccc, 0xcccccccccccccccd);
+    let (hi, lo) =
+        algorithm::umul192_lower128(15966911296221875, 0xcccccccccccccccc, 0xcccccccccccccccd);
     assert_eq!(hi, 0);
     assert_eq!(lo, 3193382259244375);
 }
