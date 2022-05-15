@@ -28,7 +28,9 @@ jobs:
           - mips64-unknown-linux-gnuabi64
           - mips64el-unknown-linux-gnuabi64
           - mipsel-unknown-linux-gnu
-          - powerpc64le-unknown-linux-gnu
+          # NOTE: This fails on cross v0.2.1, which is unusual since
+          # manually invoking the failing tests with qemu-5.1.0 passes.
+          #- powerpc64le-unknown-linux-gnu
           - x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
 
