@@ -21,6 +21,7 @@ macro_rules! index_unchecked {
 // The newer version of the lint is `unused_macro_rules`, but this isn't
 // supported until nightly-2022-05-12.
 #[cfg(not(feature = "safe"))]
+#[allow(unknown_lints, unused_macro_rules)]
 macro_rules! index_unchecked_mut {
     ($x:ident[$i:expr]) => {
         *$x.get_unchecked_mut($i)
@@ -52,6 +53,7 @@ macro_rules! index_unchecked {
 // The newer version of the lint is `unused_macro_rules`, but this isn't
 // supported until nightly-2022-05-12.
 #[cfg(feature = "safe")]
+#[allow(unknown_lints, unused_macro_rules)]
 macro_rules! index_unchecked_mut {
     ($x:ident[$i:expr]) => {
         $x[$i]
