@@ -7,15 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.8.4] 2022-03-15
+## [0.8.4] 2022-05-18
 ### Changed
-- Updated the dragonbox algorithm to implement the new changes to decrease code size.
+- Fixed numeric overflow bug causing panic (should explicitly wrap) in dragonbox algorithm's `umul192_lower128`.
 
 ## [0.8.3] 2022-03-10
 ### Added
 - Added support for `-Zmiri-tag-raw-pointers` in miri correctness checks.
 - Added the documented functions `format_error` and `format_is_valid` to determine if a format packed struct is valid, since the previous checks relied on undocumented behavior.
 - Added `from_radix` to `ParseFloatOptions` and `WriteFloatOptions`, to simplify creating the default options with a different radix.
+- Updated the dragonbox algorithm to implement the new changes to decrease code size.
 
 ### Changed
 - Fixed `no_std` in `lexical-parse-float` when default features are disabled.
