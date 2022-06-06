@@ -28,6 +28,11 @@ fn i8_decimal_test() {
     assert_eq!(Err(Error::Overflow(2)), i8::from_lexical(b"255"));
     assert_eq!(Ok(-1), i8::from_lexical(b"-1"));
     assert_eq!(Err(Error::InvalidDigit(1)), i8::from_lexical(b"1a"));
+
+    assert_eq!(Ok((1, 1)), i8::from_lexical_partial(b"1"));
+    assert_eq!(Ok((1, 1)), i8::from_lexical_partial(b"1a"));
+    assert_eq!(Ok((-1, 2)), i8::from_lexical_partial(b"-1"));
+    assert_eq!(Ok((-1, 2)), i8::from_lexical_partial(b"-1a"));
 }
 
 #[test]

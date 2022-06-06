@@ -86,6 +86,8 @@ macro_rules! invalid_digit_partial {
             } else {
                 into_error!(Overflow, (count - 1).min(min + 1))
             }
+        } else if <$t>::IS_SIGNED && $is_negative {
+            into_ok_partial!($value.wrapping_neg(), $iter.cursor() - 1)
         } else {
             into_ok_partial!($value, $iter.cursor() - 1)
         }
