@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.5] 2022-06-06
+### Changed
+- Fixed the partial integer parser to correctly return negative values if parsing partial input.
+
 ## [0.8.5] 2022-05-18
 ### Changed
 - Fixed numeric overflow bug causing panic (should explicitly wrap) in dragonbox algorithm's `umul192_lower128`.
