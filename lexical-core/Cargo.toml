@@ -72,66 +72,66 @@ parse-floats = ["lexical-parse-float", "parse", "floats"]
 # Add support for parsing power-of-two float strings.
 power-of-two = [
     "lexical-util/power-of-two",
-    "lexical-write-integer/power-of-two",
-    "lexical-write-float/power-of-two",
-    "lexical-parse-integer/power-of-two",
-    "lexical-parse-float/power-of-two"
+    "lexical-write-integer?/power-of-two",
+    "lexical-write-float?/power-of-two",
+    "lexical-parse-integer?/power-of-two",
+    "lexical-parse-float?/power-of-two"
 ]
 # Add support for parsing non-decimal float strings.
 radix = [
     "lexical-util/radix",
-    "lexical-write-integer/radix",
-    "lexical-write-float/radix",
-    "lexical-parse-integer/radix",
-    "lexical-parse-float/radix"
+    "lexical-write-integer?/radix",
+    "lexical-write-float?/radix",
+    "lexical-parse-integer?/radix",
+    "lexical-parse-float?/radix"
 ]
 # Add support for parsing custom numerical formats.
 format = [
     "lexical-util/format",
-    "lexical-parse-integer/format",
-    "lexical-parse-float/format",
-    "lexical-write-integer/format",
-    "lexical-write-float/format"
+    "lexical-parse-integer?/format",
+    "lexical-parse-float?/format",
+    "lexical-write-integer?/format",
+    "lexical-write-float?/format"
 ]
 # Reduce code size at the cost of performance.
 compact = [
-    "lexical-write-integer/compact",
-    "lexical-write-float/compact",
-    "lexical-parse-integer/compact",
-    "lexical-parse-float/compact"
+    "lexical-write-integer?/compact",
+    "lexical-write-float?/compact",
+    "lexical-parse-integer?/compact",
+    "lexical-parse-float?/compact"
 ]
 # Ensure only safe indexing is used.
 # This is only relevant for the number writers, since the parsers
 # are memory safe by default (and only use memory unsafety when
 # is the trivial to prove correct).
 safe = [
-    "lexical-write-integer/safe",
-    "lexical-write-float/safe",
-    "lexical-parse-integer/safe",
-    "lexical-parse-float/safe"
+    "lexical-write-integer?/safe",
+    "lexical-write-float?/safe",
+    "lexical-parse-integer?/safe",
+    "lexical-parse-float?/safe"
 ]
 # Add support for nightly-only features.
 nightly = [
-    "lexical-write-integer/nightly",
-    "lexical-write-float/nightly",
-    "lexical-parse-integer/nightly",
-    "lexical-parse-float/nightly"
+    "lexical-write-integer?/nightly",
+    "lexical-write-float?/nightly",
+    "lexical-parse-integer?/nightly",
+    "lexical-parse-float?/nightly"
 ]
 # Enable support for 16-bit floats.
 f16 = [
     "lexical-util/f16",
-    "lexical-parse-float/f16",
-    "lexical-write-float/f16"
+    "lexical-parse-float?/f16",
+    "lexical-write-float?/f16"
 ]
 
 # Internal only features.
 # Enable the lint checks.
 lint = [
     "lexical-util/lint",
-    "lexical-write-integer/lint",
-    "lexical-write-float/lint",
-    "lexical-parse-integer/lint",
-    "lexical-parse-float/lint"
+    "lexical-write-integer?/lint",
+    "lexical-write-float?/lint",
+    "lexical-parse-integer?/lint",
+    "lexical-parse-float?/lint"
 ]
 # Add support for writing numbers.
 write = []
@@ -146,8 +146,8 @@ floats = []
 # Enable support for 128-bit floats.
 f128 = [
     "lexical-util/f128",
-    "lexical-parse-float/f128",
-    "lexical-write-float/f128"
+    "lexical-parse-float?/f128",
+    "lexical-write-float?/f128"
 ]
 
 [package.metadata.docs.rs]
