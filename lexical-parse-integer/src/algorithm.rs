@@ -217,7 +217,7 @@ where
     debug_assert!(Iter::IS_CONTIGUOUS);
 
     // Read our digits, validate the input, and check from there.
-    let bytes = u32::from_le(iter.read::<u32>()?);
+    let bytes = u32::from_le(iter.read_u32()?);
     if is_4digits::<FORMAT>(bytes) {
         // SAFETY: safe since we have at least 4 bytes in the buffer.
         unsafe { iter.step_by_unchecked(4) };
@@ -289,7 +289,7 @@ where
     debug_assert!(Iter::IS_CONTIGUOUS);
 
     // Read our digits, validate the input, and check from there.
-    let bytes = u64::from_le(iter.read::<u64>()?);
+    let bytes = u64::from_le(iter.read_u64()?);
     if is_8digits::<FORMAT>(bytes) {
         // SAFETY: safe since we have at least 8 bytes in the buffer.
         unsafe { iter.step_by_unchecked(8) };

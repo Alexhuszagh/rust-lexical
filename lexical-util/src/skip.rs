@@ -428,7 +428,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// # Safety
     ///
     /// Safe as long as the number of the buffer is contains as least as
-    /// many bytes as the size of V.
+    /// many bytes as the size of V, and V is valid for all bit patterns.
     #[inline]
     pub unsafe fn read_unchecked<V>(&self) -> V {
         debug_assert!(Self::IS_CONTIGUOUS);
@@ -439,19 +439,30 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         unsafe { ptr::read_unaligned::<V>(slc.as_ptr() as *const _) }
     }
 
-    /// Try to read a value of a different type from the iterator.
+    /// Try to read a the next four bytes as a u32.
     /// This advances the internal state of the iterator.
     #[inline]
-    pub fn read<V>(&self) -> Option<V> {
-        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<V>() {
+    unsafe fn read_u32(&self) -> Option<u32> {
+        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u32>() {
             // SAFETY: safe since we've guaranteed the buffer is greater than
-            // the number of elements read.
+            // the number of elements read. u32 is valid for all bit patterns
             unsafe { Some(self.read_unchecked()) }
         } else {
             None
         }
     }
-
+    /// Try to read a the next four bytes as a u32.
+    /// This advances the internal state of the iterator.
+    #[inline]
+    unsafe fn read_u64(&self) -> Option<u64> {
+        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u64>() {
+            // SAFETY: safe since we've guaranteed the buffer is greater than
+            // the number of elements read. u64 is valid for all bit patterns
+            unsafe { Some(self.read_unchecked()) }
+        } else {
+            None
+        }
+    }
     /// Check if the next element is a given value.
     #[inline]
     pub fn first_is(&mut self, value: u8) -> bool {

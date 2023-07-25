@@ -335,7 +335,7 @@ macro_rules! round_up_nonzero {
 
         // First try reading 8-digits at a time.
         if iter.is_contiguous() {
-            while let Some(value) = iter.read::<u64>() {
+            while let Some(value) = iter.read_u64() {
                 // SAFETY: safe since we have at least 8 bytes in the buffer.
                 unsafe { iter.step_by_unchecked(8) };
                 if value != 0x3030_3030_3030_3030 {
