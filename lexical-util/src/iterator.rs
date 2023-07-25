@@ -120,9 +120,14 @@ pub trait BytesIter<'a>: Iterator<Item = &'a u8> {
     /// many bytes as the size of V.
     unsafe fn read_unchecked<V>(&self) -> V;
 
-    /// Try to read a value of a different type from the iterator.
+    /// Try to read a the next four bytes as a u32.
     /// This advances the internal state of the iterator.
-    fn read<V>(&self) -> Option<V>;
+    fn read_u32(&self) -> Option<u32>;
+
+
+    /// Try to read the next eight bytes as a u64
+    /// This advances the internal state of the iterator.
+    fn read_u64(&self) -> Option<u64>;
 
     /// Advance the internal slice by `N` elements.
     ///
