@@ -26,7 +26,7 @@ static_assertions = "1"
 #  Issue:   https://github.com/BurntSushi/quickcheck/issues/295
 #  Fix:     https://github.com/BurntSushi/quickcheck/pull/296
 quickcheck = { git = "https://github.com/neithernut/quickcheck/", branch = "i32min-shrink-bound" }
-proptest = "0.10.1"
+proptest = "1.0"
 
 # FEATURES
 # --------
