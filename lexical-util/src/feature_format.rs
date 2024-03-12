@@ -1725,6 +1725,7 @@ const_assert!(NumberFormat::<{ C89_HEX_STRING }> {}.is_valid());
 #[rustfmt::skip]
 pub const RUBY_LITERAL: u128 = NumberFormatBuilder::new()
     .digit_separator(num::NonZeroU8::new(b'_'))
+    .required_exponent_sign(true)
     .required_digits(true)
     .no_special(true)
     .no_integer_leading_zeros(true)

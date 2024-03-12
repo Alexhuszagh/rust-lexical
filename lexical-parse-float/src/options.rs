@@ -602,20 +602,21 @@ const_assert!(CXX_LITERAL.is_valid());
 #[rustfmt::skip]
 pub const RUBY_LITERAL: Options = unsafe {
     Options::builder()
-        .nan_string(options::RUBY)
-        .inf_string(options::RUBY)
-        .infinity_string(options::RUBY)
+        .nan_string(options::RUBY_LITERAL_NAN)
+        .inf_string(options::RUBY_LITERAL_INF)
+        .infinity_string(options::RUBY_LITERAL_INF)
         .build_unchecked()
 };
 const_assert!(RUBY_LITERAL.is_valid());
 
 /// Number format to parse a Ruby float from string.
+/// Ruby can write NaN and Infinity as strings, but won't roundtrip them back to floats.
 #[rustfmt::skip]
 pub const RUBY_STRING: Options = unsafe {
     Options::builder()
-        .nan_string(options::RUBY)
-        .inf_string(options::RUBY)
-        .infinity_string(options::RUBY)
+        .nan_string(options::RUBY_STRING_NONE)
+        .inf_string(options::RUBY_STRING_NONE)
+        .infinity_string(options::RUBY_STRING_NONE)
         .build_unchecked()
 };
 const_assert!(RUBY_STRING.is_valid());

@@ -835,8 +835,10 @@ const_assert!(CXX_LITERAL.is_valid());
 #[rustfmt::skip]
 pub const RUBY_LITERAL: Options = unsafe {
     Options::builder()
-        .nan_string(options::RUBY)
-        .inf_string(options::RUBY)
+        .positive_exponent_break(num::NonZeroI32::new(14))
+        .negative_exponent_break(num::NonZeroI32::new(-4))
+        .nan_string(options::RUBY_LITERAL_NAN)
+        .inf_string(options::RUBY_LITERAL_INF)
         .build_unchecked()
 };
 const_assert!(RUBY_LITERAL.is_valid());
@@ -845,8 +847,8 @@ const_assert!(RUBY_LITERAL.is_valid());
 #[rustfmt::skip]
 pub const RUBY_STRING: Options = unsafe {
     Options::builder()
-        .nan_string(options::RUBY)
-        .inf_string(options::RUBY)
+        .nan_string(options::RUBY_LITERAL_NAN)
+        .inf_string(options::RUBY_LITERAL_INF)
         .build_unchecked()
 };
 const_assert!(RUBY_STRING.is_valid());
