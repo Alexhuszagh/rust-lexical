@@ -91,8 +91,8 @@ macro_rules! unsigned_to_lexical {
     ($($narrow:tt $wide:tt $(, #[$meta:meta])? ; )*) => ($(
         impl ToLexical for $narrow {
             $(#[$meta:meta])?
-            unsafe fn to_lexical_unchecked<'a>(self, bytes: &'a mut [u8])
-                -> &'a mut [u8]
+            unsafe fn to_lexical_unchecked(self, bytes: &mut [u8])
+                -> &mut [u8]
             {
                 debug_assert_buffer::<$narrow>(10, bytes.len());
                 // SAFETY: safe if `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.
@@ -103,8 +103,8 @@ macro_rules! unsigned_to_lexical {
             }
 
             $(#[$meta:meta])?
-            fn to_lexical<'a>(self, bytes: &'a mut [u8])
-                -> &'a mut [u8]
+            fn to_lexical(self, bytes: &mut [u8])
+                -> &mut [u8]
             {
                 assert_buffer::<$narrow>(10, bytes.len());
                 // SAFETY: safe since `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.
@@ -168,8 +168,8 @@ macro_rules! signed_to_lexical {
     ($($narrow:tt $wide:tt $unsigned:tt $(, #[$meta:meta])? ; )*) => ($(
         impl ToLexical for $narrow {
             $(#[$meta:meta])?
-            unsafe fn to_lexical_unchecked<'a>(self, bytes: &'a mut [u8])
-                -> &'a mut [u8]
+            unsafe fn to_lexical_unchecked(self, bytes: &mut [u8])
+                -> &mut [u8]
             {
                 debug_assert_buffer::<$narrow>(10, bytes.len());
                 // SAFETY: safe if `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.
@@ -180,8 +180,8 @@ macro_rules! signed_to_lexical {
             }
 
             $(#[$meta:meta])?
-            fn to_lexical<'a>(self, bytes: &'a mut [u8])
-                -> &'a mut [u8]
+            fn to_lexical(self, bytes: &mut [u8])
+                -> &mut [u8]
             {
                 assert_buffer::<$narrow>(10, bytes.len());
                 // SAFETY: safe since `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.

@@ -535,7 +535,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 
     // Check if integer leading zeros are disabled.
     if cfg!(feature = "format") && !is_prefix && format.no_float_leading_zeros() {
-        if integer_digits.len() > 1 && integer_digits.get(0) == Some(&b'0') {
+        if integer_digits.len() > 1 && integer_digits.first() == Some(&b'0') {
             return Err(Error::InvalidLeadingZeros(start.cursor()));
         }
     }

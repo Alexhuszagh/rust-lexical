@@ -113,6 +113,12 @@ impl ops::MulAssign<&Bigint> for Bigint {
     }
 }
 
+impl Default for Bigint {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Number of bits in a Bigfloat.
 ///
 /// This needs to be at least the number of bits required to store
@@ -228,6 +234,13 @@ impl ops::MulAssign<&Bigfloat> for Bigfloat {
     fn mul_assign(&mut self, rhs: &Bigfloat) {
         large_mul(&mut self.data, &rhs.data).unwrap();
         self.exp += rhs.exp;
+    }
+}
+
+#[cfg(feature = "radix")]
+impl Default for Bigfloat {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -349,7 +362,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
     /// The number of items the vector can hold.
     #[inline]
     pub const fn capacity(&self) -> usize {
-        SIZE as usize
+        SIZE
     }
 
     /// Append an item to the vector, without bounds checking.
@@ -586,7 +599,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
     #[inline]
     pub fn rview(&self) -> ReverseView<Limb> {
         ReverseView {
-            inner: &*self,
+            inner: self,
         }
     }
 
@@ -658,7 +671,7 @@ impl<const SIZE: usize> Eq for StackVec<SIZE> {
 impl<const SIZE: usize> cmp::PartialOrd for StackVec<SIZE> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        Some(compare(self, other))
+        Some(self.cmp(other))
     }
 }
 
@@ -698,6 +711,12 @@ impl<const SIZE: usize> ops::MulAssign<&[Limb]> for StackVec<SIZE> {
     #[inline]
     fn mul_assign(&mut self, rhs: &[Limb]) {
         large_mul(self, rhs).unwrap();
+    }
+}
+
+impl<const SIZE: usize> Default for StackVec<SIZE> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -1192,7 +1211,7 @@ pub fn large_quorem<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Li
     // If we have an empty divisor, error out early.
     assert!(!y.is_empty(), "large_quorem:: division by zero error.");
     assert!(x.len() <= y.len(), "large_quorem:: oversized numerator.");
-    let mask = Limb::max_value() as Wide;
+    let mask = Limb::MAX as Wide;
 
     // Numerator is smaller the denominator, quotient always 0.
     let m = x.len();

@@ -449,8 +449,8 @@ macro_rules! integer_impl {
             const ZERO: $t = 0;
             const ONE: $t = 1;
             const TWO: $t = 2;
-            const MAX: $t = $t::max_value();
-            const MIN: $t = $t::min_value();
+            const MAX: $t = $t::MAX;
+            const MIN: $t = $t::MIN;
             // DEPRECATE: when we drop support for <= 1.53.0, change to `<$t>::BITS`
             const BITS: usize = mem::size_of::<$t>() * 8;
 

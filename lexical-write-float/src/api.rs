@@ -32,8 +32,8 @@ macro_rules! float_to_lexical {
     ($($t:tt $(, #[$meta:meta])? ; )*) => ($(
         impl ToLexical for $t {
             $(#[$meta:meta])?
-            unsafe fn to_lexical_unchecked<'a>(self, bytes: &'a mut [u8])
-                -> &'a mut [u8]
+            unsafe fn to_lexical_unchecked(self, bytes: &mut [u8])
+                -> &mut [u8]
             {
                 debug_assert!(check_buffer::<Self, { STANDARD }>(bytes.len(), &DEFAULT_OPTIONS));
                 // SAFETY: safe if `check_buffer::<STANDARD>(bytes.len(), &options)` passes.
@@ -44,8 +44,8 @@ macro_rules! float_to_lexical {
             }
 
             $(#[$meta:meta])?
-            fn to_lexical<'a>(self, bytes: &'a mut [u8])
-                -> &'a mut [u8]
+            fn to_lexical(self, bytes: &mut [u8])
+                -> &mut [u8]
             {
                 assert!(check_buffer::<Self, { STANDARD }>(bytes.len(), &DEFAULT_OPTIONS));
                 // SAFETY: safe since `check_buffer::<STANDARD>(bytes.len(), &options)` passes.

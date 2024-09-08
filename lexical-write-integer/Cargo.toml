@@ -9,7 +9,7 @@ license = "MIT/Apache-2.0"
 name = "lexical-write-integer"
 readme = "README.md"
 repository = "https://github.com/Alexhuszagh/rust-lexical"
-version = "0.8.5"
+version = "0.9.0"
 exclude = [
     "assets/*",
     "docs/*",
@@ -21,7 +21,7 @@ exclude = [
 static_assertions = "1"
 
 [dependencies.lexical-util]
-version = "0.8.5"
+version = "0.9.0"
 path = "../lexical-util"
 default-features = false
 features = ["write-integers"]
@@ -32,7 +32,7 @@ features = ["write-integers"]
 #  Issue:   https://github.com/BurntSushi/quickcheck/issues/295
 #  Fix:     https://github.com/BurntSushi/quickcheck/pull/296
 quickcheck = { git = "https://github.com/neithernut/quickcheck/", branch = "i32min-shrink-bound" }
-proptest = "0.10.1"
+proptest = "1.5.0"
 
 [features]
 default = ["std"]

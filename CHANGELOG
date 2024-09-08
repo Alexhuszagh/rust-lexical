@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Updated the MSRV to 1.63.0 (1.65.0 for development).
+
 ## [0.8.5] 2022-06-06
 ### Changed
 - Fixed the partial integer parser to correctly return negative values if parsing partial input.

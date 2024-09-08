@@ -16,11 +16,11 @@ default-features = false
 features = []
 
 [dependencies.clap]
-version = "3.1.18"
+version = "4.5"
 features = ["derive"]
 
 [dependencies]
-fastrand = "1.4"
+fastrand = "2.1"
 
 [features]
 std = ["lexical-util/std", "lexical-write-float/std"]

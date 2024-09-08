@@ -470,13 +470,13 @@ macro_rules! to_lexical_impl {
     ($t:ident, $to:ident, $to_options:ident, $options:ident) => {
         impl ToLexical for $t {
             #[cfg_attr(not(feature = "compact"), inline)]
-            unsafe fn to_lexical_unchecked<'a>(self, bytes: &'a mut [u8]) -> &'a mut [u8] {
+            unsafe fn to_lexical_unchecked(self, bytes: &mut [u8]) -> &mut [u8] {
                 // SAFETY: safe as long as `bytes` is large enough to hold the significant digits.
                 unsafe { <Self as $to>::to_lexical_unchecked(self, bytes) }
             }
 
             #[cfg_attr(not(feature = "compact"), inline)]
-            fn to_lexical<'a>(self, bytes: &'a mut [u8]) -> &'a mut [u8] {
+            fn to_lexical(self, bytes: &mut [u8]) -> &mut [u8] {
                 <Self as $to>::to_lexical(self, bytes)
             }
         }

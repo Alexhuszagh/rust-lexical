@@ -16,6 +16,8 @@
 //  Fallback radixes use 1 for the value to avoid infinite loops,
 //  but allowing them in `const fn`.
 
+/// Get the maximum number of digits that can be processed without overflowing.
+///
 /// Calculate the maximum number of digits that can always be processed
 /// without overflowing for a given type. For example, 19 digits can
 /// always be processed for a decimal string for `u64` without overflowing.
@@ -75,6 +77,8 @@ pub const fn min_step(radix: u32, bits: usize, is_signed: bool) -> usize {
     }
 }
 
+/// Get the maximum number of digits that can be processed without overflowing.
+///
 /// Calculate the maximum number of digits that can be processed
 /// without always overflowing for a given type. For example, 20 digits can
 /// be processed for a decimal string for `u64` without overflowing, but

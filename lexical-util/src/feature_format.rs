@@ -1240,6 +1240,12 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     }
 }
 
+impl<const FORMAT: u128> Default for NumberFormat<FORMAT> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // PRE-DEFINED CONSTANTS
 // ---------------------
 //

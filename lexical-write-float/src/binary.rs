@@ -705,6 +705,8 @@ pub fn inverse_remainder(remainder: i32, base: i32) -> i32 {
     }
 }
 
+/// Calculate the shift to align the highest mantissa bit.
+///
 /// We need to calculate the shift to align the
 /// highest mantissa bit. This is based off aligning
 /// the bits to the exponent, so we can get it on

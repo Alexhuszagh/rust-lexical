@@ -374,7 +374,7 @@ pub unsafe fn generate_digits(
             idx += 1;
         }
 
-        part1 -= digit as u64 * div;
+        part1 -= digit * div;
         kappa -= 1;
 
         let tmp = (part1 << -one.exp) + part2;

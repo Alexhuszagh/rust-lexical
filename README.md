@@ -57,7 +57,7 @@ In order to use lexical in generic code, the trait bounds `FromLexical` (for `pa
 /// Multiply a value in a string by multiplier, and serialize to string.
 fn mul_2<T>(value: &str, multiplier: T)
     -> Result<String, lexical_core::Error>
-where 
+where
     T: lexical_core::ToLexical + lexical_core::FromLexical,
 {
     let value: T = lexical_core::parse(value.as_bytes())?;
@@ -138,9 +138,9 @@ Lexical is highly customizable, and contains numerous other optional features:
     <blockquote>With radix enabled, any radix from 2 to 36 (inclusive) is valid, otherwise, only 10 is valid.</blockquote>
 - **format**: &ensp; Customize acceptable number formats for number parsing and writing.
     <blockquote>With format enabled, the number format is dictated through bitflags and masks packed into a <code>u128</code>. These dictate the valid syntax of parsed and written numbers, including enabling digit separators, requiring integer or fraction digits, and toggling case-sensitive exponent characters.</blockquote>
-- **compact**: &ensp; Optimize for binary size at the expense of performance. 
+- **compact**: &ensp; Optimize for binary size at the expense of performance.
     <blockquote>This minimizes the use of pre-computed tables, producing significantly smaller binaries.</blockquote>
-- **safe**: &ensp; Require all array indexing to be bounds-checked. 
+- **safe**: &ensp; Require all array indexing to be bounds-checked.
     <blockquote>This is effectively a no-op for number parsers, since they use safe indexing except where indexing without bounds checking can be trivially shown to be correct. The number writers frequently use unsafe indexing, since we can easily over-estimate the number of digits in the output due to the fixed-length input.</blockquote>
 - **f16**: &ensp; Add support for numeric conversions to-and-from 16-bit floats.
     <blockquote>Adds <code>f16</code>, a half-precision IEEE-754 floating-point type, and <code>bf16</code>, the Brain Float 16 type, and numeric conversions to-and-from these floats. Note that since these are storage formats, and therefore do not have native arithmetic operations, all conversions are done using an intermediate <code>f32</code>.</blockquote>
@@ -169,7 +169,7 @@ let f: f64 = lexical_core::parse_with_options::<JSON>(b"3.e7", &options)?;  // E
 
 Due the high variability in the syntax of numbers in different programming and data languages, we provide 2 different APIs to simplify converting numbers with different syntax requirements.
 
-- Number Format API (feature-gated via `format` or `power-of-two`). 
+- Number Format API (feature-gated via `format` or `power-of-two`).
     <blockquote>This is a packed struct contained flags to specify compile-time syntax rules for number parsing or writing. This includes features such as the radix of the numeric string, digit separators, case-sensitive exponent characters, optional base prefixes/suffixes, and more.</blockquote>
 - Options API.
     <blockquote>This contains run-time rules for parsing and writing numbers. This includes exponent break points, rounding modes, the exponent and decimal point characters, and the string representation of NaN and Infinity.</blockquote>
@@ -335,12 +335,14 @@ lexical-core should also work on a wide variety of other architectures and ISAs.
 **Version Support**
 
 The currently supported versions are:
+- v0.9.x
 - v0.8.x
 - v0.7.x (Maintenance)
 - v0.6.x (Maintenance)
 
 **Rustc Compatibility**
 
+- v0.8.x supports 1.63+, including stable, beta, and nightly.
 - v0.8.x supports 1.51+, including stable, beta, and nightly.
 - v0.7.x supports 1.37+, including stable, beta, and nightly.
 - v0.6.x supports Rustc 1.24+, including stable, beta, and nightly.
