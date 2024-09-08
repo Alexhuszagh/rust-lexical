@@ -700,8 +700,13 @@ macro_rules! skip_iterator_byteiter_base {
         }
 
         #[inline]
-        fn read<V>(&self) -> Option<V> {
-            self.byte.read()
+        fn read_u32(&self) -> Option<u32> {
+            unsafe { self.byte.read_u32() }
+        }
+
+        #[inline]
+        fn read_u64(&self) -> Option<u64> {
+            unsafe { self.byte.read_u64() }
         }
 
         #[inline]
