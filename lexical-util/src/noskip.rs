@@ -105,7 +105,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     /// # Safety
     ///
     /// Safe as long as the number of the buffer is contains as least as
-    /// many bytes as the size of V.
+    /// many bytes as the size of V, and V is valid for all bit patterns.
     #[inline]
     #[allow(clippy::assertions_on_constants)]
     pub unsafe fn read_unchecked<V>(&self) -> V {
@@ -117,13 +117,26 @@ impl<'a, const __: u128> Bytes<'a, __> {
         unsafe { ptr::read_unaligned::<V>(slc.as_ptr() as *const _) }
     }
 
-    /// Try to read a value of a different type from the iterator.
+    /// Try to read a the next four bytes as a u32.
     /// This advances the internal state of the iterator.
     #[inline]
-    pub fn read<V>(&self) -> Option<V> {
-        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<V>() {
+    pub fn read_u32(&self) -> Option<u32> {
+        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u32>() {
             // SAFETY: safe since we've guaranteed the buffer is greater than
-            // the number of elements read.
+            // the number of elements read. u32 is valid for all bit patterns
+            unsafe { Some(self.read_unchecked()) }
+        } else {
+            None
+        }
+    }
+
+    /// Try to read the next eight bytes as a u64
+    /// This advances the internal state of the iterator.
+    #[inline]
+    pub fn read_u64(&self) -> Option<u64> {
+        if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u64>() {
+            // SAFETY: safe since we've guaranteed the buffer is greater than
+            // the number of elements read. u64 is valid for all bit patterns
             unsafe { Some(self.read_unchecked()) }
         } else {
             None
@@ -288,8 +301,13 @@ impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
     }
 
     #[inline]
-    fn read<V>(&self) -> Option<V> {
-        self.byte.read()
+    fn read_u32(&self) -> Option<u32> {
+        self.byte.read_u32()
+    }
+
+    #[inline]
+    fn read_u64(&self) -> Option<u64> {
+        self.byte.read_u64()
     }
 
     #[inline]
