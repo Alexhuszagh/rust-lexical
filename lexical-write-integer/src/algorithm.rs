@@ -159,7 +159,7 @@ unsafe fn write_step_digits<T: UnsignedInteger>(
 ///
 /// Safe as long as the buffer is large enough to hold as many digits
 /// that can be in the largest value of `T`, in radix `N`.
-#[inline]
+#[inline(always)]
 pub unsafe fn algorithm<T>(value: T, radix: u32, table: &[u8], buffer: &mut [u8]) -> usize
 where
     T: UnsignedInteger,
@@ -182,7 +182,7 @@ where
 ///
 /// Safe as long as the buffer is large enough to hold as many digits
 /// that can be in the largest value of `T`, in radix `N`.
-#[inline]
+#[inline(always)]
 pub unsafe fn algorithm_u128<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
     value: u128,
     table: &[u8],

@@ -34,7 +34,7 @@ pub struct Number<'a> {
 
 impl<'a> Number<'a> {
     /// Detect if the float can be accurately reconstructed from native floats.
-    #[inline]
+    #[inline(always)]
     pub fn is_fast_path<F: RawFloat, const FORMAT: u128>(&self) -> bool {
         let format = NumberFormat::<FORMAT> {};
         debug_assert!(format.mantissa_radix() == format.exponent_base());

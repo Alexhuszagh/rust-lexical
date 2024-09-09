@@ -57,7 +57,7 @@ def print_power(radix):
     unsigned = [find_power(i, radix) for i in UNSIGNED_MAX]
     signed = [find_power(i, radix) for i in SIGNED_MAX]
 
-    print('#[inline]')
+    print('#[inline(always)]')
     print(f'const fn max_step_{radix}(bits: usize, is_signed: bool) -> usize {{')
     print('    match bits {')
     for index in range(len(WIDTHS)):
@@ -68,7 +68,7 @@ def print_power(radix):
     print('}')
     print('')
 
-    print('#[inline]')
+    print('#[inline(always)]')
     print(f'const fn min_step_{radix}(bits: usize, is_signed: bool) -> usize {{')
     print('    match bits {')
     for index in range(len(WIDTHS)):

@@ -309,7 +309,7 @@ pub trait AsBytes<'a> {
 }
 
 impl<'a> AsBytes<'a> for [u8] {
-    #[inline]
+    #[inline(always)]
     fn bytes<const FORMAT: u128>(&'a self) -> Bytes<'a, FORMAT> {
         Bytes::new(self)
     }
@@ -347,7 +347,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     pub const IS_CONTIGUOUS: bool = NumberFormat::<{ FORMAT }>::DIGIT_SEPARATOR == 0;
 
     /// Create new byte object.
-    #[inline]
+    #[inline(always)]
     pub fn new(slc: &'a [u8]) -> Self {
         Self {
             slc,
@@ -357,26 +357,26 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     }
 
     /// Get a ptr to the current start of the iterator.
-    #[inline]
+    #[inline(always)]
     pub fn as_ptr(&self) -> *const u8 {
         self.as_slice().as_ptr()
     }
 
     /// Get a slice to the current start of the iterator.
-    #[inline]
+    #[inline(always)]
     pub fn as_slice(&self) -> &'a [u8] {
         // SAFETY: safe since index must be in range
         unsafe { self.slc.get_unchecked(self.index..) }
     }
 
     /// Get the total number of elements in the underlying slice.
-    #[inline]
+    #[inline(always)]
     pub fn length(&self) -> usize {
         self.slc.len()
     }
 
     /// Get the current index of the iterator in the slice.
-    #[inline]
+    #[inline(always)]
     pub fn cursor(&self) -> usize {
         self.index
     }
@@ -386,14 +386,14 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// # Safety
     ///
     /// Safe if `index <= self.length()`.
-    #[inline]
+    #[inline(always)]
     pub unsafe fn set_cursor(&mut self, index: usize) {
         debug_assert!(index <= self.length());
         self.index = index
     }
 
     /// Get the current number of values returned by the iterator.
-    #[inline]
+    #[inline(always)]
     pub fn current_count(&self) -> usize {
         // If the buffer is contiguous, then we don't need to track the
         // number of values: the current index is enough.
@@ -411,13 +411,13 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// peeking the next value. Consumed merely checks if the
     /// iterator has an empty slice. It is effectively a cheaper,
     /// but weaker variant of `is_consumed()`.
-    #[inline]
+    #[inline(always)]
     pub fn is_done(&self) -> bool {
         self.index >= self.slc.len()
     }
 
     // Determine if the abstraction is contiguous.
-    #[inline]
+    #[inline(always)]
     pub fn is_contiguous(&self) -> bool {
         Self::IS_CONTIGUOUS
     }
@@ -429,7 +429,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     ///
     /// Safe as long as the number of the buffer is contains as least as
     /// many bytes as the size of V, and V is valid for all bit patterns.
-    #[inline]
+    #[inline(always)]
     pub unsafe fn read_unchecked<V>(&self) -> V {
         debug_assert!(Self::IS_CONTIGUOUS);
         debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
@@ -441,7 +441,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
 
     /// Try to read a the next four bytes as a u32.
     /// This advances the internal state of the iterator.
-    #[inline]
+    #[inline(always)]
     unsafe fn read_u32(&self) -> Option<u32> {
         if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u32>() {
             // SAFETY: safe since we've guaranteed the buffer is greater than
@@ -453,7 +453,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     }
     /// Try to read a the next four bytes as a u32.
     /// This advances the internal state of the iterator.
-    #[inline]
+    #[inline(always)]
     unsafe fn read_u64(&self) -> Option<u64> {
         if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u64>() {
             // SAFETY: safe since we've guaranteed the buffer is greater than
@@ -464,7 +464,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
         }
     }
     /// Check if the next element is a given value.
-    #[inline]
+    #[inline(always)]
     pub fn first_is(&mut self, value: u8) -> bool {
         // Don't assert not a digit separator, since this can occur when
         // a different component does not allow digit separators there.
@@ -476,7 +476,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     }
 
     /// Check if the next element is a given value without case sensitivity.
-    #[inline]
+    #[inline(always)]
     pub fn case_insensitive_first_is(&mut self, value: u8) -> bool {
         // Don't assert not a digit separator, since this can occur when
         // a different component does not allow digit separators there.
@@ -488,7 +488,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     }
 
     /// Get iterator over integer digits.
-    #[inline]
+    #[inline(always)]
     pub fn integer_iter<'b>(&'b mut self) -> IntegerBytesIterator<'a, 'b, FORMAT> {
         IntegerBytesIterator {
             byte: self,
@@ -496,7 +496,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     }
 
     /// Get iterator over fraction digits.
-    #[inline]
+    #[inline(always)]
     pub fn fraction_iter<'b>(&'b mut self) -> FractionBytesIterator<'a, 'b, FORMAT> {
         FractionBytesIterator {
             byte: self,
@@ -504,7 +504,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     }
 
     /// Get iterator over exponent digits.
-    #[inline]
+    #[inline(always)]
     pub fn exponent_iter<'b>(&'b mut self) -> ExponentBytesIterator<'a, 'b, FORMAT> {
         ExponentBytesIterator {
             byte: self,
@@ -512,7 +512,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     }
 
     /// Get iterator over special floating point values.
-    #[inline]
+    #[inline(always)]
     pub fn special_iter<'b>(&'b mut self) -> SpecialBytesIterator<'a, 'b, FORMAT> {
         SpecialBytesIterator {
             byte: self,
@@ -525,7 +525,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     ///
     /// As long as the iterator is at least `N` elements, this
     /// is safe.
-    #[inline]
+    #[inline(always)]
     pub unsafe fn step_by_unchecked(&mut self, count: usize) {
         if Self::IS_CONTIGUOUS {
             // Contiguous, can skip most of these checks.
@@ -555,7 +555,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// # Safety
     ///
     /// Safe as long as the iterator is not empty.
-    #[inline]
+    #[inline(always)]
     pub unsafe fn step_unchecked(&mut self) {
         debug_assert!(!self.as_slice().is_empty());
         // SAFETY: safe if `self.index < self.length()`.
@@ -615,7 +615,7 @@ macro_rules! skip_iterator_iterator_impl {
         impl<'a: 'b, 'b, const FORMAT: u128> Iterator for $iterator<'a, 'b, FORMAT> {
             type Item = &'a u8;
 
-            #[inline]
+            #[inline(always)]
             fn next(&mut self) -> Option<Self::Item> {
                 // Peek will handle everything properly internally.
                 let value = self.peek()?;
@@ -640,76 +640,76 @@ macro_rules! skip_iterator_byteiter_base {
         // the digits doesn't skip any values.
         const IS_CONTIGUOUS: bool = $format & flags::$mask == 0;
 
-        #[inline]
+        #[inline(always)]
         fn as_ptr(&self) -> *const u8 {
             self.byte.as_ptr()
         }
 
-        #[inline]
+        #[inline(always)]
         fn as_slice(&self) -> &'a [u8] {
             self.byte.as_slice()
         }
 
-        #[inline]
+        #[inline(always)]
         fn length(&self) -> usize {
             self.byte.length()
         }
 
-        #[inline]
+        #[inline(always)]
         fn cursor(&self) -> usize {
             self.byte.cursor()
         }
 
-        #[inline]
+        #[inline(always)]
         unsafe fn set_cursor(&mut self, index: usize) {
             debug_assert!(index <= self.length());
             // SAFETY: safe if `index <= self.length()`.
             unsafe { self.byte.set_cursor(index) };
         }
 
-        #[inline]
+        #[inline(always)]
         fn current_count(&self) -> usize {
             self.byte.current_count()
         }
 
-        #[inline]
+        #[inline(always)]
         fn is_consumed(&mut self) -> bool {
             self.peek().is_none()
         }
 
-        #[inline]
+        #[inline(always)]
         fn is_done(&self) -> bool {
             self.byte.is_done()
         }
 
-        #[inline]
+        #[inline(always)]
         fn is_contiguous(&self) -> bool {
             Self::IS_CONTIGUOUS
         }
 
-        #[inline]
+        #[inline(always)]
         unsafe fn peek_unchecked(&mut self) -> <Self as Iterator>::Item {
             self.peek().unwrap()
         }
 
-        #[inline]
+        #[inline(always)]
         unsafe fn read_unchecked<V>(&self) -> V {
             debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
             // SAFETY: safe as long as the slice has at least count elements.
             unsafe { self.byte.read_unchecked() }
         }
 
-        #[inline]
+        #[inline(always)]
         fn read_u32(&self) -> Option<u32> {
             unsafe { self.byte.read_u32() }
         }
 
-        #[inline]
+        #[inline(always)]
         fn read_u64(&self) -> Option<u64> {
             unsafe { self.byte.read_u64() }
         }
 
-        #[inline]
+        #[inline(always)]
         unsafe fn step_by_unchecked(&mut self, count: usize) {
             debug_assert!(self.as_slice().len() >= count);
             // SAFETY: safe as long as `slc.len() >= count`.
@@ -725,7 +725,7 @@ macro_rules! skip_iterator_byteiter_impl {
             skip_iterator_byteiter_base!(FORMAT, $mask);
 
             /// Peek the next value of the iterator, without consuming it.
-            #[inline]
+            #[inline(always)]
             fn peek(&mut self) -> Option<<Self as Iterator>::Item> {
                 let format = NumberFormat::<{ FORMAT }> {};
                 const IL: u128 = flags::$i | flags::$l;
@@ -825,7 +825,7 @@ impl<'a: 'b, 'b, const FORMAT: u128> BytesIter<'a> for SpecialBytesIterator<'a, 
     skip_iterator_byteiter_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
 
     /// Peek the next value of the iterator, without consuming it.
-    #[inline]
+    #[inline(always)]
     fn peek(&mut self) -> Option<<Self as Iterator>::Item> {
         let format = NumberFormat::<{ FORMAT }> {};
         if format.special_digit_separator() {

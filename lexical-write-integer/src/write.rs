@@ -97,7 +97,7 @@ pub trait WriteInteger: Decimal {
     /// Safe as long as the buffer can hold [`FORMATTED_SIZE_DECIMAL`] elements.
     ///
     /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
-    #[inline]
+    #[inline(always)]
     unsafe fn write_integer<U, const __: u128, const ___: u128, const ____: i32>(
         self,
         buffer: &mut [u8],
@@ -129,7 +129,7 @@ pub trait WriteInteger: Decimal + Radix {
     ///
     /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
     /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
-    #[inline]
+    #[inline(always)]
     unsafe fn write_integer<U, const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
         self,
         buffer: &mut [u8],

@@ -50,7 +50,7 @@ pub const INVALID_FP: i32 = i16::MIN as i32;
 /// Quick log2 that evaluates at compile time for the radix.
 /// Note that this may produce inaccurate results for other radixes:
 /// we don't care since it's only called for powers-of-two.
-#[inline]
+#[inline(always)]
 pub const fn log2(radix: u32) -> i32 {
     match radix {
         2 => 1,
@@ -90,7 +90,7 @@ pub const fn log2(radix: u32) -> i32 {
 ///         mov     al, 1
 ///         ret
 /// ```
-#[cfg_attr(not(feature = "compact"), inline)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn starts_with<'a, 'b, Iter1, Iter2>(mut x: Iter1, mut y: Iter2) -> bool
 where
     Iter1: Iterator<Item = &'a u8>,
@@ -132,7 +132,7 @@ where
 ///         mov     al, 1
 ///         ret
 /// ```
-#[cfg_attr(not(feature = "compact"), inline)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn case_insensitive_starts_with<'a, 'b, Iter1, Iter2>(mut x: Iter1, mut y: Iter2) -> bool
 where
     Iter1: Iterator<Item = &'a u8>,
@@ -166,7 +166,7 @@ where
 ///
 /// Shifts the significant digits into place, adjusts the exponent,
 /// so it can be easily converted to a native float.
-#[cfg_attr(not(feature = "compact"), inline)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn round<F, Cb>(fp: &mut ExtendedFloat80, cb: Cb)
 where
     F: RawFloat,
@@ -226,7 +226,7 @@ where
 ///     1. is_odd
 ///     1. is_halfway
 ///     1. is_above
-#[cfg_attr(not(feature = "compact"), inline)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn round_nearest_tie_even<Cb>(fp: &mut ExtendedFloat80, shift: i32, cb: Cb)
 where
     // is_odd, is_halfway, is_above
@@ -273,7 +273,7 @@ where
 }
 
 /// Round our significant digits into place, truncating them.
-#[cfg_attr(not(feature = "compact"), inline)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn round_down(fp: &mut ExtendedFloat80, shift: i32) {
     // Might have a shift greater than 64 if we have an error.
     fp.mant = match shift == 64 {

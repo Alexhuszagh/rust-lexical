@@ -498,7 +498,7 @@ macro_rules! to_lexical_impl {
                 }
             }
 
-            #[cfg_attr(not(feature = "compact"), inline)]
+            #[cfg_attr(not(feature = "compact"), inline(always))]
             fn to_lexical_with_options<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],

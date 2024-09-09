@@ -12,7 +12,7 @@
 /// assert_eq!(lower_n_mask(2), 0b11);
 /// # }
 /// ```
-#[inline]
+#[inline(always)]
 pub fn lower_n_mask(n: u64) -> u64 {
     debug_assert!(n <= 64, "lower_n_mask() overflow in shl.");
 
@@ -32,7 +32,7 @@ pub fn lower_n_mask(n: u64) -> u64 {
 /// assert_eq!(lower_n_halfway(2), 0b10);
 /// # }
 /// ```
-#[inline]
+#[inline(always)]
 pub fn lower_n_halfway(n: u64) -> u64 {
     debug_assert!(n <= 64, "lower_n_halfway() overflow in shl.");
 
@@ -52,7 +52,7 @@ pub fn lower_n_halfway(n: u64) -> u64 {
 /// assert_eq!(nth_bit(2), 0b100);
 /// # }
 /// ```
-#[inline]
+#[inline(always)]
 pub fn nth_bit(n: u64) -> u64 {
     debug_assert!(n < 64, "nth_bit() overflow in shl.");
     1 << n

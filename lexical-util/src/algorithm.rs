@@ -8,7 +8,7 @@ use core::ptr;
 /// # Safety
 ///
 /// Safe as long as `dst` is larger than `src`.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "write")]
 pub unsafe fn copy_to_dst<Bytes: AsRef<[u8]>>(dst: &mut [u8], src: Bytes) -> usize {
     debug_assert!(dst.len() >= src.as_ref().len());
@@ -21,21 +21,21 @@ pub unsafe fn copy_to_dst<Bytes: AsRef<[u8]>>(dst: &mut [u8], src: Bytes) -> usi
 }
 
 /// Count the number of trailing characters equal to a given value.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "write")]
 pub fn rtrim_char_count(slc: &[u8], c: u8) -> usize {
     slc.iter().rev().take_while(|&&si| si == c).count()
 }
 
 /// Count the number of leading characters equal to a given value.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "write")]
 pub fn ltrim_char_count(slc: &[u8], c: u8) -> usize {
     slc.iter().take_while(|&&si| si == c).count()
 }
 
 /// Trim character from the end (right-side) of a slice.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "write")]
 pub fn rtrim_char_slice(slc: &[u8], c: u8) -> (&[u8], usize) {
     let count = rtrim_char_count(slc, c);

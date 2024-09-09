@@ -51,7 +51,7 @@ use crate::mul::mulhi;
 /// This is trivial: the number of digits we process is `64 / log2(radix)`.
 /// Therefore, the `shr` is `log2(radix) * digits`, and the mask is just the
 /// lower `shr` bits of the digits.
-#[inline]
+#[inline(always)]
 #[allow(clippy::many_single_char_names)]
 pub const fn pow2_u128_divrem(n: u128, mask: u64, shr: u32) -> (u128, u64) {
     let quot = n >> shr;
@@ -60,7 +60,7 @@ pub const fn pow2_u128_divrem(n: u128, mask: u64, shr: u32) -> (u128, u64) {
 }
 
 /// Fast division/remainder algorithm for u128, without a fast native approximation.
-#[inline]
+#[inline(always)]
 #[allow(clippy::many_single_char_names)]
 pub fn fast_u128_divrem(
     n: u128,
@@ -80,7 +80,7 @@ pub fn fast_u128_divrem(
 }
 
 /// Fast division/remainder algorithm for u128, without a fast native approximation.
-#[inline]
+#[inline(always)]
 #[allow(clippy::many_single_char_names)]
 pub fn moderate_u128_divrem(n: u128, d: u64, factor: u128, factor_shr: u32) -> (u128, u64) {
     let quot = mulhi::<u128, u64>(n, factor) >> factor_shr;
@@ -96,7 +96,7 @@ pub fn moderate_u128_divrem(n: u128, d: u64, factor: u128, factor_shr: u32) -> (
 /// This is still a fair bit slower than the optimized algorithms described
 /// in the above paper, but this is a suitable fallback when we cannot use
 /// the faster algorithm.
-#[inline]
+#[inline(always)]
 #[allow(clippy::many_single_char_names)]
 pub fn slow_u128_divrem(n: u128, d: u64, d_ctlz: u32) -> (u128, u64) {
     // Ensure we have the correct number of leading zeros passed.
@@ -219,27 +219,27 @@ pub fn u128_divrem(n: u128, radix: u32) -> (u128, u64) {
 // The seemingly magical values are all derived there, and are explained
 // in the function signatures of the functions they call.
 
-#[inline]
+#[inline(always)]
 const fn u128_divrem_2(n: u128) -> (u128, u64) {
     pow2_u128_divrem(n, 18446744073709551615, 64)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_3(n: u128) -> (u128, u64) {
     slow_u128_divrem(n, 12157665459056928801, 0)
 }
 
-#[inline]
+#[inline(always)]
 const fn u128_divrem_4(n: u128) -> (u128, u64) {
     pow2_u128_divrem(n, 18446744073709551615, 64)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_5(n: u128) -> (u128, u64) {
     moderate_u128_divrem(n, 7450580596923828125, 105312291668557186697918027683670432319, 61)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_6(n: u128) -> (u128, u64) {
     fast_u128_divrem(
         n,
@@ -251,22 +251,22 @@ fn u128_divrem_6(n: u128) -> (u128, u64) {
     )
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_7(n: u128) -> (u128, u64) {
     moderate_u128_divrem(n, 3909821048582988049, 200683792729517998822275406364627986707, 61)
 }
 
-#[inline]
+#[inline(always)]
 const fn u128_divrem_8(n: u128) -> (u128, u64) {
     pow2_u128_divrem(n, 9223372036854775807, 63)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_9(n: u128) -> (u128, u64) {
     slow_u128_divrem(n, 12157665459056928801, 0)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_10(n: u128) -> (u128, u64) {
     fast_u128_divrem(
         n,
@@ -278,22 +278,22 @@ fn u128_divrem_10(n: u128) -> (u128, u64) {
     )
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_11(n: u128) -> (u128, u64) {
     slow_u128_divrem(n, 5559917313492231481, 1)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_12(n: u128) -> (u128, u64) {
     slow_u128_divrem(n, 2218611106740436992, 3)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_13(n: u128) -> (u128, u64) {
     moderate_u128_divrem(n, 8650415919381337933, 181410402513790565292660635782582404765, 62)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_14(n: u128) -> (u128, u64) {
     fast_u128_divrem(
         n,
@@ -305,22 +305,22 @@ fn u128_divrem_14(n: u128) -> (u128, u64) {
     )
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_15(n: u128) -> (u128, u64) {
     moderate_u128_divrem(n, 6568408355712890625, 1866504587258795246613513364166764993, 55)
 }
 
-#[inline]
+#[inline(always)]
 const fn u128_divrem_16(n: u128) -> (u128, u64) {
     pow2_u128_divrem(n, 18446744073709551615, 64)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_17(n: u128) -> (u128, u64) {
     moderate_u128_divrem(n, 2862423051509815793, 68529153692836345537218837732158950089, 59)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_18(n: u128) -> (u128, u64) {
     fast_u128_divrem(
         n,
@@ -332,12 +332,12 @@ fn u128_divrem_18(n: u128) -> (u128, u64) {
     )
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_19(n: u128) -> (u128, u64) {
     moderate_u128_divrem(n, 15181127029874798299, 25842538415601616733690423925257626679, 60)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_20(n: u128) -> (u128, u64) {
     fast_u128_divrem(
         n,
@@ -349,22 +349,22 @@ fn u128_divrem_20(n: u128) -> (u128, u64) {
     )
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_21(n: u128) -> (u128, u64) {
     moderate_u128_divrem(n, 3243919932521508681, 120939747781233590383781714337497669585, 60)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_22(n: u128) -> (u128, u64) {
     slow_u128_divrem(n, 6221821273427820544, 1)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_23(n: u128) -> (u128, u64) {
     moderate_u128_divrem(n, 11592836324538749809, 270731922700393644432243678371210997949, 63)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_24(n: u128) -> (u128, u64) {
     fast_u128_divrem(
         n,
@@ -376,12 +376,12 @@ fn u128_divrem_24(n: u128) -> (u128, u64) {
     )
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_25(n: u128) -> (u128, u64) {
     moderate_u128_divrem(n, 1490116119384765625, 131640364585696483372397534604588040399, 59)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_26(n: u128) -> (u128, u64) {
     fast_u128_divrem(
         n,
@@ -393,12 +393,12 @@ fn u128_divrem_26(n: u128) -> (u128, u64) {
     )
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_27(n: u128) -> (u128, u64) {
     slow_u128_divrem(n, 4052555153018976267, 2)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_28(n: u128) -> (u128, u64) {
     fast_u128_divrem(
         n,
@@ -410,32 +410,32 @@ fn u128_divrem_28(n: u128) -> (u128, u64) {
     )
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_29(n: u128) -> (u128, u64) {
     moderate_u128_divrem(n, 10260628712958602189, 152941450056053853841698190746050519297, 62)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_30(n: u128) -> (u128, u64) {
     slow_u128_divrem(n, 15943230000000000000, 0)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_31(n: u128) -> (u128, u64) {
     moderate_u128_divrem(n, 787662783788549761, 124519929891402176328714857711808162537, 58)
 }
 
-#[inline]
+#[inline(always)]
 const fn u128_divrem_32(n: u128) -> (u128, u64) {
     pow2_u128_divrem(n, 1152921504606846975, 60)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_33(n: u128) -> (u128, u64) {
     slow_u128_divrem(n, 1667889514952984961, 3)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_34(n: u128) -> (u128, u64) {
     fast_u128_divrem(
         n,
@@ -447,12 +447,12 @@ fn u128_divrem_34(n: u128) -> (u128, u64) {
     )
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_35(n: u128) -> (u128, u64) {
     moderate_u128_divrem(n, 3379220508056640625, 116097442450503652080238494022501325491, 60)
 }
 
-#[inline]
+#[inline(always)]
 fn u128_divrem_36(n: u128) -> (u128, u64) {
     fast_u128_divrem(
         n,

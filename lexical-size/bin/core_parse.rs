@@ -26,21 +26,21 @@ pub trait FromStrRadixHelper: PartialOrd + Copy {
 
 macro_rules! doit {
     ($($t:ty)*) => ($(impl FromStrRadixHelper for $t {
-        #[inline]
+        #[inline(always)]
         fn min_value() -> Self { Self::MIN }
-        #[inline]
+        #[inline(always)]
         fn max_value() -> Self { Self::MAX }
-        #[inline]
+        #[inline(always)]
         fn from_u32(u: u32) -> Self { u as Self }
-        #[inline]
+        #[inline(always)]
         fn checked_mul(&self, other: u32) -> Option<Self> {
             Self::checked_mul(*self, other as Self)
         }
-        #[inline]
+        #[inline(always)]
         fn checked_sub(&self, other: u32) -> Option<Self> {
             Self::checked_sub(*self, other as Self)
         }
-        #[inline]
+        #[inline(always)]
         fn checked_add(&self, other: u32) -> Option<Self> {
             Self::checked_add(*self, other as Self)
         }

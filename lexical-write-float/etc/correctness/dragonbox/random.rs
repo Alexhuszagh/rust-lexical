@@ -25,42 +25,42 @@ trait FloatRng: RawFloat {
 macro_rules! float_rng {
     ($($t:ident)*) => ($(
         impl FloatRng for $t {
-            #[inline]
+            #[inline(always)]
             fn uniform() -> Self {
                 fastrand::$t()
             }
 
-            #[inline]
+            #[inline(always)]
             fn one_over_rand32() -> Self {
                 1. / fastrand::u32(1..) as $t
             }
 
-            #[inline]
+            #[inline(always)]
             fn simple_uniform32() -> Self {
                 fastrand::u32(..) as $t / u32::MAX as $t
             }
 
-            #[inline]
+            #[inline(always)]
             fn simple_int32() -> Self {
                 fastrand::u32(..) as $t
             }
 
-            #[inline]
+            #[inline(always)]
             fn int_e_int() -> Self {
                 format!("{}e{}", fastrand::u32(..), fastrand::u32(..99)).parse::<$t>().unwrap()
             }
 
-            #[inline]
+            #[inline(always)]
             fn simple_int64() -> Self {
                 fastrand::u64(..) as $t
             }
 
-            #[inline]
+            #[inline(always)]
             fn big_int_dot_int() -> Self {
                 format!("{}.{}", fastrand::u32(..), fastrand::u32(..)).parse::<$t>().unwrap()
             }
 
-            #[inline]
+            #[inline(always)]
             fn big_ints() -> Self {
                 let x = format!("{}{}{}", fastrand::u64(..), fastrand::u64(..), fastrand::u64(..));
                 x.parse::<$t>().unwrap()

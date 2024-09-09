@@ -108,7 +108,7 @@ where
 /// The mantissa must be truncated and rounded, prior to calling this,
 /// based on the number of maximum digits. In addition, `exponent_base`
 /// and `mantissa_radix` in `FORMAT` must be identical.
-#[inline]
+#[inline(always)]
 pub unsafe fn write_float_scientific<M, const FORMAT: u128>(
     mantissa: M,
     exp: i32,
@@ -189,7 +189,7 @@ where
 ///
 /// Safe as long as `bytes` is large enough to hold the number of
 /// significant digits and the leading zeros.
-#[inline]
+#[inline(always)]
 pub unsafe fn write_float_negative_exponent<M, const FORMAT: u128>(
     mantissa: M,
     exp: i32,
@@ -273,7 +273,7 @@ where
 ///
 /// Safe as long as `bytes` is large enough to hold the number of
 /// significant digits and the (optional) trailing zeros.
-#[inline]
+#[inline(always)]
 pub unsafe fn write_float_positive_exponent<M, const FORMAT: u128>(
     mantissa: M,
     exp: i32,
@@ -666,7 +666,7 @@ where
 
 /// Fast integral log2.
 /// Only to be used on radixes.
-#[inline]
+#[inline(always)]
 pub fn fast_log2(x: u32) -> i32 {
     debug_assert!(matches!(x, 2 | 4 | 8 | 16 | 32));
     32 - 1 - (x | 1).leading_zeros() as i32
@@ -762,7 +762,7 @@ pub fn scale_sci_exp(sci_exp: i32, bits_per_digit: i32) -> i32 {
 
 /// Round mantissa to the nearest value, returning only the number
 /// of significant digits. Also returns the number of bits of the mantissa.
-#[inline]
+#[inline(always)]
 pub fn truncate_and_round<M>(mantissa: M, radix: u32, options: &Options) -> (M, usize)
 where
     M: UnsignedInteger,

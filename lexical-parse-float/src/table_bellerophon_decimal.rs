@@ -22,7 +22,7 @@
 use crate::bellerophon::BellerophonPowers;
 
 /// Get Bellerophon powers from radix.
-#[inline]
+#[inline(always)]
 #[cfg(not(feature = "radix"))]
 pub const fn bellerophon_powers(_: u32) -> &'static BellerophonPowers {
     &BASE10_POWERS

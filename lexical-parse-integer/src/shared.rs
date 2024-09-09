@@ -141,7 +141,7 @@ macro_rules! parse_sign {
 }
 
 /// Determine if the value has overflowed.
-#[cfg_attr(not(feature = "compact"), inline)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub(super) fn is_overflow<T, U, const FORMAT: u128>(
     value: U,
     count: usize,

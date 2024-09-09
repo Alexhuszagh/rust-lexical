@@ -19,7 +19,7 @@ use static_assertions::const_assert;
 ///
 /// Safe as long as the radix provided is valid, and exponent is smaller
 /// than the table for the radix.
-#[inline]
+#[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
 pub unsafe fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
     // NOTE: don't check the radix since we also use it for half radix, or 5.
@@ -36,7 +36,7 @@ pub unsafe fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
 ///
 /// Safe as long as the radix provided is valid, and exponent is smaller
 /// than the table for the radix.
-#[inline]
+#[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
 pub unsafe fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
     debug_assert_radix(radix);
@@ -49,7 +49,7 @@ pub unsafe fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
 ///
 /// Safe as long as the radix provided is valid, and exponent is smaller
 /// than the table for the radix.
-#[inline]
+#[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
 pub unsafe fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
     debug_assert_radix(radix);

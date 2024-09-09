@@ -1216,12 +1216,12 @@ pub fn sqrtd(x: f64) -> f64 {
     }
 }
 
-#[inline]
+#[inline(always)]
 fn get_high_word(x: f64) -> u32 {
     (x.to_bits() >> 32) as u32
 }
 
-#[inline]
+#[inline(always)]
 fn with_set_high_word(f: f64, hi: u32) -> f64 {
     let mut tmp = f.to_bits();
     tmp &= 0x00000000_ffffffff;
@@ -1229,7 +1229,7 @@ fn with_set_high_word(f: f64, hi: u32) -> f64 {
     f64::from_bits(tmp)
 }
 
-#[inline]
+#[inline(always)]
 fn with_set_low_word(f: f64, lo: u32) -> f64 {
     let mut tmp = f.to_bits();
     tmp &= 0xffffffff_00000000;

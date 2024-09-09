@@ -14,7 +14,7 @@ use lexical_util::options::WriteOptions;
 use lexical_util::{to_lexical, to_lexical_with_options};
 
 /// Check if a buffer is sufficiently large.
-#[inline]
+#[inline(always)]
 fn check_buffer<T, const FORMAT: u128>(len: usize, options: &Options) -> bool
 where
     T: FormattedSize,

@@ -63,7 +63,7 @@ pub trait BytesIter<'a>: Iterator<Item = &'a u8> {
     fn is_done(&self) -> bool;
 
     /// Determine if the iterator is contiguous.
-    #[inline]
+    #[inline(always)]
     fn is_contiguous(&self) -> bool {
         Self::IS_CONTIGUOUS
     }
@@ -82,7 +82,7 @@ pub trait BytesIter<'a>: Iterator<Item = &'a u8> {
     fn peek(&mut self) -> Option<Self::Item>;
 
     /// Check if the next element is a given value.
-    #[inline]
+    #[inline(always)]
     fn peek_is(&mut self, value: u8) -> bool {
         if let Some(&c) = self.peek() {
             c == value
@@ -92,7 +92,7 @@ pub trait BytesIter<'a>: Iterator<Item = &'a u8> {
     }
 
     /// Check if the next element is a given value without case sensitivity.
-    #[inline]
+    #[inline(always)]
     fn case_insensitive_peek_is(&mut self, value: u8) -> bool {
         if let Some(&c) = self.peek() {
             c.to_ascii_lowercase() == value.to_ascii_lowercase()
@@ -102,7 +102,7 @@ pub trait BytesIter<'a>: Iterator<Item = &'a u8> {
     }
 
     /// Skip zeros from the start of the iterator
-    #[inline]
+    #[inline(always)]
     fn skip_zeros(&mut self) -> usize {
         let start = self.cursor();
         while let Some(&b'0') = self.peek() {
@@ -141,7 +141,7 @@ pub trait BytesIter<'a>: Iterator<Item = &'a u8> {
     /// # Safety
     ///
     /// Safe as long as the iterator is not empty.
-    #[inline]
+    #[inline(always)]
     unsafe fn step_unchecked(&mut self) {
         unsafe { self.step_by_unchecked(1) };
     }

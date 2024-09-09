@@ -139,7 +139,7 @@ macro_rules! parse_digits {
 }
 
 /// Algorithm for the complete parser.
-#[inline]
+#[inline(always)]
 pub fn algorithm_complete<T, Unsigned, const FORMAT: u128>(bytes: &[u8]) -> Result<T>
 where
     T: Integer,
@@ -149,7 +149,7 @@ where
 }
 
 /// Algorithm for the partial parser.
-#[inline]
+#[inline(always)]
 pub fn algorithm_partial<T, Unsigned, const FORMAT: u128>(bytes: &[u8]) -> Result<(T, usize)>
 where
     T: Integer,
@@ -161,7 +161,7 @@ where
 // DIGIT OPTIMIZATIONS
 
 /// Determine if 4 bytes, read raw from bytes, are 4 digits for the radix.
-#[inline]
+#[inline(always)]
 pub fn is_4digits<const FORMAT: u128>(v: u32) -> bool {
     let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX;
     debug_assert!(radix <= 10);
@@ -184,7 +184,7 @@ pub fn is_4digits<const FORMAT: u128>(v: u32) -> bool {
 }
 
 /// Parse 4 bytes read from bytes into 4 digits.
-#[inline]
+#[inline(always)]
 pub fn parse_4digits<const FORMAT: u128>(mut v: u32) -> u32 {
     let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX;
     debug_assert!(radix <= 10);
@@ -204,7 +204,7 @@ pub fn parse_4digits<const FORMAT: u128>(mut v: u32) -> u32 {
 ///
 /// This approach is described in full here:
 /// <https://johnnylee-sde.github.io/Fast-numeric-string-to-int/>
-#[inline]
+#[inline(always)]
 pub fn try_parse_4digits<'a, T, Iter, const FORMAT: u128>(iter: &mut Iter) -> Option<T>
 where
     T: Integer,
@@ -229,7 +229,7 @@ where
 
 /// Determine if 8 bytes, read raw from bytes, are 8 digits for the radix.
 /// See `is_4digits` for the algorithm description.
-#[inline]
+#[inline(always)]
 pub fn is_8digits<const FORMAT: u128>(v: u64) -> bool {
     let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX;
     debug_assert!(radix <= 10);
@@ -249,7 +249,7 @@ pub fn is_8digits<const FORMAT: u128>(v: u64) -> bool {
 /// Parse 8 bytes read from bytes into 8 digits.
 /// Credit for this goes to @aqrit, which further optimizes the
 /// optimization described by Johnny Lee above.
-#[inline]
+#[inline(always)]
 pub fn parse_8digits<const FORMAT: u128>(mut v: u64) -> u64 {
     let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX as u64;
     debug_assert!(radix <= 10);
@@ -276,7 +276,7 @@ pub fn parse_8digits<const FORMAT: u128>(mut v: u64) -> u64 {
 
 /// Use a fast-path optimization, where we attempt to parse 8 digits at a time.
 /// This reduces the number of multiplications necessary to 3, instead of 8.
-#[inline]
+#[inline(always)]
 pub fn try_parse_8digits<'a, T, Iter, const FORMAT: u128>(iter: &mut Iter) -> Option<T>
 where
     T: Integer,
