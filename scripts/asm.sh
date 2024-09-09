@@ -4,7 +4,7 @@
 set -e
 
 # Change to our project home.
-script_dir=`dirname "${BASH_SOURCE[0]}"`
+script_dir=$(dirname "${BASH_SOURCE[0]}")
 cd "$script_dir"/../lexical-asm
 
 export RUSTFLAGS="--emit asm -C llvm-args=-x86-asm-syntax=intel"

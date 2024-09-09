@@ -121,14 +121,14 @@ fn test_try_parse_8digits() {
 #[cfg(feature = "power-of-two")]
 macro_rules! parse_radix {
     ($i:literal) => {
-        |bytes: &[u8]| algorithm::algorithm_partial::<u32, u32, { from_radix($i) }>(bytes)
+        |bytes: &[u8]| algorithm::algorithm_partial::<u32, { from_radix($i) }>(bytes)
     };
 }
 
 #[test]
 fn algorithm_test() {
-    let parse_u32 = |bytes: &[u8]| algorithm::algorithm_partial::<u32, u32, STANDARD>(bytes);
-    let parse_i32 = |bytes: &[u8]| algorithm::algorithm_partial::<i32, u32, STANDARD>(bytes);
+    let parse_u32 = |bytes: &[u8]| algorithm::algorithm_partial::<u32, STANDARD>(bytes);
+    let parse_i32 = |bytes: &[u8]| algorithm::algorithm_partial::<i32, STANDARD>(bytes);
 
     assert_eq!(parse_u32(b"12345"), Ok((12345, 5)));
     assert_eq!(parse_u32(b"+12345"), Ok((12345, 6)));
@@ -160,8 +160,8 @@ fn algorithm_test() {
 
 #[test]
 fn algorithm_128_test() {
-    let parse_u128 = |bytes: &[u8]| algorithm::algorithm_partial::<u128, u128, STANDARD>(bytes);
-    let parse_i128 = |bytes: &[u8]| algorithm::algorithm_partial::<i128, u128, STANDARD>(bytes);
+    let parse_u128 = |bytes: &[u8]| algorithm::algorithm_partial::<u128, STANDARD>(bytes);
+    let parse_i128 = |bytes: &[u8]| algorithm::algorithm_partial::<i128, STANDARD>(bytes);
 
     assert_eq!(parse_u128(b"12345"), Ok((12345, 5)));
     assert_eq!(parse_u128(b"+12345"), Ok((12345, 6)));
