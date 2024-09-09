@@ -177,7 +177,7 @@ where
     }
 
     let count = unsafe {
-        binary::write_float_scientific::<_, FORMAT>(mantissa, exp, sci_exp, &mut buffer, options)
+        binary::write_float_scientific::<_, FORMAT>(&mut buffer, mantissa, exp, sci_exp, options)
     };
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);
@@ -465,10 +465,10 @@ fn write_float_negative_exponent<T: Float, const FORMAT: u128>(
 
     let count = unsafe {
         binary::write_float_negative_exponent::<_, FORMAT>(
+            &mut buffer,
             mantissa,
             exp,
             sci_exp,
-            &mut buffer,
             options,
         )
     };
@@ -708,10 +708,10 @@ fn write_float_positive_exponent<T: Float, const FORMAT: u128>(
 
     let count = unsafe {
         binary::write_float_positive_exponent::<_, FORMAT>(
+            &mut buffer,
             mantissa,
             exp,
             sci_exp,
-            &mut buffer,
             options,
         )
     };

@@ -1,0 +1,304 @@
+diff --git a/lexical-write-float/src/algorithm.rs b/lexical-write-float/src/algorithm.rs
+index a16dcdb..de7ec62 100644
+--- a/lexical-write-float/src/algorithm.rs
++++ b/lexical-write-float/src/algorithm.rs
+@@ -64,6 +64,7 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
+     // in most cases.
+ 
+     write_float!(
++        float,
+         FORMAT,
+         sci_exp,
+         options,
+@@ -71,7 +72,8 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
+         write_float_positive_exponent,
+         write_float_negative_exponent,
+         generic => F,
+-        args => bytes, fp, sci_exp, options,
++        bytes => bytes,
++        args => fp, sci_exp, options,
+     )
+ }
+ 
+@@ -153,7 +155,7 @@ pub unsafe fn write_float_negative_exponent<F: DragonboxFloat, const FORMAT: u12
+     sci_exp: i32,
+     options: &Options,
+ ) -> usize {
+-    debug_assert!(sci_exp < 0);
++    debug_assert!(sci_exp < 0 || fp.mant == 0);
+     debug_assert_eq!(count_factors(10, fp.mant), 0);
+ 
+     // Config options.
+diff --git a/lexical-write-float/src/binary.rs b/lexical-write-float/src/binary.rs
+index de8ab8e..13dbc97 100644
+--- a/lexical-write-float/src/binary.rs
++++ b/lexical-write-float/src/binary.rs
+@@ -85,6 +85,7 @@ where
+     }
+ 
+     write_float!(
++        float,
+         FORMAT,
+         sci_exp,
+         options,
+@@ -92,7 +93,8 @@ where
+         write_float_positive_exponent,
+         write_float_negative_exponent,
+         generic => _,
+-        args => mantissa, exp, sci_exp, bytes, options,
++        bytes => bytes,
++        args => mantissa, exp, sci_exp, options,
+     )
+ }
+ 
+@@ -110,10 +112,10 @@ where
+ /// and `mantissa_radix` in `FORMAT` must be identical.
+ #[inline(always)]
+ pub unsafe fn write_float_scientific<M, const FORMAT: u128>(
++    bytes: &mut [u8],
+     mantissa: M,
+     exp: i32,
+     sci_exp: i32,
+-    bytes: &mut [u8],
+     options: &Options,
+ ) -> usize
+ where
+@@ -191,10 +193,10 @@ where
+ /// significant digits and the leading zeros.
+ #[inline(always)]
+ pub unsafe fn write_float_negative_exponent<M, const FORMAT: u128>(
++    bytes: &mut [u8],
+     mantissa: M,
+     exp: i32,
+     sci_exp: i32,
+-    bytes: &mut [u8],
+     options: &Options,
+ ) -> usize
+ where
+@@ -275,10 +277,10 @@ where
+ /// significant digits and the (optional) trailing zeros.
+ #[inline(always)]
+ pub unsafe fn write_float_positive_exponent<M, const FORMAT: u128>(
++    bytes: &mut [u8],
+     mantissa: M,
+     exp: i32,
+     sci_exp: i32,
+-    bytes: &mut [u8],
+     options: &Options,
+ ) -> usize
+ where
+diff --git a/lexical-write-float/src/compact.rs b/lexical-write-float/src/compact.rs
+index 19960b7..b3e99d1 100644
+--- a/lexical-write-float/src/compact.rs
++++ b/lexical-write-float/src/compact.rs
+@@ -83,13 +83,15 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
+ 
+     let sci_exp = kappa + digit_count as i32 - 1 + carried as i32;
+     write_float!(
++        float,
+         FORMAT,
+         sci_exp,
+         options,
+         write_float_scientific,
+         write_float_positive_exponent,
+         write_float_negative_exponent,
+-        args => bytes, &mut digits, digit_count, sci_exp, options,
++        bytes => bytes,
++        args => &mut digits, digit_count, sci_exp, options,
+     )
+ }
+ 
+diff --git a/lexical-write-float/src/hex.rs b/lexical-write-float/src/hex.rs
+index a3d7c71..5124525 100644
+--- a/lexical-write-float/src/hex.rs
++++ b/lexical-write-float/src/hex.rs
+@@ -107,6 +107,7 @@ where
+     }
+ 
+     write_float!(
++        float,
+         FORMAT,
+         sci_exp,
+         options,
+@@ -114,7 +115,8 @@ where
+         write_float_positive_exponent,
+         write_float_negative_exponent,
+         generic => _,
+-        args => mantissa, exp, sci_exp, bytes, options,
++        bytes => bytes,
++        args => mantissa, exp, sci_exp, options,
+     )
+ }
+ 
+@@ -131,10 +133,10 @@ where
+ /// based on the number of maximum digits.
+ #[inline(always)]
+ pub unsafe fn write_float_scientific<M, const FORMAT: u128>(
++    bytes: &mut [u8],
+     mantissa: M,
+     exp: i32,
+     sci_exp: i32,
+-    bytes: &mut [u8],
+     options: &Options,
+ ) -> usize
+ where
+diff --git a/lexical-write-float/src/radix.rs b/lexical-write-float/src/radix.rs
+index dda56ab..dc9cc7d 100644
+--- a/lexical-write-float/src/radix.rs
++++ b/lexical-write-float/src/radix.rs
+@@ -178,13 +178,15 @@ where
+     let zero_count = ltrim_char_count(digits, b'0');
+     let sci_exp: i32 = initial_cursor as i32 - integer_cursor as i32 - zero_count as i32 - 1;
+     write_float!(
++        float,
+         FORMAT,
+         sci_exp,
+         options,
+         write_float_scientific,
+         write_float_nonscientific,
+         write_float_nonscientific,
+-        args => sci_exp, &mut buffer, bytes, initial_cursor,
++        bytes => bytes,
++        args => sci_exp, &mut buffer, initial_cursor,
+                 integer_cursor, fraction_cursor, options,
+     )
+ }
+@@ -203,9 +205,9 @@ where
+ /// and `mantissa_radix` in `FORMAT` must be identical.
+ #[inline(always)]
+ pub unsafe fn write_float_scientific<const FORMAT: u128>(
++    bytes: &mut [u8],
+     sci_exp: i32,
+     buffer: &mut [u8],
+-    bytes: &mut [u8],
+     initial_cursor: usize,
+     integer_cursor: usize,
+     fraction_cursor: usize,
+@@ -294,9 +296,9 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
+ /// significant digits and the leading zeros.
+ #[inline(always)]
+ pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
++    bytes: &mut [u8],
+     _: i32,
+     buffer: &mut [u8],
+-    bytes: &mut [u8],
+     initial_cursor: usize,
+     integer_cursor: usize,
+     fraction_cursor: usize,
+diff --git a/lexical-write-float/src/shared.rs b/lexical-write-float/src/shared.rs
+index f6b838a..c4d4369 100644
+--- a/lexical-write-float/src/shared.rs
++++ b/lexical-write-float/src/shared.rs
+@@ -171,6 +171,7 @@ pub unsafe fn write_exponent<const FORMAT: u128>(
+ /// Detect the notation to use for the float formatter and call the appropriate function..
+ macro_rules! write_float {
+     (
++        $float:ident,
+         $format:ident,
+         $sci_exp:ident,
+         $options:ident,
+@@ -178,6 +179,7 @@ macro_rules! write_float {
+         $write_positive:ident,
+         $write_negative:ident,
+         $(generic => $generic:tt,)?
++        bytes => $bytes:ident,
+         args => $($args:expr,)*
+     ) => {{
+         use lexical_util::format::NumberFormat;
+@@ -191,15 +193,22 @@ macro_rules! write_float {
+         if !format.no_exponent_notation() && require_exponent {
+             // Write digits in scientific notation.
+             // SAFETY: safe as long as bytes is large enough to hold all the digits.
+-            unsafe { $write_scientific::<$($generic,)? FORMAT>($($args,)*) }
+-        } else if $sci_exp >= 0 {
+-            // Write positive exponent without scientific notation.
++            unsafe { $write_scientific::<$($generic,)? FORMAT>($bytes, $($args,)*) }
++        } else if $sci_exp < 0 {
++            // Write negative exponent without scientific notation.
+             // SAFETY: safe as long as bytes is large enough to hold all the digits.
+-            unsafe { $write_positive::<$($generic,)? FORMAT>($($args,)*) }
++            unsafe { $write_negative::<$($generic,)? FORMAT>($bytes, $($args,)*) }
++        } else if $float.is_sign_negative() {
++            // handle this as a positive, just write a leading '-' and then add 1 to our count
++            // # Safety: This is always safe since our buffer is much larger than 1 byte.
++            unsafe { index_unchecked_mut!($bytes[0]) = b'-'; }
++            // # Safety: This is always safe since our buffer is much larger than 1 byte.
++            let bytes = unsafe { &mut index_unchecked_mut!($bytes[1..]) };
++            unsafe { $write_positive::<$($generic,)? FORMAT>(bytes, $($args,)*) + 1 }
+         } else {
+-            // Write negative exponent without scientific notation.
++            // Write positive exponent without scientific notation.
+             // SAFETY: safe as long as bytes is large enough to hold all the digits.
+-            unsafe { $write_negative::<$($generic,)? FORMAT>($($args,)*) }
++            unsafe { $write_positive::<$($generic,)? FORMAT>($bytes, $($args,)*) }
+         }
+     }};
+ }
+diff --git a/lexical-write-float/tests/binary_tests.rs b/lexical-write-float/tests/binary_tests.rs
+index ac27db9..e488182 100644
+--- a/lexical-write-float/tests/binary_tests.rs
++++ b/lexical-write-float/tests/binary_tests.rs
+@@ -177,7 +177,7 @@ where
+     }
+ 
+     let count = unsafe {
+-        binary::write_float_scientific::<_, FORMAT>(mantissa, exp, sci_exp, &mut buffer, options)
++        binary::write_float_scientific::<_, FORMAT>(&mut buffer, mantissa, exp, sci_exp, options)
+     };
+     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+     assert_eq!(actual, expected);
+@@ -465,10 +465,10 @@ fn write_float_negative_exponent<T: Float, const FORMAT: u128>(
+ 
+     let count = unsafe {
+         binary::write_float_negative_exponent::<_, FORMAT>(
++            &mut buffer,
+             mantissa,
+             exp,
+             sci_exp,
+-            &mut buffer,
+             options,
+         )
+     };
+@@ -708,10 +708,10 @@ fn write_float_positive_exponent<T: Float, const FORMAT: u128>(
+ 
+     let count = unsafe {
+         binary::write_float_positive_exponent::<_, FORMAT>(
++            &mut buffer,
+             mantissa,
+             exp,
+             sci_exp,
+-            &mut buffer,
+             options,
+         )
+     };
+diff --git a/lexical-write-float/tests/hex_tests.rs b/lexical-write-float/tests/hex_tests.rs
+index ac8ff68..a4827c2 100644
+--- a/lexical-write-float/tests/hex_tests.rs
++++ b/lexical-write-float/tests/hex_tests.rs
+@@ -50,7 +50,7 @@ where
+     }
+ 
+     let count = unsafe {
+-        hex::write_float_scientific::<_, FORMAT>(mantissa, exp, sci_exp, &mut buffer, options)
++        hex::write_float_scientific::<_, FORMAT>(&mut buffer, mantissa, exp, sci_exp, options)
+     };
+     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
+     assert_eq!(actual, expected);
+diff --git a/lexical-write-float/tests/issue_94_tests.rs b/lexical-write-float/tests/issue_94_tests.rs
+new file mode 100644
+index 0000000..13b2dbf
+--- /dev/null
++++ b/lexical-write-float/tests/issue_94_tests.rs
+@@ -0,0 +1,12 @@
++use core::str;
++
++use lexical_util::constants::BUFFER_SIZE;
++use lexical_write_float::ToLexical;
++
++#[test]
++fn issue_94_test() {
++    let mut buffer = [b'\x00'; BUFFER_SIZE];
++    let neg0: f64 = -0.0;
++    let result = neg0.to_lexical(&mut buffer);
++    assert_eq!(str::from_utf8(result), Ok("-0.0"));
++}

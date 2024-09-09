@@ -50,7 +50,7 @@ where
     }
 
     let count = unsafe {
-        hex::write_float_scientific::<_, FORMAT>(mantissa, exp, sci_exp, &mut buffer, options)
+        hex::write_float_scientific::<_, FORMAT>(&mut buffer, mantissa, exp, sci_exp, options)
     };
     let actual = unsafe { std::str::from_utf8_unchecked(&buffer[..count]) };
     assert_eq!(actual, expected);

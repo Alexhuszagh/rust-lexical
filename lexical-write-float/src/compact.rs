@@ -83,13 +83,15 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
 
     let sci_exp = kappa + digit_count as i32 - 1 + carried as i32;
     write_float!(
+        float,
         FORMAT,
         sci_exp,
         options,
         write_float_scientific,
         write_float_positive_exponent,
         write_float_negative_exponent,
-        args => bytes, &mut digits, digit_count, sci_exp, options,
+        bytes => bytes,
+        args => &mut digits, digit_count, sci_exp, options,
     )
 }
 

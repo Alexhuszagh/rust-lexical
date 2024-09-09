@@ -178,13 +178,15 @@ where
     let zero_count = ltrim_char_count(digits, b'0');
     let sci_exp: i32 = initial_cursor as i32 - integer_cursor as i32 - zero_count as i32 - 1;
     write_float!(
+        float,
         FORMAT,
         sci_exp,
         options,
         write_float_scientific,
         write_float_nonscientific,
         write_float_nonscientific,
-        args => sci_exp, &mut buffer, bytes, initial_cursor,
+        bytes => bytes,
+        args => sci_exp, &mut buffer, initial_cursor,
                 integer_cursor, fraction_cursor, options,
     )
 }
@@ -203,9 +205,9 @@ where
 /// and `mantissa_radix` in `FORMAT` must be identical.
 #[inline(always)]
 pub unsafe fn write_float_scientific<const FORMAT: u128>(
+    bytes: &mut [u8],
     sci_exp: i32,
     buffer: &mut [u8],
-    bytes: &mut [u8],
     initial_cursor: usize,
     integer_cursor: usize,
     fraction_cursor: usize,
@@ -294,9 +296,9 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
 /// significant digits and the leading zeros.
 #[inline(always)]
 pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
+    bytes: &mut [u8],
     _: i32,
     buffer: &mut [u8],
-    bytes: &mut [u8],
     initial_cursor: usize,
     integer_cursor: usize,
     fraction_cursor: usize,

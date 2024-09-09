@@ -85,6 +85,7 @@ where
     }
 
     write_float!(
+        float,
         FORMAT,
         sci_exp,
         options,
@@ -92,7 +93,8 @@ where
         write_float_positive_exponent,
         write_float_negative_exponent,
         generic => _,
-        args => mantissa, exp, sci_exp, bytes, options,
+        bytes => bytes,
+        args => mantissa, exp, sci_exp, options,
     )
 }
 
@@ -110,10 +112,10 @@ where
 /// and `mantissa_radix` in `FORMAT` must be identical.
 #[inline(always)]
 pub unsafe fn write_float_scientific<M, const FORMAT: u128>(
+    bytes: &mut [u8],
     mantissa: M,
     exp: i32,
     sci_exp: i32,
-    bytes: &mut [u8],
     options: &Options,
 ) -> usize
 where
@@ -191,10 +193,10 @@ where
 /// significant digits and the leading zeros.
 #[inline(always)]
 pub unsafe fn write_float_negative_exponent<M, const FORMAT: u128>(
+    bytes: &mut [u8],
     mantissa: M,
     exp: i32,
     sci_exp: i32,
-    bytes: &mut [u8],
     options: &Options,
 ) -> usize
 where
@@ -275,10 +277,10 @@ where
 /// significant digits and the (optional) trailing zeros.
 #[inline(always)]
 pub unsafe fn write_float_positive_exponent<M, const FORMAT: u128>(
+    bytes: &mut [u8],
     mantissa: M,
     exp: i32,
     sci_exp: i32,
-    bytes: &mut [u8],
     options: &Options,
 ) -> usize
 where

@@ -64,6 +64,7 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
     // in most cases.
 
     write_float!(
+        float,
         FORMAT,
         sci_exp,
         options,
@@ -71,7 +72,8 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
         write_float_positive_exponent,
         write_float_negative_exponent,
         generic => F,
-        args => bytes, fp, sci_exp, options,
+        bytes => bytes,
+        args => fp, sci_exp, options,
     )
 }
 
