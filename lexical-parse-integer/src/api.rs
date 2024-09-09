@@ -20,7 +20,7 @@ macro_rules! integer_from_lexical {
             #[cfg_attr(not(feature = "compact"), inline)]
             fn from_lexical(bytes: &[u8]) -> lexical_util::result::Result<Self>
             {
-                Self::parse_complete::<$unsigned, STANDARD>(bytes)
+                Self::parse_complete::<STANDARD>(bytes)
             }
 
             $(#[$meta:meta])?
@@ -29,7 +29,7 @@ macro_rules! integer_from_lexical {
                 bytes: &[u8],
             ) -> lexical_util::result::Result<(Self, usize)>
             {
-                Self::parse_partial::<$unsigned, STANDARD>(bytes)
+                Self::parse_partial::<STANDARD>(bytes)
             }
         }
 
@@ -47,7 +47,7 @@ macro_rules! integer_from_lexical {
                 if !format.is_valid() {
                     return Err(format.error());
                 }
-                Self::parse_complete::<$unsigned, FORMAT>(bytes)
+                Self::parse_complete::<FORMAT>(bytes)
             }
 
             $(#[$meta:meta])?
@@ -61,7 +61,7 @@ macro_rules! integer_from_lexical {
                 if !format.is_valid() {
                     return Err(format.error());
                 }
-                Self::parse_partial::<$unsigned, FORMAT>(bytes)
+                Self::parse_partial::<FORMAT>(bytes)
             }
         }
     )*)

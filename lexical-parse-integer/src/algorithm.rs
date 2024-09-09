@@ -11,11 +11,10 @@
 #![cfg(not(feature = "compact"))]
 #![doc(hidden)]
 
-use crate::shared::is_overflow;
 use lexical_util::digit::char_to_digit_const;
 use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{AsBytes, BytesIter};
-use lexical_util::num::{as_cast, Integer, UnsignedInteger};
+use lexical_util::num::{as_cast, Integer};
 use lexical_util::result::Result;
 use lexical_util::step::min_step;
 
@@ -39,7 +38,9 @@ macro_rules! parse_8digits {
         $value:ident,
         $iter:ident,
         $format:ident,
-        $t:ident
+        $t:ident,
+        $overflow:ident,
+        $op:ident
     ) => {{
         let radix: $t = as_cast(NumberFormat::<{ $format }>::MANTISSA_RADIX);
         let radix2: $t = radix.wrapping_mul(radix);
@@ -48,8 +49,13 @@ macro_rules! parse_8digits {
 
         // Try our fast, 8-digit at a time optimizations.
         while let Some(val8) = try_parse_8digits::<$t, _, $format>(&mut $iter) {
-            $value = $value.wrapping_mul(radix8);
-            $value = $value.wrapping_add(val8);
+            let optvalue = $value.checked_mul(radix8).and_then(|x| x.$op(val8));
+            if let Some(unwrapped) = optvalue {
+                $value = unwrapped;
+            } else {
+                $overflow = true;
+                break;
+            }
         }
     }};
 }
@@ -65,7 +71,9 @@ macro_rules! parse_4digits {
         $value:ident,
         $iter:ident,
         $format:ident,
-        $t:ident
+        $t:ident,
+        $overflow:ident,
+        $op:ident
     ) => {{
         let radix: $t = as_cast(NumberFormat::<{ $format }>::MANTISSA_RADIX);
         let radix2: $t = radix.wrapping_mul(radix);
@@ -73,8 +81,13 @@ macro_rules! parse_4digits {
 
         // Try our fast, 4-digit at a time optimizations.
         while let Some(val4) = try_parse_4digits::<$t, _, $format>(&mut $iter) {
-            $value = $value.wrapping_mul(radix4);
-            $value = $value.wrapping_add(val4);
+            let optvalue = $value.checked_mul(radix4).and_then(|x| x.$op(val4));
+            if let Some(unwrapped) = optvalue {
+                $value = unwrapped;
+            } else {
+                $overflow = true;
+                break;
+            }
         }
     }};
 }
@@ -90,8 +103,9 @@ macro_rules! parse_digits {
         $is_negative:ident,
         $start_index:ident,
         $t:ident,
-        $u:ident,
-        $invalid_digit:ident
+        $invalid_digit:ident,
+        $overflow:ident,
+        $op:ident
     ) => {{
         //  WARNING:
         //      Performance is heavily dependent on the amount of branching.
@@ -120,42 +134,37 @@ macro_rules! parse_digits {
         // Optimizations for reading 8-digits at a time.
         // Makes no sense to do 8 digits at a time for 32-bit values,
         // since it can only hold 8 digits for base 10.
-        if <$t>::BITS == 128 && can_try_parse_multidigits!($iter, radix) {
-            parse_8digits!($value, $iter, $format, $u);
-        }
-        if <$t>::BITS == 64 && can_try_parse_multidigits!($iter, radix) && !<$t>::IS_SIGNED {
-            parse_8digits!($value, $iter, $format, $u);
+        // NOTE: These values were determined as optimization
+        if (<$t>::BITS == 128 || <$t>::BITS == 64) && can_try_parse_multidigits!($iter, radix) && $iter.length() >= 8 {
+            parse_8digits!($value, $iter, $format, $t, $overflow, $op);
         }
 
         // Optimizations for reading 4-digits at a time.
         // 36^4 is larger than a 16-bit integer. Likewise, 10^4 is almost
         // the limit of u16, so it's not worth it.
-        if <$t>::BITS == 32 && can_try_parse_multidigits!($iter, radix) && !<$t>::IS_SIGNED {
-            parse_4digits!($value, $iter, $format, $u);
+        if <$t>::BITS == 32 && can_try_parse_multidigits!($iter, radix)  && $iter.length() >= 4 && !$overflow {
+            parse_4digits!($value, $iter, $format, $t, $overflow, $op);
         }
-
-        parse_1digit!($value, $iter, $format, $is_negative, $start_index, $t, $u, $invalid_digit)
+        parse_1digit!($value, $iter, $format, $is_negative, $start_index, $t, $invalid_digit, $overflow, $op);
     }};
 }
 
 /// Algorithm for the complete parser.
 #[inline(always)]
-pub fn algorithm_complete<T, Unsigned, const FORMAT: u128>(bytes: &[u8]) -> Result<T>
+pub fn algorithm_complete<T, const FORMAT: u128>(bytes: &[u8]) -> Result<T>
 where
     T: Integer,
-    Unsigned: UnsignedInteger,
 {
-    algorithm!(bytes, FORMAT, T, Unsigned, parse_digits, invalid_digit_complete, into_ok_complete)
+    algorithm!(bytes, FORMAT, T, parse_digits, invalid_digit_complete, into_ok_complete)
 }
 
 /// Algorithm for the partial parser.
 #[inline(always)]
-pub fn algorithm_partial<T, Unsigned, const FORMAT: u128>(bytes: &[u8]) -> Result<(T, usize)>
+pub fn algorithm_partial<T, const FORMAT: u128>(bytes: &[u8]) -> Result<(T, usize)>
 where
     T: Integer,
-    Unsigned: UnsignedInteger,
 {
-    algorithm!(bytes, FORMAT, T, Unsigned, parse_digits, invalid_digit_partial, into_ok_partial)
+    algorithm!(bytes, FORMAT, T, parse_digits, invalid_digit_partial, into_ok_partial)
 }
 
 // DIGIT OPTIMIZATIONS

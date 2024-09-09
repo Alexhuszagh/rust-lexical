@@ -5,8 +5,8 @@ use lexical_util::format::STANDARD;
 
 #[test]
 fn algorithm_test() {
-    let parse_u32 = |digits: &[u8]| compact::algorithm_partial::<u32, u32, STANDARD>(digits);
-    let parse_i32 = |digits: &[u8]| compact::algorithm_partial::<i32, u32, STANDARD>(digits);
+    let parse_u32 = |digits: &[u8]| compact::algorithm_partial::<u32, STANDARD>(digits);
+    let parse_i32 = |digits: &[u8]| compact::algorithm_partial::<i32, STANDARD>(digits);
 
     assert_eq!(parse_u32(b"12345"), Ok((12345, 5)));
     assert_eq!(parse_u32(b"+12345"), Ok((12345, 6)));

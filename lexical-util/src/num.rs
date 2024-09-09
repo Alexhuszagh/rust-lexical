@@ -383,10 +383,13 @@ pub trait Integer:
     fn leading_zeros(self) -> u32;
     fn trailing_zeros(self) -> u32;
     fn pow(self, exp: u32) -> Self;
+    fn checked_pow(self, exp: u32) -> Option<Self>;
+    fn overflowing_pow(self, exp: u32) -> (Self, bool);
     fn checked_add(self, i: Self) -> Option<Self>;
     fn checked_sub(self, i: Self) -> Option<Self>;
     fn checked_mul(self, i: Self) -> Option<Self>;
     fn overflowing_add(self, i: Self) -> (Self, bool);
+    fn overflowing_sub(self, i: Self) -> (Self, bool);
     fn overflowing_mul(self, i: Self) -> (Self, bool);
     fn wrapping_add(self, i: Self) -> Self;
     fn wrapping_sub(self, i: Self) -> Self;
@@ -485,6 +488,11 @@ macro_rules! integer_impl {
             }
 
             #[inline]
+            fn overflowing_sub(self, i: Self) -> (Self, bool) {
+                $t::overflowing_sub(self, i)
+            }
+
+            #[inline]
             fn overflowing_mul(self, i: Self) -> (Self, bool) {
                 $t::overflowing_mul(self, i)
             }
@@ -515,6 +523,16 @@ macro_rules! integer_impl {
             }
 
             #[inline]
+            fn checked_pow(self, exp: u32) -> Option<Self> {
+                Self::checked_pow(self, exp)
+            }
+
+            #[inline]
+            fn overflowing_pow(self, exp: u32) -> (Self, bool) {
+                Self::overflowing_pow(self, exp)
+            }
+
+            #[inline]
             fn saturating_add(self, i: Self) -> Self {
                 $t::saturating_add(self, i)
             }
@@ -532,7 +550,7 @@ macro_rules! integer_impl {
     )*)
 }
 
-integer_impl! { u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize }
+integer_impl! { u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 usize isize }
 
 // SIGNED INTEGER
 // --------------
