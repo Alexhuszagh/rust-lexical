@@ -53,8 +53,11 @@ literal!(CXX_LITERAL_INFINITY, b"INFINITY");
 literal!(C_LITERAL_NAN, b"NAN");
 literal!(C_LITERAL_INF, b"INFINITY");
 literal!(C_LITERAL_INFINITY, b"INFINITY");
+// RUBY_LITERAL
+literal!(RUBY_LITERAL_NAN, b"NaN");
+literal!(RUBY_LITERAL_INF, b"Infinity");
+literal!(RUBY_STRING_NONE, None);
 // C_STRING
-literal!(RUBY, None);
 literal!(SWIFT_LITERAL, None);
 // SWIFT_STRING
 literal!(GO_LITERAL, None);
