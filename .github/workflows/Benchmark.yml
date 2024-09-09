@@ -1,0 +1,27 @@
+name: Benchmarks
+
+on:
+  [workflow_dispatch]
+
+jobs:
+  build:
+    name: Rust ${{matrix.rust}}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Minimimum dependency requires 1.74.0+
+        rust: [1.74.0, 1.76.0, 1.78.0, 1.80.0, 1.81.0]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{matrix.rust}}
+      - run: cargo check
+      - run: cargo build
+      - run: |
+          cd lexical-benchmark
+          cargo build
+          cargo bench
