@@ -8,38 +8,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+
 - Updated the MSRV to 1.63.0 (1.65.0 for development).
 
 ### Removed
+
 - Support for mips (MIPS), mipsel (MIPS LE), mips64 (MIPS64 BE), and mips64el (MIPS64 LE) on Linux.
 
 ## [0.8.5] 2022-06-06
+
 ### Changed
+
 - Fixed the partial integer parser to correctly return negative values if parsing partial input.
 
 ## [0.8.5] 2022-05-18
+
 ### Changed
+
 - Fixed numeric overflow bug causing panic (should explicitly wrap) in dragonbox algorithm's `umul192_lower128`.
 
 ## [0.8.4] 2022-03-15
+
 - Updated the dragonbox algorithm to implement the new changes to decrease code size.
 
 ## [0.8.3] 2022-03-10
+
 ### Added
+
 - Added support for `-Zmiri-tag-raw-pointers` in miri correctness checks.
 - Added the documented functions `format_error` and `format_is_valid` to determine if a format packed struct is valid, since the previous checks relied on undocumented behavior.
 - Added `from_radix` to `ParseFloatOptions` and `WriteFloatOptions`, to simplify creating the default options with a different radix.
 
 ### Changed
+
 - Fixed `no_std` in `lexical-parse-float` when default features are disabled.
 - Fixed issue in parsing integers and floats with the `power-of-two` feature enabled for radixes 16 and 32.
 
 ## [0.8.2] 2021-10-04
+
 ### Changed
+
 - Reproduce all dependent licenses in lexical, and document extensively what features are dependent on what licensing terms.
 
 ## [0.8.1] 2021-09-03
+
 ### Changed
+
 - Fixed a bug in feature `format` where `skip::Bytes::count` was not being incremented in `step_by_unchecked`.
 
 ## [0.8.0] 2021-09-03
@@ -47,11 +61,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 This is a very large release that involved a full re-write from the ground-up.
 
 ### Added
+
 - Added the Options API
-    - ParseFloatOptions
-    - ParseIntegerOptions
-    - WriteFloatOptions
-    - WriteIntegerOptions
+  - ParseFloatOptions
+  - ParseIntegerOptions
+  - WriteFloatOptions
+  - WriteIntegerOptions
 - Added `parse_with_options`, `parse_partial_with_options`
 - Added `write_with_options`.
 - Added a faster float writer and parser for power of 2 radixes.
@@ -61,6 +76,7 @@ This is a very large release that involved a full re-write from the ground-up.
 - Added extensive documentation on benchmarks, algorithms used, and internal implementation details.
 
 ### Changed
+
 - Made the Eisel-Lemire algorithm the default float-parser, leading to substantial improvements in performance.
 - Made Dragonbox the default float writer.
 - Removed pre-computed float tables of powers-of-two, and recreated stable powers of 2 through bit manipulations.
@@ -77,6 +93,7 @@ This is a very large release that involved a full re-write from the ground-up.
 - Simplified the big-integer arithmetic, improving performance and simplifying maintenance for float parsing algorithms.
 
 ### Removed
+
 - Remove the `write_format`, `write_radix`, and similar functions.
 - Remove the `parse_format`, `parse_radix`, and similar functions.
 - Removed the `dtoa` feature.
@@ -84,7 +101,9 @@ This is a very large release that involved a full re-write from the ground-up.
 - Removed the lexical-capi. Existing, high-performance C/C++ libraries exist, so it's no longer practical.
 
 ## [0.7.6] 2021-04-21
+
 ### Changed
+
 - Updated cfg_if version.
 - Downgraded rand to fix proptests.
 - Fixed a bug on newer Rustc versions where `slice::sort` is not present in `no_std`.
@@ -92,11 +111,15 @@ This is a very large release that involved a full re-write from the ground-up.
 - Patched an implementation of insert_many due to a security advisory which does not affect lexical.
 
 ## [0.7.5] 2021-02-21
+
 ### Changed
+
 - Fixed issue with `integer::BITS` conflicting with new compilers.
 
 ## [0.7.4] 2020-01-27
+
 ### Changed
+
 - Changed NumberFormat to use 64-bit flags.
 - Added `NO_INTEGER_LEADING_ZEROS` and `NO_FLOAT_LEADING_ZEROS` NumberFormat flags.
 - Added `InvalidLeadingZeros` to ErrorCode enum.
@@ -104,15 +127,21 @@ This is a very large release that involved a full re-write from the ground-up.
 - Added new leading zero checks to all pre-defined NumberFormat constants.
 
 ## [0.7.3] 2020-01-26
+
 ### Changed
+
 - Updated the format bitflags to make matches more efficient, allowing jumptables to be used for most situations.
 
 ## [0.7.2] 2020-01-25
+
 ### Changed
+
 - Fixed a regression in parsing special values.
 
 ## [0.7.1] 2020-01-23
+
 ### Added
+
 - Added `format` feature to control parsing integers and floats from number specifications.
 - Added the `NumberFormat` bitflags to control Number format specifications. These flags control how a number is parsed, including enabling the use of digit separators, requiring integer or fraction digits, and more.
 - Added pre-defined constants for `NumberFormat` (`RUST_STRING`, `PYTHON_LITERAL`) to avoid compiling formats when not needed.
@@ -122,29 +151,40 @@ This is a very large release that involved a full re-write from the ground-up.
 - Added more values to `ErrorCode` to signify more parse failures.
 
 ### Changed
+
 - Changed `ErrorCode::MissingFraction` to be `ErrorCode::MissingMantissa`, to differentiate between missing integers, missing fractions, and missing significant digits (mantissa).
 - Remove `RawFloatState` and `FloatState` and replaced it logically with `FastDataInterface` and `SlowDataInterface`, allowing format-defined parsing.
 
 ## [0.7.0] - 2020-01-07
+
 ### Changed
+
 - Updated `arrayvec` and `static-assertions` versions.
 - Removed support for Rustc versions below 1.37.0.
 
 ## [0.6.3] - 2019-10-08
+
 ### Changed
+
 - Forced version `0.1.9` for cfg-if to support older Rustc versions.
 - Documented dependency versioning and upgrade procedure.
 
 ## [0.6.2] - 2019-09-22
+
 ### Changed
+
 - Fixed a bug causing compilation issues on MSVC.
 
 ## [0.6.1] - 2019-09-16
+
 ### Changed
+
 - Removed panic handler, allowing use in `no_std` environments.
 
 ## [0.6.0] - 2019-09-08
+
 ### Added
+
 - Added `get/set_exponent_default_char`, `get/set_exponent_backup_char`, and `get/set_float_rounding`, to allow validation logic for config variables.
 - Added the `write*` functions, which replace the `*toa` methods.
 - Added `parse*` functions, which replace the `ato*` methods.
@@ -152,18 +192,22 @@ This is a very large release that involved a full re-write from the ground-up.
 - Substituted rust-stackvector with arrayvec, which has better support.
 
 ### Removed
+
 - Removed `EXPONENT_DEFAULT_CHAR`, `EXPONENT_BACKUP_CHAR`, and `FLOAT_ROUNDING`.
 - Removed all expanded API signatures for `ato*` to `*toa`, since these were for compatibility with the C-API and were therefore redundant.
 - Removed the FFI submodule, and moved all functionality to the `lexical-capi` crate.
 
 ## [0.5.0] - 2019-08-20
+
 ### Added
+
 - Added ffi::Result, an FFI-compatible tagged union, to store results for FFI-compatible functions.
 - Added `MAX_*_SIZE_BASE10` constants, to determine the maximum size in bytes a formatted type will take in base 10.
 - Added `ato*_partial` functions, which parse until an invalid digit is found, returning the value and number of processed digits.
 - Added unittests for itoa designed to test uniform, sequential, and heterogeneous data, aimed to test both optimal performance and branch prediction misses.
 
 ### Changed
+
 - Improved code generation and reduced binary bloat. There are a few algorithmic differences that make this possible, but the parsers now generally extract the float subcomponents first, then parsed known-good data after for enhanced performance.
 - Updated the benchmarks and benchmark results.
 - Moved lexical::Error to lexical_core::Error. Error is re-exported in lexical.
@@ -178,29 +222,37 @@ This is a very large release that involved a full re-write from the ground-up.
 - Optimized the atoi algorithm for 128-bit integers by using intermediary 64-bit integers, leading to performance boosts of up to 30x.
 
 ### Removed
+
 - Removed the unchecked parsers from the public API. `try_parse*` has been replaced with `parse*`.
 - Removed ErrorCode::Success, since with the new result types it was redundant.
 
 ## [0.4.3] - 2019-06-26
+
 - Fixed a bug (issue #20) leading to incorrect float parsing (1 ULP error) for slow-path algorithms containing floats with a trailing 0-digit in the fraction component (discovery by @dangrabcad). Added in comprehensive unittests to avoid future regressions.
 - Fixed CI for older Rustc versions due to issues with the `edition` keyword.
 - Updated dependencies (credit to @junhoo).
 - Updated the benchmarks for float and integer formatting to use `Write::write_fmt` rather than `to_string` to avoid heap allocation leading to misleading results (credit to @RazrFalcon).
 
 ## [0.4.2] - 2019-06-24
+
 ### Added
+
 - Comprehensive continuous integration unittests for numerous platforms, based off the [trust](https://github.com/japaric/trust) templates.
 - Added known issue for a non-default, lossy setting on armv6 architectures.
 
 ### Changed
+
 - Bug fix for 32-bit targets.
 
 ## [0.4.1] - 2019-06-20
+
 ### Added
+
 - Backwards compatible support for Rustc 1.24.0.
 - Added `parse_partial*` parsers, which parse until an invalid digit is found, returning the value and number of processed digits.
 
 ### Changed
+
 - Worked around a bug in the internal float formatter where `&arr[idx]` creates a local copy in Rust versions before 1.28.0, creating a dangling reference after the scope ends. For more details, see `cached_grisu_power` in `/lexical-core/src/ftoa/grisu2.rs` .
 - Changed public trait names for `FromBytes`, `FromBytesLossy`, and `ToBytes` to `FromLexical`, `FromLexicalLossy`, and `ToLexical`.
 - Changed method names for trait `ToLexical` from `to_bytes` and `to_bytes_radix` to `to_lexical` and `to_lexical_radix` to avoid conflict with unstable feature [int_to_from_bytes](https://doc.rust-lang.org/1.27.2/unstable-book/library-features/int-to-from-bytes.html#int_to_from_bytes).

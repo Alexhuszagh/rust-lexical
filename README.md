@@ -32,7 +32,7 @@ Add lexical to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lexical = "^6.0"
+lexical-core = "^1.0"
 ```
 
 And get started using lexical:
@@ -94,7 +94,7 @@ let (x, count): (i32, usize) = lexical_core::parse_partial(b"123 456")?;
 
 ```toml
 [dependencies.lexical-core]
-version = "0.8.5"
+version = "1.0.0"
 default-features = false
 # Can select only desired parsing/writing features.
 features = ["write-integers", "write-floats", "parse-integers", "parse-floats"]
@@ -331,7 +331,7 @@ lexical-core should also work on a wide variety of other architectures and ISAs.
 **Version Support**
 
 The currently supported versions are:
-- v0.9.x
+- v1.0.x
 - v0.8.x
 - v0.7.x (Maintenance)
 - v0.6.x (Maintenance)
