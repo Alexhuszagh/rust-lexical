@@ -20,7 +20,13 @@ pub use crate::skip::{AsBytes, Bytes};
 /// A default implementation is provided for slice iterators.
 /// This trait **should never** return `null` from `as_ptr`, or be
 /// implemented for non-contiguous data.
-pub trait BytesIter<'a>: Iterator<Item = &'a u8> {
+///
+/// # Safety
+/// The safe methods are sound as long as the caller ensures that
+/// the methods for `read_32`, `read_64`, etc. check the bounds
+/// of the underlying contiguous buffer and is only called on
+/// contiguous buffers.
+pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> {
     /// Determine if each yielded value is adjacent in memory.
     const IS_CONTIGUOUS: bool;
 
