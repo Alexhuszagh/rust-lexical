@@ -47,6 +47,7 @@ use crate::assert::debug_assert_radix;
 use crate::mul::mulhi;
 
 /// Calculate a div/remainder algorithm optimized for power-of-two radixes.
+///
 /// This is trivial: the number of digits we process is `64 / log2(radix)`.
 /// Therefore, the `shr` is `log2(radix) * digits`, and the mask is just the
 /// lower `shr` bits of the digits.

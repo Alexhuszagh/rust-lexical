@@ -15,6 +15,7 @@ pub fn black_box(mut dummy: f64) -> f64 {
 
 // Optimized black box using the nicer assembly syntax.
 #[cfg(not(feature = "asm"))]
+#[allow(forgetting_copy_types)]
 pub fn black_box(dummy: f64) -> f64 {
     unsafe {
         let x = core::ptr::read_volatile(&dummy);

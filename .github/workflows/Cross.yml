@@ -3,6 +3,8 @@ name: Cross
 on:
   [pull_request, workflow_dispatch]
 
+# NOTE: Use older toolchains since there's bugs cross-compiling
+# for some more recent architectures.
 jobs:
   cross:
     name: Rust ${{matrix.target}}
@@ -24,41 +26,35 @@ jobs:
           - armv7-unknown-linux-gnueabihf
           - i686-unknown-linux-gnu
           - i686-unknown-linux-musl
-          - mips-unknown-linux-gnu
-          - mips64-unknown-linux-gnuabi64
-          - mips64el-unknown-linux-gnuabi64
-          - mipsel-unknown-linux-gnu
           # NOTE: This fails on cross v0.2.1, which is unusual since
           # manually invoking the failing tests with qemu-5.1.0 passes.
           #- powerpc64le-unknown-linux-gnu
-          - x86_64-unknown-linux-gnu
+          # NOTE: This has glibc linker issues. Restore later.
+          #- x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
 
           # Windows
           - x86_64-pc-windows-gnu
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           target: ${{matrix.target}}
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: check
-          args: --target ${{matrix.target}}
-      - uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: test
-          args: --target ${{matrix.target}}
-      - uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: test
-          args: --target ${{matrix.target}} --features=radix,format,compact
+      - name: Install Cross
+        run: |
+          cargo install cross@0.2.5
+          rustup toolchain add 1.65.0
+      - name: Run Check
+        run: |
+          cross +1.65.0 check --target ${{matrix.target}}
+      - name: Run Simple Test
+        run: |
+          cross +1.65.0 test --target ${{matrix.target}}
+      - name: Run Feature Test
+        run: |
+          cross +1.65.0 test --target ${{matrix.target}}  --features=radix,format,compact
 
   notest:
     name: Rust ${{matrix.target}}
@@ -76,15 +72,24 @@ jobs:
           - x86_64-unknown-freebsd
           - x86_64-unknown-netbsd
 
+          # MIPS
+          # These targets have been removed from Tier 2
+          # support, so we're using an older compiler and
+          # just checking they can be checked.
+          - mips-unknown-linux-gnu
+          - mips64-unknown-linux-gnuabi64
+          - mips64el-unknown-linux-gnuabi64
+          - mipsel-unknown-linux-gnu
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          target: ${{matrix.target}}
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: check
-          args: --target ${{matrix.target}}
+      - name: Install Cross
+        run: |
+          cargo install cross@0.2.5
+          rustup toolchain add 1.65.0
+          rustup toolchain install 1.65.0 --target ${{matrix.target}} --profile minimal --no-self-update
+      - name: Run check
+        run: |
+          cross +1.65.0 check --target ${{matrix.target}}

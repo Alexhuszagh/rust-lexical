@@ -16,6 +16,7 @@ use quickcheck::quickcheck;
 use util::from_radix;
 
 trait Roundtrip: ToLexical + ToLexicalWithOptions + FromStr {
+    #[allow(dead_code)]
     fn from_str_radix(src: &str, radix: u32) -> Result<Self, std::num::ParseIntError>;
 }
 
@@ -1251,157 +1252,157 @@ quickcheck! {
 proptest! {
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn u8_proptest(i in u8::min_value()..u8::max_value()) {
+    fn u8_proptest(i in u8::MIN..u8::MAX) {
         prop_assert_eq!(i, roundtrip(i));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i8_proptest(i in i8::min_value()..i8::max_value()) {
+    fn i8_proptest(i in i8::MIN..i8::MAX) {
         prop_assert_eq!(i, roundtrip(i));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn u16_proptest(i in u16::min_value()..u16::max_value()) {
+    fn u16_proptest(i in u16::MIN..u16::MAX) {
         prop_assert_eq!(i, roundtrip(i));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i16_proptest(i in i16::min_value()..i16::max_value()) {
+    fn i16_proptest(i in i16::MIN..i16::MAX) {
         prop_assert_eq!(i, roundtrip(i));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn u32_proptest(i in u32::min_value()..u32::max_value()) {
+    fn u32_proptest(i in u32::MIN..u32::MAX) {
         prop_assert_eq!(i, roundtrip(i));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i32_proptest(i in i32::min_value()..i32::max_value()) {
+    fn i32_proptest(i in i32::MIN..i32::MAX) {
         prop_assert_eq!(i, roundtrip(i));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn u64_proptest(i in u64::min_value()..u64::max_value()) {
+    fn u64_proptest(i in u64::MIN..u64::MAX) {
         prop_assert_eq!(i, roundtrip(i));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i64_proptest(i in i64::min_value()..i64::max_value()) {
+    fn i64_proptest(i in i64::MIN..i64::MAX) {
         prop_assert_eq!(i, roundtrip(i));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn u128_proptest(i in u128::min_value()..u128::max_value()) {
+    fn u128_proptest(i in u128::MIN..u128::MAX) {
         prop_assert_eq!(i, roundtrip(i));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn i128_proptest(i in i128::min_value()..i128::max_value()) {
+    fn i128_proptest(i in i128::MIN..i128::MAX) {
         prop_assert_eq!(i, roundtrip(i));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn usize_proptest(i in usize::min_value()..usize::max_value()) {
+    fn usize_proptest(i in usize::MIN..usize::MAX) {
         prop_assert_eq!(i, roundtrip(i));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    fn isize_proptest(i in isize::min_value()..isize::max_value()) {
+    fn isize_proptest(i in isize::MIN..isize::MAX) {
         prop_assert_eq!(i, roundtrip(i));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
-    fn u8_proptest_radix(i in u8::min_value()..u8::max_value(), radix in 2u32..=36) {
+    fn u8_proptest_radix(i in u8::MIN..u8::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
-    fn i8_proptest_radix(i in i8::min_value()..i8::max_value(), radix in 2u32..=36) {
+    fn i8_proptest_radix(i in i8::MIN..i8::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
-    fn u16_proptest_radix(i in u16::min_value()..u16::max_value(), radix in 2u32..=36) {
+    fn u16_proptest_radix(i in u16::MIN..u16::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
-    fn i16_proptest_radix(i in i16::min_value()..i16::max_value(), radix in 2u32..=36) {
+    fn i16_proptest_radix(i in i16::MIN..i16::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
-    fn u32_proptest_radix(i in u32::min_value()..u32::max_value(), radix in 2u32..=36) {
+    fn u32_proptest_radix(i in u32::MIN..u32::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
-    fn i32_proptest_radix(i in i32::min_value()..i32::max_value(), radix in 2u32..=36) {
+    fn i32_proptest_radix(i in i32::MIN..i32::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
-    fn u64_proptest_radix(i in u64::min_value()..u64::max_value(), radix in 2u32..=36) {
+    fn u64_proptest_radix(i in u64::MIN..u64::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
-    fn i64_proptest_radix(i in i64::min_value()..i64::max_value(), radix in 2u32..=36) {
+    fn i64_proptest_radix(i in i64::MIN..i64::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
-    fn u128_proptest_radix(i in u128::min_value()..u128::max_value(), radix in 2u32..=36) {
+    fn u128_proptest_radix(i in u128::MIN..u128::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
-    fn i128_proptest_radix(i in i128::min_value()..i128::max_value(), radix in 2u32..=36) {
+    fn i128_proptest_radix(i in i128::MIN..i128::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
-    fn usize_proptest_radix(i in usize::min_value()..usize::max_value(), radix in 2u32..=36) {
+    fn usize_proptest_radix(i in usize::MIN..usize::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]
-    fn isize_proptest_radix(i in isize::min_value()..isize::max_value(), radix in 2u32..=36) {
+    fn isize_proptest_radix(i in isize::MIN..isize::MAX, radix in 2u32..=36) {
         prop_assert_eq!(i, roundtrip_radix(i, radix));
     }
 }

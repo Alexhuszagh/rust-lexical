@@ -21,7 +21,7 @@ fn digits_iterator_test() {
     assert_eq!(iter.as_ptr(), digits.as_ptr());
     assert_eq!(iter.is_consumed(), false);
     assert_eq!(iter.is_done(), false);
-    assert_eq!(u32::from_le(iter.read::<u32>().unwrap()), 0x34333231);
+    assert_eq!(u32::from_le(iter.read_u32().unwrap()), 0x34333231);
     assert_eq!(iter.length(), 5);
     assert_eq!(iter.cursor(), 0);
     assert_eq!(iter.current_count(), 0);
@@ -39,7 +39,7 @@ fn digits_iterator_test() {
 
     let mut byte = digits.bytes::<{ STANDARD }>();
     let mut iter = byte.integer_iter();
-    assert_eq!(iter.read::<u64>(), None);
+    assert_eq!(iter.read_u64(), None);
     assert_eq!(iter.nth(4).unwrap(), &b'5');
     assert_eq!(iter.as_slice(), &digits[digits.len()..]);
     assert_eq!(iter.as_ptr(), digits[digits.len()..].as_ptr());

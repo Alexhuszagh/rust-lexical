@@ -34,7 +34,7 @@
 //!
 //! # Version Support
 //!
-//! The minimum, standard, required version is 1.51.0, for const generic
+//! The minimum, standard, required version is 1.63.0, for const generic
 //! support. Older versions of lexical support older Rust versions.
 //!
 //! # Design

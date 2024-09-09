@@ -16,9 +16,11 @@ WIDTHS = [8, 16, 32, 64, 128]
 UNSIGNED_MAX = [2**i for i in WIDTHS]
 SIGNED_MAX = [2**(i - 1) for i in WIDTHS]
 
+
 def is_pow2(radix):
     '''Determine if the value is an exact power-of-two.'''
     return radix == 2**int(math.log2(radix))
+
 
 def find_power(max_value, radix):
     '''Find the power of the divisor.'''
@@ -34,6 +36,7 @@ def find_power(max_value, radix):
         return (power, power + 1)
     return (power, power)
 
+
 def print_comment():
     '''Print the auto-generated comment'''
 
@@ -47,6 +50,7 @@ def print_comment():
 // recurse. Under normal circumstances, this will never be called.
 ''')
 
+
 def print_power(radix):
     '''Print the minimum and maximum powers.'''
 
@@ -59,7 +63,7 @@ def print_power(radix):
     for index in range(len(WIDTHS)):
         print(f'        {WIDTHS[index]} if is_signed => {signed[index][1]},')
         print(f'        {WIDTHS[index]} if !is_signed => {unsigned[index][1]},')
-    print(f'        _ => 1,')
+    print('        _ => 1,')
     print('    }')
     print('}')
     print('')
@@ -70,10 +74,11 @@ def print_power(radix):
     for index in range(len(WIDTHS)):
         print(f'        {WIDTHS[index]} if is_signed => {signed[index][0]},')
         print(f'        {WIDTHS[index]} if !is_signed => {unsigned[index][0]},')
-    print(f'        _ => 1,')
+    print('        _ => 1,')
     print('    }')
     print('}')
     print('')
+
 
 def main():
     '''Generate all the step sizes for given radixes.'''
@@ -81,6 +86,7 @@ def main():
     print_comment()
     for radix in range(2, 37):
         print_power(radix)
+
 
 if __name__ == '__main__':
     main()

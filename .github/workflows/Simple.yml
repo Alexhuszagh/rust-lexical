@@ -4,18 +4,35 @@ on:
   [push, pull_request, workflow_dispatch]
 
 jobs:
+  build:
+    name: Rust ${{matrix.rust}}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [1.63.0]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{matrix.rust}}
+      - run: cargo check
+      - run: cargo build
+
   test:
     name: Rust ${{matrix.rust}}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        rust: [1.51.0, stable, beta, nightly]
+        rust: [1.65.0, stable, beta, nightly]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{matrix.rust}}
       - run: cargo check
@@ -28,11 +45,10 @@ jobs:
     strategy:
       fail-fast: true
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install latest nightly
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
             toolchain: nightly
-            override: true
             components: rustfmt, clippy
       - run: ci/check.sh

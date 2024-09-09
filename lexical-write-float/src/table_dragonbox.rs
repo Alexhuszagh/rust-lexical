@@ -20,6 +20,7 @@ pub const LARGEST_F64_POW5: i32 = 326;
 pub const N64_POWERS_OF_FIVE: usize = (LARGEST_F64_POW5 - SMALLEST_F64_POW5 + 1) as usize;
 
 /// Pre-computed powers-of-5 for the dragonbox algorithm for f32.
+///
 /// This is very similar to the high bits for `DRAGONBOX64_POWERS_OF_FIVE`,
 /// with rounding obviously for the bits.
 pub const DRAGONBOX32_POWERS_OF_FIVE: [u64; N32_POWERS_OF_FIVE] = [
@@ -104,6 +105,7 @@ pub const DRAGONBOX32_POWERS_OF_FIVE: [u64; N32_POWERS_OF_FIVE] = [
 ];
 
 /// Pre-computed powers-of-5 for the dragonbox algorithm for f64.
+///
 /// This is very similar to the Lemire table, however, a few slight
 /// differences exist: this goes from `5^-292` to `5^326`, a different
 /// range than Lemire which goes from `5^-342 to 5^308`.
