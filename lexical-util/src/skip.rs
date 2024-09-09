@@ -442,7 +442,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// Try to read a the next four bytes as a u32.
     /// This advances the internal state of the iterator.
     #[inline(always)]
-    unsafe fn read_u32(&self) -> Option<u32> {
+    fn read_u32(&self) -> Option<u32> {
         if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u32>() {
             // SAFETY: safe since we've guaranteed the buffer is greater than
             // the number of elements read. u32 is valid for all bit patterns
@@ -454,7 +454,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// Try to read a the next four bytes as a u32.
     /// This advances the internal state of the iterator.
     #[inline(always)]
-    unsafe fn read_u64(&self) -> Option<u64> {
+    fn read_u64(&self) -> Option<u64> {
         if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u64>() {
             // SAFETY: safe since we've guaranteed the buffer is greater than
             // the number of elements read. u64 is valid for all bit patterns
@@ -721,7 +721,7 @@ macro_rules! skip_iterator_byteiter_base {
 /// Create impl ByteIter block for skip iterator.
 macro_rules! skip_iterator_byteiter_impl {
     ($iterator:ident, $mask:ident, $i:ident, $l:ident, $t:ident, $c:ident) => {
-        impl<'a: 'b, 'b, const FORMAT: u128> BytesIter<'a> for $iterator<'a, 'b, FORMAT> {
+        unsafe impl<'a: 'b, 'b, const FORMAT: u128> BytesIter<'a> for $iterator<'a, 'b, FORMAT> {
             skip_iterator_byteiter_base!(FORMAT, $mask);
 
             /// Peek the next value of the iterator, without consuming it.
@@ -821,7 +821,7 @@ impl<'a: 'b, 'b, const FORMAT: u128> SpecialBytesIterator<'a, 'b, FORMAT> {
     is_digit_separator!(FORMAT);
 }
 
-impl<'a: 'b, 'b, const FORMAT: u128> BytesIter<'a> for SpecialBytesIterator<'a, 'b, FORMAT> {
+unsafe impl<'a: 'b, 'b, const FORMAT: u128> BytesIter<'a> for SpecialBytesIterator<'a, 'b, FORMAT> {
     skip_iterator_byteiter_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
 
     /// Peek the next value of the iterator, without consuming it.

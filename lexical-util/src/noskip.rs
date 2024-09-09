@@ -232,7 +232,7 @@ pub struct BytesIterator<'a: 'b, 'b, const __: u128> {
     byte: &'b mut Bytes<'a, __>,
 }
 
-impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
+unsafe impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
     const IS_CONTIGUOUS: bool = Bytes::<'a, __>::IS_CONTIGUOUS;
 
     #[inline(always)]
