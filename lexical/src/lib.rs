@@ -271,17 +271,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 // Need an allocator for String/Vec.
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "write")]
 extern crate alloc;
 
-#[cfg(all(feature = "write", not(feature = "std")))]
+#[cfg(feature = "write")]
 use alloc::string::String;
-#[cfg(all(feature = "write", not(feature = "std")))]
+#[cfg(feature = "write")]
 use alloc::vec::Vec;
-#[cfg(all(feature = "write", feature = "std"))]
-use std::string::String;
-#[cfg(all(feature = "write", feature = "std"))]
-use std::vec::Vec;
 
 pub use lexical_core::format::{self, format_error, format_is_valid, NumberFormatBuilder};
 #[cfg(feature = "parse")]
