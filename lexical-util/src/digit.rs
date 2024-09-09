@@ -12,7 +12,7 @@
 
 /// Unchecked, highly optimized algorithm to convert a char to a digit.
 /// This only works if the input character is known to be a valid digit.
-#[inline]
+#[inline(always)]
 pub const fn char_to_valid_digit_const(c: u8, radix: u32) -> u32 {
     if radix <= 10 {
         // Optimize for small radixes.
@@ -33,7 +33,7 @@ pub const fn char_to_valid_digit_const(c: u8, radix: u32) -> u32 {
 ///
 /// This optimizes for cases where radix is <= 10, and uses a decent,
 /// match-based fallback algorithm.
-#[inline]
+#[inline(always)]
 pub const fn char_to_digit_const(c: u8, radix: u32) -> Option<u32> {
     let digit = char_to_valid_digit_const(c, radix);
     if digit < radix {
@@ -44,7 +44,7 @@ pub const fn char_to_digit_const(c: u8, radix: u32) -> Option<u32> {
 }
 
 /// Determine if a character is a digit with a radix known at compile time.
-#[inline]
+#[inline(always)]
 pub const fn char_is_digit_const(c: u8, radix: u32) -> bool {
     char_to_digit_const(c, radix).is_some()
 }
@@ -53,7 +53,7 @@ pub const fn char_is_digit_const(c: u8, radix: u32) -> bool {
 ///
 /// This optimizes for cases where radix is <= 10, and uses a decent,
 /// match-based fallback algorithm.
-#[inline]
+#[inline(always)]
 #[cfg(any(feature = "write", feature = "floats"))]
 pub const fn digit_to_char_const(digit: u32, radix: u32) -> u8 {
     if radix <= 10 || digit < 10 {
@@ -72,7 +72,7 @@ pub const fn digit_to_char_const(digit: u32, radix: u32) -> u8 {
 // improved compiler optimization passes when generics are used more sparingly.
 
 /// Convert a character to a digit.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "parse")]
 pub const fn char_to_digit(c: u8, radix: u32) -> Option<u32> {
     // Fallback, still decently fast.
@@ -90,7 +90,7 @@ pub const fn char_to_digit(c: u8, radix: u32) -> Option<u32> {
 }
 
 /// Determine if a character is a digit.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "parse")]
 pub const fn char_is_digit(c: u8, radix: u32) -> bool {
     char_to_digit(c, radix).is_some()
@@ -101,7 +101,7 @@ pub const fn char_is_digit(c: u8, radix: u32) -> bool {
 /// # Safety
 ///
 /// Safe as long as `digit < 36`.
-#[inline]
+#[inline(always)]
 #[cfg(feature = "write")]
 pub unsafe fn digit_to_char(digit: u32) -> u8 {
     const TABLE: [u8; 36] = [

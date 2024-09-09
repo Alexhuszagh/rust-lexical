@@ -45,7 +45,7 @@ use lexical_write_integer::write::WriteInteger;
 ///
 /// Safe as long as the float isn't special (NaN or Infinity), and `bytes`
 /// is large enough to hold the significant digits.
-#[inline]
+#[inline(always)]
 pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
     float: F,
     bytes: &mut [u8],
@@ -336,7 +336,7 @@ pub unsafe fn write_float_positive_exponent<F: DragonboxFloat, const FORMAT: u12
 ///
 /// This algorithm **only** fails when `float == 0.0`, and we want to
 /// short-circuit anyway.
-#[inline]
+#[inline(always)]
 pub fn to_decimal<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let bits = float.to_bits();
     let mantissa_bits = bits & F::MANTISSA_MASK;
@@ -787,7 +787,7 @@ pub fn compute_right_closed_directed<F: RawFloat>(float: F, shorter: bool) -> Ex
 /// # Safety
 ///
 /// Safe if `bytes.len() >= 10`, since `u32::MAX` is at most 10 digits.
-#[inline]
+#[inline(always)]
 pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
     debug_assert!(bytes.len() >= 10);
     unsafe { mantissa.write_mantissa::<u32, { STANDARD }>(bytes) }
@@ -802,7 +802,7 @@ pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
 /// # Safety
 ///
 /// Safe if `bytes.len() >= 20`, since `u64::MAX` is at most 20 digits.
-#[inline]
+#[inline(always)]
 #[allow(clippy::branches_sharing_code)]
 pub unsafe fn write_digits_u64(bytes: &mut [u8], mantissa: u64) -> usize {
     debug_assert!(bytes.len() >= 20);

@@ -17,7 +17,7 @@ use lexical_util::{to_lexical, to_lexical_with_options};
 ///
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
-#[inline]
+#[inline(always)]
 unsafe fn unsigned<Narrow, Wide, const FORMAT: u128>(value: Narrow, buffer: &mut [u8]) -> usize
 where
     Narrow: WriteInteger,
@@ -45,7 +45,7 @@ where
 ///
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
-#[inline]
+#[inline(always)]
 unsafe fn signed<Narrow, Wide, Unsigned, const FORMAT: u128>(
     value: Narrow,
     buffer: &mut [u8],
@@ -168,6 +168,7 @@ macro_rules! signed_to_lexical {
     ($($narrow:tt $wide:tt $unsigned:tt $(, #[$meta:meta])? ; )*) => ($(
         impl ToLexical for $narrow {
             $(#[$meta:meta])?
+            #[inline]
             unsafe fn to_lexical_unchecked(self, bytes: &mut [u8])
                 -> &mut [u8]
             {
@@ -180,6 +181,7 @@ macro_rules! signed_to_lexical {
             }
 
             $(#[$meta:meta])?
+            #[inline]
             fn to_lexical(self, bytes: &mut [u8])
                 -> &mut [u8]
             {
@@ -193,6 +195,7 @@ macro_rules! signed_to_lexical {
             type Options = Options;
 
             $(#[$meta:meta])?
+            #[inline]
             unsafe fn to_lexical_with_options_unchecked<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],
@@ -209,6 +212,7 @@ macro_rules! signed_to_lexical {
             }
 
             $(#[$meta:meta])?
+            #[inline]
             fn to_lexical_with_options<'a, const FORMAT: u128>(
                 self,
                 bytes: &'a mut [u8],

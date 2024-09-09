@@ -129,7 +129,7 @@ where
 ///
 /// The mantissa must be truncated and rounded, prior to calling this,
 /// based on the number of maximum digits.
-#[inline]
+#[inline(always)]
 pub unsafe fn write_float_scientific<M, const FORMAT: u128>(
     mantissa: M,
     exp: i32,

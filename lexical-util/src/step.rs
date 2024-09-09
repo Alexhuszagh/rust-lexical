@@ -155,7 +155,7 @@ pub const fn u64_step(radix: u32) -> usize {
 // or wider type support in the future), use 1 so it doesn't infinitely
 // recurse. Under normal circumstances, this will never be called.
 
-#[inline]
+#[inline(always)]
 const fn max_step_2(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 7,
@@ -172,7 +172,7 @@ const fn max_step_2(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_2(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 7,
@@ -189,7 +189,7 @@ const fn min_step_2(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_3(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 5,
@@ -206,7 +206,7 @@ const fn max_step_3(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_3(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 4,
@@ -223,7 +223,7 @@ const fn min_step_3(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_4(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 4,
@@ -240,7 +240,7 @@ const fn max_step_4(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_4(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -257,7 +257,7 @@ const fn min_step_4(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_5(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 4,
@@ -274,7 +274,7 @@ const fn max_step_5(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_5(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -291,7 +291,7 @@ const fn min_step_5(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_6(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -308,7 +308,7 @@ const fn max_step_6(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_6(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -325,7 +325,7 @@ const fn min_step_6(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_7(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -342,7 +342,7 @@ const fn max_step_7(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_7(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -359,7 +359,7 @@ const fn min_step_7(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_8(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -376,7 +376,7 @@ const fn max_step_8(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_8(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -393,7 +393,7 @@ const fn min_step_8(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_9(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -410,7 +410,7 @@ const fn max_step_9(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_9(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -427,7 +427,7 @@ const fn min_step_9(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_10(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -444,7 +444,7 @@ const fn max_step_10(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_10(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -461,7 +461,7 @@ const fn min_step_10(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_11(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 3,
@@ -478,7 +478,7 @@ const fn max_step_11(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_11(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -495,7 +495,7 @@ const fn min_step_11(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_12(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -512,7 +512,7 @@ const fn max_step_12(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_12(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -529,7 +529,7 @@ const fn min_step_12(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_13(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -546,7 +546,7 @@ const fn max_step_13(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_13(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -563,7 +563,7 @@ const fn min_step_13(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_14(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -580,7 +580,7 @@ const fn max_step_14(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_14(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -597,7 +597,7 @@ const fn min_step_14(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_15(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -614,7 +614,7 @@ const fn max_step_15(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_15(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -631,7 +631,7 @@ const fn min_step_15(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_16(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -648,7 +648,7 @@ const fn max_step_16(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_16(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -665,7 +665,7 @@ const fn min_step_16(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_17(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -682,7 +682,7 @@ const fn max_step_17(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_17(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -699,7 +699,7 @@ const fn min_step_17(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_18(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -716,7 +716,7 @@ const fn max_step_18(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_18(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -733,7 +733,7 @@ const fn min_step_18(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_19(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -750,7 +750,7 @@ const fn max_step_19(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_19(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -767,7 +767,7 @@ const fn min_step_19(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_20(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -784,7 +784,7 @@ const fn max_step_20(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_20(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -801,7 +801,7 @@ const fn min_step_20(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_21(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -818,7 +818,7 @@ const fn max_step_21(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_21(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -835,7 +835,7 @@ const fn min_step_21(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_22(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -852,7 +852,7 @@ const fn max_step_22(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_22(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -869,7 +869,7 @@ const fn min_step_22(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_23(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -886,7 +886,7 @@ const fn max_step_23(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_23(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -903,7 +903,7 @@ const fn min_step_23(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_24(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -920,7 +920,7 @@ const fn max_step_24(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_24(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -937,7 +937,7 @@ const fn min_step_24(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_25(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -954,7 +954,7 @@ const fn max_step_25(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_25(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -971,7 +971,7 @@ const fn min_step_25(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_26(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -988,7 +988,7 @@ const fn max_step_26(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_26(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1005,7 +1005,7 @@ const fn min_step_26(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_27(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1022,7 +1022,7 @@ const fn max_step_27(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_27(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1039,7 +1039,7 @@ const fn min_step_27(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_28(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1056,7 +1056,7 @@ const fn max_step_28(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_28(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1073,7 +1073,7 @@ const fn min_step_28(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_29(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1090,7 +1090,7 @@ const fn max_step_29(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_29(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1107,7 +1107,7 @@ const fn min_step_29(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_30(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1124,7 +1124,7 @@ const fn max_step_30(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_30(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1141,7 +1141,7 @@ const fn min_step_30(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_31(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1158,7 +1158,7 @@ const fn max_step_31(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_31(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1175,7 +1175,7 @@ const fn min_step_31(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_32(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1192,7 +1192,7 @@ const fn max_step_32(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_32(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1209,7 +1209,7 @@ const fn min_step_32(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_33(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1226,7 +1226,7 @@ const fn max_step_33(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_33(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1243,7 +1243,7 @@ const fn min_step_33(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_34(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1260,7 +1260,7 @@ const fn max_step_34(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_34(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1277,7 +1277,7 @@ const fn min_step_34(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_35(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1294,7 +1294,7 @@ const fn max_step_35(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_35(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,
@@ -1311,7 +1311,7 @@ const fn min_step_35(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn max_step_36(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 2,
@@ -1328,7 +1328,7 @@ const fn max_step_36(bits: usize, is_signed: bool) -> usize {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn min_step_36(bits: usize, is_signed: bool) -> usize {
     match bits {
         8 if is_signed => 1,

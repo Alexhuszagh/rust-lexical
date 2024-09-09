@@ -1228,13 +1228,13 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
     // BUILDER
 
     /// Get the number format builder from the format.
-    #[inline]
+    #[inline(always)]
     pub const fn builder() -> NumberFormatBuilder {
         NumberFormatBuilder::new()
     }
 
     /// Get the number format builder from the format.
-    #[inline]
+    #[inline(always)]
     pub const fn rebuild() -> NumberFormatBuilder {
         NumberFormatBuilder::rebuild(FORMAT)
     }

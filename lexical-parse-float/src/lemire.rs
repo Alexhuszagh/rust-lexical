@@ -12,7 +12,7 @@ use crate::shared;
 use crate::table::{LARGEST_POWER_OF_FIVE, POWER_OF_FIVE_128, SMALLEST_POWER_OF_FIVE};
 
 /// Ensure truncation of digits doesn't affect our computation, by doing 2 passes.
-#[inline]
+#[inline(always)]
 pub fn lemire<F: LemireFloat>(num: &Number, lossy: bool) -> ExtendedFloat80 {
     // If significant digits were truncated, then we can have rounding error
     // only if `mantissa + 1` produces a different result. We also avoid
@@ -153,7 +153,7 @@ pub fn compute_float<F: LemireFloat>(q: i64, mut w: u64, lossy: bool) -> Extende
 /// Fallback algorithm to calculate the non-rounded representation.
 /// This calculates the extended representation, and then normalizes
 /// the resulting representation, so the high bit is set.
-#[inline]
+#[inline(always)]
 pub fn compute_error<F: LemireFloat>(q: i64, mut w: u64) -> ExtendedFloat80 {
     let lz = w.leading_zeros() as i32;
     w <<= lz;
@@ -162,7 +162,7 @@ pub fn compute_error<F: LemireFloat>(q: i64, mut w: u64) -> ExtendedFloat80 {
 }
 
 /// Compute the error from a mantissa scaled to the exponent.
-#[inline]
+#[inline(always)]
 pub fn compute_error_scaled<F: LemireFloat>(q: i64, mut w: u64, lz: i32) -> ExtendedFloat80 {
     // Want to normalize the float, but this is faster than ctlz on most architectures.
     let hilz = (w >> 63) as i32 ^ 1;
@@ -179,12 +179,12 @@ pub fn compute_error_scaled<F: LemireFloat>(q: i64, mut w: u64, lz: i32) -> Exte
 /// This uses a pre-computed integer approximation for
 /// log2(10), where 217706 / 2^16 is accurate for the
 /// entire range of non-finite decimal exponents.
-#[inline]
+#[inline(always)]
 fn power(q: i32) -> i32 {
     (q.wrapping_mul(152_170 + 65536) >> 16) + 63
 }
 
-#[inline]
+#[inline(always)]
 fn full_multiplication(a: u64, b: u64) -> (u64, u64) {
     let r = (a as u128) * (b as u128);
     (r as u64, (r >> 64) as u64)

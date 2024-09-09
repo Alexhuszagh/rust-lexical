@@ -177,7 +177,7 @@ const fn error_halfscale() -> u32 {
 }
 
 /// Determine if the number of errors is tolerable for float precision.
-#[cfg_attr(not(feature = "compact"), inline)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 fn error_is_accurate<F: RawFloat>(errors: u32, fp: &ExtendedFloat80) -> bool {
     // Check we can't have a literal 0 denormal float.
     debug_assert!(fp.exp >= -64);
@@ -283,7 +283,7 @@ fn error_is_accurate<F: RawFloat>(errors: u32, fp: &ExtendedFloat80) -> bool {
 /// itself is 0.
 ///
 /// Get the number of bytes shifted.
-#[cfg_attr(not(feature = "compact"), inline)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn normalize(fp: &mut ExtendedFloat80) -> i32 {
     // Note:
     // Using the ctlz intrinsic via leading_zeros is way faster (~10x)
@@ -318,7 +318,7 @@ pub fn normalize(fp: &mut ExtendedFloat80) -> i32 {
 ///     1. Non-signed multiplication of mantissas (requires 2x as many bits as input).
 ///     2. Normalization of the result (not done here).
 ///     3. Addition of exponents.
-#[cfg_attr(not(feature = "compact"), inline)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn mul(x: &ExtendedFloat80, y: &ExtendedFloat80) -> ExtendedFloat80 {
     // Logic check, values must be decently normalized prior to multiplication.
     debug_assert!(x.mant >> 32 != 0);
@@ -370,7 +370,7 @@ pub struct BellerophonPowers {
 
 /// Allow indexing of values without bounds checking
 impl BellerophonPowers {
-    #[inline]
+    #[inline(always)]
     pub const fn get_small(&self, index: usize) -> ExtendedFloat80 {
         let mant = self.small[index];
         let exp = (1 - 64) + ((self.log2 * index as i64) >> self.log2_shift);
@@ -380,7 +380,7 @@ impl BellerophonPowers {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn get_large(&self, index: usize) -> ExtendedFloat80 {
         let mant = self.large[index];
         let biased_e = index as i64 * self.step as i64 - self.bias as i64;
@@ -391,7 +391,7 @@ impl BellerophonPowers {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn get_small_int(&self, index: usize) -> u64 {
         self.small_int[index]
     }

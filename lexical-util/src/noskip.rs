@@ -18,7 +18,7 @@ pub trait AsBytes<'a> {
 }
 
 impl<'a> AsBytes<'a> for [u8] {
-    #[inline]
+    #[inline(always)]
     fn bytes<const __: u128>(&'a self) -> Bytes<'a, __> {
         Bytes::new(self)
     }
@@ -41,7 +41,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     pub const IS_CONTIGUOUS: bool = true;
 
     /// Create new byte object.
-    #[inline]
+    #[inline(always)]
     pub const fn new(slc: &'a [u8]) -> Self {
         Self {
             slc,
@@ -50,13 +50,13 @@ impl<'a, const __: u128> Bytes<'a, __> {
     }
 
     /// Get a ptr to the current start of the iterator.
-    #[inline]
+    #[inline(always)]
     pub fn as_ptr(&self) -> *const u8 {
         self.as_slice().as_ptr()
     }
 
     /// Get a slice to the current start of the iterator.
-    #[inline]
+    #[inline(always)]
     pub fn as_slice(&self) -> &'a [u8] {
         debug_assert!(self.index <= self.length());
         // SAFETY: safe since index must be in range.
@@ -64,13 +64,13 @@ impl<'a, const __: u128> Bytes<'a, __> {
     }
 
     /// Get the total number of elements in the underlying slice.
-    #[inline]
+    #[inline(always)]
     pub fn length(&self) -> usize {
         self.slc.len()
     }
 
     /// Get the current index of the iterator in the slice.
-    #[inline]
+    #[inline(always)]
     pub fn cursor(&self) -> usize {
         self.index
     }
@@ -80,21 +80,21 @@ impl<'a, const __: u128> Bytes<'a, __> {
     /// # Safety
     ///
     /// Safe if `index <= self.length()`.
-    #[inline]
+    #[inline(always)]
     pub unsafe fn set_cursor(&mut self, index: usize) {
         debug_assert!(index <= self.length());
         self.index = index
     }
 
     /// Get the current number of values returned by the iterator.
-    #[inline]
+    #[inline(always)]
     pub fn current_count(&self) -> usize {
         self.index
     }
 
     /// Get if the buffer underlying the iterator is empty.
     /// Same as `is_consumed`.
-    #[inline]
+    #[inline(always)]
     pub fn is_done(&self) -> bool {
         self.index >= self.slc.len()
     }
@@ -106,7 +106,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     ///
     /// Safe as long as the number of the buffer is contains as least as
     /// many bytes as the size of V, and V is valid for all bit patterns.
-    #[inline]
+    #[inline(always)]
     #[allow(clippy::assertions_on_constants)]
     pub unsafe fn read_unchecked<V>(&self) -> V {
         debug_assert!(Self::IS_CONTIGUOUS);
@@ -119,7 +119,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
 
     /// Try to read a the next four bytes as a u32.
     /// This advances the internal state of the iterator.
-    #[inline]
+    #[inline(always)]
     pub fn read_u32(&self) -> Option<u32> {
         if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u32>() {
             // SAFETY: safe since we've guaranteed the buffer is greater than
@@ -132,7 +132,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
 
     /// Try to read the next eight bytes as a u64
     /// This advances the internal state of the iterator.
-    #[inline]
+    #[inline(always)]
     pub fn read_u64(&self) -> Option<u64> {
         if Self::IS_CONTIGUOUS && self.as_slice().len() >= mem::size_of::<u64>() {
             // SAFETY: safe since we've guaranteed the buffer is greater than
@@ -144,7 +144,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     }
 
     /// Check if the next element is a given value.
-    #[inline]
+    #[inline(always)]
     pub fn first_is(&mut self, value: u8) -> bool {
         if let Some(&c) = self.slc.get(self.index) {
             c == value
@@ -154,7 +154,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     }
 
     /// Check if the next element is a given value without case sensitivity.
-    #[inline]
+    #[inline(always)]
     pub fn case_insensitive_first_is(&mut self, value: u8) -> bool {
         if let Some(&c) = self.slc.get(self.index) {
             c.to_ascii_lowercase() == value.to_ascii_lowercase()
@@ -164,7 +164,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     }
 
     /// Get iterator over integer digits.
-    #[inline]
+    #[inline(always)]
     pub fn integer_iter<'b>(&'b mut self) -> BytesIterator<'a, 'b, __> {
         BytesIterator {
             byte: self,
@@ -172,7 +172,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     }
 
     /// Get iterator over fraction digits.
-    #[inline]
+    #[inline(always)]
     pub fn fraction_iter<'b>(&'b mut self) -> BytesIterator<'a, 'b, __> {
         BytesIterator {
             byte: self,
@@ -180,7 +180,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     }
 
     /// Get iterator over exponent digits.
-    #[inline]
+    #[inline(always)]
     pub fn exponent_iter<'b>(&'b mut self) -> BytesIterator<'a, 'b, __> {
         BytesIterator {
             byte: self,
@@ -188,7 +188,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     }
 
     /// Get iterator over special floating point values.
-    #[inline]
+    #[inline(always)]
     pub fn special_iter<'b>(&'b mut self) -> BytesIterator<'a, 'b, __> {
         BytesIterator {
             byte: self,
@@ -201,7 +201,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     ///
     /// As long as the iterator is at least `N` elements, this
     /// is safe.
-    #[inline]
+    #[inline(always)]
     #[allow(clippy::assertions_on_constants)]
     pub unsafe fn step_by_unchecked(&mut self, count: usize) {
         debug_assert!(Self::IS_CONTIGUOUS);
@@ -214,7 +214,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     /// # Safety
     ///
     /// Safe as long as the iterator is not empty.
-    #[inline]
+    #[inline(always)]
     #[allow(clippy::assertions_on_constants)]
     pub unsafe fn step_unchecked(&mut self) {
         debug_assert!(Self::IS_CONTIGUOUS);
@@ -235,55 +235,55 @@ pub struct BytesIterator<'a: 'b, 'b, const __: u128> {
 impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
     const IS_CONTIGUOUS: bool = Bytes::<'a, __>::IS_CONTIGUOUS;
 
-    #[inline]
+    #[inline(always)]
     fn as_ptr(&self) -> *const u8 {
         self.byte.as_ptr()
     }
 
-    #[inline]
+    #[inline(always)]
     fn as_slice(&self) -> &'a [u8] {
         self.byte.as_slice()
     }
 
-    #[inline]
+    #[inline(always)]
     fn length(&self) -> usize {
         self.byte.length()
     }
 
-    #[inline]
+    #[inline(always)]
     fn cursor(&self) -> usize {
         self.byte.cursor()
     }
 
-    #[inline]
+    #[inline(always)]
     unsafe fn set_cursor(&mut self, index: usize) {
         debug_assert!(index <= self.length());
         // SAFETY: safe if `index <= self.length()`.
         unsafe { self.byte.set_cursor(index) };
     }
 
-    #[inline]
+    #[inline(always)]
     fn current_count(&self) -> usize {
         self.byte.current_count()
     }
 
-    #[inline]
+    #[inline(always)]
     fn is_consumed(&mut self) -> bool {
         Self::is_done(self)
     }
 
-    #[inline]
+    #[inline(always)]
     fn is_done(&self) -> bool {
         self.byte.is_done()
     }
 
-    #[inline]
+    #[inline(always)]
     unsafe fn peek_unchecked(&mut self) -> <Self as Iterator>::Item {
         // SAFETY: safe if `self.cursor() < self.length()`.
         unsafe { self.byte.slc.get_unchecked(self.byte.index) }
     }
 
-    #[inline]
+    #[inline(always)]
     fn peek(&mut self) -> Option<<Self as Iterator>::Item> {
         if self.byte.index < self.byte.slc.len() {
             // SAFETY: the slice cannot be empty, so this is safe
@@ -293,31 +293,31 @@ impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     unsafe fn read_unchecked<V>(&self) -> V {
         debug_assert!(self.as_slice().len() >= mem::size_of::<V>());
         // SAFETY: safe as long as the slice has at least count elements.
         unsafe { self.byte.read_unchecked() }
     }
 
-    #[inline]
+    #[inline(always)]
     fn read_u32(&self) -> Option<u32> {
         self.byte.read_u32()
     }
 
-    #[inline]
+    #[inline(always)]
     fn read_u64(&self) -> Option<u64> {
         self.byte.read_u64()
     }
 
-    #[inline]
+    #[inline(always)]
     unsafe fn step_by_unchecked(&mut self, count: usize) {
         debug_assert!(self.as_slice().len() >= count);
         // SAFETY: safe as long as `slc.len() >= count`.
         unsafe { self.byte.step_by_unchecked(count) }
     }
 
-    #[inline]
+    #[inline(always)]
     unsafe fn step_unchecked(&mut self) {
         debug_assert!(!self.as_slice().is_empty());
         // SAFETY: safe as long as `slc.len() >= 1`.
@@ -328,7 +328,7 @@ impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
 impl<'a: 'b, 'b, const __: u128> Iterator for BytesIterator<'a, 'b, __> {
     type Item = &'a u8;
 
-    #[inline]
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         let value = self.byte.slc.get(self.byte.index)?;
         self.byte.index += 1;
@@ -337,7 +337,7 @@ impl<'a: 'b, 'b, const __: u128> Iterator for BytesIterator<'a, 'b, __> {
 }
 
 impl<'a: 'b, 'b, const __: u128> ExactSizeIterator for BytesIterator<'a, 'b, __> {
-    #[inline]
+    #[inline(always)]
     fn len(&self) -> usize {
         self.length() - self.cursor()
     }

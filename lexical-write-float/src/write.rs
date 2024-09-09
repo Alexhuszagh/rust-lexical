@@ -49,7 +49,7 @@ pub trait WriteFloat: RawFloat {
     ///
     /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
     /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
-    #[inline]
+    #[inline(always)]
     unsafe fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> usize
     where
         Self::Unsigned: FormattedSize + WriteInteger,
@@ -170,7 +170,7 @@ write_float_impl! { f32 f64 }
 macro_rules! write_float_as_f32 {
     ($($t:ty)*) => ($(
         impl WriteFloat for $t {
-            #[inline]
+            #[inline(always)]
             unsafe fn write_float<const FORMAT: u128>(self, bytes: &mut [u8], options: &Options) -> usize
             {
                 // SAFETY: safe if `bytes` is large enough to hold the written bytes.

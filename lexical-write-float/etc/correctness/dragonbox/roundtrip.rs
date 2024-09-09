@@ -3,7 +3,7 @@
 use lexical_write_float::float::RawFloat;
 use lexical_write_float::ToLexical;
 
-#[inline]
+#[inline(always)]
 pub fn roundtrip<F>(float: F, buffer: &mut [u8]) -> Result<(), String>
 where
     F: RawFloat + ToLexical + std::str::FromStr + std::string::ToString,

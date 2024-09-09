@@ -24,7 +24,7 @@ use crate::bellerophon::BellerophonPowers;
 use crate::table_bellerophon_decimal::BASE10_POWERS;
 
 /// Get Bellerophon powers from radix.
-#[inline]
+#[inline(always)]
 pub const fn bellerophon_powers(radix: u32) -> &'static BellerophonPowers {
     match radix {
         3 => &BASE3_POWERS,

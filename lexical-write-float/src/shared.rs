@@ -23,7 +23,7 @@ pub fn min_exact_digits(digit_count: usize, options: &Options) -> usize {
 /// # Safety
 ///
 /// Safe as long as `count <= digits.len()`.
-#[cfg_attr(not(feature = "compact"), inline)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, bool) {
     debug_assert!(count <= digits.len());
 
@@ -62,7 +62,7 @@ pub unsafe fn round_up(digits: &mut [u8], count: usize, radix: u32) -> (usize, b
 ///
 /// Safe as long as `digit_count <= digits.len()`.
 #[allow(clippy::comparison_chain)]
-#[cfg_attr(not(feature = "compact"), inline)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub unsafe fn truncate_and_round_decimal(
     digits: &mut [u8],
     digit_count: usize,
@@ -125,7 +125,7 @@ pub unsafe fn truncate_and_round_decimal(
 ///
 /// Safe if `bytes` is large enough to hold the largest possible exponent,
 /// with an extra byte for the sign.
-#[cfg_attr(not(feature = "compact"), inline)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub unsafe fn write_exponent_sign<const FORMAT: u128>(
     bytes: &mut [u8],
     cursor: &mut usize,
@@ -153,7 +153,7 @@ pub unsafe fn write_exponent_sign<const FORMAT: u128>(
 ///
 /// Safe if the buffer can hold all the significant digits and the sign
 /// starting from cursor.
-#[cfg_attr(not(feature = "compact"), inline)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub unsafe fn write_exponent<const FORMAT: u128>(
     bytes: &mut [u8],
     cursor: &mut usize,

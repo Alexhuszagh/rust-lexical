@@ -356,7 +356,7 @@ pub fn fast_path_partial<F: LemireFloat, const FORMAT: u128>(
 
 /// Wrapper for different moderate-path algorithms.
 /// A return exponent of `-1` indicates an invalid value.
-#[inline]
+#[inline(always)]
 pub fn moderate_path<F: LemireFloat, const FORMAT: u128>(
     num: &Number,
     lossy: bool,
@@ -418,7 +418,7 @@ pub fn moderate_path<F: LemireFloat, const FORMAT: u128>(
 
 /// Invoke the slow path.
 /// At this point, the float string has already been validated.
-#[inline]
+#[inline(always)]
 pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
     num: Number,
     fp: ExtendedFloat80,
@@ -446,7 +446,7 @@ pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
 ///
 /// This creates a representation of the float as the
 /// significant digits and the decimal exponent.
-#[inline]
+#[inline(always)]
 #[allow(clippy::collapsible_if)]
 pub fn parse_partial_number<'a, const FORMAT: u128>(
     mut byte: Bytes<'a, FORMAT>,
@@ -746,7 +746,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 }
 
 /// Try to parse a non-special floating point number.
-#[inline]
+#[inline(always)]
 pub fn parse_number<'a, const FORMAT: u128>(
     byte: Bytes<'a, FORMAT>,
     is_negative: bool,
@@ -765,7 +765,7 @@ pub fn parse_number<'a, const FORMAT: u128>(
 // ------
 
 /// Iteratively parse and consume digits from bytes.
-#[inline]
+#[inline(always)]
 pub fn parse_digits<'a, Iter, Cb, const FORMAT: u128>(mut iter: Iter, mut cb: Cb)
 where
     Iter: BytesIter<'a>,
@@ -784,7 +784,7 @@ where
 }
 
 /// Iteratively parse and consume digits in intervals of 8.
-#[inline]
+#[inline(always)]
 #[cfg(not(feature = "compact"))]
 pub fn parse_8digits<'a, Iter, const FORMAT: u128>(mut iter: Iter, mantissa: &mut u64)
 where
@@ -809,7 +809,7 @@ where
 /// # Preconditions
 ///
 /// There must be at least `step` digits left in iterator.
-#[inline]
+#[inline(always)]
 pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     mut iter: Iter,
     mantissa: &mut u64,
@@ -855,7 +855,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
 
 /// Determine if the input data matches the special string.
 /// If there's no match, returns 0. Otherwise, returns the byte's cursor.
-#[inline]
+#[inline(always)]
 pub fn is_special_eq<const FORMAT: u128>(mut byte: Bytes<FORMAT>, string: &'static [u8]) -> usize {
     let format = NumberFormat::<{ FORMAT }> {};
     if cfg!(feature = "format") && format.case_sensitive_special() {
@@ -873,7 +873,7 @@ pub fn is_special_eq<const FORMAT: u128>(mut byte: Bytes<FORMAT>, string: &'stat
 }
 
 /// Parse a positive representation of a special, non-finite float.
-#[inline]
+#[inline(always)]
 pub fn parse_positive_special<F, const FORMAT: u128>(
     byte: Bytes<FORMAT>,
     options: &Options,
@@ -917,7 +917,7 @@ where
 }
 
 /// Parse a partial representation of a special, non-finite float.
-#[inline]
+#[inline(always)]
 pub fn parse_partial_special<F, const FORMAT: u128>(
     byte: Bytes<FORMAT>,
     is_negative: bool,
@@ -934,7 +934,7 @@ where
 }
 
 /// Try to parse a special, non-finite float.
-#[inline]
+#[inline(always)]
 pub fn parse_special<F, const FORMAT: u128>(
     byte: Bytes<FORMAT>,
     is_negative: bool,

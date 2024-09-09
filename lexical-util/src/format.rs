@@ -256,7 +256,7 @@ use crate::error::Error;
 use static_assertions::const_assert;
 
 /// Determine if the format packed struct is valid.
-#[inline]
+#[inline(always)]
 pub const fn format_is_valid<const FORMAT: u128>() -> bool {
     NumberFormat::<FORMAT> {}.is_valid()
 }
@@ -265,7 +265,7 @@ pub const fn format_is_valid<const FORMAT: u128>() -> bool {
 ///
 /// An error type of `Error::Success` means the format is valid, any
 /// other error signifies an invalid format.
-#[inline]
+#[inline(always)]
 pub const fn format_error<const FORMAT: u128>() -> Error {
     NumberFormat::<FORMAT> {}.error()
 }

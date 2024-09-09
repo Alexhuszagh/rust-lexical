@@ -42,7 +42,7 @@ use lexical_util::num::{AsPrimitive, Integer};
 /// any value before or equal to `16777217.0` must be rounded down
 /// to `16777216.0`. These near-halfway conversions therefore may require
 /// a large number of digits to unambiguously determine how to round.
-#[inline]
+#[inline(always)]
 pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
     num: Number,
     fp: ExtendedFloat80,
@@ -93,7 +93,7 @@ pub fn slow_radix<F: RawFloat, const FORMAT: u128>(
 /// exponent relative to the significant digits, we scale the real
 /// digits to the theoretical digits for `b` and determine if we
 /// need to round-up.
-#[inline]
+#[inline(always)]
 pub fn digit_comp<F: RawFloat, const FORMAT: u128>(
     num: Number,
     fp: ExtendedFloat80,
@@ -669,7 +669,7 @@ pub fn compare_bytes<const FORMAT: u128>(
 
 /// Calculate the scientific exponent from a `Number` value.
 /// Any other attempts would require slowdowns for faster algorithms.
-#[inline]
+#[inline(always)]
 pub fn scientific_exponent<const FORMAT: u128>(num: &Number) -> i32 {
     // This has the significant digits and exponent relative to those
     // digits: therefore, we just need to scale to mantissa to `[1, radix)`.
@@ -701,7 +701,7 @@ pub fn scientific_exponent<const FORMAT: u128>(num: &Number) -> i32 {
 }
 
 /// Calculate `b` from a a representation of `b` as a float.
-#[inline]
+#[inline(always)]
 pub fn b<F: RawFloat>(float: F) -> ExtendedFloat80 {
     ExtendedFloat80 {
         mant: float.mantissa().as_u64(),
@@ -710,7 +710,7 @@ pub fn b<F: RawFloat>(float: F) -> ExtendedFloat80 {
 }
 
 /// Calculate `b+h` from a a representation of `b` as a float.
-#[inline]
+#[inline(always)]
 pub fn bh<F: RawFloat>(float: F) -> ExtendedFloat80 {
     let fp = b(float);
     ExtendedFloat80 {
@@ -720,7 +720,7 @@ pub fn bh<F: RawFloat>(float: F) -> ExtendedFloat80 {
 }
 
 /// Calculate the integral ceiling of the binary factor from a basen number.
-#[inline]
+#[inline(always)]
 pub const fn integral_binary_factor(radix: u32) -> u32 {
     match radix {
         3 if cfg!(feature = "radix") => 2,

@@ -26,13 +26,13 @@ pub struct ExtendedFloat<M: UnsignedInteger> {
 
 impl<M: UnsignedInteger> ExtendedFloat<M> {
     /// Get the mantissa component.
-    #[inline]
+    #[inline(always)]
     pub fn mantissa(&self) -> M {
         self.mant
     }
 
     /// Get the exponent component.
-    #[inline]
+    #[inline(always)]
     pub fn exponent(&self) -> i32 {
         self.exp
     }

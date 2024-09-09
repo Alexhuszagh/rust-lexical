@@ -100,7 +100,7 @@ def print_pow2(radix):
     shr = digits * log2
     mask = (1 << shr) - 1
 
-    print('#[inline]')
+    print('#[inline(always)]')
     print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64) {{')
     print(f'    pow2_u128_divrem(n, {mask}, {shr})')
     print('}')
@@ -111,7 +111,7 @@ def print_fast(radix, divisor, fast_shr, factor, factor_shr):
     '''Print the function for the fastest division algorithm.'''
 
     fast = 1 << (64 + fast_shr)
-    print('#[inline]')
+    print('#[inline(always)]')
     print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64) {{')
     print(f'    fast_u128_divrem(n, {divisor}, {fast}, {fast_shr}, {factor}, {factor_shr})')
     print('}')
@@ -121,7 +121,7 @@ def print_fast(radix, divisor, fast_shr, factor, factor_shr):
 def print_moderate(radix, divisor, factor, factor_shr):
     '''Print the function for the moderate division algorithm.'''
 
-    print('#[inline]')
+    print('#[inline(always)]')
     print(f'const fn u128_divrem_{radix}(n: u128) -> (u128, u64) {{')
     print(f'    moderate_u128_divrem(n, {divisor}, {factor}, {factor_shr})')
     print('}')
@@ -132,7 +132,7 @@ def print_slow(radix, divisor):
     '''Print the function for the slow division algorithm.'''
 
     ctlz = 66 - len(bin(divisor))
-    print('#[inline]')
+    print('#[inline(always)]')
     print(f'fn u128_divrem_{radix}(n: u128) -> (u128, u64) {{')
     print(f'    slow_u128_divrem(n, {divisor}, {ctlz})')
     print('}')

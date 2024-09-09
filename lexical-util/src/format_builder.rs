@@ -915,7 +915,7 @@ impl NumberFormatBuilder {
     /// (and therefore unwrapping Errors/Options) in const fns. It is
     /// therefore up to you to ensure the format is valid, called via the
     /// `is_valid` function on `NumberFormat`.
-    #[inline]
+    #[inline(always)]
     pub const fn build(&self) -> u128 {
         let mut format: u128 = 0;
         add_flags!(
@@ -966,7 +966,7 @@ impl NumberFormatBuilder {
     }
 
     /// Re-create builder from format.
-    #[inline]
+    #[inline(always)]
     pub const fn rebuild(format: u128) -> Self {
         NumberFormatBuilder {
             digit_separator: num::NonZeroU8::new(flags::digit_separator(format)),

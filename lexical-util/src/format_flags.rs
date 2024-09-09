@@ -600,32 +600,32 @@ pub const EXPONENT_DIGIT_SEPARATOR_FLAG_MASK: u128 =
 // ----------
 
 /// Extract the digit separator from the format packed struct.
-#[inline]
+#[inline(always)]
 pub const fn digit_separator(format: u128) -> u8 {
     ((format & DIGIT_SEPARATOR) >> DIGIT_SEPARATOR_SHIFT) as u8
 }
 
 /// Extract the base prefix character from the format packed struct.
-#[inline]
+#[inline(always)]
 pub const fn base_prefix(format: u128) -> u8 {
     ((format & BASE_PREFIX) >> BASE_PREFIX_SHIFT) as u8
 }
 
 /// Extract the base suffix character from the format packed struct.
-#[inline]
+#[inline(always)]
 pub const fn base_suffix(format: u128) -> u8 {
     ((format & BASE_SUFFIX) >> BASE_SUFFIX_SHIFT) as u8
 }
 
 /// Extract the mantissa radix from the format packed struct.
-#[inline]
+#[inline(always)]
 pub const fn mantissa_radix(format: u128) -> u32 {
     ((format & MANTISSA_RADIX) >> MANTISSA_RADIX_SHIFT) as u32
 }
 
 /// Extract the exponent base from the format packed struct.
 /// If not provided, defaults to `mantissa_radix`.
-#[inline]
+#[inline(always)]
 pub const fn exponent_base(format: u128) -> u32 {
     let radix = ((format & EXPONENT_BASE) >> EXPONENT_BASE_SHIFT) as u32;
     if radix == 0 {
@@ -637,7 +637,7 @@ pub const fn exponent_base(format: u128) -> u32 {
 
 /// Extract the exponent radix from the format packed struct.
 /// If not provided, defaults to `mantissa_radix`.
-#[inline]
+#[inline(always)]
 pub const fn exponent_radix(format: u128) -> u32 {
     let radix = ((format & EXPONENT_RADIX) >> EXPONENT_RADIX_SHIFT) as u32;
     if radix == 0 {
@@ -648,7 +648,7 @@ pub const fn exponent_radix(format: u128) -> u32 {
 }
 
 /// Extract a generic radix from the format and bitflags.
-#[inline]
+#[inline(always)]
 pub const fn radix_from_flags(format: u128, mask: u128, shift: i32) -> u32 {
     let radix = ((format & mask) >> shift) as u32;
     if radix == 0 {
@@ -662,14 +662,14 @@ pub const fn radix_from_flags(format: u128, mask: u128, shift: i32) -> u32 {
 // ----------
 
 /// Determine if the provided exponent flags are valid.
-#[inline]
+#[inline(always)]
 pub const fn is_valid_exponent_flags(format: u128) -> bool {
     // Both cannot be set.
     format & NO_EXPONENT_NOTATION == 0 || format & REQUIRED_EXPONENT_NOTATION == 0
 }
 
 /// Determine if an optional control character is valid.
-#[inline]
+#[inline(always)]
 const fn is_valid_optional_control_radix(radix: u32, value: u8) -> bool {
     // Validate the character isn't a digit or sign character, and is valid ASCII.
     use crate::ascii::is_valid_ascii;
@@ -681,7 +681,7 @@ const fn is_valid_optional_control_radix(radix: u32, value: u8) -> bool {
 }
 
 /// Determine if an optional control character is valid.
-#[inline]
+#[inline(always)]
 const fn is_valid_optional_control(format: u128, value: u8) -> bool {
     // Need to get the larger of the two radix values, since these
     // will be the characters that define the valid digits.
@@ -697,14 +697,14 @@ const fn is_valid_optional_control(format: u128, value: u8) -> bool {
 }
 
 /// Determine if an control character is valid.
-#[inline]
+#[inline(always)]
 const fn is_valid_control(format: u128, value: u8) -> bool {
     value != 0 && is_valid_optional_control(format, value)
 }
 
 /// Determine if the digit separator is valid.
 /// Digit separators must not be valid digits or sign characters.
-#[inline]
+#[inline(always)]
 pub const fn is_valid_digit_separator(format: u128) -> bool {
     let value = digit_separator(format);
     if cfg!(feature = "format") {
@@ -715,7 +715,7 @@ pub const fn is_valid_digit_separator(format: u128) -> bool {
 }
 
 /// Determine if the base prefix character is valid.
-#[inline]
+#[inline(always)]
 pub const fn is_valid_base_prefix(format: u128) -> bool {
     let value = base_prefix(format);
     if cfg!(feature = "format") {
@@ -726,7 +726,7 @@ pub const fn is_valid_base_prefix(format: u128) -> bool {
 }
 
 /// Determine if the base suffix character is valid.
-#[inline]
+#[inline(always)]
 pub const fn is_valid_base_suffix(format: u128) -> bool {
     let value = base_suffix(format);
     if cfg!(feature = "format") {
@@ -737,7 +737,7 @@ pub const fn is_valid_base_suffix(format: u128) -> bool {
 }
 
 /// Determine if all of the "punctuation" characters are valid.
-#[inline]
+#[inline(always)]
 #[allow(clippy::if_same_then_else)]
 pub const fn is_valid_punctuation(format: u128) -> bool {
     // All the checks against optional characters with mandatory are fine:
@@ -762,7 +762,7 @@ pub const fn is_valid_punctuation(format: u128) -> bool {
 }
 
 /// Determine if all of the "punctuation" characters for the options API are valid.
-#[inline]
+#[inline(always)]
 #[allow(clippy::if_same_then_else, clippy::needless_bool)]
 pub const fn is_valid_options_punctuation(format: u128, exponent: u8, decimal_point: u8) -> bool {
     // All the checks against optional characters with mandatory are fine:

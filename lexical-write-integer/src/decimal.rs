@@ -29,7 +29,7 @@ use lexical_util::num::UnsignedInteger;
 /// This algorithm is described in detail in "Computing the number of digits
 /// of an integer quickly", available
 /// [here](https://lemire.me/blog/2021/05/28/computing-the-number-of-digits-of-an-integer-quickly/).
-#[inline]
+#[inline(always)]
 pub fn fast_log2<T: UnsignedInteger>(x: T) -> usize {
     T::BITS - 1 - (x | T::ONE).leading_zeros() as usize
 }
@@ -42,7 +42,7 @@ pub fn fast_log2<T: UnsignedInteger>(x: T) -> usize {
 /// Note that this value is frequently off by 1, so we need to round-up
 /// accordingly. This magic number is valid at least up until `1<<18`,
 /// which works for all values, since our max log2 is 127.
-#[inline]
+#[inline(always)]
 pub fn fast_log10<T: UnsignedInteger>(x: T) -> usize {
     let log2 = fast_log2(x);
     (log2 * 1233) >> 12
@@ -62,7 +62,7 @@ pub fn fast_log10<T: UnsignedInteger>(x: T) -> usize {
 /// This algorithm is described in detail in "Computing the number of digits
 /// of an integer even faster", available
 /// [here](https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/).
-#[inline]
+#[inline(always)]
 pub fn fast_digit_count(x: u32) -> usize {
     const TABLE: [u64; 32] = [
         4294967296,
@@ -114,7 +114,7 @@ pub fn fast_digit_count(x: u32) -> usize {
 /// This algorithm is described in detail in "Computing the number of digits
 /// of an integer even faster", available
 /// [here](https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/).
-#[inline]
+#[inline(always)]
 pub fn fallback_digit_count<T: UnsignedInteger>(x: T, table: &[T]) -> usize {
     // This value is always within 1: calculate if we need to round-up
     // based on a pre-computed table.
@@ -133,7 +133,7 @@ pub trait DigitCount: UnsignedInteger {
 macro_rules! digit_count_unimpl {
     ($($t:ty)*) => ($(
         impl DigitCount for $t {
-            #[inline]
+            #[inline(always)]
             fn digit_count(self) -> usize {
                 unimplemented!()
             }
@@ -144,14 +144,14 @@ macro_rules! digit_count_unimpl {
 digit_count_unimpl! { u8 u16 usize }
 
 impl DigitCount for u32 {
-    #[inline]
+    #[inline(always)]
     fn digit_count(self) -> usize {
         fast_digit_count(self)
     }
 }
 
 impl DigitCount for u64 {
-    #[inline]
+    #[inline(always)]
     fn digit_count(self) -> usize {
         const TABLE: [u64; 19] = [
             10,
@@ -179,7 +179,7 @@ impl DigitCount for u64 {
 }
 
 impl DigitCount for u128 {
-    #[inline]
+    #[inline(always)]
     fn digit_count(self) -> usize {
         const TABLE: [u128; 38] = [
             10,

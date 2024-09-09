@@ -22,7 +22,7 @@ use lexical_util::format::radix_from_flags;
 /// # Safety
 ///
 /// Safe as long as the radix provided is valid.
-#[inline]
+#[inline(always)]
 #[cfg(not(feature = "radix"))]
 pub unsafe fn get_table<const FORMAT: u128, const MASK: u128, const SHIFT: i32>() -> &'static [u8] {
     debug_assert_radix(radix_from_flags(FORMAT, MASK, SHIFT));
