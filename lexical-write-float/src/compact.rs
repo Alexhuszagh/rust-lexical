@@ -25,7 +25,6 @@ use crate::float::{ExtendedFloat80, RawFloat};
 use crate::options::Options;
 use crate::shared;
 use crate::table::GRISU_POWERS_OF_TEN;
-use core::mem;
 use lexical_util::algorithm::rtrim_char_count;
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
@@ -64,9 +63,7 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
     debug_assert!(float >= F::ZERO);
 
     // Write our mantissa digits to a temporary buffer.
-    let digits: mem::MaybeUninit<[u8; 32]> = mem::MaybeUninit::uninit();
-    // SAFETY: safe, since we never read bytes that weren't written.
-    let mut digits = unsafe { digits.assume_init() };
+    let mut digits: [u8; 32] = [0u8; 32];
     let (digit_count, kappa, carried) = if float == F::ZERO {
         // SAFETY: safe since `digits.len() == 32`.
         unsafe { index_unchecked_mut!(digits[0]) = b'0' };
