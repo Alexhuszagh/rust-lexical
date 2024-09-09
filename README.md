@@ -1,5 +1,4 @@
-lexical
-=======
+# lexical
 
 High-performance numeric conversion routines for use in a `no_std` environment. This does not depend on any standard library features, nor a system allocator.
 
@@ -26,7 +25,7 @@ If you want a minimal, stable, and compile-time friendly version of lexical's fl
 - [License](#license)
 - [Contributing](#contributing)
 
-# Getting Started
+## Getting Started
 
 Add lexical to your `Cargo.toml`:
 
@@ -67,7 +66,7 @@ where
 }
 ```
 
-# Partial/Complete Parsers
+## Partial/Complete Parsers
 
 Lexical has both partial and complete parsers: the complete parsers ensure the entire buffer is used while parsing, without ignoring trailing characters, while the partial parsers parse as many characters as possible, returning both the parsed value and the number of parsed digits. Upon encountering an error, lexical will return an error indicating both the error type and the index at which the error occurred inside the buffer.
 
@@ -88,7 +87,7 @@ let x: i32 = lexical_core::parse(b"123 456")?;
 let (x, count): (i32, usize) = lexical_core::parse_partial(b"123 456")?;
 ```
 
-# no_std
+## no_std
 
 `lexical-core` does not depend on a standard library, nor a system allocator. To use `lexical-core` in a `no_std` environment, add the following to `Cargo.toml`:
 
@@ -120,7 +119,7 @@ let d: f64 = lexical_core::parse(b"3.5")?;    // Ok(3.5), error checking parse.
 let d: f64 = lexical_core::parse(b"3a")?;     // Err(Error(_)), failed to parse.
 ```
 
-# Features
+## Features
 
 Lexical feature-gates each numeric conversion routine, resulting in faster compile times if certain numeric conversions. These features can be enabled/disabled for both `lexical-core` (which does not require a system allocator) and `lexical`. By default, all conversions are enabled.
 
@@ -149,7 +148,7 @@ To ensure the safety when bounds checking is disabled, we extensively fuzz the a
 
 Lexical also places a heavy focus on code bloat: with algorithms both optimized for performance and size. By default, this focuses on performance, however, using the `compact` feature, you can also opt-in to reduced code size at the cost of performance. The compact algorithms minimize the use of pre-computed tables and other optimizations at the cost of performance.
 
-# Customization
+## Customization
 
 > ⚠ **WARNING:** If changing the number of significant digits written, disabling the use of exponent notation, or changing exponent notation thresholds, `BUFFER_SIZE` may be insufficient to hold the resulting output. `WriteOptions::buffer_size` will provide a correct upper bound on the number of bytes written. If a buffer of insufficient length is provided, lexical-core will panic.
 
@@ -176,7 +175,7 @@ Due the high variability in the syntax of numbers in different programming and d
 
 A limited subset of functionality is documented in examples below, however, the complete specification can be found in the API reference documentation.
 
-## Number Format API
+### Number Format API
 
 The number format class provides numerous flags to specify number syntax when parsing or writing. When the `power-of-two` feature is enabled, additional flags are added:
 
@@ -213,7 +212,7 @@ const FORMAT: u128 = lexical_core::NumberFormatBuilder::new()
 debug_assert!(lexical_core::format_is_valid::<FORMAT>());
 ```
 
-## Options API
+### Options API
 
 The options API allows customizing number parsing and writing at run-time, such as specifying the maximum number of significant digits, exponent characters, and more.
 
@@ -239,7 +238,7 @@ let options = lexical_core::WriteFloatOptions::builder()
     .unwrap();
 ```
 
-# Documentation
+## Documentation
 
 Lexical's API reference can be found on [docs.rs](https://docs.rs/lexical), as can [lexical-core's](lexical-core). Detailed descriptions of the algorithms used can be found here:
 
@@ -250,7 +249,7 @@ Lexical's API reference can be found on [docs.rs](https://docs.rs/lexical), as c
 
 In addition, descriptions of how lexical handles [digit separators](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/DigitSeparators.md) and implements [big-integer arithmetic](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/BigInteger.md) are also documented.
 
-# Validation
+## Validation
 
 **Float-Parsing**
 
@@ -264,7 +263,7 @@ Float parsing is difficult to do correctly, and major bugs have been found in im
 
 Although lexical may contain bugs leading to rounding error, it is tested against a comprehensive suite of random-data and near-halfway representations, and should be fast and correct for the vast majority of use-cases.
 
-# Metrics
+## Metrics
 
 Various benchmarks, binary sizes, and compile times are shown here:
 
@@ -305,13 +304,13 @@ A benchmark on writing floats generated via a random-number generator and parsed
 
 ![Random Data](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/lexical-write-float/assets/json.svg)
 
-# Safety
+## Safety
 
 Due to the use of memory unsafe code in the integer and float writers, we extensively fuzz our float writers and parsers. The fuzz harnesses may be found under [fuzz](https://github.com/Alexhuszagh/rust-lexical/tree/main/fuzz), and are run continuously. So far, we've parsed and written over 72 billion floats.
 
 Due to the simple logic of the integer writers, and the lack of memory safety in the integer parsers, we minimally fuzz both, and test it with edge-cases, which has shown no memory safety issues to date.
 
-# Platform Support
+## Platform Support
 
 lexical-core is tested on a wide variety of platforms, including big and small-endian systems, to ensure portable code. Supported architectures include:
 - x86_64 Linux, Windows, macOS, Android, iOS, FreeBSD, and NetBSD.
@@ -326,7 +325,7 @@ lexical-core is tested on a wide variety of platforms, including big and small-e
 
 lexical-core should also work on a wide variety of other architectures and ISAs. If you have any issue compiling lexical-core on any architecture, please file a bug report.
 
-# Versioning and Version Support
+## Versioning and Version Support
 
 **Version Support**
 
@@ -349,15 +348,15 @@ Please report any errors compiling a supported lexical-core version on a compati
 
 lexical uses [semantic versioning](https://semver.org/). Removing support for Rustc versions newer than the latest stable Debian or Ubuntu version is considered an incompatible API change, requiring a major version change.
 
-# Changelog
+## Changelog
 
 All changes are documented in [CHANGELOG](https://github.com/Alexhuszagh/rust-lexical/blob/main/CHANGELOG).
 
-# License
+## License
 
 Lexical is dual licensed under the Apache 2.0 license as well as the MIT license. See the [LICENSE.md](LICENSE.md) file for full license details.
 
-# Contributing
+## Contributing
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in lexical by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions. Contributing to the repository means abiding by the [code of conduct](https://github.com/Alexhuszagh/rust-lexical/blob/main/CODE_OF_CONDUCT.md).
 

@@ -1,5 +1,4 @@
-Digit Separators
-================
+# Digit Separators
 
 Supporting performant parsers using digit separators in a no-allocator context is difficult to support correctly with adequate performance. One of the major issues is that the syntax of numbers that accept digit separators varies between implementations.
 
@@ -25,11 +24,11 @@ double x = 1._0;        // invalid
 
 This means any parser must be context-aware, and also understand control characters: a digit separator followed by a decimal point is a trailing digit separator, while one followed by a digit is an internal one.
 
-# Defining Grammar
+## Defining Grammar
 
 Due to the context-aware nature, it's important to define the grammar on how digit separators work:
 
-1. Leading digit separators come before any other input, or after control characters. Any digit separators after a leading digit separator are considered leading, even if consecutive digit separators are not allowed.
+- Leading digit separators come before any other input, or after control characters. Any digit separators after a leading digit separator are considered leading, even if consecutive digit separators are not allowed.
 
 Examples therefore include:
 
@@ -44,7 +43,7 @@ __1.0
 1.0e__5
 ```
 
-2. Trailing digit separators come after any other input, or before control characters. Any digit separators before another trailing digit separator are considered trailing, even if consecutive digit separators are not allowed.
+- Trailing digit separators come after any other input, or before control characters. Any digit separators before another trailing digit separator are considered trailing, even if consecutive digit separators are not allowed.
 
 Examples therefore include:
 
@@ -59,7 +58,7 @@ Examples therefore include:
 1.0e5__
 ```
 
-3. Internal digit separators therefore are any digit separators that cannot be classified as leading or trailing. Likewise, any digit separators that are adjacent to another internal digit separator are considered internal, even if consecutive digit separators are not allowed.
+- Internal digit separators therefore are any digit separators that cannot be classified as leading or trailing. Likewise, any digit separators that are adjacent to another internal digit separator are considered internal, even if consecutive digit separators are not allowed.
 
 Examples therefore include:
 
@@ -78,7 +77,7 @@ Examples therefore include:
 
 This opens up a lot of possibilities: what is a valid control character? In practice, it's much easier to define control characters as every character that's not a valid digit, and therefore to handle parsing we just need to check against valid digits and the digit separator.
 
-# Iterator Design
+## Iterator Design
 
 The iterator is therefore a generic based on the format specification: this allows the iterator to resolve all unnecessary branching at compile time.
 

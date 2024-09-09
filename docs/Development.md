@@ -7,7 +7,7 @@ cargo +nightly build
 cargo +nightly test
 ```
 
-# Code Structure
+## Code Structure
 
 Lexical is broken up into compact, relatively isolated workspaces to separate functionality based on the numeric conversion, minimizing compile times and simplifying testing feature-dependent code. The workspaces are:
 
@@ -26,7 +26,7 @@ Furthermore, any unsafe code uses the following conventions:
 1. Each unsafe function must contain a `# Safety` section.
 2. Unsafe operations/calls in unsafe functions must be marked as unsafe, with their safety guarantees clearly documented via a `// SAFETY:` section.
 
-# Dependencies
+## Dependencies
 
 In order to fully test and develop lexical, a recent, nightly compiler along with following Rust dependencies is required:
 
@@ -57,7 +57,7 @@ In addition, the following non-Rust dependencies must be installed:
 - python-magic (python-magic-win64 on Windows)
 - Valgrind
 
-# Development Process
+## Development Process
 
 The [scripts](https://github.com/Alexhuszagh/rust-lexical/tree/main/scripts) directory contains numerous scripts for testing, fuzzing, analyzing, and formatting code. Since many development features are nightly-only, this ensures the proper compiler features are used. This requires a recent version of a nightly compiler (1.65.0+) installed via Rustup, which can be invoked as `cargo +nightly`.
 
@@ -87,7 +87,7 @@ scripts/check.sh
 SKIP_MIRI=1 scripts/test.sh
 ```
 
-# Safety
+## Safety
 
 In order to ensure memory safety even when using unsafe features, we have the following requirements.
 
@@ -106,6 +106,6 @@ RUSTFLAGS="--deny warnings" cargo +nightly build --features=lint
 cargo +nightly clippy --all-features -- --deny warnings
 ```
 
-# Algorithm Changes
+## Algorithm Changes
 
 Each workspace has a "docs" directory containing detailed descriptions of algorithms and benchmarks. If you make any substantial changes to an algorithm, you should both update the algorithm description and the provided benchmarks.
