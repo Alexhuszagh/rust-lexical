@@ -399,8 +399,8 @@ macro_rules! dtoa_generator {
         $group.bench_function($name, |bench| {
             bench.iter(|| {
                 $iter.for_each(|x| {
-                    dtoa::format(&mut buffer, *x).unwrap();
-                    black_box(&buffer);
+                    let result = dtoa::Buffer::format(&mut buffer, *x);
+                    black_box(result);
                 })
             })
         });
@@ -498,8 +498,7 @@ macro_rules! parse_integer_generator {
 macro_rules! write_float_generator {
     ($group:ident, $type:expr, $iter:expr, $fmt:ident) => {{
         to_lexical_generator!($group, concat!("write_", $type, "_lexical"), $iter);
-        // FIXME: Restore dtoa format later
-        //dtoa_generator!($group, concat!("write_", $type, "_dtoa"), $iter);
+        dtoa_generator!($group, concat!("write_", $type, "_dtoa"), $iter);
         ryu_generator!($group, concat!("write_", $type, "_ryu"), $iter, $fmt);
         fmt_generator!($group, concat!("write_", $type, "_fmt"), $iter);
     }};
