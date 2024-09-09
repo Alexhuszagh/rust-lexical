@@ -18,6 +18,7 @@ from collections import defaultdict
 from pathlib import Path
 
 home = Path(__file__).absolute().parent
+target = home / 'target'
 
 parser = argparse.ArgumentParser(
     prog='Profiling',
@@ -29,8 +30,7 @@ parser.add_argument(
     '--output-file',
     dest='output',
     type=Path,
-    help='The file to save the report to.',
-    default=home / 'target' / 'profiling.json',
+    help='The file name to save the report to. Outputs to target/.',
 )
 parser.add_argument(
     '-p',
@@ -39,11 +39,13 @@ parser.add_argument(
     default='base',
 )
 args = parser.parse_args()
+if args.output is None:
+    args.output = f'profiling_{args.profile}.json'
 
 # the structure is:
 #   criterion -> group -> bench -> profile
 # load all our files, and collate them by group and the like
-criterion = home / 'target' / 'criterion'
+criterion = target / 'criterion'
 files = criterion.rglob(f'*/*/{args.profile}/estimates.json')
 results = defaultdict(lambda: defaultdict(dict))
 for file in files:
@@ -63,5 +65,5 @@ for group, items in results.items():
         profiling[group]['lower'][name] = lower
         profiling[group]['upper'][name] = upper
 
-with open(args.output, 'w', encoding='utf-8') as fp:
+with open(target / args.output, 'w', encoding='utf-8') as fp:
     json.dump(profiling, fp, indent=2)
