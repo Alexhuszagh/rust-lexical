@@ -13,7 +13,4 @@ jobs:
           toolchain: nightly
       - run: cargo check
       - run: cargo build
-      - run: rustup component add --toolchain nightly miri
-      # Test with all features: this won't test the non-compact code paths however
-      - run: cargo miri test --all-features
-      - run: cargo miri test --features radix,format,write-integers,write-floats,parse-integers,parse-floats
+      - run: ci/miri.sh

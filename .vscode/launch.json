@@ -1238,6 +1238,34 @@
             },
             "args": [],
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Run Miri CI tests",
+            "command": "ci/miri.sh",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Run Comprehensive CI tests",
+            "command": "ci/comprehensive.sh",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Run CI checks",
+            "command": "ci/check.sh",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Run CI tests",
+            "command": "ci/test.sh",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
