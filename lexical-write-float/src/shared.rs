@@ -171,6 +171,7 @@ pub unsafe fn write_exponent<const FORMAT: u128>(
 /// Detect the notation to use for the float formatter and call the appropriate function..
 macro_rules! write_float {
     (
+        $float:ident,
         $format:ident,
         $sci_exp:ident,
         $options:ident,
@@ -178,6 +179,7 @@ macro_rules! write_float {
         $write_positive:ident,
         $write_negative:ident,
         $(generic => $generic:tt,)?
+        bytes => $bytes:ident,
         args => $($args:expr,)*
     ) => {{
         use lexical_util::format::NumberFormat;
@@ -191,15 +193,22 @@ macro_rules! write_float {
         if !format.no_exponent_notation() && require_exponent {
             // Write digits in scientific notation.
             // SAFETY: safe as long as bytes is large enough to hold all the digits.
-            unsafe { $write_scientific::<$($generic,)? FORMAT>($($args,)*) }
-        } else if $sci_exp >= 0 {
-            // Write positive exponent without scientific notation.
-            // SAFETY: safe as long as bytes is large enough to hold all the digits.
-            unsafe { $write_positive::<$($generic,)? FORMAT>($($args,)*) }
-        } else {
+            unsafe { $write_scientific::<$($generic,)? FORMAT>($bytes, $($args,)*) }
+        } else if $sci_exp < 0 {
             // Write negative exponent without scientific notation.
             // SAFETY: safe as long as bytes is large enough to hold all the digits.
-            unsafe { $write_negative::<$($generic,)? FORMAT>($($args,)*) }
+            unsafe { $write_negative::<$($generic,)? FORMAT>($bytes, $($args,)*) }
+        } else if $float.is_sign_negative() {
+            // handle this as a positive, just write a leading '-' and then add 1 to our count
+            // # Safety: This is always safe since our buffer is much larger than 1 byte.
+            unsafe { index_unchecked_mut!($bytes[0]) = b'-'; }
+            // # Safety: This is always safe since our buffer is much larger than 1 byte.
+            let bytes = unsafe { &mut index_unchecked_mut!($bytes[1..]) };
+            unsafe { $write_positive::<$($generic,)? FORMAT>(bytes, $($args,)*) + 1 }
+        } else {
+            // Write positive exponent without scientific notation.
+            // SAFETY: safe as long as bytes is large enough to hold all the digits.
+            unsafe { $write_positive::<$($generic,)? FORMAT>($bytes, $($args,)*) }
         }
     }};
 }
