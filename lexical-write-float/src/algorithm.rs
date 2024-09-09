@@ -793,10 +793,11 @@ pub unsafe fn write_digits_u32(bytes: &mut [u8], mantissa: u32) -> usize {
     unsafe { mantissa.write_mantissa::<u32, { STANDARD }>(bytes) }
 }
 
-/// Write the significant digits, when the significant digits cannot fit in a
-/// 32-bit integer. Returns the number of digits written. Note that this
-/// might not be the same as the number of digits in the mantissa, since
-/// trailing zeros will be removed.
+/// Write the significant digits, when the significant digits cannot fit in a 32-bit integer.
+///
+/// Returns the number of digits written. Note that this might not be the
+/// same as the number of digits in the mantissa, since trailing zeros will
+/// be removed.
 ///
 /// # Safety
 ///
@@ -985,7 +986,7 @@ pub const fn divide_by_pow10_32(n: u32, exp: u32) -> u32 {
     if exp == 2 {
         ((n as u64 * 1374389535) >> 37) as u32
     } else {
-        let divisor = pow32(exp as u32, 10);
+        let divisor = pow32(exp, 10);
         n / divisor
     }
 }
@@ -999,7 +1000,7 @@ pub const fn divide_by_pow10_64(n: u64, exp: u32, n_max: u64) -> u64 {
     if exp == 3 && n_max <= 15534100272597517998 {
         umul128_upper64(n, 2361183241434822607) >> 7
     } else {
-        let divisor = pow64(exp as u32, 10);
+        let divisor = pow64(exp, 10);
         n / divisor
     }
 }

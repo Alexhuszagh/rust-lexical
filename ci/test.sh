@@ -1,10 +1,11 @@
 #!/bin/bash
+# shellcheck disable=SC2086,SC2236
 # Run main test suite.
 
 set -ex
 
 # Change to our project home.
-script_dir=`dirname "${BASH_SOURCE[0]}"`
+script_dir=$(dirname "${BASH_SOURCE[0]}")
 cd "$script_dir"/..
 
 # Print our cargo version, for debugging.

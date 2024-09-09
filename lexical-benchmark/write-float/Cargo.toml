@@ -18,7 +18,7 @@ features = []
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
 dtoa = "1.0.9"
-fastrand = "2.1.1"
+fastrand = "2.1.0"
 lazy_static = "1"
 ryu = "1.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -31,7 +31,8 @@ radix = ["lexical-util/radix", "lexical-write-float/radix"]
 power-of-two = ["lexical-util/power-of-two", "lexical-write-float/power-of-two"]
 format = ["lexical-util/format", "lexical-write-float/format"]
 compact = ["lexical-util/compact", "lexical-write-float/compact"]
-floats = []
+integers = ["lexical-util/integers"]
+floats = ["lexical-util/floats"]
 json = []
 
 [[bench]]

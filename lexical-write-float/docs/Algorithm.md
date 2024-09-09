@@ -20,7 +20,7 @@ This also allows us to use a simple, highly-optimized algorithm rather than heav
 
 Compilers optimize division/remainder by a constant efficiently: the result is 2 multiplication instructions (on x86) and with similar efficiency for common architectures (32-bit ARM/THUMB, 64-bit ARM, PowerPC64, MIPS, etc.). In short, the difference in performance is <3%, and has no impact on the overall algorithm efficiency.
 
-3. When truncating the representation, we still use round-nearest, tie-even for the rounding mode. 
+3. When truncating the representation, we still use round-nearest, tie-even for the rounding mode.
 
 In order to determine rounding, Dragonbox calculates boundaries (called endpoints) based on the interval for `w`, or the float we are trying to print. We therefore define that `w-` is the largest, positive float smaller than `w`, and `w+` is the smallest, positive float larger than `w`. For round-nearest rounding algorithms, the interval is bounded by the arithmetic mean (`I = [m−w,m+w]` where `m-w := (w- + w) / 2` and `m+w := (w + w+) / 2`). For round-to-zero, the interval is bounded by the next, larger float (`I = [w,w+)`), which can paradoxically cause unexpected round-up when creating truncated representations. Likewise, the round-to-∞ algorithm is bounded by the previous, smaller float (`I = (w-,w]`), which can paradoxically cause unexpected round-down when creating truncated representations.
 

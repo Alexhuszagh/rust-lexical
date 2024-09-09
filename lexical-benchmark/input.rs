@@ -395,16 +395,12 @@ macro_rules! to_lexical_generator {
 
 macro_rules! dtoa_generator {
     ($group:ident, $name:expr, $iter:expr) => {{
-        use lexical_util::constants::BUFFER_SIZE;
-        let mut buffer = vec![b'0'; BUFFER_SIZE];
+        let mut buffer = dtoa::Buffer::new();
         $group.bench_function($name, |bench| {
             bench.iter(|| {
                 $iter.for_each(|x| {
-                    dtoa::write(&mut buffer, *x).unwrap();
+                    dtoa::format(&mut buffer, *x).unwrap();
                     black_box(&buffer);
-                    unsafe {
-                        buffer.set_len(0);
-                    } // Way faster than Vec::clear().
                 })
             })
         });
@@ -502,7 +498,8 @@ macro_rules! parse_integer_generator {
 macro_rules! write_float_generator {
     ($group:ident, $type:expr, $iter:expr, $fmt:ident) => {{
         to_lexical_generator!($group, concat!("write_", $type, "_lexical"), $iter);
-        dtoa_generator!($group, concat!("write_", $type, "_dtoa"), $iter);
+        // FIXME: Restore dtoa format later
+        //dtoa_generator!($group, concat!("write_", $type, "_dtoa"), $iter);
         ryu_generator!($group, concat!("write_", $type, "_ryu"), $iter, $fmt);
         fmt_generator!($group, concat!("write_", $type, "_fmt"), $iter);
     }};

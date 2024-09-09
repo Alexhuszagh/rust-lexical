@@ -35,7 +35,7 @@ fn fast_div(v: u32) -> (u32, u32) {
     let max_precision = 14;
     let additional_precision = 5;
 
-    let left_end = (((1 << (max_precision + additional_precision)) + divisor - 1) / divisor) as u32;
+    let left_end = ((1 << (max_precision + additional_precision)) + divisor - 1) / divisor;
     let quotient = (v.wrapping_mul(left_end)) >> (max_precision + additional_precision);
     let remainder = v - divisor * quotient;
 

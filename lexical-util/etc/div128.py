@@ -18,12 +18,14 @@ import math
 u64_max = 2**64 - 1
 u128_max = 2**128-1
 
+
 def is_valid(x):
     '''Determine if the power is valid.'''
     return (
         x <= u64_max
         and (u128_max / (x**2)) < x
     )
+
 
 def find_power(radix):
     '''Find the power of the divisor.'''
@@ -32,6 +34,7 @@ def find_power(radix):
     while is_valid(radix**start_power):
         start_power += 1
     return start_power - 1
+
 
 def choose_multiplier(divisor, bits, is_signed=False):
     '''
@@ -58,6 +61,7 @@ def choose_multiplier(divisor, bits, is_signed=False):
 
     return (m_high, sh_post, div_bits)
 
+
 def fast_shift(divisor):
     '''
     Check if we can do a fast shift for quick division as a smaller type.
@@ -68,6 +72,7 @@ def fast_shift(divisor):
     while divisor % 2**(n + 1) == 0:
         n += 1
     return n
+
 
 def is_pow2(radix):
     '''Determine if the value is an exact power-of-two.'''
@@ -86,6 +91,7 @@ def print_comment():
 // in the function signatures of the functions they call.
 ''')
 
+
 def print_pow2(radix):
     '''Print the function for a power-of-two radix.'''
 
@@ -100,6 +106,7 @@ def print_pow2(radix):
     print('}')
     print('')
 
+
 def print_fast(radix, divisor, fast_shr, factor, factor_shr):
     '''Print the function for the fastest division algorithm.'''
 
@@ -110,6 +117,7 @@ def print_fast(radix, divisor, fast_shr, factor, factor_shr):
     print('}')
     print('')
 
+
 def print_moderate(radix, divisor, factor, factor_shr):
     '''Print the function for the moderate division algorithm.'''
 
@@ -118,6 +126,7 @@ def print_moderate(radix, divisor, factor, factor_shr):
     print(f'    moderate_u128_divrem(n, {divisor}, {factor}, {factor_shr})')
     print('}')
     print('')
+
 
 def print_slow(radix, divisor):
     '''Print the function for the slow division algorithm.'''
@@ -128,6 +137,7 @@ def print_slow(radix, divisor):
     print(f'    slow_u128_divrem(n, {divisor}, {ctlz})')
     print('}')
     print('')
+
 
 def divisor_constants():
     '''Generate all the divisor constants for all radices.'''
@@ -156,10 +166,11 @@ def divisor_constants():
 # PYTHON LOGIC
 # This is the approach, in Python, for how to do this.
 
+
 def u128_mulhi(x, y):
     '''Multiply 2 128-bit integers, and get the high 128 bits.'''
 
-    lo_mask = (1<<64) - 1
+    lo_mask = (1 << 64) - 1
     x_lo = x & lo_mask
     x_hi = x >> 64
     y_lo = y & lo_mask
@@ -174,17 +185,19 @@ def u128_mulhi(x, y):
 
     return x_hi * y_hi + high1 + high2
 
+
 def udiv128(n, divisor=10**19):
     '''Do an exact division using pre-computed values.'''
 
     factor, factor_shr, _ = choose_multiplier(divisor, 128)
     shr = fast_shift(divisor)
-    if n < (1<<(64 + shr)):
+    if n < (1 << (64 + shr)):
         quotient = (n >> shr) // (divisor >> shr)
     else:
         quotient = u128_mulhi(n, factor) >> factor_shr
     remainder = (n - quotient * divisor)
     return (quotient, remainder)
+
 
 if __name__ == '__main__':
     divisor_constants()

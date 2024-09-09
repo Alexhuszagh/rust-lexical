@@ -145,8 +145,8 @@ let min_value = 10u64.pow(max as u32 - 1);
 let max_value = i64::MAX as u64 + 1;
 let is_overflow = count > max
     || (count == max && (
-        value < min_value 
-        || value > max_value 
+        value < min_value
+        || value > max_value
         || (!is_negative && value == max_value)
     ));
 ```

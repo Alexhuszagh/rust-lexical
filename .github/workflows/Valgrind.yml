@@ -10,12 +10,11 @@ jobs:
     strategy:
       fail-fast: true
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install latest nightly
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
             toolchain: nightly
-            override: true
       - run: sudo apt-get update
       - run: sudo apt-get install valgrind
       - run: cargo +nightly install cargo-valgrind

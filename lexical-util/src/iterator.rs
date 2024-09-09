@@ -124,7 +124,6 @@ pub trait BytesIter<'a>: Iterator<Item = &'a u8> {
     /// This advances the internal state of the iterator.
     fn read_u32(&self) -> Option<u32>;
 
-
     /// Try to read the next eight bytes as a u64
     /// This advances the internal state of the iterator.
     fn read_u64(&self) -> Option<u64>;

@@ -187,7 +187,7 @@ fn karatsuba_mul_algo(big: &mut bigint::Bigint, y: &[bigint::Limb]) {
 // GENERATOR
 
 #[inline(always)]
-fn new_limb(rng: &Rng) -> bigint::Limb {
+fn new_limb(rng: &mut Rng) -> bigint::Limb {
     if bigint::LIMB_BITS == 32 {
         rng.u32(..) as bigint::Limb
     } else {
@@ -200,10 +200,10 @@ macro_rules! generator {
         $group.bench_function($name, |bench| {
             let mut big = bigint::Bigint::new();
             let seed = fastrand::u64(..);
-            let rng = Rng::with_seed(seed);
+            let mut rng = Rng::with_seed(seed);
             bench.iter(|| {
                 unsafe { big.data.set_len(0) };
-                big.data.try_push(new_limb(&rng)).unwrap();
+                big.data.try_push(new_limb(&mut rng)).unwrap();
                 // Don't go any higher than 300.
                 $cb(&mut big, rng.u32(1..300));
                 black_box(&big);
@@ -220,18 +220,18 @@ macro_rules! generator {
         $group.bench_function($name, |bench| {
             let mut big = bigint::Bigint::new();
             let seed = fastrand::u64(..);
-            let rng = Rng::with_seed(seed);
+            let mut rng = Rng::with_seed(seed);
             bench.iter(|| {
                 unsafe { big.data.set_len(0) };
                 // Don't go higher than 20, since we a minimum of 60 limbs.
                 let count = rng.usize(1..20);
                 for _ in 0..count {
-                    big.data.try_push(new_limb(&rng)).unwrap();
+                    big.data.try_push(new_limb(&mut rng)).unwrap();
                 }
                 let count = rng.usize(1..20);
                 let mut vec: Vec<bigint::Limb> = Vec::new();
                 for _ in 0..count {
-                    vec.push(new_limb(&rng));
+                    vec.push(new_limb(&mut rng));
                 }
 
                 // Don't go any higher than 300.

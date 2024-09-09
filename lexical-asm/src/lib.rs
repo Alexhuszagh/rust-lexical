@@ -83,6 +83,7 @@ pub struct ParseIntError {
     pub kind: IntErrorKind,
 }
 
+#[allow(dead_code)]
 trait FromStrRadixHelper: PartialOrd + Copy {
     fn min_value() -> Self;
     fn max_value() -> Self;

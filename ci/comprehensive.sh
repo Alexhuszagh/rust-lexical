@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2086,SC2236
 # Run a small subset of our comprehensive test suite.
 
 set -ex
@@ -7,8 +8,8 @@ set -ex
 cargo --version
 
 # Change to our project home.
-script_dir=`dirname "${BASH_SOURCE[0]}"`
-script_home=`realpath "$script_dir"`
+script_dir=$(dirname "${BASH_SOURCE[0]}")
+script_home=$(realpath "$script_dir")
 cd "$script_home"/..
 
 FEATURES=

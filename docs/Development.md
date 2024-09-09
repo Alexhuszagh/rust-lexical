@@ -59,7 +59,7 @@ In addition, the following non-Rust dependencies must be installed:
 
 # Development Process
 
-The [scripts](https://github.com/Alexhuszagh/rust-lexical/tree/main/scripts) directory contains numerous scripts for testing, fuzzing, analyzing, and formatting code. Since many development features are nightly-only, this ensures the proper compiler features are used. This requires a recent version of a nightly compiler (1.51.0+) installed via Rustup, which can be invoked as `cargo +nightly`.
+The [scripts](https://github.com/Alexhuszagh/rust-lexical/tree/main/scripts) directory contains numerous scripts for testing, fuzzing, analyzing, and formatting code. Since many development features are nightly-only, this ensures the proper compiler features are used. This requires a recent version of a nightly compiler (1.65.0+) installed via Rustup, which can be invoked as `cargo +nightly`.
 
 - [asm.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/asm.sh): Emit assembly for numeric conversion routines, to identify performance regression.
 - [bench.sh](https://github.com/Alexhuszagh/rust-lexical/blob/main/scripts/bench.sh): Check the benchmarks compile and run.
@@ -82,7 +82,7 @@ All PRs must pass the following checks:
 RUSTFLAGS="--deny warnings" cargo +nightly build --features=lint
 # Ensure all rustfmt and clippy checks pass.
 scripts/check.sh
-# Ensure all tests pass with common feature combinations. 
+# Ensure all tests pass with common feature combinations.
 # Miri is too slow, so skip those tests for most commits.
 SKIP_MIRI=1 scripts/test.sh
 ```
