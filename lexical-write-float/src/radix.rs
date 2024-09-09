@@ -14,7 +14,6 @@
 
 use crate::options::{Options, RoundMode};
 use crate::shared;
-use core::mem;
 use lexical_util::algorithm::{ltrim_char_count, rtrim_char_count};
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 use lexical_util::digit::{char_to_digit_const, digit_to_char_const};
@@ -67,10 +66,7 @@ where
     // either way, with additional space for sign, decimal point and string
     // termination should be sufficient.
     const SIZE: usize = 2200;
-    let buffer: mem::MaybeUninit<[u8; SIZE]> = mem::MaybeUninit::uninit();
-    // SAFETY: safe, since we never read bytes that weren't written.
-    let mut buffer = unsafe { buffer.assume_init() };
-    //let buffer = buffer.as_mut_ptr();
+    let mut buffer = [0u8; SIZE];
     let initial_cursor: usize = SIZE / 2;
     let mut integer_cursor = initial_cursor;
     let mut fraction_cursor = initial_cursor;

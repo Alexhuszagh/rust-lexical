@@ -7,10 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added fuzzing and miri code safety analysis to our CI pipelines.
+- Removed requirement of `alloc` in `no_std` ennvironments without the `write` feature.
+
 ### Changed
 
 - Updated the MSRV to 1.63.0 (1.65.0 for development).
 - Improved performance due to compiler regressions in rustc 1.81.0 and above.
+
+### Fixed
+
+- Removed use of undefined behavior in `MaybeUninit`.
+- Provide better safety documentation.
+- Parsing of Ruby float literals.
+- Performance regressions in Rust 1.81.0+.
+- Removed incorrect bounds checking in reading from iterators.
+- Overflow checking with integer parsing.
+- Writing `-0.0` with a leading `-`.
 
 ### Removed
 
