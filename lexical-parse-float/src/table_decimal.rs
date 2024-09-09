@@ -14,46 +14,31 @@ use static_assertions::const_assert;
 // -------
 
 /// Get lookup table for small int powers.
-///
-/// # Safety
-///
-/// Safe as long as the radix provided is valid, and exponent is smaller
-/// than the table for the radix.
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
-pub unsafe fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
+pub fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
     // NOTE: don't check the radix since we also use it for half radix, or 5.
     match radix {
-        5 => unsafe { get_small_int_power5(exponent) },
-        10 => unsafe { get_small_int_power10(exponent) },
+        5 => get_small_int_power5(exponent),
+        10 => get_small_int_power10(exponent),
         _ => unreachable!(),
     }
 }
 
 /// Get lookup table for small f32 powers.
-///
-/// # Safety
-///
-/// Safe as long as the radix provided is valid, and exponent is smaller
-/// than the table for the radix.
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
-pub unsafe fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
+pub fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
     debug_assert_radix(radix);
-    unsafe { get_small_f32_power10(exponent) }
+    get_small_f32_power10(exponent)
 }
 
 /// Get lookup table for small f64 powers.
-///
-/// # Safety
-///
-/// Safe as long as the radix provided is valid, and exponent is smaller
-/// than the table for the radix.
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
-pub unsafe fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
+pub fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
     debug_assert_radix(radix);
-    unsafe { get_small_f64_power10(exponent) }
+    get_small_f64_power10(exponent)
 }
 
 /// Get pre-computed power for a large power of radix.
@@ -63,43 +48,27 @@ pub const fn get_large_int_power(_: u32) -> (&'static [Limb], u32) {
 }
 
 /// Get pre-computed int power of 5.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW5.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power5(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW5[exponent]) }
+pub fn get_small_int_power5(exponent: usize) -> u64 {
+    SMALL_INT_POW5[exponent]
 }
 
 /// Get pre-computed int power of 10.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW10.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power10(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW10[exponent]) }
+pub fn get_small_int_power10(exponent: usize) -> u64 {
+    SMALL_INT_POW10[exponent]
 }
 
 /// Get pre-computed f32 power of 10.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW10.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power10(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW10[exponent]) }
+pub fn get_small_f32_power10(exponent: usize) -> f32 {
+    SMALL_F32_POW10[exponent]
 }
 
 /// Get pre-computed f64 power of 10.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW10.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power10(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW10[exponent]) }
+pub fn get_small_f64_power10(exponent: usize) -> f64 {
+    SMALL_F64_POW10[exponent]
 }
 
 // TABLES
