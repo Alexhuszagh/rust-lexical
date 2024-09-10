@@ -6,8 +6,6 @@
 #[cfg(not(feature = "radix"))]
 use crate::bigint::Limb;
 use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit, u64_power_limit};
-#[cfg(not(feature = "power-of-two"))]
-use lexical_util::assert::debug_assert_radix;
 use static_assertions::const_assert;
 
 // HELPERS
@@ -16,7 +14,7 @@ use static_assertions::const_assert;
 /// Get lookup table for small int powers.
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
-pub fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
+pub const fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
     // NOTE: don't check the radix since we also use it for half radix, or 5.
     match radix {
         5 => get_small_int_power5(exponent),
@@ -29,7 +27,7 @@ pub fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
 pub fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
-    debug_assert_radix(radix);
+    _ = radix;
     get_small_f32_power10(exponent)
 }
 
@@ -37,7 +35,7 @@ pub fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
 #[inline(always)]
 #[cfg(not(feature = "power-of-two"))]
 pub fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
-    debug_assert_radix(radix);
+    _ = radix;
     get_small_f64_power10(exponent)
 }
 
@@ -49,13 +47,13 @@ pub const fn get_large_int_power(_: u32) -> (&'static [Limb], u32) {
 
 /// Get pre-computed int power of 5.
 #[inline(always)]
-pub fn get_small_int_power5(exponent: usize) -> u64 {
+pub const fn get_small_int_power5(exponent: usize) -> u64 {
     SMALL_INT_POW5[exponent]
 }
 
 /// Get pre-computed int power of 10.
 #[inline(always)]
-pub fn get_small_int_power10(exponent: usize) -> u64 {
+pub const fn get_small_int_power10(exponent: usize) -> u64 {
     SMALL_INT_POW10[exponent]
 }
 

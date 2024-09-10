@@ -17,9 +17,7 @@ use static_assertions::const_assert;
 
 /// Get lookup table for 2 digit radix conversions.
 #[inline(always)]
-pub fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
-    debug_assert_radix(radix);
-    // TODO: Change this to take a format so we can validate it at compile time?
+pub const fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
     match radix {
         2 => get_small_int_power2(exponent),
         3 => get_small_int_power3(exponent),
@@ -64,7 +62,6 @@ pub fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
 #[inline(always)]
 pub fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
     debug_assert_radix(radix);
-    // TODO: Change this to take a format so we can validate it at compile time?
     match radix {
         2 => get_small_f32_power2(exponent),
         3 => get_small_f32_power3(exponent),
@@ -175,7 +172,7 @@ pub const fn get_large_int_power(radix: u32) -> (&'static [Limb], u32) {
 
 /// Get pre-computed int power of 3.
 #[inline(always)]
-pub fn get_small_int_power3(exponent: usize) -> u64 {
+pub const fn get_small_int_power3(exponent: usize) -> u64 {
     SMALL_INT_POW3[exponent]
 }
 
@@ -205,7 +202,7 @@ pub fn get_small_f64_power5(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 6.
 #[inline(always)]
-pub fn get_small_int_power6(exponent: usize) -> u64 {
+pub const fn get_small_int_power6(exponent: usize) -> u64 {
     SMALL_INT_POW6[exponent]
 }
 
@@ -223,7 +220,7 @@ pub fn get_small_f64_power6(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 7.
 #[inline(always)]
-pub fn get_small_int_power7(exponent: usize) -> u64 {
+pub const fn get_small_int_power7(exponent: usize) -> u64 {
     SMALL_INT_POW7[exponent]
 }
 
@@ -241,7 +238,7 @@ pub fn get_small_f64_power7(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 9.
 #[inline(always)]
-pub fn get_small_int_power9(exponent: usize) -> u64 {
+pub const fn get_small_int_power9(exponent: usize) -> u64 {
     SMALL_INT_POW9[exponent]
 }
 
@@ -259,7 +256,7 @@ pub fn get_small_f64_power9(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 11.
 #[inline(always)]
-pub fn get_small_int_power11(exponent: usize) -> u64 {
+pub const fn get_small_int_power11(exponent: usize) -> u64 {
     SMALL_INT_POW11[exponent]
 }
 
@@ -277,7 +274,7 @@ pub fn get_small_f64_power11(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 12.
 #[inline(always)]
-pub fn get_small_int_power12(exponent: usize) -> u64 {
+pub const fn get_small_int_power12(exponent: usize) -> u64 {
     SMALL_INT_POW12[exponent]
 }
 
@@ -295,7 +292,7 @@ pub fn get_small_f64_power12(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 13.
 #[inline(always)]
-pub fn get_small_int_power13(exponent: usize) -> u64 {
+pub const fn get_small_int_power13(exponent: usize) -> u64 {
     SMALL_INT_POW13[exponent]
 }
 
@@ -313,7 +310,7 @@ pub fn get_small_f64_power13(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 14.
 #[inline(always)]
-pub fn get_small_int_power14(exponent: usize) -> u64 {
+pub const fn get_small_int_power14(exponent: usize) -> u64 {
     SMALL_INT_POW14[exponent]
 }
 
@@ -331,7 +328,7 @@ pub fn get_small_f64_power14(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 15.
 #[inline(always)]
-pub fn get_small_int_power15(exponent: usize) -> u64 {
+pub const fn get_small_int_power15(exponent: usize) -> u64 {
     SMALL_INT_POW15[exponent]
 }
 
@@ -349,7 +346,7 @@ pub fn get_small_f64_power15(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 17.
 #[inline(always)]
-pub fn get_small_int_power17(exponent: usize) -> u64 {
+pub const fn get_small_int_power17(exponent: usize) -> u64 {
     SMALL_INT_POW17[exponent]
 }
 
@@ -367,7 +364,7 @@ pub fn get_small_f64_power17(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 18.
 #[inline(always)]
-pub fn get_small_int_power18(exponent: usize) -> u64 {
+pub const fn get_small_int_power18(exponent: usize) -> u64 {
     SMALL_INT_POW18[exponent]
 }
 
@@ -385,7 +382,7 @@ pub fn get_small_f64_power18(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 19.
 #[inline(always)]
-pub fn get_small_int_power19(exponent: usize) -> u64 {
+pub const fn get_small_int_power19(exponent: usize) -> u64 {
     SMALL_INT_POW19[exponent]
 }
 
@@ -403,7 +400,7 @@ pub fn get_small_f64_power19(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 20.
 #[inline(always)]
-pub fn get_small_int_power20(exponent: usize) -> u64 {
+pub const fn get_small_int_power20(exponent: usize) -> u64 {
     SMALL_INT_POW20[exponent]
 }
 
@@ -421,7 +418,7 @@ pub fn get_small_f64_power20(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 21.
 #[inline(always)]
-pub fn get_small_int_power21(exponent: usize) -> u64 {
+pub const fn get_small_int_power21(exponent: usize) -> u64 {
     SMALL_INT_POW21[exponent]
 }
 
@@ -439,7 +436,7 @@ pub fn get_small_f64_power21(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 22.
 #[inline(always)]
-pub fn get_small_int_power22(exponent: usize) -> u64 {
+pub const fn get_small_int_power22(exponent: usize) -> u64 {
     SMALL_INT_POW22[exponent]
 }
 
@@ -457,7 +454,7 @@ pub fn get_small_f64_power22(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 23.
 #[inline(always)]
-pub fn get_small_int_power23(exponent: usize) -> u64 {
+pub const fn get_small_int_power23(exponent: usize) -> u64 {
     SMALL_INT_POW23[exponent]
 }
 
@@ -475,7 +472,7 @@ pub fn get_small_f64_power23(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 24.
 #[inline(always)]
-pub fn get_small_int_power24(exponent: usize) -> u64 {
+pub const fn get_small_int_power24(exponent: usize) -> u64 {
     SMALL_INT_POW24[exponent]
 }
 
@@ -493,7 +490,7 @@ pub fn get_small_f64_power24(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 25.
 #[inline(always)]
-pub fn get_small_int_power25(exponent: usize) -> u64 {
+pub const fn get_small_int_power25(exponent: usize) -> u64 {
     SMALL_INT_POW25[exponent]
 }
 
@@ -511,7 +508,7 @@ pub fn get_small_f64_power25(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 26.
 #[inline(always)]
-pub fn get_small_int_power26(exponent: usize) -> u64 {
+pub const fn get_small_int_power26(exponent: usize) -> u64 {
     SMALL_INT_POW26[exponent]
 }
 
@@ -529,7 +526,7 @@ pub fn get_small_f64_power26(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 27.
 #[inline(always)]
-pub fn get_small_int_power27(exponent: usize) -> u64 {
+pub const fn get_small_int_power27(exponent: usize) -> u64 {
     SMALL_INT_POW27[exponent]
 }
 
@@ -547,7 +544,7 @@ pub fn get_small_f64_power27(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 28.
 #[inline(always)]
-pub fn get_small_int_power28(exponent: usize) -> u64 {
+pub const fn get_small_int_power28(exponent: usize) -> u64 {
     SMALL_INT_POW28[exponent]
 }
 
@@ -565,7 +562,7 @@ pub fn get_small_f64_power28(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 29.
 #[inline(always)]
-pub fn get_small_int_power29(exponent: usize) -> u64 {
+pub const fn get_small_int_power29(exponent: usize) -> u64 {
     SMALL_INT_POW29[exponent]
 }
 
@@ -583,7 +580,7 @@ pub fn get_small_f64_power29(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 30.
 #[inline(always)]
-pub fn get_small_int_power30(exponent: usize) -> u64 {
+pub const fn get_small_int_power30(exponent: usize) -> u64 {
     SMALL_INT_POW30[exponent]
 }
 
@@ -601,7 +598,7 @@ pub fn get_small_f64_power30(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 31.
 #[inline(always)]
-pub fn get_small_int_power31(exponent: usize) -> u64 {
+pub const fn get_small_int_power31(exponent: usize) -> u64 {
     SMALL_INT_POW31[exponent]
 }
 
@@ -619,7 +616,7 @@ pub fn get_small_f64_power31(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 33.
 #[inline(always)]
-pub fn get_small_int_power33(exponent: usize) -> u64 {
+pub const fn get_small_int_power33(exponent: usize) -> u64 {
     SMALL_INT_POW33[exponent]
 }
 
@@ -637,7 +634,7 @@ pub fn get_small_f64_power33(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 34.
 #[inline(always)]
-pub fn get_small_int_power34(exponent: usize) -> u64 {
+pub const fn get_small_int_power34(exponent: usize) -> u64 {
     SMALL_INT_POW34[exponent]
 }
 
@@ -655,7 +652,7 @@ pub fn get_small_f64_power34(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 35.
 #[inline(always)]
-pub fn get_small_int_power35(exponent: usize) -> u64 {
+pub const fn get_small_int_power35(exponent: usize) -> u64 {
     SMALL_INT_POW35[exponent]
 }
 
@@ -673,7 +670,7 @@ pub fn get_small_f64_power35(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 36.
 #[inline(always)]
-pub fn get_small_int_power36(exponent: usize) -> u64 {
+pub const fn get_small_int_power36(exponent: usize) -> u64 {
     SMALL_INT_POW36[exponent]
 }
 

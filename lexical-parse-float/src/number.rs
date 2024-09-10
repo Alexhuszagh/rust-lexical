@@ -73,23 +73,19 @@ impl<'a> Number<'a> {
                 // normal fast path
                 let value = F::as_cast(self.mantissa);
                 if self.exponent < 0 {
-                    // SAFETY: safe, since the `exponent <= max_exponent`.
-                    value / unsafe { F::pow_fast_path((-self.exponent) as _, radix) }
+                    value / F::pow_fast_path((-self.exponent) as _, radix)
                 } else {
-                    // SAFETY: safe, since the `exponent <= max_exponent`.
-                    value * unsafe { F::pow_fast_path(self.exponent as _, radix) }
+                    value * F::pow_fast_path(self.exponent as _, radix)
                 }
             } else {
                 // disguised fast path
                 let shift = self.exponent - max_exponent;
-                // SAFETY: safe, since `shift <= (max_disguised - max_exponent)`.
-                let int_power = unsafe { F::int_pow_fast_path(shift as usize, radix) };
+                let int_power = F::int_pow_fast_path(shift as usize, radix);
                 let mantissa = self.mantissa.checked_mul(int_power)?;
                 if mantissa > F::MAX_MANTISSA_FAST_PATH {
                     return None;
                 }
-                // SAFETY: safe, since the `table.len() - 1 == max_exponent`.
-                F::as_cast(mantissa) * unsafe { F::pow_fast_path(max_exponent as _, radix) }
+                F::as_cast(mantissa) * F::pow_fast_path(max_exponent as _, radix)
             };
             if self.is_negative {
                 value = -value;
@@ -116,20 +112,16 @@ impl<'a> Number<'a> {
         let mut exponent = self.exponent.abs();
         if self.exponent < 0 {
             while exponent > max_exponent {
-                // SAFETY: safe, since pow_fast_path is always safe for max_exponent.
-                value /= unsafe { F::pow_fast_path(max_exponent as _, radix) };
+                value /= F::pow_fast_path(max_exponent as _, radix);
                 exponent -= max_exponent;
             }
-            // SAFETY: safe, since the `exponent < max_exponent`.
-            value /= unsafe { F::pow_fast_path(exponent as _, radix) };
+            value /= F::pow_fast_path(exponent as _, radix);
         } else {
             while exponent > max_exponent {
-                // SAFETY: safe, since pow_fast_path is always safe for max_exponent.
-                value *= unsafe { F::pow_fast_path(max_exponent as _, radix) };
+                value *= F::pow_fast_path(max_exponent as _, radix);
                 exponent -= max_exponent;
             }
-            // SAFETY: safe, since the `exponent < max_exponent`.
-            value *= unsafe { F::pow_fast_path(exponent as _, radix) };
+            value *= F::pow_fast_path(exponent as _, radix);
         }
         if self.is_negative {
             value = -value;

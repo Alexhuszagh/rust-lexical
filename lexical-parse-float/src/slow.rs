@@ -296,14 +296,10 @@ macro_rules! add_temporary {
     };
 
     // Add a temporary where we won't read the counter results internally.
-    //
-    // # Safety
-    //
-    // Safe is `counter <= step`, or smaller than the table size.
     (@end $format:ident, $result:ident, $counter:ident, $value:ident) => {
         if $counter != 0 {
             // SAFETY: safe, since `counter <= step`, or smaller than the table size.
-            let small_power = unsafe { f64::int_pow_fast_path($counter, $format.radix()) };
+            let small_power = f64::int_pow_fast_path($counter, $format.radix());
             add_temporary!(@mul $result, small_power as Limb, $value);
         }
     };

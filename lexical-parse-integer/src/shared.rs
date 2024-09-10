@@ -283,7 +283,7 @@ macro_rules! algorithm {
                     c.to_ascii_lowercase() == base_prefix.to_ascii_lowercase()
                 };
                 if is_prefix {
-                    // SAFETY: safe since we `byte.len() >= 1`.
+                    // SAFETY: safe since we `byte.len() >= 1` (we got an item from peek).
                     unsafe { iter.step_unchecked() };
                     if iter.is_done() {
                         return into_error!(Empty, iter.cursor());

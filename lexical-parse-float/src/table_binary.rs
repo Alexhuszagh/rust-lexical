@@ -6,8 +6,6 @@
 
 #[cfg(not(feature = "radix"))]
 use crate::table_decimal::*;
-#[cfg(not(feature = "radix"))]
-use lexical_util::assert::debug_assert_radix;
 use lexical_util::num::Float;
 
 // HELPERS
@@ -21,20 +19,17 @@ use lexical_util::num::Float;
 /// than the table for the radix.
 #[inline(always)]
 #[cfg(not(feature = "radix"))]
-pub fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
+pub const fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
     // NOTE: don't check the radix since we also use it for half radix, or 5.
-    // TODO: Change this to take a format so we can validate it at compile time?
-    unsafe {
-        match radix {
-            2 => get_small_int_power2(exponent),
-            4 => get_small_int_power4(exponent),
-            5 => get_small_int_power5(exponent),
-            8 => get_small_int_power8(exponent),
-            10 => get_small_int_power10(exponent),
-            16 => get_small_int_power16(exponent),
-            32 => get_small_int_power32(exponent),
-            _ => unreachable!(),
-        }
+    match radix {
+        2 => get_small_int_power2(exponent),
+        4 => get_small_int_power4(exponent),
+        5 => get_small_int_power5(exponent),
+        8 => get_small_int_power8(exponent),
+        10 => get_small_int_power10(exponent),
+        16 => get_small_int_power16(exponent),
+        32 => get_small_int_power32(exponent),
+        _ => unreachable!(),
     }
 }
 
@@ -42,8 +37,6 @@ pub fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
 #[inline(always)]
 #[cfg(not(feature = "radix"))]
 pub fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
-    // TODO: Change this to take a format so we can validate it at compile time?
-    debug_assert_radix(radix);
     match radix {
         2 => get_small_f32_power2(exponent),
         4 => get_small_f32_power4(exponent),
@@ -64,7 +57,6 @@ pub fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
 #[inline(always)]
 #[cfg(not(feature = "radix"))]
 pub fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
-    debug_assert_radix(radix);
     match radix {
         2 => get_small_f64_power2(exponent),
         4 => get_small_f64_power4(exponent),
@@ -83,7 +75,7 @@ pub fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
 
 /// Get pre-computed int power of 2.
 #[inline(always)]
-pub fn get_small_int_power2(exponent: usize) -> u64 {
+pub const fn get_small_int_power2(exponent: usize) -> u64 {
     1 << exponent
 }
 
@@ -109,7 +101,7 @@ pub fn get_small_f64_power2(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 4.
 #[inline(always)]
-pub fn get_small_int_power4(exponent: usize) -> u64 {
+pub const fn get_small_int_power4(exponent: usize) -> u64 {
     get_small_int_power2(2 * exponent)
 }
 
@@ -127,7 +119,7 @@ pub fn get_small_f64_power4(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 8.
 #[inline(always)]
-pub fn get_small_int_power8(exponent: usize) -> u64 {
+pub const fn get_small_int_power8(exponent: usize) -> u64 {
     get_small_int_power2(3 * exponent)
 }
 
@@ -145,7 +137,7 @@ pub fn get_small_f64_power8(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 16.
 #[inline(always)]
-pub fn get_small_int_power16(exponent: usize) -> u64 {
+pub const fn get_small_int_power16(exponent: usize) -> u64 {
     get_small_int_power2(4 * exponent)
 }
 
@@ -163,7 +155,7 @@ pub fn get_small_f64_power16(exponent: usize) -> f64 {
 
 /// Get pre-computed int power of 32.
 #[inline(always)]
-pub fn get_small_int_power32(exponent: usize) -> u64 {
+pub const fn get_small_int_power32(exponent: usize) -> u64 {
     get_small_int_power2(5 * exponent)
 }
 
