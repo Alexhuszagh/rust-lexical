@@ -9,7 +9,6 @@ use crate::bigint::Limb;
 use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit, u64_power_limit};
 use crate::table_binary::*;
 use crate::table_decimal::*;
-use core::hint;
 use lexical_util::assert::debug_assert_radix;
 use static_assertions::const_assert;
 
@@ -20,6 +19,7 @@ use static_assertions::const_assert;
 #[inline(always)]
 pub fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
     debug_assert_radix(radix);
+    // TODO: Change this to take a format so we can validate it at compile time?
     match radix {
         2 => get_small_int_power2(exponent),
         3 => get_small_int_power3(exponent),
@@ -56,7 +56,7 @@ pub fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
         34 => get_small_int_power34(exponent),
         35 => get_small_int_power35(exponent),
         36 => get_small_int_power36(exponent),
-        _ => hint::unreachable_unchecked(),
+        _ => unreachable!(),
     }
 }
 
@@ -64,6 +64,7 @@ pub fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
 #[inline(always)]
 pub fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
     debug_assert_radix(radix);
+    // TODO: Change this to take a format so we can validate it at compile time?
     match radix {
         2 => get_small_f32_power2(exponent),
         3 => get_small_f32_power3(exponent),
@@ -100,7 +101,7 @@ pub fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
         34 => get_small_f32_power34(exponent),
         35 => get_small_f32_power35(exponent),
         36 => get_small_f32_power36(exponent),
-        _ => hint::unreachable_unchecked(),
+        _ => unreachable!(),
     }
 }
 
@@ -144,7 +145,7 @@ pub fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
         34 => get_small_f64_power34(exponent),
         35 => get_small_f64_power35(exponent),
         36 => get_small_f64_power36(exponent),
-        _ => hint::unreachable_unchecked(),
+        _ => unreachable!(),
     }
 }
 

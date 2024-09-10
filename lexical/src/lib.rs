@@ -374,12 +374,9 @@ pub fn to_string_with_options<N: ToLexicalWithOptions, const FORMAT: u128>(
     // SAFETY: safe since the buffer is of sufficient size.
     unsafe {
         let mut buf = Vec::<u8>::with_capacity(size);
-        let len = lexical_core::write_with_options::<_, FORMAT>(
-            n,
-            vector_as_slice(&mut buf),
-            options,
-        )
-        .len();
+        let len =
+            lexical_core::write_with_options::<_, FORMAT>(n, vector_as_slice(&mut buf), options)
+                .len();
         buf.set_len(len);
         String::from_utf8_unchecked(buf)
     }

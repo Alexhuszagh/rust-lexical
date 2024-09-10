@@ -771,6 +771,7 @@ impl<'a, T> ops::Index<usize> for ReverseView<'a, T> {
 #[inline(always)]
 pub unsafe fn nonzero(x: &[Limb], rindex: usize) -> bool {
     debug_assert!(rindex <= x.len());
+    // TODO: Change to have no unsafe?
 
     let len = x.len();
     // SAFETY: safe if `rindex < x.len()`, since then `x.len() - rindex < x.len()`.

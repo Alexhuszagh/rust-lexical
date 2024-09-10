@@ -16,10 +16,10 @@ use crate::algorithm::{algorithm, algorithm_u128};
 use crate::table::get_table;
 use core::mem;
 use lexical_util::algorithm::copy_to_dst;
-use lexical_util::format;
-use lexical_util::num::{Integer, UnsignedInteger};
-use lexical_util::format::NumberFormat;
 use lexical_util::assert::assert_buffer;
+use lexical_util::format;
+use lexical_util::format::NumberFormat;
+use lexical_util::num::{Integer, UnsignedInteger};
 
 /// Write integer to radix string.
 pub trait Radix: UnsignedInteger {
@@ -60,8 +60,7 @@ macro_rules! radix_impl {
                 debug_assert!(<Self as Integer>::BITS <= 64);
                 assert_buffer::<$t>(NumberFormat::<{ FORMAT }>::RADIX, buffer.len());
                 let radix = format::radix_from_flags(FORMAT, MASK, SHIFT);
-                // TODO: Remove unsafe
-                let table = unsafe { get_table::<FORMAT, MASK, SHIFT>() };
+                let table = get_table::<FORMAT, MASK, SHIFT>();
 
                 let mut digits: mem::MaybeUninit<[u8; 64]> = mem::MaybeUninit::uninit();
                 // # Safety
@@ -88,10 +87,8 @@ impl Radix for u128 {
         self,
         buffer: &mut [u8],
     ) -> usize {
-        debug_assert!(<Self as Integer>::BITS <= 128);
         assert_buffer::<u128>(NumberFormat::<{ FORMAT }>::RADIX, buffer.len());
-        // TODO: Remove unsafe
-        let table = unsafe { get_table::<FORMAT, MASK, SHIFT>() };
+        let table = get_table::<FORMAT, MASK, SHIFT>();
 
         let mut digits: mem::MaybeUninit<[u8; 128]> = mem::MaybeUninit::uninit();
         // # Safety

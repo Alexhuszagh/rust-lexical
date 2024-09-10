@@ -6,7 +6,6 @@
 
 use crate::table_binary::*;
 use crate::table_decimal::*;
-use core::hint;
 use lexical_util::assert::debug_assert_radix;
 use lexical_util::format::radix_from_flags;
 
@@ -15,14 +14,11 @@ use lexical_util::format::radix_from_flags;
 /// * `FORMAT` - Number format.
 /// * `MASK` - Mask to extract the radix value.
 /// * `SHIFT` - Shift to normalize the radix value in `[0, 0x3f]`.
-///
-/// # Safety
-///
-/// Safe as long as the radix provided is valid.
 #[inline(always)]
 #[cfg(feature = "radix")]
-pub unsafe fn get_table<const FORMAT: u128, const MASK: u128, const SHIFT: i32>() -> &'static [u8] {
+pub fn get_table<const FORMAT: u128, const MASK: u128, const SHIFT: i32>() -> &'static [u8] {
     debug_assert_radix(radix_from_flags(FORMAT, MASK, SHIFT));
+    // TODO: Change this to take a format so we can validate it at compile time?
     match radix_from_flags(FORMAT, MASK, SHIFT) {
         2 => &DIGIT_TO_BASE2_SQUARED,
         3 => &DIGIT_TO_BASE3_SQUARED,
@@ -59,8 +55,7 @@ pub unsafe fn get_table<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
         34 => &DIGIT_TO_BASE34_SQUARED,
         35 => &DIGIT_TO_BASE35_SQUARED,
         36 => &DIGIT_TO_BASE36_SQUARED,
-        // SAFETY: This is safe as long as the radix is valid.
-        _ => unsafe { hint::unreachable_unchecked() },
+        _ => unreachable!(),
     }
 }
 

@@ -26,7 +26,7 @@ fn small_pow(big: &mut bigint::Bigint, mut exp: u32) {
     }
     if exp != 0 {
         // SAFETY: safe, since `exp < small_step`.
-        let small_power = unsafe { f64::int_pow_fast_path(exp as usize, 5) };
+        let small_power = f64::int_pow_fast_path(exp as usize, 5);
         big.data.mul_small(small_power as bigint::Limb).unwrap();
     }
 

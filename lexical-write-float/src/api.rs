@@ -35,6 +35,7 @@ macro_rules! float_to_lexical {
             fn to_lexical(self, bytes: &mut [u8])
                 -> &mut [u8]
             {
+                // TODO: Remove, move inside
                 assert!(check_buffer::<Self, { STANDARD }>(bytes.len(), &DEFAULT_OPTIONS));
                 // SAFETY: safe since `check_buffer::<STANDARD>(bytes.len(), &options)` passes.
                 unsafe {
@@ -53,6 +54,7 @@ macro_rules! float_to_lexical {
                 options: &Self::Options,
             ) -> &'a mut [u8]
             {
+                // TODO: Remove, move inside
                 assert!(check_buffer::<Self, { FORMAT }>(bytes.len(), &options));
                 // SAFETY: safe since `check_buffer::<FORMAT>(bytes.len(), &options)` passes.
                 unsafe {
