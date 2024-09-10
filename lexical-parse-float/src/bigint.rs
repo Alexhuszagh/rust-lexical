@@ -257,10 +257,11 @@ pub struct StackVec<const SIZE: usize> {
 }
 
 /// Extract the hi bits from the buffer.
+///
+/// NOTE: Modifying this to remove unsafety which we statically
+/// check directly in every caller leads to ~20% degradation in
+/// performance.
 macro_rules! hi {
-    // # Safety
-    //
-    // Safe as long as the `stackvec.len() >= 1`.
     (@1 $self:ident, $rview:ident, $t:ident, $fn:ident) => {{
         $fn(unsafe { index_unchecked!($rview[0]) as $t })
     }};
@@ -347,7 +348,7 @@ impl<const SIZE: usize> StackVec<SIZE> {
         self.length = len as u16;
     }
 
-    /// The number of elements stored in the vector.
+    /// Get the number of elements stored in the vector.
     #[inline(always)]
     pub const fn len(&self) -> usize {
         self.length as usize
@@ -510,13 +511,15 @@ impl<const SIZE: usize> StackVec<SIZE> {
     #[inline(always)]
     pub fn hi16(&self) -> (u16, bool) {
         let rview = self.rview();
-        // SAFETY: the buffer must be at least length bytes long.
-        match self.len() {
-            0 => (0, false),
-            1 if LIMB_BITS == 32 => hi!(@1 self, rview, u32, u32_to_hi16_1),
-            1 => hi!(@1 self, rview, u64, u64_to_hi16_1),
-            _ if LIMB_BITS == 32 => hi!(@nonzero2 self, rview, u32, u32_to_hi16_2),
-            _ => hi!(@nonzero2 self, rview, u64, u64_to_hi16_2),
+        // SAFETY: the buffer must be at least length bytes long which we check on the match.
+        unsafe {
+            match rview.len() {
+                0 => (0, false),
+                1 if LIMB_BITS == 32 => hi!(@1 self, rview, u32, u32_to_hi16_1),
+                1 => hi!(@1 self, rview, u64, u64_to_hi16_1),
+                _ if LIMB_BITS == 32 => hi!(@nonzero2 self, rview, u32, u32_to_hi16_2),
+                _ => hi!(@nonzero2 self, rview, u64, u64_to_hi16_2),
+            }
         }
     }
 
@@ -524,13 +527,15 @@ impl<const SIZE: usize> StackVec<SIZE> {
     #[inline(always)]
     pub fn hi32(&self) -> (u32, bool) {
         let rview = self.rview();
-        // SAFETY: the buffer must be at least length bytes long.
-        match self.len() {
-            0 => (0, false),
-            1 if LIMB_BITS == 32 => hi!(@1 self, rview, u32, u32_to_hi32_1),
-            1 => hi!(@1 self, rview, u64, u64_to_hi32_1),
-            _ if LIMB_BITS == 32 => hi!(@nonzero2 self, rview, u32, u32_to_hi32_2),
-            _ => hi!(@nonzero2 self, rview, u64, u64_to_hi32_2),
+        // SAFETY: the buffer must be at least length bytes long which we check on the match.
+        unsafe {
+            match rview.len() {
+                0 => (0, false),
+                1 if LIMB_BITS == 32 => hi!(@1 self, rview, u32, u32_to_hi32_1),
+                1 => hi!(@1 self, rview, u64, u64_to_hi32_1),
+                _ if LIMB_BITS == 32 => hi!(@nonzero2 self, rview, u32, u32_to_hi32_2),
+                _ => hi!(@nonzero2 self, rview, u64, u64_to_hi32_2),
+            }
         }
     }
 
@@ -538,15 +543,17 @@ impl<const SIZE: usize> StackVec<SIZE> {
     #[inline(always)]
     pub fn hi64(&self) -> (u64, bool) {
         let rview = self.rview();
-        // SAFETY: the buffer must be at least length bytes long.
-        match self.len() {
-            0 => (0, false),
-            1 if LIMB_BITS == 32 => hi!(@1 self, rview, u32, u32_to_hi64_1),
-            1 => hi!(@1 self, rview, u64, u64_to_hi64_1),
-            2 if LIMB_BITS == 32 => hi!(@2 self, rview, u32, u32_to_hi64_2),
-            2 => hi!(@2 self, rview, u64, u64_to_hi64_2),
-            _ if LIMB_BITS == 32 => hi!(@nonzero3 self, rview, u32, u32_to_hi64_3),
-            _ => hi!(@nonzero2 self, rview, u64, u64_to_hi64_2),
+        // SAFETY: the buffer must be at least length bytes long which we check on the match.
+        unsafe {
+            match rview.len() {
+                0 => (0, false),
+                1 if LIMB_BITS == 32 => hi!(@1 self, rview, u32, u32_to_hi64_1),
+                1 => hi!(@1 self, rview, u64, u64_to_hi64_1),
+                2 if LIMB_BITS == 32 => hi!(@2 self, rview, u32, u32_to_hi64_2),
+                2 => hi!(@2 self, rview, u64, u64_to_hi64_2),
+                _ if LIMB_BITS == 32 => hi!(@nonzero3 self, rview, u32, u32_to_hi64_3),
+                _ => hi!(@nonzero2 self, rview, u64, u64_to_hi64_2),
+            }
         }
     }
 
@@ -748,6 +755,18 @@ impl<'a, T: 'a> ReverseView<'a, T> {
         // We don't care if this wraps: the index is bounds-checked.
         self.inner.get(len.wrapping_sub(index + 1))
     }
+
+    /// Get the length of the inner buffer.
+    #[inline(always)]
+    pub const fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    /// If the vector is empty.
+    #[inline(always)]
+    pub const fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
 }
 
 impl<'a, T> ops::Index<usize> for ReverseView<'a, T> {
@@ -767,12 +786,12 @@ impl<'a, T> ops::Index<usize> for ReverseView<'a, T> {
 ///
 /// # Safety
 ///
-/// Safe as long as `rindex <= x.len()`.
+/// Safe as long as `rindex <= x.len()`. This is only called
+/// where the type size is directly from the caller, and removing
+/// it leads to a ~20% degradation in performance.
 #[inline(always)]
 pub unsafe fn nonzero(x: &[Limb], rindex: usize) -> bool {
     debug_assert!(rindex <= x.len());
-    // TODO: Change to have no unsafe?
-
     let len = x.len();
     // SAFETY: safe if `rindex < x.len()`, since then `x.len() - rindex < x.len()`.
     let slc = unsafe { &index_unchecked!(x[..len - rindex]) };
@@ -959,8 +978,7 @@ pub fn pow<const SIZE: usize>(x: &mut StackVec<SIZE>, base: u32, mut exp: u32) -
         exp -= small_step;
     }
     if exp != 0 {
-        // SAFETY: safe, since `exp < small_step`.
-        let small_power = unsafe { f64::int_pow_fast_path(exp as usize, base) };
+        let small_power = f64::int_pow_fast_path(exp as usize, base);
         small_mul(x, small_power as Limb)?;
     }
     Some(())
@@ -1000,9 +1018,9 @@ pub fn small_add_from<const SIZE: usize>(
     let mut index = start;
     let mut carry = y;
     while carry != 0 && index < x.len() {
-        // SAFETY: safe, since `index < x.len()`.
-        let result = scalar_add(unsafe { index_unchecked!(x[index]) }, carry);
-        unsafe { index_unchecked_mut!(x[index]) = result.0 };
+        // NOTE: Don't need unsafety because the compiler will optimize it out.
+        let result = scalar_add(x[index], carry);
+        x[index] = result.0;
         carry = result.1 as Limb;
         index += 1;
     }
@@ -1056,11 +1074,8 @@ pub fn large_add_from<const SIZE: usize>(
     // Iteratively add elements from y to x.
     let mut carry = false;
     for index in 0..y.len() {
-        // SAFETY: safe since `start + index < x.len()`.
-        // We panicked in `try_resize` if this wasn't true.
-        let xi = unsafe { &mut index_unchecked_mut!(x[start + index]) };
-        // SAFETY: safe since `index < y.len()`.
-        let yi = unsafe { index_unchecked!(y[index]) };
+        let xi = &mut x[start + index];
+        let yi = y[index];
 
         // Only one op of the two ops can overflow, since we added at max
         // Limb::max_value() + Limb::max_value(). Add the previous carry,
@@ -1215,34 +1230,27 @@ pub fn large_quorem<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Li
     let mask = Limb::MAX as Wide;
 
     // Numerator is smaller the denominator, quotient always 0.
-    let m = x.len();
-    let n = y.len();
-    if m < n {
+    if x.len() < y.len() {
         return 0;
     }
 
     // Calculate our initial estimate for q.
-    // SAFETY: safe since `m > 0 && m == x.len()`, since `m > n && n > 0`.
-    let xm_1 = unsafe { index_unchecked!(x[m - 1]) };
-    // SAFETY: safe since `n > 0 && n == y.len()`.
-    let yn_1 = unsafe { index_unchecked!(y[n - 1]) };
+    let xm_1 = x[x.len() - 1];
+    let yn_1 = y[y.len() - 1];
     let mut q = xm_1 / (yn_1 + 1);
 
     // Need to calculate the remainder if we don't have a 0 quotient.
     if q != 0 {
         let mut borrow: Wide = 0;
         let mut carry: Wide = 0;
-        for j in 0..m {
-            // SAFETY: safe, since `j < n && n == y.len()`.
-            let yj = unsafe { index_unchecked!(y[j]) } as Wide;
+        for j in 0..x.len() {
+            let yj = y[j] as Wide;
             let p = yj * q as Wide + carry;
             carry = p >> LIMB_BITS;
-            // SAFETY: safe, since `j < m && m == x.len()`.
-            let xj = unsafe { index_unchecked!(x[j]) } as Wide;
+            let xj = x[j] as Wide;
             let t = xj.wrapping_sub(p & mask).wrapping_sub(borrow);
             borrow = (t >> LIMB_BITS) & 1;
-            // SAFETY: safe, since `j < m && m == x.len()`.
-            unsafe { index_unchecked_mut!(x[j]) = t as Limb };
+            x[j] = t as Limb;
         }
         x.normalize();
     }
@@ -1252,17 +1260,14 @@ pub fn large_quorem<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Li
         q += 1;
         let mut borrow: Wide = 0;
         let mut carry: Wide = 0;
-        for j in 0..m {
-            // SAFETY: safe, since `j < n && n == y.len()`.
-            let yj = unsafe { index_unchecked!(y[j]) } as Wide;
+        for j in 0..x.len() {
+            let yj = y[j] as Wide;
             let p = yj + carry;
             carry = p >> LIMB_BITS;
-            // SAFETY: safe, since `j < m && m == x.len()`.
-            let xj = unsafe { index_unchecked!(x[j]) } as Wide;
+            let xj = x[j] as Wide;
             let t = xj.wrapping_sub(p & mask).wrapping_sub(borrow);
             borrow = (t >> LIMB_BITS) & 1;
-            // SAFETY: safe, since `j < m && m == x.len()`.
-            unsafe { index_unchecked_mut!(x[j]) = t as Limb };
+            x[j] = t as Limb;
         }
         x.normalize();
     }
@@ -1333,12 +1338,12 @@ pub fn shl_limbs<const SIZE: usize>(x: &mut StackVec<SIZE>, n: usize) -> Option<
         None
     } else if !x.is_empty() {
         let len = n + x.len();
+        let x_len = x.len();
+        let ptr = x.as_mut_ptr();
+        let src = ptr;
         // SAFE: since x is not empty, and `x.len() + n <= x.capacity()`.
         unsafe {
             // Move the elements.
-            let x_len = x.len();
-            let ptr = x.as_mut_ptr();
-            let src = ptr;
             let dst = ptr.add(n);
             ptr::copy(src, dst, x_len);
             // Write our 0s.

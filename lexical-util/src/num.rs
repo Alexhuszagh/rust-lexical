@@ -30,6 +30,7 @@ pub trait AsPrimitive: Copy + PartialEq + PartialOrd + Send + Sync + Sized {
     fn as_f32(self) -> f32;
     fn as_f64(self) -> f64;
     fn from_u32(value: u32) -> Self;
+    fn from_u64(value: u64) -> Self;
 
     #[cfg(feature = "f16")]
     fn as_f16(self) -> f16;
@@ -113,6 +114,11 @@ macro_rules! as_primitive {
 
             #[inline(always)]
             fn from_u32(value: u32) -> Self {
+                value as _
+            }
+
+            #[inline(always)]
+            fn from_u64(value: u64) -> Self {
                 value as _
             }
 
@@ -210,6 +216,12 @@ macro_rules! half_as_primitive {
             #[inline(always)]
             fn from_u32(value: u32) -> Self {
                 Self::from_f32(value as _)
+            }
+
+            #[inline(always)]
+            fn from_u64(value: u64) -> Self {
+                _ = value;
+                unimplemented!()
             }
 
             #[inline(always)]
