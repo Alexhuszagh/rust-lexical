@@ -143,9 +143,11 @@ impl<'a, const __: u128> Bytes<'a, __> {
         }
     }
 
+    // TODO: This looks like just the trait peak_is
+
     /// Check if the next element is a given value.
     #[inline(always)]
-    pub fn first_is(&mut self, value: u8) -> bool {
+    pub fn peak_is(&mut self, value: u8) -> bool {
         if let Some(&c) = self.slc.get(self.index) {
             c == value
         } else {
@@ -155,7 +157,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
 
     /// Check if the next element is a given value without case sensitivity.
     #[inline(always)]
-    pub fn case_insensitive_first_is(&mut self, value: u8) -> bool {
+    pub fn case_insensitive_peek_is(&mut self, value: u8) -> bool {
         if let Some(&c) = self.slc.get(self.index) {
             c.to_ascii_lowercase() == value.to_ascii_lowercase()
         } else {

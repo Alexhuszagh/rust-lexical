@@ -157,39 +157,44 @@ parse_float_as_f32! { bf16 f16 }
 //  different internally. Most of the code is reshared, so the duplicated
 //  code is only like 30 lines.
 
-macro_rules! parse_mantissa_sign {
-    ($byte:ident, $format:ident) => {{
-        match $byte.integer_iter().peek() {
-            Some(&b'+') if !$format.no_positive_mantissa_sign() => (false, 1),
-            Some(&b'+') if $format.no_positive_mantissa_sign() => {
-                return Err(Error::InvalidPositiveSign($byte.cursor()));
-            },
-            Some(&b'-') => (true, 1),
-            Some(_) if $format.required_mantissa_sign() => {
-                return Err(Error::MissingSign($byte.cursor()));
-            },
-            _ => (false, 0),
-        }
-    }};
+/// Parse the sign from the buffer and advance the iterator to the next place.
+#[inline(always)]
+pub fn parse_mantissa_sign<const FORMAT: u128>(
+    byte: &mut Bytes<'_, FORMAT>,
+    format: &NumberFormat<FORMAT>,
+) -> Result<bool> {
+    match byte.integer_iter().try_read() {
+        Some(&b'+') if !format.no_positive_mantissa_sign() => Ok(false),
+        Some(&b'+') if format.no_positive_mantissa_sign() => {
+            Err(Error::InvalidPositiveSign(byte.cursor() - 1))
+        },
+        Some(&b'-') => Ok(true),
+        Some(_) if format.required_mantissa_sign() => Err(Error::MissingSign(byte.cursor() - 1)),
+        _ if format.required_mantissa_sign() => Err(Error::MissingSign(byte.cursor())),
+        _ => Ok(false),
+    }
 }
 
-macro_rules! parse_exponent_sign {
-    ($byte:ident, $format:ident) => {{
-        match $byte.integer_iter().peek() {
-            Some(&b'+') if !$format.no_positive_exponent_sign() => (false, 1),
-            Some(&b'+') if $format.no_positive_exponent_sign() => {
-                return Err(Error::InvalidPositiveExponentSign($byte.cursor()));
-            },
-            Some(&b'-') => (true, 1),
-            Some(_) if $format.required_mantissa_sign() => {
-                return Err(Error::MissingExponentSign($byte.cursor()));
-            },
-            _ => (false, 0),
-        }
-    }};
+/// Parse the sign from the buffer and advance the iterator to the next place.
+#[inline(always)]
+pub fn parse_exponent_sign<const FORMAT: u128>(
+    byte: &mut Bytes<'_, FORMAT>,
+    format: &NumberFormat<FORMAT>,
+) -> Result<bool> {
+    match byte.integer_iter().try_read() {
+        Some(&b'+') if !format.no_positive_exponent_sign() => Ok(false),
+        Some(&b'+') if format.no_positive_exponent_sign() => {
+            Err(Error::InvalidPositiveExponentSign(byte.cursor() - 1))
+        },
+        Some(&b'-') => Ok(true),
+        Some(_) if format.required_exponent_sign() => Err(Error::MissingSign(byte.cursor() - 1)),
+        _ if format.required_exponent_sign() => Err(Error::MissingExponentSign(byte.cursor())),
+        _ => Ok(false),
+    }
 }
 
 /// Utility to extract the result and handle any errors from parsing a `Number`.
+/// TODO: Move to a function...
 macro_rules! parse_number {
     (
         $format:ident,
@@ -232,9 +237,7 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
 ) -> Result<F> {
     let format = NumberFormat::<{ FORMAT }> {};
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let (is_negative, shift) = parse_mantissa_sign!(byte, format);
-    // SAFETY: safe since we shift at most one for a parsed sign byte.
-    unsafe { byte.step_by_unchecked(shift) };
+    let is_negative = parse_mantissa_sign(&mut byte, &format)?;
     if byte.integer_iter().is_consumed() {
         return Err(Error::Empty(byte.cursor()));
     }
@@ -269,9 +272,7 @@ pub fn fast_path_complete<F: LemireFloat, const FORMAT: u128>(
 ) -> Result<F> {
     let format = NumberFormat::<{ FORMAT }> {};
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let (is_negative, shift) = parse_mantissa_sign!(byte, format);
-    // SAFETY: safe since we shift at most one for a parsed sign byte.
-    unsafe { byte.step_by_unchecked(shift) };
+    let is_negative = parse_mantissa_sign(&mut byte, &format)?;
     if byte.integer_iter().is_consumed() {
         return Err(Error::Empty(byte.cursor()));
     }
@@ -288,9 +289,7 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
 ) -> Result<(F, usize)> {
     let format = NumberFormat::<{ FORMAT }> {};
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let (is_negative, shift) = parse_mantissa_sign!(byte, format);
-    // SAFETY: safe since we shift at most one for a parsed sign byte.
-    unsafe { byte.step_by_unchecked(shift) };
+    let is_negative = parse_mantissa_sign(&mut byte, &format)?;
     if byte.integer_iter().is_consumed() {
         return Err(Error::Empty(byte.cursor()));
     }
@@ -325,6 +324,8 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     Ok((to_native!(F, fp, is_negative), count))
 }
 
+// TODO(ahuszagh) Change to step_unchecked?
+
 /// Parse a float using only the fast path as a partial parser.
 pub fn fast_path_partial<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
@@ -332,9 +333,7 @@ pub fn fast_path_partial<F: LemireFloat, const FORMAT: u128>(
 ) -> Result<(F, usize)> {
     let format = NumberFormat::<{ FORMAT }> {};
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let (is_negative, shift) = parse_mantissa_sign!(byte, format);
-    // SAFETY: safe since we shift at most one for a parsed sign byte.
-    unsafe { byte.step_by_unchecked(shift) };
+    let is_negative = parse_mantissa_sign(&mut byte, &format)?;
     if byte.integer_iter().is_consumed() {
         return Err(Error::Empty(byte.cursor()));
     }
@@ -494,9 +493,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let base_prefix = format.base_prefix();
     let mut is_prefix = false;
     let mut iter = byte.integer_iter();
-    if cfg!(feature = "format") && base_prefix != 0 && iter.peek() == Some(&b'0') {
-        // SAFETY: safe since `byte.len() >= 1`.
-        unsafe { iter.step_unchecked() };
+    if cfg!(feature = "format") && base_prefix != 0 && iter.read_if(b'0') {
         // Check to see if the next character is the base prefix.
         // We must have a format like `0x`, `0d`, `0o`. Note:
         if let Some(&c) = iter.peek() {
@@ -530,6 +527,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 
     // Store the integer digits for slow-path algorithms.
     // SAFETY: safe, since `n_digits <= start.as_slice().len()`.
+    // TODO: Do we need unsafe here?
     debug_assert!(n_digits <= start.as_slice().len());
     let integer_digits = unsafe { start.as_slice().get_unchecked(..n_digits) };
 
@@ -548,7 +546,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let mut implicit_exponent: i64;
     let int_end = n_digits as i64;
     let mut fraction_digits = None;
-    if byte.first_is(decimal_point) {
+    if byte.peak_is(decimal_point) {
         // SAFETY: s cannot be empty due to first_is
         unsafe { byte.step_unchecked() };
         let before = byte.clone();
@@ -587,9 +585,9 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     // Handle scientific notation.
     let mut explicit_exponent = 0_i64;
     let is_exponent = if cfg!(feature = "format") && format.case_sensitive_exponent() {
-        byte.first_is(exponent_character)
+        byte.peak_is(exponent_character)
     } else {
-        byte.case_insensitive_first_is(exponent_character)
+        byte.case_insensitive_peek_is(exponent_character)
     };
     if is_exponent {
         // Check float format syntax checks.
@@ -605,12 +603,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 
         // SAFETY: byte cannot be empty due to first_is
         unsafe { byte.step_unchecked() };
-        let (is_negative, shift) = parse_exponent_sign!(byte, format);
-        // SAFETY: safe since we shift at most one for a parsed sign byte.
-        unsafe { byte.step_by_unchecked(shift) };
-        if cfg!(feature = "format") && format.required_exponent_sign() && shift == 0 {
-            return Err(Error::MissingExponentSign(byte.cursor()));
-        }
+        let is_negative = parse_exponent_sign(&mut byte, &format)?;
 
         let before = byte.current_count();
         parse_digits::<_, _, FORMAT>(byte.exponent_iter(), |digit| {
@@ -639,9 +632,9 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let base_suffix = format.base_suffix();
     if cfg!(feature = "format") && base_suffix != 0 {
         let is_suffix = if cfg!(feature = "format") && format.case_sensitive_base_suffix() {
-            byte.first_is(base_suffix)
+            byte.peak_is(base_suffix)
         } else {
-            byte.case_insensitive_first_is(base_suffix)
+            byte.case_insensitive_peek_is(base_suffix)
         };
         if is_suffix {
             // SAFETY: safe since `byte.len() >= 1`.
@@ -681,7 +674,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
         // SAFETY: safe since zeros cannot be empty due to peek_is
         unsafe { zeros_integer.step_unchecked() };
     }
-    if zeros.first_is(decimal_point) {
+    if zeros.peak_is(decimal_point) {
         // SAFETY: safe since zeros cannot be empty due to first_is
         unsafe { zeros.step_unchecked() };
     }

@@ -342,6 +342,8 @@ pub struct Bytes<'a, const FORMAT: u128> {
     count: usize,
 }
 
+// TODO: Need a generic bytes trait tbh
+
 impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// If each yielded value is adjacent in memory.
     pub const IS_CONTIGUOUS: bool = NumberFormat::<{ FORMAT }>::DIGIT_SEPARATOR == 0;
@@ -465,7 +467,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     }
     /// Check if the next element is a given value.
     #[inline(always)]
-    pub fn first_is(&mut self, value: u8) -> bool {
+    pub fn peak_is(&mut self, value: u8) -> bool {
         // Don't assert not a digit separator, since this can occur when
         // a different component does not allow digit separators there.
         if let Some(&c) = self.slc.get(self.index) {
@@ -477,7 +479,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
 
     /// Check if the next element is a given value without case sensitivity.
     #[inline(always)]
-    pub fn case_insensitive_first_is(&mut self, value: u8) -> bool {
+    pub fn case_insensitive_peek_is(&mut self, value: u8) -> bool {
         // Don't assert not a digit separator, since this can occur when
         // a different component does not allow digit separators there.
         if let Some(&c) = self.slc.get(self.index) {

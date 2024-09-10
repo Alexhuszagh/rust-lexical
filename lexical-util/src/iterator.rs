@@ -87,11 +87,35 @@ pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> {
     /// Peek the next value of the iterator, without consuming it.
     fn peek(&mut self) -> Option<Self::Item>;
 
+    /// Peek the next value of the iterator, and step only if it exists.
+    #[inline(always)]
+    fn try_read(&mut self) -> Option<Self::Item> {
+        if let Some(value) = self.peek() {
+            // SAFETY: the slice cannot be empty because we peeked a value.
+            unsafe { self.step_unchecked() };
+            Some(value)
+        } else {
+            None
+        }
+    }
+
     /// Check if the next element is a given value.
     #[inline(always)]
     fn peek_is(&mut self, value: u8) -> bool {
         if let Some(&c) = self.peek() {
             c == value
+        } else {
+            false
+        }
+    }
+
+    /// Peek the next value and consume it if the read value matches the expected one.
+    #[inline(always)]
+    fn read_if(&mut self, value: u8) -> bool {
+        if Some(&value) == self.peek() {
+            // SAFETY: the slice cannot be empty because we peeked a value.
+            unsafe { self.step_unchecked() };
+            true
         } else {
             false
         }

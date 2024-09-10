@@ -1178,7 +1178,7 @@ pub fn long_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> Option<StackVec<SI
     // frequent reallocations. Handle the first case to avoid a redundant
     // addition, since we know y.len() >= 1.
     let mut z = StackVec::<SIZE>::try_from(x)?;
-    if let Some(&y0) = y.get(0) {
+    if let Some(&y0) = y.first() {
         small_mul(&mut z, y0)?;
 
         for (index, &yi) in y[1..].iter().enumerate() {
@@ -1199,7 +1199,7 @@ pub fn long_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> Option<StackVec<SI
 pub fn large_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Option<()> {
     // Karatsuba multiplication never makes sense, so just use grade school
     // multiplication.
-    if let Some(&y0) = y.get(0) {
+    if let Some(&y0) = y.first() {
         small_mul(x, y0)?;
     } else {
         *x = long_mul(y, x)?;
