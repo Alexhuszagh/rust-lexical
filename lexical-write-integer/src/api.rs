@@ -4,7 +4,7 @@
 
 use crate::options::Options;
 use crate::write::WriteInteger;
-use lexical_util::assert::{assert_buffer, debug_assert_buffer};
+use lexical_util::assert::assert_buffer;
 use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::num::SignedInteger;
 use lexical_util::{to_lexical, to_lexical_with_options};
@@ -91,45 +91,20 @@ macro_rules! unsigned_to_lexical {
     ($($narrow:tt $wide:tt $(, #[$meta:meta])? ; )*) => ($(
         impl ToLexical for $narrow {
             $(#[$meta:meta])?
-            unsafe fn to_lexical_unchecked(self, bytes: &mut [u8])
+            fn to_lexical(self, bytes: &mut [u8])
                 -> &mut [u8]
             {
-                debug_assert_buffer::<$narrow>(10, bytes.len());
+                assert_buffer::<$narrow>(10, bytes.len());
                 // SAFETY: safe if `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.
                 unsafe {
                     let len = unsigned::<$narrow, $wide, { STANDARD }>(self, bytes);
                     &mut index_unchecked_mut!(bytes[..len])
                 }
             }
-
-            $(#[$meta:meta])?
-            fn to_lexical(self, bytes: &mut [u8])
-                -> &mut [u8]
-            {
-                assert_buffer::<$narrow>(10, bytes.len());
-                // SAFETY: safe since `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.
-                unsafe { self.to_lexical_unchecked(bytes) }
-            }
         }
 
         impl ToLexicalWithOptions for $narrow {
             type Options = Options;
-
-            $(#[$meta:meta])?
-            unsafe fn to_lexical_with_options_unchecked<'a, const FORMAT: u128>(
-                self,
-                bytes: &'a mut [u8],
-                _: &Self::Options,
-            ) -> &'a mut [u8]
-            {
-                debug_assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
-                assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
-                // SAFETY: safe if `bytes.len() > Self::FORMATTED_SIZE`.
-                unsafe {
-                    let len = unsigned::<$narrow, $wide, FORMAT>(self, bytes);
-                    &mut index_unchecked_mut!(bytes[..len])
-                }
-            }
 
             $(#[$meta:meta])?
             fn to_lexical_with_options<'a, const FORMAT: u128>(
@@ -138,10 +113,14 @@ macro_rules! unsigned_to_lexical {
                 options: &Self::Options,
             ) -> &'a mut [u8]
             {
+                _ = options;
                 assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
                 assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
                 // SAFETY: safe since `bytes.len() > Self::FORMATTED_SIZE`.
-                unsafe { self.to_lexical_with_options_unchecked::<FORMAT>(bytes, options) }
+                unsafe {
+                    let len = unsigned::<$narrow, $wide, FORMAT>(self, bytes);
+                    &mut index_unchecked_mut!(bytes[..len])
+                }
             }
         }
     )*)
@@ -168,18 +147,6 @@ macro_rules! signed_to_lexical {
     ($($narrow:tt $wide:tt $unsigned:tt $(, #[$meta:meta])? ; )*) => ($(
         impl ToLexical for $narrow {
             $(#[$meta:meta])?
-            #[inline]
-            unsafe fn to_lexical_unchecked(self, bytes: &mut [u8])
-                -> &mut [u8]
-            {
-                debug_assert_buffer::<$narrow>(10, bytes.len());
-                // SAFETY: safe if `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.
-                unsafe {
-                    let len = signed::<$narrow, $wide, $unsigned, { STANDARD }>(self, bytes);
-                    &mut index_unchecked_mut!(bytes[..len])
-                }
-            }
-
             $(#[$meta:meta])?
             #[inline]
             fn to_lexical(self, bytes: &mut [u8])
@@ -187,30 +154,15 @@ macro_rules! signed_to_lexical {
             {
                 assert_buffer::<$narrow>(10, bytes.len());
                 // SAFETY: safe since `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.
-                unsafe { self.to_lexical_unchecked(bytes) }
+                unsafe {
+                    let len = signed::<$narrow, $wide, $unsigned, { STANDARD }>(self, bytes);
+                    &mut index_unchecked_mut!(bytes[..len])
+                }
             }
         }
 
         impl ToLexicalWithOptions for $narrow {
             type Options = Options;
-
-            $(#[$meta:meta])?
-            #[inline]
-            unsafe fn to_lexical_with_options_unchecked<'a, const FORMAT: u128>(
-                self,
-                bytes: &'a mut [u8],
-                _: &Self::Options,
-            ) -> &'a mut [u8]
-            {
-                debug_assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
-                assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
-                // SAFETY: safe if `bytes.len() > Self::FORMATTED_SIZE`.
-                unsafe {
-                    let len = signed::<$narrow, $wide, $unsigned, FORMAT>(self, bytes);
-                    &mut index_unchecked_mut!(bytes[..len])
-                }
-            }
-
             $(#[$meta:meta])?
             #[inline]
             fn to_lexical_with_options<'a, const FORMAT: u128>(
@@ -219,10 +171,14 @@ macro_rules! signed_to_lexical {
                 options: &Self::Options,
             ) -> &'a mut [u8]
             {
+                _ = options;
                 assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
                 assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
                 // SAFETY: safe since `bytes.len() > Self::FORMATTED_SIZE`.
-                unsafe { self.to_lexical_with_options_unchecked::<FORMAT>(bytes, options) }
+                unsafe {
+                    let len = signed::<$narrow, $wide, $unsigned, FORMAT>(self, bytes);
+                    &mut index_unchecked_mut!(bytes[..len])
+                }
             }
         }
     )*)

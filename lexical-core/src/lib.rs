@@ -81,9 +81,7 @@
 #![cfg_attr(feature = "write", doc = " **Write**")]
 #![cfg_attr(feature = "write", doc = "")]
 #![cfg_attr(feature = "write", doc = " - [`write`]")]
-#![cfg_attr(feature = "write", doc = " - [`write_unchecked`]")]
 #![cfg_attr(feature = "write", doc = " - [`write_with_options`]")]
-#![cfg_attr(feature = "write", doc = " - [`write_with_options_unchecked`]")]
 //!
 #![cfg_attr(feature = "write", doc = " **From String**")]
 #![cfg_attr(feature = "write", doc = "")]
@@ -312,9 +310,7 @@
 //! support. Older versions of lexical support older Rust versions.
 //!
 //! [`write`]: crate::write
-//! [`write_unchecked`]: crate::write_unchecked
 //! [`write_with_options`]: crate::write_with_options
-//! [`write_with_options_unchecked`]: crate::write_with_options_unchecked
 //! [`parse`]: crate::parse
 //! [`parse_partial`]: crate::parse_partial
 //! [`parse_with_options`]: crate::parse_with_options
@@ -470,12 +466,6 @@ macro_rules! to_lexical_impl {
     ($t:ident, $to:ident, $to_options:ident, $options:ident) => {
         impl ToLexical for $t {
             #[cfg_attr(not(feature = "compact"), inline)]
-            unsafe fn to_lexical_unchecked(self, bytes: &mut [u8]) -> &mut [u8] {
-                // SAFETY: safe as long as `bytes` is large enough to hold the significant digits.
-                unsafe { <Self as $to>::to_lexical_unchecked(self, bytes) }
-            }
-
-            #[cfg_attr(not(feature = "compact"), inline)]
             fn to_lexical(self, bytes: &mut [u8]) -> &mut [u8] {
                 <Self as $to>::to_lexical(self, bytes)
             }
@@ -483,21 +473,6 @@ macro_rules! to_lexical_impl {
 
         impl ToLexicalWithOptions for $t {
             type Options = $options;
-
-            #[cfg_attr(not(feature = "compact"), inline)]
-            unsafe fn to_lexical_with_options_unchecked<'a, const FORMAT: u128>(
-                self,
-                bytes: &'a mut [u8],
-                options: &Self::Options,
-            ) -> &'a mut [u8] {
-                // SAFETY: safe as long as `bytes` is large enough to hold the significant digits.
-                unsafe {
-                    <Self as $to_options>::to_lexical_with_options_unchecked::<FORMAT>(
-                        self, bytes, options,
-                    )
-                }
-            }
-
             #[cfg_attr(not(feature = "compact"), inline(always))]
             fn to_lexical_with_options<'a, const FORMAT: u128>(
                 self,
@@ -584,48 +559,6 @@ pub fn write<N: ToLexical>(n: N, bytes: &mut [u8]) -> &mut [u8] {
     n.to_lexical(bytes)
 }
 
-/// Write number to string, without bounds checking the buffer.
-///
-/// Returns a subslice of the input buffer containing the written bytes,
-/// starting from the same address in memory as the input slice.
-///
-/// * `value`   - Number to serialize.
-/// * `bytes`   - Buffer to write number to.
-///
-/// # Safety
-///
-/// If the buffer is not be large enough to hold the serialized number,
-/// it will overflow the buffer unless the `safe` feature is enabled.
-/// Buffer overflows are severe security vulnerabilities, and therefore
-/// to ensure the function will not overwrite the buffer, provide a
-/// buffer with at least `{integer}::FORMATTED_SIZE` elements.
-///
-/// # Example
-///
-/// ```
-/// # pub fn main() {
-/// #[cfg(feature = "write-floats")] {
-/// // import `BUFFER_SIZE` to get the maximum bytes written by the number.
-/// use lexical_core::BUFFER_SIZE;
-///
-/// let mut buffer = [0u8; BUFFER_SIZE];
-/// let float = 3.14159265359_f32;
-///
-/// unsafe {
-///     lexical_core::write_unchecked(float, &mut buffer);
-/// }
-///
-/// assert_eq!(&buffer[0..9], b"3.1415927");
-/// # }
-/// # }
-/// ```
-#[inline]
-#[cfg(feature = "write")]
-pub unsafe fn write_unchecked<N: ToLexical>(n: N, bytes: &mut [u8]) -> &mut [u8] {
-    // SAFETY: safe if the provided buffer is large enough for the numerical string
-    unsafe { n.to_lexical_unchecked(bytes) }
-}
-
 /// Write number to string with custom options.
 ///
 /// Returns a subslice of the input buffer containing the written bytes,
@@ -694,66 +627,6 @@ pub fn write_with_options<'a, N: ToLexicalWithOptions, const FORMAT: u128>(
     options: &N::Options,
 ) -> &'a mut [u8] {
     n.to_lexical_with_options::<FORMAT>(bytes, options)
-}
-
-/// Write number to string with custom options.
-///
-/// Returns a subslice of the input buffer containing the written bytes,
-/// starting from the same address in memory as the input slice.
-///
-/// * `FORMAT`  - Packed struct containing the number format.
-/// * `value`   - Number to serialize.
-/// * `bytes`   - Buffer to write number to.
-/// * `options` - Options to customize number parsing.
-///
-/// # Safety
-///
-/// If the buffer is not be large enough to hold the serialized number,
-/// it will overflow the buffer unless the `safe` feature is enabled.
-/// Buffer overflows are severe security vulnerabilities, and therefore
-/// to ensure the function will not overwrite the buffer, provide a
-/// buffer with at least `{integer}::FORMATTED_SIZE` elements. If you
-/// are using custom digit precision control or exponent break points
-/// for writing floats, these constants may be insufficient to store
-/// the serialized number, and up to 1200 bytes may be required with
-/// radix support.
-///
-/// # Panics
-///
-/// If the provided `FORMAT` is not valid, the function may panic. Please
-/// ensure `is_valid()` is called prior to using the format, or checking
-/// its validity using a static assertion.
-///
-/// # Example
-///
-/// ```
-/// # pub fn main() {
-/// #[cfg(feature = "write-floats")] {
-/// // import `BUFFER_SIZE` to get the maximum bytes written by the number.
-/// use lexical_core::BUFFER_SIZE;
-///
-/// let mut buffer = [0u8; BUFFER_SIZE];
-/// let float = 3.14159265359_f32;
-///
-/// const FORMAT: u128 = lexical_core::format::STANDARD;
-/// let options = lexical_core::WriteFloatOptions::new();
-/// unsafe {
-///     lexical_core::write_with_options_unchecked::<_, FORMAT>(float, &mut buffer, &options);
-/// }
-///
-/// assert_eq!(&buffer[0..9], b"3.1415927");
-/// # }
-/// # }
-/// ```
-#[inline]
-#[cfg(feature = "write")]
-pub unsafe fn write_with_options_unchecked<'a, N: ToLexicalWithOptions, const FORMAT: u128>(
-    n: N,
-    bytes: &'a mut [u8],
-    options: &N::Options,
-) -> &'a mut [u8] {
-    // SAFETY: safe if the provided buffer is large enough for the numerical string
-    unsafe { n.to_lexical_with_options_unchecked::<FORMAT>(bytes, options) }
 }
 
 /// Parse complete number from string.

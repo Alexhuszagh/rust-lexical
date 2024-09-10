@@ -4,14 +4,10 @@
 use core::ptr;
 
 /// Copy bytes from source to destination.
-///
-/// # Safety
-///
-/// Safe as long as `dst` is larger than `src`.
 #[inline(always)]
 #[cfg(feature = "write")]
-pub unsafe fn copy_to_dst<Bytes: AsRef<[u8]>>(dst: &mut [u8], src: Bytes) -> usize {
-    debug_assert!(dst.len() >= src.as_ref().len());
+pub fn copy_to_dst<Bytes: AsRef<[u8]>>(dst: &mut [u8], src: Bytes) -> usize {
+    assert!(dst.len() >= src.as_ref().len());
 
     // SAFETY: safe, if `dst.len() <= src.len()`.
     let src = src.as_ref();
