@@ -574,8 +574,9 @@ impl<const SIZE: usize> StackVec<SIZE> {
     #[inline(always)]
     pub fn from_u32(x: u32) -> Self {
         let mut vec = Self::new();
-        assert!(1 <= vec.capacity());
-        // SAFETY: safe since we can always add 1 item.
+        debug_assert!(1 <= vec.capacity());
+        assert!(1 <= SIZE);
+        // SAFETY: safe since we can always add 1 item (validated in the asset).
         unsafe { vec.push_unchecked(x as Limb) };
         vec.normalize();
         vec
@@ -585,9 +586,10 @@ impl<const SIZE: usize> StackVec<SIZE> {
     #[inline(always)]
     pub fn from_u64(x: u64) -> Self {
         let mut vec = Self::new();
-        assert!(2 <= vec.capacity());
+        debug_assert!(2 <= vec.capacity());
+        assert!(2 <= SIZE);
         if LIMB_BITS == 32 {
-            // SAFETY: safe since we can always add 2 items.
+            // SAFETY: safe since we can always add 2 items (validated in the asset).
             unsafe {
                 vec.push_unchecked(x as Limb);
                 vec.push_unchecked((x >> 32) as Limb);
@@ -693,6 +695,7 @@ impl<const SIZE: usize> ops::Deref for StackVec<SIZE> {
     type Target = [Limb];
     #[inline(always)]
     fn deref(&self) -> &[Limb] {
+        debug_assert!(self.len() <= self.capacity());
         // SAFETY: safe since `self.data[..self.len()]` must be initialized
         // and `self.len() <= self.capacity()`.
         unsafe {
@@ -705,6 +708,7 @@ impl<const SIZE: usize> ops::Deref for StackVec<SIZE> {
 impl<const SIZE: usize> ops::DerefMut for StackVec<SIZE> {
     #[inline(always)]
     fn deref_mut(&mut self) -> &mut [Limb] {
+        debug_assert!(self.len() <= self.capacity());
         // SAFETY: safe since `self.data[..self.len()]` must be initialized
         // and `self.len() <= self.capacity()`.
         unsafe {
@@ -745,6 +749,7 @@ impl<'a, T: 'a> ReverseView<'a, T> {
     pub unsafe fn get_unchecked(&self, index: usize) -> &T {
         debug_assert!(index < self.inner.len());
         let len = self.inner.len();
+        // SAFETY: Safe as long as the index < length, so len - index - 1 >= 0 and <= len.
         unsafe { self.inner.get_unchecked(len - index - 1) }
     }
 
@@ -1173,14 +1178,10 @@ pub fn long_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> Option<StackVec<SI
     // frequent reallocations. Handle the first case to avoid a redundant
     // addition, since we know y.len() >= 1.
     let mut z = StackVec::<SIZE>::try_from(x)?;
-    if !y.is_empty() {
-        // SAFETY: safe, since `y.len() > 0`.
-        let y0 = unsafe { index_unchecked!(y[0]) };
+    if let Some(&y0) = y.get(0) {
         small_mul(&mut z, y0)?;
 
-        for index in 1..y.len() {
-            // SAFETY: safe, since `index < y.len()`.
-            let yi = unsafe { index_unchecked!(y[index]) };
+        for (index, &yi) in y[1..].iter().enumerate() {
             if yi != 0 {
                 let mut zi = StackVec::<SIZE>::try_from(x)?;
                 small_mul(&mut zi, yi)?;
@@ -1198,9 +1199,8 @@ pub fn long_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> Option<StackVec<SI
 pub fn large_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Option<()> {
     // Karatsuba multiplication never makes sense, so just use grade school
     // multiplication.
-    if y.len() == 1 {
-        // SAFETY: safe since `y.len() == 1`.
-        small_mul(x, unsafe { index_unchecked!(y[0]) })?;
+    if let Some(&y0) = y.get(0) {
+        small_mul(x, y0)?;
     } else {
         *x = long_mul(y, x)?;
     }
