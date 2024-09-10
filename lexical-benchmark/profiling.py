@@ -21,8 +21,8 @@ home = Path(__file__).absolute().parent
 target = home / 'target'
 
 parser = argparse.ArgumentParser(
-    prog='Profiling',
-    description='Compare profiling results between criterion runs.'
+    prog='profiling',
+    description='generate flate profiling results to compare between criterion runs.'
 )
 parser.add_argument(
     '-o',
@@ -30,12 +30,12 @@ parser.add_argument(
     '--output-file',
     dest='output',
     type=Path,
-    help='The file name to save the report to. Outputs to target/.',
+    help='the file name to save the report to. Outputs to target/.',
 )
 parser.add_argument(
     '-p',
     '--profile',
-    help='The name of the profile to load the results from.',
+    help='the name of the profile to load the results from.',
     default='base',
 )
 args = parser.parse_args()
@@ -61,9 +61,11 @@ for group, items in results.items():
         mean = item['mean']['point_estimate']
         lower = item['mean']['confidence_interval']['lower_bound']
         upper = item['mean']['confidence_interval']['upper_bound']
+        std_dev = item['std_dev']['point_estimate']
         profiling[group]['mean'][name] = mean
         profiling[group]['lower'][name] = lower
         profiling[group]['upper'][name] = upper
+        profiling[group]['std_dev'][name] = upper
 
 with open(target / args.output, 'w', encoding='utf-8') as fp:
     json.dump(profiling, fp, indent=2)
