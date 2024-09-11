@@ -52,22 +52,14 @@ pub trait RawFloat: Float + ExactFloat + MaxDigits {
     }
 
     /// Get a small power-of-radix for fast-path multiplication.
-    ///
-    /// # Safety
-    ///
-    /// Safe as long as the exponent is smaller than the table size.
-    unsafe fn pow_fast_path(exponent: usize, radix: u32) -> Self;
+    fn pow_fast_path(exponent: usize, radix: u32) -> Self;
 
     /// Get a small, integral power-of-radix for fast-path multiplication.
-    ///
-    /// # Safety
-    ///
-    /// Safe as long as the exponent is smaller than the table size.
     #[inline(always)]
-    unsafe fn int_pow_fast_path(exponent: usize, radix: u32) -> u64 {
+    fn int_pow_fast_path(exponent: usize, radix: u32) -> u64 {
         // SAFETY: safe as long as the exponent is smaller than the radix table.
         #[cfg(not(feature = "compact"))]
-        return unsafe { get_small_int_power(exponent, radix) };
+        return get_small_int_power(exponent, radix);
 
         #[cfg(feature = "compact")]
         return (radix as u64).wrapping_pow(exponent as u32);
@@ -76,10 +68,10 @@ pub trait RawFloat: Float + ExactFloat + MaxDigits {
 
 impl RawFloat for f32 {
     #[inline(always)]
-    unsafe fn pow_fast_path(exponent: usize, radix: u32) -> Self {
+    fn pow_fast_path(exponent: usize, radix: u32) -> Self {
         // SAFETY: safe as long as the exponent is smaller than the radix table.
         #[cfg(not(feature = "compact"))]
-        return unsafe { get_small_f32_power(exponent, radix) };
+        return get_small_f32_power(exponent, radix);
 
         #[cfg(feature = "compact")]
         return powf(radix as f32, exponent as f32);
@@ -88,10 +80,10 @@ impl RawFloat for f32 {
 
 impl RawFloat for f64 {
     #[inline(always)]
-    unsafe fn pow_fast_path(exponent: usize, radix: u32) -> Self {
+    fn pow_fast_path(exponent: usize, radix: u32) -> Self {
         // SAFETY: safe as long as the exponent is smaller than the radix table.
         #[cfg(not(feature = "compact"))]
-        return unsafe { get_small_f64_power(exponent, radix) };
+        return get_small_f64_power(exponent, radix);
 
         #[cfg(feature = "compact")]
         return powd(radix as f64, exponent as f64);
@@ -101,7 +93,7 @@ impl RawFloat for f64 {
 #[cfg(feature = "f16")]
 impl RawFloat for f16 {
     #[inline(always)]
-    unsafe fn pow_fast_path(_: usize, _: u32) -> Self {
+    fn pow_fast_path(_: usize, _: u32) -> Self {
         unimplemented!()
     }
 }
@@ -109,7 +101,7 @@ impl RawFloat for f16 {
 #[cfg(feature = "f16")]
 impl RawFloat for bf16 {
     #[inline(always)]
-    unsafe fn pow_fast_path(_: usize, _: u32) -> Self {
+    fn pow_fast_path(_: usize, _: u32) -> Self {
         unimplemented!()
     }
 }

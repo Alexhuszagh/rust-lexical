@@ -14,27 +14,9 @@ macro_rules! index_unchecked {
     };
 }
 
-/// Index a buffer and get a mutable reference, without bounds checking.
-#[cfg(not(feature = "safe"))]
-#[allow(unknown_lints, unused_macro_rules)]
-macro_rules! index_unchecked_mut {
-    ($x:ident[$i:expr]) => {
-        *$x.get_unchecked_mut($i)
-    };
-}
-
 /// Index a buffer, with bounds checking.
 #[cfg(feature = "safe")]
 macro_rules! index_unchecked {
-    ($x:ident[$i:expr]) => {
-        $x[$i]
-    };
-}
-
-/// Index a buffer and get a mutable reference, with bounds checking.
-#[cfg(feature = "safe")]
-#[allow(unknown_lints, unused_macro_rules)]
-macro_rules! index_unchecked_mut {
     ($x:ident[$i:expr]) => {
         $x[$i]
     };

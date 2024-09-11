@@ -16,6 +16,7 @@ use crate::shared;
 use core::cmp;
 #[cfg(not(feature = "compact"))]
 use lexical_parse_integer::algorithm;
+use lexical_util::buffer::Buffer;
 use lexical_util::digit::char_to_valid_digit_const;
 #[cfg(feature = "radix")]
 use lexical_util::digit::digit_to_char_const;
@@ -296,14 +297,10 @@ macro_rules! add_temporary {
     };
 
     // Add a temporary where we won't read the counter results internally.
-    //
-    // # Safety
-    //
-    // Safe is `counter <= step`, or smaller than the table size.
     (@end $format:ident, $result:ident, $counter:ident, $value:ident) => {
         if $counter != 0 {
             // SAFETY: safe, since `counter <= step`, or smaller than the table size.
-            let small_power = unsafe { f64::int_pow_fast_path($counter, $format.radix()) };
+            let small_power = f64::int_pow_fast_path($counter, $format.radix());
             add_temporary!(@mul $result, small_power as Limb, $value);
         }
     };

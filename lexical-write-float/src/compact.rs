@@ -65,8 +65,7 @@ pub unsafe fn write_float<F: RawFloat, const FORMAT: u128>(
     // Write our mantissa digits to a temporary buffer.
     let mut digits: [u8; 32] = [0u8; 32];
     let (digit_count, kappa, carried) = if float == F::ZERO {
-        // SAFETY: safe since `digits.len() == 32`.
-        unsafe { index_unchecked_mut!(digits[0]) = b'0' };
+        digits[0] = b'0';
         (1, 0, false)
     } else {
         // SAFETY: safe since `digits.len()` is large enough to always hold

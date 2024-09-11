@@ -9,7 +9,6 @@ use crate::bigint::Limb;
 use crate::limits::{f32_exponent_limit, f64_exponent_limit, f64_mantissa_limit, u64_power_limit};
 use crate::table_binary::*;
 use crate::table_decimal::*;
-use core::hint;
 use lexical_util::assert::debug_assert_radix;
 use static_assertions::const_assert;
 
@@ -17,155 +16,133 @@ use static_assertions::const_assert;
 // -------
 
 /// Get lookup table for 2 digit radix conversions.
-///
-/// # Safety
-///
-/// Safe as long as the radix provided is valid, and exponent is smaller
-/// than the table for the radix.
 #[inline(always)]
-pub unsafe fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
-    debug_assert_radix(radix);
-    unsafe {
-        match radix {
-            2 => get_small_int_power2(exponent),
-            3 => get_small_int_power3(exponent),
-            4 => get_small_int_power4(exponent),
-            5 => get_small_int_power5(exponent),
-            6 => get_small_int_power6(exponent),
-            7 => get_small_int_power7(exponent),
-            8 => get_small_int_power8(exponent),
-            9 => get_small_int_power9(exponent),
-            10 => get_small_int_power10(exponent),
-            11 => get_small_int_power11(exponent),
-            12 => get_small_int_power12(exponent),
-            13 => get_small_int_power13(exponent),
-            14 => get_small_int_power14(exponent),
-            15 => get_small_int_power15(exponent),
-            16 => get_small_int_power16(exponent),
-            17 => get_small_int_power17(exponent),
-            18 => get_small_int_power18(exponent),
-            19 => get_small_int_power19(exponent),
-            20 => get_small_int_power20(exponent),
-            21 => get_small_int_power21(exponent),
-            22 => get_small_int_power22(exponent),
-            23 => get_small_int_power23(exponent),
-            24 => get_small_int_power24(exponent),
-            25 => get_small_int_power25(exponent),
-            26 => get_small_int_power26(exponent),
-            27 => get_small_int_power27(exponent),
-            28 => get_small_int_power28(exponent),
-            29 => get_small_int_power29(exponent),
-            30 => get_small_int_power30(exponent),
-            31 => get_small_int_power31(exponent),
-            32 => get_small_int_power32(exponent),
-            33 => get_small_int_power33(exponent),
-            34 => get_small_int_power34(exponent),
-            35 => get_small_int_power35(exponent),
-            36 => get_small_int_power36(exponent),
-            _ => hint::unreachable_unchecked(),
-        }
+pub const fn get_small_int_power(exponent: usize, radix: u32) -> u64 {
+    match radix {
+        2 => get_small_int_power2(exponent),
+        3 => get_small_int_power3(exponent),
+        4 => get_small_int_power4(exponent),
+        5 => get_small_int_power5(exponent),
+        6 => get_small_int_power6(exponent),
+        7 => get_small_int_power7(exponent),
+        8 => get_small_int_power8(exponent),
+        9 => get_small_int_power9(exponent),
+        10 => get_small_int_power10(exponent),
+        11 => get_small_int_power11(exponent),
+        12 => get_small_int_power12(exponent),
+        13 => get_small_int_power13(exponent),
+        14 => get_small_int_power14(exponent),
+        15 => get_small_int_power15(exponent),
+        16 => get_small_int_power16(exponent),
+        17 => get_small_int_power17(exponent),
+        18 => get_small_int_power18(exponent),
+        19 => get_small_int_power19(exponent),
+        20 => get_small_int_power20(exponent),
+        21 => get_small_int_power21(exponent),
+        22 => get_small_int_power22(exponent),
+        23 => get_small_int_power23(exponent),
+        24 => get_small_int_power24(exponent),
+        25 => get_small_int_power25(exponent),
+        26 => get_small_int_power26(exponent),
+        27 => get_small_int_power27(exponent),
+        28 => get_small_int_power28(exponent),
+        29 => get_small_int_power29(exponent),
+        30 => get_small_int_power30(exponent),
+        31 => get_small_int_power31(exponent),
+        32 => get_small_int_power32(exponent),
+        33 => get_small_int_power33(exponent),
+        34 => get_small_int_power34(exponent),
+        35 => get_small_int_power35(exponent),
+        36 => get_small_int_power36(exponent),
+        _ => unreachable!(),
     }
 }
 
 /// Get lookup table for small f32 powers.
-///
-/// # Safety
-///
-/// Safe as long as the radix provided is valid, and exponent is smaller
-/// than the table for the radix.
 #[inline(always)]
-pub unsafe fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
+pub fn get_small_f32_power(exponent: usize, radix: u32) -> f32 {
     debug_assert_radix(radix);
-    unsafe {
-        match radix {
-            2 => get_small_f32_power2(exponent),
-            3 => get_small_f32_power3(exponent),
-            4 => get_small_f32_power4(exponent),
-            5 => get_small_f32_power5(exponent),
-            6 => get_small_f32_power6(exponent),
-            7 => get_small_f32_power7(exponent),
-            8 => get_small_f32_power8(exponent),
-            9 => get_small_f32_power9(exponent),
-            10 => get_small_f32_power10(exponent),
-            11 => get_small_f32_power11(exponent),
-            12 => get_small_f32_power12(exponent),
-            13 => get_small_f32_power13(exponent),
-            14 => get_small_f32_power14(exponent),
-            15 => get_small_f32_power15(exponent),
-            16 => get_small_f32_power16(exponent),
-            17 => get_small_f32_power17(exponent),
-            18 => get_small_f32_power18(exponent),
-            19 => get_small_f32_power19(exponent),
-            20 => get_small_f32_power20(exponent),
-            21 => get_small_f32_power21(exponent),
-            22 => get_small_f32_power22(exponent),
-            23 => get_small_f32_power23(exponent),
-            24 => get_small_f32_power24(exponent),
-            25 => get_small_f32_power25(exponent),
-            26 => get_small_f32_power26(exponent),
-            27 => get_small_f32_power27(exponent),
-            28 => get_small_f32_power28(exponent),
-            29 => get_small_f32_power29(exponent),
-            30 => get_small_f32_power30(exponent),
-            31 => get_small_f32_power31(exponent),
-            32 => get_small_f32_power32(exponent),
-            33 => get_small_f32_power33(exponent),
-            34 => get_small_f32_power34(exponent),
-            35 => get_small_f32_power35(exponent),
-            36 => get_small_f32_power36(exponent),
-            _ => hint::unreachable_unchecked(),
-        }
+    match radix {
+        2 => get_small_f32_power2(exponent),
+        3 => get_small_f32_power3(exponent),
+        4 => get_small_f32_power4(exponent),
+        5 => get_small_f32_power5(exponent),
+        6 => get_small_f32_power6(exponent),
+        7 => get_small_f32_power7(exponent),
+        8 => get_small_f32_power8(exponent),
+        9 => get_small_f32_power9(exponent),
+        10 => get_small_f32_power10(exponent),
+        11 => get_small_f32_power11(exponent),
+        12 => get_small_f32_power12(exponent),
+        13 => get_small_f32_power13(exponent),
+        14 => get_small_f32_power14(exponent),
+        15 => get_small_f32_power15(exponent),
+        16 => get_small_f32_power16(exponent),
+        17 => get_small_f32_power17(exponent),
+        18 => get_small_f32_power18(exponent),
+        19 => get_small_f32_power19(exponent),
+        20 => get_small_f32_power20(exponent),
+        21 => get_small_f32_power21(exponent),
+        22 => get_small_f32_power22(exponent),
+        23 => get_small_f32_power23(exponent),
+        24 => get_small_f32_power24(exponent),
+        25 => get_small_f32_power25(exponent),
+        26 => get_small_f32_power26(exponent),
+        27 => get_small_f32_power27(exponent),
+        28 => get_small_f32_power28(exponent),
+        29 => get_small_f32_power29(exponent),
+        30 => get_small_f32_power30(exponent),
+        31 => get_small_f32_power31(exponent),
+        32 => get_small_f32_power32(exponent),
+        33 => get_small_f32_power33(exponent),
+        34 => get_small_f32_power34(exponent),
+        35 => get_small_f32_power35(exponent),
+        36 => get_small_f32_power36(exponent),
+        _ => unreachable!(),
     }
 }
 
 /// Get lookup table for small f64 powers.
-///
-/// # Safety
-///
-/// Safe as long as the radix provided is valid, and exponent is smaller
-/// than the table for the radix.
 #[inline(always)]
-pub unsafe fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
+pub fn get_small_f64_power(exponent: usize, radix: u32) -> f64 {
     debug_assert_radix(radix);
-    unsafe {
-        match radix {
-            2 => get_small_f64_power2(exponent),
-            3 => get_small_f64_power3(exponent),
-            4 => get_small_f64_power4(exponent),
-            5 => get_small_f64_power5(exponent),
-            6 => get_small_f64_power6(exponent),
-            7 => get_small_f64_power7(exponent),
-            8 => get_small_f64_power8(exponent),
-            9 => get_small_f64_power9(exponent),
-            10 => get_small_f64_power10(exponent),
-            11 => get_small_f64_power11(exponent),
-            12 => get_small_f64_power12(exponent),
-            13 => get_small_f64_power13(exponent),
-            14 => get_small_f64_power14(exponent),
-            15 => get_small_f64_power15(exponent),
-            16 => get_small_f64_power16(exponent),
-            17 => get_small_f64_power17(exponent),
-            18 => get_small_f64_power18(exponent),
-            19 => get_small_f64_power19(exponent),
-            20 => get_small_f64_power20(exponent),
-            21 => get_small_f64_power21(exponent),
-            22 => get_small_f64_power22(exponent),
-            23 => get_small_f64_power23(exponent),
-            24 => get_small_f64_power24(exponent),
-            25 => get_small_f64_power25(exponent),
-            26 => get_small_f64_power26(exponent),
-            27 => get_small_f64_power27(exponent),
-            28 => get_small_f64_power28(exponent),
-            29 => get_small_f64_power29(exponent),
-            30 => get_small_f64_power30(exponent),
-            31 => get_small_f64_power31(exponent),
-            32 => get_small_f64_power32(exponent),
-            33 => get_small_f64_power33(exponent),
-            34 => get_small_f64_power34(exponent),
-            35 => get_small_f64_power35(exponent),
-            36 => get_small_f64_power36(exponent),
-            _ => hint::unreachable_unchecked(),
-        }
+    match radix {
+        2 => get_small_f64_power2(exponent),
+        3 => get_small_f64_power3(exponent),
+        4 => get_small_f64_power4(exponent),
+        5 => get_small_f64_power5(exponent),
+        6 => get_small_f64_power6(exponent),
+        7 => get_small_f64_power7(exponent),
+        8 => get_small_f64_power8(exponent),
+        9 => get_small_f64_power9(exponent),
+        10 => get_small_f64_power10(exponent),
+        11 => get_small_f64_power11(exponent),
+        12 => get_small_f64_power12(exponent),
+        13 => get_small_f64_power13(exponent),
+        14 => get_small_f64_power14(exponent),
+        15 => get_small_f64_power15(exponent),
+        16 => get_small_f64_power16(exponent),
+        17 => get_small_f64_power17(exponent),
+        18 => get_small_f64_power18(exponent),
+        19 => get_small_f64_power19(exponent),
+        20 => get_small_f64_power20(exponent),
+        21 => get_small_f64_power21(exponent),
+        22 => get_small_f64_power22(exponent),
+        23 => get_small_f64_power23(exponent),
+        24 => get_small_f64_power24(exponent),
+        25 => get_small_f64_power25(exponent),
+        26 => get_small_f64_power26(exponent),
+        27 => get_small_f64_power27(exponent),
+        28 => get_small_f64_power28(exponent),
+        29 => get_small_f64_power29(exponent),
+        30 => get_small_f64_power30(exponent),
+        31 => get_small_f64_power31(exponent),
+        32 => get_small_f64_power32(exponent),
+        33 => get_small_f64_power33(exponent),
+        34 => get_small_f64_power34(exponent),
+        35 => get_small_f64_power35(exponent),
+        36 => get_small_f64_power36(exponent),
+        _ => unreachable!(),
     }
 }
 
@@ -194,863 +171,519 @@ pub const fn get_large_int_power(radix: u32) -> (&'static [Limb], u32) {
 }
 
 /// Get pre-computed int power of 3.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW3.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power3(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW3[exponent]) }
+pub const fn get_small_int_power3(exponent: usize) -> u64 {
+    SMALL_INT_POW3[exponent]
 }
 
 /// Get pre-computed f32 power of 3.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW3.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power3(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW3[exponent]) }
+pub fn get_small_f32_power3(exponent: usize) -> f32 {
+    SMALL_F32_POW3[exponent]
 }
 
 /// Get pre-computed f64 power of 3.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW3.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power3(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW3[exponent]) }
+pub fn get_small_f64_power3(exponent: usize) -> f64 {
+    SMALL_F64_POW3[exponent]
 }
 
 /// Get pre-computed f32 power of 5.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW5.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power5(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW5[exponent]) }
+pub fn get_small_f32_power5(exponent: usize) -> f32 {
+    SMALL_F32_POW5[exponent]
 }
 
 /// Get pre-computed f64 power of 5.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW5.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power5(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW5[exponent]) }
+pub fn get_small_f64_power5(exponent: usize) -> f64 {
+    SMALL_F64_POW5[exponent]
 }
 
 /// Get pre-computed int power of 6.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW6.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power6(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW6[exponent]) }
+pub const fn get_small_int_power6(exponent: usize) -> u64 {
+    SMALL_INT_POW6[exponent]
 }
 
 /// Get pre-computed f32 power of 6.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW6.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power6(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW6[exponent]) }
+pub fn get_small_f32_power6(exponent: usize) -> f32 {
+    SMALL_F32_POW6[exponent]
 }
 
 /// Get pre-computed f64 power of 6.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW6.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power6(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW6[exponent]) }
+pub fn get_small_f64_power6(exponent: usize) -> f64 {
+    SMALL_F64_POW6[exponent]
 }
 
 /// Get pre-computed int power of 7.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW7.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power7(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW7[exponent]) }
+pub const fn get_small_int_power7(exponent: usize) -> u64 {
+    SMALL_INT_POW7[exponent]
 }
 
 /// Get pre-computed f32 power of 7.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW7.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power7(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW7[exponent]) }
+pub fn get_small_f32_power7(exponent: usize) -> f32 {
+    SMALL_F32_POW7[exponent]
 }
 
 /// Get pre-computed f64 power of 7.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW7.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power7(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW7[exponent]) }
+pub fn get_small_f64_power7(exponent: usize) -> f64 {
+    SMALL_F64_POW7[exponent]
 }
 
 /// Get pre-computed int power of 9.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW9.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power9(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW9[exponent]) }
+pub const fn get_small_int_power9(exponent: usize) -> u64 {
+    SMALL_INT_POW9[exponent]
 }
 
 /// Get pre-computed f32 power of 9.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW9.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power9(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW9[exponent]) }
+pub fn get_small_f32_power9(exponent: usize) -> f32 {
+    SMALL_F32_POW9[exponent]
 }
 
 /// Get pre-computed f64 power of 9.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW9.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power9(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW9[exponent]) }
+pub fn get_small_f64_power9(exponent: usize) -> f64 {
+    SMALL_F64_POW9[exponent]
 }
 
 /// Get pre-computed int power of 11.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW11.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power11(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW11[exponent]) }
+pub const fn get_small_int_power11(exponent: usize) -> u64 {
+    SMALL_INT_POW11[exponent]
 }
 
 /// Get pre-computed f32 power of 11.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW11.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power11(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW11[exponent]) }
+pub fn get_small_f32_power11(exponent: usize) -> f32 {
+    SMALL_F32_POW11[exponent]
 }
 
 /// Get pre-computed f64 power of 11.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW11.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power11(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW11[exponent]) }
+pub fn get_small_f64_power11(exponent: usize) -> f64 {
+    SMALL_F64_POW11[exponent]
 }
 
 /// Get pre-computed int power of 12.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW12.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power12(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW12[exponent]) }
+pub const fn get_small_int_power12(exponent: usize) -> u64 {
+    SMALL_INT_POW12[exponent]
 }
 
 /// Get pre-computed f32 power of 12.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW12.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power12(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW12[exponent]) }
+pub fn get_small_f32_power12(exponent: usize) -> f32 {
+    SMALL_F32_POW12[exponent]
 }
 
 /// Get pre-computed f64 power of 12.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW12.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power12(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW12[exponent]) }
+pub fn get_small_f64_power12(exponent: usize) -> f64 {
+    SMALL_F64_POW12[exponent]
 }
 
 /// Get pre-computed int power of 13.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW13.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power13(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW13[exponent]) }
+pub const fn get_small_int_power13(exponent: usize) -> u64 {
+    SMALL_INT_POW13[exponent]
 }
 
 /// Get pre-computed f32 power of 13.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW13.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power13(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW13[exponent]) }
+pub fn get_small_f32_power13(exponent: usize) -> f32 {
+    SMALL_F32_POW13[exponent]
 }
 
 /// Get pre-computed f64 power of 13.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW13.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power13(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW13[exponent]) }
+pub fn get_small_f64_power13(exponent: usize) -> f64 {
+    SMALL_F64_POW13[exponent]
 }
 
 /// Get pre-computed int power of 14.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW14.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power14(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW14[exponent]) }
+pub const fn get_small_int_power14(exponent: usize) -> u64 {
+    SMALL_INT_POW14[exponent]
 }
 
 /// Get pre-computed f32 power of 14.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW14.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power14(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW14[exponent]) }
+pub fn get_small_f32_power14(exponent: usize) -> f32 {
+    SMALL_F32_POW14[exponent]
 }
 
 /// Get pre-computed f64 power of 14.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW14.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power14(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW14[exponent]) }
+pub fn get_small_f64_power14(exponent: usize) -> f64 {
+    SMALL_F64_POW14[exponent]
 }
 
 /// Get pre-computed int power of 15.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW15.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power15(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW15[exponent]) }
+pub const fn get_small_int_power15(exponent: usize) -> u64 {
+    SMALL_INT_POW15[exponent]
 }
 
 /// Get pre-computed f32 power of 15.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW15.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power15(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW15[exponent]) }
+pub fn get_small_f32_power15(exponent: usize) -> f32 {
+    SMALL_F32_POW15[exponent]
 }
 
 /// Get pre-computed f64 power of 15.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW15.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power15(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW15[exponent]) }
+pub fn get_small_f64_power15(exponent: usize) -> f64 {
+    SMALL_F64_POW15[exponent]
 }
 
 /// Get pre-computed int power of 17.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW17.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power17(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW17[exponent]) }
+pub const fn get_small_int_power17(exponent: usize) -> u64 {
+    SMALL_INT_POW17[exponent]
 }
 
 /// Get pre-computed f32 power of 17.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW17.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power17(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW17[exponent]) }
+pub fn get_small_f32_power17(exponent: usize) -> f32 {
+    SMALL_F32_POW17[exponent]
 }
 
 /// Get pre-computed f64 power of 17.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW17.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power17(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW17[exponent]) }
+pub fn get_small_f64_power17(exponent: usize) -> f64 {
+    SMALL_F64_POW17[exponent]
 }
 
 /// Get pre-computed int power of 18.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW18.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power18(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW18[exponent]) }
+pub const fn get_small_int_power18(exponent: usize) -> u64 {
+    SMALL_INT_POW18[exponent]
 }
 
 /// Get pre-computed f32 power of 18.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW18.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power18(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW18[exponent]) }
+pub fn get_small_f32_power18(exponent: usize) -> f32 {
+    SMALL_F32_POW18[exponent]
 }
 
 /// Get pre-computed f64 power of 18.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW18.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power18(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW18[exponent]) }
+pub fn get_small_f64_power18(exponent: usize) -> f64 {
+    SMALL_F64_POW18[exponent]
 }
 
 /// Get pre-computed int power of 19.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW19.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power19(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW19[exponent]) }
+pub const fn get_small_int_power19(exponent: usize) -> u64 {
+    SMALL_INT_POW19[exponent]
 }
 
 /// Get pre-computed f32 power of 19.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW19.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power19(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW19[exponent]) }
+pub fn get_small_f32_power19(exponent: usize) -> f32 {
+    SMALL_F32_POW19[exponent]
 }
 
 /// Get pre-computed f64 power of 19.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW19.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power19(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW19[exponent]) }
+pub fn get_small_f64_power19(exponent: usize) -> f64 {
+    SMALL_F64_POW19[exponent]
 }
 
 /// Get pre-computed int power of 20.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW20.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power20(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW20[exponent]) }
+pub const fn get_small_int_power20(exponent: usize) -> u64 {
+    SMALL_INT_POW20[exponent]
 }
 
 /// Get pre-computed f32 power of 20.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW20.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power20(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW20[exponent]) }
+pub fn get_small_f32_power20(exponent: usize) -> f32 {
+    SMALL_F32_POW20[exponent]
 }
 
 /// Get pre-computed f64 power of 20.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW20.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power20(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW20[exponent]) }
+pub fn get_small_f64_power20(exponent: usize) -> f64 {
+    SMALL_F64_POW20[exponent]
 }
 
 /// Get pre-computed int power of 21.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW21.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power21(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW21[exponent]) }
+pub const fn get_small_int_power21(exponent: usize) -> u64 {
+    SMALL_INT_POW21[exponent]
 }
 
 /// Get pre-computed f32 power of 21.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW21.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power21(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW21[exponent]) }
+pub fn get_small_f32_power21(exponent: usize) -> f32 {
+    SMALL_F32_POW21[exponent]
 }
 
 /// Get pre-computed f64 power of 21.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW21.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power21(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW21[exponent]) }
+pub fn get_small_f64_power21(exponent: usize) -> f64 {
+    SMALL_F64_POW21[exponent]
 }
 
 /// Get pre-computed int power of 22.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW22.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power22(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW22[exponent]) }
+pub const fn get_small_int_power22(exponent: usize) -> u64 {
+    SMALL_INT_POW22[exponent]
 }
 
 /// Get pre-computed f32 power of 22.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW22.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power22(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW22[exponent]) }
+pub fn get_small_f32_power22(exponent: usize) -> f32 {
+    SMALL_F32_POW22[exponent]
 }
 
 /// Get pre-computed f64 power of 22.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW22.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power22(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW22[exponent]) }
+pub fn get_small_f64_power22(exponent: usize) -> f64 {
+    SMALL_F64_POW22[exponent]
 }
 
 /// Get pre-computed int power of 23.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW23.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power23(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW23[exponent]) }
+pub const fn get_small_int_power23(exponent: usize) -> u64 {
+    SMALL_INT_POW23[exponent]
 }
 
 /// Get pre-computed f32 power of 23.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW23.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power23(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW23[exponent]) }
+pub fn get_small_f32_power23(exponent: usize) -> f32 {
+    SMALL_F32_POW23[exponent]
 }
 
 /// Get pre-computed f64 power of 23.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW23.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power23(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW23[exponent]) }
+pub fn get_small_f64_power23(exponent: usize) -> f64 {
+    SMALL_F64_POW23[exponent]
 }
 
 /// Get pre-computed int power of 24.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW24.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power24(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW24[exponent]) }
+pub const fn get_small_int_power24(exponent: usize) -> u64 {
+    SMALL_INT_POW24[exponent]
 }
 
 /// Get pre-computed f32 power of 24.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW24.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power24(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW24[exponent]) }
+pub fn get_small_f32_power24(exponent: usize) -> f32 {
+    SMALL_F32_POW24[exponent]
 }
 
 /// Get pre-computed f64 power of 24.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW24.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power24(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW24[exponent]) }
+pub fn get_small_f64_power24(exponent: usize) -> f64 {
+    SMALL_F64_POW24[exponent]
 }
 
 /// Get pre-computed int power of 25.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW25.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power25(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW25[exponent]) }
+pub const fn get_small_int_power25(exponent: usize) -> u64 {
+    SMALL_INT_POW25[exponent]
 }
 
 /// Get pre-computed f32 power of 25.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW25.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power25(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW25[exponent]) }
+pub fn get_small_f32_power25(exponent: usize) -> f32 {
+    SMALL_F32_POW25[exponent]
 }
 
 /// Get pre-computed f64 power of 25.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW25.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power25(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW25[exponent]) }
+pub fn get_small_f64_power25(exponent: usize) -> f64 {
+    SMALL_F64_POW25[exponent]
 }
 
 /// Get pre-computed int power of 26.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW26.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power26(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW26[exponent]) }
+pub const fn get_small_int_power26(exponent: usize) -> u64 {
+    SMALL_INT_POW26[exponent]
 }
 
 /// Get pre-computed f32 power of 26.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW26.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power26(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW26[exponent]) }
+pub fn get_small_f32_power26(exponent: usize) -> f32 {
+    SMALL_F32_POW26[exponent]
 }
 
 /// Get pre-computed f64 power of 26.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW26.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power26(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW26[exponent]) }
+pub fn get_small_f64_power26(exponent: usize) -> f64 {
+    SMALL_F64_POW26[exponent]
 }
 
 /// Get pre-computed int power of 27.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW27.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power27(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW27[exponent]) }
+pub const fn get_small_int_power27(exponent: usize) -> u64 {
+    SMALL_INT_POW27[exponent]
 }
 
 /// Get pre-computed f32 power of 27.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW27.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power27(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW27[exponent]) }
+pub fn get_small_f32_power27(exponent: usize) -> f32 {
+    SMALL_F32_POW27[exponent]
 }
 
 /// Get pre-computed f64 power of 27.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW27.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power27(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW27[exponent]) }
+pub fn get_small_f64_power27(exponent: usize) -> f64 {
+    SMALL_F64_POW27[exponent]
 }
 
 /// Get pre-computed int power of 28.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW28.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power28(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW28[exponent]) }
+pub const fn get_small_int_power28(exponent: usize) -> u64 {
+    SMALL_INT_POW28[exponent]
 }
 
 /// Get pre-computed f32 power of 28.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW28.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power28(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW28[exponent]) }
+pub fn get_small_f32_power28(exponent: usize) -> f32 {
+    SMALL_F32_POW28[exponent]
 }
 
 /// Get pre-computed f64 power of 28.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW28.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power28(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW28[exponent]) }
+pub fn get_small_f64_power28(exponent: usize) -> f64 {
+    SMALL_F64_POW28[exponent]
 }
 
 /// Get pre-computed int power of 29.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW29.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power29(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW29[exponent]) }
+pub const fn get_small_int_power29(exponent: usize) -> u64 {
+    SMALL_INT_POW29[exponent]
 }
 
 /// Get pre-computed f32 power of 29.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW29.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power29(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW29[exponent]) }
+pub fn get_small_f32_power29(exponent: usize) -> f32 {
+    SMALL_F32_POW29[exponent]
 }
 
 /// Get pre-computed f64 power of 29.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW29.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power29(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW29[exponent]) }
+pub fn get_small_f64_power29(exponent: usize) -> f64 {
+    SMALL_F64_POW29[exponent]
 }
 
 /// Get pre-computed int power of 30.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW30.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power30(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW30[exponent]) }
+pub const fn get_small_int_power30(exponent: usize) -> u64 {
+    SMALL_INT_POW30[exponent]
 }
 
 /// Get pre-computed f32 power of 30.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW30.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power30(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW30[exponent]) }
+pub fn get_small_f32_power30(exponent: usize) -> f32 {
+    SMALL_F32_POW30[exponent]
 }
 
 /// Get pre-computed f64 power of 30.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW30.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power30(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW30[exponent]) }
+pub fn get_small_f64_power30(exponent: usize) -> f64 {
+    SMALL_F64_POW30[exponent]
 }
 
 /// Get pre-computed int power of 31.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW31.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power31(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW31[exponent]) }
+pub const fn get_small_int_power31(exponent: usize) -> u64 {
+    SMALL_INT_POW31[exponent]
 }
 
 /// Get pre-computed f32 power of 31.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW31.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power31(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW31[exponent]) }
+pub fn get_small_f32_power31(exponent: usize) -> f32 {
+    SMALL_F32_POW31[exponent]
 }
 
 /// Get pre-computed f64 power of 31.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW31.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power31(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW31[exponent]) }
+pub fn get_small_f64_power31(exponent: usize) -> f64 {
+    SMALL_F64_POW31[exponent]
 }
 
 /// Get pre-computed int power of 33.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW33.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power33(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW33[exponent]) }
+pub const fn get_small_int_power33(exponent: usize) -> u64 {
+    SMALL_INT_POW33[exponent]
 }
 
 /// Get pre-computed f32 power of 33.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW33.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power33(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW33[exponent]) }
+pub fn get_small_f32_power33(exponent: usize) -> f32 {
+    SMALL_F32_POW33[exponent]
 }
 
 /// Get pre-computed f64 power of 33.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW33.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power33(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW33[exponent]) }
+pub fn get_small_f64_power33(exponent: usize) -> f64 {
+    SMALL_F64_POW33[exponent]
 }
 
 /// Get pre-computed int power of 34.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW34.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power34(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW34[exponent]) }
+pub const fn get_small_int_power34(exponent: usize) -> u64 {
+    SMALL_INT_POW34[exponent]
 }
 
 /// Get pre-computed f32 power of 34.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW34.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power34(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW34[exponent]) }
+pub fn get_small_f32_power34(exponent: usize) -> f32 {
+    SMALL_F32_POW34[exponent]
 }
 
 /// Get pre-computed f64 power of 34.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW34.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power34(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW34[exponent]) }
+pub fn get_small_f64_power34(exponent: usize) -> f64 {
+    SMALL_F64_POW34[exponent]
 }
 
 /// Get pre-computed int power of 35.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW35.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power35(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW35[exponent]) }
+pub const fn get_small_int_power35(exponent: usize) -> u64 {
+    SMALL_INT_POW35[exponent]
 }
 
 /// Get pre-computed f32 power of 35.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW35.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power35(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW35[exponent]) }
+pub fn get_small_f32_power35(exponent: usize) -> f32 {
+    SMALL_F32_POW35[exponent]
 }
 
 /// Get pre-computed f64 power of 35.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW35.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power35(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW35[exponent]) }
+pub fn get_small_f64_power35(exponent: usize) -> f64 {
+    SMALL_F64_POW35[exponent]
 }
 
 /// Get pre-computed int power of 36.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_INT_POW36.len()`.
 #[inline(always)]
-pub unsafe fn get_small_int_power36(exponent: usize) -> u64 {
-    unsafe { index_unchecked!(SMALL_INT_POW36[exponent]) }
+pub const fn get_small_int_power36(exponent: usize) -> u64 {
+    SMALL_INT_POW36[exponent]
 }
 
 /// Get pre-computed f32 power of 36.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F32_POW36.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f32_power36(exponent: usize) -> f32 {
-    unsafe { index_unchecked!(SMALL_F32_POW36[exponent]) }
+pub fn get_small_f32_power36(exponent: usize) -> f32 {
+    SMALL_F32_POW36[exponent]
 }
 
 /// Get pre-computed f64 power of 36.
-///
-/// # Safety
-///
-/// Safe as long as the `exponent < SMALL_F64_POW36.len()`.
 #[inline(always)]
-pub unsafe fn get_small_f64_power36(exponent: usize) -> f64 {
-    unsafe { index_unchecked!(SMALL_F64_POW36[exponent]) }
+pub fn get_small_f64_power36(exponent: usize) -> f64 {
+    SMALL_F64_POW36[exponent]
 }
 
 // TABLES

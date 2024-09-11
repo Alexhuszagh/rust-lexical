@@ -1,9 +1,8 @@
-lexical-benchmark
-=================
+# lexical-benchmark
 
 Benchmarks comparing lexical to other numeric conversion routines.
 
-# Running the Benchmark
+## Running the Benchmark
 
 The benchmark requires the following:
 

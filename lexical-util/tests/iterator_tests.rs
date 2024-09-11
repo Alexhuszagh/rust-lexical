@@ -1,5 +1,6 @@
 #![cfg(feature = "parse")]
 
+use lexical_util::buffer::Buffer;
 use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
 
 #[test]

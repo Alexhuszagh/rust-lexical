@@ -252,7 +252,6 @@
 //! [`to_string`]: fn.to_string.html
 //! [`to_string_with_options`]: fn.to_string_with_options.html
 //! [`write_with_options`]: crate::write_with_options
-//! [`write_with_options_unchecked`]: crate::write_with_options_unchecked
 //! [`parse`]: crate::parse
 //! [`parse_partial`]: crate::parse_partial
 //! [`parse_with_options`]: crate::parse_with_options
@@ -339,7 +338,7 @@ pub fn to_string<N: ToLexical>(n: N) -> String {
     // SAFETY: safe since the buffer is of sufficient size.
     unsafe {
         let mut buf = Vec::<u8>::with_capacity(N::FORMATTED_SIZE_DECIMAL);
-        let len = lexical_core::write_unchecked(n, vector_as_slice(&mut buf)).len();
+        let len = lexical_core::write(n, vector_as_slice(&mut buf)).len();
         buf.set_len(len);
         String::from_utf8_unchecked(buf)
     }
@@ -375,12 +374,9 @@ pub fn to_string_with_options<N: ToLexicalWithOptions, const FORMAT: u128>(
     // SAFETY: safe since the buffer is of sufficient size.
     unsafe {
         let mut buf = Vec::<u8>::with_capacity(size);
-        let len = lexical_core::write_with_options_unchecked::<_, FORMAT>(
-            n,
-            vector_as_slice(&mut buf),
-            options,
-        )
-        .len();
+        let len =
+            lexical_core::write_with_options::<_, FORMAT>(n, vector_as_slice(&mut buf), options)
+                .len();
         buf.set_len(len);
         String::from_utf8_unchecked(buf)
     }

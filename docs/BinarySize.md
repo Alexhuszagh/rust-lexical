@@ -6,7 +6,7 @@ Each binary is generated using all optimization levels, and includes the result 
 
 All these binaries sizes are *relative* to the size of an empty Rust binary: that is, the size of the empty executable is subtracted from the total binary's size. For some cases, this leads to results of 0 bytes, which isn't real, but in practice leads to no additional size in the resulting executable.
 
-# Default
+## Default
 
 **Optimization Level "0"**
 
@@ -50,7 +50,7 @@ All these binaries sizes are *relative* to the size of an empty Rust binary: tha
 ![Parse Stripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/size_parse_stripped_optz_posix.svg)
 ![Write Stripped - Optimization Level "z"](https://raw.githubusercontent.com/Alexhuszagh/rust-lexical/main/assets/size_write_stripped_optz_posix.svg)
 
-# Compact
+## Compact
 
 **Optimization Level "0"**
 

@@ -37,6 +37,7 @@
 
 #![cfg(all(feature = "format", feature = "parse"))]
 
+use crate::buffer::Buffer;
 use crate::digit::char_is_digit_const;
 use crate::format::NumberFormat;
 use crate::format_flags as flags;
@@ -343,9 +344,6 @@ pub struct Bytes<'a, const FORMAT: u128> {
 }
 
 impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
-    /// If each yielded value is adjacent in memory.
-    pub const IS_CONTIGUOUS: bool = NumberFormat::<{ FORMAT }>::DIGIT_SEPARATOR == 0;
-
     /// Create new byte object.
     #[inline(always)]
     pub fn new(slc: &'a [u8]) -> Self {
@@ -354,19 +352,6 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
             index: 0,
             count: 0,
         }
-    }
-
-    /// Get a ptr to the current start of the iterator.
-    #[inline(always)]
-    pub fn as_ptr(&self) -> *const u8 {
-        self.as_slice().as_ptr()
-    }
-
-    /// Get a slice to the current start of the iterator.
-    #[inline(always)]
-    pub fn as_slice(&self) -> &'a [u8] {
-        // SAFETY: safe since index must be in range
-        unsafe { self.slc.get_unchecked(self.index..) }
     }
 
     /// Get the total number of elements in the underlying slice.
@@ -463,12 +448,13 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
             None
         }
     }
+
     /// Check if the next element is a given value.
     #[inline(always)]
-    pub fn first_is(&mut self, value: u8) -> bool {
+    pub fn peek_is(&mut self, value: u8) -> bool {
         // Don't assert not a digit separator, since this can occur when
         // a different component does not allow digit separators there.
-        if let Some(&c) = self.slc.get(self.index) {
+        if let Some(&c) = self.first() {
             c == value
         } else {
             false
@@ -477,10 +463,10 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
 
     /// Check if the next element is a given value without case sensitivity.
     #[inline(always)]
-    pub fn case_insensitive_first_is(&mut self, value: u8) -> bool {
+    pub fn case_insensitive_peek_is(&mut self, value: u8) -> bool {
         // Don't assert not a digit separator, since this can occur when
         // a different component does not allow digit separators there.
-        if let Some(&c) = self.slc.get(self.index) {
+        if let Some(&c) = self.first() {
             c.to_ascii_lowercase() == value.to_ascii_lowercase()
         } else {
             false
@@ -563,6 +549,34 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     }
 }
 
+impl<'a, const FORMAT: u128> Buffer<'a> for Bytes<'a, FORMAT> {
+    /// If each yielded value is adjacent in memory.
+    const IS_CONTIGUOUS: bool = NumberFormat::<{ FORMAT }>::DIGIT_SEPARATOR == 0;
+
+    #[inline(always)]
+    fn as_ptr(&self) -> *const u8 {
+        self.as_slice().as_ptr()
+    }
+
+    #[inline(always)]
+    fn as_slice(&self) -> &'a [u8] {
+        debug_assert!(self.index <= self.length());
+        // SAFETY: safe since index must be in range.
+        unsafe { self.slc.get_unchecked(self.index..) }
+    }
+
+    #[inline(always)]
+    fn is_empty(&self) -> bool {
+        self.index >= self.slc.len()
+    }
+
+    #[inline(always)]
+    unsafe fn first_unchecked(&self) -> &'a u8 {
+        // SAFETY: safe if there's at least 1 item in the buffer
+        unsafe { self.as_slice().get_unchecked(0) }
+    }
+}
+
 // ITERATOR HELPERS
 // ----------------
 
@@ -632,8 +646,8 @@ macro_rules! skip_iterator_iterator_impl {
     };
 }
 
-/// Create base methods for the ByteIter block of a skip iterator.
-macro_rules! skip_iterator_byteiter_base {
+/// Create base methods for the Buffer block of a skip iterator.
+macro_rules! skip_iterator_buffer_base {
     ($format:ident, $mask:ident) => {
         // It's contiguous if we don't skip over any values.
         // IE, the digit separator flags for the iterator over
@@ -650,6 +664,22 @@ macro_rules! skip_iterator_byteiter_base {
             self.byte.as_slice()
         }
 
+        #[inline(always)]
+        fn is_empty(&self) -> bool {
+            self.byte.is_done()
+        }
+
+        #[inline(always)]
+        unsafe fn first_unchecked(&self) -> <Self as Iterator>::Item {
+            // SAFETY: safe if `self.cursor() < self.length()`.
+            unsafe { self.byte.slc.get_unchecked(self.byte.index) }
+        }
+    };
+}
+
+/// Create base methods for the BytesIter block of a skip iterator.
+macro_rules! skip_iterator_bytesiter_base {
+    () => {
         #[inline(always)]
         fn length(&self) -> usize {
             self.byte.length()
@@ -680,11 +710,6 @@ macro_rules! skip_iterator_byteiter_base {
         #[inline(always)]
         fn is_done(&self) -> bool {
             self.byte.is_done()
-        }
-
-        #[inline(always)]
-        fn is_contiguous(&self) -> bool {
-            Self::IS_CONTIGUOUS
         }
 
         #[inline(always)]
@@ -719,10 +744,14 @@ macro_rules! skip_iterator_byteiter_base {
 }
 
 /// Create impl ByteIter block for skip iterator.
-macro_rules! skip_iterator_byteiter_impl {
+macro_rules! skip_iterator_bytesiter_impl {
     ($iterator:ident, $mask:ident, $i:ident, $l:ident, $t:ident, $c:ident) => {
+        impl<'a: 'b, 'b, const FORMAT: u128> Buffer<'a> for $iterator<'a, 'b, FORMAT> {
+            skip_iterator_buffer_base!(FORMAT, $mask);
+        }
+
         unsafe impl<'a: 'b, 'b, const FORMAT: u128> BytesIter<'a> for $iterator<'a, 'b, FORMAT> {
-            skip_iterator_byteiter_base!(FORMAT, $mask);
+            skip_iterator_bytesiter_base!();
 
             /// Peek the next value of the iterator, without consuming it.
             #[inline(always)]
@@ -769,7 +798,7 @@ macro_rules! skip_iterator_byteiter_impl {
 skip_iterator!(IntegerBytesIterator, "Iterator that skips over digit separators in the integer.");
 skip_iterator_impl!(IntegerBytesIterator, mantissa_radix);
 skip_iterator_iterator_impl!(IntegerBytesIterator);
-skip_iterator_byteiter_impl!(
+skip_iterator_bytesiter_impl!(
     IntegerBytesIterator,
     INTEGER_DIGIT_SEPARATOR_FLAG_MASK,
     INTEGER_INTERNAL_DIGIT_SEPARATOR,
@@ -784,7 +813,7 @@ skip_iterator_byteiter_impl!(
 skip_iterator!(FractionBytesIterator, "Iterator that skips over digit separators in the fraction.");
 skip_iterator_impl!(FractionBytesIterator, mantissa_radix);
 skip_iterator_iterator_impl!(FractionBytesIterator);
-skip_iterator_byteiter_impl!(
+skip_iterator_bytesiter_impl!(
     FractionBytesIterator,
     FRACTION_DIGIT_SEPARATOR_FLAG_MASK,
     FRACTION_INTERNAL_DIGIT_SEPARATOR,
@@ -799,7 +828,7 @@ skip_iterator_byteiter_impl!(
 skip_iterator!(ExponentBytesIterator, "Iterator that skips over digit separators in the exponent.");
 skip_iterator_impl!(ExponentBytesIterator, exponent_radix);
 skip_iterator_iterator_impl!(ExponentBytesIterator);
-skip_iterator_byteiter_impl!(
+skip_iterator_bytesiter_impl!(
     ExponentBytesIterator,
     EXPONENT_DIGIT_SEPARATOR_FLAG_MASK,
     EXPONENT_INTERNAL_DIGIT_SEPARATOR,
@@ -821,8 +850,12 @@ impl<'a: 'b, 'b, const FORMAT: u128> SpecialBytesIterator<'a, 'b, FORMAT> {
     is_digit_separator!(FORMAT);
 }
 
+impl<'a: 'b, 'b, const FORMAT: u128> Buffer<'a> for SpecialBytesIterator<'a, 'b, FORMAT> {
+    skip_iterator_buffer_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
+}
+
 unsafe impl<'a: 'b, 'b, const FORMAT: u128> BytesIter<'a> for SpecialBytesIterator<'a, 'b, FORMAT> {
-    skip_iterator_byteiter_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
+    skip_iterator_bytesiter_base!();
 
     /// Peek the next value of the iterator, without consuming it.
     #[inline(always)]

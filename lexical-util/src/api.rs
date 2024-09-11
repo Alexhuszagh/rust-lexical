@@ -132,23 +132,6 @@ macro_rules! to_lexical {
             /// * `value`   - Number to serialize.
             /// * `bytes`   - Buffer to write number to.
             ///
-            /// # Safety
-            ///
-            /// Safe as long as the caller has provided a buffer of at least
-            /// [`FORMATTED_SIZE_DECIMAL`] elements. If a smaller buffer is
-            /// provided, a buffer overflow is very likely.
-            ///
-            /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
-            unsafe fn to_lexical_unchecked<'a>(self, bytes: &'a mut [u8]) -> &'a mut [u8];
-
-            /// Serializer for a number-to-string conversion.
-            ///
-            /// Returns a subslice of the input buffer containing the written bytes,
-            /// starting from the same address in memory as the input slice.
-            ///
-            /// * `value`   - Number to serialize.
-            /// * `bytes`   - Buffer to write number to.
-            ///
             /// # Panics
             ///
             /// Panics if the buffer is not of sufficient size. The caller
@@ -183,59 +166,6 @@ macro_rules! to_lexical_with_options {
         {
             /// Custom formatting options for writing a number.
             type Options: lexical_util::options::WriteOptions;
-
-            /// Serializer for a number-to-string conversion.
-            ///
-            /// Returns a subslice of the input buffer containing the written bytes,
-            /// starting from the same address in memory as the input slice.
-            ///
-            /// * `FORMAT`  - Flags and characters designating the number grammar.
-            /// * `value`   - Number to serialize.
-            /// * `bytes`   - Buffer to write number to.
-            /// * `options` - Options for number formatting.
-            ///
-            /// # Safety
-            ///
-            /// Safe as long as the caller has provided a buffer of at least
-            /// [`FORMATTED_SIZE`] elements. If a smaller buffer is provided, a
-            /// buffer overflow is very likely. If you are changing the
-            /// number significant digits written, the exponent break points,
-            /// or disabling scientific notation, you will need a larger buffer
-            /// than the one provided. An upper limit on the buffer size can
-            /// then be determined using [`WriteOptions::buffer_size`]. If you
-            /// are not using `min_significant_digits`, 1200 bytes is always
-            /// enough to hold the the output for a custom radix, and `400`
-            /// is always enough for decimal strings.
-            ///
-            /// # Panics
-            ///
-            /// **Floats Only**
-            ///
-            /// These panics are only when using uncommon features for float
-            /// writing, represent configuration errors, so runtime error
-            /// handling is not provided.
-            ///
-            /// Panics if the provided number format is invalid, or if the
-            /// mantissa radix is not equal to the exponent base
-            /// and the mantissa radix/exponent base combinations are
-            /// not in the following list:
-            ///
-            /// - `4, 2`
-            /// - `8, 2`
-            /// - `16, 2`
-            /// - `32, 2`
-            /// - `16, 4`
-            ///
-            /// Panics as well if the NaN or Inf string provided to the writer
-            /// is disabled, but the value provided is NaN or Inf, respectively.
-            ///
-            /// [`WriteOptions::buffer_size`]: lexical_util::options::WriteOptions::buffer_size
-            /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
-            unsafe fn to_lexical_with_options_unchecked<'a, const FORMAT: u128>(
-                self,
-                bytes: &'a mut [u8],
-                options: &Self::Options,
-            ) -> &'a mut [u8];
 
             /// Serializer for a number-to-string conversion.
             ///

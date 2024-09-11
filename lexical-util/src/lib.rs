@@ -45,6 +45,7 @@ pub mod algorithm;
 pub mod ascii;
 pub mod assert;
 pub mod bf16;
+pub mod buffer;
 pub mod constants;
 pub mod digit;
 pub mod div128;

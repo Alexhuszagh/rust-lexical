@@ -5,6 +5,8 @@
 
 #![cfg(feature = "parse")]
 
+pub use crate::buffer::Buffer;
+
 // Re-export our digit iterators.
 #[cfg(not(feature = "format"))]
 pub use crate::noskip::{AsBytes, Bytes};
@@ -26,16 +28,7 @@ pub use crate::skip::{AsBytes, Bytes};
 /// the methods for `read_32`, `read_64`, etc. check the bounds
 /// of the underlying contiguous buffer and is only called on
 /// contiguous buffers.
-pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> {
-    /// Determine if each yielded value is adjacent in memory.
-    const IS_CONTIGUOUS: bool;
-
-    /// Get a ptr to the current start of the iterator.
-    fn as_ptr(&self) -> *const u8;
-
-    /// Get a slice to the current start of the iterator.
-    fn as_slice(&self) -> &'a [u8];
-
+pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> + Buffer<'a> {
     /// Get the total number of elements in the underlying slice.
     fn length(&self) -> usize;
 
@@ -68,13 +61,10 @@ pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> {
     /// but weaker variant of `is_consumed()`.
     fn is_done(&self) -> bool;
 
-    /// Determine if the iterator is contiguous.
-    #[inline(always)]
-    fn is_contiguous(&self) -> bool {
-        Self::IS_CONTIGUOUS
-    }
-
     /// Peek the next value of the iterator, without checking bounds.
+    ///
+    /// Note that this can modify the internal state, by skipping digits
+    /// for iterators that find the first non-zero value, etc.
     ///
     /// # Safety
     ///
@@ -85,7 +75,29 @@ pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> {
     unsafe fn peek_unchecked(&mut self) -> Self::Item;
 
     /// Peek the next value of the iterator, without consuming it.
-    fn peek(&mut self) -> Option<Self::Item>;
+    ///
+    /// Note that this can modify the internal state, by skipping digits
+    /// for iterators that find the first non-zero value, etc.
+    fn peek(&mut self) -> Option<Self::Item> {
+        if !self.is_done() {
+            // SAFETY: safe since the buffer cannot be empty
+            unsafe { Some(self.peek_unchecked()) }
+        } else {
+            None
+        }
+    }
+
+    /// Peek the next value of the iterator, and step only if it exists.
+    #[inline(always)]
+    fn try_read(&mut self) -> Option<Self::Item> {
+        if let Some(value) = self.peek() {
+            // SAFETY: the slice cannot be empty because we peeked a value.
+            unsafe { self.step_unchecked() };
+            Some(value)
+        } else {
+            None
+        }
+    }
 
     /// Check if the next element is a given value.
     #[inline(always)]
@@ -94,6 +106,22 @@ pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> {
             c == value
         } else {
             false
+        }
+    }
+
+    /// Peek the next value and consume it if the read value matches the expected one.
+    #[inline(always)]
+    fn read_if<Pred: FnOnce(&u8) -> bool>(&mut self, pred: Pred) -> Option<Self::Item> {
+        if let Some(peeked) = self.peek() {
+            if pred(peeked) {
+                // SAFETY: the slice cannot be empty because we peeked a value.
+                unsafe { self.step_unchecked() };
+                Some(peeked)
+            } else {
+                None
+            }
+        } else {
+            None
         }
     }
 

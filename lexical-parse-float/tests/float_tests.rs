@@ -32,12 +32,12 @@ fn slow_f64_power(exponent: usize, radix: u32) -> f64 {
 fn pow_fast_path(radix: u32) {
     for exponent in 0..f32::exponent_limit(radix).1 + 1 {
         let exponent = exponent as usize;
-        let actual = unsafe { f32::pow_fast_path(exponent, radix) };
+        let actual = f32::pow_fast_path(exponent, radix);
         assert_eq!(actual, slow_f32_power(exponent, radix));
     }
     for exponent in 0..f64::exponent_limit(radix).1 + 1 {
         let exponent = exponent as usize;
-        let actual = unsafe { f64::pow_fast_path(exponent, radix) };
+        let actual = f64::pow_fast_path(exponent, radix);
         assert_eq!(actual, slow_f64_power(exponent, radix));
     }
 }
@@ -97,7 +97,7 @@ fn slow_int_power(exponent: usize, radix: u32) -> u64 {
 fn int_pow_fast_path(radix: u32) {
     for exponent in 0..f64::mantissa_limit(radix) {
         let exponent = exponent as usize;
-        let actual = unsafe { f64::int_pow_fast_path(exponent, radix) };
+        let actual = f64::int_pow_fast_path(exponent, radix);
         assert_eq!(actual, slow_int_power(exponent, radix));
     }
 }

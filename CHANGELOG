@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Support for mips (MIPS), mipsel (MIPS LE), mips64 (MIPS64 BE), and mips64el (MIPS64 LE) on Linux.
+- All `_unchecked` API methods, since the performance benefits are dubious and it makes safety invariant checking much harder.
 
 ## [0.8.5] 2022-06-06
 
