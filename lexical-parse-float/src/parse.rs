@@ -158,35 +158,85 @@ parse_float_as_f32! { bf16 f16 }
 //  different internally. Most of the code is reshared, so the duplicated
 //  code is only like 30 lines.
 
-/// Parse the sign from the buffer and advance the iterator to the next place.
+/// Parse the sign from the leading digits.
+///
+/// This routine does the following:
+///
+/// 1. Parses the sign digit.
+/// 2. Handles if positive signs before integers are not allowed.
+/// 3. Handles negative signs if the type is unsigned.
+/// 4. Handles if the sign is required, but missing.
+/// 5. Handles if the iterator is empty, before or after parsing the sign.
+/// 6. Handles if the iterator has invalid, leading zeros.
+///
+/// Returns if the value is negative, or any values detected when
+/// validating the input.
 #[inline(always)]
 pub fn parse_mantissa_sign<const FORMAT: u128>(
     byte: &mut Bytes<'_, FORMAT>,
     format: &NumberFormat<FORMAT>,
 ) -> Result<bool> {
-    match byte.integer_iter().read_if(|c| *c == b'+' || *c == b'-') {
-        Some(&b'+') if !format.no_positive_mantissa_sign() => Ok(false),
-        Some(&b'+') if format.no_positive_mantissa_sign() => {
-            Err(Error::InvalidPositiveSign(byte.cursor() - 1))
+    // NOTE: Using `read_if` with a predicate compiles badly and is very slow.
+    // Also, it's better to do the step_unchecked inside rather than get the step
+    // count and do `step_by_unchecked`. The compiler knows what to do better.
+    match byte.integer_iter().peek() {
+        Some(&b'+') if !format.no_positive_mantissa_sign() => {
+            // SAFETY: Safe, we peeked 1 byte.
+            unsafe { byte.step_unchecked() };
+            Ok(false)
         },
-        Some(&b'-') => Ok(true),
+        Some(&b'+') if format.no_positive_mantissa_sign() => {
+            Err(Error::InvalidPositiveSign(byte.cursor()))
+        },
+        Some(&b'-') => {
+            // SAFETY: Safe, we peeked 1 byte.
+            unsafe { byte.step_unchecked() };
+            Ok(true)
+        },
+        Some(_) if format.required_mantissa_sign() => Err(Error::MissingSign(byte.cursor())),
         _ if format.required_mantissa_sign() => Err(Error::MissingSign(byte.cursor())),
         _ => Ok(false),
     }
 }
 
-/// Parse the sign from the buffer and advance the iterator to the next place.
+/// Parse the sign from the leading digits.
+///
+/// This routine does the following:
+///
+/// 1. Parses the sign digit.
+/// 2. Handles if positive signs before integers are not allowed.
+/// 3. Handles negative signs if the type is unsigned.
+/// 4. Handles if the sign is required, but missing.
+/// 5. Handles if the iterator is empty, before or after parsing the sign.
+/// 6. Handles if the iterator has invalid, leading zeros.
+///
+/// Returns if the value is negative, or any values detected when
+/// validating the input.
 #[inline(always)]
 pub fn parse_exponent_sign<const FORMAT: u128>(
     byte: &mut Bytes<'_, FORMAT>,
     format: &NumberFormat<FORMAT>,
 ) -> Result<bool> {
-    match byte.integer_iter().read_if(|c| *c == b'+' || *c == b'-') {
-        Some(&b'+') if !format.no_positive_exponent_sign() => Ok(false),
-        Some(&b'+') if format.no_positive_exponent_sign() => {
-            Err(Error::InvalidPositiveExponentSign(byte.cursor() - 1))
+    // NOTE: Using `read_if` with a predicate compiles badly and is very slow.
+    // Also, it's better to do the step_unchecked inside rather than get the step
+    // count and do `step_by_unchecked`. The compiler knows what to do better.
+    match byte.integer_iter().peek() {
+        Some(&b'+') if !format.no_positive_exponent_sign() => {
+            // SAFETY: Safe, we peeked 1 byte.
+            unsafe { byte.step_unchecked() };
+            Ok(false)
         },
-        Some(&b'-') => Ok(true),
+        Some(&b'+') if format.no_positive_exponent_sign() => {
+            Err(Error::InvalidPositiveExponentSign(byte.cursor()))
+        },
+        Some(&b'-') => {
+            // SAFETY: Safe, we peeked 1 byte.
+            unsafe { byte.step_unchecked() };
+            Ok(true)
+        },
+        Some(_) if format.required_exponent_sign() => {
+            Err(Error::MissingExponentSign(byte.cursor()))
+        },
         _ if format.required_exponent_sign() => Err(Error::MissingExponentSign(byte.cursor())),
         _ => Ok(false),
     }
@@ -487,10 +537,13 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     // INTEGER
 
     // Check to see if we have a valid base prefix.
+    // NOTE: `read_if` compiles poorly so use `peek` and then `step_unchecked`.
     let base_prefix = format.base_prefix();
     let mut is_prefix = false;
     let mut iter = byte.integer_iter();
-    if cfg!(feature = "format") && base_prefix != 0 && iter.read_if(|c| *c == b'0').is_some() {
+    if cfg!(feature = "format") && base_prefix != 0 && iter.peek() == Some(&b'0') {
+        // SAFETY: safe since `byte.len() >= 1`.
+        unsafe { iter.step_unchecked() };
         // Check to see if the next character is the base prefix.
         // We must have a format like `0x`, `0d`, `0o`. Note:
         if let Some(&c) = iter.peek() {
@@ -663,19 +716,24 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     }
 
     // Check for leading zeros, and to see if we had a false overflow.
+    // NOTE: Once again, `read_if` is slow: do peek and step
     n_digits -= step;
     let mut zeros = start.clone();
     let mut zeros_integer = zeros.integer_iter();
-    while zeros_integer.read_if(|c| *c == b'0').is_some() {
+    while zeros_integer.peek_is(b'0') {
         n_digits = n_digits.saturating_sub(1);
+        // SAFETY: safe since zeros cannot be empty due to peek_is
+        unsafe { zeros_integer.step_unchecked() };
     }
     if zeros.first_is(decimal_point) {
         // SAFETY: safe since zeros cannot be empty due to first_is
         unsafe { zeros.step_unchecked() };
     }
     let mut zeros_fraction = zeros.fraction_iter();
-    while zeros_fraction.read_if(|c| *c == b'0').is_some() {
+    while zeros_fraction.peek_is(b'0') {
         n_digits = n_digits.saturating_sub(1);
+        // SAFETY: safe since zeros cannot be empty due to peek_is
+        unsafe { zeros_fraction.step_unchecked() };
     }
 
     // OVERFLOW
