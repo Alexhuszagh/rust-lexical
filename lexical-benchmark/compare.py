@@ -69,7 +69,6 @@ with args.new.open(encoding='utf-8') as fp:
     new = json.load(fp)
 
 # grab our comparison names, so we know where to analyze
-# TODO: This is broken... this needas to only have the set of the tools
 group = next(iter(baseline.values()))
 tools = sorted({i.rsplit('_')[-1] for i in group['mean']})
 header = f'| | {" | ".join(tools)} |'

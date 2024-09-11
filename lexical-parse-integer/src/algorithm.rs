@@ -11,6 +11,7 @@
 #![cfg(not(feature = "compact"))]
 #![doc(hidden)]
 
+use lexical_util::buffer::Buffer;
 use lexical_util::digit::char_to_digit_const;
 use lexical_util::format::NumberFormat;
 use lexical_util::iterator::{AsBytes, BytesIter};

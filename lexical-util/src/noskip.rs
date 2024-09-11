@@ -5,7 +5,7 @@
 
 #![cfg(all(feature = "parse", not(feature = "format")))]
 
-use crate::iterator::BytesIter;
+use crate::{buffer::Buffer, iterator::BytesIter};
 use core::{mem, ptr};
 
 // AS DIGITS
@@ -37,9 +37,6 @@ pub struct Bytes<'a, const __: u128> {
 }
 
 impl<'a, const __: u128> Bytes<'a, __> {
-    /// If each yielded value is adjacent in memory.
-    pub const IS_CONTIGUOUS: bool = true;
-
     /// Create new byte object.
     #[inline(always)]
     pub const fn new(slc: &'a [u8]) -> Self {
@@ -47,20 +44,6 @@ impl<'a, const __: u128> Bytes<'a, __> {
             slc,
             index: 0,
         }
-    }
-
-    /// Get a ptr to the current start of the iterator.
-    #[inline(always)]
-    pub fn as_ptr(&self) -> *const u8 {
-        self.as_slice().as_ptr()
-    }
-
-    /// Get a slice to the current start of the iterator.
-    #[inline(always)]
-    pub fn as_slice(&self) -> &'a [u8] {
-        debug_assert!(self.index <= self.length());
-        // SAFETY: safe since index must be in range.
-        unsafe { self.slc.get_unchecked(self.index..) }
     }
 
     /// Get the total number of elements in the underlying slice.
@@ -143,26 +126,16 @@ impl<'a, const __: u128> Bytes<'a, __> {
         }
     }
 
-    // TODO: This looks like just the trait peak_is
-
     /// Check if the next element is a given value.
     #[inline(always)]
-    pub fn peak_is(&mut self, value: u8) -> bool {
-        if let Some(&c) = self.slc.get(self.index) {
-            c == value
-        } else {
-            false
-        }
+    pub fn peek_is(&mut self, value: u8) -> bool {
+        self.first_is(value)
     }
 
     /// Check if the next element is a given value without case sensitivity.
     #[inline(always)]
     pub fn case_insensitive_peek_is(&mut self, value: u8) -> bool {
-        if let Some(&c) = self.slc.get(self.index) {
-            c.to_ascii_lowercase() == value.to_ascii_lowercase()
-        } else {
-            false
-        }
+        self.case_insensitive_first_is(value)
     }
 
     /// Get iterator over integer digits.
@@ -225,6 +198,33 @@ impl<'a, const __: u128> Bytes<'a, __> {
     }
 }
 
+impl<'a, const __: u128> Buffer<'a> for Bytes<'a, __> {
+    const IS_CONTIGUOUS: bool = true;
+
+    #[inline(always)]
+    fn as_ptr(&self) -> *const u8 {
+        self.as_slice().as_ptr()
+    }
+
+    #[inline(always)]
+    fn as_slice(&self) -> &'a [u8] {
+        debug_assert!(self.index <= self.length());
+        // SAFETY: safe since index must be in range.
+        unsafe { self.slc.get_unchecked(self.index..) }
+    }
+
+    #[inline(always)]
+    fn is_empty(&self) -> bool {
+        self.as_slice().is_empty()
+    }
+
+    #[inline(always)]
+    unsafe fn first_unchecked(&self) -> &'a u8 {
+        // SAFETY: safe if there's at least 1 item in the buffer
+        unsafe { self.as_slice().get_unchecked(0) }
+    }
+}
+
 // DIGITS ITERATOR
 // ---------------
 
@@ -234,7 +234,7 @@ pub struct BytesIterator<'a: 'b, 'b, const __: u128> {
     byte: &'b mut Bytes<'a, __>,
 }
 
-unsafe impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
+impl<'a: 'b, 'b, const __: u128> Buffer<'a> for BytesIterator<'a, 'b, __> {
     const IS_CONTIGUOUS: bool = Bytes::<'a, __>::IS_CONTIGUOUS;
 
     #[inline(always)]
@@ -247,6 +247,19 @@ unsafe impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, 
         self.byte.as_slice()
     }
 
+    #[inline(always)]
+    fn is_empty(&self) -> bool {
+        self.byte.is_done()
+    }
+
+    #[inline(always)]
+    unsafe fn first_unchecked(&self) -> <Self as Iterator>::Item {
+        // SAFETY: safe if `self.cursor() < self.length()`.
+        unsafe { self.byte.slc.get_unchecked(self.byte.index) }
+    }
+}
+
+unsafe impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, __> {
     #[inline(always)]
     fn length(&self) -> usize {
         self.byte.length()
@@ -282,17 +295,12 @@ unsafe impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, 
     #[inline(always)]
     unsafe fn peek_unchecked(&mut self) -> <Self as Iterator>::Item {
         // SAFETY: safe if `self.cursor() < self.length()`.
-        unsafe { self.byte.slc.get_unchecked(self.byte.index) }
+        unsafe { self.first_unchecked() }
     }
 
     #[inline(always)]
     fn peek(&mut self) -> Option<<Self as Iterator>::Item> {
-        if self.byte.index < self.byte.slc.len() {
-            // SAFETY: the slice cannot be empty, so this is safe
-            Some(unsafe { self.peek_unchecked() })
-        } else {
-            None
-        }
+        self.first()
     }
 
     #[inline(always)]

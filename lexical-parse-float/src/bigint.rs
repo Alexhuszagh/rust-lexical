@@ -1181,7 +1181,9 @@ pub fn long_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> Option<StackVec<SI
     if let Some(&y0) = y.first() {
         small_mul(&mut z, y0)?;
 
-        for (index, &yi) in y[1..].iter().enumerate() {
+        // NOTE: Don't use enumerate/skip since it's slow.
+        for index in 1..y.len() {
+            let yi = y[index];
             if yi != 0 {
                 let mut zi = StackVec::<SIZE>::try_from(x)?;
                 small_mul(&mut zi, yi)?;
@@ -1199,8 +1201,9 @@ pub fn long_mul<const SIZE: usize>(x: &[Limb], y: &[Limb]) -> Option<StackVec<SI
 pub fn large_mul<const SIZE: usize>(x: &mut StackVec<SIZE>, y: &[Limb]) -> Option<()> {
     // Karatsuba multiplication never makes sense, so just use grade school
     // multiplication.
-    if let Some(&y0) = y.first() {
-        small_mul(x, y0)?;
+    if y.len() == 1 {
+        // SAFETY: safe since `y.len() == 1`.
+        small_mul(x, unsafe { index_unchecked!(y[0]) })?;
     } else {
         *x = long_mul(y, x)?;
     }

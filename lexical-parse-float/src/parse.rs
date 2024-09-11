@@ -20,6 +20,7 @@ use crate::slow::slow_radix;
 use lexical_parse_integer::algorithm;
 #[cfg(feature = "f16")]
 use lexical_util::bf16::bf16;
+use lexical_util::buffer::Buffer;
 use lexical_util::digit::{char_to_digit_const, char_to_valid_digit_const};
 use lexical_util::error::Error;
 #[cfg(feature = "f16")]
@@ -163,13 +164,12 @@ pub fn parse_mantissa_sign<const FORMAT: u128>(
     byte: &mut Bytes<'_, FORMAT>,
     format: &NumberFormat<FORMAT>,
 ) -> Result<bool> {
-    match byte.integer_iter().try_read() {
+    match byte.integer_iter().read_if(|c| *c == b'+' || *c == b'-') {
         Some(&b'+') if !format.no_positive_mantissa_sign() => Ok(false),
         Some(&b'+') if format.no_positive_mantissa_sign() => {
             Err(Error::InvalidPositiveSign(byte.cursor() - 1))
         },
         Some(&b'-') => Ok(true),
-        Some(_) if format.required_mantissa_sign() => Err(Error::MissingSign(byte.cursor() - 1)),
         _ if format.required_mantissa_sign() => Err(Error::MissingSign(byte.cursor())),
         _ => Ok(false),
     }
@@ -181,13 +181,12 @@ pub fn parse_exponent_sign<const FORMAT: u128>(
     byte: &mut Bytes<'_, FORMAT>,
     format: &NumberFormat<FORMAT>,
 ) -> Result<bool> {
-    match byte.integer_iter().try_read() {
+    match byte.integer_iter().read_if(|c| *c == b'+' || *c == b'-') {
         Some(&b'+') if !format.no_positive_exponent_sign() => Ok(false),
         Some(&b'+') if format.no_positive_exponent_sign() => {
             Err(Error::InvalidPositiveExponentSign(byte.cursor() - 1))
         },
         Some(&b'-') => Ok(true),
-        Some(_) if format.required_exponent_sign() => Err(Error::MissingSign(byte.cursor() - 1)),
         _ if format.required_exponent_sign() => Err(Error::MissingExponentSign(byte.cursor())),
         _ => Ok(false),
     }
@@ -323,8 +322,6 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     // Convert to native float and return result.
     Ok((to_native!(F, fp, is_negative), count))
 }
-
-// TODO(ahuszagh) Change to step_unchecked?
 
 /// Parse a float using only the fast path as a partial parser.
 pub fn fast_path_partial<F: LemireFloat, const FORMAT: u128>(
@@ -493,7 +490,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let base_prefix = format.base_prefix();
     let mut is_prefix = false;
     let mut iter = byte.integer_iter();
-    if cfg!(feature = "format") && base_prefix != 0 && iter.read_if(b'0') {
+    if cfg!(feature = "format") && base_prefix != 0 && iter.read_if(|c| *c == b'0').is_some() {
         // Check to see if the next character is the base prefix.
         // We must have a format like `0x`, `0d`, `0o`. Note:
         if let Some(&c) = iter.peek() {
@@ -546,7 +543,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     let mut implicit_exponent: i64;
     let int_end = n_digits as i64;
     let mut fraction_digits = None;
-    if byte.peak_is(decimal_point) {
+    if byte.first_is(decimal_point) {
         // SAFETY: s cannot be empty due to first_is
         unsafe { byte.step_unchecked() };
         let before = byte.clone();
@@ -585,9 +582,9 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     // Handle scientific notation.
     let mut explicit_exponent = 0_i64;
     let is_exponent = if cfg!(feature = "format") && format.case_sensitive_exponent() {
-        byte.peak_is(exponent_character)
+        byte.first_is(exponent_character)
     } else {
-        byte.case_insensitive_peek_is(exponent_character)
+        byte.case_insensitive_first_is(exponent_character)
     };
     if is_exponent {
         // Check float format syntax checks.
@@ -631,10 +628,10 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     // that the first character **is not** a digit separator.
     let base_suffix = format.base_suffix();
     if cfg!(feature = "format") && base_suffix != 0 {
-        let is_suffix = if cfg!(feature = "format") && format.case_sensitive_base_suffix() {
-            byte.peak_is(base_suffix)
+        let is_suffix: bool = if cfg!(feature = "format") && format.case_sensitive_base_suffix() {
+            byte.first_is(base_suffix)
         } else {
-            byte.case_insensitive_peek_is(base_suffix)
+            byte.case_insensitive_first_is(base_suffix)
         };
         if is_suffix {
             // SAFETY: safe since `byte.len() >= 1`.
@@ -669,20 +666,16 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
     n_digits -= step;
     let mut zeros = start.clone();
     let mut zeros_integer = zeros.integer_iter();
-    while zeros_integer.peek_is(b'0') {
+    while zeros_integer.read_if(|c| *c == b'0').is_some() {
         n_digits = n_digits.saturating_sub(1);
-        // SAFETY: safe since zeros cannot be empty due to peek_is
-        unsafe { zeros_integer.step_unchecked() };
     }
-    if zeros.peak_is(decimal_point) {
+    if zeros.first_is(decimal_point) {
         // SAFETY: safe since zeros cannot be empty due to first_is
         unsafe { zeros.step_unchecked() };
     }
     let mut zeros_fraction = zeros.fraction_iter();
-    while zeros_fraction.peek_is(b'0') {
+    while zeros_fraction.read_if(|c| *c == b'0').is_some() {
         n_digits = n_digits.saturating_sub(1);
-        // SAFETY: safe since zeros cannot be empty due to peek_is
-        unsafe { zeros_fraction.step_unchecked() };
     }
 
     // OVERFLOW
