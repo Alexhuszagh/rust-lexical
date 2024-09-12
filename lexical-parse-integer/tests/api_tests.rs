@@ -142,6 +142,12 @@ fn i128_decimal_test() {
 }
 
 #[test]
+fn double_sign_test() {
+    assert_eq!(Err(Error::InvalidDigit(1)), i16::from_lexical(b"+-0000"));
+    assert_eq!(Err(Error::InvalidDigit(1)), i128::from_lexical(b"+-0000"));
+}
+
+#[test]
 fn options_test() {
     let options = Options::new();
     assert_eq!(Ok(0), i128::from_lexical_with_options::<STANDARD>(b"0", &options));

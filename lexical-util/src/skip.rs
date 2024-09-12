@@ -346,10 +346,29 @@ pub struct Bytes<'a, const FORMAT: u128> {
 impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     /// Create new byte object.
     #[inline(always)]
-    pub fn new(slc: &'a [u8]) -> Self {
+    pub const fn new(slc: &'a [u8]) -> Self {
         Self {
             slc,
             index: 0,
+            count: 0,
+        }
+    }
+
+    /// Initialize the slice from raw parts.
+    ///
+    /// # Safety
+    /// This is safe if and only if the index is <= slc.len().
+    /// For this reason, since it's easy to get wrong, we only
+    /// expose it to our `BytesIterator`s and nothing else.
+    ///
+    /// This is only ever used for contiguous arrays.
+    #[inline(always)]
+    const unsafe fn from_parts(slc: &'a [u8], index: usize) -> Self {
+        debug_assert!(index <= slc.len());
+        debug_assert!(Self::IS_CONTIGUOUS);
+        Self {
+            slc,
+            index,
             count: 0,
         }
     }
@@ -615,9 +634,37 @@ macro_rules! skip_iterator_impl {
             is_digit_separator!(FORMAT);
 
             /// Determine if the character is a digit.
+            #[inline(always)]
             pub const fn is_digit(&self, value: u8) -> bool {
                 let format = NumberFormat::<{ FORMAT }> {};
                 char_is_digit_const(value, format.$radix_cb())
+            }
+
+            /// Take the first N digits from the iterator.
+            ///
+            /// This only takes the digits if we have a contiguous iterator.
+            /// It takes the digits, validating the bounds, and then advanced
+            /// the iterators state. It does not support non-contiguous iterators
+            /// since we would lost information on the count.
+            #[cfg_attr(not(feature = "compact"), inline(always))]
+            #[allow(clippy::assertions_on_constants)]
+            pub fn take_n(&mut self, n: usize) -> Option<Bytes<'a, FORMAT>> {
+                if Self::IS_CONTIGUOUS {
+                    let end = self.byte.slc.len().min(n + self.cursor());
+                    // NOTE: The compiler should be able to optimize this out.
+                    let slc: &[u8] = &self.byte.slc[..end];
+
+                    // SAFETY: Safe since we just ensured the underlying slice has that count
+                    // elements, so both the underlying slice for this and this **MUST**
+                    // have at least count elements. We do static checking on the bounds for this.
+                    unsafe {
+                        let byte: Bytes<'_, FORMAT> = Bytes::from_parts(slc, self.cursor());
+                        unsafe { self.set_cursor(end) };
+                        Some(byte)
+                    }
+                } else {
+                    None
+                }
             }
         }
     };
@@ -695,6 +742,11 @@ macro_rules! skip_iterator_bytesiter_base {
             debug_assert!(index <= self.length());
             // SAFETY: safe if `index <= self.length()`.
             unsafe { self.byte.set_cursor(index) };
+        }
+
+        #[inline(always)]
+        fn as_full_slice(&self) -> &'a [u8] {
+            self.byte.slc
         }
 
         #[inline(always)]

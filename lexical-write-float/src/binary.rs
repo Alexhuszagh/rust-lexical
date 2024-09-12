@@ -110,7 +110,7 @@ where
 /// The mantissa must be truncated and rounded, prior to calling this,
 /// based on the number of maximum digits. In addition, `exponent_base`
 /// and `mantissa_radix` in `FORMAT` must be identical.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub unsafe fn write_float_scientific<M, const FORMAT: u128>(
     bytes: &mut [u8],
     mantissa: M,
@@ -191,7 +191,7 @@ where
 ///
 /// Safe as long as `bytes` is large enough to hold the number of
 /// significant digits and the leading zeros.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub unsafe fn write_float_negative_exponent<M, const FORMAT: u128>(
     bytes: &mut [u8],
     mantissa: M,
@@ -275,7 +275,7 @@ where
 ///
 /// Safe as long as `bytes` is large enough to hold the number of
 /// significant digits and the (optional) trailing zeros.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub unsafe fn write_float_positive_exponent<M, const FORMAT: u128>(
     bytes: &mut [u8],
     mantissa: M,

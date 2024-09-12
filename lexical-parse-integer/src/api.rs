@@ -2,7 +2,7 @@
 
 #![doc(hidden)]
 
-use crate::options::Options;
+use crate::options::{Options, STANDARD as DEFAULT_OPTIONS};
 use crate::parse::ParseInteger;
 use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::{from_lexical, from_lexical_with_options};
@@ -20,7 +20,7 @@ macro_rules! integer_from_lexical {
             #[cfg_attr(not(feature = "compact"), inline)]
             fn from_lexical(bytes: &[u8]) -> lexical_util::result::Result<Self>
             {
-                Self::parse_complete::<STANDARD>(bytes)
+                Self::parse_complete::<STANDARD>(bytes, &DEFAULT_OPTIONS)
             }
 
             $(#[$meta:meta])?
@@ -29,7 +29,7 @@ macro_rules! integer_from_lexical {
                 bytes: &[u8],
             ) -> lexical_util::result::Result<(Self, usize)>
             {
-                Self::parse_partial::<STANDARD>(bytes)
+                Self::parse_partial::<STANDARD>(bytes, &DEFAULT_OPTIONS)
             }
         }
 
@@ -40,28 +40,28 @@ macro_rules! integer_from_lexical {
             #[cfg_attr(not(feature = "compact"), inline)]
             fn from_lexical_with_options<const FORMAT: u128>(
                 bytes: &[u8],
-                _: &Self::Options,
+                options: &Self::Options,
             ) -> lexical_util::result::Result<Self>
             {
                 let format = NumberFormat::<{ FORMAT }> {};
                 if !format.is_valid() {
                     return Err(format.error());
                 }
-                Self::parse_complete::<FORMAT>(bytes)
+                Self::parse_complete::<FORMAT>(bytes, options)
             }
 
             $(#[$meta:meta])?
             #[cfg_attr(not(feature = "compact"), inline)]
             fn from_lexical_partial_with_options<const FORMAT: u128>(
                 bytes: &[u8],
-                _: &Self::Options,
+                options: &Self::Options,
             ) -> lexical_util::result::Result<(Self, usize)>
             {
                 let format = NumberFormat::<{ FORMAT }> {};
                 if !format.is_valid() {
                     return Err(format.error());
                 }
-                Self::parse_partial::<FORMAT>(bytes)
+                Self::parse_partial::<FORMAT>(bytes, options)
             }
         }
     )*)

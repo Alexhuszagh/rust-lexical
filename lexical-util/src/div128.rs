@@ -96,7 +96,7 @@ pub fn moderate_u128_divrem(n: u128, d: u64, factor: u128, factor_shr: u32) -> (
 /// This is still a fair bit slower than the optimized algorithms described
 /// in the above paper, but this is a suitable fallback when we cannot use
 /// the faster algorithm.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 #[allow(clippy::many_single_char_names)]
 pub fn slow_u128_divrem(n: u128, d: u64, d_ctlz: u32) -> (u128, u64) {
     // Ensure we have the correct number of leading zeros passed.

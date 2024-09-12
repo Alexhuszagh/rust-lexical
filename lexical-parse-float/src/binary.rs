@@ -21,7 +21,7 @@ use lexical_util::step::u64_step;
 // ---------
 
 /// Algorithm specialized for radixes of powers-of-two.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn binary<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> ExtendedFloat80 {
     let format = NumberFormat::<{ FORMAT }> {};
     debug_assert!(matches!(format.radix(), 2 | 4 | 8 | 16 | 32));
@@ -89,7 +89,7 @@ pub fn binary<F: RawFloat, const FORMAT: u128>(num: &Number, lossy: bool) -> Ext
 }
 
 /// Iteratively parse and consume digits without overflowing.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 #[allow(unused_mut)]
 pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     mut iter: Iter,
@@ -106,9 +106,8 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     // Try to parse 8 digits at a time, if we can.
     #[cfg(not(feature = "compact"))]
     if can_try_parse_8digits!(iter, radix) {
-        let radix2 = radix.wrapping_mul(radix);
-        let radix4 = radix2.wrapping_mul(radix2);
-        let radix8 = radix4.wrapping_mul(radix4);
+        debug_assert!(radix < 16);
+        let radix8 = format.radix8() as u64;
         while *step > 8 {
             if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
                 *mantissa = mantissa.wrapping_mul(radix8).wrapping_add(v);
@@ -141,7 +140,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
 ///
 /// This avoids the need for arbitrary-precision arithmetic, since the result
 /// will always be a near-halfway representation where rounded-down it's even.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn slow_binary<F: RawFloat, const FORMAT: u128>(num: Number) -> ExtendedFloat80 {
     let format = NumberFormat::<{ FORMAT }> {};
     let radix = format.radix();

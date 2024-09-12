@@ -258,10 +258,8 @@ macro_rules! try_parse_8digits {
 
         // Try 8-digit optimizations.
         if can_try_parse_8digits!($iter, radix) {
-            let radix2 = radix.wrapping_mul(radix);
-            let radix4 = radix2.wrapping_mul(radix2);
-            let radix8 = radix4.wrapping_mul(radix4);
-
+            debug_assert!(radix < 16);
+            let radix8 = format.radix8() as Limb;
             while $step - $counter >= 8 && $max_digits - $count >= 8 {
                 if let Some(v) = algorithm::try_parse_8digits::<Limb, _, FORMAT>(&mut $iter) {
                     $value = $value.wrapping_mul(radix8).wrapping_add(v);

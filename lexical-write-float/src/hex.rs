@@ -131,7 +131,7 @@ where
 ///
 /// The mantissa must be truncated and rounded, prior to calling this,
 /// based on the number of maximum digits.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub unsafe fn write_float_scientific<M, const FORMAT: u128>(
     bytes: &mut [u8],
     mantissa: M,

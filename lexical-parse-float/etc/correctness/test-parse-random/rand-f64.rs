@@ -10,12 +10,13 @@
 
 mod _common;
 
-use _common::{validate, SEED};
-use rand::{IsaacRng, Rng, SeedableRng};
+use _common::{validate, ISAAC_SEED};
+use rand_isaac::Isaac64Rng;
+use rand::{RngCore, SeedableRng};
 use std::mem::transmute;
 
 fn main() {
-    let mut rnd = IsaacRng::from_seed(&SEED);
+    let mut rnd = Isaac64Rng::from_seed(ISAAC_SEED);
     let mut i = 0;
     while i < 10_000_000 {
         let bits = rnd.next_u64();

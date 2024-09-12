@@ -10,22 +10,24 @@
 
 mod _common;
 
-use _common::{validate, SEED};
-use rand::distributions::{Range, Sample};
-use rand::{IsaacRng, Rng, SeedableRng};
+use _common::{validate, ISAAC_SEED};
+use rand_isaac::Isaac64Rng;
+use rand::distributions::Distribution;
+use rand::distributions::uniform::Uniform;
+use rand::{Rng, SeedableRng};
 use std::char;
 
 fn main() {
-    let mut rnd = IsaacRng::from_seed(&SEED);
-    let mut range = Range::new(0, 10);
+    let mut rnd = Isaac64Rng::from_seed(ISAAC_SEED);
+    let mut range = Uniform::new(0, 10);
     for _ in 0..5_000_000u64 {
-        let num_digits = rnd.gen_range(100, 400);
+        let num_digits = rnd.gen_range(100..400);
         let digits = gen_digits(num_digits, &mut range, &mut rnd);
         validate(&digits);
     }
 }
 
-fn gen_digits<R: Rng>(n: u32, range: &mut Range<u32>, rnd: &mut R) -> String {
+fn gen_digits(n: u32, range: &mut Uniform<u32>, rnd: &mut Isaac64Rng) -> String {
     let mut s = String::new();
     for _ in 0..n {
         let digit = char::from_digit(range.sample(rnd), 10).unwrap();

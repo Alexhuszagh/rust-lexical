@@ -46,6 +46,23 @@ impl<'a, const __: u128> Bytes<'a, __> {
         }
     }
 
+    /// Initialize the slice from raw parts.
+    ///
+    /// # Safety
+    /// This is safe if and only if the index is <= slc.len().
+    /// For this reason, since it's easy to get wrong, we only
+    /// expose it to `BytesIterator` and nothing else.
+    #[inline(always)]
+    #[allow(clippy::assertions_on_constants)]
+    const unsafe fn from_parts(slc: &'a [u8], index: usize) -> Self {
+        debug_assert!(index <= slc.len());
+        debug_assert!(Self::IS_CONTIGUOUS);
+        Self {
+            slc,
+            index,
+        }
+    }
+
     /// Get the total number of elements in the underlying slice.
     #[inline(always)]
     pub fn length(&self) -> usize {
@@ -234,6 +251,31 @@ pub struct BytesIterator<'a: 'b, 'b, const __: u128> {
     byte: &'b mut Bytes<'a, __>,
 }
 
+impl<'a: 'b, 'b, const __: u128> BytesIterator<'a, 'b, __> {
+    /// Take the first N digits from the iterator.
+    ///
+    /// This only takes the digits if we have a contiguous iterator.
+    /// It takes the digits, validating the bounds, and then advanced
+    /// the iterators state.
+    #[cfg_attr(not(feature = "compact"), inline(always))]
+    #[allow(clippy::assertions_on_constants)]
+    pub fn take_n(&mut self, n: usize) -> Option<Bytes<'a, __>> {
+        debug_assert!(Self::IS_CONTIGUOUS);
+        let end = self.byte.slc.len().min(n + self.cursor());
+        // NOTE: The compiler should be able to optimize this out.
+        let slc: &[u8] = &self.byte.slc[..end];
+
+        // SAFETY: Safe since we just ensured the underlying slice has that count
+        // elements, so both the underlying slice for this and this **MUST**
+        // have at least count elements. We do static checking on the bounds for this.
+        unsafe {
+            let byte: Bytes<'_, __> = Bytes::from_parts(slc, self.cursor());
+            unsafe { self.set_cursor(end) };
+            Some(byte)
+        }
+    }
+}
+
 impl<'a: 'b, 'b, const __: u128> Buffer<'a> for BytesIterator<'a, 'b, __> {
     const IS_CONTIGUOUS: bool = Bytes::<'a, __>::IS_CONTIGUOUS;
 
@@ -275,6 +317,11 @@ unsafe impl<'a: 'b, 'b, const __: u128> BytesIter<'a> for BytesIterator<'a, 'b, 
         debug_assert!(index <= self.length());
         // SAFETY: safe if `index <= self.length()`.
         unsafe { self.byte.set_cursor(index) };
+    }
+
+    #[inline(always)]
+    fn as_full_slice(&self) -> &'a [u8] {
+        self.byte.slc
     }
 
     #[inline(always)]

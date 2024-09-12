@@ -18,7 +18,6 @@ use lexical_util::format::radix_from_flags;
 #[cfg(feature = "radix")]
 pub fn get_table<const FORMAT: u128, const MASK: u128, const SHIFT: i32>() -> &'static [u8] {
     debug_assert_radix(radix_from_flags(FORMAT, MASK, SHIFT));
-    // TODO: Change this to take a format so we can validate it at compile time?
     match radix_from_flags(FORMAT, MASK, SHIFT) {
         2 => &DIGIT_TO_BASE2_SQUARED,
         3 => &DIGIT_TO_BASE3_SQUARED,

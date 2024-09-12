@@ -60,11 +60,7 @@
 #![cfg_attr(feature = "lint", warn(unsafe_op_in_unsafe_fn))]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[macro_use]
-mod shared;
-
 pub mod algorithm;
-pub mod compact;
 pub mod options;
 pub mod parse;
 
