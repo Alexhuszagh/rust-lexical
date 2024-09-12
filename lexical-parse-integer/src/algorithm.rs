@@ -32,6 +32,7 @@
 
 #![doc(hidden)]
 
+use crate::Options;
 use lexical_util::buffer::Buffer;
 use lexical_util::digit::char_to_digit_const;
 use lexical_util::error::Error;
@@ -366,11 +367,9 @@ macro_rules! parse_1digit_checked {
 /// optimizations. Otherwise, if the type size is large and we're not manually
 /// skipping manual optimizations, then we do this here.
 macro_rules! parse_digits_unchecked {
-($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $is_end:expr) => {{
-    // TODO: Disable multi-digit optimizations by default, make configurable
-    const DISABLE_MULTIDIGIT: bool = false;
+($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $no_multi_digit:expr, $is_end:expr) => {{
     let can_multi = can_try_parse_multidigits::<_, FORMAT>(&$iter);
-    let use_multi = can_multi && !DISABLE_MULTIDIGIT;
+    let use_multi = can_multi && !$no_multi_digit;
 
     // these cannot overflow. also, we use at most 3 for a 128-bit float and 1 for a 64-bit float
     // NOTE: Miri will complain about this if we use radices >= 16 but since they won't go
@@ -408,6 +407,7 @@ macro_rules! parse_digits_checked {
         $start_index:ident,
         $invalid_digit:ident,
         $overflow:ident,
+        $no_multi_digit:expr,
         $overflow_digits:expr
     ) => {{
         // Can use the unchecked for the max_digits here
@@ -419,6 +419,7 @@ macro_rules! parse_digits_checked {
                 $add_op_uc,
                 $start_index,
                 $invalid_digit,
+                $no_multi_digit,
                 false
             );
         }
@@ -436,7 +437,7 @@ macro_rules! parse_digits_checked {
 /// * `into_ok` - Behavior when returning a valid value.
 #[rustfmt::skip]
 macro_rules! algorithm {
-($bytes:ident, $into_ok:ident, $invalid_digit:ident) => {{
+($bytes:ident, $into_ok:ident, $invalid_digit:ident, $no_multi_digit:expr) => {{
     // WARNING:
     // --------
     // None of this code can be changed for optimization reasons.
@@ -532,13 +533,13 @@ macro_rules! algorithm {
     //      integers, and no improvement for large integers.
     let mut value = T::ZERO;
     if cannot_overflow && is_negative {
-        parse_digits_unchecked!(value, iter, wrapping_sub, start_index, $invalid_digit, true);
+        parse_digits_unchecked!(value, iter, wrapping_sub, start_index, $invalid_digit, $no_multi_digit, true);
     } if cannot_overflow {
-        parse_digits_unchecked!(value, iter, wrapping_add, start_index, $invalid_digit, true);
+        parse_digits_unchecked!(value, iter, wrapping_add, start_index, $invalid_digit, $no_multi_digit, true);
     } else if is_negative {
-        parse_digits_checked!(value, iter, checked_sub, wrapping_sub, start_index, $invalid_digit, Underflow, overflow_digits);
+        parse_digits_checked!(value, iter, checked_sub, wrapping_sub, start_index, $invalid_digit, Underflow, $no_multi_digit, overflow_digits);
     } else {
-        parse_digits_checked!(value, iter, checked_add, wrapping_add, start_index, $invalid_digit, Overflow, overflow_digits);
+        parse_digits_checked!(value, iter, checked_add, wrapping_add, start_index, $invalid_digit, Overflow, $no_multi_digit, overflow_digits);
     }
 
     $into_ok!(value, iter.length())
@@ -547,18 +548,21 @@ macro_rules! algorithm {
 
 /// Algorithm for the complete parser.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-pub fn algorithm_complete<T, const FORMAT: u128>(bytes: &[u8]) -> Result<T>
+pub fn algorithm_complete<T, const FORMAT: u128>(bytes: &[u8], options: &Options) -> Result<T>
 where
     T: Integer,
 {
-    algorithm!(bytes, into_ok_complete, invalid_digit_complete)
+    algorithm!(bytes, into_ok_complete, invalid_digit_complete, options.get_no_multi_digit())
 }
 
 /// Algorithm for the partial parser.
 #[cfg_attr(not(feature = "compact"), inline(always))]
-pub fn algorithm_partial<T, const FORMAT: u128>(bytes: &[u8]) -> Result<(T, usize)>
+pub fn algorithm_partial<T, const FORMAT: u128>(
+    bytes: &[u8],
+    options: &Options,
+) -> Result<(T, usize)>
 where
     T: Integer,
 {
-    algorithm!(bytes, into_ok_partial, invalid_digit_partial)
+    algorithm!(bytes, into_ok_partial, invalid_digit_partial, options.get_no_multi_digit())
 }

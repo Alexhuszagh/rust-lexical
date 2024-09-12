@@ -4,6 +4,7 @@
 
 // Select the correct back-end.
 use crate::algorithm::{algorithm_complete, algorithm_partial};
+use crate::Options;
 
 use lexical_util::num::Integer;
 use lexical_util::result::Result;
@@ -12,14 +13,14 @@ use lexical_util::result::Result;
 pub trait ParseInteger: Integer {
     /// Forward complete parser parameters to the backend.
     #[cfg_attr(not(feature = "compact"), inline(always))]
-    fn parse_complete<const FORMAT: u128>(bytes: &[u8]) -> Result<Self> {
-        algorithm_complete::<_, { FORMAT }>(bytes)
+    fn parse_complete<const FORMAT: u128>(bytes: &[u8], options: &Options) -> Result<Self> {
+        algorithm_complete::<_, { FORMAT }>(bytes, options)
     }
 
     /// Forward partial parser parameters to the backend.
     #[cfg_attr(not(feature = "compact"), inline(always))]
-    fn parse_partial<const FORMAT: u128>(bytes: &[u8]) -> Result<(Self, usize)> {
-        algorithm_partial::<_, { FORMAT }>(bytes)
+    fn parse_partial<const FORMAT: u128>(bytes: &[u8], options: &Options) -> Result<(Self, usize)> {
+        algorithm_partial::<_, { FORMAT }>(bytes, options)
     }
 }
 
