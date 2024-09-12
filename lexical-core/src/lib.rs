@@ -400,7 +400,12 @@ to_lexical!();
 #[cfg(feature = "write")]
 to_lexical_with_options!();
 
-/// Implement `FromLexical` and `FromLexicalWithOptions` for numeric type.
+/// Implement `FromLexical` and `FromLexicalWithOptions` for numeric types.
+///
+/// * `t`                           - The numerical type.
+/// * `from`                        - The internal trait that implements `from_lexical`.
+/// * `from_lexical_with_options`   - The internal trait that implements `from_lexical`.
+/// * `options`                     - The options type to configure settings.
 #[cfg(feature = "parse")]
 macro_rules! from_lexical_impl {
     ($t:ident, $from:ident, $from_options:ident, $options:ident) => {
@@ -460,7 +465,12 @@ macro_rules! float_from_lexical {
 #[cfg(feature = "parse-floats")]
 float_from_lexical! { f32 f64 }
 
-// Implement ToLexical for numeric type.
+/// Implement `ToLexical` and `ToLexicalWithOptions` for numeric types.
+///
+/// * `t`                           - The numerical type.
+/// * `to`                          - The internal trait that implements `to_lexical`.
+/// * `to_lexical_with_options`     - The internal trait that implements `to_lexical`.
+/// * `options`                     - The options type to configure settings.
 #[cfg(feature = "write")]
 macro_rules! to_lexical_impl {
     ($t:ident, $to:ident, $to_options:ident, $options:ident) => {

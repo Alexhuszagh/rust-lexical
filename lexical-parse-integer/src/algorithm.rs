@@ -318,6 +318,13 @@ where
 ///
 /// This is based off of here:
 ///     https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1480
+///
+/// * `value` - The current parsed value.
+/// * `iter` - An iterator over all bytes in the input.
+/// * `add_op` - The unchecked add/sub op.
+/// * `start_index` - The offset where parsing started.
+/// * `invalid_digit` - Behavior when an invalid digit is found.
+/// * `is_end` - If iter corresponds to the full input.
 macro_rules! parse_1digit_unchecked {
 ($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $is_end:expr) => {{
     // This is a slower parsing algorithm, going 1 digit at a time, but doing it in an unchecked loop.
@@ -339,14 +346,21 @@ macro_rules! parse_1digit_unchecked {
 ///
 /// This is a standard, unoptimized algorithm. This is based off of here:
 ///     https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1505
+///
+/// * `value` - The current parsed value.
+/// * `iter` - An iterator over all bytes in the input.
+/// * `add_op` - The checked add/sub op.
+/// * `start_index` - The offset where parsing started.
+/// * `invalid_digit` - Behavior when an invalid digit is found.
+/// * `overflow` - If the error is overflow or underflow.
 macro_rules! parse_1digit_checked {
-($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $overflow:ident, $is_end:expr) => {{
+($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $overflow:ident) => {{
     // This is a slower parsing algorithm, going 1 digit at a time, but doing it in an unchecked loop.
     let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
     while let Some(&c) = $iter.next() {
         let digit = match char_to_digit_const(c, radix) {
             Some(v) => v,
-            None if cfg!(feature = "format") => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, $is_end),
+            None if cfg!(feature = "format") => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, true),
             None => return $invalid_digit!($value, $iter.cursor()),
         };
         // multiply first since compilers are good at optimizing things out and will do a fused mul/add
@@ -366,6 +380,14 @@ macro_rules! parse_1digit_checked {
 /// If the type size is small or there's not many digits, skip multi-digit
 /// optimizations. Otherwise, if the type size is large and we're not manually
 /// skipping manual optimizations, then we do this here.
+///
+/// * `value` - The current parsed value.
+/// * `iter` - An iterator over all bytes in the input.
+/// * `add_op` - The unchecked add/sub op.
+/// * `start_index` - The offset where parsing started.
+/// * `invalid_digit` - Behavior when an invalid digit is found.
+/// * `no_multi_digit` - If to disable multi-digit optimizations.
+/// * `is_end` - If iter corresponds to the full input.
 macro_rules! parse_digits_unchecked {
 ($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $no_multi_digit:expr, $is_end:expr) => {{
     let can_multi = can_try_parse_multidigits::<_, FORMAT>(&$iter);
@@ -398,6 +420,16 @@ macro_rules! parse_digits_unchecked {
 /// If the type size is small or there's not many digits, skip multi-digit
 /// optimizations. Otherwise, if the type size is large and we're not manually
 /// skipping manual optimizations, then we do this here.
+///
+/// * `value` - The current parsed value.
+/// * `iter` - An iterator over all bytes in the input.
+/// * `add_op` - The checked add/sub op.
+/// * `add_op_uc` - The unchecked add/sub op for small digit optimizations.
+/// * `start_index` - The offset where parsing started.
+/// * `invalid_digit` - Behavior when an invalid digit is found.
+/// * `overflow` - If the error is overflow or underflow.
+/// * `no_multi_digit` - If to disable multi-digit optimizations.
+/// * `overflow_digits` - The number of digits before we need to consider checked ops.
 macro_rules! parse_digits_checked {
     (
         $value:ident,
@@ -425,7 +457,7 @@ macro_rules! parse_digits_checked {
         }
 
         // NOTE: all our multi-digit optimizations have been done here: skip this
-        parse_1digit_checked!($value, $iter, $add_op, $start_index, $invalid_digit, $overflow, true)
+        parse_1digit_checked!($value, $iter, $add_op, $start_index, $invalid_digit, $overflow)
     }};
 }
 
@@ -435,6 +467,8 @@ macro_rules! parse_digits_checked {
 ///
 /// * `invalid_digit` - Behavior on finding an invalid digit.
 /// * `into_ok` - Behavior when returning a valid value.
+/// * `invalid_digit` - Behavior when an invalid digit is found.
+/// * `no_multi_digit` - If to disable multi-digit optimizations.
 #[rustfmt::skip]
 macro_rules! algorithm {
 ($bytes:ident, $into_ok:ident, $invalid_digit:ident, $no_multi_digit:expr) => {{

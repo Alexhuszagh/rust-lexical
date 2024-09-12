@@ -13,7 +13,7 @@ use util::from_radix;
 #[cfg(feature = "radix")]
 fn u128toa_test() {
     const FORMAT: u128 = from_radix(12);
-    let mut buffer = [b'\x00'; 128];
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
     unsafe {
         let value = 136551478823710021067381144334863695872u128;
         let count = value.write_mantissa::<u128, FORMAT>(&mut buffer);
@@ -136,7 +136,7 @@ macro_rules! to_radix {
 }
 
 fn u32toa_mockup(x: u32, radix: u32) -> Result<(), TestCaseError> {
-    let mut buffer = [b'\x00'; 32];
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
     unsafe {
         let count = to_radix!(u32, x, radix, buffer);
         let y = u32::from_str_radix(from_utf8_unchecked(&buffer[..count]), radix);
@@ -147,7 +147,7 @@ fn u32toa_mockup(x: u32, radix: u32) -> Result<(), TestCaseError> {
 }
 
 fn u64toa_mockup(x: u64, radix: u32) -> Result<(), TestCaseError> {
-    let mut buffer = [b'\x00'; 64];
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
     unsafe {
         let count = to_radix!(u64, x, radix, buffer);
         let y = u64::from_str_radix(from_utf8_unchecked(&buffer[..count]), radix);
@@ -158,7 +158,7 @@ fn u64toa_mockup(x: u64, radix: u32) -> Result<(), TestCaseError> {
 }
 
 fn u128toa_mockup(x: u128, radix: u32) -> Result<(), TestCaseError> {
-    let mut buffer = [b'\x00'; 128];
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
     unsafe {
         let count = to_radix!(u128, x, radix, buffer);
         let y = u128::from_str_radix(from_utf8_unchecked(&buffer[..count]), radix);

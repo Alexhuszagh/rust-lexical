@@ -11,9 +11,9 @@ use lexical_util::num::AsPrimitive;
 // 8 DIGIT
 // -------
 
-/// Check if we can try to parse 8 digits.
+/// Check if we can try to parse 8 digits at one.
 #[cfg(not(feature = "compact"))]
-macro_rules! can_try_parse_8digits {
+macro_rules! can_try_parse_multidigit {
     ($iter:expr, $radix:expr) => {
         $iter.is_contiguous() && (cfg!(not(feature = "power-of-two")) || $radix <= 10)
     };

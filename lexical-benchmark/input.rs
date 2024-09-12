@@ -90,6 +90,10 @@ macro_rules! json_data {
 }
 
 /// Generate an array of values as static data
+///
+/// - `fn` - The name to register the static data as
+/// - `cb` - The function to fetch the data
+/// - `f1` - The field within the data to fetch
 #[allow(unknown_lints, unused_macro_rules)]
 macro_rules! static_data {
     ($($fn:ident $cb:ident $f1:ident $t:tt ; )*) => ($(
@@ -162,6 +166,12 @@ pub trait IntegerRng: NumberRng + Integer {
     fn large_signed(rng: &mut Rng) -> String;
 }
 
+/// Generate an unsigned, random range for testing.
+///
+/// - `min` - The min for simple values
+/// - `max` - The max for simple values
+/// - `lmin` - The min for large values
+/// - `lmax` - The max for large values
 #[cfg(feature = "integers")]
 macro_rules! unsigned_rng {
     ($($t:ident $smin:literal $smax:literal $lmin:literal $lmax:literal ; )*) => ($(
@@ -207,6 +217,16 @@ macro_rules! unsigned_rng {
     )*);
 }
 
+/// Generate a signed, random range for testing.
+///
+/// - `smin` - The min for simple values
+/// - `smax` - The max for simple values
+/// - `ssmin` - The min for signed, simple values
+/// - `ssmax` - The max for signed, simple values
+/// - `lmin` - The min for large values
+/// - `lmax` - The max for large values
+/// - `lsmin` - The min for signed, large values
+/// - `lsmax` - The max for signed, large values
 #[cfg(feature = "integers")]
 macro_rules! signed_rng {
     ($(
@@ -378,6 +398,11 @@ where
 }
 
 // GENERATORS
+
+// For all of these:
+// - `group`: The name of the group containing mutiple benches.
+// - `name`: The name of the bench within the group.
+// - `iter`: An abstract iterable over the data to process.
 
 macro_rules! to_lexical_generator {
     ($group:ident, $name:expr, $iter:expr) => {{

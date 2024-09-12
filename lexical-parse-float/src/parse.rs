@@ -241,6 +241,12 @@ pub fn parse_exponent_sign<const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> 
 }
 
 /// Utility to extract the result and handle any errors from parsing a `Number`.
+///
+/// - `format` - The numberical format as a packed integer
+/// - `byte` - The BytesIter iterator
+/// - `is_negative` - If the final value is negative
+/// - `parse_normal` - The function to parse non-special numbers with
+/// - `parse_special` - The function to parse special numbers with
 macro_rules! parse_number {
     (
         $format:ident,
@@ -266,6 +272,9 @@ macro_rules! parse_number {
 }
 
 /// Convert extended float to native.
+///
+/// - `type` - The native floating point type.
+/// - `fp` - The extended floating-point representation.
 macro_rules! to_native {
     ($type:ident, $fp:ident, $is_negative:ident) => {{
         let mut float = extended_to_float::<$type>($fp);
@@ -831,7 +840,7 @@ where
 {
     let format = NumberFormat::<{ FORMAT }> {};
     let radix: u64 = format.radix() as u64;
-    if can_try_parse_8digits!(iter, radix) {
+    if can_try_parse_multidigit!(iter, radix) {
         debug_assert!(radix < 16);
         let radix8 = format.radix8() as u64;
         // Can do up to 2 iterations without overflowing, however, for large
@@ -860,7 +869,7 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
 
     // Try to parse 8 digits at a time, if we can.
     #[cfg(not(feature = "compact"))]
-    if can_try_parse_8digits!(iter, radix) {
+    if can_try_parse_multidigit!(iter, radix) {
         debug_assert!(radix < 16);
         let radix8 = format.radix8() as u64;
         while *step > 8 {
