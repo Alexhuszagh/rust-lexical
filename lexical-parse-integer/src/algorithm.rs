@@ -91,7 +91,9 @@ macro_rules! into_error {
 /// This is because we can have special, non-digit characters near
 /// the start or internally.
 macro_rules! fmt_invalid_digit {
-    ($value:ident, $iter:ident, $c:expr, $start_index:ident, $invalid_digit:ident) => {{
+    (
+        $value:ident, $iter:ident, $c:expr, $start_index:ident, $invalid_digit:ident, $is_end:expr
+    ) => {{
         let base_suffix = NumberFormat::<FORMAT>::BASE_SUFFIX;
         let uncased_base_suffix = NumberFormat::<FORMAT>::CASE_SENSITIVE_BASE_SUFFIX;
         // Need to check for a base suffix, if so, return a valid value.
@@ -103,7 +105,10 @@ macro_rules! fmt_invalid_digit {
             } else {
                 $c.to_ascii_lowercase() == base_suffix.to_ascii_lowercase()
             };
-            if is_suffix && $iter.is_done() {
+            // NOTE: If we're using the `take_n` optimization where it can't
+            // be the end, then the iterator cannot be done. So, in that case,
+            // we need to end.
+            if is_suffix && $is_end && $iter.is_done() {
                 // Break out of the loop, we've finished parsing.
                 break;
             } else if is_suffix {
@@ -313,13 +318,13 @@ where
 /// This is based off of here:
 ///     https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1480
 macro_rules! parse_1digit_unchecked {
-($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident) => {{
+($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $is_end:expr) => {{
     // This is a slower parsing algorithm, going 1 digit at a time, but doing it in an unchecked loop.
     let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
     while let Some(&c) = $iter.next() {
         let digit = match char_to_digit_const(c, radix) {
             Some(v) => v,
-            None if cfg!(feature = "format") => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit),
+            None if cfg!(feature = "format") => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, $is_end),
             None => return $invalid_digit!($value, $iter.cursor()),
         };
         // multiply first since compilers are good at optimizing things out and will do a fused mul/add
@@ -334,13 +339,13 @@ macro_rules! parse_1digit_unchecked {
 /// This is a standard, unoptimized algorithm. This is based off of here:
 ///     https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1505
 macro_rules! parse_1digit_checked {
-($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $overflow:ident) => {{
+($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $overflow:ident, $is_end:expr) => {{
     // This is a slower parsing algorithm, going 1 digit at a time, but doing it in an unchecked loop.
     let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
     while let Some(&c) = $iter.next() {
         let digit = match char_to_digit_const(c, radix) {
             Some(v) => v,
-            None if cfg!(feature = "format") => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit),
+            None if cfg!(feature = "format") => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit, $is_end),
             None => return $invalid_digit!($value, $iter.cursor()),
         };
         // multiply first since compilers are good at optimizing things out and will do a fused mul/add
@@ -361,13 +366,16 @@ macro_rules! parse_1digit_checked {
 /// optimizations. Otherwise, if the type size is large and we're not manually
 /// skipping manual optimizations, then we do this here.
 macro_rules! parse_digits_unchecked {
-($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident) => {{
+($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $is_end:expr) => {{
     // TODO: Disable multi-digit optimizations, make configurable
     const DISABLE_MULTIDIGIT: bool = true;
     let can_multi = can_try_parse_multidigits::<_, FORMAT>(&$iter);
     let use_multi = can_multi && !DISABLE_MULTIDIGIT;
 
     // these cannot overflow. also, we use at most 3 for a 128-bit float and 1 for a 64-bit float
+    // NOTE: Miri will complain about this if we use radices >= 16 but since they won't go
+    // into `try_parse_8digits!` or `try_parse_4digits` it will be optimized out and the
+    // overflow won't matter.
     let format = NumberFormat::<FORMAT> {};
     let radix4 = T::from_u32(format.radix4());
     let radix8 = T::from_u32(format.radix8());
@@ -382,7 +390,7 @@ macro_rules! parse_digits_unchecked {
             $value = $value.wrapping_mul(radix4).$add_op(value);
         }
     }
-    parse_1digit_unchecked!($value, $iter, $add_op, $start_index, $invalid_digit)
+    parse_1digit_unchecked!($value, $iter, $add_op, $start_index, $invalid_digit, $is_end)
 }};
 }
 
@@ -405,11 +413,18 @@ macro_rules! parse_digits_checked {
         // Can use the unchecked for the max_digits here
         if let Some(mut small) = $iter.take_n($overflow_digits) {
             let mut small_iter = small.integer_iter();
-            parse_digits_unchecked!($value, small_iter, $add_op_uc, $start_index, $invalid_digit);
+            parse_digits_unchecked!(
+                $value,
+                small_iter,
+                $add_op_uc,
+                $start_index,
+                $invalid_digit,
+                false
+            );
         }
 
         // NOTE: all our multi-digit optimizations have been done here: skip this
-        parse_1digit_checked!($value, $iter, $add_op, $start_index, $invalid_digit, $overflow)
+        parse_1digit_checked!($value, $iter, $add_op, $start_index, $invalid_digit, $overflow, true)
     }};
 }
 
@@ -454,13 +469,13 @@ macro_rules! algorithm {
     }
 
     // Feature-gate a lot of format-only code here to simplify analysis with our branching
-    let start_index;
+    let mut start_index = iter.cursor();
     if cfg!(feature = "format") {
         // Skip any leading zeros. We want to do our check if it can't possibly overflow after.
         // For skipping digit-based formats, this approximation is a way over estimate.
         // NOTE: Skipping zeros is **EXPENSIVE* so we skip that without our format feature
         let zeros = iter.skip_zeros();
-        start_index = zeros;
+        start_index += zeros;
         // Now, check to see if we have a valid base prefix.
         let format = NumberFormat::<FORMAT> {};
         let base_prefix = format.base_prefix();
@@ -479,6 +494,8 @@ macro_rules! algorithm {
                     unsafe { iter.step_unchecked() };
                     if iter.is_done() {
                         return into_error!(Empty, iter.cursor());
+                    } else {
+                        start_index += 1;
                     }
                 }
             }
@@ -500,8 +517,6 @@ macro_rules! algorithm {
                 _ => return $into_ok!(<T>::ZERO, index),
             };
         }
-    } else {
-        start_index = 0;
     }
 
     // shorter strings cannot possibly overflow so a great optimization
@@ -517,9 +532,9 @@ macro_rules! algorithm {
     //      integers, and no improvement for large integers.
     let mut value = T::ZERO;
     if cannot_overflow && is_negative {
-        parse_digits_unchecked!(value, iter, wrapping_sub, start_index, $invalid_digit);
+        parse_digits_unchecked!(value, iter, wrapping_sub, start_index, $invalid_digit, true);
     } if cannot_overflow {
-        parse_digits_unchecked!(value, iter, wrapping_add, start_index, $invalid_digit);
+        parse_digits_unchecked!(value, iter, wrapping_add, start_index, $invalid_digit, true);
     } else if is_negative {
         parse_digits_checked!(value, iter, checked_sub, wrapping_sub, start_index, $invalid_digit, Underflow, overflow_digits);
     } else {

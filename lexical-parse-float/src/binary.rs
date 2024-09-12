@@ -106,9 +106,8 @@ pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     // Try to parse 8 digits at a time, if we can.
     #[cfg(not(feature = "compact"))]
     if can_try_parse_8digits!(iter, radix) {
-        let radix2 = radix.wrapping_mul(radix);
-        let radix4 = radix2.wrapping_mul(radix2);
-        let radix8 = radix4.wrapping_mul(radix4);
+        debug_assert!(radix < 16);
+        let radix8 = format.radix8() as u64;
         while *step > 8 {
             if let Some(v) = algorithm::try_parse_8digits::<u64, _, FORMAT>(&mut iter) {
                 *mantissa = mantissa.wrapping_mul(radix8).wrapping_add(v);

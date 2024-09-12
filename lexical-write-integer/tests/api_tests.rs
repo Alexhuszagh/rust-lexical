@@ -213,7 +213,7 @@ fn options_test() {
 #[cfg(feature = "radix")]
 fn options_radix_test() {
     const FORMAT: u128 = from_radix(12);
-    let mut buffer = [b'\x00'; 48];
+    let mut buffer = [b'\x00'; 128];
     let options = Options::new();
     assert_eq!(b"A8", 128u8.to_lexical_with_options::<{ FORMAT }>(&mut buffer, &options));
 }
