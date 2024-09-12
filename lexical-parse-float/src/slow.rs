@@ -242,6 +242,14 @@ pub fn negative_digit_comp<F: RawFloat, const FORMAT: u128>(
 }
 
 /// Try to parse 8 digits at a time.
+///
+/// - `format` - The numerical format specification as a packed 128-bit integer
+/// - `iter` - An iterator over all bytes in the buffer
+/// - `value` - The currently parsed value.
+/// - `count` - The total number of parsed digits
+/// - `counter` - The number of parsed digits since creating the current u32
+/// - `step` - The maximum number of digits for the radix that can fit in a u32.
+/// - `max_digits` - The maximum number of digits that can affect floating-point rounding.
 #[cfg(not(feature = "compact"))]
 macro_rules! try_parse_8digits {
     (
@@ -257,7 +265,7 @@ macro_rules! try_parse_8digits {
         let radix = format.radix() as Limb;
 
         // Try 8-digit optimizations.
-        if can_try_parse_8digits!($iter, radix) {
+        if can_try_parse_multidigit!($iter, radix) {
             debug_assert!(radix < 16);
             let radix8 = format.radix8() as Limb;
             while $step - $counter >= 8 && $max_digits - $count >= 8 {
@@ -274,6 +282,11 @@ macro_rules! try_parse_8digits {
 }
 
 /// Add a digit to the temporary value.
+///
+/// - `c` - The character to convert to a digit.
+/// - `value` - The currently parsed value.
+/// - `count` - The total number of parsed digits
+/// - `counter` - The number of parsed digits since creating the current u32
 macro_rules! add_digit {
     ($c:ident, $radix:ident, $value:ident, $counter:ident, $count:ident) => {{
         let digit = char_to_valid_digit_const($c, $radix);
@@ -287,6 +300,12 @@ macro_rules! add_digit {
 }
 
 /// Add a temporary value to our mantissa.
+///
+/// - `format` - The numerical format specification as a packed 128-bit integer
+/// - `result` - The big integer,
+/// - `power` - The power to scale the big integer by.
+/// - `value` - The value to add to the big intger,
+/// - `counter` - The number of parsed digits since creating the current u32
 macro_rules! add_temporary {
     // Multiply by the small power and add the native value.
     (@mul $result:ident, $power:expr, $value:expr) => {
@@ -312,6 +331,10 @@ macro_rules! add_temporary {
 }
 
 /// Round-up a truncated value.
+///
+/// - `format` - The numerical format specification as a packed 128-bit integer
+/// - `result` - The big integer,
+/// - `count` - The total number of parsed digits
 macro_rules! round_up_truncated {
     ($format:ident, $result:ident, $count:ident) => {{
         // Need to round-up.
@@ -323,6 +346,11 @@ macro_rules! round_up_truncated {
 }
 
 /// Check and round-up the fraction if any non-zero digits exist.
+///
+/// - `format` - The numerical format specification as a packed 128-bit integer
+/// - `iter` - An iterator over all bytes in the buffer
+/// - `result` - The big integer,
+/// - `count` - The total number of parsed digits
 macro_rules! round_up_nonzero {
     ($format:ident, $iter:expr, $result:ident, $count:ident) => {{
         // NOTE: All digits must be valid.
@@ -454,6 +482,10 @@ pub fn parse_mantissa<const FORMAT: u128>(num: Number, max_digits: usize) -> (Bi
 }
 
 /// Compare actual integer digits to the theoretical digits.
+///
+/// - `iter` - An iterator over all bytes in the buffer
+/// - `num` - The actual digits of the real floating point number.
+/// - `den` - The theoretical digits created by `b+h` to determine if `b` or `b+1`
 #[cfg(feature = "radix")]
 macro_rules! integer_compare {
     ($iter:ident, $num:ident, $den:ident, $radix:ident) => {{
@@ -487,6 +519,10 @@ macro_rules! integer_compare {
 }
 
 /// Compare actual fraction digits to the theoretical digits.
+///
+/// - `iter` - An iterator over all bytes in the buffer
+/// - `num` - The actual digits of the real floating point number.
+/// - `den` - The theoretical digits created by `b+h` to determine if `b` or `b+1`
 #[cfg(feature = "radix")]
 macro_rules! fraction_compare {
     ($iter:ident, $num:ident, $den:ident, $radix:ident) => {{
@@ -623,6 +659,10 @@ pub fn byte_comp<F: RawFloat, const FORMAT: u128>(
 }
 
 /// Compare digits between the generated values the ratio and the actual view.
+///
+/// - `number` - The representation of the float as a big number, with the parsed digits.
+/// - `num` - The actual digits of the real floating point number.
+/// - `den` - The theoretical digits created by `b+h` to determine if `b` or `b+1`
 #[cfg(feature = "radix")]
 pub fn compare_bytes<const FORMAT: u128>(
     number: Number,

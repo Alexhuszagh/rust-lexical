@@ -22,6 +22,8 @@
  * ====================================================
  */
 
+/// Index an array without bounds checking.
+///
 /// # Safety
 ///
 /// Safe if `index < array.len()`.

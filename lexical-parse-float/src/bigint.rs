@@ -261,6 +261,8 @@ pub struct StackVec<const SIZE: usize> {
 /// NOTE: Modifying this to remove unsafety which we statically
 /// check directly in every caller leads to ~20% degradation in
 /// performance.
+/// - `rview`   - A reversed view over a slice.
+/// - `fn`      - The callback to extract the high bits.
 macro_rules! hi {
     (@1 $self:ident, $rview:ident, $t:ident, $fn:ident) => {{
         $fn(unsafe { index_unchecked!($rview[0]) as $t })

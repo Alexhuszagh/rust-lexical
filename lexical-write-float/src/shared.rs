@@ -168,7 +168,17 @@ pub unsafe fn write_exponent<const FORMAT: u128>(
     };
 }
 
-/// Detect the notation to use for the float formatter and call the appropriate function..
+/// Detect the notation to use for the float formatter and call the appropriate function.
+///
+/// - `float` - The float to write to string.
+/// - `format` - The formatting specification for the float.
+/// - `sci_exp` - The scientific exponents describing the float.
+/// - `options` - Options configuring how to serialize the float.
+/// - `write_scientific` - The callback to write scientific notation numbers.
+/// - `write_positive` - The callback to write non-scientific, positive numbers.
+/// - `write_negative` - The callback to write non-scientific, negative numbers.
+/// - `bytes` - The output buffer to write to.
+/// - `args` - Additional arguments to pass to our internal writers.
 macro_rules! write_float {
     (
         $float:ident,
