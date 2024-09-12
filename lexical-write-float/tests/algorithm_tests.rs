@@ -223,7 +223,7 @@ fn write_digits_f32(buffer: &mut [u8], value: u64, expected: &str) {
 
 #[test]
 fn write_digits_f32_test() {
-    let mut buffer = [b'\x00'; 32];
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
     write_digits_f32(&mut buffer, 0, "0");
     write_digits_f32(&mut buffer, 1, "1");
     write_digits_f32(&mut buffer, 11, "11");
@@ -240,7 +240,7 @@ fn write_digits_f64(buffer: &mut [u8], value: u64, expected: &str) {
 
 #[test]
 fn write_digits_f64_test() {
-    let mut buffer = [b'\x00'; 32];
+    let mut buffer = [b'\x00'; BUFFER_SIZE];
     write_digits_f64(&mut buffer, 0, "0");
     write_digits_f64(&mut buffer, 1, "1");
     write_digits_f64(&mut buffer, 11, "11");
