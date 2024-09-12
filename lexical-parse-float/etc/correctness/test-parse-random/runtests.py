@@ -104,7 +104,7 @@ import binascii
 try:  # Python 3
     import queue as Queue
 except ImportError:  # Python 2
-    import Queue
+    import Queue  # noqa  # pyright: ignore[reportMissingImports]
 
 NUM_WORKERS = 2
 UPDATE_EVERY_N = 50000
@@ -116,6 +116,7 @@ STDOUT_LOCK = threading.Lock()
 test_name = None
 child_processes = []
 exit_status = 0
+
 
 def msg(*args):
     with STDOUT_LOCK:
@@ -140,15 +141,19 @@ def write_errors():
             msg("Future errors logged to errors.txt")
             exit_status = 101
 
+
 def projectdir():
     file = os.path.realpath(__file__)
     return os.path.dirname(os.path.dirname(file))
 
+
 def targetdir():
     return os.path.join(projectdir(), 'target')
 
+
 def releasedir():
     return os.path.join(targetdir(), 'release')
+
 
 def cargo():
     path = os.getcwd()
@@ -164,9 +169,9 @@ def run(test):
     t0 = time.perf_counter()
     msg("setting up supervisor")
     command = ['cargo', 'run', '--bin', test, '--release']
-    proc = Popen(command, bufsize=1<<20 , stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    proc = Popen(command, bufsize=1 << 20, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     done = multiprocessing.Value(ctypes.c_bool)
-    queue = multiprocessing.Queue(maxsize=5)#(maxsize=1024)
+    queue = multiprocessing.Queue(maxsize=5)  # (maxsize=1024)
     workers = []
     for n in range(NUM_WORKERS):
         worker = multiprocessing.Process(name='Worker-' + str(n + 1),
@@ -238,8 +243,8 @@ def main():
 # ---- Worker thread code ----
 
 
-POW2 = { e: Fraction(2) ** e for e in range(-1100, 1100) }
-HALF_ULP = { e: (Fraction(2) ** e)/2 for e in range(-1100, 1100) }
+POW2 = {e: Fraction(2) ** e for e in range(-1100, 1100)}
+HALF_ULP = {e: (Fraction(2) ** e)/2 for e in range(-1100, 1100)}
 DONE_FLAG = None
 
 
@@ -349,6 +354,7 @@ DOUBLE_INF_CUTOFF = MAX_DOUBLE + 2 ** (MAX_ULP_DOUBLE - 1)
 SINGLE_ZERO_CUTOFF = MIN_SUBNORMAL_SINGLE / 2
 SINGLE_INF_CUTOFF = MAX_SINGLE + 2 ** (MAX_ULP_SINGLE - 1)
 
+
 def validate(bin64, bin32, text):
     try:
         double = decode_binary64(bin64)
@@ -386,6 +392,7 @@ def validate(bin64, bin32, text):
         validate_normal(text, real, sig, k, "f32")
     else:
         assert 0, "didn't handle binary32"
+
 
 def record_special_error(text, descr):
     send_error_to_supervisor(text.strip(), "wrongly rounded to", descr)

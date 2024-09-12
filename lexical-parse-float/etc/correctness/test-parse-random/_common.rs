@@ -16,6 +16,8 @@ use std::mem::transmute;
 // Nothing up my sleeve: Just (PI - 3) in base 16.
 #[allow(dead_code)]
 pub const SEED: [u32; 3] = [0x243f_6a88, 0x85a3_08d3, 0x1319_8a2e];
+#[allow(dead_code)]
+pub const ISAAC_SEED: [u8; 32] = [49, 52, 49, 53, 57, 50, 54, 53, 51, 53, 56, 57, 55, 57, 51, 50, 51, 56, 52, 54, 50, 54, 52, 51, 51, 56, 51, 50, 55, 57, 53, 48];
 
 pub fn validate(text: &str) {
     let mut out = io::stdout();

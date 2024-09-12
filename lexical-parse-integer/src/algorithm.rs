@@ -367,8 +367,8 @@ macro_rules! parse_1digit_checked {
 /// skipping manual optimizations, then we do this here.
 macro_rules! parse_digits_unchecked {
 ($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $is_end:expr) => {{
-    // TODO: Disable multi-digit optimizations, make configurable
-    const DISABLE_MULTIDIGIT: bool = true;
+    // TODO: Disable multi-digit optimizations by default, make configurable
+    const DISABLE_MULTIDIGIT: bool = false;
     let can_multi = can_try_parse_multidigits::<_, FORMAT>(&$iter);
     let use_multi = can_multi && !DISABLE_MULTIDIGIT;
 
