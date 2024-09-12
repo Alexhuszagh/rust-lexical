@@ -122,7 +122,9 @@ fn test_try_parse_8digits() {
 #[cfg(feature = "power-of-two")]
 macro_rules! parse_radix {
     ($i:literal) => {
-        |bytes: &[u8]| algorithm::algorithm_partial::<u32, { from_radix($i) }>(bytes, &SMALL_NUMBERS)
+        |bytes: &[u8]| {
+            algorithm::algorithm_partial::<u32, { from_radix($i) }>(bytes, &SMALL_NUMBERS)
+        }
     };
 }
 
