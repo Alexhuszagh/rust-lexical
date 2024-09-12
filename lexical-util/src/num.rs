@@ -251,7 +251,7 @@ pub trait AsCast: AsPrimitive {
 }
 
 /// Allows the high-level conversion of generic types as if `as` was used.
-#[inline]
+#[inline(always)]
 pub fn as_cast<U: AsCast, T: AsCast>(t: T) -> U {
     U::as_cast(t)
 }
@@ -259,7 +259,7 @@ pub fn as_cast<U: AsCast, T: AsCast>(t: T) -> U {
 macro_rules! as_cast {
     ($($t:ty, $meth:ident ; )*) => ($(
         impl AsCast for $t {
-            #[inline]
+            #[inline(always)]
             fn as_cast<N: AsPrimitive>(n: N) -> $t {
                 n.$meth() as _
             }
@@ -413,7 +413,7 @@ pub trait Integer:
 
     /// Get the fast ceiling of the quotient from integer division.
     /// Not safe, since the remainder can easily overflow.
-    #[inline]
+    #[inline(always)]
     fn ceil_divmod(self, y: Self) -> (Self, i32) {
         let q = self / y;
         let r = self % y;
@@ -425,14 +425,14 @@ pub trait Integer:
 
     /// Get the fast ceiling of the quotient from integer division.
     /// Not safe, since the remainder can easily overflow.
-    #[inline]
+    #[inline(always)]
     fn ceil_div(self, y: Self) -> Self {
         self.ceil_divmod(y).0
     }
 
     /// Get the fast ceiling modulus from integer division.
     /// Not safe, since the remainder can easily overflow.
-    #[inline]
+    #[inline(always)]
     fn ceil_mod(self, y: Self) -> i32 {
         self.ceil_divmod(y).1
     }
@@ -440,126 +440,142 @@ pub trait Integer:
     // PROPERTIES
 
     /// Get the number of bits in a value.
-    #[inline]
+    #[inline(always)]
     fn bit_length(self) -> u32 {
         Self::BITS as u32 - self.leading_zeros()
     }
 
     /// Returns true if the least-significant bit is odd.
-    #[inline]
+    #[inline(always)]
     fn is_odd(self) -> bool {
         self & Self::ONE == Self::ONE
     }
 
     /// Returns true if the least-significant bit is even.
-    #[inline]
+    #[inline(always)]
     fn is_even(self) -> bool {
         !self.is_odd()
+    }
+
+    /// Get the maximum number of digits before the slice will overflow.
+    ///
+    /// This is effectively the floor(log(2**BITS-1, radix)), but we can
+    /// try to go a bit lower without worrying too much.
+    #[inline(always)]
+    fn overflow_digits(radix: u32) -> usize {
+        // this is heavily optimized for base10 and it's a way under estimate
+        // that said, it's fast and works.
+        if radix <= 16 {
+            core::mem::size_of::<Self>() * 2 - Self::IS_SIGNED as usize
+        } else {
+            // way under approximation but always works and is fast
+            core::mem::size_of::<Self>()
+        }
     }
 }
 
 macro_rules! integer_impl {
-    ($($t:tt)*) => ($(
-        impl Integer for $t {
-            const ZERO: $t = 0;
-            const ONE: $t = 1;
-            const TWO: $t = 2;
-            const MAX: $t = $t::MAX;
-            const MIN: $t = $t::MIN;
-            // DEPRECATE: when we drop support for <= 1.53.0, change to `<$t>::BITS`
-            const BITS: usize = mem::size_of::<$t>() * 8;
+($($t:tt)*) => ($(
+    impl Integer for $t {
+        const ZERO: $t = 0;
+        const ONE: $t = 1;
+        const TWO: $t = 2;
+        const MAX: $t = $t::MAX;
+        const MIN: $t = $t::MIN;
+        // DEPRECATE: when we drop support for <= 1.53.0, change to `<$t>::BITS`
+        const BITS: usize = mem::size_of::<$t>() * 8;
 
-            #[inline]
-            fn leading_zeros(self) -> u32 {
-                $t::leading_zeros(self)
-            }
-
-            #[inline]
-            fn trailing_zeros(self) -> u32 {
-                $t::trailing_zeros(self)
-            }
-
-            #[inline]
-            fn checked_add(self, i: Self) -> Option<Self> {
-                $t::checked_add(self, i)
-            }
-
-            #[inline]
-            fn checked_sub(self, i: Self) -> Option<Self> {
-                $t::checked_sub(self, i)
-            }
-
-            #[inline]
-            fn checked_mul(self, i: Self) -> Option<Self> {
-                $t::checked_mul(self, i)
-            }
-
-            #[inline]
-            fn overflowing_add(self, i: Self) -> (Self, bool) {
-                $t::overflowing_add(self, i)
-            }
-
-            #[inline]
-            fn overflowing_sub(self, i: Self) -> (Self, bool) {
-                $t::overflowing_sub(self, i)
-            }
-
-            #[inline]
-            fn overflowing_mul(self, i: Self) -> (Self, bool) {
-                $t::overflowing_mul(self, i)
-            }
-
-            #[inline]
-            fn wrapping_add(self, i: Self) -> Self {
-                $t::wrapping_add(self, i)
-            }
-
-            #[inline]
-            fn wrapping_sub(self, i: Self) -> Self {
-                $t::wrapping_sub(self, i)
-            }
-
-            #[inline]
-            fn wrapping_mul(self, i: Self) -> Self {
-                $t::wrapping_mul(self, i)
-            }
-
-            #[inline]
-            fn wrapping_neg(self) -> Self {
-                $t::wrapping_neg(self)
-            }
-
-            #[inline]
-            fn pow(self, exp: u32) -> Self {
-                Self::pow(self, exp)
-            }
-
-            #[inline]
-            fn checked_pow(self, exp: u32) -> Option<Self> {
-                Self::checked_pow(self, exp)
-            }
-
-            #[inline]
-            fn overflowing_pow(self, exp: u32) -> (Self, bool) {
-                Self::overflowing_pow(self, exp)
-            }
-
-            #[inline]
-            fn saturating_add(self, i: Self) -> Self {
-                $t::saturating_add(self, i)
-            }
-
-            #[inline]
-            fn saturating_sub(self, i: Self) -> Self {
-                $t::saturating_sub(self, i)
-            }
-
-            #[inline]
-            fn saturating_mul(self, i: Self) -> Self {
-                $t::saturating_mul(self, i)
-            }
+        #[inline(always)]
+        fn leading_zeros(self) -> u32 {
+            $t::leading_zeros(self)
         }
-    )*)
+
+        #[inline(always)]
+        fn trailing_zeros(self) -> u32 {
+            $t::trailing_zeros(self)
+        }
+
+        #[inline(always)]
+        fn checked_add(self, i: Self) -> Option<Self> {
+            $t::checked_add(self, i)
+        }
+
+        #[inline(always)]
+        fn checked_sub(self, i: Self) -> Option<Self> {
+            $t::checked_sub(self, i)
+        }
+
+        #[inline(always)]
+        fn checked_mul(self, i: Self) -> Option<Self> {
+            $t::checked_mul(self, i)
+        }
+
+        #[inline(always)]
+        fn overflowing_add(self, i: Self) -> (Self, bool) {
+            $t::overflowing_add(self, i)
+        }
+
+        #[inline(always)]
+        fn overflowing_sub(self, i: Self) -> (Self, bool) {
+            $t::overflowing_sub(self, i)
+        }
+
+        #[inline(always)]
+        fn overflowing_mul(self, i: Self) -> (Self, bool) {
+            $t::overflowing_mul(self, i)
+        }
+
+        #[inline(always)]
+        fn wrapping_add(self, i: Self) -> Self {
+            $t::wrapping_add(self, i)
+        }
+
+        #[inline(always)]
+        fn wrapping_sub(self, i: Self) -> Self {
+            $t::wrapping_sub(self, i)
+        }
+
+        #[inline(always)]
+        fn wrapping_mul(self, i: Self) -> Self {
+            $t::wrapping_mul(self, i)
+        }
+
+        #[inline(always)]
+        fn wrapping_neg(self) -> Self {
+            $t::wrapping_neg(self)
+        }
+
+        #[inline(always)]
+        fn pow(self, exp: u32) -> Self {
+            Self::pow(self, exp)
+        }
+
+        #[inline(always)]
+        fn checked_pow(self, exp: u32) -> Option<Self> {
+            Self::checked_pow(self, exp)
+        }
+
+        #[inline(always)]
+        fn overflowing_pow(self, exp: u32) -> (Self, bool) {
+            Self::overflowing_pow(self, exp)
+        }
+
+        #[inline(always)]
+        fn saturating_add(self, i: Self) -> Self {
+            $t::saturating_add(self, i)
+        }
+
+        #[inline(always)]
+        fn saturating_sub(self, i: Self) -> Self {
+            $t::saturating_sub(self, i)
+        }
+
+        #[inline(always)]
+        fn saturating_mul(self, i: Self) -> Self {
+            $t::saturating_mul(self, i)
+        }
+    }
+)*)
 }
 
 integer_impl! { u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 usize isize }
@@ -571,9 +587,9 @@ integer_impl! { u8 u16 u32 u64 u128 i8 i16 i32 i64 i128 usize isize }
 pub trait SignedInteger: Integer + ops::Neg<Output = Self> {}
 
 macro_rules! signed_integer_impl {
-    ($($t:tt)*) => ($(
-        impl SignedInteger for $t {}
-    )*)
+($($t:tt)*) => ($(
+    impl SignedInteger for $t {}
+)*)
 }
 
 signed_integer_impl! { i8 i16 i32 i64 i128 isize }
@@ -585,9 +601,9 @@ signed_integer_impl! { i8 i16 i32 i64 i128 isize }
 pub trait UnsignedInteger: Integer {}
 
 macro_rules! unsigned_integer_impl {
-    ($($t:ty)*) => ($(
-        impl UnsignedInteger for $t {}
-    )*)
+($($t:ty)*) => ($(
+    impl UnsignedInteger for $t {}
+)*)
 }
 
 unsigned_integer_impl! { u8 u16 u32 u64 u128 usize }
@@ -658,43 +674,43 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     fn is_sign_negative(self) -> bool;
 
     /// Returns true if the float is a denormal.
-    #[inline]
+    #[inline(always)]
     fn is_denormal(self) -> bool {
         self.to_bits() & Self::EXPONENT_MASK == Self::Unsigned::ZERO
     }
 
     /// Returns true if the float is a NaN or Infinite.
-    #[inline]
+    #[inline(always)]
     fn is_special(self) -> bool {
         self.to_bits() & Self::EXPONENT_MASK == Self::EXPONENT_MASK
     }
 
     /// Returns true if the float is NaN.
-    #[inline]
+    #[inline(always)]
     fn is_nan(self) -> bool {
         self.is_special() && (self.to_bits() & Self::MANTISSA_MASK) != Self::Unsigned::ZERO
     }
 
     /// Returns true if the float is infinite.
-    #[inline]
+    #[inline(always)]
     fn is_inf(self) -> bool {
         self.is_special() && (self.to_bits() & Self::MANTISSA_MASK) == Self::Unsigned::ZERO
     }
 
     /// Returns true if the float's least-significant mantissa bit is odd.
-    #[inline]
+    #[inline(always)]
     fn is_odd(self) -> bool {
         self.to_bits().is_odd()
     }
 
     /// Returns true if the float's least-significant mantissa bit is even.
-    #[inline]
+    #[inline(always)]
     fn is_even(self) -> bool {
         !self.is_odd()
     }
 
     /// Get exponent component from the float.
-    #[inline]
+    #[inline(always)]
     fn exponent(self) -> i32 {
         if self.is_denormal() {
             return Self::DENORMAL_EXPONENT;
@@ -706,7 +722,7 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     }
 
     /// Get mantissa (significand) component from float.
-    #[inline]
+    #[inline(always)]
     fn mantissa(self) -> Self::Unsigned {
         let bits = self.to_bits();
         let s = bits & Self::MANTISSA_MASK;
@@ -718,7 +734,7 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     }
 
     /// Get next greater float.
-    #[inline]
+    #[inline(always)]
     fn next(self) -> Self {
         let bits = self.to_bits();
         if self.is_sign_negative() && self == Self::ZERO {
@@ -735,14 +751,14 @@ pub trait Float: Number + ops::Neg<Output = Self> {
 
     /// Get next greater float for a positive float.
     /// Value must be >= 0.0 and < INFINITY.
-    #[inline]
+    #[inline(always)]
     fn next_positive(self) -> Self {
         debug_assert!(self.is_sign_positive() && !self.is_inf());
         Self::from_bits(self.to_bits() + Self::Unsigned::ONE)
     }
 
     /// Get previous greater float, such that `self.prev().next() == self`.
-    #[inline]
+    #[inline(always)]
     fn prev(self) -> Self {
         let bits = self.to_bits();
         if self.is_sign_positive() && self == Self::ZERO {
@@ -759,14 +775,14 @@ pub trait Float: Number + ops::Neg<Output = Self> {
 
     /// Get previous greater float for a positive float.
     /// Value must be > 0.0.
-    #[inline]
+    #[inline(always)]
     fn prev_positive(self) -> Self {
         debug_assert!(self.is_sign_positive() && self != Self::ZERO);
         Self::from_bits(self.to_bits() - Self::Unsigned::ONE)
     }
 
     /// Round a positive number to even.
-    #[inline]
+    #[inline(always)]
     fn round_positive_even(self) -> Self {
         if self.mantissa().is_odd() {
             self.next_positive()
@@ -776,7 +792,7 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     }
 
     /// Get the max of two finite numbers.
-    #[inline]
+    #[inline(always)]
     fn max_finite(self, f: Self) -> Self {
         debug_assert!(!self.is_special() && !f.is_special(), "max_finite self={} f={}", self, f);
         if self < f {
@@ -787,7 +803,7 @@ pub trait Float: Number + ops::Neg<Output = Self> {
     }
 
     /// Get the min of two finite numbers.
-    #[inline]
+    #[inline(always)]
     fn min_finite(self, f: Self) -> Self {
         debug_assert!(!self.is_special() && !f.is_special(), "min_finite self={} f={}", self, f);
         if self < f {
@@ -904,32 +920,32 @@ impl Float for f16 {
     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32 = 0x1F - Self::EXPONENT_BIAS;
 
-    #[inline]
+    #[inline(always)]
     fn to_bits(self) -> u16 {
         f16::to_bits(self)
     }
 
-    #[inline]
+    #[inline(always)]
     fn from_bits(u: u16) -> f16 {
         f16::from_bits(u)
     }
 
-    #[inline]
+    #[inline(always)]
     fn ln(self) -> f16 {
         f16::from_f32(self.as_f32().ln())
     }
 
-    #[inline]
+    #[inline(always)]
     fn floor(self) -> f16 {
         f16::from_f32(self.as_f32().floor())
     }
 
-    #[inline]
+    #[inline(always)]
     fn is_sign_positive(self) -> bool {
         self.to_bits() & Self::SIGN_MASK == 0
     }
 
-    #[inline]
+    #[inline(always)]
     fn is_sign_negative(self) -> bool {
         !self.is_sign_positive()
     }
@@ -962,32 +978,32 @@ impl Float for bf16 {
     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32 = 0xFF - Self::EXPONENT_BIAS;
 
-    #[inline]
+    #[inline(always)]
     fn to_bits(self) -> u16 {
         bf16::to_bits(self)
     }
 
-    #[inline]
+    #[inline(always)]
     fn from_bits(u: u16) -> bf16 {
         bf16::from_bits(u)
     }
 
-    #[inline]
+    #[inline(always)]
     fn ln(self) -> bf16 {
         bf16::from_f32(self.as_f32().ln())
     }
 
-    #[inline]
+    #[inline(always)]
     fn floor(self) -> bf16 {
         bf16::from_f32(self.as_f32().floor())
     }
 
-    #[inline]
+    #[inline(always)]
     fn is_sign_positive(self) -> bool {
         self.to_bits() & Self::SIGN_MASK == 0
     }
 
-    #[inline]
+    #[inline(always)]
     fn is_sign_negative(self) -> bool {
         !self.is_sign_positive()
     }
@@ -1010,17 +1026,17 @@ impl Float for f32 {
     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32 = 0xFF - Self::EXPONENT_BIAS;
 
-    #[inline]
+    #[inline(always)]
     fn to_bits(self) -> u32 {
         f32::to_bits(self)
     }
 
-    #[inline]
+    #[inline(always)]
     fn from_bits(u: u32) -> f32 {
         f32::from_bits(u)
     }
 
-    #[inline]
+    #[inline(always)]
     fn ln(self) -> f32 {
         #[cfg(feature = "std")]
         return f32::ln(self);
@@ -1029,7 +1045,7 @@ impl Float for f32 {
         return logf(self);
     }
 
-    #[inline]
+    #[inline(always)]
     fn floor(self) -> f32 {
         #[cfg(feature = "std")]
         return f32::floor(self);
@@ -1038,12 +1054,12 @@ impl Float for f32 {
         return floorf(self);
     }
 
-    #[inline]
+    #[inline(always)]
     fn is_sign_positive(self) -> bool {
         f32::is_sign_positive(self)
     }
 
-    #[inline]
+    #[inline(always)]
     fn is_sign_negative(self) -> bool {
         f32::is_sign_negative(self)
     }
@@ -1066,17 +1082,17 @@ impl Float for f64 {
     const DENORMAL_EXPONENT: i32 = 1 - Self::EXPONENT_BIAS;
     const MAX_EXPONENT: i32 = 0x7FF - Self::EXPONENT_BIAS;
 
-    #[inline]
+    #[inline(always)]
     fn to_bits(self) -> u64 {
         f64::to_bits(self)
     }
 
-    #[inline]
+    #[inline(always)]
     fn from_bits(u: u64) -> f64 {
         f64::from_bits(u)
     }
 
-    #[inline]
+    #[inline(always)]
     fn ln(self) -> f64 {
         #[cfg(feature = "std")]
         return f64::ln(self);
@@ -1085,7 +1101,7 @@ impl Float for f64 {
         return logd(self);
     }
 
-    #[inline]
+    #[inline(always)]
     fn floor(self) -> f64 {
         #[cfg(feature = "std")]
         return f64::floor(self);
@@ -1094,12 +1110,12 @@ impl Float for f64 {
         return floord(self);
     }
 
-    #[inline]
+    #[inline(always)]
     fn is_sign_positive(self) -> bool {
         f64::is_sign_positive(self)
     }
 
-    #[inline]
+    #[inline(always)]
     fn is_sign_negative(self) -> bool {
         f64::is_sign_negative(self)
     }
@@ -1135,12 +1151,12 @@ impl Float for f64 {
 /// Safe as long as `e` is properly initialized.
 #[cfg(all(not(feature = "std"), feature = "floats"))]
 macro_rules! volatile {
-    ($e:expr) => {
-        // SAFETY: safe as long as `$e` has been properly initialized.
-        unsafe {
-            core::ptr::read_volatile(&$e);
-        }
-    };
+($e:expr) => {
+    // SAFETY: safe as long as `$e` has been properly initialized.
+    unsafe {
+        core::ptr::read_volatile(&$e);
+    }
+};
 }
 
 /// Floor (f64)

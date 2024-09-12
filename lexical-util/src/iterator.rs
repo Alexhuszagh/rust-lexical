@@ -42,6 +42,16 @@ pub unsafe trait BytesIter<'a>: Iterator<Item = &'a u8> + Buffer<'a> {
     /// Safe if `index <= self.length()`.
     unsafe fn set_cursor(&mut self, index: usize);
 
+    /// Set the cursor to the start of the buffer.
+    #[inline(always)]
+    fn seek_start(&mut self) {
+        // SAFETY: 0 is alwatys <= any usize value.
+        unsafe { self.set_cursor(0) };
+    }
+
+    /// Get a slice to the full buffer, which may or may not be the same as `as_slice`.
+    fn as_full_slice(&self) -> &'a [u8];
+
     /// Get the current number of values returned by the iterator.
     fn current_count(&self) -> usize;
 

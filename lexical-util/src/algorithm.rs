@@ -1,5 +1,6 @@
 //! Simple, shared algorithms for slices and iterators.
 
+use crate::num::Integer;
 #[cfg(feature = "write")]
 use core::ptr;
 
@@ -44,4 +45,16 @@ pub fn rtrim_char_slice(slc: &[u8], c: u8) -> (&[u8], usize) {
     // SAFETY: safe since `count <= slc.len()` and therefore `index <= slc.len()`.
     let slc = unsafe { slc.get_unchecked(..index) };
     (slc, count)
+}
+
+/// Check to see if parsing the float cannot possible overflow.
+///
+/// This allows major optimizations for those types, since we can skip checked
+/// arithmetic.
+///
+/// Adapted from the rust corelib:
+///     https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1389
+#[inline(always)]
+pub fn cannot_overflow<T: Integer>(length: usize, radix: u32) -> bool {
+    length <= T::overflow_digits(radix)
 }

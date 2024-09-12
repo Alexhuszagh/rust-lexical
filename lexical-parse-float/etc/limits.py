@@ -10,11 +10,13 @@ represented as a native value.
 
 import math
 
+
 def is_pow2(value):
     '''Calculate if a value is a power of 2.'''
 
     floor = int(math.log2(value))
     return value == 2**floor
+
 
 def remove_pow2(value):
     '''Remove a power of 2 from the value.'''
@@ -22,6 +24,7 @@ def remove_pow2(value):
     while math.floor(value / 2) == value / 2:
         value //= 2
     return value
+
 
 def feature(radix):
     '''Get the feature gate from the value'''
@@ -60,6 +63,7 @@ def exponent_limit(radix, mantissa_size, max_exp):
         exp_limit = int(precision / math.log2(base))
         return (-exp_limit, exp_limit)
 
+
 def mantissa_limit(radix, mantissa_size):
     '''
     Calculate mantissa limit for a float type, given
@@ -68,6 +72,7 @@ def mantissa_limit(radix, mantissa_size):
 
     precision = mantissa_size + 1
     return int(precision / math.log2(radix))
+
 
 def all_limits(mantissa_size, exponent_size, type_name):
     '''Print limits for all radixes.'''
@@ -97,6 +102,7 @@ def all_limits(mantissa_size, exponent_size, type_name):
     print('    }')
     print('}')
     print('')
+
 
 all_limits(23, 8, 'f32')
 all_limits(52, 11, 'f64')

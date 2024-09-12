@@ -3,10 +3,7 @@
 #![doc(hidden)]
 
 // Select the correct back-end.
-#[cfg(not(feature = "compact"))]
 use crate::algorithm::{algorithm_complete, algorithm_partial};
-#[cfg(feature = "compact")]
-use crate::compact::{algorithm_complete, algorithm_partial};
 
 use lexical_util::num::Integer;
 use lexical_util::result::Result;

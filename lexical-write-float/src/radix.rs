@@ -199,7 +199,7 @@ where
 /// The mantissa must be truncated and rounded, prior to calling this,
 /// based on the number of maximum digits. In addition, `exponent_base`
 /// and `mantissa_radix` in `FORMAT` must be identical.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub unsafe fn write_float_scientific<const FORMAT: u128>(
     bytes: &mut [u8],
     sci_exp: i32,
@@ -290,7 +290,7 @@ pub unsafe fn write_float_scientific<const FORMAT: u128>(
 ///
 /// Safe as long as `bytes` is large enough to hold the number of
 /// significant digits and the leading zeros.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub unsafe fn write_float_nonscientific<const FORMAT: u128>(
     bytes: &mut [u8],
     _: i32,
@@ -426,7 +426,7 @@ const MAX_DIGIT_LENGTH: usize = BUFFER_SIZE - MAX_NONDIGIT_LENGTH;
 /// # Safety
 ///
 /// Safe if `end <= buffer.len()`.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 #[allow(clippy::comparison_chain)]
 pub unsafe fn truncate_and_round(
     buffer: &mut [u8],

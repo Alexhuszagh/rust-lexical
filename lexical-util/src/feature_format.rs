@@ -1158,6 +1158,24 @@ impl<const FORMAT: u128> NumberFormat<FORMAT> {
         Self::RADIX
     }
 
+    /// Get the radix**2 for the significant digits.
+    #[inline(always)]
+    pub const fn radix2(&self) -> u32 {
+        self.radix() * self.radix()
+    }
+
+    /// Get the radix**4 for the significant digits.
+    #[inline(always)]
+    pub const fn radix4(&self) -> u32 {
+        self.radix2() * self.radix2()
+    }
+
+    /// Get the radix*** for the significant digits.
+    #[inline(always)]
+    pub const fn radix8(&self) -> u32 {
+        self.radix4() * self.radix4()
+    }
+
     /// The base for the exponent.
     pub const EXPONENT_BASE: u32 = flags::exponent_base(FORMAT);
 

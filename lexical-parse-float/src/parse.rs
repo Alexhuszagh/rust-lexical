@@ -171,11 +171,10 @@ parse_float_as_f32! { bf16 f16 }
 ///
 /// Returns if the value is negative, or any values detected when
 /// validating the input.
-#[inline(always)]
-pub fn parse_mantissa_sign<const FORMAT: u128>(
-    byte: &mut Bytes<'_, FORMAT>,
-    format: &NumberFormat<FORMAT>,
-) -> Result<bool> {
+#[cfg_attr(not(feature = "compact"), inline(always))]
+pub fn parse_mantissa_sign<const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> Result<bool> {
+    let format = NumberFormat::<{ FORMAT }> {};
+
     // NOTE: Using `read_if` with a predicate compiles badly and is very slow.
     // Also, it's better to do the step_unchecked inside rather than get the step
     // count and do `step_by_unchecked`. The compiler knows what to do better.
@@ -212,11 +211,10 @@ pub fn parse_mantissa_sign<const FORMAT: u128>(
 ///
 /// Returns if the value is negative, or any values detected when
 /// validating the input.
-#[inline(always)]
-pub fn parse_exponent_sign<const FORMAT: u128>(
-    byte: &mut Bytes<'_, FORMAT>,
-    format: &NumberFormat<FORMAT>,
-) -> Result<bool> {
+#[cfg_attr(not(feature = "compact"), inline(always))]
+pub fn parse_exponent_sign<const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> Result<bool> {
+    let format = NumberFormat::<{ FORMAT }> {};
+
     // NOTE: Using `read_if` with a predicate compiles badly and is very slow.
     // Also, it's better to do the step_unchecked inside rather than get the step
     // count and do `step_by_unchecked`. The compiler knows what to do better.
@@ -243,7 +241,6 @@ pub fn parse_exponent_sign<const FORMAT: u128>(
 }
 
 /// Utility to extract the result and handle any errors from parsing a `Number`.
-/// TODO: Move to a function...
 macro_rules! parse_number {
     (
         $format:ident,
@@ -284,14 +281,15 @@ pub fn parse_complete<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
     options: &Options,
 ) -> Result<F> {
-    let format = NumberFormat::<{ FORMAT }> {};
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let is_negative = parse_mantissa_sign(&mut byte, &format)?;
+    let is_negative = parse_mantissa_sign(&mut byte)?;
     if byte.integer_iter().is_consumed() {
         return Err(Error::Empty(byte.cursor()));
     }
 
     // Parse our a small representation of our number.
+    // TODO: See if we can do faster number parsing here for small numbers
+    //      Should be able to get fairly fast results
     let num = parse_number!(FORMAT, byte, is_negative, options, parse_number, parse_special);
     // Try the fast-path algorithm.
     if let Some(value) = num.try_fast_path::<_, FORMAT>() {
@@ -319,9 +317,8 @@ pub fn fast_path_complete<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
     options: &Options,
 ) -> Result<F> {
-    let format = NumberFormat::<{ FORMAT }> {};
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let is_negative = parse_mantissa_sign(&mut byte, &format)?;
+    let is_negative = parse_mantissa_sign(&mut byte)?;
     if byte.integer_iter().is_consumed() {
         return Err(Error::Empty(byte.cursor()));
     }
@@ -336,9 +333,8 @@ pub fn parse_partial<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
     options: &Options,
 ) -> Result<(F, usize)> {
-    let format = NumberFormat::<{ FORMAT }> {};
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let is_negative = parse_mantissa_sign(&mut byte, &format)?;
+    let is_negative = parse_mantissa_sign(&mut byte)?;
     if byte.integer_iter().is_consumed() {
         return Err(Error::Empty(byte.cursor()));
     }
@@ -378,9 +374,8 @@ pub fn fast_path_partial<F: LemireFloat, const FORMAT: u128>(
     bytes: &[u8],
     options: &Options,
 ) -> Result<(F, usize)> {
-    let format = NumberFormat::<{ FORMAT }> {};
     let mut byte = bytes.bytes::<{ FORMAT }>();
-    let is_negative = parse_mantissa_sign(&mut byte, &format)?;
+    let is_negative = parse_mantissa_sign(&mut byte)?;
     if byte.integer_iter().is_consumed() {
         return Err(Error::Empty(byte.cursor()));
     }
@@ -492,7 +487,7 @@ pub fn slow_path<F: LemireFloat, const FORMAT: u128>(
 ///
 /// This creates a representation of the float as the
 /// significant digits and the decimal exponent.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 #[allow(clippy::collapsible_if)]
 pub fn parse_partial_number<'a, const FORMAT: u128>(
     mut byte: Bytes<'a, FORMAT>,
@@ -653,7 +648,7 @@ pub fn parse_partial_number<'a, const FORMAT: u128>(
 
         // SAFETY: byte cannot be empty due to first_is
         unsafe { byte.step_unchecked() };
-        let is_negative = parse_exponent_sign(&mut byte, &format)?;
+        let is_negative = parse_exponent_sign(&mut byte)?;
 
         let before = byte.current_count();
         parse_digits::<_, _, FORMAT>(byte.exponent_iter(), |digit| {
@@ -853,7 +848,7 @@ where
 /// # Preconditions
 ///
 /// There must be at least `step` digits left in iterator.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn parse_u64_digits<'a, Iter, const FORMAT: u128>(
     mut iter: Iter,
     mantissa: &mut u64,
@@ -917,7 +912,7 @@ pub fn is_special_eq<const FORMAT: u128>(mut byte: Bytes<FORMAT>, string: &'stat
 }
 
 /// Parse a positive representation of a special, non-finite float.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn parse_positive_special<F, const FORMAT: u128>(
     byte: Bytes<FORMAT>,
     options: &Options,

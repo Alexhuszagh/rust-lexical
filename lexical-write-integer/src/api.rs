@@ -45,7 +45,7 @@ where
 ///
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 unsafe fn signed<Narrow, Wide, Unsigned, const FORMAT: u128>(
     value: Narrow,
     buffer: &mut [u8],

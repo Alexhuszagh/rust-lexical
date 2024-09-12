@@ -7,171 +7,157 @@
 //! See [Algorithm.md](/docs/Algorithm.md) for a more detailed description of
 //! the algorithm choice here. See [Benchmarks.md](/docs/Benchmarks.md) for
 //! recent benchmark data.
+//!
+//! These allow implementations of partial and complete parsers
+//! using a single code-path via macros.
+//!
+//! This looks relatively, complex, but it's quite simple. Almost all
+//! of these branches are resolved at compile-time, so the resulting
+//! code is quite small while handling all of the internal complexity.
+//!
+//! 1. Helpers to process ok and error results for both complete and partial
+//!     parsers. They have different APIs, and mixing the APIs leads to
+//!     substantial performance hits.
+//! 2. Overflow checking on invalid digits for partial parsers, while
+//!     just returning invalid digits for complete parsers.
+//! 3. A format-aware sign parser.
+//! 4. Digit parsing algorithms which explicitly wrap on overflow, for no
+//!     additional overhead. This has major performance wins for **most**
+//!     real-world integers, so most valid input will be substantially faster.
+//! 5. An algorithm to detect if overflow occurred. This is comprehensive,
+//!     and short-circuits for common cases.
+//! 6. A parsing algorithm for unsigned integers, always producing positive
+//!     values. This avoids any unnecessary branching.
+//! 7. Multi-digit optimizations for larger sizes.
 
-#![cfg(not(feature = "compact"))]
 #![doc(hidden)]
 
 use lexical_util::buffer::Buffer;
 use lexical_util::digit::char_to_digit_const;
+use lexical_util::error::Error;
 use lexical_util::format::NumberFormat;
-use lexical_util::iterator::{AsBytes, BytesIter};
+use lexical_util::iterator::{AsBytes, Bytes, BytesIter};
 use lexical_util::num::{as_cast, Integer};
 use lexical_util::result::Result;
-use lexical_util::step::min_step;
 
-// ALGORITHM
+// HELPERS
 
-/// Check if we can try to parse 8 digits.
-macro_rules! can_try_parse_multidigits {
-    ($iter:expr, $radix:expr) => {
-        $iter.is_contiguous() && (cfg!(not(feature = "power-of-two")) || $radix <= 10)
+/// Check if we should do multi-digit optimizations
+const fn can_try_parse_multidigits<'a, Iter: BytesIter<'a>, const FORMAT: u128>(_: &Iter) -> bool {
+    let format = NumberFormat::<FORMAT> {};
+    Iter::IS_CONTIGUOUS && (cfg!(not(feature = "power-of-two")) || format.mantissa_radix() <= 10)
+}
+
+/// Return an value for a complete parser.
+macro_rules! into_ok_complete {
+    ($value:expr, $index:expr) => {
+        Ok(as_cast($value))
     };
 }
 
-/// Parse 8-digits at a time.
-///
-/// See the algorithm description in `parse_8digits`.
-/// This reduces the number of required multiplications
-/// from 8 to 4.
-#[rustfmt::skip]
-macro_rules! parse_8digits {
-    (
-        $value:ident,
-        $iter:ident,
-        $format:ident,
-        $t:ident,
-        $overflow:ident,
-        $op:ident
-    ) => {{
-        let radix: $t = as_cast(NumberFormat::<{ $format }>::MANTISSA_RADIX);
-        let radix2: $t = radix.wrapping_mul(radix);
-        let radix4: $t = radix2.wrapping_mul(radix2);
-        let radix8: $t = radix4.wrapping_mul(radix4);
+/// Return an value and index for a partial parser.
+macro_rules! into_ok_partial {
+    ($value:expr, $index:expr) => {
+        Ok((as_cast($value), $index))
+    };
+}
 
-        // Try our fast, 8-digit at a time optimizations.
-        while let Some(val8) = try_parse_8digits::<$t, _, $format>(&mut $iter) {
-            let optvalue = $value.checked_mul(radix8).and_then(|x| x.$op(val8));
-            if let Some(unwrapped) = optvalue {
-                $value = unwrapped;
+/// Return an error for a complete parser upon an invalid digit.
+macro_rules! invalid_digit_complete {
+    ($value:ident, $index:expr) => {
+        // Don't do any overflow checking here: we don't need it.
+        into_error!(InvalidDigit, $index - 1)
+    };
+}
+
+/// Return a value for a partial parser upon an invalid digit.
+/// This checks for numeric overflow, and returns the appropriate error.
+macro_rules! invalid_digit_partial {
+    ($value:ident, $index:expr) => {
+        // NOTE: The value is already positive/negative
+        into_ok_partial!($value, $index - 1)
+    };
+}
+
+/// Return an error, returning the index and the error.
+macro_rules! into_error {
+    ($code:ident, $index:expr) => {
+        Err(Error::$code($index))
+    };
+}
+
+/// Handle an invalid digit if the format feature is enabled.
+///
+/// This is because we can have special, non-digit characters near
+/// the start or internally.
+macro_rules! fmt_invalid_digit {
+    ($value:ident, $iter:ident, $c:expr, $start_index:ident, $invalid_digit:ident) => {{
+        let base_suffix = NumberFormat::<FORMAT>::BASE_SUFFIX;
+        let uncased_base_suffix = NumberFormat::<FORMAT>::CASE_SENSITIVE_BASE_SUFFIX;
+        // Need to check for a base suffix, if so, return a valid value.
+        // We can't have a base suffix at the first value (need at least
+        // 1 digit).
+        if base_suffix != 0 && $iter.cursor() - $start_index > 1 {
+            let is_suffix = if uncased_base_suffix {
+                $c == base_suffix
             } else {
-                $overflow = true;
+                $c.to_ascii_lowercase() == base_suffix.to_ascii_lowercase()
+            };
+            if is_suffix && $iter.is_done() {
+                // Break out of the loop, we've finished parsing.
                 break;
+            } else if is_suffix {
+                // Haven't finished parsing, so we're going to call
+                // invalid_digit!. Need to ensure we include the
+                // base suffix in that.
+                // SAFETY: safe since the iterator is not empty, as checked
+                // in `$iter.is_done()` above.
+                unsafe { $iter.step_unchecked() };
             }
         }
+        // Might have handled our base-prefix here.
+        return $invalid_digit!($value, $iter.cursor());
     }};
 }
 
-/// Parse 4-digits at a time.
+/// Parse the sign from the leading digits.
 ///
-/// See the algorithm description in `parse_4digits`.
-/// This reduces the number of required multiplications
-/// from 4 to 3.
-#[rustfmt::skip]
-macro_rules! parse_4digits {
-    (
-        $value:ident,
-        $iter:ident,
-        $format:ident,
-        $t:ident,
-        $overflow:ident,
-        $op:ident
-    ) => {{
-        let radix: $t = as_cast(NumberFormat::<{ $format }>::MANTISSA_RADIX);
-        let radix2: $t = radix.wrapping_mul(radix);
-        let radix4: $t = radix2.wrapping_mul(radix2);
-
-        // Try our fast, 4-digit at a time optimizations.
-        while let Some(val4) = try_parse_4digits::<$t, _, $format>(&mut $iter) {
-            let optvalue = $value.checked_mul(radix4).and_then(|x| x.$op(val4));
-            if let Some(unwrapped) = optvalue {
-                $value = unwrapped;
-            } else {
-                $overflow = true;
-                break;
-            }
-        }
-    }};
+/// This routine does the following:
+///
+/// 1. Parses the sign digit.
+/// 2. Handles if positive signs before integers are not allowed.
+/// 3. Handles negative signs if the type is unsigned.
+/// 4. Handles if the sign is required, but missing.
+/// 5. Handles if the iterator is empty, before or after parsing the sign.
+/// 6. Handles if the iterator has invalid, leading zeros.
+///
+/// Returns if the value is negative, or any values detected when
+/// validating the input.
+#[cfg_attr(not(feature = "compact"), inline(always))]
+pub fn parse_sign<T: Integer, const FORMAT: u128>(byte: &mut Bytes<'_, FORMAT>) -> Result<bool> {
+    let format = NumberFormat::<FORMAT> {};
+    match byte.integer_iter().peek() {
+        Some(&b'+') if !format.no_positive_mantissa_sign() => {
+            unsafe { byte.step_unchecked() };
+            Ok(false)
+        },
+        Some(&b'+') if format.no_positive_mantissa_sign() => {
+            Err(Error::InvalidPositiveSign(byte.cursor()))
+        },
+        Some(&b'-') if T::IS_SIGNED => {
+            unsafe { byte.step_unchecked() };
+            Ok(true)
+        },
+        Some(_) if format.required_mantissa_sign() => Err(Error::MissingSign(byte.cursor())),
+        _ if format.required_mantissa_sign() => Err(Error::MissingSign(byte.cursor())),
+        _ => Ok(false),
+    }
 }
 
-/// Parse digits for a positive or negative value.
-/// Optimized for operations with machine integers.
-#[rustfmt::skip]
-macro_rules! parse_digits {
-    (
-        $value:ident,
-        $iter:ident,
-        $format:ident,
-        $is_negative:ident,
-        $start_index:ident,
-        $t:ident,
-        $invalid_digit:ident,
-        $overflow:ident,
-        $op:ident
-    ) => {{
-        //  WARNING:
-        //      Performance is heavily dependent on the amount of branching.
-        //      We therefore optimize for worst cases only to a certain extent:
-        //      that is, since most integers aren't randomly distributed, but
-        //      are more likely to be smaller values, we need to avoid overbranching
-        //      to ensure small digit parsing isn't impacted too much. We therefore
-        //      only enable 4-digit **or** 8-digit optimizations, but not both.
-        //      If not, the two branch passes kill performance for small 64-bit
-        //      and 128-bit values.
-        //
-        //      However, for signed integers, the increased amount of branching
-        //      makes these multi-digit optimizations not worthwhile. For large
-        //      64-bit, signed integers, the performance benefit is ~23% faster.
-        //      However, the performance penalty for smaller, more common integers
-        //      is ~50%. Therefore, these optimizations are not worth the penalty.
-        //
-        //      For unsigned and 128-bit signed integers, the performance penalties
-        //      are minimal and the performance gains are substantial, so re-enable
-        //      the optimizations.
-        //
-        //  DO NOT MAKE CHANGES without monitoring the resulting benchmarks,
-        //  or performance could greatly be impacted.
-        let radix = NumberFormat::<{ $format }>::MANTISSA_RADIX;
-
-        // Optimizations for reading 8-digits at a time.
-        // Makes no sense to do 8 digits at a time for 32-bit values,
-        // since it can only hold 8 digits for base 10.
-        // NOTE: These values were determined as optimization
-        if (<$t>::BITS == 128 || <$t>::BITS == 64) && can_try_parse_multidigits!($iter, radix) && $iter.length() >= 8 {
-            parse_8digits!($value, $iter, $format, $t, $overflow, $op);
-        }
-
-        // Optimizations for reading 4-digits at a time.
-        // 36^4 is larger than a 16-bit integer. Likewise, 10^4 is almost
-        // the limit of u16, so it's not worth it.
-        if <$t>::BITS == 32 && can_try_parse_multidigits!($iter, radix)  && $iter.length() >= 4 && !$overflow {
-            parse_4digits!($value, $iter, $format, $t, $overflow, $op);
-        }
-        parse_1digit!($value, $iter, $format, $is_negative, $start_index, $t, $invalid_digit, $overflow, $op);
-    }};
-}
-
-/// Algorithm for the complete parser.
-#[inline(always)]
-pub fn algorithm_complete<T, const FORMAT: u128>(bytes: &[u8]) -> Result<T>
-where
-    T: Integer,
-{
-    algorithm!(bytes, FORMAT, T, parse_digits, invalid_digit_complete, into_ok_complete)
-}
-
-/// Algorithm for the partial parser.
-#[inline(always)]
-pub fn algorithm_partial<T, const FORMAT: u128>(bytes: &[u8]) -> Result<(T, usize)>
-where
-    T: Integer,
-{
-    algorithm!(bytes, FORMAT, T, parse_digits, invalid_digit_partial, into_ok_partial)
-}
-
-// DIGIT OPTIMIZATIONS
+// FOUR DIGITS
 
 /// Determine if 4 bytes, read raw from bytes, are 4 digits for the radix.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn is_4digits<const FORMAT: u128>(v: u32) -> bool {
     let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX;
     debug_assert!(radix <= 10);
@@ -194,7 +180,7 @@ pub fn is_4digits<const FORMAT: u128>(v: u32) -> bool {
 }
 
 /// Parse 4 bytes read from bytes into 4 digits.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn parse_4digits<const FORMAT: u128>(mut v: u32) -> u32 {
     let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX;
     debug_assert!(radix <= 10);
@@ -214,7 +200,7 @@ pub fn parse_4digits<const FORMAT: u128>(mut v: u32) -> u32 {
 ///
 /// This approach is described in full here:
 /// <https://johnnylee-sde.github.io/Fast-numeric-string-to-int/>
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn try_parse_4digits<'a, T, Iter, const FORMAT: u128>(iter: &mut Iter) -> Option<T>
 where
     T: Integer,
@@ -237,9 +223,11 @@ where
     }
 }
 
+// EIGHT DIGITS
+
 /// Determine if 8 bytes, read raw from bytes, are 8 digits for the radix.
 /// See `is_4digits` for the algorithm description.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn is_8digits<const FORMAT: u128>(v: u64) -> bool {
     let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX;
     debug_assert!(radix <= 10);
@@ -259,7 +247,7 @@ pub fn is_8digits<const FORMAT: u128>(v: u64) -> bool {
 /// Parse 8 bytes read from bytes into 8 digits.
 /// Credit for this goes to @aqrit, which further optimizes the
 /// optimization described by Johnny Lee above.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn parse_8digits<const FORMAT: u128>(mut v: u64) -> u64 {
     let radix = NumberFormat::<{ FORMAT }>::MANTISSA_RADIX as u64;
     debug_assert!(radix <= 10);
@@ -286,7 +274,7 @@ pub fn parse_8digits<const FORMAT: u128>(mut v: u64) -> u64 {
 
 /// Use a fast-path optimization, where we attempt to parse 8 digits at a time.
 /// This reduces the number of multiplications necessary to 3, instead of 8.
-#[inline(always)]
+#[cfg_attr(not(feature = "compact"), inline(always))]
 pub fn try_parse_8digits<'a, T, Iter, const FORMAT: u128>(iter: &mut Iter) -> Option<T>
 where
     T: Integer,
@@ -307,4 +295,255 @@ where
     } else {
         None
     }
+}
+
+// ONE DIGIT
+
+/// Run a loop where the integer cannot possibly overflow.
+///
+/// If the len of the str is short compared to the range of the type
+/// we are parsing into, then we can be certain that an overflow will not occur.
+/// This bound is when `radix.pow(digits.len()) - 1 <= T::MAX` but the condition
+/// above is a faster (conservative) approximation of this.
+///
+/// Consider radix 16 as it has the highest information density per digit and will thus overflow the earliest:
+/// `u8::MAX` is `ff` - any str of len 2 is guaranteed to not overflow.
+/// `i8::MAX` is `7f` - only a str of len 1 is guaranteed to not overflow.
+///
+/// This is based off of here:
+///     https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1480
+macro_rules! parse_1digit_unchecked {
+($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident) => {{
+    // This is a slower parsing algorithm, going 1 digit at a time, but doing it in an unchecked loop.
+    let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
+    while let Some(&c) = $iter.next() {
+        let digit = match char_to_digit_const(c, radix) {
+            Some(v) => v,
+            None if cfg!(feature = "format") => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit),
+            None => return $invalid_digit!($value, $iter.cursor()),
+        };
+        // multiply first since compilers are good at optimizing things out and will do a fused mul/add
+        // We must do this after getting the digit for partial parsers
+        $value = $value.wrapping_mul(as_cast(radix)).$add_op(as_cast(digit));
+    }
+}};
+}
+
+/// Run a loop where the integer could overflow.
+///
+/// This is a standard, unoptimized algorithm. This is based off of here:
+///     https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1505
+macro_rules! parse_1digit_checked {
+($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $overflow:ident) => {{
+    // This is a slower parsing algorithm, going 1 digit at a time, but doing it in an unchecked loop.
+    let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
+    while let Some(&c) = $iter.next() {
+        let digit = match char_to_digit_const(c, radix) {
+            Some(v) => v,
+            None if cfg!(feature = "format") => fmt_invalid_digit!($value, $iter, c, $start_index, $invalid_digit),
+            None => return $invalid_digit!($value, $iter.cursor()),
+        };
+        // multiply first since compilers are good at optimizing things out and will do a fused mul/add
+        $value = match $value.checked_mul(as_cast(radix)).and_then(|x| x.$add_op(as_cast(digit))) {
+            Some(value) => value,
+            None => return into_error!($overflow, $iter.cursor() - 1),
+        }
+    }
+}};
+}
+
+// OVERALL DIGITS
+// --------------
+
+/// Run an unchecked loop where digits are processed incrementally.
+///
+/// If the type size is small or there's not many digits, skip multi-digit
+/// optimizations. Otherwise, if the type size is large and we're not manually
+/// skipping manual optimizations, then we do this here.
+macro_rules! parse_digits_unchecked {
+($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident) => {{
+    // TODO: Disable multi-digit optimizations, make configurable
+    const DISABLE_MULTIDIGIT: bool = true;
+    let can_multi = can_try_parse_multidigits::<_, FORMAT>(&$iter);
+    let use_multi = can_multi && !DISABLE_MULTIDIGIT;
+
+    // these cannot overflow. also, we use at most 3 for a 128-bit float and 1 for a 64-bit float
+    let format = NumberFormat::<FORMAT> {};
+    let radix4 = T::from_u32(format.radix4());
+    let radix8 = T::from_u32(format.radix8());
+    if use_multi && T::BITS >= 64 && $iter.length() >= 8 {
+        // Try our fast, 8-digit at a time optimizations.
+        while let Some(value) = try_parse_8digits::<T, _, FORMAT>(&mut $iter) {
+            $value = $value.wrapping_mul(radix8).$add_op(value);
+        }
+    } else if use_multi && T::BITS == 32 && $iter.length() >= 4 {
+        // Try our fast, 8-digit at a time optimizations.
+        while let Some(value) = try_parse_4digits::<T, _, FORMAT>(&mut $iter) {
+            $value = $value.wrapping_mul(radix4).$add_op(value);
+        }
+    }
+    parse_1digit_unchecked!($value, $iter, $add_op, $start_index, $invalid_digit)
+}};
+}
+
+/// Run  checked loop where digits are processed with overflow checking.
+///
+/// If the type size is small or there's not many digits, skip multi-digit
+/// optimizations. Otherwise, if the type size is large and we're not manually
+/// skipping manual optimizations, then we do this here.
+macro_rules! parse_digits_checked {
+    (
+        $value:ident,
+        $iter:ident,
+        $add_op:ident,
+        $add_op_uc:ident,
+        $start_index:ident,
+        $invalid_digit:ident,
+        $overflow:ident,
+        $overflow_digits:expr
+    ) => {{
+        // Can use the unchecked for the max_digits here
+        if let Some(mut small) = $iter.take_n($overflow_digits) {
+            let mut small_iter = small.integer_iter();
+            parse_digits_unchecked!($value, small_iter, $add_op_uc, $start_index, $invalid_digit);
+        }
+
+        // NOTE: all our multi-digit optimizations have been done here: skip this
+        parse_1digit_checked!($value, $iter, $add_op, $start_index, $invalid_digit, $overflow)
+    }};
+}
+
+// ALGORITHM
+
+/// Generic algorithm for both partial and complete parsers.
+///
+/// * `invalid_digit` - Behavior on finding an invalid digit.
+/// * `into_ok` - Behavior when returning a valid value.
+#[rustfmt::skip]
+macro_rules! algorithm {
+($bytes:ident, $into_ok:ident, $invalid_digit:ident) => {{
+    // WARNING:
+    // --------
+    // None of this code can be changed for optimization reasons.
+    // Do not change it without benchmarking every change.
+    //  1. You cannot use the NoSkipIterator in the loop,
+    //      you must either return a subslice (indexing)
+    //      or increment outside of the loop.
+    //      Failing to do so leads to numerous more, unnecessary
+    //      conditional move instructions, killing performance.
+    //  2. Return a 0 or 1 shift, and indexing unchecked outside
+    //      of the loop is slightly faster.
+    //  3. Partial and complete parsers cannot be efficiently done
+    //      together.
+    //
+    // If you try to refactor without carefully monitoring benchmarks or
+    // assembly generation, please log the number of wasted hours: so
+    //  16 hours so far.
+
+    // With `step_by_unchecked`, this is sufficiently optimized.
+    // Removes conditional paths, to, which simplifies maintenance.
+    // The skip version of the iterator automatically coalesces to
+    // the noskip iterator.
+    let mut byte = $bytes.bytes::<FORMAT>();
+    let radix = NumberFormat::<FORMAT>::MANTISSA_RADIX;
+
+    let is_negative = parse_sign::<T, FORMAT>(&mut byte)?;
+    let mut iter = byte.integer_iter();
+    if iter.is_done() {
+        return into_error!(Empty, iter.cursor());
+    }
+
+    // Feature-gate a lot of format-only code here to simplify analysis with our branching
+    let start_index;
+    if cfg!(feature = "format") {
+        // Skip any leading zeros. We want to do our check if it can't possibly overflow after.
+        // For skipping digit-based formats, this approximation is a way over estimate.
+        // NOTE: Skipping zeros is **EXPENSIVE* so we skip that without our format feature
+        let zeros = iter.skip_zeros();
+        start_index = zeros;
+        // Now, check to see if we have a valid base prefix.
+        let format = NumberFormat::<FORMAT> {};
+        let base_prefix = format.base_prefix();
+        let mut is_prefix = false;
+        if base_prefix != 0 && zeros == 1 {
+            // Check to see if the next character is the base prefix.
+            // We must have a format like `0x`, `0d`, `0o`. Note:
+            if let Some(&c) = iter.peek() {
+                is_prefix = if format.case_sensitive_base_prefix() {
+                    c == base_prefix
+                } else {
+                    c.to_ascii_lowercase() == base_prefix.to_ascii_lowercase()
+                };
+                if is_prefix {
+                    // SAFETY: safe since we `byte.len() >= 1` (we got an item from peek).
+                    unsafe { iter.step_unchecked() };
+                    if iter.is_done() {
+                        return into_error!(Empty, iter.cursor());
+                    }
+                }
+            }
+        }
+
+        // If we have a format that doesn't accept leading zeros,
+        // check if the next value is invalid. It's invalid if the
+        // first is 0, and the next is not a valid digit.
+        if !is_prefix && format.no_integer_leading_zeros() && zeros != 0 {
+            // Cannot have a base prefix and no leading zeros.
+            let index = iter.cursor() - zeros;
+            if zeros > 1 {
+                return into_error!(InvalidLeadingZeros, index);
+            }
+            match iter.peek().map(|&c| char_to_digit_const(c, format.radix())) {
+                // Valid digit, we have an invalid value.
+                Some(Some(_)) => return into_error!(InvalidLeadingZeros, index),
+                // Either not a digit that follows, or nothing follows.
+                _ => return $into_ok!(<T>::ZERO, index),
+            };
+        }
+    } else {
+        start_index = 0;
+    }
+
+    // shorter strings cannot possibly overflow so a great optimization
+    let overflow_digits = T::overflow_digits(radix);
+    let cannot_overflow = iter.as_slice().len() <= overflow_digits;
+
+    //  NOTE:
+    //      Don't add optimizations for 128-bit integers.
+    //      128-bit multiplication is rather efficient, it's only division
+    //      that's very slow. Any shortcut optimizations increasing branching,
+    //      and even if parsing a 64-bit integer is marginally faster, it
+    //      culminates in **way** slower performance overall for simple
+    //      integers, and no improvement for large integers.
+    let mut value = T::ZERO;
+    if cannot_overflow && is_negative {
+        parse_digits_unchecked!(value, iter, wrapping_sub, start_index, $invalid_digit);
+    } if cannot_overflow {
+        parse_digits_unchecked!(value, iter, wrapping_add, start_index, $invalid_digit);
+    } else if is_negative {
+        parse_digits_checked!(value, iter, checked_sub, wrapping_sub, start_index, $invalid_digit, Underflow, overflow_digits);
+    } else {
+        parse_digits_checked!(value, iter, checked_add, wrapping_add, start_index, $invalid_digit, Overflow, overflow_digits);
+    }
+
+    $into_ok!(value, iter.length())
+}};
+}
+
+/// Algorithm for the complete parser.
+#[cfg_attr(not(feature = "compact"), inline(always))]
+pub fn algorithm_complete<T, const FORMAT: u128>(bytes: &[u8]) -> Result<T>
+where
+    T: Integer,
+{
+    algorithm!(bytes, into_ok_complete, invalid_digit_complete)
+}
+
+/// Algorithm for the partial parser.
+#[cfg_attr(not(feature = "compact"), inline(always))]
+pub fn algorithm_partial<T, const FORMAT: u128>(bytes: &[u8]) -> Result<(T, usize)>
+where
+    T: Integer,
+{
+    algorithm!(bytes, into_ok_partial, invalid_digit_partial)
 }
