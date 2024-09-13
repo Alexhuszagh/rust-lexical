@@ -104,29 +104,29 @@
 //!
 //! A complete description of supported features includes:
 //!
-//! ### std
+//! #### std
 //!
 //! Enable use of the standard library. Currently, the standard library
 //! is not used for any functionality, and may be disabled without any
 //! change in functionality on stable.
 //!
-//! ### write-integers
+//! #### write-integers
 //!
 //! Enable support for writing integers to string.
 //!
-//! ### write-floats
+//! #### write-floats
 //!
 //! Enable support for writing floating-point numbers to string.
 //!
-//! ### parse-integers
+//! #### parse-integers
 //!
 //! Enable support for parsing integers from string.
 //!
-//! ### parsing-floats
+//! #### parsing-floats
 //!
 //! Enable support for parsing floating-point numbers from string.
 //!
-//! ### format
+//! #### format
 //!
 //! Adds support for the entire format API (using [`NumberFormatBuilder`]).
 //! This allows extensive configurability for parsing and writing numbers
@@ -163,13 +163,13 @@
 //!
 //! See the [Number Format](#number-format) section below for more information.
 //!
-//! ### power-of-two
+//! #### power-of-two
 //!
 //! Enable doing numeric conversions to and from strings with power-of-two
 //! radixes. This avoids most of the overhead and binary bloat of the radix
 //! feature, while enabling support for the most commonly-used radixes.
 //!
-//! ### radix
+//! #### radix
 //!
 //! Enable doing numeric conversions to and from strings for all radixes.
 //! This requires substantially more static storage than `power-of-two`,
@@ -177,19 +177,18 @@
 //! for esoteric programming languages which use duodecimal floats, for
 //! example.
 //!
-//! ### compact
+//! #### compact
 //!
 //! Reduce the generated code size at the cost of performance. This minimizes
 //! the number of static tables, inlining, and generics used, drastically
 //! reducing the size of the generated binaries.
 //!
-//! ### safe
+//! #### safe
 //!
-//! All numeric parsers are memory-safe by default, since parsing complex
-//! input is a major source of memory vulnerabilities. However, numeric
-//! writers often opt-in for unchecked writes, for major performance
-//! improvements. This may be disabled entirely by enabling the `safe`
-//! feature. In addition, to simplify memory safety guarantees, extensive
+//! This replaces most unchecked indexing, required in cases where the
+//! compiler cannot ellide the check, with checked indexing. However,
+//! it does not fully replace all unsafe behavior with safe behavior.
+//! To minimize the risk of UB and out-of-bounds reads/writers, extensive
 //! edge-cases, property-based tests, and fuzzing is done with both the
 //! safe feature enabled and disabled, with the tests verified by Miri
 //! and Valgrind.
@@ -298,6 +297,8 @@
 //! - [Writing Floats](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-float/docs/Benchmarks.md)
 //! - [Writing Integers](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-integer/docs/Benchmarks.md)
 //!
+//! A comprehensive analysis of lexical commits and their performance can be found in [benchmarks].
+//!
 //! # Design
 //!
 //! - [Binary Size](https://github.com/Alexhuszagh/rust-lexical/blob/main/docs/BinarySize.md)
@@ -308,6 +309,14 @@
 //!
 //! The minimum, standard, required version is 1.63.0, for const generic
 //! support. Older versions of lexical support older Rust versions.
+//!
+//! # Safety
+//!
+//! There is no non-trivial unsafe behavior in [lexical][crate] itself,
+//! however, any incorrect safety invariants in our parsers and writers
+//! (`lexical-parse-float`, `lexical-parse-integer`, `lexical-write-float`,
+//! and `lexical-write-integer`) could cause those safety invariants to
+//! be broken.
 //!
 //! [`write`]: crate::write
 //! [`write_with_options`]: crate::write_with_options
@@ -321,6 +330,7 @@
 //! [`ParseIntegerOptions`]: crate::ParseIntegerOptions
 //! [`WriteFloatOptions`]: crate::WriteFloatOptions
 //! [`WriteIntegerOptions`]: crate::WriteIntegerOptions
+//! [benchmarks]: <https://github.com/Alexhuszagh/lexical-benchmarks>
 
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
