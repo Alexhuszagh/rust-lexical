@@ -1,6 +1,6 @@
 # lexical
 
-High-performance numeric conversion routines for use in a `no_std` environment. This does not depend on any standard library features, nor a system allocator.
+High-performance numeric conversion routines for use in a `no_std` environment. This does not depend on any standard library features, nor a system allocator. Comprehensive benchmarks can be found at [lexical-benchmarks](https://github.com/Alexhuszagh/lexical-benchmarks).
 
 **Similar Projects**
 
