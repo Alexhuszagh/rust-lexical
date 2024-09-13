@@ -29,6 +29,9 @@ fi
 # Test the write-float correctness tests.
 cd "${home}"
 cd lexical-write-float/etc/correctness
-cargo run $FEATURES --release --bin shorter_interval
-cargo run $FEATURES --release --bin random
-cargo run $FEATURES --release --bin simple_random  -- --iterations 1000000
+cargo +nightly miri run $FEATURES --release --bin test-parse-golang
+# NOTE: This is **extraordinarily slow, mostly because of how the data is parsed
+# as TOML which makes loading it take forever.
+if [ -z $COMPREHENSIVE ]; then
+    cargo +nightly miri run $FEATURES --release --bin test-parse-unittests
+fi

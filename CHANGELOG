@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added fuzzing and miri code safety analysis to our CI pipelines.
 - Removed requirement of `alloc` in `no_std` ennvironments without the `write` feature.
 - Make multi-digit optimizations in integer parsing optional.
-- Much higher miri coverage including for proptests.
+- Much higher miri coverage including for proptests and our corner cases from the golang test suite.
 
 ### Changed
 

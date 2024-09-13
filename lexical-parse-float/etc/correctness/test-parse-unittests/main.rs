@@ -5,13 +5,14 @@
 
 use lexical_parse_float::FromLexical;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 // STRUCTS
 // Derived structs for the Toml parser.
 
 #[derive(Debug, Deserialize)]
 struct StrtodTests {
-    negativeFormattingTests: Vec<String>,
+    NegativeFormattingTests: Vec<String>,
     FormattingTests: Vec<FormattingTest>,
     ConversionTests: Vec<ConversionTest>,
 }
@@ -36,25 +37,6 @@ struct ConversionTest {
 
 // PATH
 
-/// Return the `target/debug` or `target/release` directory path.
-pub fn build_dir() -> std::path::PathBuf {
-    std::env::current_exe()
-        .expect("unittest executable path")
-        .parent()
-        .expect("debug/release directory")
-        .to_path_buf()
-}
-
-/// Return the `target` directory path.
-pub fn target_dir() -> std::path::PathBuf {
-    build_dir().parent().expect("target directory").to_path_buf()
-}
-
-/// Return the project directory path.
-pub fn project_dir() -> std::path::PathBuf {
-    target_dir().parent().expect("project directory").to_path_buf()
-}
-
 fn run_test(string: &str, hex: &str) {
     // We toggle between "inf" and "infinity" as valid Infinity identifiers.
     let lower = string.to_lowercase();
@@ -71,37 +53,53 @@ fn run_test(string: &str, hex: &str) {
 }
 
 fn run_tests(tests: StrtodTests) {
-    let negative_tests_count = tests.negativeFormattingTests.len();
+    let negative_tests_count = tests.NegativeFormattingTests.len();
     let formatting_tests_count = tests.FormattingTests.len();
     let conversion_tests_count = tests.ConversionTests.len();
-    for test in tests.negativeFormattingTests {
+    // Unfortunately, randomize the data with miri is too expensive so we just use it normally.
+    let mut count = 0;
+    for test in tests.NegativeFormattingTests {
+        if cfg!(miri) && count % 10 == 0 {
+            println!("Running test {count} for negative formatting.");
+        }
         assert!(f64::from_lexical(test.as_bytes()).is_err());
+        count += 1;
+        if cfg!(miri) && count > 500 {
+            break;
+        }
     }
     for test in tests.FormattingTests {
-        run_test(&test.str, &test.hex)
+        if cfg!(miri) && count % 10 == 0 {
+            println!("Running test {count} for positive formatting.");
+        }
+        run_test(&test.str, &test.hex);
+        count += 1;
+        if cfg!(miri) && count > 1500 {
+            break;
+        }
     }
     for test in tests.ConversionTests {
-        run_test(&test.str, &test.hex)
+        if cfg!(miri) && count % 10 == 0 {
+            println!("Running test {count} for conversion tests.");
+        }
+        run_test(&test.str, &test.hex);
+        if cfg!(miri) && count > 2500 {
+            break;
+        }
     }
     println!("Ran {} negative tests.", negative_tests_count);
     println!("Ran {} formatting tests.", formatting_tests_count);
-    println!("Ran {} conversion tests.", conversion_tests_count);
-    println!("");
-}
-
-fn parse_tests(name: &str) -> StrtodTests {
-    let mut test_path = project_dir();
-    test_path.push("test-parse-unittests");
-    test_path.push(name);
-    let test_data = std::fs::read_to_string(test_path).unwrap();
-
-    toml::from_str(&test_data).unwrap()
+    println!("Ran {} conversion tests.\n", conversion_tests_count);
 }
 
 fn main() {
-    let filenames = ["strtod_tests.toml", "rust_parse_tests.toml"];
-    for filename in filenames.iter() {
+    // NOTE: Miri does not play nicely with directories so we just compile them in.
+    let tests: HashMap<&str, &str> = HashMap::from([
+        ("strtod_tests.toml", include_str!("strtod_tests.toml")),
+        ("rust_parse_tests.toml", include_str!("rust_parse_tests.toml")),
+    ]);
+    for (&filename, &data) in tests.iter() {
         println!("Running Test: {}", filename);
-        run_tests(parse_tests(filename));
+        run_tests(toml::from_str(data).unwrap());
     }
 }

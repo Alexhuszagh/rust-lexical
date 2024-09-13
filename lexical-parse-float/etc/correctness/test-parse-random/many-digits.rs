@@ -11,10 +11,10 @@
 mod _common;
 
 use _common::{validate, ISAAC_SEED};
-use rand_isaac::Isaac64Rng;
-use rand::distributions::Distribution;
 use rand::distributions::uniform::Uniform;
+use rand::distributions::Distribution;
 use rand::{Rng, SeedableRng};
+use rand_isaac::Isaac64Rng;
 use std::char;
 
 fn main() {
