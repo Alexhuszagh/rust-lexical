@@ -2,40 +2,7 @@
 // See https://unlicense.org/
 
 use lexical_parse_float::FromLexical;
-
-use std::io::prelude::*;
-use std::path::PathBuf;
-use std::{env, fs, io};
-
-// PATH
-
-/// Return the `target/debug` or `target/release` directory path.
-pub fn build_dir() -> PathBuf {
-    env::current_exe()
-        .expect("unittest executable path")
-        .parent()
-        .expect("debug/release directory")
-        .to_path_buf()
-}
-
-/// Return the `target` directory path.
-pub fn target_dir() -> PathBuf {
-    build_dir().parent().expect("target directory").to_path_buf()
-}
-
-/// Return the project directory path.
-pub fn project_dir() -> PathBuf {
-    target_dir().parent().expect("project directory").to_path_buf()
-}
-
-/// Return the `data` directory path.
-pub fn data_dir() -> PathBuf {
-    let mut dir = project_dir();
-    dir.push("test-parse-golang");
-    dir.push("parse-number-fxx-test-data");
-    dir.push("data");
-    dir
-}
+use std::collections::HashMap;
 
 fn run_test(line: &str) {
     // Tests have the following format:
@@ -56,22 +23,61 @@ fn run_test(line: &str) {
 
 fn main() {
     // Iterate over all .txt files in the directory.
-    let paths = fs::read_dir(data_dir()).expect("Please update the Git submodule");
-    for direntry in paths {
-        let path = direntry.unwrap().path();
-        if path.extension().unwrap() == "txt" {
-            // Have a data file, parse and run the tests.
-            let filename = path.file_name().unwrap().to_str().unwrap();
-            println!("Running Test: {}", filename);
-            let file = fs::File::open(path).unwrap();
-            let reader = io::BufReader::new(file);
-            let mut count: usize = 0;
-            for line in reader.lines() {
-                let line = line.unwrap();
-                run_test(&line);
-                count += 1;
+    // NOTE: Miri does not play nicely with directories so we just compile them in.
+    let tests: HashMap<&str, &str> = HashMap::from([
+        ("freetype-2-7.txt", include_str!("parse-number-fxx-test-data/data/freetype-2-7.txt")),
+        (
+            "google-double-conversion.txt",
+            include_str!("parse-number-fxx-test-data/data/google-double-conversion.txt"),
+        ),
+        ("google-wuffs.txt", include_str!("parse-number-fxx-test-data/data/google-wuffs.txt")),
+        ("ibm-fpgen.txt", include_str!("parse-number-fxx-test-data/data/ibm-fpgen.txt")),
+        (
+            "lemire-fast-double-parser.txt",
+            include_str!("parse-number-fxx-test-data/data/lemire-fast-double-parser.txt"),
+        ),
+        (
+            "lemire-fast-float.txt",
+            include_str!("parse-number-fxx-test-data/data/lemire-fast-float.txt"),
+        ),
+        (
+            "more-test-cases.txt",
+            include_str!("parse-number-fxx-test-data/data/more-test-cases.txt"),
+        ),
+        (
+            "remyoudompheng-fptest-0.txt",
+            include_str!("parse-number-fxx-test-data/data/remyoudompheng-fptest-0.txt"),
+        ),
+        (
+            "remyoudompheng-fptest-1.txt",
+            include_str!("parse-number-fxx-test-data/data/remyoudompheng-fptest-1.txt"),
+        ),
+        (
+            "remyoudompheng-fptest-2.txt",
+            include_str!("parse-number-fxx-test-data/data/remyoudompheng-fptest-2.txt"),
+        ),
+        (
+            "remyoudompheng-fptest-3.txt",
+            include_str!("parse-number-fxx-test-data/data/remyoudompheng-fptest-3.txt"),
+        ),
+        (
+            "tencent-rapidjson.txt",
+            include_str!("parse-number-fxx-test-data/data/tencent-rapidjson.txt"),
+        ),
+        ("ulfjack-ryu.txt", include_str!("parse-number-fxx-test-data/data/ulfjack-ryu.txt")),
+    ]);
+
+    // Unfortunately, randomize the data with miri is too expensive so we just use it normally.
+    for (&filename, data) in tests.iter() {
+        println!("Running Test: {}", filename);
+        for (count, line) in data.lines().enumerate() {
+            if cfg!(miri) && count % 10 == 0 {
+                println!("Running test {count} for conversion tests.");
             }
-            println!("Ran {} tests.", count);
+            run_test(line);
+            if cfg!(miri) && count > 3000 {
+                break;
+            }
         }
     }
 }

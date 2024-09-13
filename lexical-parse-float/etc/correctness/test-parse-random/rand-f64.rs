@@ -11,8 +11,8 @@
 mod _common;
 
 use _common::{validate, ISAAC_SEED};
-use rand_isaac::Isaac64Rng;
 use rand::{RngCore, SeedableRng};
+use rand_isaac::Isaac64Rng;
 use std::mem::transmute;
 
 fn main() {

@@ -36,7 +36,7 @@
 # [5] http://bugs.python.org/
 
 # strtod(string) method should not accept the following inputs
-negativeFormattingTests = [
+NegativeFormattingTests = [
     "inf1", "inf+", ".E", "1.0e", "2.45+e+3", "23e.23", "e9", "+e", "e+", ".",
     "e", ".7+", ".21e", "+", "", "infe", "nan(err", "nan)", "NAN(test_)_)",
     "nan0", "-.e+", "-+12.34"
