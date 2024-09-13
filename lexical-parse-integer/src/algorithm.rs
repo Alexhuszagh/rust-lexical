@@ -316,8 +316,7 @@ where
 /// `u8::MAX` is `ff` - any str of len 2 is guaranteed to not overflow.
 /// `i8::MAX` is `7f` - only a str of len 1 is guaranteed to not overflow.
 ///
-/// This is based off of here:
-///     https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1480
+/// This is based off of [core/num](core).
 ///
 /// * `value` - The current parsed value.
 /// * `iter` - An iterator over all bytes in the input.
@@ -325,6 +324,8 @@ where
 /// * `start_index` - The offset where parsing started.
 /// * `invalid_digit` - Behavior when an invalid digit is found.
 /// * `is_end` - If iter corresponds to the full input.
+///
+/// core: <https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1480>
 macro_rules! parse_1digit_unchecked {
 ($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $is_end:expr) => {{
     // This is a slower parsing algorithm, going 1 digit at a time, but doing it in an unchecked loop.
@@ -344,8 +345,7 @@ macro_rules! parse_1digit_unchecked {
 
 /// Run a loop where the integer could overflow.
 ///
-/// This is a standard, unoptimized algorithm. This is based off of here:
-///     https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1505
+/// This is a standard, unoptimized algorithm. This is based off of [core/num](core)
 ///
 /// * `value` - The current parsed value.
 /// * `iter` - An iterator over all bytes in the input.
@@ -353,6 +353,8 @@ macro_rules! parse_1digit_unchecked {
 /// * `start_index` - The offset where parsing started.
 /// * `invalid_digit` - Behavior when an invalid digit is found.
 /// * `overflow` - If the error is overflow or underflow.
+///
+/// core: <https://doc.rust-lang.org/1.81.0/src/core/num/mod.rs.html#1505>
 macro_rules! parse_1digit_checked {
 ($value:ident, $iter:ident, $add_op:ident, $start_index:ident, $invalid_digit:ident, $overflow:ident) => {{
     // This is a slower parsing algorithm, going 1 digit at a time, but doing it in an unchecked loop.
@@ -398,15 +400,15 @@ macro_rules! parse_digits_unchecked {
     // into `try_parse_8digits!` or `try_parse_4digits` it will be optimized out and the
     // overflow won't matter.
     let format = NumberFormat::<FORMAT> {};
-    let radix4 = T::from_u32(format.radix4());
-    let radix8 = T::from_u32(format.radix8());
     if use_multi && T::BITS >= 64 && $iter.length() >= 8 {
         // Try our fast, 8-digit at a time optimizations.
+        let radix8 = T::from_u32(format.radix8());
         while let Some(value) = try_parse_8digits::<T, _, FORMAT>(&mut $iter) {
             $value = $value.wrapping_mul(radix8).$add_op(value);
         }
     } else if use_multi && T::BITS == 32 && $iter.length() >= 4 {
         // Try our fast, 8-digit at a time optimizations.
+        let radix4 = T::from_u32(format.radix4());
         while let Some(value) = try_parse_4digits::<T, _, FORMAT>(&mut $iter) {
             $value = $value.wrapping_mul(radix4).$add_op(value);
         }

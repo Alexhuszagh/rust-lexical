@@ -98,7 +98,7 @@ fn char_is_digit_const_test() {
 #[cfg(feature = "write")]
 fn digit_to_char(digit: u32, radix: u32, expected: u8) {
     assert_eq!(digit::digit_to_char_const(digit, radix), expected);
-    assert_eq!(unsafe { digit::digit_to_char(digit) }, expected);
+    assert_eq!(digit::digit_to_char(digit), expected);
 }
 
 #[test]

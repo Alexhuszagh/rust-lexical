@@ -60,7 +60,7 @@ formatted_size_impl! {
     u64 20 128 ;
     u128 39 256 ;
     // The f64 buffer is actually a size of 60, but use 64 since it's a power of 2.
-    // Use 256 fir non-decimal values, actually, since we seem to have memory
+    // Use 256 for non-decimal values, actually, since we seem to have memory
     // issues with f64. Clearly not sufficient memory allocated for non-decimal
     // values.
     //bf16 64 256 ;

@@ -7,6 +7,9 @@
 //! Some of this code has been implemented from
 //! [half-rs](https://github.com/starkat99/half-rs), to enable simple
 //! conversions to and from f32.
+//!
+//! There is no unsafety in this module other than a manual implementation
+//! of sync/send for a primitive type.
 
 #![cfg(feature = "f16")]
 #![doc(hidden)]
@@ -18,27 +21,24 @@ use core::{fmt, ops};
 /// Half-precision IEEE-754 floating point type.
 #[allow(non_camel_case_types)]
 #[derive(Default, Copy, Clone)]
-pub struct f16 {
-    /// Raw bitwise representation of the float as a 16-bit type.
-    bits: u16,
-}
+pub struct f16(u16);
 
+// # SAFETY: bf16 is a trivial type internally represented by u16.
 unsafe impl Send for f16 {
 }
+// # SAFETY: bf16 is a trivial type internally represented by u16.
 unsafe impl Sync for f16 {
 }
 
 impl f16 {
     #[inline(always)]
     pub const fn to_bits(self) -> u16 {
-        self.bits
+        self.0
     }
 
     #[inline(always)]
     pub const fn from_bits(bits: u16) -> Self {
-        Self {
-            bits,
-        }
+        Self(bits)
     }
 
     #[inline(always)]
@@ -130,7 +130,7 @@ impl ops::Neg for f16 {
 
     #[inline(always)]
     fn neg(self) -> Self::Output {
-        Self::from_bits(self.bits ^ (1 << 15))
+        Self::from_bits(self.0 ^ (1 << 15))
     }
 }
 
@@ -189,13 +189,13 @@ fn f16_to_f32(half: f16) -> f32 {
     let f32_bias = f32::EXPONENT_BIAS - f32::MANTISSA_SIZE;
 
     // Check for signed zero
-    if half.bits & (f16::SIGN_MASK - 1) == 0 {
-        return f32::from_bits((half.bits as u32) << 16);
+    if half.0 & (f16::SIGN_MASK - 1) == 0 {
+        return f32::from_bits((half.0 as u32) << 16);
     }
 
-    let half_sign = (half.bits & f16::SIGN_MASK) as u32;
-    let half_exp = (half.bits & f16::EXPONENT_MASK) as u32;
-    let half_man = (half.bits & f16::MANTISSA_MASK) as u32;
+    let half_sign = (half.0 & f16::SIGN_MASK) as u32;
+    let half_exp = (half.0 & f16::EXPONENT_MASK) as u32;
+    let half_man = (half.0 & f16::MANTISSA_MASK) as u32;
 
     if half.is_nan() {
         return f32::from_bits((half_sign << 16) | 0x7FC0_0000u32 | (half_man << man_shift));

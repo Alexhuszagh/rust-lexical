@@ -3,7 +3,6 @@ mod util;
 
 use core::fmt::Debug;
 use core::str::{from_utf8_unchecked, FromStr};
-use lexical_util::constants::FormattedSize;
 #[cfg(feature = "radix")]
 use lexical_util::constants::BUFFER_SIZE;
 #[cfg(feature = "format")]
@@ -1410,83 +1409,89 @@ proptest! {
 #[test]
 #[should_panic]
 fn i8_buffer_test() {
-    let mut buffer = [b'\x00'; i8::FORMATTED_SIZE_DECIMAL - 1];
-    12i8.to_lexical(&mut buffer);
+    let mut buffer = [b'\x00'; 3];
+    (-123i8).to_lexical(&mut buffer);
 }
 
 #[test]
 #[should_panic]
 fn i16_buffer_test() {
-    let mut buffer = [b'\x00'; i16::FORMATTED_SIZE_DECIMAL - 1];
-    12i16.to_lexical(&mut buffer);
+    let mut buffer = [b'\x00'; 4];
+    (-1234i16).to_lexical(&mut buffer);
 }
 
 #[test]
 #[should_panic]
 fn i32_buffer_test() {
-    let mut buffer = [b'\x00'; i32::FORMATTED_SIZE_DECIMAL - 1];
-    12i32.to_lexical(&mut buffer);
+    let mut buffer = [b'\x00'; 6];
+    (-123456i32).to_lexical(&mut buffer);
 }
 
 #[test]
 #[should_panic]
 fn i64_buffer_test() {
-    let mut buffer = [b'\x00'; i64::FORMATTED_SIZE_DECIMAL - 1];
-    12i64.to_lexical(&mut buffer);
+    let mut buffer = [b'\x00'; 7];
+    (-1234567i64).to_lexical(&mut buffer);
 }
 
 #[test]
 #[should_panic]
 fn i128_buffer_test() {
-    let mut buffer = [b'\x00'; i128::FORMATTED_SIZE_DECIMAL - 1];
-    12i128.to_lexical(&mut buffer);
+    let mut buffer = [b'\x00'; 9];
+    (-123456789i128).to_lexical(&mut buffer);
 }
 
 #[test]
 #[should_panic]
 fn isize_buffer_test() {
-    let mut buffer = [b'\x00'; isize::FORMATTED_SIZE_DECIMAL - 1];
-    12isize.to_lexical(&mut buffer);
+    let mut buffer = [b'\x00'; 6];
+    (-123456isize).to_lexical(&mut buffer);
 }
 
 #[test]
 #[should_panic]
 fn u8_buffer_test() {
-    let mut buffer = [b'\x00'; u8::FORMATTED_SIZE_DECIMAL - 1];
-    12i8.to_lexical(&mut buffer);
+    let mut buffer = [b'\x00'; 2];
+    125u8.to_lexical(&mut buffer);
 }
 
 #[test]
 #[should_panic]
 fn u16_buffer_test() {
-    let mut buffer = [b'\x00'; u16::FORMATTED_SIZE_DECIMAL - 1];
+    let mut buffer = [b'\x00'; 1];
     12i16.to_lexical(&mut buffer);
 }
 
 #[test]
 #[should_panic]
 fn u32_buffer_test() {
-    let mut buffer = [b'\x00'; u32::FORMATTED_SIZE_DECIMAL - 1];
-    12i32.to_lexical(&mut buffer);
+    let mut buffer = [b'\x00'; 5];
+    123456i32.to_lexical(&mut buffer);
 }
 
 #[test]
 #[should_panic]
 fn u64_buffer_test() {
-    let mut buffer = [b'\x00'; u64::FORMATTED_SIZE_DECIMAL - 1];
-    12i64.to_lexical(&mut buffer);
+    let mut buffer = [b'\x00'; 5];
+    123456i64.to_lexical(&mut buffer);
+}
+
+#[test]
+fn u64_buffer_no_panic_test() {
+    let mut buffer = [b'\x00'; 6];
+    12345i64.to_lexical(&mut buffer);
 }
 
 #[test]
 #[should_panic]
 fn u128_buffer_test() {
-    let mut buffer = [b'\x00'; u128::FORMATTED_SIZE_DECIMAL - 1];
-    12i128.to_lexical(&mut buffer);
+    let mut buffer = [b'\x00'; 8];
+    123456789i128.to_lexical(&mut buffer);
 }
 
 #[test]
 #[should_panic]
 fn usize_buffer_test() {
-    let mut buffer = [b'\x00'; usize::FORMATTED_SIZE_DECIMAL - 1];
-    12usize.to_lexical(&mut buffer);
+    let mut buffer = [b'\x00'; 5];
+    123456usize.to_lexical(&mut buffer);
 }

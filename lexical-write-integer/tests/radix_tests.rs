@@ -14,9 +14,9 @@ use util::from_radix;
 fn u128toa_test() {
     const FORMAT: u128 = from_radix(12);
     let mut buffer = [b'\x00'; BUFFER_SIZE];
+    let value = 136551478823710021067381144334863695872u128;
+    let count = value.write_mantissa::<u128, FORMAT>(&mut buffer);
     unsafe {
-        let value = 136551478823710021067381144334863695872u128;
-        let count = value.write_mantissa::<u128, FORMAT>(&mut buffer);
         let y = u128::from_str_radix(from_utf8_unchecked(&buffer[..count]), 12);
         assert_eq!(y, Ok(value));
     }
@@ -25,11 +25,9 @@ fn u128toa_test() {
 #[cfg(feature = "power-of-two")]
 fn write_integer<T: WriteInteger, const FORMAT: u128>(x: T, actual: &[u8]) {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
-    unsafe {
-        let count = x.write_mantissa::<T, FORMAT>(&mut buffer);
-        assert_eq!(actual.len(), count);
-        assert_eq!(actual, &buffer[..count])
-    }
+    let count = x.write_mantissa::<T, FORMAT>(&mut buffer);
+    assert_eq!(actual.len(), count);
+    assert_eq!(actual, &buffer[..count])
 }
 
 #[test]

@@ -234,7 +234,7 @@ pub trait Decimal: DigitCount {
     ///
     /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
     /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
-    unsafe fn decimal(self, buffer: &mut [u8]) -> usize;
+    fn decimal(self, buffer: &mut [u8]) -> usize;
 }
 
 // Don't implement decimal for small types, where we could have an overflow.
@@ -242,7 +242,7 @@ macro_rules! decimal_unimpl {
     ($($t:ty)*) => ($(
         impl Decimal for $t {
             #[inline(always)]
-            unsafe fn decimal(self, _: &mut [u8]) -> usize {
+            fn decimal(self, _: &mut [u8]) -> usize {
                 // Forces a hard error if we have a logic error in our code.
                 unimplemented!()
             }
@@ -257,10 +257,10 @@ macro_rules! decimal_impl {
     ($($t:ty)*) => ($(
         impl Decimal for $t {
             #[inline(always)]
-            unsafe fn decimal(self, buffer: &mut [u8]) -> usize {
+            fn decimal(self, buffer: &mut [u8]) -> usize {
                 // SAFETY: safe as long as buffer is large enough to hold the max value.
                 let count = self.digit_count();
-                debug_assert!(count <= buffer.len());
+                assert!(count <= buffer.len());
                 unsafe {
                     algorithm(self, 10, &DIGIT_TO_BASE10_SQUARED, &mut buffer[..count]);
                     count
@@ -274,10 +274,10 @@ decimal_impl! { u32 u64 }
 
 impl Decimal for u128 {
     #[inline(always)]
-    unsafe fn decimal(self, buffer: &mut [u8]) -> usize {
+    fn decimal(self, buffer: &mut [u8]) -> usize {
         // SAFETY: safe as long as buffer is large enough to hold the max value.
         let count = self.digit_count();
-        debug_assert!(count <= buffer.len());
+        assert!(count <= buffer.len());
         unsafe {
             algorithm_u128::<{ STANDARD }, { RADIX }, { RADIX_SHIFT }>(
                 self,

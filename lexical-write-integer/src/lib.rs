@@ -41,6 +41,74 @@
 //!
 //! - [Algorithm Approach](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-integer/docs/Algorithm.md)
 //! - [Benchmarks](https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-write-integer/docs/Benchmarks.md)
+//!
+//! # Safety
+//!
+//! This module uses a some more unsafe code for moderately acceptable performance. The compact
+//! decimal serializer has no non-local safety invariants, which since it's focused on code size
+//! rather than performance, this tradeoff is acceptable and it uses a temporary, over-allocated
+//! buffer as an intermediate.
+//!
+//! The decimal writer relies on pre-computed tables and an exact calculation
+//! of the digit count ([digit_count]) to avoid any overhead. Avoid intermediary
+//! copies is **CRITICAL** for fast performance so the entire buffer must be known
+//! but assigned to use algorithms the compiler cannot easily verify. This is
+//! because we use multi-digit optimizations with our pre-computed tables,
+//! so we cannot just iterate over the slice and assign iteratively. Using checked
+//! indexing can lead to 30%+ decreases in performance. However, with careful analysis
+//! and factoring of the code, it's fairly easy to demonstrate the safety as long
+//! as the caller enusres at least the required number of digits are provided.
+//!
+//! Our algorithms work like this:
+//!
+//! ```rust,ignore
+//! let mut value = 12345u32;
+//! let buffer = [0u8; 32];
+//! let digits = value.digit_count();
+//! let bytes = buffer[..digits];
+//!
+//! let radix = 10;
+//! let radix2 = radix * radix;
+//! let radix4 = radix2 * radix2
+//! let mut index = bytes.len();
+//! while value >= 10000 {
+//!     let r = value % radix4;
+//!     value /= radix4;
+//!     let r1 = 2 * (r / radix2) as usize;
+//!     let r2 = 2 * (r % radix2) as usize;
+//!
+//!     // write 5, then 4
+//!     index -= 1;
+//!     bytes[index] = table[r2 + 1];
+//!     index -= 1;
+//!     bytes[index] = table[r2];
+//!
+//!     // write 3 then 2
+//!     index -= 1;
+//!     bytes[index] = table[r1 + 1];
+//!     index -= 1;
+//!     bytes[index] = table[r1];
+//! }
+//!
+//! // oontinue with radix^2 and then a single digit.
+//! ```
+//!
+//! We can efficiently determine at compile time if the pre-computed
+//! tables are large enough so there are no non-local safety considerations
+//! there. The current logic call stack is:
+//! 1. [to_lexical]
+//! 2. [decimal][dec], compact, or radix (gts the correct tables and calls algorithm)
+//! 3. [algorithm]
+//!
+//! [decimal][dec], compact, and radix therefore **MUST** be safe and do type check
+//! of the bounds to avoid too much expoosure to unsafety. Only [algorithm] should
+//! have any unsafety associated with it. That is, as long as the direct caller
+//! has ensure the proper buffer is allocated, there are non-local safety invariants.
+//!
+//! [digit_count]: crate::decimal::DigitCount
+//! [to_lexical]: crate::ToLexical::to_lexical
+//! [dec]: crate::decimal::Decimal::decimal
+//! [algorithm]: crate::algorithm::algorithm
 
 // We want to have the same safety guarantees as Rust core,
 // so we allow unused unsafe to clearly document safety guarantees.
