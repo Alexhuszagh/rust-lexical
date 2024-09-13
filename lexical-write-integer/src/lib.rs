@@ -44,10 +44,10 @@
 //!
 //! # Safety
 //!
-//! This module uses a some more unsafe code for moderately acceptable performance. The compact
-//! decimal serializer has no non-local safety invariants, which since it's focused on code size
-//! rather than performance, this tradeoff is acceptable and it uses a temporary, over-allocated
-//! buffer as an intermediate.
+//! This module uses a some more unsafe code for moderately acceptable performance. The
+//! compact decimal serializer has no non-local safety invariants, which since it's
+//! focused on code size rather than performance, this tradeoff is acceptable and it
+//! uses a temporary, over-allocated buffer as an intermediate.
 //!
 //! The decimal writer relies on pre-computed tables and an exact calculation
 //! of the digit count ([digit_count]) to avoid any overhead. Avoid intermediary
@@ -59,7 +59,8 @@
 //! and factoring of the code, it's fairly easy to demonstrate the safety as long
 //! as the caller enusres at least the required number of digits are provided.
 //!
-//! Our algorithms work like this:
+//! Our algorithms work like this, carving off the lower digits and writing them
+//! to the back of the buffer.
 //!
 //! ```rust,ignore
 //! let mut value = 12345u32;

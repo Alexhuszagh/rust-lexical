@@ -69,7 +69,14 @@ macro_rules! write_digit {
 /// small changes here can destroy performance, so it's crucial we do this
 /// correctly.
 ///
-/// See [algorithm] for more detailed information on the safety considerations.
+/// If `buffer.len() >= T::DIGITS` and `index >= T::DIGITS`, then this is
+/// safe. We first carve off 4 digits off the end, similar to the algorithm
+/// in compact, then 2 at a time, then 1, index will never wrap under 0.
+/// Since we validate the table size and radix inside, this is the only
+/// safety precondition that must be held up.
+///
+/// See [algorithm] and the [crate] documentation for more detailed
+/// information on the safety considerations.
 #[inline(always)]
 unsafe fn write_digits<T: UnsignedInteger>(
     mut value: T,
@@ -174,6 +181,8 @@ unsafe fn write_step_digits<T: UnsignedInteger>(
 /// since we write from the end to the front.
 ///
 /// See the crate [crate] documentation for more security considerations.
+///
+/// `write_digits` internally
 ///
 /// [digit_count]: crate::decimal::DigitCount
 #[inline(always)]
