@@ -3,11 +3,11 @@
 
 mod util;
 
+use crate::util::{default_proptest_config, from_radix};
 use core::str::from_utf8_unchecked;
 use lexical_util::constants::BUFFER_SIZE;
 use lexical_write_integer::write::WriteInteger;
 use proptest::prelude::*;
-use util::from_radix;
 
 #[test]
 #[cfg(feature = "radix")]
@@ -167,6 +167,8 @@ fn u128toa_mockup(x: u128, radix: u32) -> Result<(), TestCaseError> {
 }
 
 proptest! {
+    #![proptest_config(default_proptest_config())]
+
     #[test]
     #[cfg_attr(miri, ignore)]
     #[cfg(feature = "radix")]

@@ -1,8 +1,8 @@
 #![cfg(not(feature = "compact"))]
 
-#[cfg(feature = "power-of-two")]
 mod util;
 
+use crate::util::default_proptest_config;
 use lexical_parse_integer::algorithm;
 use lexical_parse_integer::options::SMALL_NUMBERS;
 use lexical_util::format::STANDARD;
@@ -180,8 +180,9 @@ fn algorithm_128_test() {
 }
 
 proptest! {
+    #![proptest_config(default_proptest_config())]
+
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn parse_4digits_proptest(
         a in 0x30u32..0x39,
         b in 0x30u32..0x39,
@@ -196,7 +197,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn parse_8digits_proptest(
         a in 0x30u64..0x39,
         b in 0x30u64..0x39,

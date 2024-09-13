@@ -26,6 +26,8 @@ macro_rules! integer_module {
 
             #[cfg(feature = "lexical")]
             {
+                // FIXME: This is UB but it doesn't affect code integrity here
+                //  Undo when we implement #92.
                 let buffer: mem::MaybeUninit<[u8; 128]> = mem::MaybeUninit::uninit();
                 let mut buffer = unsafe { buffer.assume_init() };
                 println!("{}", value.to_lexical(&mut buffer).len());
@@ -69,6 +71,8 @@ macro_rules! float_module {
 
             #[cfg(feature = "lexical")]
             {
+                // FIXME: This is UB but it doesn't affect code integrity here
+                //  Undo when we implement #92.
                 let buffer: mem::MaybeUninit<[u8; 128]> = mem::MaybeUninit::uninit();
                 let mut buffer = unsafe { buffer.assume_init() };
                 println!("{}", value.to_lexical(&mut buffer).len());

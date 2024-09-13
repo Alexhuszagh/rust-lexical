@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added fuzzing and miri code safety analysis to our CI pipelines.
 - Removed requirement of `alloc` in `no_std` ennvironments without the `write` feature.
 - Make multi-digit optimizations in integer parsing optional.
+- Much higher miri coverage including for proptests.
 
 ### Changed
 
@@ -29,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Writing `-0.0` with a leading `-`.
 - Reduced binary siezes when the compact feature was enabled.
 - Improved performance of integer and float parsing, particularly with small integers.
+- Removed almost all unsafety in `lexical-util` and clearly documented the preconditions to use safely.
+- Removed almost all unsafety in `lexical-write-integer` and clearly documented the preconditions to use safely.
 
 ### Removed
 

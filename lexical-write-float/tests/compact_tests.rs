@@ -1,5 +1,8 @@
 #![cfg(feature = "compact")]
 
+mod util;
+
+use crate::util::default_proptest_config;
 use core::num;
 use lexical_util::constants::BUFFER_SIZE;
 use lexical_util::format::NumberFormatBuilder;
@@ -7,7 +10,6 @@ use lexical_util::num::Float;
 use lexical_write_float::float::{ExtendedFloat80, RawFloat};
 use lexical_write_float::{compact, Options, RoundMode};
 use proptest::prelude::*;
-use quickcheck::quickcheck;
 
 const DECIMAL: u128 = NumberFormatBuilder::decimal();
 
@@ -759,8 +761,7 @@ fn f64_roundtrip_test() {
     }
 }
 
-quickcheck! {
-    #[cfg_attr(miri, ignore)]
+default_quickcheck! {
     fn f32_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -775,7 +776,6 @@ quickcheck! {
         }
     }
 
-    #[cfg_attr(miri, ignore)]
     fn f64_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -792,8 +792,9 @@ quickcheck! {
 }
 
 proptest! {
+    #![proptest_config(default_proptest_config())]
+
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -807,7 +808,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();

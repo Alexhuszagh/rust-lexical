@@ -1,7 +1,9 @@
 #![cfg(feature = "power-of-two")]
 
 mod parse_radix;
+mod util;
 
+use crate::util::default_proptest_config;
 use core::num;
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
 use lexical_util::format::NumberFormatBuilder;
@@ -11,7 +13,6 @@ use lexical_write_float::{binary, Options};
 use lexical_write_integer::write::WriteInteger;
 use parse_radix::{parse_f32, parse_f64};
 use proptest::prelude::*;
-use quickcheck::quickcheck;
 
 const BINARY: u128 = NumberFormatBuilder::binary();
 const BASE4: u128 = NumberFormatBuilder::from_radix(4);
@@ -1089,8 +1090,7 @@ fn write_float_test() {
     write_float::<_, BINARY>(1.2345678901234567890e2f64, &round, "1111011.1");
 }
 
-quickcheck! {
-    #[cfg_attr(miri, ignore)]
+default_quickcheck! {
     fn f32_binary_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -1104,7 +1104,6 @@ quickcheck! {
         }
     }
 
-    #[cfg_attr(miri, ignore)]
     fn f32_octal_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -1118,7 +1117,6 @@ quickcheck! {
         }
     }
 
-    #[cfg_attr(miri, ignore)]
     fn f64_binary_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -1132,7 +1130,6 @@ quickcheck! {
         }
     }
 
-    #[cfg_attr(miri, ignore)]
     fn f64_octal_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -1148,8 +1145,9 @@ quickcheck! {
 }
 
 proptest! {
+    #![proptest_config(default_proptest_config())]
+
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_binary_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -1162,7 +1160,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_octal_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -1175,7 +1172,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_binary_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -1188,7 +1184,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_octal_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();

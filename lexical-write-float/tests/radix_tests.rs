@@ -1,7 +1,9 @@
 #![cfg(feature = "radix")]
 
 mod parse_radix;
+mod util;
 
+use crate::util::default_proptest_config;
 use approx::{assert_relative_eq, relative_eq};
 use core::num;
 use lexical_util::constants::{FormattedSize, BUFFER_SIZE};
@@ -12,7 +14,6 @@ use lexical_write_float::{radix, Options};
 use lexical_write_integer::write::WriteInteger;
 use parse_radix::{parse_f32, parse_f64};
 use proptest::prelude::*;
-use quickcheck::quickcheck;
 
 const BASE3: u128 = NumberFormatBuilder::from_radix(3);
 const BASE5: u128 = NumberFormatBuilder::from_radix(5);
@@ -281,7 +282,6 @@ macro_rules! test_all {
 }
 
 #[test]
-#[cfg_attr(miri, ignore)]
 fn f32_radix_roundtrip_test() {
     let mut buffer = [b'\x00'; 1200];
     let options = Options::new();
@@ -291,7 +291,6 @@ fn f32_radix_roundtrip_test() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore)]
 fn f64_radix_roundtrip_test() {
     let mut buffer = [b'\x00'; BUFFER_SIZE];
     let options = Options::new();
@@ -361,8 +360,7 @@ macro_rules! is_overflow {
     };
 }
 
-quickcheck! {
-    #[cfg_attr(miri, ignore)]
+default_quickcheck! {
     fn f32_base3_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -376,7 +374,6 @@ quickcheck! {
         }
     }
 
-    #[cfg_attr(miri, ignore)]
     fn f32_base5_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -390,7 +387,6 @@ quickcheck! {
         }
     }
 
-    #[cfg_attr(miri, ignore)]
     fn f32_base21_quickcheck(f: f32) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().exponent(b'^').build().unwrap();
@@ -404,7 +400,6 @@ quickcheck! {
         }
     }
 
-    #[cfg_attr(miri, ignore)]
     fn f64_base3_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -418,7 +413,6 @@ quickcheck! {
         }
     }
 
-    #[cfg_attr(miri, ignore)]
     fn f64_base5_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -432,7 +426,6 @@ quickcheck! {
         }
     }
 
-    #[cfg_attr(miri, ignore)]
     fn f64_base21_quickcheck(f: f64) -> bool {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().exponent(b'^').build().unwrap();
@@ -448,8 +441,9 @@ quickcheck! {
 }
 
 proptest! {
+    #![proptest_config(default_proptest_config())]
+
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base3_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -463,7 +457,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base5_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -477,7 +470,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base21_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().exponent(b'^').build().unwrap();
@@ -491,7 +483,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base3_short_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -508,7 +499,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base5_short_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -525,7 +515,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base21_short_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -543,7 +532,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base3_long_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -560,7 +548,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base5_long_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -577,7 +564,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base21_long_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -595,7 +581,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base3_short_exponent_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -614,7 +599,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base5_short_exponent_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -633,7 +617,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base21_short_exponent_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -653,7 +636,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base3_long_exponent_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -672,7 +654,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base5_long_exponent_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -691,7 +672,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_base21_long_exponent_proptest(f in f32::MIN..f32::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -711,7 +691,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base3_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -725,7 +704,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base5_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().build().unwrap();
@@ -739,7 +717,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base21_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; BUFFER_SIZE];
         let options = Options::builder().exponent(b'^').build().unwrap();
@@ -753,7 +730,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base3_short_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -770,7 +746,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base5_short_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -787,7 +762,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base21_short_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -805,7 +779,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base3_long_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -822,7 +795,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base5_long_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -839,7 +811,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base21_long_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -857,7 +828,6 @@ proptest! {
     }
 
         #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base3_short_exponent_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -876,7 +846,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base5_short_exponent_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -895,7 +864,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base21_short_exponent_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -915,7 +883,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base3_long_exponent_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -934,7 +901,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base5_long_exponent_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
@@ -953,7 +919,6 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f64_base21_long_exponent_proptest(f in f64::MIN..f64::MAX) {
         let mut buffer = [b'\x00'; 512];
         let options = Options::builder()
