@@ -215,7 +215,7 @@ impl<'a, const __: u128> Bytes<'a, __> {
     }
 }
 
-impl<'a, const __: u128> Buffer<'a> for Bytes<'a, __> {
+unsafe impl<'a, const __: u128> Buffer<'a> for Bytes<'a, __> {
     const IS_CONTIGUOUS: bool = true;
 
     #[inline(always)]
@@ -276,7 +276,7 @@ impl<'a: 'b, 'b, const __: u128> BytesIterator<'a, 'b, __> {
     }
 }
 
-impl<'a: 'b, 'b, const __: u128> Buffer<'a> for BytesIterator<'a, 'b, __> {
+unsafe impl<'a: 'b, 'b, const __: u128> Buffer<'a> for BytesIterator<'a, 'b, __> {
     const IS_CONTIGUOUS: bool = Bytes::<'a, __>::IS_CONTIGUOUS;
 
     #[inline(always)]

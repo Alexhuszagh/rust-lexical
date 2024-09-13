@@ -57,6 +57,7 @@ pub fn assert_radix<const FORMAT: u128>() {
 // BUFFER
 
 /// Debug assertion the buffer has sufficient room for the output.
+// TODO: Remove this entirely
 #[inline(always)]
 #[cfg(feature = "write")]
 pub fn debug_assert_buffer<T: FormattedSize>(radix: u32, len: usize) {

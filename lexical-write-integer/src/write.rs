@@ -15,18 +15,13 @@ use lexical_util::format;
 macro_rules! write_mantissa {
     ($($t:tt)+) => (
         /// Internal implementation to write significant digits for float writers.
-        ///
-        /// # Safety
-        ///
-        /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements.
         #[doc(hidden)]
         #[inline(always)]
-        unsafe fn write_mantissa<U, const FORMAT: u128>(self, buffer: &mut [u8]) -> usize
+        fn write_mantissa<U, const FORMAT: u128>(self, buffer: &mut [u8]) -> usize
         where
             U: $($t)+,
         {
-            // SAFETY: safe as long as the buffer can hold `FORMATTED_SIZE` elements.
-            unsafe { self.write_integer::<U, FORMAT, { format::RADIX }, { format::RADIX_SHIFT }>(buffer) }
+            self.write_integer::<U, FORMAT, { format::RADIX }, { format::RADIX_SHIFT }>(buffer)
         }
     )
 }
@@ -35,18 +30,13 @@ macro_rules! write_mantissa {
 macro_rules! write_exponent {
     ($($t:tt)+) => (
         /// Internal implementation to write exponent digits for float writers.
-        ///
-        /// # Safety
-        ///
-        /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements.
         #[doc(hidden)]
         #[inline(always)]
-        unsafe fn write_exponent<U, const FORMAT: u128>(self, buffer: &mut [u8]) -> usize
+        fn write_exponent<U, const FORMAT: u128>(self, buffer: &mut [u8]) -> usize
         where
             U: $($t)+,
         {
-            // SAFETY: safe as long as the buffer can hold `FORMATTED_SIZE` elements.
-            unsafe { self.write_integer::<U, FORMAT, { format::EXPONENT_RADIX }, { format::EXPONENT_RADIX_SHIFT }>(buffer) }
+            self.write_integer::<U, FORMAT, { format::EXPONENT_RADIX }, { format::EXPONENT_RADIX_SHIFT }>(buffer)
         }
     )
 }
@@ -60,14 +50,9 @@ pub trait WriteInteger: Compact {
     ///
     /// `self` must be non-negative and unsigned.
     ///
-    /// # Safety
-    ///
-    /// Safe as long as the buffer can hold [`FORMATTED_SIZE`] elements
-    /// (or [`FORMATTED_SIZE_DECIMAL`] for decimal).
-    ///
     /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
     /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
-    unsafe fn write_integer<U, const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
+    fn write_integer<U, const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
         self,
         buffer: &mut [u8],
     ) -> usize
@@ -76,7 +61,7 @@ pub trait WriteInteger: Compact {
     {
         let value = U::as_cast(self);
         let radix = format::radix_from_flags(FORMAT, MASK, SHIFT);
-        unsafe { value.compact(radix, buffer) }
+        value.compact(radix, buffer)
     }
 
     write_mantissa!(Compact);
@@ -92,13 +77,9 @@ pub trait WriteInteger: Decimal {
     ///
     /// `self` must be non-negative and unsigned.
     ///
-    /// # Safety
-    ///
-    /// Safe as long as the buffer can hold [`FORMATTED_SIZE_DECIMAL`] elements.
-    ///
     /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
     #[inline(always)]
-    unsafe fn write_integer<U, const __: u128, const ___: u128, const ____: i32>(
+    fn write_integer<U, const __: u128, const ___: u128, const ____: i32>(
         self,
         buffer: &mut [u8],
     ) -> usize
@@ -106,7 +87,7 @@ pub trait WriteInteger: Decimal {
         U: Decimal,
     {
         let value = U::as_cast(self);
-        unsafe { value.decimal(buffer) }
+        value.decimal(buffer)
     }
 
     write_mantissa!(Decimal);
@@ -122,15 +103,10 @@ pub trait WriteInteger: Decimal + Radix {
     ///
     /// `self` must be non-negative and unsigned.
     ///
-    /// # Safety
-    ///
-    /// Safe as long as the buffer can hold [`FORMATTED_SIZE`] elements
-    /// (or [`FORMATTED_SIZE_DECIMAL`] for decimal).
-    ///
     /// [`FORMATTED_SIZE`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE
     /// [`FORMATTED_SIZE_DECIMAL`]: lexical_util::constants::FormattedSize::FORMATTED_SIZE_DECIMAL
     #[inline(always)]
-    unsafe fn write_integer<U, const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
+    fn write_integer<U, const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
         self,
         buffer: &mut [u8],
     ) -> usize
@@ -139,9 +115,9 @@ pub trait WriteInteger: Decimal + Radix {
     {
         let value = U::as_cast(self);
         if format::radix_from_flags(FORMAT, MASK, SHIFT) == 10 {
-            unsafe { value.decimal(buffer) }
+            value.decimal(buffer)
         } else {
-            unsafe { value.radix::<FORMAT, MASK, SHIFT>(buffer) }
+            value.radix::<FORMAT, MASK, SHIFT>(buffer)
         }
     }
 

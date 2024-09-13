@@ -568,7 +568,7 @@ impl<'a, const FORMAT: u128> Bytes<'a, FORMAT> {
     }
 }
 
-impl<'a, const FORMAT: u128> Buffer<'a> for Bytes<'a, FORMAT> {
+unsafe impl<'a, const FORMAT: u128> Buffer<'a> for Bytes<'a, FORMAT> {
     /// If each yielded value is adjacent in memory.
     const IS_CONTIGUOUS: bool = NumberFormat::<{ FORMAT }>::DIGIT_SEPARATOR == 0;
 
@@ -798,7 +798,7 @@ macro_rules! skip_iterator_bytesiter_base {
 /// Create impl ByteIter block for skip iterator.
 macro_rules! skip_iterator_bytesiter_impl {
     ($iterator:ident, $mask:ident, $i:ident, $l:ident, $t:ident, $c:ident) => {
-        impl<'a: 'b, 'b, const FORMAT: u128> Buffer<'a> for $iterator<'a, 'b, FORMAT> {
+        unsafe impl<'a: 'b, 'b, const FORMAT: u128> Buffer<'a> for $iterator<'a, 'b, FORMAT> {
             skip_iterator_buffer_base!(FORMAT, $mask);
         }
 
@@ -902,7 +902,7 @@ impl<'a: 'b, 'b, const FORMAT: u128> SpecialBytesIterator<'a, 'b, FORMAT> {
     is_digit_separator!(FORMAT);
 }
 
-impl<'a: 'b, 'b, const FORMAT: u128> Buffer<'a> for SpecialBytesIterator<'a, 'b, FORMAT> {
+unsafe impl<'a: 'b, 'b, const FORMAT: u128> Buffer<'a> for SpecialBytesIterator<'a, 'b, FORMAT> {
     skip_iterator_buffer_base!(FORMAT, SPECIAL_DIGIT_SEPARATOR);
 }
 

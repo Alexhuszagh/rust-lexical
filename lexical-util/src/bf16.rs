@@ -3,6 +3,9 @@
 //! bf16 is meant as an interchange format, and therefore there may be
 //! rounding error in using it for fast-path algorithms. Since there
 //! are no native operations using `bf16`, this is of minimal concern.
+//!
+//! There is no unsafety in this module other than a manual implementation
+//! of sync/send for a primitive type.
 
 #![cfg(feature = "f16")]
 #![doc(hidden)]
@@ -13,34 +16,31 @@ use core::{fmt, ops};
 /// Brain floating point type.
 #[allow(non_camel_case_types)]
 #[derive(Default, Copy, Clone)]
-pub struct bf16 {
-    /// Raw bitwise representation of the float as a 16-bit type.
-    bits: u16,
-}
+pub struct bf16(u16);
 
+// # SAFETY: bf16 is a trivial type internally represented by u16.
 unsafe impl Send for bf16 {
 }
+// # SAFETY: bf16 is a trivial type internally represented by u16.
 unsafe impl Sync for bf16 {
 }
 
 impl bf16 {
     #[inline(always)]
     pub const fn to_bits(self) -> u16 {
-        self.bits
+        self.0
     }
 
     #[inline(always)]
     pub const fn from_bits(bits: u16) -> Self {
-        Self {
-            bits,
-        }
+        Self(bits)
     }
 
     #[inline(always)]
     pub fn as_f32(self) -> f32 {
         // This is super easy, since we have the same exponent bits:
         // just need to shift left 16.
-        f32::from_bits((self.bits as u32) << 16)
+        f32::from_bits((self.0 as u32) << 16)
     }
 
     #[inline(always)]
@@ -141,7 +141,7 @@ impl ops::Neg for bf16 {
 
     #[inline(always)]
     fn neg(self) -> Self::Output {
-        Self::from_bits(self.bits ^ (1 << 15))
+        Self::from_bits(self.0 ^ (1 << 15))
     }
 }
 

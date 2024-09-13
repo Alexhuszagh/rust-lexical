@@ -3,6 +3,10 @@
 //! This is adapted from [fast-float-rust](https://github.com/aldanor/fast-float-rust),
 //! a port of [fast_float](https://github.com/fastfloat/fast_float) to Rust.
 
+// NOTE: We never want to disable multi-digit optimizations when parsing our floats,
+// since the nanoseconds it saves on branching is irrelevant when considering decimal
+// points and fractional digits and it majorly improves longer floats.
+
 #![doc(hidden)]
 
 #[cfg(any(feature = "compact", feature = "radix"))]

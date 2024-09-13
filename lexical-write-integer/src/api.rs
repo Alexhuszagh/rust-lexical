@@ -4,7 +4,6 @@
 
 use crate::options::Options;
 use crate::write::WriteInteger;
-use lexical_util::assert::assert_buffer;
 use lexical_util::format::{NumberFormat, STANDARD};
 use lexical_util::num::SignedInteger;
 use lexical_util::{to_lexical, to_lexical_with_options};
@@ -17,23 +16,19 @@ use lexical_util::{to_lexical, to_lexical_with_options};
 ///
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
-#[inline(always)]
-unsafe fn unsigned<Narrow, Wide, const FORMAT: u128>(value: Narrow, buffer: &mut [u8]) -> usize
+#[cfg_attr(not(feature = "compact"), inline(always))]
+fn unsigned<Narrow, Wide, const FORMAT: u128>(value: Narrow, buffer: &mut [u8]) -> usize
 where
     Narrow: WriteInteger,
     Wide: WriteInteger,
 {
     let format = NumberFormat::<FORMAT> {};
     if cfg!(feature = "format") && format.required_mantissa_sign() {
-        // SAFETY: safe as long as there is at least `FORMATTED_SIZE` elements.
-        unsafe {
-            index_unchecked_mut!(buffer[0]) = b'+';
-            let buffer = &mut index_unchecked_mut!(buffer[1..]);
-            value.write_mantissa::<Wide, FORMAT>(buffer) + 1
-        }
+        buffer[0] = b'+';
+        let buffer = &mut buffer[1..];
+        value.write_mantissa::<Wide, FORMAT>(buffer) + 1
     } else {
-        // SAFETY: safe as long as there is at least `FORMATTED_SIZE` elements.
-        unsafe { value.write_mantissa::<Wide, FORMAT>(buffer) }
+        value.write_mantissa::<Wide, FORMAT>(buffer)
     }
 }
 
@@ -46,10 +41,7 @@ where
 /// Safe as long as the buffer can hold `FORMATTED_SIZE` elements
 /// (or `FORMATTED_SIZE_DECIMAL` for decimal).
 #[cfg_attr(not(feature = "compact"), inline(always))]
-unsafe fn signed<Narrow, Wide, Unsigned, const FORMAT: u128>(
-    value: Narrow,
-    buffer: &mut [u8],
-) -> usize
+fn signed<Narrow, Wide, Unsigned, const FORMAT: u128>(value: Narrow, buffer: &mut [u8]) -> usize
 where
     Narrow: SignedInteger,
     Wide: SignedInteger,
@@ -63,24 +55,17 @@ where
         // will have a very different value.
         let value = Wide::as_cast(value);
         let unsigned = Unsigned::as_cast(value.wrapping_neg());
-        // SAFETY: safe as long as there is at least `FORMATTED_SIZE` elements.
-        unsafe {
-            index_unchecked_mut!(buffer[0]) = b'-';
-            let buffer = &mut index_unchecked_mut!(buffer[1..]);
-            unsigned.write_mantissa::<Unsigned, FORMAT>(buffer) + 1
-        }
+        buffer[0] = b'-';
+        let buffer = &mut buffer[1..];
+        unsigned.write_mantissa::<Unsigned, FORMAT>(buffer) + 1
     } else if cfg!(feature = "format") && format.required_mantissa_sign() {
         let unsigned = Unsigned::as_cast(value);
-        // SAFETY: safe as long as there is at least `FORMATTED_SIZE` elements.
-        unsafe {
-            index_unchecked_mut!(buffer[0]) = b'+';
-            let buffer = &mut index_unchecked_mut!(buffer[1..]);
-            unsigned.write_mantissa::<Unsigned, FORMAT>(buffer) + 1
-        }
+        buffer[0] = b'+';
+        let buffer = &mut buffer[1..];
+        unsigned.write_mantissa::<Unsigned, FORMAT>(buffer) + 1
     } else {
         let unsigned = Unsigned::as_cast(value);
-        // SAFETY: safe as long as there is at least `FORMATTED_SIZE` elements.
-        unsafe { unsigned.write_mantissa::<Unsigned, FORMAT>(buffer) }
+        unsigned.write_mantissa::<Unsigned, FORMAT>(buffer)
     }
 }
 
@@ -94,12 +79,8 @@ macro_rules! unsigned_to_lexical {
             fn to_lexical(self, bytes: &mut [u8])
                 -> &mut [u8]
             {
-                assert_buffer::<$narrow>(10, bytes.len());
-                // SAFETY: safe if `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.
-                unsafe {
-                    let len = unsigned::<$narrow, $wide, { STANDARD }>(self, bytes);
-                    &mut index_unchecked_mut!(bytes[..len])
-                }
+                let len = unsigned::<$narrow, $wide, { STANDARD }>(self, bytes);
+                &mut bytes[..len]
             }
         }
 
@@ -114,13 +95,9 @@ macro_rules! unsigned_to_lexical {
             ) -> &'a mut [u8]
             {
                 _ = options;
-                assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
                 assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
-                // SAFETY: safe since `bytes.len() > Self::FORMATTED_SIZE`.
-                unsafe {
-                    let len = unsigned::<$narrow, $wide, FORMAT>(self, bytes);
-                    &mut index_unchecked_mut!(bytes[..len])
-                }
+                let len = unsigned::<$narrow, $wide, FORMAT>(self, bytes);
+                &mut bytes[..len]
             }
         }
     )*)
@@ -152,12 +129,8 @@ macro_rules! signed_to_lexical {
             fn to_lexical(self, bytes: &mut [u8])
                 -> &mut [u8]
             {
-                assert_buffer::<$narrow>(10, bytes.len());
-                // SAFETY: safe since `bytes.len() > Self::FORMATTED_SIZE_DECIMAL`.
-                unsafe {
-                    let len = signed::<$narrow, $wide, $unsigned, { STANDARD }>(self, bytes);
-                    &mut index_unchecked_mut!(bytes[..len])
-                }
+                let len = signed::<$narrow, $wide, $unsigned, { STANDARD }>(self, bytes);
+                &mut bytes[..len]
             }
         }
 
@@ -172,13 +145,9 @@ macro_rules! signed_to_lexical {
             ) -> &'a mut [u8]
             {
                 _ = options;
-                assert_buffer::<$narrow>(NumberFormat::<{ FORMAT }>::RADIX, bytes.len());
                 assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
-                // SAFETY: safe since `bytes.len() > Self::FORMATTED_SIZE`.
-                unsafe {
-                    let len = signed::<$narrow, $wide, $unsigned, FORMAT>(self, bytes);
-                    &mut index_unchecked_mut!(bytes[..len])
-                }
+                let len = signed::<$narrow, $wide, $unsigned, FORMAT>(self, bytes);
+                &mut bytes[..len]
             }
         }
     )*)

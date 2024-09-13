@@ -8,7 +8,6 @@
 //! recent benchmark data.
 
 #![cfg(not(feature = "compact"))]
-#![doc(hidden)]
 
 use lexical_util::assert::debug_assert_radix;
 use lexical_util::digit::digit_to_char;
@@ -40,6 +39,8 @@ macro_rules! write_digits {
 /// # Safety
 ///
 /// Safe if `bytes` is large enough to hold 1 characters, and `r < 36`.
+/// Adding in direct safety checks here destroys performance, often by
+/// 30%+ so it's up to the caller to beware.
 macro_rules! write_digit {
     ($bytes:ident, $index:ident, $r:ident) => {{
         debug_assert!($index >= 1);
@@ -64,7 +65,12 @@ macro_rules! write_digit {
 /// # Safety
 ///
 /// This is safe as long as the buffer is large enough to hold `T::MAX`
-/// digits in radix `N`.
+/// digits in radix `N` and the index >= digit count. Note  that making
+/// small changes here can destroy performance, so it's crucial we do this
+/// correctly.
+///
+/// See [algorithm] for more detailed information on the safety considerations.
+#[inline(always)]
 unsafe fn write_digits<T: UnsignedInteger>(
     mut value: T,
     radix: u32,
@@ -81,6 +87,10 @@ unsafe fn write_digits<T: UnsignedInteger>(
 
     // SAFETY: All of these are safe for the buffer writes as long as
     // the buffer is large enough to hold `T::MAX` digits in radix `N`.
+    // We confirm (which will be compiled out) that the table cannot
+    // overflow since it's the indexing is `0..radix^2 * 2`.
+    assert!(radix <= T::from_u32(36), "radix must be <= 36");
+    assert!(table.len() >= radix2.as_usize() * 2, "table must be 2 * radix^2 long");
 
     // Decode 4 digits at a time.
     while value >= radix4 {
@@ -128,7 +138,8 @@ unsafe fn write_digits<T: UnsignedInteger>(
 /// # Safety
 ///
 /// This is safe as long as the buffer is large enough to hold `T::MAX`
-/// digits in radix `N`.
+/// digits in radix `N`. See [algorithm] for more safety considerations.
+#[inline(always)]
 unsafe fn write_step_digits<T: UnsignedInteger>(
     value: T,
     radix: u32,
@@ -158,15 +169,22 @@ unsafe fn write_step_digits<T: UnsignedInteger>(
 /// # Safety
 ///
 /// Safe as long as the buffer is large enough to hold as many digits
-/// that can be in the largest value of `T`, in radix `N`.
+/// that can be in the largest value of `T`, in radix `N`. For decimal
+/// values, it's supposed to be exactly [digit_count] to avoid copies,
+/// since we write from the end to the front.
+///
+/// See the crate [crate] documentation for more security considerations.
+///
+/// [digit_count]: crate::decimal::DigitCount
 #[inline(always)]
 pub unsafe fn algorithm<T>(value: T, radix: u32, table: &[u8], buffer: &mut [u8]) -> usize
 where
     T: UnsignedInteger,
 {
     // This is so that radix^4 does not overflow, since 36^4 overflows a u16.
-    debug_assert!(T::BITS >= 32, "Must have at least 32 bits in the input.");
-    debug_assert_radix(radix);
+    assert!(T::BITS >= 32, "Must have at least 32 bits in the input.");
+    assert!(radix <= 36, "radix must be <= 36");
+    assert!(table.len() >= (radix * radix * 2) as usize, "table must be 2 * radix^2 long");
 
     // SAFETY: Both forms of unchecked indexing cannot overflow.
     // The table always has 2*radix^2 elements, so it must be a legal index.
@@ -181,22 +199,29 @@ where
 /// # Safety
 ///
 /// Safe as long as the buffer is large enough to hold as many digits
-/// that can be in the largest value of `T`, in radix `N`.
+/// that can be in the largest value of `T`, in radix `N`. For decimal
+/// values, it's supposed to be exactly [digit_count] to avoid copies,
+/// since we write from the end to the front.
+///
+/// See the crate [crate] documentation for more security considerations.
+///
+/// [digit_count]: crate::decimal::DigitCount
 #[inline(always)]
 pub unsafe fn algorithm_u128<const FORMAT: u128, const MASK: u128, const SHIFT: i32>(
     value: u128,
     table: &[u8],
     buffer: &mut [u8],
 ) -> usize {
-    //  NOTE:
-    //      Use the const version of radix for u64_step and u128_divrem
-    //      to ensure they're evaluated at compile time.
+    // NOTE: Use the const version of radix for u64_step and
+    // u128_divrem to ensure they're evaluated at compile time.
     assert!(NumberFormat::<{ FORMAT }> {}.is_valid());
 
     // Quick approximations to make the algorithm **a lot** faster.
     // If the value can be represented in a 64-bit integer, we can
     // do this as a native integer.
     let radix = radix_from_flags(FORMAT, MASK, SHIFT);
+    assert!(radix <= 36, "radix must be <= 36");
+    assert!(table.len() >= (radix * radix * 2) as usize, "table must be 2 * radix^2 long");
     if value <= u64::MAX as _ {
         // SAFETY: safe if the buffer is large enough to hold the significant digits.
         return unsafe { algorithm(value as u64, radix, table, buffer) };

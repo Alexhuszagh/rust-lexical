@@ -6,7 +6,8 @@ set -ex
 
 # Change to our project home.
 script_dir=$(dirname "${BASH_SOURCE[0]}")
-cd "$script_dir"/..
+home=$(dirname "${script_dir}")
+cd "${home}"
 
 # Print our cargo version, for debugging.
 cargo --version
@@ -78,6 +79,7 @@ test() {
     test_features="$DEFAULT_FEATURES --features=$REQUIRED_FEATURES"
     cargo test $test_features $DOCTESTS
     cargo test $test_features $DOCTESTS --release
+    cargo test --features=radix,format,compact $DOCTESTS --release
 }
 
 # Dry-run bench target
