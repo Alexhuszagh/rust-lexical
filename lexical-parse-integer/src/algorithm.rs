@@ -90,11 +90,16 @@ macro_rules! into_error {
 /// Handle an invalid digit if the format feature is enabled.
 ///
 /// This is because we can have special, non-digit characters near
-/// the start or internally.
+/// the start or internally. If `$is_end` is set to false, there **MUST**
+/// be elements in the underlying slice after the current iterator.
 macro_rules! fmt_invalid_digit {
     (
         $value:ident, $iter:ident, $c:expr, $start_index:ident, $invalid_digit:ident, $is_end:expr
     ) => {{
+        // NOTE: If we have non-contiguous iterators, we could have a skip character here
+        // at the boundary. This does not affect safety but it does affect correctness.
+        debug_assert!($iter.is_contiguous() || $is_end);
+
         let base_suffix = NumberFormat::<FORMAT>::BASE_SUFFIX;
         let uncased_base_suffix = NumberFormat::<FORMAT>::CASE_SENSITIVE_BASE_SUFFIX;
         // Need to check for a base suffix, if so, return a valid value.
@@ -116,8 +121,10 @@ macro_rules! fmt_invalid_digit {
                 // Haven't finished parsing, so we're going to call
                 // invalid_digit!. Need to ensure we include the
                 // base suffix in that.
+
                 // SAFETY: safe since the iterator is not empty, as checked
-                // in `$iter.is_done()` above.
+                // in `$iter.is_done()` and `$is_end`. If `$is_end` is false,
+                // then we have more elements in our
                 unsafe { $iter.step_unchecked() };
             }
         }
@@ -444,18 +451,24 @@ macro_rules! parse_digits_checked {
         $no_multi_digit:expr,
         $overflow_digits:expr
     ) => {{
-        // Can use the unchecked for the max_digits here
-        if let Some(mut small) = $iter.take_n($overflow_digits) {
-            let mut small_iter = small.integer_iter();
-            parse_digits_unchecked!(
-                $value,
-                small_iter,
-                $add_op_uc,
-                $start_index,
-                $invalid_digit,
-                $no_multi_digit,
-                false
-            );
+        // Can use the unchecked for the max_digits here. If we
+        // have a non-contiguous iterator, we could have a case like
+        // 123__456, with no consecutive digit sepatators allowed. If
+        // it's broken between the `_` characters, the integer will be
+        // seen as valid when it isn't.
+        if cfg!(not(feature = "format")) || $iter.is_contiguous() {
+            if let Some(mut small) = $iter.take_n($overflow_digits) {
+                let mut small_iter = small.integer_iter();
+                parse_digits_unchecked!(
+                    $value,
+                    small_iter,
+                    $add_op_uc,
+                    $start_index,
+                    $invalid_digit,
+                    $no_multi_digit,
+                    false
+                );
+            }
         }
 
         // NOTE: all our multi-digit optimizations have been done here: skip this
