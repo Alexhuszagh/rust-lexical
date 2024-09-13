@@ -63,29 +63,29 @@
 //!
 //! A complete description of supported features includes:
 //!
-//! ### std
+//! #### std
 //!
 //! Enable use of the standard library. Currently, the standard library
 //! is not used for any functionality, and may be disabled without any
 //! change in functionality on stable.
 //!
-//! ### write-integers
+//! #### write-integers
 //!
 //! Enable support for writing integers to string.
 //!
-//! ### write-floats
+//! #### write-floats
 //!
 //! Enable support for writing floating-point numbers to string.
 //!
-//! ### parse-integers
+//! #### parse-integers
 //!
 //! Enable support for parsing integers from string.
 //!
-//! ### parsing-floats
+//! #### parsing-floats
 //!
 //! Enable support for parsing floating-point numbers from string.
 //!
-//! ### format
+//! #### format
 //!
 //! Adds support for the entire format API (using [`NumberFormatBuilder`]).
 //! This allows extensive configurability for parsing and writing numbers
@@ -122,13 +122,13 @@
 //!
 //! See the [Number Format](#number-format) section below for more information.
 //!
-//! ### power-of-two
+//! #### power-of-two
 //!
 //! Enable doing numeric conversions to and from strings with power-of-two
 //! radixes. This avoids most of the overhead and binary bloat of the radix
 //! feature, while enabling support for the most commonly-used radixes.
 //!
-//! ### radix
+//! #### radix
 //!
 //! Enable doing numeric conversions to and from strings for all radixes.
 //! This requires substantially more static storage than `power-of-two`,
@@ -136,19 +136,18 @@
 //! for esoteric programming languages which use duodecimal floats, for
 //! example.
 //!
-//! ### compact
+//! #### compact
 //!
 //! Reduce the generated code size at the cost of performance. This minimizes
 //! the number of static tables, inlining, and generics used, drastically
 //! reducing the size of the generated binaries.
 //!
-//! ### safe
+//! #### safe
 //!
-//! All numeric parsers are memory-safe by default, since parsing complex
-//! input is a major source of memory vulnerabilities. However, numeric
-//! writers often opt-in for unchecked writes, for major performance
-//! improvements. This may be disabled entirely by enabling the `safe`
-//! feature. In addition, to simplify memory safety guarantees, extensive
+//! This replaces most unchecked indexing, required in cases where the
+//! compiler cannot ellide the check, with checked indexing. However,
+//! it does not fully replace all unsafe behavior with safe behavior.
+//! To minimize the risk of UB and out-of-bounds reads/writers, extensive
 //! edge-cases, property-based tests, and fuzzing is done with both the
 //! safe feature enabled and disabled, with the tests verified by Miri
 //! and Valgrind.
@@ -249,6 +248,14 @@
 //! The minimum, standard, required version is 1.63.0, for const generic
 //! support. Older versions of lexical support older Rust versions.
 //!
+//! # Safety
+//!
+//! There is no non-trivial unsafe behavior in [lexical][crate] itself,
+//! however, any incorrect safety invariants in our parsers and writers
+//! (`lexical-parse-float`, `lexical-parse-integer`, `lexical-write-float`,
+//! and `lexical-write-integer`) could cause those safety invariants to
+//! be broken.
+//!
 //! [`to_string`]: fn.to_string.html
 //! [`to_string_with_options`]: fn.to_string_with_options.html
 //! [`write_with_options`]: crate::write_with_options
@@ -271,12 +278,11 @@
 
 // Need an allocator for String/Vec.
 #[cfg(feature = "write")]
+#[macro_use(vec)]
 extern crate alloc;
 
 #[cfg(feature = "write")]
 use alloc::string::String;
-#[cfg(feature = "write")]
-use alloc::vec::Vec;
 
 pub use lexical_core::format::{self, format_error, format_is_valid, NumberFormatBuilder};
 #[cfg(feature = "parse")]
@@ -304,20 +310,29 @@ pub use lexical_core::{FromLexical, FromLexicalWithOptions};
 #[cfg(feature = "write")]
 pub use lexical_core::{ToLexical, ToLexicalWithOptions};
 
-// HELPERS
-
-/// Get a vector as a slice, including the capacity.
-///
-/// # Safety
-///
-/// Safe if we never read uninitialized memory.
-#[inline]
-#[cfg(feature = "write")]
-unsafe fn vector_as_slice<T>(buf: &mut Vec<T>) -> &mut [T] {
-    let first = buf.as_mut_ptr();
-    // SAFETY: safe if as long as uninitialized memory is never read.
-    unsafe { core::slice::from_raw_parts_mut(first, buf.capacity()) }
-}
+// NOTE: We cannot just use an uninitialized vector with excess capacity and then use
+// read-assign rather than `ptr::write` or `MaybeUninit.write` to modify the values.
+// When LLVM was the primary codegen, this was **UNSPECIFIED** but not undefined
+// behavior: reading undef primitives is safe:
+//  https://llvm.org/docs/LangRef.html#undefined-values
+//
+// However, a different backend such as cranelift might make this undefined behavior.
+// That is, from the perspective of Rust, this is UB:
+//
+//  ```rust
+//  let x = Vec::<u8>::with_capacity(500);
+//  let ptr = x.as_mut_ptr()
+//  let slc = slice::from_raw_parts_mut(ptr, x.capacity())
+//  // UB!!
+//  slc[0] = 1;
+//
+//  // Fine
+//  ptr.write(1);
+//  ```
+//
+// Currently, since LLVM treats it as unspecified behavior and will not drop values,
+// there is no risk of a memory leak and this is **currently** safe. However, this
+// can explode at any time, just like any UB.
 
 /// High-level conversion of a number to a decimal-encoded string.
 ///
@@ -335,10 +350,13 @@ unsafe fn vector_as_slice<T>(buf: &mut Vec<T>) -> &mut [T] {
 #[inline]
 #[cfg(feature = "write")]
 pub fn to_string<N: ToLexical>(n: N) -> String {
-    // SAFETY: safe since the buffer is of sufficient size.
+    // TODO: Change to use our `MaybeUnint` API and a `with_capacity` to
+    // avoid the overhead of the calloc here.
+    let mut buf = vec![0u8; N::FORMATTED_SIZE_DECIMAL];
+    let len = lexical_core::write(n, buf.as_mut_slice()).len();
+
+    // SAFETY: safe since the buffer is of sufficient size, len() must be <= the vec size.
     unsafe {
-        let mut buf = Vec::<u8>::with_capacity(N::FORMATTED_SIZE_DECIMAL);
-        let len = lexical_core::write(n, vector_as_slice(&mut buf)).len();
         buf.set_len(len);
         String::from_utf8_unchecked(buf)
     }
@@ -371,12 +389,12 @@ pub fn to_string_with_options<N: ToLexicalWithOptions, const FORMAT: u128>(
 ) -> String {
     // Need to use the buffer_size hint to properly deal with float formatting options.
     let size = N::Options::buffer_size::<N, FORMAT>(options);
-    // SAFETY: safe since the buffer is of sufficient size.
+    let mut buf = vec![0u8; size];
+    let slc = buf.as_mut_slice();
+    let len = lexical_core::write_with_options::<_, FORMAT>(n, slc, options).len();
+
+    // SAFETY: safe since the buffer is of sufficient size, len() must be <= the vec size.
     unsafe {
-        let mut buf = Vec::<u8>::with_capacity(size);
-        let len =
-            lexical_core::write_with_options::<_, FORMAT>(n, vector_as_slice(&mut buf), options)
-                .len();
         buf.set_len(len);
         String::from_utf8_unchecked(buf)
     }
