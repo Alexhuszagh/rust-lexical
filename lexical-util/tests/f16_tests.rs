@@ -1,9 +1,11 @@
 #![cfg(feature = "f16")]
 
+mod util;
+
+use crate::util::default_proptest_config;
 use lexical_util::f16::f16;
 use lexical_util::num::Float;
 use proptest::prelude::*;
-use quickcheck::quickcheck;
 
 #[test]
 fn as_f32_test() {
@@ -42,8 +44,7 @@ fn math_tests() {
     assert_eq!(f16::ONE % f16::ONE, f16::ZERO);
 }
 
-quickcheck! {
-    #[cfg_attr(miri, ignore)]
+default_quickcheck! {
     fn f32_roundtrip_quickcheck(x: u16) -> bool {
         let f = f16::from_bits(x).as_f32();
         if f.is_nan() {
@@ -55,8 +56,9 @@ quickcheck! {
 }
 
 proptest! {
+    #![proptest_config(default_proptest_config())]
+
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn f32_roundtrip_proptest(x in u16::MIN..u16::MAX) {
         let f = f16::from_bits(x).as_f32();
         if f.is_nan() {

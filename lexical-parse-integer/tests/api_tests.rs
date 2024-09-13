@@ -1,6 +1,6 @@
-#[cfg(feature = "power-of-two")]
 mod util;
 
+use crate::util::default_proptest_config;
 use lexical_parse_integer::{FromLexical, FromLexicalWithOptions, Options};
 use lexical_util::error::Error;
 #[cfg(feature = "format")]
@@ -402,8 +402,9 @@ macro_rules! is_invalid_digit_match {
 }
 
 proptest! {
+    #![proptest_config(default_proptest_config())]
+
     #[test]
-    #[cfg_attr(miri, ignore)]
     #[cfg(feature = "power-of-two")]
     fn i32_binary_roundtrip_display_proptest(i in i32::MIN..i32::MAX) {
         let options = Options::new();
@@ -418,361 +419,301 @@ proptest! {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u8_invalid_proptest(i in r"[+]?[0-9]{2}\D") {
         is_invalid_digit_match!(u8::from_lexical(i.as_bytes()), 2 | 3);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u8_overflow_proptest(i in r"[+]?[1-9][0-9]{3}") {
         is_overflow!(u8::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u8_negative_proptest(i in r"[-][1-9][0-9]{2}") {
         is_invalid_digit!(u8::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u8_double_sign_proptest(i in r"[+]{2}[0-9]{2}") {
         is_invalid_digit_match!(u8::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u8_sign_only_proptest(i in r"[+]") {
         is_empty!(u8::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u8_trailing_digits_proptest(i in r"[+]?[0-9]{2}\D[0-9]{2}") {
         is_invalid_digit_match!(u8::from_lexical(i.as_bytes()), 2 | 3);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i8_invalid_proptest(i in r"[+-]?[0-9]{2}\D") {
         is_invalid_digit_match!(i8::from_lexical(i.as_bytes()), 2 | 3);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i8_overflow_proptest(i in r"[+]?[1-9][0-9]{3}") {
         is_overflow!(i8::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i8_underflow_proptest(i in r"[-][1-9][0-9]{3}") {
         is_underflow!(i8::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i8_double_sign_proptest(i in r"[+-]{2}[0-9]{2}") {
         is_invalid_digit_match!(i8::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i8_sign_only_proptest(i in r"[+-]") {
         is_empty!(i8::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i8_trailing_digits_proptest(i in r"[+-]?[0-9]{2}\D[0-9]{2}") {
         is_invalid_digit_match!(i8::from_lexical(i.as_bytes()), 2 | 3);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u16_invalid_proptest(i in r"[+]?[0-9]{4}\D") {
         is_invalid_digit_match!(u16::from_lexical(i.as_bytes()), 4 | 5);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u16_overflow_proptest(i in r"[+]?[1-9][0-9]{5}") {
         is_overflow!(u16::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u16_negative_proptest(i in r"[-][1-9][0-9]{4}") {
         is_invalid_digit!(u16::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u16_double_sign_proptest(i in r"[+]{2}[0-9]{4}") {
         is_invalid_digit_match!(u16::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u16_sign_only_proptest(i in r"[+]") {
         is_empty!(u16::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u16_trailing_digits_proptest(i in r"[+]?[0-9]{4}\D[0-9]{2}") {
         is_invalid_digit_match!(u16::from_lexical(i.as_bytes()), 4 | 5);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i16_invalid_proptest(i in r"[+-]?[0-9]{4}\D") {
         is_invalid_digit_match!(i16::from_lexical(i.as_bytes()), 4 | 5);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i16_overflow_proptest(i in r"[+]?[1-9][0-9]{5}") {
         is_overflow!(i16::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i16_underflow_proptest(i in r"[-][1-9][0-9]{5}") {
         is_underflow!(i16::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i16_double_sign_proptest(i in r"[+-]{2}[0-9]{4}") {
         is_invalid_digit_match!(i16::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i16_sign_only_proptest(i in r"[+-]") {
         is_empty!(i16::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i16_trailing_digits_proptest(i in r"[+-]?[0-9]{4}\D[0-9]{2}") {
         is_invalid_digit_match!(i16::from_lexical(i.as_bytes()), 4 | 5);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u32_invalid_proptest(i in r"[+]?[0-9]{9}\D") {
         is_invalid_digit_match!(u32::from_lexical(i.as_bytes()), 9 | 10);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u32_overflow_proptest(i in r"[+]?[1-9][0-9]{10}") {
         is_overflow!(u32::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u32_negative_proptest(i in r"[-][1-9][0-9]{9}") {
         is_invalid_digit!(u32::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u32_double_sign_proptest(i in r"[+]{2}[0-9]{9}") {
         is_invalid_digit_match!(u32::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u32_sign_only_proptest(i in r"[+]") {
         is_empty!(u32::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u32_trailing_digits_proptest(i in r"[+]?[0-9]{9}\D[0-9]{2}") {
         is_invalid_digit_match!(u32::from_lexical(i.as_bytes()), 9 | 10);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i32_invalid_proptest(i in r"[+-]?[0-9]{9}\D") {
         is_invalid_digit_match!(i32::from_lexical(i.as_bytes()), 9 | 10);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i32_overflow_proptest(i in r"[+]?[1-9][0-9]{10}") {
         is_overflow!(i32::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i32_underflow_proptest(i in r"-[1-9][0-9]{10}") {
         is_underflow!(i32::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i32_double_sign_proptest(i in r"[+-]{2}[0-9]{9}") {
         is_invalid_digit_match!(i32::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i32_sign_only_proptest(i in r"[+-]") {
         is_empty!(i32::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i32_trailing_digits_proptest(i in r"[+-]?[0-9]{9}\D[0-9]{2}") {
         is_invalid_digit_match!(i32::from_lexical(i.as_bytes()), 9 | 10);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u64_invalid_proptest(i in r"[+]?[0-9]{19}\D") {
         is_invalid_digit_match!(u64::from_lexical(i.as_bytes()), 19 | 20);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u64_overflow_proptest(i in r"[+]?[1-9][0-9]{21}") {
         is_overflow!(u64::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u64_negative_proptest(i in r"[-][1-9][0-9]{21}") {
         is_invalid_digit!(u64::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u64_double_sign_proptest(i in r"[+]{2}[0-9]{19}") {
         is_invalid_digit_match!(u64::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u64_sign_only_proptest(i in r"[+]") {
         is_empty!(u64::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u64_trailing_digits_proptest(i in r"[+]?[0-9]{19}\D[0-9]{2}") {
         is_invalid_digit_match!(u64::from_lexical(i.as_bytes()), 19 | 20);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i64_invalid_proptest(i in r"[+-]?[0-9]{18}\D") {
         is_invalid_digit_match!(i64::from_lexical(i.as_bytes()), 18 | 19);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i64_overflow_proptest(i in r"[+]?[1-9][0-9]{19}") {
         is_overflow!(i64::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i64_underflow_proptest(i in r"-[1-9][0-9]{19}") {
         is_underflow!(i64::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i64_double_sign_proptest(i in r"[+-]{2}[0-9]{18}") {
         is_invalid_digit_match!(i64::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i64_sign_only_proptest(i in r"[+-]") {
         is_empty!(i64::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i64_trailing_digits_proptest(i in r"[+-]?[0-9]{18}\D[0-9]{2}") {
         is_invalid_digit_match!(i64::from_lexical(i.as_bytes()), 18 | 19);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u128_invalid_proptest(i in r"[+]?[0-9]{38}\D") {
         is_invalid_digit_match!(u128::from_lexical(i.as_bytes()), 38 | 39);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u128_overflow_proptest(i in r"[+]?[1-9][0-9]{39}") {
         is_overflow!(u128::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u128_negative_proptest(i in r"[-][1-9][0-9]{39}") {
         is_invalid_digit!(u128::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u128_double_sign_proptest(i in r"[+]{2}[0-9]{38}") {
         is_invalid_digit_match!(u128::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u128_sign_only_proptest(i in r"[+]") {
         is_empty!(u128::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn u128_trailing_digits_proptest(i in r"[+]?[0-9]{38}\D[0-9]{2}") {
         is_invalid_digit_match!(u128::from_lexical(i.as_bytes()), 38 | 39);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i128_invalid_proptest(i in r"[+-]?[0-9]{38}\D") {
         is_invalid_digit_match!(i128::from_lexical(i.as_bytes()), 38 | 39);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i128_overflow_proptest(i in r"[+]?[1-9][0-9]{39}") {
         is_overflow!(i128::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i128_underflow_proptest(i in r"-[1-9][0-9]{39}") {
         is_underflow!(i128::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i128_double_sign_proptest(i in r"[+-]{2}[0-9]{38}") {
         is_invalid_digit_match!(i128::from_lexical(i.as_bytes()), 1);
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i128_sign_only_proptest(i in r"[+-]") {
         is_empty!(i128::from_lexical(i.as_bytes()));
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn i128_trailing_digits_proptest(i in r"[+-]?[0-9]{38}\D[0-9]{2}") {
         is_invalid_digit_match!(i128::from_lexical(i.as_bytes()), 38 | 39);
     }

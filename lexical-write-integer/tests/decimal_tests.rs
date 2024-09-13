@@ -1,8 +1,9 @@
 #![cfg(not(feature = "compact"))]
 
+mod util;
+
 use lexical_util::num::UnsignedInteger;
 use lexical_write_integer::decimal::{self, Decimal, DigitCount};
-use quickcheck::quickcheck;
 
 #[test]
 fn fast_log2_test() {
@@ -412,28 +413,23 @@ fn slow_digit_count<T: UnsignedInteger>(x: T) -> usize {
     x.to_string().len()
 }
 
-quickcheck! {
-    #[cfg_attr(miri, ignore)]
+default_quickcheck! {
     fn fast_log2_quickcheck(x: u32) -> bool {
         slow_log2(x) == decimal::fast_log2(x)
     }
 
-    #[cfg_attr(miri, ignore)]
     fn u32_digit_count_quickcheck(x: u32) -> bool {
         slow_digit_count(x) == x.digit_count()
     }
 
-    #[cfg_attr(miri, ignore)]
     fn u64_digit_count_quickcheck(x: u64) -> bool {
         slow_digit_count(x) == x.digit_count()
     }
 
-    #[cfg_attr(miri, ignore)]
     fn u128_digit_count_quickcheck(x: u128) -> bool {
         slow_digit_count(x) == x.digit_count()
     }
 
-    #[cfg_attr(miri, ignore)]
     fn u32toa_quickcheck(x: u32) -> bool {
         let actual = x.to_string();
         let mut buffer = [b'\x00'; 16];
@@ -441,7 +437,6 @@ quickcheck! {
             &buffer[..actual.len()] == actual.as_bytes()
     }
 
-    #[cfg_attr(miri, ignore)]
     fn u64toa_quickcheck(x: u64) -> bool {
         let actual = x.to_string();
         let mut buffer = [b'\x00'; 32];
@@ -449,7 +444,6 @@ quickcheck! {
             &buffer[..actual.len()] == actual.as_bytes()
     }
 
-    #[cfg_attr(miri, ignore)]
     fn u128toa_quickcheck(x: u128) -> bool {
         let actual = x.to_string();
         let mut buffer = [b'\x00'; 48];

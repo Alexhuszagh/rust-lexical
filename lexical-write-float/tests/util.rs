@@ -1,14 +1,7 @@
 #![allow(dead_code, unused_imports)]
 
-#[cfg(feature = "power-of-two")]
-use lexical_util::format::NumberFormatBuilder;
 use proptest::prelude::*;
 pub(crate) use quickcheck::QuickCheck;
-
-#[cfg(feature = "power-of-two")]
-pub const fn from_radix(radix: u8) -> u128 {
-    NumberFormatBuilder::from_radix(radix)
-}
 
 pub fn default_proptest_config() -> ProptestConfig {
     ProptestConfig {
